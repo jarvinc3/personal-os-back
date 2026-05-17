@@ -6,6 +6,9 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import type { Response } from 'express';
+import { Throttle } from '@nestjs/throttler';
+import { CurrentUser } from '../../core/decorators';
+import { NotificationsGateway } from '../notifications/notifications.gateway';
 import { AiService } from './ai.service';
 import { ChatRequestDto } from './dto/chat-request.dto';
 import { AiProviderInfoDto } from './dto/ai-provider-info.dto';
@@ -14,7 +17,10 @@ import { ChatResponseDto } from './dto/chat-response.dto';
 @ApiTags('ai-agent')
 @Controller('ai')
 export class AiController {
-  constructor(private readonly aiService: AiService) {}
+  constructor(
+    private readonly aiService: AiService,
+    private readonly notificationsGateway: NotificationsGateway,
+  ) {}
 
   @Get('providers')
   @ApiOperation({ summary: 'List configured AI providers' })
@@ -34,11 +40,15 @@ export class AiController {
   }
 
   @Post('chat')
+  @Throttle({ long: { limit: 30, ttl: 60_000 } })
   @ApiOperation({
     summary: 'Chat with AI agent pool (aggregated JSON response)',
   })
   @ApiOkResponse({ type: ChatResponseDto })
-  async chat(@Body() dto: ChatRequestDto): Promise<ChatResponseDto> {
+  async chat(
+    @Body() dto: ChatRequestDto,
+    @CurrentUser('sub') userId?: string,
+  ): Promise<ChatResponseDto> {
     const { provider, model, stream } = await this.aiService.chat(dto.messages);
 
     let content = '';
@@ -46,14 +56,22 @@ export class AiController {
       content += chunk;
     }
 
-    return { provider, model, content };
+    const response = { provider, model, content };
+
+    if (userId) {
+      this.notificationsGateway.emitToUser(userId, 'ai.response', response);
+    }
+
+    return response;
   }
 
   @Post('chat/stream')
+  @Throttle({ long: { limit: 30, ttl: 60_000 } })
   @ApiOperation({ summary: 'Chat with AI agent pool (SSE stream)' })
   @ApiProduces('text/event-stream')
   async chatStream(
     @Body() dto: ChatRequestDto,
+    @CurrentUser('sub') userId: string | undefined,
     @Res() res: Response,
   ): Promise<void> {
     const { provider, model, stream } = await this.aiService.chat(dto.messages);
@@ -73,6 +91,14 @@ export class AiController {
       for await (const chunk of stream) {
         if (chunk) {
           writeEvent({ type: 'chunk', content: chunk });
+          if (userId) {
+            this.notificationsGateway.emitToUser(userId, 'ai.response', {
+              provider,
+              model,
+              content: chunk,
+              stream: true,
+            });
+          }
         }
       }
 

@@ -1,6 +1,393 @@
 {
   "openapi": "3.0.0",
   "paths": {
+    "/api/health": {
+      "get": {
+        "operationId": "HealthController_liveness",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "ok"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "Liveness probe",
+        "tags": [
+          "health"
+        ]
+      }
+    },
+    "/api/health/ready": {
+      "get": {
+        "operationId": "HealthController_readiness",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "The Health Check is successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "ok"
+                    },
+                    "info": {
+                      "type": "object",
+                      "example": {
+                        "database": {
+                          "status": "up"
+                        }
+                      },
+                      "additionalProperties": {
+                        "type": "object",
+                        "required": [
+                          "status"
+                        ],
+                        "properties": {
+                          "status": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": true
+                      },
+                      "nullable": true
+                    },
+                    "error": {
+                      "type": "object",
+                      "example": {},
+                      "additionalProperties": {
+                        "type": "object",
+                        "required": [
+                          "status"
+                        ],
+                        "properties": {
+                          "status": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": true
+                      },
+                      "nullable": true
+                    },
+                    "details": {
+                      "type": "object",
+                      "example": {
+                        "database": {
+                          "status": "up"
+                        }
+                      },
+                      "additionalProperties": {
+                        "type": "object",
+                        "required": [
+                          "status"
+                        ],
+                        "properties": {
+                          "status": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The Health Check is not successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "error"
+                    },
+                    "info": {
+                      "type": "object",
+                      "example": {
+                        "database": {
+                          "status": "up"
+                        }
+                      },
+                      "additionalProperties": {
+                        "type": "object",
+                        "required": [
+                          "status"
+                        ],
+                        "properties": {
+                          "status": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": true
+                      },
+                      "nullable": true
+                    },
+                    "error": {
+                      "type": "object",
+                      "example": {
+                        "redis": {
+                          "status": "down",
+                          "message": "Could not connect"
+                        }
+                      },
+                      "additionalProperties": {
+                        "type": "object",
+                        "required": [
+                          "status"
+                        ],
+                        "properties": {
+                          "status": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": true
+                      },
+                      "nullable": true
+                    },
+                    "details": {
+                      "type": "object",
+                      "example": {
+                        "database": {
+                          "status": "up"
+                        },
+                        "redis": {
+                          "status": "down",
+                          "message": "Could not connect"
+                        }
+                      },
+                      "additionalProperties": {
+                        "type": "object",
+                        "required": [
+                          "status"
+                        ],
+                        "properties": {
+                          "status": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "Readiness probe (database, JWKS, optional Redis)",
+        "tags": [
+          "health"
+        ]
+      }
+    },
+    "/api/users/me": {
+      "get": {
+        "operationId": "UsersController_getMyProfile",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Current user profile"
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Get authenticated user profile",
+        "tags": [
+          "users"
+        ]
+      },
+      "patch": {
+        "operationId": "UsersController_updateMyProfile",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProfileDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated user profile"
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Update authenticated user profile",
+        "tags": [
+          "users"
+        ]
+      }
+    },
+    "/api/notifications": {
+      "post": {
+        "operationId": "NotificationsController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateNotificationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Create a notification and broadcast to user room",
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/api/notifications/{id}/read": {
+      "patch": {
+        "operationId": "NotificationsController_markAsRead",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Mark notification as read for current user",
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/api/notifications/push-tokens": {
+      "post": {
+        "operationId": "NotificationsController_registerPushToken",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterPushTokenDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Register a push token for current user",
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/api/notifications/push-tokens/{token}/deactivate": {
+      "patch": {
+        "operationId": "NotificationsController_deactivatePushToken",
+        "parameters": [
+          {
+            "name": "token",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Deactivate a push token for current user",
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/api/auth/session": {
+      "get": {
+        "operationId": "AuthController_session",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Current authenticated user context"
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Get authenticated session context",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
     "/api/ai/providers": {
       "get": {
         "operationId": "AiController_listProviders",
@@ -87,154 +474,11 @@
           "ai-agent"
         ]
       }
-    },
-    "/api/auth": {
-      "post": {
-        "operationId": "AuthController_create",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateAuthDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Auth"
-        ]
-      },
-      "get": {
-        "operationId": "AuthController_findAll",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Auth"
-        ]
-      }
-    },
-    "/api/auth/{id}": {
-      "get": {
-        "operationId": "AuthController_findOne",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Auth"
-        ]
-      },
-      "patch": {
-        "operationId": "AuthController_update",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateAuthDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Auth"
-        ]
-      },
-      "delete": {
-        "operationId": "AuthController_remove",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Auth"
-        ]
-      }
-    },
-    "/api/health": {
-      "get": {
-        "operationId": "HealthController_health",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "string",
-                      "example": "ok"
-                    },
-                    "timestamp": {
-                      "type": "string",
-                      "format": "date-time"
-                    }
-                  }
-                }
-              }
-            }
-          }
-        },
-        "summary": "Liveness probe",
-        "tags": [
-          "health"
-        ]
-      }
     }
   },
   "info": {
-    "title": "TurnApp API",
-    "description": "TurnApp Backend Endpoints",
+    "title": "Personal OS API",
+    "description": "Personal OS backend endpoints, including auth, core modules, and AI.",
     "version": "1.0",
     "contact": {}
   },
@@ -245,6 +489,14 @@
     },
     {
       "name": "auth",
+      "description": ""
+    },
+    {
+      "name": "users",
+      "description": ""
+    },
+    {
+      "name": "notifications",
       "description": ""
     },
     {
@@ -266,6 +518,81 @@
       }
     },
     "schemas": {
+      "UpdateProfileDto": {
+        "type": "object",
+        "properties": {
+          "fullName": {
+            "type": "string"
+          },
+          "timezone": {
+            "type": "string"
+          },
+          "locale": {
+            "type": "string"
+          },
+          "avatarUrl": {
+            "type": "string"
+          },
+          "preferences": {
+            "type": "object"
+          }
+        }
+      },
+      "CreateNotificationDto": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "channel": {
+            "type": "string",
+            "enum": [
+              "IN_APP",
+              "PUSH",
+              "EMAIL"
+            ],
+            "default": "IN_APP"
+          },
+          "title": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string"
+          },
+          "data": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "userId",
+          "type",
+          "channel",
+          "title",
+          "body"
+        ]
+      },
+      "RegisterPushTokenDto": {
+        "type": "object",
+        "properties": {
+          "platform": {
+            "type": "string",
+            "enum": [
+              "ios",
+              "android"
+            ]
+          },
+          "token": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "platform",
+          "token"
+        ]
+      },
       "ChatMessageDto": {
         "type": "object",
         "properties": {
@@ -290,6 +617,10 @@
       "ChatRequestDto": {
         "type": "object",
         "properties": {
+          "sessionId": {
+            "type": "string",
+            "description": "Optional AI session id to attach metrics"
+          },
           "messages": {
             "type": "array",
             "items": {
@@ -322,14 +653,6 @@
           "model",
           "content"
         ]
-      },
-      "CreateAuthDto": {
-        "type": "object",
-        "properties": {}
-      },
-      "UpdateAuthDto": {
-        "type": "object",
-        "properties": {}
       }
     }
   }

@@ -16,6 +16,13 @@ export const envSchema = z
     // ── Base de datos ────────────────────────────────────────────
     DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
 
+    // ── Supabase ──────────────────────────────────────────────
+    SUPABASE_URL: z.url('SUPABASE_URL must be a valid URL'),
+    SUPABASE_ANON_KEY: z.string().optional(),
+    SUPABASE_SERVICE_ROLE_KEY: z
+      .string()
+      .min(1, 'SUPABASE_SERVICE_ROLE_KEY is required'),
+
     // ── IA (free-tier providers) ───────────────
     GROQ_API_KEY: optionalApiKey,
     CEREBRAS_API_KEY: optionalApiKey,
@@ -33,6 +40,27 @@ export const envSchema = z
     PORT: z.coerce.number().int().positive().default(3000),
     CORS_ORIGIN: z.url('CORS_ORIGIN must be a valid URL'),
     API_URL: z.url('API_URL must be a valid URL'),
+    REDIS_URL: z
+      .string()
+      .optional()
+      .transform((value) => {
+        const trimmed = value?.trim();
+        if (!trimmed) {
+          return undefined;
+        }
+        return trimmed;
+      })
+      .pipe(z.union([z.string().url(), z.undefined()])),
+    REDIS_ENABLED: z
+      .union([z.boolean(), z.string()])
+      .optional()
+      .transform((value) => {
+        if (value === true || value === 'true' || value === '1') {
+          return true;
+        }
+        return false;
+      }),
+    DATABASE_SSL_REJECT_UNAUTHORIZED: z.coerce.boolean().optional(),
     API_PREFIX: z
       .string()
       .default('api')
@@ -48,6 +76,10 @@ export const envSchema = z
     EXCHANGE_RATE_HOST_API_KEY: optionalApiKey,
   })
   .superRefine((data, ctx) => {
+    if (data.NODE_ENV === 'test') {
+      return;
+    }
+
     if (
       !data.GROQ_API_KEY &&
       !data.CEREBRAS_API_KEY &&
@@ -58,6 +90,14 @@ export const envSchema = z
         message:
           'At least one AI provider key is required (GROQ_API_KEY, CEREBRAS_API_KEY, or OPENROUTER_API_KEY)',
         path: ['GROQ_API_KEY'],
+      });
+    }
+
+    if (data.NODE_ENV === 'production' && !data.REDIS_URL) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'REDIS_URL is required in production (BullMQ job queues)',
+        path: ['REDIS_URL'],
       });
     }
   });

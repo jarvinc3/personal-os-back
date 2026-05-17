@@ -1,42 +1,24 @@
-import {
-  Body,
-  Controller,
-  Delete,
-  Get,
-  Param,
-  Patch,
-  Post,
-} from '@nestjs/common';
-import { AuthService } from './auth.service';
-import { CreateAuthDto } from './dto/create-auth.dto';
-import { UpdateAuthDto } from './dto/update-auth.dto';
+import { Controller, Get } from '@nestjs/common';
+import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { CurrentUser } from '../../core/decorators';
+import { AppEvents } from '../../core/events/event.constants';
+import type { AuthUserContext } from './types/supabase-jwt-payload';
 
+@ApiTags('auth')
+@ApiBearerAuth('access-token')
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(private readonly eventEmitter: EventEmitter2) {}
 
-  @Post()
-  create(@Body() createAuthDto: CreateAuthDto) {
-    return this.authService.create(createAuthDto);
-  }
-
-  @Get()
-  findAll() {
-    return this.authService.findAll();
-  }
-
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.authService.findOne(+id);
-  }
-
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateAuthDto: UpdateAuthDto) {
-    return this.authService.update(+id, updateAuthDto);
-  }
-
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.authService.remove(+id);
+  @Get('session')
+  @ApiOperation({ summary: 'Get authenticated session context' })
+  @ApiOkResponse({ description: 'Current authenticated user context' })
+  session(@CurrentUser() user: AuthUserContext) {
+    this.eventEmitter.emit(AppEvents.USER_LOGGED_IN, {
+      userId: user.sub,
+      email: user.email,
+    });
+    return user;
   }
 }

@@ -1,5 +1,5 @@
 import { Groq } from 'groq-sdk';
-import type { AIService, ChatMessage } from '../../../core/types/ai.types';
+import type { AIService, ChatMessage } from '../utils/ai.types';
 
 const GROQ_MODEL = 'openai/gpt-oss-safeguard-20b';
 

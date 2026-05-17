@@ -1,47 +1,35 @@
 import {
+  Inject,
   Injectable,
   Logger,
   OnModuleInit,
   ServiceUnavailableException,
 } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import type { Env } from '../../config/env.schema';
+import { AI_PROVIDER } from './utils/ai-provider.token';
 import type {
+  AIService as AIProviderClient,
   AIProviderInfo,
-  AIService,
   ChatMessage,
-} from '../../core/types/ai.types';
-import { createCerebrasProvider } from './providers/cerebras.provider';
-import { createGroqProvider } from './providers/groq.provider';
-import { createOpenRouterProvider } from './providers/openrouter.provider';
+} from './utils/ai.types';
 import { isRetryableProviderError } from './utils/is-retryable-provider-error';
 
 @Injectable()
 export class AiService implements OnModuleInit {
   private readonly logger = new Logger(AiService.name);
-  private readonly providers: AIService[] = [];
   private roundRobinIndex = 0;
 
-  constructor(private readonly config: ConfigService<Env, true>) {}
+  constructor(
+    @Inject(AI_PROVIDER)
+    private readonly providers: AIProviderClient[],
+  ) {}
 
   onModuleInit(): void {
-    const groqKey = this.config.get('GROQ_API_KEY', { infer: true });
-    const cerebrasKey = this.config.get('CEREBRAS_API_KEY', { infer: true });
-    const openRouterKey = this.config.get('OPENROUTER_API_KEY', {
-      infer: true,
-    });
-
-    if (groqKey) {
-      this.providers.push(createGroqProvider(groqKey));
-    }
-    if (cerebrasKey) {
-      this.providers.push(createCerebrasProvider(cerebrasKey));
-    }
-    if (openRouterKey) {
-      this.providers.push(createOpenRouterProvider(openRouterKey));
-    }
-
     if (this.providers.length === 0) {
+      if (process.env.NODE_ENV === 'test') {
+        this.logger.warn('AI providers skipped in test mode');
+        return;
+      }
+
       throw new Error(
         'No AI providers configured. Set at least one of: GROQ_API_KEY, CEREBRAS_API_KEY, OPENROUTER_API_KEY.',
       );
@@ -97,7 +85,7 @@ export class AiService implements OnModuleInit {
     );
   }
 
-  private getRotatedProviders(): AIService[] {
+  private getRotatedProviders(): AIProviderClient[] {
     const count = this.providers.length;
     const start = this.roundRobinIndex;
     this.roundRobinIndex = (this.roundRobinIndex + 1) % count;

@@ -21,19 +21,61 @@
       "enabled": true
     },
     {
+      "key": "supabaseUrl",
+      "value": "https://YOUR_PROJECT.supabase.co",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "supabaseAnonKey",
+      "value": "YOUR_SUPABASE_ANON_KEY",
+      "type": "secret",
+      "enabled": true
+    },
+    {
+      "key": "supabaseEmail",
+      "value": "you@example.com",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "supabasePassword",
+      "value": "",
+      "type": "secret",
+      "enabled": true
+    },
+    {
       "key": "accessToken",
       "value": "",
       "type": "secret",
       "enabled": true
     },
     {
-      "key": "authId",
-      "value": "1",
+      "key": "refreshToken",
+      "value": "",
+      "type": "secret",
+      "enabled": true
+    },
+    {
+      "key": "userId",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "notificationId",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "pushToken",
+      "value": "expo-push-token-or-fcm-token-example",
       "type": "default",
       "enabled": true
     }
   ],
   "_postman_variable_scope": "environment",
-  "_postman_exported_at": "2026-05-16T00:00:00.000Z",
+  "_postman_exported_at": "2026-05-17T00:00:00.000Z",
   "_postman_exported_using": "Personal OS backend"
 }

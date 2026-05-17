@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "personal-os-api-collection",
     "name": "Personal OS API",
-    "description": "Colección para el backend NestJS de Personal OS.\n\n**Importar:** Postman → Import → selecciona este archivo.\n\n**Variables de colección:**\n- `baseUrl` — por defecto `http://localhost:3100` (ver `PORT` y `API_URL` en `.env`)\n- `apiPrefix` — por defecto `api`\n- `accessToken` — JWT Supabase (cuando exista guard global)\n\n**Swagger:** `{{baseUrl}}/{{swaggerPath}}` (por defecto `/docs`)\n\nEndpoints marcados como *placeholder* están en el roadmap; añade requests en esas carpetas al implementar controllers.",
+    "description": "Colección para el backend NestJS de Personal OS (core infrastructure).\n\n## Importar\nPostman → Import → `postman.json` + `postman.environment.json`\n\n## Autenticación\n1. Configura `supabaseUrl`, `supabaseAnonKey`, `supabaseEmail`, `supabasePassword` (entorno o colección).\n2. Ejecuta **Supabase Auth → Sign in (password)** — guarda `accessToken` y `userId`.\n3. El resto de requests usa Bearer `{{accessToken}}` (heredado de la colección).\n\n## Respuestas API\nÉxito: `{ \"data\": ..., \"meta\": { timestamp, path, requestId } }`\nError: `{ statusCode, error, message, requestId, ... }`\n\n## WebSocket\nSocket.IO en `/notifications` — usar cliente Socket.IO, no REST.\n\n**Docs:** `docs/core-infrastructure.md` · **Swagger:** `{{baseUrl}}/{{swaggerPath}}`",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -21,63 +21,198 @@
       "script": {
         "type": "text/javascript",
         "exec": [
-          "if (!pm.collectionVariables.get('requestId')) {",
-          "  pm.collectionVariables.set('requestId', pm.variables.replaceIn('{{$guid}}'));",
-          "}",
-          "pm.request.headers.upsert({ key: 'x-request-id', value: pm.collectionVariables.get('requestId') });"
+          "pm.request.headers.upsert({ key: 'x-request-id', value: pm.variables.replaceIn('{{$guid}}') });"
         ]
       }
     }
   ],
   "variable": [
-    {
-      "key": "baseUrl",
-      "value": "http://localhost:3100",
-      "type": "string"
-    },
-    {
-      "key": "apiPrefix",
-      "value": "api",
-      "type": "string"
-    },
-    {
-      "key": "swaggerPath",
-      "value": "docs",
-      "type": "string"
-    },
-    {
-      "key": "accessToken",
-      "value": "",
-      "type": "string"
-    },
-    {
-      "key": "requestId",
-      "value": "",
-      "type": "string"
-    },
-    {
-      "key": "authId",
-      "value": "1",
-      "type": "string"
-    }
+    { "key": "baseUrl", "value": "http://localhost:3100", "type": "string" },
+    { "key": "apiPrefix", "value": "api", "type": "string" },
+    { "key": "swaggerPath", "value": "docs", "type": "string" },
+    { "key": "supabaseUrl", "value": "https://YOUR_PROJECT.supabase.co", "type": "string" },
+    { "key": "supabaseAnonKey", "value": "YOUR_SUPABASE_ANON_KEY", "type": "string" },
+    { "key": "supabaseEmail", "value": "you@example.com", "type": "string" },
+    { "key": "supabasePassword", "value": "", "type": "string" },
+    { "key": "accessToken", "value": "", "type": "string" },
+    { "key": "refreshToken", "value": "", "type": "string" },
+    { "key": "userId", "value": "", "type": "string" },
+    { "key": "notificationId", "value": "", "type": "string" },
+    { "key": "pushToken", "value": "expo-push-token-example", "type": "string" }
   ],
   "item": [
     {
+      "name": "Supabase Auth",
+      "description": "Login directo contra Supabase Auth API. No pasa por NestJS. Tras **Sign in**, `accessToken` se usa en el resto de la colección.",
+      "auth": { "type": "noauth" },
+      "item": [
+        {
+          "name": "Sign in (password)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "if (body.access_token) {",
+                  "  pm.collectionVariables.set('accessToken', body.access_token);",
+                  "  pm.environment.set('accessToken', body.access_token);",
+                  "}",
+                  "if (body.refresh_token) {",
+                  "  pm.collectionVariables.set('refreshToken', body.refresh_token);",
+                  "  pm.environment.set('refreshToken', body.refresh_token);",
+                  "}",
+                  "if (body.user && body.user.id) {",
+                  "  pm.collectionVariables.set('userId', body.user.id);",
+                  "  pm.environment.set('userId', body.user.id);",
+                  "}",
+                  "console.log('accessToken set:', !!body.access_token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "apikey", "value": "{{supabaseAnonKey}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{supabaseEmail}}\",\n  \"password\": \"{{supabasePassword}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{supabaseUrl}}/auth/v1/token?grant_type=password",
+              "host": ["{{supabaseUrl}}"],
+              "path": ["auth", "v1", "token"],
+              "query": [{ "key": "grant_type", "value": "password" }]
+            },
+            "description": "Obtiene `access_token` (JWT) y lo guarda en `accessToken`."
+          },
+          "response": []
+        },
+        {
+          "name": "Sign up",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  const body = pm.response.json();",
+                  "  if (body.access_token) {",
+                  "    pm.collectionVariables.set('accessToken', body.access_token);",
+                  "    pm.environment.set('accessToken', body.access_token);",
+                  "  }",
+                  "  if (body.user && body.user.id) {",
+                  "    pm.collectionVariables.set('userId', body.user.id);",
+                  "    pm.environment.set('userId', body.user.id);",
+                  "  }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "apikey", "value": "{{supabaseAnonKey}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{supabaseEmail}}\",\n  \"password\": \"{{supabasePassword}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{supabaseUrl}}/auth/v1/signup",
+              "host": ["{{supabaseUrl}}"],
+              "path": ["auth", "v1", "signup"]
+            },
+            "description": "Registro. Si Confirm email está activo en Supabase, puede no devolver sesión hasta confirmar."
+          },
+          "response": []
+        },
+        {
+          "name": "Refresh token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  const body = pm.response.json();",
+                  "  if (body.access_token) {",
+                  "    pm.collectionVariables.set('accessToken', body.access_token);",
+                  "    pm.environment.set('accessToken', body.access_token);",
+                  "  }",
+                  "  if (body.refresh_token) {",
+                  "    pm.collectionVariables.set('refreshToken', body.refresh_token);",
+                  "    pm.environment.set('refreshToken', body.refresh_token);",
+                  "  }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "apikey", "value": "{{supabaseAnonKey}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refresh_token\": \"{{refreshToken}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{supabaseUrl}}/auth/v1/token?grant_type=refresh_token",
+              "host": ["{{supabaseUrl}}"],
+              "path": ["auth", "v1", "token"],
+              "query": [{ "key": "grant_type", "value": "refresh_token" }]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Supabase user",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }]
+            },
+            "method": "GET",
+            "header": [{ "key": "apikey", "value": "{{supabaseAnonKey}}" }],
+            "url": {
+              "raw": "{{supabaseUrl}}/auth/v1/user",
+              "host": ["{{supabaseUrl}}"],
+              "path": ["auth", "v1", "user"]
+            },
+            "description": "Usuario en Supabase Auth (no confundir con GET /api/users/me del backend)."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
       "name": "Meta",
-      "description": "Documentación y especificación OpenAPI (sin prefijo `/api`).",
       "item": [
         {
           "name": "Swagger UI",
           "request": {
             "auth": { "type": "noauth" },
             "method": "GET",
-            "header": [],
             "url": {
               "raw": "{{baseUrl}}/{{swaggerPath}}",
               "host": ["{{baseUrl}}"],
               "path": ["{{swaggerPath}}"]
-            },
-            "description": "Interfaz Swagger generada por NestJS."
+            }
           },
           "response": []
         },
@@ -86,18 +221,12 @@
           "request": {
             "auth": { "type": "noauth" },
             "method": "GET",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              }
-            ],
+            "header": [{ "key": "Accept", "value": "application/json" }],
             "url": {
               "raw": "{{baseUrl}}/{{swaggerPath}}-json",
               "host": ["{{baseUrl}}"],
               "path": ["{{swaggerPath}}-json"]
-            },
-            "description": "Spec OpenAPI 3. También se escribe `swagger-spec.json` al arrancar el servidor."
+            }
           },
           "response": []
         }
@@ -105,148 +234,101 @@
     },
     {
       "name": "Health",
-      "description": "Probes de disponibilidad (`@Public()`).",
       "item": [
         {
           "name": "Liveness",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "const data = json.data || json;",
+                  "pm.test('status ok', () => pm.expect(data.status).to.eql('ok'));"
+                ]
+              }
+            }
+          ],
           "request": {
             "auth": { "type": "noauth" },
             "method": "GET",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              }
-            ],
+            "header": [{ "key": "Accept", "value": "application/json" }],
             "url": {
               "raw": "{{baseUrl}}/{{apiPrefix}}/health",
               "host": ["{{baseUrl}}"],
               "path": ["{{apiPrefix}}", "health"]
             },
-            "description": "Devuelve `{ status: 'ok', timestamp: ISO }`."
+            "description": "Público. Respuesta envelope: `data.status`, `data.timestamp`."
+          },
+          "response": []
+        },
+        {
+          "name": "Readiness",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "const data = json.data || json;",
+                  "pm.test('readiness up', () => pm.expect(data.status).to.eql('ok'));",
+                  "pm.test('database check present', () => pm.expect(data.info.database.status).to.eql('up'));",
+                  "pm.test('jwks check present', () => pm.expect(data.info.jwks.status).to.eql('up'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{baseUrl}}/{{apiPrefix}}/health/ready",
+              "host": ["{{baseUrl}}"],
+              "path": ["{{apiPrefix}}", "health", "ready"]
+            },
+            "description": "Readiness probe con checks de database, JWKS y Redis (si BullMQ está habilitado)."
           },
           "response": []
         }
       ]
     },
     {
-      "name": "Auth",
-      "description": "Scaffold CRUD (`AuthController`). Sin guard JWT global aún — Bearer opcional.",
+      "name": "Auth (API)",
+      "description": "Endpoints NestJS. Requieren JWT de Supabase en Bearer.",
       "item": [
         {
-          "name": "Create auth",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Accept",
-                "value": "application/json"
+          "name": "Get session",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "const data = json.data || json;",
+                  "if (data.sub) {",
+                  "  pm.collectionVariables.set('userId', data.sub);",
+                  "  pm.environment.set('userId', data.sub);",
+                  "}"
+                ]
               }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{baseUrl}}/{{apiPrefix}}/auth",
-              "host": ["{{baseUrl}}"],
-              "path": ["{{apiPrefix}}", "auth"]
-            },
-            "description": "Placeholder — `CreateAuthDto` vacío por ahora."
-          },
-          "response": []
-        },
-        {
-          "name": "List auth",
+            }
+          ],
           "request": {
             "method": "GET",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              }
-            ],
+            "header": [{ "key": "Accept", "value": "application/json" }],
             "url": {
-              "raw": "{{baseUrl}}/{{apiPrefix}}/auth",
+              "raw": "{{baseUrl}}/{{apiPrefix}}/auth/session",
               "host": ["{{baseUrl}}"],
-              "path": ["{{apiPrefix}}", "auth"]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Get auth by id",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/{{apiPrefix}}/auth/{{authId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["{{apiPrefix}}", "auth", "{{authId}}"]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Update auth",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Accept",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
+              "path": ["{{apiPrefix}}", "auth", "session"]
             },
-            "url": {
-              "raw": "{{baseUrl}}/{{apiPrefix}}/auth/{{authId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["{{apiPrefix}}", "auth", "{{authId}}"]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Delete auth",
-          "request": {
-            "method": "DELETE",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/{{apiPrefix}}/auth/{{authId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["{{apiPrefix}}", "auth", "{{authId}}"]
-            }
+            "description": "Devuelve `{ sub, email, role }`. Emite evento `user.logged_in`."
           },
           "response": []
         }
@@ -254,69 +336,148 @@
     },
     {
       "name": "Users",
-      "description": "Placeholder — tag Swagger `users`. Sin controller aún.",
-      "item": []
+      "item": [
+        {
+          "name": "Get my profile",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{baseUrl}}/{{apiPrefix}}/users/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["{{apiPrefix}}", "users", "me"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update my profile",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"Test User\",\n  \"timezone\": \"America/Santo_Domingo\",\n  \"locale\": \"es-DO\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/{{apiPrefix}}/users/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["{{apiPrefix}}", "users", "me"]
+            }
+          },
+          "response": []
+        }
+      ]
     },
     {
-      "name": "Businesses",
-      "description": "Placeholder — tag Swagger `businesses`. Sin controller aún.",
-      "item": []
-    },
-    {
-      "name": "Workers",
-      "description": "Placeholder — tag Swagger `workers`. Sin controller aún.",
-      "item": []
-    },
-    {
-      "name": "Invitations",
-      "description": "Placeholder — tag Swagger `invitations`. Sin controller aún.",
-      "item": []
-    },
-    {
-      "name": "Services",
-      "description": "Placeholder — tag Swagger `services`. Sin controller aún.",
-      "item": []
-    },
-    {
-      "name": "Offers",
-      "description": "Placeholder — tag Swagger `offers`. Sin controller aún.",
-      "item": []
-    },
-    {
-      "name": "Schedules",
-      "description": "Placeholder — tag Swagger `schedules`. Sin controller aún.",
-      "item": []
-    },
-    {
-      "name": "Public booking",
-      "description": "Placeholder — tag Swagger `public-booking`. Sin controller aún.",
-      "item": []
-    },
-    {
-      "name": "Finance",
-      "description": "Placeholder — módulo `fin_` (project-guide). Modelos Prisma listos; REST pendiente.",
-      "item": []
+      "name": "Notifications",
+      "item": [
+        {
+          "name": "Create notification",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200 || pm.response.code === 201) {",
+                  "  const json = pm.response.json();",
+                  "  const data = json.data || json;",
+                  "  if (data.id) {",
+                  "    pm.collectionVariables.set('notificationId', data.id);",
+                  "    pm.environment.set('notificationId', data.id);",
+                  "  }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"{{userId}}\",\n  \"type\": \"test.in_app\",\n  \"channel\": \"IN_APP\",\n  \"title\": \"Prueba Postman\",\n  \"body\": \"Notificación de prueba desde Postman.\",\n  \"data\": { \"source\": \"postman\" }\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/{{apiPrefix}}/notifications",
+              "host": ["{{baseUrl}}"],
+              "path": ["{{apiPrefix}}", "notifications"]
+            },
+            "description": "Emite `notification.new` al room WebSocket del usuario."
+          },
+          "response": []
+        },
+        {
+          "name": "Mark notification as read",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{baseUrl}}/{{apiPrefix}}/notifications/{{notificationId}}/read",
+              "host": ["{{baseUrl}}"],
+              "path": ["{{apiPrefix}}", "notifications", "{{notificationId}}", "read"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Register push token",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"platform\": \"ios\",\n  \"token\": \"{{pushToken}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/{{apiPrefix}}/notifications/push-tokens",
+              "host": ["{{baseUrl}}"],
+              "path": ["{{apiPrefix}}", "notifications", "push-tokens"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Deactivate push token",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{baseUrl}}/{{apiPrefix}}/notifications/push-tokens/{{pushToken}}/deactivate",
+              "host": ["{{baseUrl}}"],
+              "path": ["{{apiPrefix}}", "notifications", "push-tokens", "{{pushToken}}", "deactivate"]
+            }
+          },
+          "response": []
+        }
+      ]
     },
     {
       "name": "AI Agent",
-      "description": "Pool de proveedores gratuitos (Groq, Cerebras, OpenRouter) con round-robin y failover.",
       "item": [
         {
           "name": "List providers",
           "request": {
             "method": "GET",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              }
-            ],
+            "header": [{ "key": "Accept", "value": "application/json" }],
             "url": {
               "raw": "{{baseUrl}}/{{apiPrefix}}/ai/providers",
               "host": ["{{baseUrl}}"],
               "path": ["{{apiPrefix}}", "ai", "providers"]
-            },
-            "description": "Proveedores cargados según API keys en `.env`."
+            }
           },
           "response": []
         },
@@ -325,30 +486,20 @@
           "request": {
             "method": "POST",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Accept",
-                "value": "application/json"
-              }
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" }
             ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"Di hola en una frase corta.\"\n    }\n  ]\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
+              "options": { "raw": { "language": "json" } }
             },
             "url": {
               "raw": "{{baseUrl}}/{{apiPrefix}}/ai/chat",
               "host": ["{{baseUrl}}"],
               "path": ["{{apiPrefix}}", "ai", "chat"]
             },
-            "description": "Respuesta agregada: `{ provider, content }`."
+            "description": "Respuesta en `data`: provider, model, content. Puede emitir `ai.response` por WebSocket."
           },
           "response": []
         },
@@ -357,30 +508,40 @@
           "request": {
             "method": "POST",
             "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Accept",
-                "value": "text/event-stream"
-              }
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "text/event-stream" }
             ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"Di hola en una frase corta.\"\n    }\n  ]\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
+              "options": { "raw": { "language": "json" } }
             },
             "url": {
               "raw": "{{baseUrl}}/{{apiPrefix}}/ai/chat/stream",
               "host": ["{{baseUrl}}"],
               "path": ["{{apiPrefix}}", "ai", "chat", "stream"]
             },
-            "description": "Server-Sent Events: `start` → `chunk`* → `done` (o `error`)."
+            "description": "SSE: eventos `start`, `chunk`, `done` o `error`."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Roadmap",
+      "description": "Módulos de dominio pendientes (finanzas, agenda, etc.).",
+      "item": [
+        {
+          "name": "Finance (placeholder)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/{{apiPrefix}}/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["{{apiPrefix}}", "health"]
+            },
+            "description": "Sin endpoints REST de finanzas aún. Ver `prisma/schema.prisma` modelos `Fin*`."
           },
           "response": []
         }
