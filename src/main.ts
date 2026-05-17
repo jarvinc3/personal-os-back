@@ -6,6 +6,7 @@ import 'dotenv/config';
 import { writeFileSync } from 'fs';
 import { join } from 'path';
 import { AppModule } from './app.module';
+import { isBullMqEnabled } from './config/redis.config';
 import type { Env } from './config/env.schema';
 
 async function bootstrap() {
@@ -17,6 +18,19 @@ async function bootstrap() {
 
   const nodeEnv = configService.get('NODE_ENV', { infer: true });
   const isProduction = nodeEnv === 'production';
+  const redisUrl = configService.get('REDIS_URL', { infer: true });
+  const redisEnabled = configService.get('REDIS_ENABLED', { infer: true });
+  const bullMqEnabled = isBullMqEnabled({
+    NODE_ENV: nodeEnv,
+    REDIS_URL: redisUrl,
+    REDIS_ENABLED: redisEnabled,
+  });
+
+  if (nodeEnv === 'development' && !bullMqEnabled) {
+    logger.warn(
+      'BullMQ is disabled in development. To enable: start Redis (docker run -d -p 6379:6379 --name personal-os-redis redis:7-alpine), then set REDIS_ENABLED=true and REDIS_URL=redis://localhost:6379',
+    );
+  }
   const corsOrigin: string = configService.get('CORS_ORIGIN', { infer: true });
 
   if (isProduction && corsOrigin === '*') {
@@ -56,8 +70,10 @@ async function bootstrap() {
 
   // Swagger integration
   const openApiConfig = new DocumentBuilder()
-    .setTitle('TurnApp API')
-    .setDescription('TurnApp Backend Endpoints')
+    .setTitle('Personal OS API')
+    .setDescription(
+      'Personal OS backend endpoints, including auth, core modules, and AI.',
+    )
     .setVersion('1.0')
     .addBearerAuth(
       { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' },
@@ -65,6 +81,8 @@ async function bootstrap() {
     )
     .addTag('health')
     .addTag('auth')
+    .addTag('users')
+    .addTag('notifications')
     .addTag('finances')
     .addTag('ai-agent')
     .build();

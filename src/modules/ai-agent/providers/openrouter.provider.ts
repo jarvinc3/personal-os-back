@@ -1,5 +1,5 @@
 import { OpenRouter } from '@openrouter/sdk';
-import type { AIService, ChatMessage } from '../../../core/types/ai.types';
+import type { AIService, ChatMessage } from '../utils/ai.types';
 
 const OPENROUTER_MODEL = 'deepseek/deepseek-v4-flash';
 

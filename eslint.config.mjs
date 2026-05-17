@@ -25,6 +25,15 @@ export default tseslint.config(
     },
   },
   {
+    files: [
+      'src/modules/auth/utils/jwks-rsa.loader.ts',
+      'src/modules/ai-agent/ai.module.ts',
+    ],
+    rules: {
+      '@typescript-eslint/no-require-imports': 'off',
+    },
+  },
+  {
     rules: {
       '@typescript-eslint/no-explicit-any': 'off',
       '@typescript-eslint/no-floating-promises': 'warn',
