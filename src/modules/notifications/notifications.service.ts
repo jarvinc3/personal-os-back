@@ -1,6 +1,10 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
 import { AppEvents } from '../../core/events/event.constants';
+import { QueueNames } from '../../core/queues/queue.constants';
+import { NotificationDispatchJob } from '../../core/queues/queue-jobs';
 import { CreateNotificationDto } from './dto/create-notification.dto';
 import { NotificationsGateway } from './notifications.gateway';
 import { NotificationsRepository } from './notifications.repository';
@@ -11,6 +15,9 @@ export class NotificationsService {
     private readonly notificationsRepo: NotificationsRepository,
     private readonly notificationsGateway: NotificationsGateway,
     private readonly eventEmitter: EventEmitter2,
+    @Optional()
+    @InjectQueue(QueueNames.NOTIFICATIONS)
+    private readonly notificationsQueue?: Queue<NotificationDispatchJob>,
   ) {}
 
   async create(dto: CreateNotificationDto) {
@@ -37,6 +44,26 @@ export class NotificationsService {
       actionType: 'notification.created',
       payload: { notificationId: created.id },
     });
+
+    if (this.notificationsQueue) {
+      await this.notificationsQueue.add(
+        'dispatch-notification',
+        {
+          notificationId: created.id,
+          userId: created.userId,
+          channel: created.channel,
+          title: created.title,
+          body: created.body,
+          data: (created.data ?? {}) as Record<string, unknown>,
+        },
+        {
+          attempts: 3,
+          backoff: { type: 'exponential', delay: 1000 },
+          removeOnComplete: 100,
+          removeOnFail: 300,
+        },
+      );
+    }
 
     return created;
   }

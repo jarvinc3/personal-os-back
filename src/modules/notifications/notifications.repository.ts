@@ -62,4 +62,17 @@ export class NotificationsRepository {
       data: { isActive: false },
     });
   }
+
+  findActivePushTokens(userId: string) {
+    return this.prisma.pushToken.findMany({
+      where: {
+        userId,
+        isActive: true,
+      },
+      select: {
+        token: true,
+        platform: true,
+      },
+    });
+  }
 }

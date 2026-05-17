@@ -28,6 +28,7 @@
   },
   "dependencies": {
     "@cerebras/cerebras_cloud_sdk": "^1.64.1",
+    "@nestjs/axios": "^4.0.1",
     "@nestjs/bullmq": "^11.0.4",
     "@nestjs/cache-manager": "^3.1.2",
     "@nestjs/common": "^11.0.1",
@@ -39,6 +40,7 @@
     "@nestjs/platform-socket.io": "^11.1.18",
     "@nestjs/schedule": "^5.0.1",
     "@nestjs/swagger": "^11.2.7",
+    "@nestjs/terminus": "^11.1.1",
     "@nestjs/throttler": "^6.5.0",
     "@nestjs/websockets": "^11.1.18",
     "@openrouter/sdk": "^0.12.35",

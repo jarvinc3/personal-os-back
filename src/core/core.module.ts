@@ -9,6 +9,7 @@ import { AiMetricsInterceptor } from './interceptors/ai-metrics.interceptor';
 import { LoggingInterceptor } from './interceptors/logging.interceptor';
 import { TimeoutInterceptor } from './interceptors/timeout.interceptor';
 import { TransformInterceptor } from './interceptors/transform.interceptor';
+import { PaginationService } from './pagination/pagination.service';
 
 @Module({
   imports: [PassportModule.register({ defaultStrategy: 'supabase-jwt' })],
@@ -51,7 +52,8 @@ import { TransformInterceptor } from './interceptors/transform.interceptor';
       provide: APP_INTERCEPTOR,
       useClass: AiMetricsInterceptor,
     },
+    PaginationService,
   ],
-  exports: [PassportModule],
+  exports: [PassportModule, PaginationService],
 })
 export class CoreModule {}

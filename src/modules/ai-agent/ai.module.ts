@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { Env } from '../../config/env.schema';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { AiProcessingProcessor } from './ai-processing.processor';
 import { AiEventsListener } from './ai-events.listener';
 import { AiController } from './ai.controller';
 import { AiService } from './ai.service';
@@ -50,6 +51,7 @@ import type { AIService as AIProviderClient } from './utils/ai.types';
     },
     AiService,
     AiEventsListener,
+    AiProcessingProcessor,
   ],
   exports: [AiService],
 })

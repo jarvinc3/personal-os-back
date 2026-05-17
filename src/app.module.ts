@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, RequestMethod } from '@nestjs/common';
 import { BullModule } from '@nestjs/bullmq';
 import { CacheModule } from '@nestjs/cache-manager';
 import { ConfigModule } from '@nestjs/config';
@@ -13,6 +13,7 @@ import { isBullMqEnabled, parseEnv } from './config';
 import type { Env } from './config';
 import { CoreModule } from './core/core.module';
 import { QueueNames } from './core/queues/queue.constants';
+import { HealthModule } from './health/health.module';
 import { AiModule } from './modules/ai-agent';
 import { AuthModule } from './modules/auth/auth.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
@@ -69,6 +70,7 @@ const bullMqEnabled = isBullMqEnabledAtModuleLoad();
             userId: (req as { user?: { sub?: string } }).user?.sub,
           }),
         },
+        forRoutes: [{ path: '*path', method: RequestMethod.ALL }],
       }),
     }),
     ClsModule.forRoot({
@@ -132,6 +134,7 @@ const bullMqEnabled = isBullMqEnabledAtModuleLoad();
     ScheduleModule.forRoot(),
     PrismaModule,
     CoreModule,
+    HealthModule,
     UsersModule,
     NotificationsModule,
     AiModule,

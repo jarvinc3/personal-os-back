@@ -28,6 +28,7 @@ export default tseslint.config(
     files: [
       'src/modules/auth/utils/jwks-rsa.loader.ts',
       'src/modules/ai-agent/ai.module.ts',
+      'test/**/*.ts',
     ],
     rules: {
       '@typescript-eslint/no-require-imports': 'off',

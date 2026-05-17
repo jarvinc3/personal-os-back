@@ -29,19 +29,22 @@ Estado del núcleo transversal del backend (`personal-os-back`) antes de impleme
 
 ### Core transversal (`src/core/`)
 
-| Pieza                  | Descripción                                           |
-| ---------------------- | ----------------------------------------------------- |
-| `JwtAuthGuard`         | Guard global; rutas con `@Public()` quedan libres     |
-| `RolesGuard`           | Autorización por roles (`@Roles()`)                   |
-| `CustomThrottlerGuard` | Rate limit por `user.sub` o IP                        |
-| `TransformInterceptor` | Respuesta `{ data, meta }`                            |
-| `LoggingInterceptor`   | Logs estructurados por request                        |
-| `TimeoutInterceptor`   | Timeout global de requests                            |
-| `AllExceptionsFilter`  | Errores uniformes + mapeo Prisma P2002/P2025          |
-| `AiMetricsInterceptor` | Métricas en rutas `/api/ai` (si hay `sessionId`)      |
-| `event.constants.ts`   | Catálogo de eventos de dominio                        |
-| `domain-events.ts`     | Tipos de payloads                                     |
-| `queue.constants.ts`   | Colas: `email-sync`, `ai-processing`, `notifications` |
+| Pieza                   | Descripción                                           |
+| ----------------------- | ----------------------------------------------------- |
+| `JwtAuthGuard`          | Guard global; rutas con `@Public()` quedan libres     |
+| `RolesGuard`            | Autorización por roles (`@Roles()`)                   |
+| `CustomThrottlerGuard`  | Rate limit por `user.sub` o IP                        |
+| `TransformInterceptor`  | Respuesta `{ data, meta }`                            |
+| `LoggingInterceptor`    | Logs estructurados por request                        |
+| `TimeoutInterceptor`    | Timeout global de requests                            |
+| `AllExceptionsFilter`   | Errores uniformes + mapeo Prisma P2002/P2025          |
+| `AiMetricsInterceptor`  | Métricas en rutas `/api/ai` (si hay `sessionId`)      |
+| `event.constants.ts`    | Catálogo de eventos de dominio                        |
+| `domain-events.ts`      | Tipos de payloads                                     |
+| `queue.constants.ts`    | Colas: `email-sync`, `ai-processing`, `notifications` |
+| `queue-jobs.ts`         | Tipos de payload para jobs BullMQ                     |
+| `pagination.dto.ts`     | DTO + helpers `paginationArgs()` y `paginate()`       |
+| `pagination.service.ts` | Servicio exportado desde `CoreModule`                 |
 
 ### Auth (`src/modules/auth/`)
 
@@ -49,6 +52,7 @@ Estado del núcleo transversal del backend (`personal-os-back`) antes de impleme
 - `SupabaseJwtVerifierService` para WebSocket.
 - `GET /api/auth/session` — contexto del usuario autenticado; emite `user.logged_in`.
 - `GET /api/health` — liveness público.
+- `GET /api/health/ready` — readiness con checks de DB, JWKS y Redis opcional.
 - Perfil en `public.users` vía trigger de Supabase (sin upsert lazy en backend).
 
 ### Users (`src/modules/users/`)
@@ -63,6 +67,8 @@ Estado del núcleo transversal del backend (`personal-os-back`) antes de impleme
 - `POST /api/notifications/push-tokens` — registrar token push (ios/android).
 - `PATCH /api/notifications/push-tokens/:token/deactivate` — desactivar token.
 - **WebSocket** namespace `/notifications`, room `user:{sub}`, eventos `notification.new`, `ai.response`, handler `ping`.
+- Worker `NotificationsProcessor` (cola `notifications`) para dispatch async (`IN_APP`, `PUSH`, `EMAIL`).
+- Worker `EmailSyncProcessor` (cola `email-sync`) como stub para integración Gmail.
 
 ### AI Agent (`src/modules/ai-agent/`)
 
@@ -71,13 +77,15 @@ Estado del núcleo transversal del backend (`personal-os-back`) antes de impleme
 - `GET /api/ai/providers`
 - `POST /api/ai/chat` — respuesta JSON agregada.
 - `POST /api/ai/chat/stream` — SSE (`start` → `chunk`* → `done` / `error`).
-- Listeners `@OnEvent` para `transaction.created`, `budget.threshold_reached`, `ai.action_requested` (stubs de log).
+- Listeners `@OnEvent` para `transaction.created`, `budget.threshold_reached`, `ai.action_requested` que encolan jobs en `ai-processing`.
+- Worker `AiProcessingProcessor` (cola `ai-processing`) para ejecutar acciones IA async y emitir `ai.response`.
 - Throttling más estricto en rutas `/api/ai`.
 
 ### App (`src/app.module.ts`)
 
 - BullMQ solo si `isBullMqEnabled()` (Redis + flag en dev).
 - Cache global, `ScheduleModule`, CLS, EventEmitter.
+- Logger pino con `forRoutes` explícito para evitar warning de `LegacyRouteConverter`.
 
 ---
 
@@ -91,6 +99,27 @@ Estado del núcleo transversal del backend (`personal-os-back`) antes de impleme
   "meta": {
     "timestamp": "2026-05-17T...",
     "path": "/api/users/me",
+    "requestId": "uuid"
+  }
+}
+```
+
+### Envelope paginado
+
+```json
+{
+  "data": {
+    "items": [],
+    "pagination": {
+      "page": 1,
+      "limit": 20,
+      "total": 125,
+      "totalPages": 7
+    }
+  },
+  "meta": {
+    "timestamp": "2026-05-17T...",
+    "path": "/api/...",
     "requestId": "uuid"
   }
 }
@@ -157,6 +186,12 @@ GET http://localhost:3100/api/health
 
 Esperado: `200`, `data.status === "ok"`.
 
+```http
+GET http://localhost:3100/api/health/ready
+```
+
+Esperado: `200`, `data.status === "ok"`, `data.info.database.status === "up"`, `data.info.jwks.status === "up"`.
+
 #### 2. Supabase login (Postman)
 
 1. Importar `postman.json` + `postman.environment.json`.
@@ -215,35 +250,52 @@ Conectar a `http://localhost:3100/notifications` con token en `auth.token` o hea
 
 #### 9. Redis / BullMQ (opcional)
 
-Con `REDIS_ENABLED=true` y `REDIS_URL` válido: arranque sin `ECONNREFUSED`. Las colas están registradas; los **workers** aún no procesan jobs.
+Con `REDIS_ENABLED=true` y `REDIS_URL` válido: arranque sin `ECONNREFUSED`.
+
+Verificar workers:
+
+- `notifications` procesa jobs creados por `POST /api/notifications`.
+- `notifications` delega `EMAIL` a `email-sync`.
+- `ai-processing` procesa eventos `ai.action_requested`.
 
 #### 10. Swagger
 
 Abrir `http://localhost:3100/docs` y probar **Authorize** con el mismo Bearer token.
 
+### E2E incluidos
+
+- `test/app.e2e-spec.ts` → `/api/health` (liveness).
+- `test/auth.e2e-spec.ts` → `401` sin token, `200` con JWT válido, `401` expirado.
+- `test/users.e2e-spec.ts` → `/api/users/me` (`200` y `404`) + `PATCH /api/users/me`.
+- Helpers comunes:
+  - `test/helpers/jwt.helper.ts`
+  - `test/helpers/prisma.mock.ts`
+  - `test/helpers/test-env.ts`
+
+### CI (GitHub Actions)
+
+- Workflow: `.github/workflows/ci.yml`
+- Jobs: `pnpm install --frozen-lockfile`, `pnpm lint`, `pnpm build`, `pnpm test:e2e -- --runInBand`
+- Entorno: `NODE_ENV=test` con variables mínimas para bootstrap del `AppModule`
+
 ---
 
-## Pendiente para dejar el core “production-ready”
+## Estado production-ready del core
 
-### Prioridad alta
+### Completado en este ciclo
 
-1. **Workers BullMQ** — processors para `email-sync`, `ai-processing`, `notifications`.
-2. **Health compuesto** — checks de DB, Redis y JWKS en `GET /health`.
-3. **E2E ampliados** — auth, envelope, 401, `users/me` con JWT de test.
-4. **Prisma migrations** — resolver drift con Supabase (baseline / `migrate resolve`, sin reset destructivo en prod).
+1. **Health compuesto** con Terminus (`/api/health` y `/api/health/ready`).
+2. **Workers BullMQ** para `notifications`, `ai-processing`, `email-sync`.
+3. **Paginación compartida** (`PaginationQueryDto`, `paginate`, `paginationArgs`, `PaginationService`).
+4. **E2E ampliados** para auth y users con JWT de test y mock centralizado de Prisma.
+5. **CI GitHub Actions** (`lint`, `build`, `test:e2e --runInBand`).
+6. **Cleanup de logs** con `forRoutes` explícito en `LoggerModule`.
 
-### Prioridad media
+### Pendiente recomendado antes de módulos de dominio
 
-5. **Emitir eventos reales** desde servicios (no solo `user.logged_in`).
-6. **Push providers** — FCM/APNs usando `PushTokensService` + cola `notifications`.
-7. **Tests de integración WebSocket** — conexión + room + emit.
-8. **Documentar RLS** — políticas Supabase alineadas con `sub` del JWT.
-
-### Antes de módulos de aplicación
-
-9. Contrato estable: paginación, filtros, códigos de error por dominio.
-10. Observabilidad en prod: niveles Pino, alertas, métricas de colas.
-11. CI: `lint` + `build` + `test:e2e` en cada PR.
+1. **Push real provider** (FCM/APNs) y sender de email real (Gmail API).
+2. **Tests de integración WS + workers** para flujo end-to-end de eventos async.
+3. **Migrations Prisma y seeds de entorno** (pendiente externo a este plan).
 
 ---
 

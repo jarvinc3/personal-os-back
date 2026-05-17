@@ -263,6 +263,37 @@
             "description": "Público. Respuesta envelope: `data.status`, `data.timestamp`."
           },
           "response": []
+        },
+        {
+          "name": "Readiness",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "const data = json.data || json;",
+                  "pm.test('readiness up', () => pm.expect(data.status).to.eql('ok'));",
+                  "pm.test('database check present', () => pm.expect(data.info.database.status).to.eql('up'));",
+                  "pm.test('jwks check present', () => pm.expect(data.info.jwks.status).to.eql('up'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{baseUrl}}/{{apiPrefix}}/health/ready",
+              "host": ["{{baseUrl}}"],
+              "path": ["{{apiPrefix}}", "health", "ready"]
+            },
+            "description": "Readiness probe con checks de database, JWKS y Redis (si BullMQ está habilitado)."
+          },
+          "response": []
         }
       ]
     },
