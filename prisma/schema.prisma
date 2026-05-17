@@ -1,0 +1,338 @@
+generator client {
+  provider        = "prisma-client"
+  output          = "../src/prisma/generated"
+  previewFeatures = ["partialIndexes"]
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id              String                @id @default(dbgenerated("(uuid_generate_v4())::text"))
+  email           String                @unique
+  fullName        String                @map("full_name")
+  avatarUrl       String?               @map("avatar_url")
+  timezone        String                @default("America/Santo_Domingo")
+  locale          String                @default("es-DO")
+  preferences     Json                  @default("{}")
+  createdAt       DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime              @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  aiSessions      AiAgentSession[]
+  finAccounts     FinAccount[]
+  finBudgets      FinBudget[]
+  finCategories   FinCategory[]
+  finEmailSources FinEmailSource[]
+  finRecurring    FinRecurringPattern[]
+  finTransactions FinTransaction[]
+  notifications   Notification[]
+  pushTokens      PushToken[]
+  userModules     UserModule[]
+
+  @@map("users")
+}
+
+model Module {
+  id          String           @id @default(dbgenerated("(uuid_generate_v4())::text"))
+  slug        String           @unique
+  name        String
+  isActive    Boolean          @default(true) @map("is_active")
+  sortOrder   Int              @default(0) @map("sort_order")
+  key         String           @unique
+  description String?
+  aiSessions  AiAgentSession[]
+  userModules UserModule[]
+
+  @@map("modules")
+}
+
+model UserModule {
+  id        String   @id @default(dbgenerated("(uuid_generate_v4())::text"))
+  userId    String   @map("user_id")
+  moduleId  String   @map("module_id")
+  isEnabled Boolean  @default(true) @map("is_enabled")
+  config    Json     @default("{}")
+  enabledAt DateTime @default(now()) @map("enabled_at") @db.Timestamptz(6)
+  module    Module   @relation(fields: [moduleId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([userId, moduleId])
+  @@map("user_modules")
+}
+
+model AiAgentSession {
+  id             String      @id @default(dbgenerated("(uuid_generate_v4())::text"))
+  userId         String      @map("user_id")
+  moduleId       String?     @map("module_id")
+  contextType    String      @default("general") @map("context_type")
+  memorySnapshot Json        @default("{}") @map("memory_snapshot")
+  lastActiveAt   DateTime    @default(now()) @map("last_active_at") @db.Timestamptz(6)
+  createdAt      DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+  actions        AiAction[]
+  module         Module?     @relation(fields: [moduleId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  user           User        @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  messages       AiMessage[]
+
+  @@map("ai_agent_sessions")
+}
+
+model AiMessage {
+  id        String         @id @default(dbgenerated("(uuid_generate_v4())::text"))
+  sessionId String         @map("session_id")
+  role      AiRole
+  content   String
+  toolCalls Json?          @map("tool_calls")
+  metadata  Json           @default("{}")
+  createdAt DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  actions   AiAction[]
+  session   AiAgentSession @relation(fields: [sessionId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@map("ai_messages")
+}
+
+model AiAction {
+  id           String         @id @default(dbgenerated("(uuid_generate_v4())::text"))
+  sessionId    String         @map("session_id")
+  messageId    String?        @map("message_id")
+  actionType   String         @map("action_type")
+  targetModule String         @map("target_module")
+  payload      Json
+  status       AiActionStatus @default(PENDING)
+  result       Json?
+  executedAt   DateTime?      @map("executed_at") @db.Timestamptz(6)
+  message      AiMessage?     @relation(fields: [messageId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  session      AiAgentSession @relation(fields: [sessionId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@map("ai_actions")
+}
+
+model Notification {
+  id          String              @id @default(dbgenerated("(uuid_generate_v4())::text"))
+  userId      String              @map("user_id")
+  type        String
+  channel     NotificationChannel
+  title       String
+  body        String
+  data        Json                @default("{}")
+  isRead      Boolean             @default(false) @map("is_read")
+  scheduledAt DateTime?           @map("scheduled_at") @db.Timestamptz(6)
+  sentAt      DateTime?           @map("sent_at") @db.Timestamptz(6)
+  createdAt   DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
+  user        User                @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([userId, isRead])
+  @@index([scheduledAt])
+  @@map("notifications")
+}
+
+model PushToken {
+  id        String   @id @default(dbgenerated("(uuid_generate_v4())::text"))
+  userId    String   @map("user_id")
+  platform  String
+  token     String   @unique
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@map("push_tokens")
+}
+
+model FinAccount {
+  id                  String           @id @default(dbgenerated("(uuid_generate_v4())::text"))
+  userId              String           @map("user_id")
+  name                String
+  type                FinAccountType
+  institution         String?
+  currency            String           @default("DOP")
+  balance             Decimal          @default(0) @db.Decimal(15, 2)
+  creditLimit         Decimal?         @map("credit_limit") @db.Decimal(15, 2)
+  statementClosingDay Int?             @map("statement_closing_day")
+  paymentDueDay       Int?             @map("payment_due_day")
+  color               String?
+  isActive            Boolean          @default(true) @map("is_active")
+  createdAt           DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  user                User             @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  emailSources        FinEmailSource[]
+  transactions        FinTransaction[]
+
+  @@map("fin_accounts")
+}
+
+model FinEmailSource {
+  id            String      @id @default(dbgenerated("(uuid_generate_v4())::text"))
+  userId        String      @map("user_id")
+  accountId     String?     @map("account_id")
+  provider      String
+  emailAddress  String      @map("email_address")
+  bankDomain    String      @map("bank_domain")
+  accessToken   String?     @map("access_token")
+  refreshToken  String?     @map("refresh_token")
+  imapHost      String?     @map("imap_host")
+  lastSyncedAt  DateTime?   @map("last_synced_at") @db.Timestamptz(6)
+  lastMessageId String?     @map("last_message_id")
+  isActive      Boolean     @default(true) @map("is_active")
+  createdAt     DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+  account       FinAccount? @relation(fields: [accountId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@map("fin_email_sources")
+}
+
+model FinTransaction {
+  id                 String               @id @default(dbgenerated("(uuid_generate_v4())::text"))
+  accountId          String               @map("account_id")
+  userId             String               @map("user_id")
+  categoryId         String?              @map("category_id")
+  emailMessageId     String?              @unique @map("email_message_id")
+  type               FinTransactionType
+  amount             Decimal              @db.Decimal(15, 2)
+  amountBaseCurrency Decimal              @map("amount_base_currency") @db.Decimal(15, 2)
+  currency           String               @default("DOP")
+  exchangeRate       Decimal              @default(1) @map("exchange_rate") @db.Decimal(10, 6)
+  merchant           String?
+  description        String?
+  transactionDate    DateTime             @map("transaction_date") @db.Date
+  status             FinTransactionStatus @default(CONFIRMED)
+  isRecurring        Boolean              @default(false) @map("is_recurring")
+  aiMetadata         Json                 @default("{}") @map("ai_metadata")
+  notes              String?
+  createdAt          DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime             @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  account            FinAccount           @relation(fields: [accountId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  category           FinCategory?         @relation(fields: [categoryId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  user               User                 @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([accountId, transactionDate], map: "fin_transactions_account_id_date_idx")
+  @@index([userId, categoryId], map: "fin_transactions_user_id_category_idx")
+  @@index([userId, transactionDate], map: "fin_transactions_user_id_date_idx")
+  @@map("fin_transactions")
+}
+
+model FinCategory {
+  id           String                @id @default(dbgenerated("(uuid_generate_v4())::text"))
+  userId       String?               @map("user_id")
+  name         String
+  icon         String?
+  color        String?
+  parentId     String?               @map("parent_id")
+  isSystem     Boolean               @default(false) @map("is_system")
+  budgets      FinBudget[]
+  parent       FinCategory?          @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  children     FinCategory[]         @relation("CategoryHierarchy")
+  user         User?                 @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  recurring    FinRecurringPattern[]
+  transactions FinTransaction[]
+
+  @@map("fin_categories")
+}
+
+model FinBudget {
+  id                  String             @id @default(dbgenerated("(uuid_generate_v4())::text"))
+  userId              String             @map("user_id")
+  categoryId          String             @map("category_id")
+  year                Int
+  month               Int
+  amountLimit         Decimal            @map("amount_limit") @db.Decimal(15, 2)
+  amountSpent         Decimal            @default(0) @map("amount_spent") @db.Decimal(15, 2)
+  alertThresholdPct   Decimal            @default(80) @map("alert_threshold_pct") @db.Decimal(5, 2)
+  aiSuggestionStatus  AiSuggestionStatus @default(NONE) @map("ai_suggestion_status")
+  aiSuggestionPayload Json?              @map("ai_suggestion_payload")
+  createdAt           DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  alerts              FinBudgetAlert[]
+  category            FinCategory        @relation(fields: [categoryId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  user                User               @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([userId, categoryId, year, month], map: "fin_budgets_user_category_year_month_key")
+  @@map("fin_budgets")
+}
+
+model FinBudgetAlert {
+  id          String    @id @default(dbgenerated("(uuid_generate_v4())::text"))
+  budgetId    String    @map("budget_id")
+  type        String
+  pctUsed     Decimal   @map("pct_used") @db.Decimal(5, 2)
+  wasNotified Boolean   @default(false) @map("was_notified")
+  triggeredAt DateTime  @default(now()) @map("triggered_at") @db.Timestamptz(6)
+  budget      FinBudget @relation(fields: [budgetId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@map("fin_budget_alerts")
+}
+
+model FinRecurringPattern {
+  id               String       @id @default(dbgenerated("(uuid_generate_v4())::text"))
+  userId           String       @map("user_id")
+  categoryId       String?      @map("category_id")
+  merchant         String
+  avgAmount        Decimal      @map("avg_amount") @db.Decimal(15, 2)
+  currency         String       @default("DOP")
+  frequency        String
+  nextExpectedDate DateTime     @map("next_expected_date") @db.Date
+  confidenceScore  Int          @default(0) @map("confidence_score")
+  aiAnalysis       Json         @default("{}") @map("ai_analysis")
+  isActive         Boolean      @default(true) @map("is_active")
+  updatedAt        DateTime     @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  category         FinCategory? @relation(fields: [categoryId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fin_recurring_patterns_category_fkey")
+  user             User         @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@map("fin_recurring_patterns")
+}
+
+model FinExchangeRate {
+  id           String   @id @default(dbgenerated("(uuid_generate_v4())::text"))
+  fromCurrency String   @map("from_currency")
+  toCurrency   String   @map("to_currency")
+  rate         Decimal  @db.Decimal(15, 6)
+  rateDate     DateTime @map("rate_date") @db.Date
+
+  @@unique([fromCurrency, toCurrency, rateDate], map: "fin_exchange_rates_from_to_date_key")
+  @@index([fromCurrency, toCurrency], map: "fin_exchange_rates_from_to_idx")
+  @@map("fin_exchange_rates")
+}
+
+enum AiRole {
+  user
+  assistant
+  tool
+}
+
+enum AiActionStatus {
+  PENDING
+  RUNNING
+  SUCCESS
+  FAILED
+  CANCELLED
+}
+
+enum NotificationChannel {
+  PUSH
+  IN_APP
+  EMAIL
+}
+
+enum FinAccountType {
+  CHECKING
+  SAVINGS
+  CREDIT_CARD
+  CASH
+  INVESTMENT
+}
+
+enum FinTransactionType {
+  DEBIT
+  CREDIT
+  TRANSFER
+}
+
+enum FinTransactionStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+}
+
+enum AiSuggestionStatus {
+  NONE
+  PENDING
+  ACCEPTED
+  REJECTED
+}

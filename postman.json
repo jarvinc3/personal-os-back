@@ -1,0 +1,390 @@
+{
+  "info": {
+    "_postman_id": "personal-os-api-collection",
+    "name": "Personal OS API",
+    "description": "Colección para el backend NestJS de Personal OS.\n\n**Importar:** Postman → Import → selecciona este archivo.\n\n**Variables de colección:**\n- `baseUrl` — por defecto `http://localhost:3100` (ver `PORT` y `API_URL` en `.env`)\n- `apiPrefix` — por defecto `api`\n- `accessToken` — JWT Supabase (cuando exista guard global)\n\n**Swagger:** `{{baseUrl}}/{{swaggerPath}}` (por defecto `/docs`)\n\nEndpoints marcados como *placeholder* están en el roadmap; añade requests en esas carpetas al implementar controllers.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{accessToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "if (!pm.collectionVariables.get('requestId')) {",
+          "  pm.collectionVariables.set('requestId', pm.variables.replaceIn('{{$guid}}'));",
+          "}",
+          "pm.request.headers.upsert({ key: 'x-request-id', value: pm.collectionVariables.get('requestId') });"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3100",
+      "type": "string"
+    },
+    {
+      "key": "apiPrefix",
+      "value": "api",
+      "type": "string"
+    },
+    {
+      "key": "swaggerPath",
+      "value": "docs",
+      "type": "string"
+    },
+    {
+      "key": "accessToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "requestId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "authId",
+      "value": "1",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Meta",
+      "description": "Documentación y especificación OpenAPI (sin prefijo `/api`).",
+      "item": [
+        {
+          "name": "Swagger UI",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/{{swaggerPath}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["{{swaggerPath}}"]
+            },
+            "description": "Interfaz Swagger generada por NestJS."
+          },
+          "response": []
+        },
+        {
+          "name": "OpenAPI JSON",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/{{swaggerPath}}-json",
+              "host": ["{{baseUrl}}"],
+              "path": ["{{swaggerPath}}-json"]
+            },
+            "description": "Spec OpenAPI 3. También se escribe `swagger-spec.json` al arrancar el servidor."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Health",
+      "description": "Probes de disponibilidad (`@Public()`).",
+      "item": [
+        {
+          "name": "Liveness",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/{{apiPrefix}}/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["{{apiPrefix}}", "health"]
+            },
+            "description": "Devuelve `{ status: 'ok', timestamp: ISO }`."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "description": "Scaffold CRUD (`AuthController`). Sin guard JWT global aún — Bearer opcional.",
+      "item": [
+        {
+          "name": "Create auth",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/{{apiPrefix}}/auth",
+              "host": ["{{baseUrl}}"],
+              "path": ["{{apiPrefix}}", "auth"]
+            },
+            "description": "Placeholder — `CreateAuthDto` vacío por ahora."
+          },
+          "response": []
+        },
+        {
+          "name": "List auth",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/{{apiPrefix}}/auth",
+              "host": ["{{baseUrl}}"],
+              "path": ["{{apiPrefix}}", "auth"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get auth by id",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/{{apiPrefix}}/auth/{{authId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["{{apiPrefix}}", "auth", "{{authId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update auth",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/{{apiPrefix}}/auth/{{authId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["{{apiPrefix}}", "auth", "{{authId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete auth",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/{{apiPrefix}}/auth/{{authId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["{{apiPrefix}}", "auth", "{{authId}}"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Users",
+      "description": "Placeholder — tag Swagger `users`. Sin controller aún.",
+      "item": []
+    },
+    {
+      "name": "Businesses",
+      "description": "Placeholder — tag Swagger `businesses`. Sin controller aún.",
+      "item": []
+    },
+    {
+      "name": "Workers",
+      "description": "Placeholder — tag Swagger `workers`. Sin controller aún.",
+      "item": []
+    },
+    {
+      "name": "Invitations",
+      "description": "Placeholder — tag Swagger `invitations`. Sin controller aún.",
+      "item": []
+    },
+    {
+      "name": "Services",
+      "description": "Placeholder — tag Swagger `services`. Sin controller aún.",
+      "item": []
+    },
+    {
+      "name": "Offers",
+      "description": "Placeholder — tag Swagger `offers`. Sin controller aún.",
+      "item": []
+    },
+    {
+      "name": "Schedules",
+      "description": "Placeholder — tag Swagger `schedules`. Sin controller aún.",
+      "item": []
+    },
+    {
+      "name": "Public booking",
+      "description": "Placeholder — tag Swagger `public-booking`. Sin controller aún.",
+      "item": []
+    },
+    {
+      "name": "Finance",
+      "description": "Placeholder — módulo `fin_` (project-guide). Modelos Prisma listos; REST pendiente.",
+      "item": []
+    },
+    {
+      "name": "AI Agent",
+      "description": "Pool de proveedores gratuitos (Groq, Cerebras, OpenRouter) con round-robin y failover.",
+      "item": [
+        {
+          "name": "List providers",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/{{apiPrefix}}/ai/providers",
+              "host": ["{{baseUrl}}"],
+              "path": ["{{apiPrefix}}", "ai", "providers"]
+            },
+            "description": "Proveedores cargados según API keys en `.env`."
+          },
+          "response": []
+        },
+        {
+          "name": "Chat (JSON)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"Di hola en una frase corta.\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/{{apiPrefix}}/ai/chat",
+              "host": ["{{baseUrl}}"],
+              "path": ["{{apiPrefix}}", "ai", "chat"]
+            },
+            "description": "Respuesta agregada: `{ provider, content }`."
+          },
+          "response": []
+        },
+        {
+          "name": "Chat (SSE stream)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "text/event-stream"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"Di hola en una frase corta.\"\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/{{apiPrefix}}/ai/chat/stream",
+              "host": ["{{baseUrl}}"],
+              "path": ["{{apiPrefix}}", "ai", "chat", "stream"]
+            },
+            "description": "Server-Sent Events: `start` → `chunk`* → `done` (o `error`)."
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}
