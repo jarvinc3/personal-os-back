@@ -38,7 +38,26 @@ export const envSchema = z
       .enum(['development', 'production', 'test'])
       .default('development'),
     PORT: z.coerce.number().int().positive().default(3000),
-    CORS_ORIGIN: z.url('CORS_ORIGIN must be a valid URL'),
+    CORS_ORIGIN: z
+      .string()
+      .min(1, 'CORS_ORIGIN is required')
+      .refine(
+        (value) => {
+          const origins = value
+            .split(',')
+            .map((part) => part.trim())
+            .filter(Boolean);
+          return origins.every((origin) => {
+            try {
+              new URL(origin);
+              return true;
+            } catch {
+              return false;
+            }
+          });
+        },
+        { message: 'CORS_ORIGIN must be one or more valid URLs separated by commas' },
+      ),
     API_URL: z.url('API_URL must be a valid URL'),
     REDIS_URL: z
       .string()
