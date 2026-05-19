@@ -54,8 +54,20 @@ async function bootstrap() {
     }),
   );
 
+  const corsOrigins = corsOrigin
+    .split(',')
+    .map((value) => value.trim())
+    .filter(Boolean);
+
   app.enableCors({
-    origin: corsOrigin,
+    origin: isProduction
+      ? corsOrigins.length === 1
+        ? corsOrigins[0]
+        : corsOrigins
+      : (origin, callback) => {
+          // En desarrollo: Expo Go / React Native suelen omitir Origin; permitir todo.
+          callback(null, true);
+        },
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: [
       'Content-Type',
@@ -100,11 +112,12 @@ async function bootstrap() {
 
   const port: number = configService.get('PORT', { infer: true }) ?? 3000;
 
-  await app.listen(port);
+  await app.listen(port, '0.0.0.0');
 
   const basePath = apiPrefix.length > 0 ? `/${apiPrefix}` : '';
   logger.log(`CORS Origin: ${corsOrigin} isProduction: ${isProduction}`);
-  logger.log(`Application is running on: http://localhost:${port}${basePath}`);
+  logger.log(`Application is running on: http://0.0.0.0:${port}${basePath}`);
+  logger.log(`LAN access example: http://<your-ip>:${port}${basePath}`);
 }
 
 bootstrap().catch((err) => {
