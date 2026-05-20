@@ -11,7 +11,7 @@ Documentación detallada del core: [docs/core-infrastructure.md](./docs/core-inf
 - PostgreSQL (Supabase)
 - Proyecto Supabase con Auth habilitado
 - Redis (opcional en local; recomendado Railway en prod)
-- Al menos una API key: `GROQ_API_KEY`, `CEREBRAS_API_KEY` o `OPENROUTER_API_KEY`
+- Al menos una API key: `GROQ_API_KEY`, `CEREBRAS_API_KEY` o `OPENROUTER_API_KEY`.
 
 ## Inicio rápido
 
