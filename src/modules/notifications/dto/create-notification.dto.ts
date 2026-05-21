@@ -12,10 +12,6 @@ const notificationChannels = ['IN_APP', 'PUSH', 'EMAIL'] as const;
 export class CreateNotificationDto {
   @ApiProperty()
   @IsString()
-  userId!: string;
-
-  @ApiProperty()
-  @IsString()
   @MaxLength(120)
   type!: string;
 

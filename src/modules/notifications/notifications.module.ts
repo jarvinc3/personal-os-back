@@ -5,6 +5,7 @@ import { NotificationsController } from './notifications.controller';
 import { NotificationsGateway } from './notifications.gateway';
 import { NotificationsProcessor } from './notifications.processor';
 import { NotificationsRepository } from './notifications.repository';
+import { NotificationPolicyService } from './notification-policy.service';
 import { NotificationsService } from './notifications.service';
 import { PushTokensService } from './push-tokens.service';
 
@@ -13,12 +14,18 @@ import { PushTokensService } from './push-tokens.service';
   controllers: [NotificationsController],
   providers: [
     NotificationsRepository,
+    NotificationPolicyService,
     NotificationsService,
     NotificationsGateway,
     PushTokensService,
     NotificationsProcessor,
     EmailSyncProcessor,
   ],
-  exports: [NotificationsService, NotificationsGateway, PushTokensService],
+  exports: [
+    NotificationsService,
+    NotificationsGateway,
+    PushTokensService,
+    NotificationPolicyService,
+  ],
 })
 export class NotificationsModule {}

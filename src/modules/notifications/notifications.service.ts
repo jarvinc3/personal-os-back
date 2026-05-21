@@ -5,7 +5,10 @@ import { Queue } from 'bullmq';
 import { AppEvents } from '../../core/events/event.constants';
 import { QueueNames } from '../../core/queues/queue.constants';
 import { NotificationDispatchJob } from '../../core/queues/queue-jobs';
+import { paginate } from '../../core/pagination/pagination.dto';
 import { CreateNotificationDto } from './dto/create-notification.dto';
+import { ListNotificationsQueryDto } from './dto/list-notifications-query.dto';
+import { NotificationPolicyService } from './notification-policy.service';
 import { NotificationsGateway } from './notifications.gateway';
 import { NotificationsRepository } from './notifications.repository';
 
@@ -14,15 +17,30 @@ export class NotificationsService {
   constructor(
     private readonly notificationsRepo: NotificationsRepository,
     private readonly notificationsGateway: NotificationsGateway,
+    private readonly notificationPolicy: NotificationPolicyService,
     private readonly eventEmitter: EventEmitter2,
     @Optional()
     @InjectQueue(QueueNames.NOTIFICATIONS)
     private readonly notificationsQueue?: Queue<NotificationDispatchJob>,
   ) {}
 
-  async create(dto: CreateNotificationDto) {
+  async create(userId: string, dto: CreateNotificationDto) {
+    const policy = await this.notificationPolicy.evaluate({
+      userId,
+      channel: dto.channel,
+      data: dto.data,
+    });
+
+    if (!policy.allowed) {
+      this.notificationPolicy.logSkipped(
+        { userId, channel: dto.channel, data: dto.data },
+        policy.reason,
+      );
+      return null;
+    }
+
     const created = await this.notificationsRepo.createNotification({
-      userId: dto.userId,
+      userId,
       type: dto.type,
       channel: dto.channel,
       title: dto.title,
@@ -30,14 +48,16 @@ export class NotificationsService {
       data: dto.data,
     });
 
-    this.notificationsGateway.emitToUser(created.userId, 'notification.new', {
-      id: created.id,
-      type: created.type,
-      title: created.title,
-      body: created.body,
-      data: created.data,
-      createdAt: created.createdAt,
-    });
+    if (dto.channel === 'IN_APP') {
+      this.notificationsGateway.emitToUser(created.userId, 'notification.new', {
+        id: created.id,
+        type: created.type,
+        title: created.title,
+        body: created.body,
+        data: created.data,
+        createdAt: created.createdAt,
+      });
+    }
 
     this.eventEmitter.emit(AppEvents.AI_ACTION_COMPLETED, {
       userId: created.userId,
@@ -68,7 +88,31 @@ export class NotificationsService {
     return created;
   }
 
+  async list(userId: string, query: ListNotificationsQueryDto) {
+    const inAppEnabled = await this.notificationPolicy.isInAppListingEnabled(userId);
+    if (!inAppEnabled && (query.channel ?? 'IN_APP') === 'IN_APP') {
+      return paginate([], 0, query);
+    }
+
+    const [items, total] = await this.notificationsRepo.findByUser(userId, query);
+    return paginate(items, total, query);
+  }
+
+  async unreadCount(userId: string) {
+    const inAppEnabled = await this.notificationPolicy.isInAppListingEnabled(userId);
+    if (!inAppEnabled) {
+      return { count: 0 };
+    }
+    const count = await this.notificationsRepo.countUnread(userId, 'IN_APP');
+    return { count };
+  }
+
   markAsRead(id: string, userId: string) {
     return this.notificationsRepo.markAsRead(id, userId);
+  }
+
+  async markAllAsRead(userId: string) {
+    const result = await this.notificationsRepo.markAllAsRead(userId, 'IN_APP');
+    return { updated: result.count };
   }
 }
