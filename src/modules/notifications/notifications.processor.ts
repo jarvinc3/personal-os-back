@@ -6,6 +6,7 @@ import {
   EmailSyncJob,
   NotificationDispatchJob,
 } from '../../core/queues/queue-jobs';
+import { NotificationPolicyService } from './notification-policy.service';
 import { NotificationsRepository } from './notifications.repository';
 
 @Injectable()
@@ -15,6 +16,7 @@ export class NotificationsProcessor extends WorkerHost {
 
   constructor(
     private readonly notificationsRepo: NotificationsRepository,
+    private readonly notificationPolicy: NotificationPolicyService,
     @Optional()
     @InjectQueue(QueueNames.EMAIL_SYNC)
     private readonly emailSyncQueue?: Queue<EmailSyncJob>,
@@ -24,6 +26,24 @@ export class NotificationsProcessor extends WorkerHost {
 
   async process(job: Job<NotificationDispatchJob>): Promise<void> {
     const payload = job.data;
+
+    const policy = await this.notificationPolicy.evaluate({
+      userId: payload.userId,
+      channel: payload.channel,
+      data: payload.data,
+    });
+
+    if (!policy.allowed) {
+      this.notificationPolicy.logSkipped(
+        {
+          userId: payload.userId,
+          channel: payload.channel,
+          data: payload.data,
+        },
+        policy.reason,
+      );
+      return;
+    }
 
     switch (payload.channel) {
       case 'IN_APP':

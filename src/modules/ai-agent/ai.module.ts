@@ -2,8 +2,12 @@ import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { Env } from '../../config/env.schema';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { AiChatPersistenceService } from './ai-chat-persistence.service';
 import { AiProcessingProcessor } from './ai-processing.processor';
 import { AiEventsListener } from './ai-events.listener';
+import { AiSessionsController } from './ai-sessions.controller';
+import { AiSessionsRepository } from './ai-sessions.repository';
+import { AiSessionsService } from './ai-sessions.service';
 import { AiController } from './ai.controller';
 import { AiService } from './ai.service';
 import { AI_PROVIDER } from './utils/ai-provider.token';
@@ -11,7 +15,7 @@ import type { AIService as AIProviderClient } from './utils/ai.types';
 
 @Module({
   imports: [NotificationsModule],
-  controllers: [AiController],
+  controllers: [AiController, AiSessionsController],
   providers: [
     {
       provide: AI_PROVIDER,
@@ -25,7 +29,6 @@ import type { AIService as AIProviderClient } from './utils/ai.types';
 
         if (groqKey) {
           const { createGroqProvider } =
-            // Lazy load: provider SDKs are ESM-only and break Jest unless configured.
             require('./providers/groq.provider') as {
               createGroqProvider: (apiKey: string) => AIProviderClient;
             };
@@ -49,10 +52,13 @@ import type { AIService as AIProviderClient } from './utils/ai.types';
       },
       inject: [ConfigService],
     },
+    AiSessionsRepository,
+    AiSessionsService,
+    AiChatPersistenceService,
     AiService,
     AiEventsListener,
     AiProcessingProcessor,
   ],
-  exports: [AiService],
+  exports: [AiService, AiSessionsService],
 })
 export class AiModule {}

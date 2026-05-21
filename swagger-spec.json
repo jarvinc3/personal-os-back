@@ -290,6 +290,47 @@
       }
     },
     "/api/notifications": {
+      "get": {
+        "operationId": "NotificationsController_list",
+        "parameters": [
+          {
+            "name": "channel",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "default": "IN_APP",
+              "type": "string",
+              "enum": [
+                "IN_APP",
+                "PUSH",
+                "EMAIL"
+              ]
+            }
+          },
+          {
+            "name": "unreadOnly",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "List notifications for current user",
+        "tags": [
+          "notifications"
+        ]
+      },
       "post": {
         "operationId": "NotificationsController_create",
         "parameters": [],
@@ -313,7 +354,47 @@
             "access-token": []
           }
         ],
-        "summary": "Create a notification and broadcast to user room",
+        "summary": "Create a notification for current user",
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/api/notifications/unread-count": {
+      "get": {
+        "operationId": "NotificationsController_unreadCount",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Unread in-app notification count",
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/api/notifications/read-all": {
+      "patch": {
+        "operationId": "NotificationsController_markAllAsRead",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Mark all in-app notifications as read",
         "tags": [
           "notifications"
         ]
@@ -513,6 +594,110 @@
           "ai-agent"
         ]
       }
+    },
+    "/api/ai/sessions": {
+      "get": {
+        "operationId": "AiSessionsController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "List AI chat sessions for current user",
+        "tags": [
+          "ai-agent"
+        ]
+      },
+      "post": {
+        "operationId": "AiSessionsController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateAiSessionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Create a new AI chat session",
+        "tags": [
+          "ai-agent"
+        ]
+      }
+    },
+    "/api/ai/sessions/{id}": {
+      "get": {
+        "operationId": "AiSessionsController_getById",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Get AI session with messages",
+        "tags": [
+          "ai-agent"
+        ]
+      },
+      "delete": {
+        "operationId": "AiSessionsController_delete",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Delete AI session",
+        "tags": [
+          "ai-agent"
+        ]
+      }
     }
   },
   "info": {
@@ -593,9 +778,6 @@
       "CreateNotificationDto": {
         "type": "object",
         "properties": {
-          "userId": {
-            "type": "string"
-          },
           "type": {
             "type": "string"
           },
@@ -619,7 +801,6 @@
           }
         },
         "required": [
-          "userId",
           "type",
           "channel",
           "title",
@@ -687,6 +868,9 @@
       "ChatResponseDto": {
         "type": "object",
         "properties": {
+          "sessionId": {
+            "type": "string"
+          },
           "provider": {
             "type": "string",
             "example": "Groq"
@@ -698,13 +882,26 @@
           "content": {
             "type": "string",
             "example": "Aquí tienes un resumen de tus gastos del mes..."
+          },
+          "requiresConfirmation": {
+            "type": "boolean"
           }
         },
         "required": [
+          "sessionId",
           "provider",
           "model",
           "content"
         ]
+      },
+      "CreateAiSessionDto": {
+        "type": "object",
+        "properties": {
+          "contextType": {
+            "type": "string",
+            "default": "general"
+          }
+        }
       }
     }
   }

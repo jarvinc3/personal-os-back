@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import type { Prisma } from '../../prisma/generated/client';
+import type { NotificationChannel, Prisma } from '../../prisma/generated/client';
 import { PrismaService } from '../../prisma/prisma.service';
+import { paginationArgs } from '../../core/pagination/pagination.dto';
+import type { ListNotificationsQueryDto } from './dto/list-notifications-query.dto';
 
 @Injectable()
 export class NotificationsRepository {
@@ -9,7 +11,7 @@ export class NotificationsRepository {
   createNotification(data: {
     userId: string;
     type: string;
-    channel: 'IN_APP' | 'PUSH' | 'EMAIL';
+    channel: NotificationChannel;
     title: string;
     body: string;
     data?: Record<string, unknown>;
@@ -26,9 +28,43 @@ export class NotificationsRepository {
     });
   }
 
+  findByUser(userId: string, query: ListNotificationsQueryDto) {
+    const { skip, take } = paginationArgs(query);
+    const channel = query.channel ?? 'IN_APP';
+
+    const where: Prisma.NotificationWhereInput = {
+      userId,
+      channel,
+      ...(query.unreadOnly ? { isRead: false } : {}),
+    };
+
+    return this.prisma.$transaction([
+      this.prisma.notification.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take,
+      }),
+      this.prisma.notification.count({ where }),
+    ]);
+  }
+
+  countUnread(userId: string, channel: NotificationChannel = 'IN_APP') {
+    return this.prisma.notification.count({
+      where: { userId, channel, isRead: false },
+    });
+  }
+
   markAsRead(id: string, userId: string) {
     return this.prisma.notification.update({
       where: { id, userId },
+      data: { isRead: true, sentAt: new Date() },
+    });
+  }
+
+  markAllAsRead(userId: string, channel: NotificationChannel = 'IN_APP') {
+    return this.prisma.notification.updateMany({
+      where: { userId, channel, isRead: false },
       data: { isRead: true, sentAt: new Date() },
     });
   }

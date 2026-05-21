@@ -44,7 +44,10 @@ export class AiService implements OnModuleInit {
     return this.providers.map((p) => ({ name: p.name, model: p.model }));
   }
 
-  async chat(messages: ChatMessage[]): Promise<{
+  async chat(
+    messages: ChatMessage[],
+    preferredProvider?: string | null,
+  ): Promise<{
     provider: string;
     model: string;
     stream: AsyncIterable<string>;
@@ -53,7 +56,7 @@ export class AiService implements OnModuleInit {
       throw new ServiceUnavailableException('No AI providers available');
     }
 
-    const ordered = this.getRotatedProviders();
+    const ordered = this.getOrderedProviders(preferredProvider);
     let lastError: unknown;
 
     for (const provider of ordered) {
@@ -83,6 +86,22 @@ export class AiService implements OnModuleInit {
     throw new ServiceUnavailableException(
       `All AI providers failed. Last error: ${message}`,
     );
+  }
+
+  private getOrderedProviders(preferredProvider?: string | null): AIProviderClient[] {
+    const rotated = this.getRotatedProviders();
+
+    if (!preferredProvider) {
+      return rotated;
+    }
+
+    const normalized = preferredProvider.trim().toLowerCase();
+    const preferred = rotated.find((p) => p.name.toLowerCase() === normalized);
+    if (!preferred) {
+      return rotated;
+    }
+
+    return [preferred, ...rotated.filter((p) => p.name !== preferred.name)];
   }
 
   private getRotatedProviders(): AIProviderClient[] {
