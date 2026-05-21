@@ -1,6 +1,7 @@
-import { Body, Controller, Get, Patch } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch } from '@nestjs/common';
 import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../../core/decorators';
+import { UpdateModuleConfigDto } from './dto/update-module-config.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { UsersService } from './users.service';
 
@@ -25,5 +26,16 @@ export class UsersController {
     @Body() dto: UpdateProfileDto,
   ) {
     return this.usersService.updateProfile(userId, dto);
+  }
+
+  @Patch('me/modules/:slug')
+  @ApiOperation({ summary: 'Update module config for authenticated user' })
+  @ApiOkResponse({ description: 'Updated user profile with module config' })
+  updateMyModuleConfig(
+    @CurrentUser('sub') userId: string,
+    @Param('slug') slug: string,
+    @Body() dto: UpdateModuleConfigDto,
+  ) {
+    return this.usersService.updateModuleConfig(userId, slug, dto);
   }
 }

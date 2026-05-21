@@ -67,20 +67,21 @@ Copia `.env.example` a `.env`. Las más importantes:
 
 ## Endpoints principales
 
-| Método | Ruta                                               | Auth | Descripción                            |
-| ------ | -------------------------------------------------- | ---- | -------------------------------------- |
-| GET    | `/api/health`                                      | No   | Liveness                               |
-| GET    | `/api/health/ready`                                | No   | Readiness (DB + JWKS + Redis opcional) |
-| GET    | `/api/auth/session`                                | Sí   | Sesión actual                          |
-| GET    | `/api/users/me`                                    | Sí   | Perfil                                 |
-| PATCH  | `/api/users/me`                                    | Sí   | Actualizar perfil                      |
-| POST   | `/api/notifications`                               | Sí   | Crear notificación + enqueue en BullMQ |
-| PATCH  | `/api/notifications/:id/read`                      | Sí   | Marcar leída                           |
-| POST   | `/api/notifications/push-tokens`                   | Sí   | Registrar push token                   |
-| PATCH  | `/api/notifications/push-tokens/:token/deactivate` | Sí   | Desactivar push token                  |
-| GET    | `/api/ai/providers`                                | Sí   | Proveedores IA                         |
-| POST   | `/api/ai/chat`                                     | Sí   | Chat (JSON)                            |
-| POST   | `/api/ai/chat/stream`                              | Sí   | Chat (SSE)                             |
+| Método | Ruta                                               | Auth | Descripción                                  |
+| ------ | -------------------------------------------------- | ---- | -------------------------------------------- |
+| GET    | `/api/health`                                      | No   | Liveness                                     |
+| GET    | `/api/health/ready`                                | No   | Readiness (DB + JWKS + Redis opcional)       |
+| GET    | `/api/auth/session`                                | Sí   | Sesión actual                                |
+| GET    | `/api/users/me`                                    | Sí   | Perfil                                       |
+| PATCH  | `/api/users/me`                                    | Sí   | Actualizar perfil                            |
+| PATCH  | `/api/users/me/modules/:slug`                      | Sí   | Actualizar config de módulo (`user_modules`) |
+| POST   | `/api/notifications`                               | Sí   | Crear notificación + enqueue en BullMQ       |
+| PATCH  | `/api/notifications/:id/read`                      | Sí   | Marcar leída                                 |
+| POST   | `/api/notifications/push-tokens`                   | Sí   | Registrar push token                         |
+| PATCH  | `/api/notifications/push-tokens/:token/deactivate` | Sí   | Desactivar push token                        |
+| GET    | `/api/ai/providers`                                | Sí   | Proveedores IA                               |
+| POST   | `/api/ai/chat`                                     | Sí   | Chat (JSON)                                  |
+| POST   | `/api/ai/chat/stream`                              | Sí   | Chat (SSE)                                   |
 
 Respuestas exitosas usan envelope `{ data, meta }`. Ver [docs/core-infrastructure.md](./docs/core-infrastructure.md).
 

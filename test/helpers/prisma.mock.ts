@@ -5,6 +5,13 @@ export type PrismaMock = {
     findUnique: MockFn;
     update: MockFn;
   };
+  module: {
+    findUnique: MockFn;
+  };
+  userModule: {
+    findUnique: MockFn;
+    upsert: MockFn;
+  };
   notification: {
     create: MockFn;
     update: MockFn;
@@ -26,6 +33,13 @@ export function createPrismaMock(): PrismaMock {
     user: {
       findUnique: jest.fn(),
       update: jest.fn(),
+    },
+    module: {
+      findUnique: jest.fn(),
+    },
+    userModule: {
+      findUnique: jest.fn(),
+      upsert: jest.fn(),
     },
     notification: {
       create: jest.fn(),

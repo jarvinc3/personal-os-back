@@ -250,6 +250,45 @@
         ]
       }
     },
+    "/api/users/me/modules/{slug}": {
+      "patch": {
+        "operationId": "UsersController_updateMyModuleConfig",
+        "parameters": [
+          {
+            "name": "slug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateModuleConfigDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated user profile with module config"
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Update module config for authenticated user",
+        "tags": [
+          "users"
+        ]
+      }
+    },
     "/api/notifications": {
       "post": {
         "operationId": "NotificationsController_create",
@@ -535,6 +574,19 @@
           },
           "preferences": {
             "type": "object"
+          }
+        }
+      },
+      "UpdateModuleConfigDto": {
+        "type": "object",
+        "properties": {
+          "config": {
+            "type": "object",
+            "description": "Partial module config (merged with defaults)"
+          },
+          "isEnabled": {
+            "type": "boolean",
+            "description": "Enable or disable the module for this user"
           }
         }
       },
