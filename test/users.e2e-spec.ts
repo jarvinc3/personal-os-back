@@ -46,6 +46,9 @@ describe('Users (e2e)', () => {
       locale: 'es-DO',
       avatarUrl: null,
       preferences: {},
+      userModules: [],
+      createdAt: new Date('2026-01-01T00:00:00.000Z'),
+      updatedAt: new Date('2026-01-01T00:00:00.000Z'),
     });
 
     const token = createTestJwt({ sub: 'user-123', email: 'user@example.com' });
@@ -92,6 +95,9 @@ describe('Users (e2e)', () => {
       locale: 'es-DO',
       avatarUrl: null,
       preferences: {},
+      userModules: [],
+      createdAt: new Date('2026-01-01T00:00:00.000Z'),
+      updatedAt: new Date('2026-01-01T00:00:00.000Z'),
     });
     prismaMock.user.update.mockResolvedValue({
       id: 'user-123',
@@ -103,6 +109,9 @@ describe('Users (e2e)', () => {
       preferences: {
         theme: 'dark',
       },
+      userModules: [],
+      createdAt: new Date('2026-01-01T00:00:00.000Z'),
+      updatedAt: new Date('2026-01-01T00:00:00.000Z'),
     });
 
     const token = createTestJwt({ sub: 'user-123', email: 'user@example.com' });
@@ -127,6 +136,278 @@ describe('Users (e2e)', () => {
             path: '/api/users/me',
           },
         });
+      });
+  });
+
+  it('PATCH /api/users/me/modules/finance upserts module config', async () => {
+    const enabledAt = new Date('2026-01-01T00:00:00.000Z');
+    prismaMock.user.findUnique.mockResolvedValue({
+      id: 'user-123',
+      email: 'user@example.com',
+      fullName: 'User Test',
+      timezone: 'America/Santo_Domingo',
+      locale: 'es-DO',
+      avatarUrl: null,
+      preferences: {},
+      userModules: [],
+      createdAt: enabledAt,
+      updatedAt: enabledAt,
+    });
+    prismaMock.module.findUnique.mockResolvedValue({
+      id: 'mod-finance',
+      slug: 'finance',
+      name: 'Finanzas',
+      key: 'fin',
+      isActive: true,
+      sortOrder: 0,
+      description: null,
+    });
+    prismaMock.userModule.findUnique.mockResolvedValue(null);
+    prismaMock.userModule.upsert.mockResolvedValue({
+      id: 'um-1',
+      userId: 'user-123',
+      moduleId: 'mod-finance',
+      isEnabled: true,
+      config: { baseCurrency: 'USD' },
+      enabledAt,
+      module: { slug: 'finance' },
+    });
+    prismaMock.user.findUnique.mockResolvedValueOnce({
+      id: 'user-123',
+      email: 'user@example.com',
+      fullName: 'User Test',
+      timezone: 'America/Santo_Domingo',
+      locale: 'es-DO',
+      avatarUrl: null,
+      preferences: {},
+      userModules: [],
+      createdAt: enabledAt,
+      updatedAt: enabledAt,
+    }).mockResolvedValueOnce({
+      id: 'user-123',
+      email: 'user@example.com',
+      fullName: 'User Test',
+      timezone: 'America/Santo_Domingo',
+      locale: 'es-DO',
+      avatarUrl: null,
+      preferences: {},
+      userModules: [
+        {
+          isEnabled: true,
+          config: { baseCurrency: 'USD', fieldGuide: 'test' },
+          enabledAt,
+          module: { slug: 'finance' },
+        },
+      ],
+      createdAt: enabledAt,
+      updatedAt: enabledAt,
+    });
+
+    const token = createTestJwt({ sub: 'user-123', email: 'user@example.com' });
+
+    await request(app.getHttpServer())
+      .patch('/api/users/me/modules/finance')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ config: { baseCurrency: 'USD' } })
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.data.userModules).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              slug: 'finance',
+              isEnabled: true,
+            }),
+          ]),
+        );
+      });
+  });
+
+  it('PATCH /api/users/me/modules/finance toggles isEnabled without changing config', async () => {
+    const enabledAt = new Date('2026-01-01T00:00:00.000Z');
+    const existingConfig = { baseCurrency: 'DOP', version: 1 };
+
+    prismaMock.module.findUnique.mockResolvedValue({
+      id: 'mod-finance',
+      slug: 'finance',
+      name: 'Finanzas',
+      key: 'fin',
+      isActive: true,
+      sortOrder: 0,
+      description: null,
+    });
+    prismaMock.userModule.findUnique.mockResolvedValue({
+      id: 'um-1',
+      userId: 'user-123',
+      moduleId: 'mod-finance',
+      isEnabled: true,
+      config: existingConfig,
+      enabledAt,
+      module: { slug: 'finance' },
+    });
+    prismaMock.userModule.upsert.mockResolvedValue({
+      id: 'um-1',
+      userId: 'user-123',
+      moduleId: 'mod-finance',
+      isEnabled: false,
+      config: existingConfig,
+      enabledAt,
+      module: { slug: 'finance' },
+    });
+    prismaMock.user.findUnique
+      .mockResolvedValueOnce({
+        id: 'user-123',
+        email: 'user@example.com',
+        fullName: 'User Test',
+        timezone: 'America/Santo_Domingo',
+        locale: 'es-DO',
+        avatarUrl: null,
+        preferences: {},
+        userModules: [
+          {
+            isEnabled: true,
+            config: existingConfig,
+            enabledAt,
+            module: { slug: 'finance' },
+          },
+        ],
+        createdAt: enabledAt,
+        updatedAt: enabledAt,
+      })
+      .mockResolvedValueOnce({
+        id: 'user-123',
+        email: 'user@example.com',
+        fullName: 'User Test',
+        timezone: 'America/Santo_Domingo',
+        locale: 'es-DO',
+        avatarUrl: null,
+        preferences: {},
+        userModules: [
+          {
+            isEnabled: false,
+            config: existingConfig,
+            enabledAt,
+            module: { slug: 'finance' },
+          },
+        ],
+        createdAt: enabledAt,
+        updatedAt: enabledAt,
+      });
+
+    const token = createTestJwt({ sub: 'user-123', email: 'user@example.com' });
+
+    await request(app.getHttpServer())
+      .patch('/api/users/me/modules/finance')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ isEnabled: false })
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.data.userModules).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              slug: 'finance',
+              isEnabled: false,
+              config: existingConfig,
+            }),
+          ]),
+        );
+        expect(prismaMock.userModule.upsert).toHaveBeenCalledWith(
+          expect.objectContaining({
+            update: expect.objectContaining({
+              isEnabled: false,
+              config: expect.objectContaining({ baseCurrency: 'DOP' }),
+            }),
+          }),
+        );
+      });
+  });
+
+  it('PATCH /api/users/me/modules/finance enables module without config patch', async () => {
+    const enabledAt = new Date('2026-01-01T00:00:00.000Z');
+    const existingConfig = { baseCurrency: 'DOP', version: 1 };
+
+    prismaMock.module.findUnique.mockResolvedValue({
+      id: 'mod-finance',
+      slug: 'finance',
+      name: 'Finanzas',
+      key: 'fin',
+      isActive: true,
+      sortOrder: 0,
+      description: null,
+    });
+    prismaMock.userModule.findUnique.mockResolvedValue({
+      id: 'um-1',
+      userId: 'user-123',
+      moduleId: 'mod-finance',
+      isEnabled: false,
+      config: existingConfig,
+      enabledAt,
+      module: { slug: 'finance' },
+    });
+    prismaMock.userModule.upsert.mockResolvedValue({
+      id: 'um-1',
+      userId: 'user-123',
+      moduleId: 'mod-finance',
+      isEnabled: true,
+      config: existingConfig,
+      enabledAt,
+      module: { slug: 'finance' },
+    });
+    prismaMock.user.findUnique
+      .mockResolvedValueOnce({
+        id: 'user-123',
+        email: 'user@example.com',
+        fullName: 'User Test',
+        timezone: 'America/Santo_Domingo',
+        locale: 'es-DO',
+        avatarUrl: null,
+        preferences: {},
+        userModules: [
+          {
+            isEnabled: false,
+            config: existingConfig,
+            enabledAt,
+            module: { slug: 'finance' },
+          },
+        ],
+        createdAt: enabledAt,
+        updatedAt: enabledAt,
+      })
+      .mockResolvedValueOnce({
+        id: 'user-123',
+        email: 'user@example.com',
+        fullName: 'User Test',
+        timezone: 'America/Santo_Domingo',
+        locale: 'es-DO',
+        avatarUrl: null,
+        preferences: {},
+        userModules: [
+          {
+            isEnabled: true,
+            config: existingConfig,
+            enabledAt,
+            module: { slug: 'finance' },
+          },
+        ],
+        createdAt: enabledAt,
+        updatedAt: enabledAt,
+      });
+
+    const token = createTestJwt({ sub: 'user-123', email: 'user@example.com' });
+
+    await request(app.getHttpServer())
+      .patch('/api/users/me/modules/finance')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ isEnabled: true })
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.data.userModules).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              slug: 'finance',
+              isEnabled: true,
+            }),
+          ]),
+        );
       });
   });
 });
