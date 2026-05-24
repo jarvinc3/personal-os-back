@@ -69,6 +69,18 @@
       "enabled": true
     },
     {
+      "key": "sessionId",
+      "value": "",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "moduleSlug",
+      "value": "finance",
+      "type": "default",
+      "enabled": true
+    },
+    {
       "key": "pushToken",
       "value": "expo-push-token-or-fcm-token-example",
       "type": "default",

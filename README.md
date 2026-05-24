@@ -63,7 +63,7 @@ Copia `.env.example` a `.env`. Las más importantes:
 2. Import → `postman.environment.json` (entorno **Personal OS — Local**)
 3. Configurar `supabaseUrl`, `supabaseAnonKey`, `supabaseEmail`, `supabasePassword`
 4. Ejecutar **Supabase Auth → Sign in (password)** → guarda `accessToken` automáticamente
-5. Probar el resto de carpetas (Auth, Users, Notifications, AI)
+5. Probar carpetas **Auth**, **Users**, **Notifications**, **AI Agent** (sesiones + chat)
 
 ## Endpoints principales
 
@@ -75,12 +75,19 @@ Copia `.env.example` a `.env`. Las más importantes:
 | GET    | `/api/users/me`                                    | Sí   | Perfil                                       |
 | PATCH  | `/api/users/me`                                    | Sí   | Actualizar perfil                            |
 | PATCH  | `/api/users/me/modules/:slug`                      | Sí   | Actualizar config de módulo (`user_modules`) |
-| POST   | `/api/notifications`                               | Sí   | Crear notificación + enqueue en BullMQ       |
+| GET    | `/api/notifications`                               | Sí   | Listar notificaciones (paginado)             |
+| GET    | `/api/notifications/unread-count`                  | Sí   | Contador IN_APP no leídas                    |
+| PATCH  | `/api/notifications/read-all`                      | Sí   | Marcar todas IN_APP como leídas              |
+| POST   | `/api/notifications`                               | Sí   | Crear notificación (usuario autenticado)     |
 | PATCH  | `/api/notifications/:id/read`                      | Sí   | Marcar leída                                 |
 | POST   | `/api/notifications/push-tokens`                   | Sí   | Registrar push token                         |
 | PATCH  | `/api/notifications/push-tokens/:token/deactivate` | Sí   | Desactivar push token                        |
 | GET    | `/api/ai/providers`                                | Sí   | Proveedores IA                               |
-| POST   | `/api/ai/chat`                                     | Sí   | Chat (JSON)                                  |
+| GET    | `/api/ai/sessions`                                 | Sí   | Listar sesiones de chat                      |
+| POST   | `/api/ai/sessions`                                 | Sí   | Crear sesión                                 |
+| GET    | `/api/ai/sessions/:id`                             | Sí   | Sesión con mensajes                          |
+| DELETE | `/api/ai/sessions/:id`                             | Sí   | Eliminar sesión                              |
+| POST   | `/api/ai/chat`                                     | Sí   | Chat (JSON, persistido)                      |
 | POST   | `/api/ai/chat/stream`                              | Sí   | Chat (SSE)                                   |
 
 Respuestas exitosas usan envelope `{ data, meta }`. Ver [docs/core-infrastructure.md](./docs/core-infrastructure.md).

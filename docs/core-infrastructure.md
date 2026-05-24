@@ -57,28 +57,34 @@ Estado del núcleo transversal del backend (`personal-os-back`) antes de impleme
 
 ### Users (`src/modules/users/`)
 
-- `GET /api/users/me` — perfil del usuario autenticado.
-- `PATCH /api/users/me` — actualizar `fullName`, `timezone`, `locale`, `avatarUrl`, `preferences`.
+- `GET /api/users/me` — perfil del usuario autenticado (`preferences`, `userModules`).
+- `PATCH /api/users/me` — actualizar `fullName`, `timezone`, `locale`, `avatarUrl`, `preferences` (merge).
+- `PATCH /api/users/me/modules/:slug` — upsert de config por módulo (`finance`, `agenda`, etc.).
 
 ### Notifications (`src/modules/notifications/`)
 
-- `POST /api/notifications` — crear notificación y emitir por WebSocket.
+- `GET /api/notifications` — listar notificaciones del usuario (paginado; query `channel`, `unreadOnly`).
+- `GET /api/notifications/unread-count` — contador de IN_APP no leídas.
+- `PATCH /api/notifications/read-all` — marcar todas IN_APP como leídas.
+- `POST /api/notifications` — crear notificación para el usuario autenticado (`@CurrentUser`; sin `userId` en body).
 - `PATCH /api/notifications/:id/read` — marcar como leída.
 - `POST /api/notifications/push-tokens` — registrar token push (ios/android).
 - `PATCH /api/notifications/push-tokens/:token/deactivate` — desactivar token.
+- **`NotificationPolicyService`** — aplica `preferences.notifications.channels`, quiet hours (solo suprime PUSH/EMAIL; IN_APP siempre visible) y toggles por módulo vía `data.moduleSlug` + `data.notificationKey`.
 - **WebSocket** namespace `/notifications`, room `user:{sub}`, eventos `notification.new`, `ai.response`, handler `ping`.
-- Worker `NotificationsProcessor` (cola `notifications`) para dispatch async (`IN_APP`, `PUSH`, `EMAIL`).
+- Worker `NotificationsProcessor` (cola `notifications`) re-evalúa política en dispatch PUSH/EMAIL.
 - Worker `EmailSyncProcessor` (cola `email-sync`) como stub para integración Gmail.
 
 ### AI Agent (`src/modules/ai-agent/`)
 
 - Pool de proveedores: Groq, Cerebras, OpenRouter (según keys en `.env`).
-- Round-robin y failover entre proveedores.
+- Round-robin y failover entre proveedores; `defaultProvider` desde preferencias de usuario.
 - `GET /api/ai/providers`
-- `POST /api/ai/chat` — respuesta JSON agregada.
+- `GET|POST /api/ai/sessions`, `GET|DELETE /api/ai/sessions/:id` — CRUD de sesiones y mensajes persistidos.
+- `POST /api/ai/chat` — respuesta JSON agregada; persiste historial; system prompt desde `preferences.ai.tone`.
 - `POST /api/ai/chat/stream` — SSE (`start` → `chunk`* → `done` / `error`).
 - Listeners `@OnEvent` para `transaction.created`, `budget.threshold_reached`, `ai.action_requested` que encolan jobs en `ai-processing`.
-- Worker `AiProcessingProcessor` (cola `ai-processing`) para ejecutar acciones IA async y emitir `ai.response`.
+- Worker `AiProcessingProcessor` (cola `ai-processing`) para acciones IA async, `proactiveInsights` y emitir `ai.response`.
 - Throttling más estricto en rutas `/api/ai`.
 
 ### App (`src/app.module.ts`)
@@ -213,8 +219,9 @@ Sin token → `401`.
 #### 4. Users
 
 ```http
-GET  /api/users/me
+GET   /api/users/me
 PATCH /api/users/me
+PATCH /api/users/me/modules/:slug
 ```
 
 Requiere fila en `public.users` (trigger al registrarse en Supabase).
@@ -222,20 +229,30 @@ Requiere fila en `public.users` (trigger al registrarse en Supabase).
 #### 5. Notifications REST
 
 ```http
-POST /api/notifications
+GET   /api/notifications?channel=IN_APP&page=1&limit=20
+GET   /api/notifications/unread-count
+PATCH /api/notifications/read-all
+POST  /api/notifications
 PATCH /api/notifications/:id/read
-POST /api/notifications/push-tokens
+POST  /api/notifications/push-tokens
+PATCH /api/notifications/push-tokens/:token/deactivate
 ```
+
+`POST /api/notifications` usa el usuario autenticado (sin `userId` en body). Quiet hours no oculta IN_APP.
 
 #### 6. AI
 
 ```http
-GET  /api/ai/providers
-POST /api/ai/chat
-POST /api/ai/chat/stream
+GET    /api/ai/providers
+GET    /api/ai/sessions
+POST   /api/ai/sessions
+GET    /api/ai/sessions/:id
+DELETE /api/ai/sessions/:id
+POST   /api/ai/chat
+POST   /api/ai/chat/stream
 ```
 
-Verificar headers `x-ratelimit-*` y respuesta envelope.
+Flujo sugerido: **Create session** → **Chat** con `sessionId`. Verificar headers `x-ratelimit-*` y respuesta envelope.
 
 #### 7. Rate limiting
 
