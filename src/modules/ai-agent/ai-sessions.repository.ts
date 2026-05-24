@@ -28,6 +28,7 @@ export class AiSessionsRepository {
         skip,
         take,
         include: {
+          module: true,
           messages: {
             orderBy: { createdAt: 'desc' },
             take: 1,
@@ -42,6 +43,7 @@ export class AiSessionsRepository {
     return this.prisma.aiAgentSession.findFirst({
       where: { id: sessionId, userId },
       include: {
+        module: true,
         messages: {
           orderBy: { createdAt: 'asc' },
         },
@@ -67,6 +69,7 @@ export class AiSessionsRepository {
     role: AiRole;
     content: string;
     metadata?: Record<string, unknown>;
+    toolCalls?: Record<string, unknown>;
   }) {
     return this.prisma.aiMessage.create({
       data: {
@@ -74,6 +77,9 @@ export class AiSessionsRepository {
         role: data.role,
         content: data.content,
         metadata: (data.metadata ?? {}) as Prisma.InputJsonValue,
+        toolCalls: data.toolCalls
+          ? (data.toolCalls as Prisma.InputJsonValue)
+          : undefined,
       },
     });
   }
@@ -84,5 +90,66 @@ export class AiSessionsRepository {
       orderBy: { createdAt: 'desc' },
       take: limit,
     });
+  }
+
+  findUserMessageByClientId(sessionId: string, clientMessageId: string) {
+    return this.prisma.aiMessage.findFirst({
+      where: {
+        sessionId,
+        role: 'user',
+        metadata: {
+          path: ['clientMessageId'],
+          equals: clientMessageId,
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async findAssistantAfterUserMessage(sessionId: string, userMessageId: string) {
+    const userMsg = await this.prisma.aiMessage.findUnique({
+      where: { id: userMessageId },
+    });
+    if (!userMsg) return null;
+    return this.prisma.aiMessage.findFirst({
+      where: {
+        sessionId,
+        role: 'assistant',
+        createdAt: { gt: userMsg.createdAt },
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+  }
+
+  updateSession(
+    sessionId: string,
+    data: {
+      memorySnapshot?: Prisma.InputJsonValue;
+      contextType?: string;
+      moduleId?: string | null;
+    },
+  ) {
+    return this.prisma.aiAgentSession.update({
+      where: { id: sessionId },
+      data,
+    });
+  }
+
+  createSessionWithModule(
+    userId: string,
+    contextType = 'general',
+    moduleId?: string | null,
+  ) {
+    return this.prisma.aiAgentSession.create({
+      data: {
+        userId,
+        contextType,
+        moduleId: moduleId ?? null,
+      },
+    });
+  }
+
+  findModuleBySlug(slug: string) {
+    return this.prisma.module.findFirst({ where: { slug } });
   }
 }

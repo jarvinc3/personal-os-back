@@ -79,12 +79,16 @@ Estado del núcleo transversal del backend (`personal-os-back`) antes de impleme
 
 - Pool de proveedores: Groq, Cerebras, OpenRouter (según keys en `.env`).
 - Round-robin y failover entre proveedores; `defaultProvider` desde preferencias de usuario.
+- **Agent runner** con tool calling (preferencias, theme, módulos) y auditoría `ai_actions`.
+- Idempotencia de chat vía `clientMessageId`.
+- `memorySnapshot` vía job `session.summarize` (>30 mensajes).
 - `GET /api/ai/providers`
-- `GET|POST /api/ai/sessions`, `GET|DELETE /api/ai/sessions/:id` — CRUD de sesiones y mensajes persistidos.
-- `POST /api/ai/chat` — respuesta JSON agregada; persiste historial; system prompt desde `preferences.ai.tone`.
-- `POST /api/ai/chat/stream` — SSE (`start` → `chunk`* → `done` / `error`).
-- Listeners `@OnEvent` para `transaction.created`, `budget.threshold_reached`, `ai.action_requested` que encolan jobs en `ai-processing`.
-- Worker `AiProcessingProcessor` (cola `ai-processing`) para acciones IA async, `proactiveInsights` y emitir `ai.response`.
+- `GET|POST /api/ai/sessions`, `GET|DELETE /api/ai/sessions/:id` — CRUD con `moduleSlug`, `memorySnapshot`.
+- `GET /api/ai/sessions/:id/actions`, `POST /api/ai/actions/:id/execute|cancel`
+- `POST /api/ai/chat` — respuesta JSON agregada con `actions`, `sideEffects`, `blocks`.
+- `POST /api/ai/chat/stream` — SSE simulado post-runner (`start` → `chunk`* → `done`).
+- Listeners `@OnEvent` para login, preferencias, módulos (sin finanzas).
+- Worker `AiProcessingProcessor` — insights proactivos + resumen de sesión.
 - Throttling más estricto en rutas `/api/ai`.
 
 ### App (`src/app.module.ts`)

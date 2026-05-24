@@ -8,6 +8,7 @@ import { NotificationsRepository } from './notifications.repository';
 import { NotificationPolicyService } from './notification-policy.service';
 import { NotificationsService } from './notifications.service';
 import { PushTokensService } from './push-tokens.service';
+import { PushSenderService } from './push-sender.service';
 
 @Module({
   imports: [AuthModule],
@@ -18,6 +19,7 @@ import { PushTokensService } from './push-tokens.service';
     NotificationsService,
     NotificationsGateway,
     PushTokensService,
+    PushSenderService,
     NotificationsProcessor,
     EmailSyncProcessor,
   ],

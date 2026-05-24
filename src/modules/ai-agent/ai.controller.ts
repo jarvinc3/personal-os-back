@@ -9,11 +9,13 @@ import type { Response } from 'express';
 import { Throttle } from '@nestjs/throttler';
 import { CurrentUser } from '../../core/decorators';
 import { NotificationsGateway } from '../notifications/notifications.gateway';
+import { AiAgentRunner } from './ai-agent.runner';
 import { AiChatPersistenceService } from './ai-chat-persistence.service';
 import { AiService } from './ai.service';
 import { ChatRequestDto } from './dto/chat-request.dto';
 import { AiProviderInfoDto } from './dto/ai-provider-info.dto';
 import { ChatResponseDto } from './dto/chat-response.dto';
+import type { AiResponseWsPayload } from './utils/ai.types';
 
 @ApiTags('ai-agent')
 @Controller('ai')
@@ -21,6 +23,7 @@ export class AiController {
   constructor(
     private readonly aiService: AiService,
     private readonly aiChatPersistence: AiChatPersistenceService,
+    private readonly agentRunner: AiAgentRunner,
     private readonly notificationsGateway: NotificationsGateway,
   ) {}
 
@@ -60,44 +63,35 @@ export class AiController {
       userId,
       dto.sessionId,
     );
-    await this.aiChatPersistence.persistUserMessage(session.id, latestUser.content);
 
-    const { messages, prefs, requiresConfirmation } =
-      await this.aiChatPersistence.buildMessagesForProvider(
-        userId,
-        session.id,
-        latestUser.content,
-      );
-
-    const { provider, model, stream } = await this.aiService.chat(
-      messages,
-      prefs.ai.defaultProvider,
-    );
-
-    let content = '';
-    for await (const chunk of stream) {
-      content += chunk;
-    }
-
-    await this.aiChatPersistence.persistAssistantMessage(session.id, content, {
-      provider,
-      model,
-      requiresConfirmation,
+    const result = await this.agentRunner.run({
+      userId,
+      sessionId: session.id,
+      userContent: latestUser.content,
+      clientMessageId: dto.clientMessageId,
     });
 
     const response: ChatResponseDto = {
-      sessionId: session.id,
-      provider,
-      model,
-      content,
-      requiresConfirmation: requiresConfirmation || undefined,
+      sessionId: result.sessionId,
+      provider: result.provider,
+      model: result.model,
+      content: result.content,
+      requiresConfirmation: result.requiresConfirmation || undefined,
+      actions: result.actions,
+      sideEffects: result.sideEffects,
+      blocks: result.blocks,
     };
 
-    this.notificationsGateway.emitToUser(
-      userId,
-      'ai.response',
-      response as unknown as Record<string, unknown>,
-    );
+    this.emitAiResponse(userId, {
+      type: 'chat.complete',
+      sessionId: result.sessionId,
+      provider: result.provider,
+      model: result.model,
+      content: result.content,
+      requiresConfirmation: result.requiresConfirmation,
+      actions: result.actions,
+      sideEffects: result.sideEffects,
+    });
 
     return response;
   }
@@ -121,19 +115,6 @@ export class AiController {
       userId,
       dto.sessionId,
     );
-    await this.aiChatPersistence.persistUserMessage(session.id, latestUser.content);
-
-    const { messages, prefs, requiresConfirmation } =
-      await this.aiChatPersistence.buildMessagesForProvider(
-        userId,
-        session.id,
-        latestUser.content,
-      );
-
-    const { provider, model, stream } = await this.aiService.chat(
-      messages,
-      prefs.ai.defaultProvider,
-    );
 
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
@@ -144,43 +125,89 @@ export class AiController {
       res.write(`data: ${JSON.stringify(payload)}\n\n`);
     };
 
-    let fullContent = '';
-
     try {
+      const cached = await this.aiChatPersistence.tryGetCachedResponse(
+        session.id,
+        dto.clientMessageId,
+      );
+
+      if (cached) {
+        writeEvent({
+          type: 'start',
+          sessionId: cached.sessionId,
+          provider: cached.provider,
+          model: cached.model,
+          requiresConfirmation: cached.requiresConfirmation,
+        });
+        writeEvent({ type: 'chunk', content: cached.content });
+        writeEvent({
+          type: 'done',
+          sessionId: cached.sessionId,
+          provider: cached.provider,
+          model: cached.model,
+          requiresConfirmation: cached.requiresConfirmation,
+        });
+        res.end();
+        return;
+      }
+
       writeEvent({
         type: 'start',
         sessionId: session.id,
-        provider,
-        model,
-        requiresConfirmation,
+        provider: '…',
+        model: '…',
       });
 
-      for await (const chunk of stream) {
-        if (chunk) {
-          fullContent += chunk;
-          writeEvent({ type: 'chunk', content: chunk });
-          this.notificationsGateway.emitToUser(userId, 'ai.response', {
-            sessionId: session.id,
-            provider,
-            model,
-            content: chunk,
-            stream: true,
-          });
-        }
-      }
+      const result = await this.agentRunner.run({
+        userId,
+        sessionId: session.id,
+        userContent: latestUser.content,
+        clientMessageId: dto.clientMessageId,
+      });
 
-      await this.aiChatPersistence.persistAssistantMessage(
-        session.id,
-        fullContent,
-        { provider, model, requiresConfirmation },
-      );
+      writeEvent({
+        type: 'start',
+        sessionId: result.sessionId,
+        provider: result.provider,
+        model: result.model,
+        requiresConfirmation: result.requiresConfirmation,
+        actions: result.actions,
+      });
+
+      const chunkSize = 40;
+      for (let i = 0; i < result.content.length; i += chunkSize) {
+        const chunk = result.content.slice(i, i + chunkSize);
+        writeEvent({ type: 'chunk', content: chunk });
+        this.emitAiResponse(userId, {
+          type: 'chat.chunk',
+          sessionId: result.sessionId,
+          provider: result.provider,
+          model: result.model,
+          content: chunk,
+          stream: true,
+        });
+      }
 
       writeEvent({
         type: 'done',
-        sessionId: session.id,
-        provider,
-        model,
-        requiresConfirmation,
+        sessionId: result.sessionId,
+        provider: result.provider,
+        model: result.model,
+        requiresConfirmation: result.requiresConfirmation,
+        actions: result.actions,
+        sideEffects: result.sideEffects,
+        blocks: result.blocks,
+      });
+
+      this.emitAiResponse(userId, {
+        type: 'chat.complete',
+        sessionId: result.sessionId,
+        provider: result.provider,
+        model: result.model,
+        content: result.content,
+        requiresConfirmation: result.requiresConfirmation,
+        actions: result.actions,
+        sideEffects: result.sideEffects,
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';
@@ -188,5 +215,13 @@ export class AiController {
     } finally {
       res.end();
     }
+  }
+
+  private emitAiResponse(userId: string, payload: AiResponseWsPayload) {
+    this.notificationsGateway.emitToUser(
+      userId,
+      'ai.response',
+      payload as unknown as Record<string, unknown>,
+    );
   }
 }

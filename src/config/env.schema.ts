@@ -93,6 +93,9 @@ export const envSchema = z
       .default('DOP')
       .transform((v) => v.toUpperCase()),
     EXCHANGE_RATE_HOST_API_KEY: optionalApiKey,
+
+    // ── Push (Expo) ─────────────────────────────────────────────
+    EXPO_ACCESS_TOKEN: optionalApiKey,
   })
   .superRefine((data, ctx) => {
     if (data.NODE_ENV === 'test') {

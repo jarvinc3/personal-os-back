@@ -13,6 +13,13 @@ export const AppEvents = {
   // ── AI ──────────────────────────────────────────────
   AI_ACTION_REQUESTED: 'ai.action_requested',
   AI_ACTION_COMPLETED: 'ai.action_completed',
+
+  // ── Preferences / modules (non-finance) ─────────────
+  USER_PREFERENCES_UPDATED: 'user.preferences.updated',
+  MODULE_ENABLED: 'module.enabled',
+  MODULE_DISABLED: 'module.disabled',
+  MODULE_CONFIG_UPDATED: 'module.config.updated',
+  ONBOARDING_COMPLETED: 'onboarding.completed',
 } as const;
 
 export type AppEventName = (typeof AppEvents)[keyof typeof AppEvents];

@@ -5,6 +5,7 @@ import {
   IsArray,
   IsOptional,
   IsString,
+  MaxLength,
   ValidateNested,
 } from 'class-validator';
 import { ChatMessageDto } from './chat-message.dto';
@@ -16,6 +17,14 @@ export class ChatRequestDto {
   @IsOptional()
   @IsString()
   sessionId?: string;
+
+  @ApiPropertyOptional({
+    description: 'Client-generated id for idempotent message delivery',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(64)
+  clientMessageId?: string;
 
   @ApiProperty({ type: [ChatMessageDto] })
   @IsArray()

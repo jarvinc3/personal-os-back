@@ -1,9 +1,12 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { AppEvents } from '../../core/events/event.constants';
 import {
   DEFAULT_MODULE_CONFIG_BY_SLUG,
   isModuleSlug,
   type ModuleSlug,
 } from './defaults/user-settings-defaults';
+import { GLOBAL_USER_PREFERENCES_DEFAULTS } from './defaults/global-preferences-defaults';
 import { UpdateModuleConfigDto } from './dto/update-module-config.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { mergeWithDefaults } from './lib/settings-merge';
@@ -11,7 +14,10 @@ import { UserWithModules, UsersRepository } from './users.repository';
 
 @Injectable()
 export class UsersService {
-  constructor(private readonly usersRepository: UsersRepository) {}
+  constructor(
+    private readonly usersRepository: UsersRepository,
+    private readonly eventEmitter: EventEmitter2,
+  ) {}
 
   private mapUser(user: UserWithModules) {
     return {
@@ -42,15 +48,33 @@ export class UsersService {
   }
 
   async updateProfile(userId: string, dto: UpdateProfileDto) {
-    await this.findById(userId);
+    const current = await this.findById(userId);
+
+    let mergedPreferences = current.preferences as Record<string, unknown>;
+    if (dto.preferences !== undefined) {
+      mergedPreferences = mergeWithDefaults(
+        dto.preferences,
+        mergeWithDefaults(
+          current.preferences as Record<string, unknown>,
+          GLOBAL_USER_PREFERENCES_DEFAULTS as unknown as Record<string, unknown>,
+        ),
+      );
+    }
 
     const updated = await this.usersRepository.updateProfile(userId, {
       fullName: dto.fullName,
       timezone: dto.timezone,
       locale: dto.locale,
       avatarUrl: dto.avatarUrl,
-      preferences: dto.preferences,
+      preferences: mergedPreferences as never,
     });
+
+    if (dto.preferences !== undefined) {
+      this.eventEmitter.emit(AppEvents.USER_PREFERENCES_UPDATED, {
+        userId,
+        preferences: mergedPreferences,
+      });
+    }
 
     return this.mapUser(updated);
   }
@@ -64,7 +88,7 @@ export class UsersService {
       throw new BadRequestException('Either config or isEnabled must be provided');
     }
 
-    await this.findById(userId);
+    const before = await this.findById(userId);
 
     const moduleRecord = await this.usersRepository.findModuleBySlug(slug);
     if (!moduleRecord) {
@@ -100,6 +124,22 @@ export class UsersService {
       isEnabled,
     );
 
+    const wasEnabled = existing?.isEnabled ?? false;
+    if (dto.isEnabled !== undefined && dto.isEnabled !== wasEnabled) {
+      this.eventEmitter.emit(
+        dto.isEnabled ? AppEvents.MODULE_ENABLED : AppEvents.MODULE_DISABLED,
+        { userId, slug },
+      );
+    }
+
+    if (dto.config !== undefined) {
+      this.eventEmitter.emit(AppEvents.MODULE_CONFIG_UPDATED, {
+        userId,
+        slug,
+      });
+    }
+
+    void before;
     return this.findById(userId);
   }
 }

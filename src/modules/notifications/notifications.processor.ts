@@ -8,6 +8,7 @@ import {
 } from '../../core/queues/queue-jobs';
 import { NotificationPolicyService } from './notification-policy.service';
 import { NotificationsRepository } from './notifications.repository';
+import { PushSenderService } from './push-sender.service';
 
 @Injectable()
 @Processor(QueueNames.NOTIFICATIONS)
@@ -17,6 +18,7 @@ export class NotificationsProcessor extends WorkerHost {
   constructor(
     private readonly notificationsRepo: NotificationsRepository,
     private readonly notificationPolicy: NotificationPolicyService,
+    private readonly pushSender: PushSenderService,
     @Optional()
     @InjectQueue(QueueNames.EMAIL_SYNC)
     private readonly emailSyncQueue?: Queue<EmailSyncJob>,
@@ -56,8 +58,26 @@ export class NotificationsProcessor extends WorkerHost {
         const activeTokens = await this.notificationsRepo.findActivePushTokens(
           payload.userId,
         );
+        const tokenValues = activeTokens.map((row) => row.token);
+
+        if (tokenValues.length === 0) {
+          this.logger.warn(
+            `PUSH notification ${payload.notificationId}: no active tokens for user ${payload.userId}`,
+          );
+          return;
+        }
+
+        const result = await this.pushSender.sendToTokens(tokenValues, {
+          title: payload.title,
+          body: payload.body,
+          data: {
+            notificationId: payload.notificationId,
+            ...(payload.data ?? {}),
+          },
+        });
+
         this.logger.log(
-          `PUSH notification ${payload.notificationId} queued for ${activeTokens.length} active token(s)`,
+          `PUSH notification ${payload.notificationId}: sent=${result.sent} failed=${result.failed}`,
         );
         return;
       }

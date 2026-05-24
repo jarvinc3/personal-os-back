@@ -1,4 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import type { AiActionSummary, ChatBlock, SideEffectDescriptor } from '../utils/ai.types';
 
 export class ChatResponseDto {
   @ApiProperty()
@@ -17,4 +18,13 @@ export class ChatResponseDto {
 
   @ApiPropertyOptional()
   requiresConfirmation?: boolean;
+
+  @ApiPropertyOptional()
+  actions?: AiActionSummary[];
+
+  @ApiPropertyOptional()
+  sideEffects?: SideEffectDescriptor[];
+
+  @ApiPropertyOptional()
+  blocks?: ChatBlock[];
 }
