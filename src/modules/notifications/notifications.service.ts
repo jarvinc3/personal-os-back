@@ -25,18 +25,23 @@ export class NotificationsService {
   ) {}
 
   async create(userId: string, dto: CreateNotificationDto) {
-    const policy = await this.notificationPolicy.evaluate({
-      userId,
-      channel: dto.channel,
-      data: dto.data,
-    });
+    const isDevTestNotification =
+      process.env.NODE_ENV !== 'production' && dto.data?.source === 'dev';
 
-    if (!policy.allowed) {
-      this.notificationPolicy.logSkipped(
-        { userId, channel: dto.channel, data: dto.data },
-        policy.reason,
-      );
-      return null;
+    if (!isDevTestNotification) {
+      const policy = await this.notificationPolicy.evaluate({
+        userId,
+        channel: dto.channel,
+        data: dto.data,
+      });
+
+      if (!policy.allowed) {
+        this.notificationPolicy.logSkipped(
+          { userId, channel: dto.channel, data: dto.data },
+          policy.reason,
+        );
+        return null;
+      }
     }
 
     const created = await this.notificationsRepo.createNotification({

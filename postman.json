@@ -38,7 +38,9 @@
     { "key": "refreshToken", "value": "", "type": "string" },
     { "key": "userId", "value": "", "type": "string" },
     { "key": "notificationId", "value": "", "type": "string" },
-    { "key": "pushToken", "value": "expo-push-token-example", "type": "string" }
+    { "key": "sessionId", "value": "", "type": "string" },
+    { "key": "pushToken", "value": "expo-push-token-example", "type": "string" },
+    { "key": "moduleSlug", "value": "finance", "type": "string" }
   ],
   "item": [
     {
@@ -360,14 +362,37 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"fullName\": \"Test User\",\n  \"timezone\": \"America/Santo_Domingo\",\n  \"locale\": \"es-DO\"\n}",
+              "raw": "{\n  \"fullName\": \"Test User\",\n  \"timezone\": \"America/Santo_Domingo\",\n  \"locale\": \"es-DO\",\n  \"preferences\": {\n    \"ai\": {\n      \"tone\": \"balanced\",\n      \"defaultProvider\": null,\n      \"proactiveInsights\": true,\n      \"confirmBeforeActions\": true\n    },\n    \"notifications\": {\n      \"channels\": { \"push\": true, \"email\": false, \"inApp\": true },\n      \"quietHours\": {\n        \"enabled\": false,\n        \"start\": \"22:00\",\n        \"end\": \"08:00\",\n        \"timezone\": null\n      }\n    }\n  }\n}",
               "options": { "raw": { "language": "json" } }
             },
             "url": {
               "raw": "{{baseUrl}}/{{apiPrefix}}/users/me",
               "host": ["{{baseUrl}}"],
               "path": ["{{apiPrefix}}", "users", "me"]
-            }
+            },
+            "description": "Merge parcial de `preferences`. Ver `docs/user-settings-defaults.json`."
+          },
+          "response": []
+        },
+        {
+          "name": "Update module config",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"config\": {\n    \"baseCurrency\": \"USD\"\n  }\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/{{apiPrefix}}/users/me/modules/{{moduleSlug}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["{{apiPrefix}}", "users", "me", "modules", "{{moduleSlug}}"]
+            },
+            "description": "Upsert de `user_modules.config`. Slugs: finance, agenda, projects, subscriptions, health."
           },
           "response": []
         }
@@ -375,7 +400,56 @@
     },
     {
       "name": "Notifications",
+      "description": "Centro in-app, política de preferencias (`channels`, `quietHours`, toggles por módulo) y push tokens.",
       "item": [
+        {
+          "name": "List notifications",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{baseUrl}}/{{apiPrefix}}/notifications?channel=IN_APP&page=1&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["{{apiPrefix}}", "notifications"],
+              "query": [
+                { "key": "channel", "value": "IN_APP", "description": "IN_APP | PUSH | EMAIL" },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" },
+                { "key": "unreadOnly", "value": "false", "disabled": true }
+              ]
+            },
+            "description": "Lista paginada. Vacía si `preferences.notifications.channels.inApp` es false."
+          },
+          "response": []
+        },
+        {
+          "name": "Unread count",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{baseUrl}}/{{apiPrefix}}/notifications/unread-count",
+              "host": ["{{baseUrl}}"],
+              "path": ["{{apiPrefix}}", "notifications", "unread-count"]
+            },
+            "description": "Respuesta: `{ count: number }` (solo IN_APP)."
+          },
+          "response": []
+        },
+        {
+          "name": "Mark all as read",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{baseUrl}}/{{apiPrefix}}/notifications/read-all",
+              "host": ["{{baseUrl}}"],
+              "path": ["{{apiPrefix}}", "notifications", "read-all"]
+            },
+            "description": "Respuesta: `{ updated: number }`."
+          },
+          "response": []
+        },
         {
           "name": "Create notification",
           "event": [
@@ -404,7 +478,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"userId\": \"{{userId}}\",\n  \"type\": \"test.in_app\",\n  \"channel\": \"IN_APP\",\n  \"title\": \"Prueba Postman\",\n  \"body\": \"Notificación de prueba desde Postman.\",\n  \"data\": { \"source\": \"postman\" }\n}",
+              "raw": "{\n  \"type\": \"test.in_app\",\n  \"channel\": \"IN_APP\",\n  \"title\": \"Prueba Postman\",\n  \"body\": \"Notificación de prueba desde Postman.\",\n  \"data\": {\n    \"source\": \"postman\",\n    \"moduleSlug\": \"finance\",\n    \"notificationKey\": \"budgetAlerts\"\n  }\n}",
               "options": { "raw": { "language": "json" } }
             },
             "url": {
@@ -412,7 +486,7 @@
               "host": ["{{baseUrl}}"],
               "path": ["{{apiPrefix}}", "notifications"]
             },
-            "description": "Emite `notification.new` al room WebSocket del usuario."
+            "description": "Crea notificación para el usuario autenticado (`@CurrentUser`). Respeta política de preferencias. Emite `notification.new` al room WebSocket."
           },
           "response": []
         },
@@ -467,6 +541,7 @@
     },
     {
       "name": "AI Agent",
+      "description": "Chat con pool de proveedores, persistencia de sesiones y streaming SSE.",
       "item": [
         {
           "name": "List providers",
@@ -482,7 +557,43 @@
           "response": []
         },
         {
-          "name": "Chat (JSON)",
+          "name": "List sessions",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{baseUrl}}/{{apiPrefix}}/ai/sessions?page=1&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["{{apiPrefix}}", "ai", "sessions"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            },
+            "description": "Lista paginada de sesiones del usuario autenticado."
+          },
+          "response": []
+        },
+        {
+          "name": "Create session",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200 || pm.response.code === 201) {",
+                  "  const json = pm.response.json();",
+                  "  const data = json.data || json;",
+                  "  if (data.id) {",
+                  "    pm.collectionVariables.set('sessionId', data.id);",
+                  "    pm.environment.set('sessionId', data.id);",
+                  "  }",
+                  "}"
+                ]
+              }
+            }
+          ],
           "request": {
             "method": "POST",
             "header": [
@@ -491,7 +602,74 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"Di hola en una frase corta.\"\n    }\n  ]\n}",
+              "raw": "{\n  \"title\": \"Sesión Postman\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/{{apiPrefix}}/ai/sessions",
+              "host": ["{{baseUrl}}"],
+              "path": ["{{apiPrefix}}", "ai", "sessions"]
+            },
+            "description": "Guarda `sessionId` en variables de colección."
+          },
+          "response": []
+        },
+        {
+          "name": "Get session",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{baseUrl}}/{{apiPrefix}}/ai/sessions/{{sessionId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["{{apiPrefix}}", "ai", "sessions", "{{sessionId}}"]
+            },
+            "description": "Sesión con historial de mensajes."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete session",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{baseUrl}}/{{apiPrefix}}/ai/sessions/{{sessionId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["{{apiPrefix}}", "ai", "sessions", "{{sessionId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Chat (JSON)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  const json = pm.response.json();",
+                  "  const data = json.data || json;",
+                  "  if (data.sessionId) {",
+                  "    pm.collectionVariables.set('sessionId', data.sessionId);",
+                  "    pm.environment.set('sessionId', data.sessionId);",
+                  "  }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sessionId\": \"{{sessionId}}\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"Di hola en una frase corta.\"\n    }\n  ]\n}",
               "options": { "raw": { "language": "json" } }
             },
             "url": {
@@ -499,7 +677,7 @@
               "host": ["{{baseUrl}}"],
               "path": ["{{apiPrefix}}", "ai", "chat"]
             },
-            "description": "Respuesta en `data`: provider, model, content. Puede emitir `ai.response` por WebSocket."
+            "description": "Respuesta en `data`: sessionId, provider, model, content. Persiste mensajes. Puede emitir `ai.response` por WebSocket."
           },
           "response": []
         },
@@ -513,7 +691,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"Di hola en una frase corta.\"\n    }\n  ]\n}",
+              "raw": "{\n  \"sessionId\": \"{{sessionId}}\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"Di hola en una frase corta.\"\n    }\n  ]\n}",
               "options": { "raw": { "language": "json" } }
             },
             "url": {
@@ -521,7 +699,7 @@
               "host": ["{{baseUrl}}"],
               "path": ["{{apiPrefix}}", "ai", "chat", "stream"]
             },
-            "description": "SSE: eventos `start`, `chunk`, `done` o `error`."
+            "description": "SSE: eventos `start`, `chunk`, `done` o `error`. Incluye `sessionId` en `done`."
           },
           "response": []
         }
