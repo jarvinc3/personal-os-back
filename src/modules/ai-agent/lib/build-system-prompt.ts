@@ -1,6 +1,6 @@
 import type { AiTone } from '../../users/defaults/global-preferences-defaults';
 
-const TONE_INSTRUCTIONS: Record<AiTone, string> = {
+export const TONE_INSTRUCTIONS: Record<AiTone, string> = {
   concise:
     'Responde de forma breve y directa. Usa listas solo cuando aporten claridad.',
   balanced:

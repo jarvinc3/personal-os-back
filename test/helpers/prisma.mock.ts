@@ -15,6 +15,9 @@ export type PrismaMock = {
   notification: {
     create: MockFn;
     update: MockFn;
+    findMany: MockFn;
+    count: MockFn;
+    updateMany: MockFn;
   };
   pushToken: {
     upsert: MockFn;
@@ -24,6 +27,19 @@ export type PrismaMock = {
   aiMessage: {
     create: MockFn;
   };
+  finAccount: {
+    findMany: MockFn;
+    findFirst: MockFn;
+    create: MockFn;
+    update: MockFn;
+  };
+  finTransaction: {
+    findMany: MockFn;
+    findFirst: MockFn;
+    count: MockFn;
+    create: MockFn;
+  };
+  $transaction: MockFn;
   $connect: MockFn;
   $disconnect: MockFn;
 };
@@ -44,6 +60,9 @@ export function createPrismaMock(): PrismaMock {
     notification: {
       create: jest.fn(),
       update: jest.fn(),
+      findMany: jest.fn().mockResolvedValue([]),
+      count: jest.fn().mockResolvedValue(0),
+      updateMany: jest.fn(),
     },
     pushToken: {
       upsert: jest.fn(),
@@ -53,6 +72,32 @@ export function createPrismaMock(): PrismaMock {
     aiMessage: {
       create: jest.fn(),
     },
+    finAccount: {
+      findMany: jest.fn().mockResolvedValue([]),
+      findFirst: jest.fn(),
+      create: jest.fn(),
+      update: jest.fn(),
+    },
+    finTransaction: {
+      findMany: jest.fn().mockResolvedValue([]),
+      findFirst: jest.fn(),
+      count: jest.fn().mockResolvedValue(0),
+      create: jest.fn(),
+    },
+    $transaction: jest.fn(async (arg: unknown) => {
+      if (typeof arg === 'function') {
+        return arg({
+          finAccount: {
+            findFirst: jest.fn(),
+            update: jest.fn(),
+          },
+          finTransaction: {
+            create: jest.fn(),
+          },
+        });
+      }
+      return Promise.all(arg as Promise<unknown>[]);
+    }),
     $connect: jest.fn(),
     $disconnect: jest.fn(),
   };

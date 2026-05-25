@@ -289,6 +289,206 @@
         ]
       }
     },
+    "/api/finance/accounts": {
+      "get": {
+        "operationId": "FinanceController_listAccounts",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "List finance accounts for current user",
+        "tags": [
+          "finance"
+        ]
+      },
+      "post": {
+        "operationId": "FinanceController_createAccount",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateAccountDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Create a finance account",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
+    "/api/finance/accounts/{id}": {
+      "get": {
+        "operationId": "FinanceController_getAccount",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Get finance account by id",
+        "tags": [
+          "finance"
+        ]
+      },
+      "patch": {
+        "operationId": "FinanceController_updateAccount",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateAccountDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Update finance account",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
+    "/api/finance/transactions": {
+      "get": {
+        "operationId": "FinanceController_listTransactions",
+        "parameters": [
+          {
+            "name": "accountId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "List finance transactions",
+        "tags": [
+          "finance"
+        ]
+      },
+      "post": {
+        "operationId": "FinanceController_createTransaction",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateTransactionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Create a finance transaction",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
+    "/api/finance/transactions/{id}": {
+      "get": {
+        "operationId": "FinanceController_getTransaction",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Get finance transaction by id",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
     "/api/notifications": {
       "get": {
         "operationId": "NotificationsController_list",
@@ -698,6 +898,78 @@
           "ai-agent"
         ]
       }
+    },
+    "/api/ai/sessions/{id}/actions": {
+      "get": {
+        "operationId": "AiActionsController_listSessionActions",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "List actions for an AI session",
+        "tags": [
+          "ai-agent"
+        ]
+      }
+    },
+    "/api/ai/actions/{id}/execute": {
+      "post": {
+        "operationId": "AiActionsController_execute",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Execute a pending AI action",
+        "tags": [
+          "ai-agent"
+        ]
+      }
+    },
+    "/api/ai/actions/{id}/cancel": {
+      "post": {
+        "operationId": "AiActionsController_cancel",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Cancel a pending AI action",
+        "tags": [
+          "ai-agent"
+        ]
+      }
     }
   },
   "info": {
@@ -774,6 +1046,96 @@
             "description": "Enable or disable the module for this user"
           }
         }
+      },
+      "CreateAccountDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "CHECKING",
+              "SAVINGS",
+              "CREDIT_CARD",
+              "CASH",
+              "INVESTMENT"
+            ]
+          },
+          "institution": {
+            "type": "string"
+          },
+          "currency": {
+            "type": "string",
+            "default": "DOP"
+          },
+          "color": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "type"
+        ]
+      },
+      "UpdateAccountDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "institution": {
+            "type": "string"
+          },
+          "color": {
+            "type": "string"
+          },
+          "isActive": {
+            "type": "boolean"
+          }
+        }
+      },
+      "CreateTransactionDto": {
+        "type": "object",
+        "properties": {
+          "accountId": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "DEBIT",
+              "CREDIT",
+              "TRANSFER"
+            ]
+          },
+          "amount": {
+            "type": "number"
+          },
+          "currency": {
+            "type": "string",
+            "default": "DOP"
+          },
+          "transactionDate": {
+            "type": "string"
+          },
+          "merchant": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "categoryId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "accountId",
+          "type",
+          "amount",
+          "transactionDate"
+        ]
       },
       "CreateNotificationDto": {
         "type": "object",
@@ -854,6 +1216,10 @@
             "type": "string",
             "description": "Optional AI session id to attach metrics"
           },
+          "clientMessageId": {
+            "type": "string",
+            "description": "Client-generated id for idempotent message delivery"
+          },
           "messages": {
             "type": "array",
             "items": {
@@ -885,6 +1251,24 @@
           },
           "requiresConfirmation": {
             "type": "boolean"
+          },
+          "actions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "sideEffects": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "blocks": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         },
         "required": [
@@ -900,6 +1284,10 @@
           "contextType": {
             "type": "string",
             "default": "general"
+          },
+          "moduleSlug": {
+            "type": "string",
+            "description": "Module slug to scope the session (agenda, projects, etc.)"
           }
         }
       }

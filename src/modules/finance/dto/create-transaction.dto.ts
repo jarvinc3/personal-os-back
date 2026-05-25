@@ -1,0 +1,54 @@
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
+import {
+  IsDateString,
+  IsEnum,
+  IsNumber,
+  IsOptional,
+  IsString,
+  IsUUID,
+  MaxLength,
+} from 'class-validator';
+
+const transactionTypes = ['DEBIT', 'CREDIT', 'TRANSFER'] as const;
+
+export class CreateTransactionDto {
+  @ApiProperty()
+  @IsUUID()
+  accountId!: string;
+
+  @ApiProperty({ enum: transactionTypes })
+  @IsEnum(transactionTypes)
+  type!: (typeof transactionTypes)[number];
+
+  @ApiProperty()
+  @Type(() => Number)
+  @IsNumber()
+  amount!: number;
+
+  @ApiPropertyOptional({ default: 'DOP' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(3)
+  currency?: string;
+
+  @ApiProperty()
+  @IsDateString()
+  transactionDate!: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  merchant?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  description?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsUUID()
+  categoryId?: string;
+}

@@ -6,8 +6,11 @@ import { AiProcessingJob } from '../../core/queues/queue-jobs';
 import { parseUserPreferences } from '../users/lib/parse-user-preferences';
 import { UsersRepository } from '../users/users.repository';
 import { NotificationsGateway } from '../notifications/notifications.gateway';
-import { buildSystemPrompt } from './lib/build-system-prompt';
+import { buildAgentPrompt } from './prompts/build-agent-prompt';
 import { AiService } from './ai.service';
+import { AiSessionsRepository } from './ai-sessions.repository';
+import { AiMemoryService } from './ai-memory.service';
+import type { AiResponseWsPayload } from './utils/ai.types';
 
 @Injectable()
 @Processor(QueueNames.AI_PROCESSING)
@@ -18,12 +21,29 @@ export class AiProcessingProcessor extends WorkerHost {
     private readonly aiService: AiService,
     private readonly notificationsGateway: NotificationsGateway,
     private readonly usersRepository: UsersRepository,
+    private readonly sessionsRepo: AiSessionsRepository,
+    private readonly memoryService: AiMemoryService,
   ) {
     super();
   }
 
   async process(job: Job<AiProcessingJob>): Promise<void> {
     const { userId, actionType, payload } = job.data;
+
+    if (actionType === 'session.summarize') {
+      const sessionId = payload.sessionId as string;
+      await this.memoryService.maybeSummarizeSession(sessionId, userId);
+      return;
+    }
+
+    if (actionType === 'user.preferences.updated') {
+      this.emit(userId, {
+        type: 'action.updated',
+        actionType,
+        sideEffects: [{ type: 'invalidate', keys: ['profile', 'me'] }],
+      });
+      return;
+    }
 
     const user = await this.usersRepository.findById(userId);
     if (!user) {
@@ -39,36 +59,69 @@ export class AiProcessingProcessor extends WorkerHost {
       return;
     }
 
-    const systemContent = buildSystemPrompt({
+    const moduleSlug =
+      typeof payload.slug === 'string' ? payload.slug : null;
+
+    const systemContent = buildAgentPrompt({
       tone: prefs.ai.tone,
       locale: user.locale,
       confirmBeforeActions: prefs.ai.confirmBeforeActions,
+      memorySnapshot: {},
+      moduleSlug,
     });
 
-    const { provider, model, stream } = await this.aiService.chat(
+    const insightPrompts: Record<string, string> = {
+      'user.logged_in':
+        'The user just logged in. If onboarding might be incomplete, offer one short helpful tip about Personal OS settings. Otherwise respond with a brief welcome.',
+      'module.enabled': `The user enabled the ${payload.slug} module. Suggest one initial configuration tip.`,
+      'module.disabled': `The user disabled the ${payload.slug} module. Acknowledge briefly.`,
+      'module.config.updated': `The user updated ${payload.slug} module config. Offer one relevant tip.`,
+      'onboarding.completed':
+        'The user completed onboarding. Welcome them to Personal OS with 2 short bullet tips.',
+    };
+
+    const userPrompt =
+      insightPrompts[actionType] ??
+      `Generate a brief proactive insight for event "${actionType}" with payload: ${JSON.stringify(payload)}`;
+
+    const { provider, model, content } = await this.aiService.chatComplete(
       [
         { role: 'system', content: systemContent },
-        {
-          role: 'user',
-          content: `Process action "${actionType}" with payload: ${JSON.stringify(payload)}`,
-        },
+        { role: 'user', content: userPrompt },
       ],
       prefs.ai.defaultProvider,
     );
 
-    let content = '';
-    for await (const chunk of stream) {
-      content += chunk;
-    }
+    const session = await this.sessionsRepo.createSessionWithModule(
+      userId,
+      'insight',
+      null,
+    );
 
-    this.notificationsGateway.emitToUser(userId, 'ai.response', {
+    await this.sessionsRepo.createMessage({
+      sessionId: session.id,
+      role: 'assistant',
+      content,
+      metadata: { provider, model, source: 'insight', actionType },
+    });
+
+    this.emit(userId, {
+      type: 'insight',
+      sessionId: session.id,
       provider,
       model,
       content,
       actionType,
       source: 'queue',
-      requiresConfirmation: prefs.ai.confirmBeforeActions,
     });
+  }
+
+  private emit(userId: string, payload: AiResponseWsPayload) {
+    this.notificationsGateway.emitToUser(
+      userId,
+      'ai.response',
+      payload as unknown as Record<string, unknown>,
+    );
   }
 
   @OnWorkerEvent('failed')

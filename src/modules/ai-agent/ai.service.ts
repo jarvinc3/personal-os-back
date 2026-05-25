@@ -9,6 +9,8 @@ import { AI_PROVIDER } from './utils/ai-provider.token';
 import type {
   AIService as AIProviderClient,
   AIProviderInfo,
+  AiToolDefinition,
+  ChatCompletionResult,
   ChatMessage,
 } from './utils/ai.types';
 import { isRetryableProviderError } from './utils/is-retryable-provider-error';
@@ -67,6 +69,50 @@ export class AiService implements OnModuleInit {
           provider: provider.name,
           model: provider.model,
           stream,
+        };
+      } catch (error) {
+        lastError = error;
+        if (!isRetryableProviderError(error)) {
+          throw error;
+        }
+        this.logger.warn(
+          `Provider ${provider.name} unavailable, trying next: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        );
+      }
+    }
+
+    const message =
+      lastError instanceof Error ? lastError.message : 'Unknown error';
+    throw new ServiceUnavailableException(
+      `All AI providers failed. Last error: ${message}`,
+    );
+  }
+
+  async chatComplete(
+    messages: ChatMessage[],
+    preferredProvider?: string | null,
+    tools?: AiToolDefinition[],
+  ): Promise<ChatCompletionResult & { provider: string; model: string }> {
+    if (this.providers.length === 0) {
+      throw new ServiceUnavailableException('No AI providers available');
+    }
+
+    const ordered = this.getOrderedProviders(preferredProvider);
+    let lastError: unknown;
+
+    for (const provider of ordered) {
+      if (!provider.chatComplete) {
+        continue;
+      }
+      try {
+        this.logger.debug(`Trying AI provider (complete): ${provider.name}`);
+        const result = await provider.chatComplete(messages, tools);
+        return {
+          ...result,
+          provider: provider.name,
+          model: provider.model,
         };
       } catch (error) {
         lastError = error;

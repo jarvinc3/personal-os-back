@@ -7,4 +7,12 @@ export class CreateAiSessionDto {
   @IsString()
   @MaxLength(64)
   contextType?: string;
+
+  @ApiPropertyOptional({
+    description: 'Module slug to scope the session (agenda, projects, etc.)',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(64)
+  moduleSlug?: string;
 }

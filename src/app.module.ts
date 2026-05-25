@@ -18,6 +18,7 @@ import { AiModule } from './modules/ai-agent';
 import { AuthModule } from './modules/auth/auth.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { UsersModule } from './modules/users/users.module';
+import { FinanceModule } from './modules/finance/finance.module';
 import { PrismaModule } from './prisma/prisma.module';
 
 function isBullMqEnabledAtModuleLoad(): boolean {
@@ -136,6 +137,7 @@ const bullMqEnabled = isBullMqEnabledAtModuleLoad();
     CoreModule,
     HealthModule,
     UsersModule,
+    FinanceModule,
     NotificationsModule,
     AiModule,
     AuthModule,

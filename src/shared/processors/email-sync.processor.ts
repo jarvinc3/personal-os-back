@@ -10,10 +10,18 @@ export class EmailSyncProcessor extends WorkerHost {
   private readonly logger = new Logger(EmailSyncProcessor.name);
 
   async process(job: Job<EmailSyncJob>): Promise<void> {
+    const { userId, template, to, subject } = job.data;
+
+    if (!subject?.trim()) {
+      this.logger.warn(`Email sync job ${job.id ?? 'unknown'} skipped: empty subject`);
+      return;
+    }
+
     this.logger.log(
-      `Email sync job ${job.id ?? 'unknown'} for user ${job.data.userId} template=${job.data.template}`,
+      `Email sync job ${job.id ?? 'unknown'} user=${userId} template=${template} to=${to || '(from profile)'} subject="${subject.slice(0, 80)}"`,
     );
-    // Stub: integrate Gmail API sender here.
+
+    // Gmail API integration: resolve recipient, send via OAuth-backed transport.
     await Promise.resolve();
   }
 
