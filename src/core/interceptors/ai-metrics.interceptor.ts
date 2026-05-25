@@ -39,14 +39,31 @@ export class AiMetricsInterceptor implements NestInterceptor {
     }
 
     const latencyMs = Date.now() - startedAt;
+    const session = await this.prisma.aiAgentSession.findUnique({
+      where: { id: sessionId },
+      select: { memorySnapshot: true },
+    });
 
-    await this.prisma.aiMessage.create({
+    if (!session) {
+      return;
+    }
+
+    const memory = (session.memorySnapshot ?? {}) as Record<string, unknown>;
+    const previousMetrics =
+      memory.metrics && typeof memory.metrics === 'object'
+        ? (memory.metrics as Record<string, unknown>)
+        : {};
+
+    await this.prisma.aiAgentSession.update({
+      where: { id: sessionId },
       data: {
-        sessionId,
-        role: 'tool',
-        content: 'ai-metrics',
-        metadata: {
-          latencyMs,
+        memorySnapshot: {
+          ...memory,
+          metrics: {
+            ...previousMetrics,
+            lastLatencyMs: latencyMs,
+            lastMeasuredAt: new Date().toISOString(),
+          },
         },
       },
     });

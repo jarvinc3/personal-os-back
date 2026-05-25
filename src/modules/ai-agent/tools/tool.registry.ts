@@ -49,7 +49,7 @@ const ALL_TOOLS: AiToolDefinition[] = [
       type: 'object',
       properties: {
         tone: { type: 'string', enum: ['concise', 'balanced', 'detailed'] },
-        defaultProvider: { type: ['string', 'null'] },
+        defaultProvider: { type: 'string', nullable: true },
         proactiveInsights: { type: 'boolean' },
         confirmBeforeActions: { type: 'boolean' },
       },

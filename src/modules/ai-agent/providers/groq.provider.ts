@@ -1,27 +1,18 @@
 import { Groq } from 'groq-sdk';
+import {
+  parseToolCallArguments,
+  toolsToOpenAiFormat,
+} from '../tools/tool.registry';
 import type {
-  AiToolDefinition,
   AIService,
+  AiToolDefinition,
   ChatCompletionResult,
   ChatMessage,
   ToolCallRequest,
 } from '../utils/ai.types';
-import { parseToolCallArguments, toolsToOpenAiFormat } from '../tools/tool.registry';
+import { mapMessagesToOpenAi } from '../utils/map-messages-to-openai';
 
-const GROQ_MODEL = 'openai/gpt-oss-safeguard-20b';
-
-function mapMessages(messages: ChatMessage[]) {
-  return messages.map((m) => {
-    if (m.role === 'tool') {
-      return {
-        role: 'tool' as const,
-        content: m.content,
-        tool_call_id: m.toolCallId ?? '',
-      };
-    }
-    return { role: m.role as 'user' | 'assistant' | 'system', content: m.content };
-  });
-}
+const GROQ_MODEL = 'llama-3.3-70b-versatile';
 
 export function createGroqProvider(apiKey: string): AIService {
   const groq = new Groq({ apiKey });
@@ -31,7 +22,7 @@ export function createGroqProvider(apiKey: string): AIService {
     model: GROQ_MODEL,
     async chat(messages: ChatMessage[]) {
       const stream = await groq.chat.completions.create({
-        messages: mapMessages(messages),
+        messages: mapMessagesToOpenAi(messages),
         model: GROQ_MODEL,
         temperature: 0.6,
         max_completion_tokens: 4096,
@@ -50,7 +41,7 @@ export function createGroqProvider(apiKey: string): AIService {
       tools?: AiToolDefinition[],
     ): Promise<ChatCompletionResult> {
       const response = await groq.chat.completions.create({
-        messages: mapMessages(messages),
+        messages: mapMessagesToOpenAi(messages),
         model: GROQ_MODEL,
         temperature: 0.6,
         max_completion_tokens: 4096,

@@ -16,7 +16,7 @@ export function isRetryableProviderError(error: unknown): boolean {
       : typeof error === 'string'
         ? error
         : 'Provider error';
-  return /rate limit|quota|overloaded|capacity|too many requests|model_not_found|does not exist/i.test(
+  return /rate limit|quota|overloaded|capacity|too many requests|model_not_found|does not exist|input validation failed|tools should have a name/i.test(
     message,
   );
 }

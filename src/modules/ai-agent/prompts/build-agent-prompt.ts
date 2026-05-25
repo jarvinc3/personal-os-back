@@ -2,7 +2,7 @@ import type { AiTone } from '../../users/defaults/global-preferences-defaults';
 import { TONE_INSTRUCTIONS } from '../lib/build-system-prompt';
 import { getModuleContextPrompt } from './module-context';
 import { SYSTEM_BASE_PROMPT } from './system-base';
-import { TOOLS_INSTRUCTIONS } from './tools-instructions';
+import { getToolsBehaviorInstructions, TOOLS_LIST } from './tools-instructions';
 
 export function buildAgentPrompt(options: {
   tone: AiTone;
@@ -18,8 +18,12 @@ export function buildAgentPrompt(options: {
     : 'Respond in the user language.';
 
   const confirmationHint = options.confirmBeforeActions
-    ? 'Si propones una acción que modifique datos, indícalo claramente. Las acciones mutantes quedan pendientes hasta confirmación del usuario.'
-    : 'Puedes ejecutar acciones mutantes directamente cuando el usuario lo pida.';
+    ? 'Modo confirmación ACTIVO: las acciones mutantes quedan pendientes en tarjetas hasta que el usuario confirme.'
+    : 'Modo confirmación DESACTIVADO: ejecuta acciones mutantes de inmediato con las herramientas. No pidas confirmación al usuario.';
+
+  const toolsBehavior = getToolsBehaviorInstructions(
+    options.confirmBeforeActions ?? true,
+  );
 
   const memoryHint =
     options.memorySnapshot &&
@@ -30,7 +34,8 @@ export function buildAgentPrompt(options: {
   return [
     SYSTEM_BASE_PROMPT,
     getModuleContextPrompt(options.moduleSlug ?? null),
-    TOOLS_INSTRUCTIONS,
+    TOOLS_LIST,
+    toolsBehavior,
     languageHint,
     TONE_INSTRUCTIONS[options.tone],
     confirmationHint,

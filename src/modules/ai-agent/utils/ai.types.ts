@@ -42,6 +42,7 @@ export interface ChatMessage {
   content: string;
   toolCallId?: string;
   name?: string;
+  toolCalls?: ToolCallRequest[];
 }
 
 export interface AiToolDefinition {

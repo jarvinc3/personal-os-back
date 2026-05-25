@@ -30,7 +30,8 @@ export class AiSessionsRepository {
         include: {
           module: true,
           messages: {
-            orderBy: { createdAt: 'desc' },
+            where: { role: 'user' },
+            orderBy: { createdAt: 'asc' },
             take: 1,
           },
         },
@@ -47,6 +48,16 @@ export class AiSessionsRepository {
         messages: {
           orderBy: { createdAt: 'asc' },
         },
+      },
+    });
+  }
+
+  findSessionByIdOnly(sessionId: string) {
+    return this.prisma.aiAgentSession.findUnique({
+      where: { id: sessionId },
+      select: {
+        id: true,
+        memorySnapshot: true,
       },
     });
   }
@@ -69,7 +80,7 @@ export class AiSessionsRepository {
     role: AiRole;
     content: string;
     metadata?: Record<string, unknown>;
-    toolCalls?: Record<string, unknown>;
+    toolCalls?: Prisma.InputJsonValue;
   }) {
     return this.prisma.aiMessage.create({
       data: {
@@ -77,9 +88,7 @@ export class AiSessionsRepository {
         role: data.role,
         content: data.content,
         metadata: (data.metadata ?? {}) as Prisma.InputJsonValue,
-        toolCalls: data.toolCalls
-          ? (data.toolCalls as Prisma.InputJsonValue)
-          : undefined,
+        toolCalls: data.toolCalls,
       },
     });
   }

@@ -1,11 +1,43 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import type { ChatMessage } from './utils/ai.types';
+import type { Prisma } from '../../prisma/generated/client';
+import type { ChatMessage, ToolCallRequest } from './utils/ai.types';
 import { parseUserPreferences } from '../users/lib/parse-user-preferences';
 import { UsersRepository } from '../users/users.repository';
 import { buildAgentPrompt } from './prompts/build-agent-prompt';
 import { AiSessionsRepository } from './ai-sessions.repository';
 
 const MAX_CONTEXT_MESSAGES = 40;
+const METRICS_MESSAGE_CONTENT = 'ai-metrics';
+
+function deriveSessionTitle(content: string): string | null {
+  const title = content.trim().replace(/\s+/g, ' ').slice(0, 80);
+  return title.length > 0 ? title : null;
+}
+
+function parseStoredToolCalls(value: unknown): ToolCallRequest[] | undefined {
+  if (!Array.isArray(value) || value.length === 0) {
+    return undefined;
+  }
+
+  const parsed = value
+    .filter(
+      (item): item is ToolCallRequest =>
+        typeof item === 'object' &&
+        item !== null &&
+        typeof (item as ToolCallRequest).id === 'string' &&
+        typeof (item as ToolCallRequest).name === 'string',
+    )
+    .map((item) => ({
+      id: item.id,
+      name: item.name,
+      arguments:
+        item.arguments && typeof item.arguments === 'object'
+          ? (item.arguments as Record<string, unknown>)
+          : {},
+    }));
+
+  return parsed.length > 0 ? parsed : undefined;
+}
 
 export type CachedChatResponse = {
   sessionId: string;
@@ -92,6 +124,7 @@ export class AiChatPersistenceService {
       content,
       metadata: clientMessageId ? { clientMessageId } : {},
     });
+    await this.ensureSessionTitle(sessionId, content);
     await this.sessionsRepo.touchSession(sessionId);
     return message;
   }
@@ -100,16 +133,43 @@ export class AiChatPersistenceService {
     sessionId: string,
     content: string,
     metadata: Record<string, unknown>,
-    toolCalls?: Record<string, unknown> | null,
+    toolCalls?: ToolCallRequest[] | null,
   ) {
     await this.sessionsRepo.createMessage({
       sessionId,
       role: 'assistant',
       content,
       metadata,
-      toolCalls: toolCalls ?? undefined,
+      toolCalls:
+        toolCalls && toolCalls.length > 0
+          ? (toolCalls as unknown as Prisma.InputJsonValue)
+          : undefined,
     });
     await this.sessionsRepo.touchSession(sessionId);
+  }
+
+  private async ensureSessionTitle(sessionId: string, userContent: string) {
+    const title = deriveSessionTitle(userContent);
+    if (!title) {
+      return;
+    }
+
+    const session = await this.sessionsRepo.findSessionByIdOnly(sessionId);
+    if (!session) {
+      return;
+    }
+
+    const memory = (session.memorySnapshot ?? {}) as Record<string, unknown>;
+    if (typeof memory.title === 'string' && memory.title.trim().length > 0) {
+      return;
+    }
+
+    await this.sessionsRepo.updateSession(sessionId, {
+      memorySnapshot: {
+        ...memory,
+        title,
+      } as Prisma.InputJsonValue,
+    });
   }
 
   async persistToolMessage(
@@ -170,12 +230,44 @@ export class AiChatPersistenceService {
     );
     const chronological = [...stored].reverse();
 
-    const history: ChatMessage[] = chronological
-      .filter((m) => m.role === 'user' || m.role === 'assistant' || m.role === 'tool')
-      .map((m) => ({
-        role: m.role as ChatMessage['role'],
-        content: m.content,
-      }));
+    const history: ChatMessage[] = [];
+    for (const m of chronological) {
+      if (m.role === 'user') {
+        history.push({ role: 'user', content: m.content });
+        continue;
+      }
+
+      if (m.role === 'assistant') {
+        const assistantMessage: ChatMessage = {
+          role: 'assistant',
+          content: m.content,
+        };
+        const toolCalls = parseStoredToolCalls(m.toolCalls);
+        if (toolCalls) {
+          assistantMessage.toolCalls = toolCalls;
+        }
+        history.push(assistantMessage);
+        continue;
+      }
+
+      if (m.role === 'tool') {
+        if (m.content === METRICS_MESSAGE_CONTENT) {
+          continue;
+        }
+        const meta = (m.metadata ?? {}) as Record<string, unknown>;
+        const toolCallId =
+          typeof meta.toolCallId === 'string' ? meta.toolCallId : undefined;
+        if (!toolCallId) {
+          continue;
+        }
+        history.push({
+          role: 'tool',
+          content: m.content,
+          toolCallId,
+          name: typeof meta.tool === 'string' ? meta.tool : undefined,
+        });
+      }
+    }
 
     const withoutDuplicateLatest =
       history.length > 0 &&

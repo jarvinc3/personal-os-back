@@ -898,6 +898,78 @@
           "ai-agent"
         ]
       }
+    },
+    "/api/ai/sessions/{id}/actions": {
+      "get": {
+        "operationId": "AiActionsController_listSessionActions",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "List actions for an AI session",
+        "tags": [
+          "ai-agent"
+        ]
+      }
+    },
+    "/api/ai/actions/{id}/execute": {
+      "post": {
+        "operationId": "AiActionsController_execute",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Execute a pending AI action",
+        "tags": [
+          "ai-agent"
+        ]
+      }
+    },
+    "/api/ai/actions/{id}/cancel": {
+      "post": {
+        "operationId": "AiActionsController_cancel",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Cancel a pending AI action",
+        "tags": [
+          "ai-agent"
+        ]
+      }
     }
   },
   "info": {
@@ -1144,6 +1216,10 @@
             "type": "string",
             "description": "Optional AI session id to attach metrics"
           },
+          "clientMessageId": {
+            "type": "string",
+            "description": "Client-generated id for idempotent message delivery"
+          },
           "messages": {
             "type": "array",
             "items": {
@@ -1175,6 +1251,24 @@
           },
           "requiresConfirmation": {
             "type": "boolean"
+          },
+          "actions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "sideEffects": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "blocks": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         },
         "required": [
@@ -1190,6 +1284,10 @@
           "contextType": {
             "type": "string",
             "default": "general"
+          },
+          "moduleSlug": {
+            "type": "string",
+            "description": "Module slug to scope the session (agenda, projects, etc.)"
           }
         }
       }
