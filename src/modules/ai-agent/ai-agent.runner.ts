@@ -1,20 +1,20 @@
-import { Injectable, Optional } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
+import { Injectable, Optional } from '@nestjs/common';
 import { Queue } from 'bullmq';
-import { QueueNames } from '../../core/queues/queue.constants';
 import { AiProcessingJob } from '../../core/queues/queue-jobs';
-import { AiChatPersistenceService } from './ai-chat-persistence.service';
+import { QueueNames } from '../../core/queues/queue.constants';
 import { AiActionsService } from './ai-actions.service';
+import { AiChatPersistenceService } from './ai-chat-persistence.service';
+import { AiSessionsRepository } from './ai-sessions.repository';
+import { AiService } from './ai.service';
 import { ToolExecutorService } from './tools/tool-executor.service';
 import { getToolDefinition, getToolsForModule } from './tools/tool.registry';
-import { AiSessionsRepository } from './ai-sessions.repository';
 import type {
   AgentRunResult,
   AiActionSummary,
   ChatBlock,
   SideEffectDescriptor,
 } from './utils/ai.types';
-import { AiService } from './ai.service';
 
 const MAX_TOOL_ITERATIONS = 5;
 
@@ -27,7 +27,7 @@ function userLikelyNeedsTool(
   }
 
   const lower = userContent.toLowerCase();
-  return /tema|theme|light|dark|oscuro|claro|notificaci|notification|email|push|activa|desactiva|cambia|change|actualiza|update|preferenc|módulo|module/.test(
+  return /tema|theme|light|dark|oscuro|claro|notificaci|notification|email|push|activa|desactiva|cambia|change|actualiza|update|preferenc|módulo|module|nombre|name|avatar|foto|perfil|profile|zona horaria|timezone|locale|idioma/.test(
     lower,
   );
 }
@@ -90,7 +90,7 @@ export class AiAgentRunner {
       confirmBeforeActions: prefs.ai.confirmBeforeActions,
     };
 
-    let conversation = [...messages];
+    const conversation = [...messages];
     const pendingActions: AiActionSummary[] = [];
     const sideEffects: SideEffectDescriptor[] = [];
     let finalContent = '';
@@ -109,10 +109,7 @@ export class AiAgentRunner {
       model = result.model;
 
       if (result.toolCalls.length === 0) {
-        if (
-          !toolRetryUsed &&
-          userLikelyNeedsTool(input.userContent, tools)
-        ) {
+        if (!toolRetryUsed && userLikelyNeedsTool(input.userContent, tools)) {
           toolRetryUsed = true;
           conversation.push({
             role: 'system',

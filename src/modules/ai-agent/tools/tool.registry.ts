@@ -4,13 +4,40 @@ import { getAllowedToolsForModule } from '../prompts/module-context';
 const ALL_TOOLS: AiToolDefinition[] = [
   {
     name: 'get_user_context',
-    description: 'Read the current user profile, preferences, and enabled modules.',
+    description:
+      'Read the current user account (name, email, avatar, locale, timezone), preferences, and enabled modules.',
     mutating: false,
     targetModule: 'core',
     parameters: {
       type: 'object',
       properties: {},
       required: [],
+    },
+  },
+  {
+    name: 'update_user_profile',
+    description:
+      'Update user account fields in the users table: display name, avatar URL, locale, or timezone. Email cannot be changed via this tool.',
+    mutating: true,
+    targetModule: 'core',
+    parameters: {
+      type: 'object',
+      properties: {
+        fullName: { type: 'string', description: 'Display name (max 120 chars)' },
+        avatarUrl: {
+          type: 'string',
+          nullable: true,
+          description: 'HTTPS URL for profile image, or null to remove avatar',
+        },
+        locale: {
+          type: 'string',
+          description: 'BCP 47 locale, e.g. es-DO, en-US',
+        },
+        timezone: {
+          type: 'string',
+          description: 'IANA timezone, e.g. America/Santo_Domingo',
+        },
+      },
     },
   },
   {
@@ -145,6 +172,23 @@ export function getActionLabel(
       return `${payload.isEnabled ? 'Activar' : 'Desactivar'} módulo ${payload.slug ?? ''}`;
     case 'update_preferences':
       return 'Actualizar preferencias';
+    case 'update_user_profile':
+      if (payload.fullName) {
+        return `Actualizar nombre a "${payload.fullName}"`;
+      }
+      if (payload.avatarUrl === null) {
+        return 'Quitar foto de perfil';
+      }
+      if (payload.avatarUrl) {
+        return 'Actualizar foto de perfil';
+      }
+      if (payload.locale) {
+        return `Cambiar idioma/región a ${payload.locale}`;
+      }
+      if (payload.timezone) {
+        return `Cambiar zona horaria a ${payload.timezone}`;
+      }
+      return 'Actualizar perfil de usuario';
     default:
       return actionType;
   }

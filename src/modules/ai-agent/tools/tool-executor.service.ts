@@ -20,7 +20,9 @@ export class ToolExecutorService {
       data: {
         profile: {
           id: profile.id,
+          email: profile.email,
           fullName: profile.fullName,
+          avatarUrl: profile.avatarUrl,
           locale: profile.locale,
           timezone: profile.timezone,
           preferences: profile.preferences,
@@ -56,6 +58,93 @@ export class ToolExecutorService {
         { type: 'invalidate', keys: ['profile', 'me'] },
         { type: 'theme', value: value as 'system' | 'light' | 'dark' },
       ],
+    };
+  }
+
+  async updateUserProfile(
+    ctx: ToolContext,
+    args: Record<string, unknown>,
+  ): Promise<ToolExecutionResult> {
+    const patch: {
+      fullName?: string;
+      avatarUrl?: string | null;
+      locale?: string;
+      timezone?: string;
+    } = {};
+
+    if (args.fullName !== undefined) {
+      if (typeof args.fullName !== 'string' || !args.fullName.trim()) {
+        return { success: false, message: 'fullName must be a non-empty string' };
+      }
+      if (args.fullName.length > 120) {
+        return { success: false, message: 'fullName must be at most 120 characters' };
+      }
+      patch.fullName = args.fullName.trim();
+    }
+
+    if (args.avatarUrl !== undefined) {
+      if (args.avatarUrl === null) {
+        patch.avatarUrl = null;
+      } else if (typeof args.avatarUrl === 'string') {
+        const url = args.avatarUrl.trim();
+        if (url.length > 500) {
+          return { success: false, message: 'avatarUrl must be at most 500 characters' };
+        }
+        if (url.length > 0 && !/^https:\/\//i.test(url)) {
+          return {
+            success: false,
+            message: 'avatarUrl must be an HTTPS URL or null to remove the avatar',
+          };
+        }
+        patch.avatarUrl = url.length > 0 ? url : null;
+      } else {
+        return { success: false, message: 'avatarUrl must be a string or null' };
+      }
+    }
+
+    if (args.locale !== undefined) {
+      if (typeof args.locale !== 'string' || !args.locale.trim()) {
+        return { success: false, message: 'locale must be a non-empty string' };
+      }
+      if (args.locale.length > 20) {
+        return { success: false, message: 'locale must be at most 20 characters' };
+      }
+      patch.locale = args.locale.trim();
+    }
+
+    if (args.timezone !== undefined) {
+      if (typeof args.timezone !== 'string' || !args.timezone.trim()) {
+        return { success: false, message: 'timezone must be a non-empty string' };
+      }
+      if (args.timezone.length > 100) {
+        return { success: false, message: 'timezone must be at most 100 characters' };
+      }
+      patch.timezone = args.timezone.trim();
+    }
+
+    if (Object.keys(patch).length === 0) {
+      return {
+        success: false,
+        message: 'Provide at least one of: fullName, avatarUrl, locale, timezone',
+      };
+    }
+
+    const updated = await this.usersService.updateProfile(ctx.userId, patch);
+
+    return {
+      success: true,
+      message: 'User profile updated',
+      data: {
+        profile: {
+          id: updated.id,
+          email: updated.email,
+          fullName: updated.fullName,
+          avatarUrl: updated.avatarUrl,
+          locale: updated.locale,
+          timezone: updated.timezone,
+        },
+      },
+      sideEffects: [{ type: 'invalidate', keys: ['profile', 'me'] }],
     };
   }
 
@@ -177,6 +266,8 @@ export class ToolExecutorService {
     switch (name) {
       case 'get_user_context':
         return this.getUserContext(ctx);
+      case 'update_user_profile':
+        return this.updateUserProfile(ctx, args);
       case 'set_theme':
         return this.setTheme(ctx, args);
       case 'update_preferences':
