@@ -1,5 +1,5 @@
-import type { AiToolDefinition } from '../utils/ai.types';
 import { getAllowedToolsForModule } from '../prompts/module-context';
+import type { AiToolDefinition } from '../utils/ai.types';
 
 const ALL_TOOLS: AiToolDefinition[] = [
   {
@@ -23,7 +23,10 @@ const ALL_TOOLS: AiToolDefinition[] = [
     parameters: {
       type: 'object',
       properties: {
-        fullName: { type: 'string', description: 'Display name (max 120 chars)' },
+        fullName: {
+          type: 'string',
+          description: 'Display name (max 120 chars)',
+        },
         avatarUrl: {
           type: 'string',
           nullable: true,
@@ -146,7 +149,9 @@ const ALL_TOOLS: AiToolDefinition[] = [
   },
 ];
 
-export function getToolsForModule(moduleSlug: string | null): AiToolDefinition[] {
+export function getToolsForModule(
+  moduleSlug: string | null,
+): AiToolDefinition[] {
   const allowed = new Set(getAllowedToolsForModule(moduleSlug));
   return ALL_TOOLS.filter((t) => allowed.has(t.name));
 }

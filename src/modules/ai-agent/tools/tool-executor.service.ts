@@ -1,12 +1,12 @@
 import { Injectable } from '@nestjs/common';
+import { GLOBAL_USER_PREFERENCES_DEFAULTS } from '../../users/defaults/global-preferences-defaults';
+import { mergeWithDefaults } from '../../users/lib/settings-merge';
+import { UsersService } from '../../users/users.service';
 import type {
   SideEffectDescriptor,
   ToolContext,
   ToolExecutionResult,
 } from '../utils/ai.types';
-import { UsersService } from '../../users/users.service';
-import { mergeWithDefaults } from '../../users/lib/settings-merge';
-import { GLOBAL_USER_PREFERENCES_DEFAULTS } from '../../users/defaults/global-preferences-defaults';
 
 @Injectable()
 export class ToolExecutorService {
@@ -74,10 +74,16 @@ export class ToolExecutorService {
 
     if (args.fullName !== undefined) {
       if (typeof args.fullName !== 'string' || !args.fullName.trim()) {
-        return { success: false, message: 'fullName must be a non-empty string' };
+        return {
+          success: false,
+          message: 'fullName must be a non-empty string',
+        };
       }
       if (args.fullName.length > 120) {
-        return { success: false, message: 'fullName must be at most 120 characters' };
+        return {
+          success: false,
+          message: 'fullName must be at most 120 characters',
+        };
       }
       patch.fullName = args.fullName.trim();
     }
@@ -88,17 +94,24 @@ export class ToolExecutorService {
       } else if (typeof args.avatarUrl === 'string') {
         const url = args.avatarUrl.trim();
         if (url.length > 500) {
-          return { success: false, message: 'avatarUrl must be at most 500 characters' };
+          return {
+            success: false,
+            message: 'avatarUrl must be at most 500 characters',
+          };
         }
         if (url.length > 0 && !/^https:\/\//i.test(url)) {
           return {
             success: false,
-            message: 'avatarUrl must be an HTTPS URL or null to remove the avatar',
+            message:
+              'avatarUrl must be an HTTPS URL or null to remove the avatar',
           };
         }
         patch.avatarUrl = url.length > 0 ? url : null;
       } else {
-        return { success: false, message: 'avatarUrl must be a string or null' };
+        return {
+          success: false,
+          message: 'avatarUrl must be a string or null',
+        };
       }
     }
 
@@ -107,17 +120,26 @@ export class ToolExecutorService {
         return { success: false, message: 'locale must be a non-empty string' };
       }
       if (args.locale.length > 20) {
-        return { success: false, message: 'locale must be at most 20 characters' };
+        return {
+          success: false,
+          message: 'locale must be at most 20 characters',
+        };
       }
       patch.locale = args.locale.trim();
     }
 
     if (args.timezone !== undefined) {
       if (typeof args.timezone !== 'string' || !args.timezone.trim()) {
-        return { success: false, message: 'timezone must be a non-empty string' };
+        return {
+          success: false,
+          message: 'timezone must be a non-empty string',
+        };
       }
       if (args.timezone.length > 100) {
-        return { success: false, message: 'timezone must be at most 100 characters' };
+        return {
+          success: false,
+          message: 'timezone must be at most 100 characters',
+        };
       }
       patch.timezone = args.timezone.trim();
     }
@@ -125,7 +147,8 @@ export class ToolExecutorService {
     if (Object.keys(patch).length === 0) {
       return {
         success: false,
-        message: 'Provide at least one of: fullName, avatarUrl, locale, timezone',
+        message:
+          'Provide at least one of: fullName, avatarUrl, locale, timezone',
       };
     }
 
@@ -152,7 +175,7 @@ export class ToolExecutorService {
     ctx: ToolContext,
     args: Record<string, unknown>,
   ): Promise<ToolExecutionResult> {
-  const partial = args.preferences as Record<string, unknown> | undefined;
+    const partial = args.preferences as Record<string, unknown> | undefined;
     if (!partial || typeof partial !== 'object') {
       return { success: false, message: 'preferences object required' };
     }
@@ -174,13 +197,15 @@ export class ToolExecutorService {
     const prefs = mergeWithDefaults(
       profile.preferences,
       GLOBAL_USER_PREFERENCES_DEFAULTS as unknown as Record<string, unknown>,
-    ) as Record<string, unknown>;
+    );
     const ai = (prefs.ai ?? {}) as Record<string, unknown>;
 
     const nextAi = { ...ai };
     if (args.tone !== undefined) nextAi.tone = args.tone;
-    if (args.defaultProvider !== undefined) nextAi.defaultProvider = args.defaultProvider;
-    if (args.proactiveInsights !== undefined) nextAi.proactiveInsights = args.proactiveInsights;
+    if (args.defaultProvider !== undefined)
+      nextAi.defaultProvider = args.defaultProvider;
+    if (args.proactiveInsights !== undefined)
+      nextAi.proactiveInsights = args.proactiveInsights;
     if (args.confirmBeforeActions !== undefined) {
       nextAi.confirmBeforeActions = args.confirmBeforeActions;
     }
@@ -224,7 +249,10 @@ export class ToolExecutorService {
       return { success: false, message: 'slug and config required' };
     }
     if (slug === 'finance') {
-      return { success: false, message: 'Finance module config is not available via chat' };
+      return {
+        success: false,
+        message: 'Finance module config is not available via chat',
+      };
     }
 
     await this.usersService.updateModuleConfig(ctx.userId, slug, { config });
