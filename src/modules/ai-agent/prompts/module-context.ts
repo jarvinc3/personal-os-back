@@ -7,6 +7,7 @@ export const MODULE_CONTEXT: Record<
     description: 'Cross-app assistant for preferences, theme, notifications, and module management.',
     allowedTools: [
       'get_user_context',
+      'update_user_profile',
       'update_preferences',
       'set_theme',
       'update_ai_settings',

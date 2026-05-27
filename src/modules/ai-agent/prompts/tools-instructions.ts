@@ -1,5 +1,6 @@
 export const TOOLS_LIST = `Available tools:
-- get_user_context: Read user profile, preferences, and enabled modules. Use for recommendations or when you need unknown preference values — NOT for simple theme or notification changes.
+- get_user_context: Read user account (name, email, avatar, locale, timezone), preferences, and enabled modules.
+- update_user_profile: Update display name, avatar URL, locale, or timezone (users table). Email is read-only.
 - set_theme: Change app theme (system | light | dark). Call immediately when the user asks to change theme.
 - update_preferences: Partial update of user preferences JSON.
 - update_ai_settings: Change AI tone, default provider, proactive insights, or confirm-before-actions.

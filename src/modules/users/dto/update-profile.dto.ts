@@ -1,5 +1,11 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsObject, IsOptional, IsString, MaxLength } from 'class-validator';
+import {
+  IsObject,
+  IsOptional,
+  IsString,
+  MaxLength,
+  ValidateIf,
+} from 'class-validator';
 
 export class UpdateProfileDto {
   @ApiPropertyOptional()
@@ -20,11 +26,12 @@ export class UpdateProfileDto {
   @MaxLength(20)
   locale?: string;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({ nullable: true })
   @IsOptional()
+  @ValidateIf((_, value) => value !== null)
   @IsString()
   @MaxLength(500)
-  avatarUrl?: string;
+  avatarUrl?: string | null;
 
   @ApiPropertyOptional({ type: Object })
   @IsOptional()

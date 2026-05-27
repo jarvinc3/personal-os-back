@@ -51,7 +51,7 @@ export class UsersRepository {
       fullName?: string;
       timezone?: string;
       locale?: string;
-      avatarUrl?: string;
+      avatarUrl?: string | null;
       preferences?: Record<string, unknown>;
     },
   ) {
