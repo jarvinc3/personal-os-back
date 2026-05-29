@@ -1,9 +1,14 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsEnum, IsOptional, IsString, MaxLength } from 'class-validator';
 
-const accountTypes = ['CHECKING', 'SAVINGS', 'CREDIT_CARD', 'CASH', 'INVESTMENT'] as const;
+const accountTypes = ['CHECKING', 'SAVINGS', 'CASH', 'INVESTMENT'] as const;
 
 export class CreateAccountDto {
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  institutionId?: string;
+
   @ApiProperty()
   @IsString()
   @MaxLength(120)

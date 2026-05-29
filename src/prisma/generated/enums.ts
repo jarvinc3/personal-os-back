@@ -41,12 +41,30 @@ export type NotificationChannel = (typeof NotificationChannel)[keyof typeof Noti
 export const FinAccountType = {
   CHECKING: 'CHECKING',
   SAVINGS: 'SAVINGS',
-  CREDIT_CARD: 'CREDIT_CARD',
   CASH: 'CASH',
   INVESTMENT: 'INVESTMENT'
 } as const
 
 export type FinAccountType = (typeof FinAccountType)[keyof typeof FinAccountType]
+
+
+export const FinCardType = {
+  CREDIT: 'CREDIT',
+  DEBIT: 'DEBIT'
+} as const
+
+export type FinCardType = (typeof FinCardType)[keyof typeof FinCardType]
+
+
+export const FinCardNetwork = {
+  VISA: 'VISA',
+  MASTERCARD: 'MASTERCARD',
+  AMEX: 'AMEX',
+  DISCOVER: 'DISCOVER',
+  OTHER: 'OTHER'
+} as const
+
+export type FinCardNetwork = (typeof FinCardNetwork)[keyof typeof FinCardNetwork]
 
 
 export const FinTransactionType = {
@@ -65,6 +83,52 @@ export const FinTransactionStatus = {
 } as const
 
 export type FinTransactionStatus = (typeof FinTransactionStatus)[keyof typeof FinTransactionStatus]
+
+
+export const FinTransactionSource = {
+  MANUAL: 'MANUAL',
+  EMAIL: 'EMAIL',
+  AI: 'AI'
+} as const
+
+export type FinTransactionSource = (typeof FinTransactionSource)[keyof typeof FinTransactionSource]
+
+
+export const FinBudgetPeriodType = {
+  MONTHLY: 'MONTHLY',
+  BIWEEKLY: 'BIWEEKLY',
+  CUSTOM: 'CUSTOM'
+} as const
+
+export type FinBudgetPeriodType = (typeof FinBudgetPeriodType)[keyof typeof FinBudgetPeriodType]
+
+
+export const FinInstallmentFreq = {
+  WEEKLY: 'WEEKLY',
+  BIWEEKLY: 'BIWEEKLY',
+  MONTHLY: 'MONTHLY'
+} as const
+
+export type FinInstallmentFreq = (typeof FinInstallmentFreq)[keyof typeof FinInstallmentFreq]
+
+
+export const FinReceivableStatus = {
+  PENDING: 'PENDING',
+  PARTIAL: 'PARTIAL',
+  PAID: 'PAID',
+  CANCELLED: 'CANCELLED'
+} as const
+
+export type FinReceivableStatus = (typeof FinReceivableStatus)[keyof typeof FinReceivableStatus]
+
+
+export const FinEmailSyncStatus = {
+  RUNNING: 'RUNNING',
+  SUCCESS: 'SUCCESS',
+  FAILED: 'FAILED'
+} as const
+
+export type FinEmailSyncStatus = (typeof FinEmailSyncStatus)[keyof typeof FinEmailSyncStatus]
 
 
 export const AiSuggestionStatus = {

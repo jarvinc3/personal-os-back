@@ -20,10 +20,15 @@ model User {
   updatedAt       DateTime              @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   aiSessions      AiAgentSession[]
   finAccounts     FinAccount[]
+  finCards        FinCard[]
+  finInstitutions FinInstitution[]
   finBudgets      FinBudget[]
   finCategories   FinCategory[]
   finEmailSources FinEmailSource[]
+  finLoans        FinLoan[]
+  finReceivables  FinReceivable[]
   finRecurring    FinRecurringPattern[]
+  finSavingsGoals FinSavingsGoal[]
   finTransactions FinTransaction[]
   notifications   Notification[]
   pushTokens      PushToken[]
@@ -140,6 +145,7 @@ model PushToken {
 model FinAccount {
   id                  String           @id @default(dbgenerated("(uuid_generate_v4())::text"))
   userId              String           @map("user_id")
+  institutionId       String?          @map("institution_id")
   name                String
   type                FinAccountType
   institution         String?
@@ -153,35 +159,44 @@ model FinAccount {
   createdAt           DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt           DateTime         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   user                User             @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  institutionRef      FinInstitution?  @relation(fields: [institutionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  cards               FinCard[]
   emailSources        FinEmailSource[]
   transactions        FinTransaction[]
+  finLoans            FinLoan[]
 
+  @@index([userId, isActive], map: "fin_accounts_user_id_active_idx")
   @@map("fin_accounts")
 }
 
 model FinEmailSource {
-  id            String      @id @default(dbgenerated("(uuid_generate_v4())::text"))
-  userId        String      @map("user_id")
-  accountId     String?     @map("account_id")
-  provider      String
-  emailAddress  String      @map("email_address")
-  bankDomain    String      @map("bank_domain")
-  accessToken   String?     @map("access_token")
-  refreshToken  String?     @map("refresh_token")
-  imapHost      String?     @map("imap_host")
-  lastSyncedAt  DateTime?   @map("last_synced_at") @db.Timestamptz(6)
-  lastMessageId String?     @map("last_message_id")
-  isActive      Boolean     @default(true) @map("is_active")
-  createdAt     DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
-  account       FinAccount? @relation(fields: [accountId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  id             String            @id @default(dbgenerated("(uuid_generate_v4())::text"))
+  userId         String            @map("user_id")
+  accountId      String?           @map("account_id")
+  provider       String
+  emailAddress   String            @map("email_address")
+  bankDomain     String            @map("bank_domain")
+  label          String?
+  accessToken    String?           @map("access_token")
+  refreshToken   String?           @map("refresh_token")
+  imapHost       String?           @map("imap_host")
+  tokenExpiresAt DateTime?         @map("token_expires_at") @db.Timestamptz(6)
+  lastSyncedAt   DateTime?         @map("last_synced_at") @db.Timestamptz(6)
+  lastMessageId  String?           @map("last_message_id")
+  isActive       Boolean           @default(true) @map("is_active")
+  createdAt      DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  logs           FinEmailSyncLog[]
+  account        FinAccount?       @relation(fields: [accountId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  user           User              @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
+  @@index([userId, isActive], map: "fin_email_sources_user_id_active_idx")
   @@map("fin_email_sources")
 }
 
 model FinTransaction {
   id                 String               @id @default(dbgenerated("(uuid_generate_v4())::text"))
-  accountId          String               @map("account_id")
+  accountId          String?              @map("account_id")
+  cardId             String?              @map("card_id")
   userId             String               @map("user_id")
   categoryId         String?              @map("category_id")
   emailMessageId     String?              @unique @map("email_message_id")
@@ -197,13 +212,16 @@ model FinTransaction {
   isRecurring        Boolean              @default(false) @map("is_recurring")
   aiMetadata         Json                 @default("{}") @map("ai_metadata")
   notes              String?
+  source             FinTransactionSource @default(MANUAL)
   createdAt          DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt          DateTime             @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
-  account            FinAccount           @relation(fields: [accountId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  account            FinAccount?          @relation(fields: [accountId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  card               FinCard?             @relation(fields: [cardId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   category           FinCategory?         @relation(fields: [categoryId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   user               User                 @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([accountId, transactionDate], map: "fin_transactions_account_id_date_idx")
+  @@index([cardId, transactionDate], map: "fin_transactions_card_id_date_idx")
   @@index([userId, categoryId], map: "fin_transactions_user_id_category_idx")
   @@index([userId, transactionDate], map: "fin_transactions_user_id_date_idx")
   @@map("fin_transactions")
@@ -228,22 +246,24 @@ model FinCategory {
 }
 
 model FinBudget {
-  id                  String             @id @default(dbgenerated("(uuid_generate_v4())::text"))
-  userId              String             @map("user_id")
-  categoryId          String             @map("category_id")
-  year                Int
-  month               Int
-  amountLimit         Decimal            @map("amount_limit") @db.Decimal(15, 2)
-  amountSpent         Decimal            @default(0) @map("amount_spent") @db.Decimal(15, 2)
-  alertThresholdPct   Decimal            @default(80) @map("alert_threshold_pct") @db.Decimal(5, 2)
-  aiSuggestionStatus  AiSuggestionStatus @default(NONE) @map("ai_suggestion_status")
-  aiSuggestionPayload Json?              @map("ai_suggestion_payload")
-  createdAt           DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  id                  String              @id @default(dbgenerated("(uuid_generate_v4())::text"))
+  userId              String              @map("user_id")
+  categoryId          String              @map("category_id")
+  periodType          FinBudgetPeriodType @default(MONTHLY) @map("period_type")
+  periodStart         DateTime            @map("period_start") @db.Date
+  periodEnd           DateTime            @map("period_end") @db.Date
+  amountLimit         Decimal             @map("amount_limit") @db.Decimal(15, 2)
+  amountSpent         Decimal             @default(0) @map("amount_spent") @db.Decimal(15, 2)
+  alertThresholdPct   Decimal             @default(80) @map("alert_threshold_pct") @db.Decimal(5, 2)
+  aiSuggestionStatus  AiSuggestionStatus  @default(NONE) @map("ai_suggestion_status")
+  aiSuggestionPayload Json?               @map("ai_suggestion_payload")
+  createdAt           DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
   alerts              FinBudgetAlert[]
-  category            FinCategory        @relation(fields: [categoryId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  user                User               @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  category            FinCategory         @relation(fields: [categoryId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  user                User                @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
-  @@unique([userId, categoryId, year, month], map: "fin_budgets_user_category_year_month_key")
+  @@unique([userId, categoryId, periodStart, periodEnd], map: "fin_budgets_user_category_period_key")
+  @@index([userId, periodType, periodStart], map: "fin_budgets_user_period_idx")
   @@map("fin_budgets")
 }
 
@@ -290,6 +310,145 @@ model FinExchangeRate {
   @@map("fin_exchange_rates")
 }
 
+model FinInstitution {
+  id        String       @id @default(dbgenerated("(uuid_generate_v4())::text"))
+  userId    String       @map("user_id")
+  name      String
+  color     String?
+  logoUrl   String?      @map("logo_url")
+  country   String       @default("DO")
+  isActive  Boolean      @default(true) @map("is_active")
+  createdAt DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime     @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  accounts  FinAccount[]
+  cards     FinCard[]
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([userId, isActive], map: "fin_institutions_user_id_active_idx")
+  @@index([userId, name], map: "fin_institutions_user_id_name_idx")
+  @@map("fin_institutions")
+}
+
+model FinCard {
+  id                  String           @id @default(dbgenerated("(uuid_generate_v4())::text"))
+  userId              String           @map("user_id")
+  institutionId       String           @map("institution_id")
+  accountId           String?          @map("account_id")
+  name                String
+  lastFour            String?          @map("last_four") @db.Char(4)
+  type                FinCardType
+  network             FinCardNetwork?
+  statementClosingDay Int?             @map("statement_closing_day")
+  paymentDueDay       Int?             @map("payment_due_day")
+  color               String?
+  isActive            Boolean          @default(true) @map("is_active")
+  createdAt           DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  account             FinAccount?      @relation(fields: [accountId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  balances            FinCardBalance[]
+  institution         FinInstitution   @relation(fields: [institutionId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  transactions        FinTransaction[]
+  user                User             @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([userId, institutionId], map: "fin_cards_user_id_institution_id_idx")
+  @@index([userId, isActive], map: "fin_cards_user_id_active_idx")
+  @@map("fin_cards")
+}
+
+model FinCardBalance {
+  id          String   @id @default(dbgenerated("(uuid_generate_v4())::text"))
+  cardId      String   @map("card_id")
+  currency    String   @db.Char(3)
+  balance     Decimal  @default(0) @db.Decimal(15, 2)
+  creditLimit Decimal? @map("credit_limit") @db.Decimal(15, 2)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  card        FinCard  @relation(fields: [cardId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([cardId, currency], map: "fin_card_balances_card_id_currency_key")
+  @@map("fin_card_balances")
+}
+
+model FinSavingsGoal {
+  id            String    @id @default(dbgenerated("(uuid_generate_v4())::text"))
+  userId        String    @map("user_id")
+  name          String
+  description   String?
+  targetAmount  Decimal   @map("target_amount") @db.Decimal(15, 2)
+  currentAmount Decimal   @default(0) @map("current_amount") @db.Decimal(15, 2)
+  currency      String    @default("DOP") @db.Char(3)
+  targetDate    DateTime? @map("target_date") @db.Date
+  icon          String?
+  color         String?
+  isCompleted   Boolean   @default(false) @map("is_completed")
+  completedAt   DateTime? @map("completed_at") @db.Timestamptz(6)
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([userId, isCompleted], map: "fin_savings_goals_user_id_completed_idx")
+  @@map("fin_savings_goals")
+}
+
+model FinLoan {
+  id                String             @id @default(dbgenerated("(uuid_generate_v4())::text"))
+  userId            String             @map("user_id")
+  accountId         String?            @map("account_id")
+  lenderName        String             @map("lender_name")
+  originalAmount    Decimal            @map("original_amount") @db.Decimal(15, 2)
+  currentBalance    Decimal            @map("current_balance") @db.Decimal(15, 2)
+  currency          String             @default("DOP") @db.Char(3)
+  installmentAmount Decimal            @map("installment_amount") @db.Decimal(15, 2)
+  installmentFreq   FinInstallmentFreq @map("installment_freq")
+  totalInstallments Int                @map("total_installments")
+  paidInstallments  Int                @default(0) @map("paid_installments")
+  nextDueDate       DateTime           @map("next_due_date") @db.Date
+  interestRate      Decimal?           @map("interest_rate") @db.Decimal(5, 4)
+  notes             String?
+  isActive          Boolean            @default(true) @map("is_active")
+  createdAt         DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime           @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  account           FinAccount?        @relation(fields: [accountId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([userId, isActive, nextDueDate], map: "fin_loans_user_id_active_due_idx")
+  @@map("fin_loans")
+}
+
+model FinReceivable {
+  id          String              @id @default(dbgenerated("(uuid_generate_v4())::text"))
+  userId      String              @map("user_id")
+  debtorName  String              @map("debtor_name")
+  description String?
+  amount      Decimal             @db.Decimal(15, 2)
+  paidAmount  Decimal             @default(0) @map("paid_amount") @db.Decimal(15, 2)
+  currency    String              @default("DOP") @db.Char(3)
+  dueDate     DateTime?           @map("due_date") @db.Date
+  status      FinReceivableStatus @default(PENDING)
+  notes       String?
+  createdAt   DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime            @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  user        User                @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([userId, status], map: "fin_receivables_user_status_idx")
+  @@map("fin_receivables")
+}
+
+model FinEmailSyncLog {
+  id              String             @id @default(dbgenerated("(uuid_generate_v4())::text"))
+  sourceId        String             @map("source_id")
+  startedAt       DateTime           @map("started_at") @db.Timestamptz(6)
+  completedAt     DateTime?          @map("completed_at") @db.Timestamptz(6)
+  emailsScanned   Int                @default(0) @map("emails_scanned")
+  transactionsNew Int                @default(0) @map("transactions_new")
+  status          FinEmailSyncStatus @default(RUNNING)
+  error           String?
+  source          FinEmailSource     @relation(fields: [sourceId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([sourceId, startedAt], map: "fin_email_sync_logs_source_started_idx")
+  @@map("fin_email_sync_logs")
+}
+
 enum AiRole {
   user
   assistant
@@ -313,9 +472,21 @@ enum NotificationChannel {
 enum FinAccountType {
   CHECKING
   SAVINGS
-  CREDIT_CARD
   CASH
   INVESTMENT
+}
+
+enum FinCardType {
+  CREDIT
+  DEBIT
+}
+
+enum FinCardNetwork {
+  VISA
+  MASTERCARD
+  AMEX
+  DISCOVER
+  OTHER
 }
 
 enum FinTransactionType {
@@ -328,6 +499,37 @@ enum FinTransactionStatus {
   PENDING
   CONFIRMED
   CANCELLED
+}
+
+enum FinTransactionSource {
+  MANUAL
+  EMAIL
+  AI
+}
+
+enum FinBudgetPeriodType {
+  MONTHLY
+  BIWEEKLY
+  CUSTOM
+}
+
+enum FinInstallmentFreq {
+  WEEKLY
+  BIWEEKLY
+  MONTHLY
+}
+
+enum FinReceivableStatus {
+  PENDING
+  PARTIAL
+  PAID
+  CANCELLED
+}
+
+enum FinEmailSyncStatus {
+  RUNNING
+  SUCCESS
+  FAILED
 }
 
 enum AiSuggestionStatus {

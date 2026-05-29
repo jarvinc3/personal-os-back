@@ -21,3 +21,9 @@ export type EmailSyncJob = {
   body: string;
   data?: Record<string, unknown>;
 };
+
+export type GmailSyncJob = {
+  userId: string;
+  sourceId: string;
+  forceFullSync?: boolean;
+};

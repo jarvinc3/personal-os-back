@@ -54,6 +54,26 @@ export const MODULE_CONTEXT: Record<
       'update_notification_settings',
     ],
   },
+  finance: {
+    label: 'Finanzas',
+    description:
+      'Personal finance module. Analyze spending, budgets, goals, loans, and trigger finance actions.',
+    allowedTools: [
+      'get_user_context',
+      'get_finance_summary',
+      'list_transactions',
+      'create_transaction',
+      'get_budget_status',
+      'create_or_update_budget',
+      'list_savings_goals',
+      'update_savings_goal',
+      'create_savings_goal',
+      'list_loans',
+      'mark_loan_installment_paid',
+      'trigger_email_sync',
+      'get_spending_by_category',
+    ],
+  },
 };
 
 export function getModuleContextPrompt(moduleSlug: string | null): string {
