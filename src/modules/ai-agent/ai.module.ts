@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { Env } from '../../config/env.schema';
+import { FinanceModule } from '../finance/finance.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { AiActionsController } from './ai-actions.controller';
 import { AiActionsRepository } from './ai-actions.repository';
@@ -20,7 +21,7 @@ import { AI_PROVIDER } from './utils/ai-provider.token';
 import type { AIService as AIProviderClient } from './utils/ai.types';
 
 @Module({
-  imports: [NotificationsModule],
+  imports: [NotificationsModule, FinanceModule],
   controllers: [AiController, AiSessionsController, AiActionsController],
   providers: [
     {

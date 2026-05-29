@@ -1,5 +1,6 @@
 export const QueueNames = {
   EMAIL_SYNC: 'email-sync',
+  GMAIL_SYNC: 'gmail-sync',
   AI_PROCESSING: 'ai-processing',
   NOTIFICATIONS: 'notifications',
 } as const;

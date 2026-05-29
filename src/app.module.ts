@@ -123,6 +123,7 @@ const bullMqEnabled = isBullMqEnabledAtModuleLoad();
           }),
           BullModule.registerQueue(
             { name: QueueNames.EMAIL_SYNC },
+            { name: QueueNames.GMAIL_SYNC },
             { name: QueueNames.AI_PROCESSING },
             { name: QueueNames.NOTIFICATIONS },
           ),

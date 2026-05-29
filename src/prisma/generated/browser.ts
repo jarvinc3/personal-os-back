@@ -97,3 +97,38 @@ export type FinRecurringPattern = Prisma.FinRecurringPatternModel
  * 
  */
 export type FinExchangeRate = Prisma.FinExchangeRateModel
+/**
+ * Model FinInstitution
+ * 
+ */
+export type FinInstitution = Prisma.FinInstitutionModel
+/**
+ * Model FinCard
+ * 
+ */
+export type FinCard = Prisma.FinCardModel
+/**
+ * Model FinCardBalance
+ * 
+ */
+export type FinCardBalance = Prisma.FinCardBalanceModel
+/**
+ * Model FinSavingsGoal
+ * 
+ */
+export type FinSavingsGoal = Prisma.FinSavingsGoalModel
+/**
+ * Model FinLoan
+ * 
+ */
+export type FinLoan = Prisma.FinLoanModel
+/**
+ * Model FinReceivable
+ * 
+ */
+export type FinReceivable = Prisma.FinReceivableModel
+/**
+ * Model FinEmailSyncLog
+ * 
+ */
+export type FinEmailSyncLog = Prisma.FinEmailSyncLogModel

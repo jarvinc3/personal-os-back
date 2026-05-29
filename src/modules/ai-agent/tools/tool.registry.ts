@@ -147,6 +147,171 @@ const ALL_TOOLS: AiToolDefinition[] = [
       required: ['slug', 'isEnabled'],
     },
   },
+  {
+    name: 'get_finance_summary',
+    description: 'Get finance summary including net worth and cash flow.',
+    mutating: false,
+    targetModule: 'finance',
+    parameters: {
+      type: 'object',
+      properties: {
+        dateFrom: { type: 'string' },
+        dateTo: { type: 'string' },
+      },
+    },
+  },
+  {
+    name: 'list_transactions',
+    description: 'List finance transactions with optional filters.',
+    mutating: false,
+    targetModule: 'finance',
+    parameters: {
+      type: 'object',
+      properties: {
+        accountId: { type: 'string' },
+        cardId: { type: 'string' },
+        categoryId: { type: 'string' },
+        type: { type: 'string', enum: ['DEBIT', 'CREDIT', 'TRANSFER'] },
+        status: { type: 'string', enum: ['PENDING', 'CONFIRMED', 'CANCELLED'] },
+        dateFrom: { type: 'string' },
+        dateTo: { type: 'string' },
+        search: { type: 'string' },
+      },
+    },
+  },
+  {
+    name: 'create_transaction',
+    description: 'Create a new finance transaction.',
+    mutating: true,
+    targetModule: 'finance',
+    parameters: {
+      type: 'object',
+      properties: {
+        accountId: { type: 'string', nullable: true },
+        cardId: { type: 'string', nullable: true },
+        type: { type: 'string', enum: ['DEBIT', 'CREDIT', 'TRANSFER'] },
+        amount: { type: 'number' },
+        currency: { type: 'string' },
+        transactionDate: { type: 'string' },
+        description: { type: 'string', nullable: true },
+        merchant: { type: 'string', nullable: true },
+        categoryId: { type: 'string', nullable: true },
+      },
+      required: ['type', 'amount', 'transactionDate'],
+    },
+  },
+  {
+    name: 'get_budget_status',
+    description: 'Get budget usage and threshold status.',
+    mutating: false,
+    targetModule: 'finance',
+    parameters: { type: 'object', properties: {} },
+  },
+  {
+    name: 'create_or_update_budget',
+    description: 'Create or update a budget period.',
+    mutating: true,
+    targetModule: 'finance',
+    parameters: {
+      type: 'object',
+      properties: {
+        budgetId: { type: 'string', nullable: true },
+        categoryId: { type: 'string' },
+        periodType: { type: 'string', enum: ['MONTHLY', 'BIWEEKLY', 'CUSTOM'] },
+        periodStart: { type: 'string' },
+        periodEnd: { type: 'string' },
+        amountLimit: { type: 'number' },
+        alertThresholdPct: { type: 'number', nullable: true },
+      },
+      required: ['categoryId', 'periodType', 'periodStart', 'periodEnd', 'amountLimit'],
+    },
+  },
+  {
+    name: 'list_savings_goals',
+    description: 'List savings goals.',
+    mutating: false,
+    targetModule: 'finance',
+    parameters: { type: 'object', properties: {} },
+  },
+  {
+    name: 'create_savings_goal',
+    description: 'Create a savings goal.',
+    mutating: true,
+    targetModule: 'finance',
+    parameters: {
+      type: 'object',
+      properties: {
+        name: { type: 'string' },
+        targetAmount: { type: 'number' },
+        currentAmount: { type: 'number', nullable: true },
+        currency: { type: 'string', nullable: true },
+        targetDate: { type: 'string', nullable: true },
+      },
+      required: ['name', 'targetAmount'],
+    },
+  },
+  {
+    name: 'update_savings_goal',
+    description: 'Update savings goal progress or details.',
+    mutating: true,
+    targetModule: 'finance',
+    parameters: {
+      type: 'object',
+      properties: {
+        goalId: { type: 'string' },
+        currentAmount: { type: 'number', nullable: true },
+        targetAmount: { type: 'number', nullable: true },
+        name: { type: 'string', nullable: true },
+      },
+      required: ['goalId'],
+    },
+  },
+  {
+    name: 'list_loans',
+    description: 'List active loans.',
+    mutating: false,
+    targetModule: 'finance',
+    parameters: { type: 'object', properties: {} },
+  },
+  {
+    name: 'mark_loan_installment_paid',
+    description: 'Mark one loan installment as paid.',
+    mutating: true,
+    targetModule: 'finance',
+    parameters: {
+      type: 'object',
+      properties: {
+        loanId: { type: 'string' },
+      },
+      required: ['loanId'],
+    },
+  },
+  {
+    name: 'trigger_email_sync',
+    description: 'Trigger Gmail sync for one source.',
+    mutating: true,
+    targetModule: 'finance',
+    parameters: {
+      type: 'object',
+      properties: {
+        sourceId: { type: 'string' },
+      },
+      required: ['sourceId'],
+    },
+  },
+  {
+    name: 'get_spending_by_category',
+    description: 'Get spending breakdown by category.',
+    mutating: false,
+    targetModule: 'finance',
+    parameters: {
+      type: 'object',
+      properties: {
+        dateFrom: { type: 'string' },
+        dateTo: { type: 'string' },
+      },
+    },
+  },
 ];
 
 export function getToolsForModule(
@@ -177,6 +342,30 @@ export function getActionLabel(
       return `${payload.isEnabled ? 'Activar' : 'Desactivar'} módulo ${payload.slug ?? ''}`;
     case 'update_preferences':
       return 'Actualizar preferencias';
+    case 'get_finance_summary':
+      return 'Ver resumen financiero';
+    case 'list_transactions':
+      return 'Consultar transacciones';
+    case 'create_transaction':
+      return 'Crear transacción';
+    case 'get_budget_status':
+      return 'Revisar estado de presupuestos';
+    case 'create_or_update_budget':
+      return 'Crear o actualizar presupuesto';
+    case 'list_savings_goals':
+      return 'Consultar metas de ahorro';
+    case 'create_savings_goal':
+      return 'Crear meta de ahorro';
+    case 'update_savings_goal':
+      return 'Actualizar meta de ahorro';
+    case 'list_loans':
+      return 'Consultar préstamos';
+    case 'mark_loan_installment_paid':
+      return 'Marcar cuota de préstamo pagada';
+    case 'trigger_email_sync':
+      return 'Sincronizar correos bancarios';
+    case 'get_spending_by_category':
+      return 'Analizar gastos por categoría';
     case 'update_user_profile':
       if (payload.fullName) {
         return `Actualizar nombre a "${payload.fullName}"`;

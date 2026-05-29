@@ -414,6 +414,72 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "cardId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "categoryId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "type",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "DEBIT",
+                "CREDIT",
+                "TRANSFER"
+              ]
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "PENDING",
+                "CONFIRMED",
+                "CANCELLED"
+              ]
+            }
+          },
+          {
+            "name": "dateFrom",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "dateTo",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -484,6 +550,1080 @@
           }
         ],
         "summary": "Get finance transaction by id",
+        "tags": [
+          "finance"
+        ]
+      },
+      "patch": {
+        "operationId": "FinanceController_updateTransaction",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Update transaction",
+        "tags": [
+          "finance"
+        ]
+      },
+      "delete": {
+        "operationId": "FinanceController_deleteTransaction",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Delete manual transaction",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
+    "/api/finance/transactions/{id}/confirm": {
+      "post": {
+        "operationId": "FinanceController_confirmTransaction",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Confirm pending transaction",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
+    "/api/finance/institutions": {
+      "get": {
+        "operationId": "FinanceController_listInstitutions",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "List institutions",
+        "tags": [
+          "finance"
+        ]
+      },
+      "post": {
+        "operationId": "FinanceController_createInstitution",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateInstitutionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Create institution",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
+    "/api/finance/institutions/{id}": {
+      "patch": {
+        "operationId": "FinanceController_updateInstitution",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateInstitutionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Update institution",
+        "tags": [
+          "finance"
+        ]
+      },
+      "delete": {
+        "operationId": "FinanceController_deactivateInstitution",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Deactivate institution",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
+    "/api/finance/cards": {
+      "get": {
+        "operationId": "FinanceController_listCards",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "List cards",
+        "tags": [
+          "finance"
+        ]
+      },
+      "post": {
+        "operationId": "FinanceController_createCard",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCardDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Create card",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
+    "/api/finance/cards/{id}": {
+      "get": {
+        "operationId": "FinanceController_getCard",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Get card",
+        "tags": [
+          "finance"
+        ]
+      },
+      "patch": {
+        "operationId": "FinanceController_updateCard",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCardDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Update card",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
+    "/api/finance/cards/{id}/balances": {
+      "post": {
+        "operationId": "FinanceController_updateCardBalance",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCardBalanceDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Upsert card balance by currency",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
+    "/api/finance/categories": {
+      "get": {
+        "operationId": "FinanceController_listCategories",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "List categories",
+        "tags": [
+          "finance"
+        ]
+      },
+      "post": {
+        "operationId": "FinanceController_createCategory",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCategoryDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Create custom category",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
+    "/api/finance/categories/{id}": {
+      "patch": {
+        "operationId": "FinanceController_updateCategory",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCategoryDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Update custom category",
+        "tags": [
+          "finance"
+        ]
+      },
+      "delete": {
+        "operationId": "FinanceController_deleteCategory",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Delete custom category",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
+    "/api/finance/budgets": {
+      "get": {
+        "operationId": "FinanceController_listBudgets",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "List budgets",
+        "tags": [
+          "finance"
+        ]
+      },
+      "post": {
+        "operationId": "FinanceController_createBudget",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateBudgetDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Create budget",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
+    "/api/finance/budgets/{id}": {
+      "patch": {
+        "operationId": "FinanceController_updateBudget",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateBudgetDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Update budget",
+        "tags": [
+          "finance"
+        ]
+      },
+      "delete": {
+        "operationId": "FinanceController_deleteBudget",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Delete budget",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
+    "/api/finance/savings-goals": {
+      "get": {
+        "operationId": "FinanceController_listSavingsGoals",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "List savings goals",
+        "tags": [
+          "finance"
+        ]
+      },
+      "post": {
+        "operationId": "FinanceController_createSavingsGoal",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSavingsGoalDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Create savings goal",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
+    "/api/finance/savings-goals/{id}": {
+      "patch": {
+        "operationId": "FinanceController_updateSavingsGoal",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateSavingsGoalDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Update savings goal",
+        "tags": [
+          "finance"
+        ]
+      },
+      "delete": {
+        "operationId": "FinanceController_deleteSavingsGoal",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Delete savings goal",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
+    "/api/finance/loans": {
+      "get": {
+        "operationId": "FinanceController_listLoans",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "List loans",
+        "tags": [
+          "finance"
+        ]
+      },
+      "post": {
+        "operationId": "FinanceController_createLoan",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateLoanDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Create loan",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
+    "/api/finance/loans/{id}": {
+      "patch": {
+        "operationId": "FinanceController_updateLoan",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateLoanDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Update loan",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
+    "/api/finance/receivables": {
+      "get": {
+        "operationId": "FinanceController_listReceivables",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "List receivables",
+        "tags": [
+          "finance"
+        ]
+      },
+      "post": {
+        "operationId": "FinanceController_createReceivable",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateReceivableDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Create receivable",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
+    "/api/finance/receivables/{id}": {
+      "patch": {
+        "operationId": "FinanceController_updateReceivable",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateReceivableDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Update receivable",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
+    "/api/finance/email-sync/sources": {
+      "get": {
+        "operationId": "FinanceController_listEmailSources",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "List email sync sources",
+        "tags": [
+          "finance"
+        ]
+      },
+      "post": {
+        "operationId": "FinanceController_createEmailSource",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConnectEmailSourceDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Create Gmail source",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
+    "/api/finance/email-sync/sources/{id}": {
+      "delete": {
+        "operationId": "FinanceController_deactivateEmailSource",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Deactivate email source",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
+    "/api/finance/email-sync/sources/{id}/sync": {
+      "post": {
+        "operationId": "FinanceController_triggerEmailSync",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "forceFullSync",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Trigger manual sync",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
+    "/api/finance/analytics/summary": {
+      "get": {
+        "operationId": "FinanceController_analyticsSummary",
+        "parameters": [
+          {
+            "name": "dateFrom",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "dateTo",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Analytics summary",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
+    "/api/finance/analytics/spending-by-category": {
+      "get": {
+        "operationId": "FinanceController_spendingByCategory",
+        "parameters": [
+          {
+            "name": "dateFrom",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "dateTo",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Spending breakdown by category",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
+    "/api/finance/analytics/budget-status": {
+      "get": {
+        "operationId": "FinanceController_budgetStatus",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Budget status overview",
         "tags": [
           "finance"
         ]
@@ -1027,7 +2167,8 @@
             "type": "string"
           },
           "avatarUrl": {
-            "type": "string"
+            "type": "object",
+            "nullable": true
           },
           "preferences": {
             "type": "object"
@@ -1050,6 +2191,9 @@
       "CreateAccountDto": {
         "type": "object",
         "properties": {
+          "institutionId": {
+            "type": "string"
+          },
           "name": {
             "type": "string"
           },
@@ -1058,7 +2202,6 @@
             "enum": [
               "CHECKING",
               "SAVINGS",
-              "CREDIT_CARD",
               "CASH",
               "INVESTMENT"
             ]
@@ -1102,6 +2245,9 @@
           "accountId": {
             "type": "string"
           },
+          "cardId": {
+            "type": "string"
+          },
           "type": {
             "type": "string",
             "enum": [
@@ -1126,15 +2272,472 @@
           "description": {
             "type": "string"
           },
+          "notes": {
+            "type": "string"
+          },
           "categoryId": {
             "type": "string"
           }
         },
         "required": [
-          "accountId",
           "type",
           "amount",
           "transactionDate"
+        ]
+      },
+      "CreateInstitutionDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "color": {
+            "type": "string"
+          },
+          "logoUrl": {
+            "type": "string"
+          },
+          "country": {
+            "type": "string",
+            "default": "DO"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "UpdateInstitutionDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "color": {
+            "type": "string"
+          },
+          "logoUrl": {
+            "type": "string"
+          },
+          "country": {
+            "type": "string",
+            "default": "DO"
+          }
+        }
+      },
+      "CreateCardDto": {
+        "type": "object",
+        "properties": {
+          "institutionId": {
+            "type": "string"
+          },
+          "accountId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "CREDIT",
+              "DEBIT"
+            ]
+          },
+          "network": {
+            "type": "string",
+            "enum": [
+              "VISA",
+              "MASTERCARD",
+              "AMEX",
+              "DISCOVER",
+              "OTHER"
+            ]
+          },
+          "lastFour": {
+            "type": "string"
+          },
+          "statementClosingDay": {
+            "type": "number"
+          },
+          "paymentDueDay": {
+            "type": "number"
+          },
+          "color": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "institutionId",
+          "name",
+          "type"
+        ]
+      },
+      "UpdateCardDto": {
+        "type": "object",
+        "properties": {
+          "institutionId": {
+            "type": "string"
+          },
+          "accountId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "CREDIT",
+              "DEBIT"
+            ]
+          },
+          "network": {
+            "type": "string",
+            "enum": [
+              "VISA",
+              "MASTERCARD",
+              "AMEX",
+              "DISCOVER",
+              "OTHER"
+            ]
+          },
+          "lastFour": {
+            "type": "string"
+          },
+          "statementClosingDay": {
+            "type": "number"
+          },
+          "paymentDueDay": {
+            "type": "number"
+          },
+          "color": {
+            "type": "string"
+          }
+        }
+      },
+      "UpdateCardBalanceDto": {
+        "type": "object",
+        "properties": {
+          "currency": {
+            "type": "string",
+            "description": "ISO currency code"
+          },
+          "balance": {
+            "type": "number"
+          },
+          "creditLimit": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "currency",
+          "balance"
+        ]
+      },
+      "CreateCategoryDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "icon": {
+            "type": "string"
+          },
+          "color": {
+            "type": "string"
+          },
+          "parentId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "UpdateCategoryDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "icon": {
+            "type": "string"
+          },
+          "color": {
+            "type": "string"
+          },
+          "parentId": {
+            "type": "string"
+          }
+        }
+      },
+      "CreateBudgetDto": {
+        "type": "object",
+        "properties": {
+          "categoryId": {
+            "type": "string"
+          },
+          "periodType": {
+            "type": "string",
+            "enum": [
+              "MONTHLY",
+              "BIWEEKLY",
+              "CUSTOM"
+            ]
+          },
+          "periodStart": {
+            "type": "string"
+          },
+          "periodEnd": {
+            "type": "string"
+          },
+          "amountLimit": {
+            "type": "number"
+          },
+          "alertThresholdPct": {
+            "type": "number",
+            "default": 80
+          }
+        },
+        "required": [
+          "categoryId",
+          "periodType",
+          "periodStart",
+          "periodEnd",
+          "amountLimit"
+        ]
+      },
+      "UpdateBudgetDto": {
+        "type": "object",
+        "properties": {
+          "categoryId": {
+            "type": "string"
+          },
+          "periodType": {
+            "type": "string",
+            "enum": [
+              "MONTHLY",
+              "BIWEEKLY",
+              "CUSTOM"
+            ]
+          },
+          "periodStart": {
+            "type": "string"
+          },
+          "periodEnd": {
+            "type": "string"
+          },
+          "amountLimit": {
+            "type": "number"
+          },
+          "alertThresholdPct": {
+            "type": "number",
+            "default": 80
+          }
+        }
+      },
+      "CreateSavingsGoalDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "targetAmount": {
+            "type": "number"
+          },
+          "currency": {
+            "type": "string",
+            "default": "DOP"
+          },
+          "targetDate": {
+            "type": "string"
+          },
+          "currentAmount": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "name",
+          "targetAmount"
+        ]
+      },
+      "UpdateSavingsGoalDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "targetAmount": {
+            "type": "number"
+          },
+          "currency": {
+            "type": "string",
+            "default": "DOP"
+          },
+          "targetDate": {
+            "type": "string"
+          },
+          "currentAmount": {
+            "type": "number"
+          }
+        }
+      },
+      "CreateLoanDto": {
+        "type": "object",
+        "properties": {
+          "lenderName": {
+            "type": "string"
+          },
+          "accountId": {
+            "type": "string"
+          },
+          "originalAmount": {
+            "type": "number"
+          },
+          "currentBalance": {
+            "type": "number"
+          },
+          "installmentAmount": {
+            "type": "number"
+          },
+          "installmentFreq": {
+            "type": "string",
+            "enum": [
+              "WEEKLY",
+              "BIWEEKLY",
+              "MONTHLY"
+            ]
+          },
+          "totalInstallments": {
+            "type": "number"
+          },
+          "paidInstallments": {
+            "type": "number",
+            "default": 0
+          },
+          "nextDueDate": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "lenderName",
+          "originalAmount",
+          "currentBalance",
+          "installmentAmount",
+          "installmentFreq",
+          "totalInstallments",
+          "nextDueDate"
+        ]
+      },
+      "UpdateLoanDto": {
+        "type": "object",
+        "properties": {
+          "lenderName": {
+            "type": "string"
+          },
+          "accountId": {
+            "type": "string"
+          },
+          "originalAmount": {
+            "type": "number"
+          },
+          "currentBalance": {
+            "type": "number"
+          },
+          "installmentAmount": {
+            "type": "number"
+          },
+          "installmentFreq": {
+            "type": "string",
+            "enum": [
+              "WEEKLY",
+              "BIWEEKLY",
+              "MONTHLY"
+            ]
+          },
+          "totalInstallments": {
+            "type": "number"
+          },
+          "paidInstallments": {
+            "type": "number",
+            "default": 0
+          },
+          "nextDueDate": {
+            "type": "string"
+          }
+        }
+      },
+      "CreateReceivableDto": {
+        "type": "object",
+        "properties": {
+          "debtorName": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "amount": {
+            "type": "number"
+          },
+          "currency": {
+            "type": "string",
+            "default": "DOP"
+          },
+          "dueDate": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "debtorName",
+          "amount"
+        ]
+      },
+      "UpdateReceivableDto": {
+        "type": "object",
+        "properties": {
+          "debtorName": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "amount": {
+            "type": "number"
+          },
+          "currency": {
+            "type": "string",
+            "default": "DOP"
+          },
+          "dueDate": {
+            "type": "string"
+          }
+        }
+      },
+      "ConnectEmailSourceDto": {
+        "type": "object",
+        "properties": {
+          "emailAddress": {
+            "type": "string"
+          },
+          "bankDomain": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "accountId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "emailAddress",
+          "bankDomain"
         ]
       },
       "CreateNotificationDto": {

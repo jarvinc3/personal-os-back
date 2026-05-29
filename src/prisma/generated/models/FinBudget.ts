@@ -27,16 +27,12 @@ export type AggregateFinBudget = {
 }
 
 export type FinBudgetAvgAggregateOutputType = {
-  year: number | null
-  month: number | null
   amountLimit: runtime.Decimal | null
   amountSpent: runtime.Decimal | null
   alertThresholdPct: runtime.Decimal | null
 }
 
 export type FinBudgetSumAggregateOutputType = {
-  year: number | null
-  month: number | null
   amountLimit: runtime.Decimal | null
   amountSpent: runtime.Decimal | null
   alertThresholdPct: runtime.Decimal | null
@@ -46,8 +42,9 @@ export type FinBudgetMinAggregateOutputType = {
   id: string | null
   userId: string | null
   categoryId: string | null
-  year: number | null
-  month: number | null
+  periodType: $Enums.FinBudgetPeriodType | null
+  periodStart: Date | null
+  periodEnd: Date | null
   amountLimit: runtime.Decimal | null
   amountSpent: runtime.Decimal | null
   alertThresholdPct: runtime.Decimal | null
@@ -59,8 +56,9 @@ export type FinBudgetMaxAggregateOutputType = {
   id: string | null
   userId: string | null
   categoryId: string | null
-  year: number | null
-  month: number | null
+  periodType: $Enums.FinBudgetPeriodType | null
+  periodStart: Date | null
+  periodEnd: Date | null
   amountLimit: runtime.Decimal | null
   amountSpent: runtime.Decimal | null
   alertThresholdPct: runtime.Decimal | null
@@ -72,8 +70,9 @@ export type FinBudgetCountAggregateOutputType = {
   id: number
   userId: number
   categoryId: number
-  year: number
-  month: number
+  periodType: number
+  periodStart: number
+  periodEnd: number
   amountLimit: number
   amountSpent: number
   alertThresholdPct: number
@@ -85,16 +84,12 @@ export type FinBudgetCountAggregateOutputType = {
 
 
 export type FinBudgetAvgAggregateInputType = {
-  year?: true
-  month?: true
   amountLimit?: true
   amountSpent?: true
   alertThresholdPct?: true
 }
 
 export type FinBudgetSumAggregateInputType = {
-  year?: true
-  month?: true
   amountLimit?: true
   amountSpent?: true
   alertThresholdPct?: true
@@ -104,8 +99,9 @@ export type FinBudgetMinAggregateInputType = {
   id?: true
   userId?: true
   categoryId?: true
-  year?: true
-  month?: true
+  periodType?: true
+  periodStart?: true
+  periodEnd?: true
   amountLimit?: true
   amountSpent?: true
   alertThresholdPct?: true
@@ -117,8 +113,9 @@ export type FinBudgetMaxAggregateInputType = {
   id?: true
   userId?: true
   categoryId?: true
-  year?: true
-  month?: true
+  periodType?: true
+  periodStart?: true
+  periodEnd?: true
   amountLimit?: true
   amountSpent?: true
   alertThresholdPct?: true
@@ -130,8 +127,9 @@ export type FinBudgetCountAggregateInputType = {
   id?: true
   userId?: true
   categoryId?: true
-  year?: true
-  month?: true
+  periodType?: true
+  periodStart?: true
+  periodEnd?: true
   amountLimit?: true
   amountSpent?: true
   alertThresholdPct?: true
@@ -231,8 +229,9 @@ export type FinBudgetGroupByOutputType = {
   id: string
   userId: string
   categoryId: string
-  year: number
-  month: number
+  periodType: $Enums.FinBudgetPeriodType
+  periodStart: Date
+  periodEnd: Date
   amountLimit: runtime.Decimal
   amountSpent: runtime.Decimal
   alertThresholdPct: runtime.Decimal
@@ -268,8 +267,9 @@ export type FinBudgetWhereInput = {
   id?: Prisma.StringFilter<"FinBudget"> | string
   userId?: Prisma.StringFilter<"FinBudget"> | string
   categoryId?: Prisma.StringFilter<"FinBudget"> | string
-  year?: Prisma.IntFilter<"FinBudget"> | number
-  month?: Prisma.IntFilter<"FinBudget"> | number
+  periodType?: Prisma.EnumFinBudgetPeriodTypeFilter<"FinBudget"> | $Enums.FinBudgetPeriodType
+  periodStart?: Prisma.DateTimeFilter<"FinBudget"> | Date | string
+  periodEnd?: Prisma.DateTimeFilter<"FinBudget"> | Date | string
   amountLimit?: Prisma.DecimalFilter<"FinBudget"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   amountSpent?: Prisma.DecimalFilter<"FinBudget"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   alertThresholdPct?: Prisma.DecimalFilter<"FinBudget"> | runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -285,8 +285,9 @@ export type FinBudgetOrderByWithRelationInput = {
   id?: Prisma.SortOrder
   userId?: Prisma.SortOrder
   categoryId?: Prisma.SortOrder
-  year?: Prisma.SortOrder
-  month?: Prisma.SortOrder
+  periodType?: Prisma.SortOrder
+  periodStart?: Prisma.SortOrder
+  periodEnd?: Prisma.SortOrder
   amountLimit?: Prisma.SortOrder
   amountSpent?: Prisma.SortOrder
   alertThresholdPct?: Prisma.SortOrder
@@ -300,14 +301,15 @@ export type FinBudgetOrderByWithRelationInput = {
 
 export type FinBudgetWhereUniqueInput = Prisma.AtLeast<{
   id?: string
-  userId_categoryId_year_month?: Prisma.FinBudgetUserIdCategoryIdYearMonthCompoundUniqueInput
+  userId_categoryId_periodStart_periodEnd?: Prisma.FinBudgetUserIdCategoryIdPeriodStartPeriodEndCompoundUniqueInput
   AND?: Prisma.FinBudgetWhereInput | Prisma.FinBudgetWhereInput[]
   OR?: Prisma.FinBudgetWhereInput[]
   NOT?: Prisma.FinBudgetWhereInput | Prisma.FinBudgetWhereInput[]
   userId?: Prisma.StringFilter<"FinBudget"> | string
   categoryId?: Prisma.StringFilter<"FinBudget"> | string
-  year?: Prisma.IntFilter<"FinBudget"> | number
-  month?: Prisma.IntFilter<"FinBudget"> | number
+  periodType?: Prisma.EnumFinBudgetPeriodTypeFilter<"FinBudget"> | $Enums.FinBudgetPeriodType
+  periodStart?: Prisma.DateTimeFilter<"FinBudget"> | Date | string
+  periodEnd?: Prisma.DateTimeFilter<"FinBudget"> | Date | string
   amountLimit?: Prisma.DecimalFilter<"FinBudget"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   amountSpent?: Prisma.DecimalFilter<"FinBudget"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   alertThresholdPct?: Prisma.DecimalFilter<"FinBudget"> | runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -317,14 +319,15 @@ export type FinBudgetWhereUniqueInput = Prisma.AtLeast<{
   alerts?: Prisma.FinBudgetAlertListRelationFilter
   category?: Prisma.XOR<Prisma.FinCategoryScalarRelationFilter, Prisma.FinCategoryWhereInput>
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
-}, "id" | "userId_categoryId_year_month">
+}, "id" | "userId_categoryId_periodStart_periodEnd">
 
 export type FinBudgetOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
   userId?: Prisma.SortOrder
   categoryId?: Prisma.SortOrder
-  year?: Prisma.SortOrder
-  month?: Prisma.SortOrder
+  periodType?: Prisma.SortOrder
+  periodStart?: Prisma.SortOrder
+  periodEnd?: Prisma.SortOrder
   amountLimit?: Prisma.SortOrder
   amountSpent?: Prisma.SortOrder
   alertThresholdPct?: Prisma.SortOrder
@@ -345,8 +348,9 @@ export type FinBudgetScalarWhereWithAggregatesInput = {
   id?: Prisma.StringWithAggregatesFilter<"FinBudget"> | string
   userId?: Prisma.StringWithAggregatesFilter<"FinBudget"> | string
   categoryId?: Prisma.StringWithAggregatesFilter<"FinBudget"> | string
-  year?: Prisma.IntWithAggregatesFilter<"FinBudget"> | number
-  month?: Prisma.IntWithAggregatesFilter<"FinBudget"> | number
+  periodType?: Prisma.EnumFinBudgetPeriodTypeWithAggregatesFilter<"FinBudget"> | $Enums.FinBudgetPeriodType
+  periodStart?: Prisma.DateTimeWithAggregatesFilter<"FinBudget"> | Date | string
+  periodEnd?: Prisma.DateTimeWithAggregatesFilter<"FinBudget"> | Date | string
   amountLimit?: Prisma.DecimalWithAggregatesFilter<"FinBudget"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   amountSpent?: Prisma.DecimalWithAggregatesFilter<"FinBudget"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   alertThresholdPct?: Prisma.DecimalWithAggregatesFilter<"FinBudget"> | runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -357,8 +361,9 @@ export type FinBudgetScalarWhereWithAggregatesInput = {
 
 export type FinBudgetCreateInput = {
   id?: string
-  year: number
-  month: number
+  periodType?: $Enums.FinBudgetPeriodType
+  periodStart: Date | string
+  periodEnd: Date | string
   amountLimit: runtime.Decimal | runtime.DecimalJsLike | number | string
   amountSpent?: runtime.Decimal | runtime.DecimalJsLike | number | string
   alertThresholdPct?: runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -374,8 +379,9 @@ export type FinBudgetUncheckedCreateInput = {
   id?: string
   userId: string
   categoryId: string
-  year: number
-  month: number
+  periodType?: $Enums.FinBudgetPeriodType
+  periodStart: Date | string
+  periodEnd: Date | string
   amountLimit: runtime.Decimal | runtime.DecimalJsLike | number | string
   amountSpent?: runtime.Decimal | runtime.DecimalJsLike | number | string
   alertThresholdPct?: runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -387,8 +393,9 @@ export type FinBudgetUncheckedCreateInput = {
 
 export type FinBudgetUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  year?: Prisma.IntFieldUpdateOperationsInput | number
-  month?: Prisma.IntFieldUpdateOperationsInput | number
+  periodType?: Prisma.EnumFinBudgetPeriodTypeFieldUpdateOperationsInput | $Enums.FinBudgetPeriodType
+  periodStart?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  periodEnd?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   amountLimit?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   amountSpent?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   alertThresholdPct?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -404,8 +411,9 @@ export type FinBudgetUncheckedUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.StringFieldUpdateOperationsInput | string
   categoryId?: Prisma.StringFieldUpdateOperationsInput | string
-  year?: Prisma.IntFieldUpdateOperationsInput | number
-  month?: Prisma.IntFieldUpdateOperationsInput | number
+  periodType?: Prisma.EnumFinBudgetPeriodTypeFieldUpdateOperationsInput | $Enums.FinBudgetPeriodType
+  periodStart?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  periodEnd?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   amountLimit?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   amountSpent?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   alertThresholdPct?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -419,8 +427,9 @@ export type FinBudgetCreateManyInput = {
   id?: string
   userId: string
   categoryId: string
-  year: number
-  month: number
+  periodType?: $Enums.FinBudgetPeriodType
+  periodStart: Date | string
+  periodEnd: Date | string
   amountLimit: runtime.Decimal | runtime.DecimalJsLike | number | string
   amountSpent?: runtime.Decimal | runtime.DecimalJsLike | number | string
   alertThresholdPct?: runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -431,8 +440,9 @@ export type FinBudgetCreateManyInput = {
 
 export type FinBudgetUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  year?: Prisma.IntFieldUpdateOperationsInput | number
-  month?: Prisma.IntFieldUpdateOperationsInput | number
+  periodType?: Prisma.EnumFinBudgetPeriodTypeFieldUpdateOperationsInput | $Enums.FinBudgetPeriodType
+  periodStart?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  periodEnd?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   amountLimit?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   amountSpent?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   alertThresholdPct?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -445,8 +455,9 @@ export type FinBudgetUncheckedUpdateManyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.StringFieldUpdateOperationsInput | string
   categoryId?: Prisma.StringFieldUpdateOperationsInput | string
-  year?: Prisma.IntFieldUpdateOperationsInput | number
-  month?: Prisma.IntFieldUpdateOperationsInput | number
+  periodType?: Prisma.EnumFinBudgetPeriodTypeFieldUpdateOperationsInput | $Enums.FinBudgetPeriodType
+  periodStart?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  periodEnd?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   amountLimit?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   amountSpent?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   alertThresholdPct?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -465,19 +476,20 @@ export type FinBudgetOrderByRelationAggregateInput = {
   _count?: Prisma.SortOrder
 }
 
-export type FinBudgetUserIdCategoryIdYearMonthCompoundUniqueInput = {
+export type FinBudgetUserIdCategoryIdPeriodStartPeriodEndCompoundUniqueInput = {
   userId: string
   categoryId: string
-  year: number
-  month: number
+  periodStart: Date | string
+  periodEnd: Date | string
 }
 
 export type FinBudgetCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
   userId?: Prisma.SortOrder
   categoryId?: Prisma.SortOrder
-  year?: Prisma.SortOrder
-  month?: Prisma.SortOrder
+  periodType?: Prisma.SortOrder
+  periodStart?: Prisma.SortOrder
+  periodEnd?: Prisma.SortOrder
   amountLimit?: Prisma.SortOrder
   amountSpent?: Prisma.SortOrder
   alertThresholdPct?: Prisma.SortOrder
@@ -487,8 +499,6 @@ export type FinBudgetCountOrderByAggregateInput = {
 }
 
 export type FinBudgetAvgOrderByAggregateInput = {
-  year?: Prisma.SortOrder
-  month?: Prisma.SortOrder
   amountLimit?: Prisma.SortOrder
   amountSpent?: Prisma.SortOrder
   alertThresholdPct?: Prisma.SortOrder
@@ -498,8 +508,9 @@ export type FinBudgetMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
   userId?: Prisma.SortOrder
   categoryId?: Prisma.SortOrder
-  year?: Prisma.SortOrder
-  month?: Prisma.SortOrder
+  periodType?: Prisma.SortOrder
+  periodStart?: Prisma.SortOrder
+  periodEnd?: Prisma.SortOrder
   amountLimit?: Prisma.SortOrder
   amountSpent?: Prisma.SortOrder
   alertThresholdPct?: Prisma.SortOrder
@@ -511,8 +522,9 @@ export type FinBudgetMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
   userId?: Prisma.SortOrder
   categoryId?: Prisma.SortOrder
-  year?: Prisma.SortOrder
-  month?: Prisma.SortOrder
+  periodType?: Prisma.SortOrder
+  periodStart?: Prisma.SortOrder
+  periodEnd?: Prisma.SortOrder
   amountLimit?: Prisma.SortOrder
   amountSpent?: Prisma.SortOrder
   alertThresholdPct?: Prisma.SortOrder
@@ -521,8 +533,6 @@ export type FinBudgetMinOrderByAggregateInput = {
 }
 
 export type FinBudgetSumOrderByAggregateInput = {
-  year?: Prisma.SortOrder
-  month?: Prisma.SortOrder
   amountLimit?: Prisma.SortOrder
   amountSpent?: Prisma.SortOrder
   alertThresholdPct?: Prisma.SortOrder
@@ -617,6 +627,10 @@ export type FinBudgetUncheckedUpdateManyWithoutCategoryNestedInput = {
   deleteMany?: Prisma.FinBudgetScalarWhereInput | Prisma.FinBudgetScalarWhereInput[]
 }
 
+export type EnumFinBudgetPeriodTypeFieldUpdateOperationsInput = {
+  set?: $Enums.FinBudgetPeriodType
+}
+
 export type EnumAiSuggestionStatusFieldUpdateOperationsInput = {
   set?: $Enums.AiSuggestionStatus
 }
@@ -637,8 +651,9 @@ export type FinBudgetUpdateOneRequiredWithoutAlertsNestedInput = {
 
 export type FinBudgetCreateWithoutUserInput = {
   id?: string
-  year: number
-  month: number
+  periodType?: $Enums.FinBudgetPeriodType
+  periodStart: Date | string
+  periodEnd: Date | string
   amountLimit: runtime.Decimal | runtime.DecimalJsLike | number | string
   amountSpent?: runtime.Decimal | runtime.DecimalJsLike | number | string
   alertThresholdPct?: runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -652,8 +667,9 @@ export type FinBudgetCreateWithoutUserInput = {
 export type FinBudgetUncheckedCreateWithoutUserInput = {
   id?: string
   categoryId: string
-  year: number
-  month: number
+  periodType?: $Enums.FinBudgetPeriodType
+  periodStart: Date | string
+  periodEnd: Date | string
   amountLimit: runtime.Decimal | runtime.DecimalJsLike | number | string
   amountSpent?: runtime.Decimal | runtime.DecimalJsLike | number | string
   alertThresholdPct?: runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -696,8 +712,9 @@ export type FinBudgetScalarWhereInput = {
   id?: Prisma.StringFilter<"FinBudget"> | string
   userId?: Prisma.StringFilter<"FinBudget"> | string
   categoryId?: Prisma.StringFilter<"FinBudget"> | string
-  year?: Prisma.IntFilter<"FinBudget"> | number
-  month?: Prisma.IntFilter<"FinBudget"> | number
+  periodType?: Prisma.EnumFinBudgetPeriodTypeFilter<"FinBudget"> | $Enums.FinBudgetPeriodType
+  periodStart?: Prisma.DateTimeFilter<"FinBudget"> | Date | string
+  periodEnd?: Prisma.DateTimeFilter<"FinBudget"> | Date | string
   amountLimit?: Prisma.DecimalFilter<"FinBudget"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   amountSpent?: Prisma.DecimalFilter<"FinBudget"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   alertThresholdPct?: Prisma.DecimalFilter<"FinBudget"> | runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -708,8 +725,9 @@ export type FinBudgetScalarWhereInput = {
 
 export type FinBudgetCreateWithoutCategoryInput = {
   id?: string
-  year: number
-  month: number
+  periodType?: $Enums.FinBudgetPeriodType
+  periodStart: Date | string
+  periodEnd: Date | string
   amountLimit: runtime.Decimal | runtime.DecimalJsLike | number | string
   amountSpent?: runtime.Decimal | runtime.DecimalJsLike | number | string
   alertThresholdPct?: runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -723,8 +741,9 @@ export type FinBudgetCreateWithoutCategoryInput = {
 export type FinBudgetUncheckedCreateWithoutCategoryInput = {
   id?: string
   userId: string
-  year: number
-  month: number
+  periodType?: $Enums.FinBudgetPeriodType
+  periodStart: Date | string
+  periodEnd: Date | string
   amountLimit: runtime.Decimal | runtime.DecimalJsLike | number | string
   amountSpent?: runtime.Decimal | runtime.DecimalJsLike | number | string
   alertThresholdPct?: runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -762,8 +781,9 @@ export type FinBudgetUpdateManyWithWhereWithoutCategoryInput = {
 
 export type FinBudgetCreateWithoutAlertsInput = {
   id?: string
-  year: number
-  month: number
+  periodType?: $Enums.FinBudgetPeriodType
+  periodStart: Date | string
+  periodEnd: Date | string
   amountLimit: runtime.Decimal | runtime.DecimalJsLike | number | string
   amountSpent?: runtime.Decimal | runtime.DecimalJsLike | number | string
   alertThresholdPct?: runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -778,8 +798,9 @@ export type FinBudgetUncheckedCreateWithoutAlertsInput = {
   id?: string
   userId: string
   categoryId: string
-  year: number
-  month: number
+  periodType?: $Enums.FinBudgetPeriodType
+  periodStart: Date | string
+  periodEnd: Date | string
   amountLimit: runtime.Decimal | runtime.DecimalJsLike | number | string
   amountSpent?: runtime.Decimal | runtime.DecimalJsLike | number | string
   alertThresholdPct?: runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -806,8 +827,9 @@ export type FinBudgetUpdateToOneWithWhereWithoutAlertsInput = {
 
 export type FinBudgetUpdateWithoutAlertsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  year?: Prisma.IntFieldUpdateOperationsInput | number
-  month?: Prisma.IntFieldUpdateOperationsInput | number
+  periodType?: Prisma.EnumFinBudgetPeriodTypeFieldUpdateOperationsInput | $Enums.FinBudgetPeriodType
+  periodStart?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  periodEnd?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   amountLimit?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   amountSpent?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   alertThresholdPct?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -822,8 +844,9 @@ export type FinBudgetUncheckedUpdateWithoutAlertsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.StringFieldUpdateOperationsInput | string
   categoryId?: Prisma.StringFieldUpdateOperationsInput | string
-  year?: Prisma.IntFieldUpdateOperationsInput | number
-  month?: Prisma.IntFieldUpdateOperationsInput | number
+  periodType?: Prisma.EnumFinBudgetPeriodTypeFieldUpdateOperationsInput | $Enums.FinBudgetPeriodType
+  periodStart?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  periodEnd?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   amountLimit?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   amountSpent?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   alertThresholdPct?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -835,8 +858,9 @@ export type FinBudgetUncheckedUpdateWithoutAlertsInput = {
 export type FinBudgetCreateManyUserInput = {
   id?: string
   categoryId: string
-  year: number
-  month: number
+  periodType?: $Enums.FinBudgetPeriodType
+  periodStart: Date | string
+  periodEnd: Date | string
   amountLimit: runtime.Decimal | runtime.DecimalJsLike | number | string
   amountSpent?: runtime.Decimal | runtime.DecimalJsLike | number | string
   alertThresholdPct?: runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -847,8 +871,9 @@ export type FinBudgetCreateManyUserInput = {
 
 export type FinBudgetUpdateWithoutUserInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  year?: Prisma.IntFieldUpdateOperationsInput | number
-  month?: Prisma.IntFieldUpdateOperationsInput | number
+  periodType?: Prisma.EnumFinBudgetPeriodTypeFieldUpdateOperationsInput | $Enums.FinBudgetPeriodType
+  periodStart?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  periodEnd?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   amountLimit?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   amountSpent?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   alertThresholdPct?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -862,8 +887,9 @@ export type FinBudgetUpdateWithoutUserInput = {
 export type FinBudgetUncheckedUpdateWithoutUserInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   categoryId?: Prisma.StringFieldUpdateOperationsInput | string
-  year?: Prisma.IntFieldUpdateOperationsInput | number
-  month?: Prisma.IntFieldUpdateOperationsInput | number
+  periodType?: Prisma.EnumFinBudgetPeriodTypeFieldUpdateOperationsInput | $Enums.FinBudgetPeriodType
+  periodStart?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  periodEnd?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   amountLimit?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   amountSpent?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   alertThresholdPct?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -876,8 +902,9 @@ export type FinBudgetUncheckedUpdateWithoutUserInput = {
 export type FinBudgetUncheckedUpdateManyWithoutUserInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   categoryId?: Prisma.StringFieldUpdateOperationsInput | string
-  year?: Prisma.IntFieldUpdateOperationsInput | number
-  month?: Prisma.IntFieldUpdateOperationsInput | number
+  periodType?: Prisma.EnumFinBudgetPeriodTypeFieldUpdateOperationsInput | $Enums.FinBudgetPeriodType
+  periodStart?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  periodEnd?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   amountLimit?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   amountSpent?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   alertThresholdPct?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -889,8 +916,9 @@ export type FinBudgetUncheckedUpdateManyWithoutUserInput = {
 export type FinBudgetCreateManyCategoryInput = {
   id?: string
   userId: string
-  year: number
-  month: number
+  periodType?: $Enums.FinBudgetPeriodType
+  periodStart: Date | string
+  periodEnd: Date | string
   amountLimit: runtime.Decimal | runtime.DecimalJsLike | number | string
   amountSpent?: runtime.Decimal | runtime.DecimalJsLike | number | string
   alertThresholdPct?: runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -901,8 +929,9 @@ export type FinBudgetCreateManyCategoryInput = {
 
 export type FinBudgetUpdateWithoutCategoryInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  year?: Prisma.IntFieldUpdateOperationsInput | number
-  month?: Prisma.IntFieldUpdateOperationsInput | number
+  periodType?: Prisma.EnumFinBudgetPeriodTypeFieldUpdateOperationsInput | $Enums.FinBudgetPeriodType
+  periodStart?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  periodEnd?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   amountLimit?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   amountSpent?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   alertThresholdPct?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -916,8 +945,9 @@ export type FinBudgetUpdateWithoutCategoryInput = {
 export type FinBudgetUncheckedUpdateWithoutCategoryInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.StringFieldUpdateOperationsInput | string
-  year?: Prisma.IntFieldUpdateOperationsInput | number
-  month?: Prisma.IntFieldUpdateOperationsInput | number
+  periodType?: Prisma.EnumFinBudgetPeriodTypeFieldUpdateOperationsInput | $Enums.FinBudgetPeriodType
+  periodStart?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  periodEnd?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   amountLimit?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   amountSpent?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   alertThresholdPct?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -930,8 +960,9 @@ export type FinBudgetUncheckedUpdateWithoutCategoryInput = {
 export type FinBudgetUncheckedUpdateManyWithoutCategoryInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.StringFieldUpdateOperationsInput | string
-  year?: Prisma.IntFieldUpdateOperationsInput | number
-  month?: Prisma.IntFieldUpdateOperationsInput | number
+  periodType?: Prisma.EnumFinBudgetPeriodTypeFieldUpdateOperationsInput | $Enums.FinBudgetPeriodType
+  periodStart?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  periodEnd?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   amountLimit?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   amountSpent?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   alertThresholdPct?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -975,8 +1006,9 @@ export type FinBudgetSelect<ExtArgs extends runtime.Types.Extensions.InternalArg
   id?: boolean
   userId?: boolean
   categoryId?: boolean
-  year?: boolean
-  month?: boolean
+  periodType?: boolean
+  periodStart?: boolean
+  periodEnd?: boolean
   amountLimit?: boolean
   amountSpent?: boolean
   alertThresholdPct?: boolean
@@ -993,8 +1025,9 @@ export type FinBudgetSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Ext
   id?: boolean
   userId?: boolean
   categoryId?: boolean
-  year?: boolean
-  month?: boolean
+  periodType?: boolean
+  periodStart?: boolean
+  periodEnd?: boolean
   amountLimit?: boolean
   amountSpent?: boolean
   alertThresholdPct?: boolean
@@ -1009,8 +1042,9 @@ export type FinBudgetSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Ext
   id?: boolean
   userId?: boolean
   categoryId?: boolean
-  year?: boolean
-  month?: boolean
+  periodType?: boolean
+  periodStart?: boolean
+  periodEnd?: boolean
   amountLimit?: boolean
   amountSpent?: boolean
   alertThresholdPct?: boolean
@@ -1025,8 +1059,9 @@ export type FinBudgetSelectScalar = {
   id?: boolean
   userId?: boolean
   categoryId?: boolean
-  year?: boolean
-  month?: boolean
+  periodType?: boolean
+  periodStart?: boolean
+  periodEnd?: boolean
   amountLimit?: boolean
   amountSpent?: boolean
   alertThresholdPct?: boolean
@@ -1035,7 +1070,7 @@ export type FinBudgetSelectScalar = {
   createdAt?: boolean
 }
 
-export type FinBudgetOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "categoryId" | "year" | "month" | "amountLimit" | "amountSpent" | "alertThresholdPct" | "aiSuggestionStatus" | "aiSuggestionPayload" | "createdAt", ExtArgs["result"]["finBudget"]>
+export type FinBudgetOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "categoryId" | "periodType" | "periodStart" | "periodEnd" | "amountLimit" | "amountSpent" | "alertThresholdPct" | "aiSuggestionStatus" | "aiSuggestionPayload" | "createdAt", ExtArgs["result"]["finBudget"]>
 export type FinBudgetInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   alerts?: boolean | Prisma.FinBudget$alertsArgs<ExtArgs>
   category?: boolean | Prisma.FinCategoryDefaultArgs<ExtArgs>
@@ -1062,8 +1097,9 @@ export type $FinBudgetPayload<ExtArgs extends runtime.Types.Extensions.InternalA
     id: string
     userId: string
     categoryId: string
-    year: number
-    month: number
+    periodType: $Enums.FinBudgetPeriodType
+    periodStart: Date
+    periodEnd: Date
     amountLimit: runtime.Decimal
     amountSpent: runtime.Decimal
     alertThresholdPct: runtime.Decimal
@@ -1499,8 +1535,9 @@ export interface FinBudgetFieldRefs {
   readonly id: Prisma.FieldRef<"FinBudget", 'String'>
   readonly userId: Prisma.FieldRef<"FinBudget", 'String'>
   readonly categoryId: Prisma.FieldRef<"FinBudget", 'String'>
-  readonly year: Prisma.FieldRef<"FinBudget", 'Int'>
-  readonly month: Prisma.FieldRef<"FinBudget", 'Int'>
+  readonly periodType: Prisma.FieldRef<"FinBudget", 'FinBudgetPeriodType'>
+  readonly periodStart: Prisma.FieldRef<"FinBudget", 'DateTime'>
+  readonly periodEnd: Prisma.FieldRef<"FinBudget", 'DateTime'>
   readonly amountLimit: Prisma.FieldRef<"FinBudget", 'Decimal'>
   readonly amountSpent: Prisma.FieldRef<"FinBudget", 'Decimal'>
   readonly alertThresholdPct: Prisma.FieldRef<"FinBudget", 'Decimal'>

@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { FinanceService } from '../../finance/finance.service';
 import { GLOBAL_USER_PREFERENCES_DEFAULTS } from '../../users/defaults/global-preferences-defaults';
 import { mergeWithDefaults } from '../../users/lib/settings-merge';
 import { UsersService } from '../../users/users.service';
@@ -10,7 +11,10 @@ import type {
 
 @Injectable()
 export class ToolExecutorService {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(
+    private readonly usersService: UsersService,
+    private readonly financeService: FinanceService,
+  ) {}
 
   async getUserContext(ctx: ToolContext): Promise<ToolExecutionResult> {
     const profile = await this.usersService.findById(ctx.userId);
@@ -308,6 +312,152 @@ export class ToolExecutorService {
         return this.updateModuleConfig(ctx, args);
       case 'toggle_module':
         return this.toggleModule(ctx, args);
+      case 'get_finance_summary':
+        return {
+          success: true,
+          message: 'Finance summary loaded',
+          data: await this.financeService.getAnalyticsSummary(
+            ctx.userId,
+            args.dateFrom as string | undefined,
+            args.dateTo as string | undefined,
+          ),
+        };
+      case 'list_transactions':
+        return {
+          success: true,
+          message: 'Transactions loaded',
+          data: await this.financeService.listTransactions(ctx.userId, {
+            page: 1,
+            limit: 50,
+            ...(args as Record<string, unknown>),
+          } as {
+            page: number;
+            limit: number;
+          }),
+        };
+      case 'create_transaction':
+        return {
+          success: true,
+          message: 'Transaction created',
+          data: await this.financeService.createTransaction(ctx.userId, {
+            accountId: args.accountId as string | undefined,
+            cardId: args.cardId as string | undefined,
+            type: args.type as 'DEBIT' | 'CREDIT' | 'TRANSFER',
+            amount: Number(args.amount),
+            currency: args.currency as string | undefined,
+            transactionDate: args.transactionDate as string,
+            description: args.description as string | undefined,
+            merchant: args.merchant as string | undefined,
+            categoryId: args.categoryId as string | undefined,
+          }),
+        };
+      case 'get_budget_status':
+        return {
+          success: true,
+          message: 'Budget status loaded',
+          data: { items: await this.financeService.getBudgetStatus(ctx.userId) },
+        };
+      case 'create_or_update_budget':
+        if (args.budgetId) {
+          return {
+            success: true,
+            message: 'Budget updated',
+            data: await this.financeService.updateBudget(ctx.userId, args.budgetId as string, {
+              categoryId: args.categoryId as string | undefined,
+              periodType: args.periodType as 'MONTHLY' | 'BIWEEKLY' | 'CUSTOM' | undefined,
+              periodStart: args.periodStart as string | undefined,
+              periodEnd: args.periodEnd as string | undefined,
+              amountLimit: args.amountLimit as number | undefined,
+              alertThresholdPct: args.alertThresholdPct as number | undefined,
+            }),
+          };
+        }
+        return {
+          success: true,
+          message: 'Budget created',
+          data: await this.financeService.createBudget(ctx.userId, {
+            categoryId: args.categoryId as string,
+            periodType: args.periodType as 'MONTHLY' | 'BIWEEKLY' | 'CUSTOM',
+            periodStart: args.periodStart as string,
+            periodEnd: args.periodEnd as string,
+            amountLimit: Number(args.amountLimit),
+            alertThresholdPct: args.alertThresholdPct as number | undefined,
+          }),
+        };
+      case 'list_savings_goals':
+        return {
+          success: true,
+          message: 'Savings goals loaded',
+          data: { items: await this.financeService.listSavingsGoals(ctx.userId) },
+        };
+      case 'create_savings_goal':
+        return {
+          success: true,
+          message: 'Savings goal created',
+          data: await this.financeService.createSavingsGoal(ctx.userId, {
+            name: args.name as string,
+            targetAmount: Number(args.targetAmount),
+            currentAmount: args.currentAmount as number | undefined,
+            currency: args.currency as string | undefined,
+            targetDate: args.targetDate as string | undefined,
+          }),
+        };
+      case 'update_savings_goal':
+        return {
+          success: true,
+          message: 'Savings goal updated',
+          data: await this.financeService.updateSavingsGoal(
+            ctx.userId,
+            args.goalId as string,
+            {
+              currentAmount: args.currentAmount as number | undefined,
+              targetAmount: args.targetAmount as number | undefined,
+              name: args.name as string | undefined,
+            },
+          ),
+        };
+      case 'list_loans':
+        return {
+          success: true,
+          message: 'Loans loaded',
+          data: { items: await this.financeService.listLoans(ctx.userId) },
+        };
+      case 'mark_loan_installment_paid': {
+        const loans = await this.financeService.listLoans(ctx.userId);
+        const loan = loans.find((item) => item.id === args.loanId);
+        if (!loan) {
+          return { success: false, message: 'Loan not found' };
+        }
+        return {
+          success: true,
+          message: 'Loan installment marked as paid',
+          data: await this.financeService.updateLoan(ctx.userId, args.loanId as string, {
+            paidInstallments: loan.paidInstallments + 1,
+            currentBalance: Number(loan.currentBalance) - Number(loan.installmentAmount),
+          }),
+        };
+      }
+      case 'trigger_email_sync':
+        return {
+          success: true,
+          message: 'Email sync queued',
+          data: await this.financeService.triggerEmailSync(
+            ctx.userId,
+            args.sourceId as string,
+          ),
+        };
+      case 'get_spending_by_category':
+        return {
+          success: true,
+          message: 'Spending breakdown loaded',
+          data: {
+            items: await this.financeService.getSpendingByCategory(
+              ctx.userId,
+              args.dateFrom as string | undefined,
+              args.dateTo as string | undefined,
+            ),
+          },
+        };
       default:
         return { success: false, message: `Unknown tool: ${name}` };
     }

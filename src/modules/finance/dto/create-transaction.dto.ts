@@ -13,9 +13,15 @@ import {
 const transactionTypes = ['DEBIT', 'CREDIT', 'TRANSFER'] as const;
 
 export class CreateTransactionDto {
-  @ApiProperty()
+  @ApiPropertyOptional()
+  @IsOptional()
   @IsUUID()
-  accountId!: string;
+  accountId?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsUUID()
+  cardId?: string;
 
   @ApiProperty({ enum: transactionTypes })
   @IsEnum(transactionTypes)
@@ -46,6 +52,11 @@ export class CreateTransactionDto {
   @IsOptional()
   @IsString()
   description?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  notes?: string;
 
   @ApiPropertyOptional()
   @IsOptional()
