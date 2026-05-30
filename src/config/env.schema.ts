@@ -33,6 +33,8 @@ export const envSchema = z
     GOOGLE_CLIENT_SECRET: z.string().min(1, 'GOOGLE_CLIENT_SECRET is required'),
     GOOGLE_REDIRECT_URI: z.url('GOOGLE_REDIRECT_URI must be a valid URL'),
 
+    ENCRYPTION_KEY: z.string().min(32, 'ENCRYPTION_KEY must be at least 32 chars'),
+
     // ── App ──────────────────────────────────────────────────────
     NODE_ENV: z
       .enum(['development', 'production', 'test'])
