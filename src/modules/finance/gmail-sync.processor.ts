@@ -2,10 +2,10 @@ import { OnWorkerEvent, Processor, WorkerHost } from '@nestjs/bullmq';
 import { Injectable, Logger } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Job } from 'bullmq';
-import { AppEvents } from '../../core/events/event.constants';
 import { TransactionCreatedEvent } from '../../core/events/domain-events';
-import { QueueNames } from '../../core/queues/queue.constants';
+import { AppEvents } from '../../core/events/event.constants';
 import { GmailSyncJob } from '../../core/queues/queue-jobs';
+import { QueueNames } from '../../core/queues/queue.constants';
 import { EmailParserRegistry } from './email-parsers/email-parser.registry';
 import { FinanceRepository } from './finance.repository';
 import { FinanceService } from './finance.service';
@@ -88,6 +88,7 @@ export class GmailSyncProcessor extends WorkerHost {
               merchant: parsed.merchant,
               description: parsed.description,
               transactionDate: new Date(parsed.transactionDate),
+              type: parsed.type,
             });
 
             transactionsNew += 1;

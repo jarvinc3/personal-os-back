@@ -1,22 +1,11 @@
+import {
+  decodeQuotedPrintable,
+  extractBhdTransactionRow,
+  normalizeEmailBody,
+  parseAmount,
+  parseDateToIso,
+} from './email-body.util';
 import type { EmailParser, ParsedTransaction } from './email-parser.interface';
-
-function extractAmount(text: string): { amount: number; currency: string } | null {
-  const match =
-    text.match(/(?:RD\$|DOP|\$)\s*([\d,]+\.?\d*)/i) ??
-    text.match(/(?:monto|amount|total)[:\s]*([\d,]+\.?\d*)/i);
-  if (!match) return null;
-  const amount = Number.parseFloat(match[1].replace(/,/g, ''));
-  if (!Number.isFinite(amount)) return null;
-  return { amount, currency: 'DOP' };
-}
-
-function extractDate(text: string): string {
-  const iso = text.match(/(\d{4}-\d{2}-\d{2})/);
-  if (iso) return iso[1];
-  const dmy = text.match(/(\d{2})\/(\d{2})\/(\d{4})/);
-  if (dmy) return `${dmy[3]}-${dmy[2]}-${dmy[1]}`;
-  return new Date().toISOString().slice(0, 10);
-}
 
 export class BhdEmailParser implements EmailParser {
   readonly bankDomain = 'bhd.com.do';
@@ -27,21 +16,34 @@ export class BhdEmailParser implements EmailParser {
   }
 
   parse(subject: string, body: string): ParsedTransaction | null {
-    const combined = `${subject}\n${body}`;
-    const amounts = extractAmount(combined);
-    if (!amounts) return null;
+    const decodedBody = decodeQuotedPrintable(body);
+    const row = extractBhdTransactionRow(decodedBody);
+    const combined = normalizeEmailBody(`${subject}\n${decodedBody}`);
+
+    const amount = row.amount ?? parseAmount(combined);
+    if (amount == null) return null;
+
+    const transactionDate =
+      row.date ?? parseDateToIso(combined) ?? new Date().toISOString().slice(0, 10);
 
     const merchant =
-      combined.match(/(?:en|at|comercio)[:\s]+([^\n\r.]+)/i)?.[1]?.trim() ??
-      subject.replace(/notificaci[oó]n/i, '').trim() ??
+      row.merchant ??
+      combined.match(/(?:comercio)[:\s]+([^\n\r.]+)/i)?.[1]?.trim() ??
       null;
 
+    const typeLabel = row.typeLabel?.toLowerCase() ?? '';
+    const type =
+      typeLabel.includes('crédito') || typeLabel.includes('credito') || typeLabel.includes('abono')
+        ? 'CREDIT'
+        : 'DEBIT';
+
     return {
-      amount: amounts.amount,
-      currency: amounts.currency,
+      amount,
+      currency: 'DOP',
       merchant,
       description: subject.trim() || 'Transacción BHD',
-      transactionDate: extractDate(combined),
+      transactionDate,
+      type,
     };
   }
 }

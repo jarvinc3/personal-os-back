@@ -3,9 +3,9 @@ import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { PrismaService } from '../src/prisma/prisma.service';
+import { createTestJwt } from './helpers/jwt.helper';
 import { createPrismaMock } from './helpers/prisma.mock';
 import { applyTestEnv } from './helpers/test-env';
-import { createTestJwt } from './helpers/jwt.helper';
 
 applyTestEnv();
 
@@ -102,6 +102,83 @@ describe('Finance (e2e)', () => {
       .expect(201)
       .expect((res) => {
         expect(res.body.data.name).toBe('Savings');
+      });
+  });
+
+  it('GET /api/finance/email-sync/oauth/google/url includes accountId in state', async () => {
+    const accountId = '11111111-1111-4111-8111-111111111111';
+    prismaMock.finAccount.findFirst.mockResolvedValue({
+      id: accountId,
+      userId: 'user-123',
+    });
+
+    await request(app.getHttpServer())
+      .get('/api/finance/email-sync/oauth/google/url')
+      .query({ bankDomain: 'qik.com.do', accountId })
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.data.url).toContain('accounts.google.com');
+        expect(res.body.data.url).toContain('state=');
+      });
+  });
+
+  it('PATCH /api/finance/email-sync/sources/:id links account', async () => {
+    const sourceId = 'src-1';
+    const accountId = '11111111-1111-4111-8111-111111111111';
+    const updatedSource = {
+      id: sourceId,
+      userId: 'user-123',
+      emailAddress: 'user@gmail.com',
+      bankDomain: 'bhd.com.do',
+      label: 'BHD principal',
+      accountId,
+      provider: 'gmail',
+      isActive: true,
+      lastSyncedAt: null,
+      createdAt: new Date('2026-01-01'),
+      logs: [],
+    };
+
+    prismaMock.finAccount.findFirst.mockResolvedValue({
+      id: accountId,
+      userId: 'user-123',
+    });
+    prismaMock.finEmailSource.updateMany.mockResolvedValue({ count: 1 });
+    prismaMock.finEmailSource.findFirst.mockResolvedValue(updatedSource);
+
+    await request(app.getHttpServer())
+      .patch(`/api/finance/email-sync/sources/${sourceId}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ accountId, label: 'BHD principal' })
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.data).toMatchObject({
+          id: sourceId,
+          accountId,
+          label: 'BHD principal',
+        });
+        expect(res.body.data).not.toHaveProperty('accessToken');
+        expect(res.body.data.logs).toEqual([]);
+      });
+  });
+
+  it('POST /api/finance/email-sync/sources/:id/sync returns queued false without Redis', async () => {
+    prismaMock.finEmailSource.findFirst.mockResolvedValue({
+      id: 'src-1',
+      userId: 'user-123',
+      accountId: 'acc-1',
+    });
+
+    await request(app.getHttpServer())
+      .post('/api/finance/email-sync/sources/src-1/sync')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(201)
+      .expect((res) => {
+        expect(res.body.data).toMatchObject({
+          queued: false,
+          reason: 'gmail-sync queue is unavailable',
+        });
       });
   });
 });

@@ -90,4 +90,10 @@ export class UsersRepository {
       },
     });
   }
+
+  deleteById(id: string) {
+    return this.prisma.user.delete({
+      where: { id },
+    });
+  }
 }

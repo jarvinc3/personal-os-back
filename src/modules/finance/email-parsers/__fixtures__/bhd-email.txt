@@ -1,0 +1,11 @@
+From: BHD <Alertas@bhd.com.do>
+Subject: BHD Notificacion de Transacciones
+
+<html><body><table class='table_trans'><tbody><tr>
+<td>26/05/2026 02:53 pm</td>
+<td>RD</td>
+<td>$325.00</td>
+<td>PedidosYa*Helados Bon</td>
+<td>Aprobada</td>
+<td>Compra</td>
+</tr></tbody></table></body></html>

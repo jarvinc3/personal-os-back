@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch } from '@nestjs/common';
 import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../../core/decorators';
 import { UpdateModuleConfigDto } from './dto/update-module-config.dto';
@@ -37,5 +37,12 @@ export class UsersController {
     @Body() dto: UpdateModuleConfigDto,
   ) {
     return this.usersService.updateModuleConfig(userId, slug, dto);
+  }
+
+  @Delete('me')
+  @ApiOperation({ summary: 'Delete authenticated user account and associated data' })
+  @ApiOkResponse({ description: 'Account deleted successfully' })
+  deleteMyAccount(@CurrentUser('sub') userId: string) {
+    return this.usersService.deleteAccount(userId);
   }
 }

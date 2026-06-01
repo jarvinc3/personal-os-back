@@ -1,0 +1,7 @@
+From: <notificaciones@popularenlinea.com>
+Subject: Notificacion de Retiro
+
+RD$500.00	Peso dominicano	29/05/2026	BANCO POPULAR OFICINA CAR	Aprobada
+
+<html><table><tr><th>Monto</th><th>Fecha</th><th>Cajero Automatico</th></tr>
+<tr><td>RD$500.00</td><td>29/05/2026</td><td>BANCO POPULAR OFICINA CAR</td></tr></table></html>

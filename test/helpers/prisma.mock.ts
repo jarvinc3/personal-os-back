@@ -4,6 +4,7 @@ export type PrismaMock = {
   user: {
     findUnique: MockFn;
     update: MockFn;
+    delete: MockFn;
   };
   module: {
     findUnique: MockFn;
@@ -39,6 +40,11 @@ export type PrismaMock = {
     count: MockFn;
     create: MockFn;
   };
+  finEmailSource: {
+    findMany: MockFn;
+    findFirst: MockFn;
+    updateMany: MockFn;
+  };
   $transaction: MockFn;
   $connect: MockFn;
   $disconnect: MockFn;
@@ -49,6 +55,7 @@ export function createPrismaMock(): PrismaMock {
     user: {
       findUnique: jest.fn(),
       update: jest.fn(),
+      delete: jest.fn(),
     },
     module: {
       findUnique: jest.fn(),
@@ -83,6 +90,11 @@ export function createPrismaMock(): PrismaMock {
       findFirst: jest.fn(),
       count: jest.fn().mockResolvedValue(0),
       create: jest.fn(),
+    },
+    finEmailSource: {
+      findMany: jest.fn().mockResolvedValue([]),
+      findFirst: jest.fn(),
+      updateMany: jest.fn().mockResolvedValue({ count: 0 }),
     },
     $transaction: jest.fn(async (arg: unknown) => {
       if (typeof arg === 'function') {

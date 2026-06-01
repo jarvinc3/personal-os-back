@@ -1,0 +1,9 @@
+From: Qik Banco Digital <transacciones@mail.qik.com.do>
+Subject: tu transferencia ACH fue procesada
+
+<table><tbody>
+<tr><td>Fecha</td><td>2025-05-26</td></tr>
+<tr><td>Entidad destino</td><td>BANCO BHD LEON</td></tr>
+<tr><td>Destinatario</td><td>Ana Deborah Guerrero Pena</td></tr>
+<tr><td>Monto</td><td>24,800.00</td></tr>
+</tbody></table>

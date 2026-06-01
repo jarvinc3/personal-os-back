@@ -248,6 +248,24 @@
         "tags": [
           "users"
         ]
+      },
+      "delete": {
+        "operationId": "UsersController_deleteMyAccount",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Account deleted successfully"
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Delete authenticated user account and associated data",
+        "tags": [
+          "users"
+        ]
       }
     },
     "/api/users/me/modules/{slug}": {
@@ -286,6 +304,26 @@
         "summary": "Update module config for authenticated user",
         "tags": [
           "users"
+        ]
+      }
+    },
+    "/api/auth/session": {
+      "get": {
+        "operationId": "AuthController_session",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Current authenticated user context"
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Get authenticated session context",
+        "tags": [
+          "auth"
         ]
       }
     },
@@ -1470,6 +1508,43 @@
       }
     },
     "/api/finance/email-sync/sources/{id}": {
+      "patch": {
+        "operationId": "FinanceController_updateEmailSource",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateEmailSourceDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Update email sync source",
+        "tags": [
+          "finance"
+        ]
+      },
       "delete": {
         "operationId": "FinanceController_deactivateEmailSource",
         "parameters": [
@@ -1549,6 +1624,14 @@
           },
           {
             "name": "label",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "accountId",
             "required": false,
             "in": "query",
             "schema": {
@@ -1698,6 +1781,79 @@
           }
         ],
         "summary": "Budget status overview",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
+    "/api/finance/analytics/spending-over-time": {
+      "get": {
+        "operationId": "FinanceController_spendingOverTime",
+        "parameters": [
+          {
+            "name": "dateFrom",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "2026-05-01",
+              "type": "string"
+            }
+          },
+          {
+            "name": "dateTo",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": "2026-05-31",
+              "type": "string"
+            }
+          },
+          {
+            "name": "granularity",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "default": "day",
+              "type": "string",
+              "enum": [
+                "day",
+                "week",
+                "month"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Income and expenses over time",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
+    "/api/finance/categories/migrate-legacy-icons": {
+      "post": {
+        "operationId": "FinanceController_migrateLegacyCategoryIcons",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Migrate Lucide icon keys to emoji on user categories",
         "tags": [
           "finance"
         ]
@@ -1899,26 +2055,6 @@
         "summary": "Deactivate a push token for current user",
         "tags": [
           "notifications"
-        ]
-      }
-    },
-    "/api/auth/session": {
-      "get": {
-        "operationId": "AuthController_session",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "Current authenticated user context"
-          }
-        },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
-        "summary": "Get authenticated session context",
-        "tags": [
-          "auth"
         ]
       }
     },
@@ -2299,11 +2435,27 @@
       "UpdateAccountDto": {
         "type": "object",
         "properties": {
+          "institutionId": {
+            "type": "string"
+          },
           "name": {
             "type": "string"
           },
+          "type": {
+            "type": "string",
+            "enum": [
+              "CHECKING",
+              "SAVINGS",
+              "CASH",
+              "INVESTMENT"
+            ]
+          },
           "institution": {
             "type": "string"
+          },
+          "currency": {
+            "type": "string",
+            "default": "DOP"
           },
           "color": {
             "type": "string"
@@ -2813,6 +2965,20 @@
           "emailAddress",
           "bankDomain"
         ]
+      },
+      "UpdateEmailSourceDto": {
+        "type": "object",
+        "properties": {
+          "accountId": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "bankDomain": {
+            "type": "string"
+          }
+        }
       },
       "CreateNotificationDto": {
         "type": "object",

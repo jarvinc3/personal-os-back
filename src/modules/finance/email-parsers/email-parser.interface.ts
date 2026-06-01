@@ -4,6 +4,7 @@ export type ParsedTransaction = {
   merchant: string | null;
   description: string;
   transactionDate: string;
+  type?: 'DEBIT' | 'CREDIT';
 };
 
 export interface EmailParser {

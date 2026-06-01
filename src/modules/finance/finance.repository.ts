@@ -1,11 +1,12 @@
 import { Injectable } from '@nestjs/common';
-import type { Prisma } from '../../prisma/generated/client';
-import { PrismaService } from '../../prisma/prisma.service';
 import { paginationArgs } from '../../core/pagination/pagination.dto';
-import type { ListTransactionsQueryDto } from './dto/list-transactions-query.dto';
+import type { Prisma } from '../../prisma/generated/client';
+import { format, startOfMonth, startOfWeek } from 'date-fns';
+import { PrismaService } from '../../prisma/prisma.service';
 import type { CreateAccountDto } from './dto/create-account.dto';
-import type { UpdateAccountDto } from './dto/update-account.dto';
 import type { CreateTransactionDto } from './dto/create-transaction.dto';
+import type { ListTransactionsQueryDto } from './dto/list-transactions-query.dto';
+import type { UpdateAccountDto } from './dto/update-account.dto';
 
 @Injectable()
 export class FinanceRepository {
@@ -44,8 +45,11 @@ export class FinanceRepository {
     return this.prisma.finAccount.updateMany({
       where: { id, userId },
       data: {
+        institutionId: dto.institutionId,
         name: dto.name,
+        type: dto.type,
         institution: dto.institution,
+        currency: dto.currency,
         color: dto.color,
         isActive: dto.isActive,
       },
@@ -53,7 +57,10 @@ export class FinanceRepository {
       if (result.count === 0) {
         return null;
       }
-      return this.prisma.finAccount.findFirst({ where: { id, userId } });
+      return this.prisma.finAccount.findFirst({
+        where: { id, userId },
+        include: { institutionRef: true },
+      });
     });
   }
 
@@ -200,7 +207,11 @@ export class FinanceRepository {
     });
   }
 
-  updateTransaction(userId: string, id: string, data: Prisma.FinTransactionUpdateInput) {
+  updateTransaction(
+    userId: string,
+    id: string,
+    data: Prisma.FinTransactionUncheckedUpdateManyInput,
+  ) {
     return this.prisma.finTransaction.updateMany({
       where: { id, userId },
       data,
@@ -419,13 +430,18 @@ export class FinanceRepository {
   }
 
   updateEmailSource(userId: string, id: string, data: Prisma.FinEmailSourceUpdateInput) {
-    return this.prisma.finEmailSource.updateMany({
-      where: { userId, id },
-      data,
-    }).then(async (result) => {
-      if (result.count === 0) return null;
-      return this.prisma.finEmailSource.findFirst({ where: { userId, id } });
-    });
+    return this.prisma.finEmailSource
+      .updateMany({
+        where: { userId, id },
+        data,
+      })
+      .then(async (result) => {
+        if (result.count === 0) return null;
+        return this.prisma.finEmailSource.findFirst({
+          where: { userId, id },
+          include: { logs: { orderBy: { startedAt: 'desc' }, take: 5 } },
+        });
+      });
   }
 
   createEmailSyncLog(sourceId: string) {
@@ -479,6 +495,7 @@ export class FinanceRepository {
       refreshToken: string;
       tokenExpiresAt: Date;
       emailAddress?: string;
+      accountId?: string | null;
     },
   ) {
     return this.prisma.finEmailSource.update({
@@ -488,6 +505,7 @@ export class FinanceRepository {
         refreshToken: data.refreshToken,
         tokenExpiresAt: data.tokenExpiresAt,
         ...(data.emailAddress ? { emailAddress: data.emailAddress } : {}),
+        ...(data.accountId !== undefined ? { accountId: data.accountId } : {}),
       },
     });
   }
@@ -509,13 +527,14 @@ export class FinanceRepository {
       description: string;
       transactionDate: Date;
       categoryId?: string | null;
+      type?: 'DEBIT' | 'CREDIT';
     },
   ) {
     return this.prisma.finTransaction.create({
       data: {
         userId,
         accountId: data.accountId,
-        type: 'DEBIT',
+        type: data.type ?? 'DEBIT',
         amount: data.amount,
         amountBaseCurrency: data.amount,
         currency: data.currency,
@@ -577,6 +596,81 @@ export class FinanceRepository {
       where,
       _sum: { amountBaseCurrency: true },
       orderBy: { _sum: { amountBaseCurrency: 'desc' } },
+    });
+  }
+
+  async getSpendingOverTime(
+    userId: string,
+    from: Date | undefined,
+    to: Date | undefined,
+    granularity: 'day' | 'week' | 'month',
+  ) {
+    type Row = { bucket: Date; type: string; total: number };
+
+    const transactions = await this.prisma.finTransaction.findMany({
+      where: {
+        userId,
+        status: 'CONFIRMED',
+        type: { in: ['DEBIT', 'CREDIT'] },
+        ...(from || to
+          ? {
+              transactionDate: {
+                ...(from ? { gte: from } : {}),
+                ...(to ? { lte: to } : {}),
+              },
+            }
+          : {}),
+      },
+      select: {
+        transactionDate: true,
+        type: true,
+        amountBaseCurrency: true,
+      },
+    });
+
+    const bucketKey = (date: Date): string => {
+      if (granularity === 'month') {
+        return format(startOfMonth(date), 'yyyy-MM-dd');
+      }
+      if (granularity === 'week') {
+        return format(startOfWeek(date, { weekStartsOn: 1 }), 'yyyy-MM-dd');
+      }
+      return format(date, 'yyyy-MM-dd');
+    };
+
+    const totalsByBucket = new Map<
+      string,
+      { expenses: number; income: number }
+    >();
+
+    for (const tx of transactions) {
+      const key = bucketKey(tx.transactionDate);
+      const entry = totalsByBucket.get(key) ?? { expenses: 0, income: 0 };
+      const amount = Number(tx.amountBaseCurrency) || 0;
+      if (tx.type === 'DEBIT') entry.expenses += amount;
+      if (tx.type === 'CREDIT') entry.income += amount;
+      totalsByBucket.set(key, entry);
+    }
+
+    const rows: Row[] = [];
+    for (const [dateKey, totals] of totalsByBucket) {
+      const bucket = new Date(`${dateKey}T00:00:00.000Z`);
+      if (totals.expenses > 0) {
+        rows.push({ bucket, type: 'DEBIT', total: totals.expenses });
+      }
+      if (totals.income > 0) {
+        rows.push({ bucket, type: 'CREDIT', total: totals.income });
+      }
+    }
+
+    return rows.sort((a, b) => a.bucket.getTime() - b.bucket.getTime());
+  }
+
+  listUserCategories(userId: string) {
+    return this.prisma.finCategory.findMany({
+      where: {
+        OR: [{ userId }, { isSystem: true }],
+      },
     });
   }
 }

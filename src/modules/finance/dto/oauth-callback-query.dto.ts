@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString, IsUUID, MaxLength } from 'class-validator';
 
 export class OAuthCallbackQueryDto {
   @ApiProperty()
@@ -25,4 +25,9 @@ export class GoogleOAuthUrlQueryDto {
   @IsString()
   @MaxLength(120)
   label?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsUUID()
+  accountId?: string;
 }

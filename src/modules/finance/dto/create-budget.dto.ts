@@ -1,12 +1,13 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsDateString, IsEnum, IsNumber, IsOptional, IsUUID } from 'class-validator';
+import { IsDateString, IsEnum, IsNumber, IsOptional, IsString, IsUUID, MaxLength } from 'class-validator';
 
 const budgetPeriods = ['MONTHLY', 'BIWEEKLY', 'CUSTOM'] as const;
 
 export class CreateBudgetDto {
   @ApiProperty()
-  @IsUUID()
+  @IsString()
+  @MaxLength(120)
   categoryId!: string;
 
   @ApiProperty({ enum: budgetPeriods })

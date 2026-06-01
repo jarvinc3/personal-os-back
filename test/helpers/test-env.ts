@@ -23,4 +23,6 @@ export function applyTestEnv(): void {
   process.env.API_URL = process.env.API_URL ?? 'http://localhost:3100';
   process.env.REDIS_URL = process.env.REDIS_URL ?? 'redis://localhost:6379';
   process.env.REDIS_ENABLED = process.env.REDIS_ENABLED ?? 'false';
+  process.env.ENCRYPTION_KEY =
+    process.env.ENCRYPTION_KEY ?? 'test-encryption-key-minimum-32-chars!!';
 }

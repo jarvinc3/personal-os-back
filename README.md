@@ -74,6 +74,7 @@ Copia `.env.example` a `.env`. Las más importantes:
 | GET    | `/api/auth/session`                                | Sí   | Sesión actual                                |
 | GET    | `/api/users/me`                                    | Sí   | Perfil                                       |
 | PATCH  | `/api/users/me`                                    | Sí   | Actualizar perfil                            |
+| DELETE | `/api/users/me`                                    | Sí   | Eliminar cuenta y datos asociados            |
 | PATCH  | `/api/users/me/modules/:slug`                      | Sí   | Actualizar config de módulo (`user_modules`) |
 | GET    | `/api/notifications`                               | Sí   | Listar notificaciones (paginado)             |
 | GET    | `/api/notifications/unread-count`                  | Sí   | Contador IN_APP no leídas                    |

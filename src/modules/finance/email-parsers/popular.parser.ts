@@ -1,45 +1,53 @@
+import {
+  decodeQuotedPrintable,
+  extractKeyValuePairs,
+  normalizeEmailBody,
+  parseAmount,
+  parseDateToIso,
+} from './email-body.util';
 import type { EmailParser, ParsedTransaction } from './email-parser.interface';
 
-function extractAmount(text: string): { amount: number; currency: string } | null {
-  const match =
-    text.match(/(?:RD\$|DOP|\$)\s*([\d,]+\.?\d*)/i) ??
-    text.match(/(?:monto|importe|amount)[:\s]*([\d,]+\.?\d*)/i);
-  if (!match) return null;
-  const amount = Number.parseFloat(match[1].replace(/,/g, ''));
-  if (!Number.isFinite(amount)) return null;
-  return { amount, currency: 'DOP' };
-}
-
-function extractDate(text: string): string {
-  const iso = text.match(/(\d{4}-\d{2}-\d{2})/);
-  if (iso) return iso[1];
-  const dmy = text.match(/(\d{2})\/(\d{2})\/(\d{4})/);
-  if (dmy) return `${dmy[3]}-${dmy[2]}-${dmy[1]}`;
-  return new Date().toISOString().slice(0, 10);
-}
-
 export class PopularEmailParser implements EmailParser {
-  readonly bankDomain = 'bpd.com.do';
+  readonly bankDomain = 'popularenlinea.com';
 
   canParse(fromAddress: string): boolean {
     const lower = fromAddress.toLowerCase();
-    return lower.includes('bpd.com.do') || lower.includes('bancopopular.com.do');
+    return (
+      lower.includes('popularenlinea.com') ||
+      lower.includes('bpd.com.do') ||
+      lower.includes('bancopopular.com.do')
+    );
   }
 
   parse(subject: string, body: string): ParsedTransaction | null {
-    const combined = `${subject}\n${body}`;
-    const amounts = extractAmount(combined);
-    if (!amounts) return null;
+    const decodedBody = decodeQuotedPrintable(body);
+    const pairs = extractKeyValuePairs(decodedBody);
+    const combined = normalizeEmailBody(`${subject}\n${decodedBody}`);
+
+    const amountText =
+      pairs.Monto ??
+      combined.match(/RD\$[\d,]+\.?\d*/i)?.[0] ??
+      combined.match(/\$[\d,]+\.?\d*/)?.[0];
+    const amount = amountText ? parseAmount(amountText) : parseAmount(combined);
+    if (amount == null) return null;
+
+    const dateText = pairs.Fecha ?? combined;
+    const transactionDate =
+      parseDateToIso(dateText) ?? new Date().toISOString().slice(0, 10);
 
     const merchant =
-      combined.match(/(?:comercio|establecimiento)[:\s]+([^\n\r.]+)/i)?.[1]?.trim() ?? null;
+      pairs['Cajero Automatico'] ??
+      pairs['Cajero Automático'] ??
+      combined.match(/BANCO POPULAR[^\n\r]*/i)?.[0]?.trim() ??
+      null;
 
     return {
-      amount: amounts.amount,
-      currency: amounts.currency,
+      amount,
+      currency: 'DOP',
       merchant,
       description: subject.trim() || 'Transacción Popular',
-      transactionDate: extractDate(combined),
+      transactionDate,
+      type: 'DEBIT',
     };
   }
 }
