@@ -2,6 +2,7 @@ import { INestApplication } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';
 import { App } from 'supertest/types';
+import { SupabaseAdminService } from '../src/modules/auth/supabase-admin.service';
 import { PrismaService } from '../src/prisma/prisma.service';
 import { createTestJwt } from './helpers/jwt.helper';
 import { createPrismaMock, type PrismaMock } from './helpers/prisma.mock';
@@ -12,8 +13,12 @@ applyTestEnv();
 describe('Users (e2e)', () => {
   let app: INestApplication<App>;
   let prismaMock: PrismaMock;
+  const deleteAuthUserMock = jest.fn().mockResolvedValue(undefined);
 
   beforeEach(async () => {
+    deleteAuthUserMock.mockClear();
+    deleteAuthUserMock.mockResolvedValue(undefined);
+
     const { AppModule } = require('../src/app.module') as {
       AppModule: new (...args: never[]) => unknown;
     };
@@ -24,6 +29,8 @@ describe('Users (e2e)', () => {
     })
       .overrideProvider(PrismaService)
       .useValue(prismaMock)
+      .overrideProvider(SupabaseAdminService)
+      .useValue({ deleteAuthUser: deleteAuthUserMock })
       .compile();
 
     app = moduleFixture.createNestApplication();
@@ -409,5 +416,63 @@ describe('Users (e2e)', () => {
           ]),
         );
       });
+  });
+
+  it('DELETE /api/users/me deletes account when user exists', async () => {
+    prismaMock.user.findUnique.mockResolvedValue({
+      id: 'user-123',
+      email: 'user@example.com',
+      fullName: 'User Test',
+      timezone: 'America/Santo_Domingo',
+      locale: 'es-DO',
+      avatarUrl: null,
+      preferences: {},
+      userModules: [],
+      createdAt: new Date('2026-01-01T00:00:00.000Z'),
+      updatedAt: new Date('2026-01-01T00:00:00.000Z'),
+    });
+    prismaMock.user.delete.mockResolvedValue({ id: 'user-123' });
+
+    const token = createTestJwt({ sub: 'user-123', email: 'user@example.com' });
+
+    await request(app.getHttpServer())
+      .delete('/api/users/me')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.data).toEqual({ success: true });
+        expect(res.body.meta).toEqual(
+          expect.objectContaining({
+            path: '/api/users/me',
+          }),
+        );
+      });
+
+    expect(prismaMock.user.delete).toHaveBeenCalledWith({
+      where: { id: 'user-123' },
+    });
+    expect(deleteAuthUserMock).toHaveBeenCalledWith('user-123');
+  });
+
+  it('DELETE /api/users/me returns 404 when user does not exist', async () => {
+    prismaMock.user.findUnique.mockResolvedValue(null);
+
+    const token = createTestJwt({ sub: 'missing-user', email: 'missing@example.com' });
+
+    await request(app.getHttpServer())
+      .delete('/api/users/me')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(404)
+      .expect((res) => {
+        expect(res.body.message).toBe('User not found');
+        expect(res.body.path).toBe('/api/users/me');
+      });
+
+    expect(prismaMock.user.delete).not.toHaveBeenCalled();
+    expect(deleteAuthUserMock).not.toHaveBeenCalled();
+  });
+
+  it('DELETE /api/users/me returns 401 without token', async () => {
+    await request(app.getHttpServer()).delete('/api/users/me').expect(401);
   });
 });

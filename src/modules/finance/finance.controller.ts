@@ -7,25 +7,33 @@ import {
   Patch,
   Post,
   Query,
+  Res,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { CurrentUser } from '../../core/decorators';
+import type { Response } from 'express';
+import { CurrentUser, Public } from '../../core/decorators';
+import { ConnectEmailSourceDto } from './dto/connect-email-source.dto';
 import { CreateAccountDto } from './dto/create-account.dto';
 import { CreateBudgetDto } from './dto/create-budget.dto';
 import { CreateCardDto } from './dto/create-card.dto';
 import { CreateCategoryDto } from './dto/create-category.dto';
-import { ConnectEmailSourceDto } from './dto/connect-email-source.dto';
 import { CreateInstitutionDto } from './dto/create-institution.dto';
 import { CreateLoanDto } from './dto/create-loan.dto';
 import { CreateReceivableDto } from './dto/create-receivable.dto';
 import { CreateSavingsGoalDto } from './dto/create-savings-goal.dto';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { ListTransactionsQueryDto } from './dto/list-transactions-query.dto';
+import { SpendingOverTimeQueryDto } from './dto/spending-over-time-query.dto';
+import {
+  GoogleOAuthUrlQueryDto,
+  OAuthCallbackQueryDto,
+} from './dto/oauth-callback-query.dto';
 import { UpdateAccountDto } from './dto/update-account.dto';
 import { UpdateBudgetDto } from './dto/update-budget.dto';
 import { UpdateCardBalanceDto } from './dto/update-card-balance.dto';
 import { UpdateCardDto } from './dto/update-card.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
+import { UpdateEmailSourceDto } from './dto/update-email-source.dto';
 import { UpdateInstitutionDto } from './dto/update-institution.dto';
 import { UpdateLoanDto } from './dto/update-loan.dto';
 import { UpdateReceivableDto } from './dto/update-receivable.dto';
@@ -36,7 +44,7 @@ import { FinanceService } from './finance.service';
 @ApiBearerAuth('access-token')
 @Controller('finance')
 export class FinanceController {
-  constructor(private readonly financeService: FinanceService) {}
+  constructor(private readonly financeService: FinanceService) { }
 
   @Get('accounts')
   @ApiOperation({ summary: 'List finance accounts for current user' })
@@ -318,6 +326,16 @@ export class FinanceController {
     return this.financeService.createEmailSource(userId, dto);
   }
 
+  @Patch('email-sync/sources/:id')
+  @ApiOperation({ summary: 'Update email sync source' })
+  updateEmailSource(
+    @CurrentUser('sub') userId: string,
+    @Param('id') id: string,
+    @Body() dto: UpdateEmailSourceDto,
+  ) {
+    return this.financeService.updateEmailSource(userId, id, dto);
+  }
+
   @Delete('email-sync/sources/:id')
   @ApiOperation({ summary: 'Deactivate email source' })
   deactivateEmailSource(@CurrentUser('sub') userId: string, @Param('id') id: string) {
@@ -332,6 +350,31 @@ export class FinanceController {
     @Query('forceFullSync') forceFullSync?: string,
   ) {
     return this.financeService.triggerEmailSync(userId, id, forceFullSync === 'true');
+  }
+
+  @Get('email-sync/oauth/google/url')
+  @ApiOperation({ summary: 'Get Google OAuth URL for Gmail sync' })
+  getGoogleOAuthUrl(
+    @CurrentUser('sub') userId: string,
+    @Query() query: GoogleOAuthUrlQueryDto,
+  ) {
+    return this.financeService.getGoogleOAuthUrl(userId, query);
+  }
+
+  @Public()
+  @Get('email-sync/oauth/google/callback')
+  @ApiOperation({ summary: 'Google OAuth callback for Gmail sync' })
+  async handleGoogleCallback(
+    @Query() query: OAuthCallbackQueryDto,
+    @Res() res: Response,
+  ) {
+    const appRedirectBase = 'personal-os://finance/oauth/callback';
+    try {
+      await this.financeService.handleGoogleOAuthCallback(query.code, query.state);
+      res.redirect(`${appRedirectBase}?success=true`);
+    } catch {
+      res.redirect(`${appRedirectBase}?success=false`);
+    }
   }
 
   @Get('analytics/summary')
@@ -358,5 +401,25 @@ export class FinanceController {
   @ApiOperation({ summary: 'Budget status overview' })
   budgetStatus(@CurrentUser('sub') userId: string) {
     return this.financeService.getBudgetStatus(userId);
+  }
+
+  @Get('analytics/spending-over-time')
+  @ApiOperation({ summary: 'Income and expenses over time' })
+  spendingOverTime(
+    @CurrentUser('sub') userId: string,
+    @Query() query: SpendingOverTimeQueryDto,
+  ) {
+    return this.financeService.getSpendingOverTime(
+      userId,
+      query.dateFrom,
+      query.dateTo,
+      query.granularity ?? 'day',
+    );
+  }
+
+  @Post('categories/migrate-legacy-icons')
+  @ApiOperation({ summary: 'Migrate Lucide icon keys to emoji on user categories' })
+  migrateLegacyCategoryIcons(@CurrentUser('sub') userId: string) {
+    return this.financeService.migrateLegacyCategoryIcons(userId);
   }
 }

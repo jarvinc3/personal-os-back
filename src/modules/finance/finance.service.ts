@@ -1,35 +1,51 @@
 import { InjectQueue } from '@nestjs/bullmq';
-import { Injectable, NotFoundException, Optional } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+  Optional,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Queue } from 'bullmq';
+import * as jwt from 'jsonwebtoken';
 import type { Env } from '../../config';
-import { AppEvents } from '../../core/events/event.constants';
-import { QueueNames } from '../../core/queues/queue.constants';
 import { TransactionCreatedEvent } from '../../core/events/domain-events';
+import { AppEvents } from '../../core/events/event.constants';
 import { paginate } from '../../core/pagination/pagination.dto';
 import type { GmailSyncJob } from '../../core/queues/queue-jobs';
+import { QueueNames } from '../../core/queues/queue.constants';
+import type { Prisma } from '../../prisma/generated/client';
+import { normalizeLegacyCategoryIcon } from './constants/category-emoji.constants';
+import type { ConnectEmailSourceDto } from './dto/connect-email-source.dto';
 import type { CreateAccountDto } from './dto/create-account.dto';
 import type { CreateBudgetDto } from './dto/create-budget.dto';
 import type { CreateCardDto } from './dto/create-card.dto';
 import type { CreateCategoryDto } from './dto/create-category.dto';
-import type { ConnectEmailSourceDto } from './dto/connect-email-source.dto';
 import type { CreateInstitutionDto } from './dto/create-institution.dto';
 import type { CreateLoanDto } from './dto/create-loan.dto';
 import type { CreateReceivableDto } from './dto/create-receivable.dto';
 import type { CreateSavingsGoalDto } from './dto/create-savings-goal.dto';
 import type { CreateTransactionDto } from './dto/create-transaction.dto';
 import type { ListTransactionsQueryDto } from './dto/list-transactions-query.dto';
+import type { GoogleOAuthUrlQueryDto } from './dto/oauth-callback-query.dto';
 import type { UpdateAccountDto } from './dto/update-account.dto';
 import type { UpdateBudgetDto } from './dto/update-budget.dto';
 import type { UpdateCardBalanceDto } from './dto/update-card-balance.dto';
 import type { UpdateCardDto } from './dto/update-card.dto';
 import type { UpdateCategoryDto } from './dto/update-category.dto';
+import type { UpdateEmailSourceDto } from './dto/update-email-source.dto';
 import type { UpdateInstitutionDto } from './dto/update-institution.dto';
 import type { UpdateLoanDto } from './dto/update-loan.dto';
 import type { UpdateReceivableDto } from './dto/update-receivable.dto';
 import type { UpdateSavingsGoalDto } from './dto/update-savings-goal.dto';
 import { FinanceRepository } from './finance.repository';
+import {
+  exchangeGoogleAuthCode,
+  fetchGoogleUserEmail,
+  refreshGoogleAccessToken,
+} from './utils/gmail-api.util';
+import { decryptToken, encryptToken } from './utils/token-encryption.util';
 
 function decimalToString(value: { toString(): string }) {
   return value.toString();
@@ -44,7 +60,7 @@ export class FinanceService {
     @Optional()
     @InjectQueue(QueueNames.GMAIL_SYNC)
     private readonly gmailSyncQueue?: Queue<GmailSyncJob>,
-  ) {}
+  ) { }
 
   private mapAccount(account: {
     id: string;
@@ -212,13 +228,24 @@ export class FinanceService {
     id: string,
     dto: Partial<CreateTransactionDto>,
   ) {
-    const updated = await this.financeRepo.updateTransaction(userId, id, {
-      merchant: dto.merchant,
-      description: dto.description,
-      notes: dto.notes,
-      ...(dto.categoryId ? { category: { connect: { id: dto.categoryId } } } : {}),
-      status: dto.type ? undefined : undefined,
-    });
+    const data: Prisma.FinTransactionUncheckedUpdateManyInput = {};
+
+    if (dto.type !== undefined) data.type = dto.type;
+    if (dto.amount !== undefined) data.amount = dto.amount;
+    if (dto.currency !== undefined) data.currency = dto.currency;
+    if (dto.accountId !== undefined) data.accountId = dto.accountId;
+    if (dto.cardId !== undefined) data.cardId = dto.cardId;
+    if (dto.merchant !== undefined) data.merchant = dto.merchant;
+    if (dto.description !== undefined) data.description = dto.description;
+    if (dto.notes !== undefined) data.notes = dto.notes;
+    if (dto.transactionDate !== undefined) {
+      data.transactionDate = new Date(dto.transactionDate);
+    }
+    if (dto.categoryId !== undefined) {
+      data.categoryId = dto.categoryId;
+    }
+
+    const updated = await this.financeRepo.updateTransaction(userId, id, data);
     if (!updated) throw new NotFoundException('Transaction not found');
     return this.mapTransaction(updated);
   }
@@ -230,7 +257,9 @@ export class FinanceService {
   }
 
   async confirmTransaction(userId: string, id: string) {
-    const updated = await this.financeRepo.updateTransaction(userId, id, { status: 'CONFIRMED' });
+    const updated = await this.financeRepo.updateTransaction(userId, id, {
+      status: 'CONFIRMED',
+    });
     if (!updated) throw new NotFoundException('Transaction not found');
     return this.mapTransaction(updated);
   }
@@ -380,11 +409,11 @@ export class FinanceService {
       ...(dto.targetAmount !== undefined ? { targetAmount: dto.targetAmount } : {}),
       ...(dto.currentAmount !== undefined
         ? {
-            currentAmount: dto.currentAmount,
-            isCompleted: dto.targetAmount
-              ? dto.currentAmount >= dto.targetAmount
-              : undefined,
-          }
+          currentAmount: dto.currentAmount,
+          isCompleted: dto.targetAmount
+            ? dto.currentAmount >= dto.targetAmount
+            : undefined,
+        }
         : {}),
       ...(dto.currency ? { currency: dto.currency } : {}),
       ...(dto.targetDate ? { targetDate: new Date(dto.targetDate) } : {}),
@@ -458,7 +487,9 @@ export class FinanceService {
   }
 
   listEmailSources(userId: string) {
-    return this.financeRepo.listEmailSources(userId);
+    return this.financeRepo.listEmailSources(userId).then((sources) =>
+      sources.map((source) => this.mapEmailSourceResponse(source)),
+    );
   }
 
   createEmailSource(userId: string, dto: ConnectEmailSourceDto) {
@@ -470,6 +501,21 @@ export class FinanceService {
       accountId: dto.accountId,
       isActive: true,
     });
+  }
+
+  async updateEmailSource(userId: string, id: string, dto: UpdateEmailSourceDto) {
+    if (dto.accountId) {
+      await this.assertAccountOwnership(userId, dto.accountId);
+    }
+
+    const data: Prisma.FinEmailSourceUncheckedUpdateInput = {};
+    if (dto.accountId !== undefined) data.accountId = dto.accountId;
+    if (dto.label !== undefined) data.label = dto.label;
+    if (dto.bankDomain !== undefined) data.bankDomain = dto.bankDomain.trim();
+
+    const updated = await this.financeRepo.updateEmailSource(userId, id, data);
+    if (!updated) throw new NotFoundException('Email source not found');
+    return this.mapEmailSourceResponse(updated);
   }
 
   async deactivateEmailSource(userId: string, id: string) {
@@ -497,6 +543,141 @@ export class FinanceService {
     );
 
     return { queued: true };
+  }
+
+  private get encryptionKey(): string {
+    return this.config.get('ENCRYPTION_KEY', { infer: true });
+  }
+
+  getGoogleOAuthUrl(userId: string, query: GoogleOAuthUrlQueryDto = {}): { url: string } {
+    const bankDomain = query.bankDomain?.trim() || 'bhd.com.do';
+    const state = jwt.sign(
+      {
+        sub: userId,
+        bankDomain,
+        label: query.label?.trim() || undefined,
+        accountId: query.accountId?.trim() || undefined,
+      },
+      this.encryptionKey,
+      { expiresIn: '15m' },
+    );
+
+    const params = new URLSearchParams({
+      client_id: this.config.get('GOOGLE_CLIENT_ID', { infer: true }),
+      redirect_uri: this.config.get('GOOGLE_REDIRECT_URI', { infer: true }),
+      response_type: 'code',
+      scope:
+        'https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/userinfo.email',
+      access_type: 'offline',
+      prompt: 'consent',
+      state,
+    });
+
+    return { url: `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}` };
+  }
+
+  async handleGoogleOAuthCallback(code: string, state: string) {
+    let payload: { sub: string; bankDomain: string; label?: string; accountId?: string };
+    try {
+      payload = jwt.verify(state, this.encryptionKey) as {
+        sub: string;
+        bankDomain: string;
+        label?: string;
+        accountId?: string;
+      };
+    } catch {
+      throw new BadRequestException('Invalid or expired OAuth state');
+    }
+
+    if (payload.accountId) {
+      await this.assertAccountOwnership(payload.sub, payload.accountId);
+    }
+
+    const tokenResponse = await exchangeGoogleAuthCode(
+      code,
+      this.config.get('GOOGLE_CLIENT_ID', { infer: true }),
+      this.config.get('GOOGLE_CLIENT_SECRET', { infer: true }),
+      this.config.get('GOOGLE_REDIRECT_URI', { infer: true }),
+    );
+
+    const emailAddress = await fetchGoogleUserEmail(tokenResponse.access_token);
+    const encryptedAccess = encryptToken(tokenResponse.access_token, this.encryptionKey);
+    const refreshToken = tokenResponse.refresh_token;
+    if (!refreshToken) {
+      throw new BadRequestException('Google did not return a refresh token');
+    }
+    const encryptedRefresh = encryptToken(refreshToken, this.encryptionKey);
+    const tokenExpiresAt = new Date(Date.now() + tokenResponse.expires_in * 1000);
+
+    const existing = await this.financeRepo.findEmailSourceByUserEmailAndDomain(
+      payload.sub,
+      emailAddress,
+      payload.bankDomain,
+    );
+
+    if (existing) {
+      return this.financeRepo.updateEmailSourceTokens(existing.id, {
+        accessToken: encryptedAccess,
+        refreshToken: encryptedRefresh,
+        tokenExpiresAt,
+        emailAddress,
+        ...(payload.accountId ? { accountId: payload.accountId } : {}),
+      });
+    }
+
+    return this.financeRepo.createEmailSource(payload.sub, {
+      provider: 'gmail',
+      emailAddress,
+      bankDomain: payload.bankDomain,
+      label: payload.label,
+      accountId: payload.accountId,
+      accessToken: encryptedAccess,
+      refreshToken: encryptedRefresh,
+      tokenExpiresAt,
+      isActive: true,
+    });
+  }
+
+  async refreshGmailToken(sourceId: string): Promise<string> {
+    const source = await this.financeRepo.findEmailSourceForRefresh(sourceId);
+    if (!source?.refreshToken || !source.accessToken) {
+      throw new NotFoundException('Email source tokens not found');
+    }
+
+    const refreshToken = decryptToken(source.refreshToken, this.encryptionKey);
+    const tokenResponse = await refreshGoogleAccessToken(
+      refreshToken,
+      this.config.get('GOOGLE_CLIENT_ID', { infer: true }),
+      this.config.get('GOOGLE_CLIENT_SECRET', { infer: true }),
+    );
+
+    const encryptedAccess = encryptToken(tokenResponse.access_token, this.encryptionKey);
+    const tokenExpiresAt = new Date(Date.now() + tokenResponse.expires_in * 1000);
+
+    await this.financeRepo.updateEmailSourceTokens(sourceId, {
+      accessToken: encryptedAccess,
+      refreshToken: source.refreshToken,
+      tokenExpiresAt,
+    });
+
+    return tokenResponse.access_token;
+  }
+
+  async getValidGmailAccessToken(sourceId: string): Promise<string> {
+    const source = await this.financeRepo.findEmailSourceForRefresh(sourceId);
+    if (!source?.accessToken) {
+      throw new NotFoundException('Email source tokens not found');
+    }
+
+    const expiresSoon =
+      !source.tokenExpiresAt ||
+      source.tokenExpiresAt.getTime() - Date.now() < 5 * 60 * 1000;
+
+    if (expiresSoon) {
+      return this.refreshGmailToken(sourceId);
+    }
+
+    return decryptToken(source.accessToken, this.encryptionKey);
   }
 
   async getAnalyticsSummary(userId: string, dateFrom?: string, dateTo?: string) {
@@ -544,6 +725,53 @@ export class FinanceService {
     }));
   }
 
+  async getSpendingOverTime(
+    userId: string,
+    dateFrom?: string,
+    dateTo?: string,
+    granularity: 'day' | 'week' | 'month' = 'day',
+  ) {
+    const rows = await this.financeRepo.getSpendingOverTime(
+      userId,
+      dateFrom ? new Date(dateFrom) : undefined,
+      dateTo ? new Date(dateTo) : undefined,
+      granularity,
+    );
+
+    const byDate = new Map<string, { date: string; expenses: number; income: number }>();
+
+    for (const row of rows) {
+      const date =
+        row.bucket instanceof Date
+          ? row.bucket.toISOString().slice(0, 10)
+          : String(row.bucket).slice(0, 10);
+      const entry = byDate.get(date) ?? { date, expenses: 0, income: 0 };
+      const total = Number(row.total) || 0;
+      if (row.type === 'DEBIT') entry.expenses += total;
+      if (row.type === 'CREDIT') entry.income += total;
+      byDate.set(date, entry);
+    }
+
+    return {
+      points: [...byDate.values()].sort((a, b) => a.date.localeCompare(b.date)),
+    };
+  }
+
+  async migrateLegacyCategoryIcons(userId: string) {
+    const categories = await this.financeRepo.listUserCategories(userId);
+    let updated = 0;
+
+    for (const category of categories) {
+      if (category.isSystem) continue;
+      const emoji = normalizeLegacyCategoryIcon(category.icon);
+      if (!emoji || emoji === category.icon) continue;
+      await this.financeRepo.updateCategory(userId, category.id, { icon: emoji });
+      updated += 1;
+    }
+
+    return { updated };
+  }
+
   async getBudgetStatus(userId: string) {
     const budgets = await this.financeRepo.listBudgets(userId);
     return budgets.map((budget) => {
@@ -563,5 +791,55 @@ export class FinanceService {
         threshold: Number(budget.alertThresholdPct),
       };
     });
+  }
+
+  private async assertAccountOwnership(userId: string, accountId: string) {
+    const account = await this.financeRepo.findAccountById(accountId, userId);
+    if (!account) {
+      throw new BadRequestException('Account not found');
+    }
+    return account;
+  }
+
+  private mapEmailSourceResponse(source: {
+    id: string;
+    emailAddress: string;
+    bankDomain: string;
+    label: string | null;
+    accountId: string | null;
+    provider: string;
+    isActive: boolean;
+    lastSyncedAt: Date | null;
+    createdAt: Date;
+    logs?: Array<{
+      id: string;
+      status: string;
+      error: string | null;
+      emailsScanned: number;
+      transactionsNew: number;
+      startedAt: Date;
+      completedAt: Date | null;
+    }>;
+  }) {
+    return {
+      id: source.id,
+      emailAddress: source.emailAddress,
+      bankDomain: source.bankDomain,
+      label: source.label,
+      accountId: source.accountId,
+      provider: source.provider,
+      isActive: source.isActive,
+      lastSyncedAt: source.lastSyncedAt?.toISOString() ?? null,
+      createdAt: source.createdAt.toISOString(),
+      logs: (source.logs ?? []).map((log) => ({
+        id: log.id,
+        status: log.status,
+        error: log.error,
+        emailsScanned: log.emailsScanned,
+        transactionsNew: log.transactionsNew,
+        startedAt: log.startedAt.toISOString(),
+        completedAt: log.completedAt?.toISOString() ?? null,
+      })),
+    };
   }
 }

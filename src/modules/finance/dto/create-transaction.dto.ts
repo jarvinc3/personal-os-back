@@ -60,6 +60,7 @@ export class CreateTransactionDto {
 
   @ApiPropertyOptional()
   @IsOptional()
-  @IsUUID()
+  @IsString()
+  @MaxLength(120)
   categoryId?: string;
 }

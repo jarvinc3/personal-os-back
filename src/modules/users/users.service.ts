@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { AppEvents } from '../../core/events/event.constants';
+import { SupabaseAdminService } from '../auth/supabase-admin.service';
 import {
   DEFAULT_MODULE_CONFIG_BY_SLUG,
   isModuleSlug,
@@ -17,6 +18,7 @@ export class UsersService {
   constructor(
     private readonly usersRepository: UsersRepository,
     private readonly eventEmitter: EventEmitter2,
+    private readonly supabaseAdminService: SupabaseAdminService,
   ) {}
 
   private mapUser(user: UserWithModules) {
@@ -141,5 +143,17 @@ export class UsersService {
 
     void before;
     return this.findById(userId);
+  }
+
+  async deleteAccount(userId: string) {
+    const user = await this.usersRepository.findById(userId);
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    await this.usersRepository.deleteById(userId);
+    await this.supabaseAdminService.deleteAuthUser(userId);
+
+    return { success: true };
   }
 }

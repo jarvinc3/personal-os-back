@@ -117,7 +117,6 @@ async function bootstrap() {
   const basePath = apiPrefix.length > 0 ? `/${apiPrefix}` : '';
   logger.log(`CORS Origin: ${corsOrigin} isProduction: ${isProduction}`);
   logger.log(`Application is running on: http://0.0.0.0:${port}${basePath}`);
-  logger.log(`LAN access example: http://<your-ip>:${port}${basePath}`);
 }
 
 bootstrap().catch((err) => {

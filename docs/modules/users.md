@@ -12,6 +12,7 @@ User profile and module configuration management.
 
 - `GET /users/me` — get authenticated user profile.
 - `PATCH /users/me` — update profile fields/preferences.
+- `DELETE /users/me` — delete authenticated user, cascade app data, remove Supabase Auth user.
 - `PATCH /users/me/modules/:slug` — update module config and enabled state.
 
 ## Notes
