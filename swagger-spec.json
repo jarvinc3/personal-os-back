@@ -1535,6 +1535,80 @@
         ]
       }
     },
+    "/api/finance/email-sync/oauth/google/url": {
+      "get": {
+        "operationId": "FinanceController_getGoogleOAuthUrl",
+        "parameters": [
+          {
+            "name": "bankDomain",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "label",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Get Google OAuth URL for Gmail sync",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
+    "/api/finance/email-sync/oauth/google/callback": {
+      "get": {
+        "operationId": "FinanceController_handleGoogleCallback",
+        "parameters": [
+          {
+            "name": "code",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "state",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Google OAuth callback for Gmail sync",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
     "/api/finance/analytics/summary": {
       "get": {
         "operationId": "FinanceController_analyticsSummary",

@@ -454,6 +454,90 @@ export class FinanceRepository {
     });
   }
 
+  findEmailSourceForRefresh(sourceId: string) {
+    return this.prisma.finEmailSource.findUnique({
+      where: { id: sourceId },
+      select: {
+        id: true,
+        userId: true,
+        accessToken: true,
+        refreshToken: true,
+        tokenExpiresAt: true,
+        bankDomain: true,
+        accountId: true,
+        lastMessageId: true,
+        lastSyncedAt: true,
+        isActive: true,
+      },
+    });
+  }
+
+  updateEmailSourceTokens(
+    sourceId: string,
+    data: {
+      accessToken: string;
+      refreshToken: string;
+      tokenExpiresAt: Date;
+      emailAddress?: string;
+    },
+  ) {
+    return this.prisma.finEmailSource.update({
+      where: { id: sourceId },
+      data: {
+        accessToken: data.accessToken,
+        refreshToken: data.refreshToken,
+        tokenExpiresAt: data.tokenExpiresAt,
+        ...(data.emailAddress ? { emailAddress: data.emailAddress } : {}),
+      },
+    });
+  }
+
+  findEmailSourceByUserEmailAndDomain(userId: string, emailAddress: string, bankDomain: string) {
+    return this.prisma.finEmailSource.findFirst({
+      where: { userId, emailAddress, bankDomain },
+    });
+  }
+
+  createEmailPendingTransaction(
+    userId: string,
+    data: {
+      accountId: string;
+      emailMessageId: string;
+      amount: number;
+      currency: string;
+      merchant: string | null;
+      description: string;
+      transactionDate: Date;
+      categoryId?: string | null;
+    },
+  ) {
+    return this.prisma.finTransaction.create({
+      data: {
+        userId,
+        accountId: data.accountId,
+        type: 'DEBIT',
+        amount: data.amount,
+        amountBaseCurrency: data.amount,
+        currency: data.currency,
+        merchant: data.merchant,
+        description: data.description,
+        transactionDate: data.transactionDate,
+        status: 'PENDING',
+        source: 'EMAIL',
+        emailMessageId: data.emailMessageId,
+        categoryId: data.categoryId ?? undefined,
+      },
+      include: {
+        account: { select: { id: true, name: true } },
+        card: { select: { id: true, name: true } },
+      },
+    });
+  }
+
+  findTransactionByEmailMessageId(emailMessageId: string) {
+    return this.prisma.finTransaction.findUnique({ where: { emailMessageId } });
+  }
+
   async getAnalyticsSummary(userId: string, from?: Date, to?: Date) {
     const dateFilter =
       from || to

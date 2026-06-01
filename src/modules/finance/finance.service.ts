@@ -1,8 +1,14 @@
 import { InjectQueue } from '@nestjs/bullmq';
-import { Injectable, NotFoundException, Optional } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+  Optional,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Queue } from 'bullmq';
+import * as jwt from 'jsonwebtoken';
 import type { Env } from '../../config';
 import { AppEvents } from '../../core/events/event.constants';
 import { QueueNames } from '../../core/queues/queue.constants';
@@ -19,6 +25,7 @@ import type { CreateLoanDto } from './dto/create-loan.dto';
 import type { CreateReceivableDto } from './dto/create-receivable.dto';
 import type { CreateSavingsGoalDto } from './dto/create-savings-goal.dto';
 import type { CreateTransactionDto } from './dto/create-transaction.dto';
+import type { GoogleOAuthUrlQueryDto } from './dto/oauth-callback-query.dto';
 import type { ListTransactionsQueryDto } from './dto/list-transactions-query.dto';
 import type { UpdateAccountDto } from './dto/update-account.dto';
 import type { UpdateBudgetDto } from './dto/update-budget.dto';
@@ -30,6 +37,12 @@ import type { UpdateLoanDto } from './dto/update-loan.dto';
 import type { UpdateReceivableDto } from './dto/update-receivable.dto';
 import type { UpdateSavingsGoalDto } from './dto/update-savings-goal.dto';
 import { FinanceRepository } from './finance.repository';
+import { decryptToken, encryptToken } from './utils/token-encryption.util';
+import {
+  exchangeGoogleAuthCode,
+  fetchGoogleUserEmail,
+  refreshGoogleAccessToken,
+} from './utils/gmail-api.util';
 
 function decimalToString(value: { toString(): string }) {
   return value.toString();
@@ -497,6 +510,133 @@ export class FinanceService {
     );
 
     return { queued: true };
+  }
+
+  private get encryptionKey(): string {
+    return this.config.get('ENCRYPTION_KEY', { infer: true });
+  }
+
+  getGoogleOAuthUrl(userId: string, query: GoogleOAuthUrlQueryDto = {}): { url: string } {
+    const bankDomain = query.bankDomain?.trim() || 'bhd.com.do';
+    const state = jwt.sign(
+      {
+        sub: userId,
+        bankDomain,
+        label: query.label?.trim() || undefined,
+      },
+      this.encryptionKey,
+      { expiresIn: '15m' },
+    );
+
+    const params = new URLSearchParams({
+      client_id: this.config.get('GOOGLE_CLIENT_ID', { infer: true }),
+      redirect_uri: this.config.get('GOOGLE_REDIRECT_URI', { infer: true }),
+      response_type: 'code',
+      scope:
+        'https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/userinfo.email',
+      access_type: 'offline',
+      prompt: 'consent',
+      state,
+    });
+
+    return { url: `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}` };
+  }
+
+  async handleGoogleOAuthCallback(code: string, state: string) {
+    let payload: { sub: string; bankDomain: string; label?: string };
+    try {
+      payload = jwt.verify(state, this.encryptionKey) as {
+        sub: string;
+        bankDomain: string;
+        label?: string;
+      };
+    } catch {
+      throw new BadRequestException('Invalid or expired OAuth state');
+    }
+
+    const tokenResponse = await exchangeGoogleAuthCode(
+      code,
+      this.config.get('GOOGLE_CLIENT_ID', { infer: true }),
+      this.config.get('GOOGLE_CLIENT_SECRET', { infer: true }),
+      this.config.get('GOOGLE_REDIRECT_URI', { infer: true }),
+    );
+
+    const emailAddress = await fetchGoogleUserEmail(tokenResponse.access_token);
+    const encryptedAccess = encryptToken(tokenResponse.access_token, this.encryptionKey);
+    const refreshToken = tokenResponse.refresh_token;
+    if (!refreshToken) {
+      throw new BadRequestException('Google did not return a refresh token');
+    }
+    const encryptedRefresh = encryptToken(refreshToken, this.encryptionKey);
+    const tokenExpiresAt = new Date(Date.now() + tokenResponse.expires_in * 1000);
+
+    const existing = await this.financeRepo.findEmailSourceByUserEmailAndDomain(
+      payload.sub,
+      emailAddress,
+      payload.bankDomain,
+    );
+
+    if (existing) {
+      return this.financeRepo.updateEmailSourceTokens(existing.id, {
+        accessToken: encryptedAccess,
+        refreshToken: encryptedRefresh,
+        tokenExpiresAt,
+        emailAddress,
+      });
+    }
+
+    return this.financeRepo.createEmailSource(payload.sub, {
+      provider: 'gmail',
+      emailAddress,
+      bankDomain: payload.bankDomain,
+      label: payload.label,
+      accessToken: encryptedAccess,
+      refreshToken: encryptedRefresh,
+      tokenExpiresAt,
+      isActive: true,
+    });
+  }
+
+  async refreshGmailToken(sourceId: string): Promise<string> {
+    const source = await this.financeRepo.findEmailSourceForRefresh(sourceId);
+    if (!source?.refreshToken || !source.accessToken) {
+      throw new NotFoundException('Email source tokens not found');
+    }
+
+    const refreshToken = decryptToken(source.refreshToken, this.encryptionKey);
+    const tokenResponse = await refreshGoogleAccessToken(
+      refreshToken,
+      this.config.get('GOOGLE_CLIENT_ID', { infer: true }),
+      this.config.get('GOOGLE_CLIENT_SECRET', { infer: true }),
+    );
+
+    const encryptedAccess = encryptToken(tokenResponse.access_token, this.encryptionKey);
+    const tokenExpiresAt = new Date(Date.now() + tokenResponse.expires_in * 1000);
+
+    await this.financeRepo.updateEmailSourceTokens(sourceId, {
+      accessToken: encryptedAccess,
+      refreshToken: source.refreshToken,
+      tokenExpiresAt,
+    });
+
+    return tokenResponse.access_token;
+  }
+
+  async getValidGmailAccessToken(sourceId: string): Promise<string> {
+    const source = await this.financeRepo.findEmailSourceForRefresh(sourceId);
+    if (!source?.accessToken) {
+      throw new NotFoundException('Email source tokens not found');
+    }
+
+    const expiresSoon =
+      !source.tokenExpiresAt ||
+      source.tokenExpiresAt.getTime() - Date.now() < 5 * 60 * 1000;
+
+    if (expiresSoon) {
+      return this.refreshGmailToken(sourceId);
+    }
+
+    return decryptToken(source.accessToken, this.encryptionKey);
   }
 
   async getAnalyticsSummary(userId: string, dateFrom?: string, dateTo?: string) {

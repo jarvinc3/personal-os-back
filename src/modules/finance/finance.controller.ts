@@ -7,9 +7,11 @@ import {
   Patch,
   Post,
   Query,
+  Res,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { CurrentUser } from '../../core/decorators';
+import type { Response } from 'express';
+import { CurrentUser, Public } from '../../core/decorators';
 import { CreateAccountDto } from './dto/create-account.dto';
 import { CreateBudgetDto } from './dto/create-budget.dto';
 import { CreateCardDto } from './dto/create-card.dto';
@@ -30,6 +32,10 @@ import { UpdateInstitutionDto } from './dto/update-institution.dto';
 import { UpdateLoanDto } from './dto/update-loan.dto';
 import { UpdateReceivableDto } from './dto/update-receivable.dto';
 import { UpdateSavingsGoalDto } from './dto/update-savings-goal.dto';
+import {
+  GoogleOAuthUrlQueryDto,
+  OAuthCallbackQueryDto,
+} from './dto/oauth-callback-query.dto';
 import { FinanceService } from './finance.service';
 
 @ApiTags('finance')
@@ -332,6 +338,31 @@ export class FinanceController {
     @Query('forceFullSync') forceFullSync?: string,
   ) {
     return this.financeService.triggerEmailSync(userId, id, forceFullSync === 'true');
+  }
+
+  @Get('email-sync/oauth/google/url')
+  @ApiOperation({ summary: 'Get Google OAuth URL for Gmail sync' })
+  getGoogleOAuthUrl(
+    @CurrentUser('sub') userId: string,
+    @Query() query: GoogleOAuthUrlQueryDto,
+  ) {
+    return this.financeService.getGoogleOAuthUrl(userId, query);
+  }
+
+  @Public()
+  @Get('email-sync/oauth/google/callback')
+  @ApiOperation({ summary: 'Google OAuth callback for Gmail sync' })
+  async handleGoogleCallback(
+    @Query() query: OAuthCallbackQueryDto,
+    @Res() res: Response,
+  ) {
+    const appRedirectBase = 'personal-os://finance/oauth/callback';
+    try {
+      await this.financeService.handleGoogleOAuthCallback(query.code, query.state);
+      res.redirect(`${appRedirectBase}?success=true`);
+    } catch {
+      res.redirect(`${appRedirectBase}?success=false`);
+    }
   }
 
   @Get('analytics/summary')
