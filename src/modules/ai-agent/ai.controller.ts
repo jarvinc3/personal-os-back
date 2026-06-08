@@ -5,15 +5,15 @@ import {
   ApiProduces,
   ApiTags,
 } from '@nestjs/swagger';
-import type { Response } from 'express';
 import { Throttle } from '@nestjs/throttler';
+import type { Response } from 'express';
 import { CurrentUser } from '../../core/decorators';
 import { NotificationsGateway } from '../notifications/notifications.gateway';
 import { AiAgentRunner } from './ai-agent.runner';
 import { AiChatPersistenceService } from './ai-chat-persistence.service';
 import { AiService } from './ai.service';
-import { ChatRequestDto } from './dto/chat-request.dto';
 import { AiProviderInfoDto } from './dto/ai-provider-info.dto';
+import { ChatRequestDto } from './dto/chat-request.dto';
 import { ChatResponseDto } from './dto/chat-response.dto';
 import type { AiResponseWsPayload } from './utils/ai.types';
 
@@ -75,6 +75,8 @@ export class AiController {
       sessionId: result.sessionId,
       provider: result.provider,
       model: result.model,
+      moduleSlug: result.moduleSlug,
+      moduleLabel: result.moduleLabel,
       content: result.content,
       requiresConfirmation: result.requiresConfirmation || undefined,
       actions: result.actions,
@@ -132,67 +134,89 @@ export class AiController {
       );
 
       if (cached) {
+        const cachedMeta = cached.metadata ?? {};
+        const cachedModuleSlug =
+          typeof cachedMeta.moduleSlug === 'string' ? cachedMeta.moduleSlug : 'general';
+        const cachedModuleLabel =
+          typeof cachedMeta.moduleLabel === 'string'
+            ? cachedMeta.moduleLabel
+            : 'General';
         writeEvent({
           type: 'start',
           sessionId: cached.sessionId,
           provider: cached.provider,
           model: cached.model,
+          moduleSlug: cachedModuleSlug,
+          moduleLabel: cachedModuleLabel,
           requiresConfirmation: cached.requiresConfirmation,
         });
-        writeEvent({ type: 'chunk', content: cached.content });
+        for (let i = 0; i < cached.content.length; i += 24) {
+          writeEvent({
+            type: 'chunk',
+            content: cached.content.slice(i, i + 24),
+          });
+        }
         writeEvent({
           type: 'done',
           sessionId: cached.sessionId,
           provider: cached.provider,
           model: cached.model,
+          moduleSlug: cachedModuleSlug,
+          moduleLabel: cachedModuleLabel,
           requiresConfirmation: cached.requiresConfirmation,
         });
         res.end();
         return;
       }
 
-      writeEvent({
-        type: 'start',
-        sessionId: session.id,
-        provider: '…',
-        model: '…',
-      });
+      let streamProvider = '…';
+      let streamModel = '…';
 
-      const result = await this.agentRunner.run({
-        userId,
-        sessionId: session.id,
-        userContent: latestUser.content,
-        clientMessageId: dto.clientMessageId,
-      });
-
-      writeEvent({
-        type: 'start',
-        sessionId: result.sessionId,
-        provider: result.provider,
-        model: result.model,
-        requiresConfirmation: result.requiresConfirmation,
-        actions: result.actions,
-      });
-
-      const chunkSize = 40;
-      for (let i = 0; i < result.content.length; i += chunkSize) {
-        const chunk = result.content.slice(i, i + chunkSize);
-        writeEvent({ type: 'chunk', content: chunk });
-        this.emitAiResponse(userId, {
-          type: 'chat.chunk',
-          sessionId: result.sessionId,
-          provider: result.provider,
-          model: result.model,
-          content: chunk,
-          stream: true,
-        });
-      }
+      const result = await this.agentRunner.run(
+        {
+          userId,
+          sessionId: session.id,
+          userContent: latestUser.content,
+          clientMessageId: dto.clientMessageId,
+        },
+        (event) => {
+          if (event.type === 'start') {
+            streamProvider = event.provider;
+            streamModel = event.model;
+            writeEvent({
+              type: 'start',
+              sessionId: event.sessionId,
+              provider: event.provider,
+              model: event.model,
+            });
+          }
+          if (event.type === 'chunk') {
+            writeEvent({ type: 'chunk', content: event.content });
+            this.emitAiResponse(userId, {
+              type: 'chat.chunk',
+              sessionId: session.id,
+              provider: streamProvider,
+              model: streamModel,
+              content: event.content,
+              stream: true,
+            });
+          }
+          if (event.type === 'reset') {
+            writeEvent({ type: 'reset' });
+          }
+          if (event.type === 'status') {
+            writeEvent({ type: 'status', message: event.message });
+          }
+        },
+      );
 
       writeEvent({
         type: 'done',
         sessionId: result.sessionId,
         provider: result.provider,
         model: result.model,
+        moduleSlug: result.moduleSlug,
+        moduleLabel: result.moduleLabel,
         requiresConfirmation: result.requiresConfirmation,
         actions: result.actions,
         sideEffects: result.sideEffects,

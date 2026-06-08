@@ -2,7 +2,10 @@ import type { AiTone } from '../../users/defaults/global-preferences-defaults';
 import { TONE_INSTRUCTIONS } from '../lib/build-system-prompt';
 import { getModuleContextPrompt } from './module-context';
 import { SYSTEM_BASE_PROMPT } from './system-base';
-import { getToolsBehaviorInstructions, TOOLS_LIST } from './tools-instructions';
+import {
+  getToolsBehaviorInstructions,
+  getToolsListForModule,
+} from './tools-instructions';
 
 export function buildAgentPrompt(options: {
   tone: AiTone;
@@ -34,7 +37,7 @@ export function buildAgentPrompt(options: {
   return [
     SYSTEM_BASE_PROMPT,
     getModuleContextPrompt(options.moduleSlug ?? null),
-    TOOLS_LIST,
+    getToolsListForModule(options.moduleSlug ?? null),
     toolsBehavior,
     languageHint,
     TONE_INSTRUCTIONS[options.tone],

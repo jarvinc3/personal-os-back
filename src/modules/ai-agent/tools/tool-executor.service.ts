@@ -3,6 +3,13 @@ import { FinanceService } from '../../finance/finance.service';
 import { GLOBAL_USER_PREFERENCES_DEFAULTS } from '../../users/defaults/global-preferences-defaults';
 import { mergeWithDefaults } from '../../users/lib/settings-merge';
 import { UsersService } from '../../users/users.service';
+import { AiSessionsRepository } from '../ai-sessions.repository';
+import {
+  MODULE_CONTEXT,
+  MODULE_CONTEXT_SLUGS,
+  MODULE_CONTEXT_SWITCH_TOOL,
+  type ModuleContextSlug,
+} from '../prompts/module-context';
 import type {
   SideEffectDescriptor,
   ToolContext,
@@ -14,6 +21,7 @@ export class ToolExecutorService {
   constructor(
     private readonly usersService: UsersService,
     private readonly financeService: FinanceService,
+    private readonly sessionsRepo: AiSessionsRepository,
   ) {}
 
   async getUserContext(ctx: ToolContext): Promise<ToolExecutionResult> {
@@ -290,12 +298,54 @@ export class ToolExecutorService {
     };
   }
 
+  async switchModuleContext(
+    ctx: ToolContext,
+    args: Record<string, unknown>,
+  ): Promise<ToolExecutionResult> {
+    const slug = args.slug as string;
+    if (
+      !slug ||
+      !MODULE_CONTEXT_SLUGS.includes(slug as ModuleContextSlug)
+    ) {
+      return {
+        success: false,
+        message: `Invalid slug. Use one of: ${MODULE_CONTEXT_SLUGS.join(', ')}`,
+      };
+    }
+
+    let moduleId: string | null = null;
+    if (slug !== 'general') {
+      const mod = await this.sessionsRepo.findModuleBySlug(slug);
+      if (!mod) {
+        return { success: false, message: `Module "${slug}" not found` };
+      }
+      moduleId = mod.id;
+    }
+
+    await this.sessionsRepo.updateSession(ctx.sessionId, {
+      contextType: slug,
+      moduleId,
+    });
+
+    const label = MODULE_CONTEXT[slug].label;
+    const resolvedSlug = slug === 'general' ? 'general' : slug;
+
+    return {
+      success: true,
+      message: `Context switched to ${label}`,
+      data: { moduleSlug: resolvedSlug, label },
+      sideEffects: [{ type: 'moduleContext', slug: resolvedSlug, label }],
+    };
+  }
+
   async execute(
     ctx: ToolContext,
     name: string,
     args: Record<string, unknown>,
   ): Promise<ToolExecutionResult> {
     switch (name) {
+      case MODULE_CONTEXT_SWITCH_TOOL:
+        return this.switchModuleContext(ctx, args);
       case 'get_user_context':
         return this.getUserContext(ctx);
       case 'update_user_profile':

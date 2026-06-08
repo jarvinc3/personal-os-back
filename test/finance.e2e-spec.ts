@@ -1,4 +1,4 @@
-import { INestApplication } from '@nestjs/common';
+import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';
 import { App } from 'supertest/types';
@@ -30,6 +30,13 @@ describe('Finance (e2e)', () => {
 
     app = moduleFixture.createNestApplication();
     app.setGlobalPrefix('api');
+    app.useGlobalPipes(
+      new ValidationPipe({
+        transform: true,
+        whitelist: true,
+        forbidNonWhitelisted: true,
+      }),
+    );
     await app.init();
   });
 
@@ -163,6 +170,21 @@ describe('Finance (e2e)', () => {
       });
   });
 
+  it('GET /api/finance/email-sync/oauth/google/callback ignores extra Google query params', async () => {
+    await request(app.getHttpServer())
+      .get('/api/finance/email-sync/oauth/google/callback')
+      .query({
+        code: 'test-auth-code',
+        state: 'invalid-state',
+        iss: 'https://accounts.google.com',
+        scope: 'email https://www.googleapis.com/auth/gmail.readonly',
+        authuser: '0',
+        prompt: 'consent',
+      })
+      .expect(302)
+      .expect('Location', 'personal-os://finance/oauth/callback?success=false');
+  });
+
   it('POST /api/finance/email-sync/sources/:id/sync returns queued false without Redis', async () => {
     prismaMock.finEmailSource.findFirst.mockResolvedValue({
       id: 'src-1',
@@ -175,10 +197,8 @@ describe('Finance (e2e)', () => {
       .set('Authorization', `Bearer ${token}`)
       .expect(201)
       .expect((res) => {
-        expect(res.body.data).toMatchObject({
-          queued: false,
-          reason: 'gmail-sync queue is unavailable',
-        });
+        expect(res.body.data).toMatchObject({ queued: false });
+        expect(res.body.data.reason).toContain('gmail-sync queue is unavailable');
       });
   });
 });

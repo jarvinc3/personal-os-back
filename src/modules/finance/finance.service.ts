@@ -528,7 +528,11 @@ export class FinanceService {
     const source = await this.financeRepo.findEmailSource(userId, sourceId);
     if (!source) throw new NotFoundException('Email source not found');
     if (!this.gmailSyncQueue) {
-      return { queued: false, reason: 'gmail-sync queue is unavailable' };
+      return {
+        queued: false,
+        reason:
+          'gmail-sync queue is unavailable. Verify REDIS_ENABLED=true and REDIS_URL, then restart the API.',
+      };
     }
 
     await this.gmailSyncQueue.add(

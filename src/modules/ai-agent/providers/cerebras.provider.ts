@@ -11,6 +11,7 @@ import type {
   ToolCallRequest,
 } from '../utils/ai.types';
 import { mapMessagesToOpenAi } from '../utils/map-messages-to-openai';
+import { streamOpenAiChatComplete } from '../utils/stream-openai-chat-complete';
 
 const CEREBRAS_MODEL = 'zai-glm-4.7';
 
@@ -73,6 +74,35 @@ export function createCerebrasProvider(apiKey: string): AIService {
         content: choice?.content ?? '',
         toolCalls,
       };
+    },
+    async chatCompleteStream(messages, tools, onToken) {
+      return streamOpenAiChatComplete(
+        (params) =>
+          cerebras.chat.completions.create({
+            ...params,
+            model: CEREBRAS_MODEL,
+          }) as Promise<AsyncIterable<{
+            choices?: Array<{
+              delta?: {
+                content?: string | null;
+                tool_calls?: Array<{
+                  index: number;
+                  id?: string;
+                  function?: { name?: string; arguments?: string };
+                }>;
+              };
+            }>;
+          }>>,
+        messages,
+        tools,
+        onToken,
+        {
+          model: CEREBRAS_MODEL,
+          temperature: 0.6,
+          max_completion_tokens: 8192,
+          top_p: 0.95,
+        },
+      );
     },
   };
 }

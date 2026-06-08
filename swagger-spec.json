@@ -3088,6 +3088,15 @@
             "type": "string",
             "example": "llama-3.3-70b-versatile"
           },
+          "moduleSlug": {
+            "type": "string",
+            "example": "finance",
+            "description": "Module context used for this reply"
+          },
+          "moduleLabel": {
+            "type": "string",
+            "example": "Finanzas"
+          },
           "content": {
             "type": "string",
             "example": "Aquí tienes un resumen de tus gastos del mes..."
@@ -3118,6 +3127,8 @@
           "sessionId",
           "provider",
           "model",
+          "moduleSlug",
+          "moduleLabel",
           "content"
         ]
       },

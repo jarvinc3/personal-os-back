@@ -1,7 +1,29 @@
-import { getAllowedToolsForModule } from '../prompts/module-context';
+import {
+  getAllowedToolsForModule,
+  MODULE_CONTEXT_SLUGS,
+  MODULE_CONTEXT_SWITCH_TOOL,
+} from '../prompts/module-context';
 import type { AiToolDefinition } from '../utils/ai.types';
 
 const ALL_TOOLS: AiToolDefinition[] = [
+  {
+    name: MODULE_CONTEXT_SWITCH_TOOL,
+    description:
+      'Switch the active chat module context for this session (e.g. general → finance) so module-specific tools become available. Call before finance or other module actions when the current context does not include those tools.',
+    mutating: false,
+    targetModule: 'core',
+    parameters: {
+      type: 'object',
+      properties: {
+        slug: {
+          type: 'string',
+          enum: [...MODULE_CONTEXT_SLUGS],
+          description: 'Target module context slug',
+        },
+      },
+      required: ['slug'],
+    },
+  },
   {
     name: 'get_user_context',
     description:
@@ -342,6 +364,8 @@ export function getActionLabel(
       return `${payload.isEnabled ? 'Activar' : 'Desactivar'} módulo ${payload.slug ?? ''}`;
     case 'update_preferences':
       return 'Actualizar preferencias';
+    case MODULE_CONTEXT_SWITCH_TOOL:
+      return `Cambiar contexto a ${payload.slug ?? '?'}`;
     case 'get_finance_summary':
       return 'Ver resumen financiero';
     case 'list_transactions':

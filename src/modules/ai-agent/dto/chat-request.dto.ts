@@ -31,5 +31,5 @@ export class ChatRequestDto {
   @ArrayMinSize(1)
   @ValidateNested({ each: true })
   @Type(() => ChatMessageDto)
-  messages: ChatMessageDto[];
+  messages!: ChatMessageDto[];
 }

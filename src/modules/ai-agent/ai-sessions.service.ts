@@ -1,11 +1,11 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { paginate, PaginationQueryDto } from '../../core/pagination/pagination.dto';
-import { CreateAiSessionDto } from './dto/create-ai-session.dto';
 import { AiSessionsRepository } from './ai-sessions.repository';
+import { CreateAiSessionDto } from './dto/create-ai-session.dto';
 
 @Injectable()
 export class AiSessionsService {
-  constructor(private readonly sessionsRepo: AiSessionsRepository) {}
+  constructor(private readonly sessionsRepo: AiSessionsRepository) { }
 
   private mapSession(session: {
     id: string;
@@ -75,13 +75,19 @@ export class AiSessionsService {
 
     return {
       ...this.mapSession(session),
-      messages: session.messages.map((message) => ({
-        id: message.id,
-        role: message.role,
-        content: message.content,
-        metadata: message.metadata,
-        createdAt: message.createdAt.toISOString(),
-      })),
+      messages: session.messages
+        .filter(
+          (message) =>
+            message.role === 'tool' ||
+            message.content.trim().length > 0,
+        )
+        .map((message) => ({
+          id: message.id,
+          role: message.role,
+          content: message.content,
+          metadata: message.metadata,
+          createdAt: message.createdAt.toISOString(),
+        })),
     };
   }
 
