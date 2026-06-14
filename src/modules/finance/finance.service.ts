@@ -108,10 +108,12 @@ export class FinanceService {
       currency: tx.currency,
       merchant: tx.merchant,
       description: tx.description,
-      transactionDate: tx.transactionDate.toISOString().slice(0, 10),
+      transactionDate: tx.transactionDate.toISOString(),
       status: tx.status,
       source: tx.source,
       categoryId: tx.categoryId,
+      notes: tx.notes,
+      transferGroupId: tx.transferGroupId,
       createdAt: tx.createdAt.toISOString(),
     };
   }
@@ -223,6 +225,32 @@ export class FinanceService {
     return this.mapTransaction(created);
   }
 
+  async createTransfer(userId: string, dto: import('./dto/create-transfer.dto').CreateTransferDto) {
+    const baseCurrency = this.config.get('BASE_CURRENCY', { infer: true });
+    const currency = dto.currency ?? baseCurrency;
+    const amountBaseCurrency = currency === baseCurrency ? dto.amount : dto.amount;
+
+    const created = await this.financeRepo.createTransfer(userId, dto, amountBaseCurrency);
+    if (!created) {
+      throw new NotFoundException('Invalid transfer accounts');
+    }
+
+    this.eventEmitter.emit(
+      AppEvents.TRANSACTION_CREATED,
+      new TransactionCreatedEvent(
+        userId,
+        created.debit.id,
+        Number(decimalToString(created.debit.amount)),
+      ),
+    );
+
+    return {
+      transferGroupId: created.transferGroupId,
+      debit: this.mapTransaction(created.debit),
+      credit: this.mapTransaction(created.credit),
+    };
+  }
+
   async updateTransaction(
     userId: string,
     id: string,
@@ -244,6 +272,9 @@ export class FinanceService {
     if (dto.categoryId !== undefined) {
       data.categoryId = dto.categoryId;
     }
+    if (dto.status !== undefined) {
+      data.status = dto.status;
+    }
 
     const updated = await this.financeRepo.updateTransaction(userId, id, data);
     if (!updated) throw new NotFoundException('Transaction not found');
@@ -251,12 +282,37 @@ export class FinanceService {
   }
 
   async deleteTransaction(userId: string, id: string) {
+    const tx = await this.financeRepo.findTransactionById(id, userId);
+    if (!tx) throw new NotFoundException('Manual transaction not found');
+
+    if (tx.transferGroupId) {
+      const result = await this.financeRepo.deleteTransactionsByTransferGroupId(
+        userId,
+        tx.transferGroupId,
+      );
+      if (result.count === 0) throw new NotFoundException('Manual transaction not found');
+      return { success: true };
+    }
+
     const result = await this.financeRepo.deleteTransaction(userId, id);
     if (result.count === 0) throw new NotFoundException('Manual transaction not found');
     return { success: true };
   }
 
   async confirmTransaction(userId: string, id: string) {
+    const tx = await this.financeRepo.findTransactionById(id, userId);
+    if (!tx) throw new NotFoundException('Transaction not found');
+
+    if (tx.transferGroupId) {
+      await this.financeRepo.confirmTransactionsByTransferGroupId(
+        userId,
+        tx.transferGroupId,
+      );
+      const refreshed = await this.financeRepo.findTransactionById(id, userId);
+      if (!refreshed) throw new NotFoundException('Transaction not found');
+      return this.mapTransaction(refreshed);
+    }
+
     const updated = await this.financeRepo.updateTransaction(userId, id, {
       status: 'CONFIRMED',
     });

@@ -23,6 +23,7 @@ import { CreateLoanDto } from './dto/create-loan.dto';
 import { CreateReceivableDto } from './dto/create-receivable.dto';
 import { CreateSavingsGoalDto } from './dto/create-savings-goal.dto';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
+import { CreateTransferDto } from './dto/create-transfer.dto';
 import { ListTransactionsQueryDto } from './dto/list-transactions-query.dto';
 import { GoogleOAuthUrlQueryDto } from './dto/oauth-callback-query.dto';
 import { SpendingOverTimeQueryDto } from './dto/spending-over-time-query.dto';
@@ -90,6 +91,15 @@ export class FinanceController {
     @Body() dto: CreateTransactionDto,
   ) {
     return this.financeService.createTransaction(userId, dto);
+  }
+
+  @Post('transfers')
+  @ApiOperation({ summary: 'Create a transfer (DEBIT + CREDIT pair)' })
+  createTransfer(
+    @CurrentUser('sub') userId: string,
+    @Body() dto: CreateTransferDto,
+  ) {
+    return this.financeService.createTransfer(userId, dto);
   }
 
   @Get('transactions/:id')

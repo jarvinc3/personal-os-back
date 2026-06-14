@@ -207,7 +207,8 @@ model FinTransaction {
   exchangeRate       Decimal              @default(1) @map("exchange_rate") @db.Decimal(10, 6)
   merchant           String?
   description        String?
-  transactionDate    DateTime             @map("transaction_date") @db.Date
+  transactionDate    DateTime             @map("transaction_date") @db.Timestamptz(6)
+  transferGroupId    String?              @map("transfer_group_id")
   status             FinTransactionStatus @default(CONFIRMED)
   isRecurring        Boolean              @default(false) @map("is_recurring")
   aiMetadata         Json                 @default("{}") @map("ai_metadata")

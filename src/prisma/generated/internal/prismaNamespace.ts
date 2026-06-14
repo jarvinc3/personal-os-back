@@ -2334,6 +2334,7 @@ export const FinTransactionScalarFieldEnum = {
   merchant: 'merchant',
   description: 'description',
   transactionDate: 'transactionDate',
+  transferGroupId: 'transferGroupId',
   status: 'status',
   isRecurring: 'isRecurring',
   aiMetadata: 'aiMetadata',
