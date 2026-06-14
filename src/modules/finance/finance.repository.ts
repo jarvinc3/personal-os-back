@@ -1,10 +1,12 @@
 import { Injectable } from '@nestjs/common';
+import { randomUUID } from 'crypto';
+import { format, startOfMonth, startOfWeek } from 'date-fns';
 import { paginationArgs } from '../../core/pagination/pagination.dto';
 import type { Prisma } from '../../prisma/generated/client';
-import { format, startOfMonth, startOfWeek } from 'date-fns';
 import { PrismaService } from '../../prisma/prisma.service';
 import type { CreateAccountDto } from './dto/create-account.dto';
 import type { CreateTransactionDto } from './dto/create-transaction.dto';
+import type { CreateTransferDto } from './dto/create-transfer.dto';
 import type { ListTransactionsQueryDto } from './dto/list-transactions-query.dto';
 import type { UpdateAccountDto } from './dto/update-account.dto';
 
@@ -68,6 +70,7 @@ export class FinanceRepository {
     const { skip, take } = paginationArgs(query);
     const where: Prisma.FinTransactionWhereInput = {
       userId,
+      ...(query.transferGroupId ? { transferGroupId: query.transferGroupId } : {}),
       ...(query.accountId ? { accountId: query.accountId } : {}),
       ...(query.cardId ? { cardId: query.cardId } : {}),
       ...(query.categoryId ? { categoryId: query.categoryId } : {}),
@@ -162,6 +165,7 @@ export class FinanceRepository {
           categoryId: dto.categoryId,
           notes: dto.notes,
           source,
+          status: dto.status ?? 'CONFIRMED',
           transactionDate: new Date(dto.transactionDate),
         },
         include: {
@@ -204,6 +208,137 @@ export class FinanceRepository {
       }
 
       return created;
+    });
+  }
+
+  findTransactionsByTransferGroupId(transferGroupId: string, userId: string) {
+    return this.prisma.finTransaction.findMany({
+      where: { transferGroupId, userId },
+      include: {
+        account: { select: { id: true, name: true } },
+        card: { select: { id: true, name: true } },
+      },
+      orderBy: { type: 'asc' },
+    });
+  }
+
+  createTransfer(
+    userId: string,
+    dto: CreateTransferDto,
+    amountBaseCurrency: number,
+  ) {
+    return this.prisma.$transaction(async (tx) => {
+      const hasFrom = Boolean(dto.fromAccountId || dto.fromCardId);
+      const hasTo = Boolean(dto.toAccountId || dto.toCardId);
+      if (!hasFrom || !hasTo) return null;
+
+      const fromKey = `${dto.fromAccountId ?? ''}:${dto.fromCardId ?? ''}`;
+      const toKey = `${dto.toAccountId ?? ''}:${dto.toCardId ?? ''}`;
+      if (fromKey === toKey) return null;
+
+      const transferGroupId = randomUUID();
+      const currency = dto.currency ?? 'DOP';
+      const status = dto.status ?? 'CONFIRMED';
+      const transactionDate = new Date(dto.transactionDate);
+
+      const createLeg = async (leg: {
+        type: 'DEBIT' | 'CREDIT';
+        accountId?: string;
+        cardId?: string;
+      }) => {
+        const account = leg.accountId
+          ? await tx.finAccount.findFirst({ where: { id: leg.accountId, userId } })
+          : null;
+        const card = leg.cardId
+          ? await tx.finCard.findFirst({ where: { id: leg.cardId, userId } })
+          : null;
+
+        if (leg.accountId && !account) return null;
+        if (leg.cardId && !card) return null;
+
+        const signedAmount =
+          leg.type === 'CREDIT' ? dto.amount : -Math.abs(dto.amount);
+
+        const created = await tx.finTransaction.create({
+          data: {
+            userId,
+            accountId: leg.accountId,
+            cardId: leg.cardId,
+            type: leg.type,
+            amount: dto.amount,
+            amountBaseCurrency,
+            currency: currency ?? account?.currency ?? 'DOP',
+            description: dto.description,
+            notes: dto.notes,
+            source: 'MANUAL',
+            status,
+            transferGroupId,
+            transactionDate,
+          },
+          include: {
+            account: { select: { id: true, name: true } },
+            card: { select: { id: true, name: true } },
+          },
+        });
+
+        if (leg.accountId) {
+          await tx.finAccount.update({
+            where: { id: leg.accountId },
+            data: { balance: { increment: signedAmount } },
+          });
+        }
+
+        if (leg.cardId) {
+          const balanceRow = await tx.finCardBalance.findFirst({
+            where: { cardId: leg.cardId, currency: currency ?? 'DOP' },
+          });
+          if (balanceRow) {
+            await tx.finCardBalance.update({
+              where: { id: balanceRow.id },
+              data: { balance: { increment: signedAmount } },
+            });
+          } else {
+            await tx.finCardBalance.create({
+              data: {
+                cardId: leg.cardId,
+                currency: currency ?? 'DOP',
+                balance: signedAmount,
+              },
+            });
+          }
+        }
+
+        return created;
+      };
+
+      const debit = await createLeg({
+        type: 'DEBIT',
+        accountId: dto.fromAccountId,
+        cardId: dto.fromCardId,
+      });
+      if (!debit) return null;
+
+      const credit = await createLeg({
+        type: 'CREDIT',
+        accountId: dto.toAccountId,
+        cardId: dto.toCardId,
+      });
+      if (!credit) return null;
+
+      return { debit, credit, transferGroupId };
+    });
+  }
+
+  deleteTransactionsByTransferGroupId(userId: string, transferGroupId: string) {
+    return this.prisma.finTransaction.deleteMany({
+      where: { userId, transferGroupId, source: 'MANUAL' },
+    });
+  }
+
+  confirmTransactionsByTransferGroupId(userId: string, transferGroupId: string) {
+    return this.prisma.finTransaction.updateMany({
+      where: { userId, transferGroupId },
+      data: { status: 'CONFIRMED' },
     });
   }
 

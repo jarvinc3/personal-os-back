@@ -11,6 +11,7 @@ import {
 } from 'class-validator';
 
 const transactionTypes = ['DEBIT', 'CREDIT', 'TRANSFER'] as const;
+const transactionStatuses = ['PENDING', 'CONFIRMED', 'CANCELLED'] as const;
 
 export class CreateTransactionDto {
   @ApiPropertyOptional()
@@ -63,4 +64,9 @@ export class CreateTransactionDto {
   @IsString()
   @MaxLength(120)
   categoryId?: string;
+
+  @ApiPropertyOptional({ enum: transactionStatuses, default: 'CONFIRMED' })
+  @IsOptional()
+  @IsEnum(transactionStatuses)
+  status?: (typeof transactionStatuses)[number];
 }

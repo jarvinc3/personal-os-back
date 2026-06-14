@@ -7,6 +7,11 @@ export class ListTransactionsQueryDto extends PaginationQueryDto {
   @ApiPropertyOptional()
   @IsOptional()
   @IsUUID()
+  transferGroupId?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsUUID()
   accountId?: string;
 
   @ApiPropertyOptional()

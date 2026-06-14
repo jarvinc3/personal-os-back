@@ -11,6 +11,7 @@ import type {
   ToolCallRequest,
 } from '../utils/ai.types';
 import { mapMessagesToOpenAi } from '../utils/map-messages-to-openai';
+import { streamOpenAiChatComplete } from '../utils/stream-openai-chat-complete';
 
 const GROQ_MODEL = 'llama-3.3-70b-versatile';
 
@@ -61,6 +62,24 @@ export function createGroqProvider(apiKey: string): AIService {
         content: choice?.content ?? '',
         toolCalls,
       };
+    },
+    async chatCompleteStream(messages, tools, onToken) {
+      return streamOpenAiChatComplete(
+        (params) =>
+          groq.chat.completions.create({
+            ...params,
+            model: GROQ_MODEL,
+          }),
+        messages,
+        tools,
+        onToken,
+        {
+          model: GROQ_MODEL,
+          temperature: 0.6,
+          max_completion_tokens: 4096,
+          top_p: 1,
+        },
+      );
     },
   };
 }

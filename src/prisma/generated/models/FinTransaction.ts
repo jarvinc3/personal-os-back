@@ -53,6 +53,7 @@ export type FinTransactionMinAggregateOutputType = {
   merchant: string | null
   description: string | null
   transactionDate: Date | null
+  transferGroupId: string | null
   status: $Enums.FinTransactionStatus | null
   isRecurring: boolean | null
   notes: string | null
@@ -76,6 +77,7 @@ export type FinTransactionMaxAggregateOutputType = {
   merchant: string | null
   description: string | null
   transactionDate: Date | null
+  transferGroupId: string | null
   status: $Enums.FinTransactionStatus | null
   isRecurring: boolean | null
   notes: string | null
@@ -99,6 +101,7 @@ export type FinTransactionCountAggregateOutputType = {
   merchant: number
   description: number
   transactionDate: number
+  transferGroupId: number
   status: number
   isRecurring: number
   aiMetadata: number
@@ -137,6 +140,7 @@ export type FinTransactionMinAggregateInputType = {
   merchant?: true
   description?: true
   transactionDate?: true
+  transferGroupId?: true
   status?: true
   isRecurring?: true
   notes?: true
@@ -160,6 +164,7 @@ export type FinTransactionMaxAggregateInputType = {
   merchant?: true
   description?: true
   transactionDate?: true
+  transferGroupId?: true
   status?: true
   isRecurring?: true
   notes?: true
@@ -183,6 +188,7 @@ export type FinTransactionCountAggregateInputType = {
   merchant?: true
   description?: true
   transactionDate?: true
+  transferGroupId?: true
   status?: true
   isRecurring?: true
   aiMetadata?: true
@@ -294,6 +300,7 @@ export type FinTransactionGroupByOutputType = {
   merchant: string | null
   description: string | null
   transactionDate: Date
+  transferGroupId: string | null
   status: $Enums.FinTransactionStatus
   isRecurring: boolean
   aiMetadata: runtime.JsonValue
@@ -341,6 +348,7 @@ export type FinTransactionWhereInput = {
   merchant?: Prisma.StringNullableFilter<"FinTransaction"> | string | null
   description?: Prisma.StringNullableFilter<"FinTransaction"> | string | null
   transactionDate?: Prisma.DateTimeFilter<"FinTransaction"> | Date | string
+  transferGroupId?: Prisma.StringNullableFilter<"FinTransaction"> | string | null
   status?: Prisma.EnumFinTransactionStatusFilter<"FinTransaction"> | $Enums.FinTransactionStatus
   isRecurring?: Prisma.BoolFilter<"FinTransaction"> | boolean
   aiMetadata?: Prisma.JsonFilter<"FinTransaction">
@@ -369,6 +377,7 @@ export type FinTransactionOrderByWithRelationInput = {
   merchant?: Prisma.SortOrderInput | Prisma.SortOrder
   description?: Prisma.SortOrderInput | Prisma.SortOrder
   transactionDate?: Prisma.SortOrder
+  transferGroupId?: Prisma.SortOrderInput | Prisma.SortOrder
   status?: Prisma.SortOrder
   isRecurring?: Prisma.SortOrder
   aiMetadata?: Prisma.SortOrder
@@ -400,6 +409,7 @@ export type FinTransactionWhereUniqueInput = Prisma.AtLeast<{
   merchant?: Prisma.StringNullableFilter<"FinTransaction"> | string | null
   description?: Prisma.StringNullableFilter<"FinTransaction"> | string | null
   transactionDate?: Prisma.DateTimeFilter<"FinTransaction"> | Date | string
+  transferGroupId?: Prisma.StringNullableFilter<"FinTransaction"> | string | null
   status?: Prisma.EnumFinTransactionStatusFilter<"FinTransaction"> | $Enums.FinTransactionStatus
   isRecurring?: Prisma.BoolFilter<"FinTransaction"> | boolean
   aiMetadata?: Prisma.JsonFilter<"FinTransaction">
@@ -428,6 +438,7 @@ export type FinTransactionOrderByWithAggregationInput = {
   merchant?: Prisma.SortOrderInput | Prisma.SortOrder
   description?: Prisma.SortOrderInput | Prisma.SortOrder
   transactionDate?: Prisma.SortOrder
+  transferGroupId?: Prisma.SortOrderInput | Prisma.SortOrder
   status?: Prisma.SortOrder
   isRecurring?: Prisma.SortOrder
   aiMetadata?: Prisma.SortOrder
@@ -460,6 +471,7 @@ export type FinTransactionScalarWhereWithAggregatesInput = {
   merchant?: Prisma.StringNullableWithAggregatesFilter<"FinTransaction"> | string | null
   description?: Prisma.StringNullableWithAggregatesFilter<"FinTransaction"> | string | null
   transactionDate?: Prisma.DateTimeWithAggregatesFilter<"FinTransaction"> | Date | string
+  transferGroupId?: Prisma.StringNullableWithAggregatesFilter<"FinTransaction"> | string | null
   status?: Prisma.EnumFinTransactionStatusWithAggregatesFilter<"FinTransaction"> | $Enums.FinTransactionStatus
   isRecurring?: Prisma.BoolWithAggregatesFilter<"FinTransaction"> | boolean
   aiMetadata?: Prisma.JsonWithAggregatesFilter<"FinTransaction">
@@ -480,6 +492,7 @@ export type FinTransactionCreateInput = {
   merchant?: string | null
   description?: string | null
   transactionDate: Date | string
+  transferGroupId?: string | null
   status?: $Enums.FinTransactionStatus
   isRecurring?: boolean
   aiMetadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -508,6 +521,7 @@ export type FinTransactionUncheckedCreateInput = {
   merchant?: string | null
   description?: string | null
   transactionDate: Date | string
+  transferGroupId?: string | null
   status?: $Enums.FinTransactionStatus
   isRecurring?: boolean
   aiMetadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -528,6 +542,7 @@ export type FinTransactionUpdateInput = {
   merchant?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   transactionDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  transferGroupId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumFinTransactionStatusFieldUpdateOperationsInput | $Enums.FinTransactionStatus
   isRecurring?: Prisma.BoolFieldUpdateOperationsInput | boolean
   aiMetadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -556,6 +571,7 @@ export type FinTransactionUncheckedUpdateInput = {
   merchant?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   transactionDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  transferGroupId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumFinTransactionStatusFieldUpdateOperationsInput | $Enums.FinTransactionStatus
   isRecurring?: Prisma.BoolFieldUpdateOperationsInput | boolean
   aiMetadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -580,6 +596,7 @@ export type FinTransactionCreateManyInput = {
   merchant?: string | null
   description?: string | null
   transactionDate: Date | string
+  transferGroupId?: string | null
   status?: $Enums.FinTransactionStatus
   isRecurring?: boolean
   aiMetadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -600,6 +617,7 @@ export type FinTransactionUpdateManyMutationInput = {
   merchant?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   transactionDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  transferGroupId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumFinTransactionStatusFieldUpdateOperationsInput | $Enums.FinTransactionStatus
   isRecurring?: Prisma.BoolFieldUpdateOperationsInput | boolean
   aiMetadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -624,6 +642,7 @@ export type FinTransactionUncheckedUpdateManyInput = {
   merchant?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   transactionDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  transferGroupId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumFinTransactionStatusFieldUpdateOperationsInput | $Enums.FinTransactionStatus
   isRecurring?: Prisma.BoolFieldUpdateOperationsInput | boolean
   aiMetadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -658,6 +677,7 @@ export type FinTransactionCountOrderByAggregateInput = {
   merchant?: Prisma.SortOrder
   description?: Prisma.SortOrder
   transactionDate?: Prisma.SortOrder
+  transferGroupId?: Prisma.SortOrder
   status?: Prisma.SortOrder
   isRecurring?: Prisma.SortOrder
   aiMetadata?: Prisma.SortOrder
@@ -688,6 +708,7 @@ export type FinTransactionMaxOrderByAggregateInput = {
   merchant?: Prisma.SortOrder
   description?: Prisma.SortOrder
   transactionDate?: Prisma.SortOrder
+  transferGroupId?: Prisma.SortOrder
   status?: Prisma.SortOrder
   isRecurring?: Prisma.SortOrder
   notes?: Prisma.SortOrder
@@ -711,6 +732,7 @@ export type FinTransactionMinOrderByAggregateInput = {
   merchant?: Prisma.SortOrder
   description?: Prisma.SortOrder
   transactionDate?: Prisma.SortOrder
+  transferGroupId?: Prisma.SortOrder
   status?: Prisma.SortOrder
   isRecurring?: Prisma.SortOrder
   notes?: Prisma.SortOrder
@@ -916,6 +938,7 @@ export type FinTransactionCreateWithoutUserInput = {
   merchant?: string | null
   description?: string | null
   transactionDate: Date | string
+  transferGroupId?: string | null
   status?: $Enums.FinTransactionStatus
   isRecurring?: boolean
   aiMetadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -942,6 +965,7 @@ export type FinTransactionUncheckedCreateWithoutUserInput = {
   merchant?: string | null
   description?: string | null
   transactionDate: Date | string
+  transferGroupId?: string | null
   status?: $Enums.FinTransactionStatus
   isRecurring?: boolean
   aiMetadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -995,6 +1019,7 @@ export type FinTransactionScalarWhereInput = {
   merchant?: Prisma.StringNullableFilter<"FinTransaction"> | string | null
   description?: Prisma.StringNullableFilter<"FinTransaction"> | string | null
   transactionDate?: Prisma.DateTimeFilter<"FinTransaction"> | Date | string
+  transferGroupId?: Prisma.StringNullableFilter<"FinTransaction"> | string | null
   status?: Prisma.EnumFinTransactionStatusFilter<"FinTransaction"> | $Enums.FinTransactionStatus
   isRecurring?: Prisma.BoolFilter<"FinTransaction"> | boolean
   aiMetadata?: Prisma.JsonFilter<"FinTransaction">
@@ -1015,6 +1040,7 @@ export type FinTransactionCreateWithoutAccountInput = {
   merchant?: string | null
   description?: string | null
   transactionDate: Date | string
+  transferGroupId?: string | null
   status?: $Enums.FinTransactionStatus
   isRecurring?: boolean
   aiMetadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -1041,6 +1067,7 @@ export type FinTransactionUncheckedCreateWithoutAccountInput = {
   merchant?: string | null
   description?: string | null
   transactionDate: Date | string
+  transferGroupId?: string | null
   status?: $Enums.FinTransactionStatus
   isRecurring?: boolean
   aiMetadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -1087,6 +1114,7 @@ export type FinTransactionCreateWithoutCategoryInput = {
   merchant?: string | null
   description?: string | null
   transactionDate: Date | string
+  transferGroupId?: string | null
   status?: $Enums.FinTransactionStatus
   isRecurring?: boolean
   aiMetadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -1113,6 +1141,7 @@ export type FinTransactionUncheckedCreateWithoutCategoryInput = {
   merchant?: string | null
   description?: string | null
   transactionDate: Date | string
+  transferGroupId?: string | null
   status?: $Enums.FinTransactionStatus
   isRecurring?: boolean
   aiMetadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -1159,6 +1188,7 @@ export type FinTransactionCreateWithoutCardInput = {
   merchant?: string | null
   description?: string | null
   transactionDate: Date | string
+  transferGroupId?: string | null
   status?: $Enums.FinTransactionStatus
   isRecurring?: boolean
   aiMetadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -1185,6 +1215,7 @@ export type FinTransactionUncheckedCreateWithoutCardInput = {
   merchant?: string | null
   description?: string | null
   transactionDate: Date | string
+  transferGroupId?: string | null
   status?: $Enums.FinTransactionStatus
   isRecurring?: boolean
   aiMetadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -1234,6 +1265,7 @@ export type FinTransactionCreateManyUserInput = {
   merchant?: string | null
   description?: string | null
   transactionDate: Date | string
+  transferGroupId?: string | null
   status?: $Enums.FinTransactionStatus
   isRecurring?: boolean
   aiMetadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -1254,6 +1286,7 @@ export type FinTransactionUpdateWithoutUserInput = {
   merchant?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   transactionDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  transferGroupId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumFinTransactionStatusFieldUpdateOperationsInput | $Enums.FinTransactionStatus
   isRecurring?: Prisma.BoolFieldUpdateOperationsInput | boolean
   aiMetadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -1280,6 +1313,7 @@ export type FinTransactionUncheckedUpdateWithoutUserInput = {
   merchant?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   transactionDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  transferGroupId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumFinTransactionStatusFieldUpdateOperationsInput | $Enums.FinTransactionStatus
   isRecurring?: Prisma.BoolFieldUpdateOperationsInput | boolean
   aiMetadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -1303,6 +1337,7 @@ export type FinTransactionUncheckedUpdateManyWithoutUserInput = {
   merchant?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   transactionDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  transferGroupId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumFinTransactionStatusFieldUpdateOperationsInput | $Enums.FinTransactionStatus
   isRecurring?: Prisma.BoolFieldUpdateOperationsInput | boolean
   aiMetadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -1326,6 +1361,7 @@ export type FinTransactionCreateManyAccountInput = {
   merchant?: string | null
   description?: string | null
   transactionDate: Date | string
+  transferGroupId?: string | null
   status?: $Enums.FinTransactionStatus
   isRecurring?: boolean
   aiMetadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -1346,6 +1382,7 @@ export type FinTransactionUpdateWithoutAccountInput = {
   merchant?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   transactionDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  transferGroupId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumFinTransactionStatusFieldUpdateOperationsInput | $Enums.FinTransactionStatus
   isRecurring?: Prisma.BoolFieldUpdateOperationsInput | boolean
   aiMetadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -1372,6 +1409,7 @@ export type FinTransactionUncheckedUpdateWithoutAccountInput = {
   merchant?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   transactionDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  transferGroupId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumFinTransactionStatusFieldUpdateOperationsInput | $Enums.FinTransactionStatus
   isRecurring?: Prisma.BoolFieldUpdateOperationsInput | boolean
   aiMetadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -1395,6 +1433,7 @@ export type FinTransactionUncheckedUpdateManyWithoutAccountInput = {
   merchant?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   transactionDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  transferGroupId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumFinTransactionStatusFieldUpdateOperationsInput | $Enums.FinTransactionStatus
   isRecurring?: Prisma.BoolFieldUpdateOperationsInput | boolean
   aiMetadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -1418,6 +1457,7 @@ export type FinTransactionCreateManyCategoryInput = {
   merchant?: string | null
   description?: string | null
   transactionDate: Date | string
+  transferGroupId?: string | null
   status?: $Enums.FinTransactionStatus
   isRecurring?: boolean
   aiMetadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -1438,6 +1478,7 @@ export type FinTransactionUpdateWithoutCategoryInput = {
   merchant?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   transactionDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  transferGroupId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumFinTransactionStatusFieldUpdateOperationsInput | $Enums.FinTransactionStatus
   isRecurring?: Prisma.BoolFieldUpdateOperationsInput | boolean
   aiMetadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -1464,6 +1505,7 @@ export type FinTransactionUncheckedUpdateWithoutCategoryInput = {
   merchant?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   transactionDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  transferGroupId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumFinTransactionStatusFieldUpdateOperationsInput | $Enums.FinTransactionStatus
   isRecurring?: Prisma.BoolFieldUpdateOperationsInput | boolean
   aiMetadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -1487,6 +1529,7 @@ export type FinTransactionUncheckedUpdateManyWithoutCategoryInput = {
   merchant?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   transactionDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  transferGroupId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumFinTransactionStatusFieldUpdateOperationsInput | $Enums.FinTransactionStatus
   isRecurring?: Prisma.BoolFieldUpdateOperationsInput | boolean
   aiMetadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -1510,6 +1553,7 @@ export type FinTransactionCreateManyCardInput = {
   merchant?: string | null
   description?: string | null
   transactionDate: Date | string
+  transferGroupId?: string | null
   status?: $Enums.FinTransactionStatus
   isRecurring?: boolean
   aiMetadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -1530,6 +1574,7 @@ export type FinTransactionUpdateWithoutCardInput = {
   merchant?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   transactionDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  transferGroupId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumFinTransactionStatusFieldUpdateOperationsInput | $Enums.FinTransactionStatus
   isRecurring?: Prisma.BoolFieldUpdateOperationsInput | boolean
   aiMetadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -1556,6 +1601,7 @@ export type FinTransactionUncheckedUpdateWithoutCardInput = {
   merchant?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   transactionDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  transferGroupId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumFinTransactionStatusFieldUpdateOperationsInput | $Enums.FinTransactionStatus
   isRecurring?: Prisma.BoolFieldUpdateOperationsInput | boolean
   aiMetadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -1579,6 +1625,7 @@ export type FinTransactionUncheckedUpdateManyWithoutCardInput = {
   merchant?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   transactionDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  transferGroupId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.EnumFinTransactionStatusFieldUpdateOperationsInput | $Enums.FinTransactionStatus
   isRecurring?: Prisma.BoolFieldUpdateOperationsInput | boolean
   aiMetadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -1605,6 +1652,7 @@ export type FinTransactionSelect<ExtArgs extends runtime.Types.Extensions.Intern
   merchant?: boolean
   description?: boolean
   transactionDate?: boolean
+  transferGroupId?: boolean
   status?: boolean
   isRecurring?: boolean
   aiMetadata?: boolean
@@ -1633,6 +1681,7 @@ export type FinTransactionSelectCreateManyAndReturn<ExtArgs extends runtime.Type
   merchant?: boolean
   description?: boolean
   transactionDate?: boolean
+  transferGroupId?: boolean
   status?: boolean
   isRecurring?: boolean
   aiMetadata?: boolean
@@ -1661,6 +1710,7 @@ export type FinTransactionSelectUpdateManyAndReturn<ExtArgs extends runtime.Type
   merchant?: boolean
   description?: boolean
   transactionDate?: boolean
+  transferGroupId?: boolean
   status?: boolean
   isRecurring?: boolean
   aiMetadata?: boolean
@@ -1689,6 +1739,7 @@ export type FinTransactionSelectScalar = {
   merchant?: boolean
   description?: boolean
   transactionDate?: boolean
+  transferGroupId?: boolean
   status?: boolean
   isRecurring?: boolean
   aiMetadata?: boolean
@@ -1698,7 +1749,7 @@ export type FinTransactionSelectScalar = {
   updatedAt?: boolean
 }
 
-export type FinTransactionOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "accountId" | "cardId" | "userId" | "categoryId" | "emailMessageId" | "type" | "amount" | "amountBaseCurrency" | "currency" | "exchangeRate" | "merchant" | "description" | "transactionDate" | "status" | "isRecurring" | "aiMetadata" | "notes" | "source" | "createdAt" | "updatedAt", ExtArgs["result"]["finTransaction"]>
+export type FinTransactionOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "accountId" | "cardId" | "userId" | "categoryId" | "emailMessageId" | "type" | "amount" | "amountBaseCurrency" | "currency" | "exchangeRate" | "merchant" | "description" | "transactionDate" | "transferGroupId" | "status" | "isRecurring" | "aiMetadata" | "notes" | "source" | "createdAt" | "updatedAt", ExtArgs["result"]["finTransaction"]>
 export type FinTransactionInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   account?: boolean | Prisma.FinTransaction$accountArgs<ExtArgs>
   card?: boolean | Prisma.FinTransaction$cardArgs<ExtArgs>
@@ -1741,6 +1792,7 @@ export type $FinTransactionPayload<ExtArgs extends runtime.Types.Extensions.Inte
     merchant: string | null
     description: string | null
     transactionDate: Date
+    transferGroupId: string | null
     status: $Enums.FinTransactionStatus
     isRecurring: boolean
     aiMetadata: runtime.JsonValue
@@ -2189,6 +2241,7 @@ export interface FinTransactionFieldRefs {
   readonly merchant: Prisma.FieldRef<"FinTransaction", 'String'>
   readonly description: Prisma.FieldRef<"FinTransaction", 'String'>
   readonly transactionDate: Prisma.FieldRef<"FinTransaction", 'DateTime'>
+  readonly transferGroupId: Prisma.FieldRef<"FinTransaction", 'String'>
   readonly status: Prisma.FieldRef<"FinTransaction", 'FinTransactionStatus'>
   readonly isRecurring: Prisma.FieldRef<"FinTransaction", 'Boolean'>
   readonly aiMetadata: Prisma.FieldRef<"FinTransaction", 'Json'>

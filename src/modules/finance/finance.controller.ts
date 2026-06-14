@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  Logger,
   Param,
   Patch,
   Post,
@@ -22,12 +23,10 @@ import { CreateLoanDto } from './dto/create-loan.dto';
 import { CreateReceivableDto } from './dto/create-receivable.dto';
 import { CreateSavingsGoalDto } from './dto/create-savings-goal.dto';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
+import { CreateTransferDto } from './dto/create-transfer.dto';
 import { ListTransactionsQueryDto } from './dto/list-transactions-query.dto';
+import { GoogleOAuthUrlQueryDto } from './dto/oauth-callback-query.dto';
 import { SpendingOverTimeQueryDto } from './dto/spending-over-time-query.dto';
-import {
-  GoogleOAuthUrlQueryDto,
-  OAuthCallbackQueryDto,
-} from './dto/oauth-callback-query.dto';
 import { UpdateAccountDto } from './dto/update-account.dto';
 import { UpdateBudgetDto } from './dto/update-budget.dto';
 import { UpdateCardBalanceDto } from './dto/update-card-balance.dto';
@@ -44,6 +43,8 @@ import { FinanceService } from './finance.service';
 @ApiBearerAuth('access-token')
 @Controller('finance')
 export class FinanceController {
+  private readonly logger = new Logger(FinanceController.name);
+
   constructor(private readonly financeService: FinanceService) { }
 
   @Get('accounts')
@@ -90,6 +91,15 @@ export class FinanceController {
     @Body() dto: CreateTransactionDto,
   ) {
     return this.financeService.createTransaction(userId, dto);
+  }
+
+  @Post('transfers')
+  @ApiOperation({ summary: 'Create a transfer (DEBIT + CREDIT pair)' })
+  createTransfer(
+    @CurrentUser('sub') userId: string,
+    @Body() dto: CreateTransferDto,
+  ) {
+    return this.financeService.createTransfer(userId, dto);
   }
 
   @Get('transactions/:id')
@@ -365,14 +375,18 @@ export class FinanceController {
   @Get('email-sync/oauth/google/callback')
   @ApiOperation({ summary: 'Google OAuth callback for Gmail sync' })
   async handleGoogleCallback(
-    @Query() query: OAuthCallbackQueryDto,
+    @Query('code') code: string,
+    @Query('state') state: string,
     @Res() res: Response,
   ) {
     const appRedirectBase = 'personal-os://finance/oauth/callback';
     try {
-      await this.financeService.handleGoogleOAuthCallback(query.code, query.state);
+      await this.financeService.handleGoogleOAuthCallback(code, state);
       res.redirect(`${appRedirectBase}?success=true`);
-    } catch {
+    } catch (error) {
+      this.logger.warn(
+        `Google OAuth callback failed: ${error instanceof Error ? error.message : 'unknown error'}`,
+      );
       res.redirect(`${appRedirectBase}?success=false`);
     }
   }

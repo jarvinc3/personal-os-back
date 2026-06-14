@@ -1,39 +1,26 @@
-import { Module, RequestMethod } from '@nestjs/common';
 import { BullModule } from '@nestjs/bullmq';
 import { CacheModule } from '@nestjs/cache-manager';
-import { ConfigModule } from '@nestjs/config';
-import { ConfigService } from '@nestjs/config';
-import { ClsModule } from 'nestjs-cls';
-import { LoggerModule } from 'nestjs-pino';
+import { Module, RequestMethod } from '@nestjs/common';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { randomUUID } from 'crypto';
-import { isBullMqEnabled, parseEnv } from './config';
+import { ClsModule } from 'nestjs-cls';
+import { LoggerModule } from 'nestjs-pino';
 import type { Env } from './config';
+import { isBullMqEnabledFromProcessEnv, parseEnv } from './config';
 import { CoreModule } from './core/core.module';
 import { QueueNames } from './core/queues/queue.constants';
 import { HealthModule } from './health/health.module';
 import { AiModule } from './modules/ai-agent';
 import { AuthModule } from './modules/auth/auth.module';
+import { FinanceModule } from './modules/finance/finance.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { UsersModule } from './modules/users/users.module';
-import { FinanceModule } from './modules/finance/finance.module';
 import { PrismaModule } from './prisma/prisma.module';
 
-function isBullMqEnabledAtModuleLoad(): boolean {
-  const nodeEnv = process.env.NODE_ENV ?? 'development';
-  const redisEnabled =
-    process.env.REDIS_ENABLED === 'true' || process.env.REDIS_ENABLED === '1';
-
-  return isBullMqEnabled({
-    NODE_ENV: nodeEnv as Env['NODE_ENV'],
-    REDIS_URL: process.env.REDIS_URL?.trim() || undefined,
-    REDIS_ENABLED: redisEnabled,
-  });
-}
-
-const bullMqEnabled = isBullMqEnabledAtModuleLoad();
+const bullMqEnabled = isBullMqEnabledFromProcessEnv();
 
 @Module({
   imports: [

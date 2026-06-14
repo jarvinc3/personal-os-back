@@ -1,10 +1,10 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import type { Prisma } from '../../prisma/generated/client';
-import type { ChatMessage, ToolCallRequest } from './utils/ai.types';
 import { parseUserPreferences } from '../users/lib/parse-user-preferences';
 import { UsersRepository } from '../users/users.repository';
-import { buildAgentPrompt } from './prompts/build-agent-prompt';
 import { AiSessionsRepository } from './ai-sessions.repository';
+import { buildAgentPrompt } from './prompts/build-agent-prompt';
+import type { ChatMessage, ToolCallRequest } from './utils/ai.types';
 
 const MAX_CONTEXT_MESSAGES = 40;
 const METRICS_MESSAGE_CONTENT = 'ai-metrics';
@@ -195,6 +195,7 @@ export class AiChatPersistenceService {
     requiresConfirmation: boolean;
     memorySnapshot: Record<string, unknown>;
     moduleSlug: string | null;
+    locale: string | null;
   }> {
     const user = await this.usersRepository.findById(userId);
     if (!user) {
@@ -286,6 +287,7 @@ export class AiChatPersistenceService {
       requiresConfirmation: prefs.ai.confirmBeforeActions,
       memorySnapshot,
       moduleSlug,
+      locale: user.locale,
     };
   }
 }

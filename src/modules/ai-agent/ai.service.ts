@@ -134,6 +134,78 @@ export class AiService implements OnModuleInit {
     );
   }
 
+  async chatCompleteStream(
+    messages: ChatMessage[],
+    preferredProvider: string | null | undefined,
+    tools: AiToolDefinition[] | undefined,
+    onToken: (delta: string) => void,
+  ): Promise<ChatCompletionResult & { provider: string; model: string }> {
+    if (this.providers.length === 0) {
+      throw new ServiceUnavailableException('No AI providers available');
+    }
+
+    const ordered = this.getOrderedProviders(preferredProvider);
+    let lastError: unknown;
+
+    for (const provider of ordered) {
+      if (provider.chatCompleteStream) {
+        try {
+          this.logger.debug(`Trying AI provider (stream): ${provider.name}`);
+          const result = await provider.chatCompleteStream(
+            messages,
+            tools,
+            onToken,
+          );
+          return {
+            ...result,
+            provider: provider.name,
+            model: provider.model,
+          };
+        } catch (error) {
+          lastError = error;
+          if (!isRetryableProviderError(error)) {
+            throw error;
+          }
+          this.logger.warn(
+            `Provider ${provider.name} stream unavailable, trying next: ${error instanceof Error ? error.message : String(error)
+            }`,
+          );
+        }
+        continue;
+      }
+
+      if (!provider.chatComplete) {
+        continue;
+      }
+
+      try {
+        this.logger.debug(
+          `Trying AI provider (complete fallback): ${provider.name}`,
+        );
+        const result = await provider.chatComplete(messages, tools);
+        if (result.content) {
+          onToken(result.content);
+        }
+        return {
+          ...result,
+          provider: provider.name,
+          model: provider.model,
+        };
+      } catch (error) {
+        lastError = error;
+        if (!isRetryableProviderError(error)) {
+          throw error;
+        }
+      }
+    }
+
+    const message =
+      lastError instanceof Error ? lastError.message : 'Unknown error';
+    throw new ServiceUnavailableException(
+      `All AI providers failed. Last error: ${message}`,
+    );
+  }
+
   private getOrderedProviders(preferredProvider?: string | null): AIProviderClient[] {
     const rotated = this.getRotatedProviders();
 

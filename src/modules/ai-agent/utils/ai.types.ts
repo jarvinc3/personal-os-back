@@ -1,6 +1,7 @@
 export type SideEffectDescriptor =
   | { type: 'invalidate'; keys: string[] }
-  | { type: 'theme'; value: 'system' | 'light' | 'dark' };
+  | { type: 'theme'; value: 'system' | 'light' | 'dark' }
+  | { type: 'moduleContext'; slug: string; label: string };
 
 export type AiActionSummary = {
   id: string;
@@ -15,11 +16,36 @@ export type ChatBlock =
   | { type: 'markdown'; content: string }
   | { type: 'action'; action: AiActionSummary };
 
+export type AgentStreamEvent =
+  | {
+    type: 'start';
+    sessionId: string;
+    provider: string;
+    model: string;
+  }
+  | { type: 'chunk'; content: string }
+  | { type: 'reset' }
+  | { type: 'status'; message: string }
+  | {
+    type: 'done';
+    sessionId: string;
+    provider: string;
+    model: string;
+    moduleSlug: string;
+    moduleLabel: string;
+    requiresConfirmation?: boolean;
+    actions?: AiActionSummary[];
+    sideEffects?: SideEffectDescriptor[];
+    blocks?: ChatBlock[];
+  };
+
 export type AgentRunResult = {
   sessionId: string;
   provider: string;
   model: string;
   content: string;
+  moduleSlug: string;
+  moduleLabel: string;
   requiresConfirmation?: boolean;
   actions?: AiActionSummary[];
   sideEffects?: SideEffectDescriptor[];
@@ -72,11 +98,15 @@ export interface AIService {
   model: string;
   chat: (
     messages: ChatMessage[],
-    tools?: AiToolDefinition[],
-  ) => Promise<AsyncIterable<string> & { getToolCalls?: () => ToolCallRequest[] }>;
+  ) => Promise<AsyncIterable<string>>;
   chatComplete?: (
     messages: ChatMessage[],
     tools?: AiToolDefinition[],
+  ) => Promise<ChatCompletionResult>;
+  chatCompleteStream?: (
+    messages: ChatMessage[],
+    tools: AiToolDefinition[] | undefined,
+    onToken: (delta: string) => void,
   ) => Promise<ChatCompletionResult>;
 }
 

@@ -1,10 +1,24 @@
+export const MODULE_CONTEXT_SWITCH_TOOL = 'switch_module_context';
+
+export const MODULE_CONTEXT_SLUGS = [
+  'general',
+  'agenda',
+  'projects',
+  'health',
+  'subscriptions',
+  'finance',
+] as const;
+
+export type ModuleContextSlug = (typeof MODULE_CONTEXT_SLUGS)[number];
+
 export const MODULE_CONTEXT: Record<
   string,
   { label: string; description: string; allowedTools: string[] }
 > = {
   general: {
     label: 'General',
-    description: 'Cross-app assistant for preferences, theme, notifications, and module management.',
+    description:
+      'Cross-app assistant for preferences, theme, notifications, and module management. For other modules (e.g. Finanzas), call switch_module_context before using their tools.',
     allowedTools: [
       'get_user_context',
       'update_user_profile',
@@ -84,5 +98,20 @@ export function getModuleContextPrompt(moduleSlug: string | null): string {
 
 export function getAllowedToolsForModule(moduleSlug: string | null): string[] {
   const key = moduleSlug && MODULE_CONTEXT[moduleSlug] ? moduleSlug : 'general';
-  return MODULE_CONTEXT[key].allowedTools;
+  const tools = [...MODULE_CONTEXT[key].allowedTools];
+  if (!tools.includes(MODULE_CONTEXT_SWITCH_TOOL)) {
+    tools.push(MODULE_CONTEXT_SWITCH_TOOL);
+  }
+  return tools;
+}
+
+export function resolveModuleContextKey(moduleSlug: string | null): ModuleContextSlug {
+  if (moduleSlug && MODULE_CONTEXT[moduleSlug]) {
+    return moduleSlug as ModuleContextSlug;
+  }
+  return 'general';
+}
+
+export function getModuleContextLabel(moduleSlug: string | null): string {
+  return MODULE_CONTEXT[resolveModuleContextKey(moduleSlug)].label;
 }
