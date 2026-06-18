@@ -68,7 +68,7 @@ export class UsersService {
       timezone: dto.timezone,
       locale: dto.locale,
       avatarUrl: dto.avatarUrl,
-      preferences: mergedPreferences as never,
+      preferences: mergedPreferences,
     });
 
     if (dto.preferences !== undefined) {

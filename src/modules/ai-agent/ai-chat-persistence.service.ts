@@ -32,7 +32,7 @@ function parseStoredToolCalls(value: unknown): ToolCallRequest[] | undefined {
       name: item.name,
       arguments:
         item.arguments && typeof item.arguments === 'object'
-          ? (item.arguments as Record<string, unknown>)
+          ? (item.arguments)
           : {},
     }));
 
@@ -168,7 +168,7 @@ export class AiChatPersistenceService {
       memorySnapshot: {
         ...memory,
         title,
-      } as Prisma.InputJsonValue,
+      },
     });
   }
 
@@ -212,7 +212,7 @@ export class AiChatPersistenceService {
       (session.memorySnapshot as Record<string, unknown>) ?? {};
     const moduleSlug =
       session.module && typeof session.module === 'object' && 'slug' in session.module
-        ? (session.module.slug as string)
+        ? (session.module.slug)
         : session.contextType !== 'general'
           ? session.contextType
           : null;

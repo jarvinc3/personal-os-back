@@ -3,7 +3,6 @@ import type { NotificationChannel } from '../../prisma/generated/client';
 import {
   DEFAULT_MODULE_CONFIG_BY_SLUG,
   isModuleSlug,
-  type ModuleSlug,
 } from '../users/defaults/user-settings-defaults';
 import { parseUserPreferences } from '../users/lib/parse-user-preferences';
 import { mergeWithDefaults } from '../users/lib/settings-merge';
@@ -116,7 +115,7 @@ export class NotificationPolicyService {
       return { allowed: true };
     }
 
-    const slug = moduleSlug as ModuleSlug;
+    const slug = moduleSlug;
     const entry = userModules.find(
       (row) => row.module.slug === slug && row.isEnabled,
     );

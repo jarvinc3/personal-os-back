@@ -47,7 +47,7 @@ describe('QikEmailParser', () => {
   });
 
   it('parses transfer fixture', () => {
-    const { from, subject, body } = loadEmailFixture('qik-email-transfer.txt');
+    const { subject, body } = loadEmailFixture('qik-email-transfer.txt');
     const result = parser.parse(subject, body);
     expect(result).not.toBeNull();
     expect(result?.amount).toBe(24800);
