@@ -1,15 +1,15 @@
 import { OnWorkerEvent, Processor, WorkerHost } from '@nestjs/bullmq';
 import { Injectable, Logger } from '@nestjs/common';
 import { Job } from 'bullmq';
-import { QueueNames } from '../../core/queues/queue.constants';
 import { AiProcessingJob } from '../../core/queues/queue-jobs';
+import { QueueNames } from '../../core/queues/queue.constants';
+import { NotificationsGateway } from '../notifications/notifications.gateway';
 import { parseUserPreferences } from '../users/lib/parse-user-preferences';
 import { UsersRepository } from '../users/users.repository';
-import { NotificationsGateway } from '../notifications/notifications.gateway';
-import { buildAgentPrompt } from './prompts/build-agent-prompt';
-import { AiService } from './ai.service';
-import { AiSessionsRepository } from './ai-sessions.repository';
 import { AiMemoryService } from './ai-memory.service';
+import { AiSessionsRepository } from './ai-sessions.repository';
+import { AiService } from './ai.service';
+import { buildAgentPrompt } from './prompts/build-agent-prompt';
 import type { AiResponseWsPayload } from './utils/ai.types';
 
 @Injectable()
@@ -73,9 +73,9 @@ export class AiProcessingProcessor extends WorkerHost {
     const insightPrompts: Record<string, string> = {
       'user.logged_in':
         'The user just logged in. If onboarding might be incomplete, offer one short helpful tip about Personal OS settings. Otherwise respond with a brief welcome.',
-      'module.enabled': `The user enabled the ${payload.slug} module. Suggest one initial configuration tip.`,
-      'module.disabled': `The user disabled the ${payload.slug} module. Acknowledge briefly.`,
-      'module.config.updated': `The user updated ${payload.slug} module config. Offer one relevant tip.`,
+      'module.enabled': `The user enabled the ${moduleSlug ?? 'unknown'} module. Suggest one initial configuration tip.`,
+      'module.disabled': `The user disabled the ${moduleSlug ?? 'unknown'} module. Acknowledge briefly.`,
+      'module.config.updated': `The user updated ${moduleSlug ?? 'unknown'} module config. Offer one relevant tip.`,
       'onboarding.completed':
         'The user completed onboarding. Welcome them to Personal OS with 2 short bullet tips.',
     };
@@ -120,7 +120,7 @@ export class AiProcessingProcessor extends WorkerHost {
     this.notificationsGateway.emitToUser(
       userId,
       'ai.response',
-      payload as unknown as Record<string, unknown>,
+      payload,
     );
   }
 

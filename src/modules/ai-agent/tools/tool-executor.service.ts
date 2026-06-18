@@ -379,10 +379,7 @@ export class ToolExecutorService {
           data: await this.financeService.listTransactions(ctx.userId, {
             page: 1,
             limit: 50,
-            ...(args as Record<string, unknown>),
-          } as {
-            page: number;
-            limit: number;
+            ...(args),
           }),
         };
       case 'create_transaction':

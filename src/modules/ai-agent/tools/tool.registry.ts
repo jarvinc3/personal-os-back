@@ -347,25 +347,33 @@ export function getToolDefinition(name: string): AiToolDefinition | undefined {
   return ALL_TOOLS.find((t) => t.name === name);
 }
 
+function payloadString(value: unknown, fallback = '?'): string {
+  if (typeof value === 'string') return value;
+  if (typeof value === 'number' || typeof value === 'boolean') {
+    return String(value);
+  }
+  return fallback;
+}
+
 export function getActionLabel(
   actionType: string,
   payload: Record<string, unknown>,
 ): string {
   switch (actionType) {
     case 'set_theme':
-      return `Cambiar tema a ${payload.value ?? '?'}`;
+      return `Cambiar tema a ${payloadString(payload.value)}`;
     case 'update_ai_settings':
       return 'Actualizar configuración del asistente IA';
     case 'update_notification_settings':
       return 'Actualizar preferencias de notificaciones';
     case 'update_module_config':
-      return `Actualizar configuración de ${payload.slug ?? 'módulo'}`;
+      return `Actualizar configuración de ${payloadString(payload.slug, 'módulo')}`;
     case 'toggle_module':
-      return `${payload.isEnabled ? 'Activar' : 'Desactivar'} módulo ${payload.slug ?? ''}`;
+      return `${payload.isEnabled === true ? 'Activar' : 'Desactivar'} módulo ${payloadString(payload.slug, '')}`;
     case 'update_preferences':
       return 'Actualizar preferencias';
     case MODULE_CONTEXT_SWITCH_TOOL:
-      return `Cambiar contexto a ${payload.slug ?? '?'}`;
+      return `Cambiar contexto a ${payloadString(payload.slug)}`;
     case 'get_finance_summary':
       return 'Ver resumen financiero';
     case 'list_transactions':
@@ -391,7 +399,7 @@ export function getActionLabel(
     case 'get_spending_by_category':
       return 'Analizar gastos por categoría';
     case 'update_user_profile':
-      if (payload.fullName) {
+      if (typeof payload.fullName === 'string' && payload.fullName) {
         return `Actualizar nombre a "${payload.fullName}"`;
       }
       if (payload.avatarUrl === null) {
@@ -400,10 +408,10 @@ export function getActionLabel(
       if (payload.avatarUrl) {
         return 'Actualizar foto de perfil';
       }
-      if (payload.locale) {
+      if (typeof payload.locale === 'string' && payload.locale) {
         return `Cambiar idioma/región a ${payload.locale}`;
       }
-      if (payload.timezone) {
+      if (typeof payload.timezone === 'string' && payload.timezone) {
         return `Cambiar zona horaria a ${payload.timezone}`;
       }
       return 'Actualizar perfil de usuario';

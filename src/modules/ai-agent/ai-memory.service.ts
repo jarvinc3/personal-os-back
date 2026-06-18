@@ -38,7 +38,7 @@ export class AiMemoryService {
       });
     } catch {
       await this.sessionsRepo.updateSession(sessionId, {
-        memorySnapshot: { summary: content.slice(0, 2000) } as Prisma.InputJsonValue,
+        memorySnapshot: { summary: content.slice(0, 2000) },
       });
     }
   }

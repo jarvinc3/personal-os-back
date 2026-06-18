@@ -11,10 +11,10 @@ export function mergeWithDefaults<T extends Record<string, unknown>>(
   defaults: T,
 ): T {
   if (partial === null || partial === undefined || isEmptyObject(partial)) {
-    return structuredClone(defaults) as T;
+    return structuredClone(defaults);
   }
   if (!isPlainObject(partial)) {
-    return structuredClone(defaults) as T;
+    return structuredClone(defaults);
   }
 
   const result = structuredClone(defaults) as Record<string, unknown>;
@@ -30,7 +30,7 @@ export function mergeWithDefaults<T extends Record<string, unknown>>(
     if (isPlainObject(sourceValue) && isPlainObject(defaultValue)) {
       result[key] = mergeWithDefaults(
         sourceValue,
-        defaultValue as Record<string, unknown>,
+        defaultValue,
       );
     } else {
       result[key] = sourceValue;

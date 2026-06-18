@@ -29,7 +29,7 @@ export function mapMessagesToOpenAi(messages: ChatMessage[]) {
     }
 
     return {
-      role: message.role as 'system' | 'user' | 'assistant',
+      role: message.role,
       content: message.content,
     };
   });

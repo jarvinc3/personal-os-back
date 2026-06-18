@@ -245,7 +245,7 @@ export class AiController {
     this.notificationsGateway.emitToUser(
       userId,
       'ai.response',
-      payload as unknown as Record<string, unknown>,
+      payload,
     );
   }
 }
