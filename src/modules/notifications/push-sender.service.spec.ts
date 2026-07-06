@@ -29,7 +29,7 @@ describe('PushSenderService', () => {
 
     const fetchMock = jest.spyOn(global, 'fetch').mockResolvedValue({
       ok: true,
-      json: async () => ({ data: [{ status: 'ok' }] }),
+      json: () => Promise.resolve({ data: [{ status: 'ok' }] }),
     } as Response);
 
     const result = await service.sendToTokenEntries(
