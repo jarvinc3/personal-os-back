@@ -3112,7 +3112,8 @@
             "type": "string",
             "enum": [
               "ios",
-              "android"
+              "android",
+              "web"
             ]
           },
           "token": {

@@ -1,11 +1,11 @@
 import { InjectQueue, OnWorkerEvent, Processor, WorkerHost } from '@nestjs/bullmq';
 import { Injectable, Logger, Optional } from '@nestjs/common';
 import { Job, Queue } from 'bullmq';
-import { QueueNames } from '../../core/queues/queue.constants';
 import {
   EmailSyncJob,
   NotificationDispatchJob,
 } from '../../core/queues/queue-jobs';
+import { QueueNames } from '../../core/queues/queue.constants';
 import { NotificationPolicyService } from './notification-policy.service';
 import { NotificationsRepository } from './notifications.repository';
 import { PushSenderService } from './push-sender.service';
@@ -58,16 +58,15 @@ export class NotificationsProcessor extends WorkerHost {
         const activeTokens = await this.notificationsRepo.findActivePushTokens(
           payload.userId,
         );
-        const tokenValues = activeTokens.map((row) => row.token);
 
-        if (tokenValues.length === 0) {
+        if (activeTokens.length === 0) {
           this.logger.warn(
             `PUSH notification ${payload.notificationId}: no active tokens for user ${payload.userId}`,
           );
           return;
         }
 
-        const result = await this.pushSender.sendToTokens(tokenValues, {
+        const result = await this.pushSender.sendToTokenEntries(activeTokens, {
           title: payload.title,
           body: payload.body,
           data: {
@@ -76,8 +75,12 @@ export class NotificationsProcessor extends WorkerHost {
           },
         });
 
+        if (result.deactivatedTokens.length > 0) {
+          await this.pushSender.deactivateInvalidTokens(result.deactivatedTokens);
+        }
+
         this.logger.log(
-          `PUSH notification ${payload.notificationId}: sent=${result.sent} failed=${result.failed}`,
+          `PUSH notification ${payload.notificationId}: sent=${result.sent} failed=${result.failed} deactivated=${result.deactivatedTokens.length}`,
         );
         return;
       }

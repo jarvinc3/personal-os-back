@@ -96,8 +96,20 @@ export const envSchema = z
       .transform((v) => v.toUpperCase()),
     EXCHANGE_RATE_HOST_API_KEY: optionalApiKey,
 
-    // ── Push (Expo) ─────────────────────────────────────────────
+    // ── Push (Expo + Web Push) ───────────────────────────────────
     EXPO_ACCESS_TOKEN: optionalApiKey,
+    VAPID_PUBLIC_KEY: optionalApiKey,
+    VAPID_PRIVATE_KEY: optionalApiKey,
+    VAPID_SUBJECT: z
+      .string()
+      .optional()
+      .transform((value) => {
+        const trimmed = value?.trim();
+        if (!trimmed) {
+          return undefined;
+        }
+        return trimmed;
+      }),
   })
   .superRefine((data, ctx) => {
     if (data.NODE_ENV === 'test') {
