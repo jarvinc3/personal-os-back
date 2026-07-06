@@ -1,12 +1,12 @@
 import { Job } from 'bullmq';
-import { NotificationsProcessor } from './notifications.processor';
 import type { NotificationDispatchJob } from '../../core/queues/queue-jobs';
+import { NotificationsProcessor } from './notifications.processor';
 
 describe('NotificationsProcessor', () => {
   it('sends push via PushSenderService when channel is PUSH', async () => {
     const notificationsRepo = {
       findActivePushTokens: jest.fn().mockResolvedValue([
-        { token: 'ExponentPushToken[abc]' },
+        { token: 'ExponentPushToken[abc]', platform: 'ios' },
       ]),
     };
     const notificationPolicy = {
@@ -14,7 +14,12 @@ describe('NotificationsProcessor', () => {
       logSkipped: jest.fn(),
     };
     const pushSender = {
-      sendToTokens: jest.fn().mockResolvedValue({ sent: 1, failed: 0 }),
+      sendToTokenEntries: jest.fn().mockResolvedValue({
+        sent: 1,
+        failed: 0,
+        deactivatedTokens: [],
+      }),
+      deactivateInvalidTokens: jest.fn().mockResolvedValue(undefined),
     };
 
     const processor = new NotificationsProcessor(
@@ -37,10 +42,62 @@ describe('NotificationsProcessor', () => {
 
     await processor.process(job);
 
-    expect(pushSender.sendToTokens).toHaveBeenCalledWith(['ExponentPushToken[abc]'], {
-      title: 'Hello',
-      body: 'World',
-      data: expect.objectContaining({ notificationId: 'n1' }),
+    expect(pushSender.sendToTokenEntries).toHaveBeenCalledWith(
+      [{ token: 'ExponentPushToken[abc]', platform: 'ios' }],
+      {
+        title: 'Hello',
+        body: 'World',
+        data: expect.objectContaining({ notificationId: 'n1' }),
+      },
+    );
+  });
+
+  it('sends web push tokens with platform metadata', async () => {
+    const webToken = JSON.stringify({
+      endpoint: 'https://push.example.com/subscription',
+      keys: { p256dh: 'key', auth: 'auth' },
     });
+    const notificationsRepo = {
+      findActivePushTokens: jest.fn().mockResolvedValue([
+        { token: webToken, platform: 'web' },
+      ]),
+    };
+    const notificationPolicy = {
+      evaluate: jest.fn().mockResolvedValue({ allowed: true }),
+      logSkipped: jest.fn(),
+    };
+    const pushSender = {
+      sendToTokenEntries: jest.fn().mockResolvedValue({
+        sent: 1,
+        failed: 0,
+        deactivatedTokens: [],
+      }),
+      deactivateInvalidTokens: jest.fn().mockResolvedValue(undefined),
+    };
+
+    const processor = new NotificationsProcessor(
+      notificationsRepo as never,
+      notificationPolicy as never,
+      pushSender as never,
+      undefined,
+    );
+
+    const job = {
+      data: {
+        notificationId: 'n2',
+        userId: 'u1',
+        channel: 'PUSH',
+        title: 'Web',
+        body: 'Push',
+        data: {},
+      },
+    } as Job<NotificationDispatchJob>;
+
+    await processor.process(job);
+
+    expect(pushSender.sendToTokenEntries).toHaveBeenCalledWith(
+      [{ token: webToken, platform: 'web' }],
+      expect.objectContaining({ title: 'Web', body: 'Push' }),
+    );
   });
 });

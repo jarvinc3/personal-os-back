@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsIn, IsString, MaxLength } from 'class-validator';
 
-const platforms = ['ios', 'android'] as const;
+const platforms = ['ios', 'android', 'web'] as const;
 
 export class RegisterPushTokenDto {
   @ApiProperty({ enum: platforms })
@@ -10,6 +10,6 @@ export class RegisterPushTokenDto {
 
   @ApiProperty()
   @IsString()
-  @MaxLength(512)
+  @MaxLength(4096)
   token!: string;
 }
