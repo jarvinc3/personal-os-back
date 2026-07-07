@@ -1,42 +1,18 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import type { Prisma } from '../../prisma/generated/client';
+import type { Prisma as PrismaTypes } from '../../prisma/generated/client';
+import { Prisma } from '../../prisma/generated/client';
 import { parseUserPreferences } from '../users/lib/parse-user-preferences';
 import { UsersRepository } from '../users/users.repository';
 import { AiSessionsRepository } from './ai-sessions.repository';
 import { buildAgentPrompt } from './prompts/build-agent-prompt';
 import type { ChatMessage, ToolCallRequest } from './utils/ai.types';
+import { buildProviderHistoryFromStored } from './utils/build-provider-history';
 
 const MAX_CONTEXT_MESSAGES = 40;
-const METRICS_MESSAGE_CONTENT = 'ai-metrics';
 
 function deriveSessionTitle(content: string): string | null {
   const title = content.trim().replace(/\s+/g, ' ').slice(0, 80);
   return title.length > 0 ? title : null;
-}
-
-function parseStoredToolCalls(value: unknown): ToolCallRequest[] | undefined {
-  if (!Array.isArray(value) || value.length === 0) {
-    return undefined;
-  }
-
-  const parsed = value
-    .filter(
-      (item): item is ToolCallRequest =>
-        typeof item === 'object' &&
-        item !== null &&
-        typeof (item as ToolCallRequest).id === 'string' &&
-        typeof (item as ToolCallRequest).name === 'string',
-    )
-    .map((item) => ({
-      id: item.id,
-      name: item.name,
-      arguments:
-        item.arguments && typeof item.arguments === 'object'
-          ? (item.arguments)
-          : {},
-    }));
-
-  return parsed.length > 0 ? parsed : undefined;
 }
 
 export type CachedChatResponse = {
@@ -75,17 +51,9 @@ export class AiChatPersistenceService {
       return null;
     }
 
-    const userMsg = await this.sessionsRepo.findUserMessageByClientId(
+    const assistantMsg = await this.sessionsRepo.findAssistantByClientMessageId(
       sessionId,
       clientMessageId,
-    );
-    if (!userMsg) {
-      return null;
-    }
-
-    const assistantMsg = await this.sessionsRepo.findAssistantAfterUserMessage(
-      sessionId,
-      userMsg.id,
     );
     if (!assistantMsg) {
       return null;
@@ -118,15 +86,33 @@ export class AiChatPersistenceService {
       }
     }
 
-    const message = await this.sessionsRepo.createMessage({
-      sessionId,
-      role: 'user',
-      content,
-      metadata: clientMessageId ? { clientMessageId } : {},
-    });
-    await this.ensureSessionTitle(sessionId, content);
-    await this.sessionsRepo.touchSession(sessionId);
-    return message;
+    try {
+      const message = await this.sessionsRepo.createMessage({
+        sessionId,
+        role: 'user',
+        content,
+        clientMessageId: clientMessageId ?? null,
+        metadata: clientMessageId ? { clientMessageId } : {},
+      });
+      await this.ensureSessionTitle(sessionId, content);
+      await this.sessionsRepo.touchSession(sessionId);
+      return message;
+    } catch (error) {
+      if (
+        clientMessageId &&
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        const existing = await this.sessionsRepo.findUserMessageByClientId(
+          sessionId,
+          clientMessageId,
+        );
+        if (existing) {
+          return existing;
+        }
+      }
+      throw error;
+    }
   }
 
   async persistAssistantMessage(
@@ -134,18 +120,55 @@ export class AiChatPersistenceService {
     content: string,
     metadata: Record<string, unknown>,
     toolCalls?: ToolCallRequest[] | null,
+    clientMessageId?: string,
   ) {
-    await this.sessionsRepo.createMessage({
-      sessionId,
-      role: 'assistant',
-      content,
-      metadata,
-      toolCalls:
-        toolCalls && toolCalls.length > 0
-          ? (toolCalls as unknown as Prisma.InputJsonValue)
-          : undefined,
-    });
-    await this.sessionsRepo.touchSession(sessionId);
+    const isInternalToolRequest = metadata.phase === 'tool_request';
+    const turnClientMessageId = isInternalToolRequest
+      ? null
+      : (clientMessageId ?? null);
+
+    if (turnClientMessageId) {
+      const existing = await this.sessionsRepo.findAssistantByClientMessageId(
+        sessionId,
+        turnClientMessageId,
+      );
+      if (existing) {
+        return existing;
+      }
+    }
+
+    try {
+      const message = await this.sessionsRepo.createMessage({
+        sessionId,
+        role: 'assistant',
+        content,
+        clientMessageId: turnClientMessageId,
+        metadata: turnClientMessageId
+          ? { ...metadata, clientMessageId: turnClientMessageId }
+          : metadata,
+        toolCalls:
+          toolCalls && toolCalls.length > 0
+            ? (toolCalls as unknown as PrismaTypes.InputJsonValue)
+            : undefined,
+      });
+      await this.sessionsRepo.touchSession(sessionId);
+      return message;
+    } catch (error) {
+      if (
+        turnClientMessageId &&
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        const existing = await this.sessionsRepo.findAssistantByClientMessageId(
+          sessionId,
+          turnClientMessageId,
+        );
+        if (existing) {
+          return existing;
+        }
+      }
+      throw error;
+    }
   }
 
   private async ensureSessionTitle(sessionId: string, userContent: string) {
@@ -229,46 +252,15 @@ export class AiChatPersistenceService {
       sessionId,
       MAX_CONTEXT_MESSAGES,
     );
-    const chronological = [...stored].reverse();
 
-    const history: ChatMessage[] = [];
-    for (const m of chronological) {
-      if (m.role === 'user') {
-        history.push({ role: 'user', content: m.content });
-        continue;
-      }
-
-      if (m.role === 'assistant') {
-        const assistantMessage: ChatMessage = {
-          role: 'assistant',
-          content: m.content,
-        };
-        const toolCalls = parseStoredToolCalls(m.toolCalls);
-        if (toolCalls) {
-          assistantMessage.toolCalls = toolCalls;
-        }
-        history.push(assistantMessage);
-        continue;
-      }
-
-      if (m.role === 'tool') {
-        if (m.content === METRICS_MESSAGE_CONTENT) {
-          continue;
-        }
-        const meta = (m.metadata ?? {}) as Record<string, unknown>;
-        const toolCallId =
-          typeof meta.toolCallId === 'string' ? meta.toolCallId : undefined;
-        if (!toolCallId) {
-          continue;
-        }
-        history.push({
-          role: 'tool',
-          content: m.content,
-          toolCallId,
-          name: typeof meta.tool === 'string' ? meta.tool : undefined,
-        });
-      }
-    }
+    const history = buildProviderHistoryFromStored(
+      stored.map((message) => ({
+        role: message.role,
+        content: message.content,
+        toolCalls: message.toolCalls,
+        metadata: message.metadata,
+      })),
+    );
 
     const withoutDuplicateLatest =
       history.length > 0 &&

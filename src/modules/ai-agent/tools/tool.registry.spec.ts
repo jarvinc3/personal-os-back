@@ -10,6 +10,12 @@ describe('tool.registry', () => {
     expect(getActionLabel('set_theme', { value: 'dark' })).toContain('dark');
   });
 
+  it('labels user context reads', () => {
+    expect(getActionLabel('get_user_context', {})).toBe(
+      'Consultar contexto del usuario',
+    );
+  });
+
   it('scopes agenda module tools', () => {
     const agendaTools = getToolsForModule('agenda');
     expect(agendaTools.some((t) => t.name === 'update_module_config')).toBe(true);

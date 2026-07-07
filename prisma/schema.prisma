@@ -1,6 +1,7 @@
 generator client {
   provider        = "prisma-client"
   output          = "../src/prisma/generated"
+  moduleFormat    = "cjs"
   previewFeatures = ["partialIndexes"]
 }
 
@@ -82,16 +83,19 @@ model AiAgentSession {
 }
 
 model AiMessage {
-  id        String         @id @default(dbgenerated("(uuid_generate_v4())::text"))
-  sessionId String         @map("session_id")
-  role      AiRole
-  content   String
-  toolCalls Json?          @map("tool_calls")
-  metadata  Json           @default("{}")
-  createdAt DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
-  actions   AiAction[]
-  session   AiAgentSession @relation(fields: [sessionId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  id              String         @id @default(dbgenerated("(uuid_generate_v4())::text"))
+  sessionId       String         @map("session_id")
+  role            AiRole
+  content         String
+  clientMessageId String?        @map("client_message_id")
+  toolCalls       Json?          @map("tool_calls")
+  metadata        Json           @default("{}")
+  createdAt       DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  actions         AiAction[]
+  session         AiAgentSession @relation(fields: [sessionId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
+  @@unique([sessionId, role, clientMessageId])
+  @@index([sessionId, clientMessageId])
   @@map("ai_messages")
 }
 

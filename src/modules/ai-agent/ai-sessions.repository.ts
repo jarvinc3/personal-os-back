@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
+import type { PaginationQueryDto } from '../../core/pagination/pagination.dto';
+import { paginationArgs } from '../../core/pagination/pagination.dto';
 import type { AiRole, Prisma } from '../../prisma/generated/client';
 import { PrismaService } from '../../prisma/prisma.service';
-import { paginationArgs } from '../../core/pagination/pagination.dto';
-import type { PaginationQueryDto } from '../../core/pagination/pagination.dto';
 
 @Injectable()
 export class AiSessionsRepository {
@@ -79,6 +79,7 @@ export class AiSessionsRepository {
     sessionId: string;
     role: AiRole;
     content: string;
+    clientMessageId?: string | null;
     metadata?: Record<string, unknown>;
     toolCalls?: Prisma.InputJsonValue;
   }) {
@@ -87,6 +88,7 @@ export class AiSessionsRepository {
         sessionId: data.sessionId,
         role: data.role,
         content: data.content,
+        clientMessageId: data.clientMessageId ?? null,
         metadata: (data.metadata ?? {}) as Prisma.InputJsonValue,
         toolCalls: data.toolCalls,
       },
@@ -106,9 +108,39 @@ export class AiSessionsRepository {
       where: {
         sessionId,
         role: 'user',
-        metadata: {
-          path: ['clientMessageId'],
-          equals: clientMessageId,
+        OR: [
+          { clientMessageId },
+          {
+            metadata: {
+              path: ['clientMessageId'],
+              equals: clientMessageId,
+            },
+          },
+        ],
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  findAssistantByClientMessageId(sessionId: string, clientMessageId: string) {
+    return this.prisma.aiMessage.findFirst({
+      where: {
+        sessionId,
+        role: 'assistant',
+        OR: [
+          { clientMessageId },
+          {
+            metadata: {
+              path: ['clientMessageId'],
+              equals: clientMessageId,
+            },
+          },
+        ],
+        NOT: {
+          metadata: {
+            path: ['phase'],
+            equals: 'tool_request',
+          },
         },
       },
       orderBy: { createdAt: 'desc' },

@@ -5,6 +5,7 @@ import { AiProcessingJob } from '../../core/queues/queue-jobs';
 import { QueueNames } from '../../core/queues/queue.constants';
 import { AiActionsService } from './ai-actions.service';
 import { AiChatPersistenceService } from './ai-chat-persistence.service';
+import { AiChatTurnCoordinator } from './ai-chat-turn-coordinator.service';
 import { AiSessionsRepository } from './ai-sessions.repository';
 import { AiService } from './ai.service';
 import { buildAgentPrompt } from './prompts/build-agent-prompt';
@@ -24,6 +25,7 @@ import type {
   SideEffectDescriptor,
   ToolExecutionResult,
 } from './utils/ai.types';
+import { replayStreamChunks } from './utils/replay-stream-chunks';
 
 const MAX_TOOL_ITERATIONS = 5;
 
@@ -79,6 +81,7 @@ export class AiAgentRunner {
   constructor(
     private readonly aiService: AiService,
     private readonly persistence: AiChatPersistenceService,
+    private readonly turnCoordinator: AiChatTurnCoordinator,
     private readonly actionsService: AiActionsService,
     private readonly toolExecutor: ToolExecutorService,
     private readonly sessionsRepo: AiSessionsRepository,
@@ -88,6 +91,22 @@ export class AiAgentRunner {
   ) {}
 
   async run(
+    input: {
+      userId: string;
+      sessionId: string;
+      userContent: string;
+      clientMessageId?: string;
+    },
+    onStream?: (event: AgentStreamEvent) => void,
+  ): Promise<AgentRunResult> {
+    return this.turnCoordinator.run(
+      input,
+      (stream) => this.executeRun(input, stream),
+      onStream,
+    );
+  }
+
+  private async executeRun(
     input: {
       userId: string;
       sessionId: string;
@@ -120,12 +139,9 @@ export class AiAgentRunner {
 
       emitStart(cached.provider, cached.model);
       if (onStream && cached.content) {
-        for (let i = 0; i < cached.content.length; i += 24) {
-          onStream({
-            type: 'chunk',
-            content: cached.content.slice(i, i + 24),
-          });
-        }
+        await replayStreamChunks(cached.content, (chunk) => {
+          onStream({ type: 'chunk', content: chunk });
+        }, { delayMs: 8 });
       }
 
       return {
@@ -225,7 +241,7 @@ export class AiAgentRunner {
 
       await this.persistence.persistAssistantMessage(
         input.sessionId,
-        result.content?.trim() || '[tool_calls]',
+        result.content?.trim() ?? '',
         { provider, model, phase: 'tool_request' },
         result.toolCalls,
       );
@@ -350,6 +366,8 @@ export class AiAgentRunner {
         actions: pendingActions,
         blocks,
       },
+      null,
+      input.clientMessageId,
     );
 
     const messageCount = await this.sessionsRepo.findRecentMessages(

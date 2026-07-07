@@ -150,6 +150,7 @@ export const AiMessageScalarFieldEnum = {
   sessionId: 'sessionId',
   role: 'role',
   content: 'content',
+  clientMessageId: 'clientMessageId',
   toolCalls: 'toolCalls',
   metadata: 'metadata',
   createdAt: 'createdAt'

@@ -376,6 +376,8 @@ export function getActionLabel(
       return `Cambiar contexto a ${payloadString(payload.slug)}`;
     case 'get_finance_summary':
       return 'Ver resumen financiero';
+    case 'get_user_context':
+      return 'Consultar contexto del usuario';
     case 'list_transactions':
       return 'Consultar transacciones';
     case 'create_transaction':

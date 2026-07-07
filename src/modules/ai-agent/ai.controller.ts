@@ -16,6 +16,7 @@ import { AiProviderInfoDto } from './dto/ai-provider-info.dto';
 import { ChatRequestDto } from './dto/chat-request.dto';
 import { ChatResponseDto } from './dto/chat-response.dto';
 import type { AiResponseWsPayload } from './utils/ai.types';
+import { replayStreamChunks } from './utils/replay-stream-chunks';
 
 @ApiTags('ai-agent')
 @Controller('ai')
@@ -125,6 +126,8 @@ export class AiController {
 
     const writeEvent = (payload: Record<string, unknown>) => {
       res.write(`data: ${JSON.stringify(payload)}\n\n`);
+      const flush = (res as Response & { flush?: () => void }).flush;
+      flush?.();
     };
 
     try {
@@ -150,12 +153,13 @@ export class AiController {
           moduleLabel: cachedModuleLabel,
           requiresConfirmation: cached.requiresConfirmation,
         });
-        for (let i = 0; i < cached.content.length; i += 24) {
-          writeEvent({
-            type: 'chunk',
-            content: cached.content.slice(i, i + 24),
-          });
-        }
+        await replayStreamChunks(
+          cached.content,
+          (chunk) => {
+            writeEvent({ type: 'chunk', content: chunk });
+          },
+          { delayMs: 8 },
+        );
         writeEvent({
           type: 'done',
           sessionId: cached.sessionId,
@@ -164,6 +168,9 @@ export class AiController {
           moduleSlug: cachedModuleSlug,
           moduleLabel: cachedModuleLabel,
           requiresConfirmation: cached.requiresConfirmation,
+          actions: cachedMeta.actions,
+          sideEffects: cachedMeta.sideEffects,
+          blocks: cachedMeta.blocks,
         });
         res.end();
         return;
