@@ -29,6 +29,7 @@ export type AiMessageMinAggregateOutputType = {
   sessionId: string | null
   role: $Enums.AiRole | null
   content: string | null
+  clientMessageId: string | null
   createdAt: Date | null
 }
 
@@ -37,6 +38,7 @@ export type AiMessageMaxAggregateOutputType = {
   sessionId: string | null
   role: $Enums.AiRole | null
   content: string | null
+  clientMessageId: string | null
   createdAt: Date | null
 }
 
@@ -45,6 +47,7 @@ export type AiMessageCountAggregateOutputType = {
   sessionId: number
   role: number
   content: number
+  clientMessageId: number
   toolCalls: number
   metadata: number
   createdAt: number
@@ -57,6 +60,7 @@ export type AiMessageMinAggregateInputType = {
   sessionId?: true
   role?: true
   content?: true
+  clientMessageId?: true
   createdAt?: true
 }
 
@@ -65,6 +69,7 @@ export type AiMessageMaxAggregateInputType = {
   sessionId?: true
   role?: true
   content?: true
+  clientMessageId?: true
   createdAt?: true
 }
 
@@ -73,6 +78,7 @@ export type AiMessageCountAggregateInputType = {
   sessionId?: true
   role?: true
   content?: true
+  clientMessageId?: true
   toolCalls?: true
   metadata?: true
   createdAt?: true
@@ -156,6 +162,7 @@ export type AiMessageGroupByOutputType = {
   sessionId: string
   role: $Enums.AiRole
   content: string
+  clientMessageId: string | null
   toolCalls: runtime.JsonValue | null
   metadata: runtime.JsonValue
   createdAt: Date
@@ -187,6 +194,7 @@ export type AiMessageWhereInput = {
   sessionId?: Prisma.StringFilter<"AiMessage"> | string
   role?: Prisma.EnumAiRoleFilter<"AiMessage"> | $Enums.AiRole
   content?: Prisma.StringFilter<"AiMessage"> | string
+  clientMessageId?: Prisma.StringNullableFilter<"AiMessage"> | string | null
   toolCalls?: Prisma.JsonNullableFilter<"AiMessage">
   metadata?: Prisma.JsonFilter<"AiMessage">
   createdAt?: Prisma.DateTimeFilter<"AiMessage"> | Date | string
@@ -199,6 +207,7 @@ export type AiMessageOrderByWithRelationInput = {
   sessionId?: Prisma.SortOrder
   role?: Prisma.SortOrder
   content?: Prisma.SortOrder
+  clientMessageId?: Prisma.SortOrderInput | Prisma.SortOrder
   toolCalls?: Prisma.SortOrderInput | Prisma.SortOrder
   metadata?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -208,24 +217,27 @@ export type AiMessageOrderByWithRelationInput = {
 
 export type AiMessageWhereUniqueInput = Prisma.AtLeast<{
   id?: string
+  sessionId_role_clientMessageId?: Prisma.AiMessageSessionIdRoleClientMessageIdCompoundUniqueInput
   AND?: Prisma.AiMessageWhereInput | Prisma.AiMessageWhereInput[]
   OR?: Prisma.AiMessageWhereInput[]
   NOT?: Prisma.AiMessageWhereInput | Prisma.AiMessageWhereInput[]
   sessionId?: Prisma.StringFilter<"AiMessage"> | string
   role?: Prisma.EnumAiRoleFilter<"AiMessage"> | $Enums.AiRole
   content?: Prisma.StringFilter<"AiMessage"> | string
+  clientMessageId?: Prisma.StringNullableFilter<"AiMessage"> | string | null
   toolCalls?: Prisma.JsonNullableFilter<"AiMessage">
   metadata?: Prisma.JsonFilter<"AiMessage">
   createdAt?: Prisma.DateTimeFilter<"AiMessage"> | Date | string
   actions?: Prisma.AiActionListRelationFilter
   session?: Prisma.XOR<Prisma.AiAgentSessionScalarRelationFilter, Prisma.AiAgentSessionWhereInput>
-}, "id">
+}, "id" | "sessionId_role_clientMessageId">
 
 export type AiMessageOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
   sessionId?: Prisma.SortOrder
   role?: Prisma.SortOrder
   content?: Prisma.SortOrder
+  clientMessageId?: Prisma.SortOrderInput | Prisma.SortOrder
   toolCalls?: Prisma.SortOrderInput | Prisma.SortOrder
   metadata?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -242,6 +254,7 @@ export type AiMessageScalarWhereWithAggregatesInput = {
   sessionId?: Prisma.StringWithAggregatesFilter<"AiMessage"> | string
   role?: Prisma.EnumAiRoleWithAggregatesFilter<"AiMessage"> | $Enums.AiRole
   content?: Prisma.StringWithAggregatesFilter<"AiMessage"> | string
+  clientMessageId?: Prisma.StringNullableWithAggregatesFilter<"AiMessage"> | string | null
   toolCalls?: Prisma.JsonNullableWithAggregatesFilter<"AiMessage">
   metadata?: Prisma.JsonWithAggregatesFilter<"AiMessage">
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"AiMessage"> | Date | string
@@ -251,6 +264,7 @@ export type AiMessageCreateInput = {
   id?: string
   role: $Enums.AiRole
   content: string
+  clientMessageId?: string | null
   toolCalls?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   metadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
@@ -263,6 +277,7 @@ export type AiMessageUncheckedCreateInput = {
   sessionId: string
   role: $Enums.AiRole
   content: string
+  clientMessageId?: string | null
   toolCalls?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   metadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
@@ -273,6 +288,7 @@ export type AiMessageUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   role?: Prisma.EnumAiRoleFieldUpdateOperationsInput | $Enums.AiRole
   content?: Prisma.StringFieldUpdateOperationsInput | string
+  clientMessageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   toolCalls?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   metadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -285,6 +301,7 @@ export type AiMessageUncheckedUpdateInput = {
   sessionId?: Prisma.StringFieldUpdateOperationsInput | string
   role?: Prisma.EnumAiRoleFieldUpdateOperationsInput | $Enums.AiRole
   content?: Prisma.StringFieldUpdateOperationsInput | string
+  clientMessageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   toolCalls?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   metadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -296,6 +313,7 @@ export type AiMessageCreateManyInput = {
   sessionId: string
   role: $Enums.AiRole
   content: string
+  clientMessageId?: string | null
   toolCalls?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   metadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
@@ -305,6 +323,7 @@ export type AiMessageUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   role?: Prisma.EnumAiRoleFieldUpdateOperationsInput | $Enums.AiRole
   content?: Prisma.StringFieldUpdateOperationsInput | string
+  clientMessageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   toolCalls?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   metadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -315,6 +334,7 @@ export type AiMessageUncheckedUpdateManyInput = {
   sessionId?: Prisma.StringFieldUpdateOperationsInput | string
   role?: Prisma.EnumAiRoleFieldUpdateOperationsInput | $Enums.AiRole
   content?: Prisma.StringFieldUpdateOperationsInput | string
+  clientMessageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   toolCalls?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   metadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -330,11 +350,18 @@ export type AiMessageOrderByRelationAggregateInput = {
   _count?: Prisma.SortOrder
 }
 
+export type AiMessageSessionIdRoleClientMessageIdCompoundUniqueInput = {
+  sessionId: string
+  role: $Enums.AiRole
+  clientMessageId: string
+}
+
 export type AiMessageCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
   sessionId?: Prisma.SortOrder
   role?: Prisma.SortOrder
   content?: Prisma.SortOrder
+  clientMessageId?: Prisma.SortOrder
   toolCalls?: Prisma.SortOrder
   metadata?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -345,6 +372,7 @@ export type AiMessageMaxOrderByAggregateInput = {
   sessionId?: Prisma.SortOrder
   role?: Prisma.SortOrder
   content?: Prisma.SortOrder
+  clientMessageId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
 
@@ -353,6 +381,7 @@ export type AiMessageMinOrderByAggregateInput = {
   sessionId?: Prisma.SortOrder
   role?: Prisma.SortOrder
   content?: Prisma.SortOrder
+  clientMessageId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
 
@@ -427,6 +456,7 @@ export type AiMessageCreateWithoutSessionInput = {
   id?: string
   role: $Enums.AiRole
   content: string
+  clientMessageId?: string | null
   toolCalls?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   metadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
@@ -437,6 +467,7 @@ export type AiMessageUncheckedCreateWithoutSessionInput = {
   id?: string
   role: $Enums.AiRole
   content: string
+  clientMessageId?: string | null
   toolCalls?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   metadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
@@ -477,6 +508,7 @@ export type AiMessageScalarWhereInput = {
   sessionId?: Prisma.StringFilter<"AiMessage"> | string
   role?: Prisma.EnumAiRoleFilter<"AiMessage"> | $Enums.AiRole
   content?: Prisma.StringFilter<"AiMessage"> | string
+  clientMessageId?: Prisma.StringNullableFilter<"AiMessage"> | string | null
   toolCalls?: Prisma.JsonNullableFilter<"AiMessage">
   metadata?: Prisma.JsonFilter<"AiMessage">
   createdAt?: Prisma.DateTimeFilter<"AiMessage"> | Date | string
@@ -486,6 +518,7 @@ export type AiMessageCreateWithoutActionsInput = {
   id?: string
   role: $Enums.AiRole
   content: string
+  clientMessageId?: string | null
   toolCalls?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   metadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
@@ -497,6 +530,7 @@ export type AiMessageUncheckedCreateWithoutActionsInput = {
   sessionId: string
   role: $Enums.AiRole
   content: string
+  clientMessageId?: string | null
   toolCalls?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   metadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
@@ -522,6 +556,7 @@ export type AiMessageUpdateWithoutActionsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   role?: Prisma.EnumAiRoleFieldUpdateOperationsInput | $Enums.AiRole
   content?: Prisma.StringFieldUpdateOperationsInput | string
+  clientMessageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   toolCalls?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   metadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -533,6 +568,7 @@ export type AiMessageUncheckedUpdateWithoutActionsInput = {
   sessionId?: Prisma.StringFieldUpdateOperationsInput | string
   role?: Prisma.EnumAiRoleFieldUpdateOperationsInput | $Enums.AiRole
   content?: Prisma.StringFieldUpdateOperationsInput | string
+  clientMessageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   toolCalls?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   metadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -542,6 +578,7 @@ export type AiMessageCreateManySessionInput = {
   id?: string
   role: $Enums.AiRole
   content: string
+  clientMessageId?: string | null
   toolCalls?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   metadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
@@ -551,6 +588,7 @@ export type AiMessageUpdateWithoutSessionInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   role?: Prisma.EnumAiRoleFieldUpdateOperationsInput | $Enums.AiRole
   content?: Prisma.StringFieldUpdateOperationsInput | string
+  clientMessageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   toolCalls?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   metadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -561,6 +599,7 @@ export type AiMessageUncheckedUpdateWithoutSessionInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   role?: Prisma.EnumAiRoleFieldUpdateOperationsInput | $Enums.AiRole
   content?: Prisma.StringFieldUpdateOperationsInput | string
+  clientMessageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   toolCalls?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   metadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -571,6 +610,7 @@ export type AiMessageUncheckedUpdateManyWithoutSessionInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   role?: Prisma.EnumAiRoleFieldUpdateOperationsInput | $Enums.AiRole
   content?: Prisma.StringFieldUpdateOperationsInput | string
+  clientMessageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   toolCalls?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   metadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -612,6 +652,7 @@ export type AiMessageSelect<ExtArgs extends runtime.Types.Extensions.InternalArg
   sessionId?: boolean
   role?: boolean
   content?: boolean
+  clientMessageId?: boolean
   toolCalls?: boolean
   metadata?: boolean
   createdAt?: boolean
@@ -625,6 +666,7 @@ export type AiMessageSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Ext
   sessionId?: boolean
   role?: boolean
   content?: boolean
+  clientMessageId?: boolean
   toolCalls?: boolean
   metadata?: boolean
   createdAt?: boolean
@@ -636,6 +678,7 @@ export type AiMessageSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Ext
   sessionId?: boolean
   role?: boolean
   content?: boolean
+  clientMessageId?: boolean
   toolCalls?: boolean
   metadata?: boolean
   createdAt?: boolean
@@ -647,12 +690,13 @@ export type AiMessageSelectScalar = {
   sessionId?: boolean
   role?: boolean
   content?: boolean
+  clientMessageId?: boolean
   toolCalls?: boolean
   metadata?: boolean
   createdAt?: boolean
 }
 
-export type AiMessageOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "sessionId" | "role" | "content" | "toolCalls" | "metadata" | "createdAt", ExtArgs["result"]["aiMessage"]>
+export type AiMessageOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "sessionId" | "role" | "content" | "clientMessageId" | "toolCalls" | "metadata" | "createdAt", ExtArgs["result"]["aiMessage"]>
 export type AiMessageInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   actions?: boolean | Prisma.AiMessage$actionsArgs<ExtArgs>
   session?: boolean | Prisma.AiAgentSessionDefaultArgs<ExtArgs>
@@ -676,6 +720,7 @@ export type $AiMessagePayload<ExtArgs extends runtime.Types.Extensions.InternalA
     sessionId: string
     role: $Enums.AiRole
     content: string
+    clientMessageId: string | null
     toolCalls: runtime.JsonValue | null
     metadata: runtime.JsonValue
     createdAt: Date
@@ -1108,6 +1153,7 @@ export interface AiMessageFieldRefs {
   readonly sessionId: Prisma.FieldRef<"AiMessage", 'String'>
   readonly role: Prisma.FieldRef<"AiMessage", 'AiRole'>
   readonly content: Prisma.FieldRef<"AiMessage", 'String'>
+  readonly clientMessageId: Prisma.FieldRef<"AiMessage", 'String'>
   readonly toolCalls: Prisma.FieldRef<"AiMessage", 'Json'>
   readonly metadata: Prisma.FieldRef<"AiMessage", 'Json'>
   readonly createdAt: Prisma.FieldRef<"AiMessage", 'DateTime'>

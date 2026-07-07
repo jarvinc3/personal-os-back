@@ -1,11 +1,19 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { paginate, PaginationQueryDto } from '../../core/pagination/pagination.dto';
+import { AiActionsService } from './ai-actions.service';
 import { AiSessionsRepository } from './ai-sessions.repository';
 import { CreateAiSessionDto } from './dto/create-ai-session.dto';
+import {
+  enrichMessageMetadata,
+  isInternalToolRequestMessage,
+} from './utils/enrich-session-messages';
 
 @Injectable()
 export class AiSessionsService {
-  constructor(private readonly sessionsRepo: AiSessionsRepository) { }
+  constructor(
+    private readonly sessionsRepo: AiSessionsRepository,
+    private readonly actionsService: AiActionsService,
+  ) { }
 
   private mapSession(session: {
     id: string;
@@ -73,21 +81,33 @@ export class AiSessionsService {
       throw new NotFoundException('AI session not found');
     }
 
+    const liveActions = await this.actionsService.listBySession(sessionId, userId);
+    const actionsById = new Map(liveActions.map((action) => [action.id, action]));
+
     return {
       ...this.mapSession(session),
       messages: session.messages
+        .filter((message) => !isInternalToolRequestMessage(message))
         .filter(
           (message) =>
             message.role === 'tool' ||
             message.content.trim().length > 0,
         )
-        .map((message) => ({
-          id: message.id,
-          role: message.role,
-          content: message.content,
-          metadata: message.metadata,
-          createdAt: message.createdAt.toISOString(),
-        })),
+        .map((message) => {
+          const metadata = (message.metadata ?? {}) as Record<string, unknown>;
+          return {
+            id: message.id,
+            role: message.role,
+            content: message.content,
+            clientMessageId:
+              message.clientMessageId ??
+              (typeof metadata.clientMessageId === 'string'
+                ? metadata.clientMessageId
+                : null),
+            metadata: enrichMessageMetadata(metadata, actionsById),
+            createdAt: message.createdAt.toISOString(),
+          };
+        }),
     };
   }
 

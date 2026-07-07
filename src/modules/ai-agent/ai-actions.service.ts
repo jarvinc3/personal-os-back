@@ -4,10 +4,10 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { NotificationsGateway } from '../notifications/notifications.gateway';
-import type { AiActionSummary, SideEffectDescriptor } from './utils/ai.types';
-import { getActionLabel, getToolDefinition } from './tools/tool.registry';
-import { ToolExecutorService } from './tools/tool-executor.service';
 import { AiActionsRepository } from './ai-actions.repository';
+import { ToolExecutorService } from './tools/tool-executor.service';
+import { getActionLabel, getToolDefinition } from './tools/tool.registry';
+import type { AiActionSummary, SideEffectDescriptor } from './utils/ai.types';
 
 @Injectable()
 export class AiActionsService {

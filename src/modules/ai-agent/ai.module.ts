@@ -8,9 +8,10 @@ import { AiActionsRepository } from './ai-actions.repository';
 import { AiActionsService } from './ai-actions.service';
 import { AiAgentRunner } from './ai-agent.runner';
 import { AiChatPersistenceService } from './ai-chat-persistence.service';
+import { AiChatTurnCoordinator } from './ai-chat-turn-coordinator.service';
+import { AiEventsListener } from './ai-events.listener';
 import { AiMemoryService } from './ai-memory.service';
 import { AiProcessingProcessor } from './ai-processing.processor';
-import { AiEventsListener } from './ai-events.listener';
 import { AiSessionsController } from './ai-sessions.controller';
 import { AiSessionsRepository } from './ai-sessions.repository';
 import { AiSessionsService } from './ai-sessions.service';
@@ -62,6 +63,7 @@ import type { AIService as AIProviderClient } from './utils/ai.types';
     AiSessionsRepository,
     AiSessionsService,
     AiChatPersistenceService,
+    AiChatTurnCoordinator,
     AiService,
     AiAgentRunner,
     ToolExecutorService,
