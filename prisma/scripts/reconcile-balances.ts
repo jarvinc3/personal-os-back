@@ -3,14 +3,29 @@
  * and FinBudget.amountSpent from CONFIRMED ledger rows.
  *
  * Usage (from personal-os-back):
- *   pnpm exec ts-node -r tsconfig-paths/register prisma/scripts/reconcile-balances.ts
+ *   pnpm db:reconcile-balances
  *
  * Requires DATABASE_URL. Safe to re-run (idempotent overwrite).
+ *
+ * Note: import getPrismaClientClass (not generated/client) — ts-node cannot
+ * resolve the .js extensions Prisma emits in client.ts.
  */
 import { PrismaPg } from '@prisma/adapter-pg';
 import 'dotenv/config';
 import { Pool } from 'pg';
-import { PrismaClient } from '../../src/prisma/generated/client';
+import { getPrismaClientClass } from '../../src/prisma/generated/internal/class';
+import {
+    defaultRejectUnauthorized,
+    poolConfigForPostgresUrl,
+} from '../../src/prisma/pg-pool.config';
+
+const PrismaClient = getPrismaClientClass();
+
+function envBool(name: string): boolean | undefined {
+  const raw = process.env[name];
+  if (raw === undefined || raw === '') return undefined;
+  return raw === '1' || raw.toLowerCase() === 'true';
+}
 
 async function main() {
   const connectionString = process.env.DATABASE_URL;
@@ -18,30 +33,31 @@ async function main() {
     throw new Error('DATABASE_URL is required');
   }
 
-  const pool = new Pool({ connectionString });
+  const rejectUnauthorized = defaultRejectUnauthorized(
+    connectionString,
+    process.env.NODE_ENV,
+    envBool('DATABASE_SSL_REJECT_UNAUTHORIZED'),
+  );
+  const pool = new Pool(
+    poolConfigForPostgresUrl(connectionString, rejectUnauthorized),
+  );
   const adapter = new PrismaPg(pool);
   const prisma = new PrismaClient({ adapter });
 
   try {
     const accounts = await prisma.finAccount.findMany({ select: { id: true } });
     for (const account of accounts) {
-      const agg = await prisma.finTransaction.aggregate({
-        where: {
-          accountId: account.id,
-          status: 'CONFIRMED',
-        },
-        _sum: { amount: true },
-      });
-
       const txs = await prisma.finTransaction.findMany({
         where: { accountId: account.id, status: 'CONFIRMED' },
         select: { type: true, amount: true },
       });
       let balance = 0;
       for (const tx of txs) {
-        balance += tx.type === 'CREDIT' ? Number(tx.amount) : -Math.abs(Number(tx.amount));
+        balance +=
+          tx.type === 'CREDIT'
+            ? Number(tx.amount)
+            : -Math.abs(Number(tx.amount));
       }
-      void agg;
       await prisma.finAccount.update({
         where: { id: account.id },
         data: { balance },
@@ -62,7 +78,10 @@ async function main() {
         });
         let balance = 0;
         for (const tx of txs) {
-          balance += tx.type === 'CREDIT' ? Number(tx.amount) : -Math.abs(Number(tx.amount));
+          balance +=
+            tx.type === 'CREDIT'
+              ? Number(tx.amount)
+              : -Math.abs(Number(tx.amount));
         }
         const existing = await prisma.finCardBalance.findFirst({
           where: { cardId: card.id, currency },

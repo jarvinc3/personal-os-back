@@ -393,15 +393,15 @@ export class FinanceRepository {
       });
       if (!existing) return null;
 
-      if (data.accountId) {
+      if (typeof data.accountId === 'string') {
         const account = await tx.finAccount.findFirst({
-          where: { id: String(data.accountId), userId },
+          where: { id: data.accountId, userId },
         });
         if (!account) return null;
       }
-      if (data.cardId) {
+      if (typeof data.cardId === 'string') {
         const card = await tx.finCard.findFirst({
-          where: { id: String(data.cardId), userId },
+          where: { id: data.cardId, userId },
         });
         if (!card) return null;
       }

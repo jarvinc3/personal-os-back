@@ -15,14 +15,15 @@ describe('balance.helpers', () => {
     const updates: unknown[] = [];
     const tx = {
       finAccount: {
-        update: jest.fn(async (args: unknown) => {
+        update: jest.fn((args: unknown) => {
           updates.push(args);
+          return Promise.resolve({});
         }),
       },
       finCardBalance: {
-        findFirst: jest.fn(async () => null),
-        create: jest.fn(async () => ({})),
-        update: jest.fn(async () => ({})),
+        findFirst: jest.fn(() => Promise.resolve(null)),
+        create: jest.fn(() => Promise.resolve({})),
+        update: jest.fn(() => Promise.resolve({})),
       },
     };
 
@@ -43,12 +44,12 @@ describe('balance.helpers', () => {
   it('applyBalanceForTransaction reverses with direction -1', async () => {
     const tx = {
       finAccount: {
-        update: jest.fn(async () => ({})),
+        update: jest.fn(() => Promise.resolve({})),
       },
       finCardBalance: {
-        findFirst: jest.fn(async () => null),
-        create: jest.fn(async () => ({})),
-        update: jest.fn(async () => ({})),
+        findFirst: jest.fn(() => Promise.resolve(null)),
+        create: jest.fn(() => Promise.resolve({})),
+        update: jest.fn(() => Promise.resolve({})),
       },
     };
 
@@ -69,20 +70,24 @@ describe('balance.helpers', () => {
   it('adjustBudgetSpent only applies to DEBIT with category', async () => {
     const tx = {
       finBudget: {
-        findMany: jest.fn(async () => [
-          {
+        findMany: jest.fn(() =>
+          Promise.resolve([
+            {
+              id: 'b1',
+              amountSpent: 0,
+              amountLimit: 100,
+              alertThresholdPct: 80,
+            },
+          ]),
+        ),
+        update: jest.fn(() =>
+          Promise.resolve({
             id: 'b1',
-            amountSpent: 0,
+            amountSpent: 40,
             amountLimit: 100,
             alertThresholdPct: 80,
-          },
-        ]),
-        update: jest.fn(async () => ({
-          id: 'b1',
-          amountSpent: 40,
-          amountLimit: 100,
-          alertThresholdPct: 80,
-        })),
+          }),
+        ),
       },
     };
 

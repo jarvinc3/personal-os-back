@@ -35,7 +35,7 @@ function resolveNotificationsCorsOrigin():
     if (corsOrigins.length === 0) {
       return false;
     }
-    return corsOrigins.length === 1 ? corsOrigins[0]! : corsOrigins;
+    return corsOrigins.length === 1 ? corsOrigins[0] : corsOrigins;
   }
 
   return (_origin, callback) => {
