@@ -196,6 +196,11 @@
             }
           }
         },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
         "summary": "Readiness probe (database, JWKS, optional Redis)",
         "tags": [
           "health"

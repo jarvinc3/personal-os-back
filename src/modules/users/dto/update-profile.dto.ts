@@ -4,8 +4,31 @@ import {
   IsOptional,
   IsString,
   MaxLength,
+  Validate,
   ValidateIf,
+  ValidatorConstraint,
+  ValidatorConstraintInterface,
 } from 'class-validator';
+
+const PREFERENCES_MAX_JSON_CHARS = 8_000;
+
+@ValidatorConstraint({ name: 'preferencesJsonSize', async: false })
+class PreferencesJsonSizeConstraint implements ValidatorConstraintInterface {
+  validate(value: unknown): boolean {
+    if (value === undefined || value === null) {
+      return true;
+    }
+    try {
+      return JSON.stringify(value).length <= PREFERENCES_MAX_JSON_CHARS;
+    } catch {
+      return false;
+    }
+  }
+
+  defaultMessage(): string {
+    return `preferences must serialize to at most ${PREFERENCES_MAX_JSON_CHARS} characters`;
+  }
+}
 
 export class UpdateProfileDto {
   @ApiPropertyOptional()
@@ -36,5 +59,6 @@ export class UpdateProfileDto {
   @ApiPropertyOptional({ type: Object })
   @IsOptional()
   @IsObject()
+  @Validate(PreferencesJsonSizeConstraint)
   preferences?: Record<string, unknown>;
 }

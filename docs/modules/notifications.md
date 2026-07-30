@@ -26,8 +26,17 @@ In-app, push, and email notification orchestration.
 - Gateway: `NotificationsGateway` (socket emits to user channels).
 - Policy engine: `NotificationPolicyService` controls quiet hours/channel eligibility.
 - Includes `EmailSyncProcessor` stub for email handoff jobs on `email-sync`.
+- `NotificationsEventsListener` creates IN_APP notifications from finance domain events (`transaction.created` / `transaction.updated` / `budget.threshold_reached`).
+
+## EMAIL channel (A1 — stub)
+
+- **Not production-ready.** Real email send is intentionally unimplemented.
+- In `production`, `NotificationsService.create` skips queue enqueue for `EMAIL` and logs a warning.
+- `EmailSyncProcessor` is a no-op stub that warns on every job; do not treat EMAIL as a live mailer.
 
 ## Notes
 
 - Module imports `AuthModule` for secured transport and user context validation.
 - Notification payloads are persisted before dispatch attempts.
+- `create` emits `notification.created` (not `ai.action_completed`).
+- No Finance module import — listeners use `@nestjs/event-emitter` only (avoids circular deps).

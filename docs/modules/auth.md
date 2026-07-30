@@ -15,5 +15,5 @@ Authentication context resolution based on Supabase JWT.
 ## Notes
 
 - Module uses `PassportModule` with `supabase-jwt` as default strategy.
-- `AuthController.session` emits `AppEvents.USER_LOGGED_IN`.
+- `AuthController.session` emits `AppEvents.USER_LOGGED_IN` (debounced via cache key `user.logged_in:{sub}`, TTL 3600s).
 - Guarding is handled globally via core guards/decorators.

@@ -25,4 +25,7 @@ export function applyTestEnv(): void {
   process.env.REDIS_ENABLED = process.env.REDIS_ENABLED ?? 'false';
   process.env.ENCRYPTION_KEY =
     process.env.ENCRYPTION_KEY ?? 'test-encryption-key-minimum-32-chars!!';
+  process.env.OAUTH_STATE_SECRET =
+    process.env.OAUTH_STATE_SECRET ??
+    'test-oauth-state-secret-minimum-32chars';
 }

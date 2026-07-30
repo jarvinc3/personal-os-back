@@ -13,6 +13,14 @@ export class TransactionCreatedEvent {
   ) {}
 }
 
+export class TransactionUpdatedEvent {
+  constructor(
+    public readonly userId: string,
+    public readonly transactionId: string,
+    public readonly amount: number,
+  ) {}
+}
+
 export class BudgetThresholdReachedEvent {
   constructor(
     public readonly userId: string,
@@ -21,10 +29,9 @@ export class BudgetThresholdReachedEvent {
   ) {}
 }
 
-export class AiActionRequestedEvent {
+export class NotificationCreatedEvent {
   constructor(
     public readonly userId: string,
-    public readonly actionType: string,
-    public readonly payload: Record<string, unknown>,
+    public readonly notificationId: string,
   ) {}
 }

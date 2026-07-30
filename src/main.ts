@@ -1,9 +1,11 @@
-import { Logger, ValidationPipe, type INestApplication } from '@nestjs/common';
+import { Logger, ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
+import { NestExpressApplication } from '@nestjs/platform-express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import 'dotenv/config';
 import { writeFileSync } from 'fs';
+import helmet from 'helmet';
 import { join } from 'path';
 import { AppModule } from './app.module';
 import { isBullMqEnabled } from './config/redis.config';
@@ -11,8 +13,15 @@ import type { Env } from './config/env.schema';
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
-  const app: INestApplication = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+    bodyParser: false,
+  });
   app.enableShutdownHooks();
+
+  app.use(helmet());
+  app.set('trust proxy', 1);
+  app.useBodyParser('json', { limit: '1mb' });
+  app.useBodyParser('urlencoded', { limit: '1mb', extended: true });
 
   const configService = app.get(ConfigService<Env, true>);
 
@@ -80,35 +89,35 @@ async function bootstrap() {
     credentials: true,
   });
 
-  // Swagger integration
-  const openApiConfig = new DocumentBuilder()
-    .setTitle('Personal OS API')
-    .setDescription(
-      'Personal OS backend endpoints, including auth, core modules, and AI.',
-    )
-    .setVersion('1.0')
-    .addBearerAuth(
-      { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' },
-      'access-token',
-    )
-    .addTag('health')
-    .addTag('auth')
-    .addTag('users')
-    .addTag('notifications')
-    .addTag('finances')
-    .addTag('ai-agent')
-    .build();
+  if (!isProduction) {
+    const openApiConfig = new DocumentBuilder()
+      .setTitle('Personal OS API')
+      .setDescription(
+        'Personal OS backend endpoints, including auth, core modules, and AI.',
+      )
+      .setVersion('1.0')
+      .addBearerAuth(
+        { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' },
+        'access-token',
+      )
+      .addTag('health')
+      .addTag('auth')
+      .addTag('users')
+      .addTag('notifications')
+      .addTag('finances')
+      .addTag('ai-agent')
+      .build();
 
-  const document = SwaggerModule.createDocument(app, openApiConfig);
-  const swaggerPath: string =
-    configService.get('SWAGGER_PATH', { infer: true }) ?? 'docs';
-  SwaggerModule.setup(swaggerPath, app, document);
+    const document = SwaggerModule.createDocument(app, openApiConfig);
+    const swaggerPath: string =
+      configService.get('SWAGGER_PATH', { infer: true }) ?? 'docs';
+    SwaggerModule.setup(swaggerPath, app, document);
 
-  // Auto-generate swagger.json at root for postman sync
-  writeFileSync(
-    join(process.cwd(), 'swagger-spec.json'),
-    JSON.stringify(document, null, 2),
-  );
+    writeFileSync(
+      join(process.cwd(), 'swagger-spec.json'),
+      JSON.stringify(document, null, 2),
+    );
+  }
 
   const port: number = configService.get('PORT', { infer: true }) ?? 3000;
 

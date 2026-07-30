@@ -1,16 +1,21 @@
 import { InjectQueue } from '@nestjs/bullmq';
 import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-  Optional,
+    BadRequestException,
+    Injectable,
+    Logger,
+    NotFoundException,
+    Optional,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Queue } from 'bullmq';
 import * as jwt from 'jsonwebtoken';
 import type { Env } from '../../config';
-import { TransactionCreatedEvent } from '../../core/events/domain-events';
+import {
+    BudgetThresholdReachedEvent,
+    TransactionCreatedEvent,
+    TransactionUpdatedEvent,
+} from '../../core/events/domain-events';
 import { AppEvents } from '../../core/events/event.constants';
 import { paginate } from '../../core/pagination/pagination.dto';
 import type { GmailSyncJob } from '../../core/queues/queue-jobs';
@@ -41,9 +46,9 @@ import type { UpdateReceivableDto } from './dto/update-receivable.dto';
 import type { UpdateSavingsGoalDto } from './dto/update-savings-goal.dto';
 import { FinanceRepository } from './finance.repository';
 import {
-  exchangeGoogleAuthCode,
-  fetchGoogleUserEmail,
-  refreshGoogleAccessToken,
+    exchangeGoogleAuthCode,
+    fetchGoogleUserEmail,
+    refreshGoogleAccessToken,
 } from './utils/gmail-api.util';
 import { decryptToken, encryptToken } from './utils/token-encryption.util';
 
@@ -53,6 +58,8 @@ function decimalToString(value: { toString(): string }) {
 
 @Injectable()
 export class FinanceService {
+  private readonly logger = new Logger(FinanceService.name);
+
   constructor(
     private readonly financeRepo: FinanceRepository,
     private readonly eventEmitter: EventEmitter2,
@@ -217,12 +224,14 @@ export class FinanceService {
       AppEvents.TRANSACTION_CREATED,
       new TransactionCreatedEvent(
         userId,
-        created.id,
-        Number(decimalToString(created.amount)),
+        created.transaction.id,
+        Number(decimalToString(created.transaction.amount)),
       ),
     );
 
-    return this.mapTransaction(created);
+    this.emitBudgetThresholds(userId, created.budgetSnapshots);
+
+    return this.mapTransaction(created.transaction);
   }
 
   async createTransfer(userId: string, dto: import('./dto/create-transfer.dto').CreateTransferDto) {
@@ -259,7 +268,10 @@ export class FinanceService {
     const data: Prisma.FinTransactionUncheckedUpdateManyInput = {};
 
     if (dto.type !== undefined) data.type = dto.type;
-    if (dto.amount !== undefined) data.amount = dto.amount;
+    if (dto.amount !== undefined) {
+      data.amount = dto.amount;
+      data.amountBaseCurrency = dto.amount;
+    }
     if (dto.currency !== undefined) data.currency = dto.currency;
     if (dto.accountId !== undefined) data.accountId = dto.accountId;
     if (dto.cardId !== undefined) data.cardId = dto.cardId;
@@ -278,7 +290,18 @@ export class FinanceService {
 
     const updated = await this.financeRepo.updateTransaction(userId, id, data);
     if (!updated) throw new NotFoundException('Transaction not found');
-    return this.mapTransaction(updated);
+
+    this.emitBudgetThresholds(userId, updated.budgetSnapshots);
+    this.eventEmitter.emit(
+      AppEvents.TRANSACTION_UPDATED,
+      new TransactionUpdatedEvent(
+        userId,
+        updated.transaction.id,
+        Number(decimalToString(updated.transaction.amount)),
+      ),
+    );
+
+    return this.mapTransaction(updated.transaction);
   }
 
   async deleteTransaction(userId: string, id: string) {
@@ -304,20 +327,57 @@ export class FinanceService {
     if (!tx) throw new NotFoundException('Transaction not found');
 
     if (tx.transferGroupId) {
-      await this.financeRepo.confirmTransactionsByTransferGroupId(
+      const result = await this.financeRepo.confirmTransactionsByTransferGroupId(
         userId,
         tx.transferGroupId,
       );
+      this.emitBudgetThresholds(userId, result.budgetSnapshots);
       const refreshed = await this.financeRepo.findTransactionById(id, userId);
       if (!refreshed) throw new NotFoundException('Transaction not found');
+      this.eventEmitter.emit(
+        AppEvents.TRANSACTION_UPDATED,
+        new TransactionUpdatedEvent(
+          userId,
+          refreshed.id,
+          Number(decimalToString(refreshed.amount)),
+        ),
+      );
       return this.mapTransaction(refreshed);
     }
 
-    const updated = await this.financeRepo.updateTransaction(userId, id, {
-      status: 'CONFIRMED',
-    });
+    const updated = await this.financeRepo.confirmTransaction(userId, id);
     if (!updated) throw new NotFoundException('Transaction not found');
-    return this.mapTransaction(updated);
+    this.emitBudgetThresholds(userId, updated.budgetSnapshots);
+    this.eventEmitter.emit(
+      AppEvents.TRANSACTION_UPDATED,
+      new TransactionUpdatedEvent(
+        userId,
+        updated.transaction.id,
+        Number(decimalToString(updated.transaction.amount)),
+      ),
+    );
+    return this.mapTransaction(updated.transaction);
+  }
+
+  private emitBudgetThresholds(
+    userId: string,
+    snapshots: Array<{
+      budgetId: string;
+      amountSpent: number;
+      amountLimit: number;
+      alertThresholdPct: number;
+    }>,
+  ) {
+    for (const snap of snapshots) {
+      if (snap.amountLimit <= 0) continue;
+      const pct = (snap.amountSpent / snap.amountLimit) * 100;
+      if (pct >= Number(snap.alertThresholdPct)) {
+        this.eventEmitter.emit(
+          AppEvents.BUDGET_THRESHOLD_REACHED,
+          new BudgetThresholdReachedEvent(userId, snap.budgetId, pct),
+        );
+      }
+    }
   }
 
   async listInstitutions(userId: string) {
@@ -609,6 +669,23 @@ export class FinanceService {
     return this.config.get('ENCRYPTION_KEY', { infer: true });
   }
 
+  private get oauthStateSecret(): string {
+    const secret = this.config.get('OAUTH_STATE_SECRET', { infer: true });
+    if (secret) {
+      return secret;
+    }
+
+    const nodeEnv = this.config.get('NODE_ENV', { infer: true });
+    if (nodeEnv === 'production') {
+      throw new Error('OAUTH_STATE_SECRET is required in production');
+    }
+
+    this.logger.warn(
+      'OAUTH_STATE_SECRET is not set; falling back to ENCRYPTION_KEY (non-production only)',
+    );
+    return this.encryptionKey;
+  }
+
   getGoogleOAuthUrl(userId: string, query: GoogleOAuthUrlQueryDto = {}): { url: string } {
     const bankDomain = query.bankDomain?.trim() || 'bhd.com.do';
     const state = jwt.sign(
@@ -618,7 +695,7 @@ export class FinanceService {
         label: query.label?.trim() || undefined,
         accountId: query.accountId?.trim() || undefined,
       },
-      this.encryptionKey,
+      this.oauthStateSecret,
       { expiresIn: '15m' },
     );
 
@@ -639,7 +716,7 @@ export class FinanceService {
   async handleGoogleOAuthCallback(code: string, state: string) {
     let payload: { sub: string; bankDomain: string; label?: string; accountId?: string };
     try {
-      payload = jwt.verify(state, this.encryptionKey) as {
+      payload = jwt.verify(state, this.oauthStateSecret) as {
         sub: string;
         bankDomain: string;
         label?: string;
@@ -743,23 +820,22 @@ export class FinanceService {
   async getAnalyticsSummary(userId: string, dateFrom?: string, dateTo?: string) {
     const from = dateFrom ? new Date(dateFrom) : undefined;
     const to = dateTo ? new Date(dateTo) : undefined;
-    const { accounts, cardBalances, txs } = await this.financeRepo.getAnalyticsSummary(
-      userId,
-      from,
-      to,
-    );
+    const { accounts, cardBalances, aggregates } =
+      await this.financeRepo.getAnalyticsSummary(userId, from, to);
 
     const totalAccountBalance = accounts.reduce((acc, item) => acc + Number(item.balance), 0);
     const totalCardDebt = cardBalances
       .filter((item) => item.card.type === 'CREDIT')
       .reduce((acc, item) => acc + Math.abs(Number(item.balance)), 0);
 
-    const income = txs
-      .filter((item) => item.type === 'CREDIT')
-      .reduce((acc, item) => acc + Number(item.amountBaseCurrency), 0);
-    const expenses = txs
-      .filter((item) => item.type === 'DEBIT')
-      .reduce((acc, item) => acc + Number(item.amountBaseCurrency), 0);
+    let income = 0;
+    let expenses = 0;
+    for (const row of aggregates) {
+      if (row.status !== 'CONFIRMED') continue;
+      const sum = Number(row._sum?.amountBaseCurrency ?? 0);
+      if (row.type === 'CREDIT') income += sum;
+      if (row.type === 'DEBIT') expenses += sum;
+    }
 
     return {
       netWorth: totalAccountBalance - totalCardDebt,

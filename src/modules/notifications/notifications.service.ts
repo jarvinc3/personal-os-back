@@ -1,7 +1,8 @@
-import { Injectable, Optional } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
+import { NotificationCreatedEvent } from '../../core/events/domain-events';
 import { AppEvents } from '../../core/events/event.constants';
 import { QueueNames } from '../../core/queues/queue.constants';
 import { NotificationDispatchJob } from '../../core/queues/queue-jobs';
@@ -14,6 +15,8 @@ import { NotificationsRepository } from './notifications.repository';
 
 @Injectable()
 export class NotificationsService {
+  private readonly logger = new Logger(NotificationsService.name);
+
   constructor(
     private readonly notificationsRepo: NotificationsRepository,
     private readonly notificationsGateway: NotificationsGateway,
@@ -26,7 +29,7 @@ export class NotificationsService {
 
   async create(userId: string, dto: CreateNotificationDto) {
     const isDevTestNotification =
-      process.env.NODE_ENV !== 'production' && dto.data?.source === 'dev';
+      process.env.NODE_ENV === 'test' && dto.data?.source === 'dev';
 
     if (!isDevTestNotification) {
       const policy = await this.notificationPolicy.evaluate({
@@ -64,13 +67,17 @@ export class NotificationsService {
       });
     }
 
-    this.eventEmitter.emit(AppEvents.AI_ACTION_COMPLETED, {
-      userId: created.userId,
-      actionType: 'notification.created',
-      payload: { notificationId: created.id },
-    });
+    this.eventEmitter.emit(
+      AppEvents.NOTIFICATION_CREATED,
+      new NotificationCreatedEvent(created.userId, created.id),
+    );
 
-    if (this.notificationsQueue) {
+    // EMAIL A1: channel is stubbed — not production-ready. Skip enqueue in production.
+    if (created.channel === 'EMAIL' && process.env.NODE_ENV === 'production') {
+      this.logger.warn(
+        `EMAIL notification ${created.id} not enqueued: EMAIL channel is stubbed (A1), not production-ready`,
+      );
+    } else if (this.notificationsQueue) {
       await this.notificationsQueue.add(
         'dispatch-notification',
         {

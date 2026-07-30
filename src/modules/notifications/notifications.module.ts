@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { AuthModule } from '../auth/auth.module';
 import { EmailSyncProcessor } from '../../shared/processors/email-sync.processor';
 import { NotificationsController } from './notifications.controller';
+import { NotificationsEventsListener } from './notifications-events.listener';
 import { NotificationsGateway } from './notifications.gateway';
 import { NotificationsProcessor } from './notifications.processor';
 import { NotificationsRepository } from './notifications.repository';
@@ -17,6 +18,7 @@ import { PushSenderService } from './push-sender.service';
     NotificationsRepository,
     NotificationPolicyService,
     NotificationsService,
+    NotificationsEventsListener,
     NotificationsGateway,
     PushTokensService,
     PushSenderService,

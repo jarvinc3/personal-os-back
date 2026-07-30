@@ -16,10 +16,37 @@ interface NotificationsSocketData {
 
 type SocketWithUser = Socket<NotificationsSocketData>;
 
+function resolveNotificationsCorsOrigin():
+  | string
+  | string[]
+  | boolean
+  | ((
+      origin: string | undefined,
+      callback: (err: Error | null, allow?: boolean) => void,
+    ) => void) {
+  const corsOrigin = process.env.CORS_ORIGIN ?? '';
+  const corsOrigins = corsOrigin
+    .split(',')
+    .map((value) => value.trim())
+    .filter(Boolean);
+  const isProduction = process.env.NODE_ENV === 'production';
+
+  if (isProduction) {
+    if (corsOrigins.length === 0) {
+      return false;
+    }
+    return corsOrigins.length === 1 ? corsOrigins[0]! : corsOrigins;
+  }
+
+  return (_origin, callback) => {
+    callback(null, true);
+  };
+}
+
 @WebSocketGateway({
   namespace: '/notifications',
   cors: {
-    origin: '*',
+    origin: resolveNotificationsCorsOrigin(),
     credentials: true,
   },
 })

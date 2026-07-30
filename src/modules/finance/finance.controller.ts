@@ -1,16 +1,18 @@
 import {
-  Body,
-  Controller,
-  Delete,
-  Get,
-  Logger,
-  Param,
-  Patch,
-  Post,
-  Query,
-  Res,
+    BadRequestException,
+    Body,
+    Controller,
+    Delete,
+    Get,
+    Logger,
+    Param,
+    Patch,
+    Post,
+    Query,
+    Res,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import type { Response } from 'express';
 import { CurrentUser, Public } from '../../core/decorators';
 import { ConnectEmailSourceDto } from './dto/connect-email-source.dto';
@@ -372,6 +374,7 @@ export class FinanceController {
   }
 
   @Public()
+  @Throttle({ long: { limit: 10, ttl: 60_000 } })
   @Get('email-sync/oauth/google/callback')
   @ApiOperation({ summary: 'Google OAuth callback for Gmail sync' })
   async handleGoogleCallback(
@@ -381,6 +384,9 @@ export class FinanceController {
   ) {
     const appRedirectBase = 'personal-os://finance/oauth/callback';
     try {
+      if (!code?.trim() || !state?.trim()) {
+        throw new BadRequestException('Missing OAuth code or state');
+      }
       await this.financeService.handleGoogleOAuthCallback(code, state);
       res.redirect(`${appRedirectBase}?success=true`);
     } catch (error) {

@@ -23,6 +23,8 @@ jobs:
       GOOGLE_CLIENT_ID: test-google-client-id
       GOOGLE_CLIENT_SECRET: test-google-client-secret
       GOOGLE_REDIRECT_URI: http://localhost:3100/auth/google/callback
+      ENCRYPTION_KEY: test-encryption-key-minimum-32-chars!!
+      OAUTH_STATE_SECRET: test-oauth-state-secret-minimum-32chars
       GROQ_API_KEY: ""
       CEREBRAS_API_KEY: ""
       OPENROUTER_API_KEY: ""
@@ -46,11 +48,18 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Audit production dependencies
+        continue-on-error: true
+        run: pnpm audit --prod
+
       - name: Lint
         run: pnpm lint
 
       - name: Build
         run: pnpm build
+
+      - name: Unit tests
+        run: pnpm test -- --coverage --coverageReporters=text-summary --passWithNoTests
 
       - name: E2E tests
         run: pnpm test:e2e

@@ -98,15 +98,57 @@ export function createPrismaMock(): PrismaMock {
     },
     $transaction: jest.fn(async (arg: unknown) => {
       if (typeof arg === 'function') {
-        return arg({
+        const tx = {
           finAccount: {
-            findFirst: jest.fn(),
+            findFirst: jest.fn().mockResolvedValue({
+              id: 'acc-1',
+              userId: 'user-123',
+              currency: 'DOP',
+            }),
+            update: jest.fn().mockResolvedValue({}),
+          },
+          finCard: {
+            findFirst: jest.fn().mockResolvedValue(null),
+          },
+          finCardBalance: {
+            findFirst: jest.fn().mockResolvedValue(null),
+            create: jest.fn().mockResolvedValue({}),
+            update: jest.fn().mockResolvedValue({}),
+          },
+          finBudget: {
+            findMany: jest.fn().mockResolvedValue([]),
             update: jest.fn(),
           },
           finTransaction: {
-            create: jest.fn(),
+            create: jest.fn().mockResolvedValue({
+              id: 'tx-1',
+              userId: 'user-123',
+              accountId: 'acc-1',
+              cardId: null,
+              type: 'DEBIT',
+              amount: { toString: () => '50.00' },
+              amountBaseCurrency: { toString: () => '50.00' },
+              currency: 'DOP',
+              merchant: null,
+              description: null,
+              transactionDate: new Date(),
+              status: 'CONFIRMED',
+              source: 'MANUAL',
+              categoryId: null,
+              notes: null,
+              transferGroupId: null,
+              createdAt: new Date(),
+              account: { id: 'acc-1', name: 'Main' },
+              card: null,
+            }),
+            findFirst: jest.fn(),
+            findMany: jest.fn().mockResolvedValue([]),
+            update: jest.fn(),
+            updateMany: jest.fn().mockResolvedValue({ count: 0 }),
+            deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
           },
-        });
+        };
+        return arg(tx);
       }
       return Promise.all(arg as Promise<unknown>[]);
     }),

@@ -34,11 +34,16 @@ export const envSchema = z
     GOOGLE_REDIRECT_URI: z.url('GOOGLE_REDIRECT_URI must be a valid URL'),
 
     ENCRYPTION_KEY: z.string().min(32, 'ENCRYPTION_KEY must be at least 32 chars'),
+    OAUTH_STATE_SECRET: z
+      .string()
+      .min(32, 'OAUTH_STATE_SECRET must be at least 32 chars')
+      .optional(),
 
     // ── App ──────────────────────────────────────────────────────
     NODE_ENV: z
       .enum(['development', 'production', 'test'])
       .default('development'),
+
     PORT: z.coerce.number().int().positive().default(3000),
     CORS_ORIGIN: z
       .string()
@@ -136,6 +141,16 @@ export const envSchema = z
         path: ['REDIS_URL'],
       });
     }
+
+    if (data.NODE_ENV === 'production' && !data.OAUTH_STATE_SECRET) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message:
+          'OAUTH_STATE_SECRET is required in production (must differ from ENCRYPTION_KEY)',
+        path: ['OAUTH_STATE_SECRET'],
+      });
+    }
   });
+
 
 export type Env = z.infer<typeof envSchema>;

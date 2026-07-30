@@ -1,14 +1,32 @@
 import { Injectable } from '@nestjs/common';
 import { randomUUID } from 'crypto';
-import { format, startOfMonth, startOfWeek } from 'date-fns';
 import { paginationArgs } from '../../core/pagination/pagination.dto';
 import type { Prisma } from '../../prisma/generated/client';
+import { Prisma as PrismaNS } from '../../prisma/generated/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import type { CreateAccountDto } from './dto/create-account.dto';
 import type { CreateTransactionDto } from './dto/create-transaction.dto';
 import type { CreateTransferDto } from './dto/create-transfer.dto';
 import type { ListTransactionsQueryDto } from './dto/list-transactions-query.dto';
 import type { UpdateAccountDto } from './dto/update-account.dto';
+import {
+    adjustBudgetSpent,
+    applyBalanceForTransaction,
+} from './lib/balance.helpers';
+
+export type BudgetSpendSnapshot = {
+  budgetId: string;
+  amountSpent: number;
+  amountLimit: number;
+  alertThresholdPct: number;
+};
+
+export type CreateTransactionResult = {
+  transaction: NonNullable<
+    Awaited<ReturnType<FinanceRepository['findTransactionById']>>
+  >;
+  budgetSnapshots: BudgetSpendSnapshot[];
+};
 
 @Injectable()
 export class FinanceRepository {
@@ -124,7 +142,7 @@ export class FinanceRepository {
     dto: CreateTransactionDto,
     amountBaseCurrency: number,
     source: 'MANUAL' | 'EMAIL' | 'AI' = 'MANUAL',
-  ) {
+  ): Promise<CreateTransactionResult | null> {
     return this.prisma.$transaction(async (tx) => {
       if (!dto.accountId && !dto.cardId) {
         return null;
@@ -148,8 +166,8 @@ export class FinanceRepository {
         return null;
       }
 
-      const signedAmount =
-        dto.type === 'CREDIT' ? dto.amount : -Math.abs(dto.amount);
+      const status = dto.status ?? 'CONFIRMED';
+      const currency = dto.currency ?? account?.currency ?? 'DOP';
 
       const created = await tx.finTransaction.create({
         data: {
@@ -159,13 +177,13 @@ export class FinanceRepository {
           type: dto.type,
           amount: dto.amount,
           amountBaseCurrency,
-          currency: dto.currency ?? account?.currency ?? 'DOP',
+          currency,
           merchant: dto.merchant,
           description: dto.description,
           categoryId: dto.categoryId,
           notes: dto.notes,
           source,
-          status: dto.status ?? 'CONFIRMED',
+          status,
           transactionDate: new Date(dto.transactionDate),
         },
         include: {
@@ -174,40 +192,26 @@ export class FinanceRepository {
         },
       });
 
-      if (dto.accountId) {
-        await tx.finAccount.update({
-          where: { id: dto.accountId },
-          data: {
-            balance: {
-              increment: signedAmount,
-            },
-          },
+      let budgetSnapshots: BudgetSpendSnapshot[] = [];
+
+      if (status === 'CONFIRMED') {
+        await applyBalanceForTransaction(tx, {
+          accountId: dto.accountId,
+          cardId: dto.cardId,
+          currency,
+          type: dto.type,
+          amount: dto.amount,
+        });
+        budgetSnapshots = await adjustBudgetSpent(tx, {
+          userId,
+          categoryId: dto.categoryId,
+          type: dto.type,
+          amountBaseCurrency,
+          transactionDate: new Date(dto.transactionDate),
         });
       }
 
-      if (dto.cardId) {
-        const balanceRow = await tx.finCardBalance.findFirst({
-          where: { cardId: dto.cardId, currency: dto.currency ?? 'DOP' },
-        });
-        if (balanceRow) {
-          await tx.finCardBalance.update({
-            where: { id: balanceRow.id },
-            data: {
-              balance: { increment: signedAmount },
-            },
-          });
-        } else {
-          await tx.finCardBalance.create({
-            data: {
-              cardId: dto.cardId,
-              currency: dto.currency ?? 'DOP',
-              balance: signedAmount,
-            },
-          });
-        }
-      }
-
-      return created;
+      return { transaction: created, budgetSnapshots };
     });
   }
 
@@ -256,9 +260,6 @@ export class FinanceRepository {
         if (leg.accountId && !account) return null;
         if (leg.cardId && !card) return null;
 
-        const signedAmount =
-          leg.type === 'CREDIT' ? dto.amount : -Math.abs(dto.amount);
-
         const created = await tx.finTransaction.create({
           data: {
             userId,
@@ -281,31 +282,14 @@ export class FinanceRepository {
           },
         });
 
-        if (leg.accountId) {
-          await tx.finAccount.update({
-            where: { id: leg.accountId },
-            data: { balance: { increment: signedAmount } },
+        if (status === 'CONFIRMED') {
+          await applyBalanceForTransaction(tx, {
+            accountId: leg.accountId,
+            cardId: leg.cardId,
+            currency: created.currency,
+            type: leg.type,
+            amount: dto.amount,
           });
-        }
-
-        if (leg.cardId) {
-          const balanceRow = await tx.finCardBalance.findFirst({
-            where: { cardId: leg.cardId, currency: currency ?? 'DOP' },
-          });
-          if (balanceRow) {
-            await tx.finCardBalance.update({
-              where: { id: balanceRow.id },
-              data: { balance: { increment: signedAmount } },
-            });
-          } else {
-            await tx.finCardBalance.create({
-              data: {
-                cardId: leg.cardId,
-                currency: currency ?? 'DOP',
-                balance: signedAmount,
-              },
-            });
-          }
         }
 
         return created;
@@ -330,34 +314,235 @@ export class FinanceRepository {
   }
 
   deleteTransactionsByTransferGroupId(userId: string, transferGroupId: string) {
-    return this.prisma.finTransaction.deleteMany({
-      where: { userId, transferGroupId, source: 'MANUAL' },
+    return this.prisma.$transaction(async (tx) => {
+      const rows = await tx.finTransaction.findMany({
+        where: { userId, transferGroupId, source: 'MANUAL' },
+      });
+      if (rows.length === 0) return { count: 0 };
+
+      for (const row of rows) {
+        if (row.status === 'CONFIRMED') {
+          await applyBalanceForTransaction(tx, {
+            accountId: row.accountId,
+            cardId: row.cardId,
+            currency: row.currency,
+            type: row.type,
+            amount: Number(row.amount),
+            direction: -1,
+          });
+          await adjustBudgetSpent(tx, {
+            userId,
+            categoryId: row.categoryId,
+            type: row.type,
+            amountBaseCurrency: Number(row.amountBaseCurrency),
+            transactionDate: row.transactionDate,
+            direction: -1,
+          });
+        }
+      }
+
+      return tx.finTransaction.deleteMany({
+        where: { userId, transferGroupId, source: 'MANUAL' },
+      });
     });
   }
 
   confirmTransactionsByTransferGroupId(userId: string, transferGroupId: string) {
-    return this.prisma.finTransaction.updateMany({
-      where: { userId, transferGroupId },
-      data: { status: 'CONFIRMED' },
+    return this.prisma.$transaction(async (tx) => {
+      const rows = await tx.finTransaction.findMany({
+        where: { userId, transferGroupId, status: 'PENDING' },
+      });
+
+      const budgetSnapshots: BudgetSpendSnapshot[] = [];
+
+      for (const row of rows) {
+        await applyBalanceForTransaction(tx, {
+          accountId: row.accountId,
+          cardId: row.cardId,
+          currency: row.currency,
+          type: row.type,
+          amount: Number(row.amount),
+        });
+        const snaps = await adjustBudgetSpent(tx, {
+          userId,
+          categoryId: row.categoryId,
+          type: row.type,
+          amountBaseCurrency: Number(row.amountBaseCurrency),
+          transactionDate: row.transactionDate,
+        });
+        budgetSnapshots.push(...snaps);
+      }
+
+      const result = await tx.finTransaction.updateMany({
+        where: { userId, transferGroupId, status: 'PENDING' },
+        data: { status: 'CONFIRMED' },
+      });
+
+      return { count: result.count, budgetSnapshots };
     });
   }
 
-  updateTransaction(
+  async updateTransaction(
     userId: string,
     id: string,
     data: Prisma.FinTransactionUncheckedUpdateManyInput,
-  ) {
-    return this.prisma.finTransaction.updateMany({
-      where: { id, userId },
-      data,
-    }).then(async (result) => {
-      if (result.count === 0) return null;
-      return this.findTransactionById(id, userId);
+  ): Promise<CreateTransactionResult | null> {
+    return this.prisma.$transaction(async (tx) => {
+      const existing = await tx.finTransaction.findFirst({
+        where: { id, userId },
+      });
+      if (!existing) return null;
+
+      if (data.accountId) {
+        const account = await tx.finAccount.findFirst({
+          where: { id: String(data.accountId), userId },
+        });
+        if (!account) return null;
+      }
+      if (data.cardId) {
+        const card = await tx.finCard.findFirst({
+          where: { id: String(data.cardId), userId },
+        });
+        if (!card) return null;
+      }
+
+      if (existing.status === 'CONFIRMED') {
+        await applyBalanceForTransaction(tx, {
+          accountId: existing.accountId,
+          cardId: existing.cardId,
+          currency: existing.currency,
+          type: existing.type,
+          amount: Number(existing.amount),
+          direction: -1,
+        });
+        await adjustBudgetSpent(tx, {
+          userId,
+          categoryId: existing.categoryId,
+          type: existing.type,
+          amountBaseCurrency: Number(existing.amountBaseCurrency),
+          transactionDate: existing.transactionDate,
+          direction: -1,
+        });
+      }
+
+      await tx.finTransaction.updateMany({
+        where: { id, userId },
+        data,
+      });
+
+      const updated = await tx.finTransaction.findFirst({
+        where: { id, userId },
+        include: {
+          account: { select: { id: true, name: true } },
+          card: { select: { id: true, name: true } },
+        },
+      });
+      if (!updated) return null;
+
+      let budgetSnapshots: BudgetSpendSnapshot[] = [];
+      if (updated.status === 'CONFIRMED') {
+        await applyBalanceForTransaction(tx, {
+          accountId: updated.accountId,
+          cardId: updated.cardId,
+          currency: updated.currency,
+          type: updated.type,
+          amount: Number(updated.amount),
+        });
+        budgetSnapshots = await adjustBudgetSpent(tx, {
+          userId,
+          categoryId: updated.categoryId,
+          type: updated.type,
+          amountBaseCurrency: Number(updated.amountBaseCurrency),
+          transactionDate: updated.transactionDate,
+        });
+      }
+
+      return { transaction: updated, budgetSnapshots };
     });
   }
 
   deleteTransaction(userId: string, id: string) {
-    return this.prisma.finTransaction.deleteMany({ where: { id, userId, source: 'MANUAL' } });
+    return this.prisma.$transaction(async (tx) => {
+      const existing = await tx.finTransaction.findFirst({
+        where: { id, userId, source: 'MANUAL' },
+      });
+      if (!existing) return { count: 0 };
+
+      if (existing.status === 'CONFIRMED') {
+        await applyBalanceForTransaction(tx, {
+          accountId: existing.accountId,
+          cardId: existing.cardId,
+          currency: existing.currency,
+          type: existing.type,
+          amount: Number(existing.amount),
+          direction: -1,
+        });
+        await adjustBudgetSpent(tx, {
+          userId,
+          categoryId: existing.categoryId,
+          type: existing.type,
+          amountBaseCurrency: Number(existing.amountBaseCurrency),
+          transactionDate: existing.transactionDate,
+          direction: -1,
+        });
+      }
+
+      return tx.finTransaction.deleteMany({
+        where: { id, userId, source: 'MANUAL' },
+      });
+    });
+  }
+
+  /** Confirm a single PENDING transaction and apply balances. */
+  confirmTransaction(userId: string, id: string) {
+    return this.prisma.$transaction(async (tx) => {
+      const existing = await tx.finTransaction.findFirst({
+        where: { id, userId },
+      });
+      if (!existing) return null;
+      if (existing.status === 'CONFIRMED') {
+        const already = await tx.finTransaction.findFirst({
+          where: { id, userId },
+          include: {
+            account: { select: { id: true, name: true } },
+            card: { select: { id: true, name: true } },
+          },
+        });
+        return already
+          ? { transaction: already, budgetSnapshots: [] as BudgetSpendSnapshot[] }
+          : null;
+      }
+
+      await applyBalanceForTransaction(tx, {
+        accountId: existing.accountId,
+        cardId: existing.cardId,
+        currency: existing.currency,
+        type: existing.type,
+        amount: Number(existing.amount),
+      });
+      const budgetSnapshots = await adjustBudgetSpent(tx, {
+        userId,
+        categoryId: existing.categoryId,
+        type: existing.type,
+        amountBaseCurrency: Number(existing.amountBaseCurrency),
+        transactionDate: existing.transactionDate,
+      });
+
+      await tx.finTransaction.update({
+        where: { id },
+        data: { status: 'CONFIRMED' },
+      });
+
+      const updated = await tx.finTransaction.findFirst({
+        where: { id, userId },
+        include: {
+          account: { select: { id: true, name: true } },
+          card: { select: { id: true, name: true } },
+        },
+      });
+      if (!updated) return null;
+      return { transaction: updated, budgetSnapshots };
+    });
   }
 
   listInstitutions(userId: string) {
@@ -702,21 +887,30 @@ export class FinanceRepository {
             },
           }
         : {};
-    const [accounts, cardBalances, txs] = await this.prisma.$transaction([
+
+    const [accounts, cardBalances, aggregates] = await this.prisma.$transaction([
       this.prisma.finAccount.findMany({ where: { userId, isActive: true } }),
       this.prisma.finCardBalance.findMany({
         where: { card: { userId, isActive: true } },
         include: { card: true },
       }),
-      this.prisma.finTransaction.findMany({ where: { userId, ...dateFilter } }),
+      this.prisma.finTransaction.groupBy({
+        by: ['type', 'status'],
+        where: { userId, ...dateFilter },
+        _sum: { amountBaseCurrency: true },
+        _count: { _all: true },
+        orderBy: { type: 'asc' },
+      }),
     ]);
-    return { accounts, cardBalances, txs };
+
+    return { accounts, cardBalances, aggregates };
   }
 
   async getSpendingByCategory(userId: string, from?: Date, to?: Date) {
     const where: Prisma.FinTransactionWhereInput = {
       userId,
       type: 'DEBIT',
+      status: 'CONFIRMED',
       ...(from || to
         ? {
             transactionDate: {
@@ -740,65 +934,35 @@ export class FinanceRepository {
     to: Date | undefined,
     granularity: 'day' | 'week' | 'month',
   ) {
-    type Row = { bucket: Date; type: string; total: number };
+    const trunc =
+      granularity === 'month'
+        ? 'month'
+        : granularity === 'week'
+          ? 'week'
+          : 'day';
 
-    const transactions = await this.prisma.finTransaction.findMany({
-      where: {
-        userId,
-        status: 'CONFIRMED',
-        type: { in: ['DEBIT', 'CREDIT'] },
-        ...(from || to
-          ? {
-              transactionDate: {
-                ...(from ? { gte: from } : {}),
-                ...(to ? { lte: to } : {}),
-              },
-            }
-          : {}),
-      },
-      select: {
-        transactionDate: true,
-        type: true,
-        amountBaseCurrency: true,
-      },
-    });
+    const rows = await this.prisma.$queryRaw<
+      Array<{ bucket: Date; type: string; total: number }>
+    >`
+      SELECT
+        date_trunc(${PrismaNS.raw(`'${trunc}'`)}, "transaction_date") AS bucket,
+        "type"::text AS type,
+        SUM("amount_base_currency")::float AS total
+      FROM "fin_transactions"
+      WHERE "user_id" = ${userId}
+        AND "status" = 'CONFIRMED'
+        AND "type" IN ('DEBIT', 'CREDIT')
+        ${from ? PrismaNS.sql`AND "transaction_date" >= ${from}` : PrismaNS.empty}
+        ${to ? PrismaNS.sql`AND "transaction_date" <= ${to}` : PrismaNS.empty}
+      GROUP BY 1, 2
+      ORDER BY 1 ASC
+    `;
 
-    const bucketKey = (date: Date): string => {
-      if (granularity === 'month') {
-        return format(startOfMonth(date), 'yyyy-MM-dd');
-      }
-      if (granularity === 'week') {
-        return format(startOfWeek(date, { weekStartsOn: 1 }), 'yyyy-MM-dd');
-      }
-      return format(date, 'yyyy-MM-dd');
-    };
-
-    const totalsByBucket = new Map<
-      string,
-      { expenses: number; income: number }
-    >();
-
-    for (const tx of transactions) {
-      const key = bucketKey(tx.transactionDate);
-      const entry = totalsByBucket.get(key) ?? { expenses: 0, income: 0 };
-      const amount = Number(tx.amountBaseCurrency) || 0;
-      if (tx.type === 'DEBIT') entry.expenses += amount;
-      if (tx.type === 'CREDIT') entry.income += amount;
-      totalsByBucket.set(key, entry);
-    }
-
-    const rows: Row[] = [];
-    for (const [dateKey, totals] of totalsByBucket) {
-      const bucket = new Date(`${dateKey}T00:00:00.000Z`);
-      if (totals.expenses > 0) {
-        rows.push({ bucket, type: 'DEBIT', total: totals.expenses });
-      }
-      if (totals.income > 0) {
-        rows.push({ bucket, type: 'CREDIT', total: totals.income });
-      }
-    }
-
-    return rows.sort((a, b) => a.bucket.getTime() - b.bucket.getTime());
+    return rows.map((row) => ({
+      bucket: new Date(row.bucket),
+      type: row.type,
+      total: Number(row.total) || 0,
+    }));
   }
 
   listUserCategories(userId: string) {

@@ -79,6 +79,7 @@ model AiAgentSession {
   user           User        @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   messages       AiMessage[]
 
+  @@index([userId, lastActiveAt], map: "ai_agent_sessions_user_id_last_active_idx")
   @@map("ai_agent_sessions")
 }
 
@@ -229,6 +230,7 @@ model FinTransaction {
   @@index([cardId, transactionDate], map: "fin_transactions_card_id_date_idx")
   @@index([userId, categoryId], map: "fin_transactions_user_id_category_idx")
   @@index([userId, transactionDate], map: "fin_transactions_user_id_date_idx")
+  @@index([transferGroupId], map: "fin_transactions_transfer_group_id_idx", where: "transfer_group_id IS NOT NULL")
   @@map("fin_transactions")
 }
 

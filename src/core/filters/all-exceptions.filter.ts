@@ -6,7 +6,9 @@ import {
   HttpStatus,
   Injectable,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { PinoLogger } from 'nestjs-pino';
+import type { Env } from '../../config/env.schema';
 import { toErrorField } from '../../shared/utils/http-error.util';
 
 type PrismaKnownErrorLike = Error & {
@@ -17,7 +19,10 @@ type PrismaKnownErrorLike = Error & {
 @Injectable()
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
-  constructor(private readonly logger: PinoLogger) {
+  constructor(
+    private readonly logger: PinoLogger,
+    private readonly config: ConfigService<Env, true>,
+  ) {
     this.logger.setContext(AllExceptionsFilter.name);
   }
 
@@ -26,7 +31,12 @@ export class AllExceptionsFilter implements ExceptionFilter {
     const request = ctx.getRequest<{ url: string; id?: string; method: string }>();
     const response = ctx.getResponse<{ status: (code: number) => { json: (body: unknown) => void } }>();
 
-    const { statusCode, error, message } = this.resolveException(exception);
+    const isProduction =
+      this.config.get('NODE_ENV', { infer: true }) === 'production';
+    const { statusCode, error, message } = this.resolveException(
+      exception,
+      isProduction,
+    );
 
     this.logger.error(
       {
@@ -35,7 +45,9 @@ export class AllExceptionsFilter implements ExceptionFilter {
         path: request.url,
         statusCode,
         error,
-        message,
+        message:
+          exception instanceof Error ? exception.message : String(exception),
+        stack: exception instanceof Error ? exception.stack : undefined,
       },
       'Unhandled exception',
     );
@@ -50,7 +62,10 @@ export class AllExceptionsFilter implements ExceptionFilter {
     });
   }
 
-  private resolveException(exception: unknown): {
+  private resolveException(
+    exception: unknown,
+    isProduction: boolean,
+  ): {
     statusCode: number;
     error: string;
     message: string;
@@ -103,8 +118,11 @@ export class AllExceptionsFilter implements ExceptionFilter {
     return {
       statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
       error: 'Internal Server Error',
-      message:
-        exception instanceof Error ? exception.message : 'Unexpected error',
+      message: isProduction
+        ? 'Internal server error'
+        : exception instanceof Error
+          ? exception.message
+          : 'Unexpected error',
     };
   }
 }

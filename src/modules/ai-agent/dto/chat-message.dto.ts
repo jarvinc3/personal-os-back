@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsIn, IsNotEmpty, IsString } from 'class-validator';
+import { IsIn, IsNotEmpty, IsString, MaxLength } from 'class-validator';
 import type { ChatMessage } from '../utils/ai.types';
 
 export class ChatMessageDto implements ChatMessage {
@@ -10,5 +10,6 @@ export class ChatMessageDto implements ChatMessage {
   @ApiProperty({ example: 'Resume mis gastos del mes en una frase.' })
   @IsString()
   @IsNotEmpty()
+  @MaxLength(8000)
   content!: string;
 }

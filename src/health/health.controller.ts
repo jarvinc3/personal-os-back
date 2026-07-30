@@ -1,6 +1,11 @@
 import { Controller, Get } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
 import {
   HealthCheck,
   HealthCheckService,
@@ -41,9 +46,9 @@ export class HealthController {
   }
 
   @Get('ready')
-  @Public()
   @HealthCheck()
   @ApiOperation({ summary: 'Readiness probe (database, JWKS, optional Redis)' })
+  @ApiBearerAuth('access-token')
   readiness() {
     const jwksUri = getSupabaseAuthConfig(this.configService).jwksUri;
     const indicators = [

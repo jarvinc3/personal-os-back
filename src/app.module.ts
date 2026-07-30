@@ -120,6 +120,8 @@ const bullMqEnabled = isBullMqEnabledFromProcessEnv();
       isGlobal: true,
       ttl: 300_000,
     }),
+    // Reserved for future cron jobs (no @Cron handlers yet).
+    // Reserved for future cron jobs (no @Cron handlers yet).
     ScheduleModule.forRoot(),
     PrismaModule,
     CoreModule,

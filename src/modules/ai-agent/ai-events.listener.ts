@@ -2,7 +2,12 @@ import { Injectable, Logger, Optional } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { OnEvent } from '@nestjs/event-emitter';
 import { Queue } from 'bullmq';
-import { UserLoggedInEvent } from '../../core/events/domain-events';
+import {
+  BudgetThresholdReachedEvent,
+  TransactionCreatedEvent,
+  TransactionUpdatedEvent,
+  UserLoggedInEvent,
+} from '../../core/events/domain-events';
 import { AppEvents } from '../../core/events/event.constants';
 import { QueueNames } from '../../core/queues/queue.constants';
 import { AiProcessingJob } from '../../core/queues/queue-jobs';
@@ -56,9 +61,48 @@ export class AiEventsListener {
     });
   }
 
-  @OnEvent(AppEvents.ONBOARDING_COMPLETED)
-  async onOnboardingCompleted(event: { userId: string }): Promise<void> {
-    await this.enqueue('ai-insight-onboarding', event.userId, 'onboarding.completed', {});
+  @OnEvent(AppEvents.TRANSACTION_CREATED)
+  async onTransactionCreated(event: TransactionCreatedEvent): Promise<void> {
+    await this.enqueue(
+      'ai-insight-transaction-created',
+      event.userId,
+      'transaction.created',
+      {
+        slug: 'finance',
+        transactionId: event.transactionId,
+        amount: event.amount,
+      },
+    );
+  }
+
+  @OnEvent(AppEvents.TRANSACTION_UPDATED)
+  async onTransactionUpdated(event: TransactionUpdatedEvent): Promise<void> {
+    await this.enqueue(
+      'ai-insight-transaction-updated',
+      event.userId,
+      'transaction.updated',
+      {
+        slug: 'finance',
+        transactionId: event.transactionId,
+        amount: event.amount,
+      },
+    );
+  }
+
+  @OnEvent(AppEvents.BUDGET_THRESHOLD_REACHED)
+  async onBudgetThresholdReached(
+    event: BudgetThresholdReachedEvent,
+  ): Promise<void> {
+    await this.enqueue(
+      'ai-insight-budget-threshold',
+      event.userId,
+      'budget.threshold_reached',
+      {
+        slug: 'finance',
+        budgetId: event.budgetId,
+        percentageUsed: event.percentageUsed,
+      },
+    );
   }
 
   private async enqueue(

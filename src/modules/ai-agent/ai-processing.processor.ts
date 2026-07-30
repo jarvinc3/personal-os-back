@@ -72,12 +72,16 @@ export class AiProcessingProcessor extends WorkerHost {
 
     const insightPrompts: Record<string, string> = {
       'user.logged_in':
-        'The user just logged in. If onboarding might be incomplete, offer one short helpful tip about Personal OS settings. Otherwise respond with a brief welcome.',
+        'The user just logged in. Offer one short helpful tip about Personal OS settings, or a brief welcome.',
       'module.enabled': `The user enabled the ${moduleSlug ?? 'unknown'} module. Suggest one initial configuration tip.`,
       'module.disabled': `The user disabled the ${moduleSlug ?? 'unknown'} module. Acknowledge briefly.`,
       'module.config.updated': `The user updated ${moduleSlug ?? 'unknown'} module config. Offer one relevant tip.`,
-      'onboarding.completed':
-        'The user completed onboarding. Welcome them to Personal OS with 2 short bullet tips.',
+      'transaction.created':
+        'The user recorded a new finance transaction. Offer one brief, actionable insight if useful.',
+      'transaction.updated':
+        'The user updated a finance transaction. Acknowledge briefly if a tip is useful.',
+      'budget.threshold_reached':
+        'A budget threshold was reached. Offer one concise spending tip related to staying on budget.',
     };
 
     const userPrompt =
