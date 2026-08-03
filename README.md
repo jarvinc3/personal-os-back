@@ -95,7 +95,7 @@ Catálogo en `src/core/events/event.constants.ts`. Patrón: EventEmitter post-co
 - Helmet + `trust proxy`
 - 500 genéricos al cliente
 - WS CORS = `CORS_ORIGIN`
-- `/health` público; `/health/ready` requiere JWT
+- `/health` y `/health/ready` públicos; readiness sanitiza el contrato (sin detalle de dependencias)
 - Separar `OAUTH_STATE_SECRET` de `ENCRYPTION_KEY`
 
 ## Endpoints principales
@@ -103,7 +103,7 @@ Catálogo en `src/core/events/event.constants.ts`. Patrón: EventEmitter post-co
 | Método | Ruta | Auth | Descripción |
 | --- | --- | --- | --- |
 | GET | `/api/health` | No | Liveness |
-| GET | `/api/health/ready` | Sí | Readiness (DB + JWKS + Redis opcional) |
+| GET | `/api/health/ready` | No | Readiness (DB + JWKS + Redis); payload sanitizado |
 | GET | `/api/auth/session` | Sí | Sesión (emite login debounced) |
 | GET/PATCH/DELETE | `/api/users/me` | Sí | Perfil |
 | * | `/api/finance/*` | Sí | Cuentas, txs, presupuestos, Gmail sync, analytics |
@@ -125,7 +125,7 @@ Respuestas: envelope `{ data, meta }`.
 
 ## Estructura
 
-```
+```tree
 src/
   config/
   core/            # guards, eventos, colas

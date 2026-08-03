@@ -7,6 +7,7 @@ import {
     TransactionUpdatedEvent,
 } from '../../core/events/domain-events';
 import { AppEvents } from '../../core/events/event.constants';
+import { FINANCE_NOTIFICATION_KEYS } from '../users/defaults/user-settings-defaults';
 import { NotificationsService } from './notifications.service';
 
 @Injectable()
@@ -33,7 +34,7 @@ export class NotificationsEventsListener {
       body: `A transaction of ${event.amount} was recorded.`,
       data: {
         moduleSlug: 'finance',
-        notificationKey: 'transaction_created',
+        notificationKey: FINANCE_NOTIFICATION_KEYS.transactionDetected,
         transactionId: event.transactionId,
       },
     });
@@ -47,7 +48,7 @@ export class NotificationsEventsListener {
       body: `A transaction of ${event.amount} was updated.`,
       data: {
         moduleSlug: 'finance',
-        notificationKey: 'transaction_created',
+        notificationKey: FINANCE_NOTIFICATION_KEYS.transactionDetected,
         transactionId: event.transactionId,
       },
     });
@@ -63,7 +64,7 @@ export class NotificationsEventsListener {
       body: `A budget reached ${Math.round(event.percentageUsed)}% of its limit.`,
       data: {
         moduleSlug: 'finance',
-        notificationKey: 'budgetAlerts',
+        notificationKey: FINANCE_NOTIFICATION_KEYS.budgetAlerts,
         budgetId: event.budgetId,
       },
     });

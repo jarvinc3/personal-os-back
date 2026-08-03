@@ -56,7 +56,7 @@ Eventos activos: `user.logged_in` (debounce cache 1h), `transaction.*`, `budget.
 
 - `GET /api/auth/session` emite `user.logged_in` como máximo 1/hora por usuario (cache).
 - `GET /api/health` público (liveness).
-- `GET /api/health/ready` requiere JWT.
+- `GET /api/health/ready` público (readiness para probes/load balancers). La respuesta sanitizada solo expone `status` y `timestamp` (sin detalle de dependencias).
 
 ## Seguridad production
 

@@ -1,3 +1,16 @@
+/** Toggle keys under `config.notifications` for finance module alerts. */
+export const FINANCE_NOTIFICATION_KEYS = {
+  budgetAlerts: 'budgetAlerts',
+  aiSuggestions: 'aiSuggestions',
+  transactionDetected: 'transactionDetected',
+  monthlyReport: 'monthlyReport',
+  cardDueDate: 'cardDueDate',
+  unusualExpense: 'unusualExpense',
+} as const;
+
+export type FinanceNotificationKey =
+  (typeof FINANCE_NOTIFICATION_KEYS)[keyof typeof FINANCE_NOTIFICATION_KEYS];
+
 export const DEFAULT_MODULE_CONFIG_BY_SLUG = {
   finance: {
     version: 1,
@@ -7,12 +20,12 @@ export const DEFAULT_MODULE_CONFIG_BY_SLUG = {
     dashboardPeriod: 'month',
     display: { showCents: true, compactNumbers: false },
     notifications: {
-      budgetAlerts: true,
-      aiSuggestions: true,
-      transactionDetected: true,
-      monthlyReport: false,
-      cardDueDate: true,
-      unusualExpense: true,
+      [FINANCE_NOTIFICATION_KEYS.budgetAlerts]: true,
+      [FINANCE_NOTIFICATION_KEYS.aiSuggestions]: true,
+      [FINANCE_NOTIFICATION_KEYS.transactionDetected]: true,
+      [FINANCE_NOTIFICATION_KEYS.monthlyReport]: false,
+      [FINANCE_NOTIFICATION_KEYS.cardDueDate]: true,
+      [FINANCE_NOTIFICATION_KEYS.unusualExpense]: true,
     },
     emailSync: { enabled: false, autoCategorize: true },
   },

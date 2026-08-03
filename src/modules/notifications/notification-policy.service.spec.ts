@@ -1,5 +1,5 @@
-import { NotificationPolicyService } from './notification-policy.service';
 import { UsersRepository } from '../users/users.repository';
+import { NotificationPolicyService } from './notification-policy.service';
 
 describe('NotificationPolicyService', () => {
   const usersRepository = {
@@ -92,5 +92,48 @@ describe('NotificationPolicyService', () => {
     });
 
     expect(result.allowed).toBe(false);
+  });
+
+  it('blocks finance transaction notifications when transactionDetected is false', async () => {
+    usersRepository.findById = jest.fn().mockResolvedValue({
+      id: 'user-1',
+      timezone: 'America/Santo_Domingo',
+      preferences: {
+        notifications: {
+          channels: { push: true, email: false, inApp: true },
+          quietHours: {
+            enabled: false,
+            start: '22:00',
+            end: '08:00',
+            timezone: null,
+          },
+        },
+      },
+      userModules: [
+        {
+          isEnabled: true,
+          module: { slug: 'finance' },
+          config: {
+            notifications: { transactionDetected: false },
+          },
+        },
+      ],
+    });
+
+    const result = await service.evaluate({
+      userId: 'user-1',
+      channel: 'IN_APP',
+      data: {
+        moduleSlug: 'finance',
+        notificationKey: 'transactionDetected',
+      },
+    });
+
+    expect(result.allowed).toBe(false);
+    if (!result.allowed) {
+      expect(result.reason).toBe(
+        'module_notification_disabled:finance.transactionDetected',
+      );
+    }
   });
 });

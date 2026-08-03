@@ -41,6 +41,50 @@ export class AiActionsRepository {
     });
   }
 
+  /**
+   * Atomically transitions PENDING → RUNNING for the given owner.
+   * Returns the claimed row, or null if already claimed/cancelled/missing.
+   */
+  async claimForExecution(id: string, userId: string) {
+    const result = await this.prisma.aiAction.updateMany({
+      where: {
+        id,
+        status: 'PENDING',
+        session: { userId },
+      },
+      data: { status: 'RUNNING' },
+    });
+
+    if (result.count === 0) {
+      return null;
+    }
+
+    return this.findById(id, userId);
+  }
+
+  /**
+   * Atomically transitions PENDING → CANCELLED for the given owner.
+   */
+  async claimForCancel(id: string, userId: string) {
+    const result = await this.prisma.aiAction.updateMany({
+      where: {
+        id,
+        status: 'PENDING',
+        session: { userId },
+      },
+      data: {
+        status: 'CANCELLED',
+        executedAt: new Date(),
+      },
+    });
+
+    if (result.count === 0) {
+      return null;
+    }
+
+    return this.findById(id, userId);
+  }
+
   updateStatus(
     id: string,
     status: AiActionStatus,

@@ -10,20 +10,20 @@ import { AiSessionsRepository } from './ai-sessions.repository';
 import { AiService } from './ai.service';
 import { buildAgentPrompt } from './prompts/build-agent-prompt';
 import {
-  getModuleContextLabel,
-  MODULE_CONTEXT_SWITCH_TOOL,
-  resolveModuleContextKey,
+    getModuleContextLabel,
+    MODULE_CONTEXT_SWITCH_TOOL,
+    resolveModuleContextKey,
 } from './prompts/module-context';
 import { ToolExecutorService } from './tools/tool-executor.service';
 import { getActionLabel, getToolDefinition, getToolsForModule } from './tools/tool.registry';
 import type {
-  AgentRunResult,
-  AgentStreamEvent,
-  AiActionSummary,
-  ChatBlock,
-  ChatMessage,
-  SideEffectDescriptor,
-  ToolExecutionResult,
+    AgentRunResult,
+    AgentStreamEvent,
+    AiActionSummary,
+    ChatBlock,
+    ChatMessage,
+    SideEffectDescriptor,
+    ToolExecutionResult,
 } from './utils/ai.types';
 import { replayStreamChunks } from './utils/replay-stream-chunks';
 
@@ -264,22 +264,36 @@ export class AiAgentRunner {
         }
 
         if (toolDef.mutating && prefs.ai.confirmBeforeActions) {
-          const action = await this.actionsService.createPendingAction({
-            sessionId: input.sessionId,
-            actionType: tc.name,
-            payload: tc.arguments,
-          });
-          pendingActions.push(this.actionsService.toSummary(action));
-          conversation.push({
-            role: 'tool',
-            content: JSON.stringify({
-              status: 'pending_confirmation',
-              actionId: action.id,
-              message: 'Action pending user confirmation',
-            }),
-            toolCallId: tc.id,
-            name: tc.name,
-          });
+          try {
+            const action = await this.actionsService.createPendingAction({
+              sessionId: input.sessionId,
+              actionType: tc.name,
+              payload: tc.arguments,
+            });
+            pendingActions.push(this.actionsService.toSummary(action));
+            conversation.push({
+              role: 'tool',
+              content: JSON.stringify({
+                status: 'pending_confirmation',
+                actionId: action.id,
+                message: 'Action pending user confirmation',
+              }),
+              toolCallId: tc.id,
+              name: tc.name,
+            });
+          } catch (error) {
+            const message =
+              error instanceof Error ? error.message : String(error);
+            conversation.push({
+              role: 'tool',
+              content: JSON.stringify({
+                status: 'error',
+                message: `Could not stage action: ${message}`,
+              }),
+              toolCallId: tc.id,
+              name: tc.name,
+            });
+          }
           continue;
         }
 

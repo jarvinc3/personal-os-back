@@ -1,25 +1,36 @@
-import { Controller, Get } from '@nestjs/common';
+import {
+    Controller,
+    Get,
+    Logger,
+    ServiceUnavailableException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
-  ApiBearerAuth,
-  ApiOkResponse,
-  ApiOperation,
-  ApiTags,
+    ApiOkResponse,
+    ApiOperation,
+    ApiServiceUnavailableResponse,
+    ApiTags,
 } from '@nestjs/swagger';
 import {
-  HealthCheck,
-  HealthCheckService,
-  HttpHealthIndicator,
-  PrismaHealthIndicator,
+    HealthCheckService,
+    HttpHealthIndicator,
+    PrismaHealthIndicator,
 } from '@nestjs/terminus';
 import { type Env, getSupabaseAuthConfig } from '../config';
 import { Public } from '../core/decorators';
 import { PrismaService } from '../prisma/prisma.service';
 import { RedisHealthIndicator } from './indicators/redis.health.indicator';
 
+export type ReadinessResponse = {
+  status: 'ok';
+  timestamp: string;
+};
+
 @ApiTags('health')
 @Controller('health')
 export class HealthController {
+  private readonly logger = new Logger(HealthController.name);
+
   constructor(
     private readonly health: HealthCheckService,
     private readonly prisma: PrismaHealthIndicator,
@@ -46,10 +57,25 @@ export class HealthController {
   }
 
   @Get('ready')
-  @HealthCheck()
-  @ApiOperation({ summary: 'Readiness probe (database, JWKS, optional Redis)' })
-  @ApiBearerAuth('access-token')
-  readiness() {
+  @Public()
+  @ApiOperation({
+    summary:
+      'Readiness probe (database, JWKS, optional Redis). Public for load balancers; response omits dependency details.',
+  })
+  @ApiOkResponse({
+    description: 'All readiness checks passed',
+    schema: {
+      type: 'object',
+      properties: {
+        status: { type: 'string', example: 'ok' },
+        timestamp: { type: 'string', format: 'date-time' },
+      },
+    },
+  })
+  @ApiServiceUnavailableResponse({
+    description: 'One or more readiness checks failed (no dependency details)',
+  })
+  async readiness(): Promise<ReadinessResponse> {
     const jwksUri = getSupabaseAuthConfig(this.configService).jwksUri;
     const indicators = [
       () => this.prisma.pingCheck('database', this.prismaService),
@@ -60,6 +86,14 @@ export class HealthController {
       indicators.push(() => this.redisHealthIndicator.pingCheck('redis'));
     }
 
-    return this.health.check(indicators);
+    try {
+      await this.health.check(indicators);
+      return { status: 'ok', timestamp: new Date().toISOString() };
+    } catch (error) {
+      this.logger.warn(
+        `Readiness check failed: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      throw new ServiceUnavailableException('Service Unavailable');
+    }
   }
 }

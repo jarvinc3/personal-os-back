@@ -1,10 +1,12 @@
 import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
+    BadRequestException,
+    ConflictException,
+    Injectable,
+    NotFoundException,
 } from '@nestjs/common';
 import { NotificationsGateway } from '../notifications/notifications.gateway';
 import { AiActionsRepository } from './ai-actions.repository';
+import { validateMutatingToolArgs } from './tools/tool-arg-schemas';
 import { ToolExecutorService } from './tools/tool-executor.service';
 import { getActionLabel, getToolDefinition } from './tools/tool.registry';
 import type { AiActionSummary, SideEffectDescriptor } from './utils/ai.types';
@@ -44,27 +46,54 @@ export class AiActionsService {
     actionId: string,
     userId: string,
   ): Promise<{ action: AiActionSummary; sideEffects: SideEffectDescriptor[] }> {
-    const action = await this.actionsRepo.findById(actionId, userId);
-    if (!action) {
+    const existing = await this.actionsRepo.findById(actionId, userId);
+    if (!existing) {
       throw new NotFoundException('Action not found');
     }
-    if (action.status !== 'PENDING') {
-      throw new BadRequestException(`Action is ${action.status}, not PENDING`);
+    if (existing.status !== 'PENDING') {
+      throw new BadRequestException(
+        `Action is ${existing.status}, not PENDING`,
+      );
     }
 
-    await this.actionsRepo.updateStatus(actionId, 'RUNNING');
+    const action = await this.actionsRepo.claimForExecution(actionId, userId);
+    if (!action) {
+      // Lost race to concurrent execute/cancel.
+      const raced = await this.actionsRepo.findById(actionId, userId);
+      if (!raced) {
+        throw new NotFoundException('Action not found');
+      }
+      throw new ConflictException(
+        `Action is ${raced.status}, not PENDING`,
+      );
+    }
 
     const payload = action.payload as Record<string, unknown>;
-    const result = await this.toolExecutor.execute(
-      {
-        userId,
-        sessionId: action.sessionId,
-        moduleSlug: null,
-        confirmBeforeActions: false,
-      },
-      action.actionType,
-      payload,
-    );
+    let result: Awaited<ReturnType<ToolExecutorService['execute']>>;
+    try {
+      result = await this.toolExecutor.execute(
+        {
+          userId,
+          sessionId: action.sessionId,
+          moduleSlug: null,
+          confirmBeforeActions: false,
+        },
+        action.actionType,
+        payload,
+      );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      await this.actionsRepo.updateStatus(actionId, 'FAILED', {
+        message: `Unexpected execution error: ${message}`,
+      });
+      const failed = await this.actionsRepo.findById(actionId, userId);
+      if (!failed) {
+        throw new NotFoundException('Action not found');
+      }
+      const summary = this.toSummary(failed);
+      this.emitActionUpdated(userId, summary, []);
+      return { action: summary, sideEffects: [] };
+    }
 
     const status = result.success ? 'SUCCESS' : 'FAILED';
     await this.actionsRepo.updateStatus(actionId, status, {
@@ -100,18 +129,25 @@ export class AiActionsService {
   }
 
   async cancel(actionId: string, userId: string): Promise<AiActionSummary> {
-    const action = await this.actionsRepo.findById(actionId, userId);
-    if (!action) {
+    const existing = await this.actionsRepo.findById(actionId, userId);
+    if (!existing) {
       throw new NotFoundException('Action not found');
     }
-    if (action.status !== 'PENDING') {
-      throw new BadRequestException(`Action is ${action.status}, not PENDING`);
+    if (existing.status !== 'PENDING') {
+      throw new BadRequestException(
+        `Action is ${existing.status}, not PENDING`,
+      );
     }
 
-    await this.actionsRepo.updateStatus(actionId, 'CANCELLED');
-    const updated = await this.actionsRepo.findById(actionId, userId);
+    const updated = await this.actionsRepo.claimForCancel(actionId, userId);
     if (!updated) {
-      throw new NotFoundException('Action not found');
+      const raced = await this.actionsRepo.findById(actionId, userId);
+      if (!raced) {
+        throw new NotFoundException('Action not found');
+      }
+      throw new ConflictException(
+        `Action is ${raced.status}, not PENDING`,
+      );
     }
     return this.toSummary(updated);
   }
@@ -123,12 +159,26 @@ export class AiActionsService {
     payload: Record<string, unknown>;
   }) {
     const tool = getToolDefinition(data.actionType);
+    if (!tool) {
+      throw new BadRequestException(`Unknown action type: ${data.actionType}`);
+    }
+    if (!tool.mutating) {
+      throw new BadRequestException(
+        `Action type ${data.actionType} is not a confirmable mutation`,
+      );
+    }
+
+    const validation = validateMutatingToolArgs(data.actionType, data.payload);
+    if (!validation.ok) {
+      throw new BadRequestException(validation.message);
+    }
+
     return this.actionsRepo.create({
       sessionId: data.sessionId,
       messageId: data.messageId,
       actionType: data.actionType,
-      targetModule: tool?.targetModule ?? 'core',
-      payload: data.payload,
+      targetModule: tool.targetModule,
+      payload: validation.data,
       status: 'PENDING',
     });
   }
