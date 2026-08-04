@@ -1,20 +1,32 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+    BadRequestException,
+    Injectable,
+    Logger,
+    NotFoundException,
+} from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { AppEvents } from '../../core/events/event.constants';
 import { SupabaseAdminService } from '../auth/supabase-admin.service';
-import {
-  DEFAULT_MODULE_CONFIG_BY_SLUG,
-  isModuleSlug,
-  type ModuleSlug,
-} from './defaults/user-settings-defaults';
 import { GLOBAL_USER_PREFERENCES_DEFAULTS } from './defaults/global-preferences-defaults';
+import {
+    DEFAULT_MODULE_CONFIG_BY_SLUG,
+    isModuleSlug,
+    type ModuleSlug,
+} from './defaults/user-settings-defaults';
 import { UpdateModuleConfigDto } from './dto/update-module-config.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { mergeWithDefaults } from './lib/settings-merge';
 import { UserWithModules, UsersRepository } from './users.repository';
 
+export type DeleteAccountResult = {
+  success: true;
+  authCleanupPending: boolean;
+};
+
 @Injectable()
 export class UsersService {
+  private readonly logger = new Logger(UsersService.name);
+
   constructor(
     private readonly usersRepository: UsersRepository,
     private readonly eventEmitter: EventEmitter2,
@@ -58,7 +70,10 @@ export class UsersService {
         dto.preferences,
         mergeWithDefaults(
           current.preferences as Record<string, unknown>,
-          GLOBAL_USER_PREFERENCES_DEFAULTS as unknown as Record<string, unknown>,
+          GLOBAL_USER_PREFERENCES_DEFAULTS as unknown as Record<
+            string,
+            unknown
+          >,
         ),
       );
     }
@@ -81,13 +96,19 @@ export class UsersService {
     return this.mapUser(updated);
   }
 
-  async updateModuleConfig(userId: string, slug: string, dto: UpdateModuleConfigDto) {
+  async updateModuleConfig(
+    userId: string,
+    slug: string,
+    dto: UpdateModuleConfigDto,
+  ) {
     if (!isModuleSlug(slug)) {
       throw new NotFoundException(`Module "${slug}" not found`);
     }
 
     if (dto.config === undefined && dto.isEnabled === undefined) {
-      throw new BadRequestException('Either config or isEnabled must be provided');
+      throw new BadRequestException(
+        'Either config or isEnabled must be provided',
+      );
     }
 
     const before = await this.findById(userId);
@@ -97,8 +118,13 @@ export class UsersService {
       throw new NotFoundException(`Module "${slug}" not found`);
     }
 
-    const defaults = DEFAULT_MODULE_CONFIG_BY_SLUG[slug] as unknown as Record<string, unknown>;
-    const existing = await this.usersRepository.findUserModule(userId, moduleRecord.id);
+    const defaults = DEFAULT_MODULE_CONFIG_BY_SLUG[
+      slug
+    ] as unknown as Record<string, unknown>;
+    const existing = await this.usersRepository.findUserModule(
+      userId,
+      moduleRecord.id,
+    );
 
     if (!existing && dto.config === undefined) {
       throw new BadRequestException(
@@ -145,15 +171,30 @@ export class UsersService {
     return this.findById(userId);
   }
 
-  async deleteAccount(userId: string) {
+  /**
+   * Deletes app data first (with outbox), then best-effort Supabase Auth wipe.
+   * Auth failures leave a retriable outbox row; app data is already gone.
+   */
+  async deleteAccount(userId: string): Promise<DeleteAccountResult> {
     const user = await this.usersRepository.findById(userId);
     if (!user) {
       throw new NotFoundException('User not found');
     }
 
-    await this.usersRepository.deleteById(userId);
-    await this.supabaseAdminService.deleteAuthUser(userId);
+    await this.usersRepository.deleteAccountWithAuthOutbox(userId);
 
-    return { success: true };
+    const authResult = await this.supabaseAdminService.tryDeleteAuthUser(userId);
+    if (authResult.ok) {
+      await this.usersRepository.markAuthOutboxCompleted(userId);
+      this.logger.log(
+        `account_deleted userId=${userId} authCleanupPending=false`,
+      );
+      return { success: true, authCleanupPending: false };
+    }
+
+    this.logger.warn(
+      `account_deleted userId=${userId} authCleanupPending=true reason=${authResult.message}`,
+    );
+    return { success: true, authCleanupPending: true };
   }
 }

@@ -596,6 +596,23 @@ export type EnumFinEmailSyncStatusWithAggregatesFilter<$PrismaModel = never> = {
   _max?: Prisma.NestedEnumFinEmailSyncStatusFilter<$PrismaModel>
 }
 
+export type EnumAuthDeletionOutboxStatusFilter<$PrismaModel = never> = {
+  equals?: $Enums.AuthDeletionOutboxStatus | Prisma.EnumAuthDeletionOutboxStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.AuthDeletionOutboxStatus[] | Prisma.ListEnumAuthDeletionOutboxStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.AuthDeletionOutboxStatus[] | Prisma.ListEnumAuthDeletionOutboxStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumAuthDeletionOutboxStatusFilter<$PrismaModel> | $Enums.AuthDeletionOutboxStatus
+}
+
+export type EnumAuthDeletionOutboxStatusWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.AuthDeletionOutboxStatus | Prisma.EnumAuthDeletionOutboxStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.AuthDeletionOutboxStatus[] | Prisma.ListEnumAuthDeletionOutboxStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.AuthDeletionOutboxStatus[] | Prisma.ListEnumAuthDeletionOutboxStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumAuthDeletionOutboxStatusWithAggregatesFilter<$PrismaModel> | $Enums.AuthDeletionOutboxStatus
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumAuthDeletionOutboxStatusFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumAuthDeletionOutboxStatusFilter<$PrismaModel>
+}
+
 export type NestedStringFilter<$PrismaModel = never> = {
   equals?: string | Prisma.StringFieldRefInput<$PrismaModel>
   in?: string[] | Prisma.ListStringFieldRefInput<$PrismaModel>
@@ -1135,6 +1152,23 @@ export type NestedEnumFinEmailSyncStatusWithAggregatesFilter<$PrismaModel = neve
   _count?: Prisma.NestedIntFilter<$PrismaModel>
   _min?: Prisma.NestedEnumFinEmailSyncStatusFilter<$PrismaModel>
   _max?: Prisma.NestedEnumFinEmailSyncStatusFilter<$PrismaModel>
+}
+
+export type NestedEnumAuthDeletionOutboxStatusFilter<$PrismaModel = never> = {
+  equals?: $Enums.AuthDeletionOutboxStatus | Prisma.EnumAuthDeletionOutboxStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.AuthDeletionOutboxStatus[] | Prisma.ListEnumAuthDeletionOutboxStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.AuthDeletionOutboxStatus[] | Prisma.ListEnumAuthDeletionOutboxStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumAuthDeletionOutboxStatusFilter<$PrismaModel> | $Enums.AuthDeletionOutboxStatus
+}
+
+export type NestedEnumAuthDeletionOutboxStatusWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.AuthDeletionOutboxStatus | Prisma.EnumAuthDeletionOutboxStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.AuthDeletionOutboxStatus[] | Prisma.ListEnumAuthDeletionOutboxStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.AuthDeletionOutboxStatus[] | Prisma.ListEnumAuthDeletionOutboxStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumAuthDeletionOutboxStatusWithAggregatesFilter<$PrismaModel> | $Enums.AuthDeletionOutboxStatus
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumAuthDeletionOutboxStatusFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumAuthDeletionOutboxStatusFilter<$PrismaModel>
 }
 
 

@@ -68,5 +68,5 @@ Pino + `requestId`. Logs estructurados en listeners: `event=<name> handled=true`
 
 ## Schedule / Bull Board
 
-- `ScheduleModule` montado **sin** jobs `@Cron` (reservado).
+- `ScheduleModule` montado; cron de `AuthDeletionOutboxProcessor` limpia Supabase Auth pendiente tras borrado de cuenta.
 - `@bull-board/*` en devDependencies **sin** wiring (reservado).

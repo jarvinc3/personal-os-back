@@ -22,8 +22,13 @@
     "db:pull": "prisma db pull",
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
+    "db:migrate:status": "prisma migrate status",
+    "db:migrate:deploy": "prisma migrate deploy",
+    "db:migrate:diff": "prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --script",
+    "db:migrate:resolve:applied": "prisma migrate resolve --applied",
     "db:migrate:reset": "prisma migrate reset",
     "db:generate": "prisma generate",
+    "db:validate": "prisma validate",
     "db:seed": "prisma db seed",
     "db:studio": "prisma studio",
     "db:reconcile-balances": "ts-node -r tsconfig-paths/register prisma/scripts/reconcile-balances.ts"

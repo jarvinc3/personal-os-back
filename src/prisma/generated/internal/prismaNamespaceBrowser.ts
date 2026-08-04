@@ -73,7 +73,8 @@ export const ModelName = {
   FinSavingsGoal: 'FinSavingsGoal',
   FinLoan: 'FinLoan',
   FinReceivable: 'FinReceivable',
-  FinEmailSyncLog: 'FinEmailSyncLog'
+  FinEmailSyncLog: 'FinEmailSyncLog',
+  AuthDeletionOutbox: 'AuthDeletionOutbox'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -466,6 +467,21 @@ export const FinEmailSyncLogScalarFieldEnum = {
 } as const
 
 export type FinEmailSyncLogScalarFieldEnum = (typeof FinEmailSyncLogScalarFieldEnum)[keyof typeof FinEmailSyncLogScalarFieldEnum]
+
+
+export const AuthDeletionOutboxScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  status: 'status',
+  attempts: 'attempts',
+  nextAttemptAt: 'nextAttemptAt',
+  lastError: 'lastError',
+  completedAt: 'completedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type AuthDeletionOutboxScalarFieldEnum = (typeof AuthDeletionOutboxScalarFieldEnum)[keyof typeof AuthDeletionOutboxScalarFieldEnum]
 
 
 export const SortOrder = {

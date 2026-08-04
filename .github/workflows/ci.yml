@@ -25,9 +25,9 @@ jobs:
       GOOGLE_REDIRECT_URI: http://localhost:3100/auth/google/callback
       ENCRYPTION_KEY: test-encryption-key-minimum-32-chars!!
       OAUTH_STATE_SECRET: test-oauth-state-secret-minimum-32chars
-      GROQ_API_KEY: ""
-      CEREBRAS_API_KEY: ""
-      OPENROUTER_API_KEY: ""
+      GROQ_API_KEY: ''
+      CEREBRAS_API_KEY: ''
+      OPENROUTER_API_KEY: ''
 
     steps:
       - name: Checkout
@@ -51,6 +51,12 @@ jobs:
       - name: Audit production dependencies
         continue-on-error: true
         run: pnpm audit --prod
+
+      - name: Prisma validate
+        run: pnpm db:validate
+
+      - name: Prisma generate
+        run: pnpm db:generate
 
       - name: Lint
         run: pnpm lint

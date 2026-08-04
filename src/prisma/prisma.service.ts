@@ -24,15 +24,15 @@ export class PrismaService
     const explicit = configService.get('DATABASE_SSL_REJECT_UNAUTHORIZED', {
       infer: true,
     });
-    /** Supabase pooler TLS chains often fail strict Node verification in prod; opt into strict via env for other hosts. */
-    const rejectUnauthorized = defaultRejectUnauthorized(
-      connectionString,
-      nodeEnv,
-      explicit,
-    );
+    const ca = configService.get('DATABASE_SSL_CA', { infer: true });
+
+    const rejectUnauthorized = defaultRejectUnauthorized(nodeEnv, explicit);
 
     const pool = new Pool(
-      poolConfigForPostgresUrl(connectionString, Boolean(rejectUnauthorized)),
+      poolConfigForPostgresUrl(connectionString, {
+        rejectUnauthorized,
+        ca,
+      }),
     );
     super({ adapter: new PrismaPg(pool) });
   }

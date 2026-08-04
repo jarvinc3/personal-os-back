@@ -132,3 +132,8 @@ export type FinReceivable = Prisma.FinReceivableModel
  * 
  */
 export type FinEmailSyncLog = Prisma.FinEmailSyncLogModel
+/**
+ * Model AuthDeletionOutbox
+ * 
+ */
+export type AuthDeletionOutbox = Prisma.AuthDeletionOutboxModel

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { parseStrictEnvBoolean } from './parse-env-boolean';
 
 const optionalApiKey = z
   .string()
@@ -9,6 +10,25 @@ const optionalApiKey = z
       return undefined;
     }
     return trimmed;
+  });
+
+/** true/false/1/0 only — never treat the string "false" as true. */
+const optionalStrictBoolean = z
+  .unknown()
+  .optional()
+  .transform((value, ctx) => {
+    try {
+      return parseStrictEnvBoolean(value, 'DATABASE_SSL_REJECT_UNAUTHORIZED');
+    } catch (error) {
+      ctx.addIssue({
+        code: 'custom',
+        message:
+          error instanceof Error
+            ? error.message
+            : 'Invalid boolean environment value',
+      });
+      return z.NEVER;
+    }
   });
 
 export const envSchema = z
@@ -86,7 +106,15 @@ export const envSchema = z
         }
         return false;
       }),
-    DATABASE_SSL_REJECT_UNAUTHORIZED: z.coerce.boolean().optional(),
+    DATABASE_SSL_REJECT_UNAUTHORIZED: optionalStrictBoolean,
+    /** PEM CA bundle for Postgres TLS (optional; uses system CAs when unset). */
+    DATABASE_SSL_CA: z
+      .string()
+      .optional()
+      .transform((value) => {
+        const trimmed = value?.trim();
+        return trimmed || undefined;
+      }),
     API_PREFIX: z
       .string()
       .default('api')

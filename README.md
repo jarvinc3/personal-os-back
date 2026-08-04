@@ -33,6 +33,8 @@ pnpm start:dev
 | Variable | Uso |
 | --- | --- |
 | `DATABASE_URL` | Postgres (Supabase) |
+| `DATABASE_SSL_REJECT_UNAUTHORIZED` | `true`/`false`/`1`/`0` only. Production default **true**. Nest/pg runtime only |
+| `DATABASE_SSL_CA` | Optional PEM CA for Postgres TLS (runtime pool) |
 | `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` | Auth JWKS + admin delete |
 | `ENCRYPTION_KEY` | Cifrado tokens Gmail (≥32) |
 | `OAUTH_STATE_SECRET` | JWT state OAuth (≥32; obligatorio en prod) |
@@ -41,6 +43,8 @@ pnpm start:dev
 | `GROQ_API_KEY` / … | Proveedores IA |
 
 **Auth:** JWT vía **JWKS**. No uses `SUPABASE_JWT_SECRET`.
+
+**TLS:** el pool Nest (`PrismaService`) controla `rejectUnauthorized` y CA vía env; **Prisma CLI** (`migrate`, `studio`) usa `DATABASE_URL`/`sslmode` sin esas variables.
 
 **Redis en development:** BullMQ solo si `REDIS_ENABLED=true` y `REDIS_URL`.
 
@@ -55,9 +59,16 @@ pnpm start:dev
 | `pnpm lint` | ESLint |
 | `pnpm test` | Unit tests |
 | `pnpm test:e2e` | E2E (health, auth, users, notifications, finance) |
-| `pnpm db:migrate` | Migraciones Prisma |
+| `pnpm db:migrate` | Migraciones Prisma (dev) |
+| `pnpm db:migrate:status` | Estado de migraciones |
+| `pnpm db:migrate:deploy` | Aplicar migraciones pendientes |
+| `pnpm db:migrate:diff` | Drift schema vs datasource |
+| `pnpm db:migrate:resolve:applied` | Marcar migración aplicada sin SQL |
+| `pnpm db:validate` / `pnpm db:generate` | Validar schema / generar client |
 | `pnpm db:reconcile-balances` | One-shot: recalcular balances y `amountSpent` desde ledger CONFIRMED |
 | `pnpm db:studio` | Prisma Studio |
+
+Operaciones de baseline en bases pobladas: ver `docs/db-history/README.md` (nunca `migrate reset` sobre datos reales).
 
 ## Invariantes de finanzas
 
@@ -87,7 +98,7 @@ Catálogo en `src/core/events/event.constants.ts`. Patrón: EventEmitter post-co
 
 `@bull-board/*` está en devDependencies pero **no está montado** (reservado).
 
-`ScheduleModule` está registrado sin crons (reservado).
+`ScheduleModule` registra crons (p. ej. `AuthDeletionOutboxProcessor` cada minuto para cleanup de Supabase Auth pendiente).
 
 ## Seguridad (production checklist)
 

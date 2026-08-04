@@ -139,3 +139,14 @@ export const AiSuggestionStatus = {
 } as const
 
 export type AiSuggestionStatus = (typeof AiSuggestionStatus)[keyof typeof AiSuggestionStatus]
+
+
+export const AuthDeletionOutboxStatus = {
+  PENDING: 'PENDING',
+  IN_PROGRESS: 'IN_PROGRESS',
+  COMPLETED: 'COMPLETED',
+  FAILED: 'FAILED',
+  DEAD: 'DEAD'
+} as const
+
+export type AuthDeletionOutboxStatus = (typeof AuthDeletionOutboxStatus)[keyof typeof AuthDeletionOutboxStatus]

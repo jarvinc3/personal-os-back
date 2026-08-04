@@ -1,8 +1,7 @@
 generator client {
-  provider        = "prisma-client"
-  output          = "../src/prisma/generated"
-  moduleFormat    = "cjs"
-  previewFeatures = ["partialIndexes"]
+  provider     = "prisma-client"
+  output       = "../src/prisma/generated"
+  moduleFormat = "cjs"
 }
 
 datasource db {
@@ -230,7 +229,7 @@ model FinTransaction {
   @@index([cardId, transactionDate], map: "fin_transactions_card_id_date_idx")
   @@index([userId, categoryId], map: "fin_transactions_user_id_category_idx")
   @@index([userId, transactionDate], map: "fin_transactions_user_id_date_idx")
-  @@index([transferGroupId], map: "fin_transactions_transfer_group_id_idx", where: "transfer_group_id IS NOT NULL")
+  @@index([transferGroupId], map: "fin_transactions_transfer_group_id_idx")
   @@map("fin_transactions")
 }
 
@@ -544,4 +543,31 @@ enum AiSuggestionStatus {
   PENDING
   ACCEPTED
   REJECTED
+}
+
+/// Async cleanup of Supabase Auth after app-row deletion.
+/// No FK to users — the user row is removed in the same transaction that creates this outbox entry.
+enum AuthDeletionOutboxStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+  DEAD
+
+  @@map("auth_deletion_outbox_status")
+}
+
+model AuthDeletionOutbox {
+  id            String                   @id @default(dbgenerated("(uuid_generate_v4())::text"))
+  userId        String                   @unique @map("user_id")
+  status        AuthDeletionOutboxStatus @default(PENDING)
+  attempts      Int                      @default(0)
+  nextAttemptAt DateTime                 @default(now()) @map("next_attempt_at") @db.Timestamptz(6)
+  lastError     String?                  @map("last_error")
+  completedAt   DateTime?                @map("completed_at") @db.Timestamptz(6)
+  createdAt     DateTime                 @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime                 @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([status, nextAttemptAt], map: "auth_deletion_outbox_status_next_attempt_idx")
+  @@map("auth_deletion_outbox")
 }
