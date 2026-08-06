@@ -1,6 +1,13 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsDateString, IsNumber, IsOptional, IsString, MaxLength } from 'class-validator';
+import {
+    IsDateString,
+    IsNumber,
+    IsOptional,
+    IsString,
+    MaxLength,
+} from 'class-validator';
+import { CurrencyField } from '../lib/finance-validation';
 
 export class CreateReceivableDto {
   @ApiProperty()
@@ -15,13 +22,11 @@ export class CreateReceivableDto {
 
   @ApiProperty()
   @Type(() => Number)
-  @IsNumber()
+  @IsNumber({ maxDecimalPlaces: 2 })
   amount!: number;
 
-  @ApiPropertyOptional({ default: 'DOP' })
-  @IsOptional()
-  @IsString()
-  @MaxLength(3)
+  @ApiPropertyOptional({ default: 'DOP', example: 'DOP' })
+  @CurrencyField()
   currency?: string;
 
   @ApiPropertyOptional()

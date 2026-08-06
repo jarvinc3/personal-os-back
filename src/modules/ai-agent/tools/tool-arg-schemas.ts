@@ -8,7 +8,11 @@ const dateString = z.union([
   z.string().datetime(),
 ]);
 const moneyAmount = z.number().finite();
-const currencyCode = z.string().trim().min(1).max(3);
+const currencyCode = z
+  .string()
+  .trim()
+  .transform((v) => v.toUpperCase())
+  .pipe(z.string().regex(/^[A-Z]{3}$/, 'currency must be a 3-letter ISO code'));
 const categoryId = z.string().trim().min(1).max(120);
 const optionalNullableString = (max: number) =>
   z.union([z.string().trim().max(max), z.null()]).optional();
@@ -178,7 +182,28 @@ export const createTransactionArgsSchema = z
     merchant: optionalNullableString(200),
     categoryId: z.union([categoryId, z.null()]).optional(),
   })
-  .strict();
+  .strict()
+  .superRefine((value, ctx) => {
+    const hasAccount = value.accountId != null;
+    const hasCard = value.cardId != null;
+    if (hasAccount === hasCard) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'Provide exactly one of accountId or cardId',
+      });
+    }
+    if (value.currency !== undefined && !/^[A-Z]{3}$/i.test(value.currency)) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['currency'],
+        message: 'currency must be a 3-letter ISO code',
+      });
+    }
+  })
+  .transform((value) => ({
+    ...value,
+    currency: value.currency?.trim().toUpperCase(),
+  }));
 
 export const createOrUpdateBudgetArgsSchema = z
   .object({

@@ -12,7 +12,9 @@ import type { UpdateAccountDto } from './dto/update-account.dto';
 import {
     adjustBudgetSpent,
     applyBalanceForTransaction,
+    resolveLedgerTarget,
 } from './lib/balance.helpers';
+import { normalizeCurrencyCode } from './lib/finance-validation';
 
 export type BudgetSpendSnapshot = {
   budgetId: string;
@@ -144,36 +146,29 @@ export class FinanceRepository {
     source: 'MANUAL' | 'EMAIL' | 'AI' = 'MANUAL',
   ): Promise<CreateTransactionResult | null> {
     return this.prisma.$transaction(async (tx) => {
-      if (!dto.accountId && !dto.cardId) {
-        return null;
-      }
-
-      const account = dto.accountId
-        ? await tx.finAccount.findFirst({
-            where: { id: dto.accountId, userId },
-          })
-        : null;
-      const card = dto.cardId
-        ? await tx.finCard.findFirst({
-            where: { id: dto.cardId, userId },
-          })
-        : null;
-
-      if (dto.accountId && !account) {
-        return null;
-      }
-      if (dto.cardId && !card) {
+      const target = await resolveLedgerTarget(
+        tx,
+        userId,
+        dto.accountId,
+        dto.cardId,
+      );
+      if (!target) {
         return null;
       }
 
       const status = dto.status ?? 'CONFIRMED';
-      const currency = dto.currency ?? account?.currency ?? 'DOP';
+      const currency =
+        (typeof dto.currency === 'string'
+          ? String(normalizeCurrencyCode(dto.currency))
+          : null) ??
+        target.currencyHint ??
+        'DOP';
 
       const created = await tx.finTransaction.create({
         data: {
           userId,
-          accountId: dto.accountId,
-          cardId: dto.cardId,
+          accountId: target.accountId,
+          cardId: target.cardId,
           type: dto.type,
           amount: dto.amount,
           amountBaseCurrency,
@@ -196,8 +191,10 @@ export class FinanceRepository {
 
       if (status === 'CONFIRMED') {
         await applyBalanceForTransaction(tx, {
-          accountId: dto.accountId,
-          cardId: dto.cardId,
+          accountId: target.accountId,
+          cardId: target.cardId,
+          cardType: target.cardType,
+          derivedAccountId: target.derivedAccountId,
           currency,
           type: dto.type,
           amount: dto.amount,
@@ -215,15 +212,31 @@ export class FinanceRepository {
     });
   }
 
-  findTransactionsByTransferGroupId(transferGroupId: string, userId: string) {
-    return this.prisma.finTransaction.findMany({
-      where: { transferGroupId, userId },
-      include: {
-        account: { select: { id: true, name: true } },
-        card: { select: { id: true, name: true } },
-      },
-      orderBy: { type: 'asc' },
-    });
+  private async loadCardContext(
+    tx: {
+      finCard: {
+        findFirst: (args: {
+          where: { id: string; userId: string };
+        }) => Promise<{ type: 'CREDIT' | 'DEBIT'; accountId: string | null } | null>;
+      };
+    },
+    userId: string,
+    cardId: string | null | undefined,
+  ) {
+    if (!cardId) {
+      return {
+        cardType: null as 'CREDIT' | 'DEBIT' | null,
+        derivedAccountId: null as string | null,
+      };
+    }
+    const card = await tx.finCard.findFirst({ where: { id: cardId, userId } });
+    if (!card) {
+      return { cardType: null, derivedAccountId: null };
+    }
+    return {
+      cardType: card.type,
+      derivedAccountId: card.type === 'DEBIT' ? card.accountId : null,
+    };
   }
 
   createTransfer(
@@ -232,43 +245,48 @@ export class FinanceRepository {
     amountBaseCurrency: number,
   ) {
     return this.prisma.$transaction(async (tx) => {
-      const hasFrom = Boolean(dto.fromAccountId || dto.fromCardId);
-      const hasTo = Boolean(dto.toAccountId || dto.toCardId);
-      if (!hasFrom || !hasTo) return null;
+      const fromTarget = await resolveLedgerTarget(
+        tx,
+        userId,
+        dto.fromAccountId,
+        dto.fromCardId,
+      );
+      const toTarget = await resolveLedgerTarget(
+        tx,
+        userId,
+        dto.toAccountId,
+        dto.toCardId,
+      );
+      if (!fromTarget || !toTarget) return null;
 
-      const fromKey = `${dto.fromAccountId ?? ''}:${dto.fromCardId ?? ''}`;
-      const toKey = `${dto.toAccountId ?? ''}:${dto.toCardId ?? ''}`;
+      const fromKey = `${fromTarget.accountId ?? ''}:${fromTarget.cardId ?? ''}`;
+      const toKey = `${toTarget.accountId ?? ''}:${toTarget.cardId ?? ''}`;
       if (fromKey === toKey) return null;
 
       const transferGroupId = randomUUID();
-      const currency = dto.currency ?? 'DOP';
+      const currency =
+        (typeof dto.currency === 'string'
+          ? String(normalizeCurrencyCode(dto.currency))
+          : null) ??
+        fromTarget.currencyHint ??
+        toTarget.currencyHint ??
+        'DOP';
       const status = dto.status ?? 'CONFIRMED';
       const transactionDate = new Date(dto.transactionDate);
 
       const createLeg = async (leg: {
         type: 'DEBIT' | 'CREDIT';
-        accountId?: string;
-        cardId?: string;
+        target: typeof fromTarget;
       }) => {
-        const account = leg.accountId
-          ? await tx.finAccount.findFirst({ where: { id: leg.accountId, userId } })
-          : null;
-        const card = leg.cardId
-          ? await tx.finCard.findFirst({ where: { id: leg.cardId, userId } })
-          : null;
-
-        if (leg.accountId && !account) return null;
-        if (leg.cardId && !card) return null;
-
         const created = await tx.finTransaction.create({
           data: {
             userId,
-            accountId: leg.accountId,
-            cardId: leg.cardId,
+            accountId: leg.target.accountId,
+            cardId: leg.target.cardId,
             type: leg.type,
             amount: dto.amount,
             amountBaseCurrency,
-            currency: currency ?? account?.currency ?? 'DOP',
+            currency,
             description: dto.description,
             notes: dto.notes,
             source: 'MANUAL',
@@ -284,9 +302,11 @@ export class FinanceRepository {
 
         if (status === 'CONFIRMED') {
           await applyBalanceForTransaction(tx, {
-            accountId: leg.accountId,
-            cardId: leg.cardId,
-            currency: created.currency,
+            accountId: leg.target.accountId,
+            cardId: leg.target.cardId,
+            cardType: leg.target.cardType,
+            derivedAccountId: leg.target.derivedAccountId,
+            currency,
             type: leg.type,
             amount: dto.amount,
           });
@@ -295,21 +315,21 @@ export class FinanceRepository {
         return created;
       };
 
-      const debit = await createLeg({
-        type: 'DEBIT',
-        accountId: dto.fromAccountId,
-        cardId: dto.fromCardId,
-      });
-      if (!debit) return null;
-
-      const credit = await createLeg({
-        type: 'CREDIT',
-        accountId: dto.toAccountId,
-        cardId: dto.toCardId,
-      });
-      if (!credit) return null;
+      const debit = await createLeg({ type: 'DEBIT', target: fromTarget });
+      const credit = await createLeg({ type: 'CREDIT', target: toTarget });
 
       return { debit, credit, transferGroupId };
+    });
+  }
+
+  findTransactionsByTransferGroupId(transferGroupId: string, userId: string) {
+    return this.prisma.finTransaction.findMany({
+      where: { transferGroupId, userId },
+      include: {
+        account: { select: { id: true, name: true } },
+        card: { select: { id: true, name: true } },
+      },
+      orderBy: { type: 'asc' },
     });
   }
 
@@ -322,9 +342,12 @@ export class FinanceRepository {
 
       for (const row of rows) {
         if (row.status === 'CONFIRMED') {
+          const ctx = await this.loadCardContext(tx, userId, row.cardId);
           await applyBalanceForTransaction(tx, {
             accountId: row.accountId,
             cardId: row.cardId,
+            cardType: ctx.cardType,
+            derivedAccountId: ctx.derivedAccountId,
             currency: row.currency,
             type: row.type,
             amount: Number(row.amount),
@@ -356,9 +379,12 @@ export class FinanceRepository {
       const budgetSnapshots: BudgetSpendSnapshot[] = [];
 
       for (const row of rows) {
+        const ctx = await this.loadCardContext(tx, userId, row.cardId);
         await applyBalanceForTransaction(tx, {
           accountId: row.accountId,
           cardId: row.cardId,
+          cardType: ctx.cardType,
+          derivedAccountId: ctx.derivedAccountId,
           currency: row.currency,
           type: row.type,
           amount: Number(row.amount),
@@ -393,23 +419,37 @@ export class FinanceRepository {
       });
       if (!existing) return null;
 
-      if (typeof data.accountId === 'string') {
-        const account = await tx.finAccount.findFirst({
-          where: { id: data.accountId, userId },
-        });
-        if (!account) return null;
-      }
-      if (typeof data.cardId === 'string') {
-        const card = await tx.finCard.findFirst({
-          where: { id: data.cardId, userId },
-        });
-        if (!card) return null;
+      const nextAccountId =
+        data.accountId !== undefined
+          ? (data.accountId as string | null)
+          : existing.accountId;
+      const nextCardId =
+        data.cardId !== undefined
+          ? (data.cardId as string | null)
+          : existing.cardId;
+
+      const nextTarget = await resolveLedgerTarget(
+        tx,
+        userId,
+        nextAccountId,
+        nextCardId,
+      );
+      if (!nextTarget) return null;
+
+      // Persist resolved XOR
+      data.accountId = nextTarget.accountId;
+      data.cardId = nextTarget.cardId;
+      if (typeof data.currency === 'string') {
+        data.currency = String(normalizeCurrencyCode(data.currency));
       }
 
       if (existing.status === 'CONFIRMED') {
+        const prev = await this.loadCardContext(tx, userId, existing.cardId);
         await applyBalanceForTransaction(tx, {
           accountId: existing.accountId,
           cardId: existing.cardId,
+          cardType: prev.cardType,
+          derivedAccountId: prev.derivedAccountId,
           currency: existing.currency,
           type: existing.type,
           amount: Number(existing.amount),
@@ -444,6 +484,8 @@ export class FinanceRepository {
         await applyBalanceForTransaction(tx, {
           accountId: updated.accountId,
           cardId: updated.cardId,
+          cardType: nextTarget.cardType,
+          derivedAccountId: nextTarget.derivedAccountId,
           currency: updated.currency,
           type: updated.type,
           amount: Number(updated.amount),
@@ -469,9 +511,12 @@ export class FinanceRepository {
       if (!existing) return { count: 0 };
 
       if (existing.status === 'CONFIRMED') {
+        const ctx = await this.loadCardContext(tx, userId, existing.cardId);
         await applyBalanceForTransaction(tx, {
           accountId: existing.accountId,
           cardId: existing.cardId,
+          cardType: ctx.cardType,
+          derivedAccountId: ctx.derivedAccountId,
           currency: existing.currency,
           type: existing.type,
           amount: Number(existing.amount),
@@ -513,9 +558,12 @@ export class FinanceRepository {
           : null;
       }
 
+      const ctx = await this.loadCardContext(tx, userId, existing.cardId);
       await applyBalanceForTransaction(tx, {
         accountId: existing.accountId,
         cardId: existing.cardId,
+        cardType: ctx.cardType,
+        derivedAccountId: ctx.derivedAccountId,
         currency: existing.currency,
         type: existing.type,
         amount: Number(existing.amount),
@@ -590,8 +638,15 @@ export class FinanceRepository {
   }
 
   createCard(userId: string, data: Omit<Prisma.FinCardUncheckedCreateInput, 'userId'>) {
+    const payload = { ...data };
+    if (payload.type === 'CREDIT') {
+      payload.accountId = null;
+    }
+    if (typeof payload.lastFour === 'string') {
+      payload.lastFour = payload.lastFour.trim();
+    }
     return this.prisma.finCard.create({
-      data: { ...data, userId },
+      data: { ...payload, userId },
       include: { institution: true, balances: true, account: { select: { id: true, name: true } } },
     });
   }
@@ -611,7 +666,10 @@ export class FinanceRepository {
       const card = await tx.finCard.findFirst({ where: { id: cardId, userId } });
       if (!card) return null;
 
-      const existing = await tx.finCardBalance.findFirst({ where: { cardId, currency } });
+      const normalizedCurrency = String(normalizeCurrencyCode(currency));
+      const existing = await tx.finCardBalance.findFirst({
+        where: { cardId, currency: normalizedCurrency },
+      });
       if (existing) {
         return tx.finCardBalance.update({
           where: { id: existing.id },
@@ -622,7 +680,12 @@ export class FinanceRepository {
         });
       }
       return tx.finCardBalance.create({
-        data: { cardId, currency, balance, ...(creditLimit !== undefined ? { creditLimit } : {}) },
+        data: {
+          cardId,
+          currency: normalizedCurrency,
+          balance,
+          ...(creditLimit !== undefined ? { creditLimit } : {}),
+        },
       });
     });
   }
@@ -801,6 +864,7 @@ export class FinanceRepository {
         tokenExpiresAt: true,
         bankDomain: true,
         accountId: true,
+        cardId: true,
         lastMessageId: true,
         lastSyncedAt: true,
         isActive: true,
@@ -816,6 +880,7 @@ export class FinanceRepository {
       tokenExpiresAt: Date;
       emailAddress?: string;
       accountId?: string | null;
+      cardId?: string | null;
     },
   ) {
     return this.prisma.finEmailSource.update({
@@ -826,6 +891,7 @@ export class FinanceRepository {
         tokenExpiresAt: data.tokenExpiresAt,
         ...(data.emailAddress ? { emailAddress: data.emailAddress } : {}),
         ...(data.accountId !== undefined ? { accountId: data.accountId } : {}),
+        ...(data.cardId !== undefined ? { cardId: data.cardId } : {}),
       },
     });
   }
@@ -839,7 +905,8 @@ export class FinanceRepository {
   createEmailPendingTransaction(
     userId: string,
     data: {
-      accountId: string;
+      accountId?: string;
+      cardId?: string;
       emailMessageId: string;
       amount: number;
       currency: string;
@@ -850,26 +917,39 @@ export class FinanceRepository {
       type?: 'DEBIT' | 'CREDIT';
     },
   ) {
-    return this.prisma.finTransaction.create({
-      data: {
+    return this.prisma.$transaction(async (tx) => {
+      const target = await resolveLedgerTarget(
+        tx,
         userId,
-        accountId: data.accountId,
-        type: data.type ?? 'DEBIT',
-        amount: data.amount,
-        amountBaseCurrency: data.amount,
-        currency: data.currency,
-        merchant: data.merchant,
-        description: data.description,
-        transactionDate: data.transactionDate,
-        status: 'PENDING',
-        source: 'EMAIL',
-        emailMessageId: data.emailMessageId,
-        categoryId: data.categoryId ?? undefined,
-      },
-      include: {
-        account: { select: { id: true, name: true } },
-        card: { select: { id: true, name: true } },
-      },
+        data.accountId,
+        data.cardId,
+      );
+      if (!target) {
+        throw new Error('Email import target account or card is invalid');
+      }
+
+      return tx.finTransaction.create({
+        data: {
+          userId,
+          accountId: target.accountId,
+          cardId: target.cardId,
+          type: data.type ?? 'DEBIT',
+          amount: data.amount,
+          amountBaseCurrency: data.amount,
+          currency: String(normalizeCurrencyCode(data.currency) ?? data.currency),
+          merchant: data.merchant,
+          description: data.description,
+          transactionDate: data.transactionDate,
+          status: 'PENDING',
+          source: 'EMAIL',
+          emailMessageId: data.emailMessageId,
+          categoryId: data.categoryId ?? undefined,
+        },
+        include: {
+          account: { select: { id: true, name: true } },
+          card: { select: { id: true, name: true } },
+        },
+      });
     });
   }
 

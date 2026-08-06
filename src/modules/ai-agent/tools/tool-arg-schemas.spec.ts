@@ -34,10 +34,12 @@ describe('tool-arg-schemas', () => {
   });
 
   it('rejects invalid create_transaction types and amounts', () => {
+    const accountId = '550e8400-e29b-41d4-a716-446655440000';
     const badType = validateMutatingToolArgs('create_transaction', {
       type: 'WITHDRAWAL',
       amount: 10,
       transactionDate: '2024-01-15',
+      accountId,
     });
     expect(badType.ok).toBe(false);
 
@@ -45,16 +47,38 @@ describe('tool-arg-schemas', () => {
       type: 'DEBIT',
       amount: Number.NaN,
       transactionDate: '2024-01-15',
+      accountId,
     });
     expect(nanAmount.ok).toBe(false);
 
-    const valid = validateMutatingToolArgs('create_transaction', {
+    const missingTarget = validateMutatingToolArgs('create_transaction', {
       type: 'DEBIT',
       amount: 42.5,
       transactionDate: '2024-01-15',
       currency: 'DOP',
     });
+    expect(missingTarget.ok).toBe(false);
+
+    const bothTargets = validateMutatingToolArgs('create_transaction', {
+      type: 'DEBIT',
+      amount: 42.5,
+      transactionDate: '2024-01-15',
+      accountId,
+      cardId: '660e8400-e29b-41d4-a716-446655440000',
+    });
+    expect(bothTargets.ok).toBe(false);
+
+    const valid = validateMutatingToolArgs('create_transaction', {
+      type: 'DEBIT',
+      amount: 42.5,
+      transactionDate: '2024-01-15',
+      currency: 'dop',
+      accountId,
+    });
     expect(valid.ok).toBe(true);
+    if (valid.ok) {
+      expect(valid.data.currency).toBe('DOP');
+    }
   });
 
   it('requires fields for budget create and at least one for update', () => {

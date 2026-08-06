@@ -33,8 +33,10 @@ export class GmailSyncProcessor extends WorkerHost {
       return;
     }
 
-    if (!source.accountId) {
-      this.logger.warn(`Gmail sync source ${sourceId} has no linked account — skipping`);
+    if (!source.accountId && !source.cardId) {
+      this.logger.warn(
+        `Gmail sync source ${sourceId} has no linked account or card — skipping`,
+      );
       return;
     }
 
@@ -81,7 +83,8 @@ export class GmailSyncProcessor extends WorkerHost {
             }
 
             const created = await this.financeRepo.createEmailPendingTransaction(userId, {
-              accountId: source.accountId,
+              accountId: source.accountId ?? undefined,
+              cardId: source.cardId ?? undefined,
               emailMessageId: messageRef.id,
               amount: parsed.amount,
               currency: parsed.currency,

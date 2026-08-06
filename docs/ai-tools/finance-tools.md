@@ -85,19 +85,21 @@ Returns spending totals grouped by category.
 
 Creates a manual or agent-initiated transaction.
 
-| Parameter         | Type           | Required | Description                      |
-| ----------------- | -------------- | -------- | -------------------------------- |
-| `type`            | string         | yes      | `DEBIT`, `CREDIT`, `TRANSFER`    |
-| `amount`          | number         | yes      | Transaction amount               |
-| `transactionDate` | string         | yes      | ISO date                         |
-| `accountId`       | string \| null | no       | Target account                   |
-| `cardId`          | string \| null | no       | Target card                      |
-| `currency`        | string         | no       | ISO 4217 (defaults from account) |
-| `description`     | string \| null | no       | Free text                        |
-| `merchant`        | string \| null | no       | Merchant name                    |
-| `categoryId`      | string \| null | no       | Category UUID                    |
+| Parameter         | Type           | Required    | Description                              |
+| ----------------- | -------------- | ----------- | ---------------------------------------- |
+| `type`            | string         | yes         | `DEBIT`, `CREDIT`, `TRANSFER`            |
+| `amount`          | number         | yes         | Transaction amount                       |
+| `transactionDate` | string         | yes         | ISO date                                 |
+| `accountId`       | string \| null | exactly one | Target account (XOR with cardId)         |
+| `cardId`          | string \| null | exactly one | Target card (XOR with accountId)         |
+| `currency`        | string         | no          | ISO 4217 3-letter, uppercased            |
+| `description`     | string \| null | no          | Free text                                |
+| `merchant`        | string \| null | no          | Merchant name                            |
+| `categoryId`      | string \| null | no          | Category UUID                            |
 
 **Delegates to:** `FinanceService.createTransaction`
+
+**Invariants:** exactly one of `accountId` / `cardId`; credit cards update `FinCardBalance`; debit cards update the linked account.
 
 ---
 
@@ -172,7 +174,7 @@ Enqueues a Gmail sync job for one email source.
 
 **Delegates to:** `FinanceService.triggerEmailSync` → BullMQ queue `gmail-sync`
 
-**Note:** Current processor is a placeholder; it updates sync logs and timestamps without parsing emails yet.
+**Note:** Worker `GmailSyncProcessor` lists Gmail messages, runs bank HTML parsers, and inserts `PENDING` transactions on the linked `accountId` or `cardId`.
 
 ---
 

@@ -77,7 +77,6 @@ export class FinanceService {
     institutionId: string | null;
     currency: string;
     balance: { toString(): string };
-    creditLimit: { toString(): string } | null;
     color: string | null;
     isActive: boolean;
     createdAt: Date;
@@ -92,7 +91,6 @@ export class FinanceService {
       institutionId: account.institutionId,
       currency: account.currency,
       balance: decimalToString(account.balance),
-      creditLimit: account.creditLimit ? decimalToString(account.creditLimit) : null,
       color: account.color,
       isActive: account.isActive,
       createdAt: account.createdAt.toISOString(),
@@ -217,7 +215,9 @@ export class FinanceService {
     );
 
     if (!created) {
-      throw new NotFoundException('Account not found');
+      throw new BadRequestException(
+        'Provide a valid accountId or cardId (exactly one)',
+      );
     }
 
     this.eventEmitter.emit(
@@ -419,12 +419,75 @@ export class FinanceService {
   }
 
   async createCard(userId: string, dto: CreateCardDto) {
-    const created = await this.financeRepo.createCard(userId, dto);
+    if (dto.type === 'DEBIT') {
+      if (!dto.accountId) {
+        throw new BadRequestException('DEBIT cards require accountId');
+      }
+      await this.assertAccountOwnership(userId, dto.accountId);
+    }
+    if (dto.type === 'CREDIT' && dto.accountId) {
+      throw new BadRequestException('CREDIT cards must not set accountId');
+    }
+
+    await this.assertInstitutionOwnership(userId, dto.institutionId);
+
+    const created = await this.financeRepo.createCard(userId, {
+      institutionId: dto.institutionId,
+      accountId: dto.type === 'DEBIT' ? dto.accountId : null,
+      name: dto.name,
+      type: dto.type,
+      network: dto.network,
+      lastFour: dto.lastFour,
+      statementClosingDay: dto.statementClosingDay,
+      paymentDueDay: dto.paymentDueDay,
+      color: dto.color,
+    });
     return this.mapCard(created);
   }
 
+  private async assertInstitutionOwnership(userId: string, institutionId: string) {
+    const items = await this.financeRepo.listInstitutions(userId);
+    const found = items.find((item) => item.id === institutionId);
+    if (!found) {
+      throw new BadRequestException('Institution not found');
+    }
+    return found;
+  }
+
   async updateCard(userId: string, id: string, dto: UpdateCardDto) {
-    const updated = await this.financeRepo.updateCard(userId, id, dto);
+    const existing = await this.financeRepo.findCardById(userId, id);
+    if (!existing) throw new NotFoundException('Card not found');
+
+    const nextType = dto.type ?? existing.type;
+    if (nextType === 'DEBIT') {
+      const nextAccountId =
+        dto.accountId !== undefined ? dto.accountId : existing.accountId;
+      if (!nextAccountId) {
+        throw new BadRequestException('DEBIT cards require accountId');
+      }
+      await this.assertAccountOwnership(userId, nextAccountId);
+    }
+    if (nextType === 'CREDIT' && dto.accountId) {
+      throw new BadRequestException('CREDIT cards must not set accountId');
+    }
+
+    const updated = await this.financeRepo.updateCard(userId, id, {
+      ...(dto.institutionId ? { institutionId: dto.institutionId } : {}),
+      ...(dto.name ? { name: dto.name } : {}),
+      ...(dto.type ? { type: dto.type } : {}),
+      ...(dto.network !== undefined ? { network: dto.network } : {}),
+      ...(dto.lastFour !== undefined ? { lastFour: dto.lastFour } : {}),
+      ...(dto.statementClosingDay !== undefined
+        ? { statementClosingDay: dto.statementClosingDay }
+        : {}),
+      ...(dto.paymentDueDay !== undefined ? { paymentDueDay: dto.paymentDueDay } : {}),
+      ...(dto.color !== undefined ? { color: dto.color } : {}),
+      ...(nextType === 'CREDIT'
+        ? { accountId: null }
+        : dto.accountId !== undefined
+          ? { accountId: dto.accountId }
+          : {}),
+    });
     if (!updated) throw new NotFoundException('Card not found');
     return this.mapCard(updated);
   }
@@ -609,23 +672,41 @@ export class FinanceService {
   }
 
   createEmailSource(userId: string, dto: ConnectEmailSourceDto) {
+    if (dto.accountId && dto.cardId) {
+      throw new BadRequestException('Provide at most one of accountId or cardId');
+    }
     return this.financeRepo.createEmailSource(userId, {
       provider: 'gmail',
       emailAddress: dto.emailAddress,
       bankDomain: dto.bankDomain,
       label: dto.label,
       accountId: dto.accountId,
+      cardId: dto.cardId,
       isActive: true,
     });
   }
 
   async updateEmailSource(userId: string, id: string, dto: UpdateEmailSourceDto) {
+    if (dto.accountId && dto.cardId) {
+      throw new BadRequestException('Provide at most one of accountId or cardId');
+    }
     if (dto.accountId) {
       await this.assertAccountOwnership(userId, dto.accountId);
     }
+    if (dto.cardId) {
+      const card = await this.financeRepo.findCardById(userId, dto.cardId);
+      if (!card) throw new BadRequestException('Card not found');
+    }
 
     const data: Prisma.FinEmailSourceUncheckedUpdateInput = {};
-    if (dto.accountId !== undefined) data.accountId = dto.accountId;
+    if (dto.accountId !== undefined) {
+      data.accountId = dto.accountId;
+      if (dto.accountId) data.cardId = null;
+    }
+    if (dto.cardId !== undefined) {
+      data.cardId = dto.cardId;
+      if (dto.cardId) data.accountId = null;
+    }
     if (dto.label !== undefined) data.label = dto.label;
     if (dto.bankDomain !== undefined) data.bankDomain = dto.bankDomain.trim();
 
@@ -943,6 +1024,7 @@ export class FinanceService {
     bankDomain: string;
     label: string | null;
     accountId: string | null;
+    cardId?: string | null;
     provider: string;
     isActive: boolean;
     lastSyncedAt: Date | null;
@@ -963,6 +1045,7 @@ export class FinanceService {
       bankDomain: source.bankDomain,
       label: source.label,
       accountId: source.accountId,
+      cardId: source.cardId ?? null,
       provider: source.provider,
       isActive: source.isActive,
       lastSyncedAt: source.lastSyncedAt?.toISOString() ?? null,

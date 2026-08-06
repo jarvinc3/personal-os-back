@@ -64,17 +64,19 @@ describe('ToolExecutorService', () => {
     (financeService.createTransaction as jest.Mock).mockResolvedValue({
       id: 'tx-1',
     });
+    const accountId = '550e8400-e29b-41d4-a716-446655440000';
 
     const result = await executor.execute(ctx, 'create_transaction', {
       type: 'DEBIT',
       amount: 12.5,
       transactionDate: '2024-01-15',
       currency: 'DOP',
+      accountId,
     });
 
     expect(result.success).toBe(true);
     expect(financeService.createTransaction).toHaveBeenCalledWith('user-1', {
-      accountId: undefined,
+      accountId,
       cardId: undefined,
       type: 'DEBIT',
       amount: 12.5,
@@ -105,6 +107,7 @@ describe('ToolExecutorService', () => {
       type: 'DEBIT',
       amount: 10,
       transactionDate: '2024-01-15',
+      accountId: '550e8400-e29b-41d4-a716-446655440000',
     });
 
     expect(result.success).toBe(false);

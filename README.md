@@ -68,14 +68,18 @@ pnpm start:dev
 | `pnpm db:reconcile-balances` | One-shot: recalcular balances y `amountSpent` desde ledger CONFIRMED |
 | `pnpm db:studio` | Prisma Studio |
 
-Operaciones de baseline en bases pobladas: ver `docs/db-history/README.md` (nunca `migrate reset` sobre datos reales).
+Operaciones de baseline en bases pobladas: no uses `migrate reset` sobre datos reales. Usa `pnpm db:migrate:deploy` para aplicar migraciones pendientes y `pnpm db:migrate:status` / `pnpm db:migrate:diff` para verificar drift.
 
 ## Invariantes de finanzas
 
-- Solo transacciones **`CONFIRMED`** mueven `FinAccount.balance` / `FinCardBalance`.
+- Solo transacciones **`CONFIRMED`** mueven saldos.
+- Cada transacción debe apuntar a **exactamente uno** de `accountId` o `cardId` (XOR).
+- Tarjeta **CREDIT** → mueve `FinCardBalance` por moneda.
+- Tarjeta **DEBIT** → requiere `accountId` en la tarjeta y mueve la cuenta subyacente (no el balance de tarjeta).
+- Cuenta bancaria → mueve `FinAccount.balance`.
 - `PENDING` (manual o EMAIL) no mueve saldo hasta confirm.
 - Delete/update de `CONFIRMED` compensa saldo y `FinBudget.amountSpent` en la misma transacción.
-- Tras datos legacy, ejecutar `pnpm db:reconcile-balances` en staging.
+- Monedas se normalizan a ISO 4217 de 3 letras (`DOP`, `USD`, …).
 
 ## Eventos (selectivo)
 

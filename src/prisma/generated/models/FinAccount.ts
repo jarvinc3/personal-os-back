@@ -28,16 +28,10 @@ export type AggregateFinAccount = {
 
 export type FinAccountAvgAggregateOutputType = {
   balance: runtime.Decimal | null
-  creditLimit: runtime.Decimal | null
-  statementClosingDay: number | null
-  paymentDueDay: number | null
 }
 
 export type FinAccountSumAggregateOutputType = {
   balance: runtime.Decimal | null
-  creditLimit: runtime.Decimal | null
-  statementClosingDay: number | null
-  paymentDueDay: number | null
 }
 
 export type FinAccountMinAggregateOutputType = {
@@ -49,9 +43,6 @@ export type FinAccountMinAggregateOutputType = {
   institution: string | null
   currency: string | null
   balance: runtime.Decimal | null
-  creditLimit: runtime.Decimal | null
-  statementClosingDay: number | null
-  paymentDueDay: number | null
   color: string | null
   isActive: boolean | null
   createdAt: Date | null
@@ -67,9 +58,6 @@ export type FinAccountMaxAggregateOutputType = {
   institution: string | null
   currency: string | null
   balance: runtime.Decimal | null
-  creditLimit: runtime.Decimal | null
-  statementClosingDay: number | null
-  paymentDueDay: number | null
   color: string | null
   isActive: boolean | null
   createdAt: Date | null
@@ -85,9 +73,6 @@ export type FinAccountCountAggregateOutputType = {
   institution: number
   currency: number
   balance: number
-  creditLimit: number
-  statementClosingDay: number
-  paymentDueDay: number
   color: number
   isActive: number
   createdAt: number
@@ -98,16 +83,10 @@ export type FinAccountCountAggregateOutputType = {
 
 export type FinAccountAvgAggregateInputType = {
   balance?: true
-  creditLimit?: true
-  statementClosingDay?: true
-  paymentDueDay?: true
 }
 
 export type FinAccountSumAggregateInputType = {
   balance?: true
-  creditLimit?: true
-  statementClosingDay?: true
-  paymentDueDay?: true
 }
 
 export type FinAccountMinAggregateInputType = {
@@ -119,9 +98,6 @@ export type FinAccountMinAggregateInputType = {
   institution?: true
   currency?: true
   balance?: true
-  creditLimit?: true
-  statementClosingDay?: true
-  paymentDueDay?: true
   color?: true
   isActive?: true
   createdAt?: true
@@ -137,9 +113,6 @@ export type FinAccountMaxAggregateInputType = {
   institution?: true
   currency?: true
   balance?: true
-  creditLimit?: true
-  statementClosingDay?: true
-  paymentDueDay?: true
   color?: true
   isActive?: true
   createdAt?: true
@@ -155,9 +128,6 @@ export type FinAccountCountAggregateInputType = {
   institution?: true
   currency?: true
   balance?: true
-  creditLimit?: true
-  statementClosingDay?: true
-  paymentDueDay?: true
   color?: true
   isActive?: true
   createdAt?: true
@@ -260,9 +230,6 @@ export type FinAccountGroupByOutputType = {
   institution: string | null
   currency: string
   balance: runtime.Decimal
-  creditLimit: runtime.Decimal | null
-  statementClosingDay: number | null
-  paymentDueDay: number | null
   color: string | null
   isActive: boolean
   createdAt: Date
@@ -301,9 +268,6 @@ export type FinAccountWhereInput = {
   institution?: Prisma.StringNullableFilter<"FinAccount"> | string | null
   currency?: Prisma.StringFilter<"FinAccount"> | string
   balance?: Prisma.DecimalFilter<"FinAccount"> | runtime.Decimal | runtime.DecimalJsLike | number | string
-  creditLimit?: Prisma.DecimalNullableFilter<"FinAccount"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
-  statementClosingDay?: Prisma.IntNullableFilter<"FinAccount"> | number | null
-  paymentDueDay?: Prisma.IntNullableFilter<"FinAccount"> | number | null
   color?: Prisma.StringNullableFilter<"FinAccount"> | string | null
   isActive?: Prisma.BoolFilter<"FinAccount"> | boolean
   createdAt?: Prisma.DateTimeFilter<"FinAccount"> | Date | string
@@ -325,9 +289,6 @@ export type FinAccountOrderByWithRelationInput = {
   institution?: Prisma.SortOrderInput | Prisma.SortOrder
   currency?: Prisma.SortOrder
   balance?: Prisma.SortOrder
-  creditLimit?: Prisma.SortOrderInput | Prisma.SortOrder
-  statementClosingDay?: Prisma.SortOrderInput | Prisma.SortOrder
-  paymentDueDay?: Prisma.SortOrderInput | Prisma.SortOrder
   color?: Prisma.SortOrderInput | Prisma.SortOrder
   isActive?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -352,9 +313,6 @@ export type FinAccountWhereUniqueInput = Prisma.AtLeast<{
   institution?: Prisma.StringNullableFilter<"FinAccount"> | string | null
   currency?: Prisma.StringFilter<"FinAccount"> | string
   balance?: Prisma.DecimalFilter<"FinAccount"> | runtime.Decimal | runtime.DecimalJsLike | number | string
-  creditLimit?: Prisma.DecimalNullableFilter<"FinAccount"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
-  statementClosingDay?: Prisma.IntNullableFilter<"FinAccount"> | number | null
-  paymentDueDay?: Prisma.IntNullableFilter<"FinAccount"> | number | null
   color?: Prisma.StringNullableFilter<"FinAccount"> | string | null
   isActive?: Prisma.BoolFilter<"FinAccount"> | boolean
   createdAt?: Prisma.DateTimeFilter<"FinAccount"> | Date | string
@@ -376,9 +334,6 @@ export type FinAccountOrderByWithAggregationInput = {
   institution?: Prisma.SortOrderInput | Prisma.SortOrder
   currency?: Prisma.SortOrder
   balance?: Prisma.SortOrder
-  creditLimit?: Prisma.SortOrderInput | Prisma.SortOrder
-  statementClosingDay?: Prisma.SortOrderInput | Prisma.SortOrder
-  paymentDueDay?: Prisma.SortOrderInput | Prisma.SortOrder
   color?: Prisma.SortOrderInput | Prisma.SortOrder
   isActive?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -402,9 +357,6 @@ export type FinAccountScalarWhereWithAggregatesInput = {
   institution?: Prisma.StringNullableWithAggregatesFilter<"FinAccount"> | string | null
   currency?: Prisma.StringWithAggregatesFilter<"FinAccount"> | string
   balance?: Prisma.DecimalWithAggregatesFilter<"FinAccount"> | runtime.Decimal | runtime.DecimalJsLike | number | string
-  creditLimit?: Prisma.DecimalNullableWithAggregatesFilter<"FinAccount"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
-  statementClosingDay?: Prisma.IntNullableWithAggregatesFilter<"FinAccount"> | number | null
-  paymentDueDay?: Prisma.IntNullableWithAggregatesFilter<"FinAccount"> | number | null
   color?: Prisma.StringNullableWithAggregatesFilter<"FinAccount"> | string | null
   isActive?: Prisma.BoolWithAggregatesFilter<"FinAccount"> | boolean
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"FinAccount"> | Date | string
@@ -418,9 +370,6 @@ export type FinAccountCreateInput = {
   institution?: string | null
   currency?: string
   balance?: runtime.Decimal | runtime.DecimalJsLike | number | string
-  creditLimit?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
-  statementClosingDay?: number | null
-  paymentDueDay?: number | null
   color?: string | null
   isActive?: boolean
   createdAt?: Date | string
@@ -442,9 +391,6 @@ export type FinAccountUncheckedCreateInput = {
   institution?: string | null
   currency?: string
   balance?: runtime.Decimal | runtime.DecimalJsLike | number | string
-  creditLimit?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
-  statementClosingDay?: number | null
-  paymentDueDay?: number | null
   color?: string | null
   isActive?: boolean
   createdAt?: Date | string
@@ -462,9 +408,6 @@ export type FinAccountUpdateInput = {
   institution?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   currency?: Prisma.StringFieldUpdateOperationsInput | string
   balance?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
-  creditLimit?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
-  statementClosingDay?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  paymentDueDay?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   color?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -486,9 +429,6 @@ export type FinAccountUncheckedUpdateInput = {
   institution?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   currency?: Prisma.StringFieldUpdateOperationsInput | string
   balance?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
-  creditLimit?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
-  statementClosingDay?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  paymentDueDay?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   color?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -508,9 +448,6 @@ export type FinAccountCreateManyInput = {
   institution?: string | null
   currency?: string
   balance?: runtime.Decimal | runtime.DecimalJsLike | number | string
-  creditLimit?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
-  statementClosingDay?: number | null
-  paymentDueDay?: number | null
   color?: string | null
   isActive?: boolean
   createdAt?: Date | string
@@ -524,9 +461,6 @@ export type FinAccountUpdateManyMutationInput = {
   institution?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   currency?: Prisma.StringFieldUpdateOperationsInput | string
   balance?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
-  creditLimit?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
-  statementClosingDay?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  paymentDueDay?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   color?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -542,9 +476,6 @@ export type FinAccountUncheckedUpdateManyInput = {
   institution?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   currency?: Prisma.StringFieldUpdateOperationsInput | string
   balance?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
-  creditLimit?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
-  statementClosingDay?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  paymentDueDay?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   color?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -570,9 +501,6 @@ export type FinAccountCountOrderByAggregateInput = {
   institution?: Prisma.SortOrder
   currency?: Prisma.SortOrder
   balance?: Prisma.SortOrder
-  creditLimit?: Prisma.SortOrder
-  statementClosingDay?: Prisma.SortOrder
-  paymentDueDay?: Prisma.SortOrder
   color?: Prisma.SortOrder
   isActive?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -581,9 +509,6 @@ export type FinAccountCountOrderByAggregateInput = {
 
 export type FinAccountAvgOrderByAggregateInput = {
   balance?: Prisma.SortOrder
-  creditLimit?: Prisma.SortOrder
-  statementClosingDay?: Prisma.SortOrder
-  paymentDueDay?: Prisma.SortOrder
 }
 
 export type FinAccountMaxOrderByAggregateInput = {
@@ -595,9 +520,6 @@ export type FinAccountMaxOrderByAggregateInput = {
   institution?: Prisma.SortOrder
   currency?: Prisma.SortOrder
   balance?: Prisma.SortOrder
-  creditLimit?: Prisma.SortOrder
-  statementClosingDay?: Prisma.SortOrder
-  paymentDueDay?: Prisma.SortOrder
   color?: Prisma.SortOrder
   isActive?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -613,9 +535,6 @@ export type FinAccountMinOrderByAggregateInput = {
   institution?: Prisma.SortOrder
   currency?: Prisma.SortOrder
   balance?: Prisma.SortOrder
-  creditLimit?: Prisma.SortOrder
-  statementClosingDay?: Prisma.SortOrder
-  paymentDueDay?: Prisma.SortOrder
   color?: Prisma.SortOrder
   isActive?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -624,9 +543,6 @@ export type FinAccountMinOrderByAggregateInput = {
 
 export type FinAccountSumOrderByAggregateInput = {
   balance?: Prisma.SortOrder
-  creditLimit?: Prisma.SortOrder
-  statementClosingDay?: Prisma.SortOrder
-  paymentDueDay?: Prisma.SortOrder
 }
 
 export type FinAccountNullableScalarRelationFilter = {
@@ -686,22 +602,6 @@ export type DecimalFieldUpdateOperationsInput = {
   decrement?: runtime.Decimal | runtime.DecimalJsLike | number | string
   multiply?: runtime.Decimal | runtime.DecimalJsLike | number | string
   divide?: runtime.Decimal | runtime.DecimalJsLike | number | string
-}
-
-export type NullableDecimalFieldUpdateOperationsInput = {
-  set?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
-  increment?: runtime.Decimal | runtime.DecimalJsLike | number | string
-  decrement?: runtime.Decimal | runtime.DecimalJsLike | number | string
-  multiply?: runtime.Decimal | runtime.DecimalJsLike | number | string
-  divide?: runtime.Decimal | runtime.DecimalJsLike | number | string
-}
-
-export type NullableIntFieldUpdateOperationsInput = {
-  set?: number | null
-  increment?: number
-  decrement?: number
-  multiply?: number
-  divide?: number
 }
 
 export type FinAccountCreateNestedOneWithoutEmailSourcesInput = {
@@ -817,9 +717,6 @@ export type FinAccountCreateWithoutUserInput = {
   institution?: string | null
   currency?: string
   balance?: runtime.Decimal | runtime.DecimalJsLike | number | string
-  creditLimit?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
-  statementClosingDay?: number | null
-  paymentDueDay?: number | null
   color?: string | null
   isActive?: boolean
   createdAt?: Date | string
@@ -839,9 +736,6 @@ export type FinAccountUncheckedCreateWithoutUserInput = {
   institution?: string | null
   currency?: string
   balance?: runtime.Decimal | runtime.DecimalJsLike | number | string
-  creditLimit?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
-  statementClosingDay?: number | null
-  paymentDueDay?: number | null
   color?: string | null
   isActive?: boolean
   createdAt?: Date | string
@@ -890,9 +784,6 @@ export type FinAccountScalarWhereInput = {
   institution?: Prisma.StringNullableFilter<"FinAccount"> | string | null
   currency?: Prisma.StringFilter<"FinAccount"> | string
   balance?: Prisma.DecimalFilter<"FinAccount"> | runtime.Decimal | runtime.DecimalJsLike | number | string
-  creditLimit?: Prisma.DecimalNullableFilter<"FinAccount"> | runtime.Decimal | runtime.DecimalJsLike | number | string | null
-  statementClosingDay?: Prisma.IntNullableFilter<"FinAccount"> | number | null
-  paymentDueDay?: Prisma.IntNullableFilter<"FinAccount"> | number | null
   color?: Prisma.StringNullableFilter<"FinAccount"> | string | null
   isActive?: Prisma.BoolFilter<"FinAccount"> | boolean
   createdAt?: Prisma.DateTimeFilter<"FinAccount"> | Date | string
@@ -906,9 +797,6 @@ export type FinAccountCreateWithoutEmailSourcesInput = {
   institution?: string | null
   currency?: string
   balance?: runtime.Decimal | runtime.DecimalJsLike | number | string
-  creditLimit?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
-  statementClosingDay?: number | null
-  paymentDueDay?: number | null
   color?: string | null
   isActive?: boolean
   createdAt?: Date | string
@@ -929,9 +817,6 @@ export type FinAccountUncheckedCreateWithoutEmailSourcesInput = {
   institution?: string | null
   currency?: string
   balance?: runtime.Decimal | runtime.DecimalJsLike | number | string
-  creditLimit?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
-  statementClosingDay?: number | null
-  paymentDueDay?: number | null
   color?: string | null
   isActive?: boolean
   createdAt?: Date | string
@@ -964,9 +849,6 @@ export type FinAccountUpdateWithoutEmailSourcesInput = {
   institution?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   currency?: Prisma.StringFieldUpdateOperationsInput | string
   balance?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
-  creditLimit?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
-  statementClosingDay?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  paymentDueDay?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   color?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -987,9 +869,6 @@ export type FinAccountUncheckedUpdateWithoutEmailSourcesInput = {
   institution?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   currency?: Prisma.StringFieldUpdateOperationsInput | string
   balance?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
-  creditLimit?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
-  statementClosingDay?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  paymentDueDay?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   color?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1006,9 +885,6 @@ export type FinAccountCreateWithoutTransactionsInput = {
   institution?: string | null
   currency?: string
   balance?: runtime.Decimal | runtime.DecimalJsLike | number | string
-  creditLimit?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
-  statementClosingDay?: number | null
-  paymentDueDay?: number | null
   color?: string | null
   isActive?: boolean
   createdAt?: Date | string
@@ -1029,9 +905,6 @@ export type FinAccountUncheckedCreateWithoutTransactionsInput = {
   institution?: string | null
   currency?: string
   balance?: runtime.Decimal | runtime.DecimalJsLike | number | string
-  creditLimit?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
-  statementClosingDay?: number | null
-  paymentDueDay?: number | null
   color?: string | null
   isActive?: boolean
   createdAt?: Date | string
@@ -1064,9 +937,6 @@ export type FinAccountUpdateWithoutTransactionsInput = {
   institution?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   currency?: Prisma.StringFieldUpdateOperationsInput | string
   balance?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
-  creditLimit?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
-  statementClosingDay?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  paymentDueDay?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   color?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1087,9 +957,6 @@ export type FinAccountUncheckedUpdateWithoutTransactionsInput = {
   institution?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   currency?: Prisma.StringFieldUpdateOperationsInput | string
   balance?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
-  creditLimit?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
-  statementClosingDay?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  paymentDueDay?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   color?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1106,9 +973,6 @@ export type FinAccountCreateWithoutInstitutionRefInput = {
   institution?: string | null
   currency?: string
   balance?: runtime.Decimal | runtime.DecimalJsLike | number | string
-  creditLimit?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
-  statementClosingDay?: number | null
-  paymentDueDay?: number | null
   color?: string | null
   isActive?: boolean
   createdAt?: Date | string
@@ -1128,9 +992,6 @@ export type FinAccountUncheckedCreateWithoutInstitutionRefInput = {
   institution?: string | null
   currency?: string
   balance?: runtime.Decimal | runtime.DecimalJsLike | number | string
-  creditLimit?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
-  statementClosingDay?: number | null
-  paymentDueDay?: number | null
   color?: string | null
   isActive?: boolean
   createdAt?: Date | string
@@ -1174,9 +1035,6 @@ export type FinAccountCreateWithoutCardsInput = {
   institution?: string | null
   currency?: string
   balance?: runtime.Decimal | runtime.DecimalJsLike | number | string
-  creditLimit?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
-  statementClosingDay?: number | null
-  paymentDueDay?: number | null
   color?: string | null
   isActive?: boolean
   createdAt?: Date | string
@@ -1197,9 +1055,6 @@ export type FinAccountUncheckedCreateWithoutCardsInput = {
   institution?: string | null
   currency?: string
   balance?: runtime.Decimal | runtime.DecimalJsLike | number | string
-  creditLimit?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
-  statementClosingDay?: number | null
-  paymentDueDay?: number | null
   color?: string | null
   isActive?: boolean
   createdAt?: Date | string
@@ -1232,9 +1087,6 @@ export type FinAccountUpdateWithoutCardsInput = {
   institution?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   currency?: Prisma.StringFieldUpdateOperationsInput | string
   balance?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
-  creditLimit?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
-  statementClosingDay?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  paymentDueDay?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   color?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1255,9 +1107,6 @@ export type FinAccountUncheckedUpdateWithoutCardsInput = {
   institution?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   currency?: Prisma.StringFieldUpdateOperationsInput | string
   balance?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
-  creditLimit?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
-  statementClosingDay?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  paymentDueDay?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   color?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1274,9 +1123,6 @@ export type FinAccountCreateWithoutFinLoansInput = {
   institution?: string | null
   currency?: string
   balance?: runtime.Decimal | runtime.DecimalJsLike | number | string
-  creditLimit?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
-  statementClosingDay?: number | null
-  paymentDueDay?: number | null
   color?: string | null
   isActive?: boolean
   createdAt?: Date | string
@@ -1297,9 +1143,6 @@ export type FinAccountUncheckedCreateWithoutFinLoansInput = {
   institution?: string | null
   currency?: string
   balance?: runtime.Decimal | runtime.DecimalJsLike | number | string
-  creditLimit?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
-  statementClosingDay?: number | null
-  paymentDueDay?: number | null
   color?: string | null
   isActive?: boolean
   createdAt?: Date | string
@@ -1332,9 +1175,6 @@ export type FinAccountUpdateWithoutFinLoansInput = {
   institution?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   currency?: Prisma.StringFieldUpdateOperationsInput | string
   balance?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
-  creditLimit?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
-  statementClosingDay?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  paymentDueDay?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   color?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1355,9 +1195,6 @@ export type FinAccountUncheckedUpdateWithoutFinLoansInput = {
   institution?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   currency?: Prisma.StringFieldUpdateOperationsInput | string
   balance?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
-  creditLimit?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
-  statementClosingDay?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  paymentDueDay?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   color?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1375,9 +1212,6 @@ export type FinAccountCreateManyUserInput = {
   institution?: string | null
   currency?: string
   balance?: runtime.Decimal | runtime.DecimalJsLike | number | string
-  creditLimit?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
-  statementClosingDay?: number | null
-  paymentDueDay?: number | null
   color?: string | null
   isActive?: boolean
   createdAt?: Date | string
@@ -1391,9 +1225,6 @@ export type FinAccountUpdateWithoutUserInput = {
   institution?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   currency?: Prisma.StringFieldUpdateOperationsInput | string
   balance?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
-  creditLimit?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
-  statementClosingDay?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  paymentDueDay?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   color?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1413,9 +1244,6 @@ export type FinAccountUncheckedUpdateWithoutUserInput = {
   institution?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   currency?: Prisma.StringFieldUpdateOperationsInput | string
   balance?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
-  creditLimit?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
-  statementClosingDay?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  paymentDueDay?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   color?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1434,9 +1262,6 @@ export type FinAccountUncheckedUpdateManyWithoutUserInput = {
   institution?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   currency?: Prisma.StringFieldUpdateOperationsInput | string
   balance?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
-  creditLimit?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
-  statementClosingDay?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  paymentDueDay?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   color?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1451,9 +1276,6 @@ export type FinAccountCreateManyInstitutionRefInput = {
   institution?: string | null
   currency?: string
   balance?: runtime.Decimal | runtime.DecimalJsLike | number | string
-  creditLimit?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
-  statementClosingDay?: number | null
-  paymentDueDay?: number | null
   color?: string | null
   isActive?: boolean
   createdAt?: Date | string
@@ -1467,9 +1289,6 @@ export type FinAccountUpdateWithoutInstitutionRefInput = {
   institution?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   currency?: Prisma.StringFieldUpdateOperationsInput | string
   balance?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
-  creditLimit?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
-  statementClosingDay?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  paymentDueDay?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   color?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1489,9 +1308,6 @@ export type FinAccountUncheckedUpdateWithoutInstitutionRefInput = {
   institution?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   currency?: Prisma.StringFieldUpdateOperationsInput | string
   balance?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
-  creditLimit?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
-  statementClosingDay?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  paymentDueDay?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   color?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1510,9 +1326,6 @@ export type FinAccountUncheckedUpdateManyWithoutInstitutionRefInput = {
   institution?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   currency?: Prisma.StringFieldUpdateOperationsInput | string
   balance?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
-  creditLimit?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
-  statementClosingDay?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  paymentDueDay?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   color?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1586,9 +1399,6 @@ export type FinAccountSelect<ExtArgs extends runtime.Types.Extensions.InternalAr
   institution?: boolean
   currency?: boolean
   balance?: boolean
-  creditLimit?: boolean
-  statementClosingDay?: boolean
-  paymentDueDay?: boolean
   color?: boolean
   isActive?: boolean
   createdAt?: boolean
@@ -1611,9 +1421,6 @@ export type FinAccountSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Ex
   institution?: boolean
   currency?: boolean
   balance?: boolean
-  creditLimit?: boolean
-  statementClosingDay?: boolean
-  paymentDueDay?: boolean
   color?: boolean
   isActive?: boolean
   createdAt?: boolean
@@ -1631,9 +1438,6 @@ export type FinAccountSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Ex
   institution?: boolean
   currency?: boolean
   balance?: boolean
-  creditLimit?: boolean
-  statementClosingDay?: boolean
-  paymentDueDay?: boolean
   color?: boolean
   isActive?: boolean
   createdAt?: boolean
@@ -1651,16 +1455,13 @@ export type FinAccountSelectScalar = {
   institution?: boolean
   currency?: boolean
   balance?: boolean
-  creditLimit?: boolean
-  statementClosingDay?: boolean
-  paymentDueDay?: boolean
   color?: boolean
   isActive?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type FinAccountOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "institutionId" | "name" | "type" | "institution" | "currency" | "balance" | "creditLimit" | "statementClosingDay" | "paymentDueDay" | "color" | "isActive" | "createdAt" | "updatedAt", ExtArgs["result"]["finAccount"]>
+export type FinAccountOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "institutionId" | "name" | "type" | "institution" | "currency" | "balance" | "color" | "isActive" | "createdAt" | "updatedAt", ExtArgs["result"]["finAccount"]>
 export type FinAccountInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   institutionRef?: boolean | Prisma.FinAccount$institutionRefArgs<ExtArgs>
@@ -1698,9 +1499,6 @@ export type $FinAccountPayload<ExtArgs extends runtime.Types.Extensions.Internal
     institution: string | null
     currency: string
     balance: runtime.Decimal
-    creditLimit: runtime.Decimal | null
-    statementClosingDay: number | null
-    paymentDueDay: number | null
     color: string | null
     isActive: boolean
     createdAt: Date
@@ -2142,9 +1940,6 @@ export interface FinAccountFieldRefs {
   readonly institution: Prisma.FieldRef<"FinAccount", 'String'>
   readonly currency: Prisma.FieldRef<"FinAccount", 'String'>
   readonly balance: Prisma.FieldRef<"FinAccount", 'Decimal'>
-  readonly creditLimit: Prisma.FieldRef<"FinAccount", 'Decimal'>
-  readonly statementClosingDay: Prisma.FieldRef<"FinAccount", 'Int'>
-  readonly paymentDueDay: Prisma.FieldRef<"FinAccount", 'Int'>
   readonly color: Prisma.FieldRef<"FinAccount", 'String'>
   readonly isActive: Prisma.FieldRef<"FinAccount", 'Boolean'>
   readonly createdAt: Prisma.FieldRef<"FinAccount", 'DateTime'>

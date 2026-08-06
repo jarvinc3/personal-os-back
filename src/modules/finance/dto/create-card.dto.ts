@@ -1,17 +1,53 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEnum, IsOptional, IsString, Length, MaxLength } from 'class-validator';
+import {
+    IsEnum,
+    IsOptional,
+    IsString,
+    IsUUID,
+    MaxLength,
+    Validate,
+    ValidationArguments,
+    ValidatorConstraint,
+    ValidatorConstraintInterface,
+} from 'class-validator';
+import {
+    OptionalCalendarDayField,
+    OptionalColorField,
+    OptionalLastFourField,
+} from '../lib/finance-validation';
 
 const cardTypes = ['CREDIT', 'DEBIT'] as const;
 const cardNetworks = ['VISA', 'MASTERCARD', 'AMEX', 'DISCOVER', 'OTHER'] as const;
 
+@ValidatorConstraint({ name: 'cardAccountByType', async: false })
+class CardAccountByTypeConstraint implements ValidatorConstraintInterface {
+  validate(_: unknown, args: ValidationArguments) {
+    const obj = args.object as CreateCardDto;
+    if (obj.type === 'DEBIT') {
+      return typeof obj.accountId === 'string' && obj.accountId.length > 0;
+    }
+    if (obj.type === 'CREDIT') {
+      return obj.accountId === undefined || obj.accountId === null;
+    }
+    return true;
+  }
+
+  defaultMessage() {
+    return 'DEBIT cards require accountId; CREDIT cards must not set accountId';
+  }
+}
+
 export class CreateCardDto {
   @ApiProperty()
-  @IsString()
+  @IsUUID()
   institutionId!: string;
 
-  @ApiPropertyOptional()
+  /** Required for DEBIT (underlying account); must be omitted for CREDIT. */
+  @ApiPropertyOptional({
+    description: 'Required when type=DEBIT; must be omitted when type=CREDIT',
+  })
   @IsOptional()
-  @IsString()
+  @IsUUID()
   accountId?: string;
 
   @ApiProperty()
@@ -23,27 +59,27 @@ export class CreateCardDto {
   @IsEnum(cardTypes)
   type!: (typeof cardTypes)[number];
 
+  @Validate(CardAccountByTypeConstraint)
+  private readonly _accountByType?: never;
+
   @ApiPropertyOptional({ enum: cardNetworks })
   @IsOptional()
   @IsEnum(cardNetworks)
   network?: (typeof cardNetworks)[number];
 
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
-  @Length(4, 4)
+  @ApiPropertyOptional({ example: '1234' })
+  @OptionalLastFourField()
   lastFour?: string;
 
-  @ApiPropertyOptional()
-  @IsOptional()
+  @ApiPropertyOptional({ minimum: 1, maximum: 31 })
+  @OptionalCalendarDayField()
   statementClosingDay?: number;
 
-  @ApiPropertyOptional()
-  @IsOptional()
+  @ApiPropertyOptional({ minimum: 1, maximum: 31 })
+  @OptionalCalendarDayField()
   paymentDueDay?: number;
 
   @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
+  @OptionalColorField()
   color?: string;
 }

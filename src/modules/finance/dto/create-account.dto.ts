@@ -1,12 +1,13 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEnum, IsOptional, IsString, MaxLength } from 'class-validator';
+import { IsEnum, IsOptional, IsString, IsUUID, MaxLength } from 'class-validator';
+import { CurrencyField, OptionalColorField } from '../lib/finance-validation';
 
 const accountTypes = ['CHECKING', 'SAVINGS', 'CASH', 'INVESTMENT'] as const;
 
 export class CreateAccountDto {
   @ApiPropertyOptional()
   @IsOptional()
-  @IsString()
+  @IsUUID()
   institutionId?: string;
 
   @ApiProperty()
@@ -24,14 +25,11 @@ export class CreateAccountDto {
   @MaxLength(120)
   institution?: string;
 
-  @ApiPropertyOptional({ default: 'DOP' })
-  @IsOptional()
-  @IsString()
-  @MaxLength(3)
+  @ApiPropertyOptional({ default: 'DOP', example: 'DOP' })
+  @CurrencyField()
   currency?: string;
 
   @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
+  @OptionalColorField()
   color?: string;
 }

@@ -12,26 +12,26 @@ The module is consumed by:
 
 ## Features
 
-| Area           | Capability                                                                                                     |
-| -------------- | -------------------------------------------------------------------------------------------------------------- |
-| Institutions   | User-defined banks/fintechs; soft-delete via `isActive`                                                        |
-| Accounts       | Checking, savings, cash, investment; multi-currency balance; optional link to institution                      |
-| Cards          | Credit/debit per institution; multi-currency balances; optional link to account                                |
-| Transactions   | Manual CRUD; filters (account, card, type, status, dates, search); confirm `PENDING`                           |
-| Categories     | System + custom; hierarchical (`parentId`); used by budgets and transactions                                   |
-| Budgets        | Per category and period (`MONTHLY`, `BIWEEKLY`, `CUSTOM`); spent tracking and alert threshold                  |
-| Savings goals  | Target amount, progress, completion                                                                            |
-| Loans          | Installment tracking, balance, optional linked account                                                         |
-| Receivables    | Money owed to the user (`PENDING` → `PAID`, etc.)                                                              |
-| Gmail sync     | OAuth2, encrypted tokens, BullMQ job, bank HTML parsers → `PENDING` transactions                               |
-| Analytics      | Net worth, cash flow, spending by category, budget status                                                      |
-| Exchange rates | `FinExchangeRate` table (reference data; conversion on transactions via `exchangeRate` / `amountBaseCurrency`) |
+| Area           | Capability                                                                                                       |
+| -------------- | ---------------------------------------------------------------------------------------------------------------- |
+| Institutions   | User-defined banks/fintechs; soft-delete via `isActive`                                                          |
+| Accounts       | Checking, savings, cash, investment; single currency + balance; optional institution; **not** credit cards       |
+| Cards          | Credit/debit per institution; multi-currency balances + credit limit on `FinCardBalance`; statement days on card |
+| Transactions   | Manual CRUD; **exactly one** of `accountId` or `cardId`; filters; confirm `PENDING`                              |
+| Categories     | System + custom; hierarchical (`parentId`); used by budgets and transactions                                     |
+| Budgets        | Per category and period (`MONTHLY`, `BIWEEKLY`, `CUSTOM`); spent tracking and alert threshold                    |
+| Savings goals  | Target amount, progress, completion                                                                              |
+| Loans          | Installment tracking, balance, optional linked account                                                           |
+| Receivables    | Money owed to the user (`PENDING` → `PAID`, etc.)                                                                |
+| Gmail sync     | OAuth2, encrypted tokens, BullMQ job, bank HTML parsers → `PENDING` transactions                                 |
+| Analytics      | Net worth, cash flow, spending by category, budget status                                                        |
+| Exchange rates | `FinExchangeRate` table (reference data; conversion on transactions via `exchangeRate` / `amountBaseCurrency`)   |
 
 **Out of scope (today):** open banking APIs, automatic balance reconciliation from bank cores, push notifications for budget alerts (schema supports `FinBudgetAlert`).
 
 ## Data model
 
-Prefix: `fin_*` tables. Primary keys are UUID text columns.
+Prefix: `fin_`* tables. Primary keys are UUID text columns.
 
 ### Entity relationship (simplified)
 
@@ -60,10 +60,10 @@ erDiagram
 | Model                 | Table                    | Description                                                        |
 | --------------------- | ------------------------ | ------------------------------------------------------------------ |
 | `FinInstitution`      | `fin_institutions`       | Bank/fintech label, color, logo, country                           |
-| `FinAccount`          | `fin_accounts`           | Account type, currency, balance, credit metadata                   |
-| `FinCard`             | `fin_cards`              | Card metadata, statement days, link to institution/account         |
-| `FinCardBalance`      | `fin_card_balances`      | Per-card, per-currency balance and credit limit                    |
-| `FinTransaction`      | `fin_transactions`       | Amount, type, status, source, optional `emailMessageId` (unique)   |
+| `FinAccount`          | `fin_accounts`           | Cash/savings/investment account; one currency + balance            |
+| `FinCard`             | `fin_cards`              | Card metadata, statement days; DEBIT requires underlying account   |
+| `FinCardBalance`      | `fin_card_balances`      | Per-card, per-currency balance and credit limit (SoT for credit)   |
+| `FinTransaction`      | `fin_transactions`       | Ledger; XOR account/card; unique `emailMessageId`                  |
 | `FinCategory`         | `fin_categories`         | User or system category; tree via `parentId`                       |
 | `FinBudget`           | `fin_budgets`            | Limit/spent for category + period; unique per user/category/period |
 | `FinBudgetAlert`      | `fin_budget_alerts`      | Threshold notifications (persisted; delivery TBD)                  |
@@ -92,11 +92,31 @@ erDiagram
 
 ### Transaction rules
 
-- **`amount`**: value in transaction `currency`.
-- **`amountBaseCurrency`**: normalized amount for analytics (default currency aggregation).
-- **`emailMessageId`**: Gmail message id; unique constraint prevents duplicate imports.
+- **Target XOR**: each row has exactly one of `account_id` or `card_id` (enforced by CHECK + app validation).
+- **Ledger effects** (only `CONFIRMED`):
+  - Account-only → `FinAccount.balance`
+  - Credit card → `FinCardBalance` for transaction currency
+  - Debit card → underlying `FinAccount` via `FinCard.account_id` (required when `type=DEBIT`)
+- `**amount`**: value in transaction `currency` (ISO 4217, three uppercase letters).
+- `**amountBaseCurrency**`: normalized amount for analytics (default currency aggregation).
+- `**emailMessageId**`: Gmail message id; unique constraint prevents duplicate imports.
 - Email sync creates rows with `status=PENDING`, `source=EMAIL`; user confirms via `POST .../confirm`.
+- Source may link to an **account or card** (`FinEmailSource.account_id` / `card_id`, at most one).
 - Manual transactions default to `CONFIRMED`, `source=MANUAL`.
+
+### Card rules
+
+- `FinCard.type = DEBIT` → `account_id` required (underlying deposit account).
+- `FinCard.type = CREDIT` → `account_id` must be null; balance/limit per currency in `FinCardBalance`.
+- Statement closing / payment due days live only on `FinCard` (not on accounts).
+
+### Security (RLS)
+
+- All user-owned tables have RLS enabled.
+- Policies use `TO authenticated` and `(SELECT auth.uid())::text` for performance.
+- System categories are **read-only** for clients; users can only insert/update/delete their own non-system categories.
+- `auth_deletion_outbox` has RLS enabled with **no** user policies (service role only).
+- Prisma server path uses the DB role that bypasses RLS; policies protect PostgREST/direct access.
 
 ## Module structure
 
@@ -112,7 +132,7 @@ erDiagram
 | `utils/gmail-api.util.ts`        | Gmail list/get/parse helpers                              |
 | `utils/token-encryption.util.ts` | AES encrypt/decrypt for OAuth tokens                      |
 
-Schema source: `prisma/schema.prisma` (models `Fin*`).
+Schema source: `prisma/schema.prisma` (models `Fin`*).
 
 ## API endpoints
 
@@ -210,14 +230,14 @@ sequenceDiagram
   Worker->>DB: FinEmailSyncLog SUCCESS/FAILED
 ```
 
-| Step          | Behavior                                                            |
-| ------------- | ------------------------------------------------------------------- |
-| Preconditions | Source `isActive`, `accountId` set, valid refreshable access token  |
-| Query         | `from:{bankDomain}` plus `after:{unix}` unless `forceFullSync`      |
-| Dedup         | Skip if `emailMessageId` already exists                             |
-| Parser        | `EmailParserRegistry` matches `from` + subject + body               |
-| Output        | Transaction on linked `accountId`, `source=EMAIL`, `status=PENDING` |
-| Events        | Emits `TransactionCreatedEvent` for realtime subscribers            |
+| Step          | Behavior                                                                           |
+| ------------- | ---------------------------------------------------------------------------------- |
+| Preconditions | Source `isActive`, `accountId` **or** `cardId` set, valid refreshable access token |
+| Query         | `from:{bankDomain}` plus `after:{unix}` unless `forceFullSync`                     |
+| Dedup         | Skip if `emailMessageId` already exists                                            |
+| Parser        | `EmailParserRegistry` matches `from` + subject + body                              |
+| Output        | Transaction on linked account **or** card, `source=EMAIL`, `status=PENDING`        |
+| Events        | Emits `TransactionCreatedEvent` for realtime subscribers                           |
 
 ### Supported bank parsers
 
@@ -241,9 +261,8 @@ Without Redis, `POST .../sync` returns `{ queued: false, reason: '...' }` but OA
 
 ## Security
 
-- All finance tables use **RLS** policies tied to `auth.uid()` / user ownership.
-- `FinEmailSyncLog` access is constrained via parent `FinEmailSource` ownership.
-- OAuth tokens stored encrypted; callback route is public but state JWT binds user + `accountId`.
+- RLS policies scoped by ownership (`user_id = auth.uid()::text`) and session ownership for AI tables.
+- Gmail tokens stored encrypted; callback route is public but state JWT binds user + target.
 - Gmail scope is read-only mail access for sync.
 
 ## AI integration

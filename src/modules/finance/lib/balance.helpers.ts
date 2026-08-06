@@ -1,4 +1,4 @@
-import type { FinTransactionType, Prisma } from '../../../prisma/generated/client';
+import type { FinCardType, FinTransactionType, Prisma } from '../../../prisma/generated/client';
 
 type TxClient = Prisma.TransactionClient;
 
@@ -50,11 +50,24 @@ export async function applyCardBalanceDelta(
   });
 }
 
+/**
+ * Apply balance side-effects for a transaction.
+ *
+ * XOR ledger targets:
+ * - Account-only → FinAccount.balance
+ * - Credit card → FinCardBalance for currency
+ * - Debit card → underlying FinAccount.balance (card.accountId)
+ *
+ * Never updates both account and card balance for the same movement.
+ */
 export async function applyBalanceForTransaction(
   tx: TxClient,
   params: {
     accountId?: string | null;
     cardId?: string | null;
+    cardType?: FinCardType | null;
+    /** Resolved underlying account for debit cards */
+    derivedAccountId?: string | null;
     currency: string;
     type: FinTransactionType;
     amount: number;
@@ -64,8 +77,19 @@ export async function applyBalanceForTransaction(
 ): Promise<void> {
   const direction = params.direction ?? 1;
   const delta = signedAmount(params.type, params.amount) * direction;
+
+  if (params.cardId) {
+    if (params.cardType === 'CREDIT') {
+      await applyCardBalanceDelta(tx, params.cardId, params.currency, delta);
+      return;
+    }
+    // DEBIT card (or unknown treated as debit path when derived account present)
+    const accountId = params.derivedAccountId ?? null;
+    await applyAccountBalanceDelta(tx, accountId, delta);
+    return;
+  }
+
   await applyAccountBalanceDelta(tx, params.accountId, delta);
-  await applyCardBalanceDelta(tx, params.cardId, params.currency, delta);
 }
 
 /**
@@ -129,4 +153,63 @@ export async function adjustBudgetSpent(
   }
 
   return crossed;
+}
+
+export type LedgerTarget = {
+  accountId: string | null;
+  cardId: string | null;
+  cardType: FinCardType | null;
+  derivedAccountId: string | null;
+  currencyHint: string | null;
+};
+
+/**
+ * Resolve exclusive account vs card target and ownership.
+ * Returns null if invalid (missing, both, wrong user, debit without underlying account).
+ */
+export async function resolveLedgerTarget(
+  tx: TxClient,
+  userId: string,
+  accountId?: string | null,
+  cardId?: string | null,
+): Promise<LedgerTarget | null> {
+  const hasAccount = Boolean(accountId);
+  const hasCard = Boolean(cardId);
+  if (hasAccount === hasCard) {
+    // both or neither
+    return null;
+  }
+
+  if (hasAccount && accountId) {
+    const account = await tx.finAccount.findFirst({
+      where: { id: accountId, userId },
+    });
+    if (!account) return null;
+    return {
+      accountId: account.id,
+      cardId: null,
+      cardType: null,
+      derivedAccountId: null,
+      currencyHint: account.currency,
+    };
+  }
+
+  if (hasCard && cardId) {
+    const card = await tx.finCard.findFirst({
+      where: { id: cardId, userId },
+    });
+    if (!card) return null;
+    if (card.type === 'DEBIT' && !card.accountId) return null;
+    if (card.type === 'CREDIT' && card.accountId) return null;
+
+    return {
+      accountId: null,
+      cardId: card.id,
+      cardType: card.type,
+      derivedAccountId: card.type === 'DEBIT' ? card.accountId : null,
+      currencyHint: null,
+    };
+  }
+
+  return null;
 }

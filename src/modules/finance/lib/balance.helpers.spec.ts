@@ -11,14 +11,10 @@ describe('balance.helpers', () => {
     expect(signedAmount('DEBIT', -50)).toBe(-50);
   });
 
-  it('applyBalanceForTransaction increments account when CONFIRMED path calls it', async () => {
-    const updates: unknown[] = [];
+  it('applyBalanceForTransaction updates only account for accountId-only', async () => {
     const tx = {
       finAccount: {
-        update: jest.fn((args: unknown) => {
-          updates.push(args);
-          return Promise.resolve({});
-        }),
+        update: jest.fn(() => Promise.resolve({})),
       },
       finCardBalance: {
         findFirst: jest.fn(() => Promise.resolve(null)),
@@ -39,6 +35,64 @@ describe('balance.helpers', () => {
       where: { id: 'acc-1' },
       data: { balance: { increment: -25 } },
     });
+    expect(tx.finCardBalance.create).not.toHaveBeenCalled();
+  });
+
+  it('applyBalanceForTransaction updates FinCardBalance for CREDIT cards', async () => {
+    const tx = {
+      finAccount: {
+        update: jest.fn(() => Promise.resolve({})),
+      },
+      finCardBalance: {
+        findFirst: jest.fn(() => Promise.resolve(null)),
+        create: jest.fn(() => Promise.resolve({})),
+        update: jest.fn(() => Promise.resolve({})),
+      },
+    };
+
+    await applyBalanceForTransaction(tx as never, {
+      accountId: null,
+      cardId: 'card-1',
+      cardType: 'CREDIT',
+      derivedAccountId: null,
+      currency: 'USD',
+      type: 'DEBIT',
+      amount: 40,
+    });
+
+    expect(tx.finAccount.update).not.toHaveBeenCalled();
+    expect(tx.finCardBalance.create).toHaveBeenCalledWith({
+      data: { cardId: 'card-1', currency: 'USD', balance: -40 },
+    });
+  });
+
+  it('applyBalanceForTransaction updates underlying account for DEBIT cards', async () => {
+    const tx = {
+      finAccount: {
+        update: jest.fn(() => Promise.resolve({})),
+      },
+      finCardBalance: {
+        findFirst: jest.fn(() => Promise.resolve(null)),
+        create: jest.fn(() => Promise.resolve({})),
+        update: jest.fn(() => Promise.resolve({})),
+      },
+    };
+
+    await applyBalanceForTransaction(tx as never, {
+      accountId: null,
+      cardId: 'card-debit',
+      cardType: 'DEBIT',
+      derivedAccountId: 'acc-linked',
+      currency: 'DOP',
+      type: 'DEBIT',
+      amount: 15,
+    });
+
+    expect(tx.finAccount.update).toHaveBeenCalledWith({
+      where: { id: 'acc-linked' },
+      data: { balance: { increment: -15 } },
+    });
+    expect(tx.finCardBalance.create).not.toHaveBeenCalled();
   });
 
   it('applyBalanceForTransaction reverses with direction -1', async () => {
