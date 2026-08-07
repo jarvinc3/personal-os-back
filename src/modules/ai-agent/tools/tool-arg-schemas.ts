@@ -13,13 +13,13 @@ const currencyCode = z
   .trim()
   .transform((v) => v.toUpperCase())
   .pipe(z.string().regex(/^[A-Z]{3}$/, 'currency must be a 3-letter ISO code'));
-const categoryId = z.string().trim().min(1).max(120);
+const categoryId = uuid;
 const optionalNullableString = (max: number) =>
   z.union([z.string().trim().max(max), z.null()]).optional();
 
 const themeValues = ['system', 'light', 'dark'] as const;
 const aiTones = ['concise', 'balanced', 'detailed'] as const;
-const transactionTypes = ['DEBIT', 'CREDIT', 'TRANSFER'] as const;
+const transactionTypes = ['DEBIT', 'CREDIT'] as const;
 const budgetPeriods = ['MONTHLY', 'BIWEEKLY', 'CUSTOM'] as const;
 const configurableModuleSlugs = [
   'agenda',
@@ -291,8 +291,67 @@ export const markLoanInstallmentPaidArgsSchema = z
 export const triggerEmailSyncArgsSchema = z
   .object({
     sourceId: uuid,
+    forceFullSync: z.boolean().optional(),
   })
   .strict();
+
+export const updateTransactionArgsSchema = z
+  .object({
+    transactionId: uuid,
+    categoryId: z.union([uuid, z.null()]).optional(),
+    merchant: optionalNullableString(200),
+    description: optionalNullableString(2000),
+    notes: optionalNullableString(2000),
+  })
+  .strict()
+  .superRefine((value, ctx) => {
+    if (
+      value.categoryId === undefined &&
+      value.merchant === undefined &&
+      value.description === undefined &&
+      value.notes === undefined
+    ) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'Provide at least one field to update',
+      });
+    }
+  });
+
+export const confirmTransactionArgsSchema = z
+  .object({
+    transactionId: uuid,
+  })
+  .strict();
+
+export const createTransferArgsSchema = z
+  .object({
+    fromAccountId: uuid.nullable().optional(),
+    fromCardId: uuid.nullable().optional(),
+    toAccountId: uuid.nullable().optional(),
+    toCardId: uuid.nullable().optional(),
+    amount: moneyAmount,
+    currency: currencyCode.optional(),
+    transactionDate: dateString,
+    description: optionalNullableString(200),
+    notes: optionalNullableString(2000),
+  })
+  .strict()
+  .superRefine((value, ctx) => {
+    const fromOk =
+      Boolean(value.fromAccountId) !== Boolean(value.fromCardId) &&
+      (Boolean(value.fromAccountId) || Boolean(value.fromCardId));
+    const toOk =
+      Boolean(value.toAccountId) !== Boolean(value.toCardId) &&
+      (Boolean(value.toAccountId) || Boolean(value.toCardId));
+    if (!fromOk || !toOk) {
+      ctx.addIssue({
+        code: 'custom',
+        message:
+          'Each transfer leg must provide exactly one of accountId or cardId (from*/to*)',
+      });
+    }
+  });
 
 /** Mutating tool name → Zod schema (single source of truth). */
 export const MUTATING_TOOL_ARG_SCHEMAS = {
@@ -304,6 +363,9 @@ export const MUTATING_TOOL_ARG_SCHEMAS = {
   update_module_config: updateModuleConfigArgsSchema,
   toggle_module: toggleModuleArgsSchema,
   create_transaction: createTransactionArgsSchema,
+  update_transaction: updateTransactionArgsSchema,
+  confirm_transaction: confirmTransactionArgsSchema,
+  create_transfer: createTransferArgsSchema,
   create_or_update_budget: createOrUpdateBudgetArgsSchema,
   create_savings_goal: createSavingsGoalArgsSchema,
   update_savings_goal: updateSavingsGoalArgsSchema,
@@ -358,7 +420,7 @@ export function validateMutatingToolArgs(
   const schema = MUTATING_TOOL_ARG_SCHEMAS[toolName];
   const parsed = schema.safeParse(args);
   if (parsed.success) {
-    return { ok: true, data: parsed.data as Record<string, unknown> };
+    return { ok: true, data: parsed.data };
   }
 
   const issues = parsed.error.issues.map((issue) => ({
@@ -388,6 +450,7 @@ export function mutatingToolParametersJsonSchema(
   }) as Record<string, unknown>;
 
   // Providers expect a bare parameters object, not a full schema document.
-  const { $schema: _schema, ...parameters } = jsonSchema;
+  const parameters = { ...jsonSchema };
+  delete parameters.$schema;
   return parameters;
 }

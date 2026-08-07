@@ -2,12 +2,17 @@ export const AppEvents = {
   // ── User ──────────────────────────────────────────────
   USER_LOGGED_IN: 'user.logged_in',
 
-  // ── Transaction ──────────────────────────────────────────────
-  TRANSACTION_CREATED: 'transaction.created',
-  TRANSACTION_UPDATED: 'transaction.updated',
-
-  // ── Budget ──────────────────────────────────────────────
-  BUDGET_THRESHOLD_REACHED: 'budget.threshold_reached',
+  // ── Finance (versioned only) ──────────────────────────
+  FINANCE_TRANSACTION_IMPORTED: 'finance.transaction.imported',
+  FINANCE_TRANSACTION_CONFIRMED: 'finance.transaction.confirmed',
+  FINANCE_TRANSACTION_UPDATED: 'finance.transaction.updated',
+  FINANCE_TRANSACTION_DECLINED: 'finance.transaction.declined',
+  FINANCE_TRANSACTION_CANCELLED: 'finance.transaction.cancelled',
+  FINANCE_TRANSACTION_REVERSED: 'finance.transaction.reversed',
+  FINANCE_TRANSFER_CREATED: 'finance.transfer.created',
+  FINANCE_BUDGET_THRESHOLD_CROSSED: 'finance.budget.threshold_crossed',
+  FINANCE_EMAIL_SYNC_COMPLETED: 'finance.email_sync.completed',
+  FINANCE_EMAIL_SYNC_FAILED: 'finance.email_sync.failed',
 
   // ── Notification ──────────────────────────────────────────────
   NOTIFICATION_CREATED: 'notification.created',

@@ -1,21 +1,27 @@
-import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
-import { isBullMqEnabledFromProcessEnv } from '../../config';
-import { QueueNames } from '../../core/queues/queue.constants';
-import { EmailParserRegistry } from './email-parsers/email-parser.registry';
-import { FinanceController } from './finance.controller';
-import { FinanceRepository } from './finance.repository';
-import { FinanceService } from './finance.service';
-import { GmailSyncProcessor } from './gmail-sync.processor';
+import { FinanceAnalyticsModule } from './analytics/analytics.module';
+import { FinanceCatalogModule } from './catalog/catalog.module';
+import { FinanceEventsModule } from './events/events.module';
+import { FinanceFacade } from './finance.facade';
+import { FinanceFxModule } from './fx/fx.module';
+import { FinanceIngestionModule } from './ingestion/ingestion.module';
+import { FinanceLedgerModule } from './ledger/ledger.module';
+import { FinancePlanningModule } from './planning/planning.module';
 
-const bullMqEnabled = isBullMqEnabledFromProcessEnv();
-
+/**
+ * Finance composition root — capability modules only; exports façade alone.
+ */
 @Module({
-  imports: bullMqEnabled
-    ? [BullModule.registerQueue({ name: QueueNames.GMAIL_SYNC })]
-    : [],
-  controllers: [FinanceController],
-  providers: [FinanceRepository, FinanceService, GmailSyncProcessor, EmailParserRegistry],
-  exports: [FinanceService],
+  imports: [
+    FinanceFxModule,
+    FinanceEventsModule,
+    FinanceCatalogModule,
+    FinancePlanningModule,
+    FinanceAnalyticsModule,
+    FinanceLedgerModule,
+    FinanceIngestionModule,
+  ],
+  providers: [FinanceFacade],
+  exports: [FinanceFacade],
 })
 export class FinanceModule {}

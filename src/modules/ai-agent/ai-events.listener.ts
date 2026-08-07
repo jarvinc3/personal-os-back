@@ -1,25 +1,49 @@
-import { Injectable, Logger, Optional } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
+import { Injectable, Logger, Optional } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { Queue } from 'bullmq';
-import {
-  BudgetThresholdReachedEvent,
-  TransactionCreatedEvent,
-  TransactionUpdatedEvent,
-  UserLoggedInEvent,
-} from '../../core/events/domain-events';
+import { UserLoggedInEvent } from '../../core/events/domain-events';
 import { AppEvents } from '../../core/events/event.constants';
+import type { AiProcessingJob } from '../../core/queues/queue-jobs';
 import { QueueNames } from '../../core/queues/queue.constants';
-import { AiProcessingJob } from '../../core/queues/queue-jobs';
+import { DomainEventIdempotencyGuard } from '../finance/events/application/domain-event-idempotency.guard';
+
+type FinanceTxEvent = {
+  eventId?: string;
+  userId: string;
+  transactionId: string;
+  amount: number;
+  status?: string;
+  source?: string;
+};
+
+type BudgetEvent = {
+  eventId?: string;
+  userId: string;
+  budgetId: string;
+  percentageUsed: number;
+};
+
+type EmailSyncEvent = {
+  eventId?: string;
+  userId: string;
+  sourceId: string;
+  emailsScanned: number;
+  transactionsNew: number;
+  transactionIds: string[];
+  countsByStatus: Record<string, number>;
+};
 
 @Injectable()
 export class AiEventsListener {
   private readonly logger = new Logger(AiEventsListener.name);
+  private static readonly CONSUMER = 'ai-agent';
 
   constructor(
     @Optional()
     @InjectQueue(QueueNames.AI_PROCESSING)
     private readonly aiProcessingQueue?: Queue<AiProcessingJob>,
+    private readonly idempotency?: DomainEventIdempotencyGuard,
   ) {}
 
   @OnEvent(AppEvents.USER_LOGGED_IN)
@@ -35,9 +59,12 @@ export class AiEventsListener {
     userId: string;
     preferences: unknown;
   }): Promise<void> {
-    await this.enqueue('ai-side-effect-preferences', event.userId, 'user.preferences.updated', {
-      preferences: event.preferences,
-    });
+    await this.enqueue(
+      'ai-side-effect-preferences',
+      event.userId,
+      'user.preferences.updated',
+      { preferences: event.preferences },
+    );
   }
 
   @OnEvent(AppEvents.MODULE_ENABLED)
@@ -55,53 +82,120 @@ export class AiEventsListener {
   }
 
   @OnEvent(AppEvents.MODULE_CONFIG_UPDATED)
-  async onModuleConfigUpdated(event: { userId: string; slug: string }): Promise<void> {
-    await this.enqueue('ai-insight-module-config', event.userId, 'module.config.updated', {
-      slug: event.slug,
-    });
+  async onModuleConfigUpdated(event: {
+    userId: string;
+    slug: string;
+  }): Promise<void> {
+    await this.enqueue(
+      'ai-insight-module-config',
+      event.userId,
+      'module.config.updated',
+      { slug: event.slug },
+    );
   }
 
-  @OnEvent(AppEvents.TRANSACTION_CREATED)
-  async onTransactionCreated(event: TransactionCreatedEvent): Promise<void> {
+  @OnEvent(AppEvents.FINANCE_TRANSACTION_CONFIRMED)
+  async onTransactionConfirmed(event: FinanceTxEvent): Promise<void> {
+    if (event.source === 'EMAIL') return;
+    if (event.status && event.status !== 'CONFIRMED') return;
+    if (
+      this.idempotency &&
+      !(await this.idempotency.tryClaim(
+        event.eventId,
+        `${AiEventsListener.CONSUMER}:tx-confirmed`,
+      ))
+    ) {
+      return;
+    }
     await this.enqueue(
       'ai-insight-transaction-created',
       event.userId,
-      'transaction.created',
+      'finance.transaction.confirmed',
       {
         slug: 'finance',
         transactionId: event.transactionId,
         amount: event.amount,
+        status: event.status ?? 'CONFIRMED',
+        source: event.source,
       },
+      `ai:tx-created:${event.transactionId}`,
     );
   }
 
-  @OnEvent(AppEvents.TRANSACTION_UPDATED)
-  async onTransactionUpdated(event: TransactionUpdatedEvent): Promise<void> {
+  @OnEvent(AppEvents.FINANCE_EMAIL_SYNC_COMPLETED)
+  async onEmailSyncCompleted(event: EmailSyncEvent): Promise<void> {
+    if (event.transactionsNew <= 0) return;
+    if (
+      this.idempotency &&
+      !(await this.idempotency.tryClaim(
+        event.eventId,
+        `${AiEventsListener.CONSUMER}:email-sync`,
+      ))
+    ) {
+      return;
+    }
+    await this.enqueue(
+      'ai-insight-email-sync',
+      event.userId,
+      'finance.email_sync.completed',
+      {
+        slug: 'finance',
+        sourceId: event.sourceId,
+        emailsScanned: event.emailsScanned,
+        transactionsNew: event.transactionsNew,
+        transactionIds: event.transactionIds,
+        countsByStatus: event.countsByStatus,
+      },
+      `ai:email-sync:${event.sourceId}:${event.transactionIds[0] ?? 'none'}`,
+    );
+  }
+
+  @OnEvent(AppEvents.FINANCE_TRANSACTION_UPDATED)
+  async onTransactionUpdated(event: FinanceTxEvent): Promise<void> {
+    if (
+      this.idempotency &&
+      !(await this.idempotency.tryClaim(
+        event.eventId,
+        `${AiEventsListener.CONSUMER}:tx-updated`,
+      ))
+    ) {
+      return;
+    }
     await this.enqueue(
       'ai-insight-transaction-updated',
       event.userId,
-      'transaction.updated',
+      'finance.transaction.updated',
       {
         slug: 'finance',
         transactionId: event.transactionId,
         amount: event.amount,
+        status: event.status,
       },
+      `ai:tx-updated:${event.transactionId}:${event.status}`,
     );
   }
 
-  @OnEvent(AppEvents.BUDGET_THRESHOLD_REACHED)
-  async onBudgetThresholdReached(
-    event: BudgetThresholdReachedEvent,
-  ): Promise<void> {
+  @OnEvent(AppEvents.FINANCE_BUDGET_THRESHOLD_CROSSED)
+  async onBudgetThresholdReached(event: BudgetEvent): Promise<void> {
+    if (
+      this.idempotency &&
+      !(await this.idempotency.tryClaim(
+        event.eventId,
+        `${AiEventsListener.CONSUMER}:budget`,
+      ))
+    ) {
+      return;
+    }
     await this.enqueue(
       'ai-insight-budget-threshold',
       event.userId,
-      'budget.threshold_reached',
+      'finance.budget.threshold_crossed',
       {
         slug: 'finance',
         budgetId: event.budgetId,
         percentageUsed: event.percentageUsed,
       },
+      `ai:budget-threshold:${event.budgetId}`,
     );
   }
 
@@ -110,11 +204,24 @@ export class AiEventsListener {
     userId: string,
     actionType: string,
     payload: Record<string, unknown>,
+    jobId?: string,
   ) {
-    await this.aiProcessingQueue?.add(jobName, {
-      userId,
-      actionType,
-      payload,
-    });
+    if (!this.aiProcessingQueue) {
+      this.logger.warn(
+        `AI processing queue unavailable; dropped event actionType=${actionType} userId=${userId}`,
+      );
+      return;
+    }
+    await this.aiProcessingQueue.add(
+      jobName,
+      { userId, actionType, payload },
+      jobId
+        ? {
+            jobId,
+            removeOnComplete: 100,
+            removeOnFail: 200,
+          }
+        : undefined,
+    );
   }
 }

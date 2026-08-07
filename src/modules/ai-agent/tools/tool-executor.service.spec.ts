@@ -1,39 +1,68 @@
-import { FinanceService } from '../../finance/finance.service';
+import { FinanceFacade } from '../../finance/finance.facade';
 import { UsersService } from '../../users/users.service';
 import { AiSessionsRepository } from '../ai-sessions.repository';
 import { ToolExecutorService } from './tool-executor.service';
 
 describe('ToolExecutorService', () => {
+  const findById = jest.fn();
+  const updateProfile = jest.fn();
+  const updateModuleConfig = jest.fn();
   const usersService = {
-    findById: jest.fn(),
-    updateProfile: jest.fn(),
-    updateModuleConfig: jest.fn(),
+    findById,
+    updateProfile,
+    updateModuleConfig,
   } as unknown as UsersService;
 
-  const financeService = {
-    createTransaction: jest.fn(),
-    listTransactions: jest.fn(),
-    getAnalyticsSummary: jest.fn(),
-    getBudgetStatus: jest.fn(),
-    createBudget: jest.fn(),
-    updateBudget: jest.fn(),
-    listSavingsGoals: jest.fn(),
-    createSavingsGoal: jest.fn(),
-    updateSavingsGoal: jest.fn(),
-    listLoans: jest.fn(),
-    updateLoan: jest.fn(),
-    triggerEmailSync: jest.fn(),
-    getSpendingByCategory: jest.fn(),
-  } as unknown as FinanceService;
+  const createTransaction = jest.fn();
+  const listTransactions = jest.fn();
+  const getAnalyticsSummary = jest.fn();
+  const getBudgetStatus = jest.fn();
+  const createBudget = jest.fn();
+  const updateBudget = jest.fn();
+  const listSavingsGoals = jest.fn();
+  const createSavingsGoal = jest.fn();
+  const updateSavingsGoal = jest.fn();
+  const listLoans = jest.fn();
+  const updateLoan = jest.fn();
+  const triggerEmailSync = jest.fn();
+  const getSpendingByCategory = jest.fn();
+  const getTransaction = jest.fn();
+  const listCategories = jest.fn();
+  const listEmailSources = jest.fn();
+  const updateTransaction = jest.fn();
+  const confirmTransaction = jest.fn();
 
+  const financeFacade = {
+    createTransaction,
+    listTransactions,
+    getAnalyticsSummary,
+    getBudgetStatus,
+    createBudget,
+    updateBudget,
+    listSavingsGoals,
+    createSavingsGoal,
+    updateSavingsGoal,
+    listLoans,
+    updateLoan,
+    triggerEmailSync,
+    getSpendingByCategory,
+    getTransaction,
+    listCategories,
+    listEmailSources,
+    updateTransaction,
+    confirmTransaction,
+  } as unknown as FinanceFacade;
+
+  const findModuleBySlug = jest.fn();
+  const updateSession = jest.fn();
   const sessionsRepo = {
-    findModuleBySlug: jest.fn(),
-    updateSession: jest.fn(),
+    findModuleBySlug,
+    updateSession,
   } as unknown as AiSessionsRepository;
 
   const executor = new ToolExecutorService(
     usersService,
-    financeService,
+    financeFacade,
     sessionsRepo,
   );
 
@@ -57,13 +86,11 @@ describe('ToolExecutorService', () => {
 
     expect(result.success).toBe(false);
     expect(result.message).toMatch(/Invalid arguments/);
-    expect(financeService.createTransaction).not.toHaveBeenCalled();
+    expect(createTransaction.mock.calls).toHaveLength(0);
   });
 
-  it('passes validated create_transaction args to finance', async () => {
-    (financeService.createTransaction as jest.Mock).mockResolvedValue({
-      id: 'tx-1',
-    });
+  it('passes validated create_transaction args to finance with source AI', async () => {
+    createTransaction.mockResolvedValue({ id: 'tx-1' });
     const accountId = '550e8400-e29b-41d4-a716-446655440000';
 
     const result = await executor.execute(ctx, 'create_transaction', {
@@ -75,17 +102,23 @@ describe('ToolExecutorService', () => {
     });
 
     expect(result.success).toBe(true);
-    expect(financeService.createTransaction).toHaveBeenCalledWith('user-1', {
-      accountId,
-      cardId: undefined,
-      type: 'DEBIT',
-      amount: 12.5,
-      currency: 'DOP',
-      transactionDate: '2024-01-15',
-      description: undefined,
-      merchant: undefined,
-      categoryId: undefined,
-    });
+    expect(createTransaction.mock.calls).toEqual([
+      [
+        'user-1',
+        {
+          accountId,
+          cardId: undefined,
+          type: 'DEBIT',
+          amount: 12.5,
+          currency: 'DOP',
+          transactionDate: '2024-01-15',
+          description: undefined,
+          merchant: undefined,
+          categoryId: undefined,
+        },
+        'AI',
+      ],
+    ]);
   });
 
   it('rejects JSON parse-error sentinel without domain calls', async () => {
@@ -95,13 +128,11 @@ describe('ToolExecutorService', () => {
 
     expect(result.success).toBe(false);
     expect(result.message).toContain('valid JSON');
-    expect(usersService.updateProfile).not.toHaveBeenCalled();
+    expect(updateProfile.mock.calls).toHaveLength(0);
   });
 
   it('maps domain service throws into tool failure results', async () => {
-    (financeService.createTransaction as jest.Mock).mockRejectedValue(
-      new Error('account missing'),
-    );
+    createTransaction.mockRejectedValue(new Error('account missing'));
 
     const result = await executor.execute(ctx, 'create_transaction', {
       type: 'DEBIT',
@@ -111,6 +142,6 @@ describe('ToolExecutorService', () => {
     });
 
     expect(result.success).toBe(false);
-    expect(result.message).toContain('account missing');
+    expect(result.message).toBe('Tool execution failed: account missing');
   });
 });

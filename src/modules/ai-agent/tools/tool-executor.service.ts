@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { FinanceService } from '../../finance/finance.service';
+import { FinanceFacade } from '../../finance/finance.facade';
 import { GLOBAL_USER_PREFERENCES_DEFAULTS } from '../../users/defaults/global-preferences-defaults';
 import { mergeWithDefaults } from '../../users/lib/settings-merge';
 import { UsersService } from '../../users/users.service';
@@ -25,7 +25,7 @@ import {
 export class ToolExecutorService {
   constructor(
     private readonly usersService: UsersService,
-    private readonly financeService: FinanceService,
+    private readonly financeFacade: FinanceFacade,
     private readonly sessionsRepo: AiSessionsRepository,
   ) {}
 
@@ -308,7 +308,7 @@ export class ToolExecutorService {
       case 'update_user_profile':
         return this.updateUserProfile(
           ctx,
-          args as ValidatedToolArgs<'update_user_profile'>,
+          args,
         );
       case 'set_theme':
         return this.setTheme(ctx, args as ValidatedToolArgs<'set_theme'>);
@@ -320,12 +320,12 @@ export class ToolExecutorService {
       case 'update_ai_settings':
         return this.updateAiSettings(
           ctx,
-          args as ValidatedToolArgs<'update_ai_settings'>,
+          args,
         );
       case 'update_notification_settings':
         return this.updateNotificationSettings(
           ctx,
-          args as ValidatedToolArgs<'update_notification_settings'>,
+          args,
         );
       case 'update_module_config':
         return this.updateModuleConfig(
@@ -341,7 +341,7 @@ export class ToolExecutorService {
         return {
           success: true,
           message: 'Finance summary loaded',
-          data: await this.financeService.getAnalyticsSummary(
+          data: await this.financeFacade.getAnalyticsSummary(
             ctx.userId,
             typeof args.dateFrom === 'string' ? args.dateFrom : undefined,
             typeof args.dateTo === 'string' ? args.dateTo : undefined,
@@ -351,28 +351,119 @@ export class ToolExecutorService {
         return {
           success: true,
           message: 'Transactions loaded',
-          data: await this.financeService.listTransactions(ctx.userId, {
+          data: await this.financeFacade.listTransactions(ctx.userId, {
             page: 1,
             limit: 50,
             ...args,
           }),
+        };
+      case 'get_transaction': {
+        const id = typeof args.transactionId === 'string' ? args.transactionId : '';
+        if (!id) {
+          return { success: false, message: 'transactionId is required' };
+        }
+        return {
+          success: true,
+          message: 'Transaction loaded',
+          data: await this.financeFacade.getTransaction(ctx.userId, id),
+        };
+      }
+      case 'list_categories':
+        return {
+          success: true,
+          message: 'Categories loaded',
+          data: { items: await this.financeFacade.listCategories(ctx.userId) },
+        };
+      case 'list_accounts':
+        return {
+          success: true,
+          message: 'Accounts loaded',
+          data: { items: await this.financeFacade.listAccounts(ctx.userId) },
+        };
+      case 'list_cards':
+        return {
+          success: true,
+          message: 'Cards loaded',
+          data: { items: await this.financeFacade.listCards(ctx.userId) },
+        };
+      case 'list_budgets':
+        return {
+          success: true,
+          message: 'Budgets loaded',
+          data: { items: await this.financeFacade.listBudgets(ctx.userId) },
+        };
+      case 'list_email_sources':
+        return {
+          success: true,
+          message: 'Email sources loaded',
+          data: { items: await this.financeFacade.listEmailSources(ctx.userId) },
         };
       case 'create_transaction': {
         const tx = args as ValidatedToolArgs<'create_transaction'>;
         return {
           success: true,
           message: 'Transaction created',
-          data: await this.financeService.createTransaction(ctx.userId, {
-            accountId: tx.accountId ?? undefined,
-            cardId: tx.cardId ?? undefined,
-            type: tx.type,
-            amount: tx.amount,
-            currency: tx.currency,
-            transactionDate: tx.transactionDate,
-            description: tx.description ?? undefined,
-            merchant: tx.merchant ?? undefined,
-            categoryId: tx.categoryId ?? undefined,
+          data: await this.financeFacade.createTransaction(
+            ctx.userId,
+            {
+              accountId: tx.accountId ?? undefined,
+              cardId: tx.cardId ?? undefined,
+              type: tx.type,
+              amount: tx.amount,
+              currency: tx.currency,
+              transactionDate: tx.transactionDate,
+              description: tx.description ?? undefined,
+              merchant: tx.merchant ?? undefined,
+              categoryId: tx.categoryId ?? undefined,
+            },
+            'AI',
+          ),
+        };
+      }
+      case 'create_transfer': {
+        const t = args as ValidatedToolArgs<'create_transfer'>;
+        return {
+          success: true,
+          message: 'Transfer created',
+          data: await this.financeFacade.createTransferTransaction(ctx.userId, {
+            fromAccountId: t.fromAccountId ?? undefined,
+            fromCardId: t.fromCardId ?? undefined,
+            toAccountId: t.toAccountId ?? undefined,
+            toCardId: t.toCardId ?? undefined,
+            amount: t.amount,
+            currency: t.currency,
+            transactionDate: t.transactionDate,
+            description: t.description ?? undefined,
+            notes: t.notes ?? undefined,
           }),
+        };
+      }
+      case 'update_transaction': {
+        const tx = args as ValidatedToolArgs<'update_transaction'>;
+        return {
+          success: true,
+          message: 'Transaction updated',
+          data: await this.financeFacade.updateTransaction(
+            ctx.userId,
+            tx.transactionId,
+            {
+              categoryId: tx.categoryId ?? undefined,
+              merchant: tx.merchant ?? undefined,
+              description: tx.description ?? undefined,
+              notes: tx.notes ?? undefined,
+            },
+          ),
+        };
+      }
+      case 'confirm_transaction': {
+        const tx = args as ValidatedToolArgs<'confirm_transaction'>;
+        return {
+          success: true,
+          message: 'Transaction confirmed',
+          data: await this.financeFacade.confirmTransaction(
+            ctx.userId,
+            tx.transactionId,
+          ),
         };
       }
       case 'get_budget_status':
@@ -380,7 +471,7 @@ export class ToolExecutorService {
           success: true,
           message: 'Budget status loaded',
           data: {
-            items: await this.financeService.getBudgetStatus(ctx.userId),
+            items: await this.financeFacade.getBudgetStatus(ctx.userId),
           },
         };
       case 'create_or_update_budget': {
@@ -389,7 +480,7 @@ export class ToolExecutorService {
           return {
             success: true,
             message: 'Budget updated',
-            data: await this.financeService.updateBudget(
+            data: await this.financeFacade.updateBudget(
               ctx.userId,
               budget.budgetId,
               {
@@ -406,7 +497,7 @@ export class ToolExecutorService {
         return {
           success: true,
           message: 'Budget created',
-          data: await this.financeService.createBudget(ctx.userId, {
+          data: await this.financeFacade.createBudget(ctx.userId, {
             categoryId: budget.categoryId as string,
             periodType: budget.periodType as
               | 'MONTHLY'
@@ -424,7 +515,7 @@ export class ToolExecutorService {
           success: true,
           message: 'Savings goals loaded',
           data: {
-            items: await this.financeService.listSavingsGoals(ctx.userId),
+            items: await this.financeFacade.listSavingsGoals(ctx.userId),
           },
         };
       case 'create_savings_goal': {
@@ -432,7 +523,7 @@ export class ToolExecutorService {
         return {
           success: true,
           message: 'Savings goal created',
-          data: await this.financeService.createSavingsGoal(ctx.userId, {
+          data: await this.financeFacade.createSavingsGoal(ctx.userId, {
             name: goal.name,
             targetAmount: goal.targetAmount,
             currentAmount: goal.currentAmount ?? undefined,
@@ -446,7 +537,7 @@ export class ToolExecutorService {
         return {
           success: true,
           message: 'Savings goal updated',
-          data: await this.financeService.updateSavingsGoal(
+          data: await this.financeFacade.updateSavingsGoal(
             ctx.userId,
             goal.goalId,
             {
@@ -461,12 +552,12 @@ export class ToolExecutorService {
         return {
           success: true,
           message: 'Loans loaded',
-          data: { items: await this.financeService.listLoans(ctx.userId) },
+          data: { items: await this.financeFacade.listLoans(ctx.userId) },
         };
       case 'mark_loan_installment_paid': {
         const loanArgs =
           args as ValidatedToolArgs<'mark_loan_installment_paid'>;
-        const loans = await this.financeService.listLoans(ctx.userId);
+        const loans = await this.financeFacade.listLoans(ctx.userId);
         const loan = loans.find((item) => item.id === loanArgs.loanId);
         if (!loan) {
           return { success: false, message: 'Loan not found' };
@@ -474,7 +565,7 @@ export class ToolExecutorService {
         return {
           success: true,
           message: 'Loan installment marked as paid',
-          data: await this.financeService.updateLoan(
+          data: await this.financeFacade.updateLoan(
             ctx.userId,
             loanArgs.loanId,
             {
@@ -487,13 +578,17 @@ export class ToolExecutorService {
       }
       case 'trigger_email_sync': {
         const sync = args as ValidatedToolArgs<'trigger_email_sync'>;
+        const result = await this.financeFacade.triggerEmailSync(
+          ctx.userId,
+          sync.sourceId,
+          sync.forceFullSync ?? false,
+        );
         return {
-          success: true,
-          message: 'Email sync queued',
-          data: await this.financeService.triggerEmailSync(
-            ctx.userId,
-            sync.sourceId,
-          ),
+          success: result.queued === true,
+          message: result.queued
+            ? 'Email sync queued'
+            : (result.reason ?? 'Email sync not queued'),
+          data: result,
         };
       }
       case 'get_spending_by_category':
@@ -501,13 +596,29 @@ export class ToolExecutorService {
           success: true,
           message: 'Spending breakdown loaded',
           data: {
-            items: await this.financeService.getSpendingByCategory(
+            items: await this.financeFacade.getSpendingByCategory(
               ctx.userId,
               typeof args.dateFrom === 'string' ? args.dateFrom : undefined,
               typeof args.dateTo === 'string' ? args.dateTo : undefined,
             ),
           },
         };
+      case 'get_spending_over_time': {
+        const groupBy =
+          args.groupBy === 'week' || args.groupBy === 'month'
+            ? args.groupBy
+            : 'day';
+        return {
+          success: true,
+          message: 'Spending over time loaded',
+          data: await this.financeFacade.getSpendingOverTime(
+            ctx.userId,
+            typeof args.dateFrom === 'string' ? args.dateFrom : undefined,
+            typeof args.dateTo === 'string' ? args.dateTo : undefined,
+            groupBy,
+          ),
+        };
+      }
       default:
         return { success: false, message: `Unknown tool: ${name}` };
     }

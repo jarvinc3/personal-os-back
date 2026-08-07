@@ -35,7 +35,7 @@ describe('HealthController', () => {
     http,
     prismaService,
     redisHealthIndicator,
-    configService as ConfigService<never, true>,
+    configService as unknown as ConfigService<never, true>,
   );
 
   beforeEach(() => {

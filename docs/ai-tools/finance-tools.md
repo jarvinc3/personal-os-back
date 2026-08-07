@@ -2,7 +2,7 @@
 
 Available when chat session `moduleSlug` is `finance`. Source: `MODULE_CONTEXT.finance`.
 
-All finance tools delegate to `FinanceService` via `ToolExecutorService`.
+All finance tools delegate to **`FinanceFacade`** via `ToolExecutorService`.
 
 ## Read-only tools
 
@@ -15,7 +15,7 @@ Returns net worth, cash flow, and income/expense totals for a date range.
 | `dateFrom` | string | no       | ISO date start |
 | `dateTo`   | string | no       | ISO date end   |
 
-**Delegates to:** `FinanceService.getAnalyticsSummary`
+**Delegates to:** `FinanceFacade.getAnalyticsSummary`
 
 ---
 
@@ -27,14 +27,66 @@ Lists up to 50 transactions with optional filters.
 | ------------ | ------ | -------- | ----------------------------------- |
 | `accountId`  | string | no       | Filter by account                   |
 | `cardId`     | string | no       | Filter by card                      |
-| `categoryId` | string | no       | Filter by category                  |
+| `categoryId` | string | no       | Filter by category (UUID)           |
 | `type`       | string | no       | `DEBIT`, `CREDIT`, `TRANSFER`       |
-| `status`     | string | no       | `PENDING`, `CONFIRMED`, `CANCELLED` |
+| `status`     | string | no       | `PENDING`, `CONFIRMED`, `DECLINED`, `CANCELLED`, `REVERSED` |
 | `dateFrom`   | string | no       | ISO date start                      |
 | `dateTo`     | string | no       | ISO date end                        |
 | `search`     | string | no       | Text search on description/merchant |
 
-**Delegates to:** `FinanceService.listTransactions` (page=1, limit=50)
+**Delegates to:** `FinanceFacade.listTransactions` (page=1, limit=50)
+
+---
+
+### `get_transaction`
+
+Returns one transaction by id.
+
+| Parameter       | Type   | Required |
+| --------------- | ------ | -------- |
+| `transactionId` | string | yes      |
+
+**Delegates to:** `FinanceFacade.getTransaction`
+
+---
+
+### `list_categories`
+
+Lists finance categories for the user (system + custom).
+
+**Delegates to:** `FinanceFacade.listCategories`
+
+---
+
+### `list_accounts`
+
+Lists finance accounts.
+
+**Delegates to:** `FinanceFacade.listAccounts`
+
+---
+
+### `list_cards`
+
+Lists credit/debit cards and multi-currency balances.
+
+**Delegates to:** `FinanceFacade.listCards`
+
+---
+
+### `list_budgets`
+
+Lists budget periods for the user.
+
+**Delegates to:** `FinanceFacade.listBudgets`
+
+---
+
+### `list_email_sources`
+
+Lists connected Gmail email sources (for sync targeting).
+
+**Delegates to:** `FinanceFacade.listEmailSources`
 
 ---
 
@@ -42,147 +94,122 @@ Lists up to 50 transactions with optional filters.
 
 Returns active budgets with spent amount and threshold percentage.
 
-| Parameter | Type | Required |
-| --------- | ---- | -------- |
-| _(none)_  | —    | —        |
-
-**Delegates to:** `FinanceService.getBudgetStatus`
+**Delegates to:** `FinanceFacade.getBudgetStatus`
 
 ---
 
 ### `list_savings_goals`
 
-Lists all savings goals for the user.
-
-**Delegates to:** `FinanceService.listSavingsGoals`
+**Delegates to:** `FinanceFacade.listSavingsGoals`
 
 ---
 
 ### `list_loans`
 
-Lists active loans with installment progress.
-
-**Delegates to:** `FinanceService.listLoans`
+**Delegates to:** `FinanceFacade.listLoans`
 
 ---
 
 ### `get_spending_by_category`
-
-Returns spending totals grouped by category.
 
 | Parameter  | Type   | Required |
 | ---------- | ------ | -------- |
 | `dateFrom` | string | no       |
 | `dateTo`   | string | no       |
 
-**Delegates to:** `FinanceService.getSpendingByCategory`
+**Delegates to:** `FinanceFacade.getSpendingByCategory`
+
+---
+
+### `get_spending_over_time`
+
+| Parameter  | Type   | Required | Description |
+| ---------- | ------ | -------- | ----------- |
+| `dateFrom` | string | no       | ISO start |
+| `dateTo`   | string | no       | ISO end |
+| `groupBy`  | string | no       | `day` (default), `week`, or `month` |
+
+**Delegates to:** `FinanceFacade.getSpendingOverTime`
 
 ---
 
 ## Mutating tools
 
+Mutating args are validated with Zod (`tool-arg-schemas.ts`).
+
 ### `create_transaction`
 
-Creates a manual or agent-initiated transaction.
+Creates a transaction with **`source=AI`**.
 
-| Parameter         | Type           | Required    | Description                              |
-| ----------------- | -------------- | ----------- | ---------------------------------------- |
-| `type`            | string         | yes         | `DEBIT`, `CREDIT`, `TRANSFER`            |
-| `amount`          | number         | yes         | Transaction amount                       |
-| `transactionDate` | string         | yes         | ISO date                                 |
-| `accountId`       | string \| null | exactly one | Target account (XOR with cardId)         |
-| `cardId`          | string \| null | exactly one | Target card (XOR with accountId)         |
-| `currency`        | string         | no          | ISO 4217 3-letter, uppercased            |
-| `description`     | string \| null | no          | Free text                                |
-| `merchant`        | string \| null | no          | Merchant name                            |
-| `categoryId`      | string \| null | no          | Category UUID                            |
+| Parameter         | Type           | Required    | Description                         |
+| ----------------- | -------------- | ----------- | ----------------------------------- |
+| `type`            | string         | yes         | `DEBIT` or `CREDIT` (not TRANSFER)  |
+| `amount`          | number         | yes         | Transaction amount                  |
+| `transactionDate` | string         | yes         | ISO date                            |
+| `accountId`       | string \| null | exactly one | Target account (XOR with cardId)    |
+| `cardId`          | string \| null | exactly one | Target card (XOR with accountId)    |
+| `currency`        | string         | no          | ISO 4217                            |
+| `description`     | string \| null | no          | Free text                           |
+| `merchant`        | string \| null | no          | Merchant name                       |
+| `categoryId`      | string \| null | no          | Category UUID                       |
 
-**Delegates to:** `FinanceService.createTransaction`
+**Delegates to:** `FinanceFacade.createTransaction` (source forced to `AI`)
 
-**Invariants:** exactly one of `accountId` / `cardId`; credit cards update `FinCardBalance`; debit cards update the linked account.
+---
+
+### `create_transfer`
+
+Moves amount between two ledger targets (exactly one of account/card per leg).
+
+**Delegates to:** `FinanceFacade.createTransferTransaction`
+
+---
+
+### `update_transaction`
+
+Updates **metadata only** (`categoryId`, `merchant`, `description`, `notes`). Amount/currency/status/date are not part of the AI tool schema.
+
+**Delegates to:** `FinanceFacade.updateTransaction`
+
+---
+
+### `confirm_transaction`
+
+Confirms a `PENDING` transaction (applies ledger).
+
+**Delegates to:** `FinanceFacade.confirmTransaction`
 
 ---
 
 ### `create_or_update_budget`
 
-Creates a new budget or updates an existing one when `budgetId` is provided.
+Creates a new budget or updates when `budgetId` is provided.
 
-| Parameter           | Type           | Required | Description                     |
-| ------------------- | -------------- | -------- | ------------------------------- |
-| `categoryId`        | string         | yes      | Budget category                 |
-| `periodType`        | string         | yes      | `MONTHLY`, `BIWEEKLY`, `CUSTOM` |
-| `periodStart`       | string         | yes      | Period start date               |
-| `periodEnd`         | string         | yes      | Period end date                 |
-| `amountLimit`       | number         | yes      | Budget cap                      |
-| `budgetId`          | string \| null | no       | Existing budget to update       |
-| `alertThresholdPct` | number \| null | no       | Alert at % of limit             |
-
-**Delegates to:** `FinanceService.createBudget` or `FinanceService.updateBudget`
+**Delegates to:** `FinanceFacade.createBudget` / `updateBudget`
 
 ---
 
-### `create_savings_goal`
+### `create_savings_goal` / `update_savings_goal`
 
-Creates a savings goal.
-
-| Parameter       | Type           | Required |
-| --------------- | -------------- | -------- |
-| `name`          | string         | yes      |
-| `targetAmount`  | number         | yes      |
-| `currentAmount` | number \| null | no       |
-| `currency`      | string \| null | no       |
-| `targetDate`    | string \| null | no       |
-
-**Delegates to:** `FinanceService.createSavingsGoal`
-
----
-
-### `update_savings_goal`
-
-Updates progress or metadata on an existing goal.
-
-| Parameter       | Type           | Required |
-| --------------- | -------------- | -------- |
-| `goalId`        | string         | yes      |
-| `currentAmount` | number \| null | no       |
-| `targetAmount`  | number \| null | no       |
-| `name`          | string \| null | no       |
-
-**Delegates to:** `FinanceService.updateSavingsGoal`
+**Delegates to:** `FinanceFacade.createSavingsGoal` / `updateSavingsGoal`
 
 ---
 
 ### `mark_loan_installment_paid`
 
-Increments `paidInstallments` and decrements `currentBalance` by one installment amount.
-
-| Parameter | Type   | Required |
-| --------- | ------ | -------- |
-| `loanId`  | string | yes      |
-
-**Delegates to:** `FinanceService.updateLoan` (derived patch from current loan state)
+Increments `paidInstallments` and decrements `currentBalance` by one installment.
 
 ---
 
 ### `trigger_email_sync`
 
-Enqueues a Gmail sync job for one email source.
+Triggers Gmail sync for one email source. Returns `queued: true|false` — do not claim success if `queued` is false.
 
-| Parameter  | Type   | Required |
-| ---------- | ------ | -------- |
-| `sourceId` | string | yes      |
-
-**Delegates to:** `FinanceService.triggerEmailSync` → BullMQ queue `gmail-sync`
-
-**Note:** Worker `GmailSyncProcessor` lists Gmail messages, runs bank HTML parsers, and inserts `PENDING` transactions on the linked `accountId` or `cardId`.
+**Worker:** `ingestion/infrastructure/gmail-sync.processor.ts` (AI extraction, not HTML parsers).
 
 ---
-
-## Context inclusion
-
-Finance context always includes `get_user_context` plus all tools above. Finance module config cannot be changed via `update_module_config` (blocked in executor).
 
 ## Related
 
 - REST API: `docs/modules/finance.md`
-- Queue: `GmailSyncProcessor` in `src/modules/finance/gmail-sync.processor.ts`
+- Façade: `src/modules/finance/finance.facade.ts`

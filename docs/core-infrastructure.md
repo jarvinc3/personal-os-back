@@ -21,28 +21,34 @@ Núcleo transversal de `personal-os-back` (NestJS 11). Los módulos de dominio *
 
 - Zod env: Redis obligatorio en prod; `OAUTH_STATE_SECRET` obligatorio en prod.
 - `REDIS_ENABLED=true` + `REDIS_URL` para BullMQ en development.
-- `EXCHANGE_RATE_HOST_API_KEY` reservada / no cableada aún.
+- `EXCHANGE_RATE_HOST_API_KEY` — FX histórico (exchangerate.host) en Finance.
+- `BASE_CURRENCY` — moneda base de analytics (default típico `DOP`).
 
 ## Core (`src/core/`)
 
 Guards JWT/roles/throttle, interceptors (transform, logging, timeout, AI metrics), `AllExceptionsFilter` (500 genérico en prod), catálogo `AppEvents`, colas `notifications` / `ai-processing` / `email-sync` / `gmail-sync`, paginación.
 
-## Event-driven selectivo
+## Event-driven selectivo + outbox finance
 
-No se usa EDA en todo el CRUD. Flujo:
+No se usa EDA en todo el CRUD global. En **Finance**:
 
-1. Servicio persiste en `$transaction`.
-2. Emite evento post-commit (`EventEmitter2`).
+1. Servicio persiste ledger en `$transaction` (balance + outbox en la misma TX cuando aplica).
+2. Filas en `domain_event_outbox` se despachan por `FinanceOutboxDispatcher` (cron 30s + wake post-commit) → `EventEmitter2`.
 3. Listeners ligeros crean notificaciones o encolan BullMQ (IA / push).
 
-Sin transactional outbox (despliegue single-instance).
+Finance emite **solo** nombres versionados (sin dual-enqueue legacy):  
+`finance.transaction.*`, `finance.budget.threshold_crossed`, `finance.email_sync.completed` / `failed`, `finance.transfer.created` (ver `event.constants.ts`).  
+Listeners de notificaciones/IA consumen esos nombres y usan `DomainEventIdempotencyGuard` (`ProcessedDomainEvent`).
 
-Eventos activos: `user.logged_in` (debounce cache 1h), `transaction.*`, `budget.threshold_reached`, `notification.created`, `user.preferences.updated`, `module.*`.
+Otros módulos pueden seguir emitiendo in-process sin outbox: `user.logged_in` (debounce 1h), `notification.created`, `user.preferences.updated`, `module.*`.
 
 ## Finance — invariantes de balance
 
 - Solo `CONFIRMED` muta balances materializados.
-- Confirm de PENDING (EMAIL/manual) aplica saldo + `amountSpent`.
+- Status email/IA: `PENDING` | `CONFIRMED` | `DECLINED` | `CANCELLED` | `REVERSED`.
+- FX: `amount` original + `ledgerAmount` + `amountBaseCurrency`; tasa exacta del día o fallo.
+- Confirm de PENDING aplica saldo + `amountSpent`.
+- Umbral de presupuesto: una alerta por `(budgetId, type)` en `FinBudgetAlert`.
 - Delete/update compensan.
 - Reconciliación: `pnpm db:reconcile-balances`.
 

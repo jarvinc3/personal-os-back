@@ -23,7 +23,9 @@ describe('SupabaseAdminService', () => {
       }),
     } as unknown as ConfigService;
 
-    return new SupabaseAdminService(config as ConfigService<never, true>);
+    return new SupabaseAdminService(
+      config as unknown as ConfigService<never, true>,
+    );
   }
 
   beforeEach(() => {

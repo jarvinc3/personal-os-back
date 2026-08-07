@@ -596,6 +596,23 @@ export type EnumFinEmailSyncStatusWithAggregatesFilter<$PrismaModel = never> = {
   _max?: Prisma.NestedEnumFinEmailSyncStatusFilter<$PrismaModel>
 }
 
+export type EnumDomainEventOutboxStatusFilter<$PrismaModel = never> = {
+  equals?: $Enums.DomainEventOutboxStatus | Prisma.EnumDomainEventOutboxStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.DomainEventOutboxStatus[] | Prisma.ListEnumDomainEventOutboxStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.DomainEventOutboxStatus[] | Prisma.ListEnumDomainEventOutboxStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumDomainEventOutboxStatusFilter<$PrismaModel> | $Enums.DomainEventOutboxStatus
+}
+
+export type EnumDomainEventOutboxStatusWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.DomainEventOutboxStatus | Prisma.EnumDomainEventOutboxStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.DomainEventOutboxStatus[] | Prisma.ListEnumDomainEventOutboxStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.DomainEventOutboxStatus[] | Prisma.ListEnumDomainEventOutboxStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumDomainEventOutboxStatusWithAggregatesFilter<$PrismaModel> | $Enums.DomainEventOutboxStatus
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumDomainEventOutboxStatusFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumDomainEventOutboxStatusFilter<$PrismaModel>
+}
+
 export type EnumAuthDeletionOutboxStatusFilter<$PrismaModel = never> = {
   equals?: $Enums.AuthDeletionOutboxStatus | Prisma.EnumAuthDeletionOutboxStatusFieldRefInput<$PrismaModel>
   in?: $Enums.AuthDeletionOutboxStatus[] | Prisma.ListEnumAuthDeletionOutboxStatusFieldRefInput<$PrismaModel>
@@ -1152,6 +1169,23 @@ export type NestedEnumFinEmailSyncStatusWithAggregatesFilter<$PrismaModel = neve
   _count?: Prisma.NestedIntFilter<$PrismaModel>
   _min?: Prisma.NestedEnumFinEmailSyncStatusFilter<$PrismaModel>
   _max?: Prisma.NestedEnumFinEmailSyncStatusFilter<$PrismaModel>
+}
+
+export type NestedEnumDomainEventOutboxStatusFilter<$PrismaModel = never> = {
+  equals?: $Enums.DomainEventOutboxStatus | Prisma.EnumDomainEventOutboxStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.DomainEventOutboxStatus[] | Prisma.ListEnumDomainEventOutboxStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.DomainEventOutboxStatus[] | Prisma.ListEnumDomainEventOutboxStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumDomainEventOutboxStatusFilter<$PrismaModel> | $Enums.DomainEventOutboxStatus
+}
+
+export type NestedEnumDomainEventOutboxStatusWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.DomainEventOutboxStatus | Prisma.EnumDomainEventOutboxStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.DomainEventOutboxStatus[] | Prisma.ListEnumDomainEventOutboxStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.DomainEventOutboxStatus[] | Prisma.ListEnumDomainEventOutboxStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumDomainEventOutboxStatusWithAggregatesFilter<$PrismaModel> | $Enums.DomainEventOutboxStatus
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumDomainEventOutboxStatusFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumDomainEventOutboxStatusFilter<$PrismaModel>
 }
 
 export type NestedEnumAuthDeletionOutboxStatusFilter<$PrismaModel = never> = {

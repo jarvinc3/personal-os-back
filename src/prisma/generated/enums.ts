@@ -79,7 +79,9 @@ export type FinTransactionType = (typeof FinTransactionType)[keyof typeof FinTra
 export const FinTransactionStatus = {
   PENDING: 'PENDING',
   CONFIRMED: 'CONFIRMED',
-  CANCELLED: 'CANCELLED'
+  CANCELLED: 'CANCELLED',
+  DECLINED: 'DECLINED',
+  REVERSED: 'REVERSED'
 } as const
 
 export type FinTransactionStatus = (typeof FinTransactionStatus)[keyof typeof FinTransactionStatus]
@@ -92,6 +94,17 @@ export const FinTransactionSource = {
 } as const
 
 export type FinTransactionSource = (typeof FinTransactionSource)[keyof typeof FinTransactionSource]
+
+
+export const DomainEventOutboxStatus = {
+  PENDING: 'PENDING',
+  PROCESSING: 'PROCESSING',
+  COMPLETED: 'COMPLETED',
+  FAILED: 'FAILED',
+  DEAD: 'DEAD'
+} as const
+
+export type DomainEventOutboxStatus = (typeof DomainEventOutboxStatus)[keyof typeof DomainEventOutboxStatus]
 
 
 export const FinBudgetPeriodType = {

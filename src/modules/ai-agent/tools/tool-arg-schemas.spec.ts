@@ -6,8 +6,8 @@ import {
 } from './tool-arg-schemas';
 
 describe('tool-arg-schemas', () => {
-  it('registers schemas for all 13 mutating tools', () => {
-    expect(Object.keys(MUTATING_TOOL_ARG_SCHEMAS)).toHaveLength(13);
+  it('registers schemas for all mutating tools', () => {
+    expect(Object.keys(MUTATING_TOOL_ARG_SCHEMAS)).toHaveLength(16);
   });
 
   it('generates OpenAI-compatible JSON Schema without $schema', () => {

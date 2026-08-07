@@ -48,7 +48,7 @@ pnpm start:dev
 
 **Redis en development:** BullMQ solo si `REDIS_ENABLED=true` y `REDIS_URL`.
 
-**FX:** `EXCHANGE_RATE_HOST_API_KEY` está reservada y **no se usa** aún en código.
+**FX:** `EXCHANGE_RATE_HOST_API_KEY` + `BASE_CURRENCY` alimentan el adapter `exchangerate.host` (tasas históricas por fecha; caché en `FinExchangeRate`).
 
 ## Scripts
 
@@ -88,8 +88,8 @@ Catálogo en `src/core/events/event.constants.ts`. Patrón: EventEmitter post-co
 | Evento | Emisor | Listener |
 | --- | --- | --- |
 | `user.logged_in` | Auth session (debounce 1h) | AI → cola |
-| `transaction.created` / `updated` | Finance | Notif IN_APP + AI |
-| `budget.threshold_reached` | Finance | Notif + AI |
+| `finance.transaction.*` / `updated` | Finance (outbox) | Notif IN_APP + AI |
+| `finance.budget.threshold_crossed` | Finance (outbox) | Notif + AI |
 | `notification.created` | Notifications | log debug |
 | `user.preferences.updated` / `module.*` | Users | AI |
 

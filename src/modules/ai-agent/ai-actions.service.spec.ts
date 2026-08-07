@@ -9,21 +9,29 @@ import { AiActionsService } from './ai-actions.service';
 import { ToolExecutorService } from './tools/tool-executor.service';
 
 describe('AiActionsService', () => {
+  const findById = jest.fn();
+  const findBySession = jest.fn();
+  const create = jest.fn();
+  const claimForExecution = jest.fn();
+  const claimForCancel = jest.fn();
+  const updateStatus = jest.fn();
   const actionsRepo = {
-    findById: jest.fn(),
-    findBySession: jest.fn(),
-    create: jest.fn(),
-    claimForExecution: jest.fn(),
-    claimForCancel: jest.fn(),
-    updateStatus: jest.fn(),
+    findById,
+    findBySession,
+    create,
+    claimForExecution,
+    claimForCancel,
+    updateStatus,
   } as unknown as AiActionsRepository;
 
+  const execute = jest.fn();
   const toolExecutor = {
-    execute: jest.fn(),
+    execute,
   } as unknown as ToolExecutorService;
 
+  const emitToUser = jest.fn();
   const gateway = {
-    emitToUser: jest.fn(),
+    emitToUser,
   } as unknown as NotificationsGateway;
 
   const service = new AiActionsService(actionsRepo, toolExecutor, gateway);
@@ -51,11 +59,11 @@ describe('AiActionsService', () => {
         }),
       ).rejects.toBeInstanceOf(BadRequestException);
 
-      expect(actionsRepo.create).not.toHaveBeenCalled();
+      expect(create.mock.calls).toHaveLength(0);
     });
 
     it('stores validated payload', async () => {
-      (actionsRepo.create as jest.Mock).mockResolvedValue({
+      create.mockResolvedValue({
         ...pendingAction,
       });
 
@@ -65,7 +73,7 @@ describe('AiActionsService', () => {
         payload: { value: 'dark' },
       });
 
-      expect(actionsRepo.create).toHaveBeenCalledWith(
+      expect(create.mock.calls[0]?.[0]).toEqual(
         expect.objectContaining({
           actionType: 'set_theme',
           payload: { value: 'dark' },
@@ -77,14 +85,14 @@ describe('AiActionsService', () => {
 
   describe('execute', () => {
     it('claims pending action once and finalizes success', async () => {
-      (actionsRepo.findById as jest.Mock)
+      findById
         .mockResolvedValueOnce(pendingAction)
         .mockResolvedValueOnce({ ...pendingAction, status: 'SUCCESS' });
-      (actionsRepo.claimForExecution as jest.Mock).mockResolvedValue({
+      claimForExecution.mockResolvedValue({
         ...pendingAction,
         status: 'RUNNING',
       });
-      (toolExecutor.execute as jest.Mock).mockResolvedValue({
+      execute.mockResolvedValue({
         success: true,
         message: 'Theme set to dark',
         sideEffects: [{ type: 'theme', value: 'dark' }],
@@ -92,57 +100,52 @@ describe('AiActionsService', () => {
 
       const result = await service.execute('action-1', 'user-1');
 
-      expect(actionsRepo.claimForExecution).toHaveBeenCalledWith(
-        'action-1',
-        'user-1',
-      );
-      expect(actionsRepo.updateStatus).toHaveBeenCalledWith(
+      expect(claimForExecution.mock.calls).toEqual([['action-1', 'user-1']]);
+      expect(updateStatus.mock.calls[0]).toEqual([
         'action-1',
         'SUCCESS',
         expect.objectContaining({ message: 'Theme set to dark' }),
-      );
+      ]);
       expect(result.action.status).toBe('SUCCESS');
-      expect(gateway.emitToUser).toHaveBeenCalled();
+      expect(emitToUser.mock.calls.length).toBeGreaterThan(0);
     });
 
     it('returns conflict when claim loses the race', async () => {
-      (actionsRepo.findById as jest.Mock)
+      findById
         .mockResolvedValueOnce(pendingAction)
         .mockResolvedValueOnce({ ...pendingAction, status: 'RUNNING' });
-      (actionsRepo.claimForExecution as jest.Mock).mockResolvedValue(null);
+      claimForExecution.mockResolvedValue(null);
 
       await expect(service.execute('action-1', 'user-1')).rejects.toBeInstanceOf(
         ConflictException,
       );
-      expect(toolExecutor.execute).not.toHaveBeenCalled();
+      expect(execute.mock.calls).toHaveLength(0);
     });
 
     it('marks FAILED when executor throws unexpectedly', async () => {
-      (actionsRepo.findById as jest.Mock)
+      findById
         .mockResolvedValueOnce(pendingAction)
         .mockResolvedValueOnce({ ...pendingAction, status: 'FAILED' });
-      (actionsRepo.claimForExecution as jest.Mock).mockResolvedValue({
+      claimForExecution.mockResolvedValue({
         ...pendingAction,
         status: 'RUNNING',
       });
-      (toolExecutor.execute as jest.Mock).mockRejectedValue(
-        new Error('boom'),
-      );
+      execute.mockRejectedValue(new Error('boom'));
 
       const result = await service.execute('action-1', 'user-1');
 
-      expect(actionsRepo.updateStatus).toHaveBeenCalledWith(
+      expect(updateStatus.mock.calls[0]).toEqual([
         'action-1',
         'FAILED',
         expect.objectContaining({
           message: expect.stringContaining('boom'),
         }),
-      );
+      ]);
       expect(result.action.status).toBe('FAILED');
     });
 
     it('rejects non-pending without claiming', async () => {
-      (actionsRepo.findById as jest.Mock).mockResolvedValue({
+      findById.mockResolvedValue({
         ...pendingAction,
         status: 'SUCCESS',
       });
@@ -150,11 +153,11 @@ describe('AiActionsService', () => {
       await expect(service.execute('action-1', 'user-1')).rejects.toBeInstanceOf(
         BadRequestException,
       );
-      expect(actionsRepo.claimForExecution).not.toHaveBeenCalled();
+      expect(claimForExecution.mock.calls).toHaveLength(0);
     });
 
     it('throws not found for missing action', async () => {
-      (actionsRepo.findById as jest.Mock).mockResolvedValue(null);
+      findById.mockResolvedValue(null);
 
       await expect(service.execute('missing', 'user-1')).rejects.toBeInstanceOf(
         NotFoundException,
@@ -164,25 +167,22 @@ describe('AiActionsService', () => {
 
   describe('cancel', () => {
     it('cancels via conditional claim', async () => {
-      (actionsRepo.findById as jest.Mock).mockResolvedValue(pendingAction);
-      (actionsRepo.claimForCancel as jest.Mock).mockResolvedValue({
+      findById.mockResolvedValue(pendingAction);
+      claimForCancel.mockResolvedValue({
         ...pendingAction,
         status: 'CANCELLED',
       });
 
       const summary = await service.cancel('action-1', 'user-1');
       expect(summary.status).toBe('CANCELLED');
-      expect(actionsRepo.claimForCancel).toHaveBeenCalledWith(
-        'action-1',
-        'user-1',
-      );
+      expect(claimForCancel.mock.calls).toEqual([['action-1', 'user-1']]);
     });
 
     it('conflicts when cancel loses race to execute', async () => {
-      (actionsRepo.findById as jest.Mock)
+      findById
         .mockResolvedValueOnce(pendingAction)
         .mockResolvedValueOnce({ ...pendingAction, status: 'RUNNING' });
-      (actionsRepo.claimForCancel as jest.Mock).mockResolvedValue(null);
+      claimForCancel.mockResolvedValue(null);
 
       await expect(service.cancel('action-1', 'user-1')).rejects.toBeInstanceOf(
         ConflictException,

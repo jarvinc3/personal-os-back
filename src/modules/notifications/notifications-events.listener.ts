@@ -1,20 +1,39 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import {
-    BudgetThresholdReachedEvent,
     NotificationCreatedEvent,
-    TransactionCreatedEvent,
-    TransactionUpdatedEvent,
 } from '../../core/events/domain-events';
 import { AppEvents } from '../../core/events/event.constants';
+import { DomainEventIdempotencyGuard } from '../finance/events/application/domain-event-idempotency.guard';
 import { FINANCE_NOTIFICATION_KEYS } from '../users/defaults/user-settings-defaults';
 import { NotificationsService } from './notifications.service';
+
+type FinanceTxEvent = {
+  eventId?: string;
+  userId: string;
+  transactionId: string;
+  amount: number;
+  status?: string;
+  source?: string;
+};
+
+type BudgetThresholdEvent = {
+  eventId?: string;
+  userId: string;
+  budgetId: string;
+  percentageUsed: number;
+  alertId?: string;
+};
 
 @Injectable()
 export class NotificationsEventsListener {
   private readonly logger = new Logger(NotificationsEventsListener.name);
+  private static readonly CONSUMER = 'notifications';
 
-  constructor(private readonly notificationsService: NotificationsService) {}
+  constructor(
+    private readonly notificationsService: NotificationsService,
+    private readonly idempotency: DomainEventIdempotencyGuard,
+  ) {}
 
   @OnEvent(AppEvents.NOTIFICATION_CREATED)
   onNotificationCreated(event: NotificationCreatedEvent): void {
@@ -23,25 +42,58 @@ export class NotificationsEventsListener {
     );
   }
 
-  @OnEvent(AppEvents.TRANSACTION_CREATED)
-  async onTransactionCreated(event: TransactionCreatedEvent): Promise<void> {
+  @OnEvent(AppEvents.FINANCE_TRANSACTION_CONFIRMED)
+  @OnEvent(AppEvents.FINANCE_TRANSACTION_IMPORTED)
+  async onFinanceTransactionCreated(event: FinanceTxEvent): Promise<void> {
+    if (!(await this.idempotency.tryClaim(event.eventId, NotificationsEventsListener.CONSUMER))) {
+      return;
+    }
+
     this.logger.debug(
-      `event=transaction.created handled=true transactionId=${event.transactionId} userId=${event.userId}`,
+      `event=finance.transaction handled=true transactionId=${event.transactionId} userId=${event.userId} status=${event.status}`,
     );
+
+    if (event.source === 'EMAIL' && event.status === 'PENDING') {
+      await this.createFinanceInApp(event.userId, {
+        type: 'transaction.imported_pending',
+        title: 'Bank email import pending review',
+        body: `A ${event.amount} transaction from email needs confirmation.`,
+        data: {
+          moduleSlug: 'finance',
+          notificationKey: FINANCE_NOTIFICATION_KEYS.transactionDetected,
+          transactionId: event.transactionId,
+          status: event.status,
+        },
+      });
+      return;
+    }
+
+    if (event.status === 'DECLINED' || event.status === 'CANCELLED') {
+      return;
+    }
+
+    if (event.status !== 'CONFIRMED') {
+      return;
+    }
+
     await this.createFinanceInApp(event.userId, {
       type: 'transaction.created',
-      title: 'New transaction',
+      title: 'Transaction recorded',
       body: `A transaction of ${event.amount} was recorded.`,
       data: {
         moduleSlug: 'finance',
         notificationKey: FINANCE_NOTIFICATION_KEYS.transactionDetected,
         transactionId: event.transactionId,
+        status: event.status,
       },
     });
   }
 
-  @OnEvent(AppEvents.TRANSACTION_UPDATED)
-  async onTransactionUpdated(event: TransactionUpdatedEvent): Promise<void> {
+  @OnEvent(AppEvents.FINANCE_TRANSACTION_UPDATED)
+  async onFinanceTransactionUpdated(event: FinanceTxEvent): Promise<void> {
+    if (!(await this.idempotency.tryClaim(event.eventId, `${NotificationsEventsListener.CONSUMER}:updated`))) {
+      return;
+    }
     await this.createFinanceInApp(event.userId, {
       type: 'transaction.updated',
       title: 'Transaction updated',
@@ -54,10 +106,11 @@ export class NotificationsEventsListener {
     });
   }
 
-  @OnEvent(AppEvents.BUDGET_THRESHOLD_REACHED)
-  async onBudgetThresholdReached(
-    event: BudgetThresholdReachedEvent,
-  ): Promise<void> {
+  @OnEvent(AppEvents.FINANCE_BUDGET_THRESHOLD_CROSSED)
+  async onBudgetThreshold(event: BudgetThresholdEvent): Promise<void> {
+    if (!(await this.idempotency.tryClaim(event.eventId, `${NotificationsEventsListener.CONSUMER}:budget`))) {
+      return;
+    }
     await this.createFinanceInApp(event.userId, {
       type: 'budget.threshold_reached',
       title: 'Budget threshold reached',

@@ -133,6 +133,16 @@ export type FinReceivable = Prisma.FinReceivableModel
  */
 export type FinEmailSyncLog = Prisma.FinEmailSyncLogModel
 /**
+ * Model DomainEventOutbox
+ * Durable domain events published post-commit (transactional outbox).
+ */
+export type DomainEventOutbox = Prisma.DomainEventOutboxModel
+/**
+ * Model ProcessedDomainEvent
+ * Idempotency for domain event consumers.
+ */
+export type ProcessedDomainEvent = Prisma.ProcessedDomainEventModel
+/**
  * Model AuthDeletionOutbox
  * 
  */

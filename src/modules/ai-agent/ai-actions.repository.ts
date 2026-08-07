@@ -52,7 +52,8 @@ export class AiActionsRepository {
         status: 'PENDING',
         session: { userId },
       },
-      data: { status: 'RUNNING' },
+      // executedAt marks claim/start so the reaper can age RUNNING rows.
+      data: { status: 'RUNNING', executedAt: new Date() },
     });
 
     if (result.count === 0) {
@@ -100,5 +101,23 @@ export class AiActionsRepository {
           : undefined,
       },
     });
+  }
+
+  /** Mark RUNNING actions claimed before cutoff as FAILED (crash recovery). */
+  async failStaleRunning(claimedBefore: Date): Promise<number> {
+    const result = await this.prisma.aiAction.updateMany({
+      where: {
+        status: 'RUNNING',
+        executedAt: { lt: claimedBefore },
+      },
+      data: {
+        status: 'FAILED',
+        result: {
+          error: 'Action timed out while RUNNING (reaper)',
+        },
+        executedAt: new Date(),
+      },
+    });
+    return result.count;
   }
 }

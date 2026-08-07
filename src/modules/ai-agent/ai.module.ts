@@ -1,8 +1,10 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { Env } from '../../config/env.schema';
+import { FinanceEventsModule } from '../finance/events/events.module';
 import { FinanceModule } from '../finance/finance.module';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { AiActionsReaperService } from './ai-actions-reaper.service';
 import { AiActionsController } from './ai-actions.controller';
 import { AiActionsRepository } from './ai-actions.repository';
 import { AiActionsService } from './ai-actions.service';
@@ -22,7 +24,11 @@ import { AI_PROVIDER } from './utils/ai-provider.token';
 import type { AIService as AIProviderClient } from './utils/ai.types';
 
 @Module({
-  imports: [NotificationsModule, FinanceModule],
+  imports: [
+    NotificationsModule,
+    FinanceEventsModule,
+    forwardRef(() => FinanceModule),
+  ],
   controllers: [AiController, AiSessionsController, AiActionsController],
   providers: [
     {
@@ -69,6 +75,7 @@ import type { AIService as AIProviderClient } from './utils/ai.types';
     ToolExecutorService,
     AiActionsRepository,
     AiActionsService,
+    AiActionsReaperService,
     AiMemoryService,
     AiEventsListener,
     AiProcessingProcessor,

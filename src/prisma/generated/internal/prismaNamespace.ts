@@ -420,6 +420,8 @@ export const ModelName = {
   FinLoan: 'FinLoan',
   FinReceivable: 'FinReceivable',
   FinEmailSyncLog: 'FinEmailSyncLog',
+  DomainEventOutbox: 'DomainEventOutbox',
+  ProcessedDomainEvent: 'ProcessedDomainEvent',
   AuthDeletionOutbox: 'AuthDeletionOutbox'
 } as const
 
@@ -436,7 +438,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "module" | "userModule" | "aiAgentSession" | "aiMessage" | "aiAction" | "notification" | "pushToken" | "finAccount" | "finEmailSource" | "finTransaction" | "finCategory" | "finBudget" | "finBudgetAlert" | "finRecurringPattern" | "finExchangeRate" | "finInstitution" | "finCard" | "finCardBalance" | "finSavingsGoal" | "finLoan" | "finReceivable" | "finEmailSyncLog" | "authDeletionOutbox"
+    modelProps: "user" | "module" | "userModule" | "aiAgentSession" | "aiMessage" | "aiAction" | "notification" | "pushToken" | "finAccount" | "finEmailSource" | "finTransaction" | "finCategory" | "finBudget" | "finBudgetAlert" | "finRecurringPattern" | "finExchangeRate" | "finInstitution" | "finCard" | "finCardBalance" | "finSavingsGoal" | "finLoan" | "finReceivable" | "finEmailSyncLog" | "domainEventOutbox" | "processedDomainEvent" | "authDeletionOutbox"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -2142,6 +2144,154 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    DomainEventOutbox: {
+      payload: Prisma.$DomainEventOutboxPayload<ExtArgs>
+      fields: Prisma.DomainEventOutboxFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.DomainEventOutboxFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DomainEventOutboxPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.DomainEventOutboxFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DomainEventOutboxPayload>
+        }
+        findFirst: {
+          args: Prisma.DomainEventOutboxFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DomainEventOutboxPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.DomainEventOutboxFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DomainEventOutboxPayload>
+        }
+        findMany: {
+          args: Prisma.DomainEventOutboxFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DomainEventOutboxPayload>[]
+        }
+        create: {
+          args: Prisma.DomainEventOutboxCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DomainEventOutboxPayload>
+        }
+        createMany: {
+          args: Prisma.DomainEventOutboxCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.DomainEventOutboxCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DomainEventOutboxPayload>[]
+        }
+        delete: {
+          args: Prisma.DomainEventOutboxDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DomainEventOutboxPayload>
+        }
+        update: {
+          args: Prisma.DomainEventOutboxUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DomainEventOutboxPayload>
+        }
+        deleteMany: {
+          args: Prisma.DomainEventOutboxDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.DomainEventOutboxUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.DomainEventOutboxUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DomainEventOutboxPayload>[]
+        }
+        upsert: {
+          args: Prisma.DomainEventOutboxUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DomainEventOutboxPayload>
+        }
+        aggregate: {
+          args: Prisma.DomainEventOutboxAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateDomainEventOutbox>
+        }
+        groupBy: {
+          args: Prisma.DomainEventOutboxGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.DomainEventOutboxGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.DomainEventOutboxCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.DomainEventOutboxCountAggregateOutputType> | number
+        }
+      }
+    }
+    ProcessedDomainEvent: {
+      payload: Prisma.$ProcessedDomainEventPayload<ExtArgs>
+      fields: Prisma.ProcessedDomainEventFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.ProcessedDomainEventFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProcessedDomainEventPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.ProcessedDomainEventFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProcessedDomainEventPayload>
+        }
+        findFirst: {
+          args: Prisma.ProcessedDomainEventFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProcessedDomainEventPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.ProcessedDomainEventFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProcessedDomainEventPayload>
+        }
+        findMany: {
+          args: Prisma.ProcessedDomainEventFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProcessedDomainEventPayload>[]
+        }
+        create: {
+          args: Prisma.ProcessedDomainEventCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProcessedDomainEventPayload>
+        }
+        createMany: {
+          args: Prisma.ProcessedDomainEventCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.ProcessedDomainEventCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProcessedDomainEventPayload>[]
+        }
+        delete: {
+          args: Prisma.ProcessedDomainEventDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProcessedDomainEventPayload>
+        }
+        update: {
+          args: Prisma.ProcessedDomainEventUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProcessedDomainEventPayload>
+        }
+        deleteMany: {
+          args: Prisma.ProcessedDomainEventDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.ProcessedDomainEventUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.ProcessedDomainEventUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProcessedDomainEventPayload>[]
+        }
+        upsert: {
+          args: Prisma.ProcessedDomainEventUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProcessedDomainEventPayload>
+        }
+        aggregate: {
+          args: Prisma.ProcessedDomainEventAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateProcessedDomainEvent>
+        }
+        groupBy: {
+          args: Prisma.ProcessedDomainEventGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ProcessedDomainEventGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.ProcessedDomainEventCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ProcessedDomainEventCountAggregateOutputType> | number
+        }
+      }
+    }
     AuthDeletionOutbox: {
       payload: Prisma.$AuthDeletionOutboxPayload<ExtArgs>
       fields: Prisma.AuthDeletionOutboxFieldRefs
@@ -2415,13 +2565,16 @@ export const FinTransactionScalarFieldEnum = {
   emailMessageId: 'emailMessageId',
   type: 'type',
   amount: 'amount',
+  ledgerAmount: 'ledgerAmount',
   amountBaseCurrency: 'amountBaseCurrency',
   currency: 'currency',
+  ledgerCurrency: 'ledgerCurrency',
   exchangeRate: 'exchangeRate',
   merchant: 'merchant',
   description: 'description',
   transactionDate: 'transactionDate',
   transferGroupId: 'transferGroupId',
+  linkedTransactionId: 'linkedTransactionId',
   status: 'status',
   isRecurring: 'isRecurring',
   aiMetadata: 'aiMetadata',
@@ -2627,6 +2780,35 @@ export const FinEmailSyncLogScalarFieldEnum = {
 } as const
 
 export type FinEmailSyncLogScalarFieldEnum = (typeof FinEmailSyncLogScalarFieldEnum)[keyof typeof FinEmailSyncLogScalarFieldEnum]
+
+
+export const DomainEventOutboxScalarFieldEnum = {
+  id: 'id',
+  eventId: 'eventId',
+  eventName: 'eventName',
+  aggregateType: 'aggregateType',
+  aggregateId: 'aggregateId',
+  userId: 'userId',
+  payload: 'payload',
+  status: 'status',
+  attempts: 'attempts',
+  nextAttemptAt: 'nextAttemptAt',
+  lastError: 'lastError',
+  createdAt: 'createdAt',
+  processedAt: 'processedAt'
+} as const
+
+export type DomainEventOutboxScalarFieldEnum = (typeof DomainEventOutboxScalarFieldEnum)[keyof typeof DomainEventOutboxScalarFieldEnum]
+
+
+export const ProcessedDomainEventScalarFieldEnum = {
+  id: 'id',
+  eventId: 'eventId',
+  consumer: 'consumer',
+  processedAt: 'processedAt'
+} as const
+
+export type ProcessedDomainEventScalarFieldEnum = (typeof ProcessedDomainEventScalarFieldEnum)[keyof typeof ProcessedDomainEventScalarFieldEnum]
 
 
 export const AuthDeletionOutboxScalarFieldEnum = {
@@ -2972,6 +3154,20 @@ export type ListEnumFinEmailSyncStatusFieldRefInput<$PrismaModel> = FieldRefInpu
 
 
 /**
+ * Reference to a field of type 'DomainEventOutboxStatus'
+ */
+export type EnumDomainEventOutboxStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DomainEventOutboxStatus'>
+    
+
+
+/**
+ * Reference to a field of type 'DomainEventOutboxStatus[]'
+ */
+export type ListEnumDomainEventOutboxStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DomainEventOutboxStatus[]'>
+    
+
+
+/**
  * Reference to a field of type 'AuthDeletionOutboxStatus'
  */
 export type EnumAuthDeletionOutboxStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AuthDeletionOutboxStatus'>
@@ -3172,6 +3368,8 @@ export type GlobalOmitConfig = {
   finLoan?: Prisma.FinLoanOmit
   finReceivable?: Prisma.FinReceivableOmit
   finEmailSyncLog?: Prisma.FinEmailSyncLogOmit
+  domainEventOutbox?: Prisma.DomainEventOutboxOmit
+  processedDomainEvent?: Prisma.ProcessedDomainEventOmit
   authDeletionOutbox?: Prisma.AuthDeletionOutboxOmit
 }
 

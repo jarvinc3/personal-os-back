@@ -1,27 +1,42 @@
+import type { DomainEventIdempotencyGuard } from '../finance/events/application/domain-event-idempotency.guard';
 import { FINANCE_NOTIFICATION_KEYS } from '../users/defaults/user-settings-defaults';
 import { NotificationsEventsListener } from './notifications-events.listener';
 import { NotificationsService } from './notifications.service';
 
 describe('NotificationsEventsListener', () => {
+  const create = jest.fn();
+  const tryClaim = jest.fn().mockResolvedValue(true);
+
   const notificationsService = {
-    create: jest.fn(),
+    create,
   } as unknown as NotificationsService;
 
-  const listener = new NotificationsEventsListener(notificationsService);
+  const idempotency = {
+    tryClaim,
+  } as unknown as DomainEventIdempotencyGuard;
+
+  const listener = new NotificationsEventsListener(
+    notificationsService,
+    idempotency,
+  );
 
   beforeEach(() => {
     jest.clearAllMocks();
-    notificationsService.create = jest.fn().mockResolvedValue({ id: 'n-1' });
+    create.mockResolvedValue({ id: 'n-1' });
+    tryClaim.mockResolvedValue(true);
   });
 
-  it('uses transactionDetected key for TRANSACTION_CREATED', async () => {
-    await listener.onTransactionCreated({
+  it('uses transactionDetected key for CONFIRMED finance.transaction.confirmed', async () => {
+    await listener.onFinanceTransactionCreated({
       userId: 'user-1',
       transactionId: 'tx-1',
       amount: 100,
+      status: 'CONFIRMED',
+      source: 'MANUAL',
+      eventId: 'evt-1',
     });
 
-    expect(notificationsService.create).toHaveBeenCalledWith(
+    expect(create.mock.calls[0]).toEqual([
       'user-1',
       expect.objectContaining({
         type: 'transaction.created',
@@ -32,18 +47,36 @@ describe('NotificationsEventsListener', () => {
           transactionId: 'tx-1',
         }),
       }),
+    ]);
+  });
+
+  it('uses pending import message for EMAIL PENDING', async () => {
+    await listener.onFinanceTransactionCreated({
+      userId: 'user-1',
+      transactionId: 'tx-1',
+      amount: 100,
+      status: 'PENDING',
+      source: 'EMAIL',
+      eventId: 'evt-2',
+    });
+
+    expect(create.mock.calls[0]?.[1]).toEqual(
+      expect.objectContaining({
+        type: 'transaction.imported_pending',
+      }),
     );
   });
 
-  it('uses transactionDetected key for TRANSACTION_UPDATED', async () => {
-    await listener.onTransactionUpdated({
+  it('uses transactionDetected key for finance.transaction.updated', async () => {
+    await listener.onFinanceTransactionUpdated({
       userId: 'user-1',
       transactionId: 'tx-2',
       amount: 50,
+      status: 'CONFIRMED',
+      eventId: 'evt-3',
     });
 
-    expect(notificationsService.create).toHaveBeenCalledWith(
-      'user-1',
+    expect(create.mock.calls[0]?.[1]).toEqual(
       expect.objectContaining({
         type: 'transaction.updated',
         data: expect.objectContaining({
@@ -53,15 +86,15 @@ describe('NotificationsEventsListener', () => {
     );
   });
 
-  it('uses budgetAlerts key for BUDGET_THRESHOLD_REACHED', async () => {
-    await listener.onBudgetThresholdReached({
+  it('uses budgetAlerts key for finance.budget.threshold_crossed', async () => {
+    await listener.onBudgetThreshold({
       userId: 'user-1',
       budgetId: 'budget-1',
       percentageUsed: 90,
+      eventId: 'evt-4',
     });
 
-    expect(notificationsService.create).toHaveBeenCalledWith(
-      'user-1',
+    expect(create.mock.calls[0]?.[1]).toEqual(
       expect.objectContaining({
         type: 'budget.threshold_reached',
         data: expect.objectContaining({

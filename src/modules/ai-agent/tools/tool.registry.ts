@@ -117,7 +117,10 @@ const STATIC_TOOLS: StaticToolDef[] = [
         cardId: { type: 'string' },
         categoryId: { type: 'string' },
         type: { type: 'string', enum: ['DEBIT', 'CREDIT', 'TRANSFER'] },
-        status: { type: 'string', enum: ['PENDING', 'CONFIRMED', 'CANCELLED'] },
+        status: {
+          type: 'string',
+          enum: ['PENDING', 'CONFIRMED', 'CANCELLED', 'DECLINED', 'REVERSED'],
+        },
         dateFrom: { type: 'string' },
         dateTo: { type: 'string' },
         search: { type: 'string' },
@@ -125,8 +128,76 @@ const STATIC_TOOLS: StaticToolDef[] = [
     },
   },
   {
+    name: 'get_transaction',
+    description: 'Get one finance transaction by id.',
+    mutating: false,
+    targetModule: 'finance',
+    parameters: {
+      type: 'object',
+      properties: {
+        transactionId: { type: 'string' },
+      },
+      required: ['transactionId'],
+    },
+  },
+  {
+    name: 'list_categories',
+    description: 'List finance categories (system + user).',
+    mutating: false,
+    targetModule: 'finance',
+    parameters: { type: 'object', properties: {} },
+  },
+  {
+    name: 'list_accounts',
+    description: 'List finance accounts (checking, savings, cash, investment).',
+    mutating: false,
+    targetModule: 'finance',
+    parameters: { type: 'object', properties: {} },
+  },
+  {
+    name: 'list_cards',
+    description: 'List credit/debit cards and multi-currency balances.',
+    mutating: false,
+    targetModule: 'finance',
+    parameters: { type: 'object', properties: {} },
+  },
+  {
+    name: 'list_budgets',
+    description: 'List budget periods for the user.',
+    mutating: false,
+    targetModule: 'finance',
+    parameters: { type: 'object', properties: {} },
+  },
+  {
+    name: 'list_email_sources',
+    description: 'List connected Gmail bank email sources.',
+    mutating: false,
+    targetModule: 'finance',
+    parameters: { type: 'object', properties: {} },
+  },
+  {
     name: 'create_transaction',
     description: 'Create a new finance transaction.',
+    mutating: true,
+    targetModule: 'finance',
+  },
+  {
+    name: 'create_transfer',
+    description:
+      'Transfer money between two accounts or cards (exactly one from target and one to target).',
+    mutating: true,
+    targetModule: 'finance',
+  },
+  {
+    name: 'update_transaction',
+    description:
+      'Update transaction category/merchant/description/notes (especially for email imports).',
+    mutating: true,
+    targetModule: 'finance',
+  },
+  {
+    name: 'confirm_transaction',
+    description: 'Confirm a PENDING finance transaction (applies ledger).',
     mutating: true,
     targetModule: 'finance',
   },
@@ -191,6 +262,23 @@ const STATIC_TOOLS: StaticToolDef[] = [
       properties: {
         dateFrom: { type: 'string' },
         dateTo: { type: 'string' },
+      },
+    },
+  },
+  {
+    name: 'get_spending_over_time',
+    description: 'Get income/expense totals bucketed by day, week, or month.',
+    mutating: false,
+    targetModule: 'finance',
+    parameters: {
+      type: 'object',
+      properties: {
+        dateFrom: { type: 'string' },
+        dateTo: { type: 'string' },
+        groupBy: {
+          type: 'string',
+          enum: ['day', 'week', 'month'],
+        },
       },
     },
   },
@@ -264,8 +352,26 @@ export function getActionLabel(
       return 'Consultar contexto del usuario';
     case 'list_transactions':
       return 'Consultar transacciones';
+    case 'get_transaction':
+      return 'Ver detalle de transacción';
+    case 'list_categories':
+      return 'Consultar categorías';
+    case 'list_accounts':
+      return 'Consultar cuentas';
+    case 'list_cards':
+      return 'Consultar tarjetas';
+    case 'list_budgets':
+      return 'Consultar presupuestos';
+    case 'list_email_sources':
+      return 'Consultar fuentes de correo';
     case 'create_transaction':
       return 'Crear transacción';
+    case 'create_transfer':
+      return 'Crear transferencia';
+    case 'update_transaction':
+      return 'Actualizar transacción';
+    case 'confirm_transaction':
+      return 'Confirmar transacción';
     case 'get_budget_status':
       return 'Revisar estado de presupuestos';
     case 'create_or_update_budget':
@@ -284,6 +390,8 @@ export function getActionLabel(
       return 'Sincronizar correos bancarios';
     case 'get_spending_by_category':
       return 'Analizar gastos por categoría';
+    case 'get_spending_over_time':
+      return 'Analizar gastos en el tiempo';
     case 'update_user_profile':
       if (typeof payload.fullName === 'string' && payload.fullName) {
         return `Actualizar nombre a "${payload.fullName}"`;

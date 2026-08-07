@@ -39,11 +39,22 @@ export type PrismaMock = {
     findFirst: MockFn;
     count: MockFn;
     create: MockFn;
+    groupBy: MockFn;
+  };
+  finCardBalance: {
+    findMany: MockFn;
   };
   finEmailSource: {
     findMany: MockFn;
     findFirst: MockFn;
     updateMany: MockFn;
+  };
+  domainEventOutbox: {
+    create: MockFn;
+    findFirst: MockFn;
+    findUnique: MockFn;
+    updateMany: MockFn;
+    update: MockFn;
   };
   authDeletionOutbox: {
     create: MockFn;
@@ -60,11 +71,15 @@ export type PrismaMock = {
 function createTransactionClient() {
   return {
     finAccount: {
-      findFirst: jest.fn().mockResolvedValue({
-        id: 'acc-1',
-        userId: 'user-123',
-        currency: 'DOP',
-      }),
+      findFirst: jest.fn().mockImplementation((args: { where?: { id?: string } }) =>
+        Promise.resolve({
+          id: args?.where?.id ?? 'acc-1',
+          userId: 'user-123',
+          currency: 'DOP',
+          type: 'CHECKING',
+          balance: 1000,
+        }),
+      ),
       update: jest.fn().mockResolvedValue({}),
     },
     finCard: {
@@ -87,8 +102,11 @@ function createTransactionClient() {
         cardId: null,
         type: 'DEBIT',
         amount: { toString: () => '50.00' },
+        ledgerAmount: { toString: () => '50.00' },
         amountBaseCurrency: { toString: () => '50.00' },
         currency: 'DOP',
+        ledgerCurrency: 'DOP',
+        exchangeRate: { toString: () => '1' },
         merchant: null,
         description: null,
         transactionDate: new Date(),
@@ -97,6 +115,7 @@ function createTransactionClient() {
         categoryId: null,
         notes: null,
         transferGroupId: null,
+        linkedTransactionId: null,
         createdAt: new Date(),
         account: { id: 'acc-1', name: 'Main' },
         card: null,
@@ -106,6 +125,13 @@ function createTransactionClient() {
       update: jest.fn(),
       updateMany: jest.fn().mockResolvedValue({ count: 0 }),
       deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
+    },
+    domainEventOutbox: {
+      create: jest.fn().mockResolvedValue({ id: 'out-1' }),
+      findFirst: jest.fn(),
+      findUnique: jest.fn(),
+      updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+      update: jest.fn(),
     },
     authDeletionOutbox: {
       create: jest.fn().mockResolvedValue({ id: 'oob-1' }),
@@ -152,16 +178,28 @@ export function createPrismaMock(): PrismaMock {
       create: jest.fn(),
       update: jest.fn(),
     },
+    finCardBalance: {
+      findMany: jest.fn().mockResolvedValue([]),
+    },
     finTransaction: {
       findMany: jest.fn().mockResolvedValue([]),
       findFirst: jest.fn(),
       count: jest.fn().mockResolvedValue(0),
       create: jest.fn(),
+      groupBy: jest.fn().mockResolvedValue([]),
     },
     finEmailSource: {
       findMany: jest.fn().mockResolvedValue([]),
       findFirst: jest.fn(),
       updateMany: jest.fn().mockResolvedValue({ count: 0 }),
+    },
+    // Root-level model used by FinanceOutboxDispatcher.processBatch after commit wake.
+    domainEventOutbox: {
+      create: jest.fn().mockResolvedValue({ id: 'out-1' }),
+      findFirst: jest.fn().mockResolvedValue(null),
+      findUnique: jest.fn(),
+      updateMany: jest.fn().mockResolvedValue({ count: 0 }),
+      update: jest.fn(),
     },
     authDeletionOutbox: {
       create: jest.fn().mockResolvedValue({ id: 'oob-1' }),

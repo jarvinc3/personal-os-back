@@ -4,7 +4,7 @@ type TestJwtOverrides = {
   sub?: string;
   email?: string;
   role?: string;
-  expiresIn?: string | number;
+  expiresIn?: number;
 };
 
 export function createTestJwt(overrides: TestJwtOverrides = {}): string {
@@ -22,7 +22,7 @@ export function createTestJwt(overrides: TestJwtOverrides = {}): string {
     'test-secret',
     {
       algorithm: 'HS256',
-      expiresIn: overrides.expiresIn ?? '1h',
+      expiresIn: overrides.expiresIn ?? 3600,
     },
   );
 }
