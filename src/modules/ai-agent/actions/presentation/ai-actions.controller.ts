@@ -1,10 +1,11 @@
 import { Controller, Get, Param, Post } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
-import { CurrentUser } from '../../core/decorators';
+import { CurrentUser, Timeout } from '../../core/decorators';
 import { AiActionsService } from './ai-actions.service';
 
 @ApiTags('ai-agent')
 @Controller('ai')
+@Timeout(30_000)
 export class AiActionsController {
   constructor(private readonly aiActionsService: AiActionsService) {}
 

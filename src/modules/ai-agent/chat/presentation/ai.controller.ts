@@ -7,7 +7,7 @@ import {
 } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import type { Response } from 'express';
-import { CurrentUser } from '../../core/decorators';
+import { CurrentUser, Timeout } from '../../core/decorators';
 import { NotificationsGateway } from '../notifications/notifications.gateway';
 import { AiAgentRunner } from './ai-agent.runner';
 import { AiChatPersistenceService } from './ai-chat-persistence.service';
@@ -20,6 +20,7 @@ import { replayStreamChunks } from './utils/replay-stream-chunks';
 
 @ApiTags('ai-agent')
 @Controller('ai')
+@Timeout(30_000)
 export class AiController {
   constructor(
     private readonly aiService: AiService,

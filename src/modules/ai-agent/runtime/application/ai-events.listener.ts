@@ -146,7 +146,7 @@ export class AiEventsListener {
         transactionIds: event.transactionIds,
         countsByStatus: event.countsByStatus,
       },
-      `ai:email-sync:${event.sourceId}:${event.transactionIds[0] ?? 'none'}`,
+      `ai:email-sync:${event.sourceId}:${event.eventId ?? event.transactionIds[0] ?? 'none'}`,
     );
   }
 

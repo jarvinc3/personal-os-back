@@ -190,6 +190,27 @@ export class AiSessionsRepository {
     });
   }
 
+  findLatestInsightSession(userId: string) {
+    return this.prisma.aiAgentSession.findFirst({
+      where: { userId, contextType: 'insight' },
+      orderBy: { lastActiveAt: 'desc' },
+    });
+  }
+
+  countInsightMessagesSince(userId: string, since: Date) {
+    return this.prisma.aiMessage.count({
+      where: {
+        role: 'assistant',
+        createdAt: { gte: since },
+        session: { userId, contextType: 'insight' },
+        metadata: {
+          path: ['source'],
+          equals: 'insight',
+        },
+      },
+    });
+  }
+
   findModuleBySlug(slug: string) {
     return this.prisma.module.findFirst({ where: { slug } });
   }

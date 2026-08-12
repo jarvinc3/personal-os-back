@@ -6,6 +6,7 @@ import { QueueNames } from '../../core/queues/queue.constants';
 import { NotificationsGateway } from '../notifications/notifications.gateway';
 import { parseUserPreferences } from '../users/lib/parse-user-preferences';
 import { UsersRepository } from '../users/users.repository';
+import { resolveDailyInsightQuota } from './ai-limits';
 import { AiMemoryService } from './ai-memory.service';
 import { AiSessionsRepository } from './ai-sessions.repository';
 import { AiService } from './ai.service';
@@ -59,6 +60,20 @@ export class AiProcessingProcessor extends WorkerHost {
       return;
     }
 
+    const quota = resolveDailyInsightQuota();
+    const startOfUtcDay = new Date();
+    startOfUtcDay.setUTCHours(0, 0, 0, 0);
+    const usedToday = await this.sessionsRepo.countInsightMessagesSince(
+      userId,
+      startOfUtcDay,
+    );
+    if (usedToday >= quota) {
+      this.logger.warn(
+        `AI insight skipped for user ${userId}: daily quota ${quota} reached`,
+      );
+      return;
+    }
+
     const moduleSlug =
       typeof payload.slug === 'string' ? payload.slug : null;
 
@@ -107,11 +122,19 @@ export class AiProcessingProcessor extends WorkerHost {
       prefs.ai.defaultProvider,
     );
 
-    const session = await this.sessionsRepo.createSessionWithModule(
-      userId,
-      'insight',
-      null,
-    );
+    const existingInsight =
+      await this.sessionsRepo.findLatestInsightSession(userId);
+    const session =
+      existingInsight ??
+      (await this.sessionsRepo.createSessionWithModule(
+        userId,
+        'insight',
+        null,
+      ));
+
+    if (existingInsight) {
+      await this.sessionsRepo.touchSession(session.id);
+    }
 
     await this.sessionsRepo.createMessage({
       sessionId: session.id,

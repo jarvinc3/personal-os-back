@@ -1,6 +1,6 @@
 import { Body, Controller, Delete, Get, Param, Post, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { CurrentUser } from '../../core/decorators';
+import { CurrentUser, Timeout } from '../../core/decorators';
 import { PaginationQueryDto } from '../../core/pagination/pagination.dto';
 import { CreateAiSessionDto } from './dto/create-ai-session.dto';
 import { AiSessionsService } from './ai-sessions.service';
@@ -8,6 +8,7 @@ import { AiSessionsService } from './ai-sessions.service';
 @ApiTags('ai-agent')
 @ApiBearerAuth('access-token')
 @Controller('ai/sessions')
+@Timeout(30_000)
 export class AiSessionsController {
   constructor(private readonly aiSessionsService: AiSessionsService) {}
 
