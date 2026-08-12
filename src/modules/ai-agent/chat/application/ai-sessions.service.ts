@@ -1,12 +1,12 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { paginate, PaginationQueryDto } from '../../core/pagination/pagination.dto';
-import { AiActionsService } from './ai-actions.service';
-import { AiSessionsRepository } from './ai-sessions.repository';
-import { CreateAiSessionDto } from './dto/create-ai-session.dto';
+import { paginate, PaginationQueryDto } from '../../../../core/pagination/pagination.dto';
+import { AiActionsService } from '../../actions/application/ai-actions.service';
+import { AiSessionsRepository } from '../infrastructure/ai-sessions.repository';
+import { CreateAiSessionDto } from '../presentation/dto/create-ai-session.dto';
 import {
   enrichMessageMetadata,
   isInternalToolRequestMessage,
-} from './utils/enrich-session-messages';
+} from '../../shared/enrich-session-messages';
 
 @Injectable()
 export class AiSessionsService {

@@ -26,7 +26,7 @@ export default tseslint.config(
   },
   {
     files: [
-      'src/modules/auth/utils/jwks-rsa.loader.ts',
+      'src/modules/auth/infrastructure/jwks-rsa.loader.ts',
       'src/modules/ai-agent/ai.module.ts',
       'test/**/*.ts',
     ],

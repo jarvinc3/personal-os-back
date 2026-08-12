@@ -10,6 +10,19 @@ In-app, push, and email notification orchestration.
 - Queue worker dispatch for channel delivery policies.
 - WebSocket gateway for real-time user events.
 
+## Architecture
+
+Simple-module layers under `src/modules/notifications/` (see [docs/architecture/modules.md](../architecture/modules.md)). Root holds only `notifications.module.ts`.
+
+```text
+src/modules/notifications/
+  notifications.module.ts
+  presentation/     # controller, gateway, dto/
+  application/      # service, policy, push-tokens, events listener, notifications processor
+  infrastructure/   # repository, push-sender, email-sync.processor (EMAIL stub)
+  domain/           # quiet-hours
+```
+
 ## Main Endpoints
 
 - `GET /notifications`
@@ -22,10 +35,10 @@ In-app, push, and email notification orchestration.
 
 ## Queue and Realtime
 
-- Processor: `NotificationsProcessor` (queue: `notifications`).
-- Gateway: `NotificationsGateway` (socket emits to user channels).
-- Policy engine: `NotificationPolicyService` controls quiet hours/channel eligibility.
-- Includes `EmailSyncProcessor` stub for email handoff jobs on `email-sync`.
+- Processor: `application/notifications.processor.ts` (queue: `notifications`).
+- Gateway: `presentation/notifications.gateway.ts` (socket emits to user channels).
+- Policy engine: `application/notification-policy.service.ts` controls quiet hours/channel eligibility.
+- Includes `infrastructure/email-sync.processor.ts` stub for email handoff jobs on `email-sync`.
 - `NotificationsEventsListener` creates IN_APP notifications from versioned finance events (`finance.transaction.*`, `finance.transaction.updated`, `finance.budget.threshold_crossed`) with idempotency via `DomainEventIdempotencyGuard`.
 
 ## EMAIL channel (A1 — stub)

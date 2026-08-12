@@ -12,47 +12,31 @@ The module is consumed by:
 
 ## Architecture
 
-Capability-first Nest modules under `src/modules/finance/`. The root is a **pure composition root**.
-
-| Capability module | Role |
-| --- | --- |
-| `ledger/` | Transactions, transfers, reverse/import; balance + budget spend + **outbox in same `$transaction`** |
-| `catalog/` | Institutions, accounts, cards, categories |
-| `planning/` | Budgets, savings goals, loans, receivables; budget threshold side-effect port |
-| `analytics/` | Summary, spending, budget status (read-only) |
-| `fx/` | Exchange-rate port + `exchangerate.host` adapter + `ResolveAmountsUseCase` |
-| `ingestion/` | Gmail OAuth/sources, AI email extraction, `ProcessGmailSyncUseCase`, thin BullMQ processor |
-| `events/` | Outbox publisher, cron dispatcher, `DomainEventIdempotencyGuard` |
-| `shared/` | Tokens, ports, pure domain (`Money`, bank→status map, mappers), shared DTO validators |
+Capability-first Nest modules under `src/modules/finance/`. The root is a **pure composition root**. House standard: [docs/architecture/modules.md](../architecture/modules.md).
 
 `FinanceModule` imports capability modules and **exports only `FinanceFacade`**. There is no `FinanceService` / `FinanceRepository` / single god controller.
 
+### Canonical shape per capability
+
 ```text
-src/modules/finance/
-  finance.module.ts          # composition root
-  finance.facade.ts          # AI/tool surface → capability services & use-cases
-  ledger/
-    application/             # real write use-cases + LedgerQueryService (reads only)
-    application/commands/    # application command types (no presentation DTOs)
-    application/ports/       # LEDGER_REPOSITORY port
-    infrastructure/          # PrismaLedgerRepository, balance helpers
-    presentation/            # TransactionsController, TransfersController, dto/
-  catalog/
-    application/catalog.service.ts
-    infrastructure/catalog.repository.ts
-    presentation/            # institutions|accounts|cards|categories controllers
-  planning/
-    application/planning.service.ts + budget-threshold.service.ts
-    planning-threshold.module.ts  # BUDGET_THRESHOLD_PORT (consumed by ledger)
-    infrastructure/planning.repository.ts
-    presentation/            # budgets|goals|loans|receivables
-  analytics/
-  ingestion/
-  events/
-  fx/
-  shared/
-  constants/
+capability/
+  capability.module.ts
+  presentation/       # controllers + dto/ (omit if internal-only)
+  application/        # services and/or use-cases; ports/ when needed
+  infrastructure/     # Prisma repos, external adapters
 ```
+
+Shared pure rules live in `shared/domain/` (`Money`, ledger rules, mappers). Do **not** invent empty per-capability `domain/` folders until a capability owns rules that are not shared.
+
+### Use-case vs fat service
+
+| Style | When | Examples today |
+| --- | --- | --- |
+| **Use-cases** (`*.use-case.ts`) | Distinct write flows with different rules/orchestration | ledger writes, ingestion sync, FX `ResolveAmountsUseCase` |
+| **Fat application service** | CRUD / read-heavy or a single cohesive API surface | catalog, planning, analytics |
+| **Ports** | Cross-capability contract or ≥2 adapters | `LEDGER_REPOSITORY`, `BUDGET_THRESHOLD_PORT`, FX / email extractor ports |
+
+Query-only surfaces (e.g. `LedgerQueryService`) stay as services even when writes are use-cases.
 
 ### Ledger vs side effects
 
@@ -247,7 +231,7 @@ pnpm exec ts-node -r tsconfig-paths/register prisma/scripts/smoke-finance-http.t
 
 Script covers: multi-currency create → PENDING + confirm → transfer → outbox rows for `finance.transaction.*` / `finance.transfer.created` → cleanup of tagged smoke rows. Success prints `{"SMOKE_RESULT":"PASS"}`.
 
-**Last smoke run (2026-08-07):** PASS against local Nest (`NODE_ENV=test` for HS256 test JWT bound to real user `a25dd4d2-…`, port 3456, real Supabase `DATABASE_URL` + FX). Observations:
+**Last smoke run (2026-08-07):** PASS against local Nest with a real Supabase JWT (or e2e HS256 overrides via `test/helpers/auth-test.providers.ts` — never `NODE_ENV=test` on the production auth path), port 3456, real Supabase `DATABASE_URL` + FX. Observations:
 
 - Multi-FX DEBIT USD on DOP account → 201; `ledgerAmount` 145.63 (≠ raw amount)
 - PENDING create + confirm → CONFIRMED

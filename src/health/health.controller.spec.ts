@@ -66,6 +66,17 @@ describe('HealthController', () => {
     expect(result).not.toHaveProperty('details');
   });
 
+  it('startup returns sanitized ok payload when checks pass', async () => {
+    (health.check as jest.Mock).mockResolvedValue({ status: 'ok' });
+
+    const result = await controller.startup();
+
+    expect(result).toEqual({
+      status: 'ok',
+      timestamp: expect.any(String),
+    });
+  });
+
   it('readiness throws ServiceUnavailableException without dependency details', async () => {
     (health.check as jest.Mock).mockRejectedValue(
       new ServiceUnavailableException({

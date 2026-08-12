@@ -1,9 +1,9 @@
 import { Global, Module } from '@nestjs/common';
 import { AuthModule } from '../auth/auth.module';
-import { AuthDeletionOutboxProcessor } from './auth-deletion-outbox.processor';
-import { UsersController } from './users.controller';
-import { UsersRepository } from './users.repository';
-import { UsersService } from './users.service';
+import { AuthDeletionOutboxProcessor } from './application/auth-deletion-outbox.processor';
+import { UsersService } from './application/users.service';
+import { UsersRepository } from './infrastructure/users.repository';
+import { UsersController } from './presentation/users.controller';
 
 @Global()
 @Module({

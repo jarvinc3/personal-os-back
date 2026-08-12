@@ -33,6 +33,41 @@
         ]
       }
     },
+    "/api/health/startup": {
+      "get": {
+        "operationId": "HealthController_startup",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Startup dependencies are ready",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "ok"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "One or more startup checks failed (no dependency details)"
+          }
+        },
+        "summary": "Startup probe (database, JWKS, optional Redis). Public; response omits dependency details.",
+        "tags": [
+          "health"
+        ]
+      }
+    },
     "/api/health/ready": {
       "get": {
         "operationId": "HealthController_readiness",

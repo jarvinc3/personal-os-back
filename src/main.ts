@@ -74,8 +74,16 @@ async function bootstrap() {
         ? corsOrigins[0]
         : corsOrigins
       : (origin, callback) => {
-          // En desarrollo: Expo Go / React Native suelen omitir Origin; permitir todo.
-          callback(null, true);
+          // Expo Go / React Native often omit Origin; allow missing Origin in non-prod.
+          if (!origin) {
+            callback(null, true);
+            return;
+          }
+          if (corsOrigins.includes(origin) || corsOrigins.includes('*')) {
+            callback(null, true);
+            return;
+          }
+          callback(new Error(`Origin ${origin} not allowed by CORS`), false);
         },
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: [

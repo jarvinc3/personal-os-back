@@ -5,15 +5,15 @@ import {
   OnModuleInit,
   ServiceUnavailableException,
 } from '@nestjs/common';
-import { AI_PROVIDER } from './utils/ai-provider.token';
+import { AI_PROVIDER } from '../../shared/ai-provider.token';
 import type {
   AIService as AIProviderClient,
   AIProviderInfo,
   AiToolDefinition,
   ChatCompletionResult,
   ChatMessage,
-} from './utils/ai.types';
-import { isRetryableProviderError } from './utils/is-retryable-provider-error';
+} from '../../shared/ai.types';
+import { isRetryableProviderError } from '../../shared/is-retryable-provider-error';
 
 @Injectable()
 export class AiService implements OnModuleInit {

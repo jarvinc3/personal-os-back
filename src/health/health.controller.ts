@@ -21,7 +21,7 @@ import { Public } from '../core/decorators';
 import { PrismaService } from '../prisma/prisma.service';
 import { RedisHealthIndicator } from './indicators/redis.health.indicator';
 
-export type ReadinessResponse = {
+export type HealthProbeResponse = {
   status: 'ok';
   timestamp: string;
 };
@@ -56,6 +56,29 @@ export class HealthController {
     return { status: 'ok', timestamp: new Date().toISOString() };
   }
 
+  @Get('startup')
+  @Public()
+  @ApiOperation({
+    summary:
+      'Startup probe (database, JWKS, optional Redis). Public; response omits dependency details.',
+  })
+  @ApiOkResponse({
+    description: 'Startup dependencies are ready',
+    schema: {
+      type: 'object',
+      properties: {
+        status: { type: 'string', example: 'ok' },
+        timestamp: { type: 'string', format: 'date-time' },
+      },
+    },
+  })
+  @ApiServiceUnavailableResponse({
+    description: 'One or more startup checks failed (no dependency details)',
+  })
+  async startup(): Promise<HealthProbeResponse> {
+    return this.runSanitizedChecks('Startup');
+  }
+
   @Get('ready')
   @Public()
   @ApiOperation({
@@ -75,7 +98,13 @@ export class HealthController {
   @ApiServiceUnavailableResponse({
     description: 'One or more readiness checks failed (no dependency details)',
   })
-  async readiness(): Promise<ReadinessResponse> {
+  async readiness(): Promise<HealthProbeResponse> {
+    return this.runSanitizedChecks('Readiness');
+  }
+
+  private async runSanitizedChecks(
+    label: string,
+  ): Promise<HealthProbeResponse> {
     const jwksUri = getSupabaseAuthConfig(this.configService).jwksUri;
     const indicators = [
       () => this.prisma.pingCheck('database', this.prismaService),
@@ -91,7 +120,7 @@ export class HealthController {
       return { status: 'ok', timestamp: new Date().toISOString() };
     } catch (error) {
       this.logger.warn(
-        `Readiness check failed: ${error instanceof Error ? error.message : String(error)}`,
+        `${label} check failed: ${error instanceof Error ? error.message : String(error)}`,
       );
       throw new ServiceUnavailableException('Service Unavailable');
     }

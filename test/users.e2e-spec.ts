@@ -2,8 +2,9 @@ import { INestApplication } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';
 import { App } from 'supertest/types';
-import { SupabaseAdminService } from '../src/modules/auth/supabase-admin.service';
+import { SupabaseAdminService } from '../src/modules/auth/infrastructure/supabase-admin.service';
 import { PrismaService } from '../src/prisma/prisma.service';
+import { applyAuthTestOverrides } from './helpers/auth-test.providers';
 import { createTestJwt } from './helpers/jwt.helper';
 import { createPrismaMock, type PrismaMock } from './helpers/prisma.mock';
 import { applyTestEnv } from './helpers/test-env';
@@ -24,17 +25,18 @@ describe('Users (e2e)', () => {
     };
     prismaMock = createPrismaMock();
 
-    const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AppModule],
-    })
-      .overrideProvider(PrismaService)
-      .useValue(prismaMock)
-      .overrideProvider(SupabaseAdminService)
-      .useValue({
-        deleteAuthUser: jest.fn(),
-        tryDeleteAuthUser: tryDeleteAuthUserMock,
+    const moduleFixture: TestingModule = await applyAuthTestOverrides(
+      Test.createTestingModule({
+        imports: [AppModule],
       })
-      .compile();
+        .overrideProvider(PrismaService)
+        .useValue(prismaMock)
+        .overrideProvider(SupabaseAdminService)
+        .useValue({
+          deleteAuthUser: jest.fn(),
+          tryDeleteAuthUser: tryDeleteAuthUserMock,
+        }),
+    ).compile();
 
     app = moduleFixture.createNestApplication();
     app.setGlobalPrefix('api');
@@ -182,18 +184,7 @@ describe('Users (e2e)', () => {
       enabledAt,
       module: { slug: 'finance' },
     });
-    prismaMock.user.findUnique.mockResolvedValueOnce({
-      id: 'user-123',
-      email: 'user@example.com',
-      fullName: 'User Test',
-      timezone: 'America/Santo_Domingo',
-      locale: 'es-DO',
-      avatarUrl: null,
-      preferences: {},
-      userModules: [],
-      createdAt: enabledAt,
-      updatedAt: enabledAt,
-    }).mockResolvedValueOnce({
+    prismaMock.user.findUnique.mockResolvedValue({
       id: 'user-123',
       email: 'user@example.com',
       fullName: 'User Test',
@@ -263,45 +254,25 @@ describe('Users (e2e)', () => {
       enabledAt,
       module: { slug: 'finance' },
     });
-    prismaMock.user.findUnique
-      .mockResolvedValueOnce({
-        id: 'user-123',
-        email: 'user@example.com',
-        fullName: 'User Test',
-        timezone: 'America/Santo_Domingo',
-        locale: 'es-DO',
-        avatarUrl: null,
-        preferences: {},
-        userModules: [
-          {
-            isEnabled: true,
-            config: existingConfig,
-            enabledAt,
-            module: { slug: 'finance' },
-          },
-        ],
-        createdAt: enabledAt,
-        updatedAt: enabledAt,
-      })
-      .mockResolvedValueOnce({
-        id: 'user-123',
-        email: 'user@example.com',
-        fullName: 'User Test',
-        timezone: 'America/Santo_Domingo',
-        locale: 'es-DO',
-        avatarUrl: null,
-        preferences: {},
-        userModules: [
-          {
-            isEnabled: false,
-            config: existingConfig,
-            enabledAt,
-            module: { slug: 'finance' },
-          },
-        ],
-        createdAt: enabledAt,
-        updatedAt: enabledAt,
-      });
+    prismaMock.user.findUnique.mockResolvedValue({
+      id: 'user-123',
+      email: 'user@example.com',
+      fullName: 'User Test',
+      timezone: 'America/Santo_Domingo',
+      locale: 'es-DO',
+      avatarUrl: null,
+      preferences: {},
+      userModules: [
+        {
+          isEnabled: false,
+          config: existingConfig,
+          enabledAt,
+          module: { slug: 'finance' },
+        },
+      ],
+      createdAt: enabledAt,
+      updatedAt: enabledAt,
+    });
 
     const token = createTestJwt({ sub: 'user-123', email: 'user@example.com' });
 
@@ -362,45 +333,25 @@ describe('Users (e2e)', () => {
       enabledAt,
       module: { slug: 'finance' },
     });
-    prismaMock.user.findUnique
-      .mockResolvedValueOnce({
-        id: 'user-123',
-        email: 'user@example.com',
-        fullName: 'User Test',
-        timezone: 'America/Santo_Domingo',
-        locale: 'es-DO',
-        avatarUrl: null,
-        preferences: {},
-        userModules: [
-          {
-            isEnabled: false,
-            config: existingConfig,
-            enabledAt,
-            module: { slug: 'finance' },
-          },
-        ],
-        createdAt: enabledAt,
-        updatedAt: enabledAt,
-      })
-      .mockResolvedValueOnce({
-        id: 'user-123',
-        email: 'user@example.com',
-        fullName: 'User Test',
-        timezone: 'America/Santo_Domingo',
-        locale: 'es-DO',
-        avatarUrl: null,
-        preferences: {},
-        userModules: [
-          {
-            isEnabled: true,
-            config: existingConfig,
-            enabledAt,
-            module: { slug: 'finance' },
-          },
-        ],
-        createdAt: enabledAt,
-        updatedAt: enabledAt,
-      });
+    prismaMock.user.findUnique.mockResolvedValue({
+      id: 'user-123',
+      email: 'user@example.com',
+      fullName: 'User Test',
+      timezone: 'America/Santo_Domingo',
+      locale: 'es-DO',
+      avatarUrl: null,
+      preferences: {},
+      userModules: [
+        {
+          isEnabled: true,
+          config: existingConfig,
+          enabledAt,
+          module: { slug: 'finance' },
+        },
+      ],
+      createdAt: enabledAt,
+      updatedAt: enabledAt,
+    });
 
     const token = createTestJwt({ sub: 'user-123', email: 'user@example.com' });
 

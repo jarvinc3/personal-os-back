@@ -3,10 +3,10 @@ import {
     ConflictException,
     NotFoundException,
 } from '@nestjs/common';
-import { NotificationsGateway } from '../notifications/notifications.gateway';
-import { AiActionsRepository } from './ai-actions.repository';
+import { NotificationsGateway } from '../../../notifications/presentation/notifications.gateway';
+import { AiActionsRepository } from '../infrastructure/ai-actions.repository';
 import { AiActionsService } from './ai-actions.service';
-import { ToolExecutorService } from './tools/tool-executor.service';
+import { ToolExecutorService } from '../../tools/tool-executor.service';
 
 describe('AiActionsService', () => {
   const findById = jest.fn();

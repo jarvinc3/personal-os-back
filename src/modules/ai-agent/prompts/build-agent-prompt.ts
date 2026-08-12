@@ -1,5 +1,5 @@
-import type { AiTone } from '../../users/defaults/global-preferences-defaults';
-import { TONE_INSTRUCTIONS } from '../lib/build-system-prompt';
+import type { AiTone } from '../../users/domain/defaults/global-preferences-defaults';
+import { TONE_INSTRUCTIONS } from '../chat/application/build-system-prompt';
 import { getModuleContextPrompt } from './module-context';
 import { SYSTEM_BASE_PROMPT } from './system-base';
 import {

@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { AiActionsRepository } from './ai-actions.repository';
+import { AiActionsRepository } from '../infrastructure/ai-actions.repository';
 
 const STALE_RUNNING_MINUTES = 15;
 

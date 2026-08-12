@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import type { AiActionStatus, Prisma } from '../../prisma/generated/client';
-import { PrismaService } from '../../prisma/prisma.service';
+import type { AiActionStatus, Prisma } from '../../../../prisma/generated/client';
+import { PrismaService } from '../../../../prisma/prisma.service';
 
 @Injectable()
 export class AiActionsRepository {

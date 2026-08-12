@@ -38,7 +38,6 @@ export const envSchema = z
 
     // ── Supabase ──────────────────────────────────────────────
     SUPABASE_URL: z.url('SUPABASE_URL must be a valid URL'),
-    SUPABASE_ANON_KEY: z.string().optional(),
     SUPABASE_SERVICE_ROLE_KEY: z
       .string()
       .min(1, 'SUPABASE_SERVICE_ROLE_KEY is required'),
@@ -85,7 +84,6 @@ export const envSchema = z
         },
         { message: 'CORS_ORIGIN must be one or more valid URLs separated by commas' },
       ),
-    API_URL: z.url('API_URL must be a valid URL'),
     REDIS_URL: z
       .string()
       .optional()
@@ -145,23 +143,6 @@ export const envSchema = z
       }),
   })
   .superRefine((data, ctx) => {
-    if (data.NODE_ENV === 'test') {
-      return;
-    }
-
-    if (
-      !data.GROQ_API_KEY &&
-      !data.CEREBRAS_API_KEY &&
-      !data.OPENROUTER_API_KEY
-    ) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message:
-          'At least one AI provider key is required (GROQ_API_KEY, CEREBRAS_API_KEY, or OPENROUTER_API_KEY)',
-        path: ['GROQ_API_KEY'],
-      });
-    }
-
     if (data.NODE_ENV === 'production' && !data.REDIS_URL) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
@@ -176,6 +157,24 @@ export const envSchema = z
         message:
           'OAUTH_STATE_SECRET is required in production (must differ from ENCRYPTION_KEY)',
         path: ['OAUTH_STATE_SECRET'],
+      });
+    }
+
+    // AI provider keys are optional under NODE_ENV=test (CI / e2e).
+    if (data.NODE_ENV === 'test') {
+      return;
+    }
+
+    if (
+      !data.GROQ_API_KEY &&
+      !data.CEREBRAS_API_KEY &&
+      !data.OPENROUTER_API_KEY
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message:
+          'At least one AI provider key is required (GROQ_API_KEY, CEREBRAS_API_KEY, or OPENROUTER_API_KEY)',
+        path: ['GROQ_API_KEY'],
       });
     }
   });

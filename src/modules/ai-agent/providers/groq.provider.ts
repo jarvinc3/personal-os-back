@@ -9,9 +9,9 @@ import type {
   ChatCompletionResult,
   ChatMessage,
   ToolCallRequest,
-} from '../utils/ai.types';
-import { mapMessagesToOpenAi } from '../utils/map-messages-to-openai';
-import { streamOpenAiChatComplete } from '../utils/stream-openai-chat-complete';
+} from '../shared/ai.types';
+import { mapMessagesToOpenAi } from '../shared/map-messages-to-openai';
+import { streamOpenAiChatComplete } from '../shared/stream-openai-chat-complete';
 
 const GROQ_MODEL = 'llama-3.3-70b-versatile';
 

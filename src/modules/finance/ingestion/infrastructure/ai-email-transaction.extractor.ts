@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { z } from 'zod';
-import { AiService } from '../../../ai-agent/ai.service';
+import { AiService } from '../../../ai-agent/chat/application/ai.service';
 import type {
     EmailExtractionInput,
     EmailExtractionResult,

@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
-import type { Prisma } from '../../prisma/generated/client';
-import { AiSessionsRepository } from './ai-sessions.repository';
-import { AiService } from './ai.service';
+import type { Prisma } from '../../../../prisma/generated/client';
+import { AiSessionsRepository } from '../../chat/infrastructure/ai-sessions.repository';
+import { AiService } from '../../chat/application/ai.service';
 
 @Injectable()
 export class AiMemoryService {

@@ -1,7 +1,7 @@
 import {
   DEFAULT_DAILY_INSIGHT_QUOTA,
   resolveDailyInsightQuota,
-} from './ai-limits';
+} from '../../chat/application/ai-limits';
 import { AiProcessingProcessor } from './ai-processing.processor';
 
 describe('AiProcessingProcessor quota + session reuse', () => {

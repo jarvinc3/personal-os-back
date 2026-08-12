@@ -2,11 +2,11 @@ import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable, Logger, Optional } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { Queue } from 'bullmq';
-import { UserLoggedInEvent } from '../../core/events/domain-events';
-import { AppEvents } from '../../core/events/event.constants';
-import type { AiProcessingJob } from '../../core/queues/queue-jobs';
-import { QueueNames } from '../../core/queues/queue.constants';
-import { DomainEventIdempotencyGuard } from '../finance/events/application/domain-event-idempotency.guard';
+import { UserLoggedInEvent } from '../../../../core/events/domain-events';
+import { AppEvents } from '../../../../core/events/event.constants';
+import type { AiProcessingJob } from '../../../../core/queues/queue-jobs';
+import { QueueNames } from '../../../../core/queues/queue.constants';
+import { DomainEventIdempotencyGuard } from '../../../finance/events/application/domain-event-idempotency.guard';
 
 type FinanceTxEvent = {
   eventId?: string;

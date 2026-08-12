@@ -1,4 +1,4 @@
-jest.mock('../../prisma/generated/client', () => ({
+jest.mock('../../../../prisma/generated/client', () => ({
   Prisma: {
     PrismaClientKnownRequestError: class PrismaClientKnownRequestError extends Error {
       code: string;

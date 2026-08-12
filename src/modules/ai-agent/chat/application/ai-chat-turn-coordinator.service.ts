@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
-import type { AgentRunResult, AgentStreamEvent } from './utils/ai.types';
-import { replayStreamChunks } from './utils/replay-stream-chunks';
+import type { AgentRunResult, AgentStreamEvent } from '../../shared/ai.types';
+import { replayStreamChunks } from '../../shared/replay-stream-chunks';
 
 type TurnKey = string;
 

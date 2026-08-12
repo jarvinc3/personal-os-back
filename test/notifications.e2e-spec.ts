@@ -3,6 +3,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { PrismaService } from '../src/prisma/prisma.service';
+import { applyAuthTestOverrides } from './helpers/auth-test.providers';
 import { createPrismaMock } from './helpers/prisma.mock';
 import { applyTestEnv } from './helpers/test-env';
 import { createTestJwt } from './helpers/jwt.helper';
@@ -47,12 +48,13 @@ describe('Notifications (e2e)', () => {
       createdAt: new Date(),
     });
 
-    const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AppModule],
-    })
-      .overrideProvider(PrismaService)
-      .useValue(prismaMock)
-      .compile();
+    const moduleFixture: TestingModule = await applyAuthTestOverrides(
+      Test.createTestingModule({
+        imports: [AppModule],
+      })
+        .overrideProvider(PrismaService)
+        .useValue(prismaMock),
+    ).compile();
 
     app = moduleFixture.createNestApplication();
     app.setGlobalPrefix('api');

@@ -117,7 +117,9 @@ export const ModuleScalarFieldEnum = {
   isActive: 'isActive',
   sortOrder: 'sortOrder',
   key: 'key',
-  description: 'description'
+  description: 'description',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
 } as const
 
 export type ModuleScalarFieldEnum = (typeof ModuleScalarFieldEnum)[keyof typeof ModuleScalarFieldEnum]
@@ -129,7 +131,9 @@ export const UserModuleScalarFieldEnum = {
   moduleId: 'moduleId',
   isEnabled: 'isEnabled',
   config: 'config',
-  enabledAt: 'enabledAt'
+  enabledAt: 'enabledAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
 } as const
 
 export type UserModuleScalarFieldEnum = (typeof UserModuleScalarFieldEnum)[keyof typeof UserModuleScalarFieldEnum]
@@ -284,7 +288,9 @@ export const FinCategoryScalarFieldEnum = {
   icon: 'icon',
   color: 'color',
   parentId: 'parentId',
-  isSystem: 'isSystem'
+  isSystem: 'isSystem',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
 } as const
 
 export type FinCategoryScalarFieldEnum = (typeof FinCategoryScalarFieldEnum)[keyof typeof FinCategoryScalarFieldEnum]
@@ -343,7 +349,9 @@ export const FinExchangeRateScalarFieldEnum = {
   fromCurrency: 'fromCurrency',
   toCurrency: 'toCurrency',
   rate: 'rate',
-  rateDate: 'rateDate'
+  rateDate: 'rateDate',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
 } as const
 
 export type FinExchangeRateScalarFieldEnum = (typeof FinExchangeRateScalarFieldEnum)[keyof typeof FinExchangeRateScalarFieldEnum]

@@ -3,6 +3,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { PrismaService } from './../src/prisma/prisma.service';
+import { applyAuthTestOverrides } from './helpers/auth-test.providers';
 import { createPrismaMock } from './helpers/prisma.mock';
 import { applyTestEnv } from './helpers/test-env';
 
@@ -16,12 +17,13 @@ describe('AppController (e2e)', () => {
       AppModule: new (...args: never[]) => unknown;
     };
     const prismaMock = createPrismaMock();
-    const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AppModule],
-    })
-      .overrideProvider(PrismaService)
-      .useValue(prismaMock)
-      .compile();
+    const moduleFixture: TestingModule = await applyAuthTestOverrides(
+      Test.createTestingModule({
+        imports: [AppModule],
+      })
+        .overrideProvider(PrismaService)
+        .useValue(prismaMock),
+    ).compile();
 
     app = moduleFixture.createNestApplication();
     app.setGlobalPrefix('api');
@@ -67,6 +69,17 @@ describe('AppController (e2e)', () => {
       expect(res.body.data).not.toHaveProperty('info');
       expect(res.body.data).not.toHaveProperty('details');
     } else {
+      expect(res.body.statusCode).toBe(503);
+      expect(JSON.stringify(res.body)).not.toMatch(/database|jwks|redis/i);
+    }
+  });
+
+  it('/health/startup (GET) is public and sanitized', async () => {
+    const res = await request(app.getHttpServer()).get('/api/health/startup');
+    expect(res.status).not.toBe(401);
+    expect([200, 503]).toContain(res.status);
+
+    if (res.status === 503) {
       expect(res.body.statusCode).toBe(503);
       expect(JSON.stringify(res.body)).not.toMatch(/database|jwks|redis/i);
     }

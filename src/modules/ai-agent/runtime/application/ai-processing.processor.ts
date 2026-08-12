@@ -1,17 +1,17 @@
 import { OnWorkerEvent, Processor, WorkerHost } from '@nestjs/bullmq';
 import { Injectable, Logger } from '@nestjs/common';
 import { Job } from 'bullmq';
-import { AiProcessingJob } from '../../core/queues/queue-jobs';
-import { QueueNames } from '../../core/queues/queue.constants';
-import { NotificationsGateway } from '../notifications/notifications.gateway';
-import { parseUserPreferences } from '../users/lib/parse-user-preferences';
-import { UsersRepository } from '../users/users.repository';
-import { resolveDailyInsightQuota } from './ai-limits';
+import { AiProcessingJob } from '../../../../core/queues/queue-jobs';
+import { QueueNames } from '../../../../core/queues/queue.constants';
+import { NotificationsGateway } from '../../../notifications/presentation/notifications.gateway';
+import { parseUserPreferences } from '../../../users/domain/parse-user-preferences';
+import { UsersRepository } from '../../../users/infrastructure/users.repository';
+import { resolveDailyInsightQuota } from '../../chat/application/ai-limits';
 import { AiMemoryService } from './ai-memory.service';
-import { AiSessionsRepository } from './ai-sessions.repository';
-import { AiService } from './ai.service';
-import { buildAgentPrompt } from './prompts/build-agent-prompt';
-import type { AiResponseWsPayload } from './utils/ai.types';
+import { AiSessionsRepository } from '../../chat/infrastructure/ai-sessions.repository';
+import { AiService } from '../../chat/application/ai.service';
+import { buildAgentPrompt } from '../../prompts/build-agent-prompt';
+import type { AiResponseWsPayload } from '../../shared/ai.types';
 
 @Injectable()
 @Processor(QueueNames.AI_PROCESSING)

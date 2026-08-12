@@ -1,12 +1,12 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import type { Prisma as PrismaTypes } from '../../prisma/generated/client';
-import { Prisma } from '../../prisma/generated/client';
-import { parseUserPreferences } from '../users/lib/parse-user-preferences';
-import { UsersRepository } from '../users/users.repository';
+import type { Prisma as PrismaTypes } from '../../../../prisma/generated/client';
+import { Prisma } from '../../../../prisma/generated/client';
+import { parseUserPreferences } from '../../../users/domain/parse-user-preferences';
+import { UsersRepository } from '../../../users/infrastructure/users.repository';
 import { AiSessionsRepository } from './ai-sessions.repository';
-import { buildAgentPrompt } from './prompts/build-agent-prompt';
-import type { ChatMessage, ToolCallRequest } from './utils/ai.types';
-import { buildProviderHistoryFromStored } from './utils/build-provider-history';
+import { buildAgentPrompt } from '../../prompts/build-agent-prompt';
+import type { ChatMessage, ToolCallRequest } from '../../shared/ai.types';
+import { buildProviderHistoryFromStored } from '../../shared/build-provider-history';
 
 const MAX_CONTEXT_MESSAGES = 40;
 

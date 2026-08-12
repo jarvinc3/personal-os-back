@@ -12,7 +12,8 @@
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
-    "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
+    "lint": "eslint \"{src,apps,libs,test}/**/*.ts\"",
+    "lint:fix": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
@@ -25,6 +26,7 @@
     "db:migrate:status": "prisma migrate status",
     "db:migrate:deploy": "prisma migrate deploy",
     "db:migrate:diff": "prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --script",
+    "db:migrate:diff:check": "prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --exit-code",
     "db:migrate:resolve:applied": "prisma migrate resolve --applied",
     "db:migrate:reset": "prisma migrate reset",
     "db:generate": "prisma generate",
@@ -54,6 +56,7 @@
     "@prisma/adapter-pg": "^7.9.1",
     "@prisma/client": "^7.9.1",
     "@supabase/supabase-js": "^2.112.0",
+    "axios": "1.18.0",
     "bullmq": "^5.81.3",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.15.1",
@@ -135,12 +138,19 @@
     "coverageDirectory": "../coverage",
     "coverageThreshold": {
       "global": {
-        "statements": 12,
-        "lines": 12,
-        "functions": 10,
-        "branches": 8
+        "statements": 25,
+        "lines": 25,
+        "functions": 19,
+        "branches": 20
       }
     },
     "testEnvironment": "node"
+  },
+  "pnpm": {
+    "overrides": {
+      "axios": "1.18.0",
+      "js-yaml@5": "5.2.2",
+      "fast-uri": "3.1.5"
+    }
   }
 }

@@ -7,16 +7,16 @@ import {
 } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import type { Response } from 'express';
-import { CurrentUser, Timeout } from '../../core/decorators';
-import { NotificationsGateway } from '../notifications/notifications.gateway';
-import { AiAgentRunner } from './ai-agent.runner';
-import { AiChatPersistenceService } from './ai-chat-persistence.service';
-import { AiService } from './ai.service';
+import { CurrentUser, Timeout } from '../../../../core/decorators';
+import { NotificationsGateway } from '../../../notifications/presentation/notifications.gateway';
+import { AiAgentRunner } from '../application/ai-agent.runner';
+import { AiChatPersistenceService } from '../infrastructure/ai-chat-persistence.service';
+import { AiService } from '../application/ai.service';
 import { AiProviderInfoDto } from './dto/ai-provider-info.dto';
 import { ChatRequestDto } from './dto/chat-request.dto';
 import { ChatResponseDto } from './dto/chat-response.dto';
-import type { AiResponseWsPayload } from './utils/ai.types';
-import { replayStreamChunks } from './utils/replay-stream-chunks';
+import type { AiResponseWsPayload } from '../../shared/ai.types';
+import { replayStreamChunks } from '../../shared/replay-stream-chunks';
 
 @ApiTags('ai-agent')
 @Controller('ai')

@@ -45,6 +45,8 @@ model Module {
   sortOrder   Int              @default(0) @map("sort_order")
   key         String           @unique
   description String?
+  createdAt   DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   aiSessions  AiAgentSession[]
   userModules UserModule[]
 
@@ -58,6 +60,8 @@ model UserModule {
   isEnabled Boolean  @default(true) @map("is_enabled")
   config    Json     @default("{}")
   enabledAt DateTime @default(now()) @map("enabled_at") @db.Timestamptz(6)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   module    Module   @relation(fields: [moduleId], references: [id], onDelete: Restrict, onUpdate: NoAction)
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
@@ -261,6 +265,8 @@ model FinCategory {
   color        String?
   parentId     String?               @map("parent_id")
   isSystem     Boolean               @default(false) @map("is_system")
+  createdAt    DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime              @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   budgets      FinBudget[]
   parent       FinCategory?          @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: Restrict, onUpdate: NoAction)
   children     FinCategory[]         @relation("CategoryHierarchy")
@@ -337,6 +343,8 @@ model FinExchangeRate {
   toCurrency   String   @map("to_currency")
   rate         Decimal  @db.Decimal(15, 6)
   rateDate     DateTime @map("rate_date") @db.Date
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   @@unique([fromCurrency, toCurrency, rateDate], map: "fin_exchange_rates_from_to_date_key")
   @@index([fromCurrency, toCurrency], map: "fin_exchange_rates_from_to_idx")

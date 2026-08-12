@@ -40,6 +40,8 @@ export type FinExchangeRateMinAggregateOutputType = {
   toCurrency: string | null
   rate: runtime.Decimal | null
   rateDate: Date | null
+  createdAt: Date | null
+  updatedAt: Date | null
 }
 
 export type FinExchangeRateMaxAggregateOutputType = {
@@ -48,6 +50,8 @@ export type FinExchangeRateMaxAggregateOutputType = {
   toCurrency: string | null
   rate: runtime.Decimal | null
   rateDate: Date | null
+  createdAt: Date | null
+  updatedAt: Date | null
 }
 
 export type FinExchangeRateCountAggregateOutputType = {
@@ -56,6 +60,8 @@ export type FinExchangeRateCountAggregateOutputType = {
   toCurrency: number
   rate: number
   rateDate: number
+  createdAt: number
+  updatedAt: number
   _all: number
 }
 
@@ -74,6 +80,8 @@ export type FinExchangeRateMinAggregateInputType = {
   toCurrency?: true
   rate?: true
   rateDate?: true
+  createdAt?: true
+  updatedAt?: true
 }
 
 export type FinExchangeRateMaxAggregateInputType = {
@@ -82,6 +90,8 @@ export type FinExchangeRateMaxAggregateInputType = {
   toCurrency?: true
   rate?: true
   rateDate?: true
+  createdAt?: true
+  updatedAt?: true
 }
 
 export type FinExchangeRateCountAggregateInputType = {
@@ -90,6 +100,8 @@ export type FinExchangeRateCountAggregateInputType = {
   toCurrency?: true
   rate?: true
   rateDate?: true
+  createdAt?: true
+  updatedAt?: true
   _all?: true
 }
 
@@ -185,6 +197,8 @@ export type FinExchangeRateGroupByOutputType = {
   toCurrency: string
   rate: runtime.Decimal
   rateDate: Date
+  createdAt: Date
+  updatedAt: Date
   _count: FinExchangeRateCountAggregateOutputType | null
   _avg: FinExchangeRateAvgAggregateOutputType | null
   _sum: FinExchangeRateSumAggregateOutputType | null
@@ -216,6 +230,8 @@ export type FinExchangeRateWhereInput = {
   toCurrency?: Prisma.StringFilter<"FinExchangeRate"> | string
   rate?: Prisma.DecimalFilter<"FinExchangeRate"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   rateDate?: Prisma.DateTimeFilter<"FinExchangeRate"> | Date | string
+  createdAt?: Prisma.DateTimeFilter<"FinExchangeRate"> | Date | string
+  updatedAt?: Prisma.DateTimeFilter<"FinExchangeRate"> | Date | string
 }
 
 export type FinExchangeRateOrderByWithRelationInput = {
@@ -224,6 +240,8 @@ export type FinExchangeRateOrderByWithRelationInput = {
   toCurrency?: Prisma.SortOrder
   rate?: Prisma.SortOrder
   rateDate?: Prisma.SortOrder
+  createdAt?: Prisma.SortOrder
+  updatedAt?: Prisma.SortOrder
 }
 
 export type FinExchangeRateWhereUniqueInput = Prisma.AtLeast<{
@@ -236,6 +254,8 @@ export type FinExchangeRateWhereUniqueInput = Prisma.AtLeast<{
   toCurrency?: Prisma.StringFilter<"FinExchangeRate"> | string
   rate?: Prisma.DecimalFilter<"FinExchangeRate"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   rateDate?: Prisma.DateTimeFilter<"FinExchangeRate"> | Date | string
+  createdAt?: Prisma.DateTimeFilter<"FinExchangeRate"> | Date | string
+  updatedAt?: Prisma.DateTimeFilter<"FinExchangeRate"> | Date | string
 }, "id" | "fromCurrency_toCurrency_rateDate">
 
 export type FinExchangeRateOrderByWithAggregationInput = {
@@ -244,6 +264,8 @@ export type FinExchangeRateOrderByWithAggregationInput = {
   toCurrency?: Prisma.SortOrder
   rate?: Prisma.SortOrder
   rateDate?: Prisma.SortOrder
+  createdAt?: Prisma.SortOrder
+  updatedAt?: Prisma.SortOrder
   _count?: Prisma.FinExchangeRateCountOrderByAggregateInput
   _avg?: Prisma.FinExchangeRateAvgOrderByAggregateInput
   _max?: Prisma.FinExchangeRateMaxOrderByAggregateInput
@@ -260,6 +282,8 @@ export type FinExchangeRateScalarWhereWithAggregatesInput = {
   toCurrency?: Prisma.StringWithAggregatesFilter<"FinExchangeRate"> | string
   rate?: Prisma.DecimalWithAggregatesFilter<"FinExchangeRate"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   rateDate?: Prisma.DateTimeWithAggregatesFilter<"FinExchangeRate"> | Date | string
+  createdAt?: Prisma.DateTimeWithAggregatesFilter<"FinExchangeRate"> | Date | string
+  updatedAt?: Prisma.DateTimeWithAggregatesFilter<"FinExchangeRate"> | Date | string
 }
 
 export type FinExchangeRateCreateInput = {
@@ -268,6 +292,8 @@ export type FinExchangeRateCreateInput = {
   toCurrency: string
   rate: runtime.Decimal | runtime.DecimalJsLike | number | string
   rateDate: Date | string
+  createdAt?: Date | string
+  updatedAt?: Date | string
 }
 
 export type FinExchangeRateUncheckedCreateInput = {
@@ -276,6 +302,8 @@ export type FinExchangeRateUncheckedCreateInput = {
   toCurrency: string
   rate: runtime.Decimal | runtime.DecimalJsLike | number | string
   rateDate: Date | string
+  createdAt?: Date | string
+  updatedAt?: Date | string
 }
 
 export type FinExchangeRateUpdateInput = {
@@ -284,6 +312,8 @@ export type FinExchangeRateUpdateInput = {
   toCurrency?: Prisma.StringFieldUpdateOperationsInput | string
   rate?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   rateDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
 export type FinExchangeRateUncheckedUpdateInput = {
@@ -292,6 +322,8 @@ export type FinExchangeRateUncheckedUpdateInput = {
   toCurrency?: Prisma.StringFieldUpdateOperationsInput | string
   rate?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   rateDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
 export type FinExchangeRateCreateManyInput = {
@@ -300,6 +332,8 @@ export type FinExchangeRateCreateManyInput = {
   toCurrency: string
   rate: runtime.Decimal | runtime.DecimalJsLike | number | string
   rateDate: Date | string
+  createdAt?: Date | string
+  updatedAt?: Date | string
 }
 
 export type FinExchangeRateUpdateManyMutationInput = {
@@ -308,6 +342,8 @@ export type FinExchangeRateUpdateManyMutationInput = {
   toCurrency?: Prisma.StringFieldUpdateOperationsInput | string
   rate?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   rateDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
 export type FinExchangeRateUncheckedUpdateManyInput = {
@@ -316,6 +352,8 @@ export type FinExchangeRateUncheckedUpdateManyInput = {
   toCurrency?: Prisma.StringFieldUpdateOperationsInput | string
   rate?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   rateDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
 export type FinExchangeRateFromCurrencyToCurrencyRateDateCompoundUniqueInput = {
@@ -330,6 +368,8 @@ export type FinExchangeRateCountOrderByAggregateInput = {
   toCurrency?: Prisma.SortOrder
   rate?: Prisma.SortOrder
   rateDate?: Prisma.SortOrder
+  createdAt?: Prisma.SortOrder
+  updatedAt?: Prisma.SortOrder
 }
 
 export type FinExchangeRateAvgOrderByAggregateInput = {
@@ -342,6 +382,8 @@ export type FinExchangeRateMaxOrderByAggregateInput = {
   toCurrency?: Prisma.SortOrder
   rate?: Prisma.SortOrder
   rateDate?: Prisma.SortOrder
+  createdAt?: Prisma.SortOrder
+  updatedAt?: Prisma.SortOrder
 }
 
 export type FinExchangeRateMinOrderByAggregateInput = {
@@ -350,6 +392,8 @@ export type FinExchangeRateMinOrderByAggregateInput = {
   toCurrency?: Prisma.SortOrder
   rate?: Prisma.SortOrder
   rateDate?: Prisma.SortOrder
+  createdAt?: Prisma.SortOrder
+  updatedAt?: Prisma.SortOrder
 }
 
 export type FinExchangeRateSumOrderByAggregateInput = {
@@ -364,6 +408,8 @@ export type FinExchangeRateSelect<ExtArgs extends runtime.Types.Extensions.Inter
   toCurrency?: boolean
   rate?: boolean
   rateDate?: boolean
+  createdAt?: boolean
+  updatedAt?: boolean
 }, ExtArgs["result"]["finExchangeRate"]>
 
 export type FinExchangeRateSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -372,6 +418,8 @@ export type FinExchangeRateSelectCreateManyAndReturn<ExtArgs extends runtime.Typ
   toCurrency?: boolean
   rate?: boolean
   rateDate?: boolean
+  createdAt?: boolean
+  updatedAt?: boolean
 }, ExtArgs["result"]["finExchangeRate"]>
 
 export type FinExchangeRateSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -380,6 +428,8 @@ export type FinExchangeRateSelectUpdateManyAndReturn<ExtArgs extends runtime.Typ
   toCurrency?: boolean
   rate?: boolean
   rateDate?: boolean
+  createdAt?: boolean
+  updatedAt?: boolean
 }, ExtArgs["result"]["finExchangeRate"]>
 
 export type FinExchangeRateSelectScalar = {
@@ -388,9 +438,11 @@ export type FinExchangeRateSelectScalar = {
   toCurrency?: boolean
   rate?: boolean
   rateDate?: boolean
+  createdAt?: boolean
+  updatedAt?: boolean
 }
 
-export type FinExchangeRateOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "fromCurrency" | "toCurrency" | "rate" | "rateDate", ExtArgs["result"]["finExchangeRate"]>
+export type FinExchangeRateOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "fromCurrency" | "toCurrency" | "rate" | "rateDate" | "createdAt" | "updatedAt", ExtArgs["result"]["finExchangeRate"]>
 
 export type $FinExchangeRatePayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "FinExchangeRate"
@@ -401,6 +453,8 @@ export type $FinExchangeRatePayload<ExtArgs extends runtime.Types.Extensions.Int
     toCurrency: string
     rate: runtime.Decimal
     rateDate: Date
+    createdAt: Date
+    updatedAt: Date
   }, ExtArgs["result"]["finExchangeRate"]>
   composites: {}
 }
@@ -829,6 +883,8 @@ export interface FinExchangeRateFieldRefs {
   readonly toCurrency: Prisma.FieldRef<"FinExchangeRate", 'String'>
   readonly rate: Prisma.FieldRef<"FinExchangeRate", 'Decimal'>
   readonly rateDate: Prisma.FieldRef<"FinExchangeRate", 'DateTime'>
+  readonly createdAt: Prisma.FieldRef<"FinExchangeRate", 'DateTime'>
+  readonly updatedAt: Prisma.FieldRef<"FinExchangeRate", 'DateTime'>
 }
     
 

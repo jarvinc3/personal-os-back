@@ -1,16 +1,16 @@
 import { Module } from '@nestjs/common';
-import { EmailSyncProcessor } from '../../shared/processors/email-sync.processor';
 import { AuthModule } from '../auth/auth.module';
 import { FinanceEventsModule } from '../finance/events/events.module';
-import { NotificationPolicyService } from './notification-policy.service';
-import { NotificationsEventsListener } from './notifications-events.listener';
-import { NotificationsController } from './notifications.controller';
-import { NotificationsGateway } from './notifications.gateway';
-import { NotificationsProcessor } from './notifications.processor';
-import { NotificationsRepository } from './notifications.repository';
-import { NotificationsService } from './notifications.service';
-import { PushSenderService } from './push-sender.service';
-import { PushTokensService } from './push-tokens.service';
+import { NotificationPolicyService } from './application/notification-policy.service';
+import { NotificationsEventsListener } from './application/notifications-events.listener';
+import { NotificationsProcessor } from './application/notifications.processor';
+import { NotificationsService } from './application/notifications.service';
+import { PushTokensService } from './application/push-tokens.service';
+import { EmailSyncProcessor } from './infrastructure/email-sync.processor';
+import { NotificationsRepository } from './infrastructure/notifications.repository';
+import { PushSenderService } from './infrastructure/push-sender.service';
+import { NotificationsController } from './presentation/notifications.controller';
+import { NotificationsGateway } from './presentation/notifications.gateway';
 
 @Module({
   imports: [AuthModule, FinanceEventsModule],

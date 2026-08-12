@@ -1,0 +1,123 @@
+# Module folder standard
+
+House style for NestJS feature modules under `src/modules/`. Feature modules first; technical layers **inside** each feature (or capability). References: `finance/` (complex), `ai-agent/` (capabilities without Nest submodules), `notifications/` / `users/` / `auth/` (simple layers).
+
+## Principles
+
+1. Organize by **feature / capability**, not a global `controllers/` + `services/` tree.
+2. Inside a feature, use the same layer names everywhere: `presentation/`, `application/`, `infrastructure/`, optional `domain/`.
+3. Module root holds only composition: `*.module.ts`, optional `index.ts`, optional `*.facade.ts`.
+4. Prefer focused services over god services. Introduce ports only when there are ≥2 adapters, cross-capability DI, or tests that need a stable IO boundary.
+5. Avoid new Nest circular imports (`forwardRef`). Prefer events or a façade over bidirectional module graphs.
+6. Do not create empty layer folders as placeholders (e.g. auth has no `application/` until orchestration exists).
+
+## Simple module template
+
+Use when the module is one bounded context (`auth`, `users`, `notifications`).
+
+```text
+module-name/
+  module-name.module.ts
+  index.ts                    # optional public re-exports
+  presentation/
+    *.controller.ts
+    *.gateway.ts              # if needed
+    dto/
+  application/
+    *.service.ts
+    *.use-case.ts             # when orchestration is non-trivial
+    *.listener.ts
+    *.processor.ts
+    ports/                    # only if ≥2 adapters
+  infrastructure/
+    *.repository.ts
+    *.adapter.ts
+  domain/                     # optional pure rules / defaults
+```
+
+## Complex module template
+
+Use when there are ≥2 bounded contexts with their own lifecycle (e.g. `finance`, `ai-agent`).
+
+```text
+module-name/
+  module-name.module.ts       # composition root
+  module-name.facade.ts       # optional cross-module API
+  index.ts
+  shared/                     # domain + tokens shared by capabilities
+  capability-a/
+    capability-a.module.ts    # optional Nest submodule (finance yes; ai-agent no today)
+    presentation/
+    application/
+      ports/
+    infrastructure/
+  capability-b/
+    …same skeleton
+```
+
+`ai-agent` keeps a **single** `AiModule` and organizes code with capability folders (`chat/`, `actions/`, `runtime/`) plus top-level `tools/`, `prompts/`, `providers/`, `shared/`.
+
+## Layer dependency rules
+
+```text
+presentation → application → domain
+infrastructure → application ports / domain
+```
+
+| Layer | Owns | Must not |
+| --- | --- | --- |
+| `presentation` | HTTP, WS, inbound DTOs | Prisma, LLM SDKs, queue workers |
+| `application` | orchestration, listeners, thin processors, ports | framework transport details |
+| `domain` | pure types/functions | Nest decorators, I/O |
+| `infrastructure` | Prisma repos, external adapters | HTTP controllers |
+
+## Naming
+
+| Avoid | Prefer |
+| --- | --- |
+| `lib/`, ambiguous `utils/` | `domain/` or `application/` / `shared/` with a clear role |
+| Dumping runtime files at module root | Only `*.module.ts` (+ `index.ts` / façade) |
+| Fat `*.service.ts` for many writes | `*.use-case.ts` + query service (see finance ledger) |
+| Port for every repository | Concrete repo until a second adapter or cross-capability need appears |
+
+## Heuristics
+
+- **Add layers** when a module has ≥8 domain source files or mixes HTTP + queue + persistence in one folder.
+- **Add capabilities** when there are ≥2 bounded contexts (ledger vs catalog; chat vs actions).
+- **Add ports** only with 2+ adapters, mocked IO in tests at scale, or a cross-capability contract (e.g. `BUDGET_THRESHOLD_PORT`).
+
+## Finance: use-case vs fat service
+
+Within finance capabilities:
+
+- **Use-cases** for distinct write flows with different rules (ledger mutations, Gmail sync processing, FX amount resolution).
+- **Fat application services** for CRUD / read-heavy surfaces (catalog, planning, analytics).
+- **`domain/`** stays in `shared/` until a capability owns non-shared pure rules.
+- Details: [docs/modules/finance.md](../modules/finance.md).
+
+## References
+
+| Module | Style | Doc |
+| --- | --- | --- |
+| finance | Complex + Nest capability modules + façade | [finance.md](../modules/finance.md) |
+| ai-agent | Complex folders, single Nest module | [ai-agent.md](../modules/ai-agent.md) |
+| notifications | Simple layers (`EmailSyncProcessor` in infrastructure) | [notifications.md](../modules/notifications.md) |
+| users | Simple layers | [users.md](../modules/users.md) |
+| auth | Simple layers (no empty application/) | [auth.md](../modules/auth.md) |
+
+## Completed roadmap
+
+Former follow-ups from the ai-agent pass are done:
+
+1. notifications — layers + `EmailSyncProcessor` under notifications infrastructure
+2. users / auth — aligned to presentation / application / infrastructure / domain
+3. finance — documented canonical shape and use-case vs fat-service (no code rewrite)
+4. PR checklist — permanent rule below
+
+## PR checklist (for new work)
+
+- [ ] New file lives under a named layer or capability, not module root (except module/index/facade).
+- [ ] Cross-module consumers use façade / `index.ts` public exports, not deep infrastructure paths.
+- [ ] No new Nest circular dependency introduced.
+- [ ] Specs sit next to the unit under test.
+- [ ] Do not add empty placeholder layer folders.

@@ -5,8 +5,8 @@ import type {
   ChatCompletionResult,
   ChatMessage,
   ToolCallRequest,
-} from '../utils/ai.types';
-import { mapMessagesToOpenRouter } from '../utils/map-messages-to-openrouter';
+} from '../shared/ai.types';
+import { mapMessagesToOpenRouter } from '../shared/map-messages-to-openrouter';
 import { parseToolCallArguments, toolsToOpenAiFormat } from '../tools/tool.registry';
 
 const OPENROUTER_MODEL = 'deepseek/deepseek-v4-flash';

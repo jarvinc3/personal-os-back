@@ -1,6 +1,6 @@
 import { FinanceFacade } from '../../finance/finance.facade';
-import { UsersService } from '../../users/users.service';
-import { AiSessionsRepository } from '../ai-sessions.repository';
+import { UsersService } from '../../users/application/users.service';
+import { AiSessionsRepository } from '../chat/infrastructure/ai-sessions.repository';
 import { ToolExecutorService } from './tool-executor.service';
 
 describe('ToolExecutorService', () => {

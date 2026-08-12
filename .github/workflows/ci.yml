@@ -10,14 +10,26 @@ on:
 jobs:
   backend:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     env:
       NODE_ENV: test
-      DATABASE_URL: postgresql://postgres.test:test@localhost:5432/postgres
+      DATABASE_URL: postgresql://postgres:test@localhost:5432/postgres
       SUPABASE_URL: https://example.supabase.co
-      SUPABASE_ANON_KEY: test-anon-key
       SUPABASE_SERVICE_ROLE_KEY: test-service-key
       CORS_ORIGIN: http://localhost:5173
-      API_URL: http://localhost:3100
       REDIS_URL: redis://localhost:6379
       REDIS_ENABLED: false
       GOOGLE_CLIENT_ID: test-google-client-id
@@ -49,14 +61,19 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Audit production dependencies
-        continue-on-error: true
-        run: pnpm audit --prod
+        run: pnpm audit --prod --audit-level=high
 
       - name: Prisma validate
         run: pnpm db:validate
 
       - name: Prisma generate
         run: pnpm db:generate
+
+      - name: Prisma migrate deploy
+        run: pnpm db:migrate:deploy
+
+      - name: Prisma migrate diff (no drift)
+        run: pnpm db:migrate:diff:check
 
       - name: Lint
         run: pnpm lint
@@ -65,7 +82,7 @@ jobs:
         run: pnpm build
 
       - name: Unit tests
-        run: pnpm test -- --coverage --coverageReporters=text-summary --passWithNoTests
+        run: pnpm exec jest --coverage --coverageReporters=text-summary --passWithNoTests
 
       - name: E2E tests
         run: pnpm test:e2e

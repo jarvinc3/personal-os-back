@@ -3,7 +3,7 @@ import {
     MODULE_CONTEXT_SLUGS,
     MODULE_CONTEXT_SWITCH_TOOL,
 } from '../prompts/module-context';
-import type { AiToolDefinition } from '../utils/ai.types';
+import type { AiToolDefinition } from '../shared/ai.types';
 import {
     isMutatingToolName,
     MUTATING_TOOL_ARG_SCHEMAS,

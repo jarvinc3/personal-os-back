@@ -1,9 +1,9 @@
 import { Body, Controller, Delete, Get, Param, Post, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { CurrentUser, Timeout } from '../../core/decorators';
-import { PaginationQueryDto } from '../../core/pagination/pagination.dto';
+import { CurrentUser, Timeout } from '../../../../core/decorators';
+import { PaginationQueryDto } from '../../../../core/pagination/pagination.dto';
 import { CreateAiSessionDto } from './dto/create-ai-session.dto';
-import { AiSessionsService } from './ai-sessions.service';
+import { AiSessionsService } from '../application/ai-sessions.service';
 
 @ApiTags('ai-agent')
 @ApiBearerAuth('access-token')

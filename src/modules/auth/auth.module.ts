@@ -1,9 +1,9 @@
 import { Module } from '@nestjs/common';
 import { PassportModule } from '@nestjs/passport';
-import { AuthController } from './auth.controller';
-import { SupabaseAdminService } from './supabase-admin.service';
-import { SupabaseJwtStrategy } from './strategies/supabase-jwt.strategy';
-import { SupabaseJwtVerifierService } from './supabase-jwt-verifier.service';
+import { SupabaseAdminService } from './infrastructure/supabase-admin.service';
+import { SupabaseJwtVerifierService } from './infrastructure/supabase-jwt-verifier.service';
+import { SupabaseJwtStrategy } from './infrastructure/strategies/supabase-jwt.strategy';
+import { AuthController } from './presentation/auth.controller';
 
 @Module({
   imports: [PassportModule.register({ defaultStrategy: 'supabase-jwt' })],

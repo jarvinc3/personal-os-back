@@ -1,4 +1,5 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
+import { resolveMaxEmailLlmExtracts } from '../../../ai-agent/chat/application/ai-limits';
 import { ImportEmailTransactionUseCase } from '../../ledger/application/import-email-transaction.use-case';
 import { LedgerQueryService } from '../../ledger/application/ledger-query.service';
 import { ReverseTransactionUseCase } from '../../ledger/application/reverse-transaction.use-case';
@@ -6,9 +7,9 @@ import { EMAIL_TRANSACTION_EXTRACTOR } from '../../shared/application/tokens';
 import { mapBankStatusToInternal } from '../../shared/domain/transaction-status';
 import { EmailSourceRepository } from '../infrastructure/email-source.repository';
 import {
-    getGmailMessage,
-    listGmailMessages,
-    parseGmailMessage,
+  getGmailMessage,
+  listGmailMessages,
+  parseGmailMessage,
 } from '../infrastructure/gmail-api.util';
 import { IngestionService } from './ingestion.service';
 import type { EmailTransactionExtractorPort } from './ports/email-transaction-extractor.port';
@@ -49,6 +50,8 @@ export class ProcessGmailSyncUseCase {
     const syncLog = await this.emailSources.createEmailSyncLog(sourceId);
     let emailsScanned = 0;
     let transactionsNew = 0;
+    let llmExtracts = 0;
+    const maxLlmExtracts = resolveMaxEmailLlmExtracts();
     const transactionIds: string[] = [];
     const countsByStatus: Record<string, number> = {};
 
@@ -69,6 +72,7 @@ export class ProcessGmailSyncUseCase {
       let pageToken: string | undefined;
       let lastMessageId = source.lastMessageId ?? undefined;
       const categories = await this.emailSources.listCategories(userId);
+      let hitLlmCap = false;
 
       do {
         const listResult = await listGmailMessages(
@@ -85,9 +89,18 @@ export class ProcessGmailSyncUseCase {
           );
           if (existing) continue;
 
+          if (llmExtracts >= maxLlmExtracts) {
+            hitLlmCap = true;
+            this.logger.warn(
+              `Gmail sync ${sourceId}: LLM extract cap ${maxLlmExtracts} reached; remaining messages deferred to next sync`,
+            );
+            break;
+          }
+
           try {
             const message = await getGmailMessage(accessToken, messageRef.id);
             const { from, subject, body } = parseGmailMessage(message);
+            llmExtracts += 1;
             const extraction = await this.extractor.extract({
               from,
               subject,
@@ -178,6 +191,7 @@ export class ProcessGmailSyncUseCase {
             throw error;
           }
         }
+        if (hitLlmCap) break;
         pageToken = listResult.nextPageToken;
       } while (pageToken);
 
@@ -197,7 +211,7 @@ export class ProcessGmailSyncUseCase {
       });
 
       this.logger.log(
-        `Gmail sync completed for ${sourceId}: ${emailsScanned} scanned, ${transactionsNew} new`,
+        `Gmail sync completed for ${sourceId}: ${emailsScanned} scanned, ${transactionsNew} new, ${llmExtracts} LLM extracts`,
       );
     } catch (error) {
       await this.emailSources.completeEmailSyncLog(syncLog.id, {

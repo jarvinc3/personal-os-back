@@ -1,5 +1,5 @@
 import { AiChatTurnCoordinator } from './ai-chat-turn-coordinator.service';
-import type { AgentRunResult } from './utils/ai.types';
+import type { AgentRunResult } from '../../shared/ai.types';
 
 describe('AiChatTurnCoordinator', () => {
   const coordinator = new AiChatTurnCoordinator();

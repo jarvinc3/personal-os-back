@@ -1,7 +1,7 @@
 import { Controller, Get, Param, Post } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
-import { CurrentUser, Timeout } from '../../core/decorators';
-import { AiActionsService } from './ai-actions.service';
+import { CurrentUser, Timeout } from '../../../../core/decorators';
+import { AiActionsService } from '../application/ai-actions.service';
 
 @ApiTags('ai-agent')
 @Controller('ai')

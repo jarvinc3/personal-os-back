@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { FinanceFacade } from '../../finance/finance.facade';
-import { GLOBAL_USER_PREFERENCES_DEFAULTS } from '../../users/defaults/global-preferences-defaults';
-import { mergeWithDefaults } from '../../users/lib/settings-merge';
-import { UsersService } from '../../users/users.service';
-import { AiSessionsRepository } from '../ai-sessions.repository';
+import { GLOBAL_USER_PREFERENCES_DEFAULTS } from '../../users/domain/defaults/global-preferences-defaults';
+import { mergeWithDefaults } from '../../users/domain/settings-merge';
+import { UsersService } from '../../users/application/users.service';
+import { AiSessionsRepository } from '../chat/infrastructure/ai-sessions.repository';
 import {
     MODULE_CONTEXT,
     MODULE_CONTEXT_SLUGS,
@@ -14,7 +14,7 @@ import type {
     SideEffectDescriptor,
     ToolContext,
     ToolExecutionResult,
-} from '../utils/ai.types';
+} from '../shared/ai.types';
 import {
     type MutatingToolName,
     type ValidatedToolArgs,

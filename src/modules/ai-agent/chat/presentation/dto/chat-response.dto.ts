@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import type { AiActionSummary, ChatBlock, SideEffectDescriptor } from '../utils/ai.types';
+import type { AiActionSummary, ChatBlock, SideEffectDescriptor } from '../../../shared/ai.types';
 
 export class ChatResponseDto {
   @ApiProperty()

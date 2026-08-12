@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import type { PaginationQueryDto } from '../../core/pagination/pagination.dto';
-import { paginationArgs } from '../../core/pagination/pagination.dto';
-import type { AiRole, Prisma } from '../../prisma/generated/client';
-import { PrismaService } from '../../prisma/prisma.service';
+import type { PaginationQueryDto } from '../../../../core/pagination/pagination.dto';
+import { paginationArgs } from '../../../../core/pagination/pagination.dto';
+import type { AiRole, Prisma } from '../../../../prisma/generated/client';
+import { PrismaService } from '../../../../prisma/prisma.service';
 
 @Injectable()
 export class AiSessionsRepository {

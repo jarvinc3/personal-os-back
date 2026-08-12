@@ -8,6 +8,19 @@ Authentication context resolution based on Supabase JWT.
 - Exposes the authenticated session payload for frontend bootstrap.
 - Emits login event for downstream modules.
 
+## Architecture
+
+Simple-module layers under `src/modules/auth/` (see [docs/architecture/modules.md](../architecture/modules.md)). Root holds only `auth.module.ts`. No empty `application/` folder until orchestration services exist.
+
+```text
+src/modules/auth/
+  auth.module.ts
+  presentation/       # auth.controller
+  infrastructure/     # JWT strategy, verifier, supabase-admin, JWKS helpers
+    strategies/
+  domain/             # supabase-jwt-payload types
+```
+
 ## Main Endpoint
 
 - `GET /auth/session` — returns authenticated user context from JWT claims.
