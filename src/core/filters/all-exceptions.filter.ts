@@ -9,7 +9,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { PinoLogger } from 'nestjs-pino';
 import type { Env } from '../../config/env.schema';
-import { toErrorField } from '../../shared/utils/http-error.util';
+import { toErrorField } from '../exceptions/http-error.util';
 
 type PrismaKnownErrorLike = Error & {
   code?: string;

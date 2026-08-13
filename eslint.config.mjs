@@ -52,6 +52,7 @@ const restrictedModuleLayerPatterns = [
       '**/ai-agent/prompts/**',
       '**/ai-agent/providers/**',
       '**/ai-agent/ai.module',
+      '**/ai-agent/ai-core.module',
       '**/ai-agent/ai.service',
     ],
     message: `${moduleBoundaryMessage} (use modules/ai-agent).`,
@@ -98,6 +99,7 @@ export default tseslint.config(
     files: [
       'src/modules/auth/infrastructure/jwks-rsa.loader.ts',
       'src/modules/ai-agent/ai.module.ts',
+      'src/modules/ai-agent/ai-core.module.ts',
       'test/**/*.ts',
     ],
     rules: {

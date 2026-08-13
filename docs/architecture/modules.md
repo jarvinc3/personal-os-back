@@ -66,7 +66,7 @@ module-name/
     …same skeleton
 ```
 
-`ai-agent` keeps a **single** `AiModule` and organizes code with capability folders (`chat/`, `actions/`, `runtime/`) plus top-level `tools/`, `prompts/`, `providers/`, `shared/`.
+`ai-agent` organizes code with capability folders (`chat/`, `actions/`, `runtime/`) plus top-level `tools/`, `prompts/`, `providers/`, `shared/`. `AiCoreModule` is the provider kernel (`AiService`); `AiModule` is the composition root that imports Finance/Notifications.
 
 ## Layer dependency rules
 

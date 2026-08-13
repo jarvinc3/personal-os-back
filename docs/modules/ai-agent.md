@@ -13,11 +13,12 @@ Conversational AI orchestration with session persistence, action execution, and 
 
 ## Architecture
 
-Single Nest composition root (`AiModule`) under `src/modules/ai-agent/`. Code is grouped by **capability folders** with layers inside; there are no Nest submodules (avoids extra `forwardRef` with Finance). House standard: [docs/architecture/modules.md](../architecture/modules.md).
+Composition root (`AiModule`) plus `AiCoreModule` (provider kernel: `AI_PROVIDER` + `AiService`, no Finance/Notifications imports) under `src/modules/ai-agent/`. Code is grouped by **capability folders** with layers inside. House standard: [docs/architecture/modules.md](../architecture/modules.md).
 
 ```text
 src/modules/ai-agent/
-  ai.module.ts
+  ai.module.ts                     # composition root
+  ai-core.module.ts                # AiService kernel (imported by Finance ingestion)
   index.ts                         # public API
   chat/
     presentation/                  # AiController, AiSessionsController, dto/
@@ -37,7 +38,7 @@ src/modules/ai-agent/
 
 ### Public API (`index.ts`)
 
-`AiModule`, `AiService`, `resolveMaxEmailLlmExtracts`, `DEFAULT_MAX_EMAIL_LLM_EXTRACTS`, `resolveDailyInsightQuota`, `DEFAULT_DAILY_INSIGHT_QUOTA`.
+`AiModule`, `AiCoreModule`, `AiService`, `resolveMaxEmailLlmExtracts`, `DEFAULT_MAX_EMAIL_LLM_EXTRACTS`, `resolveDailyInsightQuota`, `DEFAULT_DAILY_INSIGHT_QUOTA`.
 
 Import as `from '../ai-agent'` (or `src/modules/ai-agent`). Do not import capability folders from outside.
 
@@ -69,5 +70,5 @@ Import as `from '../ai-agent'` (or `src/modules/ai-agent`). Do not import capabi
 ## Notes
 
 - Module imports `NotificationsModule` for realtime response events and delivery.
-- Module imports `FinanceModule` (via `forwardRef`) so finance tools can execute through `ToolExecutorService` → `FinanceFacade`.
+- Module imports `FinanceModule` so finance tools can execute through `ToolExecutorService` → `FinanceFacade`. Finance ingestion imports `AiCoreModule`, not `AiModule`.
 - Tool availability is context-based via `MODULE_CONTEXT` in `prompts/module-context.ts` (general, finance, etc.).
