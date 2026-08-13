@@ -1,4 +1,4 @@
-import { Inject, Injectable, Logger, forwardRef } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { z } from 'zod';
 import { AiService } from '../../../ai-agent';
 import type {
@@ -69,10 +69,7 @@ Rules:
 export class AiEmailTransactionExtractor implements EmailTransactionExtractorPort {
   private readonly logger = new Logger(AiEmailTransactionExtractor.name);
 
-  constructor(
-    @Inject(forwardRef(() => AiService))
-    private readonly aiService: AiService,
-  ) {}
+  constructor(private readonly aiService: AiService) {}
 
   async extract(input: EmailExtractionInput): Promise<EmailExtractionResult> {
     const body = input.body.slice(0, MAX_BODY_CHARS);
