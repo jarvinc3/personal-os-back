@@ -141,6 +141,35 @@ export const envSchema = z
         }
         return trimmed;
       }),
+
+    // ── Email delivery (Resend) ──────────────────────────────────
+    EMAIL_DELIVERY_ENABLED: z
+      .unknown()
+      .optional()
+      .transform((value, ctx) => {
+        try {
+          return (
+            parseStrictEnvBoolean(value, 'EMAIL_DELIVERY_ENABLED') ?? false
+          );
+        } catch (error) {
+          ctx.addIssue({
+            code: 'custom',
+            message:
+              error instanceof Error
+                ? error.message
+                : 'Invalid boolean environment value',
+          });
+          return z.NEVER;
+        }
+      }),
+    RESEND_API_KEY: optionalApiKey,
+    MAIL_FROM: z
+      .string()
+      .optional()
+      .transform((value) => {
+        const trimmed = value?.trim();
+        return trimmed || undefined;
+      }),
   })
   .superRefine((data, ctx) => {
     if (data.NODE_ENV === 'production' && !data.REDIS_URL) {
@@ -158,6 +187,24 @@ export const envSchema = z
           'OAUTH_STATE_SECRET is required in production (must differ from ENCRYPTION_KEY)',
         path: ['OAUTH_STATE_SECRET'],
       });
+    }
+
+    if (data.EMAIL_DELIVERY_ENABLED) {
+      if (!data.RESEND_API_KEY) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message:
+            'RESEND_API_KEY is required when EMAIL_DELIVERY_ENABLED=true',
+          path: ['RESEND_API_KEY'],
+        });
+      }
+      if (!data.MAIL_FROM) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'MAIL_FROM is required when EMAIL_DELIVERY_ENABLED=true',
+          path: ['MAIL_FROM'],
+        });
+      }
     }
 
     // AI provider keys are optional under NODE_ENV=test (CI / e2e).

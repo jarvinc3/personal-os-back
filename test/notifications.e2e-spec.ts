@@ -4,9 +4,9 @@ import request from 'supertest';
 import { App } from 'supertest/types';
 import { PrismaService } from '../src/prisma/prisma.service';
 import { applyAuthTestOverrides } from './helpers/auth-test.providers';
+import { createTestJwt } from './helpers/jwt.helper';
 import { createPrismaMock } from './helpers/prisma.mock';
 import { applyTestEnv } from './helpers/test-env';
-import { createTestJwt } from './helpers/jwt.helper';
 
 applyTestEnv();
 
@@ -99,5 +99,41 @@ describe('Notifications (e2e)', () => {
       .expect((res) => {
         expect(res.body.data).toEqual({ count: 3 });
       });
+  });
+
+  it('POST /api/notifications EMAIL with delivery disabled persists without 500', async () => {
+    process.env.EMAIL_DELIVERY_ENABLED = 'false';
+    prismaMock.notification.create.mockResolvedValue({
+      id: 'notif-email-1',
+      userId: 'user-123',
+      type: 'test',
+      channel: 'EMAIL',
+      title: 'Email test',
+      body: 'Body',
+      data: { source: 'dev' },
+      isRead: false,
+      createdAt: new Date(),
+    });
+
+    await request(app.getHttpServer())
+      .post('/api/notifications')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        type: 'test',
+        channel: 'EMAIL',
+        title: 'Email test',
+        body: 'Body',
+        data: { source: 'dev' },
+      })
+      .expect(201)
+      .expect((res) => {
+        expect(res.body.data).toMatchObject({
+          id: 'notif-email-1',
+          channel: 'EMAIL',
+          title: 'Email test',
+        });
+      });
+
+    expect(prismaMock.notification.create).toHaveBeenCalled();
   });
 });

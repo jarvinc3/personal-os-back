@@ -55,7 +55,7 @@ Otros módulos pueden seguir emitiendo in-process sin outbox: `user.logged_in` (
 ## Notifications
 
 - Canales: IN_APP, PUSH, EMAIL.
-- **EMAIL A1:** stub — no envía correo; en production no se encola dispatch EMAIL.
+- **EMAIL A2:** Resend vía `EmailSenderPort`; encola/envía solo con `EMAIL_DELIVERY_ENABLED=true` (+ `RESEND_API_KEY`, `MAIL_FROM`).
 - Listener `NotificationsEventsListener` reacciona a finance events.
 
 ## Auth / Health

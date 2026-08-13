@@ -25,4 +25,6 @@ export function applyTestEnv(): void {
   process.env.OAUTH_STATE_SECRET =
     process.env.OAUTH_STATE_SECRET ??
     'test-oauth-state-secret-minimum-32chars';
+  process.env.EMAIL_DELIVERY_ENABLED =
+    process.env.EMAIL_DELIVERY_ENABLED ?? 'false';
 }

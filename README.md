@@ -41,6 +41,8 @@ pnpm start:dev
 | `REDIS_URL` / `REDIS_ENABLED` | BullMQ (prod exige `REDIS_URL`) |
 | `CORS_ORIGIN` | Orígenes HTTP + WebSocket (lista CSV) |
 | `GROQ_API_KEY` / … | Proveedores IA |
+| `EMAIL_DELIVERY_ENABLED` | `true`/`false` — encola/envía canal EMAIL (default `false`) |
+| `RESEND_API_KEY` / `MAIL_FROM` | Obligatorios si `EMAIL_DELIVERY_ENABLED=true` |
 
 **Auth:** JWT vía **JWKS**. No uses `SUPABASE_JWT_SECRET`.
 
@@ -98,7 +100,7 @@ Catálogo en `src/core/events/event.constants.ts`. Patrón: EventEmitter post-co
 - `notifications` → push dispatch
 - `gmail-sync` → import bancario email
 - `ai-processing` → insights IA
-- `email-sync` → **stub A1** (EMAIL no es production-ready; no envía correo)
+- `email-sync` → envío EMAIL (Resend) cuando `EMAIL_DELIVERY_ENABLED=true`
 
 `@bull-board/*` está en devDependencies pero **no está montado** (reservado).
 

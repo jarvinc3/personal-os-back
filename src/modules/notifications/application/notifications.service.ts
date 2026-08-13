@@ -1,17 +1,19 @@
-import { Injectable, Logger, Optional } from '@nestjs/common';
-import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectQueue } from '@nestjs/bullmq';
+import { Injectable, Logger, Optional } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Queue } from 'bullmq';
+import type { Env } from '../../../config';
 import { NotificationCreatedEvent } from '../../../core/events/domain-events';
 import { AppEvents } from '../../../core/events/event.constants';
-import { QueueNames } from '../../../core/queues/queue.constants';
-import { NotificationDispatchJob } from '../../../core/queues/queue-jobs';
 import { paginate } from '../../../core/pagination/pagination.dto';
+import { NotificationDispatchJob } from '../../../core/queues/queue-jobs';
+import { QueueNames } from '../../../core/queues/queue.constants';
+import { NotificationsRepository } from '../infrastructure/notifications.repository';
 import { CreateNotificationDto } from '../presentation/dto/create-notification.dto';
 import { ListNotificationsQueryDto } from '../presentation/dto/list-notifications-query.dto';
-import { NotificationPolicyService } from './notification-policy.service';
 import { NotificationsGateway } from '../presentation/notifications.gateway';
-import { NotificationsRepository } from '../infrastructure/notifications.repository';
+import { NotificationPolicyService } from './notification-policy.service';
 
 @Injectable()
 export class NotificationsService {
@@ -22,6 +24,7 @@ export class NotificationsService {
     private readonly notificationsGateway: NotificationsGateway,
     private readonly notificationPolicy: NotificationPolicyService,
     private readonly eventEmitter: EventEmitter2,
+    private readonly config: ConfigService<Env, true>,
     @Optional()
     @InjectQueue(QueueNames.NOTIFICATIONS)
     private readonly notificationsQueue?: Queue<NotificationDispatchJob>,
@@ -72,10 +75,14 @@ export class NotificationsService {
       new NotificationCreatedEvent(created.userId, created.id),
     );
 
-    // EMAIL A1: channel is stubbed — not production-ready. Skip enqueue in production.
-    if (created.channel === 'EMAIL' && process.env.NODE_ENV === 'production') {
+    const emailDeliveryEnabled = this.config.get('EMAIL_DELIVERY_ENABLED', {
+      infer: true,
+    });
+
+    // EMAIL A2: enqueue only when delivery is explicitly enabled.
+    if (created.channel === 'EMAIL' && !emailDeliveryEnabled) {
       this.logger.warn(
-        `EMAIL notification ${created.id} not enqueued: EMAIL channel is stubbed (A1), not production-ready`,
+        `EMAIL notification ${created.id} not enqueued: EMAIL_DELIVERY_ENABLED=false`,
       );
     } else if (this.notificationsQueue) {
       await this.notificationsQueue.add(

@@ -47,8 +47,7 @@ jobs:
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: 10
+        # version comes from package.json "packageManager" (pnpm@11.21.0)
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -68,6 +67,35 @@ jobs:
 
       - name: Prisma generate
         run: pnpm db:generate
+
+      - name: Stub Supabase roles for CI Postgres
+        env:
+          PGPASSWORD: test
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client
+          psql -h localhost -U postgres -d postgres -v ON_ERROR_STOP=1 <<'SQL'
+          DO $$
+          BEGIN
+            IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'authenticated') THEN
+              CREATE ROLE authenticated NOLOGIN;
+            END IF;
+            IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'anon') THEN
+              CREATE ROLE anon NOLOGIN;
+            END IF;
+            IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'service_role') THEN
+              CREATE ROLE service_role NOLOGIN BYPASSRLS;
+            END IF;
+          END
+          $$;
+          CREATE SCHEMA IF NOT EXISTS auth;
+          CREATE OR REPLACE FUNCTION auth.uid()
+          RETURNS uuid LANGUAGE sql STABLE AS $$
+            SELECT NULLIF(current_setting('request.jwt.claim.sub', true), '')::uuid;
+          $$;
+          GRANT USAGE ON SCHEMA auth TO authenticated, anon, service_role;
+          GRANT EXECUTE ON FUNCTION auth.uid() TO authenticated, anon, service_role;
+          SQL
 
       - name: Prisma migrate deploy
         run: pnpm db:migrate:deploy
