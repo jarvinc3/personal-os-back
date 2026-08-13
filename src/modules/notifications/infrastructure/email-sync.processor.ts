@@ -1,36 +1,79 @@
 import { OnWorkerEvent, Processor, WorkerHost } from '@nestjs/bullmq';
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Job } from 'bullmq';
-import { QueueNames } from '../../../core/queues/queue.constants';
+import type { Env } from '../../../config';
 import { EmailSyncJob } from '../../../core/queues/queue-jobs';
+import { QueueNames } from '../../../core/queues/queue.constants';
+import { UsersRepository } from '../../users';
+import type { EmailSenderPort } from '../application/ports/email-sender.port';
+import { EMAIL_SENDER } from '../application/tokens';
 
 /**
- * EMAIL delivery stub (decision A1).
+ * EMAIL delivery worker (A2).
  *
- * This processor intentionally does **not** send real email.
- * Do not treat the EMAIL notification channel as production-ready.
- * A future phase may wire Gmail API / OAuth-backed transport here.
+ * Sends notification emails via {@link EmailSenderPort} when
+ * `EMAIL_DELIVERY_ENABLED=true`. With the flag off, jobs are skipped safely.
  */
 @Injectable()
 @Processor(QueueNames.EMAIL_SYNC)
 export class EmailSyncProcessor extends WorkerHost {
   private readonly logger = new Logger(EmailSyncProcessor.name);
 
+  constructor(
+    private readonly config: ConfigService<Env, true>,
+    private readonly usersRepository: UsersRepository,
+    @Inject(EMAIL_SENDER) private readonly emailSender: EmailSenderPort,
+  ) {
+    super();
+  }
+
   async process(job: Job<EmailSyncJob>): Promise<void> {
-    const { userId, template, to, subject } = job.data;
+    const { userId, template, to, subject, body } = job.data;
+    const deliveryEnabled = this.config.get('EMAIL_DELIVERY_ENABLED', {
+      infer: true,
+    });
 
-    this.logger.warn(
-      `EMAIL stub (A1): email-sync job ${job.id ?? 'unknown'} not sent — EMAIL is not production-ready ` +
-        `(user=${userId} template=${template} to=${to || '(from profile)'} subject="${(subject ?? '').slice(0, 80)}")`,
-    );
-
-    if (!subject?.trim()) {
-      this.logger.warn(`Email sync job ${job.id ?? 'unknown'} skipped: empty subject`);
+    if (!deliveryEnabled) {
+      this.logger.warn(
+        `EMAIL delivery disabled: email-sync job ${job.id ?? 'unknown'} skipped ` +
+          `(user=${userId} template=${template})`,
+      );
       return;
     }
 
-    // No-op: real send is out of scope for A1.
-    await Promise.resolve();
+    if (!subject?.trim()) {
+      this.logger.warn(
+        `Email sync job ${job.id ?? 'unknown'} skipped: empty subject`,
+      );
+      return;
+    }
+
+    const explicitTo = to?.trim();
+    let recipient = explicitTo || '';
+    if (!recipient) {
+      const user = await this.usersRepository.findById(userId);
+      recipient = user?.email?.trim() ?? '';
+    }
+
+    if (!recipient) {
+      this.logger.warn(
+        `Email sync job ${job.id ?? 'unknown'} skipped: no recipient ` +
+          `(user=${userId} to empty and profile email missing)`,
+      );
+      return;
+    }
+
+    await this.emailSender.send({
+      to: recipient,
+      subject: subject.trim(),
+      text: body ?? '',
+    });
+
+    this.logger.log(
+      `EMAIL sent for job ${job.id ?? 'unknown'} user=${userId} to=${recipient} ` +
+        `template=${template}`,
+    );
   }
 
   @OnWorkerEvent('failed')

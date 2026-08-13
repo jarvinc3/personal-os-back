@@ -19,8 +19,8 @@ src/modules/notifications/
   notifications.module.ts
   index.ts          # public API
   presentation/     # controller, gateway, dto/
-  application/      # service, policy, push-tokens, events listener, notifications processor
-  infrastructure/   # repository, push-sender, email-sync.processor (EMAIL stub)
+  application/      # service, policy, push-tokens, events listener, notifications processor, email port
+  infrastructure/   # repository, push-sender, resend-email.adapter, email-sync.processor
   domain/           # quiet-hours
 ```
 
@@ -45,14 +45,16 @@ Import as `from '../notifications'` (or `src/modules/notifications`).
 - Processor: `application/notifications.processor.ts` (queue: `notifications`).
 - Gateway: `presentation/notifications.gateway.ts` (socket emits to user channels).
 - Policy engine: `application/notification-policy.service.ts` controls quiet hours/channel eligibility.
-- Includes `infrastructure/email-sync.processor.ts` stub for email handoff jobs on `email-sync`.
+- Includes `infrastructure/email-sync.processor.ts` for email handoff jobs on `email-sync` (Resend via `EmailSenderPort`).
 - `NotificationsEventsListener` creates IN_APP notifications from versioned finance events (`finance.transaction.*`, `finance.transaction.updated`, `finance.budget.threshold_crossed`) with idempotency via `DomainEventIdempotencyGuard`.
 
-## EMAIL channel (A1 — stub)
+## EMAIL channel (A2 — Resend)
 
-- **Not production-ready.** Real email send is intentionally unimplemented.
-- In `production`, `NotificationsService.create` skips queue enqueue for `EMAIL` and logs a warning.
-- `EmailSyncProcessor` is a no-op stub that warns on every job; do not treat EMAIL as a live mailer.
+- Delivery is gated by `EMAIL_DELIVERY_ENABLED` (default `false`).
+- When enabled, requires `RESEND_API_KEY` and `MAIL_FROM` (validated at boot).
+- `NotificationsService.create` enqueues EMAIL only if the flag is on; otherwise persists + warns (no throw).
+- `EmailSyncProcessor` resolves recipient from job `to` or `User.email`, then sends via `ResendEmailAdapter` (`fetch` to Resend API).
+- User preference default remains `notifications.channels.email: false` (opt-in).
 
 ## Notes
 
