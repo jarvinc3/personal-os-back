@@ -1,4 +1,4 @@
-import { UsersRepository } from '../../users/infrastructure/users.repository';
+import { UsersRepository } from '../../users';
 import { NotificationPolicyService } from './notification-policy.service';
 
 describe('NotificationPolicyService', () => {

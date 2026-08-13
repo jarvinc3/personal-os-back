@@ -2,7 +2,7 @@ import { BullModule } from '@nestjs/bullmq';
 import { Module, forwardRef } from '@nestjs/common';
 import { isBullMqEnabledFromProcessEnv } from '../../../config';
 import { QueueNames } from '../../../core/queues/queue.constants';
-import { AiModule } from '../../ai-agent/ai.module';
+import { AiModule } from '../../ai-agent';
 import { FinanceEventsModule } from '../events/events.module';
 import { FinanceLedgerModule } from '../ledger/ledger.module';
 import { EMAIL_TRANSACTION_EXTRACTOR } from '../shared/application/tokens';

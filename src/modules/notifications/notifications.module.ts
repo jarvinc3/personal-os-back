@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
-import { AuthModule } from '../auth/auth.module';
-import { FinanceEventsModule } from '../finance/events/events.module';
+import { AuthModule } from '../auth';
+import { FinanceEventsModule } from '../finance';
 import { NotificationPolicyService } from './application/notification-policy.service';
 import { NotificationsEventsListener } from './application/notifications-events.listener';
 import { NotificationsProcessor } from './application/notifications.processor';

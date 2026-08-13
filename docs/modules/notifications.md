@@ -12,16 +12,23 @@ In-app, push, and email notification orchestration.
 
 ## Architecture
 
-Simple-module layers under `src/modules/notifications/` (see [docs/architecture/modules.md](../architecture/modules.md)). Root holds only `notifications.module.ts`.
+Simple-module layers under `src/modules/notifications/` (see [docs/architecture/modules.md](../architecture/modules.md)). Root holds `notifications.module.ts` + `index.ts`.
 
 ```text
 src/modules/notifications/
   notifications.module.ts
+  index.ts          # public API
   presentation/     # controller, gateway, dto/
   application/      # service, policy, push-tokens, events listener, notifications processor
   infrastructure/   # repository, push-sender, email-sync.processor (EMAIL stub)
   domain/           # quiet-hours
 ```
+
+### Public API (`index.ts`)
+
+`NotificationsModule`, `NotificationsService`, `NotificationsGateway`, `PushTokensService`, `NotificationPolicyService`.
+
+Import as `from '../notifications'` (or `src/modules/notifications`).
 
 ## Main Endpoints
 

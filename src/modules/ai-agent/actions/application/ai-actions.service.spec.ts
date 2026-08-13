@@ -3,7 +3,7 @@ import {
     ConflictException,
     NotFoundException,
 } from '@nestjs/common';
-import { NotificationsGateway } from '../../../notifications/presentation/notifications.gateway';
+import { NotificationsGateway } from '../../../notifications';
 import { AiActionsRepository } from '../infrastructure/ai-actions.repository';
 import { AiActionsService } from './ai-actions.service';
 import { ToolExecutorService } from '../../tools/tool-executor.service';

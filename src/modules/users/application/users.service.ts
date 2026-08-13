@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { AppEvents } from '../../../core/events/event.constants';
-import { SupabaseAdminService } from '../../auth/infrastructure/supabase-admin.service';
+import { SupabaseAdminService } from '../../auth';
 import { GLOBAL_USER_PREFERENCES_DEFAULTS } from '../domain/defaults/global-preferences-defaults';
 import {
     DEFAULT_MODULE_CONFIG_BY_SLUG,

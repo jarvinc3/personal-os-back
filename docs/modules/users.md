@@ -10,16 +10,23 @@ User profile and module configuration management.
 
 ## Architecture
 
-Simple-module layers under `src/modules/users/` (see [docs/architecture/modules.md](../architecture/modules.md)). Root holds only `users.module.ts`.
+Simple-module layers under `src/modules/users/` (see [docs/architecture/modules.md](../architecture/modules.md)). Root holds `users.module.ts` + `index.ts`.
 
 ```text
 src/modules/users/
   users.module.ts
+  index.ts           # public API
   presentation/      # users.controller, dto/
   application/       # users.service, auth-deletion-outbox.processor
   infrastructure/    # users.repository
   domain/            # defaults/, parse-user-preferences, settings-merge
 ```
+
+### Public API (`index.ts`)
+
+`UsersModule`, `UsersService`, `UsersRepository`, `parseUserPreferences`, `mergeWithDefaults`, `GLOBAL_USER_PREFERENCES_DEFAULTS`, `AiTone`, `ParsedUserPreferences`, `FINANCE_NOTIFICATION_KEYS`, `DEFAULT_MODULE_CONFIG_BY_SLUG`, `ModuleSlug`, `MODULE_SLUGS`, `isModuleSlug`.
+
+Import as `from '../users'` (or `src/modules/users`), not deep layer paths.
 
 ## Main Endpoints
 
@@ -31,5 +38,5 @@ src/modules/users/
 ## Notes
 
 - `UsersModule` is marked as `@Global()`.
-- Other modules consume `UsersService` / `UsersRepository` via the Nest module (DI); preference helpers live under `domain/`.
+- Other modules consume `UsersService` / `UsersRepository` via Nest DI (import `UsersModule`) and type/helpers via the public barrel.
 - Module settings defaults are merged server-side to keep response shape stable.

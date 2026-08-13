@@ -1,5 +1,5 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { resolveMaxEmailLlmExtracts } from '../../../ai-agent/chat/application/ai-limits';
+import { resolveMaxEmailLlmExtracts } from '../../../ai-agent';
 import { ImportEmailTransactionUseCase } from '../../ledger/application/import-email-transaction.use-case';
 import { LedgerQueryService } from '../../ledger/application/ledger-query.service';
 import { ReverseTransactionUseCase } from '../../ledger/application/reverse-transaction.use-case';

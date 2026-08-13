@@ -1,8 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import type { Prisma as PrismaTypes } from '../../../../prisma/generated/client';
 import { Prisma } from '../../../../prisma/generated/client';
-import { parseUserPreferences } from '../../../users/domain/parse-user-preferences';
-import { UsersRepository } from '../../../users/infrastructure/users.repository';
+import { parseUserPreferences, UsersRepository } from '../../../users';
 import { AiSessionsRepository } from './ai-sessions.repository';
 import { buildAgentPrompt } from '../../prompts/build-agent-prompt';
 import type { ChatMessage, ToolCallRequest } from '../../shared/ai.types';

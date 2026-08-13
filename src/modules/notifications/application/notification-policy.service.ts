@@ -3,10 +3,10 @@ import type { NotificationChannel } from '../../../prisma/generated/client';
 import {
   DEFAULT_MODULE_CONFIG_BY_SLUG,
   isModuleSlug,
-} from '../../users/domain/defaults/user-settings-defaults';
-import { parseUserPreferences } from '../../users/domain/parse-user-preferences';
-import { mergeWithDefaults } from '../../users/domain/settings-merge';
-import { UsersRepository } from '../../users/infrastructure/users.repository';
+  mergeWithDefaults,
+  parseUserPreferences,
+  UsersRepository,
+} from '../../users';
 import { isWithinQuietHours } from '../domain/quiet-hours';
 
 export type NotificationDispatchContext = {

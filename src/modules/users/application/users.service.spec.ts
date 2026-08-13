@@ -1,6 +1,6 @@
 import { NotFoundException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { SupabaseAdminService } from '../../auth/infrastructure/supabase-admin.service';
+import { SupabaseAdminService } from '../../auth';
 import { UsersRepository } from '../infrastructure/users.repository';
 import { UsersService } from './users.service';
 

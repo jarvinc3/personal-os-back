@@ -7,8 +7,10 @@ import {
   WebSocketServer,
 } from '@nestjs/websockets';
 import type { Server, Socket } from 'socket.io';
-import { SupabaseJwtVerifierService } from '../../auth/infrastructure/supabase-jwt-verifier.service';
-import type { AuthUserContext } from '../../auth/domain/supabase-jwt-payload';
+import {
+  SupabaseJwtVerifierService,
+  type AuthUserContext,
+} from '../../auth';
 
 interface NotificationsSocketData {
   user?: AuthUserContext;

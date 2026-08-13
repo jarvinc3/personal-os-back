@@ -8,7 +8,7 @@ import {
 import { Throttle } from '@nestjs/throttler';
 import type { Response } from 'express';
 import { CurrentUser, Timeout } from '../../../../core/decorators';
-import { NotificationsGateway } from '../../../notifications/presentation/notifications.gateway';
+import { NotificationsGateway } from '../../../notifications';
 import { AiAgentRunner } from '../application/ai-agent.runner';
 import { AiChatPersistenceService } from '../infrastructure/ai-chat-persistence.service';
 import { AiService } from '../application/ai.service';

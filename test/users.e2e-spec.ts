@@ -2,7 +2,7 @@ import { INestApplication } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';
 import { App } from 'supertest/types';
-import { SupabaseAdminService } from '../src/modules/auth/infrastructure/supabase-admin.service';
+import { SupabaseAdminService } from '../src/modules/auth';
 import { PrismaService } from '../src/prisma/prisma.service';
 import { applyAuthTestOverrides } from './helpers/auth-test.providers';
 import { createTestJwt } from './helpers/jwt.helper';

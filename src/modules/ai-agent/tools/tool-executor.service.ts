@@ -1,8 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import { FinanceFacade } from '../../finance/finance.facade';
-import { GLOBAL_USER_PREFERENCES_DEFAULTS } from '../../users/domain/defaults/global-preferences-defaults';
-import { mergeWithDefaults } from '../../users/domain/settings-merge';
-import { UsersService } from '../../users/application/users.service';
+import { FinanceFacade } from '../../finance';
+import {
+  GLOBAL_USER_PREFERENCES_DEFAULTS,
+  mergeWithDefaults,
+  UsersService,
+} from '../../users';
 import { AiSessionsRepository } from '../chat/infrastructure/ai-sessions.repository';
 import {
     MODULE_CONTEXT,

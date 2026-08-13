@@ -1,4 +1,4 @@
-import type { AiTone } from '../../../users/domain/defaults/global-preferences-defaults';
+import type { AiTone } from '../../../users';
 
 export const TONE_INSTRUCTIONS: Record<AiTone, string> = {
   concise:

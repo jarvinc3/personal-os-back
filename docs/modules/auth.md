@@ -10,16 +10,23 @@ Authentication context resolution based on Supabase JWT.
 
 ## Architecture
 
-Simple-module layers under `src/modules/auth/` (see [docs/architecture/modules.md](../architecture/modules.md)). Root holds only `auth.module.ts`. No empty `application/` folder until orchestration services exist.
+Simple-module layers under `src/modules/auth/` (see [docs/architecture/modules.md](../architecture/modules.md)). Root holds `auth.module.ts` + `index.ts`. No empty `application/` folder until orchestration services exist.
 
 ```text
 src/modules/auth/
   auth.module.ts
+  index.ts            # public API
   presentation/       # auth.controller
   infrastructure/     # JWT strategy, verifier, supabase-admin, JWKS helpers
     strategies/
   domain/             # supabase-jwt-payload types
 ```
+
+### Public API (`index.ts`)
+
+`AuthModule`, `SupabaseAdminService`, `SupabaseJwtVerifierService`, `SupabaseJwtStrategy`, `AuthUserContext`, `SupabaseJwtPayload`.
+
+Import as `from '../auth'` (or `src/modules/auth`).
 
 ## Main Endpoint
 

@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { SupabaseAdminService } from '../../auth/infrastructure/supabase-admin.service';
+import { SupabaseAdminService } from '../../auth';
 import { UsersRepository } from '../infrastructure/users.repository';
 
 const MAX_ATTEMPTS = 8;

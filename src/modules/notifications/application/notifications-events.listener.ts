@@ -4,8 +4,8 @@ import {
     NotificationCreatedEvent,
 } from '../../../core/events/domain-events';
 import { AppEvents } from '../../../core/events/event.constants';
-import { DomainEventIdempotencyGuard } from '../../finance/events/application/domain-event-idempotency.guard';
-import { FINANCE_NOTIFICATION_KEYS } from '../../users/domain/defaults/user-settings-defaults';
+import { DomainEventIdempotencyGuard } from '../../finance';
+import { FINANCE_NOTIFICATION_KEYS } from '../../users';
 import { NotificationsService } from './notifications.service';
 
 type FinanceTxEvent = {

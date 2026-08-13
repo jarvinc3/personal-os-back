@@ -6,10 +6,21 @@ House style for NestJS feature modules under `src/modules/`. Feature modules fir
 
 1. Organize by **feature / capability**, not a global `controllers/` + `services/` tree.
 2. Inside a feature, use the same layer names everywhere: `presentation/`, `application/`, `infrastructure/`, optional `domain/`.
-3. Module root holds only composition: `*.module.ts`, optional `index.ts`, optional `*.facade.ts`.
-4. Prefer focused services over god services. Introduce ports only when there are ≥2 adapters, cross-capability DI, or tests that need a stable IO boundary.
-5. Avoid new Nest circular imports (`forwardRef`). Prefer events or a façade over bidirectional module graphs.
-6. Do not create empty layer folders as placeholders (e.g. auth has no `application/` until orchestration exists).
+3. Module root holds only composition: `*.module.ts`, **required** `index.ts` public barrel, optional `*.facade.ts`.
+4. **Cross-module imports** use only that barrel (or façade re-exported from it). Never import another module’s `domain/`, `infrastructure/`, `presentation/`, `application/`, or capability folders.
+5. Prefer focused services over god services. Introduce ports only when there are ≥2 adapters, cross-capability DI, or tests that need a stable IO boundary.
+6. Avoid new Nest circular imports (`forwardRef`). Prefer events or a façade over bidirectional module graphs.
+7. Do not create empty layer folders as placeholders (e.g. auth has no `application/` until orchestration exists).
+
+## Public API + enforcement
+
+| Mechanism | Where |
+| --- | --- |
+| Barrels | `src/modules/<name>/index.ts` |
+| ESLint | `no-restricted-imports` in `eslint.config.mjs` (fails CI on deep cross-module paths) |
+| Cursor rule | `.cursor/rules/module-public-api.mdc` (`alwaysApply`) |
+
+`index.ts` barrels may re-export internals; all other files must import sibling modules via the barrel.
 
 ## Simple module template
 
@@ -118,6 +129,8 @@ Former follow-ups from the ai-agent pass are done:
 
 - [ ] New file lives under a named layer or capability, not module root (except module/index/facade).
 - [ ] Cross-module consumers use façade / `index.ts` public exports, not deep infrastructure paths.
+- [ ] New symbols needed outside a module are added to that module’s `index.ts` (keep the surface minimal).
+- [ ] `pnpm lint` passes (`no-restricted-imports` boundaries).
 - [ ] No new Nest circular dependency introduced.
 - [ ] Specs sit next to the unit under test.
 - [ ] Do not add empty placeholder layer folders.

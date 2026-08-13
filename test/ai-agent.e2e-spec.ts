@@ -2,7 +2,7 @@ import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';
 import { App } from 'supertest/types';
-import { AiService } from '../src/modules/ai-agent/chat/application/ai.service';
+import { AiService } from '../src/modules/ai-agent';
 import { PrismaService } from '../src/prisma/prisma.service';
 import { applyAuthTestOverrides } from './helpers/auth-test.providers';
 import { createTestJwt } from './helpers/jwt.helper';

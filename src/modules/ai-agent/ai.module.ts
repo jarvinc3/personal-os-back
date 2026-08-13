@@ -1,9 +1,9 @@
 import { Module, forwardRef } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { Env } from '../../config/env.schema';
-import { FinanceEventsModule } from '../finance/events/events.module';
-import { FinanceModule } from '../finance/finance.module';
-import { NotificationsModule } from '../notifications/notifications.module';
+import { FinanceEventsModule } from '../finance';
+import { FinanceModule } from '../finance';
+import { NotificationsModule } from '../notifications';
 import { AiActionsReaperService } from './actions/application/ai-actions-reaper.service';
 import { AiActionsService } from './actions/application/ai-actions.service';
 import { AiActionsRepository } from './actions/infrastructure/ai-actions.repository';

@@ -5,12 +5,12 @@ import type { TestingModuleBuilder } from '@nestjs/testing';
 import jwt, { type JwtPayload } from 'jsonwebtoken';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { type Env, getSupabaseAuthConfig } from '../../src/config';
-import { SupabaseJwtStrategy } from '../../src/modules/auth/infrastructure/strategies/supabase-jwt.strategy';
-import { SupabaseJwtVerifierService } from '../../src/modules/auth/infrastructure/supabase-jwt-verifier.service';
-import type {
-  AuthUserContext,
-  SupabaseJwtPayload,
-} from '../../src/modules/auth/domain/supabase-jwt-payload';
+import {
+  SupabaseJwtStrategy,
+  SupabaseJwtVerifierService,
+  type AuthUserContext,
+  type SupabaseJwtPayload,
+} from '../../src/modules/auth';
 
 export const TEST_JWT_SECRET = 'test-secret';
 

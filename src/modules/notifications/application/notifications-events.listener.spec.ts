@@ -1,5 +1,5 @@
-import type { DomainEventIdempotencyGuard } from '../../finance/events/application/domain-event-idempotency.guard';
-import { FINANCE_NOTIFICATION_KEYS } from '../../users/domain/defaults/user-settings-defaults';
+import type { DomainEventIdempotencyGuard } from '../../finance';
+import { FINANCE_NOTIFICATION_KEYS } from '../../users';
 import { NotificationsEventsListener } from './notifications-events.listener';
 import { NotificationsService } from './notifications.service';
 

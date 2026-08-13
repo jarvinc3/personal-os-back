@@ -18,7 +18,7 @@ Single Nest composition root (`AiModule`) under `src/modules/ai-agent/`. Code is
 ```text
 src/modules/ai-agent/
   ai.module.ts
-  index.ts                         # exports AiModule, AiService
+  index.ts                         # public API
   chat/
     presentation/                  # AiController, AiSessionsController, dto/
     application/                   # AiService, runner, turn coordinator, sessions, limits, prompts helper
@@ -35,7 +35,11 @@ src/modules/ai-agent/
   shared/                          # types, AI_PROVIDER token, message mappers, stream helpers
 ```
 
-Public API for other modules: import from `src/modules/ai-agent` (`AiModule`, `AiService`). Prefer not importing deep capability paths from outside.
+### Public API (`index.ts`)
+
+`AiModule`, `AiService`, `resolveMaxEmailLlmExtracts`, `DEFAULT_MAX_EMAIL_LLM_EXTRACTS`, `resolveDailyInsightQuota`, `DEFAULT_DAILY_INSIGHT_QUOTA`.
+
+Import as `from '../ai-agent'` (or `src/modules/ai-agent`). Do not import capability folders from outside.
 
 ## Main Endpoints
 

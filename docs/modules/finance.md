@@ -14,7 +14,12 @@ The module is consumed by:
 
 Capability-first Nest modules under `src/modules/finance/`. The root is a **pure composition root**. House standard: [docs/architecture/modules.md](../architecture/modules.md).
 
-`FinanceModule` imports capability modules and **exports only `FinanceFacade`**. There is no `FinanceService` / `FinanceRepository` / single god controller.
+`FinanceModule` imports capability modules and **exports only `FinanceFacade`** from Nest. The TypeScript barrel [`index.ts`](../../src/modules/finance/index.ts) is the cross-module import surface:
+
+- `FinanceModule`, `FinanceFacade` — primary consumers (AI tools, app composition)
+- `FinanceEventsModule`, `DomainEventIdempotencyGuard` — outbox consumers (notifications, ai-agent listeners)
+
+There is no `FinanceService` / `FinanceRepository` / single god controller. Outside code must not import capability paths (`ledger/`, `events/`, …).
 
 ### Canonical shape per capability
 

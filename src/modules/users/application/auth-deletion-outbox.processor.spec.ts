@@ -1,4 +1,4 @@
-import { SupabaseAdminService } from '../../auth/infrastructure/supabase-admin.service';
+import { SupabaseAdminService } from '../../auth';
 import { AuthDeletionOutboxProcessor } from './auth-deletion-outbox.processor';
 import { UsersRepository } from '../infrastructure/users.repository';
 

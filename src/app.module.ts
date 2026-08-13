@@ -14,10 +14,10 @@ import { CoreModule } from './core/core.module';
 import { QueueNames } from './core/queues/queue.constants';
 import { HealthModule } from './health/health.module';
 import { AiModule } from './modules/ai-agent';
-import { AuthModule } from './modules/auth/auth.module';
-import { FinanceModule } from './modules/finance/finance.module';
-import { NotificationsModule } from './modules/notifications/notifications.module';
-import { UsersModule } from './modules/users/users.module';
+import { AuthModule } from './modules/auth';
+import { FinanceModule } from './modules/finance';
+import { NotificationsModule } from './modules/notifications';
+import { UsersModule } from './modules/users';
 import { PrismaModule } from './prisma/prisma.module';
 
 const bullMqEnabled = isBullMqEnabledFromProcessEnv();

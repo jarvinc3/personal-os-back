@@ -1,5 +1,5 @@
 import { Global, Module } from '@nestjs/common';
-import { AuthModule } from '../auth/auth.module';
+import { AuthModule } from '../auth';
 import { AuthDeletionOutboxProcessor } from './application/auth-deletion-outbox.processor';
 import { UsersService } from './application/users.service';
 import { UsersRepository } from './infrastructure/users.repository';

@@ -4,7 +4,7 @@ import {
     Injectable,
     NotFoundException,
 } from '@nestjs/common';
-import { NotificationsGateway } from '../../../notifications/presentation/notifications.gateway';
+import { NotificationsGateway } from '../../../notifications';
 import { AiActionsRepository } from '../infrastructure/ai-actions.repository';
 import { validateMutatingToolArgs } from '../../tools/tool-arg-schemas';
 import { ToolExecutorService } from '../../tools/tool-executor.service';
