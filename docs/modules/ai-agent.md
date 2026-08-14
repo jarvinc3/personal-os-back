@@ -70,5 +70,6 @@ Import as `from '../ai-agent'` (or `src/modules/ai-agent`). Do not import capabi
 ## Notes
 
 - Module imports `NotificationsModule` for realtime response events and delivery.
-- Module imports `FinanceModule` so finance tools can execute through `ToolExecutorService` → `FinanceFacade`. Finance ingestion imports `AiCoreModule`, not `AiModule`.
+- Module imports `FinanceModule` so finance tools can execute through `ToolExecutorService` → `FinanceFacade`. Finance ingestion imports `AiCoreModule`, not `AiModule` — that kernel is the stable Ai ↔ Finance boundary (no Nest `forwardRef`).
+- `AiEmailTransactionExtractor` injects `AiService` by class token (constructor DI) from `AiCoreModule`; the public barrel exports `AiService` / `AiCoreModule` before `AiModule` so CommonJS re-entry stays safe.
 - Tool availability is context-based via `MODULE_CONTEXT` in `prompts/module-context.ts` (general, finance, etc.).

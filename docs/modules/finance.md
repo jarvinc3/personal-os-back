@@ -213,7 +213,7 @@ Catalog: `src/core/events/event.constants.ts`.
 
 Tools call **`FinanceFacade`** (not raw repositories). Full tool list: `docs/ai-tools/finance-tools.md`.
 
-Email extraction uses `AiService.chatComplete` via `AiEmailTransactionExtractor` (`EMAIL_TRANSACTION_EXTRACTOR` token). Ingestion imports `AiCoreModule` (AI provider kernel) rather than `AiModule`, so there is no Nest cycle with Finance.
+Email extraction uses `AiService.chatComplete` via `AiEmailTransactionExtractor` (`EMAIL_TRANSACTION_EXTRACTOR` token). Ingestion imports `AiCoreModule` (AI provider kernel) rather than `AiModule`, so there is no Nest cycle with Finance. The extractor injects `AiService` directly (no `forwardRef`).
 
 ## Security
 
