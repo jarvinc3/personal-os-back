@@ -145,7 +145,7 @@ Respuestas: envelope `{ data, meta }`.
 ```tree
 src/
   config/
-  core/            # guards, eventos, colas
+  core/            # guards, exceptions, filters, eventos, colas
   health/
   modules/
     auth/
@@ -154,7 +154,6 @@ src/
     notifications/
     ai-agent/
   prisma/
-  shared/processors/
 prisma/
   migrations/
   scripts/reconcile-balances.ts
