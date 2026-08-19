@@ -28,6 +28,8 @@ Núcleo transversal de `personal-os-back` (NestJS 11). Los módulos de dominio *
 
 Guards JWT/roles/throttle, interceptors (transform, logging, timeout, AI metrics), `AllExceptionsFilter` (500 genérico en prod), catálogo `AppEvents`, colas `notifications` / `ai-processing` / `email-sync` / `gmail-sync`, paginación.
 
+Normalización de campos `error`/`message` en respuestas HTTP: `src/core/exceptions/http-error.util.ts` (`toErrorField`), consumido por `AllExceptionsFilter`. No hay `src/shared/` a nivel raíz.
+
 ## Event-driven selectivo + outbox finance
 
 No se usa EDA en todo el CRUD global. En **Finance**:
