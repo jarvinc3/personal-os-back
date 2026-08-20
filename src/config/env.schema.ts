@@ -104,6 +104,21 @@ export const envSchema = z
         }
         return false;
       }),
+    /** Optional HTTP basic auth for Bull Board (both or neither). */
+    BULL_BOARD_USER: z
+      .string()
+      .optional()
+      .transform((value) => {
+        const trimmed = value?.trim();
+        return trimmed || undefined;
+      }),
+    BULL_BOARD_PASSWORD: z
+      .string()
+      .optional()
+      .transform((value) => {
+        const trimmed = value?.trim();
+        return trimmed || undefined;
+      }),
     DATABASE_SSL_REJECT_UNAUTHORIZED: optionalStrictBoolean,
     /** PEM CA bundle for Postgres TLS (optional; uses system CAs when unset). */
     DATABASE_SSL_CA: z
@@ -186,6 +201,17 @@ export const envSchema = z
         message:
           'OAUTH_STATE_SECRET is required in production (must differ from ENCRYPTION_KEY)',
         path: ['OAUTH_STATE_SECRET'],
+      });
+    }
+
+    const hasBullBoardUser = data.BULL_BOARD_USER !== undefined;
+    const hasBullBoardPassword = data.BULL_BOARD_PASSWORD !== undefined;
+    if (hasBullBoardUser !== hasBullBoardPassword) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message:
+          'BULL_BOARD_USER and BULL_BOARD_PASSWORD must both be set or both omitted',
+        path: hasBullBoardUser ? ['BULL_BOARD_PASSWORD'] : ['BULL_BOARD_USER'],
       });
     }
 

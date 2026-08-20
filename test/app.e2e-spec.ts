@@ -84,4 +84,14 @@ describe('AppController (e2e)', () => {
       expect(JSON.stringify(res.body)).not.toMatch(/database|jwks|redis/i);
     }
   });
+
+  it('/admin/queues is not mounted under NODE_ENV=test', async () => {
+    const atRoot = await request(app.getHttpServer()).get('/admin/queues');
+    expect(atRoot.status).toBe(404);
+    expect(atRoot.status).not.toBe(401);
+
+    const underApi = await request(app.getHttpServer()).get('/api/admin/queues');
+    expect(underApi.status).toBe(404);
+    expect(underApi.status).not.toBe(401);
+  });
 });

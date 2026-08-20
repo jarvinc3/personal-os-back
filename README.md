@@ -102,13 +102,14 @@ Catálogo en `src/core/events/event.constants.ts`. Patrón: EventEmitter post-co
 - `ai-processing` → insights IA
 - `email-sync` → envío EMAIL (Resend) cuando `EMAIL_DELIVERY_ENABLED=true`
 
-`@bull-board/*` está en devDependencies pero **no está montado** (reservado).
+**Bull Board** (inspección de colas): `http://localhost:3100/admin/queues` cuando `NODE_ENV=development` y Redis/BullMQ están enabled. **Deshabilitado en production.** Auth HTTP Basic opcional vía `BULL_BOARD_USER` / `BULL_BOARD_PASSWORD` (ambos o ninguno).
 
 `ScheduleModule` registra crons (p. ej. `AuthDeletionOutboxProcessor` cada minuto para cleanup de Supabase Auth pendiente).
 
 ## Seguridad (production checklist)
 
 - Swagger off
+- Bull Board off (`/admin/queues` no montado)
 - Helmet + `trust proxy`
 - 500 genéricos al cliente
 - WS CORS = `CORS_ORIGIN`

@@ -9,8 +9,13 @@ import { randomUUID } from 'crypto';
 import { ClsModule } from 'nestjs-cls';
 import { LoggerModule } from 'nestjs-pino';
 import type { Env } from './config';
-import { isBullMqEnabledFromProcessEnv, parseEnv } from './config';
+import {
+  isBullBoardEnabledFromProcessEnv,
+  isBullMqEnabledFromProcessEnv,
+  parseEnv,
+} from './config';
 import { CoreModule } from './core/core.module';
+import { getBullBoardImports } from './core/queues/bull-board.imports';
 import { QueueNames } from './core/queues/queue.constants';
 import { HealthModule } from './health/health.module';
 import { AiModule } from './modules/ai-agent';
@@ -21,6 +26,7 @@ import { UsersModule } from './modules/users';
 import { PrismaModule } from './prisma/prisma.module';
 
 const bullMqEnabled = isBullMqEnabledFromProcessEnv();
+const bullBoardEnabled = isBullBoardEnabledFromProcessEnv();
 
 @Module({
   imports: [
@@ -116,6 +122,7 @@ const bullMqEnabled = isBullMqEnabledFromProcessEnv();
           ),
         ]
       : []),
+    ...(bullBoardEnabled ? getBullBoardImports() : []),
     CacheModule.register({
       isGlobal: true,
       ttl: 300_000,

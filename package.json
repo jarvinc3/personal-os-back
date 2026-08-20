@@ -37,6 +37,9 @@
     "db:reconcile-balances": "ts-node -r tsconfig-paths/register prisma/scripts/reconcile-balances.ts"
   },
   "dependencies": {
+    "@bull-board/api": "^7.2.1",
+    "@bull-board/express": "^7.2.1",
+    "@bull-board/nestjs": "^7.2.1",
     "@cerebras/cerebras_cloud_sdk": "^1.91.0",
     "@nestjs/axios": "^4.0.1",
     "@nestjs/bullmq": "^11.0.5",
@@ -82,9 +85,6 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@bull-board/api": "^7.2.1",
-    "@bull-board/express": "^7.2.1",
-    "@bull-board/nestjs": "^7.2.1",
     "@eslint/eslintrc": "^3.3.6",
     "@eslint/js": "^9.39.5",
     "@nestjs/cli": "^11.0.24",
