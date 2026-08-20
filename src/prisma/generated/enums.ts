@@ -96,6 +96,15 @@ export const FinTransactionSource = {
 export type FinTransactionSource = (typeof FinTransactionSource)[keyof typeof FinTransactionSource]
 
 
+export const FinEmailMessageOutcome = {
+  IMPORTED: 'IMPORTED',
+  SKIPPED_NOT_TX: 'SKIPPED_NOT_TX',
+  FAILED_NON_RETRYABLE: 'FAILED_NON_RETRYABLE'
+} as const
+
+export type FinEmailMessageOutcome = (typeof FinEmailMessageOutcome)[keyof typeof FinEmailMessageOutcome]
+
+
 export const DomainEventOutboxStatus = {
   PENDING: 'PENDING',
   PROCESSING: 'PROCESSING',

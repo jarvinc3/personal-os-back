@@ -50,6 +50,7 @@ export class ProcessGmailSyncUseCase {
     const syncLog = await this.emailSources.createEmailSyncLog(sourceId);
     let emailsScanned = 0;
     let transactionsNew = 0;
+    let emailsSkipped = 0;
     let llmExtracts = 0;
     const maxLlmExtracts = resolveMaxEmailLlmExtracts();
     const transactionIds: string[] = [];
@@ -84,6 +85,15 @@ export class ProcessGmailSyncUseCase {
           emailsScanned += 1;
           lastMessageId = messageRef.id;
 
+          const seenMessage = await this.emailSources.findEmailMessage(
+            sourceId,
+            messageRef.id,
+          );
+          if (seenMessage) {
+            emailsSkipped += 1;
+            continue;
+          }
+
           const existing = await this.ledger.findTransactionByEmailMessageId(
             messageRef.id,
           );
@@ -107,10 +117,33 @@ export class ProcessGmailSyncUseCase {
               body,
               bankDomain: source.bankDomain,
             });
+
             if (!extraction.ok) {
               this.logger.debug(
                 `No AI extract for message ${messageRef.id}: ${extraction.reason}`,
               );
+              if (!extraction.retryable) {
+                await this.emailSources.upsertEmailMessage({
+                  sourceId,
+                  gmailMessageId: messageRef.id,
+                  outcome: 'FAILED_NON_RETRYABLE',
+                  reason: extraction.reason,
+                });
+                emailsSkipped += 1;
+              }
+              continue;
+            }
+
+            if (extraction.kind === 'not_transaction') {
+              await this.emailSources.upsertEmailMessage({
+                sourceId,
+                gmailMessageId: messageRef.id,
+                outcome: 'SKIPPED_NOT_TX',
+                reason: extraction.reason,
+                provider: extraction.provider,
+                model: extraction.model,
+              });
+              emailsSkipped += 1;
               continue;
             }
 
@@ -139,6 +172,13 @@ export class ProcessGmailSyncUseCase {
                   provider: extraction.provider,
                   model: extraction.model,
                   extractedAt: new Date().toISOString(),
+                });
+                await this.emailSources.upsertEmailMessage({
+                  sourceId,
+                  gmailMessageId: messageRef.id,
+                  outcome: 'IMPORTED',
+                  provider: extraction.provider,
+                  model: extraction.model,
                 });
                 transactionsNew += 1;
                 countsByStatus.REVERSED = (countsByStatus.REVERSED ?? 0) + 1;
@@ -178,6 +218,14 @@ export class ProcessGmailSyncUseCase {
               },
             });
 
+            await this.emailSources.upsertEmailMessage({
+              sourceId,
+              gmailMessageId: messageRef.id,
+              outcome: 'IMPORTED',
+              provider: extraction.provider,
+              model: extraction.model,
+            });
+
             transactionsNew += 1;
             countsByStatus[status] = (countsByStatus[status] ?? 0) + 1;
             transactionIds.push(created.id);
@@ -211,7 +259,7 @@ export class ProcessGmailSyncUseCase {
       });
 
       this.logger.log(
-        `Gmail sync completed for ${sourceId}: ${emailsScanned} scanned, ${transactionsNew} new, ${llmExtracts} LLM extracts`,
+        `Gmail sync completed for ${sourceId}: ${emailsScanned} scanned, ${transactionsNew} new, ${emailsSkipped} skipped, ${llmExtracts} LLM extracts`,
       );
     } catch (error) {
       await this.emailSources.completeEmailSyncLog(syncLog.id, {

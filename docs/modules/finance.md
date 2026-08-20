@@ -86,6 +86,7 @@ Prefix: `fin_*` tables. Primary keys are UUID text columns.
 | Model | Description |
 | --- | --- |
 | `FinTransaction` | Ledger row; XOR account/card; unique `emailMessageId`; original + ledger + base amounts |
+| `FinEmailMessage` | Per-source Gmail message outcome (`IMPORTED` / `SKIPPED_NOT_TX` / `FAILED_NON_RETRYABLE`); unique `(sourceId, gmailMessageId)` |
 | `FinExchangeRate` | Cached pair rates by calendar date |
 | `FinBudgetAlert` | Threshold alerts; unique `(budget_id, type)` for dedupe |
 | `DomainEventOutbox` | Durable domain events |
@@ -108,6 +109,7 @@ FX fails closed: if the exact historical rate for `transactionDate` is missing f
 | `FinTransactionType` | `DEBIT`, `CREDIT`, `TRANSFER` (transfer type used on paired legs) |
 | `FinTransactionStatus` | `PENDING`, `CONFIRMED`, `DECLINED`, `CANCELLED`, `REVERSED` |
 | `FinTransactionSource` | `MANUAL`, `EMAIL`, `AI` |
+| `FinEmailMessageOutcome` | `IMPORTED`, `SKIPPED_NOT_TX`, `FAILED_NON_RETRYABLE` |
 
 User language **COMPLETED** maps to **CONFIRMED** (no `COMPLETED` enum value).
 
@@ -167,19 +169,21 @@ sequenceDiagram
   Queue->>Worker: process
   Worker->>UC: execute
   UC->>Gmail: list/fetch messages
-  UC->>AI: extract structured tx + bank status
-  UC->>UC: mapBankStatusToInternal
+  UC->>DB: skip if FinEmailMessage terminal or FinTransaction.emailMessageId
+  UC->>AI: extract kind transaction or not_transaction + bank status
+  UC->>UC: mapBankStatusToInternal (transaction only)
   UC->>Ledger: import/reverse (ledger + outbox same TX if CONFIRMED)
-  UC->>DB: FinEmailSyncLog + finance.email_sync.completed (outbox)
+  UC->>DB: upsert FinEmailMessage outcome + FinEmailSyncLog + finance.email_sync.completed
 ```
 
 | Step | Behavior |
 | --- | --- |
 | Preconditions | Source active; linked account **or** card; refreshable token |
 | Query | `from:{bankDomain}` + `after` unless `forceFullSync` |
-| Dedup | Skip existing `emailMessageId` |
-| Extraction | LLM + Zod schema (no HTML parsers) |
-| Status | Domain map from bank status + confidence |
+| Dedup | Skip if `FinEmailMessage` already has a terminal outcome, or existing `FinTransaction.emailMessageId` (legacy) |
+| Extraction | LLM + Zod discriminated union (`kind: transaction` \| `not_transaction`); no HTML parsers |
+| Non-tx / failures | `not_transaction` → `SKIPPED_NOT_TX`; `ok: false` + `retryable: false` → `FAILED_NON_RETRYABLE` (no re-extract); `retryable: true` not persisted |
+| Status | Domain map from bank status + confidence (transaction kind only) |
 | Batch AI/notifications | Prefer `finance.email_sync.completed` over per-email storms for EMAIL source |
 
 Without Redis, `POST .../sync` returns `{ queued: false, reason: '...' }`.

@@ -420,6 +420,7 @@ export const ModelName = {
   FinLoan: 'FinLoan',
   FinReceivable: 'FinReceivable',
   FinEmailSyncLog: 'FinEmailSyncLog',
+  FinEmailMessage: 'FinEmailMessage',
   DomainEventOutbox: 'DomainEventOutbox',
   ProcessedDomainEvent: 'ProcessedDomainEvent',
   AuthDeletionOutbox: 'AuthDeletionOutbox'
@@ -438,7 +439,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "module" | "userModule" | "aiAgentSession" | "aiMessage" | "aiAction" | "notification" | "pushToken" | "finAccount" | "finEmailSource" | "finTransaction" | "finCategory" | "finBudget" | "finBudgetAlert" | "finRecurringPattern" | "finExchangeRate" | "finInstitution" | "finCard" | "finCardBalance" | "finSavingsGoal" | "finLoan" | "finReceivable" | "finEmailSyncLog" | "domainEventOutbox" | "processedDomainEvent" | "authDeletionOutbox"
+    modelProps: "user" | "module" | "userModule" | "aiAgentSession" | "aiMessage" | "aiAction" | "notification" | "pushToken" | "finAccount" | "finEmailSource" | "finTransaction" | "finCategory" | "finBudget" | "finBudgetAlert" | "finRecurringPattern" | "finExchangeRate" | "finInstitution" | "finCard" | "finCardBalance" | "finSavingsGoal" | "finLoan" | "finReceivable" | "finEmailSyncLog" | "finEmailMessage" | "domainEventOutbox" | "processedDomainEvent" | "authDeletionOutbox"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -2144,6 +2145,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    FinEmailMessage: {
+      payload: Prisma.$FinEmailMessagePayload<ExtArgs>
+      fields: Prisma.FinEmailMessageFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.FinEmailMessageFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinEmailMessagePayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.FinEmailMessageFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinEmailMessagePayload>
+        }
+        findFirst: {
+          args: Prisma.FinEmailMessageFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinEmailMessagePayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.FinEmailMessageFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinEmailMessagePayload>
+        }
+        findMany: {
+          args: Prisma.FinEmailMessageFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinEmailMessagePayload>[]
+        }
+        create: {
+          args: Prisma.FinEmailMessageCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinEmailMessagePayload>
+        }
+        createMany: {
+          args: Prisma.FinEmailMessageCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.FinEmailMessageCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinEmailMessagePayload>[]
+        }
+        delete: {
+          args: Prisma.FinEmailMessageDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinEmailMessagePayload>
+        }
+        update: {
+          args: Prisma.FinEmailMessageUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinEmailMessagePayload>
+        }
+        deleteMany: {
+          args: Prisma.FinEmailMessageDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.FinEmailMessageUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.FinEmailMessageUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinEmailMessagePayload>[]
+        }
+        upsert: {
+          args: Prisma.FinEmailMessageUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinEmailMessagePayload>
+        }
+        aggregate: {
+          args: Prisma.FinEmailMessageAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateFinEmailMessage>
+        }
+        groupBy: {
+          args: Prisma.FinEmailMessageGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.FinEmailMessageGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.FinEmailMessageCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.FinEmailMessageCountAggregateOutputType> | number
+        }
+      }
+    }
     DomainEventOutbox: {
       payload: Prisma.$DomainEventOutboxPayload<ExtArgs>
       fields: Prisma.DomainEventOutboxFieldRefs
@@ -2790,6 +2865,21 @@ export const FinEmailSyncLogScalarFieldEnum = {
 export type FinEmailSyncLogScalarFieldEnum = (typeof FinEmailSyncLogScalarFieldEnum)[keyof typeof FinEmailSyncLogScalarFieldEnum]
 
 
+export const FinEmailMessageScalarFieldEnum = {
+  id: 'id',
+  sourceId: 'sourceId',
+  gmailMessageId: 'gmailMessageId',
+  outcome: 'outcome',
+  reason: 'reason',
+  provider: 'provider',
+  model: 'model',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type FinEmailMessageScalarFieldEnum = (typeof FinEmailMessageScalarFieldEnum)[keyof typeof FinEmailMessageScalarFieldEnum]
+
+
 export const DomainEventOutboxScalarFieldEnum = {
   id: 'id',
   eventId: 'eventId',
@@ -3162,6 +3252,20 @@ export type ListEnumFinEmailSyncStatusFieldRefInput<$PrismaModel> = FieldRefInpu
 
 
 /**
+ * Reference to a field of type 'FinEmailMessageOutcome'
+ */
+export type EnumFinEmailMessageOutcomeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'FinEmailMessageOutcome'>
+    
+
+
+/**
+ * Reference to a field of type 'FinEmailMessageOutcome[]'
+ */
+export type ListEnumFinEmailMessageOutcomeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'FinEmailMessageOutcome[]'>
+    
+
+
+/**
  * Reference to a field of type 'DomainEventOutboxStatus'
  */
 export type EnumDomainEventOutboxStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DomainEventOutboxStatus'>
@@ -3376,6 +3480,7 @@ export type GlobalOmitConfig = {
   finLoan?: Prisma.FinLoanOmit
   finReceivable?: Prisma.FinReceivableOmit
   finEmailSyncLog?: Prisma.FinEmailSyncLogOmit
+  finEmailMessage?: Prisma.FinEmailMessageOmit
   domainEventOutbox?: Prisma.DomainEventOutboxOmit
   processedDomainEvent?: Prisma.ProcessedDomainEventOmit
   authDeletionOutbox?: Prisma.AuthDeletionOutboxOmit

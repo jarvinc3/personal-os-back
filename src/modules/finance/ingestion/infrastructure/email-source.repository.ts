@@ -181,4 +181,42 @@ export class EmailSourceRepository {
   findCardById(userId: string, id: string) {
     return this.prisma.finCard.findFirst({ where: { id, userId } });
   }
+
+  findEmailMessage(sourceId: string, gmailMessageId: string) {
+    return this.prisma.finEmailMessage.findUnique({
+      where: {
+        sourceId_gmailMessageId: { sourceId, gmailMessageId },
+      },
+    });
+  }
+
+  upsertEmailMessage(data: {
+    sourceId: string;
+    gmailMessageId: string;
+    outcome: 'IMPORTED' | 'SKIPPED_NOT_TX' | 'FAILED_NON_RETRYABLE';
+    reason?: string | null;
+    provider?: string | null;
+    model?: string | null;
+  }) {
+    const { sourceId, gmailMessageId, outcome, reason, provider, model } = data;
+    return this.prisma.finEmailMessage.upsert({
+      where: {
+        sourceId_gmailMessageId: { sourceId, gmailMessageId },
+      },
+      create: {
+        sourceId,
+        gmailMessageId,
+        outcome,
+        reason: reason ?? null,
+        provider: provider ?? null,
+        model: model ?? null,
+      },
+      update: {
+        outcome,
+        reason: reason ?? null,
+        provider: provider ?? null,
+        model: model ?? null,
+      },
+    });
+  }
 }
