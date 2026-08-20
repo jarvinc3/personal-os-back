@@ -1,4 +1,4 @@
-import { Logger, ValidationPipe } from '@nestjs/common';
+import { Logger, RequestMethod, ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
@@ -52,7 +52,12 @@ async function bootstrap() {
   const apiPrefix: string =
     configService.get('API_PREFIX', { infer: true }) ?? 'api';
   if (apiPrefix.length > 0) {
-    app.setGlobalPrefix(apiPrefix);
+    app.setGlobalPrefix(apiPrefix, {
+      exclude: [
+        { path: 'admin/queues', method: RequestMethod.ALL },
+        { path: 'admin/queues/{*path}', method: RequestMethod.ALL },
+      ],
+    });
   }
 
   app.useGlobalPipes(
@@ -68,6 +73,13 @@ async function bootstrap() {
     .map((value) => value.trim())
     .filter(Boolean);
 
+  const port: number = configService.get('PORT', { infer: true }) ?? 3000;
+  // Bull Board (same host) sends Origin on PUT/DELETE; allow the API's own origin in non-prod.
+  const sameServerOrigins = [
+    `http://localhost:${port}`,
+    `http://127.0.0.1:${port}`,
+  ];
+
   app.enableCors({
     origin: isProduction
       ? corsOrigins.length === 1
@@ -79,7 +91,11 @@ async function bootstrap() {
             callback(null, true);
             return;
           }
-          if (corsOrigins.includes(origin) || corsOrigins.includes('*')) {
+          if (
+            corsOrigins.includes(origin) ||
+            corsOrigins.includes('*') ||
+            sameServerOrigins.includes(origin)
+          ) {
             callback(null, true);
             return;
           }
@@ -127,13 +143,19 @@ async function bootstrap() {
     );
   }
 
-  const port: number = configService.get('PORT', { infer: true }) ?? 3000;
-
   await app.listen(port, '0.0.0.0');
 
   const basePath = apiPrefix.length > 0 ? `/${apiPrefix}` : '';
   logger.log(`CORS Origin: ${corsOrigin} isProduction: ${isProduction}`);
   logger.log(`Application is running on: http://0.0.0.0:${port}${basePath}`);
+  if (!isProduction && bullMqEnabled) {
+    const boardUser = configService.get('BULL_BOARD_USER', { infer: true });
+    const boardAuth =
+      boardUser && configService.get('BULL_BOARD_PASSWORD', { infer: true })
+        ? ' (basic auth enabled)'
+        : '';
+    logger.log(`Bull Board: http://0.0.0.0:${port}/admin/queues${boardAuth}`);
+  }
 }
 
 bootstrap().catch((err) => {

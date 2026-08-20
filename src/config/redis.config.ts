@@ -28,3 +28,27 @@ export function isBullMqEnabled(config: Pick<Env, 'NODE_ENV' | 'REDIS_URL' | 'RE
 
   return config.REDIS_ENABLED === true;
 }
+
+/** Bull Board UI: development only, and only when BullMQ is enabled. */
+export function isBullBoardEnabled(
+  config: Pick<Env, 'NODE_ENV' | 'REDIS_URL' | 'REDIS_ENABLED'>,
+): boolean {
+  if (config.NODE_ENV !== 'development') {
+    return false;
+  }
+
+  return isBullMqEnabled(config);
+}
+
+/** Used when registering Bull Board before ConfigModule is available. */
+export function isBullBoardEnabledFromProcessEnv(): boolean {
+  const nodeEnv = (process.env.NODE_ENV ?? 'development') as Env['NODE_ENV'];
+  const redisEnabled =
+    process.env.REDIS_ENABLED === 'true' || process.env.REDIS_ENABLED === '1';
+
+  return isBullBoardEnabled({
+    NODE_ENV: nodeEnv,
+    REDIS_URL: process.env.REDIS_URL?.trim() || undefined,
+    REDIS_ENABLED: redisEnabled,
+  });
+}

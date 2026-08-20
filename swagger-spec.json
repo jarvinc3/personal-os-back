@@ -1743,6 +1743,205 @@
         ]
       }
     },
+    "/api/notifications": {
+      "get": {
+        "operationId": "NotificationsController_list",
+        "parameters": [
+          {
+            "name": "channel",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "default": "IN_APP",
+              "type": "string",
+              "enum": [
+                "IN_APP",
+                "PUSH",
+                "EMAIL"
+              ]
+            }
+          },
+          {
+            "name": "unreadOnly",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "List notifications for current user",
+        "tags": [
+          "notifications"
+        ]
+      },
+      "post": {
+        "operationId": "NotificationsController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateNotificationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Create a notification for current user",
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/api/notifications/unread-count": {
+      "get": {
+        "operationId": "NotificationsController_unreadCount",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Unread in-app notification count",
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/api/notifications/read-all": {
+      "patch": {
+        "operationId": "NotificationsController_markAllAsRead",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Mark all in-app notifications as read",
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/api/notifications/{id}/read": {
+      "patch": {
+        "operationId": "NotificationsController_markAsRead",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Mark notification as read for current user",
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/api/notifications/push-tokens": {
+      "post": {
+        "operationId": "NotificationsController_registerPushToken",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterPushTokenDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Register a push token for current user",
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/api/notifications/push-tokens/{token}/deactivate": {
+      "patch": {
+        "operationId": "NotificationsController_deactivatePushToken",
+        "parameters": [
+          {
+            "name": "token",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Deactivate a push token for current user",
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
     "/api/ai/providers": {
       "get": {
         "operationId": "AiController_listProviders",
@@ -2003,205 +2202,6 @@
         "summary": "Cancel a pending AI action",
         "tags": [
           "ai-agent"
-        ]
-      }
-    },
-    "/api/notifications": {
-      "get": {
-        "operationId": "NotificationsController_list",
-        "parameters": [
-          {
-            "name": "channel",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "default": "IN_APP",
-              "type": "string",
-              "enum": [
-                "IN_APP",
-                "PUSH",
-                "EMAIL"
-              ]
-            }
-          },
-          {
-            "name": "unreadOnly",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "type": "boolean"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
-        "summary": "List notifications for current user",
-        "tags": [
-          "notifications"
-        ]
-      },
-      "post": {
-        "operationId": "NotificationsController_create",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateNotificationDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
-        "summary": "Create a notification for current user",
-        "tags": [
-          "notifications"
-        ]
-      }
-    },
-    "/api/notifications/unread-count": {
-      "get": {
-        "operationId": "NotificationsController_unreadCount",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
-        "summary": "Unread in-app notification count",
-        "tags": [
-          "notifications"
-        ]
-      }
-    },
-    "/api/notifications/read-all": {
-      "patch": {
-        "operationId": "NotificationsController_markAllAsRead",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
-        "summary": "Mark all in-app notifications as read",
-        "tags": [
-          "notifications"
-        ]
-      }
-    },
-    "/api/notifications/{id}/read": {
-      "patch": {
-        "operationId": "NotificationsController_markAsRead",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
-        "summary": "Mark notification as read for current user",
-        "tags": [
-          "notifications"
-        ]
-      }
-    },
-    "/api/notifications/push-tokens": {
-      "post": {
-        "operationId": "NotificationsController_registerPushToken",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RegisterPushTokenDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
-        "summary": "Register a push token for current user",
-        "tags": [
-          "notifications"
-        ]
-      }
-    },
-    "/api/notifications/push-tokens/{token}/deactivate": {
-      "patch": {
-        "operationId": "NotificationsController_deactivatePushToken",
-        "parameters": [
-          {
-            "name": "token",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
-        "summary": "Deactivate a push token for current user",
-        "tags": [
-          "notifications"
         ]
       }
     }
@@ -2947,6 +2947,58 @@
           }
         }
       },
+      "CreateNotificationDto": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "channel": {
+            "type": "string",
+            "enum": [
+              "IN_APP",
+              "PUSH",
+              "EMAIL"
+            ],
+            "default": "IN_APP"
+          },
+          "title": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string"
+          },
+          "data": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "type",
+          "channel",
+          "title",
+          "body"
+        ]
+      },
+      "RegisterPushTokenDto": {
+        "type": "object",
+        "properties": {
+          "platform": {
+            "type": "string",
+            "enum": [
+              "ios",
+              "android",
+              "web"
+            ]
+          },
+          "token": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "platform",
+          "token"
+        ]
+      },
       "ChatMessageDto": {
         "type": "object",
         "properties": {
@@ -3060,58 +3112,6 @@
             "description": "Module slug to scope the session (agenda, projects, etc.)"
           }
         }
-      },
-      "CreateNotificationDto": {
-        "type": "object",
-        "properties": {
-          "type": {
-            "type": "string"
-          },
-          "channel": {
-            "type": "string",
-            "enum": [
-              "IN_APP",
-              "PUSH",
-              "EMAIL"
-            ],
-            "default": "IN_APP"
-          },
-          "title": {
-            "type": "string"
-          },
-          "body": {
-            "type": "string"
-          },
-          "data": {
-            "type": "object"
-          }
-        },
-        "required": [
-          "type",
-          "channel",
-          "title",
-          "body"
-        ]
-      },
-      "RegisterPushTokenDto": {
-        "type": "object",
-        "properties": {
-          "platform": {
-            "type": "string",
-            "enum": [
-              "ios",
-              "android",
-              "web"
-            ]
-          },
-          "token": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "platform",
-          "token"
-        ]
       }
     }
   }

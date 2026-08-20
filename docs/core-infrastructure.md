@@ -9,7 +9,7 @@ Núcleo transversal de `personal-os-back` (NestJS 11). Los módulos de dominio *
 | Framework | NestJS 11 |
 | ORM | Prisma 7 + PostgreSQL (Supabase) |
 | Auth | Supabase Auth (JWT vía JWKS) |
-| Colas | BullMQ + Redis (opcional en dev) |
+| Colas | BullMQ + Redis (opcional en dev); Bull Board `/admin/queues` (solo development) |
 | Eventos | `@nestjs/event-emitter` (in-process, single-instance) |
 | Logs | Pino |
 | API docs | Swagger `/docs` (off en production) |
@@ -77,4 +77,8 @@ Pino + `requestId`. Logs estructurados en listeners: `event=<name> handled=true`
 ## Schedule / Bull Board
 
 - `ScheduleModule` montado; cron de `AuthDeletionOutboxProcessor` limpia Supabase Auth pendiente tras borrado de cuenta.
-- `@bull-board/*` en devDependencies **sin** wiring (reservado).
+- Bull Board en **`/admin/queues`** (fuera del prefix `/api`), solo cuando `NODE_ENV=development` **y** BullMQ está enabled (`REDIS_URL` + `REDIS_ENABLED=true`).
+- Off en `production` y `test` (el path responde 404).
+- Basic auth opcional: set `BULL_BOARD_USER` y `BULL_BOARD_PASSWORD` juntos (o ninguno). Útil si la URL de development es pública.
+- Colas visibles: `notifications`, `ai-processing`, `email-sync`, `gmail-sync`.
+- En non-prod, CORS también permite el origen del propio API (`http://localhost:$PORT`) para acciones del Board (empty/retry).
