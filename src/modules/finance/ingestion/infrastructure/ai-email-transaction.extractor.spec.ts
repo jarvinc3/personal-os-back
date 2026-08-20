@@ -24,6 +24,7 @@ describe('AiEmailTransactionExtractor', () => {
   };
 
   const validPayload = {
+    kind: 'transaction' as const,
     amount: 12.5,
     currency: 'DOP',
     type: 'DEBIT',
@@ -71,7 +72,7 @@ describe('AiEmailTransactionExtractor', () => {
     });
   });
 
-  it('returns ok false when payload fails schema validation', async () => {
+  it('returns ok false when transaction payload fails schema validation', async () => {
     chatComplete.mockResolvedValue({
       content: JSON.stringify({ ...validPayload, amount: -1 }),
       provider: 'groq',
@@ -85,16 +86,43 @@ describe('AiEmailTransactionExtractor', () => {
     });
   });
 
-  it('returns ok true with validated data on happy path', async () => {
+  it('returns kind transaction with validated data on happy path', async () => {
     chatComplete.mockResolvedValue({
       content: JSON.stringify(validPayload),
       provider: 'groq',
       model: 'test-model',
     });
 
+    const { kind: _kind, ...data } = validPayload;
     await expect(extractor.extract(input)).resolves.toEqual({
       ok: true,
-      data: validPayload,
+      kind: 'transaction',
+      data,
+      provider: 'groq',
+      model: 'test-model',
+    });
+  });
+
+  it('returns kind not_transaction for promo / newsletter payloads', async () => {
+    chatComplete.mockResolvedValue({
+      content: JSON.stringify({
+        kind: 'not_transaction',
+        reason: 'Promotional newsletter, no account movement',
+      }),
+      provider: 'groq',
+      model: 'test-model',
+    });
+
+    await expect(
+      extractor.extract({
+        ...input,
+        subject: 'Win $50 this week!',
+        body: 'Open an account and win $50. No charge applied.',
+      }),
+    ).resolves.toEqual({
+      ok: true,
+      kind: 'not_transaction',
+      reason: 'Promotional newsletter, no account movement',
       provider: 'groq',
       model: 'test-model',
     });

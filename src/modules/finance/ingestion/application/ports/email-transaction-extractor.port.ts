@@ -26,7 +26,15 @@ export type EmailExtractionInput = {
 export type EmailExtractionResult =
   | {
       ok: true;
+      kind: 'transaction';
       data: ExtractedEmailTransaction;
+      provider: string;
+      model: string;
+    }
+  | {
+      ok: true;
+      kind: 'not_transaction';
+      reason: string;
       provider: string;
       model: string;
     }

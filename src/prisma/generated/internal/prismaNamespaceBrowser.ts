@@ -74,6 +74,7 @@ export const ModelName = {
   FinLoan: 'FinLoan',
   FinReceivable: 'FinReceivable',
   FinEmailSyncLog: 'FinEmailSyncLog',
+  FinEmailMessage: 'FinEmailMessage',
   DomainEventOutbox: 'DomainEventOutbox',
   ProcessedDomainEvent: 'ProcessedDomainEvent',
   AuthDeletionOutbox: 'AuthDeletionOutbox'
@@ -478,6 +479,21 @@ export const FinEmailSyncLogScalarFieldEnum = {
 } as const
 
 export type FinEmailSyncLogScalarFieldEnum = (typeof FinEmailSyncLogScalarFieldEnum)[keyof typeof FinEmailSyncLogScalarFieldEnum]
+
+
+export const FinEmailMessageScalarFieldEnum = {
+  id: 'id',
+  sourceId: 'sourceId',
+  gmailMessageId: 'gmailMessageId',
+  outcome: 'outcome',
+  reason: 'reason',
+  provider: 'provider',
+  model: 'model',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type FinEmailMessageScalarFieldEnum = (typeof FinEmailMessageScalarFieldEnum)[keyof typeof FinEmailMessageScalarFieldEnum]
 
 
 export const DomainEventOutboxScalarFieldEnum = {
