@@ -10,3 +10,93 @@ describe('AiEmailTransactionExtractor circular barrels', () => {
     expect(typeof AiService).toBe('function');
   });
 });
+
+describe('AiEmailTransactionExtractor', () => {
+  const chatComplete = jest.fn();
+  const aiService = { chatComplete } as unknown as AiService;
+  const extractor = new AiEmailTransactionExtractor(aiService);
+
+  const input = {
+    from: 'alerts@bank.example',
+    subject: 'Purchase',
+    body: 'You spent 12.50 DOP at Coffee Shop',
+    bankDomain: 'bank.example',
+  };
+
+  const validPayload = {
+    amount: 12.5,
+    currency: 'DOP',
+    type: 'DEBIT',
+    transactionDate: '2026-08-01',
+    merchant: 'Coffee Shop',
+    description: 'Purchase at Coffee Shop',
+    categoryNameHint: null,
+    bankStatusRaw: 'APPROVED',
+    bankStatusNormalized: 'APPROVED',
+    statusEvidence: 'APPROVED',
+    statusConfidence: 0.95,
+    reverseOfEmailMessageId: null,
+    reverseOriginalRef: null,
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('returns ok false when model does not return JSON', async () => {
+    chatComplete.mockResolvedValue({
+      content: 'no json here',
+      provider: 'groq',
+      model: 'test',
+    });
+
+    await expect(extractor.extract(input)).resolves.toEqual({
+      ok: false,
+      reason: 'Model did not return JSON',
+      retryable: true,
+    });
+  });
+
+  it('returns ok false when model returns invalid JSON', async () => {
+    chatComplete.mockResolvedValue({
+      content: '{not-json}',
+      provider: 'groq',
+      model: 'test',
+    });
+
+    await expect(extractor.extract(input)).resolves.toEqual({
+      ok: false,
+      reason: 'Model returned invalid JSON',
+      retryable: true,
+    });
+  });
+
+  it('returns ok false when payload fails schema validation', async () => {
+    chatComplete.mockResolvedValue({
+      content: JSON.stringify({ ...validPayload, amount: -1 }),
+      provider: 'groq',
+      model: 'test',
+    });
+
+    await expect(extractor.extract(input)).resolves.toEqual({
+      ok: false,
+      reason: 'Extracted payload failed schema validation',
+      retryable: false,
+    });
+  });
+
+  it('returns ok true with validated data on happy path', async () => {
+    chatComplete.mockResolvedValue({
+      content: JSON.stringify(validPayload),
+      provider: 'groq',
+      model: 'test-model',
+    });
+
+    await expect(extractor.extract(input)).resolves.toEqual({
+      ok: true,
+      data: validPayload,
+      provider: 'groq',
+      model: 'test-model',
+    });
+  });
+});
