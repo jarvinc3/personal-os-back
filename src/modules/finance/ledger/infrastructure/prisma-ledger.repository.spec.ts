@@ -1,5 +1,15 @@
+import { AppEvents } from '../../../../core/events/event.constants';
 import type { DomainEventPublisherPort } from '../../events/application/ports/domain-event-publisher.port';
 import { PrismaLedgerRepository } from './prisma-ledger.repository';
+
+const dopAmounts = {
+  amount: 50,
+  currency: 'DOP',
+  ledgerAmount: 50,
+  ledgerCurrency: 'DOP',
+  amountBaseCurrency: 50,
+  exchangeRate: 1,
+};
 
 describe('PrismaLedgerRepository outbox-in-TX', () => {
   it('passes the same transaction client to outbox enqueue on create', async () => {
@@ -95,5 +105,123 @@ describe('PrismaLedgerRepository outbox-in-TX', () => {
     expect(enqueue).toHaveBeenCalled();
     const enqueueTx = enqueue.mock.calls[0]?.[1] as { name?: string };
     expect(enqueueTx?.name).toBe('same-tx');
+  });
+
+  it('createTransfer applies balances on both legs and enqueues finance.transfer.created', async () => {
+    const enqueue = jest.fn().mockResolvedValue({});
+    const events = { enqueue } as unknown as DomainEventPublisherPort;
+    const finAccountUpdate = jest.fn();
+
+    const finTransactionCreate = jest
+      .fn()
+      .mockResolvedValueOnce({
+        id: 'debit-1',
+        amount: 50,
+        status: 'CONFIRMED',
+        source: 'MANUAL',
+        accountId: 'acc-from',
+        cardId: null,
+        type: 'DEBIT',
+      })
+      .mockResolvedValueOnce({
+        id: 'credit-1',
+        amount: 50,
+        status: 'CONFIRMED',
+        source: 'MANUAL',
+        accountId: 'acc-to',
+        cardId: null,
+        type: 'CREDIT',
+      });
+
+    const prisma = {
+      $transaction: jest.fn(async (fn: (tx: unknown) => Promise<unknown>) => {
+        const tx = {
+          name: 'same-tx',
+          finAccount: {
+            findFirst: jest.fn().mockImplementation(({ where }: { where: { id: string } }) => {
+              if (where.id === 'acc-from') {
+                return Promise.resolve({
+                  id: 'acc-from',
+                  userId: 'user-1',
+                  currency: 'DOP',
+                  type: 'CHECKING',
+                  balance: 200,
+                });
+              }
+              if (where.id === 'acc-to') {
+                return Promise.resolve({
+                  id: 'acc-to',
+                  userId: 'user-1',
+                  currency: 'DOP',
+                  type: 'CHECKING',
+                  balance: 100,
+                });
+              }
+              return Promise.resolve(null);
+            }),
+            update: finAccountUpdate,
+          },
+          finCard: { findFirst: jest.fn() },
+          finCardBalance: { upsert: jest.fn() },
+          finTransaction: { create: finTransactionCreate },
+          finBudget: {
+            findMany: jest.fn().mockResolvedValue([]),
+            update: jest.fn(),
+          },
+        };
+        return fn(tx);
+      }),
+    };
+
+    const repo = new PrismaLedgerRepository(
+      prisma as never,
+      events,
+      undefined,
+    );
+
+    const result = await repo.createTransfer(
+      'user-1',
+      {
+        fromAccountId: 'acc-from',
+        toAccountId: 'acc-to',
+        amount: 50,
+        transactionDate: '2026-08-01',
+      },
+      dopAmounts,
+      dopAmounts,
+    );
+
+    expect(result?.transferGroupId).toBeDefined();
+    expect(result?.debit.id).toBe('debit-1');
+    expect(result?.credit.id).toBe('credit-1');
+    expect(finAccountUpdate).toHaveBeenCalledTimes(2);
+    expect(finAccountUpdate).toHaveBeenCalledWith({
+      where: { id: 'acc-from' },
+      data: { balance: { increment: -50 } },
+    });
+    expect(finAccountUpdate).toHaveBeenCalledWith({
+      where: { id: 'acc-to' },
+      data: { balance: { increment: 50 } },
+    });
+
+    const transferEnqueue = enqueue.mock.calls.find(
+      (call) =>
+        (call[0] as { eventName?: string }).eventName ===
+        AppEvents.FINANCE_TRANSFER_CREATED,
+    );
+    expect(transferEnqueue).toBeDefined();
+    expect(transferEnqueue?.[0]).toEqual(
+      expect.objectContaining({
+        eventName: AppEvents.FINANCE_TRANSFER_CREATED,
+        aggregateType: 'FinTransfer',
+        userId: 'user-1',
+        payload: expect.objectContaining({
+          debitId: 'debit-1',
+          creditId: 'credit-1',
+          amount: 50,
+        }),
+      }),
+    );
+    expect((transferEnqueue?.[1] as { name?: string })?.name).toBe('same-tx');
   });
 });

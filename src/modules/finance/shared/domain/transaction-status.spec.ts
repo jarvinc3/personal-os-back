@@ -23,6 +23,15 @@ describe('transaction-status domain', () => {
     ).toBe('PENDING');
   });
 
+  it('falls back to PENDING on UNKNOWN bank status', () => {
+    expect(
+      mapBankStatusToInternal({
+        bankStatusNormalized: 'UNKNOWN',
+        statusConfidence: 0.95,
+      }),
+    ).toBe('PENDING');
+  });
+
   it('maps declined family to DECLINED', () => {
     expect(
       mapBankStatusToInternal({
