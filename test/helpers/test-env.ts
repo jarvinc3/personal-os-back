@@ -5,8 +5,6 @@ export function applyTestEnv(): void {
   process.env.NODE_ENV = 'test';
   process.env.SUPABASE_URL =
     process.env.SUPABASE_URL ?? 'https://example.supabase.co';
-  process.env.SUPABASE_ANON_KEY =
-    process.env.SUPABASE_ANON_KEY ?? 'test-anon-key';
   process.env.SUPABASE_SERVICE_ROLE_KEY =
     process.env.SUPABASE_SERVICE_ROLE_KEY ?? 'test-service-key';
   process.env.GROQ_API_KEY = '';
@@ -20,9 +18,13 @@ export function applyTestEnv(): void {
     process.env.GOOGLE_REDIRECT_URI ??
     'http://localhost:3100/auth/google/callback';
   process.env.CORS_ORIGIN = process.env.CORS_ORIGIN ?? 'http://localhost:5173';
-  process.env.API_URL = process.env.API_URL ?? 'http://localhost:3100';
   process.env.REDIS_URL = process.env.REDIS_URL ?? 'redis://localhost:6379';
   process.env.REDIS_ENABLED = process.env.REDIS_ENABLED ?? 'false';
   process.env.ENCRYPTION_KEY =
     process.env.ENCRYPTION_KEY ?? 'test-encryption-key-minimum-32-chars!!';
+  process.env.OAUTH_STATE_SECRET =
+    process.env.OAUTH_STATE_SECRET ??
+    'test-oauth-state-secret-minimum-32chars';
+  process.env.EMAIL_DELIVERY_ENABLED =
+    process.env.EMAIL_DELIVERY_ENABLED ?? 'false';
 }

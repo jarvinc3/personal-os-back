@@ -132,3 +132,23 @@ export type FinReceivable = Prisma.FinReceivableModel
  * 
  */
 export type FinEmailSyncLog = Prisma.FinEmailSyncLogModel
+/**
+ * Model FinEmailMessage
+ * Per-Gmail-message extraction outcome so non-tx / failed emails are not re-sent to the LLM.
+ */
+export type FinEmailMessage = Prisma.FinEmailMessageModel
+/**
+ * Model DomainEventOutbox
+ * Durable domain events published post-commit (transactional outbox).
+ */
+export type DomainEventOutbox = Prisma.DomainEventOutboxModel
+/**
+ * Model ProcessedDomainEvent
+ * Idempotency for domain event consumers.
+ */
+export type ProcessedDomainEvent = Prisma.ProcessedDomainEventModel
+/**
+ * Model AuthDeletionOutbox
+ * 
+ */
+export type AuthDeletionOutbox = Prisma.AuthDeletionOutboxModel

@@ -278,8 +278,11 @@
                   "const json = pm.response.json();",
                   "const data = json.data || json;",
                   "pm.test('readiness up', () => pm.expect(data.status).to.eql('ok'));",
-                  "pm.test('database check present', () => pm.expect(data.info.database.status).to.eql('up'));",
-                  "pm.test('jwks check present', () => pm.expect(data.info.jwks.status).to.eql('up'));"
+                  "pm.test('sanitized payload', () => {",
+                  "  pm.expect(data.timestamp).to.be.a('string');",
+                  "  pm.expect(data.info).to.be.undefined;",
+                  "  pm.expect(data.details).to.be.undefined;",
+                  "});"
                 ]
               }
             }
@@ -293,7 +296,7 @@
               "host": ["{{baseUrl}}"],
               "path": ["{{apiPrefix}}", "health", "ready"]
             },
-            "description": "Readiness probe con checks de database, JWKS y Redis (si BullMQ está habilitado)."
+            "description": "Público. Checks internos de database, JWKS y Redis (si BullMQ). Respuesta sanitizada: solo `data.status` y `data.timestamp`."
           },
           "response": []
         }

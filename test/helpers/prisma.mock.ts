@@ -39,16 +39,109 @@ export type PrismaMock = {
     findFirst: MockFn;
     count: MockFn;
     create: MockFn;
+    groupBy: MockFn;
+  };
+  finCardBalance: {
+    findMany: MockFn;
   };
   finEmailSource: {
     findMany: MockFn;
     findFirst: MockFn;
     updateMany: MockFn;
   };
+  domainEventOutbox: {
+    create: MockFn;
+    findFirst: MockFn;
+    findUnique: MockFn;
+    updateMany: MockFn;
+    update: MockFn;
+  };
+  authDeletionOutbox: {
+    create: MockFn;
+    findUnique: MockFn;
+    findFirst: MockFn;
+    update: MockFn;
+    updateMany: MockFn;
+  };
   $transaction: MockFn;
   $connect: MockFn;
   $disconnect: MockFn;
 };
+
+function createTransactionClient() {
+  return {
+    finAccount: {
+      findFirst: jest.fn().mockImplementation((args: { where?: { id?: string } }) =>
+        Promise.resolve({
+          id: args?.where?.id ?? 'acc-1',
+          userId: 'user-123',
+          currency: 'DOP',
+          type: 'CHECKING',
+          balance: 1000,
+        }),
+      ),
+      update: jest.fn().mockResolvedValue({}),
+    },
+    finCard: {
+      findFirst: jest.fn().mockResolvedValue(null),
+    },
+    finCardBalance: {
+      findFirst: jest.fn().mockResolvedValue(null),
+      create: jest.fn().mockResolvedValue({}),
+      update: jest.fn().mockResolvedValue({}),
+    },
+    finBudget: {
+      findMany: jest.fn().mockResolvedValue([]),
+      update: jest.fn(),
+    },
+    finTransaction: {
+      create: jest.fn().mockResolvedValue({
+        id: 'tx-1',
+        userId: 'user-123',
+        accountId: 'acc-1',
+        cardId: null,
+        type: 'DEBIT',
+        amount: { toString: () => '50.00' },
+        ledgerAmount: { toString: () => '50.00' },
+        amountBaseCurrency: { toString: () => '50.00' },
+        currency: 'DOP',
+        ledgerCurrency: 'DOP',
+        exchangeRate: { toString: () => '1' },
+        merchant: null,
+        description: null,
+        transactionDate: new Date(),
+        status: 'CONFIRMED',
+        source: 'MANUAL',
+        categoryId: null,
+        notes: null,
+        transferGroupId: null,
+        linkedTransactionId: null,
+        createdAt: new Date(),
+        account: { id: 'acc-1', name: 'Main' },
+        card: null,
+      }),
+      findFirst: jest.fn(),
+      findMany: jest.fn().mockResolvedValue([]),
+      update: jest.fn(),
+      updateMany: jest.fn().mockResolvedValue({ count: 0 }),
+      deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
+    },
+    domainEventOutbox: {
+      create: jest.fn().mockResolvedValue({ id: 'out-1' }),
+      findFirst: jest.fn(),
+      findUnique: jest.fn(),
+      updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+      update: jest.fn(),
+    },
+    authDeletionOutbox: {
+      create: jest.fn().mockResolvedValue({ id: 'oob-1' }),
+      update: jest.fn(),
+    },
+    user: {
+      delete: jest.fn().mockResolvedValue({ id: 'user-123' }),
+    },
+  };
+}
 
 export function createPrismaMock(): PrismaMock {
   return {
@@ -85,28 +178,39 @@ export function createPrismaMock(): PrismaMock {
       create: jest.fn(),
       update: jest.fn(),
     },
+    finCardBalance: {
+      findMany: jest.fn().mockResolvedValue([]),
+    },
     finTransaction: {
       findMany: jest.fn().mockResolvedValue([]),
       findFirst: jest.fn(),
       count: jest.fn().mockResolvedValue(0),
       create: jest.fn(),
+      groupBy: jest.fn().mockResolvedValue([]),
     },
     finEmailSource: {
       findMany: jest.fn().mockResolvedValue([]),
       findFirst: jest.fn(),
       updateMany: jest.fn().mockResolvedValue({ count: 0 }),
     },
+    // Root-level model used by FinanceOutboxDispatcher.processBatch after commit wake.
+    domainEventOutbox: {
+      create: jest.fn().mockResolvedValue({ id: 'out-1' }),
+      findFirst: jest.fn().mockResolvedValue(null),
+      findUnique: jest.fn(),
+      updateMany: jest.fn().mockResolvedValue({ count: 0 }),
+      update: jest.fn(),
+    },
+    authDeletionOutbox: {
+      create: jest.fn().mockResolvedValue({ id: 'oob-1' }),
+      findUnique: jest.fn(),
+      findFirst: jest.fn(),
+      update: jest.fn(),
+      updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+    },
     $transaction: jest.fn(async (arg: unknown) => {
       if (typeof arg === 'function') {
-        return arg({
-          finAccount: {
-            findFirst: jest.fn(),
-            update: jest.fn(),
-          },
-          finTransaction: {
-            create: jest.fn(),
-          },
-        });
+        return arg(createTransactionClient());
       }
       return Promise.all(arg as Promise<unknown>[]);
     }),

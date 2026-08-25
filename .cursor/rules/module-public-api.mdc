@@ -1,0 +1,16 @@
+---
+description: Cross-module imports must use public barrels (index.ts) / façades; no internal layer paths.
+alwaysApply: true
+---
+
+# Module public API
+
+When importing across Nest feature modules under `src/modules/`:
+
+1. **Use the module barrel** (`src/modules/<name>/index.ts`) or the documented façade (e.g. `FinanceFacade` via `modules/finance`).
+2. **Do not** import another module’s internal layers: `domain/`, `infrastructure/`, `presentation/`, `application/`, or capability folders (`chat/`, `ledger/`, `events/`, etc.).
+3. Module **root** holds only composition: `*.module.ts`, `index.ts`, optional `*.facade.ts`.
+4. Intra-module relative imports between layers remain fine.
+5. ESLint enforces this via `no-restricted-imports` (see `eslint.config.mjs`).
+
+Full standard: [docs/architecture/modules.md](docs/architecture/modules.md).

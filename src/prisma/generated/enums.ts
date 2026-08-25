@@ -79,7 +79,9 @@ export type FinTransactionType = (typeof FinTransactionType)[keyof typeof FinTra
 export const FinTransactionStatus = {
   PENDING: 'PENDING',
   CONFIRMED: 'CONFIRMED',
-  CANCELLED: 'CANCELLED'
+  CANCELLED: 'CANCELLED',
+  DECLINED: 'DECLINED',
+  REVERSED: 'REVERSED'
 } as const
 
 export type FinTransactionStatus = (typeof FinTransactionStatus)[keyof typeof FinTransactionStatus]
@@ -92,6 +94,26 @@ export const FinTransactionSource = {
 } as const
 
 export type FinTransactionSource = (typeof FinTransactionSource)[keyof typeof FinTransactionSource]
+
+
+export const FinEmailMessageOutcome = {
+  IMPORTED: 'IMPORTED',
+  SKIPPED_NOT_TX: 'SKIPPED_NOT_TX',
+  FAILED_NON_RETRYABLE: 'FAILED_NON_RETRYABLE'
+} as const
+
+export type FinEmailMessageOutcome = (typeof FinEmailMessageOutcome)[keyof typeof FinEmailMessageOutcome]
+
+
+export const DomainEventOutboxStatus = {
+  PENDING: 'PENDING',
+  PROCESSING: 'PROCESSING',
+  COMPLETED: 'COMPLETED',
+  FAILED: 'FAILED',
+  DEAD: 'DEAD'
+} as const
+
+export type DomainEventOutboxStatus = (typeof DomainEventOutboxStatus)[keyof typeof DomainEventOutboxStatus]
 
 
 export const FinBudgetPeriodType = {
@@ -139,3 +161,14 @@ export const AiSuggestionStatus = {
 } as const
 
 export type AiSuggestionStatus = (typeof AiSuggestionStatus)[keyof typeof AiSuggestionStatus]
+
+
+export const AuthDeletionOutboxStatus = {
+  PENDING: 'PENDING',
+  IN_PROGRESS: 'IN_PROGRESS',
+  COMPLETED: 'COMPLETED',
+  FAILED: 'FAILED',
+  DEAD: 'DEAD'
+} as const
+
+export type AuthDeletionOutboxStatus = (typeof AuthDeletionOutboxStatus)[keyof typeof AuthDeletionOutboxStatus]

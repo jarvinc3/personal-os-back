@@ -1,10 +1,11 @@
 import jwt from 'jsonwebtoken';
+import { TEST_JWT_SECRET } from './auth-test.providers';
 
 type TestJwtOverrides = {
   sub?: string;
   email?: string;
   role?: string;
-  expiresIn?: string | number;
+  expiresIn?: number;
 };
 
 export function createTestJwt(overrides: TestJwtOverrides = {}): string {
@@ -19,10 +20,10 @@ export function createTestJwt(overrides: TestJwtOverrides = {}): string {
       aud: 'authenticated',
       iss: issuer,
     },
-    'test-secret',
+    TEST_JWT_SECRET,
     {
       algorithm: 'HS256',
-      expiresIn: overrides.expiresIn ?? '1h',
+      expiresIn: overrides.expiresIn ?? 3600,
     },
   );
 }

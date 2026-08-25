@@ -80,12 +80,12 @@ export type PrismaVersion = {
 }
 
 /**
- * Prisma Client JS version: 7.8.0
- * Query Engine version: 3c6e192761c0362d496ed980de936e2f3cebcd3a
+ * Prisma Client JS version: 7.9.1
+ * Query Engine version: e922089b7d7502aff4249d5da3420f6fa55fc6ad
  */
 export const prismaVersion: PrismaVersion = {
-  client: "7.8.0",
-  engine: "3c6e192761c0362d496ed980de936e2f3cebcd3a"
+  client: "7.9.1",
+  engine: "e922089b7d7502aff4249d5da3420f6fa55fc6ad"
 }
 
 /**
@@ -156,6 +156,19 @@ export type Subset<T, U> = {
 };
 
 /**
+ * Resolved type of the argument passed to the `PrismaClient` constructor.
+ *
+ * When called without a narrower options type (the common case), this resolves
+ * to `PrismaClientOptions` directly, which produces a clear TypeScript error
+ * message (`not assignable to parameter of type 'PrismaClientOptions'`) when
+ * the argument is missing or incomplete. When the user supplies a narrower
+ * options type (e.g. via a literal), it falls back to `Subset` to keep
+ * filtering out unknown properties.
+ */
+export type PrismaClientConstructorArgs<Options extends PrismaClientOptions> =
+  [PrismaClientOptions] extends [Options] ? PrismaClientOptions : Subset<Options, PrismaClientOptions>;
+
+/**
  * SelectSubset
  * @desc From `T` pick properties that exist in `U`. Simple version of Intersection.
  * Additionally, it validates, if both select and include are present. If the case, it errors.
@@ -187,7 +200,7 @@ type Without<T, U> = { [P in Exclude<keyof T, keyof U>]?: never };
 export type XOR<T, U> =
   T extends object ?
   U extends object ?
-    (Without<T, U> & U) | (Without<U, T> & T)
+    ((Without<T, U> & U) | (Without<U, T> & T)) & object
   : U : T
 
 
@@ -406,7 +419,11 @@ export const ModelName = {
   FinSavingsGoal: 'FinSavingsGoal',
   FinLoan: 'FinLoan',
   FinReceivable: 'FinReceivable',
-  FinEmailSyncLog: 'FinEmailSyncLog'
+  FinEmailSyncLog: 'FinEmailSyncLog',
+  FinEmailMessage: 'FinEmailMessage',
+  DomainEventOutbox: 'DomainEventOutbox',
+  ProcessedDomainEvent: 'ProcessedDomainEvent',
+  AuthDeletionOutbox: 'AuthDeletionOutbox'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -422,7 +439,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "module" | "userModule" | "aiAgentSession" | "aiMessage" | "aiAction" | "notification" | "pushToken" | "finAccount" | "finEmailSource" | "finTransaction" | "finCategory" | "finBudget" | "finBudgetAlert" | "finRecurringPattern" | "finExchangeRate" | "finInstitution" | "finCard" | "finCardBalance" | "finSavingsGoal" | "finLoan" | "finReceivable" | "finEmailSyncLog"
+    modelProps: "user" | "module" | "userModule" | "aiAgentSession" | "aiMessage" | "aiAction" | "notification" | "pushToken" | "finAccount" | "finEmailSource" | "finTransaction" | "finCategory" | "finBudget" | "finBudgetAlert" | "finRecurringPattern" | "finExchangeRate" | "finInstitution" | "finCard" | "finCardBalance" | "finSavingsGoal" | "finLoan" | "finReceivable" | "finEmailSyncLog" | "finEmailMessage" | "domainEventOutbox" | "processedDomainEvent" | "authDeletionOutbox"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -2128,6 +2145,302 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    FinEmailMessage: {
+      payload: Prisma.$FinEmailMessagePayload<ExtArgs>
+      fields: Prisma.FinEmailMessageFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.FinEmailMessageFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinEmailMessagePayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.FinEmailMessageFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinEmailMessagePayload>
+        }
+        findFirst: {
+          args: Prisma.FinEmailMessageFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinEmailMessagePayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.FinEmailMessageFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinEmailMessagePayload>
+        }
+        findMany: {
+          args: Prisma.FinEmailMessageFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinEmailMessagePayload>[]
+        }
+        create: {
+          args: Prisma.FinEmailMessageCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinEmailMessagePayload>
+        }
+        createMany: {
+          args: Prisma.FinEmailMessageCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.FinEmailMessageCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinEmailMessagePayload>[]
+        }
+        delete: {
+          args: Prisma.FinEmailMessageDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinEmailMessagePayload>
+        }
+        update: {
+          args: Prisma.FinEmailMessageUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinEmailMessagePayload>
+        }
+        deleteMany: {
+          args: Prisma.FinEmailMessageDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.FinEmailMessageUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.FinEmailMessageUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinEmailMessagePayload>[]
+        }
+        upsert: {
+          args: Prisma.FinEmailMessageUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinEmailMessagePayload>
+        }
+        aggregate: {
+          args: Prisma.FinEmailMessageAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateFinEmailMessage>
+        }
+        groupBy: {
+          args: Prisma.FinEmailMessageGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.FinEmailMessageGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.FinEmailMessageCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.FinEmailMessageCountAggregateOutputType> | number
+        }
+      }
+    }
+    DomainEventOutbox: {
+      payload: Prisma.$DomainEventOutboxPayload<ExtArgs>
+      fields: Prisma.DomainEventOutboxFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.DomainEventOutboxFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DomainEventOutboxPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.DomainEventOutboxFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DomainEventOutboxPayload>
+        }
+        findFirst: {
+          args: Prisma.DomainEventOutboxFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DomainEventOutboxPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.DomainEventOutboxFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DomainEventOutboxPayload>
+        }
+        findMany: {
+          args: Prisma.DomainEventOutboxFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DomainEventOutboxPayload>[]
+        }
+        create: {
+          args: Prisma.DomainEventOutboxCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DomainEventOutboxPayload>
+        }
+        createMany: {
+          args: Prisma.DomainEventOutboxCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.DomainEventOutboxCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DomainEventOutboxPayload>[]
+        }
+        delete: {
+          args: Prisma.DomainEventOutboxDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DomainEventOutboxPayload>
+        }
+        update: {
+          args: Prisma.DomainEventOutboxUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DomainEventOutboxPayload>
+        }
+        deleteMany: {
+          args: Prisma.DomainEventOutboxDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.DomainEventOutboxUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.DomainEventOutboxUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DomainEventOutboxPayload>[]
+        }
+        upsert: {
+          args: Prisma.DomainEventOutboxUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$DomainEventOutboxPayload>
+        }
+        aggregate: {
+          args: Prisma.DomainEventOutboxAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateDomainEventOutbox>
+        }
+        groupBy: {
+          args: Prisma.DomainEventOutboxGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.DomainEventOutboxGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.DomainEventOutboxCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.DomainEventOutboxCountAggregateOutputType> | number
+        }
+      }
+    }
+    ProcessedDomainEvent: {
+      payload: Prisma.$ProcessedDomainEventPayload<ExtArgs>
+      fields: Prisma.ProcessedDomainEventFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.ProcessedDomainEventFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProcessedDomainEventPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.ProcessedDomainEventFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProcessedDomainEventPayload>
+        }
+        findFirst: {
+          args: Prisma.ProcessedDomainEventFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProcessedDomainEventPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.ProcessedDomainEventFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProcessedDomainEventPayload>
+        }
+        findMany: {
+          args: Prisma.ProcessedDomainEventFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProcessedDomainEventPayload>[]
+        }
+        create: {
+          args: Prisma.ProcessedDomainEventCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProcessedDomainEventPayload>
+        }
+        createMany: {
+          args: Prisma.ProcessedDomainEventCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.ProcessedDomainEventCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProcessedDomainEventPayload>[]
+        }
+        delete: {
+          args: Prisma.ProcessedDomainEventDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProcessedDomainEventPayload>
+        }
+        update: {
+          args: Prisma.ProcessedDomainEventUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProcessedDomainEventPayload>
+        }
+        deleteMany: {
+          args: Prisma.ProcessedDomainEventDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.ProcessedDomainEventUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.ProcessedDomainEventUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProcessedDomainEventPayload>[]
+        }
+        upsert: {
+          args: Prisma.ProcessedDomainEventUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ProcessedDomainEventPayload>
+        }
+        aggregate: {
+          args: Prisma.ProcessedDomainEventAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateProcessedDomainEvent>
+        }
+        groupBy: {
+          args: Prisma.ProcessedDomainEventGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ProcessedDomainEventGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.ProcessedDomainEventCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ProcessedDomainEventCountAggregateOutputType> | number
+        }
+      }
+    }
+    AuthDeletionOutbox: {
+      payload: Prisma.$AuthDeletionOutboxPayload<ExtArgs>
+      fields: Prisma.AuthDeletionOutboxFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.AuthDeletionOutboxFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AuthDeletionOutboxPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.AuthDeletionOutboxFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AuthDeletionOutboxPayload>
+        }
+        findFirst: {
+          args: Prisma.AuthDeletionOutboxFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AuthDeletionOutboxPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.AuthDeletionOutboxFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AuthDeletionOutboxPayload>
+        }
+        findMany: {
+          args: Prisma.AuthDeletionOutboxFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AuthDeletionOutboxPayload>[]
+        }
+        create: {
+          args: Prisma.AuthDeletionOutboxCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AuthDeletionOutboxPayload>
+        }
+        createMany: {
+          args: Prisma.AuthDeletionOutboxCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.AuthDeletionOutboxCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AuthDeletionOutboxPayload>[]
+        }
+        delete: {
+          args: Prisma.AuthDeletionOutboxDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AuthDeletionOutboxPayload>
+        }
+        update: {
+          args: Prisma.AuthDeletionOutboxUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AuthDeletionOutboxPayload>
+        }
+        deleteMany: {
+          args: Prisma.AuthDeletionOutboxDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.AuthDeletionOutboxUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.AuthDeletionOutboxUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AuthDeletionOutboxPayload>[]
+        }
+        upsert: {
+          args: Prisma.AuthDeletionOutboxUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AuthDeletionOutboxPayload>
+        }
+        aggregate: {
+          args: Prisma.AuthDeletionOutboxAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateAuthDeletionOutbox>
+        }
+        groupBy: {
+          args: Prisma.AuthDeletionOutboxGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AuthDeletionOutboxGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.AuthDeletionOutboxCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AuthDeletionOutboxCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -2189,7 +2502,9 @@ export const ModuleScalarFieldEnum = {
   isActive: 'isActive',
   sortOrder: 'sortOrder',
   key: 'key',
-  description: 'description'
+  description: 'description',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
 } as const
 
 export type ModuleScalarFieldEnum = (typeof ModuleScalarFieldEnum)[keyof typeof ModuleScalarFieldEnum]
@@ -2201,7 +2516,9 @@ export const UserModuleScalarFieldEnum = {
   moduleId: 'moduleId',
   isEnabled: 'isEnabled',
   config: 'config',
-  enabledAt: 'enabledAt'
+  enabledAt: 'enabledAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
 } as const
 
 export type UserModuleScalarFieldEnum = (typeof UserModuleScalarFieldEnum)[keyof typeof UserModuleScalarFieldEnum]
@@ -2287,9 +2604,6 @@ export const FinAccountScalarFieldEnum = {
   institution: 'institution',
   currency: 'currency',
   balance: 'balance',
-  creditLimit: 'creditLimit',
-  statementClosingDay: 'statementClosingDay',
-  paymentDueDay: 'paymentDueDay',
   color: 'color',
   isActive: 'isActive',
   createdAt: 'createdAt',
@@ -2303,6 +2617,7 @@ export const FinEmailSourceScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
   accountId: 'accountId',
+  cardId: 'cardId',
   provider: 'provider',
   emailAddress: 'emailAddress',
   bankDomain: 'bankDomain',
@@ -2329,13 +2644,16 @@ export const FinTransactionScalarFieldEnum = {
   emailMessageId: 'emailMessageId',
   type: 'type',
   amount: 'amount',
+  ledgerAmount: 'ledgerAmount',
   amountBaseCurrency: 'amountBaseCurrency',
   currency: 'currency',
+  ledgerCurrency: 'ledgerCurrency',
   exchangeRate: 'exchangeRate',
   merchant: 'merchant',
   description: 'description',
   transactionDate: 'transactionDate',
   transferGroupId: 'transferGroupId',
+  linkedTransactionId: 'linkedTransactionId',
   status: 'status',
   isRecurring: 'isRecurring',
   aiMetadata: 'aiMetadata',
@@ -2355,7 +2673,9 @@ export const FinCategoryScalarFieldEnum = {
   icon: 'icon',
   color: 'color',
   parentId: 'parentId',
-  isSystem: 'isSystem'
+  isSystem: 'isSystem',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
 } as const
 
 export type FinCategoryScalarFieldEnum = (typeof FinCategoryScalarFieldEnum)[keyof typeof FinCategoryScalarFieldEnum]
@@ -2414,7 +2734,9 @@ export const FinExchangeRateScalarFieldEnum = {
   fromCurrency: 'fromCurrency',
   toCurrency: 'toCurrency',
   rate: 'rate',
-  rateDate: 'rateDate'
+  rateDate: 'rateDate',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
 } as const
 
 export type FinExchangeRateScalarFieldEnum = (typeof FinExchangeRateScalarFieldEnum)[keyof typeof FinExchangeRateScalarFieldEnum]
@@ -2541,6 +2863,65 @@ export const FinEmailSyncLogScalarFieldEnum = {
 } as const
 
 export type FinEmailSyncLogScalarFieldEnum = (typeof FinEmailSyncLogScalarFieldEnum)[keyof typeof FinEmailSyncLogScalarFieldEnum]
+
+
+export const FinEmailMessageScalarFieldEnum = {
+  id: 'id',
+  sourceId: 'sourceId',
+  gmailMessageId: 'gmailMessageId',
+  outcome: 'outcome',
+  reason: 'reason',
+  provider: 'provider',
+  model: 'model',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type FinEmailMessageScalarFieldEnum = (typeof FinEmailMessageScalarFieldEnum)[keyof typeof FinEmailMessageScalarFieldEnum]
+
+
+export const DomainEventOutboxScalarFieldEnum = {
+  id: 'id',
+  eventId: 'eventId',
+  eventName: 'eventName',
+  aggregateType: 'aggregateType',
+  aggregateId: 'aggregateId',
+  userId: 'userId',
+  payload: 'payload',
+  status: 'status',
+  attempts: 'attempts',
+  nextAttemptAt: 'nextAttemptAt',
+  lastError: 'lastError',
+  createdAt: 'createdAt',
+  processedAt: 'processedAt'
+} as const
+
+export type DomainEventOutboxScalarFieldEnum = (typeof DomainEventOutboxScalarFieldEnum)[keyof typeof DomainEventOutboxScalarFieldEnum]
+
+
+export const ProcessedDomainEventScalarFieldEnum = {
+  id: 'id',
+  eventId: 'eventId',
+  consumer: 'consumer',
+  processedAt: 'processedAt'
+} as const
+
+export type ProcessedDomainEventScalarFieldEnum = (typeof ProcessedDomainEventScalarFieldEnum)[keyof typeof ProcessedDomainEventScalarFieldEnum]
+
+
+export const AuthDeletionOutboxScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  status: 'status',
+  attempts: 'attempts',
+  nextAttemptAt: 'nextAttemptAt',
+  lastError: 'lastError',
+  completedAt: 'completedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type AuthDeletionOutboxScalarFieldEnum = (typeof AuthDeletionOutboxScalarFieldEnum)[keyof typeof AuthDeletionOutboxScalarFieldEnum]
 
 
 export const SortOrder = {
@@ -2871,6 +3252,48 @@ export type ListEnumFinEmailSyncStatusFieldRefInput<$PrismaModel> = FieldRefInpu
 
 
 /**
+ * Reference to a field of type 'FinEmailMessageOutcome'
+ */
+export type EnumFinEmailMessageOutcomeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'FinEmailMessageOutcome'>
+    
+
+
+/**
+ * Reference to a field of type 'FinEmailMessageOutcome[]'
+ */
+export type ListEnumFinEmailMessageOutcomeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'FinEmailMessageOutcome[]'>
+    
+
+
+/**
+ * Reference to a field of type 'DomainEventOutboxStatus'
+ */
+export type EnumDomainEventOutboxStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DomainEventOutboxStatus'>
+    
+
+
+/**
+ * Reference to a field of type 'DomainEventOutboxStatus[]'
+ */
+export type ListEnumDomainEventOutboxStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DomainEventOutboxStatus[]'>
+    
+
+
+/**
+ * Reference to a field of type 'AuthDeletionOutboxStatus'
+ */
+export type EnumAuthDeletionOutboxStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AuthDeletionOutboxStatus'>
+    
+
+
+/**
+ * Reference to a field of type 'AuthDeletionOutboxStatus[]'
+ */
+export type ListEnumAuthDeletionOutboxStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AuthDeletionOutboxStatus[]'>
+    
+
+
+/**
  * Reference to a field of type 'Float'
  */
 export type FloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float'>
@@ -2893,19 +3316,10 @@ export type BatchPayload = {
 export const defineExtension = runtime.Extensions.defineExtension as unknown as runtime.Types.Extensions.ExtendsHook<"define", TypeMapCb, runtime.Types.Extensions.DefaultArgs>
 export type DefaultPrismaClient = PrismaClient
 export type ErrorFormat = 'pretty' | 'colorless' | 'minimal'
-export type PrismaClientOptions = ({
-  /**
-   * Instance of a Driver Adapter, e.g., like one provided by `@prisma/adapter-pg`.
-   */
-  adapter: runtime.SqlDriverAdapterFactory
-  accelerateUrl?: never
-} | {
-  /**
-   * Prisma Accelerate URL allowing the client to connect through Accelerate instead of a direct database.
-   */
-  accelerateUrl: string
-  adapter?: never
-}) & {
+/**
+ * Options common to all variants of `PrismaClientOptions`, regardless of whether you connect to your database through a driver adapter or through Prisma Accelerate.
+ */
+export interface PrismaClientBaseOptions {
   /**
    * @default "colorless"
    */
@@ -2992,6 +3406,56 @@ export type PrismaClientOptions = ({
    */
   queryPlanCacheMaxSize?: number
 }
+
+/**
+ * `PrismaClient` options for connecting to your database through Prisma Accelerate instead of a driver adapter.
+ * 
+ * Learn more: https://pris.ly/d/accelerate
+ */
+export interface PrismaClientOptionsWithAccelerateUrl extends PrismaClientBaseOptions {
+  /**
+   * The Prisma Accelerate connection URL. Use this option to connect to your database through Prisma Accelerate instead of using a driver adapter to connect directly.
+   * 
+   * Learn more: https://pris.ly/d/accelerate
+   */
+  accelerateUrl: string
+  adapter?: never
+}
+
+/**
+ * `PrismaClient` options for connecting to your database through a driver adapter. This is the common case in Prisma 7.
+ * 
+ * Learn more: https://pris.ly/d/driver-adapters
+ */
+export interface PrismaClientOptionsWithAdapter extends PrismaClientBaseOptions {
+  /**
+   * A driver adapter that PrismaClient uses to connect to your database, such as the ones provided by `@prisma/adapter-pg`, `@prisma/adapter-libsql`, `@prisma/adapter-planetscale`, etc.
+   * 
+   * A driver adapter is **required** unless you connect to your database through Prisma Accelerate (in which case use `accelerateUrl` instead).
+   * 
+   * Learn more: https://pris.ly/d/driver-adapters
+   * 
+   * @example
+   * ```ts
+   * import { PrismaPg } from '@prisma/adapter-pg'
+   * import { PrismaClient } from './generated/prisma/client'
+   * 
+   * const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL })
+   * const prisma = new PrismaClient({ adapter })
+   * ```
+   */
+  adapter: runtime.SqlDriverAdapterFactory
+  accelerateUrl?: never
+}
+
+/**
+ * Options passed to the `PrismaClient` constructor.
+ * 
+ * A driver adapter (or, alternatively, a Prisma Accelerate URL) is **required**. See {@link PrismaClientOptionsWithAdapter} and {@link PrismaClientOptionsWithAccelerateUrl} for the two variants. All other properties live in {@link PrismaClientBaseOptions} and are optional.
+ * 
+ * Learn more about driver adapters: https://pris.ly/d/driver-adapters
+ */
+export type PrismaClientOptions = PrismaClientOptionsWithAccelerateUrl | PrismaClientOptionsWithAdapter
 export type GlobalOmitConfig = {
   user?: Prisma.UserOmit
   module?: Prisma.ModuleOmit
@@ -3016,6 +3480,10 @@ export type GlobalOmitConfig = {
   finLoan?: Prisma.FinLoanOmit
   finReceivable?: Prisma.FinReceivableOmit
   finEmailSyncLog?: Prisma.FinEmailSyncLogOmit
+  finEmailMessage?: Prisma.FinEmailMessageOmit
+  domainEventOutbox?: Prisma.DomainEventOutboxOmit
+  processedDomainEvent?: Prisma.ProcessedDomainEventOmit
+  authDeletionOutbox?: Prisma.AuthDeletionOutboxOmit
 }
 
 /* Types for Logging */

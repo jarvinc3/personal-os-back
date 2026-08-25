@@ -1,5 +1,5 @@
 packages:
-  - "."
+  - '.'
 allowBuilds:
   '@nestjs/core': true
   '@openrouter/sdk': true
@@ -8,3 +8,8 @@ allowBuilds:
   msgpackr-extract: true
   prisma: true
   unrs-resolver: true
+overrides:
+  axios: 1.18.0
+  js-yaml@5: 5.2.2
+  fast-uri: 3.1.5
+  deepmerge-ts: ">=8.0.0"

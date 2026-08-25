@@ -239,6 +239,7 @@ export type FinBudgetAlertOrderByWithRelationInput = {
 
 export type FinBudgetAlertWhereUniqueInput = Prisma.AtLeast<{
   id?: string
+  budgetId_type?: Prisma.FinBudgetAlertBudgetIdTypeCompoundUniqueInput
   AND?: Prisma.FinBudgetAlertWhereInput | Prisma.FinBudgetAlertWhereInput[]
   OR?: Prisma.FinBudgetAlertWhereInput[]
   NOT?: Prisma.FinBudgetAlertWhereInput | Prisma.FinBudgetAlertWhereInput[]
@@ -248,7 +249,7 @@ export type FinBudgetAlertWhereUniqueInput = Prisma.AtLeast<{
   wasNotified?: Prisma.BoolFilter<"FinBudgetAlert"> | boolean
   triggeredAt?: Prisma.DateTimeFilter<"FinBudgetAlert"> | Date | string
   budget?: Prisma.XOR<Prisma.FinBudgetScalarRelationFilter, Prisma.FinBudgetWhereInput>
-}, "id">
+}, "id" | "budgetId_type">
 
 export type FinBudgetAlertOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
@@ -346,6 +347,11 @@ export type FinBudgetAlertListRelationFilter = {
 
 export type FinBudgetAlertOrderByRelationAggregateInput = {
   _count?: Prisma.SortOrder
+}
+
+export type FinBudgetAlertBudgetIdTypeCompoundUniqueInput = {
+  budgetId: string
+  type: string
 }
 
 export type FinBudgetAlertCountOrderByAggregateInput = {

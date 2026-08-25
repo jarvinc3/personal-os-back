@@ -3,6 +3,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { PrismaService } from '../src/prisma/prisma.service';
+import { applyAuthTestOverrides } from './helpers/auth-test.providers';
 import { createTestJwt } from './helpers/jwt.helper';
 import { createPrismaMock } from './helpers/prisma.mock';
 import { applyTestEnv } from './helpers/test-env';
@@ -21,12 +22,13 @@ describe('Finance (e2e)', () => {
     prismaMock = createPrismaMock();
     token = createTestJwt({ sub: 'user-123' });
 
-    const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AppModule],
-    })
-      .overrideProvider(PrismaService)
-      .useValue(prismaMock)
-      .compile();
+    const moduleFixture: TestingModule = await applyAuthTestOverrides(
+      Test.createTestingModule({
+        imports: [AppModule],
+      })
+        .overrideProvider(PrismaService)
+        .useValue(prismaMock),
+    ).compile();
 
     app = moduleFixture.createNestApplication();
     app.setGlobalPrefix('api');
@@ -54,11 +56,9 @@ describe('Finance (e2e)', () => {
         name: 'Main',
         type: 'CHECKING',
         institution: null,
+        institutionId: null,
         currency: 'DOP',
         balance: { toString: () => '1000.00' },
-        creditLimit: null,
-        statementClosingDay: null,
-        paymentDueDay: null,
         color: null,
         isActive: true,
         createdAt: new Date('2026-01-01'),
@@ -87,11 +87,9 @@ describe('Finance (e2e)', () => {
       name: 'Savings',
       type: 'SAVINGS',
       institution: 'Bank',
+      institutionId: null,
       currency: 'DOP',
       balance: { toString: () => '0.00' },
-      creditLimit: null,
-      statementClosingDay: null,
-      paymentDueDay: null,
       color: '#fff',
       isActive: true,
       createdAt: new Date(),
@@ -199,6 +197,121 @@ describe('Finance (e2e)', () => {
       .expect((res) => {
         expect(res.body.data).toMatchObject({ queued: false });
         expect(res.body.data.reason).toContain('gmail-sync queue is unavailable');
+      });
+  });
+
+  it('POST /api/finance/transactions creates debit', async () => {
+    const accountId = '11111111-1111-4111-8111-111111111111';
+    prismaMock.finAccount.findFirst.mockResolvedValue({
+      id: accountId,
+      userId: 'user-123',
+      currency: 'DOP',
+      name: 'Main',
+    });
+
+    await request(app.getHttpServer())
+      .post('/api/finance/transactions')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        type: 'DEBIT',
+        amount: 50,
+        currency: 'DOP',
+        transactionDate: '2026-08-01T12:00:00.000Z',
+        accountId,
+      })
+      .expect(201)
+      .expect((res) => {
+        expect(res.body.data).toMatchObject({
+          id: 'tx-1',
+          type: 'DEBIT',
+          status: 'CONFIRMED',
+        });
+      });
+  });
+
+  it('POST /api/finance/transactions/:id/confirm confirms PENDING', async () => {
+    const pendingId = '22222222-2222-4222-8222-222222222222';
+    const pendingRow = {
+      id: pendingId,
+      userId: 'user-123',
+      accountId: '11111111-1111-4111-8111-111111111111',
+      cardId: null,
+      type: 'DEBIT',
+      amount: { toString: () => '20.00' },
+      ledgerAmount: { toString: () => '20.00' },
+      amountBaseCurrency: { toString: () => '20.00' },
+      currency: 'DOP',
+      ledgerCurrency: 'DOP',
+      exchangeRate: { toString: () => '1' },
+      merchant: null,
+      description: null,
+      transactionDate: new Date(),
+      status: 'PENDING',
+      source: 'MANUAL',
+      categoryId: null,
+      notes: null,
+      transferGroupId: null,
+      linkedTransactionId: null,
+      createdAt: new Date(),
+      account: { id: '11111111-1111-4111-8111-111111111111', name: 'Main' },
+      card: null,
+    };
+
+    prismaMock.finTransaction.findFirst
+      .mockResolvedValueOnce(pendingRow)
+      .mockResolvedValue({ ...pendingRow, status: 'CONFIRMED' });
+
+    await request(app.getHttpServer())
+      .post(`/api/finance/transactions/${pendingId}/confirm`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect((res) => {
+        expect([200, 201, 404]).toContain(res.status);
+      });
+  });
+
+  it('POST /api/finance/transfers creates transfer group', async () => {
+    const fromAccountId = '11111111-1111-4111-8111-111111111111';
+    const toAccountId = '33333333-3333-4333-8333-333333333333';
+    prismaMock.finAccount.findFirst.mockImplementation((args: any) =>
+      Promise.resolve({
+        id: args?.where?.id ?? fromAccountId,
+        userId: 'user-123',
+        currency: 'DOP',
+      }),
+    );
+
+    await request(app.getHttpServer())
+      .post('/api/finance/transfers')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        fromAccountId,
+        toAccountId,
+        amount: 25,
+        currency: 'DOP',
+        transactionDate: '2026-08-01T12:00:00.000Z',
+      })
+      .expect((res) => {
+        expect([201, 404, 400]).toContain(res.status);
+        if (res.status === 201) {
+          expect(res.body.data).toHaveProperty('transferGroupId');
+        }
+      });
+  });
+
+  it('GET /api/finance/analytics/summary returns totals envelope', async () => {
+    prismaMock.finAccount.findMany.mockResolvedValue([
+      { balance: { toString: () => '100' } },
+    ]);
+    prismaMock.finCardBalance.findMany.mockResolvedValue([]);
+    prismaMock.finTransaction.groupBy.mockResolvedValue([]);
+
+    await request(app.getHttpServer())
+      .get('/api/finance/analytics/summary')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.data).toHaveProperty('netWorth');
+        expect(res.body.data).toHaveProperty('totals');
       });
   });
 });

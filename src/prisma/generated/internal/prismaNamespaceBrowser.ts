@@ -73,7 +73,11 @@ export const ModelName = {
   FinSavingsGoal: 'FinSavingsGoal',
   FinLoan: 'FinLoan',
   FinReceivable: 'FinReceivable',
-  FinEmailSyncLog: 'FinEmailSyncLog'
+  FinEmailSyncLog: 'FinEmailSyncLog',
+  FinEmailMessage: 'FinEmailMessage',
+  DomainEventOutbox: 'DomainEventOutbox',
+  ProcessedDomainEvent: 'ProcessedDomainEvent',
+  AuthDeletionOutbox: 'AuthDeletionOutbox'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -114,7 +118,9 @@ export const ModuleScalarFieldEnum = {
   isActive: 'isActive',
   sortOrder: 'sortOrder',
   key: 'key',
-  description: 'description'
+  description: 'description',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
 } as const
 
 export type ModuleScalarFieldEnum = (typeof ModuleScalarFieldEnum)[keyof typeof ModuleScalarFieldEnum]
@@ -126,7 +132,9 @@ export const UserModuleScalarFieldEnum = {
   moduleId: 'moduleId',
   isEnabled: 'isEnabled',
   config: 'config',
-  enabledAt: 'enabledAt'
+  enabledAt: 'enabledAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
 } as const
 
 export type UserModuleScalarFieldEnum = (typeof UserModuleScalarFieldEnum)[keyof typeof UserModuleScalarFieldEnum]
@@ -212,9 +220,6 @@ export const FinAccountScalarFieldEnum = {
   institution: 'institution',
   currency: 'currency',
   balance: 'balance',
-  creditLimit: 'creditLimit',
-  statementClosingDay: 'statementClosingDay',
-  paymentDueDay: 'paymentDueDay',
   color: 'color',
   isActive: 'isActive',
   createdAt: 'createdAt',
@@ -228,6 +233,7 @@ export const FinEmailSourceScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
   accountId: 'accountId',
+  cardId: 'cardId',
   provider: 'provider',
   emailAddress: 'emailAddress',
   bankDomain: 'bankDomain',
@@ -254,13 +260,16 @@ export const FinTransactionScalarFieldEnum = {
   emailMessageId: 'emailMessageId',
   type: 'type',
   amount: 'amount',
+  ledgerAmount: 'ledgerAmount',
   amountBaseCurrency: 'amountBaseCurrency',
   currency: 'currency',
+  ledgerCurrency: 'ledgerCurrency',
   exchangeRate: 'exchangeRate',
   merchant: 'merchant',
   description: 'description',
   transactionDate: 'transactionDate',
   transferGroupId: 'transferGroupId',
+  linkedTransactionId: 'linkedTransactionId',
   status: 'status',
   isRecurring: 'isRecurring',
   aiMetadata: 'aiMetadata',
@@ -280,7 +289,9 @@ export const FinCategoryScalarFieldEnum = {
   icon: 'icon',
   color: 'color',
   parentId: 'parentId',
-  isSystem: 'isSystem'
+  isSystem: 'isSystem',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
 } as const
 
 export type FinCategoryScalarFieldEnum = (typeof FinCategoryScalarFieldEnum)[keyof typeof FinCategoryScalarFieldEnum]
@@ -339,7 +350,9 @@ export const FinExchangeRateScalarFieldEnum = {
   fromCurrency: 'fromCurrency',
   toCurrency: 'toCurrency',
   rate: 'rate',
-  rateDate: 'rateDate'
+  rateDate: 'rateDate',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
 } as const
 
 export type FinExchangeRateScalarFieldEnum = (typeof FinExchangeRateScalarFieldEnum)[keyof typeof FinExchangeRateScalarFieldEnum]
@@ -466,6 +479,65 @@ export const FinEmailSyncLogScalarFieldEnum = {
 } as const
 
 export type FinEmailSyncLogScalarFieldEnum = (typeof FinEmailSyncLogScalarFieldEnum)[keyof typeof FinEmailSyncLogScalarFieldEnum]
+
+
+export const FinEmailMessageScalarFieldEnum = {
+  id: 'id',
+  sourceId: 'sourceId',
+  gmailMessageId: 'gmailMessageId',
+  outcome: 'outcome',
+  reason: 'reason',
+  provider: 'provider',
+  model: 'model',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type FinEmailMessageScalarFieldEnum = (typeof FinEmailMessageScalarFieldEnum)[keyof typeof FinEmailMessageScalarFieldEnum]
+
+
+export const DomainEventOutboxScalarFieldEnum = {
+  id: 'id',
+  eventId: 'eventId',
+  eventName: 'eventName',
+  aggregateType: 'aggregateType',
+  aggregateId: 'aggregateId',
+  userId: 'userId',
+  payload: 'payload',
+  status: 'status',
+  attempts: 'attempts',
+  nextAttemptAt: 'nextAttemptAt',
+  lastError: 'lastError',
+  createdAt: 'createdAt',
+  processedAt: 'processedAt'
+} as const
+
+export type DomainEventOutboxScalarFieldEnum = (typeof DomainEventOutboxScalarFieldEnum)[keyof typeof DomainEventOutboxScalarFieldEnum]
+
+
+export const ProcessedDomainEventScalarFieldEnum = {
+  id: 'id',
+  eventId: 'eventId',
+  consumer: 'consumer',
+  processedAt: 'processedAt'
+} as const
+
+export type ProcessedDomainEventScalarFieldEnum = (typeof ProcessedDomainEventScalarFieldEnum)[keyof typeof ProcessedDomainEventScalarFieldEnum]
+
+
+export const AuthDeletionOutboxScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  status: 'status',
+  attempts: 'attempts',
+  nextAttemptAt: 'nextAttemptAt',
+  lastError: 'lastError',
+  completedAt: 'completedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type AuthDeletionOutboxScalarFieldEnum = (typeof AuthDeletionOutboxScalarFieldEnum)[keyof typeof AuthDeletionOutboxScalarFieldEnum]
 
 
 export const SortOrder = {

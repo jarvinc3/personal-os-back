@@ -1,0 +1,106 @@
+rls_ddl
+"-- public.ai_actions
+ALTER TABLE public.ai_actions ENABLE ROW LEVEL SECURITY                                                           ;
+CREATE POLICY ""ai_actions: own sessions"" ON public.ai_actions AS PERMISSIVE FOR ALL TO public
+USING ((session_id IN ( SELECT ai_agent_sessions.id
+FROM ai_agent_sessions
+WHERE (ai_agent_sessions.user_id = (auth.uid())::text))));"
+"-- public.ai_agent_sessions
+ALTER TABLE public.ai_agent_sessions ENABLE ROW LEVEL SECURITY                                                    ;
+CREATE POLICY ""ai_sessions: own"" ON public.ai_agent_sessions AS PERMISSIVE FOR ALL TO public
+USING ((user_id = (auth.uid())::text));"
+"-- public.ai_messages
+ALTER TABLE public.ai_messages ENABLE ROW LEVEL SECURITY                                                          ;
+CREATE POLICY ""ai_messages: own sessions"" ON public.ai_messages AS PERMISSIVE FOR ALL TO public
+USING ((session_id IN ( SELECT ai_agent_sessions.id
+FROM ai_agent_sessions
+WHERE (ai_agent_sessions.user_id = (auth.uid())::text))));"
+"-- public.auth_deletion_outbox
+ALTER TABLE public.auth_deletion_outbox ENABLE ROW LEVEL SECURITY                                                 ;
+-- No policies"
+"-- public.fin_accounts
+ALTER TABLE public.fin_accounts ENABLE ROW LEVEL SECURITY                                                         ;
+CREATE POLICY ""fin_accounts: own"" ON public.fin_accounts AS PERMISSIVE FOR ALL TO public
+USING ((user_id = (auth.uid())::text));"
+"-- public.fin_budget_alerts
+ALTER TABLE public.fin_budget_alerts ENABLE ROW LEVEL SECURITY                                                    ;
+CREATE POLICY ""fin_budget_alerts: own budgets"" ON public.fin_budget_alerts AS PERMISSIVE FOR ALL TO public
+USING ((budget_id IN ( SELECT fin_budgets.id
+FROM fin_budgets
+WHERE (fin_budgets.user_id = (auth.uid())::text))));"
+"-- public.fin_budgets
+ALTER TABLE public.fin_budgets ENABLE ROW LEVEL SECURITY                                                          ;
+CREATE POLICY ""fin_budgets: own"" ON public.fin_budgets AS PERMISSIVE FOR ALL TO public
+USING ((user_id = (auth.uid())::text));"
+"-- public.fin_card_balances
+ALTER TABLE public.fin_card_balances ENABLE ROW LEVEL SECURITY                                                    ;
+CREATE POLICY ""fin_card_balances: own cards"" ON public.fin_card_balances AS PERMISSIVE FOR ALL TO public
+USING ((card_id IN ( SELECT fin_cards.id
+FROM fin_cards
+WHERE (fin_cards.user_id = (auth.uid())::text))));"
+"-- public.fin_cards
+ALTER TABLE public.fin_cards ENABLE ROW LEVEL SECURITY                                                            ;
+CREATE POLICY ""fin_cards: own"" ON public.fin_cards AS PERMISSIVE FOR ALL TO public
+USING ((user_id = (auth.uid())::text));"
+"-- public.fin_categories
+ALTER TABLE public.fin_categories ENABLE ROW LEVEL SECURITY                                                       ;
+CREATE POLICY ""fin_categories: own or system"" ON public.fin_categories AS PERMISSIVE FOR ALL TO public
+USING (((user_id = (auth.uid())::text) OR (is_system = true)));"
+"-- public.fin_email_sources
+ALTER TABLE public.fin_email_sources ENABLE ROW LEVEL SECURITY                                                    ;
+CREATE POLICY ""fin_email_sources: own"" ON public.fin_email_sources AS PERMISSIVE FOR ALL TO public
+USING ((user_id = (auth.uid())::text));"
+"-- public.fin_email_sync_logs
+ALTER TABLE public.fin_email_sync_logs ENABLE ROW LEVEL SECURITY                                                  ;
+CREATE POLICY ""fin_email_sync_logs: own sources"" ON public.fin_email_sync_logs AS PERMISSIVE FOR ALL TO public
+USING ((source_id IN ( SELECT fin_email_sources.id
+FROM fin_email_sources
+WHERE (fin_email_sources.user_id = (auth.uid())::text))));"
+"-- public.fin_exchange_rates
+ALTER TABLE public.fin_exchange_rates ENABLE ROW LEVEL SECURITY                                                   ;
+CREATE POLICY ""fin_exchange_rates: public read"" ON public.fin_exchange_rates AS PERMISSIVE FOR SELECT TO public
+USING (true);"
+"-- public.fin_institutions
+ALTER TABLE public.fin_institutions ENABLE ROW LEVEL SECURITY                                                     ;
+CREATE POLICY ""fin_institutions: own"" ON public.fin_institutions AS PERMISSIVE FOR ALL TO public
+USING ((user_id = (auth.uid())::text));"
+"-- public.fin_loans
+ALTER TABLE public.fin_loans ENABLE ROW LEVEL SECURITY                                                            ;
+CREATE POLICY ""fin_loans: own"" ON public.fin_loans AS PERMISSIVE FOR ALL TO public
+USING ((user_id = (auth.uid())::text));"
+"-- public.fin_receivables
+ALTER TABLE public.fin_receivables ENABLE ROW LEVEL SECURITY                                                      ;
+CREATE POLICY ""fin_receivables: own"" ON public.fin_receivables AS PERMISSIVE FOR ALL TO public
+USING ((user_id = (auth.uid())::text));"
+"-- public.fin_recurring_patterns
+ALTER TABLE public.fin_recurring_patterns ENABLE ROW LEVEL SECURITY                                               ;
+CREATE POLICY ""fin_recurring: own"" ON public.fin_recurring_patterns AS PERMISSIVE FOR ALL TO public
+USING ((user_id = (auth.uid())::text));"
+"-- public.fin_savings_goals
+ALTER TABLE public.fin_savings_goals ENABLE ROW LEVEL SECURITY                                                    ;
+CREATE POLICY ""fin_savings_goals: own"" ON public.fin_savings_goals AS PERMISSIVE FOR ALL TO public
+USING ((user_id = (auth.uid())::text));"
+"-- public.fin_transactions
+ALTER TABLE public.fin_transactions ENABLE ROW LEVEL SECURITY                                                     ;
+CREATE POLICY ""fin_transactions: own"" ON public.fin_transactions AS PERMISSIVE FOR ALL TO public
+USING ((user_id = (auth.uid())::text));"
+"-- public.modules
+ALTER TABLE public.modules ENABLE ROW LEVEL SECURITY                                                              ;
+CREATE POLICY ""modules: public read"" ON public.modules AS PERMISSIVE FOR SELECT TO public
+USING (true);"
+"-- public.notifications
+ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY                                                        ;
+CREATE POLICY ""notifications: own"" ON public.notifications AS PERMISSIVE FOR ALL TO public
+USING ((user_id = (auth.uid())::text));"
+"-- public.push_tokens
+ALTER TABLE public.push_tokens ENABLE ROW LEVEL SECURITY                                                          ;
+CREATE POLICY ""push_tokens: own"" ON public.push_tokens AS PERMISSIVE FOR ALL TO public
+USING ((user_id = (auth.uid())::text));"
+"-- public.user_modules
+ALTER TABLE public.user_modules ENABLE ROW LEVEL SECURITY                                                         ;
+CREATE POLICY ""user_modules: own"" ON public.user_modules AS PERMISSIVE FOR ALL TO public
+USING ((user_id = (auth.uid())::text));"
+"-- public.users
+ALTER TABLE public.users ENABLE ROW LEVEL SECURITY                                                                ;
+CREATE POLICY ""users: own row"" ON public.users AS PERMISSIVE FOR ALL TO public
+USING ((id = (auth.uid())::text));"

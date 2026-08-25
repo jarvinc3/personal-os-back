@@ -1,26 +1,33 @@
 import { Injectable } from '@nestjs/common';
-import { FinanceService } from '../../finance/finance.service';
-import { GLOBAL_USER_PREFERENCES_DEFAULTS } from '../../users/defaults/global-preferences-defaults';
-import { mergeWithDefaults } from '../../users/lib/settings-merge';
-import { UsersService } from '../../users/users.service';
-import { AiSessionsRepository } from '../ai-sessions.repository';
+import { FinanceFacade } from '../../finance';
 import {
-  MODULE_CONTEXT,
-  MODULE_CONTEXT_SLUGS,
-  MODULE_CONTEXT_SWITCH_TOOL,
-  type ModuleContextSlug,
+  GLOBAL_USER_PREFERENCES_DEFAULTS,
+  mergeWithDefaults,
+  UsersService,
+} from '../../users';
+import { AiSessionsRepository } from '../chat/infrastructure/ai-sessions.repository';
+import {
+    MODULE_CONTEXT,
+    MODULE_CONTEXT_SLUGS,
+    MODULE_CONTEXT_SWITCH_TOOL,
+    type ModuleContextSlug,
 } from '../prompts/module-context';
 import type {
-  SideEffectDescriptor,
-  ToolContext,
-  ToolExecutionResult,
-} from '../utils/ai.types';
+    SideEffectDescriptor,
+    ToolContext,
+    ToolExecutionResult,
+} from '../shared/ai.types';
+import {
+    type MutatingToolName,
+    type ValidatedToolArgs,
+    validateMutatingToolArgs,
+} from './tool-arg-schemas';
 
 @Injectable()
 export class ToolExecutorService {
   constructor(
     private readonly usersService: UsersService,
-    private readonly financeService: FinanceService,
+    private readonly financeFacade: FinanceFacade,
     private readonly sessionsRepo: AiSessionsRepository,
   ) {}
 
@@ -46,13 +53,9 @@ export class ToolExecutorService {
 
   async setTheme(
     ctx: ToolContext,
-    args: Record<string, unknown>,
+    args: ValidatedToolArgs<'set_theme'>,
   ): Promise<ToolExecutionResult> {
-    const value = args.value as string;
-    if (!['system', 'light', 'dark'].includes(value)) {
-      return { success: false, message: 'Invalid theme value' };
-    }
-
+    const { value } = args;
     const profile = await this.usersService.findById(ctx.userId);
     const prefs = (profile.preferences ?? {}) as Record<string, unknown>;
     const theme = (prefs.theme ?? {}) as Record<string, unknown>;
@@ -68,14 +71,14 @@ export class ToolExecutorService {
       message: `Theme set to ${value}`,
       sideEffects: [
         { type: 'invalidate', keys: ['profile', 'me'] },
-        { type: 'theme', value: value as 'system' | 'light' | 'dark' },
+        { type: 'theme', value },
       ],
     };
   }
 
   async updateUserProfile(
     ctx: ToolContext,
-    args: Record<string, unknown>,
+    args: ValidatedToolArgs<'update_user_profile'>,
   ): Promise<ToolExecutionResult> {
     const patch: {
       fullName?: string;
@@ -85,83 +88,24 @@ export class ToolExecutorService {
     } = {};
 
     if (args.fullName !== undefined) {
-      if (typeof args.fullName !== 'string' || !args.fullName.trim()) {
-        return {
-          success: false,
-          message: 'fullName must be a non-empty string',
-        };
-      }
-      if (args.fullName.length > 120) {
-        return {
-          success: false,
-          message: 'fullName must be at most 120 characters',
-        };
-      }
-      patch.fullName = args.fullName.trim();
+      patch.fullName = args.fullName;
     }
 
     if (args.avatarUrl !== undefined) {
       if (args.avatarUrl === null) {
         patch.avatarUrl = null;
-      } else if (typeof args.avatarUrl === 'string') {
-        const url = args.avatarUrl.trim();
-        if (url.length > 500) {
-          return {
-            success: false,
-            message: 'avatarUrl must be at most 500 characters',
-          };
-        }
-        if (url.length > 0 && !/^https:\/\//i.test(url)) {
-          return {
-            success: false,
-            message:
-              'avatarUrl must be an HTTPS URL or null to remove the avatar',
-          };
-        }
-        patch.avatarUrl = url.length > 0 ? url : null;
       } else {
-        return {
-          success: false,
-          message: 'avatarUrl must be a string or null',
-        };
+        const url = args.avatarUrl.trim();
+        patch.avatarUrl = url.length > 0 ? url : null;
       }
     }
 
     if (args.locale !== undefined) {
-      if (typeof args.locale !== 'string' || !args.locale.trim()) {
-        return { success: false, message: 'locale must be a non-empty string' };
-      }
-      if (args.locale.length > 20) {
-        return {
-          success: false,
-          message: 'locale must be at most 20 characters',
-        };
-      }
-      patch.locale = args.locale.trim();
+      patch.locale = args.locale;
     }
 
     if (args.timezone !== undefined) {
-      if (typeof args.timezone !== 'string' || !args.timezone.trim()) {
-        return {
-          success: false,
-          message: 'timezone must be a non-empty string',
-        };
-      }
-      if (args.timezone.length > 100) {
-        return {
-          success: false,
-          message: 'timezone must be at most 100 characters',
-        };
-      }
-      patch.timezone = args.timezone.trim();
-    }
-
-    if (Object.keys(patch).length === 0) {
-      return {
-        success: false,
-        message:
-          'Provide at least one of: fullName, avatarUrl, locale, timezone',
-      };
+      patch.timezone = args.timezone;
     }
 
     const updated = await this.usersService.updateProfile(ctx.userId, patch);
@@ -185,14 +129,11 @@ export class ToolExecutorService {
 
   async updatePreferences(
     ctx: ToolContext,
-    args: Record<string, unknown>,
+    args: ValidatedToolArgs<'update_preferences'>,
   ): Promise<ToolExecutionResult> {
-    const partial = args.preferences as Record<string, unknown> | undefined;
-    if (!partial || typeof partial !== 'object') {
-      return { success: false, message: 'preferences object required' };
-    }
-
-    await this.usersService.updateProfile(ctx.userId, { preferences: partial });
+    await this.usersService.updateProfile(ctx.userId, {
+      preferences: args.preferences,
+    });
 
     return {
       success: true,
@@ -203,7 +144,7 @@ export class ToolExecutorService {
 
   async updateAiSettings(
     ctx: ToolContext,
-    args: Record<string, unknown>,
+    args: ValidatedToolArgs<'update_ai_settings'>,
   ): Promise<ToolExecutionResult> {
     const profile = await this.usersService.findById(ctx.userId);
     const prefs = mergeWithDefaults(
@@ -235,7 +176,7 @@ export class ToolExecutorService {
 
   async updateNotificationSettings(
     ctx: ToolContext,
-    args: Record<string, unknown>,
+    args: ValidatedToolArgs<'update_notification_settings'>,
   ): Promise<ToolExecutionResult> {
     const patch: Record<string, unknown> = { notifications: {} };
     const notifications = patch.notifications as Record<string, unknown>;
@@ -253,19 +194,9 @@ export class ToolExecutorService {
 
   async updateModuleConfig(
     ctx: ToolContext,
-    args: Record<string, unknown>,
+    args: ValidatedToolArgs<'update_module_config'>,
   ): Promise<ToolExecutionResult> {
-    const slug = args.slug as string;
-    const config = args.config as Record<string, unknown>;
-    if (!slug || !config) {
-      return { success: false, message: 'slug and config required' };
-    }
-    if (slug === 'finance') {
-      return {
-        success: false,
-        message: 'Finance module config is not available via chat',
-      };
-    }
+    const { slug, config } = args;
 
     await this.usersService.updateModuleConfig(ctx.userId, slug, { config });
 
@@ -281,13 +212,9 @@ export class ToolExecutorService {
 
   async toggleModule(
     ctx: ToolContext,
-    args: Record<string, unknown>,
+    args: ValidatedToolArgs<'toggle_module'>,
   ): Promise<ToolExecutionResult> {
-    const slug = args.slug as string;
-    const isEnabled = args.isEnabled as boolean;
-    if (!slug || typeof isEnabled !== 'boolean') {
-      return { success: false, message: 'slug and isEnabled required' };
-    }
+    const { slug, isEnabled } = args;
 
     await this.usersService.updateModuleConfig(ctx.userId, slug, { isEnabled });
 
@@ -343,168 +270,357 @@ export class ToolExecutorService {
     name: string,
     args: Record<string, unknown>,
   ): Promise<ToolExecutionResult> {
+    if (args.__parseError !== undefined) {
+      return {
+        success: false,
+        message:
+          typeof args.__parseError === 'string'
+            ? args.__parseError
+            : 'Tool arguments are not valid JSON',
+      };
+    }
+
+    const validation = validateMutatingToolArgs(name, args);
+    if (!validation.ok) {
+      return { success: false, message: validation.message };
+    }
+    const validated = validation.data;
+
+    try {
+      return await this.dispatch(ctx, name, validated);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      return {
+        success: false,
+        message: `Tool execution failed: ${message}`,
+      };
+    }
+  }
+
+  private async dispatch(
+    ctx: ToolContext,
+    name: string,
+    args: Record<string, unknown>,
+  ): Promise<ToolExecutionResult> {
     switch (name) {
       case MODULE_CONTEXT_SWITCH_TOOL:
         return this.switchModuleContext(ctx, args);
       case 'get_user_context':
         return this.getUserContext(ctx);
       case 'update_user_profile':
-        return this.updateUserProfile(ctx, args);
+        return this.updateUserProfile(
+          ctx,
+          args,
+        );
       case 'set_theme':
-        return this.setTheme(ctx, args);
+        return this.setTheme(ctx, args as ValidatedToolArgs<'set_theme'>);
       case 'update_preferences':
-        return this.updatePreferences(ctx, args);
+        return this.updatePreferences(
+          ctx,
+          args as ValidatedToolArgs<'update_preferences'>,
+        );
       case 'update_ai_settings':
-        return this.updateAiSettings(ctx, args);
+        return this.updateAiSettings(
+          ctx,
+          args,
+        );
       case 'update_notification_settings':
-        return this.updateNotificationSettings(ctx, args);
+        return this.updateNotificationSettings(
+          ctx,
+          args,
+        );
       case 'update_module_config':
-        return this.updateModuleConfig(ctx, args);
+        return this.updateModuleConfig(
+          ctx,
+          args as ValidatedToolArgs<'update_module_config'>,
+        );
       case 'toggle_module':
-        return this.toggleModule(ctx, args);
+        return this.toggleModule(
+          ctx,
+          args as ValidatedToolArgs<'toggle_module'>,
+        );
       case 'get_finance_summary':
         return {
           success: true,
           message: 'Finance summary loaded',
-          data: await this.financeService.getAnalyticsSummary(
+          data: await this.financeFacade.getAnalyticsSummary(
             ctx.userId,
-            args.dateFrom as string | undefined,
-            args.dateTo as string | undefined,
+            typeof args.dateFrom === 'string' ? args.dateFrom : undefined,
+            typeof args.dateTo === 'string' ? args.dateTo : undefined,
           ),
         };
       case 'list_transactions':
         return {
           success: true,
           message: 'Transactions loaded',
-          data: await this.financeService.listTransactions(ctx.userId, {
+          data: await this.financeFacade.listTransactions(ctx.userId, {
             page: 1,
             limit: 50,
-            ...(args),
+            ...args,
           }),
         };
-      case 'create_transaction':
+      case 'get_transaction': {
+        const id = typeof args.transactionId === 'string' ? args.transactionId : '';
+        if (!id) {
+          return { success: false, message: 'transactionId is required' };
+        }
+        return {
+          success: true,
+          message: 'Transaction loaded',
+          data: await this.financeFacade.getTransaction(ctx.userId, id),
+        };
+      }
+      case 'list_categories':
+        return {
+          success: true,
+          message: 'Categories loaded',
+          data: { items: await this.financeFacade.listCategories(ctx.userId) },
+        };
+      case 'list_accounts':
+        return {
+          success: true,
+          message: 'Accounts loaded',
+          data: { items: await this.financeFacade.listAccounts(ctx.userId) },
+        };
+      case 'list_cards':
+        return {
+          success: true,
+          message: 'Cards loaded',
+          data: { items: await this.financeFacade.listCards(ctx.userId) },
+        };
+      case 'list_budgets':
+        return {
+          success: true,
+          message: 'Budgets loaded',
+          data: { items: await this.financeFacade.listBudgets(ctx.userId) },
+        };
+      case 'list_email_sources':
+        return {
+          success: true,
+          message: 'Email sources loaded',
+          data: { items: await this.financeFacade.listEmailSources(ctx.userId) },
+        };
+      case 'create_transaction': {
+        const tx = args as ValidatedToolArgs<'create_transaction'>;
         return {
           success: true,
           message: 'Transaction created',
-          data: await this.financeService.createTransaction(ctx.userId, {
-            accountId: args.accountId as string | undefined,
-            cardId: args.cardId as string | undefined,
-            type: args.type as 'DEBIT' | 'CREDIT' | 'TRANSFER',
-            amount: Number(args.amount),
-            currency: args.currency as string | undefined,
-            transactionDate: args.transactionDate as string,
-            description: args.description as string | undefined,
-            merchant: args.merchant as string | undefined,
-            categoryId: args.categoryId as string | undefined,
+          data: await this.financeFacade.createTransaction(
+            ctx.userId,
+            {
+              accountId: tx.accountId ?? undefined,
+              cardId: tx.cardId ?? undefined,
+              type: tx.type,
+              amount: tx.amount,
+              currency: tx.currency,
+              transactionDate: tx.transactionDate,
+              description: tx.description ?? undefined,
+              merchant: tx.merchant ?? undefined,
+              categoryId: tx.categoryId ?? undefined,
+            },
+            'AI',
+          ),
+        };
+      }
+      case 'create_transfer': {
+        const t = args as ValidatedToolArgs<'create_transfer'>;
+        return {
+          success: true,
+          message: 'Transfer created',
+          data: await this.financeFacade.createTransferTransaction(ctx.userId, {
+            fromAccountId: t.fromAccountId ?? undefined,
+            fromCardId: t.fromCardId ?? undefined,
+            toAccountId: t.toAccountId ?? undefined,
+            toCardId: t.toCardId ?? undefined,
+            amount: t.amount,
+            currency: t.currency,
+            transactionDate: t.transactionDate,
+            description: t.description ?? undefined,
+            notes: t.notes ?? undefined,
           }),
         };
+      }
+      case 'update_transaction': {
+        const tx = args as ValidatedToolArgs<'update_transaction'>;
+        return {
+          success: true,
+          message: 'Transaction updated',
+          data: await this.financeFacade.updateTransaction(
+            ctx.userId,
+            tx.transactionId,
+            {
+              categoryId: tx.categoryId ?? undefined,
+              merchant: tx.merchant ?? undefined,
+              description: tx.description ?? undefined,
+              notes: tx.notes ?? undefined,
+            },
+          ),
+        };
+      }
+      case 'confirm_transaction': {
+        const tx = args as ValidatedToolArgs<'confirm_transaction'>;
+        return {
+          success: true,
+          message: 'Transaction confirmed',
+          data: await this.financeFacade.confirmTransaction(
+            ctx.userId,
+            tx.transactionId,
+          ),
+        };
+      }
       case 'get_budget_status':
         return {
           success: true,
           message: 'Budget status loaded',
-          data: { items: await this.financeService.getBudgetStatus(ctx.userId) },
+          data: {
+            items: await this.financeFacade.getBudgetStatus(ctx.userId),
+          },
         };
-      case 'create_or_update_budget':
-        if (args.budgetId) {
+      case 'create_or_update_budget': {
+        const budget = args as ValidatedToolArgs<'create_or_update_budget'>;
+        if (budget.budgetId) {
           return {
             success: true,
             message: 'Budget updated',
-            data: await this.financeService.updateBudget(ctx.userId, args.budgetId as string, {
-              categoryId: args.categoryId as string | undefined,
-              periodType: args.periodType as 'MONTHLY' | 'BIWEEKLY' | 'CUSTOM' | undefined,
-              periodStart: args.periodStart as string | undefined,
-              periodEnd: args.periodEnd as string | undefined,
-              amountLimit: args.amountLimit as number | undefined,
-              alertThresholdPct: args.alertThresholdPct as number | undefined,
-            }),
+            data: await this.financeFacade.updateBudget(
+              ctx.userId,
+              budget.budgetId,
+              {
+                categoryId: budget.categoryId,
+                periodType: budget.periodType,
+                periodStart: budget.periodStart,
+                periodEnd: budget.periodEnd,
+                amountLimit: budget.amountLimit,
+                alertThresholdPct: budget.alertThresholdPct ?? undefined,
+              },
+            ),
           };
         }
         return {
           success: true,
           message: 'Budget created',
-          data: await this.financeService.createBudget(ctx.userId, {
-            categoryId: args.categoryId as string,
-            periodType: args.periodType as 'MONTHLY' | 'BIWEEKLY' | 'CUSTOM',
-            periodStart: args.periodStart as string,
-            periodEnd: args.periodEnd as string,
-            amountLimit: Number(args.amountLimit),
-            alertThresholdPct: args.alertThresholdPct as number | undefined,
+          data: await this.financeFacade.createBudget(ctx.userId, {
+            categoryId: budget.categoryId as string,
+            periodType: budget.periodType as
+              | 'MONTHLY'
+              | 'BIWEEKLY'
+              | 'CUSTOM',
+            periodStart: budget.periodStart as string,
+            periodEnd: budget.periodEnd as string,
+            amountLimit: budget.amountLimit as number,
+            alertThresholdPct: budget.alertThresholdPct ?? undefined,
           }),
         };
+      }
       case 'list_savings_goals':
         return {
           success: true,
           message: 'Savings goals loaded',
-          data: { items: await this.financeService.listSavingsGoals(ctx.userId) },
+          data: {
+            items: await this.financeFacade.listSavingsGoals(ctx.userId),
+          },
         };
-      case 'create_savings_goal':
+      case 'create_savings_goal': {
+        const goal = args as ValidatedToolArgs<'create_savings_goal'>;
         return {
           success: true,
           message: 'Savings goal created',
-          data: await this.financeService.createSavingsGoal(ctx.userId, {
-            name: args.name as string,
-            targetAmount: Number(args.targetAmount),
-            currentAmount: args.currentAmount as number | undefined,
-            currency: args.currency as string | undefined,
-            targetDate: args.targetDate as string | undefined,
+          data: await this.financeFacade.createSavingsGoal(ctx.userId, {
+            name: goal.name,
+            targetAmount: goal.targetAmount,
+            currentAmount: goal.currentAmount ?? undefined,
+            currency: goal.currency ?? undefined,
+            targetDate: goal.targetDate ?? undefined,
           }),
         };
-      case 'update_savings_goal':
+      }
+      case 'update_savings_goal': {
+        const goal = args as ValidatedToolArgs<'update_savings_goal'>;
         return {
           success: true,
           message: 'Savings goal updated',
-          data: await this.financeService.updateSavingsGoal(
+          data: await this.financeFacade.updateSavingsGoal(
             ctx.userId,
-            args.goalId as string,
+            goal.goalId,
             {
-              currentAmount: args.currentAmount as number | undefined,
-              targetAmount: args.targetAmount as number | undefined,
-              name: args.name as string | undefined,
+              currentAmount: goal.currentAmount ?? undefined,
+              targetAmount: goal.targetAmount ?? undefined,
+              name: goal.name ?? undefined,
             },
           ),
         };
+      }
       case 'list_loans':
         return {
           success: true,
           message: 'Loans loaded',
-          data: { items: await this.financeService.listLoans(ctx.userId) },
+          data: { items: await this.financeFacade.listLoans(ctx.userId) },
         };
       case 'mark_loan_installment_paid': {
-        const loans = await this.financeService.listLoans(ctx.userId);
-        const loan = loans.find((item) => item.id === args.loanId);
+        const loanArgs =
+          args as ValidatedToolArgs<'mark_loan_installment_paid'>;
+        const loans = await this.financeFacade.listLoans(ctx.userId);
+        const loan = loans.find((item) => item.id === loanArgs.loanId);
         if (!loan) {
           return { success: false, message: 'Loan not found' };
         }
         return {
           success: true,
           message: 'Loan installment marked as paid',
-          data: await this.financeService.updateLoan(ctx.userId, args.loanId as string, {
-            paidInstallments: loan.paidInstallments + 1,
-            currentBalance: Number(loan.currentBalance) - Number(loan.installmentAmount),
-          }),
-        };
-      }
-      case 'trigger_email_sync':
-        return {
-          success: true,
-          message: 'Email sync queued',
-          data: await this.financeService.triggerEmailSync(
+          data: await this.financeFacade.updateLoan(
             ctx.userId,
-            args.sourceId as string,
+            loanArgs.loanId,
+            {
+              paidInstallments: loan.paidInstallments + 1,
+              currentBalance:
+                Number(loan.currentBalance) - Number(loan.installmentAmount),
+            },
           ),
         };
+      }
+      case 'trigger_email_sync': {
+        const sync = args as ValidatedToolArgs<'trigger_email_sync'>;
+        const result = await this.financeFacade.triggerEmailSync(
+          ctx.userId,
+          sync.sourceId,
+          sync.forceFullSync ?? false,
+        );
+        return {
+          success: result.queued === true,
+          message: result.queued
+            ? 'Email sync queued'
+            : (result.reason ?? 'Email sync not queued'),
+          data: result,
+        };
+      }
       case 'get_spending_by_category':
         return {
           success: true,
           message: 'Spending breakdown loaded',
           data: {
-            items: await this.financeService.getSpendingByCategory(
+            items: await this.financeFacade.getSpendingByCategory(
               ctx.userId,
-              args.dateFrom as string | undefined,
-              args.dateTo as string | undefined,
+              typeof args.dateFrom === 'string' ? args.dateFrom : undefined,
+              typeof args.dateTo === 'string' ? args.dateTo : undefined,
             ),
           },
         };
+      case 'get_spending_over_time': {
+        const groupBy =
+          args.groupBy === 'week' || args.groupBy === 'month'
+            ? args.groupBy
+            : 'day';
+        return {
+          success: true,
+          message: 'Spending over time loaded',
+          data: await this.financeFacade.getSpendingOverTime(
+            ctx.userId,
+            typeof args.dateFrom === 'string' ? args.dateFrom : undefined,
+            typeof args.dateTo === 'string' ? args.dateTo : undefined,
+            groupBy,
+          ),
+        };
+      }
       default:
         return { success: false, message: `Unknown tool: ${name}` };
     }
@@ -525,3 +641,6 @@ export class ToolExecutorService {
     return effects;
   }
 }
+
+/** Re-export for tests. */
+export type { MutatingToolName };

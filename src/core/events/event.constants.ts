@@ -1,25 +1,27 @@
 export const AppEvents = {
   // ── User ──────────────────────────────────────────────
-  USER_CREATED: 'user.created',
   USER_LOGGED_IN: 'user.logged_in',
 
-  // ── Transaction ──────────────────────────────────────────────
-  TRANSACTION_CREATED: 'transaction.created',
-  TRANSACTION_UPDATED: 'transaction.updated',
+  // ── Finance (versioned only) ──────────────────────────
+  FINANCE_TRANSACTION_IMPORTED: 'finance.transaction.imported',
+  FINANCE_TRANSACTION_CONFIRMED: 'finance.transaction.confirmed',
+  FINANCE_TRANSACTION_UPDATED: 'finance.transaction.updated',
+  FINANCE_TRANSACTION_DECLINED: 'finance.transaction.declined',
+  FINANCE_TRANSACTION_CANCELLED: 'finance.transaction.cancelled',
+  FINANCE_TRANSACTION_REVERSED: 'finance.transaction.reversed',
+  FINANCE_TRANSFER_CREATED: 'finance.transfer.created',
+  FINANCE_BUDGET_THRESHOLD_CROSSED: 'finance.budget.threshold_crossed',
+  FINANCE_EMAIL_SYNC_COMPLETED: 'finance.email_sync.completed',
+  FINANCE_EMAIL_SYNC_FAILED: 'finance.email_sync.failed',
 
-  // ── Budget ──────────────────────────────────────────────
-  BUDGET_THRESHOLD_REACHED: 'budget.threshold_reached',
-
-  // ── AI ──────────────────────────────────────────────
-  AI_ACTION_REQUESTED: 'ai.action_requested',
-  AI_ACTION_COMPLETED: 'ai.action_completed',
+  // ── Notification ──────────────────────────────────────────────
+  NOTIFICATION_CREATED: 'notification.created',
 
   // ── Preferences / modules (non-finance) ─────────────
   USER_PREFERENCES_UPDATED: 'user.preferences.updated',
   MODULE_ENABLED: 'module.enabled',
   MODULE_DISABLED: 'module.disabled',
   MODULE_CONFIG_UPDATED: 'module.config.updated',
-  ONBOARDING_COMPLETED: 'onboarding.completed',
 } as const;
 
 export type AppEventName = (typeof AppEvents)[keyof typeof AppEvents];

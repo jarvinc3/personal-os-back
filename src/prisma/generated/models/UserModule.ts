@@ -30,6 +30,8 @@ export type UserModuleMinAggregateOutputType = {
   moduleId: string | null
   isEnabled: boolean | null
   enabledAt: Date | null
+  createdAt: Date | null
+  updatedAt: Date | null
 }
 
 export type UserModuleMaxAggregateOutputType = {
@@ -38,6 +40,8 @@ export type UserModuleMaxAggregateOutputType = {
   moduleId: string | null
   isEnabled: boolean | null
   enabledAt: Date | null
+  createdAt: Date | null
+  updatedAt: Date | null
 }
 
 export type UserModuleCountAggregateOutputType = {
@@ -47,6 +51,8 @@ export type UserModuleCountAggregateOutputType = {
   isEnabled: number
   config: number
   enabledAt: number
+  createdAt: number
+  updatedAt: number
   _all: number
 }
 
@@ -57,6 +63,8 @@ export type UserModuleMinAggregateInputType = {
   moduleId?: true
   isEnabled?: true
   enabledAt?: true
+  createdAt?: true
+  updatedAt?: true
 }
 
 export type UserModuleMaxAggregateInputType = {
@@ -65,6 +73,8 @@ export type UserModuleMaxAggregateInputType = {
   moduleId?: true
   isEnabled?: true
   enabledAt?: true
+  createdAt?: true
+  updatedAt?: true
 }
 
 export type UserModuleCountAggregateInputType = {
@@ -74,6 +84,8 @@ export type UserModuleCountAggregateInputType = {
   isEnabled?: true
   config?: true
   enabledAt?: true
+  createdAt?: true
+  updatedAt?: true
   _all?: true
 }
 
@@ -156,6 +168,8 @@ export type UserModuleGroupByOutputType = {
   isEnabled: boolean
   config: runtime.JsonValue
   enabledAt: Date
+  createdAt: Date
+  updatedAt: Date
   _count: UserModuleCountAggregateOutputType | null
   _min: UserModuleMinAggregateOutputType | null
   _max: UserModuleMaxAggregateOutputType | null
@@ -186,6 +200,8 @@ export type UserModuleWhereInput = {
   isEnabled?: Prisma.BoolFilter<"UserModule"> | boolean
   config?: Prisma.JsonFilter<"UserModule">
   enabledAt?: Prisma.DateTimeFilter<"UserModule"> | Date | string
+  createdAt?: Prisma.DateTimeFilter<"UserModule"> | Date | string
+  updatedAt?: Prisma.DateTimeFilter<"UserModule"> | Date | string
   module?: Prisma.XOR<Prisma.ModuleScalarRelationFilter, Prisma.ModuleWhereInput>
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
 }
@@ -197,6 +213,8 @@ export type UserModuleOrderByWithRelationInput = {
   isEnabled?: Prisma.SortOrder
   config?: Prisma.SortOrder
   enabledAt?: Prisma.SortOrder
+  createdAt?: Prisma.SortOrder
+  updatedAt?: Prisma.SortOrder
   module?: Prisma.ModuleOrderByWithRelationInput
   user?: Prisma.UserOrderByWithRelationInput
 }
@@ -212,6 +230,8 @@ export type UserModuleWhereUniqueInput = Prisma.AtLeast<{
   isEnabled?: Prisma.BoolFilter<"UserModule"> | boolean
   config?: Prisma.JsonFilter<"UserModule">
   enabledAt?: Prisma.DateTimeFilter<"UserModule"> | Date | string
+  createdAt?: Prisma.DateTimeFilter<"UserModule"> | Date | string
+  updatedAt?: Prisma.DateTimeFilter<"UserModule"> | Date | string
   module?: Prisma.XOR<Prisma.ModuleScalarRelationFilter, Prisma.ModuleWhereInput>
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
 }, "id" | "userId_moduleId">
@@ -223,6 +243,8 @@ export type UserModuleOrderByWithAggregationInput = {
   isEnabled?: Prisma.SortOrder
   config?: Prisma.SortOrder
   enabledAt?: Prisma.SortOrder
+  createdAt?: Prisma.SortOrder
+  updatedAt?: Prisma.SortOrder
   _count?: Prisma.UserModuleCountOrderByAggregateInput
   _max?: Prisma.UserModuleMaxOrderByAggregateInput
   _min?: Prisma.UserModuleMinOrderByAggregateInput
@@ -238,6 +260,8 @@ export type UserModuleScalarWhereWithAggregatesInput = {
   isEnabled?: Prisma.BoolWithAggregatesFilter<"UserModule"> | boolean
   config?: Prisma.JsonWithAggregatesFilter<"UserModule">
   enabledAt?: Prisma.DateTimeWithAggregatesFilter<"UserModule"> | Date | string
+  createdAt?: Prisma.DateTimeWithAggregatesFilter<"UserModule"> | Date | string
+  updatedAt?: Prisma.DateTimeWithAggregatesFilter<"UserModule"> | Date | string
 }
 
 export type UserModuleCreateInput = {
@@ -245,6 +269,8 @@ export type UserModuleCreateInput = {
   isEnabled?: boolean
   config?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   enabledAt?: Date | string
+  createdAt?: Date | string
+  updatedAt?: Date | string
   module: Prisma.ModuleCreateNestedOneWithoutUserModulesInput
   user: Prisma.UserCreateNestedOneWithoutUserModulesInput
 }
@@ -256,6 +282,8 @@ export type UserModuleUncheckedCreateInput = {
   isEnabled?: boolean
   config?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   enabledAt?: Date | string
+  createdAt?: Date | string
+  updatedAt?: Date | string
 }
 
 export type UserModuleUpdateInput = {
@@ -263,6 +291,8 @@ export type UserModuleUpdateInput = {
   isEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   config?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   enabledAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   module?: Prisma.ModuleUpdateOneRequiredWithoutUserModulesNestedInput
   user?: Prisma.UserUpdateOneRequiredWithoutUserModulesNestedInput
 }
@@ -274,6 +304,8 @@ export type UserModuleUncheckedUpdateInput = {
   isEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   config?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   enabledAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
 export type UserModuleCreateManyInput = {
@@ -283,6 +315,8 @@ export type UserModuleCreateManyInput = {
   isEnabled?: boolean
   config?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   enabledAt?: Date | string
+  createdAt?: Date | string
+  updatedAt?: Date | string
 }
 
 export type UserModuleUpdateManyMutationInput = {
@@ -290,6 +324,8 @@ export type UserModuleUpdateManyMutationInput = {
   isEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   config?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   enabledAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
 export type UserModuleUncheckedUpdateManyInput = {
@@ -299,6 +335,8 @@ export type UserModuleUncheckedUpdateManyInput = {
   isEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   config?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   enabledAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
 export type UserModuleListRelationFilter = {
@@ -323,6 +361,8 @@ export type UserModuleCountOrderByAggregateInput = {
   isEnabled?: Prisma.SortOrder
   config?: Prisma.SortOrder
   enabledAt?: Prisma.SortOrder
+  createdAt?: Prisma.SortOrder
+  updatedAt?: Prisma.SortOrder
 }
 
 export type UserModuleMaxOrderByAggregateInput = {
@@ -331,6 +371,8 @@ export type UserModuleMaxOrderByAggregateInput = {
   moduleId?: Prisma.SortOrder
   isEnabled?: Prisma.SortOrder
   enabledAt?: Prisma.SortOrder
+  createdAt?: Prisma.SortOrder
+  updatedAt?: Prisma.SortOrder
 }
 
 export type UserModuleMinOrderByAggregateInput = {
@@ -339,6 +381,8 @@ export type UserModuleMinOrderByAggregateInput = {
   moduleId?: Prisma.SortOrder
   isEnabled?: Prisma.SortOrder
   enabledAt?: Prisma.SortOrder
+  createdAt?: Prisma.SortOrder
+  updatedAt?: Prisma.SortOrder
 }
 
 export type UserModuleCreateNestedManyWithoutUserInput = {
@@ -430,6 +474,8 @@ export type UserModuleCreateWithoutUserInput = {
   isEnabled?: boolean
   config?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   enabledAt?: Date | string
+  createdAt?: Date | string
+  updatedAt?: Date | string
   module: Prisma.ModuleCreateNestedOneWithoutUserModulesInput
 }
 
@@ -439,6 +485,8 @@ export type UserModuleUncheckedCreateWithoutUserInput = {
   isEnabled?: boolean
   config?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   enabledAt?: Date | string
+  createdAt?: Date | string
+  updatedAt?: Date | string
 }
 
 export type UserModuleCreateOrConnectWithoutUserInput = {
@@ -477,6 +525,8 @@ export type UserModuleScalarWhereInput = {
   isEnabled?: Prisma.BoolFilter<"UserModule"> | boolean
   config?: Prisma.JsonFilter<"UserModule">
   enabledAt?: Prisma.DateTimeFilter<"UserModule"> | Date | string
+  createdAt?: Prisma.DateTimeFilter<"UserModule"> | Date | string
+  updatedAt?: Prisma.DateTimeFilter<"UserModule"> | Date | string
 }
 
 export type UserModuleCreateWithoutModuleInput = {
@@ -484,6 +534,8 @@ export type UserModuleCreateWithoutModuleInput = {
   isEnabled?: boolean
   config?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   enabledAt?: Date | string
+  createdAt?: Date | string
+  updatedAt?: Date | string
   user: Prisma.UserCreateNestedOneWithoutUserModulesInput
 }
 
@@ -493,6 +545,8 @@ export type UserModuleUncheckedCreateWithoutModuleInput = {
   isEnabled?: boolean
   config?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   enabledAt?: Date | string
+  createdAt?: Date | string
+  updatedAt?: Date | string
 }
 
 export type UserModuleCreateOrConnectWithoutModuleInput = {
@@ -527,6 +581,8 @@ export type UserModuleCreateManyUserInput = {
   isEnabled?: boolean
   config?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   enabledAt?: Date | string
+  createdAt?: Date | string
+  updatedAt?: Date | string
 }
 
 export type UserModuleUpdateWithoutUserInput = {
@@ -534,6 +590,8 @@ export type UserModuleUpdateWithoutUserInput = {
   isEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   config?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   enabledAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   module?: Prisma.ModuleUpdateOneRequiredWithoutUserModulesNestedInput
 }
 
@@ -543,6 +601,8 @@ export type UserModuleUncheckedUpdateWithoutUserInput = {
   isEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   config?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   enabledAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
 export type UserModuleUncheckedUpdateManyWithoutUserInput = {
@@ -551,6 +611,8 @@ export type UserModuleUncheckedUpdateManyWithoutUserInput = {
   isEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   config?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   enabledAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
 export type UserModuleCreateManyModuleInput = {
@@ -559,6 +621,8 @@ export type UserModuleCreateManyModuleInput = {
   isEnabled?: boolean
   config?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   enabledAt?: Date | string
+  createdAt?: Date | string
+  updatedAt?: Date | string
 }
 
 export type UserModuleUpdateWithoutModuleInput = {
@@ -566,6 +630,8 @@ export type UserModuleUpdateWithoutModuleInput = {
   isEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   config?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   enabledAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.UserUpdateOneRequiredWithoutUserModulesNestedInput
 }
 
@@ -575,6 +641,8 @@ export type UserModuleUncheckedUpdateWithoutModuleInput = {
   isEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   config?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   enabledAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
 export type UserModuleUncheckedUpdateManyWithoutModuleInput = {
@@ -583,6 +651,8 @@ export type UserModuleUncheckedUpdateManyWithoutModuleInput = {
   isEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   config?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   enabledAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
 
@@ -594,6 +664,8 @@ export type UserModuleSelect<ExtArgs extends runtime.Types.Extensions.InternalAr
   isEnabled?: boolean
   config?: boolean
   enabledAt?: boolean
+  createdAt?: boolean
+  updatedAt?: boolean
   module?: boolean | Prisma.ModuleDefaultArgs<ExtArgs>
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["userModule"]>
@@ -605,6 +677,8 @@ export type UserModuleSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Ex
   isEnabled?: boolean
   config?: boolean
   enabledAt?: boolean
+  createdAt?: boolean
+  updatedAt?: boolean
   module?: boolean | Prisma.ModuleDefaultArgs<ExtArgs>
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["userModule"]>
@@ -616,6 +690,8 @@ export type UserModuleSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Ex
   isEnabled?: boolean
   config?: boolean
   enabledAt?: boolean
+  createdAt?: boolean
+  updatedAt?: boolean
   module?: boolean | Prisma.ModuleDefaultArgs<ExtArgs>
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["userModule"]>
@@ -627,9 +703,11 @@ export type UserModuleSelectScalar = {
   isEnabled?: boolean
   config?: boolean
   enabledAt?: boolean
+  createdAt?: boolean
+  updatedAt?: boolean
 }
 
-export type UserModuleOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "moduleId" | "isEnabled" | "config" | "enabledAt", ExtArgs["result"]["userModule"]>
+export type UserModuleOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "moduleId" | "isEnabled" | "config" | "enabledAt" | "createdAt" | "updatedAt", ExtArgs["result"]["userModule"]>
 export type UserModuleInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   module?: boolean | Prisma.ModuleDefaultArgs<ExtArgs>
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
@@ -656,6 +734,8 @@ export type $UserModulePayload<ExtArgs extends runtime.Types.Extensions.Internal
     isEnabled: boolean
     config: runtime.JsonValue
     enabledAt: Date
+    createdAt: Date
+    updatedAt: Date
   }, ExtArgs["result"]["userModule"]>
   composites: {}
 }
@@ -1087,6 +1167,8 @@ export interface UserModuleFieldRefs {
   readonly isEnabled: Prisma.FieldRef<"UserModule", 'Boolean'>
   readonly config: Prisma.FieldRef<"UserModule", 'Json'>
   readonly enabledAt: Prisma.FieldRef<"UserModule", 'DateTime'>
+  readonly createdAt: Prisma.FieldRef<"UserModule", 'DateTime'>
+  readonly updatedAt: Prisma.FieldRef<"UserModule", 'DateTime'>
 }
     
 

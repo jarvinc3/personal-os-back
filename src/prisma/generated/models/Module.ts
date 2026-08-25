@@ -42,6 +42,8 @@ export type ModuleMinAggregateOutputType = {
   sortOrder: number | null
   key: string | null
   description: string | null
+  createdAt: Date | null
+  updatedAt: Date | null
 }
 
 export type ModuleMaxAggregateOutputType = {
@@ -52,6 +54,8 @@ export type ModuleMaxAggregateOutputType = {
   sortOrder: number | null
   key: string | null
   description: string | null
+  createdAt: Date | null
+  updatedAt: Date | null
 }
 
 export type ModuleCountAggregateOutputType = {
@@ -62,6 +66,8 @@ export type ModuleCountAggregateOutputType = {
   sortOrder: number
   key: number
   description: number
+  createdAt: number
+  updatedAt: number
   _all: number
 }
 
@@ -82,6 +88,8 @@ export type ModuleMinAggregateInputType = {
   sortOrder?: true
   key?: true
   description?: true
+  createdAt?: true
+  updatedAt?: true
 }
 
 export type ModuleMaxAggregateInputType = {
@@ -92,6 +100,8 @@ export type ModuleMaxAggregateInputType = {
   sortOrder?: true
   key?: true
   description?: true
+  createdAt?: true
+  updatedAt?: true
 }
 
 export type ModuleCountAggregateInputType = {
@@ -102,6 +112,8 @@ export type ModuleCountAggregateInputType = {
   sortOrder?: true
   key?: true
   description?: true
+  createdAt?: true
+  updatedAt?: true
   _all?: true
 }
 
@@ -199,6 +211,8 @@ export type ModuleGroupByOutputType = {
   sortOrder: number
   key: string
   description: string | null
+  createdAt: Date
+  updatedAt: Date
   _count: ModuleCountAggregateOutputType | null
   _avg: ModuleAvgAggregateOutputType | null
   _sum: ModuleSumAggregateOutputType | null
@@ -232,6 +246,8 @@ export type ModuleWhereInput = {
   sortOrder?: Prisma.IntFilter<"Module"> | number
   key?: Prisma.StringFilter<"Module"> | string
   description?: Prisma.StringNullableFilter<"Module"> | string | null
+  createdAt?: Prisma.DateTimeFilter<"Module"> | Date | string
+  updatedAt?: Prisma.DateTimeFilter<"Module"> | Date | string
   aiSessions?: Prisma.AiAgentSessionListRelationFilter
   userModules?: Prisma.UserModuleListRelationFilter
 }
@@ -244,6 +260,8 @@ export type ModuleOrderByWithRelationInput = {
   sortOrder?: Prisma.SortOrder
   key?: Prisma.SortOrder
   description?: Prisma.SortOrderInput | Prisma.SortOrder
+  createdAt?: Prisma.SortOrder
+  updatedAt?: Prisma.SortOrder
   aiSessions?: Prisma.AiAgentSessionOrderByRelationAggregateInput
   userModules?: Prisma.UserModuleOrderByRelationAggregateInput
 }
@@ -259,6 +277,8 @@ export type ModuleWhereUniqueInput = Prisma.AtLeast<{
   isActive?: Prisma.BoolFilter<"Module"> | boolean
   sortOrder?: Prisma.IntFilter<"Module"> | number
   description?: Prisma.StringNullableFilter<"Module"> | string | null
+  createdAt?: Prisma.DateTimeFilter<"Module"> | Date | string
+  updatedAt?: Prisma.DateTimeFilter<"Module"> | Date | string
   aiSessions?: Prisma.AiAgentSessionListRelationFilter
   userModules?: Prisma.UserModuleListRelationFilter
 }, "id" | "slug" | "key">
@@ -271,6 +291,8 @@ export type ModuleOrderByWithAggregationInput = {
   sortOrder?: Prisma.SortOrder
   key?: Prisma.SortOrder
   description?: Prisma.SortOrderInput | Prisma.SortOrder
+  createdAt?: Prisma.SortOrder
+  updatedAt?: Prisma.SortOrder
   _count?: Prisma.ModuleCountOrderByAggregateInput
   _avg?: Prisma.ModuleAvgOrderByAggregateInput
   _max?: Prisma.ModuleMaxOrderByAggregateInput
@@ -289,6 +311,8 @@ export type ModuleScalarWhereWithAggregatesInput = {
   sortOrder?: Prisma.IntWithAggregatesFilter<"Module"> | number
   key?: Prisma.StringWithAggregatesFilter<"Module"> | string
   description?: Prisma.StringNullableWithAggregatesFilter<"Module"> | string | null
+  createdAt?: Prisma.DateTimeWithAggregatesFilter<"Module"> | Date | string
+  updatedAt?: Prisma.DateTimeWithAggregatesFilter<"Module"> | Date | string
 }
 
 export type ModuleCreateInput = {
@@ -299,6 +323,8 @@ export type ModuleCreateInput = {
   sortOrder?: number
   key: string
   description?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
   aiSessions?: Prisma.AiAgentSessionCreateNestedManyWithoutModuleInput
   userModules?: Prisma.UserModuleCreateNestedManyWithoutModuleInput
 }
@@ -311,6 +337,8 @@ export type ModuleUncheckedCreateInput = {
   sortOrder?: number
   key: string
   description?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
   aiSessions?: Prisma.AiAgentSessionUncheckedCreateNestedManyWithoutModuleInput
   userModules?: Prisma.UserModuleUncheckedCreateNestedManyWithoutModuleInput
 }
@@ -323,6 +351,8 @@ export type ModuleUpdateInput = {
   sortOrder?: Prisma.IntFieldUpdateOperationsInput | number
   key?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   aiSessions?: Prisma.AiAgentSessionUpdateManyWithoutModuleNestedInput
   userModules?: Prisma.UserModuleUpdateManyWithoutModuleNestedInput
 }
@@ -335,6 +365,8 @@ export type ModuleUncheckedUpdateInput = {
   sortOrder?: Prisma.IntFieldUpdateOperationsInput | number
   key?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   aiSessions?: Prisma.AiAgentSessionUncheckedUpdateManyWithoutModuleNestedInput
   userModules?: Prisma.UserModuleUncheckedUpdateManyWithoutModuleNestedInput
 }
@@ -347,6 +379,8 @@ export type ModuleCreateManyInput = {
   sortOrder?: number
   key: string
   description?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
 }
 
 export type ModuleUpdateManyMutationInput = {
@@ -357,6 +391,8 @@ export type ModuleUpdateManyMutationInput = {
   sortOrder?: Prisma.IntFieldUpdateOperationsInput | number
   key?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
 export type ModuleUncheckedUpdateManyInput = {
@@ -367,6 +403,8 @@ export type ModuleUncheckedUpdateManyInput = {
   sortOrder?: Prisma.IntFieldUpdateOperationsInput | number
   key?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
 export type ModuleCountOrderByAggregateInput = {
@@ -377,6 +415,8 @@ export type ModuleCountOrderByAggregateInput = {
   sortOrder?: Prisma.SortOrder
   key?: Prisma.SortOrder
   description?: Prisma.SortOrder
+  createdAt?: Prisma.SortOrder
+  updatedAt?: Prisma.SortOrder
 }
 
 export type ModuleAvgOrderByAggregateInput = {
@@ -391,6 +431,8 @@ export type ModuleMaxOrderByAggregateInput = {
   sortOrder?: Prisma.SortOrder
   key?: Prisma.SortOrder
   description?: Prisma.SortOrder
+  createdAt?: Prisma.SortOrder
+  updatedAt?: Prisma.SortOrder
 }
 
 export type ModuleMinOrderByAggregateInput = {
@@ -401,6 +443,8 @@ export type ModuleMinOrderByAggregateInput = {
   sortOrder?: Prisma.SortOrder
   key?: Prisma.SortOrder
   description?: Prisma.SortOrder
+  createdAt?: Prisma.SortOrder
+  updatedAt?: Prisma.SortOrder
 }
 
 export type ModuleSumOrderByAggregateInput = {
@@ -467,6 +511,8 @@ export type ModuleCreateWithoutUserModulesInput = {
   sortOrder?: number
   key: string
   description?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
   aiSessions?: Prisma.AiAgentSessionCreateNestedManyWithoutModuleInput
 }
 
@@ -478,6 +524,8 @@ export type ModuleUncheckedCreateWithoutUserModulesInput = {
   sortOrder?: number
   key: string
   description?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
   aiSessions?: Prisma.AiAgentSessionUncheckedCreateNestedManyWithoutModuleInput
 }
 
@@ -505,6 +553,8 @@ export type ModuleUpdateWithoutUserModulesInput = {
   sortOrder?: Prisma.IntFieldUpdateOperationsInput | number
   key?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   aiSessions?: Prisma.AiAgentSessionUpdateManyWithoutModuleNestedInput
 }
 
@@ -516,6 +566,8 @@ export type ModuleUncheckedUpdateWithoutUserModulesInput = {
   sortOrder?: Prisma.IntFieldUpdateOperationsInput | number
   key?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   aiSessions?: Prisma.AiAgentSessionUncheckedUpdateManyWithoutModuleNestedInput
 }
 
@@ -527,6 +579,8 @@ export type ModuleCreateWithoutAiSessionsInput = {
   sortOrder?: number
   key: string
   description?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
   userModules?: Prisma.UserModuleCreateNestedManyWithoutModuleInput
 }
 
@@ -538,6 +592,8 @@ export type ModuleUncheckedCreateWithoutAiSessionsInput = {
   sortOrder?: number
   key: string
   description?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
   userModules?: Prisma.UserModuleUncheckedCreateNestedManyWithoutModuleInput
 }
 
@@ -565,6 +621,8 @@ export type ModuleUpdateWithoutAiSessionsInput = {
   sortOrder?: Prisma.IntFieldUpdateOperationsInput | number
   key?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   userModules?: Prisma.UserModuleUpdateManyWithoutModuleNestedInput
 }
 
@@ -576,6 +634,8 @@ export type ModuleUncheckedUpdateWithoutAiSessionsInput = {
   sortOrder?: Prisma.IntFieldUpdateOperationsInput | number
   key?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   userModules?: Prisma.UserModuleUncheckedUpdateManyWithoutModuleNestedInput
 }
 
@@ -627,6 +687,8 @@ export type ModuleSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs =
   sortOrder?: boolean
   key?: boolean
   description?: boolean
+  createdAt?: boolean
+  updatedAt?: boolean
   aiSessions?: boolean | Prisma.Module$aiSessionsArgs<ExtArgs>
   userModules?: boolean | Prisma.Module$userModulesArgs<ExtArgs>
   _count?: boolean | Prisma.ModuleCountOutputTypeDefaultArgs<ExtArgs>
@@ -640,6 +702,8 @@ export type ModuleSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extens
   sortOrder?: boolean
   key?: boolean
   description?: boolean
+  createdAt?: boolean
+  updatedAt?: boolean
 }, ExtArgs["result"]["module"]>
 
 export type ModuleSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -650,6 +714,8 @@ export type ModuleSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extens
   sortOrder?: boolean
   key?: boolean
   description?: boolean
+  createdAt?: boolean
+  updatedAt?: boolean
 }, ExtArgs["result"]["module"]>
 
 export type ModuleSelectScalar = {
@@ -660,9 +726,11 @@ export type ModuleSelectScalar = {
   sortOrder?: boolean
   key?: boolean
   description?: boolean
+  createdAt?: boolean
+  updatedAt?: boolean
 }
 
-export type ModuleOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "slug" | "name" | "isActive" | "sortOrder" | "key" | "description", ExtArgs["result"]["module"]>
+export type ModuleOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "slug" | "name" | "isActive" | "sortOrder" | "key" | "description" | "createdAt" | "updatedAt", ExtArgs["result"]["module"]>
 export type ModuleInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   aiSessions?: boolean | Prisma.Module$aiSessionsArgs<ExtArgs>
   userModules?: boolean | Prisma.Module$userModulesArgs<ExtArgs>
@@ -685,6 +753,8 @@ export type $ModulePayload<ExtArgs extends runtime.Types.Extensions.InternalArgs
     sortOrder: number
     key: string
     description: string | null
+    createdAt: Date
+    updatedAt: Date
   }, ExtArgs["result"]["module"]>
   composites: {}
 }
@@ -1117,6 +1187,8 @@ export interface ModuleFieldRefs {
   readonly sortOrder: Prisma.FieldRef<"Module", 'Int'>
   readonly key: Prisma.FieldRef<"Module", 'String'>
   readonly description: Prisma.FieldRef<"Module", 'String'>
+  readonly createdAt: Prisma.FieldRef<"Module", 'DateTime'>
+  readonly updatedAt: Prisma.FieldRef<"Module", 'DateTime'>
 }
     
 

@@ -4,9 +4,7 @@ import { PassportModule } from '@nestjs/passport';
 import { AllExceptionsFilter } from './filters/all-exceptions.filter';
 import { CustomThrottlerGuard } from './guards/custom-throttler.guard';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
-import { RolesGuard } from './guards/roles.guard';
 import { AiMetricsInterceptor } from './interceptors/ai-metrics.interceptor';
-import { LoggingInterceptor } from './interceptors/logging.interceptor';
 import { TimeoutInterceptor } from './interceptors/timeout.interceptor';
 import { TransformInterceptor } from './interceptors/transform.interceptor';
 import { PaginationService } from './pagination/pagination.service';
@@ -20,19 +18,11 @@ import { PaginationService } from './pagination/pagination.service';
     },
     {
       provide: APP_GUARD,
-      useClass: RolesGuard,
-    },
-    {
-      provide: APP_GUARD,
       useClass: CustomThrottlerGuard,
     },
     {
       provide: APP_FILTER,
       useClass: AllExceptionsFilter,
-    },
-    {
-      provide: APP_INTERCEPTOR,
-      useClass: LoggingInterceptor,
     },
     {
       provide: APP_INTERCEPTOR,
