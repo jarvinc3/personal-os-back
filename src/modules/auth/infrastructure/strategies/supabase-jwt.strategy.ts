@@ -28,6 +28,10 @@ export class SupabaseJwtStrategy extends PassportStrategy(
       // (keeps Jest e2e bootable when the strategy is not overridden).
       secretOrKeyProvider: (request, rawJwtToken, done) => {
         jwksProvider ??= createJwksSecretProvider(authConfig);
+        if (typeof rawJwtToken !== 'string') {
+          done(new Error('Invalid JWT token'));
+          return;
+        }
         return jwksProvider(request, rawJwtToken, done);
       },
     });

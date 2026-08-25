@@ -93,7 +93,8 @@ describe('AiEmailTransactionExtractor', () => {
       model: 'test-model',
     });
 
-    const { kind: _kind, ...data } = validPayload;
+    const { kind, ...data } = validPayload;
+    void kind;
     await expect(extractor.extract(input)).resolves.toEqual({
       ok: true,
       kind: 'transaction',

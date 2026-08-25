@@ -296,7 +296,7 @@ describe('ProcessGmailSyncUseCase', () => {
       messages: [{ id: 'msg-skip' }, { id: 'msg-new' }],
       nextPageToken: undefined,
     });
-    findEmailMessage.mockImplementation(async (_sourceId, gmailMessageId) =>
+    findEmailMessage.mockImplementation((_sourceId, gmailMessageId) =>
       gmailMessageId === 'msg-skip'
         ? { id: 'em-skip', outcome: 'SKIPPED_NOT_TX' }
         : null,
