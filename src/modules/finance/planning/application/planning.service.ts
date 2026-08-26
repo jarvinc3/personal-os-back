@@ -200,7 +200,7 @@ export class PlanningService {
       dto.paidAmount !== undefined ||
       dto.amount !== undefined;
 
-    let payment: { paidAmount: number; status: string } | undefined;
+    let payment: ReturnType<typeof resolveReceivablePayment> | undefined;
     if (paymentTouched) {
       const nextAmount =
         dto.amount !== undefined ? dto.amount : Number(existing.amount);
