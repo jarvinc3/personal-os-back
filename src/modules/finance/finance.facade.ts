@@ -7,6 +7,7 @@ import { ConfirmTransactionUseCase } from './ledger/application/confirm-transact
 import { CreateTransactionUseCase } from './ledger/application/create-transaction.use-case';
 import { CreateTransferUseCase } from './ledger/application/create-transfer.use-case';
 import { LedgerQueryService } from './ledger/application/ledger-query.service';
+import { ReverseTransactionUseCase } from './ledger/application/reverse-transaction.use-case';
 import { UpdateTransactionUseCase } from './ledger/application/update-transaction.use-case';
 import { PlanningService } from './planning/application/planning.service';
 import type { CreateBudgetDto } from './planning/presentation/dto/create-budget.dto';
@@ -26,6 +27,7 @@ export class FinanceFacade {
     private readonly createTx: CreateTransactionUseCase,
     private readonly updateTx: UpdateTransactionUseCase,
     private readonly confirmTx: ConfirmTransactionUseCase,
+    private readonly reverseTx: ReverseTransactionUseCase,
     private readonly createTransfer: CreateTransferUseCase,
     private readonly catalog: CatalogService,
     private readonly planning: PlanningService,
@@ -85,6 +87,10 @@ export class FinanceFacade {
 
   confirmTransaction(userId: string, id: string) {
     return this.confirmTx.execute(userId, id);
+  }
+
+  reverseTransaction(userId: string, id: string, aiMetadata?: unknown) {
+    return this.reverseTx.execute(userId, id, aiMetadata);
   }
 
   createTransferTransaction(userId: string, command: CreateTransferCommand) {

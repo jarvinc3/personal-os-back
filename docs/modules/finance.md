@@ -47,7 +47,7 @@ Query-only surfaces (e.g. `LedgerQueryService`) stay as services even when write
 
 - **Ledger** write use-cases orchestrate FX + `LEDGER_REPOSITORY`; **`LedgerQueryService` only lists/gets**.
 - **Ledger** mutators run **synchronously** inside one `prisma.$transaction`: transaction row + balances + budget `amountSpent` + outbox row(s) + optional threshold side effects via `BUDGET_THRESHOLD_PORT`.
-- **Delete transaction**: hard-deletes and restores balances in the same TX. **No domain event** is enqueued (notification/AI listeners do not act on delete today). Use reverse if you need an auditable compensating entry.
+- **Delete transaction**: hard-deletes and restores balances in the same TX. **No domain event** is enqueued (notification/AI listeners do not act on delete today). Use `POST /finance/transactions/:id/reverse` for an auditable compensating change: the original row is kept as `REVERSED` and `finance.transaction.reversed` is enqueued. Reverse is idempotent if already `REVERSED`. HTTP reverse is limited to `CONFIRMED` non-transfer rows (one transfer leg → 400). Gmail sync still calls the use case directly for bank reversals.
 - **Email sync completed**: `FinEmailSyncLog` + `finance.email_sync.completed` outbox row land in the **same** `$transaction` as the sync success path.
 - **Side effects** (notifications, AI insights, WebSocket) run **after commit** via `DomainEventOutbox` → `FinanceOutboxDispatcher` (cron every 30s + wake after write) → `EventEmitter2`.
 - Listeners call `DomainEventIdempotencyGuard.tryClaim(eventId, consumer)` before acting.
@@ -66,7 +66,7 @@ Query-only surfaces (e.g. `LedgerQueryService`) stay as services even when write
 | Institutions | User-defined banks/fintechs; soft-delete via `isActive` |
 | Accounts | Checking, savings, cash, investment; single currency + balance; optional institution; **not** credit cards |
 | Cards | Credit/debit per institution; multi-currency balances + credit limit on `FinCardBalance`; statement days on card |
-| Transactions | Manual CRUD (`DEBIT`/`CREDIT`); transfers via dedicated endpoint; filters; confirm `PENDING` |
+| Transactions | Manual CRUD (`DEBIT`/`CREDIT`); transfers via dedicated endpoint; filters; confirm `PENDING`; reverse `CONFIRMED` via `POST /transactions/:id/reverse` (row stays `REVERSED`; one transfer leg is 400) |
 | Categories | System + custom; hierarchical (`parentId`); used by budgets and transactions |
 | Budgets | Per category and period; spent tracking; threshold alerts deduped in `FinBudgetAlert` |
 | Savings goals | Target amount, progress, completion (`isCompleted` recalculated on amount changes) |
