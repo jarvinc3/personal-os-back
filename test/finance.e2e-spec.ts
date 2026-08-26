@@ -298,6 +298,104 @@ describe('Finance (e2e)', () => {
       });
   });
 
+  it('DELETE /api/finance/transactions/:id hard-deletes and enqueues finance.transaction.deleted', async () => {
+    const txId = '44444444-4444-4444-8444-444444444444';
+    const row = {
+      id: txId,
+      userId: 'user-123',
+      accountId: '11111111-1111-4111-8111-111111111111',
+      cardId: null,
+      type: 'DEBIT',
+      amount: 50,
+      ledgerAmount: 50,
+      amountBaseCurrency: 50,
+      currency: 'DOP',
+      ledgerCurrency: 'DOP',
+      exchangeRate: 1,
+      merchant: null,
+      description: null,
+      transactionDate: new Date('2026-08-01'),
+      status: 'CONFIRMED',
+      source: 'MANUAL',
+      categoryId: null,
+      notes: null,
+      transferGroupId: null,
+      linkedTransactionId: null,
+      createdAt: new Date(),
+    };
+
+    prismaMock.finTransaction.findFirst.mockResolvedValue(row);
+
+    const outboxCreate = jest.fn().mockResolvedValue({ id: 'out-del' });
+    const deleteMany = jest.fn().mockResolvedValue({ count: 1 });
+    prismaMock.$transaction.mockImplementation(
+      async (fn: (tx: unknown) => Promise<unknown>) => {
+        const tx = {
+          finAccount: {
+            findFirst: jest.fn().mockResolvedValue({
+              id: row.accountId,
+              userId: 'user-123',
+              currency: 'DOP',
+              type: 'CHECKING',
+              balance: 1000,
+            }),
+            update: jest.fn().mockResolvedValue({}),
+          },
+          finCard: { findFirst: jest.fn().mockResolvedValue(null) },
+          finCardBalance: {
+            findFirst: jest.fn(),
+            create: jest.fn(),
+            update: jest.fn(),
+          },
+          finBudget: {
+            findMany: jest.fn().mockResolvedValue([]),
+            update: jest.fn(),
+          },
+          finTransaction: {
+            findFirst: jest.fn().mockResolvedValue(row),
+            deleteMany,
+          },
+          domainEventOutbox: { create: outboxCreate },
+        };
+        return fn(tx);
+      },
+    );
+
+    await request(app.getHttpServer())
+      .delete(`/api/finance/transactions/${txId}`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.data).toEqual({ success: true });
+      });
+
+    expect(deleteMany).toHaveBeenCalled();
+    expect(outboxCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          eventName: 'finance.transaction.deleted',
+          aggregateId: txId,
+          payload: expect.objectContaining({
+            transactionId: txId,
+            status: 'CONFIRMED',
+            source: 'MANUAL',
+          }),
+        }),
+      }),
+    );
+  });
+
+  it('DELETE /api/finance/transactions/:id returns 404 without outbox when missing', async () => {
+    prismaMock.finTransaction.findFirst.mockResolvedValue(null);
+
+    await request(app.getHttpServer())
+      .delete('/api/finance/transactions/55555555-5555-4555-8555-555555555555')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(404);
+
+    expect(prismaMock.$transaction).not.toHaveBeenCalled();
+  });
+
   it('GET /api/finance/analytics/summary returns totals envelope', async () => {
     prismaMock.finAccount.findMany.mockResolvedValue([
       { balance: { toString: () => '100' } },
