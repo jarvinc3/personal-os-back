@@ -119,6 +119,8 @@ Returns active budgets with spent amount and threshold percentage.
 
 **Delegates to:** `FinanceFacade.getSpendingByCategory`
 
+Each item is `{ categoryId, name, color, icon, total }`. `categoryId` may be null (`name` = `Sin categoría`). `total` is the sum of `amountBaseCurrency` for DEBIT + CONFIRMED in the range. Deleted categories keep the total and use `Categoría no disponible`.
+
 ---
 
 ### `get_spending_over_time`

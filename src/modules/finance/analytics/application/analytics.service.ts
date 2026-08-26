@@ -1,6 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { AnalyticsRepository } from '../infrastructure/analytics.repository';
 
+const UNCATEGORIZED_NAME = 'Sin categoría';
+const MISSING_CATEGORY_NAME = 'Categoría no disponible';
+
 @Injectable()
 export class AnalyticsService {
   constructor(private readonly repo: AnalyticsRepository) {}
@@ -46,12 +49,38 @@ export class AnalyticsService {
       dateFrom ? new Date(dateFrom) : undefined,
       dateTo ? new Date(dateTo) : undefined,
     );
-    return grouped.map((item) => ({
-      categoryId: item.categoryId,
-      total: item._sum.amountBaseCurrency
+    const categoryIds = [
+      ...new Set(
+        grouped
+          .map((item) => item.categoryId)
+          .filter((id): id is string => id != null),
+      ),
+    ];
+    const categories = await this.repo.findCategoriesByIds(userId, categoryIds);
+    const byId = new Map(categories.map((category) => [category.id, category]));
+
+    return grouped.map((item) => {
+      const total = item._sum.amountBaseCurrency
         ? Number(item._sum.amountBaseCurrency)
-        : 0,
-    }));
+        : 0;
+      if (item.categoryId == null) {
+        return {
+          categoryId: null,
+          name: UNCATEGORIZED_NAME,
+          color: null,
+          icon: null,
+          total,
+        };
+      }
+      const category = byId.get(item.categoryId);
+      return {
+        categoryId: item.categoryId,
+        name: category?.name ?? MISSING_CATEGORY_NAME,
+        color: category?.color ?? null,
+        icon: category?.icon ?? null,
+        total,
+      };
+    });
   }
 
   async getSpendingOverTime(

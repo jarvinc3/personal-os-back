@@ -58,6 +58,17 @@ export class AnalyticsRepository {
     });
   }
 
+  findCategoriesByIds(userId: string, ids: string[]) {
+    if (ids.length === 0) return Promise.resolve([]);
+    return this.prisma.finCategory.findMany({
+      where: {
+        id: { in: ids },
+        OR: [{ userId }, { isSystem: true }],
+      },
+      select: { id: true, name: true, color: true, icon: true },
+    });
+  }
+
   async getSpendingOverTime(
     userId: string,
     from: Date | undefined,

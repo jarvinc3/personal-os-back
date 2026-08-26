@@ -72,7 +72,7 @@ Query-only surfaces (e.g. `LedgerQueryService`) stay as services even when write
 | Savings goals | Target amount, progress, completion (`isCompleted` recalculated on amount changes) |
 | Loans / receivables | Installments and money owed |
 | Gmail sync | OAuth2, encrypted tokens, BullMQ job, **AI extraction** (no bank HTML parsers) |
-| Analytics | Net worth, cash flow, spending by category, budget status |
+| Analytics | Net worth, cash flow, spending by category (includes `name`/`color`/`icon`; uncategorized is `categoryId: null` + `Sin categoría`), budget status |
 | FX | Live historical rates via **exchangerate.host**; cache in `FinExchangeRate` (exact date only) |
 
 **Out of scope (today):** open banking APIs, automatic balance reconciliation from bank cores.
