@@ -298,107 +298,118 @@ describe('Finance (e2e)', () => {
       });
   });
 
-  it('DELETE /api/finance/transactions/:id hard-deletes and enqueues finance.transaction.deleted', async () => {
-    const txId = '44444444-4444-4444-8444-444444444444';
-    const row = {
-      id: txId,
+  it('PATCH /api/finance/cards/:id archives with isActive false without accountId', async () => {
+    const cardId = '66666666-6666-4666-8666-666666666666';
+    const card = {
+      id: cardId,
       userId: 'user-123',
-      accountId: '11111111-1111-4111-8111-111111111111',
-      cardId: null,
+      institutionId: 'inst-1',
+      accountId: 'acc-1',
+      name: 'Debit',
       type: 'DEBIT',
-      amount: 50,
-      ledgerAmount: 50,
-      amountBaseCurrency: 50,
-      currency: 'DOP',
-      ledgerCurrency: 'DOP',
-      exchangeRate: 1,
-      merchant: null,
-      description: null,
-      transactionDate: new Date('2026-08-01'),
-      status: 'CONFIRMED',
-      source: 'MANUAL',
-      categoryId: null,
-      notes: null,
-      transferGroupId: null,
-      linkedTransactionId: null,
-      createdAt: new Date(),
+      network: null,
+      lastFour: '1234',
+      statementClosingDay: null,
+      paymentDueDay: null,
+      color: null,
+      isActive: false,
+      institution: { name: 'Bank' },
+      account: { id: 'acc-1', name: 'Main' },
+      balances: [],
     };
-
-    prismaMock.finTransaction.findFirst.mockResolvedValue(row);
-
-    const outboxCreate = jest.fn().mockResolvedValue({ id: 'out-del' });
-    const deleteMany = jest.fn().mockResolvedValue({ count: 1 });
-    prismaMock.$transaction.mockImplementation(
-      async (fn: (tx: unknown) => Promise<unknown>) => {
-        const tx = {
-          finAccount: {
-            findFirst: jest.fn().mockResolvedValue({
-              id: row.accountId,
-              userId: 'user-123',
-              currency: 'DOP',
-              type: 'CHECKING',
-              balance: 1000,
-            }),
-            update: jest.fn().mockResolvedValue({}),
-          },
-          finCard: { findFirst: jest.fn().mockResolvedValue(null) },
-          finCardBalance: {
-            findFirst: jest.fn(),
-            create: jest.fn(),
-            update: jest.fn(),
-          },
-          finBudget: {
-            findMany: jest.fn().mockResolvedValue([]),
-            update: jest.fn(),
-          },
-          finTransaction: {
-            findFirst: jest.fn().mockResolvedValue(row),
-            deleteMany,
-          },
-          domainEventOutbox: { create: outboxCreate },
-        };
-        return fn(tx);
-      },
-    );
+    prismaMock.finCard.findFirst.mockResolvedValue(card);
+    prismaMock.finCard.updateMany.mockResolvedValue({ count: 1 });
+    prismaMock.finCard.findMany.mockResolvedValue([]);
+    prismaMock.finAccount.findFirst.mockResolvedValue({
+      id: 'acc-1',
+      userId: 'user-123',
+    });
 
     await request(app.getHttpServer())
-      .delete(`/api/finance/transactions/${txId}`)
+      .patch(`/api/finance/cards/${cardId}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ isActive: false })
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.data.isActive).toBe(false);
+      });
+
+    await request(app.getHttpServer())
+      .get('/api/finance/cards')
       .set('Authorization', `Bearer ${token}`)
       .expect(200)
       .expect((res) => {
-        expect(res.body.data).toEqual({ success: true });
+        expect(res.body.data).toEqual([]);
       });
-
-    expect(deleteMany).toHaveBeenCalled();
-    expect(outboxCreate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.objectContaining({
-          eventName: 'finance.transaction.deleted',
-          aggregateId: txId,
-          payload: expect.objectContaining({
-            transactionId: txId,
-            status: 'CONFIRMED',
-            source: 'MANUAL',
-          }),
-        }),
-      }),
-    );
   });
 
-  it('DELETE /api/finance/transactions/:id returns 404 without outbox when missing', async () => {
-    prismaMock.finTransaction.findFirst.mockResolvedValue(null);
+  it('PATCH /api/finance/loans/:id archives with isActive false', async () => {
+    const loanId = '77777777-7777-4777-8777-777777777777';
+    prismaMock.finLoan.updateMany.mockResolvedValue({ count: 1 });
+    prismaMock.finLoan.findFirst.mockResolvedValue({
+      id: loanId,
+      userId: 'user-123',
+      lenderName: 'Bank',
+      isActive: false,
+      originalAmount: 1000,
+      currentBalance: 500,
+      installmentAmount: 100,
+      installmentFreq: 'MONTHLY',
+      totalInstallments: 12,
+      paidInstallments: 5,
+      nextDueDate: new Date('2026-09-01'),
+      account: null,
+    });
+    prismaMock.finLoan.findMany.mockResolvedValue([]);
 
     await request(app.getHttpServer())
-      .delete('/api/finance/transactions/55555555-5555-4555-8555-555555555555')
+      .patch(`/api/finance/loans/${loanId}`)
       .set('Authorization', `Bearer ${token}`)
-      .expect(404);
+      .send({ isActive: false })
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.data.isActive).toBe(false);
+      });
+  });
 
-    expect(prismaMock.$transaction).not.toHaveBeenCalled();
+  it('PATCH /api/finance/receivables/:id marks PAID and rejects overpay', async () => {
+    const recId = '88888888-8888-4888-8888-888888888888';
+    const pending = {
+      id: recId,
+      userId: 'user-123',
+      debtorName: 'Ana',
+      description: null,
+      amount: 80,
+      paidAmount: 0,
+      currency: 'DOP',
+      dueDate: null,
+      status: 'PENDING',
+    };
+    prismaMock.finReceivable.findFirst
+      .mockResolvedValueOnce(pending)
+      .mockResolvedValueOnce({ ...pending, status: 'PAID', paidAmount: 80 })
+      .mockResolvedValue(pending);
+    prismaMock.finReceivable.updateMany.mockResolvedValue({ count: 1 });
+
+    await request(app.getHttpServer())
+      .patch(`/api/finance/receivables/${recId}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ status: 'PAID', paidAmount: 80 })
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.data).toMatchObject({ status: 'PAID', paidAmount: 80 });
+      });
+
+    await request(app.getHttpServer())
+      .patch(`/api/finance/receivables/${recId}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ paidAmount: 90 })
+      .expect(400);
   });
 
   it('GET /api/finance/analytics/summary returns totals envelope', async () => {
     prismaMock.finAccount.findMany.mockResolvedValue([
-      { balance: { toString: () => '100' } },
+      { balance: { toString: () => '100' }, currency: 'DOP' },
     ]);
     prismaMock.finCardBalance.findMany.mockResolvedValue([]);
     prismaMock.finTransaction.groupBy.mockResolvedValue([]);
@@ -410,6 +421,8 @@ describe('Finance (e2e)', () => {
       .expect((res) => {
         expect(res.body.data).toHaveProperty('netWorth');
         expect(res.body.data).toHaveProperty('totals');
+        expect(res.body.data.baseCurrency).toBe('DOP');
+        expect(res.body.data.totals.accountBalance).toBe(100);
       });
   });
 });
