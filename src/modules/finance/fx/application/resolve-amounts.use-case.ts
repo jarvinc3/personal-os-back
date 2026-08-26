@@ -44,6 +44,23 @@ export class ResolveAmountsUseCase {
     };
   }
 
+  /**
+   * Convert a position amount to BASE_CURRENCY using the exact calendar
+   * date (UTC `YYYY-MM-DD`). Same fail-closed policy as ledger writes:
+   * identity when currencies match; otherwise cache/API for that date only.
+   */
+  async toBaseCurrency(
+    amount: number,
+    currency: string,
+    asOf: Date,
+  ): Promise<number> {
+    const from = normalizeCurrencyCode(currency);
+    const baseCurrency = this.config.get('BASE_CURRENCY', { infer: true });
+    const date = asOf.toISOString().slice(0, 10);
+    const rate = await this.requireRate(from, baseCurrency, date);
+    return convertAmount(amount, rate);
+  }
+
   private async requireRate(
     from: string,
     to: string,

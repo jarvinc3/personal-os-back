@@ -72,7 +72,7 @@ Query-only surfaces (e.g. `LedgerQueryService`) stay as services even when write
 | Savings goals | Target amount, progress, completion (`isCompleted` recalculated on amount changes) |
 | Loans / receivables | Installments and money owed |
 | Gmail sync | OAuth2, encrypted tokens, BullMQ job, **AI extraction** (no bank HTML parsers) |
-| Analytics | Net worth, cash flow, spending by category, budget status |
+| Analytics | Net worth, cash flow, spending by category, budget status. `GET /analytics/summary` positions (`accountBalance`, `cardDebt`, `netWorth`) are converted to `BASE_CURRENCY` using the **UTC date of the request** (exact cached/API rate, same fail-closed 400 as ledger — no stale “latest”). Income/expenses already use `amountBaseCurrency`. Payload includes `baseCurrency`. |
 | FX | Live historical rates via **exchangerate.host**; cache in `FinExchangeRate` (exact date only) |
 
 **Out of scope (today):** open banking APIs, automatic balance reconciliation from bank cores.
@@ -100,7 +100,7 @@ Prefix: `fin_*` tables. Primary keys are UUID text columns.
 | `ledgerAmount` / `ledgerCurrency` | Amount applied to account/card balance |
 | `amountBaseCurrency` / `exchangeRate` | Analytics normalization (`BASE_CURRENCY`) |
 
-FX fails closed: if the exact historical rate for `transactionDate` is missing from cache and API, the operation returns 400 — no stale “latest” rate.
+FX fails closed: if the exact historical rate for `transactionDate` is missing from cache and API, the operation returns 400 — no stale “latest” rate. The same rule applies to `GET /finance/analytics/summary` positions using today’s UTC date.
 
 ### Enums (transactions)
 
