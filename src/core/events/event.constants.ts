@@ -9,6 +9,7 @@ export const AppEvents = {
   FINANCE_TRANSACTION_DECLINED: 'finance.transaction.declined',
   FINANCE_TRANSACTION_CANCELLED: 'finance.transaction.cancelled',
   FINANCE_TRANSACTION_REVERSED: 'finance.transaction.reversed',
+  FINANCE_TRANSACTION_DELETED: 'finance.transaction.deleted',
   FINANCE_TRANSFER_CREATED: 'finance.transfer.created',
   FINANCE_BUDGET_THRESHOLD_CROSSED: 'finance.budget.threshold_crossed',
   FINANCE_EMAIL_SYNC_COMPLETED: 'finance.email_sync.completed',

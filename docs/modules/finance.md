@@ -148,7 +148,10 @@ Base path: `/finance`. Auth: Bearer JWT (`@ApiBearerAuth`). Controllers are spli
 | Analytics | `AnalyticsController` (`summary`, spending, budget-status) |
 | Ingestion | `EmailSyncController` (OAuth + sources + sync) |
 
-Public OAuth callback remains on the email-sync controller as before.
+Public OAuth callback remains on the email-sync controller. After Google consent the API redirects:
+
+- **Mobile (default):** `personal-os://finance/oauth/callback?success=1|false`
+- **Web:** pass `returnTo` (https URL whose origin is in `CORS_ORIGIN`) when requesting `GET /finance/email-sync/oauth/google/url`. The signed `state` carries `returnTo` plus optional `accountId` **xor** `cardId`. The callback then 302s to `{returnTo}?success=true|false`. Invalid or missing `returnTo` falls back to the mobile deep link (no open redirect).
 
 ## Gmail sync pipeline
 
@@ -196,6 +199,7 @@ Without Redis, `POST .../sync` returns `{ queued: false, reason: '...' }`.
 | --- | --- |
 | `finance.transaction.confirmed` / `imported` / `declined` / `cancelled` / `reversed` | Notifications, AI (EMAIL per-row insights skipped; batch sync used) |
 | `finance.transaction.updated` | Notifications, AI |
+| `finance.transaction.deleted` | AI (notifications claim idempotency and stay silent — no in-app toast) |
 | `finance.budget.threshold_crossed` | Notifications, AI (once per budget/type via alerts table) |
 | `finance.email_sync.completed` | AI batch insight |
 | `finance.transfer.created` | Outbox for transfer aggregate |

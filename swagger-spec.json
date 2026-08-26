@@ -735,25 +735,6 @@
         ]
       }
     },
-    "/api/finance/categories/migrate-legacy-icons": {
-      "post": {
-        "operationId": "CategoriesController_migrate",
-        "parameters": [],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
-        "tags": [
-          "finance"
-        ]
-      }
-    },
     "/api/finance/budgets": {
       "get": {
         "operationId": "BudgetsController_list",
@@ -1786,6 +1767,23 @@
             "name": "accountId",
             "required": false,
             "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cardId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "returnTo",
+            "required": false,
+            "in": "query",
+            "description": "https URL on a CORS_ORIGIN host to send the user after Google consent (web). Omit for the mobile deep link.",
             "schema": {
               "type": "string"
             }

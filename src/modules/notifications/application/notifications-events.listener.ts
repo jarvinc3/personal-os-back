@@ -89,6 +89,14 @@ export class NotificationsEventsListener {
     });
   }
 
+  @OnEvent(AppEvents.FINANCE_TRANSACTION_DELETED)
+  async onFinanceTransactionDeleted(event: FinanceTxEvent): Promise<void> {
+    await this.idempotency.tryClaim(
+      event.eventId,
+      `${NotificationsEventsListener.CONSUMER}:deleted`,
+    );
+  }
+
   @OnEvent(AppEvents.FINANCE_TRANSACTION_UPDATED)
   async onFinanceTransactionUpdated(event: FinanceTxEvent): Promise<void> {
     if (!(await this.idempotency.tryClaim(event.eventId, `${NotificationsEventsListener.CONSUMER}:updated`))) {

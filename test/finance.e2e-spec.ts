@@ -1,5 +1,6 @@
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
+import * as jwt from 'jsonwebtoken';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { PrismaService } from '../src/prisma/prisma.service';
@@ -128,6 +129,25 @@ describe('Finance (e2e)', () => {
       });
   });
 
+  it('GET /api/finance/email-sync/oauth/google/url rejects accountId and cardId together', async () => {
+    await request(app.getHttpServer())
+      .get('/api/finance/email-sync/oauth/google/url')
+      .query({
+        accountId: '11111111-1111-4111-8111-111111111111',
+        cardId: '22222222-2222-4222-8222-222222222222',
+      })
+      .set('Authorization', `Bearer ${token}`)
+      .expect(400);
+  });
+
+  it('GET /api/finance/email-sync/oauth/google/url rejects returnTo outside CORS_ORIGIN', async () => {
+    await request(app.getHttpServer())
+      .get('/api/finance/email-sync/oauth/google/url')
+      .query({ returnTo: 'https://evil.example/phish' })
+      .set('Authorization', `Bearer ${token}`)
+      .expect(400);
+  });
+
   it('PATCH /api/finance/email-sync/sources/:id links account', async () => {
     const sourceId = 'src-1';
     const accountId = '11111111-1111-4111-8111-111111111111';
@@ -178,6 +198,51 @@ describe('Finance (e2e)', () => {
         scope: 'email https://www.googleapis.com/auth/gmail.readonly',
         authuser: '0',
         prompt: 'consent',
+      })
+      .expect(302)
+      .expect('Location', 'personal-os://finance/oauth/callback?success=false');
+  });
+
+  it('GET /api/finance/email-sync/oauth/google/callback redirects to allowlisted returnTo', async () => {
+    const state = jwt.sign(
+      {
+        sub: 'user-123',
+        bankDomain: 'qik.com.do',
+        returnTo: 'http://localhost:5173/finance/oauth',
+      },
+      process.env.OAUTH_STATE_SECRET as string,
+      { expiresIn: '15m' },
+    );
+
+    await request(app.getHttpServer())
+      .get('/api/finance/email-sync/oauth/google/callback')
+      .query({
+        code: 'test-auth-code',
+        state,
+      })
+      .expect(302)
+      .expect(
+        'Location',
+        'http://localhost:5173/finance/oauth?success=false',
+      );
+  });
+
+  it('GET /api/finance/email-sync/oauth/google/callback ignores non-allowlisted returnTo', async () => {
+    const state = jwt.sign(
+      {
+        sub: 'user-123',
+        bankDomain: 'qik.com.do',
+        returnTo: 'https://evil.example/phish',
+      },
+      process.env.OAUTH_STATE_SECRET as string,
+      { expiresIn: '15m' },
+    );
+
+    await request(app.getHttpServer())
+      .get('/api/finance/email-sync/oauth/google/callback')
+      .query({
+        code: 'test-auth-code',
+        state,
       })
       .expect(302)
       .expect('Location', 'personal-os://finance/oauth/callback?success=false');
@@ -507,5 +572,12 @@ describe('Finance (e2e)', () => {
         expect(res.body.data.baseCurrency).toBe('DOP');
         expect(res.body.data.totals.accountBalance).toBe(100);
       });
+  });
+
+  it('POST /api/finance/categories/migrate-legacy-icons is gone', async () => {
+    await request(app.getHttpServer())
+      .post('/api/finance/categories/migrate-legacy-icons')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(404);
   });
 });

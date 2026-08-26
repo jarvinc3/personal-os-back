@@ -28,6 +28,20 @@ import { decryptToken, encryptToken } from '../infrastructure/token-encryption.u
 import type { ConnectEmailSourceDto } from '../presentation/dto/connect-email-source.dto';
 import type { GoogleOAuthUrlQueryDto } from '../presentation/dto/oauth-callback-query.dto';
 import type { UpdateEmailSourceDto } from '../presentation/dto/update-email-source.dto';
+import {
+    buildMobileOAuthRedirect,
+    buildWebOAuthRedirect,
+    isAllowlistedReturnTo,
+} from './oauth-client-redirect';
+
+type OAuthStatePayload = {
+  sub: string;
+  bankDomain: string;
+  label?: string;
+  accountId?: string;
+  cardId?: string;
+  returnTo?: string;
+};
 
 @Injectable()
 export class IngestionService {
@@ -203,10 +217,31 @@ export class IngestionService {
     void this.outboxDispatcher.processBatch();
   }
 
-  getGoogleOAuthUrl(
+  async getGoogleOAuthUrl(
     userId: string,
     query: GoogleOAuthUrlQueryDto = {},
-  ): { url: string } {
+  ): Promise<{ url: string }> {
+    if (query.accountId && query.cardId) {
+      throw new BadRequestException(
+        'Provide at most one of accountId or cardId',
+      );
+    }
+
+    const corsOrigin = this.config.get('CORS_ORIGIN', { infer: true });
+    const returnTo = query.returnTo?.trim();
+    if (returnTo && !isAllowlistedReturnTo(returnTo, corsOrigin)) {
+      throw new BadRequestException('returnTo is not an allowed origin');
+    }
+
+    if (query.accountId) {
+      const account = await this.repo.findAccountById(query.accountId, userId);
+      if (!account) throw new BadRequestException('Account not found');
+    }
+    if (query.cardId) {
+      const card = await this.repo.findCardById(userId, query.cardId);
+      if (!card) throw new BadRequestException('Card not found');
+    }
+
     const bankDomain = query.bankDomain?.trim() || 'bhd.com.do';
     const state = jwt.sign(
       {
@@ -214,7 +249,9 @@ export class IngestionService {
         bankDomain,
         label: query.label?.trim() || undefined,
         accountId: query.accountId?.trim() || undefined,
-      },
+        cardId: query.cardId?.trim() || undefined,
+        returnTo: returnTo || undefined,
+      } satisfies OAuthStatePayload,
       this.oauthStateSecret,
       { expiresIn: '15m' },
     );
@@ -235,17 +272,40 @@ export class IngestionService {
     };
   }
 
-  async handleGoogleOAuthCallback(code: string, state: string) {
-    let payload: {
-      sub: string;
-      bankDomain: string;
-      label?: string;
-      accountId?: string;
-    };
+  resolveOAuthClientRedirect(state: string | undefined, success: boolean): string {
+    const payload = this.peekOAuthState(state);
+    if (payload?.returnTo) {
+      const web = buildWebOAuthRedirect(
+        payload.returnTo,
+        this.config.get('CORS_ORIGIN', { infer: true }),
+        success,
+      );
+      if (web) return web;
+    }
+    return buildMobileOAuthRedirect(success);
+  }
+
+  private peekOAuthState(state: string | undefined): OAuthStatePayload | null {
+    if (!state) return null;
     try {
-      payload = jwt.verify(state, this.oauthStateSecret) as typeof payload;
+      return jwt.verify(state, this.oauthStateSecret) as OAuthStatePayload;
+    } catch {
+      return null;
+    }
+  }
+
+  async handleGoogleOAuthCallback(code: string, state: string) {
+    let payload: OAuthStatePayload;
+    try {
+      payload = jwt.verify(state, this.oauthStateSecret) as OAuthStatePayload;
     } catch {
       throw new BadRequestException('Invalid or expired OAuth state');
+    }
+
+    if (payload.accountId && payload.cardId) {
+      throw new BadRequestException(
+        'Provide at most one of accountId or cardId',
+      );
     }
 
     if (payload.accountId) {
@@ -254,6 +314,10 @@ export class IngestionService {
         payload.sub,
       );
       if (!account) throw new BadRequestException('Account not found');
+    }
+    if (payload.cardId) {
+      const card = await this.repo.findCardById(payload.sub, payload.cardId);
+      if (!card) throw new BadRequestException('Card not found');
     }
 
     const tokenResponse = await exchangeGoogleAuthCode(
@@ -289,7 +353,12 @@ export class IngestionService {
         refreshToken: encryptedRefresh,
         tokenExpiresAt,
         emailAddress,
-        ...(payload.accountId ? { accountId: payload.accountId } : {}),
+        ...(payload.accountId
+          ? { accountId: payload.accountId, cardId: null }
+          : {}),
+        ...(payload.cardId
+          ? { cardId: payload.cardId, accountId: null }
+          : {}),
       });
     }
 
@@ -299,6 +368,7 @@ export class IngestionService {
       bankDomain: payload.bankDomain,
       label: payload.label,
       accountId: payload.accountId,
+      cardId: payload.cardId,
       accessToken: encryptedAccess,
       refreshToken: encryptedRefresh,
       tokenExpiresAt,

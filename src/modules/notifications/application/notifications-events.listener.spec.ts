@@ -104,4 +104,21 @@ describe('NotificationsEventsListener', () => {
       }),
     );
   });
+
+  it('claims finance.transaction.deleted without creating an in-app notification', async () => {
+    await listener.onFinanceTransactionDeleted({
+      userId: 'user-1',
+      transactionId: 'tx-del',
+      amount: 50,
+      status: 'CONFIRMED',
+      source: 'MANUAL',
+      eventId: 'evt-del',
+    });
+
+    expect(tryClaim).toHaveBeenCalledWith(
+      'evt-del',
+      'notifications:deleted',
+    );
+    expect(create).not.toHaveBeenCalled();
+  });
 });
