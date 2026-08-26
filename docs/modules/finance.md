@@ -47,7 +47,7 @@ Query-only surfaces (e.g. `LedgerQueryService`) stay as services even when write
 
 - **Ledger** write use-cases orchestrate FX + `LEDGER_REPOSITORY`; **`LedgerQueryService` only lists/gets**.
 - **Ledger** mutators run **synchronously** inside one `prisma.$transaction`: transaction row + balances + budget `amountSpent` + outbox row(s) + optional threshold side effects via `BUDGET_THRESHOLD_PORT`.
-- **Delete transaction**: hard-deletes and restores balances in the same TX. **No domain event** is enqueued (notification/AI listeners do not act on delete today). Use reverse if you need an auditable compensating entry.
+- **Delete transaction**: hard-deletes the row(s) and restores balances in the same TX, then enqueues `finance.transaction.deleted` (payload must stand alone — the aggregate id no longer exists). Notifications stay silent (no in-app toast). Use reverse if you need an auditable compensating entry that keeps the row as `REVERSED` (`finance.transaction.reversed`).
 - **Email sync completed**: `FinEmailSyncLog` + `finance.email_sync.completed` outbox row land in the **same** `$transaction` as the sync success path.
 - **Side effects** (notifications, AI insights, WebSocket) run **after commit** via `DomainEventOutbox` → `FinanceOutboxDispatcher` (cron every 30s + wake after write) → `EventEmitter2`.
 - Listeners call `DomainEventIdempotencyGuard.tryClaim(eventId, consumer)` before acting.
@@ -65,14 +65,14 @@ Query-only surfaces (e.g. `LedgerQueryService`) stay as services even when write
 | --- | --- |
 | Institutions | User-defined banks/fintechs; soft-delete via `isActive` |
 | Accounts | Checking, savings, cash, investment; single currency + balance; optional institution; **not** credit cards |
-| Cards | Credit/debit per institution; multi-currency balances + credit limit on `FinCardBalance`; statement days on card |
+| Cards | Credit/debit per institution; multi-currency balances + credit limit on `FinCardBalance`; statement days on card; archive via `PATCH isActive` or `DELETE` (soft, FKs kept) |
 | Transactions | Manual CRUD (`DEBIT`/`CREDIT`); transfers via dedicated endpoint; filters; confirm `PENDING` |
-| Categories | System + custom; hierarchical (`parentId`); used by budgets and transactions |
+| Categories | System + custom; hierarchical (`parentId`); `icon` is an emoji string (no Lucide keys, no migrate endpoint) |
 | Budgets | Per category and period; spent tracking; threshold alerts deduped in `FinBudgetAlert` |
 | Savings goals | Target amount, progress, completion (`isCompleted` recalculated on amount changes) |
-| Loans / receivables | Installments and money owed |
+| Loans / receivables | Loans archive via `PATCH isActive` / `DELETE`. Receivables: `status` (`PENDING` \| `PARTIAL` \| `PAID` \| `CANCELLED`) and `paidAmount` on PATCH; `paidAmount` ∈ [0, amount]; `PAID` requires `paidAmount = amount` (omitted `paidAmount` is filled); omitting `status` derives it from amounts; `CANCELLED` does not require a full payment |
 | Gmail sync | OAuth2, encrypted tokens, BullMQ job, **AI extraction** (no bank HTML parsers) |
-| Analytics | Net worth, cash flow, spending by category (includes `name`/`color`/`icon`; uncategorized is `categoryId: null` + `Sin categoría`), budget status |
+| Analytics | Net worth, cash flow, spending by category, budget status. `GET /analytics/summary` positions (`accountBalance`, `cardDebt`, `netWorth`) are converted to `BASE_CURRENCY` using the **UTC date of the request** (exact cached/API rate, same fail-closed 400 as ledger — no stale “latest”). Income/expenses already use `amountBaseCurrency`. Payload includes `baseCurrency`. |
 | FX | Live historical rates via **exchangerate.host**; cache in `FinExchangeRate` (exact date only) |
 
 **Out of scope (today):** open banking APIs, automatic balance reconciliation from bank cores.
@@ -100,7 +100,7 @@ Prefix: `fin_*` tables. Primary keys are UUID text columns.
 | `ledgerAmount` / `ledgerCurrency` | Amount applied to account/card balance |
 | `amountBaseCurrency` / `exchangeRate` | Analytics normalization (`BASE_CURRENCY`) |
 
-FX fails closed: if the exact historical rate for `transactionDate` is missing from cache and API, the operation returns 400 — no stale “latest” rate.
+FX fails closed: if the exact historical rate for `transactionDate` is missing from cache and API, the operation returns 400 — no stale “latest” rate. The same rule applies to `GET /finance/analytics/summary` positions using today’s UTC date.
 
 ### Enums (transactions)
 
@@ -148,7 +148,10 @@ Base path: `/finance`. Auth: Bearer JWT (`@ApiBearerAuth`). Controllers are spli
 | Analytics | `AnalyticsController` (`summary`, spending, budget-status) |
 | Ingestion | `EmailSyncController` (OAuth + sources + sync) |
 
-Public OAuth callback remains on the email-sync controller as before.
+Public OAuth callback remains on the email-sync controller. After Google consent the API redirects:
+
+- **Mobile (default):** `personal-os://finance/oauth/callback?success=1|false`
+- **Web:** pass `returnTo` (https URL whose origin is in `CORS_ORIGIN`) when requesting `GET /finance/email-sync/oauth/google/url`. The signed `state` carries `returnTo` plus optional `accountId` **xor** `cardId`. The callback then 302s to `{returnTo}?success=true|false`. Invalid or missing `returnTo` falls back to the mobile deep link (no open redirect).
 
 ## Gmail sync pipeline
 
@@ -196,6 +199,7 @@ Without Redis, `POST .../sync` returns `{ queued: false, reason: '...' }`.
 | --- | --- |
 | `finance.transaction.confirmed` / `imported` / `declined` / `cancelled` / `reversed` | Notifications, AI (EMAIL per-row insights skipped; batch sync used) |
 | `finance.transaction.updated` | Notifications, AI |
+| `finance.transaction.deleted` | AI (notifications claim idempotency and stay silent — no in-app toast) |
 | `finance.budget.threshold_crossed` | Notifications, AI (once per budget/type via alerts table) |
 | `finance.email_sync.completed` | AI batch insight |
 | `finance.transfer.created` | Outbox for transfer aggregate |

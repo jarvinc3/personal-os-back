@@ -198,17 +198,4 @@ export class CatalogRepository {
       where: { id, userId, isSystem: false },
     });
   }
-
-  listUserCategories(userId: string) {
-    return this.prisma.finCategory.findMany({
-      where: { OR: [{ userId }, { isSystem: true }] },
-    });
-  }
-
-  updateCategoryIcon(userId: string, id: string, icon: string) {
-    return this.prisma.finCategory.updateMany({
-      where: { id, userId },
-      data: { icon },
-    });
-  }
 }

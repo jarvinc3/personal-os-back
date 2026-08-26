@@ -3,19 +3,21 @@ import {
     Injectable,
     NotFoundException,
 } from '@nestjs/common';
+import { FinanceOutboxDispatcher } from '../../events/infrastructure/finance-outbox.dispatcher';
 import { LEDGER_REPOSITORY } from '../../shared/application/tokens';
 import type { LedgerRepositoryPort } from './ports/ledger.repository.port';
 
 /**
- * Deletes a manual transaction (or transfer group). Balance compensation
- * runs inside the repo TX. No domain outbox event is emitted (delete has no
- * notif/AI consumers today).
+ * Hard-deletes a manual transaction (or transfer group). Balance compensation
+ * and `finance.transaction.deleted` outbox rows run inside the repo TX.
+ * Reverse keeps the row and emits `finance.transaction.reversed` instead.
  */
 @Injectable()
 export class DeleteTransactionUseCase {
   constructor(
     @Inject(LEDGER_REPOSITORY)
     private readonly repo: LedgerRepositoryPort,
+    private readonly outboxDispatcher: FinanceOutboxDispatcher,
   ) {}
 
   async execute(userId: string, id: string) {
@@ -30,6 +32,7 @@ export class DeleteTransactionUseCase {
       if (result.count === 0) {
         throw new NotFoundException('Manual transaction not found');
       }
+      void this.outboxDispatcher.processBatch();
       return { success: true };
     }
 
@@ -37,6 +40,7 @@ export class DeleteTransactionUseCase {
     if (result.count === 0) {
       throw new NotFoundException('Manual transaction not found');
     }
+    void this.outboxDispatcher.processBatch();
     return { success: true };
   }
 }

@@ -1,4 +1,8 @@
 import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import type { Env } from '../../../../config';
+import { ResolveAmountsUseCase } from '../../fx/application/resolve-amounts.use-case';
+import { roundMoney } from '../../shared/domain/money';
 import { AnalyticsRepository } from '../infrastructure/analytics.repository';
 
 const UNCATEGORIZED_NAME = 'Sin categoría';
@@ -6,7 +10,11 @@ const MISSING_CATEGORY_NAME = 'Categoría no disponible';
 
 @Injectable()
 export class AnalyticsService {
-  constructor(private readonly repo: AnalyticsRepository) {}
+  constructor(
+    private readonly repo: AnalyticsRepository,
+    private readonly resolveAmounts: ResolveAmountsUseCase,
+    private readonly config: ConfigService<Env, true>,
+  ) {}
 
   async getAnalyticsSummary(userId: string, dateFrom?: string, dateTo?: string) {
     const from = dateFrom ? new Date(dateFrom) : undefined;
@@ -14,13 +22,29 @@ export class AnalyticsService {
     const { accounts, cardBalances, aggregates } =
       await this.repo.getAnalyticsSummary(userId, from, to);
 
-    const totalAccountBalance = accounts.reduce(
-      (acc, item) => acc + Number(item.balance),
-      0,
-    );
-    const totalCardDebt = cardBalances
-      .filter((item) => item.card.type === 'CREDIT')
-      .reduce((acc, item) => acc + Math.abs(Number(item.balance)), 0);
+    const baseCurrency = this.config.get('BASE_CURRENCY', { infer: true });
+    const asOf = new Date();
+
+    let totalAccountBalance = 0;
+    for (const item of accounts) {
+      totalAccountBalance += await this.resolveAmounts.toBaseCurrency(
+        Number(item.balance),
+        item.currency,
+        asOf,
+      );
+    }
+    totalAccountBalance = roundMoney(totalAccountBalance);
+
+    let totalCardDebt = 0;
+    for (const item of cardBalances) {
+      if (item.card.type !== 'CREDIT') continue;
+      totalCardDebt += await this.resolveAmounts.toBaseCurrency(
+        Math.abs(Number(item.balance)),
+        item.currency,
+        asOf,
+      );
+    }
+    totalCardDebt = roundMoney(totalCardDebt);
 
     let income = 0;
     let expenses = 0;
@@ -32,8 +56,9 @@ export class AnalyticsService {
     }
 
     return {
-      netWorth: totalAccountBalance - totalCardDebt,
+      netWorth: roundMoney(totalAccountBalance - totalCardDebt),
       cashFlow: income - expenses,
+      baseCurrency,
       totals: {
         accountBalance: totalAccountBalance,
         cardDebt: totalCardDebt,

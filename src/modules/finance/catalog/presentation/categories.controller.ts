@@ -34,9 +34,4 @@ export class CategoriesController {
   remove(@CurrentUser('sub') userId: string, @Param('id') id: string) {
     return this.catalog.deleteCategory(userId, id);
   }
-
-  @Post('categories/migrate-legacy-icons')
-  migrate(@CurrentUser('sub') userId: string) {
-    return this.catalog.migrateLegacyCategoryIcons(userId);
-  }
 }

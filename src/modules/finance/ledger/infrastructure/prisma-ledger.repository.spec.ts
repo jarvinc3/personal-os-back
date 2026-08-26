@@ -224,4 +224,197 @@ describe('PrismaLedgerRepository outbox-in-TX', () => {
     );
     expect((transferEnqueue?.[1] as { name?: string })?.name).toBe('same-tx');
   });
+
+  it('deleteTransaction restores CONFIRMED balances once and enqueues finance.transaction.deleted', async () => {
+    const enqueue = jest.fn().mockResolvedValue({});
+    const events = { enqueue } as unknown as DomainEventPublisherPort;
+    const finAccountUpdate = jest.fn();
+    const deleteMany = jest.fn().mockResolvedValue({ count: 1 });
+    const existing = {
+      id: 'tx-del',
+      userId: 'user-1',
+      source: 'MANUAL',
+      status: 'CONFIRMED',
+      type: 'DEBIT',
+      amount: 50,
+      ledgerAmount: 50,
+      amountBaseCurrency: 50,
+      currency: 'DOP',
+      ledgerCurrency: 'DOP',
+      accountId: 'acc-1',
+      cardId: null,
+      categoryId: null,
+      transactionDate: new Date('2026-08-01'),
+      transferGroupId: null,
+    };
+
+    const prisma = {
+      $transaction: jest.fn(async (fn: (tx: unknown) => Promise<unknown>) => {
+        const tx = {
+          name: 'same-tx',
+          finAccount: {
+            findFirst: jest.fn().mockResolvedValue({
+              id: 'acc-1',
+              userId: 'user-1',
+              currency: 'DOP',
+              type: 'CHECKING',
+              balance: 100,
+            }),
+            update: finAccountUpdate,
+          },
+          finCard: { findFirst: jest.fn() },
+          finCardBalance: { findFirst: jest.fn(), update: jest.fn(), create: jest.fn() },
+          finTransaction: {
+            findFirst: jest.fn().mockResolvedValue(existing),
+            deleteMany,
+          },
+          finBudget: {
+            findMany: jest.fn().mockResolvedValue([]),
+            update: jest.fn(),
+          },
+        };
+        return fn(tx);
+      }),
+    };
+
+    const repo = new PrismaLedgerRepository(
+      prisma as never,
+      events,
+      undefined,
+    );
+
+    const result = await repo.deleteTransaction('user-1', 'tx-del');
+
+    expect(result).toEqual({ count: 1 });
+    expect(finAccountUpdate).toHaveBeenCalledTimes(1);
+    expect(deleteMany).toHaveBeenCalledTimes(1);
+    expect(enqueue).toHaveBeenCalledTimes(1);
+    expect(enqueue.mock.calls[0]?.[0]).toEqual(
+      expect.objectContaining({
+        eventName: AppEvents.FINANCE_TRANSACTION_DELETED,
+        aggregateType: 'FinTransaction',
+        aggregateId: 'tx-del',
+        userId: 'user-1',
+        payload: expect.objectContaining({
+          transactionId: 'tx-del',
+          transferGroupId: null,
+          amount: 50,
+          status: 'CONFIRMED',
+          source: 'MANUAL',
+        }),
+      }),
+    );
+    expect((enqueue.mock.calls[0]?.[1] as { name?: string })?.name).toBe(
+      'same-tx',
+    );
+  });
+
+  it('deleteTransactionsByTransferGroupId includes transferGroupId on each deleted event', async () => {
+    const enqueue = jest.fn().mockResolvedValue({});
+    const events = { enqueue } as unknown as DomainEventPublisherPort;
+    const groupId = 'grp-1';
+    const rows = [
+      {
+        id: 'debit-1',
+        userId: 'user-1',
+        source: 'MANUAL',
+        status: 'PENDING',
+        type: 'DEBIT',
+        amount: 25,
+        currency: 'DOP',
+        accountId: 'acc-from',
+        cardId: null,
+        categoryId: null,
+        transactionDate: new Date('2026-08-01'),
+        transferGroupId: groupId,
+      },
+      {
+        id: 'credit-1',
+        userId: 'user-1',
+        source: 'MANUAL',
+        status: 'PENDING',
+        type: 'CREDIT',
+        amount: 25,
+        currency: 'DOP',
+        accountId: 'acc-to',
+        cardId: null,
+        categoryId: null,
+        transactionDate: new Date('2026-08-01'),
+        transferGroupId: groupId,
+      },
+    ];
+
+    const prisma = {
+      $transaction: jest.fn(async (fn: (tx: unknown) => Promise<unknown>) => {
+        const tx = {
+          name: 'same-tx',
+          finTransaction: {
+            findMany: jest.fn().mockResolvedValue(rows),
+            deleteMany: jest.fn().mockResolvedValue({ count: 2 }),
+          },
+        };
+        return fn(tx);
+      }),
+    };
+
+    const repo = new PrismaLedgerRepository(
+      prisma as never,
+      events,
+      undefined,
+    );
+
+    const result = await repo.deleteTransactionsByTransferGroupId(
+      'user-1',
+      groupId,
+    );
+
+    expect(result).toEqual({ count: 2 });
+    expect(enqueue).toHaveBeenCalledTimes(2);
+    expect(enqueue.mock.calls.map((call) => call[0])).toEqual([
+      expect.objectContaining({
+        eventName: AppEvents.FINANCE_TRANSACTION_DELETED,
+        aggregateId: 'debit-1',
+        payload: expect.objectContaining({
+          transactionId: 'debit-1',
+          transferGroupId: groupId,
+          status: 'PENDING',
+        }),
+      }),
+      expect.objectContaining({
+        eventName: AppEvents.FINANCE_TRANSACTION_DELETED,
+        aggregateId: 'credit-1',
+        payload: expect.objectContaining({
+          transactionId: 'credit-1',
+          transferGroupId: groupId,
+        }),
+      }),
+    ]);
+  });
+
+  it('deleteTransaction does not enqueue when the row is missing', async () => {
+    const enqueue = jest.fn().mockResolvedValue({});
+    const events = { enqueue } as unknown as DomainEventPublisherPort;
+
+    const prisma = {
+      $transaction: jest.fn(async (fn: (tx: unknown) => Promise<unknown>) => {
+        const tx = {
+          finTransaction: {
+            findFirst: jest.fn().mockResolvedValue(null),
+            deleteMany: jest.fn(),
+          },
+        };
+        return fn(tx);
+      }),
+    };
+
+    const repo = new PrismaLedgerRepository(
+      prisma as never,
+      events,
+      undefined,
+    );
+
+    const result = await repo.deleteTransaction('user-1', 'missing');
+    expect(result).toEqual({ count: 0 });
+    expect(enqueue).not.toHaveBeenCalled();
+  });
 });

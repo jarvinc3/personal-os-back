@@ -41,6 +41,24 @@ export type PrismaMock = {
     create: MockFn;
     groupBy: MockFn;
   };
+  finCard: {
+    findMany: MockFn;
+    findFirst: MockFn;
+    create: MockFn;
+    updateMany: MockFn;
+  };
+  finLoan: {
+    findMany: MockFn;
+    findFirst: MockFn;
+    create: MockFn;
+    updateMany: MockFn;
+  };
+  finReceivable: {
+    findMany: MockFn;
+    findFirst: MockFn;
+    create: MockFn;
+    updateMany: MockFn;
+  };
   finCardBalance: {
     findMany: MockFn;
   };

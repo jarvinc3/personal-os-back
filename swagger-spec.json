@@ -558,6 +558,33 @@
         "tags": [
           "finance"
         ]
+      },
+      "delete": {
+        "operationId": "CardsController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Deactivate card (soft archive)",
+        "tags": [
+          "finance"
+        ]
       }
     },
     "/api/finance/cards/{id}/balances": {
@@ -695,25 +722,6 @@
         ],
         "responses": {
           "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
-        "tags": [
-          "finance"
-        ]
-      }
-    },
-    "/api/finance/categories/migrate-legacy-icons": {
-      "post": {
-        "operationId": "CategoriesController_migrate",
-        "parameters": [],
-        "responses": {
-          "201": {
             "description": ""
           }
         },
@@ -1026,6 +1034,33 @@
             "access-token": []
           }
         ],
+        "tags": [
+          "finance"
+        ]
+      },
+      "delete": {
+        "operationId": "LoansController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Deactivate loan (soft archive)",
         "tags": [
           "finance"
         ]
@@ -1703,6 +1738,23 @@
             "name": "accountId",
             "required": false,
             "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cardId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "returnTo",
+            "required": false,
+            "in": "query",
+            "description": "https URL on a CORS_ORIGIN host to send the user after Google consent (web). Omit for the mobile deep link.",
             "schema": {
               "type": "string"
             }
@@ -2490,6 +2542,9 @@
           },
           "color": {
             "type": "string"
+          },
+          "isActive": {
+            "type": "boolean"
           }
         }
       },
@@ -2751,6 +2806,9 @@
           },
           "nextDueDate": {
             "type": "string"
+          },
+          "isActive": {
+            "type": "boolean"
           }
         }
       },
@@ -2765,6 +2823,20 @@
           },
           "amount": {
             "type": "number"
+          },
+          "paidAmount": {
+            "type": "number",
+            "default": 0
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "PARTIAL",
+              "PAID",
+              "CANCELLED"
+            ],
+            "default": "PENDING"
           },
           "currency": {
             "type": "string",
@@ -2791,6 +2863,20 @@
           },
           "amount": {
             "type": "number"
+          },
+          "paidAmount": {
+            "type": "number",
+            "default": 0
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "PARTIAL",
+              "PAID",
+              "CANCELLED"
+            ],
+            "default": "PENDING"
           },
           "currency": {
             "type": "string",
