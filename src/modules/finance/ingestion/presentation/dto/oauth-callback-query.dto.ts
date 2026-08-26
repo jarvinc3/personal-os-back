@@ -30,4 +30,18 @@ export class GoogleOAuthUrlQueryDto {
   @IsOptional()
   @IsUUID()
   accountId?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsUUID()
+  cardId?: string;
+
+  @ApiPropertyOptional({
+    description:
+      'https URL on a CORS_ORIGIN host to send the user after Google consent (web). Omit for the mobile deep link.',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  returnTo?: string;
 }
