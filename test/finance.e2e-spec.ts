@@ -334,6 +334,89 @@ describe('Finance (e2e)', () => {
       });
   });
 
+  it('POST /api/finance/transactions/:id/reverse returns 404 when missing', async () => {
+    prismaMock.finTransaction.findFirst.mockResolvedValue(null);
+
+    await request(app.getHttpServer())
+      .post('/api/finance/transactions/22222222-2222-4222-8222-222222222222/reverse')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(404);
+  });
+
+  it('POST /api/finance/transactions/:id/reverse rejects PENDING', async () => {
+    const pendingId = '22222222-2222-4222-8222-222222222222';
+    prismaMock.finTransaction.findFirst.mockResolvedValue({
+      id: pendingId,
+      userId: 'user-123',
+      accountId: '11111111-1111-4111-8111-111111111111',
+      cardId: null,
+      type: 'DEBIT',
+      amount: { toString: () => '20.00' },
+      ledgerAmount: { toString: () => '20.00' },
+      amountBaseCurrency: { toString: () => '20.00' },
+      currency: 'DOP',
+      ledgerCurrency: 'DOP',
+      exchangeRate: { toString: () => '1' },
+      merchant: null,
+      description: null,
+      notes: null,
+      transactionDate: new Date(),
+      status: 'PENDING',
+      source: 'MANUAL',
+      categoryId: null,
+      transferGroupId: null,
+      linkedTransactionId: null,
+      aiMetadata: null,
+      createdAt: new Date(),
+      account: { id: '11111111-1111-4111-8111-111111111111', name: 'Main' },
+      card: null,
+    });
+
+    await request(app.getHttpServer())
+      .post(`/api/finance/transactions/${pendingId}/reverse`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(400);
+  });
+
+  it('POST /api/finance/transactions/:id/reverse is idempotent for REVERSED', async () => {
+    const reversedId = '22222222-2222-4222-8222-222222222222';
+    prismaMock.finTransaction.findFirst.mockResolvedValue({
+      id: reversedId,
+      userId: 'user-123',
+      accountId: '11111111-1111-4111-8111-111111111111',
+      cardId: null,
+      type: 'DEBIT',
+      amount: { toString: () => '20.00' },
+      ledgerAmount: { toString: () => '20.00' },
+      amountBaseCurrency: { toString: () => '20.00' },
+      currency: 'DOP',
+      ledgerCurrency: 'DOP',
+      exchangeRate: { toString: () => '1' },
+      merchant: null,
+      description: null,
+      notes: null,
+      transactionDate: new Date(),
+      status: 'REVERSED',
+      source: 'MANUAL',
+      categoryId: null,
+      transferGroupId: null,
+      linkedTransactionId: null,
+      aiMetadata: null,
+      createdAt: new Date(),
+      account: { id: '11111111-1111-4111-8111-111111111111', name: 'Main' },
+      card: null,
+    });
+
+    await request(app.getHttpServer())
+      .post(`/api/finance/transactions/${reversedId}/reverse`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(201)
+      .expect((res) => {
+        expect(res.body.data.status).toBe('REVERSED');
+        expect(res.body.data.id).toBe(reversedId);
+      });
+  });
+
   it('POST /api/finance/transfers creates transfer group', async () => {
     const fromAccountId = '11111111-1111-4111-8111-111111111111';
     const toAccountId = '33333333-3333-4333-8333-333333333333';

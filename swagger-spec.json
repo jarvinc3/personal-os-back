@@ -1538,6 +1538,35 @@
         ]
       }
     },
+    "/api/finance/transactions/{id}/reverse": {
+      "post": {
+        "operationId": "TransactionsController_reverse",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Reverse a CONFIRMED transaction (keeps the row as REVERSED)",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
     "/api/finance/transfers": {
       "post": {
         "operationId": "TransfersController_create",
