@@ -1706,6 +1706,23 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "cardId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "returnTo",
+            "required": false,
+            "in": "query",
+            "description": "https URL on a CORS_ORIGIN host to send the user after Google consent (web). Omit for the mobile deep link.",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
