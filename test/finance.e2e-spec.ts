@@ -490,4 +490,11 @@ describe('Finance (e2e)', () => {
         expect(res.body.data.totals.accountBalance).toBe(100);
       });
   });
+
+  it('POST /api/finance/categories/migrate-legacy-icons is gone', async () => {
+    await request(app.getHttpServer())
+      .post('/api/finance/categories/migrate-legacy-icons')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(404);
+  });
 });

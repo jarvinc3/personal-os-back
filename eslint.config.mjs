@@ -67,7 +67,6 @@ const restrictedModuleLayerPatterns = [
       '**/finance/ingestion/**',
       '**/finance/events/**',
       '**/finance/shared/**',
-      '**/finance/constants/**',
       '**/finance/finance.module',
       '**/finance/finance.facade',
     ],

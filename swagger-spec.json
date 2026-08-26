@@ -735,25 +735,6 @@
         ]
       }
     },
-    "/api/finance/categories/migrate-legacy-icons": {
-      "post": {
-        "operationId": "CategoriesController_migrate",
-        "parameters": [],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
-        "tags": [
-          "finance"
-        ]
-      }
-    },
     "/api/finance/budgets": {
       "get": {
         "operationId": "BudgetsController_list",
