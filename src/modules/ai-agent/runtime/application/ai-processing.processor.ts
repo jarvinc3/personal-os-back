@@ -103,6 +103,8 @@ export class AiProcessingProcessor extends WorkerHost {
         `The user recorded a finance transaction id=${field('transactionId')} amount=${field('amount')} status=${field('status')}. Offer one brief, actionable insight if useful.`,
       'finance.transaction.updated':
         `The user updated finance transaction id=${field('transactionId')}. Acknowledge briefly if a tip is useful.`,
+      'finance.transaction.deleted':
+        `The user deleted finance transaction id=${field('transactionId')} (previous status ${field('status')}). Acknowledge briefly if a tip is useful.`,
       'finance.budget.threshold_crossed':
         `Budget ${field('budgetId')} reached ${field('percentageUsed')}%. Offer one concise spending tip related to staying on budget.`,
       'finance.email_sync.completed':

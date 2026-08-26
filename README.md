@@ -90,7 +90,7 @@ Catálogo en `src/core/events/event.constants.ts`. Patrón: EventEmitter post-co
 | Evento | Emisor | Listener |
 | --- | --- | --- |
 | `user.logged_in` | Auth session (debounce 1h) | AI → cola |
-| `finance.transaction.*` / `updated` | Finance (outbox) | Notif IN_APP + AI |
+| `finance.transaction.*` / `updated` | Finance (outbox) | Notif IN_APP (except `deleted`) + AI |
 | `finance.budget.threshold_crossed` | Finance (outbox) | Notif + AI |
 | `notification.created` | Notifications | log debug |
 | `user.preferences.updated` / `module.*` | Users | AI |

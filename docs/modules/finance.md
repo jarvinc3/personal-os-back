@@ -47,7 +47,7 @@ Query-only surfaces (e.g. `LedgerQueryService`) stay as services even when write
 
 - **Ledger** write use-cases orchestrate FX + `LEDGER_REPOSITORY`; **`LedgerQueryService` only lists/gets**.
 - **Ledger** mutators run **synchronously** inside one `prisma.$transaction`: transaction row + balances + budget `amountSpent` + outbox row(s) + optional threshold side effects via `BUDGET_THRESHOLD_PORT`.
-- **Delete transaction**: hard-deletes and restores balances in the same TX. **No domain event** is enqueued (notification/AI listeners do not act on delete today). Use reverse if you need an auditable compensating entry.
+- **Delete transaction**: hard-deletes the row(s) and restores balances in the same TX, then enqueues `finance.transaction.deleted` (payload must stand alone — the aggregate id no longer exists). Notifications stay silent (no in-app toast). Use reverse if you need an auditable compensating entry that keeps the row as `REVERSED` (`finance.transaction.reversed`).
 - **Email sync completed**: `FinEmailSyncLog` + `finance.email_sync.completed` outbox row land in the **same** `$transaction` as the sync success path.
 - **Side effects** (notifications, AI insights, WebSocket) run **after commit** via `DomainEventOutbox` → `FinanceOutboxDispatcher` (cron every 30s + wake after write) → `EventEmitter2`.
 - Listeners call `DomainEventIdempotencyGuard.tryClaim(eventId, consumer)` before acting.
@@ -196,6 +196,7 @@ Without Redis, `POST .../sync` returns `{ queued: false, reason: '...' }`.
 | --- | --- |
 | `finance.transaction.confirmed` / `imported` / `declined` / `cancelled` / `reversed` | Notifications, AI (EMAIL per-row insights skipped; batch sync used) |
 | `finance.transaction.updated` | Notifications, AI |
+| `finance.transaction.deleted` | AI (notifications claim idempotency and stay silent — no in-app toast) |
 | `finance.budget.threshold_crossed` | Notifications, AI (once per budget/type via alerts table) |
 | `finance.email_sync.completed` | AI batch insight |
 | `finance.transfer.created` | Outbox for transfer aggregate |
