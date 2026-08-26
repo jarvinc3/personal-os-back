@@ -65,12 +65,12 @@ Query-only surfaces (e.g. `LedgerQueryService`) stay as services even when write
 | --- | --- |
 | Institutions | User-defined banks/fintechs; soft-delete via `isActive` |
 | Accounts | Checking, savings, cash, investment; single currency + balance; optional institution; **not** credit cards |
-| Cards | Credit/debit per institution; multi-currency balances + credit limit on `FinCardBalance`; statement days on card |
+| Cards | Credit/debit per institution; multi-currency balances + credit limit on `FinCardBalance`; statement days on card; archive via `PATCH isActive` or `DELETE` (soft, FKs kept) |
 | Transactions | Manual CRUD (`DEBIT`/`CREDIT`); transfers via dedicated endpoint; filters; confirm `PENDING` |
 | Categories | System + custom; hierarchical (`parentId`); used by budgets and transactions |
 | Budgets | Per category and period; spent tracking; threshold alerts deduped in `FinBudgetAlert` |
 | Savings goals | Target amount, progress, completion (`isCompleted` recalculated on amount changes) |
-| Loans / receivables | Installments and money owed |
+| Loans / receivables | Loans archive via `PATCH isActive` / `DELETE`. Receivables: `status` (`PENDING` \| `PARTIAL` \| `PAID` \| `CANCELLED`) and `paidAmount` on PATCH; `paidAmount` ∈ [0, amount]; `PAID` requires `paidAmount = amount` (omitted `paidAmount` is filled); omitting `status` derives it from amounts; `CANCELLED` does not require a full payment |
 | Gmail sync | OAuth2, encrypted tokens, BullMQ job, **AI extraction** (no bank HTML parsers) |
 | Analytics | Net worth, cash flow, spending by category, budget status |
 | FX | Live historical rates via **exchangerate.host**; cache in `FinExchangeRate` (exact date only) |

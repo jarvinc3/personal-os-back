@@ -1,5 +1,5 @@
-import { Body, Controller, Get, Param, Patch, Post } from '@nestjs/common';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { Body, Controller, Delete, Get, Param, Patch, Post } from '@nestjs/common';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../../../../core/decorators';
 import { PlanningService } from '../application/planning.service';
 import { CreateLoanDto } from './dto/create-loan.dto';
@@ -28,5 +28,11 @@ export class LoansController {
     @Body() dto: UpdateLoanDto,
   ) {
     return this.planning.updateLoan(userId, id, dto);
+  }
+
+  @Delete('loans/:id')
+  @ApiOperation({ summary: 'Deactivate loan (soft archive)' })
+  remove(@CurrentUser('sub') userId: string, @Param('id') id: string) {
+    return this.planning.deactivateLoan(userId, id);
   }
 }
