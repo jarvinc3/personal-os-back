@@ -59,13 +59,18 @@ export class AnalyticsRepository {
   }
 
   findCategoriesByIds(userId: string, ids: string[]) {
-    if (ids.length === 0) return Promise.resolve([]);
+    const select = { id: true, name: true, color: true, icon: true } as const;
+    if (ids.length === 0) {
+      return Promise.resolve(
+        [] as Prisma.FinCategoryGetPayload<{ select: typeof select }>[],
+      );
+    }
     return this.prisma.finCategory.findMany({
       where: {
         id: { in: ids },
         OR: [{ userId }, { isSystem: true }],
       },
-      select: { id: true, name: true, color: true, icon: true },
+      select,
     });
   }
 

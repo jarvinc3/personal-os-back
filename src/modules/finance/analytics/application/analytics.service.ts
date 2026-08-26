@@ -57,7 +57,9 @@ export class AnalyticsService {
       ),
     ];
     const categories = await this.repo.findCategoriesByIds(userId, categoryIds);
-    const byId = new Map(categories.map((category) => [category.id, category]));
+    const byId = new Map(
+      categories.map((category) => [category.id, category] as const),
+    );
 
     return grouped.map((item) => {
       const total = item._sum.amountBaseCurrency
