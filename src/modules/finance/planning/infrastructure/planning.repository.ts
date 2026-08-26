@@ -114,6 +114,10 @@ export class PlanningRepository {
     });
   }
 
+  findReceivable(userId: string, id: string) {
+    return this.prisma.finReceivable.findFirst({ where: { id, userId } });
+  }
+
   createReceivable(
     userId: string,
     data: Omit<Prisma.FinReceivableUncheckedCreateInput, 'userId'>,

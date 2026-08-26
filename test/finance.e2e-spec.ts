@@ -298,6 +298,115 @@ describe('Finance (e2e)', () => {
       });
   });
 
+  it('PATCH /api/finance/cards/:id archives with isActive false without accountId', async () => {
+    const cardId = '66666666-6666-4666-8666-666666666666';
+    const card = {
+      id: cardId,
+      userId: 'user-123',
+      institutionId: 'inst-1',
+      accountId: 'acc-1',
+      name: 'Debit',
+      type: 'DEBIT',
+      network: null,
+      lastFour: '1234',
+      statementClosingDay: null,
+      paymentDueDay: null,
+      color: null,
+      isActive: false,
+      institution: { name: 'Bank' },
+      account: { id: 'acc-1', name: 'Main' },
+      balances: [],
+    };
+    prismaMock.finCard.findFirst.mockResolvedValue(card);
+    prismaMock.finCard.updateMany.mockResolvedValue({ count: 1 });
+    prismaMock.finCard.findMany.mockResolvedValue([]);
+    prismaMock.finAccount.findFirst.mockResolvedValue({
+      id: 'acc-1',
+      userId: 'user-123',
+    });
+
+    await request(app.getHttpServer())
+      .patch(`/api/finance/cards/${cardId}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ isActive: false })
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.data.isActive).toBe(false);
+      });
+
+    await request(app.getHttpServer())
+      .get('/api/finance/cards')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.data).toEqual([]);
+      });
+  });
+
+  it('PATCH /api/finance/loans/:id archives with isActive false', async () => {
+    const loanId = '77777777-7777-4777-8777-777777777777';
+    prismaMock.finLoan.updateMany.mockResolvedValue({ count: 1 });
+    prismaMock.finLoan.findFirst.mockResolvedValue({
+      id: loanId,
+      userId: 'user-123',
+      lenderName: 'Bank',
+      isActive: false,
+      originalAmount: 1000,
+      currentBalance: 500,
+      installmentAmount: 100,
+      installmentFreq: 'MONTHLY',
+      totalInstallments: 12,
+      paidInstallments: 5,
+      nextDueDate: new Date('2026-09-01'),
+      account: null,
+    });
+    prismaMock.finLoan.findMany.mockResolvedValue([]);
+
+    await request(app.getHttpServer())
+      .patch(`/api/finance/loans/${loanId}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ isActive: false })
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.data.isActive).toBe(false);
+      });
+  });
+
+  it('PATCH /api/finance/receivables/:id marks PAID and rejects overpay', async () => {
+    const recId = '88888888-8888-4888-8888-888888888888';
+    const pending = {
+      id: recId,
+      userId: 'user-123',
+      debtorName: 'Ana',
+      description: null,
+      amount: 80,
+      paidAmount: 0,
+      currency: 'DOP',
+      dueDate: null,
+      status: 'PENDING',
+    };
+    prismaMock.finReceivable.findFirst
+      .mockResolvedValueOnce(pending)
+      .mockResolvedValueOnce({ ...pending, status: 'PAID', paidAmount: 80 })
+      .mockResolvedValue(pending);
+    prismaMock.finReceivable.updateMany.mockResolvedValue({ count: 1 });
+
+    await request(app.getHttpServer())
+      .patch(`/api/finance/receivables/${recId}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ status: 'PAID', paidAmount: 80 })
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.data).toMatchObject({ status: 'PAID', paidAmount: 80 });
+      });
+
+    await request(app.getHttpServer())
+      .patch(`/api/finance/receivables/${recId}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ paidAmount: 90 })
+      .expect(400);
+  });
+
   it('GET /api/finance/analytics/summary returns totals envelope', async () => {
     prismaMock.finAccount.findMany.mockResolvedValue([
       { balance: { toString: () => '100' } },

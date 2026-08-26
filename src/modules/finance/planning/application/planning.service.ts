@@ -8,6 +8,7 @@ import type { UpdateBudgetDto } from '../presentation/dto/update-budget.dto';
 import type { UpdateLoanDto } from '../presentation/dto/update-loan.dto';
 import type { UpdateReceivableDto } from '../presentation/dto/update-receivable.dto';
 import type { UpdateSavingsGoalDto } from '../presentation/dto/update-savings-goal.dto';
+import { resolveReceivablePayment } from './resolve-receivable-payment';
 
 @Injectable()
 export class PlanningService {
@@ -149,9 +150,16 @@ export class PlanningService {
         ? { paidInstallments: dto.paidInstallments }
         : {}),
       ...(dto.nextDueDate ? { nextDueDate: new Date(dto.nextDueDate) } : {}),
+      ...(dto.isActive !== undefined ? { isActive: dto.isActive } : {}),
     });
     if (!updated) throw new NotFoundException('Loan not found');
     return updated;
+  }
+
+  async deactivateLoan(userId: string, id: string) {
+    const updated = await this.repo.updateLoan(userId, id, { isActive: false });
+    if (!updated) throw new NotFoundException('Loan not found');
+    return { success: true };
   }
 
   listReceivables(userId: string) {
@@ -159,12 +167,23 @@ export class PlanningService {
   }
 
   createReceivable(userId: string, dto: CreateReceivableDto) {
+    let paidAmount = dto.paidAmount ?? 0;
+    if (dto.status === 'PAID' && dto.paidAmount === undefined) {
+      paidAmount = dto.amount;
+    }
+    const payment = resolveReceivablePayment({
+      amount: dto.amount,
+      paidAmount,
+      status: dto.status,
+    });
     return this.repo.createReceivable(userId, {
       debtorName: dto.debtorName,
       description: dto.description,
       amount: dto.amount,
+      paidAmount: payment.paidAmount,
       currency: dto.currency ?? 'DOP',
       dueDate: dto.dueDate ? new Date(dto.dueDate) : null,
+      status: payment.status,
     });
   }
 
@@ -173,10 +192,39 @@ export class PlanningService {
     id: string,
     dto: UpdateReceivableDto,
   ) {
+    const existing = await this.repo.findReceivable(userId, id);
+    if (!existing) throw new NotFoundException('Receivable not found');
+
+    const paymentTouched =
+      dto.status !== undefined ||
+      dto.paidAmount !== undefined ||
+      dto.amount !== undefined;
+
+    let payment: { paidAmount: number; status: string } | undefined;
+    if (paymentTouched) {
+      const nextAmount =
+        dto.amount !== undefined ? dto.amount : Number(existing.amount);
+      let nextPaid =
+        dto.paidAmount !== undefined
+          ? dto.paidAmount
+          : Number(existing.paidAmount);
+      if (dto.status === 'PAID' && dto.paidAmount === undefined) {
+        nextPaid = nextAmount;
+      }
+      payment = resolveReceivablePayment({
+        amount: nextAmount,
+        paidAmount: nextPaid,
+        status: dto.status,
+      });
+    }
+
     const updated = await this.repo.updateReceivable(userId, id, {
       ...(dto.debtorName ? { debtorName: dto.debtorName } : {}),
       ...(dto.description !== undefined ? { description: dto.description } : {}),
       ...(dto.amount !== undefined ? { amount: dto.amount } : {}),
+      ...(payment
+        ? { paidAmount: payment.paidAmount, status: payment.status }
+        : {}),
       ...(dto.currency ? { currency: dto.currency } : {}),
       ...(dto.dueDate ? { dueDate: new Date(dto.dueDate) } : {}),
     });
