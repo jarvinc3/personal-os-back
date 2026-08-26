@@ -41,6 +41,24 @@ export type PrismaMock = {
     create: MockFn;
     groupBy: MockFn;
   };
+  finCard: {
+    findMany: MockFn;
+    findFirst: MockFn;
+    create: MockFn;
+    updateMany: MockFn;
+  };
+  finLoan: {
+    findMany: MockFn;
+    findFirst: MockFn;
+    create: MockFn;
+    updateMany: MockFn;
+  };
+  finReceivable: {
+    findMany: MockFn;
+    findFirst: MockFn;
+    create: MockFn;
+    updateMany: MockFn;
+  };
   finCardBalance: {
     findMany: MockFn;
   };
@@ -180,6 +198,24 @@ export function createPrismaMock(): PrismaMock {
     },
     finCardBalance: {
       findMany: jest.fn().mockResolvedValue([]),
+    },
+    finCard: {
+      findMany: jest.fn().mockResolvedValue([]),
+      findFirst: jest.fn(),
+      create: jest.fn(),
+      updateMany: jest.fn().mockResolvedValue({ count: 0 }),
+    },
+    finLoan: {
+      findMany: jest.fn().mockResolvedValue([]),
+      findFirst: jest.fn(),
+      create: jest.fn(),
+      updateMany: jest.fn().mockResolvedValue({ count: 0 }),
+    },
+    finReceivable: {
+      findMany: jest.fn().mockResolvedValue([]),
+      findFirst: jest.fn(),
+      create: jest.fn(),
+      updateMany: jest.fn().mockResolvedValue({ count: 0 }),
     },
     finTransaction: {
       findMany: jest.fn().mockResolvedValue([]),

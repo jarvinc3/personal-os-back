@@ -138,6 +138,7 @@ export class CatalogService {
         ? { paymentDueDay: dto.paymentDueDay }
         : {}),
       ...(dto.color !== undefined ? { color: dto.color } : {}),
+      ...(dto.isActive !== undefined ? { isActive: dto.isActive } : {}),
       ...(nextType === 'CREDIT'
         ? { accountId: null }
         : dto.accountId !== undefined
@@ -146,6 +147,12 @@ export class CatalogService {
     });
     if (!updated) throw new NotFoundException('Card not found');
     return this.mapCard(updated);
+  }
+
+  async deactivateCard(userId: string, id: string) {
+    const updated = await this.repo.updateCard(userId, id, { isActive: false });
+    if (!updated) throw new NotFoundException('Card not found');
+    return { success: true };
   }
 
   async updateCardBalance(
