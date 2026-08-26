@@ -67,7 +67,7 @@ Query-only surfaces (e.g. `LedgerQueryService`) stay as services even when write
 | Accounts | Checking, savings, cash, investment; single currency + balance; optional institution; **not** credit cards |
 | Cards | Credit/debit per institution; multi-currency balances + credit limit on `FinCardBalance`; statement days on card |
 | Transactions | Manual CRUD (`DEBIT`/`CREDIT`); transfers via dedicated endpoint; filters; confirm `PENDING` |
-| Categories | System + custom; hierarchical (`parentId`); used by budgets and transactions |
+| Categories | System + custom; hierarchical (`parentId`); `icon` is an emoji string (no Lucide keys, no migrate endpoint) |
 | Budgets | Per category and period; spent tracking; threshold alerts deduped in `FinBudgetAlert` |
 | Savings goals | Target amount, progress, completion (`isCompleted` recalculated on amount changes) |
 | Loans / receivables | Installments and money owed |

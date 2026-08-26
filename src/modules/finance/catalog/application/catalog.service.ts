@@ -3,7 +3,6 @@ import {
     Injectable,
     NotFoundException,
 } from '@nestjs/common';
-import { normalizeLegacyCategoryIcon } from '../../constants/category-emoji.constants';
 import { decimalToString } from '../../shared/domain/mappers';
 import { CatalogRepository } from '../infrastructure/catalog.repository';
 import type { CreateAccountDto } from '../presentation/dto/create-account.dto';
@@ -190,19 +189,6 @@ export class CatalogService {
     const result = await this.repo.deleteCategory(userId, id);
     if (result.count === 0) throw new NotFoundException('Category not found');
     return { success: true };
-  }
-
-  async migrateLegacyCategoryIcons(userId: string) {
-    const categories = await this.repo.listUserCategories(userId);
-    let updated = 0;
-    for (const category of categories) {
-      if (category.isSystem) continue;
-      const emoji = normalizeLegacyCategoryIcon(category.icon);
-      if (!emoji || emoji === category.icon) continue;
-      await this.repo.updateCategory(userId, category.id, { icon: emoji });
-      updated += 1;
-    }
-    return { updated };
   }
 
   private async assertInstitutionOwnership(userId: string, institutionId: string) {
