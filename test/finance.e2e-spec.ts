@@ -409,7 +409,7 @@ describe('Finance (e2e)', () => {
 
   it('GET /api/finance/analytics/summary returns totals envelope', async () => {
     prismaMock.finAccount.findMany.mockResolvedValue([
-      { balance: { toString: () => '100' } },
+      { balance: { toString: () => '100' }, currency: 'DOP' },
     ]);
     prismaMock.finCardBalance.findMany.mockResolvedValue([]);
     prismaMock.finTransaction.groupBy.mockResolvedValue([]);
@@ -421,6 +421,8 @@ describe('Finance (e2e)', () => {
       .expect((res) => {
         expect(res.body.data).toHaveProperty('netWorth');
         expect(res.body.data).toHaveProperty('totals');
+        expect(res.body.data.baseCurrency).toBe('DOP');
+        expect(res.body.data.totals.accountBalance).toBe(100);
       });
   });
 });
