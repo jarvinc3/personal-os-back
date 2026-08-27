@@ -1,8 +1,14 @@
 import { ClassSerializerInterceptor, Module } from '@nestjs/common';
-import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR, Reflector } from '@nestjs/core';
+import {
+  APP_FILTER,
+  APP_GUARD,
+  APP_INTERCEPTOR,
+  Reflector,
+} from '@nestjs/core';
 import { PassportModule } from '@nestjs/passport';
 import { AllExceptionsFilter } from './filters/all-exceptions.filter';
 import { CustomThrottlerGuard } from './guards/custom-throttler.guard';
+import { EnabledModuleGuard } from './guards/enabled-module.guard';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { AiMetricsInterceptor } from './interceptors/ai-metrics.interceptor';
 import { TimeoutInterceptor } from './interceptors/timeout.interceptor';
@@ -15,6 +21,10 @@ import { PaginationService } from './pagination/pagination.service';
     {
       provide: APP_GUARD,
       useClass: JwtAuthGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: EnabledModuleGuard,
     },
     {
       provide: APP_GUARD,

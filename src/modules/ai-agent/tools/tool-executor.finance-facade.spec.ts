@@ -12,6 +12,7 @@ describe('ToolExecutorService finance via FinanceFacade (TestingModule)', () => 
     findById: jest.fn(),
     updateProfile: jest.fn(),
     updateModuleConfig: jest.fn(),
+    assertModuleEnabled: jest.fn().mockResolvedValue(undefined),
   };
 
   const sessionsRepo = {

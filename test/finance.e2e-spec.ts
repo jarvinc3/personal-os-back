@@ -81,6 +81,58 @@ describe('Finance (e2e)', () => {
       });
   });
 
+  it('GET /api/finance/accounts returns 403 when finance module is disabled', async () => {
+    prismaMock.userModule.findFirst.mockResolvedValue(null);
+
+    await request(app.getHttpServer())
+      .get('/api/finance/accounts')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(403)
+      .expect((res) => {
+        expect(res.body).toMatchObject({
+          statusCode: 403,
+          message: 'Finance module is disabled',
+        });
+      });
+
+    expect(prismaMock.finAccount.findMany).not.toHaveBeenCalled();
+  });
+
+  it('POST /api/finance/transactions returns 403 when finance module is disabled', async () => {
+    prismaMock.userModule.findFirst.mockResolvedValue(null);
+
+    await request(app.getHttpServer())
+      .post('/api/finance/transactions')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        type: 'DEBIT',
+        amount: 50,
+        currency: 'DOP',
+        transactionDate: '2026-08-01T12:00:00.000Z',
+        accountId: '11111111-1111-4111-8111-111111111111',
+      })
+      .expect(403)
+      .expect((res) => {
+        expect(res.body.message).toBe('Finance module is disabled');
+      });
+
+    expect(prismaMock.$transaction).not.toHaveBeenCalled();
+  });
+
+  it('GET /api/finance/email-sync/oauth/google/callback stays public when finance is disabled', async () => {
+    prismaMock.userModule.findFirst.mockResolvedValue(null);
+
+    await request(app.getHttpServer())
+      .get('/api/finance/email-sync/oauth/google/callback')
+      .query({
+        code: 'test-auth-code',
+        state: 'invalid-state',
+      })
+      .expect(302);
+
+    expect(prismaMock.userModule.findFirst).not.toHaveBeenCalled();
+  });
+
   it('POST /api/finance/accounts creates account', async () => {
     prismaMock.finAccount.create.mockResolvedValue({
       id: 'acc-new',
@@ -221,10 +273,7 @@ describe('Finance (e2e)', () => {
         state,
       })
       .expect(302)
-      .expect(
-        'Location',
-        'http://localhost:5173/finance/oauth?success=false',
-      );
+      .expect('Location', 'http://localhost:5173/finance/oauth?success=false');
   });
 
   it('GET /api/finance/email-sync/oauth/google/callback ignores non-allowlisted returnTo', async () => {
@@ -261,7 +310,9 @@ describe('Finance (e2e)', () => {
       .expect(201)
       .expect((res) => {
         expect(res.body.data).toMatchObject({ queued: false });
-        expect(res.body.data.reason).toContain('gmail-sync queue is unavailable');
+        expect(res.body.data.reason).toContain(
+          'gmail-sync queue is unavailable',
+        );
       });
   });
 
@@ -338,7 +389,9 @@ describe('Finance (e2e)', () => {
     prismaMock.finTransaction.findFirst.mockResolvedValue(null);
 
     await request(app.getHttpServer())
-      .post('/api/finance/transactions/22222222-2222-4222-8222-222222222222/reverse')
+      .post(
+        '/api/finance/transactions/22222222-2222-4222-8222-222222222222/reverse',
+      )
       .set('Authorization', `Bearer ${token}`)
       .expect(404);
   });

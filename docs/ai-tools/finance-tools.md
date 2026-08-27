@@ -2,7 +2,7 @@
 
 Available when chat session `moduleSlug` is `finance`. Source: `MODULE_CONTEXT.finance`.
 
-All finance tools delegate to **`FinanceFacade`** via `ToolExecutorService`.
+All finance tools delegate to **`FinanceFacade`** via `ToolExecutorService`. They also require `user_modules.finance.isEnabled`; otherwise the tool returns `success: false` with `Tool execution failed: Finance module is disabled`.
 
 ## Read-only tools
 

@@ -7,10 +7,12 @@ describe('ToolExecutorService', () => {
   const findById = jest.fn();
   const updateProfile = jest.fn();
   const updateModuleConfig = jest.fn();
+  const assertModuleEnabled = jest.fn();
   const usersService = {
     findById,
     updateProfile,
     updateModuleConfig,
+    assertModuleEnabled,
   } as unknown as UsersService;
 
   const createTransaction = jest.fn();
@@ -75,6 +77,7 @@ describe('ToolExecutorService', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    assertModuleEnabled.mockResolvedValue(undefined);
   });
 
   it('rejects invalid mutating args without calling finance services', async () => {
@@ -143,5 +146,24 @@ describe('ToolExecutorService', () => {
 
     expect(result.success).toBe(false);
     expect(result.message).toBe('Tool execution failed: account missing');
+  });
+
+  it('blocks finance tools when the finance module is disabled', async () => {
+    assertModuleEnabled.mockRejectedValue(
+      new Error('Finance module is disabled'),
+    );
+
+    const result = await executor.execute(ctx, 'get_finance_summary', {});
+
+    expect(result.success).toBe(false);
+    expect(result.message).toBe(
+      'Tool execution failed: Finance module is disabled',
+    );
+    expect(getAnalyticsSummary).not.toHaveBeenCalled();
+  });
+
+  it('does not require finance enabled for profile tools', async () => {
+    await executor.execute(ctx, 'set_theme', { value: 'dark' });
+    expect(assertModuleEnabled).not.toHaveBeenCalled();
   });
 });

@@ -87,3 +87,34 @@ describe('UsersService.deleteAccount', () => {
     expect(tryDeleteAuthUser).not.toHaveBeenCalled();
   });
 });
+
+describe('UsersService.assertModuleEnabled', () => {
+  const findEnabledUserModuleBySlug = jest.fn();
+  const usersRepository = {
+    findEnabledUserModuleBySlug,
+  } as unknown as UsersRepository;
+
+  const service = new UsersService(
+    usersRepository,
+    { emit: jest.fn() } as unknown as EventEmitter2,
+    { tryDeleteAuthUser: jest.fn() } as unknown as SupabaseAdminService,
+  );
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('resolves when an enabled row exists', async () => {
+    findEnabledUserModuleBySlug.mockResolvedValue({ id: 'um-1' });
+    await expect(
+      service.assertModuleEnabled('user-1', 'finance'),
+    ).resolves.toBeUndefined();
+  });
+
+  it('throws ForbiddenException when the row is missing', async () => {
+    findEnabledUserModuleBySlug.mockResolvedValue(null);
+    await expect(
+      service.assertModuleEnabled('user-1', 'finance'),
+    ).rejects.toThrow('Finance module is disabled');
+  });
+});
