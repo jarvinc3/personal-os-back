@@ -66,7 +66,7 @@ describe('PlanningService archive and receivables', () => {
       status: 'PAID',
     });
 
-    expect(result).toMatchObject({ status: 'PAID', paidAmount: 80 });
+    expect(result).toMatchObject({ status: 'PAID', paidAmount: '80' });
   });
 
   it('rejects paidAmount greater than amount', async () => {
@@ -98,6 +98,38 @@ describe('PlanningService archive and receivables', () => {
       limit: 20,
       total: 25,
       totalPages: 2,
+    });
+  });
+
+  it('serializes created loan money and rate as strings', async () => {
+    createLoan.mockResolvedValue({
+      originalAmount: 1000,
+      currentBalance: 800,
+      installmentAmount: 100,
+      interestRate: 0.12,
+      currency: 'USD',
+      notes: 'BHD',
+    });
+
+    await expect(
+      service.createLoan('user-1', {
+        lenderName: 'BHD',
+        originalAmount: 1000,
+        currentBalance: 800,
+        installmentAmount: 100,
+        installmentFreq: 'MONTHLY',
+        totalInstallments: 12,
+        nextDueDate: '2026-09-01',
+        currency: 'USD',
+        interestRate: 0.12,
+        notes: 'BHD',
+      }),
+    ).resolves.toMatchObject({
+      originalAmount: '1000',
+      currentBalance: '800',
+      installmentAmount: '100',
+      interestRate: '0.12',
+      currency: 'USD',
     });
   });
 });

@@ -2,9 +2,7 @@ import { AnalyticsService } from './analytics.service';
 import type { AnalyticsRepository } from '../infrastructure/analytics.repository';
 
 describe('AnalyticsService.getSpendingByCategory', () => {
-  const grouped = (
-    rows: Array<{ categoryId: string | null; total: number }>,
-  ) =>
+  const grouped = (rows: Array<{ categoryId: string | null; total: number }>) =>
     rows.map((row) => ({
       categoryId: row.categoryId,
       _sum: { amountBaseCurrency: row.total },
@@ -40,14 +38,14 @@ describe('AnalyticsService.getSpendingByCategory', () => {
         name: 'Comida',
         color: '#f00',
         icon: '🍽️',
-        total: 80,
+        total: '80',
       },
       {
         categoryId: 'cat-home',
         name: 'Hogar',
         color: '#0f0',
         icon: '🏠',
-        total: 20,
+        total: '20',
       },
     ]);
   });
@@ -66,7 +64,7 @@ describe('AnalyticsService.getSpendingByCategory', () => {
         name: 'Sin categoría',
         color: null,
         icon: null,
-        total: 15,
+        total: '15',
       },
     ]);
   });
@@ -75,9 +73,7 @@ describe('AnalyticsService.getSpendingByCategory', () => {
     const result = await createService({
       getSpendingByCategory: jest
         .fn()
-        .mockResolvedValue(
-          grouped([{ categoryId: 'deleted-cat', total: 42 }]),
-        ),
+        .mockResolvedValue(grouped([{ categoryId: 'deleted-cat', total: 42 }])),
       findCategoriesByIds: jest.fn().mockResolvedValue([]),
     }).getSpendingByCategory('user-1');
 
@@ -87,7 +83,7 @@ describe('AnalyticsService.getSpendingByCategory', () => {
         name: 'Categoría no disponible',
         color: null,
         icon: null,
-        total: 42,
+        total: '42',
       },
     ]);
   });

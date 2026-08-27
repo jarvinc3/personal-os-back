@@ -8,7 +8,7 @@ All finance tools delegate to **`FinanceFacade`** via `ToolExecutorService`. The
 
 ### `get_finance_summary`
 
-Returns net worth, cash flow, and income/expense totals for a date range.
+Returns net worth, cash flow, and income/expense totals for a date range. Money fields in the payload are decimal **strings** (`netWorth`, `cashFlow`, `totals.*`).
 
 | Parameter  | Type   | Required | Description    |
 | ---------- | ------ | -------- | -------------- |
@@ -119,7 +119,7 @@ Returns active budgets with spent amount and threshold percentage.
 
 **Delegates to:** `FinanceFacade.getSpendingByCategory`
 
-Each item is `{ categoryId, name, color, icon, total }`. `categoryId` may be null (`name` = `Sin categoría`). `total` is the sum of `amountBaseCurrency` for DEBIT + CONFIRMED in the range. Deleted categories keep the total and use `Categoría no disponible`.
+Each item is `{ categoryId, name, color, icon, total }`. `categoryId` may be null (`name` = `Sin categoría`). `total` is a decimal string: the sum of `amountBaseCurrency` for DEBIT + CONFIRMED in the range. Deleted categories keep the total and use `Categoría no disponible`.
 
 ---
 

@@ -102,6 +102,17 @@ Prefix: `fin_*` tables. Primary keys are UUID text columns.
 
 FX fails closed: if the exact historical rate for `transactionDate` is missing from cache and API, the operation returns 400 — no stale “latest” rate. The same rule applies to `GET /finance/analytics/summary` positions using today’s UTC date.
 
+### Money JSON contract
+
+Response bodies (not write DTOs) serialize **money and rates as decimal strings** with the same helper as ledger/catalog (`decimalToString`). Request bodies stay `@IsNumber`. Percentages stay `number`.
+
+| Kind | JSON type | Examples |
+| --- | --- | --- |
+| Money | string | `amount`, `balance`, `ledgerAmount`, `netWorth`, `cashFlow`, `totals.*`, spending `total`, `amountLimit`, `amountSpent`, `originalAmount`, `paidAmount` |
+| Rate | string or `null` | `interestRate` (`"0.12"` = 12%; `null` = not set, distinct from `"0"`) |
+| Percentage | number | `pctUsed`, `threshold`, `alertThresholdPct` |
+
+
 ### Enums (transactions)
 
 | Enum | Values |

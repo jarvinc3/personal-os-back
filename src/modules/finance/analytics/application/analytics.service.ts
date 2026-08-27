@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { Env } from '../../../../config';
 import { ResolveAmountsUseCase } from '../../fx/application/resolve-amounts.use-case';
+import { decimalToString } from '../../shared/domain/mappers';
 import { roundMoney } from '../../shared/domain/money';
 import { AnalyticsRepository } from '../infrastructure/analytics.repository';
 
@@ -16,7 +17,11 @@ export class AnalyticsService {
     private readonly config: ConfigService<Env, true>,
   ) {}
 
-  async getAnalyticsSummary(userId: string, dateFrom?: string, dateTo?: string) {
+  async getAnalyticsSummary(
+    userId: string,
+    dateFrom?: string,
+    dateTo?: string,
+  ) {
     const from = dateFrom ? new Date(dateFrom) : undefined;
     const to = dateTo ? new Date(dateTo) : undefined;
     const { accounts, cardBalances, aggregates } =
@@ -56,19 +61,25 @@ export class AnalyticsService {
     }
 
     return {
-      netWorth: roundMoney(totalAccountBalance - totalCardDebt),
-      cashFlow: income - expenses,
+      netWorth: decimalToString(
+        roundMoney(totalAccountBalance - totalCardDebt),
+      ),
+      cashFlow: decimalToString(roundMoney(income - expenses)),
       baseCurrency,
       totals: {
-        accountBalance: totalAccountBalance,
-        cardDebt: totalCardDebt,
-        income,
-        expenses,
+        accountBalance: decimalToString(totalAccountBalance),
+        cardDebt: decimalToString(totalCardDebt),
+        income: decimalToString(roundMoney(income)),
+        expenses: decimalToString(roundMoney(expenses)),
       },
     };
   }
 
-  async getSpendingByCategory(userId: string, dateFrom?: string, dateTo?: string) {
+  async getSpendingByCategory(
+    userId: string,
+    dateFrom?: string,
+    dateTo?: string,
+  ) {
     const grouped = await this.repo.getSpendingByCategory(
       userId,
       dateFrom ? new Date(dateFrom) : undefined,
@@ -96,7 +107,7 @@ export class AnalyticsService {
           name: UNCATEGORIZED_NAME,
           color: null,
           icon: null,
-          total,
+          total: decimalToString(total),
         };
       }
       const category = byId.get(item.categoryId);
@@ -105,7 +116,7 @@ export class AnalyticsService {
         name: category?.name ?? MISSING_CATEGORY_NAME,
         color: category?.color ?? null,
         icon: category?.icon ?? null,
-        total,
+        total: decimalToString(total),
       };
     });
   }
@@ -141,7 +152,13 @@ export class AnalyticsService {
     }
 
     return {
-      points: [...byDate.values()].sort((a, b) => a.date.localeCompare(b.date)),
+      points: [...byDate.values()]
+        .sort((a, b) => a.date.localeCompare(b.date))
+        .map((point) => ({
+          date: point.date,
+          expenses: decimalToString(roundMoney(point.expenses)),
+          income: decimalToString(roundMoney(point.income)),
+        })),
     };
   }
 
@@ -158,8 +175,8 @@ export class AnalyticsService {
         periodType: budget.periodType,
         periodStart: budget.periodStart.toISOString().slice(0, 10),
         periodEnd: budget.periodEnd.toISOString().slice(0, 10),
-        amountLimit: limit,
-        amountSpent: spent,
+        amountLimit: decimalToString(limit),
+        amountSpent: decimalToString(spent),
         pctUsed,
         threshold: Number(budget.alertThresholdPct),
       };
