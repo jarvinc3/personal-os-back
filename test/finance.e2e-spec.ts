@@ -573,6 +573,166 @@ describe('Finance (e2e)', () => {
       });
   });
 
+  it('POST /api/finance/loans persists currency, interestRate, and notes', async () => {
+    const created = {
+      id: 'loan-usd',
+      userId: 'user-123',
+      lenderName: 'BHD',
+      originalAmount: 1000,
+      currentBalance: 800,
+      currency: 'USD',
+      installmentAmount: 100,
+      installmentFreq: 'MONTHLY',
+      totalInstallments: 12,
+      paidInstallments: 0,
+      nextDueDate: new Date('2026-09-01'),
+      interestRate: 0.12,
+      notes: 'BHD',
+      isActive: true,
+      account: null,
+    };
+    prismaMock.finLoan.create.mockResolvedValue(created);
+    prismaMock.finLoan.findMany.mockResolvedValue([created]);
+
+    await request(app.getHttpServer())
+      .post('/api/finance/loans')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        lenderName: 'BHD',
+        originalAmount: 1000,
+        currentBalance: 800,
+        installmentAmount: 100,
+        installmentFreq: 'MONTHLY',
+        totalInstallments: 12,
+        nextDueDate: '2026-09-01',
+        currency: 'usd',
+        interestRate: 0.12,
+        notes: 'BHD',
+      })
+      .expect(201)
+      .expect((res) => {
+        expect(res.body.data).toMatchObject({
+          currency: 'USD',
+          interestRate: 0.12,
+          notes: 'BHD',
+        });
+      });
+
+    await request(app.getHttpServer())
+      .get('/api/finance/loans')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.data[0]).toMatchObject({
+          currency: 'USD',
+          interestRate: 0.12,
+          notes: 'BHD',
+        });
+      });
+  });
+
+  it('POST /api/finance/loans defaults currency to DOP and rejects invalid rate or code', async () => {
+    prismaMock.finLoan.create.mockResolvedValue({
+      id: 'loan-dop',
+      currency: 'DOP',
+      interestRate: null,
+      notes: null,
+      lenderName: 'Bank',
+      originalAmount: 100,
+      currentBalance: 100,
+      installmentAmount: 10,
+      installmentFreq: 'MONTHLY',
+      totalInstallments: 12,
+      paidInstallments: 0,
+      nextDueDate: new Date('2026-09-01'),
+      isActive: true,
+      account: null,
+    });
+
+    await request(app.getHttpServer())
+      .post('/api/finance/loans')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        lenderName: 'Bank',
+        originalAmount: 100,
+        currentBalance: 100,
+        installmentAmount: 10,
+        installmentFreq: 'MONTHLY',
+        totalInstallments: 12,
+        nextDueDate: '2026-09-01',
+      })
+      .expect(201)
+      .expect((res) => {
+        expect(res.body.data.currency).toBe('DOP');
+      });
+
+    await request(app.getHttpServer())
+      .post('/api/finance/loans')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        lenderName: 'Bank',
+        originalAmount: 100,
+        currentBalance: 100,
+        installmentAmount: 10,
+        installmentFreq: 'MONTHLY',
+        totalInstallments: 12,
+        nextDueDate: '2026-09-01',
+        currency: 'US',
+      })
+      .expect(400);
+
+    await request(app.getHttpServer())
+      .post('/api/finance/loans')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        lenderName: 'Bank',
+        originalAmount: 100,
+        currentBalance: 100,
+        installmentAmount: 10,
+        installmentFreq: 'MONTHLY',
+        totalInstallments: 12,
+        nextDueDate: '2026-09-01',
+        interestRate: -1,
+      })
+      .expect(400);
+  });
+
+  it('PATCH /api/finance/loans/:id updates notes without requiring other fields', async () => {
+    const loanId = '77777777-7777-4777-8777-777777777777';
+    prismaMock.finLoan.updateMany.mockResolvedValue({ count: 1 });
+    prismaMock.finLoan.findFirst.mockResolvedValue({
+      id: loanId,
+      userId: 'user-123',
+      lenderName: 'Bank',
+      currency: 'USD',
+      interestRate: 0.12,
+      notes: 'updated',
+      isActive: true,
+      originalAmount: 1000,
+      currentBalance: 500,
+      installmentAmount: 100,
+      installmentFreq: 'MONTHLY',
+      totalInstallments: 12,
+      paidInstallments: 5,
+      nextDueDate: new Date('2026-09-01'),
+      account: null,
+    });
+
+    await request(app.getHttpServer())
+      .patch(`/api/finance/loans/${loanId}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ notes: 'updated' })
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.data).toMatchObject({
+          notes: 'updated',
+          currency: 'USD',
+          interestRate: 0.12,
+          isActive: true,
+        });
+      });
+  });
+
   it('PATCH /api/finance/receivables/:id marks PAID and rejects overpay', async () => {
     const recId = '88888888-8888-4888-8888-888888888888';
     const pending = {
@@ -664,6 +824,100 @@ describe('Finance (e2e)', () => {
             total: 15,
           },
         ]);
+      });
+  });
+
+  it('GET /api/finance/budgets returns a paginated envelope', async () => {
+    const items = Array.from({ length: 20 }, (_, i) => ({
+      id: `budget-${i}`,
+      userId: 'user-123',
+      categoryId: 'cat-1',
+      periodType: 'MONTHLY',
+      periodStart: new Date('2026-01-01'),
+      periodEnd: new Date('2026-01-31'),
+      amountLimit: 1000,
+      amountSpent: 10,
+      alertThresholdPct: 80,
+      category: { id: 'cat-1', name: 'Food' },
+    }));
+    prismaMock.finBudget.findMany.mockResolvedValue(items);
+    prismaMock.finBudget.count.mockResolvedValue(25);
+
+    await request(app.getHttpServer())
+      .get('/api/finance/budgets')
+      .query({ page: 1, limit: 20 })
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.data.items).toHaveLength(20);
+        expect(res.body.data.pagination).toMatchObject({
+          page: 1,
+          limit: 20,
+          total: 25,
+          totalPages: 2,
+        });
+      });
+  });
+
+  it('GET /api/finance/budgets without query uses default page and limit', async () => {
+    prismaMock.finBudget.findMany.mockResolvedValue([]);
+    prismaMock.finBudget.count.mockResolvedValue(0);
+
+    await request(app.getHttpServer())
+      .get('/api/finance/budgets')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.data).toEqual({
+          items: [],
+          pagination: {
+            page: 1,
+            limit: 20,
+            total: 0,
+            totalPages: 1,
+          },
+        });
+      });
+  });
+
+  it('GET /api/finance/transactions stays paginated and accounts stay an array', async () => {
+    prismaMock.finTransaction.findMany.mockResolvedValue([]);
+    prismaMock.finTransaction.count.mockResolvedValue(0);
+
+    await request(app.getHttpServer())
+      .get('/api/finance/transactions')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.data).toHaveProperty('items');
+        expect(res.body.data).toHaveProperty('pagination');
+        expect(Array.isArray(res.body.data.items)).toBe(true);
+      });
+
+    prismaMock.finAccount.findMany.mockResolvedValue([
+      {
+        id: 'acc-1',
+        userId: 'user-123',
+        name: 'Main',
+        type: 'CHECKING',
+        institution: null,
+        institutionId: null,
+        currency: 'DOP',
+        balance: { toString: () => '1000.00' },
+        color: null,
+        isActive: true,
+        createdAt: new Date('2026-01-01'),
+        updatedAt: new Date('2026-01-01'),
+      },
+    ]);
+
+    await request(app.getHttpServer())
+      .get('/api/finance/accounts')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
+      .expect((res) => {
+        expect(Array.isArray(res.body.data)).toBe(true);
+        expect(res.body.data.items).toBeUndefined();
       });
   });
 });

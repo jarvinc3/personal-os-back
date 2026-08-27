@@ -1,4 +1,8 @@
 import { Injectable } from '@nestjs/common';
+import {
+    paginationArgs,
+    type PaginationQueryDto,
+} from '../../../../core/pagination/pagination.dto';
 import type { Prisma } from '../../../../prisma/generated/client';
 import { PrismaService } from '../../../../prisma/prisma.service';
 
@@ -12,6 +16,20 @@ export class PlanningRepository {
       include: { category: true },
       orderBy: { periodStart: 'desc' },
     });
+  }
+
+  listBudgetsPage(userId: string, query: PaginationQueryDto) {
+    const { skip, take } = paginationArgs(query);
+    return Promise.all([
+      this.prisma.finBudget.findMany({
+        where: { userId },
+        include: { category: true },
+        orderBy: { periodStart: 'desc' },
+        skip,
+        take,
+      }),
+      this.prisma.finBudget.count({ where: { userId } }),
+    ]);
   }
 
   createBudget(
