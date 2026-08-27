@@ -1,4 +1,8 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+    paginate,
+    type PaginationQueryDto,
+} from '../../../../core/pagination/pagination.dto';
 import { PlanningRepository } from '../infrastructure/planning.repository';
 import type { CreateBudgetDto } from '../presentation/dto/create-budget.dto';
 import type { CreateLoanDto } from '../presentation/dto/create-loan.dto';
@@ -16,6 +20,15 @@ export class PlanningService {
 
   listBudgets(userId: string) {
     return this.repo.listBudgets(userId);
+  }
+
+  async listBudgetsPage(userId: string, query: PaginationQueryDto) {
+    const pageQuery = {
+      page: query.page ?? 1,
+      limit: query.limit ?? 20,
+    };
+    const [items, total] = await this.repo.listBudgetsPage(userId, pageQuery);
+    return paginate(items, total, pageQuery);
   }
 
   createBudget(userId: string, dto: CreateBudgetDto) {

@@ -6,12 +6,14 @@ describe('PlanningService archive and receivables', () => {
   const findReceivable = jest.fn();
   const updateReceivable = jest.fn();
   const createReceivable = jest.fn();
+  const listBudgetsPage = jest.fn();
 
   const repo = {
     updateLoan,
     findReceivable,
     updateReceivable,
     createReceivable,
+    listBudgetsPage,
   } as unknown as PlanningRepository;
 
   const service = new PlanningService(repo);
@@ -75,5 +77,23 @@ describe('PlanningService archive and receivables', () => {
       service.updateReceivable('user-1', 'rec-1', { paidAmount: 90 }),
     ).rejects.toThrow(/cannot exceed amount/i);
     expect(updateReceivable).not.toHaveBeenCalled();
+  });
+
+  it('paginates budgets with items and total', async () => {
+    const page = Array.from({ length: 20 }, (_, i) => ({ id: `b-${i}` }));
+    listBudgetsPage.mockResolvedValue([page, 25]);
+
+    const result = await service.listBudgetsPage('user-1', {
+      page: 1,
+      limit: 20,
+    });
+
+    expect(result.items).toHaveLength(20);
+    expect(result.pagination).toEqual({
+      page: 1,
+      limit: 20,
+      total: 25,
+      totalPages: 2,
+    });
   });
 });

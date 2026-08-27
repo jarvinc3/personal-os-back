@@ -613,4 +613,98 @@ describe('Finance (e2e)', () => {
         ]);
       });
   });
+
+  it('GET /api/finance/budgets returns a paginated envelope', async () => {
+    const items = Array.from({ length: 20 }, (_, i) => ({
+      id: `budget-${i}`,
+      userId: 'user-123',
+      categoryId: 'cat-1',
+      periodType: 'MONTHLY',
+      periodStart: new Date('2026-01-01'),
+      periodEnd: new Date('2026-01-31'),
+      amountLimit: 1000,
+      amountSpent: 10,
+      alertThresholdPct: 80,
+      category: { id: 'cat-1', name: 'Food' },
+    }));
+    prismaMock.finBudget.findMany.mockResolvedValue(items);
+    prismaMock.finBudget.count.mockResolvedValue(25);
+
+    await request(app.getHttpServer())
+      .get('/api/finance/budgets')
+      .query({ page: 1, limit: 20 })
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.data.items).toHaveLength(20);
+        expect(res.body.data.pagination).toMatchObject({
+          page: 1,
+          limit: 20,
+          total: 25,
+          totalPages: 2,
+        });
+      });
+  });
+
+  it('GET /api/finance/budgets without query uses default page and limit', async () => {
+    prismaMock.finBudget.findMany.mockResolvedValue([]);
+    prismaMock.finBudget.count.mockResolvedValue(0);
+
+    await request(app.getHttpServer())
+      .get('/api/finance/budgets')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.data).toEqual({
+          items: [],
+          pagination: {
+            page: 1,
+            limit: 20,
+            total: 0,
+            totalPages: 1,
+          },
+        });
+      });
+  });
+
+  it('GET /api/finance/transactions stays paginated and accounts stay an array', async () => {
+    prismaMock.finTransaction.findMany.mockResolvedValue([]);
+    prismaMock.finTransaction.count.mockResolvedValue(0);
+
+    await request(app.getHttpServer())
+      .get('/api/finance/transactions')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.data).toHaveProperty('items');
+        expect(res.body.data).toHaveProperty('pagination');
+        expect(Array.isArray(res.body.data.items)).toBe(true);
+      });
+
+    prismaMock.finAccount.findMany.mockResolvedValue([
+      {
+        id: 'acc-1',
+        userId: 'user-123',
+        name: 'Main',
+        type: 'CHECKING',
+        institution: null,
+        institutionId: null,
+        currency: 'DOP',
+        balance: { toString: () => '1000.00' },
+        color: null,
+        isActive: true,
+        createdAt: new Date('2026-01-01'),
+        updatedAt: new Date('2026-01-01'),
+      },
+    ]);
+
+    await request(app.getHttpServer())
+      .get('/api/finance/accounts')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
+      .expect((res) => {
+        expect(Array.isArray(res.body.data)).toBe(true);
+        expect(res.body.data.items).toBeUndefined();
+      });
+  });
 });

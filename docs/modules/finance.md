@@ -68,7 +68,7 @@ Query-only surfaces (e.g. `LedgerQueryService`) stay as services even when write
 | Cards | Credit/debit per institution; multi-currency balances + credit limit on `FinCardBalance`; statement days on card |
 | Transactions | Manual CRUD (`DEBIT`/`CREDIT`); transfers via dedicated endpoint; filters; confirm `PENDING`; reverse `CONFIRMED` via `POST /transactions/:id/reverse` (row stays `REVERSED`; one transfer leg is 400) |
 | Categories | System + custom; hierarchical (`parentId`); used by budgets and transactions |
-| Budgets | Per category and period; spent tracking; threshold alerts deduped in `FinBudgetAlert` |
+| Budgets | Per category and period; spent tracking; threshold alerts deduped in `FinBudgetAlert`. `GET /finance/budgets` is **paginated** (`{ items, pagination }`, default `page=1` `limit=20`, cap 100). |
 | Savings goals | Target amount, progress, completion (`isCompleted` recalculated on amount changes) |
 | Loans / receivables | Loans archive via `PATCH isActive` / `DELETE`. Receivables: `status` (`PENDING` \| `PARTIAL` \| `PAID` \| `CANCELLED`) and `paidAmount` on PATCH; `paidAmount` ∈ [0, amount]; `PAID` requires `paidAmount = amount` (omitted `paidAmount` is filled); omitting `status` derives it from amounts; `CANCELLED` does not require a full payment |
 | Gmail sync | OAuth2, encrypted tokens, BullMQ job, **AI extraction** (no bank HTML parsers) |
@@ -152,6 +152,21 @@ Public OAuth callback remains on the email-sync controller. After Google consent
 
 - **Mobile (default):** `personal-os://finance/oauth/callback?success=1|false`
 - **Web:** pass `returnTo` (https URL whose origin is in `CORS_ORIGIN`) when requesting `GET /finance/email-sync/oauth/google/url`. The signed `state` carries `returnTo` plus optional `accountId` **xor** `cardId`. The callback then 302s to `{returnTo}?success=true|false`. Invalid or missing `returnTo` falls back to the mobile deep link (no open redirect).
+
+### List shapes
+
+Envelope is always `{ data, meta }`. Inside `data`:
+
+| Endpoint | Shape | Notes |
+| --- | --- | --- |
+| `GET /finance/transactions` | `{ items, pagination }` | Default `page=1` `limit=20`, max 100 |
+| `GET /finance/budgets` | `{ items, pagination }` | Same defaults; grows with periods |
+| `GET /finance/accounts`, `cards`, `institutions`, `categories` | array | Unbounded catalog for pickers (personal scale) |
+| `GET /finance/savings-goals`, `loans`, `receivables` | array | Unbounded |
+| `GET /finance/email-sync/sources` | array | Sync logs nested `take: 5` (detail `take: 10`) |
+| `GET /finance/analytics/*` | object | Not paginated |
+
+AI `list_budgets` still uses `FinanceFacade.listBudgets` (full array), not the HTTP page.
 
 ## Gmail sync pipeline
 
