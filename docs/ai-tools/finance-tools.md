@@ -4,6 +4,8 @@ Available when chat session `moduleSlug` is `finance`. Source: `MODULE_CONTEXT.f
 
 All finance tools delegate to **`FinanceFacade`** via `ToolExecutorService`. They also require `user_modules.finance.isEnabled`; otherwise the tool returns `success: false` with `Tool execution failed: Finance module is disabled`.
 
+Tools are **not** the full REST surface. There is no tool (and in several cases no facade method) for create loan, receivables, institution/account/card writes, hard-delete of a transaction, or Gmail OAuth. See `docs/modules/finance.md` § REST vs FinanceFacade.
+
 ## Read-only tools
 
 ### `get_finance_summary`

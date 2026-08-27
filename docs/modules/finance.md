@@ -8,7 +8,8 @@ The module is consumed by:
 
 - REST API under `/finance` (capability controllers)
 - Mobile app (`personal-os-app`)
-- AI agent tools when `moduleSlug=finance` (see `docs/ai-tools/finance-tools.md`) via **`FinanceFacade` only**
+- Web app (`personal-os-web`) — settings toggle + chat tools today; finance screens not built yet (`personal-os-web/docs/modules/finance.md`)
+- AI agent tools when `moduleSlug=finance` (see `docs/ai-tools/finance-tools.md`) via **`FinanceFacade` only**. The facade is a subset of REST (see [REST vs FinanceFacade](#rest-vs-financefacade)).
 
 ## Architecture
 
@@ -47,7 +48,7 @@ Query-only surfaces (e.g. `LedgerQueryService`) stay as services even when write
 
 - **Ledger** write use-cases orchestrate FX + `LEDGER_REPOSITORY`; **`LedgerQueryService` only lists/gets**.
 - **Ledger** mutators run **synchronously** inside one `prisma.$transaction`: transaction row + balances + budget `amountSpent` + outbox row(s) + optional threshold side effects via `BUDGET_THRESHOLD_PORT`.
-- **Delete transaction**: hard-deletes and restores balances in the same TX. **No domain event** is enqueued (notification/AI listeners do not act on delete today). Use `POST /finance/transactions/:id/reverse` for an auditable compensating change: the original row is kept as `REVERSED` and `finance.transaction.reversed` is enqueued. Reverse is idempotent if already `REVERSED`. HTTP reverse is limited to `CONFIRMED` non-transfer rows (one transfer leg → 400). Gmail sync still calls the use case directly for bank reversals.
+- **Delete transaction**: hard-deletes and restores balances in the same TX and enqueues `finance.transaction.deleted` (notifications claim it and stay silent). Use `POST /finance/transactions/:id/reverse` for an auditable compensating change: the original row is kept as `REVERSED` and `finance.transaction.reversed` is enqueued. Reverse is idempotent if already `REVERSED`. HTTP reverse is limited to `CONFIRMED` non-transfer rows (one transfer leg → 400). Gmail sync still calls the use case directly for bank reversals.
 - **Email sync completed**: `FinEmailSyncLog` + `finance.email_sync.completed` outbox row land in the **same** `$transaction` as the sync success path.
 - **Side effects** (notifications, AI insights, WebSocket) run **after commit** via `DomainEventOutbox` → `FinanceOutboxDispatcher` (cron every 30s + wake after write) → `EventEmitter2`.
 - Listeners call `DomainEventIdempotencyGuard.tryClaim(eventId, consumer)` before acting.
@@ -75,7 +76,7 @@ Query-only surfaces (e.g. `LedgerQueryService`) stay as services even when write
 | Analytics | Net worth, cash flow, spending by category, budget status. `GET /analytics/summary` positions (`accountBalance`, `cardDebt`, `netWorth`) are converted to `BASE_CURRENCY` using the **UTC date of the request** (exact cached/API rate, same fail-closed 400 as ledger — no stale “latest”). Income/expenses already use `amountBaseCurrency`. Payload includes `baseCurrency`. |
 | FX | Live historical rates via **exchangerate.host**; cache in `FinExchangeRate` (exact date only) |
 
-**Out of scope (today):** open banking APIs, automatic balance reconciliation from bank cores.
+**Out of scope (today):** open banking APIs, automatic balance reconciliation from bank cores, and **`fin_recurring_patterns` / `FinRecurringPattern`** (schema reserved; no REST, no facade, no tools).
 
 ## Data model
 
@@ -91,6 +92,7 @@ Prefix: `fin_*` tables. Primary keys are UUID text columns.
 | `FinBudgetAlert` | Threshold alerts; unique `(budget_id, type)` for dedupe |
 | `DomainEventOutbox` | Durable domain events |
 | `ProcessedDomainEvent` | Consumer idempotency (`eventId` + `consumer`) |
+| `FinRecurringPattern` | Reserved (`fin_recurring_patterns`). **No API.** Out of scope. |
 
 ### Transaction amount fields
 
@@ -181,6 +183,23 @@ Envelope is always `{ data, meta }`. Inside `data`:
 
 AI `list_budgets` still uses `FinanceFacade.listBudgets` (full array), not the HTTP page.
 
+### REST vs FinanceFacade
+
+Chat tools call **`FinanceFacade` only**. REST under `/finance` is wider. Do not treat the tool list as the HTTP surface.
+
+| Capability | REST | `FinanceFacade` / AI tools |
+| --- | --- | --- |
+| Create loan | `POST /finance/loans` | No (`listLoans` + `updateLoan` only) |
+| Receivables | list / create / PATCH | No |
+| Institutions, accounts, cards **writes** (create, archive, balances) | Yes | Lists only (`listAccounts`, `listCards`) |
+| Categories writes | Yes | `listCategories` only |
+| Delete transaction | `DELETE /finance/transactions/:id` | No |
+| Reverse transaction | `POST /finance/transactions/:id/reverse` | Yes (`reverseTransaction`); **no** AI tool yet |
+| Gmail OAuth (URL + public callback, `returnTo` / `cardId`) | Yes | No (`listEmailSources` + `triggerEmailSync` only) |
+| Paginated budgets | `GET /finance/budgets` → `{ items, pagination }` | Unbounded `listBudgets` array |
+
+Full tool list: `docs/ai-tools/finance-tools.md`.
+
 ## Gmail sync pipeline
 
 ```mermaid
@@ -247,7 +266,7 @@ Catalog: `src/core/events/event.constants.ts`.
 
 ## AI integration
 
-Tools call **`FinanceFacade`** (not raw repositories). Full tool list: `docs/ai-tools/finance-tools.md`. Finance tools call `UsersService.assertModuleEnabled` first; a disabled module returns a tool error (`Tool execution failed: Finance module is disabled`) instead of hitting the facade.
+Tools call **`FinanceFacade`** (not raw repositories). That surface is a **subset of REST** — see [REST vs FinanceFacade](#rest-vs-financefacade). Full tool list: `docs/ai-tools/finance-tools.md`. Finance tools call `UsersService.assertModuleEnabled` first; a disabled module returns a tool error (`Tool execution failed: Finance module is disabled`) instead of hitting the facade.
 
 Email extraction uses `AiService.chatComplete` via `AiEmailTransactionExtractor` (`EMAIL_TRANSACTION_EXTRACTOR` token). Ingestion imports `AiCoreModule` (AI provider kernel) rather than `AiModule`, so there is no Nest cycle with Finance. The extractor injects `AiService` directly (no `forwardRef`).
 
@@ -285,7 +304,8 @@ Automated substitute without live HTTP: `pnpm test:e2e --testPathPatterns=financ
 
 ## Related documentation
 
-- App UI: `personal-os-app/docs/modules/finance.md`
+- App UI (mobile): `personal-os-app/docs/modules/finance.md`
+- Web UI (stub until screens ship): `personal-os-web/docs/modules/finance.md`
 - AI tools: `docs/ai-tools/finance-tools.md`
 - Core events/outbox overview: `docs/core-infrastructure.md`
 - Migration: `prisma/migrations/20260807120000_finance_hexagonal_events_fx/`
