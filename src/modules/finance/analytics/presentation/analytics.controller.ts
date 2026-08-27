@@ -1,11 +1,15 @@
 import { Controller, Get, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { CurrentUser } from '../../../../core/decorators';
+import {
+  CurrentUser,
+  RequiresEnabledModule,
+} from '../../../../core/decorators';
 import { AnalyticsService } from '../application/analytics.service';
 import { SpendingOverTimeQueryDto } from './dto/spending-over-time-query.dto';
 
 @ApiTags('finance')
 @ApiBearerAuth('access-token')
+@RequiresEnabledModule('finance')
 @Controller('finance/analytics')
 export class AnalyticsController {
   constructor(private readonly analytics: AnalyticsService) {}

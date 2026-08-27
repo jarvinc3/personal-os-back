@@ -11,6 +11,7 @@ export type PrismaMock = {
   };
   userModule: {
     findUnique: MockFn;
+    findFirst: MockFn;
     upsert: MockFn;
   };
   notification: {
@@ -100,15 +101,17 @@ export type PrismaMock = {
 function createTransactionClient() {
   return {
     finAccount: {
-      findFirst: jest.fn().mockImplementation((args: { where?: { id?: string } }) =>
-        Promise.resolve({
-          id: args?.where?.id ?? 'acc-1',
-          userId: 'user-123',
-          currency: 'DOP',
-          type: 'CHECKING',
-          balance: 1000,
-        }),
-      ),
+      findFirst: jest
+        .fn()
+        .mockImplementation((args: { where?: { id?: string } }) =>
+          Promise.resolve({
+            id: args?.where?.id ?? 'acc-1',
+            userId: 'user-123',
+            currency: 'DOP',
+            type: 'CHECKING',
+            balance: 1000,
+          }),
+        ),
       update: jest.fn().mockResolvedValue({}),
     },
     finCard: {
@@ -184,6 +187,7 @@ export function createPrismaMock(): PrismaMock {
     },
     userModule: {
       findUnique: jest.fn(),
+      findFirst: jest.fn().mockResolvedValue({ id: 'um-finance' }),
       upsert: jest.fn(),
     },
     notification: {

@@ -140,6 +140,8 @@ Evidence and model metadata stored in `aiMetadata`.
 
 Base path: `/finance`. Auth: Bearer JWT (`@ApiBearerAuth`). Controllers are split by capability; HTTP paths and `{ data, meta }` envelope are unchanged relative to the prior monolithic controller.
 
+Authenticated `/finance/*` routes also require `user_modules.finance.isEnabled`. A missing `UserModule` row or `isEnabled: false` returns **403** with `Finance module is disabled` (not 404). The Gmail OAuth callback stays `@Public()` and does not check the toggle — Google's redirect has no Bearer token.
+
 | Area | Controllers |
 | --- | --- |
 | Ledger | `TransactionsController`, `TransfersController` |
@@ -234,7 +236,7 @@ Catalog: `src/core/events/event.constants.ts`.
 
 ## AI integration
 
-Tools call **`FinanceFacade`** (not raw repositories). Full tool list: `docs/ai-tools/finance-tools.md`.
+Tools call **`FinanceFacade`** (not raw repositories). Full tool list: `docs/ai-tools/finance-tools.md`. Finance tools call `UsersService.assertModuleEnabled` first; a disabled module returns a tool error (`Tool execution failed: Finance module is disabled`) instead of hitting the facade.
 
 Email extraction uses `AiService.chatComplete` via `AiEmailTransactionExtractor` (`EMAIL_TRANSACTION_EXTRACTOR` token). Ingestion imports `AiCoreModule` (AI provider kernel) rather than `AiModule`, so there is no Nest cycle with Finance. The extractor injects `AiService` directly (no `forwardRef`).
 
@@ -243,6 +245,7 @@ Email extraction uses `AiService.chatComplete` via `AiEmailTransactionExtractor`
 - RLS on user-owned finance tables.
 - Gmail tokens encrypted; OAuth state JWT-bound.
 - Gmail scope is read-only mail.
+- REST (`EnabledModuleGuard` + `@RequiresEnabledModule('finance')`) and AI finance tools refuse access when the module is off.
 
 ## Smoke checklist (HTTP real)
 

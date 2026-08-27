@@ -40,3 +40,4 @@ Import as `from '../users'` (or `src/modules/users`), not deep layer paths.
 - `UsersModule` is marked as `@Global()`.
 - Other modules consume `UsersService` / `UsersRepository` via Nest DI (import `UsersModule`) and type/helpers via the public barrel.
 - Module settings defaults are merged server-side to keep response shape stable.
+- A missing `UserModule` row is treated as disabled (same rule as notification policy `module_disabled_or_missing`). Finance REST returns 403 `Finance module is disabled`; other domain APIs are unchanged until they opt in with `@RequiresEnabledModule`.

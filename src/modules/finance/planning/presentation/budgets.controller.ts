@@ -1,6 +1,17 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post, Query,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { CurrentUser } from '../../../../core/decorators';
+import {
+  CurrentUser,
+  RequiresEnabledModule,
+} from '../../../../core/decorators';
 import { PaginationQueryDto } from '../../../../core/pagination/pagination.dto';
 import { PlanningService } from '../application/planning.service';
 import { CreateBudgetDto } from './dto/create-budget.dto';
@@ -8,6 +19,7 @@ import { UpdateBudgetDto } from './dto/update-budget.dto';
 
 @ApiTags('finance')
 @ApiBearerAuth('access-token')
+@RequiresEnabledModule('finance')
 @Controller('finance')
 export class BudgetsController {
   constructor(private readonly planning: PlanningService) {}

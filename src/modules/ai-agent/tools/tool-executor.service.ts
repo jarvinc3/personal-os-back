@@ -7,21 +7,46 @@ import {
 } from '../../users';
 import { AiSessionsRepository } from '../chat/infrastructure/ai-sessions.repository';
 import {
-    MODULE_CONTEXT,
-    MODULE_CONTEXT_SLUGS,
-    MODULE_CONTEXT_SWITCH_TOOL,
-    type ModuleContextSlug,
+  MODULE_CONTEXT,
+  MODULE_CONTEXT_SLUGS,
+  MODULE_CONTEXT_SWITCH_TOOL,
+  type ModuleContextSlug,
 } from '../prompts/module-context';
 import type {
-    SideEffectDescriptor,
-    ToolContext,
-    ToolExecutionResult,
+  SideEffectDescriptor,
+  ToolContext,
+  ToolExecutionResult,
 } from '../shared/ai.types';
 import {
-    type MutatingToolName,
-    type ValidatedToolArgs,
-    validateMutatingToolArgs,
+  type MutatingToolName,
+  type ValidatedToolArgs,
+  validateMutatingToolArgs,
 } from './tool-arg-schemas';
+
+const FINANCE_TOOL_NAMES = new Set([
+  'get_finance_summary',
+  'list_transactions',
+  'get_transaction',
+  'list_categories',
+  'list_accounts',
+  'list_cards',
+  'list_budgets',
+  'list_email_sources',
+  'create_transaction',
+  'create_transfer',
+  'update_transaction',
+  'confirm_transaction',
+  'get_budget_status',
+  'create_or_update_budget',
+  'list_savings_goals',
+  'create_savings_goal',
+  'update_savings_goal',
+  'list_loans',
+  'mark_loan_installment_paid',
+  'trigger_email_sync',
+  'get_spending_by_category',
+  'get_spending_over_time',
+]);
 
 @Injectable()
 export class ToolExecutorService {
@@ -230,10 +255,7 @@ export class ToolExecutorService {
     args: Record<string, unknown>,
   ): Promise<ToolExecutionResult> {
     const slug = args.slug as string;
-    if (
-      !slug ||
-      !MODULE_CONTEXT_SLUGS.includes(slug as ModuleContextSlug)
-    ) {
+    if (!slug || !MODULE_CONTEXT_SLUGS.includes(slug as ModuleContextSlug)) {
       return {
         success: false,
         message: `Invalid slug. Use one of: ${MODULE_CONTEXT_SLUGS.join(', ')}`,
@@ -302,16 +324,17 @@ export class ToolExecutorService {
     name: string,
     args: Record<string, unknown>,
   ): Promise<ToolExecutionResult> {
+    if (FINANCE_TOOL_NAMES.has(name)) {
+      await this.usersService.assertModuleEnabled(ctx.userId, 'finance');
+    }
+
     switch (name) {
       case MODULE_CONTEXT_SWITCH_TOOL:
         return this.switchModuleContext(ctx, args);
       case 'get_user_context':
         return this.getUserContext(ctx);
       case 'update_user_profile':
-        return this.updateUserProfile(
-          ctx,
-          args,
-        );
+        return this.updateUserProfile(ctx, args);
       case 'set_theme':
         return this.setTheme(ctx, args as ValidatedToolArgs<'set_theme'>);
       case 'update_preferences':
@@ -320,15 +343,9 @@ export class ToolExecutorService {
           args as ValidatedToolArgs<'update_preferences'>,
         );
       case 'update_ai_settings':
-        return this.updateAiSettings(
-          ctx,
-          args,
-        );
+        return this.updateAiSettings(ctx, args);
       case 'update_notification_settings':
-        return this.updateNotificationSettings(
-          ctx,
-          args,
-        );
+        return this.updateNotificationSettings(ctx, args);
       case 'update_module_config':
         return this.updateModuleConfig(
           ctx,
@@ -360,7 +377,8 @@ export class ToolExecutorService {
           }),
         };
       case 'get_transaction': {
-        const id = typeof args.transactionId === 'string' ? args.transactionId : '';
+        const id =
+          typeof args.transactionId === 'string' ? args.transactionId : '';
         if (!id) {
           return { success: false, message: 'transactionId is required' };
         }
@@ -398,7 +416,9 @@ export class ToolExecutorService {
         return {
           success: true,
           message: 'Email sources loaded',
-          data: { items: await this.financeFacade.listEmailSources(ctx.userId) },
+          data: {
+            items: await this.financeFacade.listEmailSources(ctx.userId),
+          },
         };
       case 'create_transaction': {
         const tx = args as ValidatedToolArgs<'create_transaction'>;
@@ -501,10 +521,7 @@ export class ToolExecutorService {
           message: 'Budget created',
           data: await this.financeFacade.createBudget(ctx.userId, {
             categoryId: budget.categoryId as string,
-            periodType: budget.periodType as
-              | 'MONTHLY'
-              | 'BIWEEKLY'
-              | 'CUSTOM',
+            periodType: budget.periodType as 'MONTHLY' | 'BIWEEKLY' | 'CUSTOM',
             periodStart: budget.periodStart as string,
             periodEnd: budget.periodEnd as string,
             amountLimit: budget.amountLimit as number,
