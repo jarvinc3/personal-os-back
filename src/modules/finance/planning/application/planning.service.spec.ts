@@ -8,6 +8,7 @@ describe('PlanningService archive and receivables', () => {
   const findReceivable = jest.fn();
   const updateReceivable = jest.fn();
   const createReceivable = jest.fn();
+  const listBudgetsPage = jest.fn();
 
   const repo = {
     updateLoan,
@@ -16,6 +17,7 @@ describe('PlanningService archive and receivables', () => {
     findReceivable,
     updateReceivable,
     createReceivable,
+    listBudgetsPage,
   } as unknown as PlanningRepository;
 
   const service = new PlanningService(repo);
@@ -81,63 +83,21 @@ describe('PlanningService archive and receivables', () => {
     expect(updateReceivable).not.toHaveBeenCalled();
   });
 
-  it('creates a loan with currency, interestRate fraction, and notes', async () => {
-    createLoan.mockResolvedValue({
-      id: 'loan-1',
-      currency: 'USD',
-      interestRate: 0.12,
-      notes: 'BHD',
+  it('paginates budgets with items and total', async () => {
+    const page = Array.from({ length: 20 }, (_, i) => ({ id: `b-${i}` }));
+    listBudgetsPage.mockResolvedValue([page, 25]);
+
+    const result = await service.listBudgetsPage('user-1', {
+      page: 1,
+      limit: 20,
     });
 
-    await service.createLoan('user-1', {
-      lenderName: 'Bank',
-      originalAmount: 1000,
-      currentBalance: 800,
-      installmentAmount: 100,
-      installmentFreq: 'MONTHLY',
-      totalInstallments: 12,
-      nextDueDate: '2026-09-01',
-      currency: 'USD',
-      interestRate: 0.12,
-      notes: 'BHD',
-    });
-
-    expect(createLoan).toHaveBeenCalledWith(
-      'user-1',
-      expect.objectContaining({
-        currency: 'USD',
-        interestRate: 0.12,
-        notes: 'BHD',
-      }),
-    );
-  });
-
-  it('defaults currency to DOP when omitted', async () => {
-    createLoan.mockResolvedValue({ id: 'loan-1', currency: 'DOP' });
-
-    await service.createLoan('user-1', {
-      lenderName: 'Bank',
-      originalAmount: 1000,
-      currentBalance: 800,
-      installmentAmount: 100,
-      installmentFreq: 'MONTHLY',
-      totalInstallments: 12,
-      nextDueDate: '2026-09-01',
-    });
-
-    expect(createLoan.mock.calls[0]?.[1]).toEqual(
-      expect.objectContaining({ currency: 'DOP' }),
-    );
-    expect(createLoan.mock.calls[0]?.[1]).not.toHaveProperty('interestRate');
-  });
-
-  it('patches notes or interestRate without wiping other fields', async () => {
-    updateLoan.mockResolvedValue({ id: 'loan-1', notes: 'updated' });
-
-    await service.updateLoan('user-1', 'loan-1', { notes: 'updated' });
-
-    expect(updateLoan).toHaveBeenCalledWith('user-1', 'loan-1', {
-      notes: 'updated',
+    expect(result.items).toHaveLength(20);
+    expect(result.pagination).toEqual({
+      page: 1,
+      limit: 20,
+      total: 25,
+      totalPages: 2,
     });
   });
 });

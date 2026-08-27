@@ -1,6 +1,7 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post } from '@nestjs/common';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../../../../core/decorators';
+import { PaginationQueryDto } from '../../../../core/pagination/pagination.dto';
 import { PlanningService } from '../application/planning.service';
 import { CreateBudgetDto } from './dto/create-budget.dto';
 import { UpdateBudgetDto } from './dto/update-budget.dto';
@@ -12,8 +13,14 @@ export class BudgetsController {
   constructor(private readonly planning: PlanningService) {}
 
   @Get('budgets')
-  list(@CurrentUser('sub') userId: string) {
-    return this.planning.listBudgets(userId);
+  @ApiOperation({
+    summary: 'List budgets (paginated, default page=1 limit=20, max 100)',
+  })
+  list(
+    @CurrentUser('sub') userId: string,
+    @Query() query: PaginationQueryDto,
+  ) {
+    return this.planning.listBudgetsPage(userId, query);
   }
 
   @Post('budgets')
