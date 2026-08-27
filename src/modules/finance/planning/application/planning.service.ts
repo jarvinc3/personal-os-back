@@ -136,11 +136,16 @@ export class PlanningService {
       accountId: dto.accountId,
       originalAmount: dto.originalAmount,
       currentBalance: dto.currentBalance,
+      currency: dto.currency ?? 'DOP',
       installmentAmount: dto.installmentAmount,
       installmentFreq: dto.installmentFreq,
       totalInstallments: dto.totalInstallments,
       paidInstallments: dto.paidInstallments ?? 0,
       nextDueDate: new Date(dto.nextDueDate),
+      ...(dto.interestRate !== undefined
+        ? { interestRate: dto.interestRate }
+        : {}),
+      ...(dto.notes !== undefined ? { notes: dto.notes } : {}),
     });
   }
 
@@ -164,6 +169,11 @@ export class PlanningService {
         : {}),
       ...(dto.nextDueDate ? { nextDueDate: new Date(dto.nextDueDate) } : {}),
       ...(dto.isActive !== undefined ? { isActive: dto.isActive } : {}),
+      ...(dto.currency ? { currency: dto.currency } : {}),
+      ...(dto.interestRate !== undefined
+        ? { interestRate: dto.interestRate }
+        : {}),
+      ...(dto.notes !== undefined ? { notes: dto.notes } : {}),
     });
     if (!updated) throw new NotFoundException('Loan not found');
     return updated;

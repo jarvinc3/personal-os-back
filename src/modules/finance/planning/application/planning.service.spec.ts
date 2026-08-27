@@ -3,6 +3,8 @@ import type { PlanningRepository } from '../infrastructure/planning.repository';
 
 describe('PlanningService archive and receivables', () => {
   const updateLoan = jest.fn();
+  const createLoan = jest.fn();
+  const listLoans = jest.fn();
   const findReceivable = jest.fn();
   const updateReceivable = jest.fn();
   const createReceivable = jest.fn();
@@ -10,6 +12,8 @@ describe('PlanningService archive and receivables', () => {
 
   const repo = {
     updateLoan,
+    createLoan,
+    listLoans,
     findReceivable,
     updateReceivable,
     createReceivable,
