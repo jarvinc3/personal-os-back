@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import type {
-    AuthDeletionOutboxStatus,
-    Prisma,
+  AuthDeletionOutboxStatus,
+  Prisma,
 } from '../../../prisma/generated/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 
@@ -45,6 +45,13 @@ export class UsersRepository {
       where: {
         userId_moduleId: { userId, moduleId },
       },
+    });
+  }
+
+  findEnabledUserModuleBySlug(userId: string, slug: string) {
+    return this.prisma.userModule.findFirst({
+      where: { userId, isEnabled: true, module: { slug } },
+      select: { id: true },
     });
   }
 

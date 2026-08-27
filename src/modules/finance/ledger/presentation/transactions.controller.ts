@@ -1,16 +1,31 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common';
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { CurrentUser } from '../../../../core/decorators';
+import {
+  CurrentUser,
+  RequiresEnabledModule,
+} from '../../../../core/decorators';
 import { ConfirmTransactionUseCase } from '../application/confirm-transaction.use-case';
 import { CreateTransactionUseCase } from '../application/create-transaction.use-case';
 import { DeleteTransactionUseCase } from '../application/delete-transaction.use-case';
 import { LedgerQueryService } from '../application/ledger-query.service';
+import { ReverseTransactionUseCase } from '../application/reverse-transaction.use-case';
 import { UpdateTransactionUseCase } from '../application/update-transaction.use-case';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { ListTransactionsQueryDto } from './dto/list-transactions-query.dto';
 
 @ApiTags('finance')
 @ApiBearerAuth('access-token')
+@RequiresEnabledModule('finance')
 @Controller('finance')
 export class TransactionsController {
   constructor(
@@ -19,6 +34,7 @@ export class TransactionsController {
     private readonly updateTx: UpdateTransactionUseCase,
     private readonly confirmTx: ConfirmTransactionUseCase,
     private readonly deleteTx: DeleteTransactionUseCase,
+    private readonly reverseTx: ReverseTransactionUseCase,
   ) {}
 
   @Get('transactions')
@@ -65,5 +81,27 @@ export class TransactionsController {
   @ApiOperation({ summary: 'Confirm PENDING transaction' })
   confirm(@CurrentUser('sub') userId: string, @Param('id') id: string) {
     return this.confirmTx.execute(userId, id);
+  }
+
+  @Post('transactions/:id/reverse')
+  @ApiOperation({
+    summary: 'Reverse a CONFIRMED transaction (keeps the row as REVERSED)',
+  })
+  async reverse(@CurrentUser('sub') userId: string, @Param('id') id: string) {
+    const existing = await this.queries.getTransaction(userId, id);
+    if (existing.status === 'REVERSED') {
+      return existing;
+    }
+    if (existing.transferGroupId) {
+      throw new BadRequestException(
+        'Reversing one leg of a transfer is not supported',
+      );
+    }
+    if (existing.status !== 'CONFIRMED') {
+      throw new BadRequestException(
+        'Only CONFIRMED transactions can be reversed',
+      );
+    }
+    return this.reverseTx.execute(userId, id);
   }
 }

@@ -1,6 +1,17 @@
-import { Body, Controller, Get, Param, Patch, Post } from '@nestjs/common';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { CurrentUser } from '../../../../core/decorators';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+} from '@nestjs/common';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  CurrentUser,
+  RequiresEnabledModule,
+} from '../../../../core/decorators';
 import { CatalogService } from '../application/catalog.service';
 import { CreateCardDto } from './dto/create-card.dto';
 import { UpdateCardBalanceDto } from './dto/update-card-balance.dto';
@@ -8,6 +19,7 @@ import { UpdateCardDto } from './dto/update-card.dto';
 
 @ApiTags('finance')
 @ApiBearerAuth('access-token')
+@RequiresEnabledModule('finance')
 @Controller('finance')
 export class CardsController {
   constructor(private readonly catalog: CatalogService) {}
@@ -34,6 +46,12 @@ export class CardsController {
     @Body() dto: UpdateCardDto,
   ) {
     return this.catalog.updateCard(userId, id, dto);
+  }
+
+  @Delete('cards/:id')
+  @ApiOperation({ summary: 'Deactivate card (soft archive)' })
+  remove(@CurrentUser('sub') userId: string, @Param('id') id: string) {
+    return this.catalog.deactivateCard(userId, id);
   }
 
   @Post('cards/:id/balances')

@@ -1,22 +1,27 @@
 import {
-    BadRequestException,
-    Injectable,
-    Logger,
-    NotFoundException,
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  Logger,
+  NotFoundException,
 } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { AppEvents } from '../../../core/events/event.constants';
+import { moduleDisabledMessage } from '../../../core/exceptions/module-disabled';
 import { SupabaseAdminService } from '../../auth';
 import { GLOBAL_USER_PREFERENCES_DEFAULTS } from '../domain/defaults/global-preferences-defaults';
 import {
-    DEFAULT_MODULE_CONFIG_BY_SLUG,
-    isModuleSlug,
-    type ModuleSlug,
+  DEFAULT_MODULE_CONFIG_BY_SLUG,
+  isModuleSlug,
+  type ModuleSlug,
 } from '../domain/defaults/user-settings-defaults';
 import { UpdateModuleConfigDto } from '../presentation/dto/update-module-config.dto';
 import { UpdateProfileDto } from '../presentation/dto/update-profile.dto';
 import { mergeWithDefaults } from '../domain/settings-merge';
-import { UserWithModules, UsersRepository } from '../infrastructure/users.repository';
+import {
+  UserWithModules,
+  UsersRepository,
+} from '../infrastructure/users.repository';
 
 export type DeleteAccountResult = {
   success: true;
@@ -116,9 +121,10 @@ export class UsersService {
       throw new NotFoundException(`Module "${slug}" not found`);
     }
 
-    const defaults = DEFAULT_MODULE_CONFIG_BY_SLUG[
-      slug
-    ] as unknown as Record<string, unknown>;
+    const defaults = DEFAULT_MODULE_CONFIG_BY_SLUG[slug] as unknown as Record<
+      string,
+      unknown
+    >;
     const existing = await this.usersRepository.findUserModule(
       userId,
       moduleRecord.id,
@@ -138,7 +144,10 @@ export class UsersService {
 
     const currentConfig = (existing?.config ?? {}) as Record<string, unknown>;
     const mergedConfig = dto.config
-      ? mergeWithDefaults(mergeWithDefaults(dto.config, currentConfig), defaults)
+      ? mergeWithDefaults(
+          mergeWithDefaults(dto.config, currentConfig),
+          defaults,
+        )
       : mergeWithDefaults(currentConfig, defaults);
 
     const isEnabled = dto.isEnabled ?? existing?.isEnabled ?? true;
@@ -179,7 +188,8 @@ export class UsersService {
 
     await this.usersRepository.deleteAccountWithAuthOutbox(userId);
 
-    const authResult = await this.supabaseAdminService.tryDeleteAuthUser(userId);
+    const authResult =
+      await this.supabaseAdminService.tryDeleteAuthUser(userId);
     if (authResult.ok) {
       await this.usersRepository.markAuthOutboxCompleted(userId);
       this.logger.log(
@@ -192,5 +202,15 @@ export class UsersService {
       `account_deleted userId=${userId} authCleanupPending=true reason=${authResult.message}`,
     );
     return { success: true, authCleanupPending: true };
+  }
+
+  async assertModuleEnabled(userId: string, slug: string): Promise<void> {
+    const enabled = await this.usersRepository.findEnabledUserModuleBySlug(
+      userId,
+      slug,
+    );
+    if (!enabled) {
+      throw new ForbiddenException(moduleDisabledMessage(slug));
+    }
   }
 }

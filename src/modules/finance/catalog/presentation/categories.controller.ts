@@ -1,12 +1,24 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { CurrentUser } from '../../../../core/decorators';
+import {
+  CurrentUser,
+  RequiresEnabledModule,
+} from '../../../../core/decorators';
 import { CatalogService } from '../application/catalog.service';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 
 @ApiTags('finance')
 @ApiBearerAuth('access-token')
+@RequiresEnabledModule('finance')
 @Controller('finance')
 export class CategoriesController {
   constructor(private readonly catalog: CatalogService) {}
@@ -33,10 +45,5 @@ export class CategoriesController {
   @Delete('categories/:id')
   remove(@CurrentUser('sub') userId: string, @Param('id') id: string) {
     return this.catalog.deleteCategory(userId, id);
-  }
-
-  @Post('categories/migrate-legacy-icons')
-  migrate(@CurrentUser('sub') userId: string) {
-    return this.catalog.migrateLegacyCategoryIcons(userId);
   }
 }

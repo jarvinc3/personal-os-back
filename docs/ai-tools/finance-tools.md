@@ -2,13 +2,15 @@
 
 Available when chat session `moduleSlug` is `finance`. Source: `MODULE_CONTEXT.finance`.
 
-All finance tools delegate to **`FinanceFacade`** via `ToolExecutorService`.
+All finance tools delegate to **`FinanceFacade`** via `ToolExecutorService`. They also require `user_modules.finance.isEnabled`; otherwise the tool returns `success: false` with `Tool execution failed: Finance module is disabled`.
+
+Tools are **not** the full REST surface. There is no tool (and in several cases no facade method) for create loan, receivables, institution/account/card writes, hard-delete of a transaction, or Gmail OAuth. See `docs/modules/finance.md` § REST vs FinanceFacade.
 
 ## Read-only tools
 
 ### `get_finance_summary`
 
-Returns net worth, cash flow, and income/expense totals for a date range.
+Returns net worth, cash flow, and income/expense totals for a date range. Money fields in the payload are decimal **strings** (`netWorth`, `cashFlow`, `totals.*`).
 
 | Parameter  | Type   | Required | Description    |
 | ---------- | ------ | -------- | -------------- |
@@ -118,6 +120,8 @@ Returns active budgets with spent amount and threshold percentage.
 | `dateTo`   | string | no       |
 
 **Delegates to:** `FinanceFacade.getSpendingByCategory`
+
+Each item is `{ categoryId, name, color, icon, total }`. `categoryId` may be null (`name` = `Sin categoría`). `total` is a decimal string: the sum of `amountBaseCurrency` for DEBIT + CONFIRMED in the range. Deleted categories keep the total and use `Categoría no disponible`.
 
 ---
 

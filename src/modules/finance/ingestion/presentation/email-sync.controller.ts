@@ -1,20 +1,24 @@
 import {
-    BadRequestException,
-    Body,
-    Controller,
-    Delete,
-    Get,
-    Logger,
-    Param,
-    Patch,
-    Post,
-    Query,
-    Res,
+  BadRequestException,
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Logger,
+  Param,
+  Patch,
+  Post,
+  Query,
+  Res,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import type { Response } from 'express';
-import { CurrentUser, Public } from '../../../../core/decorators';
+import {
+  CurrentUser,
+  Public,
+  RequiresEnabledModule,
+} from '../../../../core/decorators';
 import { IngestionService } from '../application/ingestion.service';
 import { ConnectEmailSourceDto } from './dto/connect-email-source.dto';
 import { GoogleOAuthUrlQueryDto } from './dto/oauth-callback-query.dto';
@@ -22,6 +26,7 @@ import { UpdateEmailSourceDto } from './dto/update-email-source.dto';
 
 @ApiTags('finance')
 @ApiBearerAuth('access-token')
+@RequiresEnabledModule('finance')
 @Controller('finance/email-sync')
 export class EmailSyncController {
   private readonly logger = new Logger(EmailSyncController.name);
@@ -89,21 +94,27 @@ export class EmailSyncController {
     if (error) {
       this.logger.warn(`OAuth error: ${error}`);
       return res.redirect(
-        'personal-os://finance/oauth/callback?success=false',
+        this.ingestion.resolveOAuthClientRedirect(state, false),
       );
     }
     if (!code || !state) {
+      if (state) {
+        return res.redirect(
+          this.ingestion.resolveOAuthClientRedirect(state, false),
+        );
+      }
       throw new BadRequestException('Missing code or state');
     }
     try {
       await this.ingestion.handleGoogleOAuthCallback(code, state);
-      return res.redirect('personal-os://finance/oauth/callback?success=1');
+      return res.redirect(
+        this.ingestion.resolveOAuthClientRedirect(state, true),
+      );
     } catch (err) {
       const message = err instanceof Error ? err.message : 'oauth_failed';
       this.logger.warn(`OAuth callback failed: ${message}`);
-      // Keep deep-link contract stable for mobile: success=false (no error query).
       return res.redirect(
-        'personal-os://finance/oauth/callback?success=false',
+        this.ingestion.resolveOAuthClientRedirect(state, false),
       );
     }
   }

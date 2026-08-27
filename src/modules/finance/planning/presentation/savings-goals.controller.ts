@@ -1,12 +1,24 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { CurrentUser } from '../../../../core/decorators';
+import {
+  CurrentUser,
+  RequiresEnabledModule,
+} from '../../../../core/decorators';
 import { PlanningService } from '../application/planning.service';
 import { CreateSavingsGoalDto } from './dto/create-savings-goal.dto';
 import { UpdateSavingsGoalDto } from './dto/update-savings-goal.dto';
 
 @ApiTags('finance')
 @ApiBearerAuth('access-token')
+@RequiresEnabledModule('finance')
 @Controller('finance')
 export class SavingsGoalsController {
   constructor(private readonly planning: PlanningService) {}
@@ -17,7 +29,10 @@ export class SavingsGoalsController {
   }
 
   @Post('savings-goals')
-  create(@CurrentUser('sub') userId: string, @Body() dto: CreateSavingsGoalDto) {
+  create(
+    @CurrentUser('sub') userId: string,
+    @Body() dto: CreateSavingsGoalDto,
+  ) {
     return this.planning.createSavingsGoal(userId, dto);
   }
 

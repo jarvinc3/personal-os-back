@@ -15,7 +15,16 @@ export function transactionCreatedEventName(status: string): string {
   }
 }
 
-export function decimalToString(value: { toString(): string } | number | null | undefined): string {
+export function decimalToString(
+  value: { toString(): string } | number | null | undefined,
+): string {
   if (value === null || value === undefined) return '0';
+  return value.toString();
+}
+
+export function decimalToNullableString(
+  value: { toString(): string } | number | null | undefined,
+): string | null {
+  if (value === null || value === undefined) return null;
   return value.toString();
 }

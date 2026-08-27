@@ -1,4 +1,8 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  paginate,
+  type PaginationQueryDto,
+} from '../../../../core/pagination/pagination.dto';
 import { PlanningRepository } from '../infrastructure/planning.repository';
 import type { CreateBudgetDto } from '../presentation/dto/create-budget.dto';
 import type { CreateLoanDto } from '../presentation/dto/create-loan.dto';
@@ -8,17 +12,34 @@ import type { UpdateBudgetDto } from '../presentation/dto/update-budget.dto';
 import type { UpdateLoanDto } from '../presentation/dto/update-loan.dto';
 import type { UpdateReceivableDto } from '../presentation/dto/update-receivable.dto';
 import type { UpdateSavingsGoalDto } from '../presentation/dto/update-savings-goal.dto';
+import {
+  mapBudget,
+  mapLoan,
+  mapReceivable,
+  mapSavingsGoal,
+} from './planning-mappers';
+import { resolveReceivablePayment } from './resolve-receivable-payment';
 
 @Injectable()
 export class PlanningService {
   constructor(private readonly repo: PlanningRepository) {}
 
-  listBudgets(userId: string) {
-    return this.repo.listBudgets(userId);
+  async listBudgets(userId: string) {
+    const rows = await this.repo.listBudgets(userId);
+    return rows.map(mapBudget);
   }
 
-  createBudget(userId: string, dto: CreateBudgetDto) {
-    return this.repo.createBudget(userId, {
+  async listBudgetsPage(userId: string, query: PaginationQueryDto) {
+    const pageQuery = {
+      page: query.page ?? 1,
+      limit: query.limit ?? 20,
+    };
+    const [items, total] = await this.repo.listBudgetsPage(userId, pageQuery);
+    return paginate(items.map(mapBudget), total, pageQuery);
+  }
+
+  async createBudget(userId: string, dto: CreateBudgetDto) {
+    const created = await this.repo.createBudget(userId, {
       categoryId: dto.categoryId,
       periodType: dto.periodType,
       periodStart: new Date(dto.periodStart),
@@ -27,6 +48,7 @@ export class PlanningService {
       amountSpent: 0,
       alertThresholdPct: dto.alertThresholdPct ?? 80,
     });
+    return mapBudget(created);
   }
 
   async updateBudget(userId: string, id: string, dto: UpdateBudgetDto) {
@@ -35,13 +57,15 @@ export class PlanningService {
       ...(dto.periodType ? { periodType: dto.periodType } : {}),
       ...(dto.periodStart ? { periodStart: new Date(dto.periodStart) } : {}),
       ...(dto.periodEnd ? { periodEnd: new Date(dto.periodEnd) } : {}),
-      ...(dto.amountLimit !== undefined ? { amountLimit: dto.amountLimit } : {}),
+      ...(dto.amountLimit !== undefined
+        ? { amountLimit: dto.amountLimit }
+        : {}),
       ...(dto.alertThresholdPct !== undefined
         ? { alertThresholdPct: dto.alertThresholdPct }
         : {}),
     });
     if (!updated) throw new NotFoundException('Budget not found');
-    return updated;
+    return mapBudget(updated);
   }
 
   async deleteBudget(userId: string, id: string) {
@@ -50,15 +74,16 @@ export class PlanningService {
     return { success: true };
   }
 
-  listSavingsGoals(userId: string) {
-    return this.repo.listSavingsGoals(userId);
+  async listSavingsGoals(userId: string) {
+    const rows = await this.repo.listSavingsGoals(userId);
+    return rows.map(mapSavingsGoal);
   }
 
-  createSavingsGoal(userId: string, dto: CreateSavingsGoalDto) {
+  async createSavingsGoal(userId: string, dto: CreateSavingsGoalDto) {
     const current = dto.currentAmount ?? 0;
     const target = dto.targetAmount;
     const isCompleted = current >= target;
-    return this.repo.createSavingsGoal(userId, {
+    const created = await this.repo.createSavingsGoal(userId, {
       name: dto.name,
       description: dto.description,
       targetAmount: target,
@@ -68,6 +93,7 @@ export class PlanningService {
       isCompleted,
       completedAt: isCompleted ? new Date() : null,
     });
+    return mapSavingsGoal(created);
   }
 
   async updateSavingsGoal(
@@ -90,7 +116,9 @@ export class PlanningService {
 
     const updated = await this.repo.updateSavingsGoal(userId, id, {
       ...(dto.name ? { name: dto.name } : {}),
-      ...(dto.description !== undefined ? { description: dto.description } : {}),
+      ...(dto.description !== undefined
+        ? { description: dto.description }
+        : {}),
       ...(dto.currentAmount !== undefined
         ? { currentAmount: dto.currentAmount }
         : {}),
@@ -103,31 +131,39 @@ export class PlanningService {
       completedAt: isCompleted ? (existing.completedAt ?? new Date()) : null,
     });
     if (!updated) throw new NotFoundException('Savings goal not found');
-    return updated;
+    return mapSavingsGoal(updated);
   }
 
   async deleteSavingsGoal(userId: string, id: string) {
     const result = await this.repo.deleteSavingsGoal(userId, id);
-    if (result.count === 0) throw new NotFoundException('Savings goal not found');
+    if (result.count === 0)
+      throw new NotFoundException('Savings goal not found');
     return { success: true };
   }
 
-  listLoans(userId: string) {
-    return this.repo.listLoans(userId);
+  async listLoans(userId: string) {
+    const rows = await this.repo.listLoans(userId);
+    return rows.map(mapLoan);
   }
 
-  createLoan(userId: string, dto: CreateLoanDto) {
-    return this.repo.createLoan(userId, {
+  async createLoan(userId: string, dto: CreateLoanDto) {
+    const created = await this.repo.createLoan(userId, {
       lenderName: dto.lenderName,
       accountId: dto.accountId,
       originalAmount: dto.originalAmount,
       currentBalance: dto.currentBalance,
+      currency: dto.currency ?? 'DOP',
       installmentAmount: dto.installmentAmount,
       installmentFreq: dto.installmentFreq,
       totalInstallments: dto.totalInstallments,
       paidInstallments: dto.paidInstallments ?? 0,
       nextDueDate: new Date(dto.nextDueDate),
+      ...(dto.interestRate !== undefined
+        ? { interestRate: dto.interestRate }
+        : {}),
+      ...(dto.notes !== undefined ? { notes: dto.notes } : {}),
     });
+    return mapLoan(created);
   }
 
   async updateLoan(userId: string, id: string, dto: UpdateLoanDto) {
@@ -139,9 +175,7 @@ export class PlanningService {
       ...(dto.installmentAmount !== undefined
         ? { installmentAmount: dto.installmentAmount }
         : {}),
-      ...(dto.installmentFreq
-        ? { installmentFreq: dto.installmentFreq }
-        : {}),
+      ...(dto.installmentFreq ? { installmentFreq: dto.installmentFreq } : {}),
       ...(dto.totalInstallments !== undefined
         ? { totalInstallments: dto.totalInstallments }
         : {}),
@@ -149,38 +183,90 @@ export class PlanningService {
         ? { paidInstallments: dto.paidInstallments }
         : {}),
       ...(dto.nextDueDate ? { nextDueDate: new Date(dto.nextDueDate) } : {}),
+      ...(dto.isActive !== undefined ? { isActive: dto.isActive } : {}),
+      ...(dto.currency ? { currency: dto.currency } : {}),
+      ...(dto.interestRate !== undefined
+        ? { interestRate: dto.interestRate }
+        : {}),
+      ...(dto.notes !== undefined ? { notes: dto.notes } : {}),
     });
     if (!updated) throw new NotFoundException('Loan not found');
-    return updated;
+    return mapLoan(updated);
   }
 
-  listReceivables(userId: string) {
-    return this.repo.listReceivables(userId);
+  async deactivateLoan(userId: string, id: string) {
+    const updated = await this.repo.updateLoan(userId, id, { isActive: false });
+    if (!updated) throw new NotFoundException('Loan not found');
+    return { success: true };
   }
 
-  createReceivable(userId: string, dto: CreateReceivableDto) {
-    return this.repo.createReceivable(userId, {
+  async listReceivables(userId: string) {
+    const rows = await this.repo.listReceivables(userId);
+    return rows.map(mapReceivable);
+  }
+
+  async createReceivable(userId: string, dto: CreateReceivableDto) {
+    let paidAmount = dto.paidAmount ?? 0;
+    if (dto.status === 'PAID' && dto.paidAmount === undefined) {
+      paidAmount = dto.amount;
+    }
+    const payment = resolveReceivablePayment({
+      amount: dto.amount,
+      paidAmount,
+      status: dto.status,
+    });
+    const created = await this.repo.createReceivable(userId, {
       debtorName: dto.debtorName,
       description: dto.description,
       amount: dto.amount,
+      paidAmount: payment.paidAmount,
       currency: dto.currency ?? 'DOP',
       dueDate: dto.dueDate ? new Date(dto.dueDate) : null,
+      status: payment.status,
     });
+    return mapReceivable(created);
   }
 
-  async updateReceivable(
-    userId: string,
-    id: string,
-    dto: UpdateReceivableDto,
-  ) {
+  async updateReceivable(userId: string, id: string, dto: UpdateReceivableDto) {
+    const existing = await this.repo.findReceivable(userId, id);
+    if (!existing) throw new NotFoundException('Receivable not found');
+
+    const paymentTouched =
+      dto.status !== undefined ||
+      dto.paidAmount !== undefined ||
+      dto.amount !== undefined;
+
+    let payment: ReturnType<typeof resolveReceivablePayment> | undefined;
+    if (paymentTouched) {
+      const nextAmount =
+        dto.amount !== undefined ? dto.amount : Number(existing.amount);
+      let nextPaid =
+        dto.paidAmount !== undefined
+          ? dto.paidAmount
+          : Number(existing.paidAmount);
+      if (dto.status === 'PAID' && dto.paidAmount === undefined) {
+        nextPaid = nextAmount;
+      }
+      payment = resolveReceivablePayment({
+        amount: nextAmount,
+        paidAmount: nextPaid,
+        status: dto.status,
+      });
+    }
+
     const updated = await this.repo.updateReceivable(userId, id, {
       ...(dto.debtorName ? { debtorName: dto.debtorName } : {}),
-      ...(dto.description !== undefined ? { description: dto.description } : {}),
+      ...(dto.description !== undefined
+        ? { description: dto.description }
+        : {}),
       ...(dto.amount !== undefined ? { amount: dto.amount } : {}),
+      ...(payment
+        ? { paidAmount: payment.paidAmount, status: payment.status }
+        : {}),
       ...(dto.currency ? { currency: dto.currency } : {}),
       ...(dto.dueDate ? { dueDate: new Date(dto.dueDate) } : {}),
     });
     if (!updated) throw new NotFoundException('Receivable not found');
-    return updated;
+    return mapReceivable(updated);
   }
 }

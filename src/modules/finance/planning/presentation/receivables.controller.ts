@@ -1,12 +1,16 @@
 import { Body, Controller, Get, Param, Patch, Post } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { CurrentUser } from '../../../../core/decorators';
+import {
+  CurrentUser,
+  RequiresEnabledModule,
+} from '../../../../core/decorators';
 import { PlanningService } from '../application/planning.service';
 import { CreateReceivableDto } from './dto/create-receivable.dto';
 import { UpdateReceivableDto } from './dto/update-receivable.dto';
 
 @ApiTags('finance')
 @ApiBearerAuth('access-token')
+@RequiresEnabledModule('finance')
 @Controller('finance')
 export class ReceivablesController {
   constructor(private readonly planning: PlanningService) {}

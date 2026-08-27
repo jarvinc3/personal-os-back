@@ -11,6 +11,7 @@ export type PrismaMock = {
   };
   userModule: {
     findUnique: MockFn;
+    findFirst: MockFn;
     upsert: MockFn;
   };
   notification: {
@@ -41,8 +42,37 @@ export type PrismaMock = {
     create: MockFn;
     groupBy: MockFn;
   };
+  finCard: {
+    findMany: MockFn;
+    findFirst: MockFn;
+    create: MockFn;
+    updateMany: MockFn;
+  };
+  finLoan: {
+    findMany: MockFn;
+    findFirst: MockFn;
+    create: MockFn;
+    updateMany: MockFn;
+  };
+  finReceivable: {
+    findMany: MockFn;
+    findFirst: MockFn;
+    create: MockFn;
+    updateMany: MockFn;
+  };
   finCardBalance: {
     findMany: MockFn;
+  };
+  finCategory: {
+    findMany: MockFn;
+  };
+  finBudget: {
+    findMany: MockFn;
+    findFirst: MockFn;
+    count: MockFn;
+    create: MockFn;
+    updateMany: MockFn;
+    deleteMany: MockFn;
   };
   finEmailSource: {
     findMany: MockFn;
@@ -71,15 +101,17 @@ export type PrismaMock = {
 function createTransactionClient() {
   return {
     finAccount: {
-      findFirst: jest.fn().mockImplementation((args: { where?: { id?: string } }) =>
-        Promise.resolve({
-          id: args?.where?.id ?? 'acc-1',
-          userId: 'user-123',
-          currency: 'DOP',
-          type: 'CHECKING',
-          balance: 1000,
-        }),
-      ),
+      findFirst: jest
+        .fn()
+        .mockImplementation((args: { where?: { id?: string } }) =>
+          Promise.resolve({
+            id: args?.where?.id ?? 'acc-1',
+            userId: 'user-123',
+            currency: 'DOP',
+            type: 'CHECKING',
+            balance: 1000,
+          }),
+        ),
       update: jest.fn().mockResolvedValue({}),
     },
     finCard: {
@@ -155,6 +187,7 @@ export function createPrismaMock(): PrismaMock {
     },
     userModule: {
       findUnique: jest.fn(),
+      findFirst: jest.fn().mockResolvedValue({ id: 'um-finance' }),
       upsert: jest.fn(),
     },
     notification: {
@@ -178,8 +211,37 @@ export function createPrismaMock(): PrismaMock {
       create: jest.fn(),
       update: jest.fn(),
     },
+    finCard: {
+      findMany: jest.fn().mockResolvedValue([]),
+      findFirst: jest.fn(),
+      create: jest.fn(),
+      updateMany: jest.fn().mockResolvedValue({ count: 0 }),
+    },
+    finLoan: {
+      findMany: jest.fn().mockResolvedValue([]),
+      findFirst: jest.fn(),
+      create: jest.fn(),
+      updateMany: jest.fn().mockResolvedValue({ count: 0 }),
+    },
+    finReceivable: {
+      findMany: jest.fn().mockResolvedValue([]),
+      findFirst: jest.fn(),
+      create: jest.fn(),
+      updateMany: jest.fn().mockResolvedValue({ count: 0 }),
+    },
     finCardBalance: {
       findMany: jest.fn().mockResolvedValue([]),
+    },
+    finCategory: {
+      findMany: jest.fn().mockResolvedValue([]),
+    },
+    finBudget: {
+      findMany: jest.fn().mockResolvedValue([]),
+      findFirst: jest.fn(),
+      count: jest.fn().mockResolvedValue(0),
+      create: jest.fn(),
+      updateMany: jest.fn().mockResolvedValue({ count: 0 }),
+      deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
     },
     finTransaction: {
       findMany: jest.fn().mockResolvedValue([]),

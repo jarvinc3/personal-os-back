@@ -539,6 +539,8 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
         });
       }
 
+      await this.enqueueTransactionDeleted(tx, userId, existing);
+
       return tx.finTransaction.deleteMany({
         where: { id, userId, source: 'MANUAL' },
       });
@@ -575,6 +577,10 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
             direction: -1,
           });
         }
+      }
+
+      for (const row of rows) {
+        await this.enqueueTransactionDeleted(tx, userId, row);
       }
 
       return tx.finTransaction.deleteMany({
@@ -881,6 +887,35 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
 
       return created;
     });
+  }
+
+  private async enqueueTransactionDeleted(
+    tx: TxClient,
+    userId: string,
+    row: {
+      id: string;
+      amount: { toString(): string } | number;
+      status: string;
+      source: string;
+      transferGroupId: string | null;
+    },
+  ) {
+    await this.events.enqueue(
+      {
+        eventName: AppEvents.FINANCE_TRANSACTION_DELETED,
+        aggregateType: 'FinTransaction',
+        aggregateId: row.id,
+        userId,
+        payload: {
+          transactionId: row.id,
+          transferGroupId: row.transferGroupId,
+          amount: Number(row.amount),
+          status: row.status,
+          source: row.source,
+        },
+      },
+      tx,
+    );
   }
 
   private async enqueueTransactionCreated(

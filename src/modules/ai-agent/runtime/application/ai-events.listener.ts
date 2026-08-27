@@ -15,6 +15,7 @@ type FinanceTxEvent = {
   amount: number;
   status?: string;
   source?: string;
+  transferGroupId?: string | null;
 };
 
 type BudgetEvent = {
@@ -172,6 +173,32 @@ export class AiEventsListener {
         status: event.status,
       },
       `ai:tx-updated:${event.transactionId}:${event.status}`,
+    );
+  }
+
+  @OnEvent(AppEvents.FINANCE_TRANSACTION_DELETED)
+  async onTransactionDeleted(event: FinanceTxEvent): Promise<void> {
+    if (
+      this.idempotency &&
+      !(await this.idempotency.tryClaim(
+        event.eventId,
+        `${AiEventsListener.CONSUMER}:tx-deleted`,
+      ))
+    ) {
+      return;
+    }
+    await this.enqueue(
+      'ai-insight-transaction-deleted',
+      event.userId,
+      'finance.transaction.deleted',
+      {
+        slug: 'finance',
+        transactionId: event.transactionId,
+        amount: event.amount,
+        status: event.status,
+        transferGroupId: event.transferGroupId,
+      },
+      `ai:tx-deleted:${event.transactionId}`,
     );
   }
 

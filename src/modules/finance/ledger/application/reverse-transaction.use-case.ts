@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { FinanceOutboxDispatcher } from '../../events/infrastructure/finance-outbox.dispatcher';
 import { LEDGER_REPOSITORY } from '../../shared/application/tokens';
+import { mapLedgerTransaction } from './ledger-mappers';
 import type { LedgerRepositoryPort } from './ports/ledger.repository.port';
 
 @Injectable()
@@ -23,6 +24,6 @@ export class ReverseTransactionUseCase {
     );
     if (!result) throw new NotFoundException('Transaction not found');
     void this.outboxDispatcher.processBatch();
-    return result.transaction;
+    return mapLedgerTransaction(result.transaction);
   }
 }

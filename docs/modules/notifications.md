@@ -46,7 +46,7 @@ Import as `from '../notifications'` (or `src/modules/notifications`).
 - Gateway: `presentation/notifications.gateway.ts` (socket emits to user channels).
 - Policy engine: `application/notification-policy.service.ts` controls quiet hours/channel eligibility.
 - Includes `infrastructure/email-sync.processor.ts` for email handoff jobs on `email-sync` (Resend via `EmailSenderPort`).
-- `NotificationsEventsListener` creates IN_APP notifications from versioned finance events (`finance.transaction.*`, `finance.transaction.updated`, `finance.budget.threshold_crossed`) with idempotency via `DomainEventIdempotencyGuard`.
+- `NotificationsEventsListener` creates IN_APP notifications from versioned finance events (`finance.transaction.confirmed` / `imported` / `updated`, `finance.budget.threshold_crossed`) with idempotency via `DomainEventIdempotencyGuard`. `finance.transaction.deleted` is claimed for idempotency but does **not** create an in-app notification.
 
 ## EMAIL channel (A2 — Resend)
 

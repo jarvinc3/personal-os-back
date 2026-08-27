@@ -12,6 +12,7 @@ describe('ToolExecutorService finance via FinanceFacade (TestingModule)', () => 
     findById: jest.fn(),
     updateProfile: jest.fn(),
     updateModuleConfig: jest.fn(),
+    assertModuleEnabled: jest.fn().mockResolvedValue(undefined),
   };
 
   const sessionsRepo = {
@@ -43,6 +44,7 @@ describe('ToolExecutorService finance via FinanceFacade (TestingModule)', () => 
             new FinanceFacade(
               stub,
               { execute: createTxExecute } as never,
+              stub,
               stub,
               stub,
               stub,
