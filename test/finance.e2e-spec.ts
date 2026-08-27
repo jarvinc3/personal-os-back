@@ -613,7 +613,7 @@ describe('Finance (e2e)', () => {
       .expect((res) => {
         expect(res.body.data).toMatchObject({
           currency: 'USD',
-          interestRate: 0.12,
+          interestRate: '0.12',
           notes: 'BHD',
         });
       });
@@ -625,7 +625,7 @@ describe('Finance (e2e)', () => {
       .expect((res) => {
         expect(res.body.data[0]).toMatchObject({
           currency: 'USD',
-          interestRate: 0.12,
+          interestRate: '0.12',
           notes: 'BHD',
         });
       });
@@ -727,7 +727,7 @@ describe('Finance (e2e)', () => {
         expect(res.body.data).toMatchObject({
           notes: 'updated',
           currency: 'USD',
-          interestRate: 0.12,
+          interestRate: '0.12',
           isActive: true,
         });
       });
@@ -758,7 +758,10 @@ describe('Finance (e2e)', () => {
       .send({ status: 'PAID', paidAmount: 80 })
       .expect(200)
       .expect((res) => {
-        expect(res.body.data).toMatchObject({ status: 'PAID', paidAmount: 80 });
+        expect(res.body.data).toMatchObject({
+          status: 'PAID',
+          paidAmount: '80',
+        });
       });
 
     await request(app.getHttpServer())
@@ -783,7 +786,8 @@ describe('Finance (e2e)', () => {
         expect(res.body.data).toHaveProperty('netWorth');
         expect(res.body.data).toHaveProperty('totals');
         expect(res.body.data.baseCurrency).toBe('DOP');
-        expect(res.body.data.totals.accountBalance).toBe(100);
+        expect(res.body.data.totals.accountBalance).toBe('100');
+        expect(typeof res.body.data.netWorth).toBe('string');
       });
   });
 
@@ -814,14 +818,14 @@ describe('Finance (e2e)', () => {
             name: 'Comida',
             color: '#f00',
             icon: '🍽️',
-            total: 80,
+            total: '80',
           },
           {
             categoryId: null,
             name: 'Sin categoría',
             color: null,
             icon: null,
-            total: 15,
+            total: '15',
           },
         ]);
       });
@@ -850,6 +854,7 @@ describe('Finance (e2e)', () => {
       .expect(200)
       .expect((res) => {
         expect(res.body.data.items).toHaveLength(20);
+        expect(typeof res.body.data.items[0].amountLimit).toBe('string');
         expect(res.body.data.pagination).toMatchObject({
           page: 1,
           limit: 20,
