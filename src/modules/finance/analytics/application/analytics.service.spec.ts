@@ -1,87 +1,105 @@
-import { BadRequestException } from '@nestjs/common';
-import type { ConfigService } from '@nestjs/config';
-import type { ResolveAmountsUseCase } from '../../fx/application/resolve-amounts.use-case';
 import { AnalyticsService } from './analytics.service';
 import type { AnalyticsRepository } from '../infrastructure/analytics.repository';
 
-describe('AnalyticsService.getAnalyticsSummary', () => {
-  const getAnalyticsSummary = jest.fn();
-  const toBaseCurrency = jest.fn();
-  const configGet = jest.fn().mockReturnValue('DOP');
+describe('AnalyticsService.getSpendingByCategory', () => {
+  const grouped = (
+    rows: Array<{ categoryId: string | null; total: number }>,
+  ) =>
+    rows.map((row) => ({
+      categoryId: row.categoryId,
+      _sum: { amountBaseCurrency: row.total },
+    }));
 
-  const repo = {
-    getAnalyticsSummary,
-  } as unknown as AnalyticsRepository;
+  const createService = (repo: Partial<AnalyticsRepository>) =>
+    new AnalyticsService(repo as AnalyticsRepository);
 
-  const resolveAmounts = {
-    toBaseCurrency,
-  } as unknown as ResolveAmountsUseCase;
+  it('attaches name color and icon for known categories and keeps totals', async () => {
+    const getSpendingByCategory = jest.fn().mockResolvedValue(
+      grouped([
+        { categoryId: 'cat-food', total: 80 },
+        { categoryId: 'cat-home', total: 20 },
+      ]),
+    );
+    const findCategoriesByIds = jest.fn().mockResolvedValue([
+      { id: 'cat-food', name: 'Comida', color: '#f00', icon: '🍽️' },
+      { id: 'cat-home', name: 'Hogar', color: '#0f0', icon: '🏠' },
+    ]);
 
-  const config = {
-    get: configGet,
-  } as unknown as ConfigService;
+    const result = await createService({
+      getSpendingByCategory,
+      findCategoriesByIds,
+    }).getSpendingByCategory('user-1', '2026-08-01', '2026-08-31');
 
-  const service = new AnalyticsService(repo, resolveAmounts, config as never);
-
-  beforeEach(() => {
-    jest.clearAllMocks();
-    configGet.mockReturnValue('DOP');
-    getAnalyticsSummary.mockResolvedValue({
-      accounts: [
-        { balance: 10000, currency: 'DOP' },
-        { balance: 100, currency: 'USD' },
-      ],
-      cardBalances: [
-        { balance: 50, currency: 'USD', card: { type: 'CREDIT' } },
-        { balance: 10, currency: 'DOP', card: { type: 'DEBIT' } },
-      ],
-      aggregates: [],
-    });
-    toBaseCurrency.mockImplementation((amount: number, currency: string) => {
-      if (currency === 'USD') return Promise.resolve(amount * 60);
-      return Promise.resolve(amount);
-    });
+    expect(findCategoriesByIds).toHaveBeenCalledWith('user-1', [
+      'cat-food',
+      'cat-home',
+    ]);
+    expect(result).toEqual([
+      {
+        categoryId: 'cat-food',
+        name: 'Comida',
+        color: '#f00',
+        icon: '🍽️',
+        total: 80,
+      },
+      {
+        categoryId: 'cat-home',
+        name: 'Hogar',
+        color: '#0f0',
+        icon: '🏠',
+        total: 20,
+      },
+    ]);
   });
 
-  it('converts mixed-currency positions into BASE_CURRENCY', async () => {
-    const result = await service.getAnalyticsSummary('user-1');
+  it('uses Sin categoría when categoryId is null', async () => {
+    const result = await createService({
+      getSpendingByCategory: jest
+        .fn()
+        .mockResolvedValue(grouped([{ categoryId: null, total: 15 }])),
+      findCategoriesByIds: jest.fn().mockResolvedValue([]),
+    }).getSpendingByCategory('user-1');
 
-    expect(result.baseCurrency).toBe('DOP');
-    expect(result.totals.accountBalance).toBe(16000);
-    expect(result.totals.cardDebt).toBe(3000);
-    expect(result.netWorth).toBe(13000);
-    expect(toBaseCurrency).toHaveBeenCalledWith(10000, 'DOP', expect.any(Date));
-    expect(toBaseCurrency).toHaveBeenCalledWith(100, 'USD', expect.any(Date));
-    expect(toBaseCurrency).toHaveBeenCalledWith(50, 'USD', expect.any(Date));
-    expect(toBaseCurrency).not.toHaveBeenCalledWith(
-      10,
-      'DOP',
-      expect.any(Date),
-    );
+    expect(result).toEqual([
+      {
+        categoryId: null,
+        name: 'Sin categoría',
+        color: null,
+        icon: null,
+        total: 15,
+      },
+    ]);
   });
 
-  it('keeps same-currency totals as a plain sum', async () => {
-    getAnalyticsSummary.mockResolvedValue({
-      accounts: [{ balance: 100, currency: 'DOP' }],
-      cardBalances: [],
-      aggregates: [],
-    });
-    toBaseCurrency.mockResolvedValue(100);
+  it('falls back when the category row is gone and keeps the total', async () => {
+    const result = await createService({
+      getSpendingByCategory: jest
+        .fn()
+        .mockResolvedValue(
+          grouped([{ categoryId: 'deleted-cat', total: 42 }]),
+        ),
+      findCategoriesByIds: jest.fn().mockResolvedValue([]),
+    }).getSpendingByCategory('user-1');
 
-    const result = await service.getAnalyticsSummary('user-1');
-    expect(result.totals.accountBalance).toBe(100);
-    expect(result.netWorth).toBe(100);
+    expect(result).toEqual([
+      {
+        categoryId: 'deleted-cat',
+        name: 'Categoría no disponible',
+        color: null,
+        icon: null,
+        total: 42,
+      },
+    ]);
   });
 
-  it('fails closed when a rate for today is missing', async () => {
-    toBaseCurrency.mockRejectedValue(
-      new BadRequestException(
-        'Exchange rate unavailable for USD->DOP on 2026-08-26: missing',
-      ),
-    );
+  it('returns an empty list without looking up categories', async () => {
+    const findCategoriesByIds = jest.fn().mockResolvedValue([]);
+    const result = await createService({
+      getSpendingByCategory: jest.fn().mockResolvedValue([]),
+      findCategoriesByIds,
+    }).getSpendingByCategory('user-1');
 
-    await expect(service.getAnalyticsSummary('user-1')).rejects.toThrow(
-      /Exchange rate unavailable/,
-    );
+    expect(findCategoriesByIds).toHaveBeenCalledWith('user-1', []);
+    expect(result).toEqual([]);
   });
 });

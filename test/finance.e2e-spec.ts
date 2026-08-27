@@ -574,10 +574,43 @@ describe('Finance (e2e)', () => {
       });
   });
 
-  it('POST /api/finance/categories/migrate-legacy-icons is gone', async () => {
+  it('GET /api/finance/analytics/spending-by-category includes category metadata', async () => {
+    prismaMock.finTransaction.groupBy.mockResolvedValue([
+      {
+        categoryId: 'cat-food',
+        _sum: { amountBaseCurrency: 80 },
+      },
+      {
+        categoryId: null,
+        _sum: { amountBaseCurrency: 15 },
+      },
+    ]);
+    prismaMock.finCategory.findMany.mockResolvedValue([
+      { id: 'cat-food', name: 'Comida', color: '#f00', icon: '🍽️' },
+    ]);
+
     await request(app.getHttpServer())
-      .post('/api/finance/categories/migrate-legacy-icons')
+      .get('/api/finance/analytics/spending-by-category')
+      .query({ dateFrom: '2026-08-01', dateTo: '2026-08-31' })
       .set('Authorization', `Bearer ${token}`)
-      .expect(404);
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.data).toEqual([
+          {
+            categoryId: 'cat-food',
+            name: 'Comida',
+            color: '#f00',
+            icon: '🍽️',
+            total: 80,
+          },
+          {
+            categoryId: null,
+            name: 'Sin categoría',
+            color: null,
+            icon: null,
+            total: 15,
+          },
+        ]);
+      });
   });
 });
