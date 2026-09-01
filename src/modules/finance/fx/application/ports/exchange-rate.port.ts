@@ -8,4 +8,5 @@ export interface ExchangeRatePort {
     to: string;
     date: string; // YYYY-MM-DD
   }): Promise<ExchangeRateResult>;
+  listCurrencies(): Promise<string[]>;
 }

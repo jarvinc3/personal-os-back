@@ -228,6 +228,26 @@
         ]
       }
     },
+    "/api/finance/currencies": {
+      "get": {
+        "operationId": "CurrenciesController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "List ISO currencies from cached FX rates or exchangerate.host",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
     "/api/finance/accounts": {
       "get": {
         "operationId": "AccountsController_list",
@@ -2382,9 +2402,6 @@
               "INVESTMENT"
             ]
           },
-          "institution": {
-            "type": "string"
-          },
           "currency": {
             "type": "string",
             "default": "DOP",
@@ -2395,6 +2412,7 @@
           }
         },
         "required": [
+          "institutionId",
           "name",
           "type"
         ]
@@ -2416,9 +2434,6 @@
               "CASH",
               "INVESTMENT"
             ]
-          },
-          "institution": {
-            "type": "string"
           },
           "currency": {
             "type": "string",

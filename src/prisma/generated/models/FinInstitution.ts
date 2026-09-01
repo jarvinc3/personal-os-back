@@ -383,9 +383,9 @@ export type FinInstitutionOrderByRelationAggregateInput = {
   _count?: Prisma.SortOrder
 }
 
-export type FinInstitutionNullableScalarRelationFilter = {
-  is?: Prisma.FinInstitutionWhereInput | null
-  isNot?: Prisma.FinInstitutionWhereInput | null
+export type FinInstitutionScalarRelationFilter = {
+  is?: Prisma.FinInstitutionWhereInput
+  isNot?: Prisma.FinInstitutionWhereInput
 }
 
 export type FinInstitutionCountOrderByAggregateInput = {
@@ -422,11 +422,6 @@ export type FinInstitutionMinOrderByAggregateInput = {
   isActive?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
-}
-
-export type FinInstitutionScalarRelationFilter = {
-  is?: Prisma.FinInstitutionWhereInput
-  isNot?: Prisma.FinInstitutionWhereInput
 }
 
 export type FinInstitutionCreateNestedManyWithoutUserInput = {
@@ -477,12 +472,10 @@ export type FinInstitutionCreateNestedOneWithoutAccountsInput = {
   connect?: Prisma.FinInstitutionWhereUniqueInput
 }
 
-export type FinInstitutionUpdateOneWithoutAccountsNestedInput = {
+export type FinInstitutionUpdateOneRequiredWithoutAccountsNestedInput = {
   create?: Prisma.XOR<Prisma.FinInstitutionCreateWithoutAccountsInput, Prisma.FinInstitutionUncheckedCreateWithoutAccountsInput>
   connectOrCreate?: Prisma.FinInstitutionCreateOrConnectWithoutAccountsInput
   upsert?: Prisma.FinInstitutionUpsertWithoutAccountsInput
-  disconnect?: Prisma.FinInstitutionWhereInput | boolean
-  delete?: Prisma.FinInstitutionWhereInput | boolean
   connect?: Prisma.FinInstitutionWhereUniqueInput
   update?: Prisma.XOR<Prisma.XOR<Prisma.FinInstitutionUpdateToOneWithWhereWithoutAccountsInput, Prisma.FinInstitutionUpdateWithoutAccountsInput>, Prisma.FinInstitutionUncheckedUpdateWithoutAccountsInput>
 }

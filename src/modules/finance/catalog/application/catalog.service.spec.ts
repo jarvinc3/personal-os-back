@@ -80,3 +80,70 @@ describe('CatalogService cards archive', () => {
     );
   });
 });
+
+describe('CatalogService createAccount', () => {
+  const createAccount = jest.fn();
+  const listInstitutions = jest.fn();
+  const findAccountById = jest.fn();
+
+  const repo = {
+    createAccount,
+    listInstitutions,
+    findAccountById,
+  } as unknown as CatalogRepository;
+
+  const service = new CatalogService(repo);
+
+  const created = {
+    id: 'acc-1',
+    userId: 'user-1',
+    institutionId: 'inst-1',
+    name: 'Nómina',
+    type: 'CHECKING',
+    currency: 'DOP',
+    balance: { toString: () => '0.00' },
+    color: null,
+    isActive: true,
+    createdAt: new Date('2026-01-01'),
+    updatedAt: new Date('2026-01-01'),
+    institutionRef: { name: 'Banco' },
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    listInstitutions.mockResolvedValue([{ id: 'inst-1', name: 'Banco' }]);
+    createAccount.mockResolvedValue(created);
+  });
+
+  it('rejects accounts without a known institution', async () => {
+    listInstitutions.mockResolvedValue([]);
+    await expect(
+      service.createAccount('user-1', {
+        name: 'Nómina',
+        type: 'CHECKING',
+        institutionId: 'inst-1',
+      }),
+    ).rejects.toThrow(/Institution not found/i);
+    expect(createAccount).not.toHaveBeenCalled();
+  });
+
+  it('creates an account with institutionId only', async () => {
+    const result = await service.createAccount('user-1', {
+      name: 'Nómina',
+      type: 'CHECKING',
+      institutionId: 'inst-1',
+    });
+
+    expect(createAccount).toHaveBeenCalledWith('user-1', {
+      name: 'Nómina',
+      type: 'CHECKING',
+      institutionId: 'inst-1',
+    });
+    expect(result).toMatchObject({
+      id: 'acc-1',
+      institutionId: 'inst-1',
+      institutionName: 'Banco',
+    });
+    expect(result).not.toHaveProperty('institution');
+  });
+});
