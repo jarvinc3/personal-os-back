@@ -35,6 +35,12 @@ export type PrismaMock = {
     create: MockFn;
     update: MockFn;
   };
+  finInstitution: {
+    findMany: MockFn;
+  };
+  finExchangeRate: {
+    findMany: MockFn;
+  };
   finTransaction: {
     findMany: MockFn;
     findFirst: MockFn;
@@ -210,6 +216,12 @@ export function createPrismaMock(): PrismaMock {
       findFirst: jest.fn(),
       create: jest.fn(),
       update: jest.fn(),
+    },
+    finInstitution: {
+      findMany: jest.fn().mockResolvedValue([]),
+    },
+    finExchangeRate: {
+      findMany: jest.fn().mockResolvedValue([]),
     },
     finCard: {
       findMany: jest.fn().mockResolvedValue([]),

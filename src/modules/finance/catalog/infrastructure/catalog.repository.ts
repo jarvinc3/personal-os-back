@@ -25,16 +25,18 @@ export class CatalogRepository {
   }
 
   createAccount(userId: string, dto: CreateAccountDto) {
+    const data: Prisma.FinAccountUncheckedCreateInput = {
+      userId,
+      name: dto.name,
+      type: dto.type,
+      currency: dto.currency ?? 'DOP',
+      balance: 0,
+      institutionId: dto.institutionId,
+    };
+    if (dto.color) data.color = dto.color;
+
     return this.prisma.finAccount.create({
-      data: {
-        userId,
-        institutionId: dto.institutionId,
-        name: dto.name,
-        type: dto.type,
-        institution: dto.institution,
-        currency: dto.currency ?? 'DOP',
-        color: dto.color,
-      },
+      data,
       include: { institutionRef: true },
     });
   }
@@ -47,7 +49,6 @@ export class CatalogRepository {
           institutionId: dto.institutionId,
           name: dto.name,
           type: dto.type,
-          institution: dto.institution,
           currency: dto.currency,
           color: dto.color,
           isActive: dto.isActive,

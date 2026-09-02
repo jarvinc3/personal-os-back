@@ -31,11 +31,15 @@ export class CatalogService {
   }
 
   async createAccount(userId: string, dto: CreateAccountDto) {
+    await this.assertInstitutionOwnership(userId, dto.institutionId);
     return this.mapAccount(await this.repo.createAccount(userId, dto));
   }
 
   async updateAccount(userId: string, id: string, dto: UpdateAccountDto) {
     await this.getAccount(userId, id);
+    if (dto.institutionId) {
+      await this.assertInstitutionOwnership(userId, dto.institutionId);
+    }
     const account = await this.repo.updateAccount(id, userId, dto);
     if (!account) throw new NotFoundException('Account not found');
     return this.mapAccount(account);
@@ -217,8 +221,7 @@ export class CatalogService {
     return {
       id: account.id,
       institutionId: account.institutionId,
-      institution: account.institution,
-      institutionName: account.institutionRef?.name ?? account.institution ?? null,
+      institutionName: account.institutionRef?.name ?? null,
       name: account.name,
       type: account.type,
       currency: account.currency,

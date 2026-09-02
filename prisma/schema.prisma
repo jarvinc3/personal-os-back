@@ -156,20 +156,19 @@ model PushToken {
 }
 
 model FinAccount {
-  id             String           @id @default(dbgenerated("(uuid_generate_v4())::text"))
-  userId         String           @map("user_id")
-  institutionId  String?          @map("institution_id")
+  id             String          @id @default(dbgenerated("(uuid_generate_v4())::text"))
+  userId         String          @map("user_id")
+  institutionId  String          @map("institution_id")
   name           String
   type           FinAccountType
-  institution    String?
-  currency       String           @default("DOP")
-  balance        Decimal          @default(0) @db.Decimal(15, 2)
+  currency       String          @default("DOP")
+  balance        Decimal         @default(0) @db.Decimal(15, 2)
   color          String?
-  isActive       Boolean          @default(true) @map("is_active")
-  createdAt      DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt      DateTime         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
-  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  institutionRef FinInstitution?  @relation(fields: [institutionId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  isActive       Boolean         @default(true) @map("is_active")
+  createdAt      DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime        @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  institutionRef FinInstitution  @relation(fields: [institutionId], references: [id], onDelete: Restrict, onUpdate: NoAction)
   cards          FinCard[]
   emailSources   FinEmailSource[]
   transactions   FinTransaction[]

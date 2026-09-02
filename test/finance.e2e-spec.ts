@@ -56,14 +56,14 @@ describe('Finance (e2e)', () => {
         userId: 'user-123',
         name: 'Main',
         type: 'CHECKING',
-        institution: null,
-        institutionId: null,
+        institutionId: 'inst-1',
         currency: 'DOP',
         balance: { toString: () => '1000.00' },
         color: null,
         isActive: true,
         createdAt: new Date('2026-01-01'),
         updatedAt: new Date('2026-01-01'),
+        institutionRef: { name: 'Banco' },
       },
     ]);
 
@@ -134,19 +134,23 @@ describe('Finance (e2e)', () => {
   });
 
   it('POST /api/finance/accounts creates account', async () => {
+    const institutionId = '11111111-1111-4111-8111-111111111111';
+    prismaMock.finInstitution.findMany.mockResolvedValue([
+      { id: institutionId, name: 'Bank', userId: 'user-123' },
+    ]);
     prismaMock.finAccount.create.mockResolvedValue({
       id: 'acc-new',
       userId: 'user-123',
       name: 'Savings',
       type: 'SAVINGS',
-      institution: 'Bank',
-      institutionId: null,
+      institutionId,
       currency: 'DOP',
       balance: { toString: () => '0.00' },
       color: '#fff',
       isActive: true,
       createdAt: new Date(),
       updatedAt: new Date(),
+      institutionRef: { name: 'Bank' },
     });
 
     await request(app.getHttpServer())
@@ -155,12 +159,26 @@ describe('Finance (e2e)', () => {
       .send({
         name: 'Savings',
         type: 'SAVINGS',
-        institution: 'Bank',
+        institutionId,
       })
       .expect(201)
       .expect((res) => {
         expect(res.body.data.name).toBe('Savings');
+        expect(res.body.data.institutionId).toBe(institutionId);
+        expect(res.body.data.institutionName).toBe('Bank');
+        expect(res.body.data.institution).toBeUndefined();
       });
+  });
+
+  it('POST /api/finance/accounts rejects missing institutionId', async () => {
+    await request(app.getHttpServer())
+      .post('/api/finance/accounts')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        name: 'Savings',
+        type: 'SAVINGS',
+      })
+      .expect(400);
   });
 
   it('GET /api/finance/email-sync/oauth/google/url includes accountId in state', async () => {
@@ -905,14 +923,14 @@ describe('Finance (e2e)', () => {
         userId: 'user-123',
         name: 'Main',
         type: 'CHECKING',
-        institution: null,
-        institutionId: null,
+        institutionId: 'inst-1',
         currency: 'DOP',
         balance: { toString: () => '1000.00' },
         color: null,
         isActive: true,
         createdAt: new Date('2026-01-01'),
         updatedAt: new Date('2026-01-01'),
+        institutionRef: { name: 'Banco' },
       },
     ]);
 

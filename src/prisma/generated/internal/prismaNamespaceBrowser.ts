@@ -217,7 +217,6 @@ export const FinAccountScalarFieldEnum = {
   institutionId: 'institutionId',
   name: 'name',
   type: 'type',
-  institution: 'institution',
   currency: 'currency',
   balance: 'balance',
   color: 'color',

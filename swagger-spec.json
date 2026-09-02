@@ -228,6 +228,26 @@
         ]
       }
     },
+    "/api/finance/currencies": {
+      "get": {
+        "operationId": "CurrenciesController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "List ISO currencies from cached FX rates or exchangerate.host",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
     "/api/finance/accounts": {
       "get": {
         "operationId": "AccountsController_list",
@@ -749,6 +769,7 @@
             "access-token": []
           }
         ],
+        "summary": "List budgets (paginated, default page=1 limit=20, max 100)",
         "tags": [
           "finance"
         ]
@@ -2381,9 +2402,6 @@
               "INVESTMENT"
             ]
           },
-          "institution": {
-            "type": "string"
-          },
           "currency": {
             "type": "string",
             "default": "DOP",
@@ -2394,6 +2412,7 @@
           }
         },
         "required": [
+          "institutionId",
           "name",
           "type"
         ]
@@ -2415,9 +2434,6 @@
               "CASH",
               "INVESTMENT"
             ]
-          },
-          "institution": {
-            "type": "string"
           },
           "currency": {
             "type": "string",
@@ -2768,6 +2784,11 @@
           "currentBalance": {
             "type": "number"
           },
+          "currency": {
+            "type": "string",
+            "default": "DOP",
+            "example": "DOP"
+          },
           "installmentAmount": {
             "type": "number"
           },
@@ -2788,6 +2809,16 @@
           },
           "nextDueDate": {
             "type": "string"
+          },
+          "interestRate": {
+            "type": "object",
+            "minimum": 0,
+            "maximum": 1,
+            "example": 0.12,
+            "description": "Fraction 0–1 (e.g. 0.12 = 12%). Not a percent integer."
+          },
+          "notes": {
+            "type": "object"
           }
         },
         "required": [
@@ -2815,6 +2846,11 @@
           "currentBalance": {
             "type": "number"
           },
+          "currency": {
+            "type": "string",
+            "default": "DOP",
+            "example": "DOP"
+          },
           "installmentAmount": {
             "type": "number"
           },
@@ -2835,6 +2871,16 @@
           },
           "nextDueDate": {
             "type": "string"
+          },
+          "interestRate": {
+            "type": "object",
+            "minimum": 0,
+            "maximum": 1,
+            "example": 0.12,
+            "description": "Fraction 0–1 (e.g. 0.12 = 12%). Not a percent integer."
+          },
+          "notes": {
+            "type": "object"
           },
           "isActive": {
             "type": "boolean"

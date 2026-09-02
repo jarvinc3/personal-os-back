@@ -114,7 +114,6 @@ Response bodies (not write DTOs) serialize **money and rates as decimal strings*
 | Rate | string or `null` | `interestRate` (`"0.12"` = 12%; `null` = not set, distinct from `"0"`) |
 | Percentage | number | `pctUsed`, `threshold`, `alertThresholdPct` |
 
-
 ### Enums (transactions)
 
 | Enum | Values |

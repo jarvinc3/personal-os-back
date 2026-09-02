@@ -9,6 +9,19 @@ import type {
     ExchangeRateResult,
 } from '../application/ports/exchange-rate.port';
 
+const FALLBACK_CURRENCIES = [
+  'DOP',
+  'USD',
+  'EUR',
+  'GBP',
+  'CAD',
+  'MXN',
+  'COP',
+  'BRL',
+  'CLP',
+  'ARS',
+] as const;
+
 const historicalSchema = z.object({
   success: z.boolean().optional(),
   rates: z.record(z.string(), z.number()).optional(),
@@ -21,6 +34,12 @@ const historicalSchema = z.object({
     .optional(),
 });
 
+const currencyListSchema = z.object({
+  success: z.boolean().optional(),
+  currencies: z.record(z.string(), z.string()).optional(),
+  symbols: z.record(z.string(), z.string()).optional(),
+});
+
 @Injectable()
 export class ExchangeRateHostAdapter implements ExchangeRatePort {
   private readonly logger = new Logger(ExchangeRateHostAdapter.name);
@@ -29,6 +48,29 @@ export class ExchangeRateHostAdapter implements ExchangeRatePort {
     private readonly config: ConfigService<Env, true>,
     private readonly prisma: PrismaService,
   ) {}
+
+  async listCurrencies(): Promise<string[]> {
+    const codes = new Set<string>(['DOP']);
+    const rows = await this.prisma.finExchangeRate.findMany({
+      select: { fromCurrency: true, toCurrency: true },
+    });
+    for (const row of rows) {
+      codes.add(row.fromCurrency);
+      codes.add(row.toCurrency);
+    }
+
+    for (const code of await this.fetchCurrencyCodes()) {
+      codes.add(code);
+    }
+
+    if (codes.size <= 1) {
+      for (const code of FALLBACK_CURRENCIES) {
+        codes.add(code);
+      }
+    }
+
+    return [...codes].sort();
+  }
 
   async getHistoricalRate(params: {
     from: string;
@@ -96,6 +138,39 @@ export class ExchangeRateHostAdapter implements ExchangeRatePort {
         message: `No exact-date rate for ${from}->${to} on ${params.date}`,
         retryable: true,
       };
+    }
+  }
+
+  private async fetchCurrencyCodes(): Promise<string[]> {
+    const apiKey = this.config.get('EXCHANGE_RATE_HOST_API_KEY', { infer: true });
+    if (!apiKey) {
+      return [];
+    }
+
+    try {
+      const url = new URL('https://api.exchangerate.host/list');
+      url.searchParams.set('access_key', apiKey);
+      const response = await fetch(url.toString(), {
+        signal: AbortSignal.timeout(10_000),
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const json: unknown = await response.json();
+      const parsed = currencyListSchema.safeParse(json);
+      if (!parsed.success) {
+        throw new Error('Unexpected FX list response shape');
+      }
+
+      const named = parsed.data.currencies ?? parsed.data.symbols ?? {};
+      return Object.keys(named)
+        .map((code) => code.toUpperCase())
+        .filter((code) => /^[A-Z]{3}$/.test(code));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.warn(`FX currency list failed: ${message}`);
+      return [];
     }
   }
 
