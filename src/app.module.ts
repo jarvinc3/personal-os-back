@@ -43,7 +43,7 @@ const bullBoardEnabled = isBullBoardEnabledFromProcessEnv();
               ? 'info'
               : 'debug',
           transport:
-            config.get('NODE_ENV', { infer: true }) !== 'production'
+            config.get('NODE_ENV', { infer: true }) === 'development'
               ? {
                   target: 'pino-pretty',
                 }
