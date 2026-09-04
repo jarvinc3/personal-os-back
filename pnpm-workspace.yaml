@@ -11,6 +11,6 @@ allowBuilds:
 overrides:
   axios: 1.18.0
   js-yaml@5: 5.2.2
-  fast-uri: 3.1.5
+  fast-uri: 3.1.6
   deepmerge-ts: ">=8.0.0"
   mysql2: ">=3.22.0"
