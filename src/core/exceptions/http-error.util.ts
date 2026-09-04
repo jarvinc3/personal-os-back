@@ -1,3 +1,21 @@
+const HTTP_EXCEPTION_RESERVED_KEYS = new Set([
+  'statusCode',
+  'error',
+  'message',
+]);
+
+export function httpExceptionDetails(
+  payload: Record<string, unknown>,
+): Record<string, unknown> | undefined {
+  const details: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(payload)) {
+    if (!HTTP_EXCEPTION_RESERVED_KEYS.has(key)) {
+      details[key] = value;
+    }
+  }
+  return Object.keys(details).length > 0 ? details : undefined;
+}
+
 export function toErrorField(value: unknown, fallback: string): string {
   if (typeof value === 'string') {
     return value;

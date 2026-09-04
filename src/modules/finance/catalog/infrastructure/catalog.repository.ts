@@ -31,7 +31,7 @@ export class CatalogRepository {
       type: dto.type,
       currency: dto.currency ?? 'DOP',
       balance: 0,
-      institutionId: dto.institutionId,
+      institutionId: dto.institutionId ?? null,
     };
     if (dto.color) data.color = dto.color;
 

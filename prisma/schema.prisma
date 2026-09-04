@@ -24,8 +24,9 @@ model User {
   finInstitutions FinInstitution[]
   finBudgets      FinBudget[]
   finCategories   FinCategory[]
-  finEmailSources FinEmailSource[]
-  finLoans        FinLoan[]
+  finEmailConnections FinEmailConnection[]
+  finEmailSources     FinEmailSource[]
+  finLoans            FinLoan[]
   finReceivables  FinReceivable[]
   finRecurring    FinRecurringPattern[]
   finSavingsGoals FinSavingsGoal[]
@@ -156,21 +157,21 @@ model PushToken {
 }
 
 model FinAccount {
-  id             String          @id @default(dbgenerated("(uuid_generate_v4())::text"))
-  userId         String          @map("user_id")
-  institutionId  String          @map("institution_id")
+  id             String           @id @default(dbgenerated("(uuid_generate_v4())::text"))
+  userId         String           @map("user_id")
+  /// Required for CHECKING/SAVINGS/INVESTMENT. Null only for CASH (DB check).
+  institutionId  String?          @map("institution_id")
   name           String
   type           FinAccountType
-  currency       String          @default("DOP")
-  balance        Decimal         @default(0) @db.Decimal(15, 2)
+  currency       String           @default("DOP")
+  balance        Decimal          @default(0) @db.Decimal(15, 2)
   color          String?
-  isActive       Boolean         @default(true) @map("is_active")
-  createdAt      DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt      DateTime        @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
-  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  institutionRef FinInstitution  @relation(fields: [institutionId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  isActive       Boolean          @default(true) @map("is_active")
+  createdAt      DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  institutionRef FinInstitution?  @relation(fields: [institutionId], references: [id], onDelete: Restrict, onUpdate: NoAction)
   cards          FinCard[]
-  emailSources   FinEmailSource[]
   transactions   FinTransaction[]
   finLoans       FinLoan[]
 
@@ -179,32 +180,49 @@ model FinAccount {
   @@map("fin_accounts")
 }
 
-model FinEmailSource {
-  id             String            @id @default(dbgenerated("(uuid_generate_v4())::text"))
-  userId         String            @map("user_id")
-  accountId      String?           @map("account_id")
-  cardId         String?           @map("card_id")
+/// One Gmail/IMAP inbox (OAuth tokens). Shared by every bank watched on that mailbox.
+model FinEmailConnection {
+  id             String           @id @default(dbgenerated("(uuid_generate_v4())::text"))
+  userId         String           @map("user_id")
   provider       String
-  emailAddress   String            @map("email_address")
-  bankDomain     String            @map("bank_domain")
-  label          String?
-  accessToken    String?           @map("access_token")
-  refreshToken   String?           @map("refresh_token")
-  imapHost       String?           @map("imap_host")
-  tokenExpiresAt DateTime?         @map("token_expires_at") @db.Timestamptz(6)
-  lastSyncedAt   DateTime?         @map("last_synced_at") @db.Timestamptz(6)
-  lastMessageId  String?           @map("last_message_id")
-  isActive       Boolean           @default(true) @map("is_active")
-  createdAt      DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
-  logs           FinEmailSyncLog[]
-  emailMessages  FinEmailMessage[]
-  account        FinAccount?       @relation(fields: [accountId], references: [id], onDelete: SetNull, onUpdate: NoAction)
-  card           FinCard?          @relation(fields: [cardId], references: [id], onDelete: SetNull, onUpdate: NoAction)
-  user           User              @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  emailAddress   String           @map("email_address")
+  accessToken    String?          @map("access_token")
+  refreshToken   String?          @map("refresh_token")
+  imapHost       String?          @map("imap_host")
+  tokenExpiresAt DateTime?        @map("token_expires_at") @db.Timestamptz(6)
+  isActive       Boolean          @default(true) @map("is_active")
+  createdAt      DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  sources        FinEmailSource[]
 
+  @@unique([userId, provider, emailAddress], map: "fin_email_connections_user_provider_email_key")
+  @@index([userId, isActive], map: "fin_email_connections_user_id_active_idx")
+  @@map("fin_email_connections")
+}
+
+/// Bank-domain filter on a connection. Not a ledger target and not OAuth.
+model FinEmailSource {
+  id            String             @id @default(dbgenerated("(uuid_generate_v4())::text"))
+  userId        String             @map("user_id")
+  connectionId  String             @map("connection_id")
+  institutionId String             @map("institution_id")
+  bankDomain    String             @map("bank_domain")
+  label         String?
+  lastSyncedAt  DateTime?          @map("last_synced_at") @db.Timestamptz(6)
+  lastMessageId String?            @map("last_message_id")
+  isActive      Boolean            @default(true) @map("is_active")
+  createdAt     DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  logs          FinEmailSyncLog[]
+  emailMessages FinEmailMessage[]
+  connection    FinEmailConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  institution   FinInstitution     @relation(fields: [institutionId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  user          User               @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([connectionId, institutionId], map: "fin_email_sources_connection_institution_key")
   @@index([userId, isActive], map: "fin_email_sources_user_id_active_idx")
-  @@index([accountId], map: "fin_email_sources_account_id_idx")
-  @@index([cardId], map: "fin_email_sources_card_id_idx")
+  @@index([institutionId], map: "fin_email_sources_institution_id_idx")
+  @@index([connectionId], map: "fin_email_sources_connection_id_idx")
   @@map("fin_email_sources")
 }
 
@@ -214,6 +232,7 @@ model FinTransaction {
   cardId               String?              @map("card_id")
   userId               String               @map("user_id")
   categoryId           String?              @map("category_id")
+  /// FK to FinEmailMessage.id. Gmail's provider id lives on FinEmailMessage.gmailMessageId.
   emailMessageId       String?              @unique @map("email_message_id")
   type                 FinTransactionType
   /// Original amount in source currency (e.g. as shown on bank email).
@@ -242,6 +261,7 @@ model FinTransaction {
   account              FinAccount?          @relation(fields: [accountId], references: [id], onDelete: Restrict, onUpdate: NoAction)
   card                 FinCard?             @relation(fields: [cardId], references: [id], onDelete: Restrict, onUpdate: NoAction)
   category             FinCategory?         @relation(fields: [categoryId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  emailMessage         FinEmailMessage?     @relation(fields: [emailMessageId], references: [id], onDelete: SetNull, onUpdate: NoAction)
   user                 User                 @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   linkedTransaction    FinTransaction?      @relation("TransactionLink", fields: [linkedTransactionId], references: [id], onDelete: SetNull, onUpdate: NoAction)
   linkedFrom           FinTransaction[]     @relation("TransactionLink")
@@ -361,9 +381,11 @@ model FinInstitution {
   isActive  Boolean      @default(true) @map("is_active")
   createdAt DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime     @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
-  accounts  FinAccount[]
-  cards     FinCard[]
-  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  accounts     FinAccount[]
+  cards        FinCard[]
+  emailSources FinEmailSource[]
+  loans        FinLoan[]
+  user         User             @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([userId, isActive], map: "fin_institutions_user_id_active_idx")
   @@index([userId, name], map: "fin_institutions_user_id_name_idx")
@@ -387,7 +409,6 @@ model FinCard {
   updatedAt           DateTime         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   account             FinAccount?      @relation(fields: [accountId], references: [id], onDelete: Restrict, onUpdate: NoAction)
   balances            FinCardBalance[]
-  emailSources        FinEmailSource[]
   institution         FinInstitution   @relation(fields: [institutionId], references: [id], onDelete: Restrict, onUpdate: NoAction)
   transactions        FinTransaction[]
   user                User             @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
@@ -436,6 +457,7 @@ model FinSavingsGoal {
 model FinLoan {
   id                String             @id @default(dbgenerated("(uuid_generate_v4())::text"))
   userId            String             @map("user_id")
+  institutionId     String?            @map("institution_id")
   accountId         String?            @map("account_id")
   lenderName        String             @map("lender_name")
   originalAmount    Decimal            @map("original_amount") @db.Decimal(15, 2)
@@ -452,10 +474,12 @@ model FinLoan {
   createdAt         DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt         DateTime           @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   account           FinAccount?        @relation(fields: [accountId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  institution       FinInstitution?    @relation(fields: [institutionId], references: [id], onDelete: Restrict, onUpdate: NoAction)
   user              User               @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([userId, isActive, nextDueDate], map: "fin_loans_user_id_active_due_idx")
   @@index([accountId], map: "fin_loans_account_id_idx")
+  @@index([institutionId], map: "fin_loans_institution_id_idx")
   @@map("fin_loans")
 }
 
@@ -478,6 +502,7 @@ model FinReceivable {
   @@map("fin_receivables")
 }
 
+/// One sync run against a source (scanned / imported / error). Operational history.
 model FinEmailSyncLog {
   id              String             @id @default(dbgenerated("(uuid_generate_v4())::text"))
   sourceId        String             @map("source_id")
@@ -493,21 +518,26 @@ model FinEmailSyncLog {
   @@map("fin_email_sync_logs")
 }
 
-/// Per-Gmail-message extraction outcome so non-tx / failed emails are not re-sent to the LLM.
+/// Per-Gmail-message extract outcome (idempotency + review queue). Provider id is gmailMessageId.
 model FinEmailMessage {
-  id             String                 @id @default(dbgenerated("(uuid_generate_v4())::text"))
-  sourceId       String                 @map("source_id")
-  gmailMessageId String                 @map("gmail_message_id")
-  outcome        FinEmailMessageOutcome
-  reason         String?
-  provider       String?
-  model          String?
-  createdAt      DateTime               @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt      DateTime               @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
-  source         FinEmailSource         @relation(fields: [sourceId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  id                String                  @id @default(dbgenerated("(uuid_generate_v4())::text"))
+  sourceId          String                  @map("source_id")
+  gmailMessageId    String                  @map("gmail_message_id")
+  outcome           FinEmailMessageOutcome
+  reason            String?
+  provider          String?
+  model             String?
+  instrumentHint    String?                 @map("instrument_hint")
+  lastFourHint      String?                 @map("last_four_hint")
+  extractedPayload  Json?                   @map("extracted_payload")
+  createdAt         DateTime                @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime                @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  source            FinEmailSource          @relation(fields: [sourceId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  transaction       FinTransaction?
 
   @@unique([sourceId, gmailMessageId], map: "fin_email_messages_source_gmail_key")
   @@index([sourceId], map: "fin_email_messages_source_id_idx")
+  @@index([outcome], map: "fin_email_messages_outcome_idx")
   @@map("fin_email_messages")
 }
 
@@ -575,6 +605,7 @@ enum FinEmailMessageOutcome {
   IMPORTED
   SKIPPED_NOT_TX
   FAILED_NON_RETRYABLE
+  PENDING_ASSIGNMENT
 }
 
 enum DomainEventOutboxStatus {

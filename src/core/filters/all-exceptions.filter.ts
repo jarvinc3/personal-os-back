@@ -9,7 +9,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { PinoLogger } from 'nestjs-pino';
 import type { Env } from '../../config/env.schema';
-import { toErrorField } from '../exceptions/http-error.util';
+import { httpExceptionDetails, toErrorField } from '../exceptions/http-error.util';
 
 type PrismaKnownErrorLike = Error & {
   code?: string;
@@ -33,7 +33,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
     const isProduction =
       this.config.get('NODE_ENV', { infer: true }) === 'production';
-    const { statusCode, error, message } = this.resolveException(
+    const { statusCode, error, message, details } = this.resolveException(
       exception,
       isProduction,
     );
@@ -56,6 +56,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
       statusCode,
       error,
       message,
+      ...(details ? { details } : {}),
       requestId: request.id,
       timestamp: new Date().toISOString(),
       path: request.url,
@@ -69,6 +70,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
     statusCode: number;
     error: string;
     message: string;
+    details?: Record<string, unknown>;
   } {
     if (exception instanceof HttpException) {
       const statusCode = exception.getStatus();
@@ -84,10 +86,12 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
       if (typeof payload === 'object' && payload !== null) {
         const body = payload as Record<string, unknown>;
+        const details = httpExceptionDetails(body);
         return {
           statusCode,
           error: toErrorField(body.error, exception.name),
           message: toErrorField(body.message, exception.message),
+          ...(details ? { details } : {}),
         };
       }
 

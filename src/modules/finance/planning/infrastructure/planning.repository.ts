@@ -101,7 +101,20 @@ export class PlanningRepository {
     return this.prisma.finLoan.findMany({
       where: { userId, isActive: true },
       orderBy: { nextDueDate: 'asc' },
-      include: { account: { select: { id: true, name: true } } },
+      include: {
+        account: { select: { id: true, name: true } },
+        institution: { select: { id: true, name: true } },
+      },
+    });
+  }
+
+  findLoan(userId: string, id: string) {
+    return this.prisma.finLoan.findFirst({
+      where: { id, userId },
+      include: {
+        account: { select: { id: true, name: true } },
+        institution: { select: { id: true, name: true } },
+      },
     });
   }
 
@@ -109,7 +122,13 @@ export class PlanningRepository {
     userId: string,
     data: Omit<Prisma.FinLoanUncheckedCreateInput, 'userId'>,
   ) {
-    return this.prisma.finLoan.create({ data: { ...data, userId } });
+    return this.prisma.finLoan.create({
+      data: { ...data, userId },
+      include: {
+        account: { select: { id: true, name: true } },
+        institution: { select: { id: true, name: true } },
+      },
+    });
   }
 
   updateLoan(
@@ -121,7 +140,13 @@ export class PlanningRepository {
       .updateMany({ where: { id, userId }, data })
       .then(async (result) => {
         if (result.count === 0) return null;
-        return this.prisma.finLoan.findFirst({ where: { id, userId } });
+        return this.prisma.finLoan.findFirst({
+          where: { id, userId },
+          include: {
+            account: { select: { id: true, name: true } },
+            institution: { select: { id: true, name: true } },
+          },
+        });
       });
   }
 

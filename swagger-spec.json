@@ -1764,10 +1764,106 @@
         ]
       }
     },
+    "/api/finance/email-sync/pending": {
+      "get": {
+        "operationId": "EmailSyncController_listPending",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "List email imports waiting for a ledger target",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
+    "/api/finance/email-sync/pending/{id}/assign": {
+      "post": {
+        "operationId": "EmailSyncController_assignPending",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssignEmailMessageDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Assign a pending email import to an account or card",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
+    "/api/finance/email-sync/pending/{id}/retry": {
+      "post": {
+        "operationId": "EmailSyncController_retryPending",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Retry automatic routing for a pending email import",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
     "/api/finance/email-sync/oauth/google/url": {
       "get": {
         "operationId": "EmailSyncController_getOAuthUrl",
         "parameters": [
+          {
+            "name": "institutionId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
           {
             "name": "bankDomain",
             "required": false,
@@ -1778,22 +1874,6 @@
           },
           {
             "name": "label",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "accountId",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "cardId",
             "required": false,
             "in": "query",
             "schema": {
@@ -2388,7 +2468,8 @@
         "type": "object",
         "properties": {
           "institutionId": {
-            "type": "string"
+            "type": "string",
+            "description": "Required for CHECKING, SAVINGS, and INVESTMENT. Optional for CASH."
           },
           "name": {
             "type": "string"
@@ -2412,7 +2493,6 @@
           }
         },
         "required": [
-          "institutionId",
           "name",
           "type"
         ]
@@ -2421,7 +2501,8 @@
         "type": "object",
         "properties": {
           "institutionId": {
-            "type": "string"
+            "type": "string",
+            "description": "Required for CHECKING, SAVINGS, and INVESTMENT. Optional for CASH."
           },
           "name": {
             "type": "string"
@@ -2775,6 +2856,9 @@
           "lenderName": {
             "type": "string"
           },
+          "institutionId": {
+            "type": "string"
+          },
           "accountId": {
             "type": "string"
           },
@@ -2835,6 +2919,9 @@
         "type": "object",
         "properties": {
           "lenderName": {
+            "type": "string"
+          },
+          "institutionId": {
             "type": "string"
           },
           "accountId": {
@@ -3076,34 +3163,40 @@
           "bankDomain": {
             "type": "string"
           },
+          "institutionId": {
+            "type": "string"
+          },
           "label": {
-            "type": "string"
-          },
-          "accountId": {
-            "type": "string"
-          },
-          "cardId": {
             "type": "string"
           }
         },
         "required": [
           "emailAddress",
-          "bankDomain"
+          "bankDomain",
+          "institutionId"
         ]
       },
       "UpdateEmailSourceDto": {
         "type": "object",
         "properties": {
-          "accountId": {
-            "type": "string"
-          },
-          "cardId": {
+          "institutionId": {
             "type": "string"
           },
           "label": {
             "type": "string"
           },
           "bankDomain": {
+            "type": "string"
+          }
+        }
+      },
+      "AssignEmailMessageDto": {
+        "type": "object",
+        "properties": {
+          "accountId": {
+            "type": "string"
+          },
+          "cardId": {
             "type": "string"
           }
         }

@@ -122,9 +122,12 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
     });
   }
 
-  findTransactionByEmailMessageId(emailMessageId: string) {
-    return this.prisma.finTransaction.findUnique({
-      where: { emailMessageId },
+  findTransactionByEmailMessageId(gmailMessageId: string, userId?: string) {
+    return this.prisma.finTransaction.findFirst({
+      where: {
+        emailMessage: { gmailMessageId },
+        ...(userId ? { userId } : {}),
+      },
     }) as Promise<LedgerTransactionRow | null>;
   }
 

@@ -1,9 +1,10 @@
 import {
-    BadRequestException,
-    Injectable,
-    NotFoundException,
+  BadRequestException,
+  Injectable,
+  NotFoundException,
 } from '@nestjs/common';
 import { decimalToString } from '../../shared/domain/mappers';
+import { FinanceOwnershipService } from '../../shared/application/finance-ownership.service';
 import { CatalogRepository } from '../infrastructure/catalog.repository';
 import type { CreateAccountDto } from '../presentation/dto/create-account.dto';
 import type { CreateCardDto } from '../presentation/dto/create-card.dto';
@@ -17,7 +18,10 @@ import type { UpdateInstitutionDto } from '../presentation/dto/update-institutio
 
 @Injectable()
 export class CatalogService {
-  constructor(private readonly repo: CatalogRepository) {}
+  constructor(
+    private readonly repo: CatalogRepository,
+    private readonly ownership: FinanceOwnershipService,
+  ) {}
 
   async listAccounts(userId: string) {
     const accounts = await this.repo.findAccountsByUser(userId);
@@ -31,15 +35,36 @@ export class CatalogService {
   }
 
   async createAccount(userId: string, dto: CreateAccountDto) {
-    await this.assertInstitutionOwnership(userId, dto.institutionId);
+    this.assertAccountInstitutionRule(dto.type, dto.institutionId);
+    if (dto.institutionId) {
+      await this.ownership.assertInstitutionOwned(userId, dto.institutionId);
+    }
     return this.mapAccount(await this.repo.createAccount(userId, dto));
   }
 
   async updateAccount(userId: string, id: string, dto: UpdateAccountDto) {
-    await this.getAccount(userId, id);
+    const existing = await this.repo.findAccountById(id, userId);
+    if (!existing) throw new NotFoundException('Account not found');
+
+    const nextType = dto.type ?? existing.type;
+    const nextInstitutionId =
+      dto.institutionId !== undefined ? dto.institutionId : existing.institutionId;
+    this.assertAccountInstitutionRule(nextType, nextInstitutionId ?? undefined);
+
     if (dto.institutionId) {
-      await this.assertInstitutionOwnership(userId, dto.institutionId);
+      await this.ownership.assertInstitutionOwned(userId, dto.institutionId);
     }
+    if (
+      dto.institutionId !== undefined &&
+      dto.institutionId !== existing.institutionId
+    ) {
+      await this.ownership.assertAccountInstitutionChangeAllowed({
+        userId,
+        accountId: id,
+        nextInstitutionId: dto.institutionId ?? null,
+      });
+    }
+
     const account = await this.repo.updateAccount(id, userId, dto);
     if (!account) throw new NotFoundException('Account not found');
     return this.mapAccount(account);
@@ -67,6 +92,8 @@ export class CatalogService {
   }
 
   async deactivateInstitution(userId: string, id: string) {
+    await this.ownership.assertInstitutionOwned(userId, id);
+    await this.ownership.assertInstitutionCanArchive(userId, id);
     const updated = await this.repo.updateInstitution(userId, id, {
       isActive: false,
     });
@@ -86,16 +113,20 @@ export class CatalogService {
   }
 
   async createCard(userId: string, dto: CreateCardDto) {
+    await this.ownership.assertInstitutionOwned(userId, dto.institutionId);
     if (dto.type === 'DEBIT') {
       if (!dto.accountId) {
         throw new BadRequestException('DEBIT cards require accountId');
       }
-      await this.assertAccountOwnership(userId, dto.accountId);
+      await this.ownership.assertDebitAccountAlignment({
+        userId,
+        accountId: dto.accountId,
+        institutionId: dto.institutionId,
+      });
     }
     if (dto.type === 'CREDIT' && dto.accountId) {
       throw new BadRequestException('CREDIT cards must not set accountId');
     }
-    await this.assertInstitutionOwnership(userId, dto.institutionId);
 
     const created = await this.repo.createCard(userId, {
       institutionId: dto.institutionId,
@@ -116,13 +147,28 @@ export class CatalogService {
     if (!existing) throw new NotFoundException('Card not found');
 
     const nextType = dto.type ?? existing.type;
-    if (nextType === 'DEBIT') {
+    const nextInstitutionId = dto.institutionId ?? existing.institutionId;
+    if (dto.institutionId) {
+      await this.ownership.assertInstitutionOwned(userId, dto.institutionId);
+    }
+
+    const relocatingDebit =
+      nextType === 'DEBIT' &&
+      (dto.type !== undefined ||
+        dto.accountId !== undefined ||
+        dto.institutionId !== undefined);
+
+    if (relocatingDebit) {
       const nextAccountId =
         dto.accountId !== undefined ? dto.accountId : existing.accountId;
       if (!nextAccountId) {
         throw new BadRequestException('DEBIT cards require accountId');
       }
-      await this.assertAccountOwnership(userId, nextAccountId);
+      await this.ownership.assertDebitAccountAlignment({
+        userId,
+        accountId: nextAccountId,
+        institutionId: nextInstitutionId,
+      });
     }
     if (nextType === 'CREDIT' && dto.accountId) {
       throw new BadRequestException('CREDIT cards must not set accountId');
@@ -186,11 +232,17 @@ export class CatalogService {
     return this.repo.listCategories(userId);
   }
 
-  createCategory(userId: string, dto: CreateCategoryDto) {
+  async createCategory(userId: string, dto: CreateCategoryDto) {
+    if (dto.parentId) {
+      await this.ownership.assertParentCategory(userId, dto.parentId);
+    }
     return this.repo.createCategory(userId, dto);
   }
 
   async updateCategory(userId: string, id: string, dto: UpdateCategoryDto) {
+    if (dto.parentId) {
+      await this.ownership.assertParentCategory(userId, dto.parentId, id);
+    }
     const updated = await this.repo.updateCategory(userId, id, dto);
     if (!updated) throw new NotFoundException('Category not found');
     return updated;
@@ -202,17 +254,15 @@ export class CatalogService {
     return { success: true };
   }
 
-  private async assertInstitutionOwnership(userId: string, institutionId: string) {
-    const items = await this.repo.listInstitutions(userId);
-    if (!items.find((i) => i.id === institutionId)) {
-      throw new BadRequestException('Institution not found');
+  private assertAccountInstitutionRule(
+    type: string,
+    institutionId: string | null | undefined,
+  ) {
+    if (type !== 'CASH' && !institutionId) {
+      throw new BadRequestException(
+        'CHECKING, SAVINGS, and INVESTMENT accounts require institutionId',
+      );
     }
-  }
-
-  private async assertAccountOwnership(userId: string, accountId: string) {
-    const account = await this.repo.findAccountById(accountId, userId);
-    if (!account) throw new BadRequestException('Account not found');
-    return account;
   }
 
   private mapAccount(

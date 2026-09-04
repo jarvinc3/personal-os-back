@@ -99,7 +99,8 @@ export type FinTransactionSource = (typeof FinTransactionSource)[keyof typeof Fi
 export const FinEmailMessageOutcome = {
   IMPORTED: 'IMPORTED',
   SKIPPED_NOT_TX: 'SKIPPED_NOT_TX',
-  FAILED_NON_RETRYABLE: 'FAILED_NON_RETRYABLE'
+  FAILED_NON_RETRYABLE: 'FAILED_NON_RETRYABLE',
+  PENDING_ASSIGNMENT: 'PENDING_ASSIGNMENT'
 } as const
 
 export type FinEmailMessageOutcome = (typeof FinEmailMessageOutcome)[keyof typeof FinEmailMessageOutcome]

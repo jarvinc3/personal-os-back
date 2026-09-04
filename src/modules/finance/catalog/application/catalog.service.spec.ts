@@ -1,5 +1,27 @@
 import { CatalogService } from './catalog.service';
 import type { CatalogRepository } from '../infrastructure/catalog.repository';
+import type { FinanceOwnershipService } from '../../shared/application/finance-ownership.service';
+import { BadRequestException, ConflictException } from '@nestjs/common';
+
+function ownershipMock(): FinanceOwnershipService {
+  return {
+    assertInstitutionOwned: jest.fn((_userId: string, id: string) => {
+      if (id === 'inst-1') return Promise.resolve({ id, name: 'Banco' });
+      return Promise.reject(new BadRequestException('Institution not found'));
+    }),
+    assertAccountOwned: jest.fn(),
+    assertCardOwned: jest.fn(),
+    assertCategoryVisible: jest.fn(),
+    assertParentCategory: jest.fn(),
+    assertDebitAccountAlignment: jest.fn().mockResolvedValue({
+      id: 'acc-1',
+      institutionId: 'inst-1',
+    }),
+    assertLoanAccountAlignment: jest.fn(),
+    assertAccountInstitutionChangeAllowed: jest.fn(),
+    assertInstitutionCanArchive: jest.fn(),
+  } as unknown as FinanceOwnershipService;
+}
 
 describe('CatalogService cards archive', () => {
   const findCardById = jest.fn();
@@ -14,7 +36,7 @@ describe('CatalogService cards archive', () => {
     findAccountById,
   } as unknown as CatalogRepository;
 
-  const service = new CatalogService(repo);
+  const service = new CatalogService(repo, ownershipMock());
 
   const debitCard = {
     id: 'card-1',
@@ -92,7 +114,7 @@ describe('CatalogService createAccount', () => {
     findAccountById,
   } as unknown as CatalogRepository;
 
-  const service = new CatalogService(repo);
+  const service = new CatalogService(repo, ownershipMock());
 
   const created = {
     id: 'acc-1',
@@ -116,12 +138,11 @@ describe('CatalogService createAccount', () => {
   });
 
   it('rejects accounts without a known institution', async () => {
-    listInstitutions.mockResolvedValue([]);
     await expect(
       service.createAccount('user-1', {
         name: 'Nómina',
         type: 'CHECKING',
-        institutionId: 'inst-1',
+        institutionId: 'missing',
       }),
     ).rejects.toThrow(/Institution not found/i);
     expect(createAccount).not.toHaveBeenCalled();
@@ -145,5 +166,58 @@ describe('CatalogService createAccount', () => {
       institutionName: 'Banco',
     });
     expect(result).not.toHaveProperty('institution');
+  });
+
+  it('creates a CASH account without an institution', async () => {
+    createAccount.mockResolvedValue({
+      ...created,
+      type: 'CASH',
+      institutionId: null,
+      institutionRef: null,
+    });
+
+    const result = await service.createAccount('user-1', {
+      name: 'Efectivo',
+      type: 'CASH',
+    });
+
+    expect(createAccount).toHaveBeenCalledWith('user-1', {
+      name: 'Efectivo',
+      type: 'CASH',
+    });
+    expect(result).toMatchObject({
+      type: 'CASH',
+      institutionId: null,
+    });
+  });
+});
+
+describe('CatalogService archive institution', () => {
+  it('refuses to archive while active dependents remain', async () => {
+    const ownership = ownershipMock();
+    ownership.assertInstitutionCanArchive = jest
+      .fn()
+      .mockRejectedValue(
+        new ConflictException({
+          message:
+            'Cannot archive institution while active accounts, cards, email sources, or loans remain',
+          dependents: { accounts: 1, cards: 0, emailSources: 0, loans: 0 },
+        }),
+      );
+
+    const updateInstitution = jest.fn();
+    const service = new CatalogService(
+      { updateInstitution } as unknown as CatalogRepository,
+      ownership,
+    );
+
+    await expect(
+      service.deactivateInstitution('user-1', 'inst-1'),
+    ).rejects.toMatchObject({
+      response: expect.objectContaining({
+        dependents: { accounts: 1, cards: 0, emailSources: 0, loans: 0 },
+      }),
+    });
+    expect(updateInstitution).not.toHaveBeenCalled();
   });
 });

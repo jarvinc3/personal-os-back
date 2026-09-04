@@ -33,11 +33,16 @@ describe('CreateTransactionUseCase', () => {
     get: jest.fn().mockReturnValue('DOP'),
   } as unknown as ConfigService;
 
+  const ownership = {
+    assertCategoryVisible: jest.fn(),
+  };
+
   const useCase = new CreateTransactionUseCase(
     repo,
     resolveAmounts,
     config as never,
     outboxDispatcher,
+    ownership as never,
   );
 
   beforeEach(() => {

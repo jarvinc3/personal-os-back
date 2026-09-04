@@ -60,6 +60,7 @@ export const ModelName = {
   Notification: 'Notification',
   PushToken: 'PushToken',
   FinAccount: 'FinAccount',
+  FinEmailConnection: 'FinEmailConnection',
   FinEmailSource: 'FinEmailSource',
   FinTransaction: 'FinTransaction',
   FinCategory: 'FinCategory',
@@ -228,19 +229,30 @@ export const FinAccountScalarFieldEnum = {
 export type FinAccountScalarFieldEnum = (typeof FinAccountScalarFieldEnum)[keyof typeof FinAccountScalarFieldEnum]
 
 
-export const FinEmailSourceScalarFieldEnum = {
+export const FinEmailConnectionScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
-  accountId: 'accountId',
-  cardId: 'cardId',
   provider: 'provider',
   emailAddress: 'emailAddress',
-  bankDomain: 'bankDomain',
-  label: 'label',
   accessToken: 'accessToken',
   refreshToken: 'refreshToken',
   imapHost: 'imapHost',
   tokenExpiresAt: 'tokenExpiresAt',
+  isActive: 'isActive',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type FinEmailConnectionScalarFieldEnum = (typeof FinEmailConnectionScalarFieldEnum)[keyof typeof FinEmailConnectionScalarFieldEnum]
+
+
+export const FinEmailSourceScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  connectionId: 'connectionId',
+  institutionId: 'institutionId',
+  bankDomain: 'bankDomain',
+  label: 'label',
   lastSyncedAt: 'lastSyncedAt',
   lastMessageId: 'lastMessageId',
   isActive: 'isActive',
@@ -428,6 +440,7 @@ export type FinSavingsGoalScalarFieldEnum = (typeof FinSavingsGoalScalarFieldEnu
 export const FinLoanScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
+  institutionId: 'institutionId',
   accountId: 'accountId',
   lenderName: 'lenderName',
   originalAmount: 'originalAmount',
@@ -488,6 +501,9 @@ export const FinEmailMessageScalarFieldEnum = {
   reason: 'reason',
   provider: 'provider',
   model: 'model',
+  instrumentHint: 'instrumentHint',
+  lastFourHint: 'lastFourHint',
+  extractedPayload: 'extractedPayload',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const

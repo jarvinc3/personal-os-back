@@ -14,6 +14,8 @@ export type ExtractedEmailTransaction = {
   statusConfidence: number;
   reverseOfEmailMessageId: string | null;
   reverseOriginalRef: string | null;
+  instrumentHint: 'ACCOUNT' | 'CARD' | null;
+  lastFourHint: string | null;
 };
 
 export type EmailExtractionInput = {

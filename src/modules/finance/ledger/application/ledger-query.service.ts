@@ -33,8 +33,8 @@ export class LedgerQueryService {
     return mapLedgerTransaction(tx);
   }
 
-  findTransactionByEmailMessageId(emailMessageId: string) {
-    return this.repo.findTransactionByEmailMessageId(emailMessageId);
+  findTransactionByEmailMessageId(gmailMessageId: string, userId?: string) {
+    return this.repo.findTransactionByEmailMessageId(gmailMessageId, userId);
   }
 
   findReverseCandidates(

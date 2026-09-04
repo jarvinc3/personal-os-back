@@ -5,9 +5,8 @@ import {
   IsEnum,
   IsNumber,
   IsOptional,
-  IsString,
+  IsUUID,
   Max,
-  MaxLength,
   Min,
 } from 'class-validator';
 
@@ -15,8 +14,7 @@ const budgetPeriods = ['MONTHLY', 'BIWEEKLY', 'CUSTOM'] as const;
 
 export class CreateBudgetDto {
   @ApiProperty()
-  @IsString()
-  @MaxLength(120)
+  @IsUUID()
   categoryId!: string;
 
   @ApiProperty({ enum: budgetPeriods })

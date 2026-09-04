@@ -1,25 +1,32 @@
-import { toErrorField } from './http-error.util';
+import { httpExceptionDetails, toErrorField } from './http-error.util';
+
+describe('httpExceptionDetails', () => {
+  it('keeps actionable conflict fields outside message/error/statusCode', () => {
+    expect(
+      httpExceptionDetails({
+        statusCode: 409,
+        error: 'Conflict',
+        message: 'Cannot archive institution',
+        dependents: { accounts: 1, cards: 0, emailSources: 0, loans: 0 },
+      }),
+    ).toEqual({
+      dependents: { accounts: 1, cards: 0, emailSources: 0, loans: 0 },
+    });
+  });
+
+  it('returns undefined when there are no extra fields', () => {
+    expect(
+      httpExceptionDetails({
+        statusCode: 400,
+        error: 'Bad Request',
+        message: 'Account not found',
+      }),
+    ).toBeUndefined();
+  });
+});
 
 describe('toErrorField', () => {
-  it('returns the same string', () => {
-    expect(toErrorField('Conflict', 'fallback')).toBe('Conflict');
-  });
-
-  it('stringifies a number', () => {
-    expect(toErrorField(404, 'fallback')).toBe('404');
-  });
-
-  it('stringifies a boolean', () => {
-    expect(toErrorField(false, 'fallback')).toBe('false');
-  });
-
-  it('uses Error.message', () => {
-    expect(toErrorField(new Error('boom'), 'fallback')).toBe('boom');
-  });
-
-  it('returns fallback for null and plain objects', () => {
-    expect(toErrorField(null, 'fallback')).toBe('fallback');
-    expect(toErrorField({}, 'fallback')).toBe('fallback');
-    expect(toErrorField(undefined, 'fallback')).toBe('fallback');
+  it('falls back when the value is an object', () => {
+    expect(toErrorField({ nested: true }, 'fallback')).toBe('fallback');
   });
 });

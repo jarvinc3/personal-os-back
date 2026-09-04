@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { FinanceEventsModule } from '../events/events.module';
 import { FinanceFxModule } from '../fx/fx.module';
 import { FinancePlanningThresholdModule } from '../planning/planning-threshold.module';
+import { FinanceOwnershipModule } from '../shared/finance-ownership.module';
 import { LEDGER_REPOSITORY } from '../shared/application/tokens';
 import { ConfirmTransactionUseCase } from './application/confirm-transaction.use-case';
 import { CreateTransactionUseCase } from './application/create-transaction.use-case';
@@ -16,7 +17,12 @@ import { TransactionsController } from './presentation/transactions.controller';
 import { TransfersController } from './presentation/transfers.controller';
 
 @Module({
-  imports: [FinanceFxModule, FinanceEventsModule, FinancePlanningThresholdModule],
+  imports: [
+    FinanceFxModule,
+    FinanceEventsModule,
+    FinancePlanningThresholdModule,
+    FinanceOwnershipModule,
+  ],
   controllers: [TransactionsController, TransfersController],
   providers: [
     PrismaLedgerRepository,
