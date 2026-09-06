@@ -51,7 +51,14 @@ export class UsersRepository {
   findEnabledUserModuleBySlug(userId: string, slug: string) {
     return this.prisma.userModule.findFirst({
       where: { userId, isEnabled: true, module: { slug } },
-      select: { id: true },
+      select: { id: true, config: true },
+    });
+  }
+
+  findUserModuleBySlug(userId: string, slug: string) {
+    return this.prisma.userModule.findFirst({
+      where: { userId, module: { slug } },
+      select: { id: true, isEnabled: true, config: true },
     });
   }
 

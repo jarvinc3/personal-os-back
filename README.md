@@ -72,12 +72,18 @@ pnpm start:dev
 
 Operaciones de baseline en bases pobladas: no uses `migrate reset` sobre datos reales. Usa `pnpm db:migrate:deploy` para aplicar migraciones pendientes y `pnpm db:migrate:status` / `pnpm db:migrate:diff` para verificar drift.
 
+La migración `20260904180000_finance_ownership_email_connections` es expand/backfill/contract: crea `fin_email_connections`, deriva `institution_id` de las fuentes, aborta con los ids irresolubles (no borra filas), y quita la unicidad global de `email_message_id`. La siguiente `20260904210000_account_card_email_message_fk` quita `last_four` de cuentas y deja un solo FK `email_message_id` → `fin_email_messages.id`. Revisa el SQL y el drift (`pnpm db:migrate:diff`) antes de staging.
+
 ## Invariantes de finanzas
 
 - Solo transacciones **`CONFIRMED`** mueven saldos.
 - Cada transacción debe apuntar a **exactamente uno** de `accountId` o `cardId` (XOR).
-- Tarjeta **CREDIT** → mueve `FinCardBalance` por moneda.
-- Tarjeta **DEBIT** → requiere `accountId` en la tarjeta y mueve la cuenta subyacente (no el balance de tarjeta).
+- Tarjeta **CREDIT** → mueve `FinCardBalance` por moneda; no lleva `accountId`.
+- Tarjeta **DEBIT** → requiere `accountId` del mismo usuario **y** la misma institución; mueve la cuenta subyacente (no el balance de tarjeta).
+- `CHECKING` / `SAVINGS` / `INVESTMENT` exigen institución; `CASH` puede omitirla.
+- Archivar una institución es 409 mientras queden cuentas, tarjetas, fuentes de correo o préstamos activos.
+- Fuente Gmail = conexión OAuth + institución + dominio; el destino de ledger se resuelve por match único o cola `PENDING_ASSIGNMENT`.
+- `emailSync.enabled` debe estar en true para OAuth/conectar/sincronizar.
 - Cuenta bancaria → mueve `FinAccount.balance`.
 - `PENDING` (manual o EMAIL) no mueve saldo hasta confirm.
 - Delete/update de `CONFIRMED` compensa saldo y `FinBudget.amountSpent` en la misma transacción.

@@ -34,9 +34,14 @@ export type PrismaMock = {
     findFirst: MockFn;
     create: MockFn;
     update: MockFn;
+    updateMany: MockFn;
+    count: MockFn;
   };
   finInstitution: {
     findMany: MockFn;
+    findFirst: MockFn;
+    create: MockFn;
+    updateMany: MockFn;
   };
   finExchangeRate: {
     findMany: MockFn;
@@ -53,12 +58,14 @@ export type PrismaMock = {
     findFirst: MockFn;
     create: MockFn;
     updateMany: MockFn;
+    count: MockFn;
   };
   finLoan: {
     findMany: MockFn;
     findFirst: MockFn;
     create: MockFn;
     updateMany: MockFn;
+    count: MockFn;
   };
   finReceivable: {
     findMany: MockFn;
@@ -71,6 +78,7 @@ export type PrismaMock = {
   };
   finCategory: {
     findMany: MockFn;
+    findFirst: MockFn;
   };
   finBudget: {
     findMany: MockFn;
@@ -83,7 +91,22 @@ export type PrismaMock = {
   finEmailSource: {
     findMany: MockFn;
     findFirst: MockFn;
+    findUnique: MockFn;
+    create: MockFn;
     updateMany: MockFn;
+    count: MockFn;
+  };
+  finEmailConnection: {
+    findUnique: MockFn;
+    findFirst: MockFn;
+    create: MockFn;
+    update: MockFn;
+  };
+  finEmailMessage: {
+    findMany: MockFn;
+    findFirst: MockFn;
+    findUnique: MockFn;
+    upsert: MockFn;
   };
   domainEventOutbox: {
     create: MockFn;
@@ -193,7 +216,11 @@ export function createPrismaMock(): PrismaMock {
     },
     userModule: {
       findUnique: jest.fn(),
-      findFirst: jest.fn().mockResolvedValue({ id: 'um-finance' }),
+      findFirst: jest.fn().mockResolvedValue({
+        id: 'um-finance',
+        isEnabled: true,
+        config: { emailSync: { enabled: true, autoCategorize: true } },
+      }),
       upsert: jest.fn(),
     },
     notification: {
@@ -216,9 +243,22 @@ export function createPrismaMock(): PrismaMock {
       findFirst: jest.fn(),
       create: jest.fn(),
       update: jest.fn(),
+      updateMany: jest.fn().mockResolvedValue({ count: 0 }),
+      count: jest.fn().mockResolvedValue(0),
     },
     finInstitution: {
       findMany: jest.fn().mockResolvedValue([]),
+      findFirst: jest.fn().mockImplementation(
+        (args: { where?: { id?: string; userId?: string } }) =>
+          Promise.resolve({
+            id: args?.where?.id ?? 'inst-1',
+            userId: args?.where?.userId ?? 'user-123',
+            name: 'Bank',
+            isActive: true,
+          }),
+      ),
+      create: jest.fn(),
+      updateMany: jest.fn().mockResolvedValue({ count: 0 }),
     },
     finExchangeRate: {
       findMany: jest.fn().mockResolvedValue([]),
@@ -228,12 +268,14 @@ export function createPrismaMock(): PrismaMock {
       findFirst: jest.fn(),
       create: jest.fn(),
       updateMany: jest.fn().mockResolvedValue({ count: 0 }),
+      count: jest.fn().mockResolvedValue(0),
     },
     finLoan: {
       findMany: jest.fn().mockResolvedValue([]),
       findFirst: jest.fn(),
       create: jest.fn(),
       updateMany: jest.fn().mockResolvedValue({ count: 0 }),
+      count: jest.fn().mockResolvedValue(0),
     },
     finReceivable: {
       findMany: jest.fn().mockResolvedValue([]),
@@ -246,6 +288,7 @@ export function createPrismaMock(): PrismaMock {
     },
     finCategory: {
       findMany: jest.fn().mockResolvedValue([]),
+      findFirst: jest.fn(),
     },
     finBudget: {
       findMany: jest.fn().mockResolvedValue([]),
@@ -265,7 +308,22 @@ export function createPrismaMock(): PrismaMock {
     finEmailSource: {
       findMany: jest.fn().mockResolvedValue([]),
       findFirst: jest.fn(),
+      findUnique: jest.fn(),
+      create: jest.fn(),
       updateMany: jest.fn().mockResolvedValue({ count: 0 }),
+      count: jest.fn().mockResolvedValue(0),
+    },
+    finEmailConnection: {
+      findUnique: jest.fn(),
+      findFirst: jest.fn(),
+      create: jest.fn(),
+      update: jest.fn(),
+    },
+    finEmailMessage: {
+      findMany: jest.fn().mockResolvedValue([]),
+      findFirst: jest.fn(),
+      findUnique: jest.fn(),
+      upsert: jest.fn(),
     },
     // Root-level model used by FinanceOutboxDispatcher.processBatch after commit wake.
     domainEventOutbox: {

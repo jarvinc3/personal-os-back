@@ -14,7 +14,7 @@ import type * as Prisma from "../internal/prismaNamespace.js"
 
 /**
  * Model FinEmailSyncLog
- * 
+ * One sync run against a source (scanned / imported / error). Operational history.
  */
 export type FinEmailSyncLogModel = runtime.Types.Result.DefaultSelection<Prisma.$FinEmailSyncLogPayload>
 

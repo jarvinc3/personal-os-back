@@ -38,6 +38,8 @@ describe('AiEmailTransactionExtractor', () => {
     statusConfidence: 0.95,
     reverseOfEmailMessageId: null,
     reverseOriginalRef: null,
+    instrumentHint: null,
+    lastFourHint: null,
   };
 
   beforeEach(() => {

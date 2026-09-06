@@ -14,7 +14,7 @@ import type * as Prisma from "../internal/prismaNamespace.js"
 
 /**
  * Model FinEmailSource
- * 
+ * Bank-domain filter on a connection. Not a ledger target and not OAuth.
  */
 export type FinEmailSourceModel = runtime.Types.Result.DefaultSelection<Prisma.$FinEmailSourcePayload>
 
@@ -27,16 +27,10 @@ export type AggregateFinEmailSource = {
 export type FinEmailSourceMinAggregateOutputType = {
   id: string | null
   userId: string | null
-  accountId: string | null
-  cardId: string | null
-  provider: string | null
-  emailAddress: string | null
+  connectionId: string | null
+  institutionId: string | null
   bankDomain: string | null
   label: string | null
-  accessToken: string | null
-  refreshToken: string | null
-  imapHost: string | null
-  tokenExpiresAt: Date | null
   lastSyncedAt: Date | null
   lastMessageId: string | null
   isActive: boolean | null
@@ -46,16 +40,10 @@ export type FinEmailSourceMinAggregateOutputType = {
 export type FinEmailSourceMaxAggregateOutputType = {
   id: string | null
   userId: string | null
-  accountId: string | null
-  cardId: string | null
-  provider: string | null
-  emailAddress: string | null
+  connectionId: string | null
+  institutionId: string | null
   bankDomain: string | null
   label: string | null
-  accessToken: string | null
-  refreshToken: string | null
-  imapHost: string | null
-  tokenExpiresAt: Date | null
   lastSyncedAt: Date | null
   lastMessageId: string | null
   isActive: boolean | null
@@ -65,16 +53,10 @@ export type FinEmailSourceMaxAggregateOutputType = {
 export type FinEmailSourceCountAggregateOutputType = {
   id: number
   userId: number
-  accountId: number
-  cardId: number
-  provider: number
-  emailAddress: number
+  connectionId: number
+  institutionId: number
   bankDomain: number
   label: number
-  accessToken: number
-  refreshToken: number
-  imapHost: number
-  tokenExpiresAt: number
   lastSyncedAt: number
   lastMessageId: number
   isActive: number
@@ -86,16 +68,10 @@ export type FinEmailSourceCountAggregateOutputType = {
 export type FinEmailSourceMinAggregateInputType = {
   id?: true
   userId?: true
-  accountId?: true
-  cardId?: true
-  provider?: true
-  emailAddress?: true
+  connectionId?: true
+  institutionId?: true
   bankDomain?: true
   label?: true
-  accessToken?: true
-  refreshToken?: true
-  imapHost?: true
-  tokenExpiresAt?: true
   lastSyncedAt?: true
   lastMessageId?: true
   isActive?: true
@@ -105,16 +81,10 @@ export type FinEmailSourceMinAggregateInputType = {
 export type FinEmailSourceMaxAggregateInputType = {
   id?: true
   userId?: true
-  accountId?: true
-  cardId?: true
-  provider?: true
-  emailAddress?: true
+  connectionId?: true
+  institutionId?: true
   bankDomain?: true
   label?: true
-  accessToken?: true
-  refreshToken?: true
-  imapHost?: true
-  tokenExpiresAt?: true
   lastSyncedAt?: true
   lastMessageId?: true
   isActive?: true
@@ -124,16 +94,10 @@ export type FinEmailSourceMaxAggregateInputType = {
 export type FinEmailSourceCountAggregateInputType = {
   id?: true
   userId?: true
-  accountId?: true
-  cardId?: true
-  provider?: true
-  emailAddress?: true
+  connectionId?: true
+  institutionId?: true
   bankDomain?: true
   label?: true
-  accessToken?: true
-  refreshToken?: true
-  imapHost?: true
-  tokenExpiresAt?: true
   lastSyncedAt?: true
   lastMessageId?: true
   isActive?: true
@@ -216,16 +180,10 @@ export type FinEmailSourceGroupByArgs<ExtArgs extends runtime.Types.Extensions.I
 export type FinEmailSourceGroupByOutputType = {
   id: string
   userId: string
-  accountId: string | null
-  cardId: string | null
-  provider: string
-  emailAddress: string
+  connectionId: string
+  institutionId: string
   bankDomain: string
   label: string | null
-  accessToken: string | null
-  refreshToken: string | null
-  imapHost: string | null
-  tokenExpiresAt: Date | null
   lastSyncedAt: Date | null
   lastMessageId: string | null
   isActive: boolean
@@ -256,91 +214,68 @@ export type FinEmailSourceWhereInput = {
   NOT?: Prisma.FinEmailSourceWhereInput | Prisma.FinEmailSourceWhereInput[]
   id?: Prisma.StringFilter<"FinEmailSource"> | string
   userId?: Prisma.StringFilter<"FinEmailSource"> | string
-  accountId?: Prisma.StringNullableFilter<"FinEmailSource"> | string | null
-  cardId?: Prisma.StringNullableFilter<"FinEmailSource"> | string | null
-  provider?: Prisma.StringFilter<"FinEmailSource"> | string
-  emailAddress?: Prisma.StringFilter<"FinEmailSource"> | string
+  connectionId?: Prisma.StringFilter<"FinEmailSource"> | string
+  institutionId?: Prisma.StringFilter<"FinEmailSource"> | string
   bankDomain?: Prisma.StringFilter<"FinEmailSource"> | string
   label?: Prisma.StringNullableFilter<"FinEmailSource"> | string | null
-  accessToken?: Prisma.StringNullableFilter<"FinEmailSource"> | string | null
-  refreshToken?: Prisma.StringNullableFilter<"FinEmailSource"> | string | null
-  imapHost?: Prisma.StringNullableFilter<"FinEmailSource"> | string | null
-  tokenExpiresAt?: Prisma.DateTimeNullableFilter<"FinEmailSource"> | Date | string | null
   lastSyncedAt?: Prisma.DateTimeNullableFilter<"FinEmailSource"> | Date | string | null
   lastMessageId?: Prisma.StringNullableFilter<"FinEmailSource"> | string | null
   isActive?: Prisma.BoolFilter<"FinEmailSource"> | boolean
   createdAt?: Prisma.DateTimeFilter<"FinEmailSource"> | Date | string
   logs?: Prisma.FinEmailSyncLogListRelationFilter
   emailMessages?: Prisma.FinEmailMessageListRelationFilter
-  account?: Prisma.XOR<Prisma.FinAccountNullableScalarRelationFilter, Prisma.FinAccountWhereInput> | null
-  card?: Prisma.XOR<Prisma.FinCardNullableScalarRelationFilter, Prisma.FinCardWhereInput> | null
+  connection?: Prisma.XOR<Prisma.FinEmailConnectionScalarRelationFilter, Prisma.FinEmailConnectionWhereInput>
+  institution?: Prisma.XOR<Prisma.FinInstitutionScalarRelationFilter, Prisma.FinInstitutionWhereInput>
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
 }
 
 export type FinEmailSourceOrderByWithRelationInput = {
   id?: Prisma.SortOrder
   userId?: Prisma.SortOrder
-  accountId?: Prisma.SortOrderInput | Prisma.SortOrder
-  cardId?: Prisma.SortOrderInput | Prisma.SortOrder
-  provider?: Prisma.SortOrder
-  emailAddress?: Prisma.SortOrder
+  connectionId?: Prisma.SortOrder
+  institutionId?: Prisma.SortOrder
   bankDomain?: Prisma.SortOrder
   label?: Prisma.SortOrderInput | Prisma.SortOrder
-  accessToken?: Prisma.SortOrderInput | Prisma.SortOrder
-  refreshToken?: Prisma.SortOrderInput | Prisma.SortOrder
-  imapHost?: Prisma.SortOrderInput | Prisma.SortOrder
-  tokenExpiresAt?: Prisma.SortOrderInput | Prisma.SortOrder
   lastSyncedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   lastMessageId?: Prisma.SortOrderInput | Prisma.SortOrder
   isActive?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   logs?: Prisma.FinEmailSyncLogOrderByRelationAggregateInput
   emailMessages?: Prisma.FinEmailMessageOrderByRelationAggregateInput
-  account?: Prisma.FinAccountOrderByWithRelationInput
-  card?: Prisma.FinCardOrderByWithRelationInput
+  connection?: Prisma.FinEmailConnectionOrderByWithRelationInput
+  institution?: Prisma.FinInstitutionOrderByWithRelationInput
   user?: Prisma.UserOrderByWithRelationInput
 }
 
 export type FinEmailSourceWhereUniqueInput = Prisma.AtLeast<{
   id?: string
+  connectionId_institutionId?: Prisma.FinEmailSourceConnectionIdInstitutionIdCompoundUniqueInput
   AND?: Prisma.FinEmailSourceWhereInput | Prisma.FinEmailSourceWhereInput[]
   OR?: Prisma.FinEmailSourceWhereInput[]
   NOT?: Prisma.FinEmailSourceWhereInput | Prisma.FinEmailSourceWhereInput[]
   userId?: Prisma.StringFilter<"FinEmailSource"> | string
-  accountId?: Prisma.StringNullableFilter<"FinEmailSource"> | string | null
-  cardId?: Prisma.StringNullableFilter<"FinEmailSource"> | string | null
-  provider?: Prisma.StringFilter<"FinEmailSource"> | string
-  emailAddress?: Prisma.StringFilter<"FinEmailSource"> | string
+  connectionId?: Prisma.StringFilter<"FinEmailSource"> | string
+  institutionId?: Prisma.StringFilter<"FinEmailSource"> | string
   bankDomain?: Prisma.StringFilter<"FinEmailSource"> | string
   label?: Prisma.StringNullableFilter<"FinEmailSource"> | string | null
-  accessToken?: Prisma.StringNullableFilter<"FinEmailSource"> | string | null
-  refreshToken?: Prisma.StringNullableFilter<"FinEmailSource"> | string | null
-  imapHost?: Prisma.StringNullableFilter<"FinEmailSource"> | string | null
-  tokenExpiresAt?: Prisma.DateTimeNullableFilter<"FinEmailSource"> | Date | string | null
   lastSyncedAt?: Prisma.DateTimeNullableFilter<"FinEmailSource"> | Date | string | null
   lastMessageId?: Prisma.StringNullableFilter<"FinEmailSource"> | string | null
   isActive?: Prisma.BoolFilter<"FinEmailSource"> | boolean
   createdAt?: Prisma.DateTimeFilter<"FinEmailSource"> | Date | string
   logs?: Prisma.FinEmailSyncLogListRelationFilter
   emailMessages?: Prisma.FinEmailMessageListRelationFilter
-  account?: Prisma.XOR<Prisma.FinAccountNullableScalarRelationFilter, Prisma.FinAccountWhereInput> | null
-  card?: Prisma.XOR<Prisma.FinCardNullableScalarRelationFilter, Prisma.FinCardWhereInput> | null
+  connection?: Prisma.XOR<Prisma.FinEmailConnectionScalarRelationFilter, Prisma.FinEmailConnectionWhereInput>
+  institution?: Prisma.XOR<Prisma.FinInstitutionScalarRelationFilter, Prisma.FinInstitutionWhereInput>
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
-}, "id">
+}, "id" | "connectionId_institutionId">
 
 export type FinEmailSourceOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
   userId?: Prisma.SortOrder
-  accountId?: Prisma.SortOrderInput | Prisma.SortOrder
-  cardId?: Prisma.SortOrderInput | Prisma.SortOrder
-  provider?: Prisma.SortOrder
-  emailAddress?: Prisma.SortOrder
+  connectionId?: Prisma.SortOrder
+  institutionId?: Prisma.SortOrder
   bankDomain?: Prisma.SortOrder
   label?: Prisma.SortOrderInput | Prisma.SortOrder
-  accessToken?: Prisma.SortOrderInput | Prisma.SortOrder
-  refreshToken?: Prisma.SortOrderInput | Prisma.SortOrder
-  imapHost?: Prisma.SortOrderInput | Prisma.SortOrder
-  tokenExpiresAt?: Prisma.SortOrderInput | Prisma.SortOrder
   lastSyncedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   lastMessageId?: Prisma.SortOrderInput | Prisma.SortOrder
   isActive?: Prisma.SortOrder
@@ -356,16 +291,10 @@ export type FinEmailSourceScalarWhereWithAggregatesInput = {
   NOT?: Prisma.FinEmailSourceScalarWhereWithAggregatesInput | Prisma.FinEmailSourceScalarWhereWithAggregatesInput[]
   id?: Prisma.StringWithAggregatesFilter<"FinEmailSource"> | string
   userId?: Prisma.StringWithAggregatesFilter<"FinEmailSource"> | string
-  accountId?: Prisma.StringNullableWithAggregatesFilter<"FinEmailSource"> | string | null
-  cardId?: Prisma.StringNullableWithAggregatesFilter<"FinEmailSource"> | string | null
-  provider?: Prisma.StringWithAggregatesFilter<"FinEmailSource"> | string
-  emailAddress?: Prisma.StringWithAggregatesFilter<"FinEmailSource"> | string
+  connectionId?: Prisma.StringWithAggregatesFilter<"FinEmailSource"> | string
+  institutionId?: Prisma.StringWithAggregatesFilter<"FinEmailSource"> | string
   bankDomain?: Prisma.StringWithAggregatesFilter<"FinEmailSource"> | string
   label?: Prisma.StringNullableWithAggregatesFilter<"FinEmailSource"> | string | null
-  accessToken?: Prisma.StringNullableWithAggregatesFilter<"FinEmailSource"> | string | null
-  refreshToken?: Prisma.StringNullableWithAggregatesFilter<"FinEmailSource"> | string | null
-  imapHost?: Prisma.StringNullableWithAggregatesFilter<"FinEmailSource"> | string | null
-  tokenExpiresAt?: Prisma.DateTimeNullableWithAggregatesFilter<"FinEmailSource"> | Date | string | null
   lastSyncedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"FinEmailSource"> | Date | string | null
   lastMessageId?: Prisma.StringNullableWithAggregatesFilter<"FinEmailSource"> | string | null
   isActive?: Prisma.BoolWithAggregatesFilter<"FinEmailSource"> | boolean
@@ -374,38 +303,26 @@ export type FinEmailSourceScalarWhereWithAggregatesInput = {
 
 export type FinEmailSourceCreateInput = {
   id?: string
-  provider: string
-  emailAddress: string
   bankDomain: string
   label?: string | null
-  accessToken?: string | null
-  refreshToken?: string | null
-  imapHost?: string | null
-  tokenExpiresAt?: Date | string | null
   lastSyncedAt?: Date | string | null
   lastMessageId?: string | null
   isActive?: boolean
   createdAt?: Date | string
   logs?: Prisma.FinEmailSyncLogCreateNestedManyWithoutSourceInput
   emailMessages?: Prisma.FinEmailMessageCreateNestedManyWithoutSourceInput
-  account?: Prisma.FinAccountCreateNestedOneWithoutEmailSourcesInput
-  card?: Prisma.FinCardCreateNestedOneWithoutEmailSourcesInput
+  connection: Prisma.FinEmailConnectionCreateNestedOneWithoutSourcesInput
+  institution: Prisma.FinInstitutionCreateNestedOneWithoutEmailSourcesInput
   user: Prisma.UserCreateNestedOneWithoutFinEmailSourcesInput
 }
 
 export type FinEmailSourceUncheckedCreateInput = {
   id?: string
   userId: string
-  accountId?: string | null
-  cardId?: string | null
-  provider: string
-  emailAddress: string
+  connectionId: string
+  institutionId: string
   bankDomain: string
   label?: string | null
-  accessToken?: string | null
-  refreshToken?: string | null
-  imapHost?: string | null
-  tokenExpiresAt?: Date | string | null
   lastSyncedAt?: Date | string | null
   lastMessageId?: string | null
   isActive?: boolean
@@ -416,38 +333,26 @@ export type FinEmailSourceUncheckedCreateInput = {
 
 export type FinEmailSourceUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  provider?: Prisma.StringFieldUpdateOperationsInput | string
-  emailAddress?: Prisma.StringFieldUpdateOperationsInput | string
   bankDomain?: Prisma.StringFieldUpdateOperationsInput | string
   label?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  accessToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  refreshToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  imapHost?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  tokenExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastSyncedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastMessageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   logs?: Prisma.FinEmailSyncLogUpdateManyWithoutSourceNestedInput
   emailMessages?: Prisma.FinEmailMessageUpdateManyWithoutSourceNestedInput
-  account?: Prisma.FinAccountUpdateOneWithoutEmailSourcesNestedInput
-  card?: Prisma.FinCardUpdateOneWithoutEmailSourcesNestedInput
+  connection?: Prisma.FinEmailConnectionUpdateOneRequiredWithoutSourcesNestedInput
+  institution?: Prisma.FinInstitutionUpdateOneRequiredWithoutEmailSourcesNestedInput
   user?: Prisma.UserUpdateOneRequiredWithoutFinEmailSourcesNestedInput
 }
 
 export type FinEmailSourceUncheckedUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.StringFieldUpdateOperationsInput | string
-  accountId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  cardId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  provider?: Prisma.StringFieldUpdateOperationsInput | string
-  emailAddress?: Prisma.StringFieldUpdateOperationsInput | string
+  connectionId?: Prisma.StringFieldUpdateOperationsInput | string
+  institutionId?: Prisma.StringFieldUpdateOperationsInput | string
   bankDomain?: Prisma.StringFieldUpdateOperationsInput | string
   label?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  accessToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  refreshToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  imapHost?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  tokenExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastSyncedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastMessageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -459,16 +364,10 @@ export type FinEmailSourceUncheckedUpdateInput = {
 export type FinEmailSourceCreateManyInput = {
   id?: string
   userId: string
-  accountId?: string | null
-  cardId?: string | null
-  provider: string
-  emailAddress: string
+  connectionId: string
+  institutionId: string
   bankDomain: string
   label?: string | null
-  accessToken?: string | null
-  refreshToken?: string | null
-  imapHost?: string | null
-  tokenExpiresAt?: Date | string | null
   lastSyncedAt?: Date | string | null
   lastMessageId?: string | null
   isActive?: boolean
@@ -477,14 +376,8 @@ export type FinEmailSourceCreateManyInput = {
 
 export type FinEmailSourceUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  provider?: Prisma.StringFieldUpdateOperationsInput | string
-  emailAddress?: Prisma.StringFieldUpdateOperationsInput | string
   bankDomain?: Prisma.StringFieldUpdateOperationsInput | string
   label?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  accessToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  refreshToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  imapHost?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  tokenExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastSyncedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastMessageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -494,16 +387,10 @@ export type FinEmailSourceUpdateManyMutationInput = {
 export type FinEmailSourceUncheckedUpdateManyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.StringFieldUpdateOperationsInput | string
-  accountId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  cardId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  provider?: Prisma.StringFieldUpdateOperationsInput | string
-  emailAddress?: Prisma.StringFieldUpdateOperationsInput | string
+  connectionId?: Prisma.StringFieldUpdateOperationsInput | string
+  institutionId?: Prisma.StringFieldUpdateOperationsInput | string
   bankDomain?: Prisma.StringFieldUpdateOperationsInput | string
   label?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  accessToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  refreshToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  imapHost?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  tokenExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastSyncedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastMessageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -520,19 +407,18 @@ export type FinEmailSourceOrderByRelationAggregateInput = {
   _count?: Prisma.SortOrder
 }
 
+export type FinEmailSourceConnectionIdInstitutionIdCompoundUniqueInput = {
+  connectionId: string
+  institutionId: string
+}
+
 export type FinEmailSourceCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
   userId?: Prisma.SortOrder
-  accountId?: Prisma.SortOrder
-  cardId?: Prisma.SortOrder
-  provider?: Prisma.SortOrder
-  emailAddress?: Prisma.SortOrder
+  connectionId?: Prisma.SortOrder
+  institutionId?: Prisma.SortOrder
   bankDomain?: Prisma.SortOrder
   label?: Prisma.SortOrder
-  accessToken?: Prisma.SortOrder
-  refreshToken?: Prisma.SortOrder
-  imapHost?: Prisma.SortOrder
-  tokenExpiresAt?: Prisma.SortOrder
   lastSyncedAt?: Prisma.SortOrder
   lastMessageId?: Prisma.SortOrder
   isActive?: Prisma.SortOrder
@@ -542,16 +428,10 @@ export type FinEmailSourceCountOrderByAggregateInput = {
 export type FinEmailSourceMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
   userId?: Prisma.SortOrder
-  accountId?: Prisma.SortOrder
-  cardId?: Prisma.SortOrder
-  provider?: Prisma.SortOrder
-  emailAddress?: Prisma.SortOrder
+  connectionId?: Prisma.SortOrder
+  institutionId?: Prisma.SortOrder
   bankDomain?: Prisma.SortOrder
   label?: Prisma.SortOrder
-  accessToken?: Prisma.SortOrder
-  refreshToken?: Prisma.SortOrder
-  imapHost?: Prisma.SortOrder
-  tokenExpiresAt?: Prisma.SortOrder
   lastSyncedAt?: Prisma.SortOrder
   lastMessageId?: Prisma.SortOrder
   isActive?: Prisma.SortOrder
@@ -561,16 +441,10 @@ export type FinEmailSourceMaxOrderByAggregateInput = {
 export type FinEmailSourceMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
   userId?: Prisma.SortOrder
-  accountId?: Prisma.SortOrder
-  cardId?: Prisma.SortOrder
-  provider?: Prisma.SortOrder
-  emailAddress?: Prisma.SortOrder
+  connectionId?: Prisma.SortOrder
+  institutionId?: Prisma.SortOrder
   bankDomain?: Prisma.SortOrder
   label?: Prisma.SortOrder
-  accessToken?: Prisma.SortOrder
-  refreshToken?: Prisma.SortOrder
-  imapHost?: Prisma.SortOrder
-  tokenExpiresAt?: Prisma.SortOrder
   lastSyncedAt?: Prisma.SortOrder
   lastMessageId?: Prisma.SortOrder
   isActive?: Prisma.SortOrder
@@ -624,87 +498,87 @@ export type FinEmailSourceUncheckedUpdateManyWithoutUserNestedInput = {
   deleteMany?: Prisma.FinEmailSourceScalarWhereInput | Prisma.FinEmailSourceScalarWhereInput[]
 }
 
-export type FinEmailSourceCreateNestedManyWithoutAccountInput = {
-  create?: Prisma.XOR<Prisma.FinEmailSourceCreateWithoutAccountInput, Prisma.FinEmailSourceUncheckedCreateWithoutAccountInput> | Prisma.FinEmailSourceCreateWithoutAccountInput[] | Prisma.FinEmailSourceUncheckedCreateWithoutAccountInput[]
-  connectOrCreate?: Prisma.FinEmailSourceCreateOrConnectWithoutAccountInput | Prisma.FinEmailSourceCreateOrConnectWithoutAccountInput[]
-  createMany?: Prisma.FinEmailSourceCreateManyAccountInputEnvelope
+export type FinEmailSourceCreateNestedManyWithoutConnectionInput = {
+  create?: Prisma.XOR<Prisma.FinEmailSourceCreateWithoutConnectionInput, Prisma.FinEmailSourceUncheckedCreateWithoutConnectionInput> | Prisma.FinEmailSourceCreateWithoutConnectionInput[] | Prisma.FinEmailSourceUncheckedCreateWithoutConnectionInput[]
+  connectOrCreate?: Prisma.FinEmailSourceCreateOrConnectWithoutConnectionInput | Prisma.FinEmailSourceCreateOrConnectWithoutConnectionInput[]
+  createMany?: Prisma.FinEmailSourceCreateManyConnectionInputEnvelope
   connect?: Prisma.FinEmailSourceWhereUniqueInput | Prisma.FinEmailSourceWhereUniqueInput[]
 }
 
-export type FinEmailSourceUncheckedCreateNestedManyWithoutAccountInput = {
-  create?: Prisma.XOR<Prisma.FinEmailSourceCreateWithoutAccountInput, Prisma.FinEmailSourceUncheckedCreateWithoutAccountInput> | Prisma.FinEmailSourceCreateWithoutAccountInput[] | Prisma.FinEmailSourceUncheckedCreateWithoutAccountInput[]
-  connectOrCreate?: Prisma.FinEmailSourceCreateOrConnectWithoutAccountInput | Prisma.FinEmailSourceCreateOrConnectWithoutAccountInput[]
-  createMany?: Prisma.FinEmailSourceCreateManyAccountInputEnvelope
+export type FinEmailSourceUncheckedCreateNestedManyWithoutConnectionInput = {
+  create?: Prisma.XOR<Prisma.FinEmailSourceCreateWithoutConnectionInput, Prisma.FinEmailSourceUncheckedCreateWithoutConnectionInput> | Prisma.FinEmailSourceCreateWithoutConnectionInput[] | Prisma.FinEmailSourceUncheckedCreateWithoutConnectionInput[]
+  connectOrCreate?: Prisma.FinEmailSourceCreateOrConnectWithoutConnectionInput | Prisma.FinEmailSourceCreateOrConnectWithoutConnectionInput[]
+  createMany?: Prisma.FinEmailSourceCreateManyConnectionInputEnvelope
   connect?: Prisma.FinEmailSourceWhereUniqueInput | Prisma.FinEmailSourceWhereUniqueInput[]
 }
 
-export type FinEmailSourceUpdateManyWithoutAccountNestedInput = {
-  create?: Prisma.XOR<Prisma.FinEmailSourceCreateWithoutAccountInput, Prisma.FinEmailSourceUncheckedCreateWithoutAccountInput> | Prisma.FinEmailSourceCreateWithoutAccountInput[] | Prisma.FinEmailSourceUncheckedCreateWithoutAccountInput[]
-  connectOrCreate?: Prisma.FinEmailSourceCreateOrConnectWithoutAccountInput | Prisma.FinEmailSourceCreateOrConnectWithoutAccountInput[]
-  upsert?: Prisma.FinEmailSourceUpsertWithWhereUniqueWithoutAccountInput | Prisma.FinEmailSourceUpsertWithWhereUniqueWithoutAccountInput[]
-  createMany?: Prisma.FinEmailSourceCreateManyAccountInputEnvelope
+export type FinEmailSourceUpdateManyWithoutConnectionNestedInput = {
+  create?: Prisma.XOR<Prisma.FinEmailSourceCreateWithoutConnectionInput, Prisma.FinEmailSourceUncheckedCreateWithoutConnectionInput> | Prisma.FinEmailSourceCreateWithoutConnectionInput[] | Prisma.FinEmailSourceUncheckedCreateWithoutConnectionInput[]
+  connectOrCreate?: Prisma.FinEmailSourceCreateOrConnectWithoutConnectionInput | Prisma.FinEmailSourceCreateOrConnectWithoutConnectionInput[]
+  upsert?: Prisma.FinEmailSourceUpsertWithWhereUniqueWithoutConnectionInput | Prisma.FinEmailSourceUpsertWithWhereUniqueWithoutConnectionInput[]
+  createMany?: Prisma.FinEmailSourceCreateManyConnectionInputEnvelope
   set?: Prisma.FinEmailSourceWhereUniqueInput | Prisma.FinEmailSourceWhereUniqueInput[]
   disconnect?: Prisma.FinEmailSourceWhereUniqueInput | Prisma.FinEmailSourceWhereUniqueInput[]
   delete?: Prisma.FinEmailSourceWhereUniqueInput | Prisma.FinEmailSourceWhereUniqueInput[]
   connect?: Prisma.FinEmailSourceWhereUniqueInput | Prisma.FinEmailSourceWhereUniqueInput[]
-  update?: Prisma.FinEmailSourceUpdateWithWhereUniqueWithoutAccountInput | Prisma.FinEmailSourceUpdateWithWhereUniqueWithoutAccountInput[]
-  updateMany?: Prisma.FinEmailSourceUpdateManyWithWhereWithoutAccountInput | Prisma.FinEmailSourceUpdateManyWithWhereWithoutAccountInput[]
+  update?: Prisma.FinEmailSourceUpdateWithWhereUniqueWithoutConnectionInput | Prisma.FinEmailSourceUpdateWithWhereUniqueWithoutConnectionInput[]
+  updateMany?: Prisma.FinEmailSourceUpdateManyWithWhereWithoutConnectionInput | Prisma.FinEmailSourceUpdateManyWithWhereWithoutConnectionInput[]
   deleteMany?: Prisma.FinEmailSourceScalarWhereInput | Prisma.FinEmailSourceScalarWhereInput[]
 }
 
-export type FinEmailSourceUncheckedUpdateManyWithoutAccountNestedInput = {
-  create?: Prisma.XOR<Prisma.FinEmailSourceCreateWithoutAccountInput, Prisma.FinEmailSourceUncheckedCreateWithoutAccountInput> | Prisma.FinEmailSourceCreateWithoutAccountInput[] | Prisma.FinEmailSourceUncheckedCreateWithoutAccountInput[]
-  connectOrCreate?: Prisma.FinEmailSourceCreateOrConnectWithoutAccountInput | Prisma.FinEmailSourceCreateOrConnectWithoutAccountInput[]
-  upsert?: Prisma.FinEmailSourceUpsertWithWhereUniqueWithoutAccountInput | Prisma.FinEmailSourceUpsertWithWhereUniqueWithoutAccountInput[]
-  createMany?: Prisma.FinEmailSourceCreateManyAccountInputEnvelope
+export type FinEmailSourceUncheckedUpdateManyWithoutConnectionNestedInput = {
+  create?: Prisma.XOR<Prisma.FinEmailSourceCreateWithoutConnectionInput, Prisma.FinEmailSourceUncheckedCreateWithoutConnectionInput> | Prisma.FinEmailSourceCreateWithoutConnectionInput[] | Prisma.FinEmailSourceUncheckedCreateWithoutConnectionInput[]
+  connectOrCreate?: Prisma.FinEmailSourceCreateOrConnectWithoutConnectionInput | Prisma.FinEmailSourceCreateOrConnectWithoutConnectionInput[]
+  upsert?: Prisma.FinEmailSourceUpsertWithWhereUniqueWithoutConnectionInput | Prisma.FinEmailSourceUpsertWithWhereUniqueWithoutConnectionInput[]
+  createMany?: Prisma.FinEmailSourceCreateManyConnectionInputEnvelope
   set?: Prisma.FinEmailSourceWhereUniqueInput | Prisma.FinEmailSourceWhereUniqueInput[]
   disconnect?: Prisma.FinEmailSourceWhereUniqueInput | Prisma.FinEmailSourceWhereUniqueInput[]
   delete?: Prisma.FinEmailSourceWhereUniqueInput | Prisma.FinEmailSourceWhereUniqueInput[]
   connect?: Prisma.FinEmailSourceWhereUniqueInput | Prisma.FinEmailSourceWhereUniqueInput[]
-  update?: Prisma.FinEmailSourceUpdateWithWhereUniqueWithoutAccountInput | Prisma.FinEmailSourceUpdateWithWhereUniqueWithoutAccountInput[]
-  updateMany?: Prisma.FinEmailSourceUpdateManyWithWhereWithoutAccountInput | Prisma.FinEmailSourceUpdateManyWithWhereWithoutAccountInput[]
+  update?: Prisma.FinEmailSourceUpdateWithWhereUniqueWithoutConnectionInput | Prisma.FinEmailSourceUpdateWithWhereUniqueWithoutConnectionInput[]
+  updateMany?: Prisma.FinEmailSourceUpdateManyWithWhereWithoutConnectionInput | Prisma.FinEmailSourceUpdateManyWithWhereWithoutConnectionInput[]
   deleteMany?: Prisma.FinEmailSourceScalarWhereInput | Prisma.FinEmailSourceScalarWhereInput[]
 }
 
-export type FinEmailSourceCreateNestedManyWithoutCardInput = {
-  create?: Prisma.XOR<Prisma.FinEmailSourceCreateWithoutCardInput, Prisma.FinEmailSourceUncheckedCreateWithoutCardInput> | Prisma.FinEmailSourceCreateWithoutCardInput[] | Prisma.FinEmailSourceUncheckedCreateWithoutCardInput[]
-  connectOrCreate?: Prisma.FinEmailSourceCreateOrConnectWithoutCardInput | Prisma.FinEmailSourceCreateOrConnectWithoutCardInput[]
-  createMany?: Prisma.FinEmailSourceCreateManyCardInputEnvelope
+export type FinEmailSourceCreateNestedManyWithoutInstitutionInput = {
+  create?: Prisma.XOR<Prisma.FinEmailSourceCreateWithoutInstitutionInput, Prisma.FinEmailSourceUncheckedCreateWithoutInstitutionInput> | Prisma.FinEmailSourceCreateWithoutInstitutionInput[] | Prisma.FinEmailSourceUncheckedCreateWithoutInstitutionInput[]
+  connectOrCreate?: Prisma.FinEmailSourceCreateOrConnectWithoutInstitutionInput | Prisma.FinEmailSourceCreateOrConnectWithoutInstitutionInput[]
+  createMany?: Prisma.FinEmailSourceCreateManyInstitutionInputEnvelope
   connect?: Prisma.FinEmailSourceWhereUniqueInput | Prisma.FinEmailSourceWhereUniqueInput[]
 }
 
-export type FinEmailSourceUncheckedCreateNestedManyWithoutCardInput = {
-  create?: Prisma.XOR<Prisma.FinEmailSourceCreateWithoutCardInput, Prisma.FinEmailSourceUncheckedCreateWithoutCardInput> | Prisma.FinEmailSourceCreateWithoutCardInput[] | Prisma.FinEmailSourceUncheckedCreateWithoutCardInput[]
-  connectOrCreate?: Prisma.FinEmailSourceCreateOrConnectWithoutCardInput | Prisma.FinEmailSourceCreateOrConnectWithoutCardInput[]
-  createMany?: Prisma.FinEmailSourceCreateManyCardInputEnvelope
+export type FinEmailSourceUncheckedCreateNestedManyWithoutInstitutionInput = {
+  create?: Prisma.XOR<Prisma.FinEmailSourceCreateWithoutInstitutionInput, Prisma.FinEmailSourceUncheckedCreateWithoutInstitutionInput> | Prisma.FinEmailSourceCreateWithoutInstitutionInput[] | Prisma.FinEmailSourceUncheckedCreateWithoutInstitutionInput[]
+  connectOrCreate?: Prisma.FinEmailSourceCreateOrConnectWithoutInstitutionInput | Prisma.FinEmailSourceCreateOrConnectWithoutInstitutionInput[]
+  createMany?: Prisma.FinEmailSourceCreateManyInstitutionInputEnvelope
   connect?: Prisma.FinEmailSourceWhereUniqueInput | Prisma.FinEmailSourceWhereUniqueInput[]
 }
 
-export type FinEmailSourceUpdateManyWithoutCardNestedInput = {
-  create?: Prisma.XOR<Prisma.FinEmailSourceCreateWithoutCardInput, Prisma.FinEmailSourceUncheckedCreateWithoutCardInput> | Prisma.FinEmailSourceCreateWithoutCardInput[] | Prisma.FinEmailSourceUncheckedCreateWithoutCardInput[]
-  connectOrCreate?: Prisma.FinEmailSourceCreateOrConnectWithoutCardInput | Prisma.FinEmailSourceCreateOrConnectWithoutCardInput[]
-  upsert?: Prisma.FinEmailSourceUpsertWithWhereUniqueWithoutCardInput | Prisma.FinEmailSourceUpsertWithWhereUniqueWithoutCardInput[]
-  createMany?: Prisma.FinEmailSourceCreateManyCardInputEnvelope
+export type FinEmailSourceUpdateManyWithoutInstitutionNestedInput = {
+  create?: Prisma.XOR<Prisma.FinEmailSourceCreateWithoutInstitutionInput, Prisma.FinEmailSourceUncheckedCreateWithoutInstitutionInput> | Prisma.FinEmailSourceCreateWithoutInstitutionInput[] | Prisma.FinEmailSourceUncheckedCreateWithoutInstitutionInput[]
+  connectOrCreate?: Prisma.FinEmailSourceCreateOrConnectWithoutInstitutionInput | Prisma.FinEmailSourceCreateOrConnectWithoutInstitutionInput[]
+  upsert?: Prisma.FinEmailSourceUpsertWithWhereUniqueWithoutInstitutionInput | Prisma.FinEmailSourceUpsertWithWhereUniqueWithoutInstitutionInput[]
+  createMany?: Prisma.FinEmailSourceCreateManyInstitutionInputEnvelope
   set?: Prisma.FinEmailSourceWhereUniqueInput | Prisma.FinEmailSourceWhereUniqueInput[]
   disconnect?: Prisma.FinEmailSourceWhereUniqueInput | Prisma.FinEmailSourceWhereUniqueInput[]
   delete?: Prisma.FinEmailSourceWhereUniqueInput | Prisma.FinEmailSourceWhereUniqueInput[]
   connect?: Prisma.FinEmailSourceWhereUniqueInput | Prisma.FinEmailSourceWhereUniqueInput[]
-  update?: Prisma.FinEmailSourceUpdateWithWhereUniqueWithoutCardInput | Prisma.FinEmailSourceUpdateWithWhereUniqueWithoutCardInput[]
-  updateMany?: Prisma.FinEmailSourceUpdateManyWithWhereWithoutCardInput | Prisma.FinEmailSourceUpdateManyWithWhereWithoutCardInput[]
+  update?: Prisma.FinEmailSourceUpdateWithWhereUniqueWithoutInstitutionInput | Prisma.FinEmailSourceUpdateWithWhereUniqueWithoutInstitutionInput[]
+  updateMany?: Prisma.FinEmailSourceUpdateManyWithWhereWithoutInstitutionInput | Prisma.FinEmailSourceUpdateManyWithWhereWithoutInstitutionInput[]
   deleteMany?: Prisma.FinEmailSourceScalarWhereInput | Prisma.FinEmailSourceScalarWhereInput[]
 }
 
-export type FinEmailSourceUncheckedUpdateManyWithoutCardNestedInput = {
-  create?: Prisma.XOR<Prisma.FinEmailSourceCreateWithoutCardInput, Prisma.FinEmailSourceUncheckedCreateWithoutCardInput> | Prisma.FinEmailSourceCreateWithoutCardInput[] | Prisma.FinEmailSourceUncheckedCreateWithoutCardInput[]
-  connectOrCreate?: Prisma.FinEmailSourceCreateOrConnectWithoutCardInput | Prisma.FinEmailSourceCreateOrConnectWithoutCardInput[]
-  upsert?: Prisma.FinEmailSourceUpsertWithWhereUniqueWithoutCardInput | Prisma.FinEmailSourceUpsertWithWhereUniqueWithoutCardInput[]
-  createMany?: Prisma.FinEmailSourceCreateManyCardInputEnvelope
+export type FinEmailSourceUncheckedUpdateManyWithoutInstitutionNestedInput = {
+  create?: Prisma.XOR<Prisma.FinEmailSourceCreateWithoutInstitutionInput, Prisma.FinEmailSourceUncheckedCreateWithoutInstitutionInput> | Prisma.FinEmailSourceCreateWithoutInstitutionInput[] | Prisma.FinEmailSourceUncheckedCreateWithoutInstitutionInput[]
+  connectOrCreate?: Prisma.FinEmailSourceCreateOrConnectWithoutInstitutionInput | Prisma.FinEmailSourceCreateOrConnectWithoutInstitutionInput[]
+  upsert?: Prisma.FinEmailSourceUpsertWithWhereUniqueWithoutInstitutionInput | Prisma.FinEmailSourceUpsertWithWhereUniqueWithoutInstitutionInput[]
+  createMany?: Prisma.FinEmailSourceCreateManyInstitutionInputEnvelope
   set?: Prisma.FinEmailSourceWhereUniqueInput | Prisma.FinEmailSourceWhereUniqueInput[]
   disconnect?: Prisma.FinEmailSourceWhereUniqueInput | Prisma.FinEmailSourceWhereUniqueInput[]
   delete?: Prisma.FinEmailSourceWhereUniqueInput | Prisma.FinEmailSourceWhereUniqueInput[]
   connect?: Prisma.FinEmailSourceWhereUniqueInput | Prisma.FinEmailSourceWhereUniqueInput[]
-  update?: Prisma.FinEmailSourceUpdateWithWhereUniqueWithoutCardInput | Prisma.FinEmailSourceUpdateWithWhereUniqueWithoutCardInput[]
-  updateMany?: Prisma.FinEmailSourceUpdateManyWithWhereWithoutCardInput | Prisma.FinEmailSourceUpdateManyWithWhereWithoutCardInput[]
+  update?: Prisma.FinEmailSourceUpdateWithWhereUniqueWithoutInstitutionInput | Prisma.FinEmailSourceUpdateWithWhereUniqueWithoutInstitutionInput[]
+  updateMany?: Prisma.FinEmailSourceUpdateManyWithWhereWithoutInstitutionInput | Prisma.FinEmailSourceUpdateManyWithWhereWithoutInstitutionInput[]
   deleteMany?: Prisma.FinEmailSourceScalarWhereInput | Prisma.FinEmailSourceScalarWhereInput[]
 }
 
@@ -738,36 +612,24 @@ export type FinEmailSourceUpdateOneRequiredWithoutEmailMessagesNestedInput = {
 
 export type FinEmailSourceCreateWithoutUserInput = {
   id?: string
-  provider: string
-  emailAddress: string
   bankDomain: string
   label?: string | null
-  accessToken?: string | null
-  refreshToken?: string | null
-  imapHost?: string | null
-  tokenExpiresAt?: Date | string | null
   lastSyncedAt?: Date | string | null
   lastMessageId?: string | null
   isActive?: boolean
   createdAt?: Date | string
   logs?: Prisma.FinEmailSyncLogCreateNestedManyWithoutSourceInput
   emailMessages?: Prisma.FinEmailMessageCreateNestedManyWithoutSourceInput
-  account?: Prisma.FinAccountCreateNestedOneWithoutEmailSourcesInput
-  card?: Prisma.FinCardCreateNestedOneWithoutEmailSourcesInput
+  connection: Prisma.FinEmailConnectionCreateNestedOneWithoutSourcesInput
+  institution: Prisma.FinInstitutionCreateNestedOneWithoutEmailSourcesInput
 }
 
 export type FinEmailSourceUncheckedCreateWithoutUserInput = {
   id?: string
-  accountId?: string | null
-  cardId?: string | null
-  provider: string
-  emailAddress: string
+  connectionId: string
+  institutionId: string
   bankDomain: string
   label?: string | null
-  accessToken?: string | null
-  refreshToken?: string | null
-  imapHost?: string | null
-  tokenExpiresAt?: Date | string | null
   lastSyncedAt?: Date | string | null
   lastMessageId?: string | null
   isActive?: boolean
@@ -808,54 +670,36 @@ export type FinEmailSourceScalarWhereInput = {
   NOT?: Prisma.FinEmailSourceScalarWhereInput | Prisma.FinEmailSourceScalarWhereInput[]
   id?: Prisma.StringFilter<"FinEmailSource"> | string
   userId?: Prisma.StringFilter<"FinEmailSource"> | string
-  accountId?: Prisma.StringNullableFilter<"FinEmailSource"> | string | null
-  cardId?: Prisma.StringNullableFilter<"FinEmailSource"> | string | null
-  provider?: Prisma.StringFilter<"FinEmailSource"> | string
-  emailAddress?: Prisma.StringFilter<"FinEmailSource"> | string
+  connectionId?: Prisma.StringFilter<"FinEmailSource"> | string
+  institutionId?: Prisma.StringFilter<"FinEmailSource"> | string
   bankDomain?: Prisma.StringFilter<"FinEmailSource"> | string
   label?: Prisma.StringNullableFilter<"FinEmailSource"> | string | null
-  accessToken?: Prisma.StringNullableFilter<"FinEmailSource"> | string | null
-  refreshToken?: Prisma.StringNullableFilter<"FinEmailSource"> | string | null
-  imapHost?: Prisma.StringNullableFilter<"FinEmailSource"> | string | null
-  tokenExpiresAt?: Prisma.DateTimeNullableFilter<"FinEmailSource"> | Date | string | null
   lastSyncedAt?: Prisma.DateTimeNullableFilter<"FinEmailSource"> | Date | string | null
   lastMessageId?: Prisma.StringNullableFilter<"FinEmailSource"> | string | null
   isActive?: Prisma.BoolFilter<"FinEmailSource"> | boolean
   createdAt?: Prisma.DateTimeFilter<"FinEmailSource"> | Date | string
 }
 
-export type FinEmailSourceCreateWithoutAccountInput = {
+export type FinEmailSourceCreateWithoutConnectionInput = {
   id?: string
-  provider: string
-  emailAddress: string
   bankDomain: string
   label?: string | null
-  accessToken?: string | null
-  refreshToken?: string | null
-  imapHost?: string | null
-  tokenExpiresAt?: Date | string | null
   lastSyncedAt?: Date | string | null
   lastMessageId?: string | null
   isActive?: boolean
   createdAt?: Date | string
   logs?: Prisma.FinEmailSyncLogCreateNestedManyWithoutSourceInput
   emailMessages?: Prisma.FinEmailMessageCreateNestedManyWithoutSourceInput
-  card?: Prisma.FinCardCreateNestedOneWithoutEmailSourcesInput
+  institution: Prisma.FinInstitutionCreateNestedOneWithoutEmailSourcesInput
   user: Prisma.UserCreateNestedOneWithoutFinEmailSourcesInput
 }
 
-export type FinEmailSourceUncheckedCreateWithoutAccountInput = {
+export type FinEmailSourceUncheckedCreateWithoutConnectionInput = {
   id?: string
   userId: string
-  cardId?: string | null
-  provider: string
-  emailAddress: string
+  institutionId: string
   bankDomain: string
   label?: string | null
-  accessToken?: string | null
-  refreshToken?: string | null
-  imapHost?: string | null
-  tokenExpiresAt?: Date | string | null
   lastSyncedAt?: Date | string | null
   lastMessageId?: string | null
   isActive?: boolean
@@ -864,64 +708,52 @@ export type FinEmailSourceUncheckedCreateWithoutAccountInput = {
   emailMessages?: Prisma.FinEmailMessageUncheckedCreateNestedManyWithoutSourceInput
 }
 
-export type FinEmailSourceCreateOrConnectWithoutAccountInput = {
+export type FinEmailSourceCreateOrConnectWithoutConnectionInput = {
   where: Prisma.FinEmailSourceWhereUniqueInput
-  create: Prisma.XOR<Prisma.FinEmailSourceCreateWithoutAccountInput, Prisma.FinEmailSourceUncheckedCreateWithoutAccountInput>
+  create: Prisma.XOR<Prisma.FinEmailSourceCreateWithoutConnectionInput, Prisma.FinEmailSourceUncheckedCreateWithoutConnectionInput>
 }
 
-export type FinEmailSourceCreateManyAccountInputEnvelope = {
-  data: Prisma.FinEmailSourceCreateManyAccountInput | Prisma.FinEmailSourceCreateManyAccountInput[]
+export type FinEmailSourceCreateManyConnectionInputEnvelope = {
+  data: Prisma.FinEmailSourceCreateManyConnectionInput | Prisma.FinEmailSourceCreateManyConnectionInput[]
   skipDuplicates?: boolean
 }
 
-export type FinEmailSourceUpsertWithWhereUniqueWithoutAccountInput = {
+export type FinEmailSourceUpsertWithWhereUniqueWithoutConnectionInput = {
   where: Prisma.FinEmailSourceWhereUniqueInput
-  update: Prisma.XOR<Prisma.FinEmailSourceUpdateWithoutAccountInput, Prisma.FinEmailSourceUncheckedUpdateWithoutAccountInput>
-  create: Prisma.XOR<Prisma.FinEmailSourceCreateWithoutAccountInput, Prisma.FinEmailSourceUncheckedCreateWithoutAccountInput>
+  update: Prisma.XOR<Prisma.FinEmailSourceUpdateWithoutConnectionInput, Prisma.FinEmailSourceUncheckedUpdateWithoutConnectionInput>
+  create: Prisma.XOR<Prisma.FinEmailSourceCreateWithoutConnectionInput, Prisma.FinEmailSourceUncheckedCreateWithoutConnectionInput>
 }
 
-export type FinEmailSourceUpdateWithWhereUniqueWithoutAccountInput = {
+export type FinEmailSourceUpdateWithWhereUniqueWithoutConnectionInput = {
   where: Prisma.FinEmailSourceWhereUniqueInput
-  data: Prisma.XOR<Prisma.FinEmailSourceUpdateWithoutAccountInput, Prisma.FinEmailSourceUncheckedUpdateWithoutAccountInput>
+  data: Prisma.XOR<Prisma.FinEmailSourceUpdateWithoutConnectionInput, Prisma.FinEmailSourceUncheckedUpdateWithoutConnectionInput>
 }
 
-export type FinEmailSourceUpdateManyWithWhereWithoutAccountInput = {
+export type FinEmailSourceUpdateManyWithWhereWithoutConnectionInput = {
   where: Prisma.FinEmailSourceScalarWhereInput
-  data: Prisma.XOR<Prisma.FinEmailSourceUpdateManyMutationInput, Prisma.FinEmailSourceUncheckedUpdateManyWithoutAccountInput>
+  data: Prisma.XOR<Prisma.FinEmailSourceUpdateManyMutationInput, Prisma.FinEmailSourceUncheckedUpdateManyWithoutConnectionInput>
 }
 
-export type FinEmailSourceCreateWithoutCardInput = {
+export type FinEmailSourceCreateWithoutInstitutionInput = {
   id?: string
-  provider: string
-  emailAddress: string
   bankDomain: string
   label?: string | null
-  accessToken?: string | null
-  refreshToken?: string | null
-  imapHost?: string | null
-  tokenExpiresAt?: Date | string | null
   lastSyncedAt?: Date | string | null
   lastMessageId?: string | null
   isActive?: boolean
   createdAt?: Date | string
   logs?: Prisma.FinEmailSyncLogCreateNestedManyWithoutSourceInput
   emailMessages?: Prisma.FinEmailMessageCreateNestedManyWithoutSourceInput
-  account?: Prisma.FinAccountCreateNestedOneWithoutEmailSourcesInput
+  connection: Prisma.FinEmailConnectionCreateNestedOneWithoutSourcesInput
   user: Prisma.UserCreateNestedOneWithoutFinEmailSourcesInput
 }
 
-export type FinEmailSourceUncheckedCreateWithoutCardInput = {
+export type FinEmailSourceUncheckedCreateWithoutInstitutionInput = {
   id?: string
   userId: string
-  accountId?: string | null
-  provider: string
-  emailAddress: string
+  connectionId: string
   bankDomain: string
   label?: string | null
-  accessToken?: string | null
-  refreshToken?: string | null
-  imapHost?: string | null
-  tokenExpiresAt?: Date | string | null
   lastSyncedAt?: Date | string | null
   lastMessageId?: string | null
   isActive?: boolean
@@ -930,65 +762,53 @@ export type FinEmailSourceUncheckedCreateWithoutCardInput = {
   emailMessages?: Prisma.FinEmailMessageUncheckedCreateNestedManyWithoutSourceInput
 }
 
-export type FinEmailSourceCreateOrConnectWithoutCardInput = {
+export type FinEmailSourceCreateOrConnectWithoutInstitutionInput = {
   where: Prisma.FinEmailSourceWhereUniqueInput
-  create: Prisma.XOR<Prisma.FinEmailSourceCreateWithoutCardInput, Prisma.FinEmailSourceUncheckedCreateWithoutCardInput>
+  create: Prisma.XOR<Prisma.FinEmailSourceCreateWithoutInstitutionInput, Prisma.FinEmailSourceUncheckedCreateWithoutInstitutionInput>
 }
 
-export type FinEmailSourceCreateManyCardInputEnvelope = {
-  data: Prisma.FinEmailSourceCreateManyCardInput | Prisma.FinEmailSourceCreateManyCardInput[]
+export type FinEmailSourceCreateManyInstitutionInputEnvelope = {
+  data: Prisma.FinEmailSourceCreateManyInstitutionInput | Prisma.FinEmailSourceCreateManyInstitutionInput[]
   skipDuplicates?: boolean
 }
 
-export type FinEmailSourceUpsertWithWhereUniqueWithoutCardInput = {
+export type FinEmailSourceUpsertWithWhereUniqueWithoutInstitutionInput = {
   where: Prisma.FinEmailSourceWhereUniqueInput
-  update: Prisma.XOR<Prisma.FinEmailSourceUpdateWithoutCardInput, Prisma.FinEmailSourceUncheckedUpdateWithoutCardInput>
-  create: Prisma.XOR<Prisma.FinEmailSourceCreateWithoutCardInput, Prisma.FinEmailSourceUncheckedCreateWithoutCardInput>
+  update: Prisma.XOR<Prisma.FinEmailSourceUpdateWithoutInstitutionInput, Prisma.FinEmailSourceUncheckedUpdateWithoutInstitutionInput>
+  create: Prisma.XOR<Prisma.FinEmailSourceCreateWithoutInstitutionInput, Prisma.FinEmailSourceUncheckedCreateWithoutInstitutionInput>
 }
 
-export type FinEmailSourceUpdateWithWhereUniqueWithoutCardInput = {
+export type FinEmailSourceUpdateWithWhereUniqueWithoutInstitutionInput = {
   where: Prisma.FinEmailSourceWhereUniqueInput
-  data: Prisma.XOR<Prisma.FinEmailSourceUpdateWithoutCardInput, Prisma.FinEmailSourceUncheckedUpdateWithoutCardInput>
+  data: Prisma.XOR<Prisma.FinEmailSourceUpdateWithoutInstitutionInput, Prisma.FinEmailSourceUncheckedUpdateWithoutInstitutionInput>
 }
 
-export type FinEmailSourceUpdateManyWithWhereWithoutCardInput = {
+export type FinEmailSourceUpdateManyWithWhereWithoutInstitutionInput = {
   where: Prisma.FinEmailSourceScalarWhereInput
-  data: Prisma.XOR<Prisma.FinEmailSourceUpdateManyMutationInput, Prisma.FinEmailSourceUncheckedUpdateManyWithoutCardInput>
+  data: Prisma.XOR<Prisma.FinEmailSourceUpdateManyMutationInput, Prisma.FinEmailSourceUncheckedUpdateManyWithoutInstitutionInput>
 }
 
 export type FinEmailSourceCreateWithoutLogsInput = {
   id?: string
-  provider: string
-  emailAddress: string
   bankDomain: string
   label?: string | null
-  accessToken?: string | null
-  refreshToken?: string | null
-  imapHost?: string | null
-  tokenExpiresAt?: Date | string | null
   lastSyncedAt?: Date | string | null
   lastMessageId?: string | null
   isActive?: boolean
   createdAt?: Date | string
   emailMessages?: Prisma.FinEmailMessageCreateNestedManyWithoutSourceInput
-  account?: Prisma.FinAccountCreateNestedOneWithoutEmailSourcesInput
-  card?: Prisma.FinCardCreateNestedOneWithoutEmailSourcesInput
+  connection: Prisma.FinEmailConnectionCreateNestedOneWithoutSourcesInput
+  institution: Prisma.FinInstitutionCreateNestedOneWithoutEmailSourcesInput
   user: Prisma.UserCreateNestedOneWithoutFinEmailSourcesInput
 }
 
 export type FinEmailSourceUncheckedCreateWithoutLogsInput = {
   id?: string
   userId: string
-  accountId?: string | null
-  cardId?: string | null
-  provider: string
-  emailAddress: string
+  connectionId: string
+  institutionId: string
   bankDomain: string
   label?: string | null
-  accessToken?: string | null
-  refreshToken?: string | null
-  imapHost?: string | null
-  tokenExpiresAt?: Date | string | null
   lastSyncedAt?: Date | string | null
   lastMessageId?: string | null
   isActive?: boolean
@@ -1014,37 +834,25 @@ export type FinEmailSourceUpdateToOneWithWhereWithoutLogsInput = {
 
 export type FinEmailSourceUpdateWithoutLogsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  provider?: Prisma.StringFieldUpdateOperationsInput | string
-  emailAddress?: Prisma.StringFieldUpdateOperationsInput | string
   bankDomain?: Prisma.StringFieldUpdateOperationsInput | string
   label?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  accessToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  refreshToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  imapHost?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  tokenExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastSyncedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastMessageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   emailMessages?: Prisma.FinEmailMessageUpdateManyWithoutSourceNestedInput
-  account?: Prisma.FinAccountUpdateOneWithoutEmailSourcesNestedInput
-  card?: Prisma.FinCardUpdateOneWithoutEmailSourcesNestedInput
+  connection?: Prisma.FinEmailConnectionUpdateOneRequiredWithoutSourcesNestedInput
+  institution?: Prisma.FinInstitutionUpdateOneRequiredWithoutEmailSourcesNestedInput
   user?: Prisma.UserUpdateOneRequiredWithoutFinEmailSourcesNestedInput
 }
 
 export type FinEmailSourceUncheckedUpdateWithoutLogsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.StringFieldUpdateOperationsInput | string
-  accountId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  cardId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  provider?: Prisma.StringFieldUpdateOperationsInput | string
-  emailAddress?: Prisma.StringFieldUpdateOperationsInput | string
+  connectionId?: Prisma.StringFieldUpdateOperationsInput | string
+  institutionId?: Prisma.StringFieldUpdateOperationsInput | string
   bankDomain?: Prisma.StringFieldUpdateOperationsInput | string
   label?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  accessToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  refreshToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  imapHost?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  tokenExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastSyncedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastMessageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -1054,37 +862,25 @@ export type FinEmailSourceUncheckedUpdateWithoutLogsInput = {
 
 export type FinEmailSourceCreateWithoutEmailMessagesInput = {
   id?: string
-  provider: string
-  emailAddress: string
   bankDomain: string
   label?: string | null
-  accessToken?: string | null
-  refreshToken?: string | null
-  imapHost?: string | null
-  tokenExpiresAt?: Date | string | null
   lastSyncedAt?: Date | string | null
   lastMessageId?: string | null
   isActive?: boolean
   createdAt?: Date | string
   logs?: Prisma.FinEmailSyncLogCreateNestedManyWithoutSourceInput
-  account?: Prisma.FinAccountCreateNestedOneWithoutEmailSourcesInput
-  card?: Prisma.FinCardCreateNestedOneWithoutEmailSourcesInput
+  connection: Prisma.FinEmailConnectionCreateNestedOneWithoutSourcesInput
+  institution: Prisma.FinInstitutionCreateNestedOneWithoutEmailSourcesInput
   user: Prisma.UserCreateNestedOneWithoutFinEmailSourcesInput
 }
 
 export type FinEmailSourceUncheckedCreateWithoutEmailMessagesInput = {
   id?: string
   userId: string
-  accountId?: string | null
-  cardId?: string | null
-  provider: string
-  emailAddress: string
+  connectionId: string
+  institutionId: string
   bankDomain: string
   label?: string | null
-  accessToken?: string | null
-  refreshToken?: string | null
-  imapHost?: string | null
-  tokenExpiresAt?: Date | string | null
   lastSyncedAt?: Date | string | null
   lastMessageId?: string | null
   isActive?: boolean
@@ -1110,37 +906,25 @@ export type FinEmailSourceUpdateToOneWithWhereWithoutEmailMessagesInput = {
 
 export type FinEmailSourceUpdateWithoutEmailMessagesInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  provider?: Prisma.StringFieldUpdateOperationsInput | string
-  emailAddress?: Prisma.StringFieldUpdateOperationsInput | string
   bankDomain?: Prisma.StringFieldUpdateOperationsInput | string
   label?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  accessToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  refreshToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  imapHost?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  tokenExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastSyncedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastMessageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   logs?: Prisma.FinEmailSyncLogUpdateManyWithoutSourceNestedInput
-  account?: Prisma.FinAccountUpdateOneWithoutEmailSourcesNestedInput
-  card?: Prisma.FinCardUpdateOneWithoutEmailSourcesNestedInput
+  connection?: Prisma.FinEmailConnectionUpdateOneRequiredWithoutSourcesNestedInput
+  institution?: Prisma.FinInstitutionUpdateOneRequiredWithoutEmailSourcesNestedInput
   user?: Prisma.UserUpdateOneRequiredWithoutFinEmailSourcesNestedInput
 }
 
 export type FinEmailSourceUncheckedUpdateWithoutEmailMessagesInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.StringFieldUpdateOperationsInput | string
-  accountId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  cardId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  provider?: Prisma.StringFieldUpdateOperationsInput | string
-  emailAddress?: Prisma.StringFieldUpdateOperationsInput | string
+  connectionId?: Prisma.StringFieldUpdateOperationsInput | string
+  institutionId?: Prisma.StringFieldUpdateOperationsInput | string
   bankDomain?: Prisma.StringFieldUpdateOperationsInput | string
   label?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  accessToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  refreshToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  imapHost?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  tokenExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastSyncedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastMessageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -1150,16 +934,10 @@ export type FinEmailSourceUncheckedUpdateWithoutEmailMessagesInput = {
 
 export type FinEmailSourceCreateManyUserInput = {
   id?: string
-  accountId?: string | null
-  cardId?: string | null
-  provider: string
-  emailAddress: string
+  connectionId: string
+  institutionId: string
   bankDomain: string
   label?: string | null
-  accessToken?: string | null
-  refreshToken?: string | null
-  imapHost?: string | null
-  tokenExpiresAt?: Date | string | null
   lastSyncedAt?: Date | string | null
   lastMessageId?: string | null
   isActive?: boolean
@@ -1168,36 +946,24 @@ export type FinEmailSourceCreateManyUserInput = {
 
 export type FinEmailSourceUpdateWithoutUserInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  provider?: Prisma.StringFieldUpdateOperationsInput | string
-  emailAddress?: Prisma.StringFieldUpdateOperationsInput | string
   bankDomain?: Prisma.StringFieldUpdateOperationsInput | string
   label?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  accessToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  refreshToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  imapHost?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  tokenExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastSyncedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastMessageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   logs?: Prisma.FinEmailSyncLogUpdateManyWithoutSourceNestedInput
   emailMessages?: Prisma.FinEmailMessageUpdateManyWithoutSourceNestedInput
-  account?: Prisma.FinAccountUpdateOneWithoutEmailSourcesNestedInput
-  card?: Prisma.FinCardUpdateOneWithoutEmailSourcesNestedInput
+  connection?: Prisma.FinEmailConnectionUpdateOneRequiredWithoutSourcesNestedInput
+  institution?: Prisma.FinInstitutionUpdateOneRequiredWithoutEmailSourcesNestedInput
 }
 
 export type FinEmailSourceUncheckedUpdateWithoutUserInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  accountId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  cardId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  provider?: Prisma.StringFieldUpdateOperationsInput | string
-  emailAddress?: Prisma.StringFieldUpdateOperationsInput | string
+  connectionId?: Prisma.StringFieldUpdateOperationsInput | string
+  institutionId?: Prisma.StringFieldUpdateOperationsInput | string
   bankDomain?: Prisma.StringFieldUpdateOperationsInput | string
   label?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  accessToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  refreshToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  imapHost?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  tokenExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastSyncedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastMessageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -1208,72 +974,48 @@ export type FinEmailSourceUncheckedUpdateWithoutUserInput = {
 
 export type FinEmailSourceUncheckedUpdateManyWithoutUserInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  accountId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  cardId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  provider?: Prisma.StringFieldUpdateOperationsInput | string
-  emailAddress?: Prisma.StringFieldUpdateOperationsInput | string
+  connectionId?: Prisma.StringFieldUpdateOperationsInput | string
+  institutionId?: Prisma.StringFieldUpdateOperationsInput | string
   bankDomain?: Prisma.StringFieldUpdateOperationsInput | string
   label?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  accessToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  refreshToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  imapHost?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  tokenExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastSyncedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastMessageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
-export type FinEmailSourceCreateManyAccountInput = {
+export type FinEmailSourceCreateManyConnectionInput = {
   id?: string
   userId: string
-  cardId?: string | null
-  provider: string
-  emailAddress: string
+  institutionId: string
   bankDomain: string
   label?: string | null
-  accessToken?: string | null
-  refreshToken?: string | null
-  imapHost?: string | null
-  tokenExpiresAt?: Date | string | null
   lastSyncedAt?: Date | string | null
   lastMessageId?: string | null
   isActive?: boolean
   createdAt?: Date | string
 }
 
-export type FinEmailSourceUpdateWithoutAccountInput = {
+export type FinEmailSourceUpdateWithoutConnectionInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  provider?: Prisma.StringFieldUpdateOperationsInput | string
-  emailAddress?: Prisma.StringFieldUpdateOperationsInput | string
   bankDomain?: Prisma.StringFieldUpdateOperationsInput | string
   label?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  accessToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  refreshToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  imapHost?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  tokenExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastSyncedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastMessageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   logs?: Prisma.FinEmailSyncLogUpdateManyWithoutSourceNestedInput
   emailMessages?: Prisma.FinEmailMessageUpdateManyWithoutSourceNestedInput
-  card?: Prisma.FinCardUpdateOneWithoutEmailSourcesNestedInput
+  institution?: Prisma.FinInstitutionUpdateOneRequiredWithoutEmailSourcesNestedInput
   user?: Prisma.UserUpdateOneRequiredWithoutFinEmailSourcesNestedInput
 }
 
-export type FinEmailSourceUncheckedUpdateWithoutAccountInput = {
+export type FinEmailSourceUncheckedUpdateWithoutConnectionInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.StringFieldUpdateOperationsInput | string
-  cardId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  provider?: Prisma.StringFieldUpdateOperationsInput | string
-  emailAddress?: Prisma.StringFieldUpdateOperationsInput | string
+  institutionId?: Prisma.StringFieldUpdateOperationsInput | string
   bankDomain?: Prisma.StringFieldUpdateOperationsInput | string
   label?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  accessToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  refreshToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  imapHost?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  tokenExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastSyncedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastMessageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -1282,74 +1024,50 @@ export type FinEmailSourceUncheckedUpdateWithoutAccountInput = {
   emailMessages?: Prisma.FinEmailMessageUncheckedUpdateManyWithoutSourceNestedInput
 }
 
-export type FinEmailSourceUncheckedUpdateManyWithoutAccountInput = {
+export type FinEmailSourceUncheckedUpdateManyWithoutConnectionInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.StringFieldUpdateOperationsInput | string
-  cardId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  provider?: Prisma.StringFieldUpdateOperationsInput | string
-  emailAddress?: Prisma.StringFieldUpdateOperationsInput | string
+  institutionId?: Prisma.StringFieldUpdateOperationsInput | string
   bankDomain?: Prisma.StringFieldUpdateOperationsInput | string
   label?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  accessToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  refreshToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  imapHost?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  tokenExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastSyncedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastMessageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
-export type FinEmailSourceCreateManyCardInput = {
+export type FinEmailSourceCreateManyInstitutionInput = {
   id?: string
   userId: string
-  accountId?: string | null
-  provider: string
-  emailAddress: string
+  connectionId: string
   bankDomain: string
   label?: string | null
-  accessToken?: string | null
-  refreshToken?: string | null
-  imapHost?: string | null
-  tokenExpiresAt?: Date | string | null
   lastSyncedAt?: Date | string | null
   lastMessageId?: string | null
   isActive?: boolean
   createdAt?: Date | string
 }
 
-export type FinEmailSourceUpdateWithoutCardInput = {
+export type FinEmailSourceUpdateWithoutInstitutionInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  provider?: Prisma.StringFieldUpdateOperationsInput | string
-  emailAddress?: Prisma.StringFieldUpdateOperationsInput | string
   bankDomain?: Prisma.StringFieldUpdateOperationsInput | string
   label?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  accessToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  refreshToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  imapHost?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  tokenExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastSyncedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastMessageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   logs?: Prisma.FinEmailSyncLogUpdateManyWithoutSourceNestedInput
   emailMessages?: Prisma.FinEmailMessageUpdateManyWithoutSourceNestedInput
-  account?: Prisma.FinAccountUpdateOneWithoutEmailSourcesNestedInput
+  connection?: Prisma.FinEmailConnectionUpdateOneRequiredWithoutSourcesNestedInput
   user?: Prisma.UserUpdateOneRequiredWithoutFinEmailSourcesNestedInput
 }
 
-export type FinEmailSourceUncheckedUpdateWithoutCardInput = {
+export type FinEmailSourceUncheckedUpdateWithoutInstitutionInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.StringFieldUpdateOperationsInput | string
-  accountId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  provider?: Prisma.StringFieldUpdateOperationsInput | string
-  emailAddress?: Prisma.StringFieldUpdateOperationsInput | string
+  connectionId?: Prisma.StringFieldUpdateOperationsInput | string
   bankDomain?: Prisma.StringFieldUpdateOperationsInput | string
   label?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  accessToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  refreshToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  imapHost?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  tokenExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastSyncedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastMessageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -1358,18 +1076,12 @@ export type FinEmailSourceUncheckedUpdateWithoutCardInput = {
   emailMessages?: Prisma.FinEmailMessageUncheckedUpdateManyWithoutSourceNestedInput
 }
 
-export type FinEmailSourceUncheckedUpdateManyWithoutCardInput = {
+export type FinEmailSourceUncheckedUpdateManyWithoutInstitutionInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.StringFieldUpdateOperationsInput | string
-  accountId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  provider?: Prisma.StringFieldUpdateOperationsInput | string
-  emailAddress?: Prisma.StringFieldUpdateOperationsInput | string
+  connectionId?: Prisma.StringFieldUpdateOperationsInput | string
   bankDomain?: Prisma.StringFieldUpdateOperationsInput | string
   label?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  accessToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  refreshToken?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  imapHost?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  tokenExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastSyncedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastMessageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -1419,24 +1131,18 @@ export type FinEmailSourceCountOutputTypeCountEmailMessagesArgs<ExtArgs extends 
 export type FinEmailSourceSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   userId?: boolean
-  accountId?: boolean
-  cardId?: boolean
-  provider?: boolean
-  emailAddress?: boolean
+  connectionId?: boolean
+  institutionId?: boolean
   bankDomain?: boolean
   label?: boolean
-  accessToken?: boolean
-  refreshToken?: boolean
-  imapHost?: boolean
-  tokenExpiresAt?: boolean
   lastSyncedAt?: boolean
   lastMessageId?: boolean
   isActive?: boolean
   createdAt?: boolean
   logs?: boolean | Prisma.FinEmailSource$logsArgs<ExtArgs>
   emailMessages?: boolean | Prisma.FinEmailSource$emailMessagesArgs<ExtArgs>
-  account?: boolean | Prisma.FinEmailSource$accountArgs<ExtArgs>
-  card?: boolean | Prisma.FinEmailSource$cardArgs<ExtArgs>
+  connection?: boolean | Prisma.FinEmailConnectionDefaultArgs<ExtArgs>
+  institution?: boolean | Prisma.FinInstitutionDefaultArgs<ExtArgs>
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   _count?: boolean | Prisma.FinEmailSourceCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["finEmailSource"]>
@@ -1444,83 +1150,65 @@ export type FinEmailSourceSelect<ExtArgs extends runtime.Types.Extensions.Intern
 export type FinEmailSourceSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   userId?: boolean
-  accountId?: boolean
-  cardId?: boolean
-  provider?: boolean
-  emailAddress?: boolean
+  connectionId?: boolean
+  institutionId?: boolean
   bankDomain?: boolean
   label?: boolean
-  accessToken?: boolean
-  refreshToken?: boolean
-  imapHost?: boolean
-  tokenExpiresAt?: boolean
   lastSyncedAt?: boolean
   lastMessageId?: boolean
   isActive?: boolean
   createdAt?: boolean
-  account?: boolean | Prisma.FinEmailSource$accountArgs<ExtArgs>
-  card?: boolean | Prisma.FinEmailSource$cardArgs<ExtArgs>
+  connection?: boolean | Prisma.FinEmailConnectionDefaultArgs<ExtArgs>
+  institution?: boolean | Prisma.FinInstitutionDefaultArgs<ExtArgs>
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["finEmailSource"]>
 
 export type FinEmailSourceSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   userId?: boolean
-  accountId?: boolean
-  cardId?: boolean
-  provider?: boolean
-  emailAddress?: boolean
+  connectionId?: boolean
+  institutionId?: boolean
   bankDomain?: boolean
   label?: boolean
-  accessToken?: boolean
-  refreshToken?: boolean
-  imapHost?: boolean
-  tokenExpiresAt?: boolean
   lastSyncedAt?: boolean
   lastMessageId?: boolean
   isActive?: boolean
   createdAt?: boolean
-  account?: boolean | Prisma.FinEmailSource$accountArgs<ExtArgs>
-  card?: boolean | Prisma.FinEmailSource$cardArgs<ExtArgs>
+  connection?: boolean | Prisma.FinEmailConnectionDefaultArgs<ExtArgs>
+  institution?: boolean | Prisma.FinInstitutionDefaultArgs<ExtArgs>
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["finEmailSource"]>
 
 export type FinEmailSourceSelectScalar = {
   id?: boolean
   userId?: boolean
-  accountId?: boolean
-  cardId?: boolean
-  provider?: boolean
-  emailAddress?: boolean
+  connectionId?: boolean
+  institutionId?: boolean
   bankDomain?: boolean
   label?: boolean
-  accessToken?: boolean
-  refreshToken?: boolean
-  imapHost?: boolean
-  tokenExpiresAt?: boolean
   lastSyncedAt?: boolean
   lastMessageId?: boolean
   isActive?: boolean
   createdAt?: boolean
 }
 
-export type FinEmailSourceOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "accountId" | "cardId" | "provider" | "emailAddress" | "bankDomain" | "label" | "accessToken" | "refreshToken" | "imapHost" | "tokenExpiresAt" | "lastSyncedAt" | "lastMessageId" | "isActive" | "createdAt", ExtArgs["result"]["finEmailSource"]>
+export type FinEmailSourceOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "connectionId" | "institutionId" | "bankDomain" | "label" | "lastSyncedAt" | "lastMessageId" | "isActive" | "createdAt", ExtArgs["result"]["finEmailSource"]>
 export type FinEmailSourceInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   logs?: boolean | Prisma.FinEmailSource$logsArgs<ExtArgs>
   emailMessages?: boolean | Prisma.FinEmailSource$emailMessagesArgs<ExtArgs>
-  account?: boolean | Prisma.FinEmailSource$accountArgs<ExtArgs>
-  card?: boolean | Prisma.FinEmailSource$cardArgs<ExtArgs>
+  connection?: boolean | Prisma.FinEmailConnectionDefaultArgs<ExtArgs>
+  institution?: boolean | Prisma.FinInstitutionDefaultArgs<ExtArgs>
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   _count?: boolean | Prisma.FinEmailSourceCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type FinEmailSourceIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  account?: boolean | Prisma.FinEmailSource$accountArgs<ExtArgs>
-  card?: boolean | Prisma.FinEmailSource$cardArgs<ExtArgs>
+  connection?: boolean | Prisma.FinEmailConnectionDefaultArgs<ExtArgs>
+  institution?: boolean | Prisma.FinInstitutionDefaultArgs<ExtArgs>
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
 }
 export type FinEmailSourceIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  account?: boolean | Prisma.FinEmailSource$accountArgs<ExtArgs>
-  card?: boolean | Prisma.FinEmailSource$cardArgs<ExtArgs>
+  connection?: boolean | Prisma.FinEmailConnectionDefaultArgs<ExtArgs>
+  institution?: boolean | Prisma.FinInstitutionDefaultArgs<ExtArgs>
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
 }
 
@@ -1529,23 +1217,17 @@ export type $FinEmailSourcePayload<ExtArgs extends runtime.Types.Extensions.Inte
   objects: {
     logs: Prisma.$FinEmailSyncLogPayload<ExtArgs>[]
     emailMessages: Prisma.$FinEmailMessagePayload<ExtArgs>[]
-    account: Prisma.$FinAccountPayload<ExtArgs> | null
-    card: Prisma.$FinCardPayload<ExtArgs> | null
+    connection: Prisma.$FinEmailConnectionPayload<ExtArgs>
+    institution: Prisma.$FinInstitutionPayload<ExtArgs>
     user: Prisma.$UserPayload<ExtArgs>
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
     userId: string
-    accountId: string | null
-    cardId: string | null
-    provider: string
-    emailAddress: string
+    connectionId: string
+    institutionId: string
     bankDomain: string
     label: string | null
-    accessToken: string | null
-    refreshToken: string | null
-    imapHost: string | null
-    tokenExpiresAt: Date | null
     lastSyncedAt: Date | null
     lastMessageId: string | null
     isActive: boolean
@@ -1946,8 +1628,8 @@ export interface Prisma__FinEmailSourceClient<T, Null = never, ExtArgs extends r
   readonly [Symbol.toStringTag]: "PrismaPromise"
   logs<T extends Prisma.FinEmailSource$logsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.FinEmailSource$logsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$FinEmailSyncLogPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   emailMessages<T extends Prisma.FinEmailSource$emailMessagesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.FinEmailSource$emailMessagesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$FinEmailMessagePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
-  account<T extends Prisma.FinEmailSource$accountArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.FinEmailSource$accountArgs<ExtArgs>>): Prisma.Prisma__FinAccountClient<runtime.Types.Result.GetResult<Prisma.$FinAccountPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
-  card<T extends Prisma.FinEmailSource$cardArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.FinEmailSource$cardArgs<ExtArgs>>): Prisma.Prisma__FinCardClient<runtime.Types.Result.GetResult<Prisma.$FinCardPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  connection<T extends Prisma.FinEmailConnectionDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.FinEmailConnectionDefaultArgs<ExtArgs>>): Prisma.Prisma__FinEmailConnectionClient<runtime.Types.Result.GetResult<Prisma.$FinEmailConnectionPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+  institution<T extends Prisma.FinInstitutionDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.FinInstitutionDefaultArgs<ExtArgs>>): Prisma.Prisma__FinInstitutionClient<runtime.Types.Result.GetResult<Prisma.$FinInstitutionPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   user<T extends Prisma.UserDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.UserDefaultArgs<ExtArgs>>): Prisma.Prisma__UserClient<runtime.Types.Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
@@ -1980,16 +1662,10 @@ export interface Prisma__FinEmailSourceClient<T, Null = never, ExtArgs extends r
 export interface FinEmailSourceFieldRefs {
   readonly id: Prisma.FieldRef<"FinEmailSource", 'String'>
   readonly userId: Prisma.FieldRef<"FinEmailSource", 'String'>
-  readonly accountId: Prisma.FieldRef<"FinEmailSource", 'String'>
-  readonly cardId: Prisma.FieldRef<"FinEmailSource", 'String'>
-  readonly provider: Prisma.FieldRef<"FinEmailSource", 'String'>
-  readonly emailAddress: Prisma.FieldRef<"FinEmailSource", 'String'>
+  readonly connectionId: Prisma.FieldRef<"FinEmailSource", 'String'>
+  readonly institutionId: Prisma.FieldRef<"FinEmailSource", 'String'>
   readonly bankDomain: Prisma.FieldRef<"FinEmailSource", 'String'>
   readonly label: Prisma.FieldRef<"FinEmailSource", 'String'>
-  readonly accessToken: Prisma.FieldRef<"FinEmailSource", 'String'>
-  readonly refreshToken: Prisma.FieldRef<"FinEmailSource", 'String'>
-  readonly imapHost: Prisma.FieldRef<"FinEmailSource", 'String'>
-  readonly tokenExpiresAt: Prisma.FieldRef<"FinEmailSource", 'DateTime'>
   readonly lastSyncedAt: Prisma.FieldRef<"FinEmailSource", 'DateTime'>
   readonly lastMessageId: Prisma.FieldRef<"FinEmailSource", 'String'>
   readonly isActive: Prisma.FieldRef<"FinEmailSource", 'Boolean'>
@@ -2440,44 +2116,6 @@ export type FinEmailSource$emailMessagesArgs<ExtArgs extends runtime.Types.Exten
   take?: number
   skip?: number
   distinct?: Prisma.FinEmailMessageScalarFieldEnum | Prisma.FinEmailMessageScalarFieldEnum[]
-}
-
-/**
- * FinEmailSource.account
- */
-export type FinEmailSource$accountArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  /**
-   * Select specific fields to fetch from the FinAccount
-   */
-  select?: Prisma.FinAccountSelect<ExtArgs> | null
-  /**
-   * Omit specific fields from the FinAccount
-   */
-  omit?: Prisma.FinAccountOmit<ExtArgs> | null
-  /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.FinAccountInclude<ExtArgs> | null
-  where?: Prisma.FinAccountWhereInput
-}
-
-/**
- * FinEmailSource.card
- */
-export type FinEmailSource$cardArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  /**
-   * Select specific fields to fetch from the FinCard
-   */
-  select?: Prisma.FinCardSelect<ExtArgs> | null
-  /**
-   * Omit specific fields from the FinCard
-   */
-  omit?: Prisma.FinCardOmit<ExtArgs> | null
-  /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.FinCardInclude<ExtArgs> | null
-  where?: Prisma.FinCardWhereInput
 }
 
 /**

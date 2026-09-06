@@ -87,8 +87,7 @@ export class CreateTransactionDto {
 
   @ApiPropertyOptional()
   @IsOptional()
-  @IsString()
-  @MaxLength(120)
+  @IsUUID()
   categoryId?: string;
 
   @ApiPropertyOptional({ enum: transactionStatuses, default: 'CONFIRMED' })

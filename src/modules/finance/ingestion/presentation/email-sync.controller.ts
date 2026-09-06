@@ -21,7 +21,10 @@ import {
 } from '../../../../core/decorators';
 import { IngestionService } from '../application/ingestion.service';
 import { ConnectEmailSourceDto } from './dto/connect-email-source.dto';
-import { GoogleOAuthUrlQueryDto } from './dto/oauth-callback-query.dto';
+import {
+  AssignEmailMessageDto,
+  GoogleOAuthUrlQueryDto,
+} from './dto/oauth-callback-query.dto';
 import { UpdateEmailSourceDto } from './dto/update-email-source.dto';
 
 @ApiTags('finance')
@@ -71,6 +74,31 @@ export class EmailSyncController {
       id,
       forceFullSync === 'true',
     );
+  }
+
+  @Get('pending')
+  @ApiOperation({ summary: 'List email imports waiting for a ledger target' })
+  listPending(@CurrentUser('sub') userId: string) {
+    return this.ingestion.listPendingAssignment(userId);
+  }
+
+  @Post('pending/:id/assign')
+  @ApiOperation({ summary: 'Assign a pending email import to an account or card' })
+  assignPending(
+    @CurrentUser('sub') userId: string,
+    @Param('id') id: string,
+    @Body() dto: AssignEmailMessageDto,
+  ) {
+    return this.ingestion.assignPendingMessage(userId, id, dto);
+  }
+
+  @Post('pending/:id/retry')
+  @ApiOperation({ summary: 'Retry automatic routing for a pending email import' })
+  retryPending(
+    @CurrentUser('sub') userId: string,
+    @Param('id') id: string,
+  ) {
+    return this.ingestion.retryPendingMessage(userId, id);
   }
 
   @Get('oauth/google/url')

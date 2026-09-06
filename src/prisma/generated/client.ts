@@ -85,8 +85,13 @@ export type PushToken = Prisma.PushTokenModel
  */
 export type FinAccount = Prisma.FinAccountModel
 /**
+ * Model FinEmailConnection
+ * One Gmail/IMAP inbox (OAuth tokens). Shared by every bank watched on that mailbox.
+ */
+export type FinEmailConnection = Prisma.FinEmailConnectionModel
+/**
  * Model FinEmailSource
- * 
+ * Bank-domain filter on a connection. Not a ledger target and not OAuth.
  */
 export type FinEmailSource = Prisma.FinEmailSourceModel
 /**
@@ -151,12 +156,12 @@ export type FinLoan = Prisma.FinLoanModel
 export type FinReceivable = Prisma.FinReceivableModel
 /**
  * Model FinEmailSyncLog
- * 
+ * One sync run against a source (scanned / imported / error). Operational history.
  */
 export type FinEmailSyncLog = Prisma.FinEmailSyncLogModel
 /**
  * Model FinEmailMessage
- * Per-Gmail-message extraction outcome so non-tx / failed emails are not re-sent to the LLM.
+ * Per-Gmail-message extract outcome (idempotency + review queue). Provider id is gmailMessageId.
  */
 export type FinEmailMessage = Prisma.FinEmailMessageModel
 /**
