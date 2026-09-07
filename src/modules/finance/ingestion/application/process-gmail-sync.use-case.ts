@@ -12,7 +12,11 @@ import {
   parseGmailMessage,
 } from '../infrastructure/gmail-api.util';
 import { IngestionService } from './ingestion.service';
-import type { EmailTransactionExtractorPort } from './ports/email-transaction-extractor.port';
+import type {
+  EmailTransactionExtractorPort,
+  ExtractedEmailTransaction,
+} from './ports/email-transaction-extractor.port';
+import { resolveEmailLedgerTarget } from './resolve-email-ledger-target';
 
 @Injectable()
 export class ProcessGmailSyncUseCase {
@@ -37,13 +41,6 @@ export class ProcessGmailSyncUseCase {
     const source = await this.emailSources.findEmailSource(userId, sourceId);
     if (!source || !source.isActive) {
       this.logger.warn(`Gmail sync source not found or inactive: ${sourceId}`);
-      return;
-    }
-
-    if (!source.accountId && !source.cardId) {
-      this.logger.warn(
-        `Gmail sync source ${sourceId} has no linked account or card — skipping`,
-      );
       return;
     }
 
@@ -73,6 +70,11 @@ export class ProcessGmailSyncUseCase {
       let pageToken: string | undefined;
       let lastMessageId = source.lastMessageId ?? undefined;
       const categories = await this.emailSources.listCategories(userId);
+      const [accounts, cards] =
+        await this.emailSources.listInstitutionDestinations(
+          userId,
+          source.institutionId,
+        );
       let hitLlmCap = false;
 
       do {
@@ -93,11 +95,6 @@ export class ProcessGmailSyncUseCase {
             emailsSkipped += 1;
             continue;
           }
-
-          const existing = await this.ledger.findTransactionByEmailMessageId(
-            messageRef.id,
-          );
-          if (existing) continue;
 
           if (llmExtracts >= maxLlmExtracts) {
             hitLlmCap = true;
@@ -179,11 +176,40 @@ export class ProcessGmailSyncUseCase {
                   outcome: 'IMPORTED',
                   provider: extraction.provider,
                   model: extraction.model,
+                  instrumentHint: extracted.instrumentHint,
+                  lastFourHint: extracted.lastFourHint,
+                  extractedPayload: extracted,
                 });
                 transactionsNew += 1;
                 countsByStatus.REVERSED = (countsByStatus.REVERSED ?? 0) + 1;
                 transactionIds.push(original.id);
               }
+              continue;
+            }
+
+            const match = resolveEmailLedgerTarget({
+              instrumentHint: extracted.instrumentHint,
+              lastFourHint: extracted.lastFourHint,
+              accounts,
+              cards,
+            });
+
+            if (match.kind !== 'unique') {
+              await this.emailSources.upsertEmailMessage({
+                sourceId,
+                gmailMessageId: messageRef.id,
+                outcome: 'PENDING_ASSIGNMENT',
+                reason:
+                  match.kind === 'ambiguous'
+                    ? `Ambiguous ledger target (${match.candidateCount})`
+                    : 'No matching account or card',
+                provider: extraction.provider,
+                model: extraction.model,
+                instrumentHint: extracted.instrumentHint,
+                lastFourHint: extracted.lastFourHint,
+                extractedPayload: extracted,
+              });
+              emailsSkipped += 1;
               continue;
             }
 
@@ -195,10 +221,21 @@ export class ProcessGmailSyncUseCase {
                     extracted.categoryNameHint.toLowerCase(),
               )?.id ?? null;
 
+            const persisted = await this.emailSources.upsertEmailMessage({
+              sourceId,
+              gmailMessageId: messageRef.id,
+              outcome: 'PENDING_ASSIGNMENT',
+              provider: extraction.provider,
+              model: extraction.model,
+              instrumentHint: extracted.instrumentHint,
+              lastFourHint: extracted.lastFourHint,
+              extractedPayload: extracted,
+            });
+
             const created = await this.importEmail.execute(userId, {
-              accountId: source.accountId ?? undefined,
-              cardId: source.cardId ?? undefined,
-              emailMessageId: messageRef.id,
+              accountId: match.accountId,
+              cardId: match.cardId,
+              emailMessageId: persisted.id,
               amount: extracted.amount,
               currency: extracted.currency,
               merchant: extracted.merchant,
@@ -224,6 +261,9 @@ export class ProcessGmailSyncUseCase {
               outcome: 'IMPORTED',
               provider: extraction.provider,
               model: extraction.model,
+              instrumentHint: extracted.instrumentHint,
+              lastFourHint: extracted.lastFourHint,
+              extractedPayload: extracted,
             });
 
             transactionsNew += 1;
@@ -281,8 +321,10 @@ export class ProcessGmailSyncUseCase {
     aroundDate: Date,
   ) {
     if (reverseEmailMessageId) {
-      const byEmail =
-        await this.ledger.findTransactionByEmailMessageId(reverseEmailMessageId);
+      const byEmail = await this.ledger.findTransactionByEmailMessageId(
+        reverseEmailMessageId,
+        userId,
+      );
       if (byEmail && byEmail.userId === userId) return byEmail;
     }
     const candidates = await this.ledger.findReverseCandidates(userId, {
@@ -294,3 +336,5 @@ export class ProcessGmailSyncUseCase {
     return candidates[0] ?? null;
   }
 }
+
+export type { ExtractedEmailTransaction };

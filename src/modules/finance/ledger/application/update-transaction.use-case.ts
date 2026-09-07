@@ -6,6 +6,7 @@ import {
 import { FinanceOutboxDispatcher } from '../../events/infrastructure/finance-outbox.dispatcher';
 import { ResolveAmountsUseCase } from '../../fx/application/resolve-amounts.use-case';
 import { LEDGER_REPOSITORY } from '../../shared/application/tokens';
+import { FinanceOwnershipService } from '../../shared/application/finance-ownership.service';
 import { decimalToString } from '../../shared/domain/mappers';
 import { normalizeCurrencyCode } from '../../shared/domain/money';
 import type {
@@ -23,6 +24,7 @@ export class UpdateTransactionUseCase {
     private readonly repo: LedgerRepositoryPort,
     private readonly resolveAmounts: ResolveAmountsUseCase,
     private readonly outboxDispatcher: FinanceOutboxDispatcher,
+    private readonly ownership: FinanceOwnershipService,
   ) {}
 
   async execute(
@@ -32,6 +34,10 @@ export class UpdateTransactionUseCase {
   ) {
     const existing = await this.repo.findTransactionById(id, userId);
     if (!existing) throw new NotFoundException('Transaction not found');
+
+    if (command.categoryId) {
+      await this.ownership.assertCategoryVisible(userId, command.categoryId);
+    }
 
     const data: TransactionUpdateFields = {};
 

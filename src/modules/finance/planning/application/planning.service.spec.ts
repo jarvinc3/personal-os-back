@@ -1,10 +1,12 @@
 import { PlanningService } from './planning.service';
 import type { PlanningRepository } from '../infrastructure/planning.repository';
+import type { FinanceOwnershipService } from '../../shared/application/finance-ownership.service';
 
 describe('PlanningService archive and receivables', () => {
   const updateLoan = jest.fn();
   const createLoan = jest.fn();
   const listLoans = jest.fn();
+  const findLoan = jest.fn();
   const findReceivable = jest.fn();
   const updateReceivable = jest.fn();
   const createReceivable = jest.fn();
@@ -14,19 +16,32 @@ describe('PlanningService archive and receivables', () => {
     updateLoan,
     createLoan,
     listLoans,
+    findLoan,
     findReceivable,
     updateReceivable,
     createReceivable,
     listBudgetsPage,
   } as unknown as PlanningRepository;
 
-  const service = new PlanningService(repo);
+  const assertLoanAccountAlignment = jest.fn();
+  const ownership = {
+    assertInstitutionOwned: jest.fn(),
+    assertLoanAccountAlignment,
+    assertCategoryVisible: jest.fn(),
+  } as unknown as FinanceOwnershipService;
+
+  const service = new PlanningService(repo, ownership);
 
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
   it('deactivates a loan via PATCH isActive and DELETE', async () => {
+    findLoan.mockResolvedValue({
+      id: 'loan-1',
+      institutionId: null,
+      accountId: null,
+    });
     updateLoan.mockResolvedValue({ id: 'loan-1', isActive: false });
 
     await expect(
@@ -40,7 +55,36 @@ describe('PlanningService archive and receivables', () => {
     });
   });
 
+  it('patches loan accountId as the payment account', async () => {
+    findLoan.mockResolvedValue({
+      id: 'loan-1',
+      institutionId: 'inst-1',
+      accountId: null,
+    });
+    updateLoan.mockResolvedValue({
+      id: 'loan-1',
+      accountId: 'acc-1',
+      originalAmount: 1000,
+      currentBalance: 800,
+      installmentAmount: 100,
+      interestRate: null,
+    });
+
+    await expect(
+      service.updateLoan('user-1', 'loan-1', { accountId: 'acc-1' }),
+    ).resolves.toMatchObject({ accountId: 'acc-1' });
+    expect(assertLoanAccountAlignment).toHaveBeenCalledWith({
+      userId: 'user-1',
+      accountId: 'acc-1',
+      institutionId: 'inst-1',
+    });
+    expect(updateLoan).toHaveBeenCalledWith('user-1', 'loan-1', {
+      accountId: 'acc-1',
+    });
+  });
+
   it('returns 404 when deactivating another user loan', async () => {
+    findLoan.mockResolvedValue(null);
     updateLoan.mockResolvedValue(null);
     await expect(
       service.updateLoan('user-1', 'missing', { isActive: false }),

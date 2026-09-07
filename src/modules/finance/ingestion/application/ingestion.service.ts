@@ -15,9 +15,13 @@ import type { Env } from '../../../../config';
 import { AppEvents } from '../../../../core/events/event.constants';
 import type { GmailSyncJob } from '../../../../core/queues/queue-jobs';
 import { QueueNames } from '../../../../core/queues/queue.constants';
+import { UsersService } from '../../../users';
 import type { DomainEventPublisherPort } from '../../events/application/ports/domain-event-publisher.port';
 import { FinanceOutboxDispatcher } from '../../events/infrastructure/finance-outbox.dispatcher';
+import { ImportEmailTransactionUseCase } from '../../ledger/application/import-email-transaction.use-case';
+import { FinanceOwnershipService } from '../../shared/application/finance-ownership.service';
 import { DOMAIN_EVENT_PUBLISHER } from '../../shared/application/tokens';
+import { mapBankStatusToInternal } from '../../shared/domain/transaction-status';
 import { EmailSourceRepository } from '../infrastructure/email-source.repository';
 import {
     exchangeGoogleAuthCode,
@@ -26,22 +30,34 @@ import {
 } from '../infrastructure/gmail-api.util';
 import { decryptToken, encryptToken } from '../infrastructure/token-encryption.util';
 import type { ConnectEmailSourceDto } from '../presentation/dto/connect-email-source.dto';
-import type { GoogleOAuthUrlQueryDto } from '../presentation/dto/oauth-callback-query.dto';
+import type {
+    AssignEmailMessageDto,
+    GoogleOAuthUrlQueryDto,
+} from '../presentation/dto/oauth-callback-query.dto';
 import type { UpdateEmailSourceDto } from '../presentation/dto/update-email-source.dto';
 import {
     buildMobileOAuthRedirect,
     buildWebOAuthRedirect,
     isAllowlistedReturnTo,
 } from './oauth-client-redirect';
+import type { ExtractedEmailTransaction } from './ports/email-transaction-extractor.port';
+import { resolveEmailLedgerTarget } from './resolve-email-ledger-target';
 
 type OAuthStatePayload = {
   sub: string;
+  institutionId: string;
   bankDomain: string;
   label?: string;
-  accountId?: string;
-  cardId?: string;
   returnTo?: string;
 };
+
+type EmailSourceRow = Awaited<
+  ReturnType<EmailSourceRepository['listEmailSources']>
+>[number];
+
+type PendingMessageRow = Awaited<
+  ReturnType<EmailSourceRepository['listPendingAssignmentMessages']>
+>[number];
 
 @Injectable()
 export class IngestionService {
@@ -53,6 +69,9 @@ export class IngestionService {
     @Inject(DOMAIN_EVENT_PUBLISHER)
     private readonly events: DomainEventPublisherPort,
     private readonly outboxDispatcher: FinanceOutboxDispatcher,
+    private readonly users: UsersService,
+    private readonly ownership: FinanceOwnershipService,
+    private readonly importEmail: ImportEmailTransactionUseCase,
     @Optional()
     @InjectQueue(QueueNames.GMAIL_SYNC)
     private readonly gmailSyncQueue?: Queue<GmailSyncJob>,
@@ -64,21 +83,39 @@ export class IngestionService {
       .then((sources) => sources.map((s) => this.mapEmailSourceResponse(s)));
   }
 
-  createEmailSource(userId: string, dto: ConnectEmailSourceDto) {
-    if (dto.accountId && dto.cardId) {
-      throw new BadRequestException(
-        'Provide at most one of accountId or cardId',
-      );
+  async createEmailSource(userId: string, dto: ConnectEmailSourceDto) {
+    await this.users.assertFinanceEmailSyncEnabled(userId);
+    await this.ownership.assertInstitutionOwned(userId, dto.institutionId);
+
+    const connection =
+      (await this.repo.findConnectionByUserEmail(
+        userId,
+        'gmail',
+        dto.emailAddress,
+      )) ??
+      (await this.repo.createConnection(userId, {
+        provider: 'gmail',
+        emailAddress: dto.emailAddress,
+        isActive: true,
+      }));
+
+    const existing = await this.repo.findSourceByConnectionAndInstitution(
+      userId,
+      connection.id,
+      dto.institutionId,
+    );
+    if (existing) {
+      return this.mapEmailSourceResponse(existing);
     }
-    return this.repo.createEmailSource(userId, {
-      provider: 'gmail',
-      emailAddress: dto.emailAddress,
-      bankDomain: dto.bankDomain,
+
+    const created = await this.repo.createEmailSource(userId, {
+      connectionId: connection.id,
+      institutionId: dto.institutionId,
+      bankDomain: dto.bankDomain.trim(),
       label: dto.label,
-      accountId: dto.accountId,
-      cardId: dto.cardId,
       isActive: true,
     });
+    return this.mapEmailSourceResponse(created);
   }
 
   async updateEmailSource(
@@ -86,29 +123,15 @@ export class IngestionService {
     id: string,
     dto: UpdateEmailSourceDto,
   ) {
-    if (dto.accountId && dto.cardId) {
-      throw new BadRequestException(
-        'Provide at most one of accountId or cardId',
-      );
-    }
-    if (dto.accountId) {
-      const account = await this.repo.findAccountById(dto.accountId, userId);
-      if (!account) throw new BadRequestException('Account not found');
-    }
-    if (dto.cardId) {
-      const card = await this.repo.findCardById(userId, dto.cardId);
-      if (!card) throw new BadRequestException('Card not found');
+    const existing = await this.repo.findEmailSource(userId, id);
+    if (!existing) throw new NotFoundException('Email source not found');
+
+    if (dto.institutionId) {
+      await this.ownership.assertInstitutionOwned(userId, dto.institutionId);
     }
 
     const data: Record<string, unknown> = {};
-    if (dto.accountId !== undefined) {
-      data.accountId = dto.accountId;
-      if (dto.accountId) data.cardId = null;
-    }
-    if (dto.cardId !== undefined) {
-      data.cardId = dto.cardId;
-      if (dto.cardId) data.accountId = null;
-    }
+    if (dto.institutionId !== undefined) data.institutionId = dto.institutionId;
     if (dto.label !== undefined) data.label = dto.label;
     if (dto.bankDomain !== undefined) data.bankDomain = dto.bankDomain.trim();
 
@@ -130,6 +153,7 @@ export class IngestionService {
     sourceId: string,
     forceFullSync = false,
   ) {
+    await this.users.assertFinanceEmailSyncEnabled(userId);
     const source = await this.repo.findEmailSource(userId, sourceId);
     if (!source) throw new NotFoundException('Email source not found');
     if (!this.gmailSyncQueue) {
@@ -219,13 +243,10 @@ export class IngestionService {
 
   async getGoogleOAuthUrl(
     userId: string,
-    query: GoogleOAuthUrlQueryDto = {},
+    query: GoogleOAuthUrlQueryDto,
   ): Promise<{ url: string }> {
-    if (query.accountId && query.cardId) {
-      throw new BadRequestException(
-        'Provide at most one of accountId or cardId',
-      );
-    }
+    await this.users.assertFinanceEmailSyncEnabled(userId);
+    await this.ownership.assertInstitutionOwned(userId, query.institutionId);
 
     const corsOrigin = this.config.get('CORS_ORIGIN', { infer: true });
     const returnTo = query.returnTo?.trim();
@@ -233,23 +254,13 @@ export class IngestionService {
       throw new BadRequestException('returnTo is not an allowed origin');
     }
 
-    if (query.accountId) {
-      const account = await this.repo.findAccountById(query.accountId, userId);
-      if (!account) throw new BadRequestException('Account not found');
-    }
-    if (query.cardId) {
-      const card = await this.repo.findCardById(userId, query.cardId);
-      if (!card) throw new BadRequestException('Card not found');
-    }
-
     const bankDomain = query.bankDomain?.trim() || 'bhd.com.do';
     const state = jwt.sign(
       {
         sub: userId,
+        institutionId: query.institutionId,
         bankDomain,
         label: query.label?.trim() || undefined,
-        accountId: query.accountId?.trim() || undefined,
-        cardId: query.cardId?.trim() || undefined,
         returnTo: returnTo || undefined,
       } satisfies OAuthStatePayload,
       this.oauthStateSecret,
@@ -302,23 +313,11 @@ export class IngestionService {
       throw new BadRequestException('Invalid or expired OAuth state');
     }
 
-    if (payload.accountId && payload.cardId) {
-      throw new BadRequestException(
-        'Provide at most one of accountId or cardId',
-      );
-    }
-
-    if (payload.accountId) {
-      const account = await this.repo.findAccountById(
-        payload.accountId,
-        payload.sub,
-      );
-      if (!account) throw new BadRequestException('Account not found');
-    }
-    if (payload.cardId) {
-      const card = await this.repo.findCardById(payload.sub, payload.cardId);
-      if (!card) throw new BadRequestException('Card not found');
-    }
+    await this.users.assertFinanceEmailSyncEnabled(payload.sub);
+    await this.ownership.assertInstitutionOwned(
+      payload.sub,
+      payload.institutionId,
+    );
 
     const tokenResponse = await exchangeGoogleAuthCode(
       code,
@@ -341,65 +340,249 @@ export class IngestionService {
       Date.now() + tokenResponse.expires_in * 1000,
     );
 
-    const existing = await this.repo.findEmailSourceByUserEmailAndDomain(
+    const existingConnection = await this.repo.findConnectionByUserEmail(
       payload.sub,
+      'gmail',
       emailAddress,
-      payload.bankDomain,
     );
+    const connection = existingConnection
+      ? await this.repo.updateConnectionTokens(existingConnection.id, {
+          accessToken: encryptedAccess,
+          refreshToken: encryptedRefresh,
+          tokenExpiresAt,
+          emailAddress,
+          isActive: true,
+        })
+      : await this.repo.createConnection(payload.sub, {
+          provider: 'gmail',
+          emailAddress,
+          accessToken: encryptedAccess,
+          refreshToken: encryptedRefresh,
+          tokenExpiresAt,
+          isActive: true,
+        });
 
-    if (existing) {
-      return this.repo.updateEmailSourceTokens(existing.id, {
-        accessToken: encryptedAccess,
-        refreshToken: encryptedRefresh,
-        tokenExpiresAt,
-        emailAddress,
-        ...(payload.accountId
-          ? { accountId: payload.accountId, cardId: null }
-          : {}),
-        ...(payload.cardId
-          ? { cardId: payload.cardId, accountId: null }
-          : {}),
-      });
+    const existingSource = await this.repo.findSourceByConnectionAndInstitution(
+      payload.sub,
+      connection.id,
+      payload.institutionId,
+    );
+    if (existingSource) {
+      const updated = await this.repo.updateEmailSource(
+        payload.sub,
+        existingSource.id,
+        {
+          bankDomain: payload.bankDomain,
+          ...(payload.label !== undefined ? { label: payload.label } : {}),
+          isActive: true,
+        },
+      );
+      return this.mapEmailSourceResponse(updated ?? existingSource);
     }
 
-    return this.repo.createEmailSource(payload.sub, {
-      provider: 'gmail',
-      emailAddress,
+    const created = await this.repo.createEmailSource(payload.sub, {
+      connectionId: connection.id,
+      institutionId: payload.institutionId,
       bankDomain: payload.bankDomain,
       label: payload.label,
-      accountId: payload.accountId,
-      cardId: payload.cardId,
-      accessToken: encryptedAccess,
-      refreshToken: encryptedRefresh,
-      tokenExpiresAt,
       isActive: true,
     });
+    return this.mapEmailSourceResponse(created);
   }
 
   async getValidGmailAccessToken(sourceId: string): Promise<string> {
     const source = await this.repo.findEmailSourceForRefresh(sourceId);
-    if (!source?.accessToken) {
+    if (!source?.connection.accessToken) {
       throw new NotFoundException('Email source tokens not found');
     }
 
     const expiresSoon =
-      !source.tokenExpiresAt ||
-      source.tokenExpiresAt.getTime() - Date.now() < 5 * 60 * 1000;
+      !source.connection.tokenExpiresAt ||
+      source.connection.tokenExpiresAt.getTime() - Date.now() < 5 * 60 * 1000;
 
     if (expiresSoon) {
       return this.refreshGmailToken(sourceId);
     }
 
-    return decryptToken(source.accessToken, this.encryptionKey);
+    return decryptToken(source.connection.accessToken, this.encryptionKey);
+  }
+
+  async listPendingAssignment(userId: string) {
+    const rows = await this.repo.listPendingAssignmentMessages(userId);
+    return rows.map((row) => this.mapPendingMessage(row));
+  }
+
+  async assignPendingMessage(
+    userId: string,
+    messageId: string,
+    dto: AssignEmailMessageDto,
+  ) {
+    await this.users.assertFinanceEmailSyncEnabled(userId);
+    const message = await this.repo.findEmailMessageById(userId, messageId);
+    if (!message) throw new NotFoundException('Email message not found');
+
+    if (message.outcome === 'IMPORTED' && message.transaction) {
+      return { assigned: true as const, transactionId: message.transaction.id };
+    }
+    if (message.outcome !== 'PENDING_ASSIGNMENT') {
+      throw new BadRequestException('Email message is not pending assignment');
+    }
+
+    await this.assertAssignmentTarget(userId, message.source.institutionId, dto);
+    return this.importPendingMessage(userId, message, dto);
+  }
+
+  async retryPendingMessage(userId: string, messageId: string) {
+    await this.users.assertFinanceEmailSyncEnabled(userId);
+    const message = await this.repo.findEmailMessageById(userId, messageId);
+    if (!message) throw new NotFoundException('Email message not found');
+    if (message.outcome === 'IMPORTED' && message.transaction) {
+      return { assigned: true as const, transactionId: message.transaction.id };
+    }
+    if (message.outcome !== 'PENDING_ASSIGNMENT') {
+      throw new BadRequestException('Email message is not pending assignment');
+    }
+
+    const [accounts, cards] = await this.repo.listInstitutionDestinations(
+      userId,
+      message.source.institutionId,
+    );
+    const match = resolveEmailLedgerTarget({
+      instrumentHint:
+        message.instrumentHint === 'ACCOUNT' || message.instrumentHint === 'CARD'
+          ? message.instrumentHint
+          : null,
+      lastFourHint: message.lastFourHint,
+      accounts,
+      cards,
+    });
+    if (match.kind !== 'unique') {
+      return this.mapPendingMessage(message);
+    }
+    return this.importPendingMessage(userId, message, {
+      accountId: match.accountId,
+      cardId: match.cardId,
+    });
+  }
+
+  private async importPendingMessage(
+    userId: string,
+    message: PendingMessageRow,
+    target: { accountId?: string; cardId?: string },
+  ) {
+    const extracted = this.parseExtractedPayload(message.extractedPayload);
+    if (!extracted) {
+      throw new BadRequestException('Email message has no extract to assign');
+    }
+
+    const categories = await this.repo.listCategories(userId);
+    const categoryId =
+      categories.find(
+        (c) =>
+          extracted.categoryNameHint &&
+          c.name.toLowerCase() === extracted.categoryNameHint.toLowerCase(),
+      )?.id ?? null;
+    const status = mapBankStatusToInternal({
+      bankStatusNormalized: extracted.bankStatusNormalized,
+      statusConfidence: extracted.statusConfidence,
+    });
+
+    const created = await this.importEmail.execute(userId, {
+      accountId: target.accountId,
+      cardId: target.cardId,
+      emailMessageId: message.id,
+      amount: extracted.amount,
+      currency: extracted.currency,
+      merchant: extracted.merchant,
+      description: extracted.description,
+      transactionDate: new Date(extracted.transactionDate),
+      type: extracted.type,
+      status,
+      categoryId,
+      aiMetadata: {
+        bankStatusRaw: extracted.bankStatusRaw,
+        bankStatusNormalized: extracted.bankStatusNormalized,
+        statusEvidence: extracted.statusEvidence,
+        statusConfidence: extracted.statusConfidence,
+        assignedAt: new Date().toISOString(),
+      },
+    });
+
+    await this.repo.upsertEmailMessage({
+      sourceId: message.sourceId,
+      gmailMessageId: message.gmailMessageId,
+      outcome: 'IMPORTED',
+      provider: message.provider,
+      model: message.model,
+      instrumentHint: message.instrumentHint,
+      lastFourHint: message.lastFourHint,
+      extractedPayload: message.extractedPayload,
+    });
+
+    return { assigned: true as const, transactionId: created.id };
+  }
+
+  private async assertAssignmentTarget(
+    userId: string,
+    institutionId: string,
+    dto: AssignEmailMessageDto,
+  ) {
+    if (dto.accountId) {
+      const account = await this.ownership.assertAccountOwned(
+        userId,
+        dto.accountId,
+      );
+      if (account.institutionId !== institutionId) {
+        throw new BadRequestException(
+          'Account does not belong to this institution',
+        );
+      }
+      if (!account.isActive) {
+        throw new BadRequestException('Account is not active');
+      }
+    }
+    if (dto.cardId) {
+      const card = await this.ownership.assertCardOwned(userId, dto.cardId);
+      if (card.institutionId !== institutionId) {
+        throw new BadRequestException(
+          'Card does not belong to this institution',
+        );
+      }
+      if (!card.isActive) {
+        throw new BadRequestException('Card is not active');
+      }
+    }
+  }
+
+  private parseExtractedPayload(
+    payload: unknown,
+  ): ExtractedEmailTransaction | null {
+    if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+      return null;
+    }
+    const row = payload as Partial<ExtractedEmailTransaction>;
+    if (
+      typeof row.amount !== 'number' ||
+      typeof row.currency !== 'string' ||
+      typeof row.transactionDate !== 'string' ||
+      typeof row.description !== 'string' ||
+      (row.type !== 'DEBIT' && row.type !== 'CREDIT')
+    ) {
+      return null;
+    }
+    return row as ExtractedEmailTransaction;
   }
 
   private async refreshGmailToken(sourceId: string): Promise<string> {
     const source = await this.repo.findEmailSourceForRefresh(sourceId);
-    if (!source?.refreshToken || !source.accessToken) {
+    if (!source?.connection.refreshToken || !source.connection.accessToken) {
       throw new NotFoundException('Email source tokens not found');
     }
 
-    const refreshToken = decryptToken(source.refreshToken, this.encryptionKey);
+    const refreshToken = decryptToken(
+      source.connection.refreshToken,
+      this.encryptionKey,
+    );
     const tokenResponse = await refreshGoogleAccessToken(
       refreshToken,
       this.config.get('GOOGLE_CLIENT_ID', { infer: true }),
@@ -414,9 +597,9 @@ export class IngestionService {
       Date.now() + tokenResponse.expires_in * 1000,
     );
 
-    await this.repo.updateEmailSourceTokens(sourceId, {
+    await this.repo.updateConnectionTokens(source.connection.id, {
       accessToken: encryptedAccess,
-      refreshToken: source.refreshToken,
+      refreshToken: source.connection.refreshToken,
       tokenExpiresAt,
     });
 
@@ -442,35 +625,16 @@ export class IngestionService {
     return this.encryptionKey;
   }
 
-  private mapEmailSourceResponse(source: {
-    id: string;
-    emailAddress: string;
-    bankDomain: string;
-    label: string | null;
-    accountId: string | null;
-    cardId?: string | null;
-    provider: string;
-    isActive: boolean;
-    lastSyncedAt: Date | null;
-    createdAt: Date;
-    logs?: Array<{
-      id: string;
-      status: string;
-      error: string | null;
-      emailsScanned: number;
-      transactionsNew: number;
-      startedAt: Date;
-      completedAt: Date | null;
-    }>;
-  }) {
+  private mapEmailSourceResponse(source: EmailSourceRow) {
     return {
       id: source.id,
-      emailAddress: source.emailAddress,
+      connectionId: source.connectionId,
+      institutionId: source.institutionId,
+      institutionName: source.institution?.name ?? null,
+      emailAddress: source.connection.emailAddress,
       bankDomain: source.bankDomain,
       label: source.label,
-      accountId: source.accountId,
-      cardId: source.cardId ?? null,
-      provider: source.provider,
+      provider: source.connection.provider,
       isActive: source.isActive,
       lastSyncedAt: source.lastSyncedAt?.toISOString() ?? null,
       createdAt: source.createdAt.toISOString(),
@@ -483,6 +647,22 @@ export class IngestionService {
         startedAt: log.startedAt.toISOString(),
         completedAt: log.completedAt?.toISOString() ?? null,
       })),
+    };
+  }
+
+  private mapPendingMessage(row: PendingMessageRow) {
+    return {
+      id: row.id,
+      sourceId: row.sourceId,
+      gmailMessageId: row.gmailMessageId,
+      institutionId: row.source.institutionId,
+      institutionName: row.source.institution.name,
+      emailAddress: row.source.connection.emailAddress,
+      instrumentHint: row.instrumentHint,
+      lastFourHint: row.lastFourHint,
+      extractedPayload: row.extractedPayload,
+      reason: row.reason,
+      createdAt: row.createdAt.toISOString(),
     };
   }
 }

@@ -24,6 +24,11 @@ export class CreateLoanDto {
   @ApiPropertyOptional()
   @IsOptional()
   @IsUUID()
+  institutionId?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsUUID()
   accountId?: string;
 
   @ApiProperty()

@@ -3,6 +3,7 @@ import {
   paginate,
   type PaginationQueryDto,
 } from '../../../../core/pagination/pagination.dto';
+import { FinanceOwnershipService } from '../../shared/application/finance-ownership.service';
 import { PlanningRepository } from '../infrastructure/planning.repository';
 import type { CreateBudgetDto } from '../presentation/dto/create-budget.dto';
 import type { CreateLoanDto } from '../presentation/dto/create-loan.dto';
@@ -22,7 +23,10 @@ import { resolveReceivablePayment } from './resolve-receivable-payment';
 
 @Injectable()
 export class PlanningService {
-  constructor(private readonly repo: PlanningRepository) {}
+  constructor(
+    private readonly repo: PlanningRepository,
+    private readonly ownership: FinanceOwnershipService,
+  ) {}
 
   async listBudgets(userId: string) {
     const rows = await this.repo.listBudgets(userId);
@@ -39,6 +43,7 @@ export class PlanningService {
   }
 
   async createBudget(userId: string, dto: CreateBudgetDto) {
+    await this.ownership.assertCategoryVisible(userId, dto.categoryId);
     const created = await this.repo.createBudget(userId, {
       categoryId: dto.categoryId,
       periodType: dto.periodType,
@@ -52,6 +57,9 @@ export class PlanningService {
   }
 
   async updateBudget(userId: string, id: string, dto: UpdateBudgetDto) {
+    if (dto.categoryId) {
+      await this.ownership.assertCategoryVisible(userId, dto.categoryId);
+    }
     const updated = await this.repo.updateBudget(userId, id, {
       ...(dto.categoryId ? { categoryId: dto.categoryId } : {}),
       ...(dto.periodType ? { periodType: dto.periodType } : {}),
@@ -147,8 +155,19 @@ export class PlanningService {
   }
 
   async createLoan(userId: string, dto: CreateLoanDto) {
+    if (dto.institutionId) {
+      await this.ownership.assertInstitutionOwned(userId, dto.institutionId);
+    }
+    if (dto.accountId) {
+      await this.ownership.assertLoanAccountAlignment({
+        userId,
+        accountId: dto.accountId,
+        institutionId: dto.institutionId,
+      });
+    }
     const created = await this.repo.createLoan(userId, {
       lenderName: dto.lenderName,
+      institutionId: dto.institutionId,
       accountId: dto.accountId,
       originalAmount: dto.originalAmount,
       currentBalance: dto.currentBalance,
@@ -167,8 +186,31 @@ export class PlanningService {
   }
 
   async updateLoan(userId: string, id: string, dto: UpdateLoanDto) {
+    const existing = await this.repo.findLoan(userId, id);
+    if (!existing) throw new NotFoundException('Loan not found');
+
+    const nextInstitutionId =
+      dto.institutionId !== undefined ? dto.institutionId : existing.institutionId;
+    const nextAccountId =
+      dto.accountId !== undefined ? dto.accountId : existing.accountId;
+
+    if (dto.institutionId) {
+      await this.ownership.assertInstitutionOwned(userId, dto.institutionId);
+    }
+    if (nextAccountId) {
+      await this.ownership.assertLoanAccountAlignment({
+        userId,
+        accountId: nextAccountId,
+        institutionId: nextInstitutionId,
+      });
+    }
+
     const updated = await this.repo.updateLoan(userId, id, {
       ...(dto.lenderName ? { lenderName: dto.lenderName } : {}),
+      ...(dto.institutionId !== undefined
+        ? { institutionId: dto.institutionId }
+        : {}),
+      ...(dto.accountId !== undefined ? { accountId: dto.accountId } : {}),
       ...(dto.currentBalance !== undefined
         ? { currentBalance: dto.currentBalance }
         : {}),

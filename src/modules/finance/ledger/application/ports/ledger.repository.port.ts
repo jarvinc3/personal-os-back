@@ -76,7 +76,8 @@ export interface LedgerRepositoryPort {
   ): Promise<{ id: string; currency: string } | null>;
 
   findTransactionByEmailMessageId(
-    emailMessageId: string,
+    gmailMessageId: string,
+    userId?: string,
   ): Promise<LedgerTransactionRow | null>;
 
   findTransactionsByTransferGroupId(

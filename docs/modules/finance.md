@@ -8,7 +8,7 @@ The module is consumed by:
 
 - REST API under `/finance` (capability controllers)
 - Mobile app (`personal-os-app`)
-- Web app (`personal-os-web`) — settings toggle + chat tools today; finance screens not built yet (`personal-os-web/docs/modules/finance.md`)
+- Web app (`personal-os-web`) — `/finance` shell, catalog, ledger, budgets, planning, Gmail sync and review queue (`personal-os-web/docs/modules/finance.md`)
 - AI agent tools when `moduleSlug=finance` (see `docs/ai-tools/finance-tools.md`) via **`FinanceFacade` only**. The facade is a subset of REST (see [REST vs FinanceFacade](#rest-vs-financefacade)).
 
 ## Architecture
@@ -65,14 +65,14 @@ Query-only surfaces (e.g. `LedgerQueryService`) stay as services even when write
 | Area | Capability |
 | --- | --- |
 | Institutions | User-defined banks/fintechs; soft-delete via `isActive` |
-| Accounts | Checking, savings, cash, investment; single currency + balance; optional institution; **not** credit cards |
-| Cards | Credit/debit per institution; multi-currency balances + credit limit on `FinCardBalance`; statement days on card |
+| Accounts | Checking, savings, investment **require** an institution; `CASH` may omit it; **not** cards (`lastFour` lives on `FinCard`) |
+| Cards | Credit/debit per institution; `lastFour` identifies the PAN; multi-currency balances + credit limit on `FinCardBalance`; statement days on card |
 | Transactions | Manual CRUD (`DEBIT`/`CREDIT`); transfers via dedicated endpoint; filters; confirm `PENDING`; reverse `CONFIRMED` via `POST /transactions/:id/reverse` (row stays `REVERSED`; one transfer leg is 400) |
 | Categories | System + custom; hierarchical (`parentId`); used by budgets and transactions |
 | Budgets | Per category and period; spent tracking; threshold alerts deduped in `FinBudgetAlert`. `GET /finance/budgets` is **paginated** (`{ items, pagination }`, default `page=1` `limit=20`, cap 100). |
 | Savings goals | Target amount, progress, completion (`isCompleted` recalculated on amount changes) |
-| Loans / receivables | Loans archive via `PATCH isActive` / `DELETE`. Optional `currency` (ISO 4217, default `DOP`), `interestRate` as a **fraction 0–1** (`Decimal(5,4)`, e.g. `0.12` = 12%; `null` = not provided, distinct from `0`), and `notes`. Receivables: `status` (`PENDING` \| `PARTIAL` \| `PAID` \| `CANCELLED`) and `paidAmount` on PATCH; `paidAmount` ∈ [0, amount]; `PAID` requires `paidAmount = amount` (omitted `paidAmount` is filled); omitting `status` derives it from amounts; `CANCELLED` does not require a full payment |
-| Gmail sync | OAuth2, encrypted tokens, BullMQ job, **AI extraction** (no bank HTML parsers) |
+| Loans / receivables | Loans archive via `PATCH isActive` / `DELETE`. Optional catalog `institutionId` (bank lender) plus `lenderName` (display / external lender). `accountId` is the **payment account**; PATCH honors it and requires the same institution when the lender is catalogued. Optional `currency` (ISO 4217, default `DOP`), `interestRate` as a **fraction 0–1** (`Decimal(5,4)`, e.g. `0.12` = 12%; `null` = not provided, distinct from `0`), and `notes`. Receivables: `status` (`PENDING` \| `PARTIAL` \| `PAID` \| `CANCELLED`) and `paidAmount` on PATCH; `paidAmount` ∈ [0, amount]; `PAID` requires `paidAmount = amount` (omitted `paidAmount` is filled); omitting `status` derives it from amounts; `CANCELLED` does not require a full payment |
+| Gmail sync | OAuth2 on `FinEmailConnection`; `FinEmailSource` is connection + **institution** + `bankDomain`. Card last-four / unique account match imports; 0 or N → `PENDING_ASSIGNMENT`. Tokens encrypted. BullMQ job. **AI extraction**. Requires `userModules.finance.config.emailSync.enabled`. |
 | Analytics | Net worth, cash flow, spending by category, budget status. `GET /analytics/summary` positions (`accountBalance`, `cardDebt`, `netWorth`) are converted to `BASE_CURRENCY` using the **UTC date of the request** (exact cached/API rate, same fail-closed 400 as ledger — no stale “latest”). Income/expenses already use `amountBaseCurrency`. Payload includes `baseCurrency`. |
 | FX | Live historical rates via **exchangerate.host**; cache in `FinExchangeRate` (exact date only) |
 
@@ -86,8 +86,11 @@ Prefix: `fin_*` tables. Primary keys are UUID text columns.
 
 | Model | Description |
 | --- | --- |
-| `FinTransaction` | Ledger row; XOR account/card; unique `emailMessageId`; original + ledger + base amounts |
-| `FinEmailMessage` | Per-source Gmail message outcome (`IMPORTED` / `SKIPPED_NOT_TX` / `FAILED_NON_RETRYABLE`); unique `(sourceId, gmailMessageId)` |
+| `FinTransaction` | Ledger row; XOR account/card; optional unique `emailMessageId` FK to `FinEmailMessage.id` |
+| `FinEmailConnection` | OAuth mailbox (tokens); unique `(userId, provider, emailAddress)` |
+| `FinEmailSource` | Bank-domain filter for one connection + institution (not OAuth, not a ledger target) |
+| `FinEmailMessage` | Per-source Gmail extract (`gmailMessageId` is the provider id); outcomes include `PENDING_ASSIGNMENT` |
+| `FinEmailSyncLog` | One row per sync run |
 | `FinExchangeRate` | Cached pair rates by calendar date |
 | `FinBudgetAlert` | Threshold alerts; unique `(budget_id, type)` for dedupe |
 | `DomainEventOutbox` | Durable domain events |
@@ -121,13 +124,14 @@ Response bodies (not write DTOs) serialize **money and rates as decimal strings*
 | `FinTransactionType` | `DEBIT`, `CREDIT`, `TRANSFER` (transfer type used on paired legs) |
 | `FinTransactionStatus` | `PENDING`, `CONFIRMED`, `DECLINED`, `CANCELLED`, `REVERSED` |
 | `FinTransactionSource` | `MANUAL`, `EMAIL`, `AI` |
-| `FinEmailMessageOutcome` | `IMPORTED`, `SKIPPED_NOT_TX`, `FAILED_NON_RETRYABLE` |
+| `FinEmailMessageOutcome` | `IMPORTED`, `SKIPPED_NOT_TX`, `FAILED_NON_RETRYABLE`, `PENDING_ASSIGNMENT` |
 
 User language **COMPLETED** maps to **CONFIRMED** (no `COMPLETED` enum value).
 
 ### Transaction rules
 
 - **Target XOR**: exactly one of `accountId` or `cardId`.
+- **Ownership**: institution of an account/card belongs to the user; DEBIT cards use an account of the same user and institution; CREDIT cards have no account; category of a transaction/budget is the user's or system; category parent is visible, acyclic, and same-user; loan payment account belongs to the user (and the same institution when the lender is catalogued). Changing an account's institution is rejected while incompatible debit cards remain. Archiving an institution is **409** while active accounts, cards, email sources, or loans remain. Those 409s include `details.dependents` or `details.debitCardIds` so the client can act on the conflict.
 - **Ledger effects** only when status is `CONFIRMED` (create or confirmation path).
 - `POST /transactions` accepts `type` `DEBIT` \| `CREDIT` only; use `POST /transfers` for moves.
 - Email import status comes from **bank status mapping** (domain), not always `PENDING`.
@@ -160,12 +164,12 @@ Authenticated `/finance/*` routes also require `user_modules.finance.isEnabled`.
 | Catalog | Institutions, Accounts, Cards, Categories |
 | Planning | Budgets, Savings goals, Loans, Receivables |
 | Analytics | `AnalyticsController` (`summary`, spending, budget-status) |
-| Ingestion | `EmailSyncController` (OAuth + sources + sync) |
+| Ingestion | `EmailSyncController` (OAuth + sources + sync + pending assignment) |
 
 Public OAuth callback remains on the email-sync controller. After Google consent the API redirects:
 
 - **Mobile (default):** `personal-os://finance/oauth/callback?success=1|false`
-- **Web:** pass `returnTo` (https URL whose origin is in `CORS_ORIGIN`) when requesting `GET /finance/email-sync/oauth/google/url`. The signed `state` carries `returnTo` plus optional `accountId` **xor** `cardId`. The callback then 302s to `{returnTo}?success=true|false`. Invalid or missing `returnTo` falls back to the mobile deep link (no open redirect).
+- **Web:** pass `returnTo` (https URL whose origin is in `CORS_ORIGIN`) when requesting `GET /finance/email-sync/oauth/google/url`. The signed `state` carries `returnTo` plus required `institutionId`. The callback then 302s to `{returnTo}?success=true|false`. Invalid or missing `returnTo` falls back to the mobile deep link (no open redirect). Connect/sync also require `emailSync.enabled` in the finance module config.
 
 ### List shapes
 
@@ -177,7 +181,8 @@ Envelope is always `{ data, meta }`. Inside `data`:
 | `GET /finance/budgets` | `{ items, pagination }` | Same defaults; grows with periods |
 | `GET /finance/accounts`, `cards`, `institutions`, `categories` | array | Unbounded catalog for pickers (personal scale) |
 | `GET /finance/savings-goals`, `loans`, `receivables` | array | Unbounded |
-| `GET /finance/email-sync/sources` | array | Sync logs nested `take: 5` (detail `take: 10`) |
+| `GET /finance/email-sync/sources` | array | Sync logs nested `take: 5` (detail `take: 10`); no tokens |
+| `GET /finance/email-sync/pending` | array | `PENDING_ASSIGNMENT` messages for the review queue |
 | `GET /finance/analytics/*` | object | Not paginated |
 
 AI `list_budgets` still uses `FinanceFacade.listBudgets` (full array), not the HTTP page.
@@ -194,7 +199,8 @@ Chat tools call **`FinanceFacade` only**. REST under `/finance` is wider. Do not
 | Categories writes | Yes | `listCategories` only |
 | Delete transaction | `DELETE /finance/transactions/:id` | No |
 | Reverse transaction | `POST /finance/transactions/:id/reverse` | Yes (`reverseTransaction`); **no** AI tool yet |
-| Gmail OAuth (URL + public callback, `returnTo` / `cardId`) | Yes | No (`listEmailSources` + `triggerEmailSync` only) |
+| Gmail OAuth (URL + public callback, `returnTo` / `institutionId`) | Yes | No (`listEmailSources` + `triggerEmailSync` only) |
+| Pending email assignment | `GET /finance/email-sync/pending`, `POST .../pending/:id/assign`, `POST .../pending/:id/retry` | No |
 | Paginated budgets | `GET /finance/budgets` → `{ items, pagination }` | Unbounded `listBudgets` array |
 
 Full tool list: `docs/ai-tools/finance-tools.md`.
@@ -218,20 +224,22 @@ sequenceDiagram
   Queue->>Worker: process
   Worker->>UC: execute
   UC->>Gmail: list/fetch messages
-  UC->>DB: skip if FinEmailMessage terminal or FinTransaction.emailMessageId
-  UC->>AI: extract kind transaction or not_transaction + bank status
-  UC->>UC: mapBankStatusToInternal (transaction only)
-  UC->>Ledger: import/reverse (ledger + outbox same TX if CONFIRMED)
-  UC->>DB: upsert FinEmailMessage outcome + FinEmailSyncLog + finance.email_sync.completed
+  UC->>DB: skip if FinEmailMessage already exists for (source, gmail id)
+  UC->>AI: extract kind transaction or not_transaction + bank status + instrument/lastFour
+  UC->>UC: resolve unique card (lastFour) or unique account of the source institution
+  UC->>Ledger: import only on unique match (ledger + outbox same TX if CONFIRMED)
+  UC->>DB: upsert FinEmailMessage (IMPORTED / PENDING_ASSIGNMENT / skip) + FinEmailSyncLog + finance.email_sync.completed
 ```
 
 | Step | Behavior |
 | --- | --- |
-| Preconditions | Source active; linked account **or** card; refreshable token |
+| Preconditions | Source active; connection tokens; `emailSync.enabled`; institution owned |
 | Query | `from:{bankDomain}` + `after` unless `forceFullSync` |
-| Dedup | Skip if `FinEmailMessage` already has a terminal outcome, or existing `FinTransaction.emailMessageId` (legacy) |
-| Extraction | LLM + Zod discriminated union (`kind: transaction` \| `not_transaction`); no HTML parsers |
+| Dedup | Skip if `FinEmailMessage` already exists for `(sourceId, gmailMessageId)` |
+| Extraction | LLM + Zod discriminated union (`kind: transaction` \| `not_transaction`); `instrumentHint` + card `lastFourHint`; no HTML parsers |
+| Routing | Unique **card** match on last-four, or unique **account** of that institution when the hint is ACCOUNT; 0 or N → `PENDING_ASSIGNMENT` (no ledger row) |
 | Non-tx / failures | `not_transaction` → `SKIPPED_NOT_TX`; `ok: false` + `retryable: false` → `FAILED_NON_RETRYABLE` (no re-extract); `retryable: true` not persisted |
+| Review | `GET /finance/email-sync/pending`; `POST .../assign` XOR account/card of the same institution; `POST .../retry` re-runs the resolver. Both are idempotent if already `IMPORTED`. |
 | Status | Domain map from bank status + confidence (transaction kind only) |
 | Batch AI/notifications | Prefer `finance.email_sync.completed` over per-email storms for EMAIL source |
 

@@ -213,4 +213,21 @@ export class UsersService {
       throw new ForbiddenException(moduleDisabledMessage(slug));
     }
   }
+
+  async assertFinanceEmailSyncEnabled(userId: string): Promise<void> {
+    await this.assertModuleEnabled(userId, 'finance');
+    const row = await this.usersRepository.findUserModuleBySlug(
+      userId,
+      'finance',
+    );
+    const config = (row?.config ?? {}) as {
+      emailSync?: { enabled?: boolean };
+    };
+    const enabled =
+      config.emailSync?.enabled ??
+      DEFAULT_MODULE_CONFIG_BY_SLUG.finance.emailSync.enabled;
+    if (enabled !== true) {
+      throw new ForbiddenException('Finance email sync is disabled');
+    }
+  }
 }

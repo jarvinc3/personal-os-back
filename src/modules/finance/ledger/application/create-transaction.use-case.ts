@@ -8,6 +8,7 @@ import type { Env } from '../../../../config';
 import { FinanceOutboxDispatcher } from '../../events/infrastructure/finance-outbox.dispatcher';
 import { ResolveAmountsUseCase } from '../../fx/application/resolve-amounts.use-case';
 import { LEDGER_REPOSITORY } from '../../shared/application/tokens';
+import { FinanceOwnershipService } from '../../shared/application/finance-ownership.service';
 import { normalizeCurrencyCode } from '../../shared/domain/money';
 import type { CreateTransactionCommand } from './commands/ledger.commands';
 import { mapLedgerTransaction } from './ledger-mappers';
@@ -22,6 +23,7 @@ export class CreateTransactionUseCase {
     private readonly resolveAmounts: ResolveAmountsUseCase,
     private readonly config: ConfigService<Env, true>,
     private readonly outboxDispatcher: FinanceOutboxDispatcher,
+    private readonly ownership: FinanceOwnershipService,
   ) {}
 
   async execute(
@@ -33,6 +35,10 @@ export class CreateTransactionUseCase {
     const originalCurrency = command.currency
       ? normalizeCurrencyCode(command.currency)
       : baseCurrency;
+
+    if (command.categoryId) {
+      await this.ownership.assertCategoryVisible(userId, command.categoryId);
+    }
 
     const ledgerCurrency = await resolveLedgerCurrencyForTarget(
       this.repo,

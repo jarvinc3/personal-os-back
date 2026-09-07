@@ -118,3 +118,56 @@ describe('UsersService.assertModuleEnabled', () => {
     ).rejects.toThrow('Finance module is disabled');
   });
 });
+
+describe('UsersService.assertFinanceEmailSyncEnabled', () => {
+  const findEnabledUserModuleBySlug = jest.fn();
+  const findUserModuleBySlug = jest.fn();
+  const usersRepository = {
+    findEnabledUserModuleBySlug,
+    findUserModuleBySlug,
+  } as unknown as UsersRepository;
+
+  const service = new UsersService(
+    usersRepository,
+    { emit: jest.fn() } as unknown as EventEmitter2,
+    { tryDeleteAuthUser: jest.fn() } as unknown as SupabaseAdminService,
+  );
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    findEnabledUserModuleBySlug.mockResolvedValue({ id: 'um-1' });
+  });
+
+  it('resolves when emailSync.enabled is true', async () => {
+    findUserModuleBySlug.mockResolvedValue({
+      id: 'um-1',
+      isEnabled: true,
+      config: { emailSync: { enabled: true } },
+    });
+    await expect(
+      service.assertFinanceEmailSyncEnabled('user-1'),
+    ).resolves.toBeUndefined();
+  });
+
+  it('throws when emailSync is disabled', async () => {
+    findUserModuleBySlug.mockResolvedValue({
+      id: 'um-1',
+      isEnabled: true,
+      config: { emailSync: { enabled: false } },
+    });
+    await expect(
+      service.assertFinanceEmailSyncEnabled('user-1'),
+    ).rejects.toThrow('Finance email sync is disabled');
+  });
+
+  it('throws when emailSync is omitted (default is disabled)', async () => {
+    findUserModuleBySlug.mockResolvedValue({
+      id: 'um-1',
+      isEnabled: true,
+      config: {},
+    });
+    await expect(
+      service.assertFinanceEmailSyncEnabled('user-1'),
+    ).rejects.toThrow('Finance email sync is disabled');
+  });
+});

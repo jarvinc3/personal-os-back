@@ -2,6 +2,55 @@ import { Injectable } from '@nestjs/common';
 import type { Prisma } from '../../../../prisma/generated/client';
 import { PrismaService } from '../../../../prisma/prisma.service';
 
+const sourceListInclude = {
+  connection: {
+    select: {
+      id: true,
+      emailAddress: true,
+      provider: true,
+      isActive: true,
+    },
+  },
+  institution: {
+    select: { id: true, name: true, isActive: true },
+  },
+  logs: { orderBy: { startedAt: 'desc' as const }, take: 5 },
+} satisfies Prisma.FinEmailSourceInclude;
+
+const pendingMessageInclude = {
+  source: {
+    include: {
+      connection: {
+        select: { id: true, emailAddress: true, provider: true },
+      },
+      institution: {
+        select: { id: true, name: true, isActive: true },
+      },
+    },
+  },
+  transaction: { select: { id: true } },
+} satisfies Prisma.FinEmailMessageInclude;
+
+function jsonInput(value: unknown): Prisma.InputJsonValue {
+  return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
+}
+
+export type UpsertEmailMessageInput = {
+  sourceId: string;
+  gmailMessageId: string;
+  outcome:
+    | 'IMPORTED'
+    | 'SKIPPED_NOT_TX'
+    | 'FAILED_NON_RETRYABLE'
+    | 'PENDING_ASSIGNMENT';
+  reason?: string | null;
+  provider?: string | null;
+  model?: string | null;
+  instrumentHint?: string | null;
+  lastFourHint?: string | null;
+  extractedPayload?: unknown;
+};
+
 @Injectable()
 export class EmailSourceRepository {
   constructor(private readonly prisma: PrismaService) {}
@@ -9,7 +58,7 @@ export class EmailSourceRepository {
   listEmailSources(userId: string) {
     return this.prisma.finEmailSource.findMany({
       where: { userId },
-      include: { logs: { orderBy: { startedAt: 'desc' }, take: 5 } },
+      include: sourceListInclude,
       orderBy: { createdAt: 'desc' },
     });
   }
@@ -17,7 +66,10 @@ export class EmailSourceRepository {
   findEmailSource(userId: string, id: string) {
     return this.prisma.finEmailSource.findFirst({
       where: { userId, id },
-      include: { logs: { orderBy: { startedAt: 'desc' }, take: 10 } },
+      include: {
+        ...sourceListInclude,
+        logs: { orderBy: { startedAt: 'desc' }, take: 10 },
+      },
     });
   }
 
@@ -25,7 +77,10 @@ export class EmailSourceRepository {
     userId: string,
     data: Omit<Prisma.FinEmailSourceUncheckedCreateInput, 'userId'>,
   ) {
-    return this.prisma.finEmailSource.create({ data: { ...data, userId } });
+    return this.prisma.finEmailSource.create({
+      data: { ...data, userId },
+      include: sourceListInclude,
+    });
   }
 
   updateEmailSource(
@@ -37,10 +92,7 @@ export class EmailSourceRepository {
       .updateMany({ where: { userId, id }, data })
       .then(async (result) => {
         if (result.count === 0) return null;
-        return this.prisma.finEmailSource.findFirst({
-          where: { userId, id },
-          include: { logs: { orderBy: { startedAt: 'desc' }, take: 5 } },
-        });
+        return this.findEmailSource(userId, id);
       });
   }
 
@@ -121,51 +173,84 @@ export class EmailSourceRepository {
       select: {
         id: true,
         userId: true,
-        accessToken: true,
-        refreshToken: true,
-        tokenExpiresAt: true,
-        bankDomain: true,
-        accountId: true,
-        cardId: true,
-        lastMessageId: true,
-        lastSyncedAt: true,
         isActive: true,
+        connection: {
+          select: {
+            id: true,
+            accessToken: true,
+            refreshToken: true,
+            tokenExpiresAt: true,
+          },
+        },
       },
     });
   }
 
-  updateEmailSourceTokens(
-    sourceId: string,
+  findConnectionByUserEmail(
+    userId: string,
+    provider: string,
+    emailAddress: string,
+  ) {
+    return this.prisma.finEmailConnection.findUnique({
+      where: {
+        userId_provider_emailAddress: { userId, provider, emailAddress },
+      },
+    });
+  }
+
+  createConnection(
+    userId: string,
+    data: Omit<Prisma.FinEmailConnectionUncheckedCreateInput, 'userId'>,
+  ) {
+    return this.prisma.finEmailConnection.create({
+      data: { ...data, userId },
+    });
+  }
+
+  updateConnectionTokens(
+    connectionId: string,
     data: {
       accessToken: string;
       refreshToken: string;
       tokenExpiresAt: Date;
       emailAddress?: string;
-      accountId?: string | null;
-      cardId?: string | null;
+      isActive?: boolean;
     },
   ) {
-    return this.prisma.finEmailSource.update({
-      where: { id: sourceId },
+    return this.prisma.finEmailConnection.update({
+      where: { id: connectionId },
       data: {
         accessToken: data.accessToken,
         refreshToken: data.refreshToken,
         tokenExpiresAt: data.tokenExpiresAt,
         ...(data.emailAddress ? { emailAddress: data.emailAddress } : {}),
-        ...(data.accountId !== undefined ? { accountId: data.accountId } : {}),
-        ...(data.cardId !== undefined ? { cardId: data.cardId } : {}),
+        ...(data.isActive !== undefined ? { isActive: data.isActive } : {}),
       },
     });
   }
 
-  findEmailSourceByUserEmailAndDomain(
+  findSourceByConnectionAndInstitution(
     userId: string,
-    emailAddress: string,
-    bankDomain: string,
+    connectionId: string,
+    institutionId: string,
   ) {
     return this.prisma.finEmailSource.findFirst({
-      where: { userId, emailAddress, bankDomain },
+      where: { userId, connectionId, institutionId },
+      include: sourceListInclude,
     });
+  }
+
+  listInstitutionDestinations(userId: string, institutionId: string) {
+    return Promise.all([
+      this.prisma.finAccount.findMany({
+        where: { userId, institutionId, isActive: true },
+        select: { id: true, name: true },
+      }),
+      this.prisma.finCard.findMany({
+        where: { userId, institutionId, isActive: true },
+        select: { id: true, lastFour: true, type: true, name: true },
+      }),
+    ]);
   }
 
   listCategories(userId: string) {
@@ -182,6 +267,24 @@ export class EmailSourceRepository {
     return this.prisma.finCard.findFirst({ where: { id, userId } });
   }
 
+  listPendingAssignmentMessages(userId: string) {
+    return this.prisma.finEmailMessage.findMany({
+      where: {
+        outcome: 'PENDING_ASSIGNMENT',
+        source: { userId },
+      },
+      include: pendingMessageInclude,
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  findEmailMessageById(userId: string, id: string) {
+    return this.prisma.finEmailMessage.findFirst({
+      where: { id, source: { userId } },
+      include: pendingMessageInclude,
+    });
+  }
+
   findEmailMessage(sourceId: string, gmailMessageId: string) {
     return this.prisma.finEmailMessage.findUnique({
       where: {
@@ -190,15 +293,18 @@ export class EmailSourceRepository {
     });
   }
 
-  upsertEmailMessage(data: {
-    sourceId: string;
-    gmailMessageId: string;
-    outcome: 'IMPORTED' | 'SKIPPED_NOT_TX' | 'FAILED_NON_RETRYABLE';
-    reason?: string | null;
-    provider?: string | null;
-    model?: string | null;
-  }) {
-    const { sourceId, gmailMessageId, outcome, reason, provider, model } = data;
+  upsertEmailMessage(data: UpsertEmailMessageInput) {
+    const {
+      sourceId,
+      gmailMessageId,
+      outcome,
+      reason,
+      provider,
+      model,
+      instrumentHint,
+      lastFourHint,
+      extractedPayload,
+    } = data;
     return this.prisma.finEmailMessage.upsert({
       where: {
         sourceId_gmailMessageId: { sourceId, gmailMessageId },
@@ -210,12 +316,32 @@ export class EmailSourceRepository {
         reason: reason ?? null,
         provider: provider ?? null,
         model: model ?? null,
+        instrumentHint: instrumentHint ?? null,
+        lastFourHint: lastFourHint ?? null,
+        extractedPayload:
+          extractedPayload === undefined || extractedPayload === null
+            ? undefined
+            : jsonInput(extractedPayload),
       },
       update: {
         outcome,
         reason: reason ?? null,
         provider: provider ?? null,
         model: model ?? null,
+        ...(instrumentHint !== undefined
+          ? { instrumentHint: instrumentHint ?? null }
+          : {}),
+        ...(lastFourHint !== undefined
+          ? { lastFourHint: lastFourHint ?? null }
+          : {}),
+        ...(extractedPayload !== undefined
+          ? {
+              extractedPayload:
+                extractedPayload === null
+                  ? undefined
+                  : jsonInput(extractedPayload),
+            }
+          : {}),
       },
     });
   }
