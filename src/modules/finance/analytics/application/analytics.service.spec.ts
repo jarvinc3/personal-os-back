@@ -1,7 +1,7 @@
-import { AnalyticsService } from './analytics.service';
 import type { AnalyticsRepository } from '../infrastructure/analytics.repository';
+import { AnalyticsService } from './analytics.service';
 
-describe('AnalyticsService.getSpendingByCategory', () => {
+describe('AnalyticsService', () => {
   const grouped = (rows: Array<{ categoryId: string | null; total: number }>) =>
     rows.map((row) => ({
       categoryId: row.categoryId,
@@ -97,5 +97,33 @@ describe('AnalyticsService.getSpendingByCategory', () => {
 
     expect(findCategoriesByIds).toHaveBeenCalledWith('user-1', []);
     expect(result).toEqual([]);
+  });
+
+  it('exposes category color and icon in budget status', async () => {
+    const result = await createService({
+      listBudgets: jest.fn().mockResolvedValue([
+        {
+          id: 'budget-1',
+          categoryId: 'cat-food',
+          category: {
+            name: 'Comida',
+            color: '#f00',
+            icon: '🍽️',
+          },
+          periodType: 'MONTHLY',
+          periodStart: new Date('2026-09-01'),
+          periodEnd: new Date('2026-09-30'),
+          amountLimit: 100,
+          amountSpent: 25,
+          alertThresholdPct: 80,
+        },
+      ]),
+    }).getBudgetStatus('user-1');
+
+    expect(result[0]).toMatchObject({
+      category: 'Comida',
+      color: '#f00',
+      icon: '🍽️',
+    });
   });
 });

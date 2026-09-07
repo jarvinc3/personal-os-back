@@ -15,7 +15,7 @@ export class AnalyticsService {
     private readonly repo: AnalyticsRepository,
     private readonly resolveAmounts: ResolveAmountsUseCase,
     private readonly config: ConfigService<Env, true>,
-  ) {}
+  ) { }
 
   async getAnalyticsSummary(
     userId: string,
@@ -172,6 +172,8 @@ export class AnalyticsService {
         id: budget.id,
         categoryId: budget.categoryId,
         category: budget.category.name,
+        color: budget.category.color,
+        icon: budget.category.icon,
         periodType: budget.periodType,
         periodStart: budget.periodStart.toISOString().slice(0, 10),
         periodEnd: budget.periodEnd.toISOString().slice(0, 10),
