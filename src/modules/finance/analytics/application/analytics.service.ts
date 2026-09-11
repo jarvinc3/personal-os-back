@@ -1,7 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import type { Env } from '../../../../config';
-import { ResolveAmountsUseCase } from '../../fx/application/resolve-amounts.use-case';
+import { BalanceSheetService } from '../../balance-sheet/application/balance-sheet.service';
 import { decimalToString } from '../../shared/domain/mappers';
 import { roundMoney } from '../../shared/domain/money';
 import { AnalyticsRepository } from '../infrastructure/analytics.repository';
@@ -13,8 +11,7 @@ const MISSING_CATEGORY_NAME = 'Categoría no disponible';
 export class AnalyticsService {
   constructor(
     private readonly repo: AnalyticsRepository,
-    private readonly resolveAmounts: ResolveAmountsUseCase,
-    private readonly config: ConfigService<Env, true>,
+    private readonly balanceSheet: BalanceSheetService,
   ) { }
 
   async getAnalyticsSummary(
@@ -24,32 +21,10 @@ export class AnalyticsService {
   ) {
     const from = dateFrom ? new Date(dateFrom) : undefined;
     const to = dateTo ? new Date(dateTo) : undefined;
-    const { accounts, cardBalances, aggregates } =
-      await this.repo.getAnalyticsSummary(userId, from, to);
-
-    const baseCurrency = this.config.get('BASE_CURRENCY', { infer: true });
-    const asOf = new Date();
-
-    let totalAccountBalance = 0;
-    for (const item of accounts) {
-      totalAccountBalance += await this.resolveAmounts.toBaseCurrency(
-        Number(item.balance),
-        item.currency,
-        asOf,
-      );
-    }
-    totalAccountBalance = roundMoney(totalAccountBalance);
-
-    let totalCardDebt = 0;
-    for (const item of cardBalances) {
-      if (item.card.type !== 'CREDIT') continue;
-      totalCardDebt += await this.resolveAmounts.toBaseCurrency(
-        Math.abs(Number(item.balance)),
-        item.currency,
-        asOf,
-      );
-    }
-    totalCardDebt = roundMoney(totalCardDebt);
+    const [sheet, aggregates] = await Promise.all([
+      this.balanceSheet.getBalanceSheet(userId),
+      this.repo.getCashFlowAggregates(userId, from, to),
+    ]);
 
     let income = 0;
     let expenses = 0;
@@ -61,14 +36,14 @@ export class AnalyticsService {
     }
 
     return {
-      netWorth: decimalToString(
-        roundMoney(totalAccountBalance - totalCardDebt),
-      ),
+      netWorth: sheet.global.netWorth,
       cashFlow: decimalToString(roundMoney(income - expenses)),
-      baseCurrency,
+      baseCurrency: sheet.baseCurrency,
+      balanceStatus: sheet.global.status,
+      balanceIssues: sheet.global.issues,
       totals: {
-        accountBalance: decimalToString(totalAccountBalance),
-        cardDebt: decimalToString(totalCardDebt),
+        accountBalance: sheet.global.assets.accounts,
+        cardDebt: sheet.global.liabilities.creditCards,
         income: decimalToString(roundMoney(income)),
         expenses: decimalToString(roundMoney(expenses)),
       },

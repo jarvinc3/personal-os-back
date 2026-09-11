@@ -221,3 +221,56 @@ describe('CatalogService archive institution', () => {
     expect(updateInstitution).not.toHaveBeenCalled();
   });
 });
+
+describe('CatalogService updateCardBalance', () => {
+  const findCardById = jest.fn();
+  const upsertCardBalance = jest.fn();
+  const service = new CatalogService(
+    { findCardById, upsertCardBalance } as unknown as CatalogRepository,
+    ownershipMock(),
+  );
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    findCardById.mockResolvedValue({
+      id: 'card-1',
+      type: 'CREDIT',
+    });
+    upsertCardBalance.mockResolvedValue({
+      id: 'bal-1',
+      cardId: 'card-1',
+      currency: 'DOP',
+      balance: 42467,
+      creditLimit: 48000,
+    });
+  });
+
+  it('requires creditLimit for CREDIT cards', async () => {
+    await expect(
+      service.updateCardBalance('user-1', 'card-1', {
+        currency: 'DOP',
+        balance: 42467,
+      }),
+    ).rejects.toThrow(/CREDIT cards require creditLimit/i);
+    expect(upsertCardBalance).not.toHaveBeenCalled();
+  });
+
+  it('upserts a CREDIT balance when the limit is provided', async () => {
+    const result = await service.updateCardBalance('user-1', 'card-1', {
+      currency: 'DOP',
+      balance: 42467,
+      creditLimit: 48000,
+    });
+    expect(upsertCardBalance).toHaveBeenCalledWith(
+      'user-1',
+      'card-1',
+      'DOP',
+      42467,
+      48000,
+    );
+    expect(result).toMatchObject({
+      balance: '42467',
+      creditLimit: '48000',
+    });
+  });
+});

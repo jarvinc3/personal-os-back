@@ -73,7 +73,8 @@ Query-only surfaces (e.g. `LedgerQueryService`) stay as services even when write
 | Savings goals | Target amount, progress, completion (`isCompleted` recalculated on amount changes) |
 | Loans / receivables | Loans archive via `PATCH isActive` / `DELETE`. Optional catalog `institutionId` (bank lender) plus `lenderName` (display / external lender). `accountId` is the **payment account**; PATCH honors it and requires the same institution when the lender is catalogued. Optional `currency` (ISO 4217, default `DOP`), `interestRate` as a **fraction 0–1** (`Decimal(5,4)`, e.g. `0.12` = 12%; `null` = not provided, distinct from `0`), and `notes`. Receivables: `status` (`PENDING` \| `PARTIAL` \| `PAID` \| `CANCELLED`) and `paidAmount` on PATCH; `paidAmount` ∈ [0, amount]; `PAID` requires `paidAmount = amount` (omitted `paidAmount` is filled); omitting `status` derives it from amounts; `CANCELLED` does not require a full payment |
 | Gmail sync | OAuth2 on `FinEmailConnection`; `FinEmailSource` is connection + **institution** + `bankDomain`. Card last-four / unique account match imports; 0 or N → `PENDING_ASSIGNMENT`. Tokens encrypted. BullMQ job. **AI extraction**. Requires `userModules.finance.config.emailSync.enabled`. |
-| Analytics | Net worth, cash flow, spending by category, budget status. `GET /analytics/summary` positions (`accountBalance`, `cardDebt`, `netWorth`) are converted to `BASE_CURRENCY` using the **UTC date of the request** (exact cached/API rate, same fail-closed 400 as ledger — no stale “latest”). Income/expenses already use `amountBaseCurrency`. Payload includes `baseCurrency`. |
+| Analytics | Cash flow, spending by category, budget status. `GET /analytics/summary` cash-flow fields use the requested date range. Position fields (`accountBalance`, `cardDebt`, `netWorth`) come from `GET /finance/balance-sheet` (current snapshot in `BASE_CURRENCY`, fail-closed 400 if FX is missing). `cardDebt` is credit utilization (`creditLimit - available`). Missing credit limits set `balanceStatus=INCOMPLETE` and null `netWorth`/`cardDebt`. Payload includes `baseCurrency`. |
+| Balance sheet | `GET /finance/balance-sheet`: current assets (active accounts) minus credit-card utilization and active loans, converted to `BASE_CURRENCY`. Returns `global` plus one row per active institution. Unlinked cash/loans appear only in `global`. |
 | FX | Live historical rates via **exchangerate.host**; cache in `FinExchangeRate` (exact date only) |
 
 **Out of scope (today):** open banking APIs, automatic balance reconciliation from bank cores, and **`fin_recurring_patterns` / `FinRecurringPattern`** (schema reserved; no REST, no facade, no tools).
@@ -105,7 +106,7 @@ Prefix: `fin_*` tables. Primary keys are UUID text columns.
 | `ledgerAmount` / `ledgerCurrency` | Amount applied to account/card balance |
 | `amountBaseCurrency` / `exchangeRate` | Analytics normalization (`BASE_CURRENCY`) |
 
-FX fails closed: if the exact historical rate for `transactionDate` is missing from cache and API, the operation returns 400 — no stale “latest” rate. The same rule applies to `GET /finance/analytics/summary` positions using today’s UTC date.
+FX fails closed: if the exact historical rate for `transactionDate` is missing from cache and API, the operation returns 400 — no stale “latest” rate. The same rule applies to `GET /finance/balance-sheet` and to position fields on `GET /finance/analytics/summary`, using today’s UTC date.
 
 ### Money JSON contract
 
@@ -184,6 +185,7 @@ Envelope is always `{ data, meta }`. Inside `data`:
 | `GET /finance/email-sync/sources` | array | Sync logs nested `take: 5` (detail `take: 10`); no tokens |
 | `GET /finance/email-sync/pending` | array | `PENDING_ASSIGNMENT` messages for the review queue |
 | `GET /finance/analytics/*` | object | Not paginated |
+| `GET /finance/balance-sheet` | object | Current snapshot; `global` + `institutions[]`. Incomplete credit cards null `netWorth` / `creditCards` |
 
 AI `list_budgets` still uses `FinanceFacade.listBudgets` (full array), not the HTTP page.
 
@@ -202,6 +204,7 @@ Chat tools call **`FinanceFacade` only**. REST under `/finance` is wider. Do not
 | Gmail OAuth (URL + public callback, `returnTo` / `institutionId`) | Yes | No (`listEmailSources` + `triggerEmailSync` only) |
 | Pending email assignment | `GET /finance/email-sync/pending`, `POST .../pending/:id/assign`, `POST .../pending/:id/retry` | No |
 | Paginated budgets | `GET /finance/budgets` → `{ items, pagination }` | Unbounded `listBudgets` array |
+| Current balance sheet | `GET /finance/balance-sheet` | Indirect via `getAnalyticsSummary` (`netWorth` / `cardDebt` / `balanceStatus`) |
 
 Full tool list: `docs/ai-tools/finance-tools.md`.
 

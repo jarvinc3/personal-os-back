@@ -1171,6 +1171,27 @@
         ]
       }
     },
+    "/api/finance/balance-sheet": {
+      "get": {
+        "description": "Snapshot of active accounts minus credit-card utilization and loan balances. Credit debt is creditLimit - available balance. Missing credit limits return status INCOMPLETE with null netWorth.",
+        "operationId": "BalanceSheetController_get",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Current financial position in BASE_CURRENCY",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
     "/api/finance/analytics/summary": {
       "get": {
         "operationId": "AnalyticsController_summary",

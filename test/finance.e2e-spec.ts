@@ -838,10 +838,17 @@ describe('Finance (e2e)', () => {
   });
 
   it('GET /api/finance/analytics/summary returns totals envelope', async () => {
+    prismaMock.finInstitution.findMany.mockResolvedValue([]);
     prismaMock.finAccount.findMany.mockResolvedValue([
-      { balance: { toString: () => '100' }, currency: 'DOP' },
+      {
+        id: 'acc-1',
+        institutionId: null,
+        balance: { toString: () => '100' },
+        currency: 'DOP',
+      },
     ]);
     prismaMock.finCardBalance.findMany.mockResolvedValue([]);
+    prismaMock.finLoan.findMany.mockResolvedValue([]);
     prismaMock.finTransaction.groupBy.mockResolvedValue([]);
 
     await request(app.getHttpServer())
@@ -853,7 +860,100 @@ describe('Finance (e2e)', () => {
         expect(res.body.data).toHaveProperty('totals');
         expect(res.body.data.baseCurrency).toBe('DOP');
         expect(res.body.data.totals.accountBalance).toBe('100');
+        expect(res.body.data.netWorth).toBe('100');
+        expect(res.body.data.balanceStatus).toBe('COMPLETE');
         expect(typeof res.body.data.netWorth).toBe('string');
+      });
+  });
+
+  it('GET /api/finance/balance-sheet returns converted positions and credit utilization', async () => {
+    prismaMock.finInstitution.findMany.mockResolvedValue([{ id: 'inst-1' }]);
+    prismaMock.finAccount.findMany.mockResolvedValue([
+      {
+        id: 'acc-1',
+        institutionId: 'inst-1',
+        currency: 'DOP',
+        balance: 150000,
+      },
+    ]);
+    prismaMock.finCardBalance.findMany.mockResolvedValue([
+      {
+        currency: 'DOP',
+        balance: 42000,
+        creditLimit: 48000,
+        card: { id: 'card-1', institutionId: 'inst-1' },
+      },
+    ]);
+    prismaMock.finLoan.findMany.mockResolvedValue([
+      {
+        id: 'loan-1',
+        institutionId: 'inst-1',
+        currency: 'DOP',
+        currentBalance: 13500,
+      },
+    ]);
+
+    await request(app.getHttpServer())
+      .get('/api/finance/balance-sheet')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.data.baseCurrency).toBe('DOP');
+        expect(res.body.data.global).toMatchObject({
+          status: 'COMPLETE',
+          assets: { accounts: '150000' },
+          liabilities: { creditCards: '6000', loans: '13500' },
+          totalAssets: '150000',
+          totalLiabilities: '19500',
+          netWorth: '130500',
+        });
+        expect(res.body.data.institutions).toEqual([
+          expect.objectContaining({
+            institutionId: 'inst-1',
+            netWorth: '130500',
+          }),
+        ]);
+      });
+  });
+
+  it('GET /api/finance/balance-sheet converts mixed currencies and marks missing limits incomplete', async () => {
+    prismaMock.finInstitution.findMany.mockResolvedValue([{ id: 'inst-1' }]);
+    prismaMock.finAccount.findMany.mockResolvedValue([
+      {
+        id: 'acc-usd',
+        institutionId: 'inst-1',
+        currency: 'USD',
+        balance: 10,
+      },
+    ]);
+    prismaMock.finCardBalance.findMany.mockResolvedValue([
+      {
+        currency: 'DOP',
+        balance: 100,
+        creditLimit: null,
+        card: { id: 'card-1', institutionId: 'inst-1' },
+      },
+    ]);
+    prismaMock.finLoan.findMany.mockResolvedValue([]);
+    prismaMock.finExchangeRate.findUnique.mockResolvedValue({
+      rate: { toString: () => '60' },
+    });
+
+    await request(app.getHttpServer())
+      .get('/api/finance/balance-sheet')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.data.global.status).toBe('INCOMPLETE');
+        expect(res.body.data.global.assets.accounts).toBe('600');
+        expect(res.body.data.global.netWorth).toBeNull();
+        expect(res.body.data.global.issues).toEqual([
+          {
+            code: 'MISSING_CREDIT_LIMIT',
+            cardId: 'card-1',
+            currency: 'DOP',
+          },
+        ]);
       });
   });
 
