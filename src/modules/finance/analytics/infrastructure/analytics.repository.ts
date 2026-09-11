@@ -20,7 +20,7 @@ export class AnalyticsRepository {
 
     return this.prisma.finTransaction.groupBy({
       by: ['type', 'status'],
-      where: { userId, ...dateFilter },
+      where: { userId, transferGroupId: null, ...dateFilter },
       _sum: { amountBaseCurrency: true },
       _count: { _all: true },
       orderBy: { type: 'asc' },
@@ -32,6 +32,7 @@ export class AnalyticsRepository {
       userId,
       type: 'DEBIT',
       status: 'CONFIRMED',
+      transferGroupId: null,
       ...(from || to
         ? {
             transactionDate: {
@@ -85,6 +86,7 @@ export class AnalyticsRepository {
       WHERE "user_id" = ${userId}
         AND "status" = 'CONFIRMED'
         AND "type" IN ('DEBIT', 'CREDIT')
+        AND "transfer_group_id" IS NULL
         ${from ? PrismaNS.sql`AND "transaction_date" >= ${from}` : PrismaNS.empty}
         ${to ? PrismaNS.sql`AND "transaction_date" <= ${to}` : PrismaNS.empty}
       GROUP BY 1, 2

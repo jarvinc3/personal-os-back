@@ -417,4 +417,68 @@ describe('PrismaLedgerRepository outbox-in-TX', () => {
     expect(result).toEqual({ count: 0 });
     expect(enqueue).not.toHaveBeenCalled();
   });
+
+  it('findTransactions returns one logical row per transfer with the credit counterpart', async () => {
+    const debit = {
+      id: 'debit-1',
+      userId: 'user-1',
+      type: 'DEBIT',
+      amount: 100,
+      ledgerAmount: 100,
+      amountBaseCurrency: 100,
+      currency: 'DOP',
+      ledgerCurrency: 'DOP',
+      exchangeRate: 1,
+      merchant: null,
+      description: null,
+      notes: null,
+      categoryId: null,
+      status: 'CONFIRMED',
+      source: 'MANUAL',
+      transferGroupId: 'grp-1',
+      linkedTransactionId: null,
+      transactionDate: new Date('2026-08-01T12:00:00.000Z'),
+      createdAt: new Date('2026-08-01T12:00:00.000Z'),
+      accountId: 'acc-from',
+      cardId: null,
+      account: { id: 'acc-from', name: 'Nómina' },
+      card: null,
+    };
+    const credit = {
+      ...debit,
+      id: 'credit-1',
+      type: 'CREDIT',
+      accountId: 'acc-to',
+      account: { id: 'acc-to', name: 'Ahorros' },
+    };
+    const findMany = jest
+      .fn()
+      .mockResolvedValueOnce([debit])
+      .mockResolvedValueOnce([credit]);
+    const prisma = {
+      $transaction: jest.fn(async (ops: Promise<unknown>[]) =>
+        Promise.all(ops),
+      ),
+      finTransaction: {
+        findMany,
+        count: jest.fn().mockResolvedValue(1),
+      },
+    };
+    const repo = new PrismaLedgerRepository(
+      prisma as never,
+      { enqueue: jest.fn() },
+      undefined,
+    );
+
+    const [items, total] = await repo.findTransactions('user-1', {
+      page: 1,
+      limit: 20,
+    });
+
+    expect(total).toBe(1);
+    expect(items).toHaveLength(1);
+    expect(items[0]?.id).toBe('debit-1');
+    expect(items[0]?.transferCounterpart?.id).toBe('credit-1');
+    expect(items[0]?.transferCounterpart?.account?.name).toBe('Ahorros');
+  });
 });

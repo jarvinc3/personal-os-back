@@ -208,4 +208,38 @@ describe('AnalyticsService', () => {
     expect(result.balanceStatus).toBe('INCOMPLETE');
     expect(result.balanceIssues).toHaveLength(1);
   });
+
+  it('does not count TRANSFER aggregate rows as income or expenses', async () => {
+    const getCashFlowAggregates = jest.fn().mockResolvedValue([
+      {
+        type: 'TRANSFER',
+        status: 'CONFIRMED',
+        _sum: { amountBaseCurrency: 100 },
+      },
+      {
+        type: 'DEBIT',
+        status: 'CONFIRMED',
+        _sum: { amountBaseCurrency: 10 },
+      },
+    ]);
+    const getBalanceSheet = jest.fn().mockResolvedValue({
+      baseCurrency: 'DOP',
+      global: {
+        status: 'COMPLETE',
+        assets: { accounts: '0' },
+        liabilities: { creditCards: '0', loans: '0' },
+        netWorth: '0',
+        issues: [],
+      },
+    });
+
+    const result = await createService(
+      { getCashFlowAggregates },
+      { getBalanceSheet },
+    ).getAnalyticsSummary('user-1');
+
+    expect(result.totals.income).toBe('0');
+    expect(result.totals.expenses).toBe('10');
+    expect(result.cashFlow).toBe('-10');
+  });
 });

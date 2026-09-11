@@ -33,6 +33,7 @@ import {
     applyBalanceForTransaction,
     resolveLedgerTarget,
 } from './balance.helpers';
+import { logicalTransactionsWhere } from './logical-transaction-query';
 
 function ledgerFields(row: {
   amount: { toString(): string } | number;
@@ -59,38 +60,17 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
     private readonly thresholds?: BudgetThresholdPort,
   ) {}
 
-  findTransactions(userId: string, query: ListTransactionsQuery) {
+  async findTransactions(userId: string, query: ListTransactionsQuery) {
     const { skip, take } = paginationArgs({
       page: query.page ?? 1,
       limit: query.limit ?? 20,
     });
-    const where: Prisma.FinTransactionWhereInput = {
+    const matchingGroupIds = await this.findTransferGroupIdsForInstrument(
       userId,
-      ...(query.transferGroupId ? { transferGroupId: query.transferGroupId } : {}),
-      ...(query.accountId ? { accountId: query.accountId } : {}),
-      ...(query.cardId ? { cardId: query.cardId } : {}),
-      ...(query.categoryId ? { categoryId: query.categoryId } : {}),
-      ...(query.type ? { type: query.type } : {}),
-      ...(query.status ? { status: query.status } : {}),
-      ...(query.dateFrom || query.dateTo
-        ? {
-            transactionDate: {
-              ...(query.dateFrom ? { gte: new Date(query.dateFrom) } : {}),
-              ...(query.dateTo ? { lte: new Date(query.dateTo) } : {}),
-            },
-          }
-        : {}),
-      ...(query.search
-        ? {
-            OR: [
-              { merchant: { contains: query.search, mode: 'insensitive' } },
-              { description: { contains: query.search, mode: 'insensitive' } },
-            ],
-          }
-        : {}),
-    };
-
-    return this.prisma.$transaction([
+      query,
+    );
+    const where = logicalTransactionsWhere(userId, query, matchingGroupIds);
+    const [items, total] = (await this.prisma.$transaction([
       this.prisma.finTransaction.findMany({
         where,
         orderBy: { transactionDate: 'desc' },
@@ -102,7 +82,62 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
         },
       }),
       this.prisma.finTransaction.count({ where }),
-    ]) as Promise<[LedgerTransactionRow[], number]>;
+    ])) as [LedgerTransactionRow[], number];
+
+    const groupIds = [
+      ...new Set(
+        items
+          .map((item) => item.transferGroupId)
+          .filter((id): id is string => Boolean(id)),
+      ),
+    ];
+    const counterparts =
+      groupIds.length === 0
+        ? []
+        : ((await this.prisma.finTransaction.findMany({
+            where: {
+              userId,
+              transferGroupId: { in: groupIds },
+              type: 'CREDIT',
+            },
+            include: {
+              account: { select: { id: true, name: true } },
+              card: { select: { id: true, name: true } },
+            },
+          })) as LedgerTransactionRow[]);
+    const creditByGroup = new Map(
+      counterparts.map((row) => [row.transferGroupId, row] as const),
+    );
+
+    const enriched = items.map((item) => ({
+      ...item,
+      transferCounterpart: item.transferGroupId
+        ? (creditByGroup.get(item.transferGroupId) ?? null)
+        : null,
+    }));
+
+    return [enriched, total] as [LedgerTransactionRow[], number];
+  }
+
+  private async findTransferGroupIdsForInstrument(
+    userId: string,
+    query: ListTransactionsQuery,
+  ): Promise<string[]> {
+    if (!query.accountId && !query.cardId) return [];
+    if (query.type === 'DEBIT' || query.type === 'CREDIT') return [];
+    const rows = await this.prisma.finTransaction.findMany({
+      where: {
+        userId,
+        transferGroupId: { not: null },
+        ...(query.accountId ? { accountId: query.accountId } : {}),
+        ...(query.cardId ? { cardId: query.cardId } : {}),
+      },
+      select: { transferGroupId: true },
+      distinct: ['transferGroupId'],
+    });
+    return rows
+      .map((row) => row.transferGroupId)
+      .filter((id): id is string => Boolean(id));
   }
 
   findTransactionById(id: string, userId: string) {
