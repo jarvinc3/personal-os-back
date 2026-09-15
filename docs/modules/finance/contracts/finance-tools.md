@@ -4,20 +4,13 @@ Available when chat session `moduleSlug` is `finance`. Source: `MODULE_CONTEXT.f
 
 All finance tools delegate to **`FinanceFacade`** via `ToolExecutorService`. They also require `user_modules.finance.isEnabled`; otherwise the tool returns `success: false` with `Tool execution failed: Finance module is disabled`.
 
-Tools are **not** the full REST surface. There is no tool (and in several cases no facade method) for create loan, receivables, institution/account/card writes, hard-delete of a transaction, or Gmail OAuth. See `docs/modules/finance.md` § REST vs FinanceFacade.
+Tools are **not** the full REST surface. There is no tool (and in several cases no facade method) for create loan, receivables, institution/account/card writes, hard-delete of a transaction, or Gmail OAuth. See [REST vs façade](./rest-vs-facade.md).
 
 ## Read-only tools
 
 ### `get_finance_summary`
 
 Returns cash flow and income/expense totals for a date range, plus the current position from the balance sheet. Money fields in the payload are decimal **strings** (`cashFlow`, `totals.income`, `totals.expenses`, `totals.accountBalance`). Position fields (`netWorth`, `totals.cardDebt`) are strings when `balanceStatus` is `COMPLETE`, or `null` when `INCOMPLETE` (for example a credit card without `creditLimit`). `balanceIssues` lists the missing data.
-
-| Parameter  | Type   | Required | Description    |
-| ---------- | ------ | -------- | -------------- |
-| `dateFrom` | string | no       | ISO date start |
-| `dateTo`   | string | no       | ISO date end   |
-
-**Delegates to:** `FinanceFacade.getAnalyticsSummary`
 
 | Parameter  | Type   | Required | Description    |
 | ---------- | ------ | -------- | -------------- |
@@ -222,5 +215,5 @@ Triggers Gmail sync for one email source. Returns `queued: true|false` — do no
 
 ## Related
 
-- REST API: `docs/modules/finance.md`
-- Façade: `src/modules/finance/finance.facade.ts`
+- REST: [http.md](./http.md)
+- Façade: [rest-vs-facade.md](./rest-vs-facade.md) · `src/modules/finance/finance.facade.ts`
