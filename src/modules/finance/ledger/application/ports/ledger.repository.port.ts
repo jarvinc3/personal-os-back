@@ -42,6 +42,7 @@ export type LedgerTransactionRow = {
   createdAt: Date;
   account?: { id: string; name: string } | null;
   card?: { id: string; name: string } | null;
+  transferCounterpart?: LedgerTransactionRow | null;
 };
 
 export type CreateTransactionResult = {

@@ -1,4 +1,5 @@
 import {
+    BadRequestException,
     Inject,
     Injectable,
     NotFoundException,
@@ -34,6 +35,11 @@ export class UpdateTransactionUseCase {
   ) {
     const existing = await this.repo.findTransactionById(id, userId);
     if (!existing) throw new NotFoundException('Transaction not found');
+    if (existing.transferGroupId) {
+      throw new BadRequestException(
+        'Transfer legs cannot be updated individually',
+      );
+    }
 
     if (command.categoryId) {
       await this.ownership.assertCategoryVisible(userId, command.categoryId);

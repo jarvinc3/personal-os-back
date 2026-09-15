@@ -7,7 +7,7 @@ import { PrismaService } from '../../../../prisma/prisma.service';
 export class AnalyticsRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async getAnalyticsSummary(userId: string, from?: Date, to?: Date) {
+  async getCashFlowAggregates(userId: string, from?: Date, to?: Date) {
     const dateFilter =
       from || to
         ? {
@@ -18,22 +18,13 @@ export class AnalyticsRepository {
           }
         : {};
 
-    const [accounts, cardBalances, aggregates] = await this.prisma.$transaction([
-      this.prisma.finAccount.findMany({ where: { userId, isActive: true } }),
-      this.prisma.finCardBalance.findMany({
-        where: { card: { userId, isActive: true } },
-        include: { card: true },
-      }),
-      this.prisma.finTransaction.groupBy({
-        by: ['type', 'status'],
-        where: { userId, ...dateFilter },
-        _sum: { amountBaseCurrency: true },
-        _count: { _all: true },
-        orderBy: { type: 'asc' },
-      }),
-    ]);
-
-    return { accounts, cardBalances, aggregates };
+    return this.prisma.finTransaction.groupBy({
+      by: ['type', 'status'],
+      where: { userId, transferGroupId: null, ...dateFilter },
+      _sum: { amountBaseCurrency: true },
+      _count: { _all: true },
+      orderBy: { type: 'asc' },
+    });
   }
 
   async getSpendingByCategory(userId: string, from?: Date, to?: Date) {
@@ -41,6 +32,7 @@ export class AnalyticsRepository {
       userId,
       type: 'DEBIT',
       status: 'CONFIRMED',
+      transferGroupId: null,
       ...(from || to
         ? {
             transactionDate: {
@@ -94,6 +86,7 @@ export class AnalyticsRepository {
       WHERE "user_id" = ${userId}
         AND "status" = 'CONFIRMED'
         AND "type" IN ('DEBIT', 'CREDIT')
+        AND "transfer_group_id" IS NULL
         ${from ? PrismaNS.sql`AND "transaction_date" >= ${from}` : PrismaNS.empty}
         ${to ? PrismaNS.sql`AND "transaction_date" <= ${to}` : PrismaNS.empty}
       GROUP BY 1, 2

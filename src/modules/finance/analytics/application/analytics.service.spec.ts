@@ -1,3 +1,4 @@
+import type { BalanceSheetService } from '../../balance-sheet/application/balance-sheet.service';
 import type { AnalyticsRepository } from '../infrastructure/analytics.repository';
 import { AnalyticsService } from './analytics.service';
 
@@ -8,8 +9,14 @@ describe('AnalyticsService', () => {
       _sum: { amountBaseCurrency: row.total },
     }));
 
-  const createService = (repo: Partial<AnalyticsRepository>) =>
-    new AnalyticsService(repo as AnalyticsRepository);
+  const createService = (
+    repo: Partial<AnalyticsRepository>,
+    balanceSheet?: Partial<BalanceSheetService>,
+  ) =>
+    new AnalyticsService(
+      repo as AnalyticsRepository,
+      (balanceSheet ?? {}) as BalanceSheetService,
+    );
 
   it('attaches name color and icon for known categories and keeps totals', async () => {
     const getSpendingByCategory = jest.fn().mockResolvedValue(
@@ -125,5 +132,114 @@ describe('AnalyticsService', () => {
       color: '#f00',
       icon: '🍽️',
     });
+  });
+
+  it('delegates net worth to the balance sheet and keeps cash flow in range', async () => {
+    const getCashFlowAggregates = jest.fn().mockResolvedValue([
+      {
+        type: 'CREDIT',
+        status: 'CONFIRMED',
+        _sum: { amountBaseCurrency: 80 },
+      },
+      {
+        type: 'DEBIT',
+        status: 'CONFIRMED',
+        _sum: { amountBaseCurrency: 30 },
+      },
+    ]);
+    const getBalanceSheet = jest.fn().mockResolvedValue({
+      baseCurrency: 'DOP',
+      global: {
+        status: 'COMPLETE',
+        assets: { accounts: '150000' },
+        liabilities: { creditCards: '6000', loans: '13500' },
+        netWorth: '130500',
+        issues: [],
+      },
+    });
+
+    const result = await createService(
+      { getCashFlowAggregates },
+      { getBalanceSheet },
+    ).getAnalyticsSummary('user-1', '2026-09-01', '2026-09-11');
+
+    expect(getCashFlowAggregates).toHaveBeenCalledWith(
+      'user-1',
+      new Date('2026-09-01'),
+      new Date('2026-09-11'),
+    );
+    expect(result).toMatchObject({
+      netWorth: '130500',
+      cashFlow: '50',
+      baseCurrency: 'DOP',
+      balanceStatus: 'COMPLETE',
+      totals: {
+        accountBalance: '150000',
+        cardDebt: '6000',
+        income: '80',
+        expenses: '30',
+      },
+    });
+  });
+
+  it('returns null net worth when the balance sheet is incomplete', async () => {
+    const getCashFlowAggregates = jest.fn().mockResolvedValue([]);
+    const getBalanceSheet = jest.fn().mockResolvedValue({
+      baseCurrency: 'DOP',
+      global: {
+        status: 'INCOMPLETE',
+        assets: { accounts: '100' },
+        liabilities: { creditCards: null, loans: '0' },
+        netWorth: null,
+        issues: [
+          { code: 'MISSING_CREDIT_LIMIT', cardId: 'card-1', currency: 'DOP' },
+        ],
+      },
+    });
+
+    const result = await createService(
+      { getCashFlowAggregates },
+      { getBalanceSheet },
+    ).getAnalyticsSummary('user-1');
+
+    expect(result.netWorth).toBeNull();
+    expect(result.totals.cardDebt).toBeNull();
+    expect(result.cashFlow).toBe('0');
+    expect(result.balanceStatus).toBe('INCOMPLETE');
+    expect(result.balanceIssues).toHaveLength(1);
+  });
+
+  it('does not count TRANSFER aggregate rows as income or expenses', async () => {
+    const getCashFlowAggregates = jest.fn().mockResolvedValue([
+      {
+        type: 'TRANSFER',
+        status: 'CONFIRMED',
+        _sum: { amountBaseCurrency: 100 },
+      },
+      {
+        type: 'DEBIT',
+        status: 'CONFIRMED',
+        _sum: { amountBaseCurrency: 10 },
+      },
+    ]);
+    const getBalanceSheet = jest.fn().mockResolvedValue({
+      baseCurrency: 'DOP',
+      global: {
+        status: 'COMPLETE',
+        assets: { accounts: '0' },
+        liabilities: { creditCards: '0', loans: '0' },
+        netWorth: '0',
+        issues: [],
+      },
+    });
+
+    const result = await createService(
+      { getCashFlowAggregates },
+      { getBalanceSheet },
+    ).getAnalyticsSummary('user-1');
+
+    expect(result.totals.income).toBe('0');
+    expect(result.totals.expenses).toBe('10');
+    expect(result.cashFlow).toBe('-10');
   });
 });

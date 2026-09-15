@@ -22,18 +22,39 @@ export type MappedTransaction = {
   categoryId: string | null;
   notes: string | null;
   transferGroupId: string | null;
+  transferToAccountId: string | null;
+  transferToAccountName: string | null;
+  transferToCardId: string | null;
+  transferToCardName: string | null;
   linkedTransactionId: string | null;
   aiMetadata: unknown;
   createdAt: string;
 };
 
-export function mapLedgerTransaction(tx: LedgerTransactionRow): MappedTransaction {
+function party(
+  row: LedgerTransactionRow | null | undefined,
+): {
+  accountId: string | null;
+  accountName: string | null;
+  cardId: string | null;
+  cardName: string | null;
+} {
+  return {
+    accountId: row?.accountId ?? null,
+    accountName: row?.account?.name ?? null,
+    cardId: row?.cardId ?? null,
+    cardName: row?.card?.name ?? null,
+  };
+}
+
+function mapPhysicalTransaction(tx: LedgerTransactionRow): MappedTransaction {
+  const origin = party(tx);
   return {
     id: tx.id,
-    accountId: tx.accountId,
-    accountName: tx.account?.name ?? null,
-    cardId: tx.cardId,
-    cardName: tx.card?.name ?? null,
+    accountId: origin.accountId,
+    accountName: origin.accountName,
+    cardId: origin.cardId,
+    cardName: origin.cardName,
     type: tx.type,
     amount: decimalToString(tx.amount),
     ledgerAmount: decimalToString(tx.ledgerAmount),
@@ -49,8 +70,62 @@ export function mapLedgerTransaction(tx: LedgerTransactionRow): MappedTransactio
     categoryId: tx.categoryId,
     notes: tx.notes,
     transferGroupId: tx.transferGroupId,
+    transferToAccountId: null,
+    transferToAccountName: null,
+    transferToCardId: null,
+    transferToCardName: null,
     linkedTransactionId: tx.linkedTransactionId,
     aiMetadata: tx.aiMetadata,
     createdAt: tx.createdAt.toISOString(),
+  };
+}
+
+export function mapLedgerTransaction(
+  tx: LedgerTransactionRow,
+): MappedTransaction {
+  return mapPhysicalTransaction(tx);
+}
+
+export function mapLogicalTransaction(
+  tx: LedgerTransactionRow,
+  counterpart: LedgerTransactionRow | null = tx.transferCounterpart ?? null,
+): MappedTransaction {
+  if (!tx.transferGroupId) {
+    return mapPhysicalTransaction(tx);
+  }
+
+  const from = tx.type === 'CREDIT' && counterpart ? counterpart : tx;
+  const to = tx.type === 'DEBIT' ? counterpart : tx;
+  const origin = party(from);
+  const destination = party(to);
+
+  return {
+    id: tx.id,
+    accountId: origin.accountId,
+    accountName: origin.accountName,
+    cardId: origin.cardId,
+    cardName: origin.cardName,
+    type: 'TRANSFER',
+    amount: decimalToString(from.amount),
+    ledgerAmount: decimalToString(from.ledgerAmount),
+    amountBaseCurrency: decimalToString(from.amountBaseCurrency),
+    currency: from.currency,
+    ledgerCurrency: from.ledgerCurrency,
+    exchangeRate: decimalToString(from.exchangeRate),
+    merchant: from.merchant,
+    description: from.description,
+    transactionDate: from.transactionDate.toISOString(),
+    status: from.status,
+    source: from.source,
+    categoryId: from.categoryId,
+    notes: from.notes,
+    transferGroupId: tx.transferGroupId,
+    transferToAccountId: destination.accountId,
+    transferToAccountName: destination.accountName,
+    transferToCardId: destination.cardId,
+    transferToCardName: destination.cardName,
+    linkedTransactionId: tx.linkedTransactionId,
+    aiMetadata: tx.aiMetadata,
+    createdAt: from.createdAt.toISOString(),
   };
 }

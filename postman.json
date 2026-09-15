@@ -709,6 +709,40 @@
       ]
     },
     {
+      "name": "Finance",
+      "description": "Ledger, catalog, analytics and current financial position.",
+      "item": [
+        {
+          "name": "Get balance sheet",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{baseUrl}}/{{apiPrefix}}/finance/balance-sheet",
+              "host": ["{{baseUrl}}"],
+              "path": ["{{apiPrefix}}", "finance", "balance-sheet"]
+            },
+            "description": "Current position in BASE_CURRENCY. Credit debt is creditLimit minus available balance. Incomplete cards return null netWorth."
+          },
+          "response": []
+        },
+        {
+          "name": "Get analytics summary",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{baseUrl}}/{{apiPrefix}}/finance/analytics/summary",
+              "host": ["{{baseUrl}}"],
+              "path": ["{{apiPrefix}}", "finance", "analytics", "summary"]
+            },
+            "description": "Cash flow for the date range plus current netWorth from the balance sheet."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
       "name": "Roadmap",
       "description": "Módulos de dominio pendientes (finanzas, agenda, etc.).",
       "item": [

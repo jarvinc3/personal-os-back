@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { FinanceAnalyticsModule } from './analytics/analytics.module';
+import { FinanceBalanceSheetModule } from './balance-sheet/balance-sheet.module';
 import { FinanceCatalogModule } from './catalog/catalog.module';
 import { FinanceEventsModule } from './events/events.module';
 import { FinanceFacade } from './finance.facade';
@@ -17,6 +18,7 @@ import { FinancePlanningModule } from './planning/planning.module';
     FinanceEventsModule,
     FinanceCatalogModule,
     FinancePlanningModule,
+    FinanceBalanceSheetModule,
     FinanceAnalyticsModule,
     FinanceLedgerModule,
     FinanceIngestionModule,

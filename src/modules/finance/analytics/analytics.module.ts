@@ -1,11 +1,11 @@
 import { Module } from '@nestjs/common';
-import { FinanceFxModule } from '../fx/fx.module';
+import { FinanceBalanceSheetModule } from '../balance-sheet/balance-sheet.module';
 import { AnalyticsService } from './application/analytics.service';
 import { AnalyticsRepository } from './infrastructure/analytics.repository';
 import { AnalyticsController } from './presentation/analytics.controller';
 
 @Module({
-  imports: [FinanceFxModule],
+  imports: [FinanceBalanceSheetModule],
   controllers: [AnalyticsController],
   providers: [AnalyticsRepository, AnalyticsService],
   exports: [AnalyticsService],

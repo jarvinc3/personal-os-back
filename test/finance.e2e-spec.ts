@@ -838,10 +838,17 @@ describe('Finance (e2e)', () => {
   });
 
   it('GET /api/finance/analytics/summary returns totals envelope', async () => {
+    prismaMock.finInstitution.findMany.mockResolvedValue([]);
     prismaMock.finAccount.findMany.mockResolvedValue([
-      { balance: { toString: () => '100' }, currency: 'DOP' },
+      {
+        id: 'acc-1',
+        institutionId: null,
+        balance: { toString: () => '100' },
+        currency: 'DOP',
+      },
     ]);
     prismaMock.finCardBalance.findMany.mockResolvedValue([]);
+    prismaMock.finLoan.findMany.mockResolvedValue([]);
     prismaMock.finTransaction.groupBy.mockResolvedValue([]);
 
     await request(app.getHttpServer())
@@ -853,7 +860,100 @@ describe('Finance (e2e)', () => {
         expect(res.body.data).toHaveProperty('totals');
         expect(res.body.data.baseCurrency).toBe('DOP');
         expect(res.body.data.totals.accountBalance).toBe('100');
+        expect(res.body.data.netWorth).toBe('100');
+        expect(res.body.data.balanceStatus).toBe('COMPLETE');
         expect(typeof res.body.data.netWorth).toBe('string');
+      });
+  });
+
+  it('GET /api/finance/balance-sheet returns converted positions and credit utilization', async () => {
+    prismaMock.finInstitution.findMany.mockResolvedValue([{ id: 'inst-1' }]);
+    prismaMock.finAccount.findMany.mockResolvedValue([
+      {
+        id: 'acc-1',
+        institutionId: 'inst-1',
+        currency: 'DOP',
+        balance: 150000,
+      },
+    ]);
+    prismaMock.finCardBalance.findMany.mockResolvedValue([
+      {
+        currency: 'DOP',
+        balance: 42000,
+        creditLimit: 48000,
+        card: { id: 'card-1', institutionId: 'inst-1' },
+      },
+    ]);
+    prismaMock.finLoan.findMany.mockResolvedValue([
+      {
+        id: 'loan-1',
+        institutionId: 'inst-1',
+        currency: 'DOP',
+        currentBalance: 13500,
+      },
+    ]);
+
+    await request(app.getHttpServer())
+      .get('/api/finance/balance-sheet')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.data.baseCurrency).toBe('DOP');
+        expect(res.body.data.global).toMatchObject({
+          status: 'COMPLETE',
+          assets: { accounts: '150000' },
+          liabilities: { creditCards: '6000', loans: '13500' },
+          totalAssets: '150000',
+          totalLiabilities: '19500',
+          netWorth: '130500',
+        });
+        expect(res.body.data.institutions).toEqual([
+          expect.objectContaining({
+            institutionId: 'inst-1',
+            netWorth: '130500',
+          }),
+        ]);
+      });
+  });
+
+  it('GET /api/finance/balance-sheet converts mixed currencies and marks missing limits incomplete', async () => {
+    prismaMock.finInstitution.findMany.mockResolvedValue([{ id: 'inst-1' }]);
+    prismaMock.finAccount.findMany.mockResolvedValue([
+      {
+        id: 'acc-usd',
+        institutionId: 'inst-1',
+        currency: 'USD',
+        balance: 10,
+      },
+    ]);
+    prismaMock.finCardBalance.findMany.mockResolvedValue([
+      {
+        currency: 'DOP',
+        balance: 100,
+        creditLimit: null,
+        card: { id: 'card-1', institutionId: 'inst-1' },
+      },
+    ]);
+    prismaMock.finLoan.findMany.mockResolvedValue([]);
+    prismaMock.finExchangeRate.findUnique.mockResolvedValue({
+      rate: { toString: () => '60' },
+    });
+
+    await request(app.getHttpServer())
+      .get('/api/finance/balance-sheet')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.data.global.status).toBe('INCOMPLETE');
+        expect(res.body.data.global.assets.accounts).toBe('600');
+        expect(res.body.data.global.netWorth).toBeNull();
+        expect(res.body.data.global.issues).toEqual([
+          {
+            code: 'MISSING_CREDIT_LIMIT',
+            cardId: 'card-1',
+            currency: 'DOP',
+          },
+        ]);
       });
   });
 
@@ -989,6 +1089,207 @@ describe('Finance (e2e)', () => {
       .expect((res) => {
         expect(Array.isArray(res.body.data)).toBe(true);
         expect(res.body.data.items).toBeUndefined();
+      });
+  });
+
+  it('GET /api/finance/transactions groups a transfer as one TRANSFER row', async () => {
+    const at = new Date('2026-08-01T12:00:00.000Z');
+    const fromAccountId = '11111111-1111-4111-8111-111111111111';
+    const toAccountId = '33333333-3333-4333-8333-333333333333';
+    const groupId = '44444444-4444-4444-8444-444444444444';
+    const debit = {
+      id: '55555555-5555-4555-8555-555555555555',
+      userId: 'user-123',
+      accountId: fromAccountId,
+      cardId: null,
+      type: 'DEBIT',
+      amount: { toString: () => '100.00' },
+      ledgerAmount: { toString: () => '100.00' },
+      amountBaseCurrency: { toString: () => '100.00' },
+      currency: 'DOP',
+      ledgerCurrency: 'DOP',
+      exchangeRate: { toString: () => '1' },
+      merchant: null,
+      description: 'Traspaso',
+      notes: null,
+      transactionDate: at,
+      status: 'CONFIRMED',
+      source: 'MANUAL',
+      categoryId: null,
+      transferGroupId: groupId,
+      linkedTransactionId: null,
+      aiMetadata: null,
+      createdAt: at,
+      account: { id: fromAccountId, name: 'Nómina' },
+      card: null,
+    };
+    const credit = {
+      ...debit,
+      id: '66666666-6666-4666-8666-666666666666',
+      type: 'CREDIT',
+      accountId: toAccountId,
+      account: { id: toAccountId, name: 'Ahorros' },
+    };
+
+    prismaMock.finTransaction.findMany.mockImplementation(
+      (args?: { where?: { type?: string } }) => {
+        if (args?.where?.type === 'CREDIT') {
+          return Promise.resolve([credit]);
+        }
+        return Promise.resolve([debit]);
+      },
+    );
+    prismaMock.finTransaction.count.mockResolvedValue(1);
+
+    await request(app.getHttpServer())
+      .get('/api/finance/transactions')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.data.pagination.total).toBe(1);
+        expect(res.body.data.items).toHaveLength(1);
+        expect(res.body.data.items[0]).toMatchObject({
+          id: debit.id,
+          type: 'TRANSFER',
+          accountName: 'Nómina',
+          transferToAccountId: toAccountId,
+          transferToAccountName: 'Ahorros',
+          transferGroupId: groupId,
+        });
+      });
+  });
+
+  it('GET /api/finance/transactions type filters keep TRANSFER and DEBIT disjoint', async () => {
+    prismaMock.finTransaction.findMany.mockResolvedValue([]);
+    prismaMock.finTransaction.count.mockResolvedValue(0);
+
+    await request(app.getHttpServer())
+      .get('/api/finance/transactions?type=DEBIT')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    const debitWhere = JSON.stringify(
+      prismaMock.finTransaction.findMany.mock.calls[0]?.[0]?.where ?? {},
+    );
+    expect(debitWhere).toContain('"type":"DEBIT"');
+    expect(debitWhere).toContain('"transferGroupId":null');
+
+    prismaMock.finTransaction.findMany.mockClear();
+
+    await request(app.getHttpServer())
+      .get('/api/finance/transactions?type=TRANSFER')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    const transferWhere = JSON.stringify(
+      prismaMock.finTransaction.findMany.mock.calls[0]?.[0]?.where ?? {},
+    );
+    expect(transferWhere).toContain('"type":"DEBIT"');
+    expect(transferWhere).toContain('"not":null');
+  });
+
+  it('GET /api/finance/transactions/:id maps a grouped transfer with origin and destination', async () => {
+    const at = new Date('2026-08-01T12:00:00.000Z');
+    const fromAccountId = '11111111-1111-4111-8111-111111111111';
+    const toAccountId = '33333333-3333-4333-8333-333333333333';
+    const groupId = '44444444-4444-4444-8444-444444444444';
+    const debitId = '55555555-5555-4555-8555-555555555555';
+    const debit = {
+      id: debitId,
+      userId: 'user-123',
+      accountId: fromAccountId,
+      cardId: null,
+      type: 'DEBIT',
+      amount: { toString: () => '100.00' },
+      ledgerAmount: { toString: () => '100.00' },
+      amountBaseCurrency: { toString: () => '100.00' },
+      currency: 'DOP',
+      ledgerCurrency: 'DOP',
+      exchangeRate: { toString: () => '1' },
+      merchant: null,
+      description: 'Traspaso',
+      notes: null,
+      transactionDate: at,
+      status: 'CONFIRMED',
+      source: 'MANUAL',
+      categoryId: null,
+      transferGroupId: groupId,
+      linkedTransactionId: null,
+      aiMetadata: null,
+      createdAt: at,
+      account: { id: fromAccountId, name: 'Nómina' },
+      card: null,
+    };
+    const credit = {
+      ...debit,
+      id: '66666666-6666-4666-8666-666666666666',
+      type: 'CREDIT',
+      accountId: toAccountId,
+      account: { id: toAccountId, name: 'Ahorros' },
+    };
+
+    prismaMock.finTransaction.findFirst.mockResolvedValue(debit);
+    prismaMock.finTransaction.findMany.mockResolvedValue([debit, credit]);
+
+    await request(app.getHttpServer())
+      .get(`/api/finance/transactions/${debitId}`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.data).toMatchObject({
+          id: debitId,
+          type: 'TRANSFER',
+          accountName: 'Nómina',
+          transferToAccountName: 'Ahorros',
+          transferToAccountId: toAccountId,
+        });
+      });
+  });
+
+  it('PATCH /api/finance/transactions/:id rejects transfer legs', async () => {
+    const at = new Date('2026-08-01T12:00:00.000Z');
+    const fromAccountId = '11111111-1111-4111-8111-111111111111';
+    const debitId = '55555555-5555-4555-8555-555555555555';
+    prismaMock.finTransaction.findFirst.mockResolvedValue({
+      id: debitId,
+      userId: 'user-123',
+      accountId: fromAccountId,
+      cardId: null,
+      type: 'DEBIT',
+      amount: { toString: () => '100.00' },
+      ledgerAmount: { toString: () => '100.00' },
+      amountBaseCurrency: { toString: () => '100.00' },
+      currency: 'DOP',
+      ledgerCurrency: 'DOP',
+      exchangeRate: { toString: () => '1' },
+      merchant: null,
+      description: 'Traspaso',
+      notes: null,
+      transactionDate: at,
+      status: 'CONFIRMED',
+      source: 'MANUAL',
+      categoryId: null,
+      transferGroupId: '44444444-4444-4444-8444-444444444444',
+      linkedTransactionId: null,
+      aiMetadata: null,
+      createdAt: at,
+      account: { id: fromAccountId, name: 'Nómina' },
+      card: null,
+    });
+
+    await request(app.getHttpServer())
+      .patch(`/api/finance/transactions/${debitId}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        accountId: fromAccountId,
+        type: 'DEBIT',
+        amount: 100,
+        transactionDate: '2026-08-01T12:00:00.000Z',
+        description: 'nope',
+      })
+      .expect(400)
+      .expect((res) => {
+        expect(String(res.body.message)).toMatch(/transfer/i);
       });
   });
 

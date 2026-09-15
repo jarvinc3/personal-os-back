@@ -31,7 +31,13 @@ describe('ToolExecutorService finance via FinanceFacade (TestingModule)', () => 
 
   beforeEach(async () => {
     jest.clearAllMocks();
-    getAnalyticsSummary.mockResolvedValue({ totalSpent: 100 });
+    getAnalyticsSummary.mockResolvedValue({
+      netWorth: '100',
+      cashFlow: '0',
+      baseCurrency: 'DOP',
+      balanceStatus: 'COMPLETE',
+      totals: { accountBalance: '100', cardDebt: '0', income: '0', expenses: '0' },
+    });
     createTxExecute.mockResolvedValue({ id: 'tx-1' });
 
     const stub = {} as never;
@@ -74,7 +80,40 @@ describe('ToolExecutorService finance via FinanceFacade (TestingModule)', () => 
       '2026-01-01',
       undefined,
     );
-    expect(result.data).toEqual({ totalSpent: 100 });
+    expect(result.data).toEqual({
+      netWorth: '100',
+      cashFlow: '0',
+      baseCurrency: 'DOP',
+      balanceStatus: 'COMPLETE',
+      totals: { accountBalance: '100', cardDebt: '0', income: '0', expenses: '0' },
+    });
+  });
+
+  it('forwards incomplete net worth from the analytics summary', async () => {
+    getAnalyticsSummary.mockResolvedValue({
+      netWorth: null,
+      cashFlow: '20',
+      baseCurrency: 'DOP',
+      balanceStatus: 'INCOMPLETE',
+      balanceIssues: [
+        { code: 'MISSING_CREDIT_LIMIT', cardId: 'card-1', currency: 'DOP' },
+      ],
+      totals: {
+        accountBalance: '100',
+        cardDebt: null,
+        income: '20',
+        expenses: '0',
+      },
+    });
+
+    const result = await executor.execute(ctx, 'get_finance_summary', {});
+
+    expect(result.success).toBe(true);
+    expect(result.data).toMatchObject({
+      netWorth: null,
+      cashFlow: '20',
+      balanceStatus: 'INCOMPLETE',
+    });
   });
 
   it('routes create_transaction through FinanceFacade with source AI', async () => {

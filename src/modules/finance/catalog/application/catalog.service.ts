@@ -3,7 +3,10 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { decimalToString } from '../../shared/domain/mappers';
+import {
+  decimalToNullableString,
+  decimalToString,
+} from '../../shared/domain/mappers';
 import { FinanceOwnershipService } from '../../shared/application/finance-ownership.service';
 import { CatalogRepository } from '../infrastructure/catalog.repository';
 import type { CreateAccountDto } from '../presentation/dto/create-account.dto';
@@ -209,6 +212,11 @@ export class CatalogService {
     id: string,
     dto: UpdateCardBalanceDto,
   ) {
+    const card = await this.repo.findCardById(userId, id);
+    if (!card) throw new NotFoundException('Card not found');
+    if (card.type === 'CREDIT' && dto.creditLimit === undefined) {
+      throw new BadRequestException('CREDIT cards require creditLimit');
+    }
     const updated = await this.repo.upsertCardBalance(
       userId,
       id,
@@ -222,9 +230,7 @@ export class CatalogService {
       cardId: updated.cardId,
       currency: updated.currency,
       balance: decimalToString(updated.balance),
-      creditLimit: updated.creditLimit
-        ? decimalToString(updated.creditLimit)
-        : null,
+      creditLimit: decimalToNullableString(updated.creditLimit),
     };
   }
 
@@ -317,7 +323,7 @@ export class CatalogService {
         id: b.id,
         currency: b.currency,
         balance: decimalToString(b.balance),
-        creditLimit: b.creditLimit ? decimalToString(b.creditLimit) : null,
+        creditLimit: decimalToNullableString(b.creditLimit),
       })),
     };
   }

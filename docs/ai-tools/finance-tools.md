@@ -10,7 +10,14 @@ Tools are **not** the full REST surface. There is no tool (and in several cases 
 
 ### `get_finance_summary`
 
-Returns net worth, cash flow, and income/expense totals for a date range. Money fields in the payload are decimal **strings** (`netWorth`, `cashFlow`, `totals.*`).
+Returns cash flow and income/expense totals for a date range, plus the current position from the balance sheet. Money fields in the payload are decimal **strings** (`cashFlow`, `totals.income`, `totals.expenses`, `totals.accountBalance`). Position fields (`netWorth`, `totals.cardDebt`) are strings when `balanceStatus` is `COMPLETE`, or `null` when `INCOMPLETE` (for example a credit card without `creditLimit`). `balanceIssues` lists the missing data.
+
+| Parameter  | Type   | Required | Description    |
+| ---------- | ------ | -------- | -------------- |
+| `dateFrom` | string | no       | ISO date start |
+| `dateTo`   | string | no       | ISO date end   |
+
+**Delegates to:** `FinanceFacade.getAnalyticsSummary`
 
 | Parameter  | Type   | Required | Description    |
 | ---------- | ------ | -------- | -------------- |
@@ -25,16 +32,16 @@ Returns net worth, cash flow, and income/expense totals for a date range. Money 
 
 Lists up to 50 transactions with optional filters.
 
-| Parameter    | Type   | Required | Description                         |
-| ------------ | ------ | -------- | ----------------------------------- |
-| `accountId`  | string | no       | Filter by account                   |
-| `cardId`     | string | no       | Filter by card                      |
-| `categoryId` | string | no       | Filter by category (UUID)           |
-| `type`       | string | no       | `DEBIT`, `CREDIT`, `TRANSFER`       |
+| Parameter    | Type   | Required | Description                                                 |
+| ------------ | ------ | -------- | ----------------------------------------------------------- |
+| `accountId`  | string | no       | Filter by account                                           |
+| `cardId`     | string | no       | Filter by card                                              |
+| `categoryId` | string | no       | Filter by category (UUID)                                   |
+| `type`       | string | no       | `DEBIT`, `CREDIT`, `TRANSFER`                               |
 | `status`     | string | no       | `PENDING`, `CONFIRMED`, `DECLINED`, `CANCELLED`, `REVERSED` |
-| `dateFrom`   | string | no       | ISO date start                      |
-| `dateTo`     | string | no       | ISO date end                        |
-| `search`     | string | no       | Text search on description/merchant |
+| `dateFrom`   | string | no       | ISO date start                                              |
+| `dateTo`     | string | no       | ISO date end                                                |
+| `search`     | string | no       | Text search on description/merchant                         |
 
 **Delegates to:** `FinanceFacade.listTransactions` (page=1, limit=50)
 
@@ -127,10 +134,10 @@ Each item is `{ categoryId, name, color, icon, total }`. `categoryId` may be nul
 
 ### `get_spending_over_time`
 
-| Parameter  | Type   | Required | Description |
-| ---------- | ------ | -------- | ----------- |
-| `dateFrom` | string | no       | ISO start |
-| `dateTo`   | string | no       | ISO end |
+| Parameter  | Type   | Required | Description                         |
+| ---------- | ------ | -------- | ----------------------------------- |
+| `dateFrom` | string | no       | ISO start                           |
+| `dateTo`   | string | no       | ISO end                             |
 | `groupBy`  | string | no       | `day` (default), `week`, or `month` |
 
 **Delegates to:** `FinanceFacade.getSpendingOverTime`
@@ -145,17 +152,17 @@ Mutating args are validated with Zod (`tool-arg-schemas.ts`).
 
 Creates a transaction with **`source=AI`**.
 
-| Parameter         | Type           | Required    | Description                         |
-| ----------------- | -------------- | ----------- | ----------------------------------- |
-| `type`            | string         | yes         | `DEBIT` or `CREDIT` (not TRANSFER)  |
-| `amount`          | number         | yes         | Transaction amount                  |
-| `transactionDate` | string         | yes         | ISO date                            |
-| `accountId`       | string \| null | exactly one | Target account (XOR with cardId)    |
-| `cardId`          | string \| null | exactly one | Target card (XOR with accountId)    |
-| `currency`        | string         | no          | ISO 4217                            |
-| `description`     | string \| null | no          | Free text                           |
-| `merchant`        | string \| null | no          | Merchant name                       |
-| `categoryId`      | string \| null | no          | Category UUID                       |
+| Parameter         | Type           | Required    | Description                        |
+| ----------------- | -------------- | ----------- | ---------------------------------- |
+| `type`            | string         | yes         | `DEBIT` or `CREDIT` (not TRANSFER) |
+| `amount`          | number         | yes         | Transaction amount                 |
+| `transactionDate` | string         | yes         | ISO date                           |
+| `accountId`       | string \| null | exactly one | Target account (XOR with cardId)   |
+| `cardId`          | string \| null | exactly one | Target card (XOR with accountId)   |
+| `currency`        | string         | no          | ISO 4217                           |
+| `description`     | string \| null | no          | Free text                          |
+| `merchant`        | string \| null | no          | Merchant name                      |
+| `categoryId`      | string \| null | no          | Category UUID                      |
 
 **Delegates to:** `FinanceFacade.createTransaction` (source forced to `AI`)
 
