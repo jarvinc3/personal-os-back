@@ -1,5 +1,11 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsOptional, IsString, IsUUID, MaxLength } from 'class-validator';
+import {
+  IsEmail,
+  IsOptional,
+  IsString,
+  IsUUID,
+  MaxLength,
+} from 'class-validator';
 
 export class UpdateEmailSourceDto {
   @ApiPropertyOptional()
@@ -12,6 +18,11 @@ export class UpdateEmailSourceDto {
   @IsString()
   @MaxLength(120)
   label?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsEmail()
+  bankSenderEmail?: string;
 
   @ApiPropertyOptional()
   @IsOptional()

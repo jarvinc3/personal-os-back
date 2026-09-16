@@ -99,10 +99,12 @@ export type PrismaMock = {
     count: MockFn;
   };
   finEmailConnection: {
+    findMany: MockFn;
     findUnique: MockFn;
     findFirst: MockFn;
     create: MockFn;
     update: MockFn;
+    updateMany: MockFn;
   };
   finEmailMessage: {
     findMany: MockFn;
@@ -318,10 +320,12 @@ export function createPrismaMock(): PrismaMock {
       count: jest.fn().mockResolvedValue(0),
     },
     finEmailConnection: {
+      findMany: jest.fn().mockResolvedValue([]),
       findUnique: jest.fn(),
       findFirst: jest.fn(),
       create: jest.fn(),
       update: jest.fn(),
+      updateMany: jest.fn().mockResolvedValue({ count: 0 }),
     },
     finEmailMessage: {
       findMany: jest.fn().mockResolvedValue([]),

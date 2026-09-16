@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
+  IsEmail,
   IsNotEmpty,
   IsOptional,
   IsString,
@@ -24,9 +25,15 @@ export class OAuthCallbackQueryDto {
 }
 
 export class GoogleOAuthUrlQueryDto {
-  @ApiProperty()
+  @ApiPropertyOptional()
+  @IsOptional()
   @IsUUID()
-  institutionId!: string;
+  institutionId?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsEmail()
+  bankSenderEmail?: string;
 
   @ApiPropertyOptional()
   @IsOptional()

@@ -240,6 +240,46 @@ export class EmailSourceRepository {
     });
   }
 
+  findSourceByUserAndInstitution(userId: string, institutionId: string) {
+    return this.prisma.finEmailSource.findFirst({
+      where: { userId, institutionId },
+      include: sourceListInclude,
+    });
+  }
+
+  listMailboxes(userId: string) {
+    return this.prisma.finEmailConnection.findMany({
+      where: { userId, isActive: true },
+      include: {
+        sources: {
+          where: { isActive: true },
+          include: sourceListInclude,
+          orderBy: { createdAt: 'desc' },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  findMailbox(userId: string, id: string) {
+    return this.prisma.finEmailConnection.findFirst({
+      where: { userId, id },
+    });
+  }
+
+  async deactivateMailbox(userId: string, id: string) {
+    const mailbox = await this.findMailbox(userId, id);
+    if (!mailbox) return null;
+    await this.prisma.finEmailSource.updateMany({
+      where: { userId, connectionId: id },
+      data: { isActive: false },
+    });
+    return this.prisma.finEmailConnection.update({
+      where: { id },
+      data: { isActive: false },
+    });
+  }
+
   listInstitutionDestinations(userId: string, institutionId: string) {
     return Promise.all([
       this.prisma.finAccount.findMany({

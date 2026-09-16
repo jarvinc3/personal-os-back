@@ -1,15 +1,31 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEmail, IsOptional, IsString, IsUUID, MaxLength } from 'class-validator';
+import {
+  IsEmail,
+  IsOptional,
+  IsString,
+  IsUUID,
+  MaxLength,
+} from 'class-validator';
 
 export class ConnectEmailSourceDto {
-  @ApiProperty()
+  @ApiProperty({ description: 'Gmail mailbox already authorized for this user' })
   @IsEmail()
   emailAddress!: string;
 
-  @ApiProperty()
+  @ApiProperty({
+    description:
+      'Full From address the bank uses for transaction notifications',
+  })
+  @IsEmail()
+  bankSenderEmail!: string;
+
+  @ApiPropertyOptional({
+    description: 'Derived from bankSenderEmail when omitted',
+  })
+  @IsOptional()
   @IsString()
   @MaxLength(150)
-  bankDomain!: string;
+  bankDomain?: string;
 
   @ApiProperty()
   @IsUUID()

@@ -1,6 +1,7 @@
 import { InjectQueue } from '@nestjs/bullmq';
 import {
     BadRequestException,
+    ConflictException,
     Inject,
     Injectable,
     Logger,
@@ -35,6 +36,7 @@ import type {
     GoogleOAuthUrlQueryDto,
 } from '../presentation/dto/oauth-callback-query.dto';
 import type { UpdateEmailSourceDto } from '../presentation/dto/update-email-source.dto';
+import { extractEmailAddress, extractEmailDomain } from './bank-sender';
 import {
     buildMobileOAuthRedirect,
     buildWebOAuthRedirect,
@@ -45,8 +47,9 @@ import { resolveEmailLedgerTarget } from './resolve-email-ledger-target';
 
 type OAuthStatePayload = {
   sub: string;
-  institutionId: string;
-  bankDomain: string;
+  institutionId?: string;
+  bankDomain?: string;
+  bankSenderEmail?: string;
   label?: string;
   returnTo?: string;
 };
@@ -83,39 +86,51 @@ export class IngestionService {
       .then((sources) => sources.map((s) => this.mapEmailSourceResponse(s)));
   }
 
+  async listMailboxes(userId: string) {
+    const rows = await this.repo.listMailboxes(userId);
+    return rows.map((row) => ({
+      id: row.id,
+      emailAddress: row.emailAddress,
+      provider: row.provider,
+      isActive: row.isActive,
+      createdAt: row.createdAt.toISOString(),
+      sources: row.sources.map((source) => this.mapEmailSourceResponse(source)),
+    }));
+  }
+
+  async deactivateMailbox(userId: string, id: string) {
+    const updated = await this.repo.deactivateMailbox(userId, id);
+    if (!updated) throw new NotFoundException('Mailbox not found');
+    return { success: true };
+  }
+
   async createEmailSource(userId: string, dto: ConnectEmailSourceDto) {
     await this.users.assertFinanceEmailSyncEnabled(userId);
     await this.ownership.assertInstitutionOwned(userId, dto.institutionId);
 
-    const connection =
-      (await this.repo.findConnectionByUserEmail(
-        userId,
-        'gmail',
-        dto.emailAddress,
-      )) ??
-      (await this.repo.createConnection(userId, {
-        provider: 'gmail',
-        emailAddress: dto.emailAddress,
-        isActive: true,
-      }));
-
-    const existing = await this.repo.findSourceByConnectionAndInstitution(
+    const connection = await this.repo.findConnectionByUserEmail(
       userId,
-      connection.id,
-      dto.institutionId,
+      'gmail',
+      dto.emailAddress,
     );
-    if (existing) {
-      return this.mapEmailSourceResponse(existing);
+    if (!connection) {
+      throw new NotFoundException('Connect Gmail before linking a bank');
+    }
+    if (!connection.refreshToken) {
+      throw new BadRequestException('Connect Gmail first');
     }
 
-    const created = await this.repo.createEmailSource(userId, {
+    const sender = this.resolveSenderFields({
+      bankSenderEmail: dto.bankSenderEmail,
+      bankDomain: dto.bankDomain,
+    });
+    return this.upsertInstitutionSource(userId, {
       connectionId: connection.id,
       institutionId: dto.institutionId,
-      bankDomain: dto.bankDomain.trim(),
+      bankSenderEmail: sender.bankSenderEmail,
+      bankDomain: sender.bankDomain,
       label: dto.label,
-      isActive: true,
     });
-    return this.mapEmailSourceResponse(created);
   }
 
   async updateEmailSource(
@@ -128,12 +143,30 @@ export class IngestionService {
 
     if (dto.institutionId) {
       await this.ownership.assertInstitutionOwned(userId, dto.institutionId);
+      const linked = await this.repo.findSourceByUserAndInstitution(
+        userId,
+        dto.institutionId,
+      );
+      if (linked && linked.id !== id && linked.isActive) {
+        throw new ConflictException(
+          'This institution is already linked to a mailbox',
+        );
+      }
     }
 
     const data: Record<string, unknown> = {};
     if (dto.institutionId !== undefined) data.institutionId = dto.institutionId;
     if (dto.label !== undefined) data.label = dto.label;
-    if (dto.bankDomain !== undefined) data.bankDomain = dto.bankDomain.trim();
+    if (dto.bankSenderEmail !== undefined) {
+      const sender = this.resolveSenderFields({
+        bankSenderEmail: dto.bankSenderEmail,
+        bankDomain: dto.bankDomain,
+      });
+      data.bankSenderEmail = sender.bankSenderEmail ?? null;
+      data.bankDomain = sender.bankDomain;
+    } else if (dto.bankDomain !== undefined) {
+      data.bankDomain = dto.bankDomain.trim();
+    }
 
     const updated = await this.repo.updateEmailSource(userId, id, data);
     if (!updated) throw new NotFoundException('Email source not found');
@@ -246,7 +279,9 @@ export class IngestionService {
     query: GoogleOAuthUrlQueryDto,
   ): Promise<{ url: string }> {
     await this.users.assertFinanceEmailSyncEnabled(userId);
-    await this.ownership.assertInstitutionOwned(userId, query.institutionId);
+    if (query.institutionId) {
+      await this.ownership.assertInstitutionOwned(userId, query.institutionId);
+    }
 
     const corsOrigin = this.config.get('CORS_ORIGIN', { infer: true });
     const returnTo = query.returnTo?.trim();
@@ -254,12 +289,24 @@ export class IngestionService {
       throw new BadRequestException('returnTo is not an allowed origin');
     }
 
-    const bankDomain = query.bankDomain?.trim() || 'bhd.com.do';
+    const sender = query.bankSenderEmail
+      ? this.resolveSenderFields({
+          bankSenderEmail: query.bankSenderEmail,
+          bankDomain: query.bankDomain,
+        })
+      : {
+          bankSenderEmail: undefined as string | undefined,
+          bankDomain: query.bankDomain?.trim() || undefined,
+        };
+
     const state = jwt.sign(
       {
         sub: userId,
         institutionId: query.institutionId,
-        bankDomain,
+        bankDomain:
+          sender.bankDomain ||
+          (query.institutionId ? 'bhd.com.do' : undefined),
+        bankSenderEmail: sender.bankSenderEmail,
         label: query.label?.trim() || undefined,
         returnTo: returnTo || undefined,
       } satisfies OAuthStatePayload,
@@ -314,10 +361,12 @@ export class IngestionService {
     }
 
     await this.users.assertFinanceEmailSyncEnabled(payload.sub);
-    await this.ownership.assertInstitutionOwned(
-      payload.sub,
-      payload.institutionId,
-    );
+    if (payload.institutionId) {
+      await this.ownership.assertInstitutionOwned(
+        payload.sub,
+        payload.institutionId,
+      );
+    }
 
     const tokenResponse = await exchangeGoogleAuthCode(
       code,
@@ -362,32 +411,21 @@ export class IngestionService {
           isActive: true,
         });
 
-    const existingSource = await this.repo.findSourceByConnectionAndInstitution(
-      payload.sub,
-      connection.id,
-      payload.institutionId,
-    );
-    if (existingSource) {
-      const updated = await this.repo.updateEmailSource(
-        payload.sub,
-        existingSource.id,
-        {
-          bankDomain: payload.bankDomain,
-          ...(payload.label !== undefined ? { label: payload.label } : {}),
-          isActive: true,
-        },
-      );
-      return this.mapEmailSourceResponse(updated ?? existingSource);
+    if (!payload.institutionId) {
+      return;
     }
 
-    const created = await this.repo.createEmailSource(payload.sub, {
+    const sender = this.resolveSenderFields({
+      bankSenderEmail: payload.bankSenderEmail,
+      bankDomain: payload.bankDomain,
+    });
+    await this.upsertInstitutionSource(payload.sub, {
       connectionId: connection.id,
       institutionId: payload.institutionId,
-      bankDomain: payload.bankDomain,
+      bankSenderEmail: sender.bankSenderEmail,
+      bankDomain: sender.bankDomain,
       label: payload.label,
-      isActive: true,
     });
-    return this.mapEmailSourceResponse(created);
   }
 
   async getValidGmailAccessToken(sourceId: string): Promise<string> {
@@ -606,6 +644,71 @@ export class IngestionService {
     return tokenResponse.access_token;
   }
 
+  private async upsertInstitutionSource(
+    userId: string,
+    input: {
+      connectionId: string;
+      institutionId: string;
+      bankSenderEmail?: string;
+      bankDomain: string;
+      label?: string;
+    },
+  ) {
+    const existing = await this.repo.findSourceByUserAndInstitution(
+      userId,
+      input.institutionId,
+    );
+    if (existing?.isActive && existing.connectionId !== input.connectionId) {
+      throw new ConflictException(
+        'This institution is already linked to a mailbox',
+      );
+    }
+    if (existing) {
+      const updated = await this.repo.updateEmailSource(userId, existing.id, {
+        connectionId: input.connectionId,
+        bankSenderEmail: input.bankSenderEmail ?? null,
+        bankDomain: input.bankDomain,
+        ...(input.label !== undefined ? { label: input.label } : {}),
+        isActive: true,
+      });
+      return this.mapEmailSourceResponse(updated ?? existing);
+    }
+
+    const created = await this.repo.createEmailSource(userId, {
+      connectionId: input.connectionId,
+      institutionId: input.institutionId,
+      bankSenderEmail: input.bankSenderEmail,
+      bankDomain: input.bankDomain,
+      label: input.label,
+      isActive: true,
+    });
+    return this.mapEmailSourceResponse(created);
+  }
+
+  private resolveSenderFields(input: {
+    bankSenderEmail?: string;
+    bankDomain?: string;
+  }): { bankSenderEmail?: string; bankDomain: string } {
+    const senderRaw = input.bankSenderEmail?.trim();
+    const sender = senderRaw ? extractEmailAddress(senderRaw) : null;
+    if (senderRaw && !sender) {
+      throw new BadRequestException('bankSenderEmail must be a valid email');
+    }
+    if (sender) {
+      return {
+        bankSenderEmail: sender,
+        bankDomain: extractEmailDomain(sender),
+      };
+    }
+    const domain = input.bankDomain?.trim();
+    if (!domain) {
+      throw new BadRequestException(
+        'bankSenderEmail or bankDomain is required',
+      );
+    }
+    return { bankSenderEmail: undefined, bankDomain: domain };
+  }
+
   private get encryptionKey(): string {
     return this.config.get('ENCRYPTION_KEY', { infer: true });
   }
@@ -632,6 +735,7 @@ export class IngestionService {
       institutionId: source.institutionId,
       institutionName: source.institution?.name ?? null,
       emailAddress: source.connection.emailAddress,
+      bankSenderEmail: source.bankSenderEmail,
       bankDomain: source.bankDomain,
       label: source.label,
       provider: source.connection.provider,

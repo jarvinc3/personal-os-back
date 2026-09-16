@@ -15,7 +15,7 @@
 
 Users/core: `User`, `Module`, `UserModule`, `AiAgentSession`, `AiMessage`, `AiAction`, `Notification`, `PushToken`, `AuthDeletionOutbox`.
 
-Finance: `FinAccount`, `FinInstitution`, `FinCard`, `FinCardBalance`, `FinTransaction`, `FinCategory`, `FinBudget`, `FinBudgetAlert`, `FinSavingsGoal`, `FinLoan`, `FinReceivable`, `FinEmailConnection`, `FinEmailSource`, `FinEmailMessage`, `FinEmailSyncLog`, `FinExchangeRate`, `FinRecurringPattern` (reservado, sin API), `DomainEventOutbox`, `ProcessedDomainEvent`.
+Finance: `FinAccount`, `FinInstitution`, `FinCard`, `FinCardBalance`, `FinTransaction`, `FinCategory`, `FinBudget`, `FinBudgetAlert`, `FinSavingsGoal`, `FinLoan`, `FinReceivable`, `FinEmailConnection`, `FinEmailSource` (`bank_sender_email` opcional; unique `(user_id, institution_id)`), `FinEmailMessage`, `FinEmailSyncLog`, `FinExchangeRate`, `FinRecurringPattern` (reservado, sin API), `DomainEventOutbox`, `ProcessedDomainEvent`.
 
 Enums relevantes: ver `prisma/schema.prisma` (`FinTransactionStatus`, `FinEmailMessageOutcome`, etc.).
 

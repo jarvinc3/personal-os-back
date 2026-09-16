@@ -36,6 +36,21 @@ export class EmailSyncController {
 
   constructor(private readonly ingestion: IngestionService) {}
 
+  @Get('mailboxes')
+  @ApiOperation({ summary: 'List authorized Gmail mailboxes with bank links' })
+  listMailboxes(@CurrentUser('sub') userId: string) {
+    return this.ingestion.listMailboxes(userId);
+  }
+
+  @Delete('mailboxes/:id')
+  @ApiOperation({ summary: 'Disconnect a Gmail mailbox and its bank links' })
+  removeMailbox(
+    @CurrentUser('sub') userId: string,
+    @Param('id') id: string,
+  ) {
+    return this.ingestion.deactivateMailbox(userId, id);
+  }
+
   @Get('sources')
   list(@CurrentUser('sub') userId: string) {
     return this.ingestion.listEmailSources(userId);

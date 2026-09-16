@@ -199,3 +199,135 @@ describe('IngestionService pending assignment', () => {
     expect(importEmail.execute).not.toHaveBeenCalled();
   });
 });
+
+describe('IngestionService mailbox linking', () => {
+  const findConnectionByUserEmail = jest.fn();
+  const findSourceByUserAndInstitution = jest.fn();
+  const createEmailSource = jest.fn();
+  const updateEmailSource = jest.fn();
+  const listMailboxes = jest.fn();
+  const deactivateMailbox = jest.fn();
+  const repo = {
+    findConnectionByUserEmail,
+    findSourceByUserAndInstitution,
+    createEmailSource,
+    updateEmailSource,
+    listMailboxes,
+    deactivateMailbox,
+  } as unknown as EmailSourceRepository;
+
+  const users = {
+    assertFinanceEmailSyncEnabled: jest.fn().mockResolvedValue(undefined),
+  };
+  const ownership = {
+    assertInstitutionOwned: jest.fn().mockResolvedValue(undefined),
+  };
+
+  const service = new IngestionService(
+    repo,
+    { get: jest.fn() } as never,
+    { enqueue: jest.fn() },
+    { processBatch: jest.fn() } as never,
+    users as never,
+    ownership as never,
+    { execute: jest.fn() } as never,
+    undefined,
+  );
+
+  const mappedSource = {
+    id: 'src-1',
+    connectionId: 'conn-1',
+    institutionId: 'inst-1',
+    institution: { name: 'BHD' },
+    bankSenderEmail: 'alertas@bhd.com.do',
+    bankDomain: 'bhd.com.do',
+    label: null,
+    isActive: true,
+    lastSyncedAt: null,
+    createdAt: new Date('2026-09-01T00:00:00.000Z'),
+    logs: [],
+    connection: {
+      emailAddress: 'me@gmail.com',
+      provider: 'gmail',
+    },
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    users.assertFinanceEmailSyncEnabled.mockResolvedValue(undefined);
+    ownership.assertInstitutionOwned.mockResolvedValue(undefined);
+  });
+
+  it('refuses to create a source without an authorized mailbox', async () => {
+    findConnectionByUserEmail.mockResolvedValue(null);
+    await expect(
+      service.createEmailSource('user-1', {
+        emailAddress: 'me@gmail.com',
+        bankSenderEmail: 'alertas@bhd.com.do',
+        institutionId: 'inst-1',
+      }),
+    ).rejects.toThrow('Connect Gmail before linking a bank');
+  });
+
+  it('refuses to create a source when the mailbox has no refresh token', async () => {
+    findConnectionByUserEmail.mockResolvedValue({
+      id: 'conn-1',
+      refreshToken: null,
+    });
+    await expect(
+      service.createEmailSource('user-1', {
+        emailAddress: 'me@gmail.com',
+        bankSenderEmail: 'alertas@bhd.com.do',
+        institutionId: 'inst-1',
+      }),
+    ).rejects.toThrow('Connect Gmail first');
+  });
+
+  it('creates a source from sender email and derives the domain', async () => {
+    findConnectionByUserEmail.mockResolvedValue({
+      id: 'conn-1',
+      refreshToken: 'enc',
+    });
+    findSourceByUserAndInstitution.mockResolvedValue(null);
+    createEmailSource.mockResolvedValue(mappedSource);
+
+    await expect(
+      service.createEmailSource('user-1', {
+        emailAddress: 'me@gmail.com',
+        bankSenderEmail: 'alertas@bhd.com.do',
+        institutionId: 'inst-1',
+      }),
+    ).resolves.toMatchObject({
+      bankSenderEmail: 'alertas@bhd.com.do',
+      bankDomain: 'bhd.com.do',
+    });
+    expect(createEmailSource).toHaveBeenCalledWith(
+      'user-1',
+      expect.objectContaining({
+        connectionId: 'conn-1',
+        bankSenderEmail: 'alertas@bhd.com.do',
+        bankDomain: 'bhd.com.do',
+      }),
+    );
+  });
+
+  it('conflicts when the institution is already linked to another mailbox', async () => {
+    findConnectionByUserEmail.mockResolvedValue({
+      id: 'conn-2',
+      refreshToken: 'enc',
+    });
+    findSourceByUserAndInstitution.mockResolvedValue({
+      ...mappedSource,
+      connectionId: 'conn-1',
+      isActive: true,
+    });
+
+    await expect(
+      service.createEmailSource('user-1', {
+        emailAddress: 'other@gmail.com',
+        bankSenderEmail: 'alertas@bhd.com.do',
+        institutionId: 'inst-1',
+      }),
+    ).rejects.toThrow('This institution is already linked to a mailbox');
+  });
+});

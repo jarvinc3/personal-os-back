@@ -251,6 +251,7 @@ export const FinEmailSourceScalarFieldEnum = {
   userId: 'userId',
   connectionId: 'connectionId',
   institutionId: 'institutionId',
+  bankSenderEmail: 'bankSenderEmail',
   bankDomain: 'bankDomain',
   label: 'label',
   lastSyncedAt: 'lastSyncedAt',
