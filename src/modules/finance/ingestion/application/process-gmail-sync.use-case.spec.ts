@@ -87,6 +87,7 @@ describe('ProcessGmailSyncUseCase', () => {
     id: 'src-1',
     isActive: true,
     institutionId: 'inst-1',
+    bankSenderEmail: 'alertas@bank.example',
     bankDomain: 'bank.example',
     lastSyncedAt: null,
     lastMessageId: null,
@@ -140,6 +141,47 @@ describe('ProcessGmailSyncUseCase', () => {
       subject: 'Purchase',
       body: 'You spent 12.50 DOP',
     });
+  });
+
+  it('lists Gmail with the full sender address when set', async () => {
+    findEmailSource.mockResolvedValue(activeSource);
+    extract.mockResolvedValue({
+      ok: true as const,
+      kind: 'not_transaction' as const,
+      reason: 'promo',
+      provider: 'groq',
+      model: 'test',
+    });
+
+    await useCase.execute({ userId: 'user-1', sourceId: 'src-1' });
+
+    expect(listGmailMessagesMock).toHaveBeenCalledWith(
+      'token',
+      'from:alertas@bank.example',
+      undefined,
+    );
+  });
+
+  it('lists Gmail with the domain when sender is missing', async () => {
+    findEmailSource.mockResolvedValue({
+      ...activeSource,
+      bankSenderEmail: null,
+    });
+    extract.mockResolvedValue({
+      ok: true as const,
+      kind: 'not_transaction' as const,
+      reason: 'promo',
+      provider: 'groq',
+      model: 'test',
+    });
+
+    await useCase.execute({ userId: 'user-1', sourceId: 'src-1' });
+
+    expect(listGmailMessagesMock).toHaveBeenCalledWith(
+      'token',
+      'from:bank.example',
+      undefined,
+    );
   });
 
   it('returns early when source is inactive', async () => {

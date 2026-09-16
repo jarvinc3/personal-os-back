@@ -14,7 +14,8 @@ import type * as Prisma from "../internal/prismaNamespace.js"
 
 /**
  * Model FinEmailSource
- * Bank-domain filter on a connection. Not a ledger target and not OAuth.
+ * Bank sender filter on a connection. Not a ledger target and not OAuth.
+ * `bankDomain` is derived from `bankSenderEmail` when set; used as Gmail `from:` fallback.
  */
 export type FinEmailSourceModel = runtime.Types.Result.DefaultSelection<Prisma.$FinEmailSourcePayload>
 
@@ -29,6 +30,7 @@ export type FinEmailSourceMinAggregateOutputType = {
   userId: string | null
   connectionId: string | null
   institutionId: string | null
+  bankSenderEmail: string | null
   bankDomain: string | null
   label: string | null
   lastSyncedAt: Date | null
@@ -42,6 +44,7 @@ export type FinEmailSourceMaxAggregateOutputType = {
   userId: string | null
   connectionId: string | null
   institutionId: string | null
+  bankSenderEmail: string | null
   bankDomain: string | null
   label: string | null
   lastSyncedAt: Date | null
@@ -55,6 +58,7 @@ export type FinEmailSourceCountAggregateOutputType = {
   userId: number
   connectionId: number
   institutionId: number
+  bankSenderEmail: number
   bankDomain: number
   label: number
   lastSyncedAt: number
@@ -70,6 +74,7 @@ export type FinEmailSourceMinAggregateInputType = {
   userId?: true
   connectionId?: true
   institutionId?: true
+  bankSenderEmail?: true
   bankDomain?: true
   label?: true
   lastSyncedAt?: true
@@ -83,6 +88,7 @@ export type FinEmailSourceMaxAggregateInputType = {
   userId?: true
   connectionId?: true
   institutionId?: true
+  bankSenderEmail?: true
   bankDomain?: true
   label?: true
   lastSyncedAt?: true
@@ -96,6 +102,7 @@ export type FinEmailSourceCountAggregateInputType = {
   userId?: true
   connectionId?: true
   institutionId?: true
+  bankSenderEmail?: true
   bankDomain?: true
   label?: true
   lastSyncedAt?: true
@@ -182,6 +189,7 @@ export type FinEmailSourceGroupByOutputType = {
   userId: string
   connectionId: string
   institutionId: string
+  bankSenderEmail: string | null
   bankDomain: string
   label: string | null
   lastSyncedAt: Date | null
@@ -216,6 +224,7 @@ export type FinEmailSourceWhereInput = {
   userId?: Prisma.StringFilter<"FinEmailSource"> | string
   connectionId?: Prisma.StringFilter<"FinEmailSource"> | string
   institutionId?: Prisma.StringFilter<"FinEmailSource"> | string
+  bankSenderEmail?: Prisma.StringNullableFilter<"FinEmailSource"> | string | null
   bankDomain?: Prisma.StringFilter<"FinEmailSource"> | string
   label?: Prisma.StringNullableFilter<"FinEmailSource"> | string | null
   lastSyncedAt?: Prisma.DateTimeNullableFilter<"FinEmailSource"> | Date | string | null
@@ -234,6 +243,7 @@ export type FinEmailSourceOrderByWithRelationInput = {
   userId?: Prisma.SortOrder
   connectionId?: Prisma.SortOrder
   institutionId?: Prisma.SortOrder
+  bankSenderEmail?: Prisma.SortOrderInput | Prisma.SortOrder
   bankDomain?: Prisma.SortOrder
   label?: Prisma.SortOrderInput | Prisma.SortOrder
   lastSyncedAt?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -250,12 +260,14 @@ export type FinEmailSourceOrderByWithRelationInput = {
 export type FinEmailSourceWhereUniqueInput = Prisma.AtLeast<{
   id?: string
   connectionId_institutionId?: Prisma.FinEmailSourceConnectionIdInstitutionIdCompoundUniqueInput
+  userId_institutionId?: Prisma.FinEmailSourceUserIdInstitutionIdCompoundUniqueInput
   AND?: Prisma.FinEmailSourceWhereInput | Prisma.FinEmailSourceWhereInput[]
   OR?: Prisma.FinEmailSourceWhereInput[]
   NOT?: Prisma.FinEmailSourceWhereInput | Prisma.FinEmailSourceWhereInput[]
   userId?: Prisma.StringFilter<"FinEmailSource"> | string
   connectionId?: Prisma.StringFilter<"FinEmailSource"> | string
   institutionId?: Prisma.StringFilter<"FinEmailSource"> | string
+  bankSenderEmail?: Prisma.StringNullableFilter<"FinEmailSource"> | string | null
   bankDomain?: Prisma.StringFilter<"FinEmailSource"> | string
   label?: Prisma.StringNullableFilter<"FinEmailSource"> | string | null
   lastSyncedAt?: Prisma.DateTimeNullableFilter<"FinEmailSource"> | Date | string | null
@@ -267,13 +279,14 @@ export type FinEmailSourceWhereUniqueInput = Prisma.AtLeast<{
   connection?: Prisma.XOR<Prisma.FinEmailConnectionScalarRelationFilter, Prisma.FinEmailConnectionWhereInput>
   institution?: Prisma.XOR<Prisma.FinInstitutionScalarRelationFilter, Prisma.FinInstitutionWhereInput>
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
-}, "id" | "connectionId_institutionId">
+}, "id" | "connectionId_institutionId" | "userId_institutionId">
 
 export type FinEmailSourceOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
   userId?: Prisma.SortOrder
   connectionId?: Prisma.SortOrder
   institutionId?: Prisma.SortOrder
+  bankSenderEmail?: Prisma.SortOrderInput | Prisma.SortOrder
   bankDomain?: Prisma.SortOrder
   label?: Prisma.SortOrderInput | Prisma.SortOrder
   lastSyncedAt?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -293,6 +306,7 @@ export type FinEmailSourceScalarWhereWithAggregatesInput = {
   userId?: Prisma.StringWithAggregatesFilter<"FinEmailSource"> | string
   connectionId?: Prisma.StringWithAggregatesFilter<"FinEmailSource"> | string
   institutionId?: Prisma.StringWithAggregatesFilter<"FinEmailSource"> | string
+  bankSenderEmail?: Prisma.StringNullableWithAggregatesFilter<"FinEmailSource"> | string | null
   bankDomain?: Prisma.StringWithAggregatesFilter<"FinEmailSource"> | string
   label?: Prisma.StringNullableWithAggregatesFilter<"FinEmailSource"> | string | null
   lastSyncedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"FinEmailSource"> | Date | string | null
@@ -303,6 +317,7 @@ export type FinEmailSourceScalarWhereWithAggregatesInput = {
 
 export type FinEmailSourceCreateInput = {
   id?: string
+  bankSenderEmail?: string | null
   bankDomain: string
   label?: string | null
   lastSyncedAt?: Date | string | null
@@ -321,6 +336,7 @@ export type FinEmailSourceUncheckedCreateInput = {
   userId: string
   connectionId: string
   institutionId: string
+  bankSenderEmail?: string | null
   bankDomain: string
   label?: string | null
   lastSyncedAt?: Date | string | null
@@ -333,6 +349,7 @@ export type FinEmailSourceUncheckedCreateInput = {
 
 export type FinEmailSourceUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  bankSenderEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   bankDomain?: Prisma.StringFieldUpdateOperationsInput | string
   label?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastSyncedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -351,6 +368,7 @@ export type FinEmailSourceUncheckedUpdateInput = {
   userId?: Prisma.StringFieldUpdateOperationsInput | string
   connectionId?: Prisma.StringFieldUpdateOperationsInput | string
   institutionId?: Prisma.StringFieldUpdateOperationsInput | string
+  bankSenderEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   bankDomain?: Prisma.StringFieldUpdateOperationsInput | string
   label?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastSyncedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -366,6 +384,7 @@ export type FinEmailSourceCreateManyInput = {
   userId: string
   connectionId: string
   institutionId: string
+  bankSenderEmail?: string | null
   bankDomain: string
   label?: string | null
   lastSyncedAt?: Date | string | null
@@ -376,6 +395,7 @@ export type FinEmailSourceCreateManyInput = {
 
 export type FinEmailSourceUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  bankSenderEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   bankDomain?: Prisma.StringFieldUpdateOperationsInput | string
   label?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastSyncedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -389,6 +409,7 @@ export type FinEmailSourceUncheckedUpdateManyInput = {
   userId?: Prisma.StringFieldUpdateOperationsInput | string
   connectionId?: Prisma.StringFieldUpdateOperationsInput | string
   institutionId?: Prisma.StringFieldUpdateOperationsInput | string
+  bankSenderEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   bankDomain?: Prisma.StringFieldUpdateOperationsInput | string
   label?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastSyncedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -412,11 +433,17 @@ export type FinEmailSourceConnectionIdInstitutionIdCompoundUniqueInput = {
   institutionId: string
 }
 
+export type FinEmailSourceUserIdInstitutionIdCompoundUniqueInput = {
+  userId: string
+  institutionId: string
+}
+
 export type FinEmailSourceCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
   userId?: Prisma.SortOrder
   connectionId?: Prisma.SortOrder
   institutionId?: Prisma.SortOrder
+  bankSenderEmail?: Prisma.SortOrder
   bankDomain?: Prisma.SortOrder
   label?: Prisma.SortOrder
   lastSyncedAt?: Prisma.SortOrder
@@ -430,6 +457,7 @@ export type FinEmailSourceMaxOrderByAggregateInput = {
   userId?: Prisma.SortOrder
   connectionId?: Prisma.SortOrder
   institutionId?: Prisma.SortOrder
+  bankSenderEmail?: Prisma.SortOrder
   bankDomain?: Prisma.SortOrder
   label?: Prisma.SortOrder
   lastSyncedAt?: Prisma.SortOrder
@@ -443,6 +471,7 @@ export type FinEmailSourceMinOrderByAggregateInput = {
   userId?: Prisma.SortOrder
   connectionId?: Prisma.SortOrder
   institutionId?: Prisma.SortOrder
+  bankSenderEmail?: Prisma.SortOrder
   bankDomain?: Prisma.SortOrder
   label?: Prisma.SortOrder
   lastSyncedAt?: Prisma.SortOrder
@@ -612,6 +641,7 @@ export type FinEmailSourceUpdateOneRequiredWithoutEmailMessagesNestedInput = {
 
 export type FinEmailSourceCreateWithoutUserInput = {
   id?: string
+  bankSenderEmail?: string | null
   bankDomain: string
   label?: string | null
   lastSyncedAt?: Date | string | null
@@ -628,6 +658,7 @@ export type FinEmailSourceUncheckedCreateWithoutUserInput = {
   id?: string
   connectionId: string
   institutionId: string
+  bankSenderEmail?: string | null
   bankDomain: string
   label?: string | null
   lastSyncedAt?: Date | string | null
@@ -672,6 +703,7 @@ export type FinEmailSourceScalarWhereInput = {
   userId?: Prisma.StringFilter<"FinEmailSource"> | string
   connectionId?: Prisma.StringFilter<"FinEmailSource"> | string
   institutionId?: Prisma.StringFilter<"FinEmailSource"> | string
+  bankSenderEmail?: Prisma.StringNullableFilter<"FinEmailSource"> | string | null
   bankDomain?: Prisma.StringFilter<"FinEmailSource"> | string
   label?: Prisma.StringNullableFilter<"FinEmailSource"> | string | null
   lastSyncedAt?: Prisma.DateTimeNullableFilter<"FinEmailSource"> | Date | string | null
@@ -682,6 +714,7 @@ export type FinEmailSourceScalarWhereInput = {
 
 export type FinEmailSourceCreateWithoutConnectionInput = {
   id?: string
+  bankSenderEmail?: string | null
   bankDomain: string
   label?: string | null
   lastSyncedAt?: Date | string | null
@@ -698,6 +731,7 @@ export type FinEmailSourceUncheckedCreateWithoutConnectionInput = {
   id?: string
   userId: string
   institutionId: string
+  bankSenderEmail?: string | null
   bankDomain: string
   label?: string | null
   lastSyncedAt?: Date | string | null
@@ -736,6 +770,7 @@ export type FinEmailSourceUpdateManyWithWhereWithoutConnectionInput = {
 
 export type FinEmailSourceCreateWithoutInstitutionInput = {
   id?: string
+  bankSenderEmail?: string | null
   bankDomain: string
   label?: string | null
   lastSyncedAt?: Date | string | null
@@ -752,6 +787,7 @@ export type FinEmailSourceUncheckedCreateWithoutInstitutionInput = {
   id?: string
   userId: string
   connectionId: string
+  bankSenderEmail?: string | null
   bankDomain: string
   label?: string | null
   lastSyncedAt?: Date | string | null
@@ -790,6 +826,7 @@ export type FinEmailSourceUpdateManyWithWhereWithoutInstitutionInput = {
 
 export type FinEmailSourceCreateWithoutLogsInput = {
   id?: string
+  bankSenderEmail?: string | null
   bankDomain: string
   label?: string | null
   lastSyncedAt?: Date | string | null
@@ -807,6 +844,7 @@ export type FinEmailSourceUncheckedCreateWithoutLogsInput = {
   userId: string
   connectionId: string
   institutionId: string
+  bankSenderEmail?: string | null
   bankDomain: string
   label?: string | null
   lastSyncedAt?: Date | string | null
@@ -834,6 +872,7 @@ export type FinEmailSourceUpdateToOneWithWhereWithoutLogsInput = {
 
 export type FinEmailSourceUpdateWithoutLogsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  bankSenderEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   bankDomain?: Prisma.StringFieldUpdateOperationsInput | string
   label?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastSyncedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -851,6 +890,7 @@ export type FinEmailSourceUncheckedUpdateWithoutLogsInput = {
   userId?: Prisma.StringFieldUpdateOperationsInput | string
   connectionId?: Prisma.StringFieldUpdateOperationsInput | string
   institutionId?: Prisma.StringFieldUpdateOperationsInput | string
+  bankSenderEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   bankDomain?: Prisma.StringFieldUpdateOperationsInput | string
   label?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastSyncedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -862,6 +902,7 @@ export type FinEmailSourceUncheckedUpdateWithoutLogsInput = {
 
 export type FinEmailSourceCreateWithoutEmailMessagesInput = {
   id?: string
+  bankSenderEmail?: string | null
   bankDomain: string
   label?: string | null
   lastSyncedAt?: Date | string | null
@@ -879,6 +920,7 @@ export type FinEmailSourceUncheckedCreateWithoutEmailMessagesInput = {
   userId: string
   connectionId: string
   institutionId: string
+  bankSenderEmail?: string | null
   bankDomain: string
   label?: string | null
   lastSyncedAt?: Date | string | null
@@ -906,6 +948,7 @@ export type FinEmailSourceUpdateToOneWithWhereWithoutEmailMessagesInput = {
 
 export type FinEmailSourceUpdateWithoutEmailMessagesInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  bankSenderEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   bankDomain?: Prisma.StringFieldUpdateOperationsInput | string
   label?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastSyncedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -923,6 +966,7 @@ export type FinEmailSourceUncheckedUpdateWithoutEmailMessagesInput = {
   userId?: Prisma.StringFieldUpdateOperationsInput | string
   connectionId?: Prisma.StringFieldUpdateOperationsInput | string
   institutionId?: Prisma.StringFieldUpdateOperationsInput | string
+  bankSenderEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   bankDomain?: Prisma.StringFieldUpdateOperationsInput | string
   label?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastSyncedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -936,6 +980,7 @@ export type FinEmailSourceCreateManyUserInput = {
   id?: string
   connectionId: string
   institutionId: string
+  bankSenderEmail?: string | null
   bankDomain: string
   label?: string | null
   lastSyncedAt?: Date | string | null
@@ -946,6 +991,7 @@ export type FinEmailSourceCreateManyUserInput = {
 
 export type FinEmailSourceUpdateWithoutUserInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  bankSenderEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   bankDomain?: Prisma.StringFieldUpdateOperationsInput | string
   label?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastSyncedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -962,6 +1008,7 @@ export type FinEmailSourceUncheckedUpdateWithoutUserInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   connectionId?: Prisma.StringFieldUpdateOperationsInput | string
   institutionId?: Prisma.StringFieldUpdateOperationsInput | string
+  bankSenderEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   bankDomain?: Prisma.StringFieldUpdateOperationsInput | string
   label?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastSyncedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -976,6 +1023,7 @@ export type FinEmailSourceUncheckedUpdateManyWithoutUserInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   connectionId?: Prisma.StringFieldUpdateOperationsInput | string
   institutionId?: Prisma.StringFieldUpdateOperationsInput | string
+  bankSenderEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   bankDomain?: Prisma.StringFieldUpdateOperationsInput | string
   label?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastSyncedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -988,6 +1036,7 @@ export type FinEmailSourceCreateManyConnectionInput = {
   id?: string
   userId: string
   institutionId: string
+  bankSenderEmail?: string | null
   bankDomain: string
   label?: string | null
   lastSyncedAt?: Date | string | null
@@ -998,6 +1047,7 @@ export type FinEmailSourceCreateManyConnectionInput = {
 
 export type FinEmailSourceUpdateWithoutConnectionInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  bankSenderEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   bankDomain?: Prisma.StringFieldUpdateOperationsInput | string
   label?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastSyncedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1014,6 +1064,7 @@ export type FinEmailSourceUncheckedUpdateWithoutConnectionInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.StringFieldUpdateOperationsInput | string
   institutionId?: Prisma.StringFieldUpdateOperationsInput | string
+  bankSenderEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   bankDomain?: Prisma.StringFieldUpdateOperationsInput | string
   label?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastSyncedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1028,6 +1079,7 @@ export type FinEmailSourceUncheckedUpdateManyWithoutConnectionInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.StringFieldUpdateOperationsInput | string
   institutionId?: Prisma.StringFieldUpdateOperationsInput | string
+  bankSenderEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   bankDomain?: Prisma.StringFieldUpdateOperationsInput | string
   label?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastSyncedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1040,6 +1092,7 @@ export type FinEmailSourceCreateManyInstitutionInput = {
   id?: string
   userId: string
   connectionId: string
+  bankSenderEmail?: string | null
   bankDomain: string
   label?: string | null
   lastSyncedAt?: Date | string | null
@@ -1050,6 +1103,7 @@ export type FinEmailSourceCreateManyInstitutionInput = {
 
 export type FinEmailSourceUpdateWithoutInstitutionInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  bankSenderEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   bankDomain?: Prisma.StringFieldUpdateOperationsInput | string
   label?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastSyncedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1066,6 +1120,7 @@ export type FinEmailSourceUncheckedUpdateWithoutInstitutionInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.StringFieldUpdateOperationsInput | string
   connectionId?: Prisma.StringFieldUpdateOperationsInput | string
+  bankSenderEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   bankDomain?: Prisma.StringFieldUpdateOperationsInput | string
   label?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastSyncedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1080,6 +1135,7 @@ export type FinEmailSourceUncheckedUpdateManyWithoutInstitutionInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.StringFieldUpdateOperationsInput | string
   connectionId?: Prisma.StringFieldUpdateOperationsInput | string
+  bankSenderEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   bankDomain?: Prisma.StringFieldUpdateOperationsInput | string
   label?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastSyncedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -1133,6 +1189,7 @@ export type FinEmailSourceSelect<ExtArgs extends runtime.Types.Extensions.Intern
   userId?: boolean
   connectionId?: boolean
   institutionId?: boolean
+  bankSenderEmail?: boolean
   bankDomain?: boolean
   label?: boolean
   lastSyncedAt?: boolean
@@ -1152,6 +1209,7 @@ export type FinEmailSourceSelectCreateManyAndReturn<ExtArgs extends runtime.Type
   userId?: boolean
   connectionId?: boolean
   institutionId?: boolean
+  bankSenderEmail?: boolean
   bankDomain?: boolean
   label?: boolean
   lastSyncedAt?: boolean
@@ -1168,6 +1226,7 @@ export type FinEmailSourceSelectUpdateManyAndReturn<ExtArgs extends runtime.Type
   userId?: boolean
   connectionId?: boolean
   institutionId?: boolean
+  bankSenderEmail?: boolean
   bankDomain?: boolean
   label?: boolean
   lastSyncedAt?: boolean
@@ -1184,6 +1243,7 @@ export type FinEmailSourceSelectScalar = {
   userId?: boolean
   connectionId?: boolean
   institutionId?: boolean
+  bankSenderEmail?: boolean
   bankDomain?: boolean
   label?: boolean
   lastSyncedAt?: boolean
@@ -1192,7 +1252,7 @@ export type FinEmailSourceSelectScalar = {
   createdAt?: boolean
 }
 
-export type FinEmailSourceOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "connectionId" | "institutionId" | "bankDomain" | "label" | "lastSyncedAt" | "lastMessageId" | "isActive" | "createdAt", ExtArgs["result"]["finEmailSource"]>
+export type FinEmailSourceOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "connectionId" | "institutionId" | "bankSenderEmail" | "bankDomain" | "label" | "lastSyncedAt" | "lastMessageId" | "isActive" | "createdAt", ExtArgs["result"]["finEmailSource"]>
 export type FinEmailSourceInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   logs?: boolean | Prisma.FinEmailSource$logsArgs<ExtArgs>
   emailMessages?: boolean | Prisma.FinEmailSource$emailMessagesArgs<ExtArgs>
@@ -1226,6 +1286,7 @@ export type $FinEmailSourcePayload<ExtArgs extends runtime.Types.Extensions.Inte
     userId: string
     connectionId: string
     institutionId: string
+    bankSenderEmail: string | null
     bankDomain: string
     label: string | null
     lastSyncedAt: Date | null
@@ -1664,6 +1725,7 @@ export interface FinEmailSourceFieldRefs {
   readonly userId: Prisma.FieldRef<"FinEmailSource", 'String'>
   readonly connectionId: Prisma.FieldRef<"FinEmailSource", 'String'>
   readonly institutionId: Prisma.FieldRef<"FinEmailSource", 'String'>
+  readonly bankSenderEmail: Prisma.FieldRef<"FinEmailSource", 'String'>
   readonly bankDomain: Prisma.FieldRef<"FinEmailSource", 'String'>
   readonly label: Prisma.FieldRef<"FinEmailSource", 'String'>
   readonly lastSyncedAt: Prisma.FieldRef<"FinEmailSource", 'DateTime'>

@@ -1,5 +1,7 @@
 # Core AI Tools (general context)
 
+Dueño: módulo AI Agent. Las tools de finance viven en [finance-tools.md](../../finance/contracts/finance-tools.md).
+
 Available when `moduleSlug` is `general` or unset. Source: `MODULE_CONTEXT.general`.
 
 ## Read-only tools

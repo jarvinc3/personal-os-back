@@ -104,17 +104,17 @@ Within finance capabilities:
 - **Use-cases** for distinct write flows with different rules (ledger mutations, Gmail sync processing, FX amount resolution).
 - **Fat application services** for CRUD / read-heavy surfaces (catalog, planning, analytics).
 - **`domain/`** stays in `shared/` until a capability owns non-shared pure rules.
-- Details: [docs/modules/finance.md](../modules/finance.md).
+- Details: [finance overview](../modules/finance/overview.md).
 
 ## References
 
 | Module | Style | Doc |
 | --- | --- | --- |
-| finance | Complex + Nest capability modules + façade | [finance.md](../modules/finance.md) |
-| ai-agent | Complex folders, single Nest module | [ai-agent.md](../modules/ai-agent.md) |
-| notifications | Simple layers (`EmailSyncProcessor` in infrastructure) | [notifications.md](../modules/notifications.md) |
-| users | Simple layers | [users.md](../modules/users.md) |
-| auth | Simple layers (no empty application/) | [auth.md](../modules/auth.md) |
+| finance | Complex + Nest capability modules + façade | [finance/](../modules/finance/README.md) |
+| ai-agent | Complex folders, single Nest module | [ai-agent/](../modules/ai-agent/README.md) |
+| notifications | Simple layers (`EmailSyncProcessor` in infrastructure) | [notifications/](../modules/notifications/README.md) |
+| users | Simple layers | [users/](../modules/users/README.md) |
+| auth | Simple layers (no empty application/) | [auth/](../modules/auth/README.md) |
 
 ## Completed roadmap
 

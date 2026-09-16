@@ -91,7 +91,8 @@ export type FinAccount = Prisma.FinAccountModel
 export type FinEmailConnection = Prisma.FinEmailConnectionModel
 /**
  * Model FinEmailSource
- * Bank-domain filter on a connection. Not a ledger target and not OAuth.
+ * Bank sender filter on a connection. Not a ledger target and not OAuth.
+ * `bankDomain` is derived from `bankSenderEmail` when set; used as Gmail `from:` fallback.
  */
 export type FinEmailSource = Prisma.FinEmailSourceModel
 /**

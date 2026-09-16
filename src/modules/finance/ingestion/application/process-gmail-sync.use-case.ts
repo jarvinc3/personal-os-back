@@ -11,6 +11,7 @@ import {
   listGmailMessages,
   parseGmailMessage,
 } from '../infrastructure/gmail-api.util';
+import { buildGmailFromQuery } from './bank-sender';
 import { IngestionService } from './ingestion.service';
 import type {
   EmailTransactionExtractorPort,
@@ -64,7 +65,7 @@ export class ProcessGmailSyncUseCase {
           ? Math.floor(source.lastSyncedAt.getTime() / 1000)
           : undefined;
 
-      let query = `from:${source.bankDomain}`;
+      let query = buildGmailFromQuery(source);
       if (afterUnix) query += ` after:${afterUnix}`;
 
       let pageToken: string | undefined;
