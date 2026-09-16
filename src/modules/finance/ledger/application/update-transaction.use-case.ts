@@ -42,7 +42,18 @@ export class UpdateTransactionUseCase {
     }
 
     if (command.categoryId) {
-      await this.ownership.assertCategoryVisible(userId, command.categoryId);
+      const category = await this.ownership.assertCategoryVisible(
+        userId,
+        command.categoryId,
+      );
+      const categoryUnchanged = command.categoryId === existing.categoryId;
+      if (!categoryUnchanged) {
+        const nextType = command.type ?? existing.type;
+        this.ownership.assertCategoryMatchesTransactionType(
+          category,
+          nextType,
+        );
+      }
     }
 
     const data: TransactionUpdateFields = {};

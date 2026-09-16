@@ -29,12 +29,46 @@ describe('FinanceOwnershipService', () => {
 
   it('rejects a parent that would create a cycle', async () => {
     prisma.finCategory.findFirst
-      .mockResolvedValueOnce({ id: 'parent', userId: 'user-1' })
+      .mockResolvedValueOnce({ id: 'parent', userId: 'user-1', type: 'EXPENSE' })
+      .mockResolvedValueOnce({ type: 'EXPENSE' })
       .mockResolvedValueOnce({ parentId: 'child' });
 
     await expect(
       service.assertParentCategory('user-1', 'parent', 'child'),
     ).rejects.toThrow(/cycle/i);
+  });
+
+  it('rejects a parent of a different type', async () => {
+    prisma.finCategory.findFirst.mockResolvedValue({
+      id: 'parent',
+      userId: 'user-1',
+      type: 'EXPENSE',
+    });
+
+    await expect(
+      service.assertParentCategory('user-1', 'parent', undefined, 'INCOME'),
+    ).rejects.toThrow(/same type/i);
+  });
+
+  it('rejects a category type that does not match the transaction', () => {
+    expect(() =>
+      service.assertCategoryMatchesTransactionType(
+        { type: 'INCOME' },
+        'DEBIT',
+      ),
+    ).toThrow(/transaction type/i);
+  });
+
+  it('rejects income categories for budgets', async () => {
+    prisma.finCategory.findFirst.mockResolvedValue({
+      id: 'cat-1',
+      userId: 'user-1',
+      type: 'INCOME',
+    });
+
+    await expect(
+      service.assertExpenseCategory('user-1', 'cat-1'),
+    ).rejects.toThrow(/expense category/i);
   });
 
   it('requires debit cards to use an account from the same institution', async () => {

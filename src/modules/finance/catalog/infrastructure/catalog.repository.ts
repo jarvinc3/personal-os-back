@@ -172,9 +172,12 @@ export class CatalogRepository {
     });
   }
 
-  listCategories(userId: string) {
+  listCategories(userId: string, type?: 'EXPENSE' | 'INCOME') {
     return this.prisma.finCategory.findMany({
-      where: { OR: [{ userId }, { isSystem: true }] },
+      where: {
+        OR: [{ userId }, { isSystem: true }],
+        ...(type ? { type } : {}),
+      },
       orderBy: [{ isSystem: 'desc' }, { name: 'asc' }],
     });
   }

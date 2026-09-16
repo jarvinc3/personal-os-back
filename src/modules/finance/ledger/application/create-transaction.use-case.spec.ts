@@ -1,3 +1,4 @@
+import { BadRequestException } from '@nestjs/common';
 import type { ConfigService } from '@nestjs/config';
 import type { FinanceOutboxDispatcher } from '../../events/infrastructure/finance-outbox.dispatcher';
 import type { ResolveAmountsUseCase } from '../../fx/application/resolve-amounts.use-case';
@@ -35,6 +36,7 @@ describe('CreateTransactionUseCase', () => {
 
   const ownership = {
     assertCategoryVisible: jest.fn(),
+    assertCategoryMatchesTransactionType: jest.fn(),
   };
 
   const useCase = new CreateTransactionUseCase(
@@ -106,5 +108,28 @@ describe('CreateTransactionUseCase', () => {
         'MANUAL',
       ),
     ).rejects.toThrow(/exactly one/);
+  });
+
+  it('rejects a DEBIT transaction with an INCOME category', async () => {
+    ownership.assertCategoryVisible.mockResolvedValue({
+      id: 'cat-1',
+      type: 'INCOME',
+    });
+    ownership.assertCategoryMatchesTransactionType.mockImplementation(() => {
+      throw new BadRequestException(
+        'Category type does not match the transaction type',
+      );
+    });
+
+    await expect(
+      useCase.execute('user-1', {
+        type: 'DEBIT',
+        amount: 1,
+        transactionDate: '2026-08-01',
+        accountId: 'acc-1',
+        categoryId: 'cat-1',
+      }),
+    ).rejects.toThrow(/transaction type/);
+    expect(createTransaction).not.toHaveBeenCalled();
   });
 });

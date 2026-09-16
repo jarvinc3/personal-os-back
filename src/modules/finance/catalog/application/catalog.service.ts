@@ -234,22 +234,39 @@ export class CatalogService {
     };
   }
 
-  listCategories(userId: string) {
-    return this.repo.listCategories(userId);
+  listCategories(userId: string, type?: 'EXPENSE' | 'INCOME') {
+    return this.repo.listCategories(userId, type);
   }
 
   async createCategory(userId: string, dto: CreateCategoryDto) {
+    const type = dto.type ?? 'EXPENSE';
     if (dto.parentId) {
-      await this.ownership.assertParentCategory(userId, dto.parentId);
+      await this.ownership.assertParentCategory(
+        userId,
+        dto.parentId,
+        undefined,
+        type,
+      );
     }
-    return this.repo.createCategory(userId, dto);
+    return this.repo.createCategory(userId, {
+      name: dto.name,
+      icon: dto.icon,
+      color: dto.color,
+      parentId: dto.parentId,
+      type,
+    });
   }
 
   async updateCategory(userId: string, id: string, dto: UpdateCategoryDto) {
     if (dto.parentId) {
       await this.ownership.assertParentCategory(userId, dto.parentId, id);
     }
-    const updated = await this.repo.updateCategory(userId, id, dto);
+    const updated = await this.repo.updateCategory(userId, id, {
+      name: dto.name,
+      icon: dto.icon,
+      color: dto.color,
+      parentId: dto.parentId,
+    });
     if (!updated) throw new NotFoundException('Category not found');
     return updated;
   }

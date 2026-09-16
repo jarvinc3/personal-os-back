@@ -12,6 +12,8 @@ function ownershipMock(): FinanceOwnershipService {
     assertAccountOwned: jest.fn(),
     assertCardOwned: jest.fn(),
     assertCategoryVisible: jest.fn(),
+    assertCategoryMatchesTransactionType: jest.fn(),
+    assertExpenseCategory: jest.fn(),
     assertParentCategory: jest.fn(),
     assertDebitAccountAlignment: jest.fn().mockResolvedValue({
       id: 'acc-1',
@@ -272,5 +274,75 @@ describe('CatalogService updateCardBalance', () => {
       balance: '42467',
       creditLimit: '48000',
     });
+  });
+});
+
+describe('CatalogService categories', () => {
+  const listCategories = jest.fn();
+  const createCategory = jest.fn();
+  const updateCategory = jest.fn();
+  const repo = {
+    listCategories,
+    createCategory,
+    updateCategory,
+  } as unknown as CatalogRepository;
+  const ownership = ownershipMock();
+  const service = new CatalogService(repo, ownership);
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('defaults create type to EXPENSE when omitted', async () => {
+    createCategory.mockResolvedValue({
+      id: 'cat-1',
+      name: 'Comida',
+      type: 'EXPENSE',
+    });
+
+    await service.createCategory('user-1', { name: 'Comida' });
+
+    expect(createCategory).toHaveBeenCalledWith(
+      'user-1',
+      expect.objectContaining({ name: 'Comida', type: 'EXPENSE' }),
+    );
+  });
+
+  it('rejects an INCOME child under an EXPENSE parent', async () => {
+    (ownership.assertParentCategory as jest.Mock).mockRejectedValue(
+      new BadRequestException('Parent category must have the same type'),
+    );
+
+    await expect(
+      service.createCategory('user-1', {
+        name: 'Bonus',
+        parentId: 'parent-exp',
+        type: 'INCOME',
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(createCategory).not.toHaveBeenCalled();
+  });
+
+  it('does not write type on update', async () => {
+    updateCategory.mockResolvedValue({
+      id: 'cat-1',
+      name: 'Mercado',
+      type: 'EXPENSE',
+    });
+
+    await service.updateCategory('user-1', 'cat-1', { name: 'Mercado' });
+
+    expect(updateCategory).toHaveBeenCalledWith('user-1', 'cat-1', {
+      name: 'Mercado',
+      icon: undefined,
+      color: undefined,
+      parentId: undefined,
+    });
+  });
+
+  it('passes type filter to the repository', async () => {
+    listCategories.mockResolvedValue([]);
+    await service.listCategories('user-1', 'INCOME');
+    expect(listCategories).toHaveBeenCalledWith('user-1', 'INCOME');
   });
 });

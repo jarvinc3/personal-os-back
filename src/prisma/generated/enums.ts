@@ -76,6 +76,14 @@ export const FinTransactionType = {
 export type FinTransactionType = (typeof FinTransactionType)[keyof typeof FinTransactionType]
 
 
+export const FinCategoryType = {
+  EXPENSE: 'EXPENSE',
+  INCOME: 'INCOME'
+} as const
+
+export type FinCategoryType = (typeof FinCategoryType)[keyof typeof FinCategoryType]
+
+
 export const FinTransactionStatus = {
   PENDING: 'PENDING',
   CONFIRMED: 'CONFIRMED',

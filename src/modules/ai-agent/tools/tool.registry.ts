@@ -142,10 +142,16 @@ const STATIC_TOOLS: StaticToolDef[] = [
   },
   {
     name: 'list_categories',
-    description: 'List finance categories (system + user).',
+    description:
+      'List finance categories (system + user). Filter by type EXPENSE or INCOME.',
     mutating: false,
     targetModule: 'finance',
-    parameters: { type: 'object', properties: {} },
+    parameters: {
+      type: 'object',
+      properties: {
+        type: { type: 'string', enum: ['EXPENSE', 'INCOME'] },
+      },
+    },
   },
   {
     name: 'list_accounts',

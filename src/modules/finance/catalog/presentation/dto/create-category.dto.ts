@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsOptional, IsString, IsUUID, MaxLength } from 'class-validator';
+import { IsEnum, IsOptional, IsString, IsUUID, MaxLength } from 'class-validator';
+import { FIN_CATEGORY_TYPES } from '../../../shared/domain/category-type';
 
 export class CreateCategoryDto {
   @ApiProperty()
@@ -21,4 +22,14 @@ export class CreateCategoryDto {
   @IsOptional()
   @IsUUID()
   parentId?: string;
+
+  @ApiProperty({
+    enum: FIN_CATEGORY_TYPES,
+    default: 'EXPENSE',
+    required: false,
+    description: 'EXPENSE or INCOME. Defaults to EXPENSE when omitted.',
+  })
+  @IsOptional()
+  @IsEnum(FIN_CATEGORY_TYPES)
+  type?: (typeof FIN_CATEGORY_TYPES)[number];
 }

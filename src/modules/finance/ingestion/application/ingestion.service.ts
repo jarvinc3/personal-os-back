@@ -23,6 +23,7 @@ import { ImportEmailTransactionUseCase } from '../../ledger/application/import-e
 import { FinanceOwnershipService } from '../../shared/application/finance-ownership.service';
 import { DOMAIN_EVENT_PUBLISHER } from '../../shared/application/tokens';
 import { mapBankStatusToInternal } from '../../shared/domain/transaction-status';
+import { matchCategoryByHint } from '../../shared/domain/category-type';
 import { EmailSourceRepository } from '../infrastructure/email-source.repository';
 import {
     exchangeGoogleAuthCode,
@@ -514,12 +515,11 @@ export class IngestionService {
     }
 
     const categories = await this.repo.listCategories(userId);
-    const categoryId =
-      categories.find(
-        (c) =>
-          extracted.categoryNameHint &&
-          c.name.toLowerCase() === extracted.categoryNameHint.toLowerCase(),
-      )?.id ?? null;
+    const categoryId = matchCategoryByHint(
+      categories,
+      extracted.categoryNameHint,
+      extracted.type,
+    );
     const status = mapBankStatusToInternal({
       bankStatusNormalized: extracted.bankStatusNormalized,
       statusConfidence: extracted.statusConfidence,

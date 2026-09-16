@@ -37,7 +37,14 @@ export class CreateTransactionUseCase {
       : baseCurrency;
 
     if (command.categoryId) {
-      await this.ownership.assertCategoryVisible(userId, command.categoryId);
+      const category = await this.ownership.assertCategoryVisible(
+        userId,
+        command.categoryId,
+      );
+      this.ownership.assertCategoryMatchesTransactionType(
+        category,
+        command.type,
+      );
     }
 
     const ledgerCurrency = await resolveLedgerCurrencyForTarget(
