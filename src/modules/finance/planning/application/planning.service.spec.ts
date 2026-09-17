@@ -1,3 +1,4 @@
+import { BadRequestException } from '@nestjs/common';
 import { PlanningService } from './planning.service';
 import type { PlanningRepository } from '../infrastructure/planning.repository';
 import type { FinanceOwnershipService } from '../../shared/application/finance-ownership.service';
@@ -28,6 +29,7 @@ describe('PlanningService archive and receivables', () => {
     assertInstitutionOwned: jest.fn(),
     assertLoanAccountAlignment,
     assertCategoryVisible: jest.fn(),
+    assertExpenseCategory: jest.fn(),
   } as unknown as FinanceOwnershipService;
 
   const service = new PlanningService(repo, ownership);
@@ -143,6 +145,22 @@ describe('PlanningService archive and receivables', () => {
       total: 25,
       totalPages: 2,
     });
+  });
+
+  it('rejects budgets on income categories', async () => {
+    (ownership.assertExpenseCategory as jest.Mock).mockRejectedValue(
+      new BadRequestException('Budgets require an expense category'),
+    );
+
+    await expect(
+      service.createBudget('user-1', {
+        categoryId: 'cat-income',
+        periodType: 'MONTHLY',
+        periodStart: '2026-09-01',
+        periodEnd: '2026-09-30',
+        amountLimit: 1000,
+      }),
+    ).rejects.toThrow(/expense category/i);
   });
 
   it('serializes created loan money and rate as strings', async () => {

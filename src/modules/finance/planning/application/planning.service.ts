@@ -43,7 +43,7 @@ export class PlanningService {
   }
 
   async createBudget(userId: string, dto: CreateBudgetDto) {
-    await this.ownership.assertCategoryVisible(userId, dto.categoryId);
+    await this.ownership.assertExpenseCategory(userId, dto.categoryId);
     const created = await this.repo.createBudget(userId, {
       categoryId: dto.categoryId,
       periodType: dto.periodType,
@@ -58,7 +58,7 @@ export class PlanningService {
 
   async updateBudget(userId: string, id: string, dto: UpdateBudgetDto) {
     if (dto.categoryId) {
-      await this.ownership.assertCategoryVisible(userId, dto.categoryId);
+      await this.ownership.assertExpenseCategory(userId, dto.categoryId);
     }
     const updated = await this.repo.updateBudget(userId, id, {
       ...(dto.categoryId ? { categoryId: dto.categoryId } : {}),

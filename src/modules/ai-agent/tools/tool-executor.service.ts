@@ -388,12 +388,19 @@ export class ToolExecutorService {
           data: await this.financeFacade.getTransaction(ctx.userId, id),
         };
       }
-      case 'list_categories':
+      case 'list_categories': {
+        const type =
+          args.type === 'EXPENSE' || args.type === 'INCOME'
+            ? args.type
+            : undefined;
         return {
           success: true,
           message: 'Categories loaded',
-          data: { items: await this.financeFacade.listCategories(ctx.userId) },
+          data: {
+            items: await this.financeFacade.listCategories(ctx.userId, type),
+          },
         };
+      }
       case 'list_accounts':
         return {
           success: true,

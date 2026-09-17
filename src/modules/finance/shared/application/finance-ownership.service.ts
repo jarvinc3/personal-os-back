@@ -4,6 +4,10 @@ import {
   Injectable,
 } from '@nestjs/common';
 import { PrismaService } from '../../../../prisma/prisma.service';
+import {
+  categoryTypeForTransaction,
+  type FinCategoryTypeValue,
+} from '../domain/category-type';
 
 const VISIBLE_CATEGORY = (userId: string) => ({
   OR: [{ userId }, { isSystem: true }],
@@ -53,11 +57,49 @@ export class FinanceOwnershipService {
     return category;
   }
 
-  async assertParentCategory(userId: string, parentId: string, childId?: string) {
+  assertCategoryMatchesTransactionType(
+    category: { type: FinCategoryTypeValue },
+    transactionType: 'DEBIT' | 'CREDIT' | 'TRANSFER',
+  ) {
+    const expected = categoryTypeForTransaction(transactionType);
+    if (!expected || category.type !== expected) {
+      throw new BadRequestException(
+        'Category type does not match the transaction type',
+      );
+    }
+  }
+
+  async assertExpenseCategory(userId: string, categoryId: string) {
+    const category = await this.assertCategoryVisible(userId, categoryId);
+    if (category.type !== 'EXPENSE') {
+      throw new BadRequestException('Budgets require an expense category');
+    }
+    return category;
+  }
+
+  async assertParentCategory(
+    userId: string,
+    parentId: string,
+    childId?: string,
+    expectedType?: FinCategoryTypeValue,
+  ) {
     const parent = await this.assertCategoryVisible(userId, parentId);
     if (childId && parentId === childId) {
       throw new BadRequestException('Category cannot be its own parent');
     }
+
+    let requiredType = expectedType;
+    if (!requiredType && childId) {
+      const child = await this.prisma.finCategory.findFirst({
+        where: { id: childId },
+        select: { type: true },
+      });
+      requiredType = child?.type;
+    }
+    if (requiredType && parent.type !== requiredType) {
+      throw new BadRequestException('Parent category must have the same type');
+    }
+
     if (childId) {
       let cursor: string | null = parent.id;
       const seen = new Set<string>([childId]);

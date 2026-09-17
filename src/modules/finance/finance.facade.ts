@@ -133,8 +133,8 @@ export class FinanceFacade {
     return this.planning.updateLoan(userId, id, dto);
   }
 
-  listCategories(userId: string) {
-    return this.catalog.listCategories(userId);
+  listCategories(userId: string, type?: 'EXPENSE' | 'INCOME') {
+    return this.catalog.listCategories(userId, type);
   }
 
   listEmailSources(userId: string) {

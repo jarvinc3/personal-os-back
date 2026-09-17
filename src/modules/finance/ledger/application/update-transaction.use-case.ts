@@ -11,6 +11,7 @@ import { FinanceOwnershipService } from '../../shared/application/finance-owners
 import { decimalToString } from '../../shared/domain/mappers';
 import { normalizeCurrencyCode } from '../../shared/domain/money';
 import type {
+    FinTxType,
     TransactionUpdateFields,
     UpdateTransactionCommand,
 } from './commands/ledger.commands';
@@ -42,7 +43,18 @@ export class UpdateTransactionUseCase {
     }
 
     if (command.categoryId) {
-      await this.ownership.assertCategoryVisible(userId, command.categoryId);
+      const category = await this.ownership.assertCategoryVisible(
+        userId,
+        command.categoryId,
+      );
+      const categoryUnchanged = command.categoryId === existing.categoryId;
+      if (!categoryUnchanged) {
+        const nextType: FinTxType = command.type ?? (existing.type as FinTxType);
+        this.ownership.assertCategoryMatchesTransactionType(
+          category,
+          nextType,
+        );
+      }
     }
 
     const data: TransactionUpdateFields = {};

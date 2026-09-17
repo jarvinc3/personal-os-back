@@ -423,6 +423,23 @@ export type EnumFinTransactionSourceWithAggregatesFilter<$PrismaModel = never> =
   _max?: Prisma.NestedEnumFinTransactionSourceFilter<$PrismaModel>
 }
 
+export type EnumFinCategoryTypeFilter<$PrismaModel = never> = {
+  equals?: $Enums.FinCategoryType | Prisma.EnumFinCategoryTypeFieldRefInput<$PrismaModel>
+  in?: $Enums.FinCategoryType[] | Prisma.ListEnumFinCategoryTypeFieldRefInput<$PrismaModel>
+  notIn?: $Enums.FinCategoryType[] | Prisma.ListEnumFinCategoryTypeFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumFinCategoryTypeFilter<$PrismaModel> | $Enums.FinCategoryType
+}
+
+export type EnumFinCategoryTypeWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.FinCategoryType | Prisma.EnumFinCategoryTypeFieldRefInput<$PrismaModel>
+  in?: $Enums.FinCategoryType[] | Prisma.ListEnumFinCategoryTypeFieldRefInput<$PrismaModel>
+  notIn?: $Enums.FinCategoryType[] | Prisma.ListEnumFinCategoryTypeFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumFinCategoryTypeWithAggregatesFilter<$PrismaModel> | $Enums.FinCategoryType
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumFinCategoryTypeFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumFinCategoryTypeFilter<$PrismaModel>
+}
+
 export type EnumFinBudgetPeriodTypeFilter<$PrismaModel = never> = {
   equals?: $Enums.FinBudgetPeriodType | Prisma.EnumFinBudgetPeriodTypeFieldRefInput<$PrismaModel>
   in?: $Enums.FinBudgetPeriodType[] | Prisma.ListEnumFinBudgetPeriodTypeFieldRefInput<$PrismaModel>
@@ -1013,6 +1030,23 @@ export type NestedEnumFinTransactionSourceWithAggregatesFilter<$PrismaModel = ne
   _count?: Prisma.NestedIntFilter<$PrismaModel>
   _min?: Prisma.NestedEnumFinTransactionSourceFilter<$PrismaModel>
   _max?: Prisma.NestedEnumFinTransactionSourceFilter<$PrismaModel>
+}
+
+export type NestedEnumFinCategoryTypeFilter<$PrismaModel = never> = {
+  equals?: $Enums.FinCategoryType | Prisma.EnumFinCategoryTypeFieldRefInput<$PrismaModel>
+  in?: $Enums.FinCategoryType[] | Prisma.ListEnumFinCategoryTypeFieldRefInput<$PrismaModel>
+  notIn?: $Enums.FinCategoryType[] | Prisma.ListEnumFinCategoryTypeFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumFinCategoryTypeFilter<$PrismaModel> | $Enums.FinCategoryType
+}
+
+export type NestedEnumFinCategoryTypeWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.FinCategoryType | Prisma.EnumFinCategoryTypeFieldRefInput<$PrismaModel>
+  in?: $Enums.FinCategoryType[] | Prisma.ListEnumFinCategoryTypeFieldRefInput<$PrismaModel>
+  notIn?: $Enums.FinCategoryType[] | Prisma.ListEnumFinCategoryTypeFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumFinCategoryTypeWithAggregatesFilter<$PrismaModel> | $Enums.FinCategoryType
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumFinCategoryTypeFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumFinCategoryTypeFilter<$PrismaModel>
 }
 
 export type NestedEnumFinBudgetPeriodTypeFilter<$PrismaModel = never> = {

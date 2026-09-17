@@ -2760,6 +2760,7 @@ export const FinCategoryScalarFieldEnum = {
   color: 'color',
   parentId: 'parentId',
   isSystem: 'isSystem',
+  type: 'type',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -3240,6 +3241,20 @@ export type EnumFinTransactionSourceFieldRefInput<$PrismaModel> = FieldRefInputT
  * Reference to a field of type 'FinTransactionSource[]'
  */
 export type ListEnumFinTransactionSourceFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'FinTransactionSource[]'>
+    
+
+
+/**
+ * Reference to a field of type 'FinCategoryType'
+ */
+export type EnumFinCategoryTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'FinCategoryType'>
+    
+
+
+/**
+ * Reference to a field of type 'FinCategoryType[]'
+ */
+export type ListEnumFinCategoryTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'FinCategoryType[]'>
     
 
 

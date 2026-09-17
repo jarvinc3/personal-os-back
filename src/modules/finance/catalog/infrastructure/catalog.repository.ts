@@ -172,9 +172,12 @@ export class CatalogRepository {
     });
   }
 
-  listCategories(userId: string) {
+  listCategories(userId: string, type?: 'EXPENSE' | 'INCOME') {
     return this.prisma.finCategory.findMany({
-      where: { OR: [{ userId }, { isSystem: true }] },
+      where: {
+        OR: [{ userId }, { isSystem: true }],
+        ...(type ? { type } : {}),
+      },
       orderBy: [{ isSystem: 'desc' }, { name: 'asc' }],
     });
   }
@@ -185,7 +188,11 @@ export class CatalogRepository {
     });
   }
 
-  updateCategory(userId: string, id: string, data: Prisma.FinCategoryUpdateInput) {
+  updateCategory(
+    userId: string,
+    id: string,
+    data: Prisma.FinCategoryUncheckedUpdateInput,
+  ) {
     return this.prisma.finCategory
       .updateMany({ where: { id, userId, isSystem: false }, data })
       .then(async (result) => {

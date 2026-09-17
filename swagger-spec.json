@@ -648,7 +648,20 @@
     "/api/finance/categories": {
       "get": {
         "operationId": "CategoriesController_list",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "type",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "EXPENSE",
+                "INCOME"
+              ]
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": ""
@@ -2786,6 +2799,15 @@
           },
           "parentId": {
             "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "EXPENSE",
+              "INCOME"
+            ],
+            "default": "EXPENSE",
+            "description": "EXPENSE or INCOME. Defaults to EXPENSE when omitted."
           }
         },
         "required": [

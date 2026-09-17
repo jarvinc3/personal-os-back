@@ -54,7 +54,7 @@ Returns one transaction by id.
 
 ### `list_categories`
 
-Lists finance categories for the user (system + custom).
+Lists finance categories for the user (system + custom). Optional `type`: `EXPENSE` | `INCOME`. Each item includes `type`.
 
 **Delegates to:** `FinanceFacade.listCategories`
 

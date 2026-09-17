@@ -288,6 +288,7 @@ model FinCategory {
   color        String?
   parentId     String?               @map("parent_id")
   isSystem     Boolean               @default(false) @map("is_system")
+  type         FinCategoryType       @default(EXPENSE)
   createdAt    DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt    DateTime              @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   budgets      FinBudget[]
@@ -299,6 +300,7 @@ model FinCategory {
 
   @@index([userId], map: "fin_categories_user_id_idx")
   @@index([parentId], map: "fin_categories_parent_id_idx")
+  @@index([userId, type], map: "fin_categories_user_id_type_idx")
   @@map("fin_categories")
 }
 
@@ -588,6 +590,11 @@ enum FinTransactionType {
   DEBIT
   CREDIT
   TRANSFER
+}
+
+enum FinCategoryType {
+  EXPENSE
+  INCOME
 }
 
 enum FinTransactionStatus {

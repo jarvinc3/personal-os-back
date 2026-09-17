@@ -6,6 +6,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import {
@@ -14,6 +15,7 @@ import {
 } from '../../../../core/decorators';
 import { CatalogService } from '../application/catalog.service';
 import { CreateCategoryDto } from './dto/create-category.dto';
+import { ListCategoriesQueryDto } from './dto/list-categories-query.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 
 @ApiTags('finance')
@@ -24,8 +26,11 @@ export class CategoriesController {
   constructor(private readonly catalog: CatalogService) {}
 
   @Get('categories')
-  list(@CurrentUser('sub') userId: string) {
-    return this.catalog.listCategories(userId);
+  list(
+    @CurrentUser('sub') userId: string,
+    @Query() query: ListCategoriesQueryDto,
+  ) {
+    return this.catalog.listCategories(userId, query.type);
   }
 
   @Post('categories')

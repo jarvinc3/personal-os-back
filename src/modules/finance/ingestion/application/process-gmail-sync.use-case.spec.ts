@@ -370,6 +370,34 @@ describe('ProcessGmailSyncUseCase', () => {
     );
   });
 
+  it('matches CREDIT category hints to INCOME categories only', async () => {
+    findEmailSource.mockResolvedValue(activeSource);
+    listCategories.mockResolvedValue([
+      { id: 'exp-salary', name: 'Salario', type: 'EXPENSE' },
+      { id: 'inc-salary', name: 'Salario', type: 'INCOME' },
+    ]);
+    extract.mockResolvedValue({
+      ...transactionExtraction,
+      data: {
+        ...transactionExtraction.data,
+        type: 'CREDIT',
+        categoryNameHint: 'Salario',
+        statusConfidence: 0.95,
+      },
+    });
+    importExecute.mockResolvedValue({ id: 'tx-income' });
+
+    await useCase.execute({ userId: 'user-1', sourceId: 'src-1' });
+
+    expect(importExecute).toHaveBeenCalledWith(
+      'user-1',
+      expect.objectContaining({
+        type: 'CREDIT',
+        categoryId: 'inc-salary',
+      }),
+    );
+  });
+
   it('does not count persisted skips toward the LLM extract cap', async () => {
     const prev = process.env.MAX_EMAIL_LLM_EXTRACTS;
     process.env.MAX_EMAIL_LLM_EXTRACTS = '1';

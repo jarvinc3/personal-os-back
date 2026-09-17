@@ -18,6 +18,7 @@ import type {
   ExtractedEmailTransaction,
 } from './ports/email-transaction-extractor.port';
 import { resolveEmailLedgerTarget } from './resolve-email-ledger-target';
+import { matchCategoryByHint } from '../../shared/domain/category-type';
 
 @Injectable()
 export class ProcessGmailSyncUseCase {
@@ -214,13 +215,11 @@ export class ProcessGmailSyncUseCase {
               continue;
             }
 
-            const categoryId =
-              categories.find(
-                (c) =>
-                  extracted.categoryNameHint &&
-                  c.name.toLowerCase() ===
-                    extracted.categoryNameHint.toLowerCase(),
-              )?.id ?? null;
+            const categoryId = matchCategoryByHint(
+              categories,
+              extracted.categoryNameHint,
+              extracted.type,
+            );
 
             const persisted = await this.emailSources.upsertEmailMessage({
               sourceId,
