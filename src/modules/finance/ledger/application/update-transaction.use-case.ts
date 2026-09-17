@@ -11,6 +11,7 @@ import { FinanceOwnershipService } from '../../shared/application/finance-owners
 import { decimalToString } from '../../shared/domain/mappers';
 import { normalizeCurrencyCode } from '../../shared/domain/money';
 import type {
+    FinTxType,
     TransactionUpdateFields,
     UpdateTransactionCommand,
 } from './commands/ledger.commands';
@@ -48,7 +49,7 @@ export class UpdateTransactionUseCase {
       );
       const categoryUnchanged = command.categoryId === existing.categoryId;
       if (!categoryUnchanged) {
-        const nextType = command.type ?? existing.type;
+        const nextType: FinTxType = command.type ?? (existing.type as FinTxType);
         this.ownership.assertCategoryMatchesTransactionType(
           category,
           nextType,
