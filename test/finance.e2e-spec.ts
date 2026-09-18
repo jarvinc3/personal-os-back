@@ -397,7 +397,10 @@ describe('Finance (e2e)', () => {
         prompt: 'consent',
       })
       .expect(302)
-      .expect('Location', 'personal-os://finance/oauth/callback?success=false');
+      .expect(
+        'Location',
+        'http://localhost:5173/finance/accounts/sync?sheet=oauth-gmail-result&success=false',
+      );
   });
 
   it('GET /api/finance/email-sync/oauth/google/callback redirects to allowlisted returnTo', async () => {
@@ -439,7 +442,10 @@ describe('Finance (e2e)', () => {
         state,
       })
       .expect(302)
-      .expect('Location', 'personal-os://finance/oauth/callback?success=false');
+      .expect(
+        'Location',
+        'http://localhost:5173/finance/accounts/sync?sheet=oauth-gmail-result&success=false',
+      );
   });
 
   it('POST /api/finance/email-sync/sources/:id/sync returns queued false without Redis', async () => {
@@ -1138,6 +1144,42 @@ describe('Finance (e2e)', () => {
           },
         });
       });
+  });
+
+  it('GET /api/finance/budgets/:id returns a mapped budget', async () => {
+    const budgetId = '33333333-3333-4333-8333-333333333333';
+    prismaMock.finBudget.findFirst.mockResolvedValue({
+      id: budgetId,
+      userId: 'user-123',
+      categoryId: 'cat-1',
+      periodType: 'MONTHLY',
+      periodStart: new Date('2026-01-01'),
+      periodEnd: new Date('2026-01-31'),
+      amountLimit: 1000,
+      amountSpent: 10,
+      alertThresholdPct: 80,
+      category: { id: 'cat-1', name: 'Food' },
+    });
+
+    await request(app.getHttpServer())
+      .get(`/api/finance/budgets/${budgetId}`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.data.id).toBe(budgetId);
+        expect(typeof res.body.data.amountLimit).toBe('string');
+        expect(res.body.data.amountLimit).toBe('1000');
+        expect(res.body.data.category).toEqual({ id: 'cat-1', name: 'Food' });
+      });
+  });
+
+  it('GET /api/finance/budgets/:id returns 404 when missing', async () => {
+    prismaMock.finBudget.findFirst.mockResolvedValue(null);
+
+    await request(app.getHttpServer())
+      .get('/api/finance/budgets/33333333-3333-4333-8333-333333333333')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(404);
   });
 
   it('GET /api/finance/transactions stays paginated and accounts stay an array', async () => {

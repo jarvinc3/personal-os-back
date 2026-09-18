@@ -44,3 +44,19 @@ export function buildWebOAuthRedirect(
   url.searchParams.set('success', success ? 'true' : 'false');
   return url.toString();
 }
+
+export const WEB_OAUTH_FALLBACK_PATH =
+  '/finance/accounts/sync?sheet=oauth-gmail-result';
+
+export function buildFallbackWebOAuthRedirect(
+  corsOrigin: string,
+  success: boolean,
+): string | null {
+  const origin = parseAllowedOrigins(corsOrigin)[0];
+  if (!origin) return null;
+  return buildWebOAuthRedirect(
+    `${origin}${WEB_OAUTH_FALLBACK_PATH}`,
+    corsOrigin,
+    success,
+  );
+}

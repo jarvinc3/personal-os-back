@@ -1,4 +1,5 @@
 import {
+  buildFallbackWebOAuthRedirect,
   buildMobileOAuthRedirect,
   buildWebOAuthRedirect,
   isAllowlistedReturnTo,
@@ -37,5 +38,13 @@ describe('oauth-client-redirect', () => {
     expect(
       buildWebOAuthRedirect('https://evil.example/x', cors, true),
     ).toBeNull();
+  });
+
+  it('falls back to the first CORS origin on Correos when returnTo is missing', () => {
+    expect(buildFallbackWebOAuthRedirect(cors, false)).toBe(
+      'http://localhost:5173/finance/accounts/sync?sheet=oauth-gmail-result&success=false',
+    );
+    expect(buildFallbackWebOAuthRedirect('*', false)).toBeNull();
+    expect(buildFallbackWebOAuthRedirect('', true)).toBeNull();
   });
 });
