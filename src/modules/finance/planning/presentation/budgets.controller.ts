@@ -35,6 +35,12 @@ export class BudgetsController {
     return this.planning.listBudgetsPage(userId, query);
   }
 
+  @Get('budgets/:id')
+  @ApiOperation({ summary: 'Get a budget by id' })
+  get(@CurrentUser('sub') userId: string, @Param('id') id: string) {
+    return this.planning.getBudget(userId, id);
+  }
+
   @Post('budgets')
   create(@CurrentUser('sub') userId: string, @Body() dto: CreateBudgetDto) {
     return this.planning.createBudget(userId, dto);

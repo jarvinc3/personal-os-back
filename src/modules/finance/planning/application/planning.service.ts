@@ -42,6 +42,12 @@ export class PlanningService {
     return paginate(items.map(mapBudget), total, pageQuery);
   }
 
+  async getBudget(userId: string, id: string) {
+    const row = await this.repo.findBudget(userId, id);
+    if (!row) throw new NotFoundException('Budget not found');
+    return mapBudget(row);
+  }
+
   async createBudget(userId: string, dto: CreateBudgetDto) {
     await this.ownership.assertExpenseCategory(userId, dto.categoryId);
     const created = await this.repo.createBudget(userId, {

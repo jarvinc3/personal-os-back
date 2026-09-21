@@ -32,6 +32,13 @@ export class PlanningRepository {
     ]);
   }
 
+  findBudget(userId: string, id: string) {
+    return this.prisma.finBudget.findFirst({
+      where: { id, userId },
+      include: { category: true },
+    });
+  }
+
   createBudget(
     userId: string,
     data: Omit<Prisma.FinBudgetUncheckedCreateInput, 'userId'>,

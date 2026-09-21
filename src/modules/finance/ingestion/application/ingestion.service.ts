@@ -39,6 +39,7 @@ import type {
 import type { UpdateEmailSourceDto } from '../presentation/dto/update-email-source.dto';
 import { extractEmailAddress, extractEmailDomain } from './bank-sender';
 import {
+    buildFallbackWebOAuthRedirect,
     buildMobileOAuthRedirect,
     buildWebOAuthRedirect,
     isAllowlistedReturnTo,
@@ -332,16 +333,20 @@ export class IngestionService {
   }
 
   resolveOAuthClientRedirect(state: string | undefined, success: boolean): string {
+    const corsOrigin = this.config.get('CORS_ORIGIN', { infer: true });
     const payload = this.peekOAuthState(state);
     if (payload?.returnTo) {
       const web = buildWebOAuthRedirect(
         payload.returnTo,
-        this.config.get('CORS_ORIGIN', { infer: true }),
+        corsOrigin,
         success,
       );
       if (web) return web;
     }
-    return buildMobileOAuthRedirect(success);
+    return (
+      buildFallbackWebOAuthRedirect(corsOrigin, success) ??
+      buildMobileOAuthRedirect(success)
+    );
   }
 
   private peekOAuthState(state: string | undefined): OAuthStatePayload | null {

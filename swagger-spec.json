@@ -816,6 +816,33 @@
       }
     },
     "/api/finance/budgets/{id}": {
+      "get": {
+        "operationId": "BudgetsController_get",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Get a budget by id",
+        "tags": [
+          "finance"
+        ]
+      },
       "patch": {
         "operationId": "BudgetsController_update",
         "parameters": [

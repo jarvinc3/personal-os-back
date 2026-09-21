@@ -12,6 +12,7 @@ describe('PlanningService archive and receivables', () => {
   const updateReceivable = jest.fn();
   const createReceivable = jest.fn();
   const listBudgetsPage = jest.fn();
+  const findBudget = jest.fn();
 
   const repo = {
     updateLoan,
@@ -22,6 +23,7 @@ describe('PlanningService archive and receivables', () => {
     updateReceivable,
     createReceivable,
     listBudgetsPage,
+    findBudget,
   } as unknown as PlanningRepository;
 
   const assertLoanAccountAlignment = jest.fn();
@@ -145,6 +147,30 @@ describe('PlanningService archive and receivables', () => {
       total: 25,
       totalPages: 2,
     });
+  });
+
+  it('returns a mapped budget by id', async () => {
+    findBudget.mockResolvedValue({
+      id: 'budget-1',
+      amountLimit: 1000,
+      amountSpent: 10,
+      alertThresholdPct: 80,
+      category: { id: 'cat-1', name: 'Food' },
+    });
+
+    await expect(service.getBudget('user-1', 'budget-1')).resolves.toMatchObject({
+      id: 'budget-1',
+      amountLimit: '1000',
+      amountSpent: '10',
+      alertThresholdPct: 80,
+    });
+  });
+
+  it('throws when the budget is missing', async () => {
+    findBudget.mockResolvedValue(null);
+    await expect(service.getBudget('user-1', 'missing')).rejects.toThrow(
+      /Budget not found/,
+    );
   });
 
   it('rejects budgets on income categories', async () => {
