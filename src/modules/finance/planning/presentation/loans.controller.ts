@@ -43,8 +43,8 @@ export class LoansController {
   }
 
   @Delete('loans/:id')
-  @ApiOperation({ summary: 'Deactivate loan (soft archive)' })
+  @ApiOperation({ summary: 'Hard-delete loan' })
   remove(@CurrentUser('sub') userId: string, @Param('id') id: string) {
-    return this.planning.deactivateLoan(userId, id);
+    return this.planning.deleteLoan(userId, id);
   }
 }

@@ -46,8 +46,8 @@ export class InstitutionsController {
   }
 
   @Delete('institutions/:id')
-  @ApiOperation({ summary: 'Deactivate institution' })
+  @ApiOperation({ summary: 'Hard-delete institution and dependents' })
   remove(@CurrentUser('sub') userId: string, @Param('id') id: string) {
-    return this.catalog.deactivateInstitution(userId, id);
+    return this.catalog.deleteInstitution(userId, id);
   }
 }

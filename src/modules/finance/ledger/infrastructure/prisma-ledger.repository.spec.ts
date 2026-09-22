@@ -481,4 +481,162 @@ describe('PrismaLedgerRepository outbox-in-TX', () => {
     expect(items[0]?.transferCounterpart?.id).toBe('credit-1');
     expect(items[0]?.transferCounterpart?.account?.name).toBe('Ahorros');
   });
+
+  it('purgeLedgerForAccount restores CONFIRMED balance including EMAIL txs', async () => {
+    const enqueue = jest.fn().mockResolvedValue({});
+    const events = { enqueue } as unknown as DomainEventPublisherPort;
+    const finAccountUpdate = jest.fn();
+    const deleteMany = jest.fn().mockResolvedValue({ count: 1 });
+    const emailTx = {
+      id: 'tx-email',
+      userId: 'user-1',
+      source: 'EMAIL',
+      status: 'CONFIRMED',
+      type: 'DEBIT',
+      amount: 40,
+      ledgerAmount: 40,
+      amountBaseCurrency: 40,
+      currency: 'DOP',
+      ledgerCurrency: 'DOP',
+      accountId: 'acc-1',
+      cardId: null,
+      categoryId: null,
+      transactionDate: new Date('2026-08-01'),
+      transferGroupId: null,
+    };
+
+    const prisma = {
+      $transaction: jest.fn(async (fn: (tx: unknown) => Promise<unknown>) => {
+        const tx = {
+          name: 'same-tx',
+          finAccount: {
+            findFirst: jest.fn().mockResolvedValue({
+              id: 'acc-1',
+              userId: 'user-1',
+              currency: 'DOP',
+              type: 'CHECKING',
+              balance: 100,
+            }),
+            update: finAccountUpdate,
+          },
+          finCard: {
+            findFirst: jest.fn(),
+            findMany: jest.fn().mockResolvedValue([]),
+          },
+          finCardBalance: {
+            findFirst: jest.fn(),
+            update: jest.fn(),
+            create: jest.fn(),
+          },
+          finTransaction: {
+            findMany: jest.fn().mockResolvedValue([emailTx]),
+            deleteMany,
+          },
+          finBudget: {
+            findMany: jest.fn().mockResolvedValue([]),
+            update: jest.fn(),
+          },
+        };
+        return fn(tx);
+      }),
+    };
+
+    const repo = new PrismaLedgerRepository(
+      prisma as never,
+      events,
+      undefined,
+    );
+
+    const result = await repo.purgeLedgerForAccount('user-1', 'acc-1');
+    expect(result).toEqual({ count: 1 });
+    expect(finAccountUpdate).toHaveBeenCalledTimes(1);
+    expect(deleteMany).toHaveBeenCalledWith({
+      where: { userId: 'user-1', id: { in: ['tx-email'] } },
+    });
+    expect(enqueue).toHaveBeenCalledTimes(1);
+  });
+
+  it('purgeLedgerForAccount deletes both legs of a transfer', async () => {
+    const enqueue = jest.fn().mockResolvedValue({});
+    const events = { enqueue } as unknown as DomainEventPublisherPort;
+    const groupId = 'grp-purge';
+    const debit = {
+      id: 'debit-p',
+      userId: 'user-1',
+      source: 'MANUAL',
+      status: 'PENDING',
+      type: 'DEBIT',
+      amount: 25,
+      currency: 'DOP',
+      accountId: 'acc-from',
+      cardId: null,
+      categoryId: null,
+      transactionDate: new Date('2026-08-01'),
+      transferGroupId: groupId,
+    };
+    const credit = {
+      ...debit,
+      id: 'credit-p',
+      type: 'CREDIT',
+      accountId: 'acc-to',
+    };
+    const findMany = jest
+      .fn()
+      .mockResolvedValueOnce([debit])
+      .mockResolvedValueOnce([debit, credit]);
+    const deleteMany = jest.fn().mockResolvedValue({ count: 2 });
+
+    const prisma = {
+      $transaction: jest.fn(async (fn: (tx: unknown) => Promise<unknown>) => {
+        const tx = {
+          finCard: { findMany: jest.fn().mockResolvedValue([]) },
+          finTransaction: { findMany, deleteMany },
+        };
+        return fn(tx);
+      }),
+    };
+
+    const repo = new PrismaLedgerRepository(
+      prisma as never,
+      events,
+      undefined,
+    );
+
+    const result = await repo.purgeLedgerForAccount('user-1', 'acc-from');
+    expect(result).toEqual({ count: 2 });
+    expect(deleteMany).toHaveBeenCalledWith({
+      where: { userId: 'user-1', id: { in: ['debit-p', 'credit-p'] } },
+    });
+    expect(enqueue).toHaveBeenCalledTimes(2);
+  });
+
+  it('purgeLedgerForCard is a no-op when the card has no txs', async () => {
+    const enqueue = jest.fn().mockResolvedValue({});
+    const events = { enqueue } as unknown as DomainEventPublisherPort;
+    const deleteMany = jest.fn();
+
+    const prisma = {
+      $transaction: jest.fn(async (fn: (tx: unknown) => Promise<unknown>) => {
+        const tx = {
+          finTransaction: {
+            findMany: jest.fn().mockResolvedValue([]),
+            deleteMany,
+          },
+        };
+        return fn(tx);
+      }),
+    };
+
+    const repo = new PrismaLedgerRepository(
+      prisma as never,
+      events,
+      undefined,
+    );
+
+    await expect(
+      repo.purgeLedgerForCard('user-1', 'card-1'),
+    ).resolves.toEqual({ count: 0 });
+    expect(deleteMany).not.toHaveBeenCalled();
+    expect(enqueue).not.toHaveBeenCalled();
+  });
 });

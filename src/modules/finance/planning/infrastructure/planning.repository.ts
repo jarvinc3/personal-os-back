@@ -138,6 +138,10 @@ export class PlanningRepository {
     });
   }
 
+  deleteLoan(userId: string, id: string) {
+    return this.prisma.finLoan.deleteMany({ where: { id, userId } });
+  }
+
   updateLoan(
     userId: string,
     id: string,
@@ -173,6 +177,10 @@ export class PlanningRepository {
     data: Omit<Prisma.FinReceivableUncheckedCreateInput, 'userId'>,
   ) {
     return this.prisma.finReceivable.create({ data: { ...data, userId } });
+  }
+
+  deleteReceivable(userId: string, id: string) {
+    return this.prisma.finReceivable.deleteMany({ where: { id, userId } });
   }
 
   updateReceivable(

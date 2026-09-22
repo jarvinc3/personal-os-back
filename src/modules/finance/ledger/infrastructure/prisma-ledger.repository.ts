@@ -2,7 +2,10 @@ import { Inject, Injectable, Optional } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { AppEvents } from '../../../../core/events/event.constants';
 import { paginationArgs } from '../../../../core/pagination/pagination.dto';
-import type { Prisma } from '../../../../prisma/generated/client';
+import type {
+  FinTransactionType,
+  Prisma,
+} from '../../../../prisma/generated/client';
 import { PrismaService } from '../../../../prisma/prisma.service';
 import type { DomainEventPublisherPort } from '../../events/application/ports/domain-event-publisher.port';
 import type { BudgetThresholdPort } from '../../shared/application/budget-threshold.port';
@@ -627,6 +630,35 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
     });
   }
 
+  purgeLedgerForAccount(userId: string, accountId: string) {
+    return this.prisma.$transaction(async (tx) => {
+      const cards = await tx.finCard.findMany({
+        where: { userId, accountId },
+        select: { id: true },
+      });
+      const cardIds = cards.map((card) => card.id);
+      const instrumentRows = await tx.finTransaction.findMany({
+        where: {
+          userId,
+          OR: [
+            { accountId },
+            ...(cardIds.length > 0 ? [{ cardId: { in: cardIds } }] : []),
+          ],
+        },
+      });
+      return this.purgeInstrumentRows(tx, userId, instrumentRows);
+    });
+  }
+
+  purgeLedgerForCard(userId: string, cardId: string) {
+    return this.prisma.$transaction(async (tx) => {
+      const instrumentRows = await tx.finTransaction.findMany({
+        where: { userId, cardId },
+      });
+      return this.purgeInstrumentRows(tx, userId, instrumentRows);
+    });
+  }
+
   confirmTransaction(userId: string, id: string) {
     return this.prisma.$transaction(async (tx) => {
       const existing = await tx.finTransaction.findFirst({ where: { id, userId } });
@@ -924,6 +956,82 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
       await this.thresholds?.processThresholds(userId, budgetSnapshots, tx);
 
       return created;
+    });
+  }
+
+  private async purgeInstrumentRows(
+    tx: TxClient,
+    userId: string,
+    instrumentRows: Array<{
+      id: string;
+      accountId: string | null;
+      cardId: string | null;
+      type: FinTransactionType;
+      status: string;
+      source: string;
+      amount: { toString(): string } | number;
+      ledgerAmount?: { toString(): string } | number | null;
+      ledgerCurrency?: string | null;
+      amountBaseCurrency?: { toString(): string } | number | null;
+      currency: string;
+      categoryId: string | null;
+      transactionDate: Date;
+      transferGroupId: string | null;
+    }>,
+  ) {
+    const groupIds = [
+      ...new Set(
+        instrumentRows
+          .map((row) => row.transferGroupId)
+          .filter((id): id is string => Boolean(id)),
+      ),
+    ];
+    const groupRows =
+      groupIds.length === 0
+        ? []
+        : await tx.finTransaction.findMany({
+            where: { userId, transferGroupId: { in: groupIds } },
+          });
+    const byId = new Map(instrumentRows.map((row) => [row.id, row]));
+    for (const row of groupRows) {
+      byId.set(row.id, row);
+    }
+    const rows = [...byId.values()];
+    if (rows.length === 0) {
+      return { count: 0 };
+    }
+
+    for (const row of rows) {
+      if (row.status === 'CONFIRMED') {
+        const ctx = await this.loadCardContext(tx, userId, row.cardId);
+        const ledger = ledgerFields(row);
+        await applyBalanceForTransaction(tx, {
+          accountId: row.accountId,
+          cardId: row.cardId,
+          cardType: ctx.cardType,
+          derivedAccountId: ctx.derivedAccountId,
+          currency: ledger.currency,
+          type: row.type,
+          amount: ledger.amount,
+          direction: -1,
+        });
+        await adjustBudgetSpent(tx, {
+          userId,
+          categoryId: row.categoryId,
+          type: row.type,
+          amountBaseCurrency: Number(row.amountBaseCurrency ?? row.amount),
+          transactionDate: row.transactionDate,
+          direction: -1,
+        });
+      }
+    }
+
+    for (const row of rows) {
+      await this.enqueueTransactionDeleted(tx, userId, row);
+    }
+
+    return tx.finTransaction.deleteMany({
+      where: { userId, id: { in: rows.map((row) => row.id) } },
     });
   }
 

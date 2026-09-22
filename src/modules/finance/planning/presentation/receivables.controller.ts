@@ -1,5 +1,5 @@
-import { Body, Controller, Get, Param, Patch, Post } from '@nestjs/common';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { Body, Controller, Delete, Get, Param, Patch, Post } from '@nestjs/common';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import {
   CurrentUser,
   RequiresEnabledModule,
@@ -32,5 +32,11 @@ export class ReceivablesController {
     @Body() dto: UpdateReceivableDto,
   ) {
     return this.planning.updateReceivable(userId, id, dto);
+  }
+
+  @Delete('receivables/:id')
+  @ApiOperation({ summary: 'Hard-delete receivable' })
+  remove(@CurrentUser('sub') userId: string, @Param('id') id: string) {
+    return this.planning.deleteReceivable(userId, id);
   }
 }

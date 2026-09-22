@@ -49,9 +49,9 @@ export class CardsController {
   }
 
   @Delete('cards/:id')
-  @ApiOperation({ summary: 'Deactivate card (soft archive)' })
+  @ApiOperation({ summary: 'Hard-delete card and its ledger rows' })
   remove(@CurrentUser('sub') userId: string, @Param('id') id: string) {
-    return this.catalog.deactivateCard(userId, id);
+    return this.catalog.deleteCard(userId, id);
   }
 
   @Post('cards/:id/balances')

@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { FinanceLedgerModule } from '../ledger/ledger.module';
 import { FinanceOwnershipModule } from '../shared/finance-ownership.module';
 import { CatalogService } from './application/catalog.service';
 import { CatalogRepository } from './infrastructure/catalog.repository';
@@ -8,7 +9,7 @@ import { CategoriesController } from './presentation/categories.controller';
 import { InstitutionsController } from './presentation/institutions.controller';
 
 @Module({
-  imports: [FinanceOwnershipModule],
+  imports: [FinanceOwnershipModule, FinanceLedgerModule],
   controllers: [
     AccountsController,
     InstitutionsController,
