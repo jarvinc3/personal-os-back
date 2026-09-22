@@ -357,6 +357,33 @@
         "tags": [
           "finance"
         ]
+      },
+      "delete": {
+        "operationId": "AccountsController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Hard-delete account, debit cards, and ledger rows",
+        "tags": [
+          "finance"
+        ]
       }
     },
     "/api/finance/institutions": {
@@ -464,7 +491,7 @@
             "access-token": []
           }
         ],
-        "summary": "Deactivate institution",
+        "summary": "Hard-delete institution and dependents",
         "tags": [
           "finance"
         ]
@@ -601,7 +628,7 @@
             "access-token": []
           }
         ],
-        "summary": "Deactivate card (soft archive)",
+        "summary": "Hard-delete card and its ledger rows",
         "tags": [
           "finance"
         ]
@@ -763,6 +790,310 @@
             "access-token": []
           }
         ],
+        "tags": [
+          "finance"
+        ]
+      }
+    },
+    "/api/finance/transactions": {
+      "get": {
+        "operationId": "TransactionsController_list",
+        "parameters": [
+          {
+            "name": "transferGroupId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "accountId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cardId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "categoryId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "type",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "DEBIT",
+                "CREDIT",
+                "TRANSFER"
+              ]
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "PENDING",
+                "CONFIRMED",
+                "CANCELLED",
+                "DECLINED",
+                "REVERSED"
+              ]
+            }
+          },
+          {
+            "name": "dateFrom",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "dateTo",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "List finance transactions",
+        "tags": [
+          "finance"
+        ]
+      },
+      "post": {
+        "operationId": "TransactionsController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateTransactionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Create a DEBIT or CREDIT transaction",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
+    "/api/finance/transactions/{id}": {
+      "get": {
+        "operationId": "TransactionsController_get",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Get transaction by id",
+        "tags": [
+          "finance"
+        ]
+      },
+      "patch": {
+        "operationId": "TransactionsController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Update transaction",
+        "tags": [
+          "finance"
+        ]
+      },
+      "delete": {
+        "operationId": "TransactionsController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Delete manual transaction",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
+    "/api/finance/transactions/{id}/confirm": {
+      "post": {
+        "operationId": "TransactionsController_confirm",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Confirm PENDING transaction",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
+    "/api/finance/transactions/{id}/reverse": {
+      "post": {
+        "operationId": "TransactionsController_reverse",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Reverse a CONFIRMED transaction (keeps the row as REVERSED)",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
+    "/api/finance/transfers": {
+      "post": {
+        "operationId": "TransfersController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateTransferDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Create a transfer between accounts/cards",
         "tags": [
           "finance"
         ]
@@ -1121,7 +1452,7 @@
             "access-token": []
           }
         ],
-        "summary": "Deactivate loan (soft archive)",
+        "summary": "Hard-delete loan",
         "tags": [
           "finance"
         ]
@@ -1206,6 +1537,33 @@
             "access-token": []
           }
         ],
+        "tags": [
+          "finance"
+        ]
+      },
+      "delete": {
+        "operationId": "ReceivablesController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Hard-delete receivable",
         "tags": [
           "finance"
         ]
@@ -1370,310 +1728,6 @@
             "access-token": []
           }
         ],
-        "tags": [
-          "finance"
-        ]
-      }
-    },
-    "/api/finance/transactions": {
-      "get": {
-        "operationId": "TransactionsController_list",
-        "parameters": [
-          {
-            "name": "transferGroupId",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "accountId",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "cardId",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "categoryId",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "type",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "DEBIT",
-                "CREDIT",
-                "TRANSFER"
-              ]
-            }
-          },
-          {
-            "name": "status",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "PENDING",
-                "CONFIRMED",
-                "CANCELLED",
-                "DECLINED",
-                "REVERSED"
-              ]
-            }
-          },
-          {
-            "name": "dateFrom",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "dateTo",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "search",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
-        "summary": "List finance transactions",
-        "tags": [
-          "finance"
-        ]
-      },
-      "post": {
-        "operationId": "TransactionsController_create",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateTransactionDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
-        "summary": "Create a DEBIT or CREDIT transaction",
-        "tags": [
-          "finance"
-        ]
-      }
-    },
-    "/api/finance/transactions/{id}": {
-      "get": {
-        "operationId": "TransactionsController_get",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
-        "summary": "Get transaction by id",
-        "tags": [
-          "finance"
-        ]
-      },
-      "patch": {
-        "operationId": "TransactionsController_update",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
-        "summary": "Update transaction",
-        "tags": [
-          "finance"
-        ]
-      },
-      "delete": {
-        "operationId": "TransactionsController_remove",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
-        "summary": "Delete manual transaction",
-        "tags": [
-          "finance"
-        ]
-      }
-    },
-    "/api/finance/transactions/{id}/confirm": {
-      "post": {
-        "operationId": "TransactionsController_confirm",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
-        "summary": "Confirm PENDING transaction",
-        "tags": [
-          "finance"
-        ]
-      }
-    },
-    "/api/finance/transactions/{id}/reverse": {
-      "post": {
-        "operationId": "TransactionsController_reverse",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
-        "summary": "Reverse a CONFIRMED transaction (keeps the row as REVERSED)",
-        "tags": [
-          "finance"
-        ]
-      }
-    },
-    "/api/finance/transfers": {
-      "post": {
-        "operationId": "TransfersController_create",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateTransferDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
-        "summary": "Create a transfer between accounts/cards",
         "tags": [
           "finance"
         ]
@@ -2683,6 +2737,9 @@
           "country": {
             "type": "string",
             "default": "DO"
+          },
+          "isActive": {
+            "type": "boolean"
           }
         }
       },
@@ -2857,6 +2914,110 @@
             "type": "string"
           }
         }
+      },
+      "CreateTransactionDto": {
+        "type": "object",
+        "properties": {
+          "accountId": {
+            "type": "string"
+          },
+          "cardId": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "DEBIT",
+              "CREDIT"
+            ]
+          },
+          "amount": {
+            "type": "number"
+          },
+          "currency": {
+            "type": "string",
+            "default": "DOP",
+            "example": "DOP"
+          },
+          "transactionDate": {
+            "type": "string"
+          },
+          "merchant": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "string"
+          },
+          "categoryId": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "CONFIRMED",
+              "CANCELLED",
+              "DECLINED",
+              "REVERSED"
+            ],
+            "default": "CONFIRMED"
+          }
+        },
+        "required": [
+          "type",
+          "amount",
+          "transactionDate"
+        ]
+      },
+      "CreateTransferDto": {
+        "type": "object",
+        "properties": {
+          "fromAccountId": {
+            "type": "string"
+          },
+          "fromCardId": {
+            "type": "string"
+          },
+          "toAccountId": {
+            "type": "string"
+          },
+          "toCardId": {
+            "type": "string"
+          },
+          "amount": {
+            "type": "number"
+          },
+          "currency": {
+            "type": "string",
+            "default": "DOP",
+            "example": "DOP"
+          },
+          "transactionDate": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "CONFIRMED",
+              "CANCELLED"
+            ],
+            "default": "CONFIRMED"
+          }
+        },
+        "required": [
+          "amount",
+          "transactionDate"
+        ]
       },
       "CreateBudgetDto": {
         "type": "object",
@@ -3176,110 +3337,6 @@
             "type": "string"
           }
         }
-      },
-      "CreateTransactionDto": {
-        "type": "object",
-        "properties": {
-          "accountId": {
-            "type": "string"
-          },
-          "cardId": {
-            "type": "string"
-          },
-          "type": {
-            "type": "string",
-            "enum": [
-              "DEBIT",
-              "CREDIT"
-            ]
-          },
-          "amount": {
-            "type": "number"
-          },
-          "currency": {
-            "type": "string",
-            "default": "DOP",
-            "example": "DOP"
-          },
-          "transactionDate": {
-            "type": "string"
-          },
-          "merchant": {
-            "type": "string"
-          },
-          "description": {
-            "type": "string"
-          },
-          "notes": {
-            "type": "string"
-          },
-          "categoryId": {
-            "type": "string"
-          },
-          "status": {
-            "type": "string",
-            "enum": [
-              "PENDING",
-              "CONFIRMED",
-              "CANCELLED",
-              "DECLINED",
-              "REVERSED"
-            ],
-            "default": "CONFIRMED"
-          }
-        },
-        "required": [
-          "type",
-          "amount",
-          "transactionDate"
-        ]
-      },
-      "CreateTransferDto": {
-        "type": "object",
-        "properties": {
-          "fromAccountId": {
-            "type": "string"
-          },
-          "fromCardId": {
-            "type": "string"
-          },
-          "toAccountId": {
-            "type": "string"
-          },
-          "toCardId": {
-            "type": "string"
-          },
-          "amount": {
-            "type": "number"
-          },
-          "currency": {
-            "type": "string",
-            "default": "DOP",
-            "example": "DOP"
-          },
-          "transactionDate": {
-            "type": "string"
-          },
-          "description": {
-            "type": "string"
-          },
-          "notes": {
-            "type": "string"
-          },
-          "status": {
-            "type": "string",
-            "enum": [
-              "PENDING",
-              "CONFIRMED",
-              "CANCELLED"
-            ],
-            "default": "CONFIRMED"
-          }
-        },
-        "required": [
-          "amount",
-          "transactionDate"
-        ]
       },
       "ConnectEmailSourceDto": {
         "type": "object",

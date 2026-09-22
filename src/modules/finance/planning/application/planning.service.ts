@@ -248,6 +248,12 @@ export class PlanningService {
     return { success: true };
   }
 
+  async deleteLoan(userId: string, id: string) {
+    const result = await this.repo.deleteLoan(userId, id);
+    if (result.count === 0) throw new NotFoundException('Loan not found');
+    return { success: true };
+  }
+
   async listReceivables(userId: string) {
     const rows = await this.repo.listReceivables(userId);
     return rows.map(mapReceivable);
@@ -316,5 +322,11 @@ export class PlanningService {
     });
     if (!updated) throw new NotFoundException('Receivable not found');
     return mapReceivable(updated);
+  }
+
+  async deleteReceivable(userId: string, id: string) {
+    const result = await this.repo.deleteReceivable(userId, id);
+    if (result.count === 0) throw new NotFoundException('Receivable not found');
+    return { success: true };
   }
 }

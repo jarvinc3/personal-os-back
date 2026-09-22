@@ -59,6 +59,52 @@ describe('PlanningService archive and receivables', () => {
     });
   });
 
+  it('hard-deletes a loan', async () => {
+    const deleteLoan = jest.fn().mockResolvedValue({ count: 1 });
+    const local = new PlanningService(
+      { ...repo, deleteLoan } as unknown as PlanningRepository,
+      ownership,
+    );
+    await expect(local.deleteLoan('user-1', 'loan-1')).resolves.toEqual({
+      success: true,
+    });
+    expect(deleteLoan).toHaveBeenCalledWith('user-1', 'loan-1');
+  });
+
+  it('returns 404 when hard-deleting a missing loan', async () => {
+    const deleteLoan = jest.fn().mockResolvedValue({ count: 0 });
+    const local = new PlanningService(
+      { ...repo, deleteLoan } as unknown as PlanningRepository,
+      ownership,
+    );
+    await expect(local.deleteLoan('user-1', 'missing')).rejects.toThrow(
+      /not found/i,
+    );
+  });
+
+  it('hard-deletes a receivable', async () => {
+    const deleteReceivable = jest.fn().mockResolvedValue({ count: 1 });
+    const local = new PlanningService(
+      { ...repo, deleteReceivable } as unknown as PlanningRepository,
+      ownership,
+    );
+    await expect(local.deleteReceivable('user-1', 'rec-1')).resolves.toEqual({
+      success: true,
+    });
+    expect(deleteReceivable).toHaveBeenCalledWith('user-1', 'rec-1');
+  });
+
+  it('returns 404 when hard-deleting a missing receivable', async () => {
+    const deleteReceivable = jest.fn().mockResolvedValue({ count: 0 });
+    const local = new PlanningService(
+      { ...repo, deleteReceivable } as unknown as PlanningRepository,
+      ownership,
+    );
+    await expect(local.deleteReceivable('user-1', 'missing')).rejects.toThrow(
+      /not found/i,
+    );
+  });
+
   it('patches loan accountId as the payment account', async () => {
     findLoan.mockResolvedValue({
       id: 'loan-1',

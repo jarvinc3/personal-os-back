@@ -1,9 +1,14 @@
 import { CatalogService } from './catalog.service';
 import type { CatalogRepository } from '../infrastructure/catalog.repository';
 import type { FinanceOwnershipService } from '../../shared/application/finance-ownership.service';
+import type { PurgeInstrumentLedgerUseCase } from '../../ledger/application/purge-instrument-ledger.use-case';
 import { BadRequestException, ConflictException } from '@nestjs/common';
 
-function ownershipMock(): FinanceOwnershipService {
+function ownershipMock(
+  overrides: Partial<{
+    assertInstitutionCanArchive: jest.Mock;
+  }> = {},
+): FinanceOwnershipService {
   return {
     assertInstitutionOwned: jest.fn((_userId: string, id: string) => {
       if (id === 'inst-1') return Promise.resolve({ id, name: 'Banco' });
@@ -22,7 +27,15 @@ function ownershipMock(): FinanceOwnershipService {
     assertLoanAccountAlignment: jest.fn(),
     assertAccountInstitutionChangeAllowed: jest.fn(),
     assertInstitutionCanArchive: jest.fn(),
+    ...overrides,
   } as unknown as FinanceOwnershipService;
+}
+
+function purgeMock(): PurgeInstrumentLedgerUseCase {
+  return {
+    forAccount: jest.fn().mockResolvedValue(undefined),
+    forCard: jest.fn().mockResolvedValue(undefined),
+  } as unknown as PurgeInstrumentLedgerUseCase;
 }
 
 describe('CatalogService cards archive', () => {
@@ -38,7 +51,7 @@ describe('CatalogService cards archive', () => {
     findAccountById,
   } as unknown as CatalogRepository;
 
-  const service = new CatalogService(repo, ownershipMock());
+  const service = new CatalogService(repo, ownershipMock(), purgeMock());
 
   const debitCard = {
     id: 'card-1',
@@ -116,7 +129,7 @@ describe('CatalogService createAccount', () => {
     findAccountById,
   } as unknown as CatalogRepository;
 
-  const service = new CatalogService(repo, ownershipMock());
+  const service = new CatalogService(repo, ownershipMock(), purgeMock());
 
   const created = {
     id: 'acc-1',
@@ -211,6 +224,7 @@ describe('CatalogService archive institution', () => {
     const service = new CatalogService(
       { updateInstitution } as unknown as CatalogRepository,
       ownership,
+      purgeMock(),
     );
 
     await expect(
@@ -230,6 +244,7 @@ describe('CatalogService updateCardBalance', () => {
   const service = new CatalogService(
     { findCardById, upsertCardBalance } as unknown as CatalogRepository,
     ownershipMock(),
+    purgeMock(),
   );
 
   beforeEach(() => {
@@ -287,7 +302,7 @@ describe('CatalogService categories', () => {
     updateCategory,
   } as unknown as CatalogRepository;
   const ownership = ownershipMock();
-  const service = new CatalogService(repo, ownership);
+  const service = new CatalogService(repo, ownership, purgeMock());
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -344,5 +359,138 @@ describe('CatalogService categories', () => {
     listCategories.mockResolvedValue([]);
     await service.listCategories('user-1', 'INCOME');
     expect(listCategories).toHaveBeenCalledWith('user-1', 'INCOME');
+  });
+});
+
+describe('CatalogService hard delete', () => {
+  it('deletes an account after purging ledger and debit cards', async () => {
+    const forAccount = jest.fn().mockResolvedValue(undefined);
+    const findAccountById = jest.fn().mockResolvedValue({ id: 'acc-1' });
+    const deleteCardsByAccountId = jest.fn().mockResolvedValue({ count: 1 });
+    const deleteAccount = jest.fn().mockResolvedValue({ count: 1 });
+    const service = new CatalogService(
+      {
+        findAccountById,
+        deleteCardsByAccountId,
+        deleteAccount,
+      } as unknown as CatalogRepository,
+      ownershipMock(),
+      { forAccount, forCard: jest.fn() } as unknown as PurgeInstrumentLedgerUseCase,
+    );
+
+    await expect(service.deleteAccount('user-1', 'acc-1')).resolves.toEqual({
+      success: true,
+    });
+    expect(forAccount).toHaveBeenCalledWith('user-1', 'acc-1');
+    expect(deleteCardsByAccountId).toHaveBeenCalledWith('user-1', 'acc-1');
+    expect(deleteAccount).toHaveBeenCalledWith('user-1', 'acc-1');
+  });
+
+  it('returns 404 when deleting a missing account', async () => {
+    const service = new CatalogService(
+      { findAccountById: jest.fn().mockResolvedValue(null) } as unknown as CatalogRepository,
+      ownershipMock(),
+      purgeMock(),
+    );
+    await expect(service.deleteAccount('user-1', 'missing')).rejects.toThrow(
+      /not found/i,
+    );
+  });
+
+  it('deletes a card after purging its ledger', async () => {
+    const forCard = jest.fn().mockResolvedValue(undefined);
+    const service = new CatalogService(
+      {
+        findCardById: jest.fn().mockResolvedValue({ id: 'card-1' }),
+        deleteCard: jest.fn().mockResolvedValue({ count: 1 }),
+      } as unknown as CatalogRepository,
+      ownershipMock(),
+      { forAccount: jest.fn(), forCard } as unknown as PurgeInstrumentLedgerUseCase,
+    );
+
+    await expect(service.deleteCard('user-1', 'card-1')).resolves.toEqual({
+      success: true,
+    });
+    expect(forCard).toHaveBeenCalledWith('user-1', 'card-1');
+  });
+
+  it('cascades institution delete through accounts, remaining cards, sources, and loans', async () => {
+    const forAccount = jest.fn().mockResolvedValue(undefined);
+    const forCard = jest.fn().mockResolvedValue(undefined);
+    const findInstitution = jest.fn().mockResolvedValue({ id: 'inst-1' });
+    const listAccountsByInstitution = jest
+      .fn()
+      .mockResolvedValue([{ id: 'acc-1' }]);
+    const listCardsByInstitution = jest
+      .fn()
+      .mockResolvedValue([{ id: 'card-credit' }]);
+    const findAccountById = jest.fn().mockResolvedValue({ id: 'acc-1' });
+    const deleteCardsByAccountId = jest.fn().mockResolvedValue({ count: 1 });
+    const deleteAccount = jest.fn().mockResolvedValue({ count: 1 });
+    const findCardById = jest.fn().mockResolvedValue({ id: 'card-credit' });
+    const deleteCard = jest.fn().mockResolvedValue({ count: 1 });
+    const deleteEmailSourcesByInstitution = jest
+      .fn()
+      .mockResolvedValue({ count: 1 });
+    const deleteLoansByInstitution = jest.fn().mockResolvedValue({ count: 1 });
+    const deleteInstitution = jest.fn().mockResolvedValue({ count: 1 });
+
+    const service = new CatalogService(
+      {
+        findInstitution,
+        listAccountsByInstitution,
+        listCardsByInstitution,
+        findAccountById,
+        deleteCardsByAccountId,
+        deleteAccount,
+        findCardById,
+        deleteCard,
+        deleteEmailSourcesByInstitution,
+        deleteLoansByInstitution,
+        deleteInstitution,
+      } as unknown as CatalogRepository,
+      ownershipMock(),
+      { forAccount, forCard } as unknown as PurgeInstrumentLedgerUseCase,
+    );
+
+    await expect(service.deleteInstitution('user-1', 'inst-1')).resolves.toEqual(
+      { success: true },
+    );
+    expect(forAccount).toHaveBeenCalledWith('user-1', 'acc-1');
+    expect(forCard).toHaveBeenCalledWith('user-1', 'card-credit');
+    expect(deleteEmailSourcesByInstitution).toHaveBeenCalledWith(
+      'user-1',
+      'inst-1',
+    );
+    expect(deleteLoansByInstitution).toHaveBeenCalledWith('user-1', 'inst-1');
+    expect(deleteInstitution).toHaveBeenCalledWith('user-1', 'inst-1');
+  });
+
+  it('archives an institution via PATCH isActive false, not by deleting the row', async () => {
+    const assertInstitutionCanArchive = jest.fn();
+    const updateInstitution = jest.fn().mockResolvedValue({
+      id: 'inst-1',
+      name: 'Bank',
+      color: null,
+      logoUrl: null,
+      country: 'DO',
+      isActive: false,
+    });
+    const service = new CatalogService(
+      { updateInstitution } as unknown as CatalogRepository,
+      ownershipMock({ assertInstitutionCanArchive }),
+      purgeMock(),
+    );
+
+    await expect(
+      service.updateInstitution('user-1', 'inst-1', { isActive: false }),
+    ).resolves.toMatchObject({ isActive: false });
+    expect(assertInstitutionCanArchive).toHaveBeenCalledWith(
+      'user-1',
+      'inst-1',
+    );
+    expect(updateInstitution).toHaveBeenCalledWith('user-1', 'inst-1', {
+      isActive: false,
+    });
   });
 });

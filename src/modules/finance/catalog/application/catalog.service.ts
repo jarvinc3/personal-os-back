@@ -8,6 +8,7 @@ import {
   decimalToString,
 } from '../../shared/domain/mappers';
 import { FinanceOwnershipService } from '../../shared/application/finance-ownership.service';
+import { PurgeInstrumentLedgerUseCase } from '../../ledger/application/purge-instrument-ledger.use-case';
 import { CatalogRepository } from '../infrastructure/catalog.repository';
 import type { CreateAccountDto } from '../presentation/dto/create-account.dto';
 import type { CreateCardDto } from '../presentation/dto/create-card.dto';
@@ -24,6 +25,7 @@ export class CatalogService {
   constructor(
     private readonly repo: CatalogRepository,
     private readonly ownership: FinanceOwnershipService,
+    private readonly purgeLedger: PurgeInstrumentLedgerUseCase,
   ) {}
 
   async listAccounts(userId: string) {
@@ -73,6 +75,16 @@ export class CatalogService {
     return this.mapAccount(account);
   }
 
+  async deleteAccount(userId: string, id: string) {
+    const existing = await this.repo.findAccountById(id, userId);
+    if (!existing) throw new NotFoundException('Account not found');
+    await this.purgeLedger.forAccount(userId, id);
+    await this.repo.deleteCardsByAccountId(userId, id);
+    const result = await this.repo.deleteAccount(userId, id);
+    if (result.count === 0) throw new NotFoundException('Account not found');
+    return { success: true };
+  }
+
   async listInstitutions(userId: string) {
     const items = await this.repo.listInstitutions(userId);
     return items.map((item) => this.mapInstitution(item));
@@ -89,6 +101,10 @@ export class CatalogService {
   }
 
   async updateInstitution(userId: string, id: string, dto: UpdateInstitutionDto) {
+    if (dto.isActive === false) {
+      await this.ownership.assertInstitutionOwned(userId, id);
+      await this.ownership.assertInstitutionCanArchive(userId, id);
+    }
     const updated = await this.repo.updateInstitution(userId, id, dto);
     if (!updated) throw new NotFoundException('Institution not found');
     return this.mapInstitution(updated);
@@ -101,6 +117,24 @@ export class CatalogService {
       isActive: false,
     });
     if (!updated) throw new NotFoundException('Institution not found');
+    return { success: true };
+  }
+
+  async deleteInstitution(userId: string, id: string) {
+    const existing = await this.repo.findInstitution(userId, id);
+    if (!existing) throw new NotFoundException('Institution not found');
+    const accounts = await this.repo.listAccountsByInstitution(userId, id);
+    for (const account of accounts) {
+      await this.deleteAccount(userId, account.id);
+    }
+    const cards = await this.repo.listCardsByInstitution(userId, id);
+    for (const card of cards) {
+      await this.deleteCard(userId, card.id);
+    }
+    await this.repo.deleteEmailSourcesByInstitution(userId, id);
+    await this.repo.deleteLoansByInstitution(userId, id);
+    const result = await this.repo.deleteInstitution(userId, id);
+    if (result.count === 0) throw new NotFoundException('Institution not found');
     return { success: true };
   }
 
@@ -204,6 +238,15 @@ export class CatalogService {
   async deactivateCard(userId: string, id: string) {
     const updated = await this.repo.updateCard(userId, id, { isActive: false });
     if (!updated) throw new NotFoundException('Card not found');
+    return { success: true };
+  }
+
+  async deleteCard(userId: string, id: string) {
+    const existing = await this.repo.findCardById(userId, id);
+    if (!existing) throw new NotFoundException('Card not found');
+    await this.purgeLedger.forCard(userId, id);
+    const result = await this.repo.deleteCard(userId, id);
+    if (result.count === 0) throw new NotFoundException('Card not found');
     return { success: true };
   }
 

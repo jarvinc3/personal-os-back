@@ -1424,7 +1424,7 @@ describe('Finance (e2e)', () => {
       });
   });
 
-  it('DELETE /api/finance/institutions/:id returns 409 with dependents', async () => {
+  it('PATCH /api/finance/institutions/:id returns 409 with dependents when archiving', async () => {
     const institutionId = '11111111-1111-4111-8111-111111111111';
     prismaMock.finInstitution.findFirst.mockResolvedValue({
       id: institutionId,
@@ -1437,8 +1437,9 @@ describe('Finance (e2e)', () => {
     prismaMock.finLoan.count.mockResolvedValue(0);
 
     await request(app.getHttpServer())
-      .delete(`/api/finance/institutions/${institutionId}`)
+      .patch(`/api/finance/institutions/${institutionId}`)
       .set('Authorization', `Bearer ${token}`)
+      .send({ isActive: false })
       .expect(409)
       .expect((res) => {
         expect(res.body.message).toMatch(/Cannot archive institution/i);
@@ -1450,6 +1451,34 @@ describe('Finance (e2e)', () => {
         });
       });
     expect(prismaMock.finInstitution.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('PATCH /api/finance/institutions/:id archives when there are no active dependents', async () => {
+    const institutionId = '11111111-1111-4111-8111-111111111111';
+    prismaMock.finInstitution.findFirst.mockResolvedValue({
+      id: institutionId,
+      userId: 'user-123',
+      name: 'Bank',
+      color: null,
+      logoUrl: null,
+      country: 'DO',
+      isActive: false,
+    });
+    prismaMock.finAccount.count.mockResolvedValue(0);
+    prismaMock.finCard.count.mockResolvedValue(0);
+    prismaMock.finEmailSource.count.mockResolvedValue(0);
+    prismaMock.finLoan.count.mockResolvedValue(0);
+    prismaMock.finInstitution.updateMany.mockResolvedValue({ count: 1 });
+
+    await request(app.getHttpServer())
+      .patch(`/api/finance/institutions/${institutionId}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ isActive: false })
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.data.isActive).toBe(false);
+      });
+    expect(prismaMock.finInstitution.deleteMany).not.toHaveBeenCalled();
   });
 
   it('PATCH /api/finance/loans/:id updates the payment account', async () => {
@@ -1568,5 +1597,129 @@ describe('Finance (e2e)', () => {
           transactionId: 'tx-1',
         });
       });
+  });
+
+  it('DELETE /api/finance/accounts/:id hard-deletes the account', async () => {
+    const accountId = '11111111-1111-4111-8111-111111111111';
+    prismaMock.finAccount.findFirst.mockResolvedValue({
+      id: accountId,
+      userId: 'user-123',
+      name: 'Main',
+    });
+    prismaMock.finCard.deleteMany.mockResolvedValue({ count: 1 });
+    prismaMock.finAccount.deleteMany.mockResolvedValue({ count: 1 });
+
+    await request(app.getHttpServer())
+      .delete(`/api/finance/accounts/${accountId}`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.data).toEqual({ success: true });
+      });
+    expect(prismaMock.finAccount.deleteMany).toHaveBeenCalled();
+    expect(prismaMock.$transaction).toHaveBeenCalled();
+  });
+
+  it('DELETE /api/finance/accounts/:id returns 404 when missing', async () => {
+    prismaMock.finAccount.findFirst.mockResolvedValue(null);
+
+    await request(app.getHttpServer())
+      .delete('/api/finance/accounts/11111111-1111-4111-8111-111111111111')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(404);
+  });
+
+  it('DELETE /api/finance/cards/:id hard-deletes the card', async () => {
+    const cardId = '66666666-6666-4666-8666-666666666666';
+    prismaMock.finCard.findFirst.mockResolvedValue({
+      id: cardId,
+      userId: 'user-123',
+      type: 'CREDIT',
+    });
+    prismaMock.finCard.deleteMany.mockResolvedValue({ count: 1 });
+
+    await request(app.getHttpServer())
+      .delete(`/api/finance/cards/${cardId}`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.data).toEqual({ success: true });
+      });
+    expect(prismaMock.finCard.deleteMany).toHaveBeenCalled();
+  });
+
+  it('DELETE /api/finance/institutions/:id cascades dependents', async () => {
+    const institutionId = '11111111-1111-4111-8111-111111111111';
+    const accountId = '22222222-2222-4222-8222-222222222222';
+    const cardId = '66666666-6666-4666-8666-666666666666';
+    prismaMock.finInstitution.findFirst.mockResolvedValue({
+      id: institutionId,
+      userId: 'user-123',
+      name: 'Bank',
+    });
+    prismaMock.finAccount.findMany.mockResolvedValue([{ id: accountId }]);
+    prismaMock.finAccount.findFirst.mockResolvedValue({
+      id: accountId,
+      userId: 'user-123',
+      institutionId,
+    });
+    prismaMock.finCard.findMany.mockResolvedValue([{ id: cardId }]);
+    prismaMock.finCard.findFirst.mockResolvedValue({
+      id: cardId,
+      userId: 'user-123',
+      type: 'CREDIT',
+    });
+    prismaMock.finAccount.deleteMany.mockResolvedValue({ count: 1 });
+    prismaMock.finCard.deleteMany.mockResolvedValue({ count: 1 });
+    prismaMock.finEmailSource.deleteMany.mockResolvedValue({ count: 1 });
+    prismaMock.finLoan.deleteMany.mockResolvedValue({ count: 1 });
+    prismaMock.finInstitution.deleteMany.mockResolvedValue({ count: 1 });
+
+    await request(app.getHttpServer())
+      .delete(`/api/finance/institutions/${institutionId}`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.data).toEqual({ success: true });
+      });
+    expect(prismaMock.finAccount.deleteMany).toHaveBeenCalled();
+    expect(prismaMock.finCard.deleteMany).toHaveBeenCalled();
+    expect(prismaMock.finEmailSource.deleteMany).toHaveBeenCalled();
+    expect(prismaMock.finLoan.deleteMany).toHaveBeenCalled();
+    expect(prismaMock.finInstitution.deleteMany).toHaveBeenCalled();
+  });
+
+  it('DELETE /api/finance/loans/:id hard-deletes the loan', async () => {
+    prismaMock.finLoan.deleteMany.mockResolvedValue({ count: 1 });
+
+    await request(app.getHttpServer())
+      .delete('/api/finance/loans/77777777-7777-4777-8777-777777777777')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.data).toEqual({ success: true });
+      });
+    expect(prismaMock.finLoan.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('DELETE /api/finance/receivables/:id hard-deletes the receivable', async () => {
+    prismaMock.finReceivable.deleteMany.mockResolvedValue({ count: 1 });
+
+    await request(app.getHttpServer())
+      .delete('/api/finance/receivables/88888888-8888-4888-8888-888888888888')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.data).toEqual({ success: true });
+      });
+  });
+
+  it('DELETE /api/finance/loans/:id returns 404 for another user', async () => {
+    prismaMock.finLoan.deleteMany.mockResolvedValue({ count: 0 });
+
+    await request(app.getHttpServer())
+      .delete('/api/finance/loans/77777777-7777-4777-8777-777777777777')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(404);
   });
 });

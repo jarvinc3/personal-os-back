@@ -131,6 +131,16 @@ export interface LedgerRepositoryPort {
     transferGroupId: string,
   ): Promise<{ count: number }>;
 
+  purgeLedgerForAccount(
+    userId: string,
+    accountId: string,
+  ): Promise<{ count: number }>;
+
+  purgeLedgerForCard(
+    userId: string,
+    cardId: string,
+  ): Promise<{ count: number }>;
+
   confirmTransaction(
     userId: string,
     id: string,

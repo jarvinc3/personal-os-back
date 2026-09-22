@@ -206,4 +206,48 @@ export class CatalogRepository {
       where: { id, userId, isSystem: false },
     });
   }
+
+  findInstitution(userId: string, id: string) {
+    return this.prisma.finInstitution.findFirst({ where: { id, userId } });
+  }
+
+  listAccountsByInstitution(userId: string, institutionId: string) {
+    return this.prisma.finAccount.findMany({
+      where: { userId, institutionId },
+      select: { id: true },
+    });
+  }
+
+  listCardsByInstitution(userId: string, institutionId: string) {
+    return this.prisma.finCard.findMany({
+      where: { userId, institutionId },
+      select: { id: true },
+    });
+  }
+
+  deleteCardsByAccountId(userId: string, accountId: string) {
+    return this.prisma.finCard.deleteMany({ where: { userId, accountId } });
+  }
+
+  deleteCard(userId: string, id: string) {
+    return this.prisma.finCard.deleteMany({ where: { id, userId } });
+  }
+
+  deleteAccount(userId: string, id: string) {
+    return this.prisma.finAccount.deleteMany({ where: { id, userId } });
+  }
+
+  deleteEmailSourcesByInstitution(userId: string, institutionId: string) {
+    return this.prisma.finEmailSource.deleteMany({
+      where: { userId, institutionId },
+    });
+  }
+
+  deleteLoansByInstitution(userId: string, institutionId: string) {
+    return this.prisma.finLoan.deleteMany({ where: { userId, institutionId } });
+  }
+
+  deleteInstitution(userId: string, id: string) {
+    return this.prisma.finInstitution.deleteMany({ where: { id, userId } });
+  }
 }
