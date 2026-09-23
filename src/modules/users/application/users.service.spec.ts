@@ -171,3 +171,47 @@ describe('UsersService.assertFinanceEmailSyncEnabled', () => {
     ).rejects.toThrow('Finance email sync is disabled');
   });
 });
+
+describe('UsersService.isFinanceEmailSyncAutomatic', () => {
+  const findUserModuleBySlug = jest.fn();
+  const usersRepository = {
+    findUserModuleBySlug,
+  } as unknown as UsersRepository;
+
+  const service = new UsersService(
+    usersRepository,
+    { emit: jest.fn() } as unknown as EventEmitter2,
+    { tryDeleteAuthUser: jest.fn() } as unknown as SupabaseAdminService,
+  );
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('returns true only when both enabled and automatic are true', async () => {
+    findUserModuleBySlug.mockResolvedValue({
+      config: { emailSync: { enabled: true, automatic: true } },
+    });
+    await expect(
+      service.isFinanceEmailSyncAutomatic('user-1'),
+    ).resolves.toBe(true);
+  });
+
+  it('returns false when automatic is omitted (default off)', async () => {
+    findUserModuleBySlug.mockResolvedValue({
+      config: { emailSync: { enabled: true } },
+    });
+    await expect(
+      service.isFinanceEmailSyncAutomatic('user-1'),
+    ).resolves.toBe(false);
+  });
+
+  it('returns false when sync is enabled but automatic is off', async () => {
+    findUserModuleBySlug.mockResolvedValue({
+      config: { emailSync: { enabled: true, automatic: false } },
+    });
+    await expect(
+      service.isFinanceEmailSyncAutomatic('user-1'),
+    ).resolves.toBe(false);
+  });
+});

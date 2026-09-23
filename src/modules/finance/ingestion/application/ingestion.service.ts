@@ -663,7 +663,9 @@ export class IngestionService {
         isActive: true,
       });
       const mapped = this.mapEmailSourceResponse(updated ?? existing);
-      await this.enqueueGmailSyncJob(userId, mapped.id);
+      if (await this.users.isFinanceEmailSyncAutomatic(userId)) {
+        await this.enqueueGmailSyncJob(userId, mapped.id);
+      }
       return mapped;
     }
 
@@ -676,7 +678,9 @@ export class IngestionService {
       isActive: true,
     });
     const mapped = this.mapEmailSourceResponse(created);
-    await this.enqueueGmailSyncJob(userId, mapped.id);
+    if (await this.users.isFinanceEmailSyncAutomatic(userId)) {
+      await this.enqueueGmailSyncJob(userId, mapped.id);
+    }
     return mapped;
   }
 

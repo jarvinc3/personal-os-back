@@ -230,4 +230,21 @@ export class UsersService {
       throw new ForbiddenException('Finance email sync is disabled');
     }
   }
+
+  async isFinanceEmailSyncAutomatic(userId: string): Promise<boolean> {
+    const row = await this.usersRepository.findUserModuleBySlug(
+      userId,
+      'finance',
+    );
+    const config = (row?.config ?? {}) as {
+      emailSync?: { enabled?: boolean; automatic?: boolean };
+    };
+    const enabled =
+      config.emailSync?.enabled ??
+      DEFAULT_MODULE_CONFIG_BY_SLUG.finance.emailSync.enabled;
+    const automatic =
+      config.emailSync?.automatic ??
+      DEFAULT_MODULE_CONFIG_BY_SLUG.finance.emailSync.automatic;
+    return enabled === true && automatic === true;
+  }
 }

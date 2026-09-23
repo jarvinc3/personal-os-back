@@ -27,7 +27,7 @@ export const DEFAULT_MODULE_CONFIG_BY_SLUG = {
       [FINANCE_NOTIFICATION_KEYS.cardDueDate]: true,
       [FINANCE_NOTIFICATION_KEYS.unusualExpense]: true,
     },
-    emailSync: { enabled: false, autoCategorize: true },
+    emailSync: { enabled: false, automatic: false, autoCategorize: true },
   },
   agenda: {
     version: 1,
