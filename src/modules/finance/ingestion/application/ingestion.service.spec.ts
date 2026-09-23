@@ -311,6 +311,38 @@ describe('IngestionService mailbox linking', () => {
     );
   });
 
+  it('enqueues an incremental Gmail sync when a source is linked', async () => {
+    const add = jest.fn().mockResolvedValue({});
+    const queuedService = new IngestionService(
+      repo,
+      { get: jest.fn() } as never,
+      { enqueue: jest.fn() },
+      { processBatch: jest.fn() } as never,
+      users as never,
+      ownership as never,
+      { execute: jest.fn() } as never,
+      { add } as never,
+    );
+    findConnectionByUserEmail.mockResolvedValue({
+      id: 'conn-1',
+      refreshToken: 'enc',
+    });
+    findSourceByUserAndInstitution.mockResolvedValue(null);
+    createEmailSource.mockResolvedValue(mappedSource);
+
+    await queuedService.createEmailSource('user-1', {
+      emailAddress: 'me@gmail.com',
+      bankSenderEmail: 'alertas@bhd.com.do',
+      institutionId: 'inst-1',
+    });
+
+    expect(add).toHaveBeenCalledWith(
+      'gmail-sync-source',
+      { userId: 'user-1', sourceId: 'src-1', forceFullSync: false },
+      expect.objectContaining({ jobId: 'gmail-sync:src-1' }),
+    );
+  });
+
   it('conflicts when the institution is already linked to another mailbox', async () => {
     findConnectionByUserEmail.mockResolvedValue({
       id: 'conn-2',

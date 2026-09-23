@@ -39,6 +39,11 @@ import type {
 import type { UpdateEmailSourceDto } from '../presentation/dto/update-email-source.dto';
 import { extractEmailAddress, extractEmailDomain } from './bank-sender';
 import {
+  GMAIL_SYNC_JOB_NAME,
+  GMAIL_SYNC_JOB_OPTIONS,
+  gmailSyncJobId,
+} from './gmail-sync.constants';
+import {
     buildFallbackWebOAuthRedirect,
     buildMobileOAuthRedirect,
     buildWebOAuthRedirect,
@@ -191,26 +196,7 @@ export class IngestionService {
     await this.users.assertFinanceEmailSyncEnabled(userId);
     const source = await this.repo.findEmailSource(userId, sourceId);
     if (!source) throw new NotFoundException('Email source not found');
-    if (!this.gmailSyncQueue) {
-      return {
-        queued: false,
-        reason:
-          'gmail-sync queue is unavailable. Verify REDIS_ENABLED=true and REDIS_URL, then restart the API.',
-      };
-    }
-
-    await this.gmailSyncQueue.add(
-      'gmail-sync-source',
-      { userId, sourceId, forceFullSync },
-      {
-        attempts: 3,
-        backoff: { type: 'exponential', delay: 1500 },
-        removeOnComplete: 100,
-        removeOnFail: 300,
-      },
-    );
-
-    return { queued: true as const };
+    return this.enqueueGmailSyncJob(userId, sourceId, forceFullSync);
   }
 
   async completeEmailSyncSuccessWithEvent(params: {
@@ -676,7 +662,9 @@ export class IngestionService {
         ...(input.label !== undefined ? { label: input.label } : {}),
         isActive: true,
       });
-      return this.mapEmailSourceResponse(updated ?? existing);
+      const mapped = this.mapEmailSourceResponse(updated ?? existing);
+      await this.enqueueGmailSyncJob(userId, mapped.id);
+      return mapped;
     }
 
     const created = await this.repo.createEmailSource(userId, {
@@ -687,7 +675,37 @@ export class IngestionService {
       label: input.label,
       isActive: true,
     });
-    return this.mapEmailSourceResponse(created);
+    const mapped = this.mapEmailSourceResponse(created);
+    await this.enqueueGmailSyncJob(userId, mapped.id);
+    return mapped;
+  }
+
+  private async enqueueGmailSyncJob(
+    userId: string,
+    sourceId: string,
+    forceFullSync = false,
+  ): Promise<{ queued: true } | { queued: false; reason: string }> {
+    if (!this.gmailSyncQueue) {
+      return {
+        queued: false,
+        reason:
+          'gmail-sync queue is unavailable. Verify REDIS_ENABLED=true and REDIS_URL, then restart the API.',
+      };
+    }
+
+    try {
+      await this.gmailSyncQueue.add(
+        GMAIL_SYNC_JOB_NAME,
+        { userId, sourceId, forceFullSync },
+        {
+          ...GMAIL_SYNC_JOB_OPTIONS,
+          ...(forceFullSync ? {} : { jobId: gmailSyncJobId(sourceId) }),
+        },
+      );
+      return { queued: true };
+    } catch {
+      return { queued: true };
+    }
   }
 
   private resolveSenderFields(input: {
