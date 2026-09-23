@@ -483,6 +483,7 @@ export class IngestionService {
           ? message.instrumentHint
           : null,
       lastFourHint: message.lastFourHint,
+      accountNumberHint: message.accountNumberHint,
       accounts,
       cards,
     });
@@ -545,6 +546,7 @@ export class IngestionService {
       model: message.model,
       instrumentHint: message.instrumentHint,
       lastFourHint: message.lastFourHint,
+      accountNumberHint: message.accountNumberHint,
       extractedPayload: message.extractedPayload,
     });
 
@@ -791,6 +793,7 @@ export class IngestionService {
       emailAddress: row.source.connection.emailAddress,
       instrumentHint: row.instrumentHint,
       lastFourHint: row.lastFourHint,
+      accountNumberHint: row.accountNumberHint,
       extractedPayload: row.extractedPayload,
       reason: row.reason,
       createdAt: row.createdAt.toISOString(),

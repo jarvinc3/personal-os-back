@@ -16,6 +16,7 @@ export type ExtractedEmailTransaction = {
   reverseOriginalRef: string | null;
   instrumentHint: 'ACCOUNT' | 'CARD' | null;
   lastFourHint: string | null;
+  accountNumberHint: string | null;
 };
 
 export type EmailExtractionInput = {

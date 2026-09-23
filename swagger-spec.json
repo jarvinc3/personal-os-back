@@ -2655,6 +2655,11 @@
               "INVESTMENT"
             ]
           },
+          "accountNumber": {
+            "type": "string",
+            "description": "Required for CHECKING, SAVINGS, and INVESTMENT. Must be omitted for CASH.",
+            "example": "001122335678"
+          },
           "currency": {
             "type": "string",
             "default": "DOP",
@@ -2687,6 +2692,11 @@
               "CASH",
               "INVESTMENT"
             ]
+          },
+          "accountNumber": {
+            "type": "string",
+            "description": "Required for CHECKING, SAVINGS, and INVESTMENT. Must be omitted for CASH.",
+            "example": "001122335678"
           },
           "currency": {
             "type": "string",
@@ -2794,7 +2804,8 @@
         "required": [
           "institutionId",
           "name",
-          "type"
+          "type",
+          "lastFour"
         ]
       },
       "UpdateCardDto": {

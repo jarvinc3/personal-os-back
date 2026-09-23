@@ -48,6 +48,7 @@ export type UpsertEmailMessageInput = {
   model?: string | null;
   instrumentHint?: string | null;
   lastFourHint?: string | null;
+  accountNumberHint?: string | null;
   extractedPayload?: unknown;
 };
 
@@ -318,7 +319,7 @@ export class EmailSourceRepository {
     return Promise.all([
       this.prisma.finAccount.findMany({
         where: { userId, institutionId, isActive: true },
-        select: { id: true, name: true },
+        select: { id: true, name: true, accountNumber: true },
       }),
       this.prisma.finCard.findMany({
         where: { userId, institutionId, isActive: true },
@@ -377,6 +378,7 @@ export class EmailSourceRepository {
       model,
       instrumentHint,
       lastFourHint,
+      accountNumberHint,
       extractedPayload,
     } = data;
     return this.prisma.finEmailMessage.upsert({
@@ -392,6 +394,7 @@ export class EmailSourceRepository {
         model: model ?? null,
         instrumentHint: instrumentHint ?? null,
         lastFourHint: lastFourHint ?? null,
+        accountNumberHint: accountNumberHint ?? null,
         extractedPayload:
           extractedPayload === undefined || extractedPayload === null
             ? undefined
@@ -407,6 +410,9 @@ export class EmailSourceRepository {
           : {}),
         ...(lastFourHint !== undefined
           ? { lastFourHint: lastFourHint ?? null }
+          : {}),
+        ...(accountNumberHint !== undefined
+          ? { accountNumberHint: accountNumberHint ?? null }
           : {}),
         ...(extractedPayload !== undefined
           ? {

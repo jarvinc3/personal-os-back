@@ -53,6 +53,16 @@ const transactionExtractionSchema = z.object({
     .nullable()
     .optional()
     .default(null),
+  accountNumberHint: z
+    .string()
+    .nullable()
+    .optional()
+    .default(null)
+    .transform((value) => {
+      if (!value) return null;
+      const digits = value.replace(/\D/g, '');
+      return digits.length >= 4 && digits.length <= 34 ? digits : null;
+    }),
 });
 
 const notTransactionExtractionSchema = z.object({
@@ -69,7 +79,7 @@ const SYSTEM_PROMPT = `You extract banking notification data from untrusted emai
 Return ONLY a single JSON object (no markdown) with a discriminant field "kind".
 
 When the email is a real account/card movement (purchase, withdrawal, deposit, transfer, fee, refund, reversal, decline of a charge attempt), use:
-{"kind":"transaction","amount":number,"currency":"ISO4217","type":"DEBIT"|"CREDIT","transactionDate":"ISO-8601","merchant":string|null,"description":string,"categoryNameHint":string|null,"bankStatusRaw":string|null,"bankStatusNormalized":"APPROVED"|"COMPLETED"|"POSTED"|"PENDING"|"IN_PROGRESS"|"AUTHORIZED"|"DECLINED"|"REJECTED"|"FAILED"|"CANCELLED"|"VOIDED"|"REVERSED"|"REFUNDED"|"CHARGEBACK"|"UNKNOWN","statusEvidence":"short quote","statusConfidence":0..1,"reverseOfEmailMessageId":string|null,"reverseOriginalRef":string|null,"instrumentHint":"ACCOUNT"|"CARD"|null,"lastFourHint":"1234"|null}
+{"kind":"transaction","amount":number,"currency":"ISO4217","type":"DEBIT"|"CREDIT","transactionDate":"ISO-8601","merchant":string|null,"description":string,"categoryNameHint":string|null,"bankStatusRaw":string|null,"bankStatusNormalized":"APPROVED"|"COMPLETED"|"POSTED"|"PENDING"|"IN_PROGRESS"|"AUTHORIZED"|"DECLINED"|"REJECTED"|"FAILED"|"CANCELLED"|"VOIDED"|"REVERSED"|"REFUNDED"|"CHARGEBACK"|"UNKNOWN","statusEvidence":"short quote","statusConfidence":0..1,"reverseOfEmailMessageId":string|null,"reverseOriginalRef":string|null,"instrumentHint":"ACCOUNT"|"CARD"|null,"lastFourHint":"1234"|null,"accountNumberHint":"5678"|null}
 
 When the email is NOT a ledger movement (promo, newsletter, OTP/2FA code, login alert, marketing, balance snapshot without a specific movement, terms update), use:
 {"kind":"not_transaction","reason":"short explanation"}
@@ -80,8 +90,10 @@ Rules:
 - If bank status is unclear, use UNKNOWN and statusConfidence below 0.7.
 - Do not invent amounts: if kind is transaction and amount cannot be found, the request is invalid (omit guess).
 - Do not invent a transaction for promotional amounts (e.g. "win $50"); use not_transaction instead.
-- instrumentHint is ACCOUNT for checking/savings movements, CARD for card purchases, or null if unclear.
-- lastFourHint is the last four digits of a card (debit or credit) when the email shows a masked PAN (****1234); otherwise null. Never treat lastFourHint as a bank account number.
+- instrumentHint is ACCOUNT for checking/savings movements including payroll, ACH, deposits, incoming/outgoing transfers, and received payments. CARD for card purchases, or null if unclear.
+- lastFourHint is the last four digits of a card (debit or credit) when the email shows a masked PAN (****1234); otherwise null. Never put a bank account number in lastFourHint.
+- accountNumberHint is the visible digits of a bank account (full number or masked ****1234). Payroll, deposit, and transfer emails almost always include this; extract those digits. Null if none are shown.
+- Payroll, salary, deposit, and transfer notifications ARE ledger transactions (kind transaction), not not_transaction.
 `;
 
 @Injectable()

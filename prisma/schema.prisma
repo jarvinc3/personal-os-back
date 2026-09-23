@@ -163,6 +163,8 @@ model FinAccount {
   institutionId  String?          @map("institution_id")
   name           String
   type           FinAccountType
+  /// Full bank account number (digits only). Null for CASH and legacy rows.
+  accountNumber  String?          @map("account_number")
   currency       String           @default("DOP")
   balance        Decimal          @default(0) @db.Decimal(15, 2)
   color          String?
@@ -534,6 +536,7 @@ model FinEmailMessage {
   model             String?
   instrumentHint    String?                 @map("instrument_hint")
   lastFourHint      String?                 @map("last_four_hint")
+  accountNumberHint String?                 @map("account_number_hint")
   extractedPayload  Json?                   @map("extracted_payload")
   createdAt         DateTime                @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt         DateTime                @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)

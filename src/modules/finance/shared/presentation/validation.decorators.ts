@@ -56,6 +56,38 @@ export function OptionalLastFourField() {
   };
 }
 
+export function RequiredLastFourField() {
+  return function (target: object, propertyKey: string | symbol) {
+    Transform(({ value }) => normalizeLastFour(value))(target, propertyKey);
+    IsString()(target, propertyKey);
+    Matches(LAST_FOUR_REGEX, {
+      message: 'lastFour must be exactly 4 digits',
+    })(target, propertyKey);
+  };
+}
+
+const ACCOUNT_NUMBER_DIGITS_REGEX = /^[0-9]{4,34}$/;
+
+export function normalizeAccountNumberInput(value: unknown): unknown {
+  if (typeof value !== 'string') return value;
+  const digits = value.replace(/\D/g, '');
+  return digits.length ? digits : value.trim();
+}
+
+export function OptionalAccountNumberField() {
+  return function (target: object, propertyKey: string | symbol) {
+    Transform(({ value }) => normalizeAccountNumberInput(value))(
+      target,
+      propertyKey,
+    );
+    IsOptional()(target, propertyKey);
+    IsString()(target, propertyKey);
+    Matches(ACCOUNT_NUMBER_DIGITS_REGEX, {
+      message: 'accountNumber must be 4 to 34 digits',
+    })(target, propertyKey);
+  };
+}
+
 export function OptionalCalendarDayField() {
   return function (target: object, propertyKey: string | symbol) {
     Type(() => Number)(target, propertyKey);

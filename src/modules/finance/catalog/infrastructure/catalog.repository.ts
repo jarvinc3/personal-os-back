@@ -32,6 +32,7 @@ export class CatalogRepository {
       currency: dto.currency ?? 'DOP',
       balance: 0,
       institutionId: dto.institutionId ?? null,
+      accountNumber: dto.accountNumber ?? null,
     };
     if (dto.color) data.color = dto.color;
 
@@ -41,7 +42,13 @@ export class CatalogRepository {
     });
   }
 
-  updateAccount(id: string, userId: string, dto: UpdateAccountDto) {
+  updateAccount(
+    id: string,
+    userId: string,
+    dto: Omit<UpdateAccountDto, 'accountNumber'> & {
+      accountNumber?: string | null;
+    },
+  ) {
     return this.prisma.finAccount
       .updateMany({
         where: { id, userId },
@@ -52,6 +59,7 @@ export class CatalogRepository {
           currency: dto.currency,
           color: dto.color,
           isActive: dto.isActive,
+          accountNumber: dto.accountNumber,
         },
       })
       .then(async (result) => {

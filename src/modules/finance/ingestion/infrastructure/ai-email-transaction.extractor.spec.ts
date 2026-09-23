@@ -40,6 +40,7 @@ describe('AiEmailTransactionExtractor', () => {
     reverseOriginalRef: null,
     instrumentHint: null,
     lastFourHint: null,
+    accountNumberHint: null,
   };
 
   beforeEach(() => {
@@ -129,5 +130,40 @@ describe('AiEmailTransactionExtractor', () => {
       provider: 'groq',
       model: 'test-model',
     });
+  });
+
+  it('accepts a masked accountNumberHint and keeps digits', async () => {
+    chatComplete.mockResolvedValue({
+      content: JSON.stringify({
+        ...validPayload,
+        instrumentHint: 'ACCOUNT',
+        accountNumberHint: '****5678',
+      }),
+      provider: 'groq',
+      model: 'test-model',
+    });
+
+    await expect(extractor.extract(input)).resolves.toMatchObject({
+      ok: true,
+      kind: 'transaction',
+      data: {
+        instrumentHint: 'ACCOUNT',
+        accountNumberHint: '5678',
+      },
+    });
+  });
+
+  it('instructs the model to extract payroll and deposit account numbers', async () => {
+    chatComplete.mockResolvedValue({
+      content: JSON.stringify(validPayload),
+      provider: 'groq',
+      model: 'test-model',
+    });
+
+    await extractor.extract(input);
+
+    const system = chatComplete.mock.calls[0]?.[0]?.[0]?.content as string;
+    expect(system).toMatch(/accountNumberHint/);
+    expect(system).toMatch(/payroll|deposit|transfer/i);
   });
 });

@@ -114,6 +114,7 @@ describe('ProcessGmailSyncUseCase', () => {
       reverseOriginalRef: null,
       instrumentHint: 'ACCOUNT' as const,
       lastFourHint: '1234',
+      accountNumberHint: null,
     },
   };
 
@@ -126,7 +127,7 @@ describe('ProcessGmailSyncUseCase', () => {
     findTransactionByEmailMessageId.mockResolvedValue(null);
     upsertEmailMessage.mockResolvedValue({ id: 'em-row-1' });
     listInstitutionDestinations.mockResolvedValue([
-      [{ id: 'acc-1', name: 'Main' }],
+      [{ id: 'acc-1', name: 'Main', accountNumber: '00001234' }],
       [],
     ]);
     updateEmailSource.mockResolvedValue(undefined);
@@ -214,8 +215,8 @@ describe('ProcessGmailSyncUseCase', () => {
     findEmailSource.mockResolvedValue(activeSource);
     listInstitutionDestinations.mockResolvedValue([
       [
-        { id: 'acc-1', name: 'A' },
-        { id: 'acc-2', name: 'B' },
+        { id: 'acc-1', name: 'A', accountNumber: '11111111' },
+        { id: 'acc-2', name: 'B', accountNumber: '22222222' },
       ],
       [],
     ]);
@@ -328,6 +329,44 @@ describe('ProcessGmailSyncUseCase', () => {
       expect.objectContaining({
         emailsScanned: 1,
         transactionsNew: 0,
+      }),
+    );
+  });
+
+  it('imports onto the account whose number matches the extracted hint', async () => {
+    findEmailSource.mockResolvedValue(activeSource);
+    listInstitutionDestinations.mockResolvedValue([
+      [
+        { id: 'acc-1', name: 'Nomina', accountNumber: '001122335678' },
+        { id: 'acc-2', name: 'Ahorros', accountNumber: '998877440000' },
+      ],
+      [],
+    ]);
+    extract.mockResolvedValue({
+      ...transactionExtraction,
+      data: {
+        ...transactionExtraction.data,
+        type: 'CREDIT',
+        instrumentHint: 'ACCOUNT',
+        lastFourHint: null,
+        accountNumberHint: '5678',
+      },
+    });
+    importExecute.mockResolvedValue({ id: 'tx-1' });
+
+    await useCase.execute({ userId: 'user-1', sourceId: 'src-1' });
+
+    expect(importExecute).toHaveBeenCalledWith(
+      'user-1',
+      expect.objectContaining({
+        accountId: 'acc-1',
+        emailMessageId: 'em-row-1',
+      }),
+    );
+    expect(upsertEmailMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        accountNumberHint: '5678',
+        outcome: 'IMPORTED',
       }),
     );
   });

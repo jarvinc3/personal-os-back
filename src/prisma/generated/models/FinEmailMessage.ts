@@ -34,6 +34,7 @@ export type FinEmailMessageMinAggregateOutputType = {
   model: string | null
   instrumentHint: string | null
   lastFourHint: string | null
+  accountNumberHint: string | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -48,6 +49,7 @@ export type FinEmailMessageMaxAggregateOutputType = {
   model: string | null
   instrumentHint: string | null
   lastFourHint: string | null
+  accountNumberHint: string | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -62,6 +64,7 @@ export type FinEmailMessageCountAggregateOutputType = {
   model: number
   instrumentHint: number
   lastFourHint: number
+  accountNumberHint: number
   extractedPayload: number
   createdAt: number
   updatedAt: number
@@ -79,6 +82,7 @@ export type FinEmailMessageMinAggregateInputType = {
   model?: true
   instrumentHint?: true
   lastFourHint?: true
+  accountNumberHint?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -93,6 +97,7 @@ export type FinEmailMessageMaxAggregateInputType = {
   model?: true
   instrumentHint?: true
   lastFourHint?: true
+  accountNumberHint?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -107,6 +112,7 @@ export type FinEmailMessageCountAggregateInputType = {
   model?: true
   instrumentHint?: true
   lastFourHint?: true
+  accountNumberHint?: true
   extractedPayload?: true
   createdAt?: true
   updatedAt?: true
@@ -195,6 +201,7 @@ export type FinEmailMessageGroupByOutputType = {
   model: string | null
   instrumentHint: string | null
   lastFourHint: string | null
+  accountNumberHint: string | null
   extractedPayload: runtime.JsonValue | null
   createdAt: Date
   updatedAt: Date
@@ -231,6 +238,7 @@ export type FinEmailMessageWhereInput = {
   model?: Prisma.StringNullableFilter<"FinEmailMessage"> | string | null
   instrumentHint?: Prisma.StringNullableFilter<"FinEmailMessage"> | string | null
   lastFourHint?: Prisma.StringNullableFilter<"FinEmailMessage"> | string | null
+  accountNumberHint?: Prisma.StringNullableFilter<"FinEmailMessage"> | string | null
   extractedPayload?: Prisma.JsonNullableFilter<"FinEmailMessage">
   createdAt?: Prisma.DateTimeFilter<"FinEmailMessage"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"FinEmailMessage"> | Date | string
@@ -248,6 +256,7 @@ export type FinEmailMessageOrderByWithRelationInput = {
   model?: Prisma.SortOrderInput | Prisma.SortOrder
   instrumentHint?: Prisma.SortOrderInput | Prisma.SortOrder
   lastFourHint?: Prisma.SortOrderInput | Prisma.SortOrder
+  accountNumberHint?: Prisma.SortOrderInput | Prisma.SortOrder
   extractedPayload?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -269,6 +278,7 @@ export type FinEmailMessageWhereUniqueInput = Prisma.AtLeast<{
   model?: Prisma.StringNullableFilter<"FinEmailMessage"> | string | null
   instrumentHint?: Prisma.StringNullableFilter<"FinEmailMessage"> | string | null
   lastFourHint?: Prisma.StringNullableFilter<"FinEmailMessage"> | string | null
+  accountNumberHint?: Prisma.StringNullableFilter<"FinEmailMessage"> | string | null
   extractedPayload?: Prisma.JsonNullableFilter<"FinEmailMessage">
   createdAt?: Prisma.DateTimeFilter<"FinEmailMessage"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"FinEmailMessage"> | Date | string
@@ -286,6 +296,7 @@ export type FinEmailMessageOrderByWithAggregationInput = {
   model?: Prisma.SortOrderInput | Prisma.SortOrder
   instrumentHint?: Prisma.SortOrderInput | Prisma.SortOrder
   lastFourHint?: Prisma.SortOrderInput | Prisma.SortOrder
+  accountNumberHint?: Prisma.SortOrderInput | Prisma.SortOrder
   extractedPayload?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -307,6 +318,7 @@ export type FinEmailMessageScalarWhereWithAggregatesInput = {
   model?: Prisma.StringNullableWithAggregatesFilter<"FinEmailMessage"> | string | null
   instrumentHint?: Prisma.StringNullableWithAggregatesFilter<"FinEmailMessage"> | string | null
   lastFourHint?: Prisma.StringNullableWithAggregatesFilter<"FinEmailMessage"> | string | null
+  accountNumberHint?: Prisma.StringNullableWithAggregatesFilter<"FinEmailMessage"> | string | null
   extractedPayload?: Prisma.JsonNullableWithAggregatesFilter<"FinEmailMessage">
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"FinEmailMessage"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"FinEmailMessage"> | Date | string
@@ -321,6 +333,7 @@ export type FinEmailMessageCreateInput = {
   model?: string | null
   instrumentHint?: string | null
   lastFourHint?: string | null
+  accountNumberHint?: string | null
   extractedPayload?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -338,6 +351,7 @@ export type FinEmailMessageUncheckedCreateInput = {
   model?: string | null
   instrumentHint?: string | null
   lastFourHint?: string | null
+  accountNumberHint?: string | null
   extractedPayload?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -353,6 +367,7 @@ export type FinEmailMessageUpdateInput = {
   model?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   instrumentHint?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastFourHint?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  accountNumberHint?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   extractedPayload?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -370,6 +385,7 @@ export type FinEmailMessageUncheckedUpdateInput = {
   model?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   instrumentHint?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastFourHint?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  accountNumberHint?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   extractedPayload?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -386,6 +402,7 @@ export type FinEmailMessageCreateManyInput = {
   model?: string | null
   instrumentHint?: string | null
   lastFourHint?: string | null
+  accountNumberHint?: string | null
   extractedPayload?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -400,6 +417,7 @@ export type FinEmailMessageUpdateManyMutationInput = {
   model?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   instrumentHint?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastFourHint?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  accountNumberHint?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   extractedPayload?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -415,6 +433,7 @@ export type FinEmailMessageUncheckedUpdateManyInput = {
   model?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   instrumentHint?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastFourHint?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  accountNumberHint?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   extractedPayload?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -450,6 +469,7 @@ export type FinEmailMessageCountOrderByAggregateInput = {
   model?: Prisma.SortOrder
   instrumentHint?: Prisma.SortOrder
   lastFourHint?: Prisma.SortOrder
+  accountNumberHint?: Prisma.SortOrder
   extractedPayload?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -465,6 +485,7 @@ export type FinEmailMessageMaxOrderByAggregateInput = {
   model?: Prisma.SortOrder
   instrumentHint?: Prisma.SortOrder
   lastFourHint?: Prisma.SortOrder
+  accountNumberHint?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -479,6 +500,7 @@ export type FinEmailMessageMinOrderByAggregateInput = {
   model?: Prisma.SortOrder
   instrumentHint?: Prisma.SortOrder
   lastFourHint?: Prisma.SortOrder
+  accountNumberHint?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -554,6 +576,7 @@ export type FinEmailMessageCreateWithoutSourceInput = {
   model?: string | null
   instrumentHint?: string | null
   lastFourHint?: string | null
+  accountNumberHint?: string | null
   extractedPayload?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -569,6 +592,7 @@ export type FinEmailMessageUncheckedCreateWithoutSourceInput = {
   model?: string | null
   instrumentHint?: string | null
   lastFourHint?: string | null
+  accountNumberHint?: string | null
   extractedPayload?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -614,6 +638,7 @@ export type FinEmailMessageScalarWhereInput = {
   model?: Prisma.StringNullableFilter<"FinEmailMessage"> | string | null
   instrumentHint?: Prisma.StringNullableFilter<"FinEmailMessage"> | string | null
   lastFourHint?: Prisma.StringNullableFilter<"FinEmailMessage"> | string | null
+  accountNumberHint?: Prisma.StringNullableFilter<"FinEmailMessage"> | string | null
   extractedPayload?: Prisma.JsonNullableFilter<"FinEmailMessage">
   createdAt?: Prisma.DateTimeFilter<"FinEmailMessage"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"FinEmailMessage"> | Date | string
@@ -628,6 +653,7 @@ export type FinEmailMessageCreateWithoutTransactionInput = {
   model?: string | null
   instrumentHint?: string | null
   lastFourHint?: string | null
+  accountNumberHint?: string | null
   extractedPayload?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -644,6 +670,7 @@ export type FinEmailMessageUncheckedCreateWithoutTransactionInput = {
   model?: string | null
   instrumentHint?: string | null
   lastFourHint?: string | null
+  accountNumberHint?: string | null
   extractedPayload?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -674,6 +701,7 @@ export type FinEmailMessageUpdateWithoutTransactionInput = {
   model?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   instrumentHint?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastFourHint?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  accountNumberHint?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   extractedPayload?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -690,6 +718,7 @@ export type FinEmailMessageUncheckedUpdateWithoutTransactionInput = {
   model?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   instrumentHint?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastFourHint?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  accountNumberHint?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   extractedPayload?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -704,6 +733,7 @@ export type FinEmailMessageCreateManySourceInput = {
   model?: string | null
   instrumentHint?: string | null
   lastFourHint?: string | null
+  accountNumberHint?: string | null
   extractedPayload?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -718,6 +748,7 @@ export type FinEmailMessageUpdateWithoutSourceInput = {
   model?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   instrumentHint?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastFourHint?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  accountNumberHint?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   extractedPayload?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -733,6 +764,7 @@ export type FinEmailMessageUncheckedUpdateWithoutSourceInput = {
   model?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   instrumentHint?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastFourHint?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  accountNumberHint?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   extractedPayload?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -748,6 +780,7 @@ export type FinEmailMessageUncheckedUpdateManyWithoutSourceInput = {
   model?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   instrumentHint?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastFourHint?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  accountNumberHint?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   extractedPayload?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -765,6 +798,7 @@ export type FinEmailMessageSelect<ExtArgs extends runtime.Types.Extensions.Inter
   model?: boolean
   instrumentHint?: boolean
   lastFourHint?: boolean
+  accountNumberHint?: boolean
   extractedPayload?: boolean
   createdAt?: boolean
   updatedAt?: boolean
@@ -782,6 +816,7 @@ export type FinEmailMessageSelectCreateManyAndReturn<ExtArgs extends runtime.Typ
   model?: boolean
   instrumentHint?: boolean
   lastFourHint?: boolean
+  accountNumberHint?: boolean
   extractedPayload?: boolean
   createdAt?: boolean
   updatedAt?: boolean
@@ -798,6 +833,7 @@ export type FinEmailMessageSelectUpdateManyAndReturn<ExtArgs extends runtime.Typ
   model?: boolean
   instrumentHint?: boolean
   lastFourHint?: boolean
+  accountNumberHint?: boolean
   extractedPayload?: boolean
   createdAt?: boolean
   updatedAt?: boolean
@@ -814,12 +850,13 @@ export type FinEmailMessageSelectScalar = {
   model?: boolean
   instrumentHint?: boolean
   lastFourHint?: boolean
+  accountNumberHint?: boolean
   extractedPayload?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type FinEmailMessageOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "sourceId" | "gmailMessageId" | "outcome" | "reason" | "provider" | "model" | "instrumentHint" | "lastFourHint" | "extractedPayload" | "createdAt" | "updatedAt", ExtArgs["result"]["finEmailMessage"]>
+export type FinEmailMessageOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "sourceId" | "gmailMessageId" | "outcome" | "reason" | "provider" | "model" | "instrumentHint" | "lastFourHint" | "accountNumberHint" | "extractedPayload" | "createdAt" | "updatedAt", ExtArgs["result"]["finEmailMessage"]>
 export type FinEmailMessageInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   source?: boolean | Prisma.FinEmailSourceDefaultArgs<ExtArgs>
   transaction?: boolean | Prisma.FinEmailMessage$transactionArgs<ExtArgs>
@@ -847,6 +884,7 @@ export type $FinEmailMessagePayload<ExtArgs extends runtime.Types.Extensions.Int
     model: string | null
     instrumentHint: string | null
     lastFourHint: string | null
+    accountNumberHint: string | null
     extractedPayload: runtime.JsonValue | null
     createdAt: Date
     updatedAt: Date
@@ -1284,6 +1322,7 @@ export interface FinEmailMessageFieldRefs {
   readonly model: Prisma.FieldRef<"FinEmailMessage", 'String'>
   readonly instrumentHint: Prisma.FieldRef<"FinEmailMessage", 'String'>
   readonly lastFourHint: Prisma.FieldRef<"FinEmailMessage", 'String'>
+  readonly accountNumberHint: Prisma.FieldRef<"FinEmailMessage", 'String'>
   readonly extractedPayload: Prisma.FieldRef<"FinEmailMessage", 'Json'>
   readonly createdAt: Prisma.FieldRef<"FinEmailMessage", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"FinEmailMessage", 'DateTime'>

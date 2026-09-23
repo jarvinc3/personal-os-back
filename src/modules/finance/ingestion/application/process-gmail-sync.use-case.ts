@@ -180,6 +180,7 @@ export class ProcessGmailSyncUseCase {
                   model: extraction.model,
                   instrumentHint: extracted.instrumentHint,
                   lastFourHint: extracted.lastFourHint,
+                  accountNumberHint: extracted.accountNumberHint,
                   extractedPayload: extracted,
                 });
                 transactionsNew += 1;
@@ -192,6 +193,7 @@ export class ProcessGmailSyncUseCase {
             const match = resolveEmailLedgerTarget({
               instrumentHint: extracted.instrumentHint,
               lastFourHint: extracted.lastFourHint,
+              accountNumberHint: extracted.accountNumberHint,
               accounts,
               cards,
             });
@@ -209,6 +211,7 @@ export class ProcessGmailSyncUseCase {
                 model: extraction.model,
                 instrumentHint: extracted.instrumentHint,
                 lastFourHint: extracted.lastFourHint,
+                accountNumberHint: extracted.accountNumberHint,
                 extractedPayload: extracted,
               });
               emailsSkipped += 1;
@@ -229,6 +232,7 @@ export class ProcessGmailSyncUseCase {
               model: extraction.model,
               instrumentHint: extracted.instrumentHint,
               lastFourHint: extracted.lastFourHint,
+              accountNumberHint: extracted.accountNumberHint,
               extractedPayload: extracted,
             });
 
@@ -263,6 +267,7 @@ export class ProcessGmailSyncUseCase {
               model: extraction.model,
               instrumentHint: extracted.instrumentHint,
               lastFourHint: extracted.lastFourHint,
+              accountNumberHint: extracted.accountNumberHint,
               extractedPayload: extracted,
             });
 
