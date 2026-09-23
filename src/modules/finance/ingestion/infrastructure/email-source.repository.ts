@@ -63,6 +63,30 @@ export class EmailSourceRepository {
     });
   }
 
+  listDueGmailSyncSources(cutoff: Date) {
+    return this.prisma.finEmailSource.findMany({
+      where: {
+        isActive: true,
+        connection: { isActive: true },
+        institution: { isActive: true },
+        OR: [{ lastSyncedAt: null }, { lastSyncedAt: { lte: cutoff } }],
+        user: {
+          userModules: {
+            some: {
+              isEnabled: true,
+              module: { slug: 'finance' },
+              config: {
+                path: ['emailSync', 'enabled'],
+                equals: true,
+              },
+            },
+          },
+        },
+      },
+      select: { id: true, userId: true },
+    });
+  }
+
   findEmailSource(userId: string, id: string) {
     return this.prisma.finEmailSource.findFirst({
       where: { userId, id },

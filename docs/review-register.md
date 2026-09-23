@@ -42,7 +42,7 @@ Estados: ver [documentation-standard.md](./documentation-standard.md).
 | ------------- | --------------------------------------------------------------- |
 | Categoría     | `CONTRADICE_CODIGO`                                             |
 | Origen        | comentario `app.module.ts` “no @Cron handlers yet”              |
-| Validación    | 3 crons: FinanceOutbox 30s, AuthDeletion 1m, AiActionsReaper 5m |
+| Validación    | 4 crons: FinanceOutbox 30s, AuthDeletion 1m, AiActionsReaper 5m, GmailAutoSync 6h |
 | Recomendación | Actualizar comentario en código                                 |
 | Resolución    | `open`                                                          |
 
