@@ -19,7 +19,8 @@
 | `BR-FIN-015` | Umbral presupuesto | Una alerta por `(budgetId, type)` en `FinBudgetAlert` | |
 | `BR-FIN-016` | Money JSON | Responses: money/rates **strings** (`decimalToString`). Writes: `@IsNumber`. Percentajes: number | mappers |
 | `BR-FIN-017` | Copy “Completado” | Enum `CONFIRMED` (no existe `COMPLETED`) | |
-| `BR-FIN-018` | Email `emailSync.enabled` | Debe ser true para OAuth/conectar/sync | ingestion |
+| `BR-FIN-018` | Email `emailSync.enabled` | Debe ser true para OAuth/conectar/sync manual | ingestion |
+| `BR-FIN-019` | Email `emailSync.automatic` | Debe ser true (y enabled) para cron/boot/enqueue al ligar | ingestion |
 
 ## Bank status → interno (email)
 

@@ -41,7 +41,7 @@ No es event sourcing: el outbox es durabilidad de entrega.
 | `EVERY_30_SECONDS` | `FinanceOutboxDispatcher` |
 | `EVERY_MINUTE` | `AuthDeletionOutboxProcessor` |
 | `EVERY_5_MINUTES` | `AiActionsReaperService` (RUNNING > 15 min) |
-| `EVERY_6_HOURS` | `GmailAutoSyncScheduler` (sources due; LLM solo con mails nuevos) |
+| `EVERY_6_HOURS` | `GmailAutoSyncScheduler` (opt-in `emailSync.automatic`; LLM solo con mails nuevos) |
 
 > [!WARNING]
 > **REV-BACK-004** (`CONTRADICE_CODIGO`) — comentario en `app.module.ts` «no @Cron handlers yet» contradice los tres crons anteriores. [review-register.md](../review-register.md#rev-back-004)

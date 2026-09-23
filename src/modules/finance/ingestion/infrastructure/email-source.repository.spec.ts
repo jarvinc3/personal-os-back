@@ -2,7 +2,7 @@ import type { PrismaService } from '../../../../prisma/prisma.service';
 import { EmailSourceRepository } from './email-source.repository';
 
 describe('EmailSourceRepository.listDueGmailSyncSources', () => {
-  it('selects active sources whose last sync is due and whose user enabled emailSync', async () => {
+  it('selects due sources only when emailSync.enabled and emailSync.automatic are true', async () => {
     const findMany = jest.fn().mockResolvedValue([]);
     const repo = new EmailSourceRepository({
       finEmailSource: { findMany },
@@ -22,10 +22,20 @@ describe('EmailSourceRepository.listDueGmailSyncSources', () => {
             some: {
               isEnabled: true,
               module: { slug: 'finance' },
-              config: {
-                path: ['emailSync', 'enabled'],
-                equals: true,
-              },
+              AND: [
+                {
+                  config: {
+                    path: ['emailSync', 'enabled'],
+                    equals: true,
+                  },
+                },
+                {
+                  config: {
+                    path: ['emailSync', 'automatic'],
+                    equals: true,
+                  },
+                },
+              ],
             },
           },
         },

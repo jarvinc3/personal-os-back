@@ -75,10 +75,20 @@ export class EmailSourceRepository {
             some: {
               isEnabled: true,
               module: { slug: 'finance' },
-              config: {
-                path: ['emailSync', 'enabled'],
-                equals: true,
-              },
+              AND: [
+                {
+                  config: {
+                    path: ['emailSync', 'enabled'],
+                    equals: true,
+                  },
+                },
+                {
+                  config: {
+                    path: ['emailSync', 'automatic'],
+                    equals: true,
+                  },
+                },
+              ],
             },
           },
         },
