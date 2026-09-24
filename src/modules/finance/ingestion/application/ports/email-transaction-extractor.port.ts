@@ -7,6 +7,7 @@ export type ExtractedEmailTransaction = {
   transactionDate: string; // ISO
   merchant: string | null;
   description: string;
+  notes: string | null;
   categoryNameHint: string | null;
   bankStatusRaw: string | null;
   bankStatusNormalized: BankStatusNormalized;
@@ -16,6 +17,12 @@ export type ExtractedEmailTransaction = {
   reverseOriginalRef: string | null;
   instrumentHint: 'ACCOUNT' | 'CARD' | null;
   lastFourHint: string | null;
+  accountNumberHint: string | null;
+};
+
+export type EmailExtractionCategory = {
+  name: string;
+  type: 'EXPENSE' | 'INCOME' | (string & {});
 };
 
 export type EmailExtractionInput = {
@@ -23,6 +30,7 @@ export type EmailExtractionInput = {
   subject: string;
   body: string;
   bankDomain: string;
+  categories?: EmailExtractionCategory[];
 };
 
 export type EmailExtractionResult =

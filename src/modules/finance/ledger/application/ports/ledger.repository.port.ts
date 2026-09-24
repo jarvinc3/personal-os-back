@@ -96,6 +96,12 @@ export interface LedgerRepositoryPort {
     },
   ): Promise<LedgerTransactionRow[]>;
 
+  /** Most recent categorized CONFIRMED tx for the same merchant (case-insensitive). */
+  findLatestCategoryIdByMerchant(
+    userId: string,
+    merchant: string,
+  ): Promise<string | null>;
+
   createTransaction(
     userId: string,
     command: CreateTransactionCommand,

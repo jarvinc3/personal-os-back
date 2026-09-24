@@ -639,4 +639,43 @@ describe('PrismaLedgerRepository outbox-in-TX', () => {
     expect(deleteMany).not.toHaveBeenCalled();
     expect(enqueue).not.toHaveBeenCalled();
   });
+
+  it('findLatestCategoryIdByMerchant returns the newest categorized merchant match', async () => {
+    const findFirst = jest.fn().mockResolvedValue({ categoryId: 'cat-food' });
+    const prisma = {
+      finTransaction: { findFirst },
+    };
+    const repo = new PrismaLedgerRepository(
+      prisma as never,
+      { enqueue: jest.fn() },
+      undefined,
+    );
+
+    await expect(
+      repo.findLatestCategoryIdByMerchant('user-1', '  Cafe  '),
+    ).resolves.toBe('cat-food');
+    expect(findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          userId: 'user-1',
+          status: 'CONFIRMED',
+          categoryId: { not: null },
+          merchant: { equals: 'Cafe', mode: 'insensitive' },
+        }),
+      }),
+    );
+  });
+
+  it('findLatestCategoryIdByMerchant returns null for blank merchant', async () => {
+    const findFirst = jest.fn();
+    const repo = new PrismaLedgerRepository(
+      { finTransaction: { findFirst } } as never,
+      { enqueue: jest.fn() },
+      undefined,
+    );
+    await expect(
+      repo.findLatestCategoryIdByMerchant('user-1', '   '),
+    ).resolves.toBeNull();
+    expect(findFirst).not.toHaveBeenCalled();
+  });
 });

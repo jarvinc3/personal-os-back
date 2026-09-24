@@ -56,9 +56,11 @@ describe('ProcessGmailSyncUseCase', () => {
 
   const findTransactionByEmailMessageId = jest.fn();
   const findReverseCandidates = jest.fn();
+  const findLatestCategoryIdByMerchant = jest.fn();
   const ledger = {
     findTransactionByEmailMessageId,
     findReverseCandidates,
+    findLatestCategoryIdByMerchant,
   } as unknown as LedgerQueryService;
 
   const extract = jest.fn();
@@ -105,6 +107,7 @@ describe('ProcessGmailSyncUseCase', () => {
       transactionDate: '2026-08-01',
       merchant: 'Coffee',
       description: 'Purchase',
+      notes: null,
       categoryNameHint: null,
       bankStatusRaw: 'APPROVED',
       bankStatusNormalized: 'APPROVED' as const,
@@ -114,6 +117,7 @@ describe('ProcessGmailSyncUseCase', () => {
       reverseOriginalRef: null,
       instrumentHint: 'ACCOUNT' as const,
       lastFourHint: '1234',
+      accountNumberHint: null,
     },
   };
 
@@ -124,9 +128,10 @@ describe('ProcessGmailSyncUseCase', () => {
     listCategories.mockResolvedValue([]);
     findEmailMessage.mockResolvedValue(null);
     findTransactionByEmailMessageId.mockResolvedValue(null);
+    findLatestCategoryIdByMerchant.mockResolvedValue(null);
     upsertEmailMessage.mockResolvedValue({ id: 'em-row-1' });
     listInstitutionDestinations.mockResolvedValue([
-      [{ id: 'acc-1', name: 'Main' }],
+      [{ id: 'acc-1', name: 'Main', accountNumber: '00001234' }],
       [],
     ]);
     updateEmailSource.mockResolvedValue(undefined);
@@ -214,8 +219,8 @@ describe('ProcessGmailSyncUseCase', () => {
     findEmailSource.mockResolvedValue(activeSource);
     listInstitutionDestinations.mockResolvedValue([
       [
-        { id: 'acc-1', name: 'A' },
-        { id: 'acc-2', name: 'B' },
+        { id: 'acc-1', name: 'A', accountNumber: '11111111' },
+        { id: 'acc-2', name: 'B', accountNumber: '22222222' },
       ],
       [],
     ]);
@@ -332,6 +337,44 @@ describe('ProcessGmailSyncUseCase', () => {
     );
   });
 
+  it('imports onto the account whose number matches the extracted hint', async () => {
+    findEmailSource.mockResolvedValue(activeSource);
+    listInstitutionDestinations.mockResolvedValue([
+      [
+        { id: 'acc-1', name: 'Nomina', accountNumber: '001122335678' },
+        { id: 'acc-2', name: 'Ahorros', accountNumber: '998877440000' },
+      ],
+      [],
+    ]);
+    extract.mockResolvedValue({
+      ...transactionExtraction,
+      data: {
+        ...transactionExtraction.data,
+        type: 'CREDIT',
+        instrumentHint: 'ACCOUNT',
+        lastFourHint: null,
+        accountNumberHint: '5678',
+      },
+    });
+    importExecute.mockResolvedValue({ id: 'tx-1' });
+
+    await useCase.execute({ userId: 'user-1', sourceId: 'src-1' });
+
+    expect(importExecute).toHaveBeenCalledWith(
+      'user-1',
+      expect.objectContaining({
+        accountId: 'acc-1',
+        emailMessageId: 'em-row-1',
+      }),
+    );
+    expect(upsertEmailMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        accountNumberHint: '5678',
+        outcome: 'IMPORTED',
+      }),
+    );
+  });
+
   it('imports PENDING on low confidence, persists IMPORTED, and completes success event', async () => {
     findEmailSource.mockResolvedValue(activeSource);
     extract.mockResolvedValue(transactionExtraction);
@@ -394,6 +437,50 @@ describe('ProcessGmailSyncUseCase', () => {
       expect.objectContaining({
         type: 'CREDIT',
         categoryId: 'inc-salary',
+      }),
+    );
+  });
+
+  it('passes categories to the extractor and falls back to merchant history', async () => {
+    findEmailSource.mockResolvedValue(activeSource);
+    listCategories.mockResolvedValue([
+      { id: 'exp-food', name: 'Alimentación', type: 'EXPENSE' },
+      { id: 'exp-transport', name: 'Transporte', type: 'EXPENSE' },
+    ]);
+    findLatestCategoryIdByMerchant.mockResolvedValue('exp-transport');
+    extract.mockResolvedValue({
+      ...transactionExtraction,
+      data: {
+        ...transactionExtraction.data,
+        merchant: 'Uber',
+        categoryNameHint: null,
+        notes: 'Revisa si fue transporte.',
+        statusConfidence: 0.95,
+      },
+    });
+    importExecute.mockResolvedValue({ id: 'tx-hist' });
+
+    await useCase.execute({ userId: 'user-1', sourceId: 'src-1' });
+
+    expect(extract).toHaveBeenCalledWith(
+      expect.objectContaining({
+        categories: [
+          { name: 'Alimentación', type: 'EXPENSE' },
+          { name: 'Transporte', type: 'EXPENSE' },
+        ],
+      }),
+    );
+    expect(findLatestCategoryIdByMerchant).toHaveBeenCalledWith(
+      'user-1',
+      'Uber',
+    );
+    expect(importExecute).toHaveBeenCalledWith(
+      'user-1',
+      expect.objectContaining({
+        categoryId: 'exp-transport',
+        notes: expect.stringContaining(
+          'Categoría tomada de un movimiento anterior',
+        ),
       }),
     );
   });

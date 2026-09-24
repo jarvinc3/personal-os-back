@@ -33,6 +33,7 @@ describe('IngestionService.completeEmailSyncSuccessWithEvent', () => {
       { assertFinanceEmailSyncEnabled: jest.fn() } as never,
       { assertInstitutionOwned: jest.fn() } as never,
       { execute: jest.fn() } as never,
+      { findLatestCategoryIdByMerchant: jest.fn() } as never,
       undefined,
     );
 
@@ -98,6 +99,9 @@ describe('IngestionService pending assignment', () => {
     assertCardOwned: jest.fn(),
   };
   const importEmail = { execute: jest.fn() };
+  const ledger = {
+    findLatestCategoryIdByMerchant: jest.fn().mockResolvedValue(null),
+  };
 
   const service = new IngestionService(
     repo,
@@ -107,6 +111,7 @@ describe('IngestionService pending assignment', () => {
     users as never,
     ownership as never,
     importEmail as never,
+    ledger as never,
     undefined,
   );
 
@@ -117,6 +122,7 @@ describe('IngestionService pending assignment', () => {
     outcome: 'PENDING_ASSIGNMENT' as const,
     instrumentHint: 'ACCOUNT',
     lastFourHint: '1234',
+    accountNumberHint: '5678',
     extractedPayload: {
       amount: 12.5,
       currency: 'DOP',
@@ -187,9 +193,16 @@ describe('IngestionService pending assignment', () => {
   });
 
   it('retries automatic routing and stays pending when still ambiguous', async () => {
-    findEmailMessageById.mockResolvedValue(pendingMessage);
+    findEmailMessageById.mockResolvedValue({
+      ...pendingMessage,
+      accountNumberHint: null,
+      lastFourHint: null,
+    });
     listInstitutionDestinations.mockResolvedValue([
-      [{ id: 'acc-1' }, { id: 'acc-2' }],
+      [
+        { id: 'acc-1', accountNumber: '11111111' },
+        { id: 'acc-2', accountNumber: '22222222' },
+      ],
       [],
     ]);
 
@@ -197,6 +210,25 @@ describe('IngestionService pending assignment', () => {
       service.retryPendingMessage('user-1', 'em-1'),
     ).resolves.toMatchObject({ id: 'em-1', institutionId: 'inst-1' });
     expect(importEmail.execute).not.toHaveBeenCalled();
+  });
+
+  it('retries pending assignment using the stored account number hint', async () => {
+    findEmailMessageById.mockResolvedValue(pendingMessage);
+    listInstitutionDestinations.mockResolvedValue([
+      [
+        { id: 'acc-1', accountNumber: '001122335678' },
+        { id: 'acc-2', accountNumber: '998877440000' },
+      ],
+      [],
+    ]);
+
+    await expect(
+      service.retryPendingMessage('user-1', 'em-1'),
+    ).resolves.toEqual({ assigned: true, transactionId: 'tx-1' });
+    expect(importEmail.execute).toHaveBeenCalledWith(
+      'user-1',
+      expect.objectContaining({ accountId: 'acc-1', emailMessageId: 'em-1' }),
+    );
   });
 });
 
@@ -232,6 +264,7 @@ describe('IngestionService mailbox linking', () => {
     users as never,
     ownership as never,
     { execute: jest.fn() } as never,
+    { findLatestCategoryIdByMerchant: jest.fn() } as never,
     undefined,
   );
 
@@ -324,6 +357,7 @@ describe('IngestionService mailbox linking', () => {
       users as never,
       ownership as never,
       { execute: jest.fn() } as never,
+      { findLatestCategoryIdByMerchant: jest.fn() } as never,
       { add } as never,
     );
     findConnectionByUserEmail.mockResolvedValue({
@@ -356,6 +390,7 @@ describe('IngestionService mailbox linking', () => {
       users as never,
       ownership as never,
       { execute: jest.fn() } as never,
+      { findLatestCategoryIdByMerchant: jest.fn() } as never,
       { add } as never,
     );
     findConnectionByUserEmail.mockResolvedValue({

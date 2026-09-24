@@ -10,8 +10,8 @@
 6. `POST .../sources/:id/sync` encola BullMQ `gmail-sync` si Redis (`jobId` `gmail-sync:{sourceId}`); si no `{ queued: false, reason }`. `forceFullSync=true` omite `after:`.
 7. `ProcessGmailSyncUseCase`: lista `from:{bankSenderEmail ?? bankDomain}` + `after` salvo `forceFullSync`.
 8. Dedup `(sourceId, gmailMessageId)` en `FinEmailMessage`.
-9. LLM Zod union `kind: transaction | not_transaction` + hints instrumento/lastFour. Sin parsers HTML por banco.
-10. Match único card lastFour o cuenta única institución; si no `PENDING_ASSIGNMENT`.
+9. LLM Zod union `kind: transaction | not_transaction` + hints `instrumentHint` / `lastFourHint` (PAN) / `accountNumberHint` (dígitos de cuenta, 4+). Sin parsers HTML por banco. Nómina, depósito y transferencia son `transaction` con `instrumentHint: ACCOUNT`.
+10. Match único: CARD por lastFour; ACCOUNT por número completo o sufijo (p. ej. `****5678`). Si no, `PENDING_ASSIGNMENT`. LastFour de tarjeta y sufijo de cuenta no se cruzan.
 11. `not_transaction` → `SKIPPED_NOT_TX`; `ok:false retryable:false` → `FAILED_NON_RETRYABLE`; retryable true no se persiste.
 12. Review: `GET pending`; `POST assign` XOR account/card misma institución; `POST retry` re-resuelve. Idempotente si ya `IMPORTED`.
 13. Success: `FinEmailSyncLog` + outbox `finance.email_sync.completed` misma TX.
@@ -24,6 +24,7 @@ Mailbox con tokens, source active, `emailSync.enabled`, institución owned. Cola
 
 - `queued: false` → Redis/BullMQ off.
 - Cola revisión → match no único; picker solo activos de esa institución.
+- Nómina/depósito ya en `SKIPPED_NOT_TX` no se re-extrae (dedup). Borrar la fila y forzar sync, o asignar si está PENDING.
 - Sync no encuentra mails → remitente mal escrito; filas viejas siguen filtrando por dominio.
 - Automático no corre → `emailSync.enabled` o `emailSync.automatic` false (Ajustes → Finanzas), source inactiva, o `lastSyncedAt` más reciente que 6 h.
 

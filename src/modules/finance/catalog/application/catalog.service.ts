@@ -1,14 +1,22 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { Prisma } from '../../../../prisma/generated/client';
+import { PurgeInstrumentLedgerUseCase } from '../../ledger/application/purge-instrument-ledger.use-case';
+import { FinanceOwnershipService } from '../../shared/application/finance-ownership.service';
+import {
+  ACCOUNT_NUMBER_MAX_DIGITS,
+  ACCOUNT_NUMBER_MIN_DIGITS,
+  isBankAccountType,
+  normalizeAccountNumber,
+} from '../../shared/domain/account-number';
 import {
   decimalToNullableString,
   decimalToString,
 } from '../../shared/domain/mappers';
-import { FinanceOwnershipService } from '../../shared/application/finance-ownership.service';
-import { PurgeInstrumentLedgerUseCase } from '../../ledger/application/purge-instrument-ledger.use-case';
 import { CatalogRepository } from '../infrastructure/catalog.repository';
 import type { CreateAccountDto } from '../presentation/dto/create-account.dto';
 import type { CreateCardDto } from '../presentation/dto/create-card.dto';
@@ -19,6 +27,14 @@ import type { UpdateCardBalanceDto } from '../presentation/dto/update-card-balan
 import type { UpdateCardDto } from '../presentation/dto/update-card.dto';
 import type { UpdateCategoryDto } from '../presentation/dto/update-category.dto';
 import type { UpdateInstitutionDto } from '../presentation/dto/update-institution.dto';
+
+function omitAccountNumber<T extends { accountNumber?: string | null }>(
+  dto: T,
+): Omit<T, 'accountNumber'> {
+  const { accountNumber, ...rest } = dto;
+  void accountNumber;
+  return rest;
+}
 
 @Injectable()
 export class CatalogService {
@@ -41,10 +57,21 @@ export class CatalogService {
 
   async createAccount(userId: string, dto: CreateAccountDto) {
     this.assertAccountInstitutionRule(dto.type, dto.institutionId);
+    const accountNumber = this.assertAccountNumberRule(dto.type, dto.accountNumber);
     if (dto.institutionId) {
       await this.ownership.assertInstitutionOwned(userId, dto.institutionId);
     }
-    return this.mapAccount(await this.repo.createAccount(userId, dto));
+    const rest = omitAccountNumber(dto);
+    try {
+      return this.mapAccount(
+        await this.repo.createAccount(userId, {
+          ...rest,
+          ...(accountNumber ? { accountNumber } : {}),
+        }),
+      );
+    } catch (error) {
+      this.rethrowAccountNumberConflict(error);
+    }
   }
 
   async updateAccount(userId: string, id: string, dto: UpdateAccountDto) {
@@ -55,6 +82,15 @@ export class CatalogService {
     const nextInstitutionId =
       dto.institutionId !== undefined ? dto.institutionId : existing.institutionId;
     this.assertAccountInstitutionRule(nextType, nextInstitutionId ?? undefined);
+
+    const nextAccountNumber = this.assertAccountNumberRule(
+      nextType,
+      nextType === 'CASH'
+        ? dto.accountNumber
+        : (dto.accountNumber !== undefined
+          ? dto.accountNumber
+          : existing.accountNumber),
+    );
 
     if (dto.institutionId) {
       await this.ownership.assertInstitutionOwned(userId, dto.institutionId);
@@ -70,9 +106,17 @@ export class CatalogService {
       });
     }
 
-    const account = await this.repo.updateAccount(id, userId, dto);
-    if (!account) throw new NotFoundException('Account not found');
-    return this.mapAccount(account);
+    const rest = omitAccountNumber(dto);
+    try {
+      const account = await this.repo.updateAccount(id, userId, {
+        ...rest,
+        accountNumber: nextAccountNumber,
+      });
+      if (!account) throw new NotFoundException('Account not found');
+      return this.mapAccount(account);
+    } catch (error) {
+      this.rethrowAccountNumberConflict(error);
+    }
   }
 
   async deleteAccount(userId: string, id: string) {
@@ -150,6 +194,9 @@ export class CatalogService {
   }
 
   async createCard(userId: string, dto: CreateCardDto) {
+    if (!dto.lastFour) {
+      throw new BadRequestException('lastFour is required');
+    }
     await this.ownership.assertInstitutionOwned(userId, dto.institutionId);
     if (dto.type === 'DEBIT') {
       if (!dto.accountId) {
@@ -185,6 +232,9 @@ export class CatalogService {
 
     const nextType = dto.type ?? existing.type;
     const nextInstitutionId = dto.institutionId ?? existing.institutionId;
+    if (!dto.lastFour && !existing.lastFour) {
+      throw new BadRequestException('lastFour is required');
+    }
     if (dto.institutionId) {
       await this.ownership.assertInstitutionOwned(userId, dto.institutionId);
     }
@@ -331,6 +381,41 @@ export class CatalogService {
     }
   }
 
+  private assertAccountNumberRule(
+    type: string,
+    raw: string | null | undefined,
+  ): string | null {
+    const accountNumber = normalizeAccountNumber(raw);
+    if (!isBankAccountType(type)) {
+      if (accountNumber) {
+        throw new BadRequestException('CASH accounts must not set accountNumber');
+      }
+      return null;
+    }
+    if (
+      !accountNumber ||
+      accountNumber.length < ACCOUNT_NUMBER_MIN_DIGITS ||
+      accountNumber.length > ACCOUNT_NUMBER_MAX_DIGITS
+    ) {
+      throw new BadRequestException(
+        'CHECKING, SAVINGS, and INVESTMENT accounts require an account number of 4 to 34 digits',
+      );
+    }
+    return accountNumber;
+  }
+
+  private rethrowAccountNumberConflict(error: unknown): never {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === 'P2002'
+    ) {
+      throw new ConflictException(
+        'Ya existe una cuenta con ese número en esta institución',
+      );
+    }
+    throw error;
+  }
+
   private mapAccount(
     account: NonNullable<Awaited<ReturnType<CatalogRepository['findAccountById']>>>,
   ) {
@@ -341,6 +426,7 @@ export class CatalogService {
       name: account.name,
       type: account.type,
       currency: account.currency,
+      accountNumber: account.accountNumber,
       balance: decimalToString(account.balance),
       color: account.color,
       isActive: account.isActive,

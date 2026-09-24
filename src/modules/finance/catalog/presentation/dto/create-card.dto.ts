@@ -13,7 +13,7 @@ import {
 import {
     OptionalCalendarDayField,
     OptionalColorField,
-    OptionalLastFourField,
+    RequiredLastFourField,
 } from '../../../shared/presentation/validation.decorators';
 
 const cardTypes = ['CREDIT', 'DEBIT'] as const;
@@ -67,9 +67,9 @@ export class CreateCardDto {
   @IsEnum(cardNetworks)
   network?: (typeof cardNetworks)[number];
 
-  @ApiPropertyOptional({ example: '1234' })
-  @OptionalLastFourField()
-  lastFour?: string;
+  @ApiProperty({ example: '1234' })
+  @RequiredLastFourField()
+  lastFour!: string;
 
   @ApiPropertyOptional({ minimum: 1, maximum: 31 })
   @OptionalCalendarDayField()

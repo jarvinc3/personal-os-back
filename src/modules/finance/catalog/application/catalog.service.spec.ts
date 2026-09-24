@@ -138,6 +138,7 @@ describe('CatalogService createAccount', () => {
     name: 'Nómina',
     type: 'CHECKING',
     currency: 'DOP',
+    accountNumber: '001122335678',
     balance: { toString: () => '0.00' },
     color: null,
     isActive: true,
@@ -158,27 +159,53 @@ describe('CatalogService createAccount', () => {
         name: 'Nómina',
         type: 'CHECKING',
         institutionId: 'missing',
+        accountNumber: '001122335678',
       }),
     ).rejects.toThrow(/Institution not found/i);
     expect(createAccount).not.toHaveBeenCalled();
   });
 
-  it('creates an account with institutionId only', async () => {
+  it('rejects bank accounts without an account number', async () => {
+    await expect(
+      service.createAccount('user-1', {
+        name: 'Nómina',
+        type: 'CHECKING',
+        institutionId: 'inst-1',
+      }),
+    ).rejects.toThrow(/account number/i);
+    expect(createAccount).not.toHaveBeenCalled();
+  });
+
+  it('rejects a CASH account that includes an account number', async () => {
+    await expect(
+      service.createAccount('user-1', {
+        name: 'Efectivo',
+        type: 'CASH',
+        accountNumber: '001122335678',
+      }),
+    ).rejects.toThrow(/CASH/i);
+    expect(createAccount).not.toHaveBeenCalled();
+  });
+
+  it('creates an account with institutionId and accountNumber', async () => {
     const result = await service.createAccount('user-1', {
       name: 'Nómina',
       type: 'CHECKING',
       institutionId: 'inst-1',
+      accountNumber: '0011-2233-5678',
     });
 
     expect(createAccount).toHaveBeenCalledWith('user-1', {
       name: 'Nómina',
       type: 'CHECKING',
       institutionId: 'inst-1',
+      accountNumber: '001122335678',
     });
     expect(result).toMatchObject({
       id: 'acc-1',
       institutionId: 'inst-1',
       institutionName: 'Banco',
+      accountNumber: '001122335678',
     });
     expect(result).not.toHaveProperty('institution');
   });
@@ -188,6 +215,7 @@ describe('CatalogService createAccount', () => {
       ...created,
       type: 'CASH',
       institutionId: null,
+      accountNumber: null,
       institutionRef: null,
     });
 
@@ -203,7 +231,79 @@ describe('CatalogService createAccount', () => {
     expect(result).toMatchObject({
       type: 'CASH',
       institutionId: null,
+      accountNumber: null,
     });
+  });
+});
+
+describe('CatalogService updateAccount number', () => {
+  const updateAccount = jest.fn();
+  const findAccountById = jest.fn();
+  const repo = {
+    updateAccount,
+    findAccountById,
+  } as unknown as CatalogRepository;
+  const service = new CatalogService(repo, ownershipMock(), purgeMock());
+
+  const existing = {
+    id: 'acc-1',
+    userId: 'user-1',
+    institutionId: 'inst-1',
+    name: 'Nómina',
+    type: 'CHECKING',
+    currency: 'DOP',
+    accountNumber: null,
+    balance: { toString: () => '0.00' },
+    color: null,
+    isActive: true,
+    createdAt: new Date('2026-01-01'),
+    updatedAt: new Date('2026-01-01'),
+    institutionRef: { name: 'Banco' },
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    findAccountById.mockResolvedValue(existing);
+  });
+
+  it('rejects updating a bank account that still has no account number', async () => {
+    await expect(
+      service.updateAccount('user-1', 'acc-1', { name: 'Nómina 2' }),
+    ).rejects.toThrow(/account number/i);
+    expect(updateAccount).not.toHaveBeenCalled();
+  });
+
+  it('saves the account number on edit', async () => {
+    updateAccount.mockResolvedValue({
+      ...existing,
+      accountNumber: '001122335678',
+    });
+    const result = await service.updateAccount('user-1', 'acc-1', {
+      accountNumber: '001122335678',
+    });
+    expect(updateAccount).toHaveBeenCalledWith(
+      'acc-1',
+      'user-1',
+      expect.objectContaining({ accountNumber: '001122335678' }),
+    );
+    expect(result.accountNumber).toBe('001122335678');
+  });
+});
+
+describe('CatalogService createCard lastFour', () => {
+  const createCard = jest.fn();
+  const repo = { createCard } as unknown as CatalogRepository;
+  const service = new CatalogService(repo, ownershipMock(), purgeMock());
+
+  it('rejects cards without lastFour', async () => {
+    await expect(
+      service.createCard('user-1', {
+        institutionId: 'inst-1',
+        name: 'Visa',
+        type: 'CREDIT',
+      }),
+    ).rejects.toThrow(/lastFour/i);
+    expect(createCard).not.toHaveBeenCalled();
   });
 });
 

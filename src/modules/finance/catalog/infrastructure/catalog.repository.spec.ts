@@ -25,6 +25,7 @@ describe('CatalogRepository createAccount', () => {
       name: 'QA Cuenta',
       type: 'SAVINGS',
       institutionId: 'inst-1',
+      accountNumber: '12345678',
     });
 
     expect(create).toHaveBeenCalledTimes(1);
@@ -36,6 +37,7 @@ describe('CatalogRepository createAccount', () => {
       currency: 'DOP',
       balance: 0,
       institutionId: 'inst-1',
+      accountNumber: '12345678',
     });
     expect(Object.keys(data)).not.toContain('institution');
     expect(Object.keys(data)).not.toContain('color');
@@ -54,6 +56,7 @@ describe('CatalogRepository createAccount', () => {
       currency: 'usd',
       institutionId: 'inst-1',
       color: '#22c55e',
+      accountNumber: '001122335678',
     });
 
     const data = create.mock.calls[0]?.[0]?.data as Record<string, unknown>;
@@ -64,6 +67,7 @@ describe('CatalogRepository createAccount', () => {
       currency: 'usd',
       balance: 0,
       institutionId: 'inst-1',
+      accountNumber: '001122335678',
       color: '#22c55e',
     });
   });

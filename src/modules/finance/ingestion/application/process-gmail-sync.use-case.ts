@@ -4,6 +4,7 @@ import { ImportEmailTransactionUseCase } from '../../ledger/application/import-e
 import { LedgerQueryService } from '../../ledger/application/ledger-query.service';
 import { ReverseTransactionUseCase } from '../../ledger/application/reverse-transaction.use-case';
 import { EMAIL_TRANSACTION_EXTRACTOR } from '../../shared/application/tokens';
+import { resolveCategoryIdForImport } from '../../shared/domain/category-type';
 import { mapBankStatusToInternal } from '../../shared/domain/transaction-status';
 import { EmailSourceRepository } from '../infrastructure/email-source.repository';
 import {
@@ -12,13 +13,13 @@ import {
   parseGmailMessage,
 } from '../infrastructure/gmail-api.util';
 import { buildGmailFromQuery } from './bank-sender';
+import { buildEmailImportNotes } from './build-email-import-notes';
 import { IngestionService } from './ingestion.service';
 import type {
   EmailTransactionExtractorPort,
   ExtractedEmailTransaction,
 } from './ports/email-transaction-extractor.port';
 import { resolveEmailLedgerTarget } from './resolve-email-ledger-target';
-import { matchCategoryByHint } from '../../shared/domain/category-type';
 
 @Injectable()
 export class ProcessGmailSyncUseCase {
@@ -72,6 +73,10 @@ export class ProcessGmailSyncUseCase {
       let pageToken: string | undefined;
       let lastMessageId = source.lastMessageId ?? undefined;
       const categories = await this.emailSources.listCategories(userId);
+      const categoryHints = categories.map((c) => ({
+        name: c.name,
+        type: c.type,
+      }));
       const [accounts, cards] =
         await this.emailSources.listInstitutionDestinations(
           userId,
@@ -115,6 +120,7 @@ export class ProcessGmailSyncUseCase {
               subject,
               body,
               bankDomain: source.bankDomain,
+              categories: categoryHints,
             });
 
             if (!extraction.ok) {
@@ -180,6 +186,7 @@ export class ProcessGmailSyncUseCase {
                   model: extraction.model,
                   instrumentHint: extracted.instrumentHint,
                   lastFourHint: extracted.lastFourHint,
+                  accountNumberHint: extracted.accountNumberHint,
                   extractedPayload: extracted,
                 });
                 transactionsNew += 1;
@@ -192,6 +199,7 @@ export class ProcessGmailSyncUseCase {
             const match = resolveEmailLedgerTarget({
               instrumentHint: extracted.instrumentHint,
               lastFourHint: extracted.lastFourHint,
+              accountNumberHint: extracted.accountNumberHint,
               accounts,
               cards,
             });
@@ -209,17 +217,29 @@ export class ProcessGmailSyncUseCase {
                 model: extraction.model,
                 instrumentHint: extracted.instrumentHint,
                 lastFourHint: extracted.lastFourHint,
+                accountNumberHint: extracted.accountNumberHint,
                 extractedPayload: extracted,
               });
               emailsSkipped += 1;
               continue;
             }
 
-            const categoryId = matchCategoryByHint(
+            const category = await resolveCategoryIdForImport({
               categories,
-              extracted.categoryNameHint,
-              extracted.type,
-            );
+              hint: extracted.categoryNameHint,
+              transactionType: extracted.type,
+              merchant: extracted.merchant,
+              findCategoryIdByMerchant: (merchant) =>
+                this.ledger.findLatestCategoryIdByMerchant(userId, merchant),
+            });
+
+            const notes = buildEmailImportNotes({
+              llmNotes: extracted.notes,
+              categoryId: category.categoryId,
+              categorySource: category.source,
+              categoryNameHint: extracted.categoryNameHint,
+              status,
+            });
 
             const persisted = await this.emailSources.upsertEmailMessage({
               sourceId,
@@ -229,7 +249,8 @@ export class ProcessGmailSyncUseCase {
               model: extraction.model,
               instrumentHint: extracted.instrumentHint,
               lastFourHint: extracted.lastFourHint,
-              extractedPayload: extracted,
+              accountNumberHint: extracted.accountNumberHint,
+              extractedPayload: { ...extracted, notes },
             });
 
             const created = await this.importEmail.execute(userId, {
@@ -240,10 +261,11 @@ export class ProcessGmailSyncUseCase {
               currency: extracted.currency,
               merchant: extracted.merchant,
               description: extracted.description,
+              notes,
               transactionDate: new Date(extracted.transactionDate),
               type: extracted.type,
               status,
-              categoryId,
+              categoryId: category.categoryId,
               aiMetadata: {
                 bankStatusRaw: extracted.bankStatusRaw,
                 bankStatusNormalized: extracted.bankStatusNormalized,
@@ -263,7 +285,8 @@ export class ProcessGmailSyncUseCase {
               model: extraction.model,
               instrumentHint: extracted.instrumentHint,
               lastFourHint: extracted.lastFourHint,
-              extractedPayload: extracted,
+              accountNumberHint: extracted.accountNumberHint,
+              extractedPayload: { ...extracted, notes },
             });
 
             transactionsNew += 1;

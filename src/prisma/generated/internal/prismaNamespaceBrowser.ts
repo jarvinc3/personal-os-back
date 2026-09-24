@@ -218,6 +218,7 @@ export const FinAccountScalarFieldEnum = {
   institutionId: 'institutionId',
   name: 'name',
   type: 'type',
+  accountNumber: 'accountNumber',
   currency: 'currency',
   balance: 'balance',
   color: 'color',
@@ -505,6 +506,7 @@ export const FinEmailMessageScalarFieldEnum = {
   model: 'model',
   instrumentHint: 'instrumentHint',
   lastFourHint: 'lastFourHint',
+  accountNumberHint: 'accountNumberHint',
   extractedPayload: 'extractedPayload',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'

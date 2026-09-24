@@ -72,6 +72,7 @@ export type ImportEmailTransactionCommand = {
   currency: string;
   merchant: string | null;
   description: string;
+  notes?: string | null;
   transactionDate: Date;
   categoryId?: string | null;
   type?: 'DEBIT' | 'CREDIT';

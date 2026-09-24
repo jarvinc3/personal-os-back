@@ -31,6 +31,7 @@ describe('AiEmailTransactionExtractor', () => {
     transactionDate: '2026-08-01',
     merchant: 'Coffee Shop',
     description: 'Purchase at Coffee Shop',
+    notes: null as string | null,
     categoryNameHint: null,
     bankStatusRaw: 'APPROVED',
     bankStatusNormalized: 'APPROVED',
@@ -40,6 +41,7 @@ describe('AiEmailTransactionExtractor', () => {
     reverseOriginalRef: null,
     instrumentHint: null,
     lastFourHint: null,
+    accountNumberHint: null,
   };
 
   beforeEach(() => {
@@ -128,6 +130,87 @@ describe('AiEmailTransactionExtractor', () => {
       reason: 'Promotional newsletter, no account movement',
       provider: 'groq',
       model: 'test-model',
+    });
+  });
+
+  it('accepts a masked accountNumberHint and keeps digits', async () => {
+    chatComplete.mockResolvedValue({
+      content: JSON.stringify({
+        ...validPayload,
+        instrumentHint: 'ACCOUNT',
+        accountNumberHint: '****5678',
+      }),
+      provider: 'groq',
+      model: 'test-model',
+    });
+
+    await expect(extractor.extract(input)).resolves.toMatchObject({
+      ok: true,
+      kind: 'transaction',
+      data: {
+        instrumentHint: 'ACCOUNT',
+        accountNumberHint: '5678',
+      },
+    });
+  });
+
+  it('instructs the model to extract payroll and deposit account numbers', async () => {
+    chatComplete.mockResolvedValue({
+      content: JSON.stringify(validPayload),
+      provider: 'groq',
+      model: 'test-model',
+    });
+
+    await extractor.extract(input);
+
+    const system = chatComplete.mock.calls[0]?.[0]?.[0]?.content as string;
+    expect(system).toMatch(/accountNumberHint/);
+    expect(system).toMatch(/payroll|deposit|transfer/i);
+  });
+
+  it('includes available categories and category/description/notes rules in the prompt', async () => {
+    chatComplete.mockResolvedValue({
+      content: JSON.stringify({
+        ...validPayload,
+        categoryNameHint: 'Alimentación',
+        description: 'Café',
+        notes: 'Revisa categoría si no es alimentos.',
+      }),
+      provider: 'groq',
+      model: 'test-model',
+    });
+
+    await extractor.extract({
+      ...input,
+      categories: [
+        { name: 'Alimentación', type: 'EXPENSE' },
+        { name: 'Salario', type: 'INCOME' },
+      ],
+    });
+
+    const system = chatComplete.mock.calls[0]?.[0]?.[0]?.content as string;
+    const user = chatComplete.mock.calls[0]?.[0]?.[1]?.content as string;
+    expect(system).toMatch(/categoryNameHint/);
+    expect(system).toMatch(/Compra en/);
+    expect(system).toMatch(/\bnotes\b/);
+    expect(user).toMatch(/Available categories/);
+    expect(user).toMatch(/Alimentación/);
+    expect(user).toMatch(/EXPENSE/);
+  });
+
+  it('defaults missing notes to null', async () => {
+    const { notes: _notes, ...withoutNotes } = validPayload;
+    void _notes;
+    chatComplete.mockResolvedValue({
+      content: JSON.stringify(withoutNotes),
+      provider: 'groq',
+      model: 'test-model',
+    });
+
+    await expect(extractor.extract(input)).resolves.toMatchObject({
+      ok: true,
+      kind: 'transaction',
+      data: { notes: null },
     });
   });
 });
