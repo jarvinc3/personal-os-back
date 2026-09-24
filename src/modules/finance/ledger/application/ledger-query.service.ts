@@ -56,4 +56,8 @@ export class LedgerQueryService {
   ) {
     return this.repo.findCandidatesForReverse(userId, params);
   }
+
+  findLatestCategoryIdByMerchant(userId: string, merchant: string) {
+    return this.repo.findLatestCategoryIdByMerchant(userId, merchant);
+  }
 }

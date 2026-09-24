@@ -7,6 +7,7 @@ export type ExtractedEmailTransaction = {
   transactionDate: string; // ISO
   merchant: string | null;
   description: string;
+  notes: string | null;
   categoryNameHint: string | null;
   bankStatusRaw: string | null;
   bankStatusNormalized: BankStatusNormalized;
@@ -19,11 +20,17 @@ export type ExtractedEmailTransaction = {
   accountNumberHint: string | null;
 };
 
+export type EmailExtractionCategory = {
+  name: string;
+  type: 'EXPENSE' | 'INCOME' | string;
+};
+
 export type EmailExtractionInput = {
   from: string;
   subject: string;
   body: string;
   bankDomain: string;
+  categories?: EmailExtractionCategory[];
 };
 
 export type EmailExtractionResult =

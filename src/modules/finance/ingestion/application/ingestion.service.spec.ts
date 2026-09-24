@@ -33,6 +33,7 @@ describe('IngestionService.completeEmailSyncSuccessWithEvent', () => {
       { assertFinanceEmailSyncEnabled: jest.fn() } as never,
       { assertInstitutionOwned: jest.fn() } as never,
       { execute: jest.fn() } as never,
+      { findLatestCategoryIdByMerchant: jest.fn() } as never,
       undefined,
     );
 
@@ -98,6 +99,9 @@ describe('IngestionService pending assignment', () => {
     assertCardOwned: jest.fn(),
   };
   const importEmail = { execute: jest.fn() };
+  const ledger = {
+    findLatestCategoryIdByMerchant: jest.fn().mockResolvedValue(null),
+  };
 
   const service = new IngestionService(
     repo,
@@ -107,6 +111,7 @@ describe('IngestionService pending assignment', () => {
     users as never,
     ownership as never,
     importEmail as never,
+    ledger as never,
     undefined,
   );
 
@@ -259,6 +264,7 @@ describe('IngestionService mailbox linking', () => {
     users as never,
     ownership as never,
     { execute: jest.fn() } as never,
+    { findLatestCategoryIdByMerchant: jest.fn() } as never,
     undefined,
   );
 
@@ -351,6 +357,7 @@ describe('IngestionService mailbox linking', () => {
       users as never,
       ownership as never,
       { execute: jest.fn() } as never,
+      { findLatestCategoryIdByMerchant: jest.fn() } as never,
       { add } as never,
     );
     findConnectionByUserEmail.mockResolvedValue({
@@ -383,6 +390,7 @@ describe('IngestionService mailbox linking', () => {
       users as never,
       ownership as never,
       { execute: jest.fn() } as never,
+      { findLatestCategoryIdByMerchant: jest.fn() } as never,
       { add } as never,
     );
     findConnectionByUserEmail.mockResolvedValue({

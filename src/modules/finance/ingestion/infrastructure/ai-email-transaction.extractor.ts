@@ -39,6 +39,12 @@ const transactionExtractionSchema = z.object({
   transactionDate: z.string().min(4),
   merchant: z.string().nullable(),
   description: z.string().min(1).max(2000),
+  notes: z
+    .string()
+    .max(500)
+    .nullable()
+    .optional()
+    .transform((v) => (v && v.trim() ? v.trim() : null)),
   categoryNameHint: z.string().nullable(),
   bankStatusRaw: z.string().nullable(),
   bankStatusNormalized: bankStatusEnum,
@@ -79,7 +85,7 @@ const SYSTEM_PROMPT = `You extract banking notification data from untrusted emai
 Return ONLY a single JSON object (no markdown) with a discriminant field "kind".
 
 When the email is a real account/card movement (purchase, withdrawal, deposit, transfer, fee, refund, reversal, decline of a charge attempt), use:
-{"kind":"transaction","amount":number,"currency":"ISO4217","type":"DEBIT"|"CREDIT","transactionDate":"ISO-8601","merchant":string|null,"description":string,"categoryNameHint":string|null,"bankStatusRaw":string|null,"bankStatusNormalized":"APPROVED"|"COMPLETED"|"POSTED"|"PENDING"|"IN_PROGRESS"|"AUTHORIZED"|"DECLINED"|"REJECTED"|"FAILED"|"CANCELLED"|"VOIDED"|"REVERSED"|"REFUNDED"|"CHARGEBACK"|"UNKNOWN","statusEvidence":"short quote","statusConfidence":0..1,"reverseOfEmailMessageId":string|null,"reverseOriginalRef":string|null,"instrumentHint":"ACCOUNT"|"CARD"|null,"lastFourHint":"1234"|null,"accountNumberHint":"5678"|null}
+{"kind":"transaction","amount":number,"currency":"ISO4217","type":"DEBIT"|"CREDIT","transactionDate":"ISO-8601","merchant":string|null,"description":string,"notes":string|null,"categoryNameHint":string|null,"bankStatusRaw":string|null,"bankStatusNormalized":"APPROVED"|"COMPLETED"|"POSTED"|"PENDING"|"IN_PROGRESS"|"AUTHORIZED"|"DECLINED"|"REJECTED"|"FAILED"|"CANCELLED"|"VOIDED"|"REVERSED"|"REFUNDED"|"CHARGEBACK"|"UNKNOWN","statusEvidence":"short quote","statusConfidence":0..1,"reverseOfEmailMessageId":string|null,"reverseOriginalRef":string|null,"instrumentHint":"ACCOUNT"|"CARD"|null,"lastFourHint":"1234"|null,"accountNumberHint":"5678"|null}
 
 When the email is NOT a ledger movement (promo, newsletter, OTP/2FA code, login alert, marketing, balance snapshot without a specific movement, terms update), use:
 {"kind":"not_transaction","reason":"short explanation"}
@@ -94,6 +100,12 @@ Rules:
 - lastFourHint is the last four digits of a card (debit or credit) when the email shows a masked PAN (****1234); otherwise null. Never put a bank account number in lastFourHint.
 - accountNumberHint is the visible digits of a bank account (full number or masked ****1234). Payroll, deposit, and transfer emails almost always include this; extract those digits. Null if none are shown.
 - Payroll, salary, deposit, and transfer notifications ARE ledger transactions (kind transaction), not not_transaction.
+
+Merchant, category, description, notes (Spanish locale es-DO unless told otherwise):
+- merchant: clean merchant/payee name without bank boilerplate prefixes.
+- categoryNameHint: when confident, MUST be exactly one name from the provided Available categories list that matches the transaction type (DEBIT→EXPENSE categories, CREDIT→INCOME categories). Infer from merchant and email context (supermarket→Alimentación, Uber/gas→Transporte, Netflix→Suscripciones, pharmacy→Salud, etc.). Use null if ambiguous or no good match.
+- description: short user-facing Spanish note of what the payment/purchase was. Use email detail when present. Do NOT use bank templates like "Compra en {merchant}" when merchant is already set; prefer e.g. "Almuerzo", "Recarga de combustible", "Pago mensual streaming".
+- notes: optional review notes for the transaction Notes field (max ~500 chars). Mention uncertainties (unclear category, ambiguous merchant, low status confidence, unclear account/card). Null when nothing to flag. Do not duplicate description.
 `;
 
 @Injectable()
@@ -108,10 +120,13 @@ export class AiEmailTransactionExtractor implements EmailTransactionExtractorPor
       `Bank domain: ${input.bankDomain}`,
       `From: ${input.from}`,
       `Subject: ${input.subject}`,
+      this.formatCategories(input.categories),
       '---BEGIN_EMAIL_BODY---',
       body,
       '---END_EMAIL_BODY---',
-    ].join('\n');
+    ]
+      .filter(Boolean)
+      .join('\n');
 
     try {
       const result = await this.aiService.chatComplete([
@@ -166,7 +181,10 @@ export class AiEmailTransactionExtractor implements EmailTransactionExtractorPor
       return {
         ok: true,
         kind: 'transaction',
-        data,
+        data: {
+          ...data,
+          notes: data.notes ?? null,
+        },
         provider: result.provider,
         model: result.model,
       };
@@ -175,6 +193,25 @@ export class AiEmailTransactionExtractor implements EmailTransactionExtractorPor
       this.logger.warn(`Email extraction AI error: ${message}`);
       return { ok: false, reason: message, retryable: true };
     }
+  }
+
+  private formatCategories(
+    categories: EmailExtractionInput['categories'],
+  ): string {
+    if (!categories?.length) {
+      return 'Available categories: (none provided)';
+    }
+    const expense = categories
+      .filter((c) => c.type === 'EXPENSE')
+      .map((c) => c.name);
+    const income = categories
+      .filter((c) => c.type === 'INCOME')
+      .map((c) => c.name);
+    return [
+      'Available categories:',
+      `EXPENSE: ${expense.length ? expense.join(', ') : '(none)'}`,
+      `INCOME: ${income.length ? income.join(', ') : '(none)'}`,
+    ].join('\n');
   }
 
   private extractJson(content: string): string | null {

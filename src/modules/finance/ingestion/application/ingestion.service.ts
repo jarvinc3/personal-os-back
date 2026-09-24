@@ -20,10 +20,11 @@ import { UsersService } from '../../../users';
 import type { DomainEventPublisherPort } from '../../events/application/ports/domain-event-publisher.port';
 import { FinanceOutboxDispatcher } from '../../events/infrastructure/finance-outbox.dispatcher';
 import { ImportEmailTransactionUseCase } from '../../ledger/application/import-email-transaction.use-case';
+import { LedgerQueryService } from '../../ledger/application/ledger-query.service';
 import { FinanceOwnershipService } from '../../shared/application/finance-ownership.service';
 import { DOMAIN_EVENT_PUBLISHER } from '../../shared/application/tokens';
+import { resolveCategoryIdForImport } from '../../shared/domain/category-type';
 import { mapBankStatusToInternal } from '../../shared/domain/transaction-status';
-import { matchCategoryByHint } from '../../shared/domain/category-type';
 import { EmailSourceRepository } from '../infrastructure/email-source.repository';
 import {
     exchangeGoogleAuthCode,
@@ -38,6 +39,7 @@ import type {
 } from '../presentation/dto/oauth-callback-query.dto';
 import type { UpdateEmailSourceDto } from '../presentation/dto/update-email-source.dto';
 import { extractEmailAddress, extractEmailDomain } from './bank-sender';
+import { buildEmailImportNotes } from './build-email-import-notes';
 import {
   GMAIL_SYNC_JOB_NAME,
   GMAIL_SYNC_JOB_OPTIONS,
@@ -82,6 +84,7 @@ export class IngestionService {
     private readonly users: UsersService,
     private readonly ownership: FinanceOwnershipService,
     private readonly importEmail: ImportEmailTransactionUseCase,
+    private readonly ledger: LedgerQueryService,
     @Optional()
     @InjectQueue(QueueNames.GMAIL_SYNC)
     private readonly gmailSyncQueue?: Queue<GmailSyncJob>,
@@ -507,14 +510,24 @@ export class IngestionService {
     }
 
     const categories = await this.repo.listCategories(userId);
-    const categoryId = matchCategoryByHint(
+    const category = await resolveCategoryIdForImport({
       categories,
-      extracted.categoryNameHint,
-      extracted.type,
-    );
+      hint: extracted.categoryNameHint,
+      transactionType: extracted.type,
+      merchant: extracted.merchant,
+      findCategoryIdByMerchant: (merchant) =>
+        this.ledger.findLatestCategoryIdByMerchant(userId, merchant),
+    });
     const status = mapBankStatusToInternal({
       bankStatusNormalized: extracted.bankStatusNormalized,
       statusConfidence: extracted.statusConfidence,
+    });
+    const notes = buildEmailImportNotes({
+      llmNotes: extracted.notes,
+      categoryId: category.categoryId,
+      categorySource: category.source,
+      categoryNameHint: extracted.categoryNameHint,
+      status,
     });
 
     const created = await this.importEmail.execute(userId, {
@@ -525,10 +538,11 @@ export class IngestionService {
       currency: extracted.currency,
       merchant: extracted.merchant,
       description: extracted.description,
+      notes,
       transactionDate: new Date(extracted.transactionDate),
       type: extracted.type,
       status,
-      categoryId,
+      categoryId: category.categoryId,
       aiMetadata: {
         bankStatusRaw: extracted.bankStatusRaw,
         bankStatusNormalized: extracted.bankStatusNormalized,
@@ -547,7 +561,7 @@ export class IngestionService {
       instrumentHint: message.instrumentHint,
       lastFourHint: message.lastFourHint,
       accountNumberHint: message.accountNumberHint,
-      extractedPayload: message.extractedPayload,
+      extractedPayload: { ...extracted, notes },
     });
 
     return { assigned: true as const, transactionId: created.id };
@@ -601,7 +615,15 @@ export class IngestionService {
     ) {
       return null;
     }
-    return row as ExtractedEmailTransaction;
+    return {
+      ...(row as ExtractedEmailTransaction),
+      notes:
+        typeof row.notes === 'string' && row.notes.trim()
+          ? row.notes.trim()
+          : null,
+      categoryNameHint:
+        typeof row.categoryNameHint === 'string' ? row.categoryNameHint : null,
+    };
   }
 
   private async refreshGmailToken(sourceId: string): Promise<string> {

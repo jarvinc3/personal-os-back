@@ -209,6 +209,22 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
     }) as Promise<LedgerTransactionRow[]>;
   }
 
+  async findLatestCategoryIdByMerchant(userId: string, merchant: string) {
+    const trimmed = merchant.trim();
+    if (!trimmed) return null;
+    const row = await this.prisma.finTransaction.findFirst({
+      where: {
+        userId,
+        status: 'CONFIRMED',
+        categoryId: { not: null },
+        merchant: { equals: trimmed, mode: 'insensitive' },
+      },
+      orderBy: [{ transactionDate: 'desc' }, { createdAt: 'desc' }],
+      select: { categoryId: true },
+    });
+    return row?.categoryId ?? null;
+  }
+
   createTransaction(
     userId: string,
     command: CreateTransactionCommand,
@@ -912,6 +928,7 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
           exchangeRate: data.amounts.exchangeRate,
           merchant: data.merchant,
           description: data.description,
+          notes: data.notes ?? null,
           transactionDate: data.transactionDate,
           status: data.status,
           source: 'EMAIL',

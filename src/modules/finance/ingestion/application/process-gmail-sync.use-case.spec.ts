@@ -56,9 +56,11 @@ describe('ProcessGmailSyncUseCase', () => {
 
   const findTransactionByEmailMessageId = jest.fn();
   const findReverseCandidates = jest.fn();
+  const findLatestCategoryIdByMerchant = jest.fn();
   const ledger = {
     findTransactionByEmailMessageId,
     findReverseCandidates,
+    findLatestCategoryIdByMerchant,
   } as unknown as LedgerQueryService;
 
   const extract = jest.fn();
@@ -105,6 +107,7 @@ describe('ProcessGmailSyncUseCase', () => {
       transactionDate: '2026-08-01',
       merchant: 'Coffee',
       description: 'Purchase',
+      notes: null,
       categoryNameHint: null,
       bankStatusRaw: 'APPROVED',
       bankStatusNormalized: 'APPROVED' as const,
@@ -125,6 +128,7 @@ describe('ProcessGmailSyncUseCase', () => {
     listCategories.mockResolvedValue([]);
     findEmailMessage.mockResolvedValue(null);
     findTransactionByEmailMessageId.mockResolvedValue(null);
+    findLatestCategoryIdByMerchant.mockResolvedValue(null);
     upsertEmailMessage.mockResolvedValue({ id: 'em-row-1' });
     listInstitutionDestinations.mockResolvedValue([
       [{ id: 'acc-1', name: 'Main', accountNumber: '00001234' }],
@@ -433,6 +437,50 @@ describe('ProcessGmailSyncUseCase', () => {
       expect.objectContaining({
         type: 'CREDIT',
         categoryId: 'inc-salary',
+      }),
+    );
+  });
+
+  it('passes categories to the extractor and falls back to merchant history', async () => {
+    findEmailSource.mockResolvedValue(activeSource);
+    listCategories.mockResolvedValue([
+      { id: 'exp-food', name: 'Alimentación', type: 'EXPENSE' },
+      { id: 'exp-transport', name: 'Transporte', type: 'EXPENSE' },
+    ]);
+    findLatestCategoryIdByMerchant.mockResolvedValue('exp-transport');
+    extract.mockResolvedValue({
+      ...transactionExtraction,
+      data: {
+        ...transactionExtraction.data,
+        merchant: 'Uber',
+        categoryNameHint: null,
+        notes: 'Revisa si fue transporte.',
+        statusConfidence: 0.95,
+      },
+    });
+    importExecute.mockResolvedValue({ id: 'tx-hist' });
+
+    await useCase.execute({ userId: 'user-1', sourceId: 'src-1' });
+
+    expect(extract).toHaveBeenCalledWith(
+      expect.objectContaining({
+        categories: [
+          { name: 'Alimentación', type: 'EXPENSE' },
+          { name: 'Transporte', type: 'EXPENSE' },
+        ],
+      }),
+    );
+    expect(findLatestCategoryIdByMerchant).toHaveBeenCalledWith(
+      'user-1',
+      'Uber',
+    );
+    expect(importExecute).toHaveBeenCalledWith(
+      'user-1',
+      expect.objectContaining({
+        categoryId: 'exp-transport',
+        notes: expect.stringContaining(
+          'Categoría tomada de un movimiento anterior',
+        ),
       }),
     );
   });
