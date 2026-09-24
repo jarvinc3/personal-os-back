@@ -28,6 +28,14 @@ import type { UpdateCardDto } from '../presentation/dto/update-card.dto';
 import type { UpdateCategoryDto } from '../presentation/dto/update-category.dto';
 import type { UpdateInstitutionDto } from '../presentation/dto/update-institution.dto';
 
+function omitAccountNumber<T extends { accountNumber?: string | null }>(
+  dto: T,
+): Omit<T, 'accountNumber'> {
+  const { accountNumber, ...rest } = dto;
+  void accountNumber;
+  return rest;
+}
+
 @Injectable()
 export class CatalogService {
   constructor(
@@ -53,7 +61,7 @@ export class CatalogService {
     if (dto.institutionId) {
       await this.ownership.assertInstitutionOwned(userId, dto.institutionId);
     }
-    const { accountNumber: _ignored, ...rest } = dto;
+    const rest = omitAccountNumber(dto);
     try {
       return this.mapAccount(
         await this.repo.createAccount(userId, {
@@ -98,7 +106,7 @@ export class CatalogService {
       });
     }
 
-    const { accountNumber: _ignored, ...rest } = dto;
+    const rest = omitAccountNumber(dto);
     try {
       const account = await this.repo.updateAccount(id, userId, {
         ...rest,

@@ -22,7 +22,7 @@ export type ExtractedEmailTransaction = {
 
 export type EmailExtractionCategory = {
   name: string;
-  type: 'EXPENSE' | 'INCOME' | string;
+  type: 'EXPENSE' | 'INCOME' | (string & {});
 };
 
 export type EmailExtractionInput = {
