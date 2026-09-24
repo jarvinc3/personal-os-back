@@ -5,6 +5,8 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { Prisma } from '../../../../prisma/generated/client';
+import { PurgeInstrumentLedgerUseCase } from '../../ledger/application/purge-instrument-ledger.use-case';
+import { FinanceOwnershipService } from '../../shared/application/finance-ownership.service';
 import {
   ACCOUNT_NUMBER_MAX_DIGITS,
   ACCOUNT_NUMBER_MIN_DIGITS,
@@ -15,8 +17,6 @@ import {
   decimalToNullableString,
   decimalToString,
 } from '../../shared/domain/mappers';
-import { FinanceOwnershipService } from '../../shared/application/finance-ownership.service';
-import { PurgeInstrumentLedgerUseCase } from '../../ledger/application/purge-instrument-ledger.use-case';
 import { CatalogRepository } from '../infrastructure/catalog.repository';
 import type { CreateAccountDto } from '../presentation/dto/create-account.dto';
 import type { CreateCardDto } from '../presentation/dto/create-card.dto';
