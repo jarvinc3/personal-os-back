@@ -524,4 +524,53 @@ describe('ProcessGmailSyncUseCase', () => {
       }
     }
   });
+
+  it('does not advance lastSyncedAt when the LLM extract cap defers remaining mail', async () => {
+    const prev = process.env.MAX_EMAIL_LLM_EXTRACTS;
+    process.env.MAX_EMAIL_LLM_EXTRACTS = '1';
+
+    findEmailSource.mockResolvedValue(activeSource);
+    listGmailMessagesMock.mockResolvedValue({
+      messages: [{ id: 'msg-1' }, { id: 'msg-2' }],
+      nextPageToken: undefined,
+    });
+    extract.mockResolvedValue(transactionExtraction);
+    importExecute.mockResolvedValue({ id: 'tx-1' });
+
+    try {
+      await useCase.execute({ userId: 'user-1', sourceId: 'src-1' });
+
+      expect(extract).toHaveBeenCalledTimes(1);
+      expect(updateEmailSource).not.toHaveBeenCalledWith(
+        'user-1',
+        'src-1',
+        expect.objectContaining({ lastSyncedAt: expect.any(Date) }),
+      );
+      expect(completeEmailSyncSuccessWithEvent).toHaveBeenCalled();
+    } finally {
+      if (prev === undefined) {
+        delete process.env.MAX_EMAIL_LLM_EXTRACTS;
+      } else {
+        process.env.MAX_EMAIL_LLM_EXTRACTS = prev;
+      }
+    }
+  });
+
+  it('does not advance lastSyncedAt when an extract is retryable', async () => {
+    findEmailSource.mockResolvedValue(activeSource);
+    extract.mockResolvedValue({
+      ok: false,
+      retryable: true,
+      reason: 'provider_overloaded',
+    });
+
+    await useCase.execute({ userId: 'user-1', sourceId: 'src-1' });
+
+    expect(upsertEmailMessage).not.toHaveBeenCalled();
+    expect(updateEmailSource).not.toHaveBeenCalledWith(
+      'user-1',
+      'src-1',
+      expect.objectContaining({ lastSyncedAt: expect.any(Date) }),
+    );
+  });
 });

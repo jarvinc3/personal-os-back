@@ -10,6 +10,7 @@ import { ClsModule } from 'nestjs-cls';
 import { LoggerModule } from 'nestjs-pino';
 import type { Env } from './config';
 import {
+  bullmqRedisConnection,
   isBullBoardEnabledFromProcessEnv,
   isBullMqEnabledFromProcessEnv,
   parseEnv,
@@ -100,9 +101,9 @@ const bullBoardEnabled = isBullBoardEnabledFromProcessEnv();
           BullModule.forRootAsync({
             inject: [ConfigService],
             useFactory: (config: ConfigService<Env, true>) => ({
-              connection: {
-                url: config.getOrThrow('REDIS_URL', { infer: true }),
-              },
+              connection: bullmqRedisConnection(
+                config.getOrThrow('REDIS_URL', { infer: true }),
+              ),
               defaultJobOptions: {
                 attempts: 3,
                 backoff: {

@@ -1948,6 +1948,26 @@
         ]
       }
     },
+    "/api/finance/email-sync/messages": {
+      "get": {
+        "operationId": "EmailSyncController_listRecentMessages",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "List recent email extract outcomes",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
     "/api/finance/email-sync/pending/{id}/assign": {
       "post": {
         "operationId": "EmailSyncController_assignPending",
