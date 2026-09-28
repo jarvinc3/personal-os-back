@@ -83,6 +83,7 @@ export class ProcessGmailSyncUseCase {
           source.institutionId,
         );
       let hitLlmCap = false;
+      let deferredRetryable = false;
 
       do {
         const listResult = await listGmailMessages(
@@ -135,6 +136,8 @@ export class ProcessGmailSyncUseCase {
                   reason: extraction.reason,
                 });
                 emailsSkipped += 1;
+              } else {
+                deferredRetryable = true;
               }
               continue;
             }
@@ -306,8 +309,9 @@ export class ProcessGmailSyncUseCase {
         pageToken = listResult.nextPageToken;
       } while (pageToken);
 
+      const deferredWork = hitLlmCap || deferredRetryable;
       await this.emailSources.updateEmailSource(userId, sourceId, {
-        lastSyncedAt: new Date(),
+        ...(deferredWork ? {} : { lastSyncedAt: new Date() }),
         ...(lastMessageId ? { lastMessageId } : {}),
       });
 

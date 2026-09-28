@@ -199,7 +199,7 @@ export class IngestionService {
     await this.users.assertFinanceEmailSyncEnabled(userId);
     const source = await this.repo.findEmailSource(userId, sourceId);
     if (!source) throw new NotFoundException('Email source not found');
-    return this.enqueueGmailSyncJob(userId, sourceId, forceFullSync);
+    return this.enqueueGmailSyncJob(userId, sourceId, { forceFullSync });
   }
 
   async completeEmailSyncSuccessWithEvent(params: {
@@ -445,6 +445,14 @@ export class IngestionService {
     return rows.map((row) => this.mapPendingMessage(row));
   }
 
+  async listRecentMessages(userId: string) {
+    const rows = await this.repo.listRecentEmailMessages(userId);
+    return rows.map((row) => ({
+      ...this.mapPendingMessage(row),
+      outcome: row.outcome,
+    }));
+  }
+
   async assignPendingMessage(
     userId: string,
     messageId: string,
@@ -688,7 +696,7 @@ export class IngestionService {
       });
       const mapped = this.mapEmailSourceResponse(updated ?? existing);
       if (await this.users.isFinanceEmailSyncAutomatic(userId)) {
-        await this.enqueueGmailSyncJob(userId, mapped.id);
+        await this.enqueueGmailSyncJob(userId, mapped.id, { dedupe: true });
       }
       return mapped;
     }
@@ -703,7 +711,7 @@ export class IngestionService {
     });
     const mapped = this.mapEmailSourceResponse(created);
     if (await this.users.isFinanceEmailSyncAutomatic(userId)) {
-      await this.enqueueGmailSyncJob(userId, mapped.id);
+      await this.enqueueGmailSyncJob(userId, mapped.id, { dedupe: true });
     }
     return mapped;
   }
@@ -711,8 +719,9 @@ export class IngestionService {
   private async enqueueGmailSyncJob(
     userId: string,
     sourceId: string,
-    forceFullSync = false,
+    options: { forceFullSync?: boolean; dedupe?: boolean } = {},
   ): Promise<{ queued: true } | { queued: false; reason: string }> {
+    const forceFullSync = options.forceFullSync === true;
     if (!this.gmailSyncQueue) {
       return {
         queued: false,
@@ -727,12 +736,21 @@ export class IngestionService {
         { userId, sourceId, forceFullSync },
         {
           ...GMAIL_SYNC_JOB_OPTIONS,
-          ...(forceFullSync ? {} : { jobId: gmailSyncJobId(sourceId) }),
+          ...(options.dedupe && !forceFullSync
+            ? { jobId: gmailSyncJobId(sourceId) }
+            : {}),
         },
       );
       return { queued: true };
-    } catch {
-      return { queued: true };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'unknown';
+      this.logger.warn(
+        `Failed to enqueue Gmail sync for ${sourceId}: ${message}`,
+      );
+      return {
+        queued: false,
+        reason: `Could not enqueue gmail-sync: ${message}`,
+      };
     }
   }
 

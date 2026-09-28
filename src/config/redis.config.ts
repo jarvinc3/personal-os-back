@@ -52,3 +52,16 @@ export function isBullBoardEnabledFromProcessEnv(): boolean {
     REDIS_ENABLED: redisEnabled,
   });
 }
+
+/** BullMQ Redis client: reconnect, but fail commands immediately if disconnected. */
+export function bullmqRedisConnection(url: string): {
+  url: string;
+  connectTimeout: number;
+  enableOfflineQueue: boolean;
+} {
+  return {
+    url,
+    connectTimeout: 2_000,
+    enableOfflineQueue: false,
+  };
+}

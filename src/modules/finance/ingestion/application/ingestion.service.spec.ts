@@ -75,12 +75,14 @@ describe('IngestionService.completeEmailSyncSuccessWithEvent', () => {
 
 describe('IngestionService pending assignment', () => {
   const listPendingAssignmentMessages = jest.fn();
+  const listRecentEmailMessages = jest.fn();
   const findEmailMessageById = jest.fn();
   const listCategories = jest.fn();
   const listInstitutionDestinations = jest.fn();
   const upsertEmailMessage = jest.fn();
   const repo = {
     listPendingAssignmentMessages,
+    listRecentEmailMessages,
     findEmailMessageById,
     listCategories,
     listInstitutionDestinations,
@@ -160,6 +162,19 @@ describe('IngestionService pending assignment', () => {
         id: 'em-1',
         institutionId: 'inst-1',
         lastFourHint: '1234',
+      }),
+    ]);
+  });
+
+  it('lists recent extract outcomes including imported mail', async () => {
+    listRecentEmailMessages.mockResolvedValue([
+      { ...pendingMessage, outcome: 'IMPORTED' },
+    ]);
+    await expect(service.listRecentMessages('user-1')).resolves.toEqual([
+      expect.objectContaining({
+        id: 'em-1',
+        outcome: 'IMPORTED',
+        institutionName: 'Bank',
       }),
     ]);
   });
@@ -427,5 +442,59 @@ describe('IngestionService mailbox linking', () => {
         institutionId: 'inst-1',
       }),
     ).rejects.toThrow('This institution is already linked to a mailbox');
+  });
+});
+
+describe('IngestionService.triggerEmailSync', () => {
+  const findEmailSource = jest.fn();
+  const repo = { findEmailSource } as unknown as EmailSourceRepository;
+  const users = {
+    assertFinanceEmailSyncEnabled: jest.fn().mockResolvedValue(undefined),
+  };
+
+  function serviceWithQueue(add: jest.Mock) {
+    return new IngestionService(
+      repo,
+      { get: jest.fn() } as never,
+      { enqueue: jest.fn() },
+      { processBatch: jest.fn() } as never,
+      users as never,
+      { assertInstitutionOwned: jest.fn() } as never,
+      { execute: jest.fn() } as never,
+      { findLatestCategoryIdByMerchant: jest.fn() } as never,
+      { add } as never,
+    );
+  }
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    findEmailSource.mockResolvedValue({ id: 'src-1', isActive: true });
+  });
+
+  it('enqueues a manual sync without a stable jobId so repeats are not dropped', async () => {
+    const add = jest.fn().mockResolvedValue({});
+    const service = serviceWithQueue(add);
+
+    await expect(
+      service.triggerEmailSync('user-1', 'src-1'),
+    ).resolves.toEqual({ queued: true });
+
+    expect(add).toHaveBeenCalledWith(
+      'gmail-sync-source',
+      { userId: 'user-1', sourceId: 'src-1', forceFullSync: false },
+      expect.not.objectContaining({ jobId: 'gmail-sync:src-1' }),
+    );
+    const opts = add.mock.calls[0][2] as { jobId?: string };
+    expect(opts.jobId).toBeUndefined();
+  });
+
+  it('returns queued false when BullMQ add fails instead of pretending success', async () => {
+    const add = jest.fn().mockRejectedValue(new Error('Job already exists'));
+    const service = serviceWithQueue(add);
+
+    await expect(service.triggerEmailSync('user-1', 'src-1')).resolves.toEqual({
+      queued: false,
+      reason: expect.stringContaining('Job already exists'),
+    });
   });
 });

@@ -1,4 +1,5 @@
 import {
+  bullmqRedisConnection,
   isBullBoardEnabled,
   isBullMqEnabled,
 } from './redis.config';
@@ -84,5 +85,17 @@ describe('isBullBoardEnabled', () => {
         REDIS_ENABLED: false,
       }),
     ).toBe(false);
+  });
+});
+
+describe('bullmqRedisConnection', () => {
+  it('fails fast instead of queueing commands while Redis is down', () => {
+    expect(bullmqRedisConnection('redis://localhost:6379')).toEqual(
+      expect.objectContaining({
+        url: 'redis://localhost:6379',
+        connectTimeout: 2000,
+        enableOfflineQueue: false,
+      }),
+    );
   });
 });

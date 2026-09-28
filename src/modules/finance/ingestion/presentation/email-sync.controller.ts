@@ -18,6 +18,7 @@ import {
   CurrentUser,
   Public,
   RequiresEnabledModule,
+  Timeout,
 } from '../../../../core/decorators';
 import { IngestionService } from '../application/ingestion.service';
 import { ConnectEmailSourceDto } from './dto/connect-email-source.dto';
@@ -79,6 +80,7 @@ export class EmailSyncController {
   }
 
   @Post('sources/:id/sync')
+  @Timeout(8_000)
   sync(
     @CurrentUser('sub') userId: string,
     @Param('id') id: string,
@@ -95,6 +97,12 @@ export class EmailSyncController {
   @ApiOperation({ summary: 'List email imports waiting for a ledger target' })
   listPending(@CurrentUser('sub') userId: string) {
     return this.ingestion.listPendingAssignment(userId);
+  }
+
+  @Get('messages')
+  @ApiOperation({ summary: 'List recent email extract outcomes' })
+  listRecentMessages(@CurrentUser('sub') userId: string) {
+    return this.ingestion.listRecentMessages(userId);
   }
 
   @Post('pending/:id/assign')

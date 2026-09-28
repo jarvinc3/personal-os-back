@@ -14,7 +14,7 @@ const sourceListInclude = {
   institution: {
     select: { id: true, name: true, isActive: true },
   },
-  logs: { orderBy: { startedAt: 'desc' as const }, take: 5 },
+  logs: { orderBy: { startedAt: 'desc' as const }, take: 20 },
 } satisfies Prisma.FinEmailSourceInclude;
 
 const pendingMessageInclude = {
@@ -103,7 +103,7 @@ export class EmailSourceRepository {
       where: { userId, id },
       include: {
         ...sourceListInclude,
-        logs: { orderBy: { startedAt: 'desc' }, take: 10 },
+        logs: { orderBy: { startedAt: 'desc' }, take: 20 },
       },
     });
   }
@@ -350,6 +350,15 @@ export class EmailSourceRepository {
       },
       include: pendingMessageInclude,
       orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  listRecentEmailMessages(userId: string, take = 40) {
+    return this.prisma.finEmailMessage.findMany({
+      where: { source: { userId } },
+      include: pendingMessageInclude,
+      orderBy: { createdAt: 'desc' },
+      take,
     });
   }
 
