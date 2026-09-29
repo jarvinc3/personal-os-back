@@ -13,7 +13,6 @@ export function categoryTypeForTransaction(
 ): FinCategoryTypeValue | null {
   if (type === 'DEBIT') return 'EXPENSE';
   if (type === 'CREDIT') return 'INCOME';
-  if (type === 'TRANSFER') return 'TRANSFER';
   return null;
 }
 
