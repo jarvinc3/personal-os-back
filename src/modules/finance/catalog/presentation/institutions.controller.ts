@@ -6,12 +6,16 @@ import {
   Param,
   Patch,
   Post,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { ApiBearerAuth, ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
 import {
   CurrentUser,
   RequiresEnabledModule,
 } from '../../../../core/decorators';
+import type { LogoUploadFile } from '../../../logos/application/logo.service';
 import { CatalogService } from '../application/catalog.service';
 import { CreateInstitutionDto } from './dto/create-institution.dto';
 import { UpdateInstitutionDto } from './dto/update-institution.dto';
@@ -34,6 +38,20 @@ export class InstitutionsController {
     @Body() dto: CreateInstitutionDto,
   ) {
     return this.catalog.createInstitution(userId, dto);
+  }
+
+  @Post('institutions/:id/logo')
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({ summary: 'Upload a custom institution logo' })
+  @UseInterceptors(
+    FileInterceptor('file', { limits: { fileSize: 1_000_000 } }),
+  )
+  uploadLogo(
+    @CurrentUser('sub') userId: string,
+    @Param('id') id: string,
+    @UploadedFile() file: LogoUploadFile,
+  ) {
+    return this.catalog.uploadInstitutionLogo(userId, id, file);
   }
 
   @Patch('institutions/:id')

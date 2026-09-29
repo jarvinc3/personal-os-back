@@ -71,7 +71,7 @@ export class CatalogRepository {
   listInstitutions(userId: string) {
     return this.prisma.finInstitution.findMany({
       where: { userId, isActive: true },
-      orderBy: { name: 'asc' },
+      orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
     });
   }
 

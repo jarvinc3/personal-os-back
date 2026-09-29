@@ -18,6 +18,36 @@ import { transactionCreatedEventName } from '../../shared/domain/mappers';
 import type { ResolvedAmounts } from '../../shared/domain/money';
 import { normalizeCurrencyCode } from '../../shared/domain/money';
 import { statusAffectsLedger } from '../../shared/domain/transaction-status';
+
+const transactionPartyInclude = {
+  account: {
+    select: {
+      id: true,
+      name: true,
+      institutionRef: {
+        select: {
+          logoUrl: true,
+          logoPath: true,
+          customLogoPath: true,
+        },
+      },
+    },
+  },
+  card: {
+    select: {
+      id: true,
+      name: true,
+      network: true,
+      institution: {
+        select: {
+          logoUrl: true,
+          logoPath: true,
+          customLogoPath: true,
+        },
+      },
+    },
+  },
+} satisfies Prisma.FinTransactionInclude;
 import type {
     CreateTransactionCommand,
     CreateTransferCommand,
@@ -79,10 +109,7 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
         orderBy: { transactionDate: 'desc' },
         skip,
         take,
-        include: {
-          account: { select: { id: true, name: true } },
-          card: { select: { id: true, name: true } },
-        },
+        include: transactionPartyInclude,
       }),
       this.prisma.finTransaction.count({ where }),
     ])) as [LedgerTransactionRow[], number];
@@ -103,10 +130,7 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
               transferGroupId: { in: groupIds },
               type: 'CREDIT',
             },
-            include: {
-              account: { select: { id: true, name: true } },
-              card: { select: { id: true, name: true } },
-            },
+            include: transactionPartyInclude,
           })) as LedgerTransactionRow[]);
     const creditByGroup = new Map(
       counterparts.map((row) => [row.transferGroupId, row] as const),
@@ -146,10 +170,7 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
   findTransactionById(id: string, userId: string) {
     return this.prisma.finTransaction.findFirst({
       where: { id, userId },
-      include: {
-        account: { select: { id: true, name: true } },
-        card: { select: { id: true, name: true } },
-      },
+      include: transactionPartyInclude,
     }) as Promise<LedgerTransactionRow | null>;
   }
 
@@ -172,10 +193,7 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
   findTransactionsByTransferGroupId(transferGroupId: string, userId: string) {
     return this.prisma.finTransaction.findMany({
       where: { transferGroupId, userId },
-      include: {
-        account: { select: { id: true, name: true } },
-        card: { select: { id: true, name: true } },
-      },
+      include: transactionPartyInclude,
       orderBy: { type: 'asc' },
     }) as Promise<LedgerTransactionRow[]>;
   }

@@ -1,5 +1,11 @@
+import type { LogoRow } from '../../../logos/domain/logo-row';
 import { decimalToString } from '../../shared/domain/mappers';
 import type { LedgerTransactionRow } from './ports/ledger.repository.port';
+
+export type PartyLogoResolver = {
+  resolveUrl(row?: LogoRow | null): string | null;
+  networkLogoUrl(network: string | null | undefined): string | null;
+};
 
 export type MappedTransaction = {
   id: string;
@@ -26,6 +32,12 @@ export type MappedTransaction = {
   transferToAccountName: string | null;
   transferToCardId: string | null;
   transferToCardName: string | null;
+  institutionLogoUrl: string | null;
+  network: string | null;
+  networkLogoUrl: string | null;
+  transferToInstitutionLogoUrl: string | null;
+  transferToNetwork: string | null;
+  transferToNetworkLogoUrl: string | null;
   linkedTransactionId: string | null;
   aiMetadata: unknown;
   createdAt: string;
@@ -33,22 +45,35 @@ export type MappedTransaction = {
 
 function party(
   row: LedgerTransactionRow | null | undefined,
+  logos?: PartyLogoResolver,
 ): {
   accountId: string | null;
   accountName: string | null;
   cardId: string | null;
   cardName: string | null;
+  institutionLogoUrl: string | null;
+  network: string | null;
+  networkLogoUrl: string | null;
 } {
+  const institution = row?.account?.institutionRef ?? row?.card?.institution;
   return {
     accountId: row?.accountId ?? null,
     accountName: row?.account?.name ?? null,
     cardId: row?.cardId ?? null,
     cardName: row?.card?.name ?? null,
+    institutionLogoUrl: logos?.resolveUrl(institution) ?? null,
+    network: row?.cardId ? (row.card?.network ?? null) : null,
+    networkLogoUrl: row?.cardId
+      ? (logos?.networkLogoUrl(row.card?.network) ?? null)
+      : null,
   };
 }
 
-function mapPhysicalTransaction(tx: LedgerTransactionRow): MappedTransaction {
-  const origin = party(tx);
+function mapPhysicalTransaction(
+  tx: LedgerTransactionRow,
+  logos?: PartyLogoResolver,
+): MappedTransaction {
+  const origin = party(tx, logos);
   return {
     id: tx.id,
     accountId: origin.accountId,
@@ -74,6 +99,12 @@ function mapPhysicalTransaction(tx: LedgerTransactionRow): MappedTransaction {
     transferToAccountName: null,
     transferToCardId: null,
     transferToCardName: null,
+    institutionLogoUrl: origin.institutionLogoUrl,
+    network: origin.network,
+    networkLogoUrl: origin.networkLogoUrl,
+    transferToInstitutionLogoUrl: null,
+    transferToNetwork: null,
+    transferToNetworkLogoUrl: null,
     linkedTransactionId: tx.linkedTransactionId,
     aiMetadata: tx.aiMetadata,
     createdAt: tx.createdAt.toISOString(),
@@ -82,22 +113,24 @@ function mapPhysicalTransaction(tx: LedgerTransactionRow): MappedTransaction {
 
 export function mapLedgerTransaction(
   tx: LedgerTransactionRow,
+  logos?: PartyLogoResolver,
 ): MappedTransaction {
-  return mapPhysicalTransaction(tx);
+  return mapPhysicalTransaction(tx, logos);
 }
 
 export function mapLogicalTransaction(
   tx: LedgerTransactionRow,
   counterpart: LedgerTransactionRow | null = tx.transferCounterpart ?? null,
+  logos?: PartyLogoResolver,
 ): MappedTransaction {
   if (!tx.transferGroupId) {
-    return mapPhysicalTransaction(tx);
+    return mapPhysicalTransaction(tx, logos);
   }
 
   const from = tx.type === 'CREDIT' && counterpart ? counterpart : tx;
   const to = tx.type === 'DEBIT' ? counterpart : tx;
-  const origin = party(from);
-  const destination = party(to);
+  const origin = party(from, logos);
+  const destination = party(to, logos);
 
   return {
     id: tx.id,
@@ -124,6 +157,12 @@ export function mapLogicalTransaction(
     transferToAccountName: destination.accountName,
     transferToCardId: destination.cardId,
     transferToCardName: destination.cardName,
+    institutionLogoUrl: origin.institutionLogoUrl,
+    network: origin.network,
+    networkLogoUrl: origin.networkLogoUrl,
+    transferToInstitutionLogoUrl: destination.institutionLogoUrl,
+    transferToNetwork: destination.network,
+    transferToNetworkLogoUrl: destination.networkLogoUrl,
     linkedTransactionId: tx.linkedTransactionId,
     aiMetadata: tx.aiMetadata,
     createdAt: from.createdAt.toISOString(),

@@ -379,15 +379,23 @@ model FinExchangeRate {
 }
 
 model FinInstitution {
-  id        String       @id @default(dbgenerated("(uuid_generate_v4())::text"))
-  userId    String       @map("user_id")
-  name      String
-  color     String?
-  logoUrl   String?      @map("logo_url")
-  country   String       @default("DO")
-  isActive  Boolean      @default(true) @map("is_active")
-  createdAt DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt DateTime     @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  id             String       @id @default(dbgenerated("(uuid_generate_v4())::text"))
+  userId         String       @map("user_id")
+  name           String
+  /// bank | credit_union | digital_wallet | broker | cash | other
+  type           String       @default("bank")
+  shortName      String?      @map("short_name")
+  sortOrder      Int          @default(0) @map("sort_order")
+  domain         String?
+  logoPath       String?      @map("logo_path")
+  customLogoPath String?      @map("custom_logo_path")
+  /// Legacy external URL. Response logoUrl prefers customLogoPath, then logoPath.
+  logoUrl        String?      @map("logo_url")
+  color          String?
+  country        String       @default("DO")
+  isActive       Boolean      @default(true) @map("is_active")
+  createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime     @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   accounts     FinAccount[]
   cards        FinCard[]
   emailSources FinEmailSource[]

@@ -34,7 +34,8 @@
     "db:validate": "prisma validate",
     "db:seed": "prisma db seed",
     "db:studio": "prisma studio",
-    "db:reconcile-balances": "ts-node -r tsconfig-paths/register prisma/scripts/reconcile-balances.ts"
+    "db:reconcile-balances": "ts-node -r tsconfig-paths/register prisma/scripts/reconcile-balances.ts",
+    "db:backfill-logos": "ts-node -r tsconfig-paths/register prisma/scripts/backfill-institution-logos.ts"
   },
   "dependencies": {
     "@bull-board/api": "^7.2.1",

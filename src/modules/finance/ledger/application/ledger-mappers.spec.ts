@@ -57,6 +57,51 @@ describe('mapLogicalTransaction', () => {
     expect(mapped.accountName).toBe('Nómina');
     expect(mapped.transferToAccountName).toBe('Ahorros');
     expect(mapped.transferToAccountId).toBe('acc-to');
+    expect(mapped.institutionLogoUrl).toBeNull();
+    expect(mapped.transferToNetworkLogoUrl).toBeNull();
+  });
+
+  it('copies institution and network logos onto the origin and the counterpart', () => {
+    const logos = {
+      resolveUrl: (row?: { logoUrl?: string | null } | null) =>
+        row?.logoUrl ?? null,
+      networkLogoUrl: (network: string | null | undefined) =>
+        network === 'VISA' ? 'https://cdn.example/visa.png' : null,
+    };
+    const mapped = mapLogicalTransaction(
+      row({
+        id: 'd1',
+        type: 'DEBIT',
+        cardId: 'card-1',
+        transferGroupId: 'grp-1',
+        card: {
+          id: 'card-1',
+          name: 'Visa Nómina',
+          network: 'VISA',
+          institution: { logoUrl: 'https://cdn.example/bhd.png' },
+        },
+      }),
+      row({
+        id: 'c1',
+        type: 'CREDIT',
+        accountId: 'acc-to',
+        transferGroupId: 'grp-1',
+        account: {
+          id: 'acc-to',
+          name: 'Ahorros',
+          institutionRef: { logoUrl: 'https://cdn.example/popular.png' },
+        },
+      }),
+      logos,
+    );
+    expect(mapped.institutionLogoUrl).toBe('https://cdn.example/bhd.png');
+    expect(mapped.network).toBe('VISA');
+    expect(mapped.networkLogoUrl).toBe('https://cdn.example/visa.png');
+    expect(mapped.transferToNetwork).toBeNull();
+    expect(mapped.transferToInstitutionLogoUrl).toBe(
+      'https://cdn.example/popular.png',
+    );
+    expect(mapped.transferToNetworkLogoUrl).toBeNull();
   });
 
   it('does not rewrite physical legs used by create-transfer responses', () => {

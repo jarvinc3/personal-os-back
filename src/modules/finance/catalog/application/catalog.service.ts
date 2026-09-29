@@ -5,6 +5,12 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { Prisma } from '../../../../prisma/generated/client';
+import {
+  LogoService,
+  type LogoUploadFile,
+} from '../../../logos/application/logo.service';
+import type { LogoRow } from '../../../logos/domain/logo-row';
+import { normalizeDomain } from '../../../logos/domain/normalize-domain';
 import { PurgeInstrumentLedgerUseCase } from '../../ledger/application/purge-instrument-ledger.use-case';
 import { FinanceOwnershipService } from '../../shared/application/finance-ownership.service';
 import {
@@ -28,6 +34,16 @@ import type { UpdateCardDto } from '../presentation/dto/update-card.dto';
 import type { UpdateCategoryDto } from '../presentation/dto/update-category.dto';
 import type { UpdateInstitutionDto } from '../presentation/dto/update-institution.dto';
 
+const fallbackLogos = {
+  ensureLogo: async () => null,
+  ensureCardNetworks: async () => undefined,
+  resolveUrl: (row?: LogoRow | null) => row?.logoUrl ?? null,
+  networkLogoUrl: () => null,
+  saveCustomLogo: async () => {
+    throw new Error('Logo upload unavailable');
+  },
+} as unknown as LogoService;
+
 function omitAccountNumber<T extends { accountNumber?: string | null }>(
   dto: T,
 ): Omit<T, 'accountNumber'> {
@@ -42,6 +58,7 @@ export class CatalogService {
     private readonly repo: CatalogRepository,
     private readonly ownership: FinanceOwnershipService,
     private readonly purgeLedger: PurgeInstrumentLedgerUseCase,
+    private readonly logos: LogoService = fallbackLogos,
   ) {}
 
   async listAccounts(userId: string) {
@@ -135,13 +152,23 @@ export class CatalogService {
   }
 
   async createInstitution(userId: string, dto: CreateInstitutionDto) {
-    const created = await this.repo.createInstitution(userId, {
-      name: dto.name,
-      color: dto.color,
-      logoUrl: dto.logoUrl,
-      country: dto.country ?? 'DO',
-    });
-    return this.mapInstitution(created);
+    const domain = this.normalizeInstitutionDomain(dto.domain);
+    const logoPath = domain ? await this.logos.ensureLogo(domain) : null;
+    try {
+      const created = await this.repo.createInstitution(userId, {
+        name: dto.name,
+        color: dto.color,
+        country: dto.country ?? 'DO',
+        type: dto.type ?? 'bank',
+        shortName: dto.shortName?.trim() || null,
+        sortOrder: dto.sortOrder ?? 0,
+        domain,
+        logoPath,
+      });
+      return this.mapInstitution(created);
+    } catch (error) {
+      this.rethrowInstitutionNameConflict(error);
+    }
   }
 
   async updateInstitution(userId: string, id: string, dto: UpdateInstitutionDto) {
@@ -149,7 +176,46 @@ export class CatalogService {
       await this.ownership.assertInstitutionOwned(userId, id);
       await this.ownership.assertInstitutionCanArchive(userId, id);
     }
-    const updated = await this.repo.updateInstitution(userId, id, dto);
+    const data: Prisma.FinInstitutionUpdateInput = {};
+    if (dto.name !== undefined) data.name = dto.name;
+    if (dto.color !== undefined) data.color = dto.color;
+    if (dto.country !== undefined) data.country = dto.country;
+    if (dto.type !== undefined) data.type = dto.type;
+    if (dto.shortName !== undefined) data.shortName = dto.shortName?.trim() || null;
+    if (dto.sortOrder !== undefined) data.sortOrder = dto.sortOrder;
+    if (dto.isActive !== undefined) data.isActive = dto.isActive;
+    if (dto.domain !== undefined) {
+      const domain = this.normalizeInstitutionDomain(dto.domain);
+      data.domain = domain;
+      data.logoPath = domain ? await this.logos.ensureLogo(domain) : null;
+    }
+    try {
+      const updated = await this.repo.updateInstitution(userId, id, data);
+      if (!updated) throw new NotFoundException('Institution not found');
+      return this.mapInstitution(updated);
+    } catch (error) {
+      this.rethrowInstitutionNameConflict(error);
+    }
+  }
+
+  async uploadInstitutionLogo(
+    userId: string,
+    id: string,
+    file: LogoUploadFile | undefined,
+  ) {
+    if (!file) throw new BadRequestException('Archivo obligatorio');
+    await this.ownership.assertInstitutionOwned(userId, id);
+    let path: string;
+    try {
+      path = await this.logos.saveCustomLogo(userId, id, file);
+    } catch (error) {
+      throw new BadRequestException(
+        error instanceof Error ? error.message : 'No se pudo guardar el logo',
+      );
+    }
+    const updated = await this.repo.updateInstitution(userId, id, {
+      customLogoPath: path,
+    });
     if (!updated) throw new NotFoundException('Institution not found');
     return this.mapInstitution(updated);
   }
@@ -184,12 +250,14 @@ export class CatalogService {
 
   async listCards(userId: string) {
     const cards = await this.repo.listCards(userId);
+    await this.logos.ensureCardNetworks();
     return cards.map((c) => this.mapCard(c));
   }
 
   async getCard(userId: string, id: string) {
     const card = await this.repo.findCardById(userId, id);
     if (!card) throw new NotFoundException('Card not found');
+    await this.logos.ensureCardNetworks();
     return this.mapCard(card);
   }
 
@@ -223,6 +291,7 @@ export class CatalogService {
       paymentDueDay: dto.paymentDueDay,
       color: dto.color,
     });
+    await this.logos.ensureCardNetworks();
     return this.mapCard(created);
   }
 
@@ -282,6 +351,7 @@ export class CatalogService {
           : {}),
     });
     if (!updated) throw new NotFoundException('Card not found');
+    await this.logos.ensureCardNetworks();
     return this.mapCard(updated);
   }
 
@@ -332,6 +402,9 @@ export class CatalogService {
   }
 
   async createCategory(userId: string, dto: CreateCategoryDto) {
+    if (dto.type === 'TRANSFER') {
+      throw new BadRequestException('Category type must be EXPENSE or INCOME');
+    }
     const type = dto.type ?? 'EXPENSE';
     if (dto.parentId) {
       await this.ownership.assertParentCategory(
@@ -404,6 +477,25 @@ export class CatalogService {
     return accountNumber;
   }
 
+  private normalizeInstitutionDomain(
+    domain: string | null | undefined,
+  ): string | null {
+    if (domain == null || domain.trim() === '') return null;
+    const normalized = normalizeDomain(domain);
+    if (!normalized) throw new BadRequestException('Dominio inválido');
+    return normalized;
+  }
+
+  private rethrowInstitutionNameConflict(error: unknown): never {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === 'P2002'
+    ) {
+      throw new ConflictException('Ya existe una institución con ese nombre');
+    }
+    throw error;
+  }
+
   private rethrowAccountNumberConflict(error: unknown): never {
     if (
       error instanceof Prisma.PrismaClientKnownRequestError &&
@@ -423,6 +515,7 @@ export class CatalogService {
       id: account.id,
       institutionId: account.institutionId,
       institutionName: account.institutionRef?.name ?? null,
+      institutionLogoUrl: this.logos.resolveUrl(account.institutionRef),
       name: account.name,
       type: account.type,
       currency: account.currency,
@@ -441,8 +534,12 @@ export class CatalogService {
     return {
       id: institution.id,
       name: institution.name,
+      type: institution.type ?? 'bank',
+      shortName: institution.shortName ?? null,
+      sortOrder: institution.sortOrder ?? 0,
+      domain: institution.domain ?? null,
       color: institution.color,
-      logoUrl: institution.logoUrl,
+      logoUrl: this.logos.resolveUrl(institution),
       country: institution.country,
       isActive: institution.isActive,
     };
@@ -455,6 +552,8 @@ export class CatalogService {
       id: card.id,
       institutionId: card.institutionId,
       institutionName: card.institution.name,
+      institutionLogoUrl: this.logos.resolveUrl(card.institution),
+      networkLogoUrl: this.logos.networkLogoUrl(card.network),
       accountId: card.accountId,
       accountName: card.account?.name ?? null,
       name: card.name,

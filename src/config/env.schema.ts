@@ -41,6 +41,10 @@ export const envSchema = z
     SUPABASE_SERVICE_ROLE_KEY: z
       .string()
       .min(1, 'SUPABASE_SERVICE_ROLE_KEY is required'),
+    /** Logo.dev secret key. Search is skipped when unset. */
+    LOGO_DEV_SECRET_KEY: optionalApiKey,
+    /** Logo.dev publishable key. Logo download is skipped when unset. */
+    LOGO_DEV_PUBLISHABLE_KEY: optionalApiKey,
 
     // ── IA (free-tier providers) ───────────────
     GROQ_API_KEY: optionalApiKey,

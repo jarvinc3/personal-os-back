@@ -432,6 +432,35 @@
         ]
       }
     },
+    "/api/finance/institutions/{id}/logo": {
+      "post": {
+        "operationId": "InstitutionsController_uploadLogo",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Upload a custom institution logo",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
     "/api/finance/institutions/{id}": {
       "patch": {
         "operationId": "InstitutionsController_update",
@@ -684,7 +713,8 @@
               "type": "string",
               "enum": [
                 "EXPENSE",
-                "INCOME"
+                "INCOME",
+                "TRANSFER"
               ]
             }
           }
@@ -1096,6 +1126,25 @@
         "summary": "Create a transfer between accounts/cards",
         "tags": [
           "finance"
+        ]
+      }
+    },
+    "/api/brands/search": {
+      "get": {
+        "operationId": "LogosController_search",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "tags": [
+          "brands"
         ]
       }
     },
@@ -2740,12 +2789,32 @@
           "color": {
             "type": "string"
           },
-          "logoUrl": {
-            "type": "string"
-          },
           "country": {
             "type": "string",
             "default": "DO"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "bank",
+              "credit_union",
+              "digital_wallet",
+              "broker",
+              "cash",
+              "other"
+            ],
+            "default": "bank"
+          },
+          "shortName": {
+            "type": "object"
+          },
+          "sortOrder": {
+            "type": "number",
+            "default": 0
+          },
+          "domain": {
+            "type": "object",
+            "description": "Brand domain, for example bhd.com.do"
           }
         },
         "required": [
@@ -2761,12 +2830,32 @@
           "color": {
             "type": "string"
           },
-          "logoUrl": {
-            "type": "string"
-          },
           "country": {
             "type": "string",
             "default": "DO"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "bank",
+              "credit_union",
+              "digital_wallet",
+              "broker",
+              "cash",
+              "other"
+            ],
+            "default": "bank"
+          },
+          "shortName": {
+            "type": "object"
+          },
+          "sortOrder": {
+            "type": "number",
+            "default": 0
+          },
+          "domain": {
+            "type": "object",
+            "description": "Brand domain, for example bhd.com.do"
           },
           "isActive": {
             "type": "boolean"
@@ -2919,7 +3008,8 @@
             "type": "string",
             "enum": [
               "EXPENSE",
-              "INCOME"
+              "INCOME",
+              "TRANSFER"
             ],
             "default": "EXPENSE",
             "description": "EXPENSE or INCOME. Defaults to EXPENSE when omitted."

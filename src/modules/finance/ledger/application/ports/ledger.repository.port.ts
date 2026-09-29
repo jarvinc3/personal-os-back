@@ -40,8 +40,25 @@ export type LedgerTransactionRow = {
   aiMetadata?: unknown;
   transactionDate: Date;
   createdAt: Date;
-  account?: { id: string; name: string } | null;
-  card?: { id: string; name: string } | null;
+  account?: {
+    id: string;
+    name: string;
+    institutionRef?: {
+      logoUrl?: string | null;
+      logoPath?: string | null;
+      customLogoPath?: string | null;
+    } | null;
+  } | null;
+  card?: {
+    id: string;
+    name: string;
+    network?: string | null;
+    institution?: {
+      logoUrl?: string | null;
+      logoPath?: string | null;
+      customLogoPath?: string | null;
+    } | null;
+  } | null;
   transferCounterpart?: LedgerTransactionRow | null;
 };
 
