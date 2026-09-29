@@ -37,7 +37,7 @@ describe('LogoService', () => {
 
   beforeEach(() => {
     fetchMock.mockReset();
-    global.fetch = fetchMock as unknown as typeof fetch;
+    global.fetch = fetchMock;
     createClientMock.mockReset();
   });
 
@@ -70,7 +70,7 @@ describe('LogoService', () => {
     fetchMock.mockResolvedValue({
       ok: true,
       status: 200,
-      arrayBuffer: async () => new Uint8Array([1, 2, 3]).buffer,
+      arrayBuffer: () => Promise.resolve(new Uint8Array([1, 2, 3]).buffer),
     });
     const service = new LogoService(config());
 

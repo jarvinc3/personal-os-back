@@ -35,13 +35,11 @@ import type { UpdateCategoryDto } from '../presentation/dto/update-category.dto'
 import type { UpdateInstitutionDto } from '../presentation/dto/update-institution.dto';
 
 const fallbackLogos = {
-  ensureLogo: async () => null,
-  ensureCardNetworks: async () => undefined,
+  ensureLogo: () => Promise.resolve(null),
+  ensureCardNetworks: () => Promise.resolve(undefined),
   resolveUrl: (row?: LogoRow | null) => row?.logoUrl ?? null,
   networkLogoUrl: () => null,
-  saveCustomLogo: async () => {
-    throw new Error('Logo upload unavailable');
-  },
+  saveCustomLogo: () => Promise.reject(new Error('Logo upload unavailable')),
 } as unknown as LogoService;
 
 function omitAccountNumber<T extends { accountNumber?: string | null }>(
