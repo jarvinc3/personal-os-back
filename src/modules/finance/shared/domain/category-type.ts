@@ -1,4 +1,4 @@
-export const FIN_CATEGORY_TYPES = ['EXPENSE', 'INCOME'] as const;
+export const FIN_CATEGORY_TYPES = ['EXPENSE', 'INCOME', 'TRANSFER'] as const;
 export type FinCategoryTypeValue = (typeof FIN_CATEGORY_TYPES)[number];
 
 export type CategoryResolveSource = 'hint' | 'merchant_history';

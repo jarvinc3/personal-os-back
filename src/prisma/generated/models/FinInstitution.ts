@@ -20,16 +20,32 @@ export type FinInstitutionModel = runtime.Types.Result.DefaultSelection<Prisma.$
 
 export type AggregateFinInstitution = {
   _count: FinInstitutionCountAggregateOutputType | null
+  _avg: FinInstitutionAvgAggregateOutputType | null
+  _sum: FinInstitutionSumAggregateOutputType | null
   _min: FinInstitutionMinAggregateOutputType | null
   _max: FinInstitutionMaxAggregateOutputType | null
+}
+
+export type FinInstitutionAvgAggregateOutputType = {
+  sortOrder: number | null
+}
+
+export type FinInstitutionSumAggregateOutputType = {
+  sortOrder: number | null
 }
 
 export type FinInstitutionMinAggregateOutputType = {
   id: string | null
   userId: string | null
   name: string | null
-  color: string | null
+  type: string | null
+  shortName: string | null
+  sortOrder: number | null
+  domain: string | null
+  logoPath: string | null
+  customLogoPath: string | null
   logoUrl: string | null
+  color: string | null
   country: string | null
   isActive: boolean | null
   createdAt: Date | null
@@ -40,8 +56,14 @@ export type FinInstitutionMaxAggregateOutputType = {
   id: string | null
   userId: string | null
   name: string | null
-  color: string | null
+  type: string | null
+  shortName: string | null
+  sortOrder: number | null
+  domain: string | null
+  logoPath: string | null
+  customLogoPath: string | null
   logoUrl: string | null
+  color: string | null
   country: string | null
   isActive: boolean | null
   createdAt: Date | null
@@ -52,8 +74,14 @@ export type FinInstitutionCountAggregateOutputType = {
   id: number
   userId: number
   name: number
-  color: number
+  type: number
+  shortName: number
+  sortOrder: number
+  domain: number
+  logoPath: number
+  customLogoPath: number
   logoUrl: number
+  color: number
   country: number
   isActive: number
   createdAt: number
@@ -62,12 +90,26 @@ export type FinInstitutionCountAggregateOutputType = {
 }
 
 
+export type FinInstitutionAvgAggregateInputType = {
+  sortOrder?: true
+}
+
+export type FinInstitutionSumAggregateInputType = {
+  sortOrder?: true
+}
+
 export type FinInstitutionMinAggregateInputType = {
   id?: true
   userId?: true
   name?: true
-  color?: true
+  type?: true
+  shortName?: true
+  sortOrder?: true
+  domain?: true
+  logoPath?: true
+  customLogoPath?: true
   logoUrl?: true
+  color?: true
   country?: true
   isActive?: true
   createdAt?: true
@@ -78,8 +120,14 @@ export type FinInstitutionMaxAggregateInputType = {
   id?: true
   userId?: true
   name?: true
-  color?: true
+  type?: true
+  shortName?: true
+  sortOrder?: true
+  domain?: true
+  logoPath?: true
+  customLogoPath?: true
   logoUrl?: true
+  color?: true
   country?: true
   isActive?: true
   createdAt?: true
@@ -90,8 +138,14 @@ export type FinInstitutionCountAggregateInputType = {
   id?: true
   userId?: true
   name?: true
-  color?: true
+  type?: true
+  shortName?: true
+  sortOrder?: true
+  domain?: true
+  logoPath?: true
+  customLogoPath?: true
   logoUrl?: true
+  color?: true
   country?: true
   isActive?: true
   createdAt?: true
@@ -137,6 +191,18 @@ export type FinInstitutionAggregateArgs<ExtArgs extends runtime.Types.Extensions
   /**
    * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
    * 
+   * Select which fields to average
+  **/
+  _avg?: FinInstitutionAvgAggregateInputType
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+   * 
+   * Select which fields to sum
+  **/
+  _sum?: FinInstitutionSumAggregateInputType
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+   * 
    * Select which fields to find the minimum value
   **/
   _min?: FinInstitutionMinAggregateInputType
@@ -167,6 +233,8 @@ export type FinInstitutionGroupByArgs<ExtArgs extends runtime.Types.Extensions.I
   take?: number
   skip?: number
   _count?: FinInstitutionCountAggregateInputType | true
+  _avg?: FinInstitutionAvgAggregateInputType
+  _sum?: FinInstitutionSumAggregateInputType
   _min?: FinInstitutionMinAggregateInputType
   _max?: FinInstitutionMaxAggregateInputType
 }
@@ -175,13 +243,21 @@ export type FinInstitutionGroupByOutputType = {
   id: string
   userId: string
   name: string
-  color: string | null
+  type: string
+  shortName: string | null
+  sortOrder: number
+  domain: string | null
+  logoPath: string | null
+  customLogoPath: string | null
   logoUrl: string | null
+  color: string | null
   country: string
   isActive: boolean
   createdAt: Date
   updatedAt: Date
   _count: FinInstitutionCountAggregateOutputType | null
+  _avg: FinInstitutionAvgAggregateOutputType | null
+  _sum: FinInstitutionSumAggregateOutputType | null
   _min: FinInstitutionMinAggregateOutputType | null
   _max: FinInstitutionMaxAggregateOutputType | null
 }
@@ -208,8 +284,14 @@ export type FinInstitutionWhereInput = {
   id?: Prisma.StringFilter<"FinInstitution"> | string
   userId?: Prisma.StringFilter<"FinInstitution"> | string
   name?: Prisma.StringFilter<"FinInstitution"> | string
-  color?: Prisma.StringNullableFilter<"FinInstitution"> | string | null
+  type?: Prisma.StringFilter<"FinInstitution"> | string
+  shortName?: Prisma.StringNullableFilter<"FinInstitution"> | string | null
+  sortOrder?: Prisma.IntFilter<"FinInstitution"> | number
+  domain?: Prisma.StringNullableFilter<"FinInstitution"> | string | null
+  logoPath?: Prisma.StringNullableFilter<"FinInstitution"> | string | null
+  customLogoPath?: Prisma.StringNullableFilter<"FinInstitution"> | string | null
   logoUrl?: Prisma.StringNullableFilter<"FinInstitution"> | string | null
+  color?: Prisma.StringNullableFilter<"FinInstitution"> | string | null
   country?: Prisma.StringFilter<"FinInstitution"> | string
   isActive?: Prisma.BoolFilter<"FinInstitution"> | boolean
   createdAt?: Prisma.DateTimeFilter<"FinInstitution"> | Date | string
@@ -225,8 +307,14 @@ export type FinInstitutionOrderByWithRelationInput = {
   id?: Prisma.SortOrder
   userId?: Prisma.SortOrder
   name?: Prisma.SortOrder
-  color?: Prisma.SortOrderInput | Prisma.SortOrder
+  type?: Prisma.SortOrder
+  shortName?: Prisma.SortOrderInput | Prisma.SortOrder
+  sortOrder?: Prisma.SortOrder
+  domain?: Prisma.SortOrderInput | Prisma.SortOrder
+  logoPath?: Prisma.SortOrderInput | Prisma.SortOrder
+  customLogoPath?: Prisma.SortOrderInput | Prisma.SortOrder
   logoUrl?: Prisma.SortOrderInput | Prisma.SortOrder
+  color?: Prisma.SortOrderInput | Prisma.SortOrder
   country?: Prisma.SortOrder
   isActive?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -245,8 +333,14 @@ export type FinInstitutionWhereUniqueInput = Prisma.AtLeast<{
   NOT?: Prisma.FinInstitutionWhereInput | Prisma.FinInstitutionWhereInput[]
   userId?: Prisma.StringFilter<"FinInstitution"> | string
   name?: Prisma.StringFilter<"FinInstitution"> | string
-  color?: Prisma.StringNullableFilter<"FinInstitution"> | string | null
+  type?: Prisma.StringFilter<"FinInstitution"> | string
+  shortName?: Prisma.StringNullableFilter<"FinInstitution"> | string | null
+  sortOrder?: Prisma.IntFilter<"FinInstitution"> | number
+  domain?: Prisma.StringNullableFilter<"FinInstitution"> | string | null
+  logoPath?: Prisma.StringNullableFilter<"FinInstitution"> | string | null
+  customLogoPath?: Prisma.StringNullableFilter<"FinInstitution"> | string | null
   logoUrl?: Prisma.StringNullableFilter<"FinInstitution"> | string | null
+  color?: Prisma.StringNullableFilter<"FinInstitution"> | string | null
   country?: Prisma.StringFilter<"FinInstitution"> | string
   isActive?: Prisma.BoolFilter<"FinInstitution"> | boolean
   createdAt?: Prisma.DateTimeFilter<"FinInstitution"> | Date | string
@@ -262,15 +356,23 @@ export type FinInstitutionOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
   userId?: Prisma.SortOrder
   name?: Prisma.SortOrder
-  color?: Prisma.SortOrderInput | Prisma.SortOrder
+  type?: Prisma.SortOrder
+  shortName?: Prisma.SortOrderInput | Prisma.SortOrder
+  sortOrder?: Prisma.SortOrder
+  domain?: Prisma.SortOrderInput | Prisma.SortOrder
+  logoPath?: Prisma.SortOrderInput | Prisma.SortOrder
+  customLogoPath?: Prisma.SortOrderInput | Prisma.SortOrder
   logoUrl?: Prisma.SortOrderInput | Prisma.SortOrder
+  color?: Prisma.SortOrderInput | Prisma.SortOrder
   country?: Prisma.SortOrder
   isActive?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   _count?: Prisma.FinInstitutionCountOrderByAggregateInput
+  _avg?: Prisma.FinInstitutionAvgOrderByAggregateInput
   _max?: Prisma.FinInstitutionMaxOrderByAggregateInput
   _min?: Prisma.FinInstitutionMinOrderByAggregateInput
+  _sum?: Prisma.FinInstitutionSumOrderByAggregateInput
 }
 
 export type FinInstitutionScalarWhereWithAggregatesInput = {
@@ -280,8 +382,14 @@ export type FinInstitutionScalarWhereWithAggregatesInput = {
   id?: Prisma.StringWithAggregatesFilter<"FinInstitution"> | string
   userId?: Prisma.StringWithAggregatesFilter<"FinInstitution"> | string
   name?: Prisma.StringWithAggregatesFilter<"FinInstitution"> | string
-  color?: Prisma.StringNullableWithAggregatesFilter<"FinInstitution"> | string | null
+  type?: Prisma.StringWithAggregatesFilter<"FinInstitution"> | string
+  shortName?: Prisma.StringNullableWithAggregatesFilter<"FinInstitution"> | string | null
+  sortOrder?: Prisma.IntWithAggregatesFilter<"FinInstitution"> | number
+  domain?: Prisma.StringNullableWithAggregatesFilter<"FinInstitution"> | string | null
+  logoPath?: Prisma.StringNullableWithAggregatesFilter<"FinInstitution"> | string | null
+  customLogoPath?: Prisma.StringNullableWithAggregatesFilter<"FinInstitution"> | string | null
   logoUrl?: Prisma.StringNullableWithAggregatesFilter<"FinInstitution"> | string | null
+  color?: Prisma.StringNullableWithAggregatesFilter<"FinInstitution"> | string | null
   country?: Prisma.StringWithAggregatesFilter<"FinInstitution"> | string
   isActive?: Prisma.BoolWithAggregatesFilter<"FinInstitution"> | boolean
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"FinInstitution"> | Date | string
@@ -291,8 +399,14 @@ export type FinInstitutionScalarWhereWithAggregatesInput = {
 export type FinInstitutionCreateInput = {
   id?: string
   name: string
-  color?: string | null
+  type?: string
+  shortName?: string | null
+  sortOrder?: number
+  domain?: string | null
+  logoPath?: string | null
+  customLogoPath?: string | null
   logoUrl?: string | null
+  color?: string | null
   country?: string
   isActive?: boolean
   createdAt?: Date | string
@@ -308,8 +422,14 @@ export type FinInstitutionUncheckedCreateInput = {
   id?: string
   userId: string
   name: string
-  color?: string | null
+  type?: string
+  shortName?: string | null
+  sortOrder?: number
+  domain?: string | null
+  logoPath?: string | null
+  customLogoPath?: string | null
   logoUrl?: string | null
+  color?: string | null
   country?: string
   isActive?: boolean
   createdAt?: Date | string
@@ -323,8 +443,14 @@ export type FinInstitutionUncheckedCreateInput = {
 export type FinInstitutionUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
-  color?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  type?: Prisma.StringFieldUpdateOperationsInput | string
+  shortName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sortOrder?: Prisma.IntFieldUpdateOperationsInput | number
+  domain?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  logoPath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  customLogoPath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   logoUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  color?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   country?: Prisma.StringFieldUpdateOperationsInput | string
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -340,8 +466,14 @@ export type FinInstitutionUncheckedUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
-  color?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  type?: Prisma.StringFieldUpdateOperationsInput | string
+  shortName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sortOrder?: Prisma.IntFieldUpdateOperationsInput | number
+  domain?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  logoPath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  customLogoPath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   logoUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  color?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   country?: Prisma.StringFieldUpdateOperationsInput | string
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -356,8 +488,14 @@ export type FinInstitutionCreateManyInput = {
   id?: string
   userId: string
   name: string
-  color?: string | null
+  type?: string
+  shortName?: string | null
+  sortOrder?: number
+  domain?: string | null
+  logoPath?: string | null
+  customLogoPath?: string | null
   logoUrl?: string | null
+  color?: string | null
   country?: string
   isActive?: boolean
   createdAt?: Date | string
@@ -367,8 +505,14 @@ export type FinInstitutionCreateManyInput = {
 export type FinInstitutionUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
-  color?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  type?: Prisma.StringFieldUpdateOperationsInput | string
+  shortName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sortOrder?: Prisma.IntFieldUpdateOperationsInput | number
+  domain?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  logoPath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  customLogoPath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   logoUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  color?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   country?: Prisma.StringFieldUpdateOperationsInput | string
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -379,8 +523,14 @@ export type FinInstitutionUncheckedUpdateManyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
-  color?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  type?: Prisma.StringFieldUpdateOperationsInput | string
+  shortName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sortOrder?: Prisma.IntFieldUpdateOperationsInput | number
+  domain?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  logoPath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  customLogoPath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   logoUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  color?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   country?: Prisma.StringFieldUpdateOperationsInput | string
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -411,20 +561,36 @@ export type FinInstitutionCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
   userId?: Prisma.SortOrder
   name?: Prisma.SortOrder
-  color?: Prisma.SortOrder
+  type?: Prisma.SortOrder
+  shortName?: Prisma.SortOrder
+  sortOrder?: Prisma.SortOrder
+  domain?: Prisma.SortOrder
+  logoPath?: Prisma.SortOrder
+  customLogoPath?: Prisma.SortOrder
   logoUrl?: Prisma.SortOrder
+  color?: Prisma.SortOrder
   country?: Prisma.SortOrder
   isActive?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
 
+export type FinInstitutionAvgOrderByAggregateInput = {
+  sortOrder?: Prisma.SortOrder
+}
+
 export type FinInstitutionMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
   userId?: Prisma.SortOrder
   name?: Prisma.SortOrder
-  color?: Prisma.SortOrder
+  type?: Prisma.SortOrder
+  shortName?: Prisma.SortOrder
+  sortOrder?: Prisma.SortOrder
+  domain?: Prisma.SortOrder
+  logoPath?: Prisma.SortOrder
+  customLogoPath?: Prisma.SortOrder
   logoUrl?: Prisma.SortOrder
+  color?: Prisma.SortOrder
   country?: Prisma.SortOrder
   isActive?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -435,12 +601,22 @@ export type FinInstitutionMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
   userId?: Prisma.SortOrder
   name?: Prisma.SortOrder
-  color?: Prisma.SortOrder
+  type?: Prisma.SortOrder
+  shortName?: Prisma.SortOrder
+  sortOrder?: Prisma.SortOrder
+  domain?: Prisma.SortOrder
+  logoPath?: Prisma.SortOrder
+  customLogoPath?: Prisma.SortOrder
   logoUrl?: Prisma.SortOrder
+  color?: Prisma.SortOrder
   country?: Prisma.SortOrder
   isActive?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+}
+
+export type FinInstitutionSumOrderByAggregateInput = {
+  sortOrder?: Prisma.SortOrder
 }
 
 export type FinInstitutionCreateNestedManyWithoutUserInput = {
@@ -548,8 +724,14 @@ export type FinInstitutionUpdateOneWithoutLoansNestedInput = {
 export type FinInstitutionCreateWithoutUserInput = {
   id?: string
   name: string
-  color?: string | null
+  type?: string
+  shortName?: string | null
+  sortOrder?: number
+  domain?: string | null
+  logoPath?: string | null
+  customLogoPath?: string | null
   logoUrl?: string | null
+  color?: string | null
   country?: string
   isActive?: boolean
   createdAt?: Date | string
@@ -563,8 +745,14 @@ export type FinInstitutionCreateWithoutUserInput = {
 export type FinInstitutionUncheckedCreateWithoutUserInput = {
   id?: string
   name: string
-  color?: string | null
+  type?: string
+  shortName?: string | null
+  sortOrder?: number
+  domain?: string | null
+  logoPath?: string | null
+  customLogoPath?: string | null
   logoUrl?: string | null
+  color?: string | null
   country?: string
   isActive?: boolean
   createdAt?: Date | string
@@ -608,8 +796,14 @@ export type FinInstitutionScalarWhereInput = {
   id?: Prisma.StringFilter<"FinInstitution"> | string
   userId?: Prisma.StringFilter<"FinInstitution"> | string
   name?: Prisma.StringFilter<"FinInstitution"> | string
-  color?: Prisma.StringNullableFilter<"FinInstitution"> | string | null
+  type?: Prisma.StringFilter<"FinInstitution"> | string
+  shortName?: Prisma.StringNullableFilter<"FinInstitution"> | string | null
+  sortOrder?: Prisma.IntFilter<"FinInstitution"> | number
+  domain?: Prisma.StringNullableFilter<"FinInstitution"> | string | null
+  logoPath?: Prisma.StringNullableFilter<"FinInstitution"> | string | null
+  customLogoPath?: Prisma.StringNullableFilter<"FinInstitution"> | string | null
   logoUrl?: Prisma.StringNullableFilter<"FinInstitution"> | string | null
+  color?: Prisma.StringNullableFilter<"FinInstitution"> | string | null
   country?: Prisma.StringFilter<"FinInstitution"> | string
   isActive?: Prisma.BoolFilter<"FinInstitution"> | boolean
   createdAt?: Prisma.DateTimeFilter<"FinInstitution"> | Date | string
@@ -619,8 +813,14 @@ export type FinInstitutionScalarWhereInput = {
 export type FinInstitutionCreateWithoutAccountsInput = {
   id?: string
   name: string
-  color?: string | null
+  type?: string
+  shortName?: string | null
+  sortOrder?: number
+  domain?: string | null
+  logoPath?: string | null
+  customLogoPath?: string | null
   logoUrl?: string | null
+  color?: string | null
   country?: string
   isActive?: boolean
   createdAt?: Date | string
@@ -635,8 +835,14 @@ export type FinInstitutionUncheckedCreateWithoutAccountsInput = {
   id?: string
   userId: string
   name: string
-  color?: string | null
+  type?: string
+  shortName?: string | null
+  sortOrder?: number
+  domain?: string | null
+  logoPath?: string | null
+  customLogoPath?: string | null
   logoUrl?: string | null
+  color?: string | null
   country?: string
   isActive?: boolean
   createdAt?: Date | string
@@ -665,8 +871,14 @@ export type FinInstitutionUpdateToOneWithWhereWithoutAccountsInput = {
 export type FinInstitutionUpdateWithoutAccountsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
-  color?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  type?: Prisma.StringFieldUpdateOperationsInput | string
+  shortName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sortOrder?: Prisma.IntFieldUpdateOperationsInput | number
+  domain?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  logoPath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  customLogoPath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   logoUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  color?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   country?: Prisma.StringFieldUpdateOperationsInput | string
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -681,8 +893,14 @@ export type FinInstitutionUncheckedUpdateWithoutAccountsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
-  color?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  type?: Prisma.StringFieldUpdateOperationsInput | string
+  shortName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sortOrder?: Prisma.IntFieldUpdateOperationsInput | number
+  domain?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  logoPath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  customLogoPath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   logoUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  color?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   country?: Prisma.StringFieldUpdateOperationsInput | string
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -695,8 +913,14 @@ export type FinInstitutionUncheckedUpdateWithoutAccountsInput = {
 export type FinInstitutionCreateWithoutEmailSourcesInput = {
   id?: string
   name: string
-  color?: string | null
+  type?: string
+  shortName?: string | null
+  sortOrder?: number
+  domain?: string | null
+  logoPath?: string | null
+  customLogoPath?: string | null
   logoUrl?: string | null
+  color?: string | null
   country?: string
   isActive?: boolean
   createdAt?: Date | string
@@ -711,8 +935,14 @@ export type FinInstitutionUncheckedCreateWithoutEmailSourcesInput = {
   id?: string
   userId: string
   name: string
-  color?: string | null
+  type?: string
+  shortName?: string | null
+  sortOrder?: number
+  domain?: string | null
+  logoPath?: string | null
+  customLogoPath?: string | null
   logoUrl?: string | null
+  color?: string | null
   country?: string
   isActive?: boolean
   createdAt?: Date | string
@@ -741,8 +971,14 @@ export type FinInstitutionUpdateToOneWithWhereWithoutEmailSourcesInput = {
 export type FinInstitutionUpdateWithoutEmailSourcesInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
-  color?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  type?: Prisma.StringFieldUpdateOperationsInput | string
+  shortName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sortOrder?: Prisma.IntFieldUpdateOperationsInput | number
+  domain?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  logoPath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  customLogoPath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   logoUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  color?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   country?: Prisma.StringFieldUpdateOperationsInput | string
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -757,8 +993,14 @@ export type FinInstitutionUncheckedUpdateWithoutEmailSourcesInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
-  color?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  type?: Prisma.StringFieldUpdateOperationsInput | string
+  shortName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sortOrder?: Prisma.IntFieldUpdateOperationsInput | number
+  domain?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  logoPath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  customLogoPath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   logoUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  color?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   country?: Prisma.StringFieldUpdateOperationsInput | string
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -771,8 +1013,14 @@ export type FinInstitutionUncheckedUpdateWithoutEmailSourcesInput = {
 export type FinInstitutionCreateWithoutCardsInput = {
   id?: string
   name: string
-  color?: string | null
+  type?: string
+  shortName?: string | null
+  sortOrder?: number
+  domain?: string | null
+  logoPath?: string | null
+  customLogoPath?: string | null
   logoUrl?: string | null
+  color?: string | null
   country?: string
   isActive?: boolean
   createdAt?: Date | string
@@ -787,8 +1035,14 @@ export type FinInstitutionUncheckedCreateWithoutCardsInput = {
   id?: string
   userId: string
   name: string
-  color?: string | null
+  type?: string
+  shortName?: string | null
+  sortOrder?: number
+  domain?: string | null
+  logoPath?: string | null
+  customLogoPath?: string | null
   logoUrl?: string | null
+  color?: string | null
   country?: string
   isActive?: boolean
   createdAt?: Date | string
@@ -817,8 +1071,14 @@ export type FinInstitutionUpdateToOneWithWhereWithoutCardsInput = {
 export type FinInstitutionUpdateWithoutCardsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
-  color?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  type?: Prisma.StringFieldUpdateOperationsInput | string
+  shortName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sortOrder?: Prisma.IntFieldUpdateOperationsInput | number
+  domain?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  logoPath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  customLogoPath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   logoUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  color?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   country?: Prisma.StringFieldUpdateOperationsInput | string
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -833,8 +1093,14 @@ export type FinInstitutionUncheckedUpdateWithoutCardsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
-  color?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  type?: Prisma.StringFieldUpdateOperationsInput | string
+  shortName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sortOrder?: Prisma.IntFieldUpdateOperationsInput | number
+  domain?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  logoPath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  customLogoPath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   logoUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  color?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   country?: Prisma.StringFieldUpdateOperationsInput | string
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -847,8 +1113,14 @@ export type FinInstitutionUncheckedUpdateWithoutCardsInput = {
 export type FinInstitutionCreateWithoutLoansInput = {
   id?: string
   name: string
-  color?: string | null
+  type?: string
+  shortName?: string | null
+  sortOrder?: number
+  domain?: string | null
+  logoPath?: string | null
+  customLogoPath?: string | null
   logoUrl?: string | null
+  color?: string | null
   country?: string
   isActive?: boolean
   createdAt?: Date | string
@@ -863,8 +1135,14 @@ export type FinInstitutionUncheckedCreateWithoutLoansInput = {
   id?: string
   userId: string
   name: string
-  color?: string | null
+  type?: string
+  shortName?: string | null
+  sortOrder?: number
+  domain?: string | null
+  logoPath?: string | null
+  customLogoPath?: string | null
   logoUrl?: string | null
+  color?: string | null
   country?: string
   isActive?: boolean
   createdAt?: Date | string
@@ -893,8 +1171,14 @@ export type FinInstitutionUpdateToOneWithWhereWithoutLoansInput = {
 export type FinInstitutionUpdateWithoutLoansInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
-  color?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  type?: Prisma.StringFieldUpdateOperationsInput | string
+  shortName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sortOrder?: Prisma.IntFieldUpdateOperationsInput | number
+  domain?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  logoPath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  customLogoPath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   logoUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  color?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   country?: Prisma.StringFieldUpdateOperationsInput | string
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -909,8 +1193,14 @@ export type FinInstitutionUncheckedUpdateWithoutLoansInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
-  color?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  type?: Prisma.StringFieldUpdateOperationsInput | string
+  shortName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sortOrder?: Prisma.IntFieldUpdateOperationsInput | number
+  domain?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  logoPath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  customLogoPath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   logoUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  color?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   country?: Prisma.StringFieldUpdateOperationsInput | string
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -923,8 +1213,14 @@ export type FinInstitutionUncheckedUpdateWithoutLoansInput = {
 export type FinInstitutionCreateManyUserInput = {
   id?: string
   name: string
-  color?: string | null
+  type?: string
+  shortName?: string | null
+  sortOrder?: number
+  domain?: string | null
+  logoPath?: string | null
+  customLogoPath?: string | null
   logoUrl?: string | null
+  color?: string | null
   country?: string
   isActive?: boolean
   createdAt?: Date | string
@@ -934,8 +1230,14 @@ export type FinInstitutionCreateManyUserInput = {
 export type FinInstitutionUpdateWithoutUserInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
-  color?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  type?: Prisma.StringFieldUpdateOperationsInput | string
+  shortName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sortOrder?: Prisma.IntFieldUpdateOperationsInput | number
+  domain?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  logoPath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  customLogoPath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   logoUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  color?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   country?: Prisma.StringFieldUpdateOperationsInput | string
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -949,8 +1251,14 @@ export type FinInstitutionUpdateWithoutUserInput = {
 export type FinInstitutionUncheckedUpdateWithoutUserInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
-  color?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  type?: Prisma.StringFieldUpdateOperationsInput | string
+  shortName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sortOrder?: Prisma.IntFieldUpdateOperationsInput | number
+  domain?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  logoPath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  customLogoPath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   logoUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  color?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   country?: Prisma.StringFieldUpdateOperationsInput | string
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -964,8 +1272,14 @@ export type FinInstitutionUncheckedUpdateWithoutUserInput = {
 export type FinInstitutionUncheckedUpdateManyWithoutUserInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   name?: Prisma.StringFieldUpdateOperationsInput | string
-  color?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  type?: Prisma.StringFieldUpdateOperationsInput | string
+  shortName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sortOrder?: Prisma.IntFieldUpdateOperationsInput | number
+  domain?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  logoPath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  customLogoPath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   logoUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  color?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   country?: Prisma.StringFieldUpdateOperationsInput | string
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1034,8 +1348,14 @@ export type FinInstitutionSelect<ExtArgs extends runtime.Types.Extensions.Intern
   id?: boolean
   userId?: boolean
   name?: boolean
-  color?: boolean
+  type?: boolean
+  shortName?: boolean
+  sortOrder?: boolean
+  domain?: boolean
+  logoPath?: boolean
+  customLogoPath?: boolean
   logoUrl?: boolean
+  color?: boolean
   country?: boolean
   isActive?: boolean
   createdAt?: boolean
@@ -1052,8 +1372,14 @@ export type FinInstitutionSelectCreateManyAndReturn<ExtArgs extends runtime.Type
   id?: boolean
   userId?: boolean
   name?: boolean
-  color?: boolean
+  type?: boolean
+  shortName?: boolean
+  sortOrder?: boolean
+  domain?: boolean
+  logoPath?: boolean
+  customLogoPath?: boolean
   logoUrl?: boolean
+  color?: boolean
   country?: boolean
   isActive?: boolean
   createdAt?: boolean
@@ -1065,8 +1391,14 @@ export type FinInstitutionSelectUpdateManyAndReturn<ExtArgs extends runtime.Type
   id?: boolean
   userId?: boolean
   name?: boolean
-  color?: boolean
+  type?: boolean
+  shortName?: boolean
+  sortOrder?: boolean
+  domain?: boolean
+  logoPath?: boolean
+  customLogoPath?: boolean
   logoUrl?: boolean
+  color?: boolean
   country?: boolean
   isActive?: boolean
   createdAt?: boolean
@@ -1078,15 +1410,21 @@ export type FinInstitutionSelectScalar = {
   id?: boolean
   userId?: boolean
   name?: boolean
-  color?: boolean
+  type?: boolean
+  shortName?: boolean
+  sortOrder?: boolean
+  domain?: boolean
+  logoPath?: boolean
+  customLogoPath?: boolean
   logoUrl?: boolean
+  color?: boolean
   country?: boolean
   isActive?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type FinInstitutionOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "name" | "color" | "logoUrl" | "country" | "isActive" | "createdAt" | "updatedAt", ExtArgs["result"]["finInstitution"]>
+export type FinInstitutionOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "name" | "type" | "shortName" | "sortOrder" | "domain" | "logoPath" | "customLogoPath" | "logoUrl" | "color" | "country" | "isActive" | "createdAt" | "updatedAt", ExtArgs["result"]["finInstitution"]>
 export type FinInstitutionInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   accounts?: boolean | Prisma.FinInstitution$accountsArgs<ExtArgs>
   cards?: boolean | Prisma.FinInstitution$cardsArgs<ExtArgs>
@@ -1115,8 +1453,20 @@ export type $FinInstitutionPayload<ExtArgs extends runtime.Types.Extensions.Inte
     id: string
     userId: string
     name: string
-    color: string | null
+    /**
+     * bank | credit_union | digital_wallet | broker | cash | other
+     */
+    type: string
+    shortName: string | null
+    sortOrder: number
+    domain: string | null
+    logoPath: string | null
+    customLogoPath: string | null
+    /**
+     * Legacy external URL. Response logoUrl prefers customLogoPath, then logoPath.
+     */
     logoUrl: string | null
+    color: string | null
     country: string
     isActive: boolean
     createdAt: Date
@@ -1552,8 +1902,14 @@ export interface FinInstitutionFieldRefs {
   readonly id: Prisma.FieldRef<"FinInstitution", 'String'>
   readonly userId: Prisma.FieldRef<"FinInstitution", 'String'>
   readonly name: Prisma.FieldRef<"FinInstitution", 'String'>
-  readonly color: Prisma.FieldRef<"FinInstitution", 'String'>
+  readonly type: Prisma.FieldRef<"FinInstitution", 'String'>
+  readonly shortName: Prisma.FieldRef<"FinInstitution", 'String'>
+  readonly sortOrder: Prisma.FieldRef<"FinInstitution", 'Int'>
+  readonly domain: Prisma.FieldRef<"FinInstitution", 'String'>
+  readonly logoPath: Prisma.FieldRef<"FinInstitution", 'String'>
+  readonly customLogoPath: Prisma.FieldRef<"FinInstitution", 'String'>
   readonly logoUrl: Prisma.FieldRef<"FinInstitution", 'String'>
+  readonly color: Prisma.FieldRef<"FinInstitution", 'String'>
   readonly country: Prisma.FieldRef<"FinInstitution", 'String'>
   readonly isActive: Prisma.FieldRef<"FinInstitution", 'Boolean'>
   readonly createdAt: Prisma.FieldRef<"FinInstitution", 'DateTime'>

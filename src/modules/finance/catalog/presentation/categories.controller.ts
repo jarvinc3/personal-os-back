@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -30,6 +31,9 @@ export class CategoriesController {
     @CurrentUser('sub') userId: string,
     @Query() query: ListCategoriesQueryDto,
   ) {
+    if (query.type === 'TRANSFER') {
+      throw new BadRequestException('Category type must be EXPENSE or INCOME');
+    }
     return this.catalog.listCategories(userId, query.type);
   }
 

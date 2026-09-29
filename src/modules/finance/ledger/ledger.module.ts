@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { LogosModule } from '../../logos/logos.module';
 import { FinanceEventsModule } from '../events/events.module';
 import { FinanceFxModule } from '../fx/fx.module';
 import { FinancePlanningThresholdModule } from '../planning/planning-threshold.module';
@@ -23,6 +24,7 @@ import { TransfersController } from './presentation/transfers.controller';
     FinanceEventsModule,
     FinancePlanningThresholdModule,
     FinanceOwnershipModule,
+    LogosModule,
   ],
   controllers: [TransactionsController, TransfersController],
   providers: [
