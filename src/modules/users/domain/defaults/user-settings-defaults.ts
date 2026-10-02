@@ -1,3 +1,5 @@
+import { DEFAULT_EMAIL_SYNC_SCHEDULE } from '../email-sync-schedule';
+
 /** Toggle keys under `config.notifications` for finance module alerts. */
 export const FINANCE_NOTIFICATION_KEYS = {
   budgetAlerts: 'budgetAlerts',
@@ -14,7 +16,8 @@ export type FinanceNotificationKey =
 export const DEFAULT_MODULE_CONFIG_BY_SLUG = {
   finance: {
     version: 1,
-    fieldGuide: 'Moneda, calendario financiero, panel y alertas del módulo Finanzas.',
+    fieldGuide:
+      'Moneda, calendario financiero, panel y alertas del módulo Finanzas.',
     baseCurrency: 'DOP',
     weekStartsOn: 1,
     dashboardPeriod: 'month',
@@ -27,11 +30,17 @@ export const DEFAULT_MODULE_CONFIG_BY_SLUG = {
       [FINANCE_NOTIFICATION_KEYS.cardDueDate]: true,
       [FINANCE_NOTIFICATION_KEYS.unusualExpense]: true,
     },
-    emailSync: { enabled: false, automatic: false, autoCategorize: true },
+    emailSync: {
+      enabled: false,
+      automatic: false,
+      autoCategorize: true,
+      schedule: DEFAULT_EMAIL_SYNC_SCHEDULE,
+    },
   },
   agenda: {
     version: 1,
-    fieldGuide: 'Vistas de calendario, horario laboral y recordatorios de eventos.',
+    fieldGuide:
+      'Vistas de calendario, horario laboral y recordatorios de eventos.',
     defaultView: 'week',
     weekStartsOn: 1,
     workingHours: { enabled: true, start: '09:00', end: '18:00' },
@@ -67,7 +76,9 @@ export const DEFAULT_MODULE_CONFIG_BY_SLUG = {
 
 export type ModuleSlug = keyof typeof DEFAULT_MODULE_CONFIG_BY_SLUG;
 
-export const MODULE_SLUGS = Object.keys(DEFAULT_MODULE_CONFIG_BY_SLUG) as ModuleSlug[];
+export const MODULE_SLUGS = Object.keys(
+  DEFAULT_MODULE_CONFIG_BY_SLUG,
+) as ModuleSlug[];
 
 export function isModuleSlug(slug: string): slug is ModuleSlug {
   return MODULE_SLUGS.includes(slug as ModuleSlug);

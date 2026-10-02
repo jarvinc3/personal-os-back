@@ -4,7 +4,7 @@
 
 Destino se resuelve por match único de tarjeta `lastFour` o cuenta única de esa institución; 0 o N → `PENDING_ASSIGNMENT` (sin fila ledger).
 
-Tokens cifrados. Job BullMQ `gmail-sync`. Extractor LLM (`AiEmailTransactionExtractor`) vía `AiCoreModule` (sin `forwardRef`). Sync automático (opt-in `emailSync.automatic`) al ligar un banco, al boot de la API y cada 6 h si `lastSyncedAt` está vencido.
+Tokens cifrados. Job BullMQ `gmail-sync`. Extractor LLM (`AiEmailTransactionExtractor`) vía `AiCoreModule` (sin `forwardRef`). Sync automático (opt-in `emailSync.automatic`) al ligar un banco, al boot de la API y según `UserModule.config.emailSync.schedule` (intervalo mínimo 15 min u horas fijas en la zona del usuario; default 6 h).
 
 OAuth autoriza **solo el buzón**. Ligar un banco es `POST /api/finance/email-sync/sources` (exige connection con refresh token). Callback sin `institutionId` en `state` no crea source.
 

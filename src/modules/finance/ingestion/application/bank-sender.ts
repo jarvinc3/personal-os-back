@@ -19,12 +19,30 @@ export function extractEmailDomain(email: string): string {
   return address.slice(address.lastIndexOf('@') + 1);
 }
 
+export function normalizeBankSenderEmails(input: {
+  bankSenderEmail?: string | null;
+  bankSenderEmails?: string[] | null;
+}): string[] {
+  const fromList = (input.bankSenderEmails ?? [])
+    .map((value) => extractEmailAddress(value))
+    .filter((value): value is string => Boolean(value));
+  const single = input.bankSenderEmail
+    ? extractEmailAddress(input.bankSenderEmail)
+    : null;
+  return [...new Set([...(single ? [single] : []), ...fromList])];
+}
+
 export function buildGmailFromQuery(source: {
   bankSenderEmail?: string | null;
+  bankSenderEmails?: string[] | null;
   bankDomain: string;
 }): string {
-  const sender = source.bankSenderEmail
-    ? extractEmailAddress(source.bankSenderEmail)
-    : null;
-  return `from:${sender ?? source.bankDomain}`;
+  const senders = normalizeBankSenderEmails(source);
+  if (senders.length === 0) {
+    return `from:${source.bankDomain}`;
+  }
+  if (senders.length === 1) {
+    return `from:${senders[0]}`;
+  }
+  return `from:(${senders.join(' OR ')})`;
 }

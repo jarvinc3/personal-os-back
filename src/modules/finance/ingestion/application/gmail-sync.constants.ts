@@ -1,6 +1,3 @@
-/** Minimum gap between automatic Gmail syncs of the same source. */
-export const GMAIL_AUTO_SYNC_INTERVAL_MS = 6 * 60 * 60 * 1000;
-
 export const GMAIL_SYNC_JOB_NAME = 'gmail-sync-source';
 
 export function gmailSyncJobId(sourceId: string): string {

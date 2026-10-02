@@ -8,6 +8,7 @@ type GmailMessagePart = {
 
 export type GmailMessage = {
   id: string;
+  internalDate?: string;
   payload?: {
     headers?: GmailHeader[];
     mimeType?: string;
@@ -21,6 +22,35 @@ function decodeBase64Url(data: string): string {
   return Buffer.from(normalized, 'base64').toString('utf8');
 }
 
+export function stripHtmlToText(html: string): string {
+  return html
+    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/(p|div|tr|h[1-6]|li|table)>/gi, '\n')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&#(\d+);/g, (_, code: string) =>
+      String.fromCharCode(Number(code)),
+    )
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function decodePartBody(part: GmailMessagePart): string {
+  if (!part.body?.data) {
+    return '';
+  }
+  const decoded = decodeBase64Url(part.body.data);
+  if (part.mimeType === 'text/html') {
+    return stripHtmlToText(decoded);
+  }
+  return decoded;
+}
+
 function extractBodyFromPart(part: GmailMessagePart): string {
   if (part.mimeType === 'text/plain' && part.body?.data) {
     return decodeBase64Url(part.body.data);
@@ -32,7 +62,7 @@ function extractBodyFromPart(part: GmailMessagePart): string {
     }
   }
   if (part.mimeType === 'text/html' && part.body?.data) {
-    return decodeBase64Url(part.body.data).replace(/<[^>]+>/g, ' ');
+    return decodePartBody(part);
   }
   return '';
 }
@@ -41,14 +71,24 @@ export function parseGmailMessage(message: GmailMessage): {
   from: string;
   subject: string;
   body: string;
+  internalDate: Date | null;
 } {
   const headers = message.payload?.headers ?? [];
-  const from = headers.find((h) => h.name.toLowerCase() === 'from')?.value ?? '';
-  const subject = headers.find((h) => h.name.toLowerCase() === 'subject')?.value ?? '';
+  const from =
+    headers.find((h) => h.name.toLowerCase() === 'from')?.value ?? '';
+  const subject =
+    headers.find((h) => h.name.toLowerCase() === 'subject')?.value ?? '';
+  const internalDate = message.internalDate
+    ? new Date(Number(message.internalDate))
+    : null;
 
   let body = '';
   if (message.payload?.body?.data) {
-    body = decodeBase64Url(message.payload.body.data);
+    const decoded = decodeBase64Url(message.payload.body.data);
+    body =
+      message.payload.mimeType === 'text/html'
+        ? stripHtmlToText(decoded)
+        : decoded;
   } else if (message.payload?.parts?.length) {
     for (const part of message.payload.parts) {
       body = extractBodyFromPart(part);
@@ -56,7 +96,7 @@ export function parseGmailMessage(message: GmailMessage): {
     }
   }
 
-  return { from, subject, body };
+  return { from, subject, body, internalDate };
 }
 
 export async function listGmailMessages(
@@ -101,6 +141,29 @@ export async function getGmailMessage(
   return (await response.json()) as GmailMessage;
 }
 
+export async function getGmailMessageFromHeader(
+  accessToken: string,
+  messageId: string,
+): Promise<string> {
+  const params = new URLSearchParams({
+    format: 'metadata',
+    metadataHeaders: 'From',
+  });
+  const response = await fetch(
+    `https://gmail.googleapis.com/gmail/v1/users/me/messages/${messageId}?${params.toString()}`,
+    { headers: { Authorization: `Bearer ${accessToken}` } },
+  );
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`Gmail get metadata failed (${response.status}): ${text}`);
+  }
+  const data = (await response.json()) as GmailMessage;
+  return (
+    data.payload?.headers?.find((h) => h.name.toLowerCase() === 'from')
+      ?.value ?? ''
+  );
+}
+
 export async function exchangeGoogleAuthCode(
   code: string,
   clientId: string,
@@ -125,7 +188,9 @@ export async function exchangeGoogleAuthCode(
 
   if (!response.ok) {
     const text = await response.text();
-    throw new Error(`Google token exchange failed (${response.status}): ${text}`);
+    throw new Error(
+      `Google token exchange failed (${response.status}): ${text}`,
+    );
   }
 
   return (await response.json()) as {
@@ -153,16 +218,26 @@ export async function refreshGoogleAccessToken(
 
   if (!response.ok) {
     const text = await response.text();
-    throw new Error(`Google token refresh failed (${response.status}): ${text}`);
+    throw new Error(
+      `Google token refresh failed (${response.status}): ${text}`,
+    );
   }
 
-  return (await response.json()) as { access_token: string; expires_in: number };
+  return (await response.json()) as {
+    access_token: string;
+    expires_in: number;
+  };
 }
 
-export async function fetchGoogleUserEmail(accessToken: string): Promise<string> {
-  const response = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
-    headers: { Authorization: `Bearer ${accessToken}` },
-  });
+export async function fetchGoogleUserEmail(
+  accessToken: string,
+): Promise<string> {
+  const response = await fetch(
+    'https://www.googleapis.com/oauth2/v2/userinfo',
+    {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    },
+  );
 
   if (!response.ok) {
     const text = await response.text();

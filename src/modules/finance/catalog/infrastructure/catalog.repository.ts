@@ -33,6 +33,7 @@ export class CatalogRepository {
       balance: 0,
       institutionId: dto.institutionId ?? null,
       accountNumber: dto.accountNumber ?? null,
+      isDefaultForInstitution: dto.isDefaultForInstitution === true,
     };
     if (dto.color) data.color = dto.color;
 
@@ -60,12 +61,31 @@ export class CatalogRepository {
           color: dto.color,
           isActive: dto.isActive,
           accountNumber: dto.accountNumber,
+          ...(dto.isDefaultForInstitution !== undefined
+            ? { isDefaultForInstitution: dto.isDefaultForInstitution }
+            : {}),
         },
       })
       .then(async (result) => {
         if (result.count === 0) return null;
         return this.findAccountById(id, userId);
       });
+  }
+
+  clearDefaultAccount(
+    userId: string,
+    institutionId: string,
+    exceptId?: string,
+  ) {
+    return this.prisma.finAccount.updateMany({
+      where: {
+        userId,
+        institutionId,
+        isDefaultForInstitution: true,
+        ...(exceptId ? { id: { not: exceptId } } : {}),
+      },
+      data: { isDefaultForInstitution: false },
+    });
   }
 
   listInstitutions(userId: string) {
@@ -154,7 +174,9 @@ export class CatalogRepository {
     creditLimit?: number,
   ) {
     return this.prisma.$transaction(async (tx) => {
-      const card = await tx.finCard.findFirst({ where: { id: cardId, userId } });
+      const card = await tx.finCard.findFirst({
+        where: { id: cardId, userId },
+      });
       if (!card) return null;
       const normalizedCurrency = String(normalizeCurrencyCode(currency));
       const existing = await tx.finCardBalance.findFirst({

@@ -11,11 +11,14 @@ import {
   listGmailMessages,
   parseGmailMessage,
 } from '../infrastructure/gmail-api.util';
-import type { ImportEmailTransactionUseCase } from '../../ledger/application/import-email-transaction.use-case';
 import type { LedgerQueryService } from '../../ledger/application/ledger-query.service';
 import type { ReverseTransactionUseCase } from '../../ledger/application/reverse-transaction.use-case';
+import type { BackfillPendingEmailUseCase } from './backfill-pending-email.use-case';
+import type { MatchEmailTransfersUseCase } from './backfill-pending-email.use-case';
 import type { IngestionService } from './ingestion.service';
 import { ProcessGmailSyncUseCase } from './process-gmail-sync.use-case';
+import type { RouteExtractedEmailUseCase } from './route-extracted-email.use-case';
+import type { RetryPendingReversesUseCase } from './retry-pending-reverses.use-case';
 
 describe('ProcessGmailSyncUseCase', () => {
   const findEmailSource = jest.fn();
@@ -26,6 +29,7 @@ describe('ProcessGmailSyncUseCase', () => {
   const findEmailMessage = jest.fn();
   const upsertEmailMessage = jest.fn();
   const listInstitutionDestinations = jest.fn();
+  const listCashAccounts = jest.fn();
   const emailSources = {
     findEmailSource,
     createEmailSyncLog,
@@ -35,6 +39,7 @@ describe('ProcessGmailSyncUseCase', () => {
     findEmailMessage,
     upsertEmailMessage,
     listInstitutionDestinations,
+    listCashAccounts,
   } as unknown as EmailSourceRepository;
 
   const getValidGmailAccessToken = jest.fn();
@@ -44,21 +49,40 @@ describe('ProcessGmailSyncUseCase', () => {
     completeEmailSyncSuccessWithEvent,
   } as unknown as IngestionService;
 
-  const importExecute = jest.fn();
-  const importEmail = {
-    execute: importExecute,
-  } as unknown as ImportEmailTransactionUseCase;
+  const routeExecute = jest.fn();
+  const routeExtracted = {
+    execute: routeExecute,
+  } as unknown as RouteExtractedEmailUseCase;
+  const backfillExecute = jest.fn().mockResolvedValue({ imported: 0 });
+  const backfillPending = {
+    execute: backfillExecute,
+  } as unknown as BackfillPendingEmailUseCase;
+  const matchExecute = jest
+    .fn()
+    .mockResolvedValue({ paired: 0, atmCompleted: 0 });
+  const matchTransfers = {
+    execute: matchExecute,
+  } as unknown as MatchEmailTransfersUseCase;
 
   const reverseExecute = jest.fn();
   const reverseTx = {
     execute: reverseExecute,
   } as unknown as ReverseTransactionUseCase;
 
+  const listRetryActions = jest.fn().mockResolvedValue([]);
+  const applyRetryAction = jest.fn().mockResolvedValue(undefined);
+  const retryPendingReverses = {
+    listActions: listRetryActions,
+    applyAction: applyRetryAction,
+  } as unknown as RetryPendingReversesUseCase;
+
   const findTransactionByEmailMessageId = jest.fn();
+  const findTransactionByExternalReference = jest.fn();
   const findReverseCandidates = jest.fn();
   const findLatestCategoryIdByMerchant = jest.fn();
   const ledger = {
     findTransactionByEmailMessageId,
+    findTransactionByExternalReference,
     findReverseCandidates,
     findLatestCategoryIdByMerchant,
   } as unknown as LedgerQueryService;
@@ -79,10 +103,13 @@ describe('ProcessGmailSyncUseCase', () => {
   const useCase = new ProcessGmailSyncUseCase(
     emailSources,
     ingestion,
-    importEmail,
     reverseTx,
     ledger,
     extractor,
+    routeExtracted,
+    backfillPending,
+    matchTransfers,
+    retryPendingReverses,
   );
 
   const activeSource = {
@@ -108,11 +135,13 @@ describe('ProcessGmailSyncUseCase', () => {
       merchant: 'Coffee',
       description: 'Purchase',
       notes: null,
+      movementClass: 'PURCHASE' as const,
       categoryNameHint: null,
       bankStatusRaw: 'APPROVED',
       bankStatusNormalized: 'APPROVED' as const,
       statusEvidence: 'APPROVED',
       statusConfidence: 0.4,
+      bankReference: null,
       reverseOfEmailMessageId: null,
       reverseOriginalRef: null,
       instrumentHint: 'ACCOUNT' as const,
@@ -128,12 +157,24 @@ describe('ProcessGmailSyncUseCase', () => {
     listCategories.mockResolvedValue([]);
     findEmailMessage.mockResolvedValue(null);
     findTransactionByEmailMessageId.mockResolvedValue(null);
+    findTransactionByExternalReference.mockResolvedValue(null);
+    findReverseCandidates.mockResolvedValue([]);
     findLatestCategoryIdByMerchant.mockResolvedValue(null);
     upsertEmailMessage.mockResolvedValue({ id: 'em-row-1' });
     listInstitutionDestinations.mockResolvedValue([
       [{ id: 'acc-1', name: 'Main', accountNumber: '00001234' }],
       [],
     ]);
+    listCashAccounts.mockResolvedValue([]);
+    routeExecute.mockResolvedValue({
+      kind: 'imported',
+      transactionId: 'tx-1',
+      status: 'PENDING',
+    });
+    backfillExecute.mockResolvedValue({ imported: 0 });
+    listRetryActions.mockResolvedValue([]);
+    applyRetryAction.mockResolvedValue(undefined);
+    matchExecute.mockResolvedValue({ paired: 0, atmCompleted: 0 });
     updateEmailSource.mockResolvedValue(undefined);
     completeEmailSyncSuccessWithEvent.mockResolvedValue(undefined);
     listGmailMessagesMock.mockResolvedValue({
@@ -145,6 +186,7 @@ describe('ProcessGmailSyncUseCase', () => {
       from: 'alerts@bank.example',
       subject: 'Purchase',
       body: 'You spent 12.50 DOP',
+      internalDate: null,
     });
   });
 
@@ -202,28 +244,24 @@ describe('ProcessGmailSyncUseCase', () => {
     findEmailSource.mockResolvedValue(activeSource);
     listInstitutionDestinations.mockResolvedValue([[], []]);
     extract.mockResolvedValue(transactionExtraction);
+    routeExecute.mockResolvedValue({
+      kind: 'pending_assignment',
+      reason: 'No matching account or card',
+    });
 
     await useCase.execute({ userId: 'user-1', sourceId: 'src-1' });
 
-    expect(importExecute).not.toHaveBeenCalled();
-    expect(upsertEmailMessage).toHaveBeenCalledWith(
+    expect(routeExecute).toHaveBeenCalledWith(
       expect.objectContaining({
+        userId: 'user-1',
         sourceId: 'src-1',
         gmailMessageId: 'msg-1',
-        outcome: 'PENDING_ASSIGNMENT',
       }),
     );
   });
 
   it('queues PENDING_ASSIGNMENT when several destinations match', async () => {
     findEmailSource.mockResolvedValue(activeSource);
-    listInstitutionDestinations.mockResolvedValue([
-      [
-        { id: 'acc-1', name: 'A', accountNumber: '11111111' },
-        { id: 'acc-2', name: 'B', accountNumber: '22222222' },
-      ],
-      [],
-    ]);
     extract.mockResolvedValue({
       ...transactionExtraction,
       data: {
@@ -232,13 +270,14 @@ describe('ProcessGmailSyncUseCase', () => {
         lastFourHint: null,
       },
     });
+    routeExecute.mockResolvedValue({
+      kind: 'pending_assignment',
+      reason: 'Ambiguous ledger target (2)',
+    });
 
     await useCase.execute({ userId: 'user-1', sourceId: 'src-1' });
 
-    expect(importExecute).not.toHaveBeenCalled();
-    expect(upsertEmailMessage).toHaveBeenCalledWith(
-      expect.objectContaining({ outcome: 'PENDING_ASSIGNMENT' }),
-    );
+    expect(routeExecute).toHaveBeenCalled();
   });
 
   it('skips import when extractor returns ok false retryable and does not persist', async () => {
@@ -251,7 +290,7 @@ describe('ProcessGmailSyncUseCase', () => {
 
     await useCase.execute({ userId: 'user-1', sourceId: 'src-1' });
 
-    expect(importExecute).not.toHaveBeenCalled();
+    expect(routeExecute).not.toHaveBeenCalled();
     expect(upsertEmailMessage).not.toHaveBeenCalled();
     expect(completeEmailSyncSuccessWithEvent).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -280,7 +319,7 @@ describe('ProcessGmailSyncUseCase', () => {
       outcome: 'FAILED_NON_RETRYABLE',
       reason: 'Extracted payload failed schema validation',
     });
-    expect(importExecute).not.toHaveBeenCalled();
+    expect(routeExecute).not.toHaveBeenCalled();
 
     extract.mockClear();
     findEmailMessage.mockResolvedValue({
@@ -306,7 +345,7 @@ describe('ProcessGmailSyncUseCase', () => {
 
     await useCase.execute({ userId: 'user-1', sourceId: 'src-1' });
 
-    expect(importExecute).not.toHaveBeenCalled();
+    expect(routeExecute).not.toHaveBeenCalled();
     expect(upsertEmailMessage).toHaveBeenCalledWith({
       sourceId: 'src-1',
       gmailMessageId: 'msg-1',
@@ -328,7 +367,7 @@ describe('ProcessGmailSyncUseCase', () => {
 
     expect(extract).not.toHaveBeenCalled();
     expect(getGmailMessageMock).not.toHaveBeenCalled();
-    expect(importExecute).not.toHaveBeenCalled();
+    expect(routeExecute).not.toHaveBeenCalled();
     expect(completeEmailSyncSuccessWithEvent).toHaveBeenCalledWith(
       expect.objectContaining({
         emailsScanned: 1,
@@ -339,13 +378,6 @@ describe('ProcessGmailSyncUseCase', () => {
 
   it('imports onto the account whose number matches the extracted hint', async () => {
     findEmailSource.mockResolvedValue(activeSource);
-    listInstitutionDestinations.mockResolvedValue([
-      [
-        { id: 'acc-1', name: 'Nomina', accountNumber: '001122335678' },
-        { id: 'acc-2', name: 'Ahorros', accountNumber: '998877440000' },
-      ],
-      [],
-    ]);
     extract.mockResolvedValue({
       ...transactionExtraction,
       data: {
@@ -356,21 +388,21 @@ describe('ProcessGmailSyncUseCase', () => {
         accountNumberHint: '5678',
       },
     });
-    importExecute.mockResolvedValue({ id: 'tx-1' });
+    routeExecute.mockResolvedValue({
+      kind: 'imported',
+      transactionId: 'tx-1',
+      status: 'CONFIRMED',
+    });
 
     await useCase.execute({ userId: 'user-1', sourceId: 'src-1' });
 
-    expect(importExecute).toHaveBeenCalledWith(
-      'user-1',
+    expect(routeExecute).toHaveBeenCalledWith(
       expect.objectContaining({
-        accountId: 'acc-1',
-        emailMessageId: 'em-row-1',
-      }),
-    );
-    expect(upsertEmailMessage).toHaveBeenCalledWith(
-      expect.objectContaining({
-        accountNumberHint: '5678',
-        outcome: 'IMPORTED',
+        userId: 'user-1',
+        extracted: expect.objectContaining({
+          accountNumberHint: '5678',
+          type: 'CREDIT',
+        }),
       }),
     );
   });
@@ -378,27 +410,20 @@ describe('ProcessGmailSyncUseCase', () => {
   it('imports PENDING on low confidence, persists IMPORTED, and completes success event', async () => {
     findEmailSource.mockResolvedValue(activeSource);
     extract.mockResolvedValue(transactionExtraction);
-    importExecute.mockResolvedValue({ id: 'tx-1' });
+    routeExecute.mockResolvedValue({
+      kind: 'imported',
+      transactionId: 'tx-1',
+      status: 'PENDING',
+    });
 
     await useCase.execute({ userId: 'user-1', sourceId: 'src-1' });
 
-    expect(importExecute).toHaveBeenCalledWith(
-      'user-1',
+    expect(routeExecute).toHaveBeenCalledWith(
       expect.objectContaining({
-        emailMessageId: 'em-row-1',
-        accountId: 'acc-1',
-        status: 'PENDING',
-        amount: 12.5,
-        currency: 'DOP',
-      }),
-    );
-    expect(upsertEmailMessage).toHaveBeenCalledWith(
-      expect.objectContaining({
-        sourceId: 'src-1',
-        gmailMessageId: 'msg-1',
-        outcome: 'IMPORTED',
-        provider: 'groq',
-        model: 'test',
+        extracted: expect.objectContaining({
+          amount: 12.5,
+          currency: 'DOP',
+        }),
       }),
     );
     expect(completeEmailSyncSuccessWithEvent).toHaveBeenCalledWith(
@@ -413,41 +438,12 @@ describe('ProcessGmailSyncUseCase', () => {
     );
   });
 
-  it('matches CREDIT category hints to INCOME categories only', async () => {
-    findEmailSource.mockResolvedValue(activeSource);
-    listCategories.mockResolvedValue([
-      { id: 'exp-salary', name: 'Salario', type: 'EXPENSE' },
-      { id: 'inc-salary', name: 'Salario', type: 'INCOME' },
-    ]);
-    extract.mockResolvedValue({
-      ...transactionExtraction,
-      data: {
-        ...transactionExtraction.data,
-        type: 'CREDIT',
-        categoryNameHint: 'Salario',
-        statusConfidence: 0.95,
-      },
-    });
-    importExecute.mockResolvedValue({ id: 'tx-income' });
-
-    await useCase.execute({ userId: 'user-1', sourceId: 'src-1' });
-
-    expect(importExecute).toHaveBeenCalledWith(
-      'user-1',
-      expect.objectContaining({
-        type: 'CREDIT',
-        categoryId: 'inc-salary',
-      }),
-    );
-  });
-
-  it('passes categories to the extractor and falls back to merchant history', async () => {
+  it('passes categories to the extractor', async () => {
     findEmailSource.mockResolvedValue(activeSource);
     listCategories.mockResolvedValue([
       { id: 'exp-food', name: 'Alimentación', type: 'EXPENSE' },
       { id: 'exp-transport', name: 'Transporte', type: 'EXPENSE' },
     ]);
-    findLatestCategoryIdByMerchant.mockResolvedValue('exp-transport');
     extract.mockResolvedValue({
       ...transactionExtraction,
       data: {
@@ -458,7 +454,11 @@ describe('ProcessGmailSyncUseCase', () => {
         statusConfidence: 0.95,
       },
     });
-    importExecute.mockResolvedValue({ id: 'tx-hist' });
+    routeExecute.mockResolvedValue({
+      kind: 'imported',
+      transactionId: 'tx-hist',
+      status: 'CONFIRMED',
+    });
 
     await useCase.execute({ userId: 'user-1', sourceId: 'src-1' });
 
@@ -468,19 +468,6 @@ describe('ProcessGmailSyncUseCase', () => {
           { name: 'Alimentación', type: 'EXPENSE' },
           { name: 'Transporte', type: 'EXPENSE' },
         ],
-      }),
-    );
-    expect(findLatestCategoryIdByMerchant).toHaveBeenCalledWith(
-      'user-1',
-      'Uber',
-    );
-    expect(importExecute).toHaveBeenCalledWith(
-      'user-1',
-      expect.objectContaining({
-        categoryId: 'exp-transport',
-        notes: expect.stringContaining(
-          'Categoría tomada de un movimiento anterior',
-        ),
       }),
     );
   });
@@ -504,17 +491,21 @@ describe('ProcessGmailSyncUseCase', () => {
       from: 'alerts@bank.example',
       subject: 'Purchase',
       body: 'You spent 12.50 DOP',
+      internalDate: null,
     });
     extract.mockResolvedValue(transactionExtraction);
-    importExecute.mockResolvedValue({ id: 'tx-2' });
+    routeExecute.mockResolvedValue({
+      kind: 'imported',
+      transactionId: 'tx-2',
+      status: 'PENDING',
+    });
 
     try {
       await useCase.execute({ userId: 'user-1', sourceId: 'src-1' });
 
       expect(extract).toHaveBeenCalledTimes(1);
-      expect(importExecute).toHaveBeenCalledWith(
-        'user-1',
-        expect.objectContaining({ emailMessageId: 'em-row-1' }),
+      expect(routeExecute).toHaveBeenCalledWith(
+        expect.objectContaining({ gmailMessageId: 'msg-new' }),
       );
     } finally {
       if (prev === undefined) {
@@ -535,7 +526,11 @@ describe('ProcessGmailSyncUseCase', () => {
       nextPageToken: undefined,
     });
     extract.mockResolvedValue(transactionExtraction);
-    importExecute.mockResolvedValue({ id: 'tx-1' });
+    routeExecute.mockResolvedValue({
+      kind: 'imported',
+      transactionId: 'tx-1',
+      status: 'PENDING',
+    });
 
     try {
       await useCase.execute({ userId: 'user-1', sourceId: 'src-1' });
@@ -571,6 +566,131 @@ describe('ProcessGmailSyncUseCase', () => {
       'user-1',
       'src-1',
       expect.objectContaining({ lastSyncedAt: expect.any(Date) }),
+    );
+  });
+
+  it('counts a routed duplicate as skipped, not imported', async () => {
+    findEmailSource.mockResolvedValue(activeSource);
+    extract.mockResolvedValue(transactionExtraction);
+    routeExecute.mockResolvedValue({
+      kind: 'duplicate',
+      transactionId: 'tx-existing',
+    });
+
+    await useCase.execute({ userId: 'user-1', sourceId: 'src-1' });
+
+    expect(completeEmailSyncSuccessWithEvent).toHaveBeenCalledWith(
+      expect.objectContaining({ transactionsNew: 0 }),
+    );
+  });
+
+  it('marks a repeated reversal as SKIPPED_DUPLICATE', async () => {
+    findEmailSource.mockResolvedValue(activeSource);
+    extract.mockResolvedValue({
+      ...transactionExtraction,
+      data: {
+        ...transactionExtraction.data,
+        bankStatusNormalized: 'REVERSED',
+        statusConfidence: 0.95,
+      },
+    });
+    findReverseCandidates
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([
+        { id: 'tx-original', userId: 'user-1', status: 'REVERSED' },
+      ]);
+
+    await useCase.execute({ userId: 'user-1', sourceId: 'src-1' });
+
+    expect(reverseExecute).not.toHaveBeenCalled();
+    expect(upsertEmailMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        gmailMessageId: 'msg-1',
+        outcome: 'SKIPPED_DUPLICATE',
+      }),
+    );
+  });
+
+  it('persists PENDING_REVERSE when no original is found', async () => {
+    findEmailSource.mockResolvedValue(activeSource);
+    extract.mockResolvedValue({
+      ...transactionExtraction,
+      data: {
+        ...transactionExtraction.data,
+        bankStatusNormalized: 'REVERSED',
+        statusConfidence: 0.95,
+      },
+    });
+    findReverseCandidates.mockResolvedValue([]);
+
+    await useCase.execute({ userId: 'user-1', sourceId: 'src-1' });
+
+    expect(reverseExecute).not.toHaveBeenCalled();
+    expect(upsertEmailMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        gmailMessageId: 'msg-1',
+        outcome: 'PENDING_REVERSE',
+      }),
+    );
+  });
+
+  it('counts reversals applied by the pending retry pass', async () => {
+    findEmailSource.mockResolvedValue(activeSource);
+    extract.mockResolvedValue({
+      ok: true as const,
+      kind: 'not_transaction' as const,
+      reason: 'promo',
+      provider: 'groq',
+      model: 'test',
+    });
+    listRetryActions.mockResolvedValue([
+      {
+        kind: 'apply',
+        sourceId: 'src-1',
+        gmailMessageId: 'msg-9',
+        originalId: 'tx-9',
+        extracted: transactionExtraction.data,
+        provider: null,
+        model: null,
+      },
+    ]);
+
+    await useCase.execute({ userId: 'user-1', sourceId: 'src-1' });
+
+    expect(applyRetryAction).toHaveBeenCalledWith(
+      'user-1',
+      expect.objectContaining({ kind: 'apply', originalId: 'tx-9' }),
+    );
+    expect(completeEmailSyncSuccessWithEvent).toHaveBeenCalledWith(
+      expect.objectContaining({ transactionsNew: 1, transactionIds: ['tx-9'] }),
+    );
+  });
+
+  it('does not count retry actions that only mark duplicates', async () => {
+    findEmailSource.mockResolvedValue(activeSource);
+    extract.mockResolvedValue({
+      ok: true as const,
+      kind: 'not_transaction' as const,
+      reason: 'promo',
+      provider: 'groq',
+      model: 'test',
+    });
+    listRetryActions.mockResolvedValue([
+      {
+        kind: 'duplicate',
+        sourceId: 'src-1',
+        gmailMessageId: 'msg-9',
+        originalId: 'tx-9',
+        provider: null,
+        model: null,
+      },
+    ]);
+
+    await useCase.execute({ userId: 'user-1', sourceId: 'src-1' });
+
+    expect(applyRetryAction).toHaveBeenCalled();
+    expect(completeEmailSyncSuccessWithEvent).toHaveBeenCalledWith(
+      expect.objectContaining({ transactionsNew: 0 }),
     );
   });
 });

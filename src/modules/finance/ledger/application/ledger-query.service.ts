@@ -2,7 +2,10 @@ import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { paginate } from '../../../../core/pagination/pagination.dto';
 import { LogoService } from '../../../logos/application/logo.service';
 import { LEDGER_REPOSITORY } from '../../shared/application/tokens';
-import type { ListTransactionsQuery } from './commands/ledger.commands';
+import type {
+  FinTxStatus,
+  ListTransactionsQuery,
+} from './commands/ledger.commands';
 import { mapLogicalTransaction } from './ledger-mappers';
 import type { LedgerRepositoryPort } from './ports/ledger.repository.port';
 
@@ -49,6 +52,10 @@ export class LedgerQueryService {
     return this.repo.findTransactionByEmailMessageId(gmailMessageId, userId);
   }
 
+  findTransactionByExternalReference(userId: string, reference: string) {
+    return this.repo.findTransactionByExternalReference(userId, reference);
+  }
+
   findReverseCandidates(
     userId: string,
     params: {
@@ -56,9 +63,26 @@ export class LedgerQueryService {
       currency: string;
       merchant: string | null;
       aroundDate: Date;
+      statuses?: FinTxStatus[];
     },
   ) {
     return this.repo.findCandidatesForReverse(userId, params);
+  }
+
+  findDedupeCandidate(
+    userId: string,
+    params: {
+      externalReference: string | null;
+      accountId?: string | null;
+      cardId?: string | null;
+      amount: number;
+      currency: string;
+      type: 'DEBIT' | 'CREDIT';
+      merchant: string | null;
+      transactionDate: Date;
+    },
+  ) {
+    return this.repo.findDedupeCandidate(userId, params);
   }
 
   findLatestCategoryIdByMerchant(userId: string, merchant: string) {

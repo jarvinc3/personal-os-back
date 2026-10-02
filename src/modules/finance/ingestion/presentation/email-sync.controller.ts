@@ -24,9 +24,13 @@ import { IngestionService } from '../application/ingestion.service';
 import { ConnectEmailSourceDto } from './dto/connect-email-source.dto';
 import {
   AssignEmailMessageDto,
+  CompletePendingAmountDto,
   GoogleOAuthUrlQueryDto,
 } from './dto/oauth-callback-query.dto';
-import { UpdateEmailSourceDto } from './dto/update-email-source.dto';
+import {
+  AddEmailSourceSendersDto,
+  UpdateEmailSourceDto,
+} from './dto/update-email-source.dto';
 
 @ApiTags('finance')
 @ApiBearerAuth('access-token')
@@ -45,10 +49,7 @@ export class EmailSyncController {
 
   @Delete('mailboxes/:id')
   @ApiOperation({ summary: 'Disconnect a Gmail mailbox and its bank links' })
-  removeMailbox(
-    @CurrentUser('sub') userId: string,
-    @Param('id') id: string,
-  ) {
+  removeMailbox(@CurrentUser('sub') userId: string, @Param('id') id: string) {
     return this.ingestion.deactivateMailbox(userId, id);
   }
 
@@ -106,7 +107,9 @@ export class EmailSyncController {
   }
 
   @Post('pending/:id/assign')
-  @ApiOperation({ summary: 'Assign a pending email import to an account or card' })
+  @ApiOperation({
+    summary: 'Assign a pending email import to an account or card',
+  })
   assignPending(
     @CurrentUser('sub') userId: string,
     @Param('id') id: string,
@@ -116,12 +119,47 @@ export class EmailSyncController {
   }
 
   @Post('pending/:id/retry')
-  @ApiOperation({ summary: 'Retry automatic routing for a pending email import' })
-  retryPending(
+  @ApiOperation({
+    summary: 'Retry automatic routing for a pending email import',
+  })
+  retryPending(@CurrentUser('sub') userId: string, @Param('id') id: string) {
+    return this.ingestion.retryPendingMessage(userId, id);
+  }
+
+  @Post('pending/:id/amount')
+  @ApiOperation({
+    summary: 'Complete a payroll/deposit import that had no amount',
+  })
+  completeAmount(
+    @CurrentUser('sub') userId: string,
+    @Param('id') id: string,
+    @Body() dto: CompletePendingAmountDto,
+  ) {
+    return this.ingestion.completePendingAmount(userId, id, dto.amount);
+  }
+
+  @Get('sources/:id/discovered-senders')
+  @ApiOperation({
+    summary:
+      'List other From addresses on this bank domain without calling the model',
+  })
+  listDiscoveredSenders(
     @CurrentUser('sub') userId: string,
     @Param('id') id: string,
   ) {
-    return this.ingestion.retryPendingMessage(userId, id);
+    return this.ingestion.listDiscoveredSenders(userId, id);
+  }
+
+  @Post('sources/:id/senders')
+  @ApiOperation({
+    summary: 'Add allowlisted sender addresses for this institution',
+  })
+  addSenders(
+    @CurrentUser('sub') userId: string,
+    @Param('id') id: string,
+    @Body() dto: AddEmailSourceSendersDto,
+  ) {
+    return this.ingestion.addSourceSenders(userId, id, dto.emails);
   }
 
   @Get('oauth/google/url')

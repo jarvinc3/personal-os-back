@@ -15,6 +15,7 @@ import {
   isModuleSlug,
   type ModuleSlug,
 } from '../domain/defaults/user-settings-defaults';
+import { validateEmailSyncSchedule } from '../domain/email-sync-schedule';
 import { UpdateModuleConfigDto } from '../presentation/dto/update-module-config.dto';
 import { UpdateProfileDto } from '../presentation/dto/update-profile.dto';
 import { mergeWithDefaults } from '../domain/settings-merge';
@@ -108,6 +109,17 @@ export class UsersService {
   ) {
     if (!isModuleSlug(slug)) {
       throw new NotFoundException(`Module "${slug}" not found`);
+    }
+
+    if (slug === 'finance' && dto.config !== undefined) {
+      const emailSync = (dto.config as { emailSync?: { schedule?: unknown } })
+        .emailSync;
+      if (emailSync?.schedule !== undefined) {
+        const scheduleError = validateEmailSyncSchedule(emailSync.schedule);
+        if (scheduleError) {
+          throw new BadRequestException(scheduleError);
+        }
+      }
     }
 
     if (dto.config === undefined && dto.isEnabled === undefined) {

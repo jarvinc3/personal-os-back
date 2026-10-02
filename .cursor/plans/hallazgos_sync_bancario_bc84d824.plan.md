@@ -4,7 +4,7 @@ overview: El correo de nómina de Popular no se puede importar porque no trae mo
 todos:
   - id: payroll-amount
     content: Permitir nómina/depósito sin monto como pendiente de importe, sin inventar el salario
-    status: pending
+    status: in_progress
   - id: html-and-cedula
     content: Limpiar HTML del cuerpo raíz y no usar la cédula como accountNumberHint
     status: pending

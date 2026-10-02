@@ -1,6 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import type { Prisma } from '../../../../prisma/generated/client';
 import { PrismaService } from '../../../../prisma/prisma.service';
+import {
+  EMAIL_MESSAGE_OUTCOME,
+  type EmailMessageOutcome,
+} from '../application/email-message-outcome';
 
 const sourceListInclude = {
   connection: {
@@ -38,11 +42,7 @@ function jsonInput(value: unknown): Prisma.InputJsonValue {
 export type UpsertEmailMessageInput = {
   sourceId: string;
   gmailMessageId: string;
-  outcome:
-    | 'IMPORTED'
-    | 'SKIPPED_NOT_TX'
-    | 'FAILED_NON_RETRYABLE'
-    | 'PENDING_ASSIGNMENT';
+  outcome: EmailMessageOutcome;
   reason?: string | null;
   provider?: string | null;
   model?: string | null;
@@ -64,13 +64,12 @@ export class EmailSourceRepository {
     });
   }
 
-  listDueGmailSyncSources(cutoff: Date) {
+  listAutoSyncSources() {
     return this.prisma.finEmailSource.findMany({
       where: {
         isActive: true,
         connection: { isActive: true },
         institution: { isActive: true },
-        OR: [{ lastSyncedAt: null }, { lastSyncedAt: { lte: cutoff } }],
         user: {
           userModules: {
             some: {
@@ -94,7 +93,21 @@ export class EmailSourceRepository {
           },
         },
       },
-      select: { id: true, userId: true },
+      select: {
+        id: true,
+        userId: true,
+        lastSyncedAt: true,
+        user: {
+          select: {
+            timezone: true,
+            userModules: {
+              where: { module: { slug: 'finance' } },
+              select: { config: true },
+              take: 1,
+            },
+          },
+        },
+      },
     });
   }
 
@@ -319,7 +332,12 @@ export class EmailSourceRepository {
     return Promise.all([
       this.prisma.finAccount.findMany({
         where: { userId, institutionId, isActive: true },
-        select: { id: true, name: true, accountNumber: true },
+        select: {
+          id: true,
+          name: true,
+          accountNumber: true,
+          isDefaultForInstitution: true,
+        },
       }),
       this.prisma.finCard.findMany({
         where: { userId, institutionId, isActive: true },
@@ -345,11 +363,42 @@ export class EmailSourceRepository {
   listPendingAssignmentMessages(userId: string) {
     return this.prisma.finEmailMessage.findMany({
       where: {
-        outcome: 'PENDING_ASSIGNMENT',
+        outcome: {
+          in: [
+            EMAIL_MESSAGE_OUTCOME.PENDING_ASSIGNMENT,
+            EMAIL_MESSAGE_OUTCOME.PENDING_AMOUNT,
+          ],
+        },
         source: { userId },
       },
       include: pendingMessageInclude,
       orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  listCashAccounts(userId: string) {
+    return this.prisma.finAccount.findMany({
+      where: { userId, type: 'CASH', isActive: true },
+      select: { id: true, name: true, currency: true },
+    });
+  }
+
+  listEmailMovementsForTransferMatch(userId: string, since: Date) {
+    return this.prisma.finTransaction.findMany({
+      where: {
+        userId,
+        source: 'EMAIL',
+        status: { in: ['PENDING', 'CONFIRMED'] },
+        transactionDate: { gte: since },
+      },
+      include: {
+        account: { select: { id: true, institutionId: true, type: true } },
+        card: { select: { id: true, institutionId: true } },
+        emailMessage: {
+          select: { id: true, extractedPayload: true, outcome: true },
+        },
+      },
+      orderBy: { transactionDate: 'asc' },
     });
   }
 
@@ -374,6 +423,17 @@ export class EmailSourceRepository {
       where: {
         sourceId_gmailMessageId: { sourceId, gmailMessageId },
       },
+    });
+  }
+
+  listPendingReverseMessages(userId: string, limit: number) {
+    return this.prisma.finEmailMessage.findMany({
+      where: {
+        outcome: EMAIL_MESSAGE_OUTCOME.PENDING_REVERSE,
+        source: { userId, isActive: true },
+      },
+      orderBy: { createdAt: 'asc' },
+      take: limit,
     });
   }
 

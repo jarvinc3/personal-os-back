@@ -38,6 +38,7 @@ describe('CatalogRepository createAccount', () => {
       balance: 0,
       institutionId: 'inst-1',
       accountNumber: '12345678',
+      isDefaultForInstitution: false,
     });
     expect(Object.keys(data)).not.toContain('institution');
     expect(Object.keys(data)).not.toContain('color');
@@ -68,6 +69,7 @@ describe('CatalogRepository createAccount', () => {
       balance: 0,
       institutionId: 'inst-1',
       accountNumber: '001122335678',
+      isDefaultForInstitution: false,
       color: '#22c55e',
     });
   });

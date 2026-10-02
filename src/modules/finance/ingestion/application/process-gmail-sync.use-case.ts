@@ -1,10 +1,8 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { resolveMaxEmailLlmExtracts } from '../../../ai-agent';
-import { ImportEmailTransactionUseCase } from '../../ledger/application/import-email-transaction.use-case';
 import { LedgerQueryService } from '../../ledger/application/ledger-query.service';
 import { ReverseTransactionUseCase } from '../../ledger/application/reverse-transaction.use-case';
 import { EMAIL_TRANSACTION_EXTRACTOR } from '../../shared/application/tokens';
-import { resolveCategoryIdForImport } from '../../shared/domain/category-type';
 import { mapBankStatusToInternal } from '../../shared/domain/transaction-status';
 import { EmailSourceRepository } from '../infrastructure/email-source.repository';
 import {
@@ -12,14 +10,21 @@ import {
   listGmailMessages,
   parseGmailMessage,
 } from '../infrastructure/gmail-api.util';
+import {
+  BackfillPendingEmailUseCase,
+  MatchEmailTransfersUseCase,
+} from './backfill-pending-email.use-case';
 import { buildGmailFromQuery } from './bank-sender';
-import { buildEmailImportNotes } from './build-email-import-notes';
+import { shouldReopenSkippedPayroll } from './email-movement';
+import { EMAIL_MESSAGE_OUTCOME } from './email-message-outcome';
 import { IngestionService } from './ingestion.service';
 import type {
   EmailTransactionExtractorPort,
   ExtractedEmailTransaction,
 } from './ports/email-transaction-extractor.port';
-import { resolveEmailLedgerTarget } from './resolve-email-ledger-target';
+import { RouteExtractedEmailUseCase } from './route-extracted-email.use-case';
+import { RetryPendingReversesUseCase } from './retry-pending-reverses.use-case';
+import { findReverseOriginal } from './resolve-reverse-original';
 
 @Injectable()
 export class ProcessGmailSyncUseCase {
@@ -28,11 +33,14 @@ export class ProcessGmailSyncUseCase {
   constructor(
     private readonly emailSources: EmailSourceRepository,
     private readonly ingestion: IngestionService,
-    private readonly importEmail: ImportEmailTransactionUseCase,
     private readonly reverseTx: ReverseTransactionUseCase,
     private readonly ledger: LedgerQueryService,
     @Inject(EMAIL_TRANSACTION_EXTRACTOR)
     private readonly extractor: EmailTransactionExtractorPort,
+    private readonly routeExtracted: RouteExtractedEmailUseCase,
+    private readonly backfillPending: BackfillPendingEmailUseCase,
+    private readonly matchTransfers: MatchEmailTransfersUseCase,
+    private readonly retryPendingReverses: RetryPendingReversesUseCase,
   ) {}
 
   async execute(params: {
@@ -82,6 +90,7 @@ export class ProcessGmailSyncUseCase {
           userId,
           source.institutionId,
         );
+      const cashAccounts = await this.emailSources.listCashAccounts(userId);
       let hitLlmCap = false;
       let deferredRetryable = false;
 
@@ -99,7 +108,13 @@ export class ProcessGmailSyncUseCase {
             sourceId,
             messageRef.id,
           );
-          if (seenMessage) {
+          const reopenSkipped =
+            Boolean(seenMessage) &&
+            shouldReopenSkippedPayroll({
+              outcome: seenMessage!.outcome,
+              reason: seenMessage!.reason,
+            });
+          if (seenMessage && !reopenSkipped) {
             emailsSkipped += 1;
             continue;
           }
@@ -114,7 +129,8 @@ export class ProcessGmailSyncUseCase {
 
           try {
             const message = await getGmailMessage(accessToken, messageRef.id);
-            const { from, subject, body } = parseGmailMessage(message);
+            const { from, subject, body, internalDate } =
+              parseGmailMessage(message);
             llmExtracts += 1;
             const extraction = await this.extractor.extract({
               from,
@@ -132,7 +148,7 @@ export class ProcessGmailSyncUseCase {
                 await this.emailSources.upsertEmailMessage({
                   sourceId,
                   gmailMessageId: messageRef.id,
-                  outcome: 'FAILED_NON_RETRYABLE',
+                  outcome: EMAIL_MESSAGE_OUTCOME.FAILED_NON_RETRYABLE,
                   reason: extraction.reason,
                 });
                 emailsSkipped += 1;
@@ -146,7 +162,7 @@ export class ProcessGmailSyncUseCase {
               await this.emailSources.upsertEmailMessage({
                 sourceId,
                 gmailMessageId: messageRef.id,
-                outcome: 'SKIPPED_NOT_TX',
+                outcome: EMAIL_MESSAGE_OUTCOME.SKIPPED_NOT_TX,
                 reason: extraction.reason,
                 provider: extraction.provider,
                 model: extraction.model,
@@ -155,36 +171,45 @@ export class ProcessGmailSyncUseCase {
               continue;
             }
 
-            const extracted = extraction.data;
+            const extracted: ExtractedEmailTransaction = {
+              ...extraction.data,
+              transactionDate:
+                extraction.data.transactionDate ||
+                (internalDate ?? new Date()).toISOString(),
+            };
             const status = mapBankStatusToInternal({
               bankStatusNormalized: extracted.bankStatusNormalized,
               statusConfidence: extracted.statusConfidence,
             });
 
-            if (status === 'REVERSED') {
-              const original = await this.findOriginalForReverse(
-                userId,
-                extracted.reverseOfEmailMessageId,
-                extracted.merchant,
-                extracted.amount,
-                extracted.currency,
-                new Date(extracted.transactionDate),
-              );
-              if (original) {
-                await this.reverseTx.execute(userId, original.id, {
-                  bankStatusRaw: extracted.bankStatusRaw,
-                  bankStatusNormalized: extracted.bankStatusNormalized,
-                  statusEvidence: extracted.statusEvidence,
-                  statusConfidence: extracted.statusConfidence,
-                  reverseEmailMessageId: messageRef.id,
-                  provider: extraction.provider,
-                  model: extraction.model,
-                  extractedAt: new Date().toISOString(),
-                });
+            if (status === 'REVERSED' && extraction.kind === 'transaction') {
+              const original = await findReverseOriginal(this.ledger, userId, {
+                reverseEmailMessageId: extracted.reverseOfEmailMessageId,
+                reverseOriginalRef: extracted.reverseOriginalRef,
+                merchant: extracted.merchant,
+                amount: extracted.amount ?? 0,
+                currency: extracted.currency,
+                aroundDate: new Date(extracted.transactionDate),
+              });
+              if (original?.status === 'REVERSED') {
                 await this.emailSources.upsertEmailMessage({
                   sourceId,
                   gmailMessageId: messageRef.id,
-                  outcome: 'IMPORTED',
+                  outcome: EMAIL_MESSAGE_OUTCOME.SKIPPED_DUPLICATE,
+                  reason: `Reversal already applied to transaction ${original.id}`,
+                  provider: extraction.provider,
+                  model: extraction.model,
+                  extractedPayload: extracted,
+                });
+                emailsSkipped += 1;
+                continue;
+              }
+              if (!original) {
+                await this.emailSources.upsertEmailMessage({
+                  sourceId,
+                  gmailMessageId: messageRef.id,
+                  outcome: EMAIL_MESSAGE_OUTCOME.PENDING_REVERSE,
+                  reason: 'No matching original transaction yet',
                   provider: extraction.provider,
                   model: extraction.model,
                   instrumentHint: extracted.instrumentHint,
@@ -192,30 +217,23 @@ export class ProcessGmailSyncUseCase {
                   accountNumberHint: extracted.accountNumberHint,
                   extractedPayload: extracted,
                 });
-                transactionsNew += 1;
-                countsByStatus.REVERSED = (countsByStatus.REVERSED ?? 0) + 1;
-                transactionIds.push(original.id);
+                emailsSkipped += 1;
+                continue;
               }
-              continue;
-            }
-
-            const match = resolveEmailLedgerTarget({
-              instrumentHint: extracted.instrumentHint,
-              lastFourHint: extracted.lastFourHint,
-              accountNumberHint: extracted.accountNumberHint,
-              accounts,
-              cards,
-            });
-
-            if (match.kind !== 'unique') {
+              await this.reverseTx.execute(userId, original.id, {
+                bankStatusRaw: extracted.bankStatusRaw,
+                bankStatusNormalized: extracted.bankStatusNormalized,
+                statusEvidence: extracted.statusEvidence,
+                statusConfidence: extracted.statusConfidence,
+                reverseEmailMessageId: messageRef.id,
+                provider: extraction.provider,
+                model: extraction.model,
+                extractedAt: new Date().toISOString(),
+              });
               await this.emailSources.upsertEmailMessage({
                 sourceId,
                 gmailMessageId: messageRef.id,
-                outcome: 'PENDING_ASSIGNMENT',
-                reason:
-                  match.kind === 'ambiguous'
-                    ? `Ambiguous ledger target (${match.candidateCount})`
-                    : 'No matching account or card',
+                outcome: EMAIL_MESSAGE_OUTCOME.IMPORTED,
                 provider: extraction.provider,
                 model: extraction.model,
                 instrumentHint: extracted.instrumentHint,
@@ -223,78 +241,32 @@ export class ProcessGmailSyncUseCase {
                 accountNumberHint: extracted.accountNumberHint,
                 extractedPayload: extracted,
               });
-              emailsSkipped += 1;
+              transactionsNew += 1;
+              countsByStatus.REVERSED = (countsByStatus.REVERSED ?? 0) + 1;
+              transactionIds.push(original.id);
               continue;
             }
 
-            const category = await resolveCategoryIdForImport({
-              categories,
-              hint: extracted.categoryNameHint,
-              transactionType: extracted.type,
-              merchant: extracted.merchant,
-              findCategoryIdByMerchant: (merchant) =>
-                this.ledger.findLatestCategoryIdByMerchant(userId, merchant),
-            });
-
-            const notes = buildEmailImportNotes({
-              llmNotes: extracted.notes,
-              categoryId: category.categoryId,
-              categorySource: category.source,
-              categoryNameHint: extracted.categoryNameHint,
-              status,
-            });
-
-            const persisted = await this.emailSources.upsertEmailMessage({
+            const routed = await this.routeExtracted.execute({
+              userId,
               sourceId,
               gmailMessageId: messageRef.id,
-              outcome: 'PENDING_ASSIGNMENT',
+              extracted,
               provider: extraction.provider,
               model: extraction.model,
-              instrumentHint: extracted.instrumentHint,
-              lastFourHint: extracted.lastFourHint,
-              accountNumberHint: extracted.accountNumberHint,
-              extractedPayload: { ...extracted, notes },
+              accounts,
+              cards,
+              cashAccounts,
             });
 
-            const created = await this.importEmail.execute(userId, {
-              accountId: match.accountId,
-              cardId: match.cardId,
-              emailMessageId: persisted.id,
-              amount: extracted.amount,
-              currency: extracted.currency,
-              merchant: extracted.merchant,
-              description: extracted.description,
-              notes,
-              transactionDate: new Date(extracted.transactionDate),
-              type: extracted.type,
-              status,
-              categoryId: category.categoryId,
-              aiMetadata: {
-                bankStatusRaw: extracted.bankStatusRaw,
-                bankStatusNormalized: extracted.bankStatusNormalized,
-                statusEvidence: extracted.statusEvidence,
-                statusConfidence: extracted.statusConfidence,
-                provider: extraction.provider,
-                model: extraction.model,
-                extractedAt: new Date().toISOString(),
-              },
-            });
-
-            await this.emailSources.upsertEmailMessage({
-              sourceId,
-              gmailMessageId: messageRef.id,
-              outcome: 'IMPORTED',
-              provider: extraction.provider,
-              model: extraction.model,
-              instrumentHint: extracted.instrumentHint,
-              lastFourHint: extracted.lastFourHint,
-              accountNumberHint: extracted.accountNumberHint,
-              extractedPayload: { ...extracted, notes },
-            });
-
-            transactionsNew += 1;
-            countsByStatus[status] = (countsByStatus[status] ?? 0) + 1;
-            transactionIds.push(created.id);
+            if (routed.kind === 'imported') {
+              transactionsNew += 1;
+              countsByStatus[routed.status] =
+                (countsByStatus[routed.status] ?? 0) + 1;
+              transactionIds.push(routed.transactionId);
+            } else {
+              emailsSkipped += 1;
+            }
           } catch (error) {
             if (
               error instanceof Error &&
@@ -308,6 +280,21 @@ export class ProcessGmailSyncUseCase {
         if (hitLlmCap) break;
         pageToken = listResult.nextPageToken;
       } while (pageToken);
+
+      const backfill = await this.backfillPending.execute(userId);
+      transactionsNew += backfill.imported;
+      const reversalActions =
+        await this.retryPendingReverses.listActions(userId);
+      for (const action of reversalActions) {
+        await this.retryPendingReverses.applyAction(userId, action);
+        if (action.kind !== 'apply') {
+          continue;
+        }
+        transactionsNew += 1;
+        countsByStatus.REVERSED = (countsByStatus.REVERSED ?? 0) + 1;
+        transactionIds.push(action.originalId);
+      }
+      await this.matchTransfers.execute(userId);
 
       const deferredWork = hitLlmCap || deferredRetryable;
       await this.emailSources.updateEmailSource(userId, sourceId, {
@@ -337,30 +324,6 @@ export class ProcessGmailSyncUseCase {
       });
       throw error;
     }
-  }
-
-  private async findOriginalForReverse(
-    userId: string,
-    reverseEmailMessageId: string | null,
-    merchant: string | null,
-    amount: number,
-    currency: string,
-    aroundDate: Date,
-  ) {
-    if (reverseEmailMessageId) {
-      const byEmail = await this.ledger.findTransactionByEmailMessageId(
-        reverseEmailMessageId,
-        userId,
-      );
-      if (byEmail && byEmail.userId === userId) return byEmail;
-    }
-    const candidates = await this.ledger.findReverseCandidates(userId, {
-      amount,
-      currency,
-      merchant,
-      aroundDate,
-    });
-    return candidates[0] ?? null;
   }
 }
 

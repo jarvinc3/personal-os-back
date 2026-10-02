@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
+  IsBoolean,
   IsEnum,
   IsOptional,
   IsString,
@@ -23,7 +24,9 @@ class AccountInstitutionByTypeConstraint implements ValidatorConstraintInterface
   validate(_: unknown, args: ValidationArguments) {
     const obj = args.object as CreateAccountDto;
     if (obj.type === 'CASH') return true;
-    return typeof obj.institutionId === 'string' && obj.institutionId.length > 0;
+    return (
+      typeof obj.institutionId === 'string' && obj.institutionId.length > 0
+    );
   }
 
   defaultMessage() {
@@ -36,7 +39,9 @@ class AccountNumberByTypeConstraint implements ValidatorConstraintInterface {
   validate(_: unknown, args: ValidationArguments) {
     const obj = args.object as CreateAccountDto;
     if (obj.type === 'CASH') return !obj.accountNumber;
-    return typeof obj.accountNumber === 'string' && obj.accountNumber.length >= 4;
+    return (
+      typeof obj.accountNumber === 'string' && obj.accountNumber.length >= 4
+    );
   }
 
   defaultMessage(args: ValidationArguments) {
@@ -87,4 +92,12 @@ export class CreateAccountDto {
   @ApiPropertyOptional()
   @OptionalColorField()
   color?: string;
+
+  @ApiPropertyOptional({
+    description:
+      'When true, this account is the fallback ledger target for emails from this institution that have no account digits.',
+  })
+  @IsOptional()
+  @IsBoolean()
+  isDefaultForInstitution?: boolean;
 }

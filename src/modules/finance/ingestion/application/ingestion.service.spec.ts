@@ -7,7 +7,9 @@ import { IngestionService } from './ingestion.service';
 
 describe('IngestionService.completeEmailSyncSuccessWithEvent', () => {
   it('enqueues finance.email_sync.completed via same-TX outbox helper', async () => {
-    const completeEmailSyncSuccessWithOutbox = jest.fn().mockResolvedValue(undefined);
+    const completeEmailSyncSuccessWithOutbox = jest
+      .fn()
+      .mockResolvedValue(undefined);
     const repo = {
       completeEmailSyncSuccessWithOutbox,
     } as unknown as EmailSourceRepository;
@@ -288,7 +290,7 @@ describe('IngestionService mailbox linking', () => {
     connectionId: 'conn-1',
     institutionId: 'inst-1',
     institution: { name: 'BHD' },
-    bankSenderEmail: 'alertas@bhd.com.do',
+    bankSenderEmails: ['alertas@bhd.com.do'],
     bankDomain: 'bhd.com.do',
     label: null,
     isActive: true,
@@ -355,7 +357,7 @@ describe('IngestionService mailbox linking', () => {
       'user-1',
       expect.objectContaining({
         connectionId: 'conn-1',
-        bankSenderEmail: 'alertas@bhd.com.do',
+        bankSenderEmails: ['alertas@bhd.com.do'],
         bankDomain: 'bhd.com.do',
       }),
     );
@@ -475,9 +477,9 @@ describe('IngestionService.triggerEmailSync', () => {
     const add = jest.fn().mockResolvedValue({});
     const service = serviceWithQueue(add);
 
-    await expect(
-      service.triggerEmailSync('user-1', 'src-1'),
-    ).resolves.toEqual({ queued: true });
+    await expect(service.triggerEmailSync('user-1', 'src-1')).resolves.toEqual({
+      queued: true,
+    });
 
     expect(add).toHaveBeenCalledWith(
       'gmail-sync-source',

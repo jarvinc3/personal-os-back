@@ -10,6 +10,12 @@ import { EMAIL_TRANSACTION_EXTRACTOR } from '../shared/application/tokens';
 import { EnqueueDueGmailSyncsUseCase } from './application/enqueue-due-gmail-syncs.use-case';
 import { IngestionService } from './application/ingestion.service';
 import { ProcessGmailSyncUseCase } from './application/process-gmail-sync.use-case';
+import {
+  BackfillPendingEmailUseCase,
+  MatchEmailTransfersUseCase,
+} from './application/backfill-pending-email.use-case';
+import { RouteExtractedEmailUseCase } from './application/route-extracted-email.use-case';
+import { RetryPendingReversesUseCase } from './application/retry-pending-reverses.use-case';
 import { AiEmailTransactionExtractor } from './infrastructure/ai-email-transaction.extractor';
 import { EmailSourceRepository } from './infrastructure/email-source.repository';
 import { GmailAutoSyncScheduler } from './infrastructure/gmail-auto-sync.scheduler';
@@ -35,6 +41,10 @@ const bullMqEnabled = isBullMqEnabledFromProcessEnv();
     EnqueueDueGmailSyncsUseCase,
     GmailAutoSyncScheduler,
     ProcessGmailSyncUseCase,
+    RouteExtractedEmailUseCase,
+    RetryPendingReversesUseCase,
+    BackfillPendingEmailUseCase,
+    MatchEmailTransfersUseCase,
     AiEmailTransactionExtractor,
     {
       provide: EMAIL_TRANSACTION_EXTRACTOR,

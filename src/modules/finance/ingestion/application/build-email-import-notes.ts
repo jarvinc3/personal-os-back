@@ -12,23 +12,26 @@ export function buildEmailImportNotes(input: {
   categorySource: CategoryResolveSource | null;
   categoryNameHint?: string | null;
   status: FinTxStatus;
+  skipUncategorizedWarning?: boolean;
 }): string | null {
   const parts: string[] = [];
 
   const llm = input.llmNotes?.trim();
   if (llm) parts.push(llm);
 
-  if (!input.categoryId) {
-    const hint = input.categoryNameHint?.trim();
-    parts.push(
-      hint
-        ? `Sin categoría asignada (hint: ${hint}).`
-        : 'Sin categoría asignada; revisa el movimiento.',
-    );
-  } else if (input.categorySource === 'merchant_history') {
-    parts.push(
-      'Categoría tomada de un movimiento anterior del mismo comercio.',
-    );
+  if (!input.skipUncategorizedWarning) {
+    if (!input.categoryId) {
+      const hint = input.categoryNameHint?.trim();
+      parts.push(
+        hint
+          ? `Sin categoría asignada (hint: ${hint}).`
+          : 'Sin categoría asignada; revisa el movimiento.',
+      );
+    } else if (input.categorySource === 'merchant_history') {
+      parts.push(
+        'Categoría tomada de un movimiento anterior del mismo comercio.',
+      );
+    }
   }
 
   if (input.status === 'PENDING') {

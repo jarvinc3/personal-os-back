@@ -15,8 +15,8 @@ export class GmailAutoSyncScheduler implements OnModuleInit {
     });
   }
 
-  @Cron(CronExpression.EVERY_6_HOURS)
-  handleCron(): Promise<{ queued: number; skipped: number }> {
+  @Cron(CronExpression.EVERY_MINUTE)
+  handleCron(): Promise<void> {
     return this.enqueueDue.execute();
   }
 }

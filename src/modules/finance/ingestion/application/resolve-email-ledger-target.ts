@@ -10,6 +10,7 @@ export type EmailLedgerTargetMatch =
 export type EmailLedgerAccount = {
   id: string;
   accountNumber: string | null;
+  isDefaultForInstitution?: boolean;
 };
 
 export type EmailLedgerCard = {
@@ -37,9 +38,12 @@ export function resolveEmailLedgerTarget(params: {
   accountNumberHint: string | null;
   accounts: EmailLedgerAccount[];
   cards: EmailLedgerCard[];
+  /** Only when the email has no account/card digits and the movement is not a transfer. */
+  allowDefaultAccount?: boolean;
 }): EmailLedgerTargetMatch {
   const lastFour = digitsOnly(params.lastFourHint) || null;
   const accountHint = digitsOnly(params.accountNumberHint) || null;
+  const hasDigits = Boolean(accountHint || lastFour);
   const cardsByFour = lastFour
     ? params.cards.filter((row) => row.lastFour === lastFour)
     : params.cards;
@@ -49,7 +53,10 @@ export function resolveEmailLedgerTarget(params: {
   }
 
   if (params.instrumentHint === 'ACCOUNT') {
-    return toMatch(matchAccounts(params.accounts, accountHint, lastFour));
+    const matched = toMatch(
+      matchAccounts(params.accounts, accountHint, lastFour),
+    );
+    return maybeDefaultAccount(matched, params, hasDigits);
   }
 
   if (accountHint) {
@@ -60,10 +67,35 @@ export function resolveEmailLedgerTarget(params: {
     return toMatch(cardsByFour.map((row) => ({ cardId: row.id })));
   }
 
-  return toMatch([
+  const all = toMatch([
     ...params.cards.map((row) => ({ cardId: row.id })),
     ...params.accounts.map((row) => ({ accountId: row.id })),
   ]);
+  return maybeDefaultAccount(all, params, hasDigits);
+}
+
+function maybeDefaultAccount(
+  match: EmailLedgerTargetMatch,
+  params: {
+    accounts: EmailLedgerAccount[];
+    allowDefaultAccount?: boolean;
+  },
+  hasDigits: boolean,
+): EmailLedgerTargetMatch {
+  if (match.kind === 'unique') {
+    return match;
+  }
+  if (hasDigits) {
+    return match;
+  }
+  if (!params.allowDefaultAccount) {
+    return match;
+  }
+  const defaults = params.accounts.filter((row) => row.isDefaultForInstitution);
+  if (defaults.length === 1) {
+    return { kind: 'unique', accountId: defaults[0].id };
+  }
+  return match;
 }
 
 function matchAccounts(

@@ -1,4 +1,4 @@
-import { NotFoundException } from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { SupabaseAdminService } from '../../auth';
 import { UsersRepository } from '../infrastructure/users.repository';
@@ -192,26 +192,90 @@ describe('UsersService.isFinanceEmailSyncAutomatic', () => {
     findUserModuleBySlug.mockResolvedValue({
       config: { emailSync: { enabled: true, automatic: true } },
     });
-    await expect(
-      service.isFinanceEmailSyncAutomatic('user-1'),
-    ).resolves.toBe(true);
+    await expect(service.isFinanceEmailSyncAutomatic('user-1')).resolves.toBe(
+      true,
+    );
   });
 
   it('returns false when automatic is omitted (default off)', async () => {
     findUserModuleBySlug.mockResolvedValue({
       config: { emailSync: { enabled: true } },
     });
-    await expect(
-      service.isFinanceEmailSyncAutomatic('user-1'),
-    ).resolves.toBe(false);
+    await expect(service.isFinanceEmailSyncAutomatic('user-1')).resolves.toBe(
+      false,
+    );
   });
 
   it('returns false when sync is enabled but automatic is off', async () => {
     findUserModuleBySlug.mockResolvedValue({
       config: { emailSync: { enabled: true, automatic: false } },
     });
+    await expect(service.isFinanceEmailSyncAutomatic('user-1')).resolves.toBe(
+      false,
+    );
+  });
+});
+
+describe('UsersService.updateModuleConfig schedule validation', () => {
+  const findModuleBySlug = jest.fn();
+  const findUserModule = jest.fn();
+  const upsertUserModule = jest.fn();
+  const findById = jest.fn();
+
+  const usersRepository = {
+    findModuleBySlug,
+    findUserModule,
+    upsertUserModule,
+    findById,
+  } as unknown as UsersRepository;
+  const eventEmitter = { emit: jest.fn() } as unknown as EventEmitter2;
+  const supabaseAdminService = {} as unknown as SupabaseAdminService;
+  const service = new UsersService(
+    usersRepository,
+    eventEmitter,
+    supabaseAdminService,
+  );
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    findModuleBySlug.mockResolvedValue({ id: 'mod-finance' });
+    findUserModule.mockResolvedValue({
+      id: 'um-1',
+      isEnabled: true,
+      config: {},
+    });
+    upsertUserModule.mockResolvedValue(undefined);
+    findById.mockResolvedValue({
+      id: 'user-1',
+      email: 'u@example.com',
+      fullName: 'User',
+      avatarUrl: null,
+      timezone: 'UTC',
+      locale: 'en',
+      preferences: {},
+      userModules: [],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+  });
+
+  it('rejects an interval below the minimum', async () => {
     await expect(
-      service.isFinanceEmailSyncAutomatic('user-1'),
-    ).resolves.toBe(false);
+      service.updateModuleConfig('user-1', 'finance', {
+        config: {
+          emailSync: { schedule: { mode: 'interval', everyMinutes: 5 } },
+        },
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(upsertUserModule).not.toHaveBeenCalled();
+  });
+
+  it('accepts fixed times in HH:MM', async () => {
+    await service.updateModuleConfig('user-1', 'finance', {
+      config: {
+        emailSync: { schedule: { mode: 'times', times: ['08:00', '18:00'] } },
+      },
+    });
+    expect(upsertUserModule).toHaveBeenCalled();
   });
 });

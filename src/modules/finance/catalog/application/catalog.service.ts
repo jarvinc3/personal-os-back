@@ -72,12 +72,23 @@ export class CatalogService {
 
   async createAccount(userId: string, dto: CreateAccountDto) {
     this.assertAccountInstitutionRule(dto.type, dto.institutionId);
-    const accountNumber = this.assertAccountNumberRule(dto.type, dto.accountNumber);
+    const accountNumber = this.assertAccountNumberRule(
+      dto.type,
+      dto.accountNumber,
+    );
+    if (dto.type === 'CASH' && dto.isDefaultForInstitution) {
+      throw new BadRequestException(
+        'CASH accounts cannot be the default for an institution',
+      );
+    }
     if (dto.institutionId) {
       await this.ownership.assertInstitutionOwned(userId, dto.institutionId);
     }
     const rest = omitAccountNumber(dto);
     try {
+      if (dto.isDefaultForInstitution && dto.institutionId) {
+        await this.repo.clearDefaultAccount(userId, dto.institutionId);
+      }
       return this.mapAccount(
         await this.repo.createAccount(userId, {
           ...rest,
@@ -95,16 +106,23 @@ export class CatalogService {
 
     const nextType = dto.type ?? existing.type;
     const nextInstitutionId =
-      dto.institutionId !== undefined ? dto.institutionId : existing.institutionId;
+      dto.institutionId !== undefined
+        ? dto.institutionId
+        : existing.institutionId;
     this.assertAccountInstitutionRule(nextType, nextInstitutionId ?? undefined);
+    if (nextType === 'CASH' && dto.isDefaultForInstitution) {
+      throw new BadRequestException(
+        'CASH accounts cannot be the default for an institution',
+      );
+    }
 
     const nextAccountNumber = this.assertAccountNumberRule(
       nextType,
       nextType === 'CASH'
         ? dto.accountNumber
-        : (dto.accountNumber !== undefined
+        : dto.accountNumber !== undefined
           ? dto.accountNumber
-          : existing.accountNumber),
+          : existing.accountNumber,
     );
 
     if (dto.institutionId) {
@@ -123,6 +141,9 @@ export class CatalogService {
 
     const rest = omitAccountNumber(dto);
     try {
+      if (dto.isDefaultForInstitution && nextInstitutionId) {
+        await this.repo.clearDefaultAccount(userId, nextInstitutionId, id);
+      }
       const account = await this.repo.updateAccount(id, userId, {
         ...rest,
         accountNumber: nextAccountNumber,
@@ -169,7 +190,11 @@ export class CatalogService {
     }
   }
 
-  async updateInstitution(userId: string, id: string, dto: UpdateInstitutionDto) {
+  async updateInstitution(
+    userId: string,
+    id: string,
+    dto: UpdateInstitutionDto,
+  ) {
     if (dto.isActive === false) {
       await this.ownership.assertInstitutionOwned(userId, id);
       await this.ownership.assertInstitutionCanArchive(userId, id);
@@ -179,7 +204,8 @@ export class CatalogService {
     if (dto.color !== undefined) data.color = dto.color;
     if (dto.country !== undefined) data.country = dto.country;
     if (dto.type !== undefined) data.type = dto.type;
-    if (dto.shortName !== undefined) data.shortName = dto.shortName?.trim() || null;
+    if (dto.shortName !== undefined)
+      data.shortName = dto.shortName?.trim() || null;
     if (dto.sortOrder !== undefined) data.sortOrder = dto.sortOrder;
     if (dto.isActive !== undefined) data.isActive = dto.isActive;
     if (dto.domain !== undefined) {
@@ -242,7 +268,8 @@ export class CatalogService {
     await this.repo.deleteEmailSourcesByInstitution(userId, id);
     await this.repo.deleteLoansByInstitution(userId, id);
     const result = await this.repo.deleteInstitution(userId, id);
-    if (result.count === 0) throw new NotFoundException('Institution not found');
+    if (result.count === 0)
+      throw new NotFoundException('Institution not found');
     return { success: true };
   }
 
@@ -459,7 +486,9 @@ export class CatalogService {
     const accountNumber = normalizeAccountNumber(raw);
     if (!isBankAccountType(type)) {
       if (accountNumber) {
-        throw new BadRequestException('CASH accounts must not set accountNumber');
+        throw new BadRequestException(
+          'CASH accounts must not set accountNumber',
+        );
       }
       return null;
     }
@@ -507,7 +536,9 @@ export class CatalogService {
   }
 
   private mapAccount(
-    account: NonNullable<Awaited<ReturnType<CatalogRepository['findAccountById']>>>,
+    account: NonNullable<
+      Awaited<ReturnType<CatalogRepository['findAccountById']>>
+    >,
   ) {
     return {
       id: account.id,
@@ -518,6 +549,7 @@ export class CatalogService {
       type: account.type,
       currency: account.currency,
       accountNumber: account.accountNumber,
+      isDefaultForInstitution: account.isDefaultForInstitution,
       balance: decimalToString(account.balance),
       color: account.color,
       isActive: account.isActive,
@@ -527,7 +559,9 @@ export class CatalogService {
   }
 
   private mapInstitution(
-    institution: Awaited<ReturnType<CatalogRepository['listInstitutions']>>[number],
+    institution: Awaited<
+      ReturnType<CatalogRepository['listInstitutions']>
+    >[number],
   ) {
     return {
       id: institution.id,

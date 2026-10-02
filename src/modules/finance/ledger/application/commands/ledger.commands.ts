@@ -1,11 +1,16 @@
 import type { ResolvedAmounts } from '../../../shared/domain/money';
 
 export type FinTxStatus =
-  | 'PENDING'
-  | 'CONFIRMED'
-  | 'CANCELLED'
-  | 'DECLINED'
-  | 'REVERSED';
+  'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'DECLINED' | 'REVERSED';
+
+export const TRANSFER_STATUS = {
+  PENDING: 'PENDING',
+  CONFIRMED: 'CONFIRMED',
+  CANCELLED: 'CANCELLED',
+} as const;
+
+export type TransferStatus =
+  (typeof TRANSFER_STATUS)[keyof typeof TRANSFER_STATUS];
 
 export type FinTxType = 'DEBIT' | 'CREDIT' | 'TRANSFER';
 
@@ -47,7 +52,11 @@ export type CreateTransferCommand = {
   transactionDate: string;
   description?: string;
   notes?: string;
-  status?: 'PENDING' | 'CONFIRMED' | 'CANCELLED';
+  status?: TransferStatus;
+  source?: 'MANUAL' | 'EMAIL' | 'AI';
+  fromEmailMessageId?: string;
+  toEmailMessageId?: string;
+  aiMetadata?: unknown;
 };
 
 export type ListTransactionsQuery = {
@@ -68,6 +77,7 @@ export type ImportEmailTransactionCommand = {
   accountId?: string;
   cardId?: string;
   emailMessageId: string;
+  externalReference?: string | null;
   amount: number;
   currency: string;
   merchant: string | null;
@@ -76,6 +86,7 @@ export type ImportEmailTransactionCommand = {
   transactionDate: Date;
   categoryId?: string | null;
   type?: 'DEBIT' | 'CREDIT';
+  transferGroupId?: string | null;
   status: FinTxStatus;
   amounts: ResolvedAmounts;
   aiMetadata?: unknown;

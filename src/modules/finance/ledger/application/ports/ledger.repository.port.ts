@@ -1,11 +1,12 @@
 import type { BudgetSpendSnapshot } from '../../../shared/domain/budget-snapshot';
 import type { ResolvedAmounts } from '../../../shared/domain/money';
 import type {
-    CreateTransactionCommand,
-    CreateTransferCommand,
-    ImportEmailTransactionCommand,
-    ListTransactionsQuery,
-    TransactionUpdateFields,
+  CreateTransactionCommand,
+  CreateTransferCommand,
+  FinTxStatus,
+  ImportEmailTransactionCommand,
+  ListTransactionsQuery,
+  TransactionUpdateFields,
 } from '../commands/ledger.commands';
 
 /** Minimal account row returned by ledger reads. */
@@ -98,6 +99,11 @@ export interface LedgerRepositoryPort {
     userId?: string,
   ): Promise<LedgerTransactionRow | null>;
 
+  findTransactionByExternalReference(
+    userId: string,
+    reference: string,
+  ): Promise<LedgerTransactionRow | null>;
+
   findTransactionsByTransferGroupId(
     transferGroupId: string,
     userId: string,
@@ -110,8 +116,23 @@ export interface LedgerRepositoryPort {
       currency: string;
       merchant: string | null;
       aroundDate: Date;
+      statuses?: FinTxStatus[];
     },
   ): Promise<LedgerTransactionRow[]>;
+
+  findDedupeCandidate(
+    userId: string,
+    params: {
+      externalReference: string | null;
+      accountId?: string | null;
+      cardId?: string | null;
+      amount: number;
+      currency: string;
+      type: 'DEBIT' | 'CREDIT';
+      merchant: string | null;
+      transactionDate: Date;
+    },
+  ): Promise<LedgerTransactionRow | null>;
 
   /** Most recent categorized CONFIRMED tx for the same merchant (case-insensitive). */
   findLatestCategoryIdByMerchant(
@@ -144,10 +165,7 @@ export interface LedgerRepositoryPort {
     data: TransactionUpdateFields,
   ): Promise<CreateTransactionResult | null>;
 
-  deleteTransaction(
-    userId: string,
-    id: string,
-  ): Promise<{ count: number }>;
+  deleteTransaction(userId: string, id: string): Promise<{ count: number }>;
 
   deleteTransactionsByTransferGroupId(
     userId: string,
@@ -184,4 +202,25 @@ export interface LedgerRepositoryPort {
     userId: string,
     data: ImportEmailTransactionCommand,
   ): Promise<LedgerTransactionRow>;
+
+  pairEmailTransferLegs(
+    userId: string,
+    debitId: string,
+    creditId: string,
+  ): Promise<CreateTransferResult | null>;
+
+  addEmailTransferCounterpart(
+    userId: string,
+    existingId: string,
+    counterpart: {
+      accountId?: string;
+      cardId?: string;
+      amounts: ResolvedAmounts;
+      description?: string | null;
+      notes?: string | null;
+      status: FinTxStatus;
+      emailMessageId?: string;
+      aiMetadata?: unknown;
+    },
+  ): Promise<CreateTransferResult | null>;
 }

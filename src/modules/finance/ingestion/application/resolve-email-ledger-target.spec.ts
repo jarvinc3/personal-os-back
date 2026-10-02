@@ -156,4 +156,36 @@ describe('resolveEmailLedgerTarget', () => {
       }),
     ).toEqual({ kind: 'unique', accountId: 'acc-only' });
   });
+
+  it('uses the institution default account only when there are no digits', () => {
+    const many = [
+      { id: 'acc-1', accountNumber: '11111111', isDefaultForInstitution: true },
+      {
+        id: 'acc-2',
+        accountNumber: '22222222',
+        isDefaultForInstitution: false,
+      },
+    ];
+    expect(
+      resolveEmailLedgerTarget({
+        instrumentHint: 'ACCOUNT',
+        lastFourHint: null,
+        accountNumberHint: null,
+        accounts: many,
+        cards: [],
+        allowDefaultAccount: true,
+      }),
+    ).toEqual({ kind: 'unique', accountId: 'acc-1' });
+
+    expect(
+      resolveEmailLedgerTarget({
+        instrumentHint: 'ACCOUNT',
+        lastFourHint: null,
+        accountNumberHint: '9999',
+        accounts: many,
+        cards: [],
+        allowDefaultAccount: true,
+      }),
+    ).toEqual({ kind: 'none' });
+  });
 });

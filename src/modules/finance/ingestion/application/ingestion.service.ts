@@ -1,12 +1,12 @@
 import { InjectQueue } from '@nestjs/bullmq';
 import {
-    BadRequestException,
-    ConflictException,
-    Inject,
-    Injectable,
-    Logger,
-    NotFoundException,
-    Optional,
+  BadRequestException,
+  ConflictException,
+  Inject,
+  Injectable,
+  Logger,
+  NotFoundException,
+  Optional,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Queue } from 'bullmq';
@@ -27,30 +27,43 @@ import { resolveCategoryIdForImport } from '../../shared/domain/category-type';
 import { mapBankStatusToInternal } from '../../shared/domain/transaction-status';
 import { EmailSourceRepository } from '../infrastructure/email-source.repository';
 import {
-    exchangeGoogleAuthCode,
-    fetchGoogleUserEmail,
-    refreshGoogleAccessToken,
+  exchangeGoogleAuthCode,
+  fetchGoogleUserEmail,
+  getGmailMessageFromHeader,
+  listGmailMessages,
+  refreshGoogleAccessToken,
 } from '../infrastructure/gmail-api.util';
-import { decryptToken, encryptToken } from '../infrastructure/token-encryption.util';
+import {
+  decryptToken,
+  encryptToken,
+} from '../infrastructure/token-encryption.util';
 import type { ConnectEmailSourceDto } from '../presentation/dto/connect-email-source.dto';
 import type {
-    AssignEmailMessageDto,
-    GoogleOAuthUrlQueryDto,
+  AssignEmailMessageDto,
+  GoogleOAuthUrlQueryDto,
 } from '../presentation/dto/oauth-callback-query.dto';
 import type { UpdateEmailSourceDto } from '../presentation/dto/update-email-source.dto';
-import { extractEmailAddress, extractEmailDomain } from './bank-sender';
+import {
+  extractEmailAddress,
+  extractEmailDomain,
+  normalizeBankSenderEmails,
+} from './bank-sender';
 import { buildEmailImportNotes } from './build-email-import-notes';
+import { isAtmMovementClass, isTransferMovementClass } from './email-movement';
+import { EMAIL_MESSAGE_OUTCOME } from './email-message-outcome';
 import {
   GMAIL_SYNC_JOB_NAME,
   GMAIL_SYNC_JOB_OPTIONS,
   gmailSyncJobId,
 } from './gmail-sync.constants';
+import { uniqueCashAccountId } from './match-email-transfers';
 import {
-    buildFallbackWebOAuthRedirect,
-    buildMobileOAuthRedirect,
-    buildWebOAuthRedirect,
-    isAllowlistedReturnTo,
+  buildFallbackWebOAuthRedirect,
+  buildMobileOAuthRedirect,
+  buildWebOAuthRedirect,
+  isAllowlistedReturnTo,
 } from './oauth-client-redirect';
+import { parseExtractedPayload } from './parse-extracted-email';
 import type { ExtractedEmailTransaction } from './ports/email-transaction-extractor.port';
 import { resolveEmailLedgerTarget } from './resolve-email-ledger-target';
 
@@ -132,12 +145,13 @@ export class IngestionService {
 
     const sender = this.resolveSenderFields({
       bankSenderEmail: dto.bankSenderEmail,
+      bankSenderEmails: dto.bankSenderEmails,
       bankDomain: dto.bankDomain,
     });
     return this.upsertInstitutionSource(userId, {
       connectionId: connection.id,
       institutionId: dto.institutionId,
-      bankSenderEmail: sender.bankSenderEmail,
+      bankSenderEmails: sender.bankSenderEmails,
       bankDomain: sender.bankDomain,
       label: dto.label,
     });
@@ -167,12 +181,16 @@ export class IngestionService {
     const data: Record<string, unknown> = {};
     if (dto.institutionId !== undefined) data.institutionId = dto.institutionId;
     if (dto.label !== undefined) data.label = dto.label;
-    if (dto.bankSenderEmail !== undefined) {
+    if (
+      dto.bankSenderEmail !== undefined ||
+      dto.bankSenderEmails !== undefined
+    ) {
       const sender = this.resolveSenderFields({
         bankSenderEmail: dto.bankSenderEmail,
-        bankDomain: dto.bankDomain,
+        bankSenderEmails: dto.bankSenderEmails,
+        bankDomain: dto.bankDomain ?? existing.bankDomain,
       });
-      data.bankSenderEmail = sender.bankSenderEmail ?? null;
+      data.bankSenderEmails = sender.bankSenderEmails;
       data.bankDomain = sender.bankDomain;
     } else if (dto.bankDomain !== undefined) {
       data.bankDomain = dto.bankDomain.trim();
@@ -286,7 +304,7 @@ export class IngestionService {
           bankDomain: query.bankDomain,
         })
       : {
-          bankSenderEmail: undefined as string | undefined,
+          bankSenderEmails: [] as string[],
           bankDomain: query.bankDomain?.trim() || undefined,
         };
 
@@ -295,9 +313,8 @@ export class IngestionService {
         sub: userId,
         institutionId: query.institutionId,
         bankDomain:
-          sender.bankDomain ||
-          (query.institutionId ? 'bhd.com.do' : undefined),
-        bankSenderEmail: sender.bankSenderEmail,
+          sender.bankDomain || (query.institutionId ? 'bhd.com.do' : undefined),
+        bankSenderEmail: sender.bankSenderEmails[0],
         label: query.label?.trim() || undefined,
         returnTo: returnTo || undefined,
       } satisfies OAuthStatePayload,
@@ -321,15 +338,14 @@ export class IngestionService {
     };
   }
 
-  resolveOAuthClientRedirect(state: string | undefined, success: boolean): string {
+  resolveOAuthClientRedirect(
+    state: string | undefined,
+    success: boolean,
+  ): string {
     const corsOrigin = this.config.get('CORS_ORIGIN', { infer: true });
     const payload = this.peekOAuthState(state);
     if (payload?.returnTo) {
-      const web = buildWebOAuthRedirect(
-        payload.returnTo,
-        corsOrigin,
-        success,
-      );
+      const web = buildWebOAuthRedirect(payload.returnTo, corsOrigin, success);
       if (web) return web;
     }
     return (
@@ -417,7 +433,7 @@ export class IngestionService {
     await this.upsertInstitutionSource(payload.sub, {
       connectionId: connection.id,
       institutionId: payload.institutionId,
-      bankSenderEmail: sender.bankSenderEmail,
+      bankSenderEmails: sender.bankSenderEmails,
       bankDomain: sender.bankDomain,
       label: payload.label,
     });
@@ -460,27 +476,51 @@ export class IngestionService {
   ) {
     await this.users.assertFinanceEmailSyncEnabled(userId);
     const message = await this.repo.findEmailMessageById(userId, messageId);
-    if (!message) throw new NotFoundException('Email message not found');
+    if (!message) {
+      throw new NotFoundException('Email message not found');
+    }
 
-    if (message.outcome === 'IMPORTED' && message.transaction) {
+    if (
+      message.outcome === EMAIL_MESSAGE_OUTCOME.IMPORTED &&
+      message.transaction
+    ) {
       return { assigned: true as const, transactionId: message.transaction.id };
     }
-    if (message.outcome !== 'PENDING_ASSIGNMENT') {
+    if (
+      message.outcome !== EMAIL_MESSAGE_OUTCOME.PENDING_ASSIGNMENT &&
+      message.outcome !== EMAIL_MESSAGE_OUTCOME.PENDING_AMOUNT
+    ) {
       throw new BadRequestException('Email message is not pending assignment');
     }
 
-    await this.assertAssignmentTarget(userId, message.source.institutionId, dto);
-    return this.importPendingMessage(userId, message, dto);
+    await this.assertAssignmentTarget(
+      userId,
+      message.source.institutionId,
+      dto,
+    );
+    return this.importPendingMessage(userId, message, {
+      accountId: dto.accountId,
+      cardId: dto.cardId,
+      amount: dto.amount,
+    });
   }
 
   async retryPendingMessage(userId: string, messageId: string) {
     await this.users.assertFinanceEmailSyncEnabled(userId);
     const message = await this.repo.findEmailMessageById(userId, messageId);
-    if (!message) throw new NotFoundException('Email message not found');
-    if (message.outcome === 'IMPORTED' && message.transaction) {
+    if (!message) {
+      throw new NotFoundException('Email message not found');
+    }
+    if (
+      message.outcome === EMAIL_MESSAGE_OUTCOME.IMPORTED &&
+      message.transaction
+    ) {
       return { assigned: true as const, transactionId: message.transaction.id };
     }
-    if (message.outcome !== 'PENDING_ASSIGNMENT') {
+    if (
+      message.outcome !== EMAIL_MESSAGE_OUTCOME.PENDING_ASSIGNMENT &&
+      message.outcome !== EMAIL_MESSAGE_OUTCOME.PENDING_AMOUNT
+    ) {
       throw new BadRequestException('Email message is not pending assignment');
     }
 
@@ -488,15 +528,21 @@ export class IngestionService {
       userId,
       message.source.institutionId,
     );
+    const extracted = parseExtractedPayload(message.extractedPayload);
+    const movementClass = extracted?.movementClass ?? null;
     const match = resolveEmailLedgerTarget({
       instrumentHint:
-        message.instrumentHint === 'ACCOUNT' || message.instrumentHint === 'CARD'
+        message.instrumentHint === 'ACCOUNT' ||
+        message.instrumentHint === 'CARD'
           ? message.instrumentHint
           : null,
       lastFourHint: message.lastFourHint,
       accountNumberHint: message.accountNumberHint,
       accounts,
       cards,
+      allowDefaultAccount:
+        !isTransferMovementClass(movementClass) &&
+        !isAtmMovementClass(movementClass),
     });
     if (match.kind !== 'unique') {
       return this.mapPendingMessage(message);
@@ -507,42 +553,225 @@ export class IngestionService {
     });
   }
 
+  async completePendingAmount(
+    userId: string,
+    messageId: string,
+    amount: number,
+  ) {
+    await this.users.assertFinanceEmailSyncEnabled(userId);
+    const message = await this.repo.findEmailMessageById(userId, messageId);
+    if (!message) {
+      throw new NotFoundException('Email message not found');
+    }
+    if (
+      message.outcome === EMAIL_MESSAGE_OUTCOME.IMPORTED &&
+      message.transaction
+    ) {
+      return { assigned: true as const, transactionId: message.transaction.id };
+    }
+    if (message.outcome !== EMAIL_MESSAGE_OUTCOME.PENDING_AMOUNT) {
+      throw new BadRequestException(
+        'Email message is not waiting for an amount',
+      );
+    }
+    if (!(amount > 0)) {
+      throw new BadRequestException('amount must be positive');
+    }
+
+    const [accounts, cards] = await this.repo.listInstitutionDestinations(
+      userId,
+      message.source.institutionId,
+    );
+    const extracted = parseExtractedPayload(message.extractedPayload);
+    const movementClass = extracted?.movementClass ?? null;
+    const match = resolveEmailLedgerTarget({
+      instrumentHint:
+        message.instrumentHint === 'ACCOUNT' ||
+        message.instrumentHint === 'CARD'
+          ? message.instrumentHint
+          : null,
+      lastFourHint: message.lastFourHint,
+      accountNumberHint: message.accountNumberHint,
+      accounts,
+      cards,
+      allowDefaultAccount:
+        !isTransferMovementClass(movementClass) &&
+        !isAtmMovementClass(movementClass),
+    });
+    if (match.kind !== 'unique') {
+      await this.repo.upsertEmailMessage({
+        sourceId: message.sourceId,
+        gmailMessageId: message.gmailMessageId,
+        outcome: EMAIL_MESSAGE_OUTCOME.PENDING_ASSIGNMENT,
+        reason:
+          match.kind === 'ambiguous'
+            ? `Ambiguous ledger target (${match.candidateCount})`
+            : 'No matching account or card',
+        provider: message.provider,
+        model: message.model,
+        instrumentHint: message.instrumentHint,
+        lastFourHint: message.lastFourHint,
+        accountNumberHint: message.accountNumberHint,
+        extractedPayload: {
+          ...(extracted ?? {}),
+          amount,
+        },
+      });
+      const updated = await this.repo.findEmailMessageById(userId, messageId);
+      return this.mapPendingMessage(updated ?? message);
+    }
+    return this.importPendingMessage(userId, message, {
+      accountId: match.accountId,
+      cardId: match.cardId,
+      amount,
+    });
+  }
+
+  async listDiscoveredSenders(userId: string, sourceId: string, days = 14) {
+    const source = await this.repo.findEmailSource(userId, sourceId);
+    if (!source) {
+      throw new NotFoundException('Email source not found');
+    }
+    const accessToken = await this.getValidGmailAccessToken(sourceId);
+    const query = `from:${source.bankDomain} newer_than:${Math.max(1, days)}d`;
+    const known = new Set(
+      normalizeBankSenderEmails({
+        bankSenderEmails: source.bankSenderEmails,
+      }),
+    );
+    const discovered = new Map<string, number>();
+    let pageToken: string | undefined;
+    let scanned = 0;
+    do {
+      const page = await listGmailMessages(accessToken, query, pageToken);
+      for (const ref of page.messages) {
+        scanned += 1;
+        if (scanned > 80) {
+          break;
+        }
+        const raw = await getGmailMessageFromHeader(accessToken, ref.id);
+        const email = extractEmailAddress(raw);
+        if (!email || known.has(email)) continue;
+        if (extractEmailDomain(email) !== source.bankDomain) continue;
+        discovered.set(email, (discovered.get(email) ?? 0) + 1);
+      }
+      if (scanned > 80) {
+        break;
+      }
+      pageToken = page.nextPageToken;
+    } while (pageToken);
+    return [...discovered.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .map(([email, count]) => ({ email, count }));
+  }
+
+  async addSourceSenders(userId: string, sourceId: string, emails: string[]) {
+    const source = await this.repo.findEmailSource(userId, sourceId);
+    if (!source) {
+      throw new NotFoundException('Email source not found');
+    }
+    const sender = this.resolveSenderFields({
+      bankSenderEmails: [...(source.bankSenderEmails ?? []), ...emails],
+      bankDomain: source.bankDomain,
+    });
+    const updated = await this.repo.updateEmailSource(userId, sourceId, {
+      bankSenderEmails: sender.bankSenderEmails,
+      bankDomain: sender.bankDomain,
+    });
+    if (!updated) {
+      throw new NotFoundException('Email source not found');
+    }
+    return this.mapEmailSourceResponse(updated);
+  }
+
   private async importPendingMessage(
     userId: string,
     message: PendingMessageRow,
-    target: { accountId?: string; cardId?: string },
+    target: { accountId?: string; cardId?: string; amount?: number },
   ) {
-    const extracted = this.parseExtractedPayload(message.extractedPayload);
+    const extracted = parseExtractedPayload(message.extractedPayload);
     if (!extracted) {
       throw new BadRequestException('Email message has no extract to assign');
     }
+    const amount = target.amount ?? extracted.amount;
+    if (amount == null) {
+      throw new BadRequestException('Email message is missing an amount');
+    }
 
-    const categories = await this.repo.listCategories(userId);
-    const category = await resolveCategoryIdForImport({
-      categories,
-      hint: extracted.categoryNameHint,
-      transactionType: extracted.type,
-      merchant: extracted.merchant,
-      findCategoryIdByMerchant: (merchant) =>
-        this.ledger.findLatestCategoryIdByMerchant(userId, merchant),
-    });
     const status = mapBankStatusToInternal({
       bankStatusNormalized: extracted.bankStatusNormalized,
       statusConfidence: extracted.statusConfidence,
     });
+    const skipCategory =
+      isTransferMovementClass(extracted.movementClass) ||
+      isAtmMovementClass(extracted.movementClass);
+
+    if (isAtmMovementClass(extracted.movementClass)) {
+      const cashAccountId = uniqueCashAccountId(
+        await this.repo.listCashAccounts(userId),
+      );
+      if (!cashAccountId) {
+        throw new BadRequestException(
+          'ATM withdrawal needs a single CASH account',
+        );
+      }
+      const notes = buildEmailImportNotes({
+        llmNotes: extracted.notes,
+        categoryId: null,
+        categorySource: null,
+        status,
+        skipUncategorizedWarning: true,
+      });
+      const created = await this.importEmail.executeAtmWithdrawal(userId, {
+        accountId: target.accountId,
+        cardId: target.cardId,
+        cashAccountId,
+        emailMessageId: message.id,
+        amount,
+        currency: extracted.currency,
+        merchant: extracted.merchant,
+        description: extracted.description,
+        notes,
+        transactionDate: new Date(extracted.transactionDate),
+        type: 'DEBIT',
+        status,
+        aiMetadata: {
+          movementClass: extracted.movementClass,
+          assignedAt: new Date().toISOString(),
+        },
+      });
+      await this.markImported(message, { ...extracted, amount, notes });
+      return {
+        assigned: true as const,
+        transactionId: created?.debit.id ?? message.id,
+      };
+    }
+
+    const categories = await this.repo.listCategories(userId);
+    const category = skipCategory
+      ? { categoryId: null, source: null }
+      : await resolveCategoryIdForImport({
+          categories,
+          hint: extracted.categoryNameHint,
+          transactionType: extracted.type,
+          merchant: extracted.merchant,
+          findCategoryIdByMerchant: (merchant) =>
+            this.ledger.findLatestCategoryIdByMerchant(userId, merchant),
+        });
     const notes = buildEmailImportNotes({
       llmNotes: extracted.notes,
       categoryId: category.categoryId,
       categorySource: category.source,
       categoryNameHint: extracted.categoryNameHint,
       status,
+      skipUncategorizedWarning: skipCategory,
     });
 
-    const created = await this.importEmail.execute(userId, {
+    const importInput = {
       accountId: target.accountId,
       cardId: target.cardId,
       emailMessageId: message.id,
-      amount: extracted.amount,
+      amount,
       currency: extracted.currency,
       merchant: extracted.merchant,
       description: extracted.description,
@@ -552,27 +781,37 @@ export class IngestionService {
       status,
       categoryId: category.categoryId,
       aiMetadata: {
+        movementClass: extracted.movementClass,
         bankStatusRaw: extracted.bankStatusRaw,
         bankStatusNormalized: extracted.bankStatusNormalized,
         statusEvidence: extracted.statusEvidence,
         statusConfidence: extracted.statusConfidence,
         assignedAt: new Date().toISOString(),
       },
-    });
+    };
+    const created = skipCategory
+      ? await this.importEmail.executeUnpairedTransfer(userId, importInput)
+      : await this.importEmail.execute(userId, importInput);
 
-    await this.repo.upsertEmailMessage({
+    await this.markImported(message, { ...extracted, amount, notes });
+    return { assigned: true as const, transactionId: created.id };
+  }
+
+  private markImported(
+    message: PendingMessageRow,
+    extracted: ExtractedEmailTransaction,
+  ) {
+    return this.repo.upsertEmailMessage({
       sourceId: message.sourceId,
       gmailMessageId: message.gmailMessageId,
-      outcome: 'IMPORTED',
+      outcome: EMAIL_MESSAGE_OUTCOME.IMPORTED,
       provider: message.provider,
       model: message.model,
       instrumentHint: message.instrumentHint,
       lastFourHint: message.lastFourHint,
       accountNumberHint: message.accountNumberHint,
-      extractedPayload: { ...extracted, notes },
+      extractedPayload: extracted,
     });
-
-    return { assigned: true as const, transactionId: created.id };
   }
 
   private async assertAssignmentTarget(
@@ -610,28 +849,7 @@ export class IngestionService {
   private parseExtractedPayload(
     payload: unknown,
   ): ExtractedEmailTransaction | null {
-    if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
-      return null;
-    }
-    const row = payload as Partial<ExtractedEmailTransaction>;
-    if (
-      typeof row.amount !== 'number' ||
-      typeof row.currency !== 'string' ||
-      typeof row.transactionDate !== 'string' ||
-      typeof row.description !== 'string' ||
-      (row.type !== 'DEBIT' && row.type !== 'CREDIT')
-    ) {
-      return null;
-    }
-    return {
-      ...(row as ExtractedEmailTransaction),
-      notes:
-        typeof row.notes === 'string' && row.notes.trim()
-          ? row.notes.trim()
-          : null,
-      categoryNameHint:
-        typeof row.categoryNameHint === 'string' ? row.categoryNameHint : null,
-    };
+    return parseExtractedPayload(payload);
   }
 
   private async refreshGmailToken(sourceId: string): Promise<string> {
@@ -672,7 +890,7 @@ export class IngestionService {
     input: {
       connectionId: string;
       institutionId: string;
-      bankSenderEmail?: string;
+      bankSenderEmails: string[];
       bankDomain: string;
       label?: string;
     },
@@ -689,7 +907,7 @@ export class IngestionService {
     if (existing) {
       const updated = await this.repo.updateEmailSource(userId, existing.id, {
         connectionId: input.connectionId,
-        bankSenderEmail: input.bankSenderEmail ?? null,
+        bankSenderEmails: input.bankSenderEmails,
         bankDomain: input.bankDomain,
         ...(input.label !== undefined ? { label: input.label } : {}),
         isActive: true,
@@ -704,7 +922,7 @@ export class IngestionService {
     const created = await this.repo.createEmailSource(userId, {
       connectionId: input.connectionId,
       institutionId: input.institutionId,
-      bankSenderEmail: input.bankSenderEmail,
+      bankSenderEmails: input.bankSenderEmails,
       bankDomain: input.bankDomain,
       label: input.label,
       isActive: true,
@@ -756,26 +974,32 @@ export class IngestionService {
 
   private resolveSenderFields(input: {
     bankSenderEmail?: string;
+    bankSenderEmails?: string[];
     bankDomain?: string;
-  }): { bankSenderEmail?: string; bankDomain: string } {
-    const senderRaw = input.bankSenderEmail?.trim();
-    const sender = senderRaw ? extractEmailAddress(senderRaw) : null;
-    if (senderRaw && !sender) {
-      throw new BadRequestException('bankSenderEmail must be a valid email');
+  }): { bankSenderEmails: string[]; bankDomain: string } {
+    const senders = normalizeBankSenderEmails({
+      bankSenderEmail: input.bankSenderEmail,
+      bankSenderEmails: input.bankSenderEmails,
+    });
+    if (senders.length === 0) {
+      const domain = input.bankDomain?.trim();
+      if (!domain) {
+        throw new BadRequestException(
+          'bankSenderEmail or bankDomain is required',
+        );
+      }
+      return { bankSenderEmails: [], bankDomain: domain };
     }
-    if (sender) {
-      return {
-        bankSenderEmail: sender,
-        bankDomain: extractEmailDomain(sender),
-      };
-    }
-    const domain = input.bankDomain?.trim();
-    if (!domain) {
+    const domain = extractEmailDomain(senders[0]);
+    const mismatched = senders.filter(
+      (email) => extractEmailDomain(email) !== domain,
+    );
+    if (mismatched.length > 0) {
       throw new BadRequestException(
-        'bankSenderEmail or bankDomain is required',
+        'All sender emails must share the same domain',
       );
     }
-    return { bankSenderEmail: undefined, bankDomain: domain };
+    return { bankSenderEmails: senders, bankDomain: domain };
   }
 
   private get encryptionKey(): string {
@@ -804,7 +1028,8 @@ export class IngestionService {
       institutionId: source.institutionId,
       institutionName: source.institution?.name ?? null,
       emailAddress: source.connection.emailAddress,
-      bankSenderEmail: source.bankSenderEmail,
+      bankSenderEmail: source.bankSenderEmails?.[0] ?? null,
+      bankSenderEmails: source.bankSenderEmails ?? [],
       bankDomain: source.bankDomain,
       label: source.label,
       provider: source.connection.provider,
@@ -835,6 +1060,7 @@ export class IngestionService {
       lastFourHint: row.lastFourHint,
       accountNumberHint: row.accountNumberHint,
       extractedPayload: row.extractedPayload,
+      outcome: row.outcome,
       reason: row.reason,
       createdAt: row.createdAt.toISOString(),
     };

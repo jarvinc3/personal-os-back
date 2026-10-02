@@ -1,5 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
+  ArrayMaxSize,
+  IsArray,
   IsEmail,
   IsOptional,
   IsString,
@@ -8,7 +10,9 @@ import {
 } from 'class-validator';
 
 export class ConnectEmailSourceDto {
-  @ApiProperty({ description: 'Gmail mailbox already authorized for this user' })
+  @ApiProperty({
+    description: 'Gmail mailbox already authorized for this user',
+  })
   @IsEmail()
   emailAddress!: string;
 
@@ -18,6 +22,13 @@ export class ConnectEmailSourceDto {
   })
   @IsEmail()
   bankSenderEmail!: string;
+
+  @ApiPropertyOptional({ type: [String] })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(20)
+  @IsEmail({}, { each: true })
+  bankSenderEmails?: string[];
 
   @ApiPropertyOptional({
     description: 'Derived from bankSenderEmail when omitted',

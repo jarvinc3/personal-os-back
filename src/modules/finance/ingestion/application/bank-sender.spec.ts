@@ -2,6 +2,7 @@ import {
   buildGmailFromQuery,
   extractEmailAddress,
   extractEmailDomain,
+  normalizeBankSenderEmails,
 } from './bank-sender';
 
 describe('extractEmailAddress', () => {
@@ -44,5 +45,30 @@ describe('buildGmailFromQuery', () => {
         bankDomain: 'bhd.com.do',
       }),
     ).toBe('from:bhd.com.do');
+  });
+
+  it('ORs several allowlisted senders', () => {
+    expect(
+      buildGmailFromQuery({
+        bankSenderEmails: [
+          'notificaciones@popularenlinea.com',
+          'alertas@popularenlinea.com',
+        ],
+        bankDomain: 'popularenlinea.com',
+      }),
+    ).toBe(
+      'from:(notificaciones@popularenlinea.com OR alertas@popularenlinea.com)',
+    );
+  });
+});
+
+describe('normalizeBankSenderEmails', () => {
+  it('dedupes the legacy single sender with the list', () => {
+    expect(
+      normalizeBankSenderEmails({
+        bankSenderEmail: 'Alertas@BHD.com.do',
+        bankSenderEmails: ['alertas@bhd.com.do', 'avisos@bhd.com.do'],
+      }),
+    ).toEqual(['alertas@bhd.com.do', 'avisos@bhd.com.do']);
   });
 });

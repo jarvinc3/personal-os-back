@@ -1,22 +1,20 @@
 import type { PrismaService } from '../../../../prisma/prisma.service';
 import { EmailSourceRepository } from './email-source.repository';
 
-describe('EmailSourceRepository.listDueGmailSyncSources', () => {
-  it('selects due sources only when emailSync.enabled and emailSync.automatic are true', async () => {
+describe('EmailSourceRepository.listAutoSyncSources', () => {
+  it('selects active sources with emailSync.enabled and emailSync.automatic true', async () => {
     const findMany = jest.fn().mockResolvedValue([]);
     const repo = new EmailSourceRepository({
       finEmailSource: { findMany },
     } as unknown as PrismaService);
-    const cutoff = new Date('2026-09-22T12:00:00.000Z');
 
-    await repo.listDueGmailSyncSources(cutoff);
+    await repo.listAutoSyncSources();
 
     expect(findMany).toHaveBeenCalledWith({
       where: {
         isActive: true,
         connection: { isActive: true },
         institution: { isActive: true },
-        OR: [{ lastSyncedAt: null }, { lastSyncedAt: { lte: cutoff } }],
         user: {
           userModules: {
             some: {
@@ -40,7 +38,21 @@ describe('EmailSourceRepository.listDueGmailSyncSources', () => {
           },
         },
       },
-      select: { id: true, userId: true },
+      select: {
+        id: true,
+        userId: true,
+        lastSyncedAt: true,
+        user: {
+          select: {
+            timezone: true,
+            userModules: {
+              where: { module: { slug: 'finance' } },
+              select: { config: true },
+              take: 1,
+            },
+          },
+        },
+      },
     });
   });
 });

@@ -1,5 +1,8 @@
-import { ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
+  ArrayMaxSize,
+  ArrayMinSize,
+  IsArray,
   IsEmail,
   IsOptional,
   IsString,
@@ -24,9 +27,25 @@ export class UpdateEmailSourceDto {
   @IsEmail()
   bankSenderEmail?: string;
 
+  @ApiPropertyOptional({ type: [String] })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(20)
+  @IsEmail({}, { each: true })
+  bankSenderEmails?: string[];
+
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
   @MaxLength(150)
   bankDomain?: string;
+}
+
+export class AddEmailSourceSendersDto {
+  @ApiProperty({ type: [String] })
+  @IsArray()
+  @ArrayMinSize(1)
+  @ArrayMaxSize(20)
+  @IsEmail({}, { each: true })
+  emails!: string[];
 }

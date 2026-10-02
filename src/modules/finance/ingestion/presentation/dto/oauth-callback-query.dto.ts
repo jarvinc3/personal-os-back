@@ -2,7 +2,9 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsEmail,
   IsNotEmpty,
+  IsNumber,
   IsOptional,
+  IsPositive,
   IsString,
   IsUUID,
   MaxLength,
@@ -80,6 +82,19 @@ export class AssignEmailMessageDto {
   @IsUUID()
   cardId?: string;
 
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsNumber()
+  @IsPositive()
+  amount?: number;
+
   @Validate(AssignEmailMessageTargetXorConstraint)
   private readonly _xorTarget?: never;
+}
+
+export class CompletePendingAmountDto {
+  @ApiProperty()
+  @IsNumber()
+  @IsPositive()
+  amount!: number;
 }
