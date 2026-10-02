@@ -2,7 +2,12 @@ import { Injectable } from '@nestjs/common';
 import { AnalyticsService } from './analytics/application/analytics.service';
 import { CatalogService } from './catalog/application/catalog.service';
 import { IngestionService } from './ingestion/application/ingestion.service';
-import type { CreateTransactionCommand, CreateTransferCommand, ListTransactionsQuery, UpdateTransactionCommand } from './ledger/application/commands/ledger.commands';
+import type {
+  CreateTransactionCommand,
+  CreateTransferCommand,
+  ListTransactionsQuery,
+  UpdateTransactionCommand,
+} from './ledger/application/commands/ledger.commands';
 import { ConfirmTransactionUseCase } from './ledger/application/confirm-transaction.use-case';
 import { CreateTransactionUseCase } from './ledger/application/create-transaction.use-case';
 import { CreateTransferUseCase } from './ledger/application/create-transfer.use-case';

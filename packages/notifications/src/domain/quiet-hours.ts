@@ -19,7 +19,10 @@ function parseTimeToMinutes(value: string): number | null {
   return hours * 60 + minutes;
 }
 
-function getMinutesInTimezone(date: Date, timezone: string | null | undefined): number {
+function getMinutesInTimezone(
+  date: Date,
+  timezone: string | null | undefined,
+): number {
   try {
     const formatter = new Intl.DateTimeFormat('en-GB', {
       timeZone: timezone ?? undefined,

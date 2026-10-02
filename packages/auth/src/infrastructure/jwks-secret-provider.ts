@@ -1,4 +1,4 @@
-import type { SupabaseAuthConfig } from '../../../config/supabase-auth.config';
+import type { SupabaseAuthConfig } from '@personal-os/config';
 import { createPassportJwksSecret } from './jwks-rsa.loader';
 
 export function createJwksSecretProvider(authConfig: SupabaseAuthConfig) {

@@ -1,11 +1,15 @@
 import { OnWorkerEvent, Processor, WorkerHost } from '@nestjs/bullmq';
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { Job } from 'bullmq';
-import { AiProcessingJob } from '../../../../core/queues/queue-jobs';
-import { QueueNames } from '../../../../core/queues/queue.constants';
-import { NotificationsGateway } from '../../../notifications';
-import { parseUserPreferences, UsersRepository } from '../../../users';
-import { resolveDailyInsightQuota } from '../../chat/application/ai-limits';
+import { AiProcessingJob } from '@personal-os/core';
+import { QueueNames } from '@personal-os/core';
+import { NotificationsGateway } from '@personal-os/notifications';
+import {
+  parseUserPreferences,
+  USERS_REPOSITORY,
+  type UsersRepositoryPort,
+} from '@personal-os/users';
+import { resolveDailyInsightQuota } from '@personal-os/config';
 import { AiMemoryService } from './ai-memory.service';
 import { AiSessionsRepository } from '../../chat/infrastructure/ai-sessions.repository';
 import { AiService } from '../../chat/application/ai.service';
@@ -20,7 +24,8 @@ export class AiProcessingProcessor extends WorkerHost {
   constructor(
     private readonly aiService: AiService,
     private readonly notificationsGateway: NotificationsGateway,
-    private readonly usersRepository: UsersRepository,
+    @Inject(USERS_REPOSITORY)
+    private readonly usersRepository: UsersRepositoryPort,
     private readonly sessionsRepo: AiSessionsRepository,
     private readonly memoryService: AiMemoryService,
   ) {
@@ -73,13 +78,18 @@ export class AiProcessingProcessor extends WorkerHost {
       return;
     }
 
-    const moduleSlug =
-      typeof payload.slug === 'string' ? payload.slug : null;
+    const moduleSlug = typeof payload.slug === 'string' ? payload.slug : null;
 
     const field = (key: string, fallback = '?'): string => {
       const value = payload[key];
-      if (value === null || value === undefined) return fallback;
-      if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+      if (value === null || value === undefined) {
+        return fallback;
+      }
+      if (
+        typeof value === 'string' ||
+        typeof value === 'number' ||
+        typeof value === 'boolean'
+      ) {
         return String(value);
       }
       return JSON.stringify(value);
@@ -99,16 +109,11 @@ export class AiProcessingProcessor extends WorkerHost {
       'module.enabled': `The user enabled the ${moduleSlug ?? 'unknown'} module. Suggest one initial configuration tip.`,
       'module.disabled': `The user disabled the ${moduleSlug ?? 'unknown'} module. Acknowledge briefly.`,
       'module.config.updated': `The user updated ${moduleSlug ?? 'unknown'} module config. Offer one relevant tip.`,
-      'finance.transaction.confirmed':
-        `The user recorded a finance transaction id=${field('transactionId')} amount=${field('amount')} status=${field('status')}. Offer one brief, actionable insight if useful.`,
-      'finance.transaction.updated':
-        `The user updated finance transaction id=${field('transactionId')}. Acknowledge briefly if a tip is useful.`,
-      'finance.transaction.deleted':
-        `The user deleted finance transaction id=${field('transactionId')} (previous status ${field('status')}). Acknowledge briefly if a tip is useful.`,
-      'finance.budget.threshold_crossed':
-        `Budget ${field('budgetId')} reached ${field('percentageUsed')}%. Offer one concise spending tip related to staying on budget.`,
-      'finance.email_sync.completed':
-        `Gmail bank sync finished for source ${field('sourceId')}: ${field('transactionsNew', '0')} new of ${field('emailsScanned', '0')} scanned. Status mix: ${field('countsByStatus', '{}')}. Summarize and suggest confirming any PENDING imports.`,
+      'finance.transaction.confirmed': `The user recorded a finance transaction id=${field('transactionId')} amount=${field('amount')} status=${field('status')}. Offer one brief, actionable insight if useful.`,
+      'finance.transaction.updated': `The user updated finance transaction id=${field('transactionId')}. Acknowledge briefly if a tip is useful.`,
+      'finance.transaction.deleted': `The user deleted finance transaction id=${field('transactionId')} (previous status ${field('status')}). Acknowledge briefly if a tip is useful.`,
+      'finance.budget.threshold_crossed': `Budget ${field('budgetId')} reached ${field('percentageUsed')}%. Offer one concise spending tip related to staying on budget.`,
+      'finance.email_sync.completed': `Gmail bank sync finished for source ${field('sourceId')}: ${field('transactionsNew', '0')} new of ${field('emailsScanned', '0')} scanned. Status mix: ${field('countsByStatus', '{}')}. Summarize and suggest confirming any PENDING imports.`,
     };
 
     const userPrompt =
@@ -156,15 +161,13 @@ export class AiProcessingProcessor extends WorkerHost {
   }
 
   private emit(userId: string, payload: AiResponseWsPayload) {
-    this.notificationsGateway.emitToUser(
-      userId,
-      'ai.response',
-      payload,
-    );
+    this.notificationsGateway.emitToUser(userId, 'ai.response', payload);
   }
 
   @OnWorkerEvent('failed')
   onFailed(job: Job<AiProcessingJob>, error: Error) {
-    this.logger.error(`AI processing job ${job.id ?? 'unknown'} failed: ${error.message}`);
+    this.logger.error(
+      `AI processing job ${job.id ?? 'unknown'} failed: ${error.message}`,
+    );
   }
 }

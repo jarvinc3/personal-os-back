@@ -27,8 +27,12 @@ export function postgresUrlUsesTls(connectionString: string): boolean {
   const lower = connectionString.toLowerCase();
   const sslmodeRaw = lower.match(/[?&]sslmode=([^&]+)/)?.[1];
   const sslmode = sslmodeRaw?.replace(/\+/g, ' ');
-  if (sslmode === 'disable' || sslmode === 'false') return false;
-  if (sslmode) return true;
+  if (sslmode === 'disable' || sslmode === 'false') {
+    return false;
+  }
+  if (sslmode) {
+    return true;
+  }
   return isLikelySupabasePostgresUrl(connectionString);
 }
 
@@ -70,6 +74,8 @@ export function defaultRejectUnauthorized(
   nodeEnv: string | undefined,
   explicit: boolean | undefined,
 ): boolean {
-  if (explicit !== undefined) return explicit;
+  if (explicit !== undefined) {
+    return explicit;
+  }
   return nodeEnv === 'production';
 }

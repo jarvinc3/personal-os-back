@@ -7,7 +7,9 @@ import type { LedgerRepositoryPort } from './ports/ledger.repository.port';
 
 describe('CreateTransactionUseCase', () => {
   const createTransaction = jest.fn();
-  const findAccountById = jest.fn().mockResolvedValue({ id: 'acc-1', currency: 'DOP' });
+  const findAccountById = jest
+    .fn()
+    .mockResolvedValue({ id: 'acc-1', currency: 'DOP' });
   const repo = {
     createTransaction,
     findAccountById,

@@ -1,15 +1,18 @@
 import {
-    BadRequestException,
-    ConflictException,
-    Injectable,
-    NotFoundException,
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
 } from '@nestjs/common';
-import { NotificationsGateway } from '../../../notifications';
+import { NotificationsGateway } from '@personal-os/notifications';
 import { AiActionsRepository } from '../infrastructure/ai-actions.repository';
 import { validateMutatingToolArgs } from '../../tools/tool-arg-schemas';
 import { ToolExecutorService } from '../../tools/tool-executor.service';
 import { getActionLabel, getToolDefinition } from '../../tools/tool.registry';
-import type { AiActionSummary, SideEffectDescriptor } from '../../shared/ai.types';
+import type {
+  AiActionSummary,
+  SideEffectDescriptor,
+} from '../../shared/ai.types';
 
 @Injectable()
 export class AiActionsService {
@@ -63,9 +66,7 @@ export class AiActionsService {
       if (!raced) {
         throw new NotFoundException('Action not found');
       }
-      throw new ConflictException(
-        `Action is ${raced.status}, not PENDING`,
-      );
+      throw new ConflictException(`Action is ${raced.status}, not PENDING`);
     }
 
     const payload = action.payload as Record<string, unknown>;
@@ -145,9 +146,7 @@ export class AiActionsService {
       if (!raced) {
         throw new NotFoundException('Action not found');
       }
-      throw new ConflictException(
-        `Action is ${raced.status}, not PENDING`,
-      );
+      throw new ConflictException(`Action is ${raced.status}, not PENDING`);
     }
     return this.toSummary(updated);
   }

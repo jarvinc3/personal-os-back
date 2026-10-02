@@ -1,0 +1,40 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "composite": true,
+    "rootDir": "src",
+    "outDir": "../../dist",
+    "tsBuildInfoFile": "../../dist/tsconfig.tsbuildinfo"
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["**/*.spec.ts"],
+  "references": [
+    {
+      "path": "../../packages/config"
+    },
+    {
+      "path": "../../packages/database"
+    },
+    {
+      "path": "../../packages/core"
+    },
+    {
+      "path": "../../packages/logos"
+    },
+    {
+      "path": "../../packages/auth"
+    },
+    {
+      "path": "../../packages/users"
+    },
+    {
+      "path": "../../packages/finance"
+    },
+    {
+      "path": "../../packages/notifications"
+    },
+    {
+      "path": "../../packages/ai-agent"
+    }
+  ]
+}

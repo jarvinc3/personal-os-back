@@ -55,7 +55,11 @@ describe('ReverseTransactionUseCase', () => {
 
     const result = await useCase.execute('user-1', 'tx-1');
 
-    expect(reverseTransaction).toHaveBeenCalledWith('user-1', 'tx-1', undefined);
+    expect(reverseTransaction).toHaveBeenCalledWith(
+      'user-1',
+      'tx-1',
+      undefined,
+    );
     expect(result).toMatchObject({
       id: 'tx-1',
       status: 'REVERSED',

@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import type { PaginationQueryDto } from '../../../../core/pagination/pagination.dto';
-import { paginationArgs } from '../../../../core/pagination/pagination.dto';
-import type { AiRole, Prisma } from '../../../../prisma/generated/client';
-import { PrismaService } from '../../../../prisma/prisma.service';
+import type { PaginationQueryDto } from '@personal-os/core';
+import { paginationArgs } from '@personal-os/core';
+import type { AiRole, Prisma } from '@personal-os/database';
+import { PrismaService } from '@personal-os/database';
 
 @Injectable()
 export class AiSessionsRepository {
@@ -147,11 +147,16 @@ export class AiSessionsRepository {
     });
   }
 
-  async findAssistantAfterUserMessage(sessionId: string, userMessageId: string) {
+  async findAssistantAfterUserMessage(
+    sessionId: string,
+    userMessageId: string,
+  ) {
     const userMsg = await this.prisma.aiMessage.findUnique({
       where: { id: userMessageId },
     });
-    if (!userMsg) return null;
+    if (!userMsg) {
+      return null;
+    }
     return this.prisma.aiMessage.findFirst({
       where: {
         sessionId,

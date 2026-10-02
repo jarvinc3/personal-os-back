@@ -1,4 +1,4 @@
-import type { AiTone } from '../../users';
+import type { AiTone } from '@personal-os/users';
 import { TONE_INSTRUCTIONS } from '../chat/application/build-system-prompt';
 import { getModuleContextPrompt } from './module-context';
 import { SYSTEM_BASE_PROMPT } from './system-base';
@@ -29,8 +29,7 @@ export function buildAgentPrompt(options: {
   );
 
   const memoryHint =
-    options.memorySnapshot &&
-    Object.keys(options.memorySnapshot).length > 0
+    options.memorySnapshot && Object.keys(options.memorySnapshot).length > 0
       ? `Memoria de sesiones anteriores: ${JSON.stringify(options.memorySnapshot).slice(0, 1500)}`
       : '';
 

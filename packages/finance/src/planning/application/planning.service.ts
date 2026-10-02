@@ -1,8 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import {
-  paginate,
-  type PaginationQueryDto,
-} from '../../../../core/pagination/pagination.dto';
+import { paginate, type PaginationQueryDto } from '@personal-os/core';
 import { FinanceOwnershipService } from '../../shared/application/finance-ownership.service';
 import { PlanningRepository } from '../infrastructure/planning.repository';
 import type { CreateBudgetDto } from '../presentation/dto/create-budget.dto';
@@ -44,7 +41,9 @@ export class PlanningService {
 
   async getBudget(userId: string, id: string) {
     const row = await this.repo.findBudget(userId, id);
-    if (!row) throw new NotFoundException('Budget not found');
+    if (!row) {
+      throw new NotFoundException('Budget not found');
+    }
     return mapBudget(row);
   }
 
@@ -78,13 +77,17 @@ export class PlanningService {
         ? { alertThresholdPct: dto.alertThresholdPct }
         : {}),
     });
-    if (!updated) throw new NotFoundException('Budget not found');
+    if (!updated) {
+      throw new NotFoundException('Budget not found');
+    }
     return mapBudget(updated);
   }
 
   async deleteBudget(userId: string, id: string) {
     const result = await this.repo.deleteBudget(userId, id);
-    if (result.count === 0) throw new NotFoundException('Budget not found');
+    if (result.count === 0) {
+      throw new NotFoundException('Budget not found');
+    }
     return { success: true };
   }
 
@@ -116,7 +119,9 @@ export class PlanningService {
     dto: UpdateSavingsGoalDto,
   ) {
     const existing = await this.repo.findSavingsGoal(userId, id);
-    if (!existing) throw new NotFoundException('Savings goal not found');
+    if (!existing) {
+      throw new NotFoundException('Savings goal not found');
+    }
 
     const nextCurrent =
       dto.currentAmount !== undefined
@@ -144,14 +149,17 @@ export class PlanningService {
       isCompleted,
       completedAt: isCompleted ? (existing.completedAt ?? new Date()) : null,
     });
-    if (!updated) throw new NotFoundException('Savings goal not found');
+    if (!updated) {
+      throw new NotFoundException('Savings goal not found');
+    }
     return mapSavingsGoal(updated);
   }
 
   async deleteSavingsGoal(userId: string, id: string) {
     const result = await this.repo.deleteSavingsGoal(userId, id);
-    if (result.count === 0)
+    if (result.count === 0) {
       throw new NotFoundException('Savings goal not found');
+    }
     return { success: true };
   }
 
@@ -193,10 +201,14 @@ export class PlanningService {
 
   async updateLoan(userId: string, id: string, dto: UpdateLoanDto) {
     const existing = await this.repo.findLoan(userId, id);
-    if (!existing) throw new NotFoundException('Loan not found');
+    if (!existing) {
+      throw new NotFoundException('Loan not found');
+    }
 
     const nextInstitutionId =
-      dto.institutionId !== undefined ? dto.institutionId : existing.institutionId;
+      dto.institutionId !== undefined
+        ? dto.institutionId
+        : existing.institutionId;
     const nextAccountId =
       dto.accountId !== undefined ? dto.accountId : existing.accountId;
 
@@ -238,19 +250,25 @@ export class PlanningService {
         : {}),
       ...(dto.notes !== undefined ? { notes: dto.notes } : {}),
     });
-    if (!updated) throw new NotFoundException('Loan not found');
+    if (!updated) {
+      throw new NotFoundException('Loan not found');
+    }
     return mapLoan(updated);
   }
 
   async deactivateLoan(userId: string, id: string) {
     const updated = await this.repo.updateLoan(userId, id, { isActive: false });
-    if (!updated) throw new NotFoundException('Loan not found');
+    if (!updated) {
+      throw new NotFoundException('Loan not found');
+    }
     return { success: true };
   }
 
   async deleteLoan(userId: string, id: string) {
     const result = await this.repo.deleteLoan(userId, id);
-    if (result.count === 0) throw new NotFoundException('Loan not found');
+    if (result.count === 0) {
+      throw new NotFoundException('Loan not found');
+    }
     return { success: true };
   }
 
@@ -283,7 +301,9 @@ export class PlanningService {
 
   async updateReceivable(userId: string, id: string, dto: UpdateReceivableDto) {
     const existing = await this.repo.findReceivable(userId, id);
-    if (!existing) throw new NotFoundException('Receivable not found');
+    if (!existing) {
+      throw new NotFoundException('Receivable not found');
+    }
 
     const paymentTouched =
       dto.status !== undefined ||
@@ -320,13 +340,17 @@ export class PlanningService {
       ...(dto.currency ? { currency: dto.currency } : {}),
       ...(dto.dueDate ? { dueDate: new Date(dto.dueDate) } : {}),
     });
-    if (!updated) throw new NotFoundException('Receivable not found');
+    if (!updated) {
+      throw new NotFoundException('Receivable not found');
+    }
     return mapReceivable(updated);
   }
 
   async deleteReceivable(userId: string, id: string) {
     const result = await this.repo.deleteReceivable(userId, id);
-    if (result.count === 0) throw new NotFoundException('Receivable not found');
+    if (result.count === 0) {
+      throw new NotFoundException('Receivable not found');
+    }
     return { success: true };
   }
 }

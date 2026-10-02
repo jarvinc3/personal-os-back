@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { LogosModule } from '../../logos/logos.module';
+import { LogosModule } from '@personal-os/logos';
 import { FinanceLedgerModule } from '../ledger/ledger.module';
 import { FinanceOwnershipModule } from '../shared/finance-ownership.module';
 import { CatalogService } from './application/catalog.service';

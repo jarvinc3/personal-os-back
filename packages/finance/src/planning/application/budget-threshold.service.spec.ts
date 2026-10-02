@@ -1,4 +1,4 @@
-import { AppEvents } from '../../../../core/events/event.constants';
+import { AppEvents } from '@personal-os/core';
 import type { DomainEventPublisherPort } from '../../events/application/ports/domain-event-publisher.port';
 import { BudgetThresholdService } from './budget-threshold.service';
 

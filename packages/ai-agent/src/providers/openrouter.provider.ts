@@ -7,7 +7,10 @@ import type {
   ToolCallRequest,
 } from '../shared/ai.types';
 import { mapMessagesToOpenRouter } from '../shared/map-messages-to-openrouter';
-import { parseToolCallArguments, toolsToOpenAiFormat } from '../tools/tool.registry';
+import {
+  parseToolCallArguments,
+  toolsToOpenAiFormat,
+} from '../tools/tool.registry';
 
 const OPENROUTER_MODEL = 'deepseek/deepseek-v4-flash';
 

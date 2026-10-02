@@ -10,7 +10,7 @@ import type { Server, Socket } from 'socket.io';
 import {
   SupabaseJwtVerifierService,
   type AuthUserContext,
-} from '../../auth';
+} from '@personal-os/auth';
 
 interface NotificationsSocketData {
   user?: AuthUserContext;

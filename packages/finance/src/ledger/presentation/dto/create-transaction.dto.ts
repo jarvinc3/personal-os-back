@@ -1,36 +1,30 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
-    IsDateString,
-    IsEnum,
-    IsNumber,
-    IsOptional,
-    IsString,
-    IsUUID,
-    MaxLength,
-    Validate,
-    ValidationArguments,
-    ValidatorConstraint,
-    ValidatorConstraintInterface,
+  IsDateString,
+  IsEnum,
+  IsNumber,
+  IsOptional,
+  IsString,
+  IsUUID,
+  MaxLength,
+  Validate,
+  ValidationArguments,
+  ValidatorConstraint,
+  ValidatorConstraintInterface,
 } from 'class-validator';
 import { CurrencyField } from '../../../shared/presentation/validation.decorators';
-
-const transactionTypes = ['DEBIT', 'CREDIT'] as const;
-const transactionStatuses = [
-  'PENDING',
-  'CONFIRMED',
-  'CANCELLED',
-  'DECLINED',
-  'REVERSED',
-] as const;
+import { isXorTargetValid } from '../../../shared/domain/ledger-rules';
+import {
+  FIN_TRANSACTION_STATUSES,
+  MANUAL_TRANSACTION_TYPES,
+} from '../../../shared/domain/transaction-status';
 
 @ValidatorConstraint({ name: 'xorAccountCard', async: false })
 class XorAccountCardConstraint implements ValidatorConstraintInterface {
   validate(_: unknown, args: ValidationArguments) {
     const obj = args.object as { accountId?: string; cardId?: string };
-    const hasAccount = Boolean(obj.accountId);
-    const hasCard = Boolean(obj.cardId);
-    return hasAccount !== hasCard;
+    return isXorTargetValid(obj.accountId, obj.cardId);
   }
 
   defaultMessage() {
@@ -52,9 +46,9 @@ export class CreateTransactionDto {
   @Validate(XorAccountCardConstraint)
   private readonly _xorTarget?: never;
 
-  @ApiProperty({ enum: transactionTypes })
-  @IsEnum(transactionTypes)
-  type!: (typeof transactionTypes)[number];
+  @ApiProperty({ enum: MANUAL_TRANSACTION_TYPES })
+  @IsEnum(MANUAL_TRANSACTION_TYPES)
+  type!: (typeof MANUAL_TRANSACTION_TYPES)[number];
 
   @ApiProperty()
   @Type(() => Number)
@@ -91,8 +85,11 @@ export class CreateTransactionDto {
   @MaxLength(120)
   categoryId?: string;
 
-  @ApiPropertyOptional({ enum: transactionStatuses, default: 'CONFIRMED' })
+  @ApiPropertyOptional({
+    enum: FIN_TRANSACTION_STATUSES,
+    default: 'CONFIRMED',
+  })
   @IsOptional()
-  @IsEnum(transactionStatuses)
-  status?: (typeof transactionStatuses)[number];
+  @IsEnum(FIN_TRANSACTION_STATUSES)
+  status?: (typeof FIN_TRANSACTION_STATUSES)[number];
 }

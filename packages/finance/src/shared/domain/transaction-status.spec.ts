@@ -1,7 +1,7 @@
 import {
-    BANK_STATUS_CONFIDENCE_THRESHOLD,
-    mapBankStatusToInternal,
-    statusAffectsLedger,
+  BANK_STATUS_CONFIDENCE_THRESHOLD,
+  mapBankStatusToInternal,
+  statusAffectsLedger,
 } from './transaction-status';
 
 describe('transaction-status domain', () => {

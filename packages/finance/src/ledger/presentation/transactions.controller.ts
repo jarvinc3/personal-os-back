@@ -10,10 +10,7 @@ import {
   Query,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import {
-  CurrentUser,
-  RequiresEnabledModule,
-} from '../../../../core/decorators';
+import { CurrentUser, RequiresEnabledModule } from '@personal-os/core';
 import { ConfirmTransactionUseCase } from '../application/confirm-transaction.use-case';
 import { CreateTransactionUseCase } from '../application/create-transaction.use-case';
 import { DeleteTransactionUseCase } from '../application/delete-transaction.use-case';

@@ -1,11 +1,16 @@
-import type { FinCardType, FinTransactionType } from '../../../../prisma/generated/client';
+import type { FinTransactionTypeValue } from './transaction-status';
 
-export function signedAmount(
-  type: FinTransactionType,
-  amount: number,
-): number {
-  if (type === 'CREDIT') return amount;
-  if (type === 'DEBIT') return -Math.abs(amount);
+export type LedgerMovementType = FinTransactionTypeValue;
+
+export type LedgerCardType = 'CREDIT' | 'DEBIT';
+
+export function signedAmount(type: LedgerMovementType, amount: number): number {
+  if (type === 'CREDIT') {
+    return amount;
+  }
+  if (type === 'DEBIT') {
+    return -Math.abs(amount);
+  }
   // TRANSFER rows should not use this path; legs are DEBIT/CREDIT.
   return 0;
 }
@@ -13,7 +18,7 @@ export function signedAmount(
 export type LedgerTarget = {
   accountId: string | null;
   cardId: string | null;
-  cardType: FinCardType | null;
+  cardType: LedgerCardType | null;
   derivedAccountId: string | null;
   currencyHint: string | null;
 };

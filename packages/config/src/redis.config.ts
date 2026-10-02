@@ -13,7 +13,9 @@ export function isBullMqEnabledFromProcessEnv(): boolean {
   });
 }
 
-export function isBullMqEnabled(config: Pick<Env, 'NODE_ENV' | 'REDIS_URL' | 'REDIS_ENABLED'>): boolean {
+export function isBullMqEnabled(
+  config: Pick<Env, 'NODE_ENV' | 'REDIS_URL' | 'REDIS_ENABLED'>,
+): boolean {
   if (config.NODE_ENV === 'test') {
     return false;
   }

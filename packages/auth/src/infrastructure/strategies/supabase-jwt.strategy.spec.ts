@@ -9,7 +9,7 @@ describe('SupabaseJwtStrategy (production path)', () => {
     );
 
     expect(source).not.toContain('test-secret');
-    expect(source).not.toContain("NODE_ENV");
+    expect(source).not.toContain('NODE_ENV');
     expect(source).toContain('createJwksSecretProvider');
     expect(source).toContain('RS256');
   });

@@ -1,24 +1,28 @@
 import { Transform, Type } from 'class-transformer';
 import {
-    IsInt,
-    IsOptional,
-    IsString,
-    Matches,
-    Max,
-    MaxLength,
-    Min,
+  IsInt,
+  IsOptional,
+  IsString,
+  Matches,
+  Max,
+  MaxLength,
+  Min,
 } from 'class-validator';
 
 export const ISO_CURRENCY_REGEX = /^[A-Z]{3}$/;
 export const LAST_FOUR_REGEX = /^[0-9]{4}$/;
 
 export function normalizeCurrencyCode(value: unknown): unknown {
-  if (typeof value !== 'string') return value;
+  if (typeof value !== 'string') {
+    return value;
+  }
   return value.trim().toUpperCase();
 }
 
 export function normalizeLastFour(value: unknown): unknown {
-  if (typeof value !== 'string') return value;
+  if (typeof value !== 'string') {
+    return value;
+  }
   return value.trim();
 }
 
@@ -69,7 +73,9 @@ export function RequiredLastFourField() {
 const ACCOUNT_NUMBER_DIGITS_REGEX = /^[0-9]{4,34}$/;
 
 export function normalizeAccountNumberInput(value: unknown): unknown {
-  if (typeof value !== 'string') return value;
+  if (typeof value !== 'string') {
+    return value;
+  }
   const digits = value.replace(/\D/g, '');
   return digits.length ? digits : value.trim();
 }

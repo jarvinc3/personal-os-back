@@ -1,7 +1,15 @@
-import { Body, Controller, Delete, Get, Param, Post, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  Query,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { CurrentUser, Timeout } from '../../../../core/decorators';
-import { PaginationQueryDto } from '../../../../core/pagination/pagination.dto';
+import { CurrentUser, Timeout } from '@personal-os/core';
+import { PaginationQueryDto } from '@personal-os/core';
 import { CreateAiSessionDto } from './dto/create-ai-session.dto';
 import { AiSessionsService } from '../application/ai-sessions.service';
 
@@ -20,10 +28,7 @@ export class AiSessionsController {
 
   @Post()
   @ApiOperation({ summary: 'Create a new AI chat session' })
-  create(
-    @CurrentUser('sub') userId: string,
-    @Body() dto: CreateAiSessionDto,
-  ) {
+  create(@CurrentUser('sub') userId: string, @Body() dto: CreateAiSessionDto) {
     return this.aiSessionsService.create(userId, dto);
   }
 

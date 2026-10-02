@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { BullMQAdapter } from '@bull-board/api/bullMQAdapter';
 import { ExpressAdapter } from '@bull-board/express';
 import { BullBoardModule } from '@bull-board/nestjs';
-import type { Env } from '../../config';
+import type { Env } from '@personal-os/config';
 import { createBullBoardAuthMiddleware } from './bull-board-auth.middleware';
 import { QueueNames } from './queue.constants';
 

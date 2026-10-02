@@ -8,7 +8,11 @@ import { AuthController } from './presentation/auth.controller';
 @Module({
   imports: [PassportModule.register({ defaultStrategy: 'supabase-jwt' })],
   controllers: [AuthController],
-  providers: [SupabaseJwtStrategy, SupabaseJwtVerifierService, SupabaseAdminService],
+  providers: [
+    SupabaseJwtStrategy,
+    SupabaseJwtVerifierService,
+    SupabaseAdminService,
+  ],
   exports: [
     PassportModule,
     SupabaseJwtStrategy,

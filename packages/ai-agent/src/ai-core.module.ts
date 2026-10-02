@@ -1,14 +1,16 @@
-import { Module } from '@nestjs/common';
+import { Global, Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import type { Env } from '../../config/env.schema';
+import type { Env } from '@personal-os/config';
+import { AI_CHAT_COMPLETION } from '@personal-os/core';
 import { AiService } from './chat/application/ai.service';
 import { AI_PROVIDER } from './shared/ai-provider.token';
 import type { AIService as AIProviderClient } from './shared/ai.types';
 
 /**
  * Provider kernel with no Finance/Notifications imports.
- * Finance ingestion can import this without a Nest cycle through AiModule.
+ * Global so Finance ingestion injects the chat port without importing this package.
  */
+@Global()
 @Module({
   providers: [
     {
@@ -47,7 +49,11 @@ import type { AIService as AIProviderClient } from './shared/ai.types';
       inject: [ConfigService],
     },
     AiService,
+    {
+      provide: AI_CHAT_COMPLETION,
+      useExisting: AiService,
+    },
   ],
-  exports: [AiService],
+  exports: [AiService, AI_CHAT_COMPLETION],
 })
 export class AiCoreModule {}

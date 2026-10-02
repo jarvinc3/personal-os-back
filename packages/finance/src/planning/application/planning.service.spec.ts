@@ -204,7 +204,9 @@ describe('PlanningService archive and receivables', () => {
       category: { id: 'cat-1', name: 'Food' },
     });
 
-    await expect(service.getBudget('user-1', 'budget-1')).resolves.toMatchObject({
+    await expect(
+      service.getBudget('user-1', 'budget-1'),
+    ).resolves.toMatchObject({
       id: 'budget-1',
       amountLimit: '1000',
       amountSpent: '10',

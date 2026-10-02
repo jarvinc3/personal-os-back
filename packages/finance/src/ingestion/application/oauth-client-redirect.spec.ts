@@ -21,19 +21,15 @@ describe('oauth-client-redirect', () => {
     expect(
       isAllowlistedReturnTo('http://localhost:5173/finance/oauth', cors),
     ).toBe(true);
-    expect(
-      isAllowlistedReturnTo('https://evil.example/phish', cors),
-    ).toBe(false);
+    expect(isAllowlistedReturnTo('https://evil.example/phish', cors)).toBe(
+      false,
+    );
     expect(isAllowlistedReturnTo('javascript:alert(1)', cors)).toBe(false);
   });
 
   it('appends success on an allowlisted returnTo', () => {
     expect(
-      buildWebOAuthRedirect(
-        'http://localhost:5173/finance/oauth',
-        cors,
-        true,
-      ),
+      buildWebOAuthRedirect('http://localhost:5173/finance/oauth', cors, true),
     ).toBe('http://localhost:5173/finance/oauth?success=true');
     expect(
       buildWebOAuthRedirect('https://evil.example/x', cors, true),

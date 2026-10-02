@@ -58,7 +58,9 @@ function extractBodyFromPart(part: GmailMessagePart): string {
   if (part.parts?.length) {
     for (const child of part.parts) {
       const text = extractBodyFromPart(child);
-      if (text) return text;
+      if (text) {
+        return text;
+      }
     }
   }
   if (part.mimeType === 'text/html' && part.body?.data) {
@@ -92,7 +94,9 @@ export function parseGmailMessage(message: GmailMessage): {
   } else if (message.payload?.parts?.length) {
     for (const part of message.payload.parts) {
       body = extractBodyFromPart(part);
-      if (body) break;
+      if (body) {
+        break;
+      }
     }
   }
 
@@ -105,7 +109,9 @@ export async function listGmailMessages(
   pageToken?: string,
 ): Promise<{ messages: { id: string }[]; nextPageToken?: string }> {
   const params = new URLSearchParams({ q: query, maxResults: '50' });
-  if (pageToken) params.set('pageToken', pageToken);
+  if (pageToken) {
+    params.set('pageToken', pageToken);
+  }
 
   const response = await fetch(
     `https://gmail.googleapis.com/gmail/v1/users/me/messages?${params.toString()}`,

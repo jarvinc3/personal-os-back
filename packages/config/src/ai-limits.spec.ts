@@ -11,12 +11,16 @@ describe('ai-limits', () => {
       DEFAULT_MAX_EMAIL_LLM_EXTRACTS,
     );
     expect(resolveMaxEmailLlmExtracts('')).toBe(DEFAULT_MAX_EMAIL_LLM_EXTRACTS);
-    expect(resolveMaxEmailLlmExtracts('0')).toBe(DEFAULT_MAX_EMAIL_LLM_EXTRACTS);
+    expect(resolveMaxEmailLlmExtracts('0')).toBe(
+      DEFAULT_MAX_EMAIL_LLM_EXTRACTS,
+    );
     expect(resolveMaxEmailLlmExtracts('10')).toBe(10);
   });
 
   it('defaults daily insight quota to 20', () => {
-    expect(resolveDailyInsightQuota(undefined)).toBe(DEFAULT_DAILY_INSIGHT_QUOTA);
+    expect(resolveDailyInsightQuota(undefined)).toBe(
+      DEFAULT_DAILY_INSIGHT_QUOTA,
+    );
     expect(resolveDailyInsightQuota('abc')).toBe(DEFAULT_DAILY_INSIGHT_QUOTA);
     expect(resolveDailyInsightQuota('5')).toBe(5);
   });

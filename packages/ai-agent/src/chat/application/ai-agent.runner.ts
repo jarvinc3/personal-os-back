@@ -1,8 +1,8 @@
 import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable, Optional } from '@nestjs/common';
 import { Queue } from 'bullmq';
-import { AiProcessingJob } from '../../../../core/queues/queue-jobs';
-import { QueueNames } from '../../../../core/queues/queue.constants';
+import { AiProcessingJob } from '@personal-os/core';
+import { QueueNames } from '@personal-os/core';
 import { AiActionsService } from '../../actions/application/ai-actions.service';
 import { AiChatPersistenceService } from '../infrastructure/ai-chat-persistence.service';
 import { AiChatTurnCoordinator } from './ai-chat-turn-coordinator.service';
@@ -10,20 +10,24 @@ import { AiSessionsRepository } from '../infrastructure/ai-sessions.repository';
 import { AiService } from './ai.service';
 import { buildAgentPrompt } from '../../prompts/build-agent-prompt';
 import {
-    getModuleContextLabel,
-    MODULE_CONTEXT_SWITCH_TOOL,
-    resolveModuleContextKey,
+  getModuleContextLabel,
+  MODULE_CONTEXT_SWITCH_TOOL,
+  resolveModuleContextKey,
 } from '../../prompts/module-context';
 import { ToolExecutorService } from '../../tools/tool-executor.service';
-import { getActionLabel, getToolDefinition, getToolsForModule } from '../../tools/tool.registry';
+import {
+  getActionLabel,
+  getToolDefinition,
+  getToolsForModule,
+} from '../../tools/tool.registry';
 import type {
-    AgentRunResult,
-    AgentStreamEvent,
-    AiActionSummary,
-    ChatBlock,
-    ChatMessage,
-    SideEffectDescriptor,
-    ToolExecutionResult,
+  AgentRunResult,
+  AgentStreamEvent,
+  AiActionSummary,
+  ChatBlock,
+  ChatMessage,
+  SideEffectDescriptor,
+  ToolExecutionResult,
 } from '../../shared/ai.types';
 import { replayStreamChunks } from '../../shared/replay-stream-chunks';
 
@@ -139,9 +143,13 @@ export class AiAgentRunner {
 
       emitStart(cached.provider, cached.model);
       if (onStream && cached.content) {
-        await replayStreamChunks(cached.content, (chunk) => {
-          onStream({ type: 'chunk', content: chunk });
-        }, { delayMs: 8 });
+        await replayStreamChunks(
+          cached.content,
+          (chunk) => {
+            onStream({ type: 'chunk', content: chunk });
+          },
+          { delayMs: 8 },
+        );
       }
 
       return {

@@ -1,86 +1,99 @@
-import { ConfigService } from '@nestjs/config';
-import { createClient } from '@supabase/supabase-js';
-import type { Env } from '../../../config/env.schema';
+import type { BrandLogoPort } from './ports/brand-logo.port';
+import type { LogoStoragePort } from './ports/logo-storage.port';
 import { LogoService, type LogoUploadFile } from './logo.service';
 
-jest.mock('@supabase/supabase-js', () => ({
-  createClient: jest.fn(),
-}));
+type StorageMocks = {
+  port: LogoStoragePort;
+  exists: jest.Mock;
+  upload: jest.Mock;
+};
 
-const createClientMock = createClient as jest.MockedFunction<typeof createClient>;
-
-function storageMock() {
-  const list = jest.fn().mockResolvedValue({ data: [] });
-  const upload = jest.fn().mockResolvedValue({ error: null });
-  const getPublicUrl = jest.fn((path: string) => ({
-    data: { publicUrl: `https://example.supabase.co/storage/v1/object/public/logos/${path}` },
-  }));
-  const from = jest.fn().mockReturnValue({ list, upload, getPublicUrl });
-  return { list, upload, getPublicUrl, client: { storage: { from } } };
+function storagePort(
+  params: {
+    exists?: jest.Mock;
+    upload?: jest.Mock;
+    available?: boolean;
+  } = {},
+): StorageMocks {
+  const exists = params.exists ?? jest.fn().mockResolvedValue(false);
+  const upload = params.upload ?? jest.fn().mockResolvedValue(undefined);
+  const port: LogoStoragePort = {
+    isAvailable: () => params.available ?? true,
+    exists,
+    upload,
+    publicUrl: jest.fn((path: string) => `https://cdn.example/${path}`),
+  };
+  return { port, exists, upload };
 }
 
-function config(values: Partial<Record<keyof Env, string | undefined>> = {}) {
-  const map: Record<string, string | undefined> = {
-    SUPABASE_URL: 'https://example.supabase.co',
-    SUPABASE_SERVICE_ROLE_KEY: 'service-role',
-    LOGO_DEV_SECRET_KEY: 'sk_test',
-    LOGO_DEV_PUBLISHABLE_KEY: 'pk_test',
-    ...values,
-  };
+function brandPort(
+  params: {
+    search?: jest.Mock;
+    download?: jest.Mock;
+  } = {},
+): BrandLogoPort {
   return {
-    get: (key: string) => map[key],
-  } as unknown as ConfigService<Env, true>;
+    search: params.search ?? jest.fn().mockResolvedValue([]),
+    download:
+      params.download ??
+      jest
+        .fn()
+        .mockResolvedValue({ kind: 'ok', buffer: Buffer.from([1, 2, 3]) }),
+  };
 }
 
 describe('LogoService', () => {
-  const fetchMock = jest.fn();
-
-  beforeEach(() => {
-    fetchMock.mockReset();
-    global.fetch = fetchMock;
-    createClientMock.mockReset();
-  });
-
   it('returns null for an invalid domain without calling the network', async () => {
-    const storage = storageMock();
-    createClientMock.mockReturnValue(storage.client as never);
-    const service = new LogoService(config());
+    const download = jest.fn();
+    const storage = storagePort();
+    const service = new LogoService(storage.port, brandPort({ download }));
 
     await expect(service.ensureLogo('not a domain')).resolves.toBeNull();
-    expect(fetchMock).not.toHaveBeenCalled();
+    expect(download).not.toHaveBeenCalled();
     expect(storage.upload).not.toHaveBeenCalled();
   });
 
-  it('does not store a file when Logo.dev returns 404', async () => {
-    const storage = storageMock();
-    createClientMock.mockReturnValue(storage.client as never);
-    fetchMock.mockResolvedValue({ ok: false, status: 404 });
-    const service = new LogoService(config());
+  it('does not store a file when the brand returns 404', async () => {
+    const download = jest.fn().mockResolvedValue({ kind: 'not_found' });
+    const storage = storagePort();
+    const service = new LogoService(storage.port, brandPort({ download }));
 
     await expect(service.ensureLogo('missing.example')).resolves.toBeNull();
     expect(storage.upload).not.toHaveBeenCalled();
-    await expect(service.ensureLogo('https://missing.example/path')).resolves.toBeNull();
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+    await expect(
+      service.ensureLogo('https://missing.example/path'),
+    ).resolves.toBeNull();
+    expect(download).toHaveBeenCalledTimes(1);
   });
 
-  it('treats an already-exists upload as success', async () => {
-    const storage = storageMock();
-    storage.upload.mockResolvedValue({ error: { message: 'The resource already exists' } });
-    createClientMock.mockReturnValue(storage.client as never);
-    fetchMock.mockResolvedValue({
-      ok: true,
-      status: 200,
-      arrayBuffer: () => Promise.resolve(new Uint8Array([1, 2, 3]).buffer),
-    });
-    const service = new LogoService(config());
+  it('uploads the downloaded brand and returns its path', async () => {
+    const storage = storagePort();
+    const service = new LogoService(storage.port, brandPort());
 
-    await expect(service.ensureLogo('visa.com')).resolves.toBe('brands/visa.com.png');
+    await expect(service.ensureLogo('visa.com')).resolves.toBe(
+      'brands/visa.com.png',
+    );
+    expect(storage.upload).toHaveBeenCalledWith(
+      'brands/visa.com.png',
+      expect.any(Buffer),
+      expect.objectContaining({ contentType: 'image/png' }),
+    );
+  });
+
+  it('reuses an existing brand file without downloading', async () => {
+    const exists = jest.fn().mockResolvedValue(true);
+    const download = jest.fn();
+    const storage = storagePort({ exists });
+    const service = new LogoService(storage.port, brandPort({ download }));
+
+    await expect(service.ensureLogo('visa.com')).resolves.toBe(
+      'brands/visa.com.png',
+    );
+    expect(download).not.toHaveBeenCalled();
   });
 
   it('prefers a custom logo over the shared brand and the legacy URL', () => {
-    const storage = storageMock();
-    createClientMock.mockReturnValue(storage.client as never);
-    const service = new LogoService(config());
+    const service = new LogoService(storagePort().port, brandPort());
 
     expect(
       service.resolveUrl({
@@ -88,24 +101,20 @@ describe('LogoService', () => {
         logoPath: 'brands/bhd.com.do.png',
         logoUrl: 'https://legacy.example/logo.png',
       }),
-    ).toBe(
-      'https://example.supabase.co/storage/v1/object/public/logos/custom/user/inst.png',
-    );
+    ).toBe('https://cdn.example/custom/user/inst.png');
     expect(
       service.resolveUrl({
         logoPath: 'brands/bhd.com.do.png',
         logoUrl: 'https://legacy.example/logo.png',
       }),
-    ).toContain('brands/bhd.com.do.png');
-    expect(service.resolveUrl({ logoUrl: 'https://legacy.example/logo.png' })).toBe(
-      'https://legacy.example/logo.png',
-    );
+    ).toBe('https://cdn.example/brands/bhd.com.do.png');
+    expect(
+      service.resolveUrl({ logoUrl: 'https://legacy.example/logo.png' }),
+    ).toBe('https://legacy.example/logo.png');
   });
 
   it('rejects svg uploads and files over 1 MB', async () => {
-    const storage = storageMock();
-    createClientMock.mockReturnValue(storage.client as never);
-    const service = new LogoService(config());
+    const service = new LogoService(storagePort().port, brandPort());
     const svg: LogoUploadFile = {
       mimetype: 'image/svg+xml',
       size: 10,
@@ -124,10 +133,23 @@ describe('LogoService', () => {
     );
   });
 
+  it('throws when storage is unavailable', async () => {
+    const service = new LogoService(
+      storagePort({ available: false }).port,
+      brandPort(),
+    );
+    const file: LogoUploadFile = {
+      mimetype: 'image/png',
+      size: 10,
+      buffer: Buffer.from('x'),
+    };
+    await expect(service.saveCustomLogo('user', 'inst', file)).rejects.toThrow(
+      /Storage no está configurado/,
+    );
+  });
+
   it('returns no network logo for OTHER', () => {
-    const storage = storageMock();
-    createClientMock.mockReturnValue(storage.client as never);
-    const service = new LogoService(config());
+    const service = new LogoService(storagePort().port, brandPort());
     expect(service.networkLogoUrl('OTHER')).toBeNull();
     expect(service.networkLogoUrl(null)).toBeNull();
   });

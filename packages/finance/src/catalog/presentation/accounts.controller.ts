@@ -1,9 +1,14 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import {
-  CurrentUser,
-  RequiresEnabledModule,
-} from '../../../../core/decorators';
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+} from '@nestjs/common';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { CurrentUser, RequiresEnabledModule } from '@personal-os/core';
 import { CatalogService } from '../application/catalog.service';
 import { CreateAccountDto } from './dto/create-account.dto';
 import { UpdateAccountDto } from './dto/update-account.dto';
@@ -41,7 +46,9 @@ export class AccountsController {
   }
 
   @Delete('accounts/:id')
-  @ApiOperation({ summary: 'Hard-delete account, debit cards, and ledger rows' })
+  @ApiOperation({
+    summary: 'Hard-delete account, debit cards, and ledger rows',
+  })
   remove(@CurrentUser('sub') userId: string, @Param('id') id: string) {
     return this.catalog.deleteAccount(userId, id);
   }

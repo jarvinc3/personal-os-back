@@ -1,10 +1,6 @@
-import {
-    BadRequestException,
-    Inject,
-    Injectable,
-} from '@nestjs/common';
+import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import type { Env } from '../../../../config';
+import type { Env } from '@personal-os/config';
 import { FinanceOutboxDispatcher } from '../../events/infrastructure/finance-outbox.dispatcher';
 import { ResolveAmountsUseCase } from '../../fx/application/resolve-amounts.use-case';
 import { LEDGER_REPOSITORY } from '../../shared/application/tokens';

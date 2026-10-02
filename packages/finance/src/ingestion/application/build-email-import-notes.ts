@@ -17,7 +17,9 @@ export function buildEmailImportNotes(input: {
   const parts: string[] = [];
 
   const llm = input.llmNotes?.trim();
-  if (llm) parts.push(llm);
+  if (llm) {
+    parts.push(llm);
+  }
 
   if (!input.skipUncategorizedWarning) {
     if (!input.categoryId) {
@@ -39,7 +41,9 @@ export function buildEmailImportNotes(input: {
   }
 
   const unique = dedupeParts(parts);
-  if (unique.length === 0) return null;
+  if (unique.length === 0) {
+    return null;
+  }
 
   const joined = unique.join(' ');
   return joined.length <= MAX_NOTES_CHARS
@@ -52,7 +56,9 @@ function dedupeParts(parts: string[]): string[] {
   const out: string[] = [];
   for (const part of parts) {
     const key = part.toLowerCase();
-    if (seen.has(key)) continue;
+    if (seen.has(key)) {
+      continue;
+    }
     seen.add(key);
     out.push(part);
   }

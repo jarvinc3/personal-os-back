@@ -19,7 +19,7 @@ import {
   Public,
   RequiresEnabledModule,
   Timeout,
-} from '../../../../core/decorators';
+} from '@personal-os/core';
 import { IngestionService } from '../application/ingestion.service';
 import { ConnectEmailSourceDto } from './dto/connect-email-source.dto';
 import {

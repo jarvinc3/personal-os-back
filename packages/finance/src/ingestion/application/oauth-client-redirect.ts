@@ -10,7 +10,9 @@ export function parseAllowedOrigins(corsOrigin: string): string[] {
     .map((part) => part.trim())
     .filter(Boolean)
     .flatMap((origin) => {
-      if (origin === '*') return [];
+      if (origin === '*') {
+        return [];
+      }
       try {
         return [new URL(origin).origin];
       } catch {
@@ -29,8 +31,12 @@ export function isAllowlistedReturnTo(
   } catch {
     return false;
   }
-  if (url.protocol !== 'http:' && url.protocol !== 'https:') return false;
-  if (url.username || url.password) return false;
+  if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+    return false;
+  }
+  if (url.username || url.password) {
+    return false;
+  }
   return parseAllowedOrigins(corsOrigin).includes(url.origin);
 }
 
@@ -39,7 +45,9 @@ export function buildWebOAuthRedirect(
   corsOrigin: string,
   success: boolean,
 ): string | null {
-  if (!isAllowlistedReturnTo(returnTo, corsOrigin)) return null;
+  if (!isAllowlistedReturnTo(returnTo, corsOrigin)) {
+    return null;
+  }
   const url = new URL(returnTo);
   url.searchParams.set('success', success ? 'true' : 'false');
   return url.toString();
@@ -53,7 +61,9 @@ export function buildFallbackWebOAuthRedirect(
   success: boolean,
 ): string | null {
   const origin = parseAllowedOrigins(corsOrigin)[0];
-  if (!origin) return null;
+  if (!origin) {
+    return null;
+  }
   return buildWebOAuthRedirect(
     `${origin}${WEB_OAUTH_FALLBACK_PATH}`,
     corsOrigin,

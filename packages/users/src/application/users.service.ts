@@ -1,28 +1,30 @@
 import {
   BadRequestException,
   ForbiddenException,
+  Inject,
   Injectable,
   Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { AppEvents } from '../../../core/events/event.constants';
-import { moduleDisabledMessage } from '../../../core/exceptions/module-disabled';
-import { SupabaseAdminService } from '../../auth';
+import { AppEvents } from '@personal-os/core';
+import { moduleDisabledMessage } from '@personal-os/core';
+import { SupabaseAdminService } from '@personal-os/auth';
 import { GLOBAL_USER_PREFERENCES_DEFAULTS } from '../domain/defaults/global-preferences-defaults';
 import {
   DEFAULT_MODULE_CONFIG_BY_SLUG,
   isModuleSlug,
   type ModuleSlug,
 } from '../domain/defaults/user-settings-defaults';
-import { validateEmailSyncSchedule } from '../domain/email-sync-schedule';
+import { validateEmailSyncSchedule } from '@personal-os/config';
 import { UpdateModuleConfigDto } from '../presentation/dto/update-module-config.dto';
 import { UpdateProfileDto } from '../presentation/dto/update-profile.dto';
 import { mergeWithDefaults } from '../domain/settings-merge';
 import {
-  UserWithModules,
-  UsersRepository,
-} from '../infrastructure/users.repository';
+  USERS_REPOSITORY,
+  type UserWithModulesRecord,
+  type UsersRepositoryPort,
+} from './ports/users.repository.port';
 
 export type DeleteAccountResult = {
   success: true;
@@ -34,12 +36,13 @@ export class UsersService {
   private readonly logger = new Logger(UsersService.name);
 
   constructor(
-    private readonly usersRepository: UsersRepository,
+    @Inject(USERS_REPOSITORY)
+    private readonly usersRepository: UsersRepositoryPort,
     private readonly eventEmitter: EventEmitter2,
     private readonly supabaseAdminService: SupabaseAdminService,
   ) {}
 
-  private mapUser(user: UserWithModules) {
+  private mapUser(user: UserWithModulesRecord) {
     return {
       id: user.id,
       email: user.email,

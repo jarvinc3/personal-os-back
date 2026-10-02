@@ -38,9 +38,13 @@ export function resolveReceivablePayment(input: {
 
   let status = input.status;
   if (!status) {
-    if (paidAmount === 0) status = 'PENDING';
-    else if (paidAmount === amount) status = 'PAID';
-    else status = 'PARTIAL';
+    if (paidAmount === 0) {
+      status = 'PENDING';
+    } else if (paidAmount === amount) {
+      status = 'PAID';
+    } else {
+      status = 'PARTIAL';
+    }
   }
 
   if (status === 'PAID' && paidAmount !== amount) {
@@ -54,7 +58,9 @@ export function resolveReceivablePayment(input: {
     );
   }
   if (status === 'PENDING' && paidAmount !== 0) {
-    throw new BadRequestException('PENDING receivables require paidAmount of 0');
+    throw new BadRequestException(
+      'PENDING receivables require paidAmount of 0',
+    );
   }
 
   return { paidAmount, status };

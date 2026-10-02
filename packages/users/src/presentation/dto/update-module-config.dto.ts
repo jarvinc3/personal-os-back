@@ -38,7 +38,9 @@ export class UpdateModuleConfigDto {
   @Validate(ModuleConfigJsonSizeConstraint)
   config?: Record<string, unknown>;
 
-  @ApiPropertyOptional({ description: 'Enable or disable the module for this user' })
+  @ApiPropertyOptional({
+    description: 'Enable or disable the module for this user',
+  })
   @IsOptional()
   @IsBoolean()
   isEnabled?: boolean;

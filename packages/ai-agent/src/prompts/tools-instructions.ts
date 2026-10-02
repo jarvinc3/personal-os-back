@@ -5,14 +5,14 @@ export function getToolsListForModule(moduleSlug: string | null): string {
   const allowed = getAllowedToolsForModule(moduleSlug);
   const lines = allowed.map((name) => {
     const def = getToolDefinition(name);
-    return def
-      ? `- ${name}: ${def.description}`
-      : `- ${name}`;
+    return def ? `- ${name}: ${def.description}` : `- ${name}`;
   });
   return `Available tools for this context:\n${lines.join('\n')}`;
 }
 
-export function getToolsBehaviorInstructions(confirmBeforeActions: boolean): string {
+export function getToolsBehaviorInstructions(
+  confirmBeforeActions: boolean,
+): string {
   if (confirmBeforeActions) {
     return `Mutating tools create a confirmation card in the UI. Always call the tool first, then briefly explain what the user should confirm in the card. Never ask for confirmation only in text without calling the tool.
 

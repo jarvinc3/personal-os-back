@@ -1,11 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import {
-    NotificationCreatedEvent,
-} from '../../../core/events/domain-events';
-import { AppEvents } from '../../../core/events/event.constants';
-import { DomainEventIdempotencyGuard } from '../../finance';
-import { FINANCE_NOTIFICATION_KEYS } from '../../users';
+  AppEvents,
+  DomainEventIdempotencyGuard,
+  NotificationCreatedEvent,
+} from '@personal-os/core';
+import { FINANCE_NOTIFICATION_KEYS } from '@personal-os/users';
 import { NotificationsService } from './notifications.service';
 
 type FinanceTxEvent = {
@@ -45,7 +45,12 @@ export class NotificationsEventsListener {
   @OnEvent(AppEvents.FINANCE_TRANSACTION_CONFIRMED)
   @OnEvent(AppEvents.FINANCE_TRANSACTION_IMPORTED)
   async onFinanceTransactionCreated(event: FinanceTxEvent): Promise<void> {
-    if (!(await this.idempotency.tryClaim(event.eventId, NotificationsEventsListener.CONSUMER))) {
+    if (
+      !(await this.idempotency.tryClaim(
+        event.eventId,
+        NotificationsEventsListener.CONSUMER,
+      ))
+    ) {
       return;
     }
 
@@ -99,7 +104,12 @@ export class NotificationsEventsListener {
 
   @OnEvent(AppEvents.FINANCE_TRANSACTION_UPDATED)
   async onFinanceTransactionUpdated(event: FinanceTxEvent): Promise<void> {
-    if (!(await this.idempotency.tryClaim(event.eventId, `${NotificationsEventsListener.CONSUMER}:updated`))) {
+    if (
+      !(await this.idempotency.tryClaim(
+        event.eventId,
+        `${NotificationsEventsListener.CONSUMER}:updated`,
+      ))
+    ) {
       return;
     }
     await this.createFinanceInApp(event.userId, {
@@ -116,7 +126,12 @@ export class NotificationsEventsListener {
 
   @OnEvent(AppEvents.FINANCE_BUDGET_THRESHOLD_CROSSED)
   async onBudgetThreshold(event: BudgetThresholdEvent): Promise<void> {
-    if (!(await this.idempotency.tryClaim(event.eventId, `${NotificationsEventsListener.CONSUMER}:budget`))) {
+    if (
+      !(await this.idempotency.tryClaim(
+        event.eventId,
+        `${NotificationsEventsListener.CONSUMER}:budget`,
+      ))
+    ) {
       return;
     }
     await this.createFinanceInApp(event.userId, {

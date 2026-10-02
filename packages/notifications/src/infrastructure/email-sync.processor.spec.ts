@@ -1,6 +1,6 @@
 import { ConfigService } from '@nestjs/config';
 import { Job } from 'bullmq';
-import type { EmailSyncJob } from '../../../core/queues/queue-jobs';
+import type { EmailSyncJob } from '@personal-os/core';
 import { EmailSyncProcessor } from './email-sync.processor';
 
 describe('EmailSyncProcessor', () => {

@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import type { Prisma } from '../../../../prisma/generated/client';
+import type { Prisma } from '@personal-os/database';
 import { AiSessionsRepository } from '../../chat/infrastructure/ai-sessions.repository';
 import { AiService } from '../../chat/application/ai.service';
 
@@ -10,7 +10,10 @@ export class AiMemoryService {
     private readonly aiService: AiService,
   ) {}
 
-  async maybeSummarizeSession(sessionId: string, userId: string): Promise<void> {
+  async maybeSummarizeSession(
+    sessionId: string,
+    userId: string,
+  ): Promise<void> {
     const session = await this.sessionsRepo.findSessionById(sessionId, userId);
     if (!session || session.messages.length < 30) {
       return;

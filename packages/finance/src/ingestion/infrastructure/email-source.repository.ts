@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import type { Prisma } from '../../../../prisma/generated/client';
-import { PrismaService } from '../../../../prisma/prisma.service';
+import type { Prisma } from '@personal-os/database';
+import { PrismaService } from '@personal-os/database';
 import {
   EMAIL_MESSAGE_OUTCOME,
   type EmailMessageOutcome,
@@ -139,7 +139,9 @@ export class EmailSourceRepository {
     return this.prisma.finEmailSource
       .updateMany({ where: { userId, id }, data })
       .then(async (result) => {
-        if (result.count === 0) return null;
+        if (result.count === 0) {
+          return null;
+        }
         return this.findEmailSource(userId, id);
       });
   }
@@ -317,7 +319,9 @@ export class EmailSourceRepository {
 
   async deactivateMailbox(userId: string, id: string) {
     const mailbox = await this.findMailbox(userId, id);
-    if (!mailbox) return null;
+    if (!mailbox) {
+      return null;
+    }
     await this.prisma.finEmailSource.updateMany({
       where: { userId, connectionId: id },
       data: { isActive: false },

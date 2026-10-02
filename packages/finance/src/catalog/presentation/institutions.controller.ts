@@ -10,12 +10,14 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { ApiBearerAuth, ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
 import {
-  CurrentUser,
-  RequiresEnabledModule,
-} from '../../../../core/decorators';
-import type { LogoUploadFile } from '../../../logos/application/logo.service';
+  ApiBearerAuth,
+  ApiConsumes,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
+import { CurrentUser, RequiresEnabledModule } from '@personal-os/core';
+import type { LogoUploadFile } from '@personal-os/logos';
 import { CatalogService } from '../application/catalog.service';
 import { CreateInstitutionDto } from './dto/create-institution.dto';
 import { UpdateInstitutionDto } from './dto/update-institution.dto';
@@ -43,9 +45,7 @@ export class InstitutionsController {
   @Post('institutions/:id/logo')
   @ApiConsumes('multipart/form-data')
   @ApiOperation({ summary: 'Upload a custom institution logo' })
-  @UseInterceptors(
-    FileInterceptor('file', { limits: { fileSize: 1_000_000 } }),
-  )
+  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 1_000_000 } }))
   uploadLogo(
     @CurrentUser('sub') userId: string,
     @Param('id') id: string,

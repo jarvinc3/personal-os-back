@@ -37,11 +37,9 @@ describe('logicalTransactionsWhere', () => {
   });
 
   it('includes transfer groups when filtering by destination account', () => {
-    const where = logicalTransactionsWhere(
-      'user-1',
-      { accountId: 'acc-to' },
-      ['grp-1'],
-    );
+    const where = logicalTransactionsWhere('user-1', { accountId: 'acc-to' }, [
+      'grp-1',
+    ]);
     expect(where.AND).toEqual(
       expect.arrayContaining([
         {
@@ -60,9 +58,7 @@ describe('logicalTransactionsWhere', () => {
       { type: 'DEBIT', accountId: 'acc-1' },
       ['grp-1'],
     );
-    expect(where.AND).toEqual(
-      expect.arrayContaining([{ accountId: 'acc-1' }]),
-    );
+    expect(where.AND).toEqual(expect.arrayContaining([{ accountId: 'acc-1' }]));
     expect(JSON.stringify(where)).not.toContain('grp-1');
   });
 });

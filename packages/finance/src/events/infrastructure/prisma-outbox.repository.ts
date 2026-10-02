@@ -1,10 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { randomUUID } from 'crypto';
-import type { Prisma } from '../../../../prisma/generated/client';
-import { PrismaService } from '../../../../prisma/prisma.service';
+import type { Prisma } from '@personal-os/database';
+import { PrismaService } from '@personal-os/database';
 import type {
-    DomainEventEnvelope,
-    DomainEventPublisherPort,
+  DomainEventEnvelope,
+  DomainEventPublisherPort,
 } from '../application/ports/domain-event-publisher.port';
 
 type TxClient = Prisma.TransactionClient;

@@ -23,7 +23,9 @@ const accountTypes = ['CHECKING', 'SAVINGS', 'CASH', 'INVESTMENT'] as const;
 class AccountInstitutionByTypeConstraint implements ValidatorConstraintInterface {
   validate(_: unknown, args: ValidationArguments) {
     const obj = args.object as CreateAccountDto;
-    if (obj.type === 'CASH') return true;
+    if (obj.type === 'CASH') {
+      return true;
+    }
     return (
       typeof obj.institutionId === 'string' && obj.institutionId.length > 0
     );
@@ -38,7 +40,9 @@ class AccountInstitutionByTypeConstraint implements ValidatorConstraintInterface
 class AccountNumberByTypeConstraint implements ValidatorConstraintInterface {
   validate(_: unknown, args: ValidationArguments) {
     const obj = args.object as CreateAccountDto;
-    if (obj.type === 'CASH') return !obj.accountNumber;
+    if (obj.type === 'CASH') {
+      return !obj.accountNumber;
+    }
     return (
       typeof obj.accountNumber === 'string' && obj.accountNumber.length >= 4
     );

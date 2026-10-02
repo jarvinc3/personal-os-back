@@ -1,4 +1,4 @@
-import { DEFAULT_EMAIL_SYNC_SCHEDULE } from '../email-sync-schedule';
+import { DEFAULT_EMAIL_SYNC_SCHEDULE } from '@personal-os/config';
 
 /** Toggle keys under `config.notifications` for finance module alerts. */
 export const FINANCE_NOTIFICATION_KEYS = {

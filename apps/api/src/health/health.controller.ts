@@ -1,24 +1,24 @@
 import {
-    Controller,
-    Get,
-    Logger,
-    ServiceUnavailableException,
+  Controller,
+  Get,
+  Logger,
+  ServiceUnavailableException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
-    ApiOkResponse,
-    ApiOperation,
-    ApiServiceUnavailableResponse,
-    ApiTags,
+  ApiOkResponse,
+  ApiOperation,
+  ApiServiceUnavailableResponse,
+  ApiTags,
 } from '@nestjs/swagger';
 import {
-    HealthCheckService,
-    HttpHealthIndicator,
-    PrismaHealthIndicator,
+  HealthCheckService,
+  HttpHealthIndicator,
+  PrismaHealthIndicator,
 } from '@nestjs/terminus';
-import { type Env, getSupabaseAuthConfig } from '../config';
-import { Public } from '../core/decorators';
-import { PrismaService } from '../prisma/prisma.service';
+import { type Env, getSupabaseAuthConfig } from '@personal-os/config';
+import { Public } from '@personal-os/core';
+import { PrismaService } from '@personal-os/database';
 import { RedisHealthIndicator } from './indicators/redis.health.indicator';
 
 export type HealthProbeResponse = {

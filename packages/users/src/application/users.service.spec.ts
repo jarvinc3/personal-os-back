@@ -1,7 +1,7 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { SupabaseAdminService } from '../../auth';
-import { UsersRepository } from '../infrastructure/users.repository';
+import { SupabaseAdminService } from '@personal-os/auth';
+import type { UsersRepositoryPort } from './ports/users.repository.port';
 import { UsersService } from './users.service';
 
 describe('UsersService.deleteAccount', () => {
@@ -14,7 +14,7 @@ describe('UsersService.deleteAccount', () => {
     findById,
     deleteAccountWithAuthOutbox,
     markAuthOutboxCompleted,
-  } as unknown as UsersRepository;
+  } as unknown as UsersRepositoryPort;
 
   const supabaseAdminService = {
     tryDeleteAuthUser,
@@ -92,7 +92,7 @@ describe('UsersService.assertModuleEnabled', () => {
   const findEnabledUserModuleBySlug = jest.fn();
   const usersRepository = {
     findEnabledUserModuleBySlug,
-  } as unknown as UsersRepository;
+  } as unknown as UsersRepositoryPort;
 
   const service = new UsersService(
     usersRepository,
@@ -125,7 +125,7 @@ describe('UsersService.assertFinanceEmailSyncEnabled', () => {
   const usersRepository = {
     findEnabledUserModuleBySlug,
     findUserModuleBySlug,
-  } as unknown as UsersRepository;
+  } as unknown as UsersRepositoryPort;
 
   const service = new UsersService(
     usersRepository,
@@ -176,7 +176,7 @@ describe('UsersService.isFinanceEmailSyncAutomatic', () => {
   const findUserModuleBySlug = jest.fn();
   const usersRepository = {
     findUserModuleBySlug,
-  } as unknown as UsersRepository;
+  } as unknown as UsersRepositoryPort;
 
   const service = new UsersService(
     usersRepository,
@@ -227,7 +227,7 @@ describe('UsersService.updateModuleConfig schedule validation', () => {
     findUserModule,
     upsertUserModule,
     findById,
-  } as unknown as UsersRepository;
+  } as unknown as UsersRepositoryPort;
   const eventEmitter = { emit: jest.fn() } as unknown as EventEmitter2;
   const supabaseAdminService = {} as unknown as SupabaseAdminService;
   const service = new UsersService(

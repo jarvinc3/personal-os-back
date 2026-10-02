@@ -1,11 +1,11 @@
 import {
-    Injectable,
-    InternalServerErrorException,
-    Logger,
+  Injectable,
+  InternalServerErrorException,
+  Logger,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import type { Env } from '../../../config/env.schema';
+import type { Env } from '@personal-os/config';
 
 export type DeleteAuthUserResult =
   | { ok: true; alreadyMissing?: boolean }

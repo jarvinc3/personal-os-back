@@ -1,6 +1,6 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
-import { paginate } from '../../../../core/pagination/pagination.dto';
-import { LogoService } from '../../../logos/application/logo.service';
+import { paginate } from '@personal-os/core';
+import { LogoService } from '@personal-os/logos';
 import { LEDGER_REPOSITORY } from '../../shared/application/tokens';
 import type {
   FinTxStatus,
@@ -22,7 +22,6 @@ export class LedgerQueryService {
 
   async listTransactions(userId: string, query: ListTransactionsQuery) {
     const [items, total] = await this.repo.findTransactions(userId, query);
-    await this.logos.ensureCardNetworks();
     return paginate(
       items.map((item) => mapLogicalTransaction(item, undefined, this.logos)),
       total,
@@ -35,8 +34,9 @@ export class LedgerQueryService {
 
   async getTransaction(userId: string, id: string) {
     const tx = await this.repo.findTransactionById(id, userId);
-    if (!tx) throw new NotFoundException('Transaction not found');
-    await this.logos.ensureCardNetworks();
+    if (!tx) {
+      throw new NotFoundException('Transaction not found');
+    }
     if (!tx.transferGroupId) {
       return mapLogicalTransaction(tx, undefined, this.logos);
     }

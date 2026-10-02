@@ -16,9 +16,10 @@ type ApiEnvelope<T> = {
 };
 
 @Injectable()
-export class TransformInterceptor<T>
-  implements NestInterceptor<T, ApiEnvelope<T>>
-{
+export class TransformInterceptor<T> implements NestInterceptor<
+  T,
+  ApiEnvelope<T>
+> {
   intercept(
     context: ExecutionContext,
     next: CallHandler<T>,

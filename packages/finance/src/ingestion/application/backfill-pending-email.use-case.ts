@@ -31,7 +31,9 @@ export class BackfillPendingEmailUseCase {
         continue;
       }
       const extracted = parseExtractedPayload(message.extractedPayload);
-      if (!extracted) continue;
+      if (!extracted) {
+        continue;
+      }
       const [accounts, cards] =
         await this.emailSources.listInstitutionDestinations(
           userId,
@@ -48,7 +50,9 @@ export class BackfillPendingEmailUseCase {
         cards,
         cashAccounts: [],
       });
-      if (result.kind === 'imported') imported += 1;
+      if (result.kind === 'imported') {
+        imported += 1;
+      }
     }
     return { imported };
   }
@@ -117,7 +121,9 @@ export class MatchEmailTransfersUseCase {
     const used = new Set<string>();
     let paired = 0;
     for (const row of unpaired) {
-      if (used.has(row.id)) continue;
+      if (used.has(row.id)) {
+        continue;
+      }
       if (
         isAtmMovementClass(
           parseExtractedPayload(row.emailMessage?.extractedPayload)
@@ -130,7 +136,9 @@ export class MatchEmailTransfersUseCase {
         row,
         unpaired.filter((item) => !used.has(item.id)),
       );
-      if (!match) continue;
+      if (!match) {
+        continue;
+      }
       const debitId = row.type === 'DEBIT' ? row.id : match.id;
       const creditId = row.type === 'CREDIT' ? row.id : match.id;
       await this.importEmail.pairTransferLegs(userId, debitId, creditId);

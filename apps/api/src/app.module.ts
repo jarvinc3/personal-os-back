@@ -8,23 +8,23 @@ import { ThrottlerModule } from '@nestjs/throttler';
 import { randomUUID } from 'crypto';
 import { ClsModule } from 'nestjs-cls';
 import { LoggerModule } from 'nestjs-pino';
-import type { Env } from './config';
+import type { Env } from '@personal-os/config';
 import {
   bullmqRedisConnection,
   isBullBoardEnabledFromProcessEnv,
   isBullMqEnabledFromProcessEnv,
   parseEnv,
-} from './config';
-import { CoreModule } from './core/core.module';
-import { getBullBoardImports } from './core/queues/bull-board.imports';
-import { QueueNames } from './core/queues/queue.constants';
+} from '@personal-os/config';
+import { CoreModule } from '@personal-os/core';
+import { getBullBoardImports } from '@personal-os/core';
+import { QueueNames } from '@personal-os/core';
 import { HealthModule } from './health/health.module';
-import { AiModule } from './modules/ai-agent';
-import { AuthModule } from './modules/auth';
-import { FinanceModule } from './modules/finance';
-import { NotificationsModule } from './modules/notifications';
-import { UsersModule } from './modules/users';
-import { PrismaModule } from './prisma/prisma.module';
+import { AiModule } from '@personal-os/ai-agent';
+import { AuthModule } from '@personal-os/auth';
+import { FinanceModule } from '@personal-os/finance';
+import { NotificationsModule } from '@personal-os/notifications';
+import { UsersModule } from '@personal-os/users';
+import { PrismaModule } from '@personal-os/database';
 
 const bullMqEnabled = isBullMqEnabledFromProcessEnv();
 const bullBoardEnabled = isBullBoardEnabledFromProcessEnv();
@@ -57,8 +57,9 @@ const bullBoardEnabled = isBullBoardEnabledFromProcessEnv();
           genReqId: (req) => {
             const requestIdHeader = req.headers['x-request-id'];
             return (
-              (typeof requestIdHeader === 'string' ? requestIdHeader : undefined) ??
-              randomUUID()
+              (typeof requestIdHeader === 'string'
+                ? requestIdHeader
+                : undefined) ?? randomUUID()
             );
           },
           customProps: (req) => ({

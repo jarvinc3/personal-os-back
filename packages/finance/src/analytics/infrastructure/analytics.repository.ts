@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
-import type { Prisma } from '../../../../prisma/generated/client';
-import { Prisma as PrismaNS } from '../../../../prisma/generated/client';
-import { PrismaService } from '../../../../prisma/prisma.service';
+import type { Prisma } from '@personal-os/database';
+import { Prisma as PrismaNS } from '@personal-os/database';
+import { PrismaService } from '@personal-os/database';
 
 @Injectable()
 export class AnalyticsRepository {
@@ -73,7 +73,11 @@ export class AnalyticsRepository {
     granularity: 'day' | 'week' | 'month',
   ) {
     const trunc =
-      granularity === 'month' ? 'month' : granularity === 'week' ? 'week' : 'day';
+      granularity === 'month'
+        ? 'month'
+        : granularity === 'week'
+          ? 'week'
+          : 'day';
 
     const rows = await this.prisma.$queryRaw<
       Array<{ bucket: Date; type: string; total: number }>

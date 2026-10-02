@@ -10,9 +10,13 @@ export async function resolveLedgerCurrencyForTarget(
 ): Promise<string> {
   if (accountId) {
     const account = await repo.findAccountById(accountId, userId);
-    if (!account) throw new BadRequestException('Account not found');
+    if (!account) {
+      throw new BadRequestException('Account not found');
+    }
     return account.currency;
   }
-  if (cardId) return fallbackCurrency;
+  if (cardId) {
+    return fallbackCurrency;
+  }
   return fallbackCurrency;
 }

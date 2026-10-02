@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import type { Env } from '../../../../config';
+import type { Env } from '@personal-os/config';
 import { ResolveAmountsUseCase } from '../../fx/application/resolve-amounts.use-case';
 import { decimalToString } from '../../shared/domain/mappers';
 import { roundMoney } from '../../shared/domain/money';
@@ -45,7 +45,9 @@ type Bucket = {
 };
 
 function toNumber(value: Moneyish): number {
-  if (value == null) return 0;
+  if (value == null) {
+    return 0;
+  }
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : 0;
 }
@@ -119,7 +121,9 @@ export class BalanceSheetService {
       const bucket = account.institutionId
         ? byInstitution.get(account.institutionId)
         : undefined;
-      if (bucket) bucket.accounts += amount;
+      if (bucket) {
+        bucket.accounts += amount;
+      }
     }
 
     for (const row of cardBalances) {
@@ -131,7 +135,9 @@ export class BalanceSheetService {
         };
         global.issues.push(issue);
         const bucket = byInstitution.get(row.card.institutionId);
-        if (bucket) bucket.issues.push(issue);
+        if (bucket) {
+          bucket.issues.push(issue);
+        }
         continue;
       }
 
@@ -142,7 +148,9 @@ export class BalanceSheetService {
       const amount = await convert(debtNative, row.currency);
       global.creditCards += amount;
       const bucket = byInstitution.get(row.card.institutionId);
-      if (bucket) bucket.creditCards += amount;
+      if (bucket) {
+        bucket.creditCards += amount;
+      }
     }
 
     for (const loan of loans) {
@@ -154,7 +162,9 @@ export class BalanceSheetService {
       const bucket = loan.institutionId
         ? byInstitution.get(loan.institutionId)
         : undefined;
-      if (bucket) bucket.loans += amount;
+      if (bucket) {
+        bucket.loans += amount;
+      }
     }
 
     return {

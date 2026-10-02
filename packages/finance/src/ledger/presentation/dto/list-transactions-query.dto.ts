@@ -1,7 +1,19 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsDateString, IsEnum, IsOptional, IsString, IsUUID } from 'class-validator';
-import { PaginationQueryDto } from '../../../../../core/pagination/pagination.dto';
+import {
+  IsDateString,
+  IsEnum,
+  IsOptional,
+  IsString,
+  IsUUID,
+} from 'class-validator';
+import { PaginationQueryDto } from '@personal-os/core';
+import {
+  FIN_TRANSACTION_STATUSES,
+  FIN_TRANSACTION_TYPES,
+  type FinTransactionStatusValue,
+  type FinTransactionTypeValue,
+} from '../../../shared/domain/transaction-status';
 
 export class ListTransactionsQueryDto extends PaginationQueryDto {
   @ApiPropertyOptional()
@@ -24,17 +36,15 @@ export class ListTransactionsQueryDto extends PaginationQueryDto {
   @IsUUID()
   categoryId?: string;
 
-  @ApiPropertyOptional({ enum: ['DEBIT', 'CREDIT', 'TRANSFER'] })
+  @ApiPropertyOptional({ enum: FIN_TRANSACTION_TYPES })
   @IsOptional()
-  @IsEnum(['DEBIT', 'CREDIT', 'TRANSFER'])
-  type?: 'DEBIT' | 'CREDIT' | 'TRANSFER';
+  @IsEnum(FIN_TRANSACTION_TYPES)
+  type?: FinTransactionTypeValue;
 
-  @ApiPropertyOptional({
-    enum: ['PENDING', 'CONFIRMED', 'CANCELLED', 'DECLINED', 'REVERSED'],
-  })
+  @ApiPropertyOptional({ enum: FIN_TRANSACTION_STATUSES })
   @IsOptional()
-  @IsEnum(['PENDING', 'CONFIRMED', 'CANCELLED', 'DECLINED', 'REVERSED'])
-  status?: 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'DECLINED' | 'REVERSED';
+  @IsEnum(FIN_TRANSACTION_STATUSES)
+  status?: FinTransactionStatusValue;
 
   @ApiPropertyOptional()
   @IsOptional()

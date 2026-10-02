@@ -24,8 +24,12 @@ describe('PrismaService', () => {
               throw new Error(`unexpected key ${key}`);
             },
             get: (key: string) => {
-              if (key === 'NODE_ENV') return 'test';
-              if (key === 'DATABASE_SSL_REJECT_UNAUTHORIZED') return undefined;
+              if (key === 'NODE_ENV') {
+                return 'test';
+              }
+              if (key === 'DATABASE_SSL_REJECT_UNAUTHORIZED') {
+                return undefined;
+              }
               return undefined;
             },
           },

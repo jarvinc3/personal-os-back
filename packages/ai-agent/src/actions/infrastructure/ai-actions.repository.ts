@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import type { AiActionStatus, Prisma } from '../../../../prisma/generated/client';
-import { PrismaService } from '../../../../prisma/prisma.service';
+import type { AiActionStatus, Prisma } from '@personal-os/database';
+import { PrismaService } from '@personal-os/database';
 
 @Injectable()
 export class AiActionsRepository {
@@ -23,7 +23,9 @@ export class AiActionsRepository {
         targetModule: data.targetModule,
         payload: data.payload as Prisma.InputJsonValue,
         status: data.status ?? 'PENDING',
-        result: data.result ? (data.result as Prisma.InputJsonValue) : undefined,
+        result: data.result
+          ? (data.result as Prisma.InputJsonValue)
+          : undefined,
       },
     });
   }

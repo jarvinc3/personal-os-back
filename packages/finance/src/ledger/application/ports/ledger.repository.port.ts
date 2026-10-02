@@ -9,13 +9,6 @@ import type {
   TransactionUpdateFields,
 } from '../commands/ledger.commands';
 
-/** Minimal account row returned by ledger reads. */
-export type LedgerAccountRow = {
-  id: string;
-  currency: string;
-  name?: string;
-} | null;
-
 /** Transaction with optional account/card labels (list/get shape). */
 export type LedgerTransactionRow = {
   id: string;

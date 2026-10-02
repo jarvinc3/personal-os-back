@@ -1,9 +1,9 @@
 import {
-    getActionLabel,
-    getToolDefinition,
-    getToolsForModule,
-    parseToolCallArguments,
-    parseToolCallArgumentsStrict,
+  getActionLabel,
+  getToolDefinition,
+  getToolsForModule,
+  parseToolCallArguments,
+  parseToolCallArgumentsStrict,
 } from './tool.registry';
 
 describe('tool.registry', () => {

@@ -1,5 +1,5 @@
 import { CatalogRepository } from './catalog.repository';
-import type { PrismaService } from '../../../../prisma/prisma.service';
+import type { PrismaService } from '@personal-os/database';
 
 describe('CatalogRepository createAccount', () => {
   it('always persists institutionId and omits empty color', async () => {

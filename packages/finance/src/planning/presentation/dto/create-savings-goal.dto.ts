@@ -1,11 +1,11 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
-    IsDateString,
-    IsNumber,
-    IsOptional,
-    IsString,
-    MaxLength,
+  IsDateString,
+  IsNumber,
+  IsOptional,
+  IsString,
+  MaxLength,
 } from 'class-validator';
 import { CurrencyField } from '../../../shared/presentation/validation.decorators';
 

@@ -1,6 +1,14 @@
-import { Body, Controller, Get, Param, Patch, Post, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { CurrentUser } from '../../../core/decorators';
+import { CurrentUser } from '@personal-os/core';
 import { CreateNotificationDto } from './dto/create-notification.dto';
 import { ListNotificationsQueryDto } from './dto/list-notifications-query.dto';
 import { RegisterPushTokenDto } from './dto/register-push-token.dto';

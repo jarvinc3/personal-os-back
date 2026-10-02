@@ -24,11 +24,21 @@ export function accountMatchesHint(
 ): boolean {
   const account = digitsOnly(accountNumber);
   const needle = digitsOnly(hint);
-  if (!needle) return true;
-  if (!account) return false;
-  if (account === needle) return true;
-  if (needle.length >= 4 && account.endsWith(needle)) return true;
-  if (account.length >= 4 && needle.endsWith(account)) return true;
+  if (!needle) {
+    return true;
+  }
+  if (!account) {
+    return false;
+  }
+  if (account === needle) {
+    return true;
+  }
+  if (needle.length >= 4 && account.endsWith(needle)) {
+    return true;
+  }
+  if (account.length >= 4 && needle.endsWith(account)) {
+    return true;
+  }
   return false;
 }
 
@@ -112,7 +122,9 @@ function matchAccounts(
 function toMatch(
   hits: Array<{ accountId?: string; cardId?: string }>,
 ): EmailLedgerTargetMatch {
-  if (hits.length === 0) return { kind: 'none' };
+  if (hits.length === 0) {
+    return { kind: 'none' };
+  }
   if (hits.length === 1) {
     return { kind: 'unique', ...hits[0] };
   }

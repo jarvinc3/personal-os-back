@@ -1,4 +1,4 @@
-import type { Prisma } from '../../../../prisma/generated/client';
+import type { Prisma } from '@personal-os/database';
 import type { ListTransactionsQuery } from '../application/commands/ledger.commands';
 
 export function logicalTransactionsWhere(

@@ -1,6 +1,6 @@
 # WebSocket
 
-Gateway: `src/modules/notifications/presentation/notifications.gateway.ts`.
+Gateway: `packages/notifications/src/presentation/notifications.gateway.ts`.
 
 | Campo | Valor |
 | --- | --- |

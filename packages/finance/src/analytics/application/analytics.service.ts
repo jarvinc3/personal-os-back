@@ -12,7 +12,7 @@ export class AnalyticsService {
   constructor(
     private readonly repo: AnalyticsRepository,
     private readonly balanceSheet: BalanceSheetService,
-  ) { }
+  ) {}
 
   async getAnalyticsSummary(
     userId: string,
@@ -29,10 +29,16 @@ export class AnalyticsService {
     let income = 0;
     let expenses = 0;
     for (const row of aggregates) {
-      if (row.status !== 'CONFIRMED') continue;
+      if (row.status !== 'CONFIRMED') {
+        continue;
+      }
       const sum = Number(row._sum?.amountBaseCurrency ?? 0);
-      if (row.type === 'CREDIT') income += sum;
-      if (row.type === 'DEBIT') expenses += sum;
+      if (row.type === 'CREDIT') {
+        income += sum;
+      }
+      if (row.type === 'DEBIT') {
+        expenses += sum;
+      }
     }
 
     return {
@@ -121,8 +127,12 @@ export class AnalyticsService {
           : String(row.bucket).slice(0, 10);
       const entry = byDate.get(date) ?? { date, expenses: 0, income: 0 };
       const total = Number(row.total) || 0;
-      if (row.type === 'DEBIT') entry.expenses += total;
-      if (row.type === 'CREDIT') entry.income += total;
+      if (row.type === 'DEBIT') {
+        entry.expenses += total;
+      }
+      if (row.type === 'CREDIT') {
+        entry.income += total;
+      }
       byDate.set(date, entry);
     }
 

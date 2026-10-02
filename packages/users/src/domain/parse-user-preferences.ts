@@ -86,7 +86,8 @@ export function parseUserPreferences(
           typeof quietRaw.timezone === 'string'
             ? quietRaw.timezone
             : (timezoneFallback ??
-              GLOBAL_USER_PREFERENCES_DEFAULTS.notifications.quietHours.timezone),
+              GLOBAL_USER_PREFERENCES_DEFAULTS.notifications.quietHours
+                .timezone),
       },
     },
   };

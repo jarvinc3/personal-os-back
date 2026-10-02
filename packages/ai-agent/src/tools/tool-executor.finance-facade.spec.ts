@@ -1,6 +1,6 @@
 import { Test } from '@nestjs/testing';
-import { FinanceFacade } from '../../finance';
-import { UsersService } from '../../users';
+import { FinanceFacade } from '@personal-os/finance';
+import { UsersService } from '@personal-os/users';
 import { AiSessionsRepository } from '../chat/infrastructure/ai-sessions.repository';
 import { ToolExecutorService } from './tool-executor.service';
 
@@ -36,7 +36,12 @@ describe('ToolExecutorService finance via FinanceFacade (TestingModule)', () => 
       cashFlow: '0',
       baseCurrency: 'DOP',
       balanceStatus: 'COMPLETE',
-      totals: { accountBalance: '100', cardDebt: '0', income: '0', expenses: '0' },
+      totals: {
+        accountBalance: '100',
+        cardDebt: '0',
+        income: '0',
+        expenses: '0',
+      },
     });
     createTxExecute.mockResolvedValue({ id: 'tx-1' });
 
@@ -85,7 +90,12 @@ describe('ToolExecutorService finance via FinanceFacade (TestingModule)', () => 
       cashFlow: '0',
       baseCurrency: 'DOP',
       balanceStatus: 'COMPLETE',
-      totals: { accountBalance: '100', cardDebt: '0', income: '0', expenses: '0' },
+      totals: {
+        accountBalance: '100',
+        cardDebt: '0',
+        income: '0',
+        expenses: '0',
+      },
     });
   });
 

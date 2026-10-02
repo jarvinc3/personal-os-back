@@ -5,7 +5,7 @@ import {
   Injectable,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { PrismaService } from '../../prisma/prisma.service';
+import { PrismaService } from '@personal-os/database';
 import { ENABLED_MODULE_KEY, IS_PUBLIC_KEY } from '../decorators';
 import { moduleDisabledMessage } from '../exceptions/module-disabled';
 

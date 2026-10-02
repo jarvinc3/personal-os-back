@@ -2,11 +2,11 @@ import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { Pool } from 'pg';
-import type { Env } from '../config/env.schema';
+import type { Env } from '@personal-os/config';
 import { getPrismaClientClass } from './generated/internal/class';
 import {
-    defaultRejectUnauthorized,
-    poolConfigForPostgresUrl,
+  defaultRejectUnauthorized,
+  poolConfigForPostgresUrl,
 } from './pg-pool.config';
 
 const PrismaClient = getPrismaClientClass();

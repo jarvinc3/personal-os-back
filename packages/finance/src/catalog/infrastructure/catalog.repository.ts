@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import type { Prisma } from '../../../../prisma/generated/client';
-import { PrismaService } from '../../../../prisma/prisma.service';
+import type { Prisma } from '@personal-os/database';
+import { PrismaService } from '@personal-os/database';
 import { normalizeCurrencyCode } from '../../shared/presentation/validation.decorators';
 import type { CreateAccountDto } from '../presentation/dto/create-account.dto';
 import type { UpdateAccountDto } from '../presentation/dto/update-account.dto';
@@ -35,7 +35,9 @@ export class CatalogRepository {
       accountNumber: dto.accountNumber ?? null,
       isDefaultForInstitution: dto.isDefaultForInstitution === true,
     };
-    if (dto.color) data.color = dto.color;
+    if (dto.color) {
+      data.color = dto.color;
+    }
 
     return this.prisma.finAccount.create({
       data,
@@ -67,7 +69,9 @@ export class CatalogRepository {
         },
       })
       .then(async (result) => {
-        if (result.count === 0) return null;
+        if (result.count === 0) {
+          return null;
+        }
         return this.findAccountById(id, userId);
       });
   }
@@ -110,7 +114,9 @@ export class CatalogRepository {
     return this.prisma.finInstitution
       .updateMany({ where: { userId, id }, data })
       .then(async (result) => {
-        if (result.count === 0) return null;
+        if (result.count === 0) {
+          return null;
+        }
         return this.prisma.finInstitution.findFirst({ where: { userId, id } });
       });
   }
@@ -143,7 +149,9 @@ export class CatalogRepository {
     data: Omit<Prisma.FinCardUncheckedCreateInput, 'userId'>,
   ) {
     const payload = { ...data };
-    if (payload.type === 'CREDIT') payload.accountId = null;
+    if (payload.type === 'CREDIT') {
+      payload.accountId = null;
+    }
     if (typeof payload.lastFour === 'string') {
       payload.lastFour = payload.lastFour.trim();
     }
@@ -161,7 +169,9 @@ export class CatalogRepository {
     return this.prisma.finCard
       .updateMany({ where: { id, userId }, data })
       .then(async (result) => {
-        if (result.count === 0) return null;
+        if (result.count === 0) {
+          return null;
+        }
         return this.findCardById(userId, id);
       });
   }
@@ -177,7 +187,9 @@ export class CatalogRepository {
       const card = await tx.finCard.findFirst({
         where: { id: cardId, userId },
       });
-      if (!card) return null;
+      if (!card) {
+        return null;
+      }
       const normalizedCurrency = String(normalizeCurrencyCode(currency));
       const existing = await tx.finCardBalance.findFirst({
         where: { cardId, currency: normalizedCurrency },
@@ -226,7 +238,9 @@ export class CatalogRepository {
     return this.prisma.finCategory
       .updateMany({ where: { id, userId, isSystem: false }, data })
       .then(async (result) => {
-        if (result.count === 0) return null;
+        if (result.count === 0) {
+          return null;
+        }
         return this.prisma.finCategory.findFirst({ where: { id, userId } });
       });
   }

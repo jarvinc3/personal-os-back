@@ -1,7 +1,11 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import type { Prisma as PrismaTypes } from '../../../../prisma/generated/client';
-import { Prisma } from '../../../../prisma/generated/client';
-import { parseUserPreferences, UsersRepository } from '../../../users';
+import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import type { Prisma as PrismaTypes } from '@personal-os/database';
+import { Prisma } from '@personal-os/database';
+import {
+  parseUserPreferences,
+  USERS_REPOSITORY,
+  type UsersRepositoryPort,
+} from '@personal-os/users';
 import { AiSessionsRepository } from './ai-sessions.repository';
 import { buildAgentPrompt } from '../../prompts/build-agent-prompt';
 import type { ChatMessage, ToolCallRequest } from '../../shared/ai.types';
@@ -27,12 +31,16 @@ export type CachedChatResponse = {
 export class AiChatPersistenceService {
   constructor(
     private readonly sessionsRepo: AiSessionsRepository,
-    private readonly usersRepository: UsersRepository,
+    @Inject(USERS_REPOSITORY)
+    private readonly usersRepository: UsersRepositoryPort,
   ) {}
 
   async resolveSession(userId: string, sessionId?: string) {
     if (sessionId) {
-      const existing = await this.sessionsRepo.findSessionById(sessionId, userId);
+      const existing = await this.sessionsRepo.findSessionById(
+        sessionId,
+        userId,
+      );
       if (!existing) {
         throw new NotFoundException('AI session not found');
       }
@@ -233,8 +241,10 @@ export class AiChatPersistenceService {
     const memorySnapshot =
       (session.memorySnapshot as Record<string, unknown>) ?? {};
     const moduleSlug =
-      session.module && typeof session.module === 'object' && 'slug' in session.module
-        ? (session.module.slug)
+      session.module &&
+      typeof session.module === 'object' &&
+      'slug' in session.module
+        ? session.module.slug
         : session.contextType !== 'general'
           ? session.contextType
           : null;

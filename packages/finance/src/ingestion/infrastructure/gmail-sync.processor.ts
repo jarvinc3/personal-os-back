@@ -1,8 +1,8 @@
 import { OnWorkerEvent, Processor, WorkerHost } from '@nestjs/bullmq';
 import { Injectable, Logger } from '@nestjs/common';
 import { Job } from 'bullmq';
-import type { GmailSyncJob } from '../../../../core/queues/queue-jobs';
-import { QueueNames } from '../../../../core/queues/queue.constants';
+import type { GmailSyncJob } from '@personal-os/core';
+import { QueueNames } from '@personal-os/core';
 import { ProcessGmailSyncUseCase } from '../application/process-gmail-sync.use-case';
 
 @Injectable()

@@ -1,7 +1,10 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { SupabaseAdminService } from '../../auth';
-import { UsersRepository } from '../infrastructure/users.repository';
+import { SupabaseAdminService } from '@personal-os/auth';
+import {
+  USERS_REPOSITORY,
+  type UsersRepositoryPort,
+} from './ports/users.repository.port';
 
 const MAX_ATTEMPTS = 8;
 const BATCH_SIZE = 10;
@@ -12,7 +15,8 @@ export class AuthDeletionOutboxProcessor {
   private running = false;
 
   constructor(
-    private readonly usersRepository: UsersRepository,
+    @Inject(USERS_REPOSITORY)
+    private readonly usersRepository: UsersRepositoryPort,
     private readonly supabaseAdminService: SupabaseAdminService,
   ) {}
 
@@ -33,9 +37,8 @@ export class AuthDeletionOutboxProcessor {
   async processBatch(): Promise<number> {
     let processed = 0;
     for (let i = 0; i < BATCH_SIZE; i += 1) {
-      const claimed = await this.usersRepository.claimNextAuthDeletion(
-        MAX_ATTEMPTS,
-      );
+      const claimed =
+        await this.usersRepository.claimNextAuthDeletion(MAX_ATTEMPTS);
       if (!claimed) {
         break;
       }

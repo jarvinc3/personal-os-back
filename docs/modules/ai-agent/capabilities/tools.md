@@ -1,6 +1,6 @@
 # Capacidad: tools
 
-Fuente: `src/modules/ai-agent/tools/tool.registry.ts` y `prompts/module-context.ts`.
+Fuente: `packages/ai-agent/src/tools/tool.registry.ts` y `prompts/module-context.ts`.
 
 `MODULE_CONTEXT_SLUGS`: `general`, `agenda`, `projects`, `health`, `subscriptions`, `finance`.
 

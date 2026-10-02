@@ -13,16 +13,15 @@ export {
   type ModuleSlug,
 } from './domain/defaults/user-settings-defaults';
 export { parseUserPreferences } from './domain/parse-user-preferences';
-export {
-  DEFAULT_EMAIL_SYNC_SCHEDULE,
-  EMAIL_SYNC_SCHEDULE_MODES,
-  MAX_EMAIL_SYNC_TIMES,
-  MIN_EMAIL_SYNC_INTERVAL_MINUTES,
-  parseEmailSyncSchedule,
-  validateEmailSyncSchedule,
-  type EmailSyncSchedule,
-  type EmailSyncScheduleMode,
-} from './domain/email-sync-schedule';
 export { mergeWithDefaults } from './domain/settings-merge';
-export { UsersRepository } from './infrastructure/users.repository';
+export {
+  USERS_REPOSITORY,
+  type AuthDeletionClaim,
+  type ModuleRecord,
+  type UpdateProfileData,
+  type UserModuleConfigRow,
+  type UserModuleRecord,
+  type UserWithModulesRecord,
+  type UsersRepositoryPort,
+} from './application/ports/users.repository.port';
 export { UsersModule } from './users.module';

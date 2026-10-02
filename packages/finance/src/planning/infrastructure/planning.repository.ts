@@ -1,10 +1,7 @@
 import { Injectable } from '@nestjs/common';
-import {
-    paginationArgs,
-    type PaginationQueryDto,
-} from '../../../../core/pagination/pagination.dto';
-import type { Prisma } from '../../../../prisma/generated/client';
-import { PrismaService } from '../../../../prisma/prisma.service';
+import { paginationArgs, type PaginationQueryDto } from '@personal-os/core';
+import type { Prisma } from '@personal-os/database';
+import { PrismaService } from '@personal-os/database';
 
 @Injectable()
 export class PlanningRepository {
@@ -57,7 +54,9 @@ export class PlanningRepository {
     return this.prisma.finBudget
       .updateMany({ where: { id, userId }, data })
       .then(async (result) => {
-        if (result.count === 0) return null;
+        if (result.count === 0) {
+          return null;
+        }
         return this.prisma.finBudget.findFirst({
           where: { id, userId },
           include: { category: true },
@@ -95,7 +94,9 @@ export class PlanningRepository {
     return this.prisma.finSavingsGoal
       .updateMany({ where: { id, userId }, data })
       .then(async (result) => {
-        if (result.count === 0) return null;
+        if (result.count === 0) {
+          return null;
+        }
         return this.findSavingsGoal(userId, id);
       });
   }
@@ -150,7 +151,9 @@ export class PlanningRepository {
     return this.prisma.finLoan
       .updateMany({ where: { id, userId }, data })
       .then(async (result) => {
-        if (result.count === 0) return null;
+        if (result.count === 0) {
+          return null;
+        }
         return this.prisma.finLoan.findFirst({
           where: { id, userId },
           include: {
@@ -191,7 +194,9 @@ export class PlanningRepository {
     return this.prisma.finReceivable
       .updateMany({ where: { id, userId }, data })
       .then(async (result) => {
-        if (result.count === 0) return null;
+        if (result.count === 0) {
+          return null;
+        }
         return this.prisma.finReceivable.findFirst({ where: { id, userId } });
       });
   }

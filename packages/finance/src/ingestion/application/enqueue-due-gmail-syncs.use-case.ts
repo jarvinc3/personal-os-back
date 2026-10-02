@@ -1,13 +1,13 @@
 import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable, Logger, Optional } from '@nestjs/common';
 import { Queue } from 'bullmq';
-import type { GmailSyncJob } from '../../../../core/queues/queue-jobs';
-import { QueueNames } from '../../../../core/queues/queue.constants';
+import type { GmailSyncJob } from '@personal-os/core';
+import { QueueNames } from '@personal-os/core';
 import {
   DEFAULT_EMAIL_SYNC_SCHEDULE,
   parseEmailSyncSchedule,
   type EmailSyncSchedule,
-} from '../../../users';
+} from '@personal-os/config';
 import { EmailSourceRepository } from '../infrastructure/email-source.repository';
 import {
   GMAIL_SYNC_JOB_NAME,

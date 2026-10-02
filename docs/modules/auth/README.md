@@ -6,4 +6,4 @@
 | [status.md](./status.md) | Estado |
 | [contracts/http.md](./contracts/http.md) | `GET /api/auth/session` |
 
-**Código:** `src/modules/auth/`
+**Código:** `packages/auth/src/`

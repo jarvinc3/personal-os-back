@@ -32,23 +32,21 @@ const PREFERENCES_MAX_JSON_CHARS = 8_000;
 const MODULE_CONFIG_MAX_JSON_CHARS = 8_000;
 
 function limitedRecord(maxChars: number, fieldName: string) {
-  return z
-    .record(z.string(), z.unknown())
-    .superRefine((value, ctx) => {
-      try {
-        if (JSON.stringify(value).length > maxChars) {
-          ctx.addIssue({
-            code: 'custom',
-            message: `${fieldName} must serialize to at most ${maxChars} characters`,
-          });
-        }
-      } catch {
+  return z.record(z.string(), z.unknown()).superRefine((value, ctx) => {
+    try {
+      if (JSON.stringify(value).length > maxChars) {
         ctx.addIssue({
           code: 'custom',
-          message: `${fieldName} must be JSON-serializable`,
+          message: `${fieldName} must serialize to at most ${maxChars} characters`,
         });
       }
-    });
+    } catch {
+      ctx.addIssue({
+        code: 'custom',
+        message: `${fieldName} must be JSON-serializable`,
+      });
+    }
+  });
 }
 
 export const updateUserProfileArgsSchema = z
@@ -101,7 +99,9 @@ export const updatePreferencesArgsSchema = z
 export const updateAiSettingsArgsSchema = z
   .object({
     tone: z.enum(aiTones).optional(),
-    defaultProvider: z.union([z.string().trim().min(1).max(64), z.null()]).optional(),
+    defaultProvider: z
+      .union([z.string().trim().min(1).max(64), z.null()])
+      .optional(),
     proactiveInsights: z.boolean().optional(),
     confirmBeforeActions: z.boolean().optional(),
   })
@@ -141,7 +141,9 @@ export const updateNotificationSettingsArgsSchema = z
           .string()
           .regex(/^\d{2}:\d{2}$/, 'end must be HH:mm')
           .optional(),
-        timezone: z.union([z.string().trim().min(1).max(100), z.null()]).optional(),
+        timezone: z
+          .union([z.string().trim().min(1).max(100), z.null()])
+          .optional(),
       })
       .strict()
       .optional(),
@@ -395,8 +397,7 @@ export type ToolArgsValidationFailure = {
 };
 
 export type ToolArgsValidationResult =
-  | ToolArgsValidationSuccess
-  | ToolArgsValidationFailure;
+  ToolArgsValidationSuccess | ToolArgsValidationFailure;
 
 /**
  * Server-side validation for mutating tools.

@@ -1,8 +1,8 @@
 import {
-    defaultRejectUnauthorized,
-    isLikelySupabasePostgresUrl,
-    poolConfigForPostgresUrl,
-    postgresUrlUsesTls,
+  defaultRejectUnauthorized,
+  isLikelySupabasePostgresUrl,
+  poolConfigForPostgresUrl,
+  postgresUrlUsesTls,
 } from './pg-pool.config';
 
 describe('pg-pool.config', () => {

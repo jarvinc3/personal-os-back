@@ -56,7 +56,9 @@ export const envSchema = z
     GOOGLE_CLIENT_SECRET: z.string().min(1, 'GOOGLE_CLIENT_SECRET is required'),
     GOOGLE_REDIRECT_URI: z.url('GOOGLE_REDIRECT_URI must be a valid URL'),
 
-    ENCRYPTION_KEY: z.string().min(32, 'ENCRYPTION_KEY must be at least 32 chars'),
+    ENCRYPTION_KEY: z
+      .string()
+      .min(32, 'ENCRYPTION_KEY must be at least 32 chars'),
     OAUTH_STATE_SECRET: z
       .string()
       .min(32, 'OAUTH_STATE_SECRET must be at least 32 chars')
@@ -86,7 +88,10 @@ export const envSchema = z
             }
           });
         },
-        { message: 'CORS_ORIGIN must be one or more valid URLs separated by commas' },
+        {
+          message:
+            'CORS_ORIGIN must be one or more valid URLs separated by commas',
+        },
       ),
     REDIS_URL: z
       .string()
@@ -255,6 +260,5 @@ export const envSchema = z
       });
     }
   });
-
 
 export type Env = z.infer<typeof envSchema>;

@@ -1,6 +1,6 @@
-import { SupabaseAdminService } from '../../auth';
+import { SupabaseAdminService } from '@personal-os/auth';
 import { AuthDeletionOutboxProcessor } from './auth-deletion-outbox.processor';
-import { UsersRepository } from '../infrastructure/users.repository';
+import type { UsersRepositoryPort } from './ports/users.repository.port';
 
 describe('AuthDeletionOutboxProcessor', () => {
   const claimNextAuthDeletion = jest.fn();
@@ -12,7 +12,7 @@ describe('AuthDeletionOutboxProcessor', () => {
     claimNextAuthDeletion,
     completeAuthDeletion,
     failAuthDeletion,
-  } as unknown as UsersRepository;
+  } as unknown as UsersRepositoryPort;
 
   const supabaseAdminService = {
     tryDeleteAuthUser,

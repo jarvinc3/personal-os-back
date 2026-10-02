@@ -28,10 +28,7 @@ export function mergeWithDefaults<T extends Record<string, unknown>>(
     const defaultValue = result[key];
 
     if (isPlainObject(sourceValue) && isPlainObject(defaultValue)) {
-      result[key] = mergeWithDefaults(
-        sourceValue,
-        defaultValue,
-      );
+      result[key] = mergeWithDefaults(sourceValue, defaultValue);
     } else {
       result[key] = sourceValue;
     }

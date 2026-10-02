@@ -1,11 +1,11 @@
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import type { Env } from '../../../../config';
+import type { Env } from '@personal-os/config';
 import { EXCHANGE_RATE_PORT } from '../../shared/application/tokens';
 import {
-    convertAmount,
-    normalizeCurrencyCode,
-    type ResolvedAmounts,
+  convertAmount,
+  normalizeCurrencyCode,
+  type ResolvedAmounts,
 } from '../../shared/domain/money';
 import type { ExchangeRatePort } from './ports/exchange-rate.port';
 

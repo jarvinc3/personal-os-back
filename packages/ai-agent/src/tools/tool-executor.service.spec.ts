@@ -1,5 +1,5 @@
-import { FinanceFacade } from '../../finance';
-import { UsersService } from '../../users';
+import { FinanceFacade } from '@personal-os/finance';
+import { UsersService } from '@personal-os/users';
 import { AiSessionsRepository } from '../chat/infrastructure/ai-sessions.repository';
 import { ToolExecutorService } from './tool-executor.service';
 

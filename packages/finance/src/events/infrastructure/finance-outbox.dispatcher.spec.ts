@@ -15,9 +15,14 @@ describe('FinanceOutboxDispatcher', () => {
       status: 'PENDING',
     };
 
-    const findFirst = jest.fn().mockResolvedValueOnce(row).mockResolvedValue(null);
+    const findFirst = jest
+      .fn()
+      .mockResolvedValueOnce(row)
+      .mockResolvedValue(null);
     const updateMany = jest.fn().mockResolvedValue({ count: 1 });
-    const findUnique = jest.fn().mockResolvedValue({ ...row, attempts: 1, status: 'PROCESSING' });
+    const findUnique = jest
+      .fn()
+      .mockResolvedValue({ ...row, attempts: 1, status: 'PROCESSING' });
     const update = jest.fn().mockResolvedValue({});
     const emitAsync = jest.fn().mockResolvedValue([]);
 
@@ -56,7 +61,10 @@ describe('FinanceOutboxDispatcher', () => {
       status: 'FAILED',
     };
 
-    const findFirst = jest.fn().mockResolvedValueOnce(row).mockResolvedValue(null);
+    const findFirst = jest
+      .fn()
+      .mockResolvedValueOnce(row)
+      .mockResolvedValue(null);
     const updateMany = jest.fn().mockResolvedValue({ count: 1 });
     const findUnique = jest
       .fn()

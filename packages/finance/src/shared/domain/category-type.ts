@@ -11,8 +11,12 @@ export type CategoryResolveResult = {
 export function categoryTypeForTransaction(
   type: 'DEBIT' | 'CREDIT' | 'TRANSFER',
 ): FinCategoryTypeValue | null {
-  if (type === 'DEBIT') return 'EXPENSE';
-  if (type === 'CREDIT') return 'INCOME';
+  if (type === 'DEBIT') {
+    return 'EXPENSE';
+  }
+  if (type === 'CREDIT') {
+    return 'INCOME';
+  }
   return null;
 }
 
@@ -31,15 +35,23 @@ export function matchCategoryByHint(
   hint: string | null | undefined,
   transactionType: 'DEBIT' | 'CREDIT' | 'TRANSFER',
 ): string | null {
-  if (!hint) return null;
+  if (!hint) {
+    return null;
+  }
   const expected = categoryTypeForTransaction(transactionType);
-  if (!expected) return null;
+  if (!expected) {
+    return null;
+  }
   const needle = normalizeCategoryLabel(hint);
-  if (!needle) return null;
+  if (!needle) {
+    return null;
+  }
 
   const typed = categories.filter((c) => c.type === expected);
   const exact = typed.find((c) => normalizeCategoryLabel(c.name) === needle);
-  if (exact) return exact.id;
+  if (exact) {
+    return exact.id;
+  }
 
   const partial = typed.filter((c) => {
     const name = normalizeCategoryLabel(c.name);

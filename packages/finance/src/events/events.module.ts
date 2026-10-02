@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
+import { DomainEventIdempotencyGuard } from '@personal-os/core';
 import { DOMAIN_EVENT_PUBLISHER } from '../shared/application/tokens';
-import { DomainEventIdempotencyGuard } from './application/domain-event-idempotency.guard';
 import { FinanceOutboxDispatcher } from './infrastructure/finance-outbox.dispatcher';
 import { PrismaOutboxRepository } from './infrastructure/prisma-outbox.repository';
 

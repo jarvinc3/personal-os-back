@@ -8,8 +8,11 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PinoLogger } from 'nestjs-pino';
-import type { Env } from '../../config/env.schema';
-import { httpExceptionDetails, toErrorField } from '../exceptions/http-error.util';
+import type { Env } from '@personal-os/config';
+import {
+  httpExceptionDetails,
+  toErrorField,
+} from '../exceptions/http-error.util';
 
 type PrismaKnownErrorLike = Error & {
   code?: string;
@@ -28,8 +31,14 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
   catch(exception: unknown, host: ArgumentsHost): void {
     const ctx = host.switchToHttp();
-    const request = ctx.getRequest<{ url: string; id?: string; method: string }>();
-    const response = ctx.getResponse<{ status: (code: number) => { json: (body: unknown) => void } }>();
+    const request = ctx.getRequest<{
+      url: string;
+      id?: string;
+      method: string;
+    }>();
+    const response = ctx.getResponse<{
+      status: (code: number) => { json: (body: unknown) => void };
+    }>();
 
     const isProduction =
       this.config.get('NODE_ENV', { infer: true }) === 'production';

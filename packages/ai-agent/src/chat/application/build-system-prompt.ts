@@ -1,4 +1,4 @@
-import type { AiTone } from '../../../users';
+import type { AiTone } from '@personal-os/users';
 
 export const TONE_INSTRUCTIONS: Record<AiTone, string> = {
   concise:

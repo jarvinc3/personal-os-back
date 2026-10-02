@@ -1,4 +1,4 @@
-import { AppEvents } from '../../../../core/events/event.constants';
+import { AppEvents } from '@personal-os/core';
 import type { DomainEventPublisherPort } from '../../events/application/ports/domain-event-publisher.port';
 import { PrismaLedgerRepository } from './prisma-ledger.repository';
 
@@ -76,11 +76,7 @@ describe('PrismaLedgerRepository outbox-in-TX', () => {
       },
     );
 
-    const repo = new PrismaLedgerRepository(
-      prisma as never,
-      events,
-      undefined,
-    );
+    const repo = new PrismaLedgerRepository(prisma as never, events, undefined);
 
     const result = await repo.createTransaction(
       'user-1',
@@ -138,27 +134,29 @@ describe('PrismaLedgerRepository outbox-in-TX', () => {
         const tx = {
           name: 'same-tx',
           finAccount: {
-            findFirst: jest.fn().mockImplementation(({ where }: { where: { id: string } }) => {
-              if (where.id === 'acc-from') {
-                return Promise.resolve({
-                  id: 'acc-from',
-                  userId: 'user-1',
-                  currency: 'DOP',
-                  type: 'CHECKING',
-                  balance: 200,
-                });
-              }
-              if (where.id === 'acc-to') {
-                return Promise.resolve({
-                  id: 'acc-to',
-                  userId: 'user-1',
-                  currency: 'DOP',
-                  type: 'CHECKING',
-                  balance: 100,
-                });
-              }
-              return Promise.resolve(null);
-            }),
+            findFirst: jest
+              .fn()
+              .mockImplementation(({ where }: { where: { id: string } }) => {
+                if (where.id === 'acc-from') {
+                  return Promise.resolve({
+                    id: 'acc-from',
+                    userId: 'user-1',
+                    currency: 'DOP',
+                    type: 'CHECKING',
+                    balance: 200,
+                  });
+                }
+                if (where.id === 'acc-to') {
+                  return Promise.resolve({
+                    id: 'acc-to',
+                    userId: 'user-1',
+                    currency: 'DOP',
+                    type: 'CHECKING',
+                    balance: 100,
+                  });
+                }
+                return Promise.resolve(null);
+              }),
             update: finAccountUpdate,
           },
           finCard: { findFirst: jest.fn() },
@@ -173,11 +171,7 @@ describe('PrismaLedgerRepository outbox-in-TX', () => {
       }),
     };
 
-    const repo = new PrismaLedgerRepository(
-      prisma as never,
-      events,
-      undefined,
-    );
+    const repo = new PrismaLedgerRepository(prisma as never, events, undefined);
 
     const result = await repo.createTransfer(
       'user-1',
@@ -263,7 +257,11 @@ describe('PrismaLedgerRepository outbox-in-TX', () => {
             update: finAccountUpdate,
           },
           finCard: { findFirst: jest.fn() },
-          finCardBalance: { findFirst: jest.fn(), update: jest.fn(), create: jest.fn() },
+          finCardBalance: {
+            findFirst: jest.fn(),
+            update: jest.fn(),
+            create: jest.fn(),
+          },
           finTransaction: {
             findFirst: jest.fn().mockResolvedValue(existing),
             deleteMany,
@@ -277,11 +275,7 @@ describe('PrismaLedgerRepository outbox-in-TX', () => {
       }),
     };
 
-    const repo = new PrismaLedgerRepository(
-      prisma as never,
-      events,
-      undefined,
-    );
+    const repo = new PrismaLedgerRepository(prisma as never, events, undefined);
 
     const result = await repo.deleteTransaction('user-1', 'tx-del');
 
@@ -357,11 +351,7 @@ describe('PrismaLedgerRepository outbox-in-TX', () => {
       }),
     };
 
-    const repo = new PrismaLedgerRepository(
-      prisma as never,
-      events,
-      undefined,
-    );
+    const repo = new PrismaLedgerRepository(prisma as never, events, undefined);
 
     const result = await repo.deleteTransactionsByTransferGroupId(
       'user-1',
@@ -407,11 +397,7 @@ describe('PrismaLedgerRepository outbox-in-TX', () => {
       }),
     };
 
-    const repo = new PrismaLedgerRepository(
-      prisma as never,
-      events,
-      undefined,
-    );
+    const repo = new PrismaLedgerRepository(prisma as never, events, undefined);
 
     const result = await repo.deleteTransaction('user-1', 'missing');
     expect(result).toEqual({ count: 0 });
@@ -541,11 +527,7 @@ describe('PrismaLedgerRepository outbox-in-TX', () => {
       }),
     };
 
-    const repo = new PrismaLedgerRepository(
-      prisma as never,
-      events,
-      undefined,
-    );
+    const repo = new PrismaLedgerRepository(prisma as never, events, undefined);
 
     const result = await repo.purgeLedgerForAccount('user-1', 'acc-1');
     expect(result).toEqual({ count: 1 });
@@ -596,11 +578,7 @@ describe('PrismaLedgerRepository outbox-in-TX', () => {
       }),
     };
 
-    const repo = new PrismaLedgerRepository(
-      prisma as never,
-      events,
-      undefined,
-    );
+    const repo = new PrismaLedgerRepository(prisma as never, events, undefined);
 
     const result = await repo.purgeLedgerForAccount('user-1', 'acc-from');
     expect(result).toEqual({ count: 2 });
@@ -627,15 +605,11 @@ describe('PrismaLedgerRepository outbox-in-TX', () => {
       }),
     };
 
-    const repo = new PrismaLedgerRepository(
-      prisma as never,
-      events,
-      undefined,
-    );
+    const repo = new PrismaLedgerRepository(prisma as never, events, undefined);
 
-    await expect(
-      repo.purgeLedgerForCard('user-1', 'card-1'),
-    ).resolves.toEqual({ count: 0 });
+    await expect(repo.purgeLedgerForCard('user-1', 'card-1')).resolves.toEqual({
+      count: 0,
+    });
     expect(deleteMany).not.toHaveBeenCalled();
     expect(enqueue).not.toHaveBeenCalled();
   });

@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
-import { FinanceEventsModule, FinanceModule } from '../finance';
-import { NotificationsModule } from '../notifications';
+import { FinanceEventsModule, FinanceModule } from '@personal-os/finance';
+import { NotificationsModule } from '@personal-os/notifications';
 import { AiActionsReaperService } from './actions/application/ai-actions-reaper.service';
 import { AiActionsService } from './actions/application/ai-actions.service';
 import { AiActionsRepository } from './actions/infrastructure/ai-actions.repository';

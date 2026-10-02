@@ -16,13 +16,13 @@ Si una afirmación no está `VERIFICADO`, leer [docs/review-register.md](docs/re
 
 | Tema | Dónde |
 | --- | --- |
-| Dominio, REST, Prisma, eventos, colas, seguridad | este repositorio (`docs/` + `src/` + `prisma/`) |
+| Dominio, REST, Prisma, eventos, colas, seguridad | este repositorio (`docs/` + `src/` + `packages/`) |
 | UI, rutas Next.js, Web Push del navegador | `personal-os-web` |
-| Envelope HTTP `{ data, meta }` | `src/core/interceptors/transform.interceptor.ts` |
-| Eventos | `src/core/events/event.constants.ts` |
-| Env | `src/config/env.schema.ts` |
-| Tools IA | `src/modules/ai-agent/tools/tool.registry.ts` + `prompts/module-context.ts` |
-| API pública entre módulos Nest | `src/modules/<name>/index.ts` (regla `.cursor/rules/module-public-api.mdc`) |
+| Envelope HTTP `{ data, meta }` | `packages/core/src/interceptors/transform.interceptor.ts` |
+| Eventos | `packages/core/src/events/event.constants.ts` |
+| Env | `packages/config/src/env.schema.ts` |
+| Tools IA | `packages/ai-agent/src/tools/tool.registry.ts` + `prompts/module-context.ts` |
+| API pública entre módulos Nest | `packages/<nombre>/src/index.ts` y barrels `@personal-os/<nombre>` (regla `.cursor/rules/module-public-api.mdc`) |
 
 ## Checklist al cambiar comportamiento
 
@@ -35,10 +35,16 @@ Si una afirmación no está `VERIFICADO`, leer [docs/review-register.md](docs/re
 ## Estructura de código
 
 ```text
-src/
-  config/          # Zod env
-  core/            # guards, filters, eventos, colas
-  health/
-  prisma/
-  modules/{auth,users,finance,notifications,ai-agent}
+apps/api/src/            # app Nest: main, app.module, health
+packages/                # workspace pnpm; cada paquete compila a dist
+  config/                # env Zod y límites de IA
+  core/                  # guards, filters, eventos, colas, puerto de chat IA
+  database/              # PrismaService, cliente generado, schema y migraciones
+  logos/
+  auth/
+  users/
+  finance/
+  notifications/
+  ai-agent/
+docs/
 ```

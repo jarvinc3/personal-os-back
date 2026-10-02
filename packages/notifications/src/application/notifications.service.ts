@@ -3,12 +3,12 @@ import { Injectable, Logger, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Queue } from 'bullmq';
-import type { Env } from '../../../config';
-import { NotificationCreatedEvent } from '../../../core/events/domain-events';
-import { AppEvents } from '../../../core/events/event.constants';
-import { paginate } from '../../../core/pagination/pagination.dto';
-import { NotificationDispatchJob } from '../../../core/queues/queue-jobs';
-import { QueueNames } from '../../../core/queues/queue.constants';
+import type { Env } from '@personal-os/config';
+import { NotificationCreatedEvent } from '@personal-os/core';
+import { AppEvents } from '@personal-os/core';
+import { paginate } from '@personal-os/core';
+import { NotificationDispatchJob } from '@personal-os/core';
+import { QueueNames } from '@personal-os/core';
 import { NotificationsRepository } from '../infrastructure/notifications.repository';
 import { CreateNotificationDto } from '../presentation/dto/create-notification.dto';
 import { ListNotificationsQueryDto } from '../presentation/dto/list-notifications-query.dto';
@@ -108,17 +108,22 @@ export class NotificationsService {
   }
 
   async list(userId: string, query: ListNotificationsQueryDto) {
-    const inAppEnabled = await this.notificationPolicy.isInAppListingEnabled(userId);
+    const inAppEnabled =
+      await this.notificationPolicy.isInAppListingEnabled(userId);
     if (!inAppEnabled && (query.channel ?? 'IN_APP') === 'IN_APP') {
       return paginate([], 0, query);
     }
 
-    const [items, total] = await this.notificationsRepo.findByUser(userId, query);
+    const [items, total] = await this.notificationsRepo.findByUser(
+      userId,
+      query,
+    );
     return paginate(items, total, query);
   }
 
   async unreadCount(userId: string) {
-    const inAppEnabled = await this.notificationPolicy.isInAppListingEnabled(userId);
+    const inAppEnabled =
+      await this.notificationPolicy.isInAppListingEnabled(userId);
     if (!inAppEnabled) {
       return { count: 0 };
     }

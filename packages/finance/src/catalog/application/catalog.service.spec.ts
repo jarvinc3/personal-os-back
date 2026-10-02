@@ -11,7 +11,9 @@ function ownershipMock(
 ): FinanceOwnershipService {
   return {
     assertInstitutionOwned: jest.fn((_userId: string, id: string) => {
-      if (id === 'inst-1') return Promise.resolve({ id, name: 'Banco' });
+      if (id === 'inst-1') {
+        return Promise.resolve({ id, name: 'Banco' });
+      }
       return Promise.reject(new BadRequestException('Institution not found'));
     }),
     assertAccountOwned: jest.fn(),
@@ -75,11 +77,12 @@ describe('CatalogService cards archive', () => {
     jest.clearAllMocks();
     findCardById.mockResolvedValue(debitCard);
     findAccountById.mockResolvedValue({ id: 'acc-1', userId: 'user-1' });
-    updateCard.mockImplementation((_userId: string, _id: string, data: { isActive?: boolean }) =>
-      Promise.resolve({
-        ...debitCard,
-        isActive: data.isActive ?? debitCard.isActive,
-      }),
+    updateCard.mockImplementation(
+      (_userId: string, _id: string, data: { isActive?: boolean }) =>
+        Promise.resolve({
+          ...debitCard,
+          isActive: data.isActive ?? debitCard.isActive,
+        }),
     );
   });
 
@@ -310,15 +313,13 @@ describe('CatalogService createCard lastFour', () => {
 describe('CatalogService archive institution', () => {
   it('refuses to archive while active dependents remain', async () => {
     const ownership = ownershipMock();
-    ownership.assertInstitutionCanArchive = jest
-      .fn()
-      .mockRejectedValue(
-        new ConflictException({
-          message:
-            'Cannot archive institution while active accounts, cards, email sources, or loans remain',
-          dependents: { accounts: 1, cards: 0, emailSources: 0, loans: 0 },
-        }),
-      );
+    ownership.assertInstitutionCanArchive = jest.fn().mockRejectedValue(
+      new ConflictException({
+        message:
+          'Cannot archive institution while active accounts, cards, email sources, or loans remain',
+        dependents: { accounts: 1, cards: 0, emailSources: 0, loans: 0 },
+      }),
+    );
 
     const updateInstitution = jest.fn();
     const service = new CatalogService(
@@ -475,7 +476,10 @@ describe('CatalogService hard delete', () => {
         deleteAccount,
       } as unknown as CatalogRepository,
       ownershipMock(),
-      { forAccount, forCard: jest.fn() } as unknown as PurgeInstrumentLedgerUseCase,
+      {
+        forAccount,
+        forCard: jest.fn(),
+      } as unknown as PurgeInstrumentLedgerUseCase,
     );
 
     await expect(service.deleteAccount('user-1', 'acc-1')).resolves.toEqual({
@@ -488,7 +492,9 @@ describe('CatalogService hard delete', () => {
 
   it('returns 404 when deleting a missing account', async () => {
     const service = new CatalogService(
-      { findAccountById: jest.fn().mockResolvedValue(null) } as unknown as CatalogRepository,
+      {
+        findAccountById: jest.fn().mockResolvedValue(null),
+      } as unknown as CatalogRepository,
       ownershipMock(),
       purgeMock(),
     );
@@ -505,7 +511,10 @@ describe('CatalogService hard delete', () => {
         deleteCard: jest.fn().mockResolvedValue({ count: 1 }),
       } as unknown as CatalogRepository,
       ownershipMock(),
-      { forAccount: jest.fn(), forCard } as unknown as PurgeInstrumentLedgerUseCase,
+      {
+        forAccount: jest.fn(),
+        forCard,
+      } as unknown as PurgeInstrumentLedgerUseCase,
     );
 
     await expect(service.deleteCard('user-1', 'card-1')).resolves.toEqual({
@@ -553,9 +562,9 @@ describe('CatalogService hard delete', () => {
       { forAccount, forCard } as unknown as PurgeInstrumentLedgerUseCase,
     );
 
-    await expect(service.deleteInstitution('user-1', 'inst-1')).resolves.toEqual(
-      { success: true },
-    );
+    await expect(
+      service.deleteInstitution('user-1', 'inst-1'),
+    ).resolves.toEqual({ success: true });
     expect(forAccount).toHaveBeenCalledWith('user-1', 'acc-1');
     expect(forCard).toHaveBeenCalledWith('user-1', 'card-credit');
     expect(deleteEmailSourcesByInstitution).toHaveBeenCalledWith(

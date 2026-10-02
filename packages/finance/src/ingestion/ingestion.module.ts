@@ -1,8 +1,7 @@
 import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
-import { isBullMqEnabledFromProcessEnv } from '../../../config';
-import { QueueNames } from '../../../core/queues/queue.constants';
-import { AiCoreModule } from '../../ai-agent';
+import { isBullMqEnabledFromProcessEnv } from '@personal-os/config';
+import { QueueNames } from '@personal-os/core';
 import { FinanceEventsModule } from '../events/events.module';
 import { FinanceLedgerModule } from '../ledger/ledger.module';
 import { FinanceOwnershipModule } from '../shared/finance-ownership.module';
@@ -29,7 +28,6 @@ const bullMqEnabled = isBullMqEnabledFromProcessEnv();
     FinanceEventsModule,
     FinanceLedgerModule,
     FinanceOwnershipModule,
-    AiCoreModule,
     ...(bullMqEnabled
       ? [BullModule.registerQueue({ name: QueueNames.GMAIL_SYNC })]
       : []),

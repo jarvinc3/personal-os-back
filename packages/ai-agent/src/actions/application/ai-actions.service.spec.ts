@@ -1,9 +1,9 @@
 import {
-    BadRequestException,
-    ConflictException,
-    NotFoundException,
+  BadRequestException,
+  ConflictException,
+  NotFoundException,
 } from '@nestjs/common';
-import { NotificationsGateway } from '../../../notifications';
+import { NotificationsGateway } from '@personal-os/notifications';
 import { AiActionsRepository } from '../infrastructure/ai-actions.repository';
 import { AiActionsService } from './ai-actions.service';
 import { ToolExecutorService } from '../../tools/tool-executor.service';
@@ -116,9 +116,9 @@ describe('AiActionsService', () => {
         .mockResolvedValueOnce({ ...pendingAction, status: 'RUNNING' });
       claimForExecution.mockResolvedValue(null);
 
-      await expect(service.execute('action-1', 'user-1')).rejects.toBeInstanceOf(
-        ConflictException,
-      );
+      await expect(
+        service.execute('action-1', 'user-1'),
+      ).rejects.toBeInstanceOf(ConflictException);
       expect(execute.mock.calls).toHaveLength(0);
     });
 
@@ -150,9 +150,9 @@ describe('AiActionsService', () => {
         status: 'SUCCESS',
       });
 
-      await expect(service.execute('action-1', 'user-1')).rejects.toBeInstanceOf(
-        BadRequestException,
-      );
+      await expect(
+        service.execute('action-1', 'user-1'),
+      ).rejects.toBeInstanceOf(BadRequestException);
       expect(claimForExecution.mock.calls).toHaveLength(0);
     });
 

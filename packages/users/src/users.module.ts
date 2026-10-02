@@ -1,5 +1,6 @@
 import { Global, Module } from '@nestjs/common';
-import { AuthModule } from '../auth';
+import { AuthModule } from '@personal-os/auth';
+import { USERS_REPOSITORY } from './application/ports/users.repository.port';
 import { AuthDeletionOutboxProcessor } from './application/auth-deletion-outbox.processor';
 import { UsersService } from './application/users.service';
 import { UsersRepository } from './infrastructure/users.repository';
@@ -9,7 +10,15 @@ import { UsersController } from './presentation/users.controller';
 @Module({
   imports: [AuthModule],
   controllers: [UsersController],
-  providers: [UsersRepository, UsersService, AuthDeletionOutboxProcessor],
-  exports: [UsersRepository, UsersService],
+  providers: [
+    UsersRepository,
+    {
+      provide: USERS_REPOSITORY,
+      useExisting: UsersRepository,
+    },
+    UsersService,
+    AuthDeletionOutboxProcessor,
+  ],
+  exports: [USERS_REPOSITORY, UsersService],
 })
 export class UsersModule {}

@@ -1,7 +1,7 @@
 import {
-    adjustBudgetSpent,
-    applyBalanceForTransaction,
-    signedAmount,
+  adjustBudgetSpent,
+  applyBalanceForTransaction,
+  signedAmount,
 } from './balance.helpers';
 
 describe('balance.helpers', () => {

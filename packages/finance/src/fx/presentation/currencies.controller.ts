@@ -1,6 +1,6 @@
 import { Controller, Get } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { RequiresEnabledModule } from '../../../../core/decorators';
+import { RequiresEnabledModule } from '@personal-os/core';
 import { ExchangeRateHostAdapter } from '../infrastructure/exchange-rate-host.adapter';
 
 @ApiTags('finance')

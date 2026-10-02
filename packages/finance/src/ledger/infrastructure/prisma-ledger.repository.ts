@@ -1,12 +1,9 @@
 import { Inject, Injectable, Optional } from '@nestjs/common';
 import { randomUUID } from 'crypto';
-import { AppEvents } from '../../../../core/events/event.constants';
-import { paginationArgs } from '../../../../core/pagination/pagination.dto';
-import type {
-  FinTransactionType,
-  Prisma,
-} from '../../../../prisma/generated/client';
-import { PrismaService } from '../../../../prisma/prisma.service';
+import { AppEvents } from '@personal-os/core';
+import { paginationArgs } from '@personal-os/core';
+import type { FinTransactionType, Prisma } from '@personal-os/database';
+import { PrismaService } from '@personal-os/database';
 import type { DomainEventPublisherPort } from '../../events/application/ports/domain-event-publisher.port';
 import type { BudgetThresholdPort } from '../../shared/application/budget-threshold.port';
 import {
@@ -152,8 +149,12 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
     userId: string,
     query: ListTransactionsQuery,
   ): Promise<string[]> {
-    if (!query.accountId && !query.cardId) return [];
-    if (query.type === 'DEBIT' || query.type === 'CREDIT') return [];
+    if (!query.accountId && !query.cardId) {
+      return [];
+    }
+    if (query.type === 'DEBIT' || query.type === 'CREDIT') {
+      return [];
+    }
     const rows = await this.prisma.finTransaction.findMany({
       where: {
         userId,
@@ -283,7 +284,9 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
 
   async findLatestCategoryIdByMerchant(userId: string, merchant: string) {
     const trimmed = merchant.trim();
-    if (!trimmed) return null;
+    if (!trimmed) {
+      return null;
+    }
     const row = await this.prisma.finTransaction.findFirst({
       where: {
         userId,
@@ -315,7 +318,9 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
         command.accountId,
         command.cardId,
       );
-      if (!target) return null;
+      if (!target) {
+        return null;
+      }
 
       const status = command.status ?? 'CONFIRMED';
       const created = await tx.finTransaction.create({
@@ -407,11 +412,15 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
         command.toAccountId,
         command.toCardId,
       );
-      if (!fromTarget || !toTarget) return null;
+      if (!fromTarget || !toTarget) {
+        return null;
+      }
 
       const fromKey = `${fromTarget.accountId ?? ''}:${fromTarget.cardId ?? ''}`;
       const toKey = `${toTarget.accountId ?? ''}:${toTarget.cardId ?? ''}`;
-      if (fromKey === toKey) return null;
+      if (fromKey === toKey) {
+        return null;
+      }
 
       const transferGroupId = randomUUID();
       const status = command.status ?? 'CONFIRMED';
@@ -518,7 +527,9 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
       const existing = await tx.finTransaction.findFirst({
         where: { id, userId },
       });
-      if (!existing) return null;
+      if (!existing) {
+        return null;
+      }
 
       const data: Prisma.FinTransactionUncheckedUpdateManyInput = {
         ...(fields.type !== undefined ? { type: fields.type } : {}),
@@ -563,7 +574,9 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
         nextAccountId,
         nextCardId,
       );
-      if (!nextTarget) return null;
+      if (!nextTarget) {
+        return null;
+      }
 
       data.accountId = nextTarget.accountId;
       data.cardId = nextTarget.cardId;
@@ -600,7 +613,9 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
           card: { select: { id: true, name: true } },
         },
       });
-      if (!updated) return null;
+      if (!updated) {
+        return null;
+      }
 
       let budgetSnapshots: BudgetSpendSnapshot[] = [];
       if (updated.status === 'CONFIRMED') {
@@ -651,7 +666,9 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
       const existing = await tx.finTransaction.findFirst({
         where: { id, userId, source: 'MANUAL' },
       });
-      if (!existing) return { count: 0 };
+      if (!existing) {
+        return { count: 0 };
+      }
 
       if (existing.status === 'CONFIRMED') {
         const ctx = await this.loadCardContext(tx, userId, existing.cardId);
@@ -689,7 +706,9 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
       const rows = await tx.finTransaction.findMany({
         where: { userId, transferGroupId, source: 'MANUAL' },
       });
-      if (rows.length === 0) return { count: 0 };
+      if (rows.length === 0) {
+        return { count: 0 };
+      }
 
       for (const row of rows) {
         if (row.status === 'CONFIRMED') {
@@ -760,7 +779,9 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
       const existing = await tx.finTransaction.findFirst({
         where: { id, userId },
       });
-      if (!existing) return null;
+      if (!existing) {
+        return null;
+      }
       if (existing.status === 'CONFIRMED') {
         const already = await tx.finTransaction.findFirst({
           where: { id, userId },
@@ -808,7 +829,9 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
           card: { select: { id: true, name: true } },
         },
       });
-      if (!updated) return null;
+      if (!updated) {
+        return null;
+      }
 
       await this.events.enqueue(
         {
@@ -912,7 +935,9 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
       const existing = await tx.finTransaction.findFirst({
         where: { id: originalId, userId },
       });
-      if (!existing) return null;
+      if (!existing) {
+        return null;
+      }
       if (existing.status === 'REVERSED') {
         return {
           transaction: existing,
@@ -1434,7 +1459,9 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
       };
     }
     const card = await tx.finCard.findFirst({ where: { id: cardId, userId } });
-    if (!card) return { cardType: null, derivedAccountId: null };
+    if (!card) {
+      return { cardType: null, derivedAccountId: null };
+    }
     return {
       cardType: card.type,
       derivedAccountId: card.type === 'DEBIT' ? card.accountId : null,

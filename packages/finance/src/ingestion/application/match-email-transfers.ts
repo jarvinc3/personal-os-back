@@ -50,7 +50,9 @@ function groupSize(
   rows: EmailMatchCandidate[],
   groupId: string | null,
 ): number {
-  if (!groupId) return 1;
+  if (!groupId) {
+    return 1;
+  }
   return rows.filter((row) => row.transferGroupId === groupId).length;
 }
 
@@ -59,7 +61,9 @@ export function isUnpairedTransferCandidate(
   all: EmailMatchCandidate[],
 ): boolean {
   const movement = movementClassOf(row);
-  if (isAtmMovementClass(movement)) return false;
+  if (isAtmMovementClass(movement)) {
+    return false;
+  }
   if (!isTransferMovementClass(movement) && row.transferGroupId == null) {
     return false;
   }
@@ -73,11 +77,14 @@ export function isUnpairedTransferCandidate(
 }
 
 function amountsMatch(left: number, right: number): 'exact' | 'fee' | null {
-  if (left === right) return 'exact';
+  if (left === right) {
+    return 'exact';
+  }
   const delta = Math.abs(left - right);
   const max = Math.max(left, right);
-  if (delta <= FEE_TOLERANCE || delta <= max * FEE_TOLERANCE_RATIO)
+  if (delta <= FEE_TOLERANCE || delta <= max * FEE_TOLERANCE_RATIO) {
     return 'fee';
+  }
   return null;
 }
 
@@ -112,7 +119,9 @@ export function pickTransferMatch(
 
   const exact = scored.filter((item) => item.closeness === 'exact');
   const pool = exact.length > 0 ? exact : scored;
-  if (pool.length !== 1) return null;
+  if (pool.length !== 1) {
+    return null;
+  }
   return pool[0].other;
 }
 

@@ -1,23 +1,29 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
-    IsEnum,
-    IsOptional,
-    IsString,
-    IsUUID,
-    MaxLength,
-    Validate,
-    ValidationArguments,
-    ValidatorConstraint,
-    ValidatorConstraintInterface,
+  IsEnum,
+  IsOptional,
+  IsString,
+  IsUUID,
+  MaxLength,
+  Validate,
+  ValidationArguments,
+  ValidatorConstraint,
+  ValidatorConstraintInterface,
 } from 'class-validator';
 import {
-    OptionalCalendarDayField,
-    OptionalColorField,
-    RequiredLastFourField,
+  OptionalCalendarDayField,
+  OptionalColorField,
+  RequiredLastFourField,
 } from '../../../shared/presentation/validation.decorators';
 
 const cardTypes = ['CREDIT', 'DEBIT'] as const;
-const cardNetworks = ['VISA', 'MASTERCARD', 'AMEX', 'DISCOVER', 'OTHER'] as const;
+const cardNetworks = [
+  'VISA',
+  'MASTERCARD',
+  'AMEX',
+  'DISCOVER',
+  'OTHER',
+] as const;
 
 @ValidatorConstraint({ name: 'cardAccountByType', async: false })
 class CardAccountByTypeConstraint implements ValidatorConstraintInterface {

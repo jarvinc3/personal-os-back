@@ -15,4 +15,4 @@ Chat tools llaman **solo** `FinanceFacade`. REST es más amplio. No tratar el ca
 | Budgets list | paginado | Unbounded `listBudgets` |
 | Balance sheet | `GET /balance-sheet` | Indirecto via `getAnalyticsSummary` |
 
-Tools: [finance-tools.md](./finance-tools.md). Facade: `src/modules/finance/finance.facade.ts`.
+Tools: [finance-tools.md](./finance-tools.md). Facade: `packages/finance/src/finance.facade.ts`.

@@ -1,4 +1,4 @@
-import type { PrismaService } from '../../../../prisma/prisma.service';
+import type { PrismaService } from '@personal-os/database';
 import { EmailSourceRepository } from './email-source.repository';
 
 describe('EmailSourceRepository.listAutoSyncSources', () => {

@@ -9,7 +9,9 @@ export type JwksClientInstance = {
   getSigningKey: (kid: string) => Promise<{ getPublicKey: () => string }>;
 };
 
-type PassportJwtSecret = (options: JwksClientOptions) => (
+type PassportJwtSecret = (
+  options: JwksClientOptions,
+) => (
   req: unknown,
   rawJwtToken: string,
   done: (err: unknown, secret?: string) => void,
@@ -21,8 +23,7 @@ type JwksRsaModule = ((options: JwksClientOptions) => JwksClientInstance) & {
 
 function loadJwksRsa(): JwksRsaModule {
   const loaded = require('jwks-rsa') as
-    | JwksRsaModule
-    | { default: JwksRsaModule };
+    JwksRsaModule | { default: JwksRsaModule };
 
   if (typeof loaded === 'function') {
     return loaded;
@@ -35,7 +36,9 @@ function loadJwksRsa(): JwksRsaModule {
   throw new Error('Unable to load jwks-rsa module');
 }
 
-export function createJwksClient(options: JwksClientOptions): JwksClientInstance {
+export function createJwksClient(
+  options: JwksClientOptions,
+): JwksClientInstance {
   return loadJwksRsa()(options);
 }
 

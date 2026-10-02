@@ -1,11 +1,13 @@
-import { InjectQueue, OnWorkerEvent, Processor, WorkerHost } from '@nestjs/bullmq';
+import {
+  InjectQueue,
+  OnWorkerEvent,
+  Processor,
+  WorkerHost,
+} from '@nestjs/bullmq';
 import { Injectable, Logger, Optional } from '@nestjs/common';
 import { Job, Queue } from 'bullmq';
-import {
-  EmailSyncJob,
-  NotificationDispatchJob,
-} from '../../../core/queues/queue-jobs';
-import { QueueNames } from '../../../core/queues/queue.constants';
+import { EmailSyncJob, NotificationDispatchJob } from '@personal-os/core';
+import { QueueNames } from '@personal-os/core';
 import { NotificationsRepository } from '../infrastructure/notifications.repository';
 import { PushSenderService } from '../infrastructure/push-sender.service';
 
@@ -57,7 +59,9 @@ export class NotificationsProcessor extends WorkerHost {
         });
 
         if (result.deactivatedTokens.length > 0) {
-          await this.pushSender.deactivateInvalidTokens(result.deactivatedTokens);
+          await this.pushSender.deactivateInvalidTokens(
+            result.deactivatedTokens,
+          );
         }
 
         this.logger.log(

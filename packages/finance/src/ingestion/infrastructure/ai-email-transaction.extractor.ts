@@ -1,6 +1,9 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { z } from 'zod';
-import { AiService } from '../../../ai-agent';
+import {
+  AI_CHAT_COMPLETION,
+  type AiChatCompletionPort,
+} from '@personal-os/core';
 import {
   EMAIL_MOVEMENT_CLASSES,
   accountHintFromTerminatedIn,
@@ -158,7 +161,10 @@ Merchant, category, description, notes (Spanish locale es-DO unless told otherwi
 export class AiEmailTransactionExtractor implements EmailTransactionExtractorPort {
   private readonly logger = new Logger(AiEmailTransactionExtractor.name);
 
-  constructor(private readonly aiService: AiService) {}
+  constructor(
+    @Inject(AI_CHAT_COMPLETION)
+    private readonly aiService: AiChatCompletionPort,
+  ) {}
 
   async extract(input: EmailExtractionInput): Promise<EmailExtractionResult> {
     const body = input.body.slice(0, MAX_BODY_CHARS);

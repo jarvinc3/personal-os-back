@@ -1,4 +1,4 @@
-import { PrismaService } from '../../../prisma/prisma.service';
+import { PrismaService } from '@personal-os/database';
 import { UsersRepository } from './users.repository';
 
 describe('UsersRepository.claimNextAuthDeletion', () => {

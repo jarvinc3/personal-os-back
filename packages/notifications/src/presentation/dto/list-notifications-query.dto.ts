@@ -1,7 +1,7 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import { IsBoolean, IsEnum, IsOptional } from 'class-validator';
-import { PaginationQueryDto } from '../../../../core/pagination/pagination.dto';
+import { PaginationQueryDto } from '@personal-os/core';
 
 const channels = ['IN_APP', 'PUSH', 'EMAIL'] as const;
 

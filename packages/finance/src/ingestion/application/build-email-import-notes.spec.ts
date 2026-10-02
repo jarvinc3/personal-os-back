@@ -21,9 +21,7 @@ describe('buildEmailImportNotes', () => {
         categoryNameHint: 'Snacks',
         status: 'CONFIRMED',
       }),
-    ).toBe(
-      'Comercio poco claro. Sin categoría asignada (hint: Snacks).',
-    );
+    ).toBe('Comercio poco claro. Sin categoría asignada (hint: Snacks).');
   });
 
   it('mentions merchant history and pending status', () => {

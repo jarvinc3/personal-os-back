@@ -1,6 +1,6 @@
 import type { Queue } from 'bullmq';
-import type { DomainEventIdempotencyGuard } from '../../../finance';
-import type { AiProcessingJob } from '../../../../core/queues/queue-jobs';
+import type { DomainEventIdempotencyGuard } from '@personal-os/core';
+import type { AiProcessingJob } from '@personal-os/core';
 import { AiEventsListener } from './ai-events.listener';
 
 describe('AiEventsListener.onEmailSyncCompleted', () => {

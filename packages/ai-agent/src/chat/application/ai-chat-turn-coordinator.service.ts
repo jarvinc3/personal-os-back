@@ -13,7 +13,10 @@ export class AiChatTurnCoordinator {
   private readonly logger = new Logger(AiChatTurnCoordinator.name);
   private readonly inFlight = new Map<TurnKey, InFlightTurn>();
 
-  private buildKey(sessionId: string, clientMessageId?: string): TurnKey | null {
+  private buildKey(
+    sessionId: string,
+    clientMessageId?: string,
+  ): TurnKey | null {
     if (!clientMessageId) {
       return null;
     }

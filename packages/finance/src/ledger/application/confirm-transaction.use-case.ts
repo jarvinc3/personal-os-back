@@ -1,8 +1,4 @@
-import {
-    Inject,
-    Injectable,
-    NotFoundException,
-} from '@nestjs/common';
+import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { FinanceOutboxDispatcher } from '../../events/infrastructure/finance-outbox.dispatcher';
 import { LEDGER_REPOSITORY } from '../../shared/application/tokens';
 import { mapLedgerTransaction } from './ledger-mappers';
@@ -18,7 +14,9 @@ export class ConfirmTransactionUseCase {
 
   async execute(userId: string, id: string) {
     const tx = await this.repo.findTransactionById(id, userId);
-    if (!tx) throw new NotFoundException('Transaction not found');
+    if (!tx) {
+      throw new NotFoundException('Transaction not found');
+    }
 
     if (tx.transferGroupId) {
       await this.repo.confirmTransactionsByTransferGroupId(
@@ -26,13 +24,17 @@ export class ConfirmTransactionUseCase {
         tx.transferGroupId,
       );
       const refreshed = await this.repo.findTransactionById(id, userId);
-      if (!refreshed) throw new NotFoundException('Transaction not found');
+      if (!refreshed) {
+        throw new NotFoundException('Transaction not found');
+      }
       void this.outboxDispatcher.processBatch();
       return mapLedgerTransaction(refreshed);
     }
 
     const updated = await this.repo.confirmTransaction(userId, id);
-    if (!updated) throw new NotFoundException('Transaction not found');
+    if (!updated) {
+      throw new NotFoundException('Transaction not found');
+    }
     void this.outboxDispatcher.processBatch();
     return mapLedgerTransaction(updated.transaction);
   }

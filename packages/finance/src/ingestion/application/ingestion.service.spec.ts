@@ -1,5 +1,5 @@
 import type { ConfigService } from '@nestjs/config';
-import { AppEvents } from '../../../../core/events/event.constants';
+import { AppEvents } from '@personal-os/core';
 import type { DomainEventPublisherPort } from '../../events/application/ports/domain-event-publisher.port';
 import type { FinanceOutboxDispatcher } from '../../events/infrastructure/finance-outbox.dispatcher';
 import type { EmailSourceRepository } from '../infrastructure/email-source.repository';

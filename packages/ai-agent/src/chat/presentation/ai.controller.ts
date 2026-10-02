@@ -1,4 +1,11 @@
-import { BadRequestException, Body, Controller, Get, Post, Res } from '@nestjs/common';
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Get,
+  Post,
+  Res,
+} from '@nestjs/common';
 import {
   ApiOkResponse,
   ApiOperation,
@@ -7,8 +14,8 @@ import {
 } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import type { Response } from 'express';
-import { CurrentUser, Timeout } from '../../../../core/decorators';
-import { NotificationsGateway } from '../../../notifications';
+import { CurrentUser, Timeout } from '@personal-os/core';
+import { NotificationsGateway } from '@personal-os/notifications';
 import { AiAgentRunner } from '../application/ai-agent.runner';
 import { AiChatPersistenceService } from '../infrastructure/ai-chat-persistence.service';
 import { AiService } from '../application/ai.service';
@@ -56,7 +63,9 @@ export class AiController {
     @Body() dto: ChatRequestDto,
     @CurrentUser('sub') userId: string,
   ): Promise<ChatResponseDto> {
-    const latestUser = [...dto.messages].reverse().find((m) => m.role === 'user');
+    const latestUser = [...dto.messages]
+      .reverse()
+      .find((m) => m.role === 'user');
     if (!latestUser) {
       throw new BadRequestException('At least one user message is required');
     }
@@ -109,9 +118,13 @@ export class AiController {
     @CurrentUser('sub') userId: string,
     @Res() res: Response,
   ): Promise<void> {
-    const latestUser = [...dto.messages].reverse().find((m) => m.role === 'user');
+    const latestUser = [...dto.messages]
+      .reverse()
+      .find((m) => m.role === 'user');
     if (!latestUser) {
-      res.status(400).json({ message: 'At least one user message is required' });
+      res
+        .status(400)
+        .json({ message: 'At least one user message is required' });
       return;
     }
 
@@ -140,7 +153,9 @@ export class AiController {
       if (cached) {
         const cachedMeta = cached.metadata ?? {};
         const cachedModuleSlug =
-          typeof cachedMeta.moduleSlug === 'string' ? cachedMeta.moduleSlug : 'general';
+          typeof cachedMeta.moduleSlug === 'string'
+            ? cachedMeta.moduleSlug
+            : 'general';
         const cachedModuleLabel =
           typeof cachedMeta.moduleLabel === 'string'
             ? cachedMeta.moduleLabel
@@ -250,10 +265,6 @@ export class AiController {
   }
 
   private emitAiResponse(userId: string, payload: AiResponseWsPayload) {
-    this.notificationsGateway.emitToUser(
-      userId,
-      'ai.response',
-      payload,
-    );
+    this.notificationsGateway.emitToUser(userId, 'ai.response', payload);
   }
 }

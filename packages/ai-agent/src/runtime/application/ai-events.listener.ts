@@ -2,11 +2,13 @@ import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable, Logger, Optional } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { Queue } from 'bullmq';
-import { UserLoggedInEvent } from '../../../../core/events/domain-events';
-import { AppEvents } from '../../../../core/events/event.constants';
-import type { AiProcessingJob } from '../../../../core/queues/queue-jobs';
-import { QueueNames } from '../../../../core/queues/queue.constants';
-import { DomainEventIdempotencyGuard } from '../../../finance';
+import {
+  AppEvents,
+  DomainEventIdempotencyGuard,
+  QueueNames,
+  UserLoggedInEvent,
+  type AiProcessingJob,
+} from '@personal-os/core';
 
 type FinanceTxEvent = {
   eventId?: string;
@@ -69,17 +71,33 @@ export class AiEventsListener {
   }
 
   @OnEvent(AppEvents.MODULE_ENABLED)
-  async onModuleEnabled(event: { userId: string; slug: string }): Promise<void> {
-    await this.enqueue('ai-insight-module-enabled', event.userId, 'module.enabled', {
-      slug: event.slug,
-    });
+  async onModuleEnabled(event: {
+    userId: string;
+    slug: string;
+  }): Promise<void> {
+    await this.enqueue(
+      'ai-insight-module-enabled',
+      event.userId,
+      'module.enabled',
+      {
+        slug: event.slug,
+      },
+    );
   }
 
   @OnEvent(AppEvents.MODULE_DISABLED)
-  async onModuleDisabled(event: { userId: string; slug: string }): Promise<void> {
-    await this.enqueue('ai-insight-module-disabled', event.userId, 'module.disabled', {
-      slug: event.slug,
-    });
+  async onModuleDisabled(event: {
+    userId: string;
+    slug: string;
+  }): Promise<void> {
+    await this.enqueue(
+      'ai-insight-module-disabled',
+      event.userId,
+      'module.disabled',
+      {
+        slug: event.slug,
+      },
+    );
   }
 
   @OnEvent(AppEvents.MODULE_CONFIG_UPDATED)
@@ -97,8 +115,12 @@ export class AiEventsListener {
 
   @OnEvent(AppEvents.FINANCE_TRANSACTION_CONFIRMED)
   async onTransactionConfirmed(event: FinanceTxEvent): Promise<void> {
-    if (event.source === 'EMAIL') return;
-    if (event.status && event.status !== 'CONFIRMED') return;
+    if (event.source === 'EMAIL') {
+      return;
+    }
+    if (event.status && event.status !== 'CONFIRMED') {
+      return;
+    }
     if (
       this.idempotency &&
       !(await this.idempotency.tryClaim(
@@ -125,7 +147,9 @@ export class AiEventsListener {
 
   @OnEvent(AppEvents.FINANCE_EMAIL_SYNC_COMPLETED)
   async onEmailSyncCompleted(event: EmailSyncEvent): Promise<void> {
-    if (event.transactionsNew <= 0) return;
+    if (event.transactionsNew <= 0) {
+      return;
+    }
     if (
       this.idempotency &&
       !(await this.idempotency.tryClaim(

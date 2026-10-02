@@ -1,4 +1,8 @@
-import type { FinCardType, FinTransactionType, Prisma } from '../../../../prisma/generated/client';
+import type {
+  FinCardType,
+  FinTransactionType,
+  Prisma,
+} from '@personal-os/database';
 import type { LedgerTarget } from '../../shared/domain/ledger-rules';
 import { signedAmount } from '../../shared/domain/ledger-rules';
 
@@ -13,7 +17,9 @@ export async function applyAccountBalanceDelta(
   accountId: string | null | undefined,
   delta: number,
 ): Promise<void> {
-  if (!accountId || delta === 0) return;
+  if (!accountId || delta === 0) {
+    return;
+  }
   await tx.finAccount.update({
     where: { id: accountId },
     data: { balance: { increment: delta } },
@@ -26,7 +32,9 @@ export async function applyCardBalanceDelta(
   currency: string,
   delta: number,
 ): Promise<void> {
-  if (!cardId || delta === 0) return;
+  if (!cardId || delta === 0) {
+    return;
+  }
 
   const balanceRow = await tx.finCardBalance.findFirst({
     where: { cardId, currency },
@@ -97,11 +105,15 @@ export async function adjustBudgetSpent(
     alertThresholdPct: number;
   }>
 > {
-  if (params.type !== 'DEBIT' || !params.categoryId) return [];
+  if (params.type !== 'DEBIT' || !params.categoryId) {
+    return [];
+  }
 
   const direction = params.direction ?? 1;
   const delta = Math.abs(params.amountBaseCurrency) * direction;
-  if (delta === 0) return [];
+  if (delta === 0) {
+    return [];
+  }
 
   const dateOnly = new Date(params.transactionDate);
   dateOnly.setUTCHours(0, 0, 0, 0);
@@ -154,7 +166,9 @@ export async function resolveLedgerTarget(
     const account = await tx.finAccount.findFirst({
       where: { id: accountId, userId },
     });
-    if (!account) return null;
+    if (!account) {
+      return null;
+    }
     return {
       accountId: account.id,
       cardId: null,
@@ -168,9 +182,15 @@ export async function resolveLedgerTarget(
     const card = await tx.finCard.findFirst({
       where: { id: cardId, userId },
     });
-    if (!card) return null;
-    if (card.type === 'DEBIT' && !card.accountId) return null;
-    if (card.type === 'CREDIT' && card.accountId) return null;
+    if (!card) {
+      return null;
+    }
+    if (card.type === 'DEBIT' && !card.accountId) {
+      return null;
+    }
+    if (card.type === 'CREDIT' && card.accountId) {
+      return null;
+    }
 
     return {
       accountId: null,

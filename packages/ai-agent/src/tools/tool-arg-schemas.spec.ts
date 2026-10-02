@@ -1,8 +1,8 @@
 import {
-    MUTATING_TOOL_ARG_SCHEMAS,
-    isMutatingToolName,
-    mutatingToolParametersJsonSchema,
-    validateMutatingToolArgs,
+  MUTATING_TOOL_ARG_SCHEMAS,
+  isMutatingToolName,
+  mutatingToolParametersJsonSchema,
+  validateMutatingToolArgs,
 } from './tool-arg-schemas';
 
 describe('tool-arg-schemas', () => {

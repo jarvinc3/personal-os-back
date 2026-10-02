@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { paginate, PaginationQueryDto } from '../../../../core/pagination/pagination.dto';
+import { paginate, PaginationQueryDto } from '@personal-os/core';
 import { AiActionsService } from '../../actions/application/ai-actions.service';
 import { AiSessionsRepository } from '../infrastructure/ai-sessions.repository';
 import { CreateAiSessionDto } from '../presentation/dto/create-ai-session.dto';
@@ -13,7 +13,7 @@ export class AiSessionsService {
   constructor(
     private readonly sessionsRepo: AiSessionsRepository,
     private readonly actionsService: AiActionsService,
-  ) { }
+  ) {}
 
   private mapSession(session: {
     id: string;
@@ -29,7 +29,7 @@ export class AiSessionsService {
     const title =
       typeof memory.title === 'string'
         ? memory.title
-        : session.messages?.[0]?.content?.slice(0, 80) ?? null;
+        : (session.messages?.[0]?.content?.slice(0, 80) ?? null);
 
     return {
       id: session.id,
@@ -45,7 +45,10 @@ export class AiSessionsService {
   }
 
   async list(userId: string, query: PaginationQueryDto) {
-    const [items, total] = await this.sessionsRepo.findSessionsByUser(userId, query);
+    const [items, total] = await this.sessionsRepo.findSessionsByUser(
+      userId,
+      query,
+    );
     const mapped = items.map((session) => this.mapSession(session));
     return paginate(mapped, total, query);
   }
@@ -81,8 +84,13 @@ export class AiSessionsService {
       throw new NotFoundException('AI session not found');
     }
 
-    const liveActions = await this.actionsService.listBySession(sessionId, userId);
-    const actionsById = new Map(liveActions.map((action) => [action.id, action]));
+    const liveActions = await this.actionsService.listBySession(
+      sessionId,
+      userId,
+    );
+    const actionsById = new Map(
+      liveActions.map((action) => [action.id, action]),
+    );
 
     return {
       ...this.mapSession(session),
@@ -90,8 +98,7 @@ export class AiSessionsService {
         .filter((message) => !isInternalToolRequestMessage(message))
         .filter(
           (message) =>
-            message.role === 'tool' ||
-            message.content.trim().length > 0,
+            message.role === 'tool' || message.content.trim().length > 0,
         )
         .map((message) => {
           const metadata = (message.metadata ?? {}) as Record<string, unknown>;

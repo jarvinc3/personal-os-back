@@ -7,14 +7,15 @@
   "license": "MIT",
   "packageManager": "pnpm@12.6.0",
   "scripts": {
-    "build": "nest build",
-    "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\" \"prisma.config.ts\" \"eslint.config.mjs\"",
-    "start": "nest start",
-    "start:dev": "nest start --watch",
-    "start:debug": "nest start --debug --watch",
+    "build:packages": "pnpm -r --filter './packages/*' run build",
+    "build": "pnpm build:packages && nest build",
+    "format": "prettier --write \"apps/**/*.ts\" \"packages/*/src/**/*.ts\" \"test/**/*.ts\" \"prisma.config.ts\" \"eslint.config.mjs\"",
+    "start": "pnpm build:packages && nest start",
+    "start:dev": "pnpm build:packages && nest start --watch",
+    "start:debug": "pnpm build:packages && nest start --debug --watch",
     "start:prod": "node dist/main",
-    "lint": "eslint \"{src,apps,libs,test}/**/*.ts\"",
-    "lint:fix": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
+    "lint": "eslint \"{apps,packages/*/src,libs,test}/**/*.ts\"",
+    "lint:fix": "eslint \"{apps,packages/*/src,libs,test}/**/*.ts\" --fix",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
@@ -26,8 +27,8 @@
     "db:migrate": "prisma migrate dev",
     "db:migrate:status": "prisma migrate status",
     "db:migrate:deploy": "prisma migrate deploy",
-    "db:migrate:diff": "prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --script",
-    "db:migrate:diff:check": "prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --exit-code",
+    "db:migrate:diff": "prisma migrate diff --from-config-datasource --to-schema packages/database/prisma/schema.prisma --script",
+    "db:migrate:diff:check": "prisma migrate diff --from-config-datasource --to-schema packages/database/prisma/schema.prisma --exit-code",
     "db:migrate:resolve:applied": "prisma migrate resolve --applied",
     "db:migrate:reset": "prisma migrate reset",
     "db:generate": "prisma generate",
@@ -35,7 +36,7 @@
     "db:seed": "prisma db seed",
     "db:studio": "prisma studio",
     "db:reconcile-balances": "ts-node -r tsconfig-paths/register prisma/scripts/reconcile-balances.ts",
-    "db:backfill-logos": "ts-node -r tsconfig-paths/register prisma/scripts/backfill-institution-logos.ts"
+    "db:backfill-logos": "ts-node -r tsconfig-paths/register scripts/backfill-institution-logos.ts"
   },
   "dependencies": {
     "@bull-board/api": "^7.2.1",
@@ -58,10 +59,19 @@
     "@nestjs/throttler": "^6.7.1",
     "@nestjs/websockets": "^11.2.6",
     "@openrouter/sdk": "^0.12.79",
+    "@personal-os/ai-agent": "workspace:*",
+    "@personal-os/auth": "workspace:*",
+    "@personal-os/config": "workspace:*",
+    "@personal-os/core": "workspace:*",
+    "@personal-os/database": "workspace:*",
+    "@personal-os/finance": "workspace:*",
+    "@personal-os/logos": "workspace:*",
+    "@personal-os/notifications": "workspace:*",
+    "@personal-os/users": "workspace:*",
     "@prisma/adapter-pg": "^7.10.0",
     "@prisma/client": "^7.10.0",
     "@supabase/supabase-js": "^2.117.2",
-    "axios": "1.18.0",
+    "axios": "1.20.0",
     "bullmq": "^5.81.5",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.15.1",
@@ -123,21 +133,23 @@
       "json",
       "ts"
     ],
-    "rootDir": "src",
-    "testRegex": ".*\\.spec\\.ts$",
+    "rootDir": ".",
+    "testRegex": "(apps/[^/]+/src|packages/[^/]+/src)/.*\\.spec\\.ts$",
     "moduleNameMapper": {
-      "^(\\.{1,2}/.*)\\.js$": "$1"
+      "^(\\.{1,2}/.*)\\.js$": "$1",
+      "^@personal-os/([^/]+)$": "<rootDir>/packages/$1/src"
     },
     "transform": {
       "^.+\\.(t|j)s$": "ts-jest"
     },
     "collectCoverageFrom": [
-      "**/*.(t|j)s",
-      "!**/prisma/generated/**",
+      "apps/*/src/**/*.(t|j)s",
+      "packages/*/src/**/*.(t|j)s",
+      "!**/generated/**",
       "!**/*.module.ts",
       "!**/main.ts"
     ],
-    "coverageDirectory": "../coverage",
+    "coverageDirectory": "coverage",
     "coverageThreshold": {
       "global": {
         "statements": 25,

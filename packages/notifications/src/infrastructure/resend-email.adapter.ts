@@ -1,9 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import type { Env } from '../../../config';
+import type { Env } from '@personal-os/config';
 import type {
-    EmailSendInput,
-    EmailSenderPort,
+  EmailSendInput,
+  EmailSenderPort,
 } from '../application/ports/email-sender.port';
 
 const RESEND_API_URL = 'https://api.resend.com/emails';

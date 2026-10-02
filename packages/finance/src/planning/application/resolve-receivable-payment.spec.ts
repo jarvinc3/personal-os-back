@@ -2,15 +2,17 @@ import { resolveReceivablePayment } from './resolve-receivable-payment';
 
 describe('resolveReceivablePayment', () => {
   it('derives PAID when paidAmount equals amount', () => {
-    expect(
-      resolveReceivablePayment({ amount: 100, paidAmount: 100 }),
-    ).toEqual({ paidAmount: 100, status: 'PAID' });
+    expect(resolveReceivablePayment({ amount: 100, paidAmount: 100 })).toEqual({
+      paidAmount: 100,
+      status: 'PAID',
+    });
   });
 
   it('derives PARTIAL when paidAmount is between 0 and amount', () => {
-    expect(
-      resolveReceivablePayment({ amount: 100, paidAmount: 40 }),
-    ).toEqual({ paidAmount: 40, status: 'PARTIAL' });
+    expect(resolveReceivablePayment({ amount: 100, paidAmount: 40 })).toEqual({
+      paidAmount: 40,
+      status: 'PARTIAL',
+    });
   });
 
   it('allows CANCELLED without paidAmount matching amount', () => {

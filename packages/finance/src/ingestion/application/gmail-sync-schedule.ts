@@ -3,7 +3,7 @@ import { formatInTimeZone, fromZonedTime } from 'date-fns-tz';
 import {
   EMAIL_SYNC_SCHEDULE_MODES,
   type EmailSyncSchedule,
-} from '../../../users';
+} from '@personal-os/config';
 
 const MINUTE_MS = 60_000;
 

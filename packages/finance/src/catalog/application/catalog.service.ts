@@ -4,13 +4,10 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Prisma } from '../../../../prisma/generated/client';
-import {
-  LogoService,
-  type LogoUploadFile,
-} from '../../../logos/application/logo.service';
-import type { LogoRow } from '../../../logos/domain/logo-row';
-import { normalizeDomain } from '../../../logos/domain/normalize-domain';
+import { Prisma } from '@personal-os/database';
+import { LogoService, type LogoUploadFile } from '@personal-os/logos';
+import type { LogoRow } from '@personal-os/logos';
+import { normalizeDomain } from '@personal-os/logos';
 import { PurgeInstrumentLedgerUseCase } from '../../ledger/application/purge-instrument-ledger.use-case';
 import { FinanceOwnershipService } from '../../shared/application/finance-ownership.service';
 import {
@@ -36,7 +33,6 @@ import type { UpdateInstitutionDto } from '../presentation/dto/update-institutio
 
 const fallbackLogos = {
   ensureLogo: () => Promise.resolve(null),
-  ensureCardNetworks: () => Promise.resolve(undefined),
   resolveUrl: (row?: LogoRow | null) => row?.logoUrl ?? null,
   networkLogoUrl: () => null,
   saveCustomLogo: () => Promise.reject(new Error('Logo upload unavailable')),
@@ -66,7 +62,9 @@ export class CatalogService {
 
   async getAccount(userId: string, id: string) {
     const account = await this.repo.findAccountById(id, userId);
-    if (!account) throw new NotFoundException('Account not found');
+    if (!account) {
+      throw new NotFoundException('Account not found');
+    }
     return this.mapAccount(account);
   }
 
@@ -102,7 +100,9 @@ export class CatalogService {
 
   async updateAccount(userId: string, id: string, dto: UpdateAccountDto) {
     const existing = await this.repo.findAccountById(id, userId);
-    if (!existing) throw new NotFoundException('Account not found');
+    if (!existing) {
+      throw new NotFoundException('Account not found');
+    }
 
     const nextType = dto.type ?? existing.type;
     const nextInstitutionId =
@@ -148,7 +148,9 @@ export class CatalogService {
         ...rest,
         accountNumber: nextAccountNumber,
       });
-      if (!account) throw new NotFoundException('Account not found');
+      if (!account) {
+        throw new NotFoundException('Account not found');
+      }
       return this.mapAccount(account);
     } catch (error) {
       this.rethrowAccountNumberConflict(error);
@@ -157,11 +159,15 @@ export class CatalogService {
 
   async deleteAccount(userId: string, id: string) {
     const existing = await this.repo.findAccountById(id, userId);
-    if (!existing) throw new NotFoundException('Account not found');
+    if (!existing) {
+      throw new NotFoundException('Account not found');
+    }
     await this.purgeLedger.forAccount(userId, id);
     await this.repo.deleteCardsByAccountId(userId, id);
     const result = await this.repo.deleteAccount(userId, id);
-    if (result.count === 0) throw new NotFoundException('Account not found');
+    if (result.count === 0) {
+      throw new NotFoundException('Account not found');
+    }
     return { success: true };
   }
 
@@ -200,14 +206,27 @@ export class CatalogService {
       await this.ownership.assertInstitutionCanArchive(userId, id);
     }
     const data: Prisma.FinInstitutionUpdateInput = {};
-    if (dto.name !== undefined) data.name = dto.name;
-    if (dto.color !== undefined) data.color = dto.color;
-    if (dto.country !== undefined) data.country = dto.country;
-    if (dto.type !== undefined) data.type = dto.type;
-    if (dto.shortName !== undefined)
+    if (dto.name !== undefined) {
+      data.name = dto.name;
+    }
+    if (dto.color !== undefined) {
+      data.color = dto.color;
+    }
+    if (dto.country !== undefined) {
+      data.country = dto.country;
+    }
+    if (dto.type !== undefined) {
+      data.type = dto.type;
+    }
+    if (dto.shortName !== undefined) {
       data.shortName = dto.shortName?.trim() || null;
-    if (dto.sortOrder !== undefined) data.sortOrder = dto.sortOrder;
-    if (dto.isActive !== undefined) data.isActive = dto.isActive;
+    }
+    if (dto.sortOrder !== undefined) {
+      data.sortOrder = dto.sortOrder;
+    }
+    if (dto.isActive !== undefined) {
+      data.isActive = dto.isActive;
+    }
     if (dto.domain !== undefined) {
       const domain = this.normalizeInstitutionDomain(dto.domain);
       data.domain = domain;
@@ -215,7 +234,9 @@ export class CatalogService {
     }
     try {
       const updated = await this.repo.updateInstitution(userId, id, data);
-      if (!updated) throw new NotFoundException('Institution not found');
+      if (!updated) {
+        throw new NotFoundException('Institution not found');
+      }
       return this.mapInstitution(updated);
     } catch (error) {
       this.rethrowInstitutionNameConflict(error);
@@ -227,7 +248,9 @@ export class CatalogService {
     id: string,
     file: LogoUploadFile | undefined,
   ) {
-    if (!file) throw new BadRequestException('Archivo obligatorio');
+    if (!file) {
+      throw new BadRequestException('Archivo obligatorio');
+    }
     await this.ownership.assertInstitutionOwned(userId, id);
     let path: string;
     try {
@@ -240,7 +263,9 @@ export class CatalogService {
     const updated = await this.repo.updateInstitution(userId, id, {
       customLogoPath: path,
     });
-    if (!updated) throw new NotFoundException('Institution not found');
+    if (!updated) {
+      throw new NotFoundException('Institution not found');
+    }
     return this.mapInstitution(updated);
   }
 
@@ -250,13 +275,17 @@ export class CatalogService {
     const updated = await this.repo.updateInstitution(userId, id, {
       isActive: false,
     });
-    if (!updated) throw new NotFoundException('Institution not found');
+    if (!updated) {
+      throw new NotFoundException('Institution not found');
+    }
     return { success: true };
   }
 
   async deleteInstitution(userId: string, id: string) {
     const existing = await this.repo.findInstitution(userId, id);
-    if (!existing) throw new NotFoundException('Institution not found');
+    if (!existing) {
+      throw new NotFoundException('Institution not found');
+    }
     const accounts = await this.repo.listAccountsByInstitution(userId, id);
     for (const account of accounts) {
       await this.deleteAccount(userId, account.id);
@@ -268,21 +297,22 @@ export class CatalogService {
     await this.repo.deleteEmailSourcesByInstitution(userId, id);
     await this.repo.deleteLoansByInstitution(userId, id);
     const result = await this.repo.deleteInstitution(userId, id);
-    if (result.count === 0)
+    if (result.count === 0) {
       throw new NotFoundException('Institution not found');
+    }
     return { success: true };
   }
 
   async listCards(userId: string) {
     const cards = await this.repo.listCards(userId);
-    await this.logos.ensureCardNetworks();
     return cards.map((c) => this.mapCard(c));
   }
 
   async getCard(userId: string, id: string) {
     const card = await this.repo.findCardById(userId, id);
-    if (!card) throw new NotFoundException('Card not found');
-    await this.logos.ensureCardNetworks();
+    if (!card) {
+      throw new NotFoundException('Card not found');
+    }
     return this.mapCard(card);
   }
 
@@ -316,13 +346,14 @@ export class CatalogService {
       paymentDueDay: dto.paymentDueDay,
       color: dto.color,
     });
-    await this.logos.ensureCardNetworks();
     return this.mapCard(created);
   }
 
   async updateCard(userId: string, id: string, dto: UpdateCardDto) {
     const existing = await this.repo.findCardById(userId, id);
-    if (!existing) throw new NotFoundException('Card not found');
+    if (!existing) {
+      throw new NotFoundException('Card not found');
+    }
 
     const nextType = dto.type ?? existing.type;
     const nextInstitutionId = dto.institutionId ?? existing.institutionId;
@@ -375,23 +406,30 @@ export class CatalogService {
           ? { accountId: dto.accountId }
           : {}),
     });
-    if (!updated) throw new NotFoundException('Card not found');
-    await this.logos.ensureCardNetworks();
+    if (!updated) {
+      throw new NotFoundException('Card not found');
+    }
     return this.mapCard(updated);
   }
 
   async deactivateCard(userId: string, id: string) {
     const updated = await this.repo.updateCard(userId, id, { isActive: false });
-    if (!updated) throw new NotFoundException('Card not found');
+    if (!updated) {
+      throw new NotFoundException('Card not found');
+    }
     return { success: true };
   }
 
   async deleteCard(userId: string, id: string) {
     const existing = await this.repo.findCardById(userId, id);
-    if (!existing) throw new NotFoundException('Card not found');
+    if (!existing) {
+      throw new NotFoundException('Card not found');
+    }
     await this.purgeLedger.forCard(userId, id);
     const result = await this.repo.deleteCard(userId, id);
-    if (result.count === 0) throw new NotFoundException('Card not found');
+    if (result.count === 0) {
+      throw new NotFoundException('Card not found');
+    }
     return { success: true };
   }
 
@@ -401,7 +439,9 @@ export class CatalogService {
     dto: UpdateCardBalanceDto,
   ) {
     const card = await this.repo.findCardById(userId, id);
-    if (!card) throw new NotFoundException('Card not found');
+    if (!card) {
+      throw new NotFoundException('Card not found');
+    }
     if (card.type === 'CREDIT' && dto.creditLimit === undefined) {
       throw new BadRequestException('CREDIT cards require creditLimit');
     }
@@ -412,7 +452,9 @@ export class CatalogService {
       dto.balance,
       dto.creditLimit,
     );
-    if (!updated) throw new NotFoundException('Card not found');
+    if (!updated) {
+      throw new NotFoundException('Card not found');
+    }
     return {
       id: updated.id,
       cardId: updated.cardId,
@@ -458,13 +500,17 @@ export class CatalogService {
       color: dto.color,
       parentId: dto.parentId,
     });
-    if (!updated) throw new NotFoundException('Category not found');
+    if (!updated) {
+      throw new NotFoundException('Category not found');
+    }
     return updated;
   }
 
   async deleteCategory(userId: string, id: string) {
     const result = await this.repo.deleteCategory(userId, id);
-    if (result.count === 0) throw new NotFoundException('Category not found');
+    if (result.count === 0) {
+      throw new NotFoundException('Category not found');
+    }
     return { success: true };
   }
 
@@ -507,9 +553,13 @@ export class CatalogService {
   private normalizeInstitutionDomain(
     domain: string | null | undefined,
   ): string | null {
-    if (domain == null || domain.trim() === '') return null;
+    if (domain == null || domain.trim() === '') {
+      return null;
+    }
     const normalized = normalizeDomain(domain);
-    if (!normalized) throw new BadRequestException('Dominio inválido');
+    if (!normalized) {
+      throw new BadRequestException('Dominio inválido');
+    }
     return normalized;
   }
 

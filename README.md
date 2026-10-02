@@ -21,8 +21,8 @@ pnpm start:dev
 ## Estructura
 
 ```text
-src/config  src/core  src/health  src/prisma
-src/modules/{auth,users,finance,notifications,ai-agent}
+apps/api/src                                    # app Nest: main, app.module, health
+packages/{config,core,database,logos,auth,users,finance,notifications,ai-agent}/src
 docs/
 ```
 

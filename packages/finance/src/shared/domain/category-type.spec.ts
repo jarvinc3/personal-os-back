@@ -16,7 +16,9 @@ describe('categoryTypeForTransaction', () => {
 describe('normalizeCategoryLabel', () => {
   it('strips accents and collapses whitespace', () => {
     expect(normalizeCategoryLabel('  Alimentación  ')).toBe('alimentacion');
-    expect(normalizeCategoryLabel('Cuidado   personal')).toBe('cuidado personal');
+    expect(normalizeCategoryLabel('Cuidado   personal')).toBe(
+      'cuidado personal',
+    );
   });
 });
 
@@ -68,7 +70,9 @@ describe('resolveCategoryIdForImport', () => {
   ];
 
   it('prefers the LLM hint over merchant history', async () => {
-    const findCategoryIdByMerchant = jest.fn().mockResolvedValue('exp-transport');
+    const findCategoryIdByMerchant = jest
+      .fn()
+      .mockResolvedValue('exp-transport');
     await expect(
       resolveCategoryIdForImport({
         categories,

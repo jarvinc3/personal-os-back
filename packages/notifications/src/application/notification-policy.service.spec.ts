@@ -1,10 +1,10 @@
-import { UsersRepository } from '../../users';
+import type { UsersRepositoryPort } from '@personal-os/users';
 import { NotificationPolicyService } from './notification-policy.service';
 
 describe('NotificationPolicyService', () => {
   const usersRepository = {
     findById: jest.fn(),
-  } as unknown as UsersRepository;
+  } as unknown as UsersRepositoryPort;
 
   const service = new NotificationPolicyService(usersRepository);
 
@@ -19,7 +19,12 @@ describe('NotificationPolicyService', () => {
       preferences: {
         notifications: {
           channels: { push: true, email: false, inApp: false },
-          quietHours: { enabled: false, start: '22:00', end: '08:00', timezone: null },
+          quietHours: {
+            enabled: false,
+            start: '22:00',
+            end: '08:00',
+            timezone: null,
+          },
         },
       },
       userModules: [],
@@ -40,7 +45,12 @@ describe('NotificationPolicyService', () => {
     const prefs = {
       notifications: {
         channels: { push: true, email: true, inApp: true },
-        quietHours: { enabled: true, start: '00:00', end: '23:59', timezone: null },
+        quietHours: {
+          enabled: true,
+          start: '00:00',
+          end: '23:59',
+          timezone: null,
+        },
       },
     };
 
@@ -71,7 +81,12 @@ describe('NotificationPolicyService', () => {
       preferences: {
         notifications: {
           channels: { push: true, email: false, inApp: true },
-          quietHours: { enabled: false, start: '22:00', end: '08:00', timezone: null },
+          quietHours: {
+            enabled: false,
+            start: '22:00',
+            end: '08:00',
+            timezone: null,
+          },
         },
       },
       userModules: [

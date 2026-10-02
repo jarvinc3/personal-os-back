@@ -1,12 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { z } from 'zod';
-import type { Env } from '../../../../config';
-import { PrismaService } from '../../../../prisma/prisma.service';
+import type { Env } from '@personal-os/config';
+import { PrismaService } from '@personal-os/database';
 import { normalizeCurrencyCode } from '../../shared/domain/money';
 import type {
-    ExchangeRatePort,
-    ExchangeRateResult,
+  ExchangeRatePort,
+  ExchangeRateResult,
 } from '../application/ports/exchange-rate.port';
 
 const FALLBACK_CURRENCIES = [
@@ -96,12 +96,15 @@ export class ExchangeRateHostAdapter implements ExchangeRatePort {
       return { ok: true, rate: Number(cached.rate), source: 'cache' };
     }
 
-    const apiKey = this.config.get('EXCHANGE_RATE_HOST_API_KEY', { infer: true });
+    const apiKey = this.config.get('EXCHANGE_RATE_HOST_API_KEY', {
+      infer: true,
+    });
     if (!apiKey) {
       return {
         ok: false,
         code: 'RATE_UNAVAILABLE',
-        message: 'EXCHANGE_RATE_HOST_API_KEY is not configured and no cached rate exists',
+        message:
+          'EXCHANGE_RATE_HOST_API_KEY is not configured and no cached rate exists',
         retryable: false,
       };
     }
@@ -142,7 +145,9 @@ export class ExchangeRateHostAdapter implements ExchangeRatePort {
   }
 
   private async fetchCurrencyCodes(): Promise<string[]> {
-    const apiKey = this.config.get('EXCHANGE_RATE_HOST_API_KEY', { infer: true });
+    const apiKey = this.config.get('EXCHANGE_RATE_HOST_API_KEY', {
+      infer: true,
+    });
     if (!apiKey) {
       return [];
     }
@@ -200,11 +205,14 @@ export class ExchangeRateHostAdapter implements ExchangeRatePort {
       throw new Error('Unexpected FX response shape');
     }
     if (parsed.data.success === false) {
-      throw new Error(parsed.data.error?.info ?? 'FX provider rejected request');
+      throw new Error(
+        parsed.data.error?.info ?? 'FX provider rejected request',
+      );
     }
 
     const quoteKey = `${from}${to}`;
-    const fromQuotes = parsed.data.quotes?.[quoteKey] ?? parsed.data.quotes?.[to];
+    const fromQuotes =
+      parsed.data.quotes?.[quoteKey] ?? parsed.data.quotes?.[to];
     const fromRates = parsed.data.rates?.[to];
     const rate = fromQuotes ?? fromRates;
     if (typeof rate !== 'number' || !Number.isFinite(rate) || rate <= 0) {

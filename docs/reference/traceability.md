@@ -8,7 +8,7 @@ Fecha: 2026-09-15. Cada fila: documentación destino + evidencia de código. Afi
 | Users me/modules | `modules/users/` | `users.service.ts`, e2e |
 | Notifications | `modules/notifications/` | controller, policy, listener, e2e |
 | AI chat/tools | `modules/ai-agent/` | `tool.registry.ts`, `module-context.ts`, e2e |
-| Finance capabilities | `modules/finance/capabilities/*` | `src/modules/finance/*`, `test/finance.e2e-spec.ts` |
+| Finance capabilities | `modules/finance/capabilities/*` | `packages/finance/src/*`, `test/finance.e2e-spec.ts` |
 | Env | `infrastructure/config.md` | `env.schema.ts` |
 | Health | `infrastructure/health.md` | `health.controller.ts` |
 | Events/queues | `infrastructure/events-and-queues.md` | `event.constants.ts`, `queue.constants.ts` |

@@ -1,9 +1,6 @@
 import { Controller, Get } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import {
-  CurrentUser,
-  RequiresEnabledModule,
-} from '../../../../core/decorators';
+import { CurrentUser, RequiresEnabledModule } from '@personal-os/core';
 import { BalanceSheetService } from '../application/balance-sheet.service';
 
 @ApiTags('finance')

@@ -5,7 +5,7 @@ import {
   NestInterceptor,
 } from '@nestjs/common';
 import { Observable, tap } from 'rxjs';
-import { PrismaService } from '../../prisma/prisma.service';
+import { PrismaService } from '@personal-os/database';
 
 @Injectable()
 export class AiMetricsInterceptor implements NestInterceptor {

@@ -1,4 +1,4 @@
-jest.mock('../../../../prisma/generated/client', () => ({
+jest.mock('@personal-os/database', () => ({
   Prisma: {
     PrismaClientKnownRequestError: class PrismaClientKnownRequestError extends Error {
       code: string;
@@ -125,9 +125,7 @@ describe('AiChatPersistenceService', () => {
 
   it('reuses existing final assistant for the same clientMessageId', async () => {
     const existing = { id: 'assistant-1', content: 'Respuesta final' };
-    findAssistantByClientMessageId.mockResolvedValue(
-      existing,
-    );
+    findAssistantByClientMessageId.mockResolvedValue(existing);
 
     const result = await service.persistAssistantMessage(
       'session-1',

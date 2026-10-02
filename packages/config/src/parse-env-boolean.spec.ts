@@ -24,7 +24,9 @@ describe('parseStrictEnvBoolean', () => {
   });
 
   it('rejects invalid values', () => {
-    expect(() => parseStrictEnvBoolean('yes')).toThrow(/must be true\/false\/1\/0/);
+    expect(() => parseStrictEnvBoolean('yes')).toThrow(
+      /must be true\/false\/1\/0/,
+    );
     expect(() => parseStrictEnvBoolean('2')).toThrow();
   });
 });

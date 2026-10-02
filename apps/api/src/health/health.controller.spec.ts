@@ -1,11 +1,11 @@
 import { ServiceUnavailableException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
-    HealthCheckService,
-    HttpHealthIndicator,
-    PrismaHealthIndicator,
+  HealthCheckService,
+  HttpHealthIndicator,
+  PrismaHealthIndicator,
 } from '@nestjs/terminus';
-import { PrismaService } from '../prisma/prisma.service';
+import { PrismaService } from '@personal-os/database';
 import { HealthController } from './health.controller';
 import { RedisHealthIndicator } from './indicators/redis.health.indicator';
 

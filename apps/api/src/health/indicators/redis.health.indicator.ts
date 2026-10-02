@@ -6,7 +6,7 @@ import {
   HealthIndicatorService,
 } from '@nestjs/terminus';
 import Redis from 'ioredis';
-import { type Env, isBullMqEnabled } from '../../config';
+import { type Env, isBullMqEnabled } from '@personal-os/config';
 
 @Injectable()
 export class RedisHealthIndicator {
@@ -18,7 +18,9 @@ export class RedisHealthIndicator {
   isEnabled(): boolean {
     const nodeEnv = this.configService.get('NODE_ENV', { infer: true });
     const redisUrl = this.configService.get('REDIS_URL', { infer: true });
-    const redisEnabled = this.configService.get('REDIS_ENABLED', { infer: true });
+    const redisEnabled = this.configService.get('REDIS_ENABLED', {
+      infer: true,
+    });
 
     return isBullMqEnabled({
       NODE_ENV: nodeEnv,

@@ -1,5 +1,9 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import type { AiActionSummary, ChatBlock, SideEffectDescriptor } from '../../../shared/ai.types';
+import type {
+  AiActionSummary,
+  ChatBlock,
+  SideEffectDescriptor,
+} from '../../../shared/ai.types';
 
 export class ChatResponseDto {
   @ApiProperty()
@@ -11,7 +15,10 @@ export class ChatResponseDto {
   @ApiProperty({ example: 'llama-3.3-70b-versatile' })
   model!: string;
 
-  @ApiProperty({ example: 'finance', description: 'Module context used for this reply' })
+  @ApiProperty({
+    example: 'finance',
+    description: 'Module context used for this reply',
+  })
   moduleSlug!: string;
 
   @ApiProperty({ example: 'Finanzas' })

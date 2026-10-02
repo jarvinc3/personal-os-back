@@ -1,6 +1,6 @@
 # Module folder standard
 
-House style for NestJS feature modules under `src/modules/`. Feature modules first; technical layers **inside** each feature (or capability). References: `finance/` (complex), `ai-agent/` (capabilities without Nest submodules), `notifications/` / `users/` / `auth/` (simple layers).
+House style for NestJS feature modules under `packages/*/src/` (antes `src/modules/`). Feature modules first; technical layers **inside** each feature (or capability). References: `finance/` (complex), `ai-agent/` (capabilities without Nest submodules), `notifications/` / `users/` / `auth/` (simple layers).
 
 ## Principles
 
@@ -14,11 +14,11 @@ House style for NestJS feature modules under `src/modules/`. Feature modules fir
 
 ## Public API + enforcement
 
-| Mechanism | Where |
-| --- | --- |
-| Barrels | `src/modules/<name>/index.ts` |
-| ESLint | `no-restricted-imports` in `eslint.config.mjs` (fails CI on deep cross-module paths) |
-| Cursor rule | `.cursor/rules/module-public-api.mdc` (`alwaysApply`) |
+| Mechanism   | Where                                                                                |
+| ----------- | ------------------------------------------------------------------------------------ |
+| Barrels     | `packages/<name>/src/index.ts`                                                       |
+| ESLint      | `no-restricted-imports` in `eslint.config.mjs` (fails CI on deep cross-module paths) |
+| Cursor rule | `.cursor/rules/module-public-api.mdc` (`alwaysApply`)                                |
 
 `index.ts` barrels may re-export internals; all other files must import sibling modules via the barrel.
 
@@ -75,21 +75,21 @@ presentation → application → domain
 infrastructure → application ports / domain
 ```
 
-| Layer | Owns | Must not |
-| --- | --- | --- |
-| `presentation` | HTTP, WS, inbound DTOs | Prisma, LLM SDKs, queue workers |
-| `application` | orchestration, listeners, thin processors, ports | framework transport details |
-| `domain` | pure types/functions | Nest decorators, I/O |
-| `infrastructure` | Prisma repos, external adapters | HTTP controllers |
+| Layer            | Owns                                             | Must not                        |
+| ---------------- | ------------------------------------------------ | ------------------------------- |
+| `presentation`   | HTTP, WS, inbound DTOs                           | Prisma, LLM SDKs, queue workers |
+| `application`    | orchestration, listeners, thin processors, ports | framework transport details     |
+| `domain`         | pure types/functions                             | Nest decorators, I/O            |
+| `infrastructure` | Prisma repos, external adapters                  | HTTP controllers                |
 
 ## Naming
 
-| Avoid | Prefer |
-| --- | --- |
-| `lib/`, ambiguous `utils/` | `domain/` or `application/` / `shared/` with a clear role |
-| Dumping runtime files at module root | Only `*.module.ts` (+ `index.ts` / façade) |
-| Fat `*.service.ts` for many writes | `*.use-case.ts` + query service (see finance ledger) |
-| Port for every repository | Concrete repo until a second adapter or cross-capability need appears |
+| Avoid                                | Prefer                                                                |
+| ------------------------------------ | --------------------------------------------------------------------- |
+| `lib/`, ambiguous `utils/`           | `domain/` or `application/` / `shared/` with a clear role             |
+| Dumping runtime files at module root | Only `*.module.ts` (+ `index.ts` / façade)                            |
+| Fat `*.service.ts` for many writes   | `*.use-case.ts` + query service (see finance ledger)                  |
+| Port for every repository            | Concrete repo until a second adapter or cross-capability need appears |
 
 ## Heuristics
 
@@ -108,13 +108,14 @@ Within finance capabilities:
 
 ## References
 
-| Module | Style | Doc |
-| --- | --- | --- |
-| finance | Complex + Nest capability modules + façade | [finance/](../modules/finance/README.md) |
-| ai-agent | Complex folders, single Nest module | [ai-agent/](../modules/ai-agent/README.md) |
+| Module        | Style                                                  | Doc                                                  |
+| ------------- | ------------------------------------------------------ | ---------------------------------------------------- |
+| finance       | Complex + Nest capability modules + façade             | [finance/](../modules/finance/README.md)             |
+| ai-agent      | Complex folders, single Nest module                    | [ai-agent/](../modules/ai-agent/README.md)           |
 | notifications | Simple layers (`EmailSyncProcessor` in infrastructure) | [notifications/](../modules/notifications/README.md) |
-| users | Simple layers | [users/](../modules/users/README.md) |
-| auth | Simple layers (no empty application/) | [auth/](../modules/auth/README.md) |
+| users         | Simple layers                                          | [users/](../modules/users/README.md)                 |
+| auth          | Simple layers (no empty application/)                  | [auth/](../modules/auth/README.md)                   |
+| logos         | Simple layers + puertos de storage y brand             | [logos/](../modules/logos/README.md)                 |
 
 ## Completed roadmap
 
@@ -124,6 +125,12 @@ Former follow-ups from the ai-agent pass are done:
 2. users / auth — aligned to presentation / application / infrastructure / domain
 3. finance — documented canonical shape and use-case vs fat-service (no code rewrite)
 4. PR checklist — permanent rule below
+
+## Comandos y consultas (CQS)
+
+- Consultas (`get*`, `find*`, `list*`, `resolve*`): no mutan estado. No escriben, no calientan cachés ni disparan descargas.
+- Comandos (use cases `execute`, `create*`, `update*`, `delete*`, `reverse*`): pueden devolver un resultado explícito de la operación (id, conteos) porque el llamador lo necesita; lo prohibido es un nombre de consulta con efectos.
+- El trabajo de arranque (warm-up de logos, por ejemplo) vive en `onModuleInit` / `onApplicationBootstrap`, no en la primera consulta.
 
 ## PR checklist (for new work)
 

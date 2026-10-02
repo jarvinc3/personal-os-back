@@ -12,4 +12,4 @@
 | [contracts/core-tools.md](./contracts/core-tools.md) | Tools contexto `general` |
 | [contracts/finance-tools.md](../finance/contracts/finance-tools.md) | Tools `finance` (dueño finance) |
 
-**Código:** `src/modules/ai-agent/`
+**Código:** `packages/ai-agent/src/`

@@ -1,5 +1,5 @@
 import type { Queue } from 'bullmq';
-import type { GmailSyncJob } from '../../../../core/queues/queue-jobs';
+import type { GmailSyncJob } from '@personal-os/core';
 import type { EmailSourceRepository } from '../infrastructure/email-source.repository';
 import { EnqueueDueGmailSyncsUseCase } from './enqueue-due-gmail-syncs.use-case';
 import { GMAIL_SYNC_JOB_NAME, gmailSyncJobId } from './gmail-sync.constants';

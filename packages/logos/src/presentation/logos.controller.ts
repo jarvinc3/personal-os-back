@@ -1,7 +1,7 @@
 import { Controller, Get, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
-import { RequiresEnabledModule } from '../../../core/decorators';
+import { RequiresEnabledModule } from '@personal-os/core';
 import { LogoService } from '../application/logo.service';
 
 @ApiTags('brands')

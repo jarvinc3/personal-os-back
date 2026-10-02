@@ -7,4 +7,4 @@
 | [contracts/http.md](./contracts/http.md) | `/api/users/me*` |
 | [rules/modules.md](./rules/modules.md) | Enable/disable y defaults |
 
-**Código:** `src/modules/users/`
+**Código:** `packages/users/src/`

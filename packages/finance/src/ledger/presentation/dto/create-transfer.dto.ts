@@ -1,17 +1,17 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
-    IsDateString,
-    IsEnum,
-    IsNumber,
-    IsOptional,
-    IsString,
-    IsUUID,
-    MaxLength,
-    Validate,
-    ValidationArguments,
-    ValidatorConstraint,
-    ValidatorConstraintInterface,
+  IsDateString,
+  IsEnum,
+  IsNumber,
+  IsOptional,
+  IsString,
+  IsUUID,
+  MaxLength,
+  Validate,
+  ValidationArguments,
+  ValidatorConstraint,
+  ValidatorConstraintInterface,
 } from 'class-validator';
 import { CurrencyField } from '../../../shared/presentation/validation.decorators';
 

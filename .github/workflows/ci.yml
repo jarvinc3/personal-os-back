@@ -68,6 +68,9 @@ jobs:
       - name: Prisma generate
         run: pnpm db:generate
 
+      - name: Build workspace packages
+        run: pnpm build:packages
+
       - name: Stub Supabase roles for CI Postgres
         env:
           PGPASSWORD: test

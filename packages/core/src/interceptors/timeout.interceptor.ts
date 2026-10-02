@@ -6,7 +6,13 @@ import {
   RequestTimeoutException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { Observable, TimeoutError, catchError, throwError, timeout } from 'rxjs';
+import {
+  Observable,
+  TimeoutError,
+  catchError,
+  throwError,
+  timeout,
+} from 'rxjs';
 import { TIMEOUT_MS_KEY } from '../decorators/timeout.decorator';
 
 export { TIMEOUT_MS_KEY };

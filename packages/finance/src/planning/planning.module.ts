@@ -17,6 +17,10 @@ import { FinancePlanningThresholdModule } from './planning-threshold.module';
     ReceivablesController,
   ],
   providers: [PlanningRepository, PlanningService],
-  exports: [PlanningService, PlanningRepository, FinancePlanningThresholdModule],
+  exports: [
+    PlanningService,
+    PlanningRepository,
+    FinancePlanningThresholdModule,
+  ],
 })
 export class FinancePlanningModule {}

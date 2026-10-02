@@ -1,6 +1,6 @@
 import { BadRequestException } from '@nestjs/common';
 import type { ConfigService } from '@nestjs/config';
-import type { Env } from '../../../../config';
+import type { Env } from '@personal-os/config';
 import type { ResolveAmountsUseCase } from '../../fx/application/resolve-amounts.use-case';
 import type { BalanceSheetRepository } from '../infrastructure/balance-sheet.repository';
 import { BalanceSheetService } from './balance-sheet.service';
@@ -21,7 +21,9 @@ describe('BalanceSheetService', () => {
     jest.clearAllMocks();
     configGet.mockReturnValue('DOP');
     toBaseCurrency.mockImplementation((amount: number, currency: string) => {
-      if (currency === 'USD') return Promise.resolve(amount * 60);
+      if (currency === 'USD') {
+        return Promise.resolve(amount * 60);
+      }
       return Promise.resolve(amount);
     });
   });
@@ -164,8 +166,12 @@ describe('BalanceSheetService', () => {
       { code: 'MISSING_CREDIT_LIMIT', cardId: 'card-1', currency: 'DOP' },
     ]);
 
-    const inst1 = result.institutions.find((row) => row.institutionId === 'inst-1');
-    const inst2 = result.institutions.find((row) => row.institutionId === 'inst-2');
+    const inst1 = result.institutions.find(
+      (row) => row.institutionId === 'inst-1',
+    );
+    const inst2 = result.institutions.find(
+      (row) => row.institutionId === 'inst-2',
+    );
     expect(inst1?.status).toBe('INCOMPLETE');
     expect(inst1?.netWorth).toBeNull();
     expect(inst2?.status).toBe('COMPLETE');
@@ -221,11 +227,13 @@ describe('BalanceSheetService', () => {
       loans: [],
     });
     toBaseCurrency.mockRejectedValue(
-      new BadRequestException('Exchange rate unavailable for EUR->DOP on 2026-09-11: missing'),
+      new BadRequestException(
+        'Exchange rate unavailable for EUR->DOP on 2026-09-11: missing',
+      ),
     );
 
-    await expect(createService().getBalanceSheet('user-1')).rejects.toBeInstanceOf(
-      BadRequestException,
-    );
+    await expect(
+      createService().getBalanceSheet('user-1'),
+    ).rejects.toBeInstanceOf(BadRequestException);
   });
 });

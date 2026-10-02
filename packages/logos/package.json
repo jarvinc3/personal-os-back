@@ -1,0 +1,23 @@
+{
+  "name": "@personal-os/logos",
+  "version": "0.0.0",
+  "private": true,
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -b tsconfig.json",
+    "clean": "rm -rf dist tsconfig.tsbuildinfo"
+  },
+  "dependencies": {
+    "@nestjs/common": "^11.2.6",
+    "@nestjs/config": "^4.0.4",
+    "@nestjs/swagger": "^11.4.7",
+    "@nestjs/throttler": "^6.7.1",
+    "@personal-os/config": "workspace:*",
+    "@personal-os/core": "workspace:*",
+    "@supabase/supabase-js": "^2.117.2"
+  }
+}

@@ -20,7 +20,9 @@ export class LoggingInterceptor implements NestInterceptor {
       id?: string;
       user?: { sub?: string };
     }>();
-    const response = context.switchToHttp().getResponse<{ statusCode: number }>();
+    const response = context
+      .switchToHttp()
+      .getResponse<{ statusCode: number }>();
 
     const startedAt = Date.now();
 

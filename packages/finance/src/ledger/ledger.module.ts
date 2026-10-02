@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { LogosModule } from '../../logos/logos.module';
+import { LogosModule } from '@personal-os/logos';
 import { FinanceEventsModule } from '../events/events.module';
 import { FinanceFxModule } from '../fx/fx.module';
 import { FinancePlanningThresholdModule } from '../planning/planning-threshold.module';

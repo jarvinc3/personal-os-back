@@ -8,10 +8,7 @@ import {
   Post,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import {
-  CurrentUser,
-  RequiresEnabledModule,
-} from '../../../../core/decorators';
+import { CurrentUser, RequiresEnabledModule } from '@personal-os/core';
 import { PlanningService } from '../application/planning.service';
 import { CreateLoanDto } from './dto/create-loan.dto';
 import { UpdateLoanDto } from './dto/update-loan.dto';

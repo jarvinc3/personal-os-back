@@ -35,11 +35,16 @@ type StreamCreateParams = {
 };
 
 export async function streamOpenAiChatComplete(
-  create: (params: StreamCreateParams) => Promise<AsyncIterable<OpenAiStreamChunk>>,
+  create: (
+    params: StreamCreateParams,
+  ) => Promise<AsyncIterable<OpenAiStreamChunk>>,
   messages: ChatMessage[],
   tools: AiToolDefinition[] | undefined,
   onToken: (delta: string) => void,
-  extra?: Pick<StreamCreateParams, 'temperature' | 'max_completion_tokens' | 'top_p' | 'model'>,
+  extra?: Pick<
+    StreamCreateParams,
+    'temperature' | 'max_completion_tokens' | 'top_p' | 'model'
+  >,
 ): Promise<ChatCompletionResult> {
   const stream = await create({
     messages: mapMessagesToOpenAi(messages),

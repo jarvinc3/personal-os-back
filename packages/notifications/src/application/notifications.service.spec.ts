@@ -1,7 +1,7 @@
 import { ConfigService } from '@nestjs/config';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Queue } from 'bullmq';
-import type { NotificationDispatchJob } from '../../../core/queues/queue-jobs';
+import type { NotificationDispatchJob } from '@personal-os/core';
 import { NotificationsService } from './notifications.service';
 
 describe('NotificationsService', () => {

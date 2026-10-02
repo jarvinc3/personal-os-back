@@ -1,9 +1,7 @@
 import { Injectable } from '@nestjs/common';
-import type {
-  AuthDeletionOutboxStatus,
-  Prisma,
-} from '../../../prisma/generated/client';
-import { PrismaService } from '../../../prisma/prisma.service';
+import type { AuthDeletionOutboxStatus, Prisma } from '@personal-os/database';
+import { PrismaService } from '@personal-os/database';
+import type { UsersRepositoryPort } from '../application/ports/users.repository.port';
 
 const userWithModulesInclude = {
   userModules: {
@@ -18,7 +16,7 @@ export type UserWithModules = Prisma.UserGetPayload<{
 }>;
 
 @Injectable()
-export class UsersRepository {
+export class UsersRepository implements UsersRepositoryPort {
   constructor(private readonly prisma: PrismaService) {}
 
   findById(id: string) {

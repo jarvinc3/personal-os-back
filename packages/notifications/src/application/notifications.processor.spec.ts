@@ -1,13 +1,15 @@
 import { Job } from 'bullmq';
-import type { NotificationDispatchJob } from '../../../core/queues/queue-jobs';
+import type { NotificationDispatchJob } from '@personal-os/core';
 import { NotificationsProcessor } from './notifications.processor';
 
 describe('NotificationsProcessor', () => {
   it('sends push via PushSenderService when channel is PUSH', async () => {
     const notificationsRepo = {
-      findActivePushTokens: jest.fn().mockResolvedValue([
-        { token: 'ExponentPushToken[abc]', platform: 'ios' },
-      ]),
+      findActivePushTokens: jest
+        .fn()
+        .mockResolvedValue([
+          { token: 'ExponentPushToken[abc]', platform: 'ios' },
+        ]),
     };
     const pushSender = {
       sendToTokenEntries: jest.fn().mockResolvedValue({
@@ -53,9 +55,9 @@ describe('NotificationsProcessor', () => {
       keys: { p256dh: 'key', auth: 'auth' },
     });
     const notificationsRepo = {
-      findActivePushTokens: jest.fn().mockResolvedValue([
-        { token: webToken, platform: 'web' },
-      ]),
+      findActivePushTokens: jest
+        .fn()
+        .mockResolvedValue([{ token: webToken, platform: 'web' }]),
     };
     const pushSender = {
       sendToTokenEntries: jest.fn().mockResolvedValue({

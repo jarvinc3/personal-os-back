@@ -1,5 +1,5 @@
-import type { DomainEventIdempotencyGuard } from '../../finance';
-import { FINANCE_NOTIFICATION_KEYS } from '../../users';
+import type { DomainEventIdempotencyGuard } from '@personal-os/core';
+import { FINANCE_NOTIFICATION_KEYS } from '@personal-os/users';
 import { NotificationsEventsListener } from './notifications-events.listener';
 import { NotificationsService } from './notifications.service';
 
@@ -115,10 +115,7 @@ describe('NotificationsEventsListener', () => {
       eventId: 'evt-del',
     });
 
-    expect(tryClaim).toHaveBeenCalledWith(
-      'evt-del',
-      'notifications:deleted',
-    );
+    expect(tryClaim).toHaveBeenCalledWith('evt-del', 'notifications:deleted');
     expect(create).not.toHaveBeenCalled();
   });
 });

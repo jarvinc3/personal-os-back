@@ -3,7 +3,7 @@ import {
   ConflictException,
   Injectable,
 } from '@nestjs/common';
-import { PrismaService } from '../../../../prisma/prisma.service';
+import { PrismaService } from '@personal-os/database';
 import {
   categoryTypeForTransaction,
   type FinCategoryTypeValue,
@@ -123,7 +123,10 @@ export class FinanceOwnershipService {
     accountId: string;
     institutionId: string;
   }) {
-    const account = await this.assertAccountOwned(params.userId, params.accountId);
+    const account = await this.assertAccountOwned(
+      params.userId,
+      params.accountId,
+    );
     if (account.institutionId !== params.institutionId) {
       throw new BadRequestException(
         'DEBIT cards require an account from the same institution',
@@ -137,8 +140,14 @@ export class FinanceOwnershipService {
     accountId: string;
     institutionId?: string | null;
   }) {
-    const account = await this.assertAccountOwned(params.userId, params.accountId);
-    if (params.institutionId && account.institutionId !== params.institutionId) {
+    const account = await this.assertAccountOwned(
+      params.userId,
+      params.accountId,
+    );
+    if (
+      params.institutionId &&
+      account.institutionId !== params.institutionId
+    ) {
       throw new BadRequestException(
         'Loan payment account must belong to the same institution',
       );

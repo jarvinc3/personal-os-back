@@ -42,14 +42,18 @@ export function looksLikePayrollWithoutAmount(
   body: string,
 ): boolean {
   const text = combinedEmailText([subject, body]);
-  if (!PAYROLL_RE.test(text)) return false;
+  if (!PAYROLL_RE.test(text)) {
+    return false;
+  }
   return !AMOUNT_RE.test(text);
 }
 
 export function accountHintFromTerminatedIn(text: string): string | null {
   const match = text.match(ACCOUNT_HINT_RE);
   const digits = match?.[1]?.replace(/\D/g, '') ?? '';
-  if (digits.length < 4) return null;
+  if (digits.length < 4) {
+    return null;
+  }
   return digits;
 }
 
@@ -57,9 +61,13 @@ export function sanitizeAccountNumberHint(
   text: string,
   hint: string | null | undefined,
 ): string | null {
-  if (!hint) return null;
+  if (!hint) {
+    return null;
+  }
   const digits = hint.replace(/\D/g, '');
-  if (digits.length < 4 || digits.length > 34) return null;
+  if (digits.length < 4 || digits.length > 34) {
+    return null;
+  }
 
   const escaped = digits.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const nearId = new RegExp(
@@ -70,7 +78,9 @@ export function sanitizeAccountNumberHint(
     `(?:cuenta|terminad[ao]s?\\s+en)[^\\d*]{0,24}[*x]{0,8}\\s*${escaped}`,
     'i',
   );
-  if (nearId.test(text) && !nearAccount.test(text)) return null;
+  if (nearId.test(text) && !nearAccount.test(text)) {
+    return null;
+  }
   if (
     CEDULA_CONTEXT_RE.test(text) &&
     !nearAccount.test(text) &&
@@ -118,7 +128,9 @@ export function classifyMovementFromText(params: {
   if (ATM_RE.test(text) && params.type !== 'CREDIT') {
     return 'ATM_WITHDRAWAL';
   }
-  if (PAYROLL_RE.test(text)) return 'PAYROLL';
+  if (PAYROLL_RE.test(text)) {
+    return 'PAYROLL';
+  }
   if (
     TRANSFER_OUT_RE.test(text) ||
     (TRANSFER_GENERIC_RE.test(text) && params.type === 'DEBIT')
@@ -131,8 +143,12 @@ export function classifyMovementFromText(params: {
   ) {
     return 'TRANSFER_IN';
   }
-  if (params.type === 'CREDIT') return 'INCOME';
-  if (params.type === 'DEBIT') return 'PURCHASE';
+  if (params.type === 'CREDIT') {
+    return 'INCOME';
+  }
+  if (params.type === 'DEBIT') {
+    return 'PURCHASE';
+  }
   return 'OTHER';
 }
 

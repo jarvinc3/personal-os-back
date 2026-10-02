@@ -80,7 +80,9 @@ describe('UpdateTransactionUseCase category type', () => {
   it('allows a legacy CREDIT transaction to keep an EXPENSE category', async () => {
     await useCase.execute('user-1', 'tx-1', { categoryId: 'cat-expense' });
 
-    expect(ownership.assertCategoryMatchesTransactionType).not.toHaveBeenCalled();
+    expect(
+      ownership.assertCategoryMatchesTransactionType,
+    ).not.toHaveBeenCalled();
     expect(updateTransaction).toHaveBeenCalled();
   });
 

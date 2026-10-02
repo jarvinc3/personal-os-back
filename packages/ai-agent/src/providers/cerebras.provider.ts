@@ -55,13 +55,19 @@ export function createCerebrasProvider(apiKey: string): AIService {
         tool_choice: tools?.length ? 'auto' : undefined,
       });
 
-      const choice = (response as { choices: Array<{ message?: {
-        content?: string | null;
-        tool_calls?: Array<{
-          id: string;
-          function: { name: string; arguments: string };
-        }>;
-      } }> }).choices[0]?.message;
+      const choice = (
+        response as {
+          choices: Array<{
+            message?: {
+              content?: string | null;
+              tool_calls?: Array<{
+                id: string;
+                function: { name: string; arguments: string };
+              }>;
+            };
+          }>;
+        }
+      ).choices[0]?.message;
 
       const toolCalls: ToolCallRequest[] =
         choice?.tool_calls?.map((tc) => ({
@@ -81,18 +87,20 @@ export function createCerebrasProvider(apiKey: string): AIService {
           cerebras.chat.completions.create({
             ...params,
             model: CEREBRAS_MODEL,
-          }) as Promise<AsyncIterable<{
-            choices?: Array<{
-              delta?: {
-                content?: string | null;
-                tool_calls?: Array<{
-                  index: number;
-                  id?: string;
-                  function?: { name?: string; arguments?: string };
-                }>;
-              };
-            }>;
-          }>>,
+          }) as Promise<
+            AsyncIterable<{
+              choices?: Array<{
+                delta?: {
+                  content?: string | null;
+                  tool_calls?: Array<{
+                    index: number;
+                    id?: string;
+                    function?: { name?: string; arguments?: string };
+                  }>;
+                };
+              }>;
+            }>
+          >,
         messages,
         tools,
         onToken,

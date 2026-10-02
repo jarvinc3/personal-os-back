@@ -8,8 +8,8 @@ import { writeFileSync } from 'fs';
 import helmet from 'helmet';
 import { join } from 'path';
 import { AppModule } from './app.module';
-import { isBullMqEnabled } from './config/redis.config';
-import type { Env } from './config/env.schema';
+import { isBullMqEnabled } from '@personal-os/config';
+import type { Env } from '@personal-os/config';
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');

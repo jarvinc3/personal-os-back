@@ -1,5 +1,4 @@
-import { AiActionSummary, ChatBlock } from "./ai.types";
-
+import { AiActionSummary, ChatBlock } from './ai.types';
 
 const INTERNAL_TOOL_REQUEST_CONTENT = '[tool_calls]';
 
@@ -35,9 +34,7 @@ export function enrichMessageMetadata(
     }
 
     const liveAction = actionsById.get(block.action.id);
-    return liveAction
-      ? { type: 'action' as const, action: liveAction }
-      : block;
+    return liveAction ? { type: 'action' as const, action: liveAction } : block;
   });
 
   return {

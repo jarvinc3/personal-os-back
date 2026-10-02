@@ -12,5 +12,5 @@
 | `operations/` | Runbooks |
 | `decisions/` | ADR del módulo |
 
-**Código:** `src/modules/<slug>/`  
+**Código:** `packages/<slug>/src/`  
 **Dueño canónico de dominio/API:** este repositorio (o enlace al backend si es UI).

@@ -13,7 +13,9 @@ describe('DomainEventIdempotencyGuard', () => {
   });
 
   it('allows processing when eventId is missing', async () => {
-    await expect(guard.tryClaim(undefined, 'notifications')).resolves.toBe(true);
+    await expect(guard.tryClaim(undefined, 'notifications')).resolves.toBe(
+      true,
+    );
     expect(create.mock.calls).toHaveLength(0);
   });
 

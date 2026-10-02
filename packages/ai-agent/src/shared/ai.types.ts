@@ -1,3 +1,5 @@
+import type { AiChatMessage } from '@personal-os/core';
+
 export type SideEffectDescriptor =
   | { type: 'invalidate'; keys: string[] }
   | { type: 'theme'; value: 'system' | 'light' | 'dark' }
@@ -18,26 +20,26 @@ export type ChatBlock =
 
 export type AgentStreamEvent =
   | {
-    type: 'start';
-    sessionId: string;
-    provider: string;
-    model: string;
-  }
+      type: 'start';
+      sessionId: string;
+      provider: string;
+      model: string;
+    }
   | { type: 'chunk'; content: string }
   | { type: 'reset' }
   | { type: 'status'; message: string }
   | {
-    type: 'done';
-    sessionId: string;
-    provider: string;
-    model: string;
-    moduleSlug: string;
-    moduleLabel: string;
-    requiresConfirmation?: boolean;
-    actions?: AiActionSummary[];
-    sideEffects?: SideEffectDescriptor[];
-    blocks?: ChatBlock[];
-  };
+      type: 'done';
+      sessionId: string;
+      provider: string;
+      model: string;
+      moduleSlug: string;
+      moduleLabel: string;
+      requiresConfirmation?: boolean;
+      actions?: AiActionSummary[];
+      sideEffects?: SideEffectDescriptor[];
+      blocks?: ChatBlock[];
+    };
 
 export type AgentRunResult = {
   sessionId: string;
@@ -63,9 +65,7 @@ export type ChatCompletionResult = {
   toolCalls: ToolCallRequest[];
 };
 
-export interface ChatMessage {
-  role: 'user' | 'assistant' | 'system' | 'tool';
-  content: string;
+export interface ChatMessage extends AiChatMessage {
   toolCallId?: string;
   name?: string;
   toolCalls?: ToolCallRequest[];
@@ -96,9 +96,7 @@ export interface ToolExecutionResult {
 export interface AIService {
   name: string;
   model: string;
-  chat: (
-    messages: ChatMessage[],
-  ) => Promise<AsyncIterable<string>>;
+  chat: (messages: ChatMessage[]) => Promise<AsyncIterable<string>>;
   chatComplete?: (
     messages: ChatMessage[],
     tools?: AiToolDefinition[],

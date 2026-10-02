@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import webpush from 'web-push';
-import type { Env } from '../../../config';
+import type { Env } from '@personal-os/config';
 import { NotificationsRepository } from './notifications.repository';
 import type {
   PushPayload,
@@ -53,10 +53,14 @@ export class PushSenderService {
     private readonly config: ConfigService<Env, true>,
     private readonly notificationsRepo: NotificationsRepository,
   ) {
-    this.expoAccessToken = this.config.get('EXPO_ACCESS_TOKEN', { infer: true });
+    this.expoAccessToken = this.config.get('EXPO_ACCESS_TOKEN', {
+      infer: true,
+    });
 
     const vapidPublicKey = this.config.get('VAPID_PUBLIC_KEY', { infer: true });
-    const vapidPrivateKey = this.config.get('VAPID_PRIVATE_KEY', { infer: true });
+    const vapidPrivateKey = this.config.get('VAPID_PRIVATE_KEY', {
+      infer: true,
+    });
     const vapidSubject = this.config.get('VAPID_SUBJECT', { infer: true });
 
     if (vapidPublicKey && vapidPrivateKey && vapidSubject) {
@@ -75,7 +79,10 @@ export class PushSenderService {
     const webEntries = entries.filter(isWebToken);
 
     const [expoResult, webResult] = await Promise.all([
-      this.sendExpoTokens(expoEntries.map((entry) => entry.token), payload),
+      this.sendExpoTokens(
+        expoEntries.map((entry) => entry.token),
+        payload,
+      ),
       this.sendWebTokens(webEntries, payload),
     ]);
 
@@ -114,7 +121,11 @@ export class PushSenderService {
     let failed = 0;
     const deactivatedTokens: string[] = [];
 
-    for (let offset = 0; offset < expoTokens.length; offset += EXPO_PUSH_CHUNK_SIZE) {
+    for (
+      let offset = 0;
+      offset < expoTokens.length;
+      offset += EXPO_PUSH_CHUNK_SIZE
+    ) {
       const chunk = expoTokens.slice(offset, offset + EXPO_PUSH_CHUNK_SIZE);
       const messages: ExpoPushMessage[] = chunk.map((token) => ({
         to: token,
@@ -187,7 +198,9 @@ export class PushSenderService {
 
     for (const entry of entries) {
       try {
-        const subscription = JSON.parse(entry.token) as webpush.PushSubscription;
+        const subscription = JSON.parse(
+          entry.token,
+        ) as webpush.PushSubscription;
         await webpush.sendNotification(
           subscription,
           JSON.stringify({
@@ -218,7 +231,9 @@ export class PushSenderService {
 
   async deactivateInvalidTokens(tokens: string[]): Promise<void> {
     await Promise.all(
-      tokens.map((token) => this.notificationsRepo.deactivatePushTokenByToken(token)),
+      tokens.map((token) =>
+        this.notificationsRepo.deactivatePushTokenByToken(token),
+      ),
     );
   }
 }

@@ -1,8 +1,4 @@
-import {
-    Inject,
-    Injectable,
-    NotFoundException,
-} from '@nestjs/common';
+import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { FinanceOutboxDispatcher } from '../../events/infrastructure/finance-outbox.dispatcher';
 import { LEDGER_REPOSITORY } from '../../shared/application/tokens';
 import type { LedgerRepositoryPort } from './ports/ledger.repository.port';
@@ -22,7 +18,9 @@ export class DeleteTransactionUseCase {
 
   async execute(userId: string, id: string) {
     const tx = await this.repo.findTransactionById(id, userId);
-    if (!tx) throw new NotFoundException('Manual transaction not found');
+    if (!tx) {
+      throw new NotFoundException('Manual transaction not found');
+    }
 
     if (tx.transferGroupId) {
       const result = await this.repo.deleteTransactionsByTransferGroupId(

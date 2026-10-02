@@ -29,7 +29,11 @@ describe('FinanceOwnershipService', () => {
 
   it('rejects a parent that would create a cycle', async () => {
     prisma.finCategory.findFirst
-      .mockResolvedValueOnce({ id: 'parent', userId: 'user-1', type: 'EXPENSE' })
+      .mockResolvedValueOnce({
+        id: 'parent',
+        userId: 'user-1',
+        type: 'EXPENSE',
+      })
       .mockResolvedValueOnce({ type: 'EXPENSE' })
       .mockResolvedValueOnce({ parentId: 'child' });
 
@@ -52,10 +56,7 @@ describe('FinanceOwnershipService', () => {
 
   it('rejects a category type that does not match the transaction', () => {
     expect(() =>
-      service.assertCategoryMatchesTransactionType(
-        { type: 'INCOME' },
-        'DEBIT',
-      ),
+      service.assertCategoryMatchesTransactionType({ type: 'INCOME' }, 'DEBIT'),
     ).toThrow(/transaction type/i);
   });
 

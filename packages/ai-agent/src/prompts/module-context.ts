@@ -32,7 +32,8 @@ export const MODULE_CONTEXT: Record<
   },
   agenda: {
     label: 'Agenda',
-    description: 'Calendar and scheduling module. Help configure agenda settings and reminders.',
+    description:
+      'Calendar and scheduling module. Help configure agenda settings and reminders.',
     allowedTools: [
       'get_user_context',
       'update_module_config',
@@ -42,25 +43,20 @@ export const MODULE_CONTEXT: Record<
   },
   projects: {
     label: 'Projects',
-    description: 'Project management module. Help configure project tracking settings.',
-    allowedTools: [
-      'get_user_context',
-      'update_module_config',
-      'toggle_module',
-    ],
+    description:
+      'Project management module. Help configure project tracking settings.',
+    allowedTools: ['get_user_context', 'update_module_config', 'toggle_module'],
   },
   health: {
     label: 'Health',
-    description: 'Health tracking module. Help configure health-related settings.',
-    allowedTools: [
-      'get_user_context',
-      'update_module_config',
-      'toggle_module',
-    ],
+    description:
+      'Health tracking module. Help configure health-related settings.',
+    allowedTools: ['get_user_context', 'update_module_config', 'toggle_module'],
   },
   subscriptions: {
     label: 'Subscriptions',
-    description: 'Subscription tracking module. Help configure subscription alerts.',
+    description:
+      'Subscription tracking module. Help configure subscription alerts.',
     allowedTools: [
       'get_user_context',
       'update_module_config',
@@ -115,7 +111,9 @@ export function getAllowedToolsForModule(moduleSlug: string | null): string[] {
   return tools;
 }
 
-export function resolveModuleContextKey(moduleSlug: string | null): ModuleContextSlug {
+export function resolveModuleContextKey(
+  moduleSlug: string | null,
+): ModuleContextSlug {
   if (moduleSlug && MODULE_CONTEXT[moduleSlug]) {
     return moduleSlug as ModuleContextSlug;
   }

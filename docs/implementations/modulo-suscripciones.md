@@ -243,7 +243,7 @@ Todos protegidos con el guard de autenticación y filtrados por `user_id`. Valid
 ## 7. Estructura sugerida en NestJS
 
 ```
-src/modules/subscriptions/
+packages/subscriptions/src/
   subscriptions.module.ts
   subscriptions.controller.ts
   subscriptions.service.ts

@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { PrismaService } from '../../../../prisma/prisma.service';
+import { PrismaService } from '@personal-os/database';
 
 const MAX_ATTEMPTS = 8;
 const BATCH_SIZE = 20;
@@ -18,7 +18,9 @@ export class FinanceOutboxDispatcher {
 
   @Cron(CronExpression.EVERY_30_SECONDS)
   async handleCron(): Promise<void> {
-    if (this.running) return;
+    if (this.running) {
+      return;
+    }
     this.running = true;
     try {
       await this.processBatch();
@@ -32,7 +34,9 @@ export class FinanceOutboxDispatcher {
     let processed = 0;
     for (let i = 0; i < BATCH_SIZE; i += 1) {
       const claimed = await this.claimNext();
-      if (!claimed) break;
+      if (!claimed) {
+        break;
+      }
       await this.dispatch(claimed);
       processed += 1;
     }
@@ -49,7 +53,9 @@ export class FinanceOutboxDispatcher {
       },
       orderBy: { createdAt: 'asc' },
     });
-    if (!pending) return null;
+    if (!pending) {
+      return null;
+    }
 
     const result = await this.prisma.domainEventOutbox.updateMany({
       where: {
@@ -62,12 +68,18 @@ export class FinanceOutboxDispatcher {
         attempts: pending.attempts + 1,
       },
     });
-    if (result.count === 0) return null;
-    return this.prisma.domainEventOutbox.findUnique({ where: { id: pending.id } });
+    if (result.count === 0) {
+      return null;
+    }
+    return this.prisma.domainEventOutbox.findUnique({
+      where: { id: pending.id },
+    });
   }
 
   private async dispatch(
-    row: NonNullable<Awaited<ReturnType<PrismaService['domainEventOutbox']['findUnique']>>>,
+    row: NonNullable<
+      Awaited<ReturnType<PrismaService['domainEventOutbox']['findUnique']>>
+    >,
   ): Promise<void> {
     try {
       const payload = (row.payload ?? {}) as Record<string, unknown>;

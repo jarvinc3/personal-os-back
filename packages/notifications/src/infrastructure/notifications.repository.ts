@@ -1,12 +1,12 @@
 import { Injectable } from '@nestjs/common';
-import { paginationArgs } from '../../../core/pagination/pagination.dto';
-import type { NotificationChannel, Prisma } from '../../../prisma/generated/client';
-import { PrismaService } from '../../../prisma/prisma.service';
+import { paginationArgs } from '@personal-os/core';
+import type { NotificationChannel, Prisma } from '@personal-os/database';
+import { PrismaService } from '@personal-os/database';
 import type { ListNotificationsQueryDto } from '../presentation/dto/list-notifications-query.dto';
 
 @Injectable()
 export class NotificationsRepository {
-  constructor(private readonly prisma: PrismaService) { }
+  constructor(private readonly prisma: PrismaService) {}
 
   createNotification(data: {
     userId: string;
@@ -69,11 +69,7 @@ export class NotificationsRepository {
     });
   }
 
-  upsertPushToken(data: {
-    userId: string;
-    token: string;
-    platform: string;
-  }) {
+  upsertPushToken(data: { userId: string; token: string; platform: string }) {
     return this.prisma.pushToken.upsert({
       where: { token: data.token },
       update: {

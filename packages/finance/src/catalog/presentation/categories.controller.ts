@@ -10,10 +10,7 @@ import {
   Query,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import {
-  CurrentUser,
-  RequiresEnabledModule,
-} from '../../../../core/decorators';
+import { CurrentUser, RequiresEnabledModule } from '@personal-os/core';
 import { CatalogService } from '../application/catalog.service';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { ListCategoriesQueryDto } from './dto/list-categories-query.dto';

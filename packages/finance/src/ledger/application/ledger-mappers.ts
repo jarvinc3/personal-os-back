@@ -1,4 +1,4 @@
-import type { LogoRow } from '../../../logos/domain/logo-row';
+import type { LogoRow } from '@personal-os/logos';
 import { decimalToString } from '../../shared/domain/mappers';
 import type { LedgerTransactionRow } from './ports/ledger.repository.port';
 

@@ -1,12 +1,13 @@
-import { Injectable, Logger } from '@nestjs/common';
-import type { NotificationChannel } from '../../../prisma/generated/client';
+import { Inject, Injectable, Logger } from '@nestjs/common';
+import type { NotificationChannel } from '@personal-os/database';
 import {
   DEFAULT_MODULE_CONFIG_BY_SLUG,
   isModuleSlug,
   mergeWithDefaults,
   parseUserPreferences,
-  UsersRepository,
-} from '../../users';
+  USERS_REPOSITORY,
+  type UsersRepositoryPort,
+} from '@personal-os/users';
 import { isWithinQuietHours } from '../domain/quiet-hours';
 
 export type NotificationDispatchContext = {
@@ -16,14 +17,16 @@ export type NotificationDispatchContext = {
 };
 
 export type PolicyEvaluationResult =
-  | { allowed: true }
-  | { allowed: false; reason: string };
+  { allowed: true } | { allowed: false; reason: string };
 
 @Injectable()
 export class NotificationPolicyService {
   private readonly logger = new Logger(NotificationPolicyService.name);
 
-  constructor(private readonly usersRepository: UsersRepository) {}
+  constructor(
+    @Inject(USERS_REPOSITORY)
+    private readonly usersRepository: UsersRepositoryPort,
+  ) {}
 
   async evaluate(
     context: NotificationDispatchContext,
@@ -101,7 +104,7 @@ export class NotificationPolicyService {
   private evaluateModuleToggle(
     data: Record<string, unknown> | undefined,
     userModules: NonNullable<
-      Awaited<ReturnType<UsersRepository['findById']>>
+      Awaited<ReturnType<UsersRepositoryPort['findById']>>
     >['userModules'],
   ): PolicyEvaluationResult {
     const moduleSlug = data?.moduleSlug;

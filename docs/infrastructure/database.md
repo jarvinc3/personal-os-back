@@ -1,8 +1,8 @@
 # Base de datos (Prisma)
 
-- Schema: [`prisma/schema.prisma`](../../prisma/schema.prisma)
-- Client runtime: `src/prisma/prisma.service.ts` + adapter `pg` (`pg-pool.config.ts`)
-- Migraciones: `prisma/migrations/`
+- Schema: [`packages/database/prisma/schema.prisma`](../../packages/database/prisma/schema.prisma)
+- Client runtime: `packages/database/src/prisma.service.ts` + adapter `pg` (`pg-pool.config.ts`)
+- Migraciones: `packages/database/prisma/migrations/`
 
 ## Convenciones
 
@@ -17,7 +17,7 @@ Users/core: `User`, `Module`, `UserModule`, `AiAgentSession`, `AiMessage`, `AiAc
 
 Finance: `FinAccount`, `FinInstitution`, `FinCard`, `FinCardBalance`, `FinTransaction`, `FinCategory`, `FinBudget`, `FinBudgetAlert`, `FinSavingsGoal`, `FinLoan`, `FinReceivable`, `FinEmailConnection`, `FinEmailSource` (`bank_sender_email` opcional; unique `(user_id, institution_id)`), `FinEmailMessage`, `FinEmailSyncLog`, `FinExchangeRate`, `FinRecurringPattern` (reservado, sin API), `DomainEventOutbox`, `ProcessedDomainEvent`.
 
-Enums relevantes: ver `prisma/schema.prisma` (`FinTransactionStatus`, `FinEmailMessageOutcome`, etc.).
+Enums relevantes: ver `packages/database/prisma/schema.prisma` (`FinTransactionStatus`, `FinEmailMessageOutcome`, etc.).
 
 ## Operación
 

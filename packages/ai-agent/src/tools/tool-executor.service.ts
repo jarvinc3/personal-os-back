@@ -1,10 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import { FinanceFacade } from '../../finance';
+import { FinanceFacade } from '@personal-os/finance';
 import {
   GLOBAL_USER_PREFERENCES_DEFAULTS,
   mergeWithDefaults,
   UsersService,
-} from '../../users';
+} from '@personal-os/users';
 import { AiSessionsRepository } from '../chat/infrastructure/ai-sessions.repository';
 import {
   MODULE_CONTEXT,
@@ -179,11 +179,15 @@ export class ToolExecutorService {
     const ai = (prefs.ai ?? {}) as Record<string, unknown>;
 
     const nextAi = { ...ai };
-    if (args.tone !== undefined) nextAi.tone = args.tone;
-    if (args.defaultProvider !== undefined)
+    if (args.tone !== undefined) {
+      nextAi.tone = args.tone;
+    }
+    if (args.defaultProvider !== undefined) {
       nextAi.defaultProvider = args.defaultProvider;
-    if (args.proactiveInsights !== undefined)
+    }
+    if (args.proactiveInsights !== undefined) {
       nextAi.proactiveInsights = args.proactiveInsights;
+    }
     if (args.confirmBeforeActions !== undefined) {
       nextAi.confirmBeforeActions = args.confirmBeforeActions;
     }
@@ -205,8 +209,12 @@ export class ToolExecutorService {
   ): Promise<ToolExecutionResult> {
     const patch: Record<string, unknown> = { notifications: {} };
     const notifications = patch.notifications as Record<string, unknown>;
-    if (args.channels) notifications.channels = args.channels;
-    if (args.quietHours) notifications.quietHours = args.quietHours;
+    if (args.channels) {
+      notifications.channels = args.channels;
+    }
+    if (args.quietHours) {
+      notifications.quietHours = args.quietHours;
+    }
 
     await this.usersService.updateProfile(ctx.userId, { preferences: patch });
 

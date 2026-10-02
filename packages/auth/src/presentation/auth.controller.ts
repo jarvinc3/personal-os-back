@@ -1,10 +1,15 @@
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Controller, Get, Inject } from '@nestjs/common';
-import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { CurrentUser } from '../../../core/decorators';
-import { UserLoggedInEvent } from '../../../core/events/domain-events';
-import { AppEvents } from '../../../core/events/event.constants';
+import { CurrentUser } from '@personal-os/core';
+import { UserLoggedInEvent } from '@personal-os/core';
+import { AppEvents } from '@personal-os/core';
 import type { AuthUserContext } from '../domain/supabase-jwt-payload';
 
 const USER_LOGGED_IN_TTL_MS = 3600_000;

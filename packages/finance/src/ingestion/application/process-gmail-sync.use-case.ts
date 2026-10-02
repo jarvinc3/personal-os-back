@@ -1,5 +1,5 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { resolveMaxEmailLlmExtracts } from '../../../ai-agent';
+import { resolveMaxEmailLlmExtracts } from '@personal-os/config';
 import { LedgerQueryService } from '../../ledger/application/ledger-query.service';
 import { ReverseTransactionUseCase } from '../../ledger/application/reverse-transaction.use-case';
 import { EMAIL_TRANSACTION_EXTRACTOR } from '../../shared/application/tokens';
@@ -76,7 +76,9 @@ export class ProcessGmailSyncUseCase {
           : undefined;
 
       let query = buildGmailFromQuery(source);
-      if (afterUnix) query += ` after:${afterUnix}`;
+      if (afterUnix) {
+        query += ` after:${afterUnix}`;
+      }
 
       let pageToken: string | undefined;
       let lastMessageId = source.lastMessageId ?? undefined;
@@ -277,7 +279,9 @@ export class ProcessGmailSyncUseCase {
             throw error;
           }
         }
-        if (hitLlmCap) break;
+        if (hitLlmCap) {
+          break;
+        }
         pageToken = listResult.nextPageToken;
       } while (pageToken);
 

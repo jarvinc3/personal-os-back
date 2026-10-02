@@ -12,11 +12,11 @@ import { ConfigService } from '@nestjs/config';
 import { Queue } from 'bullmq';
 import { randomUUID } from 'crypto';
 import * as jwt from 'jsonwebtoken';
-import type { Env } from '../../../../config';
-import { AppEvents } from '../../../../core/events/event.constants';
-import type { GmailSyncJob } from '../../../../core/queues/queue-jobs';
-import { QueueNames } from '../../../../core/queues/queue.constants';
-import { UsersService } from '../../../users';
+import type { Env } from '@personal-os/config';
+import { AppEvents } from '@personal-os/core';
+import type { GmailSyncJob } from '@personal-os/core';
+import { QueueNames } from '@personal-os/core';
+import { UsersService } from '@personal-os/users';
 import type { DomainEventPublisherPort } from '../../events/application/ports/domain-event-publisher.port';
 import { FinanceOutboxDispatcher } from '../../events/infrastructure/finance-outbox.dispatcher';
 import { ImportEmailTransactionUseCase } from '../../ledger/application/import-email-transaction.use-case';
@@ -123,7 +123,9 @@ export class IngestionService {
 
   async deactivateMailbox(userId: string, id: string) {
     const updated = await this.repo.deactivateMailbox(userId, id);
-    if (!updated) throw new NotFoundException('Mailbox not found');
+    if (!updated) {
+      throw new NotFoundException('Mailbox not found');
+    }
     return { success: true };
   }
 
@@ -163,7 +165,9 @@ export class IngestionService {
     dto: UpdateEmailSourceDto,
   ) {
     const existing = await this.repo.findEmailSource(userId, id);
-    if (!existing) throw new NotFoundException('Email source not found');
+    if (!existing) {
+      throw new NotFoundException('Email source not found');
+    }
 
     if (dto.institutionId) {
       await this.ownership.assertInstitutionOwned(userId, dto.institutionId);
@@ -179,8 +183,12 @@ export class IngestionService {
     }
 
     const data: Record<string, unknown> = {};
-    if (dto.institutionId !== undefined) data.institutionId = dto.institutionId;
-    if (dto.label !== undefined) data.label = dto.label;
+    if (dto.institutionId !== undefined) {
+      data.institutionId = dto.institutionId;
+    }
+    if (dto.label !== undefined) {
+      data.label = dto.label;
+    }
     if (
       dto.bankSenderEmail !== undefined ||
       dto.bankSenderEmails !== undefined
@@ -197,7 +205,9 @@ export class IngestionService {
     }
 
     const updated = await this.repo.updateEmailSource(userId, id, data);
-    if (!updated) throw new NotFoundException('Email source not found');
+    if (!updated) {
+      throw new NotFoundException('Email source not found');
+    }
     return this.mapEmailSourceResponse(updated);
   }
 
@@ -205,7 +215,9 @@ export class IngestionService {
     const updated = await this.repo.updateEmailSource(userId, id, {
       isActive: false,
     });
-    if (!updated) throw new NotFoundException('Email source not found');
+    if (!updated) {
+      throw new NotFoundException('Email source not found');
+    }
     return { success: true };
   }
 
@@ -216,7 +228,9 @@ export class IngestionService {
   ) {
     await this.users.assertFinanceEmailSyncEnabled(userId);
     const source = await this.repo.findEmailSource(userId, sourceId);
-    if (!source) throw new NotFoundException('Email source not found');
+    if (!source) {
+      throw new NotFoundException('Email source not found');
+    }
     return this.enqueueGmailSyncJob(userId, sourceId, { forceFullSync });
   }
 
@@ -346,7 +360,9 @@ export class IngestionService {
     const payload = this.peekOAuthState(state);
     if (payload?.returnTo) {
       const web = buildWebOAuthRedirect(payload.returnTo, corsOrigin, success);
-      if (web) return web;
+      if (web) {
+        return web;
+      }
     }
     return (
       buildFallbackWebOAuthRedirect(corsOrigin, success) ??
@@ -355,7 +371,9 @@ export class IngestionService {
   }
 
   private peekOAuthState(state: string | undefined): OAuthStatePayload | null {
-    if (!state) return null;
+    if (!state) {
+      return null;
+    }
     try {
       return jwt.verify(state, this.oauthStateSecret) as OAuthStatePayload;
     } catch {
@@ -651,8 +669,12 @@ export class IngestionService {
         }
         const raw = await getGmailMessageFromHeader(accessToken, ref.id);
         const email = extractEmailAddress(raw);
-        if (!email || known.has(email)) continue;
-        if (extractEmailDomain(email) !== source.bankDomain) continue;
+        if (!email || known.has(email)) {
+          continue;
+        }
+        if (extractEmailDomain(email) !== source.bankDomain) {
+          continue;
+        }
         discovered.set(email, (discovered.get(email) ?? 0) + 1);
       }
       if (scanned > 80) {
@@ -1008,7 +1030,9 @@ export class IngestionService {
 
   private get oauthStateSecret(): string {
     const secret = this.config.get('OAUTH_STATE_SECRET', { infer: true });
-    if (secret) return secret;
+    if (secret) {
+      return secret;
+    }
 
     const nodeEnv = this.config.get('NODE_ENV', { infer: true });
     if (nodeEnv === 'production') {

@@ -1,12 +1,9 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import jwt, { type JwtHeader, type JwtPayload } from 'jsonwebtoken';
-import { type Env, getSupabaseAuthConfig } from '../../../config';
+import { type Env, getSupabaseAuthConfig } from '@personal-os/config';
 import type { AuthUserContext } from '../domain/supabase-jwt-payload';
-import {
-  createJwksClient,
-  type JwksClientInstance,
-} from './jwks-rsa.loader';
+import { createJwksClient, type JwksClientInstance } from './jwks-rsa.loader';
 
 @Injectable()
 export class SupabaseJwtVerifierService {

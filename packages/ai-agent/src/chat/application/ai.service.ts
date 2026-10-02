@@ -5,6 +5,7 @@ import {
   OnModuleInit,
   ServiceUnavailableException,
 } from '@nestjs/common';
+import type { AiChatCompletionPort } from '@personal-os/core';
 import { AI_PROVIDER } from '../../shared/ai-provider.token';
 import type {
   AIService as AIProviderClient,
@@ -16,7 +17,7 @@ import type {
 import { isRetryableProviderError } from '../../shared/is-retryable-provider-error';
 
 @Injectable()
-export class AiService implements OnModuleInit {
+export class AiService implements OnModuleInit, AiChatCompletionPort {
   private readonly logger = new Logger(AiService.name);
   private roundRobinIndex = 0;
 
@@ -167,7 +168,8 @@ export class AiService implements OnModuleInit {
             throw error;
           }
           this.logger.warn(
-            `Provider ${provider.name} stream unavailable, trying next: ${error instanceof Error ? error.message : String(error)
+            `Provider ${provider.name} stream unavailable, trying next: ${
+              error instanceof Error ? error.message : String(error)
             }`,
           );
         }
@@ -206,7 +208,9 @@ export class AiService implements OnModuleInit {
     );
   }
 
-  private getOrderedProviders(preferredProvider?: string | null): AIProviderClient[] {
+  private getOrderedProviders(
+    preferredProvider?: string | null,
+  ): AIProviderClient[] {
     const rotated = this.getRotatedProviders();
 
     if (!preferredProvider) {

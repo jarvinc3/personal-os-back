@@ -2,10 +2,10 @@ import { OnWorkerEvent, Processor, WorkerHost } from '@nestjs/bullmq';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Job } from 'bullmq';
-import type { Env } from '../../../config';
-import { EmailSyncJob } from '../../../core/queues/queue-jobs';
-import { QueueNames } from '../../../core/queues/queue.constants';
-import { UsersRepository } from '../../users';
+import type { Env } from '@personal-os/config';
+import { EmailSyncJob } from '@personal-os/core';
+import { QueueNames } from '@personal-os/core';
+import { USERS_REPOSITORY, type UsersRepositoryPort } from '@personal-os/users';
 import type { EmailSenderPort } from '../application/ports/email-sender.port';
 import { EMAIL_SENDER } from '../application/tokens';
 
@@ -22,7 +22,8 @@ export class EmailSyncProcessor extends WorkerHost {
 
   constructor(
     private readonly config: ConfigService<Env, true>,
-    private readonly usersRepository: UsersRepository,
+    @Inject(USERS_REPOSITORY)
+    private readonly usersRepository: UsersRepositoryPort,
     @Inject(EMAIL_SENDER) private readonly emailSender: EmailSenderPort,
   ) {
     super();

@@ -8,17 +8,25 @@ jest.mock('@supabase/supabase-js', () => ({
 }));
 
 describe('SupabaseAdminService', () => {
-  const createClientMock = createClient as jest.MockedFunction<typeof createClient>;
+  const createClientMock = createClient as jest.MockedFunction<
+    typeof createClient
+  >;
 
   function buildService(nodeEnv: 'test' | 'development' = 'development') {
     const config = {
       get: jest.fn((key: string) => {
-        if (key === 'NODE_ENV') return nodeEnv;
+        if (key === 'NODE_ENV') {
+          return nodeEnv;
+        }
         return undefined;
       }),
       getOrThrow: jest.fn((key: string) => {
-        if (key === 'SUPABASE_URL') return 'https://example.supabase.co';
-        if (key === 'SUPABASE_SERVICE_ROLE_KEY') return 'service-role';
+        if (key === 'SUPABASE_URL') {
+          return 'https://example.supabase.co';
+        }
+        if (key === 'SUPABASE_SERVICE_ROLE_KEY') {
+          return 'service-role';
+        }
         throw new Error(`unexpected ${key}`);
       }),
     } as unknown as ConfigService;

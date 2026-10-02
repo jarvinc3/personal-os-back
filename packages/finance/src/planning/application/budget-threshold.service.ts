@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { AppEvents } from '../../../../core/events/event.constants';
-import type { Prisma } from '../../../../prisma/generated/client';
-import { PrismaService } from '../../../../prisma/prisma.service';
+import { AppEvents } from '@personal-os/core';
+import type { Prisma } from '@personal-os/database';
+import { PrismaService } from '@personal-os/database';
 import type { DomainEventPublisherPort } from '../../events/application/ports/domain-event-publisher.port';
 import type { BudgetThresholdPort } from '../../shared/application/budget-threshold.port';
 import { DOMAIN_EVENT_PUBLISHER } from '../../shared/application/tokens';
@@ -21,12 +21,23 @@ export class BudgetThresholdService implements BudgetThresholdPort {
     tx?: unknown,
   ): Promise<void> {
     for (const snap of snapshots) {
-      if (snap.amountLimit <= 0) continue;
+      if (snap.amountLimit <= 0) {
+        continue;
+      }
       const pct = (snap.amountSpent / snap.amountLimit) * 100;
-      if (pct < Number(snap.alertThresholdPct)) continue;
+      if (pct < Number(snap.alertThresholdPct)) {
+        continue;
+      }
 
-      const alert = await this.recordAlert(snap.budgetId, 'threshold_crossed', pct, tx);
-      if (!alert?.created) continue;
+      const alert = await this.recordAlert(
+        snap.budgetId,
+        'threshold_crossed',
+        pct,
+        tx,
+      );
+      if (!alert?.created) {
+        continue;
+      }
 
       await this.events.enqueue(
         {

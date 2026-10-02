@@ -1,14 +1,14 @@
 import {
-    getAllowedToolsForModule,
-    MODULE_CONTEXT_SLUGS,
-    MODULE_CONTEXT_SWITCH_TOOL,
+  getAllowedToolsForModule,
+  MODULE_CONTEXT_SLUGS,
+  MODULE_CONTEXT_SWITCH_TOOL,
 } from '../prompts/module-context';
 import type { AiToolDefinition } from '../shared/ai.types';
 import {
-    isMutatingToolName,
-    MUTATING_TOOL_ARG_SCHEMAS,
-    mutatingToolParametersJsonSchema,
-    type MutatingToolName,
+  isMutatingToolName,
+  MUTATING_TOOL_ARG_SCHEMAS,
+  mutatingToolParametersJsonSchema,
+  type MutatingToolName,
 } from './tool-arg-schemas';
 
 type StaticToolDef = Omit<AiToolDefinition, 'parameters'> & {
@@ -326,7 +326,9 @@ export function getToolDefinition(name: string): AiToolDefinition | undefined {
 }
 
 function payloadString(value: unknown, fallback = '?'): string {
-  if (typeof value === 'string') return value;
+  if (typeof value === 'string') {
+    return value;
+  }
   if (typeof value === 'number' || typeof value === 'boolean') {
     return String(value);
   }
@@ -432,16 +434,13 @@ export function toolsToOpenAiFormat(tools: AiToolDefinition[]) {
 }
 
 export type ParseToolCallArgumentsResult =
-  | { ok: true; args: Record<string, unknown> }
-  | { ok: false; message: string };
+  { ok: true; args: Record<string, unknown> } | { ok: false; message: string };
 
 /**
  * Fail-closed parse of provider tool-call JSON. Invalid or non-object payloads
  * are rejected so mutators never run on `{}` from a bad parse.
  */
-export function parseToolCallArguments(
-  raw: string,
-): Record<string, unknown> {
+export function parseToolCallArguments(raw: string): Record<string, unknown> {
   const result = parseToolCallArgumentsStrict(raw);
   // Providers historically received `{}`; callers that need fail-closed should use
   // parseToolCallArgumentsStrict. This wrapper stays for compatibility but returns
@@ -457,7 +456,11 @@ export function parseToolCallArgumentsStrict(
 ): ParseToolCallArgumentsResult {
   try {
     const parsed: unknown = JSON.parse(raw);
-    if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    if (
+      parsed === null ||
+      typeof parsed !== 'object' ||
+      Array.isArray(parsed)
+    ) {
       return {
         ok: false,
         message: 'Tool arguments must be a JSON object',
