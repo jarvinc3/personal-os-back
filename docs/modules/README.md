@@ -1,14 +1,15 @@
 # Módulos (backend)
 
-Cada fila es un módulo Nest en `src/modules/`.
+Cada fila es un módulo Nest en `packages/*/src/`.
 
-| Módulo | Código | Doc | Estilo |
-| --- | --- | --- | --- |
-| Auth | `src/modules/auth/` | [auth/](./auth/README.md) | Simple |
-| Users | `src/modules/users/` | [users/](./users/README.md) | Simple |
-| Notifications | `src/modules/notifications/` | [notifications/](./notifications/README.md) | Simple |
-| AI Agent | `src/modules/ai-agent/` | [ai-agent/](./ai-agent/README.md) | Complejo (capabilities) |
-| Finance | `src/modules/finance/` | [finance/](./finance/README.md) | Complejo + submódulos Nest |
+| Módulo        | Código                        | Doc                                         | Estilo                     |
+| ------------- | ----------------------------- | ------------------------------------------- | -------------------------- |
+| Auth          | `packages/auth/src/`          | [auth/](./auth/README.md)                   | Simple                     |
+| Users         | `packages/users/src/`         | [users/](./users/README.md)                 | Simple                     |
+| Notifications | `packages/notifications/src/` | [notifications/](./notifications/README.md) | Simple                     |
+| AI Agent      | `packages/ai-agent/src/`      | [ai-agent/](./ai-agent/README.md)           | Complejo (capabilities)    |
+| Finance       | `packages/finance/src/`       | [finance/](./finance/README.md)             | Complejo + submódulos Nest |
+| Logos         | `packages/logos/src/`         | [logos/](./logos/README.md)                 | Simple + puertos           |
 
 Estándar de carpetas: [architecture/modules.md](../architecture/modules.md).
 

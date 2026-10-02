@@ -2,8 +2,8 @@ import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';
 import { App } from 'supertest/types';
-import { AiService } from '../src/modules/ai-agent';
-import { PrismaService } from '../src/prisma/prisma.service';
+import { AiService } from '@personal-os/ai-agent';
+import { PrismaService } from '@personal-os/database';
 import { applyAuthTestOverrides } from './helpers/auth-test.providers';
 import { createTestJwt } from './helpers/jwt.helper';
 import { createPrismaMock } from './helpers/prisma.mock';
@@ -47,7 +47,7 @@ describe('AI Agent (e2e)', () => {
 
   beforeEach(async () => {
     chatCompleteStreamCalls = 0;
-    const { AppModule } = require('../src/app.module') as {
+    const { AppModule } = require('../apps/api/src/app.module') as {
       AppModule: new (...args: never[]) => unknown;
     };
     const base = createPrismaMock();
@@ -64,13 +64,15 @@ describe('AI Agent (e2e)', () => {
         deleteMany: jest.fn().mockResolvedValue({ count: 1 }),
       },
       aiMessage: {
-        create: jest.fn().mockImplementation((args: { data: Record<string, unknown> }) =>
-          Promise.resolve({
-            id: `msg-${Date.now()}`,
-            createdAt: new Date(),
-            ...args.data,
-          }),
-        ),
+        create: jest
+          .fn()
+          .mockImplementation((args: { data: Record<string, unknown> }) =>
+            Promise.resolve({
+              id: `msg-${Date.now()}`,
+              createdAt: new Date(),
+              ...args.data,
+            }),
+          ),
         findFirst: jest.fn().mockResolvedValue(null),
         findMany: jest.fn().mockResolvedValue([]),
         findUnique: jest.fn().mockResolvedValue(null),
@@ -81,13 +83,15 @@ describe('AI Agent (e2e)', () => {
         findFirst: jest.fn().mockResolvedValue(pendingAction),
         findMany: jest.fn().mockResolvedValue([pendingAction]),
         updateMany: jest.fn().mockResolvedValue({ count: 1 }),
-        update: jest.fn().mockImplementation((args: { data: Record<string, unknown> }) =>
-          Promise.resolve({
-            ...pendingAction,
-            ...args.data,
-            status: args.data.status ?? 'SUCCESS',
-          }),
-        ),
+        update: jest
+          .fn()
+          .mockImplementation((args: { data: Record<string, unknown> }) =>
+            Promise.resolve({
+              ...pendingAction,
+              ...args.data,
+              status: args.data.status ?? 'SUCCESS',
+            }),
+          ),
       },
     };
 
@@ -118,7 +122,9 @@ describe('AI Agent (e2e)', () => {
     token = createTestJwt({ sub: 'user-123' });
 
     const aiServiceMock = {
-      getProviders: () => [{ name: 'mock', model: 'mock-model', available: true }],
+      getProviders: () => [
+        { name: 'mock', model: 'mock-model', available: true },
+      ],
       chatCompleteStream: jest.fn(() => {
         chatCompleteStreamCalls += 1;
         if (chatCompleteStreamCalls === 1) {

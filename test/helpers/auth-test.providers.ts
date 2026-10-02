@@ -4,13 +4,13 @@ import { PassportStrategy } from '@nestjs/passport';
 import type { TestingModuleBuilder } from '@nestjs/testing';
 import jwt, { type JwtPayload } from 'jsonwebtoken';
 import { ExtractJwt, Strategy } from 'passport-jwt';
-import { type Env, getSupabaseAuthConfig } from '../../src/config';
+import { type Env, getSupabaseAuthConfig } from '@personal-os/config';
 import {
   SupabaseJwtStrategy,
   SupabaseJwtVerifierService,
   type AuthUserContext,
   type SupabaseJwtPayload,
-} from '../../src/modules/auth';
+} from '@personal-os/auth';
 
 export const TEST_JWT_SECRET = 'test-secret';
 

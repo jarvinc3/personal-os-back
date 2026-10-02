@@ -2,7 +2,7 @@ import { INestApplication } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';
 import { App } from 'supertest/types';
-import { PrismaService } from '../src/prisma/prisma.service';
+import { PrismaService } from '@personal-os/database';
 import { applyAuthTestOverrides } from './helpers/auth-test.providers';
 import { createPrismaMock } from './helpers/prisma.mock';
 import { applyTestEnv } from './helpers/test-env';
@@ -14,7 +14,7 @@ describe('Auth (e2e)', () => {
   let app: INestApplication<App>;
 
   beforeEach(async () => {
-    const { AppModule } = require('../src/app.module') as {
+    const { AppModule } = require('../apps/api/src/app.module') as {
       AppModule: new (...args: never[]) => unknown;
     };
     const prismaMock = createPrismaMock();

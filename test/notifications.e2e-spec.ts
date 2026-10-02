@@ -2,7 +2,7 @@ import { INestApplication } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';
 import { App } from 'supertest/types';
-import { PrismaService } from '../src/prisma/prisma.service';
+import { PrismaService } from '@personal-os/database';
 import { applyAuthTestOverrides } from './helpers/auth-test.providers';
 import { createTestJwt } from './helpers/jwt.helper';
 import { createPrismaMock } from './helpers/prisma.mock';
@@ -29,7 +29,7 @@ describe('Notifications (e2e)', () => {
   let token: string;
 
   beforeEach(async () => {
-    const { AppModule } = require('../src/app.module') as {
+    const { AppModule } = require('../apps/api/src/app.module') as {
       AppModule: new (...args: never[]) => unknown;
     };
     prismaMock = createPrismaMock();

@@ -3,7 +3,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import * as jwt from 'jsonwebtoken';
 import request from 'supertest';
 import { App } from 'supertest/types';
-import { PrismaService } from '../src/prisma/prisma.service';
+import { PrismaService } from '@personal-os/database';
 import { applyAuthTestOverrides } from './helpers/auth-test.providers';
 import { createTestJwt } from './helpers/jwt.helper';
 import { createPrismaMock } from './helpers/prisma.mock';
@@ -17,7 +17,7 @@ describe('Finance (e2e)', () => {
   let token: string;
 
   beforeEach(async () => {
-    const { AppModule } = require('../src/app.module') as {
+    const { AppModule } = require('../apps/api/src/app.module') as {
       AppModule: new (...args: never[]) => unknown;
     };
     prismaMock = createPrismaMock();
@@ -1562,7 +1562,9 @@ describe('Finance (e2e)', () => {
 
   it('POST /api/finance/email-sync/pending/:id/assign requires XOR account or card', async () => {
     await request(app.getHttpServer())
-      .post('/api/finance/email-sync/pending/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/assign')
+      .post(
+        '/api/finance/email-sync/pending/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/assign',
+      )
       .set('Authorization', `Bearer ${token}`)
       .send({})
       .expect(400);

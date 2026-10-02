@@ -2085,6 +2085,113 @@
         ]
       }
     },
+    "/api/finance/email-sync/pending/{id}/amount": {
+      "post": {
+        "operationId": "EmailSyncController_completeAmount",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompletePendingAmountDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Complete a payroll/deposit import that had no amount",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
+    "/api/finance/email-sync/sources/{id}/discovered-senders": {
+      "get": {
+        "operationId": "EmailSyncController_listDiscoveredSenders",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "List other From addresses on this bank domain without calling the model",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
+    "/api/finance/email-sync/sources/{id}/senders": {
+      "post": {
+        "operationId": "EmailSyncController_addSenders",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddEmailSourceSendersDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Add allowlisted sender addresses for this institution",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
     "/api/finance/email-sync/oauth/google/url": {
       "get": {
         "operationId": "EmailSyncController_getOAuthUrl",
@@ -2736,6 +2843,10 @@
           },
           "color": {
             "type": "string"
+          },
+          "isDefaultForInstitution": {
+            "type": "boolean",
+            "description": "When true, this account is the fallback ledger target for emails from this institution that have no account digits."
           }
         },
         "required": [
@@ -2774,6 +2885,10 @@
           },
           "color": {
             "type": "string"
+          },
+          "isDefaultForInstitution": {
+            "type": "boolean",
+            "description": "When true, this account is the fallback ledger target for emails from this institution that have no account digits."
           },
           "isActive": {
             "type": "boolean"
@@ -3470,6 +3585,12 @@
             "type": "string",
             "description": "Full From address the bank uses for transaction notifications"
           },
+          "bankSenderEmails": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
           "bankDomain": {
             "type": "string",
             "description": "Derived from bankSenderEmail when omitted"
@@ -3499,6 +3620,12 @@
           "bankSenderEmail": {
             "type": "string"
           },
+          "bankSenderEmails": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
           "bankDomain": {
             "type": "string"
           }
@@ -3512,8 +3639,36 @@
           },
           "cardId": {
             "type": "string"
+          },
+          "amount": {
+            "type": "number"
           }
         }
+      },
+      "CompletePendingAmountDto": {
+        "type": "object",
+        "properties": {
+          "amount": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "amount"
+        ]
+      },
+      "AddEmailSourceSendersDto": {
+        "type": "object",
+        "properties": {
+          "emails": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "emails"
+        ]
       },
       "CreateNotificationDto": {
         "type": "object",

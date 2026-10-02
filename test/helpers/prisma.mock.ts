@@ -260,15 +260,17 @@ export function createPrismaMock(): PrismaMock {
     },
     finInstitution: {
       findMany: jest.fn().mockResolvedValue([]),
-      findFirst: jest.fn().mockImplementation(
-        (args: { where?: { id?: string; userId?: string } }) =>
-          Promise.resolve({
-            id: args?.where?.id ?? 'inst-1',
-            userId: args?.where?.userId ?? 'user-123',
-            name: 'Bank',
-            isActive: true,
-          }),
-      ),
+      findFirst: jest
+        .fn()
+        .mockImplementation(
+          (args: { where?: { id?: string; userId?: string } }) =>
+            Promise.resolve({
+              id: args?.where?.id ?? 'inst-1',
+              userId: args?.where?.userId ?? 'user-123',
+              name: 'Bank',
+              isActive: true,
+            }),
+        ),
       create: jest.fn(),
       updateMany: jest.fn().mockResolvedValue({ count: 0 }),
       deleteMany: jest.fn().mockResolvedValue({ count: 0 }),

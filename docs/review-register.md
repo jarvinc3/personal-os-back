@@ -11,7 +11,7 @@ Estados: ver [documentation-standard.md](./documentation-standard.md).
 | Categoría     | `NO_IMPLEMENTADO`                                                                                         |
 | Origen        | `docs/core-infrastructure.md`: interceptors incluyen logging                                              |
 | Validación    | `CoreModule` no registra `LoggingInterceptor` ni `RolesGuard` como APP_*                                  |
-| Evidencia     | `src/core/core.module.ts`; archivos `logging.interceptor.ts`, `roles.guard.ts` existen; `@Roles` sin usos |
+| Evidencia     | `packages/core/src/core.module.ts`; archivos `logging.interceptor.ts`, `roles.guard.ts` existen; `@Roles` sin usos |
 | Impacto       | Agentes pueden creer que hay logging HTTP interceptor y RBAC activo                                       |
 | Recomendación | Registrar interceptor o borrar archivos muertos; RolesGuard igual                                         |
 | Resolución    | `open`                                                                                                    |

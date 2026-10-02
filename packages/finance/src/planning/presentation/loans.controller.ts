@@ -1,0 +1,47 @@
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+} from '@nestjs/common';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { CurrentUser, RequiresEnabledModule } from '@personal-os/core';
+import { PlanningService } from '../application/planning.service';
+import { CreateLoanDto } from './dto/create-loan.dto';
+import { UpdateLoanDto } from './dto/update-loan.dto';
+
+@ApiTags('finance')
+@ApiBearerAuth('access-token')
+@RequiresEnabledModule('finance')
+@Controller('finance')
+export class LoansController {
+  constructor(private readonly planning: PlanningService) {}
+
+  @Get('loans')
+  list(@CurrentUser('sub') userId: string) {
+    return this.planning.listLoans(userId);
+  }
+
+  @Post('loans')
+  create(@CurrentUser('sub') userId: string, @Body() dto: CreateLoanDto) {
+    return this.planning.createLoan(userId, dto);
+  }
+
+  @Patch('loans/:id')
+  update(
+    @CurrentUser('sub') userId: string,
+    @Param('id') id: string,
+    @Body() dto: UpdateLoanDto,
+  ) {
+    return this.planning.updateLoan(userId, id, dto);
+  }
+
+  @Delete('loans/:id')
+  @ApiOperation({ summary: 'Hard-delete loan' })
+  remove(@CurrentUser('sub') userId: string, @Param('id') id: string) {
+    return this.planning.deleteLoan(userId, id);
+  }
+}

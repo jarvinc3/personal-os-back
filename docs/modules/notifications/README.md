@@ -7,4 +7,4 @@
 | [contracts/http.md](./contracts/http.md) | REST |
 | [capabilities/delivery.md](./capabilities/delivery.md) | Policy, colas, listeners |
 
-**Código:** `src/modules/notifications/`
+**Código:** `packages/notifications/src/`

@@ -1,6 +1,6 @@
 # Configuración
 
-Fuente: [`src/config/env.schema.ts`](../../src/config/env.schema.ts). Validación al boot (Zod).
+Fuente: [`packages/config/src/env.schema.ts`](../../packages/config/src/env.schema.ts). Validación al boot (Zod).
 
 ## Claves
 
@@ -41,6 +41,6 @@ Fuente: [`src/config/env.schema.ts`](../../src/config/env.schema.ts). Validació
 
 ## Evidencia
 
-- Schema: `src/config/env.schema.ts`
-- Tests: `src/config/env.schema.spec.ts`
+- Schema: `packages/config/src/env.schema.ts`
+- Tests: `packages/config/src/env.schema.spec.ts`
 - Ejemplo: `.env.example`

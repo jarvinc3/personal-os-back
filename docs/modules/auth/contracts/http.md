@@ -10,4 +10,4 @@ Prefijo: `/api` (`API_PREFIX`). Auth: Bearer JWT.
 
 **AC-AUTH-001:** Given JWT válido, When GET session, Then 200 y contexto. Given token inválido, Then 401.
 
-Evidencia: `src/modules/auth/presentation/auth.controller.ts`; e2e `test/auth.e2e-spec.ts`.
+Evidencia: `packages/auth/src/presentation/auth.controller.ts`; e2e `test/auth.e2e-spec.ts`.

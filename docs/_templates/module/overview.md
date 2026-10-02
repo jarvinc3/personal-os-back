@@ -27,5 +27,5 @@ Una o dos frases.
 
 ## Evidencia
 
-- Código: `src/modules/<slug>/`
+- Código: `packages/<slug>/src/`
 - Pruebas: …

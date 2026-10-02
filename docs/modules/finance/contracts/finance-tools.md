@@ -216,4 +216,4 @@ Triggers Gmail sync for one email source. Returns `queued: true|false` — do no
 ## Related
 
 - REST: [http.md](./http.md)
-- Façade: [rest-vs-facade.md](./rest-vs-facade.md) · `src/modules/finance/finance.facade.ts`
+- Façade: [rest-vs-facade.md](./rest-vs-facade.md) · `packages/finance/src/finance.facade.ts`

@@ -1,6 +1,6 @@
 # Health
 
-Controlador: `src/health/health.controller.ts`. Prefijo global `API_PREFIX` → rutas `/api/health*`. Todas `@Public()`.
+Controlador: `apps/api/src/health/health.controller.ts`. Prefijo global `API_PREFIX` → rutas `/api/health*`. Todas `@Public()`.
 
 | Método | Path | Comportamiento |
 | --- | --- | --- |
@@ -26,5 +26,5 @@ Redis solo se pinguea si `RedisHealthIndicator.isEnabled()`.
 
 ## Evidencia
 
-- `src/health/health.controller.ts`, `health.controller.spec.ts`
-- Indicators: `src/health/indicators/redis.health.indicator.ts`
+- `apps/api/src/health/health.controller.ts`, `health.controller.spec.ts`
+- Indicators: `apps/api/src/health/indicators/redis.health.indicator.ts`

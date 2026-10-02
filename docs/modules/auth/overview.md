@@ -22,7 +22,7 @@ Resolver el contexto autenticado a partir de un JWT de Supabase Auth (JWKS). No 
 Simple-module. Root: `auth.module.ts` + `index.ts`. Sin carpeta `application/` (no hay orquestación). Estándar: [architecture/modules.md](../../architecture/modules.md).
 
 ```text
-src/modules/auth/
+packages/auth/src/
   presentation/       # auth.controller
   infrastructure/     # JWT strategy, verifier, supabase-admin, JWKS
   domain/             # supabase-jwt-payload

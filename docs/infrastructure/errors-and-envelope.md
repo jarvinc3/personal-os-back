@@ -15,7 +15,7 @@
 }
 ```
 
-Evidencia: `src/core/interceptors/transform.interceptor.ts`.
+Evidencia: `packages/core/src/interceptors/transform.interceptor.ts`.
 
 Health probes pasan por el mismo interceptor: el cuerpo útil sanitizado `{ status, timestamp }` queda en `data` (verificado en runtime 2026-09-15 contra `GET /api/health`, `/ready`, `/startup`).
 

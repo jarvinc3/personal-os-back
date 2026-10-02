@@ -2,8 +2,8 @@ import { INestApplication } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';
 import { App } from 'supertest/types';
-import { SupabaseAdminService } from '../src/modules/auth';
-import { PrismaService } from '../src/prisma/prisma.service';
+import { SupabaseAdminService } from '@personal-os/auth';
+import { PrismaService } from '@personal-os/database';
 import { applyAuthTestOverrides } from './helpers/auth-test.providers';
 import { createTestJwt } from './helpers/jwt.helper';
 import { createPrismaMock, type PrismaMock } from './helpers/prisma.mock';
@@ -20,7 +20,7 @@ describe('Users (e2e)', () => {
     tryDeleteAuthUserMock.mockClear();
     tryDeleteAuthUserMock.mockResolvedValue({ ok: true });
 
-    const { AppModule } = require('../src/app.module') as {
+    const { AppModule } = require('../apps/api/src/app.module') as {
       AppModule: new (...args: never[]) => unknown;
     };
     prismaMock = createPrismaMock();
@@ -455,7 +455,10 @@ describe('Users (e2e)', () => {
   it('DELETE /api/users/me returns 404 when user does not exist', async () => {
     prismaMock.user.findUnique.mockResolvedValue(null);
 
-    const token = createTestJwt({ sub: 'missing-user', email: 'missing@example.com' });
+    const token = createTestJwt({
+      sub: 'missing-user',
+      email: 'missing@example.com',
+    });
 
     await request(app.getHttpServer())
       .delete('/api/users/me')

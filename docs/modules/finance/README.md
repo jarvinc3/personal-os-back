@@ -18,4 +18,4 @@
 | [contracts/finance-tools.md](./contracts/finance-tools.md) | Tools `moduleSlug=finance` |
 | [operations/gmail-sync.md](./operations/gmail-sync.md) | Pipeline sync |
 
-UI: `personal-os-web/docs/modules/finance/`. Código: `src/modules/finance/`.
+UI: `personal-os-web/docs/modules/finance/`. Código: `packages/finance/src/`.

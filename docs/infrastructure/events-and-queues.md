@@ -1,6 +1,6 @@
 # Eventos y colas
 
-Catálogo: [`src/core/events/event.constants.ts`](../../src/core/events/event.constants.ts). Colas: [`src/core/queues/queue.constants.ts`](../../src/core/queues/queue.constants.ts).
+Catálogo: [`packages/core/src/events/event.constants.ts`](../../packages/core/src/events/event.constants.ts). Colas: [`packages/core/src/queues/queue.constants.ts`](../../packages/core/src/queues/queue.constants.ts).
 
 ## AppEvents (VERIFICADO)
 
