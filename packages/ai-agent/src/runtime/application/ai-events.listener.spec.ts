@@ -66,7 +66,7 @@ describe('AiEventsListener.onEmailSyncCompleted', () => {
         }),
       },
       expect.objectContaining({
-        jobId: expect.stringContaining('ai:email-sync:'),
+        jobId: expect.stringContaining('ai-email-sync-'),
       }),
     );
   });

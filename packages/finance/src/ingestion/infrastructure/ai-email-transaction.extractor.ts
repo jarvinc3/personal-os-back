@@ -11,6 +11,7 @@ import {
   looksLikePayrollWithoutAmount,
   sanitizeAccountNumberHint,
 } from '../application/email-movement';
+import { normalizeCurrencyCode } from '../../shared/domain/money';
 import type {
   EmailExtractionInput,
   EmailExtractionResult,
@@ -70,7 +71,7 @@ const sharedMovementFields = {
   currency: z
     .string()
     .trim()
-    .transform((v) => v.toUpperCase())
+    .transform((v) => normalizeCurrencyCode(v))
     .pipe(z.string().regex(/^[A-Z]{3}$/))
     .optional()
     .default('DOP'),
@@ -141,6 +142,7 @@ Rules:
 - Prefer debit for purchases/withdrawals, credit for deposits/refunds/incomes.
 - If bank status is unclear, use UNKNOWN and statusConfidence below 0.7.
 - bankReference: the bank's operation/reference/authorization code printed in the notice ("Referencia", "Autorización", "Código de aprobación", "N.º de operación", "fitid", "recibo"). Copy it verbatim. Null when absent or when the only visible code is a national ID, phone number, or OTP/2FA code.
+- currency is an ISO 4217 alpha-3 code. The Dominican peso is DOP; the bank may print "RD$" or "RDS" — always output DOP, never RDS or RD$.
 - Do not invent amounts. If no amount is visible, use kind pending_amount (never guess a salary or deposit).
 - Do not invent a transaction for promotional amounts (e.g. "win $50"); use not_transaction instead.
 - movementClass: PURCHASE for card/account purchases; INCOME for generic credits; PAYROLL for salary/nómina; ATM_WITHDRAWAL for cash withdrawn at an ATM (not a transfer to another person or bank); TRANSFER_OUT / TRANSFER_IN for money sent or received between banks or own accounts; FEE for bank fees; REFUND; OTHER otherwise.

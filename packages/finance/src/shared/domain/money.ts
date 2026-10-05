@@ -1,7 +1,14 @@
 /** Money utilities (domain pure — no Nest/Prisma). */
 
+/** Local spellings that banks print instead of the ISO 4217 code. */
+const CURRENCY_CODE_ALIASES: Record<string, string> = {
+  RDS: 'DOP',
+  RD$: 'DOP',
+};
+
 export function normalizeCurrencyCode(input: string): string {
-  return input.trim().toUpperCase();
+  const normalized = input.trim().toUpperCase();
+  return CURRENCY_CODE_ALIASES[normalized] ?? normalized;
 }
 
 export function isIsoCurrency(code: string): boolean {

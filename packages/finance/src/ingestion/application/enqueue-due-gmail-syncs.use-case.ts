@@ -68,7 +68,7 @@ export class EnqueueDueGmailSyncsUseCase {
       } catch (error) {
         skipped += 1;
         const message = error instanceof Error ? error.message : 'unknown';
-        this.logger.debug(`Skip Gmail auto-sync for ${source.id}: ${message}`);
+        this.logger.warn(`Skip Gmail auto-sync for ${source.id}: ${message}`);
       }
     }
 

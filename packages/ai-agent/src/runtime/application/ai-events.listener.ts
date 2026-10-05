@@ -141,7 +141,7 @@ export class AiEventsListener {
         status: event.status ?? 'CONFIRMED',
         source: event.source,
       },
-      `ai:tx-created:${event.transactionId}`,
+      `ai-tx-created-${event.transactionId}`,
     );
   }
 
@@ -171,7 +171,7 @@ export class AiEventsListener {
         transactionIds: event.transactionIds,
         countsByStatus: event.countsByStatus,
       },
-      `ai:email-sync:${event.sourceId}:${event.eventId ?? event.transactionIds[0] ?? 'none'}`,
+      `ai-email-sync-${event.sourceId}-${event.eventId ?? event.transactionIds[0] ?? 'none'}`,
     );
   }
 
@@ -196,7 +196,7 @@ export class AiEventsListener {
         amount: event.amount,
         status: event.status,
       },
-      `ai:tx-updated:${event.transactionId}:${event.status}`,
+      `ai-tx-updated-${event.transactionId}-${event.status}`,
     );
   }
 
@@ -222,7 +222,7 @@ export class AiEventsListener {
         status: event.status,
         transferGroupId: event.transferGroupId,
       },
-      `ai:tx-deleted:${event.transactionId}`,
+      `ai-tx-deleted-${event.transactionId}`,
     );
   }
 
@@ -246,7 +246,7 @@ export class AiEventsListener {
         budgetId: event.budgetId,
         percentageUsed: event.percentageUsed,
       },
-      `ai:budget-threshold:${event.budgetId}`,
+      `ai-budget-threshold-${event.budgetId}`,
     );
   }
 

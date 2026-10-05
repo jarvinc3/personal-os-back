@@ -8,6 +8,7 @@ import {
   MaxLength,
   Min,
 } from 'class-validator';
+import { normalizeCurrencyCode as normalizeDomainCurrencyCode } from '../domain/money';
 
 export const ISO_CURRENCY_REGEX = /^[A-Z]{3}$/;
 export const LAST_FOUR_REGEX = /^[0-9]{4}$/;
@@ -16,7 +17,7 @@ export function normalizeCurrencyCode(value: unknown): unknown {
   if (typeof value !== 'string') {
     return value;
   }
-  return value.trim().toUpperCase();
+  return normalizeDomainCurrencyCode(value);
 }
 
 export function normalizeLastFour(value: unknown): unknown {
