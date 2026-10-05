@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { ImportEmailTransactionUseCase } from '../../ledger/application/import-email-transaction.use-case';
 import { EmailSourceRepository } from '../infrastructure/email-source.repository';
 import { isAtmMovementClass } from './email-movement';
@@ -16,6 +16,8 @@ const TRANSFER_MATCH_LOOKBACK_DAYS = 365;
 
 @Injectable()
 export class BackfillPendingEmailUseCase {
+  private readonly logger = new Logger(BackfillPendingEmailUseCase.name);
+
   constructor(
     private readonly emailSources: EmailSourceRepository,
     private readonly routeExtracted: RouteExtractedEmailUseCase,
@@ -34,24 +36,31 @@ export class BackfillPendingEmailUseCase {
       if (!extracted) {
         continue;
       }
-      const [accounts, cards] =
-        await this.emailSources.listInstitutionDestinations(
+      try {
+        const [accounts, cards] =
+          await this.emailSources.listInstitutionDestinations(
+            userId,
+            message.source.institutionId,
+          );
+        const result = await this.routeExtracted.execute({
           userId,
-          message.source.institutionId,
+          sourceId: message.sourceId,
+          gmailMessageId: message.gmailMessageId,
+          extracted,
+          provider: message.provider,
+          model: message.model,
+          accounts,
+          cards,
+          cashAccounts: [],
+        });
+        if (result.kind === 'imported') {
+          imported += 1;
+        }
+      } catch (error) {
+        const reason = error instanceof Error ? error.message : 'Unknown error';
+        this.logger.warn(
+          `Backfill: message ${message.gmailMessageId} failed; skipping for this run: ${reason}`,
         );
-      const result = await this.routeExtracted.execute({
-        userId,
-        sourceId: message.sourceId,
-        gmailMessageId: message.gmailMessageId,
-        extracted,
-        provider: message.provider,
-        model: message.model,
-        accounts,
-        cards,
-        cashAccounts: [],
-      });
-      if (result.kind === 'imported') {
-        imported += 1;
       }
     }
     return { imported };

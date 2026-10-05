@@ -393,7 +393,7 @@ describe('IngestionService mailbox linking', () => {
     expect(add).toHaveBeenCalledWith(
       'gmail-sync-source',
       { userId: 'user-1', sourceId: 'src-1', forceFullSync: false },
-      expect.objectContaining({ jobId: 'gmail-sync:src-1' }),
+      expect.objectContaining({ jobId: 'gmail-sync-src-1' }),
     );
   });
 
@@ -484,7 +484,7 @@ describe('IngestionService.triggerEmailSync', () => {
     expect(add).toHaveBeenCalledWith(
       'gmail-sync-source',
       { userId: 'user-1', sourceId: 'src-1', forceFullSync: false },
-      expect.not.objectContaining({ jobId: 'gmail-sync:src-1' }),
+      expect.not.objectContaining({ jobId: 'gmail-sync-src-1' }),
     );
     const opts = add.mock.calls[0][2] as { jobId?: string };
     expect(opts.jobId).toBeUndefined();

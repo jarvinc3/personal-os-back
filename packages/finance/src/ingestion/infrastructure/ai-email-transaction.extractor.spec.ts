@@ -190,6 +190,20 @@ describe('AiEmailTransactionExtractor', () => {
     expect(user).toMatch(/EXPENSE/);
   });
 
+  it('normalizes the local RDS / RD$ currency to DOP', async () => {
+    chatComplete.mockResolvedValue({
+      content: JSON.stringify({ ...validPayload, currency: 'RDS' }),
+      provider: 'groq',
+      model: 'test-model',
+    });
+
+    await expect(extractor.extract(input)).resolves.toMatchObject({
+      ok: true,
+      kind: 'transaction',
+      data: { currency: 'DOP' },
+    });
+  });
+
   it('defaults missing notes to null', async () => {
     const { notes: _notes, ...withoutNotes } = validPayload;
     void _notes;

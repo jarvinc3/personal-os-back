@@ -29,4 +29,15 @@ describe('toErrorField', () => {
   it('falls back when the value is an object', () => {
     expect(toErrorField({ nested: true }, 'fallback')).toBe('fallback');
   });
+
+  it('joins validation message arrays from ValidationPipe', () => {
+    expect(
+      toErrorField(
+        ['categoryId must be a UUID', 'periodStart must be a valid ISO 8601 date string'],
+        'Bad Request Exception',
+      ),
+    ).toBe(
+      'categoryId must be a UUID; periodStart must be a valid ISO 8601 date string',
+    );
+  });
 });

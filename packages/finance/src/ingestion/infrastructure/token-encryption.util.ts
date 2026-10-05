@@ -28,9 +28,17 @@ export function decryptToken(ciphertext: string, secret: string): string {
   const iv = buffer.subarray(0, IV_LENGTH);
   const tag = buffer.subarray(IV_LENGTH, IV_LENGTH + 16);
   const encrypted = buffer.subarray(IV_LENGTH + 16);
-  const decipher = createDecipheriv(ALGORITHM, deriveKey(secret), iv);
-  decipher.setAuthTag(tag);
-  return Buffer.concat([decipher.update(encrypted), decipher.final()]).toString(
-    'utf8',
-  );
+  try {
+    const decipher = createDecipheriv(ALGORITHM, deriveKey(secret), iv);
+    decipher.setAuthTag(tag);
+    return Buffer.concat([
+      decipher.update(encrypted),
+      decipher.final(),
+    ]).toString('utf8');
+  } catch (error) {
+    throw new Error(
+      'Gmail tokens could not be decrypted. Reconnect the mailbox.',
+      { cause: error },
+    );
+  }
 }

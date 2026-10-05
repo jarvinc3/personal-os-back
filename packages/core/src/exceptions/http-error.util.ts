@@ -29,5 +29,12 @@ export function toErrorField(value: unknown, fallback: string): string {
     return value.message;
   }
 
+  if (Array.isArray(value)) {
+    const parts = value.filter((item): item is string => typeof item === 'string');
+    if (parts.length > 0) {
+      return parts.join('; ');
+    }
+  }
+
   return fallback;
 }

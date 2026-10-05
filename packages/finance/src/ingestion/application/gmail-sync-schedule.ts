@@ -1,4 +1,3 @@
-import { subDays } from 'date-fns';
 import { formatInTimeZone, fromZonedTime } from 'date-fns-tz';
 import {
   EMAIL_SYNC_SCHEDULE_MODES,
@@ -6,6 +5,13 @@ import {
 } from '@personal-os/config';
 
 const MINUTE_MS = 60_000;
+
+/** Previous calendar day for a `yyyy-MM-dd` string, independent of process TZ. */
+function previousCalendarDate(date: string): string {
+  const utcDate = new Date(`${date}T00:00:00.000Z`);
+  utcDate.setUTCDate(utcDate.getUTCDate() - 1);
+  return utcDate.toISOString().slice(0, 10);
+}
 
 export function isEmailSyncDue(params: {
   lastSyncedAt: Date | null;
@@ -42,9 +48,7 @@ function latestTimeOfDayOccurrence(
       Math.max(...todayOccurrences.map((occurrence) => occurrence.getTime())),
     );
   }
-  const yesterday = subDays(new Date(`${today}T00:00:00.000Z`), 1)
-    .toISOString()
-    .slice(0, 10);
+  const yesterday = previousCalendarDate(today);
   const lastTime = [...times].sort()[times.length - 1];
   if (!lastTime) {
     return null;

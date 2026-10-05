@@ -584,6 +584,42 @@ describe('ProcessGmailSyncUseCase', () => {
     );
   });
 
+  it('records a per-message import failure and keeps processing the batch', async () => {
+    findEmailSource.mockResolvedValue(activeSource);
+    extract.mockResolvedValue(transactionExtraction);
+    routeExecute.mockRejectedValue(
+      new Error('Exchange rate unavailable for RDS->DOP on 2026-08-01'),
+    );
+
+    await expect(
+      useCase.execute({ userId: 'user-1', sourceId: 'src-1' }),
+    ).resolves.toBeUndefined();
+
+    expect(upsertEmailMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        gmailMessageId: 'msg-1',
+        outcome: 'FAILED_NON_RETRYABLE',
+        reason: expect.stringContaining('Exchange rate unavailable'),
+      }),
+    );
+    expect(completeEmailSyncSuccessWithEvent).toHaveBeenCalled();
+  });
+
+  it('fails the job when Gmail cannot read the message', async () => {
+    findEmailSource.mockResolvedValue(activeSource);
+    extract.mockResolvedValue(transactionExtraction);
+    getGmailMessageMock.mockRejectedValue(new Error('Gmail 503'));
+
+    await expect(
+      useCase.execute({ userId: 'user-1', sourceId: 'src-1' }),
+    ).rejects.toThrow('Gmail 503');
+
+    expect(completeEmailSyncLog).toHaveBeenCalledWith(
+      'log-1',
+      expect.objectContaining({ status: 'FAILED' }),
+    );
+  });
+
   it('marks a repeated reversal as SKIPPED_DUPLICATE', async () => {
     findEmailSource.mockResolvedValue(activeSource);
     extract.mockResolvedValue({

@@ -2,7 +2,11 @@ import type { Queue } from 'bullmq';
 import type { GmailSyncJob } from '@personal-os/core';
 import type { EmailSourceRepository } from '../infrastructure/email-source.repository';
 import { EnqueueDueGmailSyncsUseCase } from './enqueue-due-gmail-syncs.use-case';
-import { GMAIL_SYNC_JOB_NAME, gmailSyncJobId } from './gmail-sync.constants';
+import {
+  GMAIL_SYNC_JOB_NAME,
+  GMAIL_SYNC_JOB_OPTIONS,
+  gmailSyncJobId,
+} from './gmail-sync.constants';
 
 type AutoSyncSource = {
   id: string;
@@ -186,6 +190,13 @@ describe('EnqueueDueGmailSyncsUseCase', () => {
 
     await expect(useCase.execute()).resolves.toBeUndefined();
     expect(add).toHaveBeenCalledTimes(1);
+  });
+
+  it('uses a colon-free job id and releases it when the job finishes', () => {
+    expect(gmailSyncJobId('src-1')).toBe('gmail-sync-src-1');
+    expect(gmailSyncJobId('src-1')).not.toContain(':');
+    expect(GMAIL_SYNC_JOB_OPTIONS.removeOnComplete).toBe(true);
+    expect(GMAIL_SYNC_JOB_OPTIONS.removeOnFail).toBe(true);
   });
 
   it('counts duplicate job ids as skipped instead of failing the batch', async () => {
