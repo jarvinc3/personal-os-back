@@ -234,15 +234,24 @@ export class CatalogRepository {
     userId: string,
     id: string,
     data: Prisma.FinCategoryUncheckedUpdateInput,
+    cascadeTypeToChildren?: 'EXPENSE' | 'INCOME',
   ) {
-    return this.prisma.finCategory
-      .updateMany({ where: { id, userId, isSystem: false }, data })
-      .then(async (result) => {
-        if (result.count === 0) {
-          return null;
-        }
-        return this.prisma.finCategory.findFirst({ where: { id, userId } });
+    return this.prisma.$transaction(async (tx) => {
+      const result = await tx.finCategory.updateMany({
+        where: { id, userId, isSystem: false },
+        data,
       });
+      if (result.count === 0) {
+        return null;
+      }
+      if (cascadeTypeToChildren) {
+        await tx.finCategory.updateMany({
+          where: { parentId: id, userId },
+          data: { type: cascadeTypeToChildren },
+        });
+      }
+      return tx.finCategory.findFirst({ where: { id, userId } });
+    });
   }
 
   deleteCategory(userId: string, id: string) {

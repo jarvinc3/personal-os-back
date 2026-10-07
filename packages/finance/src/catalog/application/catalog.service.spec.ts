@@ -439,21 +439,102 @@ describe('CatalogService categories', () => {
     expect(createCategory).not.toHaveBeenCalled();
   });
 
-  it('does not write type on update', async () => {
+  it('changes type on a root and cascades it to children', async () => {
+    (ownership.assertCategoryVisible as jest.Mock).mockResolvedValue({
+      id: 'cat-1',
+      parentId: null,
+      type: 'EXPENSE',
+    });
     updateCategory.mockResolvedValue({
       id: 'cat-1',
       name: 'Mercado',
+      type: 'INCOME',
+      parentId: null,
+    });
+
+    await service.updateCategory('user-1', 'cat-1', {
+      name: 'Mercado',
+      type: 'INCOME',
+    });
+
+    expect(updateCategory).toHaveBeenCalledWith(
+      'user-1',
+      'cat-1',
+      {
+        name: 'Mercado',
+        icon: undefined,
+        color: undefined,
+        parentId: undefined,
+        type: 'INCOME',
+      },
+      'INCOME',
+    );
+  });
+
+  it('rejects a type change while the category still has a parent', async () => {
+    (ownership.assertCategoryVisible as jest.Mock).mockResolvedValue({
+      id: 'cat-1',
+      parentId: 'parent-1',
       type: 'EXPENSE',
     });
 
-    await service.updateCategory('user-1', 'cat-1', { name: 'Mercado' });
+    await expect(
+      service.updateCategory('user-1', 'cat-1', { type: 'INCOME' }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(updateCategory).not.toHaveBeenCalled();
+  });
 
-    expect(updateCategory).toHaveBeenCalledWith('user-1', 'cat-1', {
-      name: 'Mercado',
-      icon: undefined,
-      color: undefined,
-      parentId: undefined,
+  it('clears parentId when the patch sends null', async () => {
+    (ownership.assertCategoryVisible as jest.Mock).mockResolvedValue({
+      id: 'cat-1',
+      parentId: 'parent-1',
+      type: 'EXPENSE',
     });
+    updateCategory.mockResolvedValue({
+      id: 'cat-1',
+      parentId: null,
+      type: 'EXPENSE',
+    });
+
+    await service.updateCategory('user-1', 'cat-1', { parentId: null });
+
+    expect(ownership.assertParentCategory).not.toHaveBeenCalled();
+    expect(updateCategory).toHaveBeenCalledWith(
+      'user-1',
+      'cat-1',
+      {
+        name: undefined,
+        icon: undefined,
+        color: undefined,
+        parentId: null,
+      },
+      undefined,
+    );
+  });
+
+  it('checks a new parent against the resulting type', async () => {
+    (ownership.assertParentCategory as jest.Mock).mockResolvedValue({
+      id: 'parent-2',
+    });
+    (ownership.assertCategoryVisible as jest.Mock).mockResolvedValue({
+      id: 'cat-1',
+      parentId: null,
+      type: 'EXPENSE',
+    });
+    updateCategory.mockResolvedValue({
+      id: 'cat-1',
+      parentId: 'parent-2',
+      type: 'EXPENSE',
+    });
+
+    await service.updateCategory('user-1', 'cat-1', { parentId: 'parent-2' });
+
+    expect(ownership.assertParentCategory).toHaveBeenCalledWith(
+      'user-1',
+      'parent-2',
+      'cat-1',
+      'EXPENSE',
+    );
   });
 
   it('passes type filter to the repository', async () => {

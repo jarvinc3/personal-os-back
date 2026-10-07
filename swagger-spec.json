@@ -3146,8 +3146,19 @@
           "color": {
             "type": "string"
           },
+          "type": {
+            "type": "string",
+            "enum": [
+              "EXPENSE",
+              "INCOME",
+              "TRANSFER"
+            ],
+            "default": "EXPENSE",
+            "description": "EXPENSE or INCOME. Defaults to EXPENSE when omitted."
+          },
           "parentId": {
-            "type": "string"
+            "type": "string",
+            "nullable": true
           }
         }
       },

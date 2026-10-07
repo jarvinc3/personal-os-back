@@ -491,15 +491,49 @@ export class CatalogService {
   }
 
   async updateCategory(userId: string, id: string, dto: UpdateCategoryDto) {
-    if (dto.parentId) {
-      await this.ownership.assertParentCategory(userId, dto.parentId, id);
+    if (dto.type === 'TRANSFER') {
+      throw new BadRequestException('Category type must be EXPENSE or INCOME');
     }
-    const updated = await this.repo.updateCategory(userId, id, {
-      name: dto.name,
-      icon: dto.icon,
-      color: dto.color,
-      parentId: dto.parentId,
-    });
+    const existing = await this.ownership.assertCategoryVisible(userId, id);
+    const nextParentId =
+      dto.parentId === undefined ? existing.parentId : dto.parentId;
+    const nextType = dto.type ?? existing.type;
+    const typeChanged = dto.type !== undefined && dto.type !== existing.type;
+
+    if (typeChanged && nextParentId) {
+      throw new BadRequestException(
+        'Cannot change type while the category has a parent',
+      );
+    }
+
+    if (typeof nextParentId === 'string') {
+      await this.ownership.assertParentCategory(
+        userId,
+        nextParentId,
+        id,
+        nextType,
+      );
+    }
+
+    const cascadeType =
+      typeChanged &&
+      !nextParentId &&
+      (dto.type === 'EXPENSE' || dto.type === 'INCOME')
+        ? dto.type
+        : undefined;
+
+    const updated = await this.repo.updateCategory(
+      userId,
+      id,
+      {
+        name: dto.name,
+        icon: dto.icon,
+        color: dto.color,
+        parentId: dto.parentId,
+        ...(cascadeType ? { type: cascadeType } : {}),
+      },
+      cascadeType,
+    );
     if (!updated) {
       throw new NotFoundException('Category not found');
     }
