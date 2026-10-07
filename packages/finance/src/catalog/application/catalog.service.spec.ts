@@ -5,9 +5,7 @@ import type { PurgeInstrumentLedgerUseCase } from '../../ledger/application/purg
 import { BadRequestException, ConflictException } from '@nestjs/common';
 
 function ownershipMock(
-  overrides: Partial<{
-    assertInstitutionCanArchive: jest.Mock;
-  }> = {},
+  overrides: Partial<Record<keyof FinanceOwnershipService, jest.Mock>> = {},
 ): FinanceOwnershipService {
   return {
     assertInstitutionOwned: jest.fn((_userId: string, id: string) => {
@@ -402,7 +400,12 @@ describe('CatalogService categories', () => {
     createCategory,
     updateCategory,
   } as unknown as CatalogRepository;
-  const ownership = ownershipMock();
+  const assertParentCategory = jest.fn();
+  const assertCategoryVisible = jest.fn();
+  const ownership = ownershipMock({
+    assertParentCategory,
+    assertCategoryVisible,
+  });
   const service = new CatalogService(repo, ownership, purgeMock());
 
   beforeEach(() => {
@@ -425,7 +428,7 @@ describe('CatalogService categories', () => {
   });
 
   it('rejects an INCOME child under an EXPENSE parent', async () => {
-    (ownership.assertParentCategory as jest.Mock).mockRejectedValue(
+    assertParentCategory.mockRejectedValue(
       new BadRequestException('Parent category must have the same type'),
     );
 
@@ -440,7 +443,7 @@ describe('CatalogService categories', () => {
   });
 
   it('changes type on a root and cascades it to children', async () => {
-    (ownership.assertCategoryVisible as jest.Mock).mockResolvedValue({
+    assertCategoryVisible.mockResolvedValue({
       id: 'cat-1',
       parentId: null,
       type: 'EXPENSE',
@@ -472,7 +475,7 @@ describe('CatalogService categories', () => {
   });
 
   it('rejects a type change while the category still has a parent', async () => {
-    (ownership.assertCategoryVisible as jest.Mock).mockResolvedValue({
+    assertCategoryVisible.mockResolvedValue({
       id: 'cat-1',
       parentId: 'parent-1',
       type: 'EXPENSE',
@@ -485,7 +488,7 @@ describe('CatalogService categories', () => {
   });
 
   it('clears parentId when the patch sends null', async () => {
-    (ownership.assertCategoryVisible as jest.Mock).mockResolvedValue({
+    assertCategoryVisible.mockResolvedValue({
       id: 'cat-1',
       parentId: 'parent-1',
       type: 'EXPENSE',
@@ -498,7 +501,7 @@ describe('CatalogService categories', () => {
 
     await service.updateCategory('user-1', 'cat-1', { parentId: null });
 
-    expect(ownership.assertParentCategory).not.toHaveBeenCalled();
+    expect(assertParentCategory).not.toHaveBeenCalled();
     expect(updateCategory).toHaveBeenCalledWith(
       'user-1',
       'cat-1',
@@ -513,10 +516,10 @@ describe('CatalogService categories', () => {
   });
 
   it('checks a new parent against the resulting type', async () => {
-    (ownership.assertParentCategory as jest.Mock).mockResolvedValue({
+    assertParentCategory.mockResolvedValue({
       id: 'parent-2',
     });
-    (ownership.assertCategoryVisible as jest.Mock).mockResolvedValue({
+    assertCategoryVisible.mockResolvedValue({
       id: 'cat-1',
       parentId: null,
       type: 'EXPENSE',
@@ -529,7 +532,7 @@ describe('CatalogService categories', () => {
 
     await service.updateCategory('user-1', 'cat-1', { parentId: 'parent-2' });
 
-    expect(ownership.assertParentCategory).toHaveBeenCalledWith(
+    expect(assertParentCategory).toHaveBeenCalledWith(
       'user-1',
       'parent-2',
       'cat-1',
