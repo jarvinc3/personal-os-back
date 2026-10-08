@@ -114,4 +114,12 @@ export class NotificationsRepository {
       },
     });
   }
+
+  deleteAllForUser(userId: string) {
+    return this.prisma.notification.deleteMany({ where: { userId } });
+  }
+
+  deleteAllPushTokensForUser(userId: string) {
+    return this.prisma.pushToken.deleteMany({ where: { userId } });
+  }
 }

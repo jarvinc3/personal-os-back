@@ -139,4 +139,11 @@ export class NotificationsService {
     const result = await this.notificationsRepo.markAllAsRead(userId, 'IN_APP');
     return { updated: result.count };
   }
+
+  async wipeAllForUser(userId: string) {
+    const notifications = await this.notificationsRepo.deleteAllForUser(userId);
+    const pushTokens =
+      await this.notificationsRepo.deleteAllPushTokensForUser(userId);
+    return { notifications: notifications.count, pushTokens: pushTokens.count };
+  }
 }

@@ -1,6 +1,6 @@
-import type { ConfigService } from '@nestjs/config';
 import type { FinanceOutboxDispatcher } from '../../events/infrastructure/finance-outbox.dispatcher';
 import type { ResolveAmountsUseCase } from '../../fx/application/resolve-amounts.use-case';
+import type { ResolveUserBaseCurrencyUseCase } from '../../fx/application/resolve-user-base-currency';
 import { CreateTransferUseCase } from './create-transfer.use-case';
 import type { LedgerRepositoryPort } from './ports/ledger.repository.port';
 
@@ -30,14 +30,14 @@ describe('CreateTransferUseCase', () => {
   const outboxDispatcher = {
     processBatch,
   } as unknown as FinanceOutboxDispatcher;
-  const config = {
-    get: jest.fn().mockReturnValue('DOP'),
-  } as unknown as ConfigService;
+  const baseCurrency = {
+    execute: jest.fn().mockResolvedValue('DOP'),
+  } as unknown as ResolveUserBaseCurrencyUseCase;
 
   const useCase = new CreateTransferUseCase(
     repo,
     resolveAmounts,
-    config as never,
+    baseCurrency,
     outboxDispatcher,
   );
 

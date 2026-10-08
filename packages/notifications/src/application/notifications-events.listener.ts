@@ -6,15 +6,33 @@ import {
   NotificationCreatedEvent,
 } from '@personal-os/core';
 import { FINANCE_NOTIFICATION_KEYS } from '@personal-os/users';
+import {
+  budgetThresholdCopy,
+  formatNotificationAmount,
+  transactionPendingCopy,
+  transactionRecordedCopy,
+  transactionUpdatedCopy,
+  type NotificationCopy,
+} from '../domain/notification-copy';
 import { NotificationsService } from './notifications.service';
+
+const FINANCE_MODULE_SLUG = 'finance';
 
 type FinanceTxEvent = {
   eventId?: string;
   userId: string;
   transactionId: string;
   amount: number;
+  currency?: string;
   status?: string;
   source?: string;
+  type?: string;
+  merchant?: string | null;
+  accountName?: string | null;
+  cardName?: string | null;
+  categoryName?: string | null;
+  categoryIcon?: string | null;
+  categoryColor?: string | null;
 };
 
 type BudgetThresholdEvent = {
@@ -59,17 +77,11 @@ export class NotificationsEventsListener {
     );
 
     if (event.source === 'EMAIL' && event.status === 'PENDING') {
-      await this.createFinanceInApp(event.userId, {
-        type: 'transaction.imported_pending',
-        title: 'Bank email import pending review',
-        body: `A ${event.amount} transaction from email needs confirmation.`,
-        data: {
-          moduleSlug: 'finance',
-          notificationKey: FINANCE_NOTIFICATION_KEYS.transactionDetected,
-          transactionId: event.transactionId,
-          status: event.status,
-        },
-      });
+      await this.createTransactionNotification(
+        event,
+        'transaction.imported_pending',
+        transactionPendingCopy(this.transactionNotificationFields(event)),
+      );
       return;
     }
 
@@ -81,17 +93,11 @@ export class NotificationsEventsListener {
       return;
     }
 
-    await this.createFinanceInApp(event.userId, {
-      type: 'transaction.created',
-      title: 'Transaction recorded',
-      body: `A transaction of ${event.amount} was recorded.`,
-      data: {
-        moduleSlug: 'finance',
-        notificationKey: FINANCE_NOTIFICATION_KEYS.transactionDetected,
-        transactionId: event.transactionId,
-        status: event.status,
-      },
-    });
+    await this.createTransactionNotification(
+      event,
+      'transaction.created',
+      transactionRecordedCopy(this.transactionNotificationFields(event)),
+    );
   }
 
   @OnEvent(AppEvents.FINANCE_TRANSACTION_DELETED)
@@ -99,6 +105,18 @@ export class NotificationsEventsListener {
     await this.idempotency.tryClaim(
       event.eventId,
       `${NotificationsEventsListener.CONSUMER}:deleted`,
+    );
+  }
+
+  @OnEvent(AppEvents.USER_DATA_WIPED)
+  async onUserDataWiped(event: {
+    eventId?: string;
+    userId: string;
+  }): Promise<void> {
+    // The wipe already removed notifications; claim only, never create any.
+    await this.idempotency.tryClaim(
+      event.eventId,
+      `${NotificationsEventsListener.CONSUMER}:data-wiped`,
     );
   }
 
@@ -112,16 +130,11 @@ export class NotificationsEventsListener {
     ) {
       return;
     }
-    await this.createFinanceInApp(event.userId, {
-      type: 'transaction.updated',
-      title: 'Transaction updated',
-      body: `A transaction of ${event.amount} was updated.`,
-      data: {
-        moduleSlug: 'finance',
-        notificationKey: FINANCE_NOTIFICATION_KEYS.transactionDetected,
-        transactionId: event.transactionId,
-      },
-    });
+    await this.createTransactionNotification(
+      event,
+      'transaction.updated',
+      transactionUpdatedCopy(this.transactionNotificationFields(event)),
+    );
   }
 
   @OnEvent(AppEvents.FINANCE_BUDGET_THRESHOLD_CROSSED)
@@ -134,15 +147,58 @@ export class NotificationsEventsListener {
     ) {
       return;
     }
+    const budgetCopy = budgetThresholdCopy(event.percentageUsed);
     await this.createFinanceInApp(event.userId, {
       type: 'budget.threshold_reached',
-      title: 'Budget threshold reached',
-      body: `A budget reached ${Math.round(event.percentageUsed)}% of its limit.`,
+      title: budgetCopy.title,
+      body: budgetCopy.body,
       data: {
-        moduleSlug: 'finance',
+        moduleSlug: FINANCE_MODULE_SLUG,
         notificationKey: FINANCE_NOTIFICATION_KEYS.budgetAlerts,
         budgetId: event.budgetId,
+        percentageUsed: event.percentageUsed,
       },
+    });
+  }
+
+  private transactionNotificationFields(event: FinanceTxEvent) {
+    return {
+      type: event.type ?? '',
+      amountLabel: formatNotificationAmount(event.amount, event.currency ?? ''),
+      merchant: event.merchant ?? null,
+      categoryName: event.categoryName ?? null,
+      accountName: event.accountName ?? null,
+      cardName: event.cardName ?? null,
+    };
+  }
+
+  private transactionNotificationData(event: FinanceTxEvent) {
+    return {
+      moduleSlug: FINANCE_MODULE_SLUG,
+      notificationKey: FINANCE_NOTIFICATION_KEYS.transactionDetected,
+      transactionId: event.transactionId,
+      status: event.status ?? null,
+      amount: event.amount,
+      currency: event.currency ?? null,
+      merchant: event.merchant ?? null,
+      accountName: event.accountName ?? null,
+      cardName: event.cardName ?? null,
+      categoryName: event.categoryName ?? null,
+      categoryIcon: event.categoryIcon ?? null,
+      categoryColor: event.categoryColor ?? null,
+    };
+  }
+
+  private async createTransactionNotification(
+    event: FinanceTxEvent,
+    type: string,
+    copy: NotificationCopy,
+  ): Promise<void> {
+    await this.createFinanceInApp(event.userId, {
+      type,
+      title: copy.title,
+      body: copy.body,
+      data: this.transactionNotificationData(event),
     });
   }
 

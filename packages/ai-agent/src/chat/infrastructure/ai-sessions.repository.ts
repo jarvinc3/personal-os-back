@@ -75,6 +75,10 @@ export class AiSessionsRepository {
     });
   }
 
+  deleteAllForUser(userId: string) {
+    return this.prisma.aiAgentSession.deleteMany({ where: { userId } });
+  }
+
   createMessage(data: {
     sessionId: string;
     role: AiRole;

@@ -1,8 +1,7 @@
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import type { Env } from '@personal-os/config';
 import { FinanceOutboxDispatcher } from '../../events/infrastructure/finance-outbox.dispatcher';
 import { ResolveAmountsUseCase } from '../../fx/application/resolve-amounts.use-case';
+import { ResolveUserBaseCurrencyUseCase } from '../../fx/application/resolve-user-base-currency';
 import { LEDGER_REPOSITORY } from '../../shared/application/tokens';
 import { FinanceOwnershipService } from '../../shared/application/finance-ownership.service';
 import { normalizeCurrencyCode } from '../../shared/domain/money';
@@ -17,7 +16,7 @@ export class CreateTransactionUseCase {
     @Inject(LEDGER_REPOSITORY)
     private readonly repo: LedgerRepositoryPort,
     private readonly resolveAmounts: ResolveAmountsUseCase,
-    private readonly config: ConfigService<Env, true>,
+    private readonly baseCurrency: ResolveUserBaseCurrencyUseCase,
     private readonly outboxDispatcher: FinanceOutboxDispatcher,
     private readonly ownership: FinanceOwnershipService,
   ) {}
@@ -27,7 +26,7 @@ export class CreateTransactionUseCase {
     command: CreateTransactionCommand,
     source: 'MANUAL' | 'AI' = 'MANUAL',
   ) {
-    const baseCurrency = this.config.get('BASE_CURRENCY', { infer: true });
+    const baseCurrency = await this.baseCurrency.execute(userId);
     const originalCurrency = command.currency
       ? normalizeCurrencyCode(command.currency)
       : baseCurrency;
@@ -55,6 +54,7 @@ export class CreateTransactionUseCase {
       amount: command.amount,
       currency: originalCurrency,
       ledgerCurrency,
+      baseCurrency,
       transactionDate: new Date(command.transactionDate),
     });
 

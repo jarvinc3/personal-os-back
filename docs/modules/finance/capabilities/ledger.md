@@ -1,6 +1,6 @@
 # Capacidad: ledger
 
-Campos de importe: `amount`/`currency` original; `ledgerAmount`/`ledgerCurrency` aplicado al saldo; `amountBaseCurrency`/`exchangeRate` para analytics (`BASE_CURRENCY`).
+Campos de importe: `amount`/`currency` original; `ledgerAmount`/`ledgerCurrency` aplicado al saldo; `amountBaseCurrency`/`exchangeRate` para analytics. `amountBaseCurrency` usa la **moneda base del usuario** (`user_modules.config.baseCurrency`); el env `BASE_CURRENCY` es solo fallback. Si la moneda del comando falta, se asume esa base.
 
 `GET /api/finance/transactions` paginado `{ items, pagination }` default page=1 limit=20 max 100. Filtros: fechas, cuenta, tarjeta, categoría, tipo, status, search, `transferGroupId`.
 

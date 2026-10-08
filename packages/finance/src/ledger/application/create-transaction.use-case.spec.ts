@@ -1,7 +1,7 @@
 import { BadRequestException } from '@nestjs/common';
-import type { ConfigService } from '@nestjs/config';
 import type { FinanceOutboxDispatcher } from '../../events/infrastructure/finance-outbox.dispatcher';
 import type { ResolveAmountsUseCase } from '../../fx/application/resolve-amounts.use-case';
+import type { ResolveUserBaseCurrencyUseCase } from '../../fx/application/resolve-user-base-currency';
 import { CreateTransactionUseCase } from './create-transaction.use-case';
 import type { LedgerRepositoryPort } from './ports/ledger.repository.port';
 
@@ -32,9 +32,10 @@ describe('CreateTransactionUseCase', () => {
     processBatch,
   } as unknown as FinanceOutboxDispatcher;
 
-  const config = {
-    get: jest.fn().mockReturnValue('DOP'),
-  } as unknown as ConfigService;
+  const baseCurrencyExecute = jest.fn().mockResolvedValue('DOP');
+  const baseCurrency = {
+    execute: baseCurrencyExecute,
+  } as unknown as ResolveUserBaseCurrencyUseCase;
 
   const ownership = {
     assertCategoryVisible: jest.fn(),
@@ -44,7 +45,7 @@ describe('CreateTransactionUseCase', () => {
   const useCase = new CreateTransactionUseCase(
     repo,
     resolveAmounts,
-    config as never,
+    baseCurrency,
     outboxDispatcher,
     ownership as never,
   );
@@ -94,6 +95,25 @@ describe('CreateTransactionUseCase', () => {
     expect(createTransaction.mock.calls[0]?.[0]).toBe('user-1');
     expect(createTransaction.mock.calls[0]?.[3]).toBe('AI');
     expect(processBatch).toHaveBeenCalled();
+  });
+
+  it('defaults the transaction currency and base to the user base currency', async () => {
+    baseCurrencyExecute.mockResolvedValueOnce('USD');
+
+    await useCase.execute(
+      'user-1',
+      {
+        type: 'DEBIT',
+        amount: 10,
+        transactionDate: '2026-08-01',
+        accountId: 'acc-1',
+      },
+      'MANUAL',
+    );
+
+    expect(resolveExecute).toHaveBeenCalledWith(
+      expect.objectContaining({ currency: 'USD', baseCurrency: 'USD' }),
+    );
   });
 
   it('throws when repository returns null target', async () => {

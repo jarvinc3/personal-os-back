@@ -8,6 +8,7 @@ import { FinanceFxModule } from './fx/fx.module';
 import { FinanceIngestionModule } from './ingestion/ingestion.module';
 import { FinanceLedgerModule } from './ledger/ledger.module';
 import { FinancePlanningModule } from './planning/planning.module';
+import { FinanceWipeModule } from './shared/wipe-finance.module';
 
 /**
  * Finance composition root — capability modules only; exports façade alone.
@@ -22,6 +23,7 @@ import { FinancePlanningModule } from './planning/planning.module';
     FinanceAnalyticsModule,
     FinanceLedgerModule,
     FinanceIngestionModule,
+    FinanceWipeModule,
   ],
   providers: [FinanceFacade],
   exports: [FinanceFacade],

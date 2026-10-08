@@ -1,25 +1,26 @@
 import { BadRequestException } from '@nestjs/common';
-import type { ConfigService } from '@nestjs/config';
-import type { Env } from '@personal-os/config';
 import type { ResolveAmountsUseCase } from '../../fx/application/resolve-amounts.use-case';
+import type { ResolveUserBaseCurrencyUseCase } from '../../fx/application/resolve-user-base-currency';
 import type { BalanceSheetRepository } from '../infrastructure/balance-sheet.repository';
 import { BalanceSheetService } from './balance-sheet.service';
 
 describe('BalanceSheetService', () => {
   const loadPositions = jest.fn();
   const toBaseCurrency = jest.fn();
-  const configGet = jest.fn().mockReturnValue('DOP');
+  const baseCurrencyExecute = jest.fn().mockResolvedValue('DOP');
 
   const createService = () =>
     new BalanceSheetService(
       { loadPositions } as unknown as BalanceSheetRepository,
       { toBaseCurrency } as unknown as ResolveAmountsUseCase,
-      { get: configGet } as unknown as ConfigService<Env, true>,
+      {
+        execute: baseCurrencyExecute,
+      } as unknown as ResolveUserBaseCurrencyUseCase,
     );
 
   beforeEach(() => {
     jest.clearAllMocks();
-    configGet.mockReturnValue('DOP');
+    baseCurrencyExecute.mockResolvedValue('DOP');
     toBaseCurrency.mockImplementation((amount: number, currency: string) => {
       if (currency === 'USD') {
         return Promise.resolve(amount * 60);
@@ -102,7 +103,12 @@ describe('BalanceSheetService', () => {
 
     const result = await createService().getBalanceSheet('user-1');
 
-    expect(toBaseCurrency).toHaveBeenCalledWith(10, 'USD', expect.any(Date));
+    expect(toBaseCurrency).toHaveBeenCalledWith(
+      10,
+      'USD',
+      'DOP',
+      expect.any(Date),
+    );
     expect(result.global.netWorth).toBe('1600');
     expect(result.global.assets.accounts).toBe('1600');
   });

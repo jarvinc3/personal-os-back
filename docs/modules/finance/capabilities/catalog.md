@@ -10,4 +10,6 @@ Instituciones, cuentas, tarjetas, categorías.
 
 Ownership: [rules/ledger.md](../rules/ledger.md) BR-FIN-005–007.
 
+Borrado en cascada (migraciones `finance_cascade_institution_category` y `fin_loans_account_cascade`): borrar una institución arrastra cuentas, tarjetas, préstamos, sources de Gmail y movimientos; borrar un padre de categoría arrastra hijas y presupuestos; borrar una cuenta arrastra movimientos y préstamos; borrar una tarjeta arrastra movimientos. El wipe por capas se apoya en esto: `finance.catalog` borra instituciones y cuentas sin recorrer hijos.
+
 Evidencia: `catalog/` services + specs.

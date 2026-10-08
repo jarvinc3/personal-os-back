@@ -1,4 +1,9 @@
 export { UsersService } from './application/users.service';
+export { WipeUserDataUseCase } from './application/wipe-user-data.use-case';
+export {
+  USER_DATA_WIPE_DOMAINS,
+  type UserDataWipeDomainsPort,
+} from './application/ports/user-data-wipe-domains.port';
 export {
   GLOBAL_USER_PREFERENCES_DEFAULTS,
   type AiTone,
@@ -13,6 +18,15 @@ export {
   type ModuleSlug,
 } from './domain/defaults/user-settings-defaults';
 export { parseUserPreferences } from './domain/parse-user-preferences';
+export {
+  expandWipeLayers,
+  isWipeLayerId,
+  sortWipeLayers,
+  WIPE_EXECUTION_ORDER,
+  WIPE_LAYERS,
+  WIPE_LAYER_IDS,
+  type WipeLayerId,
+} from './domain/wipe-layers';
 export { mergeWithDefaults } from './domain/settings-merge';
 export {
   USERS_REPOSITORY,

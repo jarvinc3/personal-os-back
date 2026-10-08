@@ -119,10 +119,15 @@ export class AiSessionsService {
   }
 
   async delete(sessionId: string, userId: string) {
-    const result = await this.sessionsRepo.deleteSession(sessionId, userId);
-    if (result.count === 0) {
+    const deleted = await this.sessionsRepo.deleteSession(sessionId, userId);
+    if (deleted.count === 0) {
       throw new NotFoundException('AI session not found');
     }
     return { success: true };
+  }
+
+  async wipeAllForUser(userId: string) {
+    const deletedSessions = await this.sessionsRepo.deleteAllForUser(userId);
+    return { sessions: deletedSessions.count };
   }
 }

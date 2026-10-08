@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { FinanceOutboxDispatcher } from '../../events/infrastructure/finance-outbox.dispatcher';
 import { ResolveAmountsUseCase } from '../../fx/application/resolve-amounts.use-case';
+import { ResolveUserBaseCurrencyUseCase } from '../../fx/application/resolve-user-base-currency';
 import { LEDGER_REPOSITORY } from '../../shared/application/tokens';
 import { FinanceOwnershipService } from '../../shared/application/finance-ownership.service';
 import { decimalToString } from '../../shared/domain/mappers';
@@ -25,6 +26,7 @@ export class UpdateTransactionUseCase {
     @Inject(LEDGER_REPOSITORY)
     private readonly repo: LedgerRepositoryPort,
     private readonly resolveAmounts: ResolveAmountsUseCase,
+    private readonly baseCurrency: ResolveUserBaseCurrencyUseCase,
     private readonly outboxDispatcher: FinanceOutboxDispatcher,
     private readonly ownership: FinanceOwnershipService,
   ) {}
@@ -118,10 +120,12 @@ export class UpdateTransactionUseCase {
         cardId,
         currency,
       );
+      const baseCurrency = await this.baseCurrency.execute(userId);
       const amounts = await this.resolveAmounts.execute({
         amount,
         currency,
         ledgerCurrency,
+        baseCurrency,
         transactionDate,
       });
       data.amount = amounts.amount;
