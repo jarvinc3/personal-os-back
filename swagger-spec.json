@@ -208,6 +208,36 @@
         ]
       }
     },
+    "/api/users/me/data/wipe": {
+      "post": {
+        "operationId": "UsersController_wipeMyData",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WipeUserDataDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Requested and applied layers with counts"
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Wipe selected data layers without closing the account",
+        "tags": [
+          "users"
+        ]
+      }
+    },
     "/api/auth/session": {
       "get": {
         "operationId": "AuthController_session",
@@ -243,6 +273,77 @@
           }
         ],
         "summary": "List ISO currencies from cached FX rates or exchangerate.host",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
+    "/api/finance/exchange-rates": {
+      "get": {
+        "operationId": "CurrenciesController_exchangeRates",
+        "parameters": [
+          {
+            "name": "base",
+            "required": true,
+            "in": "query",
+            "description": "ISO-3 base currency",
+            "schema": {
+              "example": "DOP",
+              "type": "string"
+            }
+          },
+          {
+            "name": "quotes",
+            "required": true,
+            "in": "query",
+            "description": "Comma-separated ISO-3 currency codes",
+            "schema": {
+              "example": "USD,EUR",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Market rates for quoted currencies in a base currency",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
+    "/api/finance/base-currency": {
+      "post": {
+        "operationId": "CurrenciesController_setBaseCurrency",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangeBaseCurrencyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Change base currency and rebase stored base amounts",
         "tags": [
           "finance"
         ]
@@ -2812,6 +2913,44 @@
           }
         }
       },
+      "WipeUserDataDto": {
+        "type": "object",
+        "properties": {
+          "layers": {
+            "type": "array",
+            "description": "Data layers to wipe; at least one, no duplicates",
+            "items": {
+              "type": "string",
+              "enum": [
+                "finance.ledger",
+                "finance.planning",
+                "finance.categories",
+                "finance.catalog",
+                "finance.emailConnections",
+                "ai.sessions",
+                "notifications",
+                "settings.defaults"
+              ]
+            }
+          }
+        },
+        "required": [
+          "layers"
+        ]
+      },
+      "ChangeBaseCurrencyDto": {
+        "type": "object",
+        "properties": {
+          "baseCurrency": {
+            "type": "string",
+            "example": "USD",
+            "description": "New ISO-3 base currency"
+          }
+        },
+        "required": [
+          "baseCurrency"
+        ]
+      },
       "CreateAccountDto": {
         "type": "object",
         "properties": {
@@ -3146,8 +3285,19 @@
           "color": {
             "type": "string"
           },
+          "type": {
+            "type": "string",
+            "enum": [
+              "EXPENSE",
+              "INCOME",
+              "TRANSFER"
+            ],
+            "default": "EXPENSE",
+            "description": "EXPENSE or INCOME. Defaults to EXPENSE when omitted."
+          },
           "parentId": {
-            "type": "string"
+            "type": "string",
+            "nullable": true
           }
         }
       },

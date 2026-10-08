@@ -2,6 +2,15 @@ import { Injectable } from '@nestjs/common';
 import type { AuthDeletionOutboxStatus, Prisma } from '@personal-os/database';
 import { PrismaService } from '@personal-os/database';
 import type { UsersRepositoryPort } from '../application/ports/users.repository.port';
+import { GLOBAL_USER_PREFERENCES_DEFAULTS } from '../domain/defaults/global-preferences-defaults';
+import {
+  DEFAULT_MODULE_CONFIG_BY_SLUG,
+  isModuleSlug,
+} from '../domain/defaults/user-settings-defaults';
+
+const FINANCE_MODULE_SLUG = 'finance';
+const EMAIL_SYNC_CONFIG_KEY = 'emailSync';
+const EMAIL_SYNC_AUTOMATIC_KEY = 'automatic';
 
 const userWithModulesInclude = {
   userModules: {
@@ -109,6 +118,66 @@ export class UsersRepository implements UsersRepositoryPort {
   deleteById(id: string) {
     return this.prisma.user.delete({
       where: { id },
+    });
+  }
+
+  async resetSettingsToDefaults(userId: string): Promise<void> {
+    await this.prisma.$transaction(async (tx) => {
+      await tx.user.update({
+        where: { id: userId },
+        data: {
+          preferences: GLOBAL_USER_PREFERENCES_DEFAULTS,
+        },
+      });
+      const modules = await tx.module.findMany({
+        select: { id: true, slug: true },
+      });
+      for (const module of modules) {
+        if (!isModuleSlug(module.slug)) {
+          continue;
+        }
+        await tx.userModule.updateMany({
+          where: { userId, moduleId: module.id },
+          data: {
+            config: DEFAULT_MODULE_CONFIG_BY_SLUG[module.slug],
+          },
+        });
+      }
+    });
+  }
+
+  /** Ledger wipe pauses the cron so it cannot refill the ledger right away. */
+  async pauseFinanceEmailSyncAutomatic(userId: string): Promise<void> {
+    const financeModule = await this.prisma.module.findUnique({
+      where: { slug: FINANCE_MODULE_SLUG },
+      select: { id: true },
+    });
+    if (!financeModule) {
+      return;
+    }
+    const userModule = await this.prisma.userModule.findUnique({
+      where: { userId_moduleId: { userId, moduleId: financeModule.id } },
+      select: { id: true, config: true },
+    });
+    if (!userModule) {
+      return;
+    }
+    const config = (userModule.config ?? {}) as Record<string, unknown>;
+    const emailSync = (config[EMAIL_SYNC_CONFIG_KEY] ?? {}) as Record<
+      string,
+      unknown
+    >;
+    await this.prisma.userModule.update({
+      where: { id: userModule.id },
+      data: {
+        config: {
+          ...config,
+          [EMAIL_SYNC_CONFIG_KEY]: {
+            ...emailSync,
+            [EMAIL_SYNC_AUTOMATIC_KEY]: false,
+          },
+        },
+      },
     });
   }
 

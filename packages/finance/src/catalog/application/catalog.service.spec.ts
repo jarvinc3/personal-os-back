@@ -5,9 +5,7 @@ import type { PurgeInstrumentLedgerUseCase } from '../../ledger/application/purg
 import { BadRequestException, ConflictException } from '@nestjs/common';
 
 function ownershipMock(
-  overrides: Partial<{
-    assertInstitutionCanArchive: jest.Mock;
-  }> = {},
+  overrides: Partial<Record<keyof FinanceOwnershipService, jest.Mock>> = {},
 ): FinanceOwnershipService {
   return {
     assertInstitutionOwned: jest.fn((_userId: string, id: string) => {
@@ -402,7 +400,12 @@ describe('CatalogService categories', () => {
     createCategory,
     updateCategory,
   } as unknown as CatalogRepository;
-  const ownership = ownershipMock();
+  const assertParentCategory = jest.fn();
+  const assertCategoryVisible = jest.fn();
+  const ownership = ownershipMock({
+    assertParentCategory,
+    assertCategoryVisible,
+  });
   const service = new CatalogService(repo, ownership, purgeMock());
 
   beforeEach(() => {
@@ -425,7 +428,7 @@ describe('CatalogService categories', () => {
   });
 
   it('rejects an INCOME child under an EXPENSE parent', async () => {
-    (ownership.assertParentCategory as jest.Mock).mockRejectedValue(
+    assertParentCategory.mockRejectedValue(
       new BadRequestException('Parent category must have the same type'),
     );
 
@@ -439,21 +442,102 @@ describe('CatalogService categories', () => {
     expect(createCategory).not.toHaveBeenCalled();
   });
 
-  it('does not write type on update', async () => {
+  it('changes type on a root and cascades it to children', async () => {
+    assertCategoryVisible.mockResolvedValue({
+      id: 'cat-1',
+      parentId: null,
+      type: 'EXPENSE',
+    });
     updateCategory.mockResolvedValue({
       id: 'cat-1',
       name: 'Mercado',
+      type: 'INCOME',
+      parentId: null,
+    });
+
+    await service.updateCategory('user-1', 'cat-1', {
+      name: 'Mercado',
+      type: 'INCOME',
+    });
+
+    expect(updateCategory).toHaveBeenCalledWith(
+      'user-1',
+      'cat-1',
+      {
+        name: 'Mercado',
+        icon: undefined,
+        color: undefined,
+        parentId: undefined,
+        type: 'INCOME',
+      },
+      'INCOME',
+    );
+  });
+
+  it('rejects a type change while the category still has a parent', async () => {
+    assertCategoryVisible.mockResolvedValue({
+      id: 'cat-1',
+      parentId: 'parent-1',
       type: 'EXPENSE',
     });
 
-    await service.updateCategory('user-1', 'cat-1', { name: 'Mercado' });
+    await expect(
+      service.updateCategory('user-1', 'cat-1', { type: 'INCOME' }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(updateCategory).not.toHaveBeenCalled();
+  });
 
-    expect(updateCategory).toHaveBeenCalledWith('user-1', 'cat-1', {
-      name: 'Mercado',
-      icon: undefined,
-      color: undefined,
-      parentId: undefined,
+  it('clears parentId when the patch sends null', async () => {
+    assertCategoryVisible.mockResolvedValue({
+      id: 'cat-1',
+      parentId: 'parent-1',
+      type: 'EXPENSE',
     });
+    updateCategory.mockResolvedValue({
+      id: 'cat-1',
+      parentId: null,
+      type: 'EXPENSE',
+    });
+
+    await service.updateCategory('user-1', 'cat-1', { parentId: null });
+
+    expect(assertParentCategory).not.toHaveBeenCalled();
+    expect(updateCategory).toHaveBeenCalledWith(
+      'user-1',
+      'cat-1',
+      {
+        name: undefined,
+        icon: undefined,
+        color: undefined,
+        parentId: null,
+      },
+      undefined,
+    );
+  });
+
+  it('checks a new parent against the resulting type', async () => {
+    assertParentCategory.mockResolvedValue({
+      id: 'parent-2',
+    });
+    assertCategoryVisible.mockResolvedValue({
+      id: 'cat-1',
+      parentId: null,
+      type: 'EXPENSE',
+    });
+    updateCategory.mockResolvedValue({
+      id: 'cat-1',
+      parentId: 'parent-2',
+      type: 'EXPENSE',
+    });
+
+    await service.updateCategory('user-1', 'cat-1', { parentId: 'parent-2' });
+
+    expect(assertParentCategory).toHaveBeenCalledWith(
+      'user-1',
+      'parent-2',
+      'cat-1',
+      'EXPENSE',
+    );
   });
 
   it('passes type filter to the repository', async () => {

@@ -167,6 +167,22 @@ export class LogoService implements OnApplicationBootstrap {
     return this.storage.publicUrl(path);
   }
 
+  /** Best-effort: a storage failure must not abort a data wipe. */
+  async deleteCustomLogo(path: string): Promise<void> {
+    if (!this.storage.isAvailable()) {
+      return;
+    }
+    try {
+      await this.storage.remove(path);
+    } catch (error) {
+      this.log.warn(
+        `Custom logo removal failed for ${path}: ${
+          error instanceof Error ? error.message : 'unknown error'
+        }`,
+      );
+    }
+  }
+
   /** custom logo, then shared brand file, then a legacy external URL. */
   resolveUrl(row?: LogoRow | null): string | null {
     if (!row) {

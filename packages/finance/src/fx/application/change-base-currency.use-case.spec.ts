@@ -1,0 +1,162 @@
+import { BadRequestException } from '@nestjs/common';
+import { AppEvents } from '@personal-os/core';
+import { ChangeBaseCurrencyUseCase } from './change-base-currency.use-case';
+
+type MockPrisma = {
+  module: { findUnique: jest.Mock };
+  userModule: { findUnique: jest.Mock; update: jest.Mock };
+  finTransaction: { findMany: jest.Mock; update: jest.Mock };
+  finBudget: { findMany: jest.Mock; update: jest.Mock };
+  $transaction: jest.Mock;
+};
+
+function buildPrisma(): MockPrisma {
+  const prisma: MockPrisma = {
+    module: { findUnique: jest.fn().mockResolvedValue({ id: 'mod-finance' }) },
+    userModule: {
+      findUnique: jest.fn().mockResolvedValue({
+        id: 'um-1',
+        config: { baseCurrency: 'DOP', trackedCurrencies: ['USD', 'EUR'] },
+      }),
+      update: jest.fn(),
+    },
+    finTransaction: {
+      findMany: jest.fn().mockResolvedValue([
+        {
+          id: 'tx-usd',
+          amount: 10,
+          currency: 'USD',
+          transactionDate: new Date('2026-08-10T12:00:00Z'),
+          type: 'DEBIT',
+          status: 'CONFIRMED',
+          categoryId: 'cat-1',
+        },
+        {
+          id: 'tx-dop',
+          amount: 100,
+          currency: 'DOP',
+          transactionDate: new Date('2026-08-10T12:00:00Z'),
+          type: 'DEBIT',
+          status: 'CONFIRMED',
+          categoryId: 'cat-1',
+        },
+      ]),
+      update: jest.fn(),
+    },
+    finBudget: {
+      findMany: jest.fn().mockResolvedValue([
+        {
+          id: 'b-1',
+          categoryId: 'cat-1',
+          periodStart: new Date('2026-08-01'),
+          periodEnd: new Date('2026-08-31'),
+          amountLimit: 1000,
+        },
+      ]),
+      update: jest.fn(),
+    },
+    $transaction: jest.fn(),
+  };
+  prisma.$transaction.mockImplementation(
+    (callback: (client: MockPrisma) => unknown) => callback(prisma),
+  );
+  return prisma;
+}
+
+describe('ChangeBaseCurrencyUseCase', () => {
+  let prisma: MockPrisma;
+  let getHistoricalRate: jest.Mock;
+  let emit: jest.Mock;
+
+  const config = { get: jest.fn().mockReturnValue('DOP') };
+  const createUseCase = () =>
+    new ChangeBaseCurrencyUseCase(
+      prisma as never,
+      { getHistoricalRate } as never,
+      config as never,
+      { emit } as never,
+    );
+
+  beforeEach(() => {
+    prisma = buildPrisma();
+    getHistoricalRate = jest.fn();
+    emit = jest.fn();
+  });
+
+  it('is a 200 no-op when the code equals the current base', async () => {
+    const changeResult = await createUseCase().execute('user-1', 'DOP');
+
+    expect(changeResult).toEqual({
+      baseCurrency: 'DOP',
+      previousBaseCurrency: 'DOP',
+      rebasedTransactions: 0,
+      rebasedBudgets: 0,
+    });
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+    expect(getHistoricalRate).not.toHaveBeenCalled();
+  });
+
+  it('rejects an invalid currency code before any query', async () => {
+    await expect(
+      createUseCase().execute('user-1', 'US'),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+
+  it('aborts with 400 and writes nothing when a rate is missing', async () => {
+    getHistoricalRate.mockResolvedValue({
+      ok: false,
+      code: 'RATE_UNAVAILABLE',
+      message: 'missing',
+      retryable: true,
+    });
+
+    await expect(
+      createUseCase().execute('user-1', 'USD'),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+    expect(prisma.finTransaction.update).not.toHaveBeenCalled();
+  });
+
+  it('rebases transactions, budgets and config in one transaction', async () => {
+    getHistoricalRate.mockResolvedValue({
+      ok: true,
+      rate: 0.5,
+      source: 'cache',
+    });
+
+    const changeResult = await createUseCase().execute('user-1', 'USD');
+
+    expect(changeResult).toEqual({
+      baseCurrency: 'USD',
+      previousBaseCurrency: 'DOP',
+      rebasedTransactions: 2,
+      rebasedBudgets: 1,
+    });
+    expect(prisma.finTransaction.update).toHaveBeenCalledWith({
+      where: { id: 'tx-usd' },
+      data: { amountBaseCurrency: 10 },
+    });
+    expect(prisma.finTransaction.update).toHaveBeenCalledWith({
+      where: { id: 'tx-dop' },
+      data: { amountBaseCurrency: 50 },
+    });
+    expect(prisma.finBudget.update).toHaveBeenCalledWith({
+      where: { id: 'b-1' },
+      data: { amountLimit: 500, amountSpent: 60 },
+    });
+    expect(prisma.userModule.update).toHaveBeenCalledWith({
+      where: { id: 'um-1' },
+      data: {
+        config: expect.objectContaining({
+          baseCurrency: 'USD',
+          trackedCurrencies: ['DOP', 'EUR'],
+        }),
+      },
+    });
+    expect(emit).toHaveBeenCalledWith(AppEvents.MODULE_CONFIG_UPDATED, {
+      userId: 'user-1',
+      slug: 'finance',
+    });
+  });
+});

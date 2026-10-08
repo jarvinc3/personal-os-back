@@ -1,4 +1,13 @@
-import { Body, Controller, Delete, Get, Param, Patch } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  Param,
+  Patch,
+  Post,
+} from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiOkResponse,
@@ -8,13 +17,18 @@ import {
 import { CurrentUser } from '@personal-os/core';
 import { UpdateModuleConfigDto } from './dto/update-module-config.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
+import { WipeUserDataDto } from './dto/wipe-user-data.dto';
 import { UsersService } from '../application/users.service';
+import { WipeUserDataUseCase } from '../application/wipe-user-data.use-case';
 
 @ApiTags('users')
 @ApiBearerAuth('access-token')
 @Controller('users')
 export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(
+    private readonly usersService: UsersService,
+    private readonly wipeUserData: WipeUserDataUseCase,
+  ) {}
 
   @Get('me')
   @ApiOperation({ summary: 'Get authenticated user profile' })
@@ -51,5 +65,15 @@ export class UsersController {
   @ApiOkResponse({ description: 'Account deleted successfully' })
   deleteMyAccount(@CurrentUser('sub') userId: string) {
     return this.usersService.deleteAccount(userId);
+  }
+
+  @Post('me/data/wipe')
+  @HttpCode(200)
+  @ApiOperation({
+    summary: 'Wipe selected data layers without closing the account',
+  })
+  @ApiOkResponse({ description: 'Requested and applied layers with counts' })
+  wipeMyData(@CurrentUser('sub') userId: string, @Body() dto: WipeUserDataDto) {
+    return this.wipeUserData.execute(userId, dto.layers);
   }
 }

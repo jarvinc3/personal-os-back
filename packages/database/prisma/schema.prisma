@@ -174,7 +174,7 @@ model FinAccount {
   createdAt      DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt      DateTime         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   user           User             @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  institutionRef FinInstitution?  @relation(fields: [institutionId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  institutionRef FinInstitution?  @relation(fields: [institutionId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   cards          FinCard[]
   transactions   FinTransaction[]
   finLoans       FinLoan[]
@@ -224,7 +224,7 @@ model FinEmailSource {
   logs          FinEmailSyncLog[]
   emailMessages FinEmailMessage[]
   connection    FinEmailConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  institution   FinInstitution     @relation(fields: [institutionId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  institution   FinInstitution     @relation(fields: [institutionId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   user          User               @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@unique([connectionId, institutionId], map: "fin_email_sources_connection_institution_key")
@@ -269,8 +269,8 @@ model FinTransaction {
   source               FinTransactionSource @default(MANUAL)
   createdAt            DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt            DateTime             @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
-  account              FinAccount?          @relation(fields: [accountId], references: [id], onDelete: Restrict, onUpdate: NoAction)
-  card                 FinCard?             @relation(fields: [cardId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  account              FinAccount?          @relation(fields: [accountId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  card                 FinCard?             @relation(fields: [cardId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   category             FinCategory?         @relation(fields: [categoryId], references: [id], onDelete: SetNull, onUpdate: NoAction)
   emailMessage         FinEmailMessage?     @relation(fields: [emailMessageId], references: [id], onDelete: SetNull, onUpdate: NoAction)
   user                 User                 @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
@@ -301,7 +301,7 @@ model FinCategory {
   createdAt    DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt    DateTime              @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   budgets      FinBudget[]
-  parent       FinCategory?          @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  parent       FinCategory?          @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   children     FinCategory[]         @relation("CategoryHierarchy")
   user         User?                 @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   recurring    FinRecurringPattern[]
@@ -327,7 +327,7 @@ model FinBudget {
   aiSuggestionPayload Json?               @map("ai_suggestion_payload")
   createdAt           DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
   alerts              FinBudgetAlert[]
-  category            FinCategory         @relation(fields: [categoryId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  category            FinCategory         @relation(fields: [categoryId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   user                User                @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@unique([userId, categoryId, periodStart, periodEnd], map: "fin_budgets_user_category_period_key")
@@ -429,9 +429,9 @@ model FinCard {
   isActive            Boolean          @default(true) @map("is_active")
   createdAt           DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt           DateTime         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
-  account             FinAccount?      @relation(fields: [accountId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  account             FinAccount?      @relation(fields: [accountId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   balances            FinCardBalance[]
-  institution         FinInstitution   @relation(fields: [institutionId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  institution         FinInstitution   @relation(fields: [institutionId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   transactions        FinTransaction[]
   user                User             @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
@@ -495,8 +495,8 @@ model FinLoan {
   isActive          Boolean            @default(true) @map("is_active")
   createdAt         DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt         DateTime           @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
-  account           FinAccount?        @relation(fields: [accountId], references: [id], onDelete: SetNull, onUpdate: NoAction)
-  institution       FinInstitution?    @relation(fields: [institutionId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  account           FinAccount?        @relation(fields: [accountId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  institution       FinInstitution?    @relation(fields: [institutionId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   user              User               @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([userId, isActive, nextDueDate], map: "fin_loans_user_id_active_due_idx")

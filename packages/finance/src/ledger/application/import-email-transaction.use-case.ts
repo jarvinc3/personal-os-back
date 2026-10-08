@@ -2,6 +2,7 @@ import { randomUUID } from 'crypto';
 import { Inject, Injectable } from '@nestjs/common';
 import { FinanceOutboxDispatcher } from '../../events/infrastructure/finance-outbox.dispatcher';
 import { ResolveAmountsUseCase } from '../../fx/application/resolve-amounts.use-case';
+import { ResolveUserBaseCurrencyUseCase } from '../../fx/application/resolve-user-base-currency';
 import { LEDGER_REPOSITORY } from '../../shared/application/tokens';
 import {
   TRANSFER_STATUS,
@@ -45,6 +46,7 @@ export class ImportEmailTransactionUseCase {
     @Inject(LEDGER_REPOSITORY)
     private readonly repo: LedgerRepositoryPort,
     private readonly resolveAmounts: ResolveAmountsUseCase,
+    private readonly baseCurrency: ResolveUserBaseCurrencyUseCase,
     private readonly outboxDispatcher: FinanceOutboxDispatcher,
   ) {}
 
@@ -56,10 +58,12 @@ export class ImportEmailTransactionUseCase {
       data.cardId,
       data.currency,
     );
+    const baseCurrency = await this.baseCurrency.execute(userId);
     const amounts = await this.resolveAmounts.execute({
       amount: data.amount,
       currency: data.currency,
       ledgerCurrency,
+      baseCurrency,
       transactionDate: data.transactionDate,
     });
 
@@ -97,16 +101,19 @@ export class ImportEmailTransactionUseCase {
       undefined,
       data.currency,
     );
+    const baseCurrency = await this.baseCurrency.execute(userId);
     const fromAmounts = await this.resolveAmounts.execute({
       amount: data.amount,
       currency: data.currency,
       ledgerCurrency: fromLedgerCurrency,
+      baseCurrency,
       transactionDate: data.transactionDate,
     });
     const toAmounts = await this.resolveAmounts.execute({
       amount: data.amount,
       currency: data.currency,
       ledgerCurrency: toLedgerCurrency,
+      baseCurrency,
       transactionDate: data.transactionDate,
     });
     const created = await this.repo.createTransfer(
@@ -152,10 +159,12 @@ export class ImportEmailTransactionUseCase {
       undefined,
       data.currency,
     );
+    const baseCurrency = await this.baseCurrency.execute(userId);
     const amounts = await this.resolveAmounts.execute({
       amount: data.amount,
       currency: data.currency,
       ledgerCurrency,
+      baseCurrency,
       transactionDate: data.transactionDate,
     });
     const created = await this.repo.addEmailTransferCounterpart(

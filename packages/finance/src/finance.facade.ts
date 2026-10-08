@@ -20,6 +20,8 @@ import type { CreateSavingsGoalDto } from './planning/presentation/dto/create-sa
 import type { UpdateBudgetDto } from './planning/presentation/dto/update-budget.dto';
 import type { UpdateLoanDto } from './planning/presentation/dto/update-loan.dto';
 import type { UpdateSavingsGoalDto } from './planning/presentation/dto/update-savings-goal.dto';
+import { WipeFinanceUserDataUseCase } from './shared/application/wipe-finance-user-data.use-case';
+import type { FinanceWipeLayer } from './shared/domain/finance-wipe-layers';
 
 /**
  * Stable public API for AI tools and external modules.
@@ -38,6 +40,7 @@ export class FinanceFacade {
     private readonly planning: PlanningService,
     private readonly analytics: AnalyticsService,
     private readonly ingestion: IngestionService,
+    private readonly wipeFinance: WipeFinanceUserDataUseCase,
   ) {}
 
   listAccounts(userId: string) {
@@ -152,5 +155,9 @@ export class FinanceFacade {
 
   getSpendingByCategory(userId: string, dateFrom?: string, dateTo?: string) {
     return this.analytics.getSpendingByCategory(userId, dateFrom, dateTo);
+  }
+
+  wipeUserData(userId: string, layers: readonly FinanceWipeLayer[]) {
+    return this.wipeFinance.execute(userId, layers);
   }
 }

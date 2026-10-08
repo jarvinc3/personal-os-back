@@ -11,11 +11,20 @@ import {
   DOMAIN_EVENT_PUBLISHER,
 } from '../../shared/application/tokens';
 import type { BudgetSpendSnapshot } from '../../shared/domain/budget-snapshot';
-import { transactionCreatedEventName } from '../../shared/domain/mappers';
+import {
+  notificationTransactionPayload,
+  transactionCreatedEventName,
+} from '../../shared/domain/mappers';
 import { EMAIL_DUPLICATE_DATE_TOLERANCE_MS } from '../../shared/domain/email-dedupe';
 import type { ResolvedAmounts } from '../../shared/domain/money';
 import { normalizeCurrencyCode } from '../../shared/domain/money';
 import { statusAffectsLedger } from '../../shared/domain/transaction-status';
+
+const transactionNotificationInclude = {
+  account: { select: { name: true } },
+  card: { select: { name: true } },
+  category: { select: { name: true, icon: true, color: true } },
+} satisfies Prisma.FinTransactionInclude;
 
 const transactionPartyInclude = {
   account: {
@@ -376,13 +385,11 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
         });
       }
 
-      await this.enqueueTransactionCreated(
+      await this.enqueueTransactionEvent(
         tx,
         userId,
+        transactionCreatedEventName(created.status),
         created.id,
-        Number(created.amount),
-        created.status,
-        created.source,
       );
       await this.thresholds?.processThresholds(userId, budgetSnapshots, tx);
 
@@ -474,13 +481,11 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
           });
         }
 
-        await this.enqueueTransactionCreated(
+        await this.enqueueTransactionEvent(
           tx,
           userId,
+          transactionCreatedEventName(created.status),
           created.id,
-          Number(created.amount),
-          created.status,
-          source,
         );
         return created as LedgerTransactionRow;
       };
@@ -638,19 +643,11 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
         });
       }
 
-      await this.events.enqueue(
-        {
-          eventName: AppEvents.FINANCE_TRANSACTION_UPDATED,
-          aggregateType: 'FinTransaction',
-          aggregateId: updated.id,
-          userId,
-          payload: {
-            transactionId: updated.id,
-            amount: Number(updated.amount),
-            status: updated.status,
-          },
-        },
+      await this.enqueueTransactionEvent(
         tx,
+        userId,
+        AppEvents.FINANCE_TRANSACTION_UPDATED,
+        updated.id,
       );
       await this.thresholds?.processThresholds(userId, budgetSnapshots, tx);
 
@@ -833,34 +830,17 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
         return null;
       }
 
-      await this.events.enqueue(
-        {
-          eventName: AppEvents.FINANCE_TRANSACTION_CONFIRMED,
-          aggregateType: 'FinTransaction',
-          aggregateId: updated.id,
-          userId,
-          payload: {
-            transactionId: updated.id,
-            amount: Number(updated.amount),
-            status: updated.status,
-            source: updated.source,
-          },
-        },
+      await this.enqueueTransactionEvent(
         tx,
+        userId,
+        AppEvents.FINANCE_TRANSACTION_CONFIRMED,
+        updated.id,
       );
-      await this.events.enqueue(
-        {
-          eventName: AppEvents.FINANCE_TRANSACTION_UPDATED,
-          aggregateType: 'FinTransaction',
-          aggregateId: updated.id,
-          userId,
-          payload: {
-            transactionId: updated.id,
-            amount: Number(updated.amount),
-            status: updated.status,
-          },
-        },
+      await this.enqueueTransactionEvent(
         tx,
+        userId,
+        AppEvents.FINANCE_TRANSACTION_UPDATED,
+        updated.id,
       );
       await this.thresholds?.processThresholds(userId, budgetSnapshots, tx);
 
@@ -881,6 +861,7 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
       });
 
       const budgetSnapshots: BudgetSpendSnapshot[] = [];
+      const confirmedTransactionIds: string[] = [];
 
       for (const row of rows) {
         const ctx = await this.loadCardContext(tx, userId, row.cardId);
@@ -902,28 +883,21 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
           transactionDate: row.transactionDate,
         });
         budgetSnapshots.push(...snaps);
-
-        await this.events.enqueue(
-          {
-            eventName: AppEvents.FINANCE_TRANSACTION_CONFIRMED,
-            aggregateType: 'FinTransaction',
-            aggregateId: row.id,
-            userId,
-            payload: {
-              transactionId: row.id,
-              amount: Number(row.amount),
-              status: 'CONFIRMED',
-              source: row.source,
-            },
-          },
-          tx,
-        );
+        confirmedTransactionIds.push(row.id);
       }
 
       const result = await tx.finTransaction.updateMany({
         where: { userId, transferGroupId, status: 'PENDING' },
         data: { status: 'CONFIRMED' },
       });
+      for (const transactionId of confirmedTransactionIds) {
+        await this.enqueueTransactionEvent(
+          tx,
+          userId,
+          AppEvents.FINANCE_TRANSACTION_CONFIRMED,
+          transactionId,
+        );
+      }
 
       await this.thresholds?.processThresholds(userId, budgetSnapshots, tx);
       return { count: result.count, budgetSnapshots };
@@ -1068,13 +1042,11 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
         });
       }
 
-      await this.enqueueTransactionCreated(
+      await this.enqueueTransactionEvent(
         tx,
         userId,
+        transactionCreatedEventName(created.status),
         created.id,
-        Number(created.amount),
-        created.status,
-        'EMAIL',
       );
       await this.thresholds?.processThresholds(userId, budgetSnapshots, tx);
 
@@ -1246,13 +1218,11 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
         });
       }
 
-      await this.enqueueTransactionCreated(
+      await this.enqueueTransactionEvent(
         tx,
         userId,
+        transactionCreatedEventName(created.status),
         created.id,
-        Number(created.amount),
-        created.status,
-        'EMAIL',
       );
       await this.events.enqueue(
         {
@@ -1418,21 +1388,27 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
     );
   }
 
-  private async enqueueTransactionCreated(
+  private async enqueueTransactionEvent(
     tx: TxClient,
     userId: string,
+    eventName: string,
     transactionId: string,
-    amount: number,
-    status: string,
-    source: string,
   ) {
+    const row = await tx.finTransaction.findFirst({
+      where: { id: transactionId, userId },
+      include: transactionNotificationInclude,
+    });
+    if (!row) {
+      return;
+    }
+
     await this.events.enqueue(
       {
-        eventName: transactionCreatedEventName(status),
+        eventName,
         aggregateType: 'FinTransaction',
         aggregateId: transactionId,
         userId,
-        payload: { transactionId, amount, status, source },
+        payload: notificationTransactionPayload(row),
       },
       tx,
     );

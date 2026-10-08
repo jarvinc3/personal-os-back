@@ -1054,6 +1054,90 @@ describe('Finance (e2e)', () => {
       });
   });
 
+  it('GET /api/finance/balance-sheet uses the user finance base currency', async () => {
+    prismaMock.userModule.findFirst.mockResolvedValue({
+      id: 'um-finance',
+      isEnabled: true,
+      config: { baseCurrency: 'USD' },
+    });
+    prismaMock.finInstitution.findMany.mockResolvedValue([]);
+    prismaMock.finAccount.findMany.mockResolvedValue([
+      { id: 'acc-1', institutionId: null, currency: 'DOP', balance: 100 },
+    ]);
+    prismaMock.finCardBalance.findMany.mockResolvedValue([]);
+    prismaMock.finLoan.findMany.mockResolvedValue([]);
+    prismaMock.finExchangeRate.findUnique.mockResolvedValue({
+      rate: { toString: () => '0.5' },
+    });
+
+    await request(app.getHttpServer())
+      .get('/api/finance/balance-sheet')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.data.baseCurrency).toBe('USD');
+        expect(res.body.data.global.assets.accounts).toBe('50');
+      });
+  });
+
+  it('GET /api/finance/exchange-rates returns market rates in the base currency', async () => {
+    prismaMock.finExchangeRate.findUnique
+      .mockResolvedValueOnce({ rate: { toString: () => '68.39' } })
+      .mockResolvedValueOnce({ rate: { toString: () => '74.12' } });
+
+    await request(app.getHttpServer())
+      .get('/api/finance/exchange-rates')
+      .query({ base: 'DOP', quotes: 'USD,EUR' })
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.data.baseCurrency).toBe('DOP');
+        expect(res.body.data.rates).toEqual([
+          { currency: 'USD', rate: '68.39' },
+          { currency: 'EUR', rate: '74.12' },
+        ]);
+      });
+  });
+
+  it('POST /api/finance/base-currency rebases and updates the config', async () => {
+    prismaMock.module.findUnique.mockResolvedValue({ id: 'mod-finance' });
+    prismaMock.userModule.findUnique.mockResolvedValue({
+      id: 'um-finance',
+      config: { baseCurrency: 'DOP', trackedCurrencies: ['USD', 'EUR'] },
+    });
+    prismaMock.finTransaction.findMany.mockResolvedValue([
+      {
+        id: 'tx-1',
+        amount: 100,
+        currency: 'DOP',
+        transactionDate: new Date('2026-08-10T12:00:00.000Z'),
+        type: 'DEBIT',
+        status: 'CONFIRMED',
+        categoryId: null,
+      },
+    ]);
+    prismaMock.finBudget.findMany.mockResolvedValue([]);
+    prismaMock.finExchangeRate.findUnique.mockResolvedValue({
+      rate: { toString: () => '0.5' },
+    });
+
+    await request(app.getHttpServer())
+      .post('/api/finance/base-currency')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ baseCurrency: 'USD' })
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.data).toMatchObject({
+          baseCurrency: 'USD',
+          previousBaseCurrency: 'DOP',
+          rebasedTransactions: 1,
+          rebasedBudgets: 0,
+        });
+      });
+
+    expect(prismaMock.$transaction).toHaveBeenCalled();
+  });
+
   it('GET /api/finance/analytics/spending-by-category includes category metadata', async () => {
     prismaMock.finTransaction.groupBy.mockResolvedValue([
       {

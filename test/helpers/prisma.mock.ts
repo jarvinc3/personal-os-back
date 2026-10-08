@@ -212,6 +212,9 @@ function createTransactionClient() {
     user: {
       delete: jest.fn().mockResolvedValue({ id: 'user-123' }),
     },
+    userModule: {
+      update: jest.fn().mockResolvedValue({}),
+    },
   };
 }
 

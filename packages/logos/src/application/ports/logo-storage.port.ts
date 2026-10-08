@@ -10,5 +10,6 @@ export interface LogoStoragePort {
   isAvailable(): boolean;
   exists(prefix: string, filename: string): Promise<boolean>;
   upload(path: string, body: Buffer, options: LogoUploadOptions): Promise<void>;
+  remove(path: string): Promise<void>;
   publicUrl(path: string): string | null;
 }

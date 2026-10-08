@@ -23,6 +23,9 @@ export const AppEvents = {
   MODULE_ENABLED: 'module.enabled',
   MODULE_DISABLED: 'module.disabled',
   MODULE_CONFIG_UPDATED: 'module.config.updated',
+
+  // ── Self-service data wipe ─────────────────────────────
+  USER_DATA_WIPED: 'user.data.wiped',
 } as const;
 
 export type AppEventName = (typeof AppEvents)[keyof typeof AppEvents];

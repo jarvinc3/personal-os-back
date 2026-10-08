@@ -1,6 +1,7 @@
 import { BadRequestException } from '@nestjs/common';
 import type { FinanceOutboxDispatcher } from '../../events/infrastructure/finance-outbox.dispatcher';
 import type { ResolveAmountsUseCase } from '../../fx/application/resolve-amounts.use-case';
+import type { ResolveUserBaseCurrencyUseCase } from '../../fx/application/resolve-user-base-currency';
 import { UpdateTransactionUseCase } from './update-transaction.use-case';
 import type {
   LedgerRepositoryPort,
@@ -48,6 +49,10 @@ describe('UpdateTransactionUseCase category type', () => {
     execute: jest.fn(),
   } as unknown as ResolveAmountsUseCase;
 
+  const baseCurrency = {
+    execute: jest.fn().mockResolvedValue('DOP'),
+  } as unknown as ResolveUserBaseCurrencyUseCase;
+
   const outboxDispatcher = {
     processBatch: jest.fn(),
   } as unknown as FinanceOutboxDispatcher;
@@ -60,6 +65,7 @@ describe('UpdateTransactionUseCase category type', () => {
   const useCase = new UpdateTransactionUseCase(
     repo,
     resolveAmounts,
+    baseCurrency,
     outboxDispatcher,
     ownership as never,
   );

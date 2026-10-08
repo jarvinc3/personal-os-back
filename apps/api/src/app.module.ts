@@ -19,6 +19,7 @@ import { CoreModule } from '@personal-os/core';
 import { getBullBoardImports } from '@personal-os/core';
 import { QueueNames } from '@personal-os/core';
 import { HealthModule } from './health/health.module';
+import { UserDataWipeModule } from './user-data-wipe/user-data-wipe.module';
 import { AiModule } from '@personal-os/ai-agent';
 import { AuthModule } from '@personal-os/auth';
 import { FinanceModule } from '@personal-os/finance';
@@ -137,6 +138,7 @@ const bullBoardEnabled = isBullBoardEnabledFromProcessEnv();
     CoreModule,
     HealthModule,
     UsersModule,
+    UserDataWipeModule,
     FinanceModule,
     NotificationsModule,
     AiModule,

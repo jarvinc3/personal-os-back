@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import type { Env } from '@personal-os/config';
 import { ResolveAmountsUseCase } from '../../fx/application/resolve-amounts.use-case';
+import { ResolveUserBaseCurrencyUseCase } from '../../fx/application/resolve-user-base-currency';
 import { decimalToString } from '../../shared/domain/mappers';
 import { roundMoney } from '../../shared/domain/money';
 import { BalanceSheetRepository } from '../infrastructure/balance-sheet.repository';
@@ -96,13 +95,13 @@ export class BalanceSheetService {
   constructor(
     private readonly repo: BalanceSheetRepository,
     private readonly resolveAmounts: ResolveAmountsUseCase,
-    private readonly config: ConfigService<Env, true>,
+    private readonly baseCurrency: ResolveUserBaseCurrencyUseCase,
   ) {}
 
   async getBalanceSheet(userId: string): Promise<FinanceBalanceSheet> {
     const asOf = new Date();
     const rateDate = asOf.toISOString().slice(0, 10);
-    const baseCurrency = this.config.get('BASE_CURRENCY', { infer: true });
+    const baseCurrency = await this.baseCurrency.execute(userId);
     const { institutions, accounts, cardBalances, loans } =
       await this.repo.loadPositions(userId);
 
@@ -113,7 +112,7 @@ export class BalanceSheetService {
     }
 
     const convert = (amount: number, currency: string) =>
-      this.resolveAmounts.toBaseCurrency(amount, currency, asOf);
+      this.resolveAmounts.toBaseCurrency(amount, currency, baseCurrency, asOf);
 
     for (const account of accounts) {
       const amount = await convert(toNumber(account.balance), account.currency);

@@ -29,7 +29,21 @@ describe('PrismaLedgerRepository outbox-in-TX', () => {
     const prisma = {
       $transaction: jest.fn(async (fn: (tx: unknown) => Promise<unknown>) => {
         const tx = {
-          finTransaction: { create: finTransactionCreate },
+          finTransaction: {
+            create: finTransactionCreate,
+            findFirst: jest.fn().mockResolvedValue({
+              id: 'tx-1',
+              amount: 10,
+              status: 'CONFIRMED',
+              source: 'MANUAL',
+              currency: 'DOP',
+              type: 'DEBIT',
+              merchant: null,
+              account: null,
+              card: null,
+              category: null,
+            }),
+          },
           finAccount: {
             findFirst: jest.fn().mockResolvedValue({
               id: 'acc-1',
@@ -66,6 +80,18 @@ describe('PrismaLedgerRepository outbox-in-TX', () => {
           finCardBalance: { upsert: jest.fn() },
           finTransaction: {
             create: finTransactionCreate,
+            findFirst: jest.fn().mockResolvedValue({
+              id: 'tx-1',
+              amount: 10,
+              status: 'CONFIRMED',
+              source: 'MANUAL',
+              currency: 'DOP',
+              type: 'DEBIT',
+              merchant: null,
+              account: null,
+              card: null,
+              category: null,
+            }),
           },
           finBudget: {
             findMany: jest.fn().mockResolvedValue([]),
@@ -161,7 +187,21 @@ describe('PrismaLedgerRepository outbox-in-TX', () => {
           },
           finCard: { findFirst: jest.fn() },
           finCardBalance: { upsert: jest.fn() },
-          finTransaction: { create: finTransactionCreate },
+          finTransaction: {
+            create: finTransactionCreate,
+            findFirst: jest.fn().mockResolvedValue({
+              id: 'leg-1',
+              amount: 50,
+              status: 'CONFIRMED',
+              source: 'MANUAL',
+              currency: 'DOP',
+              type: 'DEBIT',
+              merchant: null,
+              account: null,
+              card: null,
+              category: null,
+            }),
+          },
           finBudget: {
             findMany: jest.fn().mockResolvedValue([]),
             update: jest.fn(),

@@ -63,6 +63,16 @@ export class SupabaseLogoStorage implements LogoStoragePort {
     return this.bucket().getPublicUrl(path).data.publicUrl || null;
   }
 
+  async remove(path: string): Promise<void> {
+    if (!this.supabase) {
+      return;
+    }
+    const { error } = await this.bucket().remove([path]);
+    if (error) {
+      throw new Error(`Remove failed: ${error.message}`);
+    }
+  }
+
   private bucket() {
     if (!this.supabase) {
       throw new Error('Storage no está configurado');

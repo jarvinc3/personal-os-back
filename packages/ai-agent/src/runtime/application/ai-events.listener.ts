@@ -250,6 +250,20 @@ export class AiEventsListener {
     );
   }
 
+  @OnEvent(AppEvents.USER_DATA_WIPED)
+  async onUserDataWiped(event: {
+    eventId?: string;
+    userId: string;
+  }): Promise<void> {
+    // Sessions were already deleted; claim only, never enqueue an insight job.
+    if (this.idempotency) {
+      await this.idempotency.tryClaim(
+        event.eventId,
+        `${AiEventsListener.CONSUMER}:data-wiped`,
+      );
+    }
+  }
+
   private async enqueue(
     jobName: string,
     userId: string,
