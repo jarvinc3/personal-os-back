@@ -417,8 +417,10 @@ export const ModelName = {
   FinInstitution: 'FinInstitution',
   FinCard: 'FinCard',
   FinCardBalance: 'FinCardBalance',
+  FinCardStatement: 'FinCardStatement',
   FinSavingsGoal: 'FinSavingsGoal',
   FinLoan: 'FinLoan',
+  FinLoanInstallment: 'FinLoanInstallment',
   FinReceivable: 'FinReceivable',
   FinEmailSyncLog: 'FinEmailSyncLog',
   FinEmailMessage: 'FinEmailMessage',
@@ -440,7 +442,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "module" | "userModule" | "aiAgentSession" | "aiMessage" | "aiAction" | "notification" | "pushToken" | "finAccount" | "finEmailConnection" | "finEmailSource" | "finTransaction" | "finCategory" | "finBudget" | "finBudgetAlert" | "finRecurringPattern" | "finExchangeRate" | "finInstitution" | "finCard" | "finCardBalance" | "finSavingsGoal" | "finLoan" | "finReceivable" | "finEmailSyncLog" | "finEmailMessage" | "domainEventOutbox" | "processedDomainEvent" | "authDeletionOutbox"
+    modelProps: "user" | "module" | "userModule" | "aiAgentSession" | "aiMessage" | "aiAction" | "notification" | "pushToken" | "finAccount" | "finEmailConnection" | "finEmailSource" | "finTransaction" | "finCategory" | "finBudget" | "finBudgetAlert" | "finRecurringPattern" | "finExchangeRate" | "finInstitution" | "finCard" | "finCardBalance" | "finCardStatement" | "finSavingsGoal" | "finLoan" | "finLoanInstallment" | "finReceivable" | "finEmailSyncLog" | "finEmailMessage" | "domainEventOutbox" | "processedDomainEvent" | "authDeletionOutbox"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1924,6 +1926,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    FinCardStatement: {
+      payload: Prisma.$FinCardStatementPayload<ExtArgs>
+      fields: Prisma.FinCardStatementFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.FinCardStatementFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinCardStatementPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.FinCardStatementFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinCardStatementPayload>
+        }
+        findFirst: {
+          args: Prisma.FinCardStatementFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinCardStatementPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.FinCardStatementFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinCardStatementPayload>
+        }
+        findMany: {
+          args: Prisma.FinCardStatementFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinCardStatementPayload>[]
+        }
+        create: {
+          args: Prisma.FinCardStatementCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinCardStatementPayload>
+        }
+        createMany: {
+          args: Prisma.FinCardStatementCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.FinCardStatementCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinCardStatementPayload>[]
+        }
+        delete: {
+          args: Prisma.FinCardStatementDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinCardStatementPayload>
+        }
+        update: {
+          args: Prisma.FinCardStatementUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinCardStatementPayload>
+        }
+        deleteMany: {
+          args: Prisma.FinCardStatementDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.FinCardStatementUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.FinCardStatementUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinCardStatementPayload>[]
+        }
+        upsert: {
+          args: Prisma.FinCardStatementUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinCardStatementPayload>
+        }
+        aggregate: {
+          args: Prisma.FinCardStatementAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateFinCardStatement>
+        }
+        groupBy: {
+          args: Prisma.FinCardStatementGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.FinCardStatementGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.FinCardStatementCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.FinCardStatementCountAggregateOutputType> | number
+        }
+      }
+    }
     FinSavingsGoal: {
       payload: Prisma.$FinSavingsGoalPayload<ExtArgs>
       fields: Prisma.FinSavingsGoalFieldRefs
@@ -2069,6 +2145,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.FinLoanCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.FinLoanCountAggregateOutputType> | number
+        }
+      }
+    }
+    FinLoanInstallment: {
+      payload: Prisma.$FinLoanInstallmentPayload<ExtArgs>
+      fields: Prisma.FinLoanInstallmentFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.FinLoanInstallmentFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinLoanInstallmentPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.FinLoanInstallmentFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinLoanInstallmentPayload>
+        }
+        findFirst: {
+          args: Prisma.FinLoanInstallmentFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinLoanInstallmentPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.FinLoanInstallmentFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinLoanInstallmentPayload>
+        }
+        findMany: {
+          args: Prisma.FinLoanInstallmentFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinLoanInstallmentPayload>[]
+        }
+        create: {
+          args: Prisma.FinLoanInstallmentCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinLoanInstallmentPayload>
+        }
+        createMany: {
+          args: Prisma.FinLoanInstallmentCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.FinLoanInstallmentCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinLoanInstallmentPayload>[]
+        }
+        delete: {
+          args: Prisma.FinLoanInstallmentDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinLoanInstallmentPayload>
+        }
+        update: {
+          args: Prisma.FinLoanInstallmentUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinLoanInstallmentPayload>
+        }
+        deleteMany: {
+          args: Prisma.FinLoanInstallmentDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.FinLoanInstallmentUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.FinLoanInstallmentUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinLoanInstallmentPayload>[]
+        }
+        upsert: {
+          args: Prisma.FinLoanInstallmentUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinLoanInstallmentPayload>
+        }
+        aggregate: {
+          args: Prisma.FinLoanInstallmentAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateFinLoanInstallment>
+        }
+        groupBy: {
+          args: Prisma.FinLoanInstallmentGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.FinLoanInstallmentGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.FinLoanInstallmentCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.FinLoanInstallmentCountAggregateOutputType> | number
         }
       }
     }
@@ -2886,6 +3036,21 @@ export const FinCardBalanceScalarFieldEnum = {
 export type FinCardBalanceScalarFieldEnum = (typeof FinCardBalanceScalarFieldEnum)[keyof typeof FinCardBalanceScalarFieldEnum]
 
 
+export const FinCardStatementScalarFieldEnum = {
+  id: 'id',
+  cardId: 'cardId',
+  currency: 'currency',
+  cycleStart: 'cycleStart',
+  cycleEnd: 'cycleEnd',
+  dueDate: 'dueDate',
+  closingBalance: 'closingBalance',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type FinCardStatementScalarFieldEnum = (typeof FinCardStatementScalarFieldEnum)[keyof typeof FinCardStatementScalarFieldEnum]
+
+
 export const FinSavingsGoalScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
@@ -2928,6 +3093,20 @@ export const FinLoanScalarFieldEnum = {
 } as const
 
 export type FinLoanScalarFieldEnum = (typeof FinLoanScalarFieldEnum)[keyof typeof FinLoanScalarFieldEnum]
+
+
+export const FinLoanInstallmentScalarFieldEnum = {
+  id: 'id',
+  loanId: 'loanId',
+  installmentNo: 'installmentNo',
+  dueDate: 'dueDate',
+  amount: 'amount',
+  paidAt: 'paidAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type FinLoanInstallmentScalarFieldEnum = (typeof FinLoanInstallmentScalarFieldEnum)[keyof typeof FinLoanInstallmentScalarFieldEnum]
 
 
 export const FinReceivableScalarFieldEnum = {
@@ -3592,8 +3771,10 @@ export type GlobalOmitConfig = {
   finInstitution?: Prisma.FinInstitutionOmit
   finCard?: Prisma.FinCardOmit
   finCardBalance?: Prisma.FinCardBalanceOmit
+  finCardStatement?: Prisma.FinCardStatementOmit
   finSavingsGoal?: Prisma.FinSavingsGoalOmit
   finLoan?: Prisma.FinLoanOmit
+  finLoanInstallment?: Prisma.FinLoanInstallmentOmit
   finReceivable?: Prisma.FinReceivableOmit
   finEmailSyncLog?: Prisma.FinEmailSyncLogOmit
   finEmailMessage?: Prisma.FinEmailMessageOmit

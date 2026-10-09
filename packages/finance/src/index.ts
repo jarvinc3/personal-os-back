@@ -1,6 +1,7 @@
 export { FinanceEventsModule } from './events/events.module';
 export { FinanceFacade } from './finance.facade';
 export { FinanceModule } from './finance.module';
+export { FinanceStatementsModule } from './statements/statements.module';
 export {
   FINANCE_WIPE_LAYERS,
   isFinanceWipeLayer,

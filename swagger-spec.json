@@ -1356,6 +1356,35 @@
         ]
       }
     },
+    "/api/finance/cards/{id}/statements": {
+      "get": {
+        "operationId": "CardStatementsController_list",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Closed billing statements of a credit card",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
     "/api/finance/budgets": {
       "get": {
         "operationId": "BudgetsController_list",
@@ -1651,6 +1680,33 @@
       }
     },
     "/api/finance/loans/{id}": {
+      "get": {
+        "operationId": "LoansController_get",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Get loan by id",
+        "tags": [
+          "finance"
+        ]
+      },
       "patch": {
         "operationId": "LoansController_update",
         "parameters": [
@@ -1710,6 +1766,64 @@
           }
         ],
         "summary": "Hard-delete loan",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
+    "/api/finance/loans/{id}/installments": {
+      "get": {
+        "operationId": "LoansController_listInstallments",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Instalment schedule of a loan, oldest first",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
+    "/api/finance/loans/{id}/pay-next-installment": {
+      "post": {
+        "operationId": "LoansController_payNext",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Pay the oldest unpaid instalment and return the loan",
         "tags": [
           "finance"
         ]

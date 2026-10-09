@@ -294,6 +294,7 @@ export type FinCardWhereInput = {
   updatedAt?: Prisma.DateTimeFilter<"FinCard"> | Date | string
   account?: Prisma.XOR<Prisma.FinAccountNullableScalarRelationFilter, Prisma.FinAccountWhereInput> | null
   balances?: Prisma.FinCardBalanceListRelationFilter
+  statements?: Prisma.FinCardStatementListRelationFilter
   institution?: Prisma.XOR<Prisma.FinInstitutionScalarRelationFilter, Prisma.FinInstitutionWhereInput>
   transactions?: Prisma.FinTransactionListRelationFilter
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
@@ -316,6 +317,7 @@ export type FinCardOrderByWithRelationInput = {
   updatedAt?: Prisma.SortOrder
   account?: Prisma.FinAccountOrderByWithRelationInput
   balances?: Prisma.FinCardBalanceOrderByRelationAggregateInput
+  statements?: Prisma.FinCardStatementOrderByRelationAggregateInput
   institution?: Prisma.FinInstitutionOrderByWithRelationInput
   transactions?: Prisma.FinTransactionOrderByRelationAggregateInput
   user?: Prisma.UserOrderByWithRelationInput
@@ -341,6 +343,7 @@ export type FinCardWhereUniqueInput = Prisma.AtLeast<{
   updatedAt?: Prisma.DateTimeFilter<"FinCard"> | Date | string
   account?: Prisma.XOR<Prisma.FinAccountNullableScalarRelationFilter, Prisma.FinAccountWhereInput> | null
   balances?: Prisma.FinCardBalanceListRelationFilter
+  statements?: Prisma.FinCardStatementListRelationFilter
   institution?: Prisma.XOR<Prisma.FinInstitutionScalarRelationFilter, Prisma.FinInstitutionWhereInput>
   transactions?: Prisma.FinTransactionListRelationFilter
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
@@ -402,6 +405,7 @@ export type FinCardCreateInput = {
   updatedAt?: Date | string
   account?: Prisma.FinAccountCreateNestedOneWithoutCardsInput
   balances?: Prisma.FinCardBalanceCreateNestedManyWithoutCardInput
+  statements?: Prisma.FinCardStatementCreateNestedManyWithoutCardInput
   institution: Prisma.FinInstitutionCreateNestedOneWithoutCardsInput
   transactions?: Prisma.FinTransactionCreateNestedManyWithoutCardInput
   user: Prisma.UserCreateNestedOneWithoutFinCardsInput
@@ -423,6 +427,7 @@ export type FinCardUncheckedCreateInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   balances?: Prisma.FinCardBalanceUncheckedCreateNestedManyWithoutCardInput
+  statements?: Prisma.FinCardStatementUncheckedCreateNestedManyWithoutCardInput
   transactions?: Prisma.FinTransactionUncheckedCreateNestedManyWithoutCardInput
 }
 
@@ -440,6 +445,7 @@ export type FinCardUpdateInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   account?: Prisma.FinAccountUpdateOneWithoutCardsNestedInput
   balances?: Prisma.FinCardBalanceUpdateManyWithoutCardNestedInput
+  statements?: Prisma.FinCardStatementUpdateManyWithoutCardNestedInput
   institution?: Prisma.FinInstitutionUpdateOneRequiredWithoutCardsNestedInput
   transactions?: Prisma.FinTransactionUpdateManyWithoutCardNestedInput
   user?: Prisma.UserUpdateOneRequiredWithoutFinCardsNestedInput
@@ -461,6 +467,7 @@ export type FinCardUncheckedUpdateInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   balances?: Prisma.FinCardBalanceUncheckedUpdateManyWithoutCardNestedInput
+  statements?: Prisma.FinCardStatementUncheckedUpdateManyWithoutCardNestedInput
   transactions?: Prisma.FinTransactionUncheckedUpdateManyWithoutCardNestedInput
 }
 
@@ -765,6 +772,20 @@ export type FinCardUpdateOneRequiredWithoutBalancesNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.FinCardUpdateToOneWithWhereWithoutBalancesInput, Prisma.FinCardUpdateWithoutBalancesInput>, Prisma.FinCardUncheckedUpdateWithoutBalancesInput>
 }
 
+export type FinCardCreateNestedOneWithoutStatementsInput = {
+  create?: Prisma.XOR<Prisma.FinCardCreateWithoutStatementsInput, Prisma.FinCardUncheckedCreateWithoutStatementsInput>
+  connectOrCreate?: Prisma.FinCardCreateOrConnectWithoutStatementsInput
+  connect?: Prisma.FinCardWhereUniqueInput
+}
+
+export type FinCardUpdateOneRequiredWithoutStatementsNestedInput = {
+  create?: Prisma.XOR<Prisma.FinCardCreateWithoutStatementsInput, Prisma.FinCardUncheckedCreateWithoutStatementsInput>
+  connectOrCreate?: Prisma.FinCardCreateOrConnectWithoutStatementsInput
+  upsert?: Prisma.FinCardUpsertWithoutStatementsInput
+  connect?: Prisma.FinCardWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.FinCardUpdateToOneWithWhereWithoutStatementsInput, Prisma.FinCardUpdateWithoutStatementsInput>, Prisma.FinCardUncheckedUpdateWithoutStatementsInput>
+}
+
 export type FinCardCreateWithoutUserInput = {
   id?: string
   name: string
@@ -779,6 +800,7 @@ export type FinCardCreateWithoutUserInput = {
   updatedAt?: Date | string
   account?: Prisma.FinAccountCreateNestedOneWithoutCardsInput
   balances?: Prisma.FinCardBalanceCreateNestedManyWithoutCardInput
+  statements?: Prisma.FinCardStatementCreateNestedManyWithoutCardInput
   institution: Prisma.FinInstitutionCreateNestedOneWithoutCardsInput
   transactions?: Prisma.FinTransactionCreateNestedManyWithoutCardInput
 }
@@ -798,6 +820,7 @@ export type FinCardUncheckedCreateWithoutUserInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   balances?: Prisma.FinCardBalanceUncheckedCreateNestedManyWithoutCardInput
+  statements?: Prisma.FinCardStatementUncheckedCreateNestedManyWithoutCardInput
   transactions?: Prisma.FinTransactionUncheckedCreateNestedManyWithoutCardInput
 }
 
@@ -860,6 +883,7 @@ export type FinCardCreateWithoutAccountInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   balances?: Prisma.FinCardBalanceCreateNestedManyWithoutCardInput
+  statements?: Prisma.FinCardStatementCreateNestedManyWithoutCardInput
   institution: Prisma.FinInstitutionCreateNestedOneWithoutCardsInput
   transactions?: Prisma.FinTransactionCreateNestedManyWithoutCardInput
   user: Prisma.UserCreateNestedOneWithoutFinCardsInput
@@ -880,6 +904,7 @@ export type FinCardUncheckedCreateWithoutAccountInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   balances?: Prisma.FinCardBalanceUncheckedCreateNestedManyWithoutCardInput
+  statements?: Prisma.FinCardStatementUncheckedCreateNestedManyWithoutCardInput
   transactions?: Prisma.FinTransactionUncheckedCreateNestedManyWithoutCardInput
 }
 
@@ -923,6 +948,7 @@ export type FinCardCreateWithoutTransactionsInput = {
   updatedAt?: Date | string
   account?: Prisma.FinAccountCreateNestedOneWithoutCardsInput
   balances?: Prisma.FinCardBalanceCreateNestedManyWithoutCardInput
+  statements?: Prisma.FinCardStatementCreateNestedManyWithoutCardInput
   institution: Prisma.FinInstitutionCreateNestedOneWithoutCardsInput
   user: Prisma.UserCreateNestedOneWithoutFinCardsInput
 }
@@ -943,6 +969,7 @@ export type FinCardUncheckedCreateWithoutTransactionsInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   balances?: Prisma.FinCardBalanceUncheckedCreateNestedManyWithoutCardInput
+  statements?: Prisma.FinCardStatementUncheckedCreateNestedManyWithoutCardInput
 }
 
 export type FinCardCreateOrConnectWithoutTransactionsInput = {
@@ -975,6 +1002,7 @@ export type FinCardUpdateWithoutTransactionsInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   account?: Prisma.FinAccountUpdateOneWithoutCardsNestedInput
   balances?: Prisma.FinCardBalanceUpdateManyWithoutCardNestedInput
+  statements?: Prisma.FinCardStatementUpdateManyWithoutCardNestedInput
   institution?: Prisma.FinInstitutionUpdateOneRequiredWithoutCardsNestedInput
   user?: Prisma.UserUpdateOneRequiredWithoutFinCardsNestedInput
 }
@@ -995,6 +1023,7 @@ export type FinCardUncheckedUpdateWithoutTransactionsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   balances?: Prisma.FinCardBalanceUncheckedUpdateManyWithoutCardNestedInput
+  statements?: Prisma.FinCardStatementUncheckedUpdateManyWithoutCardNestedInput
 }
 
 export type FinCardCreateWithoutInstitutionInput = {
@@ -1011,6 +1040,7 @@ export type FinCardCreateWithoutInstitutionInput = {
   updatedAt?: Date | string
   account?: Prisma.FinAccountCreateNestedOneWithoutCardsInput
   balances?: Prisma.FinCardBalanceCreateNestedManyWithoutCardInput
+  statements?: Prisma.FinCardStatementCreateNestedManyWithoutCardInput
   transactions?: Prisma.FinTransactionCreateNestedManyWithoutCardInput
   user: Prisma.UserCreateNestedOneWithoutFinCardsInput
 }
@@ -1030,6 +1060,7 @@ export type FinCardUncheckedCreateWithoutInstitutionInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   balances?: Prisma.FinCardBalanceUncheckedCreateNestedManyWithoutCardInput
+  statements?: Prisma.FinCardStatementUncheckedCreateNestedManyWithoutCardInput
   transactions?: Prisma.FinTransactionUncheckedCreateNestedManyWithoutCardInput
 }
 
@@ -1072,6 +1103,7 @@ export type FinCardCreateWithoutBalancesInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   account?: Prisma.FinAccountCreateNestedOneWithoutCardsInput
+  statements?: Prisma.FinCardStatementCreateNestedManyWithoutCardInput
   institution: Prisma.FinInstitutionCreateNestedOneWithoutCardsInput
   transactions?: Prisma.FinTransactionCreateNestedManyWithoutCardInput
   user: Prisma.UserCreateNestedOneWithoutFinCardsInput
@@ -1092,6 +1124,7 @@ export type FinCardUncheckedCreateWithoutBalancesInput = {
   isActive?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
+  statements?: Prisma.FinCardStatementUncheckedCreateNestedManyWithoutCardInput
   transactions?: Prisma.FinTransactionUncheckedCreateNestedManyWithoutCardInput
 }
 
@@ -1124,6 +1157,7 @@ export type FinCardUpdateWithoutBalancesInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   account?: Prisma.FinAccountUpdateOneWithoutCardsNestedInput
+  statements?: Prisma.FinCardStatementUpdateManyWithoutCardNestedInput
   institution?: Prisma.FinInstitutionUpdateOneRequiredWithoutCardsNestedInput
   transactions?: Prisma.FinTransactionUpdateManyWithoutCardNestedInput
   user?: Prisma.UserUpdateOneRequiredWithoutFinCardsNestedInput
@@ -1144,6 +1178,99 @@ export type FinCardUncheckedUpdateWithoutBalancesInput = {
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  statements?: Prisma.FinCardStatementUncheckedUpdateManyWithoutCardNestedInput
+  transactions?: Prisma.FinTransactionUncheckedUpdateManyWithoutCardNestedInput
+}
+
+export type FinCardCreateWithoutStatementsInput = {
+  id?: string
+  name: string
+  lastFour?: string | null
+  type: $Enums.FinCardType
+  network?: $Enums.FinCardNetwork | null
+  statementClosingDay?: number | null
+  paymentDueDay?: number | null
+  color?: string | null
+  isActive?: boolean
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  account?: Prisma.FinAccountCreateNestedOneWithoutCardsInput
+  balances?: Prisma.FinCardBalanceCreateNestedManyWithoutCardInput
+  institution: Prisma.FinInstitutionCreateNestedOneWithoutCardsInput
+  transactions?: Prisma.FinTransactionCreateNestedManyWithoutCardInput
+  user: Prisma.UserCreateNestedOneWithoutFinCardsInput
+}
+
+export type FinCardUncheckedCreateWithoutStatementsInput = {
+  id?: string
+  userId: string
+  institutionId: string
+  accountId?: string | null
+  name: string
+  lastFour?: string | null
+  type: $Enums.FinCardType
+  network?: $Enums.FinCardNetwork | null
+  statementClosingDay?: number | null
+  paymentDueDay?: number | null
+  color?: string | null
+  isActive?: boolean
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  balances?: Prisma.FinCardBalanceUncheckedCreateNestedManyWithoutCardInput
+  transactions?: Prisma.FinTransactionUncheckedCreateNestedManyWithoutCardInput
+}
+
+export type FinCardCreateOrConnectWithoutStatementsInput = {
+  where: Prisma.FinCardWhereUniqueInput
+  create: Prisma.XOR<Prisma.FinCardCreateWithoutStatementsInput, Prisma.FinCardUncheckedCreateWithoutStatementsInput>
+}
+
+export type FinCardUpsertWithoutStatementsInput = {
+  update: Prisma.XOR<Prisma.FinCardUpdateWithoutStatementsInput, Prisma.FinCardUncheckedUpdateWithoutStatementsInput>
+  create: Prisma.XOR<Prisma.FinCardCreateWithoutStatementsInput, Prisma.FinCardUncheckedCreateWithoutStatementsInput>
+  where?: Prisma.FinCardWhereInput
+}
+
+export type FinCardUpdateToOneWithWhereWithoutStatementsInput = {
+  where?: Prisma.FinCardWhereInput
+  data: Prisma.XOR<Prisma.FinCardUpdateWithoutStatementsInput, Prisma.FinCardUncheckedUpdateWithoutStatementsInput>
+}
+
+export type FinCardUpdateWithoutStatementsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  lastFour?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  type?: Prisma.EnumFinCardTypeFieldUpdateOperationsInput | $Enums.FinCardType
+  network?: Prisma.NullableEnumFinCardNetworkFieldUpdateOperationsInput | $Enums.FinCardNetwork | null
+  statementClosingDay?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  paymentDueDay?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  color?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  account?: Prisma.FinAccountUpdateOneWithoutCardsNestedInput
+  balances?: Prisma.FinCardBalanceUpdateManyWithoutCardNestedInput
+  institution?: Prisma.FinInstitutionUpdateOneRequiredWithoutCardsNestedInput
+  transactions?: Prisma.FinTransactionUpdateManyWithoutCardNestedInput
+  user?: Prisma.UserUpdateOneRequiredWithoutFinCardsNestedInput
+}
+
+export type FinCardUncheckedUpdateWithoutStatementsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  userId?: Prisma.StringFieldUpdateOperationsInput | string
+  institutionId?: Prisma.StringFieldUpdateOperationsInput | string
+  accountId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  lastFour?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  type?: Prisma.EnumFinCardTypeFieldUpdateOperationsInput | $Enums.FinCardType
+  network?: Prisma.NullableEnumFinCardNetworkFieldUpdateOperationsInput | $Enums.FinCardNetwork | null
+  statementClosingDay?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  paymentDueDay?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  color?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  balances?: Prisma.FinCardBalanceUncheckedUpdateManyWithoutCardNestedInput
   transactions?: Prisma.FinTransactionUncheckedUpdateManyWithoutCardNestedInput
 }
 
@@ -1177,6 +1304,7 @@ export type FinCardUpdateWithoutUserInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   account?: Prisma.FinAccountUpdateOneWithoutCardsNestedInput
   balances?: Prisma.FinCardBalanceUpdateManyWithoutCardNestedInput
+  statements?: Prisma.FinCardStatementUpdateManyWithoutCardNestedInput
   institution?: Prisma.FinInstitutionUpdateOneRequiredWithoutCardsNestedInput
   transactions?: Prisma.FinTransactionUpdateManyWithoutCardNestedInput
 }
@@ -1196,6 +1324,7 @@ export type FinCardUncheckedUpdateWithoutUserInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   balances?: Prisma.FinCardBalanceUncheckedUpdateManyWithoutCardNestedInput
+  statements?: Prisma.FinCardStatementUncheckedUpdateManyWithoutCardNestedInput
   transactions?: Prisma.FinTransactionUncheckedUpdateManyWithoutCardNestedInput
 }
 
@@ -1244,6 +1373,7 @@ export type FinCardUpdateWithoutAccountInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   balances?: Prisma.FinCardBalanceUpdateManyWithoutCardNestedInput
+  statements?: Prisma.FinCardStatementUpdateManyWithoutCardNestedInput
   institution?: Prisma.FinInstitutionUpdateOneRequiredWithoutCardsNestedInput
   transactions?: Prisma.FinTransactionUpdateManyWithoutCardNestedInput
   user?: Prisma.UserUpdateOneRequiredWithoutFinCardsNestedInput
@@ -1264,6 +1394,7 @@ export type FinCardUncheckedUpdateWithoutAccountInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   balances?: Prisma.FinCardBalanceUncheckedUpdateManyWithoutCardNestedInput
+  statements?: Prisma.FinCardStatementUncheckedUpdateManyWithoutCardNestedInput
   transactions?: Prisma.FinTransactionUncheckedUpdateManyWithoutCardNestedInput
 }
 
@@ -1313,6 +1444,7 @@ export type FinCardUpdateWithoutInstitutionInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   account?: Prisma.FinAccountUpdateOneWithoutCardsNestedInput
   balances?: Prisma.FinCardBalanceUpdateManyWithoutCardNestedInput
+  statements?: Prisma.FinCardStatementUpdateManyWithoutCardNestedInput
   transactions?: Prisma.FinTransactionUpdateManyWithoutCardNestedInput
   user?: Prisma.UserUpdateOneRequiredWithoutFinCardsNestedInput
 }
@@ -1332,6 +1464,7 @@ export type FinCardUncheckedUpdateWithoutInstitutionInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   balances?: Prisma.FinCardBalanceUncheckedUpdateManyWithoutCardNestedInput
+  statements?: Prisma.FinCardStatementUncheckedUpdateManyWithoutCardNestedInput
   transactions?: Prisma.FinTransactionUncheckedUpdateManyWithoutCardNestedInput
 }
 
@@ -1358,11 +1491,13 @@ export type FinCardUncheckedUpdateManyWithoutInstitutionInput = {
 
 export type FinCardCountOutputType = {
   balances: number
+  statements: number
   transactions: number
 }
 
 export type FinCardCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   balances?: boolean | FinCardCountOutputTypeCountBalancesArgs
+  statements?: boolean | FinCardCountOutputTypeCountStatementsArgs
   transactions?: boolean | FinCardCountOutputTypeCountTransactionsArgs
 }
 
@@ -1381,6 +1516,13 @@ export type FinCardCountOutputTypeDefaultArgs<ExtArgs extends runtime.Types.Exte
  */
 export type FinCardCountOutputTypeCountBalancesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   where?: Prisma.FinCardBalanceWhereInput
+}
+
+/**
+ * FinCardCountOutputType without action
+ */
+export type FinCardCountOutputTypeCountStatementsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.FinCardStatementWhereInput
 }
 
 /**
@@ -1408,6 +1550,7 @@ export type FinCardSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs 
   updatedAt?: boolean
   account?: boolean | Prisma.FinCard$accountArgs<ExtArgs>
   balances?: boolean | Prisma.FinCard$balancesArgs<ExtArgs>
+  statements?: boolean | Prisma.FinCard$statementsArgs<ExtArgs>
   institution?: boolean | Prisma.FinInstitutionDefaultArgs<ExtArgs>
   transactions?: boolean | Prisma.FinCard$transactionsArgs<ExtArgs>
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
@@ -1475,6 +1618,7 @@ export type FinCardOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
 export type FinCardInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   account?: boolean | Prisma.FinCard$accountArgs<ExtArgs>
   balances?: boolean | Prisma.FinCard$balancesArgs<ExtArgs>
+  statements?: boolean | Prisma.FinCard$statementsArgs<ExtArgs>
   institution?: boolean | Prisma.FinInstitutionDefaultArgs<ExtArgs>
   transactions?: boolean | Prisma.FinCard$transactionsArgs<ExtArgs>
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
@@ -1496,6 +1640,7 @@ export type $FinCardPayload<ExtArgs extends runtime.Types.Extensions.InternalArg
   objects: {
     account: Prisma.$FinAccountPayload<ExtArgs> | null
     balances: Prisma.$FinCardBalancePayload<ExtArgs>[]
+    statements: Prisma.$FinCardStatementPayload<ExtArgs>[]
     institution: Prisma.$FinInstitutionPayload<ExtArgs>
     transactions: Prisma.$FinTransactionPayload<ExtArgs>[]
     user: Prisma.$UserPayload<ExtArgs>
@@ -1911,6 +2056,7 @@ export interface Prisma__FinCardClient<T, Null = never, ExtArgs extends runtime.
   readonly [Symbol.toStringTag]: "PrismaPromise"
   account<T extends Prisma.FinCard$accountArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.FinCard$accountArgs<ExtArgs>>): Prisma.Prisma__FinAccountClient<runtime.Types.Result.GetResult<Prisma.$FinAccountPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   balances<T extends Prisma.FinCard$balancesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.FinCard$balancesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$FinCardBalancePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  statements<T extends Prisma.FinCard$statementsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.FinCard$statementsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$FinCardStatementPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   institution<T extends Prisma.FinInstitutionDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.FinInstitutionDefaultArgs<ExtArgs>>): Prisma.Prisma__FinInstitutionClient<runtime.Types.Result.GetResult<Prisma.$FinInstitutionPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   transactions<T extends Prisma.FinCard$transactionsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.FinCard$transactionsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$FinTransactionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   user<T extends Prisma.UserDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.UserDefaultArgs<ExtArgs>>): Prisma.Prisma__UserClient<runtime.Types.Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
@@ -2398,6 +2544,30 @@ export type FinCard$balancesArgs<ExtArgs extends runtime.Types.Extensions.Intern
   take?: number
   skip?: number
   distinct?: Prisma.FinCardBalanceScalarFieldEnum | Prisma.FinCardBalanceScalarFieldEnum[]
+}
+
+/**
+ * FinCard.statements
+ */
+export type FinCard$statementsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the FinCardStatement
+   */
+  select?: Prisma.FinCardStatementSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the FinCardStatement
+   */
+  omit?: Prisma.FinCardStatementOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.FinCardStatementInclude<ExtArgs> | null
+  where?: Prisma.FinCardStatementWhereInput
+  orderBy?: Prisma.FinCardStatementOrderByWithRelationInput | Prisma.FinCardStatementOrderByWithRelationInput[]
+  cursor?: Prisma.FinCardStatementWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.FinCardStatementScalarFieldEnum | Prisma.FinCardStatementScalarFieldEnum[]
 }
 
 /**

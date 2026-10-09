@@ -1,9 +1,11 @@
 import { BadRequestException } from '@nestjs/common';
 import { PlanningService } from './planning.service';
+import type { SyncLoanInstallmentsUseCase } from './sync-loan-installments.use-case';
 import type { PlanningRepository } from '../infrastructure/planning.repository';
 import type { FinanceOwnershipService } from '../../shared/application/finance-ownership.service';
 
 describe('PlanningService archive and receivables', () => {
+  const now = new Date('2026-09-15T12:00:00.000Z');
   const updateLoan = jest.fn();
   const createLoan = jest.fn();
   const listLoans = jest.fn();
@@ -34,7 +36,11 @@ describe('PlanningService archive and receivables', () => {
     assertExpenseCategory: jest.fn(),
   } as unknown as FinanceOwnershipService;
 
-  const service = new PlanningService(repo, ownership);
+  const syncInstallments = {
+    execute: jest.fn().mockResolvedValue(undefined),
+  } as unknown as SyncLoanInstallmentsUseCase;
+
+  const service = new PlanningService(repo, ownership, syncInstallments);
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -49,7 +55,7 @@ describe('PlanningService archive and receivables', () => {
     updateLoan.mockResolvedValue({ id: 'loan-1', isActive: false });
 
     await expect(
-      service.updateLoan('user-1', 'loan-1', { isActive: false }),
+      service.updateLoan('user-1', 'loan-1', { isActive: false }, now),
     ).resolves.toMatchObject({ isActive: false });
     await expect(service.deactivateLoan('user-1', 'loan-1')).resolves.toEqual({
       success: true,
@@ -64,6 +70,7 @@ describe('PlanningService archive and receivables', () => {
     const local = new PlanningService(
       { ...repo, deleteLoan } as unknown as PlanningRepository,
       ownership,
+      syncInstallments,
     );
     await expect(local.deleteLoan('user-1', 'loan-1')).resolves.toEqual({
       success: true,
@@ -76,6 +83,7 @@ describe('PlanningService archive and receivables', () => {
     const local = new PlanningService(
       { ...repo, deleteLoan } as unknown as PlanningRepository,
       ownership,
+      syncInstallments,
     );
     await expect(local.deleteLoan('user-1', 'missing')).rejects.toThrow(
       /not found/i,
@@ -87,6 +95,7 @@ describe('PlanningService archive and receivables', () => {
     const local = new PlanningService(
       { ...repo, deleteReceivable } as unknown as PlanningRepository,
       ownership,
+      syncInstallments,
     );
     await expect(local.deleteReceivable('user-1', 'rec-1')).resolves.toEqual({
       success: true,
@@ -99,6 +108,7 @@ describe('PlanningService archive and receivables', () => {
     const local = new PlanningService(
       { ...repo, deleteReceivable } as unknown as PlanningRepository,
       ownership,
+      syncInstallments,
     );
     await expect(local.deleteReceivable('user-1', 'missing')).rejects.toThrow(
       /not found/i,
@@ -121,7 +131,7 @@ describe('PlanningService archive and receivables', () => {
     });
 
     await expect(
-      service.updateLoan('user-1', 'loan-1', { accountId: 'acc-1' }),
+      service.updateLoan('user-1', 'loan-1', { accountId: 'acc-1' }, now),
     ).resolves.toMatchObject({ accountId: 'acc-1' });
     expect(assertLoanAccountAlignment).toHaveBeenCalledWith({
       userId: 'user-1',
@@ -137,7 +147,7 @@ describe('PlanningService archive and receivables', () => {
     findLoan.mockResolvedValue(null);
     updateLoan.mockResolvedValue(null);
     await expect(
-      service.updateLoan('user-1', 'missing', { isActive: false }),
+      service.updateLoan('user-1', 'missing', { isActive: false }, now),
     ).rejects.toThrow(/not found/i);
   });
 
@@ -248,18 +258,22 @@ describe('PlanningService archive and receivables', () => {
     });
 
     await expect(
-      service.createLoan('user-1', {
-        lenderName: 'BHD',
-        originalAmount: 1000,
-        currentBalance: 800,
-        installmentAmount: 100,
-        installmentFreq: 'MONTHLY',
-        totalInstallments: 12,
-        nextDueDate: '2026-09-01',
-        currency: 'USD',
-        interestRate: 0.12,
-        notes: 'BHD',
-      }),
+      service.createLoan(
+        'user-1',
+        {
+          lenderName: 'BHD',
+          originalAmount: 1000,
+          currentBalance: 800,
+          installmentAmount: 100,
+          installmentFreq: 'MONTHLY',
+          totalInstallments: 12,
+          nextDueDate: '2026-09-01',
+          currency: 'USD',
+          interestRate: 0.12,
+          notes: 'BHD',
+        },
+        now,
+      ),
     ).resolves.toMatchObject({
       originalAmount: '1000',
       currentBalance: '800',

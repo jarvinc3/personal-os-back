@@ -119,6 +119,12 @@ export type FinCard = Prisma.FinCardModel
  */
 export type FinCardBalance = Prisma.FinCardBalanceModel
 /**
+ * Model FinCardStatement
+ * Immutable closing snapshot. Paid amount and status are derived from the
+ * ledger on read, so a stale row can never misreport a payment.
+ */
+export type FinCardStatement = Prisma.FinCardStatementModel
+/**
  * Model FinSavingsGoal
  * 
  */
@@ -128,6 +134,12 @@ export type FinSavingsGoal = Prisma.FinSavingsGoalModel
  * 
  */
 export type FinLoan = Prisma.FinLoanModel
+/**
+ * Model FinLoanInstallment
+ * One scheduled loan instalment. paidAt null means unpaid; amount is the scheduled
+ * instalment and does not change when the loan balance is adjusted.
+ */
+export type FinLoanInstallment = Prisma.FinLoanInstallmentModel
 /**
  * Model FinReceivable
  * 

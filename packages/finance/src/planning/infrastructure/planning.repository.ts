@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { paginationArgs, type PaginationQueryDto } from '@personal-os/core';
 import type { Prisma } from '@personal-os/database';
 import { PrismaService } from '@personal-os/database';
+import type { LoanInstallmentPlan } from '../domain/loan-installment-schedule';
 
 @Injectable()
 export class PlanningRepository {
@@ -141,6 +142,81 @@ export class PlanningRepository {
 
   deleteLoan(userId: string, id: string) {
     return this.prisma.finLoan.deleteMany({ where: { id, userId } });
+  }
+
+  listLoansForScheduleSync() {
+    return this.prisma.finLoan.findMany({
+      where: { isActive: true },
+      select: {
+        id: true,
+        nextDueDate: true,
+        paidInstallments: true,
+        installmentFreq: true,
+        totalInstallments: true,
+        installmentAmount: true,
+      },
+    });
+  }
+
+  listInstallments(loanId: string) {
+    return this.prisma.finLoanInstallment.findMany({
+      where: { loanId },
+      orderBy: { installmentNo: 'asc' },
+    });
+  }
+
+  findNextUnpaidInstallment(loanId: string) {
+    return this.prisma.finLoanInstallment.findFirst({
+      where: { loanId, paidAt: null },
+      orderBy: { installmentNo: 'asc' },
+    });
+  }
+
+  async replaceLoanSchedule(
+    loanId: string,
+    rows: readonly LoanInstallmentPlan[],
+  ): Promise<void> {
+    const highestInstallmentNo = rows.reduce(
+      (highest, row) => Math.max(highest, row.installmentNo),
+      0,
+    );
+    await this.prisma.$transaction([
+      ...rows.map((row) =>
+        this.prisma.finLoanInstallment.upsert({
+          where: {
+            loanId_installmentNo: {
+              loanId,
+              installmentNo: row.installmentNo,
+            },
+          },
+          create: {
+            loanId,
+            installmentNo: row.installmentNo,
+            dueDate: row.dueDate,
+            amount: row.amount,
+            paidAt: row.paidAt,
+          },
+          update: {
+            dueDate: row.dueDate,
+            amount: row.amount,
+            paidAt: row.paidAt,
+          },
+        }),
+      ),
+      this.prisma.finLoanInstallment.deleteMany({
+        where: { loanId, installmentNo: { gt: highestInstallmentNo } },
+      }),
+    ]);
+  }
+
+  async markInstallmentPaid(
+    installmentId: string,
+    paidAt: Date,
+  ): Promise<void> {
+    await this.prisma.finLoanInstallment.update({
+      where: { id: installmentId },
+      data: { paidAt },
+    });
   }
 
   updateLoan(
