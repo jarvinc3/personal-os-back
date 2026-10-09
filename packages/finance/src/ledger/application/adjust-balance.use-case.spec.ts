@@ -8,19 +8,20 @@ import { AdjustBalanceUseCase } from './adjust-balance.use-case';
 function build() {
   const findBalanceAdjustmentTarget = jest.fn();
   const createBalanceAdjustment = jest.fn();
+  const resolveAmountsExecute = jest.fn().mockResolvedValue({
+    amount: 50,
+    currency: 'DOP',
+    ledgerAmount: 50,
+    ledgerCurrency: 'DOP',
+    amountBaseCurrency: 50,
+    exchangeRate: 1,
+  });
   const repo = {
     findBalanceAdjustmentTarget,
     createBalanceAdjustment,
   } as unknown as LedgerRepositoryPort;
   const resolveAmounts = {
-    execute: jest.fn().mockResolvedValue({
-      amount: 50,
-      currency: 'DOP',
-      ledgerAmount: 50,
-      ledgerCurrency: 'DOP',
-      amountBaseCurrency: 50,
-      exchangeRate: 1,
-    }),
+    execute: resolveAmountsExecute,
   } as unknown as ResolveAmountsUseCase;
   const baseCurrency = {
     execute: jest.fn().mockResolvedValue('DOP'),
@@ -38,7 +39,7 @@ function build() {
     useCase,
     findBalanceAdjustmentTarget,
     createBalanceAdjustment,
-    resolveAmounts,
+    resolveAmountsExecute,
   };
 }
 
@@ -139,7 +140,7 @@ describe('AdjustBalanceUseCase', () => {
       balance: 50,
     });
 
-    expect(harness.resolveAmounts.execute).toHaveBeenCalledWith(
+    expect(harness.resolveAmountsExecute).toHaveBeenCalledWith(
       expect.objectContaining({ amount: 30, currency: 'USD' }),
     );
     expect(harness.createBalanceAdjustment).toHaveBeenCalledWith(

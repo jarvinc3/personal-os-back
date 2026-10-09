@@ -31,7 +31,9 @@ function buildMocks() {
     $executeRaw: jest.fn().mockResolvedValue(0),
   };
   for (const model of Object.values(tx)) {
-    if (typeof model !== 'object' || model === null) continue;
+    if (typeof model !== 'object' || model === null) {
+      continue;
+    }
     for (const method of Object.values(model)) {
       method.mockResolvedValue({ count: 0 });
     }
