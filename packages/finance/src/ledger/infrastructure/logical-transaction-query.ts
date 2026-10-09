@@ -38,6 +38,8 @@ export function logicalTransactionsWhere(
     and.push({ transferGroupId: { not: null }, type: 'DEBIT' });
   } else if (query.type === 'DEBIT' || query.type === 'CREDIT') {
     and.push({ type: query.type, transferGroupId: null });
+  } else if (query.type === 'ADJUSTMENT') {
+    and.push({ type: 'ADJUSTMENT' });
   } else {
     and.push({
       OR: [
@@ -52,7 +54,11 @@ export function logicalTransactionsWhere(
       ...(query.accountId ? { accountId: query.accountId } : {}),
       ...(query.cardId ? { cardId: query.cardId } : {}),
     };
-    if (query.type === 'DEBIT' || query.type === 'CREDIT') {
+    if (
+      query.type === 'DEBIT' ||
+      query.type === 'CREDIT' ||
+      query.type === 'ADJUSTMENT'
+    ) {
       and.push(instrument);
     } else {
       const or: Prisma.FinTransactionWhereInput[] = [

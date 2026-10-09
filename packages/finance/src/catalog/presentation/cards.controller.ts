@@ -12,6 +12,7 @@ import { CurrentUser, RequiresEnabledModule } from '@personal-os/core';
 import { CatalogService } from '../application/catalog.service';
 import { CreateCardDto } from './dto/create-card.dto';
 import { UpdateCardBalanceDto } from './dto/update-card-balance.dto';
+import { UpdateCardCreditLimitDto } from './dto/update-card-credit-limit.dto';
 import { UpdateCardDto } from './dto/update-card.dto';
 
 @ApiTags('finance')
@@ -51,6 +52,16 @@ export class CardsController {
     return this.catalog.deleteCard(userId, id);
   }
 
+  @Post('cards/:id/balances/credit-limit')
+  @ApiOperation({ summary: 'Update a credit card limit without changing its balance' })
+  updateCreditLimit(
+    @CurrentUser('sub') userId: string,
+    @Param('id') id: string,
+    @Body() dto: UpdateCardCreditLimitDto,
+  ) {
+    return this.catalog.updateCardCreditLimit(userId, id, dto);
+  }
+
   @Post('cards/:id/balances')
   updateBalance(
     @CurrentUser('sub') userId: string,
@@ -58,5 +69,15 @@ export class CardsController {
     @Body() dto: UpdateCardBalanceDto,
   ) {
     return this.catalog.updateCardBalance(userId, id, dto);
+  }
+
+  @Delete('cards/:id/balances/:currency')
+  @ApiOperation({ summary: 'Delete one stored currency from a card' })
+  deleteBalance(
+    @CurrentUser('sub') userId: string,
+    @Param('id') id: string,
+    @Param('currency') currency: string,
+  ) {
+    return this.catalog.deleteCardBalance(userId, id, currency);
   }
 }

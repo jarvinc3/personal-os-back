@@ -83,6 +83,34 @@ describe('WipeUserDataUseCase', () => {
     expect(wipeResult.requestedLayers).toEqual([WIPE_LAYERS.FINANCE_CATALOG]);
   });
 
+  it('forwards the institution scope only when balances are selected', async () => {
+    const harness = build();
+    harness.findById.mockResolvedValue({ id: 'user-1' });
+    harness.wipeFinance.mockResolvedValue({ accountBalances: 1 });
+
+    await harness.useCase.execute(
+      'user-1',
+      [WIPE_LAYERS.FINANCE_BALANCES],
+      { balanceInstitutionId: 'inst-1' },
+    );
+
+    expect(harness.wipeFinance).toHaveBeenCalledWith(
+      'user-1',
+      [WIPE_LAYERS.FINANCE_BALANCES],
+      { balanceInstitutionId: 'inst-1' },
+    );
+
+    harness.wipeFinance.mockClear();
+    await harness.useCase.execute(
+      'user-1',
+      [WIPE_LAYERS.FINANCE_LEDGER],
+      { balanceInstitutionId: 'inst-1' },
+    );
+    expect(harness.wipeFinance).toHaveBeenCalledWith('user-1', [
+      WIPE_LAYERS.FINANCE_LEDGER,
+    ]);
+  });
+
   it('does not touch finance when only AI sessions are requested', async () => {
     const harness = build();
     harness.findById.mockResolvedValue({ id: 'user-1' });

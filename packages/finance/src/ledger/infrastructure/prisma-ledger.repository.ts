@@ -64,6 +64,7 @@ import type {
   TransactionUpdateFields,
 } from '../application/commands/ledger.commands';
 import type {
+  BalanceAdjustmentTarget,
   CreateTransactionResult,
   CreateTransferResult,
   LedgerRepositoryPort,
@@ -161,7 +162,11 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
     if (!query.accountId && !query.cardId) {
       return [];
     }
-    if (query.type === 'DEBIT' || query.type === 'CREDIT') {
+    if (
+      query.type === 'DEBIT' ||
+      query.type === 'CREDIT' ||
+      query.type === 'ADJUSTMENT'
+    ) {
       return [];
     }
     const rows = await this.prisma.finTransaction.findMany({
@@ -191,6 +196,63 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
       where: { id, userId },
       select: { id: true, currency: true },
     });
+  }
+
+  async findBalanceAdjustmentTarget(
+    userId: string,
+    input: { accountId?: string; cardId?: string; currency?: string },
+  ): Promise<BalanceAdjustmentTarget | null> {
+    const hasAccount = Boolean(input.accountId);
+    const hasCard = Boolean(input.cardId);
+    if (hasAccount === hasCard) {
+      return null;
+    }
+
+    if (input.accountId) {
+      const account = await this.prisma.finAccount.findFirst({
+        where: { id: input.accountId, userId },
+        select: { id: true, currency: true, balance: true },
+      });
+      if (!account) {
+        return null;
+      }
+      return {
+        accountId: account.id,
+        cardId: null,
+        currency: account.currency,
+        currentBalance: Number(account.balance),
+      };
+    }
+
+    if (!input.cardId || !input.currency) {
+      return null;
+    }
+
+    const card = await this.prisma.finCard.findFirst({
+      where: { id: input.cardId, userId },
+      select: { id: true, type: true, accountId: true },
+    });
+    if (!card) {
+      return null;
+    }
+    if (card.type === 'DEBIT' && !card.accountId) {
+      return null;
+    }
+    if (card.type === 'CREDIT' && card.accountId) {
+      return null;
+    }
+
+    const currency = normalizeCurrencyCode(input.currency);
+    const balanceRow = await this.prisma.finCardBalance.findFirst({
+      where: { cardId: card.id, currency },
+      select: { balance: true },
+    });
+    return {
+      accountId: null,
+      cardId: card.id,
+      currency,
+      currentBalance: balanceRow ? Number(balanceRow.balance) : 0,
+    };
   }
 
   findTransactionByEmailMessageId(gmailMessageId: string, userId?: string) {
@@ -396,6 +458,72 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
       return {
         transaction: created,
         budgetSnapshots,
+      };
+    });
+  }
+
+  createBalanceAdjustment(
+    userId: string,
+    input: {
+      accountId?: string | null;
+      cardId?: string | null;
+      amounts: ResolvedAmounts;
+    },
+  ): Promise<CreateTransactionResult | null> {
+    return this.prisma.$transaction(async (tx) => {
+      const target = await resolveLedgerTarget(
+        tx,
+        userId,
+        input.accountId,
+        input.cardId,
+      );
+      if (!target) {
+        return null;
+      }
+
+      const created = await tx.finTransaction.create({
+        data: {
+          userId,
+          accountId: target.accountId,
+          cardId: target.cardId,
+          type: 'ADJUSTMENT',
+          amount: input.amounts.amount,
+          ledgerAmount: input.amounts.ledgerAmount,
+          amountBaseCurrency: input.amounts.amountBaseCurrency,
+          currency: input.amounts.currency,
+          ledgerCurrency: input.amounts.ledgerCurrency,
+          exchangeRate: input.amounts.exchangeRate,
+          description: 'Reajuste de saldo',
+          source: 'MANUAL',
+          status: 'CONFIRMED',
+          transactionDate: new Date(),
+        },
+        include: {
+          account: { select: { id: true, name: true } },
+          card: { select: { id: true, name: true } },
+        },
+      });
+
+      await applyBalanceForTransaction(tx, {
+        accountId: target.accountId,
+        cardId: target.cardId,
+        cardType: target.cardType,
+        derivedAccountId: target.derivedAccountId,
+        currency: input.amounts.ledgerCurrency,
+        type: 'ADJUSTMENT',
+        amount: input.amounts.ledgerAmount,
+      });
+
+      await this.enqueueTransactionEvent(
+        tx,
+        userId,
+        transactionCreatedEventName(created.status),
+        created.id,
+      );
+
+      return {
+        transaction: created,
+        budgetSnapshots: [],
       };
     });
   }

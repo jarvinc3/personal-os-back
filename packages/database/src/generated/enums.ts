@@ -70,7 +70,8 @@ export type FinCardNetwork = (typeof FinCardNetwork)[keyof typeof FinCardNetwork
 export const FinTransactionType = {
   DEBIT: 'DEBIT',
   CREDIT: 'CREDIT',
-  TRANSFER: 'TRANSFER'
+  TRANSFER: 'TRANSFER',
+  ADJUSTMENT: 'ADJUSTMENT'
 } as const
 
 export type FinTransactionType = (typeof FinTransactionType)[keyof typeof FinTransactionType]

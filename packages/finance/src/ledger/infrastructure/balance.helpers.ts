@@ -74,6 +74,15 @@ export async function applyBalanceForTransaction(
   const direction = params.direction ?? 1;
   const delta = signedAmount(params.type, params.amount) * direction;
 
+  if (params.type === 'ADJUSTMENT') {
+    if (params.cardId) {
+      await applyCardBalanceDelta(tx, params.cardId, params.currency, delta);
+      return;
+    }
+    await applyAccountBalanceDelta(tx, params.accountId, delta);
+    return;
+  }
+
   if (params.cardId) {
     if (params.cardType === 'CREDIT') {
       await applyCardBalanceDelta(tx, params.cardId, params.currency, delta);

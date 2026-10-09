@@ -157,7 +157,11 @@ export class FinanceFacade {
     return this.analytics.getSpendingByCategory(userId, dateFrom, dateTo);
   }
 
-  wipeUserData(userId: string, layers: readonly FinanceWipeLayer[]) {
-    return this.wipeFinance.execute(userId, layers);
+  wipeUserData(
+    userId: string,
+    layers: readonly FinanceWipeLayer[],
+    options?: { balanceInstitutionId?: string },
+  ) {
+    return this.wipeFinance.execute(userId, layers, options);
   }
 }

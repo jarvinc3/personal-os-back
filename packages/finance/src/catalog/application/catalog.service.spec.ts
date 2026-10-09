@@ -371,6 +371,18 @@ describe('CatalogService updateCardBalance', () => {
     expect(upsertCardBalance).not.toHaveBeenCalled();
   });
 
+  it('rejects balances for DEBIT cards because they inherit the linked account balance', async () => {
+    findCardById.mockResolvedValue({ id: 'card-1', type: 'DEBIT' });
+
+    await expect(
+      service.updateCardBalance('user-1', 'card-1', {
+        currency: 'DOP',
+        balance: 42467,
+      }),
+    ).rejects.toThrow(/DEBIT cards use their linked account balance/i);
+    expect(upsertCardBalance).not.toHaveBeenCalled();
+  });
+
   it('upserts a CREDIT balance when the limit is provided', async () => {
     const result = await service.updateCardBalance('user-1', 'card-1', {
       currency: 'DOP',
@@ -388,6 +400,51 @@ describe('CatalogService updateCardBalance', () => {
       balance: '42467',
       creditLimit: '48000',
     });
+  });
+});
+
+describe('CatalogService deleteCardBalance', () => {
+  const findCardById = jest.fn();
+  const deleteCardBalance = jest.fn();
+  const service = new CatalogService(
+    { findCardById, deleteCardBalance } as unknown as CatalogRepository,
+    ownershipMock(),
+    purgeMock(),
+  );
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    findCardById.mockResolvedValue({ id: 'card-1', type: 'CREDIT' });
+    deleteCardBalance.mockResolvedValue({ count: 1 });
+  });
+
+  it('deletes the selected currency owned by the user', async () => {
+    await expect(
+      service.deleteCardBalance('user-1', 'card-1', 'dop'),
+    ).resolves.toEqual({ success: true });
+
+    expect(deleteCardBalance).toHaveBeenCalledWith(
+      'user-1',
+      'card-1',
+      'dop',
+    );
+  });
+
+  it('rejects deleting balances from DEBIT cards', async () => {
+    findCardById.mockResolvedValue({ id: 'card-1', type: 'DEBIT' });
+
+    await expect(
+      service.deleteCardBalance('user-1', 'card-1', 'DOP'),
+    ).rejects.toThrow(/DEBIT cards use their linked account balance/i);
+    expect(deleteCardBalance).not.toHaveBeenCalled();
+  });
+
+  it('rejects a missing currency balance', async () => {
+    deleteCardBalance.mockResolvedValue({ count: 0 });
+
+    await expect(
+      service.deleteCardBalance('user-1', 'card-1', 'USD'),
+    ).rejects.toThrow('Card balance not found');
   });
 });
 

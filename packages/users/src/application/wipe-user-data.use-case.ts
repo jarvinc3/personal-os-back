@@ -44,6 +44,7 @@ export class WipeUserDataUseCase {
   async execute(
     userId: string,
     requestedLayers: WipeLayerId[],
+    options?: { balanceInstitutionId?: string },
   ): Promise<WipeUserDataResult> {
     const user = await this.usersRepository.findById(userId);
     if (!user) {
@@ -61,9 +62,18 @@ export class WipeUserDataUseCase {
       layer.startsWith(FINANCE_LAYER_PREFIX),
     );
     if (financeLayers.length > 0) {
+      const balanceInstitutionId =
+        options?.balanceInstitutionId &&
+        appliedLayers.includes(WIPE_LAYERS.FINANCE_BALANCES)
+          ? options.balanceInstitutionId
+          : undefined;
       Object.assign(
         counts,
-        await this.domains.wipeFinance(userId, financeLayers),
+        balanceInstitutionId
+          ? await this.domains.wipeFinance(userId, financeLayers, {
+              balanceInstitutionId,
+            })
+          : await this.domains.wipeFinance(userId, financeLayers),
       );
     }
     if (appliedLayers.includes(WIPE_LAYERS.AI_SESSIONS)) {

@@ -11,12 +11,14 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CurrentUser, RequiresEnabledModule } from '@personal-os/core';
+import { AdjustBalanceUseCase } from '../application/adjust-balance.use-case';
 import { ConfirmTransactionUseCase } from '../application/confirm-transaction.use-case';
 import { CreateTransactionUseCase } from '../application/create-transaction.use-case';
 import { DeleteTransactionUseCase } from '../application/delete-transaction.use-case';
 import { LedgerQueryService } from '../application/ledger-query.service';
 import { ReverseTransactionUseCase } from '../application/reverse-transaction.use-case';
 import { UpdateTransactionUseCase } from '../application/update-transaction.use-case';
+import { AdjustBalanceDto } from './dto/adjust-balance.dto';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { ListTransactionsQueryDto } from './dto/list-transactions-query.dto';
 
@@ -28,6 +30,7 @@ export class TransactionsController {
   constructor(
     private readonly queries: LedgerQueryService,
     private readonly createTx: CreateTransactionUseCase,
+    private readonly adjustBalance: AdjustBalanceUseCase,
     private readonly updateTx: UpdateTransactionUseCase,
     private readonly confirmTx: ConfirmTransactionUseCase,
     private readonly deleteTx: DeleteTransactionUseCase,
@@ -41,6 +44,17 @@ export class TransactionsController {
     @Query() query: ListTransactionsQueryDto,
   ) {
     return this.queries.listTransactions(userId, query);
+  }
+
+  @Post('balance-adjustments')
+  @ApiOperation({
+    summary: 'Set an account or card balance by posting an adjustment',
+  })
+  adjust(
+    @CurrentUser('sub') userId: string,
+    @Body() dto: AdjustBalanceDto,
+  ) {
+    return this.adjustBalance.execute(userId, dto);
   }
 
   @Post('transactions')

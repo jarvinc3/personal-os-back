@@ -67,6 +67,13 @@ export type CreateTransferResult = {
   transferGroupId: string;
 };
 
+export type BalanceAdjustmentTarget = {
+  accountId: string | null;
+  cardId: string | null;
+  currency: string;
+  currentBalance: number;
+};
+
 /**
  * Persistence port for ledger reads and multi-step writes
  * (balance + budget spent + outbox inside the same transaction).
@@ -132,6 +139,20 @@ export interface LedgerRepositoryPort {
     userId: string,
     merchant: string,
   ): Promise<string | null>;
+
+  findBalanceAdjustmentTarget(
+    userId: string,
+    input: { accountId?: string; cardId?: string; currency?: string },
+  ): Promise<BalanceAdjustmentTarget | null>;
+
+  createBalanceAdjustment(
+    userId: string,
+    input: {
+      accountId?: string | null;
+      cardId?: string | null;
+      amounts: ResolvedAmounts;
+    },
+  ): Promise<CreateTransactionResult | null>;
 
   createTransaction(
     userId: string,

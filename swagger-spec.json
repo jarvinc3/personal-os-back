@@ -764,6 +764,45 @@
         ]
       }
     },
+    "/api/finance/cards/{id}/balances/credit-limit": {
+      "post": {
+        "operationId": "CardsController_updateCreditLimit",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCardCreditLimitDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Update a credit card limit without changing its balance",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
     "/api/finance/cards/{id}/balances": {
       "post": {
         "operationId": "CardsController_updateBalance",
@@ -797,6 +836,43 @@
             "access-token": []
           }
         ],
+        "tags": [
+          "finance"
+        ]
+      }
+    },
+    "/api/finance/cards/{id}/balances/{currency}": {
+      "delete": {
+        "operationId": "CardsController_deleteBalance",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "currency",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Delete one stored currency from a card",
         "tags": [
           "finance"
         ]
@@ -971,7 +1047,8 @@
               "enum": [
                 "DEBIT",
                 "CREDIT",
-                "TRANSFER"
+                "TRANSFER",
+                "ADJUSTMENT"
               ]
             }
           },
@@ -1054,6 +1131,36 @@
           }
         ],
         "summary": "Create a DEBIT or CREDIT transaction",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
+    "/api/finance/balance-adjustments": {
+      "post": {
+        "operationId": "TransactionsController_adjust",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdjustBalanceDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Set an account or card balance by posting an adjustment",
         "tags": [
           "finance"
         ]
@@ -2923,6 +3030,7 @@
               "type": "string",
               "enum": [
                 "finance.ledger",
+                "finance.balances",
                 "finance.planning",
                 "finance.categories",
                 "finance.catalog",
@@ -2932,6 +3040,10 @@
                 "settings.defaults"
               ]
             }
+          },
+          "balanceInstitutionId": {
+            "type": "string",
+            "description": "Institution whose accounts to zero and whose credit cards to restore to their limit. Omit to cover every institution, including cash. Applied only when finance.balances is selected."
           }
         },
         "required": [
@@ -3223,6 +3335,23 @@
           }
         }
       },
+      "UpdateCardCreditLimitDto": {
+        "type": "object",
+        "properties": {
+          "currency": {
+            "type": "string",
+            "description": "ISO 4217 currency code",
+            "example": "DOP"
+          },
+          "creditLimit": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "currency",
+          "creditLimit"
+        ]
+      },
       "UpdateCardBalanceDto": {
         "type": "object",
         "properties": {
@@ -3300,6 +3429,28 @@
             "nullable": true
           }
         }
+      },
+      "AdjustBalanceDto": {
+        "type": "object",
+        "properties": {
+          "accountId": {
+            "type": "string"
+          },
+          "cardId": {
+            "type": "string"
+          },
+          "currency": {
+            "type": "string",
+            "example": "DOP"
+          },
+          "balance": {
+            "type": "number",
+            "description": "Target balance after the adjustment"
+          }
+        },
+        "required": [
+          "balance"
+        ]
       },
       "CreateTransactionDto": {
         "type": "object",
