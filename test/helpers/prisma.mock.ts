@@ -73,6 +73,18 @@ export type PrismaMock = {
     deleteMany: MockFn;
     count: MockFn;
   };
+  finLoanInstallment: {
+    findMany: MockFn;
+    findFirst: MockFn;
+    create: MockFn;
+    createMany: MockFn;
+    update: MockFn;
+    updateMany: MockFn;
+    delete: MockFn;
+    deleteMany: MockFn;
+    upsert: MockFn;
+    count: MockFn;
+  };
   finReceivable: {
     findMany: MockFn;
     findFirst: MockFn;
@@ -80,8 +92,30 @@ export type PrismaMock = {
     updateMany: MockFn;
     deleteMany: MockFn;
   };
+  finSavingsGoal: {
+    findMany: MockFn;
+    findFirst: MockFn;
+    findUnique: MockFn;
+    create: MockFn;
+    updateMany: MockFn;
+    deleteMany: MockFn;
+    count: MockFn;
+  };
   finCardBalance: {
     findMany: MockFn;
+  };
+  finCardStatement: {
+    findMany: MockFn;
+    findFirst: MockFn;
+    findUnique: MockFn;
+    create: MockFn;
+    createMany: MockFn;
+    update: MockFn;
+    updateMany: MockFn;
+    delete: MockFn;
+    deleteMany: MockFn;
+    upsert: MockFn;
+    count: MockFn;
   };
   finCategory: {
     findMany: MockFn;
@@ -161,6 +195,26 @@ function createTransactionClient() {
       findFirst: jest.fn().mockResolvedValue(null),
       create: jest.fn().mockResolvedValue({}),
       update: jest.fn().mockResolvedValue({}),
+    },
+    finCardStatement: {
+      findMany: jest.fn().mockResolvedValue([]),
+      findFirst: jest.fn().mockResolvedValue(null),
+      upsert: jest.fn().mockResolvedValue({}),
+      deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
+    },
+    finLoanInstallment: {
+      findMany: jest.fn().mockResolvedValue([]),
+      findFirst: jest.fn().mockResolvedValue(null),
+      upsert: jest.fn().mockResolvedValue({}),
+      update: jest.fn().mockResolvedValue({}),
+      deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
+    },
+    finSavingsGoal: {
+      findMany: jest.fn().mockResolvedValue([]),
+      findFirst: jest.fn().mockResolvedValue(null),
+      create: jest.fn().mockResolvedValue({}),
+      updateMany: jest.fn().mockResolvedValue({ count: 0 }),
+      deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
     },
     finBudget: {
       findMany: jest.fn().mockResolvedValue([]),
@@ -299,6 +353,18 @@ export function createPrismaMock(): PrismaMock {
       deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
       count: jest.fn().mockResolvedValue(0),
     },
+    finLoanInstallment: {
+      findMany: jest.fn().mockResolvedValue([]),
+      findFirst: jest.fn().mockResolvedValue(null),
+      create: jest.fn().mockResolvedValue({}),
+      createMany: jest.fn().mockResolvedValue({ count: 0 }),
+      update: jest.fn().mockResolvedValue({}),
+      updateMany: jest.fn().mockResolvedValue({ count: 0 }),
+      delete: jest.fn().mockResolvedValue({}),
+      deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
+      upsert: jest.fn().mockResolvedValue({}),
+      count: jest.fn().mockResolvedValue(0),
+    },
     finReceivable: {
       findMany: jest.fn().mockResolvedValue([]),
       findFirst: jest.fn(),
@@ -306,8 +372,30 @@ export function createPrismaMock(): PrismaMock {
       updateMany: jest.fn().mockResolvedValue({ count: 0 }),
       deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
     },
+    finSavingsGoal: {
+      findMany: jest.fn().mockResolvedValue([]),
+      findFirst: jest.fn().mockResolvedValue(null),
+      findUnique: jest.fn().mockResolvedValue(null),
+      create: jest.fn().mockResolvedValue({}),
+      updateMany: jest.fn().mockResolvedValue({ count: 0 }),
+      deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
+      count: jest.fn().mockResolvedValue(0),
+    },
     finCardBalance: {
       findMany: jest.fn().mockResolvedValue([]),
+    },
+    finCardStatement: {
+      findMany: jest.fn().mockResolvedValue([]),
+      findFirst: jest.fn().mockResolvedValue(null),
+      findUnique: jest.fn().mockResolvedValue(null),
+      create: jest.fn().mockResolvedValue({}),
+      createMany: jest.fn().mockResolvedValue({ count: 0 }),
+      update: jest.fn().mockResolvedValue({}),
+      updateMany: jest.fn().mockResolvedValue({ count: 0 }),
+      delete: jest.fn().mockResolvedValue({}),
+      deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
+      upsert: jest.fn().mockResolvedValue({}),
+      count: jest.fn().mockResolvedValue(0),
     },
     finCategory: {
       findMany: jest.fn().mockResolvedValue([]),
