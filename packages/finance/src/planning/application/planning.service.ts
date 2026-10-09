@@ -13,16 +13,19 @@ import type { UpdateSavingsGoalDto } from '../presentation/dto/update-savings-go
 import {
   mapBudget,
   mapLoan,
+  mapLoanInstallment,
   mapReceivable,
   mapSavingsGoal,
 } from './planning-mappers';
 import { resolveReceivablePayment } from './resolve-receivable-payment';
+import { SyncLoanInstallmentsUseCase } from './sync-loan-installments.use-case';
 
 @Injectable()
 export class PlanningService {
   constructor(
     private readonly repo: PlanningRepository,
     private readonly ownership: FinanceOwnershipService,
+    private readonly syncInstallments: SyncLoanInstallmentsUseCase,
   ) {}
 
   async listBudgets(userId: string) {
@@ -168,7 +171,24 @@ export class PlanningService {
     return rows.map(mapLoan);
   }
 
-  async createLoan(userId: string, dto: CreateLoanDto) {
+  async getLoan(userId: string, id: string) {
+    const row = await this.repo.findLoan(userId, id);
+    if (!row) {
+      throw new NotFoundException('Loan not found');
+    }
+    return mapLoan(row);
+  }
+
+  async listLoanInstallments(userId: string, id: string) {
+    const loan = await this.repo.findLoan(userId, id);
+    if (!loan) {
+      throw new NotFoundException('Loan not found');
+    }
+    const rows = await this.repo.listInstallments(id);
+    return rows.map(mapLoanInstallment);
+  }
+
+  async createLoan(userId: string, dto: CreateLoanDto, now: Date) {
     if (dto.institutionId) {
       await this.ownership.assertInstitutionOwned(userId, dto.institutionId);
     }
@@ -196,10 +216,11 @@ export class PlanningService {
         : {}),
       ...(dto.notes !== undefined ? { notes: dto.notes } : {}),
     });
+    await this.syncInstallments.execute(created, now);
     return mapLoan(created);
   }
 
-  async updateLoan(userId: string, id: string, dto: UpdateLoanDto) {
+  async updateLoan(userId: string, id: string, dto: UpdateLoanDto, now: Date) {
     const existing = await this.repo.findLoan(userId, id);
     if (!existing) {
       throw new NotFoundException('Loan not found');
@@ -253,6 +274,7 @@ export class PlanningService {
     if (!updated) {
       throw new NotFoundException('Loan not found');
     }
+    await this.syncInstallments.execute(updated, now);
     return mapLoan(updated);
   }
 

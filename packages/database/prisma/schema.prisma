@@ -431,6 +431,7 @@ model FinCard {
   updatedAt           DateTime         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   account             FinAccount?      @relation(fields: [accountId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   balances            FinCardBalance[]
+  statements          FinCardStatement[]
   institution         FinInstitution   @relation(fields: [institutionId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   transactions        FinTransaction[]
   user                User             @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
@@ -453,6 +454,25 @@ model FinCardBalance {
 
   @@unique([cardId, currency], map: "fin_card_balances_card_id_currency_key")
   @@map("fin_card_balances")
+}
+
+/// Immutable closing snapshot. Paid amount and status are derived from the
+/// ledger on read, so a stale row can never misreport a payment.
+model FinCardStatement {
+  id             String   @id @default(dbgenerated("(uuid_generate_v4())::text"))
+  cardId         String   @map("card_id")
+  currency       String
+  cycleStart     DateTime @map("cycle_start") @db.Date
+  cycleEnd       DateTime @map("cycle_end") @db.Date
+  dueDate        DateTime? @map("due_date") @db.Date
+  closingBalance Decimal  @map("closing_balance") @db.Decimal(15, 2)
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  card           FinCard  @relation(fields: [cardId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([cardId, currency, cycleEnd], map: "fin_card_statements_card_currency_cycle_key")
+  @@index([cardId, cycleEnd], map: "fin_card_statements_card_id_cycle_end_idx")
+  @@map("fin_card_statements")
 }
 
 model FinSavingsGoal {
@@ -497,12 +517,31 @@ model FinLoan {
   updatedAt         DateTime           @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   account           FinAccount?        @relation(fields: [accountId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   institution       FinInstitution?    @relation(fields: [institutionId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  installments      FinLoanInstallment[]
   user              User               @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([userId, isActive, nextDueDate], map: "fin_loans_user_id_active_due_idx")
   @@index([accountId], map: "fin_loans_account_id_idx")
   @@index([institutionId], map: "fin_loans_institution_id_idx")
   @@map("fin_loans")
+}
+
+/// One scheduled loan instalment. paidAt null means unpaid; amount is the scheduled
+/// instalment and does not change when the loan balance is adjusted.
+model FinLoanInstallment {
+  id            String    @id @default(dbgenerated("(uuid_generate_v4())::text"))
+  loanId        String    @map("loan_id")
+  installmentNo Int       @map("installment_no")
+  dueDate       DateTime  @map("due_date") @db.Date
+  amount        Decimal   @db.Decimal(15, 2)
+  paidAt        DateTime? @map("paid_at") @db.Timestamptz(6)
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  loan          FinLoan   @relation(fields: [loanId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([loanId, installmentNo], map: "fin_loan_installments_loan_no_key")
+  @@index([loanId, dueDate], map: "fin_loan_installments_loan_id_due_idx")
+  @@map("fin_loan_installments")
 }
 
 model FinReceivable {

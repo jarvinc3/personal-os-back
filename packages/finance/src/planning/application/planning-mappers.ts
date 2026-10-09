@@ -50,6 +50,17 @@ export function mapLoan<
   };
 }
 
+export function mapLoanInstallment<
+  T extends {
+    amount: Decimalish;
+  },
+>(row: T) {
+  return {
+    ...row,
+    amount: decimalToString(row.amount),
+  };
+}
+
 export function mapReceivable<
   T extends {
     amount: Decimalish;

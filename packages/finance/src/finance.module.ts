@@ -8,6 +8,7 @@ import { FinanceFxModule } from './fx/fx.module';
 import { FinanceIngestionModule } from './ingestion/ingestion.module';
 import { FinanceLedgerModule } from './ledger/ledger.module';
 import { FinancePlanningModule } from './planning/planning.module';
+import { FinanceStatementsModule } from './statements/statements.module';
 import { FinanceWipeModule } from './shared/wipe-finance.module';
 
 /**
@@ -18,6 +19,7 @@ import { FinanceWipeModule } from './shared/wipe-finance.module';
     FinanceFxModule,
     FinanceEventsModule,
     FinanceCatalogModule,
+    FinanceStatementsModule,
     FinancePlanningModule,
     FinanceBalanceSheetModule,
     FinanceAnalyticsModule,

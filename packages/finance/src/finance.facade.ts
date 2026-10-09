@@ -138,7 +138,7 @@ export class FinanceFacade {
   }
 
   updateLoan(userId: string, id: string, dto: UpdateLoanDto) {
-    return this.planning.updateLoan(userId, id, dto);
+    return this.planning.updateLoan(userId, id, dto, new Date());
   }
 
   listCategories(userId: string, type?: 'EXPENSE' | 'INCOME') {

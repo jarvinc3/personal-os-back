@@ -342,6 +342,7 @@ export type FinLoanWhereInput = {
   updatedAt?: Prisma.DateTimeFilter<"FinLoan"> | Date | string
   account?: Prisma.XOR<Prisma.FinAccountNullableScalarRelationFilter, Prisma.FinAccountWhereInput> | null
   institution?: Prisma.XOR<Prisma.FinInstitutionNullableScalarRelationFilter, Prisma.FinInstitutionWhereInput> | null
+  installments?: Prisma.FinLoanInstallmentListRelationFilter
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
 }
 
@@ -366,6 +367,7 @@ export type FinLoanOrderByWithRelationInput = {
   updatedAt?: Prisma.SortOrder
   account?: Prisma.FinAccountOrderByWithRelationInput
   institution?: Prisma.FinInstitutionOrderByWithRelationInput
+  installments?: Prisma.FinLoanInstallmentOrderByRelationAggregateInput
   user?: Prisma.UserOrderByWithRelationInput
 }
 
@@ -393,6 +395,7 @@ export type FinLoanWhereUniqueInput = Prisma.AtLeast<{
   updatedAt?: Prisma.DateTimeFilter<"FinLoan"> | Date | string
   account?: Prisma.XOR<Prisma.FinAccountNullableScalarRelationFilter, Prisma.FinAccountWhereInput> | null
   institution?: Prisma.XOR<Prisma.FinInstitutionNullableScalarRelationFilter, Prisma.FinInstitutionWhereInput> | null
+  installments?: Prisma.FinLoanInstallmentListRelationFilter
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
 }, "id">
 
@@ -464,6 +467,7 @@ export type FinLoanCreateInput = {
   updatedAt?: Date | string
   account?: Prisma.FinAccountCreateNestedOneWithoutFinLoansInput
   institution?: Prisma.FinInstitutionCreateNestedOneWithoutLoansInput
+  installments?: Prisma.FinLoanInstallmentCreateNestedManyWithoutLoanInput
   user: Prisma.UserCreateNestedOneWithoutFinLoansInput
 }
 
@@ -486,6 +490,7 @@ export type FinLoanUncheckedCreateInput = {
   isActive?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
+  installments?: Prisma.FinLoanInstallmentUncheckedCreateNestedManyWithoutLoanInput
 }
 
 export type FinLoanUpdateInput = {
@@ -506,6 +511,7 @@ export type FinLoanUpdateInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   account?: Prisma.FinAccountUpdateOneWithoutFinLoansNestedInput
   institution?: Prisma.FinInstitutionUpdateOneWithoutLoansNestedInput
+  installments?: Prisma.FinLoanInstallmentUpdateManyWithoutLoanNestedInput
   user?: Prisma.UserUpdateOneRequiredWithoutFinLoansNestedInput
 }
 
@@ -528,6 +534,7 @@ export type FinLoanUncheckedUpdateInput = {
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  installments?: Prisma.FinLoanInstallmentUncheckedUpdateManyWithoutLoanNestedInput
 }
 
 export type FinLoanCreateManyInput = {
@@ -681,6 +688,11 @@ export type FinLoanSumOrderByAggregateInput = {
   interestRate?: Prisma.SortOrder
 }
 
+export type FinLoanScalarRelationFilter = {
+  is?: Prisma.FinLoanWhereInput
+  isNot?: Prisma.FinLoanWhereInput
+}
+
 export type FinLoanCreateNestedManyWithoutUserInput = {
   create?: Prisma.XOR<Prisma.FinLoanCreateWithoutUserInput, Prisma.FinLoanUncheckedCreateWithoutUserInput> | Prisma.FinLoanCreateWithoutUserInput[] | Prisma.FinLoanUncheckedCreateWithoutUserInput[]
   connectOrCreate?: Prisma.FinLoanCreateOrConnectWithoutUserInput | Prisma.FinLoanCreateOrConnectWithoutUserInput[]
@@ -811,6 +823,20 @@ export type EnumFinInstallmentFreqFieldUpdateOperationsInput = {
   set?: $Enums.FinInstallmentFreq
 }
 
+export type FinLoanCreateNestedOneWithoutInstallmentsInput = {
+  create?: Prisma.XOR<Prisma.FinLoanCreateWithoutInstallmentsInput, Prisma.FinLoanUncheckedCreateWithoutInstallmentsInput>
+  connectOrCreate?: Prisma.FinLoanCreateOrConnectWithoutInstallmentsInput
+  connect?: Prisma.FinLoanWhereUniqueInput
+}
+
+export type FinLoanUpdateOneRequiredWithoutInstallmentsNestedInput = {
+  create?: Prisma.XOR<Prisma.FinLoanCreateWithoutInstallmentsInput, Prisma.FinLoanUncheckedCreateWithoutInstallmentsInput>
+  connectOrCreate?: Prisma.FinLoanCreateOrConnectWithoutInstallmentsInput
+  upsert?: Prisma.FinLoanUpsertWithoutInstallmentsInput
+  connect?: Prisma.FinLoanWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.FinLoanUpdateToOneWithWhereWithoutInstallmentsInput, Prisma.FinLoanUpdateWithoutInstallmentsInput>, Prisma.FinLoanUncheckedUpdateWithoutInstallmentsInput>
+}
+
 export type FinLoanCreateWithoutUserInput = {
   id?: string
   lenderName: string
@@ -829,6 +855,7 @@ export type FinLoanCreateWithoutUserInput = {
   updatedAt?: Date | string
   account?: Prisma.FinAccountCreateNestedOneWithoutFinLoansInput
   institution?: Prisma.FinInstitutionCreateNestedOneWithoutLoansInput
+  installments?: Prisma.FinLoanInstallmentCreateNestedManyWithoutLoanInput
 }
 
 export type FinLoanUncheckedCreateWithoutUserInput = {
@@ -849,6 +876,7 @@ export type FinLoanUncheckedCreateWithoutUserInput = {
   isActive?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
+  installments?: Prisma.FinLoanInstallmentUncheckedCreateNestedManyWithoutLoanInput
 }
 
 export type FinLoanCreateOrConnectWithoutUserInput = {
@@ -918,6 +946,7 @@ export type FinLoanCreateWithoutAccountInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   institution?: Prisma.FinInstitutionCreateNestedOneWithoutLoansInput
+  installments?: Prisma.FinLoanInstallmentCreateNestedManyWithoutLoanInput
   user: Prisma.UserCreateNestedOneWithoutFinLoansInput
 }
 
@@ -939,6 +968,7 @@ export type FinLoanUncheckedCreateWithoutAccountInput = {
   isActive?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
+  installments?: Prisma.FinLoanInstallmentUncheckedCreateNestedManyWithoutLoanInput
 }
 
 export type FinLoanCreateOrConnectWithoutAccountInput = {
@@ -984,6 +1014,7 @@ export type FinLoanCreateWithoutInstitutionInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   account?: Prisma.FinAccountCreateNestedOneWithoutFinLoansInput
+  installments?: Prisma.FinLoanInstallmentCreateNestedManyWithoutLoanInput
   user: Prisma.UserCreateNestedOneWithoutFinLoansInput
 }
 
@@ -1005,6 +1036,7 @@ export type FinLoanUncheckedCreateWithoutInstitutionInput = {
   isActive?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
+  installments?: Prisma.FinLoanInstallmentUncheckedCreateNestedManyWithoutLoanInput
 }
 
 export type FinLoanCreateOrConnectWithoutInstitutionInput = {
@@ -1031,6 +1063,106 @@ export type FinLoanUpdateWithWhereUniqueWithoutInstitutionInput = {
 export type FinLoanUpdateManyWithWhereWithoutInstitutionInput = {
   where: Prisma.FinLoanScalarWhereInput
   data: Prisma.XOR<Prisma.FinLoanUpdateManyMutationInput, Prisma.FinLoanUncheckedUpdateManyWithoutInstitutionInput>
+}
+
+export type FinLoanCreateWithoutInstallmentsInput = {
+  id?: string
+  lenderName: string
+  originalAmount: runtime.Decimal | runtime.DecimalJsLike | number | string
+  currentBalance: runtime.Decimal | runtime.DecimalJsLike | number | string
+  currency?: string
+  installmentAmount: runtime.Decimal | runtime.DecimalJsLike | number | string
+  installmentFreq: $Enums.FinInstallmentFreq
+  totalInstallments: number
+  paidInstallments?: number
+  nextDueDate: Date | string
+  interestRate?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  notes?: string | null
+  isActive?: boolean
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  account?: Prisma.FinAccountCreateNestedOneWithoutFinLoansInput
+  institution?: Prisma.FinInstitutionCreateNestedOneWithoutLoansInput
+  user: Prisma.UserCreateNestedOneWithoutFinLoansInput
+}
+
+export type FinLoanUncheckedCreateWithoutInstallmentsInput = {
+  id?: string
+  userId: string
+  institutionId?: string | null
+  accountId?: string | null
+  lenderName: string
+  originalAmount: runtime.Decimal | runtime.DecimalJsLike | number | string
+  currentBalance: runtime.Decimal | runtime.DecimalJsLike | number | string
+  currency?: string
+  installmentAmount: runtime.Decimal | runtime.DecimalJsLike | number | string
+  installmentFreq: $Enums.FinInstallmentFreq
+  totalInstallments: number
+  paidInstallments?: number
+  nextDueDate: Date | string
+  interestRate?: runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  notes?: string | null
+  isActive?: boolean
+  createdAt?: Date | string
+  updatedAt?: Date | string
+}
+
+export type FinLoanCreateOrConnectWithoutInstallmentsInput = {
+  where: Prisma.FinLoanWhereUniqueInput
+  create: Prisma.XOR<Prisma.FinLoanCreateWithoutInstallmentsInput, Prisma.FinLoanUncheckedCreateWithoutInstallmentsInput>
+}
+
+export type FinLoanUpsertWithoutInstallmentsInput = {
+  update: Prisma.XOR<Prisma.FinLoanUpdateWithoutInstallmentsInput, Prisma.FinLoanUncheckedUpdateWithoutInstallmentsInput>
+  create: Prisma.XOR<Prisma.FinLoanCreateWithoutInstallmentsInput, Prisma.FinLoanUncheckedCreateWithoutInstallmentsInput>
+  where?: Prisma.FinLoanWhereInput
+}
+
+export type FinLoanUpdateToOneWithWhereWithoutInstallmentsInput = {
+  where?: Prisma.FinLoanWhereInput
+  data: Prisma.XOR<Prisma.FinLoanUpdateWithoutInstallmentsInput, Prisma.FinLoanUncheckedUpdateWithoutInstallmentsInput>
+}
+
+export type FinLoanUpdateWithoutInstallmentsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  lenderName?: Prisma.StringFieldUpdateOperationsInput | string
+  originalAmount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  currentBalance?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  currency?: Prisma.StringFieldUpdateOperationsInput | string
+  installmentAmount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  installmentFreq?: Prisma.EnumFinInstallmentFreqFieldUpdateOperationsInput | $Enums.FinInstallmentFreq
+  totalInstallments?: Prisma.IntFieldUpdateOperationsInput | number
+  paidInstallments?: Prisma.IntFieldUpdateOperationsInput | number
+  nextDueDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  interestRate?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  account?: Prisma.FinAccountUpdateOneWithoutFinLoansNestedInput
+  institution?: Prisma.FinInstitutionUpdateOneWithoutLoansNestedInput
+  user?: Prisma.UserUpdateOneRequiredWithoutFinLoansNestedInput
+}
+
+export type FinLoanUncheckedUpdateWithoutInstallmentsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  userId?: Prisma.StringFieldUpdateOperationsInput | string
+  institutionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  accountId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lenderName?: Prisma.StringFieldUpdateOperationsInput | string
+  originalAmount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  currentBalance?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  currency?: Prisma.StringFieldUpdateOperationsInput | string
+  installmentAmount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  installmentFreq?: Prisma.EnumFinInstallmentFreqFieldUpdateOperationsInput | $Enums.FinInstallmentFreq
+  totalInstallments?: Prisma.IntFieldUpdateOperationsInput | number
+  paidInstallments?: Prisma.IntFieldUpdateOperationsInput | number
+  nextDueDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  interestRate?: Prisma.NullableDecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string | null
+  notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
 export type FinLoanCreateManyUserInput = {
@@ -1071,6 +1203,7 @@ export type FinLoanUpdateWithoutUserInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   account?: Prisma.FinAccountUpdateOneWithoutFinLoansNestedInput
   institution?: Prisma.FinInstitutionUpdateOneWithoutLoansNestedInput
+  installments?: Prisma.FinLoanInstallmentUpdateManyWithoutLoanNestedInput
 }
 
 export type FinLoanUncheckedUpdateWithoutUserInput = {
@@ -1091,6 +1224,7 @@ export type FinLoanUncheckedUpdateWithoutUserInput = {
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  installments?: Prisma.FinLoanInstallmentUncheckedUpdateManyWithoutLoanNestedInput
 }
 
 export type FinLoanUncheckedUpdateManyWithoutUserInput = {
@@ -1150,6 +1284,7 @@ export type FinLoanUpdateWithoutAccountInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   institution?: Prisma.FinInstitutionUpdateOneWithoutLoansNestedInput
+  installments?: Prisma.FinLoanInstallmentUpdateManyWithoutLoanNestedInput
   user?: Prisma.UserUpdateOneRequiredWithoutFinLoansNestedInput
 }
 
@@ -1171,6 +1306,7 @@ export type FinLoanUncheckedUpdateWithoutAccountInput = {
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  installments?: Prisma.FinLoanInstallmentUncheckedUpdateManyWithoutLoanNestedInput
 }
 
 export type FinLoanUncheckedUpdateManyWithoutAccountInput = {
@@ -1230,6 +1366,7 @@ export type FinLoanUpdateWithoutInstitutionInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   account?: Prisma.FinAccountUpdateOneWithoutFinLoansNestedInput
+  installments?: Prisma.FinLoanInstallmentUpdateManyWithoutLoanNestedInput
   user?: Prisma.UserUpdateOneRequiredWithoutFinLoansNestedInput
 }
 
@@ -1251,6 +1388,7 @@ export type FinLoanUncheckedUpdateWithoutInstitutionInput = {
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  installments?: Prisma.FinLoanInstallmentUncheckedUpdateManyWithoutLoanNestedInput
 }
 
 export type FinLoanUncheckedUpdateManyWithoutInstitutionInput = {
@@ -1274,6 +1412,35 @@ export type FinLoanUncheckedUpdateManyWithoutInstitutionInput = {
 }
 
 
+/**
+ * Count Type FinLoanCountOutputType
+ */
+
+export type FinLoanCountOutputType = {
+  installments: number
+}
+
+export type FinLoanCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  installments?: boolean | FinLoanCountOutputTypeCountInstallmentsArgs
+}
+
+/**
+ * FinLoanCountOutputType without action
+ */
+export type FinLoanCountOutputTypeDefaultArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the FinLoanCountOutputType
+   */
+  select?: Prisma.FinLoanCountOutputTypeSelect<ExtArgs> | null
+}
+
+/**
+ * FinLoanCountOutputType without action
+ */
+export type FinLoanCountOutputTypeCountInstallmentsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.FinLoanInstallmentWhereInput
+}
+
 
 export type FinLoanSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -1296,7 +1463,9 @@ export type FinLoanSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs 
   updatedAt?: boolean
   account?: boolean | Prisma.FinLoan$accountArgs<ExtArgs>
   institution?: boolean | Prisma.FinLoan$institutionArgs<ExtArgs>
+  installments?: boolean | Prisma.FinLoan$installmentsArgs<ExtArgs>
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
+  _count?: boolean | Prisma.FinLoanCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["finLoan"]>
 
 export type FinLoanSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -1372,7 +1541,9 @@ export type FinLoanOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
 export type FinLoanInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   account?: boolean | Prisma.FinLoan$accountArgs<ExtArgs>
   institution?: boolean | Prisma.FinLoan$institutionArgs<ExtArgs>
+  installments?: boolean | Prisma.FinLoan$installmentsArgs<ExtArgs>
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
+  _count?: boolean | Prisma.FinLoanCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type FinLoanIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   account?: boolean | Prisma.FinLoan$accountArgs<ExtArgs>
@@ -1390,6 +1561,7 @@ export type $FinLoanPayload<ExtArgs extends runtime.Types.Extensions.InternalArg
   objects: {
     account: Prisma.$FinAccountPayload<ExtArgs> | null
     institution: Prisma.$FinInstitutionPayload<ExtArgs> | null
+    installments: Prisma.$FinLoanInstallmentPayload<ExtArgs>[]
     user: Prisma.$UserPayload<ExtArgs>
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
@@ -1807,6 +1979,7 @@ export interface Prisma__FinLoanClient<T, Null = never, ExtArgs extends runtime.
   readonly [Symbol.toStringTag]: "PrismaPromise"
   account<T extends Prisma.FinLoan$accountArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.FinLoan$accountArgs<ExtArgs>>): Prisma.Prisma__FinAccountClient<runtime.Types.Result.GetResult<Prisma.$FinAccountPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   institution<T extends Prisma.FinLoan$institutionArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.FinLoan$institutionArgs<ExtArgs>>): Prisma.Prisma__FinInstitutionClient<runtime.Types.Result.GetResult<Prisma.$FinInstitutionPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  installments<T extends Prisma.FinLoan$installmentsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.FinLoan$installmentsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$FinLoanInstallmentPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   user<T extends Prisma.UserDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.UserDefaultArgs<ExtArgs>>): Prisma.Prisma__UserClient<runtime.Types.Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
@@ -2291,6 +2464,30 @@ export type FinLoan$institutionArgs<ExtArgs extends runtime.Types.Extensions.Int
    */
   include?: Prisma.FinInstitutionInclude<ExtArgs> | null
   where?: Prisma.FinInstitutionWhereInput
+}
+
+/**
+ * FinLoan.installments
+ */
+export type FinLoan$installmentsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the FinLoanInstallment
+   */
+  select?: Prisma.FinLoanInstallmentSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the FinLoanInstallment
+   */
+  omit?: Prisma.FinLoanInstallmentOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.FinLoanInstallmentInclude<ExtArgs> | null
+  where?: Prisma.FinLoanInstallmentWhereInput
+  orderBy?: Prisma.FinLoanInstallmentOrderByWithRelationInput | Prisma.FinLoanInstallmentOrderByWithRelationInput[]
+  cursor?: Prisma.FinLoanInstallmentWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.FinLoanInstallmentScalarFieldEnum | Prisma.FinLoanInstallmentScalarFieldEnum[]
 }
 
 /**
