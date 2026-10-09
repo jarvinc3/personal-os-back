@@ -5,6 +5,7 @@ import { FinanceFxModule } from '../fx/fx.module';
 import { FinancePlanningThresholdModule } from '../planning/planning-threshold.module';
 import { FinanceOwnershipModule } from '../shared/finance-ownership.module';
 import { LEDGER_REPOSITORY } from '../shared/application/tokens';
+import { AdjustBalanceUseCase } from './application/adjust-balance.use-case';
 import { ConfirmTransactionUseCase } from './application/confirm-transaction.use-case';
 import { CreateTransactionUseCase } from './application/create-transaction.use-case';
 import { CreateTransferUseCase } from './application/create-transfer.use-case';
@@ -32,6 +33,7 @@ import { TransfersController } from './presentation/transfers.controller';
     { provide: LEDGER_REPOSITORY, useExisting: PrismaLedgerRepository },
     LedgerQueryService,
     CreateTransactionUseCase,
+    AdjustBalanceUseCase,
     UpdateTransactionUseCase,
     ConfirmTransactionUseCase,
     DeleteTransactionUseCase,
@@ -43,6 +45,7 @@ import { TransfersController } from './presentation/transfers.controller';
   exports: [
     LedgerQueryService,
     CreateTransactionUseCase,
+    AdjustBalanceUseCase,
     UpdateTransactionUseCase,
     ConfirmTransactionUseCase,
     DeleteTransactionUseCase,

@@ -1,4 +1,9 @@
-export const FIN_TRANSACTION_TYPES = ['DEBIT', 'CREDIT', 'TRANSFER'] as const;
+export const FIN_TRANSACTION_TYPES = [
+  'DEBIT',
+  'CREDIT',
+  'TRANSFER',
+  'ADJUSTMENT',
+] as const;
 
 export type FinTransactionTypeValue = (typeof FIN_TRANSACTION_TYPES)[number];
 

@@ -15,12 +15,13 @@ export class UserDataWipeDomainsAdapter implements UserDataWipeDomainsPort {
   async wipeFinance(
     userId: string,
     layers: readonly WipeLayerId[],
+    options?: { balanceInstitutionId?: string },
   ): Promise<Record<string, number>> {
     const financeLayers = layers.filter(isFinanceWipeLayer);
     if (financeLayers.length === 0) {
       return {};
     }
-    return this.finance.wipeUserData(userId, financeLayers);
+    return this.finance.wipeUserData(userId, financeLayers, options);
   }
 
   async wipeAi(userId: string): Promise<Record<string, number>> {

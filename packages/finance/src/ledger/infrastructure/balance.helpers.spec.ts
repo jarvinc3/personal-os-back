@@ -9,6 +9,8 @@ describe('balance.helpers', () => {
     expect(signedAmount('CREDIT', 100)).toBe(100);
     expect(signedAmount('DEBIT', 50)).toBe(-50);
     expect(signedAmount('DEBIT', -50)).toBe(-50);
+    expect(signedAmount('ADJUSTMENT', 12.5)).toBe(12.5);
+    expect(signedAmount('ADJUSTMENT', -12.5)).toBe(-12.5);
   });
 
   it('applyBalanceForTransaction updates only account for accountId-only', async () => {
@@ -93,6 +95,35 @@ describe('balance.helpers', () => {
       data: { balance: { increment: -15 } },
     });
     expect(tx.finCardBalance.create).not.toHaveBeenCalled();
+  });
+
+  it('applyBalanceForTransaction posts ADJUSTMENT on the card balance even for debit cards', async () => {
+    const tx = {
+      finAccount: {
+        update: jest.fn(() => Promise.resolve({})),
+      },
+      finCardBalance: {
+        findFirst: jest.fn(() => Promise.resolve({ id: 'bal-1' })),
+        create: jest.fn(() => Promise.resolve({})),
+        update: jest.fn(() => Promise.resolve({})),
+      },
+    };
+
+    await applyBalanceForTransaction(tx as never, {
+      accountId: null,
+      cardId: 'card-debit',
+      cardType: 'DEBIT',
+      derivedAccountId: 'acc-linked',
+      currency: 'DOP',
+      type: 'ADJUSTMENT',
+      amount: -20,
+    });
+
+    expect(tx.finAccount.update).not.toHaveBeenCalled();
+    expect(tx.finCardBalance.update).toHaveBeenCalledWith({
+      where: { id: 'bal-1' },
+      data: { balance: { increment: -20 } },
+    });
   });
 
   it('applyBalanceForTransaction reverses with direction -1', async () => {

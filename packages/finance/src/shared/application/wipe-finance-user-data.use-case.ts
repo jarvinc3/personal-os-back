@@ -1,5 +1,10 @@
 import { InjectQueue } from '@nestjs/bullmq';
-import { Injectable, Logger, Optional } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  NotFoundException,
+  Optional,
+} from '@nestjs/common';
 import { Queue } from 'bullmq';
 import { Prisma, PrismaService } from '@personal-os/database';
 import { LogoService } from '@personal-os/logos';
@@ -23,6 +28,8 @@ export type FinanceWipeCounts = {
   accounts: number;
   cards: number;
   emailConnections: number;
+  accountBalances: number;
+  cardBalances: number;
 };
 
 function emptyCounts(): FinanceWipeCounts {
@@ -40,6 +47,8 @@ function emptyCounts(): FinanceWipeCounts {
     accounts: 0,
     cards: 0,
     emailConnections: 0,
+    accountBalances: 0,
+    cardBalances: 0,
   };
 }
 
@@ -62,6 +71,7 @@ export class WipeFinanceUserDataUseCase {
   async execute(
     userId: string,
     layers: readonly FinanceWipeLayer[],
+    options?: { balanceInstitutionId?: string },
   ): Promise<FinanceWipeCounts> {
     const selected = new Set<FinanceWipeLayer>(layers);
     const sourceIds = await this.findSourceIds(userId);
@@ -75,6 +85,12 @@ export class WipeFinanceUserDataUseCase {
       const applied = emptyCounts();
       if (selected.has('finance.ledger')) {
         Object.assign(applied, await this.wipeLedger(tx, userId, sourceIds));
+      }
+      if (selected.has('finance.balances')) {
+        Object.assign(
+          applied,
+          await this.wipeBalances(tx, userId, options?.balanceInstitutionId),
+        );
       }
       if (selected.has('finance.planning')) {
         Object.assign(applied, await this.wipePlanning(tx, userId));
@@ -161,10 +177,7 @@ export class WipeFinanceUserDataUseCase {
       where: { userId },
       data: { balance: 0 },
     });
-    await tx.finCardBalance.updateMany({
-      where: { card: { userId } },
-      data: { balance: 0 },
-    });
+    await this.resetCardBalances(tx, userId);
     await tx.finBudget.updateMany({
       where: { userId },
       data: { amountSpent: 0 },
@@ -175,6 +188,71 @@ export class WipeFinanceUserDataUseCase {
       emailSyncLogs: emailSyncLogs.count,
       recurringPatterns: recurringPatterns.count,
     };
+  }
+
+  private async wipeBalances(
+    tx: TxClient,
+    userId: string,
+    institutionId?: string,
+  ): Promise<Partial<FinanceWipeCounts>> {
+    if (institutionId) {
+      const institution = await tx.finInstitution.findFirst({
+        where: { id: institutionId, userId },
+        select: { id: true },
+      });
+      if (!institution) {
+        throw new NotFoundException('Institution not found');
+      }
+    }
+    const accounts = await tx.finAccount.updateMany({
+      where: institutionId ? { userId, institutionId } : { userId },
+      data: { balance: 0 },
+    });
+    const cardBalances = await this.resetCardBalances(
+      tx,
+      userId,
+      institutionId,
+    );
+    return {
+      accountBalances: accounts.count,
+      cardBalances,
+    };
+  }
+
+  /**
+   * Credit-card `balance` is available credit. Restoring it to the limit
+   * clears the debt the balance sheet shows. Debit cards hold cash, so
+   * those rows go to zero.
+   */
+  private async resetCardBalances(
+    tx: TxClient,
+    userId: string,
+    institutionId?: string,
+  ): Promise<number> {
+    const restored = await tx.$executeRaw`
+      UPDATE fin_card_balances AS b
+      SET balance = b.credit_limit,
+          updated_at = NOW()
+      FROM fin_cards AS c
+      WHERE b.card_id = c.id
+        AND c.user_id = ${userId}
+        AND c.type = 'CREDIT'::"FinCardType"
+        AND b.credit_limit IS NOT NULL
+        ${
+          institutionId
+            ? Prisma.sql`AND c.institution_id = ${institutionId}`
+            : Prisma.empty
+        }
+    `;
+    const debits = await tx.finCardBalance.updateMany({
+      where: {
+        card: institutionId
+          ? { userId, institutionId, type: 'DEBIT' }
+          : { userId, type: 'DEBIT' },
+      },
+      data: { balance: 0 },
+    });
+    return Number(restored) + debits.count;
   }
 
   private async wipePlanning(

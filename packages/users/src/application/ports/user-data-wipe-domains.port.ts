@@ -11,6 +11,7 @@ export interface UserDataWipeDomainsPort {
   wipeFinance(
     userId: string,
     layers: readonly WipeLayerId[],
+    options?: { balanceInstitutionId?: string },
   ): Promise<Record<string, number>>;
   wipeAi(userId: string): Promise<Record<string, number>>;
   wipeNotifications(userId: string): Promise<Record<string, number>>;

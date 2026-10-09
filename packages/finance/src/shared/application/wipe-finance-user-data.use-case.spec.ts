@@ -1,5 +1,9 @@
 import { WipeFinanceUserDataUseCase } from './wipe-finance-user-data.use-case';
 
+function creditRestoreSql(tx: { $executeRaw: jest.Mock }): string {
+  return JSON.stringify(tx.$executeRaw.mock.calls[0]);
+}
+
 function buildMocks() {
   const tx = {
     finTransaction: { deleteMany: jest.fn() },
@@ -17,11 +21,17 @@ function buildMocks() {
     finLoan: { deleteMany: jest.fn() },
     finReceivable: { deleteMany: jest.fn() },
     finCategory: { deleteMany: jest.fn() },
-    finInstitution: { count: jest.fn(), deleteMany: jest.fn() },
+    finInstitution: {
+      count: jest.fn(),
+      deleteMany: jest.fn(),
+      findFirst: jest.fn(),
+    },
     finCard: { count: jest.fn(), deleteMany: jest.fn() },
     finEmailConnection: { deleteMany: jest.fn() },
+    $executeRaw: jest.fn().mockResolvedValue(0),
   };
   for (const model of Object.values(tx)) {
+    if (typeof model !== 'object' || model === null) continue;
     for (const method of Object.values(model)) {
       method.mockResolvedValue({ count: 0 });
     }
@@ -63,8 +73,10 @@ describe('WipeFinanceUserDataUseCase', () => {
       where: { userId: 'user-1' },
       data: { balance: 0 },
     });
+    expect(creditRestoreSql(tx)).toContain('credit_limit');
+    expect(creditRestoreSql(tx)).toContain('user-1');
     expect(tx.finCardBalance.updateMany).toHaveBeenCalledWith({
-      where: { card: { userId: 'user-1' } },
+      where: { card: { userId: 'user-1', type: 'DEBIT' } },
       data: { balance: 0 },
     });
     expect(tx.finBudget.updateMany).toHaveBeenCalledWith({
@@ -160,5 +172,64 @@ describe('WipeFinanceUserDataUseCase', () => {
     expect(tx.finEmailConnection.deleteMany).toHaveBeenCalledWith({
       where: { userId: 'user-1' },
     });
+  });
+
+  it('zeros accounts and restores credit cards without deleting movements', async () => {
+    const { prisma, tx, logos } = buildMocks();
+    tx.finAccount.updateMany.mockResolvedValue({ count: 2 });
+    tx.$executeRaw.mockResolvedValue(1);
+    tx.finCardBalance.updateMany.mockResolvedValue({ count: 2 });
+    const useCase = new WipeFinanceUserDataUseCase(
+      prisma as never,
+      logos as never,
+    );
+
+    const counts = await useCase.execute('user-1', ['finance.balances']);
+
+    expect(tx.finTransaction.deleteMany).not.toHaveBeenCalled();
+    expect(tx.finAccount.updateMany).toHaveBeenCalledWith({
+      where: { userId: 'user-1' },
+      data: { balance: 0 },
+    });
+    expect(creditRestoreSql(tx)).toContain('credit_limit');
+    expect(creditRestoreSql(tx)).toContain('user-1');
+    expect(tx.finCardBalance.updateMany).toHaveBeenCalledWith({
+      where: { card: { userId: 'user-1', type: 'DEBIT' } },
+      data: { balance: 0 },
+    });
+    expect(counts).toMatchObject({ accountBalances: 2, cardBalances: 3 });
+  });
+
+  it('zeros balances for one institution and rejects an unknown one', async () => {
+    const { prisma, tx, logos } = buildMocks();
+    tx.finInstitution.findFirst.mockResolvedValue({ id: 'inst-1' });
+    const useCase = new WipeFinanceUserDataUseCase(
+      prisma as never,
+      logos as never,
+    );
+
+    await useCase.execute('user-1', ['finance.balances'], {
+      balanceInstitutionId: 'inst-1',
+    });
+
+    expect(tx.finAccount.updateMany).toHaveBeenCalledWith({
+      where: { userId: 'user-1', institutionId: 'inst-1' },
+      data: { balance: 0 },
+    });
+    expect(creditRestoreSql(tx)).toContain('institution_id');
+    expect(creditRestoreSql(tx)).toContain('inst-1');
+    expect(tx.finCardBalance.updateMany).toHaveBeenCalledWith({
+      where: {
+        card: { userId: 'user-1', institutionId: 'inst-1', type: 'DEBIT' },
+      },
+      data: { balance: 0 },
+    });
+
+    tx.finInstitution.findFirst.mockResolvedValue(null);
+    await expect(
+      useCase.execute('user-1', ['finance.balances'], {
+        balanceInstitutionId: 'missing',
+      }),
+    ).rejects.toThrow('Institution not found');
   });
 });

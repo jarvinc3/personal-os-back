@@ -116,7 +116,7 @@ const STATIC_TOOLS: StaticToolDef[] = [
         accountId: { type: 'string' },
         cardId: { type: 'string' },
         categoryId: { type: 'string' },
-        type: { type: 'string', enum: ['DEBIT', 'CREDIT', 'TRANSFER'] },
+        type: { type: 'string', enum: ['DEBIT', 'CREDIT', 'TRANSFER', 'ADJUSTMENT'] },
         status: {
           type: 'string',
           enum: ['PENDING', 'CONFIRMED', 'CANCELLED', 'DECLINED', 'REVERSED'],

@@ -11,6 +11,9 @@ export function signedAmount(type: LedgerMovementType, amount: number): number {
   if (type === 'DEBIT') {
     return -Math.abs(amount);
   }
+  if (type === 'ADJUSTMENT') {
+    return amount;
+  }
   // TRANSFER rows should not use this path; legs are DEBIT/CREDIT.
   return 0;
 }

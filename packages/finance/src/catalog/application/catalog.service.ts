@@ -442,6 +442,11 @@ export class CatalogService {
     if (!card) {
       throw new NotFoundException('Card not found');
     }
+    if (card.type === 'DEBIT') {
+      throw new BadRequestException(
+        'DEBIT cards use their linked account balance',
+      );
+    }
     if (card.type === 'CREDIT' && dto.creditLimit === undefined) {
       throw new BadRequestException('CREDIT cards require creditLimit');
     }
@@ -462,6 +467,55 @@ export class CatalogService {
       balance: decimalToString(updated.balance),
       creditLimit: decimalToNullableString(updated.creditLimit),
     };
+  }
+
+  async updateCardCreditLimit(
+    userId: string,
+    id: string,
+    dto: { currency: string; creditLimit: number },
+  ) {
+    const card = await this.repo.findCardById(userId, id);
+    if (!card) {
+      throw new NotFoundException('Card not found');
+    }
+    if (card.type !== 'CREDIT') {
+      throw new BadRequestException(
+        'Only credit cards have a credit limit',
+      );
+    }
+    const updated = await this.repo.setCardCreditLimit(
+      userId,
+      id,
+      dto.currency,
+      dto.creditLimit,
+    );
+    if (!updated) {
+      throw new NotFoundException('Card not found');
+    }
+    return {
+      id: updated.id,
+      cardId: updated.cardId,
+      currency: updated.currency,
+      balance: decimalToString(updated.balance),
+      creditLimit: decimalToNullableString(updated.creditLimit),
+    };
+  }
+
+  async deleteCardBalance(userId: string, id: string, currency: string) {
+    const card = await this.repo.findCardById(userId, id);
+    if (!card) {
+      throw new NotFoundException('Card not found');
+    }
+    if (card.type === 'DEBIT') {
+      throw new BadRequestException(
+        'DEBIT cards use their linked account balance',
+      );
+    }
+    const result = await this.repo.deleteCardBalance(userId, id, currency);
+    if (result.count === 0) {
+      throw new NotFoundException('Card balance not found');
+    }
+    return { success: true };
   }
 
   listCategories(userId: string, type?: 'EXPENSE' | 'INCOME') {

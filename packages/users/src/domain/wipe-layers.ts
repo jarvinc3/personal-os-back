@@ -4,6 +4,7 @@
  */
 export const WIPE_LAYERS = {
   FINANCE_LEDGER: 'finance.ledger',
+  FINANCE_BALANCES: 'finance.balances',
   FINANCE_PLANNING: 'finance.planning',
   FINANCE_CATEGORIES: 'finance.categories',
   FINANCE_CATALOG: 'finance.catalog',
@@ -27,6 +28,7 @@ export function isWipeLayerId(value: string): value is WipeLayerId {
  */
 const WIPE_LAYER_DEPENDENCIES: Record<WipeLayerId, readonly WipeLayerId[]> = {
   [WIPE_LAYERS.FINANCE_LEDGER]: [],
+  [WIPE_LAYERS.FINANCE_BALANCES]: [],
   [WIPE_LAYERS.FINANCE_PLANNING]: [],
   [WIPE_LAYERS.FINANCE_CATEGORIES]: [WIPE_LAYERS.FINANCE_PLANNING],
   [WIPE_LAYERS.FINANCE_CATALOG]: [WIPE_LAYERS.FINANCE_LEDGER],
@@ -39,6 +41,7 @@ const WIPE_LAYER_DEPENDENCIES: Record<WipeLayerId, readonly WipeLayerId[]> = {
 /** Order the domains must run in: instruments before the rows they own. */
 export const WIPE_EXECUTION_ORDER: readonly WipeLayerId[] = [
   WIPE_LAYERS.FINANCE_LEDGER,
+  WIPE_LAYERS.FINANCE_BALANCES,
   WIPE_LAYERS.FINANCE_PLANNING,
   WIPE_LAYERS.FINANCE_CATEGORIES,
   WIPE_LAYERS.FINANCE_CATALOG,

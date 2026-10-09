@@ -214,6 +214,50 @@ export class CatalogRepository {
     });
   }
 
+  setCardCreditLimit(
+    userId: string,
+    cardId: string,
+    currency: string,
+    creditLimit: number,
+  ) {
+    return this.prisma.$transaction(async (tx) => {
+      const card = await tx.finCard.findFirst({
+        where: { id: cardId, userId },
+      });
+      if (!card) {
+        return null;
+      }
+      const normalizedCurrency = String(normalizeCurrencyCode(currency));
+      const existing = await tx.finCardBalance.findFirst({
+        where: { cardId, currency: normalizedCurrency },
+      });
+      if (existing) {
+        return tx.finCardBalance.update({
+          where: { id: existing.id },
+          data: { creditLimit },
+        });
+      }
+      return tx.finCardBalance.create({
+        data: {
+          cardId,
+          currency: normalizedCurrency,
+          balance: 0,
+          creditLimit,
+        },
+      });
+    });
+  }
+
+  deleteCardBalance(userId: string, cardId: string, currency: string) {
+    return this.prisma.finCardBalance.deleteMany({
+      where: {
+        cardId,
+        currency: String(normalizeCurrencyCode(currency)),
+        card: { userId },
+      },
+    });
+  }
+
   listCategories(userId: string, type?: 'EXPENSE' | 'INCOME') {
     return this.prisma.finCategory.findMany({
       where: {

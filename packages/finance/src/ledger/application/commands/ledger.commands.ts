@@ -1,4 +1,5 @@
 import type { ResolvedAmounts } from '../../../shared/domain/money';
+import type { FinTransactionTypeValue } from '../../../shared/domain/transaction-status';
 
 export type FinTxStatus =
   'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'DECLINED' | 'REVERSED';
@@ -66,7 +67,7 @@ export type ListTransactionsQuery = {
   accountId?: string;
   cardId?: string;
   categoryId?: string;
-  type?: FinTxType;
+  type?: FinTransactionTypeValue;
   status?: FinTxStatus;
   dateFrom?: string;
   dateTo?: string;

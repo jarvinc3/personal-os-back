@@ -74,6 +74,8 @@ export class UsersController {
   })
   @ApiOkResponse({ description: 'Requested and applied layers with counts' })
   wipeMyData(@CurrentUser('sub') userId: string, @Body() dto: WipeUserDataDto) {
-    return this.wipeUserData.execute(userId, dto.layers);
+    return this.wipeUserData.execute(userId, dto.layers, {
+      balanceInstitutionId: dto.balanceInstitutionId,
+    });
   }
 }
