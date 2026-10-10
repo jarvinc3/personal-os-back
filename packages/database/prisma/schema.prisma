@@ -178,6 +178,7 @@ model FinAccount {
   cards          FinCard[]
   transactions   FinTransaction[]
   finLoans       FinLoan[]
+  receivablePayments FinReceivablePayment[]
 
   @@index([userId, isActive], map: "fin_accounts_user_id_active_idx")
   @@index([institutionId], map: "fin_accounts_institution_id_idx")
@@ -276,6 +277,8 @@ model FinTransaction {
   user                 User                 @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   linkedTransaction    FinTransaction?      @relation("TransactionLink", fields: [linkedTransactionId], references: [id], onDelete: SetNull, onUpdate: NoAction)
   linkedFrom           FinTransaction[]     @relation("TransactionLink")
+  receivablePayment    FinReceivablePayment?
+  loanInstallment      FinLoanInstallment?
 
   @@index([accountId, transactionDate], map: "fin_transactions_account_id_date_idx")
   @@index([cardId, transactionDate], map: "fin_transactions_card_id_date_idx")
@@ -491,9 +494,25 @@ model FinSavingsGoal {
   createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt     DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   user          User      @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  contributions FinSavingsGoalContribution[]
 
   @@index([userId, isCompleted], map: "fin_savings_goals_user_id_completed_idx")
   @@map("fin_savings_goals")
+}
+
+/// One amount set aside for a savings goal. The goal balance is the sum of its
+/// contributions; the money is not moved between accounts.
+model FinSavingsGoalContribution {
+  id            String         @id @default(dbgenerated("(uuid_generate_v4())::text"))
+  goalId        String         @map("goal_id")
+  amount        Decimal        @db.Decimal(15, 2)
+  contributedAt DateTime       @map("contributed_at") @db.Date
+  notes         String?
+  createdAt     DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  goal          FinSavingsGoal @relation(fields: [goalId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([goalId, contributedAt], map: "fin_savings_goal_contributions_goal_id_date_idx")
+  @@map("fin_savings_goal_contributions")
 }
 
 model FinLoan {
@@ -535,9 +554,12 @@ model FinLoanInstallment {
   dueDate       DateTime  @map("due_date") @db.Date
   amount        Decimal   @db.Decimal(15, 2)
   paidAt        DateTime? @map("paid_at") @db.Timestamptz(6)
+  /// Movement created when the instalment was paid; null when it was not recorded.
+  transactionId String?   @unique @map("transaction_id")
   createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt     DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   loan          FinLoan   @relation(fields: [loanId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  transaction   FinTransaction? @relation(fields: [transactionId], references: [id], onDelete: SetNull, onUpdate: NoAction)
 
   @@unique([loanId, installmentNo], map: "fin_loan_installments_loan_no_key")
   @@index([loanId, dueDate], map: "fin_loan_installments_loan_id_due_idx")
@@ -558,9 +580,31 @@ model FinReceivable {
   createdAt   DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt   DateTime            @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   user        User                @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  payments    FinReceivablePayment[]
 
   @@index([userId, status], map: "fin_receivables_user_status_idx")
   @@map("fin_receivables")
+}
+
+/// One amount collected for a receivable. It carries the movement that put the
+/// money in the account, so both sides can be undone together.
+model FinReceivablePayment {
+  id            String          @id @default(dbgenerated("(uuid_generate_v4())::text"))
+  receivableId  String          @map("receivable_id")
+  amount        Decimal         @db.Decimal(15, 2)
+  paidAt        DateTime        @map("paid_at") @db.Date
+  /// Account the money entered. Null only after that account is deleted.
+  accountId     String?         @map("account_id")
+  transactionId String?         @unique @map("transaction_id")
+  notes         String?
+  createdAt     DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  account       FinAccount?     @relation(fields: [accountId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  receivable    FinReceivable   @relation(fields: [receivableId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  transaction   FinTransaction? @relation(fields: [transactionId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+
+  @@index([receivableId, paidAt], map: "fin_receivable_payments_receivable_id_paid_at_idx")
+  @@index([accountId], map: "fin_receivable_payments_account_id_idx")
+  @@map("fin_receivable_payments")
 }
 
 /// One sync run against a source (scanned / imported / error). Operational history.

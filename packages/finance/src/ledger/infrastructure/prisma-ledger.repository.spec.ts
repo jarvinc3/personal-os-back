@@ -11,6 +11,20 @@ const dopAmounts = {
   exchangeRate: 1,
 };
 
+/** Pending collected income, so the delete path skips the balance compensation. */
+function collectedIncome() {
+  return {
+    id: 'tx-del',
+    userId: 'user-1',
+    amount: 50,
+    status: 'PENDING',
+    source: 'MANUAL',
+    transferGroupId: null,
+    accountId: 'acc-1',
+    cardId: null,
+  };
+}
+
 describe('PrismaLedgerRepository outbox-in-TX', () => {
   it('passes the same transaction client to outbox enqueue on create', async () => {
     const fakeTx = { name: 'tx-client' };
@@ -306,6 +320,11 @@ describe('PrismaLedgerRepository outbox-in-TX', () => {
             findFirst: jest.fn().mockResolvedValue(existing),
             deleteMany,
           },
+          finReceivablePayment: {
+            findMany: jest.fn().mockResolvedValue([]),
+            deleteMany: jest.fn(),
+          },
+          finLoanInstallment: { findMany: jest.fn().mockResolvedValue([]) },
           finBudget: {
             findMany: jest.fn().mockResolvedValue([]),
             update: jest.fn(),
@@ -341,6 +360,152 @@ describe('PrismaLedgerRepository outbox-in-TX', () => {
     expect((enqueue.mock.calls[0]?.[1] as { name?: string })?.name).toBe(
       'same-tx',
     );
+  });
+
+  it('deleteTransaction removes the collected payment and recomputes the receivable', async () => {
+    const enqueue = jest.fn().mockResolvedValue({});
+    const events = { enqueue } as unknown as DomainEventPublisherPort;
+    const paymentDeleteMany = jest.fn().mockResolvedValue({ count: 1 });
+    const receivableUpdate = jest.fn().mockResolvedValue({});
+
+    const prisma = {
+      $transaction: jest.fn(async (fn: (tx: unknown) => Promise<unknown>) => {
+        const tx = {
+          name: 'same-tx',
+          finTransaction: {
+            findFirst: jest.fn().mockResolvedValue(collectedIncome()),
+            deleteMany: jest.fn().mockResolvedValue({ count: 1 }),
+          },
+          finReceivablePayment: {
+            findMany: jest
+              .fn()
+              .mockResolvedValue([{ id: 'pay-1', receivableId: 'rec-1' }]),
+            deleteMany: paymentDeleteMany,
+            aggregate: jest.fn().mockResolvedValue({ _sum: { amount: 0 } }),
+          },
+          finReceivable: {
+            findUniqueOrThrow: jest.fn().mockResolvedValue({
+              id: 'rec-1',
+              amount: 80,
+              status: 'PARTIAL',
+            }),
+            update: receivableUpdate,
+          },
+          finLoanInstallment: { findMany: jest.fn().mockResolvedValue([]) },
+        };
+        return fn(tx);
+      }),
+    };
+
+    const repo = new PrismaLedgerRepository(prisma as never, events, undefined);
+
+    await repo.deleteTransaction('user-1', 'tx-del');
+
+    expect(paymentDeleteMany).toHaveBeenCalledWith({
+      where: { id: { in: ['pay-1'] } },
+    });
+    expect(receivableUpdate).toHaveBeenCalledWith({
+      where: { id: 'rec-1' },
+      data: { paidAmount: 0, status: 'PENDING' },
+    });
+  });
+
+  it('deleteTransaction un-pays the instalment and moves the loan back', async () => {
+    const enqueue = jest.fn().mockResolvedValue({});
+    const events = { enqueue } as unknown as DomainEventPublisherPort;
+    const installmentUpdateMany = jest.fn().mockResolvedValue({ count: 1 });
+    const loanUpdate = jest.fn().mockResolvedValue({});
+
+    const prisma = {
+      $transaction: jest.fn(async (fn: (tx: unknown) => Promise<unknown>) => {
+        const tx = {
+          name: 'same-tx',
+          finTransaction: {
+            findFirst: jest.fn().mockResolvedValue(collectedIncome()),
+            deleteMany: jest.fn().mockResolvedValue({ count: 1 }),
+          },
+          finReceivablePayment: { findMany: jest.fn().mockResolvedValue([]) },
+          finLoanInstallment: {
+            findMany: jest.fn().mockResolvedValue([
+              {
+                id: 'inst-2',
+                loan: {
+                  id: 'loan-1',
+                  paidInstallments: 2,
+                  currentBalance: 3500,
+                  installmentAmount: 1500,
+                  installmentFreq: 'MONTHLY',
+                  nextDueDate: new Date(Date.UTC(2026, 2, 5)),
+                },
+              },
+            ]),
+            updateMany: installmentUpdateMany,
+          },
+          finLoan: { update: loanUpdate },
+        };
+        return fn(tx);
+      }),
+    };
+
+    const repo = new PrismaLedgerRepository(prisma as never, events, undefined);
+
+    await repo.deleteTransaction('user-1', 'tx-del');
+
+    expect(installmentUpdateMany).toHaveBeenCalledWith({
+      where: { id: { in: ['inst-2'] } },
+      data: { paidAt: null, transactionId: null },
+    });
+    expect(loanUpdate).toHaveBeenCalledWith({
+      where: { id: 'loan-1' },
+      data: {
+        paidInstallments: 1,
+        currentBalance: 5000,
+        nextDueDate: new Date(Date.UTC(2026, 1, 5)),
+      },
+    });
+  });
+
+  it('reverseTransaction reverts the collected payment too', async () => {
+    const enqueue = jest.fn().mockResolvedValue({});
+    const events = { enqueue } as unknown as DomainEventPublisherPort;
+    const paymentDeleteMany = jest.fn().mockResolvedValue({ count: 1 });
+
+    const prisma = {
+      $transaction: jest.fn(async (fn: (tx: unknown) => Promise<unknown>) => {
+        const tx = {
+          name: 'same-tx',
+          finTransaction: {
+            findFirst: jest.fn().mockResolvedValue(collectedIncome()),
+            update: jest
+              .fn()
+              .mockResolvedValue({ ...collectedIncome(), status: 'REVERSED' }),
+          },
+          finReceivablePayment: {
+            findMany: jest
+              .fn()
+              .mockResolvedValue([{ id: 'pay-1', receivableId: 'rec-1' }]),
+            deleteMany: paymentDeleteMany,
+            aggregate: jest.fn().mockResolvedValue({ _sum: { amount: 0 } }),
+          },
+          finReceivable: {
+            findUniqueOrThrow: jest.fn().mockResolvedValue({
+              id: 'rec-1',
+              amount: 80,
+              status: 'PENDING',
+            }),
+            update: jest.fn(),
+          },
+          finLoanInstallment: { findMany: jest.fn().mockResolvedValue([]) },
+        };
+        return fn(tx);
+      }),
+    };
+
+    const repo = new PrismaLedgerRepository(prisma as never, events, undefined);
+
+    await repo.reverseTransaction('user-1', 'tx-del');
+
+    expect(paymentDeleteMany).toHaveBeenCalledTimes(1);
   });
 
   it('deleteTransactionsByTransferGroupId includes transferGroupId on each deleted event', async () => {
@@ -386,6 +551,8 @@ describe('PrismaLedgerRepository outbox-in-TX', () => {
             findMany: jest.fn().mockResolvedValue(rows),
             deleteMany: jest.fn().mockResolvedValue({ count: 2 }),
           },
+          finReceivablePayment: { findMany: jest.fn().mockResolvedValue([]) },
+          finLoanInstallment: { findMany: jest.fn().mockResolvedValue([]) },
         };
         return fn(tx);
       }),

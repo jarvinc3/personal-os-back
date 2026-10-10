@@ -116,7 +116,10 @@ const STATIC_TOOLS: StaticToolDef[] = [
         accountId: { type: 'string' },
         cardId: { type: 'string' },
         categoryId: { type: 'string' },
-        type: { type: 'string', enum: ['DEBIT', 'CREDIT', 'TRANSFER', 'ADJUSTMENT'] },
+        type: {
+          type: 'string',
+          enum: ['DEBIT', 'CREDIT', 'TRANSFER', 'ADJUSTMENT'],
+        },
         status: {
           type: 'string',
           enum: ['PENDING', 'CONFIRMED', 'CANCELLED', 'DECLINED', 'REVERSED'],
@@ -235,7 +238,14 @@ const STATIC_TOOLS: StaticToolDef[] = [
   },
   {
     name: 'update_savings_goal',
-    description: 'Update savings goal progress or details.',
+    description: 'Update savings goal details.',
+    mutating: true,
+    targetModule: 'finance',
+  },
+  {
+    name: 'record_savings_contribution',
+    description:
+      'Record an amount set aside for a savings goal. The goal balance is the sum of these.',
     mutating: true,
     targetModule: 'finance',
   },
@@ -390,6 +400,8 @@ export function getActionLabel(
       return 'Crear meta de ahorro';
     case 'update_savings_goal':
       return 'Actualizar meta de ahorro';
+    case 'record_savings_contribution':
+      return 'Registrar aporte a meta de ahorro';
     case 'list_loans':
       return 'Consultar préstamos';
     case 'mark_loan_installment_paid':

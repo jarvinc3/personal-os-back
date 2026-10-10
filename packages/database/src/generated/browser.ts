@@ -130,6 +130,12 @@ export type FinCardStatement = Prisma.FinCardStatementModel
  */
 export type FinSavingsGoal = Prisma.FinSavingsGoalModel
 /**
+ * Model FinSavingsGoalContribution
+ * One amount set aside for a savings goal. The goal balance is the sum of its
+ * contributions; the money is not moved between accounts.
+ */
+export type FinSavingsGoalContribution = Prisma.FinSavingsGoalContributionModel
+/**
  * Model FinLoan
  * 
  */
@@ -145,6 +151,12 @@ export type FinLoanInstallment = Prisma.FinLoanInstallmentModel
  * 
  */
 export type FinReceivable = Prisma.FinReceivableModel
+/**
+ * Model FinReceivablePayment
+ * One amount collected for a receivable. It carries the movement that put the
+ * money in the account, so both sides can be undone together.
+ */
+export type FinReceivablePayment = Prisma.FinReceivablePaymentModel
 /**
  * Model FinEmailSyncLog
  * One sync run against a source (scanned / imported / error). Operational history.

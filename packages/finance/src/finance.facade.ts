@@ -17,6 +17,7 @@ import { UpdateTransactionUseCase } from './ledger/application/update-transactio
 import { PlanningService } from './planning/application/planning.service';
 import type { CreateBudgetDto } from './planning/presentation/dto/create-budget.dto';
 import type { CreateSavingsGoalDto } from './planning/presentation/dto/create-savings-goal.dto';
+import type { CreateSavingsGoalContributionDto } from './planning/presentation/dto/create-savings-goal-contribution.dto';
 import type { UpdateBudgetDto } from './planning/presentation/dto/update-budget.dto';
 import type { UpdateLoanDto } from './planning/presentation/dto/update-loan.dto';
 import type { UpdateSavingsGoalDto } from './planning/presentation/dto/update-savings-goal.dto';
@@ -126,11 +127,24 @@ export class FinanceFacade {
   }
 
   createSavingsGoal(userId: string, dto: CreateSavingsGoalDto) {
-    return this.planning.createSavingsGoal(userId, dto);
+    return this.planning.createSavingsGoal(userId, dto, new Date());
   }
 
   updateSavingsGoal(userId: string, id: string, dto: UpdateSavingsGoalDto) {
-    return this.planning.updateSavingsGoal(userId, id, dto);
+    return this.planning.updateSavingsGoal(userId, id, dto, new Date());
+  }
+
+  recordSavingsGoalContribution(
+    userId: string,
+    goalId: string,
+    dto: CreateSavingsGoalContributionDto,
+  ) {
+    return this.planning.addSavingsGoalContribution(
+      userId,
+      goalId,
+      dto,
+      new Date(),
+    );
   }
 
   listLoans(userId: string) {

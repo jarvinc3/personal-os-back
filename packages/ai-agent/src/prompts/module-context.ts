@@ -87,6 +87,7 @@ export const MODULE_CONTEXT: Record<
       'list_savings_goals',
       'update_savings_goal',
       'create_savings_goal',
+      'record_savings_contribution',
       'list_loans',
       'mark_loan_installment_paid',
       'trigger_email_sync',

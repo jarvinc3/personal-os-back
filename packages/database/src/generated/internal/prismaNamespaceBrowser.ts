@@ -73,9 +73,11 @@ export const ModelName = {
   FinCardBalance: 'FinCardBalance',
   FinCardStatement: 'FinCardStatement',
   FinSavingsGoal: 'FinSavingsGoal',
+  FinSavingsGoalContribution: 'FinSavingsGoalContribution',
   FinLoan: 'FinLoan',
   FinLoanInstallment: 'FinLoanInstallment',
   FinReceivable: 'FinReceivable',
+  FinReceivablePayment: 'FinReceivablePayment',
   FinEmailSyncLog: 'FinEmailSyncLog',
   FinEmailMessage: 'FinEmailMessage',
   DomainEventOutbox: 'DomainEventOutbox',
@@ -465,6 +467,18 @@ export const FinSavingsGoalScalarFieldEnum = {
 export type FinSavingsGoalScalarFieldEnum = (typeof FinSavingsGoalScalarFieldEnum)[keyof typeof FinSavingsGoalScalarFieldEnum]
 
 
+export const FinSavingsGoalContributionScalarFieldEnum = {
+  id: 'id',
+  goalId: 'goalId',
+  amount: 'amount',
+  contributedAt: 'contributedAt',
+  notes: 'notes',
+  createdAt: 'createdAt'
+} as const
+
+export type FinSavingsGoalContributionScalarFieldEnum = (typeof FinSavingsGoalContributionScalarFieldEnum)[keyof typeof FinSavingsGoalContributionScalarFieldEnum]
+
+
 export const FinLoanScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
@@ -496,6 +510,7 @@ export const FinLoanInstallmentScalarFieldEnum = {
   dueDate: 'dueDate',
   amount: 'amount',
   paidAt: 'paidAt',
+  transactionId: 'transactionId',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -519,6 +534,20 @@ export const FinReceivableScalarFieldEnum = {
 } as const
 
 export type FinReceivableScalarFieldEnum = (typeof FinReceivableScalarFieldEnum)[keyof typeof FinReceivableScalarFieldEnum]
+
+
+export const FinReceivablePaymentScalarFieldEnum = {
+  id: 'id',
+  receivableId: 'receivableId',
+  amount: 'amount',
+  paidAt: 'paidAt',
+  accountId: 'accountId',
+  transactionId: 'transactionId',
+  notes: 'notes',
+  createdAt: 'createdAt'
+} as const
+
+export type FinReceivablePaymentScalarFieldEnum = (typeof FinReceivablePaymentScalarFieldEnum)[keyof typeof FinReceivablePaymentScalarFieldEnum]
 
 
 export const FinEmailSyncLogScalarFieldEnum = {

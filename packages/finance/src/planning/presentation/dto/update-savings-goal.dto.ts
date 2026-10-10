@@ -1,4 +1,7 @@
-import { PartialType } from '@nestjs/swagger';
+import { OmitType, PartialType } from '@nestjs/swagger';
 import { CreateSavingsGoalDto } from './create-savings-goal.dto';
 
-export class UpdateSavingsGoalDto extends PartialType(CreateSavingsGoalDto) {}
+/** The balance moves only through contributions, so it is not editable here. */
+export class UpdateSavingsGoalDto extends PartialType(
+  OmitType(CreateSavingsGoalDto, ['currentAmount'] as const),
+) {}

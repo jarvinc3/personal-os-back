@@ -19,6 +19,8 @@ import { EMAIL_DUPLICATE_DATE_TOLERANCE_MS } from '../../shared/domain/email-ded
 import type { ResolvedAmounts } from '../../shared/domain/money';
 import { normalizeCurrencyCode } from '../../shared/domain/money';
 import { statusAffectsLedger } from '../../shared/domain/transaction-status';
+import { shiftLoanDueDate } from '../../planning/domain/loan-installment-schedule';
+import { applyReceivableBalance } from '../../planning/infrastructure/receivable-balance';
 
 const transactionNotificationInclude = {
   account: { select: { name: true } },
@@ -818,6 +820,7 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
         });
       }
 
+      await this.revertPlanningLinks(tx, [existing.id]);
       await this.enqueueTransactionDeleted(tx, userId, existing);
 
       return tx.finTransaction.deleteMany({
@@ -860,6 +863,10 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
         }
       }
 
+      await this.revertPlanningLinks(
+        tx,
+        rows.map((row) => row.id),
+      );
       for (const row of rows) {
         await this.enqueueTransactionDeleted(tx, userId, row);
       }
@@ -868,6 +875,77 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
         where: { userId, transferGroupId, source: 'MANUAL' },
       });
     });
+  }
+
+  /**
+   * A collected amount and a paid instalment point at the movement they created.
+   * Removing or reversing that movement takes its planning effect with it, in the
+   * same transaction, so the two sides never disagree.
+   */
+  private async revertPlanningLinks(
+    tx: Prisma.TransactionClient,
+    transactionIds: readonly string[],
+  ): Promise<void> {
+    if (transactionIds.length === 0) {
+      return;
+    }
+    await this.revertReceivablePayments(tx, transactionIds);
+    await this.revertLoanInstallments(tx, transactionIds);
+  }
+
+  private async revertReceivablePayments(
+    tx: Prisma.TransactionClient,
+    transactionIds: readonly string[],
+  ): Promise<void> {
+    const payments = await tx.finReceivablePayment.findMany({
+      where: { transactionId: { in: [...transactionIds] } },
+      select: { id: true, receivableId: true },
+    });
+    if (payments.length === 0) {
+      return;
+    }
+    await tx.finReceivablePayment.deleteMany({
+      where: { id: { in: payments.map((payment) => payment.id) } },
+    });
+    const receivableIds = [
+      ...new Set(payments.map((payment) => payment.receivableId)),
+    ];
+    for (const receivableId of receivableIds) {
+      await applyReceivableBalance(tx, receivableId);
+    }
+  }
+
+  private async revertLoanInstallments(
+    tx: Prisma.TransactionClient,
+    transactionIds: readonly string[],
+  ): Promise<void> {
+    const installments = await tx.finLoanInstallment.findMany({
+      where: { transactionId: { in: [...transactionIds] } },
+      include: { loan: true },
+    });
+    if (installments.length === 0) {
+      return;
+    }
+    await tx.finLoanInstallment.updateMany({
+      where: { id: { in: installments.map((installment) => installment.id) } },
+      data: { paidAt: null, transactionId: null },
+    });
+    for (const installment of installments) {
+      const loan = installment.loan;
+      await tx.finLoan.update({
+        where: { id: loan.id },
+        data: {
+          paidInstallments: Math.max(0, loan.paidInstallments - 1),
+          currentBalance:
+            Number(loan.currentBalance) + Number(loan.installmentAmount),
+          nextDueDate: shiftLoanDueDate(
+            loan.nextDueDate,
+            loan.installmentFreq,
+            -1,
+          ),
+        },
+      });
+    }
   }
 
   purgeLedgerForAccount(userId: string, accountId: string) {
@@ -1069,6 +1147,8 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
           direction: -1,
         });
       }
+
+      await this.revertPlanningLinks(tx, [originalId]);
 
       const updated = await tx.finTransaction.update({
         where: { id: originalId },

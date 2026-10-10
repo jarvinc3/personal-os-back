@@ -32,8 +32,9 @@ export class PayNextLoanInstallmentUseCase {
       throw new BadRequestException('Loan has no pending instalment');
     }
 
+    let transactionId: string | null = null;
     if (loan.accountId) {
-      await this.createTransaction.execute(userId, {
+      const movement = await this.createTransaction.execute(userId, {
         accountId: loan.accountId,
         type: 'DEBIT',
         amount: Number(installment.amount),
@@ -41,9 +42,10 @@ export class PayNextLoanInstallmentUseCase {
         transactionDate: now.toISOString(),
         description: `Cuota ${installment.installmentNo}: ${loan.lenderName}`,
       });
+      transactionId = movement.id;
     }
 
-    await this.repo.markInstallmentPaid(installment.id, now);
+    await this.repo.markInstallmentPaid(installment.id, now, transactionId);
     await this.repo.updateLoan(userId, loanId, {
       paidInstallments: loan.paidInstallments + 1,
       currentBalance:

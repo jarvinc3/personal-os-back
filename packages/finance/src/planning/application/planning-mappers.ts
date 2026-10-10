@@ -61,6 +61,28 @@ export function mapLoanInstallment<
   };
 }
 
+export function mapSavingsGoalContribution<
+  T extends {
+    amount: Decimalish;
+  },
+>(row: T) {
+  return {
+    ...row,
+    amount: decimalToString(row.amount),
+  };
+}
+
+export function mapReceivablePayment<
+  T extends {
+    amount: Decimalish;
+  },
+>(row: T) {
+  return {
+    ...row,
+    amount: decimalToString(row.amount),
+  };
+}
+
 export function mapReceivable<
   T extends {
     amount: Decimalish;

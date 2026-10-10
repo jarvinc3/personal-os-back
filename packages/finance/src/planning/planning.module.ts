@@ -3,6 +3,7 @@ import { FinanceLedgerModule } from '../ledger/ledger.module';
 import { FinanceOwnershipModule } from '../shared/finance-ownership.module';
 import { PayNextLoanInstallmentUseCase } from './application/pay-next-loan-installment.use-case';
 import { PlanningService } from './application/planning.service';
+import { RecordReceivablePaymentUseCase } from './application/record-receivable-payment.use-case';
 import { SyncLoanInstallmentsUseCase } from './application/sync-loan-installments.use-case';
 import { PlanningRepository } from './infrastructure/planning.repository';
 import { LoanInstallmentsBackfill } from './infrastructure/loan-installments-backfill';
@@ -29,6 +30,7 @@ import { FinancePlanningThresholdModule } from './planning-threshold.module';
     PlanningService,
     SyncLoanInstallmentsUseCase,
     PayNextLoanInstallmentUseCase,
+    RecordReceivablePaymentUseCase,
     LoanInstallmentsBackfill,
   ],
   exports: [

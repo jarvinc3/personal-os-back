@@ -277,6 +277,7 @@ export type FinReceivableWhereInput = {
   createdAt?: Prisma.DateTimeFilter<"FinReceivable"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"FinReceivable"> | Date | string
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
+  payments?: Prisma.FinReceivablePaymentListRelationFilter
 }
 
 export type FinReceivableOrderByWithRelationInput = {
@@ -293,6 +294,7 @@ export type FinReceivableOrderByWithRelationInput = {
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   user?: Prisma.UserOrderByWithRelationInput
+  payments?: Prisma.FinReceivablePaymentOrderByRelationAggregateInput
 }
 
 export type FinReceivableWhereUniqueInput = Prisma.AtLeast<{
@@ -312,6 +314,7 @@ export type FinReceivableWhereUniqueInput = Prisma.AtLeast<{
   createdAt?: Prisma.DateTimeFilter<"FinReceivable"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"FinReceivable"> | Date | string
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
+  payments?: Prisma.FinReceivablePaymentListRelationFilter
 }, "id">
 
 export type FinReceivableOrderByWithAggregationInput = {
@@ -365,6 +368,7 @@ export type FinReceivableCreateInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   user: Prisma.UserCreateNestedOneWithoutFinReceivablesInput
+  payments?: Prisma.FinReceivablePaymentCreateNestedManyWithoutReceivableInput
 }
 
 export type FinReceivableUncheckedCreateInput = {
@@ -380,6 +384,7 @@ export type FinReceivableUncheckedCreateInput = {
   notes?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  payments?: Prisma.FinReceivablePaymentUncheckedCreateNestedManyWithoutReceivableInput
 }
 
 export type FinReceivableUpdateInput = {
@@ -395,6 +400,7 @@ export type FinReceivableUpdateInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.UserUpdateOneRequiredWithoutFinReceivablesNestedInput
+  payments?: Prisma.FinReceivablePaymentUpdateManyWithoutReceivableNestedInput
 }
 
 export type FinReceivableUncheckedUpdateInput = {
@@ -410,6 +416,7 @@ export type FinReceivableUncheckedUpdateInput = {
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  payments?: Prisma.FinReceivablePaymentUncheckedUpdateManyWithoutReceivableNestedInput
 }
 
 export type FinReceivableCreateManyInput = {
@@ -521,6 +528,11 @@ export type FinReceivableSumOrderByAggregateInput = {
   paidAmount?: Prisma.SortOrder
 }
 
+export type FinReceivableScalarRelationFilter = {
+  is?: Prisma.FinReceivableWhereInput
+  isNot?: Prisma.FinReceivableWhereInput
+}
+
 export type FinReceivableCreateNestedManyWithoutUserInput = {
   create?: Prisma.XOR<Prisma.FinReceivableCreateWithoutUserInput, Prisma.FinReceivableUncheckedCreateWithoutUserInput> | Prisma.FinReceivableCreateWithoutUserInput[] | Prisma.FinReceivableUncheckedCreateWithoutUserInput[]
   connectOrCreate?: Prisma.FinReceivableCreateOrConnectWithoutUserInput | Prisma.FinReceivableCreateOrConnectWithoutUserInput[]
@@ -567,6 +579,20 @@ export type EnumFinReceivableStatusFieldUpdateOperationsInput = {
   set?: $Enums.FinReceivableStatus
 }
 
+export type FinReceivableCreateNestedOneWithoutPaymentsInput = {
+  create?: Prisma.XOR<Prisma.FinReceivableCreateWithoutPaymentsInput, Prisma.FinReceivableUncheckedCreateWithoutPaymentsInput>
+  connectOrCreate?: Prisma.FinReceivableCreateOrConnectWithoutPaymentsInput
+  connect?: Prisma.FinReceivableWhereUniqueInput
+}
+
+export type FinReceivableUpdateOneRequiredWithoutPaymentsNestedInput = {
+  create?: Prisma.XOR<Prisma.FinReceivableCreateWithoutPaymentsInput, Prisma.FinReceivableUncheckedCreateWithoutPaymentsInput>
+  connectOrCreate?: Prisma.FinReceivableCreateOrConnectWithoutPaymentsInput
+  upsert?: Prisma.FinReceivableUpsertWithoutPaymentsInput
+  connect?: Prisma.FinReceivableWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.FinReceivableUpdateToOneWithWhereWithoutPaymentsInput, Prisma.FinReceivableUpdateWithoutPaymentsInput>, Prisma.FinReceivableUncheckedUpdateWithoutPaymentsInput>
+}
+
 export type FinReceivableCreateWithoutUserInput = {
   id?: string
   debtorName: string
@@ -579,6 +605,7 @@ export type FinReceivableCreateWithoutUserInput = {
   notes?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  payments?: Prisma.FinReceivablePaymentCreateNestedManyWithoutReceivableInput
 }
 
 export type FinReceivableUncheckedCreateWithoutUserInput = {
@@ -593,6 +620,7 @@ export type FinReceivableUncheckedCreateWithoutUserInput = {
   notes?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  payments?: Prisma.FinReceivablePaymentUncheckedCreateNestedManyWithoutReceivableInput
 }
 
 export type FinReceivableCreateOrConnectWithoutUserInput = {
@@ -639,6 +667,82 @@ export type FinReceivableScalarWhereInput = {
   updatedAt?: Prisma.DateTimeFilter<"FinReceivable"> | Date | string
 }
 
+export type FinReceivableCreateWithoutPaymentsInput = {
+  id?: string
+  debtorName: string
+  description?: string | null
+  amount: runtime.Decimal | runtime.DecimalJsLike | number | string
+  paidAmount?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  currency?: string
+  dueDate?: Date | string | null
+  status?: $Enums.FinReceivableStatus
+  notes?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  user: Prisma.UserCreateNestedOneWithoutFinReceivablesInput
+}
+
+export type FinReceivableUncheckedCreateWithoutPaymentsInput = {
+  id?: string
+  userId: string
+  debtorName: string
+  description?: string | null
+  amount: runtime.Decimal | runtime.DecimalJsLike | number | string
+  paidAmount?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  currency?: string
+  dueDate?: Date | string | null
+  status?: $Enums.FinReceivableStatus
+  notes?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+}
+
+export type FinReceivableCreateOrConnectWithoutPaymentsInput = {
+  where: Prisma.FinReceivableWhereUniqueInput
+  create: Prisma.XOR<Prisma.FinReceivableCreateWithoutPaymentsInput, Prisma.FinReceivableUncheckedCreateWithoutPaymentsInput>
+}
+
+export type FinReceivableUpsertWithoutPaymentsInput = {
+  update: Prisma.XOR<Prisma.FinReceivableUpdateWithoutPaymentsInput, Prisma.FinReceivableUncheckedUpdateWithoutPaymentsInput>
+  create: Prisma.XOR<Prisma.FinReceivableCreateWithoutPaymentsInput, Prisma.FinReceivableUncheckedCreateWithoutPaymentsInput>
+  where?: Prisma.FinReceivableWhereInput
+}
+
+export type FinReceivableUpdateToOneWithWhereWithoutPaymentsInput = {
+  where?: Prisma.FinReceivableWhereInput
+  data: Prisma.XOR<Prisma.FinReceivableUpdateWithoutPaymentsInput, Prisma.FinReceivableUncheckedUpdateWithoutPaymentsInput>
+}
+
+export type FinReceivableUpdateWithoutPaymentsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  debtorName?: Prisma.StringFieldUpdateOperationsInput | string
+  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  paidAmount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  currency?: Prisma.StringFieldUpdateOperationsInput | string
+  dueDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  status?: Prisma.EnumFinReceivableStatusFieldUpdateOperationsInput | $Enums.FinReceivableStatus
+  notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  user?: Prisma.UserUpdateOneRequiredWithoutFinReceivablesNestedInput
+}
+
+export type FinReceivableUncheckedUpdateWithoutPaymentsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  userId?: Prisma.StringFieldUpdateOperationsInput | string
+  debtorName?: Prisma.StringFieldUpdateOperationsInput | string
+  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  paidAmount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  currency?: Prisma.StringFieldUpdateOperationsInput | string
+  dueDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  status?: Prisma.EnumFinReceivableStatusFieldUpdateOperationsInput | $Enums.FinReceivableStatus
+  notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+}
+
 export type FinReceivableCreateManyUserInput = {
   id?: string
   debtorName: string
@@ -665,6 +769,7 @@ export type FinReceivableUpdateWithoutUserInput = {
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  payments?: Prisma.FinReceivablePaymentUpdateManyWithoutReceivableNestedInput
 }
 
 export type FinReceivableUncheckedUpdateWithoutUserInput = {
@@ -679,6 +784,7 @@ export type FinReceivableUncheckedUpdateWithoutUserInput = {
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  payments?: Prisma.FinReceivablePaymentUncheckedUpdateManyWithoutReceivableNestedInput
 }
 
 export type FinReceivableUncheckedUpdateManyWithoutUserInput = {
@@ -696,6 +802,35 @@ export type FinReceivableUncheckedUpdateManyWithoutUserInput = {
 }
 
 
+/**
+ * Count Type FinReceivableCountOutputType
+ */
+
+export type FinReceivableCountOutputType = {
+  payments: number
+}
+
+export type FinReceivableCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  payments?: boolean | FinReceivableCountOutputTypeCountPaymentsArgs
+}
+
+/**
+ * FinReceivableCountOutputType without action
+ */
+export type FinReceivableCountOutputTypeDefaultArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the FinReceivableCountOutputType
+   */
+  select?: Prisma.FinReceivableCountOutputTypeSelect<ExtArgs> | null
+}
+
+/**
+ * FinReceivableCountOutputType without action
+ */
+export type FinReceivableCountOutputTypeCountPaymentsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.FinReceivablePaymentWhereInput
+}
+
 
 export type FinReceivableSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -711,6 +846,8 @@ export type FinReceivableSelect<ExtArgs extends runtime.Types.Extensions.Interna
   createdAt?: boolean
   updatedAt?: boolean
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
+  payments?: boolean | Prisma.FinReceivable$paymentsArgs<ExtArgs>
+  _count?: boolean | Prisma.FinReceivableCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["finReceivable"]>
 
 export type FinReceivableSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -763,6 +900,8 @@ export type FinReceivableSelectScalar = {
 export type FinReceivableOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "debtorName" | "description" | "amount" | "paidAmount" | "currency" | "dueDate" | "status" | "notes" | "createdAt" | "updatedAt", ExtArgs["result"]["finReceivable"]>
 export type FinReceivableInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
+  payments?: boolean | Prisma.FinReceivable$paymentsArgs<ExtArgs>
+  _count?: boolean | Prisma.FinReceivableCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type FinReceivableIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
@@ -775,6 +914,7 @@ export type $FinReceivablePayload<ExtArgs extends runtime.Types.Extensions.Inter
   name: "FinReceivable"
   objects: {
     user: Prisma.$UserPayload<ExtArgs>
+    payments: Prisma.$FinReceivablePaymentPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -1184,6 +1324,7 @@ readonly fields: FinReceivableFieldRefs;
 export interface Prisma__FinReceivableClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
   user<T extends Prisma.UserDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.UserDefaultArgs<ExtArgs>>): Prisma.Prisma__UserClient<runtime.Types.Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+  payments<T extends Prisma.FinReceivable$paymentsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.FinReceivable$paymentsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$FinReceivablePaymentPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1623,6 +1764,30 @@ export type FinReceivableDeleteManyArgs<ExtArgs extends runtime.Types.Extensions
    * Limit how many FinReceivables to delete.
    */
   limit?: number
+}
+
+/**
+ * FinReceivable.payments
+ */
+export type FinReceivable$paymentsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the FinReceivablePayment
+   */
+  select?: Prisma.FinReceivablePaymentSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the FinReceivablePayment
+   */
+  omit?: Prisma.FinReceivablePaymentOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.FinReceivablePaymentInclude<ExtArgs> | null
+  where?: Prisma.FinReceivablePaymentWhereInput
+  orderBy?: Prisma.FinReceivablePaymentOrderByWithRelationInput | Prisma.FinReceivablePaymentOrderByWithRelationInput[]
+  cursor?: Prisma.FinReceivablePaymentWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.FinReceivablePaymentScalarFieldEnum | Prisma.FinReceivablePaymentScalarFieldEnum[]
 }
 
 /**
