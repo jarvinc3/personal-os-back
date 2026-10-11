@@ -14,6 +14,23 @@ function roundMoney(value: number): number {
 }
 
 /**
+ * Cancelling a receivable is a manual decision, so it survives a recompute of
+ * the collected sum; every other status follows that sum.
+ */
+export function resolveReceivableStatusOverride(input: {
+  storedStatus: ReceivableStatus;
+  requestedStatus?: ReceivableStatus;
+}): ReceivableStatus | undefined {
+  if (input.requestedStatus) {
+    return input.requestedStatus;
+  }
+  if (input.storedStatus === 'CANCELLED') {
+    return 'CANCELLED';
+  }
+  return undefined;
+}
+
+/**
  * paidAmount must stay in [0, amount]. Status is explicit when provided;
  * otherwise it is derived from the resulting paidAmount.
  * PAID requires paidAmount === amount. CANCELLED does not.

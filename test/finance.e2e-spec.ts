@@ -896,37 +896,10 @@ describe('Finance (e2e)', () => {
       });
   });
 
-  it('PATCH /api/finance/receivables/:id marks PAID and rejects overpay', async () => {
+  it('PATCH /api/finance/receivables/:id rejects paidAmount edits', async () => {
     const recId = '88888888-8888-4888-8888-888888888888';
-    const pending = {
-      id: recId,
-      userId: 'user-123',
-      debtorName: 'Ana',
-      description: null,
-      amount: 80,
-      paidAmount: 0,
-      currency: 'DOP',
-      dueDate: null,
-      status: 'PENDING',
-    };
-    prismaMock.finReceivable.findFirst
-      .mockResolvedValueOnce(pending)
-      .mockResolvedValueOnce({ ...pending, status: 'PAID', paidAmount: 80 })
-      .mockResolvedValue(pending);
-    prismaMock.finReceivable.updateMany.mockResolvedValue({ count: 1 });
 
-    await request(app.getHttpServer())
-      .patch(`/api/finance/receivables/${recId}`)
-      .set('Authorization', `Bearer ${token}`)
-      .send({ status: 'PAID', paidAmount: 80 })
-      .expect(200)
-      .expect((res) => {
-        expect(res.body.data).toMatchObject({
-          status: 'PAID',
-          paidAmount: '80',
-        });
-      });
-
+    // The collected amount moves only through POST /receivables/:id/payments.
     await request(app.getHttpServer())
       .patch(`/api/finance/receivables/${recId}`)
       .set('Authorization', `Bearer ${token}`)
@@ -1192,28 +1165,24 @@ describe('Finance (e2e)', () => {
       category: { id: 'cat-1', name: 'Food' },
     }));
     prismaMock.finBudget.findMany.mockResolvedValue(items);
-    prismaMock.finBudget.count.mockResolvedValue(25);
 
     await request(app.getHttpServer())
       .get('/api/finance/budgets')
-      .query({ page: 1, limit: 20 })
+      .query({ limit: 20 })
       .set('Authorization', `Bearer ${token}`)
       .expect(200)
       .expect((res) => {
         expect(res.body.data.items).toHaveLength(20);
         expect(typeof res.body.data.items[0].amountLimit).toBe('string');
-        expect(res.body.data.pagination).toMatchObject({
-          page: 1,
-          limit: 20,
-          total: 25,
-          totalPages: 2,
+        expect(res.body.data).toMatchObject({
+          hasMore: false,
+          nextCursor: null,
         });
       });
   });
 
-  it('GET /api/finance/budgets without query uses default page and limit', async () => {
+  it('GET /api/finance/budgets without query uses default limit', async () => {
     prismaMock.finBudget.findMany.mockResolvedValue([]);
-    prismaMock.finBudget.count.mockResolvedValue(0);
 
     await request(app.getHttpServer())
       .get('/api/finance/budgets')
@@ -1222,12 +1191,8 @@ describe('Finance (e2e)', () => {
       .expect((res) => {
         expect(res.body.data).toEqual({
           items: [],
-          pagination: {
-            page: 1,
-            limit: 20,
-            total: 0,
-            totalPages: 1,
-          },
+          hasMore: false,
+          nextCursor: null,
         });
       });
   });
@@ -1268,9 +1233,8 @@ describe('Finance (e2e)', () => {
       .expect(404);
   });
 
-  it('GET /api/finance/transactions stays paginated and accounts stay an array', async () => {
+  it('GET /api/finance/transactions stays cursor paginated and accounts stay an array', async () => {
     prismaMock.finTransaction.findMany.mockResolvedValue([]);
-    prismaMock.finTransaction.count.mockResolvedValue(0);
 
     await request(app.getHttpServer())
       .get('/api/finance/transactions')
@@ -1278,7 +1242,8 @@ describe('Finance (e2e)', () => {
       .expect(200)
       .expect((res) => {
         expect(res.body.data).toHaveProperty('items');
-        expect(res.body.data).toHaveProperty('pagination');
+        expect(res.body.data).toHaveProperty('hasMore');
+        expect(res.body.data).toHaveProperty('nextCursor');
         expect(Array.isArray(res.body.data.items)).toBe(true);
       });
 
@@ -1356,14 +1321,15 @@ describe('Finance (e2e)', () => {
         return Promise.resolve([debit]);
       },
     );
-    prismaMock.finTransaction.count.mockResolvedValue(1);
-
     await request(app.getHttpServer())
       .get('/api/finance/transactions')
       .set('Authorization', `Bearer ${token}`)
       .expect(200)
       .expect((res) => {
-        expect(res.body.data.pagination.total).toBe(1);
+        expect(res.body.data).toMatchObject({
+          hasMore: false,
+          nextCursor: null,
+        });
         expect(res.body.data.items).toHaveLength(1);
         expect(res.body.data.items[0]).toMatchObject({
           id: debit.id,

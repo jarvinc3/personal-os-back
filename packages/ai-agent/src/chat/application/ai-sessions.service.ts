@@ -1,5 +1,9 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { paginate, PaginationQueryDto } from '@personal-os/core';
+import {
+  clampPageLimit,
+  toCursorPage,
+  type CursorQueryDto,
+} from '@personal-os/core';
 import { AiActionsService } from '../../actions/application/ai-actions.service';
 import { AiSessionsRepository } from '../infrastructure/ai-sessions.repository';
 import { CreateAiSessionDto } from '../presentation/dto/create-ai-session.dto';
@@ -44,13 +48,15 @@ export class AiSessionsService {
     };
   }
 
-  async list(userId: string, query: PaginationQueryDto) {
-    const [items, total] = await this.sessionsRepo.findSessionsByUser(
-      userId,
-      query,
+  async list(userId: string, query: CursorQueryDto) {
+    const rows = await this.sessionsRepo.findSessionsByUser(userId, query);
+    const page = toCursorPage(rows, clampPageLimit(query.limit), (row) =>
+      row.lastActiveAt.toISOString(),
     );
-    const mapped = items.map((session) => this.mapSession(session));
-    return paginate(mapped, total, query);
+    return {
+      ...page,
+      items: page.items.map((session) => this.mapSession(session)),
+    };
   }
 
   async create(userId: string, dto: CreateAiSessionDto) {

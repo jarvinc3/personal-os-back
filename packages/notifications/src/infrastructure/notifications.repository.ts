@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { paginationArgs } from '@personal-os/core';
+import { clampPageLimit, decodeCursor } from '@personal-os/core';
 import type { NotificationChannel, Prisma } from '@personal-os/database';
 import { PrismaService } from '@personal-os/database';
 import type { ListNotificationsQueryDto } from '../presentation/dto/list-notifications-query.dto';
@@ -29,24 +29,36 @@ export class NotificationsRepository {
   }
 
   findByUser(userId: string, query: ListNotificationsQueryDto) {
-    const { skip, take } = paginationArgs(query);
+    const limit = clampPageLimit(query.limit);
+    const cursorPoint = query.cursor ? decodeCursor(query.cursor) : null;
     const channel = query.channel ?? 'IN_APP';
 
-    const where: Prisma.NotificationWhereInput = {
+    const baseWhere: Prisma.NotificationWhereInput = {
       userId,
       channel,
       ...(query.unreadOnly ? { isRead: false } : {}),
     };
+    const cursorDate = cursorPoint ? new Date(cursorPoint.key) : null;
+    const where: Prisma.NotificationWhereInput =
+      cursorPoint && cursorDate
+        ? {
+            AND: [
+              baseWhere,
+              {
+                OR: [
+                  { createdAt: { lt: cursorDate } },
+                  { createdAt: cursorDate, id: { lt: cursorPoint.id } },
+                ],
+              },
+            ],
+          }
+        : baseWhere;
 
-    return this.prisma.$transaction([
-      this.prisma.notification.findMany({
-        where,
-        orderBy: { createdAt: 'desc' },
-        skip,
-        take,
-      }),
-      this.prisma.notification.count({ where }),
-    ]);
+    return this.prisma.notification.findMany({
+      where,
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      take: limit + 1,
+    });
   }
 
   countUnread(userId: string, channel: NotificationChannel = 'IN_APP') {

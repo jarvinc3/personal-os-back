@@ -1,8 +1,18 @@
 import { Injectable } from '@nestjs/common';
-import { paginationArgs, type PaginationQueryDto } from '@personal-os/core';
+import {
+  clampPageLimit,
+  decodeCursor,
+  type CursorQueryDto,
+} from '@personal-os/core';
 import type { Prisma } from '@personal-os/database';
 import { PrismaService } from '@personal-os/database';
+import type { ReceivableStatus } from '../application/resolve-receivable-payment';
 import type { LoanInstallmentPlan } from '../domain/loan-installment-schedule';
+import { resolveSavingsGoalProgress } from '../domain/savings-goal-progress';
+import { applyReceivableBalance } from './receivable-balance';
+
+/** Label of the row that carries a balance recorded before history existed. */
+const OPENING_BALANCE_NOTE = 'Saldo inicial';
 
 @Injectable()
 export class PlanningRepository {
@@ -16,18 +26,31 @@ export class PlanningRepository {
     });
   }
 
-  listBudgetsPage(userId: string, query: PaginationQueryDto) {
-    const { skip, take } = paginationArgs(query);
-    return Promise.all([
-      this.prisma.finBudget.findMany({
-        where: { userId },
-        include: { category: true },
-        orderBy: { periodStart: 'desc' },
-        skip,
-        take,
-      }),
-      this.prisma.finBudget.count({ where: { userId } }),
-    ]);
+  listBudgetsPage(userId: string, query: CursorQueryDto) {
+    const limit = clampPageLimit(query.limit);
+    const cursorPoint = query.cursor ? decodeCursor(query.cursor) : null;
+    const baseWhere: Prisma.FinBudgetWhereInput = { userId };
+    const cursorDate = cursorPoint ? new Date(cursorPoint.key) : null;
+    const where: Prisma.FinBudgetWhereInput =
+      cursorPoint && cursorDate
+        ? {
+            AND: [
+              baseWhere,
+              {
+                OR: [
+                  { periodStart: { lt: cursorDate } },
+                  { periodStart: cursorDate, id: { lt: cursorPoint.id } },
+                ],
+              },
+            ],
+          }
+        : baseWhere;
+    return this.prisma.finBudget.findMany({
+      where,
+      include: { category: true },
+      orderBy: [{ periodStart: 'desc' }, { id: 'desc' }],
+      take: limit + 1,
+    });
   }
 
   findBudget(userId: string, id: string) {
@@ -80,30 +103,119 @@ export class PlanningRepository {
     return this.prisma.finSavingsGoal.findFirst({ where: { id, userId } });
   }
 
-  createSavingsGoal(
+  async createSavingsGoal(
     userId: string,
-    data: Omit<Prisma.FinSavingsGoalUncheckedCreateInput, 'userId'>,
+    data: Omit<
+      Prisma.FinSavingsGoalUncheckedCreateInput,
+      'userId' | 'currentAmount'
+    >,
+    openingAmount: number,
+    now: Date,
   ) {
-    return this.prisma.finSavingsGoal.create({ data: { ...data, userId } });
+    return this.prisma.$transaction(async (tx) => {
+      const goal = await tx.finSavingsGoal.create({
+        data: { ...data, userId },
+      });
+      if (openingAmount > 0) {
+        await tx.finSavingsGoalContribution.create({
+          data: {
+            goalId: goal.id,
+            amount: openingAmount,
+            contributedAt: goal.createdAt,
+            notes: OPENING_BALANCE_NOTE,
+          },
+        });
+      }
+      await this.applySavingsGoalBalance(tx, goal.id, now);
+      return this.readSavingsGoal(tx, goal.id);
+    });
   }
 
-  updateSavingsGoal(
+  async updateSavingsGoal(
     userId: string,
     id: string,
     data: Prisma.FinSavingsGoalUncheckedUpdateManyInput,
-  ) {
-    return this.prisma.finSavingsGoal
-      .updateMany({ where: { id, userId }, data })
-      .then(async (result) => {
-        if (result.count === 0) {
-          return null;
-        }
-        return this.findSavingsGoal(userId, id);
-      });
+    now: Date,
+  ): Promise<void> {
+    await this.prisma.$transaction(async (tx) => {
+      await tx.finSavingsGoal.updateMany({ where: { id, userId }, data });
+      await this.applySavingsGoalBalance(tx, id, now);
+    });
   }
 
   deleteSavingsGoal(userId: string, id: string) {
     return this.prisma.finSavingsGoal.deleteMany({ where: { id, userId } });
+  }
+
+  listSavingsGoalContributions(goalId: string) {
+    return this.prisma.finSavingsGoalContribution.findMany({
+      where: { goalId },
+      orderBy: [{ contributedAt: 'desc' }, { createdAt: 'desc' }],
+    });
+  }
+
+  findSavingsGoalContribution(goalId: string, contributionId: string) {
+    return this.prisma.finSavingsGoalContribution.findFirst({
+      where: { id: contributionId, goalId },
+    });
+  }
+
+  async addSavingsGoalContribution(
+    goalId: string,
+    contribution: { amount: number; contributedAt: Date; notes?: string },
+    now: Date,
+  ) {
+    return this.prisma.$transaction(async (tx) => {
+      const created = await tx.finSavingsGoalContribution.create({
+        data: { goalId, ...contribution },
+      });
+      await this.applySavingsGoalBalance(tx, goalId, now);
+      return created;
+    });
+  }
+
+  async removeSavingsGoalContribution(
+    goalId: string,
+    contributionId: string,
+    now: Date,
+  ): Promise<void> {
+    await this.prisma.$transaction(async (tx) => {
+      await tx.finSavingsGoalContribution.deleteMany({
+        where: { id: contributionId, goalId },
+      });
+      await this.applySavingsGoalBalance(tx, goalId, now);
+    });
+  }
+
+  /** Recompute the cached balance from the contributions inside the caller's TX. */
+  private async applySavingsGoalBalance(
+    tx: Prisma.TransactionClient,
+    goalId: string,
+    now: Date,
+  ): Promise<void> {
+    const goal = await tx.finSavingsGoal.findUniqueOrThrow({
+      where: { id: goalId },
+    });
+    const contributions = await tx.finSavingsGoalContribution.aggregate({
+      where: { goalId },
+      _sum: { amount: true },
+    });
+    const progress = resolveSavingsGoalProgress({
+      targetAmount: Number(goal.targetAmount),
+      contributedAmount: Number(contributions._sum.amount ?? 0),
+    });
+    await tx.finSavingsGoal.update({
+      where: { id: goalId },
+      data: {
+        currentAmount: progress.currentAmount,
+        isCompleted: progress.isCompleted,
+        completedAt: progress.isCompleted ? (goal.completedAt ?? now) : null,
+      },
+    });
+  }
+
+  private readSavingsGoal(tx: Prisma.TransactionClient, goalId: string) {
+    return tx.finSavingsGoal.findUniqueOrThrow({ where: { id: goalId } });
   }
 
   listLoans(userId: string) {
@@ -212,10 +324,11 @@ export class PlanningRepository {
   async markInstallmentPaid(
     installmentId: string,
     paidAt: Date,
+    transactionId: string | null,
   ): Promise<void> {
     await this.prisma.finLoanInstallment.update({
       where: { id: installmentId },
-      data: { paidAt },
+      data: { paidAt, transactionId },
     });
   }
 
@@ -251,29 +364,82 @@ export class PlanningRepository {
     return this.prisma.finReceivable.findFirst({ where: { id, userId } });
   }
 
-  createReceivable(
+  async createReceivable(
     userId: string,
-    data: Omit<Prisma.FinReceivableUncheckedCreateInput, 'userId'>,
+    data: Omit<
+      Prisma.FinReceivableUncheckedCreateInput,
+      'userId' | 'paidAmount'
+    >,
+    openingAmount: number,
+    requestedStatus: ReceivableStatus | undefined,
   ) {
-    return this.prisma.finReceivable.create({ data: { ...data, userId } });
+    return this.prisma.$transaction(async (tx) => {
+      const receivable = await tx.finReceivable.create({
+        data: { ...data, userId },
+      });
+      if (openingAmount > 0) {
+        await tx.finReceivablePayment.create({
+          data: {
+            receivableId: receivable.id,
+            amount: openingAmount,
+            paidAt: receivable.createdAt,
+            notes: OPENING_BALANCE_NOTE,
+          },
+        });
+      }
+      await applyReceivableBalance(tx, receivable.id, requestedStatus);
+      return tx.finReceivable.findUniqueOrThrow({
+        where: { id: receivable.id },
+      });
+    });
   }
 
   deleteReceivable(userId: string, id: string) {
     return this.prisma.finReceivable.deleteMany({ where: { id, userId } });
   }
 
-  updateReceivable(
+  async updateReceivable(
     userId: string,
     id: string,
     data: Prisma.FinReceivableUncheckedUpdateManyInput,
+    requestedStatus: ReceivableStatus | undefined,
+  ): Promise<void> {
+    await this.prisma.$transaction(async (tx) => {
+      await tx.finReceivable.updateMany({ where: { id, userId }, data });
+      await applyReceivableBalance(tx, id, requestedStatus);
+    });
+  }
+
+  listReceivablePayments(receivableId: string) {
+    return this.prisma.finReceivablePayment.findMany({
+      where: { receivableId },
+      orderBy: [{ paidAt: 'desc' }, { createdAt: 'desc' }],
+      include: { account: { select: { id: true, name: true } } },
+    });
+  }
+
+  findReceivablePayment(receivableId: string, paymentId: string) {
+    return this.prisma.finReceivablePayment.findFirst({
+      where: { id: paymentId, receivableId },
+    });
+  }
+
+  async createReceivablePayment(
+    receivableId: string,
+    payment: {
+      amount: number;
+      paidAt: Date;
+      accountId: string;
+      transactionId: string | null;
+      notes?: string;
+    },
   ) {
-    return this.prisma.finReceivable
-      .updateMany({ where: { id, userId }, data })
-      .then(async (result) => {
-        if (result.count === 0) {
-          return null;
-        }
-        return this.prisma.finReceivable.findFirst({ where: { id, userId } });
+    return this.prisma.$transaction(async (tx) => {
+      const created = await tx.finReceivablePayment.create({
+        data: { receivableId, ...payment },
       });
+      await applyReceivableBalance(tx, receivableId);
+      return created;
+    });
   }
 }

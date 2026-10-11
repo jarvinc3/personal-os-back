@@ -41,6 +41,7 @@ const FINANCE_TOOL_NAMES = new Set([
   'list_savings_goals',
   'create_savings_goal',
   'update_savings_goal',
+  'record_savings_contribution',
   'list_loans',
   'mark_loan_installment_paid',
   'trigger_email_sync',
@@ -379,7 +380,6 @@ export class ToolExecutorService {
           success: true,
           message: 'Transactions loaded',
           data: await this.financeFacade.listTransactions(ctx.userId, {
-            page: 1,
             limit: 50,
             ...args,
           }),
@@ -463,8 +463,7 @@ export class ToolExecutorService {
           success: true,
           message: 'Transfer created',
           data: await this.financeFacade.createTransferTransaction(ctx.userId, {
-            fromAccountId: t.fromAccountId ?? undefined,
-            fromCardId: t.fromCardId ?? undefined,
+            fromAccountId: t.fromAccountId,
             toAccountId: t.toAccountId ?? undefined,
             toCardId: t.toCardId ?? undefined,
             amount: t.amount,
@@ -575,9 +574,25 @@ export class ToolExecutorService {
             ctx.userId,
             goal.goalId,
             {
-              currentAmount: goal.currentAmount ?? undefined,
               targetAmount: goal.targetAmount ?? undefined,
               name: goal.name ?? undefined,
+            },
+          ),
+        };
+      }
+      case 'record_savings_contribution': {
+        const contribution =
+          args as ValidatedToolArgs<'record_savings_contribution'>;
+        return {
+          success: true,
+          message: 'Savings goal contribution recorded',
+          data: await this.financeFacade.recordSavingsGoalContribution(
+            ctx.userId,
+            contribution.goalId,
+            {
+              amount: contribution.amount,
+              contributedAt: contribution.contributedAt ?? undefined,
+              notes: contribution.notes ?? undefined,
             },
           ),
         };

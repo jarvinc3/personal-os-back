@@ -1331,7 +1331,7 @@
             "access-token": []
           }
         ],
-        "summary": "Create a transfer between accounts/cards",
+        "summary": "Create a transfer from an account to an account or card",
         "tags": [
           "finance"
         ]
@@ -1399,7 +1399,7 @@
             "access-token": []
           }
         ],
-        "summary": "List budgets (paginated, default page=1 limit=20, max 100)",
+        "summary": "List budgets (cursor paginated, default limit=20, max 100)",
         "tags": [
           "finance"
         ]
@@ -1570,6 +1570,33 @@
       }
     },
     "/api/finance/savings-goals/{id}": {
+      "get": {
+        "operationId": "SavingsGoalsController_get",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Get savings goal by id",
+        "tags": [
+          "finance"
+        ]
+      },
       "patch": {
         "operationId": "SavingsGoalsController_update",
         "parameters": [
@@ -1628,6 +1655,109 @@
             "access-token": []
           }
         ],
+        "tags": [
+          "finance"
+        ]
+      }
+    },
+    "/api/finance/savings-goals/{id}/contributions": {
+      "get": {
+        "operationId": "SavingsGoalsController_listContributions",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Contributions of a savings goal, newest first",
+        "tags": [
+          "finance"
+        ]
+      },
+      "post": {
+        "operationId": "SavingsGoalsController_addContribution",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSavingsGoalContributionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Record a contribution; the goal balance is the sum of them",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
+    "/api/finance/savings-goals/{id}/contributions/{contributionId}": {
+      "delete": {
+        "operationId": "SavingsGoalsController_removeContribution",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "contributionId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Remove a contribution and recompute the balance",
         "tags": [
           "finance"
         ]
@@ -1876,6 +2006,33 @@
       }
     },
     "/api/finance/receivables/{id}": {
+      "get": {
+        "operationId": "ReceivablesController_get",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Get receivable by id",
+        "tags": [
+          "finance"
+        ]
+      },
       "patch": {
         "operationId": "ReceivablesController_update",
         "parameters": [
@@ -1935,6 +2092,72 @@
           }
         ],
         "summary": "Hard-delete receivable",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
+    "/api/finance/receivables/{id}/payments": {
+      "get": {
+        "operationId": "ReceivablesController_listPayments",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Payments collected for a receivable, newest first",
+        "tags": [
+          "finance"
+        ]
+      },
+      "post": {
+        "operationId": "ReceivablesController_addPayment",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateReceivablePaymentDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Collect a payment and record the income on the given account",
         "tags": [
           "finance"
         ]
@@ -3629,9 +3852,6 @@
           "fromAccountId": {
             "type": "string"
           },
-          "fromCardId": {
-            "type": "string"
-          },
           "toAccountId": {
             "type": "string"
           },
@@ -3666,6 +3886,7 @@
           }
         },
         "required": [
+          "fromAccountId",
           "amount",
           "transactionDate"
         ]
@@ -3764,6 +3985,24 @@
           "targetAmount"
         ]
       },
+      "CreateSavingsGoalContributionDto": {
+        "type": "object",
+        "properties": {
+          "amount": {
+            "type": "number"
+          },
+          "contributedAt": {
+            "type": "string",
+            "description": "Defaults to today"
+          },
+          "notes": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "amount"
+        ]
+      },
       "UpdateSavingsGoalDto": {
         "type": "object",
         "properties": {
@@ -3783,9 +4022,6 @@
           },
           "targetDate": {
             "type": "string"
-          },
-          "currentAmount": {
-            "type": "number"
           }
         }
       },
@@ -3953,6 +4189,29 @@
           "amount"
         ]
       },
+      "CreateReceivablePaymentDto": {
+        "type": "object",
+        "properties": {
+          "amount": {
+            "type": "number"
+          },
+          "accountId": {
+            "type": "string",
+            "description": "Account the money entered"
+          },
+          "paidAt": {
+            "type": "string",
+            "description": "Defaults to today"
+          },
+          "notes": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "amount",
+          "accountId"
+        ]
+      },
       "UpdateReceivableDto": {
         "type": "object",
         "properties": {
@@ -3964,10 +4223,6 @@
           },
           "amount": {
             "type": "number"
-          },
-          "paidAmount": {
-            "type": "number",
-            "default": 0
           },
           "status": {
             "type": "string",

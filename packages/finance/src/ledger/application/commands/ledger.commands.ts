@@ -45,6 +45,7 @@ export type UpdateTransactionCommand = {
 
 export type CreateTransferCommand = {
   fromAccountId?: string;
+  /** Internal callers only (email matching); the HTTP API never accepts a card origin. */
   fromCardId?: string;
   toAccountId?: string;
   toCardId?: string;
@@ -61,7 +62,7 @@ export type CreateTransferCommand = {
 };
 
 export type ListTransactionsQuery = {
-  page?: number;
+  cursor?: string;
   limit?: number;
   transferGroupId?: string;
   accountId?: string;

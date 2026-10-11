@@ -36,7 +36,9 @@ function setup(options: { found?: unknown; nextInstallment?: unknown } = {}) {
     updateLoan: jest.fn().mockResolvedValue(undefined),
   };
   const syncInstallments = { execute: jest.fn().mockResolvedValue(undefined) };
-  const createTransaction = { execute: jest.fn().mockResolvedValue(undefined) };
+  const createTransaction = {
+    execute: jest.fn().mockResolvedValue({ id: 'tx-1' }),
+  };
 
   const useCase = new PayNextLoanInstallmentUseCase(
     repo as unknown as PlanningRepository,
@@ -63,7 +65,11 @@ describe('PayNextLoanInstallmentUseCase', () => {
       transactionDate: now.toISOString(),
       description: 'Cuota 2: BHD',
     });
-    expect(repo.markInstallmentPaid).toHaveBeenCalledWith('inst-2', now);
+    expect(repo.markInstallmentPaid).toHaveBeenCalledWith(
+      'inst-2',
+      now,
+      'tx-1',
+    );
     expect(repo.updateLoan).toHaveBeenCalledWith('user-1', 'loan-1', {
       paidInstallments: 2,
       currentBalance: 3500,
@@ -80,7 +86,7 @@ describe('PayNextLoanInstallmentUseCase', () => {
     await useCase.execute('user-1', 'loan-1', now);
 
     expect(createTransaction.execute).not.toHaveBeenCalled();
-    expect(repo.markInstallmentPaid).toHaveBeenCalledWith('inst-2', now);
+    expect(repo.markInstallmentPaid).toHaveBeenCalledWith('inst-2', now, null);
     expect(repo.updateLoan).toHaveBeenCalled();
   });
 

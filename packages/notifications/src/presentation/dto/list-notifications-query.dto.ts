@@ -1,11 +1,11 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import { IsBoolean, IsEnum, IsOptional } from 'class-validator';
-import { PaginationQueryDto } from '@personal-os/core';
+import { CursorQueryDto } from '@personal-os/core';
 
 const channels = ['IN_APP', 'PUSH', 'EMAIL'] as const;
 
-export class ListNotificationsQueryDto extends PaginationQueryDto {
+export class ListNotificationsQueryDto extends CursorQueryDto {
   @ApiPropertyOptional({ enum: channels, default: 'IN_APP' })
   @IsOptional()
   @IsEnum(channels)

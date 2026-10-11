@@ -7,7 +7,7 @@ import {
   IsString,
   IsUUID,
 } from 'class-validator';
-import { PaginationQueryDto } from '@personal-os/core';
+import { CursorQueryDto } from '@personal-os/core';
 import {
   FIN_TRANSACTION_STATUSES,
   FIN_TRANSACTION_TYPES,
@@ -15,7 +15,7 @@ import {
   type FinTransactionTypeValue,
 } from '../../../shared/domain/transaction-status';
 
-export class ListTransactionsQueryDto extends PaginationQueryDto {
+export class ListTransactionsQueryDto extends CursorQueryDto {
   @ApiPropertyOptional()
   @IsOptional()
   @IsUUID()

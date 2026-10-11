@@ -1,6 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import type { PaginationQueryDto } from '@personal-os/core';
-import { paginationArgs } from '@personal-os/core';
+import {
+  clampPageLimit,
+  decodeCursor,
+  type CursorQueryDto,
+} from '@personal-os/core';
 import type { AiRole, Prisma } from '@personal-os/database';
 import { PrismaService } from '@personal-os/database';
 
@@ -17,27 +20,39 @@ export class AiSessionsRepository {
     });
   }
 
-  findSessionsByUser(userId: string, query: PaginationQueryDto) {
-    const { skip, take } = paginationArgs(query);
-    const where: Prisma.AiAgentSessionWhereInput = { userId };
+  findSessionsByUser(userId: string, query: CursorQueryDto) {
+    const limit = clampPageLimit(query.limit);
+    const cursorPoint = query.cursor ? decodeCursor(query.cursor) : null;
+    const baseWhere: Prisma.AiAgentSessionWhereInput = { userId };
+    const cursorDate = cursorPoint ? new Date(cursorPoint.key) : null;
+    const where: Prisma.AiAgentSessionWhereInput =
+      cursorPoint && cursorDate
+        ? {
+            AND: [
+              baseWhere,
+              {
+                OR: [
+                  { lastActiveAt: { lt: cursorDate } },
+                  { lastActiveAt: cursorDate, id: { lt: cursorPoint.id } },
+                ],
+              },
+            ],
+          }
+        : baseWhere;
 
-    return this.prisma.$transaction([
-      this.prisma.aiAgentSession.findMany({
-        where,
-        orderBy: { lastActiveAt: 'desc' },
-        skip,
-        take,
-        include: {
-          module: true,
-          messages: {
-            where: { role: 'user' },
-            orderBy: { createdAt: 'asc' },
-            take: 1,
-          },
+    return this.prisma.aiAgentSession.findMany({
+      where,
+      orderBy: [{ lastActiveAt: 'desc' }, { id: 'desc' }],
+      take: limit + 1,
+      include: {
+        module: true,
+        messages: {
+          where: { role: 'user' },
+          orderBy: { createdAt: 'asc' },
+          take: 1,
         },
-      }),
-      this.prisma.aiAgentSession.count({ where }),
-    ]);
+      },
+    });
   }
 
   findSessionById(sessionId: string, userId: string) {

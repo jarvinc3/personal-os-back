@@ -151,58 +151,48 @@ describe('PlanningService archive and receivables', () => {
     ).rejects.toThrow(/not found/i);
   });
 
-  it('marks a PENDING receivable as PAID and fills paidAmount', async () => {
+  it('hands the requested status to the repository and returns the saved row', async () => {
     findReceivable.mockResolvedValue({
       id: 'rec-1',
       amount: 80,
-      paidAmount: 0,
-      status: 'PENDING',
-    });
-    updateReceivable.mockImplementation(
-      (_userId: string, _id: string, data: unknown) =>
-        Promise.resolve({
-          id: 'rec-1',
-          ...(data as object),
-        }),
-    );
-
-    const result = await service.updateReceivable('user-1', 'rec-1', {
+      paidAmount: 80,
       status: 'PAID',
     });
 
-    expect(result).toMatchObject({ status: 'PAID', paidAmount: '80' });
-  });
-
-  it('rejects paidAmount greater than amount', async () => {
-    findReceivable.mockResolvedValue({
-      id: 'rec-1',
-      amount: 80,
-      paidAmount: 0,
-      status: 'PENDING',
+    const saved = await service.updateReceivable('user-1', 'rec-1', {
+      status: 'PAID',
     });
 
+    expect(updateReceivable).toHaveBeenCalledWith(
+      'user-1',
+      'rec-1',
+      {},
+      'PAID',
+    );
+    expect(saved).toMatchObject({ status: 'PAID', paidAmount: '80' });
+  });
+
+  it('returns 404 when updating a receivable that is not there', async () => {
+    findReceivable.mockResolvedValue(null);
+
     await expect(
-      service.updateReceivable('user-1', 'rec-1', { paidAmount: 90 }),
-    ).rejects.toThrow(/cannot exceed amount/i);
+      service.updateReceivable('user-1', 'missing', { debtorName: 'Ana' }),
+    ).rejects.toThrow(/not found/i);
     expect(updateReceivable).not.toHaveBeenCalled();
   });
 
-  it('paginates budgets with items and total', async () => {
-    const page = Array.from({ length: 20 }, (_, i) => ({ id: `b-${i}` }));
-    listBudgetsPage.mockResolvedValue([page, 25]);
+  it('paginates budgets with a cursor', async () => {
+    const page = Array.from({ length: 21 }, (_, i) => ({
+      id: `b-${i}`,
+      periodStart: new Date('2026-08-01T00:00:00.000Z'),
+    }));
+    listBudgetsPage.mockResolvedValue(page);
 
-    const result = await service.listBudgetsPage('user-1', {
-      page: 1,
-      limit: 20,
-    });
+    const budgetsPage = await service.listBudgetsPage('user-1', { limit: 20 });
 
-    expect(result.items).toHaveLength(20);
-    expect(result.pagination).toEqual({
-      page: 1,
-      limit: 20,
-      total: 25,
-      totalPages: 2,
-    });
+    expect(budgetsPage.items).toHaveLength(20);
+    expect(budgetsPage.hasMore).toBe(true);
+    expect(budgetsPage.nextCursor).toEqual(expect.any(String));
   });
 
   it('returns a mapped budget by id', async () => {

@@ -263,20 +263,24 @@ export const createSavingsGoalArgsSchema = z
   })
   .strict();
 
+export const recordSavingsContributionArgsSchema = z
+  .object({
+    goalId: uuid,
+    amount: moneyAmount,
+    contributedAt: dateString.nullable().optional(),
+    notes: z.string().trim().max(200).nullable().optional(),
+  })
+  .strict();
+
 export const updateSavingsGoalArgsSchema = z
   .object({
     goalId: uuid,
-    currentAmount: moneyAmount.nullable().optional(),
     targetAmount: moneyAmount.nullable().optional(),
     name: z.string().trim().min(1).max(120).nullable().optional(),
   })
   .strict()
   .superRefine((value, ctx) => {
-    if (
-      value.currentAmount === undefined &&
-      value.targetAmount === undefined &&
-      value.name === undefined
-    ) {
+    if (value.targetAmount === undefined && value.name === undefined) {
       ctx.addIssue({
         code: 'custom',
         message: 'Provide at least one field to update on the savings goal',
@@ -328,8 +332,7 @@ export const confirmTransactionArgsSchema = z
 
 export const createTransferArgsSchema = z
   .object({
-    fromAccountId: uuid.nullable().optional(),
-    fromCardId: uuid.nullable().optional(),
+    fromAccountId: uuid,
     toAccountId: uuid.nullable().optional(),
     toCardId: uuid.nullable().optional(),
     amount: moneyAmount,
@@ -340,17 +343,13 @@ export const createTransferArgsSchema = z
   })
   .strict()
   .superRefine((value, ctx) => {
-    const fromOk =
-      Boolean(value.fromAccountId) !== Boolean(value.fromCardId) &&
-      (Boolean(value.fromAccountId) || Boolean(value.fromCardId));
     const toOk =
       Boolean(value.toAccountId) !== Boolean(value.toCardId) &&
       (Boolean(value.toAccountId) || Boolean(value.toCardId));
-    if (!fromOk || !toOk) {
+    if (!toOk) {
       ctx.addIssue({
         code: 'custom',
-        message:
-          'Each transfer leg must provide exactly one of accountId or cardId (from*/to*)',
+        message: 'A transfer arrives at exactly one accountId or cardId (to*)',
       });
     }
   });
@@ -371,6 +370,7 @@ export const MUTATING_TOOL_ARG_SCHEMAS = {
   create_or_update_budget: createOrUpdateBudgetArgsSchema,
   create_savings_goal: createSavingsGoalArgsSchema,
   update_savings_goal: updateSavingsGoalArgsSchema,
+  record_savings_contribution: recordSavingsContributionArgsSchema,
   mark_loan_installment_paid: markLoanInstallmentPaidArgsSchema,
   trigger_email_sync: triggerEmailSyncArgsSchema,
 } as const;

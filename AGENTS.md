@@ -26,11 +26,22 @@ Si una afirmación no está `VERIFICADO`, leer [docs/review-register.md](docs/re
 
 ## Checklist al cambiar comportamiento
 
+- [ ] Correr `pnpm lint`, `pnpm test` y `pnpm test:e2e` (obligatorio en todo cambio).
 - [ ] Actualizar el documento dueño (capacidad, regla o contrato), no un README monolítico.
 - [ ] Si el cambio no se puede verificar, añadir un `REV-BACK-*` en el registro.
 - [ ] Imports cruzados solo vía barrel/`FinanceFacade`.
 - [ ] Prefijo HTTP documentado como `/api/...` salvo health/Bull Board/Swagger que viven fuera o según `main.ts`.
 - [ ] No presentar módulos `agenda` / `projects` / `health` / `subscriptions` como APIs Nest: solo slugs de `user_modules`.
+
+## Pruebas obligatorias
+
+Todo cambio corre, antes de darlo por terminado:
+
+1. `pnpm lint`
+2. `pnpm test`
+3. `pnpm test:e2e`
+
+Los E2E (`test/*.e2e-spec.ts`, Prisma mock) son requisito en **todo** cambio, no solo al tocar pruebas. Un cambio de contrato (paginación, DTO, respuesta HTTP) que no actualice su E2E deja el CI en rojo. Detalle en [docs/operations/testing.md](docs/operations/testing.md).
 
 ## Estructura de código
 

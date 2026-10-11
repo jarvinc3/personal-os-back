@@ -4,7 +4,7 @@ Auth: JWT. Envelope `{ data, meta }`.
 
 | Método | Path | Notas |
 | --- | --- | --- |
-| GET | `/api/notifications` | Query `page`, `limit`, `channel` (`IN_APP`\|`PUSH`\|`EMAIL`, default IN_APP), `unreadOnly`. Shape `{ items, pagination }`. Si `channels.inApp=false`, lista IN_APP vacía |
+| GET | `/api/notifications` | Query `cursor`, `limit`, `channel` (`IN_APP`\|`PUSH`\|`EMAIL`, default IN_APP), `unreadOnly`. Shape `{ items, nextCursor, hasMore }`. Si `channels.inApp=false`, lista IN_APP vacía |
 | GET | `/api/notifications/unread-count` | `{ count }` canal IN_APP |
 | PATCH | `/api/notifications/read-all` | `{ updated }` |
 | PATCH | `/api/notifications/:id/read` | Ownership |

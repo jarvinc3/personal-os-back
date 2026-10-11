@@ -82,7 +82,7 @@ export interface LedgerRepositoryPort {
   findTransactions(
     userId: string,
     query: ListTransactionsQuery,
-  ): Promise<[LedgerTransactionRow[], number]>;
+  ): Promise<LedgerTransactionRow[]>;
 
   findTransactionById(
     id: string,

@@ -1,4 +1,7 @@
-import { PartialType } from '@nestjs/swagger';
+import { OmitType, PartialType } from '@nestjs/swagger';
 import { CreateReceivableDto } from './create-receivable.dto';
 
-export class UpdateReceivableDto extends PartialType(CreateReceivableDto) {}
+/** The collected amount moves only through payments, so it is not editable here. */
+export class UpdateReceivableDto extends PartialType(
+  OmitType(CreateReceivableDto, ['paidAmount'] as const),
+) {}
