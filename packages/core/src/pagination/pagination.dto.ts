@@ -1,57 +1,77 @@
+import { BadRequestException } from '@nestjs/common';
 import { Type } from 'class-transformer';
-import { IsInt, IsOptional, Max, Min } from 'class-validator';
+import { IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
 
-export class PaginationQueryDto {
+export const DEFAULT_PAGE_LIMIT = 20;
+export const MAX_PAGE_LIMIT = 100;
+
+export class CursorQueryDto {
+  @IsOptional()
+  @IsString()
+  cursor?: string;
+
   @IsOptional()
   @Type(() => Number)
   @IsInt()
   @Min(1)
-  page = 1;
-
-  @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  @Min(1)
-  @Max(100)
-  limit = 20;
+  @Max(MAX_PAGE_LIMIT)
+  limit = DEFAULT_PAGE_LIMIT;
 }
 
-export type PageMeta = {
-  page: number;
-  limit: number;
-  total: number;
-  totalPages: number;
+export type CursorPoint = {
+  key: string;
+  id: string;
 };
 
-export function paginationArgs(query: PaginationQueryDto): {
-  skip: number;
-  take: number;
-} {
-  const page = Math.max(1, query.page);
-  const limit = Math.max(1, Math.min(100, query.limit));
+export type CursorPage<T> = {
+  items: T[];
+  nextCursor: string | null;
+  hasMore: boolean;
+};
 
-  return {
-    skip: (page - 1) * limit,
-    take: limit,
-  };
+export function clampPageLimit(limit: number | undefined): number {
+  return Math.max(1, Math.min(MAX_PAGE_LIMIT, limit ?? DEFAULT_PAGE_LIMIT));
 }
 
-export function paginate<T>(
-  items: T[],
-  total: number,
-  query: PaginationQueryDto,
-): { items: T[]; pagination: PageMeta } {
-  const page = Math.max(1, query.page);
-  const limit = Math.max(1, Math.min(100, query.limit));
-  const totalPages = Math.max(1, Math.ceil(total / limit));
+export function encodeCursor(point: CursorPoint): string {
+  return Buffer.from(JSON.stringify(point), 'utf8').toString('base64url');
+}
 
+const INVALID_CURSOR_MESSAGE = 'Invalid cursor';
+
+export function decodeCursor(cursor: string): CursorPoint {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(Buffer.from(cursor, 'base64url').toString('utf8'));
+  } catch (error) {
+    throw new BadRequestException(INVALID_CURSOR_MESSAGE, { cause: error });
+  }
+  if (!isCursorPoint(parsed)) {
+    throw new BadRequestException(INVALID_CURSOR_MESSAGE);
+  }
+  return parsed;
+}
+
+function isCursorPoint(value: unknown): value is CursorPoint {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+  const point = value as Partial<CursorPoint>;
+  return typeof point.key === 'string' && typeof point.id === 'string';
+}
+
+export function toCursorPage<T extends { id: string }>(
+  rows: T[],
+  limit: number,
+  keyOf: (row: T) => string,
+): CursorPage<T> {
+  const hasMore = rows.length > limit;
+  const items = hasMore ? rows.slice(0, limit) : rows;
+  const last = items.at(-1);
   return {
     items,
-    pagination: {
-      page,
-      limit,
-      total,
-      totalPages,
-    },
+    hasMore,
+    nextCursor:
+      hasMore && last ? encodeCursor({ key: keyOf(last), id: last.id }) : null,
   };
 }

@@ -1,5 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import { paginationArgs, type PaginationQueryDto } from '@personal-os/core';
+import {
+  clampPageLimit,
+  decodeCursor,
+  type CursorQueryDto,
+} from '@personal-os/core';
 import type { Prisma } from '@personal-os/database';
 import { PrismaService } from '@personal-os/database';
 import type { ReceivableStatus } from '../application/resolve-receivable-payment';
@@ -22,18 +26,31 @@ export class PlanningRepository {
     });
   }
 
-  listBudgetsPage(userId: string, query: PaginationQueryDto) {
-    const { skip, take } = paginationArgs(query);
-    return Promise.all([
-      this.prisma.finBudget.findMany({
-        where: { userId },
-        include: { category: true },
-        orderBy: { periodStart: 'desc' },
-        skip,
-        take,
-      }),
-      this.prisma.finBudget.count({ where: { userId } }),
-    ]);
+  listBudgetsPage(userId: string, query: CursorQueryDto) {
+    const limit = clampPageLimit(query.limit);
+    const cursorPoint = query.cursor ? decodeCursor(query.cursor) : null;
+    const baseWhere: Prisma.FinBudgetWhereInput = { userId };
+    const cursorDate = cursorPoint ? new Date(cursorPoint.key) : null;
+    const where: Prisma.FinBudgetWhereInput =
+      cursorPoint && cursorDate
+        ? {
+            AND: [
+              baseWhere,
+              {
+                OR: [
+                  { periodStart: { lt: cursorDate } },
+                  { periodStart: cursorDate, id: { lt: cursorPoint.id } },
+                ],
+              },
+            ],
+          }
+        : baseWhere;
+    return this.prisma.finBudget.findMany({
+      where,
+      include: { category: true },
+      orderBy: [{ periodStart: 'desc' }, { id: 'desc' }],
+      take: limit + 1,
+    });
   }
 
   findBudget(userId: string, id: string) {

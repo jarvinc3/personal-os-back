@@ -6,7 +6,7 @@ import { Queue } from 'bullmq';
 import type { Env } from '@personal-os/config';
 import { NotificationCreatedEvent } from '@personal-os/core';
 import { AppEvents } from '@personal-os/core';
-import { paginate } from '@personal-os/core';
+import { clampPageLimit, toCursorPage } from '@personal-os/core';
 import { NotificationDispatchJob } from '@personal-os/core';
 import { QueueNames } from '@personal-os/core';
 import { NotificationsRepository } from '../infrastructure/notifications.repository';
@@ -111,14 +111,13 @@ export class NotificationsService {
     const inAppEnabled =
       await this.notificationPolicy.isInAppListingEnabled(userId);
     if (!inAppEnabled && (query.channel ?? 'IN_APP') === 'IN_APP') {
-      return paginate([], 0, query);
+      return { items: [], nextCursor: null, hasMore: false };
     }
 
-    const [items, total] = await this.notificationsRepo.findByUser(
-      userId,
-      query,
+    const rows = await this.notificationsRepo.findByUser(userId, query);
+    return toCursorPage(rows, clampPageLimit(query.limit), (row) =>
+      row.createdAt.toISOString(),
     );
-    return paginate(items, total, query);
   }
 
   async unreadCount(userId: string) {

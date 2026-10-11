@@ -1,5 +1,9 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { paginate, type PaginationQueryDto } from '@personal-os/core';
+import {
+  clampPageLimit,
+  toCursorPage,
+  type CursorQueryDto,
+} from '@personal-os/core';
 import { FinanceOwnershipService } from '../../shared/application/finance-ownership.service';
 import { PlanningRepository } from '../infrastructure/planning.repository';
 import type { CreateBudgetDto } from '../presentation/dto/create-budget.dto';
@@ -35,13 +39,12 @@ export class PlanningService {
     return rows.map(mapBudget);
   }
 
-  async listBudgetsPage(userId: string, query: PaginationQueryDto) {
-    const pageQuery = {
-      page: query.page ?? 1,
-      limit: query.limit ?? 20,
-    };
-    const [items, total] = await this.repo.listBudgetsPage(userId, pageQuery);
-    return paginate(items.map(mapBudget), total, pageQuery);
+  async listBudgetsPage(userId: string, query: CursorQueryDto) {
+    const rows = await this.repo.listBudgetsPage(userId, query);
+    const page = toCursorPage(rows, clampPageLimit(query.limit), (row) =>
+      row.periodStart.toISOString(),
+    );
+    return { ...page, items: page.items.map(mapBudget) };
   }
 
   async getBudget(userId: string, id: string) {

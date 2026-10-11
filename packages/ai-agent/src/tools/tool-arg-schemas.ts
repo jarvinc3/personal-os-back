@@ -332,8 +332,7 @@ export const confirmTransactionArgsSchema = z
 
 export const createTransferArgsSchema = z
   .object({
-    fromAccountId: uuid.nullable().optional(),
-    fromCardId: uuid.nullable().optional(),
+    fromAccountId: uuid,
     toAccountId: uuid.nullable().optional(),
     toCardId: uuid.nullable().optional(),
     amount: moneyAmount,
@@ -344,17 +343,13 @@ export const createTransferArgsSchema = z
   })
   .strict()
   .superRefine((value, ctx) => {
-    const fromOk =
-      Boolean(value.fromAccountId) !== Boolean(value.fromCardId) &&
-      (Boolean(value.fromAccountId) || Boolean(value.fromCardId));
     const toOk =
       Boolean(value.toAccountId) !== Boolean(value.toCardId) &&
       (Boolean(value.toAccountId) || Boolean(value.toCardId));
-    if (!fromOk || !toOk) {
+    if (!toOk) {
       ctx.addIssue({
         code: 'custom',
-        message:
-          'Each transfer leg must provide exactly one of accountId or cardId (from*/to*)',
+        message: 'A transfer arrives at exactly one accountId or cardId (to*)',
       });
     }
   });

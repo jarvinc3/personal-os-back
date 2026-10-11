@@ -9,3 +9,4 @@ Plantilla: [_templates/module/decisions/ADR-template.md](../_templates/module/de
 | [ADR-003](./ADR-003-email-transaction-dedupe.md) | Deduplicación de transacciones importadas por correo |
 | [ADR-004](./ADR-004-configurable-gmail-sync-schedule.md) | Frecuencia de sincronización de Gmail configurable por usuario |
 | [ADR-005](./ADR-005-pnpm-workspaces-monorepo.md) | Monorepo con pnpm workspaces y paquetes compilados |
+| [ADR-006](./ADR-006-cursor-pagination.md) | Paginación por cursor en los endpoints de lista |

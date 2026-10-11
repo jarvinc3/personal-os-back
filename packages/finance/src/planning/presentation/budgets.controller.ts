@@ -10,7 +10,7 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CurrentUser, RequiresEnabledModule } from '@personal-os/core';
-import { PaginationQueryDto } from '@personal-os/core';
+import { CursorQueryDto } from '@personal-os/core';
 import { PlanningService } from '../application/planning.service';
 import { CreateBudgetDto } from './dto/create-budget.dto';
 import { UpdateBudgetDto } from './dto/update-budget.dto';
@@ -24,9 +24,9 @@ export class BudgetsController {
 
   @Get('budgets')
   @ApiOperation({
-    summary: 'List budgets (paginated, default page=1 limit=20, max 100)',
+    summary: 'List budgets (cursor paginated, default limit=20, max 100)',
   })
-  list(@CurrentUser('sub') userId: string, @Query() query: PaginationQueryDto) {
+  list(@CurrentUser('sub') userId: string, @Query() query: CursorQueryDto) {
     return this.planning.listBudgetsPage(userId, query);
   }
 

@@ -181,22 +181,18 @@ describe('PlanningService archive and receivables', () => {
     expect(updateReceivable).not.toHaveBeenCalled();
   });
 
-  it('paginates budgets with items and total', async () => {
-    const page = Array.from({ length: 20 }, (_, i) => ({ id: `b-${i}` }));
-    listBudgetsPage.mockResolvedValue([page, 25]);
+  it('paginates budgets with a cursor', async () => {
+    const page = Array.from({ length: 21 }, (_, i) => ({
+      id: `b-${i}`,
+      periodStart: new Date('2026-08-01T00:00:00.000Z'),
+    }));
+    listBudgetsPage.mockResolvedValue(page);
 
-    const result = await service.listBudgetsPage('user-1', {
-      page: 1,
-      limit: 20,
-    });
+    const budgetsPage = await service.listBudgetsPage('user-1', { limit: 20 });
 
-    expect(result.items).toHaveLength(20);
-    expect(result.pagination).toEqual({
-      page: 1,
-      limit: 20,
-      total: 25,
-      totalPages: 2,
-    });
+    expect(budgetsPage.items).toHaveLength(20);
+    expect(budgetsPage.hasMore).toBe(true);
+    expect(budgetsPage.nextCursor).toEqual(expect.any(String));
   });
 
   it('returns a mapped budget by id', async () => {

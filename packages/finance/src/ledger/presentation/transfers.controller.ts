@@ -12,7 +12,9 @@ export class TransfersController {
   constructor(private readonly createTransfer: CreateTransferUseCase) {}
 
   @Post('transfers')
-  @ApiOperation({ summary: 'Create a transfer between accounts/cards' })
+  @ApiOperation({
+    summary: 'Create a transfer from an account to an account or card',
+  })
   create(@CurrentUser('sub') userId: string, @Body() dto: CreateTransferDto) {
     return this.createTransfer.execute(userId, dto);
   }

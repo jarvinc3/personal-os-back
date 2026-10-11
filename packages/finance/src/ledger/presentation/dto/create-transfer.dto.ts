@@ -17,34 +17,25 @@ import { CurrencyField } from '../../../shared/presentation/validation.decorator
 
 const transactionStatuses = ['PENDING', 'CONFIRMED', 'CANCELLED'] as const;
 
-@ValidatorConstraint({ name: 'transferLegXor', async: false })
-class TransferLegXorConstraint implements ValidatorConstraintInterface {
+@ValidatorConstraint({ name: 'transferDestinationXor', async: false })
+class TransferDestinationXorConstraint implements ValidatorConstraintInterface {
   validate(_: unknown, args: ValidationArguments) {
     const obj = args.object as CreateTransferDto;
-    const fromOk =
-      Boolean(obj.fromAccountId) !== Boolean(obj.fromCardId) &&
-      (Boolean(obj.fromAccountId) || Boolean(obj.fromCardId));
-    const toOk =
+    return (
       Boolean(obj.toAccountId) !== Boolean(obj.toCardId) &&
-      (Boolean(obj.toAccountId) || Boolean(obj.toCardId));
-    return fromOk && toOk;
+      (Boolean(obj.toAccountId) || Boolean(obj.toCardId))
+    );
   }
 
   defaultMessage() {
-    return 'Each transfer leg must provide exactly one of accountId or cardId (from*/to*)';
+    return 'A transfer arrives at exactly one accountId or cardId (to*)';
   }
 }
 
 export class CreateTransferDto {
-  @ApiPropertyOptional()
-  @IsOptional()
+  @ApiProperty()
   @IsUUID()
-  fromAccountId?: string;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsUUID()
-  fromCardId?: string;
+  fromAccountId!: string;
 
   @ApiPropertyOptional()
   @IsOptional()
@@ -56,8 +47,8 @@ export class CreateTransferDto {
   @IsUUID()
   toCardId?: string;
 
-  @Validate(TransferLegXorConstraint)
-  private readonly _legXor?: never;
+  @Validate(TransferDestinationXorConstraint)
+  private readonly _destinationXor?: never;
 
   @ApiProperty()
   @Type(() => Number)

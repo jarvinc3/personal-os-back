@@ -1,7 +1,7 @@
 import { Inject, Injectable, Optional } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { AppEvents } from '@personal-os/core';
-import { paginationArgs } from '@personal-os/core';
+import { clampPageLimit, decodeCursor } from '@personal-os/core';
 import type { FinTransactionType, Prisma } from '@personal-os/database';
 import { PrismaService } from '@personal-os/database';
 import type { DomainEventPublisherPort } from '../../events/application/ports/domain-event-publisher.port';
@@ -105,25 +105,34 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
   ) {}
 
   async findTransactions(userId: string, query: ListTransactionsQuery) {
-    const { skip, take } = paginationArgs({
-      page: query.page ?? 1,
-      limit: query.limit ?? 20,
-    });
+    const limit = clampPageLimit(query.limit);
+    const cursorPoint = query.cursor ? decodeCursor(query.cursor) : null;
     const matchingGroupIds = await this.findTransferGroupIdsForInstrument(
       userId,
       query,
     );
-    const where = logicalTransactionsWhere(userId, query, matchingGroupIds);
-    const [items, total] = (await this.prisma.$transaction([
-      this.prisma.finTransaction.findMany({
-        where,
-        orderBy: { transactionDate: 'desc' },
-        skip,
-        take,
-        include: transactionPartyInclude,
-      }),
-      this.prisma.finTransaction.count({ where }),
-    ])) as [LedgerTransactionRow[], number];
+    const baseWhere = logicalTransactionsWhere(userId, query, matchingGroupIds);
+    const cursorDate = cursorPoint ? new Date(cursorPoint.key) : null;
+    const where: Prisma.FinTransactionWhereInput =
+      cursorPoint && cursorDate
+        ? {
+            AND: [
+              baseWhere,
+              {
+                OR: [
+                  { transactionDate: { lt: cursorDate } },
+                  { transactionDate: cursorDate, id: { lt: cursorPoint.id } },
+                ],
+              },
+            ],
+          }
+        : baseWhere;
+    const items = (await this.prisma.finTransaction.findMany({
+      where,
+      orderBy: [{ transactionDate: 'desc' }, { id: 'desc' }],
+      take: limit + 1,
+      include: transactionPartyInclude,
+    })) as LedgerTransactionRow[];
 
     const groupIds = [
       ...new Set(
@@ -147,14 +156,12 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
       counterparts.map((row) => [row.transferGroupId, row] as const),
     );
 
-    const enriched = items.map((item) => ({
+    return items.map((item) => ({
       ...item,
       transferCounterpart: item.transferGroupId
         ? (creditByGroup.get(item.transferGroupId) ?? null)
         : null,
     }));
-
-    return [enriched, total] as [LedgerTransactionRow[], number];
   }
 
   private async findTransferGroupIdsForInstrument(

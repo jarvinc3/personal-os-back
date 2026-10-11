@@ -121,3 +121,12 @@ Estados: ver [documentation-standard.md](./documentation-standard.md).
 | Validación    | `curl` 2026-09-15: `{ data: { status, timestamp }, meta: { timestamp, path, requestId } }`  |
 | Recomendación | Tratar envelope+data como contrato real                                                     |
 | Resolución    | `migrated` (health.md actualizado)                                                          |
+
+## REV-BACK-013 {#rev-back-013}
+
+| Campo         | Valor                                                                                       |
+| ------------- | ------------------------------------------------------------------------------------------- |
+| Categoría     | `NO_IMPLEMENTADO`                                                                           |
+| Origen        | `docs/decisions/ADR-006-cursor-pagination.md`                                               |
+| Validación    | `packages/core/src/pagination/` usa `CursorQueryDto` y `{ items, nextCursor, hasMore }`; movimientos, presupuestos, notificaciones y sesiones de IA migrados |
+| Resolución    | `resolved`                                                                                  |

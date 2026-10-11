@@ -193,7 +193,7 @@ const STATIC_TOOLS: StaticToolDef[] = [
   {
     name: 'create_transfer',
     description:
-      'Transfer money between two accounts or cards (exactly one from target and one to target).',
+      'Transfer money from an account to an account or card (exactly one from account and one to target).',
     mutating: true,
     targetModule: 'finance',
   },

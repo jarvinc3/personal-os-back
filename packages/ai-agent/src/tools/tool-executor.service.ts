@@ -380,7 +380,6 @@ export class ToolExecutorService {
           success: true,
           message: 'Transactions loaded',
           data: await this.financeFacade.listTransactions(ctx.userId, {
-            page: 1,
             limit: 50,
             ...args,
           }),
@@ -464,8 +463,7 @@ export class ToolExecutorService {
           success: true,
           message: 'Transfer created',
           data: await this.financeFacade.createTransferTransaction(ctx.userId, {
-            fromAccountId: t.fromAccountId ?? undefined,
-            fromCardId: t.fromCardId ?? undefined,
+            fromAccountId: t.fromAccountId,
             toAccountId: t.toAccountId ?? undefined,
             toCardId: t.toCardId ?? undefined,
             amount: t.amount,

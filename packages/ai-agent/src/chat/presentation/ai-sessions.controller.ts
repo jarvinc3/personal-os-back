@@ -9,7 +9,7 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CurrentUser, Timeout } from '@personal-os/core';
-import { PaginationQueryDto } from '@personal-os/core';
+import { CursorQueryDto } from '@personal-os/core';
 import { CreateAiSessionDto } from './dto/create-ai-session.dto';
 import { AiSessionsService } from '../application/ai-sessions.service';
 
@@ -22,7 +22,7 @@ export class AiSessionsController {
 
   @Get()
   @ApiOperation({ summary: 'List AI chat sessions for current user' })
-  list(@CurrentUser('sub') userId: string, @Query() query: PaginationQueryDto) {
+  list(@CurrentUser('sub') userId: string, @Query() query: CursorQueryDto) {
     return this.aiSessionsService.list(userId, query);
   }
 

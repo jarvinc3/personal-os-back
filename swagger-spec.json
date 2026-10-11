@@ -1331,7 +1331,7 @@
             "access-token": []
           }
         ],
-        "summary": "Create a transfer between accounts/cards",
+        "summary": "Create a transfer from an account to an account or card",
         "tags": [
           "finance"
         ]
@@ -1399,7 +1399,7 @@
             "access-token": []
           }
         ],
-        "summary": "List budgets (paginated, default page=1 limit=20, max 100)",
+        "summary": "List budgets (cursor paginated, default limit=20, max 100)",
         "tags": [
           "finance"
         ]
@@ -3852,9 +3852,6 @@
           "fromAccountId": {
             "type": "string"
           },
-          "fromCardId": {
-            "type": "string"
-          },
           "toAccountId": {
             "type": "string"
           },
@@ -3889,6 +3886,7 @@
           }
         },
         "required": [
+          "fromAccountId",
           "amount",
           "transactionDate"
         ]

@@ -36,7 +36,7 @@ Lists up to 50 transactions with optional filters.
 | `dateTo`     | string | no       | ISO date end                                                |
 | `search`     | string | no       | Text search on description/merchant                         |
 
-**Delegates to:** `FinanceFacade.listTransactions` (page=1, limit=50)
+**Delegates to:** `FinanceFacade.listTransactions` (limit=50)
 
 ---
 
@@ -163,7 +163,7 @@ Creates a transaction with **`source=AI`**.
 
 ### `create_transfer`
 
-Moves amount between two ledger targets (exactly one of account/card per leg).
+Moves amount from an account to one ledger target (exactly one of account/card as destination). A card is never the origin.
 
 **Delegates to:** `FinanceFacade.createTransferTransaction`
 

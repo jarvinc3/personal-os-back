@@ -21,7 +21,7 @@ Envelope `{ data, meta }`.
 
 | Endpoint | Shape |
 | --- | --- |
-| GET transactions, budgets | `{ items, pagination }` default 1/20 max 100 |
+| GET transactions, budgets | `{ items, nextCursor, hasMore }`; query `cursor` + `limit` default 20 max 100 |
 | GET accounts, cards, institutions, categories, savings-goals, loans, receivables, email sources, pending, email mailboxes, cards/:id/statements, loans/:id/installments | array |
 | GET analytics/*, balance-sheet | object |
 

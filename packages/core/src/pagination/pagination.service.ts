@@ -1,22 +1,22 @@
 import { Injectable } from '@nestjs/common';
 import {
-  PageMeta,
-  PaginationQueryDto,
-  paginate,
-  paginationArgs,
+  CursorPage,
+  CursorQueryDto,
+  clampPageLimit,
+  toCursorPage,
 } from './pagination.dto';
 
 @Injectable()
 export class PaginationService {
-  args(query: PaginationQueryDto): { skip: number; take: number } {
-    return paginationArgs(query);
+  limit(query: CursorQueryDto): number {
+    return clampPageLimit(query.limit);
   }
 
-  result<T>(
-    items: T[],
-    total: number,
-    query: PaginationQueryDto,
-  ): { items: T[]; pagination: PageMeta } {
-    return paginate(items, total, query);
+  result<T extends { id: string }>(
+    rows: T[],
+    query: CursorQueryDto,
+    keyOf: (row: T) => string,
+  ): CursorPage<T> {
+    return toCursorPage(rows, clampPageLimit(query.limit), keyOf);
   }
 }

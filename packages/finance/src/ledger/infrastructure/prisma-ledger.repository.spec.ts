@@ -663,12 +663,8 @@ describe('PrismaLedgerRepository outbox-in-TX', () => {
       undefined,
     );
 
-    const [items, total] = await repo.findTransactions('user-1', {
-      page: 1,
-      limit: 20,
-    });
+    const items = await repo.findTransactions('user-1', { limit: 20 });
 
-    expect(total).toBe(1);
     expect(items).toHaveLength(1);
     expect(items[0]?.id).toBe('debit-1');
     expect(items[0]?.transferCounterpart?.id).toBe('credit-1');

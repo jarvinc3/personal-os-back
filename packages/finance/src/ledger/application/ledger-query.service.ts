@@ -1,5 +1,5 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
-import { paginate } from '@personal-os/core';
+import { clampPageLimit, toCursorPage } from '@personal-os/core';
 import { LogoService } from '@personal-os/logos';
 import { LEDGER_REPOSITORY } from '../../shared/application/tokens';
 import type {
@@ -21,15 +21,16 @@ export class LedgerQueryService {
   ) {}
 
   async listTransactions(userId: string, query: ListTransactionsQuery) {
-    const [items, total] = await this.repo.findTransactions(userId, query);
-    return paginate(
-      items.map((item) => mapLogicalTransaction(item, undefined, this.logos)),
-      total,
-      {
-        page: query.page ?? 1,
-        limit: query.limit ?? 20,
-      },
+    const rows = await this.repo.findTransactions(userId, query);
+    const page = toCursorPage(rows, clampPageLimit(query.limit), (row) =>
+      row.transactionDate.toISOString(),
     );
+    return {
+      ...page,
+      items: page.items.map((item) =>
+        mapLogicalTransaction(item, undefined, this.logos),
+      ),
+    };
   }
 
   async getTransaction(userId: string, id: string) {
