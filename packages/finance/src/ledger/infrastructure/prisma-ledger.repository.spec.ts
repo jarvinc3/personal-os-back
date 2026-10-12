@@ -325,6 +325,7 @@ describe('PrismaLedgerRepository outbox-in-TX', () => {
             deleteMany: jest.fn(),
           },
           finLoanInstallment: { findMany: jest.fn().mockResolvedValue([]) },
+          finSavingsGoalContribution: { findMany: jest.fn().mockResolvedValue([]) },
           finBudget: {
             findMany: jest.fn().mockResolvedValue([]),
             update: jest.fn(),
@@ -392,6 +393,7 @@ describe('PrismaLedgerRepository outbox-in-TX', () => {
             update: receivableUpdate,
           },
           finLoanInstallment: { findMany: jest.fn().mockResolvedValue([]) },
+          finSavingsGoalContribution: { findMany: jest.fn().mockResolvedValue([]) },
         };
         return fn(tx);
       }),
@@ -440,6 +442,9 @@ describe('PrismaLedgerRepository outbox-in-TX', () => {
               },
             ]),
             updateMany: installmentUpdateMany,
+          },
+          finSavingsGoalContribution: {
+            findMany: jest.fn().mockResolvedValue([]),
           },
           finLoan: { update: loanUpdate },
         };
@@ -496,6 +501,7 @@ describe('PrismaLedgerRepository outbox-in-TX', () => {
             update: jest.fn(),
           },
           finLoanInstallment: { findMany: jest.fn().mockResolvedValue([]) },
+          finSavingsGoalContribution: { findMany: jest.fn().mockResolvedValue([]) },
         };
         return fn(tx);
       }),
@@ -553,6 +559,7 @@ describe('PrismaLedgerRepository outbox-in-TX', () => {
           },
           finReceivablePayment: { findMany: jest.fn().mockResolvedValue([]) },
           finLoanInstallment: { findMany: jest.fn().mockResolvedValue([]) },
+          finSavingsGoalContribution: { findMany: jest.fn().mockResolvedValue([]) },
         };
         return fn(tx);
       }),

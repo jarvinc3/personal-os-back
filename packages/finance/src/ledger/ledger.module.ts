@@ -15,6 +15,7 @@ import { LedgerQueryService } from './application/ledger-query.service';
 import { PurgeInstrumentLedgerUseCase } from './application/purge-instrument-ledger.use-case';
 import { ReverseTransactionUseCase } from './application/reverse-transaction.use-case';
 import { UpdateTransactionUseCase } from './application/update-transaction.use-case';
+import { UpdateTransferUseCase } from './application/update-transfer.use-case';
 import { PrismaLedgerRepository } from './infrastructure/prisma-ledger.repository';
 import { TransactionsController } from './presentation/transactions.controller';
 import { TransfersController } from './presentation/transfers.controller';
@@ -39,6 +40,7 @@ import { TransfersController } from './presentation/transfers.controller';
     DeleteTransactionUseCase,
     PurgeInstrumentLedgerUseCase,
     CreateTransferUseCase,
+    UpdateTransferUseCase,
     ReverseTransactionUseCase,
     ImportEmailTransactionUseCase,
   ],
@@ -51,6 +53,7 @@ import { TransfersController } from './presentation/transfers.controller';
     DeleteTransactionUseCase,
     PurgeInstrumentLedgerUseCase,
     CreateTransferUseCase,
+    UpdateTransferUseCase,
     ReverseTransactionUseCase,
     ImportEmailTransactionUseCase,
   ],

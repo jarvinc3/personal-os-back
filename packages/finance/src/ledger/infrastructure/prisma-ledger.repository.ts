@@ -21,6 +21,7 @@ import { normalizeCurrencyCode } from '../../shared/domain/money';
 import { statusAffectsLedger } from '../../shared/domain/transaction-status';
 import { shiftLoanDueDate } from '../../planning/domain/loan-installment-schedule';
 import { applyReceivableBalance } from '../../planning/infrastructure/receivable-balance';
+import { applySavingsGoalBalance } from '../../planning/infrastructure/savings-goal-balance';
 
 const transactionNotificationInclude = {
   account: { select: { name: true } },
@@ -885,9 +886,9 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
   }
 
   /**
-   * A collected amount and a paid instalment point at the movement they created.
-   * Removing or reversing that movement takes its planning effect with it, in the
-   * same transaction, so the two sides never disagree.
+   * A collected amount, a paid instalment and a savings contribution point at the
+   * movement they created. Removing or reversing that movement takes its planning
+   * effect with it, in the same transaction, so the two sides never disagree.
    */
   private async revertPlanningLinks(
     tx: Prisma.TransactionClient,
@@ -898,6 +899,7 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
     }
     await this.revertReceivablePayments(tx, transactionIds);
     await this.revertLoanInstallments(tx, transactionIds);
+    await this.revertSavingsGoalContributions(tx, transactionIds);
   }
 
   private async revertReceivablePayments(
@@ -952,6 +954,27 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
           ),
         },
       });
+    }
+  }
+
+  private async revertSavingsGoalContributions(
+    tx: Prisma.TransactionClient,
+    transactionIds: readonly string[],
+  ): Promise<void> {
+    const contributions = await tx.finSavingsGoalContribution.findMany({
+      where: { transactionId: { in: [...transactionIds] } },
+      select: { id: true, goalId: true },
+    });
+    if (contributions.length === 0) {
+      return;
+    }
+    await tx.finSavingsGoalContribution.deleteMany({
+      where: { id: { in: contributions.map((item) => item.id) } },
+    });
+    const goalIds = [...new Set(contributions.map((item) => item.goalId))];
+    const now = new Date();
+    for (const goalId of goalIds) {
+      await applySavingsGoalBalance(tx, goalId, now);
     }
   }
 
