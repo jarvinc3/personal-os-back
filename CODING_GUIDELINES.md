@@ -145,7 +145,12 @@ Ship the simplest solution that solves the current problem. No extra layers, hoo
 // Bad — configurability nobody asked for, added "just in case"
 function formatPrice(
   value,
-  { currency = 'USD', locale = 'en-US', showSymbol = true, roundingStrategy = 'nearest' } = {},
+  {
+    currency = 'USD',
+    locale = 'en-US',
+    showSymbol = true,
+    roundingStrategy = 'nearest',
+  } = {},
 ) {
   // ...unneeded logic for a single real use case
 }
@@ -162,7 +167,10 @@ Build only what the current requirement needs. Don't add fields, params, branche
 
 ```js
 // Bad — speculative support for a case that doesn't exist yet
-function createInvoice(order, { supportsRecurring = false, supportsMultiCurrency = false } = {}) {
+function createInvoice(
+  order,
+  { supportsRecurring = false, supportsMultiCurrency = false } = {},
+) {
   // ...branches for features no client uses today
 }
 
@@ -320,7 +328,10 @@ Inner layers (domain/business logic) must not depend on outer layers (frameworks
 // Bad — domain logic imports directly from an infrastructure detail
 import { MysqlConnection } from '../infra/mysql';
 function calculateInvoiceTotal(invoiceId) {
-  const invoice = new MysqlConnection().query('SELECT * FROM invoices WHERE id = ?', [invoiceId]);
+  const invoice = new MysqlConnection().query(
+    'SELECT * FROM invoices WHERE id = ?',
+    [invoiceId],
+  );
   return invoice.items.reduce((sum, item) => sum + item.price, 0);
 }
 

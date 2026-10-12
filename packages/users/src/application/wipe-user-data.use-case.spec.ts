@@ -88,11 +88,9 @@ describe('WipeUserDataUseCase', () => {
     harness.findById.mockResolvedValue({ id: 'user-1' });
     harness.wipeFinance.mockResolvedValue({ accountBalances: 1 });
 
-    await harness.useCase.execute(
-      'user-1',
-      [WIPE_LAYERS.FINANCE_BALANCES],
-      { balanceInstitutionId: 'inst-1' },
-    );
+    await harness.useCase.execute('user-1', [WIPE_LAYERS.FINANCE_BALANCES], {
+      balanceInstitutionId: 'inst-1',
+    });
 
     expect(harness.wipeFinance).toHaveBeenCalledWith(
       'user-1',
@@ -101,11 +99,9 @@ describe('WipeUserDataUseCase', () => {
     );
 
     harness.wipeFinance.mockClear();
-    await harness.useCase.execute(
-      'user-1',
-      [WIPE_LAYERS.FINANCE_LEDGER],
-      { balanceInstitutionId: 'inst-1' },
-    );
+    await harness.useCase.execute('user-1', [WIPE_LAYERS.FINANCE_LEDGER], {
+      balanceInstitutionId: 'inst-1',
+    });
     expect(harness.wipeFinance).toHaveBeenCalledWith('user-1', [
       WIPE_LAYERS.FINANCE_LEDGER,
     ]);

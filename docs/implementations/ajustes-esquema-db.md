@@ -32,8 +32,6 @@ create unique index if not exists fin_institutions_user_name_uq
   on public.fin_institutions (user_id, lower(name));
 ```
 
-
-
 ### Sobre `logo_url`
 
 Mantén `logo_url` mientras migras; después de rellenar `logo_path`, puedes eliminarlo:
@@ -42,8 +40,6 @@ Mantén `logo_url` mientras migras; después de rellenar `logo_path`, puedes eli
 -- solo cuando ya no lo uses en el código
 alter table public.fin_institutions drop column logo_url;
 ```
-
-
 
 ### Backfill de dominios existentes
 
@@ -77,11 +73,9 @@ create trigger fin_institutions_set_updated_at
   for each row execute function public.set_updated_at();
 ```
 
-Repite el `create trigger` en las tablas que tengan `updated_at` y considerar agregar esta columna a tablas que lo ameriten. 
+Repite el `create trigger` en las tablas que tengan `updated_at` y considerar agregar esta columna a tablas que lo ameriten.
 
 ## 3. Datos sensibles
-
-
 
 ### `fin_accounts.account_number` (se guarda completo, pero cifrado)
 
@@ -108,15 +102,27 @@ export function encrypt(plain: string): string {
   const cipher = createCipheriv('aes-256-gcm', KEY, iv);
   const enc = Buffer.concat([cipher.update(plain, 'utf8'), cipher.final()]);
   const tag = cipher.getAuthTag();
-  return ['v1', iv.toString('base64'), tag.toString('base64'), enc.toString('base64')].join(':');
+  return [
+    'v1',
+    iv.toString('base64'),
+    tag.toString('base64'),
+    enc.toString('base64'),
+  ].join(':');
 }
 
 export function decrypt(payload: string): string {
   const [v, iv, tag, data] = payload.split(':');
   if (v !== 'v1') throw new Error('Unsupported encryption version');
-  const decipher = createDecipheriv('aes-256-gcm', KEY, Buffer.from(iv, 'base64'));
+  const decipher = createDecipheriv(
+    'aes-256-gcm',
+    KEY,
+    Buffer.from(iv, 'base64'),
+  );
   decipher.setAuthTag(Buffer.from(tag, 'base64'));
-  return Buffer.concat([decipher.update(Buffer.from(data, 'base64')), decipher.final()]).toString('utf8');
+  return Buffer.concat([
+    decipher.update(Buffer.from(data, 'base64')),
+    decipher.final(),
+  ]).toString('utf8');
 }
 ```
 
@@ -149,10 +155,7 @@ Ver `modulo-suscripciones.md` (tablas `sub_subscriptions`, `sub_payments`, inser
 - [ ] `fin_loans`: usar `institution_id` como fuente principal y `lender_name` como respaldo.
 - [ ] Retención de `fin_email_messages.extracted_payload` (cuánto tiempo se conserva).
 
-
-
 ## 6. Evitado a propósito (por ahora)
 
 - **Tabla** `brands` **compartida:** no hace falta. El "catálogo" es el bucket, con el dominio como llave. Se puede crear después a partir de los `domain` distintos existentes y añadiendo `brand_id`.
 - `subscription_id` **en** `fin_transactions`**:** el vínculo va en `sub_payments` para que Finanzas no dependa de Suscripciones.
-

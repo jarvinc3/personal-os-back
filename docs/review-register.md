@@ -6,15 +6,15 @@ Estados: ver [documentation-standard.md](./documentation-standard.md).
 
 ## REV-BACK-001 {#rev-back-001}
 
-| Campo         | Valor                                                                                                     |
-| ------------- | --------------------------------------------------------------------------------------------------------- |
-| Categoría     | `NO_IMPLEMENTADO`                                                                                         |
-| Origen        | `docs/core-infrastructure.md`: interceptors incluyen logging                                              |
-| Validación    | `CoreModule` no registra `LoggingInterceptor` ni `RolesGuard` como APP_*                                  |
+| Campo         | Valor                                                                                                              |
+| ------------- | ------------------------------------------------------------------------------------------------------------------ |
+| Categoría     | `NO_IMPLEMENTADO`                                                                                                  |
+| Origen        | `docs/core-infrastructure.md`: interceptors incluyen logging                                                       |
+| Validación    | `CoreModule` no registra `LoggingInterceptor` ni `RolesGuard` como APP_*                                           |
 | Evidencia     | `packages/core/src/core.module.ts`; archivos `logging.interceptor.ts`, `roles.guard.ts` existen; `@Roles` sin usos |
-| Impacto       | Agentes pueden creer que hay logging HTTP interceptor y RBAC activo                                       |
-| Recomendación | Registrar interceptor o borrar archivos muertos; RolesGuard igual                                         |
-| Resolución    | `open`                                                                                                    |
+| Impacto       | Agentes pueden creer que hay logging HTTP interceptor y RBAC activo                                                |
+| Recomendación | Registrar interceptor o borrar archivos muertos; RolesGuard igual                                                  |
+| Resolución    | `open`                                                                                                             |
 
 ## REV-BACK-002 {#rev-back-002}
 
@@ -38,13 +38,13 @@ Estados: ver [documentation-standard.md](./documentation-standard.md).
 
 ## REV-BACK-004 {#rev-back-004}
 
-| Campo         | Valor                                                           |
-| ------------- | --------------------------------------------------------------- |
-| Categoría     | `CONTRADICE_CODIGO`                                             |
-| Origen        | comentario `app.module.ts` “no @Cron handlers yet”              |
+| Campo         | Valor                                                                             |
+| ------------- | --------------------------------------------------------------------------------- |
+| Categoría     | `CONTRADICE_CODIGO`                                                               |
+| Origen        | comentario `app.module.ts` “no @Cron handlers yet”                                |
 | Validación    | 4 crons: FinanceOutbox 30s, AuthDeletion 1m, AiActionsReaper 5m, GmailAutoSync 6h |
-| Recomendación | Actualizar comentario en código                                 |
-| Resolución    | `open`                                                          |
+| Recomendación | Actualizar comentario en código                                                   |
+| Resolución    | `open`                                                                            |
 
 ## REV-BACK-005 {#rev-back-005}
 
@@ -124,9 +124,9 @@ Estados: ver [documentation-standard.md](./documentation-standard.md).
 
 ## REV-BACK-013 {#rev-back-013}
 
-| Campo         | Valor                                                                                       |
-| ------------- | ------------------------------------------------------------------------------------------- |
-| Categoría     | `NO_IMPLEMENTADO`                                                                           |
-| Origen        | `docs/decisions/ADR-006-cursor-pagination.md`                                               |
-| Validación    | `packages/core/src/pagination/` usa `CursorQueryDto` y `{ items, nextCursor, hasMore }`; movimientos, presupuestos, notificaciones y sesiones de IA migrados |
-| Resolución    | `resolved`                                                                                  |
+| Campo      | Valor                                                                                                                                                        |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Categoría  | `NO_IMPLEMENTADO`                                                                                                                                            |
+| Origen     | `docs/decisions/ADR-006-cursor-pagination.md`                                                                                                                |
+| Validación | `packages/core/src/pagination/` usa `CursorQueryDto` y `{ items, nextCursor, hasMore }`; movimientos, presupuestos, notificaciones y sesiones de IA migrados |
+| Resolución | `resolved`                                                                                                                                                   |

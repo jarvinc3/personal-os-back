@@ -48,8 +48,6 @@ Notas:
 - El logo reutiliza el mismo `LogoService` (`domain` → `brands/{domain}.png`) descrito en `logo-dev-integracion.md`. No hace falta lógica nueva de storage.
 - `match_patterns` es un arreglo porque un mismo comercio suele tener varias formas de aparecer en el texto crudo.
 
-
-
 ## 3. Población gradual (no backfill masivo)
 
 Migrar todo el histórico de golpe con fuzzy matching suele generar más ruido que valor. En su lugar:
@@ -59,4 +57,3 @@ Migrar todo el histórico de golpe con fuzzy matching suele generar más ruido q
 3. Si no hay coincidencia → sugiere crear un `fin_merchant` nuevo (nombre limpio + dominio, si se puede inferir) para que el usuario confirme, o lo deja sin asignar.
 4. Al confirmar, el patrón de texto usado se agrega a `match_patterns` para que la próxima vez sea automático.
 5. El histórico existente se resuelve solo ya que el usuario borrara manualmente los datos de prueba que hay actualmente.
-

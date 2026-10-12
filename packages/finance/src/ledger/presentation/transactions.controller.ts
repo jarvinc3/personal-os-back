@@ -52,10 +52,7 @@ export class TransactionsController {
   @ApiOperation({
     summary: 'Set an account or card balance by posting an adjustment',
   })
-  adjust(
-    @CurrentUser('sub') userId: string,
-    @Body() dto: AdjustBalanceDto,
-  ) {
+  adjust(@CurrentUser('sub') userId: string, @Body() dto: AdjustBalanceDto) {
     return this.adjustBalance.execute(userId, dto);
   }
 

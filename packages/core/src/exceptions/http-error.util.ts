@@ -30,7 +30,9 @@ export function toErrorField(value: unknown, fallback: string): string {
   }
 
   if (Array.isArray(value)) {
-    const parts = value.filter((item): item is string => typeof item === 'string');
+    const parts = value.filter(
+      (item): item is string => typeof item === 'string',
+    );
     if (parts.length > 0) {
       return parts.join('; ');
     }

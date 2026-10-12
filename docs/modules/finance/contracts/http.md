@@ -6,24 +6,24 @@ Envelope `{ data, meta }`.
 
 ## Controllers
 
-| Área | Controllers |
-| --- | --- |
-| Ledger | `TransactionsController`, `TransfersController` |
-| Catalog | Institutions, Accounts, Cards, Categories |
-| Statements | `CardStatementsController` |
-| Planning | Budgets, Savings, Loans, Receivables |
-| Analytics | `AnalyticsController` |
-| Balance sheet | `BalanceSheetController` |
-| FX | `CurrenciesController` |
-| Ingestion | `EmailSyncController` |
+| Área          | Controllers                                     |
+| ------------- | ----------------------------------------------- |
+| Ledger        | `TransactionsController`, `TransfersController` |
+| Catalog       | Institutions, Accounts, Cards, Categories       |
+| Statements    | `CardStatementsController`                      |
+| Planning      | Budgets, Savings, Loans, Receivables            |
+| Analytics     | `AnalyticsController`                           |
+| Balance sheet | `BalanceSheetController`                        |
+| FX            | `CurrenciesController`                          |
+| Ingestion     | `EmailSyncController`                           |
 
 ## List shapes (`data`)
 
-| Endpoint | Shape |
-| --- | --- |
-| GET transactions, budgets | `{ items, nextCursor, hasMore }`; query `cursor` + `limit` default 20 max 100 |
-| GET accounts, cards, institutions, categories, savings-goals, loans, receivables, email sources, pending, email mailboxes, cards/:id/statements, loans/:id/installments | array |
-| GET analytics/*, balance-sheet | object |
+| Endpoint                                                                                                                                                                | Shape                                                                         |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| GET transactions, budgets                                                                                                                                               | `{ items, nextCursor, hasMore }`; query `cursor` + `limit` default 20 max 100 |
+| GET accounts, cards, institutions, categories, savings-goals, loans, receivables, email sources, pending, email mailboxes, cards/:id/statements, loans/:id/installments | array                                                                         |
+| GET analytics/*, balance-sheet                                                                                                                                          | object                                                                        |
 
 Sources: sync logs nested `take: 5` (detail 10); nunca tokens. Mailboxes: `{ id, emailAddress, provider, isActive, createdAt, sources[] }`. `POST /sources` exige Gmail ya autorizado + `bankSenderEmail`; 409 si la institución ya tiene vínculo. `GET oauth/google/url` no exige `institutionId`.
 

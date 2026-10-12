@@ -15,15 +15,15 @@ Si una afirmación no está `VERIFICADO`, leer [docs/review-register.md](docs/re
 
 ## Fuentes canónicas
 
-| Tema | Dónde |
-| --- | --- |
-| Dominio, REST, Prisma, eventos, colas, seguridad | este repositorio (`docs/` + `src/` + `packages/`) |
-| UI, rutas Next.js, Web Push del navegador | `personal-os-web` |
-| Envelope HTTP `{ data, meta }` | `packages/core/src/interceptors/transform.interceptor.ts` |
-| Eventos | `packages/core/src/events/event.constants.ts` |
-| Env | `packages/config/src/env.schema.ts` |
-| Tools IA | `packages/ai-agent/src/tools/tool.registry.ts` + `prompts/module-context.ts` |
-| API pública entre módulos Nest | `packages/<nombre>/src/index.ts` y barrels `@personal-os/<nombre>` (regla `.cursor/rules/module-public-api.mdc`) |
+| Tema                                             | Dónde                                                                                                            |
+| ------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------- |
+| Dominio, REST, Prisma, eventos, colas, seguridad | este repositorio (`docs/` + `src/` + `packages/`)                                                                |
+| UI, rutas Next.js, Web Push del navegador        | `personal-os-web`                                                                                                |
+| Envelope HTTP `{ data, meta }`                   | `packages/core/src/interceptors/transform.interceptor.ts`                                                        |
+| Eventos                                          | `packages/core/src/events/event.constants.ts`                                                                    |
+| Env                                              | `packages/config/src/env.schema.ts`                                                                              |
+| Tools IA                                         | `packages/ai-agent/src/tools/tool.registry.ts` + `prompts/module-context.ts`                                     |
+| API pública entre módulos Nest                   | `packages/<nombre>/src/index.ts` y barrels `@personal-os/<nombre>` (regla `.cursor/rules/module-public-api.mdc`) |
 
 ## Changelog y versión
 
@@ -33,6 +33,7 @@ Toda sesión de agente cierra con un release: `CHANGELOG.md` actualizado y `vers
 - Una sola versión para el monorepo: el `package.json` de la raíz. Los paquetes de `packages/*` no se publican por separado.
 - El CHANGELOG va en español, de la versión más nueva a la más vieja, con la fecha en `AAAA-MM-DD`.
 - Cierra con `chore(release): vX.Y.Z` y crea el tag `vX.Y.Z`.
+- La documentación también pasa prettier: `pnpm format:check` cubre `ts`, `tsx` y `md`.
 - `personal-os-app` está fuera de servicio y no sigue esta regla.
 
 ## Checklist al cambiar comportamiento

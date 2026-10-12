@@ -14,16 +14,16 @@ Una o dos frases.
 
 ## Actores
 
-| Actor | Rol |
-| --- | --- |
-| Usuario autenticado | … |
-| Otros módulos | … |
+| Actor               | Rol |
+| ------------------- | --- |
+| Usuario autenticado | …   |
+| Otros módulos       | …   |
 
 ## Dependencias
 
-| Dependencia | Cómo se consume |
-| --- | --- |
-| … | barrel / façade / HTTP |
+| Dependencia | Cómo se consume        |
+| ----------- | ---------------------- |
+| …           | barrel / façade / HTTP |
 
 ## Evidencia
 

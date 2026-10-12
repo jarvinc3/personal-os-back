@@ -11,11 +11,11 @@
 
 ## Finance
 
-| Evento | IN_APP |
-| --- | --- |
+| Evento                                                   | IN_APP                |
+| -------------------------------------------------------- | --------------------- |
 | `finance.transaction.confirmed` / `imported` / `updated` | Sí (idempotent claim) |
-| `finance.budget.threshold_crossed` | Sí |
-| `finance.transaction.deleted` | Claim; **no** toast |
+| `finance.budget.threshold_crossed`                       | Sí                    |
+| `finance.transaction.deleted`                            | Claim; **no** toast   |
 
 ## Copy y datos por movimiento
 
@@ -24,12 +24,12 @@ El payload de estos eventos trae `currency`, `type`, `merchant`, `accountName`,
 `packages/finance/src/shared/domain/mappers.ts`). El listener traduce a texto en
 español y formatea el monto con `formatNotificationAmount` (`domain/notification-copy.ts`):
 
-| Tipo | Título |
-| --- | --- |
-| `transaction.created` | `Gasto registrado` / `Ingreso registrado` / `Transferencia registrada` |
-| `transaction.imported_pending` | `Movimiento por confirmar` |
-| `transaction.updated` | `Movimiento actualizado` |
-| `budget.threshold_reached` | `Presupuesto al N%` |
+| Tipo                           | Título                                                                 |
+| ------------------------------ | ---------------------------------------------------------------------- |
+| `transaction.created`          | `Gasto registrado` / `Ingreso registrado` / `Transferencia registrada` |
+| `transaction.imported_pending` | `Movimiento por confirmar`                                             |
+| `transaction.updated`          | `Movimiento actualizado`                                               |
+| `budget.threshold_reached`     | `Presupuesto al N%`                                                    |
 
 El `data` guarda `transactionId`, `amount`, `currency`, `merchant`, `categoryName`,
 `categoryIcon`, `categoryColor`, `accountName`, `cardName` y `status`, para que la

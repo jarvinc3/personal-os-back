@@ -120,11 +120,13 @@ export class LogoService {
     if (!res.ok) return null; // 404 = sin logo → el front usa iniciales
 
     const buffer = Buffer.from(await res.arrayBuffer());
-    const { error } = await this.supabase.storage.from(BUCKET).upload(path, buffer, {
-      contentType: 'image/png',
-      cacheControl: '31536000',
-      upsert: false,
-    });
+    const { error } = await this.supabase.storage
+      .from(BUCKET)
+      .upload(path, buffer, {
+        contentType: 'image/png',
+        cacheControl: '31536000',
+        upsert: false,
+      });
     // carrera: otro request lo subió primero → también es válido
     if (error && !/exists|duplicate/i.test(error.message)) {
       this.log.error(`Upload failed for ${domain}: ${error.message}`);
@@ -134,18 +136,28 @@ export class LogoService {
   }
 
   /** Subida manual (prioridad sobre el logo de la marca). */
-  async saveCustomLogo(userId: string, entityId: string, file: Express.Multer.File) {
-    const allowed = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp' } as const;
+  async saveCustomLogo(
+    userId: string,
+    entityId: string,
+    file: Express.Multer.File,
+  ) {
+    const allowed = {
+      'image/png': 'png',
+      'image/jpeg': 'jpg',
+      'image/webp': 'webp',
+    } as const;
     const ext = allowed[file.mimetype as keyof typeof allowed];
     if (!ext) throw new Error('Formato no permitido (usa PNG, JPG o WEBP)');
     if (file.size > 1_000_000) throw new Error('Máximo 1 MB');
 
     const path = `custom/${userId}/${entityId}.${ext}`;
-    const { error } = await this.supabase.storage.from(BUCKET).upload(path, file.buffer, {
-      contentType: file.mimetype,
-      cacheControl: '3600',
-      upsert: true,
-    });
+    const { error } = await this.supabase.storage
+      .from(BUCKET)
+      .upload(path, file.buffer, {
+        contentType: file.mimetype,
+        cacheControl: '3600',
+        upsert: true,
+      });
     if (error) throw new Error(error.message);
     return path;
   }
@@ -157,7 +169,10 @@ export class LogoService {
   }
 
   /** Prioridad: logo propio → logo de marca → null (iniciales en el front). */
-  resolveUrl(row: { custom_logo_path?: string | null; logo_path?: string | null }) {
+  resolveUrl(row: {
+    custom_logo_path?: string | null;
+    logo_path?: string | null;
+  }) {
     return this.publicUrl(row.custom_logo_path ?? row.logo_path);
   }
 }
@@ -277,24 +292,48 @@ export function BrandPicker({ onSelect }: { onSelect: (b: Brand) => void }) {
   const [results, setResults] = useState<Brand[]>([]);
 
   useEffect(() => {
-    if (q.trim().length < 2) { setResults([]); return; }
+    if (q.trim().length < 2) {
+      setResults([]);
+      return;
+    }
     const ctrl = new AbortController();
     const t = setTimeout(async () => {
       try {
-        const res = await fetch(`/api/brands/search?q=${encodeURIComponent(q)}`, { signal: ctrl.signal });
+        const res = await fetch(
+          `/api/brands/search?q=${encodeURIComponent(q)}`,
+          { signal: ctrl.signal },
+        );
         if (res.ok) setResults(await res.json());
-      } catch { /* cancelado */ }
+      } catch {
+        /* cancelado */
+      }
     }, 300); // debounce
-    return () => { clearTimeout(t); ctrl.abort(); };
+    return () => {
+      clearTimeout(t);
+      ctrl.abort();
+    };
   }, [q]);
 
   return (
     <div>
-      <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar marca…" />
+      <input
+        value={q}
+        onChange={(e) => setQ(e.target.value)}
+        placeholder="Buscar marca…"
+      />
       <ul>
         {results.map((r) => (
-          <li key={r.domain} onClick={() => onSelect(r)} className="flex cursor-pointer items-center gap-2">
-            <img src={`https://img.logo.dev/${r.domain}?token=${PK}&size=64`} width={32} height={32} alt="" />
+          <li
+            key={r.domain}
+            onClick={() => onSelect(r)}
+            className="flex cursor-pointer items-center gap-2"
+          >
+            <img
+              src={`https://img.logo.dev/${r.domain}?token=${PK}&size=64`}
+              width={32}
+              height={32}
+              alt=""
+            />
             <span>{r.name}</span>
             <small>{r.domain}</small>
           </li>

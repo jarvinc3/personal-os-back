@@ -2,18 +2,22 @@
 
 Controlador: `apps/api/src/health/health.controller.ts`. Prefijo global `API_PREFIX` → rutas `/api/health*`. Todas `@Public()`.
 
-| Método | Path | Comportamiento |
-| --- | --- | --- |
-| GET | `/api/health` | Liveness: `{ status: 'ok', timestamp }` sin dependencias |
-| GET | `/api/health/startup` | DB + JWKS + Redis si enabled; respuesta sanitizada |
-| GET | `/api/health/ready` | Igual que startup (readiness para probes) |
+| Método | Path                  | Comportamiento                                           |
+| ------ | --------------------- | -------------------------------------------------------- |
+| GET    | `/api/health`         | Liveness: `{ status: 'ok', timestamp }` sin dependencias |
+| GET    | `/api/health/startup` | DB + JWKS + Redis si enabled; respuesta sanitizada       |
+| GET    | `/api/health/ready`   | Igual que startup (readiness para probes)                |
 
 Respuesta OK (envelope + payload sanitizado, runtime 2026-09-15):
 
 ```json
 {
   "data": { "status": "ok", "timestamp": "ISO-8601" },
-  "meta": { "timestamp": "ISO-8601", "path": "/api/health", "requestId": "uuid" }
+  "meta": {
+    "timestamp": "ISO-8601",
+    "path": "/api/health",
+    "requestId": "uuid"
+  }
 }
 ```
 

@@ -424,11 +424,7 @@ describe('CatalogService deleteCardBalance', () => {
       service.deleteCardBalance('user-1', 'card-1', 'dop'),
     ).resolves.toEqual({ success: true });
 
-    expect(deleteCardBalance).toHaveBeenCalledWith(
-      'user-1',
-      'card-1',
-      'dop',
-    );
+    expect(deleteCardBalance).toHaveBeenCalledWith('user-1', 'card-1', 'dop');
   });
 
   it('rejects deleting balances from DEBIT cards', async () => {

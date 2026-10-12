@@ -9,7 +9,8 @@
   "scripts": {
     "build:packages": "pnpm -r --filter './packages/*' run build",
     "build": "pnpm build:packages && nest build",
-    "format": "prettier --write \"apps/**/*.ts\" \"packages/*/src/**/*.ts\" \"test/**/*.ts\" \"prisma.config.ts\" \"eslint.config.mjs\"",
+    "format": "prettier --write \"apps/**/*.ts\" \"packages/*/src/**/*.ts\" \"test/**/*.ts\" \"prisma.config.ts\" \"eslint.config.mjs\" \"**/*.md\"",
+    "format:check": "prettier --check \"apps/**/*.ts\" \"packages/*/src/**/*.ts\" \"test/**/*.ts\" \"prisma.config.ts\" \"eslint.config.mjs\" \"**/*.md\"",
     "start": "pnpm build:packages && nest start",
     "start:dev": "pnpm build:packages && nest start --watch",
     "start:debug": "pnpm build:packages && nest start --debug --watch",

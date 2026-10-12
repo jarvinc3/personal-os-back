@@ -122,7 +122,12 @@ describe('PrismaLedgerRepository outbox-in-TX', () => {
       },
     );
 
-    const repo = new PrismaLedgerRepository(prisma as never, events, journal, undefined);
+    const repo = new PrismaLedgerRepository(
+      prisma as never,
+      events,
+      journal,
+      undefined,
+    );
 
     const result = await repo.createTransaction(
       'user-1',
@@ -231,7 +236,12 @@ describe('PrismaLedgerRepository outbox-in-TX', () => {
       }),
     };
 
-    const repo = new PrismaLedgerRepository(prisma as never, events, journal, undefined);
+    const repo = new PrismaLedgerRepository(
+      prisma as never,
+      events,
+      journal,
+      undefined,
+    );
 
     const result = await repo.createTransfer(
       'user-1',
@@ -331,7 +341,9 @@ describe('PrismaLedgerRepository outbox-in-TX', () => {
             deleteMany: jest.fn(),
           },
           finLoanInstallment: { findMany: jest.fn().mockResolvedValue([]) },
-          finSavingsGoalContribution: { findMany: jest.fn().mockResolvedValue([]) },
+          finSavingsGoalContribution: {
+            findMany: jest.fn().mockResolvedValue([]),
+          },
           finBudget: {
             findMany: jest.fn().mockResolvedValue([]),
             update: jest.fn(),
@@ -341,7 +353,12 @@ describe('PrismaLedgerRepository outbox-in-TX', () => {
       }),
     };
 
-    const repo = new PrismaLedgerRepository(prisma as never, events, journal, undefined);
+    const repo = new PrismaLedgerRepository(
+      prisma as never,
+      events,
+      journal,
+      undefined,
+    );
 
     const result = await repo.deleteTransaction('user-1', 'tx-del');
 
@@ -400,13 +417,20 @@ describe('PrismaLedgerRepository outbox-in-TX', () => {
             update: receivableUpdate,
           },
           finLoanInstallment: { findMany: jest.fn().mockResolvedValue([]) },
-          finSavingsGoalContribution: { findMany: jest.fn().mockResolvedValue([]) },
+          finSavingsGoalContribution: {
+            findMany: jest.fn().mockResolvedValue([]),
+          },
         };
         return fn(tx);
       }),
     };
 
-    const repo = new PrismaLedgerRepository(prisma as never, events, journal, undefined);
+    const repo = new PrismaLedgerRepository(
+      prisma as never,
+      events,
+      journal,
+      undefined,
+    );
 
     await repo.deleteTransaction('user-1', 'tx-del');
 
@@ -462,7 +486,12 @@ describe('PrismaLedgerRepository outbox-in-TX', () => {
       }),
     };
 
-    const repo = new PrismaLedgerRepository(prisma as never, events, journal, undefined);
+    const repo = new PrismaLedgerRepository(
+      prisma as never,
+      events,
+      journal,
+      undefined,
+    );
 
     await repo.deleteTransaction('user-1', 'tx-del');
 
@@ -511,13 +540,20 @@ describe('PrismaLedgerRepository outbox-in-TX', () => {
             update: jest.fn(),
           },
           finLoanInstallment: { findMany: jest.fn().mockResolvedValue([]) },
-          finSavingsGoalContribution: { findMany: jest.fn().mockResolvedValue([]) },
+          finSavingsGoalContribution: {
+            findMany: jest.fn().mockResolvedValue([]),
+          },
         };
         return fn(tx);
       }),
     };
 
-    const repo = new PrismaLedgerRepository(prisma as never, events, journal, undefined);
+    const repo = new PrismaLedgerRepository(
+      prisma as never,
+      events,
+      journal,
+      undefined,
+    );
 
     await repo.reverseTransaction('user-1', 'tx-del');
 
@@ -569,13 +605,20 @@ describe('PrismaLedgerRepository outbox-in-TX', () => {
           },
           finReceivablePayment: { findMany: jest.fn().mockResolvedValue([]) },
           finLoanInstallment: { findMany: jest.fn().mockResolvedValue([]) },
-          finSavingsGoalContribution: { findMany: jest.fn().mockResolvedValue([]) },
+          finSavingsGoalContribution: {
+            findMany: jest.fn().mockResolvedValue([]),
+          },
         };
         return fn(tx);
       }),
     };
 
-    const repo = new PrismaLedgerRepository(prisma as never, events, journal, undefined);
+    const repo = new PrismaLedgerRepository(
+      prisma as never,
+      events,
+      journal,
+      undefined,
+    );
 
     const result = await repo.deleteTransactionsByTransferGroupId(
       'user-1',
@@ -621,7 +664,12 @@ describe('PrismaLedgerRepository outbox-in-TX', () => {
       }),
     };
 
-    const repo = new PrismaLedgerRepository(prisma as never, events, journal, undefined);
+    const repo = new PrismaLedgerRepository(
+      prisma as never,
+      events,
+      journal,
+      undefined,
+    );
 
     const result = await repo.deleteTransaction('user-1', 'missing');
     expect(result).toEqual({ count: 0 });
@@ -748,7 +796,12 @@ describe('PrismaLedgerRepository outbox-in-TX', () => {
       }),
     };
 
-    const repo = new PrismaLedgerRepository(prisma as never, events, journal, undefined);
+    const repo = new PrismaLedgerRepository(
+      prisma as never,
+      events,
+      journal,
+      undefined,
+    );
 
     const result = await repo.purgeLedgerForAccount('user-1', 'acc-1');
     expect(result).toMatchObject({ count: 1 });
@@ -799,7 +852,12 @@ describe('PrismaLedgerRepository outbox-in-TX', () => {
       }),
     };
 
-    const repo = new PrismaLedgerRepository(prisma as never, events, journal, undefined);
+    const repo = new PrismaLedgerRepository(
+      prisma as never,
+      events,
+      journal,
+      undefined,
+    );
 
     const result = await repo.purgeLedgerForAccount('user-1', 'acc-from');
     expect(result).toMatchObject({ count: 2 });
@@ -826,7 +884,12 @@ describe('PrismaLedgerRepository outbox-in-TX', () => {
       }),
     };
 
-    const repo = new PrismaLedgerRepository(prisma as never, events, journal, undefined);
+    const repo = new PrismaLedgerRepository(
+      prisma as never,
+      events,
+      journal,
+      undefined,
+    );
 
     await expect(
       repo.purgeLedgerForCard('user-1', 'card-1'),

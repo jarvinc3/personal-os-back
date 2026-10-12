@@ -141,12 +141,7 @@ export class FinanceFacade {
     goalId: string,
     dto: CreateSavingsGoalContributionDto,
   ) {
-    return this.recordContribution.execute(
-      userId,
-      goalId,
-      dto,
-      new Date(),
-    );
+    return this.recordContribution.execute(userId, goalId, dto, new Date());
   }
 
   listLoans(userId: string) {
