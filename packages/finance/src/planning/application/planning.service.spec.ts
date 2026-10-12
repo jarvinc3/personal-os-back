@@ -143,6 +143,40 @@ describe('PlanningService archive and receivables', () => {
     });
   });
 
+  it('rejects a balance above the stored original amount on update', async () => {
+    findLoan.mockResolvedValue({
+      id: 'loan-1',
+      institutionId: null,
+      accountId: null,
+      originalAmount: 1000,
+      currentBalance: 800,
+      totalInstallments: 10,
+      paidInstallments: 2,
+    });
+
+    await expect(
+      service.updateLoan('user-1', 'loan-1', { currentBalance: 5000 }, now),
+    ).rejects.toThrow(BadRequestException);
+    expect(updateLoan).not.toHaveBeenCalled();
+  });
+
+  it('rejects paid instalments above the total on update', async () => {
+    findLoan.mockResolvedValue({
+      id: 'loan-1',
+      institutionId: null,
+      accountId: null,
+      originalAmount: 1000,
+      currentBalance: 800,
+      totalInstallments: 10,
+      paidInstallments: 2,
+    });
+
+    await expect(
+      service.updateLoan('user-1', 'loan-1', { paidInstallments: 12 }, now),
+    ).rejects.toThrow(BadRequestException);
+    expect(updateLoan).not.toHaveBeenCalled();
+  });
+
   it('returns 404 when deactivating another user loan', async () => {
     findLoan.mockResolvedValue(null);
     updateLoan.mockResolvedValue(null);

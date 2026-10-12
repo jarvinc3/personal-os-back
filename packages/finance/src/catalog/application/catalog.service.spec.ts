@@ -302,6 +302,7 @@ describe('CatalogService createCard lastFour', () => {
         institutionId: 'inst-1',
         name: 'Visa',
         type: 'CREDIT',
+        lastFour: '',
       }),
     ).rejects.toThrow(/lastFour/i);
     expect(createCard).not.toHaveBeenCalled();

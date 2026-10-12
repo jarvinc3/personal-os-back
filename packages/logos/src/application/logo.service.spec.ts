@@ -21,6 +21,7 @@ function storagePort(
     isAvailable: () => params.available ?? true,
     exists,
     upload,
+    remove: jest.fn().mockResolvedValue(undefined),
     publicUrl: jest.fn((path: string) => `https://cdn.example/${path}`),
   };
   return { port, exists, upload };

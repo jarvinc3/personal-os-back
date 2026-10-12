@@ -15,6 +15,7 @@ import { LedgerQueryService } from './ledger/application/ledger-query.service';
 import { ReverseTransactionUseCase } from './ledger/application/reverse-transaction.use-case';
 import { UpdateTransactionUseCase } from './ledger/application/update-transaction.use-case';
 import { PlanningService } from './planning/application/planning.service';
+import { RecordSavingsGoalContributionUseCase } from './planning/application/record-savings-goal-contribution.use-case';
 import type { CreateBudgetDto } from './planning/presentation/dto/create-budget.dto';
 import type { CreateSavingsGoalDto } from './planning/presentation/dto/create-savings-goal.dto';
 import type { CreateSavingsGoalContributionDto } from './planning/presentation/dto/create-savings-goal-contribution.dto';
@@ -39,6 +40,7 @@ export class FinanceFacade {
     private readonly createTransfer: CreateTransferUseCase,
     private readonly catalog: CatalogService,
     private readonly planning: PlanningService,
+    private readonly recordContribution: RecordSavingsGoalContributionUseCase,
     private readonly analytics: AnalyticsService,
     private readonly ingestion: IngestionService,
     private readonly wipeFinance: WipeFinanceUserDataUseCase,
@@ -139,7 +141,7 @@ export class FinanceFacade {
     goalId: string,
     dto: CreateSavingsGoalContributionDto,
   ) {
-    return this.planning.addSavingsGoalContribution(
+    return this.recordContribution.execute(
       userId,
       goalId,
       dto,

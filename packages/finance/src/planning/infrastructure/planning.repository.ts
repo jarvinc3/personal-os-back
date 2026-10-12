@@ -8,8 +8,8 @@ import type { Prisma } from '@personal-os/database';
 import { PrismaService } from '@personal-os/database';
 import type { ReceivableStatus } from '../application/resolve-receivable-payment';
 import type { LoanInstallmentPlan } from '../domain/loan-installment-schedule';
-import { resolveSavingsGoalProgress } from '../domain/savings-goal-progress';
 import { applyReceivableBalance } from './receivable-balance';
+import { applySavingsGoalBalance } from './savings-goal-balance';
 
 /** Label of the row that carries a balance recorded before history existed. */
 const OPENING_BALANCE_NOTE = 'Saldo inicial';
@@ -126,7 +126,7 @@ export class PlanningRepository {
           },
         });
       }
-      await this.applySavingsGoalBalance(tx, goal.id, now);
+      await applySavingsGoalBalance(tx, goal.id, now);
       return this.readSavingsGoal(tx, goal.id);
     });
   }
@@ -139,7 +139,7 @@ export class PlanningRepository {
   ): Promise<void> {
     await this.prisma.$transaction(async (tx) => {
       await tx.finSavingsGoal.updateMany({ where: { id, userId }, data });
-      await this.applySavingsGoalBalance(tx, id, now);
+      await applySavingsGoalBalance(tx, id, now);
     });
   }
 
@@ -162,14 +162,20 @@ export class PlanningRepository {
 
   async addSavingsGoalContribution(
     goalId: string,
-    contribution: { amount: number; contributedAt: Date; notes?: string },
+    contribution: {
+      amount: number;
+      contributedAt: Date;
+      accountId: string;
+      transactionId: string;
+      notes?: string;
+    },
     now: Date,
   ) {
     return this.prisma.$transaction(async (tx) => {
       const created = await tx.finSavingsGoalContribution.create({
         data: { goalId, ...contribution },
       });
-      await this.applySavingsGoalBalance(tx, goalId, now);
+      await applySavingsGoalBalance(tx, goalId, now);
       return created;
     });
   }
@@ -183,34 +189,7 @@ export class PlanningRepository {
       await tx.finSavingsGoalContribution.deleteMany({
         where: { id: contributionId, goalId },
       });
-      await this.applySavingsGoalBalance(tx, goalId, now);
-    });
-  }
-
-  /** Recompute the cached balance from the contributions inside the caller's TX. */
-  private async applySavingsGoalBalance(
-    tx: Prisma.TransactionClient,
-    goalId: string,
-    now: Date,
-  ): Promise<void> {
-    const goal = await tx.finSavingsGoal.findUniqueOrThrow({
-      where: { id: goalId },
-    });
-    const contributions = await tx.finSavingsGoalContribution.aggregate({
-      where: { goalId },
-      _sum: { amount: true },
-    });
-    const progress = resolveSavingsGoalProgress({
-      targetAmount: Number(goal.targetAmount),
-      contributedAmount: Number(contributions._sum.amount ?? 0),
-    });
-    await tx.finSavingsGoal.update({
-      where: { id: goalId },
-      data: {
-        currentAmount: progress.currentAmount,
-        isCompleted: progress.isCompleted,
-        completedAt: progress.isCompleted ? (goal.completedAt ?? now) : null,
-      },
+      await applySavingsGoalBalance(tx, goalId, now);
     });
   }
 

@@ -10,6 +10,8 @@ import {
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CurrentUser, RequiresEnabledModule } from '@personal-os/core';
 import { PlanningService } from '../application/planning.service';
+import { RecordSavingsGoalContributionUseCase } from '../application/record-savings-goal-contribution.use-case';
+import { RemoveSavingsGoalContributionUseCase } from '../application/remove-savings-goal-contribution.use-case';
 import { CreateSavingsGoalContributionDto } from './dto/create-savings-goal-contribution.dto';
 import { CreateSavingsGoalDto } from './dto/create-savings-goal.dto';
 import { UpdateSavingsGoalDto } from './dto/update-savings-goal.dto';
@@ -19,7 +21,11 @@ import { UpdateSavingsGoalDto } from './dto/update-savings-goal.dto';
 @RequiresEnabledModule('finance')
 @Controller('finance')
 export class SavingsGoalsController {
-  constructor(private readonly planning: PlanningService) {}
+  constructor(
+    private readonly planning: PlanningService,
+    private readonly recordContribution: RecordSavingsGoalContributionUseCase,
+    private readonly removeGoalContribution: RemoveSavingsGoalContributionUseCase,
+  ) {}
 
   @Get('savings-goals')
   list(@CurrentUser('sub') userId: string) {
@@ -58,12 +64,7 @@ export class SavingsGoalsController {
     @Param('id') id: string,
     @Body() dto: CreateSavingsGoalContributionDto,
   ) {
-    return this.planning.addSavingsGoalContribution(
-      userId,
-      id,
-      dto,
-      new Date(),
-    );
+    return this.recordContribution.execute(userId, id, dto, new Date());
   }
 
   @Delete('savings-goals/:id/contributions/:contributionId')
@@ -73,7 +74,7 @@ export class SavingsGoalsController {
     @Param('id') id: string,
     @Param('contributionId') contributionId: string,
   ) {
-    return this.planning.deleteSavingsGoalContribution(
+    return this.removeGoalContribution.execute(
       userId,
       id,
       contributionId,

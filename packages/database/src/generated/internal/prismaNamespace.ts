@@ -3226,6 +3226,8 @@ export const FinSavingsGoalContributionScalarFieldEnum = {
   goalId: 'goalId',
   amount: 'amount',
   contributedAt: 'contributedAt',
+  accountId: 'accountId',
+  transactionId: 'transactionId',
   notes: 'notes',
   createdAt: 'createdAt'
 } as const
