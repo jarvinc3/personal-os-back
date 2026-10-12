@@ -277,8 +277,22 @@ const STATIC_TOOLS: StaticToolDef[] = [
   },
   {
     name: 'mark_loan_installment_paid',
-    description: 'Mark one loan installment as paid.',
+    description:
+      'Pay the oldest unpaid loan installment with its capital/interest split.',
     mutating: true,
+    targetModule: 'finance',
+  },
+  {
+    name: 'prepay_loan',
+    description:
+      'Pay an extra amount to loan capital, reducing the term or the installment.',
+    mutating: true,
+    targetModule: 'finance',
+  },
+  {
+    name: 'get_loan_schedule',
+    description: 'Get the full loan installment schedule.',
+    mutating: false,
     targetModule: 'finance',
   },
   {
@@ -427,6 +441,10 @@ export function getActionLabel(
       return 'Consultar préstamos';
     case 'mark_loan_installment_paid':
       return 'Marcar cuota de préstamo pagada';
+    case 'prepay_loan':
+      return 'Abonar a capital del préstamo';
+    case 'get_loan_schedule':
+      return 'Consultar tabla del préstamo';
     case 'trigger_email_sync':
       return 'Sincronizar correos bancarios';
     case 'get_spending_by_category':

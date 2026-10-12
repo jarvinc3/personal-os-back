@@ -344,6 +344,10 @@ export class PlanningRepository {
         installmentFreq: true,
         totalInstallments: true,
         installmentAmount: true,
+        originalAmount: true,
+        currentBalance: true,
+        interestRate: true,
+        insuranceAmount: true,
       },
     });
   }
@@ -360,6 +364,26 @@ export class PlanningRepository {
       where: { loanId, paidAt: null },
       orderBy: { installmentNo: 'asc' },
     });
+  }
+
+  findLoanPaymentCategoryId() {
+    return this.prisma.finCategory
+      .findFirst({
+        where: { isSystem: true, systemKind: 'LOAN_PAYMENT', type: 'EXPENSE' },
+        select: { id: true },
+      })
+      .then((category) => category?.id ?? null);
+  }
+
+  createLoanPrepayment(input: {
+    loanId: string;
+    amount: number;
+    penalty: number;
+    mode: string;
+    paidAt: Date;
+    transactionId: string | null;
+  }) {
+    return this.prisma.finLoanPrepayment.create({ data: input });
   }
 
   async replaceLoanSchedule(
@@ -384,11 +408,21 @@ export class PlanningRepository {
             installmentNo: row.installmentNo,
             dueDate: row.dueDate,
             amount: row.amount,
+            principal: row.principal,
+            interest: row.interest,
+            insurance: row.insurance,
             paidAt: row.paidAt,
+            status: row.status,
+            paidAmount: row.paidAmount,
+            fees: row.fees,
+            lateFee: row.lateFee,
           },
           update: {
             dueDate: row.dueDate,
             amount: row.amount,
+            principal: row.principal,
+            interest: row.interest,
+            insurance: row.insurance,
             paidAt: row.paidAt,
           },
         }),
@@ -401,12 +435,27 @@ export class PlanningRepository {
 
   async markInstallmentPaid(
     installmentId: string,
-    paidAt: Date,
+    paidAt: Date | null,
     transactionId: string | null,
   ): Promise<void> {
     await this.prisma.finLoanInstallment.update({
       where: { id: installmentId },
       data: { paidAt, transactionId },
+    });
+  }
+
+  async applyInstallmentPayment(
+    installmentId: string,
+    input: {
+      paidAmount: number;
+      status: 'PENDING' | 'PARTIAL' | 'PAID' | 'OVERDUE';
+      paidAt: Date | null;
+      transactionId: string | null;
+    },
+  ): Promise<void> {
+    await this.prisma.finLoanInstallment.update({
+      where: { id: installmentId },
+      data: input,
     });
   }
 

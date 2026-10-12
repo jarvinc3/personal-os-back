@@ -77,6 +77,7 @@ export const ModelName = {
   FinSavingsGoalContribution: 'FinSavingsGoalContribution',
   FinLoan: 'FinLoan',
   FinLoanInstallment: 'FinLoanInstallment',
+  FinLoanPrepayment: 'FinLoanPrepayment',
   FinReceivable: 'FinReceivable',
   FinReceivablePayment: 'FinReceivablePayment',
   FinEmailSyncLog: 'FinEmailSyncLog',
@@ -518,6 +519,11 @@ export const FinLoanScalarFieldEnum = {
   paidInstallments: 'paidInstallments',
   nextDueDate: 'nextDueDate',
   interestRate: 'interestRate',
+  rateType: 'rateType',
+  insuranceAmount: 'insuranceAmount',
+  lateFeePolicy: 'lateFeePolicy',
+  prepaymentPenaltyPct: 'prepaymentPenaltyPct',
+  disbursementDate: 'disbursementDate',
   notes: 'notes',
   isActive: 'isActive',
   createdAt: 'createdAt',
@@ -533,6 +539,13 @@ export const FinLoanInstallmentScalarFieldEnum = {
   installmentNo: 'installmentNo',
   dueDate: 'dueDate',
   amount: 'amount',
+  principal: 'principal',
+  interest: 'interest',
+  insurance: 'insurance',
+  fees: 'fees',
+  lateFee: 'lateFee',
+  paidAmount: 'paidAmount',
+  status: 'status',
   paidAt: 'paidAt',
   transactionId: 'transactionId',
   createdAt: 'createdAt',
@@ -540,6 +553,20 @@ export const FinLoanInstallmentScalarFieldEnum = {
 } as const
 
 export type FinLoanInstallmentScalarFieldEnum = (typeof FinLoanInstallmentScalarFieldEnum)[keyof typeof FinLoanInstallmentScalarFieldEnum]
+
+
+export const FinLoanPrepaymentScalarFieldEnum = {
+  id: 'id',
+  loanId: 'loanId',
+  amount: 'amount',
+  penalty: 'penalty',
+  mode: 'mode',
+  paidAt: 'paidAt',
+  transactionId: 'transactionId',
+  createdAt: 'createdAt'
+} as const
+
+export type FinLoanPrepaymentScalarFieldEnum = (typeof FinLoanPrepaymentScalarFieldEnum)[keyof typeof FinLoanPrepaymentScalarFieldEnum]
 
 
 export const FinReceivableScalarFieldEnum = {

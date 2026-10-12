@@ -295,6 +295,17 @@ export const markLoanInstallmentPaidArgsSchema = z
   })
   .strict();
 
+export const prepayLoanArgsSchema = z
+  .object({
+    loanId: uuid,
+    amount: moneyAmount,
+    accountId: uuid,
+    mode: z.enum(['REDUCE_TERM', 'REDUCE_INSTALLMENT']),
+  })
+  .strict();
+
+export const getLoanScheduleArgsSchema = z.object({ loanId: uuid }).strict();
+
 export const triggerEmailSyncArgsSchema = z
   .object({
     sourceId: uuid,
@@ -383,6 +394,7 @@ export const MUTATING_TOOL_ARG_SCHEMAS = {
   update_savings_goal: updateSavingsGoalArgsSchema,
   record_savings_contribution: recordSavingsContributionArgsSchema,
   mark_loan_installment_paid: markLoanInstallmentPaidArgsSchema,
+  prepay_loan: prepayLoanArgsSchema,
   trigger_email_sync: triggerEmailSyncArgsSchema,
 } as const;
 

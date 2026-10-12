@@ -423,6 +423,7 @@ export const ModelName = {
   FinSavingsGoalContribution: 'FinSavingsGoalContribution',
   FinLoan: 'FinLoan',
   FinLoanInstallment: 'FinLoanInstallment',
+  FinLoanPrepayment: 'FinLoanPrepayment',
   FinReceivable: 'FinReceivable',
   FinReceivablePayment: 'FinReceivablePayment',
   FinEmailSyncLog: 'FinEmailSyncLog',
@@ -446,7 +447,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "module" | "userModule" | "aiAgentSession" | "aiMessage" | "aiAction" | "notification" | "pushToken" | "finAccount" | "finEmailConnection" | "finEmailSource" | "finTransaction" | "finCategory" | "finBudget" | "finBudgetAlert" | "finRecurringPattern" | "finExchangeRate" | "finInstitution" | "finCard" | "finCardBalance" | "finInstrumentEvent" | "finCardStatement" | "finSavingsGoal" | "finSavingsGoalContribution" | "finLoan" | "finLoanInstallment" | "finReceivable" | "finReceivablePayment" | "finEmailSyncLog" | "finEmailMessage" | "domainEventOutbox" | "processedDomainEvent" | "authDeletionOutbox" | "finDeletionJournal"
+    modelProps: "user" | "module" | "userModule" | "aiAgentSession" | "aiMessage" | "aiAction" | "notification" | "pushToken" | "finAccount" | "finEmailConnection" | "finEmailSource" | "finTransaction" | "finCategory" | "finBudget" | "finBudgetAlert" | "finRecurringPattern" | "finExchangeRate" | "finInstitution" | "finCard" | "finCardBalance" | "finInstrumentEvent" | "finCardStatement" | "finSavingsGoal" | "finSavingsGoalContribution" | "finLoan" | "finLoanInstallment" | "finLoanPrepayment" | "finReceivable" | "finReceivablePayment" | "finEmailSyncLog" | "finEmailMessage" | "domainEventOutbox" | "processedDomainEvent" | "authDeletionOutbox" | "finDeletionJournal"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -2374,6 +2375,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    FinLoanPrepayment: {
+      payload: Prisma.$FinLoanPrepaymentPayload<ExtArgs>
+      fields: Prisma.FinLoanPrepaymentFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.FinLoanPrepaymentFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinLoanPrepaymentPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.FinLoanPrepaymentFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinLoanPrepaymentPayload>
+        }
+        findFirst: {
+          args: Prisma.FinLoanPrepaymentFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinLoanPrepaymentPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.FinLoanPrepaymentFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinLoanPrepaymentPayload>
+        }
+        findMany: {
+          args: Prisma.FinLoanPrepaymentFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinLoanPrepaymentPayload>[]
+        }
+        create: {
+          args: Prisma.FinLoanPrepaymentCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinLoanPrepaymentPayload>
+        }
+        createMany: {
+          args: Prisma.FinLoanPrepaymentCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.FinLoanPrepaymentCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinLoanPrepaymentPayload>[]
+        }
+        delete: {
+          args: Prisma.FinLoanPrepaymentDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinLoanPrepaymentPayload>
+        }
+        update: {
+          args: Prisma.FinLoanPrepaymentUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinLoanPrepaymentPayload>
+        }
+        deleteMany: {
+          args: Prisma.FinLoanPrepaymentDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.FinLoanPrepaymentUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.FinLoanPrepaymentUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinLoanPrepaymentPayload>[]
+        }
+        upsert: {
+          args: Prisma.FinLoanPrepaymentUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinLoanPrepaymentPayload>
+        }
+        aggregate: {
+          args: Prisma.FinLoanPrepaymentAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateFinLoanPrepayment>
+        }
+        groupBy: {
+          args: Prisma.FinLoanPrepaymentGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.FinLoanPrepaymentGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.FinLoanPrepaymentCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.FinLoanPrepaymentCountAggregateOutputType> | number
+        }
+      }
+    }
     FinReceivable: {
       payload: Prisma.$FinReceivablePayload<ExtArgs>
       fields: Prisma.FinReceivableFieldRefs
@@ -3420,6 +3495,11 @@ export const FinLoanScalarFieldEnum = {
   paidInstallments: 'paidInstallments',
   nextDueDate: 'nextDueDate',
   interestRate: 'interestRate',
+  rateType: 'rateType',
+  insuranceAmount: 'insuranceAmount',
+  lateFeePolicy: 'lateFeePolicy',
+  prepaymentPenaltyPct: 'prepaymentPenaltyPct',
+  disbursementDate: 'disbursementDate',
   notes: 'notes',
   isActive: 'isActive',
   createdAt: 'createdAt',
@@ -3435,6 +3515,13 @@ export const FinLoanInstallmentScalarFieldEnum = {
   installmentNo: 'installmentNo',
   dueDate: 'dueDate',
   amount: 'amount',
+  principal: 'principal',
+  interest: 'interest',
+  insurance: 'insurance',
+  fees: 'fees',
+  lateFee: 'lateFee',
+  paidAmount: 'paidAmount',
+  status: 'status',
   paidAt: 'paidAt',
   transactionId: 'transactionId',
   createdAt: 'createdAt',
@@ -3442,6 +3529,20 @@ export const FinLoanInstallmentScalarFieldEnum = {
 } as const
 
 export type FinLoanInstallmentScalarFieldEnum = (typeof FinLoanInstallmentScalarFieldEnum)[keyof typeof FinLoanInstallmentScalarFieldEnum]
+
+
+export const FinLoanPrepaymentScalarFieldEnum = {
+  id: 'id',
+  loanId: 'loanId',
+  amount: 'amount',
+  penalty: 'penalty',
+  mode: 'mode',
+  paidAt: 'paidAt',
+  transactionId: 'transactionId',
+  createdAt: 'createdAt'
+} as const
+
+export type FinLoanPrepaymentScalarFieldEnum = (typeof FinLoanPrepaymentScalarFieldEnum)[keyof typeof FinLoanPrepaymentScalarFieldEnum]
 
 
 export const FinReceivableScalarFieldEnum = {
@@ -3939,6 +4040,34 @@ export type ListEnumFinInstallmentFreqFieldRefInput<$PrismaModel> = FieldRefInpu
 
 
 /**
+ * Reference to a field of type 'FinRateType'
+ */
+export type EnumFinRateTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'FinRateType'>
+    
+
+
+/**
+ * Reference to a field of type 'FinRateType[]'
+ */
+export type ListEnumFinRateTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'FinRateType[]'>
+    
+
+
+/**
+ * Reference to a field of type 'FinInstallmentStatus'
+ */
+export type EnumFinInstallmentStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'FinInstallmentStatus'>
+    
+
+
+/**
+ * Reference to a field of type 'FinInstallmentStatus[]'
+ */
+export type ListEnumFinInstallmentStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'FinInstallmentStatus[]'>
+    
+
+
+/**
  * Reference to a field of type 'FinReceivableStatus'
  */
 export type EnumFinReceivableStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'FinReceivableStatus'>
@@ -4198,6 +4327,7 @@ export type GlobalOmitConfig = {
   finSavingsGoalContribution?: Prisma.FinSavingsGoalContributionOmit
   finLoan?: Prisma.FinLoanOmit
   finLoanInstallment?: Prisma.FinLoanInstallmentOmit
+  finLoanPrepayment?: Prisma.FinLoanPrepaymentOmit
   finReceivable?: Prisma.FinReceivableOmit
   finReceivablePayment?: Prisma.FinReceivablePaymentOmit
   finEmailSyncLog?: Prisma.FinEmailSyncLogOmit

@@ -64,6 +64,8 @@ describe('ToolExecutorService finance via FinanceFacade (TestingModule)', () => 
               stub,
               stub,
               stub,
+              stub,
+              stub,
               { getAnalyticsSummary } as never,
               stub,
               stub,

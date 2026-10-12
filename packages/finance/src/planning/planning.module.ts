@@ -3,6 +3,7 @@ import { FinanceLedgerModule } from '../ledger/ledger.module';
 import { FinanceOwnershipModule } from '../shared/finance-ownership.module';
 import { DeletionJournalModule } from '../shared/deletion-journal.module';
 import { PayNextLoanInstallmentUseCase } from './application/pay-next-loan-installment.use-case';
+import { ApplyLoanPrepaymentUseCase } from './application/apply-loan-prepayment.use-case';
 import { PlanningService } from './application/planning.service';
 import { RecordReceivablePaymentUseCase } from './application/record-receivable-payment.use-case';
 import { RecordSavingsGoalContributionUseCase } from './application/record-savings-goal-contribution.use-case';
@@ -34,6 +35,7 @@ import { FinancePlanningThresholdModule } from './planning-threshold.module';
     PlanningService,
     SyncLoanInstallmentsUseCase,
     PayNextLoanInstallmentUseCase,
+    ApplyLoanPrepaymentUseCase,
     RecordReceivablePaymentUseCase,
     RecordSavingsGoalContributionUseCase,
     RemoveSavingsGoalContributionUseCase,
@@ -42,6 +44,8 @@ import { FinancePlanningThresholdModule } from './planning-threshold.module';
   exports: [
     PlanningService,
     PlanningRepository,
+    PayNextLoanInstallmentUseCase,
+    ApplyLoanPrepaymentUseCase,
     RecordSavingsGoalContributionUseCase,
     FinancePlanningThresholdModule,
   ],

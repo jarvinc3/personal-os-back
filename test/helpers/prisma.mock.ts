@@ -426,6 +426,10 @@ export function createPrismaMock(): PrismaMock {
       upsert: jest.fn().mockResolvedValue({}),
       count: jest.fn().mockResolvedValue(0),
     },
+    finLoanPrepayment: {
+      create: jest.fn().mockResolvedValue({ id: 'prepay-1' }),
+      findMany: jest.fn().mockResolvedValue([]),
+    },
     finReceivable: {
       findMany: jest.fn().mockResolvedValue([]),
       findFirst: jest.fn(),

@@ -18,7 +18,11 @@ import { ReverseTransactionUseCase } from './ledger/application/reverse-transact
 import { UpdateTransactionUseCase } from './ledger/application/update-transaction.use-case';
 import { UnconfirmTransactionUseCase } from './ledger/application/unconfirm-transaction.use-case';
 import { PlanningService } from './planning/application/planning.service';
+import { ApplyLoanPrepaymentUseCase } from './planning/application/apply-loan-prepayment.use-case';
+import { PayNextLoanInstallmentUseCase } from './planning/application/pay-next-loan-installment.use-case';
 import { RecordSavingsGoalContributionUseCase } from './planning/application/record-savings-goal-contribution.use-case';
+import type { LoanPrepaymentCommand } from './planning/application/apply-loan-prepayment.use-case';
+import type { PayInstallmentCommand } from './planning/application/pay-next-loan-installment.use-case';
 import { CardStatementsService } from './statements/application/card-statements.service';
 import type { CreateBudgetDto } from './planning/presentation/dto/create-budget.dto';
 import type { CreateSavingsGoalDto } from './planning/presentation/dto/create-savings-goal.dto';
@@ -46,6 +50,8 @@ export class FinanceFacade {
     private readonly createCardPaymentTx: CreateCardPaymentUseCase,
     private readonly catalog: CatalogService,
     private readonly planning: PlanningService,
+    private readonly payLoanInstallment: PayNextLoanInstallmentUseCase,
+    private readonly prepayLoanTx: ApplyLoanPrepaymentUseCase,
     private readonly recordContribution: RecordSavingsGoalContributionUseCase,
     private readonly analytics: AnalyticsService,
     private readonly statements: CardStatementsService,
@@ -129,6 +135,22 @@ export class FinanceFacade {
 
   getBudgetStatus(userId: string) {
     return this.analytics.getBudgetStatus(userId);
+  }
+
+  payNextLoanInstallment(
+    userId: string,
+    loanId: string,
+    command: PayInstallmentCommand = {},
+  ) {
+    return this.payLoanInstallment.execute(userId, loanId, new Date(), command);
+  }
+
+  prepayLoan(userId: string, loanId: string, command: LoanPrepaymentCommand) {
+    return this.prepayLoanTx.execute(userId, loanId, new Date(), command);
+  }
+
+  getLoanSchedule(userId: string, loanId: string) {
+    return this.planning.listLoanInstallments(userId, loanId);
   }
 
   listBudgets(userId: string) {

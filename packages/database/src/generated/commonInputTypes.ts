@@ -637,6 +637,13 @@ export type EnumFinInstallmentFreqFilter<$PrismaModel = never> = {
   not?: Prisma.NestedEnumFinInstallmentFreqFilter<$PrismaModel> | $Enums.FinInstallmentFreq
 }
 
+export type EnumFinRateTypeFilter<$PrismaModel = never> = {
+  equals?: $Enums.FinRateType | Prisma.EnumFinRateTypeFieldRefInput<$PrismaModel>
+  in?: $Enums.FinRateType[] | Prisma.ListEnumFinRateTypeFieldRefInput<$PrismaModel>
+  notIn?: $Enums.FinRateType[] | Prisma.ListEnumFinRateTypeFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumFinRateTypeFilter<$PrismaModel> | $Enums.FinRateType
+}
+
 export type EnumFinInstallmentFreqWithAggregatesFilter<$PrismaModel = never> = {
   equals?: $Enums.FinInstallmentFreq | Prisma.EnumFinInstallmentFreqFieldRefInput<$PrismaModel>
   in?: $Enums.FinInstallmentFreq[] | Prisma.ListEnumFinInstallmentFreqFieldRefInput<$PrismaModel>
@@ -645,6 +652,33 @@ export type EnumFinInstallmentFreqWithAggregatesFilter<$PrismaModel = never> = {
   _count?: Prisma.NestedIntFilter<$PrismaModel>
   _min?: Prisma.NestedEnumFinInstallmentFreqFilter<$PrismaModel>
   _max?: Prisma.NestedEnumFinInstallmentFreqFilter<$PrismaModel>
+}
+
+export type EnumFinRateTypeWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.FinRateType | Prisma.EnumFinRateTypeFieldRefInput<$PrismaModel>
+  in?: $Enums.FinRateType[] | Prisma.ListEnumFinRateTypeFieldRefInput<$PrismaModel>
+  notIn?: $Enums.FinRateType[] | Prisma.ListEnumFinRateTypeFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumFinRateTypeWithAggregatesFilter<$PrismaModel> | $Enums.FinRateType
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumFinRateTypeFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumFinRateTypeFilter<$PrismaModel>
+}
+
+export type EnumFinInstallmentStatusFilter<$PrismaModel = never> = {
+  equals?: $Enums.FinInstallmentStatus | Prisma.EnumFinInstallmentStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.FinInstallmentStatus[] | Prisma.ListEnumFinInstallmentStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.FinInstallmentStatus[] | Prisma.ListEnumFinInstallmentStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumFinInstallmentStatusFilter<$PrismaModel> | $Enums.FinInstallmentStatus
+}
+
+export type EnumFinInstallmentStatusWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.FinInstallmentStatus | Prisma.EnumFinInstallmentStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.FinInstallmentStatus[] | Prisma.ListEnumFinInstallmentStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.FinInstallmentStatus[] | Prisma.ListEnumFinInstallmentStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumFinInstallmentStatusWithAggregatesFilter<$PrismaModel> | $Enums.FinInstallmentStatus
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumFinInstallmentStatusFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumFinInstallmentStatusFilter<$PrismaModel>
 }
 
 export type EnumFinReceivableStatusFilter<$PrismaModel = never> = {
@@ -1314,6 +1348,13 @@ export type NestedEnumFinInstallmentFreqFilter<$PrismaModel = never> = {
   not?: Prisma.NestedEnumFinInstallmentFreqFilter<$PrismaModel> | $Enums.FinInstallmentFreq
 }
 
+export type NestedEnumFinRateTypeFilter<$PrismaModel = never> = {
+  equals?: $Enums.FinRateType | Prisma.EnumFinRateTypeFieldRefInput<$PrismaModel>
+  in?: $Enums.FinRateType[] | Prisma.ListEnumFinRateTypeFieldRefInput<$PrismaModel>
+  notIn?: $Enums.FinRateType[] | Prisma.ListEnumFinRateTypeFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumFinRateTypeFilter<$PrismaModel> | $Enums.FinRateType
+}
+
 export type NestedEnumFinInstallmentFreqWithAggregatesFilter<$PrismaModel = never> = {
   equals?: $Enums.FinInstallmentFreq | Prisma.EnumFinInstallmentFreqFieldRefInput<$PrismaModel>
   in?: $Enums.FinInstallmentFreq[] | Prisma.ListEnumFinInstallmentFreqFieldRefInput<$PrismaModel>
@@ -1322,6 +1363,33 @@ export type NestedEnumFinInstallmentFreqWithAggregatesFilter<$PrismaModel = neve
   _count?: Prisma.NestedIntFilter<$PrismaModel>
   _min?: Prisma.NestedEnumFinInstallmentFreqFilter<$PrismaModel>
   _max?: Prisma.NestedEnumFinInstallmentFreqFilter<$PrismaModel>
+}
+
+export type NestedEnumFinRateTypeWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.FinRateType | Prisma.EnumFinRateTypeFieldRefInput<$PrismaModel>
+  in?: $Enums.FinRateType[] | Prisma.ListEnumFinRateTypeFieldRefInput<$PrismaModel>
+  notIn?: $Enums.FinRateType[] | Prisma.ListEnumFinRateTypeFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumFinRateTypeWithAggregatesFilter<$PrismaModel> | $Enums.FinRateType
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumFinRateTypeFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumFinRateTypeFilter<$PrismaModel>
+}
+
+export type NestedEnumFinInstallmentStatusFilter<$PrismaModel = never> = {
+  equals?: $Enums.FinInstallmentStatus | Prisma.EnumFinInstallmentStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.FinInstallmentStatus[] | Prisma.ListEnumFinInstallmentStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.FinInstallmentStatus[] | Prisma.ListEnumFinInstallmentStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumFinInstallmentStatusFilter<$PrismaModel> | $Enums.FinInstallmentStatus
+}
+
+export type NestedEnumFinInstallmentStatusWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.FinInstallmentStatus | Prisma.EnumFinInstallmentStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.FinInstallmentStatus[] | Prisma.ListEnumFinInstallmentStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.FinInstallmentStatus[] | Prisma.ListEnumFinInstallmentStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumFinInstallmentStatusWithAggregatesFilter<$PrismaModel> | $Enums.FinInstallmentStatus
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumFinInstallmentStatusFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumFinInstallmentStatusFilter<$PrismaModel>
 }
 
 export type NestedEnumFinReceivableStatusFilter<$PrismaModel = never> = {

@@ -49,6 +49,24 @@ export const FinAmountSource = {
 export type FinAmountSource = (typeof FinAmountSource)[keyof typeof FinAmountSource]
 
 
+export const FinInstallmentStatus = {
+  PENDING: 'PENDING',
+  PARTIAL: 'PARTIAL',
+  PAID: 'PAID',
+  OVERDUE: 'OVERDUE'
+} as const
+
+export type FinInstallmentStatus = (typeof FinInstallmentStatus)[keyof typeof FinInstallmentStatus]
+
+
+export const FinRateType = {
+  FIXED: 'FIXED',
+  VARIABLE: 'VARIABLE'
+} as const
+
+export type FinRateType = (typeof FinRateType)[keyof typeof FinRateType]
+
+
 export const AiRole = {
   user: 'user',
   assistant: 'assistant',

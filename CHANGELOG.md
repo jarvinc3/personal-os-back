@@ -2,6 +2,20 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [SemVer](https://semver.org/lang/es/). Reglas y ejemplo en [docs/reference/changelog-guide.md](./docs/reference/changelog-guide.md).
 
+## [1.12.0] - 2026-10-12
+
+### Agregado
+
+- Préstamos con tabla francesa: cada cuota guarda `principal`, `interest`, `insurance`, `fees`, `lateFee`, `paidAmount` y `status`. El pago reparte en mora, cargos, seguro, interés y capital, y el saldo baja solo por capital.
+- `POST /api/finance/loans/{id}/pay-next-installment` acepta `{ amount?, accountId?, excessAsPrepayment? }`, deja la cuota `PARTIAL` si el pago es menor y responde 400 `PAYMENT_EXCEEDS_INSTALLMENT` si sobra sin confirmar.
+- `POST /api/finance/loans/{id}/prepayments` con `REDUCE_TERM` o `REDUCE_INSTALLMENT`, `GET /loans/{id}/prepayments/preview` y `GET /loans/{id}/schedule`. Errores `LOAN_HAS_OVERDUE` y `LOAN_NOT_FOUND`.
+- Tools del agente `prepay_loan` y `get_loan_schedule`; `mark_loan_installment_paid` ahora usa el caso de uso real.
+
+### Cambiado
+
+- El préstamo guarda `rateType`, `insuranceAmount`, `lateFeePolicy`, `prepaymentPenaltyPct` y `disbursementDate`.
+- Script `scripts/finance/backfill-loan-schedule.ts` para recalcular el saldo desde la tabla, con `--dry-run`.
+
 ## [1.11.0] - 2026-10-12
 
 ### Agregado

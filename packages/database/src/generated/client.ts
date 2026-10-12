@@ -175,6 +175,11 @@ export type FinLoan = Prisma.FinLoanModel
  */
 export type FinLoanInstallment = Prisma.FinLoanInstallmentModel
 /**
+ * Model FinLoanPrepayment
+ * 
+ */
+export type FinLoanPrepayment = Prisma.FinLoanPrepaymentModel
+/**
  * Model FinReceivable
  * 
  */

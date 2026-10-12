@@ -217,6 +217,28 @@ Creates a new budget or updates when `budgetId` is provided.
 
 ### `mark_loan_installment_paid`
 
+Pays the oldest unpaid loan instalment through the real use case: splits the payment into capital and interest and lowers the balance only by capital.
+
+**Delegates to:** `FinanceFacade.payNextLoanInstallment`
+
+---
+
+### `prepay_loan`
+
+Pays an extra amount to loan capital, reducing the term or the instalment.
+
+**Delegates to:** `FinanceFacade.prepayLoan`
+
+---
+
+### `get_loan_schedule`
+
+Returns the full loan instalment schedule with its capital/interest split.
+
+**Delegates to:** `FinanceFacade.getLoanSchedule`
+
+---
+
 Increments `paidInstallments` and decrements `currentBalance` by one installment.
 
 ---

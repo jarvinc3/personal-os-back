@@ -47,6 +47,8 @@ const FINANCE_TOOL_NAMES = new Set([
   'record_savings_contribution',
   'list_loans',
   'mark_loan_installment_paid',
+  'prepay_loan',
+  'get_loan_schedule',
   'trigger_email_sync',
   'get_spending_by_category',
   'get_spending_over_time',
@@ -649,23 +651,42 @@ export class ToolExecutorService {
       case 'mark_loan_installment_paid': {
         const loanArgs =
           args as ValidatedToolArgs<'mark_loan_installment_paid'>;
-        const loans = await this.financeFacade.listLoans(ctx.userId);
-        const loan = loans.find((item) => item.id === loanArgs.loanId);
-        if (!loan) {
-          return { success: false, message: 'Loan not found' };
-        }
         return {
           success: true,
           message: 'Loan installment marked as paid',
-          data: await this.financeFacade.updateLoan(
+          data: await this.financeFacade.payNextLoanInstallment(
             ctx.userId,
             loanArgs.loanId,
+          ),
+        };
+      }
+      case 'prepay_loan': {
+        const prepayArgs = args as ValidatedToolArgs<'prepay_loan'>;
+        return {
+          success: true,
+          message: 'Loan prepayment applied',
+          data: await this.financeFacade.prepayLoan(
+            ctx.userId,
+            prepayArgs.loanId,
             {
-              paidInstallments: loan.paidInstallments + 1,
-              currentBalance:
-                Number(loan.currentBalance) - Number(loan.installmentAmount),
+              amount: prepayArgs.amount,
+              accountId: prepayArgs.accountId,
+              mode: prepayArgs.mode,
             },
           ),
+        };
+      }
+      case 'get_loan_schedule': {
+        const scheduleArgs = args as { loanId: string };
+        return {
+          success: true,
+          message: 'Loan schedule loaded',
+          data: {
+            installments: await this.financeFacade.getLoanSchedule(
+              ctx.userId,
+              scheduleArgs.loanId,
+            ),
+          },
         };
       }
       case 'trigger_email_sync': {
