@@ -245,7 +245,7 @@ const STATIC_TOOLS: StaticToolDef[] = [
   {
     name: 'record_savings_contribution',
     description:
-      'Record an amount set aside for a savings goal. The goal balance is the sum of these.',
+      'Record an amount set aside for a savings goal, paid from a given account. The goal balance is the sum of these.',
     mutating: true,
     targetModule: 'finance',
   },
