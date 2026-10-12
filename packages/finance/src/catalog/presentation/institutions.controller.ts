@@ -68,4 +68,10 @@ export class InstitutionsController {
   remove(@CurrentUser('sub') userId: string, @Param('id') id: string) {
     return this.catalog.deleteInstitution(userId, id);
   }
+
+  @Post('institutions/:id/restore')
+  @ApiOperation({ summary: 'Undo a delete from the journal snapshot' })
+  restore(@CurrentUser('sub') userId: string, @Param('id') id: string) {
+    return this.catalog.restoreInstitution(userId, id, new Date());
+  }
 }

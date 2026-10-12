@@ -9,6 +9,7 @@ import { LogoService, type LogoUploadFile } from '@personal-os/logos';
 import type { LogoRow } from '@personal-os/logos';
 import { normalizeDomain } from '@personal-os/logos';
 import { PurgeInstrumentLedgerUseCase } from '../../ledger/application/purge-instrument-ledger.use-case';
+import type { LedgerTransactionRow } from '../../ledger/application/ports/ledger.repository.port';
 import { FinanceOwnershipService } from '../../shared/application/finance-ownership.service';
 import {
   ACCOUNT_NUMBER_MAX_DIGITS,
@@ -162,10 +163,21 @@ export class CatalogService {
     if (!existing) {
       throw new NotFoundException('Account not found');
     }
-    await this.purgeLedger.forAccount(userId, id);
-    await this.repo.deleteCardsByAccountId(userId, id);
-    const result = await this.repo.deleteAccount(userId, id);
-    if (result.count === 0) {
+    const purged = await this.purgeLedger.forAccount(userId, id);
+    const removed = await this.repo.deleteAccount({
+      userId,
+      id,
+      movements: purged.rows,
+    });
+    if (removed.count === 0) {
+      throw new NotFoundException('Account not found');
+    }
+    return { success: true };
+  }
+
+  async restoreAccount(userId: string, id: string, now: Date) {
+    const restored = await this.repo.restoreAccount(userId, id, now);
+    if (restored.count === 0) {
       throw new NotFoundException('Account not found');
     }
     return { success: true };
@@ -286,18 +298,31 @@ export class CatalogService {
     if (!existing) {
       throw new NotFoundException('Institution not found');
     }
+    const movements: LedgerTransactionRow[] = [];
     const accounts = await this.repo.listAccountsByInstitution(userId, id);
     for (const account of accounts) {
-      await this.deleteAccount(userId, account.id);
+      const purged = await this.purgeLedger.forAccount(userId, account.id);
+      movements.push(...purged.rows);
     }
     const cards = await this.repo.listCardsByInstitution(userId, id);
     for (const card of cards) {
-      await this.deleteCard(userId, card.id);
+      const purged = await this.purgeLedger.forCard(userId, card.id);
+      movements.push(...purged.rows);
     }
-    await this.repo.deleteEmailSourcesByInstitution(userId, id);
-    await this.repo.deleteLoansByInstitution(userId, id);
-    const result = await this.repo.deleteInstitution(userId, id);
-    if (result.count === 0) {
+    const removed = await this.repo.deleteInstitution({
+      userId,
+      id,
+      movements,
+    });
+    if (removed.count === 0) {
+      throw new NotFoundException('Institution not found');
+    }
+    return { success: true };
+  }
+
+  async restoreInstitution(userId: string, id: string, now: Date) {
+    const restored = await this.repo.restoreInstitution(userId, id, now);
+    if (restored.count === 0) {
       throw new NotFoundException('Institution not found');
     }
     return { success: true };
@@ -425,9 +450,21 @@ export class CatalogService {
     if (!existing) {
       throw new NotFoundException('Card not found');
     }
-    await this.purgeLedger.forCard(userId, id);
-    const result = await this.repo.deleteCard(userId, id);
-    if (result.count === 0) {
+    const purged = await this.purgeLedger.forCard(userId, id);
+    const removed = await this.repo.deleteCard({
+      userId,
+      id,
+      movements: purged.rows,
+    });
+    if (removed.count === 0) {
+      throw new NotFoundException('Card not found');
+    }
+    return { success: true };
+  }
+
+  async restoreCard(userId: string, id: string, now: Date) {
+    const restored = await this.repo.restoreCard(userId, id, now);
+    if (restored.count === 0) {
       throw new NotFoundException('Card not found');
     }
     return { success: true };
@@ -479,9 +516,7 @@ export class CatalogService {
       throw new NotFoundException('Card not found');
     }
     if (card.type !== 'CREDIT') {
-      throw new BadRequestException(
-        'Only credit cards have a credit limit',
-      );
+      throw new BadRequestException('Only credit cards have a credit limit');
     }
     const updated = await this.repo.setCardCreditLimit(
       userId,
@@ -597,6 +632,14 @@ export class CatalogService {
   async deleteCategory(userId: string, id: string) {
     const result = await this.repo.deleteCategory(userId, id);
     if (result.count === 0) {
+      throw new NotFoundException('Category not found');
+    }
+    return { success: true };
+  }
+
+  async restoreCategory(userId: string, id: string, now: Date) {
+    const restored = await this.repo.restoreCategory(userId, id, now);
+    if (restored.count === 0) {
       throw new NotFoundException('Category not found');
     }
     return { success: true };

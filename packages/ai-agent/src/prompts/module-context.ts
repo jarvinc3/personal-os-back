@@ -67,7 +67,7 @@ export const MODULE_CONTEXT: Record<
   finance: {
     label: 'Finanzas',
     description:
-      'Personal finance module. Analyze spending, budgets, goals, loans, and trigger finance actions.',
+      'Personal finance module. Analyze spending, budgets, goals, loans, and trigger finance actions. When the user describes a new loan in words (monto, plazo, tasa or cuota, prestamista), answer with a markdown link to `/finance/loans/new` carrying the values as query params (`amount`, `periods`, `ratePercent` or `installment`, `lenderName`) so the wizard opens prefilled and the user only confirms.',
     allowedTools: [
       'get_user_context',
       'get_finance_summary',

@@ -8,15 +8,24 @@ import type { Prisma } from '@personal-os/database';
 import { PrismaService } from '@personal-os/database';
 import type { ReceivableStatus } from '../application/resolve-receivable-payment';
 import type { LoanInstallmentPlan } from '../domain/loan-installment-schedule';
-import { resolveSavingsGoalProgress } from '../domain/savings-goal-progress';
+import {
+  DELETION_ENTITY,
+  DELETION_MODEL,
+  toDeletionValues,
+} from '../../shared/domain/deletion-snapshot';
+import { DeletionJournalRepository } from '../../shared/infrastructure/deletion-journal.repository';
 import { applyReceivableBalance } from './receivable-balance';
+import { applySavingsGoalBalance } from './savings-goal-balance';
 
 /** Label of the row that carries a balance recorded before history existed. */
 const OPENING_BALANCE_NOTE = 'Saldo inicial';
 
 @Injectable()
 export class PlanningRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly journal: DeletionJournalRepository,
+  ) {}
 
   listBudgets(userId: string) {
     return this.prisma.finBudget.findMany({
@@ -89,7 +98,38 @@ export class PlanningRepository {
   }
 
   deleteBudget(userId: string, id: string) {
-    return this.prisma.finBudget.deleteMany({ where: { id, userId } });
+    return this.prisma.$transaction(async (tx) => {
+      const budget = await tx.finBudget.findFirst({
+        where: { id, userId },
+        include: { alerts: true },
+      });
+      if (!budget) {
+        return { count: 0 };
+      }
+      const { alerts, ...budgetRow } = budget;
+      await this.journal.record(tx, {
+        userId,
+        entityType: DELETION_ENTITY.budget,
+        entityId: id,
+        snapshot: {
+          rows: [
+            {
+              model: DELETION_MODEL.budget,
+              values: toDeletionValues(budgetRow),
+            },
+            ...alerts.map((alert) => ({
+              model: DELETION_MODEL.budgetAlert,
+              values: toDeletionValues(alert),
+            })),
+          ],
+        },
+      });
+      return tx.finBudget.deleteMany({ where: { id, userId } });
+    });
+  }
+
+  restoreBudget(userId: string, id: string, now: Date) {
+    return this.journal.restore(userId, DELETION_ENTITY.budget, id, now);
   }
 
   listSavingsGoals(userId: string) {
@@ -126,7 +166,7 @@ export class PlanningRepository {
           },
         });
       }
-      await this.applySavingsGoalBalance(tx, goal.id, now);
+      await applySavingsGoalBalance(tx, goal.id, now);
       return this.readSavingsGoal(tx, goal.id);
     });
   }
@@ -139,12 +179,43 @@ export class PlanningRepository {
   ): Promise<void> {
     await this.prisma.$transaction(async (tx) => {
       await tx.finSavingsGoal.updateMany({ where: { id, userId }, data });
-      await this.applySavingsGoalBalance(tx, id, now);
+      await applySavingsGoalBalance(tx, id, now);
     });
   }
 
   deleteSavingsGoal(userId: string, id: string) {
-    return this.prisma.finSavingsGoal.deleteMany({ where: { id, userId } });
+    return this.prisma.$transaction(async (tx) => {
+      const goal = await tx.finSavingsGoal.findFirst({
+        where: { id, userId },
+        include: { contributions: true },
+      });
+      if (!goal) {
+        return { count: 0 };
+      }
+      const { contributions, ...goalRow } = goal;
+      await this.journal.record(tx, {
+        userId,
+        entityType: DELETION_ENTITY.savingsGoal,
+        entityId: id,
+        snapshot: {
+          rows: [
+            {
+              model: DELETION_MODEL.savingsGoal,
+              values: toDeletionValues(goalRow),
+            },
+            ...contributions.map((contribution) => ({
+              model: DELETION_MODEL.savingsGoalContribution,
+              values: toDeletionValues(contribution),
+            })),
+          ],
+        },
+      });
+      return tx.finSavingsGoal.deleteMany({ where: { id, userId } });
+    });
+  }
+
+  restoreSavingsGoal(userId: string, id: string, now: Date) {
+    return this.journal.restore(userId, DELETION_ENTITY.savingsGoal, id, now);
   }
 
   listSavingsGoalContributions(goalId: string) {
@@ -162,14 +233,20 @@ export class PlanningRepository {
 
   async addSavingsGoalContribution(
     goalId: string,
-    contribution: { amount: number; contributedAt: Date; notes?: string },
+    contribution: {
+      amount: number;
+      contributedAt: Date;
+      accountId: string;
+      transactionId: string;
+      notes?: string;
+    },
     now: Date,
   ) {
     return this.prisma.$transaction(async (tx) => {
       const created = await tx.finSavingsGoalContribution.create({
         data: { goalId, ...contribution },
       });
-      await this.applySavingsGoalBalance(tx, goalId, now);
+      await applySavingsGoalBalance(tx, goalId, now);
       return created;
     });
   }
@@ -183,34 +260,7 @@ export class PlanningRepository {
       await tx.finSavingsGoalContribution.deleteMany({
         where: { id: contributionId, goalId },
       });
-      await this.applySavingsGoalBalance(tx, goalId, now);
-    });
-  }
-
-  /** Recompute the cached balance from the contributions inside the caller's TX. */
-  private async applySavingsGoalBalance(
-    tx: Prisma.TransactionClient,
-    goalId: string,
-    now: Date,
-  ): Promise<void> {
-    const goal = await tx.finSavingsGoal.findUniqueOrThrow({
-      where: { id: goalId },
-    });
-    const contributions = await tx.finSavingsGoalContribution.aggregate({
-      where: { goalId },
-      _sum: { amount: true },
-    });
-    const progress = resolveSavingsGoalProgress({
-      targetAmount: Number(goal.targetAmount),
-      contributedAmount: Number(contributions._sum.amount ?? 0),
-    });
-    await tx.finSavingsGoal.update({
-      where: { id: goalId },
-      data: {
-        currentAmount: progress.currentAmount,
-        isCompleted: progress.isCompleted,
-        completedAt: progress.isCompleted ? (goal.completedAt ?? now) : null,
-      },
+      await applySavingsGoalBalance(tx, goalId, now);
     });
   }
 
@@ -253,7 +303,35 @@ export class PlanningRepository {
   }
 
   deleteLoan(userId: string, id: string) {
-    return this.prisma.finLoan.deleteMany({ where: { id, userId } });
+    return this.prisma.$transaction(async (tx) => {
+      const loan = await tx.finLoan.findFirst({
+        where: { id, userId },
+        include: { installments: true },
+      });
+      if (!loan) {
+        return { count: 0 };
+      }
+      const { installments, ...loanRow } = loan;
+      await this.journal.record(tx, {
+        userId,
+        entityType: DELETION_ENTITY.loan,
+        entityId: id,
+        snapshot: {
+          rows: [
+            { model: DELETION_MODEL.loan, values: toDeletionValues(loanRow) },
+            ...installments.map((installment) => ({
+              model: DELETION_MODEL.loanInstallment,
+              values: toDeletionValues(installment),
+            })),
+          ],
+        },
+      });
+      return tx.finLoan.deleteMany({ where: { id, userId } });
+    });
+  }
+
+  restoreLoan(userId: string, id: string, now: Date) {
+    return this.journal.restore(userId, DELETION_ENTITY.loan, id, now);
   }
 
   listLoansForScheduleSync() {
@@ -395,7 +473,38 @@ export class PlanningRepository {
   }
 
   deleteReceivable(userId: string, id: string) {
-    return this.prisma.finReceivable.deleteMany({ where: { id, userId } });
+    return this.prisma.$transaction(async (tx) => {
+      const receivable = await tx.finReceivable.findFirst({
+        where: { id, userId },
+        include: { payments: true },
+      });
+      if (!receivable) {
+        return { count: 0 };
+      }
+      const { payments, ...receivableRow } = receivable;
+      await this.journal.record(tx, {
+        userId,
+        entityType: DELETION_ENTITY.receivable,
+        entityId: id,
+        snapshot: {
+          rows: [
+            {
+              model: DELETION_MODEL.receivable,
+              values: toDeletionValues(receivableRow),
+            },
+            ...payments.map((payment) => ({
+              model: DELETION_MODEL.receivablePayment,
+              values: toDeletionValues(payment),
+            })),
+          ],
+        },
+      });
+      return tx.finReceivable.deleteMany({ where: { id, userId } });
+    });
+  }
+
+  restoreReceivable(userId: string, id: string, now: Date) {
+    return this.journal.restore(userId, DELETION_ENTITY.receivable, id, now);
   }
 
   async updateReceivable(

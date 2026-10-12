@@ -52,4 +52,10 @@ export class AccountsController {
   remove(@CurrentUser('sub') userId: string, @Param('id') id: string) {
     return this.catalog.deleteAccount(userId, id);
   }
+
+  @Post('accounts/:id/restore')
+  @ApiOperation({ summary: 'Undo a delete from the journal snapshot' })
+  restore(@CurrentUser('sub') userId: string, @Param('id') id: string) {
+    return this.catalog.restoreAccount(userId, id, new Date());
+  }
 }

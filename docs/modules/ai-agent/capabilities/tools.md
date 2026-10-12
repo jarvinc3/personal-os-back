@@ -10,6 +10,8 @@ Siempre puede añadirse `switch_module_context`.
 
 Finance: ver [finance-tools](../../finance/contracts/finance-tools.md). General: [core-tools](../contracts/core-tools.md).
 
+La `description` de cada módulo es texto del prompt. La de `finance` pide que, ante un préstamo descrito en palabras, la respuesta incluya un enlace markdown a `/finance/loans/new` con `amount`, `periods`, `ratePercent` o `installment` y `lenderName` en la query; el asistente web abre el formulario relleno.
+
 **BR-AI-001:** mutating tools respetan `confirmBeforeActions`.
 
 **BR-AI-002:** `update_module_config` / `toggle_module` slugs `agenda|projects|health|subscriptions`; **finance slug rechazado** en `update_module_config` (config finance no editable por chat).

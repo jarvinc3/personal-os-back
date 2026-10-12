@@ -95,6 +95,7 @@ create trigger sub_subscriptions_set_updated_at
 ```
 
 Decisiones:
+
 - **`anchor_date` + `next_billing_date`:** calcular el siguiente cobro desde el ancla evita el desfase de fin de mes (ej.: ancla día 31 → febrero 28 → marzo 31, no 28).
 - **`merchant_match`:** texto que aparece en el estado de cuenta o correo (ej. `NETFLIX.COM`), útil para emparejar transacciones.
 - **`ON DELETE SET NULL`** hacia `fin_*`: borrar una tarjeta no debe borrar la suscripción.
@@ -152,20 +153,22 @@ Adapta los tipos de `userId`, `cardId`, etc. a como ya los tienes definidos en t
 
 ## 4. Eventos entre módulos
 
-| Evento | Emite | Consume | Efecto |
-|---|---|---|---|
-| `finance.recurring_pattern.detected` | Finanzas | Suscripciones | Ofrece al usuario crear una suscripción a partir del patrón |
-| `finance.transaction.created` | Finanzas | Suscripciones | Empareja con una suscripción activa y crea `sub_payments` |
-| `subscriptions.renewal_due` | Suscripciones | Notificaciones | Crea la notificación de renovación próxima |
-| `subscriptions.subscription.cancelled` | Suscripciones | (opcional) Finanzas | Desactiva el patrón recurrente relacionado |
+| Evento                                 | Emite         | Consume             | Efecto                                                      |
+| -------------------------------------- | ------------- | ------------------- | ----------------------------------------------------------- |
+| `finance.recurring_pattern.detected`   | Finanzas      | Suscripciones       | Ofrece al usuario crear una suscripción a partir del patrón |
+| `finance.transaction.created`          | Finanzas      | Suscripciones       | Empareja con una suscripción activa y crea `sub_payments`   |
+| `subscriptions.renewal_due`            | Suscripciones | Notificaciones      | Crea la notificación de renovación próxima                  |
+| `subscriptions.subscription.cancelled` | Suscripciones | (opcional) Finanzas | Desactiva el patrón recurrente relacionado                  |
 
 Reglas:
+
 - El consumidor registra `(event_id, 'subscriptions')` en `processed_domain_events` y usa un índice único para garantizar idempotencia.
 - El payload lleva solo IDs y datos mínimos; el consumidor consulta lo demás por un servicio/puerto, no importando clases del módulo Finanzas.
 
 ### Emparejar transacción con suscripción
 
 Criterios sugeridos (todos configurables):
+
 1. `merchant` normalizado contiene `merchant_match` o el `name`/`domain` de la suscripción.
 2. Monto dentro de ±5 % de `amount` (misma moneda) o convertido con `fin_exchange_rates`.
 3. Fecha dentro de ±3 días de `next_billing_date`.
@@ -179,11 +182,11 @@ Criterios sugeridos (todos configurables):
 import { addWeeks, addMonths, addYears, isAfter, startOfDay } from 'date-fns';
 
 const STEP = {
-  WEEKLY:     (d: Date, n: number) => addWeeks(d, n),
-  MONTHLY:    (d: Date, n: number) => addMonths(d, n),
-  QUARTERLY:  (d: Date, n: number) => addMonths(d, 3 * n),
+  WEEKLY: (d: Date, n: number) => addWeeks(d, n),
+  MONTHLY: (d: Date, n: number) => addMonths(d, n),
+  QUARTERLY: (d: Date, n: number) => addMonths(d, 3 * n),
   SEMIANNUAL: (d: Date, n: number) => addMonths(d, 6 * n),
-  YEARLY:     (d: Date, n: number) => addYears(d, n),
+  YEARLY: (d: Date, n: number) => addYears(d, n),
 } as const;
 
 export function nextBillingDate(
@@ -195,7 +198,10 @@ export function nextBillingDate(
   const today = startOfDay(after);
   let k = 0;
   let candidate = anchor;
-  while (!isAfter(candidate, today) && candidate.getTime() !== today.getTime()) {
+  while (
+    !isAfter(candidate, today) &&
+    candidate.getTime() !== today.getTime()
+  ) {
     k += 1;
     candidate = STEP[cycle](anchor, k * interval); // siempre desde el ancla
   }
@@ -208,10 +214,19 @@ Usa la zona horaria del usuario (`users.timezone`) al calcular "hoy".
 ### Costo mensual equivalente (para totales y gráficos)
 
 ```ts
-const PER_YEAR = { WEEKLY: 52, MONTHLY: 12, QUARTERLY: 4, SEMIANNUAL: 2, YEARLY: 1 } as const;
+const PER_YEAR = {
+  WEEKLY: 52,
+  MONTHLY: 12,
+  QUARTERLY: 4,
+  SEMIANNUAL: 2,
+  YEARLY: 1,
+} as const;
 
-export const monthlyCost = (amount: number, cycle: keyof typeof PER_YEAR, interval = 1) =>
-  (amount * (PER_YEAR[cycle] / interval)) / 12;
+export const monthlyCost = (
+  amount: number,
+  cycle: keyof typeof PER_YEAR,
+  interval = 1,
+) => (amount * (PER_YEAR[cycle] / interval)) / 12;
 ```
 
 Para sumar en varias monedas, convierte con `fin_exchange_rates` a través de un puerto (`ExchangeRatePort`) implementado por el módulo Finanzas, sin importar sus tablas directamente.
@@ -226,17 +241,17 @@ También un job que avance `next_billing_date` de las suscripciones cuyo cobro y
 
 ## 6. API (REST)
 
-| Método | Ruta | Descripción |
-|---|---|---|
-| `GET` | `/subscriptions` | Lista con filtros `status`, `q`, orden por `next_billing_date` |
-| `POST` | `/subscriptions` | Crea (incluye `domain` → resolución de logo) |
-| `GET` | `/subscriptions/:id` | Detalle + últimos pagos |
-| `PATCH` | `/subscriptions/:id` | Edita |
-| `POST` | `/subscriptions/:id/pause` · `/resume` · `/cancel` | Cambios de estado |
-| `POST` | `/subscriptions/:id/payments` | Registro manual de pago |
-| `POST` | `/subscriptions/:id/logo` | Subida de logo propio (multipart) |
-| `GET` | `/subscriptions/summary` | Total mensual/anual, próximos cobros |
-| `GET` | `/brands/search?q=` | Búsqueda Logo.dev (compartida con Finanzas) |
+| Método  | Ruta                                               | Descripción                                                    |
+| ------- | -------------------------------------------------- | -------------------------------------------------------------- |
+| `GET`   | `/subscriptions`                                   | Lista con filtros `status`, `q`, orden por `next_billing_date` |
+| `POST`  | `/subscriptions`                                   | Crea (incluye `domain` → resolución de logo)                   |
+| `GET`   | `/subscriptions/:id`                               | Detalle + últimos pagos                                        |
+| `PATCH` | `/subscriptions/:id`                               | Edita                                                          |
+| `POST`  | `/subscriptions/:id/pause` · `/resume` · `/cancel` | Cambios de estado                                              |
+| `POST`  | `/subscriptions/:id/payments`                      | Registro manual de pago                                        |
+| `POST`  | `/subscriptions/:id/logo`                          | Subida de logo propio (multipart)                              |
+| `GET`   | `/subscriptions/summary`                           | Total mensual/anual, próximos cobros                           |
+| `GET`   | `/brands/search?q=`                                | Búsqueda Logo.dev (compartida con Finanzas)                    |
 
 Todos protegidos con el guard de autenticación y filtrados por `user_id`. Valida que `card_id` / `account_id` pertenezcan al mismo usuario.
 

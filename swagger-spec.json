@@ -1337,6 +1337,45 @@
         ]
       }
     },
+    "/api/finance/transfers/{id}": {
+      "patch": {
+        "operationId": "TransfersController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateTransferDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Replace both legs of a transfer by one of its leg ids",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
     "/api/brands/search": {
       "get": {
         "operationId": "LogosController_search",
@@ -3990,6 +4029,10 @@
         "properties": {
           "amount": {
             "type": "number"
+          },
+          "accountId": {
+            "type": "string",
+            "description": "Account the money left; omit to only advance the goal"
           },
           "contributedAt": {
             "type": "string",

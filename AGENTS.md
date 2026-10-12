@@ -9,39 +9,54 @@ Instrucciones para agentes y reviewers que trabajan en el backend de Personal OS
 3. [docs/documentation-standard.md](docs/documentation-standard.md) — taxonomía, IDs, anti-duplicación.
 4. El módulo o área que vas a tocar bajo `docs/modules/` o `docs/infrastructure/`.
 5. Código y pruebas citados en esos documentos. No inferir desde nombres.
+6. [docs/reference/changelog-guide.md](docs/reference/changelog-guide.md) — antes de cerrar la sesión, para el CHANGELOG y la versión.
 
 Si una afirmación no está `VERIFICADO`, leer [docs/review-register.md](docs/review-register.md) antes de tratarla como comportamiento vigente.
 
 ## Fuentes canónicas
 
-| Tema | Dónde |
-| --- | --- |
-| Dominio, REST, Prisma, eventos, colas, seguridad | este repositorio (`docs/` + `src/` + `packages/`) |
-| UI, rutas Next.js, Web Push del navegador | `personal-os-web` |
-| Envelope HTTP `{ data, meta }` | `packages/core/src/interceptors/transform.interceptor.ts` |
-| Eventos | `packages/core/src/events/event.constants.ts` |
-| Env | `packages/config/src/env.schema.ts` |
-| Tools IA | `packages/ai-agent/src/tools/tool.registry.ts` + `prompts/module-context.ts` |
-| API pública entre módulos Nest | `packages/<nombre>/src/index.ts` y barrels `@personal-os/<nombre>` (regla `.cursor/rules/module-public-api.mdc`) |
+| Tema                                             | Dónde                                                                                                            |
+| ------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------- |
+| Dominio, REST, Prisma, eventos, colas, seguridad | este repositorio (`docs/` + `src/` + `packages/`)                                                                |
+| UI, rutas Next.js, Web Push del navegador        | `personal-os-web`                                                                                                |
+| Envelope HTTP `{ data, meta }`                   | `packages/core/src/interceptors/transform.interceptor.ts`                                                        |
+| Eventos                                          | `packages/core/src/events/event.constants.ts`                                                                    |
+| Env                                              | `packages/config/src/env.schema.ts`                                                                              |
+| Tools IA                                         | `packages/ai-agent/src/tools/tool.registry.ts` + `prompts/module-context.ts`                                     |
+| API pública entre módulos Nest                   | `packages/<nombre>/src/index.ts` y barrels `@personal-os/<nombre>` (regla `.cursor/rules/module-public-api.mdc`) |
+
+## Changelog y versión
+
+Toda sesión de agente cierra con un release: `CHANGELOG.md` actualizado y `version` de `package.json` subida. Antes de escribirlo, lee [docs/reference/changelog-guide.md](docs/reference/changelog-guide.md) completo; ahí están las reglas, las secciones y un ejemplo.
+
+- Un release por sesión, aunque el cambio sea pequeño. El bump es el más alto de la sesión: `MAJOR` si rompe un contrato o los datos guardados, `MINOR` si agrega un endpoint o un dato nuevo y `PATCH` en el resto.
+- Una sola versión para el monorepo: el `package.json` de la raíz. Los paquetes de `packages/*` no se publican por separado.
+- El CHANGELOG va en español, de la versión más nueva a la más vieja, con la fecha en `AAAA-MM-DD`.
+- Cierra con `chore(release): vX.Y.Z` y crea el tag `vX.Y.Z`.
+- La documentación también pasa prettier: `pnpm format:check` cubre `ts`, `tsx` y `md`.
+- `personal-os-app` está fuera de servicio y no sigue esta regla.
 
 ## Checklist al cambiar comportamiento
 
 - [ ] Correr `pnpm lint`, `pnpm test` y `pnpm test:e2e` (obligatorio en todo cambio).
+- [ ] Correr `pnpm format:check`; un archivo sin formato o un test en rojo bloquea el cierre.
 - [ ] Actualizar el documento dueño (capacidad, regla o contrato), no un README monolítico.
 - [ ] Si el cambio no se puede verificar, añadir un `REV-BACK-*` en el registro.
 - [ ] Imports cruzados solo vía barrel/`FinanceFacade`.
 - [ ] Prefijo HTTP documentado como `/api/...` salvo health/Bull Board/Swagger que viven fuera o según `main.ts`.
 - [ ] No presentar módulos `agenda` / `projects` / `health` / `subscriptions` como APIs Nest: solo slugs de `user_modules`.
+- [ ] Actualizar `CHANGELOG.md` y subir `version` en `package.json`; cerrar con `chore(release): vX.Y.Z` y el tag.
 
 ## Pruebas obligatorias
 
 Todo cambio corre, antes de darlo por terminado:
 
-1. `pnpm lint`
-2. `pnpm test`
-3. `pnpm test:e2e`
+1. `pnpm format:check`
+2. `pnpm lint`
+3. `pnpm test`
+4. `pnpm test:e2e`
 
-Los E2E (`test/*.e2e-spec.ts`, Prisma mock) son requisito en **todo** cambio, no solo al tocar pruebas. Un cambio de contrato (paginación, DTO, respuesta HTTP) que no actualice su E2E deja el CI en rojo. Detalle en [docs/operations/testing.md](docs/operations/testing.md).
+No hay excepción por tamaño ni por tipo: un cambio de documentación también corre los cuatro. Los E2E (`test/*.e2e-spec.ts`, Prisma mock) son requisito en **todo** cambio, no solo al tocar pruebas. Un test en rojo significa que el cambio no está terminado, y no se abre un PR con la suite en rojo. Un cambio de contrato (paginación, DTO, respuesta HTTP) que no actualice su E2E deja el CI en rojo. Detalle en [docs/operations/testing.md](docs/operations/testing.md).
 
 ## Estructura de código
 

@@ -182,3 +182,9 @@ export type ProcessedDomainEvent = Prisma.ProcessedDomainEventModel
  * 
  */
 export type AuthDeletionOutbox = Prisma.AuthDeletionOutboxModel
+/**
+ * Model FinDeletionJournal
+ * Snapshot of a finance record removed from the detail menu. "Deshacer"
+ * re-creates the stored rows and re-applies the reversed ledger deltas.
+ */
+export type FinDeletionJournal = Prisma.FinDeletionJournalModel

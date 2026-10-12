@@ -428,7 +428,8 @@ export const ModelName = {
   FinEmailMessage: 'FinEmailMessage',
   DomainEventOutbox: 'DomainEventOutbox',
   ProcessedDomainEvent: 'ProcessedDomainEvent',
-  AuthDeletionOutbox: 'AuthDeletionOutbox'
+  AuthDeletionOutbox: 'AuthDeletionOutbox',
+  FinDeletionJournal: 'FinDeletionJournal'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -444,7 +445,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "module" | "userModule" | "aiAgentSession" | "aiMessage" | "aiAction" | "notification" | "pushToken" | "finAccount" | "finEmailConnection" | "finEmailSource" | "finTransaction" | "finCategory" | "finBudget" | "finBudgetAlert" | "finRecurringPattern" | "finExchangeRate" | "finInstitution" | "finCard" | "finCardBalance" | "finCardStatement" | "finSavingsGoal" | "finSavingsGoalContribution" | "finLoan" | "finLoanInstallment" | "finReceivable" | "finReceivablePayment" | "finEmailSyncLog" | "finEmailMessage" | "domainEventOutbox" | "processedDomainEvent" | "authDeletionOutbox"
+    modelProps: "user" | "module" | "userModule" | "aiAgentSession" | "aiMessage" | "aiAction" | "notification" | "pushToken" | "finAccount" | "finEmailConnection" | "finEmailSource" | "finTransaction" | "finCategory" | "finBudget" | "finBudgetAlert" | "finRecurringPattern" | "finExchangeRate" | "finInstitution" | "finCard" | "finCardBalance" | "finCardStatement" | "finSavingsGoal" | "finSavingsGoalContribution" | "finLoan" | "finLoanInstallment" | "finReceivable" | "finReceivablePayment" | "finEmailSyncLog" | "finEmailMessage" | "domainEventOutbox" | "processedDomainEvent" | "authDeletionOutbox" | "finDeletionJournal"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -2816,6 +2817,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    FinDeletionJournal: {
+      payload: Prisma.$FinDeletionJournalPayload<ExtArgs>
+      fields: Prisma.FinDeletionJournalFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.FinDeletionJournalFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinDeletionJournalPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.FinDeletionJournalFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinDeletionJournalPayload>
+        }
+        findFirst: {
+          args: Prisma.FinDeletionJournalFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinDeletionJournalPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.FinDeletionJournalFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinDeletionJournalPayload>
+        }
+        findMany: {
+          args: Prisma.FinDeletionJournalFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinDeletionJournalPayload>[]
+        }
+        create: {
+          args: Prisma.FinDeletionJournalCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinDeletionJournalPayload>
+        }
+        createMany: {
+          args: Prisma.FinDeletionJournalCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.FinDeletionJournalCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinDeletionJournalPayload>[]
+        }
+        delete: {
+          args: Prisma.FinDeletionJournalDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinDeletionJournalPayload>
+        }
+        update: {
+          args: Prisma.FinDeletionJournalUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinDeletionJournalPayload>
+        }
+        deleteMany: {
+          args: Prisma.FinDeletionJournalDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.FinDeletionJournalUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.FinDeletionJournalUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinDeletionJournalPayload>[]
+        }
+        upsert: {
+          args: Prisma.FinDeletionJournalUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinDeletionJournalPayload>
+        }
+        aggregate: {
+          args: Prisma.FinDeletionJournalAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateFinDeletionJournal>
+        }
+        groupBy: {
+          args: Prisma.FinDeletionJournalGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.FinDeletionJournalGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.FinDeletionJournalCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.FinDeletionJournalCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -3226,6 +3301,8 @@ export const FinSavingsGoalContributionScalarFieldEnum = {
   goalId: 'goalId',
   amount: 'amount',
   contributedAt: 'contributedAt',
+  accountId: 'accountId',
+  transactionId: 'transactionId',
   notes: 'notes',
   createdAt: 'createdAt'
 } as const
@@ -3379,6 +3456,19 @@ export const AuthDeletionOutboxScalarFieldEnum = {
 } as const
 
 export type AuthDeletionOutboxScalarFieldEnum = (typeof AuthDeletionOutboxScalarFieldEnum)[keyof typeof AuthDeletionOutboxScalarFieldEnum]
+
+
+export const FinDeletionJournalScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  entityType: 'entityType',
+  entityId: 'entityId',
+  snapshot: 'snapshot',
+  deletedAt: 'deletedAt',
+  restoredAt: 'restoredAt'
+} as const
+
+export type FinDeletionJournalScalarFieldEnum = (typeof FinDeletionJournalScalarFieldEnum)[keyof typeof FinDeletionJournalScalarFieldEnum]
 
 
 export const SortOrder = {
@@ -3960,6 +4050,7 @@ export type GlobalOmitConfig = {
   domainEventOutbox?: Prisma.DomainEventOutboxOmit
   processedDomainEvent?: Prisma.ProcessedDomainEventOmit
   authDeletionOutbox?: Prisma.AuthDeletionOutboxOmit
+  finDeletionJournal?: Prisma.FinDeletionJournalOmit
 }
 
 /* Types for Logging */

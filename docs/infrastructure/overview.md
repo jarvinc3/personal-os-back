@@ -4,16 +4,16 @@ Núcleo transversal de `personal-os-back` (NestJS 11). Los módulos de dominio e
 
 ## Stack (VERIFICADO)
 
-| Capa | Tecnología | Evidencia |
-| --- | --- | --- |
-| Framework | NestJS 11 | `package.json` |
-| ORM | Prisma 7 + PostgreSQL (Supabase) | `packages/database/prisma/schema.prisma` |
-| Auth | Supabase JWT vía JWKS | `packages/auth/src/infrastructure` |
-| Colas | BullMQ + Redis (opcional en dev) | `packages/config/src`, `packages/core/src/queues` |
-| Eventos | `@nestjs/event-emitter` in-process | `AppEvents` |
-| Logs | Pino (`nestjs-pino`) | `package.json` |
-| API docs | Swagger `SWAGGER_PATH` (off en production) | `main.ts` |
-| Tiempo real | Socket.IO namespace `/notifications` | `notifications.gateway.ts` |
+| Capa        | Tecnología                                 | Evidencia                                         |
+| ----------- | ------------------------------------------ | ------------------------------------------------- |
+| Framework   | NestJS 11                                  | `package.json`                                    |
+| ORM         | Prisma 7 + PostgreSQL (Supabase)           | `packages/database/prisma/schema.prisma`          |
+| Auth        | Supabase JWT vía JWKS                      | `packages/auth/src/infrastructure`                |
+| Colas       | BullMQ + Redis (opcional en dev)           | `packages/config/src`, `packages/core/src/queues` |
+| Eventos     | `@nestjs/event-emitter` in-process         | `AppEvents`                                       |
+| Logs        | Pino (`nestjs-pino`)                       | `package.json`                                    |
+| API docs    | Swagger `SWAGGER_PATH` (off en production) | `main.ts`                                         |
+| Tiempo real | Socket.IO namespace `/notifications`       | `notifications.gateway.ts`                        |
 
 ## `packages/core/src/` (VERIFICADO)
 

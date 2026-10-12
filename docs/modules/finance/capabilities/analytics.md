@@ -1,11 +1,11 @@
 # Capacidad: analytics
 
-| Path | Notas |
-| --- | --- |
-| `GET /api/finance/analytics/summary` | Cash flow del **rango** pedido. Position fields de compatibilidad (`accountBalance`, `cardDebt`, `netWorth`) vienen del snapshot actual (misma regla que balance-sheet). `cardDebt` = credit utilization (`creditLimit - available`). Sin credit limit → `balanceStatus=INCOMPLETE` y null `netWorth`/`cardDebt`. Incluye `baseCurrency`. |
-| `GET /api/finance/analytics/spending-by-category` | |
-| `GET /api/finance/analytics/budget-status` | |
-| `GET /api/finance/analytics/spending-over-time` | Query `granularity` `day`\|`week`\|`month`. Facade/tool param `groupBy` (mismo significado). |
+| Path                                              | Notas                                                                                                                                                                                                                                                                                                                                     |
+| ------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /api/finance/analytics/summary`              | Cash flow del **rango** pedido. Position fields de compatibilidad (`accountBalance`, `cardDebt`, `netWorth`) vienen del snapshot actual (misma regla que balance-sheet). `cardDebt` = credit utilization (`creditLimit - available`). Sin credit limit → `balanceStatus=INCOMPLETE` y null `netWorth`/`cardDebt`. Incluye `baseCurrency`. |
+| `GET /api/finance/analytics/spending-by-category` |                                                                                                                                                                                                                                                                                                                                           |
+| `GET /api/finance/analytics/budget-status`        |                                                                                                                                                                                                                                                                                                                                           |
+| `GET /api/finance/analytics/spending-over-time`   | Query `granularity` `day`\|`week`\|`month`. Facade/tool param `groupBy` (mismo significado).                                                                                                                                                                                                                                              |
 
 FX fail-closed con fecha UTC de hoy para position fields.
 

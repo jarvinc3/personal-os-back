@@ -21,13 +21,13 @@ Enums relevantes: ver `packages/database/prisma/schema.prisma` (`FinTransactionS
 
 ## Operación
 
-| Comando | Uso |
-| --- | --- |
-| `pnpm db:generate` | Client |
-| `pnpm db:migrate` | Dev |
-| `pnpm db:migrate:deploy` | Aplicar pendientes |
-| `pnpm db:migrate:status` / `db:migrate:diff` | Drift |
-| `pnpm db:validate` | Schema |
+| Comando                                      | Uso                |
+| -------------------------------------------- | ------------------ |
+| `pnpm db:generate`                           | Client             |
+| `pnpm db:migrate`                            | Dev                |
+| `pnpm db:migrate:deploy`                     | Aplicar pendientes |
+| `pnpm db:migrate:status` / `db:migrate:diff` | Drift              |
+| `pnpm db:validate`                           | Schema             |
 
 No usar `migrate reset` sobre datos reales.
 

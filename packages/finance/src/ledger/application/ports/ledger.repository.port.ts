@@ -1,4 +1,5 @@
 import type { BudgetSpendSnapshot } from '../../../shared/domain/budget-snapshot';
+import type { StoredMovement } from '../../../shared/domain/deletion-snapshot';
 import type { ResolvedAmounts } from '../../../shared/domain/money';
 import type {
   CreateTransactionCommand,
@@ -181,6 +182,12 @@ export interface LedgerRepositoryPort {
 
   deleteTransaction(userId: string, id: string): Promise<{ count: number }>;
 
+  restoreTransaction(
+    userId: string,
+    id: string,
+    now: Date,
+  ): Promise<{ count: number }>;
+
   deleteTransactionsByTransferGroupId(
     userId: string,
     transferGroupId: string,
@@ -189,11 +196,17 @@ export interface LedgerRepositoryPort {
   purgeLedgerForAccount(
     userId: string,
     accountId: string,
-  ): Promise<{ count: number }>;
+  ): Promise<{ count: number; rows: LedgerTransactionRow[] }>;
 
   purgeLedgerForCard(
     userId: string,
     cardId: string,
+  ): Promise<{ count: number; rows: LedgerTransactionRow[] }>;
+
+  /** Puts the balance and budget effect of movements a delete reversed. */
+  restoreLedgerTransactions(
+    userId: string,
+    movements: readonly StoredMovement[],
   ): Promise<{ count: number }>;
 
   confirmTransaction(

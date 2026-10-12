@@ -5,6 +5,7 @@ import {
   IsNumber,
   IsOptional,
   IsString,
+  IsUUID,
   MaxLength,
   Min,
 } from 'class-validator';
@@ -15,6 +16,10 @@ export class CreateSavingsGoalContributionDto {
   @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0.01)
   amount!: number;
+
+  @ApiProperty({ description: 'Account the money left' })
+  @IsUUID()
+  accountId!: string;
 
   @ApiPropertyOptional({ description: 'Defaults to today' })
   @IsOptional()

@@ -2,9 +2,9 @@
 
 Prefijo: `/api` (`API_PREFIX`). Auth: Bearer JWT.
 
-| Método | Path | Auth | Descripción |
-| --- | --- | --- | --- |
-| GET | `/api/auth/session` | JWT | Payload de usuario desde claims; emite `user.logged_in` si no hay cache |
+| Método | Path                | Auth | Descripción                                                             |
+| ------ | ------------------- | ---- | ----------------------------------------------------------------------- |
+| GET    | `/api/auth/session` | JWT  | Payload de usuario desde claims; emite `user.logged_in` si no hay cache |
 
 **BR-AUTH-001:** máximo un evento `user.logged_in` por usuario y hora (cache).
 

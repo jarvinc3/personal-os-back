@@ -266,6 +266,7 @@ export const createSavingsGoalArgsSchema = z
 export const recordSavingsContributionArgsSchema = z
   .object({
     goalId: uuid,
+    accountId: uuid,
     amount: moneyAmount,
     contributedAt: dateString.nullable().optional(),
     notes: z.string().trim().max(200).nullable().optional(),

@@ -33,7 +33,10 @@ describe('toErrorField', () => {
   it('joins validation message arrays from ValidationPipe', () => {
     expect(
       toErrorField(
-        ['categoryId must be a UUID', 'periodStart must be a valid ISO 8601 date string'],
+        [
+          'categoryId must be a UUID',
+          'periodStart must be a valid ISO 8601 date string',
+        ],
         'Bad Request Exception',
       ),
     ).toBe(

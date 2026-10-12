@@ -1,13 +1,33 @@
 import { Injectable } from '@nestjs/common';
 import type { Prisma } from '@personal-os/database';
 import { PrismaService } from '@personal-os/database';
+import type { LedgerTransactionRow } from '../../ledger/application/ports/ledger.repository.port';
+import { restoreLedgerRows } from '../../ledger/infrastructure/balance.helpers';
+import {
+  DELETION_ENTITY,
+  DELETION_MODEL,
+  reversedMovements,
+  toDeletionValues,
+  type ClearedAccountLink,
+  type DeletionSnapshot,
+} from '../../shared/domain/deletion-snapshot';
+import { DeletionJournalRepository } from '../../shared/infrastructure/deletion-journal.repository';
 import { normalizeCurrencyCode } from '../../shared/presentation/validation.decorators';
 import type { CreateAccountDto } from '../presentation/dto/create-account.dto';
 import type { UpdateAccountDto } from '../presentation/dto/update-account.dto';
 
+type LedgerPurge = {
+  userId: string;
+  id: string;
+  movements: readonly LedgerTransactionRow[];
+};
+
 @Injectable()
 export class CatalogRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly journal: DeletionJournalRepository,
+  ) {}
 
   findAccountsByUser(userId: string) {
     return this.prisma.finAccount.findMany({
@@ -299,9 +319,68 @@ export class CatalogRepository {
   }
 
   deleteCategory(userId: string, id: string) {
-    return this.prisma.finCategory.deleteMany({
-      where: { id, userId, isSystem: false },
+    return this.prisma.$transaction(async (tx) => {
+      const category = await tx.finCategory.findFirst({
+        where: { id, userId, isSystem: false },
+      });
+      if (!category) {
+        return { count: 0 };
+      }
+      const children = await tx.finCategory.findMany({
+        where: { userId, parentId: id },
+      });
+      const categoryIds = [id, ...children.map((child) => child.id)];
+      const budgets = await tx.finBudget.findMany({
+        where: { userId, categoryId: { in: categoryIds } },
+        include: { alerts: true },
+      });
+      const cleared = await tx.finTransaction.findMany({
+        where: { userId, categoryId: { in: categoryIds } },
+        select: { id: true, categoryId: true },
+      });
+      await this.journal.record(tx, {
+        userId,
+        entityType: DELETION_ENTITY.category,
+        entityId: id,
+        snapshot: {
+          rows: [
+            {
+              model: DELETION_MODEL.category,
+              values: toDeletionValues(category),
+            },
+            ...children.map((child) => ({
+              model: DELETION_MODEL.category,
+              values: toDeletionValues(child),
+            })),
+            ...budgets.map((budget) => ({
+              model: DELETION_MODEL.budget,
+              values: toDeletionValues({ ...budget, alerts: undefined }),
+            })),
+            ...budgets.flatMap((budget) =>
+              budget.alerts.map((alert) => ({
+                model: DELETION_MODEL.budgetAlert,
+                values: toDeletionValues(alert),
+              })),
+            ),
+          ],
+          categoriesCleared: cleared.map((row) => ({
+            transactionId: row.id,
+            categoryId: row.categoryId as string,
+          })),
+        },
+      });
+      await tx.finTransaction.updateMany({
+        where: { userId, categoryId: { in: categoryIds } },
+        data: { categoryId: null },
+      });
+      return tx.finCategory.deleteMany({
+        where: { id: { in: categoryIds }, userId, isSystem: false },
+      });
     });
+  }
+
+  restoreCategory(userId: string, id: string, now: Date) {
+    return this.journal.restore(userId, DELETION_ENTITY.category, id, now);
   }
 
   findInstitution(userId: string, id: string) {
@@ -322,29 +401,264 @@ export class CatalogRepository {
     });
   }
 
-  deleteCardsByAccountId(userId: string, accountId: string) {
-    return this.prisma.finCard.deleteMany({ where: { userId, accountId } });
-  }
-
-  deleteCard(userId: string, id: string) {
-    return this.prisma.finCard.deleteMany({ where: { id, userId } });
-  }
-
-  deleteAccount(userId: string, id: string) {
-    return this.prisma.finAccount.deleteMany({ where: { id, userId } });
-  }
-
-  deleteEmailSourcesByInstitution(userId: string, institutionId: string) {
-    return this.prisma.finEmailSource.deleteMany({
-      where: { userId, institutionId },
+  deleteCard({ userId, id, movements }: LedgerPurge) {
+    return this.prisma.$transaction(async (tx) => {
+      const card = await tx.finCard.findFirst({
+        where: { id, userId },
+        include: { balances: true, statements: true },
+      });
+      if (!card) {
+        return { count: 0 };
+      }
+      await this.journal.record(tx, {
+        userId,
+        entityType: DELETION_ENTITY.card,
+        entityId: id,
+        snapshot: {
+          rows: [
+            {
+              model: DELETION_MODEL.card,
+              values: toDeletionValues({
+                ...card,
+                balances: undefined,
+                statements: undefined,
+              }),
+            },
+            ...card.balances.map((balance) => ({
+              model: DELETION_MODEL.cardBalance,
+              values: toDeletionValues(balance),
+            })),
+            ...card.statements.map((statement) => ({
+              model: DELETION_MODEL.cardStatement,
+              values: toDeletionValues(statement),
+            })),
+            ...movements.map((movement) => ({
+              model: DELETION_MODEL.transaction,
+              values: toDeletionValues(movement),
+            })),
+          ],
+          ledgerReversed: movements.map((movement) => movement.id),
+        },
+      });
+      return tx.finCard.deleteMany({ where: { id, userId } });
     });
   }
 
-  deleteLoansByInstitution(userId: string, institutionId: string) {
-    return this.prisma.finLoan.deleteMany({ where: { userId, institutionId } });
+  restoreCard(userId: string, id: string, now: Date) {
+    return this.journal.restore(
+      userId,
+      DELETION_ENTITY.card,
+      id,
+      now,
+      (tx, snapshot) => this.restoreLedgerWithin(tx, userId, snapshot),
+    );
   }
 
-  deleteInstitution(userId: string, id: string) {
-    return this.prisma.finInstitution.deleteMany({ where: { id, userId } });
+  deleteAccount({ userId, id, movements }: LedgerPurge) {
+    return this.prisma.$transaction(async (tx) => {
+      const account = await tx.finAccount.findFirst({ where: { id, userId } });
+      if (!account) {
+        return { count: 0 };
+      }
+      const cards = await tx.finCard.findMany({
+        where: { userId, accountId: id },
+        include: { balances: true, statements: true },
+      });
+      const loans = await tx.finLoan.findMany({
+        where: { userId, accountId: id },
+        include: { installments: true },
+      });
+      await this.journal.record(tx, {
+        userId,
+        entityType: DELETION_ENTITY.account,
+        entityId: id,
+        snapshot: {
+          rows: [
+            {
+              model: DELETION_MODEL.account,
+              values: toDeletionValues(account),
+            },
+            ...cards.map((card) => ({
+              model: DELETION_MODEL.card,
+              values: toDeletionValues({
+                ...card,
+                balances: undefined,
+                statements: undefined,
+              }),
+            })),
+            ...cards.flatMap((card) =>
+              card.balances.map((balance) => ({
+                model: DELETION_MODEL.cardBalance,
+                values: toDeletionValues(balance),
+              })),
+            ),
+            ...cards.flatMap((card) =>
+              card.statements.map((statement) => ({
+                model: DELETION_MODEL.cardStatement,
+                values: toDeletionValues(statement),
+              })),
+            ),
+            ...loans.map((loan) => ({
+              model: DELETION_MODEL.loan,
+              values: toDeletionValues({ ...loan, installments: undefined }),
+            })),
+            ...loans.flatMap((loan) =>
+              loan.installments.map((installment) => ({
+                model: DELETION_MODEL.loanInstallment,
+                values: toDeletionValues(installment),
+              })),
+            ),
+            ...movements.map((movement) => ({
+              model: DELETION_MODEL.transaction,
+              values: toDeletionValues(movement),
+            })),
+          ],
+          ledgerReversed: movements.map((movement) => movement.id),
+          accountsCleared: await this.listClearedAccountLinks(tx, id),
+        },
+      });
+      await tx.finCard.deleteMany({ where: { userId, accountId: id } });
+      return tx.finAccount.deleteMany({ where: { id, userId } });
+    });
+  }
+
+  restoreAccount(userId: string, id: string, now: Date) {
+    return this.journal.restore(
+      userId,
+      DELETION_ENTITY.account,
+      id,
+      now,
+      (tx, snapshot) => this.restoreLedgerWithin(tx, userId, snapshot),
+    );
+  }
+
+  deleteInstitution({ userId, id, movements }: LedgerPurge) {
+    return this.prisma.$transaction(async (tx) => {
+      const institution = await tx.finInstitution.findFirst({
+        where: { id, userId },
+      });
+      if (!institution) {
+        return { count: 0 };
+      }
+      const accounts = await tx.finAccount.findMany({
+        where: { userId, institutionId: id },
+        select: { id: true },
+      });
+      const cards = await tx.finCard.findMany({
+        where: { userId, institutionId: id },
+        include: { balances: true, statements: true },
+      });
+      const loans = await tx.finLoan.findMany({
+        where: { userId, institutionId: id },
+        include: { installments: true },
+      });
+      const emailSources = await tx.finEmailSource.findMany({
+        where: { userId, institutionId: id },
+      });
+      const clearedLinks: ClearedAccountLink[] = [];
+      for (const account of accounts) {
+        clearedLinks.push(
+          ...(await this.listClearedAccountLinks(tx, account.id)),
+        );
+      }
+      await this.journal.record(tx, {
+        userId,
+        entityType: DELETION_ENTITY.institution,
+        entityId: id,
+        snapshot: {
+          rows: [
+            {
+              model: DELETION_MODEL.institution,
+              values: toDeletionValues(institution),
+            },
+            ...cards.map((card) => ({
+              model: DELETION_MODEL.card,
+              values: toDeletionValues({
+                ...card,
+                balances: undefined,
+                statements: undefined,
+              }),
+            })),
+            ...cards.flatMap((card) =>
+              card.balances.map((balance) => ({
+                model: DELETION_MODEL.cardBalance,
+                values: toDeletionValues(balance),
+              })),
+            ),
+            ...cards.flatMap((card) =>
+              card.statements.map((statement) => ({
+                model: DELETION_MODEL.cardStatement,
+                values: toDeletionValues(statement),
+              })),
+            ),
+            ...loans.map((loan) => ({
+              model: DELETION_MODEL.loan,
+              values: toDeletionValues({ ...loan, installments: undefined }),
+            })),
+            ...loans.flatMap((loan) =>
+              loan.installments.map((installment) => ({
+                model: DELETION_MODEL.loanInstallment,
+                values: toDeletionValues(installment),
+              })),
+            ),
+            ...emailSources.map((source) => ({
+              model: DELETION_MODEL.emailSource,
+              values: toDeletionValues(source),
+            })),
+            ...movements.map((movement) => ({
+              model: DELETION_MODEL.transaction,
+              values: toDeletionValues(movement),
+            })),
+          ],
+          ledgerReversed: movements.map((movement) => movement.id),
+          accountsCleared: clearedLinks,
+        },
+      });
+      return tx.finInstitution.deleteMany({ where: { id, userId } });
+    });
+  }
+
+  restoreInstitution(userId: string, id: string, now: Date) {
+    return this.journal.restore(
+      userId,
+      DELETION_ENTITY.institution,
+      id,
+      now,
+      (tx, snapshot) => this.restoreLedgerWithin(tx, userId, snapshot),
+    );
+  }
+
+  private restoreLedgerWithin(
+    tx: Prisma.TransactionClient,
+    userId: string,
+    snapshot: DeletionSnapshot,
+  ) {
+    return restoreLedgerRows(tx, userId, reversedMovements(snapshot));
+  }
+
+  private async listClearedAccountLinks(
+    tx: Prisma.TransactionClient,
+    accountId: string,
+  ): Promise<ClearedAccountLink[]> {
+    const payments = await tx.finReceivablePayment.findMany({
+      where: { accountId },
+      select: { id: true },
+    });
+    const contributions = await tx.finSavingsGoalContribution.findMany({
+      where: { accountId },
+      select: { id: true },
+    });
+    return [
+      ...payments.map((row) => ({
+        model: DELETION_MODEL.receivablePayment,
+        rowId: row.id,
+        accountId,
+      })),
+      ...contributions.map((row) => ({
+        model: DELETION_MODEL.savingsGoalContribution,
+        rowId: row.id,
+        accountId,
+      })),
+    ];
   }
 }

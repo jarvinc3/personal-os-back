@@ -52,8 +52,16 @@ export class CardsController {
     return this.catalog.deleteCard(userId, id);
   }
 
+  @Post('cards/:id/restore')
+  @ApiOperation({ summary: 'Undo a delete from the journal snapshot' })
+  restore(@CurrentUser('sub') userId: string, @Param('id') id: string) {
+    return this.catalog.restoreCard(userId, id, new Date());
+  }
+
   @Post('cards/:id/balances/credit-limit')
-  @ApiOperation({ summary: 'Update a credit card limit without changing its balance' })
+  @ApiOperation({
+    summary: 'Update a credit card limit without changing its balance',
+  })
   updateCreditLimit(
     @CurrentUser('sub') userId: string,
     @Param('id') id: string,

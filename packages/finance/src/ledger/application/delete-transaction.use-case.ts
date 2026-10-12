@@ -31,7 +31,7 @@ export class DeleteTransactionUseCase {
         throw new NotFoundException('Manual transaction not found');
       }
       void this.outboxDispatcher.processBatch();
-      return { success: true };
+      return { success: true, undoId: tx.transferGroupId };
     }
 
     const result = await this.repo.deleteTransaction(userId, id);
@@ -39,6 +39,6 @@ export class DeleteTransactionUseCase {
       throw new NotFoundException('Manual transaction not found');
     }
     void this.outboxDispatcher.processBatch();
-    return { success: true };
+    return { success: true, undoId: id };
   }
 }

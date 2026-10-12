@@ -19,6 +19,7 @@ import {
 import { type Env, getSupabaseAuthConfig } from '@personal-os/config';
 import { Public } from '@personal-os/core';
 import { PrismaService } from '@personal-os/database';
+import { appVersion } from '../app-version';
 import { RedisHealthIndicator } from './indicators/redis.health.indicator';
 
 export type HealthProbeResponse = {
@@ -49,11 +50,16 @@ export class HealthController {
       properties: {
         status: { type: 'string', example: 'ok' },
         timestamp: { type: 'string', format: 'date-time' },
+        version: { type: 'string', example: '1.4.0' },
       },
     },
   })
-  liveness(): { status: string; timestamp: string } {
-    return { status: 'ok', timestamp: new Date().toISOString() };
+  liveness(): { status: string; timestamp: string; version: string } {
+    return {
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+      version: appVersion(),
+    };
   }
 
   @Get('startup')

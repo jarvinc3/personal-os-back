@@ -54,4 +54,10 @@ export class BudgetsController {
   remove(@CurrentUser('sub') userId: string, @Param('id') id: string) {
     return this.planning.deleteBudget(userId, id);
   }
+
+  @Post('budgets/:id/restore')
+  @ApiOperation({ summary: 'Undo a delete from the journal snapshot' })
+  restore(@CurrentUser('sub') userId: string, @Param('id') id: string) {
+    return this.planning.restoreBudget(userId, id, new Date());
+  }
 }

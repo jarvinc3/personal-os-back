@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import {
   clampPageLimit,
   toCursorPage,
@@ -10,7 +14,6 @@ import type { CreateBudgetDto } from '../presentation/dto/create-budget.dto';
 import type { CreateLoanDto } from '../presentation/dto/create-loan.dto';
 import type { CreateReceivableDto } from '../presentation/dto/create-receivable.dto';
 import type { CreateSavingsGoalDto } from '../presentation/dto/create-savings-goal.dto';
-import type { CreateSavingsGoalContributionDto } from '../presentation/dto/create-savings-goal-contribution.dto';
 import type { UpdateBudgetDto } from '../presentation/dto/update-budget.dto';
 import type { UpdateLoanDto } from '../presentation/dto/update-loan.dto';
 import type { UpdateReceivableDto } from '../presentation/dto/update-receivable.dto';
@@ -99,6 +102,14 @@ export class PlanningService {
     return { success: true };
   }
 
+  async restoreBudget(userId: string, id: string, now: Date) {
+    const restored = await this.repo.restoreBudget(userId, id, now);
+    if (restored.count === 0) {
+      throw new NotFoundException('Budget not found');
+    }
+    return { success: true };
+  }
+
   async listSavingsGoals(userId: string) {
     const rows = await this.repo.listSavingsGoals(userId);
     return rows.map(mapSavingsGoal);
@@ -170,47 +181,18 @@ export class PlanningService {
     return { success: true };
   }
 
+  async restoreSavingsGoal(userId: string, id: string, now: Date) {
+    const restored = await this.repo.restoreSavingsGoal(userId, id, now);
+    if (restored.count === 0) {
+      throw new NotFoundException('Savings goal not found');
+    }
+    return { success: true };
+  }
+
   async listSavingsGoalContributions(userId: string, id: string) {
     await this.assertSavingsGoalOwned(userId, id);
     const rows = await this.repo.listSavingsGoalContributions(id);
     return rows.map(mapSavingsGoalContribution);
-  }
-
-  async addSavingsGoalContribution(
-    userId: string,
-    id: string,
-    dto: CreateSavingsGoalContributionDto,
-    now: Date,
-  ) {
-    await this.assertSavingsGoalOwned(userId, id);
-    const created = await this.repo.addSavingsGoalContribution(
-      id,
-      {
-        amount: dto.amount,
-        contributedAt: dto.contributedAt ? new Date(dto.contributedAt) : now,
-        ...(dto.notes !== undefined ? { notes: dto.notes } : {}),
-      },
-      now,
-    );
-    return mapSavingsGoalContribution(created);
-  }
-
-  async deleteSavingsGoalContribution(
-    userId: string,
-    id: string,
-    contributionId: string,
-    now: Date,
-  ) {
-    await this.assertSavingsGoalOwned(userId, id);
-    const contribution = await this.repo.findSavingsGoalContribution(
-      id,
-      contributionId,
-    );
-    if (!contribution) {
-      throw new NotFoundException('Contribution not found');
-    }
-    await this.repo.removeSavingsGoalContribution(id, contributionId, now);
-    return { success: true };
   }
 
   private async assertSavingsGoalOwned(
@@ -301,6 +283,31 @@ export class PlanningService {
       });
     }
 
+    const nextOriginalAmount = Number(existing.originalAmount);
+    const nextCurrentBalance =
+      dto.currentBalance !== undefined
+        ? dto.currentBalance
+        : Number(existing.currentBalance);
+    if (nextCurrentBalance > nextOriginalAmount) {
+      throw new BadRequestException(
+        'currentBalance must not exceed originalAmount',
+      );
+    }
+
+    const nextTotalInstallments =
+      dto.totalInstallments !== undefined
+        ? dto.totalInstallments
+        : existing.totalInstallments;
+    const nextPaidInstallments =
+      dto.paidInstallments !== undefined
+        ? dto.paidInstallments
+        : existing.paidInstallments;
+    if (nextPaidInstallments > nextTotalInstallments) {
+      throw new BadRequestException(
+        'paidInstallments must not exceed totalInstallments',
+      );
+    }
+
     const updated = await this.repo.updateLoan(userId, id, {
       ...(dto.lenderName ? { lenderName: dto.lenderName } : {}),
       ...(dto.institutionId !== undefined
@@ -346,6 +353,14 @@ export class PlanningService {
   async deleteLoan(userId: string, id: string) {
     const result = await this.repo.deleteLoan(userId, id);
     if (result.count === 0) {
+      throw new NotFoundException('Loan not found');
+    }
+    return { success: true };
+  }
+
+  async restoreLoan(userId: string, id: string, now: Date) {
+    const restored = await this.repo.restoreLoan(userId, id, now);
+    if (restored.count === 0) {
       throw new NotFoundException('Loan not found');
     }
     return { success: true };
@@ -423,6 +438,14 @@ export class PlanningService {
   async deleteReceivable(userId: string, id: string) {
     const result = await this.repo.deleteReceivable(userId, id);
     if (result.count === 0) {
+      throw new NotFoundException('Receivable not found');
+    }
+    return { success: true };
+  }
+
+  async restoreReceivable(userId: string, id: string, now: Date) {
+    const restored = await this.repo.restoreReceivable(userId, id, now);
+    if (restored.count === 0) {
       throw new NotFoundException('Receivable not found');
     }
     return { success: true };

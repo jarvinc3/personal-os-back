@@ -1,8 +1,12 @@
 import { ApiPropertyOptional, PartialType } from '@nestjs/swagger';
 import { IsBoolean, IsOptional } from 'class-validator';
-import { CreateLoanDto } from './create-loan.dto';
+import { LoanFieldsDto } from './loan-fields.dto';
 
-export class UpdateLoanDto extends PartialType(CreateLoanDto) {
+/**
+ * Editing is validated field by field here; the cross-field rules need the
+ * stored loan, so PlanningService.updateLoan owns them.
+ */
+export class UpdateLoanDto extends PartialType(LoanFieldsDto) {
   @ApiPropertyOptional()
   @IsOptional()
   @IsBoolean()

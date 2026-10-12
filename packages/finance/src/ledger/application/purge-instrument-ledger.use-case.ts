@@ -12,12 +12,14 @@ export class PurgeInstrumentLedgerUseCase {
   ) {}
 
   async forAccount(userId: string, accountId: string) {
-    await this.repo.purgeLedgerForAccount(userId, accountId);
+    const purged = await this.repo.purgeLedgerForAccount(userId, accountId);
     void this.outboxDispatcher.processBatch();
+    return purged;
   }
 
   async forCard(userId: string, cardId: string) {
-    await this.repo.purgeLedgerForCard(userId, cardId);
+    const purged = await this.repo.purgeLedgerForCard(userId, cardId);
     void this.outboxDispatcher.processBatch();
+    return purged;
   }
 }

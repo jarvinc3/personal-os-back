@@ -82,7 +82,8 @@ export const ModelName = {
   FinEmailMessage: 'FinEmailMessage',
   DomainEventOutbox: 'DomainEventOutbox',
   ProcessedDomainEvent: 'ProcessedDomainEvent',
-  AuthDeletionOutbox: 'AuthDeletionOutbox'
+  AuthDeletionOutbox: 'AuthDeletionOutbox',
+  FinDeletionJournal: 'FinDeletionJournal'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -472,6 +473,8 @@ export const FinSavingsGoalContributionScalarFieldEnum = {
   goalId: 'goalId',
   amount: 'amount',
   contributedAt: 'contributedAt',
+  accountId: 'accountId',
+  transactionId: 'transactionId',
   notes: 'notes',
   createdAt: 'createdAt'
 } as const
@@ -625,6 +628,19 @@ export const AuthDeletionOutboxScalarFieldEnum = {
 } as const
 
 export type AuthDeletionOutboxScalarFieldEnum = (typeof AuthDeletionOutboxScalarFieldEnum)[keyof typeof AuthDeletionOutboxScalarFieldEnum]
+
+
+export const FinDeletionJournalScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  entityType: 'entityType',
+  entityId: 'entityId',
+  snapshot: 'snapshot',
+  deletedAt: 'deletedAt',
+  restoredAt: 'restoredAt'
+} as const
+
+export type FinDeletionJournalScalarFieldEnum = (typeof FinDeletionJournalScalarFieldEnum)[keyof typeof FinDeletionJournalScalarFieldEnum]
 
 
 export const SortOrder = {

@@ -590,6 +590,7 @@ export class ToolExecutorService {
             ctx.userId,
             contribution.goalId,
             {
+              accountId: contribution.accountId,
               amount: contribution.amount,
               contributedAt: contribution.contributedAt ?? undefined,
               notes: contribution.notes ?? undefined,
