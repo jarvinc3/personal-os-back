@@ -3198,6 +3198,8 @@ export const FinTransactionScalarFieldEnum = {
   aiMetadata: 'aiMetadata',
   notes: 'notes',
   source: 'source',
+  legRole: 'legRole',
+  rail: 'rail',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -3785,6 +3787,34 @@ export type EnumFinTransactionSourceFieldRefInput<$PrismaModel> = FieldRefInputT
  * Reference to a field of type 'FinTransactionSource[]'
  */
 export type ListEnumFinTransactionSourceFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'FinTransactionSource[]'>
+    
+
+
+/**
+ * Reference to a field of type 'FinOperationLegRole'
+ */
+export type EnumFinOperationLegRoleFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'FinOperationLegRole'>
+    
+
+
+/**
+ * Reference to a field of type 'FinOperationLegRole[]'
+ */
+export type ListEnumFinOperationLegRoleFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'FinOperationLegRole[]'>
+    
+
+
+/**
+ * Reference to a field of type 'FinTransferRail'
+ */
+export type EnumFinTransferRailFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'FinTransferRail'>
+    
+
+
+/**
+ * Reference to a field of type 'FinTransferRail[]'
+ */
+export type ListEnumFinTransferRailFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'FinTransferRail[]'>
     
 
 

@@ -296,6 +296,8 @@ export const FinTransactionScalarFieldEnum = {
   aiMetadata: 'aiMetadata',
   notes: 'notes',
   source: 'source',
+  legRole: 'legRole',
+  rail: 'rail',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const

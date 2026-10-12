@@ -243,21 +243,21 @@ describe('PrismaLedgerRepository outbox-in-TX', () => {
       undefined,
     );
 
-    const result = await repo.createTransfer(
-      'user-1',
-      {
+    const createdTransfer = await repo.createTransfer({
+      userId: 'user-1',
+      command: {
         fromAccountId: 'acc-from',
         toAccountId: 'acc-to',
         amount: 50,
         transactionDate: '2026-08-01',
       },
-      dopAmounts,
-      dopAmounts,
-    );
+      fromAmounts: dopAmounts,
+      toAmounts: dopAmounts,
+    });
 
-    expect(result?.transferGroupId).toBeDefined();
-    expect(result?.debit.id).toBe('debit-1');
-    expect(result?.credit.id).toBe('credit-1');
+    expect(createdTransfer?.transferGroupId).toBeDefined();
+    expect(createdTransfer?.debit.id).toBe('debit-1');
+    expect(createdTransfer?.credit.id).toBe('credit-1');
     expect(finAccountUpdate).toHaveBeenCalledTimes(2);
     expect(finAccountUpdate).toHaveBeenCalledWith({
       where: { id: 'acc-from' },

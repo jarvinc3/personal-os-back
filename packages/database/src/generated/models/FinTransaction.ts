@@ -64,6 +64,8 @@ export type FinTransactionMinAggregateOutputType = {
   isRecurring: boolean | null
   notes: string | null
   source: $Enums.FinTransactionSource | null
+  legRole: $Enums.FinOperationLegRole | null
+  rail: $Enums.FinTransferRail | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -92,6 +94,8 @@ export type FinTransactionMaxAggregateOutputType = {
   isRecurring: boolean | null
   notes: string | null
   source: $Enums.FinTransactionSource | null
+  legRole: $Enums.FinOperationLegRole | null
+  rail: $Enums.FinTransferRail | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -121,6 +125,8 @@ export type FinTransactionCountAggregateOutputType = {
   aiMetadata: number
   notes: number
   source: number
+  legRole: number
+  rail: number
   createdAt: number
   updatedAt: number
   _all: number
@@ -165,6 +171,8 @@ export type FinTransactionMinAggregateInputType = {
   isRecurring?: true
   notes?: true
   source?: true
+  legRole?: true
+  rail?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -193,6 +201,8 @@ export type FinTransactionMaxAggregateInputType = {
   isRecurring?: true
   notes?: true
   source?: true
+  legRole?: true
+  rail?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -222,6 +232,8 @@ export type FinTransactionCountAggregateInputType = {
   aiMetadata?: true
   notes?: true
   source?: true
+  legRole?: true
+  rail?: true
   createdAt?: true
   updatedAt?: true
   _all?: true
@@ -338,6 +350,8 @@ export type FinTransactionGroupByOutputType = {
   aiMetadata: runtime.JsonValue
   notes: string | null
   source: $Enums.FinTransactionSource
+  legRole: $Enums.FinOperationLegRole | null
+  rail: $Enums.FinTransferRail | null
   createdAt: Date
   updatedAt: Date
   _count: FinTransactionCountAggregateOutputType | null
@@ -390,6 +404,8 @@ export type FinTransactionWhereInput = {
   aiMetadata?: Prisma.JsonFilter<"FinTransaction">
   notes?: Prisma.StringNullableFilter<"FinTransaction"> | string | null
   source?: Prisma.EnumFinTransactionSourceFilter<"FinTransaction"> | $Enums.FinTransactionSource
+  legRole?: Prisma.EnumFinOperationLegRoleNullableFilter<"FinTransaction"> | $Enums.FinOperationLegRole | null
+  rail?: Prisma.EnumFinTransferRailNullableFilter<"FinTransaction"> | $Enums.FinTransferRail | null
   createdAt?: Prisma.DateTimeFilter<"FinTransaction"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"FinTransaction"> | Date | string
   account?: Prisma.XOR<Prisma.FinAccountNullableScalarRelationFilter, Prisma.FinAccountWhereInput> | null
@@ -429,6 +445,8 @@ export type FinTransactionOrderByWithRelationInput = {
   aiMetadata?: Prisma.SortOrder
   notes?: Prisma.SortOrderInput | Prisma.SortOrder
   source?: Prisma.SortOrder
+  legRole?: Prisma.SortOrderInput | Prisma.SortOrder
+  rail?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   account?: Prisma.FinAccountOrderByWithRelationInput
@@ -471,6 +489,8 @@ export type FinTransactionWhereUniqueInput = Prisma.AtLeast<{
   aiMetadata?: Prisma.JsonFilter<"FinTransaction">
   notes?: Prisma.StringNullableFilter<"FinTransaction"> | string | null
   source?: Prisma.EnumFinTransactionSourceFilter<"FinTransaction"> | $Enums.FinTransactionSource
+  legRole?: Prisma.EnumFinOperationLegRoleNullableFilter<"FinTransaction"> | $Enums.FinOperationLegRole | null
+  rail?: Prisma.EnumFinTransferRailNullableFilter<"FinTransaction"> | $Enums.FinTransferRail | null
   createdAt?: Prisma.DateTimeFilter<"FinTransaction"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"FinTransaction"> | Date | string
   account?: Prisma.XOR<Prisma.FinAccountNullableScalarRelationFilter, Prisma.FinAccountWhereInput> | null
@@ -510,6 +530,8 @@ export type FinTransactionOrderByWithAggregationInput = {
   aiMetadata?: Prisma.SortOrder
   notes?: Prisma.SortOrderInput | Prisma.SortOrder
   source?: Prisma.SortOrder
+  legRole?: Prisma.SortOrderInput | Prisma.SortOrder
+  rail?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   _count?: Prisma.FinTransactionCountOrderByAggregateInput
@@ -547,6 +569,8 @@ export type FinTransactionScalarWhereWithAggregatesInput = {
   aiMetadata?: Prisma.JsonWithAggregatesFilter<"FinTransaction">
   notes?: Prisma.StringNullableWithAggregatesFilter<"FinTransaction"> | string | null
   source?: Prisma.EnumFinTransactionSourceWithAggregatesFilter<"FinTransaction"> | $Enums.FinTransactionSource
+  legRole?: Prisma.EnumFinOperationLegRoleNullableWithAggregatesFilter<"FinTransaction"> | $Enums.FinOperationLegRole | null
+  rail?: Prisma.EnumFinTransferRailNullableWithAggregatesFilter<"FinTransaction"> | $Enums.FinTransferRail | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"FinTransaction"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"FinTransaction"> | Date | string
 }
@@ -570,6 +594,8 @@ export type FinTransactionCreateInput = {
   aiMetadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   notes?: string | null
   source?: $Enums.FinTransactionSource
+  legRole?: $Enums.FinOperationLegRole | null
+  rail?: $Enums.FinTransferRail | null
   createdAt?: Date | string
   updatedAt?: Date | string
   account?: Prisma.FinAccountCreateNestedOneWithoutTransactionsInput
@@ -609,6 +635,8 @@ export type FinTransactionUncheckedCreateInput = {
   aiMetadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   notes?: string | null
   source?: $Enums.FinTransactionSource
+  legRole?: $Enums.FinOperationLegRole | null
+  rail?: $Enums.FinTransferRail | null
   createdAt?: Date | string
   updatedAt?: Date | string
   linkedFrom?: Prisma.FinTransactionUncheckedCreateNestedManyWithoutLinkedTransactionInput
@@ -636,6 +664,8 @@ export type FinTransactionUpdateInput = {
   aiMetadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   source?: Prisma.EnumFinTransactionSourceFieldUpdateOperationsInput | $Enums.FinTransactionSource
+  legRole?: Prisma.NullableEnumFinOperationLegRoleFieldUpdateOperationsInput | $Enums.FinOperationLegRole | null
+  rail?: Prisma.NullableEnumFinTransferRailFieldUpdateOperationsInput | $Enums.FinTransferRail | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   account?: Prisma.FinAccountUpdateOneWithoutTransactionsNestedInput
@@ -675,6 +705,8 @@ export type FinTransactionUncheckedUpdateInput = {
   aiMetadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   source?: Prisma.EnumFinTransactionSourceFieldUpdateOperationsInput | $Enums.FinTransactionSource
+  legRole?: Prisma.NullableEnumFinOperationLegRoleFieldUpdateOperationsInput | $Enums.FinOperationLegRole | null
+  rail?: Prisma.NullableEnumFinTransferRailFieldUpdateOperationsInput | $Enums.FinTransferRail | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   linkedFrom?: Prisma.FinTransactionUncheckedUpdateManyWithoutLinkedTransactionNestedInput
@@ -708,6 +740,8 @@ export type FinTransactionCreateManyInput = {
   aiMetadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   notes?: string | null
   source?: $Enums.FinTransactionSource
+  legRole?: $Enums.FinOperationLegRole | null
+  rail?: $Enums.FinTransferRail | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -731,6 +765,8 @@ export type FinTransactionUpdateManyMutationInput = {
   aiMetadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   source?: Prisma.EnumFinTransactionSourceFieldUpdateOperationsInput | $Enums.FinTransactionSource
+  legRole?: Prisma.NullableEnumFinOperationLegRoleFieldUpdateOperationsInput | $Enums.FinOperationLegRole | null
+  rail?: Prisma.NullableEnumFinTransferRailFieldUpdateOperationsInput | $Enums.FinTransferRail | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -760,6 +796,8 @@ export type FinTransactionUncheckedUpdateManyInput = {
   aiMetadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   source?: Prisma.EnumFinTransactionSourceFieldUpdateOperationsInput | $Enums.FinTransactionSource
+  legRole?: Prisma.NullableEnumFinOperationLegRoleFieldUpdateOperationsInput | $Enums.FinOperationLegRole | null
+  rail?: Prisma.NullableEnumFinTransferRailFieldUpdateOperationsInput | $Enums.FinTransferRail | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -804,6 +842,8 @@ export type FinTransactionCountOrderByAggregateInput = {
   aiMetadata?: Prisma.SortOrder
   notes?: Prisma.SortOrder
   source?: Prisma.SortOrder
+  legRole?: Prisma.SortOrder
+  rail?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -839,6 +879,8 @@ export type FinTransactionMaxOrderByAggregateInput = {
   isRecurring?: Prisma.SortOrder
   notes?: Prisma.SortOrder
   source?: Prisma.SortOrder
+  legRole?: Prisma.SortOrder
+  rail?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -867,6 +909,8 @@ export type FinTransactionMinOrderByAggregateInput = {
   isRecurring?: Prisma.SortOrder
   notes?: Prisma.SortOrder
   source?: Prisma.SortOrder
+  legRole?: Prisma.SortOrder
+  rail?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -992,6 +1036,14 @@ export type EnumFinTransactionStatusFieldUpdateOperationsInput = {
 
 export type EnumFinTransactionSourceFieldUpdateOperationsInput = {
   set?: $Enums.FinTransactionSource
+}
+
+export type NullableEnumFinOperationLegRoleFieldUpdateOperationsInput = {
+  set?: $Enums.FinOperationLegRole | null
+}
+
+export type NullableEnumFinTransferRailFieldUpdateOperationsInput = {
+  set?: $Enums.FinTransferRail | null
 }
 
 export type FinTransactionUpdateOneWithoutLinkedFromNestedInput = {
@@ -1215,6 +1267,8 @@ export type FinTransactionCreateWithoutUserInput = {
   aiMetadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   notes?: string | null
   source?: $Enums.FinTransactionSource
+  legRole?: $Enums.FinOperationLegRole | null
+  rail?: $Enums.FinTransferRail | null
   createdAt?: Date | string
   updatedAt?: Date | string
   account?: Prisma.FinAccountCreateNestedOneWithoutTransactionsInput
@@ -1252,6 +1306,8 @@ export type FinTransactionUncheckedCreateWithoutUserInput = {
   aiMetadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   notes?: string | null
   source?: $Enums.FinTransactionSource
+  legRole?: $Enums.FinOperationLegRole | null
+  rail?: $Enums.FinTransferRail | null
   createdAt?: Date | string
   updatedAt?: Date | string
   linkedFrom?: Prisma.FinTransactionUncheckedCreateNestedManyWithoutLinkedTransactionInput
@@ -1314,6 +1370,8 @@ export type FinTransactionScalarWhereInput = {
   aiMetadata?: Prisma.JsonFilter<"FinTransaction">
   notes?: Prisma.StringNullableFilter<"FinTransaction"> | string | null
   source?: Prisma.EnumFinTransactionSourceFilter<"FinTransaction"> | $Enums.FinTransactionSource
+  legRole?: Prisma.EnumFinOperationLegRoleNullableFilter<"FinTransaction"> | $Enums.FinOperationLegRole | null
+  rail?: Prisma.EnumFinTransferRailNullableFilter<"FinTransaction"> | $Enums.FinTransferRail | null
   createdAt?: Prisma.DateTimeFilter<"FinTransaction"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"FinTransaction"> | Date | string
 }
@@ -1337,6 +1395,8 @@ export type FinTransactionCreateWithoutAccountInput = {
   aiMetadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   notes?: string | null
   source?: $Enums.FinTransactionSource
+  legRole?: $Enums.FinOperationLegRole | null
+  rail?: $Enums.FinTransferRail | null
   createdAt?: Date | string
   updatedAt?: Date | string
   card?: Prisma.FinCardCreateNestedOneWithoutTransactionsInput
@@ -1374,6 +1434,8 @@ export type FinTransactionUncheckedCreateWithoutAccountInput = {
   aiMetadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   notes?: string | null
   source?: $Enums.FinTransactionSource
+  legRole?: $Enums.FinOperationLegRole | null
+  rail?: $Enums.FinTransferRail | null
   createdAt?: Date | string
   updatedAt?: Date | string
   linkedFrom?: Prisma.FinTransactionUncheckedCreateNestedManyWithoutLinkedTransactionInput
@@ -1427,6 +1489,8 @@ export type FinTransactionCreateWithoutLinkedFromInput = {
   aiMetadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   notes?: string | null
   source?: $Enums.FinTransactionSource
+  legRole?: $Enums.FinOperationLegRole | null
+  rail?: $Enums.FinTransferRail | null
   createdAt?: Date | string
   updatedAt?: Date | string
   account?: Prisma.FinAccountCreateNestedOneWithoutTransactionsInput
@@ -1465,6 +1529,8 @@ export type FinTransactionUncheckedCreateWithoutLinkedFromInput = {
   aiMetadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   notes?: string | null
   source?: $Enums.FinTransactionSource
+  legRole?: $Enums.FinOperationLegRole | null
+  rail?: $Enums.FinTransferRail | null
   createdAt?: Date | string
   updatedAt?: Date | string
   receivablePayment?: Prisma.FinReceivablePaymentUncheckedCreateNestedOneWithoutTransactionInput
@@ -1496,6 +1562,8 @@ export type FinTransactionCreateWithoutLinkedTransactionInput = {
   aiMetadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   notes?: string | null
   source?: $Enums.FinTransactionSource
+  legRole?: $Enums.FinOperationLegRole | null
+  rail?: $Enums.FinTransferRail | null
   createdAt?: Date | string
   updatedAt?: Date | string
   account?: Prisma.FinAccountCreateNestedOneWithoutTransactionsInput
@@ -1533,6 +1601,8 @@ export type FinTransactionUncheckedCreateWithoutLinkedTransactionInput = {
   aiMetadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   notes?: string | null
   source?: $Enums.FinTransactionSource
+  legRole?: $Enums.FinOperationLegRole | null
+  rail?: $Enums.FinTransferRail | null
   createdAt?: Date | string
   updatedAt?: Date | string
   linkedFrom?: Prisma.FinTransactionUncheckedCreateNestedManyWithoutLinkedTransactionInput
@@ -1581,6 +1651,8 @@ export type FinTransactionUpdateWithoutLinkedFromInput = {
   aiMetadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   source?: Prisma.EnumFinTransactionSourceFieldUpdateOperationsInput | $Enums.FinTransactionSource
+  legRole?: Prisma.NullableEnumFinOperationLegRoleFieldUpdateOperationsInput | $Enums.FinOperationLegRole | null
+  rail?: Prisma.NullableEnumFinTransferRailFieldUpdateOperationsInput | $Enums.FinTransferRail | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   account?: Prisma.FinAccountUpdateOneWithoutTransactionsNestedInput
@@ -1619,6 +1691,8 @@ export type FinTransactionUncheckedUpdateWithoutLinkedFromInput = {
   aiMetadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   source?: Prisma.EnumFinTransactionSourceFieldUpdateOperationsInput | $Enums.FinTransactionSource
+  legRole?: Prisma.NullableEnumFinOperationLegRoleFieldUpdateOperationsInput | $Enums.FinOperationLegRole | null
+  rail?: Prisma.NullableEnumFinTransferRailFieldUpdateOperationsInput | $Enums.FinTransferRail | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   receivablePayment?: Prisma.FinReceivablePaymentUncheckedUpdateOneWithoutTransactionNestedInput
@@ -1661,6 +1735,8 @@ export type FinTransactionCreateWithoutCategoryInput = {
   aiMetadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   notes?: string | null
   source?: $Enums.FinTransactionSource
+  legRole?: $Enums.FinOperationLegRole | null
+  rail?: $Enums.FinTransferRail | null
   createdAt?: Date | string
   updatedAt?: Date | string
   account?: Prisma.FinAccountCreateNestedOneWithoutTransactionsInput
@@ -1698,6 +1774,8 @@ export type FinTransactionUncheckedCreateWithoutCategoryInput = {
   aiMetadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   notes?: string | null
   source?: $Enums.FinTransactionSource
+  legRole?: $Enums.FinOperationLegRole | null
+  rail?: $Enums.FinTransferRail | null
   createdAt?: Date | string
   updatedAt?: Date | string
   linkedFrom?: Prisma.FinTransactionUncheckedCreateNestedManyWithoutLinkedTransactionInput
@@ -1751,6 +1829,8 @@ export type FinTransactionCreateWithoutCardInput = {
   aiMetadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   notes?: string | null
   source?: $Enums.FinTransactionSource
+  legRole?: $Enums.FinOperationLegRole | null
+  rail?: $Enums.FinTransferRail | null
   createdAt?: Date | string
   updatedAt?: Date | string
   account?: Prisma.FinAccountCreateNestedOneWithoutTransactionsInput
@@ -1788,6 +1868,8 @@ export type FinTransactionUncheckedCreateWithoutCardInput = {
   aiMetadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   notes?: string | null
   source?: $Enums.FinTransactionSource
+  legRole?: $Enums.FinOperationLegRole | null
+  rail?: $Enums.FinTransferRail | null
   createdAt?: Date | string
   updatedAt?: Date | string
   linkedFrom?: Prisma.FinTransactionUncheckedCreateNestedManyWithoutLinkedTransactionInput
@@ -1841,6 +1923,8 @@ export type FinTransactionCreateWithoutSavingsGoalContributionInput = {
   aiMetadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   notes?: string | null
   source?: $Enums.FinTransactionSource
+  legRole?: $Enums.FinOperationLegRole | null
+  rail?: $Enums.FinTransferRail | null
   createdAt?: Date | string
   updatedAt?: Date | string
   account?: Prisma.FinAccountCreateNestedOneWithoutTransactionsInput
@@ -1879,6 +1963,8 @@ export type FinTransactionUncheckedCreateWithoutSavingsGoalContributionInput = {
   aiMetadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   notes?: string | null
   source?: $Enums.FinTransactionSource
+  legRole?: $Enums.FinOperationLegRole | null
+  rail?: $Enums.FinTransferRail | null
   createdAt?: Date | string
   updatedAt?: Date | string
   linkedFrom?: Prisma.FinTransactionUncheckedCreateNestedManyWithoutLinkedTransactionInput
@@ -1921,6 +2007,8 @@ export type FinTransactionUpdateWithoutSavingsGoalContributionInput = {
   aiMetadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   source?: Prisma.EnumFinTransactionSourceFieldUpdateOperationsInput | $Enums.FinTransactionSource
+  legRole?: Prisma.NullableEnumFinOperationLegRoleFieldUpdateOperationsInput | $Enums.FinOperationLegRole | null
+  rail?: Prisma.NullableEnumFinTransferRailFieldUpdateOperationsInput | $Enums.FinTransferRail | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   account?: Prisma.FinAccountUpdateOneWithoutTransactionsNestedInput
@@ -1959,6 +2047,8 @@ export type FinTransactionUncheckedUpdateWithoutSavingsGoalContributionInput = {
   aiMetadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   source?: Prisma.EnumFinTransactionSourceFieldUpdateOperationsInput | $Enums.FinTransactionSource
+  legRole?: Prisma.NullableEnumFinOperationLegRoleFieldUpdateOperationsInput | $Enums.FinOperationLegRole | null
+  rail?: Prisma.NullableEnumFinTransferRailFieldUpdateOperationsInput | $Enums.FinTransferRail | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   linkedFrom?: Prisma.FinTransactionUncheckedUpdateManyWithoutLinkedTransactionNestedInput
@@ -1985,6 +2075,8 @@ export type FinTransactionCreateWithoutLoanInstallmentInput = {
   aiMetadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   notes?: string | null
   source?: $Enums.FinTransactionSource
+  legRole?: $Enums.FinOperationLegRole | null
+  rail?: $Enums.FinTransferRail | null
   createdAt?: Date | string
   updatedAt?: Date | string
   account?: Prisma.FinAccountCreateNestedOneWithoutTransactionsInput
@@ -2023,6 +2115,8 @@ export type FinTransactionUncheckedCreateWithoutLoanInstallmentInput = {
   aiMetadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   notes?: string | null
   source?: $Enums.FinTransactionSource
+  legRole?: $Enums.FinOperationLegRole | null
+  rail?: $Enums.FinTransferRail | null
   createdAt?: Date | string
   updatedAt?: Date | string
   linkedFrom?: Prisma.FinTransactionUncheckedCreateNestedManyWithoutLinkedTransactionInput
@@ -2065,6 +2159,8 @@ export type FinTransactionUpdateWithoutLoanInstallmentInput = {
   aiMetadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   source?: Prisma.EnumFinTransactionSourceFieldUpdateOperationsInput | $Enums.FinTransactionSource
+  legRole?: Prisma.NullableEnumFinOperationLegRoleFieldUpdateOperationsInput | $Enums.FinOperationLegRole | null
+  rail?: Prisma.NullableEnumFinTransferRailFieldUpdateOperationsInput | $Enums.FinTransferRail | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   account?: Prisma.FinAccountUpdateOneWithoutTransactionsNestedInput
@@ -2103,6 +2199,8 @@ export type FinTransactionUncheckedUpdateWithoutLoanInstallmentInput = {
   aiMetadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   source?: Prisma.EnumFinTransactionSourceFieldUpdateOperationsInput | $Enums.FinTransactionSource
+  legRole?: Prisma.NullableEnumFinOperationLegRoleFieldUpdateOperationsInput | $Enums.FinOperationLegRole | null
+  rail?: Prisma.NullableEnumFinTransferRailFieldUpdateOperationsInput | $Enums.FinTransferRail | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   linkedFrom?: Prisma.FinTransactionUncheckedUpdateManyWithoutLinkedTransactionNestedInput
@@ -2129,6 +2227,8 @@ export type FinTransactionCreateWithoutReceivablePaymentInput = {
   aiMetadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   notes?: string | null
   source?: $Enums.FinTransactionSource
+  legRole?: $Enums.FinOperationLegRole | null
+  rail?: $Enums.FinTransferRail | null
   createdAt?: Date | string
   updatedAt?: Date | string
   account?: Prisma.FinAccountCreateNestedOneWithoutTransactionsInput
@@ -2167,6 +2267,8 @@ export type FinTransactionUncheckedCreateWithoutReceivablePaymentInput = {
   aiMetadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   notes?: string | null
   source?: $Enums.FinTransactionSource
+  legRole?: $Enums.FinOperationLegRole | null
+  rail?: $Enums.FinTransferRail | null
   createdAt?: Date | string
   updatedAt?: Date | string
   linkedFrom?: Prisma.FinTransactionUncheckedCreateNestedManyWithoutLinkedTransactionInput
@@ -2209,6 +2311,8 @@ export type FinTransactionUpdateWithoutReceivablePaymentInput = {
   aiMetadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   source?: Prisma.EnumFinTransactionSourceFieldUpdateOperationsInput | $Enums.FinTransactionSource
+  legRole?: Prisma.NullableEnumFinOperationLegRoleFieldUpdateOperationsInput | $Enums.FinOperationLegRole | null
+  rail?: Prisma.NullableEnumFinTransferRailFieldUpdateOperationsInput | $Enums.FinTransferRail | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   account?: Prisma.FinAccountUpdateOneWithoutTransactionsNestedInput
@@ -2247,6 +2351,8 @@ export type FinTransactionUncheckedUpdateWithoutReceivablePaymentInput = {
   aiMetadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   source?: Prisma.EnumFinTransactionSourceFieldUpdateOperationsInput | $Enums.FinTransactionSource
+  legRole?: Prisma.NullableEnumFinOperationLegRoleFieldUpdateOperationsInput | $Enums.FinOperationLegRole | null
+  rail?: Prisma.NullableEnumFinTransferRailFieldUpdateOperationsInput | $Enums.FinTransferRail | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   linkedFrom?: Prisma.FinTransactionUncheckedUpdateManyWithoutLinkedTransactionNestedInput
@@ -2273,6 +2379,8 @@ export type FinTransactionCreateWithoutEmailMessageInput = {
   aiMetadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   notes?: string | null
   source?: $Enums.FinTransactionSource
+  legRole?: $Enums.FinOperationLegRole | null
+  rail?: $Enums.FinTransferRail | null
   createdAt?: Date | string
   updatedAt?: Date | string
   account?: Prisma.FinAccountCreateNestedOneWithoutTransactionsInput
@@ -2310,6 +2418,8 @@ export type FinTransactionUncheckedCreateWithoutEmailMessageInput = {
   aiMetadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   notes?: string | null
   source?: $Enums.FinTransactionSource
+  legRole?: $Enums.FinOperationLegRole | null
+  rail?: $Enums.FinTransferRail | null
   createdAt?: Date | string
   updatedAt?: Date | string
   linkedFrom?: Prisma.FinTransactionUncheckedCreateNestedManyWithoutLinkedTransactionInput
@@ -2353,6 +2463,8 @@ export type FinTransactionUpdateWithoutEmailMessageInput = {
   aiMetadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   source?: Prisma.EnumFinTransactionSourceFieldUpdateOperationsInput | $Enums.FinTransactionSource
+  legRole?: Prisma.NullableEnumFinOperationLegRoleFieldUpdateOperationsInput | $Enums.FinOperationLegRole | null
+  rail?: Prisma.NullableEnumFinTransferRailFieldUpdateOperationsInput | $Enums.FinTransferRail | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   account?: Prisma.FinAccountUpdateOneWithoutTransactionsNestedInput
@@ -2390,6 +2502,8 @@ export type FinTransactionUncheckedUpdateWithoutEmailMessageInput = {
   aiMetadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   source?: Prisma.EnumFinTransactionSourceFieldUpdateOperationsInput | $Enums.FinTransactionSource
+  legRole?: Prisma.NullableEnumFinOperationLegRoleFieldUpdateOperationsInput | $Enums.FinOperationLegRole | null
+  rail?: Prisma.NullableEnumFinTransferRailFieldUpdateOperationsInput | $Enums.FinTransferRail | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   linkedFrom?: Prisma.FinTransactionUncheckedUpdateManyWithoutLinkedTransactionNestedInput
@@ -2422,6 +2536,8 @@ export type FinTransactionCreateManyUserInput = {
   aiMetadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   notes?: string | null
   source?: $Enums.FinTransactionSource
+  legRole?: $Enums.FinOperationLegRole | null
+  rail?: $Enums.FinTransferRail | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -2445,6 +2561,8 @@ export type FinTransactionUpdateWithoutUserInput = {
   aiMetadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   source?: Prisma.EnumFinTransactionSourceFieldUpdateOperationsInput | $Enums.FinTransactionSource
+  legRole?: Prisma.NullableEnumFinOperationLegRoleFieldUpdateOperationsInput | $Enums.FinOperationLegRole | null
+  rail?: Prisma.NullableEnumFinTransferRailFieldUpdateOperationsInput | $Enums.FinTransferRail | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   account?: Prisma.FinAccountUpdateOneWithoutTransactionsNestedInput
@@ -2482,6 +2600,8 @@ export type FinTransactionUncheckedUpdateWithoutUserInput = {
   aiMetadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   source?: Prisma.EnumFinTransactionSourceFieldUpdateOperationsInput | $Enums.FinTransactionSource
+  legRole?: Prisma.NullableEnumFinOperationLegRoleFieldUpdateOperationsInput | $Enums.FinOperationLegRole | null
+  rail?: Prisma.NullableEnumFinTransferRailFieldUpdateOperationsInput | $Enums.FinTransferRail | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   linkedFrom?: Prisma.FinTransactionUncheckedUpdateManyWithoutLinkedTransactionNestedInput
@@ -2514,6 +2634,8 @@ export type FinTransactionUncheckedUpdateManyWithoutUserInput = {
   aiMetadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   source?: Prisma.EnumFinTransactionSourceFieldUpdateOperationsInput | $Enums.FinTransactionSource
+  legRole?: Prisma.NullableEnumFinOperationLegRoleFieldUpdateOperationsInput | $Enums.FinOperationLegRole | null
+  rail?: Prisma.NullableEnumFinTransferRailFieldUpdateOperationsInput | $Enums.FinTransferRail | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -2542,6 +2664,8 @@ export type FinTransactionCreateManyAccountInput = {
   aiMetadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   notes?: string | null
   source?: $Enums.FinTransactionSource
+  legRole?: $Enums.FinOperationLegRole | null
+  rail?: $Enums.FinTransferRail | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -2565,6 +2689,8 @@ export type FinTransactionUpdateWithoutAccountInput = {
   aiMetadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   source?: Prisma.EnumFinTransactionSourceFieldUpdateOperationsInput | $Enums.FinTransactionSource
+  legRole?: Prisma.NullableEnumFinOperationLegRoleFieldUpdateOperationsInput | $Enums.FinOperationLegRole | null
+  rail?: Prisma.NullableEnumFinTransferRailFieldUpdateOperationsInput | $Enums.FinTransferRail | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   card?: Prisma.FinCardUpdateOneWithoutTransactionsNestedInput
@@ -2602,6 +2728,8 @@ export type FinTransactionUncheckedUpdateWithoutAccountInput = {
   aiMetadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   source?: Prisma.EnumFinTransactionSourceFieldUpdateOperationsInput | $Enums.FinTransactionSource
+  legRole?: Prisma.NullableEnumFinOperationLegRoleFieldUpdateOperationsInput | $Enums.FinOperationLegRole | null
+  rail?: Prisma.NullableEnumFinTransferRailFieldUpdateOperationsInput | $Enums.FinTransferRail | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   linkedFrom?: Prisma.FinTransactionUncheckedUpdateManyWithoutLinkedTransactionNestedInput
@@ -2634,6 +2762,8 @@ export type FinTransactionUncheckedUpdateManyWithoutAccountInput = {
   aiMetadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   source?: Prisma.EnumFinTransactionSourceFieldUpdateOperationsInput | $Enums.FinTransactionSource
+  legRole?: Prisma.NullableEnumFinOperationLegRoleFieldUpdateOperationsInput | $Enums.FinOperationLegRole | null
+  rail?: Prisma.NullableEnumFinTransferRailFieldUpdateOperationsInput | $Enums.FinTransferRail | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -2662,6 +2792,8 @@ export type FinTransactionCreateManyLinkedTransactionInput = {
   aiMetadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   notes?: string | null
   source?: $Enums.FinTransactionSource
+  legRole?: $Enums.FinOperationLegRole | null
+  rail?: $Enums.FinTransferRail | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -2685,6 +2817,8 @@ export type FinTransactionUpdateWithoutLinkedTransactionInput = {
   aiMetadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   source?: Prisma.EnumFinTransactionSourceFieldUpdateOperationsInput | $Enums.FinTransactionSource
+  legRole?: Prisma.NullableEnumFinOperationLegRoleFieldUpdateOperationsInput | $Enums.FinOperationLegRole | null
+  rail?: Prisma.NullableEnumFinTransferRailFieldUpdateOperationsInput | $Enums.FinTransferRail | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   account?: Prisma.FinAccountUpdateOneWithoutTransactionsNestedInput
@@ -2722,6 +2856,8 @@ export type FinTransactionUncheckedUpdateWithoutLinkedTransactionInput = {
   aiMetadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   source?: Prisma.EnumFinTransactionSourceFieldUpdateOperationsInput | $Enums.FinTransactionSource
+  legRole?: Prisma.NullableEnumFinOperationLegRoleFieldUpdateOperationsInput | $Enums.FinOperationLegRole | null
+  rail?: Prisma.NullableEnumFinTransferRailFieldUpdateOperationsInput | $Enums.FinTransferRail | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   linkedFrom?: Prisma.FinTransactionUncheckedUpdateManyWithoutLinkedTransactionNestedInput
@@ -2754,6 +2890,8 @@ export type FinTransactionUncheckedUpdateManyWithoutLinkedTransactionInput = {
   aiMetadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   source?: Prisma.EnumFinTransactionSourceFieldUpdateOperationsInput | $Enums.FinTransactionSource
+  legRole?: Prisma.NullableEnumFinOperationLegRoleFieldUpdateOperationsInput | $Enums.FinOperationLegRole | null
+  rail?: Prisma.NullableEnumFinTransferRailFieldUpdateOperationsInput | $Enums.FinTransferRail | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -2782,6 +2920,8 @@ export type FinTransactionCreateManyCategoryInput = {
   aiMetadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   notes?: string | null
   source?: $Enums.FinTransactionSource
+  legRole?: $Enums.FinOperationLegRole | null
+  rail?: $Enums.FinTransferRail | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -2805,6 +2945,8 @@ export type FinTransactionUpdateWithoutCategoryInput = {
   aiMetadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   source?: Prisma.EnumFinTransactionSourceFieldUpdateOperationsInput | $Enums.FinTransactionSource
+  legRole?: Prisma.NullableEnumFinOperationLegRoleFieldUpdateOperationsInput | $Enums.FinOperationLegRole | null
+  rail?: Prisma.NullableEnumFinTransferRailFieldUpdateOperationsInput | $Enums.FinTransferRail | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   account?: Prisma.FinAccountUpdateOneWithoutTransactionsNestedInput
@@ -2842,6 +2984,8 @@ export type FinTransactionUncheckedUpdateWithoutCategoryInput = {
   aiMetadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   source?: Prisma.EnumFinTransactionSourceFieldUpdateOperationsInput | $Enums.FinTransactionSource
+  legRole?: Prisma.NullableEnumFinOperationLegRoleFieldUpdateOperationsInput | $Enums.FinOperationLegRole | null
+  rail?: Prisma.NullableEnumFinTransferRailFieldUpdateOperationsInput | $Enums.FinTransferRail | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   linkedFrom?: Prisma.FinTransactionUncheckedUpdateManyWithoutLinkedTransactionNestedInput
@@ -2874,6 +3018,8 @@ export type FinTransactionUncheckedUpdateManyWithoutCategoryInput = {
   aiMetadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   source?: Prisma.EnumFinTransactionSourceFieldUpdateOperationsInput | $Enums.FinTransactionSource
+  legRole?: Prisma.NullableEnumFinOperationLegRoleFieldUpdateOperationsInput | $Enums.FinOperationLegRole | null
+  rail?: Prisma.NullableEnumFinTransferRailFieldUpdateOperationsInput | $Enums.FinTransferRail | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -2902,6 +3048,8 @@ export type FinTransactionCreateManyCardInput = {
   aiMetadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   notes?: string | null
   source?: $Enums.FinTransactionSource
+  legRole?: $Enums.FinOperationLegRole | null
+  rail?: $Enums.FinTransferRail | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -2925,6 +3073,8 @@ export type FinTransactionUpdateWithoutCardInput = {
   aiMetadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   source?: Prisma.EnumFinTransactionSourceFieldUpdateOperationsInput | $Enums.FinTransactionSource
+  legRole?: Prisma.NullableEnumFinOperationLegRoleFieldUpdateOperationsInput | $Enums.FinOperationLegRole | null
+  rail?: Prisma.NullableEnumFinTransferRailFieldUpdateOperationsInput | $Enums.FinTransferRail | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   account?: Prisma.FinAccountUpdateOneWithoutTransactionsNestedInput
@@ -2962,6 +3112,8 @@ export type FinTransactionUncheckedUpdateWithoutCardInput = {
   aiMetadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   source?: Prisma.EnumFinTransactionSourceFieldUpdateOperationsInput | $Enums.FinTransactionSource
+  legRole?: Prisma.NullableEnumFinOperationLegRoleFieldUpdateOperationsInput | $Enums.FinOperationLegRole | null
+  rail?: Prisma.NullableEnumFinTransferRailFieldUpdateOperationsInput | $Enums.FinTransferRail | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   linkedFrom?: Prisma.FinTransactionUncheckedUpdateManyWithoutLinkedTransactionNestedInput
@@ -2994,6 +3146,8 @@ export type FinTransactionUncheckedUpdateManyWithoutCardInput = {
   aiMetadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   source?: Prisma.EnumFinTransactionSourceFieldUpdateOperationsInput | $Enums.FinTransactionSource
+  legRole?: Prisma.NullableEnumFinOperationLegRoleFieldUpdateOperationsInput | $Enums.FinOperationLegRole | null
+  rail?: Prisma.NullableEnumFinTransferRailFieldUpdateOperationsInput | $Enums.FinTransferRail | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -3054,6 +3208,8 @@ export type FinTransactionSelect<ExtArgs extends runtime.Types.Extensions.Intern
   aiMetadata?: boolean
   notes?: boolean
   source?: boolean
+  legRole?: boolean
+  rail?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   account?: boolean | Prisma.FinTransaction$accountArgs<ExtArgs>
@@ -3094,6 +3250,8 @@ export type FinTransactionSelectCreateManyAndReturn<ExtArgs extends runtime.Type
   aiMetadata?: boolean
   notes?: boolean
   source?: boolean
+  legRole?: boolean
+  rail?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   account?: boolean | Prisma.FinTransaction$accountArgs<ExtArgs>
@@ -3129,6 +3287,8 @@ export type FinTransactionSelectUpdateManyAndReturn<ExtArgs extends runtime.Type
   aiMetadata?: boolean
   notes?: boolean
   source?: boolean
+  legRole?: boolean
+  rail?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   account?: boolean | Prisma.FinTransaction$accountArgs<ExtArgs>
@@ -3164,11 +3324,13 @@ export type FinTransactionSelectScalar = {
   aiMetadata?: boolean
   notes?: boolean
   source?: boolean
+  legRole?: boolean
+  rail?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type FinTransactionOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "accountId" | "cardId" | "userId" | "categoryId" | "emailMessageId" | "externalReference" | "type" | "amount" | "ledgerAmount" | "amountBaseCurrency" | "currency" | "ledgerCurrency" | "exchangeRate" | "merchant" | "description" | "transactionDate" | "transferGroupId" | "linkedTransactionId" | "status" | "isRecurring" | "aiMetadata" | "notes" | "source" | "createdAt" | "updatedAt", ExtArgs["result"]["finTransaction"]>
+export type FinTransactionOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "accountId" | "cardId" | "userId" | "categoryId" | "emailMessageId" | "externalReference" | "type" | "amount" | "ledgerAmount" | "amountBaseCurrency" | "currency" | "ledgerCurrency" | "exchangeRate" | "merchant" | "description" | "transactionDate" | "transferGroupId" | "linkedTransactionId" | "status" | "isRecurring" | "aiMetadata" | "notes" | "source" | "legRole" | "rail" | "createdAt" | "updatedAt", ExtArgs["result"]["finTransaction"]>
 export type FinTransactionInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   account?: boolean | Prisma.FinTransaction$accountArgs<ExtArgs>
   card?: boolean | Prisma.FinTransaction$cardArgs<ExtArgs>
@@ -3259,6 +3421,14 @@ export type $FinTransactionPayload<ExtArgs extends runtime.Types.Extensions.Inte
     aiMetadata: runtime.JsonValue
     notes: string | null
     source: $Enums.FinTransactionSource
+    /**
+     * Role of this row inside a multi-leg operation (transfer, fee).
+     */
+    legRole: $Enums.FinOperationLegRole | null
+    /**
+     * Interbank rail for a transfer; the UI estimates the arrival time.
+     */
+    rail: $Enums.FinTransferRail | null
     createdAt: Date
     updatedAt: Date
   }, ExtArgs["result"]["finTransaction"]>
@@ -3718,6 +3888,8 @@ export interface FinTransactionFieldRefs {
   readonly aiMetadata: Prisma.FieldRef<"FinTransaction", 'Json'>
   readonly notes: Prisma.FieldRef<"FinTransaction", 'String'>
   readonly source: Prisma.FieldRef<"FinTransaction", 'FinTransactionSource'>
+  readonly legRole: Prisma.FieldRef<"FinTransaction", 'FinOperationLegRole'>
+  readonly rail: Prisma.FieldRef<"FinTransaction", 'FinTransferRail'>
   readonly createdAt: Prisma.FieldRef<"FinTransaction", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"FinTransaction", 'DateTime'>
 }

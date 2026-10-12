@@ -55,12 +55,23 @@ export class CreateTransferUseCase {
       transactionDate: new Date(command.transactionDate),
     });
 
-    const created = await this.repo.createTransfer(
+    const feeAmounts = command.fee
+      ? await this.resolveAmounts.execute({
+          amount: command.fee.amount,
+          currency,
+          ledgerCurrency: fromLedgerCurrency,
+          baseCurrency,
+          transactionDate: new Date(command.transactionDate),
+        })
+      : undefined;
+
+    const created = await this.repo.createTransfer({
       userId,
       command,
       fromAmounts,
       toAmounts,
-    );
+      feeAmounts,
+    });
     if (!created) {
       throw new NotFoundException('Invalid transfer accounts');
     }

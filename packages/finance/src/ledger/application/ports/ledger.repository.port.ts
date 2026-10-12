@@ -30,6 +30,8 @@ export type LedgerTransactionRow = {
   categoryId: string | null;
   status: string;
   source: string;
+  legRole?: string | null;
+  rail?: string | null;
   transferGroupId: string | null;
   linkedTransactionId: string | null;
   emailMessageId?: string | null;
@@ -66,6 +68,7 @@ export type CreateTransactionResult = {
 export type CreateTransferResult = {
   debit: LedgerTransactionRow;
   credit: LedgerTransactionRow;
+  fee?: LedgerTransactionRow;
   transferGroupId: string;
 };
 
@@ -174,12 +177,35 @@ export interface LedgerRepositoryPort {
     },
   ): Promise<CreateTransactionResult | null>;
 
-  createTransfer(
+  createTransfer(input: {
+    userId: string;
+    command: CreateTransferCommand;
+    fromAmounts: ResolvedAmounts;
+    toAmounts: ResolvedAmounts;
+    feeAmounts?: ResolvedAmounts;
+  }): Promise<CreateTransferResult | null>;
+
+  /** Replaces both legs (and the fee effect) inside one transaction. */
+  updateTransfer(input: {
+    userId: string;
+    debitId: string;
+    creditId: string;
+    debitTarget: { accountId: string | null; cardId: string | null };
+    creditTarget: { accountId: string | null; cardId: string | null };
+    fromAmounts: ResolvedAmounts;
+    toAmounts: ResolvedAmounts;
+    transactionDate: Date;
+    description?: string | null;
+    notes?: string | null;
+  }): Promise<{
+    debit: LedgerTransactionRow;
+    credit: LedgerTransactionRow;
+  } | null>;
+
+  unconfirmTransactionsByTransferGroupId(
     userId: string,
-    command: CreateTransferCommand,
-    fromAmounts: ResolvedAmounts,
-    toAmounts: ResolvedAmounts,
-  ): Promise<CreateTransferResult | null>;
+    transferGroupId: string,
+  ): Promise<{ count: number }>;
 
   updateTransaction(
     userId: string,
