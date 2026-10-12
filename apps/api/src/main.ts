@@ -8,6 +8,7 @@ import { writeFileSync } from 'fs';
 import helmet from 'helmet';
 import { join } from 'path';
 import { AppModule } from './app.module';
+import { appVersion } from './app-version';
 import { isBullMqEnabled } from '@personal-os/config';
 import type { Env } from '@personal-os/config';
 
@@ -119,7 +120,7 @@ async function bootstrap() {
       .setDescription(
         'Personal OS backend endpoints, including auth, core modules, and AI.',
       )
-      .setVersion('1.0')
+      .setVersion(appVersion())
       .addBearerAuth(
         { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' },
         'access-token',
@@ -166,5 +167,3 @@ bootstrap().catch((err) => {
   );
   process.exit(1);
 });
-
-
