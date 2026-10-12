@@ -309,7 +309,11 @@ export class CatalogService {
       const purged = await this.purgeLedger.forCard(userId, card.id);
       movements.push(...purged.rows);
     }
-    const removed = await this.repo.deleteInstitution({ userId, id, movements });
+    const removed = await this.repo.deleteInstitution({
+      userId,
+      id,
+      movements,
+    });
     if (removed.count === 0) {
       throw new NotFoundException('Institution not found');
     }
@@ -512,9 +516,7 @@ export class CatalogService {
       throw new NotFoundException('Card not found');
     }
     if (card.type !== 'CREDIT') {
-      throw new BadRequestException(
-        'Only credit cards have a credit limit',
-      );
+      throw new BadRequestException('Only credit cards have a credit limit');
     }
     const updated = await this.repo.setCardCreditLimit(
       userId,

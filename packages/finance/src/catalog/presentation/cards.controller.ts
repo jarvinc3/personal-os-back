@@ -59,7 +59,9 @@ export class CardsController {
   }
 
   @Post('cards/:id/balances/credit-limit')
-  @ApiOperation({ summary: 'Update a credit card limit without changing its balance' })
+  @ApiOperation({
+    summary: 'Update a credit card limit without changing its balance',
+  })
   updateCreditLimit(
     @CurrentUser('sub') userId: string,
     @Param('id') id: string,
