@@ -2,6 +2,12 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [SemVer](https://semver.org/lang/es/). Reglas y ejemplo en [docs/reference/changelog-guide.md](./docs/reference/changelog-guide.md).
 
+## [1.5.1] - 2026-10-12
+
+### Cambiado
+
+- La versión del build se resuelve una sola vez al arrancar, sin estado mutable dentro del getter.
+
 ## [1.5.0] - 2026-10-12
 
 ### Agregado
