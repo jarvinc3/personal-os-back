@@ -6,8 +6,15 @@ import type {
   FinTxStatus,
   ListTransactionsQuery,
 } from './commands/ledger.commands';
-import { mapLogicalTransaction } from './ledger-mappers';
-import type { LedgerRepositoryPort } from './ports/ledger.repository.port';
+import {
+  mapLedgerTransaction,
+  mapLogicalTransaction,
+  mapOperation,
+} from './ledger-mappers';
+import type {
+  LedgerRepositoryPort,
+  LedgerTransactionRow,
+} from './ports/ledger.repository.port';
 
 /**
  * Read-only ledger queries for HTTP and façade consumers.
@@ -25,12 +32,52 @@ export class LedgerQueryService {
     const page = toCursorPage(rows, clampPageLimit(query.limit), (row) =>
       row.transactionDate.toISOString(),
     );
+    if (!query.groupOperations) {
+      return {
+        ...page,
+        items: page.items.map((item) =>
+          mapLogicalTransaction(item, undefined, this.logos),
+        ),
+      };
+    }
     return {
       ...page,
-      items: page.items.map((item) =>
-        mapLogicalTransaction(item, undefined, this.logos),
-      ),
+      items: await this.mapPageWithOperations(userId, page.items),
     };
+  }
+
+  private async mapPageWithOperations(
+    userId: string,
+    items: LedgerTransactionRow[],
+  ) {
+    const transferGroupIds = [
+      ...new Set(
+        items
+          .map((item) => item.transferGroupId)
+          .filter((id): id is string => Boolean(id)),
+      ),
+    ];
+    const legs = await this.repo.findTransactionsByTransferGroupIds(
+      userId,
+      transferGroupIds,
+    );
+    const legsByGroup = new Map<string, LedgerTransactionRow[]>();
+    for (const leg of legs) {
+      if (!leg.transferGroupId) {
+        continue;
+      }
+      const groupLegs = legsByGroup.get(leg.transferGroupId) ?? [];
+      groupLegs.push(leg);
+      legsByGroup.set(leg.transferGroupId, groupLegs);
+    }
+    return items.map((item) =>
+      item.transferGroupId
+        ? mapOperation(
+            legsByGroup.get(item.transferGroupId) ?? [item],
+            this.logos,
+          )
+        : mapLedgerTransaction(item, this.logos),
+    );
   }
 
   async getTransaction(userId: string, id: string) {

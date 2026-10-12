@@ -163,7 +163,7 @@ Creates a transaction with **`source=AI`**.
 
 ### `create_transfer`
 
-Moves amount from an account to one ledger target (exactly one of account/card as destination). A card is never the origin.
+Moves amount from an account to a destination account (account to account only). A card is never an origin, and a card payment uses its own route (fase 03).
 
 **Delegates to:** `FinanceFacade.createTransferTransaction`
 

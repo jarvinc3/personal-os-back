@@ -136,7 +136,7 @@ describe('UpdateTransferUseCase', () => {
         amount: 80,
         transactionDate: '2026-08-02T12:00:00.000Z',
       }),
-    ).rejects.toThrow(/invalid transfer accounts/i);
+    ).rejects.toMatchObject({ response: { code: 'SAME_ACCOUNT' } });
     expect(updateTransfer).not.toHaveBeenCalled();
   });
 });

@@ -340,26 +340,14 @@ export const unconfirmTransactionArgsSchema = z
 export const createTransferArgsSchema = z
   .object({
     fromAccountId: uuid,
-    toAccountId: uuid.nullable().optional(),
-    toCardId: uuid.nullable().optional(),
+    toAccountId: uuid,
     amount: moneyAmount,
     currency: currencyCode.optional(),
     transactionDate: dateString,
     description: optionalNullableString(200),
     notes: optionalNullableString(2000),
   })
-  .strict()
-  .superRefine((value, ctx) => {
-    const toOk =
-      Boolean(value.toAccountId) !== Boolean(value.toCardId) &&
-      (Boolean(value.toAccountId) || Boolean(value.toCardId));
-    if (!toOk) {
-      ctx.addIssue({
-        code: 'custom',
-        message: 'A transfer arrives at exactly one accountId or cardId (to*)',
-      });
-    }
-  });
+  .strict();
 
 /** Mutating tool name → Zod schema (single source of truth). */
 export const MUTATING_TOOL_ARG_SCHEMAS = {

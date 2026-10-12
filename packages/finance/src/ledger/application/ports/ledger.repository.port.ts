@@ -120,6 +120,11 @@ export interface LedgerRepositoryPort {
     userId: string,
   ): Promise<LedgerTransactionRow[]>;
 
+  findTransactionsByTransferGroupIds(
+    userId: string,
+    transferGroupIds: string[],
+  ): Promise<LedgerTransactionRow[]>;
+
   findCandidatesForReverse(
     userId: string,
     params: {
@@ -197,6 +202,9 @@ export interface LedgerRepositoryPort {
     transactionDate: Date;
     description?: string | null;
     notes?: string | null;
+    /** When present, updates the FEE leg (creating it if the transfer had none). */
+    feeAmounts?: ResolvedAmounts;
+    feeCategoryId?: string | null;
   }): Promise<{
     debit: LedgerTransactionRow;
     credit: LedgerTransactionRow;

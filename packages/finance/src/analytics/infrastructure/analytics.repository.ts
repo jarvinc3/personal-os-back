@@ -2,6 +2,15 @@ import { Injectable } from '@nestjs/common';
 import type { Prisma } from '@personal-os/database';
 import { Prisma as PrismaNS } from '@personal-os/database';
 import { PrismaService } from '@personal-os/database';
+import { OPERATION_LEG_ROLE } from '../../shared/domain/transfer';
+
+/** Standalone movements plus the fee leg of a transfer (the only leg that is real spending). */
+const REAL_MOVEMENT = {
+  OR: [
+    { transferGroupId: null },
+    { legRole: OPERATION_LEG_ROLE.FEE },
+  ],
+} satisfies Prisma.FinTransactionWhereInput;
 
 @Injectable()
 export class AnalyticsRepository {
@@ -20,7 +29,7 @@ export class AnalyticsRepository {
 
     return this.prisma.finTransaction.groupBy({
       by: ['type', 'status'],
-      where: { userId, transferGroupId: null, ...dateFilter },
+      where: { userId, ...REAL_MOVEMENT, ...dateFilter },
       _sum: { amountBaseCurrency: true },
       _count: { _all: true },
       orderBy: { type: 'asc' },
@@ -32,7 +41,7 @@ export class AnalyticsRepository {
       userId,
       type: 'DEBIT',
       status: 'CONFIRMED',
-      transferGroupId: null,
+      ...REAL_MOVEMENT,
       ...(from || to
         ? {
             transactionDate: {
@@ -90,7 +99,7 @@ export class AnalyticsRepository {
       WHERE "user_id" = ${userId}
         AND "status" = 'CONFIRMED'
         AND "type" IN ('DEBIT', 'CREDIT')
-        AND "transfer_group_id" IS NULL
+        AND ("transfer_group_id" IS NULL OR "leg_role" = 'FEE')
         ${from ? PrismaNS.sql`AND "transaction_date" >= ${from}` : PrismaNS.empty}
         ${to ? PrismaNS.sql`AND "transaction_date" <= ${to}` : PrismaNS.empty}
       GROUP BY 1, 2

@@ -1,6 +1,16 @@
 import type { Prisma } from '@personal-os/database';
 import type { ListTransactionsQuery } from '../application/commands/ledger.commands';
 
+/**
+ * The list shows one row per operation: the SOURCE leg. The destination and the
+ * fee travel inside the operation (or the counterpart lookup).
+ */
+const SOURCE_TRANSFER_LEG: Prisma.FinTransactionWhereInput = {
+  transferGroupId: { not: null },
+  type: 'DEBIT',
+  OR: [{ legRole: null }, { legRole: 'SOURCE' }],
+};
+
 export function logicalTransactionsWhere(
   userId: string,
   query: ListTransactionsQuery,
@@ -35,17 +45,14 @@ export function logicalTransactionsWhere(
   }
 
   if (query.type === 'TRANSFER') {
-    and.push({ transferGroupId: { not: null }, type: 'DEBIT' });
+    and.push(SOURCE_TRANSFER_LEG);
   } else if (query.type === 'DEBIT' || query.type === 'CREDIT') {
     and.push({ type: query.type, transferGroupId: null });
   } else if (query.type === 'ADJUSTMENT') {
     and.push({ type: 'ADJUSTMENT' });
   } else {
     and.push({
-      OR: [
-        { transferGroupId: null },
-        { transferGroupId: { not: null }, type: 'DEBIT' },
-      ],
+      OR: [{ transferGroupId: null }, SOURCE_TRANSFER_LEG],
     });
     if (!query.includeAdjustments) {
       and.push({ type: { not: 'ADJUSTMENT' } });
@@ -69,8 +76,8 @@ export function logicalTransactionsWhere(
       ];
       if (matchingGroupIds.length > 0) {
         or.push({
+          ...SOURCE_TRANSFER_LEG,
           transferGroupId: { in: matchingGroupIds },
-          type: 'DEBIT',
         });
       }
       and.push({ OR: or });

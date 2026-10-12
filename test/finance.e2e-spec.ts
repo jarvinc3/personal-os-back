@@ -705,6 +705,41 @@ describe('Finance (e2e)', () => {
       });
   });
 
+  it('rejects a card destination on POST /api/finance/transfers', async () => {
+    await request(app.getHttpServer())
+      .post('/api/finance/transfers')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        fromAccountId: '11111111-1111-4111-8111-111111111111',
+        toCardId: '22222222-2222-4222-8222-222222222222',
+        amount: 25,
+        currency: 'DOP',
+        transactionDate: '2026-08-01T12:00:00.000Z',
+      })
+      .expect(400)
+      .expect((res) => {
+        expect(res.body.code).toBe('TRANSFER_TARGET_NOT_ACCOUNT');
+      });
+  });
+
+  it('rejects the same origin and destination account', async () => {
+    const accountId = '11111111-1111-4111-8111-111111111111';
+    await request(app.getHttpServer())
+      .post('/api/finance/transfers')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        fromAccountId: accountId,
+        toAccountId: accountId,
+        amount: 25,
+        currency: 'DOP',
+        transactionDate: '2026-08-01T12:00:00.000Z',
+      })
+      .expect(400)
+      .expect((res) => {
+        expect(res.body.code).toBe('SAME_ACCOUNT');
+      });
+  });
+
   it('PATCH /api/finance/cards/:id archives with isActive false without accountId', async () => {
     const cardId = '66666666-6666-4666-8666-666666666666';
     const card = {

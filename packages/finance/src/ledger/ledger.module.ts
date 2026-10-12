@@ -10,6 +10,7 @@ import { AdjustBalanceUseCase } from './application/adjust-balance.use-case';
 import { ConfirmTransactionUseCase } from './application/confirm-transaction.use-case';
 import { CreateTransactionUseCase } from './application/create-transaction.use-case';
 import { CreateTransferUseCase } from './application/create-transfer.use-case';
+import { ConfirmTransferUseCase } from './application/confirm-transfer.use-case';
 import { DeleteTransactionUseCase } from './application/delete-transaction.use-case';
 import { ImportEmailTransactionUseCase } from './application/import-email-transaction.use-case';
 import { LedgerQueryService } from './application/ledger-query.service';
@@ -51,6 +52,7 @@ import { TransfersController } from './presentation/transfers.controller';
     CreateTransferUseCase,
     UpdateTransferUseCase,
     UnconfirmTransferUseCase,
+    ConfirmTransferUseCase,
     ReverseTransactionUseCase,
     ImportEmailTransactionUseCase,
   ],
@@ -68,6 +70,7 @@ import { TransfersController } from './presentation/transfers.controller';
     CreateTransferUseCase,
     UpdateTransferUseCase,
     UnconfirmTransferUseCase,
+    ConfirmTransferUseCase,
     ReverseTransactionUseCase,
     ImportEmailTransactionUseCase,
   ],

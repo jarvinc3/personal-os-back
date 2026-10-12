@@ -465,8 +465,7 @@ export class ToolExecutorService {
           message: 'Transfer created',
           data: await this.financeFacade.createTransferTransaction(ctx.userId, {
             fromAccountId: t.fromAccountId,
-            toAccountId: t.toAccountId ?? undefined,
-            toCardId: t.toCardId ?? undefined,
+            toAccountId: t.toAccountId,
             amount: t.amount,
             currency: t.currency,
             transactionDate: t.transactionDate,
