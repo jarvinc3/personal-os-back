@@ -18,6 +18,7 @@ import { DeleteTransactionUseCase } from '../application/delete-transaction.use-
 import { RestoreTransactionUseCase } from '../application/restore-transaction.use-case';
 import { LedgerQueryService } from '../application/ledger-query.service';
 import { ReverseTransactionUseCase } from '../application/reverse-transaction.use-case';
+import { UnconfirmTransactionUseCase } from '../application/unconfirm-transaction.use-case';
 import { UpdateTransactionUseCase } from '../application/update-transaction.use-case';
 import { AdjustBalanceDto } from './dto/adjust-balance.dto';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
@@ -34,6 +35,7 @@ export class TransactionsController {
     private readonly adjustBalance: AdjustBalanceUseCase,
     private readonly updateTx: UpdateTransactionUseCase,
     private readonly confirmTx: ConfirmTransactionUseCase,
+    private readonly unconfirmTx: UnconfirmTransactionUseCase,
     private readonly deleteTx: DeleteTransactionUseCase,
     private readonly restoreTx: RestoreTransactionUseCase,
     private readonly reverseTx: ReverseTransactionUseCase,
@@ -97,6 +99,14 @@ export class TransactionsController {
   @ApiOperation({ summary: 'Confirm PENDING transaction' })
   confirm(@CurrentUser('sub') userId: string, @Param('id') id: string) {
     return this.confirmTx.execute(userId, id);
+  }
+
+  @Post('transactions/:id/unconfirm')
+  @ApiOperation({
+    summary: 'Move a CONFIRMED transaction back to PENDING to edit it',
+  })
+  unconfirm(@CurrentUser('sub') userId: string, @Param('id') id: string) {
+    return this.unconfirmTx.execute(userId, id);
   }
 
   @Post('transactions/:id/reverse')

@@ -71,6 +71,7 @@ export const ModelName = {
   FinInstitution: 'FinInstitution',
   FinCard: 'FinCard',
   FinCardBalance: 'FinCardBalance',
+  FinInstrumentEvent: 'FinInstrumentEvent',
   FinCardStatement: 'FinCardStatement',
   FinSavingsGoal: 'FinSavingsGoal',
   FinSavingsGoalContribution: 'FinSavingsGoalContribution',
@@ -431,6 +432,19 @@ export const FinCardBalanceScalarFieldEnum = {
 } as const
 
 export type FinCardBalanceScalarFieldEnum = (typeof FinCardBalanceScalarFieldEnum)[keyof typeof FinCardBalanceScalarFieldEnum]
+
+
+export const FinInstrumentEventScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  accountId: 'accountId',
+  cardId: 'cardId',
+  kind: 'kind',
+  payload: 'payload',
+  createdAt: 'createdAt'
+} as const
+
+export type FinInstrumentEventScalarFieldEnum = (typeof FinInstrumentEventScalarFieldEnum)[keyof typeof FinInstrumentEventScalarFieldEnum]
 
 
 export const FinCardStatementScalarFieldEnum = {

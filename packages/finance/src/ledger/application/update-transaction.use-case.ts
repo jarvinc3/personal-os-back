@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Inject,
   Injectable,
   NotFoundException,
@@ -11,6 +12,8 @@ import { LEDGER_REPOSITORY } from '../../shared/application/tokens';
 import { FinanceOwnershipService } from '../../shared/application/finance-ownership.service';
 import { decimalToString } from '../../shared/domain/mappers';
 import { normalizeCurrencyCode } from '../../shared/domain/money';
+import { transactionEditBlock } from '../../shared/domain/transaction-edit-policy';
+import type { FinTransactionStatusValue } from '../../shared/domain/transaction-status';
 import type {
   FinTxType,
   TransactionUpdateFields,
@@ -40,6 +43,14 @@ export class UpdateTransactionUseCase {
       throw new BadRequestException(
         'Transfer legs cannot be updated individually',
       );
+    }
+
+    const editBlock = transactionEditBlock(
+      existing.status as FinTransactionStatusValue,
+      command,
+    );
+    if (editBlock) {
+      throw new ConflictException(editBlock);
     }
 
     if (command.categoryId) {

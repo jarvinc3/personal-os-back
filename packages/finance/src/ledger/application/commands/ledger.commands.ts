@@ -73,6 +73,7 @@ export type ListTransactionsQuery = {
   dateFrom?: string;
   dateTo?: string;
   search?: string;
+  includeAdjustments?: boolean;
 };
 
 export type ImportEmailTransactionCommand = {

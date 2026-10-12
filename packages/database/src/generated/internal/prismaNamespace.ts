@@ -417,6 +417,7 @@ export const ModelName = {
   FinInstitution: 'FinInstitution',
   FinCard: 'FinCard',
   FinCardBalance: 'FinCardBalance',
+  FinInstrumentEvent: 'FinInstrumentEvent',
   FinCardStatement: 'FinCardStatement',
   FinSavingsGoal: 'FinSavingsGoal',
   FinSavingsGoalContribution: 'FinSavingsGoalContribution',
@@ -445,7 +446,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "module" | "userModule" | "aiAgentSession" | "aiMessage" | "aiAction" | "notification" | "pushToken" | "finAccount" | "finEmailConnection" | "finEmailSource" | "finTransaction" | "finCategory" | "finBudget" | "finBudgetAlert" | "finRecurringPattern" | "finExchangeRate" | "finInstitution" | "finCard" | "finCardBalance" | "finCardStatement" | "finSavingsGoal" | "finSavingsGoalContribution" | "finLoan" | "finLoanInstallment" | "finReceivable" | "finReceivablePayment" | "finEmailSyncLog" | "finEmailMessage" | "domainEventOutbox" | "processedDomainEvent" | "authDeletionOutbox" | "finDeletionJournal"
+    modelProps: "user" | "module" | "userModule" | "aiAgentSession" | "aiMessage" | "aiAction" | "notification" | "pushToken" | "finAccount" | "finEmailConnection" | "finEmailSource" | "finTransaction" | "finCategory" | "finBudget" | "finBudgetAlert" | "finRecurringPattern" | "finExchangeRate" | "finInstitution" | "finCard" | "finCardBalance" | "finInstrumentEvent" | "finCardStatement" | "finSavingsGoal" | "finSavingsGoalContribution" | "finLoan" | "finLoanInstallment" | "finReceivable" | "finReceivablePayment" | "finEmailSyncLog" | "finEmailMessage" | "domainEventOutbox" | "processedDomainEvent" | "authDeletionOutbox" | "finDeletionJournal"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1929,6 +1930,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    FinInstrumentEvent: {
+      payload: Prisma.$FinInstrumentEventPayload<ExtArgs>
+      fields: Prisma.FinInstrumentEventFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.FinInstrumentEventFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinInstrumentEventPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.FinInstrumentEventFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinInstrumentEventPayload>
+        }
+        findFirst: {
+          args: Prisma.FinInstrumentEventFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinInstrumentEventPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.FinInstrumentEventFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinInstrumentEventPayload>
+        }
+        findMany: {
+          args: Prisma.FinInstrumentEventFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinInstrumentEventPayload>[]
+        }
+        create: {
+          args: Prisma.FinInstrumentEventCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinInstrumentEventPayload>
+        }
+        createMany: {
+          args: Prisma.FinInstrumentEventCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.FinInstrumentEventCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinInstrumentEventPayload>[]
+        }
+        delete: {
+          args: Prisma.FinInstrumentEventDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinInstrumentEventPayload>
+        }
+        update: {
+          args: Prisma.FinInstrumentEventUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinInstrumentEventPayload>
+        }
+        deleteMany: {
+          args: Prisma.FinInstrumentEventDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.FinInstrumentEventUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.FinInstrumentEventUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinInstrumentEventPayload>[]
+        }
+        upsert: {
+          args: Prisma.FinInstrumentEventUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinInstrumentEventPayload>
+        }
+        aggregate: {
+          args: Prisma.FinInstrumentEventAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateFinInstrumentEvent>
+        }
+        groupBy: {
+          args: Prisma.FinInstrumentEventGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.FinInstrumentEventGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.FinInstrumentEventCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.FinInstrumentEventCountAggregateOutputType> | number
+        }
+      }
+    }
     FinCardStatement: {
       payload: Prisma.$FinCardStatementPayload<ExtArgs>
       fields: Prisma.FinCardStatementFieldRefs
@@ -3261,6 +3336,19 @@ export const FinCardBalanceScalarFieldEnum = {
 export type FinCardBalanceScalarFieldEnum = (typeof FinCardBalanceScalarFieldEnum)[keyof typeof FinCardBalanceScalarFieldEnum]
 
 
+export const FinInstrumentEventScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  accountId: 'accountId',
+  cardId: 'cardId',
+  kind: 'kind',
+  payload: 'payload',
+  createdAt: 'createdAt'
+} as const
+
+export type FinInstrumentEventScalarFieldEnum = (typeof FinInstrumentEventScalarFieldEnum)[keyof typeof FinInstrumentEventScalarFieldEnum]
+
+
 export const FinCardStatementScalarFieldEnum = {
   id: 'id',
   cardId: 'cardId',
@@ -4038,6 +4126,7 @@ export type GlobalOmitConfig = {
   finInstitution?: Prisma.FinInstitutionOmit
   finCard?: Prisma.FinCardOmit
   finCardBalance?: Prisma.FinCardBalanceOmit
+  finInstrumentEvent?: Prisma.FinInstrumentEventOmit
   finCardStatement?: Prisma.FinCardStatementOmit
   finSavingsGoal?: Prisma.FinSavingsGoalOmit
   finSavingsGoalContribution?: Prisma.FinSavingsGoalContributionOmit

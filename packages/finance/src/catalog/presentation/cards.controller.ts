@@ -6,10 +6,16 @@ import {
   Param,
   Patch,
   Post,
+  Query,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { CurrentUser, RequiresEnabledModule } from '@personal-os/core';
+import {
+  CurrentUser,
+  CursorQueryDto,
+  RequiresEnabledModule,
+} from '@personal-os/core';
 import { CatalogService } from '../application/catalog.service';
+import { InstrumentHistoryService } from '../application/instrument-history.service';
 import { CreateCardDto } from './dto/create-card.dto';
 import { UpdateCardBalanceDto } from './dto/update-card-balance.dto';
 import { UpdateCardCreditLimitDto } from './dto/update-card-credit-limit.dto';
@@ -20,7 +26,10 @@ import { UpdateCardDto } from './dto/update-card.dto';
 @RequiresEnabledModule('finance')
 @Controller('finance')
 export class CardsController {
-  constructor(private readonly catalog: CatalogService) {}
+  constructor(
+    private readonly catalog: CatalogService,
+    private readonly history: InstrumentHistoryService,
+  ) {}
 
   @Get('cards')
   list(@CurrentUser('sub') userId: string) {
@@ -35,6 +44,16 @@ export class CardsController {
   @Get('cards/:id')
   get(@CurrentUser('sub') userId: string, @Param('id') id: string) {
     return this.catalog.getCard(userId, id);
+  }
+
+  @Get('cards/:id/history')
+  @ApiOperation({ summary: 'Card timeline: adjustments and limit changes' })
+  getHistory(
+    @CurrentUser('sub') userId: string,
+    @Param('id') id: string,
+    @Query() query: CursorQueryDto,
+  ) {
+    return this.history.getCardHistory(userId, id, query);
   }
 
   @Patch('cards/:id')

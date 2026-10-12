@@ -47,6 +47,9 @@ export function logicalTransactionsWhere(
         { transferGroupId: { not: null }, type: 'DEBIT' },
       ],
     });
+    if (!query.includeAdjustments) {
+      and.push({ type: { not: 'ADJUSTMENT' } });
+    }
   }
 
   if (query.accountId || query.cardId) {

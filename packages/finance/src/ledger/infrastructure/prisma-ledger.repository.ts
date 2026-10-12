@@ -29,6 +29,10 @@ import { EMAIL_DUPLICATE_DATE_TOLERANCE_MS } from '../../shared/domain/email-ded
 import type { ResolvedAmounts } from '../../shared/domain/money';
 import { normalizeCurrencyCode } from '../../shared/domain/money';
 import { statusAffectsLedger } from '../../shared/domain/transaction-status';
+import {
+  TRANSACTION_LINK_KIND,
+  type TransactionLinkKind,
+} from '../../shared/domain/transaction-links';
 import { shiftLoanDueDate } from '../../planning/domain/loan-installment-schedule';
 import { applyReceivableBalance } from '../../planning/infrastructure/receivable-balance';
 import { applySavingsGoalBalance } from '../../planning/infrastructure/savings-goal-balance';
@@ -211,6 +215,36 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
       where: { id, userId },
       include: transactionPartyInclude,
     }) as Promise<LedgerTransactionRow | null>;
+  }
+
+  async findPlanningLinkKind(
+    transactionId: string,
+    userId: string,
+  ): Promise<TransactionLinkKind | null> {
+    const [installment, payment, contribution] = await Promise.all([
+      this.prisma.finLoanInstallment.findFirst({
+        where: { transactionId, loan: { userId } },
+        select: { id: true },
+      }),
+      this.prisma.finReceivablePayment.findFirst({
+        where: { transactionId, receivable: { userId } },
+        select: { id: true },
+      }),
+      this.prisma.finSavingsGoalContribution.findFirst({
+        where: { transactionId, goal: { userId } },
+        select: { id: true },
+      }),
+    ]);
+    if (installment) {
+      return TRANSACTION_LINK_KIND.LOAN_INSTALLMENT;
+    }
+    if (payment) {
+      return TRANSACTION_LINK_KIND.RECEIVABLE_PAYMENT;
+    }
+    if (contribution) {
+      return TRANSACTION_LINK_KIND.SAVINGS_CONTRIBUTION;
+    }
+    return null;
   }
 
   findAccountById(id: string, userId: string) {
@@ -1188,6 +1222,66 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
 
       await this.thresholds?.processThresholds(userId, budgetSnapshots, tx);
       return { count: result.count, budgetSnapshots };
+    });
+  }
+
+  unconfirmTransaction(userId: string, id: string) {
+    return this.prisma.$transaction(async (tx) => {
+      const existing = await tx.finTransaction.findFirst({
+        where: { id, userId },
+      });
+      if (!existing) {
+        return null;
+      }
+
+      if (existing.status === 'CONFIRMED') {
+        const ctx = await this.loadCardContext(tx, userId, existing.cardId);
+        const ledger = ledgerFields(existing);
+        await applyBalanceForTransaction(tx, {
+          accountId: existing.accountId,
+          cardId: existing.cardId,
+          cardType: ctx.cardType,
+          derivedAccountId: ctx.derivedAccountId,
+          currency: ledger.currency,
+          type: existing.type,
+          amount: ledger.amount,
+          direction: -1,
+        });
+        await adjustBudgetSpent(tx, {
+          userId,
+          categoryId: existing.categoryId,
+          type: existing.type,
+          amountBaseCurrency: Number(existing.amountBaseCurrency),
+          transactionDate: existing.transactionDate,
+          direction: -1,
+        });
+        await tx.finTransaction.update({
+          where: { id },
+          data: { status: 'PENDING' },
+        });
+        await this.enqueueTransactionEvent(
+          tx,
+          userId,
+          AppEvents.FINANCE_TRANSACTION_UPDATED,
+          id,
+        );
+      }
+
+      const updated = await tx.finTransaction.findFirst({
+        where: { id, userId },
+        include: {
+          account: { select: { id: true, name: true } },
+          card: { select: { id: true, name: true } },
+        },
+      });
+      if (!updated) {
+        return null;
+      }
+
+      return {
+        transaction: updated,
+        budgetSnapshots: [] as BudgetSpendSnapshot[],
+      };
     });
   }
 

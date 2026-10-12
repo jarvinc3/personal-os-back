@@ -16,6 +16,27 @@ describe('logicalTransactionsWhere', () => {
     );
   });
 
+  it('excludes adjustments by default', () => {
+    const where = logicalTransactionsWhere('user-1', {});
+    expect(where.AND).toEqual(
+      expect.arrayContaining([{ type: { not: 'ADJUSTMENT' } }]),
+    );
+  });
+
+  it('keeps adjustments when includeAdjustments is true', () => {
+    const where = logicalTransactionsWhere('user-1', {
+      includeAdjustments: true,
+    });
+    expect(where.AND).not.toEqual(
+      expect.arrayContaining([{ type: { not: 'ADJUSTMENT' } }]),
+    );
+  });
+
+  it('keeps the explicit ADJUSTMENT filter', () => {
+    const where = logicalTransactionsWhere('user-1', { type: 'ADJUSTMENT' });
+    expect(where.AND).toEqual(expect.arrayContaining([{ type: 'ADJUSTMENT' }]));
+  });
+
   it('filters TRANSFER as debit legs of a group', () => {
     const where = logicalTransactionsWhere('user-1', { type: 'TRANSFER' });
     expect(where.AND).toEqual(

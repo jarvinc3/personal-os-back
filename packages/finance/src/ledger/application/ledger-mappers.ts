@@ -1,5 +1,10 @@
 import type { LogoRow } from '@personal-os/logos';
 import { decimalToString } from '../../shared/domain/mappers';
+import {
+  transactionEditPolicy,
+  type TransactionEditability,
+} from '../../shared/domain/transaction-edit-policy';
+import type { FinTransactionStatusValue } from '../../shared/domain/transaction-status';
 import type { LedgerTransactionRow } from './ports/ledger.repository.port';
 
 export type PartyLogoResolver = {
@@ -24,6 +29,7 @@ export type MappedTransaction = {
   description: string | null;
   transactionDate: string;
   status: string;
+  editable: TransactionEditability;
   source: string;
   categoryId: string | null;
   notes: string | null;
@@ -91,6 +97,8 @@ function mapPhysicalTransaction(
     description: tx.description,
     transactionDate: tx.transactionDate.toISOString(),
     status: tx.status,
+    editable: transactionEditPolicy(tx.status as FinTransactionStatusValue)
+      .editable,
     source: tx.source,
     categoryId: tx.categoryId,
     notes: tx.notes,
@@ -149,6 +157,8 @@ export function mapLogicalTransaction(
     description: from.description,
     transactionDate: from.transactionDate.toISOString(),
     status: from.status,
+    editable: transactionEditPolicy(from.status as FinTransactionStatusValue)
+      .editable,
     source: from.source,
     categoryId: from.categoryId,
     notes: from.notes,
