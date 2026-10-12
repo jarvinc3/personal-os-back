@@ -596,6 +596,40 @@ export type DecimalNullableWithAggregatesFilter<$PrismaModel = never> = {
   _max?: Prisma.NestedDecimalNullableFilter<$PrismaModel>
 }
 
+export type EnumFinAmountSourceNullableFilter<$PrismaModel = never> = {
+  equals?: $Enums.FinAmountSource | Prisma.EnumFinAmountSourceFieldRefInput<$PrismaModel> | null
+  in?: $Enums.FinAmountSource[] | Prisma.ListEnumFinAmountSourceFieldRefInput<$PrismaModel> | null
+  notIn?: $Enums.FinAmountSource[] | Prisma.ListEnumFinAmountSourceFieldRefInput<$PrismaModel> | null
+  not?: Prisma.NestedEnumFinAmountSourceNullableFilter<$PrismaModel> | $Enums.FinAmountSource | null
+}
+
+export type EnumFinCardStatementStatusFilter<$PrismaModel = never> = {
+  equals?: $Enums.FinCardStatementStatus | Prisma.EnumFinCardStatementStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.FinCardStatementStatus[] | Prisma.ListEnumFinCardStatementStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.FinCardStatementStatus[] | Prisma.ListEnumFinCardStatementStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumFinCardStatementStatusFilter<$PrismaModel> | $Enums.FinCardStatementStatus
+}
+
+export type EnumFinAmountSourceNullableWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.FinAmountSource | Prisma.EnumFinAmountSourceFieldRefInput<$PrismaModel> | null
+  in?: $Enums.FinAmountSource[] | Prisma.ListEnumFinAmountSourceFieldRefInput<$PrismaModel> | null
+  notIn?: $Enums.FinAmountSource[] | Prisma.ListEnumFinAmountSourceFieldRefInput<$PrismaModel> | null
+  not?: Prisma.NestedEnumFinAmountSourceNullableWithAggregatesFilter<$PrismaModel> | $Enums.FinAmountSource | null
+  _count?: Prisma.NestedIntNullableFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumFinAmountSourceNullableFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumFinAmountSourceNullableFilter<$PrismaModel>
+}
+
+export type EnumFinCardStatementStatusWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.FinCardStatementStatus | Prisma.EnumFinCardStatementStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.FinCardStatementStatus[] | Prisma.ListEnumFinCardStatementStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.FinCardStatementStatus[] | Prisma.ListEnumFinCardStatementStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumFinCardStatementStatusWithAggregatesFilter<$PrismaModel> | $Enums.FinCardStatementStatus
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumFinCardStatementStatusFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumFinCardStatementStatusFilter<$PrismaModel>
+}
+
 export type EnumFinInstallmentFreqFilter<$PrismaModel = never> = {
   equals?: $Enums.FinInstallmentFreq | Prisma.EnumFinInstallmentFreqFieldRefInput<$PrismaModel>
   in?: $Enums.FinInstallmentFreq[] | Prisma.ListEnumFinInstallmentFreqFieldRefInput<$PrismaModel>
@@ -1237,6 +1271,40 @@ export type NestedDecimalNullableWithAggregatesFilter<$PrismaModel = never> = {
   _sum?: Prisma.NestedDecimalNullableFilter<$PrismaModel>
   _min?: Prisma.NestedDecimalNullableFilter<$PrismaModel>
   _max?: Prisma.NestedDecimalNullableFilter<$PrismaModel>
+}
+
+export type NestedEnumFinAmountSourceNullableFilter<$PrismaModel = never> = {
+  equals?: $Enums.FinAmountSource | Prisma.EnumFinAmountSourceFieldRefInput<$PrismaModel> | null
+  in?: $Enums.FinAmountSource[] | Prisma.ListEnumFinAmountSourceFieldRefInput<$PrismaModel> | null
+  notIn?: $Enums.FinAmountSource[] | Prisma.ListEnumFinAmountSourceFieldRefInput<$PrismaModel> | null
+  not?: Prisma.NestedEnumFinAmountSourceNullableFilter<$PrismaModel> | $Enums.FinAmountSource | null
+}
+
+export type NestedEnumFinCardStatementStatusFilter<$PrismaModel = never> = {
+  equals?: $Enums.FinCardStatementStatus | Prisma.EnumFinCardStatementStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.FinCardStatementStatus[] | Prisma.ListEnumFinCardStatementStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.FinCardStatementStatus[] | Prisma.ListEnumFinCardStatementStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumFinCardStatementStatusFilter<$PrismaModel> | $Enums.FinCardStatementStatus
+}
+
+export type NestedEnumFinAmountSourceNullableWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.FinAmountSource | Prisma.EnumFinAmountSourceFieldRefInput<$PrismaModel> | null
+  in?: $Enums.FinAmountSource[] | Prisma.ListEnumFinAmountSourceFieldRefInput<$PrismaModel> | null
+  notIn?: $Enums.FinAmountSource[] | Prisma.ListEnumFinAmountSourceFieldRefInput<$PrismaModel> | null
+  not?: Prisma.NestedEnumFinAmountSourceNullableWithAggregatesFilter<$PrismaModel> | $Enums.FinAmountSource | null
+  _count?: Prisma.NestedIntNullableFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumFinAmountSourceNullableFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumFinAmountSourceNullableFilter<$PrismaModel>
+}
+
+export type NestedEnumFinCardStatementStatusWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.FinCardStatementStatus | Prisma.EnumFinCardStatementStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.FinCardStatementStatus[] | Prisma.ListEnumFinCardStatementStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.FinCardStatementStatus[] | Prisma.ListEnumFinCardStatementStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumFinCardStatementStatusWithAggregatesFilter<$PrismaModel> | $Enums.FinCardStatementStatus
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumFinCardStatementStatusFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumFinCardStatementStatusFilter<$PrismaModel>
 }
 
 export type NestedEnumFinInstallmentFreqFilter<$PrismaModel = never> = {

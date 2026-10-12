@@ -3,12 +3,14 @@ import { AnalyticsService } from './analytics/application/analytics.service';
 import { CatalogService } from './catalog/application/catalog.service';
 import { IngestionService } from './ingestion/application/ingestion.service';
 import type {
+  CreateCardPaymentCommand,
   CreateTransactionCommand,
   CreateTransferCommand,
   ListTransactionsQuery,
   UpdateTransactionCommand,
 } from './ledger/application/commands/ledger.commands';
 import { ConfirmTransactionUseCase } from './ledger/application/confirm-transaction.use-case';
+import { CreateCardPaymentUseCase } from './ledger/application/create-card-payment.use-case';
 import { CreateTransactionUseCase } from './ledger/application/create-transaction.use-case';
 import { CreateTransferUseCase } from './ledger/application/create-transfer.use-case';
 import { LedgerQueryService } from './ledger/application/ledger-query.service';
@@ -17,6 +19,7 @@ import { UpdateTransactionUseCase } from './ledger/application/update-transactio
 import { UnconfirmTransactionUseCase } from './ledger/application/unconfirm-transaction.use-case';
 import { PlanningService } from './planning/application/planning.service';
 import { RecordSavingsGoalContributionUseCase } from './planning/application/record-savings-goal-contribution.use-case';
+import { CardStatementsService } from './statements/application/card-statements.service';
 import type { CreateBudgetDto } from './planning/presentation/dto/create-budget.dto';
 import type { CreateSavingsGoalDto } from './planning/presentation/dto/create-savings-goal.dto';
 import type { CreateSavingsGoalContributionDto } from './planning/presentation/dto/create-savings-goal-contribution.dto';
@@ -40,10 +43,12 @@ export class FinanceFacade {
     private readonly unconfirmTx: UnconfirmTransactionUseCase,
     private readonly reverseTx: ReverseTransactionUseCase,
     private readonly createTransfer: CreateTransferUseCase,
+    private readonly createCardPaymentTx: CreateCardPaymentUseCase,
     private readonly catalog: CatalogService,
     private readonly planning: PlanningService,
     private readonly recordContribution: RecordSavingsGoalContributionUseCase,
     private readonly analytics: AnalyticsService,
+    private readonly statements: CardStatementsService,
     private readonly ingestion: IngestionService,
     private readonly wipeFinance: WipeFinanceUserDataUseCase,
   ) {}
@@ -112,6 +117,14 @@ export class FinanceFacade {
 
   createTransferTransaction(userId: string, command: CreateTransferCommand) {
     return this.createTransfer.execute(userId, command);
+  }
+
+  createCardPayment(userId: string, command: CreateCardPaymentCommand) {
+    return this.createCardPaymentTx.execute(userId, command);
+  }
+
+  getCardStatements(userId: string, cardId: string) {
+    return this.statements.listCardStatements(userId, cardId, new Date());
   }
 
   getBudgetStatus(userId: string) {

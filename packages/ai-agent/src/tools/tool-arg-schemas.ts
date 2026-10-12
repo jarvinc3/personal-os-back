@@ -349,6 +349,20 @@ export const createTransferArgsSchema = z
   })
   .strict();
 
+export const createCardPaymentArgsSchema = z
+  .object({
+    fromAccountId: uuid,
+    cardId: uuid,
+    amount: moneyAmount,
+    currency: currencyCode.optional(),
+    transactionDate: dateString,
+    description: optionalNullableString(200),
+    notes: optionalNullableString(2000),
+  })
+  .strict();
+
+export const getCardStatementArgsSchema = z.object({ cardId: uuid }).strict();
+
 /** Mutating tool name → Zod schema (single source of truth). */
 export const MUTATING_TOOL_ARG_SCHEMAS = {
   update_user_profile: updateUserProfileArgsSchema,
@@ -363,6 +377,7 @@ export const MUTATING_TOOL_ARG_SCHEMAS = {
   confirm_transaction: confirmTransactionArgsSchema,
   unconfirm_transaction: unconfirmTransactionArgsSchema,
   create_transfer: createTransferArgsSchema,
+  pay_card: createCardPaymentArgsSchema,
   create_or_update_budget: createOrUpdateBudgetArgsSchema,
   create_savings_goal: createSavingsGoalArgsSchema,
   update_savings_goal: updateSavingsGoalArgsSchema,

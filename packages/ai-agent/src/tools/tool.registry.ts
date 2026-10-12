@@ -193,8 +193,20 @@ const STATIC_TOOLS: StaticToolDef[] = [
   {
     name: 'create_transfer',
     description:
-      'Transfer money from an account to an account or card (exactly one from account and one to target).',
+      'Transfer money from an account to another account. Card payments use pay_card.',
     mutating: true,
+    targetModule: 'finance',
+  },
+  {
+    name: 'pay_card',
+    description: 'Pay a credit card from an account.',
+    mutating: true,
+    targetModule: 'finance',
+  },
+  {
+    name: 'get_card_statement',
+    description: 'Get a credit card statement with its status and amounts.',
+    mutating: false,
     targetModule: 'finance',
   },
   {

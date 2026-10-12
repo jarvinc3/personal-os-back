@@ -3,6 +3,7 @@ export const FIN_TRANSACTION_TYPES = [
   'CREDIT',
   'TRANSFER',
   'ADJUSTMENT',
+  'CARD_PAYMENT',
 ] as const;
 
 export type FinTransactionTypeValue = (typeof FIN_TRANSACTION_TYPES)[number];

@@ -18,6 +18,11 @@ export function signedAmount(type: LedgerMovementType, amount: number): number {
   return 0;
 }
 
+/** A card payment credits the card's available and debits the account. */
+export function cardPaymentDelta(amount: number, isCard: boolean): number {
+  return isCard ? Math.abs(amount) : -Math.abs(amount);
+}
+
 export type LedgerTarget = {
   accountId: string | null;
   cardId: string | null;

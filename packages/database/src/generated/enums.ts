@@ -28,6 +28,27 @@ export const FinTransferRail = {
 export type FinTransferRail = (typeof FinTransferRail)[keyof typeof FinTransferRail]
 
 
+export const FinCardStatementStatus = {
+  OPEN: 'OPEN',
+  CLOSED: 'CLOSED',
+  PARTIAL: 'PARTIAL',
+  MINIMUM_PAID: 'MINIMUM_PAID',
+  PAID: 'PAID',
+  OVERDUE: 'OVERDUE'
+} as const
+
+export type FinCardStatementStatus = (typeof FinCardStatementStatus)[keyof typeof FinCardStatementStatus]
+
+
+export const FinAmountSource = {
+  IMPORTED: 'IMPORTED',
+  ESTIMATED: 'ESTIMATED',
+  MANUAL: 'MANUAL'
+} as const
+
+export type FinAmountSource = (typeof FinAmountSource)[keyof typeof FinAmountSource]
+
+
 export const AiRole = {
   user: 'user',
   assistant: 'assistant',
@@ -90,7 +111,8 @@ export const FinTransactionType = {
   DEBIT: 'DEBIT',
   CREDIT: 'CREDIT',
   TRANSFER: 'TRANSFER',
-  ADJUSTMENT: 'ADJUSTMENT'
+  ADJUSTMENT: 'ADJUSTMENT',
+  CARD_PAYMENT: 'CARD_PAYMENT'
 } as const
 
 export type FinTransactionType = (typeof FinTransactionType)[keyof typeof FinTransactionType]

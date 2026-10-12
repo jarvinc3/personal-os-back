@@ -169,6 +169,22 @@ Moves amount from an account to a destination account (account to account only).
 
 ---
 
+### `pay_card`
+
+Pays a credit card from an account. The payment is not an expense; it only moves money to the card.
+
+**Delegates to:** `FinanceFacade.createCardPayment`
+
+---
+
+### `get_card_statement`
+
+Returns the credit card statements with their status, minimum and paid amount.
+
+**Delegates to:** `FinanceFacade.getCardStatements`
+
+---
+
 ### `update_transaction`
 
 Updates **metadata only** (`categoryId`, `merchant`, `description`, `notes`). Amount/currency/status/date are not part of the AI tool schema.

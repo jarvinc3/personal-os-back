@@ -21,6 +21,8 @@ type StatementRow = {
   cycleEnd: Date;
   dueDate: Date | null;
   closingBalance: { toString(): string } | number | string;
+  minimumPayment: { toString(): string } | number | string | null | undefined;
+  minimumSource: string | null | undefined;
 };
 
 function toSnapshot(row: StatementRow): CardStatementSnapshot {
@@ -31,6 +33,12 @@ function toSnapshot(row: StatementRow): CardStatementSnapshot {
     cycleEnd: row.cycleEnd,
     dueDate: row.dueDate,
     closingBalance: Number(row.closingBalance),
+    minimumPayment:
+      row.minimumPayment == null ? null : Number(row.minimumPayment),
+    minimumSource:
+      row.minimumSource == null
+        ? null
+        : (row.minimumSource as CardStatementSnapshot['minimumSource']),
   };
 }
 
@@ -93,20 +101,41 @@ export class CardStatementsService {
         today,
       });
       for (const cycle of cycles) {
+        const dueDate =
+          dueDay === null ? null : firstDueDateAfter(cycle.cycleEnd, dueDay);
+        const closingBalance = debtAtClosing({
+          currentAvailable: Number(balance.balance),
+          creditLimit: Number(creditLimit),
+          movements,
+          closingDate: cycle.cycleEnd,
+          today,
+        });
+        const [view] = buildCardStatementViews({
+          statements: [
+            {
+              id: '',
+              currency: balance.currency,
+              cycleStart: cycle.cycleStart,
+              cycleEnd: cycle.cycleEnd,
+              dueDate,
+              closingBalance,
+              minimumPayment: null,
+              minimumSource: null,
+            },
+          ],
+          movements,
+          today,
+        });
         await this.repo.upsertStatement({
           cardId,
           currency: balance.currency,
           cycleStart: cycle.cycleStart,
           cycleEnd: cycle.cycleEnd,
-          dueDate:
-            dueDay === null ? null : firstDueDateAfter(cycle.cycleEnd, dueDay),
-          closingBalance: debtAtClosing({
-            currentAvailable: Number(balance.balance),
-            creditLimit: Number(creditLimit),
-            movements,
-            closingDate: cycle.cycleEnd,
-            today,
-          }),
+          dueDate,
+          closingBalance,
+          minimumPayment: view.minimumPayment,
+          minimumSource: view.minimumSource,
+          status: view.status,
         });
       }
     }

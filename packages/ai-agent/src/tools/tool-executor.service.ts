@@ -34,6 +34,8 @@ const FINANCE_TOOL_NAMES = new Set([
   'list_email_sources',
   'create_transaction',
   'create_transfer',
+  'pay_card',
+  'get_card_statement',
   'update_transaction',
   'confirm_transaction',
   'unconfirm_transaction',
@@ -472,6 +474,35 @@ export class ToolExecutorService {
             description: t.description ?? undefined,
             notes: t.notes ?? undefined,
           }),
+        };
+      }
+      case 'pay_card': {
+        const t = args as ValidatedToolArgs<'pay_card'>;
+        return {
+          success: true,
+          message: 'Card payment created',
+          data: await this.financeFacade.createCardPayment(ctx.userId, {
+            fromAccountId: t.fromAccountId,
+            cardId: t.cardId,
+            amount: t.amount,
+            currency: t.currency,
+            transactionDate: t.transactionDate,
+            description: t.description ?? undefined,
+            notes: t.notes ?? undefined,
+          }),
+        };
+      }
+      case 'get_card_statement': {
+        const statementArgs = args as { cardId: string };
+        return {
+          success: true,
+          message: 'Card statements loaded',
+          data: {
+            statements: await this.financeFacade.getCardStatements(
+              ctx.userId,
+              statementArgs.cardId,
+            ),
+          },
         };
       }
       case 'update_transaction': {

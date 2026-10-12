@@ -54,6 +54,9 @@ describe('CardStatementsService', () => {
       cycleEnd: utc(2026, 1, 15),
       dueDate: utc(2026, 2, 5),
       closingBalance: 1000,
+      minimumPayment: 27.78,
+      minimumSource: 'ESTIMATED',
+      status: 'OVERDUE',
     });
     expect(repo.upsertStatement).toHaveBeenNthCalledWith(3, {
       cardId: 'card-1',
@@ -62,6 +65,9 @@ describe('CardStatementsService', () => {
       cycleEnd: utc(2026, 3, 15),
       dueDate: utc(2026, 4, 5),
       closingBalance: 1000,
+      minimumPayment: 27.78,
+      minimumSource: 'ESTIMATED',
+      status: 'CLOSED',
     });
   });
 
@@ -160,7 +166,9 @@ describe('CardStatementsService', () => {
         cycleEnd: utc(2026, 2, 15),
         dueDate: utc(2026, 3, 5),
         closingBalance: '1000',
-        amountPaid: '1000',
+        minimumPayment: '27.78',
+        minimumSource: 'ESTIMATED',
+        paidAmount: '1000',
         remaining: '0',
         status: 'PAID',
       },

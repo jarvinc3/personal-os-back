@@ -89,6 +89,19 @@ export type ListTransactionsQuery = {
   groupOperations?: boolean;
 };
 
+export type CreateCardPaymentCommand = {
+  fromAccountId: string;
+  cardId: string;
+  amount: number;
+  currency?: string;
+  transactionDate: string;
+  description?: string;
+  notes?: string;
+  status?: TransferStatus;
+  statementId?: string;
+  source?: 'MANUAL' | 'AI';
+};
+
 export type ImportEmailTransactionCommand = {
   accountId?: string;
   cardId?: string;

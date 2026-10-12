@@ -3215,6 +3215,7 @@ export const FinCategoryScalarFieldEnum = {
   color: 'color',
   parentId: 'parentId',
   isSystem: 'isSystem',
+  systemKind: 'systemKind',
   type: 'type',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
@@ -3359,6 +3360,10 @@ export const FinCardStatementScalarFieldEnum = {
   cycleEnd: 'cycleEnd',
   dueDate: 'dueDate',
   closingBalance: 'closingBalance',
+  minimumPayment: 'minimumPayment',
+  minimumSource: 'minimumSource',
+  status: 'status',
+  importedAt: 'importedAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -3888,6 +3893,34 @@ export type EnumFinCardNetworkFieldRefInput<$PrismaModel> = FieldRefInputType<$P
  * Reference to a field of type 'FinCardNetwork[]'
  */
 export type ListEnumFinCardNetworkFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'FinCardNetwork[]'>
+    
+
+
+/**
+ * Reference to a field of type 'FinAmountSource'
+ */
+export type EnumFinAmountSourceFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'FinAmountSource'>
+    
+
+
+/**
+ * Reference to a field of type 'FinAmountSource[]'
+ */
+export type ListEnumFinAmountSourceFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'FinAmountSource[]'>
+    
+
+
+/**
+ * Reference to a field of type 'FinCardStatementStatus'
+ */
+export type EnumFinCardStatementStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'FinCardStatementStatus'>
+    
+
+
+/**
+ * Reference to a field of type 'FinCardStatementStatus[]'
+ */
+export type ListEnumFinCardStatementStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'FinCardStatementStatus[]'>
     
 
 

@@ -313,6 +313,7 @@ export const FinCategoryScalarFieldEnum = {
   color: 'color',
   parentId: 'parentId',
   isSystem: 'isSystem',
+  systemKind: 'systemKind',
   type: 'type',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
@@ -457,6 +458,10 @@ export const FinCardStatementScalarFieldEnum = {
   cycleEnd: 'cycleEnd',
   dueDate: 'dueDate',
   closingBalance: 'closingBalance',
+  minimumPayment: 'minimumPayment',
+  minimumSource: 'minimumSource',
+  status: 'status',
+  importedAt: 'importedAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const

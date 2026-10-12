@@ -78,6 +78,7 @@ const transactionPartyInclude = {
   },
 } satisfies Prisma.FinTransactionInclude;
 import type {
+  CreateCardPaymentCommand,
   CreateTransactionCommand,
   CreateTransferCommand,
   FinTxStatus,
@@ -104,6 +105,7 @@ import {
   applyBalanceForTransaction,
   resolveLedgerTarget,
   restoreLedgerRows,
+  type LedgerTarget,
 } from './balance.helpers';
 import { logicalTransactionsWhere } from './logical-transaction-query';
 
@@ -771,6 +773,137 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
 
       return { debit, credit, ...(fee ? { fee } : {}), transferGroupId };
     });
+  }
+
+  createCardPayment(input: {
+    userId: string;
+    command: CreateCardPaymentCommand;
+    fromAmounts: ResolvedAmounts;
+    toAmounts: ResolvedAmounts;
+  }): Promise<CreateTransferResult | null> {
+    const { userId, command, fromAmounts, toAmounts } = input;
+    return this.prisma.$transaction(async (tx) => {
+      const fromTarget = await resolveLedgerTarget(
+        tx,
+        userId,
+        command.fromAccountId,
+        undefined,
+      );
+      const toTarget = await resolveLedgerTarget(
+        tx,
+        userId,
+        undefined,
+        command.cardId,
+      );
+      if (!fromTarget || !toTarget) {
+        return null;
+      }
+
+      const transferGroupId = randomUUID();
+      const status = command.status ?? 'CONFIRMED';
+      const transactionDate = new Date(command.transactionDate);
+      const source = command.source ?? 'MANUAL';
+
+      const createLeg = async (leg: {
+        target: LedgerTarget;
+        amounts: ResolvedAmounts;
+        legRole: OperationLegRole;
+      }) => {
+        const created = await tx.finTransaction.create({
+          data: {
+            userId,
+            accountId: leg.target.accountId,
+            cardId: leg.target.cardId,
+            type: 'CARD_PAYMENT',
+            amount: leg.amounts.amount,
+            ledgerAmount: leg.amounts.ledgerAmount,
+            amountBaseCurrency: leg.amounts.amountBaseCurrency,
+            currency: leg.amounts.currency,
+            ledgerCurrency: leg.amounts.ledgerCurrency,
+            exchangeRate: leg.amounts.exchangeRate,
+            description: command.description,
+            notes: command.notes,
+            source,
+            status,
+            legRole: leg.legRole,
+            transferGroupId,
+            transactionDate,
+          },
+          include: {
+            account: { select: { id: true, name: true } },
+            card: { select: { id: true, name: true } },
+          },
+        });
+
+        if (statusAffectsLedger(status)) {
+          await applyBalanceForTransaction(tx, {
+            accountId: leg.target.accountId,
+            cardId: leg.target.cardId,
+            cardType: leg.target.cardType,
+            derivedAccountId: leg.target.derivedAccountId,
+            currency: leg.amounts.ledgerCurrency,
+            type: 'CARD_PAYMENT',
+            amount: leg.amounts.ledgerAmount,
+          });
+        }
+
+        await this.enqueueTransactionEvent(
+          tx,
+          userId,
+          transactionCreatedEventName(created.status),
+          created.id,
+        );
+        return created as LedgerTransactionRow;
+      };
+
+      const debit = await createLeg({
+        target: fromTarget,
+        amounts: fromAmounts,
+        legRole: OPERATION_LEG_ROLE.SOURCE,
+      });
+      const credit = await createLeg({
+        target: toTarget,
+        amounts: toAmounts,
+        legRole: OPERATION_LEG_ROLE.DESTINATION,
+      });
+
+      await this.events.enqueue(
+        {
+          eventName: AppEvents.FINANCE_TRANSFER_CREATED,
+          aggregateType: 'FinTransfer',
+          aggregateId: transferGroupId,
+          userId,
+          payload: {
+            transferGroupId,
+            debitId: debit.id,
+            creditId: credit.id,
+            amount: Number(debit.amount),
+          },
+        },
+        tx,
+      );
+
+      return { debit, credit, transferGroupId };
+    });
+  }
+
+  async findCardForPayment(userId: string, cardId: string) {
+    const card = await this.prisma.finCard.findFirst({
+      where: { id: cardId, userId },
+      select: {
+        id: true,
+        type: true,
+        balances: { select: { currency: true } },
+      },
+    });
+    if (!card) {
+      return null;
+    }
+    return {
+      id: card.id,
+      type: card.type,
+      currencies: card.balances.map((balance) => balance.currency),
+    };
   }
 
   private async upsertTransferFeeLeg(

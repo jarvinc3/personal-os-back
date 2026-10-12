@@ -4,8 +4,23 @@ import {
   type StatementMovement,
 } from './card-statement-amounts';
 
-export const CARD_STATEMENT_STATUSES = ['PENDING', 'PARTIAL', 'PAID'] as const;
+export const CARD_STATEMENT_STATUSES = [
+  'OPEN',
+  'CLOSED',
+  'PARTIAL',
+  'MINIMUM_PAID',
+  'PAID',
+  'OVERDUE',
+] as const;
 export type CardStatementStatus = (typeof CARD_STATEMENT_STATUSES)[number];
+
+export const CARD_STATEMENT_MINIMUM_SOURCES = [
+  'IMPORTED',
+  'ESTIMATED',
+  'MANUAL',
+] as const;
+export type CardStatementMinimumSource =
+  (typeof CARD_STATEMENT_MINIMUM_SOURCES)[number];
 
 export type CardStatementSnapshot = {
   id: string;
@@ -15,61 +30,59 @@ export type CardStatementSnapshot = {
   dueDate: Date | null;
   /** Debt at closing, not the card's stored balance. */
   closingBalance: number;
+  minimumPayment: number | null;
+  minimumSource: CardStatementMinimumSource | null;
 };
 
 export type CardStatementView = CardStatementSnapshot & {
-  amountPaid: number;
+  minimumPayment: number;
+  minimumSource: CardStatementMinimumSource;
+  paidAmount: number;
   remaining: number;
   status: CardStatementStatus;
 };
 
+/** 1/36 of the closing balance when the statement has no imported minimum. */
+export function estimateMinimumPayment(closingBalance: number): number {
+  return roundMoney(Math.max(closingBalance / 36, 0));
+}
+
 export function cardStatementStatus(input: {
+  cycleEnd: Date;
+  dueDate: Date | null;
   closingBalance: number;
-  amountPaid: number;
+  minimumPayment: number;
+  paidAmount: number;
+  today: Date;
 }): CardStatementStatus {
-  if (input.closingBalance <= 0) {
+  if (input.cycleEnd.getTime() >= input.today.getTime()) {
+    return 'OPEN';
+  }
+  if (input.closingBalance <= 0 || input.paidAmount >= input.closingBalance) {
     return 'PAID';
   }
-  if (input.amountPaid <= 0) {
-    return 'PENDING';
+  if (
+    input.dueDate &&
+    input.dueDate.getTime() < input.today.getTime() &&
+    input.paidAmount < input.minimumPayment
+  ) {
+    return 'OVERDUE';
   }
-  if (input.amountPaid >= input.closingBalance) {
-    return 'PAID';
+  if (input.minimumPayment > 0 && input.paidAmount >= input.minimumPayment) {
+    return 'MINIMUM_PAID';
   }
-  return 'PARTIAL';
+  if (input.paidAmount > 0) {
+    return 'PARTIAL';
+  }
+  return 'CLOSED';
 }
 
-/**
- * A payment belongs to the statement whose window it falls in: up to the next
- * closing of the same currency, or today for the newest statement.
- */
-function paymentWindowEnd(
-  statement: CardStatementSnapshot,
-  closingDates: readonly Date[],
-  today: Date,
-): Date {
-  const nextClosing = closingDates.find(
-    (closingDate) => closingDate.getTime() > statement.cycleEnd.getTime(),
-  );
-  if (!nextClosing) {
-    return today;
+/** Payments counted for a statement fall inside `(cycleEnd, dueDate]`. */
+function paymentWindowEnd(statement: CardStatementSnapshot, today: Date): Date {
+  if (statement.dueDate && statement.dueDate.getTime() < today.getTime()) {
+    return statement.dueDate;
   }
-  return nextClosing.getTime() > today.getTime() ? today : nextClosing;
-}
-
-function closingDatesByCurrency(
-  statements: readonly CardStatementSnapshot[],
-): Map<string, Date[]> {
-  const dates = new Map<string, Date[]>();
-  for (const statement of statements) {
-    const byDate = dates.get(statement.currency) ?? [];
-    byDate.push(statement.cycleEnd);
-    dates.set(statement.currency, byDate);
-  }
-  for (const byDate of dates.values()) {
-    byDate.sort((left, right) => left.getTime() - right.getTime());
-  }
-  return dates;
+  return today;
 }
 
 export function buildCardStatementViews(input: {
@@ -78,28 +91,33 @@ export function buildCardStatementViews(input: {
   today: Date;
 }): CardStatementView[] {
   const { statements, movements, today } = input;
-  const closingDates = closingDatesByCurrency(statements);
 
   return statements.map((statement) => {
     const currencyMovements = movements.filter(
       (movement) => movement.ledgerCurrency === statement.currency,
     );
-    const amountPaid = paymentsInWindow(
+    const paidAmount = paymentsInWindow(
       currencyMovements,
       statement.cycleEnd,
-      paymentWindowEnd(
-        statement,
-        closingDates.get(statement.currency) ?? [],
-        today,
-      ),
+      paymentWindowEnd(statement, today),
     );
+    const minimumPayment =
+      statement.minimumPayment ??
+      estimateMinimumPayment(statement.closingBalance);
+    const minimumSource = statement.minimumSource ?? 'ESTIMATED';
     return {
       ...statement,
-      amountPaid,
-      remaining: roundMoney(Math.max(0, statement.closingBalance - amountPaid)),
+      minimumPayment,
+      minimumSource,
+      paidAmount,
+      remaining: roundMoney(Math.max(0, statement.closingBalance - paidAmount)),
       status: cardStatementStatus({
+        cycleEnd: statement.cycleEnd,
+        dueDate: statement.dueDate,
         closingBalance: statement.closingBalance,
-        amountPaid,
+        minimumPayment,
+        paidAmount,
+        today,
       }),
     };
   });

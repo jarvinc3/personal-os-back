@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@personal-os/database';
-import type { Prisma } from '@personal-os/database';
+import type { $Enums, Prisma } from '@personal-os/database';
 import { CONFIRMED_TRANSACTION_STATUS } from '../domain/card-statement-amounts';
 
 const CREDIT_CARD_TYPE = 'CREDIT' as const;
@@ -31,6 +31,9 @@ export type CardStatementSnapshotRow = {
   cycleEnd: Date;
   dueDate: Date | null;
   closingBalance: number;
+  minimumPayment: number;
+  minimumSource: $Enums.FinAmountSource;
+  status: $Enums.FinCardStatementStatus;
 };
 
 @Injectable()

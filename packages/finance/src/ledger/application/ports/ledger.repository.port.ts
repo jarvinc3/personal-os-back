@@ -4,6 +4,7 @@ import type { RestoreResult } from '../../../shared/domain/deletion-snapshot';
 import type { ResolvedAmounts } from '../../../shared/domain/money';
 import type { TransactionLinkKind } from '../../../shared/domain/transaction-links';
 import type {
+  CreateCardPaymentCommand,
   CreateTransactionCommand,
   CreateTransferCommand,
   FinTxStatus,
@@ -190,6 +191,19 @@ export interface LedgerRepositoryPort {
     toAmounts: ResolvedAmounts;
     feeAmounts?: ResolvedAmounts;
   }): Promise<CreateTransferResult | null>;
+
+  /** A card payment is two CARD_PAYMENT legs: account out, card available up. */
+  createCardPayment(input: {
+    userId: string;
+    command: CreateCardPaymentCommand;
+    fromAmounts: ResolvedAmounts;
+    toAmounts: ResolvedAmounts;
+  }): Promise<CreateTransferResult | null>;
+
+  findCardForPayment(
+    userId: string,
+    cardId: string,
+  ): Promise<{ id: string; type: string; currencies: string[] } | null>;
 
   /** Replaces both legs (and the fee effect) inside one transaction. */
   updateTransfer(input: {
