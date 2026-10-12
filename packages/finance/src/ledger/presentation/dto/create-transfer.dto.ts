@@ -1,6 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
+  IsBoolean,
   IsDateString,
   IsEnum,
   IsNumber,
@@ -9,13 +10,27 @@ import {
   IsUUID,
   MaxLength,
   Validate,
+  ValidateNested,
   ValidationArguments,
   ValidatorConstraint,
   ValidatorConstraintInterface,
 } from 'class-validator';
 import { CurrencyField } from '../../../shared/presentation/validation.decorators';
+import { TRANSFER_RAILS } from '../../application/commands/ledger.commands';
 
 const transactionStatuses = ['PENDING', 'CONFIRMED', 'CANCELLED'] as const;
+
+export class TransferFeeDto {
+  @ApiProperty()
+  @Type(() => Number)
+  @IsNumber({ maxDecimalPlaces: 2 })
+  amount!: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsUUID()
+  categoryId?: string;
+}
 
 @ValidatorConstraint({ name: 'transferDestinationXor', async: false })
 class TransferDestinationXorConstraint implements ValidatorConstraintInterface {
@@ -78,4 +93,20 @@ export class CreateTransferDto {
   @IsOptional()
   @IsEnum(transactionStatuses)
   status?: (typeof transactionStatuses)[number];
+
+  @ApiPropertyOptional({ enum: TRANSFER_RAILS })
+  @IsOptional()
+  @IsEnum(TRANSFER_RAILS)
+  rail?: (typeof TRANSFER_RAILS)[number];
+
+  @ApiPropertyOptional({ type: TransferFeeDto })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => TransferFeeDto)
+  fee?: TransferFeeDto;
+
+  @ApiPropertyOptional({ default: false })
+  @IsOptional()
+  @IsBoolean()
+  destinationPending?: boolean;
 }

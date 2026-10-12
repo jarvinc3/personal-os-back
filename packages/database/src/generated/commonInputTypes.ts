@@ -393,6 +393,20 @@ export type EnumFinTransactionSourceFilter<$PrismaModel = never> = {
   not?: Prisma.NestedEnumFinTransactionSourceFilter<$PrismaModel> | $Enums.FinTransactionSource
 }
 
+export type EnumFinOperationLegRoleNullableFilter<$PrismaModel = never> = {
+  equals?: $Enums.FinOperationLegRole | Prisma.EnumFinOperationLegRoleFieldRefInput<$PrismaModel> | null
+  in?: $Enums.FinOperationLegRole[] | Prisma.ListEnumFinOperationLegRoleFieldRefInput<$PrismaModel> | null
+  notIn?: $Enums.FinOperationLegRole[] | Prisma.ListEnumFinOperationLegRoleFieldRefInput<$PrismaModel> | null
+  not?: Prisma.NestedEnumFinOperationLegRoleNullableFilter<$PrismaModel> | $Enums.FinOperationLegRole | null
+}
+
+export type EnumFinTransferRailNullableFilter<$PrismaModel = never> = {
+  equals?: $Enums.FinTransferRail | Prisma.EnumFinTransferRailFieldRefInput<$PrismaModel> | null
+  in?: $Enums.FinTransferRail[] | Prisma.ListEnumFinTransferRailFieldRefInput<$PrismaModel> | null
+  notIn?: $Enums.FinTransferRail[] | Prisma.ListEnumFinTransferRailFieldRefInput<$PrismaModel> | null
+  not?: Prisma.NestedEnumFinTransferRailNullableFilter<$PrismaModel> | $Enums.FinTransferRail | null
+}
+
 export type EnumFinTransactionTypeWithAggregatesFilter<$PrismaModel = never> = {
   equals?: $Enums.FinTransactionType | Prisma.EnumFinTransactionTypeFieldRefInput<$PrismaModel>
   in?: $Enums.FinTransactionType[] | Prisma.ListEnumFinTransactionTypeFieldRefInput<$PrismaModel>
@@ -421,6 +435,26 @@ export type EnumFinTransactionSourceWithAggregatesFilter<$PrismaModel = never> =
   _count?: Prisma.NestedIntFilter<$PrismaModel>
   _min?: Prisma.NestedEnumFinTransactionSourceFilter<$PrismaModel>
   _max?: Prisma.NestedEnumFinTransactionSourceFilter<$PrismaModel>
+}
+
+export type EnumFinOperationLegRoleNullableWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.FinOperationLegRole | Prisma.EnumFinOperationLegRoleFieldRefInput<$PrismaModel> | null
+  in?: $Enums.FinOperationLegRole[] | Prisma.ListEnumFinOperationLegRoleFieldRefInput<$PrismaModel> | null
+  notIn?: $Enums.FinOperationLegRole[] | Prisma.ListEnumFinOperationLegRoleFieldRefInput<$PrismaModel> | null
+  not?: Prisma.NestedEnumFinOperationLegRoleNullableWithAggregatesFilter<$PrismaModel> | $Enums.FinOperationLegRole | null
+  _count?: Prisma.NestedIntNullableFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumFinOperationLegRoleNullableFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumFinOperationLegRoleNullableFilter<$PrismaModel>
+}
+
+export type EnumFinTransferRailNullableWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.FinTransferRail | Prisma.EnumFinTransferRailFieldRefInput<$PrismaModel> | null
+  in?: $Enums.FinTransferRail[] | Prisma.ListEnumFinTransferRailFieldRefInput<$PrismaModel> | null
+  notIn?: $Enums.FinTransferRail[] | Prisma.ListEnumFinTransferRailFieldRefInput<$PrismaModel> | null
+  not?: Prisma.NestedEnumFinTransferRailNullableWithAggregatesFilter<$PrismaModel> | $Enums.FinTransferRail | null
+  _count?: Prisma.NestedIntNullableFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumFinTransferRailNullableFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumFinTransferRailNullableFilter<$PrismaModel>
 }
 
 export type EnumFinCategoryTypeFilter<$PrismaModel = never> = {
@@ -1002,6 +1036,20 @@ export type NestedEnumFinTransactionSourceFilter<$PrismaModel = never> = {
   not?: Prisma.NestedEnumFinTransactionSourceFilter<$PrismaModel> | $Enums.FinTransactionSource
 }
 
+export type NestedEnumFinOperationLegRoleNullableFilter<$PrismaModel = never> = {
+  equals?: $Enums.FinOperationLegRole | Prisma.EnumFinOperationLegRoleFieldRefInput<$PrismaModel> | null
+  in?: $Enums.FinOperationLegRole[] | Prisma.ListEnumFinOperationLegRoleFieldRefInput<$PrismaModel> | null
+  notIn?: $Enums.FinOperationLegRole[] | Prisma.ListEnumFinOperationLegRoleFieldRefInput<$PrismaModel> | null
+  not?: Prisma.NestedEnumFinOperationLegRoleNullableFilter<$PrismaModel> | $Enums.FinOperationLegRole | null
+}
+
+export type NestedEnumFinTransferRailNullableFilter<$PrismaModel = never> = {
+  equals?: $Enums.FinTransferRail | Prisma.EnumFinTransferRailFieldRefInput<$PrismaModel> | null
+  in?: $Enums.FinTransferRail[] | Prisma.ListEnumFinTransferRailFieldRefInput<$PrismaModel> | null
+  notIn?: $Enums.FinTransferRail[] | Prisma.ListEnumFinTransferRailFieldRefInput<$PrismaModel> | null
+  not?: Prisma.NestedEnumFinTransferRailNullableFilter<$PrismaModel> | $Enums.FinTransferRail | null
+}
+
 export type NestedEnumFinTransactionTypeWithAggregatesFilter<$PrismaModel = never> = {
   equals?: $Enums.FinTransactionType | Prisma.EnumFinTransactionTypeFieldRefInput<$PrismaModel>
   in?: $Enums.FinTransactionType[] | Prisma.ListEnumFinTransactionTypeFieldRefInput<$PrismaModel>
@@ -1030,6 +1078,26 @@ export type NestedEnumFinTransactionSourceWithAggregatesFilter<$PrismaModel = ne
   _count?: Prisma.NestedIntFilter<$PrismaModel>
   _min?: Prisma.NestedEnumFinTransactionSourceFilter<$PrismaModel>
   _max?: Prisma.NestedEnumFinTransactionSourceFilter<$PrismaModel>
+}
+
+export type NestedEnumFinOperationLegRoleNullableWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.FinOperationLegRole | Prisma.EnumFinOperationLegRoleFieldRefInput<$PrismaModel> | null
+  in?: $Enums.FinOperationLegRole[] | Prisma.ListEnumFinOperationLegRoleFieldRefInput<$PrismaModel> | null
+  notIn?: $Enums.FinOperationLegRole[] | Prisma.ListEnumFinOperationLegRoleFieldRefInput<$PrismaModel> | null
+  not?: Prisma.NestedEnumFinOperationLegRoleNullableWithAggregatesFilter<$PrismaModel> | $Enums.FinOperationLegRole | null
+  _count?: Prisma.NestedIntNullableFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumFinOperationLegRoleNullableFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumFinOperationLegRoleNullableFilter<$PrismaModel>
+}
+
+export type NestedEnumFinTransferRailNullableWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.FinTransferRail | Prisma.EnumFinTransferRailFieldRefInput<$PrismaModel> | null
+  in?: $Enums.FinTransferRail[] | Prisma.ListEnumFinTransferRailFieldRefInput<$PrismaModel> | null
+  notIn?: $Enums.FinTransferRail[] | Prisma.ListEnumFinTransferRailFieldRefInput<$PrismaModel> | null
+  not?: Prisma.NestedEnumFinTransferRailNullableWithAggregatesFilter<$PrismaModel> | $Enums.FinTransferRail | null
+  _count?: Prisma.NestedIntNullableFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumFinTransferRailNullableFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumFinTransferRailNullableFilter<$PrismaModel>
 }
 
 export type NestedEnumFinCategoryTypeFilter<$PrismaModel = never> = {

@@ -9,6 +9,25 @@
 * 🟢 You can import this file directly.
 */
 
+export const FinOperationLegRole = {
+  SOURCE: 'SOURCE',
+  DESTINATION: 'DESTINATION',
+  FEE: 'FEE'
+} as const
+
+export type FinOperationLegRole = (typeof FinOperationLegRole)[keyof typeof FinOperationLegRole]
+
+
+export const FinTransferRail = {
+  SAME_BANK: 'SAME_BANK',
+  ACH: 'ACH',
+  LBTR: 'LBTR',
+  OTHER: 'OTHER'
+} as const
+
+export type FinTransferRail = (typeof FinTransferRail)[keyof typeof FinTransferRail]
+
+
 export const AiRole = {
   user: 'user',
   assistant: 'assistant',

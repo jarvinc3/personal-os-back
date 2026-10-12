@@ -240,6 +240,23 @@ model FinEmailSource {
   @@map("fin_email_sources")
 }
 
+enum FinOperationLegRole {
+  SOURCE
+  DESTINATION
+  FEE
+
+  @@map("fin_operation_leg_role")
+}
+
+enum FinTransferRail {
+  SAME_BANK
+  ACH
+  LBTR
+  OTHER
+
+  @@map("fin_transfer_rail")
+}
+
 model FinTransaction {
   id                   String               @id @default(dbgenerated("(uuid_generate_v4())::text"))
   accountId            String?              @map("account_id")
@@ -272,6 +289,10 @@ model FinTransaction {
   aiMetadata           Json                 @default("{}") @map("ai_metadata")
   notes                String?
   source               FinTransactionSource @default(MANUAL)
+  /// Role of this row inside a multi-leg operation (transfer, fee).
+  legRole              FinOperationLegRole?   @map("leg_role")
+  /// Interbank rail for a transfer; the UI estimates the arrival time.
+  rail                 FinTransferRail?
   createdAt            DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt            DateTime             @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   account              FinAccount?          @relation(fields: [accountId], references: [id], onDelete: Cascade, onUpdate: NoAction)

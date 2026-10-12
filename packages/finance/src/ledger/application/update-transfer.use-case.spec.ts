@@ -20,7 +20,7 @@ function leg(overrides: Record<string, unknown> = {}) {
     description: null,
     notes: null,
     categoryId: null,
-    status: 'CONFIRMED',
+    status: 'PENDING',
     source: 'MANUAL',
     transferGroupId: 'grp-1',
     linkedTransactionId: null,
@@ -34,7 +34,7 @@ function leg(overrides: Record<string, unknown> = {}) {
 describe('UpdateTransferUseCase', () => {
   const findTransactionById = jest.fn();
   const findTransactionsByTransferGroupId = jest.fn();
-  const updateTransaction = jest.fn();
+  const updateTransfer = jest.fn();
   const findAccountById = jest
     .fn()
     .mockImplementation((id: string) =>
@@ -44,7 +44,7 @@ describe('UpdateTransferUseCase', () => {
   const repo = {
     findTransactionById,
     findTransactionsByTransferGroupId,
-    updateTransaction,
+    updateTransfer,
     findAccountById,
   } as unknown as LedgerRepositoryPort;
 
@@ -79,12 +79,13 @@ describe('UpdateTransferUseCase', () => {
       leg({ id: 'd1', type: 'DEBIT', accountId: 'a1' }),
       leg({ id: 'c1', type: 'CREDIT', accountId: 'a2' }),
     ]);
-    updateTransaction.mockImplementation((_userId: string, id: string) =>
-      Promise.resolve({ transaction: leg({ id }) }),
-    );
+    updateTransfer.mockResolvedValue({
+      debit: leg({ id: 'd1' }),
+      credit: leg({ id: 'c1', type: 'CREDIT', accountId: 'a2' }),
+    });
   });
 
-  it('updates both legs and refreshes the balances', async () => {
+  it('updates both legs in one operation while they are pending', async () => {
     await useCase.execute('user-1', 'd1', {
       fromAccountId: 'a1',
       toAccountId: 'a2',
@@ -92,8 +93,25 @@ describe('UpdateTransferUseCase', () => {
       transactionDate: '2026-08-02T12:00:00.000Z',
     });
 
-    expect(updateTransaction).toHaveBeenCalledTimes(2);
+    expect(updateTransfer).toHaveBeenCalledTimes(1);
     expect(processBatch).toHaveBeenCalled();
+  });
+
+  it('refuses to edit a completed transfer', async () => {
+    findTransactionsByTransferGroupId.mockResolvedValue([
+      leg({ id: 'd1', type: 'DEBIT', accountId: 'a1', status: 'CONFIRMED' }),
+      leg({ id: 'c1', type: 'CREDIT', accountId: 'a2', status: 'CONFIRMED' }),
+    ]);
+
+    await expect(
+      useCase.execute('user-1', 'd1', {
+        fromAccountId: 'a1',
+        toAccountId: 'a2',
+        amount: 80,
+        transactionDate: '2026-08-02T12:00:00.000Z',
+      }),
+    ).rejects.toMatchObject({ response: { code: 'TRANSFER_LOCKED' } });
+    expect(updateTransfer).not.toHaveBeenCalled();
   });
 
   it('rejects a leg that is not part of a transfer', async () => {
@@ -107,7 +125,7 @@ describe('UpdateTransferUseCase', () => {
         transactionDate: '2026-08-02T12:00:00.000Z',
       }),
     ).rejects.toThrow(/not a transfer/i);
-    expect(updateTransaction).not.toHaveBeenCalled();
+    expect(updateTransfer).not.toHaveBeenCalled();
   });
 
   it('rejects the same origin and destination', async () => {
@@ -119,6 +137,6 @@ describe('UpdateTransferUseCase', () => {
         transactionDate: '2026-08-02T12:00:00.000Z',
       }),
     ).rejects.toThrow(/invalid transfer accounts/i);
-    expect(updateTransaction).not.toHaveBeenCalled();
+    expect(updateTransfer).not.toHaveBeenCalled();
   });
 });

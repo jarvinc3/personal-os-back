@@ -20,6 +20,7 @@ import { ReverseTransactionUseCase } from './application/reverse-transaction.use
 import { UpdateTransactionUseCase } from './application/update-transaction.use-case';
 import { UnconfirmTransactionUseCase } from './application/unconfirm-transaction.use-case';
 import { UpdateTransferUseCase } from './application/update-transfer.use-case';
+import { UnconfirmTransferUseCase } from './application/unconfirm-transfer.use-case';
 import { PrismaLedgerRepository } from './infrastructure/prisma-ledger.repository';
 import { TransactionsController } from './presentation/transactions.controller';
 import { TransfersController } from './presentation/transfers.controller';
@@ -49,6 +50,7 @@ import { TransfersController } from './presentation/transfers.controller';
     RestoreTransactionUseCase,
     CreateTransferUseCase,
     UpdateTransferUseCase,
+    UnconfirmTransferUseCase,
     ReverseTransactionUseCase,
     ImportEmailTransactionUseCase,
   ],
@@ -65,6 +67,7 @@ import { TransfersController } from './presentation/transfers.controller';
     RestoreTransactionUseCase,
     CreateTransferUseCase,
     UpdateTransferUseCase,
+    UnconfirmTransferUseCase,
     ReverseTransactionUseCase,
     ImportEmailTransactionUseCase,
   ],

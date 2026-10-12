@@ -13,6 +13,15 @@ export const TRANSFER_STATUS = {
 export type TransferStatus =
   (typeof TRANSFER_STATUS)[keyof typeof TRANSFER_STATUS];
 
+export const TRANSFER_RAILS = ['SAME_BANK', 'ACH', 'LBTR', 'OTHER'] as const;
+
+export type TransferRail = (typeof TRANSFER_RAILS)[number];
+
+export type TransferFeeCommand = {
+  amount: number;
+  categoryId?: string;
+};
+
 export type FinTxType = 'DEBIT' | 'CREDIT' | 'TRANSFER';
 
 export type CreateTransactionCommand = {
@@ -55,6 +64,10 @@ export type CreateTransferCommand = {
   description?: string;
   notes?: string;
   status?: TransferStatus;
+  rail?: TransferRail;
+  fee?: TransferFeeCommand;
+  /** Creates the destination leg as PENDING while the money is in transit. */
+  destinationPending?: boolean;
   source?: 'MANUAL' | 'EMAIL' | 'AI';
   fromEmailMessageId?: string;
   toEmailMessageId?: string;

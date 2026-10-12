@@ -95,15 +95,31 @@ describe('CreateTransferUseCase', () => {
   });
 
   it('resolves FX for both legs and creates transfer', async () => {
-    const result = await useCase.execute('user-1', {
+    const createdTransfer = await useCase.execute('user-1', {
       fromAccountId: 'a1',
       toAccountId: 'a2',
       amount: 50,
       transactionDate: '2026-08-01',
     });
-    expect(result.transferGroupId).toBe('grp-1');
+    expect(createdTransfer.transferGroupId).toBe('grp-1');
     expect(execute.mock.calls).toHaveLength(2);
     expect(createTransfer).toHaveBeenCalled();
     expect(processBatch).toHaveBeenCalled();
+  });
+
+  it('resolves a third amount for the fee', async () => {
+    await useCase.execute('user-1', {
+      fromAccountId: 'a1',
+      toAccountId: 'a2',
+      amount: 50,
+      transactionDate: '2026-08-01',
+      fee: { amount: 5 },
+    });
+
+    expect(execute.mock.calls).toHaveLength(3);
+    const transferInput = createTransfer.mock.calls[0][0] as {
+      feeAmounts?: unknown;
+    };
+    expect(transferInput.feeAmounts).toBeDefined();
   });
 });
