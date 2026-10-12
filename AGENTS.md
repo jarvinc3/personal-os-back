@@ -39,6 +39,7 @@ Toda sesión de agente cierra con un release: `CHANGELOG.md` actualizado y `vers
 ## Checklist al cambiar comportamiento
 
 - [ ] Correr `pnpm lint`, `pnpm test` y `pnpm test:e2e` (obligatorio en todo cambio).
+- [ ] Correr `pnpm format:check`; un archivo sin formato o un test en rojo bloquea el cierre.
 - [ ] Actualizar el documento dueño (capacidad, regla o contrato), no un README monolítico.
 - [ ] Si el cambio no se puede verificar, añadir un `REV-BACK-*` en el registro.
 - [ ] Imports cruzados solo vía barrel/`FinanceFacade`.
@@ -50,11 +51,12 @@ Toda sesión de agente cierra con un release: `CHANGELOG.md` actualizado y `vers
 
 Todo cambio corre, antes de darlo por terminado:
 
-1. `pnpm lint`
-2. `pnpm test`
-3. `pnpm test:e2e`
+1. `pnpm format:check`
+2. `pnpm lint`
+3. `pnpm test`
+4. `pnpm test:e2e`
 
-Los E2E (`test/*.e2e-spec.ts`, Prisma mock) son requisito en **todo** cambio, no solo al tocar pruebas. Un cambio de contrato (paginación, DTO, respuesta HTTP) que no actualice su E2E deja el CI en rojo. Detalle en [docs/operations/testing.md](docs/operations/testing.md).
+No hay excepción por tamaño ni por tipo: un cambio de documentación también corre los cuatro. Los E2E (`test/*.e2e-spec.ts`, Prisma mock) son requisito en **todo** cambio, no solo al tocar pruebas. Un test en rojo significa que el cambio no está terminado, y no se abre un PR con la suite en rojo. Un cambio de contrato (paginación, DTO, respuesta HTTP) que no actualice su E2E deja el CI en rojo. Detalle en [docs/operations/testing.md](docs/operations/testing.md).
 
 ## Estructura de código
 
