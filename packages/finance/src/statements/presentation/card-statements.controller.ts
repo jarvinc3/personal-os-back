@@ -42,7 +42,9 @@ export class CardStatementsController {
     @Param('statementId') statementId: string,
     @Body() dto: UpdateCardStatementDto,
   ) {
-    return this.statements.updateStatement(userId, id, statementId, dto);
+    return this.statements
+      .updateStatement(userId, id, statementId, dto)
+      .then(() => ({ success: true }));
   }
 
   @Post('cards/:id/statements/import')

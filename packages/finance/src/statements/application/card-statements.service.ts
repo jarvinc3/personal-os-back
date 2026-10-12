@@ -118,7 +118,7 @@ export class CardStatementsService {
       closingBalance?: number;
       dueDate?: string;
     },
-  ) {
+  ): Promise<void> {
     await this.ownership.assertCardOwned(userId, cardId);
     const row = await this.repo.findStatement(cardId, statementId);
     if (!row) {
@@ -129,7 +129,6 @@ export class CardStatementsService {
       closingBalance: dto.closingBalance,
       dueDate: dto.dueDate ? new Date(dto.dueDate) : undefined,
     });
-    return { success: true };
   }
 
   importStatement(): never {
