@@ -65,6 +65,31 @@ export class CardStatementsRepository {
     });
   }
 
+  findStatement(cardId: string, statementId: string) {
+    return this.prisma.finCardStatement.findFirst({
+      where: { id: statementId, cardId },
+    });
+  }
+
+  updateStatement(
+    statementId: string,
+    data: {
+      minimumPayment?: number;
+      closingBalance?: number;
+      dueDate?: Date | null;
+    },
+  ) {
+    return this.prisma.finCardStatement.update({
+      where: { id: statementId },
+      data: {
+        ...data,
+        ...(data.minimumPayment !== undefined
+          ? { minimumSource: 'MANUAL' as const }
+          : {}),
+      },
+    });
+  }
+
   async upsertStatement(snapshot: CardStatementSnapshotRow): Promise<void> {
     const { cardId, currency, cycleEnd, ...rest } = snapshot;
     await this.prisma.finCardStatement.upsert({

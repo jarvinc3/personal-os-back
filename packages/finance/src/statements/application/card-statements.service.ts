@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  NotImplementedException,
+} from '@nestjs/common';
 import { FinanceOwnershipService } from '../../shared/application/finance-ownership.service';
 import { debtAtClosing } from '../domain/card-statement-amounts';
 import {
@@ -63,6 +67,73 @@ export class CardStatementsService {
       today: startOfUtcDay(now),
     });
     return views.map(mapCardStatement);
+  }
+
+  async getStatementDetail(
+    userId: string,
+    cardId: string,
+    statementId: string,
+    now: Date,
+  ) {
+    await this.ownership.assertCardOwned(userId, cardId);
+    const card = await this.repo.findCreditCard(cardId);
+    if (!card) {
+      throw new NotFoundException('Credit card not found');
+    }
+    const row = await this.repo.findStatement(cardId, statementId);
+    if (!row) {
+      throw new NotFoundException('Statement not found');
+    }
+    const [view] = buildCardStatementViews({
+      statements: [toSnapshot(row)],
+      movements: card.transactions,
+      today: startOfUtcDay(now),
+    });
+    const insideCycle = (date: Date) =>
+      date.getTime() >= row.cycleStart.getTime() &&
+      date.getTime() <= row.cycleEnd.getTime();
+    return {
+      statement: mapCardStatement(view),
+      movements: card.transactions.filter(
+        (movement) =>
+          movement.ledgerCurrency === row.currency &&
+          movement.type !== 'CARD_PAYMENT' &&
+          insideCycle(movement.transactionDate),
+      ),
+      payments: card.transactions.filter(
+        (movement) =>
+          movement.ledgerCurrency === row.currency &&
+          movement.type === 'CARD_PAYMENT' &&
+          movement.transactionDate.getTime() > row.cycleEnd.getTime(),
+      ),
+    };
+  }
+
+  async updateStatement(
+    userId: string,
+    cardId: string,
+    statementId: string,
+    dto: {
+      minimumPayment?: number;
+      closingBalance?: number;
+      dueDate?: string;
+    },
+  ) {
+    await this.ownership.assertCardOwned(userId, cardId);
+    const row = await this.repo.findStatement(cardId, statementId);
+    if (!row) {
+      throw new NotFoundException('Statement not found');
+    }
+    await this.repo.updateStatement(statementId, {
+      minimumPayment: dto.minimumPayment,
+      closingBalance: dto.closingBalance,
+      dueDate: dto.dueDate ? new Date(dto.dueDate) : undefined,
+    });
+    return { success: true };
+  }
+
+  importStatement(): never {
+    throw new NotImplementedException('Próximamente');
   }
 
   /**
