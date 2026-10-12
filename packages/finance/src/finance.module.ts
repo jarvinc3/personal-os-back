@@ -9,6 +9,7 @@ import { FinanceIngestionModule } from './ingestion/ingestion.module';
 import { FinanceLedgerModule } from './ledger/ledger.module';
 import { FinancePlanningModule } from './planning/planning.module';
 import { FinanceStatementsModule } from './statements/statements.module';
+import { FinanceRecycleBinModule } from './shared/recycle-bin.module';
 import { FinanceWipeModule } from './shared/wipe-finance.module';
 
 /**
@@ -25,6 +26,7 @@ import { FinanceWipeModule } from './shared/wipe-finance.module';
     FinanceAnalyticsModule,
     FinanceLedgerModule,
     FinanceIngestionModule,
+    FinanceRecycleBinModule,
     FinanceWipeModule,
   ],
   providers: [FinanceFacade],

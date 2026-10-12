@@ -81,6 +81,51 @@ describe('Finance (e2e)', () => {
       });
   });
 
+  it('GET /api/finance/recycle-bin lists archived and deleted records', async () => {
+    prismaMock.finInstitution.findMany.mockResolvedValue([
+      { id: 'inst-1', name: 'Banco X' },
+    ]);
+    prismaMock.finLoan.findMany.mockResolvedValue([
+      { id: 'loan-1', lenderName: 'Banco Y' },
+    ]);
+    prismaMock.finDeletionJournal.findMany.mockResolvedValue([
+      {
+        entityType: 'transaction',
+        entityId: 'tx-1',
+        snapshot: {
+          rows: [
+            {
+              model: 'FinTransaction',
+              values: { id: 'tx-1', description: 'Supermercado' },
+            },
+          ],
+        },
+        deletedAt: new Date('2026-10-12T10:00:00.000Z'),
+      },
+    ]);
+
+    await request(app.getHttpServer())
+      .get('/api/finance/recycle-bin')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.data.archived).toEqual(
+          expect.arrayContaining([
+            { type: 'institution', id: 'inst-1', label: 'Banco X' },
+            { type: 'loan', id: 'loan-1', label: 'Banco Y' },
+          ]),
+        );
+        expect(res.body.data.deleted).toEqual([
+          {
+            type: 'transaction',
+            id: 'tx-1',
+            label: 'Supermercado',
+            deletedAt: '2026-10-12T10:00:00.000Z',
+          },
+        ]);
+      });
+  });
+
   it('GET /api/finance/accounts returns 403 when finance module is disabled', async () => {
     prismaMock.userModule.findFirst.mockResolvedValue(null);
 

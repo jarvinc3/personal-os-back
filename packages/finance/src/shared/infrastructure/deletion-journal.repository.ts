@@ -43,6 +43,19 @@ export class DeletionJournalRepository {
     });
   }
 
+  listPending(userId: string) {
+    return this.prisma.finDeletionJournal.findMany({
+      where: { userId, restoredAt: null },
+      select: {
+        entityType: true,
+        entityId: true,
+        snapshot: true,
+        deletedAt: true,
+      },
+      orderBy: { deletedAt: 'desc' },
+    });
+  }
+
   markRestored(tx: Prisma.TransactionClient, id: string, now: Date) {
     return tx.finDeletionJournal.updateMany({
       where: { id, restoredAt: null },

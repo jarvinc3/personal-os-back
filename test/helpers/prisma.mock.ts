@@ -164,6 +164,7 @@ export type PrismaMock = {
   finDeletionJournal: {
     create: MockFn;
     findFirst: MockFn;
+    findMany: MockFn;
     updateMany: MockFn;
   };
   domainEventOutbox: {
@@ -501,6 +502,7 @@ export function createPrismaMock(): PrismaMock {
     finDeletionJournal: {
       create: jest.fn().mockResolvedValue({ id: 'journal-1' }),
       findFirst: jest.fn().mockResolvedValue(null),
+      findMany: jest.fn().mockResolvedValue([]),
       updateMany: jest.fn().mockResolvedValue({ count: 0 }),
     },
     // Root-level model used by FinanceOutboxDispatcher.processBatch after commit wake.

@@ -24,6 +24,7 @@ Envelope `{ data, meta }`.
 | GET transactions, budgets                                                                                                                                               | `{ items, nextCursor, hasMore }`; query `cursor` + `limit` default 20 max 100 |
 | GET accounts, cards, institutions, categories, savings-goals, loans, receivables, email sources, pending, email mailboxes, cards/:id/statements, loans/:id/installments | array                                                                         |
 | GET analytics/*, balance-sheet                                                                                                                                          | object                                                                        |
+| GET recycle-bin                                                                                                                                                         | object `{ archived, deleted }`                                                |
 
 Sources: sync logs nested `take: 5` (detail 10); nunca tokens. Mailboxes: `{ id, emailAddress, provider, isActive, createdAt, sources[] }`. `POST /sources` exige Gmail ya autorizado + `bankSenderEmail`; 409 si la institución ya tiene vínculo. `GET oauth/google/url` no exige `institutionId`.
 
@@ -34,3 +35,7 @@ Ver inventario en código: `*controller.ts` bajo cada capability. Incluye `POST 
 ## Deshacer un borrado
 
 Cada `DELETE` de una entidad de finance guarda un snapshot en `fin_deletion_journal` (`entityType`, `entityId`, `snapshot`) dentro de la misma transacción, y devuelve `undoId`. `POST /api/finance/<entidad>/:id/restore` vuelve a crear las filas, repone los enlaces que la cascada anuló y aplica otra vez el saldo y el gasto del presupuesto que el borrado revirtió. Para una transferencia, `undoId` es el `transferGroupId`.
+
+## Archivados y borrados
+
+`GET /api/finance/recycle-bin` devuelve `{ archived, deleted }`. `archived` son instituciones, cuentas, tarjetas y préstamos con `isActive:false` (`{ type, id, label }`). `deleted` son las entradas pendientes de `fin_deletion_journal` (`{ type, id, label, deletedAt }`); `label` sale de la fila principal guardada y es `null` en un presupuesto, que no tiene nombre. Restaurar un archivado es `PATCH /api/finance/<entidad>/:id { isActive: true }`.

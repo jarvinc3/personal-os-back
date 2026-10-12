@@ -1,11 +1,11 @@
 {
   "name": "personal-os-back",
-  "version": "1.5.2",
+  "version": "1.6.0",
   "description": "Personal OS es un backend para la aplicación Personal OS que permite gestionar cada área de la vida cotidiana.",
   "author": "jarvinc3",
   "private": true,
   "license": "MIT",
-  "packageManager": "pnpm@12.9.1",
+  "packageManager": "pnpm@12.11.2",
   "scripts": {
     "build:packages": "pnpm -r --filter './packages/*' run build",
     "build": "pnpm build:packages && nest build",
