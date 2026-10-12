@@ -331,6 +331,12 @@ export const confirmTransactionArgsSchema = z
   })
   .strict();
 
+export const unconfirmTransactionArgsSchema = z
+  .object({
+    transactionId: uuid,
+  })
+  .strict();
+
 export const createTransferArgsSchema = z
   .object({
     fromAccountId: uuid,
@@ -367,6 +373,7 @@ export const MUTATING_TOOL_ARG_SCHEMAS = {
   create_transaction: createTransactionArgsSchema,
   update_transaction: updateTransactionArgsSchema,
   confirm_transaction: confirmTransactionArgsSchema,
+  unconfirm_transaction: unconfirmTransactionArgsSchema,
   create_transfer: createTransferArgsSchema,
   create_or_update_budget: createOrUpdateBudgetArgsSchema,
   create_savings_goal: createSavingsGoalArgsSchema,

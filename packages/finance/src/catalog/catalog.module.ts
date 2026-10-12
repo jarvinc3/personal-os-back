@@ -4,6 +4,7 @@ import { FinanceLedgerModule } from '../ledger/ledger.module';
 import { FinanceOwnershipModule } from '../shared/finance-ownership.module';
 import { DeletionJournalModule } from '../shared/deletion-journal.module';
 import { CatalogService } from './application/catalog.service';
+import { InstrumentHistoryService } from './application/instrument-history.service';
 import { CatalogRepository } from './infrastructure/catalog.repository';
 import { AccountsController } from './presentation/accounts.controller';
 import { CardsController } from './presentation/cards.controller';
@@ -23,7 +24,7 @@ import { InstitutionsController } from './presentation/institutions.controller';
     CardsController,
     CategoriesController,
   ],
-  providers: [CatalogRepository, CatalogService],
-  exports: [CatalogService, CatalogRepository],
+  providers: [CatalogRepository, CatalogService, InstrumentHistoryService],
+  exports: [CatalogService, CatalogRepository, InstrumentHistoryService],
 })
 export class FinanceCatalogModule {}

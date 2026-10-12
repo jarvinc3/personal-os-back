@@ -81,6 +81,7 @@ export const MODULE_CONTEXT: Record<
       'create_transaction',
       'update_transaction',
       'confirm_transaction',
+      'unconfirm_transaction',
       'create_transfer',
       'get_budget_status',
       'create_or_update_budget',

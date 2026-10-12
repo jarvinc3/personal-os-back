@@ -6,10 +6,16 @@ import {
   Param,
   Patch,
   Post,
+  Query,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { CurrentUser, RequiresEnabledModule } from '@personal-os/core';
+import {
+  CurrentUser,
+  CursorQueryDto,
+  RequiresEnabledModule,
+} from '@personal-os/core';
 import { CatalogService } from '../application/catalog.service';
+import { InstrumentHistoryService } from '../application/instrument-history.service';
 import { CreateAccountDto } from './dto/create-account.dto';
 import { UpdateAccountDto } from './dto/update-account.dto';
 
@@ -18,7 +24,10 @@ import { UpdateAccountDto } from './dto/update-account.dto';
 @RequiresEnabledModule('finance')
 @Controller('finance')
 export class AccountsController {
-  constructor(private readonly catalog: CatalogService) {}
+  constructor(
+    private readonly catalog: CatalogService,
+    private readonly history: InstrumentHistoryService,
+  ) {}
 
   @Get('accounts')
   @ApiOperation({ summary: 'List finance accounts' })
@@ -34,6 +43,16 @@ export class AccountsController {
   @Get('accounts/:id')
   get(@CurrentUser('sub') userId: string, @Param('id') id: string) {
     return this.catalog.getAccount(userId, id);
+  }
+
+  @Get('accounts/:id/history')
+  @ApiOperation({ summary: 'Account timeline: adjustments and limit changes' })
+  getHistory(
+    @CurrentUser('sub') userId: string,
+    @Param('id') id: string,
+    @Query() query: CursorQueryDto,
+  ) {
+    return this.history.getAccountHistory(userId, id, query);
   }
 
   @Patch('accounts/:id')

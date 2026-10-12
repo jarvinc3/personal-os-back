@@ -12,6 +12,7 @@ import {
   type DeletionSnapshot,
 } from '../../shared/domain/deletion-snapshot';
 import { DeletionJournalRepository } from '../../shared/infrastructure/deletion-journal.repository';
+import { INSTRUMENT_EVENT_KIND } from '../../shared/domain/instrument-event';
 import { normalizeCurrencyCode } from '../../shared/presentation/validation.decorators';
 import type { CreateAccountDto } from '../presentation/dto/create-account.dto';
 import type { UpdateAccountDto } from '../presentation/dto/update-account.dto';
@@ -215,12 +216,30 @@ export class CatalogRepository {
         where: { cardId, currency: normalizedCurrency },
       });
       if (existing) {
+        if (creditLimit !== undefined) {
+          await this.recordCreditLimitChange(tx, {
+            userId,
+            cardId,
+            currency: normalizedCurrency,
+            previousLimit: existing.creditLimit,
+            nextLimit: creditLimit,
+          });
+        }
         return tx.finCardBalance.update({
           where: { id: existing.id },
           data: {
             balance,
             ...(creditLimit !== undefined ? { creditLimit } : {}),
           },
+        });
+      }
+      if (creditLimit !== undefined) {
+        await this.recordCreditLimitChange(tx, {
+          userId,
+          cardId,
+          currency: normalizedCurrency,
+          previousLimit: null,
+          nextLimit: creditLimit,
         });
       }
       return tx.finCardBalance.create({
@@ -252,11 +271,25 @@ export class CatalogRepository {
         where: { cardId, currency: normalizedCurrency },
       });
       if (existing) {
+        await this.recordCreditLimitChange(tx, {
+          userId,
+          cardId,
+          currency: normalizedCurrency,
+          previousLimit: existing.creditLimit,
+          nextLimit: creditLimit,
+        });
         return tx.finCardBalance.update({
           where: { id: existing.id },
           data: { creditLimit },
         });
       }
+      await this.recordCreditLimitChange(tx, {
+        userId,
+        cardId,
+        currency: normalizedCurrency,
+        previousLimit: null,
+        nextLimit: creditLimit,
+      });
       return tx.finCardBalance.create({
         data: {
           cardId,
@@ -265,6 +298,66 @@ export class CatalogRepository {
           creditLimit,
         },
       });
+    });
+  }
+
+  findInstrumentEvents(
+    userId: string,
+    target: { accountId?: string; cardId?: string },
+  ) {
+    return this.prisma.finInstrumentEvent.findMany({
+      where: {
+        userId,
+        ...(target.accountId ? { accountId: target.accountId } : {}),
+        ...(target.cardId ? { cardId: target.cardId } : {}),
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  findAdjustmentTransactions(
+    userId: string,
+    target: { accountId?: string; cardId?: string },
+  ) {
+    return this.prisma.finTransaction.findMany({
+      where: {
+        userId,
+        type: 'ADJUSTMENT',
+        ...(target.accountId ? { accountId: target.accountId } : {}),
+        ...(target.cardId ? { cardId: target.cardId } : {}),
+      },
+      orderBy: { transactionDate: 'desc' },
+    });
+  }
+
+  private async recordCreditLimitChange(
+    tx: Prisma.TransactionClient,
+    input: {
+      userId: string;
+      cardId: string;
+      currency: string;
+      previousLimit: unknown;
+      nextLimit: number;
+    },
+  ): Promise<void> {
+    const previousLimit =
+      input.previousLimit === null || input.previousLimit === undefined
+        ? null
+        : Number(input.previousLimit);
+    if (previousLimit !== null && previousLimit === input.nextLimit) {
+      return;
+    }
+    await tx.finInstrumentEvent.create({
+      data: {
+        userId: input.userId,
+        cardId: input.cardId,
+        kind: INSTRUMENT_EVENT_KIND.CREDIT_LIMIT_CHANGED,
+        payload: {
+          currency: input.currency,
+          previousLimit,
+          nextLimit: input.nextLimit,
+        },
+      },
     });
   }
 

@@ -167,6 +167,10 @@ export type PrismaMock = {
     findMany: MockFn;
     updateMany: MockFn;
   };
+  finInstrumentEvent: {
+    create: MockFn;
+    findMany: MockFn;
+  };
   domainEventOutbox: {
     create: MockFn;
     findFirst: MockFn;
@@ -239,6 +243,10 @@ function createTransactionClient(prismaMock: PrismaMock) {
     },
     finDeletionJournal: {
       create: prismaMock.finDeletionJournal.create,
+    },
+    finInstrumentEvent: {
+      create: jest.fn().mockResolvedValue({ id: 'event-1' }),
+      findMany: jest.fn().mockResolvedValue([]),
     },
     finCardBalance: {
       findFirst: jest.fn().mockResolvedValue(null),
@@ -504,6 +512,10 @@ export function createPrismaMock(): PrismaMock {
       findFirst: jest.fn().mockResolvedValue(null),
       findMany: jest.fn().mockResolvedValue([]),
       updateMany: jest.fn().mockResolvedValue({ count: 0 }),
+    },
+    finInstrumentEvent: {
+      create: jest.fn().mockResolvedValue({ id: 'event-1' }),
+      findMany: jest.fn().mockResolvedValue([]),
     },
     // Root-level model used by FinanceOutboxDispatcher.processBatch after commit wake.
     domainEventOutbox: {

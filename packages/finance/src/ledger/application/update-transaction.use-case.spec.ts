@@ -108,4 +108,44 @@ describe('UpdateTransactionUseCase category type', () => {
     ).rejects.toThrow(/transaction type/);
     expect(updateTransaction).not.toHaveBeenCalled();
   });
+
+  it('locks monetary edits once the movement is CONFIRMED', async () => {
+    findTransactionById.mockResolvedValue(tx({ status: 'CONFIRMED' }));
+
+    await expect(
+      useCase.execute('user-1', 'tx-1', { amount: 25 }),
+    ).rejects.toMatchObject({ response: { code: 'TRANSACTION_LOCKED' } });
+    expect(updateTransaction).not.toHaveBeenCalled();
+  });
+
+  it('allows metadata edits on a CONFIRMED movement', async () => {
+    findTransactionById.mockResolvedValue(tx({ status: 'CONFIRMED' }));
+
+    await useCase.execute('user-1', 'tx-1', {
+      merchant: 'Colmado',
+      notes: 'nota',
+    });
+
+    expect(updateTransaction).toHaveBeenCalled();
+  });
+
+  it('keeps a REVERSED movement immutable except notes and category', async () => {
+    findTransactionById.mockResolvedValue(tx({ status: 'REVERSED' }));
+
+    await expect(
+      useCase.execute('user-1', 'tx-1', { type: 'DEBIT' }),
+    ).rejects.toMatchObject({ response: { code: 'TRANSACTION_IMMUTABLE' } });
+    expect(updateTransaction).not.toHaveBeenCalled();
+
+    await useCase.execute('user-1', 'tx-1', { notes: 'corrección' });
+    expect(updateTransaction).toHaveBeenCalled();
+  });
+
+  it('allows full edits while the movement is PENDING', async () => {
+    findTransactionById.mockResolvedValue(tx({ status: 'PENDING' }));
+
+    await useCase.execute('user-1', 'tx-1', { merchant: 'Farmacia' });
+
+    expect(updateTransaction).toHaveBeenCalled();
+  });
 });

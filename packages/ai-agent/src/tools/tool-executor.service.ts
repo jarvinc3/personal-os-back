@@ -36,6 +36,7 @@ const FINANCE_TOOL_NAMES = new Set([
   'create_transfer',
   'update_transaction',
   'confirm_transaction',
+  'unconfirm_transaction',
   'get_budget_status',
   'create_or_update_budget',
   'list_savings_goals',
@@ -497,6 +498,17 @@ export class ToolExecutorService {
           success: true,
           message: 'Transaction confirmed',
           data: await this.financeFacade.confirmTransaction(
+            ctx.userId,
+            tx.transactionId,
+          ),
+        };
+      }
+      case 'unconfirm_transaction': {
+        const tx = args as ValidatedToolArgs<'unconfirm_transaction'>;
+        return {
+          success: true,
+          message: 'Transaction unlocked',
+          data: await this.financeFacade.unconfirmTransaction(
             ctx.userId,
             tx.transactionId,
           ),

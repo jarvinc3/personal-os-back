@@ -114,4 +114,20 @@ describe('mapLogicalTransaction', () => {
     );
     expect(debit.type).toBe('DEBIT');
   });
+
+  it('exposes how much a movement can be edited by status', () => {
+    expect(
+      mapLedgerTransaction(
+        row({ id: 'c1', type: 'DEBIT', status: 'CONFIRMED' }),
+      ).editable,
+    ).toBe('METADATA');
+    expect(
+      mapLedgerTransaction(row({ id: 'p1', type: 'DEBIT', status: 'PENDING' }))
+        .editable,
+    ).toBe('FULL');
+    expect(
+      mapLedgerTransaction(row({ id: 'r1', type: 'DEBIT', status: 'REVERSED' }))
+        .editable,
+    ).toBe('NOTES');
+  });
 });

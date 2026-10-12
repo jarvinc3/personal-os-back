@@ -211,6 +211,13 @@ const STATIC_TOOLS: StaticToolDef[] = [
     targetModule: 'finance',
   },
   {
+    name: 'unconfirm_transaction',
+    description:
+      'Move a CONFIRMED finance transaction back to PENDING so it can be edited.',
+    mutating: true,
+    targetModule: 'finance',
+  },
+  {
     name: 'get_budget_status',
     description: 'Get budget usage and threshold status.',
     mutating: false,
@@ -390,6 +397,8 @@ export function getActionLabel(
       return 'Actualizar transacción';
     case 'confirm_transaction':
       return 'Confirmar transacción';
+    case 'unconfirm_transaction':
+      return 'Desbloquear transacción';
     case 'get_budget_status':
       return 'Revisar estado de presupuestos';
     case 'create_or_update_budget':

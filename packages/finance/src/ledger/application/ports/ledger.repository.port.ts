@@ -1,6 +1,7 @@
 import type { BudgetSpendSnapshot } from '../../../shared/domain/budget-snapshot';
 import type { StoredMovement } from '../../../shared/domain/deletion-snapshot';
 import type { ResolvedAmounts } from '../../../shared/domain/money';
+import type { TransactionLinkKind } from '../../../shared/domain/transaction-links';
 import type {
   CreateTransactionCommand,
   CreateTransferCommand,
@@ -89,6 +90,12 @@ export interface LedgerRepositoryPort {
     id: string,
     userId: string,
   ): Promise<LedgerTransactionRow | null>;
+
+  /** Which planning record points at this movement, if any. */
+  findPlanningLinkKind(
+    transactionId: string,
+    userId: string,
+  ): Promise<TransactionLinkKind | null>;
 
   findAccountById(
     id: string,
@@ -210,6 +217,12 @@ export interface LedgerRepositoryPort {
   ): Promise<{ count: number }>;
 
   confirmTransaction(
+    userId: string,
+    id: string,
+  ): Promise<CreateTransactionResult | null>;
+
+  /** Reverts balance and budget effect and moves a CONFIRMED movement to PENDING. */
+  unconfirmTransaction(
     userId: string,
     id: string,
   ): Promise<CreateTransactionResult | null>;
