@@ -9,6 +9,7 @@ Instrucciones para agentes y reviewers que trabajan en el backend de Personal OS
 3. [docs/documentation-standard.md](docs/documentation-standard.md) — taxonomía, IDs, anti-duplicación.
 4. El módulo o área que vas a tocar bajo `docs/modules/` o `docs/infrastructure/`.
 5. Código y pruebas citados en esos documentos. No inferir desde nombres.
+6. [docs/reference/changelog-guide.md](docs/reference/changelog-guide.md) — antes de cerrar la sesión, para el CHANGELOG y la versión.
 
 Si una afirmación no está `VERIFICADO`, leer [docs/review-register.md](docs/review-register.md) antes de tratarla como comportamiento vigente.
 
@@ -24,6 +25,16 @@ Si una afirmación no está `VERIFICADO`, leer [docs/review-register.md](docs/re
 | Tools IA | `packages/ai-agent/src/tools/tool.registry.ts` + `prompts/module-context.ts` |
 | API pública entre módulos Nest | `packages/<nombre>/src/index.ts` y barrels `@personal-os/<nombre>` (regla `.cursor/rules/module-public-api.mdc`) |
 
+## Changelog y versión
+
+Toda sesión de agente cierra con un release: `CHANGELOG.md` actualizado y `version` de `package.json` subida. Antes de escribirlo, lee [docs/reference/changelog-guide.md](docs/reference/changelog-guide.md) completo; ahí están las reglas, las secciones y un ejemplo.
+
+- Un release por sesión, aunque el cambio sea pequeño. El bump es el más alto de la sesión: `MAJOR` si rompe un contrato o los datos guardados, `MINOR` si agrega un endpoint o un dato nuevo y `PATCH` en el resto.
+- Una sola versión para el monorepo: el `package.json` de la raíz. Los paquetes de `packages/*` no se publican por separado.
+- El CHANGELOG va en español, de la versión más nueva a la más vieja, con la fecha en `AAAA-MM-DD`.
+- Cierra con `chore(release): vX.Y.Z` y crea el tag `vX.Y.Z`.
+- `personal-os-app` está fuera de servicio y no sigue esta regla.
+
 ## Checklist al cambiar comportamiento
 
 - [ ] Correr `pnpm lint`, `pnpm test` y `pnpm test:e2e` (obligatorio en todo cambio).
@@ -32,6 +43,7 @@ Si una afirmación no está `VERIFICADO`, leer [docs/review-register.md](docs/re
 - [ ] Imports cruzados solo vía barrel/`FinanceFacade`.
 - [ ] Prefijo HTTP documentado como `/api/...` salvo health/Bull Board/Swagger que viven fuera o según `main.ts`.
 - [ ] No presentar módulos `agenda` / `projects` / `health` / `subscriptions` como APIs Nest: solo slugs de `user_modules`.
+- [ ] Actualizar `CHANGELOG.md` y subir `version` en `package.json`; cerrar con `chore(release): vX.Y.Z` y el tag.
 
 ## Pruebas obligatorias
 
