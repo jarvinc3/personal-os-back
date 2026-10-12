@@ -94,7 +94,11 @@ export class ApplyLoanPrepaymentUseCase {
     await this.repo.updateLoan(userId, loanId, updated);
     await this.syncInstallments.execute({ ...loan, ...updated }, now);
 
-    return prepayment;
+    return {
+      prepayment,
+      loan: await this.repo.findLoan(userId, loanId),
+      schedulePreview: await this.repo.listInstallments(loanId),
+    };
   }
 
   async preview(
