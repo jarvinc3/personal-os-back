@@ -4,7 +4,7 @@ Campos de importe: `amount`/`currency` original; `ledgerAmount`/`ledgerCurrency`
 
 `GET /api/finance/transactions` paginado `{ items, pagination }` default page=1 limit=20 max 100. Filtros: fechas, cuenta, tarjeta, categoría, tipo, status, search, `transferGroupId`.
 
-Writes: create DEBIT/CREDIT, PATCH metadata/update, confirm, reverse, DELETE, `POST /transfers`.
+Writes: create DEBIT/CREDIT, PATCH metadata/update, confirm, reverse, DELETE, `POST /transfers` y `PATCH /transfers/:id` (editar una transferencia reajusta las dos patas del par).
 
 **AC-FIN-001:** Given cuenta DOP y DEBIT USD CONFIRMED, When create, Then `ledgerAmount` ≠ raw amount si hay FX del día.
 
