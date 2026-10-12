@@ -215,6 +215,14 @@ Creates a new budget or updates when `budgetId` is provided.
 
 ---
 
+### `allocate_to_goal`
+
+Sets money aside for a savings goal, or withdraws it. It never moves money; it only marks part of the account balance as saved.
+
+**Delegates to:** `FinanceFacade.recordSavingsGoalContribution`
+
+---
+
 ### `mark_loan_installment_paid`
 
 Pays the oldest unpaid loan instalment through the real use case: splits the payment into capital and interest and lowers the balance only by capital.

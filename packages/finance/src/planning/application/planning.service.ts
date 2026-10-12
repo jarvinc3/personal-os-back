@@ -135,6 +135,8 @@ export class PlanningService {
         targetAmount: dto.targetAmount,
         currency: dto.currency ?? 'DOP',
         targetDate: dto.targetDate ? new Date(dto.targetDate) : null,
+        accountId: dto.accountId,
+        mode: dto.mode ?? 'EARMARK',
       },
       dto.currentAmount ?? 0,
       now,

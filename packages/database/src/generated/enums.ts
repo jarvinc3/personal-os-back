@@ -49,6 +49,22 @@ export const FinAmountSource = {
 export type FinAmountSource = (typeof FinAmountSource)[keyof typeof FinAmountSource]
 
 
+export const FinGoalMode = {
+  EARMARK: 'EARMARK',
+  DEDICATED: 'DEDICATED'
+} as const
+
+export type FinGoalMode = (typeof FinGoalMode)[keyof typeof FinGoalMode]
+
+
+export const FinAllocationKind = {
+  CONTRIBUTION: 'CONTRIBUTION',
+  WITHDRAWAL: 'WITHDRAWAL'
+} as const
+
+export type FinAllocationKind = (typeof FinAllocationKind)[keyof typeof FinAllocationKind]
+
+
 export const FinInstallmentStatus = {
   PENDING: 'PENDING',
   PARTIAL: 'PARTIAL',

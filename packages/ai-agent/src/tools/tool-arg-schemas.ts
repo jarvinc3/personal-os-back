@@ -257,18 +257,20 @@ export const createSavingsGoalArgsSchema = z
   .object({
     name: z.string().trim().min(1).max(120),
     targetAmount: moneyAmount,
+    accountId: uuid,
+    mode: z.enum(['EARMARK', 'DEDICATED']).optional(),
     currentAmount: moneyAmount.nullable().optional(),
     currency: currencyCode.nullable().optional(),
     targetDate: dateString.nullable().optional(),
   })
   .strict();
 
-export const recordSavingsContributionArgsSchema = z
+export const allocateToGoalArgsSchema = z
   .object({
     goalId: uuid,
-    accountId: uuid,
     amount: moneyAmount,
-    contributedAt: dateString.nullable().optional(),
+    kind: z.enum(['CONTRIBUTION', 'WITHDRAWAL']).optional(),
+    date: dateString.nullable().optional(),
     notes: z.string().trim().max(200).nullable().optional(),
   })
   .strict();
@@ -392,7 +394,7 @@ export const MUTATING_TOOL_ARG_SCHEMAS = {
   create_or_update_budget: createOrUpdateBudgetArgsSchema,
   create_savings_goal: createSavingsGoalArgsSchema,
   update_savings_goal: updateSavingsGoalArgsSchema,
-  record_savings_contribution: recordSavingsContributionArgsSchema,
+  allocate_to_goal: allocateToGoalArgsSchema,
   mark_loan_installment_paid: markLoanInstallmentPaidArgsSchema,
   prepay_loan: prepayLoanArgsSchema,
   trigger_email_sync: triggerEmailSyncArgsSchema,

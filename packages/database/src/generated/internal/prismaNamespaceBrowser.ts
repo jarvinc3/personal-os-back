@@ -481,6 +481,9 @@ export const FinSavingsGoalScalarFieldEnum = {
   targetDate: 'targetDate',
   icon: 'icon',
   color: 'color',
+  accountId: 'accountId',
+  mode: 'mode',
+  spendReducesProgress: 'spendReducesProgress',
   isCompleted: 'isCompleted',
   completedAt: 'completedAt',
   createdAt: 'createdAt',
@@ -497,6 +500,8 @@ export const FinSavingsGoalContributionScalarFieldEnum = {
   contributedAt: 'contributedAt',
   accountId: 'accountId',
   transactionId: 'transactionId',
+  kind: 'kind',
+  transferGroupId: 'transferGroupId',
   notes: 'notes',
   createdAt: 'createdAt'
 } as const

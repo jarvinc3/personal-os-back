@@ -10,9 +10,9 @@ import {
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CurrentUser, RequiresEnabledModule } from '@personal-os/core';
 import { PlanningService } from '../application/planning.service';
-import { RecordSavingsGoalContributionUseCase } from '../application/record-savings-goal-contribution.use-case';
+import { AllocateToGoalUseCase } from '../application/allocate-to-goal.use-case';
 import { RemoveSavingsGoalContributionUseCase } from '../application/remove-savings-goal-contribution.use-case';
-import { CreateSavingsGoalContributionDto } from './dto/create-savings-goal-contribution.dto';
+import { CreateSavingsGoalAllocationDto } from './dto/create-savings-goal-allocation.dto';
 import { CreateSavingsGoalDto } from './dto/create-savings-goal.dto';
 import { UpdateSavingsGoalDto } from './dto/update-savings-goal.dto';
 
@@ -23,7 +23,7 @@ import { UpdateSavingsGoalDto } from './dto/update-savings-goal.dto';
 export class SavingsGoalsController {
   constructor(
     private readonly planning: PlanningService,
-    private readonly recordContribution: RecordSavingsGoalContributionUseCase,
+    private readonly allocateToGoal: AllocateToGoalUseCase,
     private readonly removeGoalContribution: RemoveSavingsGoalContributionUseCase,
   ) {}
 
@@ -46,38 +46,35 @@ export class SavingsGoalsController {
     return this.planning.getSavingsGoal(userId, id);
   }
 
-  @Get('savings-goals/:id/contributions')
-  @ApiOperation({ summary: 'Contributions of a savings goal, newest first' })
-  listContributions(
-    @CurrentUser('sub') userId: string,
-    @Param('id') id: string,
-  ) {
+  @Get('savings-goals/:id/allocations')
+  @ApiOperation({ summary: 'Allocations of a savings goal, newest first' })
+  listAllocations(@CurrentUser('sub') userId: string, @Param('id') id: string) {
     return this.planning.listSavingsGoalContributions(userId, id);
   }
 
-  @Post('savings-goals/:id/contributions')
+  @Post('savings-goals/:id/allocations')
   @ApiOperation({
-    summary: 'Record a contribution; the goal balance is the sum of them',
+    summary: 'Set money aside for a goal; it never moves money',
   })
-  addContribution(
+  addAllocation(
     @CurrentUser('sub') userId: string,
     @Param('id') id: string,
-    @Body() dto: CreateSavingsGoalContributionDto,
+    @Body() dto: CreateSavingsGoalAllocationDto,
   ) {
-    return this.recordContribution.execute(userId, id, dto, new Date());
+    return this.allocateToGoal.execute(userId, id, dto, new Date());
   }
 
-  @Delete('savings-goals/:id/contributions/:contributionId')
-  @ApiOperation({ summary: 'Remove a contribution and recompute the balance' })
-  removeContribution(
+  @Delete('savings-goals/:id/allocations/:allocationId')
+  @ApiOperation({ summary: 'Remove an allocation and recompute the balance' })
+  removeAllocation(
     @CurrentUser('sub') userId: string,
     @Param('id') id: string,
-    @Param('contributionId') contributionId: string,
+    @Param('allocationId') allocationId: string,
   ) {
     return this.removeGoalContribution.execute(
       userId,
       id,
-      contributionId,
+      allocationId,
       new Date(),
     );
   }

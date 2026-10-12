@@ -262,9 +262,9 @@ const STATIC_TOOLS: StaticToolDef[] = [
     targetModule: 'finance',
   },
   {
-    name: 'record_savings_contribution',
+    name: 'allocate_to_goal',
     description:
-      'Record an amount set aside for a savings goal, paid from a given account. The goal balance is the sum of these.',
+      'Set money aside for a savings goal, or withdraw it. It never moves money.',
     mutating: true,
     targetModule: 'finance',
   },
@@ -435,8 +435,8 @@ export function getActionLabel(
       return 'Crear meta de ahorro';
     case 'update_savings_goal':
       return 'Actualizar meta de ahorro';
-    case 'record_savings_contribution':
-      return 'Registrar aporte a meta de ahorro';
+    case 'allocate_to_goal':
+      return 'Apartar en una meta de ahorro';
     case 'list_loans':
       return 'Consultar préstamos';
     case 'mark_loan_installment_paid':

@@ -20,13 +20,13 @@ import { UnconfirmTransactionUseCase } from './ledger/application/unconfirm-tran
 import { PlanningService } from './planning/application/planning.service';
 import { ApplyLoanPrepaymentUseCase } from './planning/application/apply-loan-prepayment.use-case';
 import { PayNextLoanInstallmentUseCase } from './planning/application/pay-next-loan-installment.use-case';
-import { RecordSavingsGoalContributionUseCase } from './planning/application/record-savings-goal-contribution.use-case';
+import { AllocateToGoalUseCase } from './planning/application/allocate-to-goal.use-case';
 import type { LoanPrepaymentCommand } from './planning/application/apply-loan-prepayment.use-case';
 import type { PayInstallmentCommand } from './planning/application/pay-next-loan-installment.use-case';
 import { CardStatementsService } from './statements/application/card-statements.service';
 import type { CreateBudgetDto } from './planning/presentation/dto/create-budget.dto';
 import type { CreateSavingsGoalDto } from './planning/presentation/dto/create-savings-goal.dto';
-import type { CreateSavingsGoalContributionDto } from './planning/presentation/dto/create-savings-goal-contribution.dto';
+import type { CreateSavingsGoalAllocationDto } from './planning/presentation/dto/create-savings-goal-allocation.dto';
 import type { UpdateBudgetDto } from './planning/presentation/dto/update-budget.dto';
 import type { UpdateLoanDto } from './planning/presentation/dto/update-loan.dto';
 import type { UpdateSavingsGoalDto } from './planning/presentation/dto/update-savings-goal.dto';
@@ -52,7 +52,7 @@ export class FinanceFacade {
     private readonly planning: PlanningService,
     private readonly payLoanInstallment: PayNextLoanInstallmentUseCase,
     private readonly prepayLoanTx: ApplyLoanPrepaymentUseCase,
-    private readonly recordContribution: RecordSavingsGoalContributionUseCase,
+    private readonly allocateToGoal: AllocateToGoalUseCase,
     private readonly analytics: AnalyticsService,
     private readonly statements: CardStatementsService,
     private readonly ingestion: IngestionService,
@@ -180,9 +180,9 @@ export class FinanceFacade {
   recordSavingsGoalContribution(
     userId: string,
     goalId: string,
-    dto: CreateSavingsGoalContributionDto,
+    dto: CreateSavingsGoalAllocationDto,
   ) {
-    return this.recordContribution.execute(userId, goalId, dto, new Date());
+    return this.allocateToGoal.execute(userId, goalId, dto, new Date());
   }
 
   listLoans(userId: string) {

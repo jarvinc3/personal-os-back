@@ -2,9 +2,11 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
   IsDateString,
+  IsEnum,
   IsNumber,
   IsOptional,
   IsString,
+  IsUUID,
   MaxLength,
 } from 'class-validator';
 import { CurrencyField } from '../../../shared/presentation/validation.decorators';
@@ -24,6 +26,15 @@ export class CreateSavingsGoalDto {
   @Type(() => Number)
   @IsNumber({ maxDecimalPlaces: 2 })
   targetAmount!: number;
+
+  @ApiProperty()
+  @IsUUID()
+  accountId!: string;
+
+  @ApiPropertyOptional({ enum: ['EARMARK', 'DEDICATED'], default: 'EARMARK' })
+  @IsOptional()
+  @IsEnum(['EARMARK', 'DEDICATED'])
+  mode?: 'EARMARK' | 'DEDICATED';
 
   @ApiPropertyOptional({ default: 'DOP', example: 'DOP' })
   @CurrencyField()

@@ -3457,6 +3457,9 @@ export const FinSavingsGoalScalarFieldEnum = {
   targetDate: 'targetDate',
   icon: 'icon',
   color: 'color',
+  accountId: 'accountId',
+  mode: 'mode',
+  spendReducesProgress: 'spendReducesProgress',
   isCompleted: 'isCompleted',
   completedAt: 'completedAt',
   createdAt: 'createdAt',
@@ -3473,6 +3476,8 @@ export const FinSavingsGoalContributionScalarFieldEnum = {
   contributedAt: 'contributedAt',
   accountId: 'accountId',
   transactionId: 'transactionId',
+  kind: 'kind',
+  transferGroupId: 'transferGroupId',
   notes: 'notes',
   createdAt: 'createdAt'
 } as const
@@ -4022,6 +4027,34 @@ export type EnumFinCardStatementStatusFieldRefInput<$PrismaModel> = FieldRefInpu
  * Reference to a field of type 'FinCardStatementStatus[]'
  */
 export type ListEnumFinCardStatementStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'FinCardStatementStatus[]'>
+    
+
+
+/**
+ * Reference to a field of type 'FinGoalMode'
+ */
+export type EnumFinGoalModeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'FinGoalMode'>
+    
+
+
+/**
+ * Reference to a field of type 'FinGoalMode[]'
+ */
+export type ListEnumFinGoalModeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'FinGoalMode[]'>
+    
+
+
+/**
+ * Reference to a field of type 'FinAllocationKind'
+ */
+export type EnumFinAllocationKindFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'FinAllocationKind'>
+    
+
+
+/**
+ * Reference to a field of type 'FinAllocationKind[]'
+ */
+export type ListEnumFinAllocationKindFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'FinAllocationKind[]'>
     
 
 

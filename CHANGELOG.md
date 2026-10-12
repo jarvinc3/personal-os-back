@@ -2,6 +2,21 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [SemVer](https://semver.org/lang/es/). Reglas y ejemplo en [docs/reference/changelog-guide.md](./docs/reference/changelog-guide.md).
 
+## [1.13.0] - 2026-10-12
+
+### Agregado
+
+- La meta de ahorro vive en una cuenta (`accountId` obligatorio) y tiene `mode` (`EARMARK` por defecto) y `spendReducesProgress`.
+- `POST /savings-goals/:id/allocations` aparta o retira dinero sin crear movimiento; `GET` y `DELETE /allocations` con cursor. Si el apartado supera el saldo libre de la cuenta responde 409 `EARMARK_EXCEEDS_BALANCE`; sin cuenta, 400 `GOAL_ACCOUNT_REQUIRED`.
+- `GET /accounts` y `/accounts/:id` agregan `earmarkedAmount` y `freeBalance`.
+- Tool `allocate_to_goal` (reemplaza `record_savings_contribution`) y `create_savings_goal` exige `accountId`.
+
+### Cambiado
+
+- Se eliminan las rutas `/savings-goals/:id/contributions`.
+- Las asignaciones guardan `kind` (`CONTRIBUTION`/`WITHDRAWAL`) y `transferGroupId`.
+- Script `scripts/finance/backfill-goal-allocations.ts`, con `--dry-run`, para convertir los aportes viejos.
+
 ## [1.12.0] - 2026-10-12
 
 ### Agregado

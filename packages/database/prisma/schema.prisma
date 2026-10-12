@@ -182,6 +182,7 @@ model FinAccount {
   finLoans       FinLoan[]
   receivablePayments FinReceivablePayment[]
   savingsGoalContributions FinSavingsGoalContribution[]
+  savingsGoals   FinSavingsGoal[]
   instrumentEvents FinInstrumentEvent[]
 
   @@index([userId, isActive], map: "fin_accounts_user_id_active_idx")
@@ -558,15 +559,32 @@ model FinSavingsGoal {
   targetDate    DateTime? @map("target_date") @db.Date
   icon          String?
   color         String?
+  accountId     String?   @map("account_id")
+  mode          FinGoalMode @default(EARMARK)
+  spendReducesProgress Boolean @default(true) @map("spend_reduces_progress")
   isCompleted   Boolean   @default(false) @map("is_completed")
   completedAt   DateTime? @map("completed_at") @db.Timestamptz(6)
   createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt     DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  account       FinAccount? @relation(fields: [accountId], references: [id], onDelete: SetNull)
   user          User      @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   contributions FinSavingsGoalContribution[]
 
   @@index([userId, isCompleted], map: "fin_savings_goals_user_id_completed_idx")
+  @@index([accountId], map: "fin_savings_goals_account_id_idx")
   @@map("fin_savings_goals")
+}
+
+enum FinGoalMode {
+  EARMARK
+  DEDICATED
+  @@map("fin_goal_mode")
+}
+
+enum FinAllocationKind {
+  CONTRIBUTION
+  WITHDRAWAL
+  @@map("fin_allocation_kind")
 }
 
 /// One amount set aside for a savings goal. The goal balance is the sum of its
@@ -579,6 +597,8 @@ model FinSavingsGoalContribution {
   /// Account the money left. Null only after that account is deleted.
   accountId     String?        @map("account_id")
   transactionId String?        @unique @map("transaction_id")
+  kind          FinAllocationKind @default(CONTRIBUTION)
+  transferGroupId String?      @map("transfer_group_id")
   notes         String?
   createdAt     DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
   account       FinAccount?    @relation(fields: [accountId], references: [id], onDelete: SetNull, onUpdate: NoAction)

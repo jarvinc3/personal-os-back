@@ -236,8 +236,10 @@ export class PlanningRepository {
     contribution: {
       amount: number;
       contributedAt: Date;
-      accountId: string;
-      transactionId: string;
+      kind: 'CONTRIBUTION' | 'WITHDRAWAL';
+      accountId?: string | null;
+      transactionId?: string | null;
+      transferGroupId?: string | null;
       notes?: string;
     },
     now: Date,
@@ -249,6 +251,30 @@ export class PlanningRepository {
       await applySavingsGoalBalance(tx, goalId, now);
       return created;
     });
+  }
+
+  /** Amount already earmarked in every EARMARK goal of one account. */
+  async sumEarmarkedByAccount(
+    userId: string,
+    accountId: string,
+  ): Promise<number> {
+    const goals = await this.prisma.finSavingsGoal.findMany({
+      where: { userId, accountId, mode: 'EARMARK' },
+      select: { id: true },
+    });
+    if (goals.length === 0) {
+      return 0;
+    }
+    const rows = await this.prisma.finSavingsGoalContribution.findMany({
+      where: { goalId: { in: goals.map((goal) => goal.id) } },
+      select: { amount: true, kind: true },
+    });
+    return rows.reduce(
+      (sum, row) =>
+        sum +
+        (row.kind === 'WITHDRAWAL' ? -Number(row.amount) : Number(row.amount)),
+      0,
+    );
   }
 
   async removeSavingsGoalContribution(

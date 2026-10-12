@@ -44,7 +44,7 @@ const FINANCE_TOOL_NAMES = new Set([
   'list_savings_goals',
   'create_savings_goal',
   'update_savings_goal',
-  'record_savings_contribution',
+  'allocate_to_goal',
   'list_loans',
   'mark_loan_installment_paid',
   'prepay_loan',
@@ -603,6 +603,8 @@ export class ToolExecutorService {
           data: await this.financeFacade.createSavingsGoal(ctx.userId, {
             name: goal.name,
             targetAmount: goal.targetAmount,
+            accountId: goal.accountId,
+            mode: goal.mode,
             currentAmount: goal.currentAmount ?? undefined,
             currency: goal.currency ?? undefined,
             targetDate: goal.targetDate ?? undefined,
@@ -624,20 +626,19 @@ export class ToolExecutorService {
           ),
         };
       }
-      case 'record_savings_contribution': {
-        const contribution =
-          args as ValidatedToolArgs<'record_savings_contribution'>;
+      case 'allocate_to_goal': {
+        const allocation = args as ValidatedToolArgs<'allocate_to_goal'>;
         return {
           success: true,
-          message: 'Savings goal contribution recorded',
+          message: 'Savings goal allocation recorded',
           data: await this.financeFacade.recordSavingsGoalContribution(
             ctx.userId,
-            contribution.goalId,
+            allocation.goalId,
             {
-              accountId: contribution.accountId,
-              amount: contribution.amount,
-              contributedAt: contribution.contributedAt ?? undefined,
-              notes: contribution.notes ?? undefined,
+              amount: allocation.amount,
+              kind: allocation.kind,
+              date: allocation.date ?? undefined,
+              notes: allocation.notes ?? undefined,
             },
           ),
         };
