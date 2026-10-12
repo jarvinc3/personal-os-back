@@ -3554,7 +3554,10 @@ export const FinDeletionJournalScalarFieldEnum = {
   entityType: 'entityType',
   entityId: 'entityId',
   snapshot: 'snapshot',
+  operationGroupId: 'operationGroupId',
+  sizeBytes: 'sizeBytes',
   deletedAt: 'deletedAt',
+  expiresAt: 'expiresAt',
   restoredAt: 'restoredAt'
 } as const
 

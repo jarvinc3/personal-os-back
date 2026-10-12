@@ -11,6 +11,7 @@ import { normalizeDomain } from '@personal-os/logos';
 import { PurgeInstrumentLedgerUseCase } from '../../ledger/application/purge-instrument-ledger.use-case';
 import type { LedgerTransactionRow } from '../../ledger/application/ports/ledger.repository.port';
 import { FinanceOwnershipService } from '../../shared/application/finance-ownership.service';
+import { assertRestored } from '../../shared/application/assert-restored';
 import {
   ACCOUNT_NUMBER_MAX_DIGITS,
   ACCOUNT_NUMBER_MIN_DIGITS,
@@ -177,9 +178,7 @@ export class CatalogService {
 
   async restoreAccount(userId: string, id: string, now: Date) {
     const restored = await this.repo.restoreAccount(userId, id, now);
-    if (restored.count === 0) {
-      throw new NotFoundException('Account not found');
-    }
+    assertRestored(restored, 'Account not found');
     return { success: true };
   }
 
@@ -322,9 +321,7 @@ export class CatalogService {
 
   async restoreInstitution(userId: string, id: string, now: Date) {
     const restored = await this.repo.restoreInstitution(userId, id, now);
-    if (restored.count === 0) {
-      throw new NotFoundException('Institution not found');
-    }
+    assertRestored(restored, 'Institution not found');
     return { success: true };
   }
 
@@ -464,9 +461,7 @@ export class CatalogService {
 
   async restoreCard(userId: string, id: string, now: Date) {
     const restored = await this.repo.restoreCard(userId, id, now);
-    if (restored.count === 0) {
-      throw new NotFoundException('Card not found');
-    }
+    assertRestored(restored, 'Card not found');
     return { success: true };
   }
 
@@ -639,9 +634,7 @@ export class CatalogService {
 
   async restoreCategory(userId: string, id: string, now: Date) {
     const restored = await this.repo.restoreCategory(userId, id, now);
-    if (restored.count === 0) {
-      throw new NotFoundException('Category not found');
-    }
+    assertRestored(restored, 'Category not found');
     return { success: true };
   }
 

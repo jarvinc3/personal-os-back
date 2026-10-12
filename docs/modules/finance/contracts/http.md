@@ -40,7 +40,7 @@ Una transferencia es una operación atómica entre cuentas distintas; el destino
 
 ## Deshacer un borrado
 
-Cada `DELETE` de una entidad de finance guarda un snapshot en `fin_deletion_journal` (`entityType`, `entityId`, `snapshot`) dentro de la misma transacción, y devuelve `undoId`. `POST /api/finance/<entidad>/:id/restore` vuelve a crear las filas, repone los enlaces que la cascada anuló y aplica otra vez el saldo y el gasto del presupuesto que el borrado revirtió. Para una transferencia, `undoId` es el `transferGroupId`.
+Cada `DELETE` de una entidad de finance guarda un snapshot en `fin_deletion_journal` (`entityType`, `entityId`, `snapshot`, `sizeBytes`, `expiresAt`) dentro de la misma transacción, y devuelve `undoId`. `POST /api/finance/<entidad>/:id/restore` vuelve a crear las filas, repone los enlaces que la cascada anuló y aplica otra vez el saldo y el gasto del presupuesto que el borrado revirtió, solo para los movimientos `CONFIRMED` cuyo efecto se revirtió. Para una transferencia, `undoId` es el `transferGroupId` y se restaura completa. Restaurar dos veces responde 409 `ALREADY_RESTORED`, un choque con datos nuevos 409 `RESTORE_CONFLICT` y una operación incompleta 409 `PARTIAL_OPERATION`. Las entradas sin restaurar se purgan a los 30 días.
 
 ## Archivados y borrados
 

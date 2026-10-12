@@ -1,5 +1,6 @@
 import type { BudgetSpendSnapshot } from '../../../shared/domain/budget-snapshot';
 import type { StoredMovement } from '../../../shared/domain/deletion-snapshot';
+import type { RestoreResult } from '../../../shared/domain/deletion-snapshot';
 import type { ResolvedAmounts } from '../../../shared/domain/money';
 import type { TransactionLinkKind } from '../../../shared/domain/transaction-links';
 import type {
@@ -227,7 +228,7 @@ export interface LedgerRepositoryPort {
     userId: string,
     id: string,
     now: Date,
-  ): Promise<{ count: number }>;
+  ): Promise<RestoreResult>;
 
   deleteTransactionsByTransferGroupId(
     userId: string,

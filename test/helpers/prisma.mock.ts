@@ -166,6 +166,7 @@ export type PrismaMock = {
     findFirst: MockFn;
     findMany: MockFn;
     updateMany: MockFn;
+    deleteMany: MockFn;
   };
   finInstrumentEvent: {
     create: MockFn;
@@ -243,6 +244,7 @@ function createTransactionClient(prismaMock: PrismaMock) {
     },
     finDeletionJournal: {
       create: prismaMock.finDeletionJournal.create,
+      updateMany: prismaMock.finDeletionJournal.updateMany,
     },
     finInstrumentEvent: {
       create: jest.fn().mockResolvedValue({ id: 'event-1' }),
@@ -512,6 +514,7 @@ export function createPrismaMock(): PrismaMock {
       findFirst: jest.fn().mockResolvedValue(null),
       findMany: jest.fn().mockResolvedValue([]),
       updateMany: jest.fn().mockResolvedValue({ count: 0 }),
+      deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
     },
     finInstrumentEvent: {
       create: jest.fn().mockResolvedValue({ id: 'event-1' }),

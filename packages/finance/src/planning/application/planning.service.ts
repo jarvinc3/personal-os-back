@@ -9,6 +9,7 @@ import {
   type CursorQueryDto,
 } from '@personal-os/core';
 import { FinanceOwnershipService } from '../../shared/application/finance-ownership.service';
+import { assertRestored } from '../../shared/application/assert-restored';
 import { PlanningRepository } from '../infrastructure/planning.repository';
 import type { CreateBudgetDto } from '../presentation/dto/create-budget.dto';
 import type { CreateLoanDto } from '../presentation/dto/create-loan.dto';
@@ -104,9 +105,7 @@ export class PlanningService {
 
   async restoreBudget(userId: string, id: string, now: Date) {
     const restored = await this.repo.restoreBudget(userId, id, now);
-    if (restored.count === 0) {
-      throw new NotFoundException('Budget not found');
-    }
+    assertRestored(restored, 'Budget not found');
     return { success: true };
   }
 
@@ -183,9 +182,7 @@ export class PlanningService {
 
   async restoreSavingsGoal(userId: string, id: string, now: Date) {
     const restored = await this.repo.restoreSavingsGoal(userId, id, now);
-    if (restored.count === 0) {
-      throw new NotFoundException('Savings goal not found');
-    }
+    assertRestored(restored, 'Savings goal not found');
     return { success: true };
   }
 
@@ -360,9 +357,7 @@ export class PlanningService {
 
   async restoreLoan(userId: string, id: string, now: Date) {
     const restored = await this.repo.restoreLoan(userId, id, now);
-    if (restored.count === 0) {
-      throw new NotFoundException('Loan not found');
-    }
+    assertRestored(restored, 'Loan not found');
     return { success: true };
   }
 
@@ -445,9 +440,7 @@ export class PlanningService {
 
   async restoreReceivable(userId: string, id: string, now: Date) {
     const restored = await this.repo.restoreReceivable(userId, id, now);
-    if (restored.count === 0) {
-      throw new NotFoundException('Receivable not found');
-    }
+    assertRestored(restored, 'Receivable not found');
     return { success: true };
   }
 }
