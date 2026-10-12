@@ -2,6 +2,17 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [SemVer](https://semver.org/lang/es/). Reglas y ejemplo en [docs/reference/changelog-guide.md](./docs/reference/changelog-guide.md).
 
+## [1.5.0] - 2026-10-12
+
+### Agregado
+
+- `/api/health` devuelve `version`, leída del `package.json` de la raíz.
+
+### Cambiado
+
+- Swagger deja de mostrar `1.0` fijo y usa la versión del `package.json`.
+- La documentación pasa prettier: el script de formato cubre `md` y existe `format:check`.
+
 ## [1.4.0] - 2026-10-12
 
 ### Agregado
