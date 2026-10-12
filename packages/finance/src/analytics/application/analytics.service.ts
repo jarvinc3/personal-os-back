@@ -156,9 +156,9 @@ export class AnalyticsService {
       return {
         id: budget.id,
         categoryId: budget.categoryId,
-        category: budget.category.name,
-        color: budget.category.color,
-        icon: budget.category.icon,
+        category: budget.name ?? budget.category?.name ?? 'Presupuesto',
+        color: budget.category?.color ?? null,
+        icon: budget.category?.icon ?? null,
         periodType: budget.periodType,
         periodStart: budget.periodStart.toISOString().slice(0, 10),
         periodEnd: budget.periodEnd.toISOString().slice(0, 10),

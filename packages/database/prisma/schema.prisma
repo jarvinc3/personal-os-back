@@ -333,6 +333,7 @@ model FinCategory {
   createdAt    DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt    DateTime              @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   budgets      FinBudget[]
+  budgetCategories FinBudgetCategory[]
   parent       FinCategory?          @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   children     FinCategory[]         @relation("CategoryHierarchy")
   user         User?                 @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
@@ -348,7 +349,12 @@ model FinCategory {
 model FinBudget {
   id                  String              @id @default(dbgenerated("(uuid_generate_v4())::text"))
   userId              String              @map("user_id")
-  categoryId          String              @map("category_id")
+  categoryId          String?             @map("category_id")
+  name                String?
+  includeChildren     Boolean             @default(true) @map("include_children")
+  rollover            FinBudgetRollover   @default(NONE)
+  carriedOver         Decimal             @default(0) @map("carried_over") @db.Decimal(15, 2)
+  recurring           Boolean             @default(false)
   periodType          FinBudgetPeriodType @default(MONTHLY) @map("period_type")
   periodStart         DateTime            @map("period_start") @db.Date
   periodEnd           DateTime            @map("period_end") @db.Date
@@ -359,13 +365,31 @@ model FinBudget {
   aiSuggestionPayload Json?               @map("ai_suggestion_payload")
   createdAt           DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
   alerts              FinBudgetAlert[]
-  category            FinCategory         @relation(fields: [categoryId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  category            FinCategory?        @relation(fields: [categoryId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  categories          FinBudgetCategory[]
   user                User                @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
-  @@unique([userId, categoryId, periodStart, periodEnd], map: "fin_budgets_user_category_period_key")
   @@index([userId, periodType, periodStart], map: "fin_budgets_user_period_idx")
   @@index([categoryId], map: "fin_budgets_category_id_idx")
   @@map("fin_budgets")
+}
+
+enum FinBudgetRollover {
+  NONE
+  SURPLUS
+  SURPLUS_AND_DEFICIT
+  @@map("fin_budget_rollover")
+}
+
+model FinBudgetCategory {
+  budgetId   String      @map("budget_id")
+  categoryId String      @map("category_id")
+  budget     FinBudget   @relation(fields: [budgetId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  category   FinCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([budgetId, categoryId])
+  @@index([categoryId], map: "fin_budget_categories_category_id_idx")
+  @@map("fin_budget_categories")
 }
 
 model FinBudgetAlert {

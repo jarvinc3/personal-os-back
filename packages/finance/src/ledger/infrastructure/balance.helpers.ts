@@ -189,9 +189,18 @@ export async function adjustBudgetSpent(
   const budgets = await tx.finBudget.findMany({
     where: {
       userId: params.userId,
-      categoryId: params.categoryId,
       periodStart: { lte: dateOnly },
       periodEnd: { gte: dateOnly },
+      OR: [
+        { categoryId: params.categoryId },
+        { categories: { some: { categoryId: params.categoryId } } },
+        {
+          includeChildren: true,
+          categories: {
+            some: { category: { parentId: params.categoryId } },
+          },
+        },
+      ],
     },
   });
 

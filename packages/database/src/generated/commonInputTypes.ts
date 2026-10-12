@@ -474,6 +474,13 @@ export type EnumFinCategoryTypeWithAggregatesFilter<$PrismaModel = never> = {
   _max?: Prisma.NestedEnumFinCategoryTypeFilter<$PrismaModel>
 }
 
+export type EnumFinBudgetRolloverFilter<$PrismaModel = never> = {
+  equals?: $Enums.FinBudgetRollover | Prisma.EnumFinBudgetRolloverFieldRefInput<$PrismaModel>
+  in?: $Enums.FinBudgetRollover[] | Prisma.ListEnumFinBudgetRolloverFieldRefInput<$PrismaModel>
+  notIn?: $Enums.FinBudgetRollover[] | Prisma.ListEnumFinBudgetRolloverFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumFinBudgetRolloverFilter<$PrismaModel> | $Enums.FinBudgetRollover
+}
+
 export type EnumFinBudgetPeriodTypeFilter<$PrismaModel = never> = {
   equals?: $Enums.FinBudgetPeriodType | Prisma.EnumFinBudgetPeriodTypeFieldRefInput<$PrismaModel>
   in?: $Enums.FinBudgetPeriodType[] | Prisma.ListEnumFinBudgetPeriodTypeFieldRefInput<$PrismaModel>
@@ -486,6 +493,16 @@ export type EnumAiSuggestionStatusFilter<$PrismaModel = never> = {
   in?: $Enums.AiSuggestionStatus[] | Prisma.ListEnumAiSuggestionStatusFieldRefInput<$PrismaModel>
   notIn?: $Enums.AiSuggestionStatus[] | Prisma.ListEnumAiSuggestionStatusFieldRefInput<$PrismaModel>
   not?: Prisma.NestedEnumAiSuggestionStatusFilter<$PrismaModel> | $Enums.AiSuggestionStatus
+}
+
+export type EnumFinBudgetRolloverWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.FinBudgetRollover | Prisma.EnumFinBudgetRolloverFieldRefInput<$PrismaModel>
+  in?: $Enums.FinBudgetRollover[] | Prisma.ListEnumFinBudgetRolloverFieldRefInput<$PrismaModel>
+  notIn?: $Enums.FinBudgetRollover[] | Prisma.ListEnumFinBudgetRolloverFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumFinBudgetRolloverWithAggregatesFilter<$PrismaModel> | $Enums.FinBudgetRollover
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumFinBudgetRolloverFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumFinBudgetRolloverFilter<$PrismaModel>
 }
 
 export type EnumFinBudgetPeriodTypeWithAggregatesFilter<$PrismaModel = never> = {
@@ -1219,6 +1236,13 @@ export type NestedEnumFinCategoryTypeWithAggregatesFilter<$PrismaModel = never> 
   _max?: Prisma.NestedEnumFinCategoryTypeFilter<$PrismaModel>
 }
 
+export type NestedEnumFinBudgetRolloverFilter<$PrismaModel = never> = {
+  equals?: $Enums.FinBudgetRollover | Prisma.EnumFinBudgetRolloverFieldRefInput<$PrismaModel>
+  in?: $Enums.FinBudgetRollover[] | Prisma.ListEnumFinBudgetRolloverFieldRefInput<$PrismaModel>
+  notIn?: $Enums.FinBudgetRollover[] | Prisma.ListEnumFinBudgetRolloverFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumFinBudgetRolloverFilter<$PrismaModel> | $Enums.FinBudgetRollover
+}
+
 export type NestedEnumFinBudgetPeriodTypeFilter<$PrismaModel = never> = {
   equals?: $Enums.FinBudgetPeriodType | Prisma.EnumFinBudgetPeriodTypeFieldRefInput<$PrismaModel>
   in?: $Enums.FinBudgetPeriodType[] | Prisma.ListEnumFinBudgetPeriodTypeFieldRefInput<$PrismaModel>
@@ -1231,6 +1255,16 @@ export type NestedEnumAiSuggestionStatusFilter<$PrismaModel = never> = {
   in?: $Enums.AiSuggestionStatus[] | Prisma.ListEnumAiSuggestionStatusFieldRefInput<$PrismaModel>
   notIn?: $Enums.AiSuggestionStatus[] | Prisma.ListEnumAiSuggestionStatusFieldRefInput<$PrismaModel>
   not?: Prisma.NestedEnumAiSuggestionStatusFilter<$PrismaModel> | $Enums.AiSuggestionStatus
+}
+
+export type NestedEnumFinBudgetRolloverWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.FinBudgetRollover | Prisma.EnumFinBudgetRolloverFieldRefInput<$PrismaModel>
+  in?: $Enums.FinBudgetRollover[] | Prisma.ListEnumFinBudgetRolloverFieldRefInput<$PrismaModel>
+  notIn?: $Enums.FinBudgetRollover[] | Prisma.ListEnumFinBudgetRolloverFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumFinBudgetRolloverWithAggregatesFilter<$PrismaModel> | $Enums.FinBudgetRollover
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumFinBudgetRolloverFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumFinBudgetRolloverFilter<$PrismaModel>
 }
 
 export type NestedEnumFinBudgetPeriodTypeWithAggregatesFilter<$PrismaModel = never> = {

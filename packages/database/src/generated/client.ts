@@ -111,6 +111,11 @@ export type FinCategory = Prisma.FinCategoryModel
  */
 export type FinBudget = Prisma.FinBudgetModel
 /**
+ * Model FinBudgetCategory
+ * 
+ */
+export type FinBudgetCategory = Prisma.FinBudgetCategoryModel
+/**
  * Model FinBudgetAlert
  * 
  */

@@ -65,6 +65,7 @@ export const ModelName = {
   FinTransaction: 'FinTransaction',
   FinCategory: 'FinCategory',
   FinBudget: 'FinBudget',
+  FinBudgetCategory: 'FinBudgetCategory',
   FinBudgetAlert: 'FinBudgetAlert',
   FinRecurringPattern: 'FinRecurringPattern',
   FinExchangeRate: 'FinExchangeRate',
@@ -327,6 +328,11 @@ export const FinBudgetScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
   categoryId: 'categoryId',
+  name: 'name',
+  includeChildren: 'includeChildren',
+  rollover: 'rollover',
+  carriedOver: 'carriedOver',
+  recurring: 'recurring',
   periodType: 'periodType',
   periodStart: 'periodStart',
   periodEnd: 'periodEnd',
@@ -339,6 +345,14 @@ export const FinBudgetScalarFieldEnum = {
 } as const
 
 export type FinBudgetScalarFieldEnum = (typeof FinBudgetScalarFieldEnum)[keyof typeof FinBudgetScalarFieldEnum]
+
+
+export const FinBudgetCategoryScalarFieldEnum = {
+  budgetId: 'budgetId',
+  categoryId: 'categoryId'
+} as const
+
+export type FinBudgetCategoryScalarFieldEnum = (typeof FinBudgetCategoryScalarFieldEnum)[keyof typeof FinBudgetCategoryScalarFieldEnum]
 
 
 export const FinBudgetAlertScalarFieldEnum = {

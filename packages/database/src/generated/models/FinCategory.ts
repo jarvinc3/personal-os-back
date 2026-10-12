@@ -231,6 +231,7 @@ export type FinCategoryWhereInput = {
   createdAt?: Prisma.DateTimeFilter<"FinCategory"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"FinCategory"> | Date | string
   budgets?: Prisma.FinBudgetListRelationFilter
+  budgetCategories?: Prisma.FinBudgetCategoryListRelationFilter
   parent?: Prisma.XOR<Prisma.FinCategoryNullableScalarRelationFilter, Prisma.FinCategoryWhereInput> | null
   children?: Prisma.FinCategoryListRelationFilter
   user?: Prisma.XOR<Prisma.UserNullableScalarRelationFilter, Prisma.UserWhereInput> | null
@@ -251,6 +252,7 @@ export type FinCategoryOrderByWithRelationInput = {
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   budgets?: Prisma.FinBudgetOrderByRelationAggregateInput
+  budgetCategories?: Prisma.FinBudgetCategoryOrderByRelationAggregateInput
   parent?: Prisma.FinCategoryOrderByWithRelationInput
   children?: Prisma.FinCategoryOrderByRelationAggregateInput
   user?: Prisma.UserOrderByWithRelationInput
@@ -274,6 +276,7 @@ export type FinCategoryWhereUniqueInput = Prisma.AtLeast<{
   createdAt?: Prisma.DateTimeFilter<"FinCategory"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"FinCategory"> | Date | string
   budgets?: Prisma.FinBudgetListRelationFilter
+  budgetCategories?: Prisma.FinBudgetCategoryListRelationFilter
   parent?: Prisma.XOR<Prisma.FinCategoryNullableScalarRelationFilter, Prisma.FinCategoryWhereInput> | null
   children?: Prisma.FinCategoryListRelationFilter
   user?: Prisma.XOR<Prisma.UserNullableScalarRelationFilter, Prisma.UserWhereInput> | null
@@ -326,6 +329,7 @@ export type FinCategoryCreateInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   budgets?: Prisma.FinBudgetCreateNestedManyWithoutCategoryInput
+  budgetCategories?: Prisma.FinBudgetCategoryCreateNestedManyWithoutCategoryInput
   parent?: Prisma.FinCategoryCreateNestedOneWithoutChildrenInput
   children?: Prisma.FinCategoryCreateNestedManyWithoutParentInput
   user?: Prisma.UserCreateNestedOneWithoutFinCategoriesInput
@@ -346,6 +350,7 @@ export type FinCategoryUncheckedCreateInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   budgets?: Prisma.FinBudgetUncheckedCreateNestedManyWithoutCategoryInput
+  budgetCategories?: Prisma.FinBudgetCategoryUncheckedCreateNestedManyWithoutCategoryInput
   children?: Prisma.FinCategoryUncheckedCreateNestedManyWithoutParentInput
   recurring?: Prisma.FinRecurringPatternUncheckedCreateNestedManyWithoutCategoryInput
   transactions?: Prisma.FinTransactionUncheckedCreateNestedManyWithoutCategoryInput
@@ -362,6 +367,7 @@ export type FinCategoryUpdateInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   budgets?: Prisma.FinBudgetUpdateManyWithoutCategoryNestedInput
+  budgetCategories?: Prisma.FinBudgetCategoryUpdateManyWithoutCategoryNestedInput
   parent?: Prisma.FinCategoryUpdateOneWithoutChildrenNestedInput
   children?: Prisma.FinCategoryUpdateManyWithoutParentNestedInput
   user?: Prisma.UserUpdateOneWithoutFinCategoriesNestedInput
@@ -382,6 +388,7 @@ export type FinCategoryUncheckedUpdateInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   budgets?: Prisma.FinBudgetUncheckedUpdateManyWithoutCategoryNestedInput
+  budgetCategories?: Prisma.FinBudgetCategoryUncheckedUpdateManyWithoutCategoryNestedInput
   children?: Prisma.FinCategoryUncheckedUpdateManyWithoutParentNestedInput
   recurring?: Prisma.FinRecurringPatternUncheckedUpdateManyWithoutCategoryNestedInput
   transactions?: Prisma.FinTransactionUncheckedUpdateManyWithoutCategoryNestedInput
@@ -615,12 +622,28 @@ export type FinCategoryCreateNestedOneWithoutBudgetsInput = {
   connect?: Prisma.FinCategoryWhereUniqueInput
 }
 
-export type FinCategoryUpdateOneRequiredWithoutBudgetsNestedInput = {
+export type FinCategoryUpdateOneWithoutBudgetsNestedInput = {
   create?: Prisma.XOR<Prisma.FinCategoryCreateWithoutBudgetsInput, Prisma.FinCategoryUncheckedCreateWithoutBudgetsInput>
   connectOrCreate?: Prisma.FinCategoryCreateOrConnectWithoutBudgetsInput
   upsert?: Prisma.FinCategoryUpsertWithoutBudgetsInput
+  disconnect?: Prisma.FinCategoryWhereInput | boolean
+  delete?: Prisma.FinCategoryWhereInput | boolean
   connect?: Prisma.FinCategoryWhereUniqueInput
   update?: Prisma.XOR<Prisma.XOR<Prisma.FinCategoryUpdateToOneWithWhereWithoutBudgetsInput, Prisma.FinCategoryUpdateWithoutBudgetsInput>, Prisma.FinCategoryUncheckedUpdateWithoutBudgetsInput>
+}
+
+export type FinCategoryCreateNestedOneWithoutBudgetCategoriesInput = {
+  create?: Prisma.XOR<Prisma.FinCategoryCreateWithoutBudgetCategoriesInput, Prisma.FinCategoryUncheckedCreateWithoutBudgetCategoriesInput>
+  connectOrCreate?: Prisma.FinCategoryCreateOrConnectWithoutBudgetCategoriesInput
+  connect?: Prisma.FinCategoryWhereUniqueInput
+}
+
+export type FinCategoryUpdateOneRequiredWithoutBudgetCategoriesNestedInput = {
+  create?: Prisma.XOR<Prisma.FinCategoryCreateWithoutBudgetCategoriesInput, Prisma.FinCategoryUncheckedCreateWithoutBudgetCategoriesInput>
+  connectOrCreate?: Prisma.FinCategoryCreateOrConnectWithoutBudgetCategoriesInput
+  upsert?: Prisma.FinCategoryUpsertWithoutBudgetCategoriesInput
+  connect?: Prisma.FinCategoryWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.FinCategoryUpdateToOneWithWhereWithoutBudgetCategoriesInput, Prisma.FinCategoryUpdateWithoutBudgetCategoriesInput>, Prisma.FinCategoryUncheckedUpdateWithoutBudgetCategoriesInput>
 }
 
 export type FinCategoryCreateNestedOneWithoutRecurringInput = {
@@ -650,6 +673,7 @@ export type FinCategoryCreateWithoutUserInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   budgets?: Prisma.FinBudgetCreateNestedManyWithoutCategoryInput
+  budgetCategories?: Prisma.FinBudgetCategoryCreateNestedManyWithoutCategoryInput
   parent?: Prisma.FinCategoryCreateNestedOneWithoutChildrenInput
   children?: Prisma.FinCategoryCreateNestedManyWithoutParentInput
   recurring?: Prisma.FinRecurringPatternCreateNestedManyWithoutCategoryInput
@@ -668,6 +692,7 @@ export type FinCategoryUncheckedCreateWithoutUserInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   budgets?: Prisma.FinBudgetUncheckedCreateNestedManyWithoutCategoryInput
+  budgetCategories?: Prisma.FinBudgetCategoryUncheckedCreateNestedManyWithoutCategoryInput
   children?: Prisma.FinCategoryUncheckedCreateNestedManyWithoutParentInput
   recurring?: Prisma.FinRecurringPatternUncheckedCreateNestedManyWithoutCategoryInput
   transactions?: Prisma.FinTransactionUncheckedCreateNestedManyWithoutCategoryInput
@@ -727,6 +752,7 @@ export type FinCategoryCreateWithoutTransactionsInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   budgets?: Prisma.FinBudgetCreateNestedManyWithoutCategoryInput
+  budgetCategories?: Prisma.FinBudgetCategoryCreateNestedManyWithoutCategoryInput
   parent?: Prisma.FinCategoryCreateNestedOneWithoutChildrenInput
   children?: Prisma.FinCategoryCreateNestedManyWithoutParentInput
   user?: Prisma.UserCreateNestedOneWithoutFinCategoriesInput
@@ -746,6 +772,7 @@ export type FinCategoryUncheckedCreateWithoutTransactionsInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   budgets?: Prisma.FinBudgetUncheckedCreateNestedManyWithoutCategoryInput
+  budgetCategories?: Prisma.FinBudgetCategoryUncheckedCreateNestedManyWithoutCategoryInput
   children?: Prisma.FinCategoryUncheckedCreateNestedManyWithoutParentInput
   recurring?: Prisma.FinRecurringPatternUncheckedCreateNestedManyWithoutCategoryInput
 }
@@ -777,6 +804,7 @@ export type FinCategoryUpdateWithoutTransactionsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   budgets?: Prisma.FinBudgetUpdateManyWithoutCategoryNestedInput
+  budgetCategories?: Prisma.FinBudgetCategoryUpdateManyWithoutCategoryNestedInput
   parent?: Prisma.FinCategoryUpdateOneWithoutChildrenNestedInput
   children?: Prisma.FinCategoryUpdateManyWithoutParentNestedInput
   user?: Prisma.UserUpdateOneWithoutFinCategoriesNestedInput
@@ -796,6 +824,7 @@ export type FinCategoryUncheckedUpdateWithoutTransactionsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   budgets?: Prisma.FinBudgetUncheckedUpdateManyWithoutCategoryNestedInput
+  budgetCategories?: Prisma.FinBudgetCategoryUncheckedUpdateManyWithoutCategoryNestedInput
   children?: Prisma.FinCategoryUncheckedUpdateManyWithoutParentNestedInput
   recurring?: Prisma.FinRecurringPatternUncheckedUpdateManyWithoutCategoryNestedInput
 }
@@ -811,6 +840,7 @@ export type FinCategoryCreateWithoutChildrenInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   budgets?: Prisma.FinBudgetCreateNestedManyWithoutCategoryInput
+  budgetCategories?: Prisma.FinBudgetCategoryCreateNestedManyWithoutCategoryInput
   parent?: Prisma.FinCategoryCreateNestedOneWithoutChildrenInput
   user?: Prisma.UserCreateNestedOneWithoutFinCategoriesInput
   recurring?: Prisma.FinRecurringPatternCreateNestedManyWithoutCategoryInput
@@ -830,6 +860,7 @@ export type FinCategoryUncheckedCreateWithoutChildrenInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   budgets?: Prisma.FinBudgetUncheckedCreateNestedManyWithoutCategoryInput
+  budgetCategories?: Prisma.FinBudgetCategoryUncheckedCreateNestedManyWithoutCategoryInput
   recurring?: Prisma.FinRecurringPatternUncheckedCreateNestedManyWithoutCategoryInput
   transactions?: Prisma.FinTransactionUncheckedCreateNestedManyWithoutCategoryInput
 }
@@ -850,6 +881,7 @@ export type FinCategoryCreateWithoutParentInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   budgets?: Prisma.FinBudgetCreateNestedManyWithoutCategoryInput
+  budgetCategories?: Prisma.FinBudgetCategoryCreateNestedManyWithoutCategoryInput
   children?: Prisma.FinCategoryCreateNestedManyWithoutParentInput
   user?: Prisma.UserCreateNestedOneWithoutFinCategoriesInput
   recurring?: Prisma.FinRecurringPatternCreateNestedManyWithoutCategoryInput
@@ -868,6 +900,7 @@ export type FinCategoryUncheckedCreateWithoutParentInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   budgets?: Prisma.FinBudgetUncheckedCreateNestedManyWithoutCategoryInput
+  budgetCategories?: Prisma.FinBudgetCategoryUncheckedCreateNestedManyWithoutCategoryInput
   children?: Prisma.FinCategoryUncheckedCreateNestedManyWithoutParentInput
   recurring?: Prisma.FinRecurringPatternUncheckedCreateNestedManyWithoutCategoryInput
   transactions?: Prisma.FinTransactionUncheckedCreateNestedManyWithoutCategoryInput
@@ -905,6 +938,7 @@ export type FinCategoryUpdateWithoutChildrenInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   budgets?: Prisma.FinBudgetUpdateManyWithoutCategoryNestedInput
+  budgetCategories?: Prisma.FinBudgetCategoryUpdateManyWithoutCategoryNestedInput
   parent?: Prisma.FinCategoryUpdateOneWithoutChildrenNestedInput
   user?: Prisma.UserUpdateOneWithoutFinCategoriesNestedInput
   recurring?: Prisma.FinRecurringPatternUpdateManyWithoutCategoryNestedInput
@@ -924,6 +958,7 @@ export type FinCategoryUncheckedUpdateWithoutChildrenInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   budgets?: Prisma.FinBudgetUncheckedUpdateManyWithoutCategoryNestedInput
+  budgetCategories?: Prisma.FinBudgetCategoryUncheckedUpdateManyWithoutCategoryNestedInput
   recurring?: Prisma.FinRecurringPatternUncheckedUpdateManyWithoutCategoryNestedInput
   transactions?: Prisma.FinTransactionUncheckedUpdateManyWithoutCategoryNestedInput
 }
@@ -954,6 +989,7 @@ export type FinCategoryCreateWithoutBudgetsInput = {
   type?: $Enums.FinCategoryType
   createdAt?: Date | string
   updatedAt?: Date | string
+  budgetCategories?: Prisma.FinBudgetCategoryCreateNestedManyWithoutCategoryInput
   parent?: Prisma.FinCategoryCreateNestedOneWithoutChildrenInput
   children?: Prisma.FinCategoryCreateNestedManyWithoutParentInput
   user?: Prisma.UserCreateNestedOneWithoutFinCategoriesInput
@@ -973,6 +1009,7 @@ export type FinCategoryUncheckedCreateWithoutBudgetsInput = {
   type?: $Enums.FinCategoryType
   createdAt?: Date | string
   updatedAt?: Date | string
+  budgetCategories?: Prisma.FinBudgetCategoryUncheckedCreateNestedManyWithoutCategoryInput
   children?: Prisma.FinCategoryUncheckedCreateNestedManyWithoutParentInput
   recurring?: Prisma.FinRecurringPatternUncheckedCreateNestedManyWithoutCategoryInput
   transactions?: Prisma.FinTransactionUncheckedCreateNestedManyWithoutCategoryInput
@@ -1004,6 +1041,7 @@ export type FinCategoryUpdateWithoutBudgetsInput = {
   type?: Prisma.EnumFinCategoryTypeFieldUpdateOperationsInput | $Enums.FinCategoryType
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  budgetCategories?: Prisma.FinBudgetCategoryUpdateManyWithoutCategoryNestedInput
   parent?: Prisma.FinCategoryUpdateOneWithoutChildrenNestedInput
   children?: Prisma.FinCategoryUpdateManyWithoutParentNestedInput
   user?: Prisma.UserUpdateOneWithoutFinCategoriesNestedInput
@@ -1023,6 +1061,95 @@ export type FinCategoryUncheckedUpdateWithoutBudgetsInput = {
   type?: Prisma.EnumFinCategoryTypeFieldUpdateOperationsInput | $Enums.FinCategoryType
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  budgetCategories?: Prisma.FinBudgetCategoryUncheckedUpdateManyWithoutCategoryNestedInput
+  children?: Prisma.FinCategoryUncheckedUpdateManyWithoutParentNestedInput
+  recurring?: Prisma.FinRecurringPatternUncheckedUpdateManyWithoutCategoryNestedInput
+  transactions?: Prisma.FinTransactionUncheckedUpdateManyWithoutCategoryNestedInput
+}
+
+export type FinCategoryCreateWithoutBudgetCategoriesInput = {
+  id?: string
+  name: string
+  icon?: string | null
+  color?: string | null
+  isSystem?: boolean
+  systemKind?: string | null
+  type?: $Enums.FinCategoryType
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  budgets?: Prisma.FinBudgetCreateNestedManyWithoutCategoryInput
+  parent?: Prisma.FinCategoryCreateNestedOneWithoutChildrenInput
+  children?: Prisma.FinCategoryCreateNestedManyWithoutParentInput
+  user?: Prisma.UserCreateNestedOneWithoutFinCategoriesInput
+  recurring?: Prisma.FinRecurringPatternCreateNestedManyWithoutCategoryInput
+  transactions?: Prisma.FinTransactionCreateNestedManyWithoutCategoryInput
+}
+
+export type FinCategoryUncheckedCreateWithoutBudgetCategoriesInput = {
+  id?: string
+  userId?: string | null
+  name: string
+  icon?: string | null
+  color?: string | null
+  parentId?: string | null
+  isSystem?: boolean
+  systemKind?: string | null
+  type?: $Enums.FinCategoryType
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  budgets?: Prisma.FinBudgetUncheckedCreateNestedManyWithoutCategoryInput
+  children?: Prisma.FinCategoryUncheckedCreateNestedManyWithoutParentInput
+  recurring?: Prisma.FinRecurringPatternUncheckedCreateNestedManyWithoutCategoryInput
+  transactions?: Prisma.FinTransactionUncheckedCreateNestedManyWithoutCategoryInput
+}
+
+export type FinCategoryCreateOrConnectWithoutBudgetCategoriesInput = {
+  where: Prisma.FinCategoryWhereUniqueInput
+  create: Prisma.XOR<Prisma.FinCategoryCreateWithoutBudgetCategoriesInput, Prisma.FinCategoryUncheckedCreateWithoutBudgetCategoriesInput>
+}
+
+export type FinCategoryUpsertWithoutBudgetCategoriesInput = {
+  update: Prisma.XOR<Prisma.FinCategoryUpdateWithoutBudgetCategoriesInput, Prisma.FinCategoryUncheckedUpdateWithoutBudgetCategoriesInput>
+  create: Prisma.XOR<Prisma.FinCategoryCreateWithoutBudgetCategoriesInput, Prisma.FinCategoryUncheckedCreateWithoutBudgetCategoriesInput>
+  where?: Prisma.FinCategoryWhereInput
+}
+
+export type FinCategoryUpdateToOneWithWhereWithoutBudgetCategoriesInput = {
+  where?: Prisma.FinCategoryWhereInput
+  data: Prisma.XOR<Prisma.FinCategoryUpdateWithoutBudgetCategoriesInput, Prisma.FinCategoryUncheckedUpdateWithoutBudgetCategoriesInput>
+}
+
+export type FinCategoryUpdateWithoutBudgetCategoriesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  icon?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  color?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isSystem?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  systemKind?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  type?: Prisma.EnumFinCategoryTypeFieldUpdateOperationsInput | $Enums.FinCategoryType
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  budgets?: Prisma.FinBudgetUpdateManyWithoutCategoryNestedInput
+  parent?: Prisma.FinCategoryUpdateOneWithoutChildrenNestedInput
+  children?: Prisma.FinCategoryUpdateManyWithoutParentNestedInput
+  user?: Prisma.UserUpdateOneWithoutFinCategoriesNestedInput
+  recurring?: Prisma.FinRecurringPatternUpdateManyWithoutCategoryNestedInput
+  transactions?: Prisma.FinTransactionUpdateManyWithoutCategoryNestedInput
+}
+
+export type FinCategoryUncheckedUpdateWithoutBudgetCategoriesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  userId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  icon?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  color?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  parentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isSystem?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  systemKind?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  type?: Prisma.EnumFinCategoryTypeFieldUpdateOperationsInput | $Enums.FinCategoryType
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  budgets?: Prisma.FinBudgetUncheckedUpdateManyWithoutCategoryNestedInput
   children?: Prisma.FinCategoryUncheckedUpdateManyWithoutParentNestedInput
   recurring?: Prisma.FinRecurringPatternUncheckedUpdateManyWithoutCategoryNestedInput
   transactions?: Prisma.FinTransactionUncheckedUpdateManyWithoutCategoryNestedInput
@@ -1039,6 +1166,7 @@ export type FinCategoryCreateWithoutRecurringInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   budgets?: Prisma.FinBudgetCreateNestedManyWithoutCategoryInput
+  budgetCategories?: Prisma.FinBudgetCategoryCreateNestedManyWithoutCategoryInput
   parent?: Prisma.FinCategoryCreateNestedOneWithoutChildrenInput
   children?: Prisma.FinCategoryCreateNestedManyWithoutParentInput
   user?: Prisma.UserCreateNestedOneWithoutFinCategoriesInput
@@ -1058,6 +1186,7 @@ export type FinCategoryUncheckedCreateWithoutRecurringInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   budgets?: Prisma.FinBudgetUncheckedCreateNestedManyWithoutCategoryInput
+  budgetCategories?: Prisma.FinBudgetCategoryUncheckedCreateNestedManyWithoutCategoryInput
   children?: Prisma.FinCategoryUncheckedCreateNestedManyWithoutParentInput
   transactions?: Prisma.FinTransactionUncheckedCreateNestedManyWithoutCategoryInput
 }
@@ -1089,6 +1218,7 @@ export type FinCategoryUpdateWithoutRecurringInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   budgets?: Prisma.FinBudgetUpdateManyWithoutCategoryNestedInput
+  budgetCategories?: Prisma.FinBudgetCategoryUpdateManyWithoutCategoryNestedInput
   parent?: Prisma.FinCategoryUpdateOneWithoutChildrenNestedInput
   children?: Prisma.FinCategoryUpdateManyWithoutParentNestedInput
   user?: Prisma.UserUpdateOneWithoutFinCategoriesNestedInput
@@ -1108,6 +1238,7 @@ export type FinCategoryUncheckedUpdateWithoutRecurringInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   budgets?: Prisma.FinBudgetUncheckedUpdateManyWithoutCategoryNestedInput
+  budgetCategories?: Prisma.FinBudgetCategoryUncheckedUpdateManyWithoutCategoryNestedInput
   children?: Prisma.FinCategoryUncheckedUpdateManyWithoutParentNestedInput
   transactions?: Prisma.FinTransactionUncheckedUpdateManyWithoutCategoryNestedInput
 }
@@ -1136,6 +1267,7 @@ export type FinCategoryUpdateWithoutUserInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   budgets?: Prisma.FinBudgetUpdateManyWithoutCategoryNestedInput
+  budgetCategories?: Prisma.FinBudgetCategoryUpdateManyWithoutCategoryNestedInput
   parent?: Prisma.FinCategoryUpdateOneWithoutChildrenNestedInput
   children?: Prisma.FinCategoryUpdateManyWithoutParentNestedInput
   recurring?: Prisma.FinRecurringPatternUpdateManyWithoutCategoryNestedInput
@@ -1154,6 +1286,7 @@ export type FinCategoryUncheckedUpdateWithoutUserInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   budgets?: Prisma.FinBudgetUncheckedUpdateManyWithoutCategoryNestedInput
+  budgetCategories?: Prisma.FinBudgetCategoryUncheckedUpdateManyWithoutCategoryNestedInput
   children?: Prisma.FinCategoryUncheckedUpdateManyWithoutParentNestedInput
   recurring?: Prisma.FinRecurringPatternUncheckedUpdateManyWithoutCategoryNestedInput
   transactions?: Prisma.FinTransactionUncheckedUpdateManyWithoutCategoryNestedInput
@@ -1196,6 +1329,7 @@ export type FinCategoryUpdateWithoutParentInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   budgets?: Prisma.FinBudgetUpdateManyWithoutCategoryNestedInput
+  budgetCategories?: Prisma.FinBudgetCategoryUpdateManyWithoutCategoryNestedInput
   children?: Prisma.FinCategoryUpdateManyWithoutParentNestedInput
   user?: Prisma.UserUpdateOneWithoutFinCategoriesNestedInput
   recurring?: Prisma.FinRecurringPatternUpdateManyWithoutCategoryNestedInput
@@ -1214,6 +1348,7 @@ export type FinCategoryUncheckedUpdateWithoutParentInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   budgets?: Prisma.FinBudgetUncheckedUpdateManyWithoutCategoryNestedInput
+  budgetCategories?: Prisma.FinBudgetCategoryUncheckedUpdateManyWithoutCategoryNestedInput
   children?: Prisma.FinCategoryUncheckedUpdateManyWithoutParentNestedInput
   recurring?: Prisma.FinRecurringPatternUncheckedUpdateManyWithoutCategoryNestedInput
   transactions?: Prisma.FinTransactionUncheckedUpdateManyWithoutCategoryNestedInput
@@ -1239,6 +1374,7 @@ export type FinCategoryUncheckedUpdateManyWithoutParentInput = {
 
 export type FinCategoryCountOutputType = {
   budgets: number
+  budgetCategories: number
   children: number
   recurring: number
   transactions: number
@@ -1246,6 +1382,7 @@ export type FinCategoryCountOutputType = {
 
 export type FinCategoryCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   budgets?: boolean | FinCategoryCountOutputTypeCountBudgetsArgs
+  budgetCategories?: boolean | FinCategoryCountOutputTypeCountBudgetCategoriesArgs
   children?: boolean | FinCategoryCountOutputTypeCountChildrenArgs
   recurring?: boolean | FinCategoryCountOutputTypeCountRecurringArgs
   transactions?: boolean | FinCategoryCountOutputTypeCountTransactionsArgs
@@ -1266,6 +1403,13 @@ export type FinCategoryCountOutputTypeDefaultArgs<ExtArgs extends runtime.Types.
  */
 export type FinCategoryCountOutputTypeCountBudgetsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   where?: Prisma.FinBudgetWhereInput
+}
+
+/**
+ * FinCategoryCountOutputType without action
+ */
+export type FinCategoryCountOutputTypeCountBudgetCategoriesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.FinBudgetCategoryWhereInput
 }
 
 /**
@@ -1303,6 +1447,7 @@ export type FinCategorySelect<ExtArgs extends runtime.Types.Extensions.InternalA
   createdAt?: boolean
   updatedAt?: boolean
   budgets?: boolean | Prisma.FinCategory$budgetsArgs<ExtArgs>
+  budgetCategories?: boolean | Prisma.FinCategory$budgetCategoriesArgs<ExtArgs>
   parent?: boolean | Prisma.FinCategory$parentArgs<ExtArgs>
   children?: boolean | Prisma.FinCategory$childrenArgs<ExtArgs>
   user?: boolean | Prisma.FinCategory$userArgs<ExtArgs>
@@ -1360,6 +1505,7 @@ export type FinCategorySelectScalar = {
 export type FinCategoryOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "name" | "icon" | "color" | "parentId" | "isSystem" | "systemKind" | "type" | "createdAt" | "updatedAt", ExtArgs["result"]["finCategory"]>
 export type FinCategoryInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   budgets?: boolean | Prisma.FinCategory$budgetsArgs<ExtArgs>
+  budgetCategories?: boolean | Prisma.FinCategory$budgetCategoriesArgs<ExtArgs>
   parent?: boolean | Prisma.FinCategory$parentArgs<ExtArgs>
   children?: boolean | Prisma.FinCategory$childrenArgs<ExtArgs>
   user?: boolean | Prisma.FinCategory$userArgs<ExtArgs>
@@ -1380,6 +1526,7 @@ export type $FinCategoryPayload<ExtArgs extends runtime.Types.Extensions.Interna
   name: "FinCategory"
   objects: {
     budgets: Prisma.$FinBudgetPayload<ExtArgs>[]
+    budgetCategories: Prisma.$FinBudgetCategoryPayload<ExtArgs>[]
     parent: Prisma.$FinCategoryPayload<ExtArgs> | null
     children: Prisma.$FinCategoryPayload<ExtArgs>[]
     user: Prisma.$UserPayload<ExtArgs> | null
@@ -1793,6 +1940,7 @@ readonly fields: FinCategoryFieldRefs;
 export interface Prisma__FinCategoryClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
   budgets<T extends Prisma.FinCategory$budgetsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.FinCategory$budgetsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$FinBudgetPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  budgetCategories<T extends Prisma.FinCategory$budgetCategoriesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.FinCategory$budgetCategoriesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$FinBudgetCategoryPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   parent<T extends Prisma.FinCategory$parentArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.FinCategory$parentArgs<ExtArgs>>): Prisma.Prisma__FinCategoryClient<runtime.Types.Result.GetResult<Prisma.$FinCategoryPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   children<T extends Prisma.FinCategory$childrenArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.FinCategory$childrenArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$FinCategoryPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   user<T extends Prisma.FinCategory$userArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.FinCategory$userArgs<ExtArgs>>): Prisma.Prisma__UserClient<runtime.Types.Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
@@ -2260,6 +2408,30 @@ export type FinCategory$budgetsArgs<ExtArgs extends runtime.Types.Extensions.Int
   take?: number
   skip?: number
   distinct?: Prisma.FinBudgetScalarFieldEnum | Prisma.FinBudgetScalarFieldEnum[]
+}
+
+/**
+ * FinCategory.budgetCategories
+ */
+export type FinCategory$budgetCategoriesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the FinBudgetCategory
+   */
+  select?: Prisma.FinBudgetCategorySelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the FinBudgetCategory
+   */
+  omit?: Prisma.FinBudgetCategoryOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.FinBudgetCategoryInclude<ExtArgs> | null
+  where?: Prisma.FinBudgetCategoryWhereInput
+  orderBy?: Prisma.FinBudgetCategoryOrderByWithRelationInput | Prisma.FinBudgetCategoryOrderByWithRelationInput[]
+  cursor?: Prisma.FinBudgetCategoryWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.FinBudgetCategoryScalarFieldEnum | Prisma.FinBudgetCategoryScalarFieldEnum[]
 }
 
 /**

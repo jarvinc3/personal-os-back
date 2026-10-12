@@ -411,6 +411,7 @@ export const ModelName = {
   FinTransaction: 'FinTransaction',
   FinCategory: 'FinCategory',
   FinBudget: 'FinBudget',
+  FinBudgetCategory: 'FinBudgetCategory',
   FinBudgetAlert: 'FinBudgetAlert',
   FinRecurringPattern: 'FinRecurringPattern',
   FinExchangeRate: 'FinExchangeRate',
@@ -447,7 +448,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "module" | "userModule" | "aiAgentSession" | "aiMessage" | "aiAction" | "notification" | "pushToken" | "finAccount" | "finEmailConnection" | "finEmailSource" | "finTransaction" | "finCategory" | "finBudget" | "finBudgetAlert" | "finRecurringPattern" | "finExchangeRate" | "finInstitution" | "finCard" | "finCardBalance" | "finInstrumentEvent" | "finCardStatement" | "finSavingsGoal" | "finSavingsGoalContribution" | "finLoan" | "finLoanInstallment" | "finLoanPrepayment" | "finReceivable" | "finReceivablePayment" | "finEmailSyncLog" | "finEmailMessage" | "domainEventOutbox" | "processedDomainEvent" | "authDeletionOutbox" | "finDeletionJournal"
+    modelProps: "user" | "module" | "userModule" | "aiAgentSession" | "aiMessage" | "aiAction" | "notification" | "pushToken" | "finAccount" | "finEmailConnection" | "finEmailSource" | "finTransaction" | "finCategory" | "finBudget" | "finBudgetCategory" | "finBudgetAlert" | "finRecurringPattern" | "finExchangeRate" | "finInstitution" | "finCard" | "finCardBalance" | "finInstrumentEvent" | "finCardStatement" | "finSavingsGoal" | "finSavingsGoalContribution" | "finLoan" | "finLoanInstallment" | "finLoanPrepayment" | "finReceivable" | "finReceivablePayment" | "finEmailSyncLog" | "finEmailMessage" | "domainEventOutbox" | "processedDomainEvent" | "authDeletionOutbox" | "finDeletionJournal"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1484,6 +1485,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.FinBudgetCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.FinBudgetCountAggregateOutputType> | number
+        }
+      }
+    }
+    FinBudgetCategory: {
+      payload: Prisma.$FinBudgetCategoryPayload<ExtArgs>
+      fields: Prisma.FinBudgetCategoryFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.FinBudgetCategoryFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinBudgetCategoryPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.FinBudgetCategoryFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinBudgetCategoryPayload>
+        }
+        findFirst: {
+          args: Prisma.FinBudgetCategoryFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinBudgetCategoryPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.FinBudgetCategoryFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinBudgetCategoryPayload>
+        }
+        findMany: {
+          args: Prisma.FinBudgetCategoryFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinBudgetCategoryPayload>[]
+        }
+        create: {
+          args: Prisma.FinBudgetCategoryCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinBudgetCategoryPayload>
+        }
+        createMany: {
+          args: Prisma.FinBudgetCategoryCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.FinBudgetCategoryCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinBudgetCategoryPayload>[]
+        }
+        delete: {
+          args: Prisma.FinBudgetCategoryDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinBudgetCategoryPayload>
+        }
+        update: {
+          args: Prisma.FinBudgetCategoryUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinBudgetCategoryPayload>
+        }
+        deleteMany: {
+          args: Prisma.FinBudgetCategoryDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.FinBudgetCategoryUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.FinBudgetCategoryUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinBudgetCategoryPayload>[]
+        }
+        upsert: {
+          args: Prisma.FinBudgetCategoryUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinBudgetCategoryPayload>
+        }
+        aggregate: {
+          args: Prisma.FinBudgetCategoryAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateFinBudgetCategory>
+        }
+        groupBy: {
+          args: Prisma.FinBudgetCategoryGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.FinBudgetCategoryGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.FinBudgetCategoryCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.FinBudgetCategoryCountAggregateOutputType> | number
         }
       }
     }
@@ -3303,6 +3378,11 @@ export const FinBudgetScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
   categoryId: 'categoryId',
+  name: 'name',
+  includeChildren: 'includeChildren',
+  rollover: 'rollover',
+  carriedOver: 'carriedOver',
+  recurring: 'recurring',
   periodType: 'periodType',
   periodStart: 'periodStart',
   periodEnd: 'periodEnd',
@@ -3315,6 +3395,14 @@ export const FinBudgetScalarFieldEnum = {
 } as const
 
 export type FinBudgetScalarFieldEnum = (typeof FinBudgetScalarFieldEnum)[keyof typeof FinBudgetScalarFieldEnum]
+
+
+export const FinBudgetCategoryScalarFieldEnum = {
+  budgetId: 'budgetId',
+  categoryId: 'categoryId'
+} as const
+
+export type FinBudgetCategoryScalarFieldEnum = (typeof FinBudgetCategoryScalarFieldEnum)[keyof typeof FinBudgetCategoryScalarFieldEnum]
 
 
 export const FinBudgetAlertScalarFieldEnum = {
@@ -3953,6 +4041,20 @@ export type ListEnumFinCategoryTypeFieldRefInput<$PrismaModel> = FieldRefInputTy
 
 
 /**
+ * Reference to a field of type 'FinBudgetRollover'
+ */
+export type EnumFinBudgetRolloverFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'FinBudgetRollover'>
+    
+
+
+/**
+ * Reference to a field of type 'FinBudgetRollover[]'
+ */
+export type ListEnumFinBudgetRolloverFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'FinBudgetRollover[]'>
+    
+
+
+/**
  * Reference to a field of type 'FinBudgetPeriodType'
  */
 export type EnumFinBudgetPeriodTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'FinBudgetPeriodType'>
@@ -4354,6 +4456,7 @@ export type GlobalOmitConfig = {
   finTransaction?: Prisma.FinTransactionOmit
   finCategory?: Prisma.FinCategoryOmit
   finBudget?: Prisma.FinBudgetOmit
+  finBudgetCategory?: Prisma.FinBudgetCategoryOmit
   finBudgetAlert?: Prisma.FinBudgetAlertOmit
   finRecurringPattern?: Prisma.FinRecurringPatternOmit
   finExchangeRate?: Prisma.FinExchangeRateOmit

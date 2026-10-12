@@ -28,6 +28,15 @@ export const FinTransferRail = {
 export type FinTransferRail = (typeof FinTransferRail)[keyof typeof FinTransferRail]
 
 
+export const FinBudgetRollover = {
+  NONE: 'NONE',
+  SURPLUS: 'SURPLUS',
+  SURPLUS_AND_DEFICIT: 'SURPLUS_AND_DEFICIT'
+} as const
+
+export type FinBudgetRollover = (typeof FinBudgetRollover)[keyof typeof FinBudgetRollover]
+
+
 export const FinCardStatementStatus = {
   OPEN: 'OPEN',
   CLOSED: 'CLOSED',
