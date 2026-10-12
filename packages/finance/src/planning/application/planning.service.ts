@@ -102,6 +102,14 @@ export class PlanningService {
     return { success: true };
   }
 
+  async restoreBudget(userId: string, id: string, now: Date) {
+    const restored = await this.repo.restoreBudget(userId, id, now);
+    if (restored.count === 0) {
+      throw new NotFoundException('Budget not found');
+    }
+    return { success: true };
+  }
+
   async listSavingsGoals(userId: string) {
     const rows = await this.repo.listSavingsGoals(userId);
     return rows.map(mapSavingsGoal);
@@ -168,6 +176,14 @@ export class PlanningService {
   async deleteSavingsGoal(userId: string, id: string) {
     const result = await this.repo.deleteSavingsGoal(userId, id);
     if (result.count === 0) {
+      throw new NotFoundException('Savings goal not found');
+    }
+    return { success: true };
+  }
+
+  async restoreSavingsGoal(userId: string, id: string, now: Date) {
+    const restored = await this.repo.restoreSavingsGoal(userId, id, now);
+    if (restored.count === 0) {
       throw new NotFoundException('Savings goal not found');
     }
     return { success: true };
@@ -342,6 +358,14 @@ export class PlanningService {
     return { success: true };
   }
 
+  async restoreLoan(userId: string, id: string, now: Date) {
+    const restored = await this.repo.restoreLoan(userId, id, now);
+    if (restored.count === 0) {
+      throw new NotFoundException('Loan not found');
+    }
+    return { success: true };
+  }
+
   async listReceivables(userId: string) {
     const rows = await this.repo.listReceivables(userId);
     return rows.map(mapReceivable);
@@ -414,6 +438,14 @@ export class PlanningService {
   async deleteReceivable(userId: string, id: string) {
     const result = await this.repo.deleteReceivable(userId, id);
     if (result.count === 0) {
+      throw new NotFoundException('Receivable not found');
+    }
+    return { success: true };
+  }
+
+  async restoreReceivable(userId: string, id: string, now: Date) {
+    const restored = await this.repo.restoreReceivable(userId, id, now);
+    if (restored.count === 0) {
       throw new NotFoundException('Receivable not found');
     }
     return { success: true };

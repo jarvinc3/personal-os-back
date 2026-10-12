@@ -607,14 +607,12 @@ describe('CatalogService categories', () => {
 
 describe('CatalogService hard delete', () => {
   it('deletes an account after purging ledger and debit cards', async () => {
-    const forAccount = jest.fn().mockResolvedValue(undefined);
+    const forAccount = jest.fn().mockResolvedValue({ count: 1, rows: [] });
     const findAccountById = jest.fn().mockResolvedValue({ id: 'acc-1' });
-    const deleteCardsByAccountId = jest.fn().mockResolvedValue({ count: 1 });
     const deleteAccount = jest.fn().mockResolvedValue({ count: 1 });
     const service = new CatalogService(
       {
         findAccountById,
-        deleteCardsByAccountId,
         deleteAccount,
       } as unknown as CatalogRepository,
       ownershipMock(),
@@ -628,8 +626,11 @@ describe('CatalogService hard delete', () => {
       success: true,
     });
     expect(forAccount).toHaveBeenCalledWith('user-1', 'acc-1');
-    expect(deleteCardsByAccountId).toHaveBeenCalledWith('user-1', 'acc-1');
-    expect(deleteAccount).toHaveBeenCalledWith('user-1', 'acc-1');
+    expect(deleteAccount).toHaveBeenCalledWith({
+      userId: 'user-1',
+      id: 'acc-1',
+      movements: [],
+    });
   });
 
   it('returns 404 when deleting a missing account', async () => {
@@ -646,11 +647,12 @@ describe('CatalogService hard delete', () => {
   });
 
   it('deletes a card after purging its ledger', async () => {
-    const forCard = jest.fn().mockResolvedValue(undefined);
+    const forCard = jest.fn().mockResolvedValue({ count: 1, rows: [] });
+    const deleteCard = jest.fn().mockResolvedValue({ count: 1 });
     const service = new CatalogService(
       {
         findCardById: jest.fn().mockResolvedValue({ id: 'card-1' }),
-        deleteCard: jest.fn().mockResolvedValue({ count: 1 }),
+        deleteCard,
       } as unknown as CatalogRepository,
       ownershipMock(),
       {
@@ -663,11 +665,16 @@ describe('CatalogService hard delete', () => {
       success: true,
     });
     expect(forCard).toHaveBeenCalledWith('user-1', 'card-1');
+    expect(deleteCard).toHaveBeenCalledWith({
+      userId: 'user-1',
+      id: 'card-1',
+      movements: [],
+    });
   });
 
   it('cascades institution delete through accounts, remaining cards, sources, and loans', async () => {
-    const forAccount = jest.fn().mockResolvedValue(undefined);
-    const forCard = jest.fn().mockResolvedValue(undefined);
+    const forAccount = jest.fn().mockResolvedValue({ count: 1, rows: [] });
+    const forCard = jest.fn().mockResolvedValue({ count: 1, rows: [] });
     const findInstitution = jest.fn().mockResolvedValue({ id: 'inst-1' });
     const listAccountsByInstitution = jest
       .fn()
@@ -675,29 +682,12 @@ describe('CatalogService hard delete', () => {
     const listCardsByInstitution = jest
       .fn()
       .mockResolvedValue([{ id: 'card-credit' }]);
-    const findAccountById = jest.fn().mockResolvedValue({ id: 'acc-1' });
-    const deleteCardsByAccountId = jest.fn().mockResolvedValue({ count: 1 });
-    const deleteAccount = jest.fn().mockResolvedValue({ count: 1 });
-    const findCardById = jest.fn().mockResolvedValue({ id: 'card-credit' });
-    const deleteCard = jest.fn().mockResolvedValue({ count: 1 });
-    const deleteEmailSourcesByInstitution = jest
-      .fn()
-      .mockResolvedValue({ count: 1 });
-    const deleteLoansByInstitution = jest.fn().mockResolvedValue({ count: 1 });
     const deleteInstitution = jest.fn().mockResolvedValue({ count: 1 });
-
     const service = new CatalogService(
       {
         findInstitution,
         listAccountsByInstitution,
         listCardsByInstitution,
-        findAccountById,
-        deleteCardsByAccountId,
-        deleteAccount,
-        findCardById,
-        deleteCard,
-        deleteEmailSourcesByInstitution,
-        deleteLoansByInstitution,
         deleteInstitution,
       } as unknown as CatalogRepository,
       ownershipMock(),
@@ -709,12 +699,11 @@ describe('CatalogService hard delete', () => {
     ).resolves.toEqual({ success: true });
     expect(forAccount).toHaveBeenCalledWith('user-1', 'acc-1');
     expect(forCard).toHaveBeenCalledWith('user-1', 'card-credit');
-    expect(deleteEmailSourcesByInstitution).toHaveBeenCalledWith(
-      'user-1',
-      'inst-1',
-    );
-    expect(deleteLoansByInstitution).toHaveBeenCalledWith('user-1', 'inst-1');
-    expect(deleteInstitution).toHaveBeenCalledWith('user-1', 'inst-1');
+    expect(deleteInstitution).toHaveBeenCalledWith({
+      userId: 'user-1',
+      id: 'inst-1',
+      movements: [],
+    });
   });
 
   it('archives an institution via PATCH isActive false, not by deleting the row', async () => {

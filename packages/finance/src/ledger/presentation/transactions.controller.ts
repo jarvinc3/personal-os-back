@@ -15,6 +15,7 @@ import { AdjustBalanceUseCase } from '../application/adjust-balance.use-case';
 import { ConfirmTransactionUseCase } from '../application/confirm-transaction.use-case';
 import { CreateTransactionUseCase } from '../application/create-transaction.use-case';
 import { DeleteTransactionUseCase } from '../application/delete-transaction.use-case';
+import { RestoreTransactionUseCase } from '../application/restore-transaction.use-case';
 import { LedgerQueryService } from '../application/ledger-query.service';
 import { ReverseTransactionUseCase } from '../application/reverse-transaction.use-case';
 import { UpdateTransactionUseCase } from '../application/update-transaction.use-case';
@@ -34,6 +35,7 @@ export class TransactionsController {
     private readonly updateTx: UpdateTransactionUseCase,
     private readonly confirmTx: ConfirmTransactionUseCase,
     private readonly deleteTx: DeleteTransactionUseCase,
+    private readonly restoreTx: RestoreTransactionUseCase,
     private readonly reverseTx: ReverseTransactionUseCase,
   ) {}
 
@@ -86,6 +88,12 @@ export class TransactionsController {
   @ApiOperation({ summary: 'Delete manual transaction' })
   remove(@CurrentUser('sub') userId: string, @Param('id') id: string) {
     return this.deleteTx.execute(userId, id);
+  }
+
+  @Post('transactions/:id/restore')
+  @ApiOperation({ summary: 'Undo a delete from the journal snapshot' })
+  restore(@CurrentUser('sub') userId: string, @Param('id') id: string) {
+    return this.restoreTx.execute(userId, id, new Date());
   }
 
   @Post('transactions/:id/confirm')

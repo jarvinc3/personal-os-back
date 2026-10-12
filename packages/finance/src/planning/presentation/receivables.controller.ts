@@ -75,4 +75,10 @@ export class ReceivablesController {
   remove(@CurrentUser('sub') userId: string, @Param('id') id: string) {
     return this.planning.deleteReceivable(userId, id);
   }
+
+  @Post('receivables/:id/restore')
+  @ApiOperation({ summary: 'Undo a delete from the journal snapshot' })
+  restore(@CurrentUser('sub') userId: string, @Param('id') id: string) {
+    return this.planning.restoreReceivable(userId, id, new Date());
+  }
 }

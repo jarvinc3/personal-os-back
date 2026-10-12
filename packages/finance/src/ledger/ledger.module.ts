@@ -4,6 +4,7 @@ import { FinanceEventsModule } from '../events/events.module';
 import { FinanceFxModule } from '../fx/fx.module';
 import { FinancePlanningThresholdModule } from '../planning/planning-threshold.module';
 import { FinanceOwnershipModule } from '../shared/finance-ownership.module';
+import { DeletionJournalModule } from '../shared/deletion-journal.module';
 import { LEDGER_REPOSITORY } from '../shared/application/tokens';
 import { AdjustBalanceUseCase } from './application/adjust-balance.use-case';
 import { ConfirmTransactionUseCase } from './application/confirm-transaction.use-case';
@@ -13,6 +14,8 @@ import { DeleteTransactionUseCase } from './application/delete-transaction.use-c
 import { ImportEmailTransactionUseCase } from './application/import-email-transaction.use-case';
 import { LedgerQueryService } from './application/ledger-query.service';
 import { PurgeInstrumentLedgerUseCase } from './application/purge-instrument-ledger.use-case';
+import { RestoreInstrumentLedgerUseCase } from './application/restore-instrument-ledger.use-case';
+import { RestoreTransactionUseCase } from './application/restore-transaction.use-case';
 import { ReverseTransactionUseCase } from './application/reverse-transaction.use-case';
 import { UpdateTransactionUseCase } from './application/update-transaction.use-case';
 import { UpdateTransferUseCase } from './application/update-transfer.use-case';
@@ -27,6 +30,7 @@ import { TransfersController } from './presentation/transfers.controller';
     FinancePlanningThresholdModule,
     FinanceOwnershipModule,
     LogosModule,
+    DeletionJournalModule,
   ],
   controllers: [TransactionsController, TransfersController],
   providers: [
@@ -39,6 +43,8 @@ import { TransfersController } from './presentation/transfers.controller';
     ConfirmTransactionUseCase,
     DeleteTransactionUseCase,
     PurgeInstrumentLedgerUseCase,
+    RestoreInstrumentLedgerUseCase,
+    RestoreTransactionUseCase,
     CreateTransferUseCase,
     UpdateTransferUseCase,
     ReverseTransactionUseCase,
@@ -52,6 +58,8 @@ import { TransfersController } from './presentation/transfers.controller';
     ConfirmTransactionUseCase,
     DeleteTransactionUseCase,
     PurgeInstrumentLedgerUseCase,
+    RestoreInstrumentLedgerUseCase,
+    RestoreTransactionUseCase,
     CreateTransferUseCase,
     UpdateTransferUseCase,
     ReverseTransactionUseCase,

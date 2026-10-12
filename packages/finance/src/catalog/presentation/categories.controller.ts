@@ -9,7 +9,7 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CurrentUser, RequiresEnabledModule } from '@personal-os/core';
 import { CatalogService } from '../application/catalog.service';
 import { CreateCategoryDto } from './dto/create-category.dto';
@@ -51,5 +51,11 @@ export class CategoriesController {
   @Delete('categories/:id')
   remove(@CurrentUser('sub') userId: string, @Param('id') id: string) {
     return this.catalog.deleteCategory(userId, id);
+  }
+
+  @Post('categories/:id/restore')
+  @ApiOperation({ summary: 'Undo a delete from the journal snapshot' })
+  restore(@CurrentUser('sub') userId: string, @Param('id') id: string) {
+    return this.catalog.restoreCategory(userId, id, new Date());
   }
 }

@@ -33,6 +33,7 @@ describe('DeleteTransactionUseCase', () => {
 
     await expect(useCase.execute('user-1', 'tx-1')).resolves.toEqual({
       success: true,
+      undoId: 'tx-1',
     });
     expect(deleteTransaction).toHaveBeenCalledWith('user-1', 'tx-1');
     expect(deleteTransactionsByTransferGroupId).not.toHaveBeenCalled();
@@ -48,6 +49,7 @@ describe('DeleteTransactionUseCase', () => {
 
     await expect(useCase.execute('user-1', 'debit-1')).resolves.toEqual({
       success: true,
+      undoId: 'grp-1',
     });
     expect(deleteTransactionsByTransferGroupId).toHaveBeenCalledWith(
       'user-1',

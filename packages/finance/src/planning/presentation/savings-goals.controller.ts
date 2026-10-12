@@ -95,4 +95,10 @@ export class SavingsGoalsController {
   remove(@CurrentUser('sub') userId: string, @Param('id') id: string) {
     return this.planning.deleteSavingsGoal(userId, id);
   }
+
+  @Post('savings-goals/:id/restore')
+  @ApiOperation({ summary: 'Undo a delete from the journal snapshot' })
+  restore(@CurrentUser('sub') userId: string, @Param('id') id: string) {
+    return this.planning.restoreSavingsGoal(userId, id, new Date());
+  }
 }

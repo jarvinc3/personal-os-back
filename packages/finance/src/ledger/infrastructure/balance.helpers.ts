@@ -3,8 +3,13 @@ import type {
   FinTransactionType,
   Prisma,
 } from '@personal-os/database';
+import type { StoredMovement } from '../../shared/domain/deletion-snapshot';
 import type { LedgerTarget } from '../../shared/domain/ledger-rules';
 import { signedAmount } from '../../shared/domain/ledger-rules';
+import {
+  statusAffectsLedger,
+  type FinTransactionStatusValue,
+} from '../../shared/domain/transaction-status';
 
 export { signedAmount } from '../../shared/domain/ledger-rules';
 export type { LedgerTarget } from '../../shared/domain/ledger-rules';
@@ -94,6 +99,45 @@ export async function applyBalanceForTransaction(
   }
 
   await applyAccountBalanceDelta(tx, params.accountId, delta);
+}
+
+/**
+ * Applies again the balance and budget effect of movements the journal holds.
+ * The rows come back as JSON, so dates and decimals are read from strings.
+ */
+export async function restoreLedgerRows(
+  tx: TxClient,
+  userId: string,
+  movements: readonly StoredMovement[],
+): Promise<void> {
+  for (const movement of movements) {
+    if (!statusAffectsLedger(movement.status as FinTransactionStatusValue)) {
+      continue;
+    }
+    const card = movement.cardId
+      ? await tx.finCard.findFirst({ where: { id: movement.cardId, userId } })
+      : null;
+    await applyBalanceForTransaction(tx, {
+      accountId: movement.accountId,
+      cardId: movement.cardId,
+      cardType: card?.type ?? null,
+      derivedAccountId: card?.type === 'DEBIT' ? card.accountId : null,
+      currency: movement.ledgerCurrency ?? movement.currency,
+      type: movement.type as FinTransactionType,
+      amount: Number(movement.ledgerAmount ?? movement.amount),
+      direction: 1,
+    });
+    await adjustBudgetSpent(tx, {
+      userId,
+      categoryId: movement.categoryId,
+      type: movement.type as FinTransactionType,
+      amountBaseCurrency: Number(
+        movement.amountBaseCurrency ?? movement.amount,
+      ),
+      transactionDate: new Date(movement.transactionDate),
+      direction: 1,
+    });
+  }
 }
 
 export async function adjustBudgetSpent(

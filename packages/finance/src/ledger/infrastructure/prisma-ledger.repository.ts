@@ -12,6 +12,16 @@ import {
 } from '../../shared/application/tokens';
 import type { BudgetSpendSnapshot } from '../../shared/domain/budget-snapshot';
 import {
+  DELETION_ENTITY,
+  DELETION_MODEL,
+  reversedMovements,
+  toDeletionValues,
+  type DeletionRow,
+  type StoredMovement,
+  type UpdatedRow,
+} from '../../shared/domain/deletion-snapshot';
+import { DeletionJournalRepository } from '../../shared/infrastructure/deletion-journal.repository';
+import {
   notificationTransactionPayload,
   transactionCreatedEventName,
 } from '../../shared/domain/mappers';
@@ -77,6 +87,7 @@ import {
   adjustBudgetSpent,
   applyBalanceForTransaction,
   resolveLedgerTarget,
+  restoreLedgerRows,
 } from './balance.helpers';
 import { logicalTransactionsWhere } from './logical-transaction-query';
 
@@ -100,6 +111,7 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
     private readonly prisma: PrismaService,
     @Inject(DOMAIN_EVENT_PUBLISHER)
     private readonly events: DomainEventPublisherPort,
+    private readonly journal: DeletionJournalRepository,
     @Optional()
     @Inject(BUDGET_THRESHOLD_PORT)
     private readonly thresholds?: BudgetThresholdPort,
@@ -828,6 +840,24 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
         });
       }
 
+      const links = await this.snapshotPlanningLinks(tx, [existing.id]);
+      await this.journal.record(tx, {
+        userId,
+        entityType: DELETION_ENTITY.transaction,
+        entityId: id,
+        snapshot: {
+          rows: [
+            {
+              model: DELETION_MODEL.transaction,
+              values: toDeletionValues(existing),
+            },
+            ...links.rows,
+          ],
+          updates: links.updates,
+          ledgerReversed: [existing.id],
+        },
+      });
+
       await this.revertPlanningLinks(tx, [existing.id]);
       await this.enqueueTransactionDeleted(tx, userId, existing);
 
@@ -845,6 +875,27 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
       if (rows.length === 0) {
         return { count: 0 };
       }
+
+      const links = await this.snapshotPlanningLinks(
+        tx,
+        rows.map((row) => row.id),
+      );
+      await this.journal.record(tx, {
+        userId,
+        entityType: DELETION_ENTITY.transaction,
+        entityId: transferGroupId,
+        snapshot: {
+          rows: [
+            ...rows.map((row) => ({
+              model: DELETION_MODEL.transaction,
+              values: toDeletionValues(row),
+            })),
+            ...links.rows,
+          ],
+          updates: links.updates,
+          ledgerReversed: rows.map((row) => row.id),
+        },
+      });
 
       for (const row of rows) {
         if (row.status === 'CONFIRMED') {
@@ -1524,22 +1575,7 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
   private async purgeInstrumentRows(
     tx: TxClient,
     userId: string,
-    instrumentRows: Array<{
-      id: string;
-      accountId: string | null;
-      cardId: string | null;
-      type: FinTransactionType;
-      status: string;
-      source: string;
-      amount: { toString(): string } | number;
-      ledgerAmount?: { toString(): string } | number | null;
-      ledgerCurrency?: string | null;
-      amountBaseCurrency?: { toString(): string } | number | null;
-      currency: string;
-      categoryId: string | null;
-      transactionDate: Date;
-      transferGroupId: string | null;
-    }>,
+    instrumentRows: readonly LedgerTransactionRow[],
   ) {
     const groupIds = [
       ...new Set(
@@ -1560,7 +1596,7 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
     }
     const rows = [...byId.values()];
     if (rows.length === 0) {
-      return { count: 0 };
+      return { count: 0, rows: [] };
     }
 
     for (const row of rows) {
@@ -1573,14 +1609,14 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
           cardType: ctx.cardType,
           derivedAccountId: ctx.derivedAccountId,
           currency: ledger.currency,
-          type: row.type,
+          type: row.type as FinTransactionType,
           amount: ledger.amount,
           direction: -1,
         });
         await adjustBudgetSpent(tx, {
           userId,
           categoryId: row.categoryId,
-          type: row.type,
+          type: row.type as FinTransactionType,
           amountBaseCurrency: Number(row.amountBaseCurrency ?? row.amount),
           transactionDate: row.transactionDate,
           direction: -1,
@@ -1592,9 +1628,110 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
       await this.enqueueTransactionDeleted(tx, userId, row);
     }
 
-    return tx.finTransaction.deleteMany({
+    await tx.finTransaction.deleteMany({
       where: { userId, id: { in: rows.map((row) => row.id) } },
     });
+    return { count: rows.length, rows };
+  }
+
+  /** Applies again what `purgeInstrumentRows` and `deleteTransaction` reversed. */
+  restoreLedgerTransactions(
+    userId: string,
+    movements: readonly StoredMovement[],
+  ) {
+    return this.prisma.$transaction(async (tx) => {
+      await restoreLedgerRows(tx, userId, movements);
+      return { count: movements.length };
+    });
+  }
+
+  restoreTransaction(userId: string, id: string, now: Date) {
+    return this.journal.restore(
+      userId,
+      DELETION_ENTITY.transaction,
+      id,
+      now,
+      (tx, snapshot) =>
+        restoreLedgerRows(tx, userId, reversedMovements(snapshot)),
+    );
+  }
+
+  /**
+   * Rows the planning links touch before `revertPlanningLinks` runs: the ones
+   * it deletes go in `rows`, the ones it changes in place go in `updates`.
+   */
+  private async snapshotPlanningLinks(
+    tx: TxClient,
+    transactionIds: readonly string[],
+  ): Promise<{ rows: DeletionRow[]; updates: UpdatedRow[] }> {
+    const ids = [...transactionIds];
+    const payments = await tx.finReceivablePayment.findMany({
+      where: { transactionId: { in: ids } },
+    });
+    const contributions = await tx.finSavingsGoalContribution.findMany({
+      where: { transactionId: { in: ids } },
+    });
+    const installments = await tx.finLoanInstallment.findMany({
+      where: { transactionId: { in: ids } },
+    });
+    const receivableIds = [
+      ...new Set(payments.map((payment) => payment.receivableId)),
+    ];
+    const goalIds = [
+      ...new Set(contributions.map((contribution) => contribution.goalId)),
+    ];
+    const loanIds = [
+      ...new Set(installments.map((installment) => installment.loanId)),
+    ];
+    const receivables =
+      receivableIds.length === 0
+        ? []
+        : await tx.finReceivable.findMany({
+            where: { id: { in: receivableIds } },
+          });
+    const goals =
+      goalIds.length === 0
+        ? []
+        : await tx.finSavingsGoal.findMany({ where: { id: { in: goalIds } } });
+    const loans =
+      loanIds.length === 0
+        ? []
+        : await tx.finLoan.findMany({ where: { id: { in: loanIds } } });
+
+    return {
+      rows: [
+        ...payments.map((payment) => ({
+          model: DELETION_MODEL.receivablePayment,
+          values: toDeletionValues(payment),
+        })),
+        ...contributions.map((contribution) => ({
+          model: DELETION_MODEL.savingsGoalContribution,
+          values: toDeletionValues(contribution),
+        })),
+      ],
+      updates: [
+        ...receivables.map((receivable) => ({
+          model: DELETION_MODEL.receivable,
+          id: receivable.id,
+          values: toDeletionValues(receivable),
+        })),
+        ...goals.map((goal) => ({
+          model: DELETION_MODEL.savingsGoal,
+          id: goal.id,
+          values: toDeletionValues(goal),
+        })),
+        ...installments.map((installment) => ({
+          model: DELETION_MODEL.loanInstallment,
+          id: installment.id,
+          values: toDeletionValues(installment),
+        })),
+        ...loans.map((loan) => ({
+          model: DELETION_MODEL.loan,
+          id: loan.id,
+          values: toDeletionValues(loan),
+        })),
+      ],
+    };
   }
 
   private async enqueueTransactionDeleted(

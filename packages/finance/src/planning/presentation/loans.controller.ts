@@ -72,4 +72,10 @@ export class LoansController {
   remove(@CurrentUser('sub') userId: string, @Param('id') id: string) {
     return this.planning.deleteLoan(userId, id);
   }
+
+  @Post('loans/:id/restore')
+  @ApiOperation({ summary: 'Undo a delete from the journal snapshot' })
+  restore(@CurrentUser('sub') userId: string, @Param('id') id: string) {
+    return this.planning.restoreLoan(userId, id, new Date());
+  }
 }
