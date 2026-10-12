@@ -640,18 +640,21 @@ export class PlanningRepository {
       .then((category) => category?.id ?? null);
   }
 
-  addReceivableCreditBalance(receivableId: string, amount: number) {
-    return this.prisma.finReceivable.update({
+  async addReceivableCreditBalance(
+    receivableId: string,
+    amount: number,
+  ): Promise<void> {
+    await this.prisma.finReceivable.update({
       where: { id: receivableId },
       data: { creditBalance: { increment: amount } },
     });
   }
 
-  writeOffReceivable(
+  async writeOffReceivable(
     receivableId: string,
     input: { writtenOffAmount: number; writtenOffAt: Date },
-  ) {
-    return this.prisma.finReceivable.update({
+  ): Promise<void> {
+    await this.prisma.finReceivable.update({
       where: { id: receivableId },
       data: {
         status: 'WRITTEN_OFF',

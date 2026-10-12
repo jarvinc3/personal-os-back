@@ -79,12 +79,22 @@ export class LoansController {
   @ApiOperation({
     summary: 'Pay a capital prepayment and rebuild the schedule',
   })
-  prepay(
+  async prepay(
     @CurrentUser('sub') userId: string,
     @Param('id') id: string,
     @Body() dto: LoanPrepaymentDto,
   ) {
-    return this.applyPrepayment.execute(userId, id, new Date(), dto);
+    const prepayment = await this.applyPrepayment.execute(
+      userId,
+      id,
+      new Date(),
+      dto,
+    );
+    return {
+      prepayment,
+      loan: await this.planning.getLoan(userId, id),
+      schedulePreview: await this.planning.listLoanInstallments(userId, id),
+    };
   }
 
   @Get('loans/:id/prepayments/preview')
