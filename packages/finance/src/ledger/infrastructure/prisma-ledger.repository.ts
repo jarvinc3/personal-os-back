@@ -464,6 +464,7 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
       emailMessageId?: string;
       aiMetadata?: unknown;
       linkedTransactionId?: string;
+      transferGroupId?: string;
     },
   ): Promise<CreateTransactionResult | null> {
     return this.prisma.$transaction(async (tx) => {
@@ -503,6 +504,9 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
           ...(extras?.aiMetadata ? { aiMetadata: extras.aiMetadata } : {}),
           ...(extras?.linkedTransactionId
             ? { linkedTransactionId: extras.linkedTransactionId }
+            : {}),
+          ...(extras?.transferGroupId
+            ? { transferGroupId: extras.transferGroupId }
             : {}),
         },
         include: {

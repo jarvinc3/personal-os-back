@@ -29,11 +29,15 @@ export type AggregateFinReceivable = {
 export type FinReceivableAvgAggregateOutputType = {
   amount: runtime.Decimal | null
   paidAmount: runtime.Decimal | null
+  creditBalance: runtime.Decimal | null
+  writtenOffAmount: runtime.Decimal | null
 }
 
 export type FinReceivableSumAggregateOutputType = {
   amount: runtime.Decimal | null
   paidAmount: runtime.Decimal | null
+  creditBalance: runtime.Decimal | null
+  writtenOffAmount: runtime.Decimal | null
 }
 
 export type FinReceivableMinAggregateOutputType = {
@@ -46,6 +50,9 @@ export type FinReceivableMinAggregateOutputType = {
   currency: string | null
   dueDate: Date | null
   status: $Enums.FinReceivableStatus | null
+  creditBalance: runtime.Decimal | null
+  writtenOffAmount: runtime.Decimal | null
+  writtenOffAt: Date | null
   notes: string | null
   createdAt: Date | null
   updatedAt: Date | null
@@ -61,6 +68,9 @@ export type FinReceivableMaxAggregateOutputType = {
   currency: string | null
   dueDate: Date | null
   status: $Enums.FinReceivableStatus | null
+  creditBalance: runtime.Decimal | null
+  writtenOffAmount: runtime.Decimal | null
+  writtenOffAt: Date | null
   notes: string | null
   createdAt: Date | null
   updatedAt: Date | null
@@ -76,6 +86,9 @@ export type FinReceivableCountAggregateOutputType = {
   currency: number
   dueDate: number
   status: number
+  creditBalance: number
+  writtenOffAmount: number
+  writtenOffAt: number
   notes: number
   createdAt: number
   updatedAt: number
@@ -86,11 +99,15 @@ export type FinReceivableCountAggregateOutputType = {
 export type FinReceivableAvgAggregateInputType = {
   amount?: true
   paidAmount?: true
+  creditBalance?: true
+  writtenOffAmount?: true
 }
 
 export type FinReceivableSumAggregateInputType = {
   amount?: true
   paidAmount?: true
+  creditBalance?: true
+  writtenOffAmount?: true
 }
 
 export type FinReceivableMinAggregateInputType = {
@@ -103,6 +120,9 @@ export type FinReceivableMinAggregateInputType = {
   currency?: true
   dueDate?: true
   status?: true
+  creditBalance?: true
+  writtenOffAmount?: true
+  writtenOffAt?: true
   notes?: true
   createdAt?: true
   updatedAt?: true
@@ -118,6 +138,9 @@ export type FinReceivableMaxAggregateInputType = {
   currency?: true
   dueDate?: true
   status?: true
+  creditBalance?: true
+  writtenOffAmount?: true
+  writtenOffAt?: true
   notes?: true
   createdAt?: true
   updatedAt?: true
@@ -133,6 +156,9 @@ export type FinReceivableCountAggregateInputType = {
   currency?: true
   dueDate?: true
   status?: true
+  creditBalance?: true
+  writtenOffAmount?: true
+  writtenOffAt?: true
   notes?: true
   createdAt?: true
   updatedAt?: true
@@ -235,6 +261,9 @@ export type FinReceivableGroupByOutputType = {
   currency: string
   dueDate: Date | null
   status: $Enums.FinReceivableStatus
+  creditBalance: runtime.Decimal
+  writtenOffAmount: runtime.Decimal
+  writtenOffAt: Date | null
   notes: string | null
   createdAt: Date
   updatedAt: Date
@@ -273,6 +302,9 @@ export type FinReceivableWhereInput = {
   currency?: Prisma.StringFilter<"FinReceivable"> | string
   dueDate?: Prisma.DateTimeNullableFilter<"FinReceivable"> | Date | string | null
   status?: Prisma.EnumFinReceivableStatusFilter<"FinReceivable"> | $Enums.FinReceivableStatus
+  creditBalance?: Prisma.DecimalFilter<"FinReceivable"> | runtime.Decimal | runtime.DecimalJsLike | number | string
+  writtenOffAmount?: Prisma.DecimalFilter<"FinReceivable"> | runtime.Decimal | runtime.DecimalJsLike | number | string
+  writtenOffAt?: Prisma.DateTimeNullableFilter<"FinReceivable"> | Date | string | null
   notes?: Prisma.StringNullableFilter<"FinReceivable"> | string | null
   createdAt?: Prisma.DateTimeFilter<"FinReceivable"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"FinReceivable"> | Date | string
@@ -290,6 +322,9 @@ export type FinReceivableOrderByWithRelationInput = {
   currency?: Prisma.SortOrder
   dueDate?: Prisma.SortOrderInput | Prisma.SortOrder
   status?: Prisma.SortOrder
+  creditBalance?: Prisma.SortOrder
+  writtenOffAmount?: Prisma.SortOrder
+  writtenOffAt?: Prisma.SortOrderInput | Prisma.SortOrder
   notes?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -310,6 +345,9 @@ export type FinReceivableWhereUniqueInput = Prisma.AtLeast<{
   currency?: Prisma.StringFilter<"FinReceivable"> | string
   dueDate?: Prisma.DateTimeNullableFilter<"FinReceivable"> | Date | string | null
   status?: Prisma.EnumFinReceivableStatusFilter<"FinReceivable"> | $Enums.FinReceivableStatus
+  creditBalance?: Prisma.DecimalFilter<"FinReceivable"> | runtime.Decimal | runtime.DecimalJsLike | number | string
+  writtenOffAmount?: Prisma.DecimalFilter<"FinReceivable"> | runtime.Decimal | runtime.DecimalJsLike | number | string
+  writtenOffAt?: Prisma.DateTimeNullableFilter<"FinReceivable"> | Date | string | null
   notes?: Prisma.StringNullableFilter<"FinReceivable"> | string | null
   createdAt?: Prisma.DateTimeFilter<"FinReceivable"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"FinReceivable"> | Date | string
@@ -327,6 +365,9 @@ export type FinReceivableOrderByWithAggregationInput = {
   currency?: Prisma.SortOrder
   dueDate?: Prisma.SortOrderInput | Prisma.SortOrder
   status?: Prisma.SortOrder
+  creditBalance?: Prisma.SortOrder
+  writtenOffAmount?: Prisma.SortOrder
+  writtenOffAt?: Prisma.SortOrderInput | Prisma.SortOrder
   notes?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -350,6 +391,9 @@ export type FinReceivableScalarWhereWithAggregatesInput = {
   currency?: Prisma.StringWithAggregatesFilter<"FinReceivable"> | string
   dueDate?: Prisma.DateTimeNullableWithAggregatesFilter<"FinReceivable"> | Date | string | null
   status?: Prisma.EnumFinReceivableStatusWithAggregatesFilter<"FinReceivable"> | $Enums.FinReceivableStatus
+  creditBalance?: Prisma.DecimalWithAggregatesFilter<"FinReceivable"> | runtime.Decimal | runtime.DecimalJsLike | number | string
+  writtenOffAmount?: Prisma.DecimalWithAggregatesFilter<"FinReceivable"> | runtime.Decimal | runtime.DecimalJsLike | number | string
+  writtenOffAt?: Prisma.DateTimeNullableWithAggregatesFilter<"FinReceivable"> | Date | string | null
   notes?: Prisma.StringNullableWithAggregatesFilter<"FinReceivable"> | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"FinReceivable"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"FinReceivable"> | Date | string
@@ -364,6 +408,9 @@ export type FinReceivableCreateInput = {
   currency?: string
   dueDate?: Date | string | null
   status?: $Enums.FinReceivableStatus
+  creditBalance?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  writtenOffAmount?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  writtenOffAt?: Date | string | null
   notes?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -381,6 +428,9 @@ export type FinReceivableUncheckedCreateInput = {
   currency?: string
   dueDate?: Date | string | null
   status?: $Enums.FinReceivableStatus
+  creditBalance?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  writtenOffAmount?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  writtenOffAt?: Date | string | null
   notes?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -396,6 +446,9 @@ export type FinReceivableUpdateInput = {
   currency?: Prisma.StringFieldUpdateOperationsInput | string
   dueDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   status?: Prisma.EnumFinReceivableStatusFieldUpdateOperationsInput | $Enums.FinReceivableStatus
+  creditBalance?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  writtenOffAmount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  writtenOffAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -413,6 +466,9 @@ export type FinReceivableUncheckedUpdateInput = {
   currency?: Prisma.StringFieldUpdateOperationsInput | string
   dueDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   status?: Prisma.EnumFinReceivableStatusFieldUpdateOperationsInput | $Enums.FinReceivableStatus
+  creditBalance?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  writtenOffAmount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  writtenOffAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -429,6 +485,9 @@ export type FinReceivableCreateManyInput = {
   currency?: string
   dueDate?: Date | string | null
   status?: $Enums.FinReceivableStatus
+  creditBalance?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  writtenOffAmount?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  writtenOffAt?: Date | string | null
   notes?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -443,6 +502,9 @@ export type FinReceivableUpdateManyMutationInput = {
   currency?: Prisma.StringFieldUpdateOperationsInput | string
   dueDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   status?: Prisma.EnumFinReceivableStatusFieldUpdateOperationsInput | $Enums.FinReceivableStatus
+  creditBalance?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  writtenOffAmount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  writtenOffAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -458,6 +520,9 @@ export type FinReceivableUncheckedUpdateManyInput = {
   currency?: Prisma.StringFieldUpdateOperationsInput | string
   dueDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   status?: Prisma.EnumFinReceivableStatusFieldUpdateOperationsInput | $Enums.FinReceivableStatus
+  creditBalance?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  writtenOffAmount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  writtenOffAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -483,6 +548,9 @@ export type FinReceivableCountOrderByAggregateInput = {
   currency?: Prisma.SortOrder
   dueDate?: Prisma.SortOrder
   status?: Prisma.SortOrder
+  creditBalance?: Prisma.SortOrder
+  writtenOffAmount?: Prisma.SortOrder
+  writtenOffAt?: Prisma.SortOrder
   notes?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -491,6 +559,8 @@ export type FinReceivableCountOrderByAggregateInput = {
 export type FinReceivableAvgOrderByAggregateInput = {
   amount?: Prisma.SortOrder
   paidAmount?: Prisma.SortOrder
+  creditBalance?: Prisma.SortOrder
+  writtenOffAmount?: Prisma.SortOrder
 }
 
 export type FinReceivableMaxOrderByAggregateInput = {
@@ -503,6 +573,9 @@ export type FinReceivableMaxOrderByAggregateInput = {
   currency?: Prisma.SortOrder
   dueDate?: Prisma.SortOrder
   status?: Prisma.SortOrder
+  creditBalance?: Prisma.SortOrder
+  writtenOffAmount?: Prisma.SortOrder
+  writtenOffAt?: Prisma.SortOrder
   notes?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -518,6 +591,9 @@ export type FinReceivableMinOrderByAggregateInput = {
   currency?: Prisma.SortOrder
   dueDate?: Prisma.SortOrder
   status?: Prisma.SortOrder
+  creditBalance?: Prisma.SortOrder
+  writtenOffAmount?: Prisma.SortOrder
+  writtenOffAt?: Prisma.SortOrder
   notes?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -526,6 +602,8 @@ export type FinReceivableMinOrderByAggregateInput = {
 export type FinReceivableSumOrderByAggregateInput = {
   amount?: Prisma.SortOrder
   paidAmount?: Prisma.SortOrder
+  creditBalance?: Prisma.SortOrder
+  writtenOffAmount?: Prisma.SortOrder
 }
 
 export type FinReceivableScalarRelationFilter = {
@@ -602,6 +680,9 @@ export type FinReceivableCreateWithoutUserInput = {
   currency?: string
   dueDate?: Date | string | null
   status?: $Enums.FinReceivableStatus
+  creditBalance?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  writtenOffAmount?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  writtenOffAt?: Date | string | null
   notes?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -617,6 +698,9 @@ export type FinReceivableUncheckedCreateWithoutUserInput = {
   currency?: string
   dueDate?: Date | string | null
   status?: $Enums.FinReceivableStatus
+  creditBalance?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  writtenOffAmount?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  writtenOffAt?: Date | string | null
   notes?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -662,6 +746,9 @@ export type FinReceivableScalarWhereInput = {
   currency?: Prisma.StringFilter<"FinReceivable"> | string
   dueDate?: Prisma.DateTimeNullableFilter<"FinReceivable"> | Date | string | null
   status?: Prisma.EnumFinReceivableStatusFilter<"FinReceivable"> | $Enums.FinReceivableStatus
+  creditBalance?: Prisma.DecimalFilter<"FinReceivable"> | runtime.Decimal | runtime.DecimalJsLike | number | string
+  writtenOffAmount?: Prisma.DecimalFilter<"FinReceivable"> | runtime.Decimal | runtime.DecimalJsLike | number | string
+  writtenOffAt?: Prisma.DateTimeNullableFilter<"FinReceivable"> | Date | string | null
   notes?: Prisma.StringNullableFilter<"FinReceivable"> | string | null
   createdAt?: Prisma.DateTimeFilter<"FinReceivable"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"FinReceivable"> | Date | string
@@ -676,6 +763,9 @@ export type FinReceivableCreateWithoutPaymentsInput = {
   currency?: string
   dueDate?: Date | string | null
   status?: $Enums.FinReceivableStatus
+  creditBalance?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  writtenOffAmount?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  writtenOffAt?: Date | string | null
   notes?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -692,6 +782,9 @@ export type FinReceivableUncheckedCreateWithoutPaymentsInput = {
   currency?: string
   dueDate?: Date | string | null
   status?: $Enums.FinReceivableStatus
+  creditBalance?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  writtenOffAmount?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  writtenOffAt?: Date | string | null
   notes?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -722,6 +815,9 @@ export type FinReceivableUpdateWithoutPaymentsInput = {
   currency?: Prisma.StringFieldUpdateOperationsInput | string
   dueDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   status?: Prisma.EnumFinReceivableStatusFieldUpdateOperationsInput | $Enums.FinReceivableStatus
+  creditBalance?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  writtenOffAmount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  writtenOffAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -738,6 +834,9 @@ export type FinReceivableUncheckedUpdateWithoutPaymentsInput = {
   currency?: Prisma.StringFieldUpdateOperationsInput | string
   dueDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   status?: Prisma.EnumFinReceivableStatusFieldUpdateOperationsInput | $Enums.FinReceivableStatus
+  creditBalance?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  writtenOffAmount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  writtenOffAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -752,6 +851,9 @@ export type FinReceivableCreateManyUserInput = {
   currency?: string
   dueDate?: Date | string | null
   status?: $Enums.FinReceivableStatus
+  creditBalance?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  writtenOffAmount?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  writtenOffAt?: Date | string | null
   notes?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -766,6 +868,9 @@ export type FinReceivableUpdateWithoutUserInput = {
   currency?: Prisma.StringFieldUpdateOperationsInput | string
   dueDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   status?: Prisma.EnumFinReceivableStatusFieldUpdateOperationsInput | $Enums.FinReceivableStatus
+  creditBalance?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  writtenOffAmount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  writtenOffAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -781,6 +886,9 @@ export type FinReceivableUncheckedUpdateWithoutUserInput = {
   currency?: Prisma.StringFieldUpdateOperationsInput | string
   dueDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   status?: Prisma.EnumFinReceivableStatusFieldUpdateOperationsInput | $Enums.FinReceivableStatus
+  creditBalance?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  writtenOffAmount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  writtenOffAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -796,6 +904,9 @@ export type FinReceivableUncheckedUpdateManyWithoutUserInput = {
   currency?: Prisma.StringFieldUpdateOperationsInput | string
   dueDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   status?: Prisma.EnumFinReceivableStatusFieldUpdateOperationsInput | $Enums.FinReceivableStatus
+  creditBalance?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  writtenOffAmount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  writtenOffAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -842,6 +953,9 @@ export type FinReceivableSelect<ExtArgs extends runtime.Types.Extensions.Interna
   currency?: boolean
   dueDate?: boolean
   status?: boolean
+  creditBalance?: boolean
+  writtenOffAmount?: boolean
+  writtenOffAt?: boolean
   notes?: boolean
   createdAt?: boolean
   updatedAt?: boolean
@@ -860,6 +974,9 @@ export type FinReceivableSelectCreateManyAndReturn<ExtArgs extends runtime.Types
   currency?: boolean
   dueDate?: boolean
   status?: boolean
+  creditBalance?: boolean
+  writtenOffAmount?: boolean
+  writtenOffAt?: boolean
   notes?: boolean
   createdAt?: boolean
   updatedAt?: boolean
@@ -876,6 +993,9 @@ export type FinReceivableSelectUpdateManyAndReturn<ExtArgs extends runtime.Types
   currency?: boolean
   dueDate?: boolean
   status?: boolean
+  creditBalance?: boolean
+  writtenOffAmount?: boolean
+  writtenOffAt?: boolean
   notes?: boolean
   createdAt?: boolean
   updatedAt?: boolean
@@ -892,12 +1012,15 @@ export type FinReceivableSelectScalar = {
   currency?: boolean
   dueDate?: boolean
   status?: boolean
+  creditBalance?: boolean
+  writtenOffAmount?: boolean
+  writtenOffAt?: boolean
   notes?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type FinReceivableOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "debtorName" | "description" | "amount" | "paidAmount" | "currency" | "dueDate" | "status" | "notes" | "createdAt" | "updatedAt", ExtArgs["result"]["finReceivable"]>
+export type FinReceivableOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "debtorName" | "description" | "amount" | "paidAmount" | "currency" | "dueDate" | "status" | "creditBalance" | "writtenOffAmount" | "writtenOffAt" | "notes" | "createdAt" | "updatedAt", ExtArgs["result"]["finReceivable"]>
 export type FinReceivableInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   payments?: boolean | Prisma.FinReceivable$paymentsArgs<ExtArgs>
@@ -926,6 +1049,9 @@ export type $FinReceivablePayload<ExtArgs extends runtime.Types.Extensions.Inter
     currency: string
     dueDate: Date | null
     status: $Enums.FinReceivableStatus
+    creditBalance: runtime.Decimal
+    writtenOffAmount: runtime.Decimal
+    writtenOffAt: Date | null
     notes: string | null
     createdAt: Date
     updatedAt: Date
@@ -1363,6 +1489,9 @@ export interface FinReceivableFieldRefs {
   readonly currency: Prisma.FieldRef<"FinReceivable", 'String'>
   readonly dueDate: Prisma.FieldRef<"FinReceivable", 'DateTime'>
   readonly status: Prisma.FieldRef<"FinReceivable", 'FinReceivableStatus'>
+  readonly creditBalance: Prisma.FieldRef<"FinReceivable", 'Decimal'>
+  readonly writtenOffAmount: Prisma.FieldRef<"FinReceivable", 'Decimal'>
+  readonly writtenOffAt: Prisma.FieldRef<"FinReceivable", 'DateTime'>
   readonly notes: Prisma.FieldRef<"FinReceivable", 'String'>
   readonly createdAt: Prisma.FieldRef<"FinReceivable", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"FinReceivable", 'DateTime'>

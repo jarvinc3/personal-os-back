@@ -181,6 +181,7 @@ export interface LedgerRepositoryPort {
       emailMessageId?: string;
       aiMetadata?: unknown;
       linkedTransactionId?: string;
+      transferGroupId?: string;
     },
   ): Promise<CreateTransactionResult | null>;
 

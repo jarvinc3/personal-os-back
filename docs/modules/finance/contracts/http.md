@@ -42,6 +42,8 @@ Un pago de tarjeta (`POST /api/finance/card-payments`) es una operación de dos 
 
 Un préstamo sigue el sistema francés: `POST /loans/:id/pay-next-installment` reparte el pago en mora, cargos, seguro, interés y capital, y el saldo baja solo por capital. `POST /loans/:id/prepayments` abona a capital con `REDUCE_TERM` o `REDUCE_INSTALLMENT`; `GET /loans/:id/prepayments/preview` proyecta sin escribir. Errores 400 `PAYMENT_EXCEEDS_INSTALLMENT`, 409 `LOAN_HAS_OVERDUE` y 404 `LOAN_NOT_FOUND`.
 
+Un cobro aplica el pago a lo pendiente; el excedente se resuelve con `excessHandling` (`EXTRA_INCOME` lo deja como ingreso con la categoría "Ingreso extra", `CREDIT_BALANCE` lo guarda como saldo a favor y `APPLY_TO_RECEIVABLE` lo aplica a otro cobro). Sin `excessHandling`, un pago mayor responde 422 `RECEIVABLE_EXCESS_UNRESOLVED`. `POST /receivables/:id/write-off` cierra el cobro como `WRITTEN_OFF` sin movimiento.
+
 ## Deshacer un borrado
 
 Cada `DELETE` de una entidad de finance guarda un snapshot en `fin_deletion_journal` (`entityType`, `entityId`, `snapshot`, `sizeBytes`, `expiresAt`) dentro de la misma transacción, y devuelve `undoId`. `POST /api/finance/<entidad>/:id/restore` vuelve a crear las filas, repone los enlaces que la cascada anuló y aplica otra vez el saldo y el gasto del presupuesto que el borrado revirtió, solo para los movimientos `CONFIRMED` cuyo efecto se revirtió. Para una transferencia, `undoId` es el `transferGroupId` y se restaura completa. Restaurar dos veces responde 409 `ALREADY_RESTORED`, un choque con datos nuevos 409 `RESTORE_CONFLICT` y una operación incompleta 409 `PARTIAL_OPERATION`. Las entradas sin restaurar se purgan a los 30 días.

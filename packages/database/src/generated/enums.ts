@@ -226,7 +226,8 @@ export const FinReceivableStatus = {
   PENDING: 'PENDING',
   PARTIAL: 'PARTIAL',
   PAID: 'PAID',
-  CANCELLED: 'CANCELLED'
+  CANCELLED: 'CANCELLED',
+  WRITTEN_OFF: 'WRITTEN_OFF'
 } as const
 
 export type FinReceivableStatus = (typeof FinReceivableStatus)[keyof typeof FinReceivableStatus]

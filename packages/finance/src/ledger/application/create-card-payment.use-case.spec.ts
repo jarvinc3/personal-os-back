@@ -84,13 +84,11 @@ const command = {
 describe('CreateCardPaymentUseCase', () => {
   it('rejects a debit card', async () => {
     const repo = buildRepo({
-      findCardForPayment: jest
-        .fn()
-        .mockResolvedValue({
-          id: 'card-1',
-          type: 'DEBIT',
-          currencies: ['DOP'],
-        }),
+      findCardForPayment: jest.fn().mockResolvedValue({
+        id: 'card-1',
+        type: 'DEBIT',
+        currencies: ['DOP'],
+      }),
     });
 
     await expect(

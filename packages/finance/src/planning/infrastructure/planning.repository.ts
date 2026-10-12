@@ -535,6 +535,7 @@ export class PlanningRepository {
           data: {
             receivableId: receivable.id,
             amount: openingAmount,
+            appliedAmount: openingAmount,
             paidAt: receivable.createdAt,
             notes: OPENING_BALANCE_NOTE,
           },
@@ -612,6 +613,9 @@ export class PlanningRepository {
     receivableId: string,
     payment: {
       amount: number;
+      appliedAmount: number;
+      excessAmount: number;
+      excessHandling?: string | null;
       paidAt: Date;
       accountId: string;
       transactionId: string | null;
@@ -624,6 +628,36 @@ export class PlanningRepository {
       });
       await applyReceivableBalance(tx, receivableId);
       return created;
+    });
+  }
+
+  findExtraIncomeCategoryId() {
+    return this.prisma.finCategory
+      .findFirst({
+        where: { isSystem: true, systemKind: 'EXTRA_INCOME', type: 'INCOME' },
+        select: { id: true },
+      })
+      .then((category) => category?.id ?? null);
+  }
+
+  addReceivableCreditBalance(receivableId: string, amount: number) {
+    return this.prisma.finReceivable.update({
+      where: { id: receivableId },
+      data: { creditBalance: { increment: amount } },
+    });
+  }
+
+  writeOffReceivable(
+    receivableId: string,
+    input: { writtenOffAmount: number; writtenOffAt: Date },
+  ) {
+    return this.prisma.finReceivable.update({
+      where: { id: receivableId },
+      data: {
+        status: 'WRITTEN_OFF',
+        writtenOffAmount: input.writtenOffAmount,
+        writtenOffAt: input.writtenOffAt,
+      },
     });
   }
 }

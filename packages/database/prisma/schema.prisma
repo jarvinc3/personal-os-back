@@ -714,6 +714,9 @@ model FinReceivable {
   currency    String              @default("DOP")
   dueDate     DateTime?           @map("due_date") @db.Date
   status      FinReceivableStatus @default(PENDING)
+  creditBalance    Decimal             @default(0) @map("credit_balance") @db.Decimal(15, 2)
+  writtenOffAmount Decimal             @default(0) @map("written_off_amount") @db.Decimal(15, 2)
+  writtenOffAt     DateTime?           @map("written_off_at") @db.Timestamptz(6)
   notes       String?
   createdAt   DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt   DateTime            @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
@@ -730,6 +733,9 @@ model FinReceivablePayment {
   id            String          @id @default(dbgenerated("(uuid_generate_v4())::text"))
   receivableId  String          @map("receivable_id")
   amount        Decimal         @db.Decimal(15, 2)
+  appliedAmount Decimal         @map("applied_amount") @db.Decimal(15, 2)
+  excessAmount  Decimal         @default(0) @map("excess_amount") @db.Decimal(15, 2)
+  excessHandling String?        @map("excess_handling")
   paidAt        DateTime        @map("paid_at") @db.Date
   /// Account the money entered. Null only after that account is deleted.
   accountId     String?         @map("account_id")
@@ -921,6 +927,7 @@ enum FinReceivableStatus {
   PARTIAL
   PAID
   CANCELLED
+  WRITTEN_OFF
 }
 
 enum FinEmailSyncStatus {

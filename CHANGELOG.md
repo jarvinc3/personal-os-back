@@ -2,6 +2,18 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [SemVer](https://semver.org/lang/es/). Reglas y ejemplo en [docs/reference/changelog-guide.md](./docs/reference/changelog-guide.md).
 
+## [1.14.0] - 2026-10-12
+
+### Agregado
+
+- Cobros con excedente: `POST /receivables/:id/payments` acepta `excessHandling` (`EXTRA_INCOME`, `CREDIT_BALANCE`, `APPLY_TO_RECEIVABLE`) y `targetReceivableId`. Sin `excessHandling`, un pago mayor a lo pendiente responde 422 `RECEIVABLE_EXCESS_UNRESOLVED` con `details: { outstanding, excess }`.
+- `POST /receivables/:id/write-off` cierra el cobro como `WRITTEN_OFF` con `writtenOffAmount`, sin movimiento.
+- La categoría del sistema "Ingreso extra" (`systemKind=EXTRA_INCOME`) recibe la parte excedente cuando se elige `EXTRA_INCOME`.
+
+### Cambiado
+
+- El cobro guarda `creditBalance`, `writtenOffAmount` y `writtenOffAt`; el pago guarda `appliedAmount`, `excessAmount` y `excessHandling`. El saldo del cobro suma `appliedAmount`.
+
 ## [1.13.0] - 2026-10-12
 
 ### Agregado
