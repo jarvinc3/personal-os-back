@@ -55,6 +55,9 @@ export class UpdateCardPaymentUseCase {
     if (!debit || !credit) {
       throw new NotFoundException('Card payment legs not found');
     }
+    if (debit.type !== 'CARD_PAYMENT') {
+      throw new BadRequestException('Not a card payment');
+    }
     if (!legs.every((item) => item.status === 'PENDING')) {
       throw new ConflictException({
         code: TRANSFER_LOCKED,
