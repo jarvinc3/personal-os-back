@@ -41,7 +41,8 @@ export class TransfersController {
   @ApiOperation({
     summary: 'Move every leg of a transfer back to PENDING to edit it',
   })
-  unconfirm(@CurrentUser('sub') userId: string, @Param('id') id: string) {
-    return this.unconfirmTransfer.execute(userId, id);
+  async unconfirm(@CurrentUser('sub') userId: string, @Param('id') id: string) {
+    await this.unconfirmTransfer.execute(userId, id);
+    return { success: true };
   }
 }

@@ -56,13 +56,13 @@ describe('UnconfirmTransferUseCase', () => {
   });
 
   it('moves every leg of the operation back to pending', async () => {
-    const unconfirmed = await useCase.execute('user-1', 'd1');
+    await useCase.execute('user-1', 'd1');
 
     expect(unconfirmTransactionsByTransferGroupId).toHaveBeenCalledWith(
       'user-1',
       'grp-1',
     );
-    expect(unconfirmed).toEqual({ success: true, count: 2 });
+    expect(processBatch).toHaveBeenCalled();
   });
 
   it('refuses a movement that is not part of a transfer', async () => {

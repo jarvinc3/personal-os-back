@@ -16,7 +16,7 @@ export class UnconfirmTransferUseCase {
     private readonly outboxDispatcher: FinanceOutboxDispatcher,
   ) {}
 
-  async execute(userId: string, legId: string) {
+  async execute(userId: string, legId: string): Promise<void> {
     const leg = await this.repo.findTransactionById(legId, userId);
     if (!leg) {
       throw new NotFoundException('Transaction not found');
@@ -25,11 +25,10 @@ export class UnconfirmTransferUseCase {
       throw new BadRequestException('Not a transfer');
     }
 
-    const unconfirmed = await this.repo.unconfirmTransactionsByTransferGroupId(
+    await this.repo.unconfirmTransactionsByTransferGroupId(
       userId,
       leg.transferGroupId,
     );
     void this.outboxDispatcher.processBatch();
-    return { success: true, count: unconfirmed.count };
   }
 }
