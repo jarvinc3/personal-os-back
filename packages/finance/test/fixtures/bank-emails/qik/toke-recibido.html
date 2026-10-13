@@ -1,0 +1,291 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html>
+	<head>
+		<meta name="color-scheme" content="light dark" />
+		<meta name="supported-color-schemes" content="light dark" />
+		<style>
+			:root {
+				--color-text-light: #141414;
+				--color-text-dark: #ffffff;
+				--color-header-light: #eaebf0;
+				--color-header-dark: #25242a;
+				--color-footer-light: #f3f3f3;
+				--color-footer-dark: #25242a;
+				--color-footer-text-light: #545454;
+				--color-footer-text-dark: #adadad;
+				--color-email-link-light: #003c73;
+				--color-email-link-dark: #0082cd;
+			}
+
+			body {
+				font-family: Arial, Helvetica, sans-serif;
+			}
+
+			.container {
+				max-width: 500px !important;
+				padding: 20px;
+				margin: 0px auto !important;
+			}
+
+			.img {
+				display: block;
+				margin: 0 auto;
+				min-width: 50px;
+			}
+
+			.containerName {
+				background-color: #eaebf0;
+				padding: 10px !important;
+				text-align: center;
+				margin: 20px 0;
+			}
+
+			.fontTitle {
+				font-size: 20px;
+				color: var(--color-text-light);
+			}
+
+			.icon {
+				margin-bottom: 40px;
+			}
+
+			.textBody {
+				font-family: 'Arial';
+				font-style: normal;
+				font-weight: 400;
+				font-size: 16px;
+				line-height: 24px;
+				margin: 0;
+			}
+
+			.textBodySmall {
+				font-family: 'Arial';
+				font-style: normal;
+				font-weight: 400;
+				font-size: 14px;
+				line-height: 24px;
+				margin: 0;
+			}
+
+			.bold {
+				font-weight: 700;
+			}
+
+			.card {
+				margin: 20px 0;
+				border: 1px solid #f4f4f4 !important;
+				padding: 0px 30px;
+				border-radius: 24px !important;
+				text-align: center;
+			}
+
+			.row {
+				display: flex;
+				padding: 20px 0;
+				border-bottom: 1px solid #f4f4f4 !important;
+			}
+
+			.withoutBorder {
+				border: none !important;
+			}
+
+			.label {
+				width: 50%;
+				text-align: left;
+			}
+
+			.value {
+				width: 50%;
+				text-align: right;
+			}
+
+			.marginReport {
+				margin: 30px 0;
+			}
+
+			.footer {
+				background-color: #f3f3f3;
+				padding: 24px !important;
+				margin-top: 70px;
+			}
+
+			h2 {
+				font-family: 'Arial';
+				font-style: normal;
+				font-weight: 700;
+				font-size: 20px;
+				letter-spacing: 0.2px;
+			}
+
+			.textCenter {
+				align-items: center;
+				text-align: center;
+			}
+
+			.textFooter {
+				margin: 24px !important;
+			}
+
+			.x_text {
+				margin: 5px 0px 15px 0px;
+				font-family: Arial;
+				font-size: 18px;
+				color: var(--color-text-light);
+			}
+
+			.small {
+				font-family: 'Arial';
+				font-style: normal;
+				font-weight: 400;
+				font-size: 12px;
+				line-height: 16px;
+				color: #545454;
+			}
+
+			.Xsmall {
+				font-family: 'Arial';
+				font-style: normal;
+				font-weight: 400;
+				font-size: 10px;
+				line-height: 14px;
+				color: #545454;
+			}
+
+			.emailFooter {
+				display: block;
+				text-decoration: none;
+			}
+
+			.copyrightText {
+				margin-top: 32px !important;
+			}
+
+			.marker {
+				margin-top: 2px;
+				width: 20px;
+				height: 20px;
+				margin-right: 10px;
+			}
+
+			.blueCard {
+				display: flex;
+				padding: 20px;
+				margin-top: 26px;
+				background-color: #e3f6ff;
+				color: #141414;
+				border-radius: 24px;
+			}
+
+			.link {
+				color: var(--color-email-link-light);
+				text-decoration: none;
+			}
+			.tableContainer {
+				width: 100%;
+				border-radius: 16px;
+				border: 1px solid #f4f4f4;
+				border-spacing: 0;
+				padding: 0 20px 0 20px;
+			}
+			.bordeTop {
+				border-top: 1px solid #f4f4f4;
+			}
+			td {
+				padding-bottom: 16px;
+				padding-top: 12px;
+			}
+
+			.alingRith {
+				text-align: end;
+			}
+
+			@media (prefers-color-scheme: dark) {
+				.theme {
+					color: var(--color-text-dark) !important;
+				}
+			}
+
+			@media (prefers-color-scheme: light) {
+				.theme {
+					color: var(--color-text-light) !important;
+				}
+			}
+		</style>
+	</head>
+
+	<body>
+		<div class="container">
+			<div>
+				<img src="https://qik.do/content/dam/qik/emails/pago-de-servicios/Logo-Qik.png" alt class="img" />
+				<div class="containerName esd-text">
+					<h1 class="fontTitle">¡Hola, Jarvin!</h1>
+				</div>
+			</div>
+			<img src="https://qik.do/content/dam/qik/emails/pago-de-servicios/money.png" width="120" alt class="img icon" />
+
+			<p class="textBody">
+				Has recibido <b>RD$ 2,500.00</b> por parte de <b>Jarvin A Perez Gomez</b> en tu Cuenta en pesos *2581.
+			</p>
+			<br />
+
+			<table class="tableContainer">
+				<tr>
+					<td class="textBodySmall">Fecha</td>
+					<td class="alingRith textBodySmall"><b>28 de sept. 2026</b></td>
+				</tr>
+				<tr>
+					<td class="bordeTop textBodySmall">Realizado por</td>
+					<td class="bordeTop alingRith textBodySmall">
+            <b>Jarvin A Perez Gomez</b>
+          </td>
+				</tr>
+				<tr>
+          <td class="bordeTop textBodySmall">Monto</td>
+					<td class="bordeTop alingRith textBodySmall"><b>RD$ 2,500.00</b></td>
+				</tr>
+        <tr>
+          <td class="bordeTop textBodySmall">Método de envío</td>
+          <td class="bordeTop alingRith textBodySmall"><b>Toke</b></td>
+        </tr>
+				<tr>
+					<td class="bordeTop textBodySmall">Comentario</td>
+					<td class="bordeTop alingRith textBodySmall"><b></b></td>
+				</tr>
+			</table>
+
+			<br />
+
+			<p class="theme small marginReport">
+				Si no reconoces esta transacción, repórtala desde el App Qik, de lo contrario, ignora este mensaje.
+			</p>
+
+			<h2 class="theme textBody">
+				Nos vemos en el app.<br />
+				Equipo Qik
+			</h2>
+			<div class="footer esd-text">
+				<p class="small textCenter">¿Necesitas ayuda? Te atendemos en un Qik</p>
+				<p class="small textCenter">
+					Escríbenos a través del
+					<a href="mailto:ayuda@qik.com.do" class="link"
+						><img src="https://qik.do/content/dam/qik/emails/pago-de-servicios/support_16.png" style="width: 12px" />
+						QikChat</a
+					>
+					en el app.
+				</p>
+				<p class="Xsmall textFooter">
+					En Qik tenemos el compromiso de prevenir correos electrónicos fraudulentos. Nunca te solicitaremos datos
+					personales o financieros como cédula, contraseña, número de tarjeta de crédito, fecha de vencimiento y código
+					de seguridad mediante enlaces al correo electrónico o llamadas telefónicas.<br /><br />
+					Solo enviáremos correos personalizados, es decir, con tu primer nombre y el número de cédula enmascarado
+					mostrando los últimos dígitos de tu documento de identidad.
+				</p>
+				<p class="small textCenter copyrightText">
+					Copyright © Qik Banco Digital Dominicano S.A.,<br />
+					Banco Múltiple. <br />
+					Todos los derechos reservados.
+				</p>
+			</div>
+		</div>
+	</body>
+</html>

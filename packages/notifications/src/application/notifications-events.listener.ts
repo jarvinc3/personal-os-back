@@ -8,6 +8,7 @@ import {
 import { FINANCE_NOTIFICATION_KEYS } from '@personal-os/users';
 import {
   budgetThresholdCopy,
+  cardStatementReminderCopy,
   formatNotificationAmount,
   transactionPendingCopy,
   transactionRecordedCopy,
@@ -41,6 +42,14 @@ type BudgetThresholdEvent = {
   budgetId: string;
   percentageUsed: number;
   alertId?: string;
+};
+
+type CardStatementReminderEvent = {
+  eventId?: string;
+  userId: string;
+  sourceId?: string;
+  gmailMessageId?: string;
+  subject?: string;
 };
 
 @Injectable()
@@ -157,6 +166,31 @@ export class NotificationsEventsListener {
         notificationKey: FINANCE_NOTIFICATION_KEYS.budgetAlerts,
         budgetId: event.budgetId,
         percentageUsed: event.percentageUsed,
+      },
+    });
+  }
+
+  @OnEvent(AppEvents.FINANCE_CARD_STATEMENT_REMINDER)
+  async onCardStatementReminder(
+    event: CardStatementReminderEvent,
+  ): Promise<void> {
+    if (
+      !(await this.idempotency.tryClaim(
+        event.eventId,
+        `${NotificationsEventsListener.CONSUMER}:card-statement`,
+      ))
+    ) {
+      return;
+    }
+    const copy = cardStatementReminderCopy();
+    await this.createFinanceInApp(event.userId, {
+      type: 'card.statement_reminder',
+      title: copy.title,
+      body: copy.body,
+      data: {
+        moduleSlug: FINANCE_MODULE_SLUG,
+        reminder: 'card_statement',
+        sourceId: event.sourceId ?? null,
       },
     });
   }

@@ -1,0 +1,22 @@
+{
+  "from": "notificaciones@bhd.com.do",
+  "subject": "Pago de servicio recurrente no aplicado",
+  "date": "2026-10-03T16:41:02Z",
+  "labelIds": [
+    "CATEGORY_UPDATES",
+    "INBOX"
+  ],
+  "text": "Estimado(a) JARVIN ANDRES PEREZ GOMEZ : \n El pago de servicio no pudo ser aplicado. \n La\r\n información de la transacción es:\r\n Motivo de rechazo: \r\n TRANSACCION REVERSADA, Balance de la Cuenta no es Suficiente para el Pago \r\n Producto origen: \r\n DO04BCBH000000000XXXXXXX0024 \r\n Monto: \r\n 50,000.00 \r\n Pago de Cuota: \r\n 0a1b2c3d4e5f \r\n Proveedor del servicio: \r\n FONDO DE PENSIONES T-3 \r\n Servicio: \r\n Aporte Alcanza \r\n Tipo: \r\n Cobro Único de Inscripción \r\n Descripción: \r\n Fecha y hora: \r\n 03/10/2026 - 12:40:11 PM \r\n Nota: \r\n Por favor, no responda a este mensaje automático generado por el sistema.\r\n Banco BHD",
+  "expected": {
+    "kind": "recurring_payment_failed",
+    "originLast4": "0024",
+    "amount": "50,000.00",
+    "currency": null,
+    "reason": "TRANSACCION REVERSADA, Balance de la Cuenta no es Suficiente para el Pago",
+    "provider": "FONDO DE PENSIONES T-3",
+    "service": "Aporte Alcanza",
+    "type": "Cobro Único de Inscripción",
+    "datetime": "03/10/2026 - 12:40:11 PM",
+    "note": "No mueve dinero: no debe crear movimiento."
+  }
+}

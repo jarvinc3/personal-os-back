@@ -16,7 +16,10 @@ import {
 import { EmailSourceRepository } from '../infrastructure/email-source.repository';
 import { uniqueCashAccountId } from './match-email-transfers';
 import type { ExtractedEmailTransaction } from './ports/email-transaction-extractor.port';
-import { resolveEmailLedgerTarget } from './resolve-email-ledger-target';
+import {
+  resolveEmailLedgerTarget,
+  type EmailLedgerTargetMatch,
+} from './resolve-email-ledger-target';
 
 export type RoutedEmailImport =
   | { kind: 'imported'; transactionId: string; status: string }
@@ -50,21 +53,10 @@ export class RouteExtractedEmailUseCase {
     cashAccounts: Array<{ id: string }>;
     amountOverride?: number;
   }): Promise<RoutedEmailImport> {
-    const extracted = {
+    let extracted = {
       ...params.extracted,
       amount: params.amountOverride ?? params.extracted.amount,
     };
-    const amount = extracted.amount;
-    if (amount == null) {
-      await this.persist(
-        params,
-        extracted,
-        EMAIL_MESSAGE_OUTCOME.PENDING_AMOUNT,
-        'Missing amount',
-      );
-      return { kind: 'pending_amount', reason: 'Missing amount' };
-    }
-
     const movementClass = extracted.movementClass;
     const match = resolveEmailLedgerTarget({
       instrumentHint: extracted.instrumentHint,
@@ -76,6 +68,24 @@ export class RouteExtractedEmailUseCase {
         !isTransferMovementClass(movementClass) &&
         !isAtmMovementClass(movementClass),
     });
+
+    if (extracted.amount == null) {
+      extracted = await this.suggestPayrollAmount({
+        userId: params.userId,
+        extracted,
+        match,
+      });
+    }
+    const amount = extracted.amount;
+    if (amount == null) {
+      await this.persist(
+        params,
+        extracted,
+        EMAIL_MESSAGE_OUTCOME.PENDING_AMOUNT,
+        'Missing amount',
+      );
+      return { kind: 'pending_amount', reason: 'Missing amount' };
+    }
 
     if (match.kind !== 'unique') {
       const reason =
@@ -222,6 +232,40 @@ export class RouteExtractedEmailUseCase {
       EMAIL_MESSAGE_OUTCOME.IMPORTED,
     );
     return { kind: 'imported', transactionId: created.id, status };
+  }
+
+  /**
+   * A payroll notice without an amount becomes a PENDING credit with the last
+   * payroll amount as a suggestion, so the user only confirms it. It is never
+   * dropped: without a previous payroll it stays in the pending-amount queue.
+   */
+  private async suggestPayrollAmount(params: {
+    userId: string;
+    extracted: ExtractedEmailTransaction;
+    match: EmailLedgerTargetMatch;
+  }): Promise<ExtractedEmailTransaction> {
+    if (
+      params.extracted.movementClass !== 'PAYROLL' ||
+      params.match.kind !== 'unique' ||
+      !params.match.accountId
+    ) {
+      return params.extracted;
+    }
+    const suggested = await this.emailSources.findSuggestedPayrollAmount({
+      userId: params.userId,
+      accountId: params.match.accountId,
+      currency: params.extracted.currency,
+    });
+    if (suggested == null || suggested <= 0) {
+      return params.extracted;
+    }
+    return {
+      ...params.extracted,
+      amount: suggested,
+      notes: 'Monto sugerido de la nómina anterior; confírmalo.',
+      bankStatusNormalized: 'PENDING',
+      statusConfidence: 1,
+    };
   }
 
   private async importAtm(

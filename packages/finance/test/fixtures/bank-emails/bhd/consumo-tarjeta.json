@@ -1,0 +1,22 @@
+{
+  "from": "Alertas@bhd.com.do",
+  "subject": "BHD Notificación de Transacciones",
+  "date": "2026-10-12T16:21:45Z",
+  "labelIds": [
+    "IMPORTANT",
+    "CATEGORY_UPDATES",
+    "INBOX"
+  ],
+  "text": "BHD Notificación de Transacciones\n Visa Premia # 6506\n Detalle de Criterios\n Te notificamos la transacción realizada con tu Tarjeta Visa Premia # 6506\r\nEn caso de no reconocer esta transacción, por favor llama de inmediato al 809-243-5282.\n Detalle de Transacciones\n Fecha\r\n Moneda\r\n Monto\r\n Comercio\r\n Estado\r\n Tipo\r\n 12/10/2026 12:21 pm\r\n RD\r\n $75.50\r\n SM NACIONAL LOPE DE VE\r\n Aprobada\r\n Compra\r\n Ahora, tus Tarjetas BHD cuentan con un nuevo sistema de seguridad para tus compras por internet en comercios locales e internacionales. Conoce más visitando bhd.com.do en la sección Tarjetas.\r\nRecuerda que puedes realizar tus consultas y transacciones de forma rápida y confiable a través de Internet Banking BHD y Móvil Banking BHD.\nEste mensaje contiene información legalmente considerada confidencial y privilegiada, con la intención de que sea utilizada exclusivamente por las personas u organizaciones a quienes está dirigido. De haber recibido este mensaje por error, debes eliminarlo e informarnos de inmediato al número indicado más arriba.",
+  "expected": {
+    "kind": "card_purchase",
+    "cardBrand": "Visa Premia",
+    "cardLast4": "6506",
+    "datetime": "12/10/2026 12:21 pm",
+    "currency": "RD",
+    "amount": "75.50",
+    "merchant": "SM NACIONAL LOPE DE VE",
+    "status": "Aprobada",
+    "type": "Compra"
+  }
+}

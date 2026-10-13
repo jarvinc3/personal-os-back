@@ -16,7 +16,10 @@ import {
   MatchEmailTransfersUseCase,
 } from './backfill-pending-email.use-case';
 import { buildGmailFromQuery } from './bank-sender';
-import { shouldReopenSkippedPayroll } from './email-movement';
+import {
+  shouldReopenSkippedPayroll,
+  isCardPaymentReminder,
+} from './email-movement';
 import { EMAIL_MESSAGE_OUTCOME } from './email-message-outcome';
 import { IngestionService } from './ingestion.service';
 import type {
@@ -158,6 +161,9 @@ export class ProcessGmailSyncUseCase {
               body,
               bankDomain: source.bankDomain,
               categories: categoryHints,
+              ...(internalDate
+                ? { receivedAt: internalDate.toISOString() }
+                : {}),
             });
 
             if (!extraction.ok) {
@@ -179,6 +185,13 @@ export class ProcessGmailSyncUseCase {
             }
 
             if (extraction.kind === 'not_transaction') {
+              if (isCardPaymentReminder({ subject, body })) {
+                await this.ingestion.enqueueCardStatementReminder(userId, {
+                  sourceId,
+                  gmailMessageId: messageRef.id,
+                  subject,
+                });
+              }
               await this.emailSources.upsertEmailMessage({
                 sourceId,
                 gmailMessageId: messageRef.id,

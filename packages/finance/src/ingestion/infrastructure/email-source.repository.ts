@@ -357,6 +357,35 @@ export class EmailSourceRepository {
     });
   }
 
+  /**
+   * Amount of the last confirmed payroll credit on the account, used to
+   * suggest the amount when a payroll notice arrives without one.
+   */
+  async findSuggestedPayrollAmount(params: {
+    userId: string;
+    accountId: string;
+    currency: string;
+  }): Promise<number | null> {
+    const row = await this.prisma.finTransaction.findFirst({
+      where: {
+        userId: params.userId,
+        accountId: params.accountId,
+        type: 'CREDIT',
+        status: 'CONFIRMED',
+        currency: params.currency,
+        OR: [
+          { aiMetadata: { path: ['movementClass'], equals: 'PAYROLL' } },
+          { description: { contains: 'nómina', mode: 'insensitive' } },
+          { description: { contains: 'nomina', mode: 'insensitive' } },
+          { merchant: { contains: 'nómina', mode: 'insensitive' } },
+        ],
+      },
+      orderBy: [{ transactionDate: 'desc' }, { id: 'desc' }],
+      select: { amount: true },
+    });
+    return row ? Number(row.amount) : null;
+  }
+
   findAccountById(id: string, userId: string) {
     return this.prisma.finAccount.findFirst({ where: { id, userId } });
   }

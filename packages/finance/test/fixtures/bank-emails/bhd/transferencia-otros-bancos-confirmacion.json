@@ -1,0 +1,24 @@
+{
+  "from": "Alertas@bhd.com.do",
+  "subject": "Transacciones entre productos BHD y a otros Bancos",
+  "date": "2026-10-01T14:18:19Z",
+  "labelIds": [
+    "IMPORTANT",
+    "CATEGORY_UPDATES",
+    "INBOX"
+  ],
+  "text": "Estimado(a): JARVIN ANDRES PEREZ GOMEZ\n Esta es una confirmación de la transacción realizada por JARVIN ANDRES PEREZ desde el Banco BHD hacia su cuenta.\n La información relacionada a esta transacción es:\n Producto destino:\n XXXXXX2581 \n Descripción:\n Sobrante pago de tarjetas \n Monto:\n RD$ 2,750.00 \n Beneficiario:\n JARVIN ANDRES PEREZ GOMEZ \n Número de confirmación:\n M03-3333-4444-5555-6 \n Fecha y hora de la transacción:\n 01/10/2026 | 10:18 AM \n Tipo de transacción:\n Transacciones entre productos BHD y a otros Bancos \n Nota: Este correo electrónico es generado de manera automática por el sistema, por favor no responder a este mensaje.\n Cordialmente,\n Banco BHD",
+  "expected": {
+    "kind": "transfer_out_confirmation_to_beneficiary",
+    "originLast4": null,
+    "destinationLast4": "2581",
+    "description": "Sobrante pago de tarjetas",
+    "amount": "2,750.00",
+    "currency": "RD$",
+    "beneficiary": "JARVIN ANDRES PEREZ GOMEZ",
+    "confirmation": "M03-3333-4444-5555-6",
+    "datetime": "01/10/2026 | 10:18 AM",
+    "transactionType": "Transacciones entre productos BHD y a otros Bancos",
+    "note": "Copia enviada al beneficiario (cuenta propia en Qik *2581). Mismo envio que otra alerta: deduplicar por numero de confirmacion."
+  }
+}
