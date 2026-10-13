@@ -50,6 +50,7 @@ export type UpsertEmailMessageInput = {
   lastFourHint?: string | null;
   accountNumberHint?: string | null;
   extractedPayload?: unknown;
+  fingerprint?: string | null;
 };
 
 @Injectable()
@@ -453,6 +454,7 @@ export class EmailSourceRepository {
       lastFourHint,
       accountNumberHint,
       extractedPayload,
+      fingerprint,
     } = data;
     return this.prisma.finEmailMessage.upsert({
       where: {
@@ -468,6 +470,7 @@ export class EmailSourceRepository {
         instrumentHint: instrumentHint ?? null,
         lastFourHint: lastFourHint ?? null,
         accountNumberHint: accountNumberHint ?? null,
+        fingerprint: fingerprint ?? null,
         extractedPayload:
           extractedPayload === undefined || extractedPayload === null
             ? undefined
@@ -487,6 +490,9 @@ export class EmailSourceRepository {
         ...(accountNumberHint !== undefined
           ? { accountNumberHint: accountNumberHint ?? null }
           : {}),
+        ...(fingerprint !== undefined
+          ? { fingerprint: fingerprint ?? null }
+          : {}),
         ...(extractedPayload !== undefined
           ? {
               extractedPayload:
@@ -496,6 +502,13 @@ export class EmailSourceRepository {
             }
           : {}),
       },
+    });
+  }
+
+  findEmailMessageByFingerprint(sourceId: string, fingerprint: string) {
+    return this.prisma.finEmailMessage.findFirst({
+      where: { sourceId, fingerprint },
+      select: { id: true, outcome: true },
     });
   }
 }
