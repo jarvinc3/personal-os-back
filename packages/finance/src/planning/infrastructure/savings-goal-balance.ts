@@ -16,17 +16,16 @@ export async function applySavingsGoalBalance(
   });
   const contributions = await tx.finSavingsGoalContribution.findMany({
     where: { goalId },
-    select: { amount: true, kind: true },
+    select: { amount: true, kind: true, transactionId: true },
   });
-  const contributedAmount = contributions.reduce(
-    (sum, row) =>
-      sum +
-      (row.kind === 'WITHDRAWAL' ? -Number(row.amount) : Number(row.amount)),
-    0,
-  );
   const progress = resolveSavingsGoalProgress({
     targetAmount: Number(goal.targetAmount),
-    contributedAmount,
+    allocations: contributions.map((row) => ({
+      amount: Number(row.amount),
+      kind: row.kind,
+      transactionId: row.transactionId,
+    })),
+    spendReducesProgress: goal.spendReducesProgress ?? true,
   });
   await tx.finSavingsGoal.update({
     where: { id: goalId },

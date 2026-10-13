@@ -5,15 +5,33 @@ export type SavingsGoalProgress = {
   isCompleted: boolean;
 };
 
+export type SavingsGoalAllocation = {
+  amount: number;
+  kind: 'CONTRIBUTION' | 'WITHDRAWAL';
+  transactionId?: string | null;
+};
+
 /**
- * The recorded contributions are the only source of a goal balance, so the
- * cached amount and the completion flag always come from their sum.
+ * The recorded allocations are the only source of a goal balance. Drawings
+ * return money and always subtract; a drawing tied to an expense subtracts only
+ * when the goal lets spending reduce progress.
  */
 export function resolveSavingsGoalProgress(input: {
   targetAmount: number;
-  contributedAmount: number;
+  allocations: readonly SavingsGoalAllocation[];
+  spendReducesProgress?: boolean;
 }): SavingsGoalProgress {
-  const currentAmount = roundMoney(input.contributedAmount);
+  const spendReduces = input.spendReducesProgress ?? true;
+  const contributedAmount = input.allocations.reduce((sum, allocation) => {
+    if (allocation.kind !== 'WITHDRAWAL') {
+      return sum + allocation.amount;
+    }
+    if (!spendReduces && allocation.transactionId) {
+      return sum;
+    }
+    return sum - allocation.amount;
+  }, 0);
+  const currentAmount = roundMoney(contributedAmount);
   return {
     currentAmount,
     isCompleted: currentAmount >= input.targetAmount,

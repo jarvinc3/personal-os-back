@@ -1888,4 +1888,123 @@ describe('Finance (e2e)', () => {
       .set('Authorization', `Bearer ${token}`)
       .expect(404);
   });
+
+  it('POST /api/finance/card-payments returns 404 when the card is missing', async () => {
+    prismaMock.finCard.findFirst.mockResolvedValue(null);
+
+    await request(app.getHttpServer())
+      .post('/api/finance/card-payments')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        fromAccountId: '11111111-1111-4111-8111-111111111111',
+        cardId: '22222222-2222-4222-8222-222222222222',
+        amount: 100,
+        transactionDate: '2026-01-03T10:00:00.000Z',
+      })
+      .expect(404);
+  });
+
+  it('POST /api/finance/savings-goals/:id/allocations returns 404 when the goal is missing', async () => {
+    prismaMock.finSavingsGoal.findFirst.mockResolvedValue(null);
+
+    await request(app.getHttpServer())
+      .post(
+        '/api/finance/savings-goals/33333333-3333-4333-8333-333333333333/allocations',
+      )
+      .set('Authorization', `Bearer ${token}`)
+      .send({ amount: 50 })
+      .expect(404);
+  });
+
+  it('POST /api/finance/savings-goals/:id/contributions keeps the deprecated alias', async () => {
+    prismaMock.finSavingsGoal.findFirst.mockResolvedValue(null);
+
+    await request(app.getHttpServer())
+      .post(
+        '/api/finance/savings-goals/33333333-3333-4333-8333-333333333333/contributions',
+      )
+      .set('Authorization', `Bearer ${token}`)
+      .send({ amount: 50 })
+      .expect(404);
+  });
+
+  it('POST /api/finance/loans/:id/pay-next-installment returns 404 when the loan is missing', async () => {
+    prismaMock.finLoan.findFirst.mockResolvedValue(null);
+
+    await request(app.getHttpServer())
+      .post(
+        '/api/finance/loans/77777777-7777-4777-8777-777777777777/pay-next-installment',
+      )
+      .set('Authorization', `Bearer ${token}`)
+      .send({})
+      .expect(404);
+  });
+
+  it('POST /api/finance/receivables/:id/write-off returns 404 when the receivable is missing', async () => {
+    prismaMock.finReceivable.findFirst.mockResolvedValue(null);
+
+    await request(app.getHttpServer())
+      .post(
+        '/api/finance/receivables/88888888-8888-4888-8888-888888888888/write-off',
+      )
+      .set('Authorization', `Bearer ${token}`)
+      .send({})
+      .expect(404);
+  });
+
+  it('POST /api/finance/transfers/:id/unconfirm returns 404 when the leg is missing', async () => {
+    prismaMock.finTransaction.findFirst.mockResolvedValue(null);
+
+    await request(app.getHttpServer())
+      .post(
+        '/api/finance/transfers/99999999-9999-4999-8999-999999999999/unconfirm',
+      )
+      .set('Authorization', `Bearer ${token}`)
+      .expect(404);
+  });
+
+  it('POST /api/finance/transactions/:id/merge requires a target id', async () => {
+    await request(app.getHttpServer())
+      .post(
+        '/api/finance/transactions/99999999-9999-4999-8999-999999999999/merge',
+      )
+      .set('Authorization', `Bearer ${token}`)
+      .send({})
+      .expect(400);
+  });
+
+  it('POST /api/finance/transactions/:id/not-duplicate clears the flag', async () => {
+    prismaMock.finTransaction.updateMany.mockResolvedValue({ count: 1 });
+
+    await request(app.getHttpServer())
+      .post(
+        '/api/finance/transactions/99999999-9999-4999-8999-999999999999/not-duplicate',
+      )
+      .set('Authorization', `Bearer ${token}`)
+      .expect(201)
+      .expect((res) => {
+        expect(res.body.data).toEqual({ success: true });
+      });
+  });
+
+  it('GET /api/finance/transactions accepts possibleDuplicates', async () => {
+    prismaMock.finTransaction.findMany.mockResolvedValue([]);
+
+    await request(app.getHttpServer())
+      .get('/api/finance/transactions?possibleDuplicates=true')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
+      .expect((res) => {
+        expect(Array.isArray(res.body.data.items)).toBe(true);
+      });
+  });
+
+  it('POST /api/finance/budgets/:id/restore returns 404 without a journal entry', async () => {
+    prismaMock.finDeletionJournal.findFirst.mockResolvedValue(null);
+
+    await request(app.getHttpServer())
+      .post('/api/finance/budgets/33333333-3333-4333-8333-333333333333/restore')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(404);
+  });
 });

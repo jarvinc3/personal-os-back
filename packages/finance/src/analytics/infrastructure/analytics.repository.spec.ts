@@ -14,6 +14,7 @@ describe('AnalyticsRepository', () => {
       expect.objectContaining({
         where: expect.objectContaining({
           userId: 'user-1',
+          linkedTransactionId: null,
           OR: [{ transferGroupId: null }, { legRole: 'FEE' }],
         }),
       }),
@@ -25,6 +26,7 @@ describe('AnalyticsRepository', () => {
         where: expect.objectContaining({
           type: 'DEBIT',
           status: 'CONFIRMED',
+          linkedTransactionId: null,
           OR: [{ transferGroupId: null }, { legRole: 'FEE' }],
         }),
       }),
@@ -35,5 +37,6 @@ describe('AnalyticsRepository', () => {
     const sql = Array.isArray(template) ? template.join(' ') : '';
     expect(sql).toContain('transfer_group_id');
     expect(sql).toContain('leg_role');
+    expect(sql).toMatch(/"linked_transaction_id"\s+IS NULL/);
   });
 });

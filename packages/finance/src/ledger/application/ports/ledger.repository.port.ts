@@ -110,6 +110,12 @@ export interface LedgerRepositoryPort {
     userId: string,
   ): Promise<{ id: string; currency: string } | null>;
 
+  /** Savings goal that earmarks this account, if any. */
+  findSavingsGoalIdByAccount(
+    userId: string,
+    accountId: string,
+  ): Promise<string | null>;
+
   findTransactionByEmailMessageId(
     gmailMessageId: string,
     userId?: string,

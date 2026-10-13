@@ -56,6 +56,8 @@ export type PrismaMock = {
     count: MockFn;
     create: MockFn;
     groupBy: MockFn;
+    update: MockFn;
+    updateMany: MockFn;
   };
   finCard: {
     findMany: MockFn;
@@ -497,6 +499,8 @@ export function createPrismaMock(): PrismaMock {
       count: jest.fn().mockResolvedValue(0),
       create: jest.fn(),
       groupBy: jest.fn().mockResolvedValue([]),
+      update: jest.fn(),
+      updateMany: jest.fn().mockResolvedValue({ count: 0 }),
     },
     finEmailSource: {
       findMany: jest.fn().mockResolvedValue([]),

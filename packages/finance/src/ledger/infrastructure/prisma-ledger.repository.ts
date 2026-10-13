@@ -275,6 +275,17 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
     });
   }
 
+  async findSavingsGoalIdByAccount(
+    userId: string,
+    accountId: string,
+  ): Promise<string | null> {
+    const goal = await this.prisma.finSavingsGoal.findFirst({
+      where: { userId, accountId },
+      select: { id: true },
+    });
+    return goal?.id ?? null;
+  }
+
   async findBalanceAdjustmentTarget(
     userId: string,
     input: { accountId?: string; cardId?: string; currency?: string },

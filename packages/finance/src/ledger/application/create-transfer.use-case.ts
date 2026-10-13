@@ -98,10 +98,14 @@ export class CreateTransferUseCase {
     }
 
     void this.outboxDispatcher.processBatch();
+    const suggestGoalId = command.toAccountId
+      ? await this.repo.findSavingsGoalIdByAccount(userId, command.toAccountId)
+      : null;
     return {
       transferGroupId: created.transferGroupId,
       debit: mapLedgerTransaction(created.debit),
       credit: mapLedgerTransaction(created.credit),
+      ...(suggestGoalId ? { suggestGoalId } : {}),
     };
   }
 
