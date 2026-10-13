@@ -11,7 +11,17 @@ import {
 } from '@personal-os/core';
 import { FinanceOwnershipService } from '../../shared/application/finance-ownership.service';
 import { assertRestored } from '../../shared/application/assert-restored';
+import { LedgerQueryService } from '../../ledger/application/ledger-query.service';
 import { PlanningRepository } from '../infrastructure/planning.repository';
+import {
+  BUDGET_ROLLOVER,
+  carriedOverFrom,
+  type BudgetRollover,
+} from '../domain/budget-rollover';
+import {
+  endOfUtcDay,
+  nextBudgetPeriod,
+} from '../domain/budget-period';
 import type { CreateBudgetDto } from '../presentation/dto/create-budget.dto';
 import type { CreateLoanDto } from '../presentation/dto/create-loan.dto';
 import type { CreateReceivableDto } from '../presentation/dto/create-receivable.dto';
@@ -37,6 +47,7 @@ export class PlanningService {
     private readonly repo: PlanningRepository,
     private readonly ownership: FinanceOwnershipService,
     private readonly syncInstallments: SyncLoanInstallmentsUseCase,
+    private readonly ledger: LedgerQueryService,
   ) {}
 
   async listBudgets(userId: string) {
@@ -94,7 +105,8 @@ export class PlanningService {
     if (!created) {
       throw new NotFoundException('Budget not found');
     }
-    return mapBudget(created);
+    await this.applyCarriedOver(userId, created);
+    return mapBudget((await this.repo.findBudget(userId, budgetId)) ?? created);
   }
 
   async updateBudget(userId: string, id: string, dto: UpdateBudgetDto) {
@@ -144,7 +156,122 @@ export class PlanningService {
     if (!updated) {
       throw new NotFoundException('Budget not found');
     }
-    return mapBudget(updated);
+    await this.applyCarriedOver(userId, updated);
+    return mapBudget(
+      (await this.repo.findBudget(userId, updatedId)) ?? updated,
+    );
+  }
+
+  async getBudgetTransactions(
+    userId: string,
+    id: string,
+    query: CursorQueryDto,
+  ) {
+    const budget = await this.repo.findBudget(userId, id);
+    if (!budget) {
+      throw new NotFoundException('Budget not found');
+    }
+    const categoryIds = budget.categories.map((entry) => entry.categoryId);
+    if (budget.includeChildren) {
+      categoryIds.push(...(await this.repo.listChildCategoryIds(categoryIds)));
+    }
+    if (categoryIds.length === 0) {
+      return { items: [], nextCursor: null, hasMore: false };
+    }
+    return this.ledger.listTransactions(userId, {
+      cursor: query.cursor,
+      limit: query.limit,
+      categoryIds,
+      type: 'DEBIT',
+      status: 'CONFIRMED',
+      dateFrom: budget.periodStart.toISOString(),
+      dateTo: endOfUtcDay(budget.periodEnd).toISOString(),
+    });
+  }
+
+  /**
+   * Creates the next period of every recurring budget whose period ended. The
+   * overlapping check makes the job idempotent. The scheduler calls it daily.
+   */
+  async createRecurringBudgets(now: Date) {
+    const budgets = await this.repo.listRecurringBudgets();
+    let created = 0;
+    for (const budget of budgets) {
+      if (budget.periodEnd.getTime() >= now.getTime()) {
+        continue;
+      }
+      const categoryIds = budget.categories.map((entry) => entry.categoryId);
+      if (categoryIds.length === 0) {
+        continue;
+      }
+      const next = nextBudgetPeriod({
+        periodType: budget.periodType,
+        periodStart: budget.periodStart,
+        periodEnd: budget.periodEnd,
+      });
+      const overlapping = await this.repo.findOverlappingBudgetForCategories(
+        budget.userId,
+        categoryIds,
+        next.periodStart,
+        next.periodEnd,
+      );
+      if (overlapping) {
+        continue;
+      }
+      const newBudgetId = await this.repo.createBudget(
+        budget.userId,
+        {
+          categoryId: categoryIds[0] ?? null,
+          name: budget.name,
+          includeChildren: budget.includeChildren,
+          rollover: budget.rollover,
+          recurring: budget.recurring,
+          periodType: budget.periodType,
+          periodStart: next.periodStart,
+          periodEnd: next.periodEnd,
+          amountLimit: Number(budget.amountLimit),
+          amountSpent: 0,
+          alertThresholdPct: Number(budget.alertThresholdPct),
+        },
+        categoryIds,
+      );
+      const newBudget = await this.repo.findBudget(budget.userId, newBudgetId);
+      if (newBudget) {
+        await this.applyCarriedOver(budget.userId, newBudget);
+      }
+      created += 1;
+    }
+    return { created };
+  }
+
+  private async applyCarriedOver(
+    userId: string,
+    budget: {
+      id: string;
+      rollover: string;
+      periodStart: Date;
+      categories: Array<{ categoryId: string }>;
+    },
+  ): Promise<void> {
+    const categoryIds = budget.categories.map((entry) => entry.categoryId);
+    let carriedOver = 0;
+    if (categoryIds.length > 0 && budget.rollover !== BUDGET_ROLLOVER.NONE) {
+      const previous = await this.repo.findPreviousBudgetForCategories(
+        userId,
+        categoryIds,
+        budget.periodStart,
+        budget.id,
+      );
+      if (previous && previous.categories.length === categoryIds.length) {
+        carriedOver = carriedOverFrom({
+          rollover: budget.rollover as BudgetRollover,
+          previousLimit: Number(previous.amountLimit),
+          previousCarriedOver: Number(previous.carriedOver),
+          previousSpent: Number(previous.amountSpent),
+        });
+      }
+    }
+    await this.repo.updateBudget(userId, budget.id, { carriedOver });
   }
 
   private async assertCategoriesNotBudgeted(

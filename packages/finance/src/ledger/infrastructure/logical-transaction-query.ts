@@ -24,6 +24,9 @@ export function logicalTransactionsWhere(
   if (query.categoryId) {
     and.push({ categoryId: query.categoryId });
   }
+  if (query.categoryIds && query.categoryIds.length > 0) {
+    and.push({ categoryId: { in: query.categoryIds } });
+  }
   if (query.status) {
     and.push({ status: query.status });
   }

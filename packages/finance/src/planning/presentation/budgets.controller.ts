@@ -36,6 +36,18 @@ export class BudgetsController {
     return this.planning.getBudget(userId, id);
   }
 
+  @Get('budgets/:id/transactions')
+  @ApiOperation({
+    summary: 'Movements that count toward the budget, with their subcategories',
+  })
+  transactions(
+    @CurrentUser('sub') userId: string,
+    @Param('id') id: string,
+    @Query() query: CursorQueryDto,
+  ) {
+    return this.planning.getBudgetTransactions(userId, id, query);
+  }
+
   @Post('budgets')
   create(@CurrentUser('sub') userId: string, @Body() dto: CreateBudgetDto) {
     return this.planning.createBudget(userId, dto);

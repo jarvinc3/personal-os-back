@@ -132,6 +132,45 @@ export class PlanningRepository {
     });
   }
 
+  findPreviousBudgetForCategories(
+    userId: string,
+    categoryIds: string[],
+    periodStart: Date,
+    excludeBudgetId?: string,
+  ) {
+    return this.prisma.finBudget.findFirst({
+      where: {
+        userId,
+        ...(excludeBudgetId ? { id: { not: excludeBudgetId } } : {}),
+        periodEnd: { lt: periodStart },
+        categories: {
+          some: { categoryId: { in: categoryIds } },
+          every: { categoryId: { in: categoryIds } },
+        },
+      },
+      include: { categories: true },
+      orderBy: { periodEnd: 'desc' },
+    });
+  }
+
+  async listChildCategoryIds(parentIds: string[]): Promise<string[]> {
+    if (parentIds.length === 0) {
+      return [];
+    }
+    const rows = await this.prisma.finCategory.findMany({
+      where: { parentId: { in: parentIds } },
+      select: { id: true },
+    });
+    return rows.map((row) => row.id);
+  }
+
+  listRecurringBudgets() {
+    return this.prisma.finBudget.findMany({
+      where: { recurring: true },
+      include: { categories: { include: { category: true } } },
+    });
+  }
+
   deleteBudget(userId: string, id: string) {
     return this.prisma.$transaction(async (tx) => {
       const budget = await tx.finBudget.findFirst({

@@ -11,6 +11,7 @@ import { AllocateToGoalUseCase } from './application/allocate-to-goal.use-case';
 import { RemoveSavingsGoalContributionUseCase } from './application/remove-savings-goal-contribution.use-case';
 import { SyncLoanInstallmentsUseCase } from './application/sync-loan-installments.use-case';
 import { PlanningRepository } from './infrastructure/planning.repository';
+import { BudgetRecurringScheduler } from './infrastructure/budget-recurring.scheduler';
 import { LoanInstallmentsBackfill } from './infrastructure/loan-installments-backfill';
 import { BudgetsController } from './presentation/budgets.controller';
 import { LoansController } from './presentation/loans.controller';
@@ -42,6 +43,7 @@ import { FinancePlanningThresholdModule } from './planning-threshold.module';
     AllocateToGoalUseCase,
     RemoveSavingsGoalContributionUseCase,
     LoanInstallmentsBackfill,
+    BudgetRecurringScheduler,
   ],
   exports: [
     PlanningService,

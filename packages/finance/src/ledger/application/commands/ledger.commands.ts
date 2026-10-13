@@ -80,6 +80,7 @@ export type ListTransactionsQuery = {
   accountId?: string;
   cardId?: string;
   categoryId?: string;
+  categoryIds?: string[];
   type?: FinTransactionTypeValue;
   status?: FinTxStatus;
   dateFrom?: string;

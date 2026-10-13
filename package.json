@@ -40,6 +40,7 @@
     "db:backfill-logos": "ts-node -r tsconfig-paths/register scripts/backfill-institution-logos.ts",
     "db:backfill-loan-schedule": "ts-node -r tsconfig-paths/register scripts/finance/backfill-loan-schedule.ts",
     "db:backfill-goal-allocations": "ts-node -r tsconfig-paths/register scripts/finance/backfill-goal-allocations.ts",
+    "db:backfill-budget-spent": "ts-node -r tsconfig-paths/register scripts/finance/backfill-budget-spent.ts",
     "db:dedupe-existing": "ts-node -r tsconfig-paths/register scripts/finance/dedupe-existing.ts"
   },
   "dependencies": {
