@@ -14,6 +14,12 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [Se
 - `STATEMENT_CLOSED` en el historial de la tarjeta.
 - Scripts de datos `dedupe-existing.ts` y `backfill-budget-spent.ts`, con `--dry-run`.
 - Alias deprecado `POST/GET/DELETE /savings-goals/:id/contributions`.
+- `GET /cards/:id/statements` pagina con cursor (`items`, `nextCursor`, `hasMore`).
+- El historial de cuenta y tarjeta pagina con cursor en la base en vez de cargar todo en memoria.
+
+### Cambiado
+
+- `GET /cards/:id/statements` devuelve una página y no un arreglo.
 
 ### Corregido
 

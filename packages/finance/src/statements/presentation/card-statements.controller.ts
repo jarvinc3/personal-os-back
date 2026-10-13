@@ -1,6 +1,15 @@
-import { Body, Controller, Get, Param, Patch, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CurrentUser, RequiresEnabledModule } from '@personal-os/core';
+import { CursorQueryDto } from '@personal-os/core';
 import { CardStatementsService } from '../application/card-statements.service';
 import { UpdateCardStatementDto } from './dto/update-card-statement.dto';
 
@@ -13,8 +22,12 @@ export class CardStatementsController {
 
   @Get('cards/:id/statements')
   @ApiOperation({ summary: 'Billing statements of a credit card' })
-  list(@CurrentUser('sub') userId: string, @Param('id') id: string) {
-    return this.statements.listCardStatements(userId, id, new Date());
+  list(
+    @CurrentUser('sub') userId: string,
+    @Param('id') id: string,
+    @Query() query: CursorQueryDto,
+  ) {
+    return this.statements.listCardStatements(userId, id, query, new Date());
   }
 
   @Get('cards/:id/statements/:statementId')

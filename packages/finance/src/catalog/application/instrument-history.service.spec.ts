@@ -52,7 +52,9 @@ describe('InstrumentHistoryService', () => {
       adjustment('a1', '2026-10-03T12:00:00.000Z', 150, 'DOP'),
     ]);
 
-    const page = await service.getCardHistory('user-1', 'card-1', {});
+    const page = await service.getCardHistory('user-1', 'card-1', {
+      limit: 10,
+    });
 
     expect(page.items.map((item) => item.id)).toEqual(['a1', 'e1']);
     expect(page.items[0]).toMatchObject({
@@ -85,13 +87,18 @@ describe('InstrumentHistoryService', () => {
       cursor: firstPage.nextCursor ?? undefined,
     });
     expect(secondPage.items.map((item) => item.id)).toEqual(['e1']);
+    const [, , pageArg] = findInstrumentEvents.mock.calls.at(-1) ?? [];
+    expect(pageArg).toEqual({
+      cursor: expect.objectContaining({ id: 'a1' }),
+      take: 2,
+    });
   });
 
   it('rejects an account that does not belong to the user', async () => {
     findAccountById.mockResolvedValue(null);
 
     await expect(
-      service.getAccountHistory('user-1', 'acc-x', {}),
+      service.getAccountHistory('user-1', 'acc-x', { limit: 10 }),
     ).rejects.toThrow('Account not found');
   });
 });

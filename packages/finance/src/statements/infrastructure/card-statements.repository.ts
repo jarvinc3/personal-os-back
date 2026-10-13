@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import type { CursorPoint } from '@personal-os/core';
 import { PrismaService } from '@personal-os/database';
 import type { $Enums, Prisma } from '@personal-os/database';
 import { CONFIRMED_TRANSACTION_STATUS } from '../domain/card-statement-amounts';
@@ -72,10 +73,27 @@ export class CardStatementsRepository {
     });
   }
 
-  listStatements(cardId: string) {
+  listStatements(
+    cardId: string,
+    page: { cursor: CursorPoint | null; take: number },
+  ) {
     return this.prisma.finCardStatement.findMany({
-      where: { cardId },
-      orderBy: { cycleEnd: 'desc' },
+      where: {
+        cardId,
+        ...(page.cursor
+          ? {
+              OR: [
+                { cycleEnd: { lt: new Date(page.cursor.key) } },
+                {
+                  cycleEnd: new Date(page.cursor.key),
+                  id: { lt: page.cursor.id },
+                },
+              ],
+            }
+          : {}),
+      },
+      orderBy: [{ cycleEnd: 'desc' }, { id: 'desc' }],
+      take: page.take,
     });
   }
 

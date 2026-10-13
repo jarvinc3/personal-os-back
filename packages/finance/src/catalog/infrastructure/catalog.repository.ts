@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import type { CursorPoint } from '@personal-os/core';
 import type { Prisma } from '@personal-os/database';
 import { PrismaService } from '@personal-os/database';
 import type { LedgerTransactionRow } from '../../ledger/application/ports/ledger.repository.port';
@@ -334,20 +335,34 @@ export class CatalogRepository {
   findInstrumentEvents(
     userId: string,
     target: { accountId?: string; cardId?: string },
+    page: { cursor: CursorPoint | null; take: number },
   ) {
     return this.prisma.finInstrumentEvent.findMany({
       where: {
         userId,
         ...(target.accountId ? { accountId: target.accountId } : {}),
         ...(target.cardId ? { cardId: target.cardId } : {}),
+        ...(page.cursor
+          ? {
+              OR: [
+                { createdAt: { lt: new Date(page.cursor.key) } },
+                {
+                  createdAt: new Date(page.cursor.key),
+                  id: { lt: page.cursor.id },
+                },
+              ],
+            }
+          : {}),
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      take: page.take,
     });
   }
 
   findAdjustmentTransactions(
     userId: string,
     target: { accountId?: string; cardId?: string },
+    page: { cursor: CursorPoint | null; take: number },
   ) {
     return this.prisma.finTransaction.findMany({
       where: {
@@ -355,8 +370,20 @@ export class CatalogRepository {
         type: 'ADJUSTMENT',
         ...(target.accountId ? { accountId: target.accountId } : {}),
         ...(target.cardId ? { cardId: target.cardId } : {}),
+        ...(page.cursor
+          ? {
+              OR: [
+                { transactionDate: { lt: new Date(page.cursor.key) } },
+                {
+                  transactionDate: new Date(page.cursor.key),
+                  id: { lt: page.cursor.id },
+                },
+              ],
+            }
+          : {}),
       },
-      orderBy: { transactionDate: 'desc' },
+      orderBy: [{ transactionDate: 'desc' }, { id: 'desc' }],
+      take: page.take,
     });
   }
 

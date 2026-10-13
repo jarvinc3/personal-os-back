@@ -2007,4 +2007,76 @@ describe('Finance (e2e)', () => {
       .set('Authorization', `Bearer ${token}`)
       .expect(404);
   });
+
+  it('POST /api/finance/card-payments creates the two card payment legs', async () => {
+    const cardId = '22222222-2222-4222-8222-222222222222';
+    const accountId = '11111111-1111-4111-8111-111111111111';
+    prismaMock.finCard.findFirst.mockResolvedValue({
+      id: cardId,
+      userId: 'user-123',
+      name: 'Visa',
+      type: 'CREDIT',
+      accountId: null,
+      balances: [{ currency: 'DOP' }],
+    });
+    prismaMock.finAccount.findFirst.mockResolvedValue({
+      id: accountId,
+      userId: 'user-123',
+      currency: 'DOP',
+    });
+
+    await request(app.getHttpServer())
+      .post('/api/finance/card-payments')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        fromAccountId: accountId,
+        cardId,
+        amount: 100,
+        currency: 'DOP',
+        transactionDate: '2026-01-03T10:00:00.000Z',
+      })
+      .expect(201)
+      .expect((res) => {
+        expect(res.body.data).toHaveProperty('transferGroupId');
+        expect(res.body.data).toHaveProperty('debit');
+        expect(res.body.data).toHaveProperty('credit');
+      });
+  });
+
+  it('GET /api/finance/cards/:id/statements lists the mapped statements', async () => {
+    const cardId = '22222222-2222-4222-8222-222222222222';
+    prismaMock.finCard.findFirst.mockResolvedValue({
+      id: cardId,
+      userId: 'user-123',
+      type: 'CREDIT',
+      statementClosingDay: 15,
+      paymentDueDay: 5,
+      balances: [{ currency: 'DOP', balance: 0, creditLimit: 1000 }],
+      transactions: [],
+    });
+    prismaMock.finCardStatement.findMany.mockResolvedValue([
+      {
+        id: '99999999-9999-4999-8999-999999999999',
+        cardId,
+        currency: 'DOP',
+        cycleStart: new Date('2026-01-01T00:00:00.000Z'),
+        cycleEnd: new Date('2026-01-15T00:00:00.000Z'),
+        dueDate: new Date('2026-01-25T00:00:00.000Z'),
+        closingBalance: 100,
+        minimumPayment: null,
+        minimumSource: null,
+      },
+    ]);
+
+    await request(app.getHttpServer())
+      .get(`/api/finance/cards/${cardId}/statements`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
+      .expect((res) => {
+        expect(Array.isArray(res.body.data.items)).toBe(true);
+        expect(res.body.data.items).toHaveLength(1);
+        expect(res.body.data.items[0]).toHaveProperty('paidAmount');
+        expect(res.body.data.items[0]).toHaveProperty('status');
+      });
+  });
 });

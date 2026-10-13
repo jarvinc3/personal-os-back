@@ -56,9 +56,12 @@ export class InstrumentHistoryService {
     target: InstrumentTarget,
     query: CursorQueryDto,
   ) {
+    const limit = clampPageLimit(query.limit);
+    const cursor = query.cursor ? decodeCursor(query.cursor) : null;
+    const take = limit + 1;
     const [events, adjustments] = await Promise.all([
-      this.repo.findInstrumentEvents(userId, target),
-      this.repo.findAdjustmentTransactions(userId, target),
+      this.repo.findInstrumentEvents(userId, target, { cursor, take }),
+      this.repo.findAdjustmentTransactions(userId, target, { cursor, take }),
     ]);
 
     const items: InstrumentHistoryItem[] = [
@@ -84,7 +87,6 @@ export class InstrumentHistoryService {
         : right.at.localeCompare(left.at),
     );
 
-    const cursor = query.cursor ? decodeCursor(query.cursor) : null;
     const afterCursor = cursor
       ? items.filter(
           (item) =>
@@ -93,10 +95,6 @@ export class InstrumentHistoryService {
         )
       : items;
 
-    return toCursorPage(
-      afterCursor,
-      clampPageLimit(query.limit),
-      (item) => item.at,
-    );
+    return toCursorPage(afterCursor, limit, (item) => item.at);
   }
 }

@@ -139,8 +139,14 @@ export class FinanceFacade {
     return this.createCardPaymentTx.execute(userId, command);
   }
 
-  getCardStatements(userId: string, cardId: string) {
-    return this.statements.listCardStatements(userId, cardId, new Date());
+  async getCardStatements(userId: string, cardId: string) {
+    const page = await this.statements.listCardStatements(
+      userId,
+      cardId,
+      { limit: 20 },
+      new Date(),
+    );
+    return page.items;
   }
 
   getCardStatement(userId: string, cardId: string, statementId: string) {

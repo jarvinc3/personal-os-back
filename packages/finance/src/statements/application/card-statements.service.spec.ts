@@ -153,10 +153,11 @@ describe('CardStatementsService', () => {
     const statements = await service.listCardStatements(
       'user-1',
       'card-1',
+      { limit: 10 },
       utc(2026, 3, 1),
     );
 
-    expect(statements).toEqual([
+    expect(statements.items).toEqual([
       {
         id: 'statement-1',
         currency: 'DOP',
@@ -177,7 +178,12 @@ describe('CardStatementsService', () => {
     const { service } = setup(null);
 
     await expect(
-      service.listCardStatements('user-1', 'card-1', utc(2026, 3, 1)),
+      service.listCardStatements(
+        'user-1',
+        'card-1',
+        { limit: 10 },
+        utc(2026, 3, 1),
+      ),
     ).rejects.toBeInstanceOf(NotFoundException);
   });
 });

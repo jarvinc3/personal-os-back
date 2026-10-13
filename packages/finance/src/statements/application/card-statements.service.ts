@@ -3,6 +3,12 @@ import {
   NotFoundException,
   NotImplementedException,
 } from '@nestjs/common';
+import {
+  clampPageLimit,
+  decodeCursor,
+  toCursorPage,
+  type CursorQueryDto,
+} from '@personal-os/core';
 import { FinanceOwnershipService } from '../../shared/application/finance-ownership.service';
 import { debtAtClosing } from '../domain/card-statement-amounts';
 import {
@@ -53,20 +59,32 @@ export class CardStatementsService {
     private readonly ownership: FinanceOwnershipService,
   ) {}
 
-  async listCardStatements(userId: string, cardId: string, now: Date) {
+  async listCardStatements(
+    userId: string,
+    cardId: string,
+    query: CursorQueryDto,
+    now: Date,
+  ) {
     await this.ownership.assertCardOwned(userId, cardId);
+    const limit = clampPageLimit(query.limit);
+    const cursor = query.cursor ? decodeCursor(query.cursor) : null;
     const card = await this.repo.findCreditCard(cardId);
     if (!card) {
       throw new NotFoundException('Credit card not found');
     }
 
-    const rows = await this.repo.listStatements(cardId);
+    const rows = await this.repo.listStatements(cardId, {
+      cursor,
+      take: limit + 1,
+    });
     const views = buildCardStatementViews({
       statements: rows.map(toSnapshot),
       movements: card.transactions,
       today: startOfUtcDay(now),
     });
-    return views.map(mapCardStatement);
+    return toCursorPage(views.map(mapCardStatement), limit, (statement) =>
+      statement.cycleEnd.toISOString(),
+    );
   }
 
   async getStatementDetail(
