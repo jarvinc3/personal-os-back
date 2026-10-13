@@ -50,6 +50,7 @@ export type MappedTransaction = {
   transferToNetwork: string | null;
   transferToNetworkLogoUrl: string | null;
   linkedTransactionId: string | null;
+  possibleDuplicateOfId: string | null;
   aiMetadata: unknown;
   createdAt: string;
 };
@@ -119,6 +120,7 @@ function mapPhysicalTransaction(
     transferToNetwork: null,
     transferToNetworkLogoUrl: null,
     linkedTransactionId: tx.linkedTransactionId,
+    possibleDuplicateOfId: tx.possibleDuplicateOfId ?? null,
     aiMetadata: tx.aiMetadata,
     createdAt: tx.createdAt.toISOString(),
   };
@@ -220,6 +222,7 @@ export function mapLogicalTransaction(
     transferToNetwork: destination.network,
     transferToNetworkLogoUrl: destination.networkLogoUrl,
     linkedTransactionId: tx.linkedTransactionId,
+    possibleDuplicateOfId: tx.possibleDuplicateOfId ?? null,
     aiMetadata: tx.aiMetadata,
     createdAt: from.createdAt.toISOString(),
   };

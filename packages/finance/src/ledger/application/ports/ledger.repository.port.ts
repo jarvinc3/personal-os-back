@@ -36,6 +36,7 @@ export type LedgerTransactionRow = {
   rail?: string | null;
   transferGroupId: string | null;
   linkedTransactionId: string | null;
+  possibleDuplicateOfId?: string | null;
   emailMessageId?: string | null;
   aiMetadata?: unknown;
   transactionDate: Date;
