@@ -7,3 +7,7 @@ export const PAYMENT_EXCEEDS_INSTALLMENT_MESSAGE =
 
 export const LOAN_HAS_OVERDUE = 'LOAN_HAS_OVERDUE';
 export const LOAN_HAS_OVERDUE_MESSAGE = 'Paga primero las cuotas vencidas.';
+
+export const LOAN_ACCOUNT_REQUIRED = 'LOAN_ACCOUNT_REQUIRED';
+export const LOAN_ACCOUNT_REQUIRED_MESSAGE =
+  'Elige la cuenta desde la que pagas la cuota.';

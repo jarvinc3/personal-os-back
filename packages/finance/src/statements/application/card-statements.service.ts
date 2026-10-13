@@ -100,6 +100,7 @@ export class CardStatementsService {
         (movement) =>
           movement.ledgerCurrency === row.currency &&
           movement.type !== 'CARD_PAYMENT' &&
+          movement.type !== 'ADJUSTMENT' &&
           insideCycle(movement.transactionDate),
       ),
       payments: card.transactions.filter(
@@ -148,6 +149,7 @@ export class CardStatementsService {
     if (!card) {
       return;
     }
+    const userId = await this.repo.findCardOwnerId(cardId);
     const closingDay = card.statementClosingDay;
     if (!isStatementDay(closingDay)) {
       return;
@@ -200,7 +202,7 @@ export class CardStatementsService {
           movements,
           today,
         });
-        await this.repo.upsertStatement({
+        const statementId = await this.repo.upsertStatement({
           cardId,
           currency: balance.currency,
           cycleStart: cycle.cycleStart,
@@ -211,6 +213,16 @@ export class CardStatementsService {
           minimumSource: view.minimumSource,
           status: view.status,
         });
+        if (view.status !== 'OPEN' && userId) {
+          await this.repo.recordStatementClosedEvent({
+            userId,
+            cardId,
+            statementId,
+            currency: balance.currency,
+            cycleEnd: cycle.cycleEnd,
+            closingBalance,
+          });
+        }
       }
     }
   }

@@ -128,22 +128,19 @@ describe('PayNextLoanInstallmentUseCase', () => {
     });
   });
 
-  it('skips the movement when the loan has no linked account', async () => {
+  it('refuses to pay when no account is linked', async () => {
     const now = utc(2026, 2, 10);
     const { repo, createTransaction, useCase } = setup({
       found: loan({ accountId: null }),
     });
 
-    await useCase.execute('user-1', 'loan-1', now);
-
-    expect(createTransaction.execute).not.toHaveBeenCalled();
-    expect(repo.applyInstallmentPayment).toHaveBeenCalledWith('inst-2', {
-      paidAmount: 1500,
-      status: 'PAID',
-      paidAt: now,
-      transactionId: null,
+    await expect(
+      useCase.execute('user-1', 'loan-1', now),
+    ).rejects.toMatchObject({
+      response: { code: 'LOAN_ACCOUNT_REQUIRED' },
     });
-    expect(repo.updateLoan).toHaveBeenCalled();
+    expect(createTransaction.execute).not.toHaveBeenCalled();
+    expect(repo.applyInstallmentPayment).not.toHaveBeenCalled();
   });
 
   it('fails when there is no pending instalment', async () => {

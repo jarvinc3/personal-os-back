@@ -1,5 +1,4 @@
 import { NotFoundException } from '@nestjs/common';
-import type { CardStatementSnapshotRow } from '../infrastructure/card-statements.repository';
 import { CardStatementsService } from './card-statements.service';
 
 const utc = (year: number, month: number, day: number) =>
@@ -27,10 +26,9 @@ function creditCard(overrides: Record<string, unknown> = {}) {
 function setup(card: unknown, statements: readonly unknown[] = []) {
   const repo = {
     findCreditCard: jest.fn(() => Promise.resolve(card)),
+    findCardOwnerId: jest.fn(() => Promise.resolve(null)),
     listStatements: jest.fn(() => Promise.resolve(statements)),
-    upsertStatement: jest.fn((snapshot: CardStatementSnapshotRow) =>
-      Promise.resolve(snapshot),
-    ),
+    upsertStatement: jest.fn(() => Promise.resolve('statement-1')),
     listCreditCardsToSync: jest.fn(() => Promise.resolve([])),
   };
   const ownership = {

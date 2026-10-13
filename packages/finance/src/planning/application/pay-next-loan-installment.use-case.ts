@@ -6,6 +6,8 @@ import {
 import { CreateTransactionUseCase } from '../../ledger/application/create-transaction.use-case';
 import { roundMoney } from '../../shared/domain/money';
 import {
+  LOAN_ACCOUNT_REQUIRED,
+  LOAN_ACCOUNT_REQUIRED_MESSAGE,
   LOAN_NOT_FOUND,
   LOAN_NOT_FOUND_MESSAGE,
   PAYMENT_EXCEEDS_INSTALLMENT,
@@ -83,20 +85,23 @@ export class PayNextLoanInstallmentUseCase {
     });
 
     const accountId = command.accountId ?? loan.accountId;
-    let transactionId: string | null = null;
-    if (accountId) {
-      const categoryId = await this.repo.findLoanPaymentCategoryId();
-      const movement = await this.createTransaction.execute(userId, {
-        accountId,
-        type: 'DEBIT',
-        amount: requested,
-        currency: loan.currency,
-        transactionDate: now.toISOString(),
-        description: `Cuota ${installment.installmentNo}: ${loan.lenderName}`,
-        ...(categoryId ? { categoryId } : {}),
+    if (!accountId) {
+      throw new BadRequestException({
+        code: LOAN_ACCOUNT_REQUIRED,
+        message: LOAN_ACCOUNT_REQUIRED_MESSAGE,
       });
-      transactionId = movement.id;
     }
+    const categoryId = await this.repo.findLoanPaymentCategoryId();
+    const movement = await this.createTransaction.execute(userId, {
+      accountId,
+      type: 'DEBIT',
+      amount: requested,
+      currency: loan.currency,
+      transactionDate: now.toISOString(),
+      description: `Cuota ${installment.installmentNo}: ${loan.lenderName}`,
+      ...(categoryId ? { categoryId } : {}),
+    });
+    const transactionId = movement.id;
 
     const newPaidAmount = roundMoney(Number(installment.paidAmount) + paid);
     const fullyPaid = newPaidAmount >= Number(installment.amount) - 0.005;

@@ -53,6 +53,14 @@ export class CardStatementsRepository {
     });
   }
 
+  async findCardOwnerId(cardId: string): Promise<string | null> {
+    const row = await this.prisma.finCard.findUnique({
+      where: { id: cardId },
+      select: { userId: true },
+    });
+    return row?.userId ?? null;
+  }
+
   listCreditCardsToSync() {
     return this.prisma.finCard.findMany({
       where: {
@@ -96,14 +104,54 @@ export class CardStatementsRepository {
     });
   }
 
-  async upsertStatement(snapshot: CardStatementSnapshotRow): Promise<void> {
+  async upsertStatement(snapshot: CardStatementSnapshotRow): Promise<string> {
     const { cardId, currency, cycleEnd, ...rest } = snapshot;
-    await this.prisma.finCardStatement.upsert({
+    const row = await this.prisma.finCardStatement.upsert({
       where: {
         cardId_currency_cycleEnd: { cardId, currency, cycleEnd },
       },
       create: { cardId, currency, cycleEnd, ...rest },
       update: rest,
+    });
+    return row.id;
+  }
+
+  /**
+   * Timeline entry for a closed statement. Idempotent: re-syncing a card must
+   * not add the same closing twice.
+   */
+  async recordStatementClosedEvent(input: {
+    userId: string;
+    cardId: string;
+    statementId: string;
+    currency: string;
+    cycleEnd: Date;
+    closingBalance: number;
+  }): Promise<void> {
+    await this.prisma.$transaction(async (tx) => {
+      const existing = await tx.finInstrumentEvent.findFirst({
+        where: {
+          cardId: input.cardId,
+          kind: 'STATEMENT_CLOSED',
+          payload: { path: ['statementId'], equals: input.statementId },
+        },
+      });
+      if (existing) {
+        return;
+      }
+      await tx.finInstrumentEvent.create({
+        data: {
+          userId: input.userId,
+          cardId: input.cardId,
+          kind: 'STATEMENT_CLOSED',
+          payload: {
+            statementId: input.statementId,
+            currency: input.currency,
+            cycleEnd: input.cycleEnd.toISOString(),
+            closingBalance: input.closingBalance,
+          },
+        },
+      });
     });
   }
 }

@@ -26,7 +26,12 @@ export class AnalyticsRepository {
 
     return this.prisma.finTransaction.groupBy({
       by: ['type', 'status'],
-      where: { userId, ...REAL_MOVEMENT, ...dateFilter },
+      where: {
+        userId,
+        ...REAL_MOVEMENT,
+        linkedTransactionId: null,
+        ...dateFilter,
+      },
       _sum: { amountBaseCurrency: true },
       _count: { _all: true },
       orderBy: { type: 'asc' },
@@ -38,6 +43,7 @@ export class AnalyticsRepository {
       userId,
       type: 'DEBIT',
       status: 'CONFIRMED',
+      linkedTransactionId: null,
       ...REAL_MOVEMENT,
       ...(from || to
         ? {
@@ -96,6 +102,7 @@ export class AnalyticsRepository {
       WHERE "user_id" = ${userId}
         AND "status" = 'CONFIRMED'
         AND "type" IN ('DEBIT', 'CREDIT')
+        AND "linked_transaction_id" IS NULL
         AND ("transfer_group_id" IS NULL OR "leg_role" = 'FEE')
         ${from ? PrismaNS.sql`AND "transaction_date" >= ${from}` : PrismaNS.empty}
         ${to ? PrismaNS.sql`AND "transaction_date" <= ${to}` : PrismaNS.empty}
