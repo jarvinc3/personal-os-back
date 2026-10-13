@@ -7,6 +7,6 @@
 - `GET /loans/:id` y `GET /loans/:id/installments` (orden ascendente). `POST /loans/:id/pay-next-installment` paga la cuota impaga más antigua: registra un `DEBIT` `CONFIRMED` en la cuenta ligada (si hay), marca `paidAt`, sube `paidInstallments`, baja `currentBalance` y avanza `nextDueDate` un periodo. Sin cuenta ligada solo ajusta el préstamo. Las tres escrituras no son atómicas entre sí: primero se registra el movimiento para no dejar una cuota pagada sin su movimiento.
 - Backfill: al arrancar, `LoanInstallmentsBackfill` sincroniza los cronogramas de todos los préstamos activos (idempotente), para los creados antes de que existiera el cronograma.
 - Loans: `GET /loans` es array sin paginar.
-- Receivables: `GET/POST/PATCH`, **sin DELETE**. Status `PENDING`\|`PARTIAL`\|`PAID`\|`CANCELLED`. `paidAmount` ∈ [0, amount]; `PAID` exige `paidAmount=amount` (omitido se completa); omitir status deriva de amounts; `CANCELLED` no exige pago completo.
+- Receivables: `GET/POST/PATCH`, **sin DELETE**. Status `PENDING`\|`PARTIAL`\|`PAID`\|`CANCELLED`\|`WRITTEN_OFF`. `paidAmount` ∈ [0, amount]; `PAID` exige `paidAmount=amount` (omitido se completa); omitir status deriva de amounts; `CANCELLED` no exige pago completo y `WRITTEN_OFF` lo marcan `writtenOffAmount`/`writtenOffAt`.
 
 Evidencia: `planning/application/planning.service.ts` + specs.

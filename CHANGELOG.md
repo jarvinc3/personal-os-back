@@ -2,6 +2,17 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [SemVer](https://semver.org/lang/es/). Reglas y ejemplo en [docs/reference/changelog-guide.md](./docs/reference/changelog-guide.md).
 
+## [1.19.1] - 2026-10-13
+
+### Agregado
+
+- `CONTEXT.md`: glosario del dominio con los términos de negocio y los sinónimos que se descartan.
+
+### Corregido
+
+- `statements.md` lista los seis estados reales del corte (`OPEN`, `CLOSED`, `PARTIAL`, `MINIMUM_PAID`, `PAID`, `OVERDUE`) en vez de `PENDING` | `PARTIAL` | `PAID`.
+- `planning.md` incluye `WRITTEN_OFF` entre los estados del cobro.
+
 ## [1.19.0] - 2026-10-13
 
 ### Agregado
