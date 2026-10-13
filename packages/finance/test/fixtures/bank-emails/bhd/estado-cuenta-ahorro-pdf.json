@@ -1,0 +1,20 @@
+{
+  "from": "servicios@bhd.com.do",
+  "subject": "Estado de cuenta de tu cuenta de ahorro del BHD",
+  "date": "2026-09-10T17:54:37Z",
+  "labelIds": [
+    "IMPORTANT",
+    "CATEGORY_UPDATES",
+    "INBOX"
+  ],
+  "text": "Hola, PEREZ GOMEZ, JARVIN ANDRES.\n Reciba adjunto el estado de su cuenta de ahorros XXXXXXX-001-6 correspondiente al mes de Agosto . Si no puede visualizar el archivo, le sugerimos descargar el programa Adobe Reader.\n Para obtener información en línea sobre sus cuentas de manera rápida y segura, le invitamos a utilizar nuestros canales de internet banking y móvil banking. Si aún no tiene acceso, puede solicitarlo a travésde su ejecutivo.\n Recuerde que, somos parte de UNARED , la red de cajeros más grande del país a través de la cual podrá realizar retiros y consultas sin cargos adicionales en los cajeros de los bancos afiliados a UNARED.\n Si necesita información adicional, comuníquese con nuestro de Centro de Contacto en el 809.243.5000, opción 2.\n Cordialmente,\n Banco BHD",
+  "expected": {
+    "kind": "statement_pdf",
+    "product": "cuenta de ahorros",
+    "accountMasked": "XXXXXXX-001-6",
+    "period": "Agosto",
+    "hasAttachment": true,
+    "attachmentName": "000000ED_20260831.pdf",
+    "pdfEncrypted": "probable (imagen \"Estado cifrado\")"
+  }
+}

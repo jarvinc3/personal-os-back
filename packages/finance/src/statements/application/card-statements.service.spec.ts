@@ -1,5 +1,4 @@
 import { NotFoundException } from '@nestjs/common';
-import type { CardStatementSnapshotRow } from '../infrastructure/card-statements.repository';
 import { CardStatementsService } from './card-statements.service';
 
 const utc = (year: number, month: number, day: number) =>
@@ -27,10 +26,9 @@ function creditCard(overrides: Record<string, unknown> = {}) {
 function setup(card: unknown, statements: readonly unknown[] = []) {
   const repo = {
     findCreditCard: jest.fn(() => Promise.resolve(card)),
+    findCardOwnerId: jest.fn(() => Promise.resolve(null)),
     listStatements: jest.fn(() => Promise.resolve(statements)),
-    upsertStatement: jest.fn((snapshot: CardStatementSnapshotRow) =>
-      Promise.resolve(snapshot),
-    ),
+    upsertStatement: jest.fn(() => Promise.resolve('statement-1')),
     listCreditCardsToSync: jest.fn(() => Promise.resolve([])),
   };
   const ownership = {
@@ -54,6 +52,9 @@ describe('CardStatementsService', () => {
       cycleEnd: utc(2026, 1, 15),
       dueDate: utc(2026, 2, 5),
       closingBalance: 1000,
+      minimumPayment: 27.78,
+      minimumSource: 'ESTIMATED',
+      status: 'OVERDUE',
     });
     expect(repo.upsertStatement).toHaveBeenNthCalledWith(3, {
       cardId: 'card-1',
@@ -62,6 +63,9 @@ describe('CardStatementsService', () => {
       cycleEnd: utc(2026, 3, 15),
       dueDate: utc(2026, 4, 5),
       closingBalance: 1000,
+      minimumPayment: 27.78,
+      minimumSource: 'ESTIMATED',
+      status: 'CLOSED',
     });
   });
 
@@ -149,10 +153,11 @@ describe('CardStatementsService', () => {
     const statements = await service.listCardStatements(
       'user-1',
       'card-1',
+      { limit: 10 },
       utc(2026, 3, 1),
     );
 
-    expect(statements).toEqual([
+    expect(statements.items).toEqual([
       {
         id: 'statement-1',
         currency: 'DOP',
@@ -160,7 +165,9 @@ describe('CardStatementsService', () => {
         cycleEnd: utc(2026, 2, 15),
         dueDate: utc(2026, 3, 5),
         closingBalance: '1000',
-        amountPaid: '1000',
+        minimumPayment: '27.78',
+        minimumSource: 'ESTIMATED',
+        paidAmount: '1000',
         remaining: '0',
         status: 'PAID',
       },
@@ -171,7 +178,12 @@ describe('CardStatementsService', () => {
     const { service } = setup(null);
 
     await expect(
-      service.listCardStatements('user-1', 'card-1', utc(2026, 3, 1)),
+      service.listCardStatements(
+        'user-1',
+        'card-1',
+        { limit: 10 },
+        utc(2026, 3, 1),
+      ),
     ).rejects.toBeInstanceOf(NotFoundException);
   });
 });

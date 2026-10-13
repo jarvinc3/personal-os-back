@@ -15,6 +15,7 @@ describe('CreateTransferUseCase', () => {
   const repo = {
     createTransfer,
     findAccountById,
+    findSavingsGoalIdByAccount: jest.fn().mockResolvedValue(null),
   } as unknown as LedgerRepositoryPort;
 
   const execute = jest.fn().mockResolvedValue({
@@ -95,15 +96,67 @@ describe('CreateTransferUseCase', () => {
   });
 
   it('resolves FX for both legs and creates transfer', async () => {
-    const result = await useCase.execute('user-1', {
+    const createdTransfer = await useCase.execute('user-1', {
       fromAccountId: 'a1',
       toAccountId: 'a2',
       amount: 50,
       transactionDate: '2026-08-01',
     });
-    expect(result.transferGroupId).toBe('grp-1');
+    expect(createdTransfer.transferGroupId).toBe('grp-1');
     expect(execute.mock.calls).toHaveLength(2);
     expect(createTransfer).toHaveBeenCalled();
     expect(processBatch).toHaveBeenCalled();
+  });
+
+  it('suggests the goal that earmarks the destination account', async () => {
+    const findSavingsGoalIdByAccount = jest.fn().mockResolvedValue('goal-9');
+    const goalRepo = {
+      createTransfer,
+      findAccountById,
+      findSavingsGoalIdByAccount,
+    } as unknown as LedgerRepositoryPort;
+    const goalUseCase = new CreateTransferUseCase(
+      goalRepo,
+      resolveAmounts,
+      baseCurrency,
+      outboxDispatcher,
+    );
+
+    const createdTransfer = await goalUseCase.execute('user-1', {
+      fromAccountId: 'a1',
+      toAccountId: 'a2',
+      amount: 50,
+      transactionDate: '2026-08-01',
+    });
+
+    expect(findSavingsGoalIdByAccount).toHaveBeenCalledWith('user-1', 'a2');
+    expect(createdTransfer.suggestGoalId).toBe('goal-9');
+  });
+
+  it('omits suggestGoalId when the destination is not a goal account', async () => {
+    const createdTransfer = await useCase.execute('user-1', {
+      fromAccountId: 'a1',
+      toAccountId: 'a2',
+      amount: 50,
+      transactionDate: '2026-08-01',
+    });
+
+    expect(createdTransfer.suggestGoalId).toBeUndefined();
+  });
+
+  it('resolves a third amount for the fee', async () => {
+    await useCase.execute('user-1', {
+      fromAccountId: 'a1',
+      toAccountId: 'a2',
+      amount: 50,
+      transactionDate: '2026-08-01',
+      fee: { amount: 5 },
+    });
+
+    expect(execute.mock.calls).toHaveLength(3);
+    const transferInput = createTransfer.mock.calls[0][0] as {
+      feeAmounts?: unknown;
+    };
+    expect(transferInput.feeAmounts).toBeDefined();
   });
 });

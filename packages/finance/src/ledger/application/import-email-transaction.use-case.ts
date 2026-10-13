@@ -116,9 +116,9 @@ export class ImportEmailTransactionUseCase {
       baseCurrency,
       transactionDate: data.transactionDate,
     });
-    const created = await this.repo.createTransfer(
+    const created = await this.repo.createTransfer({
       userId,
-      {
+      command: {
         fromAccountId: data.accountId,
         fromCardId: data.cardId,
         toAccountId: data.cashAccountId,
@@ -134,7 +134,7 @@ export class ImportEmailTransactionUseCase {
       },
       fromAmounts,
       toAmounts,
-    );
+    });
     void this.outboxDispatcher.processBatch();
     return created;
   }

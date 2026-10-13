@@ -1,0 +1,24 @@
+{
+  "from": "Alertas@bhd.com.do",
+  "subject": "Transacciones entre mis productos",
+  "date": "2026-10-01T14:14:36Z",
+  "labelIds": [
+    "IMPORTANT",
+    "CATEGORY_UPDATES",
+    "INBOX"
+  ],
+  "text": "Estimado(a): JARVIN ANDRES PEREZ \n A continuación la información relacionada a tu transacción:\n Producto origen:\n DO26BCBH000000000XXXXXXX0016 \n Producto destino:\n XXXXXXXXXXXX6506 \n Descripción:\n Pago de saldo al corte \n Monto:\n RD$ 12,345.67 \n Beneficiario:\n JARVIN PEREZ \n Número de confirmación:\n M01-1111-2222-3333-4 \n Fecha y hora de la transacción:\n 01/10/2026 - 10:14 AM \n Tipo de transacción:\n Transacciones entre mis productos \n Nota: Este correo electrónico es generado de manera automática por el sistema, por favor no responder a este mensaje. En caso de no reconocer esta transacción, favor llamar al 809-243-5282.\n Cordialmente,\n Banco BHD",
+  "expected": {
+    "kind": "transfer_own_products",
+    "originLast4": "0016",
+    "destinationLast4": "6506",
+    "description": "Pago de saldo al corte",
+    "amount": "12,345.67",
+    "currency": "RD$",
+    "beneficiary": "JARVIN PEREZ",
+    "confirmation": "M01-1111-2222-3333-4",
+    "datetime": "01/10/2026 - 10:14 AM",
+    "transactionType": "Transacciones entre mis productos",
+    "note": "Destino es la tarjeta de crédito: pago de tarjeta"
+  }
+}

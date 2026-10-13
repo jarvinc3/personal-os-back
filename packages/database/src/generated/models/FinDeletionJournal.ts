@@ -21,8 +21,18 @@ export type FinDeletionJournalModel = runtime.Types.Result.DefaultSelection<Pris
 
 export type AggregateFinDeletionJournal = {
   _count: FinDeletionJournalCountAggregateOutputType | null
+  _avg: FinDeletionJournalAvgAggregateOutputType | null
+  _sum: FinDeletionJournalSumAggregateOutputType | null
   _min: FinDeletionJournalMinAggregateOutputType | null
   _max: FinDeletionJournalMaxAggregateOutputType | null
+}
+
+export type FinDeletionJournalAvgAggregateOutputType = {
+  sizeBytes: number | null
+}
+
+export type FinDeletionJournalSumAggregateOutputType = {
+  sizeBytes: number | null
 }
 
 export type FinDeletionJournalMinAggregateOutputType = {
@@ -30,7 +40,10 @@ export type FinDeletionJournalMinAggregateOutputType = {
   userId: string | null
   entityType: string | null
   entityId: string | null
+  operationGroupId: string | null
+  sizeBytes: number | null
   deletedAt: Date | null
+  expiresAt: Date | null
   restoredAt: Date | null
 }
 
@@ -39,7 +52,10 @@ export type FinDeletionJournalMaxAggregateOutputType = {
   userId: string | null
   entityType: string | null
   entityId: string | null
+  operationGroupId: string | null
+  sizeBytes: number | null
   deletedAt: Date | null
+  expiresAt: Date | null
   restoredAt: Date | null
 }
 
@@ -49,18 +65,32 @@ export type FinDeletionJournalCountAggregateOutputType = {
   entityType: number
   entityId: number
   snapshot: number
+  operationGroupId: number
+  sizeBytes: number
   deletedAt: number
+  expiresAt: number
   restoredAt: number
   _all: number
 }
 
+
+export type FinDeletionJournalAvgAggregateInputType = {
+  sizeBytes?: true
+}
+
+export type FinDeletionJournalSumAggregateInputType = {
+  sizeBytes?: true
+}
 
 export type FinDeletionJournalMinAggregateInputType = {
   id?: true
   userId?: true
   entityType?: true
   entityId?: true
+  operationGroupId?: true
+  sizeBytes?: true
   deletedAt?: true
+  expiresAt?: true
   restoredAt?: true
 }
 
@@ -69,7 +99,10 @@ export type FinDeletionJournalMaxAggregateInputType = {
   userId?: true
   entityType?: true
   entityId?: true
+  operationGroupId?: true
+  sizeBytes?: true
   deletedAt?: true
+  expiresAt?: true
   restoredAt?: true
 }
 
@@ -79,7 +112,10 @@ export type FinDeletionJournalCountAggregateInputType = {
   entityType?: true
   entityId?: true
   snapshot?: true
+  operationGroupId?: true
+  sizeBytes?: true
   deletedAt?: true
+  expiresAt?: true
   restoredAt?: true
   _all?: true
 }
@@ -122,6 +158,18 @@ export type FinDeletionJournalAggregateArgs<ExtArgs extends runtime.Types.Extens
   /**
    * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
    * 
+   * Select which fields to average
+  **/
+  _avg?: FinDeletionJournalAvgAggregateInputType
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+   * 
+   * Select which fields to sum
+  **/
+  _sum?: FinDeletionJournalSumAggregateInputType
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+   * 
    * Select which fields to find the minimum value
   **/
   _min?: FinDeletionJournalMinAggregateInputType
@@ -152,6 +200,8 @@ export type FinDeletionJournalGroupByArgs<ExtArgs extends runtime.Types.Extensio
   take?: number
   skip?: number
   _count?: FinDeletionJournalCountAggregateInputType | true
+  _avg?: FinDeletionJournalAvgAggregateInputType
+  _sum?: FinDeletionJournalSumAggregateInputType
   _min?: FinDeletionJournalMinAggregateInputType
   _max?: FinDeletionJournalMaxAggregateInputType
 }
@@ -162,9 +212,14 @@ export type FinDeletionJournalGroupByOutputType = {
   entityType: string
   entityId: string
   snapshot: runtime.JsonValue
+  operationGroupId: string | null
+  sizeBytes: number
   deletedAt: Date
+  expiresAt: Date
   restoredAt: Date | null
   _count: FinDeletionJournalCountAggregateOutputType | null
+  _avg: FinDeletionJournalAvgAggregateOutputType | null
+  _sum: FinDeletionJournalSumAggregateOutputType | null
   _min: FinDeletionJournalMinAggregateOutputType | null
   _max: FinDeletionJournalMaxAggregateOutputType | null
 }
@@ -193,7 +248,10 @@ export type FinDeletionJournalWhereInput = {
   entityType?: Prisma.StringFilter<"FinDeletionJournal"> | string
   entityId?: Prisma.StringFilter<"FinDeletionJournal"> | string
   snapshot?: Prisma.JsonFilter<"FinDeletionJournal">
+  operationGroupId?: Prisma.StringNullableFilter<"FinDeletionJournal"> | string | null
+  sizeBytes?: Prisma.IntFilter<"FinDeletionJournal"> | number
   deletedAt?: Prisma.DateTimeFilter<"FinDeletionJournal"> | Date | string
+  expiresAt?: Prisma.DateTimeFilter<"FinDeletionJournal"> | Date | string
   restoredAt?: Prisma.DateTimeNullableFilter<"FinDeletionJournal"> | Date | string | null
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
 }
@@ -204,7 +262,10 @@ export type FinDeletionJournalOrderByWithRelationInput = {
   entityType?: Prisma.SortOrder
   entityId?: Prisma.SortOrder
   snapshot?: Prisma.SortOrder
+  operationGroupId?: Prisma.SortOrderInput | Prisma.SortOrder
+  sizeBytes?: Prisma.SortOrder
   deletedAt?: Prisma.SortOrder
+  expiresAt?: Prisma.SortOrder
   restoredAt?: Prisma.SortOrderInput | Prisma.SortOrder
   user?: Prisma.UserOrderByWithRelationInput
 }
@@ -218,7 +279,10 @@ export type FinDeletionJournalWhereUniqueInput = Prisma.AtLeast<{
   entityType?: Prisma.StringFilter<"FinDeletionJournal"> | string
   entityId?: Prisma.StringFilter<"FinDeletionJournal"> | string
   snapshot?: Prisma.JsonFilter<"FinDeletionJournal">
+  operationGroupId?: Prisma.StringNullableFilter<"FinDeletionJournal"> | string | null
+  sizeBytes?: Prisma.IntFilter<"FinDeletionJournal"> | number
   deletedAt?: Prisma.DateTimeFilter<"FinDeletionJournal"> | Date | string
+  expiresAt?: Prisma.DateTimeFilter<"FinDeletionJournal"> | Date | string
   restoredAt?: Prisma.DateTimeNullableFilter<"FinDeletionJournal"> | Date | string | null
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
 }, "id">
@@ -229,11 +293,16 @@ export type FinDeletionJournalOrderByWithAggregationInput = {
   entityType?: Prisma.SortOrder
   entityId?: Prisma.SortOrder
   snapshot?: Prisma.SortOrder
+  operationGroupId?: Prisma.SortOrderInput | Prisma.SortOrder
+  sizeBytes?: Prisma.SortOrder
   deletedAt?: Prisma.SortOrder
+  expiresAt?: Prisma.SortOrder
   restoredAt?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.FinDeletionJournalCountOrderByAggregateInput
+  _avg?: Prisma.FinDeletionJournalAvgOrderByAggregateInput
   _max?: Prisma.FinDeletionJournalMaxOrderByAggregateInput
   _min?: Prisma.FinDeletionJournalMinOrderByAggregateInput
+  _sum?: Prisma.FinDeletionJournalSumOrderByAggregateInput
 }
 
 export type FinDeletionJournalScalarWhereWithAggregatesInput = {
@@ -245,7 +314,10 @@ export type FinDeletionJournalScalarWhereWithAggregatesInput = {
   entityType?: Prisma.StringWithAggregatesFilter<"FinDeletionJournal"> | string
   entityId?: Prisma.StringWithAggregatesFilter<"FinDeletionJournal"> | string
   snapshot?: Prisma.JsonWithAggregatesFilter<"FinDeletionJournal">
+  operationGroupId?: Prisma.StringNullableWithAggregatesFilter<"FinDeletionJournal"> | string | null
+  sizeBytes?: Prisma.IntWithAggregatesFilter<"FinDeletionJournal"> | number
   deletedAt?: Prisma.DateTimeWithAggregatesFilter<"FinDeletionJournal"> | Date | string
+  expiresAt?: Prisma.DateTimeWithAggregatesFilter<"FinDeletionJournal"> | Date | string
   restoredAt?: Prisma.DateTimeNullableWithAggregatesFilter<"FinDeletionJournal"> | Date | string | null
 }
 
@@ -254,7 +326,10 @@ export type FinDeletionJournalCreateInput = {
   entityType: string
   entityId: string
   snapshot: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  operationGroupId?: string | null
+  sizeBytes?: number
   deletedAt?: Date | string
+  expiresAt: Date | string
   restoredAt?: Date | string | null
   user: Prisma.UserCreateNestedOneWithoutFinDeletionJournalInput
 }
@@ -265,7 +340,10 @@ export type FinDeletionJournalUncheckedCreateInput = {
   entityType: string
   entityId: string
   snapshot: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  operationGroupId?: string | null
+  sizeBytes?: number
   deletedAt?: Date | string
+  expiresAt: Date | string
   restoredAt?: Date | string | null
 }
 
@@ -274,7 +352,10 @@ export type FinDeletionJournalUpdateInput = {
   entityType?: Prisma.StringFieldUpdateOperationsInput | string
   entityId?: Prisma.StringFieldUpdateOperationsInput | string
   snapshot?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  operationGroupId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sizeBytes?: Prisma.IntFieldUpdateOperationsInput | number
   deletedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  expiresAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   restoredAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   user?: Prisma.UserUpdateOneRequiredWithoutFinDeletionJournalNestedInput
 }
@@ -285,7 +366,10 @@ export type FinDeletionJournalUncheckedUpdateInput = {
   entityType?: Prisma.StringFieldUpdateOperationsInput | string
   entityId?: Prisma.StringFieldUpdateOperationsInput | string
   snapshot?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  operationGroupId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sizeBytes?: Prisma.IntFieldUpdateOperationsInput | number
   deletedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  expiresAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   restoredAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
@@ -295,7 +379,10 @@ export type FinDeletionJournalCreateManyInput = {
   entityType: string
   entityId: string
   snapshot: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  operationGroupId?: string | null
+  sizeBytes?: number
   deletedAt?: Date | string
+  expiresAt: Date | string
   restoredAt?: Date | string | null
 }
 
@@ -304,7 +391,10 @@ export type FinDeletionJournalUpdateManyMutationInput = {
   entityType?: Prisma.StringFieldUpdateOperationsInput | string
   entityId?: Prisma.StringFieldUpdateOperationsInput | string
   snapshot?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  operationGroupId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sizeBytes?: Prisma.IntFieldUpdateOperationsInput | number
   deletedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  expiresAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   restoredAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
@@ -314,7 +404,10 @@ export type FinDeletionJournalUncheckedUpdateManyInput = {
   entityType?: Prisma.StringFieldUpdateOperationsInput | string
   entityId?: Prisma.StringFieldUpdateOperationsInput | string
   snapshot?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  operationGroupId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sizeBytes?: Prisma.IntFieldUpdateOperationsInput | number
   deletedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  expiresAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   restoredAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
@@ -334,8 +427,15 @@ export type FinDeletionJournalCountOrderByAggregateInput = {
   entityType?: Prisma.SortOrder
   entityId?: Prisma.SortOrder
   snapshot?: Prisma.SortOrder
+  operationGroupId?: Prisma.SortOrder
+  sizeBytes?: Prisma.SortOrder
   deletedAt?: Prisma.SortOrder
+  expiresAt?: Prisma.SortOrder
   restoredAt?: Prisma.SortOrder
+}
+
+export type FinDeletionJournalAvgOrderByAggregateInput = {
+  sizeBytes?: Prisma.SortOrder
 }
 
 export type FinDeletionJournalMaxOrderByAggregateInput = {
@@ -343,7 +443,10 @@ export type FinDeletionJournalMaxOrderByAggregateInput = {
   userId?: Prisma.SortOrder
   entityType?: Prisma.SortOrder
   entityId?: Prisma.SortOrder
+  operationGroupId?: Prisma.SortOrder
+  sizeBytes?: Prisma.SortOrder
   deletedAt?: Prisma.SortOrder
+  expiresAt?: Prisma.SortOrder
   restoredAt?: Prisma.SortOrder
 }
 
@@ -352,8 +455,15 @@ export type FinDeletionJournalMinOrderByAggregateInput = {
   userId?: Prisma.SortOrder
   entityType?: Prisma.SortOrder
   entityId?: Prisma.SortOrder
+  operationGroupId?: Prisma.SortOrder
+  sizeBytes?: Prisma.SortOrder
   deletedAt?: Prisma.SortOrder
+  expiresAt?: Prisma.SortOrder
   restoredAt?: Prisma.SortOrder
+}
+
+export type FinDeletionJournalSumOrderByAggregateInput = {
+  sizeBytes?: Prisma.SortOrder
 }
 
 export type FinDeletionJournalCreateNestedManyWithoutUserInput = {
@@ -403,7 +513,10 @@ export type FinDeletionJournalCreateWithoutUserInput = {
   entityType: string
   entityId: string
   snapshot: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  operationGroupId?: string | null
+  sizeBytes?: number
   deletedAt?: Date | string
+  expiresAt: Date | string
   restoredAt?: Date | string | null
 }
 
@@ -412,7 +525,10 @@ export type FinDeletionJournalUncheckedCreateWithoutUserInput = {
   entityType: string
   entityId: string
   snapshot: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  operationGroupId?: string | null
+  sizeBytes?: number
   deletedAt?: Date | string
+  expiresAt: Date | string
   restoredAt?: Date | string | null
 }
 
@@ -451,7 +567,10 @@ export type FinDeletionJournalScalarWhereInput = {
   entityType?: Prisma.StringFilter<"FinDeletionJournal"> | string
   entityId?: Prisma.StringFilter<"FinDeletionJournal"> | string
   snapshot?: Prisma.JsonFilter<"FinDeletionJournal">
+  operationGroupId?: Prisma.StringNullableFilter<"FinDeletionJournal"> | string | null
+  sizeBytes?: Prisma.IntFilter<"FinDeletionJournal"> | number
   deletedAt?: Prisma.DateTimeFilter<"FinDeletionJournal"> | Date | string
+  expiresAt?: Prisma.DateTimeFilter<"FinDeletionJournal"> | Date | string
   restoredAt?: Prisma.DateTimeNullableFilter<"FinDeletionJournal"> | Date | string | null
 }
 
@@ -460,7 +579,10 @@ export type FinDeletionJournalCreateManyUserInput = {
   entityType: string
   entityId: string
   snapshot: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  operationGroupId?: string | null
+  sizeBytes?: number
   deletedAt?: Date | string
+  expiresAt: Date | string
   restoredAt?: Date | string | null
 }
 
@@ -469,7 +591,10 @@ export type FinDeletionJournalUpdateWithoutUserInput = {
   entityType?: Prisma.StringFieldUpdateOperationsInput | string
   entityId?: Prisma.StringFieldUpdateOperationsInput | string
   snapshot?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  operationGroupId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sizeBytes?: Prisma.IntFieldUpdateOperationsInput | number
   deletedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  expiresAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   restoredAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
@@ -478,7 +603,10 @@ export type FinDeletionJournalUncheckedUpdateWithoutUserInput = {
   entityType?: Prisma.StringFieldUpdateOperationsInput | string
   entityId?: Prisma.StringFieldUpdateOperationsInput | string
   snapshot?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  operationGroupId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sizeBytes?: Prisma.IntFieldUpdateOperationsInput | number
   deletedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  expiresAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   restoredAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
@@ -487,7 +615,10 @@ export type FinDeletionJournalUncheckedUpdateManyWithoutUserInput = {
   entityType?: Prisma.StringFieldUpdateOperationsInput | string
   entityId?: Prisma.StringFieldUpdateOperationsInput | string
   snapshot?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  operationGroupId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sizeBytes?: Prisma.IntFieldUpdateOperationsInput | number
   deletedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  expiresAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   restoredAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
@@ -499,7 +630,10 @@ export type FinDeletionJournalSelect<ExtArgs extends runtime.Types.Extensions.In
   entityType?: boolean
   entityId?: boolean
   snapshot?: boolean
+  operationGroupId?: boolean
+  sizeBytes?: boolean
   deletedAt?: boolean
+  expiresAt?: boolean
   restoredAt?: boolean
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["finDeletionJournal"]>
@@ -510,7 +644,10 @@ export type FinDeletionJournalSelectCreateManyAndReturn<ExtArgs extends runtime.
   entityType?: boolean
   entityId?: boolean
   snapshot?: boolean
+  operationGroupId?: boolean
+  sizeBytes?: boolean
   deletedAt?: boolean
+  expiresAt?: boolean
   restoredAt?: boolean
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["finDeletionJournal"]>
@@ -521,7 +658,10 @@ export type FinDeletionJournalSelectUpdateManyAndReturn<ExtArgs extends runtime.
   entityType?: boolean
   entityId?: boolean
   snapshot?: boolean
+  operationGroupId?: boolean
+  sizeBytes?: boolean
   deletedAt?: boolean
+  expiresAt?: boolean
   restoredAt?: boolean
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["finDeletionJournal"]>
@@ -532,11 +672,14 @@ export type FinDeletionJournalSelectScalar = {
   entityType?: boolean
   entityId?: boolean
   snapshot?: boolean
+  operationGroupId?: boolean
+  sizeBytes?: boolean
   deletedAt?: boolean
+  expiresAt?: boolean
   restoredAt?: boolean
 }
 
-export type FinDeletionJournalOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "entityType" | "entityId" | "snapshot" | "deletedAt" | "restoredAt", ExtArgs["result"]["finDeletionJournal"]>
+export type FinDeletionJournalOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "entityType" | "entityId" | "snapshot" | "operationGroupId" | "sizeBytes" | "deletedAt" | "expiresAt" | "restoredAt", ExtArgs["result"]["finDeletionJournal"]>
 export type FinDeletionJournalInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
 }
@@ -558,7 +701,10 @@ export type $FinDeletionJournalPayload<ExtArgs extends runtime.Types.Extensions.
     entityType: string
     entityId: string
     snapshot: runtime.JsonValue
+    operationGroupId: string | null
+    sizeBytes: number
     deletedAt: Date
+    expiresAt: Date
     restoredAt: Date | null
   }, ExtArgs["result"]["finDeletionJournal"]>
   composites: {}
@@ -989,7 +1135,10 @@ export interface FinDeletionJournalFieldRefs {
   readonly entityType: Prisma.FieldRef<"FinDeletionJournal", 'String'>
   readonly entityId: Prisma.FieldRef<"FinDeletionJournal", 'String'>
   readonly snapshot: Prisma.FieldRef<"FinDeletionJournal", 'Json'>
+  readonly operationGroupId: Prisma.FieldRef<"FinDeletionJournal", 'String'>
+  readonly sizeBytes: Prisma.FieldRef<"FinDeletionJournal", 'Int'>
   readonly deletedAt: Prisma.FieldRef<"FinDeletionJournal", 'DateTime'>
+  readonly expiresAt: Prisma.FieldRef<"FinDeletionJournal", 'DateTime'>
   readonly restoredAt: Prisma.FieldRef<"FinDeletionJournal", 'DateTime'>
 }
     

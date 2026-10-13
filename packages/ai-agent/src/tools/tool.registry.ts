@@ -193,8 +193,20 @@ const STATIC_TOOLS: StaticToolDef[] = [
   {
     name: 'create_transfer',
     description:
-      'Transfer money from an account to an account or card (exactly one from account and one to target).',
+      'Transfer money from an account to another account. Card payments use pay_card.',
     mutating: true,
+    targetModule: 'finance',
+  },
+  {
+    name: 'pay_card',
+    description: 'Pay a credit card from an account.',
+    mutating: true,
+    targetModule: 'finance',
+  },
+  {
+    name: 'get_card_statement',
+    description: 'Get a credit card statement with its status and amounts.',
+    mutating: false,
     targetModule: 'finance',
   },
   {
@@ -207,6 +219,13 @@ const STATIC_TOOLS: StaticToolDef[] = [
   {
     name: 'confirm_transaction',
     description: 'Confirm a PENDING finance transaction (applies ledger).',
+    mutating: true,
+    targetModule: 'finance',
+  },
+  {
+    name: 'unconfirm_transaction',
+    description:
+      'Move a CONFIRMED finance transaction back to PENDING so it can be edited.',
     mutating: true,
     targetModule: 'finance',
   },
@@ -243,9 +262,16 @@ const STATIC_TOOLS: StaticToolDef[] = [
     targetModule: 'finance',
   },
   {
-    name: 'record_savings_contribution',
+    name: 'allocate_to_goal',
     description:
-      'Record an amount set aside for a savings goal, paid from a given account. The goal balance is the sum of these.',
+      'Set money aside for a savings goal, or withdraw it. It never moves money.',
+    mutating: true,
+    targetModule: 'finance',
+  },
+  {
+    name: 'record_receivable_payment',
+    description:
+      'Record a payment collected for a receivable, resolving any excess.',
     mutating: true,
     targetModule: 'finance',
   },
@@ -258,13 +284,74 @@ const STATIC_TOOLS: StaticToolDef[] = [
   },
   {
     name: 'mark_loan_installment_paid',
-    description: 'Mark one loan installment as paid.',
+    description:
+      'Pay the oldest unpaid loan installment with its capital/interest split.',
     mutating: true,
+    targetModule: 'finance',
+  },
+  {
+    name: 'prepay_loan',
+    description:
+      'Pay an extra amount to loan capital, reducing the term or the installment.',
+    mutating: true,
+    targetModule: 'finance',
+  },
+  {
+    name: 'get_loan_schedule',
+    description: 'Get the full loan installment schedule.',
+    mutating: false,
+    targetModule: 'finance',
+  },
+  {
+    name: 'list_possible_duplicates',
+    description: 'List movements flagged as possible duplicates.',
+    mutating: false,
     targetModule: 'finance',
   },
   {
     name: 'trigger_email_sync',
     description: 'Trigger Gmail sync for one source.',
+    mutating: true,
+    targetModule: 'finance',
+  },
+  {
+    name: 'adjust_balance',
+    description:
+      'Set an account or card balance by posting an adjustment movement.',
+    mutating: true,
+    targetModule: 'finance',
+  },
+  {
+    name: 'link_transaction',
+    description:
+      'Link an existing movement to a loan instalment, a collection or a savings goal. It never creates a new movement.',
+    mutating: true,
+    targetModule: 'finance',
+  },
+  {
+    name: 'list_pending_emails',
+    description: 'List email imports waiting for an account, card or amount.',
+    mutating: false,
+    targetModule: 'finance',
+    parameters: { type: 'object', properties: {} },
+  },
+  {
+    name: 'assign_pending_email',
+    description:
+      'Assign a pending email import to an account or card, optionally with its amount.',
+    mutating: true,
+    targetModule: 'finance',
+  },
+  {
+    name: 'retry_pending_email',
+    description: 'Retry automatic routing for a pending email import.',
+    mutating: true,
+    targetModule: 'finance',
+  },
+  {
+    name: 'complete_pending_email_amount',
+    description:
+      'Complete a pending email import that arrived without an amount.',
     mutating: true,
     targetModule: 'finance',
   },
@@ -390,6 +477,8 @@ export function getActionLabel(
       return 'Actualizar transacción';
     case 'confirm_transaction':
       return 'Confirmar transacción';
+    case 'unconfirm_transaction':
+      return 'Desbloquear transacción';
     case 'get_budget_status':
       return 'Revisar estado de presupuestos';
     case 'create_or_update_budget':
@@ -400,12 +489,16 @@ export function getActionLabel(
       return 'Crear meta de ahorro';
     case 'update_savings_goal':
       return 'Actualizar meta de ahorro';
-    case 'record_savings_contribution':
-      return 'Registrar aporte a meta de ahorro';
+    case 'allocate_to_goal':
+      return 'Apartar en una meta de ahorro';
     case 'list_loans':
       return 'Consultar préstamos';
     case 'mark_loan_installment_paid':
       return 'Marcar cuota de préstamo pagada';
+    case 'prepay_loan':
+      return 'Abonar a capital del préstamo';
+    case 'get_loan_schedule':
+      return 'Consultar tabla del préstamo';
     case 'trigger_email_sync':
       return 'Sincronizar correos bancarios';
     case 'get_spending_by_category':

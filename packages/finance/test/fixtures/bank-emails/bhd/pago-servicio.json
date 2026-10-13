@@ -1,0 +1,24 @@
+{
+  "from": "Alertas@bhd.com.do",
+  "subject": "Pago de Servicio e Impuestos",
+  "date": "2026-10-01T14:24:27Z",
+  "labelIds": [
+    "IMPORTANT",
+    "CATEGORY_UPDATES",
+    "INBOX"
+  ],
+  "text": "Estimado(a): JARVIN ANDRES PEREZ \n Has realizado exitosamente el pago de un servicio.\n La información relacionada a esta transacción es:\n Producto origen:\n XXXXXXXXXXXX5873 \n Monto:\n RD$ 1234.56 \n Número de referencia:\n 8095550123 \n Proveedor del servicio:\n ALTICE MOVIL \n Servicio:\n 14598095550123 \n Descripción:\n Pago de Servicio ALTICE Plan Telefónico \n Número de confirmación:\n M04-4444-5555-6666-7 \n Fecha y hora de la transacción:\n 01/10/2026 | 10:24 AM \n Tipo de transacción:\n Pago de Servicio e Impuestos \n Nota: Este correo electrónico es generado de manera automática por el sistema, por favor no responder a este mensaje.\n Cordialmente,\n Banco BHD",
+  "expected": {
+    "kind": "service_payment",
+    "originLast4": "5873",
+    "amount": "1234.56",
+    "currency": "RD$",
+    "reference": "8095550123",
+    "provider": "ALTICE MOVIL",
+    "service": "14598095550123",
+    "description": "Pago de Servicio ALTICE Plan Telefónico",
+    "confirmation": "M04-4444-5555-6666-7",
+    "datetime": "01/10/2026 | 10:24 AM",
+    "transactionType": "Pago de Servicio e Impuestos"
+  }
+}

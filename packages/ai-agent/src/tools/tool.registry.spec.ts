@@ -40,6 +40,24 @@ describe('tool.registry', () => {
     });
   });
 
+  it('exposes unconfirm_transaction as a mutating finance tool', () => {
+    const unconfirm = getToolDefinition('unconfirm_transaction');
+    expect(unconfirm).toMatchObject({
+      mutating: true,
+      targetModule: 'finance',
+      parameters: {
+        type: 'object',
+        properties: { transactionId: { type: 'string' } },
+      },
+    });
+  });
+
+  it('labels the transaction unlock action', () => {
+    expect(getActionLabel('unconfirm_transaction', {})).toBe(
+      'Desbloquear transacción',
+    );
+  });
+
   it('fails closed on invalid tool argument JSON', () => {
     expect(parseToolCallArgumentsStrict('{')).toEqual({
       ok: false,

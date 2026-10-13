@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Inject,
   Injectable,
   NotFoundException,
@@ -10,18 +11,19 @@ import { ResolveUserBaseCurrencyUseCase } from '../../fx/application/resolve-use
 import { LEDGER_REPOSITORY } from '../../shared/application/tokens';
 import { decimalToString } from '../../shared/domain/mappers';
 import { normalizeCurrencyCode } from '../../shared/domain/money';
-import type {
-  CreateTransferCommand,
-  TransactionUpdateFields,
-} from './commands/ledger.commands';
+import {
+  OPERATION_LEG_ROLE,
+  TRANSFER_LOCKED,
+  TRANSFER_LOCKED_MESSAGE,
+  TRANSFER_TARGET_NOT_ACCOUNT,
+  TRANSFER_TARGET_NOT_ACCOUNT_MESSAGE,
+} from '../../shared/domain/transfer';
+import type { CreateTransferCommand } from './commands/ledger.commands';
 import type { LedgerRepositoryPort } from './ports/ledger.repository.port';
-import { resolveLedgerCurrencyForTarget } from './resolve-ledger-currency';
-
-type TransferLegInput = {
-  id: string;
-  accountId?: string;
-  cardId?: string;
-};
+import {
+  assertDifferentAccounts,
+  requireOwnedAccount,
+} from './resolve-ledger-currency';
 
 @Injectable()
 export class UpdateTransferUseCase {
@@ -33,7 +35,11 @@ export class UpdateTransferUseCase {
     private readonly outboxDispatcher: FinanceOutboxDispatcher,
   ) {}
 
-  async execute(userId: string, legId: string, command: CreateTransferCommand) {
+  async execute(
+    userId: string,
+    legId: string,
+    command: Partial<CreateTransferCommand>,
+  ) {
     const leg = await this.repo.findTransactionById(legId, userId);
     if (!leg) {
       throw new NotFoundException('Transaction not found');
@@ -46,75 +52,97 @@ export class UpdateTransferUseCase {
       leg.transferGroupId,
       userId,
     );
-    const debit = legs.find((item) => item.type === 'DEBIT');
-    const credit = legs.find((item) => item.type === 'CREDIT');
+    const debit =
+      legs.find((item) => item.legRole === OPERATION_LEG_ROLE.SOURCE) ??
+      legs.find((item) => item.type === 'DEBIT');
+    const credit =
+      legs.find((item) => item.legRole === OPERATION_LEG_ROLE.DESTINATION) ??
+      legs.find((item) => item.type === 'CREDIT');
     if (!debit || !credit) {
       throw new NotFoundException('Transfer legs not found');
     }
-
-    const fromAccountId = command.fromAccountId ?? debit.accountId ?? undefined;
-    const fromCardId = command.fromCardId ?? debit.cardId ?? undefined;
-    const toAccountId = command.toAccountId ?? credit.accountId ?? undefined;
-    const toCardId = command.toCardId ?? credit.cardId ?? undefined;
-    if (
-      `${fromAccountId ?? ''}:${fromCardId ?? ''}` ===
-      `${toAccountId ?? ''}:${toCardId ?? ''}`
-    ) {
-      throw new BadRequestException('Invalid transfer accounts');
+    if (!legs.every((item) => item.status === 'PENDING')) {
+      throw new ConflictException({
+        code: TRANSFER_LOCKED,
+        message: TRANSFER_LOCKED_MESSAGE,
+      });
     }
+    if (debit.cardId || credit.cardId) {
+      throw new BadRequestException({
+        code: TRANSFER_TARGET_NOT_ACCOUNT,
+        message: TRANSFER_TARGET_NOT_ACCOUNT_MESSAGE,
+      });
+    }
+
+    const fromAccountId = command.fromAccountId ?? debit.accountId;
+    const toAccountId = command.toAccountId ?? credit.accountId;
+    if (!fromAccountId || !toAccountId) {
+      throw new BadRequestException({
+        code: TRANSFER_TARGET_NOT_ACCOUNT,
+        message: TRANSFER_TARGET_NOT_ACCOUNT_MESSAGE,
+      });
+    }
+    assertDifferentAccounts(fromAccountId, toAccountId);
+
+    const fromAccount = await requireOwnedAccount(
+      this.repo,
+      userId,
+      fromAccountId,
+    );
+    const toAccount = await requireOwnedAccount(this.repo, userId, toAccountId);
 
     const baseCurrency = await this.baseCurrency.execute(userId);
     const currency = normalizeCurrencyCode(command.currency ?? debit.currency);
-    const transactionDate = new Date(command.transactionDate);
+    const transactionDate = command.transactionDate
+      ? new Date(command.transactionDate)
+      : debit.transactionDate;
     const amount = command.amount ?? Number(decimalToString(debit.amount));
 
-    const updateLeg = async ({ id, accountId, cardId }: TransferLegInput) => {
-      const ledgerCurrency = await resolveLedgerCurrencyForTarget(
-        this.repo,
-        userId,
-        accountId,
-        cardId,
-        currency,
-      );
-      const amounts = await this.resolveAmounts.execute({
-        amount,
-        currency,
-        ledgerCurrency,
-        baseCurrency,
-        transactionDate,
-      });
-      const fields: TransactionUpdateFields = {
-        accountId: accountId ?? null,
-        cardId: cardId ?? null,
-        amount: amounts.amount,
-        currency: amounts.currency,
-        ledgerAmount: amounts.ledgerAmount,
-        ledgerCurrency: amounts.ledgerCurrency,
-        amountBaseCurrency: amounts.amountBaseCurrency,
-        exchangeRate: amounts.exchangeRate,
-        transactionDate,
-        ...(command.description !== undefined
-          ? { description: command.description }
-          : {}),
-        ...(command.notes !== undefined ? { notes: command.notes } : {}),
-        ...(command.status !== undefined ? { status: command.status } : {}),
-      };
-      const updated = await this.repo.updateTransaction(userId, id, fields);
-      if (!updated) {
-        throw new NotFoundException('Transaction not found');
-      }
-    };
+    const fromAmounts = await this.resolveAmounts.execute({
+      amount,
+      currency,
+      ledgerCurrency: fromAccount.currency,
+      baseCurrency,
+      transactionDate,
+    });
+    const toAmounts = await this.resolveAmounts.execute({
+      amount,
+      currency,
+      ledgerCurrency: toAccount.currency,
+      baseCurrency,
+      transactionDate,
+    });
+    const feeAmounts = command.fee
+      ? await this.resolveAmounts.execute({
+          amount: command.fee.amount,
+          currency,
+          ledgerCurrency: fromAccount.currency,
+          baseCurrency,
+          transactionDate,
+        })
+      : undefined;
 
-    await updateLeg({
-      id: debit.id,
-      accountId: fromAccountId,
-      cardId: fromCardId,
+    const updated = await this.repo.updateTransfer({
+      userId,
+      debitId: debit.id,
+      creditId: credit.id,
+      debitTarget: { accountId: fromAccountId, cardId: null },
+      creditTarget: { accountId: toAccountId, cardId: null },
+      fromAmounts,
+      toAmounts,
+      transactionDate,
+      description: command.description,
+      notes: command.notes,
+      ...(command.fee
+        ? {
+            feeAmounts,
+            feeCategoryId: command.fee.categoryId ?? null,
+          }
+        : {}),
     });
-    await updateLeg({
-      id: credit.id,
-      accountId: toAccountId,
-      cardId: toCardId,
-    });
+    if (!updated) {
+      throw new NotFoundException('Transfer legs not found');
+    }
 
     void this.outboxDispatcher.processBatch();
     return { success: true };

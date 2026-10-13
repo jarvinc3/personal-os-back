@@ -1,0 +1,20 @@
+{
+  "from": "notificaciones@popularenlinea.com",
+  "subject": "Notificación Depósito de Nómina",
+  "date": "2026-09-16T02:54:31Z",
+  "labelIds": [
+    "IMPORTANT",
+    "CATEGORY_UPDATES",
+    "INBOX"
+  ],
+  "text": "Estimado(a):\n PEREZ GOMEZ JA \n No. de identificación XXX-XXXX-3695 \n Le informamos que ha sido acreditado el pago de su nómina en su cuenta terminada en 3447.\n Puede consultar los detalles de su depósito de forma inmediata a través de la App Popular , en donde podrá gestionar sus finanzas de manera ágil, segura y sin necesidad de trasladarse a una sucursal.\n Desde la App Popular usted puede:\n Consultar su balance y movimientos en tiempo real \n Realizar transferencias y pagos de manera rápida \n Solicitar productos como cuentas, préstamos o tarjetas sin salir de casa \n Acceda ahora a la App Popular \n Si no visualiza su depósito o tiene alguna duda, puede comunicarse con nosotros a través de nuestros canales digitales o al 809-544-5555.\n Para más información sobre nuestros productos y servicios:\n En caso de tener sugerencias, quejas o comentarios, puede escribir al siguiente correo: vozdelcliente @bpd .com .do",
+  "expected": {
+    "kind": "payroll_deposit",
+    "format": "v2 (desde ago-2026)",
+    "accountLast4": "3447",
+    "idLast4": "3695",
+    "amount": null,
+    "date": null,
+    "note": "No trae monto ni fecha: usar fecha del correo; monto pendiente de completar."
+  }
+}

@@ -34,6 +34,8 @@ export type EmailExtractionInput = {
   body: string;
   bankDomain: string;
   categories?: EmailExtractionCategory[];
+  /** Gmail internal date, used when the body has no date of its own. */
+  receivedAt?: string;
 };
 
 export type EmailExtractionResult =

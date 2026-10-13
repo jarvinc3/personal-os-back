@@ -33,6 +33,7 @@ describe('ToolExecutorService', () => {
   const listEmailSources = jest.fn();
   const updateTransaction = jest.fn();
   const confirmTransaction = jest.fn();
+  const unconfirmTransaction = jest.fn();
 
   const financeFacade = {
     createTransaction,
@@ -53,6 +54,7 @@ describe('ToolExecutorService', () => {
     listEmailSources,
     updateTransaction,
     confirmTransaction,
+    unconfirmTransaction,
   } as unknown as FinanceFacade;
 
   const findModuleBySlug = jest.fn();
@@ -165,5 +167,18 @@ describe('ToolExecutorService', () => {
   it('does not require finance enabled for profile tools', async () => {
     await executor.execute(ctx, 'set_theme', { value: 'dark' });
     expect(assertModuleEnabled).not.toHaveBeenCalled();
+  });
+
+  it('routes unconfirm_transaction through the finance facade', async () => {
+    unconfirmTransaction.mockResolvedValue({ id: 'tx-1', status: 'PENDING' });
+    const transactionId = '550e8400-e29b-41d4-a716-446655440000';
+
+    const toolResult = await executor.execute(ctx, 'unconfirm_transaction', {
+      transactionId,
+    });
+
+    expect(toolResult.success).toBe(true);
+    expect(toolResult.message).toBe('Transaction unlocked');
+    expect(unconfirmTransaction).toHaveBeenCalledWith('user-1', transactionId);
   });
 });

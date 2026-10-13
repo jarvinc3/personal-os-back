@@ -61,9 +61,12 @@ export class AllExceptionsFilter implements ExceptionFilter {
       'Unhandled exception',
     );
 
+    const errorCode =
+      typeof details?.code === 'string' ? details.code : undefined;
     response.status(statusCode).json({
       statusCode,
       error,
+      ...(errorCode ? { code: errorCode } : {}),
       message,
       ...(details ? { details } : {}),
       requestId: request.id,

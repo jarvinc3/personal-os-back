@@ -32,6 +32,7 @@ model User {
   finSavingsGoals FinSavingsGoal[]
   finTransactions FinTransaction[]
   finDeletionJournal FinDeletionJournal[]
+  finInstrumentEvents FinInstrumentEvent[]
   notifications   Notification[]
   pushTokens      PushToken[]
   userModules     UserModule[]
@@ -181,6 +182,8 @@ model FinAccount {
   finLoans       FinLoan[]
   receivablePayments FinReceivablePayment[]
   savingsGoalContributions FinSavingsGoalContribution[]
+  savingsGoals   FinSavingsGoal[]
+  instrumentEvents FinInstrumentEvent[]
 
   @@index([userId, isActive], map: "fin_accounts_user_id_active_idx")
   @@index([institutionId], map: "fin_accounts_institution_id_idx")
@@ -238,6 +241,23 @@ model FinEmailSource {
   @@map("fin_email_sources")
 }
 
+enum FinOperationLegRole {
+  SOURCE
+  DESTINATION
+  FEE
+
+  @@map("fin_operation_leg_role")
+}
+
+enum FinTransferRail {
+  SAME_BANK
+  ACH
+  LBTR
+  OTHER
+
+  @@map("fin_transfer_rail")
+}
+
 model FinTransaction {
   id                   String               @id @default(dbgenerated("(uuid_generate_v4())::text"))
   accountId            String?              @map("account_id")
@@ -248,6 +268,9 @@ model FinTransaction {
   emailMessageId       String?              @unique @map("email_message_id")
   /// Bank reference / authorization code from the source email; dedupes re-sent notices.
   externalReference    String?              @map("external_reference")
+  /// Denormalized institution, for the idempotency index.
+  institutionId        String?              @map("institution_id")
+  possibleDuplicateOfId String?             @map("possible_duplicate_of_id")
   type                 FinTransactionType
   /// Original amount in source currency (e.g. as shown on bank email).
   amount               Decimal              @db.Decimal(15, 2)
@@ -270,6 +293,10 @@ model FinTransaction {
   aiMetadata           Json                 @default("{}") @map("ai_metadata")
   notes                String?
   source               FinTransactionSource @default(MANUAL)
+  /// Role of this row inside a multi-leg operation (transfer, fee).
+  legRole              FinOperationLegRole?   @map("leg_role")
+  /// Interbank rail for a transfer; the UI estimates the arrival time.
+  rail                 FinTransferRail?
   createdAt            DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt            DateTime             @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   account              FinAccount?          @relation(fields: [accountId], references: [id], onDelete: Cascade, onUpdate: NoAction)
@@ -282,6 +309,7 @@ model FinTransaction {
   receivablePayment    FinReceivablePayment?
   savingsGoalContribution FinSavingsGoalContribution?
   loanInstallment      FinLoanInstallment?
+  loanPrepayment       FinLoanPrepayment?
 
   @@index([accountId, transactionDate], map: "fin_transactions_account_id_date_idx")
   @@index([cardId, transactionDate], map: "fin_transactions_card_id_date_idx")
@@ -303,10 +331,12 @@ model FinCategory {
   color        String?
   parentId     String?               @map("parent_id")
   isSystem     Boolean               @default(false) @map("is_system")
+  systemKind   String?               @map("system_kind")
   type         FinCategoryType       @default(EXPENSE)
   createdAt    DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt    DateTime              @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   budgets      FinBudget[]
+  budgetCategories FinBudgetCategory[]
   parent       FinCategory?          @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   children     FinCategory[]         @relation("CategoryHierarchy")
   user         User?                 @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
@@ -322,7 +352,12 @@ model FinCategory {
 model FinBudget {
   id                  String              @id @default(dbgenerated("(uuid_generate_v4())::text"))
   userId              String              @map("user_id")
-  categoryId          String              @map("category_id")
+  categoryId          String?             @map("category_id")
+  name                String?
+  includeChildren     Boolean             @default(true) @map("include_children")
+  rollover            FinBudgetRollover   @default(NONE)
+  carriedOver         Decimal             @default(0) @map("carried_over") @db.Decimal(15, 2)
+  recurring           Boolean             @default(false)
   periodType          FinBudgetPeriodType @default(MONTHLY) @map("period_type")
   periodStart         DateTime            @map("period_start") @db.Date
   periodEnd           DateTime            @map("period_end") @db.Date
@@ -333,13 +368,31 @@ model FinBudget {
   aiSuggestionPayload Json?               @map("ai_suggestion_payload")
   createdAt           DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
   alerts              FinBudgetAlert[]
-  category            FinCategory         @relation(fields: [categoryId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  category            FinCategory?        @relation(fields: [categoryId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  categories          FinBudgetCategory[]
   user                User                @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
-  @@unique([userId, categoryId, periodStart, periodEnd], map: "fin_budgets_user_category_period_key")
   @@index([userId, periodType, periodStart], map: "fin_budgets_user_period_idx")
   @@index([categoryId], map: "fin_budgets_category_id_idx")
   @@map("fin_budgets")
+}
+
+enum FinBudgetRollover {
+  NONE
+  SURPLUS
+  SURPLUS_AND_DEFICIT
+  @@map("fin_budget_rollover")
+}
+
+model FinBudgetCategory {
+  budgetId   String      @map("budget_id")
+  categoryId String      @map("category_id")
+  budget     FinBudget   @relation(fields: [budgetId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  category   FinCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([budgetId, categoryId])
+  @@index([categoryId], map: "fin_budget_categories_category_id_idx")
+  @@map("fin_budget_categories")
 }
 
 model FinBudgetAlert {
@@ -441,6 +494,7 @@ model FinCard {
   institution         FinInstitution   @relation(fields: [institutionId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   transactions        FinTransaction[]
   user                User             @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  instrumentEvents    FinInstrumentEvent[]
 
   @@index([userId, institutionId], map: "fin_cards_user_id_institution_id_idx")
   @@index([userId, isActive], map: "fin_cards_user_id_active_idx")
@@ -462,6 +516,25 @@ model FinCardBalance {
   @@map("fin_card_balances")
 }
 
+/// Instrument timeline row (limit change, adjustment, closed statement).
+/// Adjustments also live in FinTransaction; the history query unions both.
+model FinInstrumentEvent {
+  id        String       @id @default(dbgenerated("(uuid_generate_v4())::text"))
+  userId    String       @map("user_id")
+  accountId String?      @map("account_id")
+  cardId    String?      @map("card_id")
+  kind      String
+  payload   Json         @default("{}")
+  createdAt DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  account   FinAccount?  @relation(fields: [accountId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  card      FinCard?     @relation(fields: [cardId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([accountId, createdAt], map: "fin_instrument_events_account_created_idx")
+  @@index([cardId, createdAt], map: "fin_instrument_events_card_created_idx")
+  @@map("fin_instrument_events")
+}
+
 /// Immutable closing snapshot. Paid amount and status are derived from the
 /// ledger on read, so a stale row can never misreport a payment.
 model FinCardStatement {
@@ -472,6 +545,10 @@ model FinCardStatement {
   cycleEnd       DateTime @map("cycle_end") @db.Date
   dueDate        DateTime? @map("due_date") @db.Date
   closingBalance Decimal  @map("closing_balance") @db.Decimal(15, 2)
+  minimumPayment Decimal? @map("minimum_payment") @db.Decimal(15, 2)
+  minimumSource  FinAmountSource? @map("minimum_source")
+  status         FinCardStatementStatus @default(CLOSED)
+  importedAt     DateTime? @map("imported_at") @db.Timestamptz(6)
   createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt      DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   card           FinCard  @relation(fields: [cardId], references: [id], onDelete: Cascade, onUpdate: NoAction)
@@ -479,6 +556,23 @@ model FinCardStatement {
   @@unique([cardId, currency, cycleEnd], map: "fin_card_statements_card_currency_cycle_key")
   @@index([cardId, cycleEnd], map: "fin_card_statements_card_id_cycle_end_idx")
   @@map("fin_card_statements")
+}
+
+enum FinCardStatementStatus {
+  OPEN
+  CLOSED
+  PARTIAL
+  MINIMUM_PAID
+  PAID
+  OVERDUE
+  @@map("fin_card_statement_status")
+}
+
+enum FinAmountSource {
+  IMPORTED
+  ESTIMATED
+  MANUAL
+  @@map("fin_amount_source")
 }
 
 model FinSavingsGoal {
@@ -492,15 +586,32 @@ model FinSavingsGoal {
   targetDate    DateTime? @map("target_date") @db.Date
   icon          String?
   color         String?
+  accountId     String?   @map("account_id")
+  mode          FinGoalMode @default(EARMARK)
+  spendReducesProgress Boolean @default(true) @map("spend_reduces_progress")
   isCompleted   Boolean   @default(false) @map("is_completed")
   completedAt   DateTime? @map("completed_at") @db.Timestamptz(6)
   createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt     DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  account       FinAccount? @relation(fields: [accountId], references: [id], onDelete: SetNull)
   user          User      @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   contributions FinSavingsGoalContribution[]
 
   @@index([userId, isCompleted], map: "fin_savings_goals_user_id_completed_idx")
+  @@index([accountId], map: "fin_savings_goals_account_id_idx")
   @@map("fin_savings_goals")
+}
+
+enum FinGoalMode {
+  EARMARK
+  DEDICATED
+  @@map("fin_goal_mode")
+}
+
+enum FinAllocationKind {
+  CONTRIBUTION
+  WITHDRAWAL
+  @@map("fin_allocation_kind")
 }
 
 /// One amount set aside for a savings goal. The goal balance is the sum of its
@@ -513,6 +624,8 @@ model FinSavingsGoalContribution {
   /// Account the money left. Null only after that account is deleted.
   accountId     String?        @map("account_id")
   transactionId String?        @unique @map("transaction_id")
+  kind          FinAllocationKind @default(CONTRIBUTION)
+  transferGroupId String?      @map("transfer_group_id")
   notes         String?
   createdAt     DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
   account       FinAccount?    @relation(fields: [accountId], references: [id], onDelete: SetNull, onUpdate: NoAction)
@@ -539,6 +652,11 @@ model FinLoan {
   paidInstallments  Int                @default(0) @map("paid_installments")
   nextDueDate       DateTime           @map("next_due_date") @db.Date
   interestRate      Decimal?           @map("interest_rate") @db.Decimal(5, 4)
+  rateType          FinRateType        @default(FIXED) @map("rate_type")
+  insuranceAmount   Decimal?           @map("insurance_amount") @db.Decimal(15, 2)
+  lateFeePolicy     Json?              @map("late_fee_policy")
+  prepaymentPenaltyPct Decimal?        @map("prepayment_penalty_pct") @db.Decimal(5, 4)
+  disbursementDate  DateTime?          @map("disbursement_date") @db.Date
   notes             String?
   isActive          Boolean            @default(true) @map("is_active")
   createdAt         DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
@@ -546,6 +664,7 @@ model FinLoan {
   account           FinAccount?        @relation(fields: [accountId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   institution       FinInstitution?    @relation(fields: [institutionId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   installments      FinLoanInstallment[]
+  prepayments       FinLoanPrepayment[]
   user              User               @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([userId, isActive, nextDueDate], map: "fin_loans_user_id_active_due_idx")
@@ -562,6 +681,13 @@ model FinLoanInstallment {
   installmentNo Int       @map("installment_no")
   dueDate       DateTime  @map("due_date") @db.Date
   amount        Decimal   @db.Decimal(15, 2)
+  principal     Decimal   @default(0) @db.Decimal(15, 2)
+  interest      Decimal   @default(0) @db.Decimal(15, 2)
+  insurance     Decimal   @default(0) @db.Decimal(15, 2)
+  fees          Decimal   @default(0) @db.Decimal(15, 2)
+  lateFee       Decimal   @default(0) @map("late_fee") @db.Decimal(15, 2)
+  paidAmount    Decimal   @default(0) @map("paid_amount") @db.Decimal(15, 2)
+  status        FinInstallmentStatus @default(PENDING)
   paidAt        DateTime? @map("paid_at") @db.Timestamptz(6)
   /// Movement created when the instalment was paid; null when it was not recorded.
   transactionId String?   @unique @map("transaction_id")
@@ -575,6 +701,36 @@ model FinLoanInstallment {
   @@map("fin_loan_installments")
 }
 
+enum FinInstallmentStatus {
+  PENDING
+  PARTIAL
+  PAID
+  OVERDUE
+  @@map("fin_installment_status")
+}
+
+enum FinRateType {
+  FIXED
+  VARIABLE
+  @@map("fin_rate_type")
+}
+
+model FinLoanPrepayment {
+  id            String   @id @default(dbgenerated("(uuid_generate_v4())::text"))
+  loanId        String   @map("loan_id")
+  amount        Decimal  @db.Decimal(15, 2)
+  penalty       Decimal  @default(0) @db.Decimal(15, 2)
+  mode          String
+  paidAt        DateTime @map("paid_at") @db.Date
+  transactionId String?  @unique @map("transaction_id")
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  loan          FinLoan  @relation(fields: [loanId], references: [id], onDelete: Cascade)
+  transaction   FinTransaction? @relation(fields: [transactionId], references: [id], onDelete: SetNull)
+
+  @@index([loanId, paidAt], map: "fin_loan_prepayments_loan_paid_idx")
+  @@map("fin_loan_prepayments")
+}
+
 model FinReceivable {
   id          String              @id @default(dbgenerated("(uuid_generate_v4())::text"))
   userId      String              @map("user_id")
@@ -585,6 +741,9 @@ model FinReceivable {
   currency    String              @default("DOP")
   dueDate     DateTime?           @map("due_date") @db.Date
   status      FinReceivableStatus @default(PENDING)
+  creditBalance    Decimal             @default(0) @map("credit_balance") @db.Decimal(15, 2)
+  writtenOffAmount Decimal             @default(0) @map("written_off_amount") @db.Decimal(15, 2)
+  writtenOffAt     DateTime?           @map("written_off_at") @db.Timestamptz(6)
   notes       String?
   createdAt   DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt   DateTime            @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
@@ -601,6 +760,9 @@ model FinReceivablePayment {
   id            String          @id @default(dbgenerated("(uuid_generate_v4())::text"))
   receivableId  String          @map("receivable_id")
   amount        Decimal         @db.Decimal(15, 2)
+  appliedAmount Decimal         @map("applied_amount") @db.Decimal(15, 2)
+  excessAmount  Decimal         @default(0) @map("excess_amount") @db.Decimal(15, 2)
+  excessHandling String?        @map("excess_handling")
   paidAt        DateTime        @map("paid_at") @db.Date
   /// Account the money entered. Null only after that account is deleted.
   accountId     String?         @map("account_id")
@@ -645,12 +807,15 @@ model FinEmailMessage {
   lastFourHint      String?                 @map("last_four_hint")
   accountNumberHint String?                 @map("account_number_hint")
   extractedPayload  Json?                   @map("extracted_payload")
+  fingerprint       String?
+  duplicateOfTransactionId String?         @map("duplicate_of_transaction_id")
   createdAt         DateTime                @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt         DateTime                @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   source            FinEmailSource          @relation(fields: [sourceId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   transaction       FinTransaction?
 
   @@unique([sourceId, gmailMessageId], map: "fin_email_messages_source_gmail_key")
+  @@unique([sourceId, fingerprint], map: "fin_email_messages_source_fingerprint_key")
   @@index([sourceId], map: "fin_email_messages_source_id_idx")
   @@index([outcome], map: "fin_email_messages_outcome_idx")
   @@map("fin_email_messages")
@@ -701,6 +866,7 @@ enum FinTransactionType {
   CREDIT
   TRANSFER
   ADJUSTMENT
+  CARD_PAYMENT
 }
 
 enum FinCategoryType {
@@ -791,6 +957,7 @@ enum FinReceivableStatus {
   PARTIAL
   PAID
   CANCELLED
+  WRITTEN_OFF
 }
 
 enum FinEmailSyncStatus {
@@ -836,15 +1003,19 @@ model AuthDeletionOutbox {
 /// Snapshot of a finance record removed from the detail menu. "Deshacer"
 /// re-creates the stored rows and re-applies the reversed ledger deltas.
 model FinDeletionJournal {
-  id         String    @id @default(dbgenerated("(uuid_generate_v4())::text"))
-  userId     String    @map("user_id")
-  entityType String    @map("entity_type")
-  entityId   String    @map("entity_id")
-  snapshot   Json
-  deletedAt  DateTime  @default(now()) @map("deleted_at") @db.Timestamptz(6)
-  restoredAt DateTime? @map("restored_at") @db.Timestamptz(6)
-  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  id               String    @id @default(dbgenerated("(uuid_generate_v4())::text"))
+  userId           String    @map("user_id")
+  entityType       String    @map("entity_type")
+  entityId         String    @map("entity_id")
+  snapshot         Json
+  operationGroupId String?   @map("operation_group_id")
+  sizeBytes        Int       @default(0) @map("size_bytes")
+  deletedAt        DateTime  @default(now()) @map("deleted_at") @db.Timestamptz(6)
+  expiresAt        DateTime  @map("expires_at") @db.Timestamptz(6)
+  restoredAt       DateTime? @map("restored_at") @db.Timestamptz(6)
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([userId, entityType, entityId], map: "fin_deletion_journal_user_entity_idx")
+  @@index([expiresAt], map: "fin_deletion_journal_expires_at_idx")
   @@map("fin_deletion_journal")
 }

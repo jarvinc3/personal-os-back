@@ -20,6 +20,10 @@
                     "timestamp": {
                       "type": "string",
                       "format": "date-time"
+                    },
+                    "version": {
+                      "type": "string",
+                      "example": "1.4.0"
                     }
                   }
                 }
@@ -487,6 +491,35 @@
         ]
       }
     },
+    "/api/finance/accounts/{id}/restore": {
+      "post": {
+        "operationId": "AccountsController_restore",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Undo a delete from the journal snapshot",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
     "/api/finance/institutions": {
       "get": {
         "operationId": "InstitutionsController_list",
@@ -627,6 +660,35 @@
         ]
       }
     },
+    "/api/finance/institutions/{id}/restore": {
+      "post": {
+        "operationId": "InstitutionsController_restore",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Undo a delete from the journal snapshot",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
     "/api/finance/cards": {
       "get": {
         "operationId": "CardsController_list",
@@ -759,6 +821,35 @@
           }
         ],
         "summary": "Hard-delete card and its ledger rows",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
+    "/api/finance/cards/{id}/restore": {
+      "post": {
+        "operationId": "CardsController_restore",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Undo a delete from the journal snapshot",
         "tags": [
           "finance"
         ]
@@ -997,6 +1088,35 @@
             "access-token": []
           }
         ],
+        "tags": [
+          "finance"
+        ]
+      }
+    },
+    "/api/finance/categories/{id}/restore": {
+      "post": {
+        "operationId": "CategoriesController_restore",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Undo a delete from the journal snapshot",
         "tags": [
           "finance"
         ]
@@ -1244,6 +1364,35 @@
           }
         ],
         "summary": "Delete manual transaction",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
+    "/api/finance/transactions/{id}/restore": {
+      "post": {
+        "operationId": "TransactionsController_restore",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Undo a delete from the journal snapshot",
         "tags": [
           "finance"
         ]
@@ -1562,6 +1711,35 @@
         ]
       }
     },
+    "/api/finance/budgets/{id}/restore": {
+      "post": {
+        "operationId": "BudgetsController_restore",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Undo a delete from the journal snapshot",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
     "/api/finance/savings-goals": {
       "get": {
         "operationId": "SavingsGoalsController_list",
@@ -1802,6 +1980,35 @@
         ]
       }
     },
+    "/api/finance/savings-goals/{id}/restore": {
+      "post": {
+        "operationId": "SavingsGoalsController_restore",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Undo a delete from the journal snapshot",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
     "/api/finance/loans": {
       "get": {
         "operationId": "LoansController_list",
@@ -1993,6 +2200,35 @@
           }
         ],
         "summary": "Pay the oldest unpaid instalment and return the loan",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
+    "/api/finance/loans/{id}/restore": {
+      "post": {
+        "operationId": "LoansController_restore",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Undo a delete from the journal snapshot",
         "tags": [
           "finance"
         ]
@@ -2197,6 +2433,35 @@
           }
         ],
         "summary": "Collect a payment and record the income on the given account",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
+    "/api/finance/receivables/{id}/restore": {
+      "post": {
+        "operationId": "ReceivablesController_restore",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Undo a delete from the journal snapshot",
         "tags": [
           "finance"
         ]
@@ -2857,6 +3122,26 @@
         ]
       }
     },
+    "/api/finance/recycle-bin": {
+      "get": {
+        "operationId": "RecycleBinController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "List archived records and pending deletes",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
     "/api/notifications": {
       "get": {
         "operationId": "NotificationsController_list",
@@ -3323,7 +3608,7 @@
   "info": {
     "title": "Personal OS API",
     "description": "Personal OS backend endpoints, including auth, core modules, and AI.",
-    "version": "1.0",
+    "version": "1.6.0",
     "contact": {}
   },
   "tags": [
@@ -4032,7 +4317,7 @@
           },
           "accountId": {
             "type": "string",
-            "description": "Account the money left; omit to only advance the goal"
+            "description": "Account the money left"
           },
           "contributedAt": {
             "type": "string",
@@ -4043,7 +4328,8 @@
           }
         },
         "required": [
-          "amount"
+          "amount",
+          "accountId"
         ]
       },
       "UpdateSavingsGoalDto": {

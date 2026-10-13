@@ -30,11 +30,23 @@ export type AggregateFinLoanInstallment = {
 export type FinLoanInstallmentAvgAggregateOutputType = {
   installmentNo: number | null
   amount: runtime.Decimal | null
+  principal: runtime.Decimal | null
+  interest: runtime.Decimal | null
+  insurance: runtime.Decimal | null
+  fees: runtime.Decimal | null
+  lateFee: runtime.Decimal | null
+  paidAmount: runtime.Decimal | null
 }
 
 export type FinLoanInstallmentSumAggregateOutputType = {
   installmentNo: number | null
   amount: runtime.Decimal | null
+  principal: runtime.Decimal | null
+  interest: runtime.Decimal | null
+  insurance: runtime.Decimal | null
+  fees: runtime.Decimal | null
+  lateFee: runtime.Decimal | null
+  paidAmount: runtime.Decimal | null
 }
 
 export type FinLoanInstallmentMinAggregateOutputType = {
@@ -43,6 +55,13 @@ export type FinLoanInstallmentMinAggregateOutputType = {
   installmentNo: number | null
   dueDate: Date | null
   amount: runtime.Decimal | null
+  principal: runtime.Decimal | null
+  interest: runtime.Decimal | null
+  insurance: runtime.Decimal | null
+  fees: runtime.Decimal | null
+  lateFee: runtime.Decimal | null
+  paidAmount: runtime.Decimal | null
+  status: $Enums.FinInstallmentStatus | null
   paidAt: Date | null
   transactionId: string | null
   createdAt: Date | null
@@ -55,6 +74,13 @@ export type FinLoanInstallmentMaxAggregateOutputType = {
   installmentNo: number | null
   dueDate: Date | null
   amount: runtime.Decimal | null
+  principal: runtime.Decimal | null
+  interest: runtime.Decimal | null
+  insurance: runtime.Decimal | null
+  fees: runtime.Decimal | null
+  lateFee: runtime.Decimal | null
+  paidAmount: runtime.Decimal | null
+  status: $Enums.FinInstallmentStatus | null
   paidAt: Date | null
   transactionId: string | null
   createdAt: Date | null
@@ -67,6 +93,13 @@ export type FinLoanInstallmentCountAggregateOutputType = {
   installmentNo: number
   dueDate: number
   amount: number
+  principal: number
+  interest: number
+  insurance: number
+  fees: number
+  lateFee: number
+  paidAmount: number
+  status: number
   paidAt: number
   transactionId: number
   createdAt: number
@@ -78,11 +111,23 @@ export type FinLoanInstallmentCountAggregateOutputType = {
 export type FinLoanInstallmentAvgAggregateInputType = {
   installmentNo?: true
   amount?: true
+  principal?: true
+  interest?: true
+  insurance?: true
+  fees?: true
+  lateFee?: true
+  paidAmount?: true
 }
 
 export type FinLoanInstallmentSumAggregateInputType = {
   installmentNo?: true
   amount?: true
+  principal?: true
+  interest?: true
+  insurance?: true
+  fees?: true
+  lateFee?: true
+  paidAmount?: true
 }
 
 export type FinLoanInstallmentMinAggregateInputType = {
@@ -91,6 +136,13 @@ export type FinLoanInstallmentMinAggregateInputType = {
   installmentNo?: true
   dueDate?: true
   amount?: true
+  principal?: true
+  interest?: true
+  insurance?: true
+  fees?: true
+  lateFee?: true
+  paidAmount?: true
+  status?: true
   paidAt?: true
   transactionId?: true
   createdAt?: true
@@ -103,6 +155,13 @@ export type FinLoanInstallmentMaxAggregateInputType = {
   installmentNo?: true
   dueDate?: true
   amount?: true
+  principal?: true
+  interest?: true
+  insurance?: true
+  fees?: true
+  lateFee?: true
+  paidAmount?: true
+  status?: true
   paidAt?: true
   transactionId?: true
   createdAt?: true
@@ -115,6 +174,13 @@ export type FinLoanInstallmentCountAggregateInputType = {
   installmentNo?: true
   dueDate?: true
   amount?: true
+  principal?: true
+  interest?: true
+  insurance?: true
+  fees?: true
+  lateFee?: true
+  paidAmount?: true
+  status?: true
   paidAt?: true
   transactionId?: true
   createdAt?: true
@@ -214,6 +280,13 @@ export type FinLoanInstallmentGroupByOutputType = {
   installmentNo: number
   dueDate: Date
   amount: runtime.Decimal
+  principal: runtime.Decimal
+  interest: runtime.Decimal
+  insurance: runtime.Decimal
+  fees: runtime.Decimal
+  lateFee: runtime.Decimal
+  paidAmount: runtime.Decimal
+  status: $Enums.FinInstallmentStatus
   paidAt: Date | null
   transactionId: string | null
   createdAt: Date
@@ -249,6 +322,13 @@ export type FinLoanInstallmentWhereInput = {
   installmentNo?: Prisma.IntFilter<"FinLoanInstallment"> | number
   dueDate?: Prisma.DateTimeFilter<"FinLoanInstallment"> | Date | string
   amount?: Prisma.DecimalFilter<"FinLoanInstallment"> | runtime.Decimal | runtime.DecimalJsLike | number | string
+  principal?: Prisma.DecimalFilter<"FinLoanInstallment"> | runtime.Decimal | runtime.DecimalJsLike | number | string
+  interest?: Prisma.DecimalFilter<"FinLoanInstallment"> | runtime.Decimal | runtime.DecimalJsLike | number | string
+  insurance?: Prisma.DecimalFilter<"FinLoanInstallment"> | runtime.Decimal | runtime.DecimalJsLike | number | string
+  fees?: Prisma.DecimalFilter<"FinLoanInstallment"> | runtime.Decimal | runtime.DecimalJsLike | number | string
+  lateFee?: Prisma.DecimalFilter<"FinLoanInstallment"> | runtime.Decimal | runtime.DecimalJsLike | number | string
+  paidAmount?: Prisma.DecimalFilter<"FinLoanInstallment"> | runtime.Decimal | runtime.DecimalJsLike | number | string
+  status?: Prisma.EnumFinInstallmentStatusFilter<"FinLoanInstallment"> | $Enums.FinInstallmentStatus
   paidAt?: Prisma.DateTimeNullableFilter<"FinLoanInstallment"> | Date | string | null
   transactionId?: Prisma.StringNullableFilter<"FinLoanInstallment"> | string | null
   createdAt?: Prisma.DateTimeFilter<"FinLoanInstallment"> | Date | string
@@ -263,6 +343,13 @@ export type FinLoanInstallmentOrderByWithRelationInput = {
   installmentNo?: Prisma.SortOrder
   dueDate?: Prisma.SortOrder
   amount?: Prisma.SortOrder
+  principal?: Prisma.SortOrder
+  interest?: Prisma.SortOrder
+  insurance?: Prisma.SortOrder
+  fees?: Prisma.SortOrder
+  lateFee?: Prisma.SortOrder
+  paidAmount?: Prisma.SortOrder
+  status?: Prisma.SortOrder
   paidAt?: Prisma.SortOrderInput | Prisma.SortOrder
   transactionId?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -282,6 +369,13 @@ export type FinLoanInstallmentWhereUniqueInput = Prisma.AtLeast<{
   installmentNo?: Prisma.IntFilter<"FinLoanInstallment"> | number
   dueDate?: Prisma.DateTimeFilter<"FinLoanInstallment"> | Date | string
   amount?: Prisma.DecimalFilter<"FinLoanInstallment"> | runtime.Decimal | runtime.DecimalJsLike | number | string
+  principal?: Prisma.DecimalFilter<"FinLoanInstallment"> | runtime.Decimal | runtime.DecimalJsLike | number | string
+  interest?: Prisma.DecimalFilter<"FinLoanInstallment"> | runtime.Decimal | runtime.DecimalJsLike | number | string
+  insurance?: Prisma.DecimalFilter<"FinLoanInstallment"> | runtime.Decimal | runtime.DecimalJsLike | number | string
+  fees?: Prisma.DecimalFilter<"FinLoanInstallment"> | runtime.Decimal | runtime.DecimalJsLike | number | string
+  lateFee?: Prisma.DecimalFilter<"FinLoanInstallment"> | runtime.Decimal | runtime.DecimalJsLike | number | string
+  paidAmount?: Prisma.DecimalFilter<"FinLoanInstallment"> | runtime.Decimal | runtime.DecimalJsLike | number | string
+  status?: Prisma.EnumFinInstallmentStatusFilter<"FinLoanInstallment"> | $Enums.FinInstallmentStatus
   paidAt?: Prisma.DateTimeNullableFilter<"FinLoanInstallment"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"FinLoanInstallment"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"FinLoanInstallment"> | Date | string
@@ -295,6 +389,13 @@ export type FinLoanInstallmentOrderByWithAggregationInput = {
   installmentNo?: Prisma.SortOrder
   dueDate?: Prisma.SortOrder
   amount?: Prisma.SortOrder
+  principal?: Prisma.SortOrder
+  interest?: Prisma.SortOrder
+  insurance?: Prisma.SortOrder
+  fees?: Prisma.SortOrder
+  lateFee?: Prisma.SortOrder
+  paidAmount?: Prisma.SortOrder
+  status?: Prisma.SortOrder
   paidAt?: Prisma.SortOrderInput | Prisma.SortOrder
   transactionId?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -315,6 +416,13 @@ export type FinLoanInstallmentScalarWhereWithAggregatesInput = {
   installmentNo?: Prisma.IntWithAggregatesFilter<"FinLoanInstallment"> | number
   dueDate?: Prisma.DateTimeWithAggregatesFilter<"FinLoanInstallment"> | Date | string
   amount?: Prisma.DecimalWithAggregatesFilter<"FinLoanInstallment"> | runtime.Decimal | runtime.DecimalJsLike | number | string
+  principal?: Prisma.DecimalWithAggregatesFilter<"FinLoanInstallment"> | runtime.Decimal | runtime.DecimalJsLike | number | string
+  interest?: Prisma.DecimalWithAggregatesFilter<"FinLoanInstallment"> | runtime.Decimal | runtime.DecimalJsLike | number | string
+  insurance?: Prisma.DecimalWithAggregatesFilter<"FinLoanInstallment"> | runtime.Decimal | runtime.DecimalJsLike | number | string
+  fees?: Prisma.DecimalWithAggregatesFilter<"FinLoanInstallment"> | runtime.Decimal | runtime.DecimalJsLike | number | string
+  lateFee?: Prisma.DecimalWithAggregatesFilter<"FinLoanInstallment"> | runtime.Decimal | runtime.DecimalJsLike | number | string
+  paidAmount?: Prisma.DecimalWithAggregatesFilter<"FinLoanInstallment"> | runtime.Decimal | runtime.DecimalJsLike | number | string
+  status?: Prisma.EnumFinInstallmentStatusWithAggregatesFilter<"FinLoanInstallment"> | $Enums.FinInstallmentStatus
   paidAt?: Prisma.DateTimeNullableWithAggregatesFilter<"FinLoanInstallment"> | Date | string | null
   transactionId?: Prisma.StringNullableWithAggregatesFilter<"FinLoanInstallment"> | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"FinLoanInstallment"> | Date | string
@@ -326,6 +434,13 @@ export type FinLoanInstallmentCreateInput = {
   installmentNo: number
   dueDate: Date | string
   amount: runtime.Decimal | runtime.DecimalJsLike | number | string
+  principal?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  interest?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  insurance?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  fees?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  lateFee?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  paidAmount?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  status?: $Enums.FinInstallmentStatus
   paidAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -339,6 +454,13 @@ export type FinLoanInstallmentUncheckedCreateInput = {
   installmentNo: number
   dueDate: Date | string
   amount: runtime.Decimal | runtime.DecimalJsLike | number | string
+  principal?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  interest?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  insurance?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  fees?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  lateFee?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  paidAmount?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  status?: $Enums.FinInstallmentStatus
   paidAt?: Date | string | null
   transactionId?: string | null
   createdAt?: Date | string
@@ -350,6 +472,13 @@ export type FinLoanInstallmentUpdateInput = {
   installmentNo?: Prisma.IntFieldUpdateOperationsInput | number
   dueDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  principal?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  interest?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  insurance?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  fees?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  lateFee?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  paidAmount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  status?: Prisma.EnumFinInstallmentStatusFieldUpdateOperationsInput | $Enums.FinInstallmentStatus
   paidAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -363,6 +492,13 @@ export type FinLoanInstallmentUncheckedUpdateInput = {
   installmentNo?: Prisma.IntFieldUpdateOperationsInput | number
   dueDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  principal?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  interest?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  insurance?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  fees?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  lateFee?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  paidAmount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  status?: Prisma.EnumFinInstallmentStatusFieldUpdateOperationsInput | $Enums.FinInstallmentStatus
   paidAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   transactionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -375,6 +511,13 @@ export type FinLoanInstallmentCreateManyInput = {
   installmentNo: number
   dueDate: Date | string
   amount: runtime.Decimal | runtime.DecimalJsLike | number | string
+  principal?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  interest?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  insurance?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  fees?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  lateFee?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  paidAmount?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  status?: $Enums.FinInstallmentStatus
   paidAt?: Date | string | null
   transactionId?: string | null
   createdAt?: Date | string
@@ -386,6 +529,13 @@ export type FinLoanInstallmentUpdateManyMutationInput = {
   installmentNo?: Prisma.IntFieldUpdateOperationsInput | number
   dueDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  principal?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  interest?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  insurance?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  fees?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  lateFee?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  paidAmount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  status?: Prisma.EnumFinInstallmentStatusFieldUpdateOperationsInput | $Enums.FinInstallmentStatus
   paidAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -397,6 +547,13 @@ export type FinLoanInstallmentUncheckedUpdateManyInput = {
   installmentNo?: Prisma.IntFieldUpdateOperationsInput | number
   dueDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  principal?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  interest?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  insurance?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  fees?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  lateFee?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  paidAmount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  status?: Prisma.EnumFinInstallmentStatusFieldUpdateOperationsInput | $Enums.FinInstallmentStatus
   paidAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   transactionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -429,6 +586,13 @@ export type FinLoanInstallmentCountOrderByAggregateInput = {
   installmentNo?: Prisma.SortOrder
   dueDate?: Prisma.SortOrder
   amount?: Prisma.SortOrder
+  principal?: Prisma.SortOrder
+  interest?: Prisma.SortOrder
+  insurance?: Prisma.SortOrder
+  fees?: Prisma.SortOrder
+  lateFee?: Prisma.SortOrder
+  paidAmount?: Prisma.SortOrder
+  status?: Prisma.SortOrder
   paidAt?: Prisma.SortOrder
   transactionId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -438,6 +602,12 @@ export type FinLoanInstallmentCountOrderByAggregateInput = {
 export type FinLoanInstallmentAvgOrderByAggregateInput = {
   installmentNo?: Prisma.SortOrder
   amount?: Prisma.SortOrder
+  principal?: Prisma.SortOrder
+  interest?: Prisma.SortOrder
+  insurance?: Prisma.SortOrder
+  fees?: Prisma.SortOrder
+  lateFee?: Prisma.SortOrder
+  paidAmount?: Prisma.SortOrder
 }
 
 export type FinLoanInstallmentMaxOrderByAggregateInput = {
@@ -446,6 +616,13 @@ export type FinLoanInstallmentMaxOrderByAggregateInput = {
   installmentNo?: Prisma.SortOrder
   dueDate?: Prisma.SortOrder
   amount?: Prisma.SortOrder
+  principal?: Prisma.SortOrder
+  interest?: Prisma.SortOrder
+  insurance?: Prisma.SortOrder
+  fees?: Prisma.SortOrder
+  lateFee?: Prisma.SortOrder
+  paidAmount?: Prisma.SortOrder
+  status?: Prisma.SortOrder
   paidAt?: Prisma.SortOrder
   transactionId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -458,6 +635,13 @@ export type FinLoanInstallmentMinOrderByAggregateInput = {
   installmentNo?: Prisma.SortOrder
   dueDate?: Prisma.SortOrder
   amount?: Prisma.SortOrder
+  principal?: Prisma.SortOrder
+  interest?: Prisma.SortOrder
+  insurance?: Prisma.SortOrder
+  fees?: Prisma.SortOrder
+  lateFee?: Prisma.SortOrder
+  paidAmount?: Prisma.SortOrder
+  status?: Prisma.SortOrder
   paidAt?: Prisma.SortOrder
   transactionId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -467,6 +651,12 @@ export type FinLoanInstallmentMinOrderByAggregateInput = {
 export type FinLoanInstallmentSumOrderByAggregateInput = {
   installmentNo?: Prisma.SortOrder
   amount?: Prisma.SortOrder
+  principal?: Prisma.SortOrder
+  interest?: Prisma.SortOrder
+  insurance?: Prisma.SortOrder
+  fees?: Prisma.SortOrder
+  lateFee?: Prisma.SortOrder
+  paidAmount?: Prisma.SortOrder
 }
 
 export type FinLoanInstallmentCreateNestedOneWithoutTransactionInput = {
@@ -543,11 +733,22 @@ export type FinLoanInstallmentUncheckedUpdateManyWithoutLoanNestedInput = {
   deleteMany?: Prisma.FinLoanInstallmentScalarWhereInput | Prisma.FinLoanInstallmentScalarWhereInput[]
 }
 
+export type EnumFinInstallmentStatusFieldUpdateOperationsInput = {
+  set?: $Enums.FinInstallmentStatus
+}
+
 export type FinLoanInstallmentCreateWithoutTransactionInput = {
   id?: string
   installmentNo: number
   dueDate: Date | string
   amount: runtime.Decimal | runtime.DecimalJsLike | number | string
+  principal?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  interest?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  insurance?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  fees?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  lateFee?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  paidAmount?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  status?: $Enums.FinInstallmentStatus
   paidAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -560,6 +761,13 @@ export type FinLoanInstallmentUncheckedCreateWithoutTransactionInput = {
   installmentNo: number
   dueDate: Date | string
   amount: runtime.Decimal | runtime.DecimalJsLike | number | string
+  principal?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  interest?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  insurance?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  fees?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  lateFee?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  paidAmount?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  status?: $Enums.FinInstallmentStatus
   paidAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -586,6 +794,13 @@ export type FinLoanInstallmentUpdateWithoutTransactionInput = {
   installmentNo?: Prisma.IntFieldUpdateOperationsInput | number
   dueDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  principal?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  interest?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  insurance?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  fees?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  lateFee?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  paidAmount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  status?: Prisma.EnumFinInstallmentStatusFieldUpdateOperationsInput | $Enums.FinInstallmentStatus
   paidAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -598,6 +813,13 @@ export type FinLoanInstallmentUncheckedUpdateWithoutTransactionInput = {
   installmentNo?: Prisma.IntFieldUpdateOperationsInput | number
   dueDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  principal?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  interest?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  insurance?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  fees?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  lateFee?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  paidAmount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  status?: Prisma.EnumFinInstallmentStatusFieldUpdateOperationsInput | $Enums.FinInstallmentStatus
   paidAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -608,6 +830,13 @@ export type FinLoanInstallmentCreateWithoutLoanInput = {
   installmentNo: number
   dueDate: Date | string
   amount: runtime.Decimal | runtime.DecimalJsLike | number | string
+  principal?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  interest?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  insurance?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  fees?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  lateFee?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  paidAmount?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  status?: $Enums.FinInstallmentStatus
   paidAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -619,6 +848,13 @@ export type FinLoanInstallmentUncheckedCreateWithoutLoanInput = {
   installmentNo: number
   dueDate: Date | string
   amount: runtime.Decimal | runtime.DecimalJsLike | number | string
+  principal?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  interest?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  insurance?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  fees?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  lateFee?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  paidAmount?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  status?: $Enums.FinInstallmentStatus
   paidAt?: Date | string | null
   transactionId?: string | null
   createdAt?: Date | string
@@ -660,6 +896,13 @@ export type FinLoanInstallmentScalarWhereInput = {
   installmentNo?: Prisma.IntFilter<"FinLoanInstallment"> | number
   dueDate?: Prisma.DateTimeFilter<"FinLoanInstallment"> | Date | string
   amount?: Prisma.DecimalFilter<"FinLoanInstallment"> | runtime.Decimal | runtime.DecimalJsLike | number | string
+  principal?: Prisma.DecimalFilter<"FinLoanInstallment"> | runtime.Decimal | runtime.DecimalJsLike | number | string
+  interest?: Prisma.DecimalFilter<"FinLoanInstallment"> | runtime.Decimal | runtime.DecimalJsLike | number | string
+  insurance?: Prisma.DecimalFilter<"FinLoanInstallment"> | runtime.Decimal | runtime.DecimalJsLike | number | string
+  fees?: Prisma.DecimalFilter<"FinLoanInstallment"> | runtime.Decimal | runtime.DecimalJsLike | number | string
+  lateFee?: Prisma.DecimalFilter<"FinLoanInstallment"> | runtime.Decimal | runtime.DecimalJsLike | number | string
+  paidAmount?: Prisma.DecimalFilter<"FinLoanInstallment"> | runtime.Decimal | runtime.DecimalJsLike | number | string
+  status?: Prisma.EnumFinInstallmentStatusFilter<"FinLoanInstallment"> | $Enums.FinInstallmentStatus
   paidAt?: Prisma.DateTimeNullableFilter<"FinLoanInstallment"> | Date | string | null
   transactionId?: Prisma.StringNullableFilter<"FinLoanInstallment"> | string | null
   createdAt?: Prisma.DateTimeFilter<"FinLoanInstallment"> | Date | string
@@ -671,6 +914,13 @@ export type FinLoanInstallmentCreateManyLoanInput = {
   installmentNo: number
   dueDate: Date | string
   amount: runtime.Decimal | runtime.DecimalJsLike | number | string
+  principal?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  interest?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  insurance?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  fees?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  lateFee?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  paidAmount?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  status?: $Enums.FinInstallmentStatus
   paidAt?: Date | string | null
   transactionId?: string | null
   createdAt?: Date | string
@@ -682,6 +932,13 @@ export type FinLoanInstallmentUpdateWithoutLoanInput = {
   installmentNo?: Prisma.IntFieldUpdateOperationsInput | number
   dueDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  principal?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  interest?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  insurance?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  fees?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  lateFee?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  paidAmount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  status?: Prisma.EnumFinInstallmentStatusFieldUpdateOperationsInput | $Enums.FinInstallmentStatus
   paidAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -693,6 +950,13 @@ export type FinLoanInstallmentUncheckedUpdateWithoutLoanInput = {
   installmentNo?: Prisma.IntFieldUpdateOperationsInput | number
   dueDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  principal?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  interest?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  insurance?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  fees?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  lateFee?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  paidAmount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  status?: Prisma.EnumFinInstallmentStatusFieldUpdateOperationsInput | $Enums.FinInstallmentStatus
   paidAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   transactionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -704,6 +968,13 @@ export type FinLoanInstallmentUncheckedUpdateManyWithoutLoanInput = {
   installmentNo?: Prisma.IntFieldUpdateOperationsInput | number
   dueDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  principal?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  interest?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  insurance?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  fees?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  lateFee?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  paidAmount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  status?: Prisma.EnumFinInstallmentStatusFieldUpdateOperationsInput | $Enums.FinInstallmentStatus
   paidAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   transactionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -718,6 +989,13 @@ export type FinLoanInstallmentSelect<ExtArgs extends runtime.Types.Extensions.In
   installmentNo?: boolean
   dueDate?: boolean
   amount?: boolean
+  principal?: boolean
+  interest?: boolean
+  insurance?: boolean
+  fees?: boolean
+  lateFee?: boolean
+  paidAmount?: boolean
+  status?: boolean
   paidAt?: boolean
   transactionId?: boolean
   createdAt?: boolean
@@ -732,6 +1010,13 @@ export type FinLoanInstallmentSelectCreateManyAndReturn<ExtArgs extends runtime.
   installmentNo?: boolean
   dueDate?: boolean
   amount?: boolean
+  principal?: boolean
+  interest?: boolean
+  insurance?: boolean
+  fees?: boolean
+  lateFee?: boolean
+  paidAmount?: boolean
+  status?: boolean
   paidAt?: boolean
   transactionId?: boolean
   createdAt?: boolean
@@ -746,6 +1031,13 @@ export type FinLoanInstallmentSelectUpdateManyAndReturn<ExtArgs extends runtime.
   installmentNo?: boolean
   dueDate?: boolean
   amount?: boolean
+  principal?: boolean
+  interest?: boolean
+  insurance?: boolean
+  fees?: boolean
+  lateFee?: boolean
+  paidAmount?: boolean
+  status?: boolean
   paidAt?: boolean
   transactionId?: boolean
   createdAt?: boolean
@@ -760,13 +1052,20 @@ export type FinLoanInstallmentSelectScalar = {
   installmentNo?: boolean
   dueDate?: boolean
   amount?: boolean
+  principal?: boolean
+  interest?: boolean
+  insurance?: boolean
+  fees?: boolean
+  lateFee?: boolean
+  paidAmount?: boolean
+  status?: boolean
   paidAt?: boolean
   transactionId?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type FinLoanInstallmentOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "loanId" | "installmentNo" | "dueDate" | "amount" | "paidAt" | "transactionId" | "createdAt" | "updatedAt", ExtArgs["result"]["finLoanInstallment"]>
+export type FinLoanInstallmentOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "loanId" | "installmentNo" | "dueDate" | "amount" | "principal" | "interest" | "insurance" | "fees" | "lateFee" | "paidAmount" | "status" | "paidAt" | "transactionId" | "createdAt" | "updatedAt", ExtArgs["result"]["finLoanInstallment"]>
 export type FinLoanInstallmentInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   loan?: boolean | Prisma.FinLoanDefaultArgs<ExtArgs>
   transaction?: boolean | Prisma.FinLoanInstallment$transactionArgs<ExtArgs>
@@ -792,6 +1091,13 @@ export type $FinLoanInstallmentPayload<ExtArgs extends runtime.Types.Extensions.
     installmentNo: number
     dueDate: Date
     amount: runtime.Decimal
+    principal: runtime.Decimal
+    interest: runtime.Decimal
+    insurance: runtime.Decimal
+    fees: runtime.Decimal
+    lateFee: runtime.Decimal
+    paidAmount: runtime.Decimal
+    status: $Enums.FinInstallmentStatus
     paidAt: Date | null
     /**
      * Movement created when the instalment was paid; null when it was not recorded.
@@ -1229,6 +1535,13 @@ export interface FinLoanInstallmentFieldRefs {
   readonly installmentNo: Prisma.FieldRef<"FinLoanInstallment", 'Int'>
   readonly dueDate: Prisma.FieldRef<"FinLoanInstallment", 'DateTime'>
   readonly amount: Prisma.FieldRef<"FinLoanInstallment", 'Decimal'>
+  readonly principal: Prisma.FieldRef<"FinLoanInstallment", 'Decimal'>
+  readonly interest: Prisma.FieldRef<"FinLoanInstallment", 'Decimal'>
+  readonly insurance: Prisma.FieldRef<"FinLoanInstallment", 'Decimal'>
+  readonly fees: Prisma.FieldRef<"FinLoanInstallment", 'Decimal'>
+  readonly lateFee: Prisma.FieldRef<"FinLoanInstallment", 'Decimal'>
+  readonly paidAmount: Prisma.FieldRef<"FinLoanInstallment", 'Decimal'>
+  readonly status: Prisma.FieldRef<"FinLoanInstallment", 'FinInstallmentStatus'>
   readonly paidAt: Prisma.FieldRef<"FinLoanInstallment", 'DateTime'>
   readonly transactionId: Prisma.FieldRef<"FinLoanInstallment", 'String'>
   readonly createdAt: Prisma.FieldRef<"FinLoanInstallment", 'DateTime'>

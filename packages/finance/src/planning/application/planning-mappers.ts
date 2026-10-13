@@ -10,13 +10,38 @@ export function mapBudget<
     amountLimit: Decimalish;
     amountSpent: Decimalish;
     alertThresholdPct: Decimalish;
+    carriedOver?: Decimalish;
+    categories?: Array<{
+      categoryId: string;
+      category: { name: string; color: string | null; icon: string | null };
+    }>;
   },
 >(row: T) {
+  const carriedOver =
+    row.carriedOver === undefined ? 0 : Number(row.carriedOver);
   return {
     ...row,
     amountLimit: decimalToString(row.amountLimit),
     amountSpent: decimalToString(row.amountSpent),
     alertThresholdPct: Number(row.alertThresholdPct),
+    ...(row.carriedOver !== undefined
+      ? {
+          carriedOver: decimalToString(carriedOver),
+          effectiveLimit: decimalToString(
+            Number(row.amountLimit) + carriedOver,
+          ),
+        }
+      : {}),
+    ...(row.categories
+      ? {
+          categories: row.categories.map((entry) => ({
+            id: entry.categoryId,
+            name: entry.category.name,
+            color: entry.category.color,
+            icon: entry.category.icon,
+          })),
+        }
+      : {}),
   };
 }
 

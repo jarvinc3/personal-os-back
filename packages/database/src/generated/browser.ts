@@ -89,6 +89,11 @@ export type FinCategory = Prisma.FinCategoryModel
  */
 export type FinBudget = Prisma.FinBudgetModel
 /**
+ * Model FinBudgetCategory
+ * 
+ */
+export type FinBudgetCategory = Prisma.FinBudgetCategoryModel
+/**
  * Model FinBudgetAlert
  * 
  */
@@ -119,6 +124,12 @@ export type FinCard = Prisma.FinCardModel
  */
 export type FinCardBalance = Prisma.FinCardBalanceModel
 /**
+ * Model FinInstrumentEvent
+ * Instrument timeline row (limit change, adjustment, closed statement).
+ * Adjustments also live in FinTransaction; the history query unions both.
+ */
+export type FinInstrumentEvent = Prisma.FinInstrumentEventModel
+/**
  * Model FinCardStatement
  * Immutable closing snapshot. Paid amount and status are derived from the
  * ledger on read, so a stale row can never misreport a payment.
@@ -146,6 +157,11 @@ export type FinLoan = Prisma.FinLoanModel
  * instalment and does not change when the loan balance is adjusted.
  */
 export type FinLoanInstallment = Prisma.FinLoanInstallmentModel
+/**
+ * Model FinLoanPrepayment
+ * 
+ */
+export type FinLoanPrepayment = Prisma.FinLoanPrepaymentModel
 /**
  * Model FinReceivable
  * 

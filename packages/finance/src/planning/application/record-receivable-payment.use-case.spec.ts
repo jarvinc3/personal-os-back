@@ -1,4 +1,7 @@
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  NotFoundException,
+  UnprocessableEntityException,
+} from '@nestjs/common';
 import type { CreateTransactionUseCase } from '../../ledger/application/create-transaction.use-case';
 import type { FinanceOwnershipService } from '../../shared/application/finance-ownership.service';
 import type { PlanningRepository } from '../infrastructure/planning.repository';
@@ -25,6 +28,8 @@ function setup(options: { found?: unknown } = {}) {
     createReceivablePayment: jest
       .fn()
       .mockResolvedValue({ id: 'pay-1', amount: 50 }),
+    addReceivableCreditBalance: jest.fn().mockResolvedValue({}),
+    findExtraIncomeCategoryId: jest.fn().mockResolvedValue(null),
   };
   const ownership = { assertAccountOwned: jest.fn().mockResolvedValue({}) };
   const createTransaction = {
@@ -61,6 +66,8 @@ describe('RecordReceivablePaymentUseCase', () => {
     });
     expect(repo.createReceivablePayment).toHaveBeenCalledWith('rec-1', {
       amount: 50,
+      appliedAmount: 50,
+      excessAmount: 0,
       paidAt: now,
       accountId: 'acc-1',
       transactionId: 'tx-1',
@@ -68,7 +75,7 @@ describe('RecordReceivablePaymentUseCase', () => {
     expect(payment).toEqual({ id: 'pay-1', amount: '50' });
   });
 
-  it('rejects a payment larger than what is still owed', async () => {
+  it('asks what to do when the payment exceeds the outstanding amount', async () => {
     const { repo, createTransaction, useCase } = setup();
 
     await expect(
@@ -78,10 +85,31 @@ describe('RecordReceivablePaymentUseCase', () => {
         { amount: 60, accountId: 'acc-1' },
         utc(2026, 10, 12),
       ),
-    ).rejects.toBeInstanceOf(BadRequestException);
+    ).rejects.toBeInstanceOf(UnprocessableEntityException);
 
     expect(createTransaction.execute).not.toHaveBeenCalled();
     expect(repo.createReceivablePayment).not.toHaveBeenCalled();
+  });
+
+  it('keeps the excess as a credit balance when asked', async () => {
+    const { repo, createTransaction, useCase } = setup();
+
+    await useCase.execute(
+      'user-1',
+      'rec-1',
+      {
+        amount: 60,
+        accountId: 'acc-1',
+        excessHandling: 'CREDIT_BALANCE',
+      },
+      utc(2026, 10, 12),
+    );
+
+    expect(createTransaction.execute).toHaveBeenCalledWith(
+      'user-1',
+      expect.objectContaining({ type: 'CREDIT', amount: 60 }),
+    );
+    expect(repo.addReceivableCreditBalance).toHaveBeenCalledWith('rec-1', 10);
   });
 
   it('fails when the receivable is missing', async () => {

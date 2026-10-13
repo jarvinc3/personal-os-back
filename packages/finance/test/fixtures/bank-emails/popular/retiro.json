@@ -1,0 +1,21 @@
+{
+  "from": "notificaciones@popularenlinea.com",
+  "subject": "Notificación de Retiro",
+  "date": "2026-10-12T16:22:15Z",
+  "labelIds": [
+    "IMPORTANT",
+    "CATEGORY_UPDATES",
+    "INBOX"
+  ],
+  "text": "Estimado (a) \r\n Gracias por utilizar su Tarjeta Visa Débito Clásica, terminada en 5089. \nA continuación detalle de la transacción:\n Monto Moneda Fecha Cajero Automatico Estatus \n RD$500.00 Peso dominicano 12/10/2026 BANCO POPULAR NACIONAL LO Aprobada \n En caso de requerir mayor información, puede comunicarse con nosotros llamando al 809 -544 -5555. \n Estamos comprometidos con entregarle una experiencia memorable de servicio.\n Atentamente,\nBanco Popular Dominicano \n Para más información sobre nuestros productos y servicios:\n En caso de tener sugerencias, quejas o comentarios, puede escribir al siguiente correo: vozdelcliente @bpd .com .do\n Banco Popular Dominicano, S.A. - Banco Múltiple \n ...",
+  "expected": {
+    "kind": "atm_withdrawal",
+    "cardBrand": "Visa Débito Clásica",
+    "cardLast4": "5089",
+    "amount": "RD$500.00",
+    "currency": "Peso dominicano",
+    "date": "12/10/2026",
+    "atm": "BANCO POPULAR NACIONAL LO",
+    "status": "Aprobada"
+  }
+}

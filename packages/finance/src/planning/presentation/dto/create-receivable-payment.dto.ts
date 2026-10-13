@@ -2,6 +2,7 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
   IsDateString,
+  IsEnum,
   IsNumber,
   IsOptional,
   IsString,
@@ -31,4 +32,24 @@ export class CreateReceivablePaymentDto {
   @IsString()
   @MaxLength(200)
   notes?: string;
+
+  @ApiPropertyOptional({
+    enum: ['EXTRA_INCOME', 'CREDIT_BALANCE', 'APPLY_TO_RECEIVABLE'],
+  })
+  @IsOptional()
+  @IsEnum(['EXTRA_INCOME', 'CREDIT_BALANCE', 'APPLY_TO_RECEIVABLE'])
+  excessHandling?: 'EXTRA_INCOME' | 'CREDIT_BALANCE' | 'APPLY_TO_RECEIVABLE';
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsUUID()
+  targetReceivableId?: string;
+
+  @ApiPropertyOptional({
+    description:
+      'Movimiento existente que ya representa el cobro; no crea otro.',
+  })
+  @IsOptional()
+  @IsUUID()
+  transactionId?: string;
 }

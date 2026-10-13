@@ -1,7 +1,10 @@
 import type { BudgetSpendSnapshot } from '../../../shared/domain/budget-snapshot';
 import type { StoredMovement } from '../../../shared/domain/deletion-snapshot';
+import type { RestoreResult } from '../../../shared/domain/deletion-snapshot';
 import type { ResolvedAmounts } from '../../../shared/domain/money';
+import type { TransactionLinkKind } from '../../../shared/domain/transaction-links';
 import type {
+  CreateCardPaymentCommand,
   CreateTransactionCommand,
   CreateTransferCommand,
   FinTxStatus,
@@ -29,10 +32,26 @@ export type LedgerTransactionRow = {
   categoryId: string | null;
   status: string;
   source: string;
+  legRole?: string | null;
+  rail?: string | null;
   transferGroupId: string | null;
   linkedTransactionId: string | null;
+  possibleDuplicateOfId?: string | null;
   emailMessageId?: string | null;
   aiMetadata?: unknown;
+  loanInstallment?: {
+    id: string;
+    installmentNo: number;
+    loan?: { lenderName: string } | null;
+  } | null;
+  receivablePayment?: {
+    id: string;
+    receivable?: { debtorName: string } | null;
+  } | null;
+  savingsGoalContribution?: {
+    id: string;
+    goal?: { name: string } | null;
+  } | null;
   transactionDate: Date;
   createdAt: Date;
   account?: {
@@ -65,6 +84,7 @@ export type CreateTransactionResult = {
 export type CreateTransferResult = {
   debit: LedgerTransactionRow;
   credit: LedgerTransactionRow;
+  fee?: LedgerTransactionRow;
   transferGroupId: string;
 };
 
@@ -90,10 +110,24 @@ export interface LedgerRepositoryPort {
     userId: string,
   ): Promise<LedgerTransactionRow | null>;
 
+  clearPossibleDuplicate(userId: string, id: string): Promise<void>;
+
+  /** Which planning record points at this movement, if any. */
+  findPlanningLinkKind(
+    transactionId: string,
+    userId: string,
+  ): Promise<TransactionLinkKind | null>;
+
   findAccountById(
     id: string,
     userId: string,
   ): Promise<{ id: string; currency: string } | null>;
+
+  /** Savings goal that earmarks this account, if any. */
+  findSavingsGoalIdByAccount(
+    userId: string,
+    accountId: string,
+  ): Promise<string | null>;
 
   findTransactionByEmailMessageId(
     gmailMessageId: string,
@@ -108,6 +142,11 @@ export interface LedgerRepositoryPort {
   findTransactionsByTransferGroupId(
     transferGroupId: string,
     userId: string,
+  ): Promise<LedgerTransactionRow[]>;
+
+  findTransactionsByTransferGroupIds(
+    userId: string,
+    transferGroupIds: string[],
   ): Promise<LedgerTransactionRow[]>;
 
   findCandidatesForReverse(
@@ -131,6 +170,18 @@ export interface LedgerRepositoryPort {
       currency: string;
       type: 'DEBIT' | 'CREDIT';
       merchant: string | null;
+      transactionDate: Date;
+    },
+  ): Promise<LedgerTransactionRow | null>;
+
+  findPossibleDuplicate(
+    userId: string,
+    params: {
+      accountId?: string | null;
+      cardId?: string | null;
+      amount: number;
+      currency: string;
+      type: 'DEBIT' | 'CREDIT';
       transactionDate: Date;
     },
   ): Promise<LedgerTransactionRow | null>;
@@ -164,15 +215,55 @@ export interface LedgerRepositoryPort {
       emailMessageId?: string;
       aiMetadata?: unknown;
       linkedTransactionId?: string;
+      transferGroupId?: string;
     },
   ): Promise<CreateTransactionResult | null>;
 
-  createTransfer(
+  createTransfer(input: {
+    userId: string;
+    command: CreateTransferCommand;
+    fromAmounts: ResolvedAmounts;
+    toAmounts: ResolvedAmounts;
+    feeAmounts?: ResolvedAmounts;
+  }): Promise<CreateTransferResult | null>;
+
+  /** A card payment is two CARD_PAYMENT legs: account out, card available up. */
+  createCardPayment(input: {
+    userId: string;
+    command: CreateCardPaymentCommand;
+    fromAmounts: ResolvedAmounts;
+    toAmounts: ResolvedAmounts;
+  }): Promise<CreateTransferResult | null>;
+
+  findCardForPayment(
     userId: string,
-    command: CreateTransferCommand,
-    fromAmounts: ResolvedAmounts,
-    toAmounts: ResolvedAmounts,
-  ): Promise<CreateTransferResult | null>;
+    cardId: string,
+  ): Promise<{ id: string; type: string; currencies: string[] } | null>;
+
+  /** Replaces both legs (and the fee effect) inside one transaction. */
+  updateTransfer(input: {
+    userId: string;
+    debitId: string;
+    creditId: string;
+    debitTarget: { accountId: string | null; cardId: string | null };
+    creditTarget: { accountId: string | null; cardId: string | null };
+    fromAmounts: ResolvedAmounts;
+    toAmounts: ResolvedAmounts;
+    transactionDate: Date;
+    description?: string | null;
+    notes?: string | null;
+    /** When present, updates the FEE leg (creating it if the transfer had none). */
+    feeAmounts?: ResolvedAmounts;
+    feeCategoryId?: string | null;
+  }): Promise<{
+    debit: LedgerTransactionRow;
+    credit: LedgerTransactionRow;
+  } | null>;
+
+  unconfirmTransactionsByTransferGroupId(
+    userId: string,
+    transferGroupId: string,
+  ): Promise<{ count: number }>;
 
   updateTransaction(
     userId: string,
@@ -186,7 +277,7 @@ export interface LedgerRepositoryPort {
     userId: string,
     id: string,
     now: Date,
-  ): Promise<{ count: number }>;
+  ): Promise<RestoreResult>;
 
   deleteTransactionsByTransferGroupId(
     userId: string,
@@ -210,6 +301,12 @@ export interface LedgerRepositoryPort {
   ): Promise<{ count: number }>;
 
   confirmTransaction(
+    userId: string,
+    id: string,
+  ): Promise<CreateTransactionResult | null>;
+
+  /** Reverts balance and budget effect and moves a CONFIRMED movement to PENDING. */
+  unconfirmTransaction(
     userId: string,
     id: string,
   ): Promise<CreateTransactionResult | null>;

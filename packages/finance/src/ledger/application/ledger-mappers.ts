@@ -1,6 +1,55 @@
 import type { LogoRow } from '@personal-os/logos';
 import { decimalToString } from '../../shared/domain/mappers';
+import {
+  OPERATION_LEG_ROLE,
+  OPERATION_TYPE,
+  type OperationType,
+} from '../../shared/domain/transfer';
+import {
+  transactionEditPolicy,
+  type TransactionEditability,
+} from '../../shared/domain/transaction-edit-policy';
+import type { FinTransactionStatusValue } from '../../shared/domain/transaction-status';
+import {
+  TRANSACTION_LINK_KIND,
+  type TransactionLinkKind,
+} from '../../shared/domain/transaction-links';
 import type { LedgerTransactionRow } from './ports/ledger.repository.port';
+
+export type MappedPlanningLink = {
+  kind: TransactionLinkKind;
+  targetId: string;
+  label: string;
+};
+
+function resolvePlanningLink(
+  tx: LedgerTransactionRow,
+): MappedPlanningLink | null {
+  if (tx.loanInstallment) {
+    return {
+      kind: TRANSACTION_LINK_KIND.LOAN_INSTALLMENT,
+      targetId: tx.loanInstallment.id,
+      label:
+        `Cuota ${tx.loanInstallment.installmentNo}: ${tx.loanInstallment.loan?.lenderName ?? ''}`.trim(),
+    };
+  }
+  if (tx.receivablePayment) {
+    return {
+      kind: TRANSACTION_LINK_KIND.RECEIVABLE_PAYMENT,
+      targetId: tx.receivablePayment.id,
+      label:
+        `Cobro: ${tx.receivablePayment.receivable?.debtorName ?? ''}`.trim(),
+    };
+  }
+  if (tx.savingsGoalContribution) {
+    return {
+      kind: TRANSACTION_LINK_KIND.SAVINGS_CONTRIBUTION,
+      targetId: tx.savingsGoalContribution.id,
+      label: `Meta: ${tx.savingsGoalContribution.goal?.name ?? ''}`.trim(),
+    };
+  }
+  return null;
+}
 
 export type PartyLogoResolver = {
   resolveUrl(row?: LogoRow | null): string | null;
@@ -24,6 +73,7 @@ export type MappedTransaction = {
   description: string | null;
   transactionDate: string;
   status: string;
+  editable: TransactionEditability;
   source: string;
   categoryId: string | null;
   notes: string | null;
@@ -39,6 +89,8 @@ export type MappedTransaction = {
   transferToNetwork: string | null;
   transferToNetworkLogoUrl: string | null;
   linkedTransactionId: string | null;
+  possibleDuplicateOfId: string | null;
+  planningLink: MappedPlanningLink | null;
   aiMetadata: unknown;
   createdAt: string;
 };
@@ -91,6 +143,8 @@ function mapPhysicalTransaction(
     description: tx.description,
     transactionDate: tx.transactionDate.toISOString(),
     status: tx.status,
+    editable: transactionEditPolicy(tx.status as FinTransactionStatusValue)
+      .editable,
     source: tx.source,
     categoryId: tx.categoryId,
     notes: tx.notes,
@@ -106,8 +160,51 @@ function mapPhysicalTransaction(
     transferToNetwork: null,
     transferToNetworkLogoUrl: null,
     linkedTransactionId: tx.linkedTransactionId,
+    possibleDuplicateOfId: tx.possibleDuplicateOfId ?? null,
+    planningLink: resolvePlanningLink(tx),
     aiMetadata: tx.aiMetadata,
     createdAt: tx.createdAt.toISOString(),
+  };
+}
+
+export type MappedOperationLeg = MappedTransaction & {
+  legRole: string | null;
+};
+
+export type MappedOperation = MappedTransaction & {
+  kind: 'OPERATION';
+  operationType: OperationType;
+  legs: MappedOperationLeg[];
+};
+
+function mapOperationLeg(
+  leg: LedgerTransactionRow,
+  logos?: PartyLogoResolver,
+): MappedOperationLeg {
+  return {
+    ...mapLedgerTransaction(leg, logos),
+    legRole: leg.legRole ?? null,
+  };
+}
+
+/** One row per transfer operation, with every leg inside. */
+export function mapOperation(
+  legs: LedgerTransactionRow[],
+  logos?: PartyLogoResolver,
+): MappedOperation {
+  const source =
+    legs.find((leg) => leg.legRole === OPERATION_LEG_ROLE.SOURCE) ??
+    legs.find((leg) => leg.type === 'DEBIT') ??
+    legs[0];
+  const destination =
+    legs.find((leg) => leg.legRole === OPERATION_LEG_ROLE.DESTINATION) ??
+    legs.find((leg) => leg.type === 'CREDIT') ??
+    null;
+  return {
+    ...mapLogicalTransaction(source, destination, logos),
+    kind: 'OPERATION',
+    operationType: OPERATION_TYPE.TRANSFER,
+    legs: legs.map((leg) => mapOperationLeg(leg, logos)),
   };
 }
 
@@ -149,6 +246,8 @@ export function mapLogicalTransaction(
     description: from.description,
     transactionDate: from.transactionDate.toISOString(),
     status: from.status,
+    editable: transactionEditPolicy(from.status as FinTransactionStatusValue)
+      .editable,
     source: from.source,
     categoryId: from.categoryId,
     notes: from.notes,
@@ -164,6 +263,8 @@ export function mapLogicalTransaction(
     transferToNetwork: destination.network,
     transferToNetworkLogoUrl: destination.networkLogoUrl,
     linkedTransactionId: tx.linkedTransactionId,
+    possibleDuplicateOfId: tx.possibleDuplicateOfId ?? null,
+    planningLink: resolvePlanningLink(tx),
     aiMetadata: tx.aiMetadata,
     createdAt: from.createdAt.toISOString(),
   };

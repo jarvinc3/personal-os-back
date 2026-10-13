@@ -15,7 +15,28 @@ function loan(overrides: Partial<LoanScheduleSource> = {}): LoanScheduleSource {
     installmentFreq: 'MONTHLY',
     totalInstallments: 3,
     installmentAmount: 1500,
+    originalAmount: 4500,
+    currentBalance: 4500,
+    interestRate: null,
+    insuranceAmount: null,
     ...overrides,
+  };
+}
+
+function planRow(installmentNo: number, dueDate: Date, paidAt: Date | null) {
+  const paid = paidAt !== null;
+  return {
+    installmentNo,
+    dueDate,
+    principal: 1500,
+    interest: 0,
+    insurance: 0,
+    amount: 1500,
+    paidAt,
+    status: paid ? 'PAID' : 'PENDING',
+    paidAmount: paid ? 1500 : 0,
+    fees: 0,
+    lateFee: 0,
   };
 }
 
@@ -36,24 +57,9 @@ describe('SyncLoanInstallmentsUseCase', () => {
     await useCase.execute(loan(), utc(2026, 1, 20));
 
     expect(replaceLoanSchedule).toHaveBeenCalledWith('loan-1', [
-      {
-        installmentNo: 1,
-        dueDate: utc(2026, 2, 5),
-        amount: 1500,
-        paidAt: null,
-      },
-      {
-        installmentNo: 2,
-        dueDate: utc(2026, 3, 5),
-        amount: 1500,
-        paidAt: null,
-      },
-      {
-        installmentNo: 3,
-        dueDate: utc(2026, 4, 5),
-        amount: 1500,
-        paidAt: null,
-      },
+      planRow(1, utc(2026, 2, 5), null),
+      planRow(2, utc(2026, 3, 5), null),
+      planRow(3, utc(2026, 4, 5), null),
     ]);
   });
 
@@ -64,24 +70,18 @@ describe('SyncLoanInstallmentsUseCase', () => {
     ]);
 
     await useCase.execute(
-      loan({ paidInstallments: 1, nextDueDate: utc(2026, 3, 5) }),
+      loan({
+        paidInstallments: 1,
+        currentBalance: 3000,
+        nextDueDate: utc(2026, 3, 5),
+      }),
       utc(2026, 2, 20),
     );
 
     expect(replaceLoanSchedule).toHaveBeenCalledWith('loan-1', [
-      { installmentNo: 1, dueDate: utc(2026, 2, 5), amount: 1500, paidAt },
-      {
-        installmentNo: 2,
-        dueDate: utc(2026, 3, 5),
-        amount: 1500,
-        paidAt: null,
-      },
-      {
-        installmentNo: 3,
-        dueDate: utc(2026, 4, 5),
-        amount: 1500,
-        paidAt: null,
-      },
+      planRow(1, utc(2026, 2, 5), paidAt),
+      planRow(2, utc(2026, 3, 5), null),
+      planRow(3, utc(2026, 4, 5), null),
     ]);
   });
 
@@ -125,15 +125,16 @@ describe('SyncLoanInstallmentsUseCase', () => {
       loan({
         paidInstallments: 3,
         totalInstallments: 3,
+        currentBalance: 0,
         nextDueDate: utc(2026, 4, 5),
       }),
       now,
     );
 
     expect(replaceLoanSchedule).toHaveBeenCalledWith('loan-1', [
-      { installmentNo: 1, dueDate: utc(2026, 2, 5), amount: 1500, paidAt: now },
-      { installmentNo: 2, dueDate: utc(2026, 3, 5), amount: 1500, paidAt: now },
-      { installmentNo: 3, dueDate: utc(2026, 4, 5), amount: 1500, paidAt: now },
+      planRow(1, utc(2026, 2, 5), now),
+      planRow(2, utc(2026, 3, 5), now),
+      planRow(3, utc(2026, 4, 5), now),
     ]);
   });
 });

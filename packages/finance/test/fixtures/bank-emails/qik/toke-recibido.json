@@ -1,0 +1,21 @@
+{
+  "from": "no-reply-qik@qik.com.do",
+  "subject": "💵 Te han enviado un Toke",
+  "date": "2026-09-28T21:22:28Z",
+  "labelIds": [
+    "IMPORTANT",
+    "CATEGORY_UPDATES",
+    "INBOX"
+  ],
+  "text": "¡Hola, Jarvin! \r\n Has recibido RD$ 2,500.00 por parte de Jarvin A Perez Gomez en tu Cuenta en pesos *2581.\r\n Fecha \r\n 28 de sept. 2026 \r\n Realizado por \r\n Jarvin A Perez Gomez \r\n Monto \r\n RD$ 2,500.00 \r\n Método de envío \r\n Toke \r\n Comentario \r\n Si no reconoces esta transacción, repórtala desde el App Qik, de lo contrario, ignora este mensaje.\r\n Nos vemos en el app.\n Equipo Qik\r\n ¿Necesitas ayuda? Te atendemos en un Qik\n Escríbenos a través del\r\n QikChat \r\n en el app.\r\n En Qik tenemos el compromiso de prevenir correos electrónicos fraudulentos. Nunca te solicitaremos datos\r\n personales o financieros como cédula, contraseña, número de tarjeta de crédito, fecha de vencimiento y código\r\n de seguridad mediante enlaces al correo electrónico o llamadas telefónicas.\n Solo enviáremos correos personalizados, es decir, con tu primer nombre y el número de cédula enmascarado\r\n mostrando los últimos dígitos de tu documento de identidad.\r\n Copyright © Qik Banco Digital Dominicano S.A.,\n Banco Múltiple. \n Todos los derechos reservados.",
+  "expected": {
+    "kind": "p2p_in",
+    "accountLast4": "2581",
+    "date": "28 de sept. 2026",
+    "sender": "Jarvin A Perez Gomez",
+    "amount": "2,500.00",
+    "currency": "RD$",
+    "method": "Toke",
+    "note": "Envio desde cuenta propia: probable transferencia interna."
+  }
+}

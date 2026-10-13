@@ -1,4 +1,8 @@
-import { mapLedgerTransaction, mapLogicalTransaction } from './ledger-mappers';
+import {
+  mapLedgerTransaction,
+  mapLogicalTransaction,
+  mapOperation,
+} from './ledger-mappers';
 import type { LedgerTransactionRow } from './ports/ledger.repository.port';
 
 function row(
@@ -113,5 +117,56 @@ describe('mapLogicalTransaction', () => {
       }),
     );
     expect(debit.type).toBe('DEBIT');
+  });
+
+  it('exposes how much a movement can be edited by status', () => {
+    expect(
+      mapLedgerTransaction(
+        row({ id: 'c1', type: 'DEBIT', status: 'CONFIRMED' }),
+      ).editable,
+    ).toBe('METADATA');
+    expect(
+      mapLedgerTransaction(row({ id: 'p1', type: 'DEBIT', status: 'PENDING' }))
+        .editable,
+    ).toBe('FULL');
+    expect(
+      mapLedgerTransaction(row({ id: 'r1', type: 'DEBIT', status: 'REVERSED' }))
+        .editable,
+    ).toBe('NOTES');
+  });
+
+  it('groups every leg of a transfer into one operation', () => {
+    const operation = mapOperation([
+      row({
+        id: 'd1',
+        type: 'DEBIT',
+        accountId: 'acc-from',
+        legRole: 'SOURCE',
+        transferGroupId: 'grp-1',
+      }),
+      row({
+        id: 'c1',
+        type: 'CREDIT',
+        accountId: 'acc-to',
+        legRole: 'DESTINATION',
+        transferGroupId: 'grp-1',
+      }),
+      row({
+        id: 'f1',
+        type: 'DEBIT',
+        accountId: 'acc-from',
+        legRole: 'FEE',
+        transferGroupId: 'grp-1',
+      }),
+    ]);
+
+    expect(operation.kind).toBe('OPERATION');
+    expect(operation.operationType).toBe('TRANSFER');
+    expect(operation.type).toBe('TRANSFER');
+    expect(operation.legs.map((leg) => leg.legRole)).toEqual([
+      'SOURCE',
+      'DESTINATION',
+      'FEE',
+    ]);
   });
 });

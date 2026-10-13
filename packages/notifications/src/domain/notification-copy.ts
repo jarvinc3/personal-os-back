@@ -54,6 +54,13 @@ function joinDetails(parts: Array<string | null>): string {
   return parts.filter((part): part is string => Boolean(part)).join(' · ');
 }
 
+export function cardStatementReminderCopy(): NotificationCopy {
+  return {
+    title: 'Carga el corte de tu tarjeta',
+    body: 'El banco te recuerda pagar tu tarjeta. Sube el corte a mano para programar el pago.',
+  };
+}
+
 export function transactionRecordedCopy(
   fields: TransactionNotificationFields,
 ): NotificationCopy {

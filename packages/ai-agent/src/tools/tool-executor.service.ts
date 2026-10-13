@@ -34,20 +34,59 @@ const FINANCE_TOOL_NAMES = new Set([
   'list_email_sources',
   'create_transaction',
   'create_transfer',
+  'pay_card',
+  'get_card_statement',
   'update_transaction',
   'confirm_transaction',
+  'unconfirm_transaction',
   'get_budget_status',
   'create_or_update_budget',
   'list_savings_goals',
   'create_savings_goal',
   'update_savings_goal',
-  'record_savings_contribution',
+  'allocate_to_goal',
+  'record_receivable_payment',
   'list_loans',
   'mark_loan_installment_paid',
+  'prepay_loan',
+  'get_loan_schedule',
+  'list_possible_duplicates',
   'trigger_email_sync',
+  'adjust_balance',
+  'link_transaction',
+  'list_pending_emails',
+  'assign_pending_email',
+  'retry_pending_email',
+  'complete_pending_email_amount',
   'get_spending_by_category',
   'get_spending_over_time',
 ]);
+
+function toLinkCommand(args: ValidatedToolArgs<'link_transaction'>) {
+  if (args.kind === 'LOAN_INSTALLMENT') {
+    if (!args.loanId || !args.installmentId) {
+      throw new Error('link_transaction needs loanId and installmentId');
+    }
+    return {
+      kind: 'LOAN_INSTALLMENT' as const,
+      loanId: args.loanId,
+      installmentId: args.installmentId,
+    };
+  }
+  if (args.kind === 'RECEIVABLE_PAYMENT') {
+    if (!args.receivableId) {
+      throw new Error('link_transaction needs receivableId');
+    }
+    return {
+      kind: 'RECEIVABLE_PAYMENT' as const,
+      receivableId: args.receivableId,
+    };
+  }
+  if (!args.goalId) {
+    throw new Error('link_transaction needs goalId');
+  }
+  return { kind: 'SAVINGS_CONTRIBUTION' as const, goalId: args.goalId };
+}
 
 @Injectable()
 export class ToolExecutorService {
@@ -464,14 +503,64 @@ export class ToolExecutorService {
           message: 'Transfer created',
           data: await this.financeFacade.createTransferTransaction(ctx.userId, {
             fromAccountId: t.fromAccountId,
-            toAccountId: t.toAccountId ?? undefined,
-            toCardId: t.toCardId ?? undefined,
+            toAccountId: t.toAccountId,
+            amount: t.amount,
+            currency: t.currency,
+            transactionDate: t.transactionDate,
+            description: t.description ?? undefined,
+            notes: t.notes ?? undefined,
+            ...(t.rail ? { rail: t.rail } : {}),
+            ...(t.fee
+              ? {
+                  fee: {
+                    amount: t.fee.amount,
+                    ...(t.fee.categoryId
+                      ? { categoryId: t.fee.categoryId }
+                      : {}),
+                  },
+                }
+              : {}),
+          }),
+        };
+      }
+      case 'pay_card': {
+        const t = args as ValidatedToolArgs<'pay_card'>;
+        return {
+          success: true,
+          message: 'Card payment created',
+          data: await this.financeFacade.createCardPayment(ctx.userId, {
+            fromAccountId: t.fromAccountId,
+            cardId: t.cardId,
             amount: t.amount,
             currency: t.currency,
             transactionDate: t.transactionDate,
             description: t.description ?? undefined,
             notes: t.notes ?? undefined,
           }),
+        };
+      }
+      case 'get_card_statement': {
+        const statementArgs = args as { cardId: string; statementId?: string };
+        if (statementArgs.statementId) {
+          return {
+            success: true,
+            message: 'Card statement loaded',
+            data: await this.financeFacade.getCardStatement(
+              ctx.userId,
+              statementArgs.cardId,
+              statementArgs.statementId,
+            ),
+          };
+        }
+        return {
+          success: true,
+          message: 'Card statements loaded',
+          data: {
+            statements: await this.financeFacade.getCardStatements(
+              ctx.userId,
+              statementArgs.cardId,
+            ),
+          },
         };
       }
       case 'update_transaction': {
@@ -502,6 +591,17 @@ export class ToolExecutorService {
           ),
         };
       }
+      case 'unconfirm_transaction': {
+        const tx = args as ValidatedToolArgs<'unconfirm_transaction'>;
+        return {
+          success: true,
+          message: 'Transaction unlocked',
+          data: await this.financeFacade.unconfirmTransaction(
+            ctx.userId,
+            tx.transactionId,
+          ),
+        };
+      }
       case 'get_budget_status':
         return {
           success: true,
@@ -521,11 +621,15 @@ export class ToolExecutorService {
               budget.budgetId,
               {
                 categoryId: budget.categoryId,
+                categoryIds: budget.categoryIds,
                 periodType: budget.periodType,
                 periodStart: budget.periodStart,
                 periodEnd: budget.periodEnd,
                 amountLimit: budget.amountLimit,
                 alertThresholdPct: budget.alertThresholdPct ?? undefined,
+                includeChildren: budget.includeChildren,
+                rollover: budget.rollover,
+                recurring: budget.recurring,
               },
             ),
           };
@@ -534,12 +638,15 @@ export class ToolExecutorService {
           success: true,
           message: 'Budget created',
           data: await this.financeFacade.createBudget(ctx.userId, {
-            categoryId: budget.categoryId as string,
+            categoryIds: budget.categoryIds as string[],
             periodType: budget.periodType as 'MONTHLY' | 'BIWEEKLY' | 'CUSTOM',
             periodStart: budget.periodStart as string,
             periodEnd: budget.periodEnd as string,
             amountLimit: budget.amountLimit as number,
             alertThresholdPct: budget.alertThresholdPct ?? undefined,
+            includeChildren: budget.includeChildren,
+            rollover: budget.rollover,
+            recurring: budget.recurring,
           }),
         };
       }
@@ -559,6 +666,8 @@ export class ToolExecutorService {
           data: await this.financeFacade.createSavingsGoal(ctx.userId, {
             name: goal.name,
             targetAmount: goal.targetAmount,
+            accountId: goal.accountId,
+            mode: goal.mode,
             currentAmount: goal.currentAmount ?? undefined,
             currency: goal.currency ?? undefined,
             targetDate: goal.targetDate ?? undefined,
@@ -576,24 +685,49 @@ export class ToolExecutorService {
             {
               targetAmount: goal.targetAmount ?? undefined,
               name: goal.name ?? undefined,
+              accountId: goal.accountId ?? undefined,
+              mode: goal.mode,
+              spendReducesProgress: goal.spendReducesProgress,
             },
           ),
         };
       }
-      case 'record_savings_contribution': {
-        const contribution =
-          args as ValidatedToolArgs<'record_savings_contribution'>;
+      case 'allocate_to_goal': {
+        const allocation = args as ValidatedToolArgs<'allocate_to_goal'>;
         return {
           success: true,
-          message: 'Savings goal contribution recorded',
+          message: 'Savings goal allocation recorded',
           data: await this.financeFacade.recordSavingsGoalContribution(
             ctx.userId,
-            contribution.goalId,
+            allocation.goalId,
             {
-              accountId: contribution.accountId,
-              amount: contribution.amount,
-              contributedAt: contribution.contributedAt ?? undefined,
-              notes: contribution.notes ?? undefined,
+              amount: allocation.amount,
+              kind: allocation.kind,
+              date: allocation.date ?? undefined,
+              notes: allocation.notes ?? undefined,
+            },
+          ),
+        };
+      }
+      case 'record_receivable_payment': {
+        const payment = args as ValidatedToolArgs<'record_receivable_payment'>;
+        return {
+          success: true,
+          message: 'Receivable payment recorded',
+          data: await this.financeFacade.recordReceivablePayment(
+            ctx.userId,
+            payment.receivableId,
+            {
+              amount: payment.amount,
+              accountId: payment.accountId,
+              ...(payment.paidAt ? { paidAt: payment.paidAt } : {}),
+              ...(payment.notes ? { notes: payment.notes } : {}),
+              ...(payment.excessHandling
+                ? { excessHandling: payment.excessHandling }
+                : {}),
+              ...(payment.targetReceivableId
+                ? { targetReceivableId: payment.targetReceivableId }
+                : {}),
             },
           ),
         };
@@ -607,25 +741,50 @@ export class ToolExecutorService {
       case 'mark_loan_installment_paid': {
         const loanArgs =
           args as ValidatedToolArgs<'mark_loan_installment_paid'>;
-        const loans = await this.financeFacade.listLoans(ctx.userId);
-        const loan = loans.find((item) => item.id === loanArgs.loanId);
-        if (!loan) {
-          return { success: false, message: 'Loan not found' };
-        }
         return {
           success: true,
           message: 'Loan installment marked as paid',
-          data: await this.financeFacade.updateLoan(
+          data: await this.financeFacade.payNextLoanInstallment(
             ctx.userId,
             loanArgs.loanId,
+          ),
+        };
+      }
+      case 'prepay_loan': {
+        const prepayArgs = args as ValidatedToolArgs<'prepay_loan'>;
+        return {
+          success: true,
+          message: 'Loan prepayment applied',
+          data: await this.financeFacade.prepayLoan(
+            ctx.userId,
+            prepayArgs.loanId,
             {
-              paidInstallments: loan.paidInstallments + 1,
-              currentBalance:
-                Number(loan.currentBalance) - Number(loan.installmentAmount),
+              amount: prepayArgs.amount,
+              accountId: prepayArgs.accountId,
+              mode: prepayArgs.mode,
             },
           ),
         };
       }
+      case 'get_loan_schedule': {
+        const scheduleArgs = args as { loanId: string };
+        return {
+          success: true,
+          message: 'Loan schedule loaded',
+          data: {
+            installments: await this.financeFacade.getLoanSchedule(
+              ctx.userId,
+              scheduleArgs.loanId,
+            ),
+          },
+        };
+      }
+      case 'list_possible_duplicates':
+        return {
+          success: true,
+          message: 'Possible duplicates loaded',
+          data: await this.financeFacade.listPossibleDuplicates(ctx.userId),
+        };
       case 'trigger_email_sync': {
         const sync = args as ValidatedToolArgs<'trigger_email_sync'>;
         const result = await this.financeFacade.triggerEmailSync(
@@ -639,6 +798,85 @@ export class ToolExecutorService {
             ? 'Email sync queued'
             : (result.reason ?? 'Email sync not queued'),
           data: result,
+        };
+      }
+      case 'adjust_balance': {
+        const balanceArgs = args as ValidatedToolArgs<'adjust_balance'>;
+        return {
+          success: true,
+          message: 'Balance adjusted',
+          data: await this.financeFacade.adjustBalance(ctx.userId, {
+            ...(balanceArgs.accountId
+              ? { accountId: balanceArgs.accountId }
+              : {}),
+            ...(balanceArgs.cardId ? { cardId: balanceArgs.cardId } : {}),
+            ...(balanceArgs.currency ? { currency: balanceArgs.currency } : {}),
+            balance: balanceArgs.balance,
+          }),
+        };
+      }
+      case 'link_transaction': {
+        const linkArgs = args as ValidatedToolArgs<'link_transaction'>;
+        return {
+          success: true,
+          message: 'Transaction linked',
+          data: await this.financeFacade.linkTransaction(
+            ctx.userId,
+            linkArgs.transactionId,
+            toLinkCommand(linkArgs),
+          ),
+        };
+      }
+      case 'list_pending_emails':
+        return {
+          success: true,
+          message: 'Pending emails loaded',
+          data: {
+            items: await this.financeFacade.listPendingEmails(ctx.userId),
+          },
+        };
+      case 'assign_pending_email': {
+        const assignArgs = args as ValidatedToolArgs<'assign_pending_email'>;
+        return {
+          success: true,
+          message: 'Pending email assigned',
+          data: await this.financeFacade.assignPendingEmail(
+            ctx.userId,
+            assignArgs.messageId,
+            {
+              ...(assignArgs.accountId
+                ? { accountId: assignArgs.accountId }
+                : {}),
+              ...(assignArgs.cardId ? { cardId: assignArgs.cardId } : {}),
+              ...(assignArgs.amount !== undefined
+                ? { amount: assignArgs.amount }
+                : {}),
+            },
+          ),
+        };
+      }
+      case 'retry_pending_email': {
+        const retryArgs = args as ValidatedToolArgs<'retry_pending_email'>;
+        return {
+          success: true,
+          message: 'Pending email retried',
+          data: await this.financeFacade.retryPendingEmail(
+            ctx.userId,
+            retryArgs.messageId,
+          ),
+        };
+      }
+      case 'complete_pending_email_amount': {
+        const amountArgs =
+          args as ValidatedToolArgs<'complete_pending_email_amount'>;
+        return {
+          success: true,
+          message: 'Pending email amount completed',
+          data: await this.financeFacade.completePendingEmailAmount(
+            ctx.userId,
+            amountArgs.messageId,
+            amountArgs.amount,
+          ),
         };
       }
       case 'get_spending_by_category':

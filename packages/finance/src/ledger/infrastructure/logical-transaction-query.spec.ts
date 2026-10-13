@@ -1,7 +1,7 @@
 import { logicalTransactionsWhere } from './logical-transaction-query';
 
 describe('logicalTransactionsWhere', () => {
-  it('lists standalone rows plus debit legs of transfers', () => {
+  it('lists standalone rows plus source legs of transfers', () => {
     const where = logicalTransactionsWhere('user-1', {});
     expect(where.userId).toBe('user-1');
     expect(where.AND).toEqual(
@@ -9,18 +9,47 @@ describe('logicalTransactionsWhere', () => {
         {
           OR: [
             { transferGroupId: null },
-            { transferGroupId: { not: null }, type: 'DEBIT' },
+            {
+              transferGroupId: { not: null },
+              type: 'DEBIT',
+              OR: [{ legRole: null }, { legRole: 'SOURCE' }],
+            },
           ],
         },
       ]),
     );
   });
 
-  it('filters TRANSFER as debit legs of a group', () => {
+  it('excludes adjustments by default', () => {
+    const where = logicalTransactionsWhere('user-1', {});
+    expect(where.AND).toEqual(
+      expect.arrayContaining([{ type: { not: 'ADJUSTMENT' } }]),
+    );
+  });
+
+  it('keeps adjustments when includeAdjustments is true', () => {
+    const where = logicalTransactionsWhere('user-1', {
+      includeAdjustments: true,
+    });
+    expect(where.AND).not.toEqual(
+      expect.arrayContaining([{ type: { not: 'ADJUSTMENT' } }]),
+    );
+  });
+
+  it('keeps the explicit ADJUSTMENT filter', () => {
+    const where = logicalTransactionsWhere('user-1', { type: 'ADJUSTMENT' });
+    expect(where.AND).toEqual(expect.arrayContaining([{ type: 'ADJUSTMENT' }]));
+  });
+
+  it('filters TRANSFER as source legs of a group', () => {
     const where = logicalTransactionsWhere('user-1', { type: 'TRANSFER' });
     expect(where.AND).toEqual(
       expect.arrayContaining([
-        { transferGroupId: { not: null }, type: 'DEBIT' },
+        {
+          transferGroupId: { not: null },
+          type: 'DEBIT',
+          OR: [{ legRole: null }, { legRole: 'SOURCE' }],
+        },
       ]),
     );
   });
@@ -45,7 +74,11 @@ describe('logicalTransactionsWhere', () => {
         {
           OR: [
             { transferGroupId: null, accountId: 'acc-to' },
-            { transferGroupId: { in: ['grp-1'] }, type: 'DEBIT' },
+            {
+              transferGroupId: { in: ['grp-1'] },
+              type: 'DEBIT',
+              OR: [{ legRole: null }, { legRole: 'SOURCE' }],
+            },
           ],
         },
       ]),

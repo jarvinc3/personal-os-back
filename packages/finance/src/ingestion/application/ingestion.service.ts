@@ -297,6 +297,26 @@ export class IngestionService {
     void this.outboxDispatcher.processBatch();
   }
 
+  async enqueueCardStatementReminder(
+    userId: string,
+    input: { sourceId: string; gmailMessageId: string; subject: string },
+  ) {
+    await this.events.enqueue({
+      eventName: AppEvents.FINANCE_CARD_STATEMENT_REMINDER,
+      aggregateType: 'FinEmailSource',
+      aggregateId: input.sourceId,
+      userId,
+      payload: {
+        sourceId: input.sourceId,
+        gmailMessageId: input.gmailMessageId,
+        subject: input.subject,
+        occurredAt: new Date().toISOString(),
+        version: 1,
+      },
+    });
+    void this.outboxDispatcher.processBatch();
+  }
+
   async getGoogleOAuthUrl(
     userId: string,
     query: GoogleOAuthUrlQueryDto,

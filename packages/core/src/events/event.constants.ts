@@ -14,6 +14,7 @@ export const AppEvents = {
   FINANCE_BUDGET_THRESHOLD_CROSSED: 'finance.budget.threshold_crossed',
   FINANCE_EMAIL_SYNC_COMPLETED: 'finance.email_sync.completed',
   FINANCE_EMAIL_SYNC_FAILED: 'finance.email_sync.failed',
+  FINANCE_CARD_STATEMENT_REMINDER: 'finance.card_statement.reminder',
 
   // ── Notification ──────────────────────────────────────────────
   NOTIFICATION_CREATED: 'notification.created',

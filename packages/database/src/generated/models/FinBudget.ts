@@ -27,12 +27,14 @@ export type AggregateFinBudget = {
 }
 
 export type FinBudgetAvgAggregateOutputType = {
+  carriedOver: runtime.Decimal | null
   amountLimit: runtime.Decimal | null
   amountSpent: runtime.Decimal | null
   alertThresholdPct: runtime.Decimal | null
 }
 
 export type FinBudgetSumAggregateOutputType = {
+  carriedOver: runtime.Decimal | null
   amountLimit: runtime.Decimal | null
   amountSpent: runtime.Decimal | null
   alertThresholdPct: runtime.Decimal | null
@@ -42,6 +44,11 @@ export type FinBudgetMinAggregateOutputType = {
   id: string | null
   userId: string | null
   categoryId: string | null
+  name: string | null
+  includeChildren: boolean | null
+  rollover: $Enums.FinBudgetRollover | null
+  carriedOver: runtime.Decimal | null
+  recurring: boolean | null
   periodType: $Enums.FinBudgetPeriodType | null
   periodStart: Date | null
   periodEnd: Date | null
@@ -56,6 +63,11 @@ export type FinBudgetMaxAggregateOutputType = {
   id: string | null
   userId: string | null
   categoryId: string | null
+  name: string | null
+  includeChildren: boolean | null
+  rollover: $Enums.FinBudgetRollover | null
+  carriedOver: runtime.Decimal | null
+  recurring: boolean | null
   periodType: $Enums.FinBudgetPeriodType | null
   periodStart: Date | null
   periodEnd: Date | null
@@ -70,6 +82,11 @@ export type FinBudgetCountAggregateOutputType = {
   id: number
   userId: number
   categoryId: number
+  name: number
+  includeChildren: number
+  rollover: number
+  carriedOver: number
+  recurring: number
   periodType: number
   periodStart: number
   periodEnd: number
@@ -84,12 +101,14 @@ export type FinBudgetCountAggregateOutputType = {
 
 
 export type FinBudgetAvgAggregateInputType = {
+  carriedOver?: true
   amountLimit?: true
   amountSpent?: true
   alertThresholdPct?: true
 }
 
 export type FinBudgetSumAggregateInputType = {
+  carriedOver?: true
   amountLimit?: true
   amountSpent?: true
   alertThresholdPct?: true
@@ -99,6 +118,11 @@ export type FinBudgetMinAggregateInputType = {
   id?: true
   userId?: true
   categoryId?: true
+  name?: true
+  includeChildren?: true
+  rollover?: true
+  carriedOver?: true
+  recurring?: true
   periodType?: true
   periodStart?: true
   periodEnd?: true
@@ -113,6 +137,11 @@ export type FinBudgetMaxAggregateInputType = {
   id?: true
   userId?: true
   categoryId?: true
+  name?: true
+  includeChildren?: true
+  rollover?: true
+  carriedOver?: true
+  recurring?: true
   periodType?: true
   periodStart?: true
   periodEnd?: true
@@ -127,6 +156,11 @@ export type FinBudgetCountAggregateInputType = {
   id?: true
   userId?: true
   categoryId?: true
+  name?: true
+  includeChildren?: true
+  rollover?: true
+  carriedOver?: true
+  recurring?: true
   periodType?: true
   periodStart?: true
   periodEnd?: true
@@ -228,7 +262,12 @@ export type FinBudgetGroupByArgs<ExtArgs extends runtime.Types.Extensions.Intern
 export type FinBudgetGroupByOutputType = {
   id: string
   userId: string
-  categoryId: string
+  categoryId: string | null
+  name: string | null
+  includeChildren: boolean
+  rollover: $Enums.FinBudgetRollover
+  carriedOver: runtime.Decimal
+  recurring: boolean
   periodType: $Enums.FinBudgetPeriodType
   periodStart: Date
   periodEnd: Date
@@ -266,7 +305,12 @@ export type FinBudgetWhereInput = {
   NOT?: Prisma.FinBudgetWhereInput | Prisma.FinBudgetWhereInput[]
   id?: Prisma.StringFilter<"FinBudget"> | string
   userId?: Prisma.StringFilter<"FinBudget"> | string
-  categoryId?: Prisma.StringFilter<"FinBudget"> | string
+  categoryId?: Prisma.StringNullableFilter<"FinBudget"> | string | null
+  name?: Prisma.StringNullableFilter<"FinBudget"> | string | null
+  includeChildren?: Prisma.BoolFilter<"FinBudget"> | boolean
+  rollover?: Prisma.EnumFinBudgetRolloverFilter<"FinBudget"> | $Enums.FinBudgetRollover
+  carriedOver?: Prisma.DecimalFilter<"FinBudget"> | runtime.Decimal | runtime.DecimalJsLike | number | string
+  recurring?: Prisma.BoolFilter<"FinBudget"> | boolean
   periodType?: Prisma.EnumFinBudgetPeriodTypeFilter<"FinBudget"> | $Enums.FinBudgetPeriodType
   periodStart?: Prisma.DateTimeFilter<"FinBudget"> | Date | string
   periodEnd?: Prisma.DateTimeFilter<"FinBudget"> | Date | string
@@ -277,14 +321,20 @@ export type FinBudgetWhereInput = {
   aiSuggestionPayload?: Prisma.JsonNullableFilter<"FinBudget">
   createdAt?: Prisma.DateTimeFilter<"FinBudget"> | Date | string
   alerts?: Prisma.FinBudgetAlertListRelationFilter
-  category?: Prisma.XOR<Prisma.FinCategoryScalarRelationFilter, Prisma.FinCategoryWhereInput>
+  category?: Prisma.XOR<Prisma.FinCategoryNullableScalarRelationFilter, Prisma.FinCategoryWhereInput> | null
+  categories?: Prisma.FinBudgetCategoryListRelationFilter
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
 }
 
 export type FinBudgetOrderByWithRelationInput = {
   id?: Prisma.SortOrder
   userId?: Prisma.SortOrder
-  categoryId?: Prisma.SortOrder
+  categoryId?: Prisma.SortOrderInput | Prisma.SortOrder
+  name?: Prisma.SortOrderInput | Prisma.SortOrder
+  includeChildren?: Prisma.SortOrder
+  rollover?: Prisma.SortOrder
+  carriedOver?: Prisma.SortOrder
+  recurring?: Prisma.SortOrder
   periodType?: Prisma.SortOrder
   periodStart?: Prisma.SortOrder
   periodEnd?: Prisma.SortOrder
@@ -296,17 +346,22 @@ export type FinBudgetOrderByWithRelationInput = {
   createdAt?: Prisma.SortOrder
   alerts?: Prisma.FinBudgetAlertOrderByRelationAggregateInput
   category?: Prisma.FinCategoryOrderByWithRelationInput
+  categories?: Prisma.FinBudgetCategoryOrderByRelationAggregateInput
   user?: Prisma.UserOrderByWithRelationInput
 }
 
 export type FinBudgetWhereUniqueInput = Prisma.AtLeast<{
   id?: string
-  userId_categoryId_periodStart_periodEnd?: Prisma.FinBudgetUserIdCategoryIdPeriodStartPeriodEndCompoundUniqueInput
   AND?: Prisma.FinBudgetWhereInput | Prisma.FinBudgetWhereInput[]
   OR?: Prisma.FinBudgetWhereInput[]
   NOT?: Prisma.FinBudgetWhereInput | Prisma.FinBudgetWhereInput[]
   userId?: Prisma.StringFilter<"FinBudget"> | string
-  categoryId?: Prisma.StringFilter<"FinBudget"> | string
+  categoryId?: Prisma.StringNullableFilter<"FinBudget"> | string | null
+  name?: Prisma.StringNullableFilter<"FinBudget"> | string | null
+  includeChildren?: Prisma.BoolFilter<"FinBudget"> | boolean
+  rollover?: Prisma.EnumFinBudgetRolloverFilter<"FinBudget"> | $Enums.FinBudgetRollover
+  carriedOver?: Prisma.DecimalFilter<"FinBudget"> | runtime.Decimal | runtime.DecimalJsLike | number | string
+  recurring?: Prisma.BoolFilter<"FinBudget"> | boolean
   periodType?: Prisma.EnumFinBudgetPeriodTypeFilter<"FinBudget"> | $Enums.FinBudgetPeriodType
   periodStart?: Prisma.DateTimeFilter<"FinBudget"> | Date | string
   periodEnd?: Prisma.DateTimeFilter<"FinBudget"> | Date | string
@@ -317,14 +372,20 @@ export type FinBudgetWhereUniqueInput = Prisma.AtLeast<{
   aiSuggestionPayload?: Prisma.JsonNullableFilter<"FinBudget">
   createdAt?: Prisma.DateTimeFilter<"FinBudget"> | Date | string
   alerts?: Prisma.FinBudgetAlertListRelationFilter
-  category?: Prisma.XOR<Prisma.FinCategoryScalarRelationFilter, Prisma.FinCategoryWhereInput>
+  category?: Prisma.XOR<Prisma.FinCategoryNullableScalarRelationFilter, Prisma.FinCategoryWhereInput> | null
+  categories?: Prisma.FinBudgetCategoryListRelationFilter
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
-}, "id" | "userId_categoryId_periodStart_periodEnd">
+}, "id">
 
 export type FinBudgetOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
   userId?: Prisma.SortOrder
-  categoryId?: Prisma.SortOrder
+  categoryId?: Prisma.SortOrderInput | Prisma.SortOrder
+  name?: Prisma.SortOrderInput | Prisma.SortOrder
+  includeChildren?: Prisma.SortOrder
+  rollover?: Prisma.SortOrder
+  carriedOver?: Prisma.SortOrder
+  recurring?: Prisma.SortOrder
   periodType?: Prisma.SortOrder
   periodStart?: Prisma.SortOrder
   periodEnd?: Prisma.SortOrder
@@ -347,7 +408,12 @@ export type FinBudgetScalarWhereWithAggregatesInput = {
   NOT?: Prisma.FinBudgetScalarWhereWithAggregatesInput | Prisma.FinBudgetScalarWhereWithAggregatesInput[]
   id?: Prisma.StringWithAggregatesFilter<"FinBudget"> | string
   userId?: Prisma.StringWithAggregatesFilter<"FinBudget"> | string
-  categoryId?: Prisma.StringWithAggregatesFilter<"FinBudget"> | string
+  categoryId?: Prisma.StringNullableWithAggregatesFilter<"FinBudget"> | string | null
+  name?: Prisma.StringNullableWithAggregatesFilter<"FinBudget"> | string | null
+  includeChildren?: Prisma.BoolWithAggregatesFilter<"FinBudget"> | boolean
+  rollover?: Prisma.EnumFinBudgetRolloverWithAggregatesFilter<"FinBudget"> | $Enums.FinBudgetRollover
+  carriedOver?: Prisma.DecimalWithAggregatesFilter<"FinBudget"> | runtime.Decimal | runtime.DecimalJsLike | number | string
+  recurring?: Prisma.BoolWithAggregatesFilter<"FinBudget"> | boolean
   periodType?: Prisma.EnumFinBudgetPeriodTypeWithAggregatesFilter<"FinBudget"> | $Enums.FinBudgetPeriodType
   periodStart?: Prisma.DateTimeWithAggregatesFilter<"FinBudget"> | Date | string
   periodEnd?: Prisma.DateTimeWithAggregatesFilter<"FinBudget"> | Date | string
@@ -361,6 +427,11 @@ export type FinBudgetScalarWhereWithAggregatesInput = {
 
 export type FinBudgetCreateInput = {
   id?: string
+  name?: string | null
+  includeChildren?: boolean
+  rollover?: $Enums.FinBudgetRollover
+  carriedOver?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  recurring?: boolean
   periodType?: $Enums.FinBudgetPeriodType
   periodStart: Date | string
   periodEnd: Date | string
@@ -371,14 +442,20 @@ export type FinBudgetCreateInput = {
   aiSuggestionPayload?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   alerts?: Prisma.FinBudgetAlertCreateNestedManyWithoutBudgetInput
-  category: Prisma.FinCategoryCreateNestedOneWithoutBudgetsInput
+  category?: Prisma.FinCategoryCreateNestedOneWithoutBudgetsInput
+  categories?: Prisma.FinBudgetCategoryCreateNestedManyWithoutBudgetInput
   user: Prisma.UserCreateNestedOneWithoutFinBudgetsInput
 }
 
 export type FinBudgetUncheckedCreateInput = {
   id?: string
   userId: string
-  categoryId: string
+  categoryId?: string | null
+  name?: string | null
+  includeChildren?: boolean
+  rollover?: $Enums.FinBudgetRollover
+  carriedOver?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  recurring?: boolean
   periodType?: $Enums.FinBudgetPeriodType
   periodStart: Date | string
   periodEnd: Date | string
@@ -389,10 +466,16 @@ export type FinBudgetUncheckedCreateInput = {
   aiSuggestionPayload?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   alerts?: Prisma.FinBudgetAlertUncheckedCreateNestedManyWithoutBudgetInput
+  categories?: Prisma.FinBudgetCategoryUncheckedCreateNestedManyWithoutBudgetInput
 }
 
 export type FinBudgetUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  includeChildren?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  rollover?: Prisma.EnumFinBudgetRolloverFieldUpdateOperationsInput | $Enums.FinBudgetRollover
+  carriedOver?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  recurring?: Prisma.BoolFieldUpdateOperationsInput | boolean
   periodType?: Prisma.EnumFinBudgetPeriodTypeFieldUpdateOperationsInput | $Enums.FinBudgetPeriodType
   periodStart?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   periodEnd?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -403,14 +486,20 @@ export type FinBudgetUpdateInput = {
   aiSuggestionPayload?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   alerts?: Prisma.FinBudgetAlertUpdateManyWithoutBudgetNestedInput
-  category?: Prisma.FinCategoryUpdateOneRequiredWithoutBudgetsNestedInput
+  category?: Prisma.FinCategoryUpdateOneWithoutBudgetsNestedInput
+  categories?: Prisma.FinBudgetCategoryUpdateManyWithoutBudgetNestedInput
   user?: Prisma.UserUpdateOneRequiredWithoutFinBudgetsNestedInput
 }
 
 export type FinBudgetUncheckedUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.StringFieldUpdateOperationsInput | string
-  categoryId?: Prisma.StringFieldUpdateOperationsInput | string
+  categoryId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  includeChildren?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  rollover?: Prisma.EnumFinBudgetRolloverFieldUpdateOperationsInput | $Enums.FinBudgetRollover
+  carriedOver?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  recurring?: Prisma.BoolFieldUpdateOperationsInput | boolean
   periodType?: Prisma.EnumFinBudgetPeriodTypeFieldUpdateOperationsInput | $Enums.FinBudgetPeriodType
   periodStart?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   periodEnd?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -421,12 +510,18 @@ export type FinBudgetUncheckedUpdateInput = {
   aiSuggestionPayload?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   alerts?: Prisma.FinBudgetAlertUncheckedUpdateManyWithoutBudgetNestedInput
+  categories?: Prisma.FinBudgetCategoryUncheckedUpdateManyWithoutBudgetNestedInput
 }
 
 export type FinBudgetCreateManyInput = {
   id?: string
   userId: string
-  categoryId: string
+  categoryId?: string | null
+  name?: string | null
+  includeChildren?: boolean
+  rollover?: $Enums.FinBudgetRollover
+  carriedOver?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  recurring?: boolean
   periodType?: $Enums.FinBudgetPeriodType
   periodStart: Date | string
   periodEnd: Date | string
@@ -440,6 +535,11 @@ export type FinBudgetCreateManyInput = {
 
 export type FinBudgetUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  includeChildren?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  rollover?: Prisma.EnumFinBudgetRolloverFieldUpdateOperationsInput | $Enums.FinBudgetRollover
+  carriedOver?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  recurring?: Prisma.BoolFieldUpdateOperationsInput | boolean
   periodType?: Prisma.EnumFinBudgetPeriodTypeFieldUpdateOperationsInput | $Enums.FinBudgetPeriodType
   periodStart?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   periodEnd?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -454,7 +554,12 @@ export type FinBudgetUpdateManyMutationInput = {
 export type FinBudgetUncheckedUpdateManyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.StringFieldUpdateOperationsInput | string
-  categoryId?: Prisma.StringFieldUpdateOperationsInput | string
+  categoryId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  includeChildren?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  rollover?: Prisma.EnumFinBudgetRolloverFieldUpdateOperationsInput | $Enums.FinBudgetRollover
+  carriedOver?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  recurring?: Prisma.BoolFieldUpdateOperationsInput | boolean
   periodType?: Prisma.EnumFinBudgetPeriodTypeFieldUpdateOperationsInput | $Enums.FinBudgetPeriodType
   periodStart?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   periodEnd?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -476,17 +581,15 @@ export type FinBudgetOrderByRelationAggregateInput = {
   _count?: Prisma.SortOrder
 }
 
-export type FinBudgetUserIdCategoryIdPeriodStartPeriodEndCompoundUniqueInput = {
-  userId: string
-  categoryId: string
-  periodStart: Date | string
-  periodEnd: Date | string
-}
-
 export type FinBudgetCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
   userId?: Prisma.SortOrder
   categoryId?: Prisma.SortOrder
+  name?: Prisma.SortOrder
+  includeChildren?: Prisma.SortOrder
+  rollover?: Prisma.SortOrder
+  carriedOver?: Prisma.SortOrder
+  recurring?: Prisma.SortOrder
   periodType?: Prisma.SortOrder
   periodStart?: Prisma.SortOrder
   periodEnd?: Prisma.SortOrder
@@ -499,6 +602,7 @@ export type FinBudgetCountOrderByAggregateInput = {
 }
 
 export type FinBudgetAvgOrderByAggregateInput = {
+  carriedOver?: Prisma.SortOrder
   amountLimit?: Prisma.SortOrder
   amountSpent?: Prisma.SortOrder
   alertThresholdPct?: Prisma.SortOrder
@@ -508,6 +612,11 @@ export type FinBudgetMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
   userId?: Prisma.SortOrder
   categoryId?: Prisma.SortOrder
+  name?: Prisma.SortOrder
+  includeChildren?: Prisma.SortOrder
+  rollover?: Prisma.SortOrder
+  carriedOver?: Prisma.SortOrder
+  recurring?: Prisma.SortOrder
   periodType?: Prisma.SortOrder
   periodStart?: Prisma.SortOrder
   periodEnd?: Prisma.SortOrder
@@ -522,6 +631,11 @@ export type FinBudgetMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
   userId?: Prisma.SortOrder
   categoryId?: Prisma.SortOrder
+  name?: Prisma.SortOrder
+  includeChildren?: Prisma.SortOrder
+  rollover?: Prisma.SortOrder
+  carriedOver?: Prisma.SortOrder
+  recurring?: Prisma.SortOrder
   periodType?: Prisma.SortOrder
   periodStart?: Prisma.SortOrder
   periodEnd?: Prisma.SortOrder
@@ -533,6 +647,7 @@ export type FinBudgetMinOrderByAggregateInput = {
 }
 
 export type FinBudgetSumOrderByAggregateInput = {
+  carriedOver?: Prisma.SortOrder
   amountLimit?: Prisma.SortOrder
   amountSpent?: Prisma.SortOrder
   alertThresholdPct?: Prisma.SortOrder
@@ -627,12 +742,30 @@ export type FinBudgetUncheckedUpdateManyWithoutCategoryNestedInput = {
   deleteMany?: Prisma.FinBudgetScalarWhereInput | Prisma.FinBudgetScalarWhereInput[]
 }
 
+export type EnumFinBudgetRolloverFieldUpdateOperationsInput = {
+  set?: $Enums.FinBudgetRollover
+}
+
 export type EnumFinBudgetPeriodTypeFieldUpdateOperationsInput = {
   set?: $Enums.FinBudgetPeriodType
 }
 
 export type EnumAiSuggestionStatusFieldUpdateOperationsInput = {
   set?: $Enums.AiSuggestionStatus
+}
+
+export type FinBudgetCreateNestedOneWithoutCategoriesInput = {
+  create?: Prisma.XOR<Prisma.FinBudgetCreateWithoutCategoriesInput, Prisma.FinBudgetUncheckedCreateWithoutCategoriesInput>
+  connectOrCreate?: Prisma.FinBudgetCreateOrConnectWithoutCategoriesInput
+  connect?: Prisma.FinBudgetWhereUniqueInput
+}
+
+export type FinBudgetUpdateOneRequiredWithoutCategoriesNestedInput = {
+  create?: Prisma.XOR<Prisma.FinBudgetCreateWithoutCategoriesInput, Prisma.FinBudgetUncheckedCreateWithoutCategoriesInput>
+  connectOrCreate?: Prisma.FinBudgetCreateOrConnectWithoutCategoriesInput
+  upsert?: Prisma.FinBudgetUpsertWithoutCategoriesInput
+  connect?: Prisma.FinBudgetWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.FinBudgetUpdateToOneWithWhereWithoutCategoriesInput, Prisma.FinBudgetUpdateWithoutCategoriesInput>, Prisma.FinBudgetUncheckedUpdateWithoutCategoriesInput>
 }
 
 export type FinBudgetCreateNestedOneWithoutAlertsInput = {
@@ -651,6 +784,11 @@ export type FinBudgetUpdateOneRequiredWithoutAlertsNestedInput = {
 
 export type FinBudgetCreateWithoutUserInput = {
   id?: string
+  name?: string | null
+  includeChildren?: boolean
+  rollover?: $Enums.FinBudgetRollover
+  carriedOver?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  recurring?: boolean
   periodType?: $Enums.FinBudgetPeriodType
   periodStart: Date | string
   periodEnd: Date | string
@@ -661,12 +799,18 @@ export type FinBudgetCreateWithoutUserInput = {
   aiSuggestionPayload?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   alerts?: Prisma.FinBudgetAlertCreateNestedManyWithoutBudgetInput
-  category: Prisma.FinCategoryCreateNestedOneWithoutBudgetsInput
+  category?: Prisma.FinCategoryCreateNestedOneWithoutBudgetsInput
+  categories?: Prisma.FinBudgetCategoryCreateNestedManyWithoutBudgetInput
 }
 
 export type FinBudgetUncheckedCreateWithoutUserInput = {
   id?: string
-  categoryId: string
+  categoryId?: string | null
+  name?: string | null
+  includeChildren?: boolean
+  rollover?: $Enums.FinBudgetRollover
+  carriedOver?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  recurring?: boolean
   periodType?: $Enums.FinBudgetPeriodType
   periodStart: Date | string
   periodEnd: Date | string
@@ -677,6 +821,7 @@ export type FinBudgetUncheckedCreateWithoutUserInput = {
   aiSuggestionPayload?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   alerts?: Prisma.FinBudgetAlertUncheckedCreateNestedManyWithoutBudgetInput
+  categories?: Prisma.FinBudgetCategoryUncheckedCreateNestedManyWithoutBudgetInput
 }
 
 export type FinBudgetCreateOrConnectWithoutUserInput = {
@@ -711,7 +856,12 @@ export type FinBudgetScalarWhereInput = {
   NOT?: Prisma.FinBudgetScalarWhereInput | Prisma.FinBudgetScalarWhereInput[]
   id?: Prisma.StringFilter<"FinBudget"> | string
   userId?: Prisma.StringFilter<"FinBudget"> | string
-  categoryId?: Prisma.StringFilter<"FinBudget"> | string
+  categoryId?: Prisma.StringNullableFilter<"FinBudget"> | string | null
+  name?: Prisma.StringNullableFilter<"FinBudget"> | string | null
+  includeChildren?: Prisma.BoolFilter<"FinBudget"> | boolean
+  rollover?: Prisma.EnumFinBudgetRolloverFilter<"FinBudget"> | $Enums.FinBudgetRollover
+  carriedOver?: Prisma.DecimalFilter<"FinBudget"> | runtime.Decimal | runtime.DecimalJsLike | number | string
+  recurring?: Prisma.BoolFilter<"FinBudget"> | boolean
   periodType?: Prisma.EnumFinBudgetPeriodTypeFilter<"FinBudget"> | $Enums.FinBudgetPeriodType
   periodStart?: Prisma.DateTimeFilter<"FinBudget"> | Date | string
   periodEnd?: Prisma.DateTimeFilter<"FinBudget"> | Date | string
@@ -725,6 +875,11 @@ export type FinBudgetScalarWhereInput = {
 
 export type FinBudgetCreateWithoutCategoryInput = {
   id?: string
+  name?: string | null
+  includeChildren?: boolean
+  rollover?: $Enums.FinBudgetRollover
+  carriedOver?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  recurring?: boolean
   periodType?: $Enums.FinBudgetPeriodType
   periodStart: Date | string
   periodEnd: Date | string
@@ -735,12 +890,18 @@ export type FinBudgetCreateWithoutCategoryInput = {
   aiSuggestionPayload?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   alerts?: Prisma.FinBudgetAlertCreateNestedManyWithoutBudgetInput
+  categories?: Prisma.FinBudgetCategoryCreateNestedManyWithoutBudgetInput
   user: Prisma.UserCreateNestedOneWithoutFinBudgetsInput
 }
 
 export type FinBudgetUncheckedCreateWithoutCategoryInput = {
   id?: string
   userId: string
+  name?: string | null
+  includeChildren?: boolean
+  rollover?: $Enums.FinBudgetRollover
+  carriedOver?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  recurring?: boolean
   periodType?: $Enums.FinBudgetPeriodType
   periodStart: Date | string
   periodEnd: Date | string
@@ -751,6 +912,7 @@ export type FinBudgetUncheckedCreateWithoutCategoryInput = {
   aiSuggestionPayload?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   alerts?: Prisma.FinBudgetAlertUncheckedCreateNestedManyWithoutBudgetInput
+  categories?: Prisma.FinBudgetCategoryUncheckedCreateNestedManyWithoutBudgetInput
 }
 
 export type FinBudgetCreateOrConnectWithoutCategoryInput = {
@@ -779,8 +941,13 @@ export type FinBudgetUpdateManyWithWhereWithoutCategoryInput = {
   data: Prisma.XOR<Prisma.FinBudgetUpdateManyMutationInput, Prisma.FinBudgetUncheckedUpdateManyWithoutCategoryInput>
 }
 
-export type FinBudgetCreateWithoutAlertsInput = {
+export type FinBudgetCreateWithoutCategoriesInput = {
   id?: string
+  name?: string | null
+  includeChildren?: boolean
+  rollover?: $Enums.FinBudgetRollover
+  carriedOver?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  recurring?: boolean
   periodType?: $Enums.FinBudgetPeriodType
   periodStart: Date | string
   periodEnd: Date | string
@@ -790,14 +957,120 @@ export type FinBudgetCreateWithoutAlertsInput = {
   aiSuggestionStatus?: $Enums.AiSuggestionStatus
   aiSuggestionPayload?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
-  category: Prisma.FinCategoryCreateNestedOneWithoutBudgetsInput
+  alerts?: Prisma.FinBudgetAlertCreateNestedManyWithoutBudgetInput
+  category?: Prisma.FinCategoryCreateNestedOneWithoutBudgetsInput
+  user: Prisma.UserCreateNestedOneWithoutFinBudgetsInput
+}
+
+export type FinBudgetUncheckedCreateWithoutCategoriesInput = {
+  id?: string
+  userId: string
+  categoryId?: string | null
+  name?: string | null
+  includeChildren?: boolean
+  rollover?: $Enums.FinBudgetRollover
+  carriedOver?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  recurring?: boolean
+  periodType?: $Enums.FinBudgetPeriodType
+  periodStart: Date | string
+  periodEnd: Date | string
+  amountLimit: runtime.Decimal | runtime.DecimalJsLike | number | string
+  amountSpent?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  alertThresholdPct?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  aiSuggestionStatus?: $Enums.AiSuggestionStatus
+  aiSuggestionPayload?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  createdAt?: Date | string
+  alerts?: Prisma.FinBudgetAlertUncheckedCreateNestedManyWithoutBudgetInput
+}
+
+export type FinBudgetCreateOrConnectWithoutCategoriesInput = {
+  where: Prisma.FinBudgetWhereUniqueInput
+  create: Prisma.XOR<Prisma.FinBudgetCreateWithoutCategoriesInput, Prisma.FinBudgetUncheckedCreateWithoutCategoriesInput>
+}
+
+export type FinBudgetUpsertWithoutCategoriesInput = {
+  update: Prisma.XOR<Prisma.FinBudgetUpdateWithoutCategoriesInput, Prisma.FinBudgetUncheckedUpdateWithoutCategoriesInput>
+  create: Prisma.XOR<Prisma.FinBudgetCreateWithoutCategoriesInput, Prisma.FinBudgetUncheckedCreateWithoutCategoriesInput>
+  where?: Prisma.FinBudgetWhereInput
+}
+
+export type FinBudgetUpdateToOneWithWhereWithoutCategoriesInput = {
+  where?: Prisma.FinBudgetWhereInput
+  data: Prisma.XOR<Prisma.FinBudgetUpdateWithoutCategoriesInput, Prisma.FinBudgetUncheckedUpdateWithoutCategoriesInput>
+}
+
+export type FinBudgetUpdateWithoutCategoriesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  includeChildren?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  rollover?: Prisma.EnumFinBudgetRolloverFieldUpdateOperationsInput | $Enums.FinBudgetRollover
+  carriedOver?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  recurring?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  periodType?: Prisma.EnumFinBudgetPeriodTypeFieldUpdateOperationsInput | $Enums.FinBudgetPeriodType
+  periodStart?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  periodEnd?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  amountLimit?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  amountSpent?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  alertThresholdPct?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  aiSuggestionStatus?: Prisma.EnumAiSuggestionStatusFieldUpdateOperationsInput | $Enums.AiSuggestionStatus
+  aiSuggestionPayload?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  alerts?: Prisma.FinBudgetAlertUpdateManyWithoutBudgetNestedInput
+  category?: Prisma.FinCategoryUpdateOneWithoutBudgetsNestedInput
+  user?: Prisma.UserUpdateOneRequiredWithoutFinBudgetsNestedInput
+}
+
+export type FinBudgetUncheckedUpdateWithoutCategoriesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  userId?: Prisma.StringFieldUpdateOperationsInput | string
+  categoryId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  includeChildren?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  rollover?: Prisma.EnumFinBudgetRolloverFieldUpdateOperationsInput | $Enums.FinBudgetRollover
+  carriedOver?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  recurring?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  periodType?: Prisma.EnumFinBudgetPeriodTypeFieldUpdateOperationsInput | $Enums.FinBudgetPeriodType
+  periodStart?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  periodEnd?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  amountLimit?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  amountSpent?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  alertThresholdPct?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  aiSuggestionStatus?: Prisma.EnumAiSuggestionStatusFieldUpdateOperationsInput | $Enums.AiSuggestionStatus
+  aiSuggestionPayload?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  alerts?: Prisma.FinBudgetAlertUncheckedUpdateManyWithoutBudgetNestedInput
+}
+
+export type FinBudgetCreateWithoutAlertsInput = {
+  id?: string
+  name?: string | null
+  includeChildren?: boolean
+  rollover?: $Enums.FinBudgetRollover
+  carriedOver?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  recurring?: boolean
+  periodType?: $Enums.FinBudgetPeriodType
+  periodStart: Date | string
+  periodEnd: Date | string
+  amountLimit: runtime.Decimal | runtime.DecimalJsLike | number | string
+  amountSpent?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  alertThresholdPct?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  aiSuggestionStatus?: $Enums.AiSuggestionStatus
+  aiSuggestionPayload?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  createdAt?: Date | string
+  category?: Prisma.FinCategoryCreateNestedOneWithoutBudgetsInput
+  categories?: Prisma.FinBudgetCategoryCreateNestedManyWithoutBudgetInput
   user: Prisma.UserCreateNestedOneWithoutFinBudgetsInput
 }
 
 export type FinBudgetUncheckedCreateWithoutAlertsInput = {
   id?: string
   userId: string
-  categoryId: string
+  categoryId?: string | null
+  name?: string | null
+  includeChildren?: boolean
+  rollover?: $Enums.FinBudgetRollover
+  carriedOver?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  recurring?: boolean
   periodType?: $Enums.FinBudgetPeriodType
   periodStart: Date | string
   periodEnd: Date | string
@@ -807,6 +1080,7 @@ export type FinBudgetUncheckedCreateWithoutAlertsInput = {
   aiSuggestionStatus?: $Enums.AiSuggestionStatus
   aiSuggestionPayload?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
+  categories?: Prisma.FinBudgetCategoryUncheckedCreateNestedManyWithoutBudgetInput
 }
 
 export type FinBudgetCreateOrConnectWithoutAlertsInput = {
@@ -827,6 +1101,11 @@ export type FinBudgetUpdateToOneWithWhereWithoutAlertsInput = {
 
 export type FinBudgetUpdateWithoutAlertsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  includeChildren?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  rollover?: Prisma.EnumFinBudgetRolloverFieldUpdateOperationsInput | $Enums.FinBudgetRollover
+  carriedOver?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  recurring?: Prisma.BoolFieldUpdateOperationsInput | boolean
   periodType?: Prisma.EnumFinBudgetPeriodTypeFieldUpdateOperationsInput | $Enums.FinBudgetPeriodType
   periodStart?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   periodEnd?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -836,14 +1115,20 @@ export type FinBudgetUpdateWithoutAlertsInput = {
   aiSuggestionStatus?: Prisma.EnumAiSuggestionStatusFieldUpdateOperationsInput | $Enums.AiSuggestionStatus
   aiSuggestionPayload?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  category?: Prisma.FinCategoryUpdateOneRequiredWithoutBudgetsNestedInput
+  category?: Prisma.FinCategoryUpdateOneWithoutBudgetsNestedInput
+  categories?: Prisma.FinBudgetCategoryUpdateManyWithoutBudgetNestedInput
   user?: Prisma.UserUpdateOneRequiredWithoutFinBudgetsNestedInput
 }
 
 export type FinBudgetUncheckedUpdateWithoutAlertsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.StringFieldUpdateOperationsInput | string
-  categoryId?: Prisma.StringFieldUpdateOperationsInput | string
+  categoryId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  includeChildren?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  rollover?: Prisma.EnumFinBudgetRolloverFieldUpdateOperationsInput | $Enums.FinBudgetRollover
+  carriedOver?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  recurring?: Prisma.BoolFieldUpdateOperationsInput | boolean
   periodType?: Prisma.EnumFinBudgetPeriodTypeFieldUpdateOperationsInput | $Enums.FinBudgetPeriodType
   periodStart?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   periodEnd?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -853,11 +1138,17 @@ export type FinBudgetUncheckedUpdateWithoutAlertsInput = {
   aiSuggestionStatus?: Prisma.EnumAiSuggestionStatusFieldUpdateOperationsInput | $Enums.AiSuggestionStatus
   aiSuggestionPayload?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  categories?: Prisma.FinBudgetCategoryUncheckedUpdateManyWithoutBudgetNestedInput
 }
 
 export type FinBudgetCreateManyUserInput = {
   id?: string
-  categoryId: string
+  categoryId?: string | null
+  name?: string | null
+  includeChildren?: boolean
+  rollover?: $Enums.FinBudgetRollover
+  carriedOver?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  recurring?: boolean
   periodType?: $Enums.FinBudgetPeriodType
   periodStart: Date | string
   periodEnd: Date | string
@@ -871,6 +1162,11 @@ export type FinBudgetCreateManyUserInput = {
 
 export type FinBudgetUpdateWithoutUserInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  includeChildren?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  rollover?: Prisma.EnumFinBudgetRolloverFieldUpdateOperationsInput | $Enums.FinBudgetRollover
+  carriedOver?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  recurring?: Prisma.BoolFieldUpdateOperationsInput | boolean
   periodType?: Prisma.EnumFinBudgetPeriodTypeFieldUpdateOperationsInput | $Enums.FinBudgetPeriodType
   periodStart?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   periodEnd?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -881,12 +1177,18 @@ export type FinBudgetUpdateWithoutUserInput = {
   aiSuggestionPayload?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   alerts?: Prisma.FinBudgetAlertUpdateManyWithoutBudgetNestedInput
-  category?: Prisma.FinCategoryUpdateOneRequiredWithoutBudgetsNestedInput
+  category?: Prisma.FinCategoryUpdateOneWithoutBudgetsNestedInput
+  categories?: Prisma.FinBudgetCategoryUpdateManyWithoutBudgetNestedInput
 }
 
 export type FinBudgetUncheckedUpdateWithoutUserInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  categoryId?: Prisma.StringFieldUpdateOperationsInput | string
+  categoryId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  includeChildren?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  rollover?: Prisma.EnumFinBudgetRolloverFieldUpdateOperationsInput | $Enums.FinBudgetRollover
+  carriedOver?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  recurring?: Prisma.BoolFieldUpdateOperationsInput | boolean
   periodType?: Prisma.EnumFinBudgetPeriodTypeFieldUpdateOperationsInput | $Enums.FinBudgetPeriodType
   periodStart?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   periodEnd?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -897,11 +1199,17 @@ export type FinBudgetUncheckedUpdateWithoutUserInput = {
   aiSuggestionPayload?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   alerts?: Prisma.FinBudgetAlertUncheckedUpdateManyWithoutBudgetNestedInput
+  categories?: Prisma.FinBudgetCategoryUncheckedUpdateManyWithoutBudgetNestedInput
 }
 
 export type FinBudgetUncheckedUpdateManyWithoutUserInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  categoryId?: Prisma.StringFieldUpdateOperationsInput | string
+  categoryId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  includeChildren?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  rollover?: Prisma.EnumFinBudgetRolloverFieldUpdateOperationsInput | $Enums.FinBudgetRollover
+  carriedOver?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  recurring?: Prisma.BoolFieldUpdateOperationsInput | boolean
   periodType?: Prisma.EnumFinBudgetPeriodTypeFieldUpdateOperationsInput | $Enums.FinBudgetPeriodType
   periodStart?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   periodEnd?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -916,6 +1224,11 @@ export type FinBudgetUncheckedUpdateManyWithoutUserInput = {
 export type FinBudgetCreateManyCategoryInput = {
   id?: string
   userId: string
+  name?: string | null
+  includeChildren?: boolean
+  rollover?: $Enums.FinBudgetRollover
+  carriedOver?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  recurring?: boolean
   periodType?: $Enums.FinBudgetPeriodType
   periodStart: Date | string
   periodEnd: Date | string
@@ -929,6 +1242,11 @@ export type FinBudgetCreateManyCategoryInput = {
 
 export type FinBudgetUpdateWithoutCategoryInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  includeChildren?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  rollover?: Prisma.EnumFinBudgetRolloverFieldUpdateOperationsInput | $Enums.FinBudgetRollover
+  carriedOver?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  recurring?: Prisma.BoolFieldUpdateOperationsInput | boolean
   periodType?: Prisma.EnumFinBudgetPeriodTypeFieldUpdateOperationsInput | $Enums.FinBudgetPeriodType
   periodStart?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   periodEnd?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -939,12 +1257,18 @@ export type FinBudgetUpdateWithoutCategoryInput = {
   aiSuggestionPayload?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   alerts?: Prisma.FinBudgetAlertUpdateManyWithoutBudgetNestedInput
+  categories?: Prisma.FinBudgetCategoryUpdateManyWithoutBudgetNestedInput
   user?: Prisma.UserUpdateOneRequiredWithoutFinBudgetsNestedInput
 }
 
 export type FinBudgetUncheckedUpdateWithoutCategoryInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  includeChildren?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  rollover?: Prisma.EnumFinBudgetRolloverFieldUpdateOperationsInput | $Enums.FinBudgetRollover
+  carriedOver?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  recurring?: Prisma.BoolFieldUpdateOperationsInput | boolean
   periodType?: Prisma.EnumFinBudgetPeriodTypeFieldUpdateOperationsInput | $Enums.FinBudgetPeriodType
   periodStart?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   periodEnd?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -955,11 +1279,17 @@ export type FinBudgetUncheckedUpdateWithoutCategoryInput = {
   aiSuggestionPayload?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   alerts?: Prisma.FinBudgetAlertUncheckedUpdateManyWithoutBudgetNestedInput
+  categories?: Prisma.FinBudgetCategoryUncheckedUpdateManyWithoutBudgetNestedInput
 }
 
 export type FinBudgetUncheckedUpdateManyWithoutCategoryInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  includeChildren?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  rollover?: Prisma.EnumFinBudgetRolloverFieldUpdateOperationsInput | $Enums.FinBudgetRollover
+  carriedOver?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  recurring?: Prisma.BoolFieldUpdateOperationsInput | boolean
   periodType?: Prisma.EnumFinBudgetPeriodTypeFieldUpdateOperationsInput | $Enums.FinBudgetPeriodType
   periodStart?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   periodEnd?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -978,10 +1308,12 @@ export type FinBudgetUncheckedUpdateManyWithoutCategoryInput = {
 
 export type FinBudgetCountOutputType = {
   alerts: number
+  categories: number
 }
 
 export type FinBudgetCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   alerts?: boolean | FinBudgetCountOutputTypeCountAlertsArgs
+  categories?: boolean | FinBudgetCountOutputTypeCountCategoriesArgs
 }
 
 /**
@@ -1001,11 +1333,23 @@ export type FinBudgetCountOutputTypeCountAlertsArgs<ExtArgs extends runtime.Type
   where?: Prisma.FinBudgetAlertWhereInput
 }
 
+/**
+ * FinBudgetCountOutputType without action
+ */
+export type FinBudgetCountOutputTypeCountCategoriesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.FinBudgetCategoryWhereInput
+}
+
 
 export type FinBudgetSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   userId?: boolean
   categoryId?: boolean
+  name?: boolean
+  includeChildren?: boolean
+  rollover?: boolean
+  carriedOver?: boolean
+  recurring?: boolean
   periodType?: boolean
   periodStart?: boolean
   periodEnd?: boolean
@@ -1016,7 +1360,8 @@ export type FinBudgetSelect<ExtArgs extends runtime.Types.Extensions.InternalArg
   aiSuggestionPayload?: boolean
   createdAt?: boolean
   alerts?: boolean | Prisma.FinBudget$alertsArgs<ExtArgs>
-  category?: boolean | Prisma.FinCategoryDefaultArgs<ExtArgs>
+  category?: boolean | Prisma.FinBudget$categoryArgs<ExtArgs>
+  categories?: boolean | Prisma.FinBudget$categoriesArgs<ExtArgs>
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   _count?: boolean | Prisma.FinBudgetCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["finBudget"]>
@@ -1025,6 +1370,11 @@ export type FinBudgetSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Ext
   id?: boolean
   userId?: boolean
   categoryId?: boolean
+  name?: boolean
+  includeChildren?: boolean
+  rollover?: boolean
+  carriedOver?: boolean
+  recurring?: boolean
   periodType?: boolean
   periodStart?: boolean
   periodEnd?: boolean
@@ -1034,7 +1384,7 @@ export type FinBudgetSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Ext
   aiSuggestionStatus?: boolean
   aiSuggestionPayload?: boolean
   createdAt?: boolean
-  category?: boolean | Prisma.FinCategoryDefaultArgs<ExtArgs>
+  category?: boolean | Prisma.FinBudget$categoryArgs<ExtArgs>
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["finBudget"]>
 
@@ -1042,6 +1392,11 @@ export type FinBudgetSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Ext
   id?: boolean
   userId?: boolean
   categoryId?: boolean
+  name?: boolean
+  includeChildren?: boolean
+  rollover?: boolean
+  carriedOver?: boolean
+  recurring?: boolean
   periodType?: boolean
   periodStart?: boolean
   periodEnd?: boolean
@@ -1051,7 +1406,7 @@ export type FinBudgetSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Ext
   aiSuggestionStatus?: boolean
   aiSuggestionPayload?: boolean
   createdAt?: boolean
-  category?: boolean | Prisma.FinCategoryDefaultArgs<ExtArgs>
+  category?: boolean | Prisma.FinBudget$categoryArgs<ExtArgs>
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["finBudget"]>
 
@@ -1059,6 +1414,11 @@ export type FinBudgetSelectScalar = {
   id?: boolean
   userId?: boolean
   categoryId?: boolean
+  name?: boolean
+  includeChildren?: boolean
+  rollover?: boolean
+  carriedOver?: boolean
+  recurring?: boolean
   periodType?: boolean
   periodStart?: boolean
   periodEnd?: boolean
@@ -1070,19 +1430,20 @@ export type FinBudgetSelectScalar = {
   createdAt?: boolean
 }
 
-export type FinBudgetOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "categoryId" | "periodType" | "periodStart" | "periodEnd" | "amountLimit" | "amountSpent" | "alertThresholdPct" | "aiSuggestionStatus" | "aiSuggestionPayload" | "createdAt", ExtArgs["result"]["finBudget"]>
+export type FinBudgetOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "categoryId" | "name" | "includeChildren" | "rollover" | "carriedOver" | "recurring" | "periodType" | "periodStart" | "periodEnd" | "amountLimit" | "amountSpent" | "alertThresholdPct" | "aiSuggestionStatus" | "aiSuggestionPayload" | "createdAt", ExtArgs["result"]["finBudget"]>
 export type FinBudgetInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   alerts?: boolean | Prisma.FinBudget$alertsArgs<ExtArgs>
-  category?: boolean | Prisma.FinCategoryDefaultArgs<ExtArgs>
+  category?: boolean | Prisma.FinBudget$categoryArgs<ExtArgs>
+  categories?: boolean | Prisma.FinBudget$categoriesArgs<ExtArgs>
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   _count?: boolean | Prisma.FinBudgetCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type FinBudgetIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  category?: boolean | Prisma.FinCategoryDefaultArgs<ExtArgs>
+  category?: boolean | Prisma.FinBudget$categoryArgs<ExtArgs>
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
 }
 export type FinBudgetIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  category?: boolean | Prisma.FinCategoryDefaultArgs<ExtArgs>
+  category?: boolean | Prisma.FinBudget$categoryArgs<ExtArgs>
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
 }
 
@@ -1090,13 +1451,19 @@ export type $FinBudgetPayload<ExtArgs extends runtime.Types.Extensions.InternalA
   name: "FinBudget"
   objects: {
     alerts: Prisma.$FinBudgetAlertPayload<ExtArgs>[]
-    category: Prisma.$FinCategoryPayload<ExtArgs>
+    category: Prisma.$FinCategoryPayload<ExtArgs> | null
+    categories: Prisma.$FinBudgetCategoryPayload<ExtArgs>[]
     user: Prisma.$UserPayload<ExtArgs>
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
     userId: string
-    categoryId: string
+    categoryId: string | null
+    name: string | null
+    includeChildren: boolean
+    rollover: $Enums.FinBudgetRollover
+    carriedOver: runtime.Decimal
+    recurring: boolean
     periodType: $Enums.FinBudgetPeriodType
     periodStart: Date
     periodEnd: Date
@@ -1501,7 +1868,8 @@ readonly fields: FinBudgetFieldRefs;
 export interface Prisma__FinBudgetClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
   alerts<T extends Prisma.FinBudget$alertsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.FinBudget$alertsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$FinBudgetAlertPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
-  category<T extends Prisma.FinCategoryDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.FinCategoryDefaultArgs<ExtArgs>>): Prisma.Prisma__FinCategoryClient<runtime.Types.Result.GetResult<Prisma.$FinCategoryPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+  category<T extends Prisma.FinBudget$categoryArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.FinBudget$categoryArgs<ExtArgs>>): Prisma.Prisma__FinCategoryClient<runtime.Types.Result.GetResult<Prisma.$FinCategoryPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  categories<T extends Prisma.FinBudget$categoriesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.FinBudget$categoriesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$FinBudgetCategoryPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   user<T extends Prisma.UserDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.UserDefaultArgs<ExtArgs>>): Prisma.Prisma__UserClient<runtime.Types.Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
@@ -1535,6 +1903,11 @@ export interface FinBudgetFieldRefs {
   readonly id: Prisma.FieldRef<"FinBudget", 'String'>
   readonly userId: Prisma.FieldRef<"FinBudget", 'String'>
   readonly categoryId: Prisma.FieldRef<"FinBudget", 'String'>
+  readonly name: Prisma.FieldRef<"FinBudget", 'String'>
+  readonly includeChildren: Prisma.FieldRef<"FinBudget", 'Boolean'>
+  readonly rollover: Prisma.FieldRef<"FinBudget", 'FinBudgetRollover'>
+  readonly carriedOver: Prisma.FieldRef<"FinBudget", 'Decimal'>
+  readonly recurring: Prisma.FieldRef<"FinBudget", 'Boolean'>
   readonly periodType: Prisma.FieldRef<"FinBudget", 'FinBudgetPeriodType'>
   readonly periodStart: Prisma.FieldRef<"FinBudget", 'DateTime'>
   readonly periodEnd: Prisma.FieldRef<"FinBudget", 'DateTime'>
@@ -1966,6 +2339,49 @@ export type FinBudget$alertsArgs<ExtArgs extends runtime.Types.Extensions.Intern
   take?: number
   skip?: number
   distinct?: Prisma.FinBudgetAlertScalarFieldEnum | Prisma.FinBudgetAlertScalarFieldEnum[]
+}
+
+/**
+ * FinBudget.category
+ */
+export type FinBudget$categoryArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the FinCategory
+   */
+  select?: Prisma.FinCategorySelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the FinCategory
+   */
+  omit?: Prisma.FinCategoryOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.FinCategoryInclude<ExtArgs> | null
+  where?: Prisma.FinCategoryWhereInput
+}
+
+/**
+ * FinBudget.categories
+ */
+export type FinBudget$categoriesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the FinBudgetCategory
+   */
+  select?: Prisma.FinBudgetCategorySelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the FinBudgetCategory
+   */
+  omit?: Prisma.FinBudgetCategoryOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.FinBudgetCategoryInclude<ExtArgs> | null
+  where?: Prisma.FinBudgetCategoryWhereInput
+  orderBy?: Prisma.FinBudgetCategoryOrderByWithRelationInput | Prisma.FinBudgetCategoryOrderByWithRelationInput[]
+  cursor?: Prisma.FinBudgetCategoryWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.FinBudgetCategoryScalarFieldEnum | Prisma.FinBudgetCategoryScalarFieldEnum[]
 }
 
 /**

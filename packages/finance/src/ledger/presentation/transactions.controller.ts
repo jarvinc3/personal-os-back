@@ -15,13 +15,17 @@ import { AdjustBalanceUseCase } from '../application/adjust-balance.use-case';
 import { ConfirmTransactionUseCase } from '../application/confirm-transaction.use-case';
 import { CreateTransactionUseCase } from '../application/create-transaction.use-case';
 import { DeleteTransactionUseCase } from '../application/delete-transaction.use-case';
+import { MarkNotDuplicateUseCase } from '../application/mark-not-duplicate.use-case';
+import { MergeTransactionUseCase } from '../application/merge-transaction.use-case';
 import { RestoreTransactionUseCase } from '../application/restore-transaction.use-case';
 import { LedgerQueryService } from '../application/ledger-query.service';
 import { ReverseTransactionUseCase } from '../application/reverse-transaction.use-case';
+import { UnconfirmTransactionUseCase } from '../application/unconfirm-transaction.use-case';
 import { UpdateTransactionUseCase } from '../application/update-transaction.use-case';
 import { AdjustBalanceDto } from './dto/adjust-balance.dto';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { ListTransactionsQueryDto } from './dto/list-transactions-query.dto';
+import { MergeTransactionDto } from './dto/merge-transaction.dto';
 
 @ApiTags('finance')
 @ApiBearerAuth('access-token')
@@ -34,9 +38,12 @@ export class TransactionsController {
     private readonly adjustBalance: AdjustBalanceUseCase,
     private readonly updateTx: UpdateTransactionUseCase,
     private readonly confirmTx: ConfirmTransactionUseCase,
+    private readonly unconfirmTx: UnconfirmTransactionUseCase,
     private readonly deleteTx: DeleteTransactionUseCase,
     private readonly restoreTx: RestoreTransactionUseCase,
     private readonly reverseTx: ReverseTransactionUseCase,
+    private readonly mergeTx: MergeTransactionUseCase,
+    private readonly notDuplicateTx: MarkNotDuplicateUseCase,
   ) {}
 
   @Get('transactions')
@@ -99,6 +106,14 @@ export class TransactionsController {
     return this.confirmTx.execute(userId, id);
   }
 
+  @Post('transactions/:id/unconfirm')
+  @ApiOperation({
+    summary: 'Move a CONFIRMED transaction back to PENDING to edit it',
+  })
+  unconfirm(@CurrentUser('sub') userId: string, @Param('id') id: string) {
+    return this.unconfirmTx.execute(userId, id);
+  }
+
   @Post('transactions/:id/reverse')
   @ApiOperation({
     summary: 'Reverse a CONFIRMED transaction (keeps the row as REVERSED)',
@@ -119,5 +134,23 @@ export class TransactionsController {
       );
     }
     return this.reverseTx.execute(userId, id);
+  }
+
+  @Post('transactions/:id/merge')
+  @ApiOperation({
+    summary: 'Delete a possible duplicate, keeping the other one',
+  })
+  merge(
+    @CurrentUser('sub') userId: string,
+    @Param('id') id: string,
+    @Body() dto: MergeTransactionDto,
+  ) {
+    return this.mergeTx.execute(userId, id, dto.intoId);
+  }
+
+  @Post('transactions/:id/not-duplicate')
+  @ApiOperation({ summary: 'Clear the possible-duplicate flag' })
+  notDuplicate(@CurrentUser('sub') userId: string, @Param('id') id: string) {
+    return this.notDuplicateTx.execute(userId, id);
   }
 }

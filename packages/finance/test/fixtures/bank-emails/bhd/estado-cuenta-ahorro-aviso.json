@@ -1,0 +1,17 @@
+{
+  "from": "servicios@bhd.com.do",
+  "subject": "Ya están disponibles los estados de cuenta de septiembre de tu cuenta de ahorro en BHD",
+  "date": "2026-10-09T05:02:07Z",
+  "labelIds": [
+    "CATEGORY_PROMOTIONS",
+    "IMPORTANT",
+    "INBOX"
+  ],
+  "text": "Hola, PEREZ GOMEZ, JARVIN ANDRES \n Ya están disponibles los estados de tus cuentas de ahorro correspondientes al mes de Septiembre a través de Móvil Banking e Internet Banking.",
+  "expected": {
+    "kind": "statement_available",
+    "product": "cuenta de ahorro",
+    "period": "Septiembre",
+    "hasAttachment": false
+  }
+}

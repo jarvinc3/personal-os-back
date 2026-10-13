@@ -42,6 +42,8 @@ export type FinSavingsGoalContributionMinAggregateOutputType = {
   contributedAt: Date | null
   accountId: string | null
   transactionId: string | null
+  kind: $Enums.FinAllocationKind | null
+  transferGroupId: string | null
   notes: string | null
   createdAt: Date | null
 }
@@ -53,6 +55,8 @@ export type FinSavingsGoalContributionMaxAggregateOutputType = {
   contributedAt: Date | null
   accountId: string | null
   transactionId: string | null
+  kind: $Enums.FinAllocationKind | null
+  transferGroupId: string | null
   notes: string | null
   createdAt: Date | null
 }
@@ -64,6 +68,8 @@ export type FinSavingsGoalContributionCountAggregateOutputType = {
   contributedAt: number
   accountId: number
   transactionId: number
+  kind: number
+  transferGroupId: number
   notes: number
   createdAt: number
   _all: number
@@ -85,6 +91,8 @@ export type FinSavingsGoalContributionMinAggregateInputType = {
   contributedAt?: true
   accountId?: true
   transactionId?: true
+  kind?: true
+  transferGroupId?: true
   notes?: true
   createdAt?: true
 }
@@ -96,6 +104,8 @@ export type FinSavingsGoalContributionMaxAggregateInputType = {
   contributedAt?: true
   accountId?: true
   transactionId?: true
+  kind?: true
+  transferGroupId?: true
   notes?: true
   createdAt?: true
 }
@@ -107,6 +117,8 @@ export type FinSavingsGoalContributionCountAggregateInputType = {
   contributedAt?: true
   accountId?: true
   transactionId?: true
+  kind?: true
+  transferGroupId?: true
   notes?: true
   createdAt?: true
   _all?: true
@@ -205,6 +217,8 @@ export type FinSavingsGoalContributionGroupByOutputType = {
   contributedAt: Date
   accountId: string | null
   transactionId: string | null
+  kind: $Enums.FinAllocationKind
+  transferGroupId: string | null
   notes: string | null
   createdAt: Date
   _count: FinSavingsGoalContributionCountAggregateOutputType | null
@@ -239,6 +253,8 @@ export type FinSavingsGoalContributionWhereInput = {
   contributedAt?: Prisma.DateTimeFilter<"FinSavingsGoalContribution"> | Date | string
   accountId?: Prisma.StringNullableFilter<"FinSavingsGoalContribution"> | string | null
   transactionId?: Prisma.StringNullableFilter<"FinSavingsGoalContribution"> | string | null
+  kind?: Prisma.EnumFinAllocationKindFilter<"FinSavingsGoalContribution"> | $Enums.FinAllocationKind
+  transferGroupId?: Prisma.StringNullableFilter<"FinSavingsGoalContribution"> | string | null
   notes?: Prisma.StringNullableFilter<"FinSavingsGoalContribution"> | string | null
   createdAt?: Prisma.DateTimeFilter<"FinSavingsGoalContribution"> | Date | string
   account?: Prisma.XOR<Prisma.FinAccountNullableScalarRelationFilter, Prisma.FinAccountWhereInput> | null
@@ -253,6 +269,8 @@ export type FinSavingsGoalContributionOrderByWithRelationInput = {
   contributedAt?: Prisma.SortOrder
   accountId?: Prisma.SortOrderInput | Prisma.SortOrder
   transactionId?: Prisma.SortOrderInput | Prisma.SortOrder
+  kind?: Prisma.SortOrder
+  transferGroupId?: Prisma.SortOrderInput | Prisma.SortOrder
   notes?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   account?: Prisma.FinAccountOrderByWithRelationInput
@@ -270,6 +288,8 @@ export type FinSavingsGoalContributionWhereUniqueInput = Prisma.AtLeast<{
   amount?: Prisma.DecimalFilter<"FinSavingsGoalContribution"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   contributedAt?: Prisma.DateTimeFilter<"FinSavingsGoalContribution"> | Date | string
   accountId?: Prisma.StringNullableFilter<"FinSavingsGoalContribution"> | string | null
+  kind?: Prisma.EnumFinAllocationKindFilter<"FinSavingsGoalContribution"> | $Enums.FinAllocationKind
+  transferGroupId?: Prisma.StringNullableFilter<"FinSavingsGoalContribution"> | string | null
   notes?: Prisma.StringNullableFilter<"FinSavingsGoalContribution"> | string | null
   createdAt?: Prisma.DateTimeFilter<"FinSavingsGoalContribution"> | Date | string
   account?: Prisma.XOR<Prisma.FinAccountNullableScalarRelationFilter, Prisma.FinAccountWhereInput> | null
@@ -284,6 +304,8 @@ export type FinSavingsGoalContributionOrderByWithAggregationInput = {
   contributedAt?: Prisma.SortOrder
   accountId?: Prisma.SortOrderInput | Prisma.SortOrder
   transactionId?: Prisma.SortOrderInput | Prisma.SortOrder
+  kind?: Prisma.SortOrder
+  transferGroupId?: Prisma.SortOrderInput | Prisma.SortOrder
   notes?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   _count?: Prisma.FinSavingsGoalContributionCountOrderByAggregateInput
@@ -303,6 +325,8 @@ export type FinSavingsGoalContributionScalarWhereWithAggregatesInput = {
   contributedAt?: Prisma.DateTimeWithAggregatesFilter<"FinSavingsGoalContribution"> | Date | string
   accountId?: Prisma.StringNullableWithAggregatesFilter<"FinSavingsGoalContribution"> | string | null
   transactionId?: Prisma.StringNullableWithAggregatesFilter<"FinSavingsGoalContribution"> | string | null
+  kind?: Prisma.EnumFinAllocationKindWithAggregatesFilter<"FinSavingsGoalContribution"> | $Enums.FinAllocationKind
+  transferGroupId?: Prisma.StringNullableWithAggregatesFilter<"FinSavingsGoalContribution"> | string | null
   notes?: Prisma.StringNullableWithAggregatesFilter<"FinSavingsGoalContribution"> | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"FinSavingsGoalContribution"> | Date | string
 }
@@ -311,6 +335,8 @@ export type FinSavingsGoalContributionCreateInput = {
   id?: string
   amount: runtime.Decimal | runtime.DecimalJsLike | number | string
   contributedAt: Date | string
+  kind?: $Enums.FinAllocationKind
+  transferGroupId?: string | null
   notes?: string | null
   createdAt?: Date | string
   account?: Prisma.FinAccountCreateNestedOneWithoutSavingsGoalContributionsInput
@@ -325,6 +351,8 @@ export type FinSavingsGoalContributionUncheckedCreateInput = {
   contributedAt: Date | string
   accountId?: string | null
   transactionId?: string | null
+  kind?: $Enums.FinAllocationKind
+  transferGroupId?: string | null
   notes?: string | null
   createdAt?: Date | string
 }
@@ -333,6 +361,8 @@ export type FinSavingsGoalContributionUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   contributedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  kind?: Prisma.EnumFinAllocationKindFieldUpdateOperationsInput | $Enums.FinAllocationKind
+  transferGroupId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   account?: Prisma.FinAccountUpdateOneWithoutSavingsGoalContributionsNestedInput
@@ -347,6 +377,8 @@ export type FinSavingsGoalContributionUncheckedUpdateInput = {
   contributedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   accountId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   transactionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  kind?: Prisma.EnumFinAllocationKindFieldUpdateOperationsInput | $Enums.FinAllocationKind
+  transferGroupId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -358,6 +390,8 @@ export type FinSavingsGoalContributionCreateManyInput = {
   contributedAt: Date | string
   accountId?: string | null
   transactionId?: string | null
+  kind?: $Enums.FinAllocationKind
+  transferGroupId?: string | null
   notes?: string | null
   createdAt?: Date | string
 }
@@ -366,6 +400,8 @@ export type FinSavingsGoalContributionUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   contributedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  kind?: Prisma.EnumFinAllocationKindFieldUpdateOperationsInput | $Enums.FinAllocationKind
+  transferGroupId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -377,6 +413,8 @@ export type FinSavingsGoalContributionUncheckedUpdateManyInput = {
   contributedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   accountId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   transactionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  kind?: Prisma.EnumFinAllocationKindFieldUpdateOperationsInput | $Enums.FinAllocationKind
+  transferGroupId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -403,6 +441,8 @@ export type FinSavingsGoalContributionCountOrderByAggregateInput = {
   contributedAt?: Prisma.SortOrder
   accountId?: Prisma.SortOrder
   transactionId?: Prisma.SortOrder
+  kind?: Prisma.SortOrder
+  transferGroupId?: Prisma.SortOrder
   notes?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
@@ -418,6 +458,8 @@ export type FinSavingsGoalContributionMaxOrderByAggregateInput = {
   contributedAt?: Prisma.SortOrder
   accountId?: Prisma.SortOrder
   transactionId?: Prisma.SortOrder
+  kind?: Prisma.SortOrder
+  transferGroupId?: Prisma.SortOrder
   notes?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
@@ -429,6 +471,8 @@ export type FinSavingsGoalContributionMinOrderByAggregateInput = {
   contributedAt?: Prisma.SortOrder
   accountId?: Prisma.SortOrder
   transactionId?: Prisma.SortOrder
+  kind?: Prisma.SortOrder
+  transferGroupId?: Prisma.SortOrder
   notes?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
@@ -553,10 +597,16 @@ export type FinSavingsGoalContributionUncheckedUpdateManyWithoutGoalNestedInput 
   deleteMany?: Prisma.FinSavingsGoalContributionScalarWhereInput | Prisma.FinSavingsGoalContributionScalarWhereInput[]
 }
 
+export type EnumFinAllocationKindFieldUpdateOperationsInput = {
+  set?: $Enums.FinAllocationKind
+}
+
 export type FinSavingsGoalContributionCreateWithoutAccountInput = {
   id?: string
   amount: runtime.Decimal | runtime.DecimalJsLike | number | string
   contributedAt: Date | string
+  kind?: $Enums.FinAllocationKind
+  transferGroupId?: string | null
   notes?: string | null
   createdAt?: Date | string
   goal: Prisma.FinSavingsGoalCreateNestedOneWithoutContributionsInput
@@ -569,6 +619,8 @@ export type FinSavingsGoalContributionUncheckedCreateWithoutAccountInput = {
   amount: runtime.Decimal | runtime.DecimalJsLike | number | string
   contributedAt: Date | string
   transactionId?: string | null
+  kind?: $Enums.FinAllocationKind
+  transferGroupId?: string | null
   notes?: string | null
   createdAt?: Date | string
 }
@@ -609,6 +661,8 @@ export type FinSavingsGoalContributionScalarWhereInput = {
   contributedAt?: Prisma.DateTimeFilter<"FinSavingsGoalContribution"> | Date | string
   accountId?: Prisma.StringNullableFilter<"FinSavingsGoalContribution"> | string | null
   transactionId?: Prisma.StringNullableFilter<"FinSavingsGoalContribution"> | string | null
+  kind?: Prisma.EnumFinAllocationKindFilter<"FinSavingsGoalContribution"> | $Enums.FinAllocationKind
+  transferGroupId?: Prisma.StringNullableFilter<"FinSavingsGoalContribution"> | string | null
   notes?: Prisma.StringNullableFilter<"FinSavingsGoalContribution"> | string | null
   createdAt?: Prisma.DateTimeFilter<"FinSavingsGoalContribution"> | Date | string
 }
@@ -617,6 +671,8 @@ export type FinSavingsGoalContributionCreateWithoutTransactionInput = {
   id?: string
   amount: runtime.Decimal | runtime.DecimalJsLike | number | string
   contributedAt: Date | string
+  kind?: $Enums.FinAllocationKind
+  transferGroupId?: string | null
   notes?: string | null
   createdAt?: Date | string
   account?: Prisma.FinAccountCreateNestedOneWithoutSavingsGoalContributionsInput
@@ -629,6 +685,8 @@ export type FinSavingsGoalContributionUncheckedCreateWithoutTransactionInput = {
   amount: runtime.Decimal | runtime.DecimalJsLike | number | string
   contributedAt: Date | string
   accountId?: string | null
+  kind?: $Enums.FinAllocationKind
+  transferGroupId?: string | null
   notes?: string | null
   createdAt?: Date | string
 }
@@ -653,6 +711,8 @@ export type FinSavingsGoalContributionUpdateWithoutTransactionInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   contributedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  kind?: Prisma.EnumFinAllocationKindFieldUpdateOperationsInput | $Enums.FinAllocationKind
+  transferGroupId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   account?: Prisma.FinAccountUpdateOneWithoutSavingsGoalContributionsNestedInput
@@ -665,6 +725,8 @@ export type FinSavingsGoalContributionUncheckedUpdateWithoutTransactionInput = {
   amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   contributedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   accountId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  kind?: Prisma.EnumFinAllocationKindFieldUpdateOperationsInput | $Enums.FinAllocationKind
+  transferGroupId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -673,6 +735,8 @@ export type FinSavingsGoalContributionCreateWithoutGoalInput = {
   id?: string
   amount: runtime.Decimal | runtime.DecimalJsLike | number | string
   contributedAt: Date | string
+  kind?: $Enums.FinAllocationKind
+  transferGroupId?: string | null
   notes?: string | null
   createdAt?: Date | string
   account?: Prisma.FinAccountCreateNestedOneWithoutSavingsGoalContributionsInput
@@ -685,6 +749,8 @@ export type FinSavingsGoalContributionUncheckedCreateWithoutGoalInput = {
   contributedAt: Date | string
   accountId?: string | null
   transactionId?: string | null
+  kind?: $Enums.FinAllocationKind
+  transferGroupId?: string | null
   notes?: string | null
   createdAt?: Date | string
 }
@@ -721,6 +787,8 @@ export type FinSavingsGoalContributionCreateManyAccountInput = {
   amount: runtime.Decimal | runtime.DecimalJsLike | number | string
   contributedAt: Date | string
   transactionId?: string | null
+  kind?: $Enums.FinAllocationKind
+  transferGroupId?: string | null
   notes?: string | null
   createdAt?: Date | string
 }
@@ -729,6 +797,8 @@ export type FinSavingsGoalContributionUpdateWithoutAccountInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   contributedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  kind?: Prisma.EnumFinAllocationKindFieldUpdateOperationsInput | $Enums.FinAllocationKind
+  transferGroupId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   goal?: Prisma.FinSavingsGoalUpdateOneRequiredWithoutContributionsNestedInput
@@ -741,6 +811,8 @@ export type FinSavingsGoalContributionUncheckedUpdateWithoutAccountInput = {
   amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   contributedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   transactionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  kind?: Prisma.EnumFinAllocationKindFieldUpdateOperationsInput | $Enums.FinAllocationKind
+  transferGroupId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -751,6 +823,8 @@ export type FinSavingsGoalContributionUncheckedUpdateManyWithoutAccountInput = {
   amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   contributedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   transactionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  kind?: Prisma.EnumFinAllocationKindFieldUpdateOperationsInput | $Enums.FinAllocationKind
+  transferGroupId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -761,6 +835,8 @@ export type FinSavingsGoalContributionCreateManyGoalInput = {
   contributedAt: Date | string
   accountId?: string | null
   transactionId?: string | null
+  kind?: $Enums.FinAllocationKind
+  transferGroupId?: string | null
   notes?: string | null
   createdAt?: Date | string
 }
@@ -769,6 +845,8 @@ export type FinSavingsGoalContributionUpdateWithoutGoalInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   contributedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  kind?: Prisma.EnumFinAllocationKindFieldUpdateOperationsInput | $Enums.FinAllocationKind
+  transferGroupId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   account?: Prisma.FinAccountUpdateOneWithoutSavingsGoalContributionsNestedInput
@@ -781,6 +859,8 @@ export type FinSavingsGoalContributionUncheckedUpdateWithoutGoalInput = {
   contributedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   accountId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   transactionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  kind?: Prisma.EnumFinAllocationKindFieldUpdateOperationsInput | $Enums.FinAllocationKind
+  transferGroupId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -791,6 +871,8 @@ export type FinSavingsGoalContributionUncheckedUpdateManyWithoutGoalInput = {
   contributedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   accountId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   transactionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  kind?: Prisma.EnumFinAllocationKindFieldUpdateOperationsInput | $Enums.FinAllocationKind
+  transferGroupId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -804,6 +886,8 @@ export type FinSavingsGoalContributionSelect<ExtArgs extends runtime.Types.Exten
   contributedAt?: boolean
   accountId?: boolean
   transactionId?: boolean
+  kind?: boolean
+  transferGroupId?: boolean
   notes?: boolean
   createdAt?: boolean
   account?: boolean | Prisma.FinSavingsGoalContribution$accountArgs<ExtArgs>
@@ -818,6 +902,8 @@ export type FinSavingsGoalContributionSelectCreateManyAndReturn<ExtArgs extends 
   contributedAt?: boolean
   accountId?: boolean
   transactionId?: boolean
+  kind?: boolean
+  transferGroupId?: boolean
   notes?: boolean
   createdAt?: boolean
   account?: boolean | Prisma.FinSavingsGoalContribution$accountArgs<ExtArgs>
@@ -832,6 +918,8 @@ export type FinSavingsGoalContributionSelectUpdateManyAndReturn<ExtArgs extends 
   contributedAt?: boolean
   accountId?: boolean
   transactionId?: boolean
+  kind?: boolean
+  transferGroupId?: boolean
   notes?: boolean
   createdAt?: boolean
   account?: boolean | Prisma.FinSavingsGoalContribution$accountArgs<ExtArgs>
@@ -846,11 +934,13 @@ export type FinSavingsGoalContributionSelectScalar = {
   contributedAt?: boolean
   accountId?: boolean
   transactionId?: boolean
+  kind?: boolean
+  transferGroupId?: boolean
   notes?: boolean
   createdAt?: boolean
 }
 
-export type FinSavingsGoalContributionOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "goalId" | "amount" | "contributedAt" | "accountId" | "transactionId" | "notes" | "createdAt", ExtArgs["result"]["finSavingsGoalContribution"]>
+export type FinSavingsGoalContributionOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "goalId" | "amount" | "contributedAt" | "accountId" | "transactionId" | "kind" | "transferGroupId" | "notes" | "createdAt", ExtArgs["result"]["finSavingsGoalContribution"]>
 export type FinSavingsGoalContributionInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   account?: boolean | Prisma.FinSavingsGoalContribution$accountArgs<ExtArgs>
   goal?: boolean | Prisma.FinSavingsGoalDefaultArgs<ExtArgs>
@@ -884,6 +974,8 @@ export type $FinSavingsGoalContributionPayload<ExtArgs extends runtime.Types.Ext
      */
     accountId: string | null
     transactionId: string | null
+    kind: $Enums.FinAllocationKind
+    transferGroupId: string | null
     notes: string | null
     createdAt: Date
   }, ExtArgs["result"]["finSavingsGoalContribution"]>
@@ -1318,6 +1410,8 @@ export interface FinSavingsGoalContributionFieldRefs {
   readonly contributedAt: Prisma.FieldRef<"FinSavingsGoalContribution", 'DateTime'>
   readonly accountId: Prisma.FieldRef<"FinSavingsGoalContribution", 'String'>
   readonly transactionId: Prisma.FieldRef<"FinSavingsGoalContribution", 'String'>
+  readonly kind: Prisma.FieldRef<"FinSavingsGoalContribution", 'FinAllocationKind'>
+  readonly transferGroupId: Prisma.FieldRef<"FinSavingsGoalContribution", 'String'>
   readonly notes: Prisma.FieldRef<"FinSavingsGoalContribution", 'String'>
   readonly createdAt: Prisma.FieldRef<"FinSavingsGoalContribution", 'DateTime'>
 }

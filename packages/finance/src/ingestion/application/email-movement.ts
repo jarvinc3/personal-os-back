@@ -30,11 +30,23 @@ const ACCOUNT_HINT_RE =
   /(?:cuenta(?:\s+\w+){0,4}|terminad[ao]s?)\s+(?:en\s+)?[*x]{0,8}\s*(\d{4,})/i;
 const CEDULA_CONTEXT_RE =
   /c[eé]dula|identificaci[oó]n|no\.\s*de identificaci[oó]n/i;
+const CARD_PAYMENT_REMINDER_RE =
+  /paga tu tarjeta de cr[eé]dito|sin pagar intereses/i;
 
 export function combinedEmailText(
   parts: Array<string | null | undefined>,
 ): string {
   return parts.filter(Boolean).join('\n');
+}
+
+/** A bank reminder to pay the card, without any figure to import. */
+export function isCardPaymentReminder(params: {
+  subject?: string | null;
+  body?: string | null;
+}): boolean {
+  return CARD_PAYMENT_REMINDER_RE.test(
+    combinedEmailText([params.subject, params.body]),
+  );
 }
 
 export function looksLikePayrollWithoutAmount(

@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import type { CursorPoint } from '@personal-os/core';
 import type { Prisma } from '@personal-os/database';
 import { PrismaService } from '@personal-os/database';
 import type { LedgerTransactionRow } from '../../ledger/application/ports/ledger.repository.port';
@@ -12,6 +13,7 @@ import {
   type DeletionSnapshot,
 } from '../../shared/domain/deletion-snapshot';
 import { DeletionJournalRepository } from '../../shared/infrastructure/deletion-journal.repository';
+import { INSTRUMENT_EVENT_KIND } from '../../shared/domain/instrument-event';
 import { normalizeCurrencyCode } from '../../shared/presentation/validation.decorators';
 import type { CreateAccountDto } from '../presentation/dto/create-account.dto';
 import type { UpdateAccountDto } from '../presentation/dto/update-account.dto';
@@ -42,6 +44,36 @@ export class CatalogRepository {
       where: { id, userId },
       include: { institutionRef: true },
     });
+  }
+
+  async sumEarmarkedByAccountIds(
+    userId: string,
+    accountIds: string[],
+  ): Promise<Map<string, number>> {
+    if (accountIds.length === 0) {
+      return new Map();
+    }
+    const rows = await this.prisma.finSavingsGoalContribution.findMany({
+      where: {
+        goal: { userId, accountId: { in: accountIds }, mode: 'EARMARK' },
+      },
+      select: {
+        amount: true,
+        kind: true,
+        goal: { select: { accountId: true } },
+      },
+    });
+    const byAccount = new Map<string, number>();
+    for (const row of rows) {
+      const accountId = row.goal.accountId;
+      if (!accountId) {
+        continue;
+      }
+      const signed =
+        row.kind === 'WITHDRAWAL' ? -Number(row.amount) : Number(row.amount);
+      byAccount.set(accountId, (byAccount.get(accountId) ?? 0) + signed);
+    }
+    return byAccount;
   }
 
   createAccount(userId: string, dto: CreateAccountDto) {
@@ -215,12 +247,30 @@ export class CatalogRepository {
         where: { cardId, currency: normalizedCurrency },
       });
       if (existing) {
+        if (creditLimit !== undefined) {
+          await this.recordCreditLimitChange(tx, {
+            userId,
+            cardId,
+            currency: normalizedCurrency,
+            previousLimit: existing.creditLimit,
+            nextLimit: creditLimit,
+          });
+        }
         return tx.finCardBalance.update({
           where: { id: existing.id },
           data: {
             balance,
             ...(creditLimit !== undefined ? { creditLimit } : {}),
           },
+        });
+      }
+      if (creditLimit !== undefined) {
+        await this.recordCreditLimitChange(tx, {
+          userId,
+          cardId,
+          currency: normalizedCurrency,
+          previousLimit: null,
+          nextLimit: creditLimit,
         });
       }
       return tx.finCardBalance.create({
@@ -252,11 +302,25 @@ export class CatalogRepository {
         where: { cardId, currency: normalizedCurrency },
       });
       if (existing) {
+        await this.recordCreditLimitChange(tx, {
+          userId,
+          cardId,
+          currency: normalizedCurrency,
+          previousLimit: existing.creditLimit,
+          nextLimit: creditLimit,
+        });
         return tx.finCardBalance.update({
           where: { id: existing.id },
           data: { creditLimit },
         });
       }
+      await this.recordCreditLimitChange(tx, {
+        userId,
+        cardId,
+        currency: normalizedCurrency,
+        previousLimit: null,
+        nextLimit: creditLimit,
+      });
       return tx.finCardBalance.create({
         data: {
           cardId,
@@ -265,6 +329,92 @@ export class CatalogRepository {
           creditLimit,
         },
       });
+    });
+  }
+
+  findInstrumentEvents(
+    userId: string,
+    target: { accountId?: string; cardId?: string },
+    page: { cursor: CursorPoint | null; take: number },
+  ) {
+    return this.prisma.finInstrumentEvent.findMany({
+      where: {
+        userId,
+        ...(target.accountId ? { accountId: target.accountId } : {}),
+        ...(target.cardId ? { cardId: target.cardId } : {}),
+        ...(page.cursor
+          ? {
+              OR: [
+                { createdAt: { lt: new Date(page.cursor.key) } },
+                {
+                  createdAt: new Date(page.cursor.key),
+                  id: { lt: page.cursor.id },
+                },
+              ],
+            }
+          : {}),
+      },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      take: page.take,
+    });
+  }
+
+  findAdjustmentTransactions(
+    userId: string,
+    target: { accountId?: string; cardId?: string },
+    page: { cursor: CursorPoint | null; take: number },
+  ) {
+    return this.prisma.finTransaction.findMany({
+      where: {
+        userId,
+        type: 'ADJUSTMENT',
+        ...(target.accountId ? { accountId: target.accountId } : {}),
+        ...(target.cardId ? { cardId: target.cardId } : {}),
+        ...(page.cursor
+          ? {
+              OR: [
+                { transactionDate: { lt: new Date(page.cursor.key) } },
+                {
+                  transactionDate: new Date(page.cursor.key),
+                  id: { lt: page.cursor.id },
+                },
+              ],
+            }
+          : {}),
+      },
+      orderBy: [{ transactionDate: 'desc' }, { id: 'desc' }],
+      take: page.take,
+    });
+  }
+
+  private async recordCreditLimitChange(
+    tx: Prisma.TransactionClient,
+    input: {
+      userId: string;
+      cardId: string;
+      currency: string;
+      previousLimit: unknown;
+      nextLimit: number;
+    },
+  ): Promise<void> {
+    const previousLimit =
+      input.previousLimit === null || input.previousLimit === undefined
+        ? null
+        : Number(input.previousLimit);
+    if (previousLimit !== null && previousLimit === input.nextLimit) {
+      return;
+    }
+    await tx.finInstrumentEvent.create({
+      data: {
+        userId: input.userId,
+        cardId: input.cardId,
+        kind: INSTRUMENT_EVENT_KIND.CREDIT_LIMIT_CHANGED,
+        payload: {
+          currency: input.currency,
+          previousLimit,
+          nextLimit: input.nextLimit,
+        },
+      },
     });
   }
 

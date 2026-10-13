@@ -16,7 +16,10 @@ import {
 import { EmailSourceRepository } from '../infrastructure/email-source.repository';
 import { uniqueCashAccountId } from './match-email-transfers';
 import type { ExtractedEmailTransaction } from './ports/email-transaction-extractor.port';
-import { resolveEmailLedgerTarget } from './resolve-email-ledger-target';
+import {
+  resolveEmailLedgerTarget,
+  type EmailLedgerTargetMatch,
+} from './resolve-email-ledger-target';
 
 export type RoutedEmailImport =
   | { kind: 'imported'; transactionId: string; status: string }
@@ -50,21 +53,10 @@ export class RouteExtractedEmailUseCase {
     cashAccounts: Array<{ id: string }>;
     amountOverride?: number;
   }): Promise<RoutedEmailImport> {
-    const extracted = {
+    let extracted = {
       ...params.extracted,
       amount: params.amountOverride ?? params.extracted.amount,
     };
-    const amount = extracted.amount;
-    if (amount == null) {
-      await this.persist(
-        params,
-        extracted,
-        EMAIL_MESSAGE_OUTCOME.PENDING_AMOUNT,
-        'Missing amount',
-      );
-      return { kind: 'pending_amount', reason: 'Missing amount' };
-    }
-
     const movementClass = extracted.movementClass;
     const match = resolveEmailLedgerTarget({
       instrumentHint: extracted.instrumentHint,
@@ -76,6 +68,24 @@ export class RouteExtractedEmailUseCase {
         !isTransferMovementClass(movementClass) &&
         !isAtmMovementClass(movementClass),
     });
+
+    if (extracted.amount == null) {
+      extracted = await this.suggestPayrollAmount({
+        userId: params.userId,
+        extracted,
+        match,
+      });
+    }
+    const amount = extracted.amount;
+    if (amount == null) {
+      await this.persist(
+        params,
+        extracted,
+        EMAIL_MESSAGE_OUTCOME.PENDING_AMOUNT,
+        'Missing amount',
+      );
+      return { kind: 'pending_amount', reason: 'Missing amount' };
+    }
 
     if (match.kind !== 'unique') {
       const reason =
@@ -121,10 +131,13 @@ export class RouteExtractedEmailUseCase {
     }
 
     const categories = await this.emailSources.listCategories(params.userId);
-    const status = mapBankStatusToInternal({
-      bankStatusNormalized: extracted.bankStatusNormalized,
-      statusConfidence: extracted.statusConfidence,
-    });
+    const status =
+      (await this.emailSources.findEmailSyncMode(params.userId)) === 'PENDING'
+        ? 'PENDING'
+        : mapBankStatusToInternal({
+            bankStatusNormalized: extracted.bankStatusNormalized,
+            statusConfidence: extracted.statusConfidence,
+          });
     const skipCategory = isTransferMovementClass(movementClass);
     const category = skipCategory
       ? { categoryId: null, source: null }
@@ -149,11 +162,25 @@ export class RouteExtractedEmailUseCase {
       { ...extracted, notes },
       EMAIL_MESSAGE_OUTCOME.PENDING_ASSIGNMENT,
     );
+    const possibleDuplicate = await this.ledger.findPossibleDuplicate(
+      params.userId,
+      {
+        accountId: match.accountId,
+        cardId: match.cardId,
+        amount,
+        currency: extracted.currency,
+        type: extracted.type,
+        transactionDate: new Date(extracted.transactionDate),
+      },
+    );
     const importInput = {
       accountId: match.accountId,
       cardId: match.cardId,
       emailMessageId: persisted.id,
       externalReference: extracted.bankReference,
+      ...(possibleDuplicate
+        ? { possibleDuplicateOfId: possibleDuplicate.id }
+        : {}),
       amount,
       currency: extracted.currency,
       merchant: extracted.merchant,
@@ -174,12 +201,33 @@ export class RouteExtractedEmailUseCase {
         extractedAt: new Date().toISOString(),
       },
     };
-    const created = skipCategory
-      ? await this.importEmail.executeUnpairedTransfer(
+    let created: { id: string };
+    try {
+      created = skipCategory
+        ? await this.importEmail.executeUnpairedTransfer(
+            params.userId,
+            importInput,
+          )
+        : await this.importEmail.execute(params.userId, importInput);
+    } catch (error) {
+      const prismaError = error as { code?: string };
+      if (prismaError.code === 'P2002' && extracted.bankReference) {
+        const existing = await this.ledger.findTransactionByExternalReference(
           params.userId,
-          importInput,
-        )
-      : await this.importEmail.execute(params.userId, importInput);
+          extracted.bankReference,
+        );
+        if (existing) {
+          await this.persist(
+            params,
+            { ...extracted, notes },
+            EMAIL_MESSAGE_OUTCOME.SKIPPED_DUPLICATE,
+            `Duplicate of transaction ${existing.id}`,
+          );
+          return { kind: 'duplicate', transactionId: existing.id };
+        }
+      }
+      throw error;
+    }
 
     await this.persist(
       params,
@@ -187,6 +235,47 @@ export class RouteExtractedEmailUseCase {
       EMAIL_MESSAGE_OUTCOME.IMPORTED,
     );
     return { kind: 'imported', transactionId: created.id, status };
+  }
+
+  /**
+   * A payroll notice without an amount becomes a PENDING credit with the last
+   * payroll amount as a suggestion, so the user only confirms it. It is never
+   * dropped: without a previous payroll it stays in the pending-amount queue.
+   */
+  private async suggestPayrollAmount(params: {
+    userId: string;
+    extracted: ExtractedEmailTransaction;
+    match: EmailLedgerTargetMatch;
+  }): Promise<ExtractedEmailTransaction> {
+    if (
+      params.extracted.movementClass !== 'PAYROLL' ||
+      params.match.kind !== 'unique' ||
+      !params.match.accountId
+    ) {
+      return params.extracted;
+    }
+    const suggestedFixedIncome = await this.emailSources.findFixedIncomeAmount(
+      params.userId,
+    );
+    const suggested =
+      suggestedFixedIncome ??
+      (await this.emailSources.findSuggestedPayrollAmount({
+        userId: params.userId,
+        accountId: params.match.accountId,
+        currency: params.extracted.currency,
+      }));
+    if (suggested == null || suggested <= 0) {
+      return params.extracted;
+    }
+    return {
+      ...params.extracted,
+      amount: suggested,
+      notes: suggestedFixedIncome
+        ? 'Monto de tu ingreso fijo; confírmalo.'
+        : 'Monto sugerido de la nómina anterior; confírmalo.',
+      bankStatusNormalized: 'PENDING',
+      statusConfidence: 1,
+    };
   }
 
   private async importAtm(
@@ -214,10 +303,13 @@ export class RouteExtractedEmailUseCase {
       );
       return { kind: 'pending_cash', reason };
     }
-    const status = mapBankStatusToInternal({
-      bankStatusNormalized: extracted.bankStatusNormalized,
-      statusConfidence: extracted.statusConfidence,
-    });
+    const status =
+      (await this.emailSources.findEmailSyncMode(params.userId)) === 'PENDING'
+        ? 'PENDING'
+        : mapBankStatusToInternal({
+            bankStatusNormalized: extracted.bankStatusNormalized,
+            statusConfidence: extracted.statusConfidence,
+          });
     const notes = buildEmailImportNotes({
       llmNotes: extracted.notes,
       categoryId: null,

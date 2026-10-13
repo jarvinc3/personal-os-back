@@ -5,7 +5,10 @@ import type {
 } from '@personal-os/database';
 import type { StoredMovement } from '../../shared/domain/deletion-snapshot';
 import type { LedgerTarget } from '../../shared/domain/ledger-rules';
-import { signedAmount } from '../../shared/domain/ledger-rules';
+import {
+  cardPaymentDelta,
+  signedAmount,
+} from '../../shared/domain/ledger-rules';
 import {
   statusAffectsLedger,
   type FinTransactionStatusValue,
@@ -77,7 +80,19 @@ export async function applyBalanceForTransaction(
   },
 ): Promise<void> {
   const direction = params.direction ?? 1;
-  const delta = signedAmount(params.type, params.amount) * direction;
+  const delta =
+    params.type === 'CARD_PAYMENT'
+      ? cardPaymentDelta(params.amount, Boolean(params.cardId)) * direction
+      : signedAmount(params.type, params.amount) * direction;
+
+  if (params.type === 'CARD_PAYMENT') {
+    if (params.cardId) {
+      await applyCardBalanceDelta(tx, params.cardId, params.currency, delta);
+      return;
+    }
+    await applyAccountBalanceDelta(tx, params.accountId, delta);
+    return;
+  }
 
   if (params.type === 'ADJUSTMENT') {
     if (params.cardId) {
@@ -174,9 +189,18 @@ export async function adjustBudgetSpent(
   const budgets = await tx.finBudget.findMany({
     where: {
       userId: params.userId,
-      categoryId: params.categoryId,
       periodStart: { lte: dateOnly },
       periodEnd: { gte: dateOnly },
+      OR: [
+        { categoryId: params.categoryId },
+        { categories: { some: { categoryId: params.categoryId } } },
+        {
+          includeChildren: true,
+          categories: {
+            some: { category: { parentId: params.categoryId } },
+          },
+        },
+      ],
     },
   });
 

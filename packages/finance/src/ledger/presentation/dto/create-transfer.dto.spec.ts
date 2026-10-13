@@ -18,26 +18,22 @@ function transferDto(overrides: Record<string, unknown>) {
 }
 
 describe('CreateTransferDto', () => {
-  it('accepts an account origin with an account or card destination', async () => {
+  it('accepts two accounts', async () => {
     expect(await validate(transferDto({}))).toEqual([]);
-    expect(
-      await validate(transferDto({ toAccountId: undefined, toCardId: cardId })),
-    ).toEqual([]);
   });
 
-  it('rejects a card origin', async () => {
-    const errors = await validate(
-      transferDto({ fromAccountId: undefined, fromCardId: cardId }),
-    );
+  it('requires a destination account', async () => {
+    const errors = await validate(transferDto({ toAccountId: undefined }));
+    expect(errors.map((error) => error.property)).toContain('toAccountId');
+  });
 
+  it('requires an account origin', async () => {
+    const errors = await validate(transferDto({ fromAccountId: undefined }));
     expect(errors.map((error) => error.property)).toContain('fromAccountId');
   });
 
-  it('rejects a destination with both or neither target', async () => {
-    const both = await validate(transferDto({ toCardId: cardId }));
-    const neither = await validate(transferDto({ toAccountId: undefined }));
-
-    expect(both.map((error) => error.property)).toContain('_destinationXor');
-    expect(neither.map((error) => error.property)).toContain('_destinationXor');
+  it('keeps card fields only so the controller can answer 400', async () => {
+    expect(await validate(transferDto({ toCardId: cardId }))).toEqual([]);
+    expect(await validate(transferDto({ fromCardId: cardId }))).toEqual([]);
   });
 });

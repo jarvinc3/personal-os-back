@@ -1,0 +1,20 @@
+{
+  "from": "NOTIFICACIONES@popularenlinea.com",
+  "subject": "Notificaciones Pagos al Instante transferencia enviada",
+  "date": "2026-10-11T15:06:00Z",
+  "labelIds": [
+    "IMPORTANT",
+    "CATEGORY_UPDATES",
+    "INBOX"
+  ],
+  "text": "Estimado (a) SR JARVIN A PEREZ GOMEZ\r\n Le informamos que su transacción por pagos al instante se encuentra en proceso.\r\n A continuación, el detalle de su transacción:\r\n Beneficiario: LUIS MIGUEL SANTOS FERNANDE\r\n Cuenta o Producto: ******_0011\r\n Monto: RD$ 325.00\r\n Fecha: 12/10/2026\r\n Estará recibiendo una notificación, tan pronto la misma sea procesada.\r\n Si no realizó esta solicitud favor llamar a Telebanco Popular al 809-544-5555, opción * para obtener asistencia inmediata.\r\n Los pagos realizados vía pagos al instante se aplican en línea todos los días\r\n de la semana en horario de 7:00 a.m. a 4:00 p.m. y de 6:00 p.m. a 11:00 p.m.\r\n Los pagos realizados a partir de las 11:00 p.m., son aplicados el próximo día\r\n a las 7:00 a.m.\r\n Estamos comprometidos con ofrecerle una experiencia memorable de servicio.\r\n Atentamente,\n Banco Popular Dominicano\r\n Para más información sobre nuestros productos y servicios:\r\n www.popularenlinea.com \r\n Telebanco 809-544-5555\r\n @popularenlinea.com\r\n Banco Popular Dominicano\r\n @Popularenlinea\r\n Banco Popular Dominicano\r\n En caso de tener sugerencias, quejas o comentarios, puede escribir al siguiente correo:\n vozdelcliente@bpd.com.do \r\n Banco Popular Dominicano, S.A. - Banco Múltiple",
+  "expected": {
+    "kind": "instant_transfer_out",
+    "status": "enviada (el cuerpo dice \"en proceso\")",
+    "beneficiary": "LUIS MIGUEL SANTOS FERNANDE",
+    "destinationLast4": "0011",
+    "amount": "325.00",
+    "currency": "RD$",
+    "date": "12/10/2026"
+  }
+}

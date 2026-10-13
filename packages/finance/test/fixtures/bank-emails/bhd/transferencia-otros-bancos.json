@@ -1,0 +1,23 @@
+{
+  "from": "Alertas@bhd.com.do",
+  "subject": "Transacciones entre productos BHD y a otros Bancos",
+  "date": "2026-10-10T23:05:08Z",
+  "labelIds": [
+    "IMPORTANT",
+    "CATEGORY_UPDATES",
+    "INBOX"
+  ],
+  "text": "Estimado(a): JARVIN ANDRES PEREZ \n A continuación la información relacionada a tu transacción:\n Producto origen:\n DO26BCBH000000000XXXXXXX0016 \n Producto destino:\n DO03BCBH000000000XXXXXXX0014 \n Descripción:\n Pago compras del hogar familia \n Monto:\n RD$ 1,500.00 \n Beneficiario:\n MARTINEZ LOPEZ, CARLOS ANDRES \n Número de confirmación:\n M02-2222-3333-4444-5 \n Fecha y hora de la transacción:\n 10/10/2026 - 7:05 PM \n Tipo de transacción:\n Transacciones entre productos BHD y a otros Bancos \n Nota: Este correo electrónico es generado de manera automática por el sistema, por favor no responder a este mensaje. En caso de no reconocer esta transacción, favor llamar al 809-243-5282.\n Cordialmente,\n Banco BHD",
+  "expected": {
+    "kind": "transfer_out",
+    "originLast4": "0016",
+    "destinationLast4": "0014",
+    "description": "Pago compras del hogar familia",
+    "amount": "1,500.00",
+    "currency": "RD$",
+    "beneficiary": "MARTINEZ LOPEZ, CARLOS ANDRES",
+    "confirmation": "M02-2222-3333-4444-5",
+    "datetime": "10/10/2026 - 7:05 PM",
+    "transactionType": "Transacciones entre productos BHD y a otros Bancos"
+  }
+}

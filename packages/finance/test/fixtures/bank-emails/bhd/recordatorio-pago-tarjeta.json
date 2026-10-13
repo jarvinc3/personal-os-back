@@ -1,0 +1,19 @@
+{
+  "from": "info@bhd.com.do",
+  "subject": "Jarvin, paga tu Tarjeta de Crédito sin pagar intereses",
+  "date": "2026-09-16T18:23:24Z",
+  "labelIds": [
+    "CATEGORY_UPDATES",
+    "INBOX"
+  ],
+  "text": "Queremos ayudarte a mantener tus pagos al día y evitar cargos innecesarios. \n Tu(s) tarjeta(s) están próximas a su fecha límite de pago. Realiza tu pago a tiempo y evita cargos por mora. \n VISA PREMIA BHD \n Si no puedes pagar el total de tu corte, paga el mínimo para mantener tu salud financiera. \n Un buen historial de crédito, te abre más oportunidades.\n Pagar mi Tarjeta \n Banco BHD nunca enviará correos electrónicos solicitando información confidencial, como tu contraseña, PIN o código de acceso, números de tarjeta de crédito o de cuentas. Nunca te pediremos que valides o restablezcas el acceso a tu cuenta a través de un correo electrónico o ventanas emergentes (pop-ups). \n Banco BHD \n Av. 27 de Febrero esquina av. Winston Churchill, Santo Domingo, República Dominicana. Este correo va dirigido a: \n Cajero Automático • Subagente Bancario • Centro de Contacto",
+  "expected": {
+    "kind": "card_payment_reminder",
+    "cardBrand": "VISA PREMIA BHD",
+    "cardLast4": null,
+    "statementBalance": null,
+    "minimumPayment": null,
+    "dueDate": null,
+    "note": "Sin cifras: solo sirve como disparador para pedir el corte manual."
+  }
+}

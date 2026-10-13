@@ -65,17 +65,20 @@ export const ModelName = {
   FinTransaction: 'FinTransaction',
   FinCategory: 'FinCategory',
   FinBudget: 'FinBudget',
+  FinBudgetCategory: 'FinBudgetCategory',
   FinBudgetAlert: 'FinBudgetAlert',
   FinRecurringPattern: 'FinRecurringPattern',
   FinExchangeRate: 'FinExchangeRate',
   FinInstitution: 'FinInstitution',
   FinCard: 'FinCard',
   FinCardBalance: 'FinCardBalance',
+  FinInstrumentEvent: 'FinInstrumentEvent',
   FinCardStatement: 'FinCardStatement',
   FinSavingsGoal: 'FinSavingsGoal',
   FinSavingsGoalContribution: 'FinSavingsGoalContribution',
   FinLoan: 'FinLoan',
   FinLoanInstallment: 'FinLoanInstallment',
+  FinLoanPrepayment: 'FinLoanPrepayment',
   FinReceivable: 'FinReceivable',
   FinReceivablePayment: 'FinReceivablePayment',
   FinEmailSyncLog: 'FinEmailSyncLog',
@@ -278,6 +281,8 @@ export const FinTransactionScalarFieldEnum = {
   categoryId: 'categoryId',
   emailMessageId: 'emailMessageId',
   externalReference: 'externalReference',
+  institutionId: 'institutionId',
+  possibleDuplicateOfId: 'possibleDuplicateOfId',
   type: 'type',
   amount: 'amount',
   ledgerAmount: 'ledgerAmount',
@@ -295,6 +300,8 @@ export const FinTransactionScalarFieldEnum = {
   aiMetadata: 'aiMetadata',
   notes: 'notes',
   source: 'source',
+  legRole: 'legRole',
+  rail: 'rail',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -310,6 +317,7 @@ export const FinCategoryScalarFieldEnum = {
   color: 'color',
   parentId: 'parentId',
   isSystem: 'isSystem',
+  systemKind: 'systemKind',
   type: 'type',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
@@ -322,6 +330,11 @@ export const FinBudgetScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
   categoryId: 'categoryId',
+  name: 'name',
+  includeChildren: 'includeChildren',
+  rollover: 'rollover',
+  carriedOver: 'carriedOver',
+  recurring: 'recurring',
   periodType: 'periodType',
   periodStart: 'periodStart',
   periodEnd: 'periodEnd',
@@ -334,6 +347,14 @@ export const FinBudgetScalarFieldEnum = {
 } as const
 
 export type FinBudgetScalarFieldEnum = (typeof FinBudgetScalarFieldEnum)[keyof typeof FinBudgetScalarFieldEnum]
+
+
+export const FinBudgetCategoryScalarFieldEnum = {
+  budgetId: 'budgetId',
+  categoryId: 'categoryId'
+} as const
+
+export type FinBudgetCategoryScalarFieldEnum = (typeof FinBudgetCategoryScalarFieldEnum)[keyof typeof FinBudgetCategoryScalarFieldEnum]
 
 
 export const FinBudgetAlertScalarFieldEnum = {
@@ -433,6 +454,19 @@ export const FinCardBalanceScalarFieldEnum = {
 export type FinCardBalanceScalarFieldEnum = (typeof FinCardBalanceScalarFieldEnum)[keyof typeof FinCardBalanceScalarFieldEnum]
 
 
+export const FinInstrumentEventScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  accountId: 'accountId',
+  cardId: 'cardId',
+  kind: 'kind',
+  payload: 'payload',
+  createdAt: 'createdAt'
+} as const
+
+export type FinInstrumentEventScalarFieldEnum = (typeof FinInstrumentEventScalarFieldEnum)[keyof typeof FinInstrumentEventScalarFieldEnum]
+
+
 export const FinCardStatementScalarFieldEnum = {
   id: 'id',
   cardId: 'cardId',
@@ -441,6 +475,10 @@ export const FinCardStatementScalarFieldEnum = {
   cycleEnd: 'cycleEnd',
   dueDate: 'dueDate',
   closingBalance: 'closingBalance',
+  minimumPayment: 'minimumPayment',
+  minimumSource: 'minimumSource',
+  status: 'status',
+  importedAt: 'importedAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -459,6 +497,9 @@ export const FinSavingsGoalScalarFieldEnum = {
   targetDate: 'targetDate',
   icon: 'icon',
   color: 'color',
+  accountId: 'accountId',
+  mode: 'mode',
+  spendReducesProgress: 'spendReducesProgress',
   isCompleted: 'isCompleted',
   completedAt: 'completedAt',
   createdAt: 'createdAt',
@@ -475,6 +516,8 @@ export const FinSavingsGoalContributionScalarFieldEnum = {
   contributedAt: 'contributedAt',
   accountId: 'accountId',
   transactionId: 'transactionId',
+  kind: 'kind',
+  transferGroupId: 'transferGroupId',
   notes: 'notes',
   createdAt: 'createdAt'
 } as const
@@ -497,6 +540,11 @@ export const FinLoanScalarFieldEnum = {
   paidInstallments: 'paidInstallments',
   nextDueDate: 'nextDueDate',
   interestRate: 'interestRate',
+  rateType: 'rateType',
+  insuranceAmount: 'insuranceAmount',
+  lateFeePolicy: 'lateFeePolicy',
+  prepaymentPenaltyPct: 'prepaymentPenaltyPct',
+  disbursementDate: 'disbursementDate',
   notes: 'notes',
   isActive: 'isActive',
   createdAt: 'createdAt',
@@ -512,6 +560,13 @@ export const FinLoanInstallmentScalarFieldEnum = {
   installmentNo: 'installmentNo',
   dueDate: 'dueDate',
   amount: 'amount',
+  principal: 'principal',
+  interest: 'interest',
+  insurance: 'insurance',
+  fees: 'fees',
+  lateFee: 'lateFee',
+  paidAmount: 'paidAmount',
+  status: 'status',
   paidAt: 'paidAt',
   transactionId: 'transactionId',
   createdAt: 'createdAt',
@@ -519,6 +574,20 @@ export const FinLoanInstallmentScalarFieldEnum = {
 } as const
 
 export type FinLoanInstallmentScalarFieldEnum = (typeof FinLoanInstallmentScalarFieldEnum)[keyof typeof FinLoanInstallmentScalarFieldEnum]
+
+
+export const FinLoanPrepaymentScalarFieldEnum = {
+  id: 'id',
+  loanId: 'loanId',
+  amount: 'amount',
+  penalty: 'penalty',
+  mode: 'mode',
+  paidAt: 'paidAt',
+  transactionId: 'transactionId',
+  createdAt: 'createdAt'
+} as const
+
+export type FinLoanPrepaymentScalarFieldEnum = (typeof FinLoanPrepaymentScalarFieldEnum)[keyof typeof FinLoanPrepaymentScalarFieldEnum]
 
 
 export const FinReceivableScalarFieldEnum = {
@@ -531,6 +600,9 @@ export const FinReceivableScalarFieldEnum = {
   currency: 'currency',
   dueDate: 'dueDate',
   status: 'status',
+  creditBalance: 'creditBalance',
+  writtenOffAmount: 'writtenOffAmount',
+  writtenOffAt: 'writtenOffAt',
   notes: 'notes',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
@@ -543,6 +615,9 @@ export const FinReceivablePaymentScalarFieldEnum = {
   id: 'id',
   receivableId: 'receivableId',
   amount: 'amount',
+  appliedAmount: 'appliedAmount',
+  excessAmount: 'excessAmount',
+  excessHandling: 'excessHandling',
   paidAt: 'paidAt',
   accountId: 'accountId',
   transactionId: 'transactionId',
@@ -579,6 +654,8 @@ export const FinEmailMessageScalarFieldEnum = {
   lastFourHint: 'lastFourHint',
   accountNumberHint: 'accountNumberHint',
   extractedPayload: 'extractedPayload',
+  fingerprint: 'fingerprint',
+  duplicateOfTransactionId: 'duplicateOfTransactionId',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -636,7 +713,10 @@ export const FinDeletionJournalScalarFieldEnum = {
   entityType: 'entityType',
   entityId: 'entityId',
   snapshot: 'snapshot',
+  operationGroupId: 'operationGroupId',
+  sizeBytes: 'sizeBytes',
   deletedAt: 'deletedAt',
+  expiresAt: 'expiresAt',
   restoredAt: 'restoredAt'
 } as const
 

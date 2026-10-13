@@ -29,16 +29,23 @@ export type AggregateFinReceivablePayment = {
 
 export type FinReceivablePaymentAvgAggregateOutputType = {
   amount: runtime.Decimal | null
+  appliedAmount: runtime.Decimal | null
+  excessAmount: runtime.Decimal | null
 }
 
 export type FinReceivablePaymentSumAggregateOutputType = {
   amount: runtime.Decimal | null
+  appliedAmount: runtime.Decimal | null
+  excessAmount: runtime.Decimal | null
 }
 
 export type FinReceivablePaymentMinAggregateOutputType = {
   id: string | null
   receivableId: string | null
   amount: runtime.Decimal | null
+  appliedAmount: runtime.Decimal | null
+  excessAmount: runtime.Decimal | null
+  excessHandling: string | null
   paidAt: Date | null
   accountId: string | null
   transactionId: string | null
@@ -50,6 +57,9 @@ export type FinReceivablePaymentMaxAggregateOutputType = {
   id: string | null
   receivableId: string | null
   amount: runtime.Decimal | null
+  appliedAmount: runtime.Decimal | null
+  excessAmount: runtime.Decimal | null
+  excessHandling: string | null
   paidAt: Date | null
   accountId: string | null
   transactionId: string | null
@@ -61,6 +71,9 @@ export type FinReceivablePaymentCountAggregateOutputType = {
   id: number
   receivableId: number
   amount: number
+  appliedAmount: number
+  excessAmount: number
+  excessHandling: number
   paidAt: number
   accountId: number
   transactionId: number
@@ -72,16 +85,23 @@ export type FinReceivablePaymentCountAggregateOutputType = {
 
 export type FinReceivablePaymentAvgAggregateInputType = {
   amount?: true
+  appliedAmount?: true
+  excessAmount?: true
 }
 
 export type FinReceivablePaymentSumAggregateInputType = {
   amount?: true
+  appliedAmount?: true
+  excessAmount?: true
 }
 
 export type FinReceivablePaymentMinAggregateInputType = {
   id?: true
   receivableId?: true
   amount?: true
+  appliedAmount?: true
+  excessAmount?: true
+  excessHandling?: true
   paidAt?: true
   accountId?: true
   transactionId?: true
@@ -93,6 +113,9 @@ export type FinReceivablePaymentMaxAggregateInputType = {
   id?: true
   receivableId?: true
   amount?: true
+  appliedAmount?: true
+  excessAmount?: true
+  excessHandling?: true
   paidAt?: true
   accountId?: true
   transactionId?: true
@@ -104,6 +127,9 @@ export type FinReceivablePaymentCountAggregateInputType = {
   id?: true
   receivableId?: true
   amount?: true
+  appliedAmount?: true
+  excessAmount?: true
+  excessHandling?: true
   paidAt?: true
   accountId?: true
   transactionId?: true
@@ -202,6 +228,9 @@ export type FinReceivablePaymentGroupByOutputType = {
   id: string
   receivableId: string
   amount: runtime.Decimal
+  appliedAmount: runtime.Decimal
+  excessAmount: runtime.Decimal
+  excessHandling: string | null
   paidAt: Date
   accountId: string | null
   transactionId: string | null
@@ -236,6 +265,9 @@ export type FinReceivablePaymentWhereInput = {
   id?: Prisma.StringFilter<"FinReceivablePayment"> | string
   receivableId?: Prisma.StringFilter<"FinReceivablePayment"> | string
   amount?: Prisma.DecimalFilter<"FinReceivablePayment"> | runtime.Decimal | runtime.DecimalJsLike | number | string
+  appliedAmount?: Prisma.DecimalFilter<"FinReceivablePayment"> | runtime.Decimal | runtime.DecimalJsLike | number | string
+  excessAmount?: Prisma.DecimalFilter<"FinReceivablePayment"> | runtime.Decimal | runtime.DecimalJsLike | number | string
+  excessHandling?: Prisma.StringNullableFilter<"FinReceivablePayment"> | string | null
   paidAt?: Prisma.DateTimeFilter<"FinReceivablePayment"> | Date | string
   accountId?: Prisma.StringNullableFilter<"FinReceivablePayment"> | string | null
   transactionId?: Prisma.StringNullableFilter<"FinReceivablePayment"> | string | null
@@ -250,6 +282,9 @@ export type FinReceivablePaymentOrderByWithRelationInput = {
   id?: Prisma.SortOrder
   receivableId?: Prisma.SortOrder
   amount?: Prisma.SortOrder
+  appliedAmount?: Prisma.SortOrder
+  excessAmount?: Prisma.SortOrder
+  excessHandling?: Prisma.SortOrderInput | Prisma.SortOrder
   paidAt?: Prisma.SortOrder
   accountId?: Prisma.SortOrderInput | Prisma.SortOrder
   transactionId?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -268,6 +303,9 @@ export type FinReceivablePaymentWhereUniqueInput = Prisma.AtLeast<{
   NOT?: Prisma.FinReceivablePaymentWhereInput | Prisma.FinReceivablePaymentWhereInput[]
   receivableId?: Prisma.StringFilter<"FinReceivablePayment"> | string
   amount?: Prisma.DecimalFilter<"FinReceivablePayment"> | runtime.Decimal | runtime.DecimalJsLike | number | string
+  appliedAmount?: Prisma.DecimalFilter<"FinReceivablePayment"> | runtime.Decimal | runtime.DecimalJsLike | number | string
+  excessAmount?: Prisma.DecimalFilter<"FinReceivablePayment"> | runtime.Decimal | runtime.DecimalJsLike | number | string
+  excessHandling?: Prisma.StringNullableFilter<"FinReceivablePayment"> | string | null
   paidAt?: Prisma.DateTimeFilter<"FinReceivablePayment"> | Date | string
   accountId?: Prisma.StringNullableFilter<"FinReceivablePayment"> | string | null
   notes?: Prisma.StringNullableFilter<"FinReceivablePayment"> | string | null
@@ -281,6 +319,9 @@ export type FinReceivablePaymentOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
   receivableId?: Prisma.SortOrder
   amount?: Prisma.SortOrder
+  appliedAmount?: Prisma.SortOrder
+  excessAmount?: Prisma.SortOrder
+  excessHandling?: Prisma.SortOrderInput | Prisma.SortOrder
   paidAt?: Prisma.SortOrder
   accountId?: Prisma.SortOrderInput | Prisma.SortOrder
   transactionId?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -300,6 +341,9 @@ export type FinReceivablePaymentScalarWhereWithAggregatesInput = {
   id?: Prisma.StringWithAggregatesFilter<"FinReceivablePayment"> | string
   receivableId?: Prisma.StringWithAggregatesFilter<"FinReceivablePayment"> | string
   amount?: Prisma.DecimalWithAggregatesFilter<"FinReceivablePayment"> | runtime.Decimal | runtime.DecimalJsLike | number | string
+  appliedAmount?: Prisma.DecimalWithAggregatesFilter<"FinReceivablePayment"> | runtime.Decimal | runtime.DecimalJsLike | number | string
+  excessAmount?: Prisma.DecimalWithAggregatesFilter<"FinReceivablePayment"> | runtime.Decimal | runtime.DecimalJsLike | number | string
+  excessHandling?: Prisma.StringNullableWithAggregatesFilter<"FinReceivablePayment"> | string | null
   paidAt?: Prisma.DateTimeWithAggregatesFilter<"FinReceivablePayment"> | Date | string
   accountId?: Prisma.StringNullableWithAggregatesFilter<"FinReceivablePayment"> | string | null
   transactionId?: Prisma.StringNullableWithAggregatesFilter<"FinReceivablePayment"> | string | null
@@ -310,6 +354,9 @@ export type FinReceivablePaymentScalarWhereWithAggregatesInput = {
 export type FinReceivablePaymentCreateInput = {
   id?: string
   amount: runtime.Decimal | runtime.DecimalJsLike | number | string
+  appliedAmount: runtime.Decimal | runtime.DecimalJsLike | number | string
+  excessAmount?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  excessHandling?: string | null
   paidAt: Date | string
   notes?: string | null
   createdAt?: Date | string
@@ -322,6 +369,9 @@ export type FinReceivablePaymentUncheckedCreateInput = {
   id?: string
   receivableId: string
   amount: runtime.Decimal | runtime.DecimalJsLike | number | string
+  appliedAmount: runtime.Decimal | runtime.DecimalJsLike | number | string
+  excessAmount?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  excessHandling?: string | null
   paidAt: Date | string
   accountId?: string | null
   transactionId?: string | null
@@ -332,6 +382,9 @@ export type FinReceivablePaymentUncheckedCreateInput = {
 export type FinReceivablePaymentUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  appliedAmount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  excessAmount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  excessHandling?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   paidAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -344,6 +397,9 @@ export type FinReceivablePaymentUncheckedUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   receivableId?: Prisma.StringFieldUpdateOperationsInput | string
   amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  appliedAmount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  excessAmount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  excessHandling?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   paidAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   accountId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   transactionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -355,6 +411,9 @@ export type FinReceivablePaymentCreateManyInput = {
   id?: string
   receivableId: string
   amount: runtime.Decimal | runtime.DecimalJsLike | number | string
+  appliedAmount: runtime.Decimal | runtime.DecimalJsLike | number | string
+  excessAmount?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  excessHandling?: string | null
   paidAt: Date | string
   accountId?: string | null
   transactionId?: string | null
@@ -365,6 +424,9 @@ export type FinReceivablePaymentCreateManyInput = {
 export type FinReceivablePaymentUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  appliedAmount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  excessAmount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  excessHandling?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   paidAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -374,6 +436,9 @@ export type FinReceivablePaymentUncheckedUpdateManyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   receivableId?: Prisma.StringFieldUpdateOperationsInput | string
   amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  appliedAmount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  excessAmount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  excessHandling?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   paidAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   accountId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   transactionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -400,6 +465,9 @@ export type FinReceivablePaymentCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
   receivableId?: Prisma.SortOrder
   amount?: Prisma.SortOrder
+  appliedAmount?: Prisma.SortOrder
+  excessAmount?: Prisma.SortOrder
+  excessHandling?: Prisma.SortOrder
   paidAt?: Prisma.SortOrder
   accountId?: Prisma.SortOrder
   transactionId?: Prisma.SortOrder
@@ -409,12 +477,17 @@ export type FinReceivablePaymentCountOrderByAggregateInput = {
 
 export type FinReceivablePaymentAvgOrderByAggregateInput = {
   amount?: Prisma.SortOrder
+  appliedAmount?: Prisma.SortOrder
+  excessAmount?: Prisma.SortOrder
 }
 
 export type FinReceivablePaymentMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
   receivableId?: Prisma.SortOrder
   amount?: Prisma.SortOrder
+  appliedAmount?: Prisma.SortOrder
+  excessAmount?: Prisma.SortOrder
+  excessHandling?: Prisma.SortOrder
   paidAt?: Prisma.SortOrder
   accountId?: Prisma.SortOrder
   transactionId?: Prisma.SortOrder
@@ -426,6 +499,9 @@ export type FinReceivablePaymentMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
   receivableId?: Prisma.SortOrder
   amount?: Prisma.SortOrder
+  appliedAmount?: Prisma.SortOrder
+  excessAmount?: Prisma.SortOrder
+  excessHandling?: Prisma.SortOrder
   paidAt?: Prisma.SortOrder
   accountId?: Prisma.SortOrder
   transactionId?: Prisma.SortOrder
@@ -435,6 +511,8 @@ export type FinReceivablePaymentMinOrderByAggregateInput = {
 
 export type FinReceivablePaymentSumOrderByAggregateInput = {
   amount?: Prisma.SortOrder
+  appliedAmount?: Prisma.SortOrder
+  excessAmount?: Prisma.SortOrder
 }
 
 export type FinReceivablePaymentCreateNestedManyWithoutAccountInput = {
@@ -556,6 +634,9 @@ export type FinReceivablePaymentUncheckedUpdateManyWithoutReceivableNestedInput 
 export type FinReceivablePaymentCreateWithoutAccountInput = {
   id?: string
   amount: runtime.Decimal | runtime.DecimalJsLike | number | string
+  appliedAmount: runtime.Decimal | runtime.DecimalJsLike | number | string
+  excessAmount?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  excessHandling?: string | null
   paidAt: Date | string
   notes?: string | null
   createdAt?: Date | string
@@ -567,6 +648,9 @@ export type FinReceivablePaymentUncheckedCreateWithoutAccountInput = {
   id?: string
   receivableId: string
   amount: runtime.Decimal | runtime.DecimalJsLike | number | string
+  appliedAmount: runtime.Decimal | runtime.DecimalJsLike | number | string
+  excessAmount?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  excessHandling?: string | null
   paidAt: Date | string
   transactionId?: string | null
   notes?: string | null
@@ -606,6 +690,9 @@ export type FinReceivablePaymentScalarWhereInput = {
   id?: Prisma.StringFilter<"FinReceivablePayment"> | string
   receivableId?: Prisma.StringFilter<"FinReceivablePayment"> | string
   amount?: Prisma.DecimalFilter<"FinReceivablePayment"> | runtime.Decimal | runtime.DecimalJsLike | number | string
+  appliedAmount?: Prisma.DecimalFilter<"FinReceivablePayment"> | runtime.Decimal | runtime.DecimalJsLike | number | string
+  excessAmount?: Prisma.DecimalFilter<"FinReceivablePayment"> | runtime.Decimal | runtime.DecimalJsLike | number | string
+  excessHandling?: Prisma.StringNullableFilter<"FinReceivablePayment"> | string | null
   paidAt?: Prisma.DateTimeFilter<"FinReceivablePayment"> | Date | string
   accountId?: Prisma.StringNullableFilter<"FinReceivablePayment"> | string | null
   transactionId?: Prisma.StringNullableFilter<"FinReceivablePayment"> | string | null
@@ -616,6 +703,9 @@ export type FinReceivablePaymentScalarWhereInput = {
 export type FinReceivablePaymentCreateWithoutTransactionInput = {
   id?: string
   amount: runtime.Decimal | runtime.DecimalJsLike | number | string
+  appliedAmount: runtime.Decimal | runtime.DecimalJsLike | number | string
+  excessAmount?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  excessHandling?: string | null
   paidAt: Date | string
   notes?: string | null
   createdAt?: Date | string
@@ -627,6 +717,9 @@ export type FinReceivablePaymentUncheckedCreateWithoutTransactionInput = {
   id?: string
   receivableId: string
   amount: runtime.Decimal | runtime.DecimalJsLike | number | string
+  appliedAmount: runtime.Decimal | runtime.DecimalJsLike | number | string
+  excessAmount?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  excessHandling?: string | null
   paidAt: Date | string
   accountId?: string | null
   notes?: string | null
@@ -652,6 +745,9 @@ export type FinReceivablePaymentUpdateToOneWithWhereWithoutTransactionInput = {
 export type FinReceivablePaymentUpdateWithoutTransactionInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  appliedAmount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  excessAmount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  excessHandling?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   paidAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -663,6 +759,9 @@ export type FinReceivablePaymentUncheckedUpdateWithoutTransactionInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   receivableId?: Prisma.StringFieldUpdateOperationsInput | string
   amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  appliedAmount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  excessAmount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  excessHandling?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   paidAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   accountId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -672,6 +771,9 @@ export type FinReceivablePaymentUncheckedUpdateWithoutTransactionInput = {
 export type FinReceivablePaymentCreateWithoutReceivableInput = {
   id?: string
   amount: runtime.Decimal | runtime.DecimalJsLike | number | string
+  appliedAmount: runtime.Decimal | runtime.DecimalJsLike | number | string
+  excessAmount?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  excessHandling?: string | null
   paidAt: Date | string
   notes?: string | null
   createdAt?: Date | string
@@ -682,6 +784,9 @@ export type FinReceivablePaymentCreateWithoutReceivableInput = {
 export type FinReceivablePaymentUncheckedCreateWithoutReceivableInput = {
   id?: string
   amount: runtime.Decimal | runtime.DecimalJsLike | number | string
+  appliedAmount: runtime.Decimal | runtime.DecimalJsLike | number | string
+  excessAmount?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  excessHandling?: string | null
   paidAt: Date | string
   accountId?: string | null
   transactionId?: string | null
@@ -719,6 +824,9 @@ export type FinReceivablePaymentCreateManyAccountInput = {
   id?: string
   receivableId: string
   amount: runtime.Decimal | runtime.DecimalJsLike | number | string
+  appliedAmount: runtime.Decimal | runtime.DecimalJsLike | number | string
+  excessAmount?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  excessHandling?: string | null
   paidAt: Date | string
   transactionId?: string | null
   notes?: string | null
@@ -728,6 +836,9 @@ export type FinReceivablePaymentCreateManyAccountInput = {
 export type FinReceivablePaymentUpdateWithoutAccountInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  appliedAmount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  excessAmount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  excessHandling?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   paidAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -739,6 +850,9 @@ export type FinReceivablePaymentUncheckedUpdateWithoutAccountInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   receivableId?: Prisma.StringFieldUpdateOperationsInput | string
   amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  appliedAmount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  excessAmount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  excessHandling?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   paidAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   transactionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -749,6 +863,9 @@ export type FinReceivablePaymentUncheckedUpdateManyWithoutAccountInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   receivableId?: Prisma.StringFieldUpdateOperationsInput | string
   amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  appliedAmount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  excessAmount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  excessHandling?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   paidAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   transactionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -758,6 +875,9 @@ export type FinReceivablePaymentUncheckedUpdateManyWithoutAccountInput = {
 export type FinReceivablePaymentCreateManyReceivableInput = {
   id?: string
   amount: runtime.Decimal | runtime.DecimalJsLike | number | string
+  appliedAmount: runtime.Decimal | runtime.DecimalJsLike | number | string
+  excessAmount?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  excessHandling?: string | null
   paidAt: Date | string
   accountId?: string | null
   transactionId?: string | null
@@ -768,6 +888,9 @@ export type FinReceivablePaymentCreateManyReceivableInput = {
 export type FinReceivablePaymentUpdateWithoutReceivableInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  appliedAmount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  excessAmount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  excessHandling?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   paidAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -778,6 +901,9 @@ export type FinReceivablePaymentUpdateWithoutReceivableInput = {
 export type FinReceivablePaymentUncheckedUpdateWithoutReceivableInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  appliedAmount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  excessAmount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  excessHandling?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   paidAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   accountId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   transactionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -788,6 +914,9 @@ export type FinReceivablePaymentUncheckedUpdateWithoutReceivableInput = {
 export type FinReceivablePaymentUncheckedUpdateManyWithoutReceivableInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  appliedAmount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  excessAmount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  excessHandling?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   paidAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   accountId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   transactionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -801,6 +930,9 @@ export type FinReceivablePaymentSelect<ExtArgs extends runtime.Types.Extensions.
   id?: boolean
   receivableId?: boolean
   amount?: boolean
+  appliedAmount?: boolean
+  excessAmount?: boolean
+  excessHandling?: boolean
   paidAt?: boolean
   accountId?: boolean
   transactionId?: boolean
@@ -815,6 +947,9 @@ export type FinReceivablePaymentSelectCreateManyAndReturn<ExtArgs extends runtim
   id?: boolean
   receivableId?: boolean
   amount?: boolean
+  appliedAmount?: boolean
+  excessAmount?: boolean
+  excessHandling?: boolean
   paidAt?: boolean
   accountId?: boolean
   transactionId?: boolean
@@ -829,6 +964,9 @@ export type FinReceivablePaymentSelectUpdateManyAndReturn<ExtArgs extends runtim
   id?: boolean
   receivableId?: boolean
   amount?: boolean
+  appliedAmount?: boolean
+  excessAmount?: boolean
+  excessHandling?: boolean
   paidAt?: boolean
   accountId?: boolean
   transactionId?: boolean
@@ -843,6 +981,9 @@ export type FinReceivablePaymentSelectScalar = {
   id?: boolean
   receivableId?: boolean
   amount?: boolean
+  appliedAmount?: boolean
+  excessAmount?: boolean
+  excessHandling?: boolean
   paidAt?: boolean
   accountId?: boolean
   transactionId?: boolean
@@ -850,7 +991,7 @@ export type FinReceivablePaymentSelectScalar = {
   createdAt?: boolean
 }
 
-export type FinReceivablePaymentOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "receivableId" | "amount" | "paidAt" | "accountId" | "transactionId" | "notes" | "createdAt", ExtArgs["result"]["finReceivablePayment"]>
+export type FinReceivablePaymentOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "receivableId" | "amount" | "appliedAmount" | "excessAmount" | "excessHandling" | "paidAt" | "accountId" | "transactionId" | "notes" | "createdAt", ExtArgs["result"]["finReceivablePayment"]>
 export type FinReceivablePaymentInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   account?: boolean | Prisma.FinReceivablePayment$accountArgs<ExtArgs>
   receivable?: boolean | Prisma.FinReceivableDefaultArgs<ExtArgs>
@@ -878,6 +1019,9 @@ export type $FinReceivablePaymentPayload<ExtArgs extends runtime.Types.Extension
     id: string
     receivableId: string
     amount: runtime.Decimal
+    appliedAmount: runtime.Decimal
+    excessAmount: runtime.Decimal
+    excessHandling: string | null
     paidAt: Date
     /**
      * Account the money entered. Null only after that account is deleted.
@@ -1315,6 +1459,9 @@ export interface FinReceivablePaymentFieldRefs {
   readonly id: Prisma.FieldRef<"FinReceivablePayment", 'String'>
   readonly receivableId: Prisma.FieldRef<"FinReceivablePayment", 'String'>
   readonly amount: Prisma.FieldRef<"FinReceivablePayment", 'Decimal'>
+  readonly appliedAmount: Prisma.FieldRef<"FinReceivablePayment", 'Decimal'>
+  readonly excessAmount: Prisma.FieldRef<"FinReceivablePayment", 'Decimal'>
+  readonly excessHandling: Prisma.FieldRef<"FinReceivablePayment", 'String'>
   readonly paidAt: Prisma.FieldRef<"FinReceivablePayment", 'DateTime'>
   readonly accountId: Prisma.FieldRef<"FinReceivablePayment", 'String'>
   readonly transactionId: Prisma.FieldRef<"FinReceivablePayment", 'String'>

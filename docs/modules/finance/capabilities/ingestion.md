@@ -14,3 +14,12 @@ Callback público 302:
 - Web: `returnTo` https cuyo origin está en `CORS_ORIGIN`, firmado en `state`. Inválido → deep link móvil (no open redirect).
 
 Ver [operations/gmail-sync.md](../operations/gmail-sync.md).
+
+## Casos reales de RD (BHD, Popular, Qik)
+
+Hay fixtures anonimizados en `packages/finance/test/fixtures/bank-emails/` (un `.html` y un `.json` con `expected` por tipo, más un README por banco) y una prueba por formato en `bank-email-fixtures.spec.ts`.
+
+- Las notificaciones de nómina de Banco Popular no traen monto. El extractor las marca `pending_amount` y el router les pone el monto de la última nómina confirmada de la misma cuenta como sugerencia, con la fecha del correo: el movimiento queda `PENDING` y el usuario solo confirma el monto. Si no hay nómina previa, el correo queda en la cola `PENDING_AMOUNT`; nunca se descarta en silencio.
+- La referencia bancaria incluye "Número de confirmación". Ese valor va a `externalReference` y dedupe: los dos correos del mismo pago de servicio de BHD y la copia al beneficiario de una transferencia se descartan como duplicados. Los avisos "enviada" y "en proceso" de Popular comparten cuerpo y deduplican por beneficiario, monto y fecha.
+- El recordatorio de pago de tarjeta de BHD (`info@bhd.com.do`, sin cifras) no crea movimiento: emite `finance.card_statement.reminder` y la app muestra un aviso para cargar el corte a mano.
+- El `module_config.finance` manda: `fixedIncome` (monto, frecuencia, días y cuenta) es la primera sugerencia para una nómina sin cifra, antes de la nómina anterior; y `emailSync.mode` (`DIRECT` o `PENDING`) decide si lo importado entra confirmado o pendiente de confirmar.

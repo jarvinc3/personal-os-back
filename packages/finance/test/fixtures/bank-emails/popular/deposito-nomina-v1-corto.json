@@ -1,0 +1,19 @@
+{
+  "from": "notificaciones@popularenlinea.com",
+  "subject": "Notificación Depósito de Nómina",
+  "date": "2026-06-16T03:19:48Z",
+  "labelIds": [
+    "IMPORTANT",
+    "CATEGORY_UPDATES",
+    "INBOX"
+  ],
+  "text": "Estimado (a) PEREZ GOMEZ JA \n A continuación, le informamos el detalle del depósito recibido en su cuenta terminada en 3447 . Nos place saludarle e informarle que en fecha 20260615 ha recibido un depósito por concepto de pago de nómina en su cuenta.\nPara mayor información, puede consultar el detalle de la transacción ingresando a su usuario en Popularenlinea .com.\nEstamos comprometidos con entregarle una experiencia memorable de servicio.\n Atentamente,\nBanco Popular Dominicano \n Para más información sobre nuestros productos y servicios: \n En caso de tener sugerencias, quejas o comentarios, puede escribir al siguiente correo: vozdelcliente @bpd .com .do\n Banco Popular Dominicano, S.A. - Banco Múltiple",
+  "expected": {
+    "kind": "payroll_deposit",
+    "format": "v1 plantilla corta (jun-2026)",
+    "accountLast4": "3447",
+    "amount": null,
+    "date": "20260615",
+    "dateFormat": "yyyyMMdd"
+  }
+}

@@ -50,6 +50,7 @@ export type UpsertEmailMessageInput = {
   lastFourHint?: string | null;
   accountNumberHint?: string | null;
   extractedPayload?: unknown;
+  fingerprint?: string | null;
 };
 
 @Injectable()
@@ -356,6 +357,72 @@ export class EmailSourceRepository {
     });
   }
 
+  /**
+   * Amount of the last confirmed payroll credit on the account, used to
+   * suggest the amount when a payroll notice arrives without one.
+   */
+  async findSuggestedPayrollAmount(params: {
+    userId: string;
+    accountId: string;
+    currency: string;
+  }): Promise<number | null> {
+    const row = await this.prisma.finTransaction.findFirst({
+      where: {
+        userId: params.userId,
+        accountId: params.accountId,
+        type: 'CREDIT',
+        status: 'CONFIRMED',
+        currency: params.currency,
+        OR: [
+          { aiMetadata: { path: ['movementClass'], equals: 'PAYROLL' } },
+          { description: { contains: 'nómina', mode: 'insensitive' } },
+          { description: { contains: 'nomina', mode: 'insensitive' } },
+          { merchant: { contains: 'nómina', mode: 'insensitive' } },
+        ],
+      },
+      orderBy: [{ transactionDate: 'desc' }, { id: 'desc' }],
+      select: { amount: true },
+    });
+    return row ? Number(row.amount) : null;
+  }
+
+  /** Amount of the fixed income configured by the user, if any. */
+  async findFixedIncomeAmount(userId: string): Promise<number | null> {
+    const config = await this.readFinanceModuleConfig(userId);
+    const fixedIncome = config.fixedIncome as
+      { enabled?: unknown; amount?: unknown } | undefined;
+    const amount = Number(fixedIncome?.amount);
+    if (
+      fixedIncome?.enabled !== true ||
+      !Number.isFinite(amount) ||
+      amount <= 0
+    ) {
+      return null;
+    }
+    return amount;
+  }
+
+  /** Whether imported email movements enter confirmed or pending. */
+  async findEmailSyncMode(userId: string): Promise<'DIRECT' | 'PENDING'> {
+    const config = await this.readFinanceModuleConfig(userId);
+    const emailSync = config.emailSync as { mode?: unknown } | undefined;
+    return emailSync?.mode === 'PENDING' ? 'PENDING' : 'DIRECT';
+  }
+
+  private async readFinanceModuleConfig(
+    userId: string,
+  ): Promise<Record<string, unknown>> {
+    const row = await this.prisma.userModule.findFirst({
+      where: { userId, module: { slug: 'finance' } },
+      select: { config: true },
+    });
+    const config = row?.config;
+    if (!config || typeof config !== 'object' || Array.isArray(config)) {
+      return {};
+    }
+    return config;
+  }
+
   findAccountById(id: string, userId: string) {
     return this.prisma.finAccount.findFirst({ where: { id, userId } });
   }
@@ -453,6 +520,7 @@ export class EmailSourceRepository {
       lastFourHint,
       accountNumberHint,
       extractedPayload,
+      fingerprint,
     } = data;
     return this.prisma.finEmailMessage.upsert({
       where: {
@@ -468,6 +536,7 @@ export class EmailSourceRepository {
         instrumentHint: instrumentHint ?? null,
         lastFourHint: lastFourHint ?? null,
         accountNumberHint: accountNumberHint ?? null,
+        fingerprint: fingerprint ?? null,
         extractedPayload:
           extractedPayload === undefined || extractedPayload === null
             ? undefined
@@ -487,6 +556,9 @@ export class EmailSourceRepository {
         ...(accountNumberHint !== undefined
           ? { accountNumberHint: accountNumberHint ?? null }
           : {}),
+        ...(fingerprint !== undefined
+          ? { fingerprint: fingerprint ?? null }
+          : {}),
         ...(extractedPayload !== undefined
           ? {
               extractedPayload:
@@ -496,6 +568,13 @@ export class EmailSourceRepository {
             }
           : {}),
       },
+    });
+  }
+
+  findEmailMessageByFingerprint(sourceId: string, fingerprint: string) {
+    return this.prisma.finEmailMessage.findFirst({
+      where: { sourceId, fingerprint },
+      select: { id: true, outcome: true },
     });
   }
 }

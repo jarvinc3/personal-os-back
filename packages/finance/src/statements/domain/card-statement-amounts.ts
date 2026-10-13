@@ -19,6 +19,9 @@ export type StatementMovement = {
 export function statementLedgerDelta(
   movement: Pick<StatementMovement, 'type' | 'ledgerAmount'>,
 ): number {
+  if (movement.type === 'CARD_PAYMENT') {
+    return Math.abs(Number(movement.ledgerAmount));
+  }
   return signedAmount(movement.type, Number(movement.ledgerAmount));
 }
 

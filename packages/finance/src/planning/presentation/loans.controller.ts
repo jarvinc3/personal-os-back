@@ -6,12 +6,19 @@ import {
   Param,
   Patch,
   Post,
+  Query,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CurrentUser, RequiresEnabledModule } from '@personal-os/core';
+import { ApplyLoanPrepaymentUseCase } from '../application/apply-loan-prepayment.use-case';
 import { PayNextLoanInstallmentUseCase } from '../application/pay-next-loan-installment.use-case';
 import { PlanningService } from '../application/planning.service';
 import { CreateLoanDto } from './dto/create-loan.dto';
+import {
+  LoanPrepaymentDto,
+  LoanPrepaymentPreviewDto,
+} from './dto/loan-prepayment.dto';
+import { PayLoanInstallmentDto } from './dto/pay-loan-installment.dto';
 import { UpdateLoanDto } from './dto/update-loan.dto';
 
 @ApiTags('finance')
@@ -22,6 +29,7 @@ export class LoansController {
   constructor(
     private readonly planning: PlanningService,
     private readonly payNextInstallment: PayNextLoanInstallmentUseCase,
+    private readonly applyPrepayment: ApplyLoanPrepaymentUseCase,
   ) {}
 
   @Get('loans')
@@ -49,13 +57,44 @@ export class LoansController {
     return this.planning.listLoanInstallments(userId, id);
   }
 
+  @Get('loans/:id/schedule')
+  @ApiOperation({ summary: 'Full instalment projection of a loan' })
+  schedule(@CurrentUser('sub') userId: string, @Param('id') id: string) {
+    return this.planning.listLoanInstallments(userId, id);
+  }
+
   @Post('loans/:id/pay-next-installment')
   @ApiOperation({
-    summary: 'Pay the oldest unpaid instalment and return the loan',
+    summary: 'Pay the oldest unpaid instalment and return the breakdown',
   })
-  async payNext(@CurrentUser('sub') userId: string, @Param('id') id: string) {
-    await this.payNextInstallment.execute(userId, id, new Date());
-    return this.planning.getLoan(userId, id);
+  payNext(
+    @CurrentUser('sub') userId: string,
+    @Param('id') id: string,
+    @Body() dto: PayLoanInstallmentDto,
+  ) {
+    return this.payNextInstallment.execute(userId, id, new Date(), dto);
+  }
+
+  @Post('loans/:id/prepayments')
+  @ApiOperation({
+    summary: 'Pay a capital prepayment and rebuild the schedule',
+  })
+  prepay(
+    @CurrentUser('sub') userId: string,
+    @Param('id') id: string,
+    @Body() dto: LoanPrepaymentDto,
+  ) {
+    return this.applyPrepayment.execute(userId, id, new Date(), dto);
+  }
+
+  @Get('loans/:id/prepayments/preview')
+  @ApiOperation({ summary: 'Preview a prepayment without writing' })
+  preview(
+    @CurrentUser('sub') userId: string,
+    @Param('id') id: string,
+    @Query() query: LoanPrepaymentPreviewDto,
+  ) {
+    return this.applyPrepayment.preview(userId, id, query.amount, query.mode);
   }
 
   @Patch('loans/:id')

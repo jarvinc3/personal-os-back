@@ -4,6 +4,7 @@ import { LedgerQueryService } from '../../ledger/application/ledger-query.servic
 import { ReverseTransactionUseCase } from '../../ledger/application/reverse-transaction.use-case';
 import { EMAIL_TRANSACTION_EXTRACTOR } from '../../shared/application/tokens';
 import { mapBankStatusToInternal } from '../../shared/domain/transaction-status';
+import { emailFingerprint } from '../../shared/domain/email-fingerprint';
 import { EmailSourceRepository } from '../infrastructure/email-source.repository';
 import {
   getGmailMessage,
@@ -15,7 +16,10 @@ import {
   MatchEmailTransfersUseCase,
 } from './backfill-pending-email.use-case';
 import { buildGmailFromQuery } from './bank-sender';
-import { shouldReopenSkippedPayroll } from './email-movement';
+import {
+  shouldReopenSkippedPayroll,
+  isCardPaymentReminder,
+} from './email-movement';
 import { EMAIL_MESSAGE_OUTCOME } from './email-message-outcome';
 import { IngestionService } from './ingestion.service';
 import type {
@@ -133,6 +137,23 @@ export class ProcessGmailSyncUseCase {
             const message = await getGmailMessage(accessToken, messageRef.id);
             const { from, subject, body, internalDate } =
               parseGmailMessage(message);
+            const fingerprint = emailFingerprint({ from, subject, body });
+            const seenByFingerprint =
+              await this.emailSources.findEmailMessageByFingerprint(
+                sourceId,
+                fingerprint,
+              );
+            if (seenByFingerprint) {
+              await this.emailSources.upsertEmailMessage({
+                sourceId,
+                gmailMessageId: messageRef.id,
+                outcome: EMAIL_MESSAGE_OUTCOME.SKIPPED_DUPLICATE,
+                reason: `Same email content as ${seenByFingerprint.id}`,
+                fingerprint,
+              });
+              emailsSkipped += 1;
+              continue;
+            }
             llmExtracts += 1;
             const extraction = await this.extractor.extract({
               from,
@@ -140,6 +161,9 @@ export class ProcessGmailSyncUseCase {
               body,
               bankDomain: source.bankDomain,
               categories: categoryHints,
+              ...(internalDate
+                ? { receivedAt: internalDate.toISOString() }
+                : {}),
             });
 
             if (!extraction.ok) {
@@ -161,6 +185,13 @@ export class ProcessGmailSyncUseCase {
             }
 
             if (extraction.kind === 'not_transaction') {
+              if (isCardPaymentReminder({ subject, body })) {
+                await this.ingestion.enqueueCardStatementReminder(userId, {
+                  sourceId,
+                  gmailMessageId: messageRef.id,
+                  subject,
+                });
+              }
               await this.emailSources.upsertEmailMessage({
                 sourceId,
                 gmailMessageId: messageRef.id,

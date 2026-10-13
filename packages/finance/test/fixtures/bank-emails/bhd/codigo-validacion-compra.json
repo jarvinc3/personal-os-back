@@ -1,0 +1,21 @@
+{
+  "from": "alertas@bhd.com.do",
+  "subject": "Código de validación de compra",
+  "date": "2026-10-13T03:27:13Z",
+  "labelIds": [
+    "IMPORTANT",
+    "CATEGORY_UPDATES",
+    "INBOX"
+  ],
+  "text": "Hola, JARVIN PEREZ \r\n VISA PREMIA BHD # 6506 \r\n Para continuar el proceso de compras que estás realizando con tu Tarjeta VISA PREMIA BHD # 6506 en Amazon por valor de 99.99 (USD), es necesario que introduzcas el siguiente código de validación 123456. \r\n Brindarte seguridad, es nuestro compromiso. \r\n Gracias por ser parte de la familia BHD.\r\n Nota: En caso de no reconocer esta compra, favor llama al 809-243-5282. \n Este correo electrónico es generado de manera automática por el sistema, por favor no respondas a este mensaje .",
+  "expected": {
+    "kind": "purchase_otp",
+    "cardBrand": "VISA PREMIA BHD",
+    "cardLast4": "6506",
+    "merchant": "Amazon",
+    "amount": "99.99",
+    "currency": "USD",
+    "otp": "123456",
+    "note": "No es un movimiento; la compra llega luego como alerta de transaccion."
+  }
+}
