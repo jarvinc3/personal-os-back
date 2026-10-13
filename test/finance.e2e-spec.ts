@@ -1313,6 +1313,43 @@ describe('Finance (e2e)', () => {
       .expect(404);
   });
 
+  it('GET /api/finance/budgets/:id/transactions returns a cursor page', async () => {
+    prismaMock.finBudget.findFirst.mockResolvedValue({
+      id: '33333333-3333-4333-8333-333333333333',
+      userId: 'user-123',
+      categoryId: 'cat-1',
+      includeChildren: false,
+      periodStart: new Date('2026-01-01'),
+      periodEnd: new Date('2026-01-31'),
+      amountLimit: 1000,
+      amountSpent: 10,
+      alertThresholdPct: 80,
+      categories: [{ categoryId: '11111111-1111-4111-8111-111111111111' }],
+    });
+    prismaMock.finTransaction.findMany.mockResolvedValue([]);
+
+    await request(app.getHttpServer())
+      .get(
+        '/api/finance/budgets/33333333-3333-4333-8333-333333333333/transactions',
+      )
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
+      .expect((res) => {
+        expect(Array.isArray(res.body.data.items)).toBe(true);
+        expect(res.body.data).toHaveProperty('nextCursor');
+      });
+  });
+
+  it('POST /api/finance/receivables/:id/credit requires a target', async () => {
+    await request(app.getHttpServer())
+      .post(
+        '/api/finance/receivables/44444444-4444-4444-8444-444444444444/credit',
+      )
+      .set('Authorization', `Bearer ${token}`)
+      .send({ amount: 10 })
+      .expect(400);
+  });
+
   it('GET /api/finance/transactions stays cursor paginated and accounts stay an array', async () => {
     prismaMock.finTransaction.findMany.mockResolvedValue([]);
 

@@ -130,6 +130,11 @@ export type PrismaMock = {
     updateMany: MockFn;
     deleteMany: MockFn;
   };
+  finBudgetCategory: {
+    findMany: MockFn;
+    createMany: MockFn;
+    deleteMany: MockFn;
+  };
   finEmailSource: {
     findMany: MockFn;
     findFirst: MockFn;
@@ -281,6 +286,11 @@ function createTransactionClient(prismaMock: PrismaMock) {
       findFirst: jest.fn().mockResolvedValue(null),
       update: jest.fn(),
       deleteMany: prismaMock.finBudget.deleteMany,
+    },
+    finBudgetCategory: {
+      findMany: jest.fn().mockResolvedValue([]),
+      createMany: jest.fn().mockResolvedValue({ count: 0 }),
+      deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
     },
     finTransaction: {
       create: jest.fn().mockResolvedValue({
@@ -474,6 +484,11 @@ export function createPrismaMock(): PrismaMock {
       count: jest.fn().mockResolvedValue(0),
       create: jest.fn(),
       updateMany: jest.fn().mockResolvedValue({ count: 0 }),
+      deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
+    },
+    finBudgetCategory: {
+      findMany: jest.fn().mockResolvedValue([]),
+      createMany: jest.fn().mockResolvedValue({ count: 0 }),
       deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
     },
     finTransaction: {
