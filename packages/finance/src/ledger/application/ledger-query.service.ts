@@ -133,6 +133,20 @@ export class LedgerQueryService {
     return this.repo.findDedupeCandidate(userId, params);
   }
 
+  findPossibleDuplicate(
+    userId: string,
+    params: {
+      accountId?: string | null;
+      cardId?: string | null;
+      amount: number;
+      currency: string;
+      type: 'DEBIT' | 'CREDIT';
+      transactionDate: Date;
+    },
+  ) {
+    return this.repo.findPossibleDuplicate(userId, params);
+  }
+
   findLatestCategoryIdByMerchant(userId: string, merchant: string) {
     return this.repo.findLatestCategoryIdByMerchant(userId, merchant);
   }

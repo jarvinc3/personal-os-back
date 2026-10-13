@@ -154,6 +154,18 @@ export interface LedgerRepositoryPort {
     },
   ): Promise<LedgerTransactionRow | null>;
 
+  findPossibleDuplicate(
+    userId: string,
+    params: {
+      accountId?: string | null;
+      cardId?: string | null;
+      amount: number;
+      currency: string;
+      type: 'DEBIT' | 'CREDIT';
+      transactionDate: Date;
+    },
+  ): Promise<LedgerTransactionRow | null>;
+
   /** Most recent categorized CONFIRMED tx for the same merchant (case-insensitive). */
   findLatestCategoryIdByMerchant(
     userId: string,

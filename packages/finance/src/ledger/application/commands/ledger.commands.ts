@@ -108,6 +108,7 @@ export type ImportEmailTransactionCommand = {
   cardId?: string;
   emailMessageId: string;
   externalReference?: string | null;
+  possibleDuplicateOfId?: string | null;
   amount: number;
   currency: string;
   merchant: string | null;

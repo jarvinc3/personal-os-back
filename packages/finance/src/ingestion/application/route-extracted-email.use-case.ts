@@ -149,11 +149,25 @@ export class RouteExtractedEmailUseCase {
       { ...extracted, notes },
       EMAIL_MESSAGE_OUTCOME.PENDING_ASSIGNMENT,
     );
+    const possibleDuplicate = await this.ledger.findPossibleDuplicate(
+      params.userId,
+      {
+        accountId: match.accountId,
+        cardId: match.cardId,
+        amount,
+        currency: extracted.currency,
+        type: extracted.type,
+        transactionDate: new Date(extracted.transactionDate),
+      },
+    );
     const importInput = {
       accountId: match.accountId,
       cardId: match.cardId,
       emailMessageId: persisted.id,
       externalReference: extracted.bankReference,
+      ...(possibleDuplicate
+        ? { possibleDuplicateOfId: possibleDuplicate.id }
+        : {}),
       amount,
       currency: extracted.currency,
       merchant: extracted.merchant,

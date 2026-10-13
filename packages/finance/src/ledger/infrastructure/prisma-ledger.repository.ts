@@ -400,6 +400,38 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
     }) as Promise<LedgerTransactionRow | null>;
   }
 
+  /** Same target, currency and exact amount within 48 h, with no bank reference. */
+  findPossibleDuplicate(
+    userId: string,
+    params: {
+      accountId?: string | null;
+      cardId?: string | null;
+      amount: number;
+      currency: string;
+      type: 'DEBIT' | 'CREDIT';
+      transactionDate: Date;
+    },
+  ) {
+    const windowMs = 48 * 60 * 60 * 1000;
+    return this.prisma.finTransaction.findFirst({
+      where: {
+        userId,
+        status: { in: ['PENDING', 'CONFIRMED'] },
+        externalReference: null,
+        currency: params.currency,
+        amount: params.amount,
+        type: params.type,
+        transactionDate: {
+          gte: new Date(params.transactionDate.getTime() - windowMs),
+          lte: new Date(params.transactionDate.getTime() + windowMs),
+        },
+        ...(params.accountId ? { accountId: params.accountId } : {}),
+        ...(params.cardId ? { cardId: params.cardId } : {}),
+      },
+      orderBy: { transactionDate: 'desc' },
+    }) as Promise<LedgerTransactionRow | null>;
+  }
+
   findDedupeCandidate(
     userId: string,
     params: {
@@ -1812,6 +1844,7 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
           source: 'EMAIL',
           emailMessageId: data.emailMessageId,
           externalReference: data.externalReference ?? undefined,
+          possibleDuplicateOfId: data.possibleDuplicateOfId ?? undefined,
           categoryId: data.categoryId ?? undefined,
           transferGroupId: data.transferGroupId ?? undefined,
           aiMetadata: (data.aiMetadata as Prisma.InputJsonValue) ?? {},
