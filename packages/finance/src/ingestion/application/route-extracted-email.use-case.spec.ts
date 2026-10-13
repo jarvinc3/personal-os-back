@@ -45,6 +45,8 @@ function setup() {
     upsertEmailMessage: jest.fn().mockResolvedValue({ id: 'msg-1' }),
     listCategories: jest.fn().mockResolvedValue([]),
     findSuggestedPayrollAmount: jest.fn().mockResolvedValue(null),
+    findFixedIncomeAmount: jest.fn().mockResolvedValue(null),
+    findEmailSyncMode: jest.fn().mockResolvedValue('DIRECT'),
   };
   const importEmail = {
     execute: jest.fn().mockResolvedValue({ id: 'tx-1' }),
@@ -97,6 +99,35 @@ describe('RouteExtractedEmailUseCase payroll without amount', () => {
       expect.objectContaining({ outcome: 'PENDING_AMOUNT' }),
     );
     expect(routed).toMatchObject({ kind: 'pending_amount' });
+  });
+
+  it('prefers the fixed income over the previous payroll', async () => {
+    const { emailSources, importEmail, useCase } = setup();
+    emailSources.findFixedIncomeAmount.mockResolvedValue(45000);
+    emailSources.findSuggestedPayrollAmount.mockResolvedValue(22000);
+
+    await useCase.execute(params);
+
+    expect(emailSources.findSuggestedPayrollAmount).not.toHaveBeenCalled();
+    expect(importEmail.execute).toHaveBeenCalledWith(
+      'user-1',
+      expect.objectContaining({ amount: 45000, status: 'PENDING' }),
+    );
+  });
+
+  it('leaves email movements pending when the module asks for review', async () => {
+    const { emailSources, importEmail, useCase } = setup();
+    emailSources.findEmailSyncMode.mockResolvedValue('PENDING');
+
+    await useCase.execute({
+      ...params,
+      extracted: { ...payrollWithoutAmount, amount: 22000 },
+    });
+
+    expect(importEmail.execute).toHaveBeenCalledWith(
+      'user-1',
+      expect.objectContaining({ status: 'PENDING' }),
+    );
   });
 
   it('skips a notice whose confirmation number was already imported', async () => {

@@ -386,6 +386,43 @@ export class EmailSourceRepository {
     return row ? Number(row.amount) : null;
   }
 
+  /** Amount of the fixed income configured by the user, if any. */
+  async findFixedIncomeAmount(userId: string): Promise<number | null> {
+    const config = await this.readFinanceModuleConfig(userId);
+    const fixedIncome = config.fixedIncome as
+      { enabled?: unknown; amount?: unknown } | undefined;
+    const amount = Number(fixedIncome?.amount);
+    if (
+      fixedIncome?.enabled !== true ||
+      !Number.isFinite(amount) ||
+      amount <= 0
+    ) {
+      return null;
+    }
+    return amount;
+  }
+
+  /** Whether imported email movements enter confirmed or pending. */
+  async findEmailSyncMode(userId: string): Promise<'DIRECT' | 'PENDING'> {
+    const config = await this.readFinanceModuleConfig(userId);
+    const emailSync = config.emailSync as { mode?: unknown } | undefined;
+    return emailSync?.mode === 'PENDING' ? 'PENDING' : 'DIRECT';
+  }
+
+  private async readFinanceModuleConfig(
+    userId: string,
+  ): Promise<Record<string, unknown>> {
+    const row = await this.prisma.userModule.findFirst({
+      where: { userId, module: { slug: 'finance' } },
+      select: { config: true },
+    });
+    const config = row?.config;
+    if (!config || typeof config !== 'object' || Array.isArray(config)) {
+      return {};
+    }
+    return config;
+  }
+
   findAccountById(id: string, userId: string) {
     return this.prisma.finAccount.findFirst({ where: { id, userId } });
   }

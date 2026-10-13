@@ -131,10 +131,13 @@ export class RouteExtractedEmailUseCase {
     }
 
     const categories = await this.emailSources.listCategories(params.userId);
-    const status = mapBankStatusToInternal({
-      bankStatusNormalized: extracted.bankStatusNormalized,
-      statusConfidence: extracted.statusConfidence,
-    });
+    const status =
+      (await this.emailSources.findEmailSyncMode(params.userId)) === 'PENDING'
+        ? 'PENDING'
+        : mapBankStatusToInternal({
+            bankStatusNormalized: extracted.bankStatusNormalized,
+            statusConfidence: extracted.statusConfidence,
+          });
     const skipCategory = isTransferMovementClass(movementClass);
     const category = skipCategory
       ? { categoryId: null, source: null }
@@ -251,18 +254,25 @@ export class RouteExtractedEmailUseCase {
     ) {
       return params.extracted;
     }
-    const suggested = await this.emailSources.findSuggestedPayrollAmount({
-      userId: params.userId,
-      accountId: params.match.accountId,
-      currency: params.extracted.currency,
-    });
+    const suggestedFixedIncome = await this.emailSources.findFixedIncomeAmount(
+      params.userId,
+    );
+    const suggested =
+      suggestedFixedIncome ??
+      (await this.emailSources.findSuggestedPayrollAmount({
+        userId: params.userId,
+        accountId: params.match.accountId,
+        currency: params.extracted.currency,
+      }));
     if (suggested == null || suggested <= 0) {
       return params.extracted;
     }
     return {
       ...params.extracted,
       amount: suggested,
-      notes: 'Monto sugerido de la nómina anterior; confírmalo.',
+      notes: suggestedFixedIncome
+        ? 'Monto de tu ingreso fijo; confírmalo.'
+        : 'Monto sugerido de la nómina anterior; confírmalo.',
       bankStatusNormalized: 'PENDING',
       statusConfidence: 1,
     };
@@ -293,10 +303,13 @@ export class RouteExtractedEmailUseCase {
       );
       return { kind: 'pending_cash', reason };
     }
-    const status = mapBankStatusToInternal({
-      bankStatusNormalized: extracted.bankStatusNormalized,
-      statusConfidence: extracted.statusConfidence,
-    });
+    const status =
+      (await this.emailSources.findEmailSyncMode(params.userId)) === 'PENDING'
+        ? 'PENDING'
+        : mapBankStatusToInternal({
+            bankStatusNormalized: extracted.bankStatusNormalized,
+            statusConfidence: extracted.statusConfidence,
+          });
     const notes = buildEmailImportNotes({
       llmNotes: extracted.notes,
       categoryId: null,
