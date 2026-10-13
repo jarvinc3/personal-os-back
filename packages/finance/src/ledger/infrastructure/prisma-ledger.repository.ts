@@ -231,6 +231,13 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
     }) as Promise<LedgerTransactionRow | null>;
   }
 
+  async clearPossibleDuplicate(userId: string, id: string): Promise<void> {
+    await this.prisma.finTransaction.updateMany({
+      where: { id, userId },
+      data: { possibleDuplicateOfId: null },
+    });
+  }
+
   async findPlanningLinkKind(
     transactionId: string,
     userId: string,

@@ -193,6 +193,7 @@ export type PrismaMock = {
 
 function createTransactionClient(prismaMock: PrismaMock) {
   return {
+    $queryRaw: jest.fn().mockResolvedValue([]),
     // The delete flows read the entity and remove it inside the transaction,
     // so those models share the root mock: a test configures and asserts in
     // one place.

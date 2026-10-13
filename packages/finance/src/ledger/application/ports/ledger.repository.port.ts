@@ -96,6 +96,8 @@ export interface LedgerRepositoryPort {
     userId: string,
   ): Promise<LedgerTransactionRow | null>;
 
+  clearPossibleDuplicate(userId: string, id: string): Promise<void>;
+
   /** Which planning record points at this movement, if any. */
   findPlanningLinkKind(
     transactionId: string,

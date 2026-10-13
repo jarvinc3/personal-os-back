@@ -281,6 +281,8 @@ export const FinTransactionScalarFieldEnum = {
   categoryId: 'categoryId',
   emailMessageId: 'emailMessageId',
   externalReference: 'externalReference',
+  institutionId: 'institutionId',
+  possibleDuplicateOfId: 'possibleDuplicateOfId',
   type: 'type',
   amount: 'amount',
   ledgerAmount: 'ledgerAmount',
@@ -652,6 +654,8 @@ export const FinEmailMessageScalarFieldEnum = {
   lastFourHint: 'lastFourHint',
   accountNumberHint: 'accountNumberHint',
   extractedPayload: 'extractedPayload',
+  fingerprint: 'fingerprint',
+  duplicateOfTransactionId: 'duplicateOfTransactionId',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const

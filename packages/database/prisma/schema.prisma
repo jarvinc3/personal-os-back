@@ -268,6 +268,9 @@ model FinTransaction {
   emailMessageId       String?              @unique @map("email_message_id")
   /// Bank reference / authorization code from the source email; dedupes re-sent notices.
   externalReference    String?              @map("external_reference")
+  /// Denormalized institution, for the idempotency index.
+  institutionId        String?              @map("institution_id")
+  possibleDuplicateOfId String?             @map("possible_duplicate_of_id")
   type                 FinTransactionType
   /// Original amount in source currency (e.g. as shown on bank email).
   amount               Decimal              @db.Decimal(15, 2)
@@ -804,12 +807,15 @@ model FinEmailMessage {
   lastFourHint      String?                 @map("last_four_hint")
   accountNumberHint String?                 @map("account_number_hint")
   extractedPayload  Json?                   @map("extracted_payload")
+  fingerprint       String?
+  duplicateOfTransactionId String?         @map("duplicate_of_transaction_id")
   createdAt         DateTime                @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt         DateTime                @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   source            FinEmailSource          @relation(fields: [sourceId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   transaction       FinTransaction?
 
   @@unique([sourceId, gmailMessageId], map: "fin_email_messages_source_gmail_key")
+  @@unique([sourceId, fingerprint], map: "fin_email_messages_source_fingerprint_key")
   @@index([sourceId], map: "fin_email_messages_source_id_idx")
   @@index([outcome], map: "fin_email_messages_outcome_idx")
   @@map("fin_email_messages")

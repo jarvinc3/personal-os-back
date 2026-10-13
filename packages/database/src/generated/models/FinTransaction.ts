@@ -48,6 +48,8 @@ export type FinTransactionMinAggregateOutputType = {
   categoryId: string | null
   emailMessageId: string | null
   externalReference: string | null
+  institutionId: string | null
+  possibleDuplicateOfId: string | null
   type: $Enums.FinTransactionType | null
   amount: runtime.Decimal | null
   ledgerAmount: runtime.Decimal | null
@@ -78,6 +80,8 @@ export type FinTransactionMaxAggregateOutputType = {
   categoryId: string | null
   emailMessageId: string | null
   externalReference: string | null
+  institutionId: string | null
+  possibleDuplicateOfId: string | null
   type: $Enums.FinTransactionType | null
   amount: runtime.Decimal | null
   ledgerAmount: runtime.Decimal | null
@@ -108,6 +112,8 @@ export type FinTransactionCountAggregateOutputType = {
   categoryId: number
   emailMessageId: number
   externalReference: number
+  institutionId: number
+  possibleDuplicateOfId: number
   type: number
   amount: number
   ledgerAmount: number
@@ -155,6 +161,8 @@ export type FinTransactionMinAggregateInputType = {
   categoryId?: true
   emailMessageId?: true
   externalReference?: true
+  institutionId?: true
+  possibleDuplicateOfId?: true
   type?: true
   amount?: true
   ledgerAmount?: true
@@ -185,6 +193,8 @@ export type FinTransactionMaxAggregateInputType = {
   categoryId?: true
   emailMessageId?: true
   externalReference?: true
+  institutionId?: true
+  possibleDuplicateOfId?: true
   type?: true
   amount?: true
   ledgerAmount?: true
@@ -215,6 +225,8 @@ export type FinTransactionCountAggregateInputType = {
   categoryId?: true
   emailMessageId?: true
   externalReference?: true
+  institutionId?: true
+  possibleDuplicateOfId?: true
   type?: true
   amount?: true
   ledgerAmount?: true
@@ -333,6 +345,8 @@ export type FinTransactionGroupByOutputType = {
   categoryId: string | null
   emailMessageId: string | null
   externalReference: string | null
+  institutionId: string | null
+  possibleDuplicateOfId: string | null
   type: $Enums.FinTransactionType
   amount: runtime.Decimal
   ledgerAmount: runtime.Decimal
@@ -387,6 +401,8 @@ export type FinTransactionWhereInput = {
   categoryId?: Prisma.StringNullableFilter<"FinTransaction"> | string | null
   emailMessageId?: Prisma.StringNullableFilter<"FinTransaction"> | string | null
   externalReference?: Prisma.StringNullableFilter<"FinTransaction"> | string | null
+  institutionId?: Prisma.StringNullableFilter<"FinTransaction"> | string | null
+  possibleDuplicateOfId?: Prisma.StringNullableFilter<"FinTransaction"> | string | null
   type?: Prisma.EnumFinTransactionTypeFilter<"FinTransaction"> | $Enums.FinTransactionType
   amount?: Prisma.DecimalFilter<"FinTransaction"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   ledgerAmount?: Prisma.DecimalFilter<"FinTransaction"> | runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -429,6 +445,8 @@ export type FinTransactionOrderByWithRelationInput = {
   categoryId?: Prisma.SortOrderInput | Prisma.SortOrder
   emailMessageId?: Prisma.SortOrderInput | Prisma.SortOrder
   externalReference?: Prisma.SortOrderInput | Prisma.SortOrder
+  institutionId?: Prisma.SortOrderInput | Prisma.SortOrder
+  possibleDuplicateOfId?: Prisma.SortOrderInput | Prisma.SortOrder
   type?: Prisma.SortOrder
   amount?: Prisma.SortOrder
   ledgerAmount?: Prisma.SortOrder
@@ -474,6 +492,8 @@ export type FinTransactionWhereUniqueInput = Prisma.AtLeast<{
   userId?: Prisma.StringFilter<"FinTransaction"> | string
   categoryId?: Prisma.StringNullableFilter<"FinTransaction"> | string | null
   externalReference?: Prisma.StringNullableFilter<"FinTransaction"> | string | null
+  institutionId?: Prisma.StringNullableFilter<"FinTransaction"> | string | null
+  possibleDuplicateOfId?: Prisma.StringNullableFilter<"FinTransaction"> | string | null
   type?: Prisma.EnumFinTransactionTypeFilter<"FinTransaction"> | $Enums.FinTransactionType
   amount?: Prisma.DecimalFilter<"FinTransaction"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   ledgerAmount?: Prisma.DecimalFilter<"FinTransaction"> | runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -516,6 +536,8 @@ export type FinTransactionOrderByWithAggregationInput = {
   categoryId?: Prisma.SortOrderInput | Prisma.SortOrder
   emailMessageId?: Prisma.SortOrderInput | Prisma.SortOrder
   externalReference?: Prisma.SortOrderInput | Prisma.SortOrder
+  institutionId?: Prisma.SortOrderInput | Prisma.SortOrder
+  possibleDuplicateOfId?: Prisma.SortOrderInput | Prisma.SortOrder
   type?: Prisma.SortOrder
   amount?: Prisma.SortOrder
   ledgerAmount?: Prisma.SortOrder
@@ -555,6 +577,8 @@ export type FinTransactionScalarWhereWithAggregatesInput = {
   categoryId?: Prisma.StringNullableWithAggregatesFilter<"FinTransaction"> | string | null
   emailMessageId?: Prisma.StringNullableWithAggregatesFilter<"FinTransaction"> | string | null
   externalReference?: Prisma.StringNullableWithAggregatesFilter<"FinTransaction"> | string | null
+  institutionId?: Prisma.StringNullableWithAggregatesFilter<"FinTransaction"> | string | null
+  possibleDuplicateOfId?: Prisma.StringNullableWithAggregatesFilter<"FinTransaction"> | string | null
   type?: Prisma.EnumFinTransactionTypeWithAggregatesFilter<"FinTransaction"> | $Enums.FinTransactionType
   amount?: Prisma.DecimalWithAggregatesFilter<"FinTransaction"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   ledgerAmount?: Prisma.DecimalWithAggregatesFilter<"FinTransaction"> | runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -581,6 +605,8 @@ export type FinTransactionScalarWhereWithAggregatesInput = {
 export type FinTransactionCreateInput = {
   id?: string
   externalReference?: string | null
+  institutionId?: string | null
+  possibleDuplicateOfId?: string | null
   type: $Enums.FinTransactionType
   amount: runtime.Decimal | runtime.DecimalJsLike | number | string
   ledgerAmount: runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -622,6 +648,8 @@ export type FinTransactionUncheckedCreateInput = {
   categoryId?: string | null
   emailMessageId?: string | null
   externalReference?: string | null
+  institutionId?: string | null
+  possibleDuplicateOfId?: string | null
   type: $Enums.FinTransactionType
   amount: runtime.Decimal | runtime.DecimalJsLike | number | string
   ledgerAmount: runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -653,6 +681,8 @@ export type FinTransactionUncheckedCreateInput = {
 export type FinTransactionUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   externalReference?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  institutionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  possibleDuplicateOfId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumFinTransactionTypeFieldUpdateOperationsInput | $Enums.FinTransactionType
   amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   ledgerAmount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -694,6 +724,8 @@ export type FinTransactionUncheckedUpdateInput = {
   categoryId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   emailMessageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   externalReference?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  institutionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  possibleDuplicateOfId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumFinTransactionTypeFieldUpdateOperationsInput | $Enums.FinTransactionType
   amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   ledgerAmount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -730,6 +762,8 @@ export type FinTransactionCreateManyInput = {
   categoryId?: string | null
   emailMessageId?: string | null
   externalReference?: string | null
+  institutionId?: string | null
+  possibleDuplicateOfId?: string | null
   type: $Enums.FinTransactionType
   amount: runtime.Decimal | runtime.DecimalJsLike | number | string
   ledgerAmount: runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -756,6 +790,8 @@ export type FinTransactionCreateManyInput = {
 export type FinTransactionUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   externalReference?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  institutionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  possibleDuplicateOfId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumFinTransactionTypeFieldUpdateOperationsInput | $Enums.FinTransactionType
   amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   ledgerAmount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -786,6 +822,8 @@ export type FinTransactionUncheckedUpdateManyInput = {
   categoryId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   emailMessageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   externalReference?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  institutionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  possibleDuplicateOfId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumFinTransactionTypeFieldUpdateOperationsInput | $Enums.FinTransactionType
   amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   ledgerAmount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -832,6 +870,8 @@ export type FinTransactionCountOrderByAggregateInput = {
   categoryId?: Prisma.SortOrder
   emailMessageId?: Prisma.SortOrder
   externalReference?: Prisma.SortOrder
+  institutionId?: Prisma.SortOrder
+  possibleDuplicateOfId?: Prisma.SortOrder
   type?: Prisma.SortOrder
   amount?: Prisma.SortOrder
   ledgerAmount?: Prisma.SortOrder
@@ -870,6 +910,8 @@ export type FinTransactionMaxOrderByAggregateInput = {
   categoryId?: Prisma.SortOrder
   emailMessageId?: Prisma.SortOrder
   externalReference?: Prisma.SortOrder
+  institutionId?: Prisma.SortOrder
+  possibleDuplicateOfId?: Prisma.SortOrder
   type?: Prisma.SortOrder
   amount?: Prisma.SortOrder
   ledgerAmount?: Prisma.SortOrder
@@ -900,6 +942,8 @@ export type FinTransactionMinOrderByAggregateInput = {
   categoryId?: Prisma.SortOrder
   emailMessageId?: Prisma.SortOrder
   externalReference?: Prisma.SortOrder
+  institutionId?: Prisma.SortOrder
+  possibleDuplicateOfId?: Prisma.SortOrder
   type?: Prisma.SortOrder
   amount?: Prisma.SortOrder
   ledgerAmount?: Prisma.SortOrder
@@ -1274,6 +1318,8 @@ export type FinTransactionUncheckedUpdateOneWithoutEmailMessageNestedInput = {
 export type FinTransactionCreateWithoutUserInput = {
   id?: string
   externalReference?: string | null
+  institutionId?: string | null
+  possibleDuplicateOfId?: string | null
   type: $Enums.FinTransactionType
   amount: runtime.Decimal | runtime.DecimalJsLike | number | string
   ledgerAmount: runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -1313,6 +1359,8 @@ export type FinTransactionUncheckedCreateWithoutUserInput = {
   categoryId?: string | null
   emailMessageId?: string | null
   externalReference?: string | null
+  institutionId?: string | null
+  possibleDuplicateOfId?: string | null
   type: $Enums.FinTransactionType
   amount: runtime.Decimal | runtime.DecimalJsLike | number | string
   ledgerAmount: runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -1378,6 +1426,8 @@ export type FinTransactionScalarWhereInput = {
   categoryId?: Prisma.StringNullableFilter<"FinTransaction"> | string | null
   emailMessageId?: Prisma.StringNullableFilter<"FinTransaction"> | string | null
   externalReference?: Prisma.StringNullableFilter<"FinTransaction"> | string | null
+  institutionId?: Prisma.StringNullableFilter<"FinTransaction"> | string | null
+  possibleDuplicateOfId?: Prisma.StringNullableFilter<"FinTransaction"> | string | null
   type?: Prisma.EnumFinTransactionTypeFilter<"FinTransaction"> | $Enums.FinTransactionType
   amount?: Prisma.DecimalFilter<"FinTransaction"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   ledgerAmount?: Prisma.DecimalFilter<"FinTransaction"> | runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -1404,6 +1454,8 @@ export type FinTransactionScalarWhereInput = {
 export type FinTransactionCreateWithoutAccountInput = {
   id?: string
   externalReference?: string | null
+  institutionId?: string | null
+  possibleDuplicateOfId?: string | null
   type: $Enums.FinTransactionType
   amount: runtime.Decimal | runtime.DecimalJsLike | number | string
   ledgerAmount: runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -1443,6 +1495,8 @@ export type FinTransactionUncheckedCreateWithoutAccountInput = {
   categoryId?: string | null
   emailMessageId?: string | null
   externalReference?: string | null
+  institutionId?: string | null
+  possibleDuplicateOfId?: string | null
   type: $Enums.FinTransactionType
   amount: runtime.Decimal | runtime.DecimalJsLike | number | string
   ledgerAmount: runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -1500,6 +1554,8 @@ export type FinTransactionUpdateManyWithWhereWithoutAccountInput = {
 export type FinTransactionCreateWithoutLinkedFromInput = {
   id?: string
   externalReference?: string | null
+  institutionId?: string | null
+  possibleDuplicateOfId?: string | null
   type: $Enums.FinTransactionType
   amount: runtime.Decimal | runtime.DecimalJsLike | number | string
   ledgerAmount: runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -1540,6 +1596,8 @@ export type FinTransactionUncheckedCreateWithoutLinkedFromInput = {
   categoryId?: string | null
   emailMessageId?: string | null
   externalReference?: string | null
+  institutionId?: string | null
+  possibleDuplicateOfId?: string | null
   type: $Enums.FinTransactionType
   amount: runtime.Decimal | runtime.DecimalJsLike | number | string
   ledgerAmount: runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -1575,6 +1633,8 @@ export type FinTransactionCreateOrConnectWithoutLinkedFromInput = {
 export type FinTransactionCreateWithoutLinkedTransactionInput = {
   id?: string
   externalReference?: string | null
+  institutionId?: string | null
+  possibleDuplicateOfId?: string | null
   type: $Enums.FinTransactionType
   amount: runtime.Decimal | runtime.DecimalJsLike | number | string
   ledgerAmount: runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -1615,6 +1675,8 @@ export type FinTransactionUncheckedCreateWithoutLinkedTransactionInput = {
   categoryId?: string | null
   emailMessageId?: string | null
   externalReference?: string | null
+  institutionId?: string | null
+  possibleDuplicateOfId?: string | null
   type: $Enums.FinTransactionType
   amount: runtime.Decimal | runtime.DecimalJsLike | number | string
   ledgerAmount: runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -1666,6 +1728,8 @@ export type FinTransactionUpdateToOneWithWhereWithoutLinkedFromInput = {
 export type FinTransactionUpdateWithoutLinkedFromInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   externalReference?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  institutionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  possibleDuplicateOfId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumFinTransactionTypeFieldUpdateOperationsInput | $Enums.FinTransactionType
   amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   ledgerAmount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -1706,6 +1770,8 @@ export type FinTransactionUncheckedUpdateWithoutLinkedFromInput = {
   categoryId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   emailMessageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   externalReference?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  institutionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  possibleDuplicateOfId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumFinTransactionTypeFieldUpdateOperationsInput | $Enums.FinTransactionType
   amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   ledgerAmount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -1752,6 +1818,8 @@ export type FinTransactionUpdateManyWithWhereWithoutLinkedTransactionInput = {
 export type FinTransactionCreateWithoutCategoryInput = {
   id?: string
   externalReference?: string | null
+  institutionId?: string | null
+  possibleDuplicateOfId?: string | null
   type: $Enums.FinTransactionType
   amount: runtime.Decimal | runtime.DecimalJsLike | number | string
   ledgerAmount: runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -1791,6 +1859,8 @@ export type FinTransactionUncheckedCreateWithoutCategoryInput = {
   userId: string
   emailMessageId?: string | null
   externalReference?: string | null
+  institutionId?: string | null
+  possibleDuplicateOfId?: string | null
   type: $Enums.FinTransactionType
   amount: runtime.Decimal | runtime.DecimalJsLike | number | string
   ledgerAmount: runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -1848,6 +1918,8 @@ export type FinTransactionUpdateManyWithWhereWithoutCategoryInput = {
 export type FinTransactionCreateWithoutCardInput = {
   id?: string
   externalReference?: string | null
+  institutionId?: string | null
+  possibleDuplicateOfId?: string | null
   type: $Enums.FinTransactionType
   amount: runtime.Decimal | runtime.DecimalJsLike | number | string
   ledgerAmount: runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -1887,6 +1959,8 @@ export type FinTransactionUncheckedCreateWithoutCardInput = {
   categoryId?: string | null
   emailMessageId?: string | null
   externalReference?: string | null
+  institutionId?: string | null
+  possibleDuplicateOfId?: string | null
   type: $Enums.FinTransactionType
   amount: runtime.Decimal | runtime.DecimalJsLike | number | string
   ledgerAmount: runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -1944,6 +2018,8 @@ export type FinTransactionUpdateManyWithWhereWithoutCardInput = {
 export type FinTransactionCreateWithoutSavingsGoalContributionInput = {
   id?: string
   externalReference?: string | null
+  institutionId?: string | null
+  possibleDuplicateOfId?: string | null
   type: $Enums.FinTransactionType
   amount: runtime.Decimal | runtime.DecimalJsLike | number | string
   ledgerAmount: runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -1984,6 +2060,8 @@ export type FinTransactionUncheckedCreateWithoutSavingsGoalContributionInput = {
   categoryId?: string | null
   emailMessageId?: string | null
   externalReference?: string | null
+  institutionId?: string | null
+  possibleDuplicateOfId?: string | null
   type: $Enums.FinTransactionType
   amount: runtime.Decimal | runtime.DecimalJsLike | number | string
   ledgerAmount: runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -2030,6 +2108,8 @@ export type FinTransactionUpdateToOneWithWhereWithoutSavingsGoalContributionInpu
 export type FinTransactionUpdateWithoutSavingsGoalContributionInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   externalReference?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  institutionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  possibleDuplicateOfId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumFinTransactionTypeFieldUpdateOperationsInput | $Enums.FinTransactionType
   amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   ledgerAmount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -2070,6 +2150,8 @@ export type FinTransactionUncheckedUpdateWithoutSavingsGoalContributionInput = {
   categoryId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   emailMessageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   externalReference?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  institutionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  possibleDuplicateOfId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumFinTransactionTypeFieldUpdateOperationsInput | $Enums.FinTransactionType
   amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   ledgerAmount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -2100,6 +2182,8 @@ export type FinTransactionUncheckedUpdateWithoutSavingsGoalContributionInput = {
 export type FinTransactionCreateWithoutLoanInstallmentInput = {
   id?: string
   externalReference?: string | null
+  institutionId?: string | null
+  possibleDuplicateOfId?: string | null
   type: $Enums.FinTransactionType
   amount: runtime.Decimal | runtime.DecimalJsLike | number | string
   ledgerAmount: runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -2140,6 +2224,8 @@ export type FinTransactionUncheckedCreateWithoutLoanInstallmentInput = {
   categoryId?: string | null
   emailMessageId?: string | null
   externalReference?: string | null
+  institutionId?: string | null
+  possibleDuplicateOfId?: string | null
   type: $Enums.FinTransactionType
   amount: runtime.Decimal | runtime.DecimalJsLike | number | string
   ledgerAmount: runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -2186,6 +2272,8 @@ export type FinTransactionUpdateToOneWithWhereWithoutLoanInstallmentInput = {
 export type FinTransactionUpdateWithoutLoanInstallmentInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   externalReference?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  institutionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  possibleDuplicateOfId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumFinTransactionTypeFieldUpdateOperationsInput | $Enums.FinTransactionType
   amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   ledgerAmount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -2226,6 +2314,8 @@ export type FinTransactionUncheckedUpdateWithoutLoanInstallmentInput = {
   categoryId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   emailMessageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   externalReference?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  institutionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  possibleDuplicateOfId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumFinTransactionTypeFieldUpdateOperationsInput | $Enums.FinTransactionType
   amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   ledgerAmount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -2256,6 +2346,8 @@ export type FinTransactionUncheckedUpdateWithoutLoanInstallmentInput = {
 export type FinTransactionCreateWithoutLoanPrepaymentInput = {
   id?: string
   externalReference?: string | null
+  institutionId?: string | null
+  possibleDuplicateOfId?: string | null
   type: $Enums.FinTransactionType
   amount: runtime.Decimal | runtime.DecimalJsLike | number | string
   ledgerAmount: runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -2296,6 +2388,8 @@ export type FinTransactionUncheckedCreateWithoutLoanPrepaymentInput = {
   categoryId?: string | null
   emailMessageId?: string | null
   externalReference?: string | null
+  institutionId?: string | null
+  possibleDuplicateOfId?: string | null
   type: $Enums.FinTransactionType
   amount: runtime.Decimal | runtime.DecimalJsLike | number | string
   ledgerAmount: runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -2342,6 +2436,8 @@ export type FinTransactionUpdateToOneWithWhereWithoutLoanPrepaymentInput = {
 export type FinTransactionUpdateWithoutLoanPrepaymentInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   externalReference?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  institutionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  possibleDuplicateOfId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumFinTransactionTypeFieldUpdateOperationsInput | $Enums.FinTransactionType
   amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   ledgerAmount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -2382,6 +2478,8 @@ export type FinTransactionUncheckedUpdateWithoutLoanPrepaymentInput = {
   categoryId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   emailMessageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   externalReference?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  institutionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  possibleDuplicateOfId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumFinTransactionTypeFieldUpdateOperationsInput | $Enums.FinTransactionType
   amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   ledgerAmount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -2412,6 +2510,8 @@ export type FinTransactionUncheckedUpdateWithoutLoanPrepaymentInput = {
 export type FinTransactionCreateWithoutReceivablePaymentInput = {
   id?: string
   externalReference?: string | null
+  institutionId?: string | null
+  possibleDuplicateOfId?: string | null
   type: $Enums.FinTransactionType
   amount: runtime.Decimal | runtime.DecimalJsLike | number | string
   ledgerAmount: runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -2452,6 +2552,8 @@ export type FinTransactionUncheckedCreateWithoutReceivablePaymentInput = {
   categoryId?: string | null
   emailMessageId?: string | null
   externalReference?: string | null
+  institutionId?: string | null
+  possibleDuplicateOfId?: string | null
   type: $Enums.FinTransactionType
   amount: runtime.Decimal | runtime.DecimalJsLike | number | string
   ledgerAmount: runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -2498,6 +2600,8 @@ export type FinTransactionUpdateToOneWithWhereWithoutReceivablePaymentInput = {
 export type FinTransactionUpdateWithoutReceivablePaymentInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   externalReference?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  institutionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  possibleDuplicateOfId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumFinTransactionTypeFieldUpdateOperationsInput | $Enums.FinTransactionType
   amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   ledgerAmount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -2538,6 +2642,8 @@ export type FinTransactionUncheckedUpdateWithoutReceivablePaymentInput = {
   categoryId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   emailMessageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   externalReference?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  institutionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  possibleDuplicateOfId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumFinTransactionTypeFieldUpdateOperationsInput | $Enums.FinTransactionType
   amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   ledgerAmount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -2568,6 +2674,8 @@ export type FinTransactionUncheckedUpdateWithoutReceivablePaymentInput = {
 export type FinTransactionCreateWithoutEmailMessageInput = {
   id?: string
   externalReference?: string | null
+  institutionId?: string | null
+  possibleDuplicateOfId?: string | null
   type: $Enums.FinTransactionType
   amount: runtime.Decimal | runtime.DecimalJsLike | number | string
   ledgerAmount: runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -2607,6 +2715,8 @@ export type FinTransactionUncheckedCreateWithoutEmailMessageInput = {
   userId: string
   categoryId?: string | null
   externalReference?: string | null
+  institutionId?: string | null
+  possibleDuplicateOfId?: string | null
   type: $Enums.FinTransactionType
   amount: runtime.Decimal | runtime.DecimalJsLike | number | string
   ledgerAmount: runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -2654,6 +2764,8 @@ export type FinTransactionUpdateToOneWithWhereWithoutEmailMessageInput = {
 export type FinTransactionUpdateWithoutEmailMessageInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   externalReference?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  institutionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  possibleDuplicateOfId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumFinTransactionTypeFieldUpdateOperationsInput | $Enums.FinTransactionType
   amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   ledgerAmount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -2693,6 +2805,8 @@ export type FinTransactionUncheckedUpdateWithoutEmailMessageInput = {
   userId?: Prisma.StringFieldUpdateOperationsInput | string
   categoryId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   externalReference?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  institutionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  possibleDuplicateOfId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumFinTransactionTypeFieldUpdateOperationsInput | $Enums.FinTransactionType
   amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   ledgerAmount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -2728,6 +2842,8 @@ export type FinTransactionCreateManyUserInput = {
   categoryId?: string | null
   emailMessageId?: string | null
   externalReference?: string | null
+  institutionId?: string | null
+  possibleDuplicateOfId?: string | null
   type: $Enums.FinTransactionType
   amount: runtime.Decimal | runtime.DecimalJsLike | number | string
   ledgerAmount: runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -2754,6 +2870,8 @@ export type FinTransactionCreateManyUserInput = {
 export type FinTransactionUpdateWithoutUserInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   externalReference?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  institutionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  possibleDuplicateOfId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumFinTransactionTypeFieldUpdateOperationsInput | $Enums.FinTransactionType
   amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   ledgerAmount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -2793,6 +2911,8 @@ export type FinTransactionUncheckedUpdateWithoutUserInput = {
   categoryId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   emailMessageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   externalReference?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  institutionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  possibleDuplicateOfId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumFinTransactionTypeFieldUpdateOperationsInput | $Enums.FinTransactionType
   amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   ledgerAmount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -2828,6 +2948,8 @@ export type FinTransactionUncheckedUpdateManyWithoutUserInput = {
   categoryId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   emailMessageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   externalReference?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  institutionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  possibleDuplicateOfId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumFinTransactionTypeFieldUpdateOperationsInput | $Enums.FinTransactionType
   amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   ledgerAmount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -2858,6 +2980,8 @@ export type FinTransactionCreateManyAccountInput = {
   categoryId?: string | null
   emailMessageId?: string | null
   externalReference?: string | null
+  institutionId?: string | null
+  possibleDuplicateOfId?: string | null
   type: $Enums.FinTransactionType
   amount: runtime.Decimal | runtime.DecimalJsLike | number | string
   ledgerAmount: runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -2884,6 +3008,8 @@ export type FinTransactionCreateManyAccountInput = {
 export type FinTransactionUpdateWithoutAccountInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   externalReference?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  institutionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  possibleDuplicateOfId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumFinTransactionTypeFieldUpdateOperationsInput | $Enums.FinTransactionType
   amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   ledgerAmount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -2923,6 +3049,8 @@ export type FinTransactionUncheckedUpdateWithoutAccountInput = {
   categoryId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   emailMessageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   externalReference?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  institutionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  possibleDuplicateOfId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumFinTransactionTypeFieldUpdateOperationsInput | $Enums.FinTransactionType
   amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   ledgerAmount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -2958,6 +3086,8 @@ export type FinTransactionUncheckedUpdateManyWithoutAccountInput = {
   categoryId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   emailMessageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   externalReference?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  institutionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  possibleDuplicateOfId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumFinTransactionTypeFieldUpdateOperationsInput | $Enums.FinTransactionType
   amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   ledgerAmount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -2989,6 +3119,8 @@ export type FinTransactionCreateManyLinkedTransactionInput = {
   categoryId?: string | null
   emailMessageId?: string | null
   externalReference?: string | null
+  institutionId?: string | null
+  possibleDuplicateOfId?: string | null
   type: $Enums.FinTransactionType
   amount: runtime.Decimal | runtime.DecimalJsLike | number | string
   ledgerAmount: runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -3014,6 +3146,8 @@ export type FinTransactionCreateManyLinkedTransactionInput = {
 export type FinTransactionUpdateWithoutLinkedTransactionInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   externalReference?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  institutionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  possibleDuplicateOfId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumFinTransactionTypeFieldUpdateOperationsInput | $Enums.FinTransactionType
   amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   ledgerAmount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -3054,6 +3188,8 @@ export type FinTransactionUncheckedUpdateWithoutLinkedTransactionInput = {
   categoryId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   emailMessageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   externalReference?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  institutionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  possibleDuplicateOfId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumFinTransactionTypeFieldUpdateOperationsInput | $Enums.FinTransactionType
   amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   ledgerAmount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -3089,6 +3225,8 @@ export type FinTransactionUncheckedUpdateManyWithoutLinkedTransactionInput = {
   categoryId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   emailMessageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   externalReference?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  institutionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  possibleDuplicateOfId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumFinTransactionTypeFieldUpdateOperationsInput | $Enums.FinTransactionType
   amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   ledgerAmount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -3118,6 +3256,8 @@ export type FinTransactionCreateManyCategoryInput = {
   userId: string
   emailMessageId?: string | null
   externalReference?: string | null
+  institutionId?: string | null
+  possibleDuplicateOfId?: string | null
   type: $Enums.FinTransactionType
   amount: runtime.Decimal | runtime.DecimalJsLike | number | string
   ledgerAmount: runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -3144,6 +3284,8 @@ export type FinTransactionCreateManyCategoryInput = {
 export type FinTransactionUpdateWithoutCategoryInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   externalReference?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  institutionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  possibleDuplicateOfId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumFinTransactionTypeFieldUpdateOperationsInput | $Enums.FinTransactionType
   amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   ledgerAmount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -3183,6 +3325,8 @@ export type FinTransactionUncheckedUpdateWithoutCategoryInput = {
   userId?: Prisma.StringFieldUpdateOperationsInput | string
   emailMessageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   externalReference?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  institutionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  possibleDuplicateOfId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumFinTransactionTypeFieldUpdateOperationsInput | $Enums.FinTransactionType
   amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   ledgerAmount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -3218,6 +3362,8 @@ export type FinTransactionUncheckedUpdateManyWithoutCategoryInput = {
   userId?: Prisma.StringFieldUpdateOperationsInput | string
   emailMessageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   externalReference?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  institutionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  possibleDuplicateOfId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumFinTransactionTypeFieldUpdateOperationsInput | $Enums.FinTransactionType
   amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   ledgerAmount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -3248,6 +3394,8 @@ export type FinTransactionCreateManyCardInput = {
   categoryId?: string | null
   emailMessageId?: string | null
   externalReference?: string | null
+  institutionId?: string | null
+  possibleDuplicateOfId?: string | null
   type: $Enums.FinTransactionType
   amount: runtime.Decimal | runtime.DecimalJsLike | number | string
   ledgerAmount: runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -3274,6 +3422,8 @@ export type FinTransactionCreateManyCardInput = {
 export type FinTransactionUpdateWithoutCardInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   externalReference?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  institutionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  possibleDuplicateOfId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumFinTransactionTypeFieldUpdateOperationsInput | $Enums.FinTransactionType
   amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   ledgerAmount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -3313,6 +3463,8 @@ export type FinTransactionUncheckedUpdateWithoutCardInput = {
   categoryId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   emailMessageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   externalReference?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  institutionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  possibleDuplicateOfId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumFinTransactionTypeFieldUpdateOperationsInput | $Enums.FinTransactionType
   amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   ledgerAmount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -3348,6 +3500,8 @@ export type FinTransactionUncheckedUpdateManyWithoutCardInput = {
   categoryId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   emailMessageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   externalReference?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  institutionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  possibleDuplicateOfId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   type?: Prisma.EnumFinTransactionTypeFieldUpdateOperationsInput | $Enums.FinTransactionType
   amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   ledgerAmount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
@@ -3410,6 +3564,8 @@ export type FinTransactionSelect<ExtArgs extends runtime.Types.Extensions.Intern
   categoryId?: boolean
   emailMessageId?: boolean
   externalReference?: boolean
+  institutionId?: boolean
+  possibleDuplicateOfId?: boolean
   type?: boolean
   amount?: boolean
   ledgerAmount?: boolean
@@ -3453,6 +3609,8 @@ export type FinTransactionSelectCreateManyAndReturn<ExtArgs extends runtime.Type
   categoryId?: boolean
   emailMessageId?: boolean
   externalReference?: boolean
+  institutionId?: boolean
+  possibleDuplicateOfId?: boolean
   type?: boolean
   amount?: boolean
   ledgerAmount?: boolean
@@ -3490,6 +3648,8 @@ export type FinTransactionSelectUpdateManyAndReturn<ExtArgs extends runtime.Type
   categoryId?: boolean
   emailMessageId?: boolean
   externalReference?: boolean
+  institutionId?: boolean
+  possibleDuplicateOfId?: boolean
   type?: boolean
   amount?: boolean
   ledgerAmount?: boolean
@@ -3527,6 +3687,8 @@ export type FinTransactionSelectScalar = {
   categoryId?: boolean
   emailMessageId?: boolean
   externalReference?: boolean
+  institutionId?: boolean
+  possibleDuplicateOfId?: boolean
   type?: boolean
   amount?: boolean
   ledgerAmount?: boolean
@@ -3550,7 +3712,7 @@ export type FinTransactionSelectScalar = {
   updatedAt?: boolean
 }
 
-export type FinTransactionOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "accountId" | "cardId" | "userId" | "categoryId" | "emailMessageId" | "externalReference" | "type" | "amount" | "ledgerAmount" | "amountBaseCurrency" | "currency" | "ledgerCurrency" | "exchangeRate" | "merchant" | "description" | "transactionDate" | "transferGroupId" | "linkedTransactionId" | "status" | "isRecurring" | "aiMetadata" | "notes" | "source" | "legRole" | "rail" | "createdAt" | "updatedAt", ExtArgs["result"]["finTransaction"]>
+export type FinTransactionOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "accountId" | "cardId" | "userId" | "categoryId" | "emailMessageId" | "externalReference" | "institutionId" | "possibleDuplicateOfId" | "type" | "amount" | "ledgerAmount" | "amountBaseCurrency" | "currency" | "ledgerCurrency" | "exchangeRate" | "merchant" | "description" | "transactionDate" | "transferGroupId" | "linkedTransactionId" | "status" | "isRecurring" | "aiMetadata" | "notes" | "source" | "legRole" | "rail" | "createdAt" | "updatedAt", ExtArgs["result"]["finTransaction"]>
 export type FinTransactionInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   account?: boolean | Prisma.FinTransaction$accountArgs<ExtArgs>
   card?: boolean | Prisma.FinTransaction$cardArgs<ExtArgs>
@@ -3611,6 +3773,11 @@ export type $FinTransactionPayload<ExtArgs extends runtime.Types.Extensions.Inte
      * Bank reference / authorization code from the source email; dedupes re-sent notices.
      */
     externalReference: string | null
+    /**
+     * Denormalized institution, for the idempotency index.
+     */
+    institutionId: string | null
+    possibleDuplicateOfId: string | null
     type: $Enums.FinTransactionType
     /**
      * Original amount in source currency (e.g. as shown on bank email).
@@ -4094,6 +4261,8 @@ export interface FinTransactionFieldRefs {
   readonly categoryId: Prisma.FieldRef<"FinTransaction", 'String'>
   readonly emailMessageId: Prisma.FieldRef<"FinTransaction", 'String'>
   readonly externalReference: Prisma.FieldRef<"FinTransaction", 'String'>
+  readonly institutionId: Prisma.FieldRef<"FinTransaction", 'String'>
+  readonly possibleDuplicateOfId: Prisma.FieldRef<"FinTransaction", 'String'>
   readonly type: Prisma.FieldRef<"FinTransaction", 'FinTransactionType'>
   readonly amount: Prisma.FieldRef<"FinTransaction", 'Decimal'>
   readonly ledgerAmount: Prisma.FieldRef<"FinTransaction", 'Decimal'>
