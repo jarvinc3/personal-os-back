@@ -6,11 +6,17 @@ import { CONFIRMED_TRANSACTION_STATUS } from '../domain/card-statement-amounts';
 const CREDIT_CARD_TYPE = 'CREDIT' as const;
 
 const CARD_MOVEMENT_SELECT = {
+  id: true,
   type: true,
   status: true,
+  amount: true,
+  currency: true,
   ledgerAmount: true,
   ledgerCurrency: true,
   transactionDate: true,
+  merchant: true,
+  description: true,
+  transferGroupId: true,
 } satisfies Prisma.FinTransactionSelect;
 
 const CREDIT_CARD_WITH_MOVEMENTS = {

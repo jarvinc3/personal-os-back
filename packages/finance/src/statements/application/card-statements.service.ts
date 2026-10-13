@@ -92,6 +92,8 @@ export class CardStatementsService {
     const insideCycle = (date: Date) =>
       date.getTime() >= row.cycleStart.getTime() &&
       date.getTime() <= row.cycleEnd.getTime();
+    const paymentWindowEnd =
+      row.dueDate && row.dueDate.getTime() < now.getTime() ? row.dueDate : now;
     return {
       statement: mapCardStatement(view),
       movements: card.transactions.filter(
@@ -104,7 +106,9 @@ export class CardStatementsService {
         (movement) =>
           movement.ledgerCurrency === row.currency &&
           movement.type === 'CARD_PAYMENT' &&
-          movement.transactionDate.getTime() > row.cycleEnd.getTime(),
+          movement.status === 'CONFIRMED' &&
+          movement.transactionDate.getTime() > row.cycleEnd.getTime() &&
+          movement.transactionDate.getTime() <= paymentWindowEnd.getTime(),
       ),
     };
   }

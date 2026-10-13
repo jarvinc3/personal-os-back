@@ -18,10 +18,7 @@ import {
   carriedOverFrom,
   type BudgetRollover,
 } from '../domain/budget-rollover';
-import {
-  endOfUtcDay,
-  nextBudgetPeriod,
-} from '../domain/budget-period';
+import { endOfUtcDay, nextBudgetPeriod } from '../domain/budget-period';
 import type { CreateBudgetDto } from '../presentation/dto/create-budget.dto';
 import type { CreateLoanDto } from '../presentation/dto/create-loan.dto';
 import type { CreateReceivableDto } from '../presentation/dto/create-receivable.dto';
@@ -457,6 +454,16 @@ export class PlanningService {
       ...(dto.interestRate !== undefined
         ? { interestRate: dto.interestRate }
         : {}),
+      ...(dto.rateType ? { rateType: dto.rateType } : {}),
+      ...(dto.insuranceAmount !== undefined
+        ? { insuranceAmount: dto.insuranceAmount }
+        : {}),
+      ...(dto.prepaymentPenaltyPct !== undefined
+        ? { prepaymentPenaltyPct: dto.prepaymentPenaltyPct }
+        : {}),
+      ...(dto.disbursementDate
+        ? { disbursementDate: new Date(dto.disbursementDate) }
+        : {}),
       ...(dto.notes !== undefined ? { notes: dto.notes } : {}),
     });
     await this.syncInstallments.execute(created, now);
@@ -536,6 +543,16 @@ export class PlanningService {
       ...(dto.currency ? { currency: dto.currency } : {}),
       ...(dto.interestRate !== undefined
         ? { interestRate: dto.interestRate }
+        : {}),
+      ...(dto.rateType ? { rateType: dto.rateType } : {}),
+      ...(dto.insuranceAmount !== undefined
+        ? { insuranceAmount: dto.insuranceAmount }
+        : {}),
+      ...(dto.prepaymentPenaltyPct !== undefined
+        ? { prepaymentPenaltyPct: dto.prepaymentPenaltyPct }
+        : {}),
+      ...(dto.disbursementDate
+        ? { disbursementDate: new Date(dto.disbursementDate) }
         : {}),
       ...(dto.notes !== undefined ? { notes: dto.notes } : {}),
     });
