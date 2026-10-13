@@ -2,6 +2,27 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [SemVer](https://semver.org/lang/es/). Reglas y ejemplo en [docs/reference/changelog-guide.md](./docs/reference/changelog-guide.md).
 
+## [1.16.0] - 2026-10-12
+
+### Agregado
+
+- Fase 08: huella del correo y referencia bancaria; el índice `fin_transactions_user_inst_ref_key` evita importar el mismo movimiento dos veces. Se exponen `possibleDuplicateOfId`, `merge`, `not-duplicate` y la tool `list_possible_duplicates`.
+- `POST /transfers` devuelve `suggestGoalId` cuando la cuenta destino pertenece a una meta.
+- `spendReducesProgress` decide si un retiro enlazado a un gasto resta del progreso de la meta.
+- Rollover y recurrencia de presupuestos: `carriedOver` y `effectiveLimit` se calculan y el scheduler crea el periodo siguiente.
+- `GET /budgets/:id/transactions` con cursor.
+- `STATEMENT_CLOSED` en el historial de la tarjeta.
+- Scripts de datos `dedupe-existing.ts` y `backfill-budget-spent.ts`, con `--dry-run`.
+- Alias deprecado `POST/GET/DELETE /savings-goals/:id/contributions`.
+
+### Corregido
+
+- El desglose de cuotas del préstamo se reconstruye con la tabla francesa y el saldo baja solo por capital pagado.
+- Los reversos no cuentan dos veces en analítica ni en el tablero.
+- Un pago de cuota sin cuenta responde 400 `LOAN_ACCOUNT_REQUIRED` en vez de marcar la cuota pagada sin movimiento.
+- El detalle del corte excluye ajustes y limita los pagos a la ventana `(cycleEnd, dueDate]`.
+- El mock de Prisma incluye `finBudgetCategory` y hay e2e de las rutas nuevas.
+
 ## [1.15.0] - 2026-10-12
 
 ### Agregado
