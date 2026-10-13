@@ -2,6 +2,19 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [SemVer](https://semver.org/lang/es/). Reglas y ejemplo en [docs/reference/changelog-guide.md](./docs/reference/changelog-guide.md).
 
+## [1.18.0] - 2026-10-13
+
+### Agregado
+
+- Fixtures anonimizados de correos reales de BHD, Banco Popular y Qik (`packages/finance/test/fixtures/bank-emails/`) con una prueba de extracción por formato.
+- Una nómina sin monto crea un ingreso `PENDING` con el monto de la última nómina de la cuenta como sugerencia y la fecha del correo, para que el usuario solo confirme el monto; sin nómina previa queda en la cola de monto pendiente.
+- El recordatorio de pago de tarjeta de BHD (sin cifras) emite `finance.card_statement.reminder` y la app muestra un aviso para cargar el corte a mano, sin crear movimiento.
+
+### Corregido
+
+- Las notificaciones de nómina de Banco Popular (sin monto, y la v2 sin fecha) ya no se descartan.
+- El dedupe por referencia bancaria cubre el "Número de confirmación": los dos correos del mismo pago de servicio de BHD y la copia al beneficiario de una transferencia se descartan como duplicados.
+
 ## [1.17.0] - 2026-10-13
 
 ### Agregado
