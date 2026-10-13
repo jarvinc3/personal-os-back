@@ -58,18 +58,18 @@ export class RecordReceivablePaymentUseCase {
     const paidAt = dto.paidAt ? new Date(dto.paidAt) : now;
     const extraIncome = excess > 0 && dto.excessHandling === 'EXTRA_INCOME';
     const creditedAmount = extraIncome ? appliedAmount : dto.amount;
-    const appliedMovementId = dto.transactionId
-      ? dto.transactionId
-      : (
-          await this.createTransaction.execute(userId, {
-            accountId: dto.accountId,
-            type: 'CREDIT',
-            amount: creditedAmount,
-            currency: receivable.currency,
-            transactionDate: paidAt.toISOString(),
-            description: `Cobro: ${receivable.debtorName}`,
-          })
-        ).id;
+    let appliedMovementId = dto.transactionId;
+    if (!appliedMovementId) {
+      const appliedMovement = await this.createTransaction.execute(userId, {
+        accountId: dto.accountId,
+        type: 'CREDIT',
+        amount: creditedAmount,
+        currency: receivable.currency,
+        transactionDate: paidAt.toISOString(),
+        description: `Cobro: ${receivable.debtorName}`,
+      });
+      appliedMovementId = appliedMovement.id;
+    }
     if (extraIncome) {
       const categoryId = await this.repo.findExtraIncomeCategoryId();
       await this.createTransaction.execute(userId, {
