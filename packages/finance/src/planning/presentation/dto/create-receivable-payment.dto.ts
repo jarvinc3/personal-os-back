@@ -44,4 +44,12 @@ export class CreateReceivablePaymentDto {
   @IsOptional()
   @IsUUID()
   targetReceivableId?: string;
+
+  @ApiPropertyOptional({
+    description:
+      'Movimiento existente que ya representa el cobro; no crea otro.',
+  })
+  @IsOptional()
+  @IsUUID()
+  transactionId?: string;
 }

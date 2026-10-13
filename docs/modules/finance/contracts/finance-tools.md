@@ -251,6 +251,54 @@ Increments `paidInstallments` and decrements `currentBalance` by one installment
 
 ---
 
+### `link_transaction`
+
+Liga un movimiento existente a una cuota de préstamo, un cobro o una meta. No crea un movimiento nuevo: aplica el efecto de dominio con los casos de uso de planificación. Requiere `transactionId` y `kind` (`LOAN_INSTALLMENT` con `loanId` e `installmentId`, `RECEIVABLE_PAYMENT` con `receivableId`, `SAVINGS_CONTRIBUTION` con `goalId`). Un movimiento ya ligado responde 409 `TRANSACTION_LINKED`.
+
+**Delegates to:** `FinanceFacade.linkTransaction`
+
+---
+
+### `adjust_balance`
+
+Fija el saldo de una cuenta o tarjeta con un movimiento de ajuste. Requiere exactamente uno de `accountId` o `cardId`, y `balance`; una tarjeta exige `currency`.
+
+**Delegates to:** `FinanceFacade.adjustBalance`
+
+---
+
+### `list_pending_emails`
+
+Lista los correos importados que esperan una cuenta, tarjeta o monto.
+
+**Delegates to:** `FinanceFacade.listPendingEmails`
+
+---
+
+### `assign_pending_email`
+
+Asigna un correo pendiente a una cuenta o tarjeta, con `amount` opcional cuando el correo no traía cifra.
+
+**Delegates to:** `FinanceFacade.assignPendingEmail`
+
+---
+
+### `retry_pending_email`
+
+Reintenta el ruteo automático de un correo pendiente.
+
+**Delegates to:** `FinanceFacade.retryPendingEmail`
+
+---
+
+### `complete_pending_email_amount`
+
+Completa el monto de un correo pendiente que llegó sin cifra.
+
+**Delegates to:** `FinanceFacade.completePendingEmailAmount`
+
+---
+
 ### `trigger_email_sync`
 
 Triggers Gmail sync for one email source. Returns `queued: true|false` — do not claim success if `queued` is false.

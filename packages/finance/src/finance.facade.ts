@@ -10,6 +10,8 @@ import type {
   UpdateTransactionCommand,
 } from './ledger/application/commands/ledger.commands';
 import { ConfirmTransactionUseCase } from './ledger/application/confirm-transaction.use-case';
+import { AdjustBalanceUseCase } from './ledger/application/adjust-balance.use-case';
+import type { AdjustBalanceCommand } from './ledger/application/adjust-balance.use-case';
 import { CreateCardPaymentUseCase } from './ledger/application/create-card-payment.use-case';
 import { CreateTransactionUseCase } from './ledger/application/create-transaction.use-case';
 import { CreateTransferUseCase } from './ledger/application/create-transfer.use-case';
@@ -25,6 +27,12 @@ import { RecordReceivablePaymentUseCase } from './planning/application/record-re
 import type { LoanPrepaymentCommand } from './planning/application/apply-loan-prepayment.use-case';
 import type { PayInstallmentCommand } from './planning/application/pay-next-loan-installment.use-case';
 import { CardStatementsService } from './statements/application/card-statements.service';
+import {
+  LinkTransactionUseCase,
+  type LinkTransactionCommand,
+} from './planning/application/link-transaction.use-case';
+import { UnlinkTransactionUseCase } from './planning/application/unlink-transaction.use-case';
+import type { AssignEmailMessageDto } from './ingestion/presentation/dto/oauth-callback-query.dto';
 import type { CreateBudgetDto } from './planning/presentation/dto/create-budget.dto';
 import type { CreateSavingsGoalDto } from './planning/presentation/dto/create-savings-goal.dto';
 import type { CreateSavingsGoalAllocationDto } from './planning/presentation/dto/create-savings-goal-allocation.dto';
@@ -46,6 +54,7 @@ export class FinanceFacade {
     private readonly createTx: CreateTransactionUseCase,
     private readonly updateTx: UpdateTransactionUseCase,
     private readonly confirmTx: ConfirmTransactionUseCase,
+    private readonly adjustBalanceTx: AdjustBalanceUseCase,
     private readonly unconfirmTx: UnconfirmTransactionUseCase,
     private readonly reverseTx: ReverseTransactionUseCase,
     private readonly createTransfer: CreateTransferUseCase,
@@ -59,6 +68,8 @@ export class FinanceFacade {
     private readonly analytics: AnalyticsService,
     private readonly statements: CardStatementsService,
     private readonly ingestion: IngestionService,
+    private readonly linkTx: LinkTransactionUseCase,
+    private readonly unlinkTx: UnlinkTransactionUseCase,
     private readonly wipeFinance: WipeFinanceUserDataUseCase,
   ) {}
 
@@ -121,6 +132,46 @@ export class FinanceFacade {
 
   confirmTransaction(userId: string, id: string) {
     return this.confirmTx.execute(userId, id);
+  }
+
+  adjustBalance(userId: string, command: AdjustBalanceCommand) {
+    return this.adjustBalanceTx.execute(userId, command);
+  }
+
+  linkTransaction(
+    userId: string,
+    transactionId: string,
+    command: LinkTransactionCommand,
+  ) {
+    return this.linkTx.execute(userId, transactionId, command, new Date());
+  }
+
+  unlinkTransaction(userId: string, transactionId: string) {
+    return this.unlinkTx.execute(userId, transactionId, new Date());
+  }
+
+  listPendingEmails(userId: string) {
+    return this.ingestion.listPendingAssignment(userId);
+  }
+
+  assignPendingEmail(
+    userId: string,
+    messageId: string,
+    dto: AssignEmailMessageDto,
+  ) {
+    return this.ingestion.assignPendingMessage(userId, messageId, dto);
+  }
+
+  retryPendingEmail(userId: string, messageId: string) {
+    return this.ingestion.retryPendingMessage(userId, messageId);
+  }
+
+  completePendingEmailAmount(
+    userId: string,
+    messageId: string,
+    amount: number,
+  ) {
+    return this.ingestion.completePendingAmount(userId, messageId, amount);
   }
 
   unconfirmTransaction(userId: string, id: string) {

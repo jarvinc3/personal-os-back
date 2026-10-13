@@ -52,9 +52,41 @@ const FINANCE_TOOL_NAMES = new Set([
   'get_loan_schedule',
   'list_possible_duplicates',
   'trigger_email_sync',
+  'adjust_balance',
+  'link_transaction',
+  'list_pending_emails',
+  'assign_pending_email',
+  'retry_pending_email',
+  'complete_pending_email_amount',
   'get_spending_by_category',
   'get_spending_over_time',
 ]);
+
+function toLinkCommand(args: ValidatedToolArgs<'link_transaction'>) {
+  if (args.kind === 'LOAN_INSTALLMENT') {
+    if (!args.loanId || !args.installmentId) {
+      throw new Error('link_transaction needs loanId and installmentId');
+    }
+    return {
+      kind: 'LOAN_INSTALLMENT' as const,
+      loanId: args.loanId,
+      installmentId: args.installmentId,
+    };
+  }
+  if (args.kind === 'RECEIVABLE_PAYMENT') {
+    if (!args.receivableId) {
+      throw new Error('link_transaction needs receivableId');
+    }
+    return {
+      kind: 'RECEIVABLE_PAYMENT' as const,
+      receivableId: args.receivableId,
+    };
+  }
+  if (!args.goalId) {
+    throw new Error('link_transaction needs goalId');
+  }
+  return { kind: 'SAVINGS_CONTRIBUTION' as const, goalId: args.goalId };
+}
 
 @Injectable()
 export class ToolExecutorService {
@@ -766,6 +798,85 @@ export class ToolExecutorService {
             ? 'Email sync queued'
             : (result.reason ?? 'Email sync not queued'),
           data: result,
+        };
+      }
+      case 'adjust_balance': {
+        const balanceArgs = args as ValidatedToolArgs<'adjust_balance'>;
+        return {
+          success: true,
+          message: 'Balance adjusted',
+          data: await this.financeFacade.adjustBalance(ctx.userId, {
+            ...(balanceArgs.accountId
+              ? { accountId: balanceArgs.accountId }
+              : {}),
+            ...(balanceArgs.cardId ? { cardId: balanceArgs.cardId } : {}),
+            ...(balanceArgs.currency ? { currency: balanceArgs.currency } : {}),
+            balance: balanceArgs.balance,
+          }),
+        };
+      }
+      case 'link_transaction': {
+        const linkArgs = args as ValidatedToolArgs<'link_transaction'>;
+        return {
+          success: true,
+          message: 'Transaction linked',
+          data: await this.financeFacade.linkTransaction(
+            ctx.userId,
+            linkArgs.transactionId,
+            toLinkCommand(linkArgs),
+          ),
+        };
+      }
+      case 'list_pending_emails':
+        return {
+          success: true,
+          message: 'Pending emails loaded',
+          data: {
+            items: await this.financeFacade.listPendingEmails(ctx.userId),
+          },
+        };
+      case 'assign_pending_email': {
+        const assignArgs = args as ValidatedToolArgs<'assign_pending_email'>;
+        return {
+          success: true,
+          message: 'Pending email assigned',
+          data: await this.financeFacade.assignPendingEmail(
+            ctx.userId,
+            assignArgs.messageId,
+            {
+              ...(assignArgs.accountId
+                ? { accountId: assignArgs.accountId }
+                : {}),
+              ...(assignArgs.cardId ? { cardId: assignArgs.cardId } : {}),
+              ...(assignArgs.amount !== undefined
+                ? { amount: assignArgs.amount }
+                : {}),
+            },
+          ),
+        };
+      }
+      case 'retry_pending_email': {
+        const retryArgs = args as ValidatedToolArgs<'retry_pending_email'>;
+        return {
+          success: true,
+          message: 'Pending email retried',
+          data: await this.financeFacade.retryPendingEmail(
+            ctx.userId,
+            retryArgs.messageId,
+          ),
+        };
+      }
+      case 'complete_pending_email_amount': {
+        const amountArgs =
+          args as ValidatedToolArgs<'complete_pending_email_amount'>;
+        return {
+          success: true,
+          message: 'Pending email amount completed',
+          data: await this.financeFacade.completePendingEmailAmount(
+            ctx.userId,
+            amountArgs.messageId,
+            amountArgs.amount,
+          ),
         };
       }
       case 'get_spending_by_category':

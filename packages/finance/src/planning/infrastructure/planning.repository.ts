@@ -559,6 +559,44 @@ export class PlanningRepository {
     });
   }
 
+  findInstallmentForUser(userId: string, installmentId: string) {
+    return this.prisma.finLoanInstallment.findFirst({
+      where: { id: installmentId, loan: { userId } },
+      include: { loan: true },
+    });
+  }
+
+  findInstallmentByTransactionId(userId: string, transactionId: string) {
+    return this.prisma.finLoanInstallment.findFirst({
+      where: { transactionId, loan: { userId } },
+      include: { loan: true },
+    });
+  }
+
+  findReceivablePaymentByTransactionId(userId: string, transactionId: string) {
+    return this.prisma.finReceivablePayment.findFirst({
+      where: { transactionId, receivable: { userId } },
+    });
+  }
+
+  findSavingsGoalContributionByTransactionId(
+    userId: string,
+    transactionId: string,
+  ) {
+    return this.prisma.finSavingsGoalContribution.findFirst({
+      where: { transactionId, goal: { userId } },
+    });
+  }
+
+  async deleteReceivablePayment(receivableId: string, paymentId: string) {
+    await this.prisma.$transaction(async (tx) => {
+      await tx.finReceivablePayment.deleteMany({
+        where: { id: paymentId, receivableId },
+      });
+      await applyReceivableBalance(tx, receivableId);
+    });
+  }
+
   updateLoan(
     userId: string,
     id: string,

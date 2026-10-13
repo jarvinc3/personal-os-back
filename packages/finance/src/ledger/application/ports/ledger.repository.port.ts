@@ -39,6 +39,19 @@ export type LedgerTransactionRow = {
   possibleDuplicateOfId?: string | null;
   emailMessageId?: string | null;
   aiMetadata?: unknown;
+  loanInstallment?: {
+    id: string;
+    installmentNo: number;
+    loan?: { lenderName: string } | null;
+  } | null;
+  receivablePayment?: {
+    id: string;
+    receivable?: { debtorName: string } | null;
+  } | null;
+  savingsGoalContribution?: {
+    id: string;
+    goal?: { name: string } | null;
+  } | null;
   transactionDate: Date;
   createdAt: Date;
   account?: {

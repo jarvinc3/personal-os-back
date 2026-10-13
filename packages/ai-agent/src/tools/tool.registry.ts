@@ -315,6 +315,47 @@ const STATIC_TOOLS: StaticToolDef[] = [
     targetModule: 'finance',
   },
   {
+    name: 'adjust_balance',
+    description:
+      'Set an account or card balance by posting an adjustment movement.',
+    mutating: true,
+    targetModule: 'finance',
+  },
+  {
+    name: 'link_transaction',
+    description:
+      'Link an existing movement to a loan instalment, a collection or a savings goal. It never creates a new movement.',
+    mutating: true,
+    targetModule: 'finance',
+  },
+  {
+    name: 'list_pending_emails',
+    description: 'List email imports waiting for an account, card or amount.',
+    mutating: false,
+    targetModule: 'finance',
+    parameters: { type: 'object', properties: {} },
+  },
+  {
+    name: 'assign_pending_email',
+    description:
+      'Assign a pending email import to an account or card, optionally with its amount.',
+    mutating: true,
+    targetModule: 'finance',
+  },
+  {
+    name: 'retry_pending_email',
+    description: 'Retry automatic routing for a pending email import.',
+    mutating: true,
+    targetModule: 'finance',
+  },
+  {
+    name: 'complete_pending_email_amount',
+    description:
+      'Complete a pending email import that arrived without an amount.',
+    mutating: true,
+    targetModule: 'finance',
+  },
+  {
     name: 'get_spending_by_category',
     description: 'Get spending breakdown by category.',
     mutating: false,

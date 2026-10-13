@@ -77,6 +77,23 @@ const transactionPartyInclude = {
     },
   },
 } satisfies Prisma.FinTransactionInclude;
+
+/** Link relations, only for the single-movement read. */
+const transactionLinkInclude = {
+  loanInstallment: {
+    select: {
+      id: true,
+      installmentNo: true,
+      loan: { select: { lenderName: true } },
+    },
+  },
+  receivablePayment: {
+    select: { id: true, receivable: { select: { debtorName: true } } },
+  },
+  savingsGoalContribution: {
+    select: { id: true, goal: { select: { name: true } } },
+  },
+} satisfies Prisma.FinTransactionInclude;
 import type {
   CreateCardPaymentCommand,
   CreateTransactionCommand,
@@ -227,7 +244,7 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
   findTransactionById(id: string, userId: string) {
     return this.prisma.finTransaction.findFirst({
       where: { id, userId },
-      include: transactionPartyInclude,
+      include: { ...transactionPartyInclude, ...transactionLinkInclude },
     }) as Promise<LedgerTransactionRow | null>;
   }
 

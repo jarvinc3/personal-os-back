@@ -414,6 +414,77 @@ export const getCardStatementArgsSchema = z
   .object({ cardId: uuid, statementId: uuid.nullable().optional() })
   .strict();
 
+export const adjustBalanceArgsSchema = z
+  .object({
+    accountId: uuid.optional(),
+    cardId: uuid.optional(),
+    currency: currencyCode.optional(),
+    balance: moneyAmount,
+  })
+  .strict()
+  .refine((value) => Boolean(value.accountId) !== Boolean(value.cardId), {
+    message: 'Provide exactly one of accountId or cardId',
+  });
+
+export const linkTransactionArgsSchema = z
+  .object({
+    transactionId: uuid,
+    kind: z.enum([
+      'LOAN_INSTALLMENT',
+      'RECEIVABLE_PAYMENT',
+      'SAVINGS_CONTRIBUTION',
+    ]),
+    loanId: uuid.optional(),
+    installmentId: uuid.optional(),
+    receivableId: uuid.optional(),
+    goalId: uuid.optional(),
+  })
+  .strict()
+  .superRefine((value, ctx) => {
+    if (value.kind === 'LOAN_INSTALLMENT') {
+      if (!value.loanId || !value.installmentId) {
+        ctx.addIssue({
+          code: 'custom',
+          message:
+            'loanId and installmentId are required for a loan instalment',
+        });
+      }
+      return;
+    }
+    if (value.kind === 'RECEIVABLE_PAYMENT') {
+      if (!value.receivableId) {
+        ctx.addIssue({
+          code: 'custom',
+          message: 'receivableId is required for a collection',
+        });
+      }
+      return;
+    }
+    if (!value.goalId) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'goalId is required for a savings goal',
+      });
+    }
+  });
+
+export const assignPendingEmailArgsSchema = z
+  .object({
+    messageId: uuid,
+    accountId: uuid.nullable().optional(),
+    cardId: uuid.nullable().optional(),
+    amount: moneyAmount.optional(),
+  })
+  .strict();
+
+export const retryPendingEmailArgsSchema = z
+  .object({ messageId: uuid })
+  .strict();
+
+export const completePendingEmailAmountArgsSchema = z
+  .object({ messageId: uuid, amount: moneyAmount })
+  .strict();
+
 /** Mutating tool name → Zod schema (single source of truth). */
 export const MUTATING_TOOL_ARG_SCHEMAS = {
   update_user_profile: updateUserProfileArgsSchema,
@@ -437,6 +508,11 @@ export const MUTATING_TOOL_ARG_SCHEMAS = {
   mark_loan_installment_paid: markLoanInstallmentPaidArgsSchema,
   prepay_loan: prepayLoanArgsSchema,
   trigger_email_sync: triggerEmailSyncArgsSchema,
+  adjust_balance: adjustBalanceArgsSchema,
+  link_transaction: linkTransactionArgsSchema,
+  assign_pending_email: assignPendingEmailArgsSchema,
+  retry_pending_email: retryPendingEmailArgsSchema,
+  complete_pending_email_amount: completePendingEmailAmountArgsSchema,
 } as const;
 
 export type MutatingToolName = keyof typeof MUTATING_TOOL_ARG_SCHEMAS;

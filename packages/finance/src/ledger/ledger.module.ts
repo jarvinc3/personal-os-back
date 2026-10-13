@@ -70,6 +70,7 @@ import { CardPaymentsController } from './presentation/card-payments.controller'
     ImportEmailTransactionUseCase,
   ],
   exports: [
+    LEDGER_REPOSITORY,
     LedgerQueryService,
     CreateTransactionUseCase,
     AdjustBalanceUseCase,

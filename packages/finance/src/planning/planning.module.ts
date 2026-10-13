@@ -9,6 +9,8 @@ import { PlanningService } from './application/planning.service';
 import { RecordReceivablePaymentUseCase } from './application/record-receivable-payment.use-case';
 import { ApplyReceivableCreditUseCase } from './application/apply-receivable-credit.use-case';
 import { AllocateToGoalUseCase } from './application/allocate-to-goal.use-case';
+import { LinkTransactionUseCase } from './application/link-transaction.use-case';
+import { UnlinkTransactionUseCase } from './application/unlink-transaction.use-case';
 import { RemoveSavingsGoalContributionUseCase } from './application/remove-savings-goal-contribution.use-case';
 import { SyncLoanInstallmentsUseCase } from './application/sync-loan-installments.use-case';
 import { PlanningRepository } from './infrastructure/planning.repository';
@@ -18,6 +20,7 @@ import { BudgetsController } from './presentation/budgets.controller';
 import { LoansController } from './presentation/loans.controller';
 import { ReceivablesController } from './presentation/receivables.controller';
 import { SavingsGoalsController } from './presentation/savings-goals.controller';
+import { TransactionLinksController } from './presentation/transaction-links.controller';
 import { FinancePlanningThresholdModule } from './planning-threshold.module';
 
 @Module({
@@ -32,6 +35,7 @@ import { FinancePlanningThresholdModule } from './planning-threshold.module';
     SavingsGoalsController,
     LoansController,
     ReceivablesController,
+    TransactionLinksController,
   ],
   providers: [
     PlanningRepository,
@@ -43,6 +47,8 @@ import { FinancePlanningThresholdModule } from './planning-threshold.module';
     ApplyReceivableCreditUseCase,
     WriteOffReceivableUseCase,
     AllocateToGoalUseCase,
+    LinkTransactionUseCase,
+    UnlinkTransactionUseCase,
     RemoveSavingsGoalContributionUseCase,
     LoanInstallmentsBackfill,
     BudgetRecurringScheduler,
@@ -53,6 +59,8 @@ import { FinancePlanningThresholdModule } from './planning-threshold.module';
     PayNextLoanInstallmentUseCase,
     ApplyLoanPrepaymentUseCase,
     AllocateToGoalUseCase,
+    LinkTransactionUseCase,
+    UnlinkTransactionUseCase,
     RecordReceivablePaymentUseCase,
     FinancePlanningThresholdModule,
   ],
