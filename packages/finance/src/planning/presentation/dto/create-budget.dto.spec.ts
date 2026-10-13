@@ -4,7 +4,7 @@ import { CreateBudgetDto } from './create-budget.dto';
 
 function budgetPayload(overrides: Record<string, unknown> = {}) {
   return {
-    categoryId: 'system-alimentacion',
+    categoryIds: ['system-alimentacion'],
     periodType: 'MONTHLY',
     periodStart: '2026-10-01',
     periodEnd: '2026-10-31',
@@ -25,7 +25,7 @@ describe('CreateBudgetDto', () => {
 
   it('rejects alert thresholds above 100 percent', async () => {
     const dto = plainToInstance(CreateBudgetDto, {
-      categoryId: 'cat-1',
+      categoryIds: ['cat-1'],
       periodType: 'MONTHLY',
       periodStart: '2026-09-01',
       periodEnd: '2026-09-30',

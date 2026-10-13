@@ -79,6 +79,21 @@ export type UpdatedRow = {
   values: Record<string, unknown>;
 };
 
+export const ALREADY_RESTORED = 'ALREADY_RESTORED';
+export const ALREADY_RESTORED_MESSAGE = 'Esto ya se restauró.';
+export const RESTORE_CONFLICT = 'RESTORE_CONFLICT';
+export const RESTORE_CONFLICT_MESSAGE =
+  'No se puede restaurar: ya existe un registro con los mismos datos.';
+export const PARTIAL_OPERATION = 'PARTIAL_OPERATION';
+export const PARTIAL_OPERATION_MESSAGE =
+  'Esta operación está incompleta. Restaura la operación completa.';
+
+/** What a restore attempt did: nothing missing, nothing already done. */
+export type RestoreResult = {
+  count: number;
+  alreadyRestored: boolean;
+};
+
 /**
  * What a delete removed. `rows` goes back in order, parent before child,
  * `updates` puts back rows that were changed instead of removed, and the

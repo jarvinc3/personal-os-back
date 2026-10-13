@@ -1,8 +1,10 @@
 import type { BudgetSpendSnapshot } from '../../../shared/domain/budget-snapshot';
 import type { StoredMovement } from '../../../shared/domain/deletion-snapshot';
+import type { RestoreResult } from '../../../shared/domain/deletion-snapshot';
 import type { ResolvedAmounts } from '../../../shared/domain/money';
 import type { TransactionLinkKind } from '../../../shared/domain/transaction-links';
 import type {
+  CreateCardPaymentCommand,
   CreateTransactionCommand,
   CreateTransferCommand,
   FinTxStatus,
@@ -34,6 +36,7 @@ export type LedgerTransactionRow = {
   rail?: string | null;
   transferGroupId: string | null;
   linkedTransactionId: string | null;
+  possibleDuplicateOfId?: string | null;
   emailMessageId?: string | null;
   aiMetadata?: unknown;
   transactionDate: Date;
@@ -94,6 +97,8 @@ export interface LedgerRepositoryPort {
     userId: string,
   ): Promise<LedgerTransactionRow | null>;
 
+  clearPossibleDuplicate(userId: string, id: string): Promise<void>;
+
   /** Which planning record points at this movement, if any. */
   findPlanningLinkKind(
     transactionId: string,
@@ -120,6 +125,11 @@ export interface LedgerRepositoryPort {
     userId: string,
   ): Promise<LedgerTransactionRow[]>;
 
+  findTransactionsByTransferGroupIds(
+    userId: string,
+    transferGroupIds: string[],
+  ): Promise<LedgerTransactionRow[]>;
+
   findCandidatesForReverse(
     userId: string,
     params: {
@@ -141,6 +151,18 @@ export interface LedgerRepositoryPort {
       currency: string;
       type: 'DEBIT' | 'CREDIT';
       merchant: string | null;
+      transactionDate: Date;
+    },
+  ): Promise<LedgerTransactionRow | null>;
+
+  findPossibleDuplicate(
+    userId: string,
+    params: {
+      accountId?: string | null;
+      cardId?: string | null;
+      amount: number;
+      currency: string;
+      type: 'DEBIT' | 'CREDIT';
       transactionDate: Date;
     },
   ): Promise<LedgerTransactionRow | null>;
@@ -174,6 +196,7 @@ export interface LedgerRepositoryPort {
       emailMessageId?: string;
       aiMetadata?: unknown;
       linkedTransactionId?: string;
+      transferGroupId?: string;
     },
   ): Promise<CreateTransactionResult | null>;
 
@@ -184,6 +207,19 @@ export interface LedgerRepositoryPort {
     toAmounts: ResolvedAmounts;
     feeAmounts?: ResolvedAmounts;
   }): Promise<CreateTransferResult | null>;
+
+  /** A card payment is two CARD_PAYMENT legs: account out, card available up. */
+  createCardPayment(input: {
+    userId: string;
+    command: CreateCardPaymentCommand;
+    fromAmounts: ResolvedAmounts;
+    toAmounts: ResolvedAmounts;
+  }): Promise<CreateTransferResult | null>;
+
+  findCardForPayment(
+    userId: string,
+    cardId: string,
+  ): Promise<{ id: string; type: string; currencies: string[] } | null>;
 
   /** Replaces both legs (and the fee effect) inside one transaction. */
   updateTransfer(input: {
@@ -197,6 +233,9 @@ export interface LedgerRepositoryPort {
     transactionDate: Date;
     description?: string | null;
     notes?: string | null;
+    /** When present, updates the FEE leg (creating it if the transfer had none). */
+    feeAmounts?: ResolvedAmounts;
+    feeCategoryId?: string | null;
   }): Promise<{
     debit: LedgerTransactionRow;
     credit: LedgerTransactionRow;
@@ -219,7 +258,7 @@ export interface LedgerRepositoryPort {
     userId: string,
     id: string,
     now: Date,
-  ): Promise<{ count: number }>;
+  ): Promise<RestoreResult>;
 
   deleteTransactionsByTransferGroupId(
     userId: string,

@@ -1,5 +1,8 @@
 import {
+  buildFrenchSchedule,
   buildLoanSchedule,
+  frenchInstallmentAmount,
+  remainingInstallmentsFor,
   shiftLoanDueDate,
 } from './loan-installment-schedule';
 
@@ -79,5 +82,53 @@ describe('loan-installment-schedule', () => {
         installmentAmount: 1500,
       }),
     ).toThrow('totalInstallments must be >= 1');
+  });
+
+  it('computes the French payment for a fixed case', () => {
+    expect(
+      frenchInstallmentAmount({
+        principal: 100000,
+        annualInterestRate: 0.18,
+        installmentFreq: 'MONTHLY',
+        totalInstallments: 12,
+      }),
+    ).toBe(9168);
+  });
+
+  it('splits the first instalment into interest and principal', () => {
+    const schedule = buildFrenchSchedule({
+      anchorDueDate: utc(2026, 2, 5),
+      anchorInstallmentNo: 1,
+      installmentFreq: 'MONTHLY',
+      totalInstallments: 12,
+      originalPrincipal: 100000,
+      outstandingPrincipal: 100000,
+      annualInterestRate: 0.18,
+      installmentAmount: 9168,
+      insuranceAmount: 0,
+    });
+
+    expect(schedule).toHaveLength(12);
+    expect(schedule[0]).toMatchObject({ interest: 1500, principal: 7668 });
+    expect(schedule[11]?.principal).toBeGreaterThan(0);
+  });
+
+  it('counts the periods left for a fixed instalment', () => {
+    expect(
+      remainingInstallmentsFor({
+        balance: 100000,
+        installmentAmount: 9168,
+        annualInterestRate: 0.18,
+        installmentFreq: 'MONTHLY',
+      }),
+    ).toBe(12);
+    expect(
+      remainingInstallmentsFor({
+        balance: 50000,
+        installmentAmount: 9168,
+        annualInterestRate: 0.18,
+        installmentFreq: 'MONTHLY',
+      }),
+    ).toBeLessThan(12);
   });
 });

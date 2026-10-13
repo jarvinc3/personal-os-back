@@ -149,11 +149,25 @@ export class RouteExtractedEmailUseCase {
       { ...extracted, notes },
       EMAIL_MESSAGE_OUTCOME.PENDING_ASSIGNMENT,
     );
+    const possibleDuplicate = await this.ledger.findPossibleDuplicate(
+      params.userId,
+      {
+        accountId: match.accountId,
+        cardId: match.cardId,
+        amount,
+        currency: extracted.currency,
+        type: extracted.type,
+        transactionDate: new Date(extracted.transactionDate),
+      },
+    );
     const importInput = {
       accountId: match.accountId,
       cardId: match.cardId,
       emailMessageId: persisted.id,
       externalReference: extracted.bankReference,
+      ...(possibleDuplicate
+        ? { possibleDuplicateOfId: possibleDuplicate.id }
+        : {}),
       amount,
       currency: extracted.currency,
       merchant: extracted.merchant,
@@ -174,12 +188,33 @@ export class RouteExtractedEmailUseCase {
         extractedAt: new Date().toISOString(),
       },
     };
-    const created = skipCategory
-      ? await this.importEmail.executeUnpairedTransfer(
+    let created: { id: string };
+    try {
+      created = skipCategory
+        ? await this.importEmail.executeUnpairedTransfer(
+            params.userId,
+            importInput,
+          )
+        : await this.importEmail.execute(params.userId, importInput);
+    } catch (error) {
+      const prismaError = error as { code?: string };
+      if (prismaError.code === 'P2002' && extracted.bankReference) {
+        const existing = await this.ledger.findTransactionByExternalReference(
           params.userId,
-          importInput,
-        )
-      : await this.importEmail.execute(params.userId, importInput);
+          extracted.bankReference,
+        );
+        if (existing) {
+          await this.persist(
+            params,
+            { ...extracted, notes },
+            EMAIL_MESSAGE_OUTCOME.SKIPPED_DUPLICATE,
+            `Duplicate of transaction ${existing.id}`,
+          );
+          return { kind: 'duplicate', transactionId: existing.id };
+        }
+      }
+      throw error;
+    }
 
     await this.persist(
       params,

@@ -1,4 +1,5 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
+import { assertRestored } from '../../shared/application/assert-restored';
 import { LEDGER_REPOSITORY } from '../../shared/application/tokens';
 import type { LedgerRepositoryPort } from './ports/ledger.repository.port';
 
@@ -12,9 +13,7 @@ export class RestoreTransactionUseCase {
 
   async execute(userId: string, id: string, now: Date) {
     const restored = await this.repo.restoreTransaction(userId, id, now);
-    if (restored.count === 0) {
-      throw new NotFoundException('Transaction not found');
-    }
+    assertRestored(restored, 'Transaction not found');
     return { success: true };
   }
 }

@@ -163,9 +163,25 @@ Creates a transaction with **`source=AI`**.
 
 ### `create_transfer`
 
-Moves amount from an account to one ledger target (exactly one of account/card as destination). A card is never the origin.
+Moves amount from an account to a destination account (account to account only). A card is never an origin, and a card payment uses its own route (fase 03).
 
 **Delegates to:** `FinanceFacade.createTransferTransaction`
+
+---
+
+### `pay_card`
+
+Pays a credit card from an account. The payment is not an expense; it only moves money to the card.
+
+**Delegates to:** `FinanceFacade.createCardPayment`
+
+---
+
+### `get_card_statement`
+
+Returns the credit card statements with their status, minimum and paid amount.
+
+**Delegates to:** `FinanceFacade.getCardStatements`
 
 ---
 
@@ -199,7 +215,37 @@ Creates a new budget or updates when `budgetId` is provided.
 
 ---
 
+### `allocate_to_goal`
+
+Sets money aside for a savings goal, or withdraws it. It never moves money; it only marks part of the account balance as saved.
+
+**Delegates to:** `FinanceFacade.recordSavingsGoalContribution`
+
+---
+
 ### `mark_loan_installment_paid`
+
+Pays the oldest unpaid loan instalment through the real use case: splits the payment into capital and interest and lowers the balance only by capital.
+
+**Delegates to:** `FinanceFacade.payNextLoanInstallment`
+
+---
+
+### `prepay_loan`
+
+Pays an extra amount to loan capital, reducing the term or the instalment.
+
+**Delegates to:** `FinanceFacade.prepayLoan`
+
+---
+
+### `get_loan_schedule`
+
+Returns the full loan instalment schedule with its capital/interest split.
+
+**Delegates to:** `FinanceFacade.getLoanSchedule`
+
+---
 
 Increments `paidInstallments` and decrements `currentBalance` by one installment.
 

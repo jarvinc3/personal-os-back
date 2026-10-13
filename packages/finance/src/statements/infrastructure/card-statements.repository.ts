@@ -1,16 +1,22 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@personal-os/database';
-import type { Prisma } from '@personal-os/database';
+import type { $Enums, Prisma } from '@personal-os/database';
 import { CONFIRMED_TRANSACTION_STATUS } from '../domain/card-statement-amounts';
 
 const CREDIT_CARD_TYPE = 'CREDIT' as const;
 
 const CARD_MOVEMENT_SELECT = {
+  id: true,
   type: true,
   status: true,
+  amount: true,
+  currency: true,
   ledgerAmount: true,
   ledgerCurrency: true,
   transactionDate: true,
+  merchant: true,
+  description: true,
+  transferGroupId: true,
 } satisfies Prisma.FinTransactionSelect;
 
 const CREDIT_CARD_WITH_MOVEMENTS = {
@@ -31,6 +37,9 @@ export type CardStatementSnapshotRow = {
   cycleEnd: Date;
   dueDate: Date | null;
   closingBalance: number;
+  minimumPayment: number;
+  minimumSource: $Enums.FinAmountSource;
+  status: $Enums.FinCardStatementStatus;
 };
 
 @Injectable()
@@ -42,6 +51,14 @@ export class CardStatementsRepository {
       where: { id: cardId, type: CREDIT_CARD_TYPE },
       include: CREDIT_CARD_WITH_MOVEMENTS,
     });
+  }
+
+  async findCardOwnerId(cardId: string): Promise<string | null> {
+    const row = await this.prisma.finCard.findUnique({
+      where: { id: cardId },
+      select: { userId: true },
+    });
+    return row?.userId ?? null;
   }
 
   listCreditCardsToSync() {
@@ -62,14 +79,79 @@ export class CardStatementsRepository {
     });
   }
 
-  async upsertStatement(snapshot: CardStatementSnapshotRow): Promise<void> {
+  findStatement(cardId: string, statementId: string) {
+    return this.prisma.finCardStatement.findFirst({
+      where: { id: statementId, cardId },
+    });
+  }
+
+  updateStatement(
+    statementId: string,
+    data: {
+      minimumPayment?: number;
+      closingBalance?: number;
+      dueDate?: Date | null;
+    },
+  ) {
+    return this.prisma.finCardStatement.update({
+      where: { id: statementId },
+      data: {
+        ...data,
+        ...(data.minimumPayment !== undefined
+          ? { minimumSource: 'MANUAL' as const }
+          : {}),
+      },
+    });
+  }
+
+  async upsertStatement(snapshot: CardStatementSnapshotRow): Promise<string> {
     const { cardId, currency, cycleEnd, ...rest } = snapshot;
-    await this.prisma.finCardStatement.upsert({
+    const row = await this.prisma.finCardStatement.upsert({
       where: {
         cardId_currency_cycleEnd: { cardId, currency, cycleEnd },
       },
       create: { cardId, currency, cycleEnd, ...rest },
       update: rest,
+    });
+    return row.id;
+  }
+
+  /**
+   * Timeline entry for a closed statement. Idempotent: re-syncing a card must
+   * not add the same closing twice.
+   */
+  async recordStatementClosedEvent(input: {
+    userId: string;
+    cardId: string;
+    statementId: string;
+    currency: string;
+    cycleEnd: Date;
+    closingBalance: number;
+  }): Promise<void> {
+    await this.prisma.$transaction(async (tx) => {
+      const existing = await tx.finInstrumentEvent.findFirst({
+        where: {
+          cardId: input.cardId,
+          kind: 'STATEMENT_CLOSED',
+          payload: { path: ['statementId'], equals: input.statementId },
+        },
+      });
+      if (existing) {
+        return;
+      }
+      await tx.finInstrumentEvent.create({
+        data: {
+          userId: input.userId,
+          cardId: input.cardId,
+          kind: 'STATEMENT_CLOSED',
+          payload: {
+            statementId: input.statementId,
+            currency: input.currency,
+            cycleEnd: input.cycleEnd.toISOString(),
+            closingBalance: input.closingBalance,
+          },
+        },
+      });
     });
   }
 }

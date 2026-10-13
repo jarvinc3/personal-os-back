@@ -78,6 +78,7 @@ const transactionPartyInclude = {
   },
 } satisfies Prisma.FinTransactionInclude;
 import type {
+  CreateCardPaymentCommand,
   CreateTransactionCommand,
   CreateTransferCommand,
   FinTxStatus,
@@ -104,6 +105,7 @@ import {
   applyBalanceForTransaction,
   resolveLedgerTarget,
   restoreLedgerRows,
+  type LedgerTarget,
 } from './balance.helpers';
 import { logicalTransactionsWhere } from './logical-transaction-query';
 
@@ -229,6 +231,13 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
     }) as Promise<LedgerTransactionRow | null>;
   }
 
+  async clearPossibleDuplicate(userId: string, id: string): Promise<void> {
+    await this.prisma.finTransaction.updateMany({
+      where: { id, userId },
+      data: { possibleDuplicateOfId: null },
+    });
+  }
+
   async findPlanningLinkKind(
     transactionId: string,
     userId: string,
@@ -340,6 +349,20 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
     }) as Promise<LedgerTransactionRow[]>;
   }
 
+  findTransactionsByTransferGroupIds(
+    userId: string,
+    transferGroupIds: string[],
+  ) {
+    if (transferGroupIds.length === 0) {
+      return Promise.resolve([] as LedgerTransactionRow[]);
+    }
+    return this.prisma.finTransaction.findMany({
+      where: { userId, transferGroupId: { in: transferGroupIds } },
+      include: transactionPartyInclude,
+      orderBy: [{ transactionDate: 'asc' }, { id: 'asc' }],
+    }) as Promise<LedgerTransactionRow[]>;
+  }
+
   findCandidatesForReverse(
     userId: string,
     params: {
@@ -373,6 +396,38 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
   findTransactionByExternalReference(userId: string, reference: string) {
     return this.prisma.finTransaction.findFirst({
       where: { userId, externalReference: reference },
+      orderBy: { transactionDate: 'desc' },
+    }) as Promise<LedgerTransactionRow | null>;
+  }
+
+  /** Same target, currency and exact amount within 48 h, with no bank reference. */
+  findPossibleDuplicate(
+    userId: string,
+    params: {
+      accountId?: string | null;
+      cardId?: string | null;
+      amount: number;
+      currency: string;
+      type: 'DEBIT' | 'CREDIT';
+      transactionDate: Date;
+    },
+  ) {
+    const windowMs = 48 * 60 * 60 * 1000;
+    return this.prisma.finTransaction.findFirst({
+      where: {
+        userId,
+        status: { in: ['PENDING', 'CONFIRMED'] },
+        externalReference: null,
+        currency: params.currency,
+        amount: params.amount,
+        type: params.type,
+        transactionDate: {
+          gte: new Date(params.transactionDate.getTime() - windowMs),
+          lte: new Date(params.transactionDate.getTime() + windowMs),
+        },
+        ...(params.accountId ? { accountId: params.accountId } : {}),
+        ...(params.cardId ? { cardId: params.cardId } : {}),
+      },
       orderBy: { transactionDate: 'desc' },
     }) as Promise<LedgerTransactionRow | null>;
   }
@@ -448,6 +503,7 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
       emailMessageId?: string;
       aiMetadata?: unknown;
       linkedTransactionId?: string;
+      transferGroupId?: string;
     },
   ): Promise<CreateTransactionResult | null> {
     return this.prisma.$transaction(async (tx) => {
@@ -487,6 +543,9 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
           ...(extras?.aiMetadata ? { aiMetadata: extras.aiMetadata } : {}),
           ...(extras?.linkedTransactionId
             ? { linkedTransactionId: extras.linkedTransactionId }
+            : {}),
+          ...(extras?.transferGroupId
+            ? { transferGroupId: extras.transferGroupId }
             : {}),
         },
         include: {
@@ -615,7 +674,7 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
         tx,
         userId,
         command.toAccountId,
-        command.toCardId,
+        undefined,
       );
       if (!fromTarget || !toTarget) {
         return null;
@@ -631,6 +690,7 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
       const status = command.status ?? 'CONFIRMED';
       const transactionDate = new Date(command.transactionDate);
       const source = command.source ?? 'MANUAL';
+      const budgetSnapshots: BudgetSpendSnapshot[] = [];
 
       const createLeg = async (leg: {
         type: 'DEBIT' | 'CREDIT';
@@ -683,6 +743,14 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
             type: leg.type,
             amount: leg.amounts.ledgerAmount,
           });
+          const snaps = await adjustBudgetSpent(tx, {
+            userId,
+            categoryId: leg.categoryId ?? null,
+            type: leg.type,
+            amountBaseCurrency: leg.amounts.amountBaseCurrency,
+            transactionDate,
+          });
+          budgetSnapshots.push(...snaps);
         }
 
         await this.enqueueTransactionEvent(
@@ -744,7 +812,196 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
         tx,
       );
 
+      await this.thresholds?.processThresholds(userId, budgetSnapshots, tx);
+
       return { debit, credit, ...(fee ? { fee } : {}), transferGroupId };
+    });
+  }
+
+  createCardPayment(input: {
+    userId: string;
+    command: CreateCardPaymentCommand;
+    fromAmounts: ResolvedAmounts;
+    toAmounts: ResolvedAmounts;
+  }): Promise<CreateTransferResult | null> {
+    const { userId, command, fromAmounts, toAmounts } = input;
+    return this.prisma.$transaction(async (tx) => {
+      const fromTarget = await resolveLedgerTarget(
+        tx,
+        userId,
+        command.fromAccountId,
+        undefined,
+      );
+      const toTarget = await resolveLedgerTarget(
+        tx,
+        userId,
+        undefined,
+        command.cardId,
+      );
+      if (!fromTarget || !toTarget) {
+        return null;
+      }
+
+      const transferGroupId = randomUUID();
+      const status = command.status ?? 'CONFIRMED';
+      const transactionDate = new Date(command.transactionDate);
+      const source = command.source ?? 'MANUAL';
+
+      const createLeg = async (leg: {
+        target: LedgerTarget;
+        amounts: ResolvedAmounts;
+        legRole: OperationLegRole;
+      }) => {
+        const created = await tx.finTransaction.create({
+          data: {
+            userId,
+            accountId: leg.target.accountId,
+            cardId: leg.target.cardId,
+            type: 'CARD_PAYMENT',
+            amount: leg.amounts.amount,
+            ledgerAmount: leg.amounts.ledgerAmount,
+            amountBaseCurrency: leg.amounts.amountBaseCurrency,
+            currency: leg.amounts.currency,
+            ledgerCurrency: leg.amounts.ledgerCurrency,
+            exchangeRate: leg.amounts.exchangeRate,
+            description: command.description,
+            notes: command.notes,
+            source,
+            status,
+            legRole: leg.legRole,
+            transferGroupId,
+            transactionDate,
+          },
+          include: {
+            account: { select: { id: true, name: true } },
+            card: { select: { id: true, name: true } },
+          },
+        });
+
+        if (statusAffectsLedger(status)) {
+          await applyBalanceForTransaction(tx, {
+            accountId: leg.target.accountId,
+            cardId: leg.target.cardId,
+            cardType: leg.target.cardType,
+            derivedAccountId: leg.target.derivedAccountId,
+            currency: leg.amounts.ledgerCurrency,
+            type: 'CARD_PAYMENT',
+            amount: leg.amounts.ledgerAmount,
+          });
+        }
+
+        await this.enqueueTransactionEvent(
+          tx,
+          userId,
+          transactionCreatedEventName(created.status),
+          created.id,
+        );
+        return created as LedgerTransactionRow;
+      };
+
+      const debit = await createLeg({
+        target: fromTarget,
+        amounts: fromAmounts,
+        legRole: OPERATION_LEG_ROLE.SOURCE,
+      });
+      const credit = await createLeg({
+        target: toTarget,
+        amounts: toAmounts,
+        legRole: OPERATION_LEG_ROLE.DESTINATION,
+      });
+
+      await this.events.enqueue(
+        {
+          eventName: AppEvents.FINANCE_TRANSFER_CREATED,
+          aggregateType: 'FinTransfer',
+          aggregateId: transferGroupId,
+          userId,
+          payload: {
+            transferGroupId,
+            debitId: debit.id,
+            creditId: credit.id,
+            amount: Number(debit.amount),
+          },
+        },
+        tx,
+      );
+
+      return { debit, credit, transferGroupId };
+    });
+  }
+
+  async findCardForPayment(userId: string, cardId: string) {
+    const card = await this.prisma.finCard.findFirst({
+      where: { id: cardId, userId },
+      select: {
+        id: true,
+        type: true,
+        balances: { select: { currency: true } },
+      },
+    });
+    if (!card) {
+      return null;
+    }
+    return {
+      id: card.id,
+      type: card.type,
+      currencies: card.balances.map((balance) => balance.currency),
+    };
+  }
+
+  private async upsertTransferFeeLeg(
+    tx: Prisma.TransactionClient,
+    input: {
+      userId: string;
+      transferGroupId: string | null;
+      source: LedgerTransactionRow;
+      feeAmounts: ResolvedAmounts;
+      feeCategoryId?: string | null;
+    },
+  ): Promise<void> {
+    if (!input.transferGroupId) {
+      throw new NotFoundException('Transfer group not found');
+    }
+    const amountFields = {
+      amount: input.feeAmounts.amount,
+      currency: input.feeAmounts.currency,
+      ledgerAmount: input.feeAmounts.ledgerAmount,
+      ledgerCurrency: input.feeAmounts.ledgerCurrency,
+      amountBaseCurrency: input.feeAmounts.amountBaseCurrency,
+      exchangeRate: input.feeAmounts.exchangeRate,
+    };
+    const existingFeeLeg = await tx.finTransaction.findFirst({
+      where: {
+        userId: input.userId,
+        transferGroupId: input.transferGroupId,
+        legRole: OPERATION_LEG_ROLE.FEE,
+      },
+      select: { id: true },
+    });
+    if (existingFeeLeg) {
+      await tx.finTransaction.update({
+        where: { id: existingFeeLeg.id },
+        data: {
+          ...amountFields,
+          ...(input.feeCategoryId ? { categoryId: input.feeCategoryId } : {}),
+        },
+      });
+      return;
+    }
+    await tx.finTransaction.create({
+      data: {
+        userId: input.userId,
+        accountId: input.source.accountId,
+        cardId: input.source.cardId,
+        type: 'DEBIT',
+        status: input.source.status as FinTxStatus,
+        legRole: OPERATION_LEG_ROLE.FEE,
+        transferGroupId: input.transferGroupId,
+        transactionDate: input.source.transactionDate,
+        categoryId:
+          input.feeCategoryId ?? (await this.resolveFeeCategoryId(tx)),
+        ...amountFields,
+      },
     });
   }
 
@@ -773,6 +1030,8 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
     transactionDate: Date;
     description?: string | null;
     notes?: string | null;
+    feeAmounts?: ResolvedAmounts;
+    feeCategoryId?: string | null;
   }): Promise<{
     debit: LedgerTransactionRow;
     credit: LedgerTransactionRow;
@@ -819,6 +1078,15 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
       );
       if (!debit || !credit) {
         throw new NotFoundException('Transfer leg not found');
+      }
+      if (input.feeAmounts) {
+        await this.upsertTransferFeeLeg(tx, {
+          userId: input.userId,
+          transferGroupId: debit.transaction.transferGroupId,
+          source: debit.transaction,
+          feeAmounts: input.feeAmounts,
+          feeCategoryId: input.feeCategoryId,
+        });
       }
       return { debit: debit.transaction, credit: credit.transaction };
     });
@@ -1576,6 +1844,7 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
           source: 'EMAIL',
           emailMessageId: data.emailMessageId,
           externalReference: data.externalReference ?? undefined,
+          possibleDuplicateOfId: data.possibleDuplicateOfId ?? undefined,
           categoryId: data.categoryId ?? undefined,
           transferGroupId: data.transferGroupId ?? undefined,
           aiMetadata: (data.aiMetadata as Prisma.InputJsonValue) ?? {},

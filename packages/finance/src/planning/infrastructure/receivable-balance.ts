@@ -20,11 +20,11 @@ export async function applyReceivableBalance(
   });
   const payments = await tx.finReceivablePayment.aggregate({
     where: { receivableId },
-    _sum: { amount: true },
+    _sum: { appliedAmount: true },
   });
   const collected = resolveReceivablePayment({
     amount: Number(receivable.amount),
-    paidAmount: Number(payments._sum.amount ?? 0),
+    paidAmount: Number(payments._sum.appliedAmount ?? 0),
     status: resolveReceivableStatusOverride({
       storedStatus: receivable.status,
       requestedStatus,

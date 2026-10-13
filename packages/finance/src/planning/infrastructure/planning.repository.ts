@@ -30,7 +30,7 @@ export class PlanningRepository {
   listBudgets(userId: string) {
     return this.prisma.finBudget.findMany({
       where: { userId },
-      include: { category: true },
+      include: { category: true, categories: { include: { category: true } } },
       orderBy: { periodStart: 'desc' },
     });
   }
@@ -56,7 +56,7 @@ export class PlanningRepository {
         : baseWhere;
     return this.prisma.finBudget.findMany({
       where,
-      include: { category: true },
+      include: { category: true, categories: { include: { category: true } } },
       orderBy: [{ periodStart: 'desc' }, { id: 'desc' }],
       take: limit + 1,
     });
@@ -65,17 +65,24 @@ export class PlanningRepository {
   findBudget(userId: string, id: string) {
     return this.prisma.finBudget.findFirst({
       where: { id, userId },
-      include: { category: true },
+      include: { category: true, categories: { include: { category: true } } },
     });
   }
 
   createBudget(
     userId: string,
     data: Omit<Prisma.FinBudgetUncheckedCreateInput, 'userId'>,
-  ) {
-    return this.prisma.finBudget.create({
-      data: { ...data, userId },
-      include: { category: true },
+    categoryIds: string[],
+  ): Promise<string> {
+    return this.prisma.$transaction(async (tx) => {
+      const budget = await tx.finBudget.create({ data: { ...data, userId } });
+      await tx.finBudgetCategory.createMany({
+        data: categoryIds.map((categoryId) => ({
+          budgetId: budget.id,
+          categoryId,
+        })),
+      });
+      return budget.id;
     });
   }
 
@@ -83,18 +90,85 @@ export class PlanningRepository {
     userId: string,
     id: string,
     data: Prisma.FinBudgetUncheckedUpdateManyInput,
-  ) {
-    return this.prisma.finBudget
-      .updateMany({ where: { id, userId }, data })
-      .then(async (result) => {
-        if (result.count === 0) {
-          return null;
-        }
-        return this.prisma.finBudget.findFirst({
-          where: { id, userId },
-          include: { category: true },
-        });
+    categoryIds?: string[],
+  ): Promise<string | null> {
+    return this.prisma.$transaction(async (tx) => {
+      const updateResult = await tx.finBudget.updateMany({
+        where: { id, userId },
+        data,
       });
+      if (updateResult.count === 0) {
+        return null;
+      }
+      if (categoryIds) {
+        await tx.finBudgetCategory.deleteMany({ where: { budgetId: id } });
+        await tx.finBudgetCategory.createMany({
+          data: categoryIds.map((categoryId) => ({ budgetId: id, categoryId })),
+        });
+      }
+      return id;
+    });
+  }
+
+  findOverlappingBudgetForCategories(
+    userId: string,
+    categoryIds: string[],
+    periodStart: Date,
+    periodEnd: Date,
+    excludeBudgetId?: string,
+  ) {
+    return this.prisma.finBudget.findFirst({
+      where: {
+        userId,
+        ...(excludeBudgetId ? { id: { not: excludeBudgetId } } : {}),
+        periodStart: { lte: periodEnd },
+        periodEnd: { gte: periodStart },
+        OR: [
+          { categoryId: { in: categoryIds } },
+          { categories: { some: { categoryId: { in: categoryIds } } } },
+        ],
+      },
+      include: { categories: { include: { category: true } } },
+    });
+  }
+
+  findPreviousBudgetForCategories(
+    userId: string,
+    categoryIds: string[],
+    periodStart: Date,
+    excludeBudgetId?: string,
+  ) {
+    return this.prisma.finBudget.findFirst({
+      where: {
+        userId,
+        ...(excludeBudgetId ? { id: { not: excludeBudgetId } } : {}),
+        periodEnd: { lt: periodStart },
+        categories: {
+          some: { categoryId: { in: categoryIds } },
+          every: { categoryId: { in: categoryIds } },
+        },
+      },
+      include: { categories: true },
+      orderBy: { periodEnd: 'desc' },
+    });
+  }
+
+  async listChildCategoryIds(parentIds: string[]): Promise<string[]> {
+    if (parentIds.length === 0) {
+      return [];
+    }
+    const rows = await this.prisma.finCategory.findMany({
+      where: { parentId: { in: parentIds } },
+      select: { id: true },
+    });
+    return rows.map((row) => row.id);
+  }
+
+  listRecurringBudgets() {
+    return this.prisma.finBudget.findMany({
+      where: { recurring: true },
+      include: { categories: { include: { category: true } } },
+    });
   }
 
   deleteBudget(userId: string, id: string) {
@@ -236,8 +310,10 @@ export class PlanningRepository {
     contribution: {
       amount: number;
       contributedAt: Date;
-      accountId: string;
-      transactionId: string;
+      kind: 'CONTRIBUTION' | 'WITHDRAWAL';
+      accountId?: string | null;
+      transactionId?: string | null;
+      transferGroupId?: string | null;
       notes?: string;
     },
     now: Date,
@@ -249,6 +325,30 @@ export class PlanningRepository {
       await applySavingsGoalBalance(tx, goalId, now);
       return created;
     });
+  }
+
+  /** Amount already earmarked in every EARMARK goal of one account. */
+  async sumEarmarkedByAccount(
+    userId: string,
+    accountId: string,
+  ): Promise<number> {
+    const goals = await this.prisma.finSavingsGoal.findMany({
+      where: { userId, accountId, mode: 'EARMARK' },
+      select: { id: true },
+    });
+    if (goals.length === 0) {
+      return 0;
+    }
+    const rows = await this.prisma.finSavingsGoalContribution.findMany({
+      where: { goalId: { in: goals.map((goal) => goal.id) } },
+      select: { amount: true, kind: true },
+    });
+    return rows.reduce(
+      (sum, row) =>
+        sum +
+        (row.kind === 'WITHDRAWAL' ? -Number(row.amount) : Number(row.amount)),
+      0,
+    );
   }
 
   async removeSavingsGoalContribution(
@@ -344,6 +444,10 @@ export class PlanningRepository {
         installmentFreq: true,
         totalInstallments: true,
         installmentAmount: true,
+        originalAmount: true,
+        currentBalance: true,
+        interestRate: true,
+        insuranceAmount: true,
       },
     });
   }
@@ -360,6 +464,26 @@ export class PlanningRepository {
       where: { loanId, paidAt: null },
       orderBy: { installmentNo: 'asc' },
     });
+  }
+
+  findLoanPaymentCategoryId() {
+    return this.prisma.finCategory
+      .findFirst({
+        where: { isSystem: true, systemKind: 'LOAN_PAYMENT', type: 'EXPENSE' },
+        select: { id: true },
+      })
+      .then((category) => category?.id ?? null);
+  }
+
+  createLoanPrepayment(input: {
+    loanId: string;
+    amount: number;
+    penalty: number;
+    mode: string;
+    paidAt: Date;
+    transactionId: string | null;
+  }) {
+    return this.prisma.finLoanPrepayment.create({ data: input });
   }
 
   async replaceLoanSchedule(
@@ -384,11 +508,21 @@ export class PlanningRepository {
             installmentNo: row.installmentNo,
             dueDate: row.dueDate,
             amount: row.amount,
+            principal: row.principal,
+            interest: row.interest,
+            insurance: row.insurance,
             paidAt: row.paidAt,
+            status: row.status,
+            paidAmount: row.paidAmount,
+            fees: row.fees,
+            lateFee: row.lateFee,
           },
           update: {
             dueDate: row.dueDate,
             amount: row.amount,
+            principal: row.principal,
+            interest: row.interest,
+            insurance: row.insurance,
             paidAt: row.paidAt,
           },
         }),
@@ -401,12 +535,27 @@ export class PlanningRepository {
 
   async markInstallmentPaid(
     installmentId: string,
-    paidAt: Date,
+    paidAt: Date | null,
     transactionId: string | null,
   ): Promise<void> {
     await this.prisma.finLoanInstallment.update({
       where: { id: installmentId },
       data: { paidAt, transactionId },
+    });
+  }
+
+  async applyInstallmentPayment(
+    installmentId: string,
+    input: {
+      paidAmount: number;
+      status: 'PENDING' | 'PARTIAL' | 'PAID' | 'OVERDUE';
+      paidAt: Date | null;
+      transactionId: string | null;
+    },
+  ): Promise<void> {
+    await this.prisma.finLoanInstallment.update({
+      where: { id: installmentId },
+      data: input,
     });
   }
 
@@ -460,6 +609,7 @@ export class PlanningRepository {
           data: {
             receivableId: receivable.id,
             amount: openingAmount,
+            appliedAmount: openingAmount,
             paidAt: receivable.createdAt,
             notes: OPENING_BALANCE_NOTE,
           },
@@ -537,6 +687,9 @@ export class PlanningRepository {
     receivableId: string,
     payment: {
       amount: number;
+      appliedAmount: number;
+      excessAmount: number;
+      excessHandling?: string | null;
       paidAt: Date;
       accountId: string;
       transactionId: string | null;
@@ -549,6 +702,65 @@ export class PlanningRepository {
       });
       await applyReceivableBalance(tx, receivableId);
       return created;
+    });
+  }
+
+  findExtraIncomeCategoryId() {
+    return this.prisma.finCategory
+      .findFirst({
+        where: { isSystem: true, systemKind: 'EXTRA_INCOME', type: 'INCOME' },
+        select: { id: true },
+      })
+      .then((category) => category?.id ?? null);
+  }
+
+  async addReceivableCreditBalance(
+    receivableId: string,
+    amount: number,
+  ): Promise<void> {
+    await this.prisma.finReceivable.update({
+      where: { id: receivableId },
+      data: { creditBalance: { increment: amount } },
+    });
+  }
+
+  /** Moves part of the credit balance to another open receivable. */
+  async applyReceivableCredit(input: {
+    sourceReceivableId: string;
+    targetReceivableId: string;
+    amount: number;
+    paidAt: Date;
+  }): Promise<void> {
+    await this.prisma.$transaction(async (tx) => {
+      await tx.finReceivable.update({
+        where: { id: input.sourceReceivableId },
+        data: { creditBalance: { decrement: input.amount } },
+      });
+      await tx.finReceivablePayment.create({
+        data: {
+          receivableId: input.targetReceivableId,
+          amount: input.amount,
+          appliedAmount: input.amount,
+          excessAmount: 0,
+          paidAt: input.paidAt,
+          transactionId: null,
+        },
+      });
+      await applyReceivableBalance(tx, input.targetReceivableId);
+    });
+  }
+
+  async writeOffReceivable(
+    receivableId: string,
+    input: { writtenOffAmount: number; writtenOffAt: Date },
+  ): Promise<void> {
+    await this.prisma.finReceivable.update({
+      where: { id: receivableId },
+      data: {
+        status: 'WRITTEN_OFF',
+        writtenOffAmount: input.writtenOffAmount,
+        writtenOffAt: input.writtenOffAt,
+      },
     });
   }
 }

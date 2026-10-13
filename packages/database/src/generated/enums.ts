@@ -28,6 +28,70 @@ export const FinTransferRail = {
 export type FinTransferRail = (typeof FinTransferRail)[keyof typeof FinTransferRail]
 
 
+export const FinBudgetRollover = {
+  NONE: 'NONE',
+  SURPLUS: 'SURPLUS',
+  SURPLUS_AND_DEFICIT: 'SURPLUS_AND_DEFICIT'
+} as const
+
+export type FinBudgetRollover = (typeof FinBudgetRollover)[keyof typeof FinBudgetRollover]
+
+
+export const FinCardStatementStatus = {
+  OPEN: 'OPEN',
+  CLOSED: 'CLOSED',
+  PARTIAL: 'PARTIAL',
+  MINIMUM_PAID: 'MINIMUM_PAID',
+  PAID: 'PAID',
+  OVERDUE: 'OVERDUE'
+} as const
+
+export type FinCardStatementStatus = (typeof FinCardStatementStatus)[keyof typeof FinCardStatementStatus]
+
+
+export const FinAmountSource = {
+  IMPORTED: 'IMPORTED',
+  ESTIMATED: 'ESTIMATED',
+  MANUAL: 'MANUAL'
+} as const
+
+export type FinAmountSource = (typeof FinAmountSource)[keyof typeof FinAmountSource]
+
+
+export const FinGoalMode = {
+  EARMARK: 'EARMARK',
+  DEDICATED: 'DEDICATED'
+} as const
+
+export type FinGoalMode = (typeof FinGoalMode)[keyof typeof FinGoalMode]
+
+
+export const FinAllocationKind = {
+  CONTRIBUTION: 'CONTRIBUTION',
+  WITHDRAWAL: 'WITHDRAWAL'
+} as const
+
+export type FinAllocationKind = (typeof FinAllocationKind)[keyof typeof FinAllocationKind]
+
+
+export const FinInstallmentStatus = {
+  PENDING: 'PENDING',
+  PARTIAL: 'PARTIAL',
+  PAID: 'PAID',
+  OVERDUE: 'OVERDUE'
+} as const
+
+export type FinInstallmentStatus = (typeof FinInstallmentStatus)[keyof typeof FinInstallmentStatus]
+
+
+export const FinRateType = {
+  FIXED: 'FIXED',
+  VARIABLE: 'VARIABLE'
+} as const
+
+export type FinRateType = (typeof FinRateType)[keyof typeof FinRateType]
+
+
 export const AiRole = {
   user: 'user',
   assistant: 'assistant',
@@ -90,7 +154,8 @@ export const FinTransactionType = {
   DEBIT: 'DEBIT',
   CREDIT: 'CREDIT',
   TRANSFER: 'TRANSFER',
-  ADJUSTMENT: 'ADJUSTMENT'
+  ADJUSTMENT: 'ADJUSTMENT',
+  CARD_PAYMENT: 'CARD_PAYMENT'
 } as const
 
 export type FinTransactionType = (typeof FinTransactionType)[keyof typeof FinTransactionType]
@@ -170,7 +235,8 @@ export const FinReceivableStatus = {
   PENDING: 'PENDING',
   PARTIAL: 'PARTIAL',
   PAID: 'PAID',
-  CANCELLED: 'CANCELLED'
+  CANCELLED: 'CANCELLED',
+  WRITTEN_OFF: 'WRITTEN_OFF'
 } as const
 
 export type FinReceivableStatus = (typeof FinReceivableStatus)[keyof typeof FinReceivableStatus]

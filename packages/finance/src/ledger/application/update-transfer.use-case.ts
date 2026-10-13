@@ -15,10 +15,15 @@ import {
   OPERATION_LEG_ROLE,
   TRANSFER_LOCKED,
   TRANSFER_LOCKED_MESSAGE,
+  TRANSFER_TARGET_NOT_ACCOUNT,
+  TRANSFER_TARGET_NOT_ACCOUNT_MESSAGE,
 } from '../../shared/domain/transfer';
 import type { CreateTransferCommand } from './commands/ledger.commands';
 import type { LedgerRepositoryPort } from './ports/ledger.repository.port';
-import { resolveLedgerCurrencyForTarget } from './resolve-ledger-currency';
+import {
+  assertDifferentAccounts,
+  requireOwnedAccount,
+} from './resolve-ledger-currency';
 
 @Injectable()
 export class UpdateTransferUseCase {
@@ -30,7 +35,11 @@ export class UpdateTransferUseCase {
     private readonly outboxDispatcher: FinanceOutboxDispatcher,
   ) {}
 
-  async execute(userId: string, legId: string, command: CreateTransferCommand) {
+  async execute(
+    userId: string,
+    legId: string,
+    command: Partial<CreateTransferCommand>,
+  ) {
     const leg = await this.repo.findTransactionById(legId, userId);
     if (!leg) {
       throw new NotFoundException('Transaction not found');
@@ -58,63 +67,78 @@ export class UpdateTransferUseCase {
         message: TRANSFER_LOCKED_MESSAGE,
       });
     }
-
-    const fromAccountId = command.fromAccountId ?? debit.accountId ?? null;
-    const fromCardId = command.fromCardId ?? debit.cardId ?? null;
-    const toAccountId = command.toAccountId ?? credit.accountId ?? null;
-    const toCardId = command.toCardId ?? credit.cardId ?? null;
-    if (
-      `${fromAccountId ?? ''}:${fromCardId ?? ''}` ===
-      `${toAccountId ?? ''}:${toCardId ?? ''}`
-    ) {
-      throw new BadRequestException('Invalid transfer accounts');
+    if (debit.cardId || credit.cardId) {
+      throw new BadRequestException({
+        code: TRANSFER_TARGET_NOT_ACCOUNT,
+        message: TRANSFER_TARGET_NOT_ACCOUNT_MESSAGE,
+      });
     }
+
+    const fromAccountId = command.fromAccountId ?? debit.accountId;
+    const toAccountId = command.toAccountId ?? credit.accountId;
+    if (!fromAccountId || !toAccountId) {
+      throw new BadRequestException({
+        code: TRANSFER_TARGET_NOT_ACCOUNT,
+        message: TRANSFER_TARGET_NOT_ACCOUNT_MESSAGE,
+      });
+    }
+    assertDifferentAccounts(fromAccountId, toAccountId);
+
+    const fromAccount = await requireOwnedAccount(
+      this.repo,
+      userId,
+      fromAccountId,
+    );
+    const toAccount = await requireOwnedAccount(this.repo, userId, toAccountId);
 
     const baseCurrency = await this.baseCurrency.execute(userId);
     const currency = normalizeCurrencyCode(command.currency ?? debit.currency);
-    const transactionDate = new Date(command.transactionDate);
+    const transactionDate = command.transactionDate
+      ? new Date(command.transactionDate)
+      : debit.transactionDate;
     const amount = command.amount ?? Number(decimalToString(debit.amount));
 
-    const fromLedgerCurrency = await resolveLedgerCurrencyForTarget(
-      this.repo,
-      userId,
-      fromAccountId ?? undefined,
-      fromCardId ?? undefined,
-      currency,
-    );
-    const toLedgerCurrency = await resolveLedgerCurrencyForTarget(
-      this.repo,
-      userId,
-      toAccountId ?? undefined,
-      toCardId ?? undefined,
-      currency,
-    );
     const fromAmounts = await this.resolveAmounts.execute({
       amount,
       currency,
-      ledgerCurrency: fromLedgerCurrency,
+      ledgerCurrency: fromAccount.currency,
       baseCurrency,
       transactionDate,
     });
     const toAmounts = await this.resolveAmounts.execute({
       amount,
       currency,
-      ledgerCurrency: toLedgerCurrency,
+      ledgerCurrency: toAccount.currency,
       baseCurrency,
       transactionDate,
     });
+    const feeAmounts = command.fee
+      ? await this.resolveAmounts.execute({
+          amount: command.fee.amount,
+          currency,
+          ledgerCurrency: fromAccount.currency,
+          baseCurrency,
+          transactionDate,
+        })
+      : undefined;
 
     const updated = await this.repo.updateTransfer({
       userId,
       debitId: debit.id,
       creditId: credit.id,
-      debitTarget: { accountId: fromAccountId, cardId: fromCardId },
-      creditTarget: { accountId: toAccountId, cardId: toCardId },
+      debitTarget: { accountId: fromAccountId, cardId: null },
+      creditTarget: { accountId: toAccountId, cardId: null },
       fromAmounts,
       toAmounts,
       transactionDate,
       description: command.description,
       notes: command.notes,
+      ...(command.fee
+        ? {
+            feeAmounts,
+            feeCategoryId: command.fee.categoryId ?? null,
+          }
+        : {}),
     });
     if (!updated) {
       throw new NotFoundException('Transfer legs not found');

@@ -45,6 +45,36 @@ export class CatalogRepository {
     });
   }
 
+  async sumEarmarkedByAccountIds(
+    userId: string,
+    accountIds: string[],
+  ): Promise<Map<string, number>> {
+    if (accountIds.length === 0) {
+      return new Map();
+    }
+    const rows = await this.prisma.finSavingsGoalContribution.findMany({
+      where: {
+        goal: { userId, accountId: { in: accountIds }, mode: 'EARMARK' },
+      },
+      select: {
+        amount: true,
+        kind: true,
+        goal: { select: { accountId: true } },
+      },
+    });
+    const byAccount = new Map<string, number>();
+    for (const row of rows) {
+      const accountId = row.goal.accountId;
+      if (!accountId) {
+        continue;
+      }
+      const signed =
+        row.kind === 'WITHDRAWAL' ? -Number(row.amount) : Number(row.amount);
+      byAccount.set(accountId, (byAccount.get(accountId) ?? 0) + signed);
+    }
+    return byAccount;
+  }
+
   createAccount(userId: string, dto: CreateAccountDto) {
     const data: Prisma.FinAccountUncheckedCreateInput = {
       userId,

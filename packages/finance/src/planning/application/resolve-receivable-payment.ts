@@ -5,6 +5,7 @@ export const RECEIVABLE_STATUSES = [
   'PARTIAL',
   'PAID',
   'CANCELLED',
+  'WRITTEN_OFF',
 ] as const;
 
 export type ReceivableStatus = (typeof RECEIVABLE_STATUSES)[number];
@@ -26,6 +27,9 @@ export function resolveReceivableStatusOverride(input: {
   }
   if (input.storedStatus === 'CANCELLED') {
     return 'CANCELLED';
+  }
+  if (input.storedStatus === 'WRITTEN_OFF') {
+    return 'WRITTEN_OFF';
   }
   return undefined;
 }
@@ -78,6 +82,9 @@ export function resolveReceivablePayment(input: {
     throw new BadRequestException(
       'PENDING receivables require paidAmount of 0',
     );
+  }
+  if (status === 'CANCELLED' && paidAmount > amount) {
+    throw new BadRequestException('paidAmount cannot exceed amount');
   }
 
   return { paidAmount, status };

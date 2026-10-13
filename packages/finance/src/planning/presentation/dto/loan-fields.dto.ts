@@ -95,4 +95,29 @@ export class LoanFieldsDto {
   @IsString()
   @MaxLength(500)
   notes?: string | null;
+
+  @ApiPropertyOptional({ enum: ['FIXED', 'VARIABLE'], default: 'FIXED' })
+  @IsOptional()
+  @IsEnum(['FIXED', 'VARIABLE'] as const)
+  rateType?: 'FIXED' | 'VARIABLE';
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  insuranceAmount?: number | null;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber({ maxDecimalPlaces: 4 })
+  @Min(0)
+  @Max(1)
+  prepaymentPenaltyPct?: number | null;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsDateString()
+  disbursementDate?: string | null;
 }

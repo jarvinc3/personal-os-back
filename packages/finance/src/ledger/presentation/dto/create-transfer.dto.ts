@@ -1,4 +1,4 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional, PartialType } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
   IsBoolean,
@@ -9,11 +9,8 @@ import {
   IsString,
   IsUUID,
   MaxLength,
-  Validate,
+  ValidateIf,
   ValidateNested,
-  ValidationArguments,
-  ValidatorConstraint,
-  ValidatorConstraintInterface,
 } from 'class-validator';
 import { CurrencyField } from '../../../shared/presentation/validation.decorators';
 import { TRANSFER_RAILS } from '../../application/commands/ledger.commands';
@@ -32,38 +29,38 @@ export class TransferFeeDto {
   categoryId?: string;
 }
 
-@ValidatorConstraint({ name: 'transferDestinationXor', async: false })
-class TransferDestinationXorConstraint implements ValidatorConstraintInterface {
-  validate(_: unknown, args: ValidationArguments) {
-    const obj = args.object as CreateTransferDto;
-    return (
-      Boolean(obj.toAccountId) !== Boolean(obj.toCardId) &&
-      (Boolean(obj.toAccountId) || Boolean(obj.toCardId))
-    );
-  }
-
-  defaultMessage() {
-    return 'A transfer arrives at exactly one accountId or cardId (to*)';
-  }
-}
+/**
+ * Account ids are only validated when no (deprecated) card target is sent, so a
+ * card target reaches the controller and gets 400 TRANSFER_TARGET_NOT_ACCOUNT
+ * instead of a generic validation error.
+ */
+const hasNoCardTarget = (o: CreateTransferDto) => !o.toCardId && !o.fromCardId;
 
 export class CreateTransferDto {
   @ApiProperty()
+  @ValidateIf(hasNoCardTarget)
   @IsUUID()
   fromAccountId!: string;
 
-  @ApiPropertyOptional()
-  @IsOptional()
+  @ApiProperty()
+  @ValidateIf(hasNoCardTarget)
   @IsUUID()
-  toAccountId?: string;
+  toAccountId!: string;
 
-  @ApiPropertyOptional()
+  /**
+   * Card targets are not transfers anymore (fase 02 R1). They stay in the DTO
+   * only so the controller can answer 400 `TRANSFER_TARGET_NOT_ACCOUNT` instead
+   * of a generic validation error.
+   */
+  @ApiPropertyOptional({ deprecated: true })
   @IsOptional()
   @IsUUID()
   toCardId?: string;
 
-  @Validate(TransferDestinationXorConstraint)
-  private readonly _destinationXor?: never;
+  @ApiPropertyOptional({ deprecated: true })
+  @IsOptional()
+  @IsUUID()
+  fromCardId?: string;
 
   @ApiProperty()
   @Type(() => Number)
@@ -110,3 +107,5 @@ export class CreateTransferDto {
   @IsBoolean()
   destinationPending?: boolean;
 }
+
+export class UpdateTransferDto extends PartialType(CreateTransferDto) {}

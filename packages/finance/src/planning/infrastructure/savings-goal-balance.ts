@@ -14,13 +14,19 @@ export async function applySavingsGoalBalance(
   const goal = await tx.finSavingsGoal.findUniqueOrThrow({
     where: { id: goalId },
   });
-  const contributions = await tx.finSavingsGoalContribution.aggregate({
+  const contributions = await tx.finSavingsGoalContribution.findMany({
     where: { goalId },
-    _sum: { amount: true },
+    select: { amount: true, kind: true },
   });
+  const contributedAmount = contributions.reduce(
+    (sum, row) =>
+      sum +
+      (row.kind === 'WITHDRAWAL' ? -Number(row.amount) : Number(row.amount)),
+    0,
+  );
   const progress = resolveSavingsGoalProgress({
     targetAmount: Number(goal.targetAmount),
-    contributedAmount: Number(contributions._sum.amount ?? 0),
+    contributedAmount,
   });
   await tx.finSavingsGoal.update({
     where: { id: goalId },

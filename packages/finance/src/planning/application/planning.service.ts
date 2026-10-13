@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -9,7 +10,15 @@ import {
   type CursorQueryDto,
 } from '@personal-os/core';
 import { FinanceOwnershipService } from '../../shared/application/finance-ownership.service';
+import { assertRestored } from '../../shared/application/assert-restored';
+import { LedgerQueryService } from '../../ledger/application/ledger-query.service';
 import { PlanningRepository } from '../infrastructure/planning.repository';
+import {
+  BUDGET_ROLLOVER,
+  carriedOverFrom,
+  type BudgetRollover,
+} from '../domain/budget-rollover';
+import { endOfUtcDay, nextBudgetPeriod } from '../domain/budget-period';
 import type { CreateBudgetDto } from '../presentation/dto/create-budget.dto';
 import type { CreateLoanDto } from '../presentation/dto/create-loan.dto';
 import type { CreateReceivableDto } from '../presentation/dto/create-receivable.dto';
@@ -35,6 +44,7 @@ export class PlanningService {
     private readonly repo: PlanningRepository,
     private readonly ownership: FinanceOwnershipService,
     private readonly syncInstallments: SyncLoanInstallmentsUseCase,
+    private readonly ledger: LedgerQueryService,
   ) {}
 
   async listBudgets(userId: string) {
@@ -59,39 +69,232 @@ export class PlanningService {
   }
 
   async createBudget(userId: string, dto: CreateBudgetDto) {
-    await this.ownership.assertExpenseCategory(userId, dto.categoryId);
-    const created = await this.repo.createBudget(userId, {
-      categoryId: dto.categoryId,
-      periodType: dto.periodType,
-      periodStart: new Date(dto.periodStart),
-      periodEnd: new Date(dto.periodEnd),
-      amountLimit: dto.amountLimit,
-      amountSpent: 0,
-      alertThresholdPct: dto.alertThresholdPct ?? 80,
-    });
-    return mapBudget(created);
+    const categoryIds = dto.categoryIds;
+    for (const categoryId of categoryIds) {
+      await this.ownership.assertExpenseCategory(userId, categoryId);
+    }
+    const periodStart = new Date(dto.periodStart);
+    const periodEnd = new Date(dto.periodEnd);
+    await this.assertCategoriesNotBudgeted(
+      userId,
+      categoryIds,
+      periodStart,
+      periodEnd,
+    );
+    const budgetId = await this.repo.createBudget(
+      userId,
+      {
+        categoryId: categoryIds[0],
+        name: dto.name ?? null,
+        includeChildren: dto.includeChildren ?? true,
+        rollover: dto.rollover ?? 'NONE',
+        recurring: dto.recurring ?? false,
+        periodType: dto.periodType,
+        periodStart,
+        periodEnd,
+        amountLimit: dto.amountLimit,
+        amountSpent: 0,
+        alertThresholdPct: dto.alertThresholdPct ?? 80,
+      },
+      categoryIds,
+    );
+    const created = await this.repo.findBudget(userId, budgetId);
+    if (!created) {
+      throw new NotFoundException('Budget not found');
+    }
+    await this.applyCarriedOver(userId, created);
+    return mapBudget((await this.repo.findBudget(userId, budgetId)) ?? created);
   }
 
   async updateBudget(userId: string, id: string, dto: UpdateBudgetDto) {
-    if (dto.categoryId) {
-      await this.ownership.assertExpenseCategory(userId, dto.categoryId);
+    if (dto.categoryIds) {
+      for (const categoryId of dto.categoryIds) {
+        await this.ownership.assertExpenseCategory(userId, categoryId);
+      }
+      const existing = await this.repo.findBudget(userId, id);
+      if (!existing) {
+        throw new NotFoundException('Budget not found');
+      }
+      await this.assertCategoriesNotBudgeted(
+        userId,
+        dto.categoryIds,
+        dto.periodStart ? new Date(dto.periodStart) : existing.periodStart,
+        dto.periodEnd ? new Date(dto.periodEnd) : existing.periodEnd,
+        id,
+      );
     }
-    const updated = await this.repo.updateBudget(userId, id, {
-      ...(dto.categoryId ? { categoryId: dto.categoryId } : {}),
-      ...(dto.periodType ? { periodType: dto.periodType } : {}),
-      ...(dto.periodStart ? { periodStart: new Date(dto.periodStart) } : {}),
-      ...(dto.periodEnd ? { periodEnd: new Date(dto.periodEnd) } : {}),
-      ...(dto.amountLimit !== undefined
-        ? { amountLimit: dto.amountLimit }
-        : {}),
-      ...(dto.alertThresholdPct !== undefined
-        ? { alertThresholdPct: dto.alertThresholdPct }
-        : {}),
-    });
+    const updatedId = await this.repo.updateBudget(
+      userId,
+      id,
+      {
+        ...(dto.name !== undefined ? { name: dto.name } : {}),
+        ...(dto.categoryIds ? { categoryId: dto.categoryIds[0] } : {}),
+        ...(dto.periodType ? { periodType: dto.periodType } : {}),
+        ...(dto.periodStart ? { periodStart: new Date(dto.periodStart) } : {}),
+        ...(dto.periodEnd ? { periodEnd: new Date(dto.periodEnd) } : {}),
+        ...(dto.amountLimit !== undefined
+          ? { amountLimit: dto.amountLimit }
+          : {}),
+        ...(dto.alertThresholdPct !== undefined
+          ? { alertThresholdPct: dto.alertThresholdPct }
+          : {}),
+        ...(dto.includeChildren !== undefined
+          ? { includeChildren: dto.includeChildren }
+          : {}),
+        ...(dto.rollover ? { rollover: dto.rollover } : {}),
+        ...(dto.recurring !== undefined ? { recurring: dto.recurring } : {}),
+      },
+      dto.categoryIds,
+    );
+    if (!updatedId) {
+      throw new NotFoundException('Budget not found');
+    }
+    const updated = await this.repo.findBudget(userId, updatedId);
     if (!updated) {
       throw new NotFoundException('Budget not found');
     }
-    return mapBudget(updated);
+    await this.applyCarriedOver(userId, updated);
+    return mapBudget(
+      (await this.repo.findBudget(userId, updatedId)) ?? updated,
+    );
+  }
+
+  async getBudgetTransactions(
+    userId: string,
+    id: string,
+    query: CursorQueryDto,
+  ) {
+    const budget = await this.repo.findBudget(userId, id);
+    if (!budget) {
+      throw new NotFoundException('Budget not found');
+    }
+    const categoryIds = budget.categories.map((entry) => entry.categoryId);
+    if (budget.includeChildren) {
+      categoryIds.push(...(await this.repo.listChildCategoryIds(categoryIds)));
+    }
+    if (categoryIds.length === 0) {
+      return { items: [], nextCursor: null, hasMore: false };
+    }
+    return this.ledger.listTransactions(userId, {
+      cursor: query.cursor,
+      limit: query.limit,
+      categoryIds,
+      type: 'DEBIT',
+      status: 'CONFIRMED',
+      dateFrom: budget.periodStart.toISOString(),
+      dateTo: endOfUtcDay(budget.periodEnd).toISOString(),
+    });
+  }
+
+  /**
+   * Creates the next period of every recurring budget whose period ended. The
+   * overlapping check makes the job idempotent. The scheduler calls it daily.
+   */
+  async createRecurringBudgets(now: Date) {
+    const budgets = await this.repo.listRecurringBudgets();
+    let created = 0;
+    for (const budget of budgets) {
+      if (budget.periodEnd.getTime() >= now.getTime()) {
+        continue;
+      }
+      const categoryIds = budget.categories.map((entry) => entry.categoryId);
+      if (categoryIds.length === 0) {
+        continue;
+      }
+      const next = nextBudgetPeriod({
+        periodType: budget.periodType,
+        periodStart: budget.periodStart,
+        periodEnd: budget.periodEnd,
+      });
+      const overlapping = await this.repo.findOverlappingBudgetForCategories(
+        budget.userId,
+        categoryIds,
+        next.periodStart,
+        next.periodEnd,
+      );
+      if (overlapping) {
+        continue;
+      }
+      const newBudgetId = await this.repo.createBudget(
+        budget.userId,
+        {
+          categoryId: categoryIds[0] ?? null,
+          name: budget.name,
+          includeChildren: budget.includeChildren,
+          rollover: budget.rollover,
+          recurring: budget.recurring,
+          periodType: budget.periodType,
+          periodStart: next.periodStart,
+          periodEnd: next.periodEnd,
+          amountLimit: Number(budget.amountLimit),
+          amountSpent: 0,
+          alertThresholdPct: Number(budget.alertThresholdPct),
+        },
+        categoryIds,
+      );
+      const newBudget = await this.repo.findBudget(budget.userId, newBudgetId);
+      if (newBudget) {
+        await this.applyCarriedOver(budget.userId, newBudget);
+      }
+      created += 1;
+    }
+    return { created };
+  }
+
+  private async applyCarriedOver(
+    userId: string,
+    budget: {
+      id: string;
+      rollover: string;
+      periodStart: Date;
+      categories: Array<{ categoryId: string }>;
+    },
+  ): Promise<void> {
+    const categoryIds = budget.categories.map((entry) => entry.categoryId);
+    let carriedOver = 0;
+    if (categoryIds.length > 0 && budget.rollover !== BUDGET_ROLLOVER.NONE) {
+      const previous = await this.repo.findPreviousBudgetForCategories(
+        userId,
+        categoryIds,
+        budget.periodStart,
+        budget.id,
+      );
+      if (previous && previous.categories.length === categoryIds.length) {
+        carriedOver = carriedOverFrom({
+          rollover: budget.rollover as BudgetRollover,
+          previousLimit: Number(previous.amountLimit),
+          previousCarriedOver: Number(previous.carriedOver),
+          previousSpent: Number(previous.amountSpent),
+        });
+      }
+    }
+    await this.repo.updateBudget(userId, budget.id, { carriedOver });
+  }
+
+  private async assertCategoriesNotBudgeted(
+    userId: string,
+    categoryIds: string[],
+    periodStart: Date,
+    periodEnd: Date,
+    excludeBudgetId?: string,
+  ): Promise<void> {
+    const conflict = await this.repo.findOverlappingBudgetForCategories(
+      userId,
+      categoryIds,
+      periodStart,
+      periodEnd,
+      excludeBudgetId,
+    );
+    if (!conflict) {
+      return;
+    }
+    const conflicting = conflict.categories.find((entry) =>
+      categoryIds.includes(entry.categoryId),
+    );
+    throw new ConflictException({
+      code: 'CATEGORY_ALREADY_BUDGETED',
+      message: `${conflicting?.category.name ?? 'Una categoría'} ya está en el presupuesto ${conflict.name ?? 'de este periodo'}.`,
+    });
   }
 
   async deleteBudget(userId: string, id: string) {
@@ -104,9 +307,7 @@ export class PlanningService {
 
   async restoreBudget(userId: string, id: string, now: Date) {
     const restored = await this.repo.restoreBudget(userId, id, now);
-    if (restored.count === 0) {
-      throw new NotFoundException('Budget not found');
-    }
+    assertRestored(restored, 'Budget not found');
     return { success: true };
   }
 
@@ -136,6 +337,9 @@ export class PlanningService {
         targetAmount: dto.targetAmount,
         currency: dto.currency ?? 'DOP',
         targetDate: dto.targetDate ? new Date(dto.targetDate) : null,
+        accountId: dto.accountId,
+        mode: dto.mode ?? 'EARMARK',
+        spendReducesProgress: dto.spendReducesProgress ?? true,
       },
       dto.currentAmount ?? 0,
       now,
@@ -163,6 +367,11 @@ export class PlanningService {
           : {}),
         ...(dto.currency ? { currency: dto.currency } : {}),
         ...(dto.targetDate ? { targetDate: new Date(dto.targetDate) } : {}),
+        ...(dto.accountId !== undefined ? { accountId: dto.accountId } : {}),
+        ...(dto.mode ? { mode: dto.mode } : {}),
+        ...(dto.spendReducesProgress !== undefined
+          ? { spendReducesProgress: dto.spendReducesProgress }
+          : {}),
       },
       now,
     );
@@ -183,9 +392,7 @@ export class PlanningService {
 
   async restoreSavingsGoal(userId: string, id: string, now: Date) {
     const restored = await this.repo.restoreSavingsGoal(userId, id, now);
-    if (restored.count === 0) {
-      throw new NotFoundException('Savings goal not found');
-    }
+    assertRestored(restored, 'Savings goal not found');
     return { success: true };
   }
 
@@ -252,6 +459,16 @@ export class PlanningService {
       nextDueDate: new Date(dto.nextDueDate),
       ...(dto.interestRate !== undefined
         ? { interestRate: dto.interestRate }
+        : {}),
+      ...(dto.rateType ? { rateType: dto.rateType } : {}),
+      ...(dto.insuranceAmount !== undefined
+        ? { insuranceAmount: dto.insuranceAmount }
+        : {}),
+      ...(dto.prepaymentPenaltyPct !== undefined
+        ? { prepaymentPenaltyPct: dto.prepaymentPenaltyPct }
+        : {}),
+      ...(dto.disbursementDate
+        ? { disbursementDate: new Date(dto.disbursementDate) }
         : {}),
       ...(dto.notes !== undefined ? { notes: dto.notes } : {}),
     });
@@ -333,6 +550,16 @@ export class PlanningService {
       ...(dto.interestRate !== undefined
         ? { interestRate: dto.interestRate }
         : {}),
+      ...(dto.rateType ? { rateType: dto.rateType } : {}),
+      ...(dto.insuranceAmount !== undefined
+        ? { insuranceAmount: dto.insuranceAmount }
+        : {}),
+      ...(dto.prepaymentPenaltyPct !== undefined
+        ? { prepaymentPenaltyPct: dto.prepaymentPenaltyPct }
+        : {}),
+      ...(dto.disbursementDate
+        ? { disbursementDate: new Date(dto.disbursementDate) }
+        : {}),
       ...(dto.notes !== undefined ? { notes: dto.notes } : {}),
     });
     if (!updated) {
@@ -360,9 +587,7 @@ export class PlanningService {
 
   async restoreLoan(userId: string, id: string, now: Date) {
     const restored = await this.repo.restoreLoan(userId, id, now);
-    if (restored.count === 0) {
-      throw new NotFoundException('Loan not found');
-    }
+    assertRestored(restored, 'Loan not found');
     return { success: true };
   }
 
@@ -445,9 +670,7 @@ export class PlanningService {
 
   async restoreReceivable(userId: string, id: string, now: Date) {
     const restored = await this.repo.restoreReceivable(userId, id, now);
-    if (restored.count === 0) {
-      throw new NotFoundException('Receivable not found');
-    }
+    assertRestored(restored, 'Receivable not found');
     return { success: true };
   }
 }

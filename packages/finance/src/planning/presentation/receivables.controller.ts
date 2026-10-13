@@ -11,9 +11,13 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CurrentUser, RequiresEnabledModule } from '@personal-os/core';
 import { PlanningService } from '../application/planning.service';
 import { RecordReceivablePaymentUseCase } from '../application/record-receivable-payment.use-case';
+import { ApplyReceivableCreditUseCase } from '../application/apply-receivable-credit.use-case';
+import { WriteOffReceivableUseCase } from '../application/write-off-receivable.use-case';
+import { ApplyReceivableCreditDto } from './dto/apply-receivable-credit.dto';
 import { CreateReceivablePaymentDto } from './dto/create-receivable-payment.dto';
 import { CreateReceivableDto } from './dto/create-receivable.dto';
 import { UpdateReceivableDto } from './dto/update-receivable.dto';
+import { WriteOffReceivableDto } from './dto/write-off-receivable.dto';
 
 @ApiTags('finance')
 @ApiBearerAuth('access-token')
@@ -23,6 +27,8 @@ export class ReceivablesController {
   constructor(
     private readonly planning: PlanningService,
     private readonly recordPayment: RecordReceivablePaymentUseCase,
+    private readonly applyCredit: ApplyReceivableCreditUseCase,
+    private readonly writeOffReceivable: WriteOffReceivableUseCase,
   ) {}
 
   @Get('receivables')
@@ -59,6 +65,27 @@ export class ReceivablesController {
     @Body() dto: CreateReceivablePaymentDto,
   ) {
     return this.recordPayment.execute(userId, id, dto, new Date());
+  }
+
+  @Post('receivables/:id/credit')
+  @ApiOperation({ summary: 'Apply a receivable credit balance to another one' })
+  applyCreditBalance(
+    @CurrentUser('sub') userId: string,
+    @Param('id') id: string,
+    @Body() dto: ApplyReceivableCreditDto,
+  ) {
+    return this.applyCredit.execute(userId, id, dto, new Date());
+  }
+
+  @Post('receivables/:id/write-off')
+  @ApiOperation({ summary: 'Write off an uncollectible receivable' })
+  async writeOff(
+    @CurrentUser('sub') userId: string,
+    @Param('id') id: string,
+    @Body() dto: WriteOffReceivableDto,
+  ) {
+    await this.writeOffReceivable.execute(userId, id, dto, new Date());
+    return { success: true };
   }
 
   @Patch('receivables/:id')

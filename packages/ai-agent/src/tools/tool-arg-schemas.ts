@@ -211,17 +211,22 @@ export const createOrUpdateBudgetArgsSchema = z
   .object({
     budgetId: uuid.nullable().optional(),
     categoryId: categoryId.optional(),
+    categoryIds: z.array(uuid).min(1).max(20).optional(),
     periodType: z.enum(budgetPeriods).optional(),
     periodStart: dateString.optional(),
     periodEnd: dateString.optional(),
     amountLimit: moneyAmount.optional(),
     alertThresholdPct: moneyAmount.nullable().optional(),
+    includeChildren: z.boolean().optional(),
+    rollover: z.enum(['NONE', 'SURPLUS', 'SURPLUS_AND_DEFICIT']).optional(),
+    recurring: z.boolean().optional(),
   })
   .strict()
   .superRefine((value, ctx) => {
     if (value.budgetId) {
       if (
         value.categoryId === undefined &&
+        value.categoryIds === undefined &&
         value.periodType === undefined &&
         value.periodStart === undefined &&
         value.periodEnd === undefined &&
@@ -237,7 +242,7 @@ export const createOrUpdateBudgetArgsSchema = z
     }
 
     for (const key of [
-      'categoryId',
+      'categoryIds',
       'periodType',
       'periodStart',
       'periodEnd',
@@ -257,19 +262,35 @@ export const createSavingsGoalArgsSchema = z
   .object({
     name: z.string().trim().min(1).max(120),
     targetAmount: moneyAmount,
+    accountId: uuid,
+    mode: z.enum(['EARMARK', 'DEDICATED']).optional(),
     currentAmount: moneyAmount.nullable().optional(),
     currency: currencyCode.nullable().optional(),
     targetDate: dateString.nullable().optional(),
   })
   .strict();
 
-export const recordSavingsContributionArgsSchema = z
+export const allocateToGoalArgsSchema = z
   .object({
     goalId: uuid,
-    accountId: uuid,
     amount: moneyAmount,
-    contributedAt: dateString.nullable().optional(),
+    kind: z.enum(['CONTRIBUTION', 'WITHDRAWAL']).optional(),
+    date: dateString.nullable().optional(),
     notes: z.string().trim().max(200).nullable().optional(),
+  })
+  .strict();
+
+export const recordReceivablePaymentArgsSchema = z
+  .object({
+    receivableId: uuid,
+    amount: moneyAmount,
+    accountId: uuid,
+    paidAt: dateString.nullable().optional(),
+    notes: z.string().trim().max(200).nullable().optional(),
+    excessHandling: z
+      .enum(['EXTRA_INCOME', 'CREDIT_BALANCE', 'APPLY_TO_RECEIVABLE'])
+      .optional(),
+    targetReceivableId: uuid.nullable().optional(),
   })
   .strict();
 
@@ -278,10 +299,19 @@ export const updateSavingsGoalArgsSchema = z
     goalId: uuid,
     targetAmount: moneyAmount.nullable().optional(),
     name: z.string().trim().min(1).max(120).nullable().optional(),
+    accountId: uuid.nullable().optional(),
+    mode: z.enum(['EARMARK', 'DEDICATED']).optional(),
+    spendReducesProgress: z.boolean().optional(),
   })
   .strict()
   .superRefine((value, ctx) => {
-    if (value.targetAmount === undefined && value.name === undefined) {
+    if (
+      value.targetAmount === undefined &&
+      value.name === undefined &&
+      value.accountId === undefined &&
+      value.mode === undefined &&
+      value.spendReducesProgress === undefined
+    ) {
       ctx.addIssue({
         code: 'custom',
         message: 'Provide at least one field to update on the savings goal',
@@ -294,6 +324,17 @@ export const markLoanInstallmentPaidArgsSchema = z
     loanId: uuid,
   })
   .strict();
+
+export const prepayLoanArgsSchema = z
+  .object({
+    loanId: uuid,
+    amount: moneyAmount,
+    accountId: uuid,
+    mode: z.enum(['REDUCE_TERM', 'REDUCE_INSTALLMENT']),
+  })
+  .strict();
+
+export const getLoanScheduleArgsSchema = z.object({ loanId: uuid }).strict();
 
 export const triggerEmailSyncArgsSchema = z
   .object({
@@ -340,26 +381,38 @@ export const unconfirmTransactionArgsSchema = z
 export const createTransferArgsSchema = z
   .object({
     fromAccountId: uuid,
-    toAccountId: uuid.nullable().optional(),
-    toCardId: uuid.nullable().optional(),
+    toAccountId: uuid,
+    amount: moneyAmount,
+    currency: currencyCode.optional(),
+    transactionDate: dateString,
+    description: optionalNullableString(200),
+    notes: optionalNullableString(2000),
+    rail: z.enum(['SAME_BANK', 'ACH', 'LBTR', 'OTHER']).optional(),
+    fee: z
+      .object({
+        amount: moneyAmount,
+        categoryId: uuid.nullable().optional(),
+      })
+      .strict()
+      .optional(),
+  })
+  .strict();
+
+export const createCardPaymentArgsSchema = z
+  .object({
+    fromAccountId: uuid,
+    cardId: uuid,
     amount: moneyAmount,
     currency: currencyCode.optional(),
     transactionDate: dateString,
     description: optionalNullableString(200),
     notes: optionalNullableString(2000),
   })
-  .strict()
-  .superRefine((value, ctx) => {
-    const toOk =
-      Boolean(value.toAccountId) !== Boolean(value.toCardId) &&
-      (Boolean(value.toAccountId) || Boolean(value.toCardId));
-    if (!toOk) {
-      ctx.addIssue({
-        code: 'custom',
-        message: 'A transfer arrives at exactly one accountId or cardId (to*)',
-      });
-    }
-  });
+  .strict();
+
+export const getCardStatementArgsSchema = z
+  .object({ cardId: uuid, statementId: uuid.nullable().optional() })
+  .strict();
 
 /** Mutating tool name → Zod schema (single source of truth). */
 export const MUTATING_TOOL_ARG_SCHEMAS = {
@@ -375,11 +428,14 @@ export const MUTATING_TOOL_ARG_SCHEMAS = {
   confirm_transaction: confirmTransactionArgsSchema,
   unconfirm_transaction: unconfirmTransactionArgsSchema,
   create_transfer: createTransferArgsSchema,
+  pay_card: createCardPaymentArgsSchema,
   create_or_update_budget: createOrUpdateBudgetArgsSchema,
   create_savings_goal: createSavingsGoalArgsSchema,
   update_savings_goal: updateSavingsGoalArgsSchema,
-  record_savings_contribution: recordSavingsContributionArgsSchema,
+  allocate_to_goal: allocateToGoalArgsSchema,
+  record_receivable_payment: recordReceivablePaymentArgsSchema,
   mark_loan_installment_paid: markLoanInstallmentPaidArgsSchema,
+  prepay_loan: prepayLoanArgsSchema,
   trigger_email_sync: triggerEmailSyncArgsSchema,
 } as const;
 

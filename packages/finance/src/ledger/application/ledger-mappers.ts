@@ -1,6 +1,11 @@
 import type { LogoRow } from '@personal-os/logos';
 import { decimalToString } from '../../shared/domain/mappers';
 import {
+  OPERATION_LEG_ROLE,
+  OPERATION_TYPE,
+  type OperationType,
+} from '../../shared/domain/transfer';
+import {
   transactionEditPolicy,
   type TransactionEditability,
 } from '../../shared/domain/transaction-edit-policy';
@@ -45,6 +50,7 @@ export type MappedTransaction = {
   transferToNetwork: string | null;
   transferToNetworkLogoUrl: string | null;
   linkedTransactionId: string | null;
+  possibleDuplicateOfId: string | null;
   aiMetadata: unknown;
   createdAt: string;
 };
@@ -114,8 +120,50 @@ function mapPhysicalTransaction(
     transferToNetwork: null,
     transferToNetworkLogoUrl: null,
     linkedTransactionId: tx.linkedTransactionId,
+    possibleDuplicateOfId: tx.possibleDuplicateOfId ?? null,
     aiMetadata: tx.aiMetadata,
     createdAt: tx.createdAt.toISOString(),
+  };
+}
+
+export type MappedOperationLeg = MappedTransaction & {
+  legRole: string | null;
+};
+
+export type MappedOperation = MappedTransaction & {
+  kind: 'OPERATION';
+  operationType: OperationType;
+  legs: MappedOperationLeg[];
+};
+
+function mapOperationLeg(
+  leg: LedgerTransactionRow,
+  logos?: PartyLogoResolver,
+): MappedOperationLeg {
+  return {
+    ...mapLedgerTransaction(leg, logos),
+    legRole: leg.legRole ?? null,
+  };
+}
+
+/** One row per transfer operation, with every leg inside. */
+export function mapOperation(
+  legs: LedgerTransactionRow[],
+  logos?: PartyLogoResolver,
+): MappedOperation {
+  const source =
+    legs.find((leg) => leg.legRole === OPERATION_LEG_ROLE.SOURCE) ??
+    legs.find((leg) => leg.type === 'DEBIT') ??
+    legs[0];
+  const destination =
+    legs.find((leg) => leg.legRole === OPERATION_LEG_ROLE.DESTINATION) ??
+    legs.find((leg) => leg.type === 'CREDIT') ??
+    null;
+  return {
+    ...mapLogicalTransaction(source, destination, logos),
+    kind: 'OPERATION',
+    operationType: OPERATION_TYPE.TRANSFER,
+    legs: legs.map((leg) => mapOperationLeg(leg, logos)),
   };
 }
 
@@ -174,6 +222,7 @@ export function mapLogicalTransaction(
     transferToNetwork: destination.network,
     transferToNetworkLogoUrl: destination.networkLogoUrl,
     linkedTransactionId: tx.linkedTransactionId,
+    possibleDuplicateOfId: tx.possibleDuplicateOfId ?? null,
     aiMetadata: tx.aiMetadata,
     createdAt: from.createdAt.toISOString(),
   };

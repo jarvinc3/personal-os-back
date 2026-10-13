@@ -111,6 +111,11 @@ export type FinCategory = Prisma.FinCategoryModel
  */
 export type FinBudget = Prisma.FinBudgetModel
 /**
+ * Model FinBudgetCategory
+ * 
+ */
+export type FinBudgetCategory = Prisma.FinBudgetCategoryModel
+/**
  * Model FinBudgetAlert
  * 
  */
@@ -174,6 +179,11 @@ export type FinLoan = Prisma.FinLoanModel
  * instalment and does not change when the loan balance is adjusted.
  */
 export type FinLoanInstallment = Prisma.FinLoanInstallmentModel
+/**
+ * Model FinLoanPrepayment
+ * 
+ */
+export type FinLoanPrepayment = Prisma.FinLoanPrepaymentModel
 /**
  * Model FinReceivable
  * 

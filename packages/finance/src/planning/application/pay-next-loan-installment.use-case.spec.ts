@@ -22,18 +22,33 @@ function loan(overrides: Record<string, unknown> = {}) {
   };
 }
 
+function installment(overrides: Record<string, unknown> = {}) {
+  return {
+    id: 'inst-2',
+    installmentNo: 2,
+    amount: 1500,
+    principal: 1500,
+    interest: 0,
+    insurance: 0,
+    fees: 0,
+    lateFee: 0,
+    paidAmount: 0,
+    ...overrides,
+  };
+}
+
 function setup(options: { found?: unknown; nextInstallment?: unknown } = {}) {
   const found = 'found' in options ? options.found : loan();
   const nextInstallment =
-    'nextInstallment' in options
-      ? options.nextInstallment
-      : { id: 'inst-2', installmentNo: 2, amount: 1500 };
+    'nextInstallment' in options ? options.nextInstallment : installment();
 
   const repo = {
     findLoan: jest.fn().mockResolvedValue(found),
     findNextUnpaidInstallment: jest.fn().mockResolvedValue(nextInstallment),
-    markInstallmentPaid: jest.fn().mockResolvedValue(undefined),
+    findLoanPaymentCategoryId: jest.fn().mockResolvedValue(null),
+    applyInstallmentPayment: jest.fn().mockResolvedValue(undefined),
     updateLoan: jest.fn().mockResolvedValue(undefined),
+    createLoanPrepayment: jest.fn().mockResolvedValue(undefined),
   };
   const syncInstallments = { execute: jest.fn().mockResolvedValue(undefined) };
   const createTransaction = {
@@ -49,7 +64,7 @@ function setup(options: { found?: unknown; nextInstallment?: unknown } = {}) {
 }
 
 describe('PayNextLoanInstallmentUseCase', () => {
-  it('records the movement on the linked account and advances the loan', async () => {
+  it('records the movement and lowers the balance only by the principal', async () => {
     const now = utc(2026, 2, 10);
     const { repo, syncInstallments, createTransaction, useCase, found } =
       setup();
@@ -65,11 +80,12 @@ describe('PayNextLoanInstallmentUseCase', () => {
       transactionDate: now.toISOString(),
       description: 'Cuota 2: BHD',
     });
-    expect(repo.markInstallmentPaid).toHaveBeenCalledWith(
-      'inst-2',
-      now,
-      'tx-1',
-    );
+    expect(repo.applyInstallmentPayment).toHaveBeenCalledWith('inst-2', {
+      paidAmount: 1500,
+      status: 'PAID',
+      paidAt: now,
+      transactionId: 'tx-1',
+    });
     expect(repo.updateLoan).toHaveBeenCalledWith('user-1', 'loan-1', {
       paidInstallments: 2,
       currentBalance: 3500,
@@ -77,17 +93,54 @@ describe('PayNextLoanInstallmentUseCase', () => {
     });
   });
 
-  it('skips the movement when the loan has no linked account', async () => {
+  it('splits a short payment and leaves the instalment partial', async () => {
+    const now = utc(2026, 2, 10);
+    const { repo, useCase } = setup({
+      nextInstallment: installment({ principal: 900, interest: 600 }),
+    });
+
+    const paymentResult = await useCase.execute('user-1', 'loan-1', now, {
+      amount: 1000,
+    });
+
+    expect(repo.applyInstallmentPayment).toHaveBeenCalledWith('inst-2', {
+      paidAmount: 1000,
+      status: 'PARTIAL',
+      paidAt: null,
+      transactionId: 'tx-1',
+    });
+    expect(repo.updateLoan).toHaveBeenCalledWith('user-1', 'loan-1', {
+      currentBalance: 4600,
+    });
+    expect(paymentResult.breakdown).toMatchObject({
+      interest: 600,
+      principal: 400,
+    });
+  });
+
+  it('refuses an excess unless it is confirmed as prepayment', async () => {
+    const { useCase } = setup();
+
+    await expect(
+      useCase.execute('user-1', 'loan-1', utc(2026, 2, 10), { amount: 2000 }),
+    ).rejects.toMatchObject({
+      response: { code: 'PAYMENT_EXCEEDS_INSTALLMENT' },
+    });
+  });
+
+  it('refuses to pay when no account is linked', async () => {
     const now = utc(2026, 2, 10);
     const { repo, createTransaction, useCase } = setup({
       found: loan({ accountId: null }),
     });
 
-    await useCase.execute('user-1', 'loan-1', now);
-
+    await expect(
+      useCase.execute('user-1', 'loan-1', now),
+    ).rejects.toMatchObject({
+      response: { code: 'LOAN_ACCOUNT_REQUIRED' },
+    });
     expect(createTransaction.execute).not.toHaveBeenCalled();
-    expect(repo.markInstallmentPaid).toHaveBeenCalledWith('inst-2', now, null);
-    expect(repo.updateLoan).toHaveBeenCalled();
+    expect(repo.applyInstallmentPayment).not.toHaveBeenCalled();
   });
 
   it('fails when there is no pending instalment', async () => {
@@ -99,7 +152,7 @@ describe('PayNextLoanInstallmentUseCase', () => {
       useCase.execute('user-1', 'loan-1', utc(2026, 2, 10)),
     ).rejects.toBeInstanceOf(BadRequestException);
     expect(createTransaction.execute).not.toHaveBeenCalled();
-    expect(repo.markInstallmentPaid).not.toHaveBeenCalled();
+    expect(repo.applyInstallmentPayment).not.toHaveBeenCalled();
   });
 
   it('fails when the loan is missing', async () => {

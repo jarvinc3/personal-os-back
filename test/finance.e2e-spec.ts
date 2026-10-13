@@ -705,6 +705,41 @@ describe('Finance (e2e)', () => {
       });
   });
 
+  it('rejects a card destination on POST /api/finance/transfers', async () => {
+    await request(app.getHttpServer())
+      .post('/api/finance/transfers')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        fromAccountId: '11111111-1111-4111-8111-111111111111',
+        toCardId: '22222222-2222-4222-8222-222222222222',
+        amount: 25,
+        currency: 'DOP',
+        transactionDate: '2026-08-01T12:00:00.000Z',
+      })
+      .expect(400)
+      .expect((res) => {
+        expect(res.body.code).toBe('TRANSFER_TARGET_NOT_ACCOUNT');
+      });
+  });
+
+  it('rejects the same origin and destination account', async () => {
+    const accountId = '11111111-1111-4111-8111-111111111111';
+    await request(app.getHttpServer())
+      .post('/api/finance/transfers')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        fromAccountId: accountId,
+        toAccountId: accountId,
+        amount: 25,
+        currency: 'DOP',
+        transactionDate: '2026-08-01T12:00:00.000Z',
+      })
+      .expect(400)
+      .expect((res) => {
+        expect(res.body.code).toBe('SAME_ACCOUNT');
+      });
+  });
+
   it('PATCH /api/finance/cards/:id archives with isActive false without accountId', async () => {
     const cardId = '66666666-6666-4666-8666-666666666666';
     const card = {
@@ -1276,6 +1311,43 @@ describe('Finance (e2e)', () => {
       .get('/api/finance/budgets/33333333-3333-4333-8333-333333333333')
       .set('Authorization', `Bearer ${token}`)
       .expect(404);
+  });
+
+  it('GET /api/finance/budgets/:id/transactions returns a cursor page', async () => {
+    prismaMock.finBudget.findFirst.mockResolvedValue({
+      id: '33333333-3333-4333-8333-333333333333',
+      userId: 'user-123',
+      categoryId: 'cat-1',
+      includeChildren: false,
+      periodStart: new Date('2026-01-01'),
+      periodEnd: new Date('2026-01-31'),
+      amountLimit: 1000,
+      amountSpent: 10,
+      alertThresholdPct: 80,
+      categories: [{ categoryId: '11111111-1111-4111-8111-111111111111' }],
+    });
+    prismaMock.finTransaction.findMany.mockResolvedValue([]);
+
+    await request(app.getHttpServer())
+      .get(
+        '/api/finance/budgets/33333333-3333-4333-8333-333333333333/transactions',
+      )
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
+      .expect((res) => {
+        expect(Array.isArray(res.body.data.items)).toBe(true);
+        expect(res.body.data).toHaveProperty('nextCursor');
+      });
+  });
+
+  it('POST /api/finance/receivables/:id/credit requires a target', async () => {
+    await request(app.getHttpServer())
+      .post(
+        '/api/finance/receivables/44444444-4444-4444-8444-444444444444/credit',
+      )
+      .set('Authorization', `Bearer ${token}`)
+      .send({ amount: 10 })
+      .expect(400);
   });
 
   it('GET /api/finance/transactions stays cursor paginated and accounts stay an array', async () => {

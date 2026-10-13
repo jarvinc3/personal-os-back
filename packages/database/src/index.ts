@@ -9,3 +9,4 @@ export {
 } from './pg-pool.config';
 export { PrismaModule } from './prisma.module';
 export { PrismaService } from './prisma.service';
+export { createScriptPrismaClient } from './script-client';

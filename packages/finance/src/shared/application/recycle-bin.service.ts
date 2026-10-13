@@ -58,6 +58,7 @@ export class RecycleBinService {
             entry.snapshot as unknown as DeletionSnapshot,
           ),
           deletedAt: entry.deletedAt.toISOString(),
+          sizeBytes: entry.sizeBytes,
         };
       }),
     };

@@ -3,6 +3,7 @@ import { PlanningService } from './planning.service';
 import type { SyncLoanInstallmentsUseCase } from './sync-loan-installments.use-case';
 import type { PlanningRepository } from '../infrastructure/planning.repository';
 import type { FinanceOwnershipService } from '../../shared/application/finance-ownership.service';
+import type { LedgerQueryService } from '../../ledger/application/ledger-query.service';
 
 describe('PlanningService archive and receivables', () => {
   const now = new Date('2026-09-15T12:00:00.000Z');
@@ -40,7 +41,16 @@ describe('PlanningService archive and receivables', () => {
     execute: jest.fn().mockResolvedValue(undefined),
   } as unknown as SyncLoanInstallmentsUseCase;
 
-  const service = new PlanningService(repo, ownership, syncInstallments);
+  const ledger = {
+    listTransactions: jest.fn(),
+  } as unknown as LedgerQueryService;
+
+  const service = new PlanningService(
+    repo,
+    ownership,
+    syncInstallments,
+    ledger,
+  );
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -71,6 +81,7 @@ describe('PlanningService archive and receivables', () => {
       { ...repo, deleteLoan } as unknown as PlanningRepository,
       ownership,
       syncInstallments,
+      ledger,
     );
     await expect(local.deleteLoan('user-1', 'loan-1')).resolves.toEqual({
       success: true,
@@ -84,6 +95,7 @@ describe('PlanningService archive and receivables', () => {
       { ...repo, deleteLoan } as unknown as PlanningRepository,
       ownership,
       syncInstallments,
+      ledger,
     );
     await expect(local.deleteLoan('user-1', 'missing')).rejects.toThrow(
       /not found/i,
@@ -96,6 +108,7 @@ describe('PlanningService archive and receivables', () => {
       { ...repo, deleteReceivable } as unknown as PlanningRepository,
       ownership,
       syncInstallments,
+      ledger,
     );
     await expect(local.deleteReceivable('user-1', 'rec-1')).resolves.toEqual({
       success: true,
@@ -109,6 +122,7 @@ describe('PlanningService archive and receivables', () => {
       { ...repo, deleteReceivable } as unknown as PlanningRepository,
       ownership,
       syncInstallments,
+      ledger,
     );
     await expect(local.deleteReceivable('user-1', 'missing')).rejects.toThrow(
       /not found/i,
@@ -262,7 +276,7 @@ describe('PlanningService archive and receivables', () => {
 
     await expect(
       service.createBudget('user-1', {
-        categoryId: 'cat-income',
+        categoryIds: ['cat-income'],
         periodType: 'MONTHLY',
         periodStart: '2026-09-01',
         periodEnd: '2026-09-30',

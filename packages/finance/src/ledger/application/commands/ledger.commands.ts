@@ -57,7 +57,6 @@ export type CreateTransferCommand = {
   /** Internal callers only (email matching); the HTTP API never accepts a card origin. */
   fromCardId?: string;
   toAccountId?: string;
-  toCardId?: string;
   amount: number;
   currency?: string;
   transactionDate: string;
@@ -65,7 +64,7 @@ export type CreateTransferCommand = {
   notes?: string;
   status?: TransferStatus;
   rail?: TransferRail;
-  fee?: TransferFeeCommand;
+  fee?: TransferFeeCommand | null;
   /** Creates the destination leg as PENDING while the money is in transit. */
   destinationPending?: boolean;
   source?: 'MANUAL' | 'EMAIL' | 'AI';
@@ -81,12 +80,28 @@ export type ListTransactionsQuery = {
   accountId?: string;
   cardId?: string;
   categoryId?: string;
+  categoryIds?: string[];
   type?: FinTransactionTypeValue;
   status?: FinTxStatus;
   dateFrom?: string;
   dateTo?: string;
   search?: string;
   includeAdjustments?: boolean;
+  groupOperations?: boolean;
+  possibleDuplicates?: boolean;
+};
+
+export type CreateCardPaymentCommand = {
+  fromAccountId: string;
+  cardId: string;
+  amount: number;
+  currency?: string;
+  transactionDate: string;
+  description?: string;
+  notes?: string;
+  status?: TransferStatus;
+  statementId?: string;
+  source?: 'MANUAL' | 'AI';
 };
 
 export type ImportEmailTransactionCommand = {
@@ -94,6 +109,7 @@ export type ImportEmailTransactionCommand = {
   cardId?: string;
   emailMessageId: string;
   externalReference?: string | null;
+  possibleDuplicateOfId?: string | null;
   amount: number;
   currency: string;
   merchant: string | null;

@@ -15,6 +15,8 @@ import { AdjustBalanceUseCase } from '../application/adjust-balance.use-case';
 import { ConfirmTransactionUseCase } from '../application/confirm-transaction.use-case';
 import { CreateTransactionUseCase } from '../application/create-transaction.use-case';
 import { DeleteTransactionUseCase } from '../application/delete-transaction.use-case';
+import { MarkNotDuplicateUseCase } from '../application/mark-not-duplicate.use-case';
+import { MergeTransactionUseCase } from '../application/merge-transaction.use-case';
 import { RestoreTransactionUseCase } from '../application/restore-transaction.use-case';
 import { LedgerQueryService } from '../application/ledger-query.service';
 import { ReverseTransactionUseCase } from '../application/reverse-transaction.use-case';
@@ -23,6 +25,7 @@ import { UpdateTransactionUseCase } from '../application/update-transaction.use-
 import { AdjustBalanceDto } from './dto/adjust-balance.dto';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { ListTransactionsQueryDto } from './dto/list-transactions-query.dto';
+import { MergeTransactionDto } from './dto/merge-transaction.dto';
 
 @ApiTags('finance')
 @ApiBearerAuth('access-token')
@@ -39,6 +42,8 @@ export class TransactionsController {
     private readonly deleteTx: DeleteTransactionUseCase,
     private readonly restoreTx: RestoreTransactionUseCase,
     private readonly reverseTx: ReverseTransactionUseCase,
+    private readonly mergeTx: MergeTransactionUseCase,
+    private readonly notDuplicateTx: MarkNotDuplicateUseCase,
   ) {}
 
   @Get('transactions')
@@ -129,5 +134,23 @@ export class TransactionsController {
       );
     }
     return this.reverseTx.execute(userId, id);
+  }
+
+  @Post('transactions/:id/merge')
+  @ApiOperation({
+    summary: 'Delete a possible duplicate, keeping the other one',
+  })
+  merge(
+    @CurrentUser('sub') userId: string,
+    @Param('id') id: string,
+    @Body() dto: MergeTransactionDto,
+  ) {
+    return this.mergeTx.execute(userId, id, dto.intoId);
+  }
+
+  @Post('transactions/:id/not-duplicate')
+  @ApiOperation({ summary: 'Clear the possible-duplicate flag' })
+  notDuplicate(@CurrentUser('sub') userId: string, @Param('id') id: string) {
+    return this.notDuplicateTx.execute(userId, id);
   }
 }

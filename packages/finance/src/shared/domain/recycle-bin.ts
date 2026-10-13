@@ -27,6 +27,8 @@ export type RecycleBinDeletedItem = {
   id: string;
   label: string | null;
   deletedAt: string;
+  /** Snapshot size, so the UI can warn before a slow restore. */
+  sizeBytes: number;
 };
 
 export type RecycleBinView = {

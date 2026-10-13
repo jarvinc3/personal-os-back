@@ -28,6 +28,7 @@ describe('ProcessGmailSyncUseCase', () => {
   const listCategories = jest.fn();
   const findEmailMessage = jest.fn();
   const upsertEmailMessage = jest.fn();
+  const findEmailMessageByFingerprint = jest.fn().mockResolvedValue(null);
   const listInstitutionDestinations = jest.fn();
   const listCashAccounts = jest.fn();
   const emailSources = {
@@ -38,6 +39,7 @@ describe('ProcessGmailSyncUseCase', () => {
     listCategories,
     findEmailMessage,
     upsertEmailMessage,
+    findEmailMessageByFingerprint,
     listInstitutionDestinations,
     listCashAccounts,
   } as unknown as EmailSourceRepository;

@@ -9,7 +9,9 @@ export function mapCardStatement(view: CardStatementView) {
     cycleEnd: view.cycleEnd,
     dueDate: view.dueDate,
     closingBalance: decimalToString(view.closingBalance),
-    amountPaid: decimalToString(view.amountPaid),
+    minimumPayment: decimalToString(view.minimumPayment),
+    minimumSource: view.minimumSource,
+    paidAmount: decimalToString(view.paidAmount),
     remaining: decimalToString(view.remaining),
     status: view.status,
   };

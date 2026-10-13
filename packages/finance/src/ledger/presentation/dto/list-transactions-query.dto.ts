@@ -68,4 +68,16 @@ export class ListTransactionsQueryDto extends CursorQueryDto {
   @Transform(({ value }) => value === true || value === 'true')
   @IsBoolean()
   includeAdjustments?: boolean;
+
+  @ApiPropertyOptional({ default: false })
+  @IsOptional()
+  @Transform(({ value }) => value === true || value === 'true')
+  @IsBoolean()
+  groupOperations?: boolean;
+
+  @ApiPropertyOptional({ default: false })
+  @IsOptional()
+  @Transform(({ value }) => value === true || value === 'true')
+  @IsBoolean()
+  possibleDuplicates?: boolean;
 }
