@@ -73,7 +73,7 @@ export class PlanningService {
       periodStart,
       periodEnd,
     );
-    const created = await this.repo.createBudget(
+    const budgetId = await this.repo.createBudget(
       userId,
       {
         categoryId: categoryIds[0],
@@ -90,6 +90,7 @@ export class PlanningService {
       },
       categoryIds,
     );
+    const created = await this.repo.findBudget(userId, budgetId);
     if (!created) {
       throw new NotFoundException('Budget not found');
     }
@@ -113,7 +114,7 @@ export class PlanningService {
         id,
       );
     }
-    const updated = await this.repo.updateBudget(
+    const updatedId = await this.repo.updateBudget(
       userId,
       id,
       {
@@ -136,6 +137,10 @@ export class PlanningService {
       },
       dto.categoryIds,
     );
+    if (!updatedId) {
+      throw new NotFoundException('Budget not found');
+    }
+    const updated = await this.repo.findBudget(userId, updatedId);
     if (!updated) {
       throw new NotFoundException('Budget not found');
     }

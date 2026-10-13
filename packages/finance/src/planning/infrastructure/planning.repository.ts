@@ -73,7 +73,7 @@ export class PlanningRepository {
     userId: string,
     data: Omit<Prisma.FinBudgetUncheckedCreateInput, 'userId'>,
     categoryIds: string[],
-  ) {
+  ): Promise<string> {
     return this.prisma.$transaction(async (tx) => {
       const budget = await tx.finBudget.create({ data: { ...data, userId } });
       await tx.finBudgetCategory.createMany({
@@ -82,7 +82,7 @@ export class PlanningRepository {
           categoryId,
         })),
       });
-      return this.readBudgetWithCategories(tx, budget.id, userId);
+      return budget.id;
     });
   }
 
@@ -91,7 +91,7 @@ export class PlanningRepository {
     id: string,
     data: Prisma.FinBudgetUncheckedUpdateManyInput,
     categoryIds?: string[],
-  ) {
+  ): Promise<string | null> {
     return this.prisma.$transaction(async (tx) => {
       const updateResult = await tx.finBudget.updateMany({
         where: { id, userId },
@@ -106,7 +106,7 @@ export class PlanningRepository {
           data: categoryIds.map((categoryId) => ({ budgetId: id, categoryId })),
         });
       }
-      return this.readBudgetWithCategories(tx, id, userId);
+      return id;
     });
   }
 
@@ -129,17 +129,6 @@ export class PlanningRepository {
         ],
       },
       include: { categories: { include: { category: true } } },
-    });
-  }
-
-  private readBudgetWithCategories(
-    tx: Prisma.TransactionClient,
-    id: string,
-    userId: string,
-  ) {
-    return tx.finBudget.findFirst({
-      where: { id, userId },
-      include: { category: true, categories: { include: { category: true } } },
     });
   }
 
