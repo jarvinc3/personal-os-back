@@ -93,6 +93,13 @@ export class FinanceFacade {
     return this.ledgerQueries.getTransaction(userId, id);
   }
 
+  listPossibleDuplicates(userId: string) {
+    return this.ledgerQueries.listTransactions(userId, {
+      possibleDuplicates: true,
+      limit: 50,
+    });
+  }
+
   createTransaction(
     userId: string,
     command: CreateTransactionCommand,

@@ -44,6 +44,10 @@ export function logicalTransactionsWhere(
     });
   }
 
+  if (query.possibleDuplicates) {
+    and.push({ possibleDuplicateOfId: { not: null } });
+  }
+
   if (query.type === 'TRANSFER') {
     and.push(SOURCE_TRANSFER_LEG);
   } else if (query.type === 'DEBIT' || query.type === 'CREDIT') {

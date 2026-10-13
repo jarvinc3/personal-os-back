@@ -14,6 +14,8 @@ import { ConfirmTransferUseCase } from './application/confirm-transfer.use-case'
 import { CreateCardPaymentUseCase } from './application/create-card-payment.use-case';
 import { UpdateCardPaymentUseCase } from './application/update-card-payment.use-case';
 import { DeleteTransactionUseCase } from './application/delete-transaction.use-case';
+import { MarkNotDuplicateUseCase } from './application/mark-not-duplicate.use-case';
+import { MergeTransactionUseCase } from './application/merge-transaction.use-case';
 import { ImportEmailTransactionUseCase } from './application/import-email-transaction.use-case';
 import { LedgerQueryService } from './application/ledger-query.service';
 import { PurgeInstrumentLedgerUseCase } from './application/purge-instrument-ledger.use-case';
@@ -53,6 +55,8 @@ import { CardPaymentsController } from './presentation/card-payments.controller'
     UnconfirmTransactionUseCase,
     ConfirmTransactionUseCase,
     DeleteTransactionUseCase,
+    MergeTransactionUseCase,
+    MarkNotDuplicateUseCase,
     PurgeInstrumentLedgerUseCase,
     RestoreInstrumentLedgerUseCase,
     RestoreTransactionUseCase,
@@ -73,6 +77,8 @@ import { CardPaymentsController } from './presentation/card-payments.controller'
     UnconfirmTransactionUseCase,
     ConfirmTransactionUseCase,
     DeleteTransactionUseCase,
+    MergeTransactionUseCase,
+    MarkNotDuplicateUseCase,
     PurgeInstrumentLedgerUseCase,
     RestoreInstrumentLedgerUseCase,
     RestoreTransactionUseCase,

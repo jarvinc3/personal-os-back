@@ -49,6 +49,7 @@ const FINANCE_TOOL_NAMES = new Set([
   'mark_loan_installment_paid',
   'prepay_loan',
   'get_loan_schedule',
+  'list_possible_duplicates',
   'trigger_email_sync',
   'get_spending_by_category',
   'get_spending_over_time',
@@ -691,6 +692,12 @@ export class ToolExecutorService {
           },
         };
       }
+      case 'list_possible_duplicates':
+        return {
+          success: true,
+          message: 'Possible duplicates loaded',
+          data: await this.financeFacade.listPossibleDuplicates(ctx.userId),
+        };
       case 'trigger_email_sync': {
         const sync = args as ValidatedToolArgs<'trigger_email_sync'>;
         const result = await this.financeFacade.triggerEmailSync(

@@ -296,6 +296,12 @@ const STATIC_TOOLS: StaticToolDef[] = [
     targetModule: 'finance',
   },
   {
+    name: 'list_possible_duplicates',
+    description: 'List movements flagged as possible duplicates.',
+    mutating: false,
+    targetModule: 'finance',
+  },
+  {
     name: 'trigger_email_sync',
     description: 'Trigger Gmail sync for one source.',
     mutating: true,

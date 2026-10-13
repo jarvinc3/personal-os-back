@@ -87,6 +87,7 @@ export type ListTransactionsQuery = {
   search?: string;
   includeAdjustments?: boolean;
   groupOperations?: boolean;
+  possibleDuplicates?: boolean;
 };
 
 export type CreateCardPaymentCommand = {
