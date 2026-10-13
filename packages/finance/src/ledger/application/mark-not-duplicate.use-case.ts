@@ -10,7 +10,8 @@ export class MarkNotDuplicateUseCase {
     private readonly repo: LedgerRepositoryPort,
   ) {}
 
-  async execute(userId: string, id: string): Promise<void> {
+  async execute(userId: string, id: string): Promise<{ success: true }> {
     await this.repo.clearPossibleDuplicate(userId, id);
+    return { success: true };
   }
 }

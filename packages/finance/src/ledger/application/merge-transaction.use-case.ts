@@ -19,11 +19,12 @@ export class MergeTransactionUseCase {
     userId: string,
     duplicateId: string,
     intoId: string,
-  ): Promise<void> {
+  ): Promise<{ success: true }> {
     const keeper = await this.repo.findTransactionById(intoId, userId);
     if (!keeper) {
       throw new NotFoundException('Transaction not found');
     }
     await this.deleteTransaction.execute(userId, duplicateId);
+    return { success: true };
   }
 }

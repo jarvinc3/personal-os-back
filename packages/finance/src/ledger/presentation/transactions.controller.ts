@@ -140,22 +140,17 @@ export class TransactionsController {
   @ApiOperation({
     summary: 'Delete a possible duplicate, keeping the other one',
   })
-  async merge(
+  merge(
     @CurrentUser('sub') userId: string,
     @Param('id') id: string,
     @Body() dto: MergeTransactionDto,
   ) {
-    await this.mergeTx.execute(userId, id, dto.intoId);
-    return { success: true };
+    return this.mergeTx.execute(userId, id, dto.intoId);
   }
 
   @Post('transactions/:id/not-duplicate')
   @ApiOperation({ summary: 'Clear the possible-duplicate flag' })
-  async notDuplicate(
-    @CurrentUser('sub') userId: string,
-    @Param('id') id: string,
-  ) {
-    await this.notDuplicateTx.execute(userId, id);
-    return { success: true };
+  notDuplicate(@CurrentUser('sub') userId: string, @Param('id') id: string) {
+    return this.notDuplicateTx.execute(userId, id);
   }
 }
