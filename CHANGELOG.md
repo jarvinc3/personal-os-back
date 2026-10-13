@@ -2,6 +2,13 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [SemVer](https://semver.org/lang/es/). Reglas y ejemplo en [docs/reference/changelog-guide.md](./docs/reference/changelog-guide.md).
 
+## [1.19.0] - 2026-10-13
+
+### Agregado
+
+- El `module_config.finance` define el ingreso fijo y el modo de correo. Una nómina sin monto usa primero el ingreso fijo como sugerencia y, si no, la última nómina de la cuenta.
+- Los movimientos importados por correo entran `PENDING` cuando el módulo está en modo pendiente.
+
 ## [1.18.0] - 2026-10-13
 
 ### Agregado
