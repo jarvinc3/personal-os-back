@@ -6,10 +6,7 @@ import { OPERATION_LEG_ROLE } from '../../shared/domain/transfer';
 
 /** Standalone movements plus the fee leg of a transfer (the only leg that is real spending). */
 const REAL_MOVEMENT = {
-  OR: [
-    { transferGroupId: null },
-    { legRole: OPERATION_LEG_ROLE.FEE },
-  ],
+  OR: [{ transferGroupId: null }, { legRole: OPERATION_LEG_ROLE.FEE }],
 } satisfies Prisma.FinTransactionWhereInput;
 
 @Injectable()

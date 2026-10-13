@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -60,39 +61,111 @@ export class PlanningService {
   }
 
   async createBudget(userId: string, dto: CreateBudgetDto) {
-    await this.ownership.assertExpenseCategory(userId, dto.categoryId);
-    const created = await this.repo.createBudget(userId, {
-      categoryId: dto.categoryId,
-      periodType: dto.periodType,
-      periodStart: new Date(dto.periodStart),
-      periodEnd: new Date(dto.periodEnd),
-      amountLimit: dto.amountLimit,
-      amountSpent: 0,
-      alertThresholdPct: dto.alertThresholdPct ?? 80,
-    });
+    const categoryIds = dto.categoryIds;
+    for (const categoryId of categoryIds) {
+      await this.ownership.assertExpenseCategory(userId, categoryId);
+    }
+    const periodStart = new Date(dto.periodStart);
+    const periodEnd = new Date(dto.periodEnd);
+    await this.assertCategoriesNotBudgeted(
+      userId,
+      categoryIds,
+      periodStart,
+      periodEnd,
+    );
+    const created = await this.repo.createBudget(
+      userId,
+      {
+        categoryId: categoryIds[0],
+        name: dto.name ?? null,
+        includeChildren: dto.includeChildren ?? true,
+        rollover: dto.rollover ?? 'NONE',
+        recurring: dto.recurring ?? false,
+        periodType: dto.periodType,
+        periodStart,
+        periodEnd,
+        amountLimit: dto.amountLimit,
+        amountSpent: 0,
+        alertThresholdPct: dto.alertThresholdPct ?? 80,
+      },
+      categoryIds,
+    );
+    if (!created) {
+      throw new NotFoundException('Budget not found');
+    }
     return mapBudget(created);
   }
 
   async updateBudget(userId: string, id: string, dto: UpdateBudgetDto) {
-    if (dto.categoryId) {
-      await this.ownership.assertExpenseCategory(userId, dto.categoryId);
+    if (dto.categoryIds) {
+      for (const categoryId of dto.categoryIds) {
+        await this.ownership.assertExpenseCategory(userId, categoryId);
+      }
+      const existing = await this.repo.findBudget(userId, id);
+      if (!existing) {
+        throw new NotFoundException('Budget not found');
+      }
+      await this.assertCategoriesNotBudgeted(
+        userId,
+        dto.categoryIds,
+        dto.periodStart ? new Date(dto.periodStart) : existing.periodStart,
+        dto.periodEnd ? new Date(dto.periodEnd) : existing.periodEnd,
+        id,
+      );
     }
-    const updated = await this.repo.updateBudget(userId, id, {
-      ...(dto.categoryId ? { categoryId: dto.categoryId } : {}),
-      ...(dto.periodType ? { periodType: dto.periodType } : {}),
-      ...(dto.periodStart ? { periodStart: new Date(dto.periodStart) } : {}),
-      ...(dto.periodEnd ? { periodEnd: new Date(dto.periodEnd) } : {}),
-      ...(dto.amountLimit !== undefined
-        ? { amountLimit: dto.amountLimit }
-        : {}),
-      ...(dto.alertThresholdPct !== undefined
-        ? { alertThresholdPct: dto.alertThresholdPct }
-        : {}),
-    });
+    const updated = await this.repo.updateBudget(
+      userId,
+      id,
+      {
+        ...(dto.name !== undefined ? { name: dto.name } : {}),
+        ...(dto.categoryIds ? { categoryId: dto.categoryIds[0] } : {}),
+        ...(dto.periodType ? { periodType: dto.periodType } : {}),
+        ...(dto.periodStart ? { periodStart: new Date(dto.periodStart) } : {}),
+        ...(dto.periodEnd ? { periodEnd: new Date(dto.periodEnd) } : {}),
+        ...(dto.amountLimit !== undefined
+          ? { amountLimit: dto.amountLimit }
+          : {}),
+        ...(dto.alertThresholdPct !== undefined
+          ? { alertThresholdPct: dto.alertThresholdPct }
+          : {}),
+        ...(dto.includeChildren !== undefined
+          ? { includeChildren: dto.includeChildren }
+          : {}),
+        ...(dto.rollover ? { rollover: dto.rollover } : {}),
+        ...(dto.recurring !== undefined ? { recurring: dto.recurring } : {}),
+      },
+      dto.categoryIds,
+    );
     if (!updated) {
       throw new NotFoundException('Budget not found');
     }
     return mapBudget(updated);
+  }
+
+  private async assertCategoriesNotBudgeted(
+    userId: string,
+    categoryIds: string[],
+    periodStart: Date,
+    periodEnd: Date,
+    excludeBudgetId?: string,
+  ): Promise<void> {
+    const conflict = await this.repo.findOverlappingBudgetForCategories(
+      userId,
+      categoryIds,
+      periodStart,
+      periodEnd,
+      excludeBudgetId,
+    );
+    if (!conflict) {
+      return;
+    }
+    const conflicting = conflict.categories.find((entry) =>
+      categoryIds.includes(entry.categoryId),
+    );
+    throw new ConflictException({
+      code: 'CATEGORY_ALREADY_BUDGETED',
+      message: `${conflicting?.category.name ?? 'Una categoría'} ya está en el presupuesto ${conflict.name ?? 'de este periodo'}.`,
+    });
   }
 
   async deleteBudget(userId: string, id: string) {

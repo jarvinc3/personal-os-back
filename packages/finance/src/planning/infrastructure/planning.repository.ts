@@ -30,7 +30,7 @@ export class PlanningRepository {
   listBudgets(userId: string) {
     return this.prisma.finBudget.findMany({
       where: { userId },
-      include: { category: true },
+      include: { category: true, categories: { include: { category: true } } },
       orderBy: { periodStart: 'desc' },
     });
   }
@@ -56,7 +56,7 @@ export class PlanningRepository {
         : baseWhere;
     return this.prisma.finBudget.findMany({
       where,
-      include: { category: true },
+      include: { category: true, categories: { include: { category: true } } },
       orderBy: [{ periodStart: 'desc' }, { id: 'desc' }],
       take: limit + 1,
     });
@@ -65,17 +65,24 @@ export class PlanningRepository {
   findBudget(userId: string, id: string) {
     return this.prisma.finBudget.findFirst({
       where: { id, userId },
-      include: { category: true },
+      include: { category: true, categories: { include: { category: true } } },
     });
   }
 
   createBudget(
     userId: string,
     data: Omit<Prisma.FinBudgetUncheckedCreateInput, 'userId'>,
+    categoryIds: string[],
   ) {
-    return this.prisma.finBudget.create({
-      data: { ...data, userId },
-      include: { category: true },
+    return this.prisma.$transaction(async (tx) => {
+      const budget = await tx.finBudget.create({ data: { ...data, userId } });
+      await tx.finBudgetCategory.createMany({
+        data: categoryIds.map((categoryId) => ({
+          budgetId: budget.id,
+          categoryId,
+        })),
+      });
+      return this.readBudgetWithCategories(tx, budget.id, userId);
     });
   }
 
@@ -83,18 +90,57 @@ export class PlanningRepository {
     userId: string,
     id: string,
     data: Prisma.FinBudgetUncheckedUpdateManyInput,
+    categoryIds?: string[],
   ) {
-    return this.prisma.finBudget
-      .updateMany({ where: { id, userId }, data })
-      .then(async (result) => {
-        if (result.count === 0) {
-          return null;
-        }
-        return this.prisma.finBudget.findFirst({
-          where: { id, userId },
-          include: { category: true },
-        });
+    return this.prisma.$transaction(async (tx) => {
+      const updateResult = await tx.finBudget.updateMany({
+        where: { id, userId },
+        data,
       });
+      if (updateResult.count === 0) {
+        return null;
+      }
+      if (categoryIds) {
+        await tx.finBudgetCategory.deleteMany({ where: { budgetId: id } });
+        await tx.finBudgetCategory.createMany({
+          data: categoryIds.map((categoryId) => ({ budgetId: id, categoryId })),
+        });
+      }
+      return this.readBudgetWithCategories(tx, id, userId);
+    });
+  }
+
+  findOverlappingBudgetForCategories(
+    userId: string,
+    categoryIds: string[],
+    periodStart: Date,
+    periodEnd: Date,
+    excludeBudgetId?: string,
+  ) {
+    return this.prisma.finBudget.findFirst({
+      where: {
+        userId,
+        ...(excludeBudgetId ? { id: { not: excludeBudgetId } } : {}),
+        periodStart: { lte: periodEnd },
+        periodEnd: { gte: periodStart },
+        OR: [
+          { categoryId: { in: categoryIds } },
+          { categories: { some: { categoryId: { in: categoryIds } } } },
+        ],
+      },
+      include: { categories: { include: { category: true } } },
+    });
+  }
+
+  private readBudgetWithCategories(
+    tx: Prisma.TransactionClient,
+    id: string,
+    userId: string,
+  ) {
+    return tx.finBudget.findFirst({
+      where: { id, userId },
+      include: { category: true, categories: { include: { category: true } } },
+    });
   }
 
   deleteBudget(userId: string, id: string) {

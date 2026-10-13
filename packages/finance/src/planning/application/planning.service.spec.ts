@@ -262,7 +262,7 @@ describe('PlanningService archive and receivables', () => {
 
     await expect(
       service.createBudget('user-1', {
-        categoryId: 'cat-income',
+        categoryIds: ['cat-income'],
         periodType: 'MONTHLY',
         periodStart: '2026-09-01',
         periodEnd: '2026-09-30',

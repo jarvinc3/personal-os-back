@@ -565,6 +565,7 @@ export class ToolExecutorService {
               budget.budgetId,
               {
                 categoryId: budget.categoryId,
+                categoryIds: budget.categoryIds,
                 periodType: budget.periodType,
                 periodStart: budget.periodStart,
                 periodEnd: budget.periodEnd,
@@ -578,7 +579,7 @@ export class ToolExecutorService {
           success: true,
           message: 'Budget created',
           data: await this.financeFacade.createBudget(ctx.userId, {
-            categoryId: budget.categoryId as string,
+            categoryIds: budget.categoryIds as string[],
             periodType: budget.periodType as 'MONTHLY' | 'BIWEEKLY' | 'CUSTOM',
             periodStart: budget.periodStart as string,
             periodEnd: budget.periodEnd as string,

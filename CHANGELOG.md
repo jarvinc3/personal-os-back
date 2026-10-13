@@ -2,6 +2,19 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [SemVer](https://semver.org/lang/es/). Reglas y ejemplo en [docs/reference/changelog-guide.md](./docs/reference/changelog-guide.md).
 
+## [1.15.0] - 2026-10-12
+
+### Agregado
+
+- Presupuestos multicategoría: `POST/PATCH /budgets` aceptan `categoryIds` (1..20), `name`, `includeChildren`, `rollover` y `recurring`. Si una categoría ya está en un presupuesto que se solapa en el periodo, responde 409 `CATEGORY_ALREADY_BUDGETED`.
+- `amountSpent` busca los presupuestos por conjunto de categorías, incluidas las subcategorías cuando `includeChildren`.
+- `GET /budgets` agrega `categories[]`, `carriedOver` y `effectiveLimit`.
+- La tool `create_or_update_budget` acepta `categoryIds`.
+
+### Cambiado
+
+- `FinBudget` pierde el único por categoría y gana la tabla `fin_budget_categories`; los presupuestos viejos se migran a ella.
+
 ## [1.14.0] - 2026-10-12
 
 ### Agregado

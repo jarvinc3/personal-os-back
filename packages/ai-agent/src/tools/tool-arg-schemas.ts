@@ -211,6 +211,7 @@ export const createOrUpdateBudgetArgsSchema = z
   .object({
     budgetId: uuid.nullable().optional(),
     categoryId: categoryId.optional(),
+    categoryIds: z.array(uuid).min(1).max(20).optional(),
     periodType: z.enum(budgetPeriods).optional(),
     periodStart: dateString.optional(),
     periodEnd: dateString.optional(),
@@ -222,6 +223,7 @@ export const createOrUpdateBudgetArgsSchema = z
     if (value.budgetId) {
       if (
         value.categoryId === undefined &&
+        value.categoryIds === undefined &&
         value.periodType === undefined &&
         value.periodStart === undefined &&
         value.periodEnd === undefined &&
@@ -237,7 +239,7 @@ export const createOrUpdateBudgetArgsSchema = z
     }
 
     for (const key of [
-      'categoryId',
+      'categoryIds',
       'periodType',
       'periodStart',
       'periodEnd',
