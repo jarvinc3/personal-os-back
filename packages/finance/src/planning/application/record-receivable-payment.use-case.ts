@@ -1,4 +1,5 @@
 import {
+  ConflictException,
   Injectable,
   NotFoundException,
   UnprocessableEntityException,
@@ -12,6 +13,7 @@ import { mapReceivablePayment } from './planning-mappers';
 
 export const RECEIVABLE_EXCESS_UNRESOLVED = 'RECEIVABLE_EXCESS_UNRESOLVED';
 export const RECEIVABLE_NOT_FOUND = 'RECEIVABLE_NOT_FOUND';
+export const RECEIVABLE_NOT_OPEN = 'RECEIVABLE_NOT_OPEN';
 
 /**
  * Collecting a debt records the real amount received. What is left over the
@@ -54,15 +56,17 @@ export class RecordReceivablePaymentUseCase {
     }
 
     const paidAt = dto.paidAt ? new Date(dto.paidAt) : now;
+    const extraIncome = excess > 0 && dto.excessHandling === 'EXTRA_INCOME';
+    const creditedAmount = extraIncome ? appliedAmount : dto.amount;
     const appliedMovement = await this.createTransaction.execute(userId, {
       accountId: dto.accountId,
       type: 'CREDIT',
-      amount: appliedAmount,
+      amount: creditedAmount,
       currency: receivable.currency,
       transactionDate: paidAt.toISOString(),
       description: `Cobro: ${receivable.debtorName}`,
     });
-    if (excess > 0 && dto.excessHandling === 'EXTRA_INCOME') {
+    if (extraIncome) {
       const categoryId = await this.repo.findExtraIncomeCategoryId();
       await this.createTransaction.execute(userId, {
         accountId: dto.accountId,
@@ -102,6 +106,16 @@ export class RecordReceivablePaymentUseCase {
         throw new NotFoundException({
           code: RECEIVABLE_NOT_FOUND,
           message: 'No encontramos el cobro destino.',
+        });
+      }
+      if (
+        target.status === 'PAID' ||
+        target.status === 'CANCELLED' ||
+        target.status === 'WRITTEN_OFF'
+      ) {
+        throw new ConflictException({
+          code: RECEIVABLE_NOT_OPEN,
+          message: 'El cobro destino ya está cerrado.',
         });
       }
       await this.repo.createReceivablePayment(dto.targetReceivableId, {

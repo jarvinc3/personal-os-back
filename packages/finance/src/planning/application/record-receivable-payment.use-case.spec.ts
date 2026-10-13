@@ -92,7 +92,7 @@ describe('RecordReceivablePaymentUseCase', () => {
   });
 
   it('keeps the excess as a credit balance when asked', async () => {
-    const { repo, useCase } = setup();
+    const { repo, createTransaction, useCase } = setup();
 
     await useCase.execute(
       'user-1',
@@ -105,6 +105,10 @@ describe('RecordReceivablePaymentUseCase', () => {
       utc(2026, 10, 12),
     );
 
+    expect(createTransaction.execute).toHaveBeenCalledWith(
+      'user-1',
+      expect.objectContaining({ type: 'CREDIT', amount: 60 }),
+    );
     expect(repo.addReceivableCreditBalance).toHaveBeenCalledWith('rec-1', 10);
   });
 

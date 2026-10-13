@@ -1,6 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
+  IsBoolean,
   IsDateString,
   IsEnum,
   IsNumber,
@@ -50,4 +51,9 @@ export class CreateSavingsGoalDto {
   @Type(() => Number)
   @IsNumber({ maxDecimalPlaces: 2 })
   currentAmount?: number;
+
+  @ApiPropertyOptional({ default: true })
+  @IsOptional()
+  @IsBoolean()
+  spendReducesProgress?: boolean;
 }

@@ -79,6 +79,49 @@ export class SavingsGoalsController {
     );
   }
 
+  @Get('savings-goals/:id/contributions')
+  @ApiOperation({
+    summary: 'Deprecated alias of allocations',
+    deprecated: true,
+  })
+  listContributions(
+    @CurrentUser('sub') userId: string,
+    @Param('id') id: string,
+  ) {
+    return this.planning.listSavingsGoalContributions(userId, id);
+  }
+
+  @Post('savings-goals/:id/contributions')
+  @ApiOperation({
+    summary: 'Deprecated alias of allocations',
+    deprecated: true,
+  })
+  addContribution(
+    @CurrentUser('sub') userId: string,
+    @Param('id') id: string,
+    @Body() dto: CreateSavingsGoalAllocationDto,
+  ) {
+    return this.allocateToGoal.execute(userId, id, dto, new Date());
+  }
+
+  @Delete('savings-goals/:id/contributions/:allocationId')
+  @ApiOperation({
+    summary: 'Deprecated alias of allocation removal',
+    deprecated: true,
+  })
+  removeContribution(
+    @CurrentUser('sub') userId: string,
+    @Param('id') id: string,
+    @Param('allocationId') allocationId: string,
+  ) {
+    return this.removeGoalContribution.execute(
+      userId,
+      id,
+      allocationId,
+      new Date(),
+    );
+  }
+
   @Patch('savings-goals/:id')
   update(
     @CurrentUser('sub') userId: string,

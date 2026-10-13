@@ -45,6 +45,7 @@ const FINANCE_TOOL_NAMES = new Set([
   'create_savings_goal',
   'update_savings_goal',
   'allocate_to_goal',
+  'record_receivable_payment',
   'list_loans',
   'mark_loan_installment_paid',
   'prepay_loan',
@@ -476,6 +477,17 @@ export class ToolExecutorService {
             transactionDate: t.transactionDate,
             description: t.description ?? undefined,
             notes: t.notes ?? undefined,
+            ...(t.rail ? { rail: t.rail } : {}),
+            ...(t.fee
+              ? {
+                  fee: {
+                    amount: t.fee.amount,
+                    ...(t.fee.categoryId
+                      ? { categoryId: t.fee.categoryId }
+                      : {}),
+                  },
+                }
+              : {}),
           }),
         };
       }
@@ -496,7 +508,18 @@ export class ToolExecutorService {
         };
       }
       case 'get_card_statement': {
-        const statementArgs = args as { cardId: string };
+        const statementArgs = args as { cardId: string; statementId?: string };
+        if (statementArgs.statementId) {
+          return {
+            success: true,
+            message: 'Card statement loaded',
+            data: await this.financeFacade.getCardStatement(
+              ctx.userId,
+              statementArgs.cardId,
+              statementArgs.statementId,
+            ),
+          };
+        }
         return {
           success: true,
           message: 'Card statements loaded',
@@ -572,6 +595,9 @@ export class ToolExecutorService {
                 periodEnd: budget.periodEnd,
                 amountLimit: budget.amountLimit,
                 alertThresholdPct: budget.alertThresholdPct ?? undefined,
+                includeChildren: budget.includeChildren,
+                rollover: budget.rollover,
+                recurring: budget.recurring,
               },
             ),
           };
@@ -586,6 +612,9 @@ export class ToolExecutorService {
             periodEnd: budget.periodEnd as string,
             amountLimit: budget.amountLimit as number,
             alertThresholdPct: budget.alertThresholdPct ?? undefined,
+            includeChildren: budget.includeChildren,
+            rollover: budget.rollover,
+            recurring: budget.recurring,
           }),
         };
       }
@@ -624,6 +653,9 @@ export class ToolExecutorService {
             {
               targetAmount: goal.targetAmount ?? undefined,
               name: goal.name ?? undefined,
+              accountId: goal.accountId ?? undefined,
+              mode: goal.mode,
+              spendReducesProgress: goal.spendReducesProgress,
             },
           ),
         };
@@ -641,6 +673,29 @@ export class ToolExecutorService {
               kind: allocation.kind,
               date: allocation.date ?? undefined,
               notes: allocation.notes ?? undefined,
+            },
+          ),
+        };
+      }
+      case 'record_receivable_payment': {
+        const payment = args as ValidatedToolArgs<'record_receivable_payment'>;
+        return {
+          success: true,
+          message: 'Receivable payment recorded',
+          data: await this.financeFacade.recordReceivablePayment(
+            ctx.userId,
+            payment.receivableId,
+            {
+              amount: payment.amount,
+              accountId: payment.accountId,
+              ...(payment.paidAt ? { paidAt: payment.paidAt } : {}),
+              ...(payment.notes ? { notes: payment.notes } : {}),
+              ...(payment.excessHandling
+                ? { excessHandling: payment.excessHandling }
+                : {}),
+              ...(payment.targetReceivableId
+                ? { targetReceivableId: payment.targetReceivableId }
+                : {}),
             },
           ),
         };

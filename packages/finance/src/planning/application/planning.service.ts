@@ -339,6 +339,7 @@ export class PlanningService {
         targetDate: dto.targetDate ? new Date(dto.targetDate) : null,
         accountId: dto.accountId,
         mode: dto.mode ?? 'EARMARK',
+        spendReducesProgress: dto.spendReducesProgress ?? true,
       },
       dto.currentAmount ?? 0,
       now,
@@ -366,6 +367,11 @@ export class PlanningService {
           : {}),
         ...(dto.currency ? { currency: dto.currency } : {}),
         ...(dto.targetDate ? { targetDate: new Date(dto.targetDate) } : {}),
+        ...(dto.accountId !== undefined ? { accountId: dto.accountId } : {}),
+        ...(dto.mode ? { mode: dto.mode } : {}),
+        ...(dto.spendReducesProgress !== undefined
+          ? { spendReducesProgress: dto.spendReducesProgress }
+          : {}),
       },
       now,
     );

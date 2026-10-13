@@ -21,12 +21,14 @@ import { PlanningService } from './planning/application/planning.service';
 import { ApplyLoanPrepaymentUseCase } from './planning/application/apply-loan-prepayment.use-case';
 import { PayNextLoanInstallmentUseCase } from './planning/application/pay-next-loan-installment.use-case';
 import { AllocateToGoalUseCase } from './planning/application/allocate-to-goal.use-case';
+import { RecordReceivablePaymentUseCase } from './planning/application/record-receivable-payment.use-case';
 import type { LoanPrepaymentCommand } from './planning/application/apply-loan-prepayment.use-case';
 import type { PayInstallmentCommand } from './planning/application/pay-next-loan-installment.use-case';
 import { CardStatementsService } from './statements/application/card-statements.service';
 import type { CreateBudgetDto } from './planning/presentation/dto/create-budget.dto';
 import type { CreateSavingsGoalDto } from './planning/presentation/dto/create-savings-goal.dto';
 import type { CreateSavingsGoalAllocationDto } from './planning/presentation/dto/create-savings-goal-allocation.dto';
+import type { CreateReceivablePaymentDto } from './planning/presentation/dto/create-receivable-payment.dto';
 import type { UpdateBudgetDto } from './planning/presentation/dto/update-budget.dto';
 import type { UpdateLoanDto } from './planning/presentation/dto/update-loan.dto';
 import type { UpdateSavingsGoalDto } from './planning/presentation/dto/update-savings-goal.dto';
@@ -53,6 +55,7 @@ export class FinanceFacade {
     private readonly payLoanInstallment: PayNextLoanInstallmentUseCase,
     private readonly prepayLoanTx: ApplyLoanPrepaymentUseCase,
     private readonly allocateToGoal: AllocateToGoalUseCase,
+    private readonly recordReceivable: RecordReceivablePaymentUseCase,
     private readonly analytics: AnalyticsService,
     private readonly statements: CardStatementsService,
     private readonly ingestion: IngestionService,
@@ -140,6 +143,15 @@ export class FinanceFacade {
     return this.statements.listCardStatements(userId, cardId, new Date());
   }
 
+  getCardStatement(userId: string, cardId: string, statementId: string) {
+    return this.statements.getStatementDetail(
+      userId,
+      cardId,
+      statementId,
+      new Date(),
+    );
+  }
+
   getBudgetStatus(userId: string) {
     return this.analytics.getBudgetStatus(userId);
   }
@@ -190,6 +202,14 @@ export class FinanceFacade {
     dto: CreateSavingsGoalAllocationDto,
   ) {
     return this.allocateToGoal.execute(userId, goalId, dto, new Date());
+  }
+
+  recordReceivablePayment(
+    userId: string,
+    receivableId: string,
+    dto: CreateReceivablePaymentDto,
+  ) {
+    return this.recordReceivable.execute(userId, receivableId, dto, new Date());
   }
 
   listLoans(userId: string) {

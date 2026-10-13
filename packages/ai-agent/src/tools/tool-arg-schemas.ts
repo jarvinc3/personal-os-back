@@ -217,6 +217,9 @@ export const createOrUpdateBudgetArgsSchema = z
     periodEnd: dateString.optional(),
     amountLimit: moneyAmount.optional(),
     alertThresholdPct: moneyAmount.nullable().optional(),
+    includeChildren: z.boolean().optional(),
+    rollover: z.enum(['NONE', 'SURPLUS', 'SURPLUS_AND_DEFICIT']).optional(),
+    recurring: z.boolean().optional(),
   })
   .strict()
   .superRefine((value, ctx) => {
@@ -277,15 +280,38 @@ export const allocateToGoalArgsSchema = z
   })
   .strict();
 
+export const recordReceivablePaymentArgsSchema = z
+  .object({
+    receivableId: uuid,
+    amount: moneyAmount,
+    accountId: uuid,
+    paidAt: dateString.nullable().optional(),
+    notes: z.string().trim().max(200).nullable().optional(),
+    excessHandling: z
+      .enum(['EXTRA_INCOME', 'CREDIT_BALANCE', 'APPLY_TO_RECEIVABLE'])
+      .optional(),
+    targetReceivableId: uuid.nullable().optional(),
+  })
+  .strict();
+
 export const updateSavingsGoalArgsSchema = z
   .object({
     goalId: uuid,
     targetAmount: moneyAmount.nullable().optional(),
     name: z.string().trim().min(1).max(120).nullable().optional(),
+    accountId: uuid.nullable().optional(),
+    mode: z.enum(['EARMARK', 'DEDICATED']).optional(),
+    spendReducesProgress: z.boolean().optional(),
   })
   .strict()
   .superRefine((value, ctx) => {
-    if (value.targetAmount === undefined && value.name === undefined) {
+    if (
+      value.targetAmount === undefined &&
+      value.name === undefined &&
+      value.accountId === undefined &&
+      value.mode === undefined &&
+      value.spendReducesProgress === undefined
+    ) {
       ctx.addIssue({
         code: 'custom',
         message: 'Provide at least one field to update on the savings goal',
@@ -361,6 +387,14 @@ export const createTransferArgsSchema = z
     transactionDate: dateString,
     description: optionalNullableString(200),
     notes: optionalNullableString(2000),
+    rail: z.enum(['SAME_BANK', 'ACH', 'LBTR', 'OTHER']).optional(),
+    fee: z
+      .object({
+        amount: moneyAmount,
+        categoryId: uuid.nullable().optional(),
+      })
+      .strict()
+      .optional(),
   })
   .strict();
 
@@ -376,7 +410,9 @@ export const createCardPaymentArgsSchema = z
   })
   .strict();
 
-export const getCardStatementArgsSchema = z.object({ cardId: uuid }).strict();
+export const getCardStatementArgsSchema = z
+  .object({ cardId: uuid, statementId: uuid.nullable().optional() })
+  .strict();
 
 /** Mutating tool name → Zod schema (single source of truth). */
 export const MUTATING_TOOL_ARG_SCHEMAS = {
@@ -397,6 +433,7 @@ export const MUTATING_TOOL_ARG_SCHEMAS = {
   create_savings_goal: createSavingsGoalArgsSchema,
   update_savings_goal: updateSavingsGoalArgsSchema,
   allocate_to_goal: allocateToGoalArgsSchema,
+  record_receivable_payment: recordReceivablePaymentArgsSchema,
   mark_loan_installment_paid: markLoanInstallmentPaidArgsSchema,
   prepay_loan: prepayLoanArgsSchema,
   trigger_email_sync: triggerEmailSyncArgsSchema,

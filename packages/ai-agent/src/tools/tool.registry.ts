@@ -269,6 +269,13 @@ const STATIC_TOOLS: StaticToolDef[] = [
     targetModule: 'finance',
   },
   {
+    name: 'record_receivable_payment',
+    description:
+      'Record a payment collected for a receivable, resolving any excess.',
+    mutating: true,
+    targetModule: 'finance',
+  },
+  {
     name: 'list_loans',
     description: 'List active loans.',
     mutating: false,

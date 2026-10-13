@@ -7,6 +7,7 @@ import { ApplyLoanPrepaymentUseCase } from './application/apply-loan-prepayment.
 import { WriteOffReceivableUseCase } from './application/write-off-receivable.use-case';
 import { PlanningService } from './application/planning.service';
 import { RecordReceivablePaymentUseCase } from './application/record-receivable-payment.use-case';
+import { ApplyReceivableCreditUseCase } from './application/apply-receivable-credit.use-case';
 import { AllocateToGoalUseCase } from './application/allocate-to-goal.use-case';
 import { RemoveSavingsGoalContributionUseCase } from './application/remove-savings-goal-contribution.use-case';
 import { SyncLoanInstallmentsUseCase } from './application/sync-loan-installments.use-case';
@@ -39,6 +40,7 @@ import { FinancePlanningThresholdModule } from './planning-threshold.module';
     PayNextLoanInstallmentUseCase,
     ApplyLoanPrepaymentUseCase,
     RecordReceivablePaymentUseCase,
+    ApplyReceivableCreditUseCase,
     WriteOffReceivableUseCase,
     AllocateToGoalUseCase,
     RemoveSavingsGoalContributionUseCase,
@@ -51,6 +53,7 @@ import { FinancePlanningThresholdModule } from './planning-threshold.module';
     PayNextLoanInstallmentUseCase,
     ApplyLoanPrepaymentUseCase,
     AllocateToGoalUseCase,
+    RecordReceivablePaymentUseCase,
     FinancePlanningThresholdModule,
   ],
 })

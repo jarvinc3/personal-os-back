@@ -724,6 +724,32 @@ export class PlanningRepository {
     });
   }
 
+  /** Moves part of the credit balance to another open receivable. */
+  async applyReceivableCredit(input: {
+    sourceReceivableId: string;
+    targetReceivableId: string;
+    amount: number;
+    paidAt: Date;
+  }): Promise<void> {
+    await this.prisma.$transaction(async (tx) => {
+      await tx.finReceivable.update({
+        where: { id: input.sourceReceivableId },
+        data: { creditBalance: { decrement: input.amount } },
+      });
+      await tx.finReceivablePayment.create({
+        data: {
+          receivableId: input.targetReceivableId,
+          amount: input.amount,
+          appliedAmount: input.amount,
+          excessAmount: 0,
+          paidAt: input.paidAt,
+          transactionId: null,
+        },
+      });
+      await applyReceivableBalance(tx, input.targetReceivableId);
+    });
+  }
+
   async writeOffReceivable(
     receivableId: string,
     input: { writtenOffAmount: number; writtenOffAt: Date },
