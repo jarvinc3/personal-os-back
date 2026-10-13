@@ -2,6 +2,14 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [SemVer](https://semver.org/lang/es/). Reglas y ejemplo en [docs/reference/changelog-guide.md](./docs/reference/changelog-guide.md).
 
+## [1.17.0] - 2026-10-13
+
+### Agregado
+
+- `POST /api/finance/transactions/:id/link` y `DELETE /api/finance/transactions/:id/link`: ligan un movimiento existente a una cuota de préstamo, un cobro o una meta aplicando el efecto de dominio, sin crear un movimiento nuevo, y lo revierten al quitar el vínculo. El detalle del movimiento expone `planningLink { kind, targetId, label }`.
+- El abono del cobro acepta un `transactionId` existente para no crear otro movimiento.
+- Tools de agente `link_transaction`, `adjust_balance`, `list_pending_emails`, `assign_pending_email`, `retry_pending_email` y `complete_pending_email_amount`.
+
 ## [1.16.0] - 2026-10-12
 
 ### Agregado
