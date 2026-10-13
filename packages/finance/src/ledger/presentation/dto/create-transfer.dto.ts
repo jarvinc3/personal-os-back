@@ -9,6 +9,7 @@ import {
   IsString,
   IsUUID,
   MaxLength,
+  ValidateIf,
   ValidateNested,
 } from 'class-validator';
 import { CurrencyField } from '../../../shared/presentation/validation.decorators';
@@ -28,12 +29,21 @@ export class TransferFeeDto {
   categoryId?: string;
 }
 
+/**
+ * Account ids are only validated when no (deprecated) card target is sent, so a
+ * card target reaches the controller and gets 400 TRANSFER_TARGET_NOT_ACCOUNT
+ * instead of a generic validation error.
+ */
+const hasNoCardTarget = (o: CreateTransferDto) => !o.toCardId && !o.fromCardId;
+
 export class CreateTransferDto {
   @ApiProperty()
+  @ValidateIf(hasNoCardTarget)
   @IsUUID()
   fromAccountId!: string;
 
   @ApiProperty()
+  @ValidateIf(hasNoCardTarget)
   @IsUUID()
   toAccountId!: string;
 
