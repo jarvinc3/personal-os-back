@@ -74,7 +74,9 @@ function setup(
   } = {},
 ) {
   const repo = {
-    findImportContext: jest.fn(() => Promise.resolve(context())),
+    findImportContext: jest.fn<Promise<unknown>, []>(() =>
+      Promise.resolve(context()),
+    ),
     listCategories: jest.fn(() =>
       Promise.resolve(
         options.categories ?? [
@@ -86,8 +88,8 @@ function setup(
     findMovementsForMatching: jest.fn(() =>
       Promise.resolve(options.movements ?? []),
     ),
-    replaceLines: jest.fn(() => Promise.resolve()),
-    updateResult: jest.fn(() => Promise.resolve()),
+    replaceLines: jest.fn<void, [string, Array<Record<string, unknown>>]>(),
+    updateResult: jest.fn<void, [unknown]>(),
   };
   const pdfText: StatementPdfTextPort = {
     extractText: jest.fn(() =>
@@ -145,10 +147,7 @@ describe('ProcessStatementImportUseCase', () => {
       bytes: new Uint8Array([1]),
     });
 
-    const [, lines] = repo.replaceLines.mock.calls[0] as [
-      string,
-      Array<Record<string, unknown>>,
-    ];
+    const [, lines] = repo.replaceLines.mock.calls[0];
     expect(lines).toHaveLength(2);
     expect(lines[0]).toMatchObject({
       description: 'SUPERMERCADO NACIONAL SRL',
@@ -189,10 +188,7 @@ describe('ProcessStatementImportUseCase', () => {
       bytes: new Uint8Array([1]),
     });
 
-    const [, lines] = repo.replaceLines.mock.calls[0] as [
-      string,
-      Array<Record<string, unknown>>,
-    ];
+    const [, lines] = repo.replaceLines.mock.calls[0];
     expect(lines[0].categoryId).toBeNull();
   });
 

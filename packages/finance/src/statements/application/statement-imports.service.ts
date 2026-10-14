@@ -146,12 +146,17 @@ export class StatementImportsService {
     if (!line) {
       throw new NotFoundException('Statement line not found');
     }
-    const transactionId =
-      input.decision === 'MATCH'
-        ? (input.transactionId ?? line.transactionId)
-        : null;
-    if (input.decision === 'MATCH' && !transactionId) {
-      throw new BadRequestException('A match requires a transaction');
+    let transactionId: string | null;
+    if (input.decision === 'CREATE') {
+      transactionId = null;
+    } else if (input.decision === 'IGNORE') {
+      // Keep the original link so re-checking the row restores the match.
+      transactionId = line.transactionId;
+    } else {
+      transactionId = input.transactionId ?? line.transactionId;
+      if (!transactionId) {
+        throw new BadRequestException('A match requires a transaction');
+      }
     }
     const updated = await this.repo.updateLine({
       importId: input.importId,
@@ -224,7 +229,11 @@ export class StatementImportsService {
           code: STATEMENT_IMPORT_ERROR.PASSWORD_REQUIRED,
         });
       }
-      throw error;
+      const message = error instanceof Error ? error.message : String(error);
+      throw new BadRequestException({
+        message,
+        code: STATEMENT_IMPORT_ERROR.PARSE_FAILED,
+      });
     }
   }
 
@@ -341,16 +350,27 @@ export class StatementImportsService {
     if (!context.cardId || !parsed.period) {
       return null;
     }
-    return this.cardStatements.upsertStatement({
+    const cycleEnd = new Date(parsed.period.to);
+    const closingBalance = parsed.header.closingBalance ?? 0;
+    const statementId = await this.cardStatements.upsertStatement({
       cardId: context.cardId,
       currency: parsed.header.currency,
       cycleStart: new Date(parsed.period.from),
-      cycleEnd: new Date(parsed.period.to),
+      cycleEnd,
       dueDate: parsed.header.dueDate ? new Date(parsed.header.dueDate) : null,
-      closingBalance: parsed.header.closingBalance ?? 0,
+      closingBalance,
       minimumPayment: parsed.header.minimumPayment ?? 0,
       minimumSource: parsed.header.minimumPayment === null ? null : 'IMPORTED',
       status: 'CLOSED',
     });
+    await this.cardStatements.recordStatementClosedEvent({
+      userId: context.userId,
+      cardId: context.cardId,
+      statementId,
+      currency: parsed.header.currency,
+      cycleEnd,
+      closingBalance,
+    });
+    return statementId;
   }
 }

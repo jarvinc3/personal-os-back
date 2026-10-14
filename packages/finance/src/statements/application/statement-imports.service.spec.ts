@@ -99,6 +99,7 @@ function setup(options: { context?: StatementImportContext } = {}) {
   const adjustBalance = { execute: jest.fn(() => Promise.resolve()) };
   const cardStatements = {
     upsertStatement: jest.fn(() => Promise.resolve('statement-1')),
+    recordStatementClosedEvent: jest.fn(() => Promise.resolve()),
   };
   const pdfText: StatementPdfTextPort = {
     extractText: jest.fn(() => Promise.resolve('text')),
@@ -169,6 +170,25 @@ describe('StatementImportsService', () => {
       }),
     ).rejects.toMatchObject({
       response: { code: STATEMENT_IMPORT_ERROR.PASSWORD_REQUIRED },
+    });
+    expect(repo.createImport).not.toHaveBeenCalled();
+  });
+
+  it('rejects a PDF that cannot be read as a parse failure', async () => {
+    const { service, repo, pdfText } = setup();
+    (pdfText.assertReadable as jest.Mock).mockRejectedValueOnce(
+      new Error('Invalid PDF structure'),
+    );
+
+    await expect(
+      service.createFromUpload({
+        userId: 'user-1',
+        cardId: 'card-1',
+        accountId: null,
+        file,
+      }),
+    ).rejects.toMatchObject({
+      response: { code: STATEMENT_IMPORT_ERROR.PARSE_FAILED },
     });
     expect(repo.createImport).not.toHaveBeenCalled();
   });
@@ -257,6 +277,14 @@ describe('StatementImportsService', () => {
         status: 'CLOSED',
       }),
     );
+    expect(cardStatements.recordStatementClosedEvent).toHaveBeenCalledWith({
+      userId: 'user-1',
+      cardId: 'card-1',
+      statementId: 'statement-1',
+      currency: 'DOP',
+      cycleEnd: utc(2026, 9, 24),
+      closingBalance: 31685.74,
+    });
     expect(repo.markApplied).toHaveBeenCalledWith({
       importId: 'import-1',
       statementId: 'statement-1',
@@ -324,6 +352,26 @@ describe('StatementImportsService', () => {
         decision: 'MATCH',
       }),
     ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('keeps the matched movement when a line is ignored', async () => {
+    const matched = context({
+      lines: [
+        { ...context().lines[0], transactionId: 'tx-1', decision: 'MATCH' },
+      ],
+    });
+    const { service, repo } = setup({ context: matched });
+
+    await service.updateLine({
+      userId: 'user-1',
+      importId: 'import-1',
+      lineId: 'line-1',
+      decision: 'IGNORE',
+    });
+
+    expect(repo.updateLine).toHaveBeenCalledWith(
+      expect.objectContaining({ decision: 'IGNORE', transactionId: 'tx-1' }),
+    );
   });
 
   it('refuses to edit lines after applying', async () => {
