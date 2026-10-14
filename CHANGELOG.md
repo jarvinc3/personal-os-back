@@ -2,6 +2,17 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [SemVer](https://semver.org/lang/es/). Reglas y ejemplo en [docs/reference/changelog-guide.md](./docs/reference/changelog-guide.md).
 
+## [0.23.2] - 2026-10-14
+
+### Corregido
+
+- El prompt de sistema acota el nombre y el resumen de la entidad en foco, para que una descripción de banco larga no infle el prompt.
+
+### Cambiado
+
+- El spec del contexto de entidad cubre todas las ramas de resolución (transferencia, cuenta, tarjeta, cuota, cobro, meta, institución, correo y vencimiento ausente). Sin cambios de comportamiento.
+- El spec del repositorio de catálogo pasa el diario de eliminación que exige el constructor. Sin cambios de comportamiento.
+
 ## [0.23.1] - 2026-10-14
 
 ### Cambiado
