@@ -283,4 +283,82 @@ describe('buildChatBlocks', () => {
     expect(blocks).toHaveLength(1);
     expect(blocks[0].type).toBe('transaction_card');
   });
+
+  it('skips a malformed transaction instead of inventing values', () => {
+    const blocks = buildChatBlocks({
+      toolResults: [
+        {
+          toolName: 'get_transaction',
+          result: ok({ id: 'tx-1', amount: '10', currency: 'DOP' }),
+        },
+      ],
+      userText: 'algo',
+      baseCurrency,
+    });
+
+    expect(blocks).toEqual([]);
+  });
+
+  it('derives the budget percentage when the payload omits it', () => {
+    const blocks = buildChatBlocks({
+      toolResults: [
+        {
+          toolName: 'get_budget_status',
+          result: ok({
+            items: [
+              {
+                id: 'budget-1',
+                category: 'Comida',
+                amountSpent: '250',
+                amountLimit: '1000',
+              },
+            ],
+          }),
+        },
+      ],
+      userText: 'presupuesto',
+      baseCurrency,
+    });
+
+    const block = blocks[0];
+    expect(block.type).toBe('budget_progress');
+    if (block.type !== 'budget_progress') {
+      return;
+    }
+    expect(block.pctUsed).toBe(25);
+  });
+
+  it('omits the next installment when the loan has no installment number', () => {
+    const blocks = buildChatBlocks({
+      toolResults: [
+        {
+          toolName: 'list_loans',
+          result: ok({
+            items: [
+              {
+                id: 'loan-1',
+                lenderName: 'Banco',
+                currentBalance: '50000',
+                currency: 'DOP',
+                installmentAmount: '4500',
+                nextDueDate: '2026-11-01',
+              },
+            ],
+          }),
+        },
+      ],
+      userText: 'mis préstamos',
+      baseCurrency,
+    });
+
+    expect(blocks).toEqual([
+      {
+        type: 'loan_summary',
+        loanId: 'loan-1',
+        balance: '50000',
+        currency: 'DOP',
+        name: 'Banco',
+      },
+    ]);
+  });
 });

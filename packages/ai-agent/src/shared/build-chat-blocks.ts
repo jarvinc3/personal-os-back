@@ -68,20 +68,25 @@ function toTransactionSnapshot(raw: unknown): ChatTransactionSnapshot | null {
     return null;
   }
   const id = asString(raw.id);
-  if (!id) {
+  const type = asString(raw.type);
+  const amount = asString(raw.amount);
+  const currency = asString(raw.currency);
+  const transactionDate = asString(raw.transactionDate);
+  const status = asString(raw.status);
+  if (!id || !type || !amount || !currency || !transactionDate || !status) {
     return null;
   }
   return {
     id,
-    type: asString(raw.type) ?? 'DEBIT',
-    amount: asString(raw.amount) ?? '0',
-    currency: asString(raw.currency) ?? 'DOP',
-    transactionDate: asString(raw.transactionDate) ?? '',
+    type,
+    amount,
+    currency,
+    transactionDate,
     merchant: asNullableString(raw.merchant),
     description: asNullableString(raw.description),
     accountName: asNullableString(raw.accountName),
     cardName: asNullableString(raw.cardName),
-    status: asString(raw.status) ?? 'CONFIRMED',
+    status,
   };
 }
 
@@ -127,6 +132,11 @@ function toBudgetView(raw: unknown): BudgetView | null {
   if (!id || !spent || !limit) {
     return null;
   }
+  const limitNumber = Number(limit);
+  const spentNumber = Number(spent);
+  const pctUsed =
+    asNumber(raw.pctUsed) ??
+    (limitNumber > 0 ? (spentNumber / limitNumber) * 100 : 0);
   return {
     id,
     name: asNullableString(raw.category) ?? asNullableString(raw.name),
@@ -134,7 +144,7 @@ function toBudgetView(raw: unknown): BudgetView | null {
     icon: asNullableString(raw.icon),
     spent,
     limit,
-    pctUsed: asNumber(raw.pctUsed) ?? 0,
+    pctUsed,
   };
 }
 
@@ -180,10 +190,10 @@ function toNextInstallment(
 ): ChatNextInstallment | undefined {
   const amount = asString(raw.installmentAmount);
   const dueDate = asString(raw.nextDueDate);
-  if (!amount || !dueDate) {
+  const paidInstallments = asNumber(raw.paidInstallments);
+  if (!amount || !dueDate || paidInstallments === null) {
     return undefined;
   }
-  const paidInstallments = asNumber(raw.paidInstallments) ?? 0;
   return {
     amount,
     currency,
