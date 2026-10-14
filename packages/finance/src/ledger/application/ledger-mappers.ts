@@ -70,6 +70,9 @@ export type MappedTransaction = {
   ledgerCurrency: string | null | undefined;
   exchangeRate: string;
   merchant: string | null;
+  merchantId: string | null;
+  merchantName: string | null;
+  merchantLogoUrl: string | null;
   description: string | null;
   transactionDate: string;
   status: string;
@@ -140,6 +143,9 @@ function mapPhysicalTransaction(
     ledgerCurrency: tx.ledgerCurrency,
     exchangeRate: decimalToString(tx.exchangeRate),
     merchant: tx.merchant,
+    merchantId: tx.merchantId ?? null,
+    merchantName: tx.merchantRef?.name ?? null,
+    merchantLogoUrl: tx.merchantRef?.logoUrl ?? null,
     description: tx.description,
     transactionDate: tx.transactionDate.toISOString(),
     status: tx.status,
@@ -243,6 +249,9 @@ export function mapLogicalTransaction(
     ledgerCurrency: from.ledgerCurrency,
     exchangeRate: decimalToString(from.exchangeRate),
     merchant: from.merchant,
+    merchantId: from.merchantId ?? null,
+    merchantName: from.merchantRef?.name ?? null,
+    merchantLogoUrl: from.merchantRef?.logoUrl ?? null,
     description: from.description,
     transactionDate: from.transactionDate.toISOString(),
     status: from.status,

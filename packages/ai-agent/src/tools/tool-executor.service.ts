@@ -60,6 +60,9 @@ const FINANCE_TOOL_NAMES = new Set([
   'complete_pending_email_amount',
   'get_spending_by_category',
   'get_spending_over_time',
+  'list_subscriptions',
+  'confirm_recurring',
+  'list_merchants',
 ]);
 
 function toLinkCommand(args: ValidatedToolArgs<'link_transaction'>) {
@@ -902,6 +905,41 @@ export class ToolExecutorService {
             typeof args.dateFrom === 'string' ? args.dateFrom : undefined,
             typeof args.dateTo === 'string' ? args.dateTo : undefined,
             groupBy,
+          ),
+        };
+      }
+      case 'list_subscriptions': {
+        const status =
+          args.status === 'SUGGESTED' ||
+          args.status === 'CONFIRMED' ||
+          args.status === 'DISMISSED'
+            ? args.status
+            : undefined;
+        const items = await this.financeFacade.listSubscriptions(ctx.userId);
+        return {
+          success: true,
+          message: 'Subscriptions loaded',
+          data: {
+            items: status
+              ? items.filter((item) => item.status === status)
+              : items,
+          },
+        };
+      }
+      case 'list_merchants':
+        return {
+          success: true,
+          message: 'Merchants loaded',
+          data: { items: await this.financeFacade.listMerchants(ctx.userId) },
+        };
+      case 'confirm_recurring': {
+        const recurring = args as ValidatedToolArgs<'confirm_recurring'>;
+        return {
+          success: true,
+          message: 'Recurring charge confirmed',
+          data: await this.financeFacade.confirmRecurring(
+            ctx.userId,
+            recurring.patternId,
           ),
         };
       }

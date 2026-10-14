@@ -3,6 +3,7 @@ import { LogosModule } from '@personal-os/logos';
 import { FinanceEventsModule } from '../events/events.module';
 import { FinanceFxModule } from '../fx/fx.module';
 import { FinancePlanningThresholdModule } from '../planning/planning-threshold.module';
+import { FinanceMerchantsModule } from '../merchants/merchants.module';
 import { FinanceOwnershipModule } from '../shared/finance-ownership.module';
 import { DeletionJournalModule } from '../shared/deletion-journal.module';
 import { LEDGER_REPOSITORY } from '../shared/application/tokens';
@@ -36,6 +37,7 @@ import { CardPaymentsController } from './presentation/card-payments.controller'
     FinanceFxModule,
     FinanceEventsModule,
     FinancePlanningThresholdModule,
+    FinanceMerchantsModule,
     FinanceOwnershipModule,
     LogosModule,
     DeletionJournalModule,

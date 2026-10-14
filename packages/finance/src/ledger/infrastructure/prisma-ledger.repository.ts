@@ -76,6 +76,9 @@ const transactionPartyInclude = {
       },
     },
   },
+  merchantRef: {
+    select: { id: true, name: true, logoUrl: true },
+  },
 } satisfies Prisma.FinTransactionInclude;
 
 /** Link relations, only for the single-movement read. */
@@ -559,6 +562,7 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
           ledgerCurrency: amounts.ledgerCurrency,
           exchangeRate: amounts.exchangeRate,
           merchant: command.merchant,
+          merchantId: command.merchantId,
           description: command.description,
           categoryId: command.categoryId,
           notes: command.notes,
@@ -1201,6 +1205,9 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
     const data: Prisma.FinTransactionUncheckedUpdateManyInput = {
       ...(fields.type !== undefined ? { type: fields.type } : {}),
       ...(fields.merchant !== undefined ? { merchant: fields.merchant } : {}),
+      ...(fields.merchantId !== undefined
+        ? { merchantId: fields.merchantId }
+        : {}),
       ...(fields.description !== undefined
         ? { description: fields.description }
         : {}),
@@ -1865,6 +1872,7 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
           ledgerCurrency: data.amounts.ledgerCurrency,
           exchangeRate: data.amounts.exchangeRate,
           merchant: data.merchant,
+          merchantId: data.merchantId,
           description: data.description,
           notes: data.notes ?? null,
           transactionDate: data.transactionDate,

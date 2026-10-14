@@ -19,6 +19,7 @@ export type FinanceWipeCounts = {
   emailMessages: number;
   emailSyncLogs: number;
   recurringPatterns: number;
+  merchants: number;
   budgets: number;
   savingsGoals: number;
   loans: number;
@@ -38,6 +39,7 @@ function emptyCounts(): FinanceWipeCounts {
     emailMessages: 0,
     emailSyncLogs: 0,
     recurringPatterns: 0,
+    merchants: 0,
     budgets: 0,
     savingsGoals: 0,
     loans: 0,
@@ -173,6 +175,7 @@ export class WipeFinanceUserDataUseCase {
     const recurringPatterns = await tx.finRecurringPattern.deleteMany({
       where: { userId },
     });
+    const merchants = await tx.finMerchant.deleteMany({ where: { userId } });
     await tx.finAccount.updateMany({
       where: { userId },
       data: { balance: 0 },
@@ -187,6 +190,7 @@ export class WipeFinanceUserDataUseCase {
       emailMessages: emailMessages.count,
       emailSyncLogs: emailSyncLogs.count,
       recurringPatterns: recurringPatterns.count,
+      merchants: merchants.count,
     };
   }
 

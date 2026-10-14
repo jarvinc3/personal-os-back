@@ -169,6 +169,25 @@ export const FinCategoryType = {
 export type FinCategoryType = (typeof FinCategoryType)[keyof typeof FinCategoryType]
 
 
+export const FinRecurringStatus = {
+  SUGGESTED: 'SUGGESTED',
+  CONFIRMED: 'CONFIRMED',
+  DISMISSED: 'DISMISSED'
+} as const
+
+export type FinRecurringStatus = (typeof FinRecurringStatus)[keyof typeof FinRecurringStatus]
+
+
+export const FinRecurringKind = {
+  SUBSCRIPTION: 'SUBSCRIPTION',
+  BILL: 'BILL',
+  INCOME: 'INCOME',
+  OTHER: 'OTHER'
+} as const
+
+export type FinRecurringKind = (typeof FinRecurringKind)[keyof typeof FinRecurringKind]
+
+
 export const FinTransactionStatus = {
   PENDING: 'PENDING',
   CONFIRMED: 'CONFIRMED',

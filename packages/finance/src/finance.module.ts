@@ -7,8 +7,10 @@ import { FinanceFacade } from './finance.facade';
 import { FinanceFxModule } from './fx/fx.module';
 import { FinanceIngestionModule } from './ingestion/ingestion.module';
 import { FinanceLedgerModule } from './ledger/ledger.module';
+import { FinanceMerchantsModule } from './merchants/merchants.module';
 import { FinancePlanningModule } from './planning/planning.module';
 import { FinanceQuickEntryModule } from './quick-entry/quick-entry.module';
+import { FinanceRecurringModule } from './recurring/recurring.module';
 import { FinanceStatementsModule } from './statements/statements.module';
 import { FinanceRecycleBinModule } from './shared/recycle-bin.module';
 import { FinanceChatContextModule } from './shared/chat-context.module';
@@ -27,6 +29,8 @@ import { FinanceWipeModule } from './shared/wipe-finance.module';
     FinanceBalanceSheetModule,
     FinanceAnalyticsModule,
     FinanceLedgerModule,
+    FinanceMerchantsModule,
+    FinanceRecurringModule,
     FinanceQuickEntryModule,
     FinanceIngestionModule,
     FinanceRecycleBinModule,

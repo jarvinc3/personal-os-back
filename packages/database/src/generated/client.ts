@@ -126,6 +126,11 @@ export type FinBudgetAlert = Prisma.FinBudgetAlertModel
  */
 export type FinRecurringPattern = Prisma.FinRecurringPatternModel
 /**
+ * Model FinMerchant
+ * 
+ */
+export type FinMerchant = Prisma.FinMerchantModel
+/**
  * Model FinExchangeRate
  * 
  */

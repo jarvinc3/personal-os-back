@@ -1,5 +1,6 @@
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import { FinanceOutboxDispatcher } from '../../events/infrastructure/finance-outbox.dispatcher';
+import { MerchantsService } from '../../merchants/application/merchants.service';
 import { ResolveAmountsUseCase } from '../../fx/application/resolve-amounts.use-case';
 import { ResolveUserBaseCurrencyUseCase } from '../../fx/application/resolve-user-base-currency';
 import { LEDGER_REPOSITORY } from '../../shared/application/tokens';
@@ -19,6 +20,7 @@ export class CreateTransactionUseCase {
     private readonly baseCurrency: ResolveUserBaseCurrencyUseCase,
     private readonly outboxDispatcher: FinanceOutboxDispatcher,
     private readonly ownership: FinanceOwnershipService,
+    private readonly merchants: MerchantsService,
   ) {}
 
   async execute(
@@ -50,6 +52,10 @@ export class CreateTransactionUseCase {
       originalCurrency,
     );
 
+    const resolved = command.merchant
+      ? await this.merchants.resolve(userId, command.merchant)
+      : null;
+
     const amounts = await this.resolveAmounts.execute({
       amount: command.amount,
       currency: originalCurrency,
@@ -60,7 +66,11 @@ export class CreateTransactionUseCase {
 
     const created = await this.repo.createTransaction(
       userId,
-      { ...command, currency: originalCurrency },
+      {
+        ...command,
+        currency: originalCurrency,
+        merchantId: resolved?.id,
+      },
       amounts,
       source,
     );

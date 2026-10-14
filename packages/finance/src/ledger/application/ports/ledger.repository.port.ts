@@ -27,6 +27,12 @@ export type LedgerTransactionRow = {
   ledgerCurrency?: string | null;
   exchangeRate?: { toString(): string } | number | null;
   merchant: string | null;
+  merchantId?: string | null;
+  merchantRef?: {
+    id: string;
+    name: string;
+    logoUrl: string | null;
+  } | null;
   description: string | null;
   notes: string | null;
   categoryId: string | null;

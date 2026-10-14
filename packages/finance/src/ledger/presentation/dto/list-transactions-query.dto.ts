@@ -37,6 +37,11 @@ export class ListTransactionsQueryDto extends CursorQueryDto {
   @IsUUID()
   categoryId?: string;
 
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsUUID()
+  merchantId?: string;
+
   @ApiPropertyOptional({ enum: FIN_TRANSACTION_TYPES })
   @IsOptional()
   @IsEnum(FIN_TRANSACTION_TYPES)

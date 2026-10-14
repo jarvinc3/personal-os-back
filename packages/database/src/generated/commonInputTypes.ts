@@ -525,6 +525,40 @@ export type EnumAiSuggestionStatusWithAggregatesFilter<$PrismaModel = never> = {
   _max?: Prisma.NestedEnumAiSuggestionStatusFilter<$PrismaModel>
 }
 
+export type EnumFinRecurringStatusFilter<$PrismaModel = never> = {
+  equals?: $Enums.FinRecurringStatus | Prisma.EnumFinRecurringStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.FinRecurringStatus[] | Prisma.ListEnumFinRecurringStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.FinRecurringStatus[] | Prisma.ListEnumFinRecurringStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumFinRecurringStatusFilter<$PrismaModel> | $Enums.FinRecurringStatus
+}
+
+export type EnumFinRecurringKindFilter<$PrismaModel = never> = {
+  equals?: $Enums.FinRecurringKind | Prisma.EnumFinRecurringKindFieldRefInput<$PrismaModel>
+  in?: $Enums.FinRecurringKind[] | Prisma.ListEnumFinRecurringKindFieldRefInput<$PrismaModel>
+  notIn?: $Enums.FinRecurringKind[] | Prisma.ListEnumFinRecurringKindFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumFinRecurringKindFilter<$PrismaModel> | $Enums.FinRecurringKind
+}
+
+export type EnumFinRecurringStatusWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.FinRecurringStatus | Prisma.EnumFinRecurringStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.FinRecurringStatus[] | Prisma.ListEnumFinRecurringStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.FinRecurringStatus[] | Prisma.ListEnumFinRecurringStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumFinRecurringStatusWithAggregatesFilter<$PrismaModel> | $Enums.FinRecurringStatus
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumFinRecurringStatusFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumFinRecurringStatusFilter<$PrismaModel>
+}
+
+export type EnumFinRecurringKindWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.FinRecurringKind | Prisma.EnumFinRecurringKindFieldRefInput<$PrismaModel>
+  in?: $Enums.FinRecurringKind[] | Prisma.ListEnumFinRecurringKindFieldRefInput<$PrismaModel>
+  notIn?: $Enums.FinRecurringKind[] | Prisma.ListEnumFinRecurringKindFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumFinRecurringKindWithAggregatesFilter<$PrismaModel> | $Enums.FinRecurringKind
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumFinRecurringKindFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumFinRecurringKindFilter<$PrismaModel>
+}
+
 export type EnumFinCardTypeFilter<$PrismaModel = never> = {
   equals?: $Enums.FinCardType | Prisma.EnumFinCardTypeFieldRefInput<$PrismaModel>
   in?: $Enums.FinCardType[] | Prisma.ListEnumFinCardTypeFieldRefInput<$PrismaModel>
@@ -1336,6 +1370,40 @@ export type NestedEnumAiSuggestionStatusWithAggregatesFilter<$PrismaModel = neve
   _count?: Prisma.NestedIntFilter<$PrismaModel>
   _min?: Prisma.NestedEnumAiSuggestionStatusFilter<$PrismaModel>
   _max?: Prisma.NestedEnumAiSuggestionStatusFilter<$PrismaModel>
+}
+
+export type NestedEnumFinRecurringStatusFilter<$PrismaModel = never> = {
+  equals?: $Enums.FinRecurringStatus | Prisma.EnumFinRecurringStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.FinRecurringStatus[] | Prisma.ListEnumFinRecurringStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.FinRecurringStatus[] | Prisma.ListEnumFinRecurringStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumFinRecurringStatusFilter<$PrismaModel> | $Enums.FinRecurringStatus
+}
+
+export type NestedEnumFinRecurringKindFilter<$PrismaModel = never> = {
+  equals?: $Enums.FinRecurringKind | Prisma.EnumFinRecurringKindFieldRefInput<$PrismaModel>
+  in?: $Enums.FinRecurringKind[] | Prisma.ListEnumFinRecurringKindFieldRefInput<$PrismaModel>
+  notIn?: $Enums.FinRecurringKind[] | Prisma.ListEnumFinRecurringKindFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumFinRecurringKindFilter<$PrismaModel> | $Enums.FinRecurringKind
+}
+
+export type NestedEnumFinRecurringStatusWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.FinRecurringStatus | Prisma.EnumFinRecurringStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.FinRecurringStatus[] | Prisma.ListEnumFinRecurringStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.FinRecurringStatus[] | Prisma.ListEnumFinRecurringStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumFinRecurringStatusWithAggregatesFilter<$PrismaModel> | $Enums.FinRecurringStatus
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumFinRecurringStatusFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumFinRecurringStatusFilter<$PrismaModel>
+}
+
+export type NestedEnumFinRecurringKindWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.FinRecurringKind | Prisma.EnumFinRecurringKindFieldRefInput<$PrismaModel>
+  in?: $Enums.FinRecurringKind[] | Prisma.ListEnumFinRecurringKindFieldRefInput<$PrismaModel>
+  notIn?: $Enums.FinRecurringKind[] | Prisma.ListEnumFinRecurringKindFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumFinRecurringKindWithAggregatesFilter<$PrismaModel> | $Enums.FinRecurringKind
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumFinRecurringKindFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumFinRecurringKindFilter<$PrismaModel>
 }
 
 export type NestedEnumFinCardTypeFilter<$PrismaModel = never> = {

@@ -10,6 +10,7 @@ function buildMocks() {
     finEmailMessage: { deleteMany: jest.fn() },
     finEmailSyncLog: { deleteMany: jest.fn() },
     finRecurringPattern: { deleteMany: jest.fn() },
+    finMerchant: { deleteMany: jest.fn() },
     finAccount: {
       updateMany: jest.fn(),
       count: jest.fn(),
@@ -69,6 +70,9 @@ describe('WipeFinanceUserDataUseCase', () => {
       where: { userId: 'user-1' },
     });
     expect(tx.finRecurringPattern.deleteMany).toHaveBeenCalledWith({
+      where: { userId: 'user-1' },
+    });
+    expect(tx.finMerchant.deleteMany).toHaveBeenCalledWith({
       where: { userId: 'user-1' },
     });
     expect(tx.finAccount.updateMany).toHaveBeenCalledWith({

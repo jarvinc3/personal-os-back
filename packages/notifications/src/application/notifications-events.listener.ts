@@ -10,6 +10,9 @@ import {
   budgetThresholdCopy,
   cardStatementReminderCopy,
   formatNotificationAmount,
+  recurringMissedCopy,
+  recurringPriceChangedCopy,
+  recurringUpcomingCopy,
   transactionPendingCopy,
   transactionRecordedCopy,
   transactionUpdatedCopy,
@@ -66,6 +69,27 @@ type WeeklySummaryEvent = {
     upcomingInstallments?: unknown[];
     pendingEmails?: number;
   };
+};
+
+type RecurringPriceChangeEvent = {
+  eventId?: string;
+  userId: string;
+  patternId: string;
+  merchant: string;
+  currency?: string;
+  previousAmount: number;
+  newAmount: number;
+};
+
+type RecurringChargeEvent = {
+  eventId?: string;
+  userId: string;
+  patternId: string;
+  merchant: string;
+  amount: number;
+  currency?: string;
+  nextExpectedDate?: string;
+  daysUntil?: number;
 };
 
 @Injectable()
@@ -250,6 +274,83 @@ export class NotificationsEventsListener {
         moduleSlug: FINANCE_MODULE_SLUG,
         notificationKey: FINANCE_NOTIFICATION_KEYS.weeklySummary,
         weekStart: event.weekStart ?? null,
+      },
+    });
+  }
+
+  @OnEvent(AppEvents.FINANCE_RECURRING_PRICE_CHANGED)
+  async onRecurringPriceChanged(
+    event: RecurringPriceChangeEvent,
+  ): Promise<void> {
+    if (
+      !(await this.idempotency.tryClaim(
+        event.eventId,
+        `${NotificationsEventsListener.CONSUMER}:recurring-price`,
+      ))
+    ) {
+      return;
+    }
+    const currency = event.currency ?? '';
+    const copy = recurringPriceChangedCopy({
+      merchant: event.merchant,
+      previousLabel: formatNotificationAmount(event.previousAmount, currency),
+      newLabel: formatNotificationAmount(event.newAmount, currency),
+    });
+    await this.createFinanceInApp(event.userId, {
+      type: 'recurring.price_changed',
+      title: copy.title,
+      body: copy.body,
+      data: {
+        moduleSlug: FINANCE_MODULE_SLUG,
+        notificationKey: FINANCE_NOTIFICATION_KEYS.recurringAlerts,
+        patternId: event.patternId,
+      },
+    });
+  }
+
+  @OnEvent(AppEvents.FINANCE_RECURRING_MISSED)
+  async onRecurringMissed(event: RecurringChargeEvent): Promise<void> {
+    await this.createRecurringCharge(event, 'recurring.missed', 'missed');
+  }
+
+  @OnEvent(AppEvents.FINANCE_RECURRING_UPCOMING)
+  async onRecurringUpcoming(event: RecurringChargeEvent): Promise<void> {
+    await this.createRecurringCharge(event, 'recurring.upcoming', 'upcoming');
+  }
+
+  private async createRecurringCharge(
+    event: RecurringChargeEvent,
+    type: string,
+    copyKind: 'missed' | 'upcoming',
+  ): Promise<void> {
+    if (
+      !(await this.idempotency.tryClaim(
+        event.eventId,
+        `${NotificationsEventsListener.CONSUMER}:${type}`,
+      ))
+    ) {
+      return;
+    }
+    const amountLabel = formatNotificationAmount(
+      event.amount,
+      event.currency ?? '',
+    );
+    const copy =
+      copyKind === 'missed'
+        ? recurringMissedCopy({ merchant: event.merchant, amountLabel })
+        : recurringUpcomingCopy({
+            merchant: event.merchant,
+            amountLabel,
+            daysUntil: event.daysUntil ?? 0,
+          });
+    await this.createFinanceInApp(event.userId, {
+      type,
+      title: copy.title,
+      body: copy.body,
+      data: {
+        moduleSlug: FINANCE_MODULE_SLUG,
+        notificationKey: FINANCE_NOTIFICATION_KEYS.recurringAlerts,
+        patternId: event.patternId,
       },
     });
   }

@@ -24,6 +24,7 @@ model User {
   finInstitutions FinInstitution[]
   finBudgets      FinBudget[]
   finCategories   FinCategory[]
+  finMerchants    FinMerchant[]
   finEmailConnections FinEmailConnection[]
   finEmailSources     FinEmailSource[]
   finLoans            FinLoan[]
@@ -287,6 +288,8 @@ model FinTransaction {
   /// Rate used for original → ledger conversion (1 when same currency).
   exchangeRate         Decimal              @default(1) @map("exchange_rate") @db.Decimal(18, 8)
   merchant             String?
+  /// Canonical merchant resolved from `merchant`; `merchant` keeps the raw text.
+  merchantId           String?              @map("merchant_id")
   description          String?
   transactionDate      DateTime             @map("transaction_date") @db.Timestamptz(6)
   transferGroupId      String?              @map("transfer_group_id")
@@ -305,6 +308,7 @@ model FinTransaction {
   account              FinAccount?          @relation(fields: [accountId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   card                 FinCard?             @relation(fields: [cardId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   category             FinCategory?         @relation(fields: [categoryId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  merchantRef          FinMerchant?         @relation(fields: [merchantId], references: [id], onDelete: SetNull, onUpdate: NoAction)
   emailMessage         FinEmailMessage?     @relation(fields: [emailMessageId], references: [id], onDelete: SetNull, onUpdate: NoAction)
   user                 User                 @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   linkedTransaction    FinTransaction?      @relation("TransactionLink", fields: [linkedTransactionId], references: [id], onDelete: SetNull, onUpdate: NoAction)
@@ -318,6 +322,7 @@ model FinTransaction {
   @@index([accountId, transactionDate], map: "fin_transactions_account_id_date_idx")
   @@index([cardId, transactionDate], map: "fin_transactions_card_id_date_idx")
   @@index([userId, categoryId], map: "fin_transactions_user_id_category_idx")
+  @@index([merchantId], map: "fin_transactions_merchant_id_idx")
   @@index([userId, transactionDate], map: "fin_transactions_user_id_date_idx")
   @@index([userId, status, transactionDate], map: "fin_transactions_user_status_date_idx")
   @@index([userId, externalReference], map: "fin_transactions_user_ref_idx")
@@ -345,6 +350,7 @@ model FinCategory {
   children     FinCategory[]         @relation("CategoryHierarchy")
   user         User?                 @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   recurring    FinRecurringPattern[]
+  merchants    FinMerchant[]
   transactions FinTransaction[]
 
   @@index([userId], map: "fin_categories_user_id_idx")
@@ -414,24 +420,59 @@ model FinBudgetAlert {
 }
 
 model FinRecurringPattern {
-  id               String       @id @default(dbgenerated("(uuid_generate_v4())::text"))
-  userId           String       @map("user_id")
-  categoryId       String?      @map("category_id")
+  id               String             @id @default(dbgenerated("(uuid_generate_v4())::text"))
+  userId           String             @map("user_id")
+  categoryId       String?            @map("category_id")
+  merchantId       String?            @map("merchant_id")
   merchant         String
-  avgAmount        Decimal      @map("avg_amount") @db.Decimal(15, 2)
-  currency         String       @default("DOP")
+  avgAmount        Decimal            @map("avg_amount") @db.Decimal(15, 2)
+  currency         String             @default("DOP")
   frequency        String
-  nextExpectedDate DateTime     @map("next_expected_date") @db.Date
-  confidenceScore  Int          @default(0) @map("confidence_score")
-  aiAnalysis       Json         @default("{}") @map("ai_analysis")
-  isActive         Boolean      @default(true) @map("is_active")
-  updatedAt        DateTime     @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
-  category         FinCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull, onUpdate: NoAction, map: "fin_recurring_patterns_category_fkey")
-  user             User         @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  nextExpectedDate DateTime           @map("next_expected_date") @db.Date
+  /// Percentage band around avgAmount that still counts as the same charge.
+  amountTolerance  Decimal            @default(10) @map("amount_tolerance") @db.Decimal(5, 2)
+  status           FinRecurringStatus @default(SUGGESTED)
+  kind             FinRecurringKind   @default(SUBSCRIPTION)
+  confidenceScore  Int                @default(0) @map("confidence_score")
+  /// Last movement date seen for this pattern; drives "no llegó".
+  lastSeenAt       DateTime?          @map("last_seen_at") @db.Timestamptz(6)
+  /// When the user confirmed, so a confirmed annual survives with 2 charges.
+  confirmedAt      DateTime?          @map("confirmed_at") @db.Timestamptz(6)
+  aiAnalysis       Json               @default("{}") @map("ai_analysis")
+  isActive         Boolean            @default(true) @map("is_active")
+  createdAt        DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime           @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  category         FinCategory?       @relation(fields: [categoryId], references: [id], onDelete: SetNull, onUpdate: NoAction, map: "fin_recurring_patterns_category_fkey")
+  merchantRef      FinMerchant?       @relation(fields: [merchantId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  user             User               @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([userId], map: "fin_recurring_patterns_user_id_idx")
   @@index([categoryId], map: "fin_recurring_patterns_category_id_idx")
+  @@index([userId, status], map: "fin_recurring_patterns_user_status_idx")
+  @@index([userId, nextExpectedDate], map: "fin_recurring_patterns_user_next_date_idx")
   @@map("fin_recurring_patterns")
+}
+
+model FinMerchant {
+  id            String                @id @default(dbgenerated("(uuid_generate_v4())::text"))
+  userId        String                @map("user_id")
+  name          String
+  /// Normalized lookup key: unique per user.
+  normalizedKey String                @map("normalized_key")
+  /// Raw merchant strings that map to this merchant.
+  aliases       String[]              @default([])
+  categoryId    String?               @map("category_id")
+  logoUrl       String?               @map("logo_url")
+  createdAt     DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
+  user          User                  @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  category      FinCategory?          @relation(fields: [categoryId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  transactions  FinTransaction[]
+  recurring     FinRecurringPattern[]
+
+  @@unique([userId, normalizedKey], map: "fin_merchants_user_normalized_key_uq")
+  @@index([userId], map: "fin_merchants_user_id_idx")
+  @@index([categoryId], map: "fin_merchants_category_id_idx")
+  @@map("fin_merchants")
 }
 
 model FinExchangeRate {
@@ -878,6 +919,23 @@ enum FinTransactionType {
 enum FinCategoryType {
   EXPENSE
   INCOME
+}
+
+enum FinRecurringStatus {
+  SUGGESTED
+  CONFIRMED
+  DISMISSED
+
+  @@map("fin_recurring_status")
+}
+
+enum FinRecurringKind {
+  SUBSCRIPTION
+  BILL
+  INCOME
+  OTHER
+
+  @@map("fin_recurring_kind")
 }
 
 enum FinTransactionStatus {

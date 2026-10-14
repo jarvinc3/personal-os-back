@@ -18,6 +18,8 @@ import { CreateCardPaymentUseCase } from './ledger/application/create-card-payme
 import { CreateTransactionUseCase } from './ledger/application/create-transaction.use-case';
 import { CreateTransferUseCase } from './ledger/application/create-transfer.use-case';
 import { LedgerQueryService } from './ledger/application/ledger-query.service';
+import { MerchantsService } from './merchants/application/merchants.service';
+import { RecurringService } from './recurring/application/recurring.service';
 import { ReverseTransactionUseCase } from './ledger/application/reverse-transaction.use-case';
 import { UpdateTransactionUseCase } from './ledger/application/update-transaction.use-case';
 import { UnconfirmTransactionUseCase } from './ledger/application/unconfirm-transaction.use-case';
@@ -77,6 +79,8 @@ export class FinanceFacade {
     private readonly wipeFinance: WipeFinanceUserDataUseCase,
     private readonly chatContextEntities: ChatContextEntityService,
     private readonly resolveBaseCurrency: ResolveUserBaseCurrencyUseCase,
+    private readonly merchants: MerchantsService,
+    private readonly recurring: RecurringService,
   ) {}
 
   getBaseCurrency(userId: string) {
@@ -299,6 +303,20 @@ export class FinanceFacade {
 
   listCategories(userId: string, type?: 'EXPENSE' | 'INCOME') {
     return this.catalog.listCategories(userId, type);
+  }
+
+  async listMerchants(userId: string) {
+    const page = await this.merchants.list(userId, { limit: 50 });
+    return page.items;
+  }
+
+  async listSubscriptions(userId: string) {
+    const page = await this.recurring.list(userId, { limit: 50 });
+    return page.items;
+  }
+
+  confirmRecurring(userId: string, patternId: string) {
+    return this.recurring.update(userId, patternId, { status: 'CONFIRMED' });
   }
 
   listEmailSources(userId: string) {

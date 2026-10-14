@@ -414,6 +414,7 @@ export const ModelName = {
   FinBudgetCategory: 'FinBudgetCategory',
   FinBudgetAlert: 'FinBudgetAlert',
   FinRecurringPattern: 'FinRecurringPattern',
+  FinMerchant: 'FinMerchant',
   FinExchangeRate: 'FinExchangeRate',
   FinInstitution: 'FinInstitution',
   FinCard: 'FinCard',
@@ -450,7 +451,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "module" | "userModule" | "aiAgentSession" | "aiMessage" | "aiAction" | "notification" | "pushToken" | "finAccount" | "finEmailConnection" | "finEmailSource" | "finTransaction" | "finCategory" | "finBudget" | "finBudgetCategory" | "finBudgetAlert" | "finRecurringPattern" | "finExchangeRate" | "finInstitution" | "finCard" | "finCardBalance" | "finInstrumentEvent" | "finCardStatement" | "finSavingsGoal" | "finSavingsGoalContribution" | "finLoan" | "finLoanInstallment" | "finLoanPrepayment" | "finReceivable" | "finReceivablePayment" | "finEmailSyncLog" | "finEmailMessage" | "domainEventOutbox" | "processedDomainEvent" | "authDeletionOutbox" | "finDeletionJournal" | "finStatementImport" | "finStatementImportLine"
+    modelProps: "user" | "module" | "userModule" | "aiAgentSession" | "aiMessage" | "aiAction" | "notification" | "pushToken" | "finAccount" | "finEmailConnection" | "finEmailSource" | "finTransaction" | "finCategory" | "finBudget" | "finBudgetCategory" | "finBudgetAlert" | "finRecurringPattern" | "finMerchant" | "finExchangeRate" | "finInstitution" | "finCard" | "finCardBalance" | "finInstrumentEvent" | "finCardStatement" | "finSavingsGoal" | "finSavingsGoalContribution" | "finLoan" | "finLoanInstallment" | "finLoanPrepayment" | "finReceivable" | "finReceivablePayment" | "finEmailSyncLog" | "finEmailMessage" | "domainEventOutbox" | "processedDomainEvent" | "authDeletionOutbox" | "finDeletionJournal" | "finStatementImport" | "finStatementImportLine"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1709,6 +1710,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.FinRecurringPatternCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.FinRecurringPatternCountAggregateOutputType> | number
+        }
+      }
+    }
+    FinMerchant: {
+      payload: Prisma.$FinMerchantPayload<ExtArgs>
+      fields: Prisma.FinMerchantFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.FinMerchantFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinMerchantPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.FinMerchantFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinMerchantPayload>
+        }
+        findFirst: {
+          args: Prisma.FinMerchantFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinMerchantPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.FinMerchantFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinMerchantPayload>
+        }
+        findMany: {
+          args: Prisma.FinMerchantFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinMerchantPayload>[]
+        }
+        create: {
+          args: Prisma.FinMerchantCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinMerchantPayload>
+        }
+        createMany: {
+          args: Prisma.FinMerchantCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.FinMerchantCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinMerchantPayload>[]
+        }
+        delete: {
+          args: Prisma.FinMerchantDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinMerchantPayload>
+        }
+        update: {
+          args: Prisma.FinMerchantUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinMerchantPayload>
+        }
+        deleteMany: {
+          args: Prisma.FinMerchantDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.FinMerchantUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.FinMerchantUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinMerchantPayload>[]
+        }
+        upsert: {
+          args: Prisma.FinMerchantUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinMerchantPayload>
+        }
+        aggregate: {
+          args: Prisma.FinMerchantAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateFinMerchant>
+        }
+        groupBy: {
+          args: Prisma.FinMerchantGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.FinMerchantGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.FinMerchantCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.FinMerchantCountAggregateOutputType> | number
         }
       }
     }
@@ -3492,6 +3567,7 @@ export const FinTransactionScalarFieldEnum = {
   ledgerCurrency: 'ledgerCurrency',
   exchangeRate: 'exchangeRate',
   merchant: 'merchant',
+  merchantId: 'merchantId',
   description: 'description',
   transactionDate: 'transactionDate',
   transferGroupId: 'transferGroupId',
@@ -3574,18 +3650,39 @@ export const FinRecurringPatternScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
   categoryId: 'categoryId',
+  merchantId: 'merchantId',
   merchant: 'merchant',
   avgAmount: 'avgAmount',
   currency: 'currency',
   frequency: 'frequency',
   nextExpectedDate: 'nextExpectedDate',
+  amountTolerance: 'amountTolerance',
+  status: 'status',
+  kind: 'kind',
   confidenceScore: 'confidenceScore',
+  lastSeenAt: 'lastSeenAt',
+  confirmedAt: 'confirmedAt',
   aiAnalysis: 'aiAnalysis',
   isActive: 'isActive',
+  createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
 
 export type FinRecurringPatternScalarFieldEnum = (typeof FinRecurringPatternScalarFieldEnum)[keyof typeof FinRecurringPatternScalarFieldEnum]
+
+
+export const FinMerchantScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  name: 'name',
+  normalizedKey: 'normalizedKey',
+  aliases: 'aliases',
+  categoryId: 'categoryId',
+  logoUrl: 'logoUrl',
+  createdAt: 'createdAt'
+} as const
+
+export type FinMerchantScalarFieldEnum = (typeof FinMerchantScalarFieldEnum)[keyof typeof FinMerchantScalarFieldEnum]
 
 
 export const FinExchangeRateScalarFieldEnum = {
@@ -4274,6 +4371,34 @@ export type ListEnumAiSuggestionStatusFieldRefInput<$PrismaModel> = FieldRefInpu
 
 
 /**
+ * Reference to a field of type 'FinRecurringStatus'
+ */
+export type EnumFinRecurringStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'FinRecurringStatus'>
+    
+
+
+/**
+ * Reference to a field of type 'FinRecurringStatus[]'
+ */
+export type ListEnumFinRecurringStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'FinRecurringStatus[]'>
+    
+
+
+/**
+ * Reference to a field of type 'FinRecurringKind'
+ */
+export type EnumFinRecurringKindFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'FinRecurringKind'>
+    
+
+
+/**
+ * Reference to a field of type 'FinRecurringKind[]'
+ */
+export type ListEnumFinRecurringKindFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'FinRecurringKind[]'>
+    
+
+
+/**
  * Reference to a field of type 'FinCardType'
  */
 export type EnumFinCardTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'FinCardType'>
@@ -4692,6 +4817,7 @@ export type GlobalOmitConfig = {
   finBudgetCategory?: Prisma.FinBudgetCategoryOmit
   finBudgetAlert?: Prisma.FinBudgetAlertOmit
   finRecurringPattern?: Prisma.FinRecurringPatternOmit
+  finMerchant?: Prisma.FinMerchantOmit
   finExchangeRate?: Prisma.FinExchangeRateOmit
   finInstitution?: Prisma.FinInstitutionOmit
   finCard?: Prisma.FinCardOmit

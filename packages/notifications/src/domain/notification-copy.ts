@@ -138,3 +138,43 @@ export function budgetThresholdCopy(percentageUsed: number): NotificationCopy {
     body: `Un presupuesto alcanzó el ${rounded}% de su límite.`,
   };
 }
+
+export type RecurringNotificationFields = {
+  merchant: string;
+  amountLabel: string;
+};
+
+export function recurringPriceChangedCopy(input: {
+  merchant: string;
+  previousLabel: string;
+  newLabel: string;
+}): NotificationCopy {
+  return {
+    title: 'Subió el precio',
+    body: `${input.merchant} pasó de ${input.previousLabel} a ${input.newLabel}.`,
+  };
+}
+
+export function recurringMissedCopy(
+  fields: RecurringNotificationFields,
+): NotificationCopy {
+  return {
+    title: 'No llegó el cobro',
+    body: `El cobro de ${fields.merchant} (${fields.amountLabel}) no llegó en la fecha esperada.`,
+  };
+}
+
+export function recurringUpcomingCopy(
+  fields: RecurringNotificationFields & { daysUntil: number },
+): NotificationCopy {
+  const when =
+    fields.daysUntil <= 0
+      ? 'hoy'
+      : fields.daysUntil === 1
+        ? 'mañana'
+        : `en ${fields.daysUntil} días`;
+  return {
+    title: 'Próximo cobro',
+    body: `${fields.merchant} cobra ${fields.amountLabel} ${when}.`,
+  };
+}

@@ -216,6 +216,7 @@ export type UserWhereInput = {
   finInstitutions?: Prisma.FinInstitutionListRelationFilter
   finBudgets?: Prisma.FinBudgetListRelationFilter
   finCategories?: Prisma.FinCategoryListRelationFilter
+  finMerchants?: Prisma.FinMerchantListRelationFilter
   finEmailConnections?: Prisma.FinEmailConnectionListRelationFilter
   finEmailSources?: Prisma.FinEmailSourceListRelationFilter
   finLoans?: Prisma.FinLoanListRelationFilter
@@ -247,6 +248,7 @@ export type UserOrderByWithRelationInput = {
   finInstitutions?: Prisma.FinInstitutionOrderByRelationAggregateInput
   finBudgets?: Prisma.FinBudgetOrderByRelationAggregateInput
   finCategories?: Prisma.FinCategoryOrderByRelationAggregateInput
+  finMerchants?: Prisma.FinMerchantOrderByRelationAggregateInput
   finEmailConnections?: Prisma.FinEmailConnectionOrderByRelationAggregateInput
   finEmailSources?: Prisma.FinEmailSourceOrderByRelationAggregateInput
   finLoans?: Prisma.FinLoanOrderByRelationAggregateInput
@@ -281,6 +283,7 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   finInstitutions?: Prisma.FinInstitutionListRelationFilter
   finBudgets?: Prisma.FinBudgetListRelationFilter
   finCategories?: Prisma.FinCategoryListRelationFilter
+  finMerchants?: Prisma.FinMerchantListRelationFilter
   finEmailConnections?: Prisma.FinEmailConnectionListRelationFilter
   finEmailSources?: Prisma.FinEmailSourceListRelationFilter
   finLoans?: Prisma.FinLoanListRelationFilter
@@ -342,6 +345,7 @@ export type UserCreateInput = {
   finInstitutions?: Prisma.FinInstitutionCreateNestedManyWithoutUserInput
   finBudgets?: Prisma.FinBudgetCreateNestedManyWithoutUserInput
   finCategories?: Prisma.FinCategoryCreateNestedManyWithoutUserInput
+  finMerchants?: Prisma.FinMerchantCreateNestedManyWithoutUserInput
   finEmailConnections?: Prisma.FinEmailConnectionCreateNestedManyWithoutUserInput
   finEmailSources?: Prisma.FinEmailSourceCreateNestedManyWithoutUserInput
   finLoans?: Prisma.FinLoanCreateNestedManyWithoutUserInput
@@ -373,6 +377,7 @@ export type UserUncheckedCreateInput = {
   finInstitutions?: Prisma.FinInstitutionUncheckedCreateNestedManyWithoutUserInput
   finBudgets?: Prisma.FinBudgetUncheckedCreateNestedManyWithoutUserInput
   finCategories?: Prisma.FinCategoryUncheckedCreateNestedManyWithoutUserInput
+  finMerchants?: Prisma.FinMerchantUncheckedCreateNestedManyWithoutUserInput
   finEmailConnections?: Prisma.FinEmailConnectionUncheckedCreateNestedManyWithoutUserInput
   finEmailSources?: Prisma.FinEmailSourceUncheckedCreateNestedManyWithoutUserInput
   finLoans?: Prisma.FinLoanUncheckedCreateNestedManyWithoutUserInput
@@ -404,6 +409,7 @@ export type UserUpdateInput = {
   finInstitutions?: Prisma.FinInstitutionUpdateManyWithoutUserNestedInput
   finBudgets?: Prisma.FinBudgetUpdateManyWithoutUserNestedInput
   finCategories?: Prisma.FinCategoryUpdateManyWithoutUserNestedInput
+  finMerchants?: Prisma.FinMerchantUpdateManyWithoutUserNestedInput
   finEmailConnections?: Prisma.FinEmailConnectionUpdateManyWithoutUserNestedInput
   finEmailSources?: Prisma.FinEmailSourceUpdateManyWithoutUserNestedInput
   finLoans?: Prisma.FinLoanUpdateManyWithoutUserNestedInput
@@ -435,6 +441,7 @@ export type UserUncheckedUpdateInput = {
   finInstitutions?: Prisma.FinInstitutionUncheckedUpdateManyWithoutUserNestedInput
   finBudgets?: Prisma.FinBudgetUncheckedUpdateManyWithoutUserNestedInput
   finCategories?: Prisma.FinCategoryUncheckedUpdateManyWithoutUserNestedInput
+  finMerchants?: Prisma.FinMerchantUncheckedUpdateManyWithoutUserNestedInput
   finEmailConnections?: Prisma.FinEmailConnectionUncheckedUpdateManyWithoutUserNestedInput
   finEmailSources?: Prisma.FinEmailSourceUncheckedUpdateManyWithoutUserNestedInput
   finLoans?: Prisma.FinLoanUncheckedUpdateManyWithoutUserNestedInput
@@ -698,6 +705,20 @@ export type UserUpdateOneRequiredWithoutFinRecurringNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutFinRecurringInput, Prisma.UserUpdateWithoutFinRecurringInput>, Prisma.UserUncheckedUpdateWithoutFinRecurringInput>
 }
 
+export type UserCreateNestedOneWithoutFinMerchantsInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutFinMerchantsInput, Prisma.UserUncheckedCreateWithoutFinMerchantsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutFinMerchantsInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
+export type UserUpdateOneRequiredWithoutFinMerchantsNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutFinMerchantsInput, Prisma.UserUncheckedCreateWithoutFinMerchantsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutFinMerchantsInput
+  upsert?: Prisma.UserUpsertWithoutFinMerchantsInput
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutFinMerchantsInput, Prisma.UserUpdateWithoutFinMerchantsInput>, Prisma.UserUncheckedUpdateWithoutFinMerchantsInput>
+}
+
 export type UserCreateNestedOneWithoutFinInstitutionsInput = {
   create?: Prisma.XOR<Prisma.UserCreateWithoutFinInstitutionsInput, Prisma.UserUncheckedCreateWithoutFinInstitutionsInput>
   connectOrCreate?: Prisma.UserCreateOrConnectWithoutFinInstitutionsInput
@@ -826,6 +847,7 @@ export type UserCreateWithoutUserModulesInput = {
   finInstitutions?: Prisma.FinInstitutionCreateNestedManyWithoutUserInput
   finBudgets?: Prisma.FinBudgetCreateNestedManyWithoutUserInput
   finCategories?: Prisma.FinCategoryCreateNestedManyWithoutUserInput
+  finMerchants?: Prisma.FinMerchantCreateNestedManyWithoutUserInput
   finEmailConnections?: Prisma.FinEmailConnectionCreateNestedManyWithoutUserInput
   finEmailSources?: Prisma.FinEmailSourceCreateNestedManyWithoutUserInput
   finLoans?: Prisma.FinLoanCreateNestedManyWithoutUserInput
@@ -856,6 +878,7 @@ export type UserUncheckedCreateWithoutUserModulesInput = {
   finInstitutions?: Prisma.FinInstitutionUncheckedCreateNestedManyWithoutUserInput
   finBudgets?: Prisma.FinBudgetUncheckedCreateNestedManyWithoutUserInput
   finCategories?: Prisma.FinCategoryUncheckedCreateNestedManyWithoutUserInput
+  finMerchants?: Prisma.FinMerchantUncheckedCreateNestedManyWithoutUserInput
   finEmailConnections?: Prisma.FinEmailConnectionUncheckedCreateNestedManyWithoutUserInput
   finEmailSources?: Prisma.FinEmailSourceUncheckedCreateNestedManyWithoutUserInput
   finLoans?: Prisma.FinLoanUncheckedCreateNestedManyWithoutUserInput
@@ -902,6 +925,7 @@ export type UserUpdateWithoutUserModulesInput = {
   finInstitutions?: Prisma.FinInstitutionUpdateManyWithoutUserNestedInput
   finBudgets?: Prisma.FinBudgetUpdateManyWithoutUserNestedInput
   finCategories?: Prisma.FinCategoryUpdateManyWithoutUserNestedInput
+  finMerchants?: Prisma.FinMerchantUpdateManyWithoutUserNestedInput
   finEmailConnections?: Prisma.FinEmailConnectionUpdateManyWithoutUserNestedInput
   finEmailSources?: Prisma.FinEmailSourceUpdateManyWithoutUserNestedInput
   finLoans?: Prisma.FinLoanUpdateManyWithoutUserNestedInput
@@ -932,6 +956,7 @@ export type UserUncheckedUpdateWithoutUserModulesInput = {
   finInstitutions?: Prisma.FinInstitutionUncheckedUpdateManyWithoutUserNestedInput
   finBudgets?: Prisma.FinBudgetUncheckedUpdateManyWithoutUserNestedInput
   finCategories?: Prisma.FinCategoryUncheckedUpdateManyWithoutUserNestedInput
+  finMerchants?: Prisma.FinMerchantUncheckedUpdateManyWithoutUserNestedInput
   finEmailConnections?: Prisma.FinEmailConnectionUncheckedUpdateManyWithoutUserNestedInput
   finEmailSources?: Prisma.FinEmailSourceUncheckedUpdateManyWithoutUserNestedInput
   finLoans?: Prisma.FinLoanUncheckedUpdateManyWithoutUserNestedInput
@@ -961,6 +986,7 @@ export type UserCreateWithoutAiSessionsInput = {
   finInstitutions?: Prisma.FinInstitutionCreateNestedManyWithoutUserInput
   finBudgets?: Prisma.FinBudgetCreateNestedManyWithoutUserInput
   finCategories?: Prisma.FinCategoryCreateNestedManyWithoutUserInput
+  finMerchants?: Prisma.FinMerchantCreateNestedManyWithoutUserInput
   finEmailConnections?: Prisma.FinEmailConnectionCreateNestedManyWithoutUserInput
   finEmailSources?: Prisma.FinEmailSourceCreateNestedManyWithoutUserInput
   finLoans?: Prisma.FinLoanCreateNestedManyWithoutUserInput
@@ -991,6 +1017,7 @@ export type UserUncheckedCreateWithoutAiSessionsInput = {
   finInstitutions?: Prisma.FinInstitutionUncheckedCreateNestedManyWithoutUserInput
   finBudgets?: Prisma.FinBudgetUncheckedCreateNestedManyWithoutUserInput
   finCategories?: Prisma.FinCategoryUncheckedCreateNestedManyWithoutUserInput
+  finMerchants?: Prisma.FinMerchantUncheckedCreateNestedManyWithoutUserInput
   finEmailConnections?: Prisma.FinEmailConnectionUncheckedCreateNestedManyWithoutUserInput
   finEmailSources?: Prisma.FinEmailSourceUncheckedCreateNestedManyWithoutUserInput
   finLoans?: Prisma.FinLoanUncheckedCreateNestedManyWithoutUserInput
@@ -1037,6 +1064,7 @@ export type UserUpdateWithoutAiSessionsInput = {
   finInstitutions?: Prisma.FinInstitutionUpdateManyWithoutUserNestedInput
   finBudgets?: Prisma.FinBudgetUpdateManyWithoutUserNestedInput
   finCategories?: Prisma.FinCategoryUpdateManyWithoutUserNestedInput
+  finMerchants?: Prisma.FinMerchantUpdateManyWithoutUserNestedInput
   finEmailConnections?: Prisma.FinEmailConnectionUpdateManyWithoutUserNestedInput
   finEmailSources?: Prisma.FinEmailSourceUpdateManyWithoutUserNestedInput
   finLoans?: Prisma.FinLoanUpdateManyWithoutUserNestedInput
@@ -1067,6 +1095,7 @@ export type UserUncheckedUpdateWithoutAiSessionsInput = {
   finInstitutions?: Prisma.FinInstitutionUncheckedUpdateManyWithoutUserNestedInput
   finBudgets?: Prisma.FinBudgetUncheckedUpdateManyWithoutUserNestedInput
   finCategories?: Prisma.FinCategoryUncheckedUpdateManyWithoutUserNestedInput
+  finMerchants?: Prisma.FinMerchantUncheckedUpdateManyWithoutUserNestedInput
   finEmailConnections?: Prisma.FinEmailConnectionUncheckedUpdateManyWithoutUserNestedInput
   finEmailSources?: Prisma.FinEmailSourceUncheckedUpdateManyWithoutUserNestedInput
   finLoans?: Prisma.FinLoanUncheckedUpdateManyWithoutUserNestedInput
@@ -1098,6 +1127,7 @@ export type UserCreateWithoutNotificationsInput = {
   finInstitutions?: Prisma.FinInstitutionCreateNestedManyWithoutUserInput
   finBudgets?: Prisma.FinBudgetCreateNestedManyWithoutUserInput
   finCategories?: Prisma.FinCategoryCreateNestedManyWithoutUserInput
+  finMerchants?: Prisma.FinMerchantCreateNestedManyWithoutUserInput
   finEmailConnections?: Prisma.FinEmailConnectionCreateNestedManyWithoutUserInput
   finEmailSources?: Prisma.FinEmailSourceCreateNestedManyWithoutUserInput
   finLoans?: Prisma.FinLoanCreateNestedManyWithoutUserInput
@@ -1128,6 +1158,7 @@ export type UserUncheckedCreateWithoutNotificationsInput = {
   finInstitutions?: Prisma.FinInstitutionUncheckedCreateNestedManyWithoutUserInput
   finBudgets?: Prisma.FinBudgetUncheckedCreateNestedManyWithoutUserInput
   finCategories?: Prisma.FinCategoryUncheckedCreateNestedManyWithoutUserInput
+  finMerchants?: Prisma.FinMerchantUncheckedCreateNestedManyWithoutUserInput
   finEmailConnections?: Prisma.FinEmailConnectionUncheckedCreateNestedManyWithoutUserInput
   finEmailSources?: Prisma.FinEmailSourceUncheckedCreateNestedManyWithoutUserInput
   finLoans?: Prisma.FinLoanUncheckedCreateNestedManyWithoutUserInput
@@ -1174,6 +1205,7 @@ export type UserUpdateWithoutNotificationsInput = {
   finInstitutions?: Prisma.FinInstitutionUpdateManyWithoutUserNestedInput
   finBudgets?: Prisma.FinBudgetUpdateManyWithoutUserNestedInput
   finCategories?: Prisma.FinCategoryUpdateManyWithoutUserNestedInput
+  finMerchants?: Prisma.FinMerchantUpdateManyWithoutUserNestedInput
   finEmailConnections?: Prisma.FinEmailConnectionUpdateManyWithoutUserNestedInput
   finEmailSources?: Prisma.FinEmailSourceUpdateManyWithoutUserNestedInput
   finLoans?: Prisma.FinLoanUpdateManyWithoutUserNestedInput
@@ -1204,6 +1236,7 @@ export type UserUncheckedUpdateWithoutNotificationsInput = {
   finInstitutions?: Prisma.FinInstitutionUncheckedUpdateManyWithoutUserNestedInput
   finBudgets?: Prisma.FinBudgetUncheckedUpdateManyWithoutUserNestedInput
   finCategories?: Prisma.FinCategoryUncheckedUpdateManyWithoutUserNestedInput
+  finMerchants?: Prisma.FinMerchantUncheckedUpdateManyWithoutUserNestedInput
   finEmailConnections?: Prisma.FinEmailConnectionUncheckedUpdateManyWithoutUserNestedInput
   finEmailSources?: Prisma.FinEmailSourceUncheckedUpdateManyWithoutUserNestedInput
   finLoans?: Prisma.FinLoanUncheckedUpdateManyWithoutUserNestedInput
@@ -1234,6 +1267,7 @@ export type UserCreateWithoutPushTokensInput = {
   finInstitutions?: Prisma.FinInstitutionCreateNestedManyWithoutUserInput
   finBudgets?: Prisma.FinBudgetCreateNestedManyWithoutUserInput
   finCategories?: Prisma.FinCategoryCreateNestedManyWithoutUserInput
+  finMerchants?: Prisma.FinMerchantCreateNestedManyWithoutUserInput
   finEmailConnections?: Prisma.FinEmailConnectionCreateNestedManyWithoutUserInput
   finEmailSources?: Prisma.FinEmailSourceCreateNestedManyWithoutUserInput
   finLoans?: Prisma.FinLoanCreateNestedManyWithoutUserInput
@@ -1264,6 +1298,7 @@ export type UserUncheckedCreateWithoutPushTokensInput = {
   finInstitutions?: Prisma.FinInstitutionUncheckedCreateNestedManyWithoutUserInput
   finBudgets?: Prisma.FinBudgetUncheckedCreateNestedManyWithoutUserInput
   finCategories?: Prisma.FinCategoryUncheckedCreateNestedManyWithoutUserInput
+  finMerchants?: Prisma.FinMerchantUncheckedCreateNestedManyWithoutUserInput
   finEmailConnections?: Prisma.FinEmailConnectionUncheckedCreateNestedManyWithoutUserInput
   finEmailSources?: Prisma.FinEmailSourceUncheckedCreateNestedManyWithoutUserInput
   finLoans?: Prisma.FinLoanUncheckedCreateNestedManyWithoutUserInput
@@ -1310,6 +1345,7 @@ export type UserUpdateWithoutPushTokensInput = {
   finInstitutions?: Prisma.FinInstitutionUpdateManyWithoutUserNestedInput
   finBudgets?: Prisma.FinBudgetUpdateManyWithoutUserNestedInput
   finCategories?: Prisma.FinCategoryUpdateManyWithoutUserNestedInput
+  finMerchants?: Prisma.FinMerchantUpdateManyWithoutUserNestedInput
   finEmailConnections?: Prisma.FinEmailConnectionUpdateManyWithoutUserNestedInput
   finEmailSources?: Prisma.FinEmailSourceUpdateManyWithoutUserNestedInput
   finLoans?: Prisma.FinLoanUpdateManyWithoutUserNestedInput
@@ -1340,6 +1376,7 @@ export type UserUncheckedUpdateWithoutPushTokensInput = {
   finInstitutions?: Prisma.FinInstitutionUncheckedUpdateManyWithoutUserNestedInput
   finBudgets?: Prisma.FinBudgetUncheckedUpdateManyWithoutUserNestedInput
   finCategories?: Prisma.FinCategoryUncheckedUpdateManyWithoutUserNestedInput
+  finMerchants?: Prisma.FinMerchantUncheckedUpdateManyWithoutUserNestedInput
   finEmailConnections?: Prisma.FinEmailConnectionUncheckedUpdateManyWithoutUserNestedInput
   finEmailSources?: Prisma.FinEmailSourceUncheckedUpdateManyWithoutUserNestedInput
   finLoans?: Prisma.FinLoanUncheckedUpdateManyWithoutUserNestedInput
@@ -1369,6 +1406,7 @@ export type UserCreateWithoutFinAccountsInput = {
   finInstitutions?: Prisma.FinInstitutionCreateNestedManyWithoutUserInput
   finBudgets?: Prisma.FinBudgetCreateNestedManyWithoutUserInput
   finCategories?: Prisma.FinCategoryCreateNestedManyWithoutUserInput
+  finMerchants?: Prisma.FinMerchantCreateNestedManyWithoutUserInput
   finEmailConnections?: Prisma.FinEmailConnectionCreateNestedManyWithoutUserInput
   finEmailSources?: Prisma.FinEmailSourceCreateNestedManyWithoutUserInput
   finLoans?: Prisma.FinLoanCreateNestedManyWithoutUserInput
@@ -1399,6 +1437,7 @@ export type UserUncheckedCreateWithoutFinAccountsInput = {
   finInstitutions?: Prisma.FinInstitutionUncheckedCreateNestedManyWithoutUserInput
   finBudgets?: Prisma.FinBudgetUncheckedCreateNestedManyWithoutUserInput
   finCategories?: Prisma.FinCategoryUncheckedCreateNestedManyWithoutUserInput
+  finMerchants?: Prisma.FinMerchantUncheckedCreateNestedManyWithoutUserInput
   finEmailConnections?: Prisma.FinEmailConnectionUncheckedCreateNestedManyWithoutUserInput
   finEmailSources?: Prisma.FinEmailSourceUncheckedCreateNestedManyWithoutUserInput
   finLoans?: Prisma.FinLoanUncheckedCreateNestedManyWithoutUserInput
@@ -1445,6 +1484,7 @@ export type UserUpdateWithoutFinAccountsInput = {
   finInstitutions?: Prisma.FinInstitutionUpdateManyWithoutUserNestedInput
   finBudgets?: Prisma.FinBudgetUpdateManyWithoutUserNestedInput
   finCategories?: Prisma.FinCategoryUpdateManyWithoutUserNestedInput
+  finMerchants?: Prisma.FinMerchantUpdateManyWithoutUserNestedInput
   finEmailConnections?: Prisma.FinEmailConnectionUpdateManyWithoutUserNestedInput
   finEmailSources?: Prisma.FinEmailSourceUpdateManyWithoutUserNestedInput
   finLoans?: Prisma.FinLoanUpdateManyWithoutUserNestedInput
@@ -1475,6 +1515,7 @@ export type UserUncheckedUpdateWithoutFinAccountsInput = {
   finInstitutions?: Prisma.FinInstitutionUncheckedUpdateManyWithoutUserNestedInput
   finBudgets?: Prisma.FinBudgetUncheckedUpdateManyWithoutUserNestedInput
   finCategories?: Prisma.FinCategoryUncheckedUpdateManyWithoutUserNestedInput
+  finMerchants?: Prisma.FinMerchantUncheckedUpdateManyWithoutUserNestedInput
   finEmailConnections?: Prisma.FinEmailConnectionUncheckedUpdateManyWithoutUserNestedInput
   finEmailSources?: Prisma.FinEmailSourceUncheckedUpdateManyWithoutUserNestedInput
   finLoans?: Prisma.FinLoanUncheckedUpdateManyWithoutUserNestedInput
@@ -1506,6 +1547,7 @@ export type UserCreateWithoutFinEmailConnectionsInput = {
   finInstitutions?: Prisma.FinInstitutionCreateNestedManyWithoutUserInput
   finBudgets?: Prisma.FinBudgetCreateNestedManyWithoutUserInput
   finCategories?: Prisma.FinCategoryCreateNestedManyWithoutUserInput
+  finMerchants?: Prisma.FinMerchantCreateNestedManyWithoutUserInput
   finEmailSources?: Prisma.FinEmailSourceCreateNestedManyWithoutUserInput
   finLoans?: Prisma.FinLoanCreateNestedManyWithoutUserInput
   finReceivables?: Prisma.FinReceivableCreateNestedManyWithoutUserInput
@@ -1536,6 +1578,7 @@ export type UserUncheckedCreateWithoutFinEmailConnectionsInput = {
   finInstitutions?: Prisma.FinInstitutionUncheckedCreateNestedManyWithoutUserInput
   finBudgets?: Prisma.FinBudgetUncheckedCreateNestedManyWithoutUserInput
   finCategories?: Prisma.FinCategoryUncheckedCreateNestedManyWithoutUserInput
+  finMerchants?: Prisma.FinMerchantUncheckedCreateNestedManyWithoutUserInput
   finEmailSources?: Prisma.FinEmailSourceUncheckedCreateNestedManyWithoutUserInput
   finLoans?: Prisma.FinLoanUncheckedCreateNestedManyWithoutUserInput
   finReceivables?: Prisma.FinReceivableUncheckedCreateNestedManyWithoutUserInput
@@ -1582,6 +1625,7 @@ export type UserUpdateWithoutFinEmailConnectionsInput = {
   finInstitutions?: Prisma.FinInstitutionUpdateManyWithoutUserNestedInput
   finBudgets?: Prisma.FinBudgetUpdateManyWithoutUserNestedInput
   finCategories?: Prisma.FinCategoryUpdateManyWithoutUserNestedInput
+  finMerchants?: Prisma.FinMerchantUpdateManyWithoutUserNestedInput
   finEmailSources?: Prisma.FinEmailSourceUpdateManyWithoutUserNestedInput
   finLoans?: Prisma.FinLoanUpdateManyWithoutUserNestedInput
   finReceivables?: Prisma.FinReceivableUpdateManyWithoutUserNestedInput
@@ -1612,6 +1656,7 @@ export type UserUncheckedUpdateWithoutFinEmailConnectionsInput = {
   finInstitutions?: Prisma.FinInstitutionUncheckedUpdateManyWithoutUserNestedInput
   finBudgets?: Prisma.FinBudgetUncheckedUpdateManyWithoutUserNestedInput
   finCategories?: Prisma.FinCategoryUncheckedUpdateManyWithoutUserNestedInput
+  finMerchants?: Prisma.FinMerchantUncheckedUpdateManyWithoutUserNestedInput
   finEmailSources?: Prisma.FinEmailSourceUncheckedUpdateManyWithoutUserNestedInput
   finLoans?: Prisma.FinLoanUncheckedUpdateManyWithoutUserNestedInput
   finReceivables?: Prisma.FinReceivableUncheckedUpdateManyWithoutUserNestedInput
@@ -1642,6 +1687,7 @@ export type UserCreateWithoutFinEmailSourcesInput = {
   finInstitutions?: Prisma.FinInstitutionCreateNestedManyWithoutUserInput
   finBudgets?: Prisma.FinBudgetCreateNestedManyWithoutUserInput
   finCategories?: Prisma.FinCategoryCreateNestedManyWithoutUserInput
+  finMerchants?: Prisma.FinMerchantCreateNestedManyWithoutUserInput
   finEmailConnections?: Prisma.FinEmailConnectionCreateNestedManyWithoutUserInput
   finLoans?: Prisma.FinLoanCreateNestedManyWithoutUserInput
   finReceivables?: Prisma.FinReceivableCreateNestedManyWithoutUserInput
@@ -1672,6 +1718,7 @@ export type UserUncheckedCreateWithoutFinEmailSourcesInput = {
   finInstitutions?: Prisma.FinInstitutionUncheckedCreateNestedManyWithoutUserInput
   finBudgets?: Prisma.FinBudgetUncheckedCreateNestedManyWithoutUserInput
   finCategories?: Prisma.FinCategoryUncheckedCreateNestedManyWithoutUserInput
+  finMerchants?: Prisma.FinMerchantUncheckedCreateNestedManyWithoutUserInput
   finEmailConnections?: Prisma.FinEmailConnectionUncheckedCreateNestedManyWithoutUserInput
   finLoans?: Prisma.FinLoanUncheckedCreateNestedManyWithoutUserInput
   finReceivables?: Prisma.FinReceivableUncheckedCreateNestedManyWithoutUserInput
@@ -1718,6 +1765,7 @@ export type UserUpdateWithoutFinEmailSourcesInput = {
   finInstitutions?: Prisma.FinInstitutionUpdateManyWithoutUserNestedInput
   finBudgets?: Prisma.FinBudgetUpdateManyWithoutUserNestedInput
   finCategories?: Prisma.FinCategoryUpdateManyWithoutUserNestedInput
+  finMerchants?: Prisma.FinMerchantUpdateManyWithoutUserNestedInput
   finEmailConnections?: Prisma.FinEmailConnectionUpdateManyWithoutUserNestedInput
   finLoans?: Prisma.FinLoanUpdateManyWithoutUserNestedInput
   finReceivables?: Prisma.FinReceivableUpdateManyWithoutUserNestedInput
@@ -1748,6 +1796,7 @@ export type UserUncheckedUpdateWithoutFinEmailSourcesInput = {
   finInstitutions?: Prisma.FinInstitutionUncheckedUpdateManyWithoutUserNestedInput
   finBudgets?: Prisma.FinBudgetUncheckedUpdateManyWithoutUserNestedInput
   finCategories?: Prisma.FinCategoryUncheckedUpdateManyWithoutUserNestedInput
+  finMerchants?: Prisma.FinMerchantUncheckedUpdateManyWithoutUserNestedInput
   finEmailConnections?: Prisma.FinEmailConnectionUncheckedUpdateManyWithoutUserNestedInput
   finLoans?: Prisma.FinLoanUncheckedUpdateManyWithoutUserNestedInput
   finReceivables?: Prisma.FinReceivableUncheckedUpdateManyWithoutUserNestedInput
@@ -1778,6 +1827,7 @@ export type UserCreateWithoutFinTransactionsInput = {
   finInstitutions?: Prisma.FinInstitutionCreateNestedManyWithoutUserInput
   finBudgets?: Prisma.FinBudgetCreateNestedManyWithoutUserInput
   finCategories?: Prisma.FinCategoryCreateNestedManyWithoutUserInput
+  finMerchants?: Prisma.FinMerchantCreateNestedManyWithoutUserInput
   finEmailConnections?: Prisma.FinEmailConnectionCreateNestedManyWithoutUserInput
   finEmailSources?: Prisma.FinEmailSourceCreateNestedManyWithoutUserInput
   finLoans?: Prisma.FinLoanCreateNestedManyWithoutUserInput
@@ -1808,6 +1858,7 @@ export type UserUncheckedCreateWithoutFinTransactionsInput = {
   finInstitutions?: Prisma.FinInstitutionUncheckedCreateNestedManyWithoutUserInput
   finBudgets?: Prisma.FinBudgetUncheckedCreateNestedManyWithoutUserInput
   finCategories?: Prisma.FinCategoryUncheckedCreateNestedManyWithoutUserInput
+  finMerchants?: Prisma.FinMerchantUncheckedCreateNestedManyWithoutUserInput
   finEmailConnections?: Prisma.FinEmailConnectionUncheckedCreateNestedManyWithoutUserInput
   finEmailSources?: Prisma.FinEmailSourceUncheckedCreateNestedManyWithoutUserInput
   finLoans?: Prisma.FinLoanUncheckedCreateNestedManyWithoutUserInput
@@ -1854,6 +1905,7 @@ export type UserUpdateWithoutFinTransactionsInput = {
   finInstitutions?: Prisma.FinInstitutionUpdateManyWithoutUserNestedInput
   finBudgets?: Prisma.FinBudgetUpdateManyWithoutUserNestedInput
   finCategories?: Prisma.FinCategoryUpdateManyWithoutUserNestedInput
+  finMerchants?: Prisma.FinMerchantUpdateManyWithoutUserNestedInput
   finEmailConnections?: Prisma.FinEmailConnectionUpdateManyWithoutUserNestedInput
   finEmailSources?: Prisma.FinEmailSourceUpdateManyWithoutUserNestedInput
   finLoans?: Prisma.FinLoanUpdateManyWithoutUserNestedInput
@@ -1884,6 +1936,7 @@ export type UserUncheckedUpdateWithoutFinTransactionsInput = {
   finInstitutions?: Prisma.FinInstitutionUncheckedUpdateManyWithoutUserNestedInput
   finBudgets?: Prisma.FinBudgetUncheckedUpdateManyWithoutUserNestedInput
   finCategories?: Prisma.FinCategoryUncheckedUpdateManyWithoutUserNestedInput
+  finMerchants?: Prisma.FinMerchantUncheckedUpdateManyWithoutUserNestedInput
   finEmailConnections?: Prisma.FinEmailConnectionUncheckedUpdateManyWithoutUserNestedInput
   finEmailSources?: Prisma.FinEmailSourceUncheckedUpdateManyWithoutUserNestedInput
   finLoans?: Prisma.FinLoanUncheckedUpdateManyWithoutUserNestedInput
@@ -1913,6 +1966,7 @@ export type UserCreateWithoutFinCategoriesInput = {
   finCards?: Prisma.FinCardCreateNestedManyWithoutUserInput
   finInstitutions?: Prisma.FinInstitutionCreateNestedManyWithoutUserInput
   finBudgets?: Prisma.FinBudgetCreateNestedManyWithoutUserInput
+  finMerchants?: Prisma.FinMerchantCreateNestedManyWithoutUserInput
   finEmailConnections?: Prisma.FinEmailConnectionCreateNestedManyWithoutUserInput
   finEmailSources?: Prisma.FinEmailSourceCreateNestedManyWithoutUserInput
   finLoans?: Prisma.FinLoanCreateNestedManyWithoutUserInput
@@ -1943,6 +1997,7 @@ export type UserUncheckedCreateWithoutFinCategoriesInput = {
   finCards?: Prisma.FinCardUncheckedCreateNestedManyWithoutUserInput
   finInstitutions?: Prisma.FinInstitutionUncheckedCreateNestedManyWithoutUserInput
   finBudgets?: Prisma.FinBudgetUncheckedCreateNestedManyWithoutUserInput
+  finMerchants?: Prisma.FinMerchantUncheckedCreateNestedManyWithoutUserInput
   finEmailConnections?: Prisma.FinEmailConnectionUncheckedCreateNestedManyWithoutUserInput
   finEmailSources?: Prisma.FinEmailSourceUncheckedCreateNestedManyWithoutUserInput
   finLoans?: Prisma.FinLoanUncheckedCreateNestedManyWithoutUserInput
@@ -1989,6 +2044,7 @@ export type UserUpdateWithoutFinCategoriesInput = {
   finCards?: Prisma.FinCardUpdateManyWithoutUserNestedInput
   finInstitutions?: Prisma.FinInstitutionUpdateManyWithoutUserNestedInput
   finBudgets?: Prisma.FinBudgetUpdateManyWithoutUserNestedInput
+  finMerchants?: Prisma.FinMerchantUpdateManyWithoutUserNestedInput
   finEmailConnections?: Prisma.FinEmailConnectionUpdateManyWithoutUserNestedInput
   finEmailSources?: Prisma.FinEmailSourceUpdateManyWithoutUserNestedInput
   finLoans?: Prisma.FinLoanUpdateManyWithoutUserNestedInput
@@ -2019,6 +2075,7 @@ export type UserUncheckedUpdateWithoutFinCategoriesInput = {
   finCards?: Prisma.FinCardUncheckedUpdateManyWithoutUserNestedInput
   finInstitutions?: Prisma.FinInstitutionUncheckedUpdateManyWithoutUserNestedInput
   finBudgets?: Prisma.FinBudgetUncheckedUpdateManyWithoutUserNestedInput
+  finMerchants?: Prisma.FinMerchantUncheckedUpdateManyWithoutUserNestedInput
   finEmailConnections?: Prisma.FinEmailConnectionUncheckedUpdateManyWithoutUserNestedInput
   finEmailSources?: Prisma.FinEmailSourceUncheckedUpdateManyWithoutUserNestedInput
   finLoans?: Prisma.FinLoanUncheckedUpdateManyWithoutUserNestedInput
@@ -2049,6 +2106,7 @@ export type UserCreateWithoutFinBudgetsInput = {
   finCards?: Prisma.FinCardCreateNestedManyWithoutUserInput
   finInstitutions?: Prisma.FinInstitutionCreateNestedManyWithoutUserInput
   finCategories?: Prisma.FinCategoryCreateNestedManyWithoutUserInput
+  finMerchants?: Prisma.FinMerchantCreateNestedManyWithoutUserInput
   finEmailConnections?: Prisma.FinEmailConnectionCreateNestedManyWithoutUserInput
   finEmailSources?: Prisma.FinEmailSourceCreateNestedManyWithoutUserInput
   finLoans?: Prisma.FinLoanCreateNestedManyWithoutUserInput
@@ -2079,6 +2137,7 @@ export type UserUncheckedCreateWithoutFinBudgetsInput = {
   finCards?: Prisma.FinCardUncheckedCreateNestedManyWithoutUserInput
   finInstitutions?: Prisma.FinInstitutionUncheckedCreateNestedManyWithoutUserInput
   finCategories?: Prisma.FinCategoryUncheckedCreateNestedManyWithoutUserInput
+  finMerchants?: Prisma.FinMerchantUncheckedCreateNestedManyWithoutUserInput
   finEmailConnections?: Prisma.FinEmailConnectionUncheckedCreateNestedManyWithoutUserInput
   finEmailSources?: Prisma.FinEmailSourceUncheckedCreateNestedManyWithoutUserInput
   finLoans?: Prisma.FinLoanUncheckedCreateNestedManyWithoutUserInput
@@ -2125,6 +2184,7 @@ export type UserUpdateWithoutFinBudgetsInput = {
   finCards?: Prisma.FinCardUpdateManyWithoutUserNestedInput
   finInstitutions?: Prisma.FinInstitutionUpdateManyWithoutUserNestedInput
   finCategories?: Prisma.FinCategoryUpdateManyWithoutUserNestedInput
+  finMerchants?: Prisma.FinMerchantUpdateManyWithoutUserNestedInput
   finEmailConnections?: Prisma.FinEmailConnectionUpdateManyWithoutUserNestedInput
   finEmailSources?: Prisma.FinEmailSourceUpdateManyWithoutUserNestedInput
   finLoans?: Prisma.FinLoanUpdateManyWithoutUserNestedInput
@@ -2155,6 +2215,7 @@ export type UserUncheckedUpdateWithoutFinBudgetsInput = {
   finCards?: Prisma.FinCardUncheckedUpdateManyWithoutUserNestedInput
   finInstitutions?: Prisma.FinInstitutionUncheckedUpdateManyWithoutUserNestedInput
   finCategories?: Prisma.FinCategoryUncheckedUpdateManyWithoutUserNestedInput
+  finMerchants?: Prisma.FinMerchantUncheckedUpdateManyWithoutUserNestedInput
   finEmailConnections?: Prisma.FinEmailConnectionUncheckedUpdateManyWithoutUserNestedInput
   finEmailSources?: Prisma.FinEmailSourceUncheckedUpdateManyWithoutUserNestedInput
   finLoans?: Prisma.FinLoanUncheckedUpdateManyWithoutUserNestedInput
@@ -2186,6 +2247,7 @@ export type UserCreateWithoutFinRecurringInput = {
   finInstitutions?: Prisma.FinInstitutionCreateNestedManyWithoutUserInput
   finBudgets?: Prisma.FinBudgetCreateNestedManyWithoutUserInput
   finCategories?: Prisma.FinCategoryCreateNestedManyWithoutUserInput
+  finMerchants?: Prisma.FinMerchantCreateNestedManyWithoutUserInput
   finEmailConnections?: Prisma.FinEmailConnectionCreateNestedManyWithoutUserInput
   finEmailSources?: Prisma.FinEmailSourceCreateNestedManyWithoutUserInput
   finLoans?: Prisma.FinLoanCreateNestedManyWithoutUserInput
@@ -2216,6 +2278,7 @@ export type UserUncheckedCreateWithoutFinRecurringInput = {
   finInstitutions?: Prisma.FinInstitutionUncheckedCreateNestedManyWithoutUserInput
   finBudgets?: Prisma.FinBudgetUncheckedCreateNestedManyWithoutUserInput
   finCategories?: Prisma.FinCategoryUncheckedCreateNestedManyWithoutUserInput
+  finMerchants?: Prisma.FinMerchantUncheckedCreateNestedManyWithoutUserInput
   finEmailConnections?: Prisma.FinEmailConnectionUncheckedCreateNestedManyWithoutUserInput
   finEmailSources?: Prisma.FinEmailSourceUncheckedCreateNestedManyWithoutUserInput
   finLoans?: Prisma.FinLoanUncheckedCreateNestedManyWithoutUserInput
@@ -2262,6 +2325,7 @@ export type UserUpdateWithoutFinRecurringInput = {
   finInstitutions?: Prisma.FinInstitutionUpdateManyWithoutUserNestedInput
   finBudgets?: Prisma.FinBudgetUpdateManyWithoutUserNestedInput
   finCategories?: Prisma.FinCategoryUpdateManyWithoutUserNestedInput
+  finMerchants?: Prisma.FinMerchantUpdateManyWithoutUserNestedInput
   finEmailConnections?: Prisma.FinEmailConnectionUpdateManyWithoutUserNestedInput
   finEmailSources?: Prisma.FinEmailSourceUpdateManyWithoutUserNestedInput
   finLoans?: Prisma.FinLoanUpdateManyWithoutUserNestedInput
@@ -2292,10 +2356,151 @@ export type UserUncheckedUpdateWithoutFinRecurringInput = {
   finInstitutions?: Prisma.FinInstitutionUncheckedUpdateManyWithoutUserNestedInput
   finBudgets?: Prisma.FinBudgetUncheckedUpdateManyWithoutUserNestedInput
   finCategories?: Prisma.FinCategoryUncheckedUpdateManyWithoutUserNestedInput
+  finMerchants?: Prisma.FinMerchantUncheckedUpdateManyWithoutUserNestedInput
   finEmailConnections?: Prisma.FinEmailConnectionUncheckedUpdateManyWithoutUserNestedInput
   finEmailSources?: Prisma.FinEmailSourceUncheckedUpdateManyWithoutUserNestedInput
   finLoans?: Prisma.FinLoanUncheckedUpdateManyWithoutUserNestedInput
   finReceivables?: Prisma.FinReceivableUncheckedUpdateManyWithoutUserNestedInput
+  finSavingsGoals?: Prisma.FinSavingsGoalUncheckedUpdateManyWithoutUserNestedInput
+  finTransactions?: Prisma.FinTransactionUncheckedUpdateManyWithoutUserNestedInput
+  finDeletionJournal?: Prisma.FinDeletionJournalUncheckedUpdateManyWithoutUserNestedInput
+  finInstrumentEvents?: Prisma.FinInstrumentEventUncheckedUpdateManyWithoutUserNestedInput
+  finStatementImports?: Prisma.FinStatementImportUncheckedUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
+  pushTokens?: Prisma.PushTokenUncheckedUpdateManyWithoutUserNestedInput
+  userModules?: Prisma.UserModuleUncheckedUpdateManyWithoutUserNestedInput
+}
+
+export type UserCreateWithoutFinMerchantsInput = {
+  id?: string
+  email: string
+  fullName: string
+  avatarUrl?: string | null
+  timezone?: string
+  locale?: string
+  preferences?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  aiSessions?: Prisma.AiAgentSessionCreateNestedManyWithoutUserInput
+  finAccounts?: Prisma.FinAccountCreateNestedManyWithoutUserInput
+  finCards?: Prisma.FinCardCreateNestedManyWithoutUserInput
+  finInstitutions?: Prisma.FinInstitutionCreateNestedManyWithoutUserInput
+  finBudgets?: Prisma.FinBudgetCreateNestedManyWithoutUserInput
+  finCategories?: Prisma.FinCategoryCreateNestedManyWithoutUserInput
+  finEmailConnections?: Prisma.FinEmailConnectionCreateNestedManyWithoutUserInput
+  finEmailSources?: Prisma.FinEmailSourceCreateNestedManyWithoutUserInput
+  finLoans?: Prisma.FinLoanCreateNestedManyWithoutUserInput
+  finReceivables?: Prisma.FinReceivableCreateNestedManyWithoutUserInput
+  finRecurring?: Prisma.FinRecurringPatternCreateNestedManyWithoutUserInput
+  finSavingsGoals?: Prisma.FinSavingsGoalCreateNestedManyWithoutUserInput
+  finTransactions?: Prisma.FinTransactionCreateNestedManyWithoutUserInput
+  finDeletionJournal?: Prisma.FinDeletionJournalCreateNestedManyWithoutUserInput
+  finInstrumentEvents?: Prisma.FinInstrumentEventCreateNestedManyWithoutUserInput
+  finStatementImports?: Prisma.FinStatementImportCreateNestedManyWithoutUserInput
+  notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
+  pushTokens?: Prisma.PushTokenCreateNestedManyWithoutUserInput
+  userModules?: Prisma.UserModuleCreateNestedManyWithoutUserInput
+}
+
+export type UserUncheckedCreateWithoutFinMerchantsInput = {
+  id?: string
+  email: string
+  fullName: string
+  avatarUrl?: string | null
+  timezone?: string
+  locale?: string
+  preferences?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  aiSessions?: Prisma.AiAgentSessionUncheckedCreateNestedManyWithoutUserInput
+  finAccounts?: Prisma.FinAccountUncheckedCreateNestedManyWithoutUserInput
+  finCards?: Prisma.FinCardUncheckedCreateNestedManyWithoutUserInput
+  finInstitutions?: Prisma.FinInstitutionUncheckedCreateNestedManyWithoutUserInput
+  finBudgets?: Prisma.FinBudgetUncheckedCreateNestedManyWithoutUserInput
+  finCategories?: Prisma.FinCategoryUncheckedCreateNestedManyWithoutUserInput
+  finEmailConnections?: Prisma.FinEmailConnectionUncheckedCreateNestedManyWithoutUserInput
+  finEmailSources?: Prisma.FinEmailSourceUncheckedCreateNestedManyWithoutUserInput
+  finLoans?: Prisma.FinLoanUncheckedCreateNestedManyWithoutUserInput
+  finReceivables?: Prisma.FinReceivableUncheckedCreateNestedManyWithoutUserInput
+  finRecurring?: Prisma.FinRecurringPatternUncheckedCreateNestedManyWithoutUserInput
+  finSavingsGoals?: Prisma.FinSavingsGoalUncheckedCreateNestedManyWithoutUserInput
+  finTransactions?: Prisma.FinTransactionUncheckedCreateNestedManyWithoutUserInput
+  finDeletionJournal?: Prisma.FinDeletionJournalUncheckedCreateNestedManyWithoutUserInput
+  finInstrumentEvents?: Prisma.FinInstrumentEventUncheckedCreateNestedManyWithoutUserInput
+  finStatementImports?: Prisma.FinStatementImportUncheckedCreateNestedManyWithoutUserInput
+  notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
+  pushTokens?: Prisma.PushTokenUncheckedCreateNestedManyWithoutUserInput
+  userModules?: Prisma.UserModuleUncheckedCreateNestedManyWithoutUserInput
+}
+
+export type UserCreateOrConnectWithoutFinMerchantsInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutFinMerchantsInput, Prisma.UserUncheckedCreateWithoutFinMerchantsInput>
+}
+
+export type UserUpsertWithoutFinMerchantsInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutFinMerchantsInput, Prisma.UserUncheckedUpdateWithoutFinMerchantsInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutFinMerchantsInput, Prisma.UserUncheckedCreateWithoutFinMerchantsInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutFinMerchantsInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutFinMerchantsInput, Prisma.UserUncheckedUpdateWithoutFinMerchantsInput>
+}
+
+export type UserUpdateWithoutFinMerchantsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  fullName?: Prisma.StringFieldUpdateOperationsInput | string
+  avatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  timezone?: Prisma.StringFieldUpdateOperationsInput | string
+  locale?: Prisma.StringFieldUpdateOperationsInput | string
+  preferences?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  aiSessions?: Prisma.AiAgentSessionUpdateManyWithoutUserNestedInput
+  finAccounts?: Prisma.FinAccountUpdateManyWithoutUserNestedInput
+  finCards?: Prisma.FinCardUpdateManyWithoutUserNestedInput
+  finInstitutions?: Prisma.FinInstitutionUpdateManyWithoutUserNestedInput
+  finBudgets?: Prisma.FinBudgetUpdateManyWithoutUserNestedInput
+  finCategories?: Prisma.FinCategoryUpdateManyWithoutUserNestedInput
+  finEmailConnections?: Prisma.FinEmailConnectionUpdateManyWithoutUserNestedInput
+  finEmailSources?: Prisma.FinEmailSourceUpdateManyWithoutUserNestedInput
+  finLoans?: Prisma.FinLoanUpdateManyWithoutUserNestedInput
+  finReceivables?: Prisma.FinReceivableUpdateManyWithoutUserNestedInput
+  finRecurring?: Prisma.FinRecurringPatternUpdateManyWithoutUserNestedInput
+  finSavingsGoals?: Prisma.FinSavingsGoalUpdateManyWithoutUserNestedInput
+  finTransactions?: Prisma.FinTransactionUpdateManyWithoutUserNestedInput
+  finDeletionJournal?: Prisma.FinDeletionJournalUpdateManyWithoutUserNestedInput
+  finInstrumentEvents?: Prisma.FinInstrumentEventUpdateManyWithoutUserNestedInput
+  finStatementImports?: Prisma.FinStatementImportUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
+  pushTokens?: Prisma.PushTokenUpdateManyWithoutUserNestedInput
+  userModules?: Prisma.UserModuleUpdateManyWithoutUserNestedInput
+}
+
+export type UserUncheckedUpdateWithoutFinMerchantsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  fullName?: Prisma.StringFieldUpdateOperationsInput | string
+  avatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  timezone?: Prisma.StringFieldUpdateOperationsInput | string
+  locale?: Prisma.StringFieldUpdateOperationsInput | string
+  preferences?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  aiSessions?: Prisma.AiAgentSessionUncheckedUpdateManyWithoutUserNestedInput
+  finAccounts?: Prisma.FinAccountUncheckedUpdateManyWithoutUserNestedInput
+  finCards?: Prisma.FinCardUncheckedUpdateManyWithoutUserNestedInput
+  finInstitutions?: Prisma.FinInstitutionUncheckedUpdateManyWithoutUserNestedInput
+  finBudgets?: Prisma.FinBudgetUncheckedUpdateManyWithoutUserNestedInput
+  finCategories?: Prisma.FinCategoryUncheckedUpdateManyWithoutUserNestedInput
+  finEmailConnections?: Prisma.FinEmailConnectionUncheckedUpdateManyWithoutUserNestedInput
+  finEmailSources?: Prisma.FinEmailSourceUncheckedUpdateManyWithoutUserNestedInput
+  finLoans?: Prisma.FinLoanUncheckedUpdateManyWithoutUserNestedInput
+  finReceivables?: Prisma.FinReceivableUncheckedUpdateManyWithoutUserNestedInput
+  finRecurring?: Prisma.FinRecurringPatternUncheckedUpdateManyWithoutUserNestedInput
   finSavingsGoals?: Prisma.FinSavingsGoalUncheckedUpdateManyWithoutUserNestedInput
   finTransactions?: Prisma.FinTransactionUncheckedUpdateManyWithoutUserNestedInput
   finDeletionJournal?: Prisma.FinDeletionJournalUncheckedUpdateManyWithoutUserNestedInput
@@ -2321,6 +2526,7 @@ export type UserCreateWithoutFinInstitutionsInput = {
   finCards?: Prisma.FinCardCreateNestedManyWithoutUserInput
   finBudgets?: Prisma.FinBudgetCreateNestedManyWithoutUserInput
   finCategories?: Prisma.FinCategoryCreateNestedManyWithoutUserInput
+  finMerchants?: Prisma.FinMerchantCreateNestedManyWithoutUserInput
   finEmailConnections?: Prisma.FinEmailConnectionCreateNestedManyWithoutUserInput
   finEmailSources?: Prisma.FinEmailSourceCreateNestedManyWithoutUserInput
   finLoans?: Prisma.FinLoanCreateNestedManyWithoutUserInput
@@ -2351,6 +2557,7 @@ export type UserUncheckedCreateWithoutFinInstitutionsInput = {
   finCards?: Prisma.FinCardUncheckedCreateNestedManyWithoutUserInput
   finBudgets?: Prisma.FinBudgetUncheckedCreateNestedManyWithoutUserInput
   finCategories?: Prisma.FinCategoryUncheckedCreateNestedManyWithoutUserInput
+  finMerchants?: Prisma.FinMerchantUncheckedCreateNestedManyWithoutUserInput
   finEmailConnections?: Prisma.FinEmailConnectionUncheckedCreateNestedManyWithoutUserInput
   finEmailSources?: Prisma.FinEmailSourceUncheckedCreateNestedManyWithoutUserInput
   finLoans?: Prisma.FinLoanUncheckedCreateNestedManyWithoutUserInput
@@ -2397,6 +2604,7 @@ export type UserUpdateWithoutFinInstitutionsInput = {
   finCards?: Prisma.FinCardUpdateManyWithoutUserNestedInput
   finBudgets?: Prisma.FinBudgetUpdateManyWithoutUserNestedInput
   finCategories?: Prisma.FinCategoryUpdateManyWithoutUserNestedInput
+  finMerchants?: Prisma.FinMerchantUpdateManyWithoutUserNestedInput
   finEmailConnections?: Prisma.FinEmailConnectionUpdateManyWithoutUserNestedInput
   finEmailSources?: Prisma.FinEmailSourceUpdateManyWithoutUserNestedInput
   finLoans?: Prisma.FinLoanUpdateManyWithoutUserNestedInput
@@ -2427,6 +2635,7 @@ export type UserUncheckedUpdateWithoutFinInstitutionsInput = {
   finCards?: Prisma.FinCardUncheckedUpdateManyWithoutUserNestedInput
   finBudgets?: Prisma.FinBudgetUncheckedUpdateManyWithoutUserNestedInput
   finCategories?: Prisma.FinCategoryUncheckedUpdateManyWithoutUserNestedInput
+  finMerchants?: Prisma.FinMerchantUncheckedUpdateManyWithoutUserNestedInput
   finEmailConnections?: Prisma.FinEmailConnectionUncheckedUpdateManyWithoutUserNestedInput
   finEmailSources?: Prisma.FinEmailSourceUncheckedUpdateManyWithoutUserNestedInput
   finLoans?: Prisma.FinLoanUncheckedUpdateManyWithoutUserNestedInput
@@ -2457,6 +2666,7 @@ export type UserCreateWithoutFinCardsInput = {
   finInstitutions?: Prisma.FinInstitutionCreateNestedManyWithoutUserInput
   finBudgets?: Prisma.FinBudgetCreateNestedManyWithoutUserInput
   finCategories?: Prisma.FinCategoryCreateNestedManyWithoutUserInput
+  finMerchants?: Prisma.FinMerchantCreateNestedManyWithoutUserInput
   finEmailConnections?: Prisma.FinEmailConnectionCreateNestedManyWithoutUserInput
   finEmailSources?: Prisma.FinEmailSourceCreateNestedManyWithoutUserInput
   finLoans?: Prisma.FinLoanCreateNestedManyWithoutUserInput
@@ -2487,6 +2697,7 @@ export type UserUncheckedCreateWithoutFinCardsInput = {
   finInstitutions?: Prisma.FinInstitutionUncheckedCreateNestedManyWithoutUserInput
   finBudgets?: Prisma.FinBudgetUncheckedCreateNestedManyWithoutUserInput
   finCategories?: Prisma.FinCategoryUncheckedCreateNestedManyWithoutUserInput
+  finMerchants?: Prisma.FinMerchantUncheckedCreateNestedManyWithoutUserInput
   finEmailConnections?: Prisma.FinEmailConnectionUncheckedCreateNestedManyWithoutUserInput
   finEmailSources?: Prisma.FinEmailSourceUncheckedCreateNestedManyWithoutUserInput
   finLoans?: Prisma.FinLoanUncheckedCreateNestedManyWithoutUserInput
@@ -2533,6 +2744,7 @@ export type UserUpdateWithoutFinCardsInput = {
   finInstitutions?: Prisma.FinInstitutionUpdateManyWithoutUserNestedInput
   finBudgets?: Prisma.FinBudgetUpdateManyWithoutUserNestedInput
   finCategories?: Prisma.FinCategoryUpdateManyWithoutUserNestedInput
+  finMerchants?: Prisma.FinMerchantUpdateManyWithoutUserNestedInput
   finEmailConnections?: Prisma.FinEmailConnectionUpdateManyWithoutUserNestedInput
   finEmailSources?: Prisma.FinEmailSourceUpdateManyWithoutUserNestedInput
   finLoans?: Prisma.FinLoanUpdateManyWithoutUserNestedInput
@@ -2563,6 +2775,7 @@ export type UserUncheckedUpdateWithoutFinCardsInput = {
   finInstitutions?: Prisma.FinInstitutionUncheckedUpdateManyWithoutUserNestedInput
   finBudgets?: Prisma.FinBudgetUncheckedUpdateManyWithoutUserNestedInput
   finCategories?: Prisma.FinCategoryUncheckedUpdateManyWithoutUserNestedInput
+  finMerchants?: Prisma.FinMerchantUncheckedUpdateManyWithoutUserNestedInput
   finEmailConnections?: Prisma.FinEmailConnectionUncheckedUpdateManyWithoutUserNestedInput
   finEmailSources?: Prisma.FinEmailSourceUncheckedUpdateManyWithoutUserNestedInput
   finLoans?: Prisma.FinLoanUncheckedUpdateManyWithoutUserNestedInput
@@ -2594,6 +2807,7 @@ export type UserCreateWithoutFinInstrumentEventsInput = {
   finInstitutions?: Prisma.FinInstitutionCreateNestedManyWithoutUserInput
   finBudgets?: Prisma.FinBudgetCreateNestedManyWithoutUserInput
   finCategories?: Prisma.FinCategoryCreateNestedManyWithoutUserInput
+  finMerchants?: Prisma.FinMerchantCreateNestedManyWithoutUserInput
   finEmailConnections?: Prisma.FinEmailConnectionCreateNestedManyWithoutUserInput
   finEmailSources?: Prisma.FinEmailSourceCreateNestedManyWithoutUserInput
   finLoans?: Prisma.FinLoanCreateNestedManyWithoutUserInput
@@ -2624,6 +2838,7 @@ export type UserUncheckedCreateWithoutFinInstrumentEventsInput = {
   finInstitutions?: Prisma.FinInstitutionUncheckedCreateNestedManyWithoutUserInput
   finBudgets?: Prisma.FinBudgetUncheckedCreateNestedManyWithoutUserInput
   finCategories?: Prisma.FinCategoryUncheckedCreateNestedManyWithoutUserInput
+  finMerchants?: Prisma.FinMerchantUncheckedCreateNestedManyWithoutUserInput
   finEmailConnections?: Prisma.FinEmailConnectionUncheckedCreateNestedManyWithoutUserInput
   finEmailSources?: Prisma.FinEmailSourceUncheckedCreateNestedManyWithoutUserInput
   finLoans?: Prisma.FinLoanUncheckedCreateNestedManyWithoutUserInput
@@ -2670,6 +2885,7 @@ export type UserUpdateWithoutFinInstrumentEventsInput = {
   finInstitutions?: Prisma.FinInstitutionUpdateManyWithoutUserNestedInput
   finBudgets?: Prisma.FinBudgetUpdateManyWithoutUserNestedInput
   finCategories?: Prisma.FinCategoryUpdateManyWithoutUserNestedInput
+  finMerchants?: Prisma.FinMerchantUpdateManyWithoutUserNestedInput
   finEmailConnections?: Prisma.FinEmailConnectionUpdateManyWithoutUserNestedInput
   finEmailSources?: Prisma.FinEmailSourceUpdateManyWithoutUserNestedInput
   finLoans?: Prisma.FinLoanUpdateManyWithoutUserNestedInput
@@ -2700,6 +2916,7 @@ export type UserUncheckedUpdateWithoutFinInstrumentEventsInput = {
   finInstitutions?: Prisma.FinInstitutionUncheckedUpdateManyWithoutUserNestedInput
   finBudgets?: Prisma.FinBudgetUncheckedUpdateManyWithoutUserNestedInput
   finCategories?: Prisma.FinCategoryUncheckedUpdateManyWithoutUserNestedInput
+  finMerchants?: Prisma.FinMerchantUncheckedUpdateManyWithoutUserNestedInput
   finEmailConnections?: Prisma.FinEmailConnectionUncheckedUpdateManyWithoutUserNestedInput
   finEmailSources?: Prisma.FinEmailSourceUncheckedUpdateManyWithoutUserNestedInput
   finLoans?: Prisma.FinLoanUncheckedUpdateManyWithoutUserNestedInput
@@ -2730,6 +2947,7 @@ export type UserCreateWithoutFinSavingsGoalsInput = {
   finInstitutions?: Prisma.FinInstitutionCreateNestedManyWithoutUserInput
   finBudgets?: Prisma.FinBudgetCreateNestedManyWithoutUserInput
   finCategories?: Prisma.FinCategoryCreateNestedManyWithoutUserInput
+  finMerchants?: Prisma.FinMerchantCreateNestedManyWithoutUserInput
   finEmailConnections?: Prisma.FinEmailConnectionCreateNestedManyWithoutUserInput
   finEmailSources?: Prisma.FinEmailSourceCreateNestedManyWithoutUserInput
   finLoans?: Prisma.FinLoanCreateNestedManyWithoutUserInput
@@ -2760,6 +2978,7 @@ export type UserUncheckedCreateWithoutFinSavingsGoalsInput = {
   finInstitutions?: Prisma.FinInstitutionUncheckedCreateNestedManyWithoutUserInput
   finBudgets?: Prisma.FinBudgetUncheckedCreateNestedManyWithoutUserInput
   finCategories?: Prisma.FinCategoryUncheckedCreateNestedManyWithoutUserInput
+  finMerchants?: Prisma.FinMerchantUncheckedCreateNestedManyWithoutUserInput
   finEmailConnections?: Prisma.FinEmailConnectionUncheckedCreateNestedManyWithoutUserInput
   finEmailSources?: Prisma.FinEmailSourceUncheckedCreateNestedManyWithoutUserInput
   finLoans?: Prisma.FinLoanUncheckedCreateNestedManyWithoutUserInput
@@ -2806,6 +3025,7 @@ export type UserUpdateWithoutFinSavingsGoalsInput = {
   finInstitutions?: Prisma.FinInstitutionUpdateManyWithoutUserNestedInput
   finBudgets?: Prisma.FinBudgetUpdateManyWithoutUserNestedInput
   finCategories?: Prisma.FinCategoryUpdateManyWithoutUserNestedInput
+  finMerchants?: Prisma.FinMerchantUpdateManyWithoutUserNestedInput
   finEmailConnections?: Prisma.FinEmailConnectionUpdateManyWithoutUserNestedInput
   finEmailSources?: Prisma.FinEmailSourceUpdateManyWithoutUserNestedInput
   finLoans?: Prisma.FinLoanUpdateManyWithoutUserNestedInput
@@ -2836,6 +3056,7 @@ export type UserUncheckedUpdateWithoutFinSavingsGoalsInput = {
   finInstitutions?: Prisma.FinInstitutionUncheckedUpdateManyWithoutUserNestedInput
   finBudgets?: Prisma.FinBudgetUncheckedUpdateManyWithoutUserNestedInput
   finCategories?: Prisma.FinCategoryUncheckedUpdateManyWithoutUserNestedInput
+  finMerchants?: Prisma.FinMerchantUncheckedUpdateManyWithoutUserNestedInput
   finEmailConnections?: Prisma.FinEmailConnectionUncheckedUpdateManyWithoutUserNestedInput
   finEmailSources?: Prisma.FinEmailSourceUncheckedUpdateManyWithoutUserNestedInput
   finLoans?: Prisma.FinLoanUncheckedUpdateManyWithoutUserNestedInput
@@ -2866,6 +3087,7 @@ export type UserCreateWithoutFinLoansInput = {
   finInstitutions?: Prisma.FinInstitutionCreateNestedManyWithoutUserInput
   finBudgets?: Prisma.FinBudgetCreateNestedManyWithoutUserInput
   finCategories?: Prisma.FinCategoryCreateNestedManyWithoutUserInput
+  finMerchants?: Prisma.FinMerchantCreateNestedManyWithoutUserInput
   finEmailConnections?: Prisma.FinEmailConnectionCreateNestedManyWithoutUserInput
   finEmailSources?: Prisma.FinEmailSourceCreateNestedManyWithoutUserInput
   finReceivables?: Prisma.FinReceivableCreateNestedManyWithoutUserInput
@@ -2896,6 +3118,7 @@ export type UserUncheckedCreateWithoutFinLoansInput = {
   finInstitutions?: Prisma.FinInstitutionUncheckedCreateNestedManyWithoutUserInput
   finBudgets?: Prisma.FinBudgetUncheckedCreateNestedManyWithoutUserInput
   finCategories?: Prisma.FinCategoryUncheckedCreateNestedManyWithoutUserInput
+  finMerchants?: Prisma.FinMerchantUncheckedCreateNestedManyWithoutUserInput
   finEmailConnections?: Prisma.FinEmailConnectionUncheckedCreateNestedManyWithoutUserInput
   finEmailSources?: Prisma.FinEmailSourceUncheckedCreateNestedManyWithoutUserInput
   finReceivables?: Prisma.FinReceivableUncheckedCreateNestedManyWithoutUserInput
@@ -2942,6 +3165,7 @@ export type UserUpdateWithoutFinLoansInput = {
   finInstitutions?: Prisma.FinInstitutionUpdateManyWithoutUserNestedInput
   finBudgets?: Prisma.FinBudgetUpdateManyWithoutUserNestedInput
   finCategories?: Prisma.FinCategoryUpdateManyWithoutUserNestedInput
+  finMerchants?: Prisma.FinMerchantUpdateManyWithoutUserNestedInput
   finEmailConnections?: Prisma.FinEmailConnectionUpdateManyWithoutUserNestedInput
   finEmailSources?: Prisma.FinEmailSourceUpdateManyWithoutUserNestedInput
   finReceivables?: Prisma.FinReceivableUpdateManyWithoutUserNestedInput
@@ -2972,6 +3196,7 @@ export type UserUncheckedUpdateWithoutFinLoansInput = {
   finInstitutions?: Prisma.FinInstitutionUncheckedUpdateManyWithoutUserNestedInput
   finBudgets?: Prisma.FinBudgetUncheckedUpdateManyWithoutUserNestedInput
   finCategories?: Prisma.FinCategoryUncheckedUpdateManyWithoutUserNestedInput
+  finMerchants?: Prisma.FinMerchantUncheckedUpdateManyWithoutUserNestedInput
   finEmailConnections?: Prisma.FinEmailConnectionUncheckedUpdateManyWithoutUserNestedInput
   finEmailSources?: Prisma.FinEmailSourceUncheckedUpdateManyWithoutUserNestedInput
   finReceivables?: Prisma.FinReceivableUncheckedUpdateManyWithoutUserNestedInput
@@ -3002,6 +3227,7 @@ export type UserCreateWithoutFinReceivablesInput = {
   finInstitutions?: Prisma.FinInstitutionCreateNestedManyWithoutUserInput
   finBudgets?: Prisma.FinBudgetCreateNestedManyWithoutUserInput
   finCategories?: Prisma.FinCategoryCreateNestedManyWithoutUserInput
+  finMerchants?: Prisma.FinMerchantCreateNestedManyWithoutUserInput
   finEmailConnections?: Prisma.FinEmailConnectionCreateNestedManyWithoutUserInput
   finEmailSources?: Prisma.FinEmailSourceCreateNestedManyWithoutUserInput
   finLoans?: Prisma.FinLoanCreateNestedManyWithoutUserInput
@@ -3032,6 +3258,7 @@ export type UserUncheckedCreateWithoutFinReceivablesInput = {
   finInstitutions?: Prisma.FinInstitutionUncheckedCreateNestedManyWithoutUserInput
   finBudgets?: Prisma.FinBudgetUncheckedCreateNestedManyWithoutUserInput
   finCategories?: Prisma.FinCategoryUncheckedCreateNestedManyWithoutUserInput
+  finMerchants?: Prisma.FinMerchantUncheckedCreateNestedManyWithoutUserInput
   finEmailConnections?: Prisma.FinEmailConnectionUncheckedCreateNestedManyWithoutUserInput
   finEmailSources?: Prisma.FinEmailSourceUncheckedCreateNestedManyWithoutUserInput
   finLoans?: Prisma.FinLoanUncheckedCreateNestedManyWithoutUserInput
@@ -3078,6 +3305,7 @@ export type UserUpdateWithoutFinReceivablesInput = {
   finInstitutions?: Prisma.FinInstitutionUpdateManyWithoutUserNestedInput
   finBudgets?: Prisma.FinBudgetUpdateManyWithoutUserNestedInput
   finCategories?: Prisma.FinCategoryUpdateManyWithoutUserNestedInput
+  finMerchants?: Prisma.FinMerchantUpdateManyWithoutUserNestedInput
   finEmailConnections?: Prisma.FinEmailConnectionUpdateManyWithoutUserNestedInput
   finEmailSources?: Prisma.FinEmailSourceUpdateManyWithoutUserNestedInput
   finLoans?: Prisma.FinLoanUpdateManyWithoutUserNestedInput
@@ -3108,6 +3336,7 @@ export type UserUncheckedUpdateWithoutFinReceivablesInput = {
   finInstitutions?: Prisma.FinInstitutionUncheckedUpdateManyWithoutUserNestedInput
   finBudgets?: Prisma.FinBudgetUncheckedUpdateManyWithoutUserNestedInput
   finCategories?: Prisma.FinCategoryUncheckedUpdateManyWithoutUserNestedInput
+  finMerchants?: Prisma.FinMerchantUncheckedUpdateManyWithoutUserNestedInput
   finEmailConnections?: Prisma.FinEmailConnectionUncheckedUpdateManyWithoutUserNestedInput
   finEmailSources?: Prisma.FinEmailSourceUncheckedUpdateManyWithoutUserNestedInput
   finLoans?: Prisma.FinLoanUncheckedUpdateManyWithoutUserNestedInput
@@ -3138,6 +3367,7 @@ export type UserCreateWithoutFinDeletionJournalInput = {
   finInstitutions?: Prisma.FinInstitutionCreateNestedManyWithoutUserInput
   finBudgets?: Prisma.FinBudgetCreateNestedManyWithoutUserInput
   finCategories?: Prisma.FinCategoryCreateNestedManyWithoutUserInput
+  finMerchants?: Prisma.FinMerchantCreateNestedManyWithoutUserInput
   finEmailConnections?: Prisma.FinEmailConnectionCreateNestedManyWithoutUserInput
   finEmailSources?: Prisma.FinEmailSourceCreateNestedManyWithoutUserInput
   finLoans?: Prisma.FinLoanCreateNestedManyWithoutUserInput
@@ -3168,6 +3398,7 @@ export type UserUncheckedCreateWithoutFinDeletionJournalInput = {
   finInstitutions?: Prisma.FinInstitutionUncheckedCreateNestedManyWithoutUserInput
   finBudgets?: Prisma.FinBudgetUncheckedCreateNestedManyWithoutUserInput
   finCategories?: Prisma.FinCategoryUncheckedCreateNestedManyWithoutUserInput
+  finMerchants?: Prisma.FinMerchantUncheckedCreateNestedManyWithoutUserInput
   finEmailConnections?: Prisma.FinEmailConnectionUncheckedCreateNestedManyWithoutUserInput
   finEmailSources?: Prisma.FinEmailSourceUncheckedCreateNestedManyWithoutUserInput
   finLoans?: Prisma.FinLoanUncheckedCreateNestedManyWithoutUserInput
@@ -3214,6 +3445,7 @@ export type UserUpdateWithoutFinDeletionJournalInput = {
   finInstitutions?: Prisma.FinInstitutionUpdateManyWithoutUserNestedInput
   finBudgets?: Prisma.FinBudgetUpdateManyWithoutUserNestedInput
   finCategories?: Prisma.FinCategoryUpdateManyWithoutUserNestedInput
+  finMerchants?: Prisma.FinMerchantUpdateManyWithoutUserNestedInput
   finEmailConnections?: Prisma.FinEmailConnectionUpdateManyWithoutUserNestedInput
   finEmailSources?: Prisma.FinEmailSourceUpdateManyWithoutUserNestedInput
   finLoans?: Prisma.FinLoanUpdateManyWithoutUserNestedInput
@@ -3244,6 +3476,7 @@ export type UserUncheckedUpdateWithoutFinDeletionJournalInput = {
   finInstitutions?: Prisma.FinInstitutionUncheckedUpdateManyWithoutUserNestedInput
   finBudgets?: Prisma.FinBudgetUncheckedUpdateManyWithoutUserNestedInput
   finCategories?: Prisma.FinCategoryUncheckedUpdateManyWithoutUserNestedInput
+  finMerchants?: Prisma.FinMerchantUncheckedUpdateManyWithoutUserNestedInput
   finEmailConnections?: Prisma.FinEmailConnectionUncheckedUpdateManyWithoutUserNestedInput
   finEmailSources?: Prisma.FinEmailSourceUncheckedUpdateManyWithoutUserNestedInput
   finLoans?: Prisma.FinLoanUncheckedUpdateManyWithoutUserNestedInput
@@ -3274,6 +3507,7 @@ export type UserCreateWithoutFinStatementImportsInput = {
   finInstitutions?: Prisma.FinInstitutionCreateNestedManyWithoutUserInput
   finBudgets?: Prisma.FinBudgetCreateNestedManyWithoutUserInput
   finCategories?: Prisma.FinCategoryCreateNestedManyWithoutUserInput
+  finMerchants?: Prisma.FinMerchantCreateNestedManyWithoutUserInput
   finEmailConnections?: Prisma.FinEmailConnectionCreateNestedManyWithoutUserInput
   finEmailSources?: Prisma.FinEmailSourceCreateNestedManyWithoutUserInput
   finLoans?: Prisma.FinLoanCreateNestedManyWithoutUserInput
@@ -3304,6 +3538,7 @@ export type UserUncheckedCreateWithoutFinStatementImportsInput = {
   finInstitutions?: Prisma.FinInstitutionUncheckedCreateNestedManyWithoutUserInput
   finBudgets?: Prisma.FinBudgetUncheckedCreateNestedManyWithoutUserInput
   finCategories?: Prisma.FinCategoryUncheckedCreateNestedManyWithoutUserInput
+  finMerchants?: Prisma.FinMerchantUncheckedCreateNestedManyWithoutUserInput
   finEmailConnections?: Prisma.FinEmailConnectionUncheckedCreateNestedManyWithoutUserInput
   finEmailSources?: Prisma.FinEmailSourceUncheckedCreateNestedManyWithoutUserInput
   finLoans?: Prisma.FinLoanUncheckedCreateNestedManyWithoutUserInput
@@ -3350,6 +3585,7 @@ export type UserUpdateWithoutFinStatementImportsInput = {
   finInstitutions?: Prisma.FinInstitutionUpdateManyWithoutUserNestedInput
   finBudgets?: Prisma.FinBudgetUpdateManyWithoutUserNestedInput
   finCategories?: Prisma.FinCategoryUpdateManyWithoutUserNestedInput
+  finMerchants?: Prisma.FinMerchantUpdateManyWithoutUserNestedInput
   finEmailConnections?: Prisma.FinEmailConnectionUpdateManyWithoutUserNestedInput
   finEmailSources?: Prisma.FinEmailSourceUpdateManyWithoutUserNestedInput
   finLoans?: Prisma.FinLoanUpdateManyWithoutUserNestedInput
@@ -3380,6 +3616,7 @@ export type UserUncheckedUpdateWithoutFinStatementImportsInput = {
   finInstitutions?: Prisma.FinInstitutionUncheckedUpdateManyWithoutUserNestedInput
   finBudgets?: Prisma.FinBudgetUncheckedUpdateManyWithoutUserNestedInput
   finCategories?: Prisma.FinCategoryUncheckedUpdateManyWithoutUserNestedInput
+  finMerchants?: Prisma.FinMerchantUncheckedUpdateManyWithoutUserNestedInput
   finEmailConnections?: Prisma.FinEmailConnectionUncheckedUpdateManyWithoutUserNestedInput
   finEmailSources?: Prisma.FinEmailSourceUncheckedUpdateManyWithoutUserNestedInput
   finLoans?: Prisma.FinLoanUncheckedUpdateManyWithoutUserNestedInput
@@ -3406,6 +3643,7 @@ export type UserCountOutputType = {
   finInstitutions: number
   finBudgets: number
   finCategories: number
+  finMerchants: number
   finEmailConnections: number
   finEmailSources: number
   finLoans: number
@@ -3428,6 +3666,7 @@ export type UserCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.I
   finInstitutions?: boolean | UserCountOutputTypeCountFinInstitutionsArgs
   finBudgets?: boolean | UserCountOutputTypeCountFinBudgetsArgs
   finCategories?: boolean | UserCountOutputTypeCountFinCategoriesArgs
+  finMerchants?: boolean | UserCountOutputTypeCountFinMerchantsArgs
   finEmailConnections?: boolean | UserCountOutputTypeCountFinEmailConnectionsArgs
   finEmailSources?: boolean | UserCountOutputTypeCountFinEmailSourcesArgs
   finLoans?: boolean | UserCountOutputTypeCountFinLoansArgs
@@ -3493,6 +3732,13 @@ export type UserCountOutputTypeCountFinBudgetsArgs<ExtArgs extends runtime.Types
  */
 export type UserCountOutputTypeCountFinCategoriesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   where?: Prisma.FinCategoryWhereInput
+}
+
+/**
+ * UserCountOutputType without action
+ */
+export type UserCountOutputTypeCountFinMerchantsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.FinMerchantWhereInput
 }
 
 /**
@@ -3603,6 +3849,7 @@ export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   finInstitutions?: boolean | Prisma.User$finInstitutionsArgs<ExtArgs>
   finBudgets?: boolean | Prisma.User$finBudgetsArgs<ExtArgs>
   finCategories?: boolean | Prisma.User$finCategoriesArgs<ExtArgs>
+  finMerchants?: boolean | Prisma.User$finMerchantsArgs<ExtArgs>
   finEmailConnections?: boolean | Prisma.User$finEmailConnectionsArgs<ExtArgs>
   finEmailSources?: boolean | Prisma.User$finEmailSourcesArgs<ExtArgs>
   finLoans?: boolean | Prisma.User$finLoansArgs<ExtArgs>
@@ -3663,6 +3910,7 @@ export type UserInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   finInstitutions?: boolean | Prisma.User$finInstitutionsArgs<ExtArgs>
   finBudgets?: boolean | Prisma.User$finBudgetsArgs<ExtArgs>
   finCategories?: boolean | Prisma.User$finCategoriesArgs<ExtArgs>
+  finMerchants?: boolean | Prisma.User$finMerchantsArgs<ExtArgs>
   finEmailConnections?: boolean | Prisma.User$finEmailConnectionsArgs<ExtArgs>
   finEmailSources?: boolean | Prisma.User$finEmailSourcesArgs<ExtArgs>
   finLoans?: boolean | Prisma.User$finLoansArgs<ExtArgs>
@@ -3690,6 +3938,7 @@ export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     finInstitutions: Prisma.$FinInstitutionPayload<ExtArgs>[]
     finBudgets: Prisma.$FinBudgetPayload<ExtArgs>[]
     finCategories: Prisma.$FinCategoryPayload<ExtArgs>[]
+    finMerchants: Prisma.$FinMerchantPayload<ExtArgs>[]
     finEmailConnections: Prisma.$FinEmailConnectionPayload<ExtArgs>[]
     finEmailSources: Prisma.$FinEmailSourcePayload<ExtArgs>[]
     finLoans: Prisma.$FinLoanPayload<ExtArgs>[]
@@ -4114,6 +4363,7 @@ export interface Prisma__UserClient<T, Null = never, ExtArgs extends runtime.Typ
   finInstitutions<T extends Prisma.User$finInstitutionsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$finInstitutionsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$FinInstitutionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   finBudgets<T extends Prisma.User$finBudgetsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$finBudgetsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$FinBudgetPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   finCategories<T extends Prisma.User$finCategoriesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$finCategoriesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$FinCategoryPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  finMerchants<T extends Prisma.User$finMerchantsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$finMerchantsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$FinMerchantPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   finEmailConnections<T extends Prisma.User$finEmailConnectionsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$finEmailConnectionsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$FinEmailConnectionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   finEmailSources<T extends Prisma.User$finEmailSourcesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$finEmailSourcesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$FinEmailSourcePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   finLoans<T extends Prisma.User$finLoansArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$finLoansArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$FinLoanPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
@@ -4699,6 +4949,30 @@ export type User$finCategoriesArgs<ExtArgs extends runtime.Types.Extensions.Inte
   take?: number
   skip?: number
   distinct?: Prisma.FinCategoryScalarFieldEnum | Prisma.FinCategoryScalarFieldEnum[]
+}
+
+/**
+ * User.finMerchants
+ */
+export type User$finMerchantsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the FinMerchant
+   */
+  select?: Prisma.FinMerchantSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the FinMerchant
+   */
+  omit?: Prisma.FinMerchantOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.FinMerchantInclude<ExtArgs> | null
+  where?: Prisma.FinMerchantWhereInput
+  orderBy?: Prisma.FinMerchantOrderByWithRelationInput | Prisma.FinMerchantOrderByWithRelationInput[]
+  cursor?: Prisma.FinMerchantWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.FinMerchantScalarFieldEnum | Prisma.FinMerchantScalarFieldEnum[]
 }
 
 /**

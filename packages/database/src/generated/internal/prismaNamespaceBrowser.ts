@@ -68,6 +68,7 @@ export const ModelName = {
   FinBudgetCategory: 'FinBudgetCategory',
   FinBudgetAlert: 'FinBudgetAlert',
   FinRecurringPattern: 'FinRecurringPattern',
+  FinMerchant: 'FinMerchant',
   FinExchangeRate: 'FinExchangeRate',
   FinInstitution: 'FinInstitution',
   FinCard: 'FinCard',
@@ -294,6 +295,7 @@ export const FinTransactionScalarFieldEnum = {
   ledgerCurrency: 'ledgerCurrency',
   exchangeRate: 'exchangeRate',
   merchant: 'merchant',
+  merchantId: 'merchantId',
   description: 'description',
   transactionDate: 'transactionDate',
   transferGroupId: 'transferGroupId',
@@ -376,18 +378,39 @@ export const FinRecurringPatternScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
   categoryId: 'categoryId',
+  merchantId: 'merchantId',
   merchant: 'merchant',
   avgAmount: 'avgAmount',
   currency: 'currency',
   frequency: 'frequency',
   nextExpectedDate: 'nextExpectedDate',
+  amountTolerance: 'amountTolerance',
+  status: 'status',
+  kind: 'kind',
   confidenceScore: 'confidenceScore',
+  lastSeenAt: 'lastSeenAt',
+  confirmedAt: 'confirmedAt',
   aiAnalysis: 'aiAnalysis',
   isActive: 'isActive',
+  createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
 
 export type FinRecurringPatternScalarFieldEnum = (typeof FinRecurringPatternScalarFieldEnum)[keyof typeof FinRecurringPatternScalarFieldEnum]
+
+
+export const FinMerchantScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  name: 'name',
+  normalizedKey: 'normalizedKey',
+  aliases: 'aliases',
+  categoryId: 'categoryId',
+  logoUrl: 'logoUrl',
+  createdAt: 'createdAt'
+} as const
+
+export type FinMerchantScalarFieldEnum = (typeof FinMerchantScalarFieldEnum)[keyof typeof FinMerchantScalarFieldEnum]
 
 
 export const FinExchangeRateScalarFieldEnum = {

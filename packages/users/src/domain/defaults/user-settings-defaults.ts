@@ -9,6 +9,7 @@ export const FINANCE_NOTIFICATION_KEYS = {
   weeklySummary: 'weeklySummary',
   cardDueDate: 'cardDueDate',
   unusualExpense: 'unusualExpense',
+  recurringAlerts: 'recurringAlerts',
 } as const;
 
 export type FinanceNotificationKey =
@@ -32,6 +33,7 @@ export const DEFAULT_MODULE_CONFIG_BY_SLUG = {
       [FINANCE_NOTIFICATION_KEYS.weeklySummary]: true,
       [FINANCE_NOTIFICATION_KEYS.cardDueDate]: true,
       [FINANCE_NOTIFICATION_KEYS.unusualExpense]: true,
+      [FINANCE_NOTIFICATION_KEYS.recurringAlerts]: true,
     },
     emailSync: {
       enabled: false,

@@ -386,6 +386,35 @@ const STATIC_TOOLS: StaticToolDef[] = [
       },
     },
   },
+  {
+    name: 'list_subscriptions',
+    description:
+      'List recurring charges and subscriptions, suggested and confirmed, with their monthly and annual cost.',
+    mutating: false,
+    targetModule: 'finance',
+    parameters: {
+      type: 'object',
+      properties: {
+        status: {
+          type: 'string',
+          enum: ['SUGGESTED', 'CONFIRMED', 'DISMISSED'],
+        },
+      },
+    },
+  },
+  {
+    name: 'confirm_recurring',
+    description: 'Confirm a suggested recurring charge so it is tracked.',
+    mutating: true,
+    targetModule: 'finance',
+  },
+  {
+    name: 'list_merchants',
+    description: 'List merchants with their spending for the current month.',
+    mutating: false,
+    targetModule: 'finance',
+    parameters: { type: 'object', properties: {} },
+  },
 ];
 
 function resolveParameters(tool: StaticToolDef): Record<string, unknown> {

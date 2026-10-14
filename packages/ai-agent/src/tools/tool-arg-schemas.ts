@@ -378,6 +378,12 @@ export const unconfirmTransactionArgsSchema = z
   })
   .strict();
 
+export const confirmRecurringArgsSchema = z
+  .object({
+    patternId: uuid,
+  })
+  .strict();
+
 export const createTransferArgsSchema = z
   .object({
     fromAccountId: uuid,
@@ -498,6 +504,7 @@ export const MUTATING_TOOL_ARG_SCHEMAS = {
   update_transaction: updateTransactionArgsSchema,
   confirm_transaction: confirmTransactionArgsSchema,
   unconfirm_transaction: unconfirmTransactionArgsSchema,
+  confirm_recurring: confirmRecurringArgsSchema,
   create_transfer: createTransferArgsSchema,
   pay_card: createCardPaymentArgsSchema,
   create_or_update_budget: createOrUpdateBudgetArgsSchema,
