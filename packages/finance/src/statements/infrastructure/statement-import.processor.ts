@@ -22,12 +22,12 @@ export class StatementImportProcessor extends WorkerHost {
   }
 
   async process(job: Job<StatementImportJob>): Promise<void> {
-    const { userId, importId, filePath, password } = job.data;
+    const { userId, importId, password } = job.data;
     try {
-      const bytes = await this.uploads.read(filePath);
+      const bytes = await this.uploads.read(importId);
       await this.processImport.execute({ userId, importId, bytes, password });
     } finally {
-      await this.uploads.remove(filePath);
+      await this.uploads.remove(importId);
     }
   }
 

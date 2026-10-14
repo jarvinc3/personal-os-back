@@ -6,32 +6,34 @@ import { join } from 'node:path';
 export const STATEMENT_UPLOAD_STORE = 'STATEMENT_UPLOAD_STORE';
 
 export interface StatementUploadStore {
-  save(input: { importId: string; bytes: Uint8Array }): Promise<string>;
-  read(filePath: string): Promise<Uint8Array>;
-  remove(filePath: string): Promise<void>;
+  write(input: { importId: string; bytes: Uint8Array }): Promise<void>;
+  read(importId: string): Promise<Uint8Array>;
+  remove(importId: string): Promise<void>;
 }
 
 const UPLOAD_DIR = join(tmpdir(), 'personal-os-statement-imports');
 
+function uploadPath(importId: string): string {
+  return join(UPLOAD_DIR, `${importId}.pdf`);
+}
+
 /**
  * Uploads live on disk only until the parse finishes: the file is never part
- * of the database and the queue only carries its path.
+ * of the database and the queue only carries the import id.
  */
 @Injectable()
 export class TempFileStatementUploadStore implements StatementUploadStore {
-  async save(input: { importId: string; bytes: Uint8Array }): Promise<string> {
+  async write(input: { importId: string; bytes: Uint8Array }): Promise<void> {
     await mkdir(UPLOAD_DIR, { recursive: true });
-    const filePath = join(UPLOAD_DIR, `${input.importId}.pdf`);
-    await writeFile(filePath, input.bytes);
-    return filePath;
+    await writeFile(uploadPath(input.importId), input.bytes);
   }
 
-  async read(filePath: string): Promise<Uint8Array> {
-    const buffer = await readFile(filePath);
+  async read(importId: string): Promise<Uint8Array> {
+    const buffer = await readFile(uploadPath(importId));
     return new Uint8Array(buffer);
   }
 
-  async remove(filePath: string): Promise<void> {
-    await rm(filePath, { force: true });
+  async remove(importId: string): Promise<void> {
+    await rm(uploadPath(importId), { force: true });
   }
 }

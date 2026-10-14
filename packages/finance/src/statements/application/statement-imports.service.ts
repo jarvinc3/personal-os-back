@@ -98,13 +98,12 @@ export class StatementImportsService {
       accountId: input.accountId,
     });
     if (this.queue) {
-      const filePath = await this.uploads.save({ importId: row.id, bytes });
+      await this.uploads.write({ importId: row.id, bytes });
       await this.queue.add(
         STATEMENT_IMPORT_JOB_NAME,
         {
           userId: input.userId,
           importId: row.id,
-          filePath,
           ...(input.password ? { password: input.password } : {}),
         },
         STATEMENT_IMPORT_JOB_OPTIONS,

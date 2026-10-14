@@ -105,7 +105,7 @@ function setup(options: { context?: StatementImportContext } = {}) {
     assertReadable: jest.fn(() => Promise.resolve()),
   };
   const uploads = {
-    save: jest.fn(() => Promise.resolve('/tmp/import-1.pdf')),
+    write: jest.fn(() => Promise.resolve()),
     read: jest.fn(),
     remove: jest.fn(() => Promise.resolve()),
   };
@@ -184,7 +184,7 @@ describe('StatementImportsService', () => {
     });
 
     expect(created).toEqual({ importId: 'import-1' });
-    expect(uploads.save).not.toHaveBeenCalled();
+    expect(uploads.write).not.toHaveBeenCalled();
     expect(processImport.execute).toHaveBeenCalledWith(
       expect.objectContaining({ userId: 'user-1', importId: 'import-1' }),
     );
@@ -213,7 +213,7 @@ describe('StatementImportsService', () => {
       password: 'secret',
     });
 
-    expect(mocks.uploads.save).toHaveBeenCalled();
+    expect(mocks.uploads.write).toHaveBeenCalled();
     expect(queue.add).toHaveBeenCalledWith(
       expect.any(String),
       expect.objectContaining({ importId: 'import-1', password: 'secret' }),

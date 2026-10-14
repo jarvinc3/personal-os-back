@@ -29,29 +29,35 @@ export type StatementImportParsed = {
   failureReason?: string;
 };
 
+const EMPTY_PARSED: StatementImportParsed = {
+  header: {
+    currency: 'DOP',
+    periodStart: null,
+    periodEnd: null,
+    previousBalance: null,
+    closingBalance: null,
+    minimumPayment: null,
+    dueDate: null,
+  },
+  period: null,
+  counts: { lines: 0, matched: 0, missing: 0, extra: 0 },
+  extra: [],
+};
+
+/**
+ * The column is untyped JSON. A freshly created import still holds `{}`, so
+ * missing fields fall back to the empty shape; a value that is not an object
+ * was never written by this code and is a real failure.
+ */
 export function readParsedStatement(parsed: unknown): StatementImportParsed {
-  const fallback: StatementImportParsed = {
-    header: {
-      currency: 'DOP',
-      periodStart: null,
-      periodEnd: null,
-      previousBalance: null,
-      closingBalance: null,
-      minimumPayment: null,
-      dueDate: null,
-    },
-    period: null,
-    counts: { lines: 0, matched: 0, missing: 0, extra: 0 },
-    extra: [],
-  };
-  if (typeof parsed !== 'object' || parsed === null) {
-    return fallback;
+  if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+    throw new Error('Stored statement import payload is not a JSON object');
   }
   const candidate = parsed as Partial<StatementImportParsed>;
   return {
-    header: { ...fallback.header, ...candidate.header },
+    header: { ...EMPTY_PARSED.header, ...candidate.header },
     period: candidate.period ?? null,
-    counts: { ...fallback.counts, ...candidate.counts },
+    counts: { ...EMPTY_PARSED.counts, ...candidate.counts },
     extra: Array.isArray(candidate.extra) ? candidate.extra : [],
     ...(candidate.failureReason === undefined
       ? {}
