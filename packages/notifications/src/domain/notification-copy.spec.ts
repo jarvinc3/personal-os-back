@@ -4,6 +4,7 @@ import {
   transactionPendingCopy,
   transactionRecordedCopy,
   transactionUpdatedCopy,
+  weeklySummaryCopy,
 } from './notification-copy';
 
 describe('notification-copy', () => {
@@ -80,6 +81,38 @@ describe('notification-copy', () => {
     expect(budgetThresholdCopy(89.6)).toEqual({
       title: 'Presupuesto al 90%',
       body: 'Un presupuesto alcanzó el 90% de su límite.',
+    });
+  });
+
+  it('summarizes the week with only the details that exist', () => {
+    expect(
+      weeklySummaryCopy({
+        amountLabel: 'DOP $500.00',
+        averageLabel: 'DOP $250.00',
+        topCategories: ['Comida', 'Transporte'],
+        budgetsAtRisk: 1,
+        upcoming: 0,
+        pendingEmails: 0,
+      }),
+    ).toEqual({
+      title: 'Resumen semanal',
+      body: 'Gastaste DOP $500.00 · promedio DOP $250.00 · Top: Comida, Transporte · 1 presupuestos en riesgo',
+    });
+  });
+
+  it('falls back to the plain amount when there is nothing else', () => {
+    expect(
+      weeklySummaryCopy({
+        amountLabel: 'DOP $0.00',
+        averageLabel: '',
+        topCategories: [],
+        budgetsAtRisk: 0,
+        upcoming: 0,
+        pendingEmails: 0,
+      }),
+    ).toEqual({
+      title: 'Resumen semanal',
+      body: 'Gastaste DOP $0.00',
     });
   });
 });

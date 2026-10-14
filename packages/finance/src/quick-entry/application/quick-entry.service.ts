@@ -2,6 +2,7 @@ import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import { UsersService } from '@personal-os/users';
 import { CatalogService } from '../../catalog/application/catalog.service';
 import { ResolveUserBaseCurrencyUseCase } from '../../fx/application/resolve-user-base-currency';
+import { isValidIsoDate } from '../../shared/domain/iso-date';
 import {
   type QuickEntryCatalogAccount,
   type QuickEntryCatalogCard,
@@ -159,7 +160,7 @@ function resolveCategory(
 }
 
 function resolveDate(value: string | null, timezone: string | null): string {
-  if (value && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+  if (value && isValidIsoDate(value)) {
     return value;
   }
   return todayIso(timezone, new Date());

@@ -8,7 +8,7 @@ import { DOMAIN_EVENT_PUBLISHER } from '../../shared/application/tokens';
 import type { DomainEventPublisherPort } from '../../events/application/ports/domain-event-publisher.port';
 import {
   WeeklySummaryService,
-  weekStartIso,
+  previousWeekStartIso,
 } from '../application/weekly-summary.service';
 
 const SEND_HOUR = 8;
@@ -52,8 +52,7 @@ export class WeeklySummaryScheduler {
   ) {}
 
   @Cron(CronExpression.EVERY_HOUR)
-  async handleCron(): Promise<void> {
-    const now = new Date();
+  async handleCron(now: Date = new Date()): Promise<void> {
     const recipients = await this.users.listWeeklySummaryRecipients();
     for (const recipient of recipients) {
       const local = localDayAndHour(recipient.timezone, now);
@@ -65,7 +64,7 @@ export class WeeklySummaryScheduler {
   }
 
   private async emitSummary(userId: string, dateIso: string): Promise<void> {
-    const weekStart = weekStartIso(dateIso);
+    const weekStart = previousWeekStartIso(dateIso);
     const eventId = `finance-weekly-summary:${userId}:${weekStart}`;
     if (await this.outbox.hasEvent(eventId)) {
       return;

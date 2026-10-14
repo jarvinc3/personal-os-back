@@ -1,9 +1,10 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { UsersService } from '@personal-os/users';
 import { CatalogService } from '../../catalog/application/catalog.service';
 import { ResolveUserBaseCurrencyUseCase } from '../../fx/application/resolve-user-base-currency';
 import { IngestionService } from '../../ingestion/application/ingestion.service';
 import { PlanningService } from '../../planning/application/planning.service';
+import { isValidIsoDate } from '../../shared/domain/iso-date';
 import { decimalToString } from '../../shared/domain/mappers';
 import { roundMoney } from '../../shared/domain/money';
 import { AnalyticsService } from './analytics.service';
@@ -14,7 +15,6 @@ const TOP_CATEGORY_LIMIT = 3;
 const BUDGET_RISK_PCT = 80;
 const UPCOMING_DAYS = 7;
 const PENDING_EMAIL_SCAN = 50;
-const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 const MS_PER_DAY = 86_400_000;
 
 function localDateIso(timezone: string | null, now: Date): string {
@@ -37,6 +37,11 @@ export function weekStartIso(iso: string): string {
   const date = new Date(`${iso}T00:00:00.000Z`);
   const day = date.getUTCDay();
   return addDaysIso(iso, day === 0 ? -6 : 1 - day);
+}
+
+/** Monday of the week before the one that contains the given date. */
+export function previousWeekStartIso(iso: string): string {
+  return addDaysIso(weekStartIso(iso), -7);
 }
 
 function daysUntilDayOfMonth(todayIso: string, day: number): number {
@@ -80,10 +85,7 @@ export class WeeklySummaryService {
   async build(userId: string, weekStartInput?: string): Promise<WeeklySummary> {
     const profile = await this.users.findById(userId);
     const today = localDateIso(profile.timezone, new Date());
-    const weekStart =
-      weekStartInput && ISO_DATE.test(weekStartInput)
-        ? weekStartIso(weekStartInput)
-        : weekStartIso(today);
+    const weekStart = this.resolveWeekStart(weekStartInput, today);
     const weekEnd = addDaysIso(weekStart, 6);
     const rangeFrom = addDaysIso(weekStart, -7 * AVERAGE_WEEKS);
 
@@ -182,5 +184,20 @@ export class WeeklySummaryService {
       }),
       pendingEmails: pending.items.length,
     };
+  }
+
+  private resolveWeekStart(
+    weekStartInput: string | undefined,
+    today: string,
+  ): string {
+    if (weekStartInput === undefined) {
+      return weekStartIso(today);
+    }
+    if (!isValidIsoDate(weekStartInput)) {
+      throw new BadRequestException(
+        'weekStart must be a real calendar date in YYYY-MM-DD format',
+      );
+    }
+    return weekStartIso(weekStartInput);
   }
 }

@@ -279,3 +279,55 @@ describe('UsersService.updateModuleConfig schedule validation', () => {
     expect(upsertUserModule).toHaveBeenCalled();
   });
 });
+
+describe('UsersService.listWeeklySummaryRecipients', () => {
+  const findFinanceSummaryRecipients = jest.fn();
+  const usersRepository = {
+    findFinanceSummaryRecipients,
+  } as unknown as UsersRepositoryPort;
+  const service = new UsersService(
+    usersRepository,
+    { emit: jest.fn() } as unknown as EventEmitter2,
+    {} as unknown as SupabaseAdminService,
+  );
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('defaults to Monday when the report day is not configured', async () => {
+    findFinanceSummaryRecipients.mockResolvedValue([
+      { userId: 'user-1', timezone: 'America/Santo_Domingo', config: {} },
+    ]);
+
+    await expect(service.listWeeklySummaryRecipients()).resolves.toEqual([
+      { userId: 'user-1', timezone: 'America/Santo_Domingo', day: 1 },
+    ]);
+  });
+
+  it('skips users who turned the weekly summary off', async () => {
+    findFinanceSummaryRecipients.mockResolvedValue([
+      {
+        userId: 'user-1',
+        timezone: 'UTC',
+        config: { notifications: { weeklySummary: false } },
+      },
+    ]);
+
+    await expect(service.listWeeklySummaryRecipients()).resolves.toEqual([]);
+  });
+
+  it('uses the configured report day', async () => {
+    findFinanceSummaryRecipients.mockResolvedValue([
+      {
+        userId: 'user-1',
+        timezone: 'UTC',
+        config: { reports: { weeklySummaryDay: 5 } },
+      },
+    ]);
+
+    await expect(service.listWeeklySummaryRecipients()).resolves.toEqual([
+      { userId: 'user-1', timezone: 'UTC', day: 5 },
+    ]);
+  });
+});

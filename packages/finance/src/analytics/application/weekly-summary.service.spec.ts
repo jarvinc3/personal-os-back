@@ -1,10 +1,15 @@
+import { BadRequestException } from '@nestjs/common';
 import type { UsersService } from '@personal-os/users';
 import type { CatalogService } from '../../catalog/application/catalog.service';
 import type { ResolveUserBaseCurrencyUseCase } from '../../fx/application/resolve-user-base-currency';
 import type { IngestionService } from '../../ingestion/application/ingestion.service';
 import type { PlanningService } from '../../planning/application/planning.service';
 import type { AnalyticsService } from './analytics.service';
-import { WeeklySummaryService, weekStartIso } from './weekly-summary.service';
+import {
+  WeeklySummaryService,
+  previousWeekStartIso,
+  weekStartIso,
+} from './weekly-summary.service';
 
 const WEEK_START = '2026-10-12';
 
@@ -128,6 +133,14 @@ describe('weekStartIso', () => {
   });
 });
 
+describe('previousWeekStartIso', () => {
+  it('returns the Monday of the week before', () => {
+    expect(previousWeekStartIso('2026-10-19')).toBe('2026-10-12');
+    expect(previousWeekStartIso('2026-10-14')).toBe('2026-10-05');
+    expect(previousWeekStartIso('2026-10-18')).toBe('2026-10-05');
+  });
+});
+
 describe('WeeklySummaryService', () => {
   it('compares the week against the four previous weeks', async () => {
     const summary = await createService().build('user-1', WEEK_START);
@@ -147,6 +160,21 @@ describe('WeeklySummaryService', () => {
       'Transporte',
       'Hogar',
     ]);
+  });
+
+  it('normalizes a valid date to the Monday of its week', async () => {
+    const summary = await createService().build('user-1', '2026-10-14');
+
+    expect(summary.weekStart).toBe(WEEK_START);
+  });
+
+  it('rejects an impossible weekStart instead of failing later', async () => {
+    await expect(createService().build('user-1', '2026-02-31')).rejects.toThrow(
+      BadRequestException,
+    );
+    await expect(createService().build('user-1', '2026-13-01')).rejects.toThrow(
+      BadRequestException,
+    );
   });
 
   it('only lists budgets at or above the risk threshold', async () => {
