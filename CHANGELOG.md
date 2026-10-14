@@ -2,6 +2,16 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [SemVer](https://semver.org/lang/es/). Reglas y ejemplo en [docs/reference/changelog-guide.md](./docs/reference/changelog-guide.md).
 
+## [0.29.0] - 2026-10-20 - Integridad de saldos
+
+### Agregado
+
+- `GET /finance/integrity/check`: recalcula el saldo esperado de cada cuenta y tarjeta desde sus movimientos confirmados, registra las desviaciones abiertas y acepta `accountId` o `cardId`.
+- `POST /finance/integrity/recalculate`: corrige el saldo guardado a la suma de sus movimientos y cierra la desviación en una misma transacción, sin crear movimientos.
+- `BalanceIntegrityScheduler` nocturno y evento `finance.balance.drift_detected`; aviso controlado por `notifications.balanceIntegrity`.
+- Modelo `FinBalanceDrift` y migración `20261020120000_fin_balance_drifts`.
+- Specs del dominio (secuencia mixta de todos los tipos de movimiento), del servicio, del scheduler y e2e de detección y recálculo.
+
 ## [0.28.2] - 2026-10-19
 
 ### Corregido

@@ -5418,6 +5418,75 @@
         ]
       }
     },
+    "/api/finance/integrity/check": {
+      "get": {
+        "operationId": "IntegrityController_check",
+        "parameters": [
+          {
+            "name": "accountId",
+            "required": false,
+            "in": "query",
+            "description": "Check only this account",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cardId",
+            "required": false,
+            "in": "query",
+            "description": "Check only this card",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Compare stored balances against the confirmed movements",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
+    "/api/finance/integrity/recalculate": {
+      "post": {
+        "operationId": "IntegrityController_recalculate",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecalculateBalanceDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Correct a drifted balance from its movements",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
     "/api/finance/quick-entry/parse": {
       "post": {
         "operationId": "QuickEntryController_parse",
@@ -5934,7 +6003,7 @@
   "info": {
     "title": "Personal OS API",
     "description": "Personal OS backend endpoints, including auth, core modules, and AI.",
-    "version": "0.28.2",
+    "version": "0.29.0",
     "contact": {}
   },
   "tags": [
@@ -7885,6 +7954,24 @@
         "required": [
           "realBalance"
         ]
+      },
+      "RecalculateBalanceDto": {
+        "type": "object",
+        "properties": {
+          "accountId": {
+            "type": "string",
+            "description": "Account to recalculate"
+          },
+          "cardId": {
+            "type": "string",
+            "description": "Card to recalculate"
+          },
+          "currency": {
+            "type": "string",
+            "example": "DOP",
+            "description": "Required when cardId is set"
+          }
+        }
       },
       "ParseQuickEntryDto": {
         "type": "object",
