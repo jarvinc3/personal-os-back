@@ -2,6 +2,16 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [SemVer](https://semver.org/lang/es/). Reglas y ejemplo en [docs/reference/changelog-guide.md](./docs/reference/changelog-guide.md).
 
+## [0.24.4] - 2026-10-14
+
+### Corregido
+
+- El resumen semanal incluye todo el domingo: la consulta de gasto usa el último instante del último día de la semana en vez de su medianoche.
+
+### Cambiado
+
+- El spec del resumen semanal comprueba el límite del último día de la semana. Sin cambios de comportamiento.
+
 ## [0.24.3] - 2026-10-14
 
 ### Corregido

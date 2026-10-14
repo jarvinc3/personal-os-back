@@ -1,6 +1,6 @@
 {
   "name": "personal-os-back",
-  "version": "0.24.3",
+  "version": "0.24.4",
   "description": "Personal OS es un backend para la aplicación Personal OS que permite gestionar cada área de la vida cotidiana.",
   "author": "jarvinc3",
   "private": true,
