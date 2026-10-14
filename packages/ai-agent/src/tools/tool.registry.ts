@@ -330,7 +330,8 @@ const STATIC_TOOLS: StaticToolDef[] = [
   },
   {
     name: 'list_pending_emails',
-    description: 'List email imports waiting for an account, card or amount.',
+    description:
+      'List the first page of email imports waiting for an account, card or amount. hasMore tells whether more remain.',
     mutating: false,
     targetModule: 'finance',
     parameters: { type: 'object', properties: {} },

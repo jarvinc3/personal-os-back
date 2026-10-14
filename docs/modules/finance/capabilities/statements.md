@@ -10,7 +10,7 @@ Estados de cuenta (ciclos de facturación cerrados) de tarjetas de crédito.
 - Generación: tarea diaria que recorre las tarjetas `CREDIT` activas y hace upsert de todos los ciclos cerrados. La primera ejecución cubre el histórico; repetirla no duplica.
 - Multi-moneda: un estado por moneda, cada uno con su propio disponible y su propio límite.
 
-`GET /finance/cards/:id/statements` devuelve el array ordenado por `cycleEnd` descendente.
+`GET /finance/cards/:id/statements` devuelve `{ items, nextCursor, hasMore }` ordenado por `cycleEnd` descendente.
 
 ## Importar el estado de cuenta desde un PDF
 

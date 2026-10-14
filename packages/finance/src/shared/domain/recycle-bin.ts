@@ -33,7 +33,9 @@ export type RecycleBinDeletedItem = {
 
 export type RecycleBinView = {
   archived: RecycleBinArchivedItem[];
-  deleted: RecycleBinDeletedItem[];
+  items: RecycleBinDeletedItem[];
+  nextCursor: string | null;
+  hasMore: boolean;
 };
 
 type DeletedLabelTarget = {

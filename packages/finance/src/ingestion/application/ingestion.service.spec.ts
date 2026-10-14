@@ -76,15 +76,15 @@ describe('IngestionService.completeEmailSyncSuccessWithEvent', () => {
 });
 
 describe('IngestionService pending assignment', () => {
-  const listPendingAssignmentMessages = jest.fn();
-  const listRecentEmailMessages = jest.fn();
+  const listPendingAssignmentMessagesPage = jest.fn();
+  const listRecentEmailMessagesPage = jest.fn();
   const findEmailMessageById = jest.fn();
   const listCategories = jest.fn();
   const listInstitutionDestinations = jest.fn();
   const upsertEmailMessage = jest.fn();
   const repo = {
-    listPendingAssignmentMessages,
-    listRecentEmailMessages,
+    listPendingAssignmentMessagesPage,
+    listRecentEmailMessagesPage,
     findEmailMessageById,
     listCategories,
     listInstitutionDestinations,
@@ -158,27 +158,41 @@ describe('IngestionService pending assignment', () => {
   });
 
   it('lists pending messages without tokens', async () => {
-    listPendingAssignmentMessages.mockResolvedValue([pendingMessage]);
-    await expect(service.listPendingAssignment('user-1')).resolves.toEqual([
-      expect.objectContaining({
-        id: 'em-1',
-        institutionId: 'inst-1',
-        lastFourHint: '1234',
-      }),
-    ]);
+    listPendingAssignmentMessagesPage.mockResolvedValue([pendingMessage]);
+
+    await expect(
+      service.listPendingAssignment('user-1', { limit: 20 }),
+    ).resolves.toMatchObject({
+      items: [
+        expect.objectContaining({
+          id: 'em-1',
+          institutionId: 'inst-1',
+          lastFourHint: '1234',
+        }),
+      ],
+      hasMore: false,
+      nextCursor: null,
+    });
   });
 
   it('lists recent extract outcomes including imported mail', async () => {
-    listRecentEmailMessages.mockResolvedValue([
+    listRecentEmailMessagesPage.mockResolvedValue([
       { ...pendingMessage, outcome: 'IMPORTED' },
     ]);
-    await expect(service.listRecentMessages('user-1')).resolves.toEqual([
-      expect.objectContaining({
-        id: 'em-1',
-        outcome: 'IMPORTED',
-        institutionName: 'Bank',
-      }),
-    ]);
+
+    await expect(
+      service.listRecentMessages('user-1', { limit: 20 }),
+    ).resolves.toMatchObject({
+      items: [
+        expect.objectContaining({
+          id: 'em-1',
+          outcome: 'IMPORTED',
+          institutionName: 'Bank',
+        }),
+      ],
+      hasMore: false,
+      nextCursor: null,
+    });
   });
 
   it('returns the existing transaction when assignment is retried after import', async () => {

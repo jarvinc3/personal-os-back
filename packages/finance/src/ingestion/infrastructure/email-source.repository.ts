@@ -1,4 +1,9 @@
 import { Injectable } from '@nestjs/common';
+import {
+  clampPageLimit,
+  decodeCursor,
+  type CursorQueryDto,
+} from '@personal-os/core';
 import type { Prisma } from '@personal-os/database';
 import { PrismaService } from '@personal-os/database';
 import {
@@ -447,6 +452,34 @@ export class EmailSourceRepository {
     });
   }
 
+  listPendingAssignmentMessagesPage(userId: string, query: CursorQueryDto) {
+    const limit = clampPageLimit(query.limit);
+    const cursorPoint = query.cursor ? decodeCursor(query.cursor) : null;
+    const cursorDate = cursorPoint ? new Date(cursorPoint.key) : null;
+    return this.prisma.finEmailMessage.findMany({
+      where: {
+        outcome: {
+          in: [
+            EMAIL_MESSAGE_OUTCOME.PENDING_ASSIGNMENT,
+            EMAIL_MESSAGE_OUTCOME.PENDING_AMOUNT,
+          ],
+        },
+        source: { userId },
+        ...(cursorPoint && cursorDate
+          ? {
+              OR: [
+                { createdAt: { lt: cursorDate } },
+                { createdAt: cursorDate, id: { lt: cursorPoint.id } },
+              ],
+            }
+          : {}),
+      },
+      include: pendingMessageInclude,
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      take: limit + 1,
+    });
+  }
+
   listCashAccounts(userId: string) {
     return this.prisma.finAccount.findMany({
       where: { userId, type: 'CASH', isActive: true },
@@ -473,12 +506,25 @@ export class EmailSourceRepository {
     });
   }
 
-  listRecentEmailMessages(userId: string, take = 40) {
+  listRecentEmailMessagesPage(userId: string, query: CursorQueryDto) {
+    const limit = clampPageLimit(query.limit);
+    const cursorPoint = query.cursor ? decodeCursor(query.cursor) : null;
+    const cursorDate = cursorPoint ? new Date(cursorPoint.key) : null;
     return this.prisma.finEmailMessage.findMany({
-      where: { source: { userId } },
+      where: {
+        source: { userId },
+        ...(cursorPoint && cursorDate
+          ? {
+              OR: [
+                { createdAt: { lt: cursorDate } },
+                { createdAt: cursorDate, id: { lt: cursorPoint.id } },
+              ],
+            }
+          : {}),
+      },
       include: pendingMessageInclude,
-      orderBy: { createdAt: 'desc' },
-      take,
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      take: limit + 1,
     });
   }
 

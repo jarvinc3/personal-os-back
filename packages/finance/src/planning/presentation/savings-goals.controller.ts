@@ -6,9 +6,11 @@ import {
   Param,
   Patch,
   Post,
+  Query,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CurrentUser, RequiresEnabledModule } from '@personal-os/core';
+import { CursorQueryDto } from '@personal-os/core';
 import { PlanningService } from '../application/planning.service';
 import { AllocateToGoalUseCase } from '../application/allocate-to-goal.use-case';
 import { RemoveSavingsGoalContributionUseCase } from '../application/remove-savings-goal-contribution.use-case';
@@ -48,8 +50,12 @@ export class SavingsGoalsController {
 
   @Get('savings-goals/:id/allocations')
   @ApiOperation({ summary: 'Allocations of a savings goal, newest first' })
-  listAllocations(@CurrentUser('sub') userId: string, @Param('id') id: string) {
-    return this.planning.listSavingsGoalContributions(userId, id);
+  listAllocations(
+    @CurrentUser('sub') userId: string,
+    @Param('id') id: string,
+    @Query() query: CursorQueryDto,
+  ) {
+    return this.planning.listSavingsGoalContributions(userId, id, query);
   }
 
   @Post('savings-goals/:id/allocations')
@@ -87,8 +93,9 @@ export class SavingsGoalsController {
   listContributions(
     @CurrentUser('sub') userId: string,
     @Param('id') id: string,
+    @Query() query: CursorQueryDto,
   ) {
-    return this.planning.listSavingsGoalContributions(userId, id);
+    return this.planning.listSavingsGoalContributions(userId, id, query);
   }
 
   @Post('savings-goals/:id/contributions')

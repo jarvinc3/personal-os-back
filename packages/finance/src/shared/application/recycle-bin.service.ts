@@ -1,4 +1,9 @@
 import { Injectable } from '@nestjs/common';
+import {
+  clampPageLimit,
+  toCursorPage,
+  type CursorQueryDto,
+} from '@personal-os/core';
 import { deletedEntryLabel, type RecycleBinView } from '../domain/recycle-bin';
 import type {
   DeletionEntity,
@@ -14,15 +19,18 @@ export class RecycleBinService {
     private readonly journal: DeletionJournalRepository,
   ) {}
 
-  async get(userId: string): Promise<RecycleBinView> {
+  async get(userId: string, query: CursorQueryDto): Promise<RecycleBinView> {
     const [institutions, accounts, cards, loans, deletions] = await Promise.all(
       [
         this.recycleBin.listArchivedInstitutions(userId),
         this.recycleBin.listArchivedAccounts(userId),
         this.recycleBin.listArchivedCards(userId),
         this.recycleBin.listArchivedLoans(userId),
-        this.journal.listPending(userId),
+        this.journal.listPendingPage(userId, query),
       ],
+    );
+    const page = toCursorPage(deletions, clampPageLimit(query.limit), (entry) =>
+      entry.deletedAt.toISOString(),
     );
 
     return {
@@ -48,7 +56,7 @@ export class RecycleBinService {
           label: item.lenderName,
         })),
       ],
-      deleted: deletions.map((entry) => {
+      items: page.items.map((entry) => {
         const entityType = entry.entityType as DeletionEntity;
         return {
           type: entityType,
@@ -61,6 +69,8 @@ export class RecycleBinService {
           sizeBytes: entry.sizeBytes,
         };
       }),
+      nextCursor: page.nextCursor,
+      hasMore: page.hasMore,
     };
   }
 }

@@ -396,10 +396,17 @@ export class PlanningService {
     return { success: true };
   }
 
-  async listSavingsGoalContributions(userId: string, id: string) {
+  async listSavingsGoalContributions(
+    userId: string,
+    id: string,
+    query: CursorQueryDto,
+  ) {
     await this.assertSavingsGoalOwned(userId, id);
-    const rows = await this.repo.listSavingsGoalContributions(id);
-    return rows.map(mapSavingsGoalContribution);
+    const rows = await this.repo.listSavingsGoalContributions(id, query);
+    const page = toCursorPage(rows, clampPageLimit(query.limit), (row) =>
+      row.contributedAt.toISOString(),
+    );
+    return { ...page, items: page.items.map(mapSavingsGoalContribution) };
   }
 
   private async assertSavingsGoalOwned(
@@ -432,6 +439,22 @@ export class PlanningService {
     }
     const rows = await this.repo.listInstallments(id);
     return rows.map(mapLoanInstallment);
+  }
+
+  async listLoanInstallmentsPage(
+    userId: string,
+    id: string,
+    query: CursorQueryDto,
+  ) {
+    const loan = await this.repo.findLoan(userId, id);
+    if (!loan) {
+      throw new NotFoundException('Loan not found');
+    }
+    const rows = await this.repo.listInstallmentsPage(id, query);
+    const page = toCursorPage(rows, clampPageLimit(query.limit), (row) =>
+      row.dueDate.toISOString(),
+    );
+    return { ...page, items: page.items.map(mapLoanInstallment) };
   }
 
   async createLoan(userId: string, dto: CreateLoanDto, now: Date) {
@@ -644,10 +667,17 @@ export class PlanningService {
     return mapReceivable(saved);
   }
 
-  async listReceivablePayments(userId: string, id: string) {
+  async listReceivablePayments(
+    userId: string,
+    id: string,
+    query: CursorQueryDto,
+  ) {
     await this.assertReceivableOwned(userId, id);
-    const rows = await this.repo.listReceivablePayments(id);
-    return rows.map(mapReceivablePayment);
+    const rows = await this.repo.listReceivablePayments(id, query);
+    const page = toCursorPage(rows, clampPageLimit(query.limit), (row) =>
+      row.paidAt.toISOString(),
+    );
+    return { ...page, items: page.items.map(mapReceivablePayment) };
   }
 
   private async assertReceivableOwned(

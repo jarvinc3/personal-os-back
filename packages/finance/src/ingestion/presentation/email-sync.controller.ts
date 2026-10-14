@@ -16,6 +16,7 @@ import { Throttle } from '@nestjs/throttler';
 import type { Response } from 'express';
 import {
   CurrentUser,
+  CursorQueryDto,
   Public,
   RequiresEnabledModule,
   Timeout,
@@ -96,14 +97,20 @@ export class EmailSyncController {
 
   @Get('pending')
   @ApiOperation({ summary: 'List email imports waiting for a ledger target' })
-  listPending(@CurrentUser('sub') userId: string) {
-    return this.ingestion.listPendingAssignment(userId);
+  listPending(
+    @CurrentUser('sub') userId: string,
+    @Query() query: CursorQueryDto,
+  ) {
+    return this.ingestion.listPendingAssignment(userId, query);
   }
 
   @Get('messages')
   @ApiOperation({ summary: 'List recent email extract outcomes' })
-  listRecentMessages(@CurrentUser('sub') userId: string) {
-    return this.ingestion.listRecentMessages(userId);
+  listRecentMessages(
+    @CurrentUser('sub') userId: string,
+    @Query() query: CursorQueryDto,
+  ) {
+    return this.ingestion.listRecentMessages(userId, query);
   }
 
   @Post('pending/:id/assign')

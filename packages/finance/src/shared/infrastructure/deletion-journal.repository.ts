@@ -1,4 +1,9 @@
 import { ConflictException, Injectable } from '@nestjs/common';
+import {
+  clampPageLimit,
+  decodeCursor,
+  type CursorQueryDto,
+} from '@personal-os/core';
 import type { Prisma } from '@personal-os/database';
 import { PrismaService } from '@personal-os/database';
 import type {
@@ -60,17 +65,33 @@ export class DeletionJournalRepository {
     });
   }
 
-  listPending(userId: string) {
+  listPendingPage(userId: string, query: CursorQueryDto) {
+    const limit = clampPageLimit(query.limit);
+    const cursorPoint = query.cursor ? decodeCursor(query.cursor) : null;
+    const cursorDate = cursorPoint ? new Date(cursorPoint.key) : null;
     return this.prisma.finDeletionJournal.findMany({
-      where: { userId, restoredAt: null },
+      where: {
+        userId,
+        restoredAt: null,
+        ...(cursorPoint && cursorDate
+          ? {
+              OR: [
+                { deletedAt: { lt: cursorDate } },
+                { deletedAt: cursorDate, id: { lt: cursorPoint.id } },
+              ],
+            }
+          : {}),
+      },
       select: {
+        id: true,
         entityType: true,
         entityId: true,
         snapshot: true,
         sizeBytes: true,
         deletedAt: true,
       },
-      orderBy: { deletedAt: 'desc' },
+      orderBy: [{ deletedAt: 'desc' }, { id: 'desc' }],
+      take: limit + 1,
     });
   }
 

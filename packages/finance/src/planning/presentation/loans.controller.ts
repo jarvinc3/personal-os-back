@@ -10,6 +10,7 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CurrentUser, RequiresEnabledModule } from '@personal-os/core';
+import { CursorQueryDto } from '@personal-os/core';
 import { ApplyLoanPrepaymentUseCase } from '../application/apply-loan-prepayment.use-case';
 import { PayNextLoanInstallmentUseCase } from '../application/pay-next-loan-installment.use-case';
 import { PlanningService } from '../application/planning.service';
@@ -49,12 +50,15 @@ export class LoansController {
   }
 
   @Get('loans/:id/installments')
-  @ApiOperation({ summary: 'Instalment schedule of a loan, oldest first' })
+  @ApiOperation({
+    summary: 'Instalment schedule of a loan, oldest first (cursor paginated)',
+  })
   listInstallments(
     @CurrentUser('sub') userId: string,
     @Param('id') id: string,
+    @Query() query: CursorQueryDto,
   ) {
-    return this.planning.listLoanInstallments(userId, id);
+    return this.planning.listLoanInstallmentsPage(userId, id, query);
   }
 
   @Get('loans/:id/schedule')

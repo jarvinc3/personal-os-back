@@ -13,7 +13,12 @@ import { Queue } from 'bullmq';
 import { randomUUID } from 'crypto';
 import * as jwt from 'jsonwebtoken';
 import type { Env } from '@personal-os/config';
-import { AppEvents } from '@personal-os/core';
+import {
+  AppEvents,
+  clampPageLimit,
+  toCursorPage,
+  type CursorQueryDto,
+} from '@personal-os/core';
 import type { GmailSyncJob } from '@personal-os/core';
 import { QueueNames } from '@personal-os/core';
 import { UsersService } from '@personal-os/users';
@@ -494,17 +499,32 @@ export class IngestionService {
     return decryptToken(source.connection.accessToken, this.encryptionKey);
   }
 
-  async listPendingAssignment(userId: string) {
-    const rows = await this.repo.listPendingAssignmentMessages(userId);
-    return rows.map((row) => this.mapPendingMessage(row));
+  async listPendingAssignment(userId: string, query: CursorQueryDto) {
+    const rows = await this.repo.listPendingAssignmentMessagesPage(
+      userId,
+      query,
+    );
+    const page = toCursorPage(rows, clampPageLimit(query.limit), (row) =>
+      row.createdAt.toISOString(),
+    );
+    return {
+      ...page,
+      items: page.items.map((row) => this.mapPendingMessage(row)),
+    };
   }
 
-  async listRecentMessages(userId: string) {
-    const rows = await this.repo.listRecentEmailMessages(userId);
-    return rows.map((row) => ({
-      ...this.mapPendingMessage(row),
-      outcome: row.outcome,
-    }));
+  async listRecentMessages(userId: string, query: CursorQueryDto) {
+    const rows = await this.repo.listRecentEmailMessagesPage(userId, query);
+    const page = toCursorPage(rows, clampPageLimit(query.limit), (row) =>
+      row.createdAt.toISOString(),
+    );
+    return {
+      ...page,
+      items: page.items.map((row) => ({
+        ...this.mapPendingMessage(row),
+        outcome: row.outcome,
+      })),
+    };
   }
 
   async assignPendingMessage(

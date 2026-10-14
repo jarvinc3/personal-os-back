@@ -6,9 +6,11 @@ import {
   Param,
   Patch,
   Post,
+  Query,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CurrentUser, RequiresEnabledModule } from '@personal-os/core';
+import { CursorQueryDto } from '@personal-os/core';
 import { PlanningService } from '../application/planning.service';
 import { RecordReceivablePaymentUseCase } from '../application/record-receivable-payment.use-case';
 import { ApplyReceivableCreditUseCase } from '../application/apply-receivable-credit.use-case';
@@ -51,8 +53,12 @@ export class ReceivablesController {
   @ApiOperation({
     summary: 'Payments collected for a receivable, newest first',
   })
-  listPayments(@CurrentUser('sub') userId: string, @Param('id') id: string) {
-    return this.planning.listReceivablePayments(userId, id);
+  listPayments(
+    @CurrentUser('sub') userId: string,
+    @Param('id') id: string,
+    @Query() query: CursorQueryDto,
+  ) {
+    return this.planning.listReceivablePayments(userId, id, query);
   }
 
   @Post('receivables/:id/payments')

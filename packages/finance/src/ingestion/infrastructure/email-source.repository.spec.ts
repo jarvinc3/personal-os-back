@@ -57,20 +57,20 @@ describe('EmailSourceRepository.listAutoSyncSources', () => {
   });
 });
 
-describe('EmailSourceRepository.listRecentEmailMessages', () => {
+describe('EmailSourceRepository.listRecentEmailMessagesPage', () => {
   it('loads recent extracts for the user newest first', async () => {
     const findMany = jest.fn().mockResolvedValue([]);
     const repo = new EmailSourceRepository({
       finEmailMessage: { findMany },
     } as unknown as PrismaService);
 
-    await repo.listRecentEmailMessages('user-1', 40);
+    await repo.listRecentEmailMessagesPage('user-1', { limit: 40 });
 
     expect(findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { source: { userId: 'user-1' } },
-        orderBy: { createdAt: 'desc' },
-        take: 40,
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        take: 41,
       }),
     );
   });

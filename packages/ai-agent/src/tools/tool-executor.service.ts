@@ -831,9 +831,7 @@ export class ToolExecutorService {
         return {
           success: true,
           message: 'Pending emails loaded',
-          data: {
-            items: await this.financeFacade.listPendingEmails(ctx.userId),
-          },
+          data: await this.financeFacade.listPendingEmails(ctx.userId),
         };
       case 'assign_pending_email': {
         const assignArgs = args as ValidatedToolArgs<'assign_pending_email'>;

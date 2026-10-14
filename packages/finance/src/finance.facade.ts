@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { DEFAULT_PAGE_LIMIT } from '@personal-os/core';
 import { AnalyticsService } from './analytics/application/analytics.service';
 import { CatalogService } from './catalog/application/catalog.service';
 import { IngestionService } from './ingestion/application/ingestion.service';
@@ -150,8 +151,11 @@ export class FinanceFacade {
     return this.unlinkTx.execute(userId, transactionId, new Date());
   }
 
-  listPendingEmails(userId: string) {
-    return this.ingestion.listPendingAssignment(userId);
+  async listPendingEmails(userId: string) {
+    const page = await this.ingestion.listPendingAssignment(userId, {
+      limit: DEFAULT_PAGE_LIMIT,
+    });
+    return { items: page.items, hasMore: page.hasMore };
   }
 
   assignPendingEmail(
