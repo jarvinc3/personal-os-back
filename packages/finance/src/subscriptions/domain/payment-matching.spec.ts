@@ -51,6 +51,23 @@ describe('matchesSubscription', () => {
     ).toBe(false);
   });
 
+  it('counts the window in calendar days, not elapsed hours', () => {
+    const chargeAt = (iso: string) =>
+      matchesSubscription({
+        subscription,
+        transaction: {
+          merchant: 'NETFLIX',
+          amount: 100,
+          currency: 'DOP',
+          transactionDate: new Date(iso),
+        },
+      });
+
+    expect(chargeAt('2026-05-13T23:59:00.000Z')).toBe(true);
+    expect(chargeAt('2026-05-07T00:01:00.000Z')).toBe(true);
+    expect(chargeAt('2026-05-14T00:01:00.000Z')).toBe(false);
+  });
+
   it('rejects another merchant or currency', () => {
     expect(
       matchesSubscription({

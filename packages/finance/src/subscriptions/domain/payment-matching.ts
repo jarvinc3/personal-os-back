@@ -11,6 +11,10 @@ export const MATCH_DATE_TOLERANCE_DAYS = 3;
 
 const MS_PER_DAY = 86_400_000;
 
+function utcDayStart(date: Date): number {
+  return Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
+}
+
 export type MatchableSubscription = {
   id: string;
   normalizedKey: string;
@@ -47,9 +51,11 @@ export function matchesSubscription(input: {
   ) {
     return false;
   }
+  // Calendar days, not elapsed hours: a charge on the expected day at 23:00 is
+  // still within that day.
   const dayGap = Math.abs(
-    input.transaction.transactionDate.getTime() -
-      input.subscription.nextBillingDate.getTime(),
+    utcDayStart(input.transaction.transactionDate) -
+      utcDayStart(input.subscription.nextBillingDate),
   );
   return dayGap / MS_PER_DAY <= MATCH_DATE_TOLERANCE_DAYS;
 }

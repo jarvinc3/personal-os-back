@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Inject,
   Injectable,
   NotFoundException,
@@ -26,6 +27,7 @@ import {
   firstBillingOnOrAfter,
   monthlyCost,
   nextBillingAfter,
+  type BillingCycle,
 } from '../domain/billing';
 import { matchesSubscription } from '../domain/payment-matching';
 import {
@@ -168,12 +170,12 @@ export class SubscriptionsService implements SubscriptionMatcherPort {
       billingCycle: dto.billingCycle,
       billingInterval: interval,
       anchorDate,
-      nextBillingDate: dateOnly(
-        firstBillingOnOrAfter(
-          { anchor: anchorDate, cycle: dto.billingCycle, interval },
-          now,
-        ),
-      ),
+      nextBillingDate: this.nextBillingFromSchedule({
+        anchor: anchorDate,
+        cycle: dto.billingCycle,
+        interval,
+        now,
+      }),
       trialEndsAt: dto.trialEndsAt ? dateOnly(new Date(dto.trialEndsAt)) : null,
       status: 'ACTIVE',
       reminderDaysBefore:
@@ -215,7 +217,7 @@ export class SubscriptionsService implements SubscriptionMatcherPort {
       normalizedKey: this.normalizedKeyFor(name),
     };
     if (dto.domain !== undefined) {
-      const domain = dto.domain.trim() || null;
+      const domain = dto.domain?.trim() || null;
       changes.domain = domain;
       changes.logoPath = domain ? await this.logos.ensureLogo(domain) : null;
     }
@@ -235,9 +237,12 @@ export class SubscriptionsService implements SubscriptionMatcherPort {
       changes.anchorDate = anchorDate;
     }
     if (scheduleChanged) {
-      changes.nextBillingDate = dateOnly(
-        firstBillingOnOrAfter({ anchor: anchorDate, cycle, interval }, now),
-      );
+      changes.nextBillingDate = this.nextBillingFromSchedule({
+        anchor: anchorDate,
+        cycle,
+        interval,
+        now,
+      });
     }
     if (dto.trialEndsAt !== undefined) {
       changes.trialEndsAt = dto.trialEndsAt
@@ -261,6 +266,15 @@ export class SubscriptionsService implements SubscriptionMatcherPort {
     }
     if (dto.status !== undefined) {
       this.applyStatus(changes, dto.status, now);
+      // Resuming restarts the schedule from today, same as the resume endpoint.
+      if (dto.status === 'ACTIVE' && existing.status !== 'ACTIVE') {
+        changes.nextBillingDate = this.nextBillingFromSchedule({
+          anchor: anchorDate,
+          cycle,
+          interval,
+          now,
+        });
+      }
     }
     const updated = await this.repo.update(userId, id, changes);
     if (!updated) {
@@ -270,10 +284,8 @@ export class SubscriptionsService implements SubscriptionMatcherPort {
   }
 
   async pause(userId: string, id: string, now = new Date()) {
-    const changes: Prisma.FinSubscriptionUncheckedUpdateInput = {
-      status: 'PAUSED',
-      pausedAt: now,
-    };
+    const changes: Prisma.FinSubscriptionUncheckedUpdateInput = {};
+    this.applyStatus(changes, 'PAUSED', now);
     const updated = await this.repo.update(userId, id, changes);
     if (!updated) {
       throw new NotFoundException('Subscription not found');
@@ -290,16 +302,12 @@ export class SubscriptionsService implements SubscriptionMatcherPort {
       status: 'ACTIVE',
       pausedAt: null,
       cancelledAt: null,
-      nextBillingDate: dateOnly(
-        firstBillingOnOrAfter(
-          {
-            anchor: existing.anchorDate,
-            cycle: existing.billingCycle,
-            interval: existing.billingInterval,
-          },
-          now,
-        ),
-      ),
+      nextBillingDate: this.nextBillingFromSchedule({
+        anchor: existing.anchorDate,
+        cycle: existing.billingCycle,
+        interval: existing.billingInterval,
+        now,
+      }),
     });
     if (!updated) {
       throw new NotFoundException('Subscription not found');
@@ -308,10 +316,9 @@ export class SubscriptionsService implements SubscriptionMatcherPort {
   }
 
   async cancel(userId: string, id: string, now = new Date()) {
-    const updated = await this.repo.update(userId, id, {
-      status: 'CANCELLED',
-      cancelledAt: now,
-    });
+    const changes: Prisma.FinSubscriptionUncheckedUpdateInput = {};
+    this.applyStatus(changes, 'CANCELLED', now);
+    const updated = await this.repo.update(userId, id, changes);
     if (!updated) {
       throw new NotFoundException('Subscription not found');
     }
@@ -375,6 +382,15 @@ export class SubscriptionsService implements SubscriptionMatcherPort {
       );
       if (!transaction) {
         throw new BadRequestException('Transaction not found');
+      }
+      const alreadyLinked = await this.repo.findPaymentByTransaction(
+        id,
+        dto.transactionId,
+      );
+      if (alreadyLinked) {
+        throw new ConflictException(
+          'This movement is already registered for the subscription',
+        );
       }
     }
     const payment = await this.repo.createPayment({
@@ -472,14 +488,30 @@ export class SubscriptionsService implements SubscriptionMatcherPort {
     changes.status = status;
     if (status === 'CANCELLED') {
       changes.cancelledAt = now;
+      changes.pausedAt = null;
       return;
     }
     if (status === 'PAUSED') {
       changes.pausedAt = now;
+      changes.cancelledAt = null;
       return;
     }
     changes.pausedAt = null;
     changes.cancelledAt = null;
+  }
+
+  private nextBillingFromSchedule(input: {
+    anchor: Date;
+    cycle: BillingCycle;
+    interval: number;
+    now: Date;
+  }): Date {
+    return dateOnly(
+      firstBillingOnOrAfter(
+        { anchor: input.anchor, cycle: input.cycle, interval: input.interval },
+        input.now,
+      ),
+    );
   }
 
   private async advanceBilling(subscription: SubscriptionRow): Promise<void> {
