@@ -37,9 +37,18 @@ type MerchantRow = {
   createdAt: Date;
 };
 
+/** The `dateTo` bound is a calendar day, so it must cover the whole day. */
+function endOfDay(value: string): Date {
+  const date = new Date(value);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    date.setUTCHours(23, 59, 59, 999);
+  }
+  return date;
+}
+
 function monthRange(query: { dateFrom?: string; dateTo?: string }, now: Date) {
   if (query.dateFrom && query.dateTo) {
-    return { from: new Date(query.dateFrom), to: new Date(query.dateTo) };
+    return { from: new Date(query.dateFrom), to: endOfDay(query.dateTo) };
   }
   const from = new Date(
     Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1, 0, 0, 0),
@@ -104,10 +113,11 @@ export class MerchantsService {
     if (!merchant) {
       throw new NotFoundException('Merchant not found');
     }
-    const spends = await this.repo.sumSpendByMerchant(userId, [id], {
-      from: new Date(0),
-      to: now,
-    });
+    const spends = await this.repo.sumSpendByMerchant(
+      userId,
+      [id],
+      monthRange({}, now),
+    );
     return mapMerchant(merchant, spends[0]);
   }
 

@@ -91,10 +91,10 @@ export class RecurringRepository {
         ...(page.cursor
           ? {
               OR: [
-                { nextExpectedDate: { lt: new Date(page.cursor.key) } },
+                { nextExpectedDate: { gt: new Date(page.cursor.key) } },
                 {
                   nextExpectedDate: new Date(page.cursor.key),
-                  id: { lt: page.cursor.id },
+                  id: { gt: page.cursor.id },
                 },
               ],
             }
@@ -156,9 +156,5 @@ export class RecurringRepository {
         }
         return this.findPatternById(userId, id);
       });
-  }
-
-  deletePatterns(userId: string) {
-    return this.prisma.finRecurringPattern.deleteMany({ where: { userId } });
   }
 }

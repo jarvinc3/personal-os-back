@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { clampPageLimit, decodeCursor, toCursorPage } from '@personal-os/core';
 import type { Prisma } from '@personal-os/database';
 import { MerchantsService } from '../../merchants/application/merchants.service';
@@ -30,6 +34,9 @@ import type { UpdateRecurringDto } from '../presentation/dto/update-recurring.dt
 
 /** Long enough to see three annual charges. */
 export const DETECTION_LOOKBACK_DAYS = 1100;
+/** A confirmed pattern accepts any amount, so a price change refreshes it
+ * instead of dropping it. The stored tolerance keeps the alert band. */
+const CONFIRMED_DETECTION_TOLERANCE_PCT = 100;
 const MS_PER_DAY = 86_400_000;
 
 export type RecurringPatternWithMerchant =
@@ -122,6 +129,9 @@ export class RecurringService {
       await this.ownership.assertCategoryVisible(userId, dto.categoryId);
     }
     const resolved = await this.resolveMerchant(userId, dto);
+    if (!resolved && !dto.merchant?.trim()) {
+      throw new BadRequestException('merchant or merchantId is required');
+    }
     const created = await this.repo.createPattern(userId, {
       merchantId: resolved?.id ?? null,
       merchant: resolved?.name ?? dto.merchant?.trim() ?? '',
@@ -153,7 +163,9 @@ export class RecurringService {
     }
     const changes: Prisma.FinRecurringPatternUncheckedUpdateInput = {};
     if (dto.merchant !== undefined) {
-      changes.merchant = dto.merchant;
+      const resolved = await this.merchants.resolve(userId, dto.merchant);
+      changes.merchant = resolved?.name ?? dto.merchant.trim();
+      changes.merchantId = resolved?.id ?? null;
     }
     if (dto.categoryId !== undefined) {
       changes.categoryId = dto.categoryId;
@@ -212,6 +224,9 @@ export class RecurringService {
       const allowTwoOccurrences =
         existing?.status === 'CONFIRMED' && Number(existing.frequency) === 365;
       const confirmed = existing?.status === 'CONFIRMED';
+      const storedTolerance = Number(
+        existing?.amountTolerance ?? DEFAULT_AMOUNT_TOLERANCE_PCT,
+      );
       const detected = detectRecurringPattern({
         merchantId: group.merchantId,
         merchantName: group.charges[0].merchantName || group.merchantId,
@@ -224,8 +239,8 @@ export class RecurringService {
         })),
         today: now,
         amountTolerancePct: confirmed
-          ? 100
-          : Number(existing?.amountTolerance ?? DEFAULT_AMOUNT_TOLERANCE_PCT),
+          ? CONFIRMED_DETECTION_TOLERANCE_PCT
+          : storedTolerance,
         allowTwoOccurrences,
       });
       if (!detected) {
@@ -240,7 +255,7 @@ export class RecurringService {
           nextExpectedDate: detected.nextExpectedDate,
           lastSeenAt: detected.lastSeenAt,
           confidenceScore: detected.confidenceScore,
-          amountTolerance: detected.amountTolerancePct,
+          amountTolerance: storedTolerance,
           categoryId: existing.categoryId ?? detected.categoryId,
         });
         if (confirmed) {

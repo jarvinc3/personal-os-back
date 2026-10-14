@@ -132,32 +132,6 @@ export class MerchantsRepository {
       );
   }
 
-  listTransactions(
-    userId: string,
-    merchantId: string,
-    page: { cursor: CursorPoint | null; take: number },
-  ) {
-    return this.prisma.finTransaction.findMany({
-      where: {
-        userId,
-        merchantId,
-        ...(page.cursor
-          ? {
-              OR: [
-                { transactionDate: { lt: new Date(page.cursor.key) } },
-                {
-                  transactionDate: new Date(page.cursor.key),
-                  id: { lt: page.cursor.id },
-                },
-              ],
-            }
-          : {}),
-      },
-      orderBy: [{ transactionDate: 'desc' }, { id: 'desc' }],
-      take: page.take,
-    });
-  }
-
   async mergeMerchants(userId: string, sourceId: string, targetId: string) {
     return this.prisma.$transaction(async (tx) => {
       const source = await tx.finMerchant.findFirst({
@@ -184,17 +158,6 @@ export class MerchantsRepository {
       });
       await tx.finMerchant.delete({ where: { id: sourceId } });
       return updated;
-    });
-  }
-
-  /**
-   * Unlinks every movement before the merchant rows are deleted, so the
-   * `SetNull` FK does not fight the wipe order.
-   */
-  clearMerchantLinks(userId: string, tx: Prisma.TransactionClient) {
-    return tx.finTransaction.updateMany({
-      where: { userId, merchantId: { not: null } },
-      data: { merchantId: null },
     });
   }
 }

@@ -24,6 +24,8 @@ function build(repo: Partial<Mocked> = {}) {
     createMerchant: jest.fn(),
     updateMerchant: jest.fn(),
     findMerchantById: jest.fn(),
+    listMerchants: jest.fn().mockResolvedValue([]),
+    sumSpendByMerchant: jest.fn().mockResolvedValue([]),
     ...repo,
   } as unknown as MerchantsRepository;
   const ownership = { assertCategoryVisible: jest.fn() };
@@ -124,5 +126,52 @@ describe('MerchantsService.suggest', () => {
     const { service } = build(repo);
 
     await expect(service.suggest('user-1', 'DESCONOCIDO')).resolves.toBeNull();
+  });
+});
+
+describe('MerchantsService.get', () => {
+  it('sums the current month through the end of its last day', async () => {
+    const { service, repo } = build({
+      findMerchantById: jest.fn().mockResolvedValue(merchantRow()),
+      sumSpendByMerchant: jest
+        .fn()
+        .mockResolvedValue([
+          { merchantId: 'merchant-1', spend: 500, movements: 2 },
+        ]),
+    });
+
+    const merchant = await service.get(
+      'user-1',
+      'merchant-1',
+      new Date(Date.UTC(2026, 9, 14)),
+    );
+
+    expect(repo.sumSpendByMerchant).toHaveBeenCalledWith(
+      'user-1',
+      ['merchant-1'],
+      {
+        from: new Date(Date.UTC(2026, 9, 1)),
+        to: new Date(Date.UTC(2026, 9, 31, 23, 59, 59)),
+      },
+    );
+    expect(merchant.monthSpend).toBe('500');
+    expect(merchant.monthMovements).toBe(2);
+  });
+});
+
+describe('MerchantsService.list', () => {
+  it('covers the whole last day of an explicit window', async () => {
+    const { service, repo } = build();
+
+    await service.list(
+      'user-1',
+      { limit: 20, dateFrom: '2026-10-01', dateTo: '2026-10-31' },
+      new Date(Date.UTC(2026, 9, 14)),
+    );
+
+    expect(repo.sumSpendByMerchant).toHaveBeenCalledWith('user-1', [], {
+      from: new Date('2026-10-01T00:00:00.000Z'),
+      to: new Date('2026-10-31T23:59:59.999Z'),
+    });
   });
 });

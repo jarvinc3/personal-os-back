@@ -1,6 +1,7 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
+  IsDateString,
   IsIn,
   IsNumber,
   IsOptional,
@@ -57,7 +58,7 @@ export class UpdateRecurringDto {
 
   @ApiPropertyOptional({ description: 'Next expected charge (ISO date)' })
   @IsOptional()
-  @IsString()
+  @IsDateString()
   nextExpectedDate?: string;
 
   @ApiPropertyOptional({ enum: RECURRING_KINDS })

@@ -5,6 +5,7 @@ import type { MerchantsService } from '../../merchants/application/merchants.ser
 type RepoMock = {
   findChargesForDetection: jest.Mock;
   findPatternByMerchantAndKind: jest.Mock;
+  findPatternById: jest.Mock;
   createPattern: jest.Mock;
   updatePattern: jest.Mock;
   findConfirmedPatterns: jest.Mock;
@@ -52,6 +53,7 @@ function build(overrides: Partial<RepoMock> = {}) {
   const repo: RepoMock = {
     findChargesForDetection: jest.fn().mockResolvedValue([]),
     findPatternByMerchantAndKind: jest.fn().mockResolvedValue(null),
+    findPatternById: jest.fn().mockResolvedValue(patternRow()),
     createPattern: jest.fn().mockResolvedValue(patternRow()),
     updatePattern: jest.fn().mockResolvedValue(patternRow()),
     findConfirmedPatterns: jest.fn().mockResolvedValue([]),
@@ -68,6 +70,7 @@ function build(overrides: Partial<RepoMock> = {}) {
       baseCurrency as never,
     ),
     repo,
+    merchants,
   };
 }
 
@@ -171,5 +174,89 @@ describe('RecurringService.detect', () => {
     const outcome = await service.detect('user-1', now);
 
     expect(outcome.priceChanges).toEqual([]);
+  });
+
+  it('keeps the stored tolerance after a confirmed run', async () => {
+    const { service, repo } = build({
+      findChargesForDetection: jest
+        .fn()
+        .mockResolvedValue([
+          charge('a', 1, 100),
+          charge('b', 31, 100),
+          charge('c', 61, 150),
+        ]),
+      findPatternByMerchantAndKind: jest.fn().mockResolvedValue(
+        patternRow({
+          status: 'CONFIRMED',
+          amountTolerance: { toString: () => '10' },
+        }),
+      ),
+    });
+
+    await service.detect('user-1', now);
+
+    expect(repo.updatePattern).toHaveBeenCalledWith(
+      'user-1',
+      'pattern-1',
+      expect.objectContaining({ amountTolerance: 10 }),
+    );
+  });
+
+  it('flags the same price rise on a later run', async () => {
+    const { service } = build({
+      findChargesForDetection: jest
+        .fn()
+        .mockResolvedValue([
+          charge('a', 1, 100),
+          charge('b', 31, 100),
+          charge('c', 61, 150),
+        ]),
+      findPatternByMerchantAndKind: jest.fn().mockResolvedValue(
+        patternRow({
+          status: 'CONFIRMED',
+          avgAmount: { toString: () => '116.67' },
+          amountTolerance: { toString: () => '10' },
+        }),
+      ),
+    });
+
+    const outcome = await service.detect('user-1', now);
+
+    expect(outcome.priceChanges).toHaveLength(1);
+  });
+});
+
+describe('RecurringService.create', () => {
+  it('rejects a manual recurring with no merchant', async () => {
+    const { service } = build();
+
+    await expect(
+      service.create('user-1', {
+        avgAmount: 100,
+        frequency: 30,
+        nextExpectedDate: '2026-04-01',
+      }),
+    ).rejects.toThrow('merchant or merchantId is required');
+  });
+});
+
+describe('RecurringService.update', () => {
+  it('resolves the merchant when the name is edited', async () => {
+    const { service, repo, merchants } = build();
+    merchants.resolve.mockResolvedValue({
+      id: 'merchant-2',
+      name: 'Renta',
+      normalizedKey: 'RENTA',
+      categoryId: null,
+    });
+
+    await service.update('user-1', 'pattern-1', { merchant: 'Renta' });
+
+    expect(merchants.resolve).toHaveBeenCalledWith('user-1', 'Renta');
+    expect(repo.updatePattern).toHaveBeenCalledWith(
+      'user-1',
+      'pattern-1',
+      expect.objectContaining({ merchant: 'Renta', merchantId: 'merchant-2' }),
+    );
   });
 });
