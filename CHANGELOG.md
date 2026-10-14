@@ -2,6 +2,12 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [SemVer](https://semver.org/lang/es/). Reglas y ejemplo en [docs/reference/changelog-guide.md](./docs/reference/changelog-guide.md).
 
+## [0.22.1] - 2026-10-14
+
+### Cambiado
+
+- Los repositorios de planificación, correo y papelera comparten un helper para desempacar el cursor. Sin cambios de comportamiento.
+
 ## [0.22.0] - 2026-10-14
 
 ### Agregado
