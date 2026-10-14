@@ -2,6 +2,12 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [SemVer](https://semver.org/lang/es/). Reglas y ejemplo en [docs/reference/changelog-guide.md](./docs/reference/changelog-guide.md).
 
+## [0.27.1] - 2026-10-19
+
+### Cambiado
+
+- Specs de las tools de conciliación: parámetros derivados del esquema de `reconcile_product`, ruteo del preview y de la confirmación con la sugerencia, lectura de `get_bank_charges` y rechazo de un `reconcile_product` sin exactamente un producto destino.
+
 ## [0.27.0] - 2026-10-19 - Conciliación
 
 ### Agregado
