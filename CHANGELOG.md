@@ -2,6 +2,20 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [SemVer](https://semver.org/lang/es/). Reglas y ejemplo en [docs/reference/changelog-guide.md](./docs/reference/changelog-guide.md).
 
+## [0.26.0] - 2026-10-14 - Suscripciones
+
+### Agregado
+
+- Tablas `fin_subscriptions` y `fin_subscription_payments` con enums de ciclo de facturación, estado y origen del pago, y sus índices y llaves foráneas.
+- REST `/finance/subscriptions`: listado y alta, detalle y edición, `pause`, `resume`, `cancel`, `payments`, `logo` y `summary` (costo mensual y anual en la moneda base).
+- Emparejado automático de pagos tras persistir o importar un movimiento, con el puerto `SUBSCRIPTION_MATCHER`, y job diario de recordatorios que emite `FINANCE_SUBSCRIPTION_RENEWAL_DUE`.
+- Tools `create_subscription` y `confirm_subscription_payment`; `list_subscriptions` incluye las suscripciones gestionadas.
+
+### Cambiado
+
+- Suscripciones deja de ser un módulo: sale de `MODULE_SLUGS` y de `MODULE_CONTEXT`, su configuración vive en el bloque `subscriptions` de Finanzas y una migración borra sus filas de `modules` y `user_modules`.
+- `PATCH /users/me/modules/:slug` responde 400 con un slug retirado como `subscriptions`.
+
 ## [0.25.2] - 2026-10-14
 
 ### Corregido
