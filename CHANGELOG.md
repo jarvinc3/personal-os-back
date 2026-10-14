@@ -2,6 +2,12 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [SemVer](https://semver.org/lang/es/). Reglas y ejemplo en [docs/reference/changelog-guide.md](./docs/reference/changelog-guide.md).
 
+## [0.28.1] - 2026-10-19
+
+### Cambiado
+
+- Specs del registro y del ejecutor de tools que cubren `get_subscriptions_summary` y `get_subscription_alerts`.
+
 ## [0.28.0] - 2026-10-19
 
 ### Agregado
