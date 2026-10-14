@@ -6003,7 +6003,7 @@
   "info": {
     "title": "Personal OS API",
     "description": "Personal OS backend endpoints, including auth, core modules, and AI.",
-    "version": "0.29.0",
+    "version": "0.29.1",
     "contact": {}
   },
   "tags": [

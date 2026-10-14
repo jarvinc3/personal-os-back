@@ -2,6 +2,16 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [SemVer](https://semver.org/lang/es/). Reglas y ejemplo en [docs/reference/changelog-guide.md](./docs/reference/changelog-guide.md).
 
+## [0.29.1] - 2026-10-20
+
+### Corregido
+
+- El check de integridad refresca `storedBalance`, `expectedBalance` y `difference` de una desviación abierta aunque la diferencia no cambie, para no mostrar cifras viejas; el aviso solo se repite cuando cambia la diferencia.
+
+### Cambiado
+
+- Specs de integridad: transferencia con comisión, restauración tras borrado, refresco de una desviación abierta, repositorio (solo movimientos `CONFIRMED` y corrección en una transacción) y validaciones de `GET check` y `POST recalculate`.
+
 ## [0.29.0] - 2026-10-20 - Integridad de saldos
 
 ### Agregado
