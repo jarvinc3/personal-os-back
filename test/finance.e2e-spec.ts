@@ -1613,6 +1613,300 @@ describe('Finance (e2e)', () => {
     expect(lastPage.body.data.nextCursor).toBeNull();
   });
 
+  it('GET /api/finance/budgets paginates newest period first', async () => {
+    const budget = (id: string, periodStart: string) => ({
+      id,
+      userId: 'user-123',
+      categoryId: 'cat-1',
+      periodType: 'MONTHLY',
+      periodStart: new Date(periodStart),
+      periodEnd: new Date('2026-01-31'),
+      amountLimit: 1000,
+      amountSpent: 10,
+      alertThresholdPct: 80,
+      category: { id: 'cat-1', name: 'Food' },
+    });
+    prismaMock.finBudget.findMany
+      .mockResolvedValueOnce([
+        budget('budget-2', '2026-02-01T00:00:00.000Z'),
+        budget('budget-1', '2026-01-01T00:00:00.000Z'),
+      ])
+      .mockResolvedValueOnce([budget('budget-1', '2026-01-01T00:00:00.000Z')]);
+
+    const firstPage = await request(app.getHttpServer())
+      .get('/api/finance/budgets')
+      .query({ limit: 1 })
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    expect(firstPage.body.data.items[0].id).toBe('budget-2');
+    expect(firstPage.body.data.hasMore).toBe(true);
+    expect(typeof firstPage.body.data.nextCursor).toBe('string');
+
+    const lastPage = await request(app.getHttpServer())
+      .get('/api/finance/budgets')
+      .query({ limit: 1, cursor: firstPage.body.data.nextCursor })
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    expect(lastPage.body.data.items[0].id).toBe('budget-1');
+    expect(lastPage.body.data.hasMore).toBe(false);
+    expect(lastPage.body.data.nextCursor).toBeNull();
+  });
+
+  it('GET /api/finance/budgets/:id/transactions paginates newest first', async () => {
+    prismaMock.finBudget.findFirst.mockResolvedValue({
+      id: '33333333-3333-4333-8333-333333333333',
+      userId: 'user-123',
+      categoryId: 'cat-1',
+      includeChildren: false,
+      periodStart: new Date('2026-01-01'),
+      periodEnd: new Date('2026-01-31'),
+      amountLimit: 1000,
+      amountSpent: 10,
+      alertThresholdPct: 80,
+      categories: [{ categoryId: '11111111-1111-4111-8111-111111111111' }],
+    });
+    const transaction = (id: string, transactionDate: string) => ({
+      id,
+      userId: 'user-123',
+      accountId: '11111111-1111-4111-8111-111111111111',
+      cardId: null,
+      type: 'DEBIT',
+      amount: { toString: () => '10.00' },
+      ledgerAmount: { toString: () => '10.00' },
+      amountBaseCurrency: { toString: () => '10.00' },
+      currency: 'DOP',
+      ledgerCurrency: 'DOP',
+      exchangeRate: { toString: () => '1' },
+      merchant: null,
+      description: 'Café',
+      notes: null,
+      transactionDate: new Date(transactionDate),
+      status: 'CONFIRMED',
+      source: 'MANUAL',
+      categoryId: '11111111-1111-4111-8111-111111111111',
+      transferGroupId: null,
+      linkedTransactionId: null,
+      aiMetadata: null,
+      createdAt: new Date(transactionDate),
+      account: {
+        id: '11111111-1111-4111-8111-111111111111',
+        name: 'Nómina',
+      },
+      card: null,
+    });
+    prismaMock.finTransaction.findMany
+      .mockResolvedValueOnce([
+        transaction('tx-2', '2026-01-20T00:00:00.000Z'),
+        transaction('tx-1', '2026-01-10T00:00:00.000Z'),
+      ])
+      .mockResolvedValueOnce([transaction('tx-1', '2026-01-10T00:00:00.000Z')]);
+
+    const firstPage = await request(app.getHttpServer())
+      .get(
+        '/api/finance/budgets/33333333-3333-4333-8333-333333333333/transactions',
+      )
+      .query({ limit: 1 })
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    expect(firstPage.body.data.items[0].id).toBe('tx-2');
+    expect(firstPage.body.data.hasMore).toBe(true);
+
+    const lastPage = await request(app.getHttpServer())
+      .get(
+        '/api/finance/budgets/33333333-3333-4333-8333-333333333333/transactions',
+      )
+      .query({ limit: 1, cursor: firstPage.body.data.nextCursor })
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    expect(lastPage.body.data.items[0].id).toBe('tx-1');
+    expect(lastPage.body.data.hasMore).toBe(false);
+    expect(lastPage.body.data.nextCursor).toBeNull();
+  });
+
+  it('GET /api/finance/email-sync/pending paginates newest first', async () => {
+    const pending = (id: string, createdAt: string) => ({
+      id,
+      sourceId: 'src-1',
+      gmailMessageId: `msg-${id}`,
+      outcome: 'PENDING_ASSIGNMENT',
+      instrumentHint: 'ACCOUNT',
+      lastFourHint: '1234',
+      extractedPayload: { amount: 12.5, currency: 'DOP' },
+      reason: null,
+      createdAt: new Date(createdAt),
+      source: {
+        institutionId: 'inst-1',
+        connection: { emailAddress: 'user@gmail.com' },
+        institution: { name: 'BHD' },
+      },
+      transaction: null,
+    });
+    prismaMock.finEmailMessage.findMany
+      .mockResolvedValueOnce([
+        pending('em-2', '2026-08-02T00:00:00.000Z'),
+        pending('em-1', '2026-08-01T00:00:00.000Z'),
+      ])
+      .mockResolvedValueOnce([pending('em-1', '2026-08-01T00:00:00.000Z')]);
+
+    const firstPage = await request(app.getHttpServer())
+      .get('/api/finance/email-sync/pending')
+      .query({ limit: 1 })
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    expect(firstPage.body.data.items[0].id).toBe('em-2');
+    expect(firstPage.body.data.hasMore).toBe(true);
+
+    const lastPage = await request(app.getHttpServer())
+      .get('/api/finance/email-sync/pending')
+      .query({ limit: 1, cursor: firstPage.body.data.nextCursor })
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    expect(lastPage.body.data.items[0].id).toBe('em-1');
+    expect(lastPage.body.data.hasMore).toBe(false);
+    expect(lastPage.body.data.nextCursor).toBeNull();
+  });
+
+  it('GET /api/finance/cards/:id/statements paginates newest cycle first', async () => {
+    const cardId = '22222222-2222-4222-8222-222222222222';
+    prismaMock.finCard.findFirst.mockResolvedValue({
+      id: cardId,
+      userId: 'user-123',
+      type: 'CREDIT',
+      statementClosingDay: 15,
+      paymentDueDay: 5,
+      balances: [{ currency: 'DOP', balance: 0, creditLimit: 1000 }],
+      transactions: [],
+    });
+    const statement = (id: string, cycleEnd: string) => ({
+      id,
+      cardId,
+      currency: 'DOP',
+      cycleStart: new Date('2026-01-01T00:00:00.000Z'),
+      cycleEnd: new Date(cycleEnd),
+      dueDate: new Date('2026-01-25T00:00:00.000Z'),
+      closingBalance: 100,
+      minimumPayment: null,
+      minimumSource: null,
+    });
+    prismaMock.finCardStatement.findMany
+      .mockResolvedValueOnce([
+        statement('stmt-2', '2026-02-15T00:00:00.000Z'),
+        statement('stmt-1', '2026-01-15T00:00:00.000Z'),
+      ])
+      .mockResolvedValueOnce([statement('stmt-1', '2026-01-15T00:00:00.000Z')]);
+
+    const firstPage = await request(app.getHttpServer())
+      .get(`/api/finance/cards/${cardId}/statements`)
+      .query({ limit: 1 })
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    expect(firstPage.body.data.items[0].id).toBe('stmt-2');
+    expect(firstPage.body.data.hasMore).toBe(true);
+    expect(typeof firstPage.body.data.nextCursor).toBe('string');
+
+    const lastPage = await request(app.getHttpServer())
+      .get(`/api/finance/cards/${cardId}/statements`)
+      .query({ limit: 1, cursor: firstPage.body.data.nextCursor })
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    expect(lastPage.body.data.items[0].id).toBe('stmt-1');
+    expect(lastPage.body.data.hasMore).toBe(false);
+    expect(lastPage.body.data.nextCursor).toBeNull();
+  });
+
+  it('GET /api/finance/savings-goals/:id/contributions paginates through the alias', async () => {
+    prismaMock.finSavingsGoal.findFirst.mockResolvedValue({
+      id: 'goal-1',
+      userId: 'user-123',
+    });
+    prismaMock.finSavingsGoalContribution.findMany
+      .mockResolvedValueOnce([
+        { id: 'con-1', contributedAt: new Date('2026-02-01'), amount: 25 },
+        { id: 'con-2', contributedAt: new Date('2026-01-01'), amount: 25 },
+      ])
+      .mockResolvedValueOnce([
+        { id: 'con-2', contributedAt: new Date('2026-01-01'), amount: 25 },
+      ]);
+
+    const firstPage = await request(app.getHttpServer())
+      .get('/api/finance/savings-goals/goal-1/contributions')
+      .query({ limit: 1 })
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    expect(firstPage.body.data.items[0].id).toBe('con-1');
+    expect(firstPage.body.data.hasMore).toBe(true);
+
+    const lastPage = await request(app.getHttpServer())
+      .get('/api/finance/savings-goals/goal-1/contributions')
+      .query({ limit: 1, cursor: firstPage.body.data.nextCursor })
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    expect(lastPage.body.data.items[0].id).toBe('con-2');
+    expect(lastPage.body.data.hasMore).toBe(false);
+    expect(lastPage.body.data.nextCursor).toBeNull();
+  });
+
+  it('GET /api/finance/loans/:id/installments returns an empty page when the list is empty', async () => {
+    prismaMock.finLoan.findFirst.mockResolvedValue({
+      id: 'loan-1',
+      userId: 'user-123',
+    });
+    prismaMock.finLoanInstallment.findMany.mockResolvedValue([]);
+
+    await request(app.getHttpServer())
+      .get('/api/finance/loans/loan-1/installments')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.data).toEqual({
+          items: [],
+          hasMore: false,
+          nextCursor: null,
+        });
+      });
+  });
+
+  it('paginated lists reject a forged cursor with 400', async () => {
+    prismaMock.finLoan.findFirst.mockResolvedValue({
+      id: 'loan-1',
+      userId: 'user-123',
+    });
+    const forged = Buffer.from(
+      JSON.stringify({ key: 'not-a-date', id: 'inst-1' }),
+      'utf8',
+    ).toString('base64url');
+
+    await request(app.getHttpServer())
+      .get('/api/finance/loans/loan-1/installments')
+      .query({ cursor: forged })
+      .set('Authorization', `Bearer ${token}`)
+      .expect(400);
+  });
+
+  it('paginated lists reject a limit outside 1-100', async () => {
+    await request(app.getHttpServer())
+      .get('/api/finance/budgets')
+      .query({ limit: 0 })
+      .set('Authorization', `Bearer ${token}`)
+      .expect(400);
+
+    await request(app.getHttpServer())
+      .get('/api/finance/budgets')
+      .query({ limit: 101 })
+      .set('Authorization', `Bearer ${token}`)
+      .expect(400);
+  });
+
   it('POST /api/finance/receivables/:id/credit requires a target', async () => {
     await request(app.getHttpServer())
       .post(
