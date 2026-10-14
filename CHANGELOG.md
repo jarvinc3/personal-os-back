@@ -2,6 +2,18 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [SemVer](https://semver.org/lang/es/). Reglas y ejemplo en [docs/reference/changelog-guide.md](./docs/reference/changelog-guide.md).
 
+## [0.28.0] - 2026-10-19
+
+### Agregado
+
+- `GET /finance/subscriptions/breakdown`: costo mensual en moneda base agrupado por categoría, tarjeta-cuenta o moneda.
+- `GET /finance/subscriptions/upcoming`: cobros proyectados en una ventana de días o un rango, con todas las ocurrencias de los ciclos semanales.
+- `GET /finance/subscriptions/alerts`: subida de precio, prueba por vencer, renovación anual y cobro sin registrar, con descarte persistido por tipo, suscripción y fecha.
+- `GET /finance/subscriptions/summary` añade el costo del mes anterior, la tendencia, el gasto real del mes y del anterior, los detectados pendientes y el ahorro anual de las canceladas.
+- Las suscripciones guardan categoría (`category_id`, FK a `fin_categories`) y la lista incrusta `paymentMethod` y `category`; filtros nuevos `categoryId`, `cardId` y `accountId`.
+- Tools `get_subscriptions_summary` y `get_subscription_alerts`.
+- Migración `fin_subscriptions_categories_alerts`: columna e índice de categoría y tabla de descartes de alertas.
+
 ## [0.27.2] - 2026-10-19
 
 ### Corregido
