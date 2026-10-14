@@ -15,6 +15,7 @@ export const AppEvents = {
   FINANCE_EMAIL_SYNC_COMPLETED: 'finance.email_sync.completed',
   FINANCE_EMAIL_SYNC_FAILED: 'finance.email_sync.failed',
   FINANCE_CARD_STATEMENT_REMINDER: 'finance.card_statement.reminder',
+  FINANCE_WEEKLY_SUMMARY: 'finance.weekly_summary',
 
   // ── Notification ──────────────────────────────────────────────
   NOTIFICATION_CREATED: 'notification.created',

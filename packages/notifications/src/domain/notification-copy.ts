@@ -61,6 +61,39 @@ export function cardStatementReminderCopy(): NotificationCopy {
   };
 }
 
+export type WeeklySummaryNotificationFields = {
+  amountLabel: string;
+  averageLabel: string;
+  topCategories: string[];
+  budgetsAtRisk: number;
+  upcoming: number;
+  pendingEmails: number;
+};
+
+export function weeklySummaryCopy(
+  fields: WeeklySummaryNotificationFields,
+): NotificationCopy {
+  const details = joinDetails([
+    fields.averageLabel ? `promedio ${fields.averageLabel}` : null,
+    fields.topCategories.length > 0
+      ? `Top: ${fields.topCategories.join(', ')}`
+      : null,
+    fields.budgetsAtRisk > 0
+      ? `${fields.budgetsAtRisk} presupuestos en riesgo`
+      : null,
+    fields.upcoming > 0 ? `${fields.upcoming} cuotas próximas` : null,
+    fields.pendingEmails > 0
+      ? `${fields.pendingEmails} correos por revisar`
+      : null,
+  ]);
+  return {
+    title: 'Resumen semanal',
+    body: details
+      ? `Gastaste ${fields.amountLabel} · ${details}`
+      : `Gastaste ${fields.amountLabel}`,
+  };
+}
+
 export function transactionRecordedCopy(
   fields: TransactionNotificationFields,
 ): NotificationCopy {

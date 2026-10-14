@@ -75,6 +75,7 @@ describe('ToolExecutorService finance via FinanceFacade (TestingModule)', () => 
               stub,
               stub,
               stub,
+              stub,
             ),
         },
         { provide: UsersService, useValue: usersService },

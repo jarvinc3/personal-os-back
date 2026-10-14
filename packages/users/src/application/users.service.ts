@@ -262,4 +262,32 @@ export class UsersService {
       DEFAULT_MODULE_CONFIG_BY_SLUG.finance.emailSync.automatic;
     return enabled === true && automatic === true;
   }
+
+  /** Users with finance on whose weekly summary is not turned off. */
+  async listWeeklySummaryRecipients(): Promise<
+    { userId: string; timezone: string; day: number }[]
+  > {
+    const rows = await this.usersRepository.findFinanceSummaryRecipients();
+    return rows.flatMap((row) => {
+      const config = mergeWithDefaults(
+        row.config,
+        DEFAULT_MODULE_CONFIG_BY_SLUG.finance as unknown as Record<
+          string,
+          unknown
+        >,
+      );
+      const notifications = (config.notifications ?? {}) as {
+        weeklySummary?: boolean;
+      };
+      if (notifications.weeklySummary === false) {
+        return [];
+      }
+      const reports = (config.reports ?? {}) as { weeklySummaryDay?: number };
+      const day =
+        typeof reports.weeklySummaryDay === 'number'
+          ? reports.weeklySummaryDay
+          : DEFAULT_MODULE_CONFIG_BY_SLUG.finance.reports.weeklySummaryDay;
+      return [{ userId: row.userId, timezone: row.timezone, day }];
+    });
+  }
 }

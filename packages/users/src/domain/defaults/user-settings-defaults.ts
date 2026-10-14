@@ -6,6 +6,7 @@ export const FINANCE_NOTIFICATION_KEYS = {
   aiSuggestions: 'aiSuggestions',
   transactionDetected: 'transactionDetected',
   monthlyReport: 'monthlyReport',
+  weeklySummary: 'weeklySummary',
   cardDueDate: 'cardDueDate',
   unusualExpense: 'unusualExpense',
 } as const;
@@ -28,6 +29,7 @@ export const DEFAULT_MODULE_CONFIG_BY_SLUG = {
       [FINANCE_NOTIFICATION_KEYS.aiSuggestions]: true,
       [FINANCE_NOTIFICATION_KEYS.transactionDetected]: true,
       [FINANCE_NOTIFICATION_KEYS.monthlyReport]: false,
+      [FINANCE_NOTIFICATION_KEYS.weeklySummary]: true,
       [FINANCE_NOTIFICATION_KEYS.cardDueDate]: true,
       [FINANCE_NOTIFICATION_KEYS.unusualExpense]: true,
     },
@@ -36,6 +38,10 @@ export const DEFAULT_MODULE_CONFIG_BY_SLUG = {
       automatic: false,
       autoCategorize: true,
       schedule: DEFAULT_EMAIL_SYNC_SCHEDULE,
+    },
+    reports: {
+      /** 0 = Sunday … 6 = Saturday, in the user's timezone. */
+      weeklySummaryDay: 1,
     },
   },
   agenda: {

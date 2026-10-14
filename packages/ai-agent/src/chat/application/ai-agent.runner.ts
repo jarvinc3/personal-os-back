@@ -32,6 +32,7 @@ import type {
   ToolExecutionResult,
 } from '../../shared/ai.types';
 import { replayStreamChunks } from '../../shared/replay-stream-chunks';
+import { buildChatBlocks } from '../../shared/build-chat-blocks';
 
 const MAX_TOOL_ITERATIONS = 5;
 
@@ -214,6 +215,7 @@ export class AiAgentRunner {
     const conversation = [...messages];
     const pendingActions: AiActionSummary[] = [];
     const sideEffects: SideEffectDescriptor[] = [];
+    const toolResults: { toolName: string; result: ToolExecutionResult }[] = [];
     let finalContent = '';
     let provider = '';
     let model = '';
@@ -328,6 +330,9 @@ export class AiAgentRunner {
           tc.arguments,
         );
         sideEffects.push(...(execResult.sideEffects ?? []));
+        if (execResult.success) {
+          toolResults.push({ toolName: tc.name, result: execResult });
+        }
 
         if (tc.name === MODULE_CONTEXT_SWITCH_TOOL && execResult.success) {
           activeModuleSlug = applyContextSwitch(conversation, execResult, {
@@ -388,8 +393,21 @@ export class AiAgentRunner {
     const responseModuleSlug = resolveModuleContextKey(activeModuleSlug);
     const responseModuleLabel = getModuleContextLabel(activeModuleSlug);
 
+    let toolBlocks: ChatBlock[] = [];
+    if (toolResults.length > 0) {
+      const baseCurrency = await this.financeFacade.getBaseCurrency(
+        input.userId,
+      );
+      toolBlocks = buildChatBlocks({
+        toolResults,
+        userText: input.userContent,
+        baseCurrency,
+      });
+    }
+
     const blocks: ChatBlock[] = [
       { type: 'markdown', content: finalContent },
+      ...toolBlocks,
       ...pendingActions.map((action) => ({ type: 'action' as const, action })),
     ];
 

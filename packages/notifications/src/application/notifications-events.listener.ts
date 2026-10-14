@@ -13,6 +13,7 @@ import {
   transactionPendingCopy,
   transactionRecordedCopy,
   transactionUpdatedCopy,
+  weeklySummaryCopy,
   type NotificationCopy,
 } from '../domain/notification-copy';
 import { NotificationsService } from './notifications.service';
@@ -50,6 +51,21 @@ type CardStatementReminderEvent = {
   sourceId?: string;
   gmailMessageId?: string;
   subject?: string;
+};
+
+type WeeklySummaryEvent = {
+  eventId?: string;
+  userId: string;
+  weekStart?: string;
+  summary?: {
+    currency?: string;
+    expenses?: string;
+    averageExpenses?: string;
+    topCategories?: { name?: string }[];
+    budgetsAtRisk?: unknown[];
+    upcomingInstallments?: unknown[];
+    pendingEmails?: number;
+  };
 };
 
 @Injectable()
@@ -191,6 +207,49 @@ export class NotificationsEventsListener {
         moduleSlug: FINANCE_MODULE_SLUG,
         reminder: 'card_statement',
         sourceId: event.sourceId ?? null,
+      },
+    });
+  }
+
+  @OnEvent(AppEvents.FINANCE_WEEKLY_SUMMARY)
+  async onWeeklySummary(event: WeeklySummaryEvent): Promise<void> {
+    if (
+      !(await this.idempotency.tryClaim(
+        event.eventId,
+        `${NotificationsEventsListener.CONSUMER}:weekly-summary`,
+      ))
+    ) {
+      return;
+    }
+
+    const summary = event.summary ?? {};
+    const currency = summary.currency ?? '';
+    const averageValue = Number(summary.averageExpenses ?? 0);
+    const copy = weeklySummaryCopy({
+      amountLabel: formatNotificationAmount(
+        Number(summary.expenses ?? 0),
+        currency,
+      ),
+      averageLabel:
+        averageValue > 0
+          ? formatNotificationAmount(averageValue, currency)
+          : '',
+      topCategories: (summary.topCategories ?? []).flatMap((category) =>
+        category.name ? [category.name] : [],
+      ),
+      budgetsAtRisk: (summary.budgetsAtRisk ?? []).length,
+      upcoming: (summary.upcomingInstallments ?? []).length,
+      pendingEmails: summary.pendingEmails ?? 0,
+    });
+
+    await this.createFinanceInApp(event.userId, {
+      type: 'finance.weekly_summary',
+      title: copy.title,
+      body: copy.body,
+      data: {
+        moduleSlug: FINANCE_MODULE_SLUG,
+        notificationKey: FINANCE_NOTIFICATION_KEYS.weeklySummary,
+        weekStart: event.weekStart ?? null,
       },
     });
   }

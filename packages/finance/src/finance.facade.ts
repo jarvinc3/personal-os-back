@@ -43,6 +43,7 @@ import type { UpdateBudgetDto } from './planning/presentation/dto/update-budget.
 import type { UpdateLoanDto } from './planning/presentation/dto/update-loan.dto';
 import type { UpdateSavingsGoalDto } from './planning/presentation/dto/update-savings-goal.dto';
 import { WipeFinanceUserDataUseCase } from './shared/application/wipe-finance-user-data.use-case';
+import { ResolveUserBaseCurrencyUseCase } from './fx/application/resolve-user-base-currency';
 import { ChatContextEntityService } from './shared/application/chat-context-entity.service';
 import type { FinanceWipeLayer } from './shared/domain/finance-wipe-layers';
 
@@ -75,7 +76,12 @@ export class FinanceFacade {
     private readonly unlinkTx: UnlinkTransactionUseCase,
     private readonly wipeFinance: WipeFinanceUserDataUseCase,
     private readonly chatContextEntities: ChatContextEntityService,
+    private readonly resolveBaseCurrency: ResolveUserBaseCurrencyUseCase,
   ) {}
+
+  getBaseCurrency(userId: string) {
+    return this.resolveBaseCurrency.execute(userId);
+  }
 
   listAccounts(userId: string) {
     return this.catalog.listAccounts(userId);

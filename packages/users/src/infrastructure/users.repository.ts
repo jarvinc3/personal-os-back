@@ -69,6 +69,22 @@ export class UsersRepository implements UsersRepositoryPort {
     });
   }
 
+  async findFinanceSummaryRecipients() {
+    const rows = await this.prisma.userModule.findMany({
+      where: { isEnabled: true, module: { slug: FINANCE_MODULE_SLUG } },
+      select: {
+        userId: true,
+        config: true,
+        user: { select: { timezone: true } },
+      },
+    });
+    return rows.map((row) => ({
+      userId: row.userId,
+      timezone: row.user.timezone,
+      config: row.config,
+    }));
+  }
+
   updateProfile(
     id: string,
     data: {
