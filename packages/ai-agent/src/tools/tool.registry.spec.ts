@@ -96,6 +96,17 @@ describe('tool.registry', () => {
     });
   });
 
+  it('exposes the subscription insight tools as read-only finance tools', () => {
+    expect(getToolDefinition('get_subscriptions_summary')).toMatchObject({
+      mutating: false,
+      targetModule: 'finance',
+    });
+    expect(getToolDefinition('get_subscription_alerts')).toMatchObject({
+      mutating: false,
+      targetModule: 'finance',
+    });
+  });
+
   it('labels the transaction unlock action', () => {
     expect(getActionLabel('unconfirm_transaction', {})).toBe(
       'Desbloquear transacción',

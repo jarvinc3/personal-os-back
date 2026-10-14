@@ -37,6 +37,8 @@ describe('ToolExecutorService', () => {
   const previewReconciliation = jest.fn();
   const createReconciliation = jest.fn();
   const getBankCharges = jest.fn();
+  const getSubscriptionsSummary = jest.fn();
+  const getSubscriptionAlerts = jest.fn();
 
   const financeFacade = {
     createTransaction,
@@ -61,6 +63,8 @@ describe('ToolExecutorService', () => {
     previewReconciliation,
     createReconciliation,
     getBankCharges,
+    getSubscriptionsSummary,
+    getSubscriptionAlerts,
   } as unknown as FinanceFacade;
 
   const findModuleBySlug = jest.fn();
@@ -263,5 +267,31 @@ describe('ToolExecutorService', () => {
       to: new Date('2026-10-31'),
       groupBy: 'kind',
     });
+  });
+
+  it('routes get_subscriptions_summary to the finance facade', async () => {
+    getSubscriptionsSummary.mockResolvedValue({ monthlyCost: '100.00' });
+
+    const toolResult = await executor.execute(
+      ctx,
+      'get_subscriptions_summary',
+      {},
+    );
+
+    expect(toolResult.success).toBe(true);
+    expect(toolResult.message).toBe('Subscriptions summary loaded');
+    expect(getSubscriptionsSummary).toHaveBeenCalledWith('user-1');
+  });
+
+  it('routes get_subscription_alerts to the finance facade', async () => {
+    getSubscriptionAlerts.mockResolvedValue([{ kind: 'MISSED_CHARGE' }]);
+
+    const toolResult = await executor.execute(ctx, 'get_subscription_alerts', {
+      userId: 'user-1',
+    });
+
+    expect(toolResult.success).toBe(true);
+    expect(toolResult.message).toBe('Subscription alerts loaded');
+    expect(getSubscriptionAlerts).toHaveBeenCalledWith('user-1');
   });
 });
