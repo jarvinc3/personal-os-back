@@ -2,6 +2,12 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [SemVer](https://semver.org/lang/es/). Reglas y ejemplo en [docs/reference/changelog-guide.md](./docs/reference/changelog-guide.md).
 
+## [0.23.1] - 2026-10-14
+
+### Cambiado
+
+- Leer y guardar el contexto de la sesión son operaciones separadas. Sin cambios de comportamiento.
+
 ## [0.23.0] - 2026-10-14
 
 ### Agregado
