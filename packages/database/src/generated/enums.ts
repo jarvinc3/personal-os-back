@@ -345,3 +345,14 @@ export const FinStatementLineDecision = {
 } as const
 
 export type FinStatementLineDecision = (typeof FinStatementLineDecision)[keyof typeof FinStatementLineDecision]
+
+
+export const FinReconciliationAdjustmentKind = {
+  IMPUESTO_DGII: 'IMPUESTO_DGII',
+  COMISION: 'COMISION',
+  CARGO_PLASTICO: 'CARGO_PLASTICO',
+  INTERES: 'INTERES',
+  OTRO: 'OTRO'
+} as const
+
+export type FinReconciliationAdjustmentKind = (typeof FinReconciliationAdjustmentKind)[keyof typeof FinReconciliationAdjustmentKind]

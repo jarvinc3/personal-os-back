@@ -6,6 +6,7 @@ export const DELETION_ENTITY = {
   institution: 'institution',
   loan: 'loan',
   receivable: 'receivable',
+  reconciliation: 'reconciliation',
   savingsGoal: 'savingsGoal',
   transaction: 'transaction',
 } as const;
@@ -27,6 +28,8 @@ export const DELETION_MODEL = {
   loanInstallment: 'FinLoanInstallment',
   receivable: 'FinReceivable',
   receivablePayment: 'FinReceivablePayment',
+  reconciliation: 'FinReconciliation',
+  reconciliationAdjustment: 'FinReconciliationAdjustment',
   savingsGoal: 'FinSavingsGoal',
   savingsGoalContribution: 'FinSavingsGoalContribution',
   transaction: 'FinTransaction',

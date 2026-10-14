@@ -56,3 +56,9 @@ Cada `DELETE` de una entidad de finance guarda un snapshot en `fin_deletion_jour
 ## Archivados y borrados
 
 `GET /api/finance/recycle-bin` devuelve `{ archived, items, nextCursor, hasMore }`. `archived` son instituciones, cuentas, tarjetas y préstamos con `isActive:false` (`{ type, id, label }`), siempre completo. `items` son las entradas pendientes de `fin_deletion_journal` (`{ type, id, label, deletedAt }`) paginadas por `deletedAt`; `label` sale de la fila principal guardada y es `null` en un presupuesto, que no tiene nombre. Restaurar un archivado es `PATCH /api/finance/<entidad>/:id { isActive: true }`.
+
+## Conciliación
+
+`POST /api/finance/reconciliations/preview` calcula `difference = realBalance - appBalance` sin escribir y propone `IMPUESTO_DGII` con el 0.15 % de las salidas del mes más `OTRO` con el resto; con diferencia cero no propone líneas. `POST /api/finance/reconciliations` exige que la suma de los ajustes sea exactamente la diferencia (422 `UnprocessableEntityException` si no) y, con diferencia cero, registra el cierre sin movimientos. Un cierre por moneda del producto: una tarjeta con dos monedas se concilia dos veces.
+
+`GET /api/finance/reconciliations?accountId|cardId` devuelve el historial paginado; `GET /reconciliations/status?month=YYYY-MM` marca cada producto como conciliado o pendiente del mes; `GET /api/finance/analytics/bank-charges` agrupa los ajustes por mes, institución y tipo. `DELETE /api/finance/reconciliations/:id` solo acepta el último cierre del producto (422 si no) y guarda un snapshot en el diario de borrados (`entityType` `reconciliation`); el cierre, sus líneas y sus movimientos vuelven con `POST /api/finance/reconciliations/:id/restore`. Los ajustes no aparecen en el tablero ni en presupuestos.

@@ -21,13 +21,7 @@ const GATEWAY_PREFIXES = [
 ] as const;
 
 /** Descriptors a brand appends after its name, e.g. "UBER TRIP". */
-const DESCRIPTOR_WORDS = new Set([
-  'TRIP',
-  'EATS',
-  'RIDE',
-  'RIDES',
-  'DRIVE',
-]);
+const DESCRIPTOR_WORDS = new Set(['TRIP', 'EATS', 'RIDE', 'RIDES', 'DRIVE']);
 
 /** City and country tails banks append to the merchant string. */
 const CITY_SUFFIXES = [
@@ -71,7 +65,9 @@ function stripCitySuffix(tokens: string[]): string[] {
  * Canonical key for a merchant string, or null when nothing usable remains.
  * Uppercase, no gateway prefix, no reference codes, no city tail.
  */
-export function normalizeMerchant(raw: string | null | undefined): string | null {
+export function normalizeMerchant(
+  raw: string | null | undefined,
+): string | null {
   if (!raw) {
     return null;
   }
@@ -106,7 +102,9 @@ export function normalizeMerchant(raw: string | null | undefined): string | null
 }
 
 /** Display name derived from the canonical key: "UBER" -> "Uber". */
-export function merchantDisplayName(raw: string | null | undefined): string | null {
+export function merchantDisplayName(
+  raw: string | null | undefined,
+): string | null {
   const key = normalizeMerchant(raw);
   if (!key) {
     return null;

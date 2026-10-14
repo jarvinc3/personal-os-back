@@ -62,7 +62,9 @@ describe('RecurringAlertsService', () => {
     );
 
     expect(events.enqueue).toHaveBeenCalledWith(
-      expect.objectContaining({ eventName: AppEvents.FINANCE_RECURRING_MISSED }),
+      expect.objectContaining({
+        eventName: AppEvents.FINANCE_RECURRING_MISSED,
+      }),
     );
   });
 

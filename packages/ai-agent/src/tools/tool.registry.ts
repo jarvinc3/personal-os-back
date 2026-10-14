@@ -428,6 +428,28 @@ const STATIC_TOOLS: StaticToolDef[] = [
     targetModule: 'finance',
     parameters: { type: 'object', properties: {} },
   },
+  {
+    name: 'get_bank_charges',
+    description:
+      'Get bank charges recorded by reconciliation, grouped by month, institution and kind.',
+    mutating: false,
+    targetModule: 'finance',
+    parameters: {
+      type: 'object',
+      properties: {
+        from: { type: 'string', description: 'Start date (ISO)' },
+        to: { type: 'string', description: 'End date (ISO)' },
+        groupBy: { type: 'string', enum: ['month', 'institution', 'kind'] },
+      },
+    },
+  },
+  {
+    name: 'reconcile_product',
+    description:
+      'Close an account or card against the balance the bank shows. Without apply=true it returns the difference and a suggested split; with apply=true it records the close and its adjustments.',
+    mutating: true,
+    targetModule: 'finance',
+  },
 ];
 
 function resolveParameters(tool: StaticToolDef): Record<string, unknown> {

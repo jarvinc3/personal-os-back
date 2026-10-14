@@ -7,7 +7,7 @@ import {
 
 describe('tool-arg-schemas', () => {
   it('registers schemas for all mutating tools', () => {
-    expect(Object.keys(MUTATING_TOOL_ARG_SCHEMAS)).toHaveLength(29);
+    expect(Object.keys(MUTATING_TOOL_ARG_SCHEMAS)).toHaveLength(30);
   });
 
   it('rejects the retired subscriptions module slug', () => {

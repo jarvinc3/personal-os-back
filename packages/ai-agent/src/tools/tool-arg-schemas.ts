@@ -461,6 +461,38 @@ export const adjustBalanceArgsSchema = z
     message: 'Provide exactly one of accountId or cardId',
   });
 
+export const reconcileProductArgsSchema = z
+  .object({
+    accountId: uuid.optional(),
+    cardId: uuid.optional(),
+    currency: currencyCode.optional(),
+    asOfDate: dateString,
+    realBalance: moneyAmount,
+    note: optionalNullableString(500),
+    apply: z.boolean().optional(),
+    adjustments: z
+      .array(
+        z
+          .object({
+            kind: z.enum([
+              'IMPUESTO_DGII',
+              'COMISION',
+              'CARGO_PLASTICO',
+              'INTERES',
+              'OTRO',
+            ]),
+            amount: moneyAmount,
+          })
+          .strict(),
+      )
+      .max(20)
+      .optional(),
+  })
+  .strict()
+  .refine((value) => Boolean(value.accountId) !== Boolean(value.cardId), {
+    message: 'Provide exactly one of accountId or cardId',
+  });
+
 export const linkTransactionArgsSchema = z
   .object({
     transactionId: uuid,
@@ -547,6 +579,7 @@ export const MUTATING_TOOL_ARG_SCHEMAS = {
   prepay_loan: prepayLoanArgsSchema,
   trigger_email_sync: triggerEmailSyncArgsSchema,
   adjust_balance: adjustBalanceArgsSchema,
+  reconcile_product: reconcileProductArgsSchema,
   link_transaction: linkTransactionArgsSchema,
   assign_pending_email: assignPendingEmailArgsSchema,
   retry_pending_email: retryPendingEmailArgsSchema,

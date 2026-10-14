@@ -61,6 +61,10 @@ const DELETED_LABEL_TARGET: Record<DeletionEntity, DeletedLabelTarget | null> =
       model: DELETION_MODEL.receivable,
       field: 'debtorName',
     },
+    [DELETION_ENTITY.reconciliation]: {
+      model: DELETION_MODEL.reconciliation,
+      field: 'note',
+    },
     [DELETION_ENTITY.savingsGoal]: {
       model: DELETION_MODEL.savingsGoal,
       field: 'name',

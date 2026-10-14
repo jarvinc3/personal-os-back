@@ -6,6 +6,7 @@ function creditRestoreSql(tx: { $executeRaw: jest.Mock }): string {
 
 function buildMocks() {
   const tx = {
+    finReconciliation: { deleteMany: jest.fn() },
     finTransaction: { deleteMany: jest.fn() },
     finEmailMessage: { deleteMany: jest.fn() },
     finEmailSyncLog: { deleteMany: jest.fn() },

@@ -252,3 +252,16 @@ export type FinStatementImport = Prisma.FinStatementImportModel
  * One movement read from the statement PDF plus its proposed reconciliation.
  */
 export type FinStatementImportLine = Prisma.FinStatementImportLineModel
+/**
+ * Model FinReconciliation
+ * One close of an account or card against the balance the bank shows.
+ * Exactly one of `accountId`/`cardId` (DB check), and `currency` is the
+ * product currency so a two-currency card reconciles once per currency.
+ */
+export type FinReconciliation = Prisma.FinReconciliationModel
+/**
+ * Model FinReconciliationAdjustment
+ * One categorized line of a reconciliation. Each line owns the adjustment
+ * movement that moves the product balance.
+ */
+export type FinReconciliationAdjustment = Prisma.FinReconciliationAdjustmentModel

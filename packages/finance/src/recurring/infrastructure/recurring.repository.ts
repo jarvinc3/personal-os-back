@@ -2,7 +2,10 @@ import { Injectable } from '@nestjs/common';
 import type { CursorPoint } from '@personal-os/core';
 import type { Prisma } from '@personal-os/database';
 import { PrismaService } from '@personal-os/database';
-import type { FinRecurringKind, FinRecurringStatus } from '@personal-os/database';
+import type {
+  FinRecurringKind,
+  FinRecurringStatus,
+} from '@personal-os/database';
 
 export type DetectionCharge = {
   id: string;

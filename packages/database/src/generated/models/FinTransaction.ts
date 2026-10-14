@@ -446,6 +446,7 @@ export type FinTransactionWhereInput = {
   loanInstallment?: Prisma.XOR<Prisma.FinLoanInstallmentNullableScalarRelationFilter, Prisma.FinLoanInstallmentWhereInput> | null
   loanPrepayment?: Prisma.XOR<Prisma.FinLoanPrepaymentNullableScalarRelationFilter, Prisma.FinLoanPrepaymentWhereInput> | null
   statementImportLines?: Prisma.FinStatementImportLineListRelationFilter
+  reconciliationAdjustment?: Prisma.XOR<Prisma.FinReconciliationAdjustmentNullableScalarRelationFilter, Prisma.FinReconciliationAdjustmentWhereInput> | null
 }
 
 export type FinTransactionOrderByWithRelationInput = {
@@ -494,6 +495,7 @@ export type FinTransactionOrderByWithRelationInput = {
   loanInstallment?: Prisma.FinLoanInstallmentOrderByWithRelationInput
   loanPrepayment?: Prisma.FinLoanPrepaymentOrderByWithRelationInput
   statementImportLines?: Prisma.FinStatementImportLineOrderByRelationAggregateInput
+  reconciliationAdjustment?: Prisma.FinReconciliationAdjustmentOrderByWithRelationInput
 }
 
 export type FinTransactionWhereUniqueInput = Prisma.AtLeast<{
@@ -545,6 +547,7 @@ export type FinTransactionWhereUniqueInput = Prisma.AtLeast<{
   loanInstallment?: Prisma.XOR<Prisma.FinLoanInstallmentNullableScalarRelationFilter, Prisma.FinLoanInstallmentWhereInput> | null
   loanPrepayment?: Prisma.XOR<Prisma.FinLoanPrepaymentNullableScalarRelationFilter, Prisma.FinLoanPrepaymentWhereInput> | null
   statementImportLines?: Prisma.FinStatementImportLineListRelationFilter
+  reconciliationAdjustment?: Prisma.XOR<Prisma.FinReconciliationAdjustmentNullableScalarRelationFilter, Prisma.FinReconciliationAdjustmentWhereInput> | null
 }, "id" | "emailMessageId">
 
 export type FinTransactionOrderByWithAggregationInput = {
@@ -662,6 +665,7 @@ export type FinTransactionCreateInput = {
   loanInstallment?: Prisma.FinLoanInstallmentCreateNestedOneWithoutTransactionInput
   loanPrepayment?: Prisma.FinLoanPrepaymentCreateNestedOneWithoutTransactionInput
   statementImportLines?: Prisma.FinStatementImportLineCreateNestedManyWithoutTransactionInput
+  reconciliationAdjustment?: Prisma.FinReconciliationAdjustmentCreateNestedOneWithoutTransactionInput
 }
 
 export type FinTransactionUncheckedCreateInput = {
@@ -703,6 +707,7 @@ export type FinTransactionUncheckedCreateInput = {
   loanInstallment?: Prisma.FinLoanInstallmentUncheckedCreateNestedOneWithoutTransactionInput
   loanPrepayment?: Prisma.FinLoanPrepaymentUncheckedCreateNestedOneWithoutTransactionInput
   statementImportLines?: Prisma.FinStatementImportLineUncheckedCreateNestedManyWithoutTransactionInput
+  reconciliationAdjustment?: Prisma.FinReconciliationAdjustmentUncheckedCreateNestedOneWithoutTransactionInput
 }
 
 export type FinTransactionUpdateInput = {
@@ -744,6 +749,7 @@ export type FinTransactionUpdateInput = {
   loanInstallment?: Prisma.FinLoanInstallmentUpdateOneWithoutTransactionNestedInput
   loanPrepayment?: Prisma.FinLoanPrepaymentUpdateOneWithoutTransactionNestedInput
   statementImportLines?: Prisma.FinStatementImportLineUpdateManyWithoutTransactionNestedInput
+  reconciliationAdjustment?: Prisma.FinReconciliationAdjustmentUpdateOneWithoutTransactionNestedInput
 }
 
 export type FinTransactionUncheckedUpdateInput = {
@@ -785,6 +791,7 @@ export type FinTransactionUncheckedUpdateInput = {
   loanInstallment?: Prisma.FinLoanInstallmentUncheckedUpdateOneWithoutTransactionNestedInput
   loanPrepayment?: Prisma.FinLoanPrepaymentUncheckedUpdateOneWithoutTransactionNestedInput
   statementImportLines?: Prisma.FinStatementImportLineUncheckedUpdateManyWithoutTransactionNestedInput
+  reconciliationAdjustment?: Prisma.FinReconciliationAdjustmentUncheckedUpdateOneWithoutTransactionNestedInput
 }
 
 export type FinTransactionCreateManyInput = {
@@ -1009,6 +1016,11 @@ export type FinTransactionSumOrderByAggregateInput = {
   ledgerAmount?: Prisma.SortOrder
   amountBaseCurrency?: Prisma.SortOrder
   exchangeRate?: Prisma.SortOrder
+}
+
+export type FinTransactionScalarRelationFilter = {
+  is?: Prisma.FinTransactionWhereInput
+  isNot?: Prisma.FinTransactionWhereInput
 }
 
 export type FinTransactionCreateNestedManyWithoutUserInput = {
@@ -1427,6 +1439,20 @@ export type FinTransactionUpdateOneWithoutStatementImportLinesNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.FinTransactionUpdateToOneWithWhereWithoutStatementImportLinesInput, Prisma.FinTransactionUpdateWithoutStatementImportLinesInput>, Prisma.FinTransactionUncheckedUpdateWithoutStatementImportLinesInput>
 }
 
+export type FinTransactionCreateNestedOneWithoutReconciliationAdjustmentInput = {
+  create?: Prisma.XOR<Prisma.FinTransactionCreateWithoutReconciliationAdjustmentInput, Prisma.FinTransactionUncheckedCreateWithoutReconciliationAdjustmentInput>
+  connectOrCreate?: Prisma.FinTransactionCreateOrConnectWithoutReconciliationAdjustmentInput
+  connect?: Prisma.FinTransactionWhereUniqueInput
+}
+
+export type FinTransactionUpdateOneRequiredWithoutReconciliationAdjustmentNestedInput = {
+  create?: Prisma.XOR<Prisma.FinTransactionCreateWithoutReconciliationAdjustmentInput, Prisma.FinTransactionUncheckedCreateWithoutReconciliationAdjustmentInput>
+  connectOrCreate?: Prisma.FinTransactionCreateOrConnectWithoutReconciliationAdjustmentInput
+  upsert?: Prisma.FinTransactionUpsertWithoutReconciliationAdjustmentInput
+  connect?: Prisma.FinTransactionWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.FinTransactionUpdateToOneWithWhereWithoutReconciliationAdjustmentInput, Prisma.FinTransactionUpdateWithoutReconciliationAdjustmentInput>, Prisma.FinTransactionUncheckedUpdateWithoutReconciliationAdjustmentInput>
+}
+
 export type FinTransactionCreateWithoutUserInput = {
   id?: string
   externalReference?: string | null
@@ -1465,6 +1491,7 @@ export type FinTransactionCreateWithoutUserInput = {
   loanInstallment?: Prisma.FinLoanInstallmentCreateNestedOneWithoutTransactionInput
   loanPrepayment?: Prisma.FinLoanPrepaymentCreateNestedOneWithoutTransactionInput
   statementImportLines?: Prisma.FinStatementImportLineCreateNestedManyWithoutTransactionInput
+  reconciliationAdjustment?: Prisma.FinReconciliationAdjustmentCreateNestedOneWithoutTransactionInput
 }
 
 export type FinTransactionUncheckedCreateWithoutUserInput = {
@@ -1505,6 +1532,7 @@ export type FinTransactionUncheckedCreateWithoutUserInput = {
   loanInstallment?: Prisma.FinLoanInstallmentUncheckedCreateNestedOneWithoutTransactionInput
   loanPrepayment?: Prisma.FinLoanPrepaymentUncheckedCreateNestedOneWithoutTransactionInput
   statementImportLines?: Prisma.FinStatementImportLineUncheckedCreateNestedManyWithoutTransactionInput
+  reconciliationAdjustment?: Prisma.FinReconciliationAdjustmentUncheckedCreateNestedOneWithoutTransactionInput
 }
 
 export type FinTransactionCreateOrConnectWithoutUserInput = {
@@ -1608,6 +1636,7 @@ export type FinTransactionCreateWithoutAccountInput = {
   loanInstallment?: Prisma.FinLoanInstallmentCreateNestedOneWithoutTransactionInput
   loanPrepayment?: Prisma.FinLoanPrepaymentCreateNestedOneWithoutTransactionInput
   statementImportLines?: Prisma.FinStatementImportLineCreateNestedManyWithoutTransactionInput
+  reconciliationAdjustment?: Prisma.FinReconciliationAdjustmentCreateNestedOneWithoutTransactionInput
 }
 
 export type FinTransactionUncheckedCreateWithoutAccountInput = {
@@ -1648,6 +1677,7 @@ export type FinTransactionUncheckedCreateWithoutAccountInput = {
   loanInstallment?: Prisma.FinLoanInstallmentUncheckedCreateNestedOneWithoutTransactionInput
   loanPrepayment?: Prisma.FinLoanPrepaymentUncheckedCreateNestedOneWithoutTransactionInput
   statementImportLines?: Prisma.FinStatementImportLineUncheckedCreateNestedManyWithoutTransactionInput
+  reconciliationAdjustment?: Prisma.FinReconciliationAdjustmentUncheckedCreateNestedOneWithoutTransactionInput
 }
 
 export type FinTransactionCreateOrConnectWithoutAccountInput = {
@@ -1714,6 +1744,7 @@ export type FinTransactionCreateWithoutLinkedFromInput = {
   loanInstallment?: Prisma.FinLoanInstallmentCreateNestedOneWithoutTransactionInput
   loanPrepayment?: Prisma.FinLoanPrepaymentCreateNestedOneWithoutTransactionInput
   statementImportLines?: Prisma.FinStatementImportLineCreateNestedManyWithoutTransactionInput
+  reconciliationAdjustment?: Prisma.FinReconciliationAdjustmentCreateNestedOneWithoutTransactionInput
 }
 
 export type FinTransactionUncheckedCreateWithoutLinkedFromInput = {
@@ -1754,6 +1785,7 @@ export type FinTransactionUncheckedCreateWithoutLinkedFromInput = {
   loanInstallment?: Prisma.FinLoanInstallmentUncheckedCreateNestedOneWithoutTransactionInput
   loanPrepayment?: Prisma.FinLoanPrepaymentUncheckedCreateNestedOneWithoutTransactionInput
   statementImportLines?: Prisma.FinStatementImportLineUncheckedCreateNestedManyWithoutTransactionInput
+  reconciliationAdjustment?: Prisma.FinReconciliationAdjustmentUncheckedCreateNestedOneWithoutTransactionInput
 }
 
 export type FinTransactionCreateOrConnectWithoutLinkedFromInput = {
@@ -1799,6 +1831,7 @@ export type FinTransactionCreateWithoutLinkedTransactionInput = {
   loanInstallment?: Prisma.FinLoanInstallmentCreateNestedOneWithoutTransactionInput
   loanPrepayment?: Prisma.FinLoanPrepaymentCreateNestedOneWithoutTransactionInput
   statementImportLines?: Prisma.FinStatementImportLineCreateNestedManyWithoutTransactionInput
+  reconciliationAdjustment?: Prisma.FinReconciliationAdjustmentCreateNestedOneWithoutTransactionInput
 }
 
 export type FinTransactionUncheckedCreateWithoutLinkedTransactionInput = {
@@ -1839,6 +1872,7 @@ export type FinTransactionUncheckedCreateWithoutLinkedTransactionInput = {
   loanInstallment?: Prisma.FinLoanInstallmentUncheckedCreateNestedOneWithoutTransactionInput
   loanPrepayment?: Prisma.FinLoanPrepaymentUncheckedCreateNestedOneWithoutTransactionInput
   statementImportLines?: Prisma.FinStatementImportLineUncheckedCreateNestedManyWithoutTransactionInput
+  reconciliationAdjustment?: Prisma.FinReconciliationAdjustmentUncheckedCreateNestedOneWithoutTransactionInput
 }
 
 export type FinTransactionCreateOrConnectWithoutLinkedTransactionInput = {
@@ -1900,6 +1934,7 @@ export type FinTransactionUpdateWithoutLinkedFromInput = {
   loanInstallment?: Prisma.FinLoanInstallmentUpdateOneWithoutTransactionNestedInput
   loanPrepayment?: Prisma.FinLoanPrepaymentUpdateOneWithoutTransactionNestedInput
   statementImportLines?: Prisma.FinStatementImportLineUpdateManyWithoutTransactionNestedInput
+  reconciliationAdjustment?: Prisma.FinReconciliationAdjustmentUpdateOneWithoutTransactionNestedInput
 }
 
 export type FinTransactionUncheckedUpdateWithoutLinkedFromInput = {
@@ -1940,6 +1975,7 @@ export type FinTransactionUncheckedUpdateWithoutLinkedFromInput = {
   loanInstallment?: Prisma.FinLoanInstallmentUncheckedUpdateOneWithoutTransactionNestedInput
   loanPrepayment?: Prisma.FinLoanPrepaymentUncheckedUpdateOneWithoutTransactionNestedInput
   statementImportLines?: Prisma.FinStatementImportLineUncheckedUpdateManyWithoutTransactionNestedInput
+  reconciliationAdjustment?: Prisma.FinReconciliationAdjustmentUncheckedUpdateOneWithoutTransactionNestedInput
 }
 
 export type FinTransactionUpsertWithWhereUniqueWithoutLinkedTransactionInput = {
@@ -1996,6 +2032,7 @@ export type FinTransactionCreateWithoutCategoryInput = {
   loanInstallment?: Prisma.FinLoanInstallmentCreateNestedOneWithoutTransactionInput
   loanPrepayment?: Prisma.FinLoanPrepaymentCreateNestedOneWithoutTransactionInput
   statementImportLines?: Prisma.FinStatementImportLineCreateNestedManyWithoutTransactionInput
+  reconciliationAdjustment?: Prisma.FinReconciliationAdjustmentCreateNestedOneWithoutTransactionInput
 }
 
 export type FinTransactionUncheckedCreateWithoutCategoryInput = {
@@ -2036,6 +2073,7 @@ export type FinTransactionUncheckedCreateWithoutCategoryInput = {
   loanInstallment?: Prisma.FinLoanInstallmentUncheckedCreateNestedOneWithoutTransactionInput
   loanPrepayment?: Prisma.FinLoanPrepaymentUncheckedCreateNestedOneWithoutTransactionInput
   statementImportLines?: Prisma.FinStatementImportLineUncheckedCreateNestedManyWithoutTransactionInput
+  reconciliationAdjustment?: Prisma.FinReconciliationAdjustmentUncheckedCreateNestedOneWithoutTransactionInput
 }
 
 export type FinTransactionCreateOrConnectWithoutCategoryInput = {
@@ -2102,6 +2140,7 @@ export type FinTransactionCreateWithoutMerchantRefInput = {
   loanInstallment?: Prisma.FinLoanInstallmentCreateNestedOneWithoutTransactionInput
   loanPrepayment?: Prisma.FinLoanPrepaymentCreateNestedOneWithoutTransactionInput
   statementImportLines?: Prisma.FinStatementImportLineCreateNestedManyWithoutTransactionInput
+  reconciliationAdjustment?: Prisma.FinReconciliationAdjustmentCreateNestedOneWithoutTransactionInput
 }
 
 export type FinTransactionUncheckedCreateWithoutMerchantRefInput = {
@@ -2142,6 +2181,7 @@ export type FinTransactionUncheckedCreateWithoutMerchantRefInput = {
   loanInstallment?: Prisma.FinLoanInstallmentUncheckedCreateNestedOneWithoutTransactionInput
   loanPrepayment?: Prisma.FinLoanPrepaymentUncheckedCreateNestedOneWithoutTransactionInput
   statementImportLines?: Prisma.FinStatementImportLineUncheckedCreateNestedManyWithoutTransactionInput
+  reconciliationAdjustment?: Prisma.FinReconciliationAdjustmentUncheckedCreateNestedOneWithoutTransactionInput
 }
 
 export type FinTransactionCreateOrConnectWithoutMerchantRefInput = {
@@ -2208,6 +2248,7 @@ export type FinTransactionCreateWithoutSubscriptionPaymentsInput = {
   loanInstallment?: Prisma.FinLoanInstallmentCreateNestedOneWithoutTransactionInput
   loanPrepayment?: Prisma.FinLoanPrepaymentCreateNestedOneWithoutTransactionInput
   statementImportLines?: Prisma.FinStatementImportLineCreateNestedManyWithoutTransactionInput
+  reconciliationAdjustment?: Prisma.FinReconciliationAdjustmentCreateNestedOneWithoutTransactionInput
 }
 
 export type FinTransactionUncheckedCreateWithoutSubscriptionPaymentsInput = {
@@ -2248,6 +2289,7 @@ export type FinTransactionUncheckedCreateWithoutSubscriptionPaymentsInput = {
   loanInstallment?: Prisma.FinLoanInstallmentUncheckedCreateNestedOneWithoutTransactionInput
   loanPrepayment?: Prisma.FinLoanPrepaymentUncheckedCreateNestedOneWithoutTransactionInput
   statementImportLines?: Prisma.FinStatementImportLineUncheckedCreateNestedManyWithoutTransactionInput
+  reconciliationAdjustment?: Prisma.FinReconciliationAdjustmentUncheckedCreateNestedOneWithoutTransactionInput
 }
 
 export type FinTransactionCreateOrConnectWithoutSubscriptionPaymentsInput = {
@@ -2304,6 +2346,7 @@ export type FinTransactionUpdateWithoutSubscriptionPaymentsInput = {
   loanInstallment?: Prisma.FinLoanInstallmentUpdateOneWithoutTransactionNestedInput
   loanPrepayment?: Prisma.FinLoanPrepaymentUpdateOneWithoutTransactionNestedInput
   statementImportLines?: Prisma.FinStatementImportLineUpdateManyWithoutTransactionNestedInput
+  reconciliationAdjustment?: Prisma.FinReconciliationAdjustmentUpdateOneWithoutTransactionNestedInput
 }
 
 export type FinTransactionUncheckedUpdateWithoutSubscriptionPaymentsInput = {
@@ -2344,6 +2387,7 @@ export type FinTransactionUncheckedUpdateWithoutSubscriptionPaymentsInput = {
   loanInstallment?: Prisma.FinLoanInstallmentUncheckedUpdateOneWithoutTransactionNestedInput
   loanPrepayment?: Prisma.FinLoanPrepaymentUncheckedUpdateOneWithoutTransactionNestedInput
   statementImportLines?: Prisma.FinStatementImportLineUncheckedUpdateManyWithoutTransactionNestedInput
+  reconciliationAdjustment?: Prisma.FinReconciliationAdjustmentUncheckedUpdateOneWithoutTransactionNestedInput
 }
 
 export type FinTransactionCreateWithoutCardInput = {
@@ -2384,6 +2428,7 @@ export type FinTransactionCreateWithoutCardInput = {
   loanInstallment?: Prisma.FinLoanInstallmentCreateNestedOneWithoutTransactionInput
   loanPrepayment?: Prisma.FinLoanPrepaymentCreateNestedOneWithoutTransactionInput
   statementImportLines?: Prisma.FinStatementImportLineCreateNestedManyWithoutTransactionInput
+  reconciliationAdjustment?: Prisma.FinReconciliationAdjustmentCreateNestedOneWithoutTransactionInput
 }
 
 export type FinTransactionUncheckedCreateWithoutCardInput = {
@@ -2424,6 +2469,7 @@ export type FinTransactionUncheckedCreateWithoutCardInput = {
   loanInstallment?: Prisma.FinLoanInstallmentUncheckedCreateNestedOneWithoutTransactionInput
   loanPrepayment?: Prisma.FinLoanPrepaymentUncheckedCreateNestedOneWithoutTransactionInput
   statementImportLines?: Prisma.FinStatementImportLineUncheckedCreateNestedManyWithoutTransactionInput
+  reconciliationAdjustment?: Prisma.FinReconciliationAdjustmentUncheckedCreateNestedOneWithoutTransactionInput
 }
 
 export type FinTransactionCreateOrConnectWithoutCardInput = {
@@ -2490,6 +2536,7 @@ export type FinTransactionCreateWithoutSavingsGoalContributionInput = {
   loanInstallment?: Prisma.FinLoanInstallmentCreateNestedOneWithoutTransactionInput
   loanPrepayment?: Prisma.FinLoanPrepaymentCreateNestedOneWithoutTransactionInput
   statementImportLines?: Prisma.FinStatementImportLineCreateNestedManyWithoutTransactionInput
+  reconciliationAdjustment?: Prisma.FinReconciliationAdjustmentCreateNestedOneWithoutTransactionInput
 }
 
 export type FinTransactionUncheckedCreateWithoutSavingsGoalContributionInput = {
@@ -2530,6 +2577,7 @@ export type FinTransactionUncheckedCreateWithoutSavingsGoalContributionInput = {
   loanInstallment?: Prisma.FinLoanInstallmentUncheckedCreateNestedOneWithoutTransactionInput
   loanPrepayment?: Prisma.FinLoanPrepaymentUncheckedCreateNestedOneWithoutTransactionInput
   statementImportLines?: Prisma.FinStatementImportLineUncheckedCreateNestedManyWithoutTransactionInput
+  reconciliationAdjustment?: Prisma.FinReconciliationAdjustmentUncheckedCreateNestedOneWithoutTransactionInput
 }
 
 export type FinTransactionCreateOrConnectWithoutSavingsGoalContributionInput = {
@@ -2586,6 +2634,7 @@ export type FinTransactionUpdateWithoutSavingsGoalContributionInput = {
   loanInstallment?: Prisma.FinLoanInstallmentUpdateOneWithoutTransactionNestedInput
   loanPrepayment?: Prisma.FinLoanPrepaymentUpdateOneWithoutTransactionNestedInput
   statementImportLines?: Prisma.FinStatementImportLineUpdateManyWithoutTransactionNestedInput
+  reconciliationAdjustment?: Prisma.FinReconciliationAdjustmentUpdateOneWithoutTransactionNestedInput
 }
 
 export type FinTransactionUncheckedUpdateWithoutSavingsGoalContributionInput = {
@@ -2626,6 +2675,7 @@ export type FinTransactionUncheckedUpdateWithoutSavingsGoalContributionInput = {
   loanInstallment?: Prisma.FinLoanInstallmentUncheckedUpdateOneWithoutTransactionNestedInput
   loanPrepayment?: Prisma.FinLoanPrepaymentUncheckedUpdateOneWithoutTransactionNestedInput
   statementImportLines?: Prisma.FinStatementImportLineUncheckedUpdateManyWithoutTransactionNestedInput
+  reconciliationAdjustment?: Prisma.FinReconciliationAdjustmentUncheckedUpdateOneWithoutTransactionNestedInput
 }
 
 export type FinTransactionCreateWithoutLoanInstallmentInput = {
@@ -2666,6 +2716,7 @@ export type FinTransactionCreateWithoutLoanInstallmentInput = {
   savingsGoalContribution?: Prisma.FinSavingsGoalContributionCreateNestedOneWithoutTransactionInput
   loanPrepayment?: Prisma.FinLoanPrepaymentCreateNestedOneWithoutTransactionInput
   statementImportLines?: Prisma.FinStatementImportLineCreateNestedManyWithoutTransactionInput
+  reconciliationAdjustment?: Prisma.FinReconciliationAdjustmentCreateNestedOneWithoutTransactionInput
 }
 
 export type FinTransactionUncheckedCreateWithoutLoanInstallmentInput = {
@@ -2706,6 +2757,7 @@ export type FinTransactionUncheckedCreateWithoutLoanInstallmentInput = {
   savingsGoalContribution?: Prisma.FinSavingsGoalContributionUncheckedCreateNestedOneWithoutTransactionInput
   loanPrepayment?: Prisma.FinLoanPrepaymentUncheckedCreateNestedOneWithoutTransactionInput
   statementImportLines?: Prisma.FinStatementImportLineUncheckedCreateNestedManyWithoutTransactionInput
+  reconciliationAdjustment?: Prisma.FinReconciliationAdjustmentUncheckedCreateNestedOneWithoutTransactionInput
 }
 
 export type FinTransactionCreateOrConnectWithoutLoanInstallmentInput = {
@@ -2762,6 +2814,7 @@ export type FinTransactionUpdateWithoutLoanInstallmentInput = {
   savingsGoalContribution?: Prisma.FinSavingsGoalContributionUpdateOneWithoutTransactionNestedInput
   loanPrepayment?: Prisma.FinLoanPrepaymentUpdateOneWithoutTransactionNestedInput
   statementImportLines?: Prisma.FinStatementImportLineUpdateManyWithoutTransactionNestedInput
+  reconciliationAdjustment?: Prisma.FinReconciliationAdjustmentUpdateOneWithoutTransactionNestedInput
 }
 
 export type FinTransactionUncheckedUpdateWithoutLoanInstallmentInput = {
@@ -2802,6 +2855,7 @@ export type FinTransactionUncheckedUpdateWithoutLoanInstallmentInput = {
   savingsGoalContribution?: Prisma.FinSavingsGoalContributionUncheckedUpdateOneWithoutTransactionNestedInput
   loanPrepayment?: Prisma.FinLoanPrepaymentUncheckedUpdateOneWithoutTransactionNestedInput
   statementImportLines?: Prisma.FinStatementImportLineUncheckedUpdateManyWithoutTransactionNestedInput
+  reconciliationAdjustment?: Prisma.FinReconciliationAdjustmentUncheckedUpdateOneWithoutTransactionNestedInput
 }
 
 export type FinTransactionCreateWithoutLoanPrepaymentInput = {
@@ -2842,6 +2896,7 @@ export type FinTransactionCreateWithoutLoanPrepaymentInput = {
   savingsGoalContribution?: Prisma.FinSavingsGoalContributionCreateNestedOneWithoutTransactionInput
   loanInstallment?: Prisma.FinLoanInstallmentCreateNestedOneWithoutTransactionInput
   statementImportLines?: Prisma.FinStatementImportLineCreateNestedManyWithoutTransactionInput
+  reconciliationAdjustment?: Prisma.FinReconciliationAdjustmentCreateNestedOneWithoutTransactionInput
 }
 
 export type FinTransactionUncheckedCreateWithoutLoanPrepaymentInput = {
@@ -2882,6 +2937,7 @@ export type FinTransactionUncheckedCreateWithoutLoanPrepaymentInput = {
   savingsGoalContribution?: Prisma.FinSavingsGoalContributionUncheckedCreateNestedOneWithoutTransactionInput
   loanInstallment?: Prisma.FinLoanInstallmentUncheckedCreateNestedOneWithoutTransactionInput
   statementImportLines?: Prisma.FinStatementImportLineUncheckedCreateNestedManyWithoutTransactionInput
+  reconciliationAdjustment?: Prisma.FinReconciliationAdjustmentUncheckedCreateNestedOneWithoutTransactionInput
 }
 
 export type FinTransactionCreateOrConnectWithoutLoanPrepaymentInput = {
@@ -2938,6 +2994,7 @@ export type FinTransactionUpdateWithoutLoanPrepaymentInput = {
   savingsGoalContribution?: Prisma.FinSavingsGoalContributionUpdateOneWithoutTransactionNestedInput
   loanInstallment?: Prisma.FinLoanInstallmentUpdateOneWithoutTransactionNestedInput
   statementImportLines?: Prisma.FinStatementImportLineUpdateManyWithoutTransactionNestedInput
+  reconciliationAdjustment?: Prisma.FinReconciliationAdjustmentUpdateOneWithoutTransactionNestedInput
 }
 
 export type FinTransactionUncheckedUpdateWithoutLoanPrepaymentInput = {
@@ -2978,6 +3035,7 @@ export type FinTransactionUncheckedUpdateWithoutLoanPrepaymentInput = {
   savingsGoalContribution?: Prisma.FinSavingsGoalContributionUncheckedUpdateOneWithoutTransactionNestedInput
   loanInstallment?: Prisma.FinLoanInstallmentUncheckedUpdateOneWithoutTransactionNestedInput
   statementImportLines?: Prisma.FinStatementImportLineUncheckedUpdateManyWithoutTransactionNestedInput
+  reconciliationAdjustment?: Prisma.FinReconciliationAdjustmentUncheckedUpdateOneWithoutTransactionNestedInput
 }
 
 export type FinTransactionCreateWithoutReceivablePaymentInput = {
@@ -3018,6 +3076,7 @@ export type FinTransactionCreateWithoutReceivablePaymentInput = {
   loanInstallment?: Prisma.FinLoanInstallmentCreateNestedOneWithoutTransactionInput
   loanPrepayment?: Prisma.FinLoanPrepaymentCreateNestedOneWithoutTransactionInput
   statementImportLines?: Prisma.FinStatementImportLineCreateNestedManyWithoutTransactionInput
+  reconciliationAdjustment?: Prisma.FinReconciliationAdjustmentCreateNestedOneWithoutTransactionInput
 }
 
 export type FinTransactionUncheckedCreateWithoutReceivablePaymentInput = {
@@ -3058,6 +3117,7 @@ export type FinTransactionUncheckedCreateWithoutReceivablePaymentInput = {
   loanInstallment?: Prisma.FinLoanInstallmentUncheckedCreateNestedOneWithoutTransactionInput
   loanPrepayment?: Prisma.FinLoanPrepaymentUncheckedCreateNestedOneWithoutTransactionInput
   statementImportLines?: Prisma.FinStatementImportLineUncheckedCreateNestedManyWithoutTransactionInput
+  reconciliationAdjustment?: Prisma.FinReconciliationAdjustmentUncheckedCreateNestedOneWithoutTransactionInput
 }
 
 export type FinTransactionCreateOrConnectWithoutReceivablePaymentInput = {
@@ -3114,6 +3174,7 @@ export type FinTransactionUpdateWithoutReceivablePaymentInput = {
   loanInstallment?: Prisma.FinLoanInstallmentUpdateOneWithoutTransactionNestedInput
   loanPrepayment?: Prisma.FinLoanPrepaymentUpdateOneWithoutTransactionNestedInput
   statementImportLines?: Prisma.FinStatementImportLineUpdateManyWithoutTransactionNestedInput
+  reconciliationAdjustment?: Prisma.FinReconciliationAdjustmentUpdateOneWithoutTransactionNestedInput
 }
 
 export type FinTransactionUncheckedUpdateWithoutReceivablePaymentInput = {
@@ -3154,6 +3215,7 @@ export type FinTransactionUncheckedUpdateWithoutReceivablePaymentInput = {
   loanInstallment?: Prisma.FinLoanInstallmentUncheckedUpdateOneWithoutTransactionNestedInput
   loanPrepayment?: Prisma.FinLoanPrepaymentUncheckedUpdateOneWithoutTransactionNestedInput
   statementImportLines?: Prisma.FinStatementImportLineUncheckedUpdateManyWithoutTransactionNestedInput
+  reconciliationAdjustment?: Prisma.FinReconciliationAdjustmentUncheckedUpdateOneWithoutTransactionNestedInput
 }
 
 export type FinTransactionCreateWithoutEmailMessageInput = {
@@ -3194,6 +3256,7 @@ export type FinTransactionCreateWithoutEmailMessageInput = {
   loanInstallment?: Prisma.FinLoanInstallmentCreateNestedOneWithoutTransactionInput
   loanPrepayment?: Prisma.FinLoanPrepaymentCreateNestedOneWithoutTransactionInput
   statementImportLines?: Prisma.FinStatementImportLineCreateNestedManyWithoutTransactionInput
+  reconciliationAdjustment?: Prisma.FinReconciliationAdjustmentCreateNestedOneWithoutTransactionInput
 }
 
 export type FinTransactionUncheckedCreateWithoutEmailMessageInput = {
@@ -3234,6 +3297,7 @@ export type FinTransactionUncheckedCreateWithoutEmailMessageInput = {
   loanInstallment?: Prisma.FinLoanInstallmentUncheckedCreateNestedOneWithoutTransactionInput
   loanPrepayment?: Prisma.FinLoanPrepaymentUncheckedCreateNestedOneWithoutTransactionInput
   statementImportLines?: Prisma.FinStatementImportLineUncheckedCreateNestedManyWithoutTransactionInput
+  reconciliationAdjustment?: Prisma.FinReconciliationAdjustmentUncheckedCreateNestedOneWithoutTransactionInput
 }
 
 export type FinTransactionCreateOrConnectWithoutEmailMessageInput = {
@@ -3290,6 +3354,7 @@ export type FinTransactionUpdateWithoutEmailMessageInput = {
   loanInstallment?: Prisma.FinLoanInstallmentUpdateOneWithoutTransactionNestedInput
   loanPrepayment?: Prisma.FinLoanPrepaymentUpdateOneWithoutTransactionNestedInput
   statementImportLines?: Prisma.FinStatementImportLineUpdateManyWithoutTransactionNestedInput
+  reconciliationAdjustment?: Prisma.FinReconciliationAdjustmentUpdateOneWithoutTransactionNestedInput
 }
 
 export type FinTransactionUncheckedUpdateWithoutEmailMessageInput = {
@@ -3330,6 +3395,7 @@ export type FinTransactionUncheckedUpdateWithoutEmailMessageInput = {
   loanInstallment?: Prisma.FinLoanInstallmentUncheckedUpdateOneWithoutTransactionNestedInput
   loanPrepayment?: Prisma.FinLoanPrepaymentUncheckedUpdateOneWithoutTransactionNestedInput
   statementImportLines?: Prisma.FinStatementImportLineUncheckedUpdateManyWithoutTransactionNestedInput
+  reconciliationAdjustment?: Prisma.FinReconciliationAdjustmentUncheckedUpdateOneWithoutTransactionNestedInput
 }
 
 export type FinTransactionCreateWithoutStatementImportLinesInput = {
@@ -3370,6 +3436,7 @@ export type FinTransactionCreateWithoutStatementImportLinesInput = {
   savingsGoalContribution?: Prisma.FinSavingsGoalContributionCreateNestedOneWithoutTransactionInput
   loanInstallment?: Prisma.FinLoanInstallmentCreateNestedOneWithoutTransactionInput
   loanPrepayment?: Prisma.FinLoanPrepaymentCreateNestedOneWithoutTransactionInput
+  reconciliationAdjustment?: Prisma.FinReconciliationAdjustmentCreateNestedOneWithoutTransactionInput
 }
 
 export type FinTransactionUncheckedCreateWithoutStatementImportLinesInput = {
@@ -3410,6 +3477,7 @@ export type FinTransactionUncheckedCreateWithoutStatementImportLinesInput = {
   savingsGoalContribution?: Prisma.FinSavingsGoalContributionUncheckedCreateNestedOneWithoutTransactionInput
   loanInstallment?: Prisma.FinLoanInstallmentUncheckedCreateNestedOneWithoutTransactionInput
   loanPrepayment?: Prisma.FinLoanPrepaymentUncheckedCreateNestedOneWithoutTransactionInput
+  reconciliationAdjustment?: Prisma.FinReconciliationAdjustmentUncheckedCreateNestedOneWithoutTransactionInput
 }
 
 export type FinTransactionCreateOrConnectWithoutStatementImportLinesInput = {
@@ -3466,6 +3534,7 @@ export type FinTransactionUpdateWithoutStatementImportLinesInput = {
   savingsGoalContribution?: Prisma.FinSavingsGoalContributionUpdateOneWithoutTransactionNestedInput
   loanInstallment?: Prisma.FinLoanInstallmentUpdateOneWithoutTransactionNestedInput
   loanPrepayment?: Prisma.FinLoanPrepaymentUpdateOneWithoutTransactionNestedInput
+  reconciliationAdjustment?: Prisma.FinReconciliationAdjustmentUpdateOneWithoutTransactionNestedInput
 }
 
 export type FinTransactionUncheckedUpdateWithoutStatementImportLinesInput = {
@@ -3506,6 +3575,187 @@ export type FinTransactionUncheckedUpdateWithoutStatementImportLinesInput = {
   savingsGoalContribution?: Prisma.FinSavingsGoalContributionUncheckedUpdateOneWithoutTransactionNestedInput
   loanInstallment?: Prisma.FinLoanInstallmentUncheckedUpdateOneWithoutTransactionNestedInput
   loanPrepayment?: Prisma.FinLoanPrepaymentUncheckedUpdateOneWithoutTransactionNestedInput
+  reconciliationAdjustment?: Prisma.FinReconciliationAdjustmentUncheckedUpdateOneWithoutTransactionNestedInput
+}
+
+export type FinTransactionCreateWithoutReconciliationAdjustmentInput = {
+  id?: string
+  externalReference?: string | null
+  institutionId?: string | null
+  possibleDuplicateOfId?: string | null
+  type: $Enums.FinTransactionType
+  amount: runtime.Decimal | runtime.DecimalJsLike | number | string
+  ledgerAmount: runtime.Decimal | runtime.DecimalJsLike | number | string
+  amountBaseCurrency: runtime.Decimal | runtime.DecimalJsLike | number | string
+  currency?: string
+  ledgerCurrency?: string
+  exchangeRate?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  merchant?: string | null
+  description?: string | null
+  transactionDate: Date | string
+  transferGroupId?: string | null
+  status?: $Enums.FinTransactionStatus
+  isRecurring?: boolean
+  aiMetadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  notes?: string | null
+  source?: $Enums.FinTransactionSource
+  legRole?: $Enums.FinOperationLegRole | null
+  rail?: $Enums.FinTransferRail | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  account?: Prisma.FinAccountCreateNestedOneWithoutTransactionsInput
+  card?: Prisma.FinCardCreateNestedOneWithoutTransactionsInput
+  category?: Prisma.FinCategoryCreateNestedOneWithoutTransactionsInput
+  merchantRef?: Prisma.FinMerchantCreateNestedOneWithoutTransactionsInput
+  emailMessage?: Prisma.FinEmailMessageCreateNestedOneWithoutTransactionInput
+  user: Prisma.UserCreateNestedOneWithoutFinTransactionsInput
+  linkedTransaction?: Prisma.FinTransactionCreateNestedOneWithoutLinkedFromInput
+  linkedFrom?: Prisma.FinTransactionCreateNestedManyWithoutLinkedTransactionInput
+  receivablePayment?: Prisma.FinReceivablePaymentCreateNestedOneWithoutTransactionInput
+  subscriptionPayments?: Prisma.FinSubscriptionPaymentCreateNestedManyWithoutTransactionInput
+  savingsGoalContribution?: Prisma.FinSavingsGoalContributionCreateNestedOneWithoutTransactionInput
+  loanInstallment?: Prisma.FinLoanInstallmentCreateNestedOneWithoutTransactionInput
+  loanPrepayment?: Prisma.FinLoanPrepaymentCreateNestedOneWithoutTransactionInput
+  statementImportLines?: Prisma.FinStatementImportLineCreateNestedManyWithoutTransactionInput
+}
+
+export type FinTransactionUncheckedCreateWithoutReconciliationAdjustmentInput = {
+  id?: string
+  accountId?: string | null
+  cardId?: string | null
+  userId: string
+  categoryId?: string | null
+  emailMessageId?: string | null
+  externalReference?: string | null
+  institutionId?: string | null
+  possibleDuplicateOfId?: string | null
+  type: $Enums.FinTransactionType
+  amount: runtime.Decimal | runtime.DecimalJsLike | number | string
+  ledgerAmount: runtime.Decimal | runtime.DecimalJsLike | number | string
+  amountBaseCurrency: runtime.Decimal | runtime.DecimalJsLike | number | string
+  currency?: string
+  ledgerCurrency?: string
+  exchangeRate?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  merchant?: string | null
+  merchantId?: string | null
+  description?: string | null
+  transactionDate: Date | string
+  transferGroupId?: string | null
+  linkedTransactionId?: string | null
+  status?: $Enums.FinTransactionStatus
+  isRecurring?: boolean
+  aiMetadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  notes?: string | null
+  source?: $Enums.FinTransactionSource
+  legRole?: $Enums.FinOperationLegRole | null
+  rail?: $Enums.FinTransferRail | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  linkedFrom?: Prisma.FinTransactionUncheckedCreateNestedManyWithoutLinkedTransactionInput
+  receivablePayment?: Prisma.FinReceivablePaymentUncheckedCreateNestedOneWithoutTransactionInput
+  subscriptionPayments?: Prisma.FinSubscriptionPaymentUncheckedCreateNestedManyWithoutTransactionInput
+  savingsGoalContribution?: Prisma.FinSavingsGoalContributionUncheckedCreateNestedOneWithoutTransactionInput
+  loanInstallment?: Prisma.FinLoanInstallmentUncheckedCreateNestedOneWithoutTransactionInput
+  loanPrepayment?: Prisma.FinLoanPrepaymentUncheckedCreateNestedOneWithoutTransactionInput
+  statementImportLines?: Prisma.FinStatementImportLineUncheckedCreateNestedManyWithoutTransactionInput
+}
+
+export type FinTransactionCreateOrConnectWithoutReconciliationAdjustmentInput = {
+  where: Prisma.FinTransactionWhereUniqueInput
+  create: Prisma.XOR<Prisma.FinTransactionCreateWithoutReconciliationAdjustmentInput, Prisma.FinTransactionUncheckedCreateWithoutReconciliationAdjustmentInput>
+}
+
+export type FinTransactionUpsertWithoutReconciliationAdjustmentInput = {
+  update: Prisma.XOR<Prisma.FinTransactionUpdateWithoutReconciliationAdjustmentInput, Prisma.FinTransactionUncheckedUpdateWithoutReconciliationAdjustmentInput>
+  create: Prisma.XOR<Prisma.FinTransactionCreateWithoutReconciliationAdjustmentInput, Prisma.FinTransactionUncheckedCreateWithoutReconciliationAdjustmentInput>
+  where?: Prisma.FinTransactionWhereInput
+}
+
+export type FinTransactionUpdateToOneWithWhereWithoutReconciliationAdjustmentInput = {
+  where?: Prisma.FinTransactionWhereInput
+  data: Prisma.XOR<Prisma.FinTransactionUpdateWithoutReconciliationAdjustmentInput, Prisma.FinTransactionUncheckedUpdateWithoutReconciliationAdjustmentInput>
+}
+
+export type FinTransactionUpdateWithoutReconciliationAdjustmentInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  externalReference?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  institutionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  possibleDuplicateOfId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  type?: Prisma.EnumFinTransactionTypeFieldUpdateOperationsInput | $Enums.FinTransactionType
+  amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  ledgerAmount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  amountBaseCurrency?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  currency?: Prisma.StringFieldUpdateOperationsInput | string
+  ledgerCurrency?: Prisma.StringFieldUpdateOperationsInput | string
+  exchangeRate?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  merchant?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  transactionDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  transferGroupId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.EnumFinTransactionStatusFieldUpdateOperationsInput | $Enums.FinTransactionStatus
+  isRecurring?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  aiMetadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  source?: Prisma.EnumFinTransactionSourceFieldUpdateOperationsInput | $Enums.FinTransactionSource
+  legRole?: Prisma.NullableEnumFinOperationLegRoleFieldUpdateOperationsInput | $Enums.FinOperationLegRole | null
+  rail?: Prisma.NullableEnumFinTransferRailFieldUpdateOperationsInput | $Enums.FinTransferRail | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  account?: Prisma.FinAccountUpdateOneWithoutTransactionsNestedInput
+  card?: Prisma.FinCardUpdateOneWithoutTransactionsNestedInput
+  category?: Prisma.FinCategoryUpdateOneWithoutTransactionsNestedInput
+  merchantRef?: Prisma.FinMerchantUpdateOneWithoutTransactionsNestedInput
+  emailMessage?: Prisma.FinEmailMessageUpdateOneWithoutTransactionNestedInput
+  user?: Prisma.UserUpdateOneRequiredWithoutFinTransactionsNestedInput
+  linkedTransaction?: Prisma.FinTransactionUpdateOneWithoutLinkedFromNestedInput
+  linkedFrom?: Prisma.FinTransactionUpdateManyWithoutLinkedTransactionNestedInput
+  receivablePayment?: Prisma.FinReceivablePaymentUpdateOneWithoutTransactionNestedInput
+  subscriptionPayments?: Prisma.FinSubscriptionPaymentUpdateManyWithoutTransactionNestedInput
+  savingsGoalContribution?: Prisma.FinSavingsGoalContributionUpdateOneWithoutTransactionNestedInput
+  loanInstallment?: Prisma.FinLoanInstallmentUpdateOneWithoutTransactionNestedInput
+  loanPrepayment?: Prisma.FinLoanPrepaymentUpdateOneWithoutTransactionNestedInput
+  statementImportLines?: Prisma.FinStatementImportLineUpdateManyWithoutTransactionNestedInput
+}
+
+export type FinTransactionUncheckedUpdateWithoutReconciliationAdjustmentInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  accountId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  cardId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  userId?: Prisma.StringFieldUpdateOperationsInput | string
+  categoryId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  emailMessageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  externalReference?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  institutionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  possibleDuplicateOfId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  type?: Prisma.EnumFinTransactionTypeFieldUpdateOperationsInput | $Enums.FinTransactionType
+  amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  ledgerAmount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  amountBaseCurrency?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  currency?: Prisma.StringFieldUpdateOperationsInput | string
+  ledgerCurrency?: Prisma.StringFieldUpdateOperationsInput | string
+  exchangeRate?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  merchant?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  merchantId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  transactionDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  transferGroupId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  linkedTransactionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  status?: Prisma.EnumFinTransactionStatusFieldUpdateOperationsInput | $Enums.FinTransactionStatus
+  isRecurring?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  aiMetadata?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  source?: Prisma.EnumFinTransactionSourceFieldUpdateOperationsInput | $Enums.FinTransactionSource
+  legRole?: Prisma.NullableEnumFinOperationLegRoleFieldUpdateOperationsInput | $Enums.FinOperationLegRole | null
+  rail?: Prisma.NullableEnumFinTransferRailFieldUpdateOperationsInput | $Enums.FinTransferRail | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  linkedFrom?: Prisma.FinTransactionUncheckedUpdateManyWithoutLinkedTransactionNestedInput
+  receivablePayment?: Prisma.FinReceivablePaymentUncheckedUpdateOneWithoutTransactionNestedInput
+  subscriptionPayments?: Prisma.FinSubscriptionPaymentUncheckedUpdateManyWithoutTransactionNestedInput
+  savingsGoalContribution?: Prisma.FinSavingsGoalContributionUncheckedUpdateOneWithoutTransactionNestedInput
+  loanInstallment?: Prisma.FinLoanInstallmentUncheckedUpdateOneWithoutTransactionNestedInput
+  loanPrepayment?: Prisma.FinLoanPrepaymentUncheckedUpdateOneWithoutTransactionNestedInput
+  statementImportLines?: Prisma.FinStatementImportLineUncheckedUpdateManyWithoutTransactionNestedInput
 }
 
 export type FinTransactionCreateManyUserInput = {
@@ -3579,6 +3829,7 @@ export type FinTransactionUpdateWithoutUserInput = {
   loanInstallment?: Prisma.FinLoanInstallmentUpdateOneWithoutTransactionNestedInput
   loanPrepayment?: Prisma.FinLoanPrepaymentUpdateOneWithoutTransactionNestedInput
   statementImportLines?: Prisma.FinStatementImportLineUpdateManyWithoutTransactionNestedInput
+  reconciliationAdjustment?: Prisma.FinReconciliationAdjustmentUpdateOneWithoutTransactionNestedInput
 }
 
 export type FinTransactionUncheckedUpdateWithoutUserInput = {
@@ -3619,6 +3870,7 @@ export type FinTransactionUncheckedUpdateWithoutUserInput = {
   loanInstallment?: Prisma.FinLoanInstallmentUncheckedUpdateOneWithoutTransactionNestedInput
   loanPrepayment?: Prisma.FinLoanPrepaymentUncheckedUpdateOneWithoutTransactionNestedInput
   statementImportLines?: Prisma.FinStatementImportLineUncheckedUpdateManyWithoutTransactionNestedInput
+  reconciliationAdjustment?: Prisma.FinReconciliationAdjustmentUncheckedUpdateOneWithoutTransactionNestedInput
 }
 
 export type FinTransactionUncheckedUpdateManyWithoutUserInput = {
@@ -3725,6 +3977,7 @@ export type FinTransactionUpdateWithoutAccountInput = {
   loanInstallment?: Prisma.FinLoanInstallmentUpdateOneWithoutTransactionNestedInput
   loanPrepayment?: Prisma.FinLoanPrepaymentUpdateOneWithoutTransactionNestedInput
   statementImportLines?: Prisma.FinStatementImportLineUpdateManyWithoutTransactionNestedInput
+  reconciliationAdjustment?: Prisma.FinReconciliationAdjustmentUpdateOneWithoutTransactionNestedInput
 }
 
 export type FinTransactionUncheckedUpdateWithoutAccountInput = {
@@ -3765,6 +4018,7 @@ export type FinTransactionUncheckedUpdateWithoutAccountInput = {
   loanInstallment?: Prisma.FinLoanInstallmentUncheckedUpdateOneWithoutTransactionNestedInput
   loanPrepayment?: Prisma.FinLoanPrepaymentUncheckedUpdateOneWithoutTransactionNestedInput
   statementImportLines?: Prisma.FinStatementImportLineUncheckedUpdateManyWithoutTransactionNestedInput
+  reconciliationAdjustment?: Prisma.FinReconciliationAdjustmentUncheckedUpdateOneWithoutTransactionNestedInput
 }
 
 export type FinTransactionUncheckedUpdateManyWithoutAccountInput = {
@@ -3871,6 +4125,7 @@ export type FinTransactionUpdateWithoutLinkedTransactionInput = {
   loanInstallment?: Prisma.FinLoanInstallmentUpdateOneWithoutTransactionNestedInput
   loanPrepayment?: Prisma.FinLoanPrepaymentUpdateOneWithoutTransactionNestedInput
   statementImportLines?: Prisma.FinStatementImportLineUpdateManyWithoutTransactionNestedInput
+  reconciliationAdjustment?: Prisma.FinReconciliationAdjustmentUpdateOneWithoutTransactionNestedInput
 }
 
 export type FinTransactionUncheckedUpdateWithoutLinkedTransactionInput = {
@@ -3911,6 +4166,7 @@ export type FinTransactionUncheckedUpdateWithoutLinkedTransactionInput = {
   loanInstallment?: Prisma.FinLoanInstallmentUncheckedUpdateOneWithoutTransactionNestedInput
   loanPrepayment?: Prisma.FinLoanPrepaymentUncheckedUpdateOneWithoutTransactionNestedInput
   statementImportLines?: Prisma.FinStatementImportLineUncheckedUpdateManyWithoutTransactionNestedInput
+  reconciliationAdjustment?: Prisma.FinReconciliationAdjustmentUncheckedUpdateOneWithoutTransactionNestedInput
 }
 
 export type FinTransactionUncheckedUpdateManyWithoutLinkedTransactionInput = {
@@ -4017,6 +4273,7 @@ export type FinTransactionUpdateWithoutCategoryInput = {
   loanInstallment?: Prisma.FinLoanInstallmentUpdateOneWithoutTransactionNestedInput
   loanPrepayment?: Prisma.FinLoanPrepaymentUpdateOneWithoutTransactionNestedInput
   statementImportLines?: Prisma.FinStatementImportLineUpdateManyWithoutTransactionNestedInput
+  reconciliationAdjustment?: Prisma.FinReconciliationAdjustmentUpdateOneWithoutTransactionNestedInput
 }
 
 export type FinTransactionUncheckedUpdateWithoutCategoryInput = {
@@ -4057,6 +4314,7 @@ export type FinTransactionUncheckedUpdateWithoutCategoryInput = {
   loanInstallment?: Prisma.FinLoanInstallmentUncheckedUpdateOneWithoutTransactionNestedInput
   loanPrepayment?: Prisma.FinLoanPrepaymentUncheckedUpdateOneWithoutTransactionNestedInput
   statementImportLines?: Prisma.FinStatementImportLineUncheckedUpdateManyWithoutTransactionNestedInput
+  reconciliationAdjustment?: Prisma.FinReconciliationAdjustmentUncheckedUpdateOneWithoutTransactionNestedInput
 }
 
 export type FinTransactionUncheckedUpdateManyWithoutCategoryInput = {
@@ -4163,6 +4421,7 @@ export type FinTransactionUpdateWithoutMerchantRefInput = {
   loanInstallment?: Prisma.FinLoanInstallmentUpdateOneWithoutTransactionNestedInput
   loanPrepayment?: Prisma.FinLoanPrepaymentUpdateOneWithoutTransactionNestedInput
   statementImportLines?: Prisma.FinStatementImportLineUpdateManyWithoutTransactionNestedInput
+  reconciliationAdjustment?: Prisma.FinReconciliationAdjustmentUpdateOneWithoutTransactionNestedInput
 }
 
 export type FinTransactionUncheckedUpdateWithoutMerchantRefInput = {
@@ -4203,6 +4462,7 @@ export type FinTransactionUncheckedUpdateWithoutMerchantRefInput = {
   loanInstallment?: Prisma.FinLoanInstallmentUncheckedUpdateOneWithoutTransactionNestedInput
   loanPrepayment?: Prisma.FinLoanPrepaymentUncheckedUpdateOneWithoutTransactionNestedInput
   statementImportLines?: Prisma.FinStatementImportLineUncheckedUpdateManyWithoutTransactionNestedInput
+  reconciliationAdjustment?: Prisma.FinReconciliationAdjustmentUncheckedUpdateOneWithoutTransactionNestedInput
 }
 
 export type FinTransactionUncheckedUpdateManyWithoutMerchantRefInput = {
@@ -4309,6 +4569,7 @@ export type FinTransactionUpdateWithoutCardInput = {
   loanInstallment?: Prisma.FinLoanInstallmentUpdateOneWithoutTransactionNestedInput
   loanPrepayment?: Prisma.FinLoanPrepaymentUpdateOneWithoutTransactionNestedInput
   statementImportLines?: Prisma.FinStatementImportLineUpdateManyWithoutTransactionNestedInput
+  reconciliationAdjustment?: Prisma.FinReconciliationAdjustmentUpdateOneWithoutTransactionNestedInput
 }
 
 export type FinTransactionUncheckedUpdateWithoutCardInput = {
@@ -4349,6 +4610,7 @@ export type FinTransactionUncheckedUpdateWithoutCardInput = {
   loanInstallment?: Prisma.FinLoanInstallmentUncheckedUpdateOneWithoutTransactionNestedInput
   loanPrepayment?: Prisma.FinLoanPrepaymentUncheckedUpdateOneWithoutTransactionNestedInput
   statementImportLines?: Prisma.FinStatementImportLineUncheckedUpdateManyWithoutTransactionNestedInput
+  reconciliationAdjustment?: Prisma.FinReconciliationAdjustmentUncheckedUpdateOneWithoutTransactionNestedInput
 }
 
 export type FinTransactionUncheckedUpdateManyWithoutCardInput = {
@@ -4479,6 +4741,7 @@ export type FinTransactionSelect<ExtArgs extends runtime.Types.Extensions.Intern
   loanInstallment?: boolean | Prisma.FinTransaction$loanInstallmentArgs<ExtArgs>
   loanPrepayment?: boolean | Prisma.FinTransaction$loanPrepaymentArgs<ExtArgs>
   statementImportLines?: boolean | Prisma.FinTransaction$statementImportLinesArgs<ExtArgs>
+  reconciliationAdjustment?: boolean | Prisma.FinTransaction$reconciliationAdjustmentArgs<ExtArgs>
   _count?: boolean | Prisma.FinTransactionCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["finTransaction"]>
 
@@ -4614,6 +4877,7 @@ export type FinTransactionInclude<ExtArgs extends runtime.Types.Extensions.Inter
   loanInstallment?: boolean | Prisma.FinTransaction$loanInstallmentArgs<ExtArgs>
   loanPrepayment?: boolean | Prisma.FinTransaction$loanPrepaymentArgs<ExtArgs>
   statementImportLines?: boolean | Prisma.FinTransaction$statementImportLinesArgs<ExtArgs>
+  reconciliationAdjustment?: boolean | Prisma.FinTransaction$reconciliationAdjustmentArgs<ExtArgs>
   _count?: boolean | Prisma.FinTransactionCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type FinTransactionIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -4652,6 +4916,7 @@ export type $FinTransactionPayload<ExtArgs extends runtime.Types.Extensions.Inte
     loanInstallment: Prisma.$FinLoanInstallmentPayload<ExtArgs> | null
     loanPrepayment: Prisma.$FinLoanPrepaymentPayload<ExtArgs> | null
     statementImportLines: Prisma.$FinStatementImportLinePayload<ExtArgs>[]
+    reconciliationAdjustment: Prisma.$FinReconciliationAdjustmentPayload<ExtArgs> | null
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -5126,6 +5391,7 @@ export interface Prisma__FinTransactionClient<T, Null = never, ExtArgs extends r
   loanInstallment<T extends Prisma.FinTransaction$loanInstallmentArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.FinTransaction$loanInstallmentArgs<ExtArgs>>): Prisma.Prisma__FinLoanInstallmentClient<runtime.Types.Result.GetResult<Prisma.$FinLoanInstallmentPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   loanPrepayment<T extends Prisma.FinTransaction$loanPrepaymentArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.FinTransaction$loanPrepaymentArgs<ExtArgs>>): Prisma.Prisma__FinLoanPrepaymentClient<runtime.Types.Result.GetResult<Prisma.$FinLoanPrepaymentPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   statementImportLines<T extends Prisma.FinTransaction$statementImportLinesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.FinTransaction$statementImportLinesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$FinStatementImportLinePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  reconciliationAdjustment<T extends Prisma.FinTransaction$reconciliationAdjustmentArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.FinTransaction$reconciliationAdjustmentArgs<ExtArgs>>): Prisma.Prisma__FinReconciliationAdjustmentClient<runtime.Types.Result.GetResult<Prisma.$FinReconciliationAdjustmentPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -5846,6 +6112,25 @@ export type FinTransaction$statementImportLinesArgs<ExtArgs extends runtime.Type
   take?: number
   skip?: number
   distinct?: Prisma.FinStatementImportLineScalarFieldEnum | Prisma.FinStatementImportLineScalarFieldEnum[]
+}
+
+/**
+ * FinTransaction.reconciliationAdjustment
+ */
+export type FinTransaction$reconciliationAdjustmentArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the FinReconciliationAdjustment
+   */
+  select?: Prisma.FinReconciliationAdjustmentSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the FinReconciliationAdjustment
+   */
+  omit?: Prisma.FinReconciliationAdjustmentOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.FinReconciliationAdjustmentInclude<ExtArgs> | null
+  where?: Prisma.FinReconciliationAdjustmentWhereInput
 }
 
 /**

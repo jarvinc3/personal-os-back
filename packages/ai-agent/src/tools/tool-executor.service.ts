@@ -65,6 +65,8 @@ const FINANCE_TOOL_NAMES = new Set([
   'list_merchants',
   'create_subscription',
   'confirm_subscription_payment',
+  'get_bank_charges',
+  'reconcile_product',
 ]);
 
 function toLinkCommand(args: ValidatedToolArgs<'link_transaction'>) {
@@ -983,6 +985,67 @@ export class ToolExecutorService {
             ctx.userId,
             recurring.patternId,
           ),
+        };
+      }
+      case 'get_bank_charges': {
+        const to = typeof args.to === 'string' ? new Date(args.to) : new Date();
+        const from =
+          typeof args.from === 'string'
+            ? new Date(args.from)
+            : new Date(Date.UTC(to.getUTCFullYear(), to.getUTCMonth(), 1));
+        const groupBy =
+          args.groupBy === 'month' ||
+          args.groupBy === 'institution' ||
+          args.groupBy === 'kind'
+            ? args.groupBy
+            : undefined;
+        return {
+          success: true,
+          message: 'Bank charges loaded',
+          data: await this.financeFacade.getBankCharges(ctx.userId, {
+            from,
+            to,
+            groupBy,
+          }),
+        };
+      }
+      case 'reconcile_product': {
+        const input = args as ValidatedToolArgs<'reconcile_product'>;
+        const previewInput = {
+          accountId: input.accountId,
+          cardId: input.cardId,
+          currency: input.currency,
+          asOfDate: input.asOfDate,
+          realBalance: input.realBalance,
+        };
+        if (input.apply !== true) {
+          return {
+            success: true,
+            message: 'Reconciliation preview',
+            data: await this.financeFacade.previewReconciliation(
+              ctx.userId,
+              previewInput,
+            ),
+          };
+        }
+        const preview = await this.financeFacade.previewReconciliation(
+          ctx.userId,
+          previewInput,
+        );
+        const adjustments =
+          input.adjustments ??
+          preview.suggestedAdjustments.map((adjustment) => ({
+            kind: adjustment.kind,
+            amount: Number(adjustment.amount),
+          }));
+        return {
+          success: true,
+          message: 'Product reconciled',
+          data: await this.financeFacade.createReconciliation(ctx.userId, {
+            ...previewInput,
+            adjustments,
+            note: input.note ?? undefined,
+          }),
         };
       }
       default:

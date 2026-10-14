@@ -2794,4 +2794,144 @@ describe('Finance (e2e)', () => {
       }),
     );
   });
+
+  it('POST /api/finance/reconciliations/preview suggests the DGII split', async () => {
+    prismaMock.finAccount.findFirst.mockResolvedValue({
+      id: '11111111-1111-4111-8111-111111111111',
+      name: 'Ahorros',
+      currency: 'DOP',
+      balance: { toString: () => '10000.00' },
+      institutionRef: { name: 'BHD' },
+    });
+    prismaMock.finTransaction.aggregate.mockResolvedValue({
+      _sum: { ledgerAmount: 10000 },
+    });
+
+    await request(app.getHttpServer())
+      .post('/api/finance/reconciliations/preview')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        accountId: '11111111-1111-4111-8111-111111111111',
+        asOfDate: '2026-10-15',
+        realBalance: 9950,
+      })
+      .expect(201)
+      .expect((res) => {
+        expect(res.body.data.difference).toBe('-50.00');
+        expect(res.body.data.suggestedAdjustments).toEqual([
+          { kind: 'IMPUESTO_DGII', amount: '-15.00' },
+          { kind: 'OTRO', amount: '-35.00' },
+        ]);
+      });
+  });
+
+  it('POST /api/finance/reconciliations rejects adjustments that do not add up', async () => {
+    prismaMock.finAccount.findFirst.mockResolvedValue({
+      id: '11111111-1111-4111-8111-111111111111',
+      name: 'Ahorros',
+      currency: 'DOP',
+      balance: { toString: () => '10000.00' },
+      institutionRef: { name: 'BHD' },
+    });
+
+    await request(app.getHttpServer())
+      .post('/api/finance/reconciliations')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        accountId: '11111111-1111-4111-8111-111111111111',
+        asOfDate: '2026-10-15',
+        realBalance: 9950,
+        adjustments: [{ kind: 'OTRO', amount: -40 }],
+      })
+      .expect(422);
+  });
+
+  it('POST /api/finance/reconciliations closes the product and GET status reports it', async () => {
+    prismaMock.finAccount.findFirst.mockResolvedValue({
+      id: '11111111-1111-4111-8111-111111111111',
+      name: 'Ahorros',
+      currency: 'DOP',
+      balance: { toString: () => '10000.00' },
+      institutionRef: { name: 'BHD' },
+    });
+    prismaMock.finReconciliation.create.mockResolvedValue({ id: 'rec-1' });
+    prismaMock.finReconciliation.findFirstOrThrow.mockResolvedValue({
+      id: 'rec-1',
+      userId: 'user-123',
+      accountId: '11111111-1111-4111-8111-111111111111',
+      cardId: null,
+      currency: 'DOP',
+      asOfDate: new Date('2026-10-15T00:00:00.000Z'),
+      appBalance: 10000,
+      realBalance: 9950,
+      difference: -50,
+      note: null,
+      createdAt: new Date('2026-10-15T12:00:00.000Z'),
+      adjustments: [
+        {
+          id: 'adj-1',
+          kind: 'IMPUESTO_DGII',
+          amount: -15,
+          transactionId: 'tx-1',
+        },
+        { id: 'adj-2', kind: 'OTRO', amount: -35, transactionId: 'tx-2' },
+      ],
+    });
+
+    await request(app.getHttpServer())
+      .post('/api/finance/reconciliations')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        accountId: '11111111-1111-4111-8111-111111111111',
+        asOfDate: '2026-10-15',
+        realBalance: 9950,
+        adjustments: [
+          { kind: 'IMPUESTO_DGII', amount: -15 },
+          { kind: 'OTRO', amount: -35 },
+        ],
+      })
+      .expect(201)
+      .expect((res) => {
+        expect(res.body.data.difference).toBe('-50.00');
+        expect(res.body.data.adjustments).toHaveLength(2);
+      });
+
+    expect(prismaMock.finReconciliation.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ difference: -50, appBalance: 10000 }),
+      }),
+    );
+
+    prismaMock.finAccount.findMany.mockResolvedValue([
+      {
+        id: '11111111-1111-4111-8111-111111111111',
+        name: 'Ahorros',
+        currency: 'DOP',
+        balance: { toString: () => '9950.00' },
+        institutionRef: { name: 'BHD' },
+      },
+    ]);
+    prismaMock.finCardBalance.findMany.mockResolvedValue([]);
+    prismaMock.finReconciliation.findMany.mockResolvedValue([
+      {
+        id: 'rec-1',
+        accountId: '11111111-1111-4111-8111-111111111111',
+        cardId: null,
+        currency: 'DOP',
+        asOfDate: new Date('2026-10-15T00:00:00.000Z'),
+        realBalance: 9950,
+        difference: -50,
+        createdAt: new Date('2026-10-15T12:00:00.000Z'),
+      },
+    ]);
+
+    await request(app.getHttpServer())
+      .get('/api/finance/reconciliations/status?month=2026-10')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.data.reconciledCount).toBe(1);
+        expect(res.body.data.pendingCount).toBe(0);
+      });
+  });
 });

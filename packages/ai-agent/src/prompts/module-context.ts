@@ -93,6 +93,8 @@ export const MODULE_CONTEXT: Record<
       'list_merchants',
       'create_subscription',
       'confirm_subscription_payment',
+      'get_bank_charges',
+      'reconcile_product',
     ],
   },
 };

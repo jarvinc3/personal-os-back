@@ -1217,6 +1217,14 @@
             }
           },
           {
+            "name": "merchantId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "type",
             "required": false,
             "in": "query",
@@ -1947,6 +1955,217 @@
         ]
       }
     },
+    "/api/finance/merchants": {
+      "get": {
+        "operationId": "MerchantsController_list",
+        "parameters": [
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "dateFrom",
+            "required": false,
+            "in": "query",
+            "description": "Start of the spend window (ISO date)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "dateTo",
+            "required": false,
+            "in": "query",
+            "description": "End of the spend window (ISO date)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "List merchants with their month spend",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
+    "/api/finance/merchants/suggest": {
+      "get": {
+        "operationId": "MerchantsController_suggest",
+        "parameters": [
+          {
+            "name": "merchant",
+            "required": false,
+            "in": "query",
+            "description": "Raw merchant text typed by the user",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Best known merchant for a typed name",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
+    "/api/finance/merchants/{id}": {
+      "get": {
+        "operationId": "MerchantsController_get",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Merchant detail",
+        "tags": [
+          "finance"
+        ]
+      },
+      "patch": {
+        "operationId": "MerchantsController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateMerchantDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Rename a merchant or set its category and logo",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
+    "/api/finance/merchants/{id}/merge": {
+      "post": {
+        "operationId": "MerchantsController_merge",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MergeMerchantDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Move the movements of a merchant into another",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
+    "/api/finance/merchants/{id}/logo": {
+      "post": {
+        "operationId": "MerchantsController_uploadLogo",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Upload a custom merchant logo",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
     "/api/brands/search": {
       "get": {
         "operationId": "LogosController_search",
@@ -1963,6 +2182,354 @@
         ],
         "tags": [
           "brands"
+        ]
+      }
+    },
+    "/api/finance/subscriptions": {
+      "get": {
+        "operationId": "SubscriptionsController_list",
+        "parameters": [
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "ACTIVE",
+                "PAUSED",
+                "CANCELLED"
+              ]
+            }
+          },
+          {
+            "name": "currency",
+            "required": false,
+            "in": "query",
+            "description": "ISO 4217 currency filter",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "q",
+            "required": false,
+            "in": "query",
+            "description": "Name search",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "List managed subscriptions",
+        "tags": [
+          "finance"
+        ]
+      },
+      "post": {
+        "operationId": "SubscriptionsController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSubscriptionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Create a subscription",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
+    "/api/finance/subscriptions/summary": {
+      "get": {
+        "operationId": "SubscriptionsController_summary",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Monthly and annual cost, active count, upcoming",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
+    "/api/finance/subscriptions/{id}": {
+      "get": {
+        "operationId": "SubscriptionsController_get",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Subscription detail",
+        "tags": [
+          "finance"
+        ]
+      },
+      "patch": {
+        "operationId": "SubscriptionsController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateSubscriptionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Edit a subscription",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
+    "/api/finance/subscriptions/{id}/pause": {
+      "post": {
+        "operationId": "SubscriptionsController_pause",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Pause a subscription",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
+    "/api/finance/subscriptions/{id}/resume": {
+      "post": {
+        "operationId": "SubscriptionsController_resume",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Resume a paused subscription",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
+    "/api/finance/subscriptions/{id}/cancel": {
+      "post": {
+        "operationId": "SubscriptionsController_cancel",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Cancel a subscription",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
+    "/api/finance/subscriptions/{id}/payments": {
+      "get": {
+        "operationId": "SubscriptionsController_listPayments",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Payment history",
+        "tags": [
+          "finance"
+        ]
+      },
+      "post": {
+        "operationId": "SubscriptionsController_createPayment",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSubscriptionPaymentDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Register a manual payment",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
+    "/api/finance/subscriptions/{id}/logo": {
+      "post": {
+        "operationId": "SubscriptionsController_uploadLogo",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Upload a custom subscription logo",
+        "tags": [
+          "finance"
         ]
       }
     },
@@ -2079,8 +2646,27 @@
     },
     "/api/finance/cards/{id}/statements/import": {
       "post": {
-        "operationId": "CardStatementsController_import",
-        "parameters": [],
+        "operationId": "StatementImportsController_importCardStatement",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/StatementImportUploadDto"
+              }
+            }
+          }
+        },
         "responses": {
           "201": {
             "description": ""
@@ -2091,7 +2677,188 @@
             "access-token": []
           }
         ],
-        "summary": "Import a statement PDF (reserved)",
+        "summary": "Upload a credit-card statement PDF and parse it",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
+    "/api/finance/accounts/{id}/statements/import": {
+      "post": {
+        "operationId": "StatementImportsController_importAccountStatement",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/StatementImportUploadDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Upload a bank-account statement PDF and parse it",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
+    "/api/finance/statement-imports/{id}": {
+      "get": {
+        "operationId": "StatementImportsController_get",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Statement import status, header and reconciliation",
+        "tags": [
+          "finance"
+        ]
+      },
+      "delete": {
+        "operationId": "StatementImportsController_discard",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Discard a statement import",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
+    "/api/finance/statement-imports/{id}/lines/{lineId}": {
+      "patch": {
+        "operationId": "StatementImportsController_updateLine",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "lineId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateStatementLineDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Change one line decision or its matched movement",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
+    "/api/finance/statement-imports/{id}/apply": {
+      "post": {
+        "operationId": "StatementImportsController_apply",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApplyStatementImportDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Create the selected rows and close the period",
         "tags": [
           "finance"
         ]
@@ -2829,7 +3596,7 @@
             "access-token": []
           }
         ],
-        "summary": "Instalment schedule of a loan, oldest first",
+        "summary": "Instalment schedule of a loan, oldest first (cursor paginated)",
         "tags": [
           "finance"
         ]
@@ -3413,6 +4180,34 @@
           }
         ],
         "summary": "Current financial position in BASE_CURRENCY",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
+    "/api/finance/analytics/weekly-summary": {
+      "get": {
+        "operationId": "AnalyticsController_weeklySummaryReport",
+        "parameters": [
+          {
+            "name": "weekStart",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
         "tags": [
           "finance"
         ]
@@ -4052,6 +4847,430 @@
         ]
       }
     },
+    "/api/finance/recurring": {
+      "get": {
+        "operationId": "RecurringController_list",
+        "parameters": [
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "SUGGESTED",
+                "CONFIRMED",
+                "DISMISSED"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "List recurring patterns (suggested and confirmed)",
+        "tags": [
+          "finance"
+        ]
+      },
+      "post": {
+        "operationId": "RecurringController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateRecurringDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Create a recurring charge by hand",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
+    "/api/finance/recurring/upcoming": {
+      "get": {
+        "operationId": "RecurringController_upcoming",
+        "parameters": [
+          {
+            "name": "days",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "default": 30,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Confirmed charges expected in the next N days",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
+    "/api/finance/recurring/{id}": {
+      "patch": {
+        "operationId": "RecurringController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateRecurringDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Confirm, dismiss or edit a recurring pattern",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
+    "/api/finance/reconciliations/preview": {
+      "post": {
+        "operationId": "ReconciliationsController_preview",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PreviewReconciliationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Preview a close: balance, difference, suggestion",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
+    "/api/finance/reconciliations": {
+      "post": {
+        "operationId": "ReconciliationsController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateReconciliationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Close a product and create its adjustments",
+        "tags": [
+          "finance"
+        ]
+      },
+      "get": {
+        "operationId": "ReconciliationsController_list",
+        "parameters": [
+          {
+            "name": "accountId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cardId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Reconciliation history of an account or card",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
+    "/api/finance/reconciliations/status": {
+      "get": {
+        "operationId": "ReconciliationsController_status",
+        "parameters": [
+          {
+            "name": "month",
+            "required": true,
+            "in": "query",
+            "description": "Month as YYYY-MM",
+            "schema": {
+              "example": "2026-10",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Products reconciled and pending for a month",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
+    "/api/finance/reconciliations/{id}": {
+      "get": {
+        "operationId": "ReconciliationsController_get",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Reconciliation detail",
+        "tags": [
+          "finance"
+        ]
+      },
+      "delete": {
+        "operationId": "ReconciliationsController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Delete the latest close of a product",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
+    "/api/finance/reconciliations/{id}/restore": {
+      "post": {
+        "operationId": "ReconciliationsController_restore",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Undo a reconciliation delete",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
+    "/api/finance/analytics/bank-charges": {
+      "get": {
+        "operationId": "BankChargesController_bankCharges",
+        "parameters": [
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "description": "Start date (ISO date)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "description": "End date (ISO date)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "groupBy",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "month",
+                "institution",
+                "kind"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Bank charges by month, institution and kind",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
+    "/api/finance/quick-entry/parse": {
+      "post": {
+        "operationId": "QuickEntryController_parse",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ParseQuickEntryDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Parse a quick sentence into a transaction draft (never saves)",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
     "/api/finance/recycle-bin": {
       "get": {
         "operationId": "RecycleBinController_list",
@@ -4066,7 +5285,7 @@
             "access-token": []
           }
         ],
-        "summary": "List archived records and pending deletes",
+        "summary": "List archived records and pending deletes (deletes paginated)",
         "tags": [
           "finance"
         ]
@@ -4538,7 +5757,7 @@
   "info": {
     "title": "Personal OS API",
     "description": "Personal OS backend endpoints, including auth, core modules, and AI.",
-    "version": "1.19.1",
+    "version": "0.27.0",
     "contact": {}
   },
   "tags": [
@@ -5340,6 +6559,190 @@
           }
         }
       },
+      "UpdateMerchantDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "categoryId": {
+            "type": "object",
+            "nullable": true
+          },
+          "logoUrl": {
+            "type": "object",
+            "nullable": true
+          }
+        }
+      },
+      "MergeMerchantDto": {
+        "type": "object",
+        "properties": {
+          "targetId": {
+            "type": "string",
+            "description": "Merchant that keeps the movements"
+          }
+        },
+        "required": [
+          "targetId"
+        ]
+      },
+      "CreateSubscriptionDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "domain": {
+            "type": "string",
+            "description": "Brand domain for the logo lookup"
+          },
+          "amount": {
+            "type": "number"
+          },
+          "currency": {
+            "type": "string",
+            "default": "DOP"
+          },
+          "billingCycle": {
+            "type": "string",
+            "enum": [
+              "WEEKLY",
+              "MONTHLY",
+              "QUARTERLY",
+              "SEMIANNUAL",
+              "YEARLY"
+            ]
+          },
+          "billingInterval": {
+            "type": "number",
+            "default": 1
+          },
+          "anchorDate": {
+            "type": "string",
+            "description": "First charge (ISO date)"
+          },
+          "trialEndsAt": {
+            "type": "string",
+            "description": "Trial end (ISO date)"
+          },
+          "cardId": {
+            "type": "string"
+          },
+          "accountId": {
+            "type": "string"
+          },
+          "reminderDaysBefore": {
+            "type": "number",
+            "default": 3
+          },
+          "manageUrl": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "string"
+          },
+          "sourcePatternId": {
+            "type": "string",
+            "description": "Recurring pattern this was born from"
+          }
+        },
+        "required": [
+          "name",
+          "amount",
+          "billingCycle",
+          "anchorDate"
+        ]
+      },
+      "UpdateSubscriptionDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "domain": {
+            "type": "string",
+            "description": "Brand domain for the logo lookup"
+          },
+          "amount": {
+            "type": "number"
+          },
+          "currency": {
+            "type": "string",
+            "default": "DOP"
+          },
+          "billingCycle": {
+            "type": "string",
+            "enum": [
+              "WEEKLY",
+              "MONTHLY",
+              "QUARTERLY",
+              "SEMIANNUAL",
+              "YEARLY"
+            ]
+          },
+          "billingInterval": {
+            "type": "number",
+            "default": 1
+          },
+          "anchorDate": {
+            "type": "string",
+            "description": "First charge (ISO date)"
+          },
+          "trialEndsAt": {
+            "type": "string",
+            "description": "Trial end (ISO date)"
+          },
+          "cardId": {
+            "type": "string"
+          },
+          "accountId": {
+            "type": "string"
+          },
+          "reminderDaysBefore": {
+            "type": "number",
+            "default": 3,
+            "description": "Last date already reminded"
+          },
+          "manageUrl": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "string"
+          },
+          "sourcePatternId": {
+            "type": "string",
+            "description": "Recurring pattern this was born from"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ACTIVE",
+              "PAUSED",
+              "CANCELLED"
+            ]
+          }
+        }
+      },
+      "CreateSubscriptionPaymentDto": {
+        "type": "object",
+        "properties": {
+          "amount": {
+            "type": "number"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "paidAt": {
+            "type": "string",
+            "description": "Payment date (ISO); defaults to now"
+          },
+          "transactionId": {
+            "type": "string",
+            "description": "Ledger movement to link"
+          }
+        }
+      },
       "UpdateCardStatementDto": {
         "type": "object",
         "properties": {
@@ -5351,6 +6754,40 @@
           },
           "dueDate": {
             "type": "string"
+          }
+        }
+      },
+      "StatementImportUploadDto": {
+        "type": "object",
+        "properties": {
+          "password": {
+            "type": "string",
+            "description": "PDF password; never stored or logged"
+          }
+        }
+      },
+      "UpdateStatementLineDto": {
+        "type": "object",
+        "properties": {
+          "decision": {
+            "type": "string",
+            "enum": [
+              "MATCH",
+              "CREATE",
+              "IGNORE"
+            ]
+          },
+          "transactionId": {
+            "type": "object"
+          }
+        }
+      },
+      "ApplyStatementImportDto": {
+        "type": "object",
+        "properties": {
+          "adjust": {
+            "type": "boolean",
+            "description": "Create an adjustment for the remaining balance difference"
           }
         }
       },
@@ -6055,6 +7492,206 @@
           "emails"
         ]
       },
+      "CreateRecurringDto": {
+        "type": "object",
+        "properties": {
+          "merchant": {
+            "type": "string",
+            "description": "Raw merchant text"
+          },
+          "merchantId": {
+            "type": "string"
+          },
+          "categoryId": {
+            "type": "string"
+          },
+          "avgAmount": {
+            "type": "number"
+          },
+          "currency": {
+            "type": "string",
+            "default": "DOP"
+          },
+          "frequency": {
+            "type": "number",
+            "enum": [
+              7,
+              14,
+              30,
+              365
+            ]
+          },
+          "nextExpectedDate": {
+            "type": "string",
+            "description": "Next expected charge (ISO date)"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "SUBSCRIPTION",
+              "BILL",
+              "INCOME",
+              "OTHER"
+            ]
+          }
+        },
+        "required": [
+          "avgAmount",
+          "frequency",
+          "nextExpectedDate"
+        ]
+      },
+      "UpdateRecurringDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "SUGGESTED",
+              "CONFIRMED",
+              "DISMISSED"
+            ]
+          },
+          "merchant": {
+            "type": "string"
+          },
+          "categoryId": {
+            "type": "object",
+            "nullable": true
+          },
+          "avgAmount": {
+            "type": "number"
+          },
+          "currency": {
+            "type": "string",
+            "default": "DOP"
+          },
+          "frequency": {
+            "type": "number",
+            "enum": [
+              7,
+              14,
+              30,
+              365
+            ]
+          },
+          "nextExpectedDate": {
+            "type": "string",
+            "description": "Next expected charge (ISO date)"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "SUBSCRIPTION",
+              "BILL",
+              "INCOME",
+              "OTHER"
+            ]
+          },
+          "amountTolerancePct": {
+            "type": "number"
+          }
+        }
+      },
+      "PreviewReconciliationDto": {
+        "type": "object",
+        "properties": {
+          "accountId": {
+            "type": "string"
+          },
+          "cardId": {
+            "type": "string"
+          },
+          "currency": {
+            "type": "string",
+            "example": "DOP"
+          },
+          "asOfDate": {
+            "type": "string",
+            "description": "Cut-off date (ISO date), defaults to today"
+          },
+          "realBalance": {
+            "type": "number",
+            "description": "Balance shown by the bank app"
+          }
+        },
+        "required": [
+          "asOfDate",
+          "realBalance"
+        ]
+      },
+      "ReconciliationAdjustmentDto": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "IMPUESTO_DGII",
+              "COMISION",
+              "CARGO_PLASTICO",
+              "INTERES",
+              "OTRO"
+            ]
+          },
+          "amount": {
+            "type": "number",
+            "description": "Signed amount; charges are negative"
+          }
+        },
+        "required": [
+          "kind",
+          "amount"
+        ]
+      },
+      "CreateReconciliationDto": {
+        "type": "object",
+        "properties": {
+          "accountId": {
+            "type": "string"
+          },
+          "cardId": {
+            "type": "string"
+          },
+          "currency": {
+            "type": "string",
+            "example": "DOP"
+          },
+          "asOfDate": {
+            "type": "string",
+            "description": "Cut-off date (ISO date), defaults to today"
+          },
+          "realBalance": {
+            "type": "number",
+            "description": "Balance shown by the bank app"
+          },
+          "adjustments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReconciliationAdjustmentDto"
+            }
+          },
+          "note": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "asOfDate",
+          "realBalance"
+        ]
+      },
+      "ParseQuickEntryDto": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "example": "café 250 popular",
+            "description": "Short natural-language sentence to turn into a draft."
+          }
+        },
+        "required": [
+          "text"
+        ]
+      },
       "CreateNotificationDto": {
         "type": "object",
         "properties": {
@@ -6107,6 +7744,55 @@
           "token"
         ]
       },
+      "EntityRefDto": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "transaction",
+              "transfer",
+              "account",
+              "card",
+              "card_statement",
+              "loan",
+              "loan_installment",
+              "receivable",
+              "savings_goal",
+              "budget",
+              "institution",
+              "email_message"
+            ]
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "type",
+          "id"
+        ]
+      },
+      "ChatContextDto": {
+        "type": "object",
+        "properties": {
+          "moduleSlug": {
+            "type": "string",
+            "description": "Module slug that scopes the session"
+          },
+          "screen": {
+            "type": "string",
+            "description": "Screen that opened the agent"
+          },
+          "entityRef": {
+            "$ref": "#/components/schemas/EntityRefDto"
+          }
+        },
+        "required": [
+          "moduleSlug"
+        ]
+      },
       "ChatMessageDto": {
         "type": "object",
         "properties": {
@@ -6138,6 +7824,9 @@
           "clientMessageId": {
             "type": "string",
             "description": "Client-generated id for idempotent message delivery"
+          },
+          "context": {
+            "$ref": "#/components/schemas/ChatContextDto"
           },
           "messages": {
             "type": "array",
@@ -6218,6 +7907,9 @@
           "moduleSlug": {
             "type": "string",
             "description": "Module slug to scope the session (agenda, projects, etc.)"
+          },
+          "context": {
+            "$ref": "#/components/schemas/ChatContextDto"
           }
         }
       }

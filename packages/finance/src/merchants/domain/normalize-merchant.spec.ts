@@ -1,7 +1,4 @@
-import {
-  merchantDisplayName,
-  normalizeMerchant,
-} from './normalize-merchant';
+import { merchantDisplayName, normalizeMerchant } from './normalize-merchant';
 
 describe('normalizeMerchant', () => {
   it('groups the UBER card descriptor with the app name', () => {

@@ -9,15 +9,13 @@ export const RECURRING_PERIODICITIES = [7, 14, 30, 365] as const;
 export type RecurringPeriodicity = (typeof RECURRING_PERIODICITIES)[number];
 
 /** Every periodicity accepts a gap this many days away from the ideal. */
-export const PERIODICITY_TOLERANCE_DAYS: Record<
-  RecurringPeriodicity,
-  number
-> = {
-  7: 2,
-  14: 3,
-  30: 5,
-  365: 20,
-};
+export const PERIODICITY_TOLERANCE_DAYS: Record<RecurringPeriodicity, number> =
+  {
+    7: 2,
+    14: 3,
+    30: 5,
+    365: 20,
+  };
 
 export const DETECTION_MIN_OCCURRENCES = 3;
 /** A user-confirmed annual pattern survives with two charges. */
@@ -114,7 +112,8 @@ export function detectRecurringPattern(
     return null;
   }
   const withinTolerance = amounts.every(
-    (amount) => (Math.abs(amount - avgAmount) / avgAmount) * 100 <= tolerancePct,
+    (amount) =>
+      (Math.abs(amount - avgAmount) / avgAmount) * 100 <= tolerancePct,
   );
   if (!withinTolerance) {
     return null;
@@ -133,7 +132,10 @@ export function detectRecurringPattern(
   if (!periodicity) {
     return null;
   }
-  if (charges.length === CONFIRMED_ANNUAL_MIN_OCCURRENCES && periodicity !== 365) {
+  if (
+    charges.length === CONFIRMED_ANNUAL_MIN_OCCURRENCES &&
+    periodicity !== 365
+  ) {
     return null;
   }
 

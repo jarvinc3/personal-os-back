@@ -163,6 +163,9 @@ export class WipeFinanceUserDataUseCase {
     sourceIds: Array<{ id: string }>,
   ): Promise<Partial<FinanceWipeCounts>> {
     const sourceIdList = sourceIds.map((source) => source.id);
+    // Adjustments hold the movement with a RESTRICT foreign key, so the
+    // closes go first and cascade their lines before the movements.
+    await tx.finReconciliation.deleteMany({ where: { userId } });
     const transactions = await tx.finTransaction.deleteMany({
       where: { userId },
     });

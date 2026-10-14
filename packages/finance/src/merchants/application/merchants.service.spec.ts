@@ -31,11 +31,7 @@ function build(repo: Partial<Mocked> = {}) {
   const ownership = { assertCategoryVisible: jest.fn() };
   const logos = { saveCustomLogo: jest.fn(), publicUrl: jest.fn() };
   return {
-    service: new MerchantsService(
-      fullRepo,
-      ownership as never,
-      logos as never,
-    ),
+    service: new MerchantsService(fullRepo, ownership as never, logos as never),
     repo: fullRepo as unknown as Mocked,
   };
 }

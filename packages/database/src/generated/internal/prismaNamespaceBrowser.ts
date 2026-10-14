@@ -91,7 +91,9 @@ export const ModelName = {
   AuthDeletionOutbox: 'AuthDeletionOutbox',
   FinDeletionJournal: 'FinDeletionJournal',
   FinStatementImport: 'FinStatementImport',
-  FinStatementImportLine: 'FinStatementImportLine'
+  FinStatementImportLine: 'FinStatementImportLine',
+  FinReconciliation: 'FinReconciliation',
+  FinReconciliationAdjustment: 'FinReconciliationAdjustment'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -831,6 +833,34 @@ export const FinStatementImportLineScalarFieldEnum = {
 } as const
 
 export type FinStatementImportLineScalarFieldEnum = (typeof FinStatementImportLineScalarFieldEnum)[keyof typeof FinStatementImportLineScalarFieldEnum]
+
+
+export const FinReconciliationScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  accountId: 'accountId',
+  cardId: 'cardId',
+  currency: 'currency',
+  asOfDate: 'asOfDate',
+  appBalance: 'appBalance',
+  realBalance: 'realBalance',
+  difference: 'difference',
+  note: 'note',
+  createdAt: 'createdAt'
+} as const
+
+export type FinReconciliationScalarFieldEnum = (typeof FinReconciliationScalarFieldEnum)[keyof typeof FinReconciliationScalarFieldEnum]
+
+
+export const FinReconciliationAdjustmentScalarFieldEnum = {
+  id: 'id',
+  reconciliationId: 'reconciliationId',
+  transactionId: 'transactionId',
+  kind: 'kind',
+  amount: 'amount'
+} as const
+
+export type FinReconciliationAdjustmentScalarFieldEnum = (typeof FinReconciliationAdjustmentScalarFieldEnum)[keyof typeof FinReconciliationAdjustmentScalarFieldEnum]
 
 
 export const SortOrder = {

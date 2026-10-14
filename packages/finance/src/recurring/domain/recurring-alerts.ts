@@ -34,7 +34,9 @@ export function hasPriceIncrease(input: {
   avgAmount: number;
   tolerancePct: number;
 }): boolean {
-  return priceIncreasePct(input.lastAmount, input.avgAmount) > input.tolerancePct;
+  return (
+    priceIncreasePct(input.lastAmount, input.avgAmount) > input.tolerancePct
+  );
 }
 
 export function isChargeMissed(input: {
@@ -42,7 +44,10 @@ export function isChargeMissed(input: {
   today: Date;
   toleranceDays?: number;
 }): boolean {
-  return daysUntil(input.nextExpectedDate, input.today) < -(input.toleranceDays ?? MISSED_TOLERANCE_DAYS);
+  return (
+    daysUntil(input.nextExpectedDate, input.today) <
+    -(input.toleranceDays ?? MISSED_TOLERANCE_DAYS)
+  );
 }
 
 export function monthlyAmount(

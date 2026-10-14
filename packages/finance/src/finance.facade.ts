@@ -20,6 +20,11 @@ import { CreateTransferUseCase } from './ledger/application/create-transfer.use-
 import { LedgerQueryService } from './ledger/application/ledger-query.service';
 import { MerchantsService } from './merchants/application/merchants.service';
 import { RecurringService } from './recurring/application/recurring.service';
+import { ReconciliationsService } from './reconciliation/application/reconciliations.service';
+import type { BankChargesGroupBy } from './reconciliation/presentation/dto/bank-charges-query.dto';
+import type { CreateReconciliationDto } from './reconciliation/presentation/dto/create-reconciliation.dto';
+import type { ListReconciliationsQueryDto } from './reconciliation/presentation/dto/list-reconciliations-query.dto';
+import type { PreviewReconciliationDto } from './reconciliation/presentation/dto/preview-reconciliation.dto';
 import { SubscriptionsService } from './subscriptions/application/subscriptions.service';
 import { ReverseTransactionUseCase } from './ledger/application/reverse-transaction.use-case';
 import { UpdateTransactionUseCase } from './ledger/application/update-transaction.use-case';
@@ -83,6 +88,7 @@ export class FinanceFacade {
     private readonly merchants: MerchantsService,
     private readonly recurring: RecurringService,
     private readonly subscriptions: SubscriptionsService,
+    private readonly reconciliations: ReconciliationsService,
   ) {}
 
   getBaseCurrency(userId: string) {
@@ -321,6 +327,29 @@ export class FinanceFacade {
       subscriptions: subscriptionPage.items,
       recurring: recurringPage.items,
     };
+  }
+
+  previewReconciliation(userId: string, dto: PreviewReconciliationDto) {
+    return this.reconciliations.preview(userId, dto);
+  }
+
+  createReconciliation(userId: string, dto: CreateReconciliationDto) {
+    return this.reconciliations.create(userId, dto);
+  }
+
+  listReconciliations(userId: string, query: ListReconciliationsQueryDto) {
+    return this.reconciliations.list(userId, query);
+  }
+
+  getReconciliationStatus(userId: string, month: string) {
+    return this.reconciliations.status(userId, month);
+  }
+
+  getBankCharges(
+    userId: string,
+    input: { from: Date; to: Date; groupBy?: BankChargesGroupBy },
+  ) {
+    return this.reconciliations.bankCharges(userId, input.from, input.to);
   }
 
   createSubscription(

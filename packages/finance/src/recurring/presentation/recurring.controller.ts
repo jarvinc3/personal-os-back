@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Param, Patch, Post, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CurrentUser, RequiresEnabledModule } from '@personal-os/core';
 import { RecurringService } from '../application/recurring.service';
@@ -17,7 +25,9 @@ export class RecurringController {
   constructor(private readonly recurring: RecurringService) {}
 
   @Get('recurring')
-  @ApiOperation({ summary: 'List recurring patterns (suggested and confirmed)' })
+  @ApiOperation({
+    summary: 'List recurring patterns (suggested and confirmed)',
+  })
   list(
     @CurrentUser('sub') userId: string,
     @Query() query: ListRecurringQueryDto,

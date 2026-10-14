@@ -953,6 +953,23 @@ export type EnumFinStatementLineDecisionWithAggregatesFilter<$PrismaModel = neve
   _max?: Prisma.NestedEnumFinStatementLineDecisionFilter<$PrismaModel>
 }
 
+export type EnumFinReconciliationAdjustmentKindFilter<$PrismaModel = never> = {
+  equals?: $Enums.FinReconciliationAdjustmentKind | Prisma.EnumFinReconciliationAdjustmentKindFieldRefInput<$PrismaModel>
+  in?: $Enums.FinReconciliationAdjustmentKind[] | Prisma.ListEnumFinReconciliationAdjustmentKindFieldRefInput<$PrismaModel>
+  notIn?: $Enums.FinReconciliationAdjustmentKind[] | Prisma.ListEnumFinReconciliationAdjustmentKindFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumFinReconciliationAdjustmentKindFilter<$PrismaModel> | $Enums.FinReconciliationAdjustmentKind
+}
+
+export type EnumFinReconciliationAdjustmentKindWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.FinReconciliationAdjustmentKind | Prisma.EnumFinReconciliationAdjustmentKindFieldRefInput<$PrismaModel>
+  in?: $Enums.FinReconciliationAdjustmentKind[] | Prisma.ListEnumFinReconciliationAdjustmentKindFieldRefInput<$PrismaModel>
+  notIn?: $Enums.FinReconciliationAdjustmentKind[] | Prisma.ListEnumFinReconciliationAdjustmentKindFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumFinReconciliationAdjustmentKindWithAggregatesFilter<$PrismaModel> | $Enums.FinReconciliationAdjustmentKind
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumFinReconciliationAdjustmentKindFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumFinReconciliationAdjustmentKindFilter<$PrismaModel>
+}
+
 export type NestedStringFilter<$PrismaModel = never> = {
   equals?: string | Prisma.StringFieldRefInput<$PrismaModel>
   in?: string[] | Prisma.ListStringFieldRefInput<$PrismaModel>
@@ -1849,6 +1866,23 @@ export type NestedEnumFinStatementLineDecisionWithAggregatesFilter<$PrismaModel 
   _count?: Prisma.NestedIntFilter<$PrismaModel>
   _min?: Prisma.NestedEnumFinStatementLineDecisionFilter<$PrismaModel>
   _max?: Prisma.NestedEnumFinStatementLineDecisionFilter<$PrismaModel>
+}
+
+export type NestedEnumFinReconciliationAdjustmentKindFilter<$PrismaModel = never> = {
+  equals?: $Enums.FinReconciliationAdjustmentKind | Prisma.EnumFinReconciliationAdjustmentKindFieldRefInput<$PrismaModel>
+  in?: $Enums.FinReconciliationAdjustmentKind[] | Prisma.ListEnumFinReconciliationAdjustmentKindFieldRefInput<$PrismaModel>
+  notIn?: $Enums.FinReconciliationAdjustmentKind[] | Prisma.ListEnumFinReconciliationAdjustmentKindFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumFinReconciliationAdjustmentKindFilter<$PrismaModel> | $Enums.FinReconciliationAdjustmentKind
+}
+
+export type NestedEnumFinReconciliationAdjustmentKindWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.FinReconciliationAdjustmentKind | Prisma.EnumFinReconciliationAdjustmentKindFieldRefInput<$PrismaModel>
+  in?: $Enums.FinReconciliationAdjustmentKind[] | Prisma.ListEnumFinReconciliationAdjustmentKindFieldRefInput<$PrismaModel>
+  notIn?: $Enums.FinReconciliationAdjustmentKind[] | Prisma.ListEnumFinReconciliationAdjustmentKindFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumFinReconciliationAdjustmentKindWithAggregatesFilter<$PrismaModel> | $Enums.FinReconciliationAdjustmentKind
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumFinReconciliationAdjustmentKindFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumFinReconciliationAdjustmentKindFilter<$PrismaModel>
 }
 
 

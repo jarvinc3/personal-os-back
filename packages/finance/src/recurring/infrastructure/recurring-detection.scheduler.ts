@@ -46,7 +46,9 @@ export class RecurringDetectionScheduler {
       await this.alerts.evaluate(userId, outcome, now);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      this.logger.warn(`recurring_detection_failed userId=${userId}: ${message}`);
+      this.logger.warn(
+        `recurring_detection_failed userId=${userId}: ${message}`,
+      );
     }
   }
 }

@@ -59,7 +59,12 @@ describe('detectRecurringPattern', () => {
       merchantId: 'merchant',
       merchantName: 'Merchant',
       currency: 'DOP',
-      charges: [charge(1, 100), charge(8, 100), charge(15, 100), charge(22, 100)],
+      charges: [
+        charge(1, 100),
+        charge(8, 100),
+        charge(15, 100),
+        charge(22, 100),
+      ],
       today: new Date(Date.UTC(2026, 0, 30)),
     });
 
@@ -121,8 +126,6 @@ describe('detectRecurringPattern', () => {
       today: new Date(Date.UTC(2026, 2, 10)),
     });
 
-    expect(tight?.confidenceScore).toBeGreaterThan(
-      loose?.confidenceScore ?? 0,
-    );
+    expect(tight?.confidenceScore).toBeGreaterThan(loose?.confidenceScore ?? 0);
   });
 });
