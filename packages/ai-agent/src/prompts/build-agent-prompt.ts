@@ -8,6 +8,14 @@ import {
   getToolsListForModule,
 } from './tools-instructions';
 
+const ENTITY_HINT_MAX_NAME = 160;
+const ENTITY_HINT_MAX_SUMMARY = 600;
+
+// Bank descriptions have no length limit; keep the system prompt bounded.
+function truncateHint(value: string, maxLength: number): string {
+  return value.length > maxLength ? `${value.slice(0, maxLength)}…` : value;
+}
+
 export function buildAgentPrompt(options: {
   tone: AiTone;
   locale?: string | null;
@@ -36,7 +44,7 @@ export function buildAgentPrompt(options: {
       : '';
 
   const entityHint = options.entityContext
-    ? `Entidad en foco: ${options.entityContext.type} "${options.entityContext.name}" (id: ${options.entityContext.id}). Datos: ${options.entityContext.summary}. Si el usuario dice "esto", "esta cuenta", "este préstamo" u otra referencia sin id, usa esa entidad y pasa el id a las herramientas.`
+    ? `Entidad en foco: ${options.entityContext.type} "${truncateHint(options.entityContext.name, ENTITY_HINT_MAX_NAME)}" (id: ${options.entityContext.id}). Datos: ${truncateHint(options.entityContext.summary, ENTITY_HINT_MAX_SUMMARY)}. Si el usuario dice "esto", "esta cuenta", "este préstamo" u otra referencia sin id, usa esa entidad y pasa el id a las herramientas.`
     : '';
 
   return [
