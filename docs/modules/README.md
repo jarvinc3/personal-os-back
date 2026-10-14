@@ -15,4 +15,4 @@ Estándar de carpetas: [architecture/modules.md](../architecture/modules.md).
 
 ## No son módulos Nest
 
-`agenda`, `projects`, `health`, `subscriptions` — slugs en `MODULE_SLUGS` / `user_modules`. Tools de contexto existen en `MODULE_CONTEXT`; no hay controllers.
+`agenda`, `projects`, `health`, `subscriptions` — slugs en `MODULE_SLUGS` / `user_modules`. Tools de contexto existen en `MODULE_CONTEXT`; no hay controllers. Suscripciones se integra en Finanzas (`packages/finance/src/recurring/` hoy; gestor completo en el pendiente 08 de la web, `docs/modules/finance/pendientes/08-suscripciones.md`), no como módulo `sub_` aparte.
