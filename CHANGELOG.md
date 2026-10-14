@@ -2,6 +2,18 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [SemVer](https://semver.org/lang/es/). Reglas y ejemplo en [docs/reference/changelog-guide.md](./docs/reference/changelog-guide.md).
 
+## [0.22.0] - 2026-10-14
+
+### Agregado
+
+- `GET /api/finance/loans/:id/installments`, `GET /api/finance/receivables/:id/payments`, `GET /api/finance/savings-goals/:id/allocations` (y su alias `/contributions`), `GET /api/finance/email-sync/pending` y `GET /api/finance/email-sync/messages` aceptan `cursor` + `limit` (1-100, por defecto 20) y devuelven `{ items, nextCursor, hasMore }`.
+- Los eliminados de `GET /api/finance/recycle-bin` paginan por fecha dentro de `{ archived, items, nextCursor, hasMore }`.
+
+### Cambiado
+
+- `GET /api/finance/recycle-bin` deja de devolver `{ archived, deleted }`: los archivados van completos en `archived` y los borrados paginan en `items`.
+- La tool `list_pending_emails` pide la primera página y devuelve `hasMore`.
+
 ## [0.21.1] - 2026-10-14
 
 ### Corregido
