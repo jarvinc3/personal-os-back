@@ -2,6 +2,20 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [SemVer](https://semver.org/lang/es/). Reglas y ejemplo en [docs/reference/changelog-guide.md](./docs/reference/changelog-guide.md).
 
+## [0.26.1] - 2026-10-14
+
+### Corregido
+
+- `PATCH /finance/subscriptions/:id` con `status: ACTIVE` recalcula `nextBillingDate` desde hoy, igual que el endpoint `resume`.
+- El emparejado de pagos compara días de calendario y no horas transcurridas: un cobro el día esperado a las 23:00 entra en la ventana de ±3 días.
+- Registrar a mano un pago con un movimiento ya vinculado a la misma suscripción responde 409 en vez del error del índice único.
+- Pausar, reanudar o cancelar limpia el sello del estado contrario (`pausedAt`/`cancelledAt`).
+- Editar el dominio a `null` ya no rompe la actualización de la suscripción.
+
+### Cambiado
+
+- Specs del servicio de suscripciones (reanudar, emparejado de una sola candidata, pago manual duplicado) y del job de recordatorios (un evento por ciclo).
+
 ## [0.26.0] - 2026-10-14 - Suscripciones
 
 ### Agregado
