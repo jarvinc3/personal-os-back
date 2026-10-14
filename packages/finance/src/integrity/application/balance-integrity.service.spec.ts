@@ -208,4 +208,86 @@ describe('BalanceIntegrityService', () => {
     expect(changed).toBe(0);
     expect(events.enqueue).not.toHaveBeenCalled();
   });
+
+  it('refreshes an open drift when the amount moved but the difference holds', async () => {
+    const stale = driftRow({
+      storedBalance: new Prisma.Decimal(100),
+      expectedBalance: new Prisma.Decimal(0),
+      difference: new Prisma.Decimal(-100),
+    });
+    const refreshed = driftRow({
+      storedBalance: new Prisma.Decimal(150),
+      expectedBalance: new Prisma.Decimal(50),
+      difference: new Prisma.Decimal(-100),
+    });
+    const { service, repo, events } = build({
+      snapshot: {
+        accounts: [{ id: 'acc-1', currency: 'DOP', balanceCents: 15000 }],
+        cards: [],
+        cardBalances: [],
+        movements: [
+          {
+            accountId: 'acc-1',
+            cardId: null,
+            type: 'CREDIT',
+            ledgerAmountCents: 5000,
+            ledgerCurrency: 'DOP',
+          },
+        ],
+      },
+      open: [stale],
+      openAfter: [refreshed],
+    });
+    repo.updateDrift.mockResolvedValue(refreshed);
+
+    const changed = await service.runForUser('user-1');
+
+    expect(repo.updateDrift).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'drift-1',
+        storedCents: 15000,
+        expectedCents: 5000,
+      }),
+    );
+    expect(changed).toBe(0);
+    expect(events.enqueue).not.toHaveBeenCalled();
+  });
+
+  it('emits again when an open drift changes its difference', async () => {
+    const stale = driftRow({
+      storedBalance: new Prisma.Decimal(100),
+      expectedBalance: new Prisma.Decimal(0),
+      difference: new Prisma.Decimal(-100),
+    });
+    const refreshed = driftRow({
+      storedBalance: new Prisma.Decimal(150),
+      expectedBalance: new Prisma.Decimal(0),
+      difference: new Prisma.Decimal(-150),
+    });
+    const { service, repo, events } = build({
+      snapshot: {
+        accounts: [{ id: 'acc-1', currency: 'DOP', balanceCents: 15000 }],
+        cards: [],
+        cardBalances: [],
+        movements: [],
+      },
+      open: [stale],
+      openAfter: [refreshed],
+    });
+    repo.updateDrift.mockResolvedValue(refreshed);
+
+    const changed = await service.runForUser('user-1');
+
+    expect(changed).toBe(1);
+    expect(events.enqueue).toHaveBeenCalledTimes(1);
+    expect(events.enqueue).toHaveBeenCalledWith(
+      expect.objectContaining({
+        payload: expect.objectContaining({
+          storedBalance: '150.00',
+          expectedBalance: '0.00',
+          difference: '-150.00',
+        }),
+      }),
+    );
+  });
 });

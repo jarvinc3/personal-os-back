@@ -250,6 +250,77 @@ describe('expected balance (I1)', () => {
     ]);
   });
 
+  it('matches the stored balance after a transfer with a fee', () => {
+    const movements: IntegrityMovement[] = [
+      movement({ type: 'DEBIT', accountId: 'acc-1', ledgerAmountCents: -100 }),
+      movement({ type: 'CREDIT', accountId: 'acc-2', ledgerAmountCents: 100 }),
+      movement({ type: 'DEBIT', accountId: 'acc-1', ledgerAmountCents: -5 }),
+    ];
+    const state: LedgerState = {
+      accounts: { 'acc-1': -105, 'acc-2': 100 },
+      cards: {},
+    };
+
+    const expected = computeExpectedBalances({
+      accounts: [
+        { id: 'acc-1', currency: 'DOP', balanceCents: state.accounts['acc-1'] },
+        { id: 'acc-2', currency: 'DOP', balanceCents: state.accounts['acc-2'] },
+      ],
+      cards: CARDS,
+      cardBalances: [],
+      movements,
+    });
+
+    expect(expected.accounts).toEqual([
+      {
+        accountId: 'acc-1',
+        currency: 'DOP',
+        storedCents: -105,
+        expectedCents: -105,
+      },
+      {
+        accountId: 'acc-2',
+        currency: 'DOP',
+        storedCents: 100,
+        expectedCents: 100,
+      },
+    ]);
+  });
+
+  it('matches the stored balance when a deleted movement is restored', () => {
+    const debit = movement({
+      type: 'DEBIT',
+      accountId: 'acc-1',
+      ledgerAmountCents: -25,
+    });
+
+    const assertI1 = (
+      storedCents: number,
+      movements: readonly IntegrityMovement[],
+    ): void => {
+      const expected = computeExpectedBalances({
+        accounts: [{ id: 'acc-1', currency: 'DOP', balanceCents: storedCents }],
+        cards: CARDS,
+        cardBalances: [],
+        movements,
+      });
+      expect(expected.accounts).toEqual([
+        {
+          accountId: 'acc-1',
+          currency: 'DOP',
+          storedCents,
+          expectedCents: storedCents,
+        },
+      ]);
+    };
+
+    assertI1(-25, [debit]);
+    // Delete: the movement leaves the confirmed set and its effect is undone.
+    assertI1(0, []);
+    // Restore: the movement comes back once, so it must not double its effect.
+    assertI1(-25, [debit]);
+  });
+
   it('reports a credit card currency with movements but no stored row', () => {
     const expected = computeExpectedBalances({
       accounts: [],

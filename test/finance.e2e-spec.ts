@@ -3063,4 +3063,39 @@ describe('Finance (e2e)', () => {
         });
       });
   });
+
+  it('GET /api/finance/integrity/check rejects two targets at once', async () => {
+    await request(app.getHttpServer())
+      .get('/api/finance/integrity/check')
+      .query({
+        accountId: '11111111-1111-4111-8111-111111111111',
+        cardId: '22222222-2222-4222-8222-222222222222',
+      })
+      .set('Authorization', `Bearer ${token}`)
+      .expect(400);
+  });
+
+  it('GET /api/finance/integrity/check returns 404 for an unknown account', async () => {
+    await request(app.getHttpServer())
+      .get('/api/finance/integrity/check')
+      .query({ accountId: '11111111-1111-4111-8111-111111111111' })
+      .set('Authorization', `Bearer ${token}`)
+      .expect(404);
+  });
+
+  it('POST /api/finance/integrity/recalculate requires a target', async () => {
+    await request(app.getHttpServer())
+      .post('/api/finance/integrity/recalculate')
+      .set('Authorization', `Bearer ${token}`)
+      .send({})
+      .expect(400);
+  });
+
+  it('POST /api/finance/integrity/recalculate requires a card currency', async () => {
+    await request(app.getHttpServer())
+      .post('/api/finance/integrity/recalculate')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ cardId: '22222222-2222-4222-8222-222222222222' })
+      .expect(400);
+  });
 });

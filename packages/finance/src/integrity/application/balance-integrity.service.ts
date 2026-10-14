@@ -58,6 +58,10 @@ function moneyString(value: { toString(): string } | number): string {
   return roundMoney(Number(value)).toFixed(2);
 }
 
+function toCents(value: { toString(): string }): number {
+  return Math.round(Number(value) * 100);
+}
+
 function toView(row: BalanceDriftRow): BalanceDriftView {
   return {
     id: row.id,
@@ -206,22 +210,26 @@ export class BalanceIntegrityService {
         );
         continue;
       }
-      const currentDifferenceCents = Number(existing.difference) * 100;
+      const storedCents = toCents(existing.storedBalance);
+      const expectedCents = toCents(existing.expectedBalance);
       if (
-        Math.round(currentDifferenceCents) !==
-        product.expectedCents - product.storedCents
+        storedCents === product.storedCents &&
+        expectedCents === product.expectedCents
       ) {
-        changed.push(
-          await this.repo.updateDrift({
-            id: existing.id,
-            userId,
-            target: product.target,
-            currency: product.currency,
-            storedCents: product.storedCents,
-            expectedCents: product.expectedCents,
-            detectedAt: now,
-          }),
-        );
+        continue;
+      }
+      const differenceCents = product.expectedCents - product.storedCents;
+      const updated = await this.repo.updateDrift({
+        id: existing.id,
+        userId,
+        target: product.target,
+        currency: product.currency,
+        storedCents: product.storedCents,
+        expectedCents: product.expectedCents,
+        detectedAt: now,
+      });
+      if (toCents(existing.difference) !== differenceCents) {
+        changed.push(updated);
       }
     }
 
