@@ -2,6 +2,21 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [SemVer](https://semver.org/lang/es/). Reglas y ejemplo en [docs/reference/changelog-guide.md](./docs/reference/changelog-guide.md).
 
+## [0.25.2] - 2026-10-14
+
+### Corregido
+
+- El aviso de subida de precio de un recurrente confirmado vuelve a dispararse en cada ejecución: la detección usa una banda amplia solo para refrescar el patrón y deja intacta la tolerancia guardada que compara el último cobro.
+- `GET /finance/recurring` pagina hacia delante con el cursor; la lista ordena por próximo cobro ascendente y antes repetía filas ya vistas.
+- El gasto del mes de un comercio cubre el último día completo, y `GET /finance/merchants/:id` usa la ventana del mes en vez del histórico.
+- Editar el nombre de un recurrente resuelve el comercio canónico, así que el cambio se ve en la lista y el detalle.
+- `POST /finance/recurring` rechaza un alta sin comercio ni `merchantId`, y `nextExpectedDate` se valida como fecha ISO en alta y edición.
+
+### Cambiado
+
+- Se eliminan métodos de repositorio sin uso (`listTransactions` y `clearMerchantLinks` de comercios, `deletePatterns` de recurrentes). Sin cambios de comportamiento.
+- Specs nuevos para el cursor del repositorio de recurrentes, el gasto del mes, la tolerancia del aviso de precio y la edición del comercio.
+
 ## [0.25.1] - 2026-10-14
 
 ### Cambiado
