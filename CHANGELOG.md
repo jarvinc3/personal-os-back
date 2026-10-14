@@ -2,6 +2,22 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [SemVer](https://semver.org/lang/es/). Reglas y ejemplo en [docs/reference/changelog-guide.md](./docs/reference/changelog-guide.md).
 
+## [0.25.0] - 2026-10-14 - Comercios y suscripciones detectadas
+
+### Agregado
+
+- Comercios canónicos: `FinMerchant` con clave normalizada y alias, `FinTransaction.merchantId` y el normalizador puro `normalize-merchant.ts` (gateway, referencias, estrella, ciudad y descriptores) con specs a partir de los correos BHD, Popular y Qik.
+- REST de comercios: `GET /finance/merchants`, `GET /finance/merchants/:id`, `GET /finance/merchants/suggest`, `PATCH /finance/merchants/:id`, `POST /finance/merchants/:id/merge` y `POST /finance/merchants/:id/logo`.
+- Recurrentes: `FinRecurringPattern` gana `merchantId`, `status`, `kind`, `lastSeenAt`, `amountTolerance`, `confirmedAt` y `createdAt`; detección pura por comercio, monto (±10 %) y periodicidad (7, 14, 30 o 365 días), con scheduler nocturno que respeta los descartados.
+- REST de recurrentes: `GET /finance/recurring`, `GET /finance/recurring/upcoming`, `POST /finance/recurring` y `PATCH /finance/recurring/:id` (confirmar, descartar, editar).
+- Eventos `finance.recurring.price_changed`, `finance.recurring.missed` y `finance.recurring.upcoming`, con su notificación en la app y el ajuste `recurringAlerts` de Finanzas.
+- Tools `list_subscriptions`, `confirm_recurring` y `list_merchants`.
+- La creación manual y la ingesta de correo resuelven y guardan el `merchantId`; `merchant` conserva el texto original.
+
+### Cambiado
+
+- `GET /finance/transactions` acepta el filtro `merchantId` y cada movimiento devuelve `merchantId`, `merchantName` y `merchantLogoUrl`.
+
 ## [0.24.4] - 2026-10-14
 
 ### Corregido
