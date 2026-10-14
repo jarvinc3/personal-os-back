@@ -33,6 +33,28 @@ describe('tool-arg-schemas', () => {
     expect(paid.ok).toBe(true);
   });
 
+  it('accepts reconcile_product only with exactly one target', () => {
+    const accountId = '550e8400-e29b-41d4-a716-446655440000';
+    const cardId = '660e8400-e29b-41d4-a716-446655440001';
+    const base = { asOfDate: '2026-10-15', realBalance: 9950 };
+
+    const valid = validateMutatingToolArgs('reconcile_product', {
+      ...base,
+      accountId,
+    });
+    expect(valid.ok).toBe(true);
+
+    const missing = validateMutatingToolArgs('reconcile_product', base);
+    expect(missing.ok).toBe(false);
+
+    const both = validateMutatingToolArgs('reconcile_product', {
+      ...base,
+      accountId,
+      cardId,
+    });
+    expect(both.ok).toBe(false);
+  });
+
   it('generates OpenAI-compatible JSON Schema without $schema', () => {
     const parameters = mutatingToolParametersJsonSchema('set_theme');
     expect(parameters).toMatchObject({

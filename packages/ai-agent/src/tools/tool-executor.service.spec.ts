@@ -34,6 +34,9 @@ describe('ToolExecutorService', () => {
   const updateTransaction = jest.fn();
   const confirmTransaction = jest.fn();
   const unconfirmTransaction = jest.fn();
+  const previewReconciliation = jest.fn();
+  const createReconciliation = jest.fn();
+  const getBankCharges = jest.fn();
 
   const financeFacade = {
     createTransaction,
@@ -55,6 +58,9 @@ describe('ToolExecutorService', () => {
     updateTransaction,
     confirmTransaction,
     unconfirmTransaction,
+    previewReconciliation,
+    createReconciliation,
+    getBankCharges,
   } as unknown as FinanceFacade;
 
   const findModuleBySlug = jest.fn();
@@ -180,5 +186,82 @@ describe('ToolExecutorService', () => {
     expect(toolResult.success).toBe(true);
     expect(toolResult.message).toBe('Transaction unlocked');
     expect(unconfirmTransaction).toHaveBeenCalledWith('user-1', transactionId);
+  });
+
+  it('previews reconcile_product without writing the close', async () => {
+    previewReconciliation.mockResolvedValue({
+      difference: '-50.00',
+      suggestedAdjustments: [],
+    });
+    const accountId = '550e8400-e29b-41d4-a716-446655440000';
+
+    const toolResult = await executor.execute(ctx, 'reconcile_product', {
+      accountId,
+      asOfDate: '2026-10-15',
+      realBalance: 9950,
+    });
+
+    expect(toolResult.success).toBe(true);
+    expect(toolResult.message).toBe('Reconciliation preview');
+    expect(previewReconciliation).toHaveBeenCalledWith('user-1', {
+      accountId,
+      cardId: undefined,
+      currency: undefined,
+      asOfDate: '2026-10-15',
+      realBalance: 9950,
+    });
+    expect(createReconciliation).not.toHaveBeenCalled();
+  });
+
+  it('confirms reconcile_product with the suggested split when none is given', async () => {
+    previewReconciliation.mockResolvedValue({
+      difference: '-50.00',
+      suggestedAdjustments: [
+        { kind: 'IMPUESTO_DGII', amount: '-15.00' },
+        { kind: 'OTRO', amount: '-35.00' },
+      ],
+    });
+    createReconciliation.mockResolvedValue({ id: 'rec-1' });
+    const accountId = '550e8400-e29b-41d4-a716-446655440000';
+
+    const toolResult = await executor.execute(ctx, 'reconcile_product', {
+      accountId,
+      asOfDate: '2026-10-15',
+      realBalance: 9950,
+      apply: true,
+    });
+
+    expect(toolResult.success).toBe(true);
+    expect(toolResult.message).toBe('Product reconciled');
+    expect(createReconciliation).toHaveBeenCalledWith('user-1', {
+      accountId,
+      cardId: undefined,
+      currency: undefined,
+      asOfDate: '2026-10-15',
+      realBalance: 9950,
+      adjustments: [
+        { kind: 'IMPUESTO_DGII', amount: -15 },
+        { kind: 'OTRO', amount: -35 },
+      ],
+      note: undefined,
+    });
+  });
+
+  it('routes get_bank_charges with its date range and grouping', async () => {
+    getBankCharges.mockResolvedValue({ total: '-50.00', count: 2 });
+
+    const toolResult = await executor.execute(ctx, 'get_bank_charges', {
+      from: '2026-10-01',
+      to: '2026-10-31',
+      groupBy: 'kind',
+    });
+
+    expect(toolResult.success).toBe(true);
+    expect(toolResult.message).toBe('Bank charges loaded');
+    expect(getBankCharges).toHaveBeenCalledWith('user-1', {
+      from: new Date('2026-10-01'),
+      to: new Date('2026-10-31'),
+      groupBy: 'kind',
+    });
   });
 });

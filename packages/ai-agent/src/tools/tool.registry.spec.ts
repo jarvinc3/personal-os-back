@@ -52,6 +52,50 @@ describe('tool.registry', () => {
     });
   });
 
+  it('exposes reconcile_product as a mutating finance tool from its schema', () => {
+    const reconcile = getToolDefinition('reconcile_product');
+    expect(reconcile).toMatchObject({
+      mutating: true,
+      targetModule: 'finance',
+      parameters: {
+        type: 'object',
+        required: ['asOfDate', 'realBalance'],
+        properties: {
+          realBalance: { type: 'number' },
+          apply: { type: 'boolean' },
+          adjustments: {
+            type: 'array',
+            items: {
+              properties: {
+                kind: {
+                  enum: [
+                    'IMPUESTO_DGII',
+                    'COMISION',
+                    'CARGO_PLASTICO',
+                    'INTERES',
+                    'OTRO',
+                  ],
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+  });
+
+  it('exposes get_bank_charges as a read-only finance tool', () => {
+    const charges = getToolDefinition('get_bank_charges');
+    expect(charges).toMatchObject({
+      mutating: false,
+      targetModule: 'finance',
+      parameters: {
+        type: 'object',
+        properties: { groupBy: { enum: ['month', 'institution', 'kind'] } },
+      },
+    });
+  });
+
   it('labels the transaction unlock action', () => {
     expect(getActionLabel('unconfirm_transaction', {})).toBe(
       'Desbloquear transacción',
