@@ -432,7 +432,9 @@ export const ModelName = {
   DomainEventOutbox: 'DomainEventOutbox',
   ProcessedDomainEvent: 'ProcessedDomainEvent',
   AuthDeletionOutbox: 'AuthDeletionOutbox',
-  FinDeletionJournal: 'FinDeletionJournal'
+  FinDeletionJournal: 'FinDeletionJournal',
+  FinStatementImport: 'FinStatementImport',
+  FinStatementImportLine: 'FinStatementImportLine'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -448,7 +450,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "module" | "userModule" | "aiAgentSession" | "aiMessage" | "aiAction" | "notification" | "pushToken" | "finAccount" | "finEmailConnection" | "finEmailSource" | "finTransaction" | "finCategory" | "finBudget" | "finBudgetCategory" | "finBudgetAlert" | "finRecurringPattern" | "finExchangeRate" | "finInstitution" | "finCard" | "finCardBalance" | "finInstrumentEvent" | "finCardStatement" | "finSavingsGoal" | "finSavingsGoalContribution" | "finLoan" | "finLoanInstallment" | "finLoanPrepayment" | "finReceivable" | "finReceivablePayment" | "finEmailSyncLog" | "finEmailMessage" | "domainEventOutbox" | "processedDomainEvent" | "authDeletionOutbox" | "finDeletionJournal"
+    modelProps: "user" | "module" | "userModule" | "aiAgentSession" | "aiMessage" | "aiAction" | "notification" | "pushToken" | "finAccount" | "finEmailConnection" | "finEmailSource" | "finTransaction" | "finCategory" | "finBudget" | "finBudgetCategory" | "finBudgetAlert" | "finRecurringPattern" | "finExchangeRate" | "finInstitution" | "finCard" | "finCardBalance" | "finInstrumentEvent" | "finCardStatement" | "finSavingsGoal" | "finSavingsGoalContribution" | "finLoan" | "finLoanInstallment" | "finLoanPrepayment" | "finReceivable" | "finReceivablePayment" | "finEmailSyncLog" | "finEmailMessage" | "domainEventOutbox" | "processedDomainEvent" | "authDeletionOutbox" | "finDeletionJournal" | "finStatementImport" | "finStatementImportLine"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -3116,6 +3118,154 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    FinStatementImport: {
+      payload: Prisma.$FinStatementImportPayload<ExtArgs>
+      fields: Prisma.FinStatementImportFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.FinStatementImportFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinStatementImportPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.FinStatementImportFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinStatementImportPayload>
+        }
+        findFirst: {
+          args: Prisma.FinStatementImportFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinStatementImportPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.FinStatementImportFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinStatementImportPayload>
+        }
+        findMany: {
+          args: Prisma.FinStatementImportFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinStatementImportPayload>[]
+        }
+        create: {
+          args: Prisma.FinStatementImportCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinStatementImportPayload>
+        }
+        createMany: {
+          args: Prisma.FinStatementImportCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.FinStatementImportCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinStatementImportPayload>[]
+        }
+        delete: {
+          args: Prisma.FinStatementImportDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinStatementImportPayload>
+        }
+        update: {
+          args: Prisma.FinStatementImportUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinStatementImportPayload>
+        }
+        deleteMany: {
+          args: Prisma.FinStatementImportDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.FinStatementImportUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.FinStatementImportUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinStatementImportPayload>[]
+        }
+        upsert: {
+          args: Prisma.FinStatementImportUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinStatementImportPayload>
+        }
+        aggregate: {
+          args: Prisma.FinStatementImportAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateFinStatementImport>
+        }
+        groupBy: {
+          args: Prisma.FinStatementImportGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.FinStatementImportGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.FinStatementImportCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.FinStatementImportCountAggregateOutputType> | number
+        }
+      }
+    }
+    FinStatementImportLine: {
+      payload: Prisma.$FinStatementImportLinePayload<ExtArgs>
+      fields: Prisma.FinStatementImportLineFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.FinStatementImportLineFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinStatementImportLinePayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.FinStatementImportLineFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinStatementImportLinePayload>
+        }
+        findFirst: {
+          args: Prisma.FinStatementImportLineFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinStatementImportLinePayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.FinStatementImportLineFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinStatementImportLinePayload>
+        }
+        findMany: {
+          args: Prisma.FinStatementImportLineFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinStatementImportLinePayload>[]
+        }
+        create: {
+          args: Prisma.FinStatementImportLineCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinStatementImportLinePayload>
+        }
+        createMany: {
+          args: Prisma.FinStatementImportLineCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.FinStatementImportLineCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinStatementImportLinePayload>[]
+        }
+        delete: {
+          args: Prisma.FinStatementImportLineDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinStatementImportLinePayload>
+        }
+        update: {
+          args: Prisma.FinStatementImportLineUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinStatementImportLinePayload>
+        }
+        deleteMany: {
+          args: Prisma.FinStatementImportLineDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.FinStatementImportLineUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.FinStatementImportLineUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinStatementImportLinePayload>[]
+        }
+        upsert: {
+          args: Prisma.FinStatementImportLineUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinStatementImportLinePayload>
+        }
+        aggregate: {
+          args: Prisma.FinStatementImportLineAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateFinStatementImportLine>
+        }
+        groupBy: {
+          args: Prisma.FinStatementImportLineGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.FinStatementImportLineGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.FinStatementImportLineCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.FinStatementImportLineCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -3773,6 +3923,42 @@ export const FinDeletionJournalScalarFieldEnum = {
 export type FinDeletionJournalScalarFieldEnum = (typeof FinDeletionJournalScalarFieldEnum)[keyof typeof FinDeletionJournalScalarFieldEnum]
 
 
+export const FinStatementImportScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  cardId: 'cardId',
+  accountId: 'accountId',
+  statementId: 'statementId',
+  status: 'status',
+  parsed: 'parsed',
+  error: 'error',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  appliedAt: 'appliedAt'
+} as const
+
+export type FinStatementImportScalarFieldEnum = (typeof FinStatementImportScalarFieldEnum)[keyof typeof FinStatementImportScalarFieldEnum]
+
+
+export const FinStatementImportLineScalarFieldEnum = {
+  id: 'id',
+  importId: 'importId',
+  date: 'date',
+  description: 'description',
+  amount: 'amount',
+  currency: 'currency',
+  type: 'type',
+  reference: 'reference',
+  categoryId: 'categoryId',
+  transactionId: 'transactionId',
+  decision: 'decision',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type FinStatementImportLineScalarFieldEnum = (typeof FinStatementImportLineScalarFieldEnum)[keyof typeof FinStatementImportLineScalarFieldEnum]
+
+
 export const SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -4283,6 +4469,48 @@ export type ListEnumAuthDeletionOutboxStatusFieldRefInput<$PrismaModel> = FieldR
 
 
 /**
+ * Reference to a field of type 'FinStatementImportStatus'
+ */
+export type EnumFinStatementImportStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'FinStatementImportStatus'>
+    
+
+
+/**
+ * Reference to a field of type 'FinStatementImportStatus[]'
+ */
+export type ListEnumFinStatementImportStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'FinStatementImportStatus[]'>
+    
+
+
+/**
+ * Reference to a field of type 'FinStatementLineType'
+ */
+export type EnumFinStatementLineTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'FinStatementLineType'>
+    
+
+
+/**
+ * Reference to a field of type 'FinStatementLineType[]'
+ */
+export type ListEnumFinStatementLineTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'FinStatementLineType[]'>
+    
+
+
+/**
+ * Reference to a field of type 'FinStatementLineDecision'
+ */
+export type EnumFinStatementLineDecisionFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'FinStatementLineDecision'>
+    
+
+
+/**
+ * Reference to a field of type 'FinStatementLineDecision[]'
+ */
+export type ListEnumFinStatementLineDecisionFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'FinStatementLineDecision[]'>
+    
+
+
+/**
  * Reference to a field of type 'Float'
  */
 export type FloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float'>
@@ -4482,6 +4710,8 @@ export type GlobalOmitConfig = {
   processedDomainEvent?: Prisma.ProcessedDomainEventOmit
   authDeletionOutbox?: Prisma.AuthDeletionOutboxOmit
   finDeletionJournal?: Prisma.FinDeletionJournalOmit
+  finStatementImport?: Prisma.FinStatementImportOmit
+  finStatementImportLine?: Prisma.FinStatementImportLineOmit
 }
 
 /* Types for Logging */

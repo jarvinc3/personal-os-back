@@ -270,3 +270,31 @@ export const AuthDeletionOutboxStatus = {
 } as const
 
 export type AuthDeletionOutboxStatus = (typeof AuthDeletionOutboxStatus)[keyof typeof AuthDeletionOutboxStatus]
+
+
+export const FinStatementLineType = {
+  DEBIT: 'DEBIT',
+  CREDIT: 'CREDIT'
+} as const
+
+export type FinStatementLineType = (typeof FinStatementLineType)[keyof typeof FinStatementLineType]
+
+
+export const FinStatementImportStatus = {
+  PARSING: 'PARSING',
+  READY: 'READY',
+  APPLIED: 'APPLIED',
+  FAILED: 'FAILED',
+  DISCARDED: 'DISCARDED'
+} as const
+
+export type FinStatementImportStatus = (typeof FinStatementImportStatus)[keyof typeof FinStatementImportStatus]
+
+
+export const FinStatementLineDecision = {
+  MATCH: 'MATCH',
+  CREATE: 'CREATE',
+  IGNORE: 'IGNORE'
+} as const
+
+export type FinStatementLineDecision = (typeof FinStatementLineDecision)[keyof typeof FinStatementLineDecision]

@@ -1,0 +1,49 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>
+endobj
+5 0 obj
+<< /Length 811 >>
+stream
+BT
+/F1 9 Tf
+14 TL
+40 750 Td
+(Banco BHD - Estado de cuenta de Ahorros) Tj T*
+(Cuenta: 000-1234567-3447   Moneda: DOP) Tj T*
+(Periodo: 01/09/2026 al 30/09/2026) Tj T*
+(Balance anterior: 145,320.55) Tj T*
+() Tj T*
+(Fecha       Descripcion                              Referencia        Debito       Credito) Tj T*
+(02/09/2026  SUPERMERCADO NACIONAL SRL               REF-992001         4,512.30) Tj T*
+(05/09/2026  PAGO NOMINA SEPTIEMBRE                  NOM-000145                    85,000.00) Tj T*
+(09/09/2026  FARMACIA LOS HIDALGOS                   REF-992044         1,240.00) Tj T*
+(14/09/2026  TRANSFERENCIA A ALTICE MOVIL            REF-992117         2,899.00) Tj T*
+(21/09/2026  COLEGIO SANTO TOMAS                     REF-992233        18,500.00) Tj T*
+() Tj T*
+(Balance al corte: 203,169.25) Tj T*
+ET
+endstream
+endobj
+xref
+0 6
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000241 00000 n 
+0000000338 00000 n 
+trailer
+<< /Size 6 /Root 1 0 R >>
+startxref
+1200
+%%EOF

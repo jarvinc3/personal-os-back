@@ -6,16 +6,17 @@ Envelope `{ data, meta }`.
 
 ## Controllers
 
-| Área          | Controllers                                     |
-| ------------- | ----------------------------------------------- |
-| Ledger        | `TransactionsController`, `TransfersController` |
-| Catalog       | Institutions, Accounts, Cards, Categories       |
-| Statements    | `CardStatementsController`                      |
-| Planning      | Budgets, Savings, Loans, Receivables            |
-| Analytics     | `AnalyticsController`                           |
-| Balance sheet | `BalanceSheetController`                        |
-| FX            | `CurrenciesController`                          |
-| Ingestion     | `EmailSyncController`                           |
+| Área              | Controllers                                     |
+| ----------------- | ----------------------------------------------- |
+| Ledger            | `TransactionsController`, `TransfersController` |
+| Catalog           | Institutions, Accounts, Cards, Categories       |
+| Statements        | `CardStatementsController`                      |
+| Import de estados | `StatementImportsController`                    |
+| Planning          | Budgets, Savings, Loans, Receivables            |
+| Analytics         | `AnalyticsController`                           |
+| Balance sheet     | `BalanceSheetController`                        |
+| FX                | `CurrenciesController`                          |
+| Ingestion         | `EmailSyncController`                           |
 
 ## List shapes (`data`)
 
@@ -30,7 +31,7 @@ Sources: sync logs nested `take: 5` (detail 10); nunca tokens. Mailboxes: `{ id,
 
 ## Rutas (resumen)
 
-Ver inventario en código: `*controller.ts` bajo cada capability. Incluye `POST /api/finance/transactions/:id/reverse` y `/unconfirm`, `GET /api/finance/accounts/:id/history` + `/cards/:id/history`, `POST /api/finance/transfers` + `PATCH /api/finance/transfers/:id` + `POST /api/finance/transfers/:id/unconfirm` + `/confirm` + `DELETE /api/finance/transfers/:id`, `GET /api/finance/balance-sheet`, `GET /api/finance/cards/:id/statements`, `GET /api/finance/loans/:id` + `/installments`, `POST /api/finance/loans/:id/pay-next-installment`, `POST` + `DELETE /api/finance/savings-goals/:id/contributions[/:contributionId]`, `GET /api/finance/email-sync/mailboxes`, `GET /api/finance/email-sync/oauth/google/url` + `.../callback`.
+Ver inventario en código: `*controller.ts` bajo cada capability. Incluye `POST /api/finance/transactions/:id/reverse` y `/unconfirm`, `GET /api/finance/accounts/:id/history` + `/cards/:id/history`, `POST /api/finance/transfers` + `PATCH /api/finance/transfers/:id` + `POST /api/finance/transfers/:id/unconfirm` + `/confirm` + `DELETE /api/finance/transfers/:id`, `GET /api/finance/balance-sheet`, `GET /api/finance/cards/:id/statements`, `POST /api/finance/cards/:id/statements/import` + `POST /api/finance/accounts/:id/statements/import` + `GET`/`DELETE /api/finance/statement-imports/:id` + `PATCH /api/finance/statement-imports/:id/lines/:lineId` + `POST /api/finance/statement-imports/:id/apply`, `GET /api/finance/loans/:id` + `/installments`, `POST /api/finance/loans/:id/pay-next-installment`, `POST` + `DELETE /api/finance/savings-goals/:id/contributions[/:contributionId]`, `GET /api/finance/email-sync/mailboxes`, `GET /api/finance/email-sync/oauth/google/url` + `.../callback`.
 
 ## Edición y transferencias
 

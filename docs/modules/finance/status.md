@@ -11,6 +11,7 @@ Fecha: 2026-10-12
 | Deshacer un borrado                                  | `implemented`           | `fin_deletion_journal` + `shared/infrastructure/deletion-journal.repository.ts`; endpoints `<entidad>/:id/restore`                    |
 | Listado de archivados y borrados                     | `implemented`           | `shared/recycle-bin.module.ts`; `GET /api/finance/recycle-bin`                                                                        |
 | Estados de cuenta de tarjeta                         | `implemented`           | `statements/`; job diario `CardStatementsScheduler`                                                                                   |
+| Import de estado de cuenta (PDF) y conciliación      | `implemented`           | `statements/`; endpoints `statement-imports`; migración `20261015230000_fin_statement_imports`; e2e upload → apply                    |
 | Outbox versionado                                    | `implemented`           | `events/`                                                                                                                             |
 | Recurring patterns API                               | `planned` (schema only) | modelo Prisma, sin controller                                                                                                         |
 | `finance.email_sync.failed` emit                     | `planned`               | constante sin emit — REV-BACK-003                                                                                                     |

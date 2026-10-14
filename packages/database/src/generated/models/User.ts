@@ -225,6 +225,7 @@ export type UserWhereInput = {
   finTransactions?: Prisma.FinTransactionListRelationFilter
   finDeletionJournal?: Prisma.FinDeletionJournalListRelationFilter
   finInstrumentEvents?: Prisma.FinInstrumentEventListRelationFilter
+  finStatementImports?: Prisma.FinStatementImportListRelationFilter
   notifications?: Prisma.NotificationListRelationFilter
   pushTokens?: Prisma.PushTokenListRelationFilter
   userModules?: Prisma.UserModuleListRelationFilter
@@ -255,6 +256,7 @@ export type UserOrderByWithRelationInput = {
   finTransactions?: Prisma.FinTransactionOrderByRelationAggregateInput
   finDeletionJournal?: Prisma.FinDeletionJournalOrderByRelationAggregateInput
   finInstrumentEvents?: Prisma.FinInstrumentEventOrderByRelationAggregateInput
+  finStatementImports?: Prisma.FinStatementImportOrderByRelationAggregateInput
   notifications?: Prisma.NotificationOrderByRelationAggregateInput
   pushTokens?: Prisma.PushTokenOrderByRelationAggregateInput
   userModules?: Prisma.UserModuleOrderByRelationAggregateInput
@@ -288,6 +290,7 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   finTransactions?: Prisma.FinTransactionListRelationFilter
   finDeletionJournal?: Prisma.FinDeletionJournalListRelationFilter
   finInstrumentEvents?: Prisma.FinInstrumentEventListRelationFilter
+  finStatementImports?: Prisma.FinStatementImportListRelationFilter
   notifications?: Prisma.NotificationListRelationFilter
   pushTokens?: Prisma.PushTokenListRelationFilter
   userModules?: Prisma.UserModuleListRelationFilter
@@ -348,6 +351,7 @@ export type UserCreateInput = {
   finTransactions?: Prisma.FinTransactionCreateNestedManyWithoutUserInput
   finDeletionJournal?: Prisma.FinDeletionJournalCreateNestedManyWithoutUserInput
   finInstrumentEvents?: Prisma.FinInstrumentEventCreateNestedManyWithoutUserInput
+  finStatementImports?: Prisma.FinStatementImportCreateNestedManyWithoutUserInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
   pushTokens?: Prisma.PushTokenCreateNestedManyWithoutUserInput
   userModules?: Prisma.UserModuleCreateNestedManyWithoutUserInput
@@ -378,6 +382,7 @@ export type UserUncheckedCreateInput = {
   finTransactions?: Prisma.FinTransactionUncheckedCreateNestedManyWithoutUserInput
   finDeletionJournal?: Prisma.FinDeletionJournalUncheckedCreateNestedManyWithoutUserInput
   finInstrumentEvents?: Prisma.FinInstrumentEventUncheckedCreateNestedManyWithoutUserInput
+  finStatementImports?: Prisma.FinStatementImportUncheckedCreateNestedManyWithoutUserInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
   pushTokens?: Prisma.PushTokenUncheckedCreateNestedManyWithoutUserInput
   userModules?: Prisma.UserModuleUncheckedCreateNestedManyWithoutUserInput
@@ -408,6 +413,7 @@ export type UserUpdateInput = {
   finTransactions?: Prisma.FinTransactionUpdateManyWithoutUserNestedInput
   finDeletionJournal?: Prisma.FinDeletionJournalUpdateManyWithoutUserNestedInput
   finInstrumentEvents?: Prisma.FinInstrumentEventUpdateManyWithoutUserNestedInput
+  finStatementImports?: Prisma.FinStatementImportUpdateManyWithoutUserNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
   pushTokens?: Prisma.PushTokenUpdateManyWithoutUserNestedInput
   userModules?: Prisma.UserModuleUpdateManyWithoutUserNestedInput
@@ -438,6 +444,7 @@ export type UserUncheckedUpdateInput = {
   finTransactions?: Prisma.FinTransactionUncheckedUpdateManyWithoutUserNestedInput
   finDeletionJournal?: Prisma.FinDeletionJournalUncheckedUpdateManyWithoutUserNestedInput
   finInstrumentEvents?: Prisma.FinInstrumentEventUncheckedUpdateManyWithoutUserNestedInput
+  finStatementImports?: Prisma.FinStatementImportUncheckedUpdateManyWithoutUserNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
   pushTokens?: Prisma.PushTokenUncheckedUpdateManyWithoutUserNestedInput
   userModules?: Prisma.UserModuleUncheckedUpdateManyWithoutUserNestedInput
@@ -789,6 +796,20 @@ export type UserUpdateOneRequiredWithoutFinDeletionJournalNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutFinDeletionJournalInput, Prisma.UserUpdateWithoutFinDeletionJournalInput>, Prisma.UserUncheckedUpdateWithoutFinDeletionJournalInput>
 }
 
+export type UserCreateNestedOneWithoutFinStatementImportsInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutFinStatementImportsInput, Prisma.UserUncheckedCreateWithoutFinStatementImportsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutFinStatementImportsInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
+export type UserUpdateOneRequiredWithoutFinStatementImportsNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutFinStatementImportsInput, Prisma.UserUncheckedCreateWithoutFinStatementImportsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutFinStatementImportsInput
+  upsert?: Prisma.UserUpsertWithoutFinStatementImportsInput
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutFinStatementImportsInput, Prisma.UserUpdateWithoutFinStatementImportsInput>, Prisma.UserUncheckedUpdateWithoutFinStatementImportsInput>
+}
+
 export type UserCreateWithoutUserModulesInput = {
   id?: string
   email: string
@@ -814,6 +835,7 @@ export type UserCreateWithoutUserModulesInput = {
   finTransactions?: Prisma.FinTransactionCreateNestedManyWithoutUserInput
   finDeletionJournal?: Prisma.FinDeletionJournalCreateNestedManyWithoutUserInput
   finInstrumentEvents?: Prisma.FinInstrumentEventCreateNestedManyWithoutUserInput
+  finStatementImports?: Prisma.FinStatementImportCreateNestedManyWithoutUserInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
   pushTokens?: Prisma.PushTokenCreateNestedManyWithoutUserInput
 }
@@ -843,6 +865,7 @@ export type UserUncheckedCreateWithoutUserModulesInput = {
   finTransactions?: Prisma.FinTransactionUncheckedCreateNestedManyWithoutUserInput
   finDeletionJournal?: Prisma.FinDeletionJournalUncheckedCreateNestedManyWithoutUserInput
   finInstrumentEvents?: Prisma.FinInstrumentEventUncheckedCreateNestedManyWithoutUserInput
+  finStatementImports?: Prisma.FinStatementImportUncheckedCreateNestedManyWithoutUserInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
   pushTokens?: Prisma.PushTokenUncheckedCreateNestedManyWithoutUserInput
 }
@@ -888,6 +911,7 @@ export type UserUpdateWithoutUserModulesInput = {
   finTransactions?: Prisma.FinTransactionUpdateManyWithoutUserNestedInput
   finDeletionJournal?: Prisma.FinDeletionJournalUpdateManyWithoutUserNestedInput
   finInstrumentEvents?: Prisma.FinInstrumentEventUpdateManyWithoutUserNestedInput
+  finStatementImports?: Prisma.FinStatementImportUpdateManyWithoutUserNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
   pushTokens?: Prisma.PushTokenUpdateManyWithoutUserNestedInput
 }
@@ -917,6 +941,7 @@ export type UserUncheckedUpdateWithoutUserModulesInput = {
   finTransactions?: Prisma.FinTransactionUncheckedUpdateManyWithoutUserNestedInput
   finDeletionJournal?: Prisma.FinDeletionJournalUncheckedUpdateManyWithoutUserNestedInput
   finInstrumentEvents?: Prisma.FinInstrumentEventUncheckedUpdateManyWithoutUserNestedInput
+  finStatementImports?: Prisma.FinStatementImportUncheckedUpdateManyWithoutUserNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
   pushTokens?: Prisma.PushTokenUncheckedUpdateManyWithoutUserNestedInput
 }
@@ -945,6 +970,7 @@ export type UserCreateWithoutAiSessionsInput = {
   finTransactions?: Prisma.FinTransactionCreateNestedManyWithoutUserInput
   finDeletionJournal?: Prisma.FinDeletionJournalCreateNestedManyWithoutUserInput
   finInstrumentEvents?: Prisma.FinInstrumentEventCreateNestedManyWithoutUserInput
+  finStatementImports?: Prisma.FinStatementImportCreateNestedManyWithoutUserInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
   pushTokens?: Prisma.PushTokenCreateNestedManyWithoutUserInput
   userModules?: Prisma.UserModuleCreateNestedManyWithoutUserInput
@@ -974,6 +1000,7 @@ export type UserUncheckedCreateWithoutAiSessionsInput = {
   finTransactions?: Prisma.FinTransactionUncheckedCreateNestedManyWithoutUserInput
   finDeletionJournal?: Prisma.FinDeletionJournalUncheckedCreateNestedManyWithoutUserInput
   finInstrumentEvents?: Prisma.FinInstrumentEventUncheckedCreateNestedManyWithoutUserInput
+  finStatementImports?: Prisma.FinStatementImportUncheckedCreateNestedManyWithoutUserInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
   pushTokens?: Prisma.PushTokenUncheckedCreateNestedManyWithoutUserInput
   userModules?: Prisma.UserModuleUncheckedCreateNestedManyWithoutUserInput
@@ -1019,6 +1046,7 @@ export type UserUpdateWithoutAiSessionsInput = {
   finTransactions?: Prisma.FinTransactionUpdateManyWithoutUserNestedInput
   finDeletionJournal?: Prisma.FinDeletionJournalUpdateManyWithoutUserNestedInput
   finInstrumentEvents?: Prisma.FinInstrumentEventUpdateManyWithoutUserNestedInput
+  finStatementImports?: Prisma.FinStatementImportUpdateManyWithoutUserNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
   pushTokens?: Prisma.PushTokenUpdateManyWithoutUserNestedInput
   userModules?: Prisma.UserModuleUpdateManyWithoutUserNestedInput
@@ -1048,6 +1076,7 @@ export type UserUncheckedUpdateWithoutAiSessionsInput = {
   finTransactions?: Prisma.FinTransactionUncheckedUpdateManyWithoutUserNestedInput
   finDeletionJournal?: Prisma.FinDeletionJournalUncheckedUpdateManyWithoutUserNestedInput
   finInstrumentEvents?: Prisma.FinInstrumentEventUncheckedUpdateManyWithoutUserNestedInput
+  finStatementImports?: Prisma.FinStatementImportUncheckedUpdateManyWithoutUserNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
   pushTokens?: Prisma.PushTokenUncheckedUpdateManyWithoutUserNestedInput
   userModules?: Prisma.UserModuleUncheckedUpdateManyWithoutUserNestedInput
@@ -1078,6 +1107,7 @@ export type UserCreateWithoutNotificationsInput = {
   finTransactions?: Prisma.FinTransactionCreateNestedManyWithoutUserInput
   finDeletionJournal?: Prisma.FinDeletionJournalCreateNestedManyWithoutUserInput
   finInstrumentEvents?: Prisma.FinInstrumentEventCreateNestedManyWithoutUserInput
+  finStatementImports?: Prisma.FinStatementImportCreateNestedManyWithoutUserInput
   pushTokens?: Prisma.PushTokenCreateNestedManyWithoutUserInput
   userModules?: Prisma.UserModuleCreateNestedManyWithoutUserInput
 }
@@ -1107,6 +1137,7 @@ export type UserUncheckedCreateWithoutNotificationsInput = {
   finTransactions?: Prisma.FinTransactionUncheckedCreateNestedManyWithoutUserInput
   finDeletionJournal?: Prisma.FinDeletionJournalUncheckedCreateNestedManyWithoutUserInput
   finInstrumentEvents?: Prisma.FinInstrumentEventUncheckedCreateNestedManyWithoutUserInput
+  finStatementImports?: Prisma.FinStatementImportUncheckedCreateNestedManyWithoutUserInput
   pushTokens?: Prisma.PushTokenUncheckedCreateNestedManyWithoutUserInput
   userModules?: Prisma.UserModuleUncheckedCreateNestedManyWithoutUserInput
 }
@@ -1152,6 +1183,7 @@ export type UserUpdateWithoutNotificationsInput = {
   finTransactions?: Prisma.FinTransactionUpdateManyWithoutUserNestedInput
   finDeletionJournal?: Prisma.FinDeletionJournalUpdateManyWithoutUserNestedInput
   finInstrumentEvents?: Prisma.FinInstrumentEventUpdateManyWithoutUserNestedInput
+  finStatementImports?: Prisma.FinStatementImportUpdateManyWithoutUserNestedInput
   pushTokens?: Prisma.PushTokenUpdateManyWithoutUserNestedInput
   userModules?: Prisma.UserModuleUpdateManyWithoutUserNestedInput
 }
@@ -1181,6 +1213,7 @@ export type UserUncheckedUpdateWithoutNotificationsInput = {
   finTransactions?: Prisma.FinTransactionUncheckedUpdateManyWithoutUserNestedInput
   finDeletionJournal?: Prisma.FinDeletionJournalUncheckedUpdateManyWithoutUserNestedInput
   finInstrumentEvents?: Prisma.FinInstrumentEventUncheckedUpdateManyWithoutUserNestedInput
+  finStatementImports?: Prisma.FinStatementImportUncheckedUpdateManyWithoutUserNestedInput
   pushTokens?: Prisma.PushTokenUncheckedUpdateManyWithoutUserNestedInput
   userModules?: Prisma.UserModuleUncheckedUpdateManyWithoutUserNestedInput
 }
@@ -1210,6 +1243,7 @@ export type UserCreateWithoutPushTokensInput = {
   finTransactions?: Prisma.FinTransactionCreateNestedManyWithoutUserInput
   finDeletionJournal?: Prisma.FinDeletionJournalCreateNestedManyWithoutUserInput
   finInstrumentEvents?: Prisma.FinInstrumentEventCreateNestedManyWithoutUserInput
+  finStatementImports?: Prisma.FinStatementImportCreateNestedManyWithoutUserInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
   userModules?: Prisma.UserModuleCreateNestedManyWithoutUserInput
 }
@@ -1239,6 +1273,7 @@ export type UserUncheckedCreateWithoutPushTokensInput = {
   finTransactions?: Prisma.FinTransactionUncheckedCreateNestedManyWithoutUserInput
   finDeletionJournal?: Prisma.FinDeletionJournalUncheckedCreateNestedManyWithoutUserInput
   finInstrumentEvents?: Prisma.FinInstrumentEventUncheckedCreateNestedManyWithoutUserInput
+  finStatementImports?: Prisma.FinStatementImportUncheckedCreateNestedManyWithoutUserInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
   userModules?: Prisma.UserModuleUncheckedCreateNestedManyWithoutUserInput
 }
@@ -1284,6 +1319,7 @@ export type UserUpdateWithoutPushTokensInput = {
   finTransactions?: Prisma.FinTransactionUpdateManyWithoutUserNestedInput
   finDeletionJournal?: Prisma.FinDeletionJournalUpdateManyWithoutUserNestedInput
   finInstrumentEvents?: Prisma.FinInstrumentEventUpdateManyWithoutUserNestedInput
+  finStatementImports?: Prisma.FinStatementImportUpdateManyWithoutUserNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
   userModules?: Prisma.UserModuleUpdateManyWithoutUserNestedInput
 }
@@ -1313,6 +1349,7 @@ export type UserUncheckedUpdateWithoutPushTokensInput = {
   finTransactions?: Prisma.FinTransactionUncheckedUpdateManyWithoutUserNestedInput
   finDeletionJournal?: Prisma.FinDeletionJournalUncheckedUpdateManyWithoutUserNestedInput
   finInstrumentEvents?: Prisma.FinInstrumentEventUncheckedUpdateManyWithoutUserNestedInput
+  finStatementImports?: Prisma.FinStatementImportUncheckedUpdateManyWithoutUserNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
   userModules?: Prisma.UserModuleUncheckedUpdateManyWithoutUserNestedInput
 }
@@ -1341,6 +1378,7 @@ export type UserCreateWithoutFinAccountsInput = {
   finTransactions?: Prisma.FinTransactionCreateNestedManyWithoutUserInput
   finDeletionJournal?: Prisma.FinDeletionJournalCreateNestedManyWithoutUserInput
   finInstrumentEvents?: Prisma.FinInstrumentEventCreateNestedManyWithoutUserInput
+  finStatementImports?: Prisma.FinStatementImportCreateNestedManyWithoutUserInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
   pushTokens?: Prisma.PushTokenCreateNestedManyWithoutUserInput
   userModules?: Prisma.UserModuleCreateNestedManyWithoutUserInput
@@ -1370,6 +1408,7 @@ export type UserUncheckedCreateWithoutFinAccountsInput = {
   finTransactions?: Prisma.FinTransactionUncheckedCreateNestedManyWithoutUserInput
   finDeletionJournal?: Prisma.FinDeletionJournalUncheckedCreateNestedManyWithoutUserInput
   finInstrumentEvents?: Prisma.FinInstrumentEventUncheckedCreateNestedManyWithoutUserInput
+  finStatementImports?: Prisma.FinStatementImportUncheckedCreateNestedManyWithoutUserInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
   pushTokens?: Prisma.PushTokenUncheckedCreateNestedManyWithoutUserInput
   userModules?: Prisma.UserModuleUncheckedCreateNestedManyWithoutUserInput
@@ -1415,6 +1454,7 @@ export type UserUpdateWithoutFinAccountsInput = {
   finTransactions?: Prisma.FinTransactionUpdateManyWithoutUserNestedInput
   finDeletionJournal?: Prisma.FinDeletionJournalUpdateManyWithoutUserNestedInput
   finInstrumentEvents?: Prisma.FinInstrumentEventUpdateManyWithoutUserNestedInput
+  finStatementImports?: Prisma.FinStatementImportUpdateManyWithoutUserNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
   pushTokens?: Prisma.PushTokenUpdateManyWithoutUserNestedInput
   userModules?: Prisma.UserModuleUpdateManyWithoutUserNestedInput
@@ -1444,6 +1484,7 @@ export type UserUncheckedUpdateWithoutFinAccountsInput = {
   finTransactions?: Prisma.FinTransactionUncheckedUpdateManyWithoutUserNestedInput
   finDeletionJournal?: Prisma.FinDeletionJournalUncheckedUpdateManyWithoutUserNestedInput
   finInstrumentEvents?: Prisma.FinInstrumentEventUncheckedUpdateManyWithoutUserNestedInput
+  finStatementImports?: Prisma.FinStatementImportUncheckedUpdateManyWithoutUserNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
   pushTokens?: Prisma.PushTokenUncheckedUpdateManyWithoutUserNestedInput
   userModules?: Prisma.UserModuleUncheckedUpdateManyWithoutUserNestedInput
@@ -1473,6 +1514,7 @@ export type UserCreateWithoutFinEmailConnectionsInput = {
   finTransactions?: Prisma.FinTransactionCreateNestedManyWithoutUserInput
   finDeletionJournal?: Prisma.FinDeletionJournalCreateNestedManyWithoutUserInput
   finInstrumentEvents?: Prisma.FinInstrumentEventCreateNestedManyWithoutUserInput
+  finStatementImports?: Prisma.FinStatementImportCreateNestedManyWithoutUserInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
   pushTokens?: Prisma.PushTokenCreateNestedManyWithoutUserInput
   userModules?: Prisma.UserModuleCreateNestedManyWithoutUserInput
@@ -1502,6 +1544,7 @@ export type UserUncheckedCreateWithoutFinEmailConnectionsInput = {
   finTransactions?: Prisma.FinTransactionUncheckedCreateNestedManyWithoutUserInput
   finDeletionJournal?: Prisma.FinDeletionJournalUncheckedCreateNestedManyWithoutUserInput
   finInstrumentEvents?: Prisma.FinInstrumentEventUncheckedCreateNestedManyWithoutUserInput
+  finStatementImports?: Prisma.FinStatementImportUncheckedCreateNestedManyWithoutUserInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
   pushTokens?: Prisma.PushTokenUncheckedCreateNestedManyWithoutUserInput
   userModules?: Prisma.UserModuleUncheckedCreateNestedManyWithoutUserInput
@@ -1547,6 +1590,7 @@ export type UserUpdateWithoutFinEmailConnectionsInput = {
   finTransactions?: Prisma.FinTransactionUpdateManyWithoutUserNestedInput
   finDeletionJournal?: Prisma.FinDeletionJournalUpdateManyWithoutUserNestedInput
   finInstrumentEvents?: Prisma.FinInstrumentEventUpdateManyWithoutUserNestedInput
+  finStatementImports?: Prisma.FinStatementImportUpdateManyWithoutUserNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
   pushTokens?: Prisma.PushTokenUpdateManyWithoutUserNestedInput
   userModules?: Prisma.UserModuleUpdateManyWithoutUserNestedInput
@@ -1576,6 +1620,7 @@ export type UserUncheckedUpdateWithoutFinEmailConnectionsInput = {
   finTransactions?: Prisma.FinTransactionUncheckedUpdateManyWithoutUserNestedInput
   finDeletionJournal?: Prisma.FinDeletionJournalUncheckedUpdateManyWithoutUserNestedInput
   finInstrumentEvents?: Prisma.FinInstrumentEventUncheckedUpdateManyWithoutUserNestedInput
+  finStatementImports?: Prisma.FinStatementImportUncheckedUpdateManyWithoutUserNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
   pushTokens?: Prisma.PushTokenUncheckedUpdateManyWithoutUserNestedInput
   userModules?: Prisma.UserModuleUncheckedUpdateManyWithoutUserNestedInput
@@ -1605,6 +1650,7 @@ export type UserCreateWithoutFinEmailSourcesInput = {
   finTransactions?: Prisma.FinTransactionCreateNestedManyWithoutUserInput
   finDeletionJournal?: Prisma.FinDeletionJournalCreateNestedManyWithoutUserInput
   finInstrumentEvents?: Prisma.FinInstrumentEventCreateNestedManyWithoutUserInput
+  finStatementImports?: Prisma.FinStatementImportCreateNestedManyWithoutUserInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
   pushTokens?: Prisma.PushTokenCreateNestedManyWithoutUserInput
   userModules?: Prisma.UserModuleCreateNestedManyWithoutUserInput
@@ -1634,6 +1680,7 @@ export type UserUncheckedCreateWithoutFinEmailSourcesInput = {
   finTransactions?: Prisma.FinTransactionUncheckedCreateNestedManyWithoutUserInput
   finDeletionJournal?: Prisma.FinDeletionJournalUncheckedCreateNestedManyWithoutUserInput
   finInstrumentEvents?: Prisma.FinInstrumentEventUncheckedCreateNestedManyWithoutUserInput
+  finStatementImports?: Prisma.FinStatementImportUncheckedCreateNestedManyWithoutUserInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
   pushTokens?: Prisma.PushTokenUncheckedCreateNestedManyWithoutUserInput
   userModules?: Prisma.UserModuleUncheckedCreateNestedManyWithoutUserInput
@@ -1679,6 +1726,7 @@ export type UserUpdateWithoutFinEmailSourcesInput = {
   finTransactions?: Prisma.FinTransactionUpdateManyWithoutUserNestedInput
   finDeletionJournal?: Prisma.FinDeletionJournalUpdateManyWithoutUserNestedInput
   finInstrumentEvents?: Prisma.FinInstrumentEventUpdateManyWithoutUserNestedInput
+  finStatementImports?: Prisma.FinStatementImportUpdateManyWithoutUserNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
   pushTokens?: Prisma.PushTokenUpdateManyWithoutUserNestedInput
   userModules?: Prisma.UserModuleUpdateManyWithoutUserNestedInput
@@ -1708,6 +1756,7 @@ export type UserUncheckedUpdateWithoutFinEmailSourcesInput = {
   finTransactions?: Prisma.FinTransactionUncheckedUpdateManyWithoutUserNestedInput
   finDeletionJournal?: Prisma.FinDeletionJournalUncheckedUpdateManyWithoutUserNestedInput
   finInstrumentEvents?: Prisma.FinInstrumentEventUncheckedUpdateManyWithoutUserNestedInput
+  finStatementImports?: Prisma.FinStatementImportUncheckedUpdateManyWithoutUserNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
   pushTokens?: Prisma.PushTokenUncheckedUpdateManyWithoutUserNestedInput
   userModules?: Prisma.UserModuleUncheckedUpdateManyWithoutUserNestedInput
@@ -1737,6 +1786,7 @@ export type UserCreateWithoutFinTransactionsInput = {
   finSavingsGoals?: Prisma.FinSavingsGoalCreateNestedManyWithoutUserInput
   finDeletionJournal?: Prisma.FinDeletionJournalCreateNestedManyWithoutUserInput
   finInstrumentEvents?: Prisma.FinInstrumentEventCreateNestedManyWithoutUserInput
+  finStatementImports?: Prisma.FinStatementImportCreateNestedManyWithoutUserInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
   pushTokens?: Prisma.PushTokenCreateNestedManyWithoutUserInput
   userModules?: Prisma.UserModuleCreateNestedManyWithoutUserInput
@@ -1766,6 +1816,7 @@ export type UserUncheckedCreateWithoutFinTransactionsInput = {
   finSavingsGoals?: Prisma.FinSavingsGoalUncheckedCreateNestedManyWithoutUserInput
   finDeletionJournal?: Prisma.FinDeletionJournalUncheckedCreateNestedManyWithoutUserInput
   finInstrumentEvents?: Prisma.FinInstrumentEventUncheckedCreateNestedManyWithoutUserInput
+  finStatementImports?: Prisma.FinStatementImportUncheckedCreateNestedManyWithoutUserInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
   pushTokens?: Prisma.PushTokenUncheckedCreateNestedManyWithoutUserInput
   userModules?: Prisma.UserModuleUncheckedCreateNestedManyWithoutUserInput
@@ -1811,6 +1862,7 @@ export type UserUpdateWithoutFinTransactionsInput = {
   finSavingsGoals?: Prisma.FinSavingsGoalUpdateManyWithoutUserNestedInput
   finDeletionJournal?: Prisma.FinDeletionJournalUpdateManyWithoutUserNestedInput
   finInstrumentEvents?: Prisma.FinInstrumentEventUpdateManyWithoutUserNestedInput
+  finStatementImports?: Prisma.FinStatementImportUpdateManyWithoutUserNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
   pushTokens?: Prisma.PushTokenUpdateManyWithoutUserNestedInput
   userModules?: Prisma.UserModuleUpdateManyWithoutUserNestedInput
@@ -1840,6 +1892,7 @@ export type UserUncheckedUpdateWithoutFinTransactionsInput = {
   finSavingsGoals?: Prisma.FinSavingsGoalUncheckedUpdateManyWithoutUserNestedInput
   finDeletionJournal?: Prisma.FinDeletionJournalUncheckedUpdateManyWithoutUserNestedInput
   finInstrumentEvents?: Prisma.FinInstrumentEventUncheckedUpdateManyWithoutUserNestedInput
+  finStatementImports?: Prisma.FinStatementImportUncheckedUpdateManyWithoutUserNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
   pushTokens?: Prisma.PushTokenUncheckedUpdateManyWithoutUserNestedInput
   userModules?: Prisma.UserModuleUncheckedUpdateManyWithoutUserNestedInput
@@ -1869,6 +1922,7 @@ export type UserCreateWithoutFinCategoriesInput = {
   finTransactions?: Prisma.FinTransactionCreateNestedManyWithoutUserInput
   finDeletionJournal?: Prisma.FinDeletionJournalCreateNestedManyWithoutUserInput
   finInstrumentEvents?: Prisma.FinInstrumentEventCreateNestedManyWithoutUserInput
+  finStatementImports?: Prisma.FinStatementImportCreateNestedManyWithoutUserInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
   pushTokens?: Prisma.PushTokenCreateNestedManyWithoutUserInput
   userModules?: Prisma.UserModuleCreateNestedManyWithoutUserInput
@@ -1898,6 +1952,7 @@ export type UserUncheckedCreateWithoutFinCategoriesInput = {
   finTransactions?: Prisma.FinTransactionUncheckedCreateNestedManyWithoutUserInput
   finDeletionJournal?: Prisma.FinDeletionJournalUncheckedCreateNestedManyWithoutUserInput
   finInstrumentEvents?: Prisma.FinInstrumentEventUncheckedCreateNestedManyWithoutUserInput
+  finStatementImports?: Prisma.FinStatementImportUncheckedCreateNestedManyWithoutUserInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
   pushTokens?: Prisma.PushTokenUncheckedCreateNestedManyWithoutUserInput
   userModules?: Prisma.UserModuleUncheckedCreateNestedManyWithoutUserInput
@@ -1943,6 +1998,7 @@ export type UserUpdateWithoutFinCategoriesInput = {
   finTransactions?: Prisma.FinTransactionUpdateManyWithoutUserNestedInput
   finDeletionJournal?: Prisma.FinDeletionJournalUpdateManyWithoutUserNestedInput
   finInstrumentEvents?: Prisma.FinInstrumentEventUpdateManyWithoutUserNestedInput
+  finStatementImports?: Prisma.FinStatementImportUpdateManyWithoutUserNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
   pushTokens?: Prisma.PushTokenUpdateManyWithoutUserNestedInput
   userModules?: Prisma.UserModuleUpdateManyWithoutUserNestedInput
@@ -1972,6 +2028,7 @@ export type UserUncheckedUpdateWithoutFinCategoriesInput = {
   finTransactions?: Prisma.FinTransactionUncheckedUpdateManyWithoutUserNestedInput
   finDeletionJournal?: Prisma.FinDeletionJournalUncheckedUpdateManyWithoutUserNestedInput
   finInstrumentEvents?: Prisma.FinInstrumentEventUncheckedUpdateManyWithoutUserNestedInput
+  finStatementImports?: Prisma.FinStatementImportUncheckedUpdateManyWithoutUserNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
   pushTokens?: Prisma.PushTokenUncheckedUpdateManyWithoutUserNestedInput
   userModules?: Prisma.UserModuleUncheckedUpdateManyWithoutUserNestedInput
@@ -2001,6 +2058,7 @@ export type UserCreateWithoutFinBudgetsInput = {
   finTransactions?: Prisma.FinTransactionCreateNestedManyWithoutUserInput
   finDeletionJournal?: Prisma.FinDeletionJournalCreateNestedManyWithoutUserInput
   finInstrumentEvents?: Prisma.FinInstrumentEventCreateNestedManyWithoutUserInput
+  finStatementImports?: Prisma.FinStatementImportCreateNestedManyWithoutUserInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
   pushTokens?: Prisma.PushTokenCreateNestedManyWithoutUserInput
   userModules?: Prisma.UserModuleCreateNestedManyWithoutUserInput
@@ -2030,6 +2088,7 @@ export type UserUncheckedCreateWithoutFinBudgetsInput = {
   finTransactions?: Prisma.FinTransactionUncheckedCreateNestedManyWithoutUserInput
   finDeletionJournal?: Prisma.FinDeletionJournalUncheckedCreateNestedManyWithoutUserInput
   finInstrumentEvents?: Prisma.FinInstrumentEventUncheckedCreateNestedManyWithoutUserInput
+  finStatementImports?: Prisma.FinStatementImportUncheckedCreateNestedManyWithoutUserInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
   pushTokens?: Prisma.PushTokenUncheckedCreateNestedManyWithoutUserInput
   userModules?: Prisma.UserModuleUncheckedCreateNestedManyWithoutUserInput
@@ -2075,6 +2134,7 @@ export type UserUpdateWithoutFinBudgetsInput = {
   finTransactions?: Prisma.FinTransactionUpdateManyWithoutUserNestedInput
   finDeletionJournal?: Prisma.FinDeletionJournalUpdateManyWithoutUserNestedInput
   finInstrumentEvents?: Prisma.FinInstrumentEventUpdateManyWithoutUserNestedInput
+  finStatementImports?: Prisma.FinStatementImportUpdateManyWithoutUserNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
   pushTokens?: Prisma.PushTokenUpdateManyWithoutUserNestedInput
   userModules?: Prisma.UserModuleUpdateManyWithoutUserNestedInput
@@ -2104,6 +2164,7 @@ export type UserUncheckedUpdateWithoutFinBudgetsInput = {
   finTransactions?: Prisma.FinTransactionUncheckedUpdateManyWithoutUserNestedInput
   finDeletionJournal?: Prisma.FinDeletionJournalUncheckedUpdateManyWithoutUserNestedInput
   finInstrumentEvents?: Prisma.FinInstrumentEventUncheckedUpdateManyWithoutUserNestedInput
+  finStatementImports?: Prisma.FinStatementImportUncheckedUpdateManyWithoutUserNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
   pushTokens?: Prisma.PushTokenUncheckedUpdateManyWithoutUserNestedInput
   userModules?: Prisma.UserModuleUncheckedUpdateManyWithoutUserNestedInput
@@ -2133,6 +2194,7 @@ export type UserCreateWithoutFinRecurringInput = {
   finTransactions?: Prisma.FinTransactionCreateNestedManyWithoutUserInput
   finDeletionJournal?: Prisma.FinDeletionJournalCreateNestedManyWithoutUserInput
   finInstrumentEvents?: Prisma.FinInstrumentEventCreateNestedManyWithoutUserInput
+  finStatementImports?: Prisma.FinStatementImportCreateNestedManyWithoutUserInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
   pushTokens?: Prisma.PushTokenCreateNestedManyWithoutUserInput
   userModules?: Prisma.UserModuleCreateNestedManyWithoutUserInput
@@ -2162,6 +2224,7 @@ export type UserUncheckedCreateWithoutFinRecurringInput = {
   finTransactions?: Prisma.FinTransactionUncheckedCreateNestedManyWithoutUserInput
   finDeletionJournal?: Prisma.FinDeletionJournalUncheckedCreateNestedManyWithoutUserInput
   finInstrumentEvents?: Prisma.FinInstrumentEventUncheckedCreateNestedManyWithoutUserInput
+  finStatementImports?: Prisma.FinStatementImportUncheckedCreateNestedManyWithoutUserInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
   pushTokens?: Prisma.PushTokenUncheckedCreateNestedManyWithoutUserInput
   userModules?: Prisma.UserModuleUncheckedCreateNestedManyWithoutUserInput
@@ -2207,6 +2270,7 @@ export type UserUpdateWithoutFinRecurringInput = {
   finTransactions?: Prisma.FinTransactionUpdateManyWithoutUserNestedInput
   finDeletionJournal?: Prisma.FinDeletionJournalUpdateManyWithoutUserNestedInput
   finInstrumentEvents?: Prisma.FinInstrumentEventUpdateManyWithoutUserNestedInput
+  finStatementImports?: Prisma.FinStatementImportUpdateManyWithoutUserNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
   pushTokens?: Prisma.PushTokenUpdateManyWithoutUserNestedInput
   userModules?: Prisma.UserModuleUpdateManyWithoutUserNestedInput
@@ -2236,6 +2300,7 @@ export type UserUncheckedUpdateWithoutFinRecurringInput = {
   finTransactions?: Prisma.FinTransactionUncheckedUpdateManyWithoutUserNestedInput
   finDeletionJournal?: Prisma.FinDeletionJournalUncheckedUpdateManyWithoutUserNestedInput
   finInstrumentEvents?: Prisma.FinInstrumentEventUncheckedUpdateManyWithoutUserNestedInput
+  finStatementImports?: Prisma.FinStatementImportUncheckedUpdateManyWithoutUserNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
   pushTokens?: Prisma.PushTokenUncheckedUpdateManyWithoutUserNestedInput
   userModules?: Prisma.UserModuleUncheckedUpdateManyWithoutUserNestedInput
@@ -2265,6 +2330,7 @@ export type UserCreateWithoutFinInstitutionsInput = {
   finTransactions?: Prisma.FinTransactionCreateNestedManyWithoutUserInput
   finDeletionJournal?: Prisma.FinDeletionJournalCreateNestedManyWithoutUserInput
   finInstrumentEvents?: Prisma.FinInstrumentEventCreateNestedManyWithoutUserInput
+  finStatementImports?: Prisma.FinStatementImportCreateNestedManyWithoutUserInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
   pushTokens?: Prisma.PushTokenCreateNestedManyWithoutUserInput
   userModules?: Prisma.UserModuleCreateNestedManyWithoutUserInput
@@ -2294,6 +2360,7 @@ export type UserUncheckedCreateWithoutFinInstitutionsInput = {
   finTransactions?: Prisma.FinTransactionUncheckedCreateNestedManyWithoutUserInput
   finDeletionJournal?: Prisma.FinDeletionJournalUncheckedCreateNestedManyWithoutUserInput
   finInstrumentEvents?: Prisma.FinInstrumentEventUncheckedCreateNestedManyWithoutUserInput
+  finStatementImports?: Prisma.FinStatementImportUncheckedCreateNestedManyWithoutUserInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
   pushTokens?: Prisma.PushTokenUncheckedCreateNestedManyWithoutUserInput
   userModules?: Prisma.UserModuleUncheckedCreateNestedManyWithoutUserInput
@@ -2339,6 +2406,7 @@ export type UserUpdateWithoutFinInstitutionsInput = {
   finTransactions?: Prisma.FinTransactionUpdateManyWithoutUserNestedInput
   finDeletionJournal?: Prisma.FinDeletionJournalUpdateManyWithoutUserNestedInput
   finInstrumentEvents?: Prisma.FinInstrumentEventUpdateManyWithoutUserNestedInput
+  finStatementImports?: Prisma.FinStatementImportUpdateManyWithoutUserNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
   pushTokens?: Prisma.PushTokenUpdateManyWithoutUserNestedInput
   userModules?: Prisma.UserModuleUpdateManyWithoutUserNestedInput
@@ -2368,6 +2436,7 @@ export type UserUncheckedUpdateWithoutFinInstitutionsInput = {
   finTransactions?: Prisma.FinTransactionUncheckedUpdateManyWithoutUserNestedInput
   finDeletionJournal?: Prisma.FinDeletionJournalUncheckedUpdateManyWithoutUserNestedInput
   finInstrumentEvents?: Prisma.FinInstrumentEventUncheckedUpdateManyWithoutUserNestedInput
+  finStatementImports?: Prisma.FinStatementImportUncheckedUpdateManyWithoutUserNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
   pushTokens?: Prisma.PushTokenUncheckedUpdateManyWithoutUserNestedInput
   userModules?: Prisma.UserModuleUncheckedUpdateManyWithoutUserNestedInput
@@ -2397,6 +2466,7 @@ export type UserCreateWithoutFinCardsInput = {
   finTransactions?: Prisma.FinTransactionCreateNestedManyWithoutUserInput
   finDeletionJournal?: Prisma.FinDeletionJournalCreateNestedManyWithoutUserInput
   finInstrumentEvents?: Prisma.FinInstrumentEventCreateNestedManyWithoutUserInput
+  finStatementImports?: Prisma.FinStatementImportCreateNestedManyWithoutUserInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
   pushTokens?: Prisma.PushTokenCreateNestedManyWithoutUserInput
   userModules?: Prisma.UserModuleCreateNestedManyWithoutUserInput
@@ -2426,6 +2496,7 @@ export type UserUncheckedCreateWithoutFinCardsInput = {
   finTransactions?: Prisma.FinTransactionUncheckedCreateNestedManyWithoutUserInput
   finDeletionJournal?: Prisma.FinDeletionJournalUncheckedCreateNestedManyWithoutUserInput
   finInstrumentEvents?: Prisma.FinInstrumentEventUncheckedCreateNestedManyWithoutUserInput
+  finStatementImports?: Prisma.FinStatementImportUncheckedCreateNestedManyWithoutUserInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
   pushTokens?: Prisma.PushTokenUncheckedCreateNestedManyWithoutUserInput
   userModules?: Prisma.UserModuleUncheckedCreateNestedManyWithoutUserInput
@@ -2471,6 +2542,7 @@ export type UserUpdateWithoutFinCardsInput = {
   finTransactions?: Prisma.FinTransactionUpdateManyWithoutUserNestedInput
   finDeletionJournal?: Prisma.FinDeletionJournalUpdateManyWithoutUserNestedInput
   finInstrumentEvents?: Prisma.FinInstrumentEventUpdateManyWithoutUserNestedInput
+  finStatementImports?: Prisma.FinStatementImportUpdateManyWithoutUserNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
   pushTokens?: Prisma.PushTokenUpdateManyWithoutUserNestedInput
   userModules?: Prisma.UserModuleUpdateManyWithoutUserNestedInput
@@ -2500,6 +2572,7 @@ export type UserUncheckedUpdateWithoutFinCardsInput = {
   finTransactions?: Prisma.FinTransactionUncheckedUpdateManyWithoutUserNestedInput
   finDeletionJournal?: Prisma.FinDeletionJournalUncheckedUpdateManyWithoutUserNestedInput
   finInstrumentEvents?: Prisma.FinInstrumentEventUncheckedUpdateManyWithoutUserNestedInput
+  finStatementImports?: Prisma.FinStatementImportUncheckedUpdateManyWithoutUserNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
   pushTokens?: Prisma.PushTokenUncheckedUpdateManyWithoutUserNestedInput
   userModules?: Prisma.UserModuleUncheckedUpdateManyWithoutUserNestedInput
@@ -2529,6 +2602,7 @@ export type UserCreateWithoutFinInstrumentEventsInput = {
   finSavingsGoals?: Prisma.FinSavingsGoalCreateNestedManyWithoutUserInput
   finTransactions?: Prisma.FinTransactionCreateNestedManyWithoutUserInput
   finDeletionJournal?: Prisma.FinDeletionJournalCreateNestedManyWithoutUserInput
+  finStatementImports?: Prisma.FinStatementImportCreateNestedManyWithoutUserInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
   pushTokens?: Prisma.PushTokenCreateNestedManyWithoutUserInput
   userModules?: Prisma.UserModuleCreateNestedManyWithoutUserInput
@@ -2558,6 +2632,7 @@ export type UserUncheckedCreateWithoutFinInstrumentEventsInput = {
   finSavingsGoals?: Prisma.FinSavingsGoalUncheckedCreateNestedManyWithoutUserInput
   finTransactions?: Prisma.FinTransactionUncheckedCreateNestedManyWithoutUserInput
   finDeletionJournal?: Prisma.FinDeletionJournalUncheckedCreateNestedManyWithoutUserInput
+  finStatementImports?: Prisma.FinStatementImportUncheckedCreateNestedManyWithoutUserInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
   pushTokens?: Prisma.PushTokenUncheckedCreateNestedManyWithoutUserInput
   userModules?: Prisma.UserModuleUncheckedCreateNestedManyWithoutUserInput
@@ -2603,6 +2678,7 @@ export type UserUpdateWithoutFinInstrumentEventsInput = {
   finSavingsGoals?: Prisma.FinSavingsGoalUpdateManyWithoutUserNestedInput
   finTransactions?: Prisma.FinTransactionUpdateManyWithoutUserNestedInput
   finDeletionJournal?: Prisma.FinDeletionJournalUpdateManyWithoutUserNestedInput
+  finStatementImports?: Prisma.FinStatementImportUpdateManyWithoutUserNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
   pushTokens?: Prisma.PushTokenUpdateManyWithoutUserNestedInput
   userModules?: Prisma.UserModuleUpdateManyWithoutUserNestedInput
@@ -2632,6 +2708,7 @@ export type UserUncheckedUpdateWithoutFinInstrumentEventsInput = {
   finSavingsGoals?: Prisma.FinSavingsGoalUncheckedUpdateManyWithoutUserNestedInput
   finTransactions?: Prisma.FinTransactionUncheckedUpdateManyWithoutUserNestedInput
   finDeletionJournal?: Prisma.FinDeletionJournalUncheckedUpdateManyWithoutUserNestedInput
+  finStatementImports?: Prisma.FinStatementImportUncheckedUpdateManyWithoutUserNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
   pushTokens?: Prisma.PushTokenUncheckedUpdateManyWithoutUserNestedInput
   userModules?: Prisma.UserModuleUncheckedUpdateManyWithoutUserNestedInput
@@ -2661,6 +2738,7 @@ export type UserCreateWithoutFinSavingsGoalsInput = {
   finTransactions?: Prisma.FinTransactionCreateNestedManyWithoutUserInput
   finDeletionJournal?: Prisma.FinDeletionJournalCreateNestedManyWithoutUserInput
   finInstrumentEvents?: Prisma.FinInstrumentEventCreateNestedManyWithoutUserInput
+  finStatementImports?: Prisma.FinStatementImportCreateNestedManyWithoutUserInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
   pushTokens?: Prisma.PushTokenCreateNestedManyWithoutUserInput
   userModules?: Prisma.UserModuleCreateNestedManyWithoutUserInput
@@ -2690,6 +2768,7 @@ export type UserUncheckedCreateWithoutFinSavingsGoalsInput = {
   finTransactions?: Prisma.FinTransactionUncheckedCreateNestedManyWithoutUserInput
   finDeletionJournal?: Prisma.FinDeletionJournalUncheckedCreateNestedManyWithoutUserInput
   finInstrumentEvents?: Prisma.FinInstrumentEventUncheckedCreateNestedManyWithoutUserInput
+  finStatementImports?: Prisma.FinStatementImportUncheckedCreateNestedManyWithoutUserInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
   pushTokens?: Prisma.PushTokenUncheckedCreateNestedManyWithoutUserInput
   userModules?: Prisma.UserModuleUncheckedCreateNestedManyWithoutUserInput
@@ -2735,6 +2814,7 @@ export type UserUpdateWithoutFinSavingsGoalsInput = {
   finTransactions?: Prisma.FinTransactionUpdateManyWithoutUserNestedInput
   finDeletionJournal?: Prisma.FinDeletionJournalUpdateManyWithoutUserNestedInput
   finInstrumentEvents?: Prisma.FinInstrumentEventUpdateManyWithoutUserNestedInput
+  finStatementImports?: Prisma.FinStatementImportUpdateManyWithoutUserNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
   pushTokens?: Prisma.PushTokenUpdateManyWithoutUserNestedInput
   userModules?: Prisma.UserModuleUpdateManyWithoutUserNestedInput
@@ -2764,6 +2844,7 @@ export type UserUncheckedUpdateWithoutFinSavingsGoalsInput = {
   finTransactions?: Prisma.FinTransactionUncheckedUpdateManyWithoutUserNestedInput
   finDeletionJournal?: Prisma.FinDeletionJournalUncheckedUpdateManyWithoutUserNestedInput
   finInstrumentEvents?: Prisma.FinInstrumentEventUncheckedUpdateManyWithoutUserNestedInput
+  finStatementImports?: Prisma.FinStatementImportUncheckedUpdateManyWithoutUserNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
   pushTokens?: Prisma.PushTokenUncheckedUpdateManyWithoutUserNestedInput
   userModules?: Prisma.UserModuleUncheckedUpdateManyWithoutUserNestedInput
@@ -2793,6 +2874,7 @@ export type UserCreateWithoutFinLoansInput = {
   finTransactions?: Prisma.FinTransactionCreateNestedManyWithoutUserInput
   finDeletionJournal?: Prisma.FinDeletionJournalCreateNestedManyWithoutUserInput
   finInstrumentEvents?: Prisma.FinInstrumentEventCreateNestedManyWithoutUserInput
+  finStatementImports?: Prisma.FinStatementImportCreateNestedManyWithoutUserInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
   pushTokens?: Prisma.PushTokenCreateNestedManyWithoutUserInput
   userModules?: Prisma.UserModuleCreateNestedManyWithoutUserInput
@@ -2822,6 +2904,7 @@ export type UserUncheckedCreateWithoutFinLoansInput = {
   finTransactions?: Prisma.FinTransactionUncheckedCreateNestedManyWithoutUserInput
   finDeletionJournal?: Prisma.FinDeletionJournalUncheckedCreateNestedManyWithoutUserInput
   finInstrumentEvents?: Prisma.FinInstrumentEventUncheckedCreateNestedManyWithoutUserInput
+  finStatementImports?: Prisma.FinStatementImportUncheckedCreateNestedManyWithoutUserInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
   pushTokens?: Prisma.PushTokenUncheckedCreateNestedManyWithoutUserInput
   userModules?: Prisma.UserModuleUncheckedCreateNestedManyWithoutUserInput
@@ -2867,6 +2950,7 @@ export type UserUpdateWithoutFinLoansInput = {
   finTransactions?: Prisma.FinTransactionUpdateManyWithoutUserNestedInput
   finDeletionJournal?: Prisma.FinDeletionJournalUpdateManyWithoutUserNestedInput
   finInstrumentEvents?: Prisma.FinInstrumentEventUpdateManyWithoutUserNestedInput
+  finStatementImports?: Prisma.FinStatementImportUpdateManyWithoutUserNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
   pushTokens?: Prisma.PushTokenUpdateManyWithoutUserNestedInput
   userModules?: Prisma.UserModuleUpdateManyWithoutUserNestedInput
@@ -2896,6 +2980,7 @@ export type UserUncheckedUpdateWithoutFinLoansInput = {
   finTransactions?: Prisma.FinTransactionUncheckedUpdateManyWithoutUserNestedInput
   finDeletionJournal?: Prisma.FinDeletionJournalUncheckedUpdateManyWithoutUserNestedInput
   finInstrumentEvents?: Prisma.FinInstrumentEventUncheckedUpdateManyWithoutUserNestedInput
+  finStatementImports?: Prisma.FinStatementImportUncheckedUpdateManyWithoutUserNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
   pushTokens?: Prisma.PushTokenUncheckedUpdateManyWithoutUserNestedInput
   userModules?: Prisma.UserModuleUncheckedUpdateManyWithoutUserNestedInput
@@ -2925,6 +3010,7 @@ export type UserCreateWithoutFinReceivablesInput = {
   finTransactions?: Prisma.FinTransactionCreateNestedManyWithoutUserInput
   finDeletionJournal?: Prisma.FinDeletionJournalCreateNestedManyWithoutUserInput
   finInstrumentEvents?: Prisma.FinInstrumentEventCreateNestedManyWithoutUserInput
+  finStatementImports?: Prisma.FinStatementImportCreateNestedManyWithoutUserInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
   pushTokens?: Prisma.PushTokenCreateNestedManyWithoutUserInput
   userModules?: Prisma.UserModuleCreateNestedManyWithoutUserInput
@@ -2954,6 +3040,7 @@ export type UserUncheckedCreateWithoutFinReceivablesInput = {
   finTransactions?: Prisma.FinTransactionUncheckedCreateNestedManyWithoutUserInput
   finDeletionJournal?: Prisma.FinDeletionJournalUncheckedCreateNestedManyWithoutUserInput
   finInstrumentEvents?: Prisma.FinInstrumentEventUncheckedCreateNestedManyWithoutUserInput
+  finStatementImports?: Prisma.FinStatementImportUncheckedCreateNestedManyWithoutUserInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
   pushTokens?: Prisma.PushTokenUncheckedCreateNestedManyWithoutUserInput
   userModules?: Prisma.UserModuleUncheckedCreateNestedManyWithoutUserInput
@@ -2999,6 +3086,7 @@ export type UserUpdateWithoutFinReceivablesInput = {
   finTransactions?: Prisma.FinTransactionUpdateManyWithoutUserNestedInput
   finDeletionJournal?: Prisma.FinDeletionJournalUpdateManyWithoutUserNestedInput
   finInstrumentEvents?: Prisma.FinInstrumentEventUpdateManyWithoutUserNestedInput
+  finStatementImports?: Prisma.FinStatementImportUpdateManyWithoutUserNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
   pushTokens?: Prisma.PushTokenUpdateManyWithoutUserNestedInput
   userModules?: Prisma.UserModuleUpdateManyWithoutUserNestedInput
@@ -3028,6 +3116,7 @@ export type UserUncheckedUpdateWithoutFinReceivablesInput = {
   finTransactions?: Prisma.FinTransactionUncheckedUpdateManyWithoutUserNestedInput
   finDeletionJournal?: Prisma.FinDeletionJournalUncheckedUpdateManyWithoutUserNestedInput
   finInstrumentEvents?: Prisma.FinInstrumentEventUncheckedUpdateManyWithoutUserNestedInput
+  finStatementImports?: Prisma.FinStatementImportUncheckedUpdateManyWithoutUserNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
   pushTokens?: Prisma.PushTokenUncheckedUpdateManyWithoutUserNestedInput
   userModules?: Prisma.UserModuleUncheckedUpdateManyWithoutUserNestedInput
@@ -3057,6 +3146,7 @@ export type UserCreateWithoutFinDeletionJournalInput = {
   finSavingsGoals?: Prisma.FinSavingsGoalCreateNestedManyWithoutUserInput
   finTransactions?: Prisma.FinTransactionCreateNestedManyWithoutUserInput
   finInstrumentEvents?: Prisma.FinInstrumentEventCreateNestedManyWithoutUserInput
+  finStatementImports?: Prisma.FinStatementImportCreateNestedManyWithoutUserInput
   notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
   pushTokens?: Prisma.PushTokenCreateNestedManyWithoutUserInput
   userModules?: Prisma.UserModuleCreateNestedManyWithoutUserInput
@@ -3086,6 +3176,7 @@ export type UserUncheckedCreateWithoutFinDeletionJournalInput = {
   finSavingsGoals?: Prisma.FinSavingsGoalUncheckedCreateNestedManyWithoutUserInput
   finTransactions?: Prisma.FinTransactionUncheckedCreateNestedManyWithoutUserInput
   finInstrumentEvents?: Prisma.FinInstrumentEventUncheckedCreateNestedManyWithoutUserInput
+  finStatementImports?: Prisma.FinStatementImportUncheckedCreateNestedManyWithoutUserInput
   notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
   pushTokens?: Prisma.PushTokenUncheckedCreateNestedManyWithoutUserInput
   userModules?: Prisma.UserModuleUncheckedCreateNestedManyWithoutUserInput
@@ -3131,6 +3222,7 @@ export type UserUpdateWithoutFinDeletionJournalInput = {
   finSavingsGoals?: Prisma.FinSavingsGoalUpdateManyWithoutUserNestedInput
   finTransactions?: Prisma.FinTransactionUpdateManyWithoutUserNestedInput
   finInstrumentEvents?: Prisma.FinInstrumentEventUpdateManyWithoutUserNestedInput
+  finStatementImports?: Prisma.FinStatementImportUpdateManyWithoutUserNestedInput
   notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
   pushTokens?: Prisma.PushTokenUpdateManyWithoutUserNestedInput
   userModules?: Prisma.UserModuleUpdateManyWithoutUserNestedInput
@@ -3160,6 +3252,143 @@ export type UserUncheckedUpdateWithoutFinDeletionJournalInput = {
   finSavingsGoals?: Prisma.FinSavingsGoalUncheckedUpdateManyWithoutUserNestedInput
   finTransactions?: Prisma.FinTransactionUncheckedUpdateManyWithoutUserNestedInput
   finInstrumentEvents?: Prisma.FinInstrumentEventUncheckedUpdateManyWithoutUserNestedInput
+  finStatementImports?: Prisma.FinStatementImportUncheckedUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
+  pushTokens?: Prisma.PushTokenUncheckedUpdateManyWithoutUserNestedInput
+  userModules?: Prisma.UserModuleUncheckedUpdateManyWithoutUserNestedInput
+}
+
+export type UserCreateWithoutFinStatementImportsInput = {
+  id?: string
+  email: string
+  fullName: string
+  avatarUrl?: string | null
+  timezone?: string
+  locale?: string
+  preferences?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  aiSessions?: Prisma.AiAgentSessionCreateNestedManyWithoutUserInput
+  finAccounts?: Prisma.FinAccountCreateNestedManyWithoutUserInput
+  finCards?: Prisma.FinCardCreateNestedManyWithoutUserInput
+  finInstitutions?: Prisma.FinInstitutionCreateNestedManyWithoutUserInput
+  finBudgets?: Prisma.FinBudgetCreateNestedManyWithoutUserInput
+  finCategories?: Prisma.FinCategoryCreateNestedManyWithoutUserInput
+  finEmailConnections?: Prisma.FinEmailConnectionCreateNestedManyWithoutUserInput
+  finEmailSources?: Prisma.FinEmailSourceCreateNestedManyWithoutUserInput
+  finLoans?: Prisma.FinLoanCreateNestedManyWithoutUserInput
+  finReceivables?: Prisma.FinReceivableCreateNestedManyWithoutUserInput
+  finRecurring?: Prisma.FinRecurringPatternCreateNestedManyWithoutUserInput
+  finSavingsGoals?: Prisma.FinSavingsGoalCreateNestedManyWithoutUserInput
+  finTransactions?: Prisma.FinTransactionCreateNestedManyWithoutUserInput
+  finDeletionJournal?: Prisma.FinDeletionJournalCreateNestedManyWithoutUserInput
+  finInstrumentEvents?: Prisma.FinInstrumentEventCreateNestedManyWithoutUserInput
+  notifications?: Prisma.NotificationCreateNestedManyWithoutUserInput
+  pushTokens?: Prisma.PushTokenCreateNestedManyWithoutUserInput
+  userModules?: Prisma.UserModuleCreateNestedManyWithoutUserInput
+}
+
+export type UserUncheckedCreateWithoutFinStatementImportsInput = {
+  id?: string
+  email: string
+  fullName: string
+  avatarUrl?: string | null
+  timezone?: string
+  locale?: string
+  preferences?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  aiSessions?: Prisma.AiAgentSessionUncheckedCreateNestedManyWithoutUserInput
+  finAccounts?: Prisma.FinAccountUncheckedCreateNestedManyWithoutUserInput
+  finCards?: Prisma.FinCardUncheckedCreateNestedManyWithoutUserInput
+  finInstitutions?: Prisma.FinInstitutionUncheckedCreateNestedManyWithoutUserInput
+  finBudgets?: Prisma.FinBudgetUncheckedCreateNestedManyWithoutUserInput
+  finCategories?: Prisma.FinCategoryUncheckedCreateNestedManyWithoutUserInput
+  finEmailConnections?: Prisma.FinEmailConnectionUncheckedCreateNestedManyWithoutUserInput
+  finEmailSources?: Prisma.FinEmailSourceUncheckedCreateNestedManyWithoutUserInput
+  finLoans?: Prisma.FinLoanUncheckedCreateNestedManyWithoutUserInput
+  finReceivables?: Prisma.FinReceivableUncheckedCreateNestedManyWithoutUserInput
+  finRecurring?: Prisma.FinRecurringPatternUncheckedCreateNestedManyWithoutUserInput
+  finSavingsGoals?: Prisma.FinSavingsGoalUncheckedCreateNestedManyWithoutUserInput
+  finTransactions?: Prisma.FinTransactionUncheckedCreateNestedManyWithoutUserInput
+  finDeletionJournal?: Prisma.FinDeletionJournalUncheckedCreateNestedManyWithoutUserInput
+  finInstrumentEvents?: Prisma.FinInstrumentEventUncheckedCreateNestedManyWithoutUserInput
+  notifications?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
+  pushTokens?: Prisma.PushTokenUncheckedCreateNestedManyWithoutUserInput
+  userModules?: Prisma.UserModuleUncheckedCreateNestedManyWithoutUserInput
+}
+
+export type UserCreateOrConnectWithoutFinStatementImportsInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutFinStatementImportsInput, Prisma.UserUncheckedCreateWithoutFinStatementImportsInput>
+}
+
+export type UserUpsertWithoutFinStatementImportsInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutFinStatementImportsInput, Prisma.UserUncheckedUpdateWithoutFinStatementImportsInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutFinStatementImportsInput, Prisma.UserUncheckedCreateWithoutFinStatementImportsInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutFinStatementImportsInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutFinStatementImportsInput, Prisma.UserUncheckedUpdateWithoutFinStatementImportsInput>
+}
+
+export type UserUpdateWithoutFinStatementImportsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  fullName?: Prisma.StringFieldUpdateOperationsInput | string
+  avatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  timezone?: Prisma.StringFieldUpdateOperationsInput | string
+  locale?: Prisma.StringFieldUpdateOperationsInput | string
+  preferences?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  aiSessions?: Prisma.AiAgentSessionUpdateManyWithoutUserNestedInput
+  finAccounts?: Prisma.FinAccountUpdateManyWithoutUserNestedInput
+  finCards?: Prisma.FinCardUpdateManyWithoutUserNestedInput
+  finInstitutions?: Prisma.FinInstitutionUpdateManyWithoutUserNestedInput
+  finBudgets?: Prisma.FinBudgetUpdateManyWithoutUserNestedInput
+  finCategories?: Prisma.FinCategoryUpdateManyWithoutUserNestedInput
+  finEmailConnections?: Prisma.FinEmailConnectionUpdateManyWithoutUserNestedInput
+  finEmailSources?: Prisma.FinEmailSourceUpdateManyWithoutUserNestedInput
+  finLoans?: Prisma.FinLoanUpdateManyWithoutUserNestedInput
+  finReceivables?: Prisma.FinReceivableUpdateManyWithoutUserNestedInput
+  finRecurring?: Prisma.FinRecurringPatternUpdateManyWithoutUserNestedInput
+  finSavingsGoals?: Prisma.FinSavingsGoalUpdateManyWithoutUserNestedInput
+  finTransactions?: Prisma.FinTransactionUpdateManyWithoutUserNestedInput
+  finDeletionJournal?: Prisma.FinDeletionJournalUpdateManyWithoutUserNestedInput
+  finInstrumentEvents?: Prisma.FinInstrumentEventUpdateManyWithoutUserNestedInput
+  notifications?: Prisma.NotificationUpdateManyWithoutUserNestedInput
+  pushTokens?: Prisma.PushTokenUpdateManyWithoutUserNestedInput
+  userModules?: Prisma.UserModuleUpdateManyWithoutUserNestedInput
+}
+
+export type UserUncheckedUpdateWithoutFinStatementImportsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  fullName?: Prisma.StringFieldUpdateOperationsInput | string
+  avatarUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  timezone?: Prisma.StringFieldUpdateOperationsInput | string
+  locale?: Prisma.StringFieldUpdateOperationsInput | string
+  preferences?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  aiSessions?: Prisma.AiAgentSessionUncheckedUpdateManyWithoutUserNestedInput
+  finAccounts?: Prisma.FinAccountUncheckedUpdateManyWithoutUserNestedInput
+  finCards?: Prisma.FinCardUncheckedUpdateManyWithoutUserNestedInput
+  finInstitutions?: Prisma.FinInstitutionUncheckedUpdateManyWithoutUserNestedInput
+  finBudgets?: Prisma.FinBudgetUncheckedUpdateManyWithoutUserNestedInput
+  finCategories?: Prisma.FinCategoryUncheckedUpdateManyWithoutUserNestedInput
+  finEmailConnections?: Prisma.FinEmailConnectionUncheckedUpdateManyWithoutUserNestedInput
+  finEmailSources?: Prisma.FinEmailSourceUncheckedUpdateManyWithoutUserNestedInput
+  finLoans?: Prisma.FinLoanUncheckedUpdateManyWithoutUserNestedInput
+  finReceivables?: Prisma.FinReceivableUncheckedUpdateManyWithoutUserNestedInput
+  finRecurring?: Prisma.FinRecurringPatternUncheckedUpdateManyWithoutUserNestedInput
+  finSavingsGoals?: Prisma.FinSavingsGoalUncheckedUpdateManyWithoutUserNestedInput
+  finTransactions?: Prisma.FinTransactionUncheckedUpdateManyWithoutUserNestedInput
+  finDeletionJournal?: Prisma.FinDeletionJournalUncheckedUpdateManyWithoutUserNestedInput
+  finInstrumentEvents?: Prisma.FinInstrumentEventUncheckedUpdateManyWithoutUserNestedInput
   notifications?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
   pushTokens?: Prisma.PushTokenUncheckedUpdateManyWithoutUserNestedInput
   userModules?: Prisma.UserModuleUncheckedUpdateManyWithoutUserNestedInput
@@ -3186,6 +3415,7 @@ export type UserCountOutputType = {
   finTransactions: number
   finDeletionJournal: number
   finInstrumentEvents: number
+  finStatementImports: number
   notifications: number
   pushTokens: number
   userModules: number
@@ -3207,6 +3437,7 @@ export type UserCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.I
   finTransactions?: boolean | UserCountOutputTypeCountFinTransactionsArgs
   finDeletionJournal?: boolean | UserCountOutputTypeCountFinDeletionJournalArgs
   finInstrumentEvents?: boolean | UserCountOutputTypeCountFinInstrumentEventsArgs
+  finStatementImports?: boolean | UserCountOutputTypeCountFinStatementImportsArgs
   notifications?: boolean | UserCountOutputTypeCountNotificationsArgs
   pushTokens?: boolean | UserCountOutputTypeCountPushTokensArgs
   userModules?: boolean | UserCountOutputTypeCountUserModulesArgs
@@ -3330,6 +3561,13 @@ export type UserCountOutputTypeCountFinInstrumentEventsArgs<ExtArgs extends runt
 /**
  * UserCountOutputType without action
  */
+export type UserCountOutputTypeCountFinStatementImportsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.FinStatementImportWhereInput
+}
+
+/**
+ * UserCountOutputType without action
+ */
 export type UserCountOutputTypeCountNotificationsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   where?: Prisma.NotificationWhereInput
 }
@@ -3374,6 +3612,7 @@ export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   finTransactions?: boolean | Prisma.User$finTransactionsArgs<ExtArgs>
   finDeletionJournal?: boolean | Prisma.User$finDeletionJournalArgs<ExtArgs>
   finInstrumentEvents?: boolean | Prisma.User$finInstrumentEventsArgs<ExtArgs>
+  finStatementImports?: boolean | Prisma.User$finStatementImportsArgs<ExtArgs>
   notifications?: boolean | Prisma.User$notificationsArgs<ExtArgs>
   pushTokens?: boolean | Prisma.User$pushTokensArgs<ExtArgs>
   userModules?: boolean | Prisma.User$userModulesArgs<ExtArgs>
@@ -3433,6 +3672,7 @@ export type UserInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   finTransactions?: boolean | Prisma.User$finTransactionsArgs<ExtArgs>
   finDeletionJournal?: boolean | Prisma.User$finDeletionJournalArgs<ExtArgs>
   finInstrumentEvents?: boolean | Prisma.User$finInstrumentEventsArgs<ExtArgs>
+  finStatementImports?: boolean | Prisma.User$finStatementImportsArgs<ExtArgs>
   notifications?: boolean | Prisma.User$notificationsArgs<ExtArgs>
   pushTokens?: boolean | Prisma.User$pushTokensArgs<ExtArgs>
   userModules?: boolean | Prisma.User$userModulesArgs<ExtArgs>
@@ -3459,6 +3699,7 @@ export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     finTransactions: Prisma.$FinTransactionPayload<ExtArgs>[]
     finDeletionJournal: Prisma.$FinDeletionJournalPayload<ExtArgs>[]
     finInstrumentEvents: Prisma.$FinInstrumentEventPayload<ExtArgs>[]
+    finStatementImports: Prisma.$FinStatementImportPayload<ExtArgs>[]
     notifications: Prisma.$NotificationPayload<ExtArgs>[]
     pushTokens: Prisma.$PushTokenPayload<ExtArgs>[]
     userModules: Prisma.$UserModulePayload<ExtArgs>[]
@@ -3882,6 +4123,7 @@ export interface Prisma__UserClient<T, Null = never, ExtArgs extends runtime.Typ
   finTransactions<T extends Prisma.User$finTransactionsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$finTransactionsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$FinTransactionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   finDeletionJournal<T extends Prisma.User$finDeletionJournalArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$finDeletionJournalArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$FinDeletionJournalPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   finInstrumentEvents<T extends Prisma.User$finInstrumentEventsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$finInstrumentEventsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$FinInstrumentEventPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  finStatementImports<T extends Prisma.User$finStatementImportsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$finStatementImportsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$FinStatementImportPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   notifications<T extends Prisma.User$notificationsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$notificationsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$NotificationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   pushTokens<T extends Prisma.User$pushTokensArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$pushTokensArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$PushTokenPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   userModules<T extends Prisma.User$userModulesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$userModulesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$UserModulePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
@@ -4673,6 +4915,30 @@ export type User$finInstrumentEventsArgs<ExtArgs extends runtime.Types.Extension
   take?: number
   skip?: number
   distinct?: Prisma.FinInstrumentEventScalarFieldEnum | Prisma.FinInstrumentEventScalarFieldEnum[]
+}
+
+/**
+ * User.finStatementImports
+ */
+export type User$finStatementImportsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the FinStatementImport
+   */
+  select?: Prisma.FinStatementImportSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the FinStatementImport
+   */
+  omit?: Prisma.FinStatementImportOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.FinStatementImportInclude<ExtArgs> | null
+  where?: Prisma.FinStatementImportWhereInput
+  orderBy?: Prisma.FinStatementImportOrderByWithRelationInput | Prisma.FinStatementImportOrderByWithRelationInput[]
+  cursor?: Prisma.FinStatementImportWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.FinStatementImportScalarFieldEnum | Prisma.FinStatementImportScalarFieldEnum[]
 }
 
 /**

@@ -1,12 +1,4 @@
-import {
-  Body,
-  Controller,
-  Get,
-  Param,
-  Patch,
-  Post,
-  Query,
-} from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CurrentUser, RequiresEnabledModule } from '@personal-os/core';
 import { CursorQueryDto } from '@personal-os/core';
@@ -58,11 +50,5 @@ export class CardStatementsController {
     return this.statements
       .updateStatement(userId, id, statementId, dto)
       .then(() => ({ success: true }));
-  }
-
-  @Post('cards/:id/statements/import')
-  @ApiOperation({ summary: 'Import a statement PDF (reserved)' })
-  import() {
-    return this.statements.importStatement();
   }
 }

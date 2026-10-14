@@ -124,6 +124,19 @@ export type PrismaMock = {
     findFirst: MockFn;
     deleteMany: MockFn;
   };
+  finStatementImport: {
+    create: MockFn;
+    findFirst: MockFn;
+    update: MockFn;
+    updateMany: MockFn;
+    delete: MockFn;
+  };
+  finStatementImportLine: {
+    createMany: MockFn;
+    update: MockFn;
+    updateMany: MockFn;
+    deleteMany: MockFn;
+  };
   finBudget: {
     findMany: MockFn;
     findFirst: MockFn;
@@ -267,6 +280,19 @@ function createTransactionClient(prismaMock: PrismaMock) {
       findMany: jest.fn().mockResolvedValue([]),
       findFirst: jest.fn().mockResolvedValue(null),
       upsert: jest.fn().mockResolvedValue({}),
+      deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
+    },
+    finStatementImport: {
+      create: jest.fn().mockResolvedValue({ id: 'import-1' }),
+      findFirst: jest.fn().mockResolvedValue(null),
+      update: jest.fn().mockResolvedValue({}),
+      updateMany: jest.fn().mockResolvedValue({ count: 0 }),
+      delete: jest.fn().mockResolvedValue({}),
+    },
+    finStatementImportLine: {
+      createMany: jest.fn().mockResolvedValue({ count: 0 }),
+      update: jest.fn().mockResolvedValue({}),
+      updateMany: jest.fn().mockResolvedValue({ count: 1 }),
       deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
     },
     finLoanInstallment: {
@@ -474,6 +500,19 @@ export function createPrismaMock(): PrismaMock {
       deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
       upsert: jest.fn().mockResolvedValue({}),
       count: jest.fn().mockResolvedValue(0),
+    },
+    finStatementImport: {
+      create: jest.fn().mockResolvedValue({ id: 'import-1' }),
+      findFirst: jest.fn().mockResolvedValue(null),
+      update: jest.fn().mockResolvedValue({}),
+      updateMany: jest.fn().mockResolvedValue({ count: 0 }),
+      delete: jest.fn().mockResolvedValue({}),
+    },
+    finStatementImportLine: {
+      createMany: jest.fn().mockResolvedValue({ count: 0 }),
+      update: jest.fn().mockResolvedValue({}),
+      updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+      deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
     },
     finCategory: {
       findMany: jest.fn().mockResolvedValue([]),

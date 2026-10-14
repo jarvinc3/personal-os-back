@@ -226,3 +226,14 @@ export type AuthDeletionOutbox = Prisma.AuthDeletionOutboxModel
  * re-creates the stored rows and re-applies the reversed ledger deltas.
  */
 export type FinDeletionJournal = Prisma.FinDeletionJournalModel
+/**
+ * Model FinStatementImport
+ * One uploaded statement PDF waiting for review, being parsed, or already
+ * applied. The file itself is never stored.
+ */
+export type FinStatementImport = Prisma.FinStatementImportModel
+/**
+ * Model FinStatementImportLine
+ * One movement read from the statement PDF plus its proposed reconciliation.
+ */
+export type FinStatementImportLine = Prisma.FinStatementImportLineModel

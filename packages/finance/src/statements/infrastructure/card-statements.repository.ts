@@ -39,7 +39,7 @@ export type CardStatementSnapshotRow = {
   dueDate: Date | null;
   closingBalance: number;
   minimumPayment: number;
-  minimumSource: $Enums.FinAmountSource;
+  minimumSource: $Enums.FinAmountSource | null;
   status: $Enums.FinCardStatementStatus;
 };
 

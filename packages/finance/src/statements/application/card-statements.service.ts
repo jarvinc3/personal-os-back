@@ -1,8 +1,4 @@
-import {
-  Injectable,
-  NotFoundException,
-  NotImplementedException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import {
   clampPageLimit,
   decodeCursor,
@@ -152,10 +148,6 @@ export class CardStatementsService {
       closingBalance: dto.closingBalance,
       dueDate: dto.dueDate ? new Date(dto.dueDate) : undefined,
     });
-  }
-
-  importStatement(): never {
-    throw new NotImplementedException('Próximamente');
   }
 
   /**

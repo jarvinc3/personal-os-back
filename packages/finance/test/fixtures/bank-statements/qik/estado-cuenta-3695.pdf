@@ -1,0 +1,49 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>
+endobj
+5 0 obj
+<< /Length 706 >>
+stream
+BT
+/F1 9 Tf
+14 TL
+40 750 Td
+(Qik Banco Digital - Estado de cuenta) Tj T*
+(Cuenta: ****3695   Moneda: DOP) Tj T*
+(Periodo 01/09/2026 - 30/09/2026) Tj T*
+(Balance inicial: 12,300.00) Tj T*
+() Tj T*
+(Fecha       Detalle                         Referencia        Monto) Tj T*
+(05/09/2026  Pago de servicios EDESUR        QK-441200        2,150.35) Tj T*
+(10/09/2026  Retiro cajero automatico        QK-441255        3,000.00) Tj T*
+(15/09/2026  Transferencia recibida          QK-441301       15,000.00) Tj T*
+(23/09/2026  Compra supermercado Bravo       QK-441400        4,780.90) Tj T*
+(28/09/2026  Suscripcion Spotify             QK-441455          349.00) Tj T*
+() Tj T*
+(Balance final: 17,019.75) Tj T*
+ET
+endstream
+endobj
+xref
+0 6
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000241 00000 n 
+0000000338 00000 n 
+trailer
+<< /Size 6 /Root 1 0 R >>
+startxref
+1095
+%%EOF

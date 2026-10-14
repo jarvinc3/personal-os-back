@@ -27,3 +27,11 @@ export type GmailSyncJob = {
   sourceId: string;
   forceFullSync?: boolean;
 };
+
+export type StatementImportJob = {
+  userId: string;
+  importId: string;
+  /** Temporary file written before enqueue; deleted once the parse ends. */
+  filePath: string;
+  password?: string;
+};

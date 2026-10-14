@@ -12,4 +12,19 @@ Estados de cuenta (ciclos de facturación cerrados) de tarjetas de crédito.
 
 `GET /finance/cards/:id/statements` devuelve el array ordenado por `cycleEnd` descendente.
 
+## Importar el estado de cuenta desde un PDF
+
+`POST /finance/cards/:id/statements/import` (y `POST /finance/accounts/:id/statements/import`) recibe `multipart/form-data` con `file` (PDF, máx. 10 MB) y `password?`. Devuelve `{ importId }`.
+
+- La petición abre el PDF para pedir la clave antes de crear nada: si el PDF tiene clave y falta o es incorrecta, responde 400 con código `STATEMENT_PASSWORD_REQUIRED`. La clave no se guarda.
+- El parseo corre en la cola `statement-import` (`PARSING`). Sin BullMQ corre en la misma petición. Al terminar, `FinStatementImport.status` queda `READY` o `FAILED`.
+- Texto con pdf.js (`PdfjsStatementTextExtractor`, token `STATEMENT_PDF_TEXT`) y extracción con LLM y esquema estricto (token `STATEMENT_EXTRACTOR`).
+- La cabecera parseada (periodo, saldo anterior, saldo al corte, mínimo, fecha límite) vive en `parsed`; las filas en `FinStatementImportLine`. El archivo no se guarda.
+
+`GET /finance/statement-imports/:id` devuelve estado, cabecera, líneas con la propuesta de match, movimientos que sobran y la diferencia de saldo. `PATCH .../lines/:lineId` cambia la decisión (`MATCH`, `CREATE`, `IGNORE`). `POST .../apply` crea las filas marcadas, cierra el corte de la tarjeta (`CLOSED`) y ajusta la diferencia si se pide; es idempotente. `DELETE .../:id` descarta el import.
+
+El matcher es puro (`statement-line-matching.ts`): o misma referencia, o mismo monto y moneda con ±3 días y similitud de texto ≥ 0.8. Las filas sin match son «faltan en la app» y los movimientos del ciclo sin fila son «sobran en la app».
+
+Evidencia: `statements/domain/statement-line-matching.spec.ts`, `statements/application/statement-imports.service.spec.ts`, `statements/infrastructure/pdfjs-statement-text.extractor.spec.ts` y el e2e `test/finance.e2e-spec.ts` (upload → apply). Fixtures sintéticos en `packages/finance/test/fixtures/bank-statements/`.
+
 Evidencia: `statements/` (dominio + servicio + specs). Código: `packages/finance/src/statements/`.

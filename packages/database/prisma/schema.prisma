@@ -33,6 +33,7 @@ model User {
   finTransactions FinTransaction[]
   finDeletionJournal FinDeletionJournal[]
   finInstrumentEvents FinInstrumentEvent[]
+  finStatementImports FinStatementImport[]
   notifications   Notification[]
   pushTokens      PushToken[]
   userModules     UserModule[]
@@ -184,6 +185,7 @@ model FinAccount {
   savingsGoalContributions FinSavingsGoalContribution[]
   savingsGoals   FinSavingsGoal[]
   instrumentEvents FinInstrumentEvent[]
+  statementImports FinStatementImport[]
 
   @@index([userId, isActive], map: "fin_accounts_user_id_active_idx")
   @@index([institutionId], map: "fin_accounts_institution_id_idx")
@@ -310,6 +312,7 @@ model FinTransaction {
   savingsGoalContribution FinSavingsGoalContribution?
   loanInstallment      FinLoanInstallment?
   loanPrepayment       FinLoanPrepayment?
+  statementImportLines FinStatementImportLine[]
 
   @@index([accountId, transactionDate], map: "fin_transactions_account_id_date_idx")
   @@index([cardId, transactionDate], map: "fin_transactions_card_id_date_idx")
@@ -495,6 +498,7 @@ model FinCard {
   transactions        FinTransaction[]
   user                User             @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   instrumentEvents    FinInstrumentEvent[]
+  statementImports    FinStatementImport[]
 
   @@index([userId, institutionId], map: "fin_cards_user_id_institution_id_idx")
   @@index([userId, isActive], map: "fin_cards_user_id_active_idx")
@@ -552,6 +556,7 @@ model FinCardStatement {
   createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt      DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   card           FinCard  @relation(fields: [cardId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  statementImports FinStatementImport[]
 
   @@unique([cardId, currency, cycleEnd], map: "fin_card_statements_card_currency_cycle_key")
   @@index([cardId, cycleEnd], map: "fin_card_statements_card_id_cycle_end_idx")
@@ -1018,4 +1023,80 @@ model FinDeletionJournal {
   @@index([userId, entityType, entityId], map: "fin_deletion_journal_user_entity_idx")
   @@index([expiresAt], map: "fin_deletion_journal_expires_at_idx")
   @@map("fin_deletion_journal")
+}
+
+/// One uploaded statement PDF waiting for review, being parsed, or already
+/// applied. The file itself is never stored.
+model FinStatementImport {
+  id          String                   @id @default(dbgenerated("(uuid_generate_v4())::text"))
+  userId      String                   @map("user_id")
+  cardId      String?                  @map("card_id")
+  accountId   String?                  @map("account_id")
+  statementId String?                  @map("statement_id")
+  status      FinStatementImportStatus @default(PARSING)
+  /// Parsed header (period, balances, minimum, due date) plus summary counts;
+  /// never the raw file or its full text.
+  parsed      Json                     @default("{}")
+  error       String?
+  createdAt   DateTime                 @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime                 @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  appliedAt   DateTime?                @map("applied_at") @db.Timestamptz(6)
+  user        User                     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  card        FinCard?                 @relation(fields: [cardId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  account     FinAccount?              @relation(fields: [accountId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  statement   FinCardStatement?        @relation(fields: [statementId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  lines       FinStatementImportLine[]
+
+  @@index([userId, status, createdAt], map: "fin_statement_imports_user_status_idx")
+  @@index([cardId], map: "fin_statement_imports_card_id_idx")
+  @@index([accountId], map: "fin_statement_imports_account_id_idx")
+  @@map("fin_statement_imports")
+}
+
+/// One movement read from the statement PDF plus its proposed reconciliation.
+model FinStatementImportLine {
+  id            String                   @id @default(dbgenerated("(uuid_generate_v4())::text"))
+  importId      String                   @map("import_id")
+  date          DateTime                 @db.Date
+  description   String
+  amount        Decimal                  @db.Decimal(15, 2)
+  currency      String                   @default("DOP")
+  type          FinStatementLineType
+  reference     String?
+  categoryId    String?                  @map("category_id")
+  transactionId String?                  @map("transaction_id")
+  decision      FinStatementLineDecision @default(CREATE)
+  createdAt     DateTime                 @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime                 @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  import        FinStatementImport       @relation(fields: [importId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  transaction   FinTransaction?          @relation(fields: [transactionId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+
+  @@index([importId, date], map: "fin_statement_import_lines_import_date_idx")
+  @@index([transactionId], map: "fin_statement_import_lines_transaction_idx")
+  @@map("fin_statement_import_lines")
+}
+
+enum FinStatementLineType {
+  DEBIT
+  CREDIT
+
+  @@map("fin_statement_line_type")
+}
+
+enum FinStatementImportStatus {
+  PARSING
+  READY
+  APPLIED
+  FAILED
+  DISCARDED
+
+  @@map("fin_statement_import_status")
+}
+
+enum FinStatementLineDecision {
+  MATCH
+  CREATE
+  IGNORE
+
+  @@map("fin_statement_line_decision")
 }

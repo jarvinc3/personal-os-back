@@ -1,0 +1,49 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>
+endobj
+5 0 obj
+<< /Length 751 >>
+stream
+BT
+/F1 9 Tf
+14 TL
+40 750 Td
+(Banco Popular Dominicano - Estado de cuenta) Tj T*
+(Cuenta de Ahorros: ****5089   Moneda: DOP) Tj T*
+(Desde 01/09/2026 hasta 30/09/2026) Tj T*
+(Saldo anterior: 58,900.10) Tj T*
+() Tj T*
+(Fecha       Concepto                        Documento      Debito      Credito) Tj T*
+(03/09/2026  COMPRA POS JUMBO               DOC-551209      3,220.40) Tj T*
+(07/09/2026  PAGO PRESTAMO PERSONAL         DOC-551244      9,800.00) Tj T*
+(12/09/2026  DEPOSITO EFECTIVO SUCURSAL     DOC-551301                  6,500.00) Tj T*
+(19/09/2026  PLANILLA SERVICIOS CLARO       DOC-551388      1,890.55) Tj T*
+(26/09/2026  TRANSFERENCIA RECIBIDA         DOC-551420                 22,000.00) Tj T*
+() Tj T*
+(Saldo al corte: 72,489.15) Tj T*
+ET
+endstream
+endobj
+xref
+0 6
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000241 00000 n 
+0000000338 00000 n 
+trailer
+<< /Size 6 /Root 1 0 R >>
+startxref
+1140
+%%EOF

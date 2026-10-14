@@ -86,7 +86,9 @@ export const ModelName = {
   DomainEventOutbox: 'DomainEventOutbox',
   ProcessedDomainEvent: 'ProcessedDomainEvent',
   AuthDeletionOutbox: 'AuthDeletionOutbox',
-  FinDeletionJournal: 'FinDeletionJournal'
+  FinDeletionJournal: 'FinDeletionJournal',
+  FinStatementImport: 'FinStatementImport',
+  FinStatementImportLine: 'FinStatementImportLine'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -721,6 +723,42 @@ export const FinDeletionJournalScalarFieldEnum = {
 } as const
 
 export type FinDeletionJournalScalarFieldEnum = (typeof FinDeletionJournalScalarFieldEnum)[keyof typeof FinDeletionJournalScalarFieldEnum]
+
+
+export const FinStatementImportScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  cardId: 'cardId',
+  accountId: 'accountId',
+  statementId: 'statementId',
+  status: 'status',
+  parsed: 'parsed',
+  error: 'error',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  appliedAt: 'appliedAt'
+} as const
+
+export type FinStatementImportScalarFieldEnum = (typeof FinStatementImportScalarFieldEnum)[keyof typeof FinStatementImportScalarFieldEnum]
+
+
+export const FinStatementImportLineScalarFieldEnum = {
+  id: 'id',
+  importId: 'importId',
+  date: 'date',
+  description: 'description',
+  amount: 'amount',
+  currency: 'currency',
+  type: 'type',
+  reference: 'reference',
+  categoryId: 'categoryId',
+  transactionId: 'transactionId',
+  decision: 'decision',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type FinStatementImportLineScalarFieldEnum = (typeof FinStatementImportLineScalarFieldEnum)[keyof typeof FinStatementImportLineScalarFieldEnum]
 
 
 export const SortOrder = {

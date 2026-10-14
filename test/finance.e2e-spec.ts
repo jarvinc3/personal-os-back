@@ -8,6 +8,7 @@ import { applyAuthTestOverrides } from './helpers/auth-test.providers';
 import { createTestJwt } from './helpers/jwt.helper';
 import { createPrismaMock } from './helpers/prisma.mock';
 import { applyTestEnv } from './helpers/test-env';
+import { STATEMENT_EXTRACTOR, STATEMENT_PDF_TEXT } from '@personal-os/finance';
 
 applyTestEnv();
 
@@ -15,6 +16,19 @@ describe('Finance (e2e)', () => {
   let app: INestApplication<App>;
   let prismaMock: ReturnType<typeof createPrismaMock>;
   let token: string;
+  let statementText = 'statement text';
+  let statementExtraction: unknown = {
+    ok: false,
+    reason: 'unconfigured',
+    retryable: false,
+  };
+  const statementPdfStub = {
+    extractText: () => Promise.resolve(statementText),
+    assertReadable: () => Promise.resolve(),
+  };
+  const statementExtractorStub = {
+    extract: () => Promise.resolve(statementExtraction),
+  };
 
   beforeEach(async () => {
     const { AppModule } = require('../apps/api/src/app.module') as {
@@ -29,7 +43,12 @@ describe('Finance (e2e)', () => {
       })
         .overrideProvider(PrismaService)
         .useValue(prismaMock),
-    ).compile();
+    )
+      .overrideProvider(STATEMENT_PDF_TEXT)
+      .useValue(statementPdfStub)
+      .overrideProvider(STATEMENT_EXTRACTOR)
+      .useValue(statementExtractorStub)
+      .compile();
 
     app = moduleFixture.createNestApplication();
     app.setGlobalPrefix('api');
@@ -2078,5 +2097,153 @@ describe('Finance (e2e)', () => {
         expect(res.body.data.items[0]).toHaveProperty('paidAmount');
         expect(res.body.data.items[0]).toHaveProperty('status');
       });
+  });
+
+  it('imports an account statement PDF and applies the marked rows', async () => {
+    const accountId = '11111111-1111-4111-8111-111111111111';
+    prismaMock.finAccount.findFirst.mockResolvedValue({
+      id: accountId,
+      userId: 'user-123',
+      currency: 'DOP',
+      balance: { toString: () => '58900.10' },
+      name: 'Popular 3447',
+    });
+    statementText = 'Banco Popular Dominicano - Estado de cuenta';
+    statementExtraction = {
+      ok: true,
+      provider: 'test',
+      model: 'test',
+      statement: {
+        header: {
+          currency: 'DOP',
+          periodStart: '2026-09-01',
+          periodEnd: '2026-09-30',
+          previousBalance: 58900.1,
+          closingBalance: 72489.15,
+          minimumPayment: null,
+          dueDate: null,
+        },
+        lines: [
+          {
+            date: '2026-09-03',
+            description: 'COMPRA POS JUMBO',
+            amount: 3220.4,
+            currency: 'DOP',
+            type: 'DEBIT',
+            reference: 'DOC-551209',
+            categoryNameHint: null,
+          },
+        ],
+      },
+    };
+    prismaMock.finStatementImport.create.mockResolvedValue({
+      id: 'import-1',
+      userId: 'user-123',
+      cardId: null,
+      accountId,
+      statementId: null,
+      status: 'PARSING',
+      parsed: {},
+      error: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      appliedAt: null,
+    });
+    prismaMock.finCategory.findMany.mockResolvedValue([]);
+    prismaMock.finTransaction.findMany.mockResolvedValue([]);
+
+    const importContext = {
+      id: 'import-1',
+      userId: 'user-123',
+      cardId: null,
+      accountId,
+      statementId: null,
+      status: 'PARSING',
+      parsed: {},
+      error: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      appliedAt: null,
+      card: null,
+      account: { id: accountId, name: 'Popular 3447', currency: 'DOP' },
+      lines: [
+        {
+          id: 'line-1',
+          importId: 'import-1',
+          date: new Date('2026-09-03T00:00:00.000Z'),
+          description: 'COMPRA POS JUMBO',
+          amount: { toFixed: () => '3220.40' },
+          currency: 'DOP',
+          type: 'DEBIT',
+          reference: 'DOC-551209',
+          categoryId: null,
+          transactionId: null,
+          decision: 'CREATE',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      ],
+    };
+    prismaMock.finStatementImport.findFirst.mockImplementation(() =>
+      Promise.resolve(importContext),
+    );
+    prismaMock.finStatementImport.update.mockImplementation(
+      (args: { data: Record<string, unknown> }) => {
+        Object.assign(importContext, args.data);
+        return Promise.resolve(importContext);
+      },
+    );
+
+    await request(app.getHttpServer())
+      .post(`/api/finance/accounts/${accountId}/statements/import`)
+      .set('Authorization', `Bearer ${token}`)
+      .attach('file', Buffer.from('%PDF-1.4 synthetic'), {
+        filename: 'statement.pdf',
+        contentType: 'application/pdf',
+      })
+      .expect(201)
+      .expect((res) => {
+        expect(res.body.data).toEqual({ importId: 'import-1' });
+      });
+
+    expect(prismaMock.finStatementImportLine.createMany).toHaveBeenCalled();
+    expect(prismaMock.finStatementImport.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'import-1' },
+        data: expect.objectContaining({ status: 'READY' }),
+      }),
+    );
+
+    await request(app.getHttpServer())
+      .get('/api/finance/statement-imports/import-1')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.data.lines).toHaveLength(1);
+        expect(res.body.data.lines[0].decision).toBe('CREATE');
+        expect(res.body.data.header.closingBalance).toBe('72489.15');
+        expect(res.body.data.difference).toBe('13589.05');
+      });
+
+    await request(app.getHttpServer())
+      .post('/api/finance/statement-imports/import-1/apply')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ adjust: false })
+      .expect(201)
+      .expect((res) => {
+        expect(res.body.data.status).toBe('APPLIED');
+      });
+
+    const linkCall = prismaMock.finStatementImportLine.update.mock.calls[0] as [
+      { where: unknown; data: { transactionId?: unknown } },
+    ];
+    expect(linkCall[0].where).toEqual({ id: 'line-1' });
+    expect(typeof linkCall[0].data.transactionId).toBe('string');
+    expect(prismaMock.finStatementImport.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'import-1' },
+        data: expect.objectContaining({ status: 'APPLIED' }),
+      }),
+    );
   });
 });
