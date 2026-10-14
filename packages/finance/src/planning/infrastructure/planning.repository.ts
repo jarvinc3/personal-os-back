@@ -13,6 +13,7 @@ import {
   DELETION_MODEL,
   toDeletionValues,
 } from '../../shared/domain/deletion-snapshot';
+import { decodeCursorPosition } from '../../shared/infrastructure/cursor-window';
 import { DeletionJournalRepository } from '../../shared/infrastructure/deletion-journal.repository';
 import { applyReceivableBalance } from './receivable-balance';
 import { applySavingsGoalBalance } from './savings-goal-balance';
@@ -294,16 +295,15 @@ export class PlanningRepository {
 
   listSavingsGoalContributions(goalId: string, query: CursorQueryDto) {
     const limit = clampPageLimit(query.limit);
-    const cursorPoint = query.cursor ? decodeCursor(query.cursor) : null;
-    const cursorDate = cursorPoint ? new Date(cursorPoint.key) : null;
+    const after = decodeCursorPosition(query.cursor);
     return this.prisma.finSavingsGoalContribution.findMany({
       where: {
         goalId,
-        ...(cursorPoint && cursorDate
+        ...(after
           ? {
               OR: [
-                { contributedAt: { lt: cursorDate } },
-                { contributedAt: cursorDate, id: { lt: cursorPoint.id } },
+                { contributedAt: { lt: after.date } },
+                { contributedAt: after.date, id: { lt: after.id } },
               ],
             }
           : {}),
@@ -475,16 +475,15 @@ export class PlanningRepository {
 
   listInstallmentsPage(loanId: string, query: CursorQueryDto) {
     const limit = clampPageLimit(query.limit);
-    const cursorPoint = query.cursor ? decodeCursor(query.cursor) : null;
-    const cursorDate = cursorPoint ? new Date(cursorPoint.key) : null;
+    const after = decodeCursorPosition(query.cursor);
     return this.prisma.finLoanInstallment.findMany({
       where: {
         loanId,
-        ...(cursorPoint && cursorDate
+        ...(after
           ? {
               OR: [
-                { dueDate: { gt: cursorDate } },
-                { dueDate: cursorDate, id: { gt: cursorPoint.id } },
+                { dueDate: { gt: after.date } },
+                { dueDate: after.date, id: { gt: after.id } },
               ],
             }
           : {}),
@@ -744,16 +743,15 @@ export class PlanningRepository {
 
   listReceivablePayments(receivableId: string, query: CursorQueryDto) {
     const limit = clampPageLimit(query.limit);
-    const cursorPoint = query.cursor ? decodeCursor(query.cursor) : null;
-    const cursorDate = cursorPoint ? new Date(cursorPoint.key) : null;
+    const after = decodeCursorPosition(query.cursor);
     return this.prisma.finReceivablePayment.findMany({
       where: {
         receivableId,
-        ...(cursorPoint && cursorDate
+        ...(after
           ? {
               OR: [
-                { paidAt: { lt: cursorDate } },
-                { paidAt: cursorDate, id: { lt: cursorPoint.id } },
+                { paidAt: { lt: after.date } },
+                { paidAt: after.date, id: { lt: after.id } },
               ],
             }
           : {}),

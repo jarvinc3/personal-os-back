@@ -1,11 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import {
-  clampPageLimit,
-  decodeCursor,
-  type CursorQueryDto,
-} from '@personal-os/core';
+import { clampPageLimit, type CursorQueryDto } from '@personal-os/core';
 import type { Prisma } from '@personal-os/database';
 import { PrismaService } from '@personal-os/database';
+import { decodeCursorPosition } from '../../shared/infrastructure/cursor-window';
 import {
   EMAIL_MESSAGE_OUTCOME,
   type EmailMessageOutcome,
@@ -454,8 +451,7 @@ export class EmailSourceRepository {
 
   listPendingAssignmentMessagesPage(userId: string, query: CursorQueryDto) {
     const limit = clampPageLimit(query.limit);
-    const cursorPoint = query.cursor ? decodeCursor(query.cursor) : null;
-    const cursorDate = cursorPoint ? new Date(cursorPoint.key) : null;
+    const after = decodeCursorPosition(query.cursor);
     return this.prisma.finEmailMessage.findMany({
       where: {
         outcome: {
@@ -465,11 +461,11 @@ export class EmailSourceRepository {
           ],
         },
         source: { userId },
-        ...(cursorPoint && cursorDate
+        ...(after
           ? {
               OR: [
-                { createdAt: { lt: cursorDate } },
-                { createdAt: cursorDate, id: { lt: cursorPoint.id } },
+                { createdAt: { lt: after.date } },
+                { createdAt: after.date, id: { lt: after.id } },
               ],
             }
           : {}),
@@ -508,16 +504,15 @@ export class EmailSourceRepository {
 
   listRecentEmailMessagesPage(userId: string, query: CursorQueryDto) {
     const limit = clampPageLimit(query.limit);
-    const cursorPoint = query.cursor ? decodeCursor(query.cursor) : null;
-    const cursorDate = cursorPoint ? new Date(cursorPoint.key) : null;
+    const after = decodeCursorPosition(query.cursor);
     return this.prisma.finEmailMessage.findMany({
       where: {
         source: { userId },
-        ...(cursorPoint && cursorDate
+        ...(after
           ? {
               OR: [
-                { createdAt: { lt: cursorDate } },
-                { createdAt: cursorDate, id: { lt: cursorPoint.id } },
+                { createdAt: { lt: after.date } },
+                { createdAt: after.date, id: { lt: after.id } },
               ],
             }
           : {}),
