@@ -141,7 +141,7 @@ describe('AiChatPersistenceService', () => {
     expect(createMessage).not.toHaveBeenCalled();
   });
 
-  it('persists the incoming chat context and returns it', async () => {
+  it('persists the incoming chat context', async () => {
     updateSession.mockResolvedValue({ id: 'session-1' });
     const context = {
       moduleSlug: 'finance',
@@ -149,19 +149,14 @@ describe('AiChatPersistenceService', () => {
       entityRef: { type: 'loan' as const, id: 'loan-1' },
     };
 
-    const resolved = await service.resolveChatContext(
-      'user-1',
-      'session-1',
-      context,
-    );
+    await service.persistChatContext('session-1', context);
 
-    expect(resolved).toEqual(context);
     expect(updateSession).toHaveBeenCalledWith('session-1', {
       chatContext: context,
     });
   });
 
-  it('falls back to the stored chat context when none is sent', async () => {
+  it('reads the stored chat context', async () => {
     findSessionById.mockResolvedValue({
       id: 'session-1',
       chatContext: {
@@ -170,22 +165,30 @@ describe('AiChatPersistenceService', () => {
       },
     });
 
-    const resolved = await service.resolveChatContext('user-1', 'session-1');
+    const stored = await service.readChatContext('user-1', 'session-1');
 
-    expect(resolved).toEqual({
+    expect(stored).toEqual({
       moduleSlug: 'finance',
       entityRef: { type: 'budget', id: 'budget-1' },
     });
   });
 
-  it('ignores a malformed stored chat context', async () => {
+  it('returns null when the stored chat context is malformed', async () => {
     findSessionById.mockResolvedValue({
       id: 'session-1',
       chatContext: { entityRef: { type: 'loan', id: 'loan-1' } },
     });
 
-    const resolved = await service.resolveChatContext('user-1', 'session-1');
+    const stored = await service.readChatContext('user-1', 'session-1');
 
-    expect(resolved).toBeNull();
+    expect(stored).toBeNull();
+  });
+
+  it('rejects reading the chat context of a missing session', async () => {
+    findSessionById.mockResolvedValue(null);
+
+    await expect(
+      service.readChatContext('user-1', 'session-missing'),
+    ).rejects.toThrow('AI session not found');
   });
 });

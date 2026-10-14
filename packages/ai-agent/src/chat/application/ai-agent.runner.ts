@@ -175,11 +175,12 @@ export class AiAgentRunner {
       input.clientMessageId,
     );
 
-    const chatContext = await this.persistence.resolveChatContext(
-      input.userId,
-      input.sessionId,
-      input.context,
-    );
+    const chatContext =
+      input.context ??
+      (await this.persistence.readChatContext(input.userId, input.sessionId));
+    if (input.context) {
+      await this.persistence.persistChatContext(input.sessionId, input.context);
+    }
     const entityContext = chatContext?.entityRef
       ? await this.financeFacade.resolveChatContextEntity(
           input.userId,

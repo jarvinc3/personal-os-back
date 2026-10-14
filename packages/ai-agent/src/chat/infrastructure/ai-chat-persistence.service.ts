@@ -255,26 +255,21 @@ export class AiChatPersistenceService {
     });
   }
 
-  async resolveChatContext(
+  async readChatContext(
     userId: string,
     sessionId: string,
-    incoming?: ChatContext,
   ): Promise<ChatContext | null> {
-    if (!incoming) {
-      const session = await this.sessionsRepo.findSessionById(
-        sessionId,
-        userId,
-      );
-      if (!session) {
-        throw new NotFoundException('AI session not found');
-      }
-      return parseChatContext(session.chatContext);
+    const session = await this.sessionsRepo.findSessionById(sessionId, userId);
+    if (!session) {
+      throw new NotFoundException('AI session not found');
     }
+    return parseChatContext(session.chatContext);
+  }
 
+  async persistChatContext(sessionId: string, context: ChatContext) {
     await this.sessionsRepo.updateSession(sessionId, {
-      chatContext: incoming,
+      chatContext: context,
     });
-    return incoming;
   }
 
   async buildMessagesForProvider({
