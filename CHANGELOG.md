@@ -2,6 +2,16 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [SemVer](https://semver.org/lang/es/). Reglas y ejemplo en [docs/reference/changelog-guide.md](./docs/reference/changelog-guide.md).
 
+## [0.27.0] - 2026-10-19 - Conciliación
+
+### Agregado
+
+- Tablas `fin_reconciliations` y `fin_reconciliation_adjustments` con el enum de tipos de ajuste, las categorías de sistema de cada tipo y sus índices y llaves foráneas.
+- REST `/finance/reconciliations`: `preview`, alta con sus ajustes en una transacción de BD, historial por producto, detalle, borrado del último cierre, `restore` y `status` del mes.
+- `GET /finance/analytics/bank-charges`: total de cargos bancarios por mes, institución y tipo.
+- Tools `reconcile_product` (vista previa y confirmación) y `get_bank_charges`.
+- Los ajustes de conciliación mueven el saldo, no aparecen en el tablero ni en presupuestos, y se borran y restauran con el diario de borrados (`entityType` `reconciliation`).
+
 ## [0.26.1] - 2026-10-14
 
 ### Corregido
