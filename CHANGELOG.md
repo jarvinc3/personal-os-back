@@ -2,6 +2,12 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [SemVer](https://semver.org/lang/es/). Reglas y ejemplo en [docs/reference/changelog-guide.md](./docs/reference/changelog-guide.md).
 
+## [0.25.1] - 2026-10-14
+
+### Cambiado
+
+- La detección de recurrentes devuelve el aviso de subida de precio en vez de mutar la lista del llamador. Sin cambios de comportamiento.
+
 ## [0.25.0] - 2026-10-14 - Comercios y suscripciones detectadas
 
 ### Agregado
