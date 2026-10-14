@@ -188,8 +188,13 @@ export class RecurringService {
   }
 
   /** Detects new patterns and refreshes the confirmed ones. */
-  async detect(userId: string, now = new Date()): Promise<RecurringDetectionOutcome> {
-    const since = new Date(now.getTime() - DETECTION_LOOKBACK_DAYS * MS_PER_DAY);
+  async detect(
+    userId: string,
+    now = new Date(),
+  ): Promise<RecurringDetectionOutcome> {
+    const since = new Date(
+      now.getTime() - DETECTION_LOOKBACK_DAYS * MS_PER_DAY,
+    );
     const charges = await this.repo.findChargesForDetection(userId, since);
     const currency = await this.baseCurrency.execute(userId);
     const priceChanges: RecurringPriceChange[] = [];
@@ -239,11 +244,13 @@ export class RecurringService {
           categoryId: existing.categoryId ?? detected.categoryId,
         });
         if (confirmed) {
-          this.collectPriceChange(
-            priceChanges,
+          const priceChange = this.detectPriceChange(
             existing,
             lastChargeAmount(group.charges),
           );
+          if (priceChange) {
+            priceChanges.push(priceChange);
+          }
         }
         continue;
       }
@@ -267,11 +274,10 @@ export class RecurringService {
     return { patterns, priceChanges };
   }
 
-  private collectPriceChange(
-    priceChanges: RecurringPriceChange[],
+  private detectPriceChange(
     existing: RecurringPatternWithMerchant,
     newAmount: number,
-  ): void {
+  ): RecurringPriceChange | null {
     const previousAmount = Number(existing.avgAmount);
     if (
       !hasPriceIncrease({
@@ -280,21 +286,25 @@ export class RecurringService {
         tolerancePct: Number(existing.amountTolerance),
       })
     ) {
-      return;
+      return null;
     }
-    priceChanges.push({
+    return {
       patternId: existing.id,
       merchant: existing.merchant,
       currency: existing.currency,
       previousAmount,
       newAmount,
-    });
+    };
   }
 
   private async resolveMerchant(userId: string, dto: CreateRecurringDto) {
     if (dto.merchantId) {
       const merchant = await this.merchants.get(userId, dto.merchantId);
-      return { id: merchant.id, name: merchant.name, categoryId: merchant.categoryId };
+      return {
+        id: merchant.id,
+        name: merchant.name,
+        categoryId: merchant.categoryId,
+      };
     }
     return this.merchants.resolve(userId, dto.merchant);
   }
