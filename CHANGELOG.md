@@ -2,6 +2,13 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [SemVer](https://semver.org/lang/es/). Reglas y ejemplo en [docs/reference/changelog-guide.md](./docs/reference/changelog-guide.md).
 
+## [0.28.2] - 2026-10-19
+
+### Corregido
+
+- La lista de suscripciones acepta `unassignedCategory` y `unassignedMethod` para filtrar las que no tienen categoría ni método de pago.
+- El historial de pagos de cada suscripción se ordena por fecha e id, para que la alerta de subida de precio compare siempre los mismos dos cargos.
+
 ## [0.28.1] - 2026-10-19
 
 ### Cambiado
