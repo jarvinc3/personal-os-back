@@ -300,6 +300,7 @@ export type FinCardWhereInput = {
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
   instrumentEvents?: Prisma.FinInstrumentEventListRelationFilter
   statementImports?: Prisma.FinStatementImportListRelationFilter
+  subscriptions?: Prisma.FinSubscriptionListRelationFilter
 }
 
 export type FinCardOrderByWithRelationInput = {
@@ -325,6 +326,7 @@ export type FinCardOrderByWithRelationInput = {
   user?: Prisma.UserOrderByWithRelationInput
   instrumentEvents?: Prisma.FinInstrumentEventOrderByRelationAggregateInput
   statementImports?: Prisma.FinStatementImportOrderByRelationAggregateInput
+  subscriptions?: Prisma.FinSubscriptionOrderByRelationAggregateInput
 }
 
 export type FinCardWhereUniqueInput = Prisma.AtLeast<{
@@ -353,6 +355,7 @@ export type FinCardWhereUniqueInput = Prisma.AtLeast<{
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
   instrumentEvents?: Prisma.FinInstrumentEventListRelationFilter
   statementImports?: Prisma.FinStatementImportListRelationFilter
+  subscriptions?: Prisma.FinSubscriptionListRelationFilter
 }, "id">
 
 export type FinCardOrderByWithAggregationInput = {
@@ -417,6 +420,7 @@ export type FinCardCreateInput = {
   user: Prisma.UserCreateNestedOneWithoutFinCardsInput
   instrumentEvents?: Prisma.FinInstrumentEventCreateNestedManyWithoutCardInput
   statementImports?: Prisma.FinStatementImportCreateNestedManyWithoutCardInput
+  subscriptions?: Prisma.FinSubscriptionCreateNestedManyWithoutCardInput
 }
 
 export type FinCardUncheckedCreateInput = {
@@ -439,6 +443,7 @@ export type FinCardUncheckedCreateInput = {
   transactions?: Prisma.FinTransactionUncheckedCreateNestedManyWithoutCardInput
   instrumentEvents?: Prisma.FinInstrumentEventUncheckedCreateNestedManyWithoutCardInput
   statementImports?: Prisma.FinStatementImportUncheckedCreateNestedManyWithoutCardInput
+  subscriptions?: Prisma.FinSubscriptionUncheckedCreateNestedManyWithoutCardInput
 }
 
 export type FinCardUpdateInput = {
@@ -461,6 +466,7 @@ export type FinCardUpdateInput = {
   user?: Prisma.UserUpdateOneRequiredWithoutFinCardsNestedInput
   instrumentEvents?: Prisma.FinInstrumentEventUpdateManyWithoutCardNestedInput
   statementImports?: Prisma.FinStatementImportUpdateManyWithoutCardNestedInput
+  subscriptions?: Prisma.FinSubscriptionUpdateManyWithoutCardNestedInput
 }
 
 export type FinCardUncheckedUpdateInput = {
@@ -483,6 +489,7 @@ export type FinCardUncheckedUpdateInput = {
   transactions?: Prisma.FinTransactionUncheckedUpdateManyWithoutCardNestedInput
   instrumentEvents?: Prisma.FinInstrumentEventUncheckedUpdateManyWithoutCardNestedInput
   statementImports?: Prisma.FinStatementImportUncheckedUpdateManyWithoutCardNestedInput
+  subscriptions?: Prisma.FinSubscriptionUncheckedUpdateManyWithoutCardNestedInput
 }
 
 export type FinCardCreateManyInput = {
@@ -714,6 +721,22 @@ export type FinCardUpdateOneWithoutTransactionsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.FinCardUpdateToOneWithWhereWithoutTransactionsInput, Prisma.FinCardUpdateWithoutTransactionsInput>, Prisma.FinCardUncheckedUpdateWithoutTransactionsInput>
 }
 
+export type FinCardCreateNestedOneWithoutSubscriptionsInput = {
+  create?: Prisma.XOR<Prisma.FinCardCreateWithoutSubscriptionsInput, Prisma.FinCardUncheckedCreateWithoutSubscriptionsInput>
+  connectOrCreate?: Prisma.FinCardCreateOrConnectWithoutSubscriptionsInput
+  connect?: Prisma.FinCardWhereUniqueInput
+}
+
+export type FinCardUpdateOneWithoutSubscriptionsNestedInput = {
+  create?: Prisma.XOR<Prisma.FinCardCreateWithoutSubscriptionsInput, Prisma.FinCardUncheckedCreateWithoutSubscriptionsInput>
+  connectOrCreate?: Prisma.FinCardCreateOrConnectWithoutSubscriptionsInput
+  upsert?: Prisma.FinCardUpsertWithoutSubscriptionsInput
+  disconnect?: Prisma.FinCardWhereInput | boolean
+  delete?: Prisma.FinCardWhereInput | boolean
+  connect?: Prisma.FinCardWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.FinCardUpdateToOneWithWhereWithoutSubscriptionsInput, Prisma.FinCardUpdateWithoutSubscriptionsInput>, Prisma.FinCardUncheckedUpdateWithoutSubscriptionsInput>
+}
+
 export type FinCardCreateNestedManyWithoutInstitutionInput = {
   create?: Prisma.XOR<Prisma.FinCardCreateWithoutInstitutionInput, Prisma.FinCardUncheckedCreateWithoutInstitutionInput> | Prisma.FinCardCreateWithoutInstitutionInput[] | Prisma.FinCardUncheckedCreateWithoutInstitutionInput[]
   connectOrCreate?: Prisma.FinCardCreateOrConnectWithoutInstitutionInput | Prisma.FinCardCreateOrConnectWithoutInstitutionInput[]
@@ -851,6 +874,7 @@ export type FinCardCreateWithoutUserInput = {
   transactions?: Prisma.FinTransactionCreateNestedManyWithoutCardInput
   instrumentEvents?: Prisma.FinInstrumentEventCreateNestedManyWithoutCardInput
   statementImports?: Prisma.FinStatementImportCreateNestedManyWithoutCardInput
+  subscriptions?: Prisma.FinSubscriptionCreateNestedManyWithoutCardInput
 }
 
 export type FinCardUncheckedCreateWithoutUserInput = {
@@ -872,6 +896,7 @@ export type FinCardUncheckedCreateWithoutUserInput = {
   transactions?: Prisma.FinTransactionUncheckedCreateNestedManyWithoutCardInput
   instrumentEvents?: Prisma.FinInstrumentEventUncheckedCreateNestedManyWithoutCardInput
   statementImports?: Prisma.FinStatementImportUncheckedCreateNestedManyWithoutCardInput
+  subscriptions?: Prisma.FinSubscriptionUncheckedCreateNestedManyWithoutCardInput
 }
 
 export type FinCardCreateOrConnectWithoutUserInput = {
@@ -939,6 +964,7 @@ export type FinCardCreateWithoutAccountInput = {
   user: Prisma.UserCreateNestedOneWithoutFinCardsInput
   instrumentEvents?: Prisma.FinInstrumentEventCreateNestedManyWithoutCardInput
   statementImports?: Prisma.FinStatementImportCreateNestedManyWithoutCardInput
+  subscriptions?: Prisma.FinSubscriptionCreateNestedManyWithoutCardInput
 }
 
 export type FinCardUncheckedCreateWithoutAccountInput = {
@@ -960,6 +986,7 @@ export type FinCardUncheckedCreateWithoutAccountInput = {
   transactions?: Prisma.FinTransactionUncheckedCreateNestedManyWithoutCardInput
   instrumentEvents?: Prisma.FinInstrumentEventUncheckedCreateNestedManyWithoutCardInput
   statementImports?: Prisma.FinStatementImportUncheckedCreateNestedManyWithoutCardInput
+  subscriptions?: Prisma.FinSubscriptionUncheckedCreateNestedManyWithoutCardInput
 }
 
 export type FinCardCreateOrConnectWithoutAccountInput = {
@@ -1007,6 +1034,7 @@ export type FinCardCreateWithoutTransactionsInput = {
   user: Prisma.UserCreateNestedOneWithoutFinCardsInput
   instrumentEvents?: Prisma.FinInstrumentEventCreateNestedManyWithoutCardInput
   statementImports?: Prisma.FinStatementImportCreateNestedManyWithoutCardInput
+  subscriptions?: Prisma.FinSubscriptionCreateNestedManyWithoutCardInput
 }
 
 export type FinCardUncheckedCreateWithoutTransactionsInput = {
@@ -1028,6 +1056,7 @@ export type FinCardUncheckedCreateWithoutTransactionsInput = {
   statements?: Prisma.FinCardStatementUncheckedCreateNestedManyWithoutCardInput
   instrumentEvents?: Prisma.FinInstrumentEventUncheckedCreateNestedManyWithoutCardInput
   statementImports?: Prisma.FinStatementImportUncheckedCreateNestedManyWithoutCardInput
+  subscriptions?: Prisma.FinSubscriptionUncheckedCreateNestedManyWithoutCardInput
 }
 
 export type FinCardCreateOrConnectWithoutTransactionsInput = {
@@ -1065,6 +1094,7 @@ export type FinCardUpdateWithoutTransactionsInput = {
   user?: Prisma.UserUpdateOneRequiredWithoutFinCardsNestedInput
   instrumentEvents?: Prisma.FinInstrumentEventUpdateManyWithoutCardNestedInput
   statementImports?: Prisma.FinStatementImportUpdateManyWithoutCardNestedInput
+  subscriptions?: Prisma.FinSubscriptionUpdateManyWithoutCardNestedInput
 }
 
 export type FinCardUncheckedUpdateWithoutTransactionsInput = {
@@ -1084,6 +1114,111 @@ export type FinCardUncheckedUpdateWithoutTransactionsInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   balances?: Prisma.FinCardBalanceUncheckedUpdateManyWithoutCardNestedInput
   statements?: Prisma.FinCardStatementUncheckedUpdateManyWithoutCardNestedInput
+  instrumentEvents?: Prisma.FinInstrumentEventUncheckedUpdateManyWithoutCardNestedInput
+  statementImports?: Prisma.FinStatementImportUncheckedUpdateManyWithoutCardNestedInput
+  subscriptions?: Prisma.FinSubscriptionUncheckedUpdateManyWithoutCardNestedInput
+}
+
+export type FinCardCreateWithoutSubscriptionsInput = {
+  id?: string
+  name: string
+  lastFour?: string | null
+  type: $Enums.FinCardType
+  network?: $Enums.FinCardNetwork | null
+  statementClosingDay?: number | null
+  paymentDueDay?: number | null
+  color?: string | null
+  isActive?: boolean
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  account?: Prisma.FinAccountCreateNestedOneWithoutCardsInput
+  balances?: Prisma.FinCardBalanceCreateNestedManyWithoutCardInput
+  statements?: Prisma.FinCardStatementCreateNestedManyWithoutCardInput
+  institution: Prisma.FinInstitutionCreateNestedOneWithoutCardsInput
+  transactions?: Prisma.FinTransactionCreateNestedManyWithoutCardInput
+  user: Prisma.UserCreateNestedOneWithoutFinCardsInput
+  instrumentEvents?: Prisma.FinInstrumentEventCreateNestedManyWithoutCardInput
+  statementImports?: Prisma.FinStatementImportCreateNestedManyWithoutCardInput
+}
+
+export type FinCardUncheckedCreateWithoutSubscriptionsInput = {
+  id?: string
+  userId: string
+  institutionId: string
+  accountId?: string | null
+  name: string
+  lastFour?: string | null
+  type: $Enums.FinCardType
+  network?: $Enums.FinCardNetwork | null
+  statementClosingDay?: number | null
+  paymentDueDay?: number | null
+  color?: string | null
+  isActive?: boolean
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  balances?: Prisma.FinCardBalanceUncheckedCreateNestedManyWithoutCardInput
+  statements?: Prisma.FinCardStatementUncheckedCreateNestedManyWithoutCardInput
+  transactions?: Prisma.FinTransactionUncheckedCreateNestedManyWithoutCardInput
+  instrumentEvents?: Prisma.FinInstrumentEventUncheckedCreateNestedManyWithoutCardInput
+  statementImports?: Prisma.FinStatementImportUncheckedCreateNestedManyWithoutCardInput
+}
+
+export type FinCardCreateOrConnectWithoutSubscriptionsInput = {
+  where: Prisma.FinCardWhereUniqueInput
+  create: Prisma.XOR<Prisma.FinCardCreateWithoutSubscriptionsInput, Prisma.FinCardUncheckedCreateWithoutSubscriptionsInput>
+}
+
+export type FinCardUpsertWithoutSubscriptionsInput = {
+  update: Prisma.XOR<Prisma.FinCardUpdateWithoutSubscriptionsInput, Prisma.FinCardUncheckedUpdateWithoutSubscriptionsInput>
+  create: Prisma.XOR<Prisma.FinCardCreateWithoutSubscriptionsInput, Prisma.FinCardUncheckedCreateWithoutSubscriptionsInput>
+  where?: Prisma.FinCardWhereInput
+}
+
+export type FinCardUpdateToOneWithWhereWithoutSubscriptionsInput = {
+  where?: Prisma.FinCardWhereInput
+  data: Prisma.XOR<Prisma.FinCardUpdateWithoutSubscriptionsInput, Prisma.FinCardUncheckedUpdateWithoutSubscriptionsInput>
+}
+
+export type FinCardUpdateWithoutSubscriptionsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  lastFour?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  type?: Prisma.EnumFinCardTypeFieldUpdateOperationsInput | $Enums.FinCardType
+  network?: Prisma.NullableEnumFinCardNetworkFieldUpdateOperationsInput | $Enums.FinCardNetwork | null
+  statementClosingDay?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  paymentDueDay?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  color?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  account?: Prisma.FinAccountUpdateOneWithoutCardsNestedInput
+  balances?: Prisma.FinCardBalanceUpdateManyWithoutCardNestedInput
+  statements?: Prisma.FinCardStatementUpdateManyWithoutCardNestedInput
+  institution?: Prisma.FinInstitutionUpdateOneRequiredWithoutCardsNestedInput
+  transactions?: Prisma.FinTransactionUpdateManyWithoutCardNestedInput
+  user?: Prisma.UserUpdateOneRequiredWithoutFinCardsNestedInput
+  instrumentEvents?: Prisma.FinInstrumentEventUpdateManyWithoutCardNestedInput
+  statementImports?: Prisma.FinStatementImportUpdateManyWithoutCardNestedInput
+}
+
+export type FinCardUncheckedUpdateWithoutSubscriptionsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  userId?: Prisma.StringFieldUpdateOperationsInput | string
+  institutionId?: Prisma.StringFieldUpdateOperationsInput | string
+  accountId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  lastFour?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  type?: Prisma.EnumFinCardTypeFieldUpdateOperationsInput | $Enums.FinCardType
+  network?: Prisma.NullableEnumFinCardNetworkFieldUpdateOperationsInput | $Enums.FinCardNetwork | null
+  statementClosingDay?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  paymentDueDay?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  color?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  balances?: Prisma.FinCardBalanceUncheckedUpdateManyWithoutCardNestedInput
+  statements?: Prisma.FinCardStatementUncheckedUpdateManyWithoutCardNestedInput
+  transactions?: Prisma.FinTransactionUncheckedUpdateManyWithoutCardNestedInput
   instrumentEvents?: Prisma.FinInstrumentEventUncheckedUpdateManyWithoutCardNestedInput
   statementImports?: Prisma.FinStatementImportUncheckedUpdateManyWithoutCardNestedInput
 }
@@ -1107,6 +1242,7 @@ export type FinCardCreateWithoutInstitutionInput = {
   user: Prisma.UserCreateNestedOneWithoutFinCardsInput
   instrumentEvents?: Prisma.FinInstrumentEventCreateNestedManyWithoutCardInput
   statementImports?: Prisma.FinStatementImportCreateNestedManyWithoutCardInput
+  subscriptions?: Prisma.FinSubscriptionCreateNestedManyWithoutCardInput
 }
 
 export type FinCardUncheckedCreateWithoutInstitutionInput = {
@@ -1128,6 +1264,7 @@ export type FinCardUncheckedCreateWithoutInstitutionInput = {
   transactions?: Prisma.FinTransactionUncheckedCreateNestedManyWithoutCardInput
   instrumentEvents?: Prisma.FinInstrumentEventUncheckedCreateNestedManyWithoutCardInput
   statementImports?: Prisma.FinStatementImportUncheckedCreateNestedManyWithoutCardInput
+  subscriptions?: Prisma.FinSubscriptionUncheckedCreateNestedManyWithoutCardInput
 }
 
 export type FinCardCreateOrConnectWithoutInstitutionInput = {
@@ -1175,6 +1312,7 @@ export type FinCardCreateWithoutBalancesInput = {
   user: Prisma.UserCreateNestedOneWithoutFinCardsInput
   instrumentEvents?: Prisma.FinInstrumentEventCreateNestedManyWithoutCardInput
   statementImports?: Prisma.FinStatementImportCreateNestedManyWithoutCardInput
+  subscriptions?: Prisma.FinSubscriptionCreateNestedManyWithoutCardInput
 }
 
 export type FinCardUncheckedCreateWithoutBalancesInput = {
@@ -1196,6 +1334,7 @@ export type FinCardUncheckedCreateWithoutBalancesInput = {
   transactions?: Prisma.FinTransactionUncheckedCreateNestedManyWithoutCardInput
   instrumentEvents?: Prisma.FinInstrumentEventUncheckedCreateNestedManyWithoutCardInput
   statementImports?: Prisma.FinStatementImportUncheckedCreateNestedManyWithoutCardInput
+  subscriptions?: Prisma.FinSubscriptionUncheckedCreateNestedManyWithoutCardInput
 }
 
 export type FinCardCreateOrConnectWithoutBalancesInput = {
@@ -1233,6 +1372,7 @@ export type FinCardUpdateWithoutBalancesInput = {
   user?: Prisma.UserUpdateOneRequiredWithoutFinCardsNestedInput
   instrumentEvents?: Prisma.FinInstrumentEventUpdateManyWithoutCardNestedInput
   statementImports?: Prisma.FinStatementImportUpdateManyWithoutCardNestedInput
+  subscriptions?: Prisma.FinSubscriptionUpdateManyWithoutCardNestedInput
 }
 
 export type FinCardUncheckedUpdateWithoutBalancesInput = {
@@ -1254,6 +1394,7 @@ export type FinCardUncheckedUpdateWithoutBalancesInput = {
   transactions?: Prisma.FinTransactionUncheckedUpdateManyWithoutCardNestedInput
   instrumentEvents?: Prisma.FinInstrumentEventUncheckedUpdateManyWithoutCardNestedInput
   statementImports?: Prisma.FinStatementImportUncheckedUpdateManyWithoutCardNestedInput
+  subscriptions?: Prisma.FinSubscriptionUncheckedUpdateManyWithoutCardNestedInput
 }
 
 export type FinCardCreateWithoutInstrumentEventsInput = {
@@ -1275,6 +1416,7 @@ export type FinCardCreateWithoutInstrumentEventsInput = {
   transactions?: Prisma.FinTransactionCreateNestedManyWithoutCardInput
   user: Prisma.UserCreateNestedOneWithoutFinCardsInput
   statementImports?: Prisma.FinStatementImportCreateNestedManyWithoutCardInput
+  subscriptions?: Prisma.FinSubscriptionCreateNestedManyWithoutCardInput
 }
 
 export type FinCardUncheckedCreateWithoutInstrumentEventsInput = {
@@ -1296,6 +1438,7 @@ export type FinCardUncheckedCreateWithoutInstrumentEventsInput = {
   statements?: Prisma.FinCardStatementUncheckedCreateNestedManyWithoutCardInput
   transactions?: Prisma.FinTransactionUncheckedCreateNestedManyWithoutCardInput
   statementImports?: Prisma.FinStatementImportUncheckedCreateNestedManyWithoutCardInput
+  subscriptions?: Prisma.FinSubscriptionUncheckedCreateNestedManyWithoutCardInput
 }
 
 export type FinCardCreateOrConnectWithoutInstrumentEventsInput = {
@@ -1333,6 +1476,7 @@ export type FinCardUpdateWithoutInstrumentEventsInput = {
   transactions?: Prisma.FinTransactionUpdateManyWithoutCardNestedInput
   user?: Prisma.UserUpdateOneRequiredWithoutFinCardsNestedInput
   statementImports?: Prisma.FinStatementImportUpdateManyWithoutCardNestedInput
+  subscriptions?: Prisma.FinSubscriptionUpdateManyWithoutCardNestedInput
 }
 
 export type FinCardUncheckedUpdateWithoutInstrumentEventsInput = {
@@ -1354,6 +1498,7 @@ export type FinCardUncheckedUpdateWithoutInstrumentEventsInput = {
   statements?: Prisma.FinCardStatementUncheckedUpdateManyWithoutCardNestedInput
   transactions?: Prisma.FinTransactionUncheckedUpdateManyWithoutCardNestedInput
   statementImports?: Prisma.FinStatementImportUncheckedUpdateManyWithoutCardNestedInput
+  subscriptions?: Prisma.FinSubscriptionUncheckedUpdateManyWithoutCardNestedInput
 }
 
 export type FinCardCreateWithoutStatementsInput = {
@@ -1375,6 +1520,7 @@ export type FinCardCreateWithoutStatementsInput = {
   user: Prisma.UserCreateNestedOneWithoutFinCardsInput
   instrumentEvents?: Prisma.FinInstrumentEventCreateNestedManyWithoutCardInput
   statementImports?: Prisma.FinStatementImportCreateNestedManyWithoutCardInput
+  subscriptions?: Prisma.FinSubscriptionCreateNestedManyWithoutCardInput
 }
 
 export type FinCardUncheckedCreateWithoutStatementsInput = {
@@ -1396,6 +1542,7 @@ export type FinCardUncheckedCreateWithoutStatementsInput = {
   transactions?: Prisma.FinTransactionUncheckedCreateNestedManyWithoutCardInput
   instrumentEvents?: Prisma.FinInstrumentEventUncheckedCreateNestedManyWithoutCardInput
   statementImports?: Prisma.FinStatementImportUncheckedCreateNestedManyWithoutCardInput
+  subscriptions?: Prisma.FinSubscriptionUncheckedCreateNestedManyWithoutCardInput
 }
 
 export type FinCardCreateOrConnectWithoutStatementsInput = {
@@ -1433,6 +1580,7 @@ export type FinCardUpdateWithoutStatementsInput = {
   user?: Prisma.UserUpdateOneRequiredWithoutFinCardsNestedInput
   instrumentEvents?: Prisma.FinInstrumentEventUpdateManyWithoutCardNestedInput
   statementImports?: Prisma.FinStatementImportUpdateManyWithoutCardNestedInput
+  subscriptions?: Prisma.FinSubscriptionUpdateManyWithoutCardNestedInput
 }
 
 export type FinCardUncheckedUpdateWithoutStatementsInput = {
@@ -1454,6 +1602,7 @@ export type FinCardUncheckedUpdateWithoutStatementsInput = {
   transactions?: Prisma.FinTransactionUncheckedUpdateManyWithoutCardNestedInput
   instrumentEvents?: Prisma.FinInstrumentEventUncheckedUpdateManyWithoutCardNestedInput
   statementImports?: Prisma.FinStatementImportUncheckedUpdateManyWithoutCardNestedInput
+  subscriptions?: Prisma.FinSubscriptionUncheckedUpdateManyWithoutCardNestedInput
 }
 
 export type FinCardCreateWithoutStatementImportsInput = {
@@ -1475,6 +1624,7 @@ export type FinCardCreateWithoutStatementImportsInput = {
   transactions?: Prisma.FinTransactionCreateNestedManyWithoutCardInput
   user: Prisma.UserCreateNestedOneWithoutFinCardsInput
   instrumentEvents?: Prisma.FinInstrumentEventCreateNestedManyWithoutCardInput
+  subscriptions?: Prisma.FinSubscriptionCreateNestedManyWithoutCardInput
 }
 
 export type FinCardUncheckedCreateWithoutStatementImportsInput = {
@@ -1496,6 +1646,7 @@ export type FinCardUncheckedCreateWithoutStatementImportsInput = {
   statements?: Prisma.FinCardStatementUncheckedCreateNestedManyWithoutCardInput
   transactions?: Prisma.FinTransactionUncheckedCreateNestedManyWithoutCardInput
   instrumentEvents?: Prisma.FinInstrumentEventUncheckedCreateNestedManyWithoutCardInput
+  subscriptions?: Prisma.FinSubscriptionUncheckedCreateNestedManyWithoutCardInput
 }
 
 export type FinCardCreateOrConnectWithoutStatementImportsInput = {
@@ -1533,6 +1684,7 @@ export type FinCardUpdateWithoutStatementImportsInput = {
   transactions?: Prisma.FinTransactionUpdateManyWithoutCardNestedInput
   user?: Prisma.UserUpdateOneRequiredWithoutFinCardsNestedInput
   instrumentEvents?: Prisma.FinInstrumentEventUpdateManyWithoutCardNestedInput
+  subscriptions?: Prisma.FinSubscriptionUpdateManyWithoutCardNestedInput
 }
 
 export type FinCardUncheckedUpdateWithoutStatementImportsInput = {
@@ -1554,6 +1706,7 @@ export type FinCardUncheckedUpdateWithoutStatementImportsInput = {
   statements?: Prisma.FinCardStatementUncheckedUpdateManyWithoutCardNestedInput
   transactions?: Prisma.FinTransactionUncheckedUpdateManyWithoutCardNestedInput
   instrumentEvents?: Prisma.FinInstrumentEventUncheckedUpdateManyWithoutCardNestedInput
+  subscriptions?: Prisma.FinSubscriptionUncheckedUpdateManyWithoutCardNestedInput
 }
 
 export type FinCardCreateManyUserInput = {
@@ -1591,6 +1744,7 @@ export type FinCardUpdateWithoutUserInput = {
   transactions?: Prisma.FinTransactionUpdateManyWithoutCardNestedInput
   instrumentEvents?: Prisma.FinInstrumentEventUpdateManyWithoutCardNestedInput
   statementImports?: Prisma.FinStatementImportUpdateManyWithoutCardNestedInput
+  subscriptions?: Prisma.FinSubscriptionUpdateManyWithoutCardNestedInput
 }
 
 export type FinCardUncheckedUpdateWithoutUserInput = {
@@ -1612,6 +1766,7 @@ export type FinCardUncheckedUpdateWithoutUserInput = {
   transactions?: Prisma.FinTransactionUncheckedUpdateManyWithoutCardNestedInput
   instrumentEvents?: Prisma.FinInstrumentEventUncheckedUpdateManyWithoutCardNestedInput
   statementImports?: Prisma.FinStatementImportUncheckedUpdateManyWithoutCardNestedInput
+  subscriptions?: Prisma.FinSubscriptionUncheckedUpdateManyWithoutCardNestedInput
 }
 
 export type FinCardUncheckedUpdateManyWithoutUserInput = {
@@ -1665,6 +1820,7 @@ export type FinCardUpdateWithoutAccountInput = {
   user?: Prisma.UserUpdateOneRequiredWithoutFinCardsNestedInput
   instrumentEvents?: Prisma.FinInstrumentEventUpdateManyWithoutCardNestedInput
   statementImports?: Prisma.FinStatementImportUpdateManyWithoutCardNestedInput
+  subscriptions?: Prisma.FinSubscriptionUpdateManyWithoutCardNestedInput
 }
 
 export type FinCardUncheckedUpdateWithoutAccountInput = {
@@ -1686,6 +1842,7 @@ export type FinCardUncheckedUpdateWithoutAccountInput = {
   transactions?: Prisma.FinTransactionUncheckedUpdateManyWithoutCardNestedInput
   instrumentEvents?: Prisma.FinInstrumentEventUncheckedUpdateManyWithoutCardNestedInput
   statementImports?: Prisma.FinStatementImportUncheckedUpdateManyWithoutCardNestedInput
+  subscriptions?: Prisma.FinSubscriptionUncheckedUpdateManyWithoutCardNestedInput
 }
 
 export type FinCardUncheckedUpdateManyWithoutAccountInput = {
@@ -1739,6 +1896,7 @@ export type FinCardUpdateWithoutInstitutionInput = {
   user?: Prisma.UserUpdateOneRequiredWithoutFinCardsNestedInput
   instrumentEvents?: Prisma.FinInstrumentEventUpdateManyWithoutCardNestedInput
   statementImports?: Prisma.FinStatementImportUpdateManyWithoutCardNestedInput
+  subscriptions?: Prisma.FinSubscriptionUpdateManyWithoutCardNestedInput
 }
 
 export type FinCardUncheckedUpdateWithoutInstitutionInput = {
@@ -1760,6 +1918,7 @@ export type FinCardUncheckedUpdateWithoutInstitutionInput = {
   transactions?: Prisma.FinTransactionUncheckedUpdateManyWithoutCardNestedInput
   instrumentEvents?: Prisma.FinInstrumentEventUncheckedUpdateManyWithoutCardNestedInput
   statementImports?: Prisma.FinStatementImportUncheckedUpdateManyWithoutCardNestedInput
+  subscriptions?: Prisma.FinSubscriptionUncheckedUpdateManyWithoutCardNestedInput
 }
 
 export type FinCardUncheckedUpdateManyWithoutInstitutionInput = {
@@ -1789,6 +1948,7 @@ export type FinCardCountOutputType = {
   transactions: number
   instrumentEvents: number
   statementImports: number
+  subscriptions: number
 }
 
 export type FinCardCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1797,6 +1957,7 @@ export type FinCardCountOutputTypeSelect<ExtArgs extends runtime.Types.Extension
   transactions?: boolean | FinCardCountOutputTypeCountTransactionsArgs
   instrumentEvents?: boolean | FinCardCountOutputTypeCountInstrumentEventsArgs
   statementImports?: boolean | FinCardCountOutputTypeCountStatementImportsArgs
+  subscriptions?: boolean | FinCardCountOutputTypeCountSubscriptionsArgs
 }
 
 /**
@@ -1844,6 +2005,13 @@ export type FinCardCountOutputTypeCountStatementImportsArgs<ExtArgs extends runt
   where?: Prisma.FinStatementImportWhereInput
 }
 
+/**
+ * FinCardCountOutputType without action
+ */
+export type FinCardCountOutputTypeCountSubscriptionsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.FinSubscriptionWhereInput
+}
+
 
 export type FinCardSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -1868,6 +2036,7 @@ export type FinCardSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs 
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   instrumentEvents?: boolean | Prisma.FinCard$instrumentEventsArgs<ExtArgs>
   statementImports?: boolean | Prisma.FinCard$statementImportsArgs<ExtArgs>
+  subscriptions?: boolean | Prisma.FinCard$subscriptionsArgs<ExtArgs>
   _count?: boolean | Prisma.FinCardCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["finCard"]>
 
@@ -1938,6 +2107,7 @@ export type FinCardInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   instrumentEvents?: boolean | Prisma.FinCard$instrumentEventsArgs<ExtArgs>
   statementImports?: boolean | Prisma.FinCard$statementImportsArgs<ExtArgs>
+  subscriptions?: boolean | Prisma.FinCard$subscriptionsArgs<ExtArgs>
   _count?: boolean | Prisma.FinCardCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type FinCardIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1962,6 +2132,7 @@ export type $FinCardPayload<ExtArgs extends runtime.Types.Extensions.InternalArg
     user: Prisma.$UserPayload<ExtArgs>
     instrumentEvents: Prisma.$FinInstrumentEventPayload<ExtArgs>[]
     statementImports: Prisma.$FinStatementImportPayload<ExtArgs>[]
+    subscriptions: Prisma.$FinSubscriptionPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -2380,6 +2551,7 @@ export interface Prisma__FinCardClient<T, Null = never, ExtArgs extends runtime.
   user<T extends Prisma.UserDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.UserDefaultArgs<ExtArgs>>): Prisma.Prisma__UserClient<runtime.Types.Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   instrumentEvents<T extends Prisma.FinCard$instrumentEventsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.FinCard$instrumentEventsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$FinInstrumentEventPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   statementImports<T extends Prisma.FinCard$statementImportsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.FinCard$statementImportsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$FinStatementImportPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  subscriptions<T extends Prisma.FinCard$subscriptionsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.FinCard$subscriptionsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$FinSubscriptionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -2960,6 +3132,30 @@ export type FinCard$statementImportsArgs<ExtArgs extends runtime.Types.Extension
   take?: number
   skip?: number
   distinct?: Prisma.FinStatementImportScalarFieldEnum | Prisma.FinStatementImportScalarFieldEnum[]
+}
+
+/**
+ * FinCard.subscriptions
+ */
+export type FinCard$subscriptionsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the FinSubscription
+   */
+  select?: Prisma.FinSubscriptionSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the FinSubscription
+   */
+  omit?: Prisma.FinSubscriptionOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.FinSubscriptionInclude<ExtArgs> | null
+  where?: Prisma.FinSubscriptionWhereInput
+  orderBy?: Prisma.FinSubscriptionOrderByWithRelationInput | Prisma.FinSubscriptionOrderByWithRelationInput[]
+  cursor?: Prisma.FinSubscriptionWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.FinSubscriptionScalarFieldEnum | Prisma.FinSubscriptionScalarFieldEnum[]
 }
 
 /**

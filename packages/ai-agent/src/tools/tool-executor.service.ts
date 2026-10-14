@@ -63,6 +63,8 @@ const FINANCE_TOOL_NAMES = new Set([
   'list_subscriptions',
   'confirm_recurring',
   'list_merchants',
+  'create_subscription',
+  'confirm_subscription_payment',
 ]);
 
 function toLinkCommand(args: ValidatedToolArgs<'link_transaction'>) {
@@ -915,15 +917,55 @@ export class ToolExecutorService {
           args.status === 'DISMISSED'
             ? args.status
             : undefined;
-        const items = await this.financeFacade.listSubscriptions(ctx.userId);
+        const managed = await this.financeFacade.listSubscriptions(ctx.userId);
         return {
           success: true,
           message: 'Subscriptions loaded',
           data: {
-            items: status
-              ? items.filter((item) => item.status === status)
-              : items,
+            subscriptions: managed.subscriptions,
+            recurring: status
+              ? managed.recurring.filter((item) => item.status === status)
+              : managed.recurring,
           },
+        };
+      }
+      case 'create_subscription': {
+        const input = args as ValidatedToolArgs<'create_subscription'>;
+        return {
+          success: true,
+          message: 'Subscription created',
+          data: await this.financeFacade.createSubscription(ctx.userId, {
+            name: input.name,
+            amount: input.amount,
+            billingCycle: input.billingCycle,
+            anchorDate: input.anchorDate,
+            currency: input.currency ?? undefined,
+            billingInterval: input.billingInterval ?? undefined,
+            domain: input.domain ?? undefined,
+            reminderDaysBefore: input.reminderDaysBefore ?? undefined,
+            manageUrl: input.manageUrl ?? undefined,
+            notes: input.notes ?? undefined,
+            cardId: input.cardId ?? undefined,
+            accountId: input.accountId ?? undefined,
+            sourcePatternId: input.sourcePatternId ?? undefined,
+          }),
+        };
+      }
+      case 'confirm_subscription_payment': {
+        const input = args as ValidatedToolArgs<'confirm_subscription_payment'>;
+        return {
+          success: true,
+          message: 'Subscription payment registered',
+          data: await this.financeFacade.confirmSubscriptionPayment(
+            ctx.userId,
+            input.subscriptionId,
+            {
+              amount: input.amount ?? undefined,
+              currency: input.currency ?? undefined,
+              paidAt: input.paidAt ?? undefined,
+              transactionId: input.transactionId ?? undefined,
+            },
+          ),
         };
       }
       case 'list_merchants':

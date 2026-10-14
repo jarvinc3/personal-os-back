@@ -47,7 +47,7 @@ La versión sigue **estrictamente** [docs/versionado.md](docs/versionado.md): be
 - [ ] Si el cambio no se puede verificar, añadir un `REV-BACK-*` en el registro.
 - [ ] Imports cruzados solo vía barrel/`FinanceFacade`.
 - [ ] Prefijo HTTP documentado como `/api/...` salvo health/Bull Board/Swagger que viven fuera o según `main.ts`.
-- [ ] No presentar módulos `agenda` / `projects` / `health` / `subscriptions` como APIs Nest: solo slugs de `user_modules`.
+- [ ] No presentar módulos `agenda` / `projects` / `health` como APIs Nest: solo slugs de `user_modules`.
 - [ ] Actualizar `CHANGELOG.md` y subir `version` en `package.json`; cerrar con `chore(release): vX.Y.Z` y el tag.
 
 ## Pruebas obligatorias

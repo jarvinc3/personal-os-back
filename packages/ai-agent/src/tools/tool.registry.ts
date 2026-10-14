@@ -82,7 +82,7 @@ const STATIC_TOOLS: StaticToolDef[] = [
   {
     name: 'update_module_config',
     description:
-      'Update configuration for a module (agenda, projects, health, subscriptions).',
+      'Update configuration for a module (agenda, projects, health).',
     mutating: true,
     targetModule: 'modules',
   },
@@ -389,7 +389,7 @@ const STATIC_TOOLS: StaticToolDef[] = [
   {
     name: 'list_subscriptions',
     description:
-      'List recurring charges and subscriptions, suggested and confirmed, with their monthly and annual cost.',
+      'List managed subscriptions and detected recurring charges with their monthly and annual cost.',
     mutating: false,
     targetModule: 'finance',
     parameters: {
@@ -401,6 +401,19 @@ const STATIC_TOOLS: StaticToolDef[] = [
         },
       },
     },
+  },
+  {
+    name: 'create_subscription',
+    description:
+      'Create a managed subscription with its amount, billing cycle and first charge date.',
+    mutating: true,
+    targetModule: 'finance',
+  },
+  {
+    name: 'confirm_subscription_payment',
+    description: 'Register a payment for a managed subscription.',
+    mutating: true,
+    targetModule: 'finance',
   },
   {
     name: 'confirm_recurring',

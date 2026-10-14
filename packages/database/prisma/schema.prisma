@@ -25,6 +25,7 @@ model User {
   finBudgets      FinBudget[]
   finCategories   FinCategory[]
   finMerchants    FinMerchant[]
+  finSubscriptions FinSubscription[]
   finEmailConnections FinEmailConnection[]
   finEmailSources     FinEmailSource[]
   finLoans            FinLoan[]
@@ -183,6 +184,7 @@ model FinAccount {
   cards          FinCard[]
   transactions   FinTransaction[]
   finLoans       FinLoan[]
+  subscriptions  FinSubscription[]
   receivablePayments FinReceivablePayment[]
   savingsGoalContributions FinSavingsGoalContribution[]
   savingsGoals   FinSavingsGoal[]
@@ -314,6 +316,7 @@ model FinTransaction {
   linkedTransaction    FinTransaction?      @relation("TransactionLink", fields: [linkedTransactionId], references: [id], onDelete: SetNull, onUpdate: NoAction)
   linkedFrom           FinTransaction[]     @relation("TransactionLink")
   receivablePayment    FinReceivablePayment?
+  subscriptionPayments FinSubscriptionPayment[]
   savingsGoalContribution FinSavingsGoalContribution?
   loanInstallment      FinLoanInstallment?
   loanPrepayment       FinLoanPrepayment?
@@ -445,6 +448,7 @@ model FinRecurringPattern {
   category         FinCategory?       @relation(fields: [categoryId], references: [id], onDelete: SetNull, onUpdate: NoAction, map: "fin_recurring_patterns_category_fkey")
   merchantRef      FinMerchant?       @relation(fields: [merchantId], references: [id], onDelete: SetNull, onUpdate: NoAction)
   user             User               @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  subscriptions    FinSubscription[]
 
   @@index([userId], map: "fin_recurring_patterns_user_id_idx")
   @@index([categoryId], map: "fin_recurring_patterns_category_id_idx")
@@ -473,6 +477,68 @@ model FinMerchant {
   @@index([userId], map: "fin_merchants_user_id_idx")
   @@index([categoryId], map: "fin_merchants_category_id_idx")
   @@map("fin_merchants")
+}
+
+model FinSubscription {
+  id                 String                  @id @default(dbgenerated("(uuid_generate_v4())::text"))
+  userId             String                  @map("user_id")
+  name               String
+  /// Normalized merchant key used by the payment matcher.
+  normalizedKey      String                  @map("normalized_key")
+  domain             String?
+  logoPath           String?                 @map("logo_path")
+  customLogoPath     String?                 @map("custom_logo_path")
+  amount             Decimal                 @db.Decimal(15, 2)
+  currency           String                  @default("DOP")
+  billingCycle       FinBillingCycle         @map("billing_cycle")
+  billingInterval    Int                     @default(1) @map("billing_interval")
+  /// First charge; every next date is derived from this anchor.
+  anchorDate         DateTime                @map("anchor_date") @db.Date
+  nextBillingDate    DateTime                @map("next_billing_date") @db.Date
+  trialEndsAt        DateTime?               @map("trial_ends_at") @db.Date
+  status             FinSubscriptionStatus   @default(ACTIVE)
+  pausedAt           DateTime?               @map("paused_at") @db.Timestamptz(6)
+  cancelledAt        DateTime?               @map("cancelled_at") @db.Timestamptz(6)
+  reminderDaysBefore Int                     @default(3) @map("reminder_days_before")
+  /// Last nextBillingDate already notified; avoids duplicate reminders.
+  lastRemindedFor    DateTime?               @map("last_reminded_for") @db.Date
+  cardId             String?                 @map("card_id")
+  accountId          String?                 @map("account_id")
+  manageUrl          String?                 @map("manage_url")
+  notes              String?
+  sourcePatternId    String?                 @map("source_pattern_id")
+  createdAt          DateTime                @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime                @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  account            FinAccount?             @relation(fields: [accountId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  card               FinCard?                @relation(fields: [cardId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  sourcePattern      FinRecurringPattern?    @relation(fields: [sourcePatternId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  user               User                    @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  payments           FinSubscriptionPayment[]
+
+  @@index([userId, status], map: "fin_subscriptions_user_status_idx")
+  @@index([userId, nextBillingDate], map: "fin_subscriptions_user_next_billing_idx")
+  @@index([cardId], map: "fin_subscriptions_card_id_idx")
+  @@index([accountId], map: "fin_subscriptions_account_id_idx")
+  @@index([sourcePatternId], map: "fin_subscriptions_source_pattern_id_idx")
+  @@map("fin_subscriptions")
+}
+
+model FinSubscriptionPayment {
+  id             String                       @id @default(dbgenerated("(uuid_generate_v4())::text"))
+  subscriptionId String                       @map("subscription_id")
+  transactionId  String?                      @map("transaction_id")
+  amount         Decimal                      @db.Decimal(15, 2)
+  currency       String
+  paidAt         DateTime                     @map("paid_at") @db.Timestamptz(6)
+  source         FinSubscriptionPaymentSource @default(AUTO)
+  createdAt      DateTime                     @default(now()) @map("created_at") @db.Timestamptz(6)
+  subscription   FinSubscription              @relation(fields: [subscriptionId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  transaction    FinTransaction?              @relation(fields: [transactionId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+
+  @@unique([subscriptionId, transactionId], map: "fin_subscription_payments_sub_tx_uq")
+  @@index([subscriptionId, paidAt], map: "fin_subscription_payments_sub_paid_idx")
+  @@index([transactionId], map: "fin_subscription_payments_transaction_id_idx")
+  @@map("fin_subscription_payments")
 }
 
 model FinExchangeRate {
@@ -541,6 +607,7 @@ model FinCard {
   user                User             @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   instrumentEvents    FinInstrumentEvent[]
   statementImports    FinStatementImport[]
+  subscriptions       FinSubscription[]
 
   @@index([userId, institutionId], map: "fin_cards_user_id_institution_id_idx")
   @@index([userId, isActive], map: "fin_cards_user_id_active_idx")
@@ -936,6 +1003,31 @@ enum FinRecurringKind {
   OTHER
 
   @@map("fin_recurring_kind")
+}
+
+enum FinBillingCycle {
+  WEEKLY
+  MONTHLY
+  QUARTERLY
+  SEMIANNUAL
+  YEARLY
+
+  @@map("fin_billing_cycle")
+}
+
+enum FinSubscriptionStatus {
+  ACTIVE
+  PAUSED
+  CANCELLED
+
+  @@map("fin_subscription_status")
+}
+
+enum FinSubscriptionPaymentSource {
+  AUTO
+  MANUAL
+
+  @@map("fin_subscription_payment_source")
 }
 
 enum FinTransactionStatus {

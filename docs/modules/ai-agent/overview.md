@@ -15,7 +15,7 @@ Agente conversacional único: sesiones, tool-calling, acciones con confirmación
 
 ## Fuera de alcance
 
-Tools de agenda/projects/health/subscriptions más allá de `get_user_context` / `update_module_config` / `toggle_module` (y notif settings donde aplica). No hay `docs/ai-tools/agenda-tools.md`.
+Tools de agenda/projects/health más allá de `get_user_context` / `update_module_config` / `toggle_module` (y notif settings donde aplica). No hay `docs/ai-tools/agenda-tools.md`.
 
 ## Arquitectura
 

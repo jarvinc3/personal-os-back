@@ -6,8 +6,9 @@ infraestructura (paquetes Nest, colas, Prisma) queda fuera.
 ## Lenguaje
 
 **Module** (módulo de producto):
-Capacidad que un usuario activa o desactiva en su cuenta (finance, agenda, projects, health,
-subscriptions). Su estado y configuración viven por usuario; no es un paquete Nest.
+Capacidad que un usuario activa o desactiva en su cuenta (finance, agenda, projects, health).
+Su estado y configuración viven por usuario; no es un paquete Nest. Suscripciones no es un
+módulo: es parte de Finanzas.
 _Avoid_: "Nest module" para esta idea; eso es la estructura de código en `packages/*`.
 
 **Institution** (institución):

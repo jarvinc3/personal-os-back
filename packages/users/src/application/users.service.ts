@@ -111,7 +111,7 @@ export class UsersService {
     dto: UpdateModuleConfigDto,
   ) {
     if (!isModuleSlug(slug)) {
-      throw new NotFoundException(`Module "${slug}" not found`);
+      throw new BadRequestException(`Unknown module "${slug}"`);
     }
 
     if (slug === 'finance' && dto.config !== undefined) {

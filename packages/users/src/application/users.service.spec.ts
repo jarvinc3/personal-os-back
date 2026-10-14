@@ -278,6 +278,15 @@ describe('UsersService.updateModuleConfig schedule validation', () => {
     });
     expect(upsertUserModule).toHaveBeenCalled();
   });
+
+  it('rejects the retired subscriptions slug', async () => {
+    await expect(
+      service.updateModuleConfig('user-1', 'subscriptions', {
+        config: {},
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(upsertUserModule).not.toHaveBeenCalled();
+  });
 });
 
 describe('UsersService.listWeeklySummaryRecipients', () => {

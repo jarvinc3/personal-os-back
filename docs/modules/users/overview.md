@@ -15,7 +15,7 @@ Perfil (`users`), preferencias JSONB y configuración por módulo (`user_modules
 
 ## Fuera de alcance
 
-Implementar módulos Nest para agenda/projects/health/subscriptions. Solo slugs y JSON config.
+Implementar módulos Nest para agenda/projects/health. Solo slugs y JSON config.
 
 ## Arquitectura
 

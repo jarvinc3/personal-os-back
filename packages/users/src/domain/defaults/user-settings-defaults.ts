@@ -10,6 +10,8 @@ export const FINANCE_NOTIFICATION_KEYS = {
   cardDueDate: 'cardDueDate',
   unusualExpense: 'unusualExpense',
   recurringAlerts: 'recurringAlerts',
+  subscriptionReminders: 'subscriptionReminders',
+  priceIncreaseAlerts: 'priceIncreaseAlerts',
 } as const;
 
 export type FinanceNotificationKey =
@@ -17,7 +19,7 @@ export type FinanceNotificationKey =
 
 export const DEFAULT_MODULE_CONFIG_BY_SLUG = {
   finance: {
-    version: 1,
+    version: 2,
     fieldGuide:
       'Moneda, calendario financiero, panel y alertas del módulo Finanzas.',
     baseCurrency: 'DOP',
@@ -34,6 +36,13 @@ export const DEFAULT_MODULE_CONFIG_BY_SLUG = {
       [FINANCE_NOTIFICATION_KEYS.cardDueDate]: true,
       [FINANCE_NOTIFICATION_KEYS.unusualExpense]: true,
       [FINANCE_NOTIFICATION_KEYS.recurringAlerts]: true,
+      [FINANCE_NOTIFICATION_KEYS.subscriptionReminders]: true,
+      [FINANCE_NOTIFICATION_KEYS.priceIncreaseAlerts]: true,
+    },
+    subscriptions: {
+      /** Default days before a renewal the reminder fires; each one can override. */
+      reminderDaysBefore: 3,
+      groupBy: 'none',
     },
     emailSync: {
       enabled: false,
@@ -64,14 +73,6 @@ export const DEFAULT_MODULE_CONFIG_BY_SLUG = {
     sortDirection: 'desc',
     showArchived: false,
     notifications: { dueDateReminders: true, statusChanges: false },
-  },
-  subscriptions: {
-    version: 1,
-    fieldGuide: 'Moneda, agrupación y avisos de renovación.',
-    defaultCurrency: 'DOP',
-    renewalReminderDays: [7, 1],
-    groupBy: 'category',
-    notifications: { renewalReminders: true, priceIncreaseAlerts: true },
   },
   health: {
     version: 1,

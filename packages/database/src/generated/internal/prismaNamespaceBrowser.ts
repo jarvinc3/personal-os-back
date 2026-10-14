@@ -69,6 +69,8 @@ export const ModelName = {
   FinBudgetAlert: 'FinBudgetAlert',
   FinRecurringPattern: 'FinRecurringPattern',
   FinMerchant: 'FinMerchant',
+  FinSubscription: 'FinSubscription',
+  FinSubscriptionPayment: 'FinSubscriptionPayment',
   FinExchangeRate: 'FinExchangeRate',
   FinInstitution: 'FinInstitution',
   FinCard: 'FinCard',
@@ -411,6 +413,52 @@ export const FinMerchantScalarFieldEnum = {
 } as const
 
 export type FinMerchantScalarFieldEnum = (typeof FinMerchantScalarFieldEnum)[keyof typeof FinMerchantScalarFieldEnum]
+
+
+export const FinSubscriptionScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  name: 'name',
+  normalizedKey: 'normalizedKey',
+  domain: 'domain',
+  logoPath: 'logoPath',
+  customLogoPath: 'customLogoPath',
+  amount: 'amount',
+  currency: 'currency',
+  billingCycle: 'billingCycle',
+  billingInterval: 'billingInterval',
+  anchorDate: 'anchorDate',
+  nextBillingDate: 'nextBillingDate',
+  trialEndsAt: 'trialEndsAt',
+  status: 'status',
+  pausedAt: 'pausedAt',
+  cancelledAt: 'cancelledAt',
+  reminderDaysBefore: 'reminderDaysBefore',
+  lastRemindedFor: 'lastRemindedFor',
+  cardId: 'cardId',
+  accountId: 'accountId',
+  manageUrl: 'manageUrl',
+  notes: 'notes',
+  sourcePatternId: 'sourcePatternId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type FinSubscriptionScalarFieldEnum = (typeof FinSubscriptionScalarFieldEnum)[keyof typeof FinSubscriptionScalarFieldEnum]
+
+
+export const FinSubscriptionPaymentScalarFieldEnum = {
+  id: 'id',
+  subscriptionId: 'subscriptionId',
+  transactionId: 'transactionId',
+  amount: 'amount',
+  currency: 'currency',
+  paidAt: 'paidAt',
+  source: 'source',
+  createdAt: 'createdAt'
+} as const
+
+export type FinSubscriptionPaymentScalarFieldEnum = (typeof FinSubscriptionPaymentScalarFieldEnum)[keyof typeof FinSubscriptionPaymentScalarFieldEnum]
 
 
 export const FinExchangeRateScalarFieldEnum = {

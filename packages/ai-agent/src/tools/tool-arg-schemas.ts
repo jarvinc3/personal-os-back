@@ -21,12 +21,7 @@ const themeValues = ['system', 'light', 'dark'] as const;
 const aiTones = ['concise', 'balanced', 'detailed'] as const;
 const transactionTypes = ['DEBIT', 'CREDIT'] as const;
 const budgetPeriods = ['MONTHLY', 'BIWEEKLY', 'CUSTOM'] as const;
-const configurableModuleSlugs = [
-  'agenda',
-  'projects',
-  'health',
-  'subscriptions',
-] as const;
+const configurableModuleSlugs = ['agenda', 'projects', 'health'] as const;
 
 const PREFERENCES_MAX_JSON_CHARS = 8_000;
 const MODULE_CONFIG_MAX_JSON_CHARS = 8_000;
@@ -384,6 +379,40 @@ export const confirmRecurringArgsSchema = z
   })
   .strict();
 
+export const createSubscriptionArgsSchema = z
+  .object({
+    name: z.string().trim().min(1).max(160),
+    amount: moneyAmount,
+    billingCycle: z.enum([
+      'WEEKLY',
+      'MONTHLY',
+      'QUARTERLY',
+      'SEMIANNUAL',
+      'YEARLY',
+    ]),
+    anchorDate: dateString,
+    currency: currencyCode.optional(),
+    billingInterval: z.number().int().min(1).max(60).optional(),
+    domain: optionalNullableString(160),
+    reminderDaysBefore: z.number().int().min(0).max(30).optional(),
+    manageUrl: z.string().trim().max(500).nullable().optional(),
+    notes: z.string().trim().max(2000).nullable().optional(),
+    cardId: uuid.nullable().optional(),
+    accountId: uuid.nullable().optional(),
+    sourcePatternId: uuid.nullable().optional(),
+  })
+  .strict();
+
+export const confirmSubscriptionPaymentArgsSchema = z
+  .object({
+    subscriptionId: uuid,
+    amount: moneyAmount.optional(),
+    currency: currencyCode.optional(),
+    paidAt: dateString.optional(),
+    transactionId: uuid.nullable().optional(),
+  })
+  .strict();
+
 export const createTransferArgsSchema = z
   .object({
     fromAccountId: uuid,
@@ -505,6 +534,8 @@ export const MUTATING_TOOL_ARG_SCHEMAS = {
   confirm_transaction: confirmTransactionArgsSchema,
   unconfirm_transaction: unconfirmTransactionArgsSchema,
   confirm_recurring: confirmRecurringArgsSchema,
+  create_subscription: createSubscriptionArgsSchema,
+  confirm_subscription_payment: confirmSubscriptionPaymentArgsSchema,
   create_transfer: createTransferArgsSchema,
   pay_card: createCardPaymentArgsSchema,
   create_or_update_budget: createOrUpdateBudgetArgsSchema,

@@ -11,6 +11,7 @@ import { FinanceMerchantsModule } from './merchants/merchants.module';
 import { FinancePlanningModule } from './planning/planning.module';
 import { FinanceQuickEntryModule } from './quick-entry/quick-entry.module';
 import { FinanceRecurringModule } from './recurring/recurring.module';
+import { FinanceSubscriptionsModule } from './subscriptions/subscriptions.module';
 import { FinanceStatementsModule } from './statements/statements.module';
 import { FinanceRecycleBinModule } from './shared/recycle-bin.module';
 import { FinanceChatContextModule } from './shared/chat-context.module';
@@ -31,6 +32,7 @@ import { FinanceWipeModule } from './shared/wipe-finance.module';
     FinanceLedgerModule,
     FinanceMerchantsModule,
     FinanceRecurringModule,
+    FinanceSubscriptionsModule,
     FinanceQuickEntryModule,
     FinanceIngestionModule,
     FinanceRecycleBinModule,

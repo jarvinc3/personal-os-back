@@ -11,9 +11,11 @@ import type { FinTransactionType, Prisma } from '@personal-os/database';
 import { PrismaService } from '@personal-os/database';
 import type { DomainEventPublisherPort } from '../../events/application/ports/domain-event-publisher.port';
 import type { BudgetThresholdPort } from '../../shared/application/budget-threshold.port';
+import type { SubscriptionMatcherPort } from '../../shared/application/subscription-matcher.port';
 import {
   BUDGET_THRESHOLD_PORT,
   DOMAIN_EVENT_PUBLISHER,
+  SUBSCRIPTION_MATCHER,
 } from '../../shared/application/tokens';
 import type { BudgetSpendSnapshot } from '../../shared/domain/budget-snapshot';
 import {
@@ -153,6 +155,9 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
     @Optional()
     @Inject(BUDGET_THRESHOLD_PORT)
     private readonly thresholds?: BudgetThresholdPort,
+    @Optional()
+    @Inject(SUBSCRIPTION_MATCHER)
+    private readonly subscriptionMatcher?: SubscriptionMatcherPort,
   ) {}
 
   async findTransactions(userId: string, query: ListTransactionsQuery) {
@@ -525,7 +530,7 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
     return row?.categoryId ?? null;
   }
 
-  createTransaction(
+  async createTransaction(
     userId: string,
     command: CreateTransactionCommand,
     amounts: ResolvedAmounts,
@@ -537,7 +542,7 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
       transferGroupId?: string;
     },
   ): Promise<CreateTransactionResult | null> {
-    return this.prisma.$transaction(async (tx) => {
+    const createdTransaction = await this.prisma.$transaction(async (tx) => {
       const target = await resolveLedgerTarget(
         tx,
         userId,
@@ -619,6 +624,13 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
         budgetSnapshots,
       };
     });
+    if (createdTransaction) {
+      await this.subscriptionMatcher?.matchTransaction({
+        userId,
+        transactionId: createdTransaction.transaction.id,
+      });
+    }
+    return createdTransaction;
   }
 
   createBalanceAdjustment(
@@ -1848,7 +1860,7 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
     userId: string,
     data: ImportEmailTransactionCommand,
   ) {
-    return this.prisma.$transaction(async (tx) => {
+    const imported = this.prisma.$transaction(async (tx) => {
       const target = await resolveLedgerTarget(
         tx,
         userId,
@@ -1919,6 +1931,13 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
       );
       await this.thresholds?.processThresholds(userId, budgetSnapshots, tx);
 
+      return created;
+    });
+    return imported.then(async (created) => {
+      await this.subscriptionMatcher?.matchTransaction({
+        userId,
+        transactionId: created.id,
+      });
       return created;
     });
   }

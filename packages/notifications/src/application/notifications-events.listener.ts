@@ -13,6 +13,7 @@ import {
   recurringMissedCopy,
   recurringPriceChangedCopy,
   recurringUpcomingCopy,
+  subscriptionRenewalDueCopy,
   transactionPendingCopy,
   transactionRecordedCopy,
   transactionUpdatedCopy,
@@ -89,6 +90,17 @@ type RecurringChargeEvent = {
   amount: number;
   currency?: string;
   nextExpectedDate?: string;
+  daysUntil?: number;
+};
+
+type SubscriptionRenewalEvent = {
+  eventId?: string;
+  userId: string;
+  subscriptionId: string;
+  name: string;
+  amount: number;
+  currency?: string;
+  nextBillingDate?: string;
   daysUntil?: number;
 };
 
@@ -302,8 +314,38 @@ export class NotificationsEventsListener {
       body: copy.body,
       data: {
         moduleSlug: FINANCE_MODULE_SLUG,
-        notificationKey: FINANCE_NOTIFICATION_KEYS.recurringAlerts,
+        notificationKey: FINANCE_NOTIFICATION_KEYS.priceIncreaseAlerts,
         patternId: event.patternId,
+      },
+    });
+  }
+
+  @OnEvent(AppEvents.FINANCE_SUBSCRIPTION_RENEWAL_DUE)
+  async onSubscriptionRenewalDue(
+    event: SubscriptionRenewalEvent,
+  ): Promise<void> {
+    if (
+      !(await this.idempotency.tryClaim(
+        event.eventId,
+        `${NotificationsEventsListener.CONSUMER}:subscription-renewal`,
+      ))
+    ) {
+      return;
+    }
+    const copy = subscriptionRenewalDueCopy({
+      merchant: event.name,
+      amountLabel: formatNotificationAmount(event.amount, event.currency ?? ''),
+      daysUntil: event.daysUntil ?? 0,
+    });
+    await this.createFinanceInApp(event.userId, {
+      type: 'subscription.renewal_due',
+      title: copy.title,
+      body: copy.body,
+      data: {
+        moduleSlug: FINANCE_MODULE_SLUG,
+        notificationKey: FINANCE_NOTIFICATION_KEYS.subscriptionReminders,
+        subscriptionId: event.subscriptionId,
+        nextBillingDate: event.nextBillingDate ?? null,
       },
     });
   }

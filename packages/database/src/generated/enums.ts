@@ -188,6 +188,34 @@ export const FinRecurringKind = {
 export type FinRecurringKind = (typeof FinRecurringKind)[keyof typeof FinRecurringKind]
 
 
+export const FinBillingCycle = {
+  WEEKLY: 'WEEKLY',
+  MONTHLY: 'MONTHLY',
+  QUARTERLY: 'QUARTERLY',
+  SEMIANNUAL: 'SEMIANNUAL',
+  YEARLY: 'YEARLY'
+} as const
+
+export type FinBillingCycle = (typeof FinBillingCycle)[keyof typeof FinBillingCycle]
+
+
+export const FinSubscriptionStatus = {
+  ACTIVE: 'ACTIVE',
+  PAUSED: 'PAUSED',
+  CANCELLED: 'CANCELLED'
+} as const
+
+export type FinSubscriptionStatus = (typeof FinSubscriptionStatus)[keyof typeof FinSubscriptionStatus]
+
+
+export const FinSubscriptionPaymentSource = {
+  AUTO: 'AUTO',
+  MANUAL: 'MANUAL'
+} as const
+
+export type FinSubscriptionPaymentSource = (typeof FinSubscriptionPaymentSource)[keyof typeof FinSubscriptionPaymentSource]
+
+
 export const FinTransactionStatus = {
   PENDING: 'PENDING',
   CONFIRMED: 'CONFIRMED',

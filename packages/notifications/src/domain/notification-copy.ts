@@ -178,3 +178,18 @@ export function recurringUpcomingCopy(
     body: `${fields.merchant} cobra ${fields.amountLabel} ${when}.`,
   };
 }
+
+export function subscriptionRenewalDueCopy(
+  fields: RecurringNotificationFields & { daysUntil: number },
+): NotificationCopy {
+  const when =
+    fields.daysUntil <= 0
+      ? 'hoy'
+      : fields.daysUntil === 1
+        ? 'mañana'
+        : `en ${fields.daysUntil} días`;
+  return {
+    title: 'Renovación próxima',
+    body: `Tu suscripción ${fields.merchant} se renueva ${when} por ${fields.amountLabel}.`,
+  };
+}

@@ -19,6 +19,7 @@ export const AppEvents = {
   FINANCE_RECURRING_PRICE_CHANGED: 'finance.recurring.price_changed',
   FINANCE_RECURRING_MISSED: 'finance.recurring.missed',
   FINANCE_RECURRING_UPCOMING: 'finance.recurring.upcoming',
+  FINANCE_SUBSCRIPTION_RENEWAL_DUE: 'finance.subscription.renewal_due',
 
   // ── Notification ──────────────────────────────────────────────
   NOTIFICATION_CREATED: 'notification.created',

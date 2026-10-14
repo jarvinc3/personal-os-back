@@ -109,6 +109,16 @@ export type FinRecurringPattern = Prisma.FinRecurringPatternModel
  */
 export type FinMerchant = Prisma.FinMerchantModel
 /**
+ * Model FinSubscription
+ * 
+ */
+export type FinSubscription = Prisma.FinSubscriptionModel
+/**
+ * Model FinSubscriptionPayment
+ * 
+ */
+export type FinSubscriptionPayment = Prisma.FinSubscriptionPaymentModel
+/**
  * Model FinExchangeRate
  * 
  */

@@ -20,6 +20,7 @@ import { CreateTransferUseCase } from './ledger/application/create-transfer.use-
 import { LedgerQueryService } from './ledger/application/ledger-query.service';
 import { MerchantsService } from './merchants/application/merchants.service';
 import { RecurringService } from './recurring/application/recurring.service';
+import { SubscriptionsService } from './subscriptions/application/subscriptions.service';
 import { ReverseTransactionUseCase } from './ledger/application/reverse-transaction.use-case';
 import { UpdateTransactionUseCase } from './ledger/application/update-transaction.use-case';
 import { UnconfirmTransactionUseCase } from './ledger/application/unconfirm-transaction.use-case';
@@ -81,6 +82,7 @@ export class FinanceFacade {
     private readonly resolveBaseCurrency: ResolveUserBaseCurrencyUseCase,
     private readonly merchants: MerchantsService,
     private readonly recurring: RecurringService,
+    private readonly subscriptions: SubscriptionsService,
   ) {}
 
   getBaseCurrency(userId: string) {
@@ -311,8 +313,29 @@ export class FinanceFacade {
   }
 
   async listSubscriptions(userId: string) {
-    const page = await this.recurring.list(userId, { limit: 50 });
-    return page.items;
+    const [recurringPage, subscriptionPage] = await Promise.all([
+      this.recurring.list(userId, { limit: 50 }),
+      this.subscriptions.list(userId, { limit: 50 }),
+    ]);
+    return {
+      subscriptions: subscriptionPage.items,
+      recurring: recurringPage.items,
+    };
+  }
+
+  createSubscription(
+    userId: string,
+    dto: Parameters<SubscriptionsService['create']>[1],
+  ) {
+    return this.subscriptions.create(userId, dto);
+  }
+
+  confirmSubscriptionPayment(
+    userId: string,
+    subscriptionId: string,
+    dto: Parameters<SubscriptionsService['recordManualPayment']>[2],
+  ) {
+    return this.subscriptions.recordManualPayment(userId, subscriptionId, dto);
   }
 
   confirmRecurring(userId: string, patternId: string) {

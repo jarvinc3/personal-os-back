@@ -7,7 +7,30 @@ import {
 
 describe('tool-arg-schemas', () => {
   it('registers schemas for all mutating tools', () => {
-    expect(Object.keys(MUTATING_TOOL_ARG_SCHEMAS)).toHaveLength(27);
+    expect(Object.keys(MUTATING_TOOL_ARG_SCHEMAS)).toHaveLength(29);
+  });
+
+  it('rejects the retired subscriptions module slug', () => {
+    const retired = validateMutatingToolArgs('update_module_config', {
+      slug: 'subscriptions',
+      config: {},
+    });
+    expect(retired.ok).toBe(false);
+  });
+
+  it('accepts the managed subscription tools', () => {
+    const created = validateMutatingToolArgs('create_subscription', {
+      name: 'Netflix',
+      amount: 12.99,
+      billingCycle: 'MONTHLY',
+      anchorDate: '2026-05-10',
+    });
+    expect(created.ok).toBe(true);
+
+    const paid = validateMutatingToolArgs('confirm_subscription_payment', {
+      subscriptionId: '550e8400-e29b-41d4-a716-446655440000',
+    });
+    expect(paid.ok).toBe(true);
   });
 
   it('generates OpenAI-compatible JSON Schema without $schema', () => {

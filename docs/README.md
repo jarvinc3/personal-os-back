@@ -14,4 +14,4 @@ Mapa para agentes y reviewers. Estándar: [documentation-standard.md](./document
 
 ## Módulos Nest reales
 
-`auth`, `users`, `notifications`, `ai-agent`, `finance`. Slugs `agenda` / `projects` / `health` / `subscriptions` son configuración de `user_modules`, no módulos Nest.
+`auth`, `users`, `notifications`, `ai-agent`, `finance`. Slugs `agenda` / `projects` / `health` son configuración de `user_modules`, no módulos Nest.
