@@ -6,6 +6,7 @@ import { FinanceEventsModule } from './events/events.module';
 import { FinanceFacade } from './finance.facade';
 import { FinanceFxModule } from './fx/fx.module';
 import { FinanceIngestionModule } from './ingestion/ingestion.module';
+import { FinanceIntegrityModule } from './integrity/integrity.module';
 import { FinanceLedgerModule } from './ledger/ledger.module';
 import { FinanceMerchantsModule } from './merchants/merchants.module';
 import { FinancePlanningModule } from './planning/planning.module';
@@ -34,6 +35,7 @@ import { FinanceWipeModule } from './shared/wipe-finance.module';
     FinanceMerchantsModule,
     FinanceRecurringModule,
     FinanceReconciliationModule,
+    FinanceIntegrityModule,
     FinanceSubscriptionsModule,
     FinanceQuickEntryModule,
     FinanceIngestionModule,

@@ -270,3 +270,10 @@ export type FinReconciliation = Prisma.FinReconciliationModel
  * movement that moves the product balance.
  */
 export type FinReconciliationAdjustment = Prisma.FinReconciliationAdjustmentModel
+/**
+ * Model FinBalanceDrift
+ * Open or closed deviation between a product's stored balance and the sum of
+ * its confirmed movements (invariant I1). Recalculating corrects the stored
+ * balance and closes the open row; no movement is created.
+ */
+export type FinBalanceDrift = Prisma.FinBalanceDriftModel

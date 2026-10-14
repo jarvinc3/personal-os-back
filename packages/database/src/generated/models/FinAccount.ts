@@ -292,6 +292,7 @@ export type FinAccountWhereInput = {
   instrumentEvents?: Prisma.FinInstrumentEventListRelationFilter
   statementImports?: Prisma.FinStatementImportListRelationFilter
   reconciliations?: Prisma.FinReconciliationListRelationFilter
+  balanceDrifts?: Prisma.FinBalanceDriftListRelationFilter
 }
 
 export type FinAccountOrderByWithRelationInput = {
@@ -320,6 +321,7 @@ export type FinAccountOrderByWithRelationInput = {
   instrumentEvents?: Prisma.FinInstrumentEventOrderByRelationAggregateInput
   statementImports?: Prisma.FinStatementImportOrderByRelationAggregateInput
   reconciliations?: Prisma.FinReconciliationOrderByRelationAggregateInput
+  balanceDrifts?: Prisma.FinBalanceDriftOrderByRelationAggregateInput
 }
 
 export type FinAccountWhereUniqueInput = Prisma.AtLeast<{
@@ -351,6 +353,7 @@ export type FinAccountWhereUniqueInput = Prisma.AtLeast<{
   instrumentEvents?: Prisma.FinInstrumentEventListRelationFilter
   statementImports?: Prisma.FinStatementImportListRelationFilter
   reconciliations?: Prisma.FinReconciliationListRelationFilter
+  balanceDrifts?: Prisma.FinBalanceDriftListRelationFilter
 }, "id">
 
 export type FinAccountOrderByWithAggregationInput = {
@@ -417,6 +420,7 @@ export type FinAccountCreateInput = {
   instrumentEvents?: Prisma.FinInstrumentEventCreateNestedManyWithoutAccountInput
   statementImports?: Prisma.FinStatementImportCreateNestedManyWithoutAccountInput
   reconciliations?: Prisma.FinReconciliationCreateNestedManyWithoutAccountInput
+  balanceDrifts?: Prisma.FinBalanceDriftCreateNestedManyWithoutAccountInput
 }
 
 export type FinAccountUncheckedCreateInput = {
@@ -443,6 +447,7 @@ export type FinAccountUncheckedCreateInput = {
   instrumentEvents?: Prisma.FinInstrumentEventUncheckedCreateNestedManyWithoutAccountInput
   statementImports?: Prisma.FinStatementImportUncheckedCreateNestedManyWithoutAccountInput
   reconciliations?: Prisma.FinReconciliationUncheckedCreateNestedManyWithoutAccountInput
+  balanceDrifts?: Prisma.FinBalanceDriftUncheckedCreateNestedManyWithoutAccountInput
 }
 
 export type FinAccountUpdateInput = {
@@ -469,6 +474,7 @@ export type FinAccountUpdateInput = {
   instrumentEvents?: Prisma.FinInstrumentEventUpdateManyWithoutAccountNestedInput
   statementImports?: Prisma.FinStatementImportUpdateManyWithoutAccountNestedInput
   reconciliations?: Prisma.FinReconciliationUpdateManyWithoutAccountNestedInput
+  balanceDrifts?: Prisma.FinBalanceDriftUpdateManyWithoutAccountNestedInput
 }
 
 export type FinAccountUncheckedUpdateInput = {
@@ -495,6 +501,7 @@ export type FinAccountUncheckedUpdateInput = {
   instrumentEvents?: Prisma.FinInstrumentEventUncheckedUpdateManyWithoutAccountNestedInput
   statementImports?: Prisma.FinStatementImportUncheckedUpdateManyWithoutAccountNestedInput
   reconciliations?: Prisma.FinReconciliationUncheckedUpdateManyWithoutAccountNestedInput
+  balanceDrifts?: Prisma.FinBalanceDriftUncheckedUpdateManyWithoutAccountNestedInput
 }
 
 export type FinAccountCreateManyInput = {
@@ -870,6 +877,22 @@ export type FinAccountUpdateOneWithoutReconciliationsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.FinAccountUpdateToOneWithWhereWithoutReconciliationsInput, Prisma.FinAccountUpdateWithoutReconciliationsInput>, Prisma.FinAccountUncheckedUpdateWithoutReconciliationsInput>
 }
 
+export type FinAccountCreateNestedOneWithoutBalanceDriftsInput = {
+  create?: Prisma.XOR<Prisma.FinAccountCreateWithoutBalanceDriftsInput, Prisma.FinAccountUncheckedCreateWithoutBalanceDriftsInput>
+  connectOrCreate?: Prisma.FinAccountCreateOrConnectWithoutBalanceDriftsInput
+  connect?: Prisma.FinAccountWhereUniqueInput
+}
+
+export type FinAccountUpdateOneWithoutBalanceDriftsNestedInput = {
+  create?: Prisma.XOR<Prisma.FinAccountCreateWithoutBalanceDriftsInput, Prisma.FinAccountUncheckedCreateWithoutBalanceDriftsInput>
+  connectOrCreate?: Prisma.FinAccountCreateOrConnectWithoutBalanceDriftsInput
+  upsert?: Prisma.FinAccountUpsertWithoutBalanceDriftsInput
+  disconnect?: Prisma.FinAccountWhereInput | boolean
+  delete?: Prisma.FinAccountWhereInput | boolean
+  connect?: Prisma.FinAccountWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.FinAccountUpdateToOneWithWhereWithoutBalanceDriftsInput, Prisma.FinAccountUpdateWithoutBalanceDriftsInput>, Prisma.FinAccountUncheckedUpdateWithoutBalanceDriftsInput>
+}
+
 export type FinAccountCreateWithoutUserInput = {
   id?: string
   name: string
@@ -893,6 +916,7 @@ export type FinAccountCreateWithoutUserInput = {
   instrumentEvents?: Prisma.FinInstrumentEventCreateNestedManyWithoutAccountInput
   statementImports?: Prisma.FinStatementImportCreateNestedManyWithoutAccountInput
   reconciliations?: Prisma.FinReconciliationCreateNestedManyWithoutAccountInput
+  balanceDrifts?: Prisma.FinBalanceDriftCreateNestedManyWithoutAccountInput
 }
 
 export type FinAccountUncheckedCreateWithoutUserInput = {
@@ -918,6 +942,7 @@ export type FinAccountUncheckedCreateWithoutUserInput = {
   instrumentEvents?: Prisma.FinInstrumentEventUncheckedCreateNestedManyWithoutAccountInput
   statementImports?: Prisma.FinStatementImportUncheckedCreateNestedManyWithoutAccountInput
   reconciliations?: Prisma.FinReconciliationUncheckedCreateNestedManyWithoutAccountInput
+  balanceDrifts?: Prisma.FinBalanceDriftUncheckedCreateNestedManyWithoutAccountInput
 }
 
 export type FinAccountCreateOrConnectWithoutUserInput = {
@@ -988,6 +1013,7 @@ export type FinAccountCreateWithoutTransactionsInput = {
   instrumentEvents?: Prisma.FinInstrumentEventCreateNestedManyWithoutAccountInput
   statementImports?: Prisma.FinStatementImportCreateNestedManyWithoutAccountInput
   reconciliations?: Prisma.FinReconciliationCreateNestedManyWithoutAccountInput
+  balanceDrifts?: Prisma.FinBalanceDriftCreateNestedManyWithoutAccountInput
 }
 
 export type FinAccountUncheckedCreateWithoutTransactionsInput = {
@@ -1013,6 +1039,7 @@ export type FinAccountUncheckedCreateWithoutTransactionsInput = {
   instrumentEvents?: Prisma.FinInstrumentEventUncheckedCreateNestedManyWithoutAccountInput
   statementImports?: Prisma.FinStatementImportUncheckedCreateNestedManyWithoutAccountInput
   reconciliations?: Prisma.FinReconciliationUncheckedCreateNestedManyWithoutAccountInput
+  balanceDrifts?: Prisma.FinBalanceDriftUncheckedCreateNestedManyWithoutAccountInput
 }
 
 export type FinAccountCreateOrConnectWithoutTransactionsInput = {
@@ -1054,6 +1081,7 @@ export type FinAccountUpdateWithoutTransactionsInput = {
   instrumentEvents?: Prisma.FinInstrumentEventUpdateManyWithoutAccountNestedInput
   statementImports?: Prisma.FinStatementImportUpdateManyWithoutAccountNestedInput
   reconciliations?: Prisma.FinReconciliationUpdateManyWithoutAccountNestedInput
+  balanceDrifts?: Prisma.FinBalanceDriftUpdateManyWithoutAccountNestedInput
 }
 
 export type FinAccountUncheckedUpdateWithoutTransactionsInput = {
@@ -1079,6 +1107,7 @@ export type FinAccountUncheckedUpdateWithoutTransactionsInput = {
   instrumentEvents?: Prisma.FinInstrumentEventUncheckedUpdateManyWithoutAccountNestedInput
   statementImports?: Prisma.FinStatementImportUncheckedUpdateManyWithoutAccountNestedInput
   reconciliations?: Prisma.FinReconciliationUncheckedUpdateManyWithoutAccountNestedInput
+  balanceDrifts?: Prisma.FinBalanceDriftUncheckedUpdateManyWithoutAccountNestedInput
 }
 
 export type FinAccountCreateWithoutSubscriptionsInput = {
@@ -1104,6 +1133,7 @@ export type FinAccountCreateWithoutSubscriptionsInput = {
   instrumentEvents?: Prisma.FinInstrumentEventCreateNestedManyWithoutAccountInput
   statementImports?: Prisma.FinStatementImportCreateNestedManyWithoutAccountInput
   reconciliations?: Prisma.FinReconciliationCreateNestedManyWithoutAccountInput
+  balanceDrifts?: Prisma.FinBalanceDriftCreateNestedManyWithoutAccountInput
 }
 
 export type FinAccountUncheckedCreateWithoutSubscriptionsInput = {
@@ -1129,6 +1159,7 @@ export type FinAccountUncheckedCreateWithoutSubscriptionsInput = {
   instrumentEvents?: Prisma.FinInstrumentEventUncheckedCreateNestedManyWithoutAccountInput
   statementImports?: Prisma.FinStatementImportUncheckedCreateNestedManyWithoutAccountInput
   reconciliations?: Prisma.FinReconciliationUncheckedCreateNestedManyWithoutAccountInput
+  balanceDrifts?: Prisma.FinBalanceDriftUncheckedCreateNestedManyWithoutAccountInput
 }
 
 export type FinAccountCreateOrConnectWithoutSubscriptionsInput = {
@@ -1170,6 +1201,7 @@ export type FinAccountUpdateWithoutSubscriptionsInput = {
   instrumentEvents?: Prisma.FinInstrumentEventUpdateManyWithoutAccountNestedInput
   statementImports?: Prisma.FinStatementImportUpdateManyWithoutAccountNestedInput
   reconciliations?: Prisma.FinReconciliationUpdateManyWithoutAccountNestedInput
+  balanceDrifts?: Prisma.FinBalanceDriftUpdateManyWithoutAccountNestedInput
 }
 
 export type FinAccountUncheckedUpdateWithoutSubscriptionsInput = {
@@ -1195,6 +1227,7 @@ export type FinAccountUncheckedUpdateWithoutSubscriptionsInput = {
   instrumentEvents?: Prisma.FinInstrumentEventUncheckedUpdateManyWithoutAccountNestedInput
   statementImports?: Prisma.FinStatementImportUncheckedUpdateManyWithoutAccountNestedInput
   reconciliations?: Prisma.FinReconciliationUncheckedUpdateManyWithoutAccountNestedInput
+  balanceDrifts?: Prisma.FinBalanceDriftUncheckedUpdateManyWithoutAccountNestedInput
 }
 
 export type FinAccountCreateWithoutInstitutionRefInput = {
@@ -1220,6 +1253,7 @@ export type FinAccountCreateWithoutInstitutionRefInput = {
   instrumentEvents?: Prisma.FinInstrumentEventCreateNestedManyWithoutAccountInput
   statementImports?: Prisma.FinStatementImportCreateNestedManyWithoutAccountInput
   reconciliations?: Prisma.FinReconciliationCreateNestedManyWithoutAccountInput
+  balanceDrifts?: Prisma.FinBalanceDriftCreateNestedManyWithoutAccountInput
 }
 
 export type FinAccountUncheckedCreateWithoutInstitutionRefInput = {
@@ -1245,6 +1279,7 @@ export type FinAccountUncheckedCreateWithoutInstitutionRefInput = {
   instrumentEvents?: Prisma.FinInstrumentEventUncheckedCreateNestedManyWithoutAccountInput
   statementImports?: Prisma.FinStatementImportUncheckedCreateNestedManyWithoutAccountInput
   reconciliations?: Prisma.FinReconciliationUncheckedCreateNestedManyWithoutAccountInput
+  balanceDrifts?: Prisma.FinBalanceDriftUncheckedCreateNestedManyWithoutAccountInput
 }
 
 export type FinAccountCreateOrConnectWithoutInstitutionRefInput = {
@@ -1296,6 +1331,7 @@ export type FinAccountCreateWithoutCardsInput = {
   instrumentEvents?: Prisma.FinInstrumentEventCreateNestedManyWithoutAccountInput
   statementImports?: Prisma.FinStatementImportCreateNestedManyWithoutAccountInput
   reconciliations?: Prisma.FinReconciliationCreateNestedManyWithoutAccountInput
+  balanceDrifts?: Prisma.FinBalanceDriftCreateNestedManyWithoutAccountInput
 }
 
 export type FinAccountUncheckedCreateWithoutCardsInput = {
@@ -1321,6 +1357,7 @@ export type FinAccountUncheckedCreateWithoutCardsInput = {
   instrumentEvents?: Prisma.FinInstrumentEventUncheckedCreateNestedManyWithoutAccountInput
   statementImports?: Prisma.FinStatementImportUncheckedCreateNestedManyWithoutAccountInput
   reconciliations?: Prisma.FinReconciliationUncheckedCreateNestedManyWithoutAccountInput
+  balanceDrifts?: Prisma.FinBalanceDriftUncheckedCreateNestedManyWithoutAccountInput
 }
 
 export type FinAccountCreateOrConnectWithoutCardsInput = {
@@ -1362,6 +1399,7 @@ export type FinAccountUpdateWithoutCardsInput = {
   instrumentEvents?: Prisma.FinInstrumentEventUpdateManyWithoutAccountNestedInput
   statementImports?: Prisma.FinStatementImportUpdateManyWithoutAccountNestedInput
   reconciliations?: Prisma.FinReconciliationUpdateManyWithoutAccountNestedInput
+  balanceDrifts?: Prisma.FinBalanceDriftUpdateManyWithoutAccountNestedInput
 }
 
 export type FinAccountUncheckedUpdateWithoutCardsInput = {
@@ -1387,6 +1425,7 @@ export type FinAccountUncheckedUpdateWithoutCardsInput = {
   instrumentEvents?: Prisma.FinInstrumentEventUncheckedUpdateManyWithoutAccountNestedInput
   statementImports?: Prisma.FinStatementImportUncheckedUpdateManyWithoutAccountNestedInput
   reconciliations?: Prisma.FinReconciliationUncheckedUpdateManyWithoutAccountNestedInput
+  balanceDrifts?: Prisma.FinBalanceDriftUncheckedUpdateManyWithoutAccountNestedInput
 }
 
 export type FinAccountCreateWithoutInstrumentEventsInput = {
@@ -1412,6 +1451,7 @@ export type FinAccountCreateWithoutInstrumentEventsInput = {
   savingsGoals?: Prisma.FinSavingsGoalCreateNestedManyWithoutAccountInput
   statementImports?: Prisma.FinStatementImportCreateNestedManyWithoutAccountInput
   reconciliations?: Prisma.FinReconciliationCreateNestedManyWithoutAccountInput
+  balanceDrifts?: Prisma.FinBalanceDriftCreateNestedManyWithoutAccountInput
 }
 
 export type FinAccountUncheckedCreateWithoutInstrumentEventsInput = {
@@ -1437,6 +1477,7 @@ export type FinAccountUncheckedCreateWithoutInstrumentEventsInput = {
   savingsGoals?: Prisma.FinSavingsGoalUncheckedCreateNestedManyWithoutAccountInput
   statementImports?: Prisma.FinStatementImportUncheckedCreateNestedManyWithoutAccountInput
   reconciliations?: Prisma.FinReconciliationUncheckedCreateNestedManyWithoutAccountInput
+  balanceDrifts?: Prisma.FinBalanceDriftUncheckedCreateNestedManyWithoutAccountInput
 }
 
 export type FinAccountCreateOrConnectWithoutInstrumentEventsInput = {
@@ -1478,6 +1519,7 @@ export type FinAccountUpdateWithoutInstrumentEventsInput = {
   savingsGoals?: Prisma.FinSavingsGoalUpdateManyWithoutAccountNestedInput
   statementImports?: Prisma.FinStatementImportUpdateManyWithoutAccountNestedInput
   reconciliations?: Prisma.FinReconciliationUpdateManyWithoutAccountNestedInput
+  balanceDrifts?: Prisma.FinBalanceDriftUpdateManyWithoutAccountNestedInput
 }
 
 export type FinAccountUncheckedUpdateWithoutInstrumentEventsInput = {
@@ -1503,6 +1545,7 @@ export type FinAccountUncheckedUpdateWithoutInstrumentEventsInput = {
   savingsGoals?: Prisma.FinSavingsGoalUncheckedUpdateManyWithoutAccountNestedInput
   statementImports?: Prisma.FinStatementImportUncheckedUpdateManyWithoutAccountNestedInput
   reconciliations?: Prisma.FinReconciliationUncheckedUpdateManyWithoutAccountNestedInput
+  balanceDrifts?: Prisma.FinBalanceDriftUncheckedUpdateManyWithoutAccountNestedInput
 }
 
 export type FinAccountCreateWithoutSavingsGoalsInput = {
@@ -1528,6 +1571,7 @@ export type FinAccountCreateWithoutSavingsGoalsInput = {
   instrumentEvents?: Prisma.FinInstrumentEventCreateNestedManyWithoutAccountInput
   statementImports?: Prisma.FinStatementImportCreateNestedManyWithoutAccountInput
   reconciliations?: Prisma.FinReconciliationCreateNestedManyWithoutAccountInput
+  balanceDrifts?: Prisma.FinBalanceDriftCreateNestedManyWithoutAccountInput
 }
 
 export type FinAccountUncheckedCreateWithoutSavingsGoalsInput = {
@@ -1553,6 +1597,7 @@ export type FinAccountUncheckedCreateWithoutSavingsGoalsInput = {
   instrumentEvents?: Prisma.FinInstrumentEventUncheckedCreateNestedManyWithoutAccountInput
   statementImports?: Prisma.FinStatementImportUncheckedCreateNestedManyWithoutAccountInput
   reconciliations?: Prisma.FinReconciliationUncheckedCreateNestedManyWithoutAccountInput
+  balanceDrifts?: Prisma.FinBalanceDriftUncheckedCreateNestedManyWithoutAccountInput
 }
 
 export type FinAccountCreateOrConnectWithoutSavingsGoalsInput = {
@@ -1594,6 +1639,7 @@ export type FinAccountUpdateWithoutSavingsGoalsInput = {
   instrumentEvents?: Prisma.FinInstrumentEventUpdateManyWithoutAccountNestedInput
   statementImports?: Prisma.FinStatementImportUpdateManyWithoutAccountNestedInput
   reconciliations?: Prisma.FinReconciliationUpdateManyWithoutAccountNestedInput
+  balanceDrifts?: Prisma.FinBalanceDriftUpdateManyWithoutAccountNestedInput
 }
 
 export type FinAccountUncheckedUpdateWithoutSavingsGoalsInput = {
@@ -1619,6 +1665,7 @@ export type FinAccountUncheckedUpdateWithoutSavingsGoalsInput = {
   instrumentEvents?: Prisma.FinInstrumentEventUncheckedUpdateManyWithoutAccountNestedInput
   statementImports?: Prisma.FinStatementImportUncheckedUpdateManyWithoutAccountNestedInput
   reconciliations?: Prisma.FinReconciliationUncheckedUpdateManyWithoutAccountNestedInput
+  balanceDrifts?: Prisma.FinBalanceDriftUncheckedUpdateManyWithoutAccountNestedInput
 }
 
 export type FinAccountCreateWithoutSavingsGoalContributionsInput = {
@@ -1644,6 +1691,7 @@ export type FinAccountCreateWithoutSavingsGoalContributionsInput = {
   instrumentEvents?: Prisma.FinInstrumentEventCreateNestedManyWithoutAccountInput
   statementImports?: Prisma.FinStatementImportCreateNestedManyWithoutAccountInput
   reconciliations?: Prisma.FinReconciliationCreateNestedManyWithoutAccountInput
+  balanceDrifts?: Prisma.FinBalanceDriftCreateNestedManyWithoutAccountInput
 }
 
 export type FinAccountUncheckedCreateWithoutSavingsGoalContributionsInput = {
@@ -1669,6 +1717,7 @@ export type FinAccountUncheckedCreateWithoutSavingsGoalContributionsInput = {
   instrumentEvents?: Prisma.FinInstrumentEventUncheckedCreateNestedManyWithoutAccountInput
   statementImports?: Prisma.FinStatementImportUncheckedCreateNestedManyWithoutAccountInput
   reconciliations?: Prisma.FinReconciliationUncheckedCreateNestedManyWithoutAccountInput
+  balanceDrifts?: Prisma.FinBalanceDriftUncheckedCreateNestedManyWithoutAccountInput
 }
 
 export type FinAccountCreateOrConnectWithoutSavingsGoalContributionsInput = {
@@ -1710,6 +1759,7 @@ export type FinAccountUpdateWithoutSavingsGoalContributionsInput = {
   instrumentEvents?: Prisma.FinInstrumentEventUpdateManyWithoutAccountNestedInput
   statementImports?: Prisma.FinStatementImportUpdateManyWithoutAccountNestedInput
   reconciliations?: Prisma.FinReconciliationUpdateManyWithoutAccountNestedInput
+  balanceDrifts?: Prisma.FinBalanceDriftUpdateManyWithoutAccountNestedInput
 }
 
 export type FinAccountUncheckedUpdateWithoutSavingsGoalContributionsInput = {
@@ -1735,6 +1785,7 @@ export type FinAccountUncheckedUpdateWithoutSavingsGoalContributionsInput = {
   instrumentEvents?: Prisma.FinInstrumentEventUncheckedUpdateManyWithoutAccountNestedInput
   statementImports?: Prisma.FinStatementImportUncheckedUpdateManyWithoutAccountNestedInput
   reconciliations?: Prisma.FinReconciliationUncheckedUpdateManyWithoutAccountNestedInput
+  balanceDrifts?: Prisma.FinBalanceDriftUncheckedUpdateManyWithoutAccountNestedInput
 }
 
 export type FinAccountCreateWithoutFinLoansInput = {
@@ -1760,6 +1811,7 @@ export type FinAccountCreateWithoutFinLoansInput = {
   instrumentEvents?: Prisma.FinInstrumentEventCreateNestedManyWithoutAccountInput
   statementImports?: Prisma.FinStatementImportCreateNestedManyWithoutAccountInput
   reconciliations?: Prisma.FinReconciliationCreateNestedManyWithoutAccountInput
+  balanceDrifts?: Prisma.FinBalanceDriftCreateNestedManyWithoutAccountInput
 }
 
 export type FinAccountUncheckedCreateWithoutFinLoansInput = {
@@ -1785,6 +1837,7 @@ export type FinAccountUncheckedCreateWithoutFinLoansInput = {
   instrumentEvents?: Prisma.FinInstrumentEventUncheckedCreateNestedManyWithoutAccountInput
   statementImports?: Prisma.FinStatementImportUncheckedCreateNestedManyWithoutAccountInput
   reconciliations?: Prisma.FinReconciliationUncheckedCreateNestedManyWithoutAccountInput
+  balanceDrifts?: Prisma.FinBalanceDriftUncheckedCreateNestedManyWithoutAccountInput
 }
 
 export type FinAccountCreateOrConnectWithoutFinLoansInput = {
@@ -1826,6 +1879,7 @@ export type FinAccountUpdateWithoutFinLoansInput = {
   instrumentEvents?: Prisma.FinInstrumentEventUpdateManyWithoutAccountNestedInput
   statementImports?: Prisma.FinStatementImportUpdateManyWithoutAccountNestedInput
   reconciliations?: Prisma.FinReconciliationUpdateManyWithoutAccountNestedInput
+  balanceDrifts?: Prisma.FinBalanceDriftUpdateManyWithoutAccountNestedInput
 }
 
 export type FinAccountUncheckedUpdateWithoutFinLoansInput = {
@@ -1851,6 +1905,7 @@ export type FinAccountUncheckedUpdateWithoutFinLoansInput = {
   instrumentEvents?: Prisma.FinInstrumentEventUncheckedUpdateManyWithoutAccountNestedInput
   statementImports?: Prisma.FinStatementImportUncheckedUpdateManyWithoutAccountNestedInput
   reconciliations?: Prisma.FinReconciliationUncheckedUpdateManyWithoutAccountNestedInput
+  balanceDrifts?: Prisma.FinBalanceDriftUncheckedUpdateManyWithoutAccountNestedInput
 }
 
 export type FinAccountCreateWithoutReceivablePaymentsInput = {
@@ -1876,6 +1931,7 @@ export type FinAccountCreateWithoutReceivablePaymentsInput = {
   instrumentEvents?: Prisma.FinInstrumentEventCreateNestedManyWithoutAccountInput
   statementImports?: Prisma.FinStatementImportCreateNestedManyWithoutAccountInput
   reconciliations?: Prisma.FinReconciliationCreateNestedManyWithoutAccountInput
+  balanceDrifts?: Prisma.FinBalanceDriftCreateNestedManyWithoutAccountInput
 }
 
 export type FinAccountUncheckedCreateWithoutReceivablePaymentsInput = {
@@ -1901,6 +1957,7 @@ export type FinAccountUncheckedCreateWithoutReceivablePaymentsInput = {
   instrumentEvents?: Prisma.FinInstrumentEventUncheckedCreateNestedManyWithoutAccountInput
   statementImports?: Prisma.FinStatementImportUncheckedCreateNestedManyWithoutAccountInput
   reconciliations?: Prisma.FinReconciliationUncheckedCreateNestedManyWithoutAccountInput
+  balanceDrifts?: Prisma.FinBalanceDriftUncheckedCreateNestedManyWithoutAccountInput
 }
 
 export type FinAccountCreateOrConnectWithoutReceivablePaymentsInput = {
@@ -1942,6 +1999,7 @@ export type FinAccountUpdateWithoutReceivablePaymentsInput = {
   instrumentEvents?: Prisma.FinInstrumentEventUpdateManyWithoutAccountNestedInput
   statementImports?: Prisma.FinStatementImportUpdateManyWithoutAccountNestedInput
   reconciliations?: Prisma.FinReconciliationUpdateManyWithoutAccountNestedInput
+  balanceDrifts?: Prisma.FinBalanceDriftUpdateManyWithoutAccountNestedInput
 }
 
 export type FinAccountUncheckedUpdateWithoutReceivablePaymentsInput = {
@@ -1967,6 +2025,7 @@ export type FinAccountUncheckedUpdateWithoutReceivablePaymentsInput = {
   instrumentEvents?: Prisma.FinInstrumentEventUncheckedUpdateManyWithoutAccountNestedInput
   statementImports?: Prisma.FinStatementImportUncheckedUpdateManyWithoutAccountNestedInput
   reconciliations?: Prisma.FinReconciliationUncheckedUpdateManyWithoutAccountNestedInput
+  balanceDrifts?: Prisma.FinBalanceDriftUncheckedUpdateManyWithoutAccountNestedInput
 }
 
 export type FinAccountCreateWithoutStatementImportsInput = {
@@ -1992,6 +2051,7 @@ export type FinAccountCreateWithoutStatementImportsInput = {
   savingsGoals?: Prisma.FinSavingsGoalCreateNestedManyWithoutAccountInput
   instrumentEvents?: Prisma.FinInstrumentEventCreateNestedManyWithoutAccountInput
   reconciliations?: Prisma.FinReconciliationCreateNestedManyWithoutAccountInput
+  balanceDrifts?: Prisma.FinBalanceDriftCreateNestedManyWithoutAccountInput
 }
 
 export type FinAccountUncheckedCreateWithoutStatementImportsInput = {
@@ -2017,6 +2077,7 @@ export type FinAccountUncheckedCreateWithoutStatementImportsInput = {
   savingsGoals?: Prisma.FinSavingsGoalUncheckedCreateNestedManyWithoutAccountInput
   instrumentEvents?: Prisma.FinInstrumentEventUncheckedCreateNestedManyWithoutAccountInput
   reconciliations?: Prisma.FinReconciliationUncheckedCreateNestedManyWithoutAccountInput
+  balanceDrifts?: Prisma.FinBalanceDriftUncheckedCreateNestedManyWithoutAccountInput
 }
 
 export type FinAccountCreateOrConnectWithoutStatementImportsInput = {
@@ -2058,6 +2119,7 @@ export type FinAccountUpdateWithoutStatementImportsInput = {
   savingsGoals?: Prisma.FinSavingsGoalUpdateManyWithoutAccountNestedInput
   instrumentEvents?: Prisma.FinInstrumentEventUpdateManyWithoutAccountNestedInput
   reconciliations?: Prisma.FinReconciliationUpdateManyWithoutAccountNestedInput
+  balanceDrifts?: Prisma.FinBalanceDriftUpdateManyWithoutAccountNestedInput
 }
 
 export type FinAccountUncheckedUpdateWithoutStatementImportsInput = {
@@ -2083,6 +2145,7 @@ export type FinAccountUncheckedUpdateWithoutStatementImportsInput = {
   savingsGoals?: Prisma.FinSavingsGoalUncheckedUpdateManyWithoutAccountNestedInput
   instrumentEvents?: Prisma.FinInstrumentEventUncheckedUpdateManyWithoutAccountNestedInput
   reconciliations?: Prisma.FinReconciliationUncheckedUpdateManyWithoutAccountNestedInput
+  balanceDrifts?: Prisma.FinBalanceDriftUncheckedUpdateManyWithoutAccountNestedInput
 }
 
 export type FinAccountCreateWithoutReconciliationsInput = {
@@ -2108,6 +2171,7 @@ export type FinAccountCreateWithoutReconciliationsInput = {
   savingsGoals?: Prisma.FinSavingsGoalCreateNestedManyWithoutAccountInput
   instrumentEvents?: Prisma.FinInstrumentEventCreateNestedManyWithoutAccountInput
   statementImports?: Prisma.FinStatementImportCreateNestedManyWithoutAccountInput
+  balanceDrifts?: Prisma.FinBalanceDriftCreateNestedManyWithoutAccountInput
 }
 
 export type FinAccountUncheckedCreateWithoutReconciliationsInput = {
@@ -2133,6 +2197,7 @@ export type FinAccountUncheckedCreateWithoutReconciliationsInput = {
   savingsGoals?: Prisma.FinSavingsGoalUncheckedCreateNestedManyWithoutAccountInput
   instrumentEvents?: Prisma.FinInstrumentEventUncheckedCreateNestedManyWithoutAccountInput
   statementImports?: Prisma.FinStatementImportUncheckedCreateNestedManyWithoutAccountInput
+  balanceDrifts?: Prisma.FinBalanceDriftUncheckedCreateNestedManyWithoutAccountInput
 }
 
 export type FinAccountCreateOrConnectWithoutReconciliationsInput = {
@@ -2174,6 +2239,7 @@ export type FinAccountUpdateWithoutReconciliationsInput = {
   savingsGoals?: Prisma.FinSavingsGoalUpdateManyWithoutAccountNestedInput
   instrumentEvents?: Prisma.FinInstrumentEventUpdateManyWithoutAccountNestedInput
   statementImports?: Prisma.FinStatementImportUpdateManyWithoutAccountNestedInput
+  balanceDrifts?: Prisma.FinBalanceDriftUpdateManyWithoutAccountNestedInput
 }
 
 export type FinAccountUncheckedUpdateWithoutReconciliationsInput = {
@@ -2199,6 +2265,127 @@ export type FinAccountUncheckedUpdateWithoutReconciliationsInput = {
   savingsGoals?: Prisma.FinSavingsGoalUncheckedUpdateManyWithoutAccountNestedInput
   instrumentEvents?: Prisma.FinInstrumentEventUncheckedUpdateManyWithoutAccountNestedInput
   statementImports?: Prisma.FinStatementImportUncheckedUpdateManyWithoutAccountNestedInput
+  balanceDrifts?: Prisma.FinBalanceDriftUncheckedUpdateManyWithoutAccountNestedInput
+}
+
+export type FinAccountCreateWithoutBalanceDriftsInput = {
+  id?: string
+  name: string
+  type: $Enums.FinAccountType
+  accountNumber?: string | null
+  isDefaultForInstitution?: boolean
+  currency?: string
+  balance?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  color?: string | null
+  isActive?: boolean
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  user: Prisma.UserCreateNestedOneWithoutFinAccountsInput
+  institutionRef?: Prisma.FinInstitutionCreateNestedOneWithoutAccountsInput
+  cards?: Prisma.FinCardCreateNestedManyWithoutAccountInput
+  transactions?: Prisma.FinTransactionCreateNestedManyWithoutAccountInput
+  finLoans?: Prisma.FinLoanCreateNestedManyWithoutAccountInput
+  subscriptions?: Prisma.FinSubscriptionCreateNestedManyWithoutAccountInput
+  receivablePayments?: Prisma.FinReceivablePaymentCreateNestedManyWithoutAccountInput
+  savingsGoalContributions?: Prisma.FinSavingsGoalContributionCreateNestedManyWithoutAccountInput
+  savingsGoals?: Prisma.FinSavingsGoalCreateNestedManyWithoutAccountInput
+  instrumentEvents?: Prisma.FinInstrumentEventCreateNestedManyWithoutAccountInput
+  statementImports?: Prisma.FinStatementImportCreateNestedManyWithoutAccountInput
+  reconciliations?: Prisma.FinReconciliationCreateNestedManyWithoutAccountInput
+}
+
+export type FinAccountUncheckedCreateWithoutBalanceDriftsInput = {
+  id?: string
+  userId: string
+  institutionId?: string | null
+  name: string
+  type: $Enums.FinAccountType
+  accountNumber?: string | null
+  isDefaultForInstitution?: boolean
+  currency?: string
+  balance?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  color?: string | null
+  isActive?: boolean
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  cards?: Prisma.FinCardUncheckedCreateNestedManyWithoutAccountInput
+  transactions?: Prisma.FinTransactionUncheckedCreateNestedManyWithoutAccountInput
+  finLoans?: Prisma.FinLoanUncheckedCreateNestedManyWithoutAccountInput
+  subscriptions?: Prisma.FinSubscriptionUncheckedCreateNestedManyWithoutAccountInput
+  receivablePayments?: Prisma.FinReceivablePaymentUncheckedCreateNestedManyWithoutAccountInput
+  savingsGoalContributions?: Prisma.FinSavingsGoalContributionUncheckedCreateNestedManyWithoutAccountInput
+  savingsGoals?: Prisma.FinSavingsGoalUncheckedCreateNestedManyWithoutAccountInput
+  instrumentEvents?: Prisma.FinInstrumentEventUncheckedCreateNestedManyWithoutAccountInput
+  statementImports?: Prisma.FinStatementImportUncheckedCreateNestedManyWithoutAccountInput
+  reconciliations?: Prisma.FinReconciliationUncheckedCreateNestedManyWithoutAccountInput
+}
+
+export type FinAccountCreateOrConnectWithoutBalanceDriftsInput = {
+  where: Prisma.FinAccountWhereUniqueInput
+  create: Prisma.XOR<Prisma.FinAccountCreateWithoutBalanceDriftsInput, Prisma.FinAccountUncheckedCreateWithoutBalanceDriftsInput>
+}
+
+export type FinAccountUpsertWithoutBalanceDriftsInput = {
+  update: Prisma.XOR<Prisma.FinAccountUpdateWithoutBalanceDriftsInput, Prisma.FinAccountUncheckedUpdateWithoutBalanceDriftsInput>
+  create: Prisma.XOR<Prisma.FinAccountCreateWithoutBalanceDriftsInput, Prisma.FinAccountUncheckedCreateWithoutBalanceDriftsInput>
+  where?: Prisma.FinAccountWhereInput
+}
+
+export type FinAccountUpdateToOneWithWhereWithoutBalanceDriftsInput = {
+  where?: Prisma.FinAccountWhereInput
+  data: Prisma.XOR<Prisma.FinAccountUpdateWithoutBalanceDriftsInput, Prisma.FinAccountUncheckedUpdateWithoutBalanceDriftsInput>
+}
+
+export type FinAccountUpdateWithoutBalanceDriftsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  type?: Prisma.EnumFinAccountTypeFieldUpdateOperationsInput | $Enums.FinAccountType
+  accountNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isDefaultForInstitution?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  currency?: Prisma.StringFieldUpdateOperationsInput | string
+  balance?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  color?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  user?: Prisma.UserUpdateOneRequiredWithoutFinAccountsNestedInput
+  institutionRef?: Prisma.FinInstitutionUpdateOneWithoutAccountsNestedInput
+  cards?: Prisma.FinCardUpdateManyWithoutAccountNestedInput
+  transactions?: Prisma.FinTransactionUpdateManyWithoutAccountNestedInput
+  finLoans?: Prisma.FinLoanUpdateManyWithoutAccountNestedInput
+  subscriptions?: Prisma.FinSubscriptionUpdateManyWithoutAccountNestedInput
+  receivablePayments?: Prisma.FinReceivablePaymentUpdateManyWithoutAccountNestedInput
+  savingsGoalContributions?: Prisma.FinSavingsGoalContributionUpdateManyWithoutAccountNestedInput
+  savingsGoals?: Prisma.FinSavingsGoalUpdateManyWithoutAccountNestedInput
+  instrumentEvents?: Prisma.FinInstrumentEventUpdateManyWithoutAccountNestedInput
+  statementImports?: Prisma.FinStatementImportUpdateManyWithoutAccountNestedInput
+  reconciliations?: Prisma.FinReconciliationUpdateManyWithoutAccountNestedInput
+}
+
+export type FinAccountUncheckedUpdateWithoutBalanceDriftsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  userId?: Prisma.StringFieldUpdateOperationsInput | string
+  institutionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  type?: Prisma.EnumFinAccountTypeFieldUpdateOperationsInput | $Enums.FinAccountType
+  accountNumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isDefaultForInstitution?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  currency?: Prisma.StringFieldUpdateOperationsInput | string
+  balance?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  color?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  cards?: Prisma.FinCardUncheckedUpdateManyWithoutAccountNestedInput
+  transactions?: Prisma.FinTransactionUncheckedUpdateManyWithoutAccountNestedInput
+  finLoans?: Prisma.FinLoanUncheckedUpdateManyWithoutAccountNestedInput
+  subscriptions?: Prisma.FinSubscriptionUncheckedUpdateManyWithoutAccountNestedInput
+  receivablePayments?: Prisma.FinReceivablePaymentUncheckedUpdateManyWithoutAccountNestedInput
+  savingsGoalContributions?: Prisma.FinSavingsGoalContributionUncheckedUpdateManyWithoutAccountNestedInput
+  savingsGoals?: Prisma.FinSavingsGoalUncheckedUpdateManyWithoutAccountNestedInput
+  instrumentEvents?: Prisma.FinInstrumentEventUncheckedUpdateManyWithoutAccountNestedInput
+  statementImports?: Prisma.FinStatementImportUncheckedUpdateManyWithoutAccountNestedInput
+  reconciliations?: Prisma.FinReconciliationUncheckedUpdateManyWithoutAccountNestedInput
 }
 
 export type FinAccountCreateManyUserInput = {
@@ -2239,6 +2426,7 @@ export type FinAccountUpdateWithoutUserInput = {
   instrumentEvents?: Prisma.FinInstrumentEventUpdateManyWithoutAccountNestedInput
   statementImports?: Prisma.FinStatementImportUpdateManyWithoutAccountNestedInput
   reconciliations?: Prisma.FinReconciliationUpdateManyWithoutAccountNestedInput
+  balanceDrifts?: Prisma.FinBalanceDriftUpdateManyWithoutAccountNestedInput
 }
 
 export type FinAccountUncheckedUpdateWithoutUserInput = {
@@ -2264,6 +2452,7 @@ export type FinAccountUncheckedUpdateWithoutUserInput = {
   instrumentEvents?: Prisma.FinInstrumentEventUncheckedUpdateManyWithoutAccountNestedInput
   statementImports?: Prisma.FinStatementImportUncheckedUpdateManyWithoutAccountNestedInput
   reconciliations?: Prisma.FinReconciliationUncheckedUpdateManyWithoutAccountNestedInput
+  balanceDrifts?: Prisma.FinBalanceDriftUncheckedUpdateManyWithoutAccountNestedInput
 }
 
 export type FinAccountUncheckedUpdateManyWithoutUserInput = {
@@ -2319,6 +2508,7 @@ export type FinAccountUpdateWithoutInstitutionRefInput = {
   instrumentEvents?: Prisma.FinInstrumentEventUpdateManyWithoutAccountNestedInput
   statementImports?: Prisma.FinStatementImportUpdateManyWithoutAccountNestedInput
   reconciliations?: Prisma.FinReconciliationUpdateManyWithoutAccountNestedInput
+  balanceDrifts?: Prisma.FinBalanceDriftUpdateManyWithoutAccountNestedInput
 }
 
 export type FinAccountUncheckedUpdateWithoutInstitutionRefInput = {
@@ -2344,6 +2534,7 @@ export type FinAccountUncheckedUpdateWithoutInstitutionRefInput = {
   instrumentEvents?: Prisma.FinInstrumentEventUncheckedUpdateManyWithoutAccountNestedInput
   statementImports?: Prisma.FinStatementImportUncheckedUpdateManyWithoutAccountNestedInput
   reconciliations?: Prisma.FinReconciliationUncheckedUpdateManyWithoutAccountNestedInput
+  balanceDrifts?: Prisma.FinBalanceDriftUncheckedUpdateManyWithoutAccountNestedInput
 }
 
 export type FinAccountUncheckedUpdateManyWithoutInstitutionRefInput = {
@@ -2377,6 +2568,7 @@ export type FinAccountCountOutputType = {
   instrumentEvents: number
   statementImports: number
   reconciliations: number
+  balanceDrifts: number
 }
 
 export type FinAccountCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -2390,6 +2582,7 @@ export type FinAccountCountOutputTypeSelect<ExtArgs extends runtime.Types.Extens
   instrumentEvents?: boolean | FinAccountCountOutputTypeCountInstrumentEventsArgs
   statementImports?: boolean | FinAccountCountOutputTypeCountStatementImportsArgs
   reconciliations?: boolean | FinAccountCountOutputTypeCountReconciliationsArgs
+  balanceDrifts?: boolean | FinAccountCountOutputTypeCountBalanceDriftsArgs
 }
 
 /**
@@ -2472,6 +2665,13 @@ export type FinAccountCountOutputTypeCountReconciliationsArgs<ExtArgs extends ru
   where?: Prisma.FinReconciliationWhereInput
 }
 
+/**
+ * FinAccountCountOutputType without action
+ */
+export type FinAccountCountOutputTypeCountBalanceDriftsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.FinBalanceDriftWhereInput
+}
+
 
 export type FinAccountSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -2499,6 +2699,7 @@ export type FinAccountSelect<ExtArgs extends runtime.Types.Extensions.InternalAr
   instrumentEvents?: boolean | Prisma.FinAccount$instrumentEventsArgs<ExtArgs>
   statementImports?: boolean | Prisma.FinAccount$statementImportsArgs<ExtArgs>
   reconciliations?: boolean | Prisma.FinAccount$reconciliationsArgs<ExtArgs>
+  balanceDrifts?: boolean | Prisma.FinAccount$balanceDriftsArgs<ExtArgs>
   _count?: boolean | Prisma.FinAccountCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["finAccount"]>
 
@@ -2568,6 +2769,7 @@ export type FinAccountInclude<ExtArgs extends runtime.Types.Extensions.InternalA
   instrumentEvents?: boolean | Prisma.FinAccount$instrumentEventsArgs<ExtArgs>
   statementImports?: boolean | Prisma.FinAccount$statementImportsArgs<ExtArgs>
   reconciliations?: boolean | Prisma.FinAccount$reconciliationsArgs<ExtArgs>
+  balanceDrifts?: boolean | Prisma.FinAccount$balanceDriftsArgs<ExtArgs>
   _count?: boolean | Prisma.FinAccountCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type FinAccountIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -2594,6 +2796,7 @@ export type $FinAccountPayload<ExtArgs extends runtime.Types.Extensions.Internal
     instrumentEvents: Prisma.$FinInstrumentEventPayload<ExtArgs>[]
     statementImports: Prisma.$FinStatementImportPayload<ExtArgs>[]
     reconciliations: Prisma.$FinReconciliationPayload<ExtArgs>[]
+    balanceDrifts: Prisma.$FinBalanceDriftPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -3024,6 +3227,7 @@ export interface Prisma__FinAccountClient<T, Null = never, ExtArgs extends runti
   instrumentEvents<T extends Prisma.FinAccount$instrumentEventsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.FinAccount$instrumentEventsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$FinInstrumentEventPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   statementImports<T extends Prisma.FinAccount$statementImportsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.FinAccount$statementImportsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$FinStatementImportPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   reconciliations<T extends Prisma.FinAccount$reconciliationsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.FinAccount$reconciliationsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$FinReconciliationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  balanceDrifts<T extends Prisma.FinAccount$balanceDriftsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.FinAccount$balanceDriftsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$FinBalanceDriftPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -3723,6 +3927,30 @@ export type FinAccount$reconciliationsArgs<ExtArgs extends runtime.Types.Extensi
   take?: number
   skip?: number
   distinct?: Prisma.FinReconciliationScalarFieldEnum | Prisma.FinReconciliationScalarFieldEnum[]
+}
+
+/**
+ * FinAccount.balanceDrifts
+ */
+export type FinAccount$balanceDriftsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the FinBalanceDrift
+   */
+  select?: Prisma.FinBalanceDriftSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the FinBalanceDrift
+   */
+  omit?: Prisma.FinBalanceDriftOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.FinBalanceDriftInclude<ExtArgs> | null
+  where?: Prisma.FinBalanceDriftWhereInput
+  orderBy?: Prisma.FinBalanceDriftOrderByWithRelationInput | Prisma.FinBalanceDriftOrderByWithRelationInput[]
+  cursor?: Prisma.FinBalanceDriftWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.FinBalanceDriftScalarFieldEnum | Prisma.FinBalanceDriftScalarFieldEnum[]
 }
 
 /**

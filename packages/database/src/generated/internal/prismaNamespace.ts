@@ -440,7 +440,8 @@ export const ModelName = {
   FinStatementImport: 'FinStatementImport',
   FinStatementImportLine: 'FinStatementImportLine',
   FinReconciliation: 'FinReconciliation',
-  FinReconciliationAdjustment: 'FinReconciliationAdjustment'
+  FinReconciliationAdjustment: 'FinReconciliationAdjustment',
+  FinBalanceDrift: 'FinBalanceDrift'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -456,7 +457,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "module" | "userModule" | "aiAgentSession" | "aiMessage" | "aiAction" | "notification" | "pushToken" | "finAccount" | "finEmailConnection" | "finEmailSource" | "finTransaction" | "finCategory" | "finBudget" | "finBudgetCategory" | "finBudgetAlert" | "finRecurringPattern" | "finMerchant" | "finSubscription" | "finSubscriptionPayment" | "finSubscriptionAlertDismissal" | "finExchangeRate" | "finInstitution" | "finCard" | "finCardBalance" | "finInstrumentEvent" | "finCardStatement" | "finSavingsGoal" | "finSavingsGoalContribution" | "finLoan" | "finLoanInstallment" | "finLoanPrepayment" | "finReceivable" | "finReceivablePayment" | "finEmailSyncLog" | "finEmailMessage" | "domainEventOutbox" | "processedDomainEvent" | "authDeletionOutbox" | "finDeletionJournal" | "finStatementImport" | "finStatementImportLine" | "finReconciliation" | "finReconciliationAdjustment"
+    modelProps: "user" | "module" | "userModule" | "aiAgentSession" | "aiMessage" | "aiAction" | "notification" | "pushToken" | "finAccount" | "finEmailConnection" | "finEmailSource" | "finTransaction" | "finCategory" | "finBudget" | "finBudgetCategory" | "finBudgetAlert" | "finRecurringPattern" | "finMerchant" | "finSubscription" | "finSubscriptionPayment" | "finSubscriptionAlertDismissal" | "finExchangeRate" | "finInstitution" | "finCard" | "finCardBalance" | "finInstrumentEvent" | "finCardStatement" | "finSavingsGoal" | "finSavingsGoalContribution" | "finLoan" | "finLoanInstallment" | "finLoanPrepayment" | "finReceivable" | "finReceivablePayment" | "finEmailSyncLog" | "finEmailMessage" | "domainEventOutbox" | "processedDomainEvent" | "authDeletionOutbox" | "finDeletionJournal" | "finStatementImport" | "finStatementImportLine" | "finReconciliation" | "finReconciliationAdjustment" | "finBalanceDrift"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -3716,6 +3717,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    FinBalanceDrift: {
+      payload: Prisma.$FinBalanceDriftPayload<ExtArgs>
+      fields: Prisma.FinBalanceDriftFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.FinBalanceDriftFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinBalanceDriftPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.FinBalanceDriftFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinBalanceDriftPayload>
+        }
+        findFirst: {
+          args: Prisma.FinBalanceDriftFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinBalanceDriftPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.FinBalanceDriftFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinBalanceDriftPayload>
+        }
+        findMany: {
+          args: Prisma.FinBalanceDriftFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinBalanceDriftPayload>[]
+        }
+        create: {
+          args: Prisma.FinBalanceDriftCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinBalanceDriftPayload>
+        }
+        createMany: {
+          args: Prisma.FinBalanceDriftCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.FinBalanceDriftCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinBalanceDriftPayload>[]
+        }
+        delete: {
+          args: Prisma.FinBalanceDriftDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinBalanceDriftPayload>
+        }
+        update: {
+          args: Prisma.FinBalanceDriftUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinBalanceDriftPayload>
+        }
+        deleteMany: {
+          args: Prisma.FinBalanceDriftDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.FinBalanceDriftUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.FinBalanceDriftUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinBalanceDriftPayload>[]
+        }
+        upsert: {
+          args: Prisma.FinBalanceDriftUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinBalanceDriftPayload>
+        }
+        aggregate: {
+          args: Prisma.FinBalanceDriftAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateFinBalanceDrift>
+        }
+        groupBy: {
+          args: Prisma.FinBalanceDriftGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.FinBalanceDriftGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.FinBalanceDriftCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.FinBalanceDriftCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -4517,6 +4592,22 @@ export const FinReconciliationAdjustmentScalarFieldEnum = {
 } as const
 
 export type FinReconciliationAdjustmentScalarFieldEnum = (typeof FinReconciliationAdjustmentScalarFieldEnum)[keyof typeof FinReconciliationAdjustmentScalarFieldEnum]
+
+
+export const FinBalanceDriftScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  accountId: 'accountId',
+  cardId: 'cardId',
+  currency: 'currency',
+  storedBalance: 'storedBalance',
+  expectedBalance: 'expectedBalance',
+  difference: 'difference',
+  detectedAt: 'detectedAt',
+  resolvedAt: 'resolvedAt'
+} as const
+
+export type FinBalanceDriftScalarFieldEnum = (typeof FinBalanceDriftScalarFieldEnum)[keyof typeof FinBalanceDriftScalarFieldEnum]
 
 
 export const SortOrder = {
@@ -5376,6 +5467,7 @@ export type GlobalOmitConfig = {
   finStatementImportLine?: Prisma.FinStatementImportLineOmit
   finReconciliation?: Prisma.FinReconciliationOmit
   finReconciliationAdjustment?: Prisma.FinReconciliationAdjustmentOmit
+  finBalanceDrift?: Prisma.FinBalanceDriftOmit
 }
 
 /* Types for Logging */

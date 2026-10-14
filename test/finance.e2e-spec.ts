@@ -3,7 +3,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import * as jwt from 'jsonwebtoken';
 import request from 'supertest';
 import { App } from 'supertest/types';
-import { PrismaService } from '@personal-os/database';
+import { Prisma, PrismaService } from '@personal-os/database';
 import { applyAuthTestOverrides } from './helpers/auth-test.providers';
 import { createTestJwt } from './helpers/jwt.helper';
 import { createPrismaMock } from './helpers/prisma.mock';
@@ -2932,6 +2932,135 @@ describe('Finance (e2e)', () => {
       .expect((res) => {
         expect(res.body.data.reconciledCount).toBe(1);
         expect(res.body.data.pendingCount).toBe(0);
+      });
+  });
+
+  it('GET /api/finance/integrity/check detects a corrupted balance', async () => {
+    const accountId = '11111111-1111-4111-8111-111111111111';
+    prismaMock.finAccount.findMany.mockResolvedValue([
+      {
+        id: accountId,
+        currency: 'DOP',
+        balance: new Prisma.Decimal(10000),
+      },
+    ]);
+    prismaMock.finCard.findMany.mockResolvedValue([]);
+    prismaMock.finCardBalance.findMany.mockResolvedValue([]);
+    prismaMock.finTransaction.findMany.mockResolvedValue([
+      {
+        accountId,
+        cardId: null,
+        type: 'DEBIT',
+        ledgerAmount: new Prisma.Decimal(-10000),
+        ledgerCurrency: 'DOP',
+      },
+      {
+        accountId,
+        cardId: null,
+        type: 'CREDIT',
+        ledgerAmount: new Prisma.Decimal(10000),
+        ledgerCurrency: 'DOP',
+      },
+    ]);
+    prismaMock.finBalanceDrift.findMany
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([
+        {
+          id: 'drift-1',
+          accountId,
+          cardId: null,
+          currency: 'DOP',
+          storedBalance: new Prisma.Decimal(100),
+          expectedBalance: new Prisma.Decimal(0),
+          difference: new Prisma.Decimal(-100),
+          detectedAt: new Date('2026-10-20T04:00:00.000Z'),
+          resolvedAt: null,
+          account: { name: 'Ahorros' },
+          card: null,
+        },
+      ]);
+
+    await request(app.getHttpServer())
+      .get('/api/finance/integrity/check')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.data.drifts).toEqual([
+          expect.objectContaining({
+            accountId,
+            name: 'Ahorros',
+            storedBalance: '100.00',
+            expectedBalance: '0.00',
+            difference: '-100.00',
+          }),
+        ]);
+      });
+
+    expect(prismaMock.finBalanceDrift.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          accountId,
+          expectedBalance: expect.anything(),
+          storedBalance: expect.anything(),
+        }),
+      }),
+    );
+  });
+
+  it('POST /api/finance/integrity/recalculate corrects the balance', async () => {
+    const accountId = '11111111-1111-4111-8111-111111111111';
+    prismaMock.finAccount.findMany.mockResolvedValue([
+      {
+        id: accountId,
+        currency: 'DOP',
+        balance: new Prisma.Decimal(10000),
+      },
+    ]);
+    prismaMock.finCard.findMany.mockResolvedValue([]);
+    prismaMock.finCardBalance.findMany.mockResolvedValue([]);
+    prismaMock.finTransaction.findMany.mockResolvedValue([
+      {
+        accountId,
+        cardId: null,
+        type: 'DEBIT',
+        ledgerAmount: new Prisma.Decimal(-10000),
+        ledgerCurrency: 'DOP',
+      },
+      {
+        accountId,
+        cardId: null,
+        type: 'CREDIT',
+        ledgerAmount: new Prisma.Decimal(10000),
+        ledgerCurrency: 'DOP',
+      },
+    ]);
+    prismaMock.finBalanceDrift.findFirst.mockResolvedValue({
+      id: 'drift-1',
+      accountId,
+      cardId: null,
+      currency: 'DOP',
+      storedBalance: new Prisma.Decimal(100),
+      expectedBalance: new Prisma.Decimal(0),
+      difference: new Prisma.Decimal(-100),
+      detectedAt: new Date('2026-10-20T04:00:00.000Z'),
+      resolvedAt: null,
+      account: { name: 'Ahorros' },
+      card: null,
+    });
+
+    await request(app.getHttpServer())
+      .post('/api/finance/integrity/recalculate')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ accountId })
+      .expect(201)
+      .expect((res) => {
+        expect(res.body.data).toMatchObject({
+          corrected: true,
+          accountId,
+          cardId: null,
+          currency: 'DOP',
+          balance: '0.00',
+        });
       });
   });
 });

@@ -10,6 +10,7 @@
 | [capabilities/planning.md](./capabilities/planning.md)             | Budgets, savings, loans, receivables           |
 | [capabilities/analytics.md](./capabilities/analytics.md)           | Summary, spending, budget-status, bank-charges |
 | [capabilities/reconciliation.md](./capabilities/reconciliation.md) | Cierre de cuenta o tarjeta contra el banco     |
+| [capabilities/integrity.md](./capabilities/integrity.md)           | Saldo vs. movimientos (invariante I1)          |
 | [capabilities/balance-sheet.md](./capabilities/balance-sheet.md)   | Snapshot `BASE_CURRENCY`                       |
 | [capabilities/ingestion.md](./capabilities/ingestion.md)           | Gmail OAuth, sources, pending assign           |
 | [capabilities/fx.md](./capabilities/fx.md)                         | Tasas históricas                               |

@@ -38,6 +38,7 @@ model User {
   finInstrumentEvents FinInstrumentEvent[]
   finStatementImports FinStatementImport[]
   finReconciliations  FinReconciliation[]
+  finBalanceDrifts    FinBalanceDrift[]
   notifications   Notification[]
   pushTokens      PushToken[]
   userModules     UserModule[]
@@ -193,6 +194,7 @@ model FinAccount {
   instrumentEvents FinInstrumentEvent[]
   statementImports FinStatementImport[]
   reconciliations FinReconciliation[]
+  balanceDrifts   FinBalanceDrift[]
 
   @@index([userId, isActive], map: "fin_accounts_user_id_active_idx")
   @@index([institutionId], map: "fin_accounts_institution_id_idx")
@@ -634,6 +636,7 @@ model FinCard {
   statementImports    FinStatementImport[]
   subscriptions       FinSubscription[]
   reconciliations     FinReconciliation[]
+  balanceDrifts       FinBalanceDrift[]
 
   @@index([userId, institutionId], map: "fin_cards_user_id_institution_id_idx")
   @@index([userId, isActive], map: "fin_cards_user_id_active_idx")
@@ -1340,4 +1343,28 @@ model FinReconciliationAdjustment {
   @@index([reconciliationId], map: "fin_reconciliation_adjustments_reconciliation_idx")
   @@index([transactionId], map: "fin_reconciliation_adjustments_transaction_idx")
   @@map("fin_reconciliation_adjustments")
+}
+
+/// Open or closed deviation between a product's stored balance and the sum of
+/// its confirmed movements (invariant I1). Recalculating corrects the stored
+/// balance and closes the open row; no movement is created.
+model FinBalanceDrift {
+  id              String    @id @default(dbgenerated("(uuid_generate_v4())::text"))
+  userId          String    @map("user_id")
+  accountId       String?   @map("account_id")
+  cardId          String?   @map("card_id")
+  currency        String
+  storedBalance   Decimal   @map("stored_balance") @db.Decimal(15, 2)
+  expectedBalance Decimal   @map("expected_balance") @db.Decimal(15, 2)
+  difference      Decimal   @db.Decimal(15, 2)
+  detectedAt      DateTime  @default(now()) @map("detected_at") @db.Timestamptz(6)
+  resolvedAt      DateTime? @map("resolved_at") @db.Timestamptz(6)
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  account         FinAccount? @relation(fields: [accountId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  card            FinCard?  @relation(fields: [cardId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([userId, resolvedAt], map: "fin_balance_drifts_user_resolved_idx")
+  @@index([accountId, resolvedAt], map: "fin_balance_drifts_account_resolved_idx")
+  @@index([cardId, resolvedAt], map: "fin_balance_drifts_card_resolved_idx")
+  @@map("fin_balance_drifts")
 }

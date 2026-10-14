@@ -12,6 +12,7 @@ export const FINANCE_NOTIFICATION_KEYS = {
   recurringAlerts: 'recurringAlerts',
   subscriptionReminders: 'subscriptionReminders',
   priceIncreaseAlerts: 'priceIncreaseAlerts',
+  balanceIntegrity: 'balanceIntegrity',
 } as const;
 
 export type FinanceNotificationKey =
@@ -38,6 +39,7 @@ export const DEFAULT_MODULE_CONFIG_BY_SLUG = {
       [FINANCE_NOTIFICATION_KEYS.recurringAlerts]: true,
       [FINANCE_NOTIFICATION_KEYS.subscriptionReminders]: true,
       [FINANCE_NOTIFICATION_KEYS.priceIncreaseAlerts]: true,
+      [FINANCE_NOTIFICATION_KEYS.balanceIntegrity]: true,
     },
     subscriptions: {
       /** Default days before a renewal the reminder fires; each one can override. */

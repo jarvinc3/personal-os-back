@@ -7,6 +7,7 @@ import {
 } from '@personal-os/core';
 import { FINANCE_NOTIFICATION_KEYS } from '@personal-os/users';
 import {
+  balanceDriftCopy,
   budgetThresholdCopy,
   cardStatementReminderCopy,
   formatNotificationAmount,
@@ -102,6 +103,17 @@ type SubscriptionRenewalEvent = {
   currency?: string;
   nextBillingDate?: string;
   daysUntil?: number;
+};
+
+type BalanceDriftEvent = {
+  eventId?: string;
+  userId: string;
+  driftId: string;
+  accountId?: string | null;
+  cardId?: string | null;
+  currency?: string;
+  name?: string | null;
+  difference?: string;
 };
 
 @Injectable()
@@ -354,10 +366,41 @@ export class NotificationsEventsListener {
   async onRecurringMissed(event: RecurringChargeEvent): Promise<void> {
     await this.createRecurringCharge(event, 'recurring.missed', 'missed');
   }
-
   @OnEvent(AppEvents.FINANCE_RECURRING_UPCOMING)
   async onRecurringUpcoming(event: RecurringChargeEvent): Promise<void> {
     await this.createRecurringCharge(event, 'recurring.upcoming', 'upcoming');
+  }
+
+  @OnEvent(AppEvents.FINANCE_BALANCE_DRIFT_DETECTED)
+  async onBalanceDrift(event: BalanceDriftEvent): Promise<void> {
+    if (
+      !(await this.idempotency.tryClaim(
+        event.eventId,
+        `${NotificationsEventsListener.CONSUMER}:balance-drift`,
+      ))
+    ) {
+      return;
+    }
+    const copy = balanceDriftCopy({
+      name: event.name?.trim() ? event.name : 'una cuenta',
+      differenceLabel: formatNotificationAmount(
+        Number(event.difference ?? 0),
+        event.currency ?? '',
+      ),
+    });
+    await this.createFinanceInApp(event.userId, {
+      type: 'finance.balance_drift',
+      title: copy.title,
+      body: copy.body,
+      data: {
+        moduleSlug: FINANCE_MODULE_SLUG,
+        notificationKey: FINANCE_NOTIFICATION_KEYS.balanceIntegrity,
+        driftId: event.driftId,
+        accountId: event.accountId ?? null,
+        cardId: event.cardId ?? null,
+        currency: event.currency ?? null,
+      },
+    });
   }
 
   private async createRecurringCharge(

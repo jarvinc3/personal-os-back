@@ -193,3 +193,13 @@ export function subscriptionRenewalDueCopy(
     body: `Tu suscripción ${fields.merchant} se renueva ${when} por ${fields.amountLabel}.`,
   };
 }
+
+export function balanceDriftCopy(fields: {
+  name: string;
+  differenceLabel: string;
+}): NotificationCopy {
+  return {
+    title: 'Saldo descuadrado',
+    body: `El saldo de ${fields.name} no coincide con sus movimientos (${fields.differenceLabel}).`,
+  };
+}
