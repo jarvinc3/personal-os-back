@@ -49,6 +49,12 @@ export function decodeCursor(cursor: string): CursorPoint {
   if (!isCursorPoint(parsed)) {
     throw new BadRequestException(INVALID_CURSOR_MESSAGE);
   }
+  // Every list in the app orders by a timestamp, so a key that does not parse
+  // as a date is a forged cursor. Reject it here instead of passing an invalid
+  // Date down to the query.
+  if (Number.isNaN(Date.parse(parsed.key))) {
+    throw new BadRequestException(INVALID_CURSOR_MESSAGE);
+  }
   return parsed;
 }
 

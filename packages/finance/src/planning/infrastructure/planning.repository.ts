@@ -1,9 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import {
-  clampPageLimit,
-  decodeCursor,
-  type CursorQueryDto,
-} from '@personal-os/core';
+import { clampPageLimit, type CursorQueryDto } from '@personal-os/core';
 import type { Prisma } from '@personal-os/database';
 import { PrismaService } from '@personal-os/database';
 import type { ReceivableStatus } from '../application/resolve-receivable-payment';
@@ -38,23 +34,21 @@ export class PlanningRepository {
 
   listBudgetsPage(userId: string, query: CursorQueryDto) {
     const limit = clampPageLimit(query.limit);
-    const cursorPoint = query.cursor ? decodeCursor(query.cursor) : null;
+    const after = decodeCursorPosition(query.cursor);
     const baseWhere: Prisma.FinBudgetWhereInput = { userId };
-    const cursorDate = cursorPoint ? new Date(cursorPoint.key) : null;
-    const where: Prisma.FinBudgetWhereInput =
-      cursorPoint && cursorDate
-        ? {
-            AND: [
-              baseWhere,
-              {
-                OR: [
-                  { periodStart: { lt: cursorDate } },
-                  { periodStart: cursorDate, id: { lt: cursorPoint.id } },
-                ],
-              },
-            ],
-          }
-        : baseWhere;
+    const where: Prisma.FinBudgetWhereInput = after
+      ? {
+          AND: [
+            baseWhere,
+            {
+              OR: [
+                { periodStart: { lt: after.date } },
+                { periodStart: after.date, id: { lt: after.id } },
+              ],
+            },
+          ],
+        }
+      : baseWhere;
     return this.prisma.finBudget.findMany({
       where,
       include: { category: true, categories: { include: { category: true } } },
