@@ -2,6 +2,15 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [SemVer](https://semver.org/lang/es/). Reglas y ejemplo en [docs/reference/changelog-guide.md](./docs/reference/changelog-guide.md).
 
+## [0.21.1] - 2026-10-14
+
+### Corregido
+
+- Subir un PDF dañado responde 400 con `STATEMENT_PARSE_FAILED` en vez de un error 500.
+- Ignorar una línea ya emparejada y volver a marcarla conserva su movimiento; antes se creaba un duplicado.
+- Aplicar un import de tarjeta registra el corte cerrado en el historial del instrumento, igual que el cierre manual.
+- Si el worker no puede leer el PDF temporal, el import queda `FAILED` en vez de quedarse en `PARSING`.
+
 ## [0.21.0] - 2026-10-14
 
 ### Agregado
