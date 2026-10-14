@@ -342,4 +342,23 @@ describe('SubscriptionsService.list', () => {
       color: '#f00',
     });
   });
+
+  it('passes the unassigned filters through to the repository', async () => {
+    const { service, repo } = build();
+    repo.list.mockResolvedValue([]);
+
+    await service.list(
+      'user-1',
+      { limit: 20, unassignedCategory: true, unassignedMethod: true },
+      day('2026-10-01'),
+    );
+
+    expect(repo.list).toHaveBeenCalledWith(
+      'user-1',
+      expect.objectContaining({
+        unassignedCategory: true,
+        unassignedMethod: true,
+      }),
+    );
+  });
 });

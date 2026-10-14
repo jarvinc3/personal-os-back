@@ -56,6 +56,8 @@ export type SubscriptionPageQuery = {
   categoryId?: string;
   cardId?: string;
   accountId?: string;
+  unassignedCategory?: boolean;
+  unassignedMethod?: boolean;
   search?: string;
 };
 
@@ -75,9 +77,17 @@ export class SubscriptionsRepository {
         userId,
         ...(query.status ? { status: query.status } : {}),
         ...(query.currency ? { currency: query.currency } : {}),
-        ...(query.categoryId ? { categoryId: query.categoryId } : {}),
-        ...(query.cardId ? { cardId: query.cardId } : {}),
-        ...(query.accountId ? { accountId: query.accountId } : {}),
+        ...(query.unassignedCategory
+          ? { categoryId: null }
+          : query.categoryId
+            ? { categoryId: query.categoryId }
+            : {}),
+        ...(query.unassignedMethod
+          ? { cardId: null, accountId: null }
+          : {
+              ...(query.cardId ? { cardId: query.cardId } : {}),
+              ...(query.accountId ? { accountId: query.accountId } : {}),
+            }),
         ...(search ? { name: { contains: search, mode: 'insensitive' } } : {}),
         ...(query.cursor
           ? {
@@ -127,7 +137,9 @@ export class SubscriptionsRepository {
     }
     return this.prisma.finSubscriptionPayment.findMany({
       where: { subscriptionId: { in: subscriptionIds } },
-      orderBy: [{ paidAt: 'desc' }],
+      // The id tiebreak keeps the previous-charge lookup deterministic when
+      // two payments share a timestamp, which the price-increase alert needs.
+      orderBy: [{ paidAt: 'desc' }, { id: 'desc' }],
     });
   }
 

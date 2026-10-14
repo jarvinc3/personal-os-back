@@ -93,6 +93,8 @@ export class SubscriptionsService implements SubscriptionMatcherPort {
       categoryId: query.categoryId,
       cardId: query.cardId,
       accountId: query.accountId,
+      unassignedCategory: query.unassignedCategory,
+      unassignedMethod: query.unassignedMethod,
       search: query.q,
     });
     const page = toCursorPage(rows, limit, (row) =>

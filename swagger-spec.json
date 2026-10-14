@@ -2236,6 +2236,24 @@
             }
           },
           {
+            "name": "unassignedCategory",
+            "required": false,
+            "in": "query",
+            "description": "Only subscriptions without a category",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "unassignedMethod",
+            "required": false,
+            "in": "query",
+            "description": "Only subscriptions without a card or account",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
             "name": "q",
             "required": false,
             "in": "query",
