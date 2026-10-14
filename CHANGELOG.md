@@ -2,6 +2,20 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [SemVer](https://semver.org/lang/es/). Reglas y ejemplo en [docs/reference/changelog-guide.md](./docs/reference/changelog-guide.md).
 
+## [0.27.2] - 2026-10-19
+
+### Corregido
+
+- La sugerencia de impuesto DGII usa solo las salidas en la moneda del producto, no las de todas las monedas de una tarjeta.
+- El cargo DGII sugerido nunca supera la diferencia que explica.
+- Conciliar una tarjeta de débito responde 404: su saldo se cierra desde la cuenta enlazada, y el estado del mes ya no lista esas tarjetas.
+- La fecha de corte del cierre es opcional y por defecto es hoy.
+
+### Cambiado
+
+- El desglose mensual de cargos bancarios va en orden cronológico y `groupBy` devuelve solo el grupo pedido.
+- Specs del filtro por moneda, del tope del DGII, de la fecha por defecto y del agrupado.
+
 ## [0.27.1] - 2026-10-19
 
 ### Cambiado
