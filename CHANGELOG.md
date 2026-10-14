@@ -2,6 +2,16 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [SemVer](https://semver.org/lang/es/). Reglas y ejemplo en [docs/reference/changelog-guide.md](./docs/reference/changelog-guide.md).
 
+## [0.24.3] - 2026-10-14
+
+### Corregido
+
+- La captura rápida rechaza una fecha imposible del modelo (por ejemplo `2026-02-31`) en el extractor, en vez de reemplazarla en silencio por la fecha de hoy. La validación vive en el borde que interpreta al modelo y el servicio confía en el contrato del puerto.
+
+### Cambiado
+
+- El spec del extractor de captura rápida cubre la fecha válida, la ausente y la imposible. Sin cambios de comportamiento aparte del rechazo.
+
 ## [0.24.2] - 2026-10-14
 
 ### Corregido
