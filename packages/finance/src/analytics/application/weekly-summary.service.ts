@@ -44,6 +44,11 @@ export function previousWeekStartIso(iso: string): string {
   return addDaysIso(weekStartIso(iso), -7);
 }
 
+/** Inclusive upper bound that covers the whole given day. */
+function endOfDayIso(iso: string): string {
+  return `${iso}T23:59:59.999Z`;
+}
+
 function daysUntilDayOfMonth(todayIso: string, day: number): number {
   const today = new Date(`${todayIso}T00:00:00.000Z`);
   const year = today.getUTCFullYear();
@@ -99,8 +104,17 @@ export class WeeklySummaryService {
       pending,
     ] = await Promise.all([
       this.baseCurrency.execute(userId),
-      this.analytics.getSpendingOverTime(userId, rangeFrom, weekEnd, 'week'),
-      this.analytics.getSpendingByCategory(userId, weekStart, weekEnd),
+      this.analytics.getSpendingOverTime(
+        userId,
+        rangeFrom,
+        endOfDayIso(weekEnd),
+        'week',
+      ),
+      this.analytics.getSpendingByCategory(
+        userId,
+        weekStart,
+        endOfDayIso(weekEnd),
+      ),
       this.analytics.getBudgetStatus(userId),
       this.planning.listLoans(userId),
       this.catalog.listCards(userId),

@@ -177,6 +177,45 @@ describe('WeeklySummaryService', () => {
     );
   });
 
+  it('asks for the whole last day of the week', async () => {
+    const getSpendingOverTime = jest.fn().mockResolvedValue({ points: [] });
+    const getSpendingByCategory = jest.fn().mockResolvedValue([]);
+    const getBudgetStatus = jest.fn().mockResolvedValue([]);
+    const listLoans = jest.fn().mockResolvedValue([]);
+    const listCards = jest.fn().mockResolvedValue([]);
+    const listPendingAssignment = jest.fn().mockResolvedValue({ items: [] });
+    const service = new WeeklySummaryService(
+      {
+        getSpendingOverTime,
+        getSpendingByCategory,
+        getBudgetStatus,
+      } as unknown as AnalyticsService,
+      { listLoans } as unknown as PlanningService,
+      { listCards } as unknown as CatalogService,
+      { listPendingAssignment } as unknown as IngestionService,
+      {
+        findById: jest.fn().mockResolvedValue({ timezone: 'UTC' }),
+      } as unknown as UsersService,
+      {
+        execute: jest.fn().mockResolvedValue('DOP'),
+      } as unknown as ResolveUserBaseCurrencyUseCase,
+    );
+
+    await service.build('user-1', WEEK_START);
+
+    expect(getSpendingByCategory).toHaveBeenCalledWith(
+      'user-1',
+      WEEK_START,
+      '2026-10-18T23:59:59.999Z',
+    );
+    expect(getSpendingOverTime).toHaveBeenCalledWith(
+      'user-1',
+      '2026-09-14',
+      '2026-10-18T23:59:59.999Z',
+      'week',
+    );
+  });
+
   it('only lists budgets at or above the risk threshold', async () => {
     const summary = await createService().build('user-1', WEEK_START);
 
