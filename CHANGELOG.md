@@ -2,6 +2,13 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [SemVer](https://semver.org/lang/es/). Reglas y ejemplo en [docs/reference/changelog-guide.md](./docs/reference/changelog-guide.md).
 
+## [0.23.0] - 2026-10-14
+
+### Agregado
+
+- `POST /api/ai/chat`, `POST /api/ai/chat/stream` y `POST /api/ai/sessions` aceptan `context` (`ChatContext`: `moduleSlug`, `screen?`, `entityRef?: { type, id }`).
+- El agente resuelve la entidad en foco con la fachada de Finanzas (dueño validado por `userId`) y suma tipo, nombre, saldo/estado e id al prompt de sistema. La sesión guarda el último `context` (`ai_agent_sessions.chat_context`).
+
 ## [0.22.2] - 2026-10-14
 
 ### Corregido
