@@ -2,6 +2,19 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [SemVer](https://semver.org/lang/es/). Reglas y ejemplo en [docs/reference/changelog-guide.md](./docs/reference/changelog-guide.md).
 
+## [0.24.0] - 2026-10-14
+
+### Agregado
+
+- El chat del agente responde con bloques nativos de Finanzas: `transaction_card`, `transaction_list`, `budget_progress`, `loan_summary` y `chart`. El runner los arma desde las tools de lectura (el LLM no da forma a las cifras) y se guardan con el mensaje; los clientes viejos ignoran los tipos que no conocen.
+- `POST /api/finance/quick-entry/parse` convierte una frase corta en un borrador de movimiento (tipo, monto, moneda, categoría, cuenta o tarjeta, fecha y comercio) con salida estructurada del LLM, resuelve alias contra el catálogo del usuario (por nombre, institución o últimos dígitos) y nunca guarda.
+- `GET /api/finance/analytics/weekly-summary` devuelve el gasto de la semana frente al promedio de las cuatro anteriores, el top 3 de categorías, los presupuestos en riesgo, las próximas cuotas, los vencimientos de tarjeta y los correos pendientes.
+- Un scheduler emite el resumen semanal por el outbox de notificaciones el día elegido, a las 08:00 de la zona del usuario, con idempotencia por semana.
+
+### Cambiado
+
+- La configuración de Finanzas suma `notifications.weeklySummary` (encendido por defecto) y `reports.weeklySummaryDay` (lunes por defecto).
+
 ## [0.23.2] - 2026-10-14
 
 ### Corregido
