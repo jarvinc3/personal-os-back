@@ -174,14 +174,19 @@ describe('QuickEntryService', () => {
     expect(parseResult.draft.date).toBe('2026-10-01');
   });
 
-  it('falls back to today when the model returns an impossible date', async () => {
+  it('uses today when the model states no date', async () => {
     const service = createService({
-      extraction: { type: 'DEBIT', amount: '10', date: '2026-02-31' },
+      extraction: { type: 'DEBIT', amount: '10', date: null },
     });
 
-    const parseResult = await service.parse('user-1', 'el 31 de febrero');
+    const parseResult = await service.parse('user-1', 'algo sin fecha');
 
-    expect(parseResult.draft.date).not.toBe('2026-02-31');
-    expect(parseResult.draft.date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    const today = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/Santo_Domingo',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(new Date());
+    expect(parseResult.draft.date).toBe(today);
   });
 });

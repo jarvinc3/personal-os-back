@@ -5,6 +5,7 @@ import {
   type AiChatCompletionPort,
 } from '@personal-os/core';
 import { normalizeCurrencyCode } from '../../shared/domain/money';
+import { isValidIsoDate } from '../../shared/domain/iso-date';
 import type {
   QuickEntryExtraction,
   QuickEntryExtractionInput,
@@ -20,7 +21,13 @@ const extractionSchema = z.object({
   categoryNameHint: z.string().nullable().optional(),
   accountHint: z.string().nullable().optional(),
   cardHint: z.string().nullable().optional(),
-  date: z.string().nullable().optional(),
+  date: z
+    .string()
+    .refine(isValidIsoDate, {
+      message: 'date must be a real calendar date in YYYY-MM-DD format',
+    })
+    .nullable()
+    .optional(),
   merchant: z.string().nullable().optional(),
   description: z.string().nullable().optional(),
   confidence: z.number().min(0).max(1).optional(),

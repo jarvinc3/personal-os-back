@@ -36,6 +36,7 @@ export type QuickEntryExtraction = {
   categoryNameHint: string | null;
   accountHint: string | null;
   cardHint: string | null;
+  /** Real YYYY-MM-DD calendar date, or null when the sentence states none. */
   date: string | null;
   merchant: string | null;
   description: string | null;
