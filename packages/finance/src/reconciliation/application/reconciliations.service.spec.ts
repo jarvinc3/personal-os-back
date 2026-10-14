@@ -184,6 +184,18 @@ describe('ReconciliationsService', () => {
     ).rejects.toBeInstanceOf(UnprocessableEntityException);
   });
 
+  it('defaults the cut-off date to today when it is missing', async () => {
+    const { service, repo } = build();
+    await service.create('user-1', {
+      accountId: 'acc-1',
+      realBalance: 10000,
+    });
+    const call = repo.create.mock.calls[0]?.[1] as { asOfDate: Date };
+    expect(call.asOfDate.toISOString()).toBe(
+      `${new Date().toISOString().slice(0, 10)}T00:00:00.000Z`,
+    );
+  });
+
   it('registers a zero-difference close without movements', async () => {
     const { service, repo } = build();
     await service.create('user-1', {
@@ -264,13 +276,15 @@ describe('ReconciliationsService', () => {
         },
       },
     ]);
-    const charges = await service.bankCharges(
-      'user-1',
-      new Date('2026-10-01T00:00:00.000Z'),
-      new Date('2026-10-31T00:00:00.000Z'),
-    );
+    const charges = await service.bankCharges('user-1', {
+      from: new Date('2026-10-01T00:00:00.000Z'),
+      to: new Date('2026-10-31T00:00:00.000Z'),
+    });
     expect(charges.total).toBe('-50.00');
     expect(charges.count).toBe(2);
+    expect(charges.byMonth).toEqual([
+      { month: '2026-10', total: '-50.00', count: 2 },
+    ]);
     expect(charges.byInstitution).toEqual([
       { name: 'Popular', total: '-35.00', count: 1 },
       { name: 'BHD', total: '-15.00', count: 1 },
@@ -279,5 +293,31 @@ describe('ReconciliationsService', () => {
       { kind: 'COMISION', total: '-35.00', count: 1 },
       { kind: 'IMPUESTO_DGII', total: '-15.00', count: 1 },
     ]);
+  });
+
+  it('returns only the requested bank-charge grouping', async () => {
+    const { service, repo } = build();
+    repo.listAdjustmentsBetween.mockResolvedValue([
+      {
+        kind: 'IMPUESTO_DGII',
+        amount: -15,
+        reconciliation: {
+          asOfDate: new Date('2026-10-15T00:00:00.000Z'),
+          account: {
+            institutionId: 'inst-1',
+            institutionRef: { name: 'BHD' },
+          },
+          card: null,
+        },
+      },
+    ]);
+    const charges = await service.bankCharges('user-1', {
+      from: new Date('2026-10-01T00:00:00.000Z'),
+      to: new Date('2026-10-31T00:00:00.000Z'),
+      groupBy: 'kind',
+    });
+    expect(charges.byKind).toHaveLength(1);
+    expect(charges.byMonth).toEqual([]);
+    expect(charges.byInstitution).toEqual([]);
   });
 });

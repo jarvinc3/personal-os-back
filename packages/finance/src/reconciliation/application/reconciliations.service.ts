@@ -22,6 +22,7 @@ import {
   type ResolvedAdjustmentInput,
 } from '../infrastructure/reconciliations.repository';
 import type { CreateReconciliationDto } from '../presentation/dto/create-reconciliation.dto';
+import type { BankChargesGroupBy } from '../presentation/dto/bank-charges-query.dto';
 import type { ListReconciliationsQueryDto } from '../presentation/dto/list-reconciliations-query.dto';
 import type { PreviewReconciliationDto } from '../presentation/dto/preview-reconciliation.dto';
 
@@ -42,7 +43,8 @@ export class ReconciliationsService {
 
   async preview(userId: string, dto: PreviewReconciliationDto) {
     const target = await this.resolveTarget(userId, dto);
-    const { from, to } = monthBounds(dto.asOfDate.slice(0, 7));
+    const asOfDate = dto.asOfDate ?? todayIsoDate();
+    const { from, to } = monthBounds(asOfDate.slice(0, 7));
     const outgoingTotal = await this.repo.sumOutgoing(userId, target, from, to);
     const appBalance = roundMoney(target.currentBalance);
     const realBalance = roundMoney(dto.realBalance);
@@ -69,7 +71,7 @@ export class ReconciliationsService {
 
   async create(userId: string, dto: CreateReconciliationDto) {
     const target = await this.resolveTarget(userId, dto);
-    const asOfDate = dateOnly(dto.asOfDate);
+    const asOfDate = dateOnly(dto.asOfDate ?? todayIsoDate());
     const appBalance = roundMoney(target.currentBalance);
     const realBalance = roundMoney(dto.realBalance);
     const difference = roundMoney(realBalance - appBalance);
@@ -190,7 +192,11 @@ export class ReconciliationsService {
     };
   }
 
-  async bankCharges(userId: string, from: Date, to: Date) {
+  async bankCharges(
+    userId: string,
+    range: { from: Date; to: Date; groupBy?: BankChargesGroupBy },
+  ) {
+    const { from, to, groupBy } = range;
     const rows = await this.repo.listAdjustmentsBetween(userId, from, to);
     const byMonth = new Map<string, { total: number; count: number }>();
     const byInstitution = new Map<
@@ -232,32 +238,39 @@ export class ReconciliationsService {
       byKind.set(row.kind, kindEntry);
     }
 
+    const byMonthRows = [...byMonth.entries()]
+      .map(([month, entry]) => ({
+        month,
+        total: moneyString(entry.total),
+        count: entry.count,
+      }))
+      .sort((left, right) => left.month.localeCompare(right.month));
+    const byInstitutionRows = [...byInstitution.entries()]
+      .map(([, entry]) => ({
+        name: entry.name,
+        total: moneyString(entry.total),
+        count: entry.count,
+      }))
+      .sort((left, right) => Number(left.total) - Number(right.total));
+    const byKindRows = [...byKind.entries()]
+      .map(([kind, entry]) => ({
+        kind,
+        total: moneyString(entry.total),
+        count: entry.count,
+      }))
+      .sort((left, right) => Number(left.total) - Number(right.total));
+
     return {
       from: from.toISOString().slice(0, 10),
       to: to.toISOString().slice(0, 10),
       total: moneyString(total),
       count: rows.length,
-      byMonth: [...byMonth.entries()]
-        .map(([month, entry]) => ({
-          month,
-          total: moneyString(entry.total),
-          count: entry.count,
-        }))
-        .sort((left, right) => Number(left.total) - Number(right.total)),
-      byInstitution: [...byInstitution.entries()]
-        .map(([, entry]) => ({
-          name: entry.name,
-          total: moneyString(entry.total),
-          count: entry.count,
-        }))
-        .sort((left, right) => Number(left.total) - Number(right.total)),
-      byKind: [...byKind.entries()]
-        .map(([kind, entry]) => ({
-          kind,
-          total: moneyString(entry.total),
-          count: entry.count,
-        }))
-        .sort((left, right) => Number(left.total) - Number(right.total)),
+      byMonth: groupBy === undefined || groupBy === 'month' ? byMonthRows : [],
+      byInstitution:
+        groupBy === undefined || groupBy === 'institution'
+          ? byInstitutionRows
+          : [],
+      byKind: groupBy === undefined || groupBy === 'kind' ? byKindRows : [],
     };
   }
 
@@ -333,6 +346,11 @@ export class ReconciliationsService {
 
 function dateOnly(value: string): Date {
   return new Date(`${value.slice(0, 10)}T00:00:00.000Z`);
+}
+
+/** Today as an ISO date, used when the close comes without a cut-off date. */
+function todayIsoDate(): string {
+  return new Date().toISOString().slice(0, 10);
 }
 
 function productKeyOf(reconciliation: {

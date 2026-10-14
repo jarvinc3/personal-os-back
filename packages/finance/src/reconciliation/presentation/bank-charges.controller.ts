@@ -27,6 +27,10 @@ export class BankChargesController {
     const from = query.from
       ? new Date(`${query.from.slice(0, 10)}T00:00:00.000Z`)
       : startOfMonthUtc(to);
-    return this.reconciliations.bankCharges(userId, from, to);
+    return this.reconciliations.bankCharges(userId, {
+      from,
+      to,
+      groupBy: query.groupBy,
+    });
   }
 }

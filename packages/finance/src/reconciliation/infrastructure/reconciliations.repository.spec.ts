@@ -113,3 +113,82 @@ describe('ReconciliationsRepository.delete', () => {
     expect(fixture.journal.record).not.toHaveBeenCalled();
   });
 });
+
+describe('ReconciliationsRepository.sumOutgoing', () => {
+  it('adds only the movements of the reconciled currency', async () => {
+    const aggregate = jest
+      .fn()
+      .mockResolvedValue({ _sum: { ledgerAmount: 10000 } });
+    const prisma = { finTransaction: { aggregate } };
+    const repo = new ReconciliationsRepository(prisma as never, {} as never);
+
+    const total = await repo.sumOutgoing(
+      'user-1',
+      {
+        accountId: null,
+        cardId: 'card-1',
+        cardType: 'CREDIT',
+        derivedAccountId: null,
+        currency: 'USD',
+        name: 'Visa',
+        institutionName: 'Popular',
+        currentBalance: 0,
+      },
+      new Date('2026-10-01T00:00:00.000Z'),
+      new Date('2026-10-31T00:00:00.000Z'),
+    );
+
+    expect(total).toBe(10000);
+    expect(aggregate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          cardId: 'card-1',
+          ledgerCurrency: 'USD',
+        }),
+      }),
+    );
+  });
+});
+
+describe('ReconciliationsRepository.findTarget', () => {
+  it('refuses a debit card because its balance lives in the linked account', async () => {
+    const prisma = {
+      finCard: {
+        findFirst: jest.fn().mockResolvedValue({
+          id: 'card-1',
+          name: 'Débito',
+          type: 'DEBIT',
+          accountId: 'acc-1',
+          institution: { name: 'BHD' },
+        }),
+      },
+    };
+    const repo = new ReconciliationsRepository(prisma as never, {} as never);
+
+    const target = await repo.findTarget('user-1', {
+      cardId: 'card-1',
+      currency: 'DOP',
+    });
+
+    expect(target).toBeNull();
+  });
+});
+
+describe('ReconciliationsRepository.listProducts', () => {
+  it('lists only credit cards as reconcilable products', async () => {
+    const cardBalanceFindMany = jest.fn().mockResolvedValue([]);
+    const prisma = {
+      finAccount: { findMany: jest.fn().mockResolvedValue([]) },
+      finCardBalance: { findMany: cardBalanceFindMany },
+    };
+    const repo = new ReconciliationsRepository(prisma as never, {} as never);
+
+    await repo.listProducts('user-1');
+
+    expect(cardBalanceFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { card: { userId: 'user-1', isActive: true, type: 'CREDIT' } },
+      }),
+    );
+  });
+});

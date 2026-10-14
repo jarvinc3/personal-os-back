@@ -466,7 +466,7 @@ export const reconcileProductArgsSchema = z
     accountId: uuid.optional(),
     cardId: uuid.optional(),
     currency: currencyCode.optional(),
-    asOfDate: dateString,
+    asOfDate: dateString.optional(),
     realBalance: moneyAmount,
     note: optionalNullableString(500),
     apply: z.boolean().optional(),

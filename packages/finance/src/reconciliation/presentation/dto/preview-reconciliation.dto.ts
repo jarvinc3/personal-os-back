@@ -18,9 +18,12 @@ export class PreviewReconciliationDto {
   @CurrencyField()
   currency?: string;
 
-  @ApiProperty({ description: 'Cut-off date (ISO date), defaults to today' })
+  @ApiPropertyOptional({
+    description: 'Cut-off date (ISO date), defaults to today',
+  })
+  @IsOptional()
   @IsDateString()
-  asOfDate!: string;
+  asOfDate?: string;
 
   @ApiProperty({ description: 'Balance shown by the bank app' })
   @Type(() => Number)

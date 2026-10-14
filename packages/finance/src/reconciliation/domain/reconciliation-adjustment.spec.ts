@@ -34,6 +34,12 @@ describe('suggestAdjustments', () => {
       [{ kind: 'OTRO', amount: 25 }],
     );
   });
+
+  it('caps the DGII line at the shortfall it explains', () => {
+    expect(
+      suggestAdjustments({ difference: -10, outgoingTotal: 100000 }),
+    ).toEqual([{ kind: 'IMPUESTO_DGII', amount: -10 }]);
+  });
 });
 
 describe('monthBounds', () => {

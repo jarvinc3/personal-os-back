@@ -154,10 +154,10 @@ export class ReconciliationsRepository {
     if (!card) {
       return null;
     }
-    if (card.type === 'DEBIT' && !card.accountId) {
+    if (card.type === 'DEBIT') {
       return null;
     }
-    if (card.type === 'CREDIT' && card.accountId) {
+    if (card.accountId) {
       return null;
     }
 
@@ -170,7 +170,7 @@ export class ReconciliationsRepository {
       accountId: null,
       cardId: card.id,
       cardType: card.type,
-      derivedAccountId: card.type === 'DEBIT' ? card.accountId : null,
+      derivedAccountId: null,
       currency,
       name: card.name,
       institutionName: card.institution?.name ?? null,
@@ -193,6 +193,7 @@ export class ReconciliationsRepository {
         ...(target.accountId
           ? { accountId: target.accountId }
           : { cardId: target.cardId }),
+        ledgerCurrency: target.currency,
         transactionDate: { gte: from, lte: to },
       },
       _sum: { ledgerAmount: true },
@@ -434,7 +435,7 @@ export class ReconciliationsRepository {
         orderBy: { name: 'asc' },
       }),
       this.prisma.finCardBalance.findMany({
-        where: { card: { userId, isActive: true } },
+        where: { card: { userId, isActive: true, type: 'CREDIT' } },
         select: {
           currency: true,
           balance: true,

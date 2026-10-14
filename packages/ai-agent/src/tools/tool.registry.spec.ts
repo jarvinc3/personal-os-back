@@ -59,7 +59,7 @@ describe('tool.registry', () => {
       targetModule: 'finance',
       parameters: {
         type: 'object',
-        required: ['asOfDate', 'realBalance'],
+        required: ['realBalance'],
         properties: {
           realBalance: { type: 'number' },
           apply: { type: 'boolean' },

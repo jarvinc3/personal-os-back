@@ -57,10 +57,16 @@ export function suggestAdjustments(input: {
     return [{ kind: 'OTRO', amount: difference }];
   }
 
-  const dgii = -dgiiEstimate;
+  // The tax cannot be larger than the shortfall it explains; whatever is left
+  // stays as a plain bank charge.
+  const dgii = -roundMoney(Math.min(dgiiEstimate, Math.abs(difference)));
+  const rest = roundMoney(difference - dgii);
+  if (rest === 0) {
+    return [{ kind: 'IMPUESTO_DGII', amount: dgii }];
+  }
   return [
     { kind: 'IMPUESTO_DGII', amount: dgii },
-    { kind: 'OTRO', amount: roundMoney(difference - dgii) },
+    { kind: 'OTRO', amount: rest },
   ];
 }
 

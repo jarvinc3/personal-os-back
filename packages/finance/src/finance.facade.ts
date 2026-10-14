@@ -349,7 +349,7 @@ export class FinanceFacade {
     userId: string,
     input: { from: Date; to: Date; groupBy?: BankChargesGroupBy },
   ) {
-    return this.reconciliations.bankCharges(userId, input.from, input.to);
+    return this.reconciliations.bankCharges(userId, input);
   }
 
   createSubscription(
