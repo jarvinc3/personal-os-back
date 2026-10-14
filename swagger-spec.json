@@ -5916,7 +5916,7 @@
   "info": {
     "title": "Personal OS API",
     "description": "Personal OS backend endpoints, including auth, core modules, and AI.",
-    "version": "0.27.2",
+    "version": "0.28.0",
     "contact": {}
   },
   "tags": [
