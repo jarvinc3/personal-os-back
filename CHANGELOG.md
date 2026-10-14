@@ -2,6 +2,16 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [SemVer](https://semver.org/lang/es/). Reglas y ejemplo en [docs/reference/changelog-guide.md](./docs/reference/changelog-guide.md).
 
+## [0.22.2] - 2026-10-14
+
+### Corregido
+
+- Un cursor paginado con forma válida pero con una fecha inválida responde 400 en vez de fallar en la consulta.
+
+### Cambiado
+
+- `GET /api/finance/budgets` desempaca el cursor con el helper compartido, igual que el resto de las listas. Sin cambios de comportamiento.
+
 ## [0.22.1] - 2026-10-14
 
 ### Cambiado
