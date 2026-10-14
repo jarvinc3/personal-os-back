@@ -1,11 +1,46 @@
 import { Injectable } from '@nestjs/common';
 import type { CursorPoint } from '@personal-os/core';
-import type { FinSubscriptionStatus, Prisma } from '@personal-os/database';
+import type {
+  FinSubscriptionAlertKind,
+  FinSubscriptionStatus,
+  Prisma,
+} from '@personal-os/database';
 import { PrismaService } from '@personal-os/database';
 
 export const SUBSCRIPTION_INCLUDE = {
-  card: { select: { id: true, name: true } },
-  account: { select: { id: true, name: true } },
+  card: {
+    select: {
+      id: true,
+      name: true,
+      lastFour: true,
+      color: true,
+      institution: {
+        select: {
+          name: true,
+          logoPath: true,
+          customLogoPath: true,
+          logoUrl: true,
+        },
+      },
+    },
+  },
+  account: {
+    select: {
+      id: true,
+      name: true,
+      accountNumber: true,
+      color: true,
+      institutionRef: {
+        select: {
+          name: true,
+          logoPath: true,
+          customLogoPath: true,
+          logoUrl: true,
+        },
+      },
+    },
+  },
+  category: { select: { id: true, name: true, icon: true, color: true } },
   sourcePattern: { select: { id: true, merchant: true } },
 } satisfies Prisma.FinSubscriptionInclude;
 
@@ -18,6 +53,9 @@ export type SubscriptionPageQuery = {
   take: number;
   status?: FinSubscriptionStatus;
   currency?: string;
+  categoryId?: string;
+  cardId?: string;
+  accountId?: string;
   search?: string;
 };
 
@@ -37,6 +75,9 @@ export class SubscriptionsRepository {
         userId,
         ...(query.status ? { status: query.status } : {}),
         ...(query.currency ? { currency: query.currency } : {}),
+        ...(query.categoryId ? { categoryId: query.categoryId } : {}),
+        ...(query.cardId ? { cardId: query.cardId } : {}),
+        ...(query.accountId ? { accountId: query.accountId } : {}),
         ...(search ? { name: { contains: search, mode: 'insensitive' } } : {}),
         ...(query.cursor
           ? {
@@ -68,6 +109,72 @@ export class SubscriptionsRepository {
       where: { userId, status: 'ACTIVE' },
       include: SUBSCRIPTION_INCLUDE,
       orderBy: { nextBillingDate: 'asc' },
+    });
+  }
+
+  findByStatus(userId: string, status: FinSubscriptionStatus) {
+    return this.prisma.finSubscription.findMany({
+      where: { userId, status },
+      include: SUBSCRIPTION_INCLUDE,
+      orderBy: { nextBillingDate: 'asc' },
+    });
+  }
+
+  /** Payments of the given subscriptions, newest first. */
+  listPaymentsForSubscriptions(subscriptionIds: string[]) {
+    if (subscriptionIds.length === 0) {
+      return Promise.resolve([]);
+    }
+    return this.prisma.finSubscriptionPayment.findMany({
+      where: { subscriptionId: { in: subscriptionIds } },
+      orderBy: [{ paidAt: 'desc' }],
+    });
+  }
+
+  listPaymentsInRange(userId: string, from: Date, to: Date) {
+    return this.prisma.finSubscriptionPayment.findMany({
+      where: {
+        subscription: { userId },
+        paidAt: { gte: from, lt: to },
+      },
+      select: { amount: true, currency: true, paidAt: true },
+    });
+  }
+
+  listAlertDismissals(userId: string) {
+    return this.prisma.finSubscriptionAlertDismissal.findMany({
+      where: { userId },
+      select: { subscriptionId: true, kind: true, alertDate: true },
+    });
+  }
+
+  dismissAlert(input: {
+    userId: string;
+    subscriptionId: string;
+    kind: FinSubscriptionAlertKind;
+    alertDate: Date;
+  }) {
+    return this.prisma.finSubscriptionAlertDismissal.upsert({
+      where: {
+        subscriptionId_kind_alertDate: {
+          subscriptionId: input.subscriptionId,
+          kind: input.kind,
+          alertDate: input.alertDate,
+        },
+      },
+      create: {
+        userId: input.userId,
+        subscriptionId: input.subscriptionId,
+        kind: input.kind,
+        alertDate: input.alertDate,
+      },
+      update: {},
+    });
+  }
+
+  countPendingDetected(userId: string) {
+    return this.prisma.finRecurringPattern.count({
+      where: { userId, status: 'SUGGESTED' },
     });
   }
 

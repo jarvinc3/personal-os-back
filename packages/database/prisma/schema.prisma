@@ -26,6 +26,7 @@ model User {
   finCategories   FinCategory[]
   finMerchants    FinMerchant[]
   finSubscriptions FinSubscription[]
+  finSubscriptionAlertDismissals FinSubscriptionAlertDismissal[]
   finEmailConnections FinEmailConnection[]
   finEmailSources     FinEmailSource[]
   finLoans            FinLoan[]
@@ -358,6 +359,7 @@ model FinCategory {
   recurring    FinRecurringPattern[]
   merchants    FinMerchant[]
   transactions FinTransaction[]
+  subscriptions FinSubscription[]
 
   @@index([userId], map: "fin_categories_user_id_idx")
   @@index([parentId], map: "fin_categories_parent_id_idx")
@@ -507,6 +509,7 @@ model FinSubscription {
   lastRemindedFor    DateTime?               @map("last_reminded_for") @db.Date
   cardId             String?                 @map("card_id")
   accountId          String?                 @map("account_id")
+  categoryId         String?                 @map("category_id")
   manageUrl          String?                 @map("manage_url")
   notes              String?
   sourcePatternId    String?                 @map("source_pattern_id")
@@ -514,14 +517,17 @@ model FinSubscription {
   updatedAt          DateTime                @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   account            FinAccount?             @relation(fields: [accountId], references: [id], onDelete: SetNull, onUpdate: NoAction)
   card               FinCard?                @relation(fields: [cardId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  category           FinCategory?            @relation(fields: [categoryId], references: [id], onDelete: SetNull, onUpdate: NoAction)
   sourcePattern      FinRecurringPattern?    @relation(fields: [sourcePatternId], references: [id], onDelete: SetNull, onUpdate: NoAction)
   user               User                    @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   payments           FinSubscriptionPayment[]
+  alertDismissals    FinSubscriptionAlertDismissal[]
 
   @@index([userId, status], map: "fin_subscriptions_user_status_idx")
   @@index([userId, nextBillingDate], map: "fin_subscriptions_user_next_billing_idx")
   @@index([cardId], map: "fin_subscriptions_card_id_idx")
   @@index([accountId], map: "fin_subscriptions_account_id_idx")
+  @@index([categoryId], map: "fin_subscriptions_category_id_idx")
   @@index([sourcePatternId], map: "fin_subscriptions_source_pattern_id_idx")
   @@map("fin_subscriptions")
 }
@@ -542,6 +548,22 @@ model FinSubscriptionPayment {
   @@index([subscriptionId, paidAt], map: "fin_subscription_payments_sub_paid_idx")
   @@index([transactionId], map: "fin_subscription_payments_transaction_id_idx")
   @@map("fin_subscription_payments")
+}
+
+/// One row per alert the user dismissed, so it never comes back for that date.
+model FinSubscriptionAlertDismissal {
+  id             String                   @id @default(dbgenerated("(uuid_generate_v4())::text"))
+  userId         String                   @map("user_id")
+  subscriptionId String                   @map("subscription_id")
+  kind           FinSubscriptionAlertKind
+  alertDate      DateTime                 @map("alert_date") @db.Date
+  createdAt      DateTime                 @default(now()) @map("created_at") @db.Timestamptz(6)
+  subscription   FinSubscription         @relation(fields: [subscriptionId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  user           User                     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([subscriptionId, kind, alertDate], map: "fin_subscription_alert_dismissals_uq")
+  @@index([userId], map: "fin_subscription_alert_dismissals_user_idx")
+  @@map("fin_subscription_alert_dismissals")
 }
 
 model FinExchangeRate {
@@ -1025,6 +1047,15 @@ enum FinSubscriptionStatus {
   CANCELLED
 
   @@map("fin_subscription_status")
+}
+
+enum FinSubscriptionAlertKind {
+  PRICE_INCREASE
+  TRIAL_ENDING
+  ANNUAL_RENEWAL
+  MISSED_CHARGE
+
+  @@map("fin_subscription_alert_kind")
 }
 
 enum FinSubscriptionPaymentSource {

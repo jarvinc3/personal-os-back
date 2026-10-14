@@ -70,6 +70,11 @@ export class CreateSubscriptionDto {
   @IsUUID()
   accountId?: string;
 
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsUUID()
+  categoryId?: string;
+
   @ApiPropertyOptional({ default: 3 })
   @IsOptional()
   @Type(() => Number)

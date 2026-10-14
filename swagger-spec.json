@@ -2212,6 +2212,30 @@
             }
           },
           {
+            "name": "categoryId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cardId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "accountId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "q",
             "required": false,
             "in": "query",
@@ -2280,6 +2304,141 @@
           }
         ],
         "summary": "Monthly and annual cost, active count, upcoming",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
+    "/api/finance/subscriptions/breakdown": {
+      "get": {
+        "operationId": "SubscriptionsController_breakdown",
+        "parameters": [
+          {
+            "name": "by",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "default": "category",
+              "type": "string",
+              "enum": [
+                "category",
+                "instrument",
+                "currency"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Cost split by category, instrument or currency",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
+    "/api/finance/subscriptions/upcoming": {
+      "get": {
+        "operationId": "SubscriptionsController_upcoming",
+        "parameters": [
+          {
+            "name": "days",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 90,
+              "default": 30,
+              "type": "number"
+            }
+          },
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "description": "Window start (ISO date)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "description": "Window end (ISO date)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Projected charges in a date window",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
+    "/api/finance/subscriptions/alerts": {
+      "get": {
+        "operationId": "SubscriptionsController_alerts",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Active subscription alerts",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
+    "/api/finance/subscriptions/alerts/dismiss": {
+      "post": {
+        "operationId": "SubscriptionsController_dismissAlert",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DismissSubscriptionAlertDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Dismiss an alert for its occurrence",
         "tags": [
           "finance"
         ]
@@ -6587,6 +6746,32 @@
           "targetId"
         ]
       },
+      "DismissSubscriptionAlertDto": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "PRICE_INCREASE",
+              "TRIAL_ENDING",
+              "ANNUAL_RENEWAL",
+              "MISSED_CHARGE"
+            ]
+          },
+          "subscriptionId": {
+            "type": "string"
+          },
+          "alertDate": {
+            "type": "string",
+            "description": "Alert occurrence date (ISO date)"
+          }
+        },
+        "required": [
+          "kind",
+          "subscriptionId",
+          "alertDate"
+        ]
+      },
       "CreateSubscriptionDto": {
         "type": "object",
         "properties": {
@@ -6630,6 +6815,9 @@
             "type": "string"
           },
           "accountId": {
+            "type": "string"
+          },
+          "categoryId": {
             "type": "string"
           },
           "reminderDaysBefore": {
@@ -6697,6 +6885,9 @@
             "type": "string"
           },
           "accountId": {
+            "type": "string"
+          },
+          "categoryId": {
             "type": "string"
           },
           "reminderDaysBefore": {

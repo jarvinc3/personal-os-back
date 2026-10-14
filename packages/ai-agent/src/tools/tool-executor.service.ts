@@ -61,6 +61,8 @@ const FINANCE_TOOL_NAMES = new Set([
   'get_spending_by_category',
   'get_spending_over_time',
   'list_subscriptions',
+  'get_subscriptions_summary',
+  'get_subscription_alerts',
   'confirm_recurring',
   'list_merchants',
   'create_subscription',
@@ -928,6 +930,22 @@ export class ToolExecutorService {
             recurring: status
               ? managed.recurring.filter((item) => item.status === status)
               : managed.recurring,
+          },
+        };
+      }
+      case 'get_subscriptions_summary': {
+        return {
+          success: true,
+          message: 'Subscriptions summary loaded',
+          data: await this.financeFacade.getSubscriptionsSummary(ctx.userId),
+        };
+      }
+      case 'get_subscription_alerts': {
+        return {
+          success: true,
+          message: 'Subscription alerts loaded',
+          data: {
+            alerts: await this.financeFacade.getSubscriptionAlerts(ctx.userId),
           },
         };
       }

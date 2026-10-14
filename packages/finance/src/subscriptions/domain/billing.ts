@@ -123,3 +123,24 @@ export function daysUntil(target: Date, today: Date): number {
     (utcDay(target).getTime() - utcDay(today).getTime()) / MS_PER_DAY,
   );
 }
+
+/**
+ * Every charge the schedule lands inside `[from, to]`, both inclusive. A weekly
+ * cycle returns several dates in a 30-day window; each is derived from the
+ * anchor, not from the previous one.
+ */
+export function billingOccurrencesInRange(
+  schedule: BillingSchedule,
+  from: Date,
+  to: Date,
+): Date[] {
+  assertInterval(schedule.interval);
+  const end = utcDay(to);
+  const occurrences: Date[] = [];
+  let current = firstBillingOnOrAfter(schedule, from);
+  while (current.getTime() <= end.getTime()) {
+    occurrences.push(current);
+    current = nextBillingAfter(schedule, current);
+  }
+  return occurrences;
+}

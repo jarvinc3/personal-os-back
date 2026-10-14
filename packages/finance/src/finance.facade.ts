@@ -329,6 +329,14 @@ export class FinanceFacade {
     };
   }
 
+  getSubscriptionsSummary(userId: string) {
+    return this.subscriptions.summary(userId);
+  }
+
+  getSubscriptionAlerts(userId: string) {
+    return this.subscriptions.alerts(userId);
+  }
+
   previewReconciliation(userId: string, dto: PreviewReconciliationDto) {
     return this.reconciliations.preview(userId, dto);
   }

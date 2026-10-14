@@ -141,6 +141,11 @@ export type FinSubscription = Prisma.FinSubscriptionModel
  */
 export type FinSubscriptionPayment = Prisma.FinSubscriptionPaymentModel
 /**
+ * Model FinSubscriptionAlertDismissal
+ * One row per alert the user dismissed, so it never comes back for that date.
+ */
+export type FinSubscriptionAlertDismissal = Prisma.FinSubscriptionAlertDismissalModel
+/**
  * Model FinExchangeRate
  * 
  */

@@ -1,5 +1,6 @@
 import {
   annualCost,
+  billingOccurrencesInRange,
   firstBillingOnOrAfter,
   monthlyCost,
   nextBillingAfter,
@@ -81,5 +82,36 @@ describe('monthlyCost and annualCost', () => {
       10,
     );
     expect(monthlyCost({ amount: 20, cycle: 'MONTHLY', interval: 2 })).toBe(10);
+  });
+});
+
+describe('billingOccurrencesInRange', () => {
+  it('returns every weekly charge inside the window', () => {
+    const occurrences = billingOccurrencesInRange(
+      { anchor: day('2026-10-01'), cycle: 'WEEKLY', interval: 1 },
+      day('2026-10-01'),
+      day('2026-10-31'),
+    );
+
+    expect(occurrences.map((date) => date.toISOString().slice(0, 10))).toEqual([
+      '2026-10-01',
+      '2026-10-08',
+      '2026-10-15',
+      '2026-10-22',
+      '2026-10-29',
+    ]);
+  });
+
+  it('clips to the window for a monthly cycle', () => {
+    const occurrences = billingOccurrencesInRange(
+      { anchor: day('2026-01-31'), cycle: 'MONTHLY', interval: 1 },
+      day('2026-02-01'),
+      day('2026-03-31'),
+    );
+
+    expect(occurrences.map((date) => date.toISOString().slice(0, 10))).toEqual([
+      '2026-02-28',
+      '2026-03-31',
+    ]);
   });
 });

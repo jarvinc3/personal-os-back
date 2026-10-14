@@ -417,6 +417,7 @@ export const ModelName = {
   FinMerchant: 'FinMerchant',
   FinSubscription: 'FinSubscription',
   FinSubscriptionPayment: 'FinSubscriptionPayment',
+  FinSubscriptionAlertDismissal: 'FinSubscriptionAlertDismissal',
   FinExchangeRate: 'FinExchangeRate',
   FinInstitution: 'FinInstitution',
   FinCard: 'FinCard',
@@ -455,7 +456,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "module" | "userModule" | "aiAgentSession" | "aiMessage" | "aiAction" | "notification" | "pushToken" | "finAccount" | "finEmailConnection" | "finEmailSource" | "finTransaction" | "finCategory" | "finBudget" | "finBudgetCategory" | "finBudgetAlert" | "finRecurringPattern" | "finMerchant" | "finSubscription" | "finSubscriptionPayment" | "finExchangeRate" | "finInstitution" | "finCard" | "finCardBalance" | "finInstrumentEvent" | "finCardStatement" | "finSavingsGoal" | "finSavingsGoalContribution" | "finLoan" | "finLoanInstallment" | "finLoanPrepayment" | "finReceivable" | "finReceivablePayment" | "finEmailSyncLog" | "finEmailMessage" | "domainEventOutbox" | "processedDomainEvent" | "authDeletionOutbox" | "finDeletionJournal" | "finStatementImport" | "finStatementImportLine" | "finReconciliation" | "finReconciliationAdjustment"
+    modelProps: "user" | "module" | "userModule" | "aiAgentSession" | "aiMessage" | "aiAction" | "notification" | "pushToken" | "finAccount" | "finEmailConnection" | "finEmailSource" | "finTransaction" | "finCategory" | "finBudget" | "finBudgetCategory" | "finBudgetAlert" | "finRecurringPattern" | "finMerchant" | "finSubscription" | "finSubscriptionPayment" | "finSubscriptionAlertDismissal" | "finExchangeRate" | "finInstitution" | "finCard" | "finCardBalance" | "finInstrumentEvent" | "finCardStatement" | "finSavingsGoal" | "finSavingsGoalContribution" | "finLoan" | "finLoanInstallment" | "finLoanPrepayment" | "finReceivable" | "finReceivablePayment" | "finEmailSyncLog" | "finEmailMessage" | "domainEventOutbox" | "processedDomainEvent" | "authDeletionOutbox" | "finDeletionJournal" | "finStatementImport" | "finStatementImportLine" | "finReconciliation" | "finReconciliationAdjustment"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1936,6 +1937,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.FinSubscriptionPaymentCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.FinSubscriptionPaymentCountAggregateOutputType> | number
+        }
+      }
+    }
+    FinSubscriptionAlertDismissal: {
+      payload: Prisma.$FinSubscriptionAlertDismissalPayload<ExtArgs>
+      fields: Prisma.FinSubscriptionAlertDismissalFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.FinSubscriptionAlertDismissalFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinSubscriptionAlertDismissalPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.FinSubscriptionAlertDismissalFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinSubscriptionAlertDismissalPayload>
+        }
+        findFirst: {
+          args: Prisma.FinSubscriptionAlertDismissalFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinSubscriptionAlertDismissalPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.FinSubscriptionAlertDismissalFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinSubscriptionAlertDismissalPayload>
+        }
+        findMany: {
+          args: Prisma.FinSubscriptionAlertDismissalFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinSubscriptionAlertDismissalPayload>[]
+        }
+        create: {
+          args: Prisma.FinSubscriptionAlertDismissalCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinSubscriptionAlertDismissalPayload>
+        }
+        createMany: {
+          args: Prisma.FinSubscriptionAlertDismissalCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.FinSubscriptionAlertDismissalCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinSubscriptionAlertDismissalPayload>[]
+        }
+        delete: {
+          args: Prisma.FinSubscriptionAlertDismissalDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinSubscriptionAlertDismissalPayload>
+        }
+        update: {
+          args: Prisma.FinSubscriptionAlertDismissalUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinSubscriptionAlertDismissalPayload>
+        }
+        deleteMany: {
+          args: Prisma.FinSubscriptionAlertDismissalDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.FinSubscriptionAlertDismissalUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.FinSubscriptionAlertDismissalUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinSubscriptionAlertDismissalPayload>[]
+        }
+        upsert: {
+          args: Prisma.FinSubscriptionAlertDismissalUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinSubscriptionAlertDismissalPayload>
+        }
+        aggregate: {
+          args: Prisma.FinSubscriptionAlertDismissalAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateFinSubscriptionAlertDismissal>
+        }
+        groupBy: {
+          args: Prisma.FinSubscriptionAlertDismissalGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.FinSubscriptionAlertDismissalGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.FinSubscriptionAlertDismissalCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.FinSubscriptionAlertDismissalCountAggregateOutputType> | number
         }
       }
     }
@@ -4007,6 +4082,7 @@ export const FinSubscriptionScalarFieldEnum = {
   lastRemindedFor: 'lastRemindedFor',
   cardId: 'cardId',
   accountId: 'accountId',
+  categoryId: 'categoryId',
   manageUrl: 'manageUrl',
   notes: 'notes',
   sourcePatternId: 'sourcePatternId',
@@ -4029,6 +4105,18 @@ export const FinSubscriptionPaymentScalarFieldEnum = {
 } as const
 
 export type FinSubscriptionPaymentScalarFieldEnum = (typeof FinSubscriptionPaymentScalarFieldEnum)[keyof typeof FinSubscriptionPaymentScalarFieldEnum]
+
+
+export const FinSubscriptionAlertDismissalScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  subscriptionId: 'subscriptionId',
+  kind: 'kind',
+  alertDate: 'alertDate',
+  createdAt: 'createdAt'
+} as const
+
+export type FinSubscriptionAlertDismissalScalarFieldEnum = (typeof FinSubscriptionAlertDismissalScalarFieldEnum)[keyof typeof FinSubscriptionAlertDismissalScalarFieldEnum]
 
 
 export const FinExchangeRateScalarFieldEnum = {
@@ -4815,6 +4903,20 @@ export type ListEnumFinSubscriptionPaymentSourceFieldRefInput<$PrismaModel> = Fi
 
 
 /**
+ * Reference to a field of type 'FinSubscriptionAlertKind'
+ */
+export type EnumFinSubscriptionAlertKindFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'FinSubscriptionAlertKind'>
+    
+
+
+/**
+ * Reference to a field of type 'FinSubscriptionAlertKind[]'
+ */
+export type ListEnumFinSubscriptionAlertKindFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'FinSubscriptionAlertKind[]'>
+    
+
+
+/**
  * Reference to a field of type 'FinCardType'
  */
 export type EnumFinCardTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'FinCardType'>
@@ -5250,6 +5352,7 @@ export type GlobalOmitConfig = {
   finMerchant?: Prisma.FinMerchantOmit
   finSubscription?: Prisma.FinSubscriptionOmit
   finSubscriptionPayment?: Prisma.FinSubscriptionPaymentOmit
+  finSubscriptionAlertDismissal?: Prisma.FinSubscriptionAlertDismissalOmit
   finExchangeRate?: Prisma.FinExchangeRateOmit
   finInstitution?: Prisma.FinInstitutionOmit
   finCard?: Prisma.FinCardOmit

@@ -6,8 +6,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { clampPageLimit, decodeCursor, toCursorPage } from '@personal-os/core';
-import type { Prisma } from '@personal-os/database';
-import { PrismaService } from '@personal-os/database';
+import { Prisma, PrismaService } from '@personal-os/database';
 import { LogoService, type LogoUploadFile } from '@personal-os/logos';
 import {
   DEFAULT_MODULE_CONFIG_BY_SLUG,
@@ -23,6 +22,7 @@ import type { SubscriptionMatcherPort } from '../../shared/application/subscript
 import { roundMoney } from '../../shared/domain/money';
 import {
   annualCost,
+  billingOccurrencesInRange,
   daysUntil,
   firstBillingOnOrAfter,
   monthlyCost,
@@ -31,17 +31,31 @@ import {
 } from '../domain/billing';
 import { matchesSubscription } from '../domain/payment-matching';
 import {
+  buildSubscriptionAlerts,
+  type SubscriptionAlert,
+} from '../domain/subscription-alerts';
+import {
   SubscriptionsRepository,
   type SubscriptionRow,
 } from '../infrastructure/subscriptions.repository';
 import type { CreateSubscriptionDto } from '../presentation/dto/create-subscription.dto';
 import type { CreateSubscriptionPaymentDto } from '../presentation/dto/create-subscription-payment.dto';
+import type { DismissSubscriptionAlertDto } from '../presentation/dto/dismiss-subscription-alert.dto';
 import type { ListSubscriptionsQueryDto } from '../presentation/dto/list-subscriptions-query.dto';
+import type { SubscriptionBreakdown } from '../presentation/dto/subscription-breakdown-query.dto';
+import type { UpcomingSubscriptionsQueryDto } from '../presentation/dto/upcoming-subscriptions-query.dto';
 import type { UpdateSubscriptionDto } from '../presentation/dto/update-subscription.dto';
 
 const FINANCE_MODULE_SLUG = 'finance';
 const UPCOMING_WINDOW_DAYS = 7;
 const DEFAULT_REMINDER_DAYS = 3;
+const UPCOMING_DEFAULT_DAYS = 30;
+const UNCATEGORIZED_KEY = 'uncategorized';
+const NO_INSTRUMENT_KEY = 'no-instrument';
+const UNCATEGORIZED_LABEL = 'Sin categoría';
+const NO_INSTRUMENT_LABEL = 'Sin método';
+
+type SubscriptionPaymentRow = Prisma.FinSubscriptionPaymentGetPayload<object>;
 
 function isoDate(date: Date): string {
   return date.toISOString().slice(0, 10);
@@ -76,6 +90,9 @@ export class SubscriptionsService implements SubscriptionMatcherPort {
       take: limit + 1,
       status: query.status,
       currency: query.currency?.toUpperCase(),
+      categoryId: query.categoryId,
+      cardId: query.cardId,
+      accountId: query.accountId,
       search: query.q,
     });
     const page = toCursorPage(rows, limit, (row) =>
@@ -90,45 +107,99 @@ export class SubscriptionsService implements SubscriptionMatcherPort {
   async summary(userId: string, now = new Date()) {
     const active = await this.repo.findActive(userId);
     const baseCurrency = await this.baseCurrency.execute(userId);
-    const byCurrency = new Map<string, { monthly: number; annual: number }>();
+    const payments = this.groupPaymentsBySubscription(
+      await this.repo.listPaymentsForSubscriptions(active.map((row) => row.id)),
+    );
+
+    const monthlyBuckets = new Map<string, Prisma.Decimal>();
+    const annualBuckets = new Map<string, Prisma.Decimal>();
+    const previousBuckets = new Map<string, Prisma.Decimal>();
     for (const row of active) {
       const amount = Number(row.amount);
-      const bucket = byCurrency.get(row.currency) ?? { monthly: 0, annual: 0 };
-      bucket.monthly += monthlyCost({
-        amount,
-        cycle: row.billingCycle,
-        interval: row.billingInterval,
-      });
-      bucket.annual += annualCost({
-        amount,
-        cycle: row.billingCycle,
-        interval: row.billingInterval,
-      });
-      byCurrency.set(row.currency, bucket);
+      const cycle = row.billingCycle;
+      const interval = row.billingInterval;
+      this.addToBucket(
+        monthlyBuckets,
+        row.currency,
+        monthlyCost({ amount, cycle, interval }),
+      );
+      this.addToBucket(
+        annualBuckets,
+        row.currency,
+        annualCost({ amount, cycle, interval }),
+      );
+      // The previous price is the charge before the newest one; without a
+      // second payment the subscription has not changed price yet.
+      const history = payments.get(row.id) ?? [];
+      const previousAmount = history[1] ? Number(history[1].amount) : amount;
+      this.addToBucket(
+        previousBuckets,
+        row.currency,
+        monthlyCost({ amount: previousAmount, cycle, interval }),
+      );
     }
 
-    let monthlyTotal = 0;
-    let annualTotal = 0;
-    for (const [currency, bucket] of byCurrency) {
-      monthlyTotal += await this.resolveAmounts.toBaseCurrency(
-        bucket.monthly,
-        currency,
-        baseCurrency,
-        now,
-      );
-      annualTotal += await this.resolveAmounts.toBaseCurrency(
-        bucket.annual,
-        currency,
-        baseCurrency,
-        now,
-      );
-    }
+    const monthlyTotal = await this.sumBucketsInBase(
+      monthlyBuckets,
+      baseCurrency,
+      now,
+    );
+    const annualTotal = await this.sumBucketsInBase(
+      annualBuckets,
+      baseCurrency,
+      now,
+    );
+    const previousMonthlyTotal = await this.sumBucketsInBase(
+      previousBuckets,
+      baseCurrency,
+      now,
+    );
+
+    const monthStart = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1),
+    );
+    const nextMonthStart = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1),
+    );
+    const previousMonthStart = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1),
+    );
+    const [
+      thisMonthPayments,
+      previousMonthPayments,
+      cancelled,
+      pendingDetectedCount,
+    ] = await Promise.all([
+      this.repo.listPaymentsInRange(userId, monthStart, nextMonthStart),
+      this.repo.listPaymentsInRange(userId, previousMonthStart, monthStart),
+      this.repo.findByStatus(userId, 'CANCELLED'),
+      this.repo.countPendingDetected(userId),
+    ]);
+    const realSpendThisMonth = await this.sumPaymentsInBase(
+      thisMonthPayments,
+      baseCurrency,
+    );
+    const realSpendPreviousMonth = await this.sumPaymentsInBase(
+      previousMonthPayments,
+      baseCurrency,
+    );
+    const cancelledAnnualSavings = await this.cancelledSavingsInBase(
+      cancelled,
+      baseCurrency,
+      now,
+    );
 
     return {
       baseCurrency,
       activeCount: active.length,
-      monthlyCost: roundMoney(monthlyTotal).toFixed(2),
-      annualCost: roundMoney(annualTotal).toFixed(2),
+      monthlyCost: monthlyTotal.toFixed(2),
+      annualCost: annualTotal.toFixed(2),
+      previousMonthlyCost: previousMonthlyTotal.toFixed(2),
+      realSpendThisMonth: realSpendThisMonth.toFixed(2),
+      realSpendPreviousMonth: realSpendPreviousMonth.toFixed(2),
+      trend: this.monthlyTrend(monthlyTotal, previousMonthlyTotal),
+      pendingDetectedCount,
+      cancelledAnnualSavings: cancelledAnnualSavings.toFixed(2),
       upcoming: active
         .map((row) => ({ row, days: daysUntil(row.nextBillingDate, now) }))
         .filter(
@@ -142,6 +213,160 @@ export class SubscriptionsService implements SubscriptionMatcherPort {
     };
   }
 
+  async breakdown(
+    userId: string,
+    by: SubscriptionBreakdown = 'category',
+    now = new Date(),
+  ) {
+    const active = await this.repo.findActive(userId);
+    const baseCurrency = await this.baseCurrency.execute(userId);
+    const groups = new Map<
+      string,
+      {
+        key: string;
+        label: string;
+        color: string | null;
+        count: number;
+        amount: Prisma.Decimal;
+      }
+    >();
+    for (const row of active) {
+      const descriptor = this.breakdownDescriptor(row, by);
+      const monthly = monthlyCost({
+        amount: Number(row.amount),
+        cycle: row.billingCycle,
+        interval: row.billingInterval,
+      });
+      const inBase = await this.resolveAmounts.toBaseCurrency(
+        monthly,
+        row.currency,
+        baseCurrency,
+        now,
+      );
+      const existing = groups.get(descriptor.key);
+      groups.set(descriptor.key, {
+        ...descriptor,
+        count: (existing?.count ?? 0) + 1,
+        amount: (existing?.amount ?? new Prisma.Decimal(0)).plus(
+          new Prisma.Decimal(inBase),
+        ),
+      });
+    }
+    return {
+      baseCurrency,
+      by,
+      items: [...groups.values()]
+        .map((group) => ({
+          key: group.key,
+          label: group.label,
+          color: group.color,
+          count: group.count,
+          amount: group.amount.toFixed(2),
+        }))
+        .sort((left, right) => Number(right.amount) - Number(left.amount)),
+    };
+  }
+
+  async upcoming(
+    userId: string,
+    query: UpcomingSubscriptionsQueryDto,
+    now = new Date(),
+  ) {
+    const active = await this.repo.findActive(userId);
+    const from = query.from ? dateOnly(new Date(query.from)) : dateOnly(now);
+    const to = query.to
+      ? dateOnly(new Date(query.to))
+      : this.addDays(from, query.days ?? UPCOMING_DEFAULT_DAYS);
+    const items = active.flatMap((row) =>
+      billingOccurrencesInRange(
+        {
+          anchor: row.anchorDate,
+          cycle: row.billingCycle,
+          interval: row.billingInterval,
+        },
+        from,
+        to,
+      ).map((date) => ({
+        id: `${row.id}:${isoDate(date)}`,
+        subscriptionId: row.id,
+        name: row.name,
+        logoUrl: this.logos.resolveUrl(row),
+        amount: row.amount.toFixed(2),
+        currency: row.currency,
+        date: isoDate(date),
+        daysUntil: daysUntil(date, now),
+        paymentMethod: this.paymentMethod(row),
+      })),
+    );
+    items.sort(
+      (left, right) =>
+        left.date.localeCompare(right.date) ||
+        left.name.localeCompare(right.name),
+    );
+    return { from: isoDate(from), to: isoDate(to), items };
+  }
+
+  async alerts(userId: string, now = new Date()): Promise<SubscriptionAlert[]> {
+    const active = await this.repo.findActive(userId);
+    const payments = this.groupPaymentsBySubscription(
+      await this.repo.listPaymentsForSubscriptions(active.map((row) => row.id)),
+    );
+    const dismissals = await this.repo.listAlertDismissals(userId);
+    const dismissed = new Set(
+      dismissals.map(
+        (row) => `${row.kind}:${row.subscriptionId}:${isoDate(row.alertDate)}`,
+      ),
+    );
+    const alerts: SubscriptionAlert[] = [];
+    for (const row of active) {
+      const history = payments.get(row.id) ?? [];
+      const derived = buildSubscriptionAlerts(
+        {
+          id: row.id,
+          name: row.name,
+          currency: row.currency,
+          billingCycle: row.billingCycle,
+          amount: Number(row.amount),
+          nextBillingDate: row.nextBillingDate,
+          trialEndsAt: row.trialEndsAt,
+          reminderDaysBefore: row.reminderDaysBefore,
+          lastPaymentAmount: history[0] ? Number(history[0].amount) : null,
+          lastPaymentDate: history[0]?.paidAt ?? null,
+          previousPaymentAmount: history[1] ? Number(history[1].amount) : null,
+          paidSinceNextBilling: history.some(
+            (payment) => payment.paidAt >= row.nextBillingDate,
+          ),
+        },
+        now,
+      );
+      for (const alert of derived) {
+        if (dismissed.has(alert.id)) {
+          continue;
+        }
+        alerts.push(alert);
+      }
+    }
+    return alerts.sort((left, right) => left.date.localeCompare(right.date));
+  }
+
+  async dismissAlert(userId: string, dto: DismissSubscriptionAlertDto) {
+    const subscription = await this.repo.findById(userId, dto.subscriptionId);
+    if (!subscription) {
+      throw new NotFoundException('Subscription not found');
+    }
+    const alertDate = dateOnly(new Date(dto.alertDate));
+    await this.repo.dismissAlert({
+      userId,
+      subscriptionId: dto.subscriptionId,
+      kind: dto.kind,
+      alertDate,
+    });
+    return {
+      id: `${dto.kind}:${dto.subscriptionId}:${isoDate(alertDate)}`,
+      dismissed: true,
+    };
+  }
+
   async get(userId: string, id: string, now = new Date()) {
     const row = await this.repo.findById(userId, id);
     if (!row) {
@@ -152,6 +377,9 @@ export class SubscriptionsService implements SubscriptionMatcherPort {
 
   async create(userId: string, dto: CreateSubscriptionDto, now = new Date()) {
     await this.assertTargets(userId, dto.cardId, dto.accountId);
+    if (dto.categoryId) {
+      await this.ownership.assertCategoryVisible(userId, dto.categoryId);
+    }
     if (dto.sourcePatternId) {
       await this.assertPatternOwned(userId, dto.sourcePatternId);
     }
@@ -182,6 +410,7 @@ export class SubscriptionsService implements SubscriptionMatcherPort {
         dto.reminderDaysBefore ?? (await this.defaultReminderDays(userId)),
       cardId: dto.cardId ?? null,
       accountId: dto.accountId ?? null,
+      categoryId: dto.categoryId ?? null,
       manageUrl: dto.manageUrl?.trim() || null,
       notes: dto.notes?.trim() || null,
       sourcePatternId: dto.sourcePatternId ?? null,
@@ -257,6 +486,12 @@ export class SubscriptionsService implements SubscriptionMatcherPort {
     }
     if (dto.accountId !== undefined) {
       changes.accountId = dto.accountId;
+    }
+    if (dto.categoryId !== undefined) {
+      if (dto.categoryId) {
+        await this.ownership.assertCategoryVisible(userId, dto.categoryId);
+      }
+      changes.categoryId = dto.categoryId ?? null;
     }
     if (dto.manageUrl !== undefined) {
       changes.manageUrl = dto.manageUrl?.trim() || null;
@@ -480,6 +715,167 @@ export class SubscriptionsService implements SubscriptionMatcherPort {
     await this.advanceBilling(subscription);
   }
 
+  private addToBucket(
+    buckets: Map<string, Prisma.Decimal>,
+    currency: string,
+    amount: number,
+  ): void {
+    const current = buckets.get(currency) ?? new Prisma.Decimal(0);
+    buckets.set(currency, current.plus(new Prisma.Decimal(amount)));
+  }
+
+  private async sumBucketsInBase(
+    buckets: Map<string, Prisma.Decimal>,
+    baseCurrency: string,
+    asOf: Date,
+  ): Promise<Prisma.Decimal> {
+    let total = new Prisma.Decimal(0);
+    for (const [currency, amount] of buckets) {
+      const inBase = await this.resolveAmounts.toBaseCurrency(
+        amount.toNumber(),
+        currency,
+        baseCurrency,
+        asOf,
+      );
+      total = total.plus(new Prisma.Decimal(inBase));
+    }
+    return total;
+  }
+
+  private groupPaymentsBySubscription(
+    rows: SubscriptionPaymentRow[],
+  ): Map<string, SubscriptionPaymentRow[]> {
+    const grouped = new Map<string, SubscriptionPaymentRow[]>();
+    for (const row of rows) {
+      const list = grouped.get(row.subscriptionId) ?? [];
+      list.push(row);
+      grouped.set(row.subscriptionId, list);
+    }
+    return grouped;
+  }
+
+  private async sumPaymentsInBase(
+    payments: { amount: Prisma.Decimal; currency: string; paidAt: Date }[],
+    baseCurrency: string,
+  ): Promise<Prisma.Decimal> {
+    let total = new Prisma.Decimal(0);
+    for (const payment of payments) {
+      const inBase = await this.resolveAmounts.toBaseCurrency(
+        Number(payment.amount),
+        payment.currency,
+        baseCurrency,
+        payment.paidAt,
+      );
+      total = total.plus(new Prisma.Decimal(inBase));
+    }
+    return total;
+  }
+
+  private async cancelledSavingsInBase(
+    rows: SubscriptionRow[],
+    baseCurrency: string,
+    asOf: Date,
+  ): Promise<Prisma.Decimal> {
+    let total = new Prisma.Decimal(0);
+    for (const row of rows) {
+      const annual = annualCost({
+        amount: Number(row.amount),
+        cycle: row.billingCycle,
+        interval: row.billingInterval,
+      });
+      const inBase = await this.resolveAmounts.toBaseCurrency(
+        annual,
+        row.currency,
+        baseCurrency,
+        asOf,
+      );
+      total = total.plus(new Prisma.Decimal(inBase));
+    }
+    return total;
+  }
+
+  private monthlyTrend(
+    current: Prisma.Decimal,
+    previous: Prisma.Decimal,
+  ): { direction: 'up' | 'down' | 'flat'; percent: number } | null {
+    const previousValue = previous.toNumber();
+    if (previousValue <= 0) {
+      return null;
+    }
+    const percent =
+      Math.round(
+        ((current.toNumber() - previousValue) / previousValue) * 1000,
+      ) / 10;
+    if (percent === 0) {
+      return { direction: 'flat', percent: 0 };
+    }
+    return { direction: percent > 0 ? 'up' : 'down', percent };
+  }
+
+  private breakdownDescriptor(
+    row: SubscriptionRow,
+    by: SubscriptionBreakdown,
+  ): { key: string; label: string; color: string | null } {
+    if (by === 'currency') {
+      return { key: row.currency, label: row.currency, color: null };
+    }
+    if (by === 'instrument') {
+      const method = this.paymentMethod(row);
+      if (!method) {
+        return {
+          key: NO_INSTRUMENT_KEY,
+          label: NO_INSTRUMENT_LABEL,
+          color: null,
+        };
+      }
+      return {
+        key: `${method.type}:${method.id}`,
+        label: method.name,
+        color: row.card?.color ?? row.account?.color ?? null,
+      };
+    }
+    if (!row.category) {
+      return {
+        key: UNCATEGORIZED_KEY,
+        label: UNCATEGORIZED_LABEL,
+        color: null,
+      };
+    }
+    return {
+      key: row.category.id,
+      label: row.category.name,
+      color: row.category.color,
+    };
+  }
+
+  private paymentMethod(row: SubscriptionRow) {
+    if (row.card) {
+      return {
+        type: 'CARD' as const,
+        id: row.card.id,
+        name: row.card.name,
+        institution: row.card.institution?.name ?? null,
+        last4: row.card.lastFour ?? null,
+        logoUrl: this.logos.resolveUrl(row.card.institution),
+      };
+    }
+    if (row.account) {
+      return {
+        type: 'ACCOUNT' as const,
+        id: row.account.id,
+        name: row.account.name,
+        institution: row.account.institutionRef?.name ?? null,
+        last4: row.account.accountNumber?.slice(-4) ?? null,
+        logoUrl: this.logos.resolveUrl(row.account.institutionRef),
+      };
+    }
+    return null;
+  }
+
+  private addDays(from: Date, days: number): Date {
+    return new Date(from.getTime() + days * 86_400_000);
+  }
+
   private applyStatus(
     changes: Prisma.FinSubscriptionUncheckedUpdateInput,
     status: 'ACTIVE' | 'PAUSED' | 'CANCELLED',
@@ -606,6 +1002,16 @@ export class SubscriptionsService implements SubscriptionMatcherPort {
       cardName: row.card?.name ?? null,
       accountId: row.accountId,
       accountName: row.account?.name ?? null,
+      categoryId: row.categoryId,
+      category: row.category
+        ? {
+            id: row.category.id,
+            name: row.category.name,
+            icon: row.category.icon,
+            color: row.category.color,
+          }
+        : null,
+      paymentMethod: this.paymentMethod(row),
       manageUrl: row.manageUrl,
       notes: row.notes,
       sourcePatternId: row.sourcePatternId,

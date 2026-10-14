@@ -610,6 +610,23 @@ export type EnumFinSubscriptionPaymentSourceWithAggregatesFilter<$PrismaModel = 
   _max?: Prisma.NestedEnumFinSubscriptionPaymentSourceFilter<$PrismaModel>
 }
 
+export type EnumFinSubscriptionAlertKindFilter<$PrismaModel = never> = {
+  equals?: $Enums.FinSubscriptionAlertKind | Prisma.EnumFinSubscriptionAlertKindFieldRefInput<$PrismaModel>
+  in?: $Enums.FinSubscriptionAlertKind[] | Prisma.ListEnumFinSubscriptionAlertKindFieldRefInput<$PrismaModel>
+  notIn?: $Enums.FinSubscriptionAlertKind[] | Prisma.ListEnumFinSubscriptionAlertKindFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumFinSubscriptionAlertKindFilter<$PrismaModel> | $Enums.FinSubscriptionAlertKind
+}
+
+export type EnumFinSubscriptionAlertKindWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.FinSubscriptionAlertKind | Prisma.EnumFinSubscriptionAlertKindFieldRefInput<$PrismaModel>
+  in?: $Enums.FinSubscriptionAlertKind[] | Prisma.ListEnumFinSubscriptionAlertKindFieldRefInput<$PrismaModel>
+  notIn?: $Enums.FinSubscriptionAlertKind[] | Prisma.ListEnumFinSubscriptionAlertKindFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumFinSubscriptionAlertKindWithAggregatesFilter<$PrismaModel> | $Enums.FinSubscriptionAlertKind
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumFinSubscriptionAlertKindFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumFinSubscriptionAlertKindFilter<$PrismaModel>
+}
+
 export type EnumFinCardTypeFilter<$PrismaModel = never> = {
   equals?: $Enums.FinCardType | Prisma.EnumFinCardTypeFieldRefInput<$PrismaModel>
   in?: $Enums.FinCardType[] | Prisma.ListEnumFinCardTypeFieldRefInput<$PrismaModel>
@@ -1523,6 +1540,23 @@ export type NestedEnumFinSubscriptionPaymentSourceWithAggregatesFilter<$PrismaMo
   _count?: Prisma.NestedIntFilter<$PrismaModel>
   _min?: Prisma.NestedEnumFinSubscriptionPaymentSourceFilter<$PrismaModel>
   _max?: Prisma.NestedEnumFinSubscriptionPaymentSourceFilter<$PrismaModel>
+}
+
+export type NestedEnumFinSubscriptionAlertKindFilter<$PrismaModel = never> = {
+  equals?: $Enums.FinSubscriptionAlertKind | Prisma.EnumFinSubscriptionAlertKindFieldRefInput<$PrismaModel>
+  in?: $Enums.FinSubscriptionAlertKind[] | Prisma.ListEnumFinSubscriptionAlertKindFieldRefInput<$PrismaModel>
+  notIn?: $Enums.FinSubscriptionAlertKind[] | Prisma.ListEnumFinSubscriptionAlertKindFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumFinSubscriptionAlertKindFilter<$PrismaModel> | $Enums.FinSubscriptionAlertKind
+}
+
+export type NestedEnumFinSubscriptionAlertKindWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.FinSubscriptionAlertKind | Prisma.EnumFinSubscriptionAlertKindFieldRefInput<$PrismaModel>
+  in?: $Enums.FinSubscriptionAlertKind[] | Prisma.ListEnumFinSubscriptionAlertKindFieldRefInput<$PrismaModel>
+  notIn?: $Enums.FinSubscriptionAlertKind[] | Prisma.ListEnumFinSubscriptionAlertKindFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumFinSubscriptionAlertKindWithAggregatesFilter<$PrismaModel> | $Enums.FinSubscriptionAlertKind
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumFinSubscriptionAlertKindFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumFinSubscriptionAlertKindFilter<$PrismaModel>
 }
 
 export type NestedEnumFinCardTypeFilter<$PrismaModel = never> = {

@@ -25,7 +25,10 @@ import type { LogoUploadFile } from '@personal-os/logos';
 import { SubscriptionsService } from '../application/subscriptions.service';
 import { CreateSubscriptionDto } from './dto/create-subscription.dto';
 import { CreateSubscriptionPaymentDto } from './dto/create-subscription-payment.dto';
+import { DismissSubscriptionAlertDto } from './dto/dismiss-subscription-alert.dto';
 import { ListSubscriptionsQueryDto } from './dto/list-subscriptions-query.dto';
+import { SubscriptionBreakdownQueryDto } from './dto/subscription-breakdown-query.dto';
+import { UpcomingSubscriptionsQueryDto } from './dto/upcoming-subscriptions-query.dto';
 import { UpdateSubscriptionDto } from './dto/update-subscription.dto';
 
 @ApiTags('finance')
@@ -48,6 +51,39 @@ export class SubscriptionsController {
   @ApiOperation({ summary: 'Monthly and annual cost, active count, upcoming' })
   summary(@CurrentUser('sub') userId: string) {
     return this.subscriptions.summary(userId);
+  }
+
+  @Get('breakdown')
+  @ApiOperation({ summary: 'Cost split by category, instrument or currency' })
+  breakdown(
+    @CurrentUser('sub') userId: string,
+    @Query() query: SubscriptionBreakdownQueryDto,
+  ) {
+    return this.subscriptions.breakdown(userId, query.by ?? 'category');
+  }
+
+  @Get('upcoming')
+  @ApiOperation({ summary: 'Projected charges in a date window' })
+  upcoming(
+    @CurrentUser('sub') userId: string,
+    @Query() query: UpcomingSubscriptionsQueryDto,
+  ) {
+    return this.subscriptions.upcoming(userId, query);
+  }
+
+  @Get('alerts')
+  @ApiOperation({ summary: 'Active subscription alerts' })
+  alerts(@CurrentUser('sub') userId: string) {
+    return this.subscriptions.alerts(userId);
+  }
+
+  @Post('alerts/dismiss')
+  @ApiOperation({ summary: 'Dismiss an alert for its occurrence' })
+  dismissAlert(
+    @CurrentUser('sub') userId: string,
+    @Body() dto: DismissSubscriptionAlertDto,
+  ) {
+    return this.subscriptions.dismissAlert(userId, dto);
   }
 
   @Post()

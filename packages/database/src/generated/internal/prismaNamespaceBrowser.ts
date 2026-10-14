@@ -71,6 +71,7 @@ export const ModelName = {
   FinMerchant: 'FinMerchant',
   FinSubscription: 'FinSubscription',
   FinSubscriptionPayment: 'FinSubscriptionPayment',
+  FinSubscriptionAlertDismissal: 'FinSubscriptionAlertDismissal',
   FinExchangeRate: 'FinExchangeRate',
   FinInstitution: 'FinInstitution',
   FinCard: 'FinCard',
@@ -439,6 +440,7 @@ export const FinSubscriptionScalarFieldEnum = {
   lastRemindedFor: 'lastRemindedFor',
   cardId: 'cardId',
   accountId: 'accountId',
+  categoryId: 'categoryId',
   manageUrl: 'manageUrl',
   notes: 'notes',
   sourcePatternId: 'sourcePatternId',
@@ -461,6 +463,18 @@ export const FinSubscriptionPaymentScalarFieldEnum = {
 } as const
 
 export type FinSubscriptionPaymentScalarFieldEnum = (typeof FinSubscriptionPaymentScalarFieldEnum)[keyof typeof FinSubscriptionPaymentScalarFieldEnum]
+
+
+export const FinSubscriptionAlertDismissalScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  subscriptionId: 'subscriptionId',
+  kind: 'kind',
+  alertDate: 'alertDate',
+  createdAt: 'createdAt'
+} as const
+
+export type FinSubscriptionAlertDismissalScalarFieldEnum = (typeof FinSubscriptionAlertDismissalScalarFieldEnum)[keyof typeof FinSubscriptionAlertDismissalScalarFieldEnum]
 
 
 export const FinExchangeRateScalarFieldEnum = {

@@ -60,6 +60,7 @@ export type FinSubscriptionMinAggregateOutputType = {
   lastRemindedFor: Date | null
   cardId: string | null
   accountId: string | null
+  categoryId: string | null
   manageUrl: string | null
   notes: string | null
   sourcePatternId: string | null
@@ -89,6 +90,7 @@ export type FinSubscriptionMaxAggregateOutputType = {
   lastRemindedFor: Date | null
   cardId: string | null
   accountId: string | null
+  categoryId: string | null
   manageUrl: string | null
   notes: string | null
   sourcePatternId: string | null
@@ -118,6 +120,7 @@ export type FinSubscriptionCountAggregateOutputType = {
   lastRemindedFor: number
   cardId: number
   accountId: number
+  categoryId: number
   manageUrl: number
   notes: number
   sourcePatternId: number
@@ -161,6 +164,7 @@ export type FinSubscriptionMinAggregateInputType = {
   lastRemindedFor?: true
   cardId?: true
   accountId?: true
+  categoryId?: true
   manageUrl?: true
   notes?: true
   sourcePatternId?: true
@@ -190,6 +194,7 @@ export type FinSubscriptionMaxAggregateInputType = {
   lastRemindedFor?: true
   cardId?: true
   accountId?: true
+  categoryId?: true
   manageUrl?: true
   notes?: true
   sourcePatternId?: true
@@ -219,6 +224,7 @@ export type FinSubscriptionCountAggregateInputType = {
   lastRemindedFor?: true
   cardId?: true
   accountId?: true
+  categoryId?: true
   manageUrl?: true
   notes?: true
   sourcePatternId?: true
@@ -335,6 +341,7 @@ export type FinSubscriptionGroupByOutputType = {
   lastRemindedFor: Date | null
   cardId: string | null
   accountId: string | null
+  categoryId: string | null
   manageUrl: string | null
   notes: string | null
   sourcePatternId: string | null
@@ -387,6 +394,7 @@ export type FinSubscriptionWhereInput = {
   lastRemindedFor?: Prisma.DateTimeNullableFilter<"FinSubscription"> | Date | string | null
   cardId?: Prisma.StringNullableFilter<"FinSubscription"> | string | null
   accountId?: Prisma.StringNullableFilter<"FinSubscription"> | string | null
+  categoryId?: Prisma.StringNullableFilter<"FinSubscription"> | string | null
   manageUrl?: Prisma.StringNullableFilter<"FinSubscription"> | string | null
   notes?: Prisma.StringNullableFilter<"FinSubscription"> | string | null
   sourcePatternId?: Prisma.StringNullableFilter<"FinSubscription"> | string | null
@@ -394,9 +402,11 @@ export type FinSubscriptionWhereInput = {
   updatedAt?: Prisma.DateTimeFilter<"FinSubscription"> | Date | string
   account?: Prisma.XOR<Prisma.FinAccountNullableScalarRelationFilter, Prisma.FinAccountWhereInput> | null
   card?: Prisma.XOR<Prisma.FinCardNullableScalarRelationFilter, Prisma.FinCardWhereInput> | null
+  category?: Prisma.XOR<Prisma.FinCategoryNullableScalarRelationFilter, Prisma.FinCategoryWhereInput> | null
   sourcePattern?: Prisma.XOR<Prisma.FinRecurringPatternNullableScalarRelationFilter, Prisma.FinRecurringPatternWhereInput> | null
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
   payments?: Prisma.FinSubscriptionPaymentListRelationFilter
+  alertDismissals?: Prisma.FinSubscriptionAlertDismissalListRelationFilter
 }
 
 export type FinSubscriptionOrderByWithRelationInput = {
@@ -421,6 +431,7 @@ export type FinSubscriptionOrderByWithRelationInput = {
   lastRemindedFor?: Prisma.SortOrderInput | Prisma.SortOrder
   cardId?: Prisma.SortOrderInput | Prisma.SortOrder
   accountId?: Prisma.SortOrderInput | Prisma.SortOrder
+  categoryId?: Prisma.SortOrderInput | Prisma.SortOrder
   manageUrl?: Prisma.SortOrderInput | Prisma.SortOrder
   notes?: Prisma.SortOrderInput | Prisma.SortOrder
   sourcePatternId?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -428,9 +439,11 @@ export type FinSubscriptionOrderByWithRelationInput = {
   updatedAt?: Prisma.SortOrder
   account?: Prisma.FinAccountOrderByWithRelationInput
   card?: Prisma.FinCardOrderByWithRelationInput
+  category?: Prisma.FinCategoryOrderByWithRelationInput
   sourcePattern?: Prisma.FinRecurringPatternOrderByWithRelationInput
   user?: Prisma.UserOrderByWithRelationInput
   payments?: Prisma.FinSubscriptionPaymentOrderByRelationAggregateInput
+  alertDismissals?: Prisma.FinSubscriptionAlertDismissalOrderByRelationAggregateInput
 }
 
 export type FinSubscriptionWhereUniqueInput = Prisma.AtLeast<{
@@ -458,6 +471,7 @@ export type FinSubscriptionWhereUniqueInput = Prisma.AtLeast<{
   lastRemindedFor?: Prisma.DateTimeNullableFilter<"FinSubscription"> | Date | string | null
   cardId?: Prisma.StringNullableFilter<"FinSubscription"> | string | null
   accountId?: Prisma.StringNullableFilter<"FinSubscription"> | string | null
+  categoryId?: Prisma.StringNullableFilter<"FinSubscription"> | string | null
   manageUrl?: Prisma.StringNullableFilter<"FinSubscription"> | string | null
   notes?: Prisma.StringNullableFilter<"FinSubscription"> | string | null
   sourcePatternId?: Prisma.StringNullableFilter<"FinSubscription"> | string | null
@@ -465,9 +479,11 @@ export type FinSubscriptionWhereUniqueInput = Prisma.AtLeast<{
   updatedAt?: Prisma.DateTimeFilter<"FinSubscription"> | Date | string
   account?: Prisma.XOR<Prisma.FinAccountNullableScalarRelationFilter, Prisma.FinAccountWhereInput> | null
   card?: Prisma.XOR<Prisma.FinCardNullableScalarRelationFilter, Prisma.FinCardWhereInput> | null
+  category?: Prisma.XOR<Prisma.FinCategoryNullableScalarRelationFilter, Prisma.FinCategoryWhereInput> | null
   sourcePattern?: Prisma.XOR<Prisma.FinRecurringPatternNullableScalarRelationFilter, Prisma.FinRecurringPatternWhereInput> | null
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
   payments?: Prisma.FinSubscriptionPaymentListRelationFilter
+  alertDismissals?: Prisma.FinSubscriptionAlertDismissalListRelationFilter
 }, "id">
 
 export type FinSubscriptionOrderByWithAggregationInput = {
@@ -492,6 +508,7 @@ export type FinSubscriptionOrderByWithAggregationInput = {
   lastRemindedFor?: Prisma.SortOrderInput | Prisma.SortOrder
   cardId?: Prisma.SortOrderInput | Prisma.SortOrder
   accountId?: Prisma.SortOrderInput | Prisma.SortOrder
+  categoryId?: Prisma.SortOrderInput | Prisma.SortOrder
   manageUrl?: Prisma.SortOrderInput | Prisma.SortOrder
   notes?: Prisma.SortOrderInput | Prisma.SortOrder
   sourcePatternId?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -529,6 +546,7 @@ export type FinSubscriptionScalarWhereWithAggregatesInput = {
   lastRemindedFor?: Prisma.DateTimeNullableWithAggregatesFilter<"FinSubscription"> | Date | string | null
   cardId?: Prisma.StringNullableWithAggregatesFilter<"FinSubscription"> | string | null
   accountId?: Prisma.StringNullableWithAggregatesFilter<"FinSubscription"> | string | null
+  categoryId?: Prisma.StringNullableWithAggregatesFilter<"FinSubscription"> | string | null
   manageUrl?: Prisma.StringNullableWithAggregatesFilter<"FinSubscription"> | string | null
   notes?: Prisma.StringNullableWithAggregatesFilter<"FinSubscription"> | string | null
   sourcePatternId?: Prisma.StringNullableWithAggregatesFilter<"FinSubscription"> | string | null
@@ -561,9 +579,11 @@ export type FinSubscriptionCreateInput = {
   updatedAt?: Date | string
   account?: Prisma.FinAccountCreateNestedOneWithoutSubscriptionsInput
   card?: Prisma.FinCardCreateNestedOneWithoutSubscriptionsInput
+  category?: Prisma.FinCategoryCreateNestedOneWithoutSubscriptionsInput
   sourcePattern?: Prisma.FinRecurringPatternCreateNestedOneWithoutSubscriptionsInput
   user: Prisma.UserCreateNestedOneWithoutFinSubscriptionsInput
   payments?: Prisma.FinSubscriptionPaymentCreateNestedManyWithoutSubscriptionInput
+  alertDismissals?: Prisma.FinSubscriptionAlertDismissalCreateNestedManyWithoutSubscriptionInput
 }
 
 export type FinSubscriptionUncheckedCreateInput = {
@@ -588,12 +608,14 @@ export type FinSubscriptionUncheckedCreateInput = {
   lastRemindedFor?: Date | string | null
   cardId?: string | null
   accountId?: string | null
+  categoryId?: string | null
   manageUrl?: string | null
   notes?: string | null
   sourcePatternId?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   payments?: Prisma.FinSubscriptionPaymentUncheckedCreateNestedManyWithoutSubscriptionInput
+  alertDismissals?: Prisma.FinSubscriptionAlertDismissalUncheckedCreateNestedManyWithoutSubscriptionInput
 }
 
 export type FinSubscriptionUpdateInput = {
@@ -621,9 +643,11 @@ export type FinSubscriptionUpdateInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   account?: Prisma.FinAccountUpdateOneWithoutSubscriptionsNestedInput
   card?: Prisma.FinCardUpdateOneWithoutSubscriptionsNestedInput
+  category?: Prisma.FinCategoryUpdateOneWithoutSubscriptionsNestedInput
   sourcePattern?: Prisma.FinRecurringPatternUpdateOneWithoutSubscriptionsNestedInput
   user?: Prisma.UserUpdateOneRequiredWithoutFinSubscriptionsNestedInput
   payments?: Prisma.FinSubscriptionPaymentUpdateManyWithoutSubscriptionNestedInput
+  alertDismissals?: Prisma.FinSubscriptionAlertDismissalUpdateManyWithoutSubscriptionNestedInput
 }
 
 export type FinSubscriptionUncheckedUpdateInput = {
@@ -648,12 +672,14 @@ export type FinSubscriptionUncheckedUpdateInput = {
   lastRemindedFor?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   cardId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   accountId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  categoryId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   manageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sourcePatternId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   payments?: Prisma.FinSubscriptionPaymentUncheckedUpdateManyWithoutSubscriptionNestedInput
+  alertDismissals?: Prisma.FinSubscriptionAlertDismissalUncheckedUpdateManyWithoutSubscriptionNestedInput
 }
 
 export type FinSubscriptionCreateManyInput = {
@@ -678,6 +704,7 @@ export type FinSubscriptionCreateManyInput = {
   lastRemindedFor?: Date | string | null
   cardId?: string | null
   accountId?: string | null
+  categoryId?: string | null
   manageUrl?: string | null
   notes?: string | null
   sourcePatternId?: string | null
@@ -732,6 +759,7 @@ export type FinSubscriptionUncheckedUpdateManyInput = {
   lastRemindedFor?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   cardId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   accountId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  categoryId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   manageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sourcePatternId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -771,6 +799,7 @@ export type FinSubscriptionCountOrderByAggregateInput = {
   lastRemindedFor?: Prisma.SortOrder
   cardId?: Prisma.SortOrder
   accountId?: Prisma.SortOrder
+  categoryId?: Prisma.SortOrder
   manageUrl?: Prisma.SortOrder
   notes?: Prisma.SortOrder
   sourcePatternId?: Prisma.SortOrder
@@ -806,6 +835,7 @@ export type FinSubscriptionMaxOrderByAggregateInput = {
   lastRemindedFor?: Prisma.SortOrder
   cardId?: Prisma.SortOrder
   accountId?: Prisma.SortOrder
+  categoryId?: Prisma.SortOrder
   manageUrl?: Prisma.SortOrder
   notes?: Prisma.SortOrder
   sourcePatternId?: Prisma.SortOrder
@@ -835,6 +865,7 @@ export type FinSubscriptionMinOrderByAggregateInput = {
   lastRemindedFor?: Prisma.SortOrder
   cardId?: Prisma.SortOrder
   accountId?: Prisma.SortOrder
+  categoryId?: Prisma.SortOrder
   manageUrl?: Prisma.SortOrder
   notes?: Prisma.SortOrder
   sourcePatternId?: Prisma.SortOrder
@@ -937,6 +968,48 @@ export type FinSubscriptionUncheckedUpdateManyWithoutAccountNestedInput = {
   deleteMany?: Prisma.FinSubscriptionScalarWhereInput | Prisma.FinSubscriptionScalarWhereInput[]
 }
 
+export type FinSubscriptionCreateNestedManyWithoutCategoryInput = {
+  create?: Prisma.XOR<Prisma.FinSubscriptionCreateWithoutCategoryInput, Prisma.FinSubscriptionUncheckedCreateWithoutCategoryInput> | Prisma.FinSubscriptionCreateWithoutCategoryInput[] | Prisma.FinSubscriptionUncheckedCreateWithoutCategoryInput[]
+  connectOrCreate?: Prisma.FinSubscriptionCreateOrConnectWithoutCategoryInput | Prisma.FinSubscriptionCreateOrConnectWithoutCategoryInput[]
+  createMany?: Prisma.FinSubscriptionCreateManyCategoryInputEnvelope
+  connect?: Prisma.FinSubscriptionWhereUniqueInput | Prisma.FinSubscriptionWhereUniqueInput[]
+}
+
+export type FinSubscriptionUncheckedCreateNestedManyWithoutCategoryInput = {
+  create?: Prisma.XOR<Prisma.FinSubscriptionCreateWithoutCategoryInput, Prisma.FinSubscriptionUncheckedCreateWithoutCategoryInput> | Prisma.FinSubscriptionCreateWithoutCategoryInput[] | Prisma.FinSubscriptionUncheckedCreateWithoutCategoryInput[]
+  connectOrCreate?: Prisma.FinSubscriptionCreateOrConnectWithoutCategoryInput | Prisma.FinSubscriptionCreateOrConnectWithoutCategoryInput[]
+  createMany?: Prisma.FinSubscriptionCreateManyCategoryInputEnvelope
+  connect?: Prisma.FinSubscriptionWhereUniqueInput | Prisma.FinSubscriptionWhereUniqueInput[]
+}
+
+export type FinSubscriptionUpdateManyWithoutCategoryNestedInput = {
+  create?: Prisma.XOR<Prisma.FinSubscriptionCreateWithoutCategoryInput, Prisma.FinSubscriptionUncheckedCreateWithoutCategoryInput> | Prisma.FinSubscriptionCreateWithoutCategoryInput[] | Prisma.FinSubscriptionUncheckedCreateWithoutCategoryInput[]
+  connectOrCreate?: Prisma.FinSubscriptionCreateOrConnectWithoutCategoryInput | Prisma.FinSubscriptionCreateOrConnectWithoutCategoryInput[]
+  upsert?: Prisma.FinSubscriptionUpsertWithWhereUniqueWithoutCategoryInput | Prisma.FinSubscriptionUpsertWithWhereUniqueWithoutCategoryInput[]
+  createMany?: Prisma.FinSubscriptionCreateManyCategoryInputEnvelope
+  set?: Prisma.FinSubscriptionWhereUniqueInput | Prisma.FinSubscriptionWhereUniqueInput[]
+  disconnect?: Prisma.FinSubscriptionWhereUniqueInput | Prisma.FinSubscriptionWhereUniqueInput[]
+  delete?: Prisma.FinSubscriptionWhereUniqueInput | Prisma.FinSubscriptionWhereUniqueInput[]
+  connect?: Prisma.FinSubscriptionWhereUniqueInput | Prisma.FinSubscriptionWhereUniqueInput[]
+  update?: Prisma.FinSubscriptionUpdateWithWhereUniqueWithoutCategoryInput | Prisma.FinSubscriptionUpdateWithWhereUniqueWithoutCategoryInput[]
+  updateMany?: Prisma.FinSubscriptionUpdateManyWithWhereWithoutCategoryInput | Prisma.FinSubscriptionUpdateManyWithWhereWithoutCategoryInput[]
+  deleteMany?: Prisma.FinSubscriptionScalarWhereInput | Prisma.FinSubscriptionScalarWhereInput[]
+}
+
+export type FinSubscriptionUncheckedUpdateManyWithoutCategoryNestedInput = {
+  create?: Prisma.XOR<Prisma.FinSubscriptionCreateWithoutCategoryInput, Prisma.FinSubscriptionUncheckedCreateWithoutCategoryInput> | Prisma.FinSubscriptionCreateWithoutCategoryInput[] | Prisma.FinSubscriptionUncheckedCreateWithoutCategoryInput[]
+  connectOrCreate?: Prisma.FinSubscriptionCreateOrConnectWithoutCategoryInput | Prisma.FinSubscriptionCreateOrConnectWithoutCategoryInput[]
+  upsert?: Prisma.FinSubscriptionUpsertWithWhereUniqueWithoutCategoryInput | Prisma.FinSubscriptionUpsertWithWhereUniqueWithoutCategoryInput[]
+  createMany?: Prisma.FinSubscriptionCreateManyCategoryInputEnvelope
+  set?: Prisma.FinSubscriptionWhereUniqueInput | Prisma.FinSubscriptionWhereUniqueInput[]
+  disconnect?: Prisma.FinSubscriptionWhereUniqueInput | Prisma.FinSubscriptionWhereUniqueInput[]
+  delete?: Prisma.FinSubscriptionWhereUniqueInput | Prisma.FinSubscriptionWhereUniqueInput[]
+  connect?: Prisma.FinSubscriptionWhereUniqueInput | Prisma.FinSubscriptionWhereUniqueInput[]
+  update?: Prisma.FinSubscriptionUpdateWithWhereUniqueWithoutCategoryInput | Prisma.FinSubscriptionUpdateWithWhereUniqueWithoutCategoryInput[]
+  updateMany?: Prisma.FinSubscriptionUpdateManyWithWhereWithoutCategoryInput | Prisma.FinSubscriptionUpdateManyWithWhereWithoutCategoryInput[]
+  deleteMany?: Prisma.FinSubscriptionScalarWhereInput | Prisma.FinSubscriptionScalarWhereInput[]
+}
+
 export type FinSubscriptionCreateNestedManyWithoutSourcePatternInput = {
   create?: Prisma.XOR<Prisma.FinSubscriptionCreateWithoutSourcePatternInput, Prisma.FinSubscriptionUncheckedCreateWithoutSourcePatternInput> | Prisma.FinSubscriptionCreateWithoutSourcePatternInput[] | Prisma.FinSubscriptionUncheckedCreateWithoutSourcePatternInput[]
   connectOrCreate?: Prisma.FinSubscriptionCreateOrConnectWithoutSourcePatternInput | Prisma.FinSubscriptionCreateOrConnectWithoutSourcePatternInput[]
@@ -999,6 +1072,20 @@ export type FinSubscriptionUpdateOneRequiredWithoutPaymentsNestedInput = {
   upsert?: Prisma.FinSubscriptionUpsertWithoutPaymentsInput
   connect?: Prisma.FinSubscriptionWhereUniqueInput
   update?: Prisma.XOR<Prisma.XOR<Prisma.FinSubscriptionUpdateToOneWithWhereWithoutPaymentsInput, Prisma.FinSubscriptionUpdateWithoutPaymentsInput>, Prisma.FinSubscriptionUncheckedUpdateWithoutPaymentsInput>
+}
+
+export type FinSubscriptionCreateNestedOneWithoutAlertDismissalsInput = {
+  create?: Prisma.XOR<Prisma.FinSubscriptionCreateWithoutAlertDismissalsInput, Prisma.FinSubscriptionUncheckedCreateWithoutAlertDismissalsInput>
+  connectOrCreate?: Prisma.FinSubscriptionCreateOrConnectWithoutAlertDismissalsInput
+  connect?: Prisma.FinSubscriptionWhereUniqueInput
+}
+
+export type FinSubscriptionUpdateOneRequiredWithoutAlertDismissalsNestedInput = {
+  create?: Prisma.XOR<Prisma.FinSubscriptionCreateWithoutAlertDismissalsInput, Prisma.FinSubscriptionUncheckedCreateWithoutAlertDismissalsInput>
+  connectOrCreate?: Prisma.FinSubscriptionCreateOrConnectWithoutAlertDismissalsInput
+  upsert?: Prisma.FinSubscriptionUpsertWithoutAlertDismissalsInput
+  connect?: Prisma.FinSubscriptionWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.FinSubscriptionUpdateToOneWithWhereWithoutAlertDismissalsInput, Prisma.FinSubscriptionUpdateWithoutAlertDismissalsInput>, Prisma.FinSubscriptionUncheckedUpdateWithoutAlertDismissalsInput>
 }
 
 export type FinSubscriptionCreateNestedManyWithoutCardInput = {
@@ -1068,8 +1155,10 @@ export type FinSubscriptionCreateWithoutUserInput = {
   updatedAt?: Date | string
   account?: Prisma.FinAccountCreateNestedOneWithoutSubscriptionsInput
   card?: Prisma.FinCardCreateNestedOneWithoutSubscriptionsInput
+  category?: Prisma.FinCategoryCreateNestedOneWithoutSubscriptionsInput
   sourcePattern?: Prisma.FinRecurringPatternCreateNestedOneWithoutSubscriptionsInput
   payments?: Prisma.FinSubscriptionPaymentCreateNestedManyWithoutSubscriptionInput
+  alertDismissals?: Prisma.FinSubscriptionAlertDismissalCreateNestedManyWithoutSubscriptionInput
 }
 
 export type FinSubscriptionUncheckedCreateWithoutUserInput = {
@@ -1093,12 +1182,14 @@ export type FinSubscriptionUncheckedCreateWithoutUserInput = {
   lastRemindedFor?: Date | string | null
   cardId?: string | null
   accountId?: string | null
+  categoryId?: string | null
   manageUrl?: string | null
   notes?: string | null
   sourcePatternId?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   payments?: Prisma.FinSubscriptionPaymentUncheckedCreateNestedManyWithoutSubscriptionInput
+  alertDismissals?: Prisma.FinSubscriptionAlertDismissalUncheckedCreateNestedManyWithoutSubscriptionInput
 }
 
 export type FinSubscriptionCreateOrConnectWithoutUserInput = {
@@ -1152,6 +1243,7 @@ export type FinSubscriptionScalarWhereInput = {
   lastRemindedFor?: Prisma.DateTimeNullableFilter<"FinSubscription"> | Date | string | null
   cardId?: Prisma.StringNullableFilter<"FinSubscription"> | string | null
   accountId?: Prisma.StringNullableFilter<"FinSubscription"> | string | null
+  categoryId?: Prisma.StringNullableFilter<"FinSubscription"> | string | null
   manageUrl?: Prisma.StringNullableFilter<"FinSubscription"> | string | null
   notes?: Prisma.StringNullableFilter<"FinSubscription"> | string | null
   sourcePatternId?: Prisma.StringNullableFilter<"FinSubscription"> | string | null
@@ -1183,9 +1275,11 @@ export type FinSubscriptionCreateWithoutAccountInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   card?: Prisma.FinCardCreateNestedOneWithoutSubscriptionsInput
+  category?: Prisma.FinCategoryCreateNestedOneWithoutSubscriptionsInput
   sourcePattern?: Prisma.FinRecurringPatternCreateNestedOneWithoutSubscriptionsInput
   user: Prisma.UserCreateNestedOneWithoutFinSubscriptionsInput
   payments?: Prisma.FinSubscriptionPaymentCreateNestedManyWithoutSubscriptionInput
+  alertDismissals?: Prisma.FinSubscriptionAlertDismissalCreateNestedManyWithoutSubscriptionInput
 }
 
 export type FinSubscriptionUncheckedCreateWithoutAccountInput = {
@@ -1209,12 +1303,14 @@ export type FinSubscriptionUncheckedCreateWithoutAccountInput = {
   reminderDaysBefore?: number
   lastRemindedFor?: Date | string | null
   cardId?: string | null
+  categoryId?: string | null
   manageUrl?: string | null
   notes?: string | null
   sourcePatternId?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   payments?: Prisma.FinSubscriptionPaymentUncheckedCreateNestedManyWithoutSubscriptionInput
+  alertDismissals?: Prisma.FinSubscriptionAlertDismissalUncheckedCreateNestedManyWithoutSubscriptionInput
 }
 
 export type FinSubscriptionCreateOrConnectWithoutAccountInput = {
@@ -1243,6 +1339,94 @@ export type FinSubscriptionUpdateManyWithWhereWithoutAccountInput = {
   data: Prisma.XOR<Prisma.FinSubscriptionUpdateManyMutationInput, Prisma.FinSubscriptionUncheckedUpdateManyWithoutAccountInput>
 }
 
+export type FinSubscriptionCreateWithoutCategoryInput = {
+  id?: string
+  name: string
+  normalizedKey: string
+  domain?: string | null
+  logoPath?: string | null
+  customLogoPath?: string | null
+  amount: runtime.Decimal | runtime.DecimalJsLike | number | string
+  currency?: string
+  billingCycle: $Enums.FinBillingCycle
+  billingInterval?: number
+  anchorDate: Date | string
+  nextBillingDate: Date | string
+  trialEndsAt?: Date | string | null
+  status?: $Enums.FinSubscriptionStatus
+  pausedAt?: Date | string | null
+  cancelledAt?: Date | string | null
+  reminderDaysBefore?: number
+  lastRemindedFor?: Date | string | null
+  manageUrl?: string | null
+  notes?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  account?: Prisma.FinAccountCreateNestedOneWithoutSubscriptionsInput
+  card?: Prisma.FinCardCreateNestedOneWithoutSubscriptionsInput
+  sourcePattern?: Prisma.FinRecurringPatternCreateNestedOneWithoutSubscriptionsInput
+  user: Prisma.UserCreateNestedOneWithoutFinSubscriptionsInput
+  payments?: Prisma.FinSubscriptionPaymentCreateNestedManyWithoutSubscriptionInput
+  alertDismissals?: Prisma.FinSubscriptionAlertDismissalCreateNestedManyWithoutSubscriptionInput
+}
+
+export type FinSubscriptionUncheckedCreateWithoutCategoryInput = {
+  id?: string
+  userId: string
+  name: string
+  normalizedKey: string
+  domain?: string | null
+  logoPath?: string | null
+  customLogoPath?: string | null
+  amount: runtime.Decimal | runtime.DecimalJsLike | number | string
+  currency?: string
+  billingCycle: $Enums.FinBillingCycle
+  billingInterval?: number
+  anchorDate: Date | string
+  nextBillingDate: Date | string
+  trialEndsAt?: Date | string | null
+  status?: $Enums.FinSubscriptionStatus
+  pausedAt?: Date | string | null
+  cancelledAt?: Date | string | null
+  reminderDaysBefore?: number
+  lastRemindedFor?: Date | string | null
+  cardId?: string | null
+  accountId?: string | null
+  manageUrl?: string | null
+  notes?: string | null
+  sourcePatternId?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  payments?: Prisma.FinSubscriptionPaymentUncheckedCreateNestedManyWithoutSubscriptionInput
+  alertDismissals?: Prisma.FinSubscriptionAlertDismissalUncheckedCreateNestedManyWithoutSubscriptionInput
+}
+
+export type FinSubscriptionCreateOrConnectWithoutCategoryInput = {
+  where: Prisma.FinSubscriptionWhereUniqueInput
+  create: Prisma.XOR<Prisma.FinSubscriptionCreateWithoutCategoryInput, Prisma.FinSubscriptionUncheckedCreateWithoutCategoryInput>
+}
+
+export type FinSubscriptionCreateManyCategoryInputEnvelope = {
+  data: Prisma.FinSubscriptionCreateManyCategoryInput | Prisma.FinSubscriptionCreateManyCategoryInput[]
+  skipDuplicates?: boolean
+}
+
+export type FinSubscriptionUpsertWithWhereUniqueWithoutCategoryInput = {
+  where: Prisma.FinSubscriptionWhereUniqueInput
+  update: Prisma.XOR<Prisma.FinSubscriptionUpdateWithoutCategoryInput, Prisma.FinSubscriptionUncheckedUpdateWithoutCategoryInput>
+  create: Prisma.XOR<Prisma.FinSubscriptionCreateWithoutCategoryInput, Prisma.FinSubscriptionUncheckedCreateWithoutCategoryInput>
+}
+
+export type FinSubscriptionUpdateWithWhereUniqueWithoutCategoryInput = {
+  where: Prisma.FinSubscriptionWhereUniqueInput
+  data: Prisma.XOR<Prisma.FinSubscriptionUpdateWithoutCategoryInput, Prisma.FinSubscriptionUncheckedUpdateWithoutCategoryInput>
+}
+
+export type FinSubscriptionUpdateManyWithWhereWithoutCategoryInput = {
+  where: Prisma.FinSubscriptionScalarWhereInput
+  data: Prisma.XOR<Prisma.FinSubscriptionUpdateManyMutationInput, Prisma.FinSubscriptionUncheckedUpdateManyWithoutCategoryInput>
+}
+
 export type FinSubscriptionCreateWithoutSourcePatternInput = {
   id?: string
   name: string
@@ -1268,8 +1452,10 @@ export type FinSubscriptionCreateWithoutSourcePatternInput = {
   updatedAt?: Date | string
   account?: Prisma.FinAccountCreateNestedOneWithoutSubscriptionsInput
   card?: Prisma.FinCardCreateNestedOneWithoutSubscriptionsInput
+  category?: Prisma.FinCategoryCreateNestedOneWithoutSubscriptionsInput
   user: Prisma.UserCreateNestedOneWithoutFinSubscriptionsInput
   payments?: Prisma.FinSubscriptionPaymentCreateNestedManyWithoutSubscriptionInput
+  alertDismissals?: Prisma.FinSubscriptionAlertDismissalCreateNestedManyWithoutSubscriptionInput
 }
 
 export type FinSubscriptionUncheckedCreateWithoutSourcePatternInput = {
@@ -1294,11 +1480,13 @@ export type FinSubscriptionUncheckedCreateWithoutSourcePatternInput = {
   lastRemindedFor?: Date | string | null
   cardId?: string | null
   accountId?: string | null
+  categoryId?: string | null
   manageUrl?: string | null
   notes?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   payments?: Prisma.FinSubscriptionPaymentUncheckedCreateNestedManyWithoutSubscriptionInput
+  alertDismissals?: Prisma.FinSubscriptionAlertDismissalUncheckedCreateNestedManyWithoutSubscriptionInput
 }
 
 export type FinSubscriptionCreateOrConnectWithoutSourcePatternInput = {
@@ -1352,8 +1540,10 @@ export type FinSubscriptionCreateWithoutPaymentsInput = {
   updatedAt?: Date | string
   account?: Prisma.FinAccountCreateNestedOneWithoutSubscriptionsInput
   card?: Prisma.FinCardCreateNestedOneWithoutSubscriptionsInput
+  category?: Prisma.FinCategoryCreateNestedOneWithoutSubscriptionsInput
   sourcePattern?: Prisma.FinRecurringPatternCreateNestedOneWithoutSubscriptionsInput
   user: Prisma.UserCreateNestedOneWithoutFinSubscriptionsInput
+  alertDismissals?: Prisma.FinSubscriptionAlertDismissalCreateNestedManyWithoutSubscriptionInput
 }
 
 export type FinSubscriptionUncheckedCreateWithoutPaymentsInput = {
@@ -1378,11 +1568,13 @@ export type FinSubscriptionUncheckedCreateWithoutPaymentsInput = {
   lastRemindedFor?: Date | string | null
   cardId?: string | null
   accountId?: string | null
+  categoryId?: string | null
   manageUrl?: string | null
   notes?: string | null
   sourcePatternId?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  alertDismissals?: Prisma.FinSubscriptionAlertDismissalUncheckedCreateNestedManyWithoutSubscriptionInput
 }
 
 export type FinSubscriptionCreateOrConnectWithoutPaymentsInput = {
@@ -1426,8 +1618,10 @@ export type FinSubscriptionUpdateWithoutPaymentsInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   account?: Prisma.FinAccountUpdateOneWithoutSubscriptionsNestedInput
   card?: Prisma.FinCardUpdateOneWithoutSubscriptionsNestedInput
+  category?: Prisma.FinCategoryUpdateOneWithoutSubscriptionsNestedInput
   sourcePattern?: Prisma.FinRecurringPatternUpdateOneWithoutSubscriptionsNestedInput
   user?: Prisma.UserUpdateOneRequiredWithoutFinSubscriptionsNestedInput
+  alertDismissals?: Prisma.FinSubscriptionAlertDismissalUpdateManyWithoutSubscriptionNestedInput
 }
 
 export type FinSubscriptionUncheckedUpdateWithoutPaymentsInput = {
@@ -1452,11 +1646,153 @@ export type FinSubscriptionUncheckedUpdateWithoutPaymentsInput = {
   lastRemindedFor?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   cardId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   accountId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  categoryId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   manageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sourcePatternId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  alertDismissals?: Prisma.FinSubscriptionAlertDismissalUncheckedUpdateManyWithoutSubscriptionNestedInput
+}
+
+export type FinSubscriptionCreateWithoutAlertDismissalsInput = {
+  id?: string
+  name: string
+  normalizedKey: string
+  domain?: string | null
+  logoPath?: string | null
+  customLogoPath?: string | null
+  amount: runtime.Decimal | runtime.DecimalJsLike | number | string
+  currency?: string
+  billingCycle: $Enums.FinBillingCycle
+  billingInterval?: number
+  anchorDate: Date | string
+  nextBillingDate: Date | string
+  trialEndsAt?: Date | string | null
+  status?: $Enums.FinSubscriptionStatus
+  pausedAt?: Date | string | null
+  cancelledAt?: Date | string | null
+  reminderDaysBefore?: number
+  lastRemindedFor?: Date | string | null
+  manageUrl?: string | null
+  notes?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  account?: Prisma.FinAccountCreateNestedOneWithoutSubscriptionsInput
+  card?: Prisma.FinCardCreateNestedOneWithoutSubscriptionsInput
+  category?: Prisma.FinCategoryCreateNestedOneWithoutSubscriptionsInput
+  sourcePattern?: Prisma.FinRecurringPatternCreateNestedOneWithoutSubscriptionsInput
+  user: Prisma.UserCreateNestedOneWithoutFinSubscriptionsInput
+  payments?: Prisma.FinSubscriptionPaymentCreateNestedManyWithoutSubscriptionInput
+}
+
+export type FinSubscriptionUncheckedCreateWithoutAlertDismissalsInput = {
+  id?: string
+  userId: string
+  name: string
+  normalizedKey: string
+  domain?: string | null
+  logoPath?: string | null
+  customLogoPath?: string | null
+  amount: runtime.Decimal | runtime.DecimalJsLike | number | string
+  currency?: string
+  billingCycle: $Enums.FinBillingCycle
+  billingInterval?: number
+  anchorDate: Date | string
+  nextBillingDate: Date | string
+  trialEndsAt?: Date | string | null
+  status?: $Enums.FinSubscriptionStatus
+  pausedAt?: Date | string | null
+  cancelledAt?: Date | string | null
+  reminderDaysBefore?: number
+  lastRemindedFor?: Date | string | null
+  cardId?: string | null
+  accountId?: string | null
+  categoryId?: string | null
+  manageUrl?: string | null
+  notes?: string | null
+  sourcePatternId?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  payments?: Prisma.FinSubscriptionPaymentUncheckedCreateNestedManyWithoutSubscriptionInput
+}
+
+export type FinSubscriptionCreateOrConnectWithoutAlertDismissalsInput = {
+  where: Prisma.FinSubscriptionWhereUniqueInput
+  create: Prisma.XOR<Prisma.FinSubscriptionCreateWithoutAlertDismissalsInput, Prisma.FinSubscriptionUncheckedCreateWithoutAlertDismissalsInput>
+}
+
+export type FinSubscriptionUpsertWithoutAlertDismissalsInput = {
+  update: Prisma.XOR<Prisma.FinSubscriptionUpdateWithoutAlertDismissalsInput, Prisma.FinSubscriptionUncheckedUpdateWithoutAlertDismissalsInput>
+  create: Prisma.XOR<Prisma.FinSubscriptionCreateWithoutAlertDismissalsInput, Prisma.FinSubscriptionUncheckedCreateWithoutAlertDismissalsInput>
+  where?: Prisma.FinSubscriptionWhereInput
+}
+
+export type FinSubscriptionUpdateToOneWithWhereWithoutAlertDismissalsInput = {
+  where?: Prisma.FinSubscriptionWhereInput
+  data: Prisma.XOR<Prisma.FinSubscriptionUpdateWithoutAlertDismissalsInput, Prisma.FinSubscriptionUncheckedUpdateWithoutAlertDismissalsInput>
+}
+
+export type FinSubscriptionUpdateWithoutAlertDismissalsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  normalizedKey?: Prisma.StringFieldUpdateOperationsInput | string
+  domain?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  logoPath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  customLogoPath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  currency?: Prisma.StringFieldUpdateOperationsInput | string
+  billingCycle?: Prisma.EnumFinBillingCycleFieldUpdateOperationsInput | $Enums.FinBillingCycle
+  billingInterval?: Prisma.IntFieldUpdateOperationsInput | number
+  anchorDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  nextBillingDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  trialEndsAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  status?: Prisma.EnumFinSubscriptionStatusFieldUpdateOperationsInput | $Enums.FinSubscriptionStatus
+  pausedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  cancelledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  reminderDaysBefore?: Prisma.IntFieldUpdateOperationsInput | number
+  lastRemindedFor?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  manageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  account?: Prisma.FinAccountUpdateOneWithoutSubscriptionsNestedInput
+  card?: Prisma.FinCardUpdateOneWithoutSubscriptionsNestedInput
+  category?: Prisma.FinCategoryUpdateOneWithoutSubscriptionsNestedInput
+  sourcePattern?: Prisma.FinRecurringPatternUpdateOneWithoutSubscriptionsNestedInput
+  user?: Prisma.UserUpdateOneRequiredWithoutFinSubscriptionsNestedInput
+  payments?: Prisma.FinSubscriptionPaymentUpdateManyWithoutSubscriptionNestedInput
+}
+
+export type FinSubscriptionUncheckedUpdateWithoutAlertDismissalsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  userId?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  normalizedKey?: Prisma.StringFieldUpdateOperationsInput | string
+  domain?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  logoPath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  customLogoPath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  currency?: Prisma.StringFieldUpdateOperationsInput | string
+  billingCycle?: Prisma.EnumFinBillingCycleFieldUpdateOperationsInput | $Enums.FinBillingCycle
+  billingInterval?: Prisma.IntFieldUpdateOperationsInput | number
+  anchorDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  nextBillingDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  trialEndsAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  status?: Prisma.EnumFinSubscriptionStatusFieldUpdateOperationsInput | $Enums.FinSubscriptionStatus
+  pausedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  cancelledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  reminderDaysBefore?: Prisma.IntFieldUpdateOperationsInput | number
+  lastRemindedFor?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  cardId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  accountId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  categoryId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  manageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourcePatternId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  payments?: Prisma.FinSubscriptionPaymentUncheckedUpdateManyWithoutSubscriptionNestedInput
 }
 
 export type FinSubscriptionCreateWithoutCardInput = {
@@ -1483,9 +1819,11 @@ export type FinSubscriptionCreateWithoutCardInput = {
   createdAt?: Date | string
   updatedAt?: Date | string
   account?: Prisma.FinAccountCreateNestedOneWithoutSubscriptionsInput
+  category?: Prisma.FinCategoryCreateNestedOneWithoutSubscriptionsInput
   sourcePattern?: Prisma.FinRecurringPatternCreateNestedOneWithoutSubscriptionsInput
   user: Prisma.UserCreateNestedOneWithoutFinSubscriptionsInput
   payments?: Prisma.FinSubscriptionPaymentCreateNestedManyWithoutSubscriptionInput
+  alertDismissals?: Prisma.FinSubscriptionAlertDismissalCreateNestedManyWithoutSubscriptionInput
 }
 
 export type FinSubscriptionUncheckedCreateWithoutCardInput = {
@@ -1509,12 +1847,14 @@ export type FinSubscriptionUncheckedCreateWithoutCardInput = {
   reminderDaysBefore?: number
   lastRemindedFor?: Date | string | null
   accountId?: string | null
+  categoryId?: string | null
   manageUrl?: string | null
   notes?: string | null
   sourcePatternId?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   payments?: Prisma.FinSubscriptionPaymentUncheckedCreateNestedManyWithoutSubscriptionInput
+  alertDismissals?: Prisma.FinSubscriptionAlertDismissalUncheckedCreateNestedManyWithoutSubscriptionInput
 }
 
 export type FinSubscriptionCreateOrConnectWithoutCardInput = {
@@ -1564,6 +1904,7 @@ export type FinSubscriptionCreateManyUserInput = {
   lastRemindedFor?: Date | string | null
   cardId?: string | null
   accountId?: string | null
+  categoryId?: string | null
   manageUrl?: string | null
   notes?: string | null
   sourcePatternId?: string | null
@@ -1596,8 +1937,10 @@ export type FinSubscriptionUpdateWithoutUserInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   account?: Prisma.FinAccountUpdateOneWithoutSubscriptionsNestedInput
   card?: Prisma.FinCardUpdateOneWithoutSubscriptionsNestedInput
+  category?: Prisma.FinCategoryUpdateOneWithoutSubscriptionsNestedInput
   sourcePattern?: Prisma.FinRecurringPatternUpdateOneWithoutSubscriptionsNestedInput
   payments?: Prisma.FinSubscriptionPaymentUpdateManyWithoutSubscriptionNestedInput
+  alertDismissals?: Prisma.FinSubscriptionAlertDismissalUpdateManyWithoutSubscriptionNestedInput
 }
 
 export type FinSubscriptionUncheckedUpdateWithoutUserInput = {
@@ -1621,12 +1964,14 @@ export type FinSubscriptionUncheckedUpdateWithoutUserInput = {
   lastRemindedFor?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   cardId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   accountId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  categoryId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   manageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sourcePatternId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   payments?: Prisma.FinSubscriptionPaymentUncheckedUpdateManyWithoutSubscriptionNestedInput
+  alertDismissals?: Prisma.FinSubscriptionAlertDismissalUncheckedUpdateManyWithoutSubscriptionNestedInput
 }
 
 export type FinSubscriptionUncheckedUpdateManyWithoutUserInput = {
@@ -1650,6 +1995,7 @@ export type FinSubscriptionUncheckedUpdateManyWithoutUserInput = {
   lastRemindedFor?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   cardId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   accountId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  categoryId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   manageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sourcePatternId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1678,6 +2024,7 @@ export type FinSubscriptionCreateManyAccountInput = {
   reminderDaysBefore?: number
   lastRemindedFor?: Date | string | null
   cardId?: string | null
+  categoryId?: string | null
   manageUrl?: string | null
   notes?: string | null
   sourcePatternId?: string | null
@@ -1709,9 +2056,11 @@ export type FinSubscriptionUpdateWithoutAccountInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   card?: Prisma.FinCardUpdateOneWithoutSubscriptionsNestedInput
+  category?: Prisma.FinCategoryUpdateOneWithoutSubscriptionsNestedInput
   sourcePattern?: Prisma.FinRecurringPatternUpdateOneWithoutSubscriptionsNestedInput
   user?: Prisma.UserUpdateOneRequiredWithoutFinSubscriptionsNestedInput
   payments?: Prisma.FinSubscriptionPaymentUpdateManyWithoutSubscriptionNestedInput
+  alertDismissals?: Prisma.FinSubscriptionAlertDismissalUpdateManyWithoutSubscriptionNestedInput
 }
 
 export type FinSubscriptionUncheckedUpdateWithoutAccountInput = {
@@ -1735,12 +2084,14 @@ export type FinSubscriptionUncheckedUpdateWithoutAccountInput = {
   reminderDaysBefore?: Prisma.IntFieldUpdateOperationsInput | number
   lastRemindedFor?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   cardId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  categoryId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   manageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sourcePatternId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   payments?: Prisma.FinSubscriptionPaymentUncheckedUpdateManyWithoutSubscriptionNestedInput
+  alertDismissals?: Prisma.FinSubscriptionAlertDismissalUncheckedUpdateManyWithoutSubscriptionNestedInput
 }
 
 export type FinSubscriptionUncheckedUpdateManyWithoutAccountInput = {
@@ -1764,6 +2115,127 @@ export type FinSubscriptionUncheckedUpdateManyWithoutAccountInput = {
   reminderDaysBefore?: Prisma.IntFieldUpdateOperationsInput | number
   lastRemindedFor?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   cardId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  categoryId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  manageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourcePatternId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+}
+
+export type FinSubscriptionCreateManyCategoryInput = {
+  id?: string
+  userId: string
+  name: string
+  normalizedKey: string
+  domain?: string | null
+  logoPath?: string | null
+  customLogoPath?: string | null
+  amount: runtime.Decimal | runtime.DecimalJsLike | number | string
+  currency?: string
+  billingCycle: $Enums.FinBillingCycle
+  billingInterval?: number
+  anchorDate: Date | string
+  nextBillingDate: Date | string
+  trialEndsAt?: Date | string | null
+  status?: $Enums.FinSubscriptionStatus
+  pausedAt?: Date | string | null
+  cancelledAt?: Date | string | null
+  reminderDaysBefore?: number
+  lastRemindedFor?: Date | string | null
+  cardId?: string | null
+  accountId?: string | null
+  manageUrl?: string | null
+  notes?: string | null
+  sourcePatternId?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+}
+
+export type FinSubscriptionUpdateWithoutCategoryInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  normalizedKey?: Prisma.StringFieldUpdateOperationsInput | string
+  domain?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  logoPath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  customLogoPath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  currency?: Prisma.StringFieldUpdateOperationsInput | string
+  billingCycle?: Prisma.EnumFinBillingCycleFieldUpdateOperationsInput | $Enums.FinBillingCycle
+  billingInterval?: Prisma.IntFieldUpdateOperationsInput | number
+  anchorDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  nextBillingDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  trialEndsAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  status?: Prisma.EnumFinSubscriptionStatusFieldUpdateOperationsInput | $Enums.FinSubscriptionStatus
+  pausedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  cancelledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  reminderDaysBefore?: Prisma.IntFieldUpdateOperationsInput | number
+  lastRemindedFor?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  manageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  account?: Prisma.FinAccountUpdateOneWithoutSubscriptionsNestedInput
+  card?: Prisma.FinCardUpdateOneWithoutSubscriptionsNestedInput
+  sourcePattern?: Prisma.FinRecurringPatternUpdateOneWithoutSubscriptionsNestedInput
+  user?: Prisma.UserUpdateOneRequiredWithoutFinSubscriptionsNestedInput
+  payments?: Prisma.FinSubscriptionPaymentUpdateManyWithoutSubscriptionNestedInput
+  alertDismissals?: Prisma.FinSubscriptionAlertDismissalUpdateManyWithoutSubscriptionNestedInput
+}
+
+export type FinSubscriptionUncheckedUpdateWithoutCategoryInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  userId?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  normalizedKey?: Prisma.StringFieldUpdateOperationsInput | string
+  domain?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  logoPath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  customLogoPath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  currency?: Prisma.StringFieldUpdateOperationsInput | string
+  billingCycle?: Prisma.EnumFinBillingCycleFieldUpdateOperationsInput | $Enums.FinBillingCycle
+  billingInterval?: Prisma.IntFieldUpdateOperationsInput | number
+  anchorDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  nextBillingDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  trialEndsAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  status?: Prisma.EnumFinSubscriptionStatusFieldUpdateOperationsInput | $Enums.FinSubscriptionStatus
+  pausedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  cancelledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  reminderDaysBefore?: Prisma.IntFieldUpdateOperationsInput | number
+  lastRemindedFor?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  cardId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  accountId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  manageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sourcePatternId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  payments?: Prisma.FinSubscriptionPaymentUncheckedUpdateManyWithoutSubscriptionNestedInput
+  alertDismissals?: Prisma.FinSubscriptionAlertDismissalUncheckedUpdateManyWithoutSubscriptionNestedInput
+}
+
+export type FinSubscriptionUncheckedUpdateManyWithoutCategoryInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  userId?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  normalizedKey?: Prisma.StringFieldUpdateOperationsInput | string
+  domain?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  logoPath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  customLogoPath?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  amount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  currency?: Prisma.StringFieldUpdateOperationsInput | string
+  billingCycle?: Prisma.EnumFinBillingCycleFieldUpdateOperationsInput | $Enums.FinBillingCycle
+  billingInterval?: Prisma.IntFieldUpdateOperationsInput | number
+  anchorDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  nextBillingDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  trialEndsAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  status?: Prisma.EnumFinSubscriptionStatusFieldUpdateOperationsInput | $Enums.FinSubscriptionStatus
+  pausedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  cancelledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  reminderDaysBefore?: Prisma.IntFieldUpdateOperationsInput | number
+  lastRemindedFor?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  cardId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  accountId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   manageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sourcePatternId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -1793,6 +2265,7 @@ export type FinSubscriptionCreateManySourcePatternInput = {
   lastRemindedFor?: Date | string | null
   cardId?: string | null
   accountId?: string | null
+  categoryId?: string | null
   manageUrl?: string | null
   notes?: string | null
   createdAt?: Date | string
@@ -1824,8 +2297,10 @@ export type FinSubscriptionUpdateWithoutSourcePatternInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   account?: Prisma.FinAccountUpdateOneWithoutSubscriptionsNestedInput
   card?: Prisma.FinCardUpdateOneWithoutSubscriptionsNestedInput
+  category?: Prisma.FinCategoryUpdateOneWithoutSubscriptionsNestedInput
   user?: Prisma.UserUpdateOneRequiredWithoutFinSubscriptionsNestedInput
   payments?: Prisma.FinSubscriptionPaymentUpdateManyWithoutSubscriptionNestedInput
+  alertDismissals?: Prisma.FinSubscriptionAlertDismissalUpdateManyWithoutSubscriptionNestedInput
 }
 
 export type FinSubscriptionUncheckedUpdateWithoutSourcePatternInput = {
@@ -1850,11 +2325,13 @@ export type FinSubscriptionUncheckedUpdateWithoutSourcePatternInput = {
   lastRemindedFor?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   cardId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   accountId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  categoryId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   manageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   payments?: Prisma.FinSubscriptionPaymentUncheckedUpdateManyWithoutSubscriptionNestedInput
+  alertDismissals?: Prisma.FinSubscriptionAlertDismissalUncheckedUpdateManyWithoutSubscriptionNestedInput
 }
 
 export type FinSubscriptionUncheckedUpdateManyWithoutSourcePatternInput = {
@@ -1879,6 +2356,7 @@ export type FinSubscriptionUncheckedUpdateManyWithoutSourcePatternInput = {
   lastRemindedFor?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   cardId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   accountId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  categoryId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   manageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1906,6 +2384,7 @@ export type FinSubscriptionCreateManyCardInput = {
   reminderDaysBefore?: number
   lastRemindedFor?: Date | string | null
   accountId?: string | null
+  categoryId?: string | null
   manageUrl?: string | null
   notes?: string | null
   sourcePatternId?: string | null
@@ -1937,9 +2416,11 @@ export type FinSubscriptionUpdateWithoutCardInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   account?: Prisma.FinAccountUpdateOneWithoutSubscriptionsNestedInput
+  category?: Prisma.FinCategoryUpdateOneWithoutSubscriptionsNestedInput
   sourcePattern?: Prisma.FinRecurringPatternUpdateOneWithoutSubscriptionsNestedInput
   user?: Prisma.UserUpdateOneRequiredWithoutFinSubscriptionsNestedInput
   payments?: Prisma.FinSubscriptionPaymentUpdateManyWithoutSubscriptionNestedInput
+  alertDismissals?: Prisma.FinSubscriptionAlertDismissalUpdateManyWithoutSubscriptionNestedInput
 }
 
 export type FinSubscriptionUncheckedUpdateWithoutCardInput = {
@@ -1963,12 +2444,14 @@ export type FinSubscriptionUncheckedUpdateWithoutCardInput = {
   reminderDaysBefore?: Prisma.IntFieldUpdateOperationsInput | number
   lastRemindedFor?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   accountId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  categoryId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   manageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sourcePatternId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   payments?: Prisma.FinSubscriptionPaymentUncheckedUpdateManyWithoutSubscriptionNestedInput
+  alertDismissals?: Prisma.FinSubscriptionAlertDismissalUncheckedUpdateManyWithoutSubscriptionNestedInput
 }
 
 export type FinSubscriptionUncheckedUpdateManyWithoutCardInput = {
@@ -1992,6 +2475,7 @@ export type FinSubscriptionUncheckedUpdateManyWithoutCardInput = {
   reminderDaysBefore?: Prisma.IntFieldUpdateOperationsInput | number
   lastRemindedFor?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   accountId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  categoryId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   manageUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sourcePatternId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -2006,10 +2490,12 @@ export type FinSubscriptionUncheckedUpdateManyWithoutCardInput = {
 
 export type FinSubscriptionCountOutputType = {
   payments: number
+  alertDismissals: number
 }
 
 export type FinSubscriptionCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   payments?: boolean | FinSubscriptionCountOutputTypeCountPaymentsArgs
+  alertDismissals?: boolean | FinSubscriptionCountOutputTypeCountAlertDismissalsArgs
 }
 
 /**
@@ -2027,6 +2513,13 @@ export type FinSubscriptionCountOutputTypeDefaultArgs<ExtArgs extends runtime.Ty
  */
 export type FinSubscriptionCountOutputTypeCountPaymentsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   where?: Prisma.FinSubscriptionPaymentWhereInput
+}
+
+/**
+ * FinSubscriptionCountOutputType without action
+ */
+export type FinSubscriptionCountOutputTypeCountAlertDismissalsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.FinSubscriptionAlertDismissalWhereInput
 }
 
 
@@ -2052,6 +2545,7 @@ export type FinSubscriptionSelect<ExtArgs extends runtime.Types.Extensions.Inter
   lastRemindedFor?: boolean
   cardId?: boolean
   accountId?: boolean
+  categoryId?: boolean
   manageUrl?: boolean
   notes?: boolean
   sourcePatternId?: boolean
@@ -2059,9 +2553,11 @@ export type FinSubscriptionSelect<ExtArgs extends runtime.Types.Extensions.Inter
   updatedAt?: boolean
   account?: boolean | Prisma.FinSubscription$accountArgs<ExtArgs>
   card?: boolean | Prisma.FinSubscription$cardArgs<ExtArgs>
+  category?: boolean | Prisma.FinSubscription$categoryArgs<ExtArgs>
   sourcePattern?: boolean | Prisma.FinSubscription$sourcePatternArgs<ExtArgs>
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   payments?: boolean | Prisma.FinSubscription$paymentsArgs<ExtArgs>
+  alertDismissals?: boolean | Prisma.FinSubscription$alertDismissalsArgs<ExtArgs>
   _count?: boolean | Prisma.FinSubscriptionCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["finSubscription"]>
 
@@ -2087,6 +2583,7 @@ export type FinSubscriptionSelectCreateManyAndReturn<ExtArgs extends runtime.Typ
   lastRemindedFor?: boolean
   cardId?: boolean
   accountId?: boolean
+  categoryId?: boolean
   manageUrl?: boolean
   notes?: boolean
   sourcePatternId?: boolean
@@ -2094,6 +2591,7 @@ export type FinSubscriptionSelectCreateManyAndReturn<ExtArgs extends runtime.Typ
   updatedAt?: boolean
   account?: boolean | Prisma.FinSubscription$accountArgs<ExtArgs>
   card?: boolean | Prisma.FinSubscription$cardArgs<ExtArgs>
+  category?: boolean | Prisma.FinSubscription$categoryArgs<ExtArgs>
   sourcePattern?: boolean | Prisma.FinSubscription$sourcePatternArgs<ExtArgs>
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["finSubscription"]>
@@ -2120,6 +2618,7 @@ export type FinSubscriptionSelectUpdateManyAndReturn<ExtArgs extends runtime.Typ
   lastRemindedFor?: boolean
   cardId?: boolean
   accountId?: boolean
+  categoryId?: boolean
   manageUrl?: boolean
   notes?: boolean
   sourcePatternId?: boolean
@@ -2127,6 +2626,7 @@ export type FinSubscriptionSelectUpdateManyAndReturn<ExtArgs extends runtime.Typ
   updatedAt?: boolean
   account?: boolean | Prisma.FinSubscription$accountArgs<ExtArgs>
   card?: boolean | Prisma.FinSubscription$cardArgs<ExtArgs>
+  category?: boolean | Prisma.FinSubscription$categoryArgs<ExtArgs>
   sourcePattern?: boolean | Prisma.FinSubscription$sourcePatternArgs<ExtArgs>
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["finSubscription"]>
@@ -2153,6 +2653,7 @@ export type FinSubscriptionSelectScalar = {
   lastRemindedFor?: boolean
   cardId?: boolean
   accountId?: boolean
+  categoryId?: boolean
   manageUrl?: boolean
   notes?: boolean
   sourcePatternId?: boolean
@@ -2160,24 +2661,28 @@ export type FinSubscriptionSelectScalar = {
   updatedAt?: boolean
 }
 
-export type FinSubscriptionOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "name" | "normalizedKey" | "domain" | "logoPath" | "customLogoPath" | "amount" | "currency" | "billingCycle" | "billingInterval" | "anchorDate" | "nextBillingDate" | "trialEndsAt" | "status" | "pausedAt" | "cancelledAt" | "reminderDaysBefore" | "lastRemindedFor" | "cardId" | "accountId" | "manageUrl" | "notes" | "sourcePatternId" | "createdAt" | "updatedAt", ExtArgs["result"]["finSubscription"]>
+export type FinSubscriptionOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "name" | "normalizedKey" | "domain" | "logoPath" | "customLogoPath" | "amount" | "currency" | "billingCycle" | "billingInterval" | "anchorDate" | "nextBillingDate" | "trialEndsAt" | "status" | "pausedAt" | "cancelledAt" | "reminderDaysBefore" | "lastRemindedFor" | "cardId" | "accountId" | "categoryId" | "manageUrl" | "notes" | "sourcePatternId" | "createdAt" | "updatedAt", ExtArgs["result"]["finSubscription"]>
 export type FinSubscriptionInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   account?: boolean | Prisma.FinSubscription$accountArgs<ExtArgs>
   card?: boolean | Prisma.FinSubscription$cardArgs<ExtArgs>
+  category?: boolean | Prisma.FinSubscription$categoryArgs<ExtArgs>
   sourcePattern?: boolean | Prisma.FinSubscription$sourcePatternArgs<ExtArgs>
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   payments?: boolean | Prisma.FinSubscription$paymentsArgs<ExtArgs>
+  alertDismissals?: boolean | Prisma.FinSubscription$alertDismissalsArgs<ExtArgs>
   _count?: boolean | Prisma.FinSubscriptionCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type FinSubscriptionIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   account?: boolean | Prisma.FinSubscription$accountArgs<ExtArgs>
   card?: boolean | Prisma.FinSubscription$cardArgs<ExtArgs>
+  category?: boolean | Prisma.FinSubscription$categoryArgs<ExtArgs>
   sourcePattern?: boolean | Prisma.FinSubscription$sourcePatternArgs<ExtArgs>
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
 }
 export type FinSubscriptionIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   account?: boolean | Prisma.FinSubscription$accountArgs<ExtArgs>
   card?: boolean | Prisma.FinSubscription$cardArgs<ExtArgs>
+  category?: boolean | Prisma.FinSubscription$categoryArgs<ExtArgs>
   sourcePattern?: boolean | Prisma.FinSubscription$sourcePatternArgs<ExtArgs>
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
 }
@@ -2187,9 +2692,11 @@ export type $FinSubscriptionPayload<ExtArgs extends runtime.Types.Extensions.Int
   objects: {
     account: Prisma.$FinAccountPayload<ExtArgs> | null
     card: Prisma.$FinCardPayload<ExtArgs> | null
+    category: Prisma.$FinCategoryPayload<ExtArgs> | null
     sourcePattern: Prisma.$FinRecurringPatternPayload<ExtArgs> | null
     user: Prisma.$UserPayload<ExtArgs>
     payments: Prisma.$FinSubscriptionPaymentPayload<ExtArgs>[]
+    alertDismissals: Prisma.$FinSubscriptionAlertDismissalPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -2222,6 +2729,7 @@ export type $FinSubscriptionPayload<ExtArgs extends runtime.Types.Extensions.Int
     lastRemindedFor: Date | null
     cardId: string | null
     accountId: string | null
+    categoryId: string | null
     manageUrl: string | null
     notes: string | null
     sourcePatternId: string | null
@@ -2623,9 +3131,11 @@ export interface Prisma__FinSubscriptionClient<T, Null = never, ExtArgs extends 
   readonly [Symbol.toStringTag]: "PrismaPromise"
   account<T extends Prisma.FinSubscription$accountArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.FinSubscription$accountArgs<ExtArgs>>): Prisma.Prisma__FinAccountClient<runtime.Types.Result.GetResult<Prisma.$FinAccountPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   card<T extends Prisma.FinSubscription$cardArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.FinSubscription$cardArgs<ExtArgs>>): Prisma.Prisma__FinCardClient<runtime.Types.Result.GetResult<Prisma.$FinCardPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  category<T extends Prisma.FinSubscription$categoryArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.FinSubscription$categoryArgs<ExtArgs>>): Prisma.Prisma__FinCategoryClient<runtime.Types.Result.GetResult<Prisma.$FinCategoryPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   sourcePattern<T extends Prisma.FinSubscription$sourcePatternArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.FinSubscription$sourcePatternArgs<ExtArgs>>): Prisma.Prisma__FinRecurringPatternClient<runtime.Types.Result.GetResult<Prisma.$FinRecurringPatternPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   user<T extends Prisma.UserDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.UserDefaultArgs<ExtArgs>>): Prisma.Prisma__UserClient<runtime.Types.Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   payments<T extends Prisma.FinSubscription$paymentsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.FinSubscription$paymentsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$FinSubscriptionPaymentPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  alertDismissals<T extends Prisma.FinSubscription$alertDismissalsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.FinSubscription$alertDismissalsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$FinSubscriptionAlertDismissalPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -2676,6 +3186,7 @@ export interface FinSubscriptionFieldRefs {
   readonly lastRemindedFor: Prisma.FieldRef<"FinSubscription", 'DateTime'>
   readonly cardId: Prisma.FieldRef<"FinSubscription", 'String'>
   readonly accountId: Prisma.FieldRef<"FinSubscription", 'String'>
+  readonly categoryId: Prisma.FieldRef<"FinSubscription", 'String'>
   readonly manageUrl: Prisma.FieldRef<"FinSubscription", 'String'>
   readonly notes: Prisma.FieldRef<"FinSubscription", 'String'>
   readonly sourcePatternId: Prisma.FieldRef<"FinSubscription", 'String'>
@@ -3120,6 +3631,25 @@ export type FinSubscription$cardArgs<ExtArgs extends runtime.Types.Extensions.In
 }
 
 /**
+ * FinSubscription.category
+ */
+export type FinSubscription$categoryArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the FinCategory
+   */
+  select?: Prisma.FinCategorySelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the FinCategory
+   */
+  omit?: Prisma.FinCategoryOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.FinCategoryInclude<ExtArgs> | null
+  where?: Prisma.FinCategoryWhereInput
+}
+
+/**
  * FinSubscription.sourcePattern
  */
 export type FinSubscription$sourcePatternArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -3160,6 +3690,30 @@ export type FinSubscription$paymentsArgs<ExtArgs extends runtime.Types.Extension
   take?: number
   skip?: number
   distinct?: Prisma.FinSubscriptionPaymentScalarFieldEnum | Prisma.FinSubscriptionPaymentScalarFieldEnum[]
+}
+
+/**
+ * FinSubscription.alertDismissals
+ */
+export type FinSubscription$alertDismissalsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the FinSubscriptionAlertDismissal
+   */
+  select?: Prisma.FinSubscriptionAlertDismissalSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the FinSubscriptionAlertDismissal
+   */
+  omit?: Prisma.FinSubscriptionAlertDismissalOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.FinSubscriptionAlertDismissalInclude<ExtArgs> | null
+  where?: Prisma.FinSubscriptionAlertDismissalWhereInput
+  orderBy?: Prisma.FinSubscriptionAlertDismissalOrderByWithRelationInput | Prisma.FinSubscriptionAlertDismissalOrderByWithRelationInput[]
+  cursor?: Prisma.FinSubscriptionAlertDismissalWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.FinSubscriptionAlertDismissalScalarFieldEnum | Prisma.FinSubscriptionAlertDismissalScalarFieldEnum[]
 }
 
 /**

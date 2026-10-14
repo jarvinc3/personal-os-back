@@ -1,5 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsIn, IsOptional, IsString, MaxLength } from 'class-validator';
+import { IsIn, IsOptional, IsString, IsUUID, MaxLength } from 'class-validator';
 import { CursorQueryDto } from '@personal-os/core';
 
 export const SUBSCRIPTION_STATUSES = ['ACTIVE', 'PAUSED', 'CANCELLED'] as const;
@@ -15,6 +15,21 @@ export class ListSubscriptionsQueryDto extends CursorQueryDto {
   @IsString()
   @MaxLength(3)
   currency?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsUUID()
+  categoryId?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsUUID()
+  cardId?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsUUID()
+  accountId?: string;
 
   @ApiPropertyOptional({ description: 'Name search' })
   @IsOptional()

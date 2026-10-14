@@ -403,6 +403,20 @@ const STATIC_TOOLS: StaticToolDef[] = [
     },
   },
   {
+    name: 'get_subscriptions_summary',
+    description:
+      'Monthly and annual subscription cost, active count, real spend and the month-over-month trend.',
+    mutating: false,
+    targetModule: 'finance',
+  },
+  {
+    name: 'get_subscription_alerts',
+    description:
+      'Price increases, ending trials, upcoming yearly renewals and missed charges for subscriptions.',
+    mutating: false,
+    targetModule: 'finance',
+  },
+  {
     name: 'create_subscription',
     description:
       'Create a managed subscription with its amount, billing cycle and first charge date.',

@@ -208,6 +208,16 @@ export const FinSubscriptionStatus = {
 export type FinSubscriptionStatus = (typeof FinSubscriptionStatus)[keyof typeof FinSubscriptionStatus]
 
 
+export const FinSubscriptionAlertKind = {
+  PRICE_INCREASE: 'PRICE_INCREASE',
+  TRIAL_ENDING: 'TRIAL_ENDING',
+  ANNUAL_RENEWAL: 'ANNUAL_RENEWAL',
+  MISSED_CHARGE: 'MISSED_CHARGE'
+} as const
+
+export type FinSubscriptionAlertKind = (typeof FinSubscriptionAlertKind)[keyof typeof FinSubscriptionAlertKind]
+
+
 export const FinSubscriptionPaymentSource = {
   AUTO: 'AUTO',
   MANUAL: 'MANUAL'

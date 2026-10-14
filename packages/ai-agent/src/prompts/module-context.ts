@@ -89,6 +89,8 @@ export const MODULE_CONTEXT: Record<
       'get_spending_by_category',
       'get_spending_over_time',
       'list_subscriptions',
+      'get_subscriptions_summary',
+      'get_subscription_alerts',
       'confirm_recurring',
       'list_merchants',
       'create_subscription',
