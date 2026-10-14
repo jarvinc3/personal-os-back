@@ -2,16 +2,16 @@
 
 Fixtures reales anonimizados, sacados de Gmail el 13/10/2026. Cuentas y tarjetas están enmascaradas con los últimos 4 dígitos. Montos, terceros, números de confirmación, referencias, emails y teléfonos personales son ficticios. Se conservan el remitente, el asunto, la estructura HTML, los ids y los formatos de fecha. En `expected` de cada `.json` están los campos extraídos esperados.
 
-| Tipo | Remitente | Asunto | Para qué sirve |
-|---|---|---|---|
-| `codigo-validacion-compra` | alertas@bhd.com.do | Código de validación de compra | OTP de compra en línea. No crea movimiento. |
-| `consumo-tarjeta` | Alertas@bhd.com.do | BHD Notificación de Transacciones | Consumo con tarjeta de crédito (una alerta por compra). Crea un gasto en la tarjeta. |
-| `estado-cuenta-ahorro-aviso` | servicios@bhd.com.do | Ya están disponibles los estados de cuenta de septiembre de tu cuenta de ahorro en BHD | Aviso de estado de cuenta disponible en la app (desde oct-2026), sin adjunto. |
-| `estado-cuenta-ahorro-pdf` | servicios@bhd.com.do | Estado de cuenta de tu cuenta de ahorro del BHD | Estado de cuenta de ahorro con PDF adjunto (probablemente cifrado). El PDF no se incluye. |
-| `pago-recurrente-no-aplicado` | notificaciones@bhd.com.do | Pago de servicio recurrente no aplicado | Pago recurrente rechazado. No crea movimiento; sirve como aviso. |
-| `pago-servicio-confirmacion` | Alertas@bhd.com.do | Pago de Servicio e Impuestos | Segundo correo del mismo pago de servicio. Deduplicar. |
-| `pago-servicio` | Alertas@bhd.com.do | Pago de Servicio e Impuestos | Pago de servicio desde tarjeta o cuenta. Crea un gasto. |
-| `recordatorio-pago-tarjeta` | info@bhd.com.do | Jarvin, paga tu Tarjeta de Crédito sin pagar intereses | Recordatorio de fecha límite sin cifras. Sirve para pedir el corte manual. |
-| `transferencia-mis-productos` | Alertas@bhd.com.do | Transacciones entre mis productos | Transferencia entre productos propios; aquí, pago de tarjeta desde cuenta. |
-| `transferencia-otros-bancos-confirmacion` | Alertas@bhd.com.do | Transacciones entre productos BHD y a otros Bancos | Copia de confirmación al beneficiario (a cuenta propia en otro banco). Deduplicar por número de confirmación. |
-| `transferencia-otros-bancos` | Alertas@bhd.com.do | Transacciones entre productos BHD y a otros Bancos | Transferencia saliente a un tercero u otro banco. |
+| Tipo                                      | Remitente                 | Asunto                                                                                 | Para qué sirve                                                                                                |
+| ----------------------------------------- | ------------------------- | -------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `codigo-validacion-compra`                | alertas@bhd.com.do        | Código de validación de compra                                                         | OTP de compra en línea. No crea movimiento.                                                                   |
+| `consumo-tarjeta`                         | Alertas@bhd.com.do        | BHD Notificación de Transacciones                                                      | Consumo con tarjeta de crédito (una alerta por compra). Crea un gasto en la tarjeta.                          |
+| `estado-cuenta-ahorro-aviso`              | servicios@bhd.com.do      | Ya están disponibles los estados de cuenta de septiembre de tu cuenta de ahorro en BHD | Aviso de estado de cuenta disponible en la app (desde oct-2026), sin adjunto.                                 |
+| `estado-cuenta-ahorro-pdf`                | servicios@bhd.com.do      | Estado de cuenta de tu cuenta de ahorro del BHD                                        | Estado de cuenta de ahorro con PDF adjunto (probablemente cifrado). El PDF no se incluye.                     |
+| `pago-recurrente-no-aplicado`             | notificaciones@bhd.com.do | Pago de servicio recurrente no aplicado                                                | Pago recurrente rechazado. No crea movimiento; sirve como aviso.                                              |
+| `pago-servicio-confirmacion`              | Alertas@bhd.com.do        | Pago de Servicio e Impuestos                                                           | Segundo correo del mismo pago de servicio. Deduplicar.                                                        |
+| `pago-servicio`                           | Alertas@bhd.com.do        | Pago de Servicio e Impuestos                                                           | Pago de servicio desde tarjeta o cuenta. Crea un gasto.                                                       |
+| `recordatorio-pago-tarjeta`               | info@bhd.com.do           | Jarvin, paga tu Tarjeta de Crédito sin pagar intereses                                 | Recordatorio de fecha límite sin cifras. Sirve para pedir el corte manual.                                    |
+| `transferencia-mis-productos`             | Alertas@bhd.com.do        | Transacciones entre mis productos                                                      | Transferencia entre productos propios; aquí, pago de tarjeta desde cuenta.                                    |
+| `transferencia-otros-bancos-confirmacion` | Alertas@bhd.com.do        | Transacciones entre productos BHD y a otros Bancos                                     | Copia de confirmación al beneficiario (a cuenta propia en otro banco). Deduplicar por número de confirmación. |
+| `transferencia-otros-bancos`              | Alertas@bhd.com.do        | Transacciones entre productos BHD y a otros Bancos                                     | Transferencia saliente a un tercero u otro banco.                                                             |
