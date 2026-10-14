@@ -2,6 +2,18 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [SemVer](https://semver.org/lang/es/). Reglas y ejemplo en [docs/reference/changelog-guide.md](./docs/reference/changelog-guide.md).
 
+## [0.24.2] - 2026-10-14
+
+### Corregido
+
+- La notificación del resumen semanal reporta la semana anterior completa, no la que acaba de empezar el mismo día del envío.
+- `GET /api/finance/analytics/weekly-summary` responde 400 ante un `weekStart` que no es una fecha real (por ejemplo `2026-02-31`) en vez de fallar con un error interno.
+- La captura rápida ignora una fecha imposible del modelo y usa la fecha de hoy.
+
+### Cambiado
+
+- Los specs cubren el día y la hora del envío semanal, la idempotencia por semana, los destinatarios según el ajuste, el texto de la notificación, la semana anterior y las fechas imposibles. Sin cambios de comportamiento.
+
 ## [0.24.1] - 2026-10-14
 
 ### Corregido
