@@ -1,4 +1,5 @@
 export * from './ai/ai-chat.port';
+export * from './ai/chat-context';
 export * from './core.module';
 export * from './decorators';
 export * from './events/domain-event-idempotency.guard';

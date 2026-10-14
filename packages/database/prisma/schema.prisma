@@ -79,6 +79,7 @@ model AiAgentSession {
   userId         String      @map("user_id")
   moduleId       String?     @map("module_id")
   contextType    String      @default("general") @map("context_type")
+  chatContext    Json        @default("{}") @map("chat_context")
   memorySnapshot Json        @default("{}") @map("memory_snapshot")
   lastActiveAt   DateTime    @default(now()) @map("last_active_at") @db.Timestamptz(6)
   createdAt      DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)

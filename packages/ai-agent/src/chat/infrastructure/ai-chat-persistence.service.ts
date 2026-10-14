@@ -2,6 +2,12 @@ import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import type { Prisma as PrismaTypes } from '@personal-os/database';
 import { Prisma } from '@personal-os/database';
 import {
+  ENTITY_REF_TYPES,
+  type ChatContext,
+  type ChatContextEntity,
+  type EntityRefType,
+} from '@personal-os/core';
+import {
   parseUserPreferences,
   USERS_REPOSITORY,
   type UsersRepositoryPort,
@@ -12,6 +18,40 @@ import type { ChatMessage, ToolCallRequest } from '../../shared/ai.types';
 import { buildProviderHistoryFromStored } from '../../shared/build-provider-history';
 
 const MAX_CONTEXT_MESSAGES = 40;
+
+function isEntityRefType(value: string): value is EntityRefType {
+  return (ENTITY_REF_TYPES as readonly string[]).includes(value);
+}
+
+function parseChatContext(value: unknown): ChatContext | null {
+  if (!value || typeof value !== 'object') {
+    return null;
+  }
+
+  const record = value as Record<string, unknown>;
+  if (typeof record.moduleSlug !== 'string' || record.moduleSlug.length === 0) {
+    return null;
+  }
+
+  const context: ChatContext = { moduleSlug: record.moduleSlug };
+  if (typeof record.screen === 'string') {
+    context.screen = record.screen;
+  }
+
+  const entityRef = record.entityRef;
+  if (entityRef && typeof entityRef === 'object') {
+    const ref = entityRef as Record<string, unknown>;
+    if (
+      typeof ref.type === 'string' &&
+      isEntityRefType(ref.type) &&
+      typeof ref.id === 'string'
+    ) {
+      context.entityRef = { type: ref.type, id: ref.id };
+    }
+  }
+
+  return context;
+}
 
 function deriveSessionTitle(content: string): string | null {
   const title = content.trim().replace(/\s+/g, ' ').slice(0, 80);
@@ -215,11 +255,39 @@ export class AiChatPersistenceService {
     });
   }
 
-  async buildMessagesForProvider(
+  async resolveChatContext(
     userId: string,
     sessionId: string,
-    latestUserContent: string,
-  ): Promise<{
+    incoming?: ChatContext,
+  ): Promise<ChatContext | null> {
+    if (!incoming) {
+      const session = await this.sessionsRepo.findSessionById(
+        sessionId,
+        userId,
+      );
+      if (!session) {
+        throw new NotFoundException('AI session not found');
+      }
+      return parseChatContext(session.chatContext);
+    }
+
+    await this.sessionsRepo.updateSession(sessionId, {
+      chatContext: incoming,
+    });
+    return incoming;
+  }
+
+  async buildMessagesForProvider({
+    userId,
+    sessionId,
+    latestUserContent,
+    entityContext,
+  }: {
+    userId: string;
+    sessionId: string;
+    latestUserContent: string;
+    entityContext?: ChatContextEntity | null;
+  }): Promise<{
     messages: ChatMessage[];
     prefs: ReturnType<typeof parseUserPreferences>;
     requiresConfirmation: boolean;
@@ -255,6 +323,7 @@ export class AiChatPersistenceService {
       confirmBeforeActions: prefs.ai.confirmBeforeActions,
       memorySnapshot,
       moduleSlug,
+      entityContext,
     });
 
     const stored = await this.sessionsRepo.findRecentMessages(

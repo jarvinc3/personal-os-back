@@ -156,6 +156,7 @@ export const AiAgentSessionScalarFieldEnum = {
   userId: 'userId',
   moduleId: 'moduleId',
   contextType: 'contextType',
+  chatContext: 'chatContext',
   memorySnapshot: 'memorySnapshot',
   lastActiveAt: 'lastActiveAt',
   createdAt: 'createdAt'

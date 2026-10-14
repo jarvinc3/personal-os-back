@@ -21,6 +21,7 @@ describe('AiChatPersistenceService', () => {
   const touchSession = jest.fn();
   const findSessionByIdOnly = jest.fn();
   const updateSession = jest.fn();
+  const findSessionById = jest.fn();
 
   const sessionsRepo = {
     findAssistantByClientMessageId,
@@ -29,6 +30,7 @@ describe('AiChatPersistenceService', () => {
     touchSession,
     findSessionByIdOnly,
     updateSession,
+    findSessionById,
   } as unknown as jest.Mocked<AiSessionsRepository>;
 
   const usersRepository = {
@@ -137,5 +139,53 @@ describe('AiChatPersistenceService', () => {
 
     expect(result).toBe(existing);
     expect(createMessage).not.toHaveBeenCalled();
+  });
+
+  it('persists the incoming chat context and returns it', async () => {
+    updateSession.mockResolvedValue({ id: 'session-1' });
+    const context = {
+      moduleSlug: 'finance',
+      screen: 'loan-detail',
+      entityRef: { type: 'loan' as const, id: 'loan-1' },
+    };
+
+    const resolved = await service.resolveChatContext(
+      'user-1',
+      'session-1',
+      context,
+    );
+
+    expect(resolved).toEqual(context);
+    expect(updateSession).toHaveBeenCalledWith('session-1', {
+      chatContext: context,
+    });
+  });
+
+  it('falls back to the stored chat context when none is sent', async () => {
+    findSessionById.mockResolvedValue({
+      id: 'session-1',
+      chatContext: {
+        moduleSlug: 'finance',
+        entityRef: { type: 'budget', id: 'budget-1' },
+      },
+    });
+
+    const resolved = await service.resolveChatContext('user-1', 'session-1');
+
+    expect(resolved).toEqual({
+      moduleSlug: 'finance',
+      entityRef: { type: 'budget', id: 'budget-1' },
+    });
+  });
+
+  it('ignores a malformed stored chat context', async () => {
+    findSessionById.mockResolvedValue({
+      id: 'session-1',
+      chatContext: { entityRef: { type: 'loan', id: 'loan-1' } },
+    });
+
+    const resolved = await service.resolveChatContext('user-1', 'session-1');
+
+    expect(resolved).toBeNull();
   });
 });

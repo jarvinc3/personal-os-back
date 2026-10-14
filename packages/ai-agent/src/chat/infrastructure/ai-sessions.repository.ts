@@ -190,6 +190,7 @@ export class AiSessionsRepository {
     sessionId: string,
     data: {
       memorySnapshot?: Prisma.InputJsonValue;
+      chatContext?: Prisma.InputJsonValue;
       contextType?: string;
       moduleId?: string | null;
     },
@@ -204,12 +205,14 @@ export class AiSessionsRepository {
     userId: string,
     contextType = 'general',
     moduleId?: string | null,
+    chatContext?: Prisma.InputJsonValue,
   ) {
     return this.prisma.aiAgentSession.create({
       data: {
         userId,
         contextType,
         moduleId: moduleId ?? null,
+        ...(chatContext ? { chatContext } : {}),
       },
     });
   }

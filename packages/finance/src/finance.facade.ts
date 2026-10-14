@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { DEFAULT_PAGE_LIMIT } from '@personal-os/core';
+import type { ChatContextEntity, EntityRef } from '@personal-os/core';
 import { AnalyticsService } from './analytics/application/analytics.service';
 import { CatalogService } from './catalog/application/catalog.service';
 import { IngestionService } from './ingestion/application/ingestion.service';
@@ -42,6 +43,7 @@ import type { UpdateBudgetDto } from './planning/presentation/dto/update-budget.
 import type { UpdateLoanDto } from './planning/presentation/dto/update-loan.dto';
 import type { UpdateSavingsGoalDto } from './planning/presentation/dto/update-savings-goal.dto';
 import { WipeFinanceUserDataUseCase } from './shared/application/wipe-finance-user-data.use-case';
+import { ChatContextEntityService } from './shared/application/chat-context-entity.service';
 import type { FinanceWipeLayer } from './shared/domain/finance-wipe-layers';
 
 /**
@@ -72,10 +74,18 @@ export class FinanceFacade {
     private readonly linkTx: LinkTransactionUseCase,
     private readonly unlinkTx: UnlinkTransactionUseCase,
     private readonly wipeFinance: WipeFinanceUserDataUseCase,
+    private readonly chatContextEntities: ChatContextEntityService,
   ) {}
 
   listAccounts(userId: string) {
     return this.catalog.listAccounts(userId);
+  }
+
+  resolveChatContextEntity(
+    userId: string,
+    ref: EntityRef,
+  ): Promise<ChatContextEntity | null> {
+    return this.chatContextEntities.resolve(userId, ref);
   }
 
   listCards(userId: string) {

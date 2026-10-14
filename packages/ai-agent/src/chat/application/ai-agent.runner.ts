@@ -3,6 +3,8 @@ import { Injectable, Optional } from '@nestjs/common';
 import { Queue } from 'bullmq';
 import { AiProcessingJob } from '@personal-os/core';
 import { QueueNames } from '@personal-os/core';
+import type { ChatContext, ChatContextEntity } from '@personal-os/core';
+import { FinanceFacade } from '@personal-os/finance';
 import { AiActionsService } from '../../actions/application/ai-actions.service';
 import { AiChatPersistenceService } from '../infrastructure/ai-chat-persistence.service';
 import { AiChatTurnCoordinator } from './ai-chat-turn-coordinator.service';
@@ -33,6 +35,14 @@ import { replayStreamChunks } from '../../shared/replay-stream-chunks';
 
 const MAX_TOOL_ITERATIONS = 5;
 
+type AgentRunInput = {
+  userId: string;
+  sessionId: string;
+  userContent: string;
+  clientMessageId?: string;
+  context?: ChatContext;
+};
+
 function userLikelyNeedsTool(
   userContent: string,
   tools: { mutating: boolean }[],
@@ -56,6 +66,7 @@ function applyContextSwitch(
       ReturnType<AiChatPersistenceService['buildMessagesForProvider']>
     >['prefs'];
     memorySnapshot: Record<string, unknown>;
+    entityContext: ChatContextEntity | null;
   },
 ): string | null {
   const slug = execResult.data?.moduleSlug;
@@ -73,6 +84,7 @@ function applyContextSwitch(
         confirmBeforeActions: options.prefs.ai.confirmBeforeActions,
         memorySnapshot: options.memorySnapshot,
         moduleSlug: activeModuleSlug,
+        entityContext: options.entityContext,
       }),
     };
   }
@@ -89,18 +101,14 @@ export class AiAgentRunner {
     private readonly actionsService: AiActionsService,
     private readonly toolExecutor: ToolExecutorService,
     private readonly sessionsRepo: AiSessionsRepository,
+    private readonly financeFacade: FinanceFacade,
     @Optional()
     @InjectQueue(QueueNames.AI_PROCESSING)
     private readonly aiProcessingQueue?: Queue<AiProcessingJob>,
   ) {}
 
   async run(
-    input: {
-      userId: string;
-      sessionId: string;
-      userContent: string;
-      clientMessageId?: string;
-    },
+    input: AgentRunInput,
     onStream?: (event: AgentStreamEvent) => void,
   ): Promise<AgentRunResult> {
     return this.turnCoordinator.run(
@@ -111,12 +119,7 @@ export class AiAgentRunner {
   }
 
   private async executeRun(
-    input: {
-      userId: string;
-      sessionId: string;
-      userContent: string;
-      clientMessageId?: string;
-    },
+    input: AgentRunInput,
     onStream?: (event: AgentStreamEvent) => void,
   ): Promise<AgentRunResult> {
     const emitStart = (provider: string, model: string) => {
@@ -172,6 +175,18 @@ export class AiAgentRunner {
       input.clientMessageId,
     );
 
+    const chatContext = await this.persistence.resolveChatContext(
+      input.userId,
+      input.sessionId,
+      input.context,
+    );
+    const entityContext = chatContext?.entityRef
+      ? await this.financeFacade.resolveChatContextEntity(
+          input.userId,
+          chatContext.entityRef,
+        )
+      : null;
+
     const {
       messages,
       prefs,
@@ -179,11 +194,12 @@ export class AiAgentRunner {
       moduleSlug: initialModuleSlug,
       memorySnapshot,
       locale,
-    } = await this.persistence.buildMessagesForProvider(
-      input.userId,
-      input.sessionId,
-      input.userContent,
-    );
+    } = await this.persistence.buildMessagesForProvider({
+      userId: input.userId,
+      sessionId: input.sessionId,
+      latestUserContent: input.userContent,
+      entityContext,
+    });
 
     let activeModuleSlug = initialModuleSlug;
     let tools = getToolsForModule(activeModuleSlug);
@@ -317,6 +333,7 @@ export class AiAgentRunner {
             locale,
             prefs,
             memorySnapshot,
+            entityContext,
           });
           toolCtx.moduleSlug = activeModuleSlug;
           tools = getToolsForModule(activeModuleSlug);

@@ -80,6 +80,7 @@ export class AiController {
       sessionId: session.id,
       userContent: latestUser.content,
       clientMessageId: dto.clientMessageId,
+      context: dto.context,
     });
 
     const response: ChatResponseDto = {
@@ -201,6 +202,7 @@ export class AiController {
           sessionId: session.id,
           userContent: latestUser.content,
           clientMessageId: dto.clientMessageId,
+          context: dto.context,
         },
         (event) => {
           if (event.type === 'start') {

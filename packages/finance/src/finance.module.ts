@@ -10,6 +10,7 @@ import { FinanceLedgerModule } from './ledger/ledger.module';
 import { FinancePlanningModule } from './planning/planning.module';
 import { FinanceStatementsModule } from './statements/statements.module';
 import { FinanceRecycleBinModule } from './shared/recycle-bin.module';
+import { FinanceChatContextModule } from './shared/chat-context.module';
 import { FinanceWipeModule } from './shared/wipe-finance.module';
 
 /**
@@ -27,6 +28,7 @@ import { FinanceWipeModule } from './shared/wipe-finance.module';
     FinanceLedgerModule,
     FinanceIngestionModule,
     FinanceRecycleBinModule,
+    FinanceChatContextModule,
     FinanceWipeModule,
   ],
   providers: [FinanceFacade],

@@ -4,6 +4,7 @@ import {
   toCursorPage,
   type CursorQueryDto,
 } from '@personal-os/core';
+import type { Prisma as PrismaTypes } from '@personal-os/database';
 import { AiActionsService } from '../../actions/application/ai-actions.service';
 import { AiSessionsRepository } from '../infrastructure/ai-sessions.repository';
 import { CreateAiSessionDto } from '../presentation/dto/create-ai-session.dto';
@@ -23,6 +24,7 @@ export class AiSessionsService {
     id: string;
     contextType: string;
     moduleId: string | null;
+    chatContext: unknown;
     memorySnapshot: unknown;
     lastActiveAt: Date;
     createdAt: Date;
@@ -40,6 +42,7 @@ export class AiSessionsService {
       contextType: session.contextType,
       moduleId: session.moduleId,
       moduleSlug: session.module?.slug ?? null,
+      chatContext: session.chatContext ?? null,
       title,
       memorySnapshot: memory,
       lastActiveAt: session.lastActiveAt.toISOString(),
@@ -61,21 +64,25 @@ export class AiSessionsService {
 
   async create(userId: string, dto: CreateAiSessionDto) {
     let moduleId: string | null = null;
+    const requestedModuleSlug = dto.context?.moduleSlug ?? dto.moduleSlug;
     let contextType = dto.contextType ?? 'general';
 
-    if (dto.moduleSlug) {
-      const mod = await this.sessionsRepo.findModuleBySlug(dto.moduleSlug);
+    if (requestedModuleSlug) {
+      const mod = await this.sessionsRepo.findModuleBySlug(requestedModuleSlug);
       if (!mod) {
-        throw new NotFoundException(`Module "${dto.moduleSlug}" not found`);
+        throw new NotFoundException(
+          `Module "${requestedModuleSlug}" not found`,
+        );
       }
       moduleId = mod.id;
-      contextType = dto.moduleSlug;
+      contextType = requestedModuleSlug;
     }
 
     const session = await this.sessionsRepo.createSessionWithModule(
       userId,
       contextType,
       moduleId,
+      dto.context as unknown as PrismaTypes.InputJsonValue | undefined,
     );
 
     return {

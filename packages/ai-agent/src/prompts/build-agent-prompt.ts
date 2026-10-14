@@ -1,4 +1,5 @@
 import type { AiTone } from '@personal-os/users';
+import type { ChatContextEntity } from '@personal-os/core';
 import { TONE_INSTRUCTIONS } from '../chat/application/build-system-prompt';
 import { getModuleContextPrompt } from './module-context';
 import { SYSTEM_BASE_PROMPT } from './system-base';
@@ -13,6 +14,7 @@ export function buildAgentPrompt(options: {
   confirmBeforeActions?: boolean;
   memorySnapshot?: Record<string, unknown>;
   moduleSlug?: string | null;
+  entityContext?: ChatContextEntity | null;
 }): string {
   const useSpanish =
     !options.locale || options.locale.toLowerCase().startsWith('es');
@@ -33,10 +35,15 @@ export function buildAgentPrompt(options: {
       ? `Memoria de sesiones anteriores: ${JSON.stringify(options.memorySnapshot).slice(0, 1500)}`
       : '';
 
+  const entityHint = options.entityContext
+    ? `Entidad en foco: ${options.entityContext.type} "${options.entityContext.name}" (id: ${options.entityContext.id}). Datos: ${options.entityContext.summary}. Si el usuario dice "esto", "esta cuenta", "este préstamo" u otra referencia sin id, usa esa entidad y pasa el id a las herramientas.`
+    : '';
+
   return [
     SYSTEM_BASE_PROMPT,
     getModuleContextPrompt(options.moduleSlug ?? null),
     getToolsListForModule(options.moduleSlug ?? null),
+    entityHint,
     toolsBehavior,
     languageHint,
     TONE_INSTRUCTIONS[options.tone],
