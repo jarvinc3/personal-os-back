@@ -2,6 +2,14 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [SemVer](https://semver.org/lang/es/). Reglas y ejemplo en [docs/reference/changelog-guide.md](./docs/reference/changelog-guide.md).
 
+## [0.21.0] - 2026-10-14
+
+### Agregado
+
+- Importar un estado de cuenta desde un PDF: `POST /api/finance/cards/:id/statements/import` y `POST /api/finance/accounts/:id/statements/import` crean el import y lo parsean en la cola `statement-import` (o en la misma petición si BullMQ no está disponible). La clave del PDF se pide y no se guarda; el archivo tampoco.
+- Conciliación de un import: `GET`/`DELETE /api/finance/statement-imports/:id`, `PATCH .../lines/:lineId` y `POST .../apply`. El matcher empareja por referencia o por monto, moneda, ±3 días y texto parecido. Aplicar crea los movimientos marcados, cierra el corte de la tarjeta y ajusta la diferencia si se pide; es idempotente.
+- Modelos `FinStatementImport` y `FinStatementImportLine` (migración `20261015230000_fin_statement_imports`).
+
 ## [0.20.0] - 2026-10-13 - Reinicio de versionado beta
 
 ### Cambiado
