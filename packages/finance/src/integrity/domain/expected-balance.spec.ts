@@ -31,20 +31,30 @@ type LedgerState = {
   cards: Record<string, number>;
 };
 
-/** Applies one movement to the stored state, the way the ledger does. */
-function apply(state: LedgerState, entry: IntegrityMovement): void {
+/** Stored state after applying one movement, the way the ledger does. */
+function applyMovement(
+  state: LedgerState,
+  entry: IntegrityMovement,
+): LedgerState {
   const target = movementTarget(entry, CARD_BY_ID);
   if (!target) {
-    return;
+    return state;
   }
   const delta = movementDeltaCents(entry);
   if (target.kind === 'account') {
-    state.accounts[target.accountId] =
-      (state.accounts[target.accountId] ?? 0) + delta;
-    return;
+    return {
+      ...state,
+      accounts: {
+        ...state.accounts,
+        [target.accountId]: (state.accounts[target.accountId] ?? 0) + delta,
+      },
+    };
   }
   const key = `${target.cardId}:${target.currency}`;
-  state.cards[key] = (state.cards[key] ?? 0) + delta;
+  return {
+    ...state,
+    cards: { ...state.cards, [key]: (state.cards[key] ?? 0) + delta },
+  };
 }
 
 describe('expected balance (I1)', () => {
@@ -95,11 +105,11 @@ describe('expected balance (I1)', () => {
   });
 
   it('matches the stored balance after each step of a mixed sequence', () => {
-    const state: LedgerState = {
+    let state: LedgerState = {
       accounts: { 'acc-1': 0, 'acc-2': 0 },
       cards: { 'card-credit:DOP': 0 },
     };
-    const movements: IntegrityMovement[] = [];
+    let movements: IntegrityMovement[] = [];
     const accountRows = [
       { id: 'acc-1', currency: 'DOP', balanceCents: 0 },
       { id: 'acc-2', currency: 'DOP', balanceCents: 0 },
@@ -139,8 +149,8 @@ describe('expected balance (I1)', () => {
     };
 
     const push = (entry: IntegrityMovement): void => {
-      movements.push(entry);
-      apply(state, entry);
+      movements = [...movements, entry];
+      state = applyMovement(state, entry);
       assertI1();
     };
 
@@ -201,9 +211,13 @@ describe('expected balance (I1)', () => {
       movement({ type: 'DEBIT', accountId: 'acc-1', ledgerAmountCents: -50 }),
     );
 
-    // Reversing the first debit removes it from the confirmed set.
-    movements.splice(0, 1);
-    state.accounts['acc-1'] = (state.accounts['acc-1'] ?? 0) + 100;
+    // Reversing the first debit removes it from the confirmed set and undoes
+    // its effect on the stored balance.
+    movements = movements.slice(1);
+    state = applyMovement(
+      state,
+      movement({ type: 'CREDIT', accountId: 'acc-1', ledgerAmountCents: 100 }),
+    );
     assertI1();
 
     // A goal allocation never moves the account balance; nothing to add.
