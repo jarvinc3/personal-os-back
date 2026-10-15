@@ -337,10 +337,10 @@ export type FinInstitutionOrderByWithRelationInput = {
 
 export type FinInstitutionWhereUniqueInput = Prisma.AtLeast<{
   id?: string
-  userId?: string
   AND?: Prisma.FinInstitutionWhereInput | Prisma.FinInstitutionWhereInput[]
   OR?: Prisma.FinInstitutionWhereInput[]
   NOT?: Prisma.FinInstitutionWhereInput | Prisma.FinInstitutionWhereInput[]
+  userId?: Prisma.StringFilter<"FinInstitution"> | string
   name?: Prisma.StringFilter<"FinInstitution"> | string
   type?: Prisma.StringFilter<"FinInstitution"> | string
   shortName?: Prisma.StringNullableFilter<"FinInstitution"> | string | null
@@ -360,7 +360,7 @@ export type FinInstitutionWhereUniqueInput = Prisma.AtLeast<{
   emailSources?: Prisma.FinEmailSourceListRelationFilter
   loans?: Prisma.FinLoanListRelationFilter
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
-}, "id" | "userId">
+}, "id">
 
 export type FinInstitutionOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
