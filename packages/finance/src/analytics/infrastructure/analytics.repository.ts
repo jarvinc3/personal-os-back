@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import type { Prisma } from '@personal-os/database';
 import { Prisma as PrismaNS } from '@personal-os/database';
 import { PrismaService } from '@personal-os/database';
+import { toMoney } from '../../shared/domain/money';
 import { OPERATION_LEG_ROLE } from '../../shared/domain/transfer';
 
 /** Standalone movements plus the fee leg of a transfer (the only leg that is real spending). */
@@ -92,12 +93,12 @@ export class AnalyticsRepository {
           : 'day';
 
     const rows = await this.prisma.$queryRaw<
-      Array<{ bucket: Date; type: string; total: number }>
+      Array<{ bucket: Date; type: string; total: string }>
     >`
       SELECT
         date_trunc(${PrismaNS.raw(`'${trunc}'`)}, "transaction_date") AS bucket,
         "type"::text AS type,
-        SUM("amount_base_currency")::float AS total
+        SUM("amount_base_currency")::text AS total
       FROM "fin_transactions"
       WHERE "user_id" = ${userId}
         AND "status" = 'CONFIRMED'
@@ -113,7 +114,7 @@ export class AnalyticsRepository {
     return rows.map((row) => ({
       bucket: new Date(row.bucket),
       type: row.type,
-      total: Number(row.total) || 0,
+      total: toMoney(row.total),
     }));
   }
 

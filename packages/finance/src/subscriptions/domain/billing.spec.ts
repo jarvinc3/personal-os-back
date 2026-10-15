@@ -72,16 +72,24 @@ describe('nextBillingAfter', () => {
 
 describe('monthlyCost and annualCost', () => {
   it('converts a monthly charge', () => {
-    expect(monthlyCost({ amount: 10, cycle: 'MONTHLY', interval: 1 })).toBe(10);
-    expect(annualCost({ amount: 10, cycle: 'MONTHLY', interval: 1 })).toBe(120);
+    expect(
+      monthlyCost({ amount: 10, cycle: 'MONTHLY', interval: 1 }).toFixed(2),
+    ).toBe('10.00');
+    expect(
+      annualCost({ amount: 10, cycle: 'MONTHLY', interval: 1 }).toFixed(2),
+    ).toBe('120.00');
   });
 
   it('honours the interval and the cycle', () => {
-    expect(monthlyCost({ amount: 120, cycle: 'YEARLY', interval: 1 })).toBe(10);
-    expect(monthlyCost({ amount: 30, cycle: 'QUARTERLY', interval: 1 })).toBe(
-      10,
-    );
-    expect(monthlyCost({ amount: 20, cycle: 'MONTHLY', interval: 2 })).toBe(10);
+    expect(
+      monthlyCost({ amount: 120, cycle: 'YEARLY', interval: 1 }).toFixed(2),
+    ).toBe('10.00');
+    expect(
+      monthlyCost({ amount: 30, cycle: 'QUARTERLY', interval: 1 }).toFixed(2),
+    ).toBe('10.00');
+    expect(
+      monthlyCost({ amount: 20, cycle: 'MONTHLY', interval: 2 }).toFixed(2),
+    ).toBe('10.00');
   });
 });
 

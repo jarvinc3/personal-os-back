@@ -18,7 +18,12 @@ import { ResolveUserBaseCurrencyUseCase } from '../../fx/application/resolve-use
 import { normalizeMerchant } from '../../merchants/domain/normalize-merchant';
 import { FinanceOwnershipService } from '../../shared/application/finance-ownership.service';
 import type { SubscriptionMatcherPort } from '../../shared/application/subscription-matcher.port';
-import { roundMoney } from '../../shared/domain/money';
+import {
+  ratioPercent,
+  roundDecimal,
+  scalarNumber,
+  toMoney,
+} from '../../shared/domain/money';
 import {
   annualCost,
   billingOccurrencesInRange,
@@ -133,7 +138,7 @@ export class SubscriptionsService implements SubscriptionMatcherPort {
     const annualBuckets = new Map<string, Prisma.Decimal>();
     const previousBuckets = new Map<string, Prisma.Decimal>();
     for (const row of active) {
-      const amount = Number(row.amount);
+      const amount = toMoney(row.amount);
       const cycle = row.billingCycle;
       const interval = row.billingInterval;
       this.addToBucket(
@@ -149,7 +154,7 @@ export class SubscriptionsService implements SubscriptionMatcherPort {
       // The previous price is the charge before the newest one; without a
       // second payment the subscription has not changed price yet.
       const history = payments.get(row.id) ?? [];
-      const previousAmount = history[1] ? Number(history[1].amount) : amount;
+      const previousAmount = history[1] ? toMoney(history[1].amount) : amount;
       this.addToBucket(
         previousBuckets,
         row.currency,
@@ -244,7 +249,7 @@ export class SubscriptionsService implements SubscriptionMatcherPort {
     for (const row of active) {
       const descriptor = this.breakdownDescriptor(row, by);
       const monthly = monthlyCost({
-        amount: Number(row.amount),
+        amount: toMoney(row.amount),
         cycle: row.billingCycle,
         interval: row.billingInterval,
       });
@@ -258,23 +263,21 @@ export class SubscriptionsService implements SubscriptionMatcherPort {
       groups.set(descriptor.key, {
         ...descriptor,
         count: (existing?.count ?? 0) + 1,
-        amount: (existing?.amount ?? new Prisma.Decimal(0)).plus(
-          new Prisma.Decimal(inBase),
-        ),
+        amount: (existing?.amount ?? new Prisma.Decimal(0)).plus(inBase),
       });
     }
     return {
       baseCurrency,
       by,
       items: [...groups.values()]
+        .sort((left, right) => right.amount.comparedTo(left.amount))
         .map((group) => ({
           key: group.key,
           label: group.label,
           color: group.color,
           count: group.count,
           amount: group.amount.toFixed(2),
-        }))
-        .sort((left, right) => Number(right.amount) - Number(left.amount)),
+        })),
     };
   }
 
@@ -340,13 +343,17 @@ export class SubscriptionsService implements SubscriptionMatcherPort {
           name: row.name,
           currency: row.currency,
           billingCycle: row.billingCycle,
-          amount: Number(row.amount),
+          amount: scalarNumber(row.amount),
           nextBillingDate: row.nextBillingDate,
           trialEndsAt: row.trialEndsAt,
           reminderWindowDays,
-          lastPaymentAmount: history[0] ? Number(history[0].amount) : null,
+          lastPaymentAmount: history[0]
+            ? scalarNumber(history[0].amount)
+            : null,
           lastPaymentDate: history[0]?.paidAt ?? null,
-          previousPaymentAmount: history[1] ? Number(history[1].amount) : null,
+          previousPaymentAmount: history[1]
+            ? scalarNumber(history[1].amount)
+            : null,
           paidSinceNextBilling: history.some(
             (payment) => payment.paidAt >= row.nextBillingDate,
           ),
@@ -418,7 +425,7 @@ export class SubscriptionsService implements SubscriptionMatcherPort {
       normalizedKey: this.normalizedKeyFor(dto.name),
       domain,
       logoPath: domain ? await this.logos.ensureLogo(domain) : null,
-      amount: roundMoney(dto.amount),
+      amount: roundDecimal(dto.amount),
       currency:
         dto.currency?.toUpperCase() ??
         (await this.baseCurrency.execute(userId)),
@@ -478,7 +485,7 @@ export class SubscriptionsService implements SubscriptionMatcherPort {
       changes.logoPath = domain ? await this.logos.ensureLogo(domain) : null;
     }
     if (dto.amount !== undefined) {
-      changes.amount = roundMoney(dto.amount);
+      changes.amount = roundDecimal(dto.amount);
     }
     if (dto.currency !== undefined) {
       changes.currency = dto.currency.toUpperCase();
@@ -658,7 +665,7 @@ export class SubscriptionsService implements SubscriptionMatcherPort {
     const payment = await this.repo.createPayment({
       subscriptionId: id,
       transactionId: dto.transactionId ?? null,
-      amount: roundMoney(dto.amount ?? Number(subscription.amount)),
+      amount: roundDecimal(dto.amount ?? subscription.amount),
       currency: dto.currency?.toUpperCase() ?? subscription.currency,
       paidAt: dto.paidAt ? new Date(dto.paidAt) : now,
       source: 'MANUAL',
@@ -708,13 +715,13 @@ export class SubscriptionsService implements SubscriptionMatcherPort {
         subscription: {
           id: row.id,
           normalizedKey: row.normalizedKey,
-          amount: Number(row.amount),
+          amount: scalarNumber(row.amount),
           currency: row.currency,
           nextBillingDate: row.nextBillingDate,
         },
         transaction: {
           merchant: transaction.merchant,
-          amount: Number(transaction.amount),
+          amount: scalarNumber(transaction.amount),
           currency: transaction.currency,
           transactionDate: transaction.transactionDate,
         },
@@ -734,7 +741,7 @@ export class SubscriptionsService implements SubscriptionMatcherPort {
     await this.repo.createPayment({
       subscriptionId: subscription.id,
       transactionId: transaction.id,
-      amount: Number(transaction.amount),
+      amount: roundDecimal(transaction.amount),
       currency: transaction.currency,
       paidAt: transaction.transactionDate,
       source: 'AUTO',
@@ -745,10 +752,10 @@ export class SubscriptionsService implements SubscriptionMatcherPort {
   private addToBucket(
     buckets: Map<string, Prisma.Decimal>,
     currency: string,
-    amount: number,
+    amount: Prisma.Decimal,
   ): void {
     const current = buckets.get(currency) ?? new Prisma.Decimal(0);
-    buckets.set(currency, current.plus(new Prisma.Decimal(amount)));
+    buckets.set(currency, current.plus(amount));
   }
 
   private async sumBucketsInBase(
@@ -759,12 +766,12 @@ export class SubscriptionsService implements SubscriptionMatcherPort {
     let total = new Prisma.Decimal(0);
     for (const [currency, amount] of buckets) {
       const inBase = await this.resolveAmounts.toBaseCurrency(
-        amount.toNumber(),
+        amount,
         currency,
         baseCurrency,
         asOf,
       );
-      total = total.plus(new Prisma.Decimal(inBase));
+      total = total.plus(inBase);
     }
     return total;
   }
@@ -788,12 +795,12 @@ export class SubscriptionsService implements SubscriptionMatcherPort {
     let total = new Prisma.Decimal(0);
     for (const payment of payments) {
       const inBase = await this.resolveAmounts.toBaseCurrency(
-        Number(payment.amount),
+        payment.amount,
         payment.currency,
         baseCurrency,
         payment.paidAt,
       );
-      total = total.plus(new Prisma.Decimal(inBase));
+      total = total.plus(inBase);
     }
     return total;
   }
@@ -806,7 +813,7 @@ export class SubscriptionsService implements SubscriptionMatcherPort {
     let total = new Prisma.Decimal(0);
     for (const row of rows) {
       const annual = annualCost({
-        amount: Number(row.amount),
+        amount: toMoney(row.amount),
         cycle: row.billingCycle,
         interval: row.billingInterval,
       });
@@ -816,7 +823,7 @@ export class SubscriptionsService implements SubscriptionMatcherPort {
         baseCurrency,
         asOf,
       );
-      total = total.plus(new Prisma.Decimal(inBase));
+      total = total.plus(inBase);
     }
     return total;
   }
@@ -825,14 +832,11 @@ export class SubscriptionsService implements SubscriptionMatcherPort {
     current: Prisma.Decimal,
     previous: Prisma.Decimal,
   ): { direction: 'up' | 'down' | 'flat'; percent: number } | null {
-    const previousValue = previous.toNumber();
-    if (previousValue <= 0) {
+    if (previous.comparedTo(0) <= 0) {
       return null;
     }
     const percent =
-      Math.round(
-        ((current.toNumber() - previousValue) / previousValue) * 1000,
-      ) / 10;
+      Math.round(ratioPercent(current.minus(previous), previous) * 10) / 10;
     if (percent === 0) {
       return { direction: 'flat', percent: 0 };
     }
@@ -1010,7 +1014,7 @@ export class SubscriptionsService implements SubscriptionMatcherPort {
   }
 
   private map(row: SubscriptionRow, now: Date) {
-    const amount = Number(row.amount);
+    const amount = toMoney(row.amount);
     const cycle = row.billingCycle;
     return {
       id: row.id,
@@ -1030,9 +1034,9 @@ export class SubscriptionsService implements SubscriptionMatcherPort {
       cancelledAt: row.cancelledAt?.toISOString() ?? null,
       reminderDaysBefore: row.reminderDaysBefore,
       lastChargeMismatch: lastChargeMismatch({
-        expectedAmount: amount,
+        expectedAmount: scalarNumber(amount),
         lastPaymentAmount: row.payments[0]
-          ? Number(row.payments[0].amount)
+          ? scalarNumber(row.payments[0].amount)
           : null,
       }),
       lastPaymentAmount: row.payments[0]

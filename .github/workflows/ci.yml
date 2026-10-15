@@ -109,6 +109,9 @@ jobs:
       - name: Lint
         run: pnpm lint
 
+      - name: Money decimal guard
+        run: pnpm lint:money
+
       - name: Build
         run: pnpm build
 

@@ -6,6 +6,7 @@ import {
 } from '@personal-os/users';
 import { FinanceOutboxDispatcher } from '../../events/infrastructure/finance-outbox.dispatcher';
 import { PrismaOutboxRepository } from '../../events/infrastructure/prisma-outbox.repository';
+import { scalarNumber } from '../../shared/domain/money';
 import { DOMAIN_EVENT_PUBLISHER } from '../../shared/application/tokens';
 import type { DomainEventPublisherPort } from '../../events/application/ports/domain-event-publisher.port';
 import { daysUntil } from '../domain/billing';
@@ -71,7 +72,7 @@ export class SubscriptionRemindersService {
           payload: {
             subscriptionId: subscription.id,
             name: subscription.name,
-            amount: Number(subscription.amount),
+            amount: scalarNumber(subscription.amount),
             currency: subscription.currency,
             nextBillingDate: expected,
             daysUntil: daysUntil(subscription.nextBillingDate, today),

@@ -134,6 +134,62 @@ describe('AnalyticsService', () => {
     });
   });
 
+  it('adds decimal amounts without the float error of 0.1 + 0.2', async () => {
+    const getCashFlowAggregates = jest.fn().mockResolvedValue([
+      {
+        type: 'CREDIT',
+        status: 'CONFIRMED',
+        _sum: { amountBaseCurrency: '0.1' },
+      },
+      {
+        type: 'CREDIT',
+        status: 'CONFIRMED',
+        _sum: { amountBaseCurrency: '0.2' },
+      },
+    ]);
+    const getBalanceSheet = jest.fn().mockResolvedValue({
+      baseCurrency: 'DOP',
+      global: {
+        status: 'COMPLETE',
+        assets: { accounts: '0' },
+        liabilities: { creditCards: '0', loans: '0' },
+        netWorth: '0',
+        issues: [],
+      },
+    });
+
+    const summary = await createService(
+      { getCashFlowAggregates },
+      { getBalanceSheet },
+    ).getAnalyticsSummary('user-1');
+
+    expect(summary.totals.income).toBe('0.3');
+    expect(summary.cashFlow).toBe('0.3');
+  });
+
+  it('sums spending over time as decimals', async () => {
+    const getSpendingOverTime = jest.fn().mockResolvedValue([
+      {
+        bucket: new Date('2026-08-01T00:00:00Z'),
+        type: 'DEBIT',
+        total: '0.1',
+      },
+      {
+        bucket: new Date('2026-08-01T00:00:00Z'),
+        type: 'DEBIT',
+        total: '0.2',
+      },
+    ]);
+
+    const series = await createService({
+      getSpendingOverTime,
+    }).getSpendingOverTime('user-1', '2026-08-01', '2026-08-31', 'day');
+
+    expect(series.points).toEqual([
+      { date: '2026-08-01', expenses: '0.3', income: '0' },
+    ]);
+  });
+
   it('delegates net worth to the balance sheet and keeps cash flow in range', async () => {
     const getCashFlowAggregates = jest.fn().mockResolvedValue([
       {

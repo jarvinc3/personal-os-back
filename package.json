@@ -17,6 +17,7 @@
     "start:prod": "node dist/main",
     "lint": "eslint \"{apps,packages/*/src,libs,test}/**/*.ts\"",
     "lint:fix": "eslint \"{apps,packages/*/src,libs,test}/**/*.ts\" --fix",
+    "lint:money": "node scripts/finance/check-money-decimals.mjs",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",

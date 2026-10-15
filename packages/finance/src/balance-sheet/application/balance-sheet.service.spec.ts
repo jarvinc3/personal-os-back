@@ -1,4 +1,5 @@
 import { BadRequestException } from '@nestjs/common';
+import { Prisma } from '@personal-os/database';
 import type { ResolveAmountsUseCase } from '../../fx/application/resolve-amounts.use-case';
 import type { ResolveUserBaseCurrencyUseCase } from '../../fx/application/resolve-user-base-currency';
 import type { BalanceSheetRepository } from '../infrastructure/balance-sheet.repository';
@@ -111,6 +112,41 @@ describe('BalanceSheetService', () => {
     );
     expect(result.global.netWorth).toBe('1600');
     expect(result.global.assets.accounts).toBe('1600');
+  });
+
+  it('sums converted balances to the cent, rounding once at the end', async () => {
+    toBaseCurrency.mockImplementation((amount: number, currency: string) =>
+      Promise.resolve(
+        currency === 'USD'
+          ? new Prisma.Decimal(amount).times('60.5')
+          : new Prisma.Decimal(amount),
+      ),
+    );
+    loadPositions.mockResolvedValue({
+      institutions: [{ id: 'inst-1' }],
+      accounts: [
+        {
+          id: 'acc-dop',
+          institutionId: 'inst-1',
+          currency: 'DOP',
+          balance: '100.10',
+        },
+        {
+          id: 'acc-usd',
+          institutionId: 'inst-1',
+          currency: 'USD',
+          balance: '10.05',
+        },
+      ],
+      cardBalances: [],
+      loans: [],
+    });
+
+    const sheet = await createService().getBalanceSheet('user-1');
+
+    // 100.10 + (10.05 * 60.5 = 608.025) = 708.125, a half cent rounded down.
+    expect(sheet.global.assets.accounts).toBe('708.12');
+    expect(sheet.global.netWorth).toBe('708.12');
   });
 
   it('ignores debit-only positions because the repository only returns CREDIT cards', async () => {

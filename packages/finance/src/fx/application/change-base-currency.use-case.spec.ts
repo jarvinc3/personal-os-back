@@ -1,5 +1,6 @@
 import { BadRequestException } from '@nestjs/common';
 import { AppEvents } from '@personal-os/core';
+import { Prisma } from '@personal-os/database';
 import { ChangeBaseCurrencyUseCase } from './change-base-currency.use-case';
 
 type MockPrisma = {
@@ -135,15 +136,18 @@ describe('ChangeBaseCurrencyUseCase', () => {
     });
     expect(prisma.finTransaction.update).toHaveBeenCalledWith({
       where: { id: 'tx-usd' },
-      data: { amountBaseCurrency: 10 },
+      data: { amountBaseCurrency: new Prisma.Decimal(10) },
     });
     expect(prisma.finTransaction.update).toHaveBeenCalledWith({
       where: { id: 'tx-dop' },
-      data: { amountBaseCurrency: 50 },
+      data: { amountBaseCurrency: new Prisma.Decimal(50) },
     });
     expect(prisma.finBudget.update).toHaveBeenCalledWith({
       where: { id: 'b-1' },
-      data: { amountLimit: 500, amountSpent: 60 },
+      data: {
+        amountLimit: new Prisma.Decimal(500),
+        amountSpent: new Prisma.Decimal(60),
+      },
     });
     expect(prisma.userModule.update).toHaveBeenCalledWith({
       where: { id: 'um-1' },

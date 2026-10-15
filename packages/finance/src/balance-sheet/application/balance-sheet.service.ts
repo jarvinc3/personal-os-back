@@ -1,8 +1,13 @@
 import { Injectable } from '@nestjs/common';
+import type { Prisma } from '@personal-os/database';
 import { ResolveAmountsUseCase } from '../../fx/application/resolve-amounts.use-case';
 import { ResolveUserBaseCurrencyUseCase } from '../../fx/application/resolve-user-base-currency';
 import { decimalToString } from '../../shared/domain/mappers';
-import { roundMoney } from '../../shared/domain/money';
+import {
+  roundDecimal,
+  toMoney,
+  type MoneyLike,
+} from '../../shared/domain/money';
 import { BalanceSheetRepository } from '../infrastructure/balance-sheet.repository';
 
 export type BalanceSheetStatus = 'COMPLETE' | 'INCOMPLETE';
@@ -34,46 +39,48 @@ export type FinanceBalanceSheet = {
   institutions: Array<BalanceSheetSlice & { institutionId: string }>;
 };
 
-type Moneyish = { toString(): string } | number | null | undefined;
-
 type Bucket = {
-  accounts: number;
-  creditCards: number;
-  loans: number;
+  accounts: Prisma.Decimal;
+  creditCards: Prisma.Decimal;
+  loans: Prisma.Decimal;
   issues: BalanceSheetIssue[];
 };
 
-function toNumber(value: Moneyish): number {
-  if (value == null) {
-    return 0;
-  }
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : 0;
+function isMissingCreditLimit(value: MoneyLike): boolean {
+  return value === null || value === undefined;
 }
 
-function isMissingCreditLimit(value: Moneyish): boolean {
-  return value == null;
-}
-
-function creditCardDebt(available: number, creditLimit: number): number {
-  return Math.max(0, roundMoney(creditLimit - available));
+/** Debt is what the credit limit does not cover, and it never goes negative. */
+function creditCardDebt(
+  available: MoneyLike,
+  creditLimit: MoneyLike,
+): Prisma.Decimal {
+  const debt = roundDecimal(toMoney(creditLimit).minus(toMoney(available)));
+  return debt.isNegative() ? roundDecimal(0) : debt;
 }
 
 function emptyBucket(): Bucket {
-  return { accounts: 0, creditCards: 0, loans: 0, issues: [] };
+  return {
+    accounts: roundDecimal(0),
+    creditCards: roundDecimal(0),
+    loans: roundDecimal(0),
+    issues: [],
+  };
 }
 
 function serializeSlice(bucket: Bucket): BalanceSheetSlice {
-  const totalAssets = roundMoney(bucket.accounts);
-  const loanDebt = roundMoney(bucket.loans);
+  const totalAssets = roundDecimal(bucket.accounts);
+  const loanDebt = roundDecimal(bucket.loans);
   const incomplete = bucket.issues.length > 0;
-  const cardDebt = incomplete ? null : roundMoney(bucket.creditCards);
+  const cardDebt = incomplete ? null : roundDecimal(bucket.creditCards);
   const totalLiabilities =
-    incomplete || cardDebt == null ? null : roundMoney(cardDebt + loanDebt);
+    incomplete || cardDebt == null
+      ? null
+      : roundDecimal(cardDebt.plus(loanDebt));
   const netWorth =
     totalLiabilities == null
       ? null
-      : roundMoney(totalAssets - totalLiabilities);
+      : roundDecimal(totalAssets.minus(totalLiabilities));
 
   return {
     status: incomplete ? 'INCOMPLETE' : 'COMPLETE',
@@ -111,17 +118,17 @@ export class BalanceSheetService {
       byInstitution.set(institution.id, emptyBucket());
     }
 
-    const convert = (amount: number, currency: string) =>
+    const convert = (amount: MoneyLike, currency: string) =>
       this.resolveAmounts.toBaseCurrency(amount, currency, baseCurrency, asOf);
 
     for (const account of accounts) {
-      const amount = await convert(toNumber(account.balance), account.currency);
-      global.accounts += amount;
+      const amount = await convert(account.balance, account.currency);
+      global.accounts = global.accounts.plus(amount);
       const bucket = account.institutionId
         ? byInstitution.get(account.institutionId)
         : undefined;
       if (bucket) {
-        bucket.accounts += amount;
+        bucket.accounts = bucket.accounts.plus(amount);
       }
     }
 
@@ -140,29 +147,25 @@ export class BalanceSheetService {
         continue;
       }
 
-      const debtNative = creditCardDebt(
-        toNumber(row.balance),
-        toNumber(row.creditLimit),
-      );
+      const debtNative = creditCardDebt(row.balance, row.creditLimit);
       const amount = await convert(debtNative, row.currency);
-      global.creditCards += amount;
+      global.creditCards = global.creditCards.plus(amount);
       const bucket = byInstitution.get(row.card.institutionId);
       if (bucket) {
-        bucket.creditCards += amount;
+        bucket.creditCards = bucket.creditCards.plus(amount);
       }
     }
 
     for (const loan of loans) {
-      const amount = await convert(
-        Math.max(0, toNumber(loan.currentBalance)),
-        loan.currency,
-      );
-      global.loans += amount;
+      const current = toMoney(loan.currentBalance);
+      const owed = current.isNegative() ? roundDecimal(0) : current;
+      const amount = await convert(owed, loan.currency);
+      global.loans = global.loans.plus(amount);
       const bucket = loan.institutionId
         ? byInstitution.get(loan.institutionId)
         : undefined;
       if (bucket) {
-        bucket.loans += amount;
+        bucket.loans = bucket.loans.plus(amount);
       }
     }
 

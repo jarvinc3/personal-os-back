@@ -1,8 +1,11 @@
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
+import { Prisma } from '@personal-os/database';
 import { EXCHANGE_RATE_PORT } from '../../shared/application/tokens';
 import {
   convertAmount,
+  convertDecimal,
   normalizeCurrencyCode,
+  type MoneyLike,
   type ResolvedAmounts,
 } from '../../shared/domain/money';
 import type { ExchangeRatePort } from './ports/exchange-rate.port';
@@ -48,16 +51,16 @@ export class ResolveAmountsUseCase {
    * writes: identity when currencies match; otherwise cache/API for that date.
    */
   async toBaseCurrency(
-    amount: number,
+    amount: MoneyLike,
     currency: string,
     baseCurrency: string,
     asOf: Date,
-  ): Promise<number> {
+  ): Promise<Prisma.Decimal> {
     const from = normalizeCurrencyCode(currency);
     const target = normalizeCurrencyCode(baseCurrency);
     const date = asOf.toISOString().slice(0, 10);
     const rate = await this.requireRate(from, target, date);
-    return convertAmount(amount, rate);
+    return convertDecimal(amount, rate);
   }
 
   private async requireRate(

@@ -69,6 +69,33 @@ export default tseslint.config(
     },
   },
   {
+    // Money in the read paths stays decimal end to end (ADR-002, pendiente 13).
+    // shared/domain/money.ts owns the only number boundary, for ratios.
+    files: [
+      'packages/finance/src/analytics/application/**/*.ts',
+      'packages/finance/src/balance-sheet/application/**/*.ts',
+      'packages/finance/src/fx/application/**/*.ts',
+      'packages/finance/src/subscriptions/application/**/*.ts',
+      'packages/finance/src/subscriptions/domain/billing.ts',
+    ],
+    ignores: ['**/*.spec.ts'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: 'MemberExpression[property.name="toNumber"]',
+          message:
+            'Los montos se suman y convierten con los helpers decimales de shared/domain/money.ts, no con number.',
+        },
+        {
+          selector: 'CallExpression[callee.name="Number"]',
+          message:
+            'Los montos se suman y convierten con los helpers decimales de shared/domain/money.ts, no con number.',
+        },
+      ],
+    },
+  },
+  {
     rules: {
       curly: ['error', 'all'],
       '@typescript-eslint/no-explicit-any': 'off',

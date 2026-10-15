@@ -5,6 +5,13 @@
  * columns and must not shift with the server timezone.
  */
 
+import {
+  roundDecimal,
+  toMoney,
+  type Decimal,
+  type MoneyLike,
+} from '../../shared/domain/money';
+
 export const BILLING_CYCLES = [
   'WEEKLY',
   'MONTHLY',
@@ -25,6 +32,7 @@ export const PERIODS_PER_YEAR: Record<BillingCycle, number> = {
 };
 
 const MS_PER_DAY = 86_400_000;
+const MONTHS_PER_YEAR = 12;
 
 function utcDay(date: Date): Date {
   return new Date(
@@ -100,22 +108,30 @@ export function nextBillingAfter(
   return firstBillingOnOrAfter(schedule, addUtcDays(current, 1));
 }
 
-export function monthlyCost(input: {
-  amount: number;
+type BillingCostInput = {
+  amount: MoneyLike;
   cycle: BillingCycle;
   interval: number;
-}): number {
+};
+
+/** Monthly equivalent of a recurring charge, to cents. */
+export function monthlyCost(input: BillingCostInput): Decimal {
   assertInterval(input.interval);
-  return (input.amount * (PERIODS_PER_YEAR[input.cycle] / input.interval)) / 12;
+  return roundDecimal(
+    toMoney(input.amount)
+      .times(PERIODS_PER_YEAR[input.cycle])
+      .div(input.interval * MONTHS_PER_YEAR),
+  );
 }
 
-export function annualCost(input: {
-  amount: number;
-  cycle: BillingCycle;
-  interval: number;
-}): number {
+/** Annual equivalent of a recurring charge, to cents. */
+export function annualCost(input: BillingCostInput): Decimal {
   assertInterval(input.interval);
-  return input.amount * (PERIODS_PER_YEAR[input.cycle] / input.interval);
+  return roundDecimal(
+    toMoney(input.amount)
+      .times(PERIODS_PER_YEAR[input.cycle])
+      .div(input.interval),
+  );
 }
 
 export function daysUntil(target: Date, today: Date): number {

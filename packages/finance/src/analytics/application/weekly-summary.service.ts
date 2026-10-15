@@ -6,7 +6,7 @@ import { IngestionService } from '../../ingestion/application/ingestion.service'
 import { PlanningService } from '../../planning/application/planning.service';
 import { isValidIsoDate } from '../../shared/domain/iso-date';
 import { decimalToString } from '../../shared/domain/mappers';
-import { roundMoney } from '../../shared/domain/money';
+import { roundDecimal, sumMoney, toMoney } from '../../shared/domain/money';
 import { AnalyticsService } from './analytics.service';
 import type { WeeklySummary } from './weekly-summary.types';
 
@@ -125,18 +125,23 @@ export class WeeklySummaryService {
 
     const weeklyPoints = overTime.points.map((point) => ({
       date: point.date,
-      expenses: Number(point.expenses) || 0,
+      expenses: toMoney(point.expenses),
     }));
     const currentExpenses =
-      weeklyPoints.find((point) => point.date === weekStart)?.expenses ?? 0;
+      weeklyPoints.find((point) => point.date === weekStart)?.expenses ??
+      toMoney(0);
     const previous = weeklyPoints
       .filter((point) => point.date < weekStart)
       .slice(-AVERAGE_WEEKS);
+    // The weekly average divides exact decimals, then rounds once to cents.
     const averageExpenses =
       previous.length > 0
-        ? previous.reduce((sum, point) => sum + point.expenses, 0) /
-          previous.length
-        : 0;
+        ? roundDecimal(
+            sumMoney(previous.map((point) => point.expenses)).div(
+              previous.length,
+            ),
+          )
+        : roundDecimal(0);
 
     const horizon = addDaysIso(today, UPCOMING_DAYS);
 
@@ -144,10 +149,10 @@ export class WeeklySummaryService {
       weekStart,
       weekEnd,
       currency,
-      expenses: decimalToString(roundMoney(currentExpenses)),
-      averageExpenses: decimalToString(roundMoney(averageExpenses)),
+      expenses: decimalToString(roundDecimal(currentExpenses)),
+      averageExpenses: decimalToString(averageExpenses),
       topCategories: spendingByCategory
-        .filter((category) => Number(category.total) > 0)
+        .filter((category) => toMoney(category.total).gt(0))
         .slice(0, TOP_CATEGORY_LIMIT)
         .map((category) => ({
           name: category.name,
