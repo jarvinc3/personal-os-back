@@ -2,6 +2,18 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [SemVer](https://semver.org/lang/es/). Reglas y ejemplo en [docs/reference/changelog-guide.md](./docs/reference/changelog-guide.md).
 
+## [0.31.0] - 2026-10-22 - Tarjetas prácticas
+
+### Agregado
+
+- `GET /finance/cards` y `GET /finance/cards/:id` devuelven `availableCredit` por moneda (disponible menos movimientos pendientes) y `nextStatementDate`/`nextPaymentDueDate` con la fecha local del usuario.
+- Recordatorio de pago de tarjeta: `CardPaymentRemindersScheduler` y `CardPaymentRemindersService` emiten `finance.card_payment.due` dentro de `reminders.cardDueDaysBefore` (default 3), una sola vez por corte y sin avisar si ya está pagado.
+- Ajuste `reminders.cardDueDaysBefore` validado (0-30) en la configuración del módulo de Finanzas.
+
+### Cambiado
+
+- Documentación de `statements` y `catalog` con el disponible y las próximas fechas.
+
 ## [0.30.2] - 2026-10-21
 
 ### Corregido
