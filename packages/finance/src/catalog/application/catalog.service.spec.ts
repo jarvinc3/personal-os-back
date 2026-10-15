@@ -20,9 +20,7 @@ function ownershipMock(
         if (id === 'inst-1') {
           return Promise.resolve({ id, name: 'Banco', type: 'bank' });
         }
-        return Promise.reject(
-          new BadRequestException('Institution not found'),
-        );
+        return Promise.reject(new BadRequestException('Institution not found'));
       },
     ),
     assertAccountOwned: jest.fn(),
@@ -159,9 +157,7 @@ describe('CatalogService createAccount', () => {
     createAccount,
     listInstitutions,
     findAccountById,
-    findSystemCashInstitution: jest
-      .fn()
-      .mockResolvedValue({ id: 'cash-inst' }),
+    findSystemCashInstitution: jest.fn().mockResolvedValue({ id: 'cash-inst' }),
   } as unknown as CatalogRepository;
 
   const service = createService(repo, ownershipMock(), purgeMock());

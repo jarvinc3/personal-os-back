@@ -4,11 +4,11 @@ import type { Job } from 'bullmq';
 import { QueueNames, type StatementImportJob } from '@personal-os/core';
 import { ProcessStatementImportUseCase } from '../application/process-statement-import.use-case';
 import { STATEMENT_IMPORT_ERROR } from '../domain/statement-import-errors';
-import { StatementImportsRepository } from '../infrastructure/statement-imports.repository';
+import { StatementImportsRepository } from './statement-imports.repository';
 import {
   STATEMENT_UPLOAD_STORE,
   type StatementUploadStore,
-} from '../infrastructure/temp-file-statement-upload.store';
+} from './temp-file-statement-upload.store';
 
 @Injectable()
 @Processor(QueueNames.STATEMENT_IMPORT)

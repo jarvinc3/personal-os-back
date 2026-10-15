@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { SubscriptionRemindersService } from '../application/subscription-reminders.service';
 import { SubscriptionsService } from '../application/subscriptions.service';
-import { SubscriptionsRepository } from '../infrastructure/subscriptions.repository';
+import { SubscriptionsRepository } from './subscriptions.repository';
 
 const MATCH_LOOKBACK_DAYS = 35;
 const MS_PER_DAY = 86_400_000;

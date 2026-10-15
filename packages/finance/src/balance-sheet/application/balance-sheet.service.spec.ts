@@ -15,7 +15,10 @@ describe('BalanceSheetService', () => {
   const createService = () =>
     new BalanceSheetService(
       { loadPositions, loadCashAccounts } as unknown as BalanceSheetRepository,
-      { toBaseCurrency, toBaseCurrencyOrNull } as unknown as ResolveAmountsUseCase,
+      {
+        toBaseCurrency,
+        toBaseCurrencyOrNull,
+      } as unknown as ResolveAmountsUseCase,
       {
         execute: baseCurrencyExecute,
       } as unknown as ResolveUserBaseCurrencyUseCase,
@@ -333,17 +336,13 @@ describe('BalanceSheetService', () => {
         currency: 'DOP',
         total: '1000',
         totalBase: '1000',
-        accounts: [
-          { id: 'cash-dop', name: 'Efectivo', balance: '1000.00' },
-        ],
+        accounts: [{ id: 'cash-dop', name: 'Efectivo', balance: '1000.00' }],
       },
       {
         currency: 'USD',
         total: '10',
         totalBase: '600',
-        accounts: [
-          { id: 'cash-usd', name: 'Efectivo USD', balance: '10.00' },
-        ],
+        accounts: [{ id: 'cash-usd', name: 'Efectivo USD', balance: '10.00' }],
       },
     ]);
   });

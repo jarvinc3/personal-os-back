@@ -1,4 +1,4 @@
-import type { BudgetSpendSnapshot } from '../../shared/domain/budget-snapshot';
+import type { BudgetSpendSnapshot } from '../domain/budget-snapshot';
 
 /**
  * Port for budget threshold alerts after ledger spend changes.

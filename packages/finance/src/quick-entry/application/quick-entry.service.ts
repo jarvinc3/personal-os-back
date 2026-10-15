@@ -8,7 +8,7 @@ import {
   type QuickEntryCatalogCategory,
   type QuickEntryExtraction,
   type QuickEntryExtractorPort,
-} from '../application/ports/quick-entry-extractor.port';
+} from './ports/quick-entry-extractor.port';
 import { QUICK_ENTRY_EXTRACTOR } from '../../shared/application/tokens';
 
 const PAYROLL_TEXT = /quincena|nomina|salario|sueldo/;

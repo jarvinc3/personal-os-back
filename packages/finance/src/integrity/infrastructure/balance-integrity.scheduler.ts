@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { BalanceIntegrityService } from '../application/balance-integrity.service';
-import { IntegrityRepository } from '../infrastructure/integrity.repository';
+import { IntegrityRepository } from './integrity.repository';
 
 /** Nightly sweep: detects every open balance deviation and notifies it. */
 @Injectable()

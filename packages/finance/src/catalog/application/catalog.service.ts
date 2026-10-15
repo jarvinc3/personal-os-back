@@ -28,10 +28,7 @@ import {
   decimalToString,
 } from '../../shared/domain/mappers';
 import { roundMoney } from '../../shared/domain/money';
-import {
-  CASH_ACCOUNT_TYPE,
-  isCashInstitution,
-} from '../../shared/domain/cash';
+import { CASH_ACCOUNT_TYPE, isCashInstitution } from '../../shared/domain/cash';
 import { EnsureCashInstitutionUseCase } from './ensure-cash-institution.use-case';
 import { CatalogRepository } from '../infrastructure/catalog.repository';
 import type { CreateAccountDto } from '../presentation/dto/create-account.dto';

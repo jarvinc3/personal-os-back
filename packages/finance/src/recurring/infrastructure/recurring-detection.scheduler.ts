@@ -5,7 +5,7 @@ import {
   DETECTION_LOOKBACK_DAYS,
   RecurringService,
 } from '../application/recurring.service';
-import { RecurringRepository } from '../infrastructure/recurring.repository';
+import { RecurringRepository } from './recurring.repository';
 
 const MS_PER_DAY = 86_400_000;
 
