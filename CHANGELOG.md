@@ -2,6 +2,16 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [SemVer](https://semver.org/lang/es/). Reglas y ejemplo en [docs/reference/changelog-guide.md](./docs/reference/changelog-guide.md).
 
+## [0.30.2] - 2026-10-21
+
+### Corregido
+
+- Las alertas de fin de prueba y de renovación salen de la ventana global (`subscriptions.reminderDaysBefore`), no del valor guardado por suscripción, igual que el summary y los recordatorios. La migración `20261021100000_subscription_reminder_days_default` pasa a 5 los módulos que aún guardaban el default viejo (3 días) y conserva cualquier otro valor elegido a mano.
+
+### Cambiado
+
+- Spec: la ventana global manda en las alertas de cuenta atrás.
+
 ## [0.30.1] - 2026-10-21
 
 ### Cambiado
