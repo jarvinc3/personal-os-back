@@ -2,6 +2,13 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [SemVer](https://semver.org/lang/es/). Reglas y ejemplo en [docs/reference/changelog-guide.md](./docs/reference/changelog-guide.md).
 
+## [0.36.1] - 2026-10-15
+
+### Corregido
+
+- `PORT` cae a 3100 en `main.ts`, igual que `env.schema` y `.env.example`; antes el fallback decía 3000.
+- `MAX_EMAIL_LLM_EXTRACTS` y `AI_DAILY_INSIGHT_QUOTA` aceptan una variable vacía y usan el default, en vez de romper el boot.
+
 ## [0.36.0] - 2026-10-15
 
 ### Agregado
