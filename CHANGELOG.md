@@ -2,6 +2,13 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [SemVer](https://semver.org/lang/es/). Reglas y ejemplo en [docs/reference/changelog-guide.md](./docs/reference/changelog-guide.md).
 
+## [0.31.1] - 2026-10-22
+
+### Cambiado
+
+- La constante `PENDING` vive en `shared/domain/transaction-status.ts` y el repositorio de catálogo la reutiliza, en vez de repetir el texto.
+- El mapeo del disponible por moneda se extrae a `mapCardBalance`, fuera de `mapCard`.
+
 ## [0.31.0] - 2026-10-22 - Tarjetas prácticas
 
 ### Agregado
