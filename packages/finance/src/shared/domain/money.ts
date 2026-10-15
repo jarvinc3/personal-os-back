@@ -22,16 +22,17 @@ export const MONEY_DECIMALS = 2;
 
 /**
  * Values accepted as money: the Decimal from a query, its string form, or a
- * number. A missing amount — null from an aggregate, undefined from an
- * optional field — means zero, never a second business state.
+ * number. The money contract marks a missing amount as `null` (a Prisma
+ * aggregate without rows); `undefined` is never an amount, so a caller with an
+ * optional value passes `?? null` or an explicit zero.
  */
-export type MoneyLike = Prisma.Decimal | string | number | null | undefined;
+export type MoneyLike = Prisma.Decimal | string | number | null;
 
 /** The decimal type amounts carry through the back. */
 export type Decimal = Prisma.Decimal;
 
 export function toMoney(value: MoneyLike): Prisma.Decimal {
-  if (value === null || value === undefined) {
+  if (value === null) {
     return new Prisma.Decimal(0);
   }
   return value instanceof Prisma.Decimal ? value : new Prisma.Decimal(value);

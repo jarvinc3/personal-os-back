@@ -43,7 +43,6 @@ describe('decimal money helpers', () => {
 
   it('reads a missing amount as zero', () => {
     expect(toMoney(null).toString()).toBe('0');
-    expect(toMoney(undefined).toString()).toBe('0');
   });
 
   it('computes a percentage from decimals and guards a zero base', () => {

@@ -47,7 +47,7 @@ type Bucket = {
 };
 
 function isMissingCreditLimit(value: MoneyLike): boolean {
-  return value === null || value === undefined;
+  return value === null;
 }
 
 /** Debt is what the credit limit does not cover, and it never goes negative. */
