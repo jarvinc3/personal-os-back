@@ -2,6 +2,12 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [SemVer](https://semver.org/lang/es/). Reglas y ejemplo en [docs/reference/changelog-guide.md](./docs/reference/changelog-guide.md).
 
+## [0.33.5] - 2026-10-15
+
+### Cambiado
+
+- El rechazo de crear o convertir una institución en efectivo vive en un solo guard, sin repetir el mensaje.
+
 ## [0.33.4] - 2026-10-15
 
 ### Corregido
