@@ -2,6 +2,18 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [SemVer](https://semver.org/lang/es/). Reglas y ejemplo en [docs/reference/changelog-guide.md](./docs/reference/changelog-guide.md).
 
+## [0.33.0] - 2026-10-15
+
+### Agregado
+
+- Cada usuario tiene una institución de sistema «Efectivo» (`is_system`) con una cuenta por moneda. Se crea sola al listar instituciones o cuentas y por el backfill de la migración `20261021110000_fin_cash_institution`.
+- Resumen de efectivo en el balance general (`cash`): total convertido a la moneda base, desglose por moneda y cuenta, y estado `INCOMPLETE` con total nulo cuando falta una tasa. Las cuentas sin tasa no tumban el balance general; se marcan con `MISSING_RATE`.
+- Las cuentas de efectivo nuevas y las existentes sin institución se asignan a Efectivo. El back rechaza editar, archivar o borrar la institución de sistema, y crear tarjetas, préstamos o fuentes de correo ligados a ella. Las respuestas de institución incluyen `isSystem`.
+
+### Cambiado
+
+- Toda cuenta exige institución: el check de `fin_accounts` pasa a `institution_id IS NOT NULL`.
+
 ## [0.32.4] - 2026-10-15
 
 ### Corregido
