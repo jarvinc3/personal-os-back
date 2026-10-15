@@ -210,6 +210,7 @@ export type FinSubscriptionStatus = (typeof FinSubscriptionStatus)[keyof typeof 
 
 export const FinSubscriptionAlertKind = {
   PRICE_INCREASE: 'PRICE_INCREASE',
+  AMOUNT_MISMATCH: 'AMOUNT_MISMATCH',
   TRIAL_ENDING: 'TRIAL_ENDING',
   ANNUAL_RENEWAL: 'ANNUAL_RENEWAL',
   MISSED_CHARGE: 'MISSED_CHARGE'

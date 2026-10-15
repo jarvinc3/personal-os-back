@@ -1,5 +1,6 @@
 import {
   buildSubscriptionAlerts,
+  lastChargeMismatch,
   type SubscriptionAlertFact,
 } from './subscription-alerts';
 
@@ -99,6 +100,65 @@ describe('buildSubscriptionAlerts', () => {
     expect(monthly.map((alert) => alert.kind)).not.toContain('ANNUAL_RENEWAL');
   });
 
+  it('reports a charge below the expected amount as a mismatch', () => {
+    const alerts = buildSubscriptionAlerts(
+      fact({
+        amount: 100,
+        lastPaymentAmount: 80,
+        lastPaymentDate: day('2026-10-28'),
+        previousPaymentAmount: 100,
+      }),
+      day('2026-10-28'),
+    );
+
+    const mismatch = alerts.find((alert) => alert.kind === 'AMOUNT_MISMATCH');
+    expect(mismatch).toMatchObject({
+      id: 'AMOUNT_MISMATCH:sub-1:2026-10-28',
+      amount: '80.00',
+      expectedAmount: '100.00',
+      previousAmount: null,
+      percent: null,
+    });
+  });
+
+  it('reports a charge above the expected amount as a mismatch only when it is not a price increase', () => {
+    const dropped = buildSubscriptionAlerts(
+      fact({
+        amount: 100,
+        lastPaymentAmount: 120,
+        lastPaymentDate: day('2026-10-28'),
+        previousPaymentAmount: 130,
+      }),
+      day('2026-10-28'),
+    );
+    expect(dropped.map((alert) => alert.kind)).toEqual(['AMOUNT_MISMATCH']);
+
+    const raised = buildSubscriptionAlerts(
+      fact({
+        amount: 100,
+        lastPaymentAmount: 120,
+        lastPaymentDate: day('2026-10-28'),
+        previousPaymentAmount: 100,
+      }),
+      day('2026-10-28'),
+    );
+    expect(raised.map((alert) => alert.kind)).toEqual(['PRICE_INCREASE']);
+  });
+
+  it('reports nothing when the charge matches the expected amount', () => {
+    const alerts = buildSubscriptionAlerts(
+      fact({
+        amount: 100,
+        lastPaymentAmount: 100,
+        lastPaymentDate: day('2026-10-28'),
+        previousPaymentAmount: 100,
+      }),
+      day('2026-10-28'),
+    );
+
+    expect(alerts).toHaveLength(0);
+  });
+
   it('reports a missed charge after the grace period only', () => {
     const missed = buildSubscriptionAlerts(
       fact({ nextBillingDate: day('2026-10-20'), paidSinceNextBilling: false }),
@@ -122,5 +182,28 @@ describe('buildSubscriptionAlerts', () => {
       day('2026-10-28'),
     );
     expect(paid.map((alert) => alert.kind)).not.toContain('MISSED_CHARGE');
+  });
+});
+
+describe('lastChargeMismatch', () => {
+  it('flags a charge that differs from the expected amount', () => {
+    expect(
+      lastChargeMismatch({ expectedAmount: 100, lastPaymentAmount: 80 }),
+    ).toBe(true);
+    expect(
+      lastChargeMismatch({ expectedAmount: 100, lastPaymentAmount: 120 }),
+    ).toBe(true);
+  });
+
+  it('does not flag a matching charge, minor cent noise or a subscription without payments', () => {
+    expect(
+      lastChargeMismatch({ expectedAmount: 100, lastPaymentAmount: 100 }),
+    ).toBe(false);
+    expect(
+      lastChargeMismatch({ expectedAmount: 100, lastPaymentAmount: 100.001 }),
+    ).toBe(false);
+    expect(
+      lastChargeMismatch({ expectedAmount: 100, lastPaymentAmount: null }),
+    ).toBe(false);
   });
 });

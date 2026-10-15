@@ -7,6 +7,7 @@ import { daysUntil } from './billing';
  */
 export const SUBSCRIPTION_ALERT_KINDS = [
   'PRICE_INCREASE',
+  'AMOUNT_MISMATCH',
   'TRIAL_ENDING',
   'ANNUAL_RENEWAL',
   'MISSED_CHARGE',
@@ -30,6 +31,8 @@ export type SubscriptionAlert = {
   currency: string;
   amount: string | null;
   previousAmount: string | null;
+  /** Expected charge of the subscription; set on `AMOUNT_MISMATCH` only. */
+  expectedAmount: string | null;
   /** Increase over the previous charge, rounded to one decimal. */
   percent: number | null;
   /** Days to the event (trial end or renewal); null when not a countdown. */
@@ -55,6 +58,11 @@ export type SubscriptionAlertFact = {
 
 function isoDate(date: Date): string {
   return date.toISOString().slice(0, 10);
+}
+
+/** Money comparison in cents, so 100.004 and 100 are the same amount. */
+function isSameAmount(left: number, right: number): boolean {
+  return Math.round(left * 100) === Math.round(right * 100);
 }
 
 function alertId(
@@ -90,9 +98,53 @@ function priceIncrease(fact: SubscriptionAlertFact): SubscriptionAlert | null {
     currency: fact.currency,
     amount: fact.lastPaymentAmount.toFixed(2),
     previousAmount: fact.previousPaymentAmount.toFixed(2),
+    expectedAmount: null,
     percent,
     daysUntil: null,
   };
+}
+
+/**
+ * A charge that does not match the expected amount, above or below. A charge
+ * above the previous one is already reported as a price increase.
+ */
+function amountMismatch(fact: SubscriptionAlertFact): SubscriptionAlert | null {
+  if (fact.lastPaymentAmount === null || fact.lastPaymentDate === null) {
+    return null;
+  }
+  if (isSameAmount(fact.lastPaymentAmount, fact.amount)) {
+    return null;
+  }
+  const raisedPrice =
+    fact.previousPaymentAmount !== null &&
+    fact.lastPaymentAmount > fact.previousPaymentAmount;
+  if (raisedPrice) {
+    return null;
+  }
+  return {
+    id: alertId('AMOUNT_MISMATCH', fact.id, fact.lastPaymentDate),
+    kind: 'AMOUNT_MISMATCH',
+    subscriptionId: fact.id,
+    subscriptionName: fact.name,
+    date: isoDate(fact.lastPaymentDate),
+    currency: fact.currency,
+    amount: fact.lastPaymentAmount.toFixed(2),
+    previousAmount: null,
+    expectedAmount: fact.amount.toFixed(2),
+    percent: null,
+    daysUntil: null,
+  };
+}
+
+/** Whether the newest charge of a subscription differs from the expected one. */
+export function lastChargeMismatch(input: {
+  expectedAmount: number;
+  lastPaymentAmount: number | null;
+}): boolean {
+  if (input.lastPaymentAmount === null) {
+    return false;
+  }
+  return !isSameAmount(input.lastPaymentAmount, input.expectedAmount);
 }
 
 function trialEnding(
@@ -115,6 +167,7 @@ function trialEnding(
     currency: fact.currency,
     amount: fact.amount.toFixed(2),
     previousAmount: null,
+    expectedAmount: null,
     percent: null,
     daysUntil: remaining,
   };
@@ -140,6 +193,7 @@ function annualRenewal(
     currency: fact.currency,
     amount: fact.amount.toFixed(2),
     previousAmount: null,
+    expectedAmount: null,
     percent: null,
     daysUntil: remaining,
   };
@@ -165,6 +219,7 @@ function missedCharge(
     currency: fact.currency,
     amount: fact.amount.toFixed(2),
     previousAmount: null,
+    expectedAmount: null,
     percent: null,
     daysUntil: -overdueDays,
   };
@@ -176,6 +231,7 @@ export function buildSubscriptionAlerts(
 ): SubscriptionAlert[] {
   return [
     priceIncrease(fact),
+    amountMismatch(fact),
     trialEnding(fact, now),
     annualRenewal(fact, now),
     missedCharge(fact, now),

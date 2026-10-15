@@ -44,6 +44,20 @@ describe('cursor encoding', () => {
       decodeCursor(forgeCursor({ key: 'not-a-date', id: 'row-1' })),
     ).toThrow(BadRequestException);
   });
+
+  it('accepts a custom key check for a list ordered by another column', () => {
+    const cursor = encodeCursor({ key: '120.00', id: 'row-1' });
+    const isAmountKey = (key: string) => /^\d+\.\d{2}$/.test(key);
+
+    expect(decodeCursor(cursor, isAmountKey)).toEqual({
+      key: '120.00',
+      id: 'row-1',
+    });
+    expect(() => decodeCursor(cursor)).toThrow(BadRequestException);
+    expect(() =>
+      decodeCursor(forgeCursor({ key: 'oops', id: 'row-1' }), isAmountKey),
+    ).toThrow(BadRequestException);
+  });
 });
 
 describe('toCursorPage', () => {

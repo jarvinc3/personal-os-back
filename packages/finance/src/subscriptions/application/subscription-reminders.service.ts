@@ -1,6 +1,9 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { AppEvents } from '@personal-os/core';
-import { UsersService } from '@personal-os/users';
+import {
+  resolveSubscriptionReminderDays,
+  UsersService,
+} from '@personal-os/users';
 import { FinanceOutboxDispatcher } from '../../events/infrastructure/finance-outbox.dispatcher';
 import { PrismaOutboxRepository } from '../../events/infrastructure/prisma-outbox.repository';
 import { DOMAIN_EVENT_PUBLISHER } from '../../shared/application/tokens';
@@ -9,6 +12,7 @@ import { daysUntil } from '../domain/billing';
 import { SubscriptionsRepository } from '../infrastructure/subscriptions.repository';
 
 const AGGREGATE_TYPE = 'FinSubscription';
+const FINANCE_MODULE_SLUG = 'finance';
 
 function isoDate(date: Date): string {
   return date.toISOString().slice(0, 10);
@@ -40,13 +44,14 @@ export class SubscriptionRemindersService {
     const today = new Date(
       `${localDateIso(profile?.timezone ?? null, now)}T00:00:00.000Z`,
     );
+    const windowDays = resolveSubscriptionReminderDays(
+      profile?.userModules.find((module) => module.slug === FINANCE_MODULE_SLUG)
+        ?.config,
+    );
     const active = await this.repo.findActive(userId);
     for (const subscription of active) {
       const expected = isoDate(subscription.nextBillingDate);
-      if (
-        daysUntil(subscription.nextBillingDate, today) >
-        subscription.reminderDaysBefore
-      ) {
+      if (daysUntil(subscription.nextBillingDate, today) > windowDays) {
         continue;
       }
       if (

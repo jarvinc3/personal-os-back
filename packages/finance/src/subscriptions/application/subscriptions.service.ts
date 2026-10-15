@@ -9,8 +9,7 @@ import { clampPageLimit, decodeCursor, toCursorPage } from '@personal-os/core';
 import { Prisma, PrismaService } from '@personal-os/database';
 import { LogoService, type LogoUploadFile } from '@personal-os/logos';
 import {
-  DEFAULT_MODULE_CONFIG_BY_SLUG,
-  mergeWithDefaults,
+  resolveSubscriptionReminderDays,
   USERS_REPOSITORY,
   type UsersRepositoryPort,
 } from '@personal-os/users';
@@ -31,7 +30,13 @@ import {
 } from '../domain/billing';
 import { matchesSubscription } from '../domain/payment-matching';
 import {
+  DEFAULT_SUBSCRIPTION_SORT,
+  isValidSubscriptionCursorKey,
+  subscriptionCursorKey,
+} from '../domain/subscription-list';
+import {
   buildSubscriptionAlerts,
+  lastChargeMismatch,
   type SubscriptionAlert,
 } from '../domain/subscription-alerts';
 import {
@@ -47,8 +52,6 @@ import type { UpcomingSubscriptionsQueryDto } from '../presentation/dto/upcoming
 import type { UpdateSubscriptionDto } from '../presentation/dto/update-subscription.dto';
 
 const FINANCE_MODULE_SLUG = 'finance';
-const UPCOMING_WINDOW_DAYS = 7;
-const DEFAULT_REMINDER_DAYS = 3;
 const UPCOMING_DEFAULT_DAYS = 30;
 const UNCATEGORIZED_KEY = 'uncategorized';
 const NO_INSTRUMENT_KEY = 'no-instrument';
@@ -84,13 +87,21 @@ export class SubscriptionsService implements SubscriptionMatcherPort {
     now = new Date(),
   ) {
     const limit = clampPageLimit(query.limit);
-    const cursor = query.cursor ? decodeCursor(query.cursor) : null;
+    const sort = query.sort ?? DEFAULT_SUBSCRIPTION_SORT;
+    const cursor = query.cursor
+      ? decodeCursor(query.cursor, (key) =>
+          isValidSubscriptionCursorKey(sort, key),
+        )
+      : null;
     const rows = await this.repo.list(userId, {
       cursor,
       take: limit + 1,
       status: query.status,
       currency: query.currency?.toUpperCase(),
       categoryId: query.categoryId,
+      categoryIds: query.categoryIds,
+      frequency: query.frequency,
+      sort,
       cardId: query.cardId,
       accountId: query.accountId,
       unassignedCategory: query.unassignedCategory,
@@ -98,7 +109,12 @@ export class SubscriptionsService implements SubscriptionMatcherPort {
       search: query.q,
     });
     const page = toCursorPage(rows, limit, (row) =>
-      row.nextBillingDate.toISOString(),
+      subscriptionCursorKey({
+        sort,
+        nextBillingDate: row.nextBillingDate,
+        amount: row.amount.toFixed(2),
+        name: row.name,
+      }),
     );
     return {
       ...page,
@@ -190,6 +206,7 @@ export class SubscriptionsService implements SubscriptionMatcherPort {
       baseCurrency,
       now,
     );
+    const reminderWindowDays = await this.reminderWindowDays(userId);
 
     return {
       baseCurrency,
@@ -202,16 +219,8 @@ export class SubscriptionsService implements SubscriptionMatcherPort {
       trend: this.monthlyTrend(monthlyTotal, previousMonthlyTotal),
       pendingDetectedCount,
       cancelledAnnualSavings: cancelledAnnualSavings.toFixed(2),
-      upcoming: active
-        .map((row) => ({ row, days: daysUntil(row.nextBillingDate, now) }))
-        .filter(
-          (entry) => entry.days >= 0 && entry.days <= UPCOMING_WINDOW_DAYS,
-        )
-        .sort((left, right) => left.days - right.days)
-        .map((entry) => ({
-          ...this.map(entry.row, now),
-          daysUntil: entry.days,
-        })),
+      reminderWindowDays,
+      upcoming: this.upcomingWithinWindow(active, now, reminderWindowDays),
     };
   }
 
@@ -351,6 +360,19 @@ export class SubscriptionsService implements SubscriptionMatcherPort {
     return alerts.sort((left, right) => left.date.localeCompare(right.date));
   }
 
+  async dismissAllAlerts(userId: string, now = new Date()) {
+    const alerts = await this.alerts(userId, now);
+    await this.repo.dismissAlerts(
+      alerts.map((alert) => ({
+        userId,
+        subscriptionId: alert.subscriptionId,
+        kind: alert.kind,
+        alertDate: dateOnly(new Date(alert.date)),
+      })),
+    );
+    return { dismissed: alerts.length };
+  }
+
   async dismissAlert(userId: string, dto: DismissSubscriptionAlertDto) {
     const subscription = await this.repo.findById(userId, dto.subscriptionId);
     if (!subscription) {
@@ -409,7 +431,7 @@ export class SubscriptionsService implements SubscriptionMatcherPort {
       trialEndsAt: dto.trialEndsAt ? dateOnly(new Date(dto.trialEndsAt)) : null,
       status: 'ACTIVE',
       reminderDaysBefore:
-        dto.reminderDaysBefore ?? (await this.defaultReminderDays(userId)),
+        dto.reminderDaysBefore ?? (await this.reminderWindowDays(userId)),
       cardId: dto.cardId ?? null,
       accountId: dto.accountId ?? null,
       categoryId: dto.categoryId ?? null,
@@ -961,20 +983,27 @@ export class SubscriptionsService implements SubscriptionMatcherPort {
     return key;
   }
 
-  private async defaultReminderDays(userId: string): Promise<number> {
+  private async reminderWindowDays(userId: string): Promise<number> {
     const row = await this.usersRepository.findUserModuleBySlug(
       userId,
       FINANCE_MODULE_SLUG,
     );
-    const config = mergeWithDefaults(
-      row?.config,
-      DEFAULT_MODULE_CONFIG_BY_SLUG.finance as unknown as Record<
-        string,
-        unknown
-      >,
-    ) as { subscriptions?: { reminderDaysBefore?: unknown } };
-    const value = config.subscriptions?.reminderDaysBefore;
-    return typeof value === 'number' ? value : DEFAULT_REMINDER_DAYS;
+    return resolveSubscriptionReminderDays(row?.config);
+  }
+
+  private upcomingWithinWindow(
+    rows: SubscriptionRow[],
+    now: Date,
+    windowDays: number,
+  ) {
+    return rows
+      .map((row) => ({ row, days: daysUntil(row.nextBillingDate, now) }))
+      .filter((entry) => entry.days >= 0 && entry.days <= windowDays)
+      .sort((left, right) => left.days - right.days)
+      .map((entry) => ({
+        ...this.map(entry.row, now),
+        daysUntil: entry.days,
+      }));
   }
 
   private map(row: SubscriptionRow, now: Date) {
@@ -997,6 +1026,15 @@ export class SubscriptionsService implements SubscriptionMatcherPort {
       pausedAt: row.pausedAt?.toISOString() ?? null,
       cancelledAt: row.cancelledAt?.toISOString() ?? null,
       reminderDaysBefore: row.reminderDaysBefore,
+      lastChargeMismatch: lastChargeMismatch({
+        expectedAmount: amount,
+        lastPaymentAmount: row.payments[0]
+          ? Number(row.payments[0].amount)
+          : null,
+      }),
+      lastPaymentAmount: row.payments[0]
+        ? row.payments[0].amount.toFixed(2)
+        : null,
       lastRemindedFor: row.lastRemindedFor
         ? isoDate(row.lastRemindedFor)
         : null,

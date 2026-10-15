@@ -24,12 +24,28 @@ function subscriptionRow(
   } as unknown as SubscriptionRow;
 }
 
-function build(options: { hasEvent?: boolean } = {}) {
+function build(
+  options: { hasEvent?: boolean; reminderDaysBefore?: number } = {},
+) {
   const repo = {
     findActive: jest.fn().mockResolvedValue([subscriptionRow()]),
     update: jest.fn().mockResolvedValue(subscriptionRow()),
   };
-  const users = { findById: jest.fn().mockResolvedValue({ timezone: 'UTC' }) };
+  const users = {
+    findById: jest.fn().mockResolvedValue({
+      timezone: 'UTC',
+      userModules: [
+        {
+          slug: 'finance',
+          config: {
+            subscriptions: {
+              reminderDaysBefore: options.reminderDaysBefore ?? 5,
+            },
+          },
+        },
+      ],
+    }),
+  };
   const events = { enqueue: jest.fn().mockResolvedValue(undefined) };
   const outbox = {
     hasEvent: jest.fn().mockResolvedValue(options.hasEvent ?? false),
@@ -86,5 +102,18 @@ describe('SubscriptionRemindersService', () => {
     await service.evaluate('user-1', new Date('2026-02-20T12:00:00.000Z'));
 
     expect(events.enqueue).not.toHaveBeenCalled();
+  });
+
+  it('uses the global warning window from the finance settings', async () => {
+    const { service, events } = build({ reminderDaysBefore: 10 });
+
+    await service.evaluate('user-1', new Date('2026-02-20T12:00:00.000Z'));
+
+    expect(events.enqueue).toHaveBeenCalledWith(
+      expect.objectContaining({
+        eventId: 'finance-subscription-renewal:sub-1:2026-02-28',
+        payload: expect.objectContaining({ daysUntil: 8 }),
+      }),
+    );
   });
 });

@@ -9,8 +9,23 @@ import {
   MaxLength,
 } from 'class-validator';
 import { CursorQueryDto } from '@personal-os/core';
+import {
+  SUBSCRIPTION_FREQUENCIES,
+  SUBSCRIPTION_SORTS,
+} from '../../domain/subscription-list';
 
 export const SUBSCRIPTION_STATUSES = ['ACTIVE', 'PAUSED', 'CANCELLED'] as const;
+
+/** Accepts `?categoryIds=a,b` or a repeated parameter. */
+function toIdList(value: unknown): string[] | undefined {
+  const ids = Array.isArray(value)
+    ? value.map((entry) => String(entry).trim())
+    : typeof value === 'string'
+      ? value.split(',').map((entry) => entry.trim())
+      : [];
+  const cleaned = ids.filter((id) => id.length > 0);
+  return cleaned.length > 0 ? cleaned : undefined;
+}
 
 export class ListSubscriptionsQueryDto extends CursorQueryDto {
   @ApiPropertyOptional({ enum: SUBSCRIPTION_STATUSES })
@@ -28,6 +43,25 @@ export class ListSubscriptionsQueryDto extends CursorQueryDto {
   @IsOptional()
   @IsUUID()
   categoryId?: string;
+
+  @ApiPropertyOptional({
+    description: 'Category ids, comma separated',
+    type: [String],
+  })
+  @IsOptional()
+  @Transform(({ value }) => toIdList(value))
+  @IsUUID(undefined, { each: true })
+  categoryIds?: string[];
+
+  @ApiPropertyOptional({ enum: SUBSCRIPTION_FREQUENCIES })
+  @IsOptional()
+  @IsIn(SUBSCRIPTION_FREQUENCIES)
+  frequency?: (typeof SUBSCRIPTION_FREQUENCIES)[number];
+
+  @ApiPropertyOptional({ enum: SUBSCRIPTION_SORTS, default: 'NEXT_DATE' })
+  @IsOptional()
+  @IsIn(SUBSCRIPTION_SORTS)
+  sort?: (typeof SUBSCRIPTION_SORTS)[number];
 
   @ApiPropertyOptional()
   @IsOptional()

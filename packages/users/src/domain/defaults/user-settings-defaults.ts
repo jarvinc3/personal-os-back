@@ -42,8 +42,11 @@ export const DEFAULT_MODULE_CONFIG_BY_SLUG = {
       [FINANCE_NOTIFICATION_KEYS.balanceIntegrity]: true,
     },
     subscriptions: {
-      /** Default days before a renewal the reminder fires; each one can override. */
-      reminderDaysBefore: 3,
+      /**
+       * Days before a renewal the user gets a heads-up: renewal reminders and
+       * the "next charges" window of the Suscripciones view.
+       */
+      reminderDaysBefore: 5,
       groupBy: 'none',
     },
     emailSync: {
@@ -85,6 +88,38 @@ export const DEFAULT_MODULE_CONFIG_BY_SLUG = {
     notifications: { goalReminders: true, weeklySummary: false },
   },
 } as const;
+
+/** Allowed range for the global `subscriptions.reminderDaysBefore` setting. */
+export const SUBSCRIPTION_REMINDER_DAYS_MIN = 1;
+export const SUBSCRIPTION_REMINDER_DAYS_MAX = 30;
+
+/**
+ * Window in days for upcoming-charge warnings, read from a user module config
+ * that may be partial.
+ */
+export function resolveSubscriptionReminderDays(config: unknown): number {
+  const settings = config as
+    { subscriptions?: { reminderDaysBefore?: unknown } } | null | undefined;
+  const value = settings?.subscriptions?.reminderDaysBefore;
+  return typeof value === 'number'
+    ? value
+    : DEFAULT_MODULE_CONFIG_BY_SLUG.finance.subscriptions.reminderDaysBefore;
+}
+
+/** Message when the setting is out of range, or null when it is valid. */
+export function validateSubscriptionReminderDays(
+  value: unknown,
+): string | null {
+  if (
+    typeof value !== 'number' ||
+    !Number.isInteger(value) ||
+    value < SUBSCRIPTION_REMINDER_DAYS_MIN ||
+    value > SUBSCRIPTION_REMINDER_DAYS_MAX
+  ) {
+    return `subscriptions.reminderDaysBefore must be an integer between ${SUBSCRIPTION_REMINDER_DAYS_MIN} and ${SUBSCRIPTION_REMINDER_DAYS_MAX}`;
+  }
+  return null;
+}
 
 export type ModuleSlug = keyof typeof DEFAULT_MODULE_CONFIG_BY_SLUG;
 

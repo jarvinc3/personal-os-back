@@ -77,6 +77,12 @@ export class SubscriptionsController {
     return this.subscriptions.alerts(userId);
   }
 
+  @Post('alerts/dismiss-all')
+  @ApiOperation({ summary: 'Dismiss every active alert' })
+  dismissAllAlerts(@CurrentUser('sub') userId: string) {
+    return this.subscriptions.dismissAllAlerts(userId);
+  }
+
   @Post('alerts/dismiss')
   @ApiOperation({ summary: 'Dismiss an alert for its occurrence' })
   dismissAlert(

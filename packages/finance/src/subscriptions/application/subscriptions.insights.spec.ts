@@ -1,4 +1,7 @@
+import { BadRequestException } from '@nestjs/common';
+import { decodeCursor, encodeCursor } from '@personal-os/core';
 import type { SubscriptionRow } from '../infrastructure/subscriptions.repository';
+import { isValidSubscriptionCursorKey } from '../domain/subscription-list';
 import { SubscriptionsService } from './subscriptions.service';
 
 const day = (iso: string) => new Date(`${iso}T00:00:00.000Z`);
@@ -38,6 +41,7 @@ function subscriptionRow(
     account: null,
     category: null,
     sourcePattern: null,
+    payments: [],
     ...overrides,
   } as unknown as SubscriptionRow;
 }
@@ -56,7 +60,7 @@ function paymentRow(overrides: Record<string, unknown> = {}) {
   };
 }
 
-function build() {
+function build(options: { reminderDaysBefore?: number } = {}) {
   const repo = {
     list: jest.fn().mockResolvedValue([]),
     findById: jest.fn(),
@@ -66,6 +70,7 @@ function build() {
     listPaymentsInRange: jest.fn().mockResolvedValue([]),
     listAlertDismissals: jest.fn().mockResolvedValue([]),
     dismissAlert: jest.fn().mockResolvedValue({}),
+    dismissAlerts: jest.fn().mockResolvedValue({ count: 1 }),
     countPendingDetected: jest.fn().mockResolvedValue(0),
   };
   const logos = { resolveUrl: jest.fn().mockReturnValue(null) };
@@ -78,6 +83,17 @@ function build() {
       Promise.resolve(currency === 'USD' ? amount * 60 : amount),
     ),
   };
+  const usersRepository = {
+    findUserModuleBySlug: jest.fn().mockResolvedValue(
+      options.reminderDaysBefore === undefined
+        ? null
+        : {
+            config: {
+              subscriptions: { reminderDaysBefore: options.reminderDaysBefore },
+            },
+          },
+    ),
+  };
   const service = new SubscriptionsService(
     repo as never,
     {} as never,
@@ -85,7 +101,7 @@ function build() {
     ownership as never,
     baseCurrency as never,
     resolveAmounts as never,
-    {} as never,
+    usersRepository as never,
   );
   return { service, repo, resolveAmounts };
 }
@@ -137,6 +153,34 @@ describe('SubscriptionsService.summary', () => {
     expect(summary.pendingDetectedCount).toBe(2);
     expect(summary.cancelledAnnualSavings).toBe('60.00');
     expect(summary.activeCount).toBe(2);
+  });
+
+  it('lists upcoming charges inside the global warning window', async () => {
+    const { service, repo } = build();
+    repo.findActive.mockResolvedValue([
+      subscriptionRow({ id: 'sub-1', nextBillingDate: day('2026-11-10') }),
+      subscriptionRow({ id: 'sub-2', nextBillingDate: day('2026-11-13') }),
+      subscriptionRow({ id: 'sub-3', nextBillingDate: day('2026-11-27') }),
+    ]);
+
+    const summary = await service.summary('user-1', day('2026-11-07'));
+
+    expect(summary.reminderWindowDays).toBe(5);
+    expect(summary.upcoming.map((item) => item.id)).toEqual(['sub-1']);
+  });
+
+  it('widens the upcoming window with the configured days', async () => {
+    const { service, repo } = build({ reminderDaysBefore: 10 });
+    repo.findActive.mockResolvedValue([
+      subscriptionRow({ id: 'sub-1', nextBillingDate: day('2026-11-10') }),
+      subscriptionRow({ id: 'sub-2', nextBillingDate: day('2026-11-13') }),
+      subscriptionRow({ id: 'sub-3', nextBillingDate: day('2026-11-27') }),
+    ]);
+
+    const summary = await service.summary('user-1', day('2026-11-07'));
+
+    expect(summary.reminderWindowDays).toBe(10);
+    expect(summary.upcoming.map((item) => item.id)).toEqual(['sub-1', 'sub-2']);
   });
 });
 
@@ -280,6 +324,77 @@ describe('SubscriptionsService.alerts', () => {
     expect(alerts.map((alert) => alert.kind)).not.toContain('MISSED_CHARGE');
   });
 
+  it('reports a charge that differs from the expected amount', async () => {
+    const { service, repo } = build();
+    repo.findActive.mockResolvedValue([subscriptionRow({ id: 'sub-1' })]);
+    repo.listPaymentsForSubscriptions.mockResolvedValue([
+      paymentRow({
+        subscriptionId: 'sub-1',
+        amount: 80,
+        paidAt: day('2026-10-25'),
+      }),
+      paymentRow({
+        subscriptionId: 'sub-1',
+        amount: 100,
+        paidAt: day('2026-09-25'),
+      }),
+    ]);
+
+    const alerts = await service.alerts('user-1', day('2026-10-28'));
+    const mismatch = alerts.find((alert) => alert.kind === 'AMOUNT_MISMATCH');
+
+    expect(mismatch).toMatchObject({
+      id: 'AMOUNT_MISMATCH:sub-1:2026-10-25',
+      amount: '80.00',
+      expectedAmount: '100.00',
+      previousAmount: null,
+    });
+    expect(alerts.map((alert) => alert.kind)).not.toContain('PRICE_INCREASE');
+  });
+
+  it('does not report a confirmed price increase as a mismatch', async () => {
+    const { service, repo } = build();
+    repo.findActive.mockResolvedValue([subscriptionRow({ id: 'sub-1' })]);
+    repo.listPaymentsForSubscriptions.mockResolvedValue([
+      paymentRow({
+        subscriptionId: 'sub-1',
+        amount: 120,
+        paidAt: day('2026-10-25'),
+      }),
+      paymentRow({
+        subscriptionId: 'sub-1',
+        amount: 100,
+        paidAt: day('2026-09-25'),
+      }),
+    ]);
+
+    const alerts = await service.alerts('user-1', day('2026-10-28'));
+
+    expect(alerts.map((alert) => alert.kind)).toEqual(['PRICE_INCREASE']);
+  });
+
+  it('dismisses every active alert in one call', async () => {
+    const { service, repo } = build();
+    repo.findActive.mockResolvedValue([
+      subscriptionRow({ id: 'sub-1', nextBillingDate: day('2026-10-20') }),
+    ]);
+
+    const dismissal = await service.dismissAllAlerts(
+      'user-1',
+      day('2026-10-28'),
+    );
+
+    expect(repo.dismissAlerts).toHaveBeenCalledWith([
+      {
+        userId: 'user-1',
+        subscriptionId: 'sub-1',
+        kind: 'MISSED_CHARGE',
+        alertDate: day('2026-10-20'),
+      },
+    ]);
+    expect(dismissal).toEqual({ dismissed: 1 });
+  });
+
   it('persists a dismissal keyed by kind, subscription and date', async () => {
     const { service, repo } = build();
     repo.findById.mockResolvedValue(subscriptionRow());
@@ -343,6 +458,36 @@ describe('SubscriptionsService.list', () => {
     });
   });
 
+  it('flags the row when the last charge differs from the expected amount', async () => {
+    const { service, repo } = build();
+    repo.list.mockResolvedValue([
+      subscriptionRow({
+        id: 'sub-1',
+        amount: 100,
+        payments: [{ amount: 80, paidAt: day('2026-10-25') }],
+      }),
+      subscriptionRow({
+        id: 'sub-2',
+        amount: 100,
+        payments: [{ amount: 100, paidAt: day('2026-10-25') }],
+      }),
+      subscriptionRow({ id: 'sub-3' }),
+    ]);
+
+    const page = await service.list('user-1', { limit: 20 }, day('2026-10-01'));
+
+    expect(page.items.map((item) => item.lastChargeMismatch)).toEqual([
+      true,
+      false,
+      false,
+    ]);
+    expect(page.items.map((item) => item.lastPaymentAmount)).toEqual([
+      '80.00',
+      '100.00',
+      null,
+    ]);
+  });
+
   it('passes the unassigned filters through to the repository', async () => {
     const { service, repo } = build();
     repo.list.mockResolvedValue([]);
@@ -360,5 +505,62 @@ describe('SubscriptionsService.list', () => {
         unassignedMethod: true,
       }),
     );
+  });
+
+  it('passes the category, frequency and order filters through', async () => {
+    const { service, repo } = build();
+    repo.list.mockResolvedValue([]);
+
+    await service.list(
+      'user-1',
+      { limit: 20, categoryIds: ['cat-1', 'cat-2'], frequency: 'OTHER' },
+      day('2026-10-01'),
+    );
+
+    expect(repo.list).toHaveBeenCalledWith(
+      'user-1',
+      expect.objectContaining({
+        categoryIds: ['cat-1', 'cat-2'],
+        frequency: 'OTHER',
+        sort: 'NEXT_DATE',
+      }),
+    );
+  });
+
+  it('continues the page with a key of the active order', async () => {
+    const { service, repo } = build();
+    repo.list.mockResolvedValue([
+      subscriptionRow({ id: 'sub-1', amount: 120 }),
+      subscriptionRow({ id: 'sub-2', amount: 80 }),
+    ]);
+
+    const page = await service.list(
+      'user-1',
+      { limit: 1, sort: 'AMOUNT' },
+      day('2026-10-01'),
+    );
+
+    expect(repo.list).toHaveBeenCalledWith(
+      'user-1',
+      expect.objectContaining({ sort: 'AMOUNT', take: 2 }),
+    );
+    expect(
+      decodeCursor(String(page.nextCursor), (key: string) =>
+        isValidSubscriptionCursorKey('AMOUNT', key),
+      ),
+    ).toEqual({ key: '120.00', id: 'sub-1' });
+  });
+
+  it('rejects a cursor that does not belong to the active order', async () => {
+    const { service } = build();
+    const forged = encodeCursor({ key: 'Netflix', id: 'sub-1' });
+
+    await expect(
+      service.list(
+        'user-1',
+        { limit: 20, sort: 'AMOUNT', cursor: forged },
+        day('2026-10-01'),
+      ),
+    ).rejects.toBeInstanceOf(BadRequestException);
   });
 });

@@ -14,6 +14,7 @@ import { GLOBAL_USER_PREFERENCES_DEFAULTS } from '../domain/defaults/global-pref
 import {
   DEFAULT_MODULE_CONFIG_BY_SLUG,
   isModuleSlug,
+  validateSubscriptionReminderDays,
   type ModuleSlug,
 } from '../domain/defaults/user-settings-defaults';
 import { validateEmailSyncSchedule } from '@personal-os/config';
@@ -70,6 +71,28 @@ export class UsersService {
     return this.mapUser(user);
   }
 
+  private assertFinanceConfig(config: Record<string, unknown>): void {
+    const financeConfig = config as {
+      emailSync?: { schedule?: unknown };
+      subscriptions?: { reminderDaysBefore?: unknown };
+    };
+    if (financeConfig.emailSync?.schedule !== undefined) {
+      const scheduleError = validateEmailSyncSchedule(
+        financeConfig.emailSync.schedule,
+      );
+      if (scheduleError) {
+        throw new BadRequestException(scheduleError);
+      }
+    }
+    const reminderDays = financeConfig.subscriptions?.reminderDaysBefore;
+    if (reminderDays !== undefined) {
+      const reminderError = validateSubscriptionReminderDays(reminderDays);
+      if (reminderError) {
+        throw new BadRequestException(reminderError);
+      }
+    }
+  }
+
   async updateProfile(userId: string, dto: UpdateProfileDto) {
     const current = await this.findById(userId);
 
@@ -115,14 +138,7 @@ export class UsersService {
     }
 
     if (slug === 'finance' && dto.config !== undefined) {
-      const emailSync = (dto.config as { emailSync?: { schedule?: unknown } })
-        .emailSync;
-      if (emailSync?.schedule !== undefined) {
-        const scheduleError = validateEmailSyncSchedule(emailSync.schedule);
-        if (scheduleError) {
-          throw new BadRequestException(scheduleError);
-        }
-      }
+      this.assertFinanceConfig(dto.config);
     }
 
     if (dto.config === undefined && dto.isEnabled === undefined) {

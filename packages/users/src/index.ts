@@ -14,6 +14,7 @@ export {
   FINANCE_NOTIFICATION_KEYS,
   isModuleSlug,
   MODULE_SLUGS,
+  resolveSubscriptionReminderDays,
   type FinanceNotificationKey,
   type ModuleSlug,
 } from './domain/defaults/user-settings-defaults';

@@ -1054,6 +1054,7 @@ enum FinSubscriptionStatus {
 
 enum FinSubscriptionAlertKind {
   PRICE_INCREASE
+  AMOUNT_MISMATCH
   TRIAL_ENDING
   ANNUAL_RENEWAL
   MISSED_CHARGE

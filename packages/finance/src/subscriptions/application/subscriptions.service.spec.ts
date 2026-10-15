@@ -37,6 +37,7 @@ function subscriptionRow(
     card: null,
     account: null,
     sourcePattern: null,
+    payments: [],
     ...overrides,
   } as unknown as SubscriptionRow;
 }

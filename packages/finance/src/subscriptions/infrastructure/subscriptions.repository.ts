@@ -1,11 +1,16 @@
 import { Injectable } from '@nestjs/common';
 import type { CursorPoint } from '@personal-os/core';
 import type {
+  FinBillingCycle,
   FinSubscriptionAlertKind,
   FinSubscriptionStatus,
-  Prisma,
 } from '@personal-os/database';
-import { PrismaService } from '@personal-os/database';
+import { Prisma, PrismaService } from '@personal-os/database';
+import {
+  DEFAULT_SUBSCRIPTION_SORT,
+  type SubscriptionFrequency,
+  type SubscriptionSort,
+} from '../domain/subscription-list';
 
 export const SUBSCRIPTION_INCLUDE = {
   card: {
@@ -42,6 +47,13 @@ export const SUBSCRIPTION_INCLUDE = {
   },
   category: { select: { id: true, name: true, icon: true, color: true } },
   sourcePattern: { select: { id: true, merchant: true } },
+  // Newest charge only: the card flags a subscription whose last charge does
+  // not match the expected amount.
+  payments: {
+    select: { amount: true, paidAt: true },
+    orderBy: [{ paidAt: 'desc' }, { id: 'desc' }],
+    take: 1,
+  },
 } satisfies Prisma.FinSubscriptionInclude;
 
 export type SubscriptionRow = Prisma.FinSubscriptionGetPayload<{
@@ -54,12 +66,85 @@ export type SubscriptionPageQuery = {
   status?: FinSubscriptionStatus;
   currency?: string;
   categoryId?: string;
+  categoryIds?: string[];
+  frequency?: SubscriptionFrequency;
+  sort?: SubscriptionSort;
   cardId?: string;
   accountId?: string;
   unassignedCategory?: boolean;
   unassignedMethod?: boolean;
   search?: string;
 };
+
+const MONTHLY_CYCLE: FinBillingCycle = 'MONTHLY';
+const YEARLY_CYCLE: FinBillingCycle = 'YEARLY';
+
+function orderFor(
+  sort: SubscriptionSort,
+): Prisma.FinSubscriptionOrderByWithRelationInput[] {
+  if (sort === 'AMOUNT') {
+    return [{ amount: 'desc' }, { id: 'desc' }];
+  }
+  if (sort === 'NAME') {
+    return [{ name: 'asc' }, { id: 'asc' }];
+  }
+  return [{ nextBillingDate: 'asc' }, { id: 'asc' }];
+}
+
+/** Keyset predicate that continues the page in the order the list uses. */
+function cursorFilter(
+  cursor: CursorPoint,
+  sort: SubscriptionSort,
+): Prisma.FinSubscriptionWhereInput {
+  if (sort === 'AMOUNT') {
+    const amount = new Prisma.Decimal(cursor.key);
+    return {
+      OR: [{ amount: { lt: amount } }, { amount, id: { lt: cursor.id } }],
+    };
+  }
+  if (sort === 'NAME') {
+    return {
+      OR: [
+        { name: { gt: cursor.key } },
+        { name: cursor.key, id: { gt: cursor.id } },
+      ],
+    };
+  }
+  const date = new Date(cursor.key);
+  return {
+    OR: [
+      { nextBillingDate: { gt: date } },
+      { nextBillingDate: date, id: { gt: cursor.id } },
+    ],
+  };
+}
+
+function cycleFilter(
+  frequency: SubscriptionFrequency | undefined,
+): Prisma.FinSubscriptionWhereInput {
+  if (frequency === 'MONTHLY') {
+    return { billingCycle: MONTHLY_CYCLE };
+  }
+  if (frequency === 'YEARLY') {
+    return { billingCycle: YEARLY_CYCLE };
+  }
+  if (frequency === 'OTHER') {
+    return { billingCycle: { notIn: [MONTHLY_CYCLE, YEARLY_CYCLE] } };
+  }
+  return {};
+}
+
+function categoryFilter(
+  query: SubscriptionPageQuery,
+): Prisma.FinSubscriptionWhereInput {
+  if (query.categoryIds && query.categoryIds.length > 0) {
+    return { categoryId: { in: query.categoryIds } };
+  }
+  if (query.unassignedCategory) {
+    return { categoryId: null };
+  }
+  return query.categoryId ? { categoryId: query.categoryId } : {};
+}
 
 export type PaymentPageQuery = {
   cursor: CursorPoint | null;
@@ -72,16 +157,14 @@ export class SubscriptionsRepository {
 
   list(userId: string, query: SubscriptionPageQuery) {
     const search = query.search?.trim();
+    const sort = query.sort ?? DEFAULT_SUBSCRIPTION_SORT;
     return this.prisma.finSubscription.findMany({
       where: {
         userId,
         ...(query.status ? { status: query.status } : {}),
         ...(query.currency ? { currency: query.currency } : {}),
-        ...(query.unassignedCategory
-          ? { categoryId: null }
-          : query.categoryId
-            ? { categoryId: query.categoryId }
-            : {}),
+        ...categoryFilter(query),
+        ...cycleFilter(query.frequency),
         ...(query.unassignedMethod
           ? { cardId: null, accountId: null }
           : {
@@ -89,20 +172,10 @@ export class SubscriptionsRepository {
               ...(query.accountId ? { accountId: query.accountId } : {}),
             }),
         ...(search ? { name: { contains: search, mode: 'insensitive' } } : {}),
-        ...(query.cursor
-          ? {
-              OR: [
-                { nextBillingDate: { gt: new Date(query.cursor.key) } },
-                {
-                  nextBillingDate: new Date(query.cursor.key),
-                  id: { gt: query.cursor.id },
-                },
-              ],
-            }
-          : {}),
+        ...(query.cursor ? cursorFilter(query.cursor, sort) : {}),
       },
       include: SUBSCRIPTION_INCLUDE,
-      orderBy: [{ nextBillingDate: 'asc' }, { id: 'asc' }],
+      orderBy: orderFor(sort),
       take: query.take,
     });
   }
@@ -181,6 +254,23 @@ export class SubscriptionsRepository {
         alertDate: input.alertDate,
       },
       update: {},
+    });
+  }
+
+  dismissAlerts(
+    rows: {
+      userId: string;
+      subscriptionId: string;
+      kind: FinSubscriptionAlertKind;
+      alertDate: Date;
+    }[],
+  ) {
+    if (rows.length === 0) {
+      return Promise.resolve({ count: 0 });
+    }
+    return this.prisma.finSubscriptionAlertDismissal.createMany({
+      data: rows,
+      skipDuplicates: true,
     });
   }
 

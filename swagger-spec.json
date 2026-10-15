@@ -2220,6 +2220,45 @@
             }
           },
           {
+            "name": "categoryIds",
+            "required": false,
+            "in": "query",
+            "description": "Category ids, comma separated",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "frequency",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "MONTHLY",
+                "YEARLY",
+                "OTHER"
+              ]
+            }
+          },
+          {
+            "name": "sort",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "default": "NEXT_DATE",
+              "type": "string",
+              "enum": [
+                "NEXT_DATE",
+                "AMOUNT",
+                "NAME"
+              ]
+            }
+          },
+          {
             "name": "cardId",
             "required": false,
             "in": "query",
@@ -2427,6 +2466,26 @@
           }
         ],
         "summary": "Active subscription alerts",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
+    "/api/finance/subscriptions/alerts/dismiss-all": {
+      "post": {
+        "operationId": "SubscriptionsController_dismissAllAlerts",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Dismiss every active alert",
         "tags": [
           "finance"
         ]
@@ -6840,6 +6899,7 @@
             "type": "string",
             "enum": [
               "PRICE_INCREASE",
+              "AMOUNT_MISMATCH",
               "TRIAL_ENDING",
               "ANNUAL_RENEWAL",
               "MISSED_CHARGE"
