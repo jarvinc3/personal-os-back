@@ -2,6 +2,16 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [SemVer](https://semver.org/lang/es/). Reglas y ejemplo en [docs/reference/changelog-guide.md](./docs/reference/changelog-guide.md).
 
+## [0.37.3] - 2026-10-15
+
+### Agregado
+
+- `pnpm sentry:sourcemaps` sube los source maps de `dist` con `@sentry/cli` cuando existe `SENTRY_AUTH_TOKEN`; sin token no hace nada y el build no falla. `pnpm build` lo ejecuta al final.
+
+### Cambiado
+
+- `AllExceptionsFilter.reportToSentry` recibe un objeto en vez de tres parámetros.
+
 ## [0.37.2] - 2026-10-15
 
 ### Corregido
