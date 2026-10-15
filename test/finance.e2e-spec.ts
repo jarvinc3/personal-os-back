@@ -3,11 +3,12 @@ import { Test, TestingModule } from '@nestjs/testing';
 import * as jwt from 'jsonwebtoken';
 import request from 'supertest';
 import { App } from 'supertest/types';
-import { PrismaService } from '@personal-os/database';
+import { Prisma, PrismaService } from '@personal-os/database';
 import { applyAuthTestOverrides } from './helpers/auth-test.providers';
 import { createTestJwt } from './helpers/jwt.helper';
 import { createPrismaMock } from './helpers/prisma.mock';
 import { applyTestEnv } from './helpers/test-env';
+import { STATEMENT_EXTRACTOR, STATEMENT_PDF_TEXT } from '@personal-os/finance';
 
 applyTestEnv();
 
@@ -15,6 +16,19 @@ describe('Finance (e2e)', () => {
   let app: INestApplication<App>;
   let prismaMock: ReturnType<typeof createPrismaMock>;
   let token: string;
+  let statementText = 'statement text';
+  let statementExtraction: unknown = {
+    ok: false,
+    reason: 'unconfigured',
+    retryable: false,
+  };
+  const statementPdfStub = {
+    extractText: () => Promise.resolve(statementText),
+    assertReadable: () => Promise.resolve(),
+  };
+  const statementExtractorStub = {
+    extract: () => Promise.resolve(statementExtraction),
+  };
 
   beforeEach(async () => {
     const { AppModule } = require('../apps/api/src/app.module') as {
@@ -29,7 +43,12 @@ describe('Finance (e2e)', () => {
       })
         .overrideProvider(PrismaService)
         .useValue(prismaMock),
-    ).compile();
+    )
+      .overrideProvider(STATEMENT_PDF_TEXT)
+      .useValue(statementPdfStub)
+      .overrideProvider(STATEMENT_EXTRACTOR)
+      .useValue(statementExtractorStub)
+      .compile();
 
     app = moduleFixture.createNestApplication();
     app.setGlobalPrefix('api');
@@ -72,8 +91,8 @@ describe('Finance (e2e)', () => {
       .set('Authorization', `Bearer ${token}`)
       .expect(200)
       .expect((res) => {
-        expect(res.body.data).toHaveLength(1);
-        expect(res.body.data[0]).toMatchObject({
+        expect(res.body.data.items).toHaveLength(1);
+        expect(res.body.data.items[0]).toMatchObject({
           id: 'acc-1',
           name: 'Main',
           balance: '1000.00',
@@ -83,7 +102,13 @@ describe('Finance (e2e)', () => {
 
   it('GET /api/finance/recycle-bin lists archived and deleted records', async () => {
     prismaMock.finInstitution.findMany.mockResolvedValue([
-      { id: 'inst-1', name: 'Banco X' },
+      {
+        id: 'inst-1',
+        name: 'Banco X',
+        logoPath: null,
+        customLogoPath: null,
+        logoUrl: null,
+      },
     ]);
     prismaMock.finLoan.findMany.mockResolvedValue([
       { id: 'loan-1', lenderName: 'Banco Y' },
@@ -111,18 +136,26 @@ describe('Finance (e2e)', () => {
       .expect((res) => {
         expect(res.body.data.archived).toEqual(
           expect.arrayContaining([
-            { type: 'institution', id: 'inst-1', label: 'Banco X' },
-            { type: 'loan', id: 'loan-1', label: 'Banco Y' },
+            {
+              type: 'institution',
+              id: 'inst-1',
+              label: 'Banco X',
+              logoUrl: null,
+            },
+            { type: 'loan', id: 'loan-1', label: 'Banco Y', logoUrl: null },
           ]),
         );
-        expect(res.body.data.deleted).toEqual([
+        expect(res.body.data.items).toEqual([
           {
             type: 'transaction',
             id: 'tx-1',
             label: 'Supermercado',
+            logoUrl: null,
             deletedAt: '2026-10-12T10:00:00.000Z',
           },
         ]);
+        expect(res.body.data.hasMore).toBe(false);
+        expect(res.body.data.nextCursor).toBeNull();
       });
   });
 
@@ -136,7 +169,7 @@ describe('Finance (e2e)', () => {
       .expect((res) => {
         expect(res.body).toMatchObject({
           statusCode: 403,
-          message: 'Finance module is disabled',
+          message: 'El módulo finance está desactivado',
         });
       });
 
@@ -158,7 +191,7 @@ describe('Finance (e2e)', () => {
       })
       .expect(403)
       .expect((res) => {
-        expect(res.body.message).toBe('Finance module is disabled');
+        expect(res.body.message).toBe('El módulo finance está desactivado');
       });
 
     expect(prismaMock.$transaction).not.toHaveBeenCalled();
@@ -768,6 +801,18 @@ describe('Finance (e2e)', () => {
       institutionId: 'inst-1',
       isActive: true,
     });
+    prismaMock.user.findUnique.mockResolvedValue({
+      id: 'user-123',
+      email: 'test@example.com',
+      fullName: 'Test User',
+      avatarUrl: null,
+      timezone: 'UTC',
+      locale: 'es',
+      preferences: {},
+      userModules: [],
+      createdAt: new Date('2026-01-01T00:00:00.000Z'),
+      updatedAt: new Date('2026-01-01T00:00:00.000Z'),
+    });
 
     await request(app.getHttpServer())
       .patch(`/api/finance/cards/${cardId}`)
@@ -783,7 +828,7 @@ describe('Finance (e2e)', () => {
       .set('Authorization', `Bearer ${token}`)
       .expect(200)
       .expect((res) => {
-        expect(res.body.data).toEqual([]);
+        expect(res.body.data.items).toEqual([]);
       });
   });
 
@@ -866,7 +911,7 @@ describe('Finance (e2e)', () => {
       .set('Authorization', `Bearer ${token}`)
       .expect(200)
       .expect((res) => {
-        expect(res.body.data[0]).toMatchObject({
+        expect(res.body.data.items[0]).toMatchObject({
           currency: 'USD',
           interestRate: '0.12',
           notes: 'BHD',
@@ -993,7 +1038,7 @@ describe('Finance (e2e)', () => {
       {
         id: 'acc-1',
         institutionId: null,
-        balance: { toString: () => '100' },
+        balance: new Prisma.Decimal(100),
         currency: 'DOP',
       },
     ]);
@@ -1340,6 +1385,552 @@ describe('Finance (e2e)', () => {
       });
   });
 
+  it('GET /api/finance/loans/:id/installments paginates oldest first', async () => {
+    prismaMock.finLoan.findFirst.mockResolvedValue({
+      id: 'loan-1',
+      userId: 'user-123',
+    });
+    prismaMock.finLoanInstallment.findMany
+      .mockResolvedValueOnce([
+        {
+          id: 'inst-1',
+          installmentNo: 1,
+          dueDate: new Date('2026-01-01'),
+          amount: 100,
+        },
+        {
+          id: 'inst-2',
+          installmentNo: 2,
+          dueDate: new Date('2026-02-01'),
+          amount: 100,
+        },
+      ])
+      .mockResolvedValueOnce([
+        {
+          id: 'inst-2',
+          installmentNo: 2,
+          dueDate: new Date('2026-02-01'),
+          amount: 100,
+        },
+      ]);
+
+    const firstPage = await request(app.getHttpServer())
+      .get('/api/finance/loans/loan-1/installments')
+      .query({ limit: 1 })
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    expect(firstPage.body.data.items).toHaveLength(1);
+    expect(firstPage.body.data.items[0].id).toBe('inst-1');
+    expect(firstPage.body.data.items[0].amount).toBe('100');
+    expect(firstPage.body.data.hasMore).toBe(true);
+    expect(typeof firstPage.body.data.nextCursor).toBe('string');
+
+    const lastPage = await request(app.getHttpServer())
+      .get('/api/finance/loans/loan-1/installments')
+      .query({ limit: 1, cursor: firstPage.body.data.nextCursor })
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    expect(lastPage.body.data.items).toHaveLength(1);
+    expect(lastPage.body.data.items[0].id).toBe('inst-2');
+    expect(lastPage.body.data.hasMore).toBe(false);
+    expect(lastPage.body.data.nextCursor).toBeNull();
+  });
+
+  it('GET /api/finance/receivables/:id/payments paginates newest first', async () => {
+    prismaMock.finReceivable.findFirst.mockResolvedValue({
+      id: 'rec-1',
+      userId: 'user-123',
+    });
+    prismaMock.finReceivablePayment.findMany
+      .mockResolvedValueOnce([
+        { id: 'pay-1', paidAt: new Date('2026-02-01'), amount: 50 },
+        { id: 'pay-2', paidAt: new Date('2026-01-01'), amount: 50 },
+      ])
+      .mockResolvedValueOnce([
+        { id: 'pay-2', paidAt: new Date('2026-01-01'), amount: 50 },
+      ]);
+
+    const firstPage = await request(app.getHttpServer())
+      .get('/api/finance/receivables/rec-1/payments')
+      .query({ limit: 1 })
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    expect(firstPage.body.data.items).toHaveLength(1);
+    expect(firstPage.body.data.items[0].id).toBe('pay-1');
+    expect(firstPage.body.data.hasMore).toBe(true);
+
+    const lastPage = await request(app.getHttpServer())
+      .get('/api/finance/receivables/rec-1/payments')
+      .query({ limit: 1, cursor: firstPage.body.data.nextCursor })
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    expect(lastPage.body.data.items[0].id).toBe('pay-2');
+    expect(lastPage.body.data.hasMore).toBe(false);
+    expect(lastPage.body.data.nextCursor).toBeNull();
+  });
+
+  it('GET /api/finance/savings-goals/:id/allocations paginates newest first', async () => {
+    prismaMock.finSavingsGoal.findFirst.mockResolvedValue({
+      id: 'goal-1',
+      userId: 'user-123',
+    });
+    prismaMock.finSavingsGoalContribution.findMany
+      .mockResolvedValueOnce([
+        { id: 'con-1', contributedAt: new Date('2026-02-01'), amount: 25 },
+        { id: 'con-2', contributedAt: new Date('2026-01-01'), amount: 25 },
+      ])
+      .mockResolvedValueOnce([
+        { id: 'con-2', contributedAt: new Date('2026-01-01'), amount: 25 },
+      ]);
+
+    const firstPage = await request(app.getHttpServer())
+      .get('/api/finance/savings-goals/goal-1/allocations')
+      .query({ limit: 1 })
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    expect(firstPage.body.data.items[0].id).toBe('con-1');
+    expect(firstPage.body.data.items[0].amount).toBe('25');
+    expect(firstPage.body.data.hasMore).toBe(true);
+
+    const lastPage = await request(app.getHttpServer())
+      .get('/api/finance/savings-goals/goal-1/allocations')
+      .query({ limit: 1, cursor: firstPage.body.data.nextCursor })
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    expect(lastPage.body.data.items[0].id).toBe('con-2');
+    expect(lastPage.body.data.hasMore).toBe(false);
+  });
+
+  it('GET /api/finance/email-sync/messages paginates newest first', async () => {
+    const message = (id: string, createdAt: string) => ({
+      id,
+      sourceId: 'src-1',
+      gmailMessageId: `msg-${id}`,
+      outcome: 'IMPORTED',
+      instrumentHint: 'ACCOUNT',
+      lastFourHint: '1234',
+      extractedPayload: { amount: 12.5, currency: 'DOP' },
+      reason: null,
+      createdAt: new Date(createdAt),
+      source: {
+        institutionId: 'inst-1',
+        connection: { emailAddress: 'user@gmail.com' },
+        institution: { name: 'BHD' },
+      },
+      transaction: null,
+    });
+    prismaMock.finEmailMessage.findMany
+      .mockResolvedValueOnce([
+        message('em-1', '2026-08-02T00:00:00.000Z'),
+        message('em-2', '2026-08-01T00:00:00.000Z'),
+      ])
+      .mockResolvedValueOnce([message('em-2', '2026-08-01T00:00:00.000Z')]);
+
+    const firstPage = await request(app.getHttpServer())
+      .get('/api/finance/email-sync/messages')
+      .query({ limit: 1 })
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    expect(firstPage.body.data.items[0]).toMatchObject({
+      id: 'em-1',
+      outcome: 'IMPORTED',
+    });
+    expect(firstPage.body.data.hasMore).toBe(true);
+
+    const lastPage = await request(app.getHttpServer())
+      .get('/api/finance/email-sync/messages')
+      .query({ limit: 1, cursor: firstPage.body.data.nextCursor })
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    expect(lastPage.body.data.items[0].id).toBe('em-2');
+    expect(lastPage.body.data.hasMore).toBe(false);
+  });
+
+  it('GET /api/finance/recycle-bin paginates deleted records', async () => {
+    prismaMock.finInstitution.findMany.mockResolvedValue([]);
+    prismaMock.finAccount.findMany.mockResolvedValue([]);
+    prismaMock.finCard.findMany.mockResolvedValue([]);
+    prismaMock.finLoan.findMany.mockResolvedValue([]);
+    prismaMock.finDeletionJournal.findMany
+      .mockResolvedValueOnce([
+        {
+          id: 'del-1',
+          entityType: 'transaction',
+          entityId: 'tx-1',
+          snapshot: {
+            rows: [
+              {
+                model: 'FinTransaction',
+                values: { id: 'tx-1', description: 'Supermercado' },
+              },
+            ],
+          },
+          sizeBytes: 10,
+          deletedAt: new Date('2026-10-12T10:00:00.000Z'),
+        },
+        {
+          id: 'del-2',
+          entityType: 'transaction',
+          entityId: 'tx-2',
+          snapshot: {
+            rows: [
+              {
+                model: 'FinTransaction',
+                values: { id: 'tx-2', description: 'Farmacia' },
+              },
+            ],
+          },
+          sizeBytes: 10,
+          deletedAt: new Date('2026-10-11T10:00:00.000Z'),
+        },
+      ])
+      .mockResolvedValueOnce([
+        {
+          id: 'del-2',
+          entityType: 'transaction',
+          entityId: 'tx-2',
+          snapshot: {
+            rows: [
+              {
+                model: 'FinTransaction',
+                values: { id: 'tx-2', description: 'Farmacia' },
+              },
+            ],
+          },
+          sizeBytes: 10,
+          deletedAt: new Date('2026-10-11T10:00:00.000Z'),
+        },
+      ]);
+
+    const firstPage = await request(app.getHttpServer())
+      .get('/api/finance/recycle-bin')
+      .query({ limit: 1 })
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    expect(firstPage.body.data.items).toHaveLength(1);
+    expect(firstPage.body.data.items[0]).toMatchObject({
+      id: 'tx-1',
+      label: 'Supermercado',
+    });
+    expect(firstPage.body.data.hasMore).toBe(true);
+
+    const lastPage = await request(app.getHttpServer())
+      .get('/api/finance/recycle-bin')
+      .query({ limit: 1, cursor: firstPage.body.data.nextCursor })
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    expect(lastPage.body.data.items[0]).toMatchObject({
+      id: 'tx-2',
+      label: 'Farmacia',
+    });
+    expect(lastPage.body.data.hasMore).toBe(false);
+    expect(lastPage.body.data.nextCursor).toBeNull();
+  });
+
+  it('GET /api/finance/budgets paginates newest period first', async () => {
+    const budget = (id: string, periodStart: string) => ({
+      id,
+      userId: 'user-123',
+      categoryId: 'cat-1',
+      periodType: 'MONTHLY',
+      periodStart: new Date(periodStart),
+      periodEnd: new Date('2026-01-31'),
+      amountLimit: 1000,
+      amountSpent: 10,
+      alertThresholdPct: 80,
+      category: { id: 'cat-1', name: 'Food' },
+    });
+    prismaMock.finBudget.findMany
+      .mockResolvedValueOnce([
+        budget('budget-2', '2026-02-01T00:00:00.000Z'),
+        budget('budget-1', '2026-01-01T00:00:00.000Z'),
+      ])
+      .mockResolvedValueOnce([budget('budget-1', '2026-01-01T00:00:00.000Z')]);
+
+    const firstPage = await request(app.getHttpServer())
+      .get('/api/finance/budgets')
+      .query({ limit: 1 })
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    expect(firstPage.body.data.items[0].id).toBe('budget-2');
+    expect(firstPage.body.data.hasMore).toBe(true);
+    expect(typeof firstPage.body.data.nextCursor).toBe('string');
+
+    const lastPage = await request(app.getHttpServer())
+      .get('/api/finance/budgets')
+      .query({ limit: 1, cursor: firstPage.body.data.nextCursor })
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    expect(lastPage.body.data.items[0].id).toBe('budget-1');
+    expect(lastPage.body.data.hasMore).toBe(false);
+    expect(lastPage.body.data.nextCursor).toBeNull();
+  });
+
+  it('GET /api/finance/budgets/:id/transactions paginates newest first', async () => {
+    prismaMock.finBudget.findFirst.mockResolvedValue({
+      id: '33333333-3333-4333-8333-333333333333',
+      userId: 'user-123',
+      categoryId: 'cat-1',
+      includeChildren: false,
+      periodStart: new Date('2026-01-01'),
+      periodEnd: new Date('2026-01-31'),
+      amountLimit: 1000,
+      amountSpent: 10,
+      alertThresholdPct: 80,
+      categories: [{ categoryId: '11111111-1111-4111-8111-111111111111' }],
+    });
+    const transaction = (id: string, transactionDate: string) => ({
+      id,
+      userId: 'user-123',
+      accountId: '11111111-1111-4111-8111-111111111111',
+      cardId: null,
+      type: 'DEBIT',
+      amount: { toString: () => '10.00' },
+      ledgerAmount: { toString: () => '10.00' },
+      amountBaseCurrency: { toString: () => '10.00' },
+      currency: 'DOP',
+      ledgerCurrency: 'DOP',
+      exchangeRate: { toString: () => '1' },
+      merchant: null,
+      description: 'Café',
+      notes: null,
+      transactionDate: new Date(transactionDate),
+      status: 'CONFIRMED',
+      source: 'MANUAL',
+      categoryId: '11111111-1111-4111-8111-111111111111',
+      transferGroupId: null,
+      linkedTransactionId: null,
+      aiMetadata: null,
+      createdAt: new Date(transactionDate),
+      account: {
+        id: '11111111-1111-4111-8111-111111111111',
+        name: 'Nómina',
+      },
+      card: null,
+    });
+    prismaMock.finTransaction.findMany
+      .mockResolvedValueOnce([
+        transaction('tx-2', '2026-01-20T00:00:00.000Z'),
+        transaction('tx-1', '2026-01-10T00:00:00.000Z'),
+      ])
+      .mockResolvedValueOnce([transaction('tx-1', '2026-01-10T00:00:00.000Z')]);
+
+    const firstPage = await request(app.getHttpServer())
+      .get(
+        '/api/finance/budgets/33333333-3333-4333-8333-333333333333/transactions',
+      )
+      .query({ limit: 1 })
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    expect(firstPage.body.data.items[0].id).toBe('tx-2');
+    expect(firstPage.body.data.hasMore).toBe(true);
+
+    const lastPage = await request(app.getHttpServer())
+      .get(
+        '/api/finance/budgets/33333333-3333-4333-8333-333333333333/transactions',
+      )
+      .query({ limit: 1, cursor: firstPage.body.data.nextCursor })
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    expect(lastPage.body.data.items[0].id).toBe('tx-1');
+    expect(lastPage.body.data.hasMore).toBe(false);
+    expect(lastPage.body.data.nextCursor).toBeNull();
+  });
+
+  it('GET /api/finance/email-sync/pending paginates newest first', async () => {
+    const pending = (id: string, createdAt: string) => ({
+      id,
+      sourceId: 'src-1',
+      gmailMessageId: `msg-${id}`,
+      outcome: 'PENDING_ASSIGNMENT',
+      instrumentHint: 'ACCOUNT',
+      lastFourHint: '1234',
+      extractedPayload: { amount: 12.5, currency: 'DOP' },
+      reason: null,
+      createdAt: new Date(createdAt),
+      source: {
+        institutionId: 'inst-1',
+        connection: { emailAddress: 'user@gmail.com' },
+        institution: { name: 'BHD' },
+      },
+      transaction: null,
+    });
+    prismaMock.finEmailMessage.findMany
+      .mockResolvedValueOnce([
+        pending('em-2', '2026-08-02T00:00:00.000Z'),
+        pending('em-1', '2026-08-01T00:00:00.000Z'),
+      ])
+      .mockResolvedValueOnce([pending('em-1', '2026-08-01T00:00:00.000Z')]);
+
+    const firstPage = await request(app.getHttpServer())
+      .get('/api/finance/email-sync/pending')
+      .query({ limit: 1 })
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    expect(firstPage.body.data.items[0].id).toBe('em-2');
+    expect(firstPage.body.data.hasMore).toBe(true);
+
+    const lastPage = await request(app.getHttpServer())
+      .get('/api/finance/email-sync/pending')
+      .query({ limit: 1, cursor: firstPage.body.data.nextCursor })
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    expect(lastPage.body.data.items[0].id).toBe('em-1');
+    expect(lastPage.body.data.hasMore).toBe(false);
+    expect(lastPage.body.data.nextCursor).toBeNull();
+  });
+
+  it('GET /api/finance/cards/:id/statements paginates newest cycle first', async () => {
+    const cardId = '22222222-2222-4222-8222-222222222222';
+    prismaMock.finCard.findFirst.mockResolvedValue({
+      id: cardId,
+      userId: 'user-123',
+      type: 'CREDIT',
+      statementClosingDay: 15,
+      paymentDueDay: 5,
+      balances: [{ currency: 'DOP', balance: 0, creditLimit: 1000 }],
+      transactions: [],
+    });
+    const statement = (id: string, cycleEnd: string) => ({
+      id,
+      cardId,
+      currency: 'DOP',
+      cycleStart: new Date('2026-01-01T00:00:00.000Z'),
+      cycleEnd: new Date(cycleEnd),
+      dueDate: new Date('2026-01-25T00:00:00.000Z'),
+      closingBalance: 100,
+      minimumPayment: null,
+      minimumSource: null,
+    });
+    prismaMock.finCardStatement.findMany
+      .mockResolvedValueOnce([
+        statement('stmt-2', '2026-02-15T00:00:00.000Z'),
+        statement('stmt-1', '2026-01-15T00:00:00.000Z'),
+      ])
+      .mockResolvedValueOnce([statement('stmt-1', '2026-01-15T00:00:00.000Z')]);
+
+    const firstPage = await request(app.getHttpServer())
+      .get(`/api/finance/cards/${cardId}/statements`)
+      .query({ limit: 1 })
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    expect(firstPage.body.data.items[0].id).toBe('stmt-2');
+    expect(firstPage.body.data.hasMore).toBe(true);
+    expect(typeof firstPage.body.data.nextCursor).toBe('string');
+
+    const lastPage = await request(app.getHttpServer())
+      .get(`/api/finance/cards/${cardId}/statements`)
+      .query({ limit: 1, cursor: firstPage.body.data.nextCursor })
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    expect(lastPage.body.data.items[0].id).toBe('stmt-1');
+    expect(lastPage.body.data.hasMore).toBe(false);
+    expect(lastPage.body.data.nextCursor).toBeNull();
+  });
+
+  it('GET /api/finance/savings-goals/:id/contributions paginates through the alias', async () => {
+    prismaMock.finSavingsGoal.findFirst.mockResolvedValue({
+      id: 'goal-1',
+      userId: 'user-123',
+    });
+    prismaMock.finSavingsGoalContribution.findMany
+      .mockResolvedValueOnce([
+        { id: 'con-1', contributedAt: new Date('2026-02-01'), amount: 25 },
+        { id: 'con-2', contributedAt: new Date('2026-01-01'), amount: 25 },
+      ])
+      .mockResolvedValueOnce([
+        { id: 'con-2', contributedAt: new Date('2026-01-01'), amount: 25 },
+      ]);
+
+    const firstPage = await request(app.getHttpServer())
+      .get('/api/finance/savings-goals/goal-1/contributions')
+      .query({ limit: 1 })
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    expect(firstPage.body.data.items[0].id).toBe('con-1');
+    expect(firstPage.body.data.hasMore).toBe(true);
+
+    const lastPage = await request(app.getHttpServer())
+      .get('/api/finance/savings-goals/goal-1/contributions')
+      .query({ limit: 1, cursor: firstPage.body.data.nextCursor })
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    expect(lastPage.body.data.items[0].id).toBe('con-2');
+    expect(lastPage.body.data.hasMore).toBe(false);
+    expect(lastPage.body.data.nextCursor).toBeNull();
+  });
+
+  it('GET /api/finance/loans/:id/installments returns an empty page when the list is empty', async () => {
+    prismaMock.finLoan.findFirst.mockResolvedValue({
+      id: 'loan-1',
+      userId: 'user-123',
+    });
+    prismaMock.finLoanInstallment.findMany.mockResolvedValue([]);
+
+    await request(app.getHttpServer())
+      .get('/api/finance/loans/loan-1/installments')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.data).toEqual({
+          items: [],
+          hasMore: false,
+          nextCursor: null,
+        });
+      });
+  });
+
+  it('paginated lists reject a forged cursor with 400', async () => {
+    prismaMock.finLoan.findFirst.mockResolvedValue({
+      id: 'loan-1',
+      userId: 'user-123',
+    });
+    const forged = Buffer.from(
+      JSON.stringify({ key: 'not-a-date', id: 'inst-1' }),
+      'utf8',
+    ).toString('base64url');
+
+    await request(app.getHttpServer())
+      .get('/api/finance/loans/loan-1/installments')
+      .query({ cursor: forged })
+      .set('Authorization', `Bearer ${token}`)
+      .expect(400);
+  });
+
+  it('paginated lists reject a limit outside 1-100', async () => {
+    await request(app.getHttpServer())
+      .get('/api/finance/budgets')
+      .query({ limit: 0 })
+      .set('Authorization', `Bearer ${token}`)
+      .expect(400);
+
+    await request(app.getHttpServer())
+      .get('/api/finance/budgets')
+      .query({ limit: 101 })
+      .set('Authorization', `Bearer ${token}`)
+      .expect(400);
+  });
+
   it('POST /api/finance/receivables/:id/credit requires a target', async () => {
     await request(app.getHttpServer())
       .post(
@@ -1350,7 +1941,7 @@ describe('Finance (e2e)', () => {
       .expect(400);
   });
 
-  it('GET /api/finance/transactions stays cursor paginated and accounts stay an array', async () => {
+  it('GET /api/finance/transactions stays cursor paginated and accounts stay cursor paginated', async () => {
     prismaMock.finTransaction.findMany.mockResolvedValue([]);
 
     await request(app.getHttpServer())
@@ -1386,8 +1977,8 @@ describe('Finance (e2e)', () => {
       .set('Authorization', `Bearer ${token}`)
       .expect(200)
       .expect((res) => {
-        expect(Array.isArray(res.body.data)).toBe(true);
-        expect(res.body.data.items).toBeUndefined();
+        expect(Array.isArray(res.body.data.items)).toBe(true);
+        expect(res.body.data).toHaveProperty('nextCursor');
       });
   });
 
@@ -1611,7 +2202,9 @@ describe('Finance (e2e)', () => {
       .send({ isActive: false })
       .expect(409)
       .expect((res) => {
-        expect(res.body.message).toMatch(/Cannot archive institution/i);
+        expect(res.body.message).toMatch(
+          /No se puede archivar la institución/i,
+        );
         expect(res.body.details.dependents).toEqual({
           accounts: 1,
           cards: 0,
@@ -1717,13 +2310,13 @@ describe('Finance (e2e)', () => {
       .set('Authorization', `Bearer ${token}`)
       .expect(200)
       .expect((res) => {
-        expect(res.body.data).toHaveLength(1);
-        expect(res.body.data[0]).toMatchObject({
+        expect(res.body.data.items).toHaveLength(1);
+        expect(res.body.data.items[0]).toMatchObject({
           id: 'em-1',
           institutionId: 'inst-1',
           lastFourHint: '1234',
         });
-        expect(res.body.data[0]).not.toHaveProperty('accessToken');
+        expect(res.body.data.items[0]).not.toHaveProperty('accessToken');
       });
   });
 
@@ -2078,5 +2671,457 @@ describe('Finance (e2e)', () => {
         expect(res.body.data.items[0]).toHaveProperty('paidAmount');
         expect(res.body.data.items[0]).toHaveProperty('status');
       });
+  });
+
+  it('imports an account statement PDF and applies the marked rows', async () => {
+    const accountId = '11111111-1111-4111-8111-111111111111';
+    prismaMock.finAccount.findFirst.mockResolvedValue({
+      id: accountId,
+      userId: 'user-123',
+      currency: 'DOP',
+      balance: { toString: () => '58900.10' },
+      name: 'Popular 3447',
+    });
+    statementText = 'Banco Popular Dominicano - Estado de cuenta';
+    statementExtraction = {
+      ok: true,
+      provider: 'test',
+      model: 'test',
+      statement: {
+        header: {
+          currency: 'DOP',
+          periodStart: '2026-09-01',
+          periodEnd: '2026-09-30',
+          previousBalance: 58900.1,
+          closingBalance: 72489.15,
+          minimumPayment: null,
+          dueDate: null,
+        },
+        lines: [
+          {
+            date: '2026-09-03',
+            description: 'COMPRA POS JUMBO',
+            amount: 3220.4,
+            currency: 'DOP',
+            type: 'DEBIT',
+            reference: 'DOC-551209',
+            categoryNameHint: null,
+          },
+        ],
+      },
+    };
+    prismaMock.finStatementImport.create.mockResolvedValue({
+      id: 'import-1',
+      userId: 'user-123',
+      cardId: null,
+      accountId,
+      statementId: null,
+      status: 'PARSING',
+      parsed: {},
+      error: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      appliedAt: null,
+    });
+    prismaMock.finCategory.findMany.mockResolvedValue([]);
+    prismaMock.finTransaction.findMany.mockResolvedValue([]);
+
+    const importContext = {
+      id: 'import-1',
+      userId: 'user-123',
+      cardId: null,
+      accountId,
+      statementId: null,
+      status: 'PARSING',
+      parsed: {},
+      error: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      appliedAt: null,
+      card: null,
+      account: { id: accountId, name: 'Popular 3447', currency: 'DOP' },
+      lines: [
+        {
+          id: 'line-1',
+          importId: 'import-1',
+          date: new Date('2026-09-03T00:00:00.000Z'),
+          description: 'COMPRA POS JUMBO',
+          amount: { toFixed: () => '3220.40' },
+          currency: 'DOP',
+          type: 'DEBIT',
+          reference: 'DOC-551209',
+          categoryId: null,
+          transactionId: null,
+          decision: 'CREATE',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      ],
+    };
+    prismaMock.finStatementImport.findFirst.mockImplementation(() =>
+      Promise.resolve(importContext),
+    );
+    prismaMock.finStatementImport.update.mockImplementation(
+      (args: { data: Record<string, unknown> }) => {
+        Object.assign(importContext, args.data);
+        return Promise.resolve(importContext);
+      },
+    );
+
+    await request(app.getHttpServer())
+      .post(`/api/finance/accounts/${accountId}/statements/import`)
+      .set('Authorization', `Bearer ${token}`)
+      .attach('file', Buffer.from('%PDF-1.4 synthetic'), {
+        filename: 'statement.pdf',
+        contentType: 'application/pdf',
+      })
+      .expect(201)
+      .expect((res) => {
+        expect(res.body.data).toEqual({ importId: 'import-1' });
+      });
+
+    expect(prismaMock.finStatementImportLine.createMany).toHaveBeenCalled();
+    expect(prismaMock.finStatementImport.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'import-1' },
+        data: expect.objectContaining({ status: 'READY' }),
+      }),
+    );
+
+    await request(app.getHttpServer())
+      .get('/api/finance/statement-imports/import-1')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.data.lines).toHaveLength(1);
+        expect(res.body.data.lines[0].decision).toBe('CREATE');
+        expect(res.body.data.header.closingBalance).toBe('72489.15');
+        expect(res.body.data.difference).toBe('13589.05');
+      });
+
+    await request(app.getHttpServer())
+      .post('/api/finance/statement-imports/import-1/apply')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ adjust: false })
+      .expect(201)
+      .expect((res) => {
+        expect(res.body.data.status).toBe('APPLIED');
+      });
+
+    const linkCall = prismaMock.finStatementImportLine.update.mock.calls[0] as [
+      { where: unknown; data: { transactionId?: unknown } },
+    ];
+    expect(linkCall[0].where).toEqual({ id: 'line-1' });
+    expect(typeof linkCall[0].data.transactionId).toBe('string');
+    expect(prismaMock.finStatementImport.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'import-1' },
+        data: expect.objectContaining({ status: 'APPLIED' }),
+      }),
+    );
+  });
+
+  it('POST /api/finance/reconciliations/preview suggests the DGII split', async () => {
+    prismaMock.finAccount.findFirst.mockResolvedValue({
+      id: '11111111-1111-4111-8111-111111111111',
+      name: 'Ahorros',
+      currency: 'DOP',
+      balance: { toString: () => '10000.00' },
+      institutionRef: { name: 'BHD' },
+    });
+    prismaMock.finTransaction.aggregate.mockResolvedValue({
+      _sum: { ledgerAmount: 10000 },
+    });
+
+    await request(app.getHttpServer())
+      .post('/api/finance/reconciliations/preview')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        accountId: '11111111-1111-4111-8111-111111111111',
+        asOfDate: '2026-10-15',
+        realBalance: 9950,
+      })
+      .expect(201)
+      .expect((res) => {
+        expect(res.body.data.difference).toBe('-50.00');
+        expect(res.body.data.suggestedAdjustments).toEqual([
+          { kind: 'IMPUESTO_DGII', amount: '-15.00' },
+          { kind: 'OTRO', amount: '-35.00' },
+        ]);
+      });
+  });
+
+  it('POST /api/finance/reconciliations rejects adjustments that do not add up', async () => {
+    prismaMock.finAccount.findFirst.mockResolvedValue({
+      id: '11111111-1111-4111-8111-111111111111',
+      name: 'Ahorros',
+      currency: 'DOP',
+      balance: { toString: () => '10000.00' },
+      institutionRef: { name: 'BHD' },
+    });
+
+    await request(app.getHttpServer())
+      .post('/api/finance/reconciliations')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        accountId: '11111111-1111-4111-8111-111111111111',
+        asOfDate: '2026-10-15',
+        realBalance: 9950,
+        adjustments: [{ kind: 'OTRO', amount: -40 }],
+      })
+      .expect(422);
+  });
+
+  it('POST /api/finance/reconciliations closes the product and GET status reports it', async () => {
+    prismaMock.finAccount.findFirst.mockResolvedValue({
+      id: '11111111-1111-4111-8111-111111111111',
+      name: 'Ahorros',
+      currency: 'DOP',
+      balance: { toString: () => '10000.00' },
+      institutionRef: { name: 'BHD' },
+    });
+    prismaMock.finReconciliation.create.mockResolvedValue({ id: 'rec-1' });
+    prismaMock.finReconciliation.findFirstOrThrow.mockResolvedValue({
+      id: 'rec-1',
+      userId: 'user-123',
+      accountId: '11111111-1111-4111-8111-111111111111',
+      cardId: null,
+      currency: 'DOP',
+      asOfDate: new Date('2026-10-15T00:00:00.000Z'),
+      appBalance: 10000,
+      realBalance: 9950,
+      difference: -50,
+      note: null,
+      createdAt: new Date('2026-10-15T12:00:00.000Z'),
+      adjustments: [
+        {
+          id: 'adj-1',
+          kind: 'IMPUESTO_DGII',
+          amount: -15,
+          transactionId: 'tx-1',
+        },
+        { id: 'adj-2', kind: 'OTRO', amount: -35, transactionId: 'tx-2' },
+      ],
+    });
+
+    await request(app.getHttpServer())
+      .post('/api/finance/reconciliations')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        accountId: '11111111-1111-4111-8111-111111111111',
+        asOfDate: '2026-10-15',
+        realBalance: 9950,
+        adjustments: [
+          { kind: 'IMPUESTO_DGII', amount: -15 },
+          { kind: 'OTRO', amount: -35 },
+        ],
+      })
+      .expect(201)
+      .expect((res) => {
+        expect(res.body.data.difference).toBe('-50.00');
+        expect(res.body.data.adjustments).toHaveLength(2);
+      });
+
+    expect(prismaMock.finReconciliation.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ difference: -50, appBalance: 10000 }),
+      }),
+    );
+
+    prismaMock.finAccount.findMany.mockResolvedValue([
+      {
+        id: '11111111-1111-4111-8111-111111111111',
+        name: 'Ahorros',
+        currency: 'DOP',
+        balance: { toString: () => '9950.00' },
+        institutionRef: { name: 'BHD' },
+      },
+    ]);
+    prismaMock.finCardBalance.findMany.mockResolvedValue([]);
+    prismaMock.finReconciliation.findMany.mockResolvedValue([
+      {
+        id: 'rec-1',
+        accountId: '11111111-1111-4111-8111-111111111111',
+        cardId: null,
+        currency: 'DOP',
+        asOfDate: new Date('2026-10-15T00:00:00.000Z'),
+        realBalance: 9950,
+        difference: -50,
+        createdAt: new Date('2026-10-15T12:00:00.000Z'),
+      },
+    ]);
+
+    await request(app.getHttpServer())
+      .get('/api/finance/reconciliations/status?month=2026-10')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.data.reconciledCount).toBe(1);
+        expect(res.body.data.pendingCount).toBe(0);
+      });
+  });
+
+  it('GET /api/finance/integrity/check detects a corrupted balance', async () => {
+    const accountId = '11111111-1111-4111-8111-111111111111';
+    prismaMock.finAccount.findMany.mockResolvedValue([
+      {
+        id: accountId,
+        currency: 'DOP',
+        balance: new Prisma.Decimal(10000),
+      },
+    ]);
+    prismaMock.finCard.findMany.mockResolvedValue([]);
+    prismaMock.finCardBalance.findMany.mockResolvedValue([]);
+    prismaMock.finTransaction.findMany.mockResolvedValue([
+      {
+        accountId,
+        cardId: null,
+        type: 'DEBIT',
+        ledgerAmount: new Prisma.Decimal(-10000),
+        ledgerCurrency: 'DOP',
+      },
+      {
+        accountId,
+        cardId: null,
+        type: 'CREDIT',
+        ledgerAmount: new Prisma.Decimal(10000),
+        ledgerCurrency: 'DOP',
+      },
+    ]);
+    prismaMock.finBalanceDrift.findMany
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([
+        {
+          id: 'drift-1',
+          accountId,
+          cardId: null,
+          currency: 'DOP',
+          storedBalance: new Prisma.Decimal(100),
+          expectedBalance: new Prisma.Decimal(0),
+          difference: new Prisma.Decimal(-100),
+          detectedAt: new Date('2026-10-20T04:00:00.000Z'),
+          resolvedAt: null,
+          account: { name: 'Ahorros' },
+          card: null,
+        },
+      ]);
+
+    await request(app.getHttpServer())
+      .get('/api/finance/integrity/check')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.data.drifts).toEqual([
+          expect.objectContaining({
+            accountId,
+            name: 'Ahorros',
+            storedBalance: '100.00',
+            expectedBalance: '0.00',
+            difference: '-100.00',
+          }),
+        ]);
+      });
+
+    expect(prismaMock.finBalanceDrift.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          accountId,
+          expectedBalance: expect.anything(),
+          storedBalance: expect.anything(),
+        }),
+      }),
+    );
+  });
+
+  it('POST /api/finance/integrity/recalculate corrects the balance', async () => {
+    const accountId = '11111111-1111-4111-8111-111111111111';
+    prismaMock.finAccount.findMany.mockResolvedValue([
+      {
+        id: accountId,
+        currency: 'DOP',
+        balance: new Prisma.Decimal(10000),
+      },
+    ]);
+    prismaMock.finCard.findMany.mockResolvedValue([]);
+    prismaMock.finCardBalance.findMany.mockResolvedValue([]);
+    prismaMock.finTransaction.findMany.mockResolvedValue([
+      {
+        accountId,
+        cardId: null,
+        type: 'DEBIT',
+        ledgerAmount: new Prisma.Decimal(-10000),
+        ledgerCurrency: 'DOP',
+      },
+      {
+        accountId,
+        cardId: null,
+        type: 'CREDIT',
+        ledgerAmount: new Prisma.Decimal(10000),
+        ledgerCurrency: 'DOP',
+      },
+    ]);
+    prismaMock.finBalanceDrift.findFirst.mockResolvedValue({
+      id: 'drift-1',
+      accountId,
+      cardId: null,
+      currency: 'DOP',
+      storedBalance: new Prisma.Decimal(100),
+      expectedBalance: new Prisma.Decimal(0),
+      difference: new Prisma.Decimal(-100),
+      detectedAt: new Date('2026-10-20T04:00:00.000Z'),
+      resolvedAt: null,
+      account: { name: 'Ahorros' },
+      card: null,
+    });
+
+    await request(app.getHttpServer())
+      .post('/api/finance/integrity/recalculate')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ accountId })
+      .expect(201)
+      .expect((res) => {
+        expect(res.body.data).toMatchObject({
+          corrected: true,
+          accountId,
+          cardId: null,
+          currency: 'DOP',
+          balance: '0.00',
+        });
+      });
+  });
+
+  it('GET /api/finance/integrity/check rejects two targets at once', async () => {
+    await request(app.getHttpServer())
+      .get('/api/finance/integrity/check')
+      .query({
+        accountId: '11111111-1111-4111-8111-111111111111',
+        cardId: '22222222-2222-4222-8222-222222222222',
+      })
+      .set('Authorization', `Bearer ${token}`)
+      .expect(400);
+  });
+
+  it('GET /api/finance/integrity/check returns 404 for an unknown account', async () => {
+    await request(app.getHttpServer())
+      .get('/api/finance/integrity/check')
+      .query({ accountId: '11111111-1111-4111-8111-111111111111' })
+      .set('Authorization', `Bearer ${token}`)
+      .expect(404);
+  });
+
+  it('POST /api/finance/integrity/recalculate requires a target', async () => {
+    await request(app.getHttpServer())
+      .post('/api/finance/integrity/recalculate')
+      .set('Authorization', `Bearer ${token}`)
+      .send({})
+      .expect(400);
+  });
+
+  it('POST /api/finance/integrity/recalculate requires a card currency', async () => {
+    await request(app.getHttpServer())
+      .post('/api/finance/integrity/recalculate')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ cardId: '22222222-2222-4222-8222-222222222222' })
+      .expect(400);
   });
 });

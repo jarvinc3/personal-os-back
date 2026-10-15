@@ -414,6 +414,10 @@ export const ModelName = {
   FinBudgetCategory: 'FinBudgetCategory',
   FinBudgetAlert: 'FinBudgetAlert',
   FinRecurringPattern: 'FinRecurringPattern',
+  FinMerchant: 'FinMerchant',
+  FinSubscription: 'FinSubscription',
+  FinSubscriptionPayment: 'FinSubscriptionPayment',
+  FinSubscriptionAlertDismissal: 'FinSubscriptionAlertDismissal',
   FinExchangeRate: 'FinExchangeRate',
   FinInstitution: 'FinInstitution',
   FinCard: 'FinCard',
@@ -432,7 +436,12 @@ export const ModelName = {
   DomainEventOutbox: 'DomainEventOutbox',
   ProcessedDomainEvent: 'ProcessedDomainEvent',
   AuthDeletionOutbox: 'AuthDeletionOutbox',
-  FinDeletionJournal: 'FinDeletionJournal'
+  FinDeletionJournal: 'FinDeletionJournal',
+  FinStatementImport: 'FinStatementImport',
+  FinStatementImportLine: 'FinStatementImportLine',
+  FinReconciliation: 'FinReconciliation',
+  FinReconciliationAdjustment: 'FinReconciliationAdjustment',
+  FinBalanceDrift: 'FinBalanceDrift'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -448,7 +457,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "module" | "userModule" | "aiAgentSession" | "aiMessage" | "aiAction" | "notification" | "pushToken" | "finAccount" | "finEmailConnection" | "finEmailSource" | "finTransaction" | "finCategory" | "finBudget" | "finBudgetCategory" | "finBudgetAlert" | "finRecurringPattern" | "finExchangeRate" | "finInstitution" | "finCard" | "finCardBalance" | "finInstrumentEvent" | "finCardStatement" | "finSavingsGoal" | "finSavingsGoalContribution" | "finLoan" | "finLoanInstallment" | "finLoanPrepayment" | "finReceivable" | "finReceivablePayment" | "finEmailSyncLog" | "finEmailMessage" | "domainEventOutbox" | "processedDomainEvent" | "authDeletionOutbox" | "finDeletionJournal"
+    modelProps: "user" | "module" | "userModule" | "aiAgentSession" | "aiMessage" | "aiAction" | "notification" | "pushToken" | "finAccount" | "finEmailConnection" | "finEmailSource" | "finTransaction" | "finCategory" | "finBudget" | "finBudgetCategory" | "finBudgetAlert" | "finRecurringPattern" | "finMerchant" | "finSubscription" | "finSubscriptionPayment" | "finSubscriptionAlertDismissal" | "finExchangeRate" | "finInstitution" | "finCard" | "finCardBalance" | "finInstrumentEvent" | "finCardStatement" | "finSavingsGoal" | "finSavingsGoalContribution" | "finLoan" | "finLoanInstallment" | "finLoanPrepayment" | "finReceivable" | "finReceivablePayment" | "finEmailSyncLog" | "finEmailMessage" | "domainEventOutbox" | "processedDomainEvent" | "authDeletionOutbox" | "finDeletionJournal" | "finStatementImport" | "finStatementImportLine" | "finReconciliation" | "finReconciliationAdjustment" | "finBalanceDrift"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1707,6 +1716,302 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.FinRecurringPatternCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.FinRecurringPatternCountAggregateOutputType> | number
+        }
+      }
+    }
+    FinMerchant: {
+      payload: Prisma.$FinMerchantPayload<ExtArgs>
+      fields: Prisma.FinMerchantFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.FinMerchantFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinMerchantPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.FinMerchantFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinMerchantPayload>
+        }
+        findFirst: {
+          args: Prisma.FinMerchantFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinMerchantPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.FinMerchantFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinMerchantPayload>
+        }
+        findMany: {
+          args: Prisma.FinMerchantFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinMerchantPayload>[]
+        }
+        create: {
+          args: Prisma.FinMerchantCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinMerchantPayload>
+        }
+        createMany: {
+          args: Prisma.FinMerchantCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.FinMerchantCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinMerchantPayload>[]
+        }
+        delete: {
+          args: Prisma.FinMerchantDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinMerchantPayload>
+        }
+        update: {
+          args: Prisma.FinMerchantUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinMerchantPayload>
+        }
+        deleteMany: {
+          args: Prisma.FinMerchantDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.FinMerchantUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.FinMerchantUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinMerchantPayload>[]
+        }
+        upsert: {
+          args: Prisma.FinMerchantUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinMerchantPayload>
+        }
+        aggregate: {
+          args: Prisma.FinMerchantAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateFinMerchant>
+        }
+        groupBy: {
+          args: Prisma.FinMerchantGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.FinMerchantGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.FinMerchantCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.FinMerchantCountAggregateOutputType> | number
+        }
+      }
+    }
+    FinSubscription: {
+      payload: Prisma.$FinSubscriptionPayload<ExtArgs>
+      fields: Prisma.FinSubscriptionFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.FinSubscriptionFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinSubscriptionPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.FinSubscriptionFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinSubscriptionPayload>
+        }
+        findFirst: {
+          args: Prisma.FinSubscriptionFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinSubscriptionPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.FinSubscriptionFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinSubscriptionPayload>
+        }
+        findMany: {
+          args: Prisma.FinSubscriptionFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinSubscriptionPayload>[]
+        }
+        create: {
+          args: Prisma.FinSubscriptionCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinSubscriptionPayload>
+        }
+        createMany: {
+          args: Prisma.FinSubscriptionCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.FinSubscriptionCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinSubscriptionPayload>[]
+        }
+        delete: {
+          args: Prisma.FinSubscriptionDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinSubscriptionPayload>
+        }
+        update: {
+          args: Prisma.FinSubscriptionUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinSubscriptionPayload>
+        }
+        deleteMany: {
+          args: Prisma.FinSubscriptionDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.FinSubscriptionUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.FinSubscriptionUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinSubscriptionPayload>[]
+        }
+        upsert: {
+          args: Prisma.FinSubscriptionUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinSubscriptionPayload>
+        }
+        aggregate: {
+          args: Prisma.FinSubscriptionAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateFinSubscription>
+        }
+        groupBy: {
+          args: Prisma.FinSubscriptionGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.FinSubscriptionGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.FinSubscriptionCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.FinSubscriptionCountAggregateOutputType> | number
+        }
+      }
+    }
+    FinSubscriptionPayment: {
+      payload: Prisma.$FinSubscriptionPaymentPayload<ExtArgs>
+      fields: Prisma.FinSubscriptionPaymentFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.FinSubscriptionPaymentFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinSubscriptionPaymentPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.FinSubscriptionPaymentFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinSubscriptionPaymentPayload>
+        }
+        findFirst: {
+          args: Prisma.FinSubscriptionPaymentFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinSubscriptionPaymentPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.FinSubscriptionPaymentFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinSubscriptionPaymentPayload>
+        }
+        findMany: {
+          args: Prisma.FinSubscriptionPaymentFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinSubscriptionPaymentPayload>[]
+        }
+        create: {
+          args: Prisma.FinSubscriptionPaymentCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinSubscriptionPaymentPayload>
+        }
+        createMany: {
+          args: Prisma.FinSubscriptionPaymentCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.FinSubscriptionPaymentCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinSubscriptionPaymentPayload>[]
+        }
+        delete: {
+          args: Prisma.FinSubscriptionPaymentDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinSubscriptionPaymentPayload>
+        }
+        update: {
+          args: Prisma.FinSubscriptionPaymentUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinSubscriptionPaymentPayload>
+        }
+        deleteMany: {
+          args: Prisma.FinSubscriptionPaymentDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.FinSubscriptionPaymentUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.FinSubscriptionPaymentUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinSubscriptionPaymentPayload>[]
+        }
+        upsert: {
+          args: Prisma.FinSubscriptionPaymentUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinSubscriptionPaymentPayload>
+        }
+        aggregate: {
+          args: Prisma.FinSubscriptionPaymentAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateFinSubscriptionPayment>
+        }
+        groupBy: {
+          args: Prisma.FinSubscriptionPaymentGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.FinSubscriptionPaymentGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.FinSubscriptionPaymentCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.FinSubscriptionPaymentCountAggregateOutputType> | number
+        }
+      }
+    }
+    FinSubscriptionAlertDismissal: {
+      payload: Prisma.$FinSubscriptionAlertDismissalPayload<ExtArgs>
+      fields: Prisma.FinSubscriptionAlertDismissalFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.FinSubscriptionAlertDismissalFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinSubscriptionAlertDismissalPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.FinSubscriptionAlertDismissalFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinSubscriptionAlertDismissalPayload>
+        }
+        findFirst: {
+          args: Prisma.FinSubscriptionAlertDismissalFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinSubscriptionAlertDismissalPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.FinSubscriptionAlertDismissalFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinSubscriptionAlertDismissalPayload>
+        }
+        findMany: {
+          args: Prisma.FinSubscriptionAlertDismissalFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinSubscriptionAlertDismissalPayload>[]
+        }
+        create: {
+          args: Prisma.FinSubscriptionAlertDismissalCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinSubscriptionAlertDismissalPayload>
+        }
+        createMany: {
+          args: Prisma.FinSubscriptionAlertDismissalCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.FinSubscriptionAlertDismissalCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinSubscriptionAlertDismissalPayload>[]
+        }
+        delete: {
+          args: Prisma.FinSubscriptionAlertDismissalDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinSubscriptionAlertDismissalPayload>
+        }
+        update: {
+          args: Prisma.FinSubscriptionAlertDismissalUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinSubscriptionAlertDismissalPayload>
+        }
+        deleteMany: {
+          args: Prisma.FinSubscriptionAlertDismissalDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.FinSubscriptionAlertDismissalUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.FinSubscriptionAlertDismissalUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinSubscriptionAlertDismissalPayload>[]
+        }
+        upsert: {
+          args: Prisma.FinSubscriptionAlertDismissalUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinSubscriptionAlertDismissalPayload>
+        }
+        aggregate: {
+          args: Prisma.FinSubscriptionAlertDismissalAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateFinSubscriptionAlertDismissal>
+        }
+        groupBy: {
+          args: Prisma.FinSubscriptionAlertDismissalGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.FinSubscriptionAlertDismissalGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.FinSubscriptionAlertDismissalCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.FinSubscriptionAlertDismissalCountAggregateOutputType> | number
         }
       }
     }
@@ -3116,6 +3421,376 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    FinStatementImport: {
+      payload: Prisma.$FinStatementImportPayload<ExtArgs>
+      fields: Prisma.FinStatementImportFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.FinStatementImportFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinStatementImportPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.FinStatementImportFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinStatementImportPayload>
+        }
+        findFirst: {
+          args: Prisma.FinStatementImportFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinStatementImportPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.FinStatementImportFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinStatementImportPayload>
+        }
+        findMany: {
+          args: Prisma.FinStatementImportFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinStatementImportPayload>[]
+        }
+        create: {
+          args: Prisma.FinStatementImportCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinStatementImportPayload>
+        }
+        createMany: {
+          args: Prisma.FinStatementImportCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.FinStatementImportCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinStatementImportPayload>[]
+        }
+        delete: {
+          args: Prisma.FinStatementImportDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinStatementImportPayload>
+        }
+        update: {
+          args: Prisma.FinStatementImportUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinStatementImportPayload>
+        }
+        deleteMany: {
+          args: Prisma.FinStatementImportDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.FinStatementImportUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.FinStatementImportUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinStatementImportPayload>[]
+        }
+        upsert: {
+          args: Prisma.FinStatementImportUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinStatementImportPayload>
+        }
+        aggregate: {
+          args: Prisma.FinStatementImportAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateFinStatementImport>
+        }
+        groupBy: {
+          args: Prisma.FinStatementImportGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.FinStatementImportGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.FinStatementImportCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.FinStatementImportCountAggregateOutputType> | number
+        }
+      }
+    }
+    FinStatementImportLine: {
+      payload: Prisma.$FinStatementImportLinePayload<ExtArgs>
+      fields: Prisma.FinStatementImportLineFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.FinStatementImportLineFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinStatementImportLinePayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.FinStatementImportLineFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinStatementImportLinePayload>
+        }
+        findFirst: {
+          args: Prisma.FinStatementImportLineFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinStatementImportLinePayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.FinStatementImportLineFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinStatementImportLinePayload>
+        }
+        findMany: {
+          args: Prisma.FinStatementImportLineFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinStatementImportLinePayload>[]
+        }
+        create: {
+          args: Prisma.FinStatementImportLineCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinStatementImportLinePayload>
+        }
+        createMany: {
+          args: Prisma.FinStatementImportLineCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.FinStatementImportLineCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinStatementImportLinePayload>[]
+        }
+        delete: {
+          args: Prisma.FinStatementImportLineDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinStatementImportLinePayload>
+        }
+        update: {
+          args: Prisma.FinStatementImportLineUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinStatementImportLinePayload>
+        }
+        deleteMany: {
+          args: Prisma.FinStatementImportLineDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.FinStatementImportLineUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.FinStatementImportLineUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinStatementImportLinePayload>[]
+        }
+        upsert: {
+          args: Prisma.FinStatementImportLineUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinStatementImportLinePayload>
+        }
+        aggregate: {
+          args: Prisma.FinStatementImportLineAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateFinStatementImportLine>
+        }
+        groupBy: {
+          args: Prisma.FinStatementImportLineGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.FinStatementImportLineGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.FinStatementImportLineCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.FinStatementImportLineCountAggregateOutputType> | number
+        }
+      }
+    }
+    FinReconciliation: {
+      payload: Prisma.$FinReconciliationPayload<ExtArgs>
+      fields: Prisma.FinReconciliationFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.FinReconciliationFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinReconciliationPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.FinReconciliationFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinReconciliationPayload>
+        }
+        findFirst: {
+          args: Prisma.FinReconciliationFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinReconciliationPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.FinReconciliationFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinReconciliationPayload>
+        }
+        findMany: {
+          args: Prisma.FinReconciliationFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinReconciliationPayload>[]
+        }
+        create: {
+          args: Prisma.FinReconciliationCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinReconciliationPayload>
+        }
+        createMany: {
+          args: Prisma.FinReconciliationCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.FinReconciliationCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinReconciliationPayload>[]
+        }
+        delete: {
+          args: Prisma.FinReconciliationDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinReconciliationPayload>
+        }
+        update: {
+          args: Prisma.FinReconciliationUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinReconciliationPayload>
+        }
+        deleteMany: {
+          args: Prisma.FinReconciliationDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.FinReconciliationUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.FinReconciliationUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinReconciliationPayload>[]
+        }
+        upsert: {
+          args: Prisma.FinReconciliationUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinReconciliationPayload>
+        }
+        aggregate: {
+          args: Prisma.FinReconciliationAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateFinReconciliation>
+        }
+        groupBy: {
+          args: Prisma.FinReconciliationGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.FinReconciliationGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.FinReconciliationCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.FinReconciliationCountAggregateOutputType> | number
+        }
+      }
+    }
+    FinReconciliationAdjustment: {
+      payload: Prisma.$FinReconciliationAdjustmentPayload<ExtArgs>
+      fields: Prisma.FinReconciliationAdjustmentFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.FinReconciliationAdjustmentFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinReconciliationAdjustmentPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.FinReconciliationAdjustmentFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinReconciliationAdjustmentPayload>
+        }
+        findFirst: {
+          args: Prisma.FinReconciliationAdjustmentFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinReconciliationAdjustmentPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.FinReconciliationAdjustmentFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinReconciliationAdjustmentPayload>
+        }
+        findMany: {
+          args: Prisma.FinReconciliationAdjustmentFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinReconciliationAdjustmentPayload>[]
+        }
+        create: {
+          args: Prisma.FinReconciliationAdjustmentCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinReconciliationAdjustmentPayload>
+        }
+        createMany: {
+          args: Prisma.FinReconciliationAdjustmentCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.FinReconciliationAdjustmentCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinReconciliationAdjustmentPayload>[]
+        }
+        delete: {
+          args: Prisma.FinReconciliationAdjustmentDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinReconciliationAdjustmentPayload>
+        }
+        update: {
+          args: Prisma.FinReconciliationAdjustmentUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinReconciliationAdjustmentPayload>
+        }
+        deleteMany: {
+          args: Prisma.FinReconciliationAdjustmentDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.FinReconciliationAdjustmentUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.FinReconciliationAdjustmentUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinReconciliationAdjustmentPayload>[]
+        }
+        upsert: {
+          args: Prisma.FinReconciliationAdjustmentUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinReconciliationAdjustmentPayload>
+        }
+        aggregate: {
+          args: Prisma.FinReconciliationAdjustmentAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateFinReconciliationAdjustment>
+        }
+        groupBy: {
+          args: Prisma.FinReconciliationAdjustmentGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.FinReconciliationAdjustmentGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.FinReconciliationAdjustmentCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.FinReconciliationAdjustmentCountAggregateOutputType> | number
+        }
+      }
+    }
+    FinBalanceDrift: {
+      payload: Prisma.$FinBalanceDriftPayload<ExtArgs>
+      fields: Prisma.FinBalanceDriftFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.FinBalanceDriftFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinBalanceDriftPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.FinBalanceDriftFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinBalanceDriftPayload>
+        }
+        findFirst: {
+          args: Prisma.FinBalanceDriftFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinBalanceDriftPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.FinBalanceDriftFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinBalanceDriftPayload>
+        }
+        findMany: {
+          args: Prisma.FinBalanceDriftFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinBalanceDriftPayload>[]
+        }
+        create: {
+          args: Prisma.FinBalanceDriftCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinBalanceDriftPayload>
+        }
+        createMany: {
+          args: Prisma.FinBalanceDriftCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.FinBalanceDriftCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinBalanceDriftPayload>[]
+        }
+        delete: {
+          args: Prisma.FinBalanceDriftDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinBalanceDriftPayload>
+        }
+        update: {
+          args: Prisma.FinBalanceDriftUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinBalanceDriftPayload>
+        }
+        deleteMany: {
+          args: Prisma.FinBalanceDriftDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.FinBalanceDriftUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.FinBalanceDriftUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinBalanceDriftPayload>[]
+        }
+        upsert: {
+          args: Prisma.FinBalanceDriftUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$FinBalanceDriftPayload>
+        }
+        aggregate: {
+          args: Prisma.FinBalanceDriftAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateFinBalanceDrift>
+        }
+        groupBy: {
+          args: Prisma.FinBalanceDriftGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.FinBalanceDriftGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.FinBalanceDriftCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.FinBalanceDriftCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -3204,6 +3879,7 @@ export const AiAgentSessionScalarFieldEnum = {
   userId: 'userId',
   moduleId: 'moduleId',
   contextType: 'contextType',
+  chatContext: 'chatContext',
   memorySnapshot: 'memorySnapshot',
   lastActiveAt: 'lastActiveAt',
   createdAt: 'createdAt'
@@ -3341,6 +4017,7 @@ export const FinTransactionScalarFieldEnum = {
   ledgerCurrency: 'ledgerCurrency',
   exchangeRate: 'exchangeRate',
   merchant: 'merchant',
+  merchantId: 'merchantId',
   description: 'description',
   transactionDate: 'transactionDate',
   transferGroupId: 'transferGroupId',
@@ -3423,18 +4100,98 @@ export const FinRecurringPatternScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
   categoryId: 'categoryId',
+  merchantId: 'merchantId',
   merchant: 'merchant',
   avgAmount: 'avgAmount',
   currency: 'currency',
   frequency: 'frequency',
   nextExpectedDate: 'nextExpectedDate',
+  amountTolerance: 'amountTolerance',
+  status: 'status',
+  kind: 'kind',
   confidenceScore: 'confidenceScore',
+  lastSeenAt: 'lastSeenAt',
+  confirmedAt: 'confirmedAt',
   aiAnalysis: 'aiAnalysis',
   isActive: 'isActive',
+  createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
 
 export type FinRecurringPatternScalarFieldEnum = (typeof FinRecurringPatternScalarFieldEnum)[keyof typeof FinRecurringPatternScalarFieldEnum]
+
+
+export const FinMerchantScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  name: 'name',
+  normalizedKey: 'normalizedKey',
+  aliases: 'aliases',
+  categoryId: 'categoryId',
+  logoUrl: 'logoUrl',
+  createdAt: 'createdAt'
+} as const
+
+export type FinMerchantScalarFieldEnum = (typeof FinMerchantScalarFieldEnum)[keyof typeof FinMerchantScalarFieldEnum]
+
+
+export const FinSubscriptionScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  name: 'name',
+  normalizedKey: 'normalizedKey',
+  domain: 'domain',
+  logoPath: 'logoPath',
+  customLogoPath: 'customLogoPath',
+  amount: 'amount',
+  currency: 'currency',
+  billingCycle: 'billingCycle',
+  billingInterval: 'billingInterval',
+  anchorDate: 'anchorDate',
+  nextBillingDate: 'nextBillingDate',
+  trialEndsAt: 'trialEndsAt',
+  status: 'status',
+  pausedAt: 'pausedAt',
+  cancelledAt: 'cancelledAt',
+  reminderDaysBefore: 'reminderDaysBefore',
+  lastRemindedFor: 'lastRemindedFor',
+  cardId: 'cardId',
+  accountId: 'accountId',
+  categoryId: 'categoryId',
+  manageUrl: 'manageUrl',
+  notes: 'notes',
+  sourcePatternId: 'sourcePatternId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type FinSubscriptionScalarFieldEnum = (typeof FinSubscriptionScalarFieldEnum)[keyof typeof FinSubscriptionScalarFieldEnum]
+
+
+export const FinSubscriptionPaymentScalarFieldEnum = {
+  id: 'id',
+  subscriptionId: 'subscriptionId',
+  transactionId: 'transactionId',
+  amount: 'amount',
+  currency: 'currency',
+  paidAt: 'paidAt',
+  source: 'source',
+  createdAt: 'createdAt'
+} as const
+
+export type FinSubscriptionPaymentScalarFieldEnum = (typeof FinSubscriptionPaymentScalarFieldEnum)[keyof typeof FinSubscriptionPaymentScalarFieldEnum]
+
+
+export const FinSubscriptionAlertDismissalScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  subscriptionId: 'subscriptionId',
+  kind: 'kind',
+  alertDate: 'alertDate',
+  createdAt: 'createdAt'
+} as const
+
+export type FinSubscriptionAlertDismissalScalarFieldEnum = (typeof FinSubscriptionAlertDismissalScalarFieldEnum)[keyof typeof FinSubscriptionAlertDismissalScalarFieldEnum]
 
 
 export const FinExchangeRateScalarFieldEnum = {
@@ -3464,6 +4221,7 @@ export const FinInstitutionScalarFieldEnum = {
   color: 'color',
   country: 'country',
   isActive: 'isActive',
+  isSystem: 'isSystem',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -3771,6 +4529,86 @@ export const FinDeletionJournalScalarFieldEnum = {
 } as const
 
 export type FinDeletionJournalScalarFieldEnum = (typeof FinDeletionJournalScalarFieldEnum)[keyof typeof FinDeletionJournalScalarFieldEnum]
+
+
+export const FinStatementImportScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  cardId: 'cardId',
+  accountId: 'accountId',
+  statementId: 'statementId',
+  status: 'status',
+  parsed: 'parsed',
+  error: 'error',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  appliedAt: 'appliedAt'
+} as const
+
+export type FinStatementImportScalarFieldEnum = (typeof FinStatementImportScalarFieldEnum)[keyof typeof FinStatementImportScalarFieldEnum]
+
+
+export const FinStatementImportLineScalarFieldEnum = {
+  id: 'id',
+  importId: 'importId',
+  date: 'date',
+  description: 'description',
+  amount: 'amount',
+  currency: 'currency',
+  type: 'type',
+  reference: 'reference',
+  categoryId: 'categoryId',
+  transactionId: 'transactionId',
+  decision: 'decision',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type FinStatementImportLineScalarFieldEnum = (typeof FinStatementImportLineScalarFieldEnum)[keyof typeof FinStatementImportLineScalarFieldEnum]
+
+
+export const FinReconciliationScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  accountId: 'accountId',
+  cardId: 'cardId',
+  currency: 'currency',
+  asOfDate: 'asOfDate',
+  appBalance: 'appBalance',
+  realBalance: 'realBalance',
+  difference: 'difference',
+  note: 'note',
+  createdAt: 'createdAt'
+} as const
+
+export type FinReconciliationScalarFieldEnum = (typeof FinReconciliationScalarFieldEnum)[keyof typeof FinReconciliationScalarFieldEnum]
+
+
+export const FinReconciliationAdjustmentScalarFieldEnum = {
+  id: 'id',
+  reconciliationId: 'reconciliationId',
+  transactionId: 'transactionId',
+  kind: 'kind',
+  amount: 'amount'
+} as const
+
+export type FinReconciliationAdjustmentScalarFieldEnum = (typeof FinReconciliationAdjustmentScalarFieldEnum)[keyof typeof FinReconciliationAdjustmentScalarFieldEnum]
+
+
+export const FinBalanceDriftScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  accountId: 'accountId',
+  cardId: 'cardId',
+  currency: 'currency',
+  storedBalance: 'storedBalance',
+  expectedBalance: 'expectedBalance',
+  difference: 'difference',
+  detectedAt: 'detectedAt',
+  resolvedAt: 'resolvedAt'
+} as const
+
+export type FinBalanceDriftScalarFieldEnum = (typeof FinBalanceDriftScalarFieldEnum)[keyof typeof FinBalanceDriftScalarFieldEnum]
 
 
 export const SortOrder = {
@@ -4087,6 +4925,90 @@ export type ListEnumAiSuggestionStatusFieldRefInput<$PrismaModel> = FieldRefInpu
 
 
 /**
+ * Reference to a field of type 'FinRecurringStatus'
+ */
+export type EnumFinRecurringStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'FinRecurringStatus'>
+    
+
+
+/**
+ * Reference to a field of type 'FinRecurringStatus[]'
+ */
+export type ListEnumFinRecurringStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'FinRecurringStatus[]'>
+    
+
+
+/**
+ * Reference to a field of type 'FinRecurringKind'
+ */
+export type EnumFinRecurringKindFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'FinRecurringKind'>
+    
+
+
+/**
+ * Reference to a field of type 'FinRecurringKind[]'
+ */
+export type ListEnumFinRecurringKindFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'FinRecurringKind[]'>
+    
+
+
+/**
+ * Reference to a field of type 'FinBillingCycle'
+ */
+export type EnumFinBillingCycleFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'FinBillingCycle'>
+    
+
+
+/**
+ * Reference to a field of type 'FinBillingCycle[]'
+ */
+export type ListEnumFinBillingCycleFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'FinBillingCycle[]'>
+    
+
+
+/**
+ * Reference to a field of type 'FinSubscriptionStatus'
+ */
+export type EnumFinSubscriptionStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'FinSubscriptionStatus'>
+    
+
+
+/**
+ * Reference to a field of type 'FinSubscriptionStatus[]'
+ */
+export type ListEnumFinSubscriptionStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'FinSubscriptionStatus[]'>
+    
+
+
+/**
+ * Reference to a field of type 'FinSubscriptionPaymentSource'
+ */
+export type EnumFinSubscriptionPaymentSourceFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'FinSubscriptionPaymentSource'>
+    
+
+
+/**
+ * Reference to a field of type 'FinSubscriptionPaymentSource[]'
+ */
+export type ListEnumFinSubscriptionPaymentSourceFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'FinSubscriptionPaymentSource[]'>
+    
+
+
+/**
+ * Reference to a field of type 'FinSubscriptionAlertKind'
+ */
+export type EnumFinSubscriptionAlertKindFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'FinSubscriptionAlertKind'>
+    
+
+
+/**
+ * Reference to a field of type 'FinSubscriptionAlertKind[]'
+ */
+export type ListEnumFinSubscriptionAlertKindFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'FinSubscriptionAlertKind[]'>
+    
+
+
+/**
  * Reference to a field of type 'FinCardType'
  */
 export type EnumFinCardTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'FinCardType'>
@@ -4283,6 +5205,62 @@ export type ListEnumAuthDeletionOutboxStatusFieldRefInput<$PrismaModel> = FieldR
 
 
 /**
+ * Reference to a field of type 'FinStatementImportStatus'
+ */
+export type EnumFinStatementImportStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'FinStatementImportStatus'>
+    
+
+
+/**
+ * Reference to a field of type 'FinStatementImportStatus[]'
+ */
+export type ListEnumFinStatementImportStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'FinStatementImportStatus[]'>
+    
+
+
+/**
+ * Reference to a field of type 'FinStatementLineType'
+ */
+export type EnumFinStatementLineTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'FinStatementLineType'>
+    
+
+
+/**
+ * Reference to a field of type 'FinStatementLineType[]'
+ */
+export type ListEnumFinStatementLineTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'FinStatementLineType[]'>
+    
+
+
+/**
+ * Reference to a field of type 'FinStatementLineDecision'
+ */
+export type EnumFinStatementLineDecisionFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'FinStatementLineDecision'>
+    
+
+
+/**
+ * Reference to a field of type 'FinStatementLineDecision[]'
+ */
+export type ListEnumFinStatementLineDecisionFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'FinStatementLineDecision[]'>
+    
+
+
+/**
+ * Reference to a field of type 'FinReconciliationAdjustmentKind'
+ */
+export type EnumFinReconciliationAdjustmentKindFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'FinReconciliationAdjustmentKind'>
+    
+
+
+/**
+ * Reference to a field of type 'FinReconciliationAdjustmentKind[]'
+ */
+export type ListEnumFinReconciliationAdjustmentKindFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'FinReconciliationAdjustmentKind[]'>
+    
+
+
+/**
  * Reference to a field of type 'Float'
  */
 export type FloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float'>
@@ -4463,6 +5441,10 @@ export type GlobalOmitConfig = {
   finBudgetCategory?: Prisma.FinBudgetCategoryOmit
   finBudgetAlert?: Prisma.FinBudgetAlertOmit
   finRecurringPattern?: Prisma.FinRecurringPatternOmit
+  finMerchant?: Prisma.FinMerchantOmit
+  finSubscription?: Prisma.FinSubscriptionOmit
+  finSubscriptionPayment?: Prisma.FinSubscriptionPaymentOmit
+  finSubscriptionAlertDismissal?: Prisma.FinSubscriptionAlertDismissalOmit
   finExchangeRate?: Prisma.FinExchangeRateOmit
   finInstitution?: Prisma.FinInstitutionOmit
   finCard?: Prisma.FinCardOmit
@@ -4482,6 +5464,11 @@ export type GlobalOmitConfig = {
   processedDomainEvent?: Prisma.ProcessedDomainEventOmit
   authDeletionOutbox?: Prisma.AuthDeletionOutboxOmit
   finDeletionJournal?: Prisma.FinDeletionJournalOmit
+  finStatementImport?: Prisma.FinStatementImportOmit
+  finStatementImportLine?: Prisma.FinStatementImportLineOmit
+  finReconciliation?: Prisma.FinReconciliationOmit
+  finReconciliationAdjustment?: Prisma.FinReconciliationAdjustmentOmit
+  finBalanceDrift?: Prisma.FinBalanceDriftOmit
 }
 
 /* Types for Logging */

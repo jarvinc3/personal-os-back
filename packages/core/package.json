@@ -21,6 +21,7 @@
     "@nestjs/passport": "^11.0.5",
     "@nestjs/throttler": "^6.7.1",
     "@personal-os/config": "workspace:*",
-    "@personal-os/database": "workspace:*"
+    "@personal-os/database": "workspace:*",
+    "@sentry/nestjs": "11.8.0"
   }
 }

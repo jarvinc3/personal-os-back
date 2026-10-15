@@ -1,0 +1,51 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>
+endobj
+5 0 obj
+<< /Length 861 >>
+stream
+BT
+/F1 9 Tf
+14 TL
+40 750 Td
+(Banco BHD - Estado de cuenta Visa 6506) Tj T*
+(Tarjeta: **** **** **** 6506   Moneda: DOP) Tj T*
+(Periodo: 25/08/2026 al 24/09/2026) Tj T*
+(Balance anterior: 32,450.00) Tj T*
+() Tj T*
+(Fecha       Descripcion                              Referencia        Monto) Tj T*
+(27/08/2026  AMAZON MARKETPLACE                       REF-778120         1,845.99) Tj T*
+(30/08/2026  NETFLIX.COM                              REF-778210           649.00) Tj T*
+(04/09/2026  LA SIRENA SUPERMERCADO                   REF-778455         6,320.75) Tj T*
+(11/09/2026  UBER TRIP                                REF-778611           420.00) Tj T*
+(18/09/2026  PAGO TARJETA BHD                         REF-778902        10,000.00) Tj T*
+() Tj T*
+(Balance al corte: 31,685.74) Tj T*
+(Pago minimo: 1,584.29) Tj T*
+(Fecha limite de pago: 15/10/2026) Tj T*
+ET
+endstream
+endobj
+xref
+0 6
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000241 00000 n 
+0000000338 00000 n 
+trailer
+<< /Size 6 /Root 1 0 R >>
+startxref
+1250
+%%EOF

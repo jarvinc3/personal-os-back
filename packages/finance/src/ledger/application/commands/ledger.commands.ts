@@ -32,6 +32,8 @@ export type CreateTransactionCommand = {
   currency?: string;
   transactionDate: string;
   merchant?: string;
+  /** Canonical merchant resolved from `merchant` by the use case. */
+  merchantId?: string;
   description?: string;
   notes?: string;
   categoryId?: string;
@@ -45,6 +47,7 @@ export type UpdateTransactionCommand = {
   amount?: number;
   currency?: string;
   merchant?: string | null;
+  merchantId?: string | null;
   description?: string | null;
   notes?: string | null;
   transactionDate?: string;
@@ -86,6 +89,7 @@ export type ListTransactionsQuery = {
   dateFrom?: string;
   dateTo?: string;
   search?: string;
+  merchantId?: string;
   includeAdjustments?: boolean;
   groupOperations?: boolean;
   possibleDuplicates?: boolean;
@@ -113,6 +117,7 @@ export type ImportEmailTransactionCommand = {
   amount: number;
   currency: string;
   merchant: string | null;
+  merchantId?: string | null;
   description: string;
   notes?: string | null;
   transactionDate: Date;
@@ -130,6 +135,7 @@ export type TransactionUpdateFields = {
   accountId?: string | null;
   cardId?: string | null;
   merchant?: string | null;
+  merchantId?: string | null;
   description?: string | null;
   notes?: string | null;
   transactionDate?: Date;

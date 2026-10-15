@@ -95,10 +95,10 @@ Updates notification channel toggles and quiet hours.
 
 Updates per-module JSON config for non-finance modules.
 
-| Parameter | Type   | Required | Description                                     |
-| --------- | ------ | -------- | ----------------------------------------------- |
-| `slug`    | string | yes      | `agenda`, `projects`, `health`, `subscriptions` |
-| `config`  | object | yes      | Module-specific config patch                    |
+| Parameter | Type   | Required | Description                    |
+| --------- | ------ | -------- | ------------------------------ |
+| `slug`    | string | yes      | `agenda`, `projects`, `health` |
+| `config`  | object | yes      | Module-specific config patch   |
 
 **Note:** `finance` slug is rejected — finance config is not editable via chat.
 
@@ -110,10 +110,10 @@ Updates per-module JSON config for non-finance modules.
 
 Enables or disables a module for the current user.
 
-| Parameter   | Type    | Required | Description                                     |
-| ----------- | ------- | -------- | ----------------------------------------------- |
-| `slug`      | string  | yes      | `agenda`, `projects`, `health`, `subscriptions` |
-| `isEnabled` | boolean | yes      | Target enabled state                            |
+| Parameter   | Type    | Required | Description                    |
+| ----------- | ------- | -------- | ------------------------------ |
+| `slug`      | string  | yes      | `agenda`, `projects`, `health` |
+| `isEnabled` | boolean | yes      | Target enabled state           |
 
 **Side effects:** invalidates `profile`, `me`
 

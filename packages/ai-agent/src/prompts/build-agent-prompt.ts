@@ -1,4 +1,5 @@
 import type { AiTone } from '@personal-os/users';
+import type { ChatContextEntity } from '@personal-os/core';
 import { TONE_INSTRUCTIONS } from '../chat/application/build-system-prompt';
 import { getModuleContextPrompt } from './module-context';
 import { SYSTEM_BASE_PROMPT } from './system-base';
@@ -7,12 +8,21 @@ import {
   getToolsListForModule,
 } from './tools-instructions';
 
+const ENTITY_HINT_MAX_NAME = 160;
+const ENTITY_HINT_MAX_SUMMARY = 600;
+
+// Bank descriptions have no length limit; keep the system prompt bounded.
+function truncateHint(value: string, maxLength: number): string {
+  return value.length > maxLength ? `${value.slice(0, maxLength)}…` : value;
+}
+
 export function buildAgentPrompt(options: {
   tone: AiTone;
   locale?: string | null;
   confirmBeforeActions?: boolean;
   memorySnapshot?: Record<string, unknown>;
   moduleSlug?: string | null;
+  entityContext?: ChatContextEntity | null;
 }): string {
   const useSpanish =
     !options.locale || options.locale.toLowerCase().startsWith('es');
@@ -33,10 +43,15 @@ export function buildAgentPrompt(options: {
       ? `Memoria de sesiones anteriores: ${JSON.stringify(options.memorySnapshot).slice(0, 1500)}`
       : '';
 
+  const entityHint = options.entityContext
+    ? `Entidad en foco: ${options.entityContext.type} "${truncateHint(options.entityContext.name, ENTITY_HINT_MAX_NAME)}" (id: ${options.entityContext.id}). Datos: ${truncateHint(options.entityContext.summary, ENTITY_HINT_MAX_SUMMARY)}. Si el usuario dice "esto", "esta cuenta", "este préstamo" u otra referencia sin id, usa esa entidad y pasa el id a las herramientas.`
+    : '';
+
   return [
     SYSTEM_BASE_PROMPT,
     getModuleContextPrompt(options.moduleSlug ?? null),
     getToolsListForModule(options.moduleSlug ?? null),
+    entityHint,
     toolsBehavior,
     languageHint,
     TONE_INSTRUCTIONS[options.tone],

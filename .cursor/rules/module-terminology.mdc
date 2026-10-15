@@ -1,0 +1,24 @@
+---
+description: User-facing copy says "App"; code and architecture keep "module"/"módulo".
+globs: "**/*.ts"
+alwaysApply: true
+---
+
+# App de cara al usuario, módulo en el código
+
+El texto que ve la persona dice **App** (Finanzas, Agenda, Salud, Proyectos y demás son Apps; el producto es Personal OS). El código y la arquitectura siguen diciendo **module** / **módulo**: no renombres carpetas, paquetes, símbolos, tablas ni campos por el término de interfaz.
+
+Vale para el copy que el back expone al cliente: `fieldGuide` de los defaults y etiquetas de acciones del agente IA. En errores técnicos, logs y Swagger se mantiene el término de código.
+
+Rompe la regla: `fieldGuide: '…del módulo Finanzas.'`, `return \`Activar módulo ${slug}\``.
+
+```ts
+// bien
+fieldGuide: 'Moneda y calendario de la app Finanzas.';
+return `${isEnabled ? 'Activar' : 'Desactivar'} app ${slug}`;
+
+// no
+fieldGuide: 'Moneda y calendario del módulo Finanzas.';
+```
+
+Se mantiene `user_modules`, `moduleSlug`, `packages/finance`, `MODULE_CONTEXT` y toda la documentación de arquitectura. Detalle: [docs/glosario.md](../docs/glosario.md).

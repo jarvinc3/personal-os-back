@@ -1,6 +1,7 @@
 import { randomUUID } from 'crypto';
 import { Inject, Injectable } from '@nestjs/common';
 import { FinanceOutboxDispatcher } from '../../events/infrastructure/finance-outbox.dispatcher';
+import { MerchantsService } from '../../merchants/application/merchants.service';
 import { ResolveAmountsUseCase } from '../../fx/application/resolve-amounts.use-case';
 import { ResolveUserBaseCurrencyUseCase } from '../../fx/application/resolve-user-base-currency';
 import { LEDGER_REPOSITORY } from '../../shared/application/tokens';
@@ -30,6 +31,7 @@ export type ImportEmailMovementInput = {
   amount: number;
   currency: string;
   merchant: string | null;
+  merchantId?: string | null;
   description: string;
   notes?: string | null;
   transactionDate: Date;
@@ -48,6 +50,7 @@ export class ImportEmailTransactionUseCase {
     private readonly resolveAmounts: ResolveAmountsUseCase,
     private readonly baseCurrency: ResolveUserBaseCurrencyUseCase,
     private readonly outboxDispatcher: FinanceOutboxDispatcher,
+    private readonly merchants: MerchantsService,
   ) {}
 
   async execute(userId: string, data: ImportEmailMovementInput) {
@@ -67,8 +70,13 @@ export class ImportEmailTransactionUseCase {
       transactionDate: data.transactionDate,
     });
 
+    const resolvedMerchant = data.merchant
+      ? await this.merchants.resolve(userId, data.merchant)
+      : null;
+
     const created = await this.repo.createEmailImportTransaction(userId, {
       ...data,
+      merchantId: resolvedMerchant?.id ?? null,
       amounts,
     });
     void this.outboxDispatcher.processBatch();

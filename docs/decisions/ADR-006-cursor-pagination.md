@@ -25,4 +25,4 @@ La web necesita scroll infinito: cargar la siguiente tanda al bajar, sin botones
 
 ## Consecuencias
 
-Cambia un contrato compartido (`packages/core`) y los cuatro endpoints que lo usan; la web actualiza sus tipos y hooks. Los contratos HTTP documentados (`docs/modules/finance/contracts/http.md`, `docs/modules/notifications/contracts/http.md`) se actualizan cuando se implemente, no antes. Migración pendiente; mientras tanto el runtime sigue con `page` / `limit`. Decisión espejo en `personal-os-web/docs/decisions/ADR-003-cursor-pagination.md`.
+Cambia un contrato compartido (`packages/core`) y los endpoints que lo usan; la web actualiza sus tipos y hooks. Los contratos HTTP documentados (`docs/modules/finance/contracts/http.md`, `docs/modules/notifications/contracts/http.md`) se actualizan cuando se implemente, no antes. Movimientos, presupuestos, historial de instrumento, notificaciones, cortes y, tras el pendiente 04, las listas de detalle de planificación, correos y papelera ya usan cursor. Decisión espejo en `personal-os-web/docs/decisions/ADR-003-cursor-pagination.md`.

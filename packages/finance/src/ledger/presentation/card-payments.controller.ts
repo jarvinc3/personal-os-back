@@ -25,7 +25,7 @@ export class CardPaymentsController {
   ) {}
 
   @Post('card-payments')
-  @ApiOperation({ summary: 'Pay a credit card from an account' })
+  @ApiOperation({ summary: 'Paga una tarjeta de crédito desde una cuenta' })
   create(
     @CurrentUser('sub') userId: string,
     @Body() dto: CreateCardPaymentDto,
@@ -34,7 +34,7 @@ export class CardPaymentsController {
   }
 
   @Patch('card-payments/:id')
-  @ApiOperation({ summary: 'Edit a pending card payment' })
+  @ApiOperation({ summary: 'Edita un pago de tarjeta pendiente' })
   update(
     @CurrentUser('sub') userId: string,
     @Param('id') id: string,
@@ -44,21 +44,25 @@ export class CardPaymentsController {
   }
 
   @Post('card-payments/:id/unconfirm')
-  @ApiOperation({ summary: 'Move every leg of a card payment back to PENDING' })
+  @ApiOperation({
+    summary: 'Devuelve todos los movimientos de un pago de tarjeta a PENDING',
+  })
   async unconfirm(@CurrentUser('sub') userId: string, @Param('id') id: string) {
     await this.unconfirmCardPayment.execute(userId, id);
     return { success: true };
   }
 
   @Post('card-payments/:id/confirm')
-  @ApiOperation({ summary: 'Confirm every pending leg of a card payment' })
+  @ApiOperation({
+    summary: 'Confirma todos los movimientos pendientes de un pago de tarjeta',
+  })
   async confirm(@CurrentUser('sub') userId: string, @Param('id') id: string) {
     await this.confirmCardPayment.execute(userId, id);
     return { success: true };
   }
 
   @Delete('card-payments/:id')
-  @ApiOperation({ summary: 'Delete the whole card payment' })
+  @ApiOperation({ summary: 'Borra el pago de tarjeta completo' })
   remove(@CurrentUser('sub') userId: string, @Param('id') id: string) {
     return this.deleteTransaction.execute(userId, id);
   }

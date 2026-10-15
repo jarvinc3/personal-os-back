@@ -10,6 +10,7 @@ Instrucciones para agentes y reviewers que trabajan en el backend de Personal OS
 4. El módulo o área que vas a tocar bajo `docs/modules/` o `docs/infrastructure/`.
 5. Código y pruebas citados en esos documentos. No inferir desde nombres.
 6. [docs/reference/changelog-guide.md](docs/reference/changelog-guide.md) — antes de cerrar la sesión, para el CHANGELOG y la versión.
+   - [docs/versionado.md](docs/versionado.md) - política de versionado beta `0.x` (obligatoria; manda sobre la guía del changelog).
 
 Si una afirmación no está `VERIFICADO`, leer [docs/review-register.md](docs/review-register.md) antes de tratarla como comportamiento vigente.
 
@@ -22,6 +23,7 @@ Si una afirmación no está `VERIFICADO`, leer [docs/review-register.md](docs/re
 | Envelope HTTP `{ data, meta }`                   | `packages/core/src/interceptors/transform.interceptor.ts`                                                        |
 | Eventos                                          | `packages/core/src/events/event.constants.ts`                                                                    |
 | Env                                              | `packages/config/src/env.schema.ts`                                                                              |
+| App (interfaz) vs módulo (código)                | [docs/glosario.md](docs/glosario.md) · regla `.cursor/rules/module-terminology.mdc`                              |
 | Tools IA                                         | `packages/ai-agent/src/tools/tool.registry.ts` + `prompts/module-context.ts`                                     |
 | API pública entre módulos Nest                   | `packages/<nombre>/src/index.ts` y barrels `@personal-os/<nombre>` (regla `.cursor/rules/module-public-api.mdc`) |
 
@@ -29,12 +31,18 @@ Si una afirmación no está `VERIFICADO`, leer [docs/review-register.md](docs/re
 
 Toda sesión de agente cierra con un release: `CHANGELOG.md` actualizado y `version` de `package.json` subida. Antes de escribirlo, lee [docs/reference/changelog-guide.md](docs/reference/changelog-guide.md) completo; ahí están las reglas, las secciones y un ejemplo.
 
+La versión sigue **estrictamente** [docs/versionado.md](docs/versionado.md): beta `0.MINOR.PATCH`, nunca bajar de versión, `1.0.0` solo cuando el usuario lo decida y los hitos de módulo como nombre de release.
+
 - Un release por sesión, aunque el cambio sea pequeño. El bump es el más alto de la sesión: `MAJOR` si rompe un contrato o los datos guardados, `MINOR` si agrega un endpoint o un dato nuevo y `PATCH` en el resto.
 - Una sola versión para el monorepo: el `package.json` de la raíz. Los paquetes de `packages/*` no se publican por separado.
 - El CHANGELOG va en español, de la versión más nueva a la más vieja, con la fecha en `AAAA-MM-DD`.
 - Cierra con `chore(release): vX.Y.Z` y crea el tag `vX.Y.Z`.
 - La documentación también pasa prettier: `pnpm format:check` cubre `ts`, `tsx` y `md`.
 - `personal-os-app` está fuera de servicio y no sigue esta regla.
+
+## Fechas
+
+Usa siempre la fecha real del sistema (`date`) para nombrar migraciones, changelogs y documentos. No adelantes la fecha para "ordenar" artefactos: el nombre de la carpeta de una migración Prisma (`YYYYMMDDHHMMSS_slug`) es su posición en el historial y Prisma lo ordena de forma lexicográfica. Ver [docs/infrastructure/database.md](docs/infrastructure/database.md#migraciones-y-fechas).
 
 ## Checklist al cambiar comportamiento
 
@@ -44,7 +52,7 @@ Toda sesión de agente cierra con un release: `CHANGELOG.md` actualizado y `vers
 - [ ] Si el cambio no se puede verificar, añadir un `REV-BACK-*` en el registro.
 - [ ] Imports cruzados solo vía barrel/`FinanceFacade`.
 - [ ] Prefijo HTTP documentado como `/api/...` salvo health/Bull Board/Swagger que viven fuera o según `main.ts`.
-- [ ] No presentar módulos `agenda` / `projects` / `health` / `subscriptions` como APIs Nest: solo slugs de `user_modules`.
+- [ ] No presentar módulos `agenda` / `projects` / `health` como APIs Nest: solo slugs de `user_modules`.
 - [ ] Actualizar `CHANGELOG.md` y subir `version` en `package.json`; cerrar con `chore(release): vX.Y.Z` y el tag.
 
 ## Pruebas obligatorias

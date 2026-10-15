@@ -48,13 +48,13 @@ export function resolveReceivablePayment(input: {
   const paidAmount = roundMoney(input.paidAmount);
 
   if (!Number.isFinite(amount) || amount < 0) {
-    throw new BadRequestException('amount must be >= 0');
+    throw new BadRequestException('el monto debe ser >= 0');
   }
   if (!Number.isFinite(paidAmount) || paidAmount < 0) {
-    throw new BadRequestException('paidAmount must be >= 0');
+    throw new BadRequestException('paidAmount debe ser >= 0');
   }
   if (paidAmount > amount) {
-    throw new BadRequestException('paidAmount cannot exceed amount');
+    throw new BadRequestException('paidAmount no puede superar el monto');
   }
 
   let status = input.status;
@@ -84,7 +84,7 @@ export function resolveReceivablePayment(input: {
     );
   }
   if (status === 'CANCELLED' && paidAmount > amount) {
-    throw new BadRequestException('paidAmount cannot exceed amount');
+    throw new BadRequestException('paidAmount no puede superar el monto');
   }
 
   return { paidAmount, status };

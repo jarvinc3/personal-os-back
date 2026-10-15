@@ -7,9 +7,18 @@ allowBuilds:
   '@parcel/watcher': false
   '@prisma/engines': true
   '@scarf/scarf': true
+  '@sentry/cli': true
   msgpackr-extract: true
   prisma: true
   unrs-resolver: true
+minimumReleaseAgeExclude:
+  - '@sentry/bundler-plugins@11.8.0'
+  - '@sentry/core@11.8.0'
+  - '@sentry/nestjs@11.8.0'
+  - '@sentry/node@11.8.0'
+  - '@sentry/opentelemetry@11.8.0'
+  - '@sentry/server-runtime-injection@11.8.0'
+  - '@sentry/server-utils@11.8.0'
 overrides:
   axios: 1.20.0
   js-yaml@5: 5.2.2

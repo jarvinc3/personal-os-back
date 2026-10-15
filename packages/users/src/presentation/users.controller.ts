@@ -31,14 +31,14 @@ export class UsersController {
   ) {}
 
   @Get('me')
-  @ApiOperation({ summary: 'Get authenticated user profile' })
+  @ApiOperation({ summary: 'Obtiene el perfil del usuario autenticado' })
   @ApiOkResponse({ description: 'Current user profile' })
   getMyProfile(@CurrentUser('sub') userId: string) {
     return this.usersService.findById(userId);
   }
 
   @Patch('me')
-  @ApiOperation({ summary: 'Update authenticated user profile' })
+  @ApiOperation({ summary: 'Actualiza el perfil del usuario autenticado' })
   @ApiOkResponse({ description: 'Updated user profile' })
   updateMyProfile(
     @CurrentUser('sub') userId: string,
@@ -48,7 +48,9 @@ export class UsersController {
   }
 
   @Patch('me/modules/:slug')
-  @ApiOperation({ summary: 'Update module config for authenticated user' })
+  @ApiOperation({
+    summary: 'Actualiza la configuración de un módulo del usuario',
+  })
   @ApiOkResponse({ description: 'Updated user profile with module config' })
   updateMyModuleConfig(
     @CurrentUser('sub') userId: string,
@@ -60,7 +62,7 @@ export class UsersController {
 
   @Delete('me')
   @ApiOperation({
-    summary: 'Delete authenticated user account and associated data',
+    summary: 'Borra la cuenta del usuario y sus datos asociados',
   })
   @ApiOkResponse({ description: 'Account deleted successfully' })
   deleteMyAccount(@CurrentUser('sub') userId: string) {
@@ -70,7 +72,7 @@ export class UsersController {
   @Post('me/data/wipe')
   @HttpCode(200)
   @ApiOperation({
-    summary: 'Wipe selected data layers without closing the account',
+    summary: 'Borra capas de datos seleccionadas sin cerrar la cuenta',
   })
   @ApiOkResponse({ description: 'Requested and applied layers with counts' })
   wipeMyData(@CurrentUser('sub') userId: string, @Body() dto: WipeUserDataDto) {

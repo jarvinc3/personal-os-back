@@ -1,9 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import {
-  clampPageLimit,
-  decodeCursor,
-  type CursorQueryDto,
-} from '@personal-os/core';
+import { clampPageLimit, type CursorQueryDto } from '@personal-os/core';
 import type { Prisma } from '@personal-os/database';
 import { PrismaService } from '@personal-os/database';
 import type { ReceivableStatus } from '../application/resolve-receivable-payment';
@@ -13,6 +9,7 @@ import {
   DELETION_MODEL,
   toDeletionValues,
 } from '../../shared/domain/deletion-snapshot';
+import { decodeCursorPosition } from '../../shared/infrastructure/cursor-window';
 import { DeletionJournalRepository } from '../../shared/infrastructure/deletion-journal.repository';
 import { applyReceivableBalance } from './receivable-balance';
 import { applySavingsGoalBalance } from './savings-goal-balance';
@@ -37,23 +34,21 @@ export class PlanningRepository {
 
   listBudgetsPage(userId: string, query: CursorQueryDto) {
     const limit = clampPageLimit(query.limit);
-    const cursorPoint = query.cursor ? decodeCursor(query.cursor) : null;
+    const after = decodeCursorPosition(query.cursor);
     const baseWhere: Prisma.FinBudgetWhereInput = { userId };
-    const cursorDate = cursorPoint ? new Date(cursorPoint.key) : null;
-    const where: Prisma.FinBudgetWhereInput =
-      cursorPoint && cursorDate
-        ? {
-            AND: [
-              baseWhere,
-              {
-                OR: [
-                  { periodStart: { lt: cursorDate } },
-                  { periodStart: cursorDate, id: { lt: cursorPoint.id } },
-                ],
-              },
-            ],
-          }
-        : baseWhere;
+    const where: Prisma.FinBudgetWhereInput = after
+      ? {
+          AND: [
+            baseWhere,
+            {
+              OR: [
+                { periodStart: { lt: after.date } },
+                { periodStart: after.date, id: { lt: after.id } },
+              ],
+            },
+          ],
+        }
+      : baseWhere;
     return this.prisma.finBudget.findMany({
       where,
       include: { category: true, categories: { include: { category: true } } },
@@ -213,6 +208,26 @@ export class PlanningRepository {
     });
   }
 
+  listSavingsGoalsPage(userId: string, query: CursorQueryDto) {
+    const limit = clampPageLimit(query.limit);
+    const after = decodeCursorPosition(query.cursor);
+    return this.prisma.finSavingsGoal.findMany({
+      where: {
+        userId,
+        ...(after
+          ? {
+              OR: [
+                { createdAt: { lt: after.date } },
+                { createdAt: after.date, id: { lt: after.id } },
+              ],
+            }
+          : {}),
+      },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      take: limit + 1,
+    });
+  }
+
   findSavingsGoal(userId: string, id: string) {
     return this.prisma.finSavingsGoal.findFirst({ where: { id, userId } });
   }
@@ -292,10 +307,23 @@ export class PlanningRepository {
     return this.journal.restore(userId, DELETION_ENTITY.savingsGoal, id, now);
   }
 
-  listSavingsGoalContributions(goalId: string) {
+  listSavingsGoalContributions(goalId: string, query: CursorQueryDto) {
+    const limit = clampPageLimit(query.limit);
+    const after = decodeCursorPosition(query.cursor);
     return this.prisma.finSavingsGoalContribution.findMany({
-      where: { goalId },
-      orderBy: [{ contributedAt: 'desc' }, { createdAt: 'desc' }],
+      where: {
+        goalId,
+        ...(after
+          ? {
+              OR: [
+                { contributedAt: { lt: after.date } },
+                { contributedAt: after.date, id: { lt: after.id } },
+              ],
+            }
+          : {}),
+      },
+      orderBy: [{ contributedAt: 'desc' }, { id: 'desc' }],
+      take: limit + 1,
     });
   }
 
@@ -379,6 +407,31 @@ export class PlanningRepository {
     });
   }
 
+  listLoansPage(userId: string, query: CursorQueryDto) {
+    const limit = clampPageLimit(query.limit);
+    const after = decodeCursorPosition(query.cursor);
+    return this.prisma.finLoan.findMany({
+      where: {
+        userId,
+        isActive: true,
+        ...(after
+          ? {
+              OR: [
+                { nextDueDate: { gt: after.date } },
+                { nextDueDate: after.date, id: { gt: after.id } },
+              ],
+            }
+          : {}),
+      },
+      orderBy: [{ nextDueDate: 'asc' }, { id: 'asc' }],
+      include: {
+        account: { select: { id: true, name: true } },
+        institution: { select: { id: true, name: true } },
+      },
+      take: limit + 1,
+    });
+  }
+
   findLoan(userId: string, id: string) {
     return this.prisma.finLoan.findFirst({
       where: { id, userId },
@@ -456,6 +509,26 @@ export class PlanningRepository {
     return this.prisma.finLoanInstallment.findMany({
       where: { loanId },
       orderBy: { installmentNo: 'asc' },
+    });
+  }
+
+  listInstallmentsPage(loanId: string, query: CursorQueryDto) {
+    const limit = clampPageLimit(query.limit);
+    const after = decodeCursorPosition(query.cursor);
+    return this.prisma.finLoanInstallment.findMany({
+      where: {
+        loanId,
+        ...(after
+          ? {
+              OR: [
+                { dueDate: { gt: after.date } },
+                { dueDate: after.date, id: { gt: after.id } },
+              ],
+            }
+          : {}),
+      },
+      orderBy: [{ dueDate: 'asc' }, { id: 'asc' }],
+      take: limit + 1,
     });
   }
 
@@ -625,6 +698,26 @@ export class PlanningRepository {
     });
   }
 
+  listReceivablesPage(userId: string, query: CursorQueryDto) {
+    const limit = clampPageLimit(query.limit);
+    const after = decodeCursorPosition(query.cursor);
+    return this.prisma.finReceivable.findMany({
+      where: {
+        userId,
+        ...(after
+          ? {
+              OR: [
+                { createdAt: { lt: after.date } },
+                { createdAt: after.date, id: { lt: after.id } },
+              ],
+            }
+          : {}),
+      },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      take: limit + 1,
+    });
+  }
+
   findReceivable(userId: string, id: string) {
     return this.prisma.finReceivable.findFirst({ where: { id, userId } });
   }
@@ -707,11 +800,24 @@ export class PlanningRepository {
     });
   }
 
-  listReceivablePayments(receivableId: string) {
+  listReceivablePayments(receivableId: string, query: CursorQueryDto) {
+    const limit = clampPageLimit(query.limit);
+    const after = decodeCursorPosition(query.cursor);
     return this.prisma.finReceivablePayment.findMany({
-      where: { receivableId },
-      orderBy: [{ paidAt: 'desc' }, { createdAt: 'desc' }],
+      where: {
+        receivableId,
+        ...(after
+          ? {
+              OR: [
+                { paidAt: { lt: after.date } },
+                { paidAt: after.date, id: { lt: after.id } },
+              ],
+            }
+          : {}),
+      },
+      orderBy: [{ paidAt: 'desc' }, { id: 'desc' }],
       include: { account: { select: { id: true, name: true } } },
+      take: limit + 1,
     });
   }
 

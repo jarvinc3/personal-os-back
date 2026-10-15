@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Patch,
@@ -25,7 +26,7 @@ export class NotificationsController {
   ) {}
 
   @Get()
-  @ApiOperation({ summary: 'List notifications for current user' })
+  @ApiOperation({ summary: 'Lista las notificaciones del usuario' })
   list(
     @CurrentUser('sub') userId: string,
     @Query() query: ListNotificationsQueryDto,
@@ -34,19 +35,19 @@ export class NotificationsController {
   }
 
   @Get('unread-count')
-  @ApiOperation({ summary: 'Unread in-app notification count' })
+  @ApiOperation({ summary: 'Cantidad de notificaciones sin leer' })
   unreadCount(@CurrentUser('sub') userId: string) {
     return this.notificationsService.unreadCount(userId);
   }
 
   @Patch('read-all')
-  @ApiOperation({ summary: 'Mark all in-app notifications as read' })
+  @ApiOperation({ summary: 'Marca todas las notificaciones como leídas' })
   markAllAsRead(@CurrentUser('sub') userId: string) {
     return this.notificationsService.markAllAsRead(userId);
   }
 
   @Post()
-  @ApiOperation({ summary: 'Create a notification for current user' })
+  @ApiOperation({ summary: 'Crea una notificación para el usuario' })
   create(
     @CurrentUser('sub') userId: string,
     @Body() dto: CreateNotificationDto,
@@ -55,13 +56,13 @@ export class NotificationsController {
   }
 
   @Patch(':id/read')
-  @ApiOperation({ summary: 'Mark notification as read for current user' })
+  @ApiOperation({ summary: 'Marca una notificación como leída' })
   markAsRead(@Param('id') id: string, @CurrentUser('sub') userId: string) {
     return this.notificationsService.markAsRead(id, userId);
   }
 
   @Post('push-tokens')
-  @ApiOperation({ summary: 'Register a push token for current user' })
+  @ApiOperation({ summary: 'Registra un token push del usuario' })
   registerPushToken(
     @CurrentUser('sub') userId: string,
     @Body() dto: RegisterPushTokenDto,
@@ -69,9 +70,21 @@ export class NotificationsController {
     return this.pushTokensService.register(userId, dto);
   }
 
-  @Patch('push-tokens/:token/deactivate')
-  @ApiOperation({ summary: 'Deactivate a push token for current user' })
+  @Delete('push-tokens/:token')
+  @ApiOperation({ summary: 'Desactiva un token push del usuario' })
   deactivatePushToken(
+    @CurrentUser('sub') userId: string,
+    @Param('token') token: string,
+  ) {
+    return this.pushTokensService.deactivate(userId, token);
+  }
+
+  @Patch('push-tokens/:token/deactivate')
+  @ApiOperation({
+    summary: 'Alias deprecado de DELETE push-tokens/:token',
+    deprecated: true,
+  })
+  deactivatePushTokenLegacy(
     @CurrentUser('sub') userId: string,
     @Param('token') token: string,
   ) {

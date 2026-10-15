@@ -7,7 +7,52 @@ import {
 
 describe('tool-arg-schemas', () => {
   it('registers schemas for all mutating tools', () => {
-    expect(Object.keys(MUTATING_TOOL_ARG_SCHEMAS)).toHaveLength(26);
+    expect(Object.keys(MUTATING_TOOL_ARG_SCHEMAS)).toHaveLength(30);
+  });
+
+  it('rejects the retired subscriptions module slug', () => {
+    const retired = validateMutatingToolArgs('update_module_config', {
+      slug: 'subscriptions',
+      config: {},
+    });
+    expect(retired.ok).toBe(false);
+  });
+
+  it('accepts the managed subscription tools', () => {
+    const created = validateMutatingToolArgs('create_subscription', {
+      name: 'Netflix',
+      amount: 12.99,
+      billingCycle: 'MONTHLY',
+      anchorDate: '2026-05-10',
+    });
+    expect(created.ok).toBe(true);
+
+    const paid = validateMutatingToolArgs('confirm_subscription_payment', {
+      subscriptionId: '550e8400-e29b-41d4-a716-446655440000',
+    });
+    expect(paid.ok).toBe(true);
+  });
+
+  it('accepts reconcile_product only with exactly one target', () => {
+    const accountId = '550e8400-e29b-41d4-a716-446655440000';
+    const cardId = '660e8400-e29b-41d4-a716-446655440001';
+    const base = { asOfDate: '2026-10-15', realBalance: 9950 };
+
+    const valid = validateMutatingToolArgs('reconcile_product', {
+      ...base,
+      accountId,
+    });
+    expect(valid.ok).toBe(true);
+
+    const missing = validateMutatingToolArgs('reconcile_product', base);
+    expect(missing.ok).toBe(false);
+
+    const both = validateMutatingToolArgs('reconcile_product', {
+      ...base,
+      accountId,
+      cardId,
+    });
+    expect(both.ok).toBe(false);
   });
 
   it('generates OpenAI-compatible JSON Schema without $schema', () => {

@@ -14,6 +14,8 @@ import { GLOBAL_USER_PREFERENCES_DEFAULTS } from '../domain/defaults/global-pref
 import {
   DEFAULT_MODULE_CONFIG_BY_SLUG,
   isModuleSlug,
+  validateCardDueDaysBefore,
+  validateSubscriptionReminderDays,
   type ModuleSlug,
 } from '../domain/defaults/user-settings-defaults';
 import { validateEmailSyncSchedule } from '@personal-os/config';
@@ -65,9 +67,39 @@ export class UsersService {
   async findById(userId: string) {
     const user = await this.usersRepository.findById(userId);
     if (!user) {
-      throw new NotFoundException('User not found');
+      throw new NotFoundException('Usuario no encontrado');
     }
     return this.mapUser(user);
+  }
+
+  private assertFinanceConfig(config: Record<string, unknown>): void {
+    const financeConfig = config as {
+      emailSync?: { schedule?: unknown };
+      subscriptions?: { reminderDaysBefore?: unknown };
+      reminders?: { cardDueDaysBefore?: unknown };
+    };
+    if (financeConfig.emailSync?.schedule !== undefined) {
+      const scheduleError = validateEmailSyncSchedule(
+        financeConfig.emailSync.schedule,
+      );
+      if (scheduleError) {
+        throw new BadRequestException(scheduleError);
+      }
+    }
+    const reminderDays = financeConfig.subscriptions?.reminderDaysBefore;
+    if (reminderDays !== undefined) {
+      const reminderError = validateSubscriptionReminderDays(reminderDays);
+      if (reminderError) {
+        throw new BadRequestException(reminderError);
+      }
+    }
+    const cardDueDays = financeConfig.reminders?.cardDueDaysBefore;
+    if (cardDueDays !== undefined) {
+      const cardDueError = validateCardDueDaysBefore(cardDueDays);
+      if (cardDueError) {
+        throw new BadRequestException(cardDueError);
+      }
+    }
   }
 
   async updateProfile(userId: string, dto: UpdateProfileDto) {
@@ -111,29 +143,20 @@ export class UsersService {
     dto: UpdateModuleConfigDto,
   ) {
     if (!isModuleSlug(slug)) {
-      throw new NotFoundException(`Module "${slug}" not found`);
+      throw new BadRequestException(`Módulo desconocido "${slug}"`);
     }
 
     if (slug === 'finance' && dto.config !== undefined) {
-      const emailSync = (dto.config as { emailSync?: { schedule?: unknown } })
-        .emailSync;
-      if (emailSync?.schedule !== undefined) {
-        const scheduleError = validateEmailSyncSchedule(emailSync.schedule);
-        if (scheduleError) {
-          throw new BadRequestException(scheduleError);
-        }
-      }
+      this.assertFinanceConfig(dto.config);
     }
 
     if (dto.config === undefined && dto.isEnabled === undefined) {
-      throw new BadRequestException(
-        'Either config or isEnabled must be provided',
-      );
+      throw new BadRequestException('Debes indicar config o isEnabled');
     }
 
     const moduleRecord = await this.usersRepository.findModuleBySlug(slug);
     if (!moduleRecord) {
-      throw new NotFoundException(`Module "${slug}" not found`);
+      throw new NotFoundException(`Módulo "${slug}" no encontrado`);
     }
 
     const defaults = DEFAULT_MODULE_CONFIG_BY_SLUG[slug] as unknown as Record<
@@ -147,13 +170,13 @@ export class UsersService {
 
     if (!existing && dto.config === undefined) {
       throw new BadRequestException(
-        'Module is not configured yet; provide config to create a user module record',
+        'El módulo aún no está configurado; indica config para crear el registro',
       );
     }
 
     if (!existing && dto.isEnabled === false && dto.config === undefined) {
       throw new BadRequestException(
-        'Module is not configured yet; cannot disable before initial configuration',
+        'El módulo aún no está configurado; no se puede desactivar antes de configurarlo',
       );
     }
 
@@ -198,7 +221,7 @@ export class UsersService {
   async deleteAccount(userId: string): Promise<DeleteAccountResult> {
     const user = await this.usersRepository.findById(userId);
     if (!user) {
-      throw new NotFoundException('User not found');
+      throw new NotFoundException('Usuario no encontrado');
     }
 
     await this.usersRepository.deleteAccountWithAuthOutbox(userId);
@@ -242,7 +265,9 @@ export class UsersService {
       config.emailSync?.enabled ??
       DEFAULT_MODULE_CONFIG_BY_SLUG.finance.emailSync.enabled;
     if (enabled !== true) {
-      throw new ForbiddenException('Finance email sync is disabled');
+      throw new ForbiddenException(
+        'La sincronización de correo de finanzas está desactivada',
+      );
     }
   }
 
@@ -261,5 +286,33 @@ export class UsersService {
       config.emailSync?.automatic ??
       DEFAULT_MODULE_CONFIG_BY_SLUG.finance.emailSync.automatic;
     return enabled === true && automatic === true;
+  }
+
+  /** Users with finance on whose weekly summary is not turned off. */
+  async listWeeklySummaryRecipients(): Promise<
+    { userId: string; timezone: string; day: number }[]
+  > {
+    const rows = await this.usersRepository.findFinanceSummaryRecipients();
+    return rows.flatMap((row) => {
+      const config = mergeWithDefaults(
+        row.config,
+        DEFAULT_MODULE_CONFIG_BY_SLUG.finance as unknown as Record<
+          string,
+          unknown
+        >,
+      );
+      const notifications = (config.notifications ?? {}) as {
+        weeklySummary?: boolean;
+      };
+      if (notifications.weeklySummary === false) {
+        return [];
+      }
+      const reports = (config.reports ?? {}) as { weeklySummaryDay?: number };
+      const day =
+        typeof reports.weeklySummaryDay === 'number'
+          ? reports.weeklySummaryDay
+          : DEFAULT_MODULE_CONFIG_BY_SLUG.finance.reports.weeklySummaryDay;
+      return [{ userId: row.userId, timezone: row.timezone, day }];
+    });
   }
 }

@@ -5,7 +5,6 @@ export const MODULE_CONTEXT_SLUGS = [
   'agenda',
   'projects',
   'health',
-  'subscriptions',
   'finance',
 ] as const;
 
@@ -53,17 +52,6 @@ export const MODULE_CONTEXT: Record<
       'Health tracking module. Help configure health-related settings.',
     allowedTools: ['get_user_context', 'update_module_config', 'toggle_module'],
   },
-  subscriptions: {
-    label: 'Subscriptions',
-    description:
-      'Subscription tracking module. Help configure subscription alerts.',
-    allowedTools: [
-      'get_user_context',
-      'update_module_config',
-      'toggle_module',
-      'update_notification_settings',
-    ],
-  },
   finance: {
     label: 'Finanzas',
     description:
@@ -100,6 +88,15 @@ export const MODULE_CONTEXT: Record<
       'complete_pending_email_amount',
       'get_spending_by_category',
       'get_spending_over_time',
+      'list_subscriptions',
+      'get_subscriptions_summary',
+      'get_subscription_alerts',
+      'confirm_recurring',
+      'list_merchants',
+      'create_subscription',
+      'confirm_subscription_payment',
+      'get_bank_charges',
+      'reconcile_product',
     ],
   },
 };

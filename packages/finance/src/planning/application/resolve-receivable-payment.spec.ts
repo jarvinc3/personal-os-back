@@ -28,7 +28,7 @@ describe('resolveReceivablePayment', () => {
   it('rejects paidAmount greater than amount', () => {
     expect(() =>
       resolveReceivablePayment({ amount: 50, paidAmount: 51 }),
-    ).toThrow(/cannot exceed amount/i);
+    ).toThrow(/no puede superar el monto/i);
   });
 
   it('rejects PAID when paidAmount does not match amount', () => {

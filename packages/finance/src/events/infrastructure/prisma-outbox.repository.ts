@@ -50,4 +50,12 @@ export class PrismaOutboxRepository implements DomainEventPublisherPort {
 
     return envelope;
   }
+
+  async hasEvent(eventId: string): Promise<boolean> {
+    const row = await this.prisma.domainEventOutbox.findUnique({
+      where: { eventId },
+      select: { id: true },
+    });
+    return row !== null;
+  }
 }

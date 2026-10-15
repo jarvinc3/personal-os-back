@@ -99,6 +99,6 @@ describe('InstrumentHistoryService', () => {
 
     await expect(
       service.getAccountHistory('user-1', 'acc-x', { limit: 10 }),
-    ).rejects.toThrow('Account not found');
+    ).rejects.toThrow('Cuenta no encontrada');
   });
 });

@@ -86,7 +86,7 @@ export class CreateCardPaymentUseCase {
       toAmounts,
     });
     if (!created) {
-      throw new NotFoundException('Invalid card payment');
+      throw new NotFoundException('Pago de tarjeta inválido');
     }
 
     void this.outboxDispatcher.processBatch();

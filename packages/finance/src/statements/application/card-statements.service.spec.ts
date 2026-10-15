@@ -1,4 +1,5 @@
 import { NotFoundException } from '@nestjs/common';
+import type { CardStatementSnapshotRow } from '../infrastructure/card-statements.repository';
 import { CardStatementsService } from './card-statements.service';
 
 const utc = (year: number, month: number, day: number) =>
@@ -28,7 +29,9 @@ function setup(card: unknown, statements: readonly unknown[] = []) {
     findCreditCard: jest.fn(() => Promise.resolve(card)),
     findCardOwnerId: jest.fn(() => Promise.resolve(null)),
     listStatements: jest.fn(() => Promise.resolve(statements)),
-    upsertStatement: jest.fn(() => Promise.resolve('statement-1')),
+    upsertStatement: jest.fn<Promise<string>, [CardStatementSnapshotRow]>(() =>
+      Promise.resolve('statement-1'),
+    ),
     listCreditCardsToSync: jest.fn(() => Promise.resolve([])),
   };
   const ownership = {
@@ -116,6 +119,20 @@ describe('CardStatementsService', () => {
     expect(
       repo.upsertStatement.mock.calls.map((call) => call[0].currency),
     ).toEqual(['DOP', 'DOP']);
+  });
+
+  it('materializes the same snapshots when the job runs twice', async () => {
+    const { repo, service } = setup(creditCard());
+
+    await service.syncCardStatements('card-1', utc(2026, 3, 20));
+    const firstRun = repo.upsertStatement.mock.calls.map((call) => call[0]);
+
+    await service.syncCardStatements('card-1', utc(2026, 3, 20));
+    const secondRun = repo.upsertStatement.mock.calls
+      .slice(firstRun.length)
+      .map((call) => call[0]);
+
+    expect(secondRun).toEqual(firstRun);
   });
 
   it('reports payments and status when listing statements', async () => {

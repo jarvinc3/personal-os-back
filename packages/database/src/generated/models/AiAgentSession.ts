@@ -47,6 +47,7 @@ export type AiAgentSessionCountAggregateOutputType = {
   userId: number
   moduleId: number
   contextType: number
+  chatContext: number
   memorySnapshot: number
   lastActiveAt: number
   createdAt: number
@@ -77,6 +78,7 @@ export type AiAgentSessionCountAggregateInputType = {
   userId?: true
   moduleId?: true
   contextType?: true
+  chatContext?: true
   memorySnapshot?: true
   lastActiveAt?: true
   createdAt?: true
@@ -160,6 +162,7 @@ export type AiAgentSessionGroupByOutputType = {
   userId: string
   moduleId: string | null
   contextType: string
+  chatContext: runtime.JsonValue
   memorySnapshot: runtime.JsonValue
   lastActiveAt: Date
   createdAt: Date
@@ -191,6 +194,7 @@ export type AiAgentSessionWhereInput = {
   userId?: Prisma.StringFilter<"AiAgentSession"> | string
   moduleId?: Prisma.StringNullableFilter<"AiAgentSession"> | string | null
   contextType?: Prisma.StringFilter<"AiAgentSession"> | string
+  chatContext?: Prisma.JsonFilter<"AiAgentSession">
   memorySnapshot?: Prisma.JsonFilter<"AiAgentSession">
   lastActiveAt?: Prisma.DateTimeFilter<"AiAgentSession"> | Date | string
   createdAt?: Prisma.DateTimeFilter<"AiAgentSession"> | Date | string
@@ -205,6 +209,7 @@ export type AiAgentSessionOrderByWithRelationInput = {
   userId?: Prisma.SortOrder
   moduleId?: Prisma.SortOrderInput | Prisma.SortOrder
   contextType?: Prisma.SortOrder
+  chatContext?: Prisma.SortOrder
   memorySnapshot?: Prisma.SortOrder
   lastActiveAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -222,6 +227,7 @@ export type AiAgentSessionWhereUniqueInput = Prisma.AtLeast<{
   userId?: Prisma.StringFilter<"AiAgentSession"> | string
   moduleId?: Prisma.StringNullableFilter<"AiAgentSession"> | string | null
   contextType?: Prisma.StringFilter<"AiAgentSession"> | string
+  chatContext?: Prisma.JsonFilter<"AiAgentSession">
   memorySnapshot?: Prisma.JsonFilter<"AiAgentSession">
   lastActiveAt?: Prisma.DateTimeFilter<"AiAgentSession"> | Date | string
   createdAt?: Prisma.DateTimeFilter<"AiAgentSession"> | Date | string
@@ -236,6 +242,7 @@ export type AiAgentSessionOrderByWithAggregationInput = {
   userId?: Prisma.SortOrder
   moduleId?: Prisma.SortOrderInput | Prisma.SortOrder
   contextType?: Prisma.SortOrder
+  chatContext?: Prisma.SortOrder
   memorySnapshot?: Prisma.SortOrder
   lastActiveAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -252,6 +259,7 @@ export type AiAgentSessionScalarWhereWithAggregatesInput = {
   userId?: Prisma.StringWithAggregatesFilter<"AiAgentSession"> | string
   moduleId?: Prisma.StringNullableWithAggregatesFilter<"AiAgentSession"> | string | null
   contextType?: Prisma.StringWithAggregatesFilter<"AiAgentSession"> | string
+  chatContext?: Prisma.JsonWithAggregatesFilter<"AiAgentSession">
   memorySnapshot?: Prisma.JsonWithAggregatesFilter<"AiAgentSession">
   lastActiveAt?: Prisma.DateTimeWithAggregatesFilter<"AiAgentSession"> | Date | string
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"AiAgentSession"> | Date | string
@@ -260,6 +268,7 @@ export type AiAgentSessionScalarWhereWithAggregatesInput = {
 export type AiAgentSessionCreateInput = {
   id?: string
   contextType?: string
+  chatContext?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   memorySnapshot?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   lastActiveAt?: Date | string
   createdAt?: Date | string
@@ -274,6 +283,7 @@ export type AiAgentSessionUncheckedCreateInput = {
   userId: string
   moduleId?: string | null
   contextType?: string
+  chatContext?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   memorySnapshot?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   lastActiveAt?: Date | string
   createdAt?: Date | string
@@ -284,6 +294,7 @@ export type AiAgentSessionUncheckedCreateInput = {
 export type AiAgentSessionUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   contextType?: Prisma.StringFieldUpdateOperationsInput | string
+  chatContext?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   memorySnapshot?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   lastActiveAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -298,6 +309,7 @@ export type AiAgentSessionUncheckedUpdateInput = {
   userId?: Prisma.StringFieldUpdateOperationsInput | string
   moduleId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   contextType?: Prisma.StringFieldUpdateOperationsInput | string
+  chatContext?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   memorySnapshot?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   lastActiveAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -310,6 +322,7 @@ export type AiAgentSessionCreateManyInput = {
   userId: string
   moduleId?: string | null
   contextType?: string
+  chatContext?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   memorySnapshot?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   lastActiveAt?: Date | string
   createdAt?: Date | string
@@ -318,6 +331,7 @@ export type AiAgentSessionCreateManyInput = {
 export type AiAgentSessionUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   contextType?: Prisma.StringFieldUpdateOperationsInput | string
+  chatContext?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   memorySnapshot?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   lastActiveAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -328,6 +342,7 @@ export type AiAgentSessionUncheckedUpdateManyInput = {
   userId?: Prisma.StringFieldUpdateOperationsInput | string
   moduleId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   contextType?: Prisma.StringFieldUpdateOperationsInput | string
+  chatContext?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   memorySnapshot?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   lastActiveAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -348,6 +363,7 @@ export type AiAgentSessionCountOrderByAggregateInput = {
   userId?: Prisma.SortOrder
   moduleId?: Prisma.SortOrder
   contextType?: Prisma.SortOrder
+  chatContext?: Prisma.SortOrder
   memorySnapshot?: Prisma.SortOrder
   lastActiveAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -491,6 +507,7 @@ export type AiAgentSessionUpdateOneRequiredWithoutActionsNestedInput = {
 export type AiAgentSessionCreateWithoutUserInput = {
   id?: string
   contextType?: string
+  chatContext?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   memorySnapshot?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   lastActiveAt?: Date | string
   createdAt?: Date | string
@@ -503,6 +520,7 @@ export type AiAgentSessionUncheckedCreateWithoutUserInput = {
   id?: string
   moduleId?: string | null
   contextType?: string
+  chatContext?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   memorySnapshot?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   lastActiveAt?: Date | string
   createdAt?: Date | string
@@ -544,6 +562,7 @@ export type AiAgentSessionScalarWhereInput = {
   userId?: Prisma.StringFilter<"AiAgentSession"> | string
   moduleId?: Prisma.StringNullableFilter<"AiAgentSession"> | string | null
   contextType?: Prisma.StringFilter<"AiAgentSession"> | string
+  chatContext?: Prisma.JsonFilter<"AiAgentSession">
   memorySnapshot?: Prisma.JsonFilter<"AiAgentSession">
   lastActiveAt?: Prisma.DateTimeFilter<"AiAgentSession"> | Date | string
   createdAt?: Prisma.DateTimeFilter<"AiAgentSession"> | Date | string
@@ -552,6 +571,7 @@ export type AiAgentSessionScalarWhereInput = {
 export type AiAgentSessionCreateWithoutModuleInput = {
   id?: string
   contextType?: string
+  chatContext?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   memorySnapshot?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   lastActiveAt?: Date | string
   createdAt?: Date | string
@@ -564,6 +584,7 @@ export type AiAgentSessionUncheckedCreateWithoutModuleInput = {
   id?: string
   userId: string
   contextType?: string
+  chatContext?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   memorySnapshot?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   lastActiveAt?: Date | string
   createdAt?: Date | string
@@ -600,6 +621,7 @@ export type AiAgentSessionUpdateManyWithWhereWithoutModuleInput = {
 export type AiAgentSessionCreateWithoutMessagesInput = {
   id?: string
   contextType?: string
+  chatContext?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   memorySnapshot?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   lastActiveAt?: Date | string
   createdAt?: Date | string
@@ -613,6 +635,7 @@ export type AiAgentSessionUncheckedCreateWithoutMessagesInput = {
   userId: string
   moduleId?: string | null
   contextType?: string
+  chatContext?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   memorySnapshot?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   lastActiveAt?: Date | string
   createdAt?: Date | string
@@ -638,6 +661,7 @@ export type AiAgentSessionUpdateToOneWithWhereWithoutMessagesInput = {
 export type AiAgentSessionUpdateWithoutMessagesInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   contextType?: Prisma.StringFieldUpdateOperationsInput | string
+  chatContext?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   memorySnapshot?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   lastActiveAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -651,6 +675,7 @@ export type AiAgentSessionUncheckedUpdateWithoutMessagesInput = {
   userId?: Prisma.StringFieldUpdateOperationsInput | string
   moduleId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   contextType?: Prisma.StringFieldUpdateOperationsInput | string
+  chatContext?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   memorySnapshot?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   lastActiveAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -660,6 +685,7 @@ export type AiAgentSessionUncheckedUpdateWithoutMessagesInput = {
 export type AiAgentSessionCreateWithoutActionsInput = {
   id?: string
   contextType?: string
+  chatContext?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   memorySnapshot?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   lastActiveAt?: Date | string
   createdAt?: Date | string
@@ -673,6 +699,7 @@ export type AiAgentSessionUncheckedCreateWithoutActionsInput = {
   userId: string
   moduleId?: string | null
   contextType?: string
+  chatContext?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   memorySnapshot?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   lastActiveAt?: Date | string
   createdAt?: Date | string
@@ -698,6 +725,7 @@ export type AiAgentSessionUpdateToOneWithWhereWithoutActionsInput = {
 export type AiAgentSessionUpdateWithoutActionsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   contextType?: Prisma.StringFieldUpdateOperationsInput | string
+  chatContext?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   memorySnapshot?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   lastActiveAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -711,6 +739,7 @@ export type AiAgentSessionUncheckedUpdateWithoutActionsInput = {
   userId?: Prisma.StringFieldUpdateOperationsInput | string
   moduleId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   contextType?: Prisma.StringFieldUpdateOperationsInput | string
+  chatContext?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   memorySnapshot?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   lastActiveAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -721,6 +750,7 @@ export type AiAgentSessionCreateManyUserInput = {
   id?: string
   moduleId?: string | null
   contextType?: string
+  chatContext?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   memorySnapshot?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   lastActiveAt?: Date | string
   createdAt?: Date | string
@@ -729,6 +759,7 @@ export type AiAgentSessionCreateManyUserInput = {
 export type AiAgentSessionUpdateWithoutUserInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   contextType?: Prisma.StringFieldUpdateOperationsInput | string
+  chatContext?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   memorySnapshot?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   lastActiveAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -741,6 +772,7 @@ export type AiAgentSessionUncheckedUpdateWithoutUserInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   moduleId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   contextType?: Prisma.StringFieldUpdateOperationsInput | string
+  chatContext?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   memorySnapshot?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   lastActiveAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -752,6 +784,7 @@ export type AiAgentSessionUncheckedUpdateManyWithoutUserInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   moduleId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   contextType?: Prisma.StringFieldUpdateOperationsInput | string
+  chatContext?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   memorySnapshot?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   lastActiveAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -761,6 +794,7 @@ export type AiAgentSessionCreateManyModuleInput = {
   id?: string
   userId: string
   contextType?: string
+  chatContext?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   memorySnapshot?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   lastActiveAt?: Date | string
   createdAt?: Date | string
@@ -769,6 +803,7 @@ export type AiAgentSessionCreateManyModuleInput = {
 export type AiAgentSessionUpdateWithoutModuleInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   contextType?: Prisma.StringFieldUpdateOperationsInput | string
+  chatContext?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   memorySnapshot?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   lastActiveAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -781,6 +816,7 @@ export type AiAgentSessionUncheckedUpdateWithoutModuleInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.StringFieldUpdateOperationsInput | string
   contextType?: Prisma.StringFieldUpdateOperationsInput | string
+  chatContext?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   memorySnapshot?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   lastActiveAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -792,6 +828,7 @@ export type AiAgentSessionUncheckedUpdateManyWithoutModuleInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.StringFieldUpdateOperationsInput | string
   contextType?: Prisma.StringFieldUpdateOperationsInput | string
+  chatContext?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   memorySnapshot?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   lastActiveAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -842,6 +879,7 @@ export type AiAgentSessionSelect<ExtArgs extends runtime.Types.Extensions.Intern
   userId?: boolean
   moduleId?: boolean
   contextType?: boolean
+  chatContext?: boolean
   memorySnapshot?: boolean
   lastActiveAt?: boolean
   createdAt?: boolean
@@ -857,6 +895,7 @@ export type AiAgentSessionSelectCreateManyAndReturn<ExtArgs extends runtime.Type
   userId?: boolean
   moduleId?: boolean
   contextType?: boolean
+  chatContext?: boolean
   memorySnapshot?: boolean
   lastActiveAt?: boolean
   createdAt?: boolean
@@ -869,6 +908,7 @@ export type AiAgentSessionSelectUpdateManyAndReturn<ExtArgs extends runtime.Type
   userId?: boolean
   moduleId?: boolean
   contextType?: boolean
+  chatContext?: boolean
   memorySnapshot?: boolean
   lastActiveAt?: boolean
   createdAt?: boolean
@@ -881,12 +921,13 @@ export type AiAgentSessionSelectScalar = {
   userId?: boolean
   moduleId?: boolean
   contextType?: boolean
+  chatContext?: boolean
   memorySnapshot?: boolean
   lastActiveAt?: boolean
   createdAt?: boolean
 }
 
-export type AiAgentSessionOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "moduleId" | "contextType" | "memorySnapshot" | "lastActiveAt" | "createdAt", ExtArgs["result"]["aiAgentSession"]>
+export type AiAgentSessionOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "moduleId" | "contextType" | "chatContext" | "memorySnapshot" | "lastActiveAt" | "createdAt", ExtArgs["result"]["aiAgentSession"]>
 export type AiAgentSessionInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   actions?: boolean | Prisma.AiAgentSession$actionsArgs<ExtArgs>
   module?: boolean | Prisma.AiAgentSession$moduleArgs<ExtArgs>
@@ -916,6 +957,7 @@ export type $AiAgentSessionPayload<ExtArgs extends runtime.Types.Extensions.Inte
     userId: string
     moduleId: string | null
     contextType: string
+    chatContext: runtime.JsonValue
     memorySnapshot: runtime.JsonValue
     lastActiveAt: Date
     createdAt: Date
@@ -1350,6 +1392,7 @@ export interface AiAgentSessionFieldRefs {
   readonly userId: Prisma.FieldRef<"AiAgentSession", 'String'>
   readonly moduleId: Prisma.FieldRef<"AiAgentSession", 'String'>
   readonly contextType: Prisma.FieldRef<"AiAgentSession", 'String'>
+  readonly chatContext: Prisma.FieldRef<"AiAgentSession", 'Json'>
   readonly memorySnapshot: Prisma.FieldRef<"AiAgentSession", 'Json'>
   readonly lastActiveAt: Prisma.FieldRef<"AiAgentSession", 'DateTime'>
   readonly createdAt: Prisma.FieldRef<"AiAgentSession", 'DateTime'>

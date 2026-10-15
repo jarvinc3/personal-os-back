@@ -30,8 +30,16 @@
     { "key": "baseUrl", "value": "http://localhost:3100", "type": "string" },
     { "key": "apiPrefix", "value": "api", "type": "string" },
     { "key": "swaggerPath", "value": "docs", "type": "string" },
-    { "key": "supabaseUrl", "value": "https://YOUR_PROJECT.supabase.co", "type": "string" },
-    { "key": "supabaseAnonKey", "value": "YOUR_SUPABASE_ANON_KEY", "type": "string" },
+    {
+      "key": "supabaseUrl",
+      "value": "https://YOUR_PROJECT.supabase.co",
+      "type": "string"
+    },
+    {
+      "key": "supabaseAnonKey",
+      "value": "YOUR_SUPABASE_ANON_KEY",
+      "type": "string"
+    },
     { "key": "supabaseEmail", "value": "you@example.com", "type": "string" },
     { "key": "supabasePassword", "value": "", "type": "string" },
     { "key": "accessToken", "value": "", "type": "string" },
@@ -39,7 +47,11 @@
     { "key": "userId", "value": "", "type": "string" },
     { "key": "notificationId", "value": "", "type": "string" },
     { "key": "sessionId", "value": "", "type": "string" },
-    { "key": "pushToken", "value": "expo-push-token-example", "type": "string" },
+    {
+      "key": "pushToken",
+      "value": "expo-push-token-example",
+      "type": "string"
+    },
     { "key": "moduleSlug", "value": "finance", "type": "string" }
   ],
   "item": [
@@ -187,7 +199,9 @@
           "request": {
             "auth": {
               "type": "bearer",
-              "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }]
+              "bearer": [
+                { "key": "token", "value": "{{accessToken}}", "type": "string" }
+              ]
             },
             "method": "GET",
             "header": [{ "key": "apikey", "value": "{{supabaseAnonKey}}" }],
@@ -393,9 +407,15 @@
             "url": {
               "raw": "{{baseUrl}}/{{apiPrefix}}/users/me/modules/{{moduleSlug}}",
               "host": ["{{baseUrl}}"],
-              "path": ["{{apiPrefix}}", "users", "me", "modules", "{{moduleSlug}}"]
+              "path": [
+                "{{apiPrefix}}",
+                "users",
+                "me",
+                "modules",
+                "{{moduleSlug}}"
+              ]
             },
-            "description": "Upsert de `user_modules.config`. Slugs: finance, agenda, projects, subscriptions, health."
+            "description": "Upsert de `user_modules.config`. Slugs: finance, agenda, projects, health. Los slugs retirados (subscriptions) responden 400."
           },
           "response": []
         }
@@ -415,7 +435,11 @@
               "host": ["{{baseUrl}}"],
               "path": ["{{apiPrefix}}", "notifications"],
               "query": [
-                { "key": "channel", "value": "IN_APP", "description": "IN_APP | PUSH | EMAIL" },
+                {
+                  "key": "channel",
+                  "value": "IN_APP",
+                  "description": "IN_APP | PUSH | EMAIL"
+                },
                 { "key": "page", "value": "1" },
                 { "key": "limit", "value": "20" },
                 { "key": "unreadOnly", "value": "false", "disabled": true }
@@ -501,7 +525,12 @@
             "url": {
               "raw": "{{baseUrl}}/{{apiPrefix}}/notifications/{{notificationId}}/read",
               "host": ["{{baseUrl}}"],
-              "path": ["{{apiPrefix}}", "notifications", "{{notificationId}}", "read"]
+              "path": [
+                "{{apiPrefix}}",
+                "notifications",
+                "{{notificationId}}",
+                "read"
+              ]
             }
           },
           "response": []
@@ -535,7 +564,13 @@
             "url": {
               "raw": "{{baseUrl}}/{{apiPrefix}}/notifications/push-tokens/{{pushToken}}/deactivate",
               "host": ["{{baseUrl}}"],
-              "path": ["{{apiPrefix}}", "notifications", "push-tokens", "{{pushToken}}", "deactivate"]
+              "path": [
+                "{{apiPrefix}}",
+                "notifications",
+                "push-tokens",
+                "{{pushToken}}",
+                "deactivate"
+              ]
             }
           },
           "response": []

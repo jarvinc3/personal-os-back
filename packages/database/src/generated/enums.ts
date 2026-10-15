@@ -169,6 +169,64 @@ export const FinCategoryType = {
 export type FinCategoryType = (typeof FinCategoryType)[keyof typeof FinCategoryType]
 
 
+export const FinRecurringStatus = {
+  SUGGESTED: 'SUGGESTED',
+  CONFIRMED: 'CONFIRMED',
+  DISMISSED: 'DISMISSED'
+} as const
+
+export type FinRecurringStatus = (typeof FinRecurringStatus)[keyof typeof FinRecurringStatus]
+
+
+export const FinRecurringKind = {
+  SUBSCRIPTION: 'SUBSCRIPTION',
+  BILL: 'BILL',
+  INCOME: 'INCOME',
+  OTHER: 'OTHER'
+} as const
+
+export type FinRecurringKind = (typeof FinRecurringKind)[keyof typeof FinRecurringKind]
+
+
+export const FinBillingCycle = {
+  WEEKLY: 'WEEKLY',
+  MONTHLY: 'MONTHLY',
+  QUARTERLY: 'QUARTERLY',
+  SEMIANNUAL: 'SEMIANNUAL',
+  YEARLY: 'YEARLY'
+} as const
+
+export type FinBillingCycle = (typeof FinBillingCycle)[keyof typeof FinBillingCycle]
+
+
+export const FinSubscriptionStatus = {
+  ACTIVE: 'ACTIVE',
+  PAUSED: 'PAUSED',
+  CANCELLED: 'CANCELLED'
+} as const
+
+export type FinSubscriptionStatus = (typeof FinSubscriptionStatus)[keyof typeof FinSubscriptionStatus]
+
+
+export const FinSubscriptionAlertKind = {
+  PRICE_INCREASE: 'PRICE_INCREASE',
+  AMOUNT_MISMATCH: 'AMOUNT_MISMATCH',
+  TRIAL_ENDING: 'TRIAL_ENDING',
+  ANNUAL_RENEWAL: 'ANNUAL_RENEWAL',
+  MISSED_CHARGE: 'MISSED_CHARGE'
+} as const
+
+export type FinSubscriptionAlertKind = (typeof FinSubscriptionAlertKind)[keyof typeof FinSubscriptionAlertKind]
+
+
+export const FinSubscriptionPaymentSource = {
+  AUTO: 'AUTO',
+  MANUAL: 'MANUAL'
+} as const
+
+export type FinSubscriptionPaymentSource = (typeof FinSubscriptionPaymentSource)[keyof typeof FinSubscriptionPaymentSource]
+
+
 export const FinTransactionStatus = {
   PENDING: 'PENDING',
   CONFIRMED: 'CONFIRMED',
@@ -270,3 +328,42 @@ export const AuthDeletionOutboxStatus = {
 } as const
 
 export type AuthDeletionOutboxStatus = (typeof AuthDeletionOutboxStatus)[keyof typeof AuthDeletionOutboxStatus]
+
+
+export const FinStatementLineType = {
+  DEBIT: 'DEBIT',
+  CREDIT: 'CREDIT'
+} as const
+
+export type FinStatementLineType = (typeof FinStatementLineType)[keyof typeof FinStatementLineType]
+
+
+export const FinStatementImportStatus = {
+  PARSING: 'PARSING',
+  READY: 'READY',
+  APPLIED: 'APPLIED',
+  FAILED: 'FAILED',
+  DISCARDED: 'DISCARDED'
+} as const
+
+export type FinStatementImportStatus = (typeof FinStatementImportStatus)[keyof typeof FinStatementImportStatus]
+
+
+export const FinStatementLineDecision = {
+  MATCH: 'MATCH',
+  CREATE: 'CREATE',
+  IGNORE: 'IGNORE'
+} as const
+
+export type FinStatementLineDecision = (typeof FinStatementLineDecision)[keyof typeof FinStatementLineDecision]
+
+
+export const FinReconciliationAdjustmentKind = {
+  IMPUESTO_DGII: 'IMPUESTO_DGII',
+  COMISION: 'COMISION',
+  CARGO_PLASTICO: 'CARGO_PLASTICO',
+  INTERES: 'INTERES',
+  OTRO: 'OTRO'
+} as const
+
+export type FinReconciliationAdjustmentKind = (typeof FinReconciliationAdjustmentKind)[keyof typeof FinReconciliationAdjustmentKind]

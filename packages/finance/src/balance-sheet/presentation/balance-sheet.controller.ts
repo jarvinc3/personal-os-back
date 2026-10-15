@@ -12,7 +12,7 @@ export class BalanceSheetController {
 
   @Get()
   @ApiOperation({
-    summary: 'Current financial position in BASE_CURRENCY',
+    summary: 'Posición financiera actual en la moneda base',
     description:
       'Snapshot of active accounts minus credit-card utilization and loan balances. Credit debt is creditLimit - available balance. Missing credit limits return status INCOMPLETE with null netWorth.',
   })

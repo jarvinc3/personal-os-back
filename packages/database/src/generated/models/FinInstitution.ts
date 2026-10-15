@@ -48,6 +48,7 @@ export type FinInstitutionMinAggregateOutputType = {
   color: string | null
   country: string | null
   isActive: boolean | null
+  isSystem: boolean | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -66,6 +67,7 @@ export type FinInstitutionMaxAggregateOutputType = {
   color: string | null
   country: string | null
   isActive: boolean | null
+  isSystem: boolean | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -84,6 +86,7 @@ export type FinInstitutionCountAggregateOutputType = {
   color: number
   country: number
   isActive: number
+  isSystem: number
   createdAt: number
   updatedAt: number
   _all: number
@@ -112,6 +115,7 @@ export type FinInstitutionMinAggregateInputType = {
   color?: true
   country?: true
   isActive?: true
+  isSystem?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -130,6 +134,7 @@ export type FinInstitutionMaxAggregateInputType = {
   color?: true
   country?: true
   isActive?: true
+  isSystem?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -148,6 +153,7 @@ export type FinInstitutionCountAggregateInputType = {
   color?: true
   country?: true
   isActive?: true
+  isSystem?: true
   createdAt?: true
   updatedAt?: true
   _all?: true
@@ -253,6 +259,7 @@ export type FinInstitutionGroupByOutputType = {
   color: string | null
   country: string
   isActive: boolean
+  isSystem: boolean
   createdAt: Date
   updatedAt: Date
   _count: FinInstitutionCountAggregateOutputType | null
@@ -294,6 +301,7 @@ export type FinInstitutionWhereInput = {
   color?: Prisma.StringNullableFilter<"FinInstitution"> | string | null
   country?: Prisma.StringFilter<"FinInstitution"> | string
   isActive?: Prisma.BoolFilter<"FinInstitution"> | boolean
+  isSystem?: Prisma.BoolFilter<"FinInstitution"> | boolean
   createdAt?: Prisma.DateTimeFilter<"FinInstitution"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"FinInstitution"> | Date | string
   accounts?: Prisma.FinAccountListRelationFilter
@@ -317,6 +325,7 @@ export type FinInstitutionOrderByWithRelationInput = {
   color?: Prisma.SortOrderInput | Prisma.SortOrder
   country?: Prisma.SortOrder
   isActive?: Prisma.SortOrder
+  isSystem?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   accounts?: Prisma.FinAccountOrderByRelationAggregateInput
@@ -343,6 +352,7 @@ export type FinInstitutionWhereUniqueInput = Prisma.AtLeast<{
   color?: Prisma.StringNullableFilter<"FinInstitution"> | string | null
   country?: Prisma.StringFilter<"FinInstitution"> | string
   isActive?: Prisma.BoolFilter<"FinInstitution"> | boolean
+  isSystem?: Prisma.BoolFilter<"FinInstitution"> | boolean
   createdAt?: Prisma.DateTimeFilter<"FinInstitution"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"FinInstitution"> | Date | string
   accounts?: Prisma.FinAccountListRelationFilter
@@ -366,6 +376,7 @@ export type FinInstitutionOrderByWithAggregationInput = {
   color?: Prisma.SortOrderInput | Prisma.SortOrder
   country?: Prisma.SortOrder
   isActive?: Prisma.SortOrder
+  isSystem?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   _count?: Prisma.FinInstitutionCountOrderByAggregateInput
@@ -392,6 +403,7 @@ export type FinInstitutionScalarWhereWithAggregatesInput = {
   color?: Prisma.StringNullableWithAggregatesFilter<"FinInstitution"> | string | null
   country?: Prisma.StringWithAggregatesFilter<"FinInstitution"> | string
   isActive?: Prisma.BoolWithAggregatesFilter<"FinInstitution"> | boolean
+  isSystem?: Prisma.BoolWithAggregatesFilter<"FinInstitution"> | boolean
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"FinInstitution"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"FinInstitution"> | Date | string
 }
@@ -409,6 +421,7 @@ export type FinInstitutionCreateInput = {
   color?: string | null
   country?: string
   isActive?: boolean
+  isSystem?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   accounts?: Prisma.FinAccountCreateNestedManyWithoutInstitutionRefInput
@@ -432,6 +445,7 @@ export type FinInstitutionUncheckedCreateInput = {
   color?: string | null
   country?: string
   isActive?: boolean
+  isSystem?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   accounts?: Prisma.FinAccountUncheckedCreateNestedManyWithoutInstitutionRefInput
@@ -453,6 +467,7 @@ export type FinInstitutionUpdateInput = {
   color?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   country?: Prisma.StringFieldUpdateOperationsInput | string
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  isSystem?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   accounts?: Prisma.FinAccountUpdateManyWithoutInstitutionRefNestedInput
@@ -476,6 +491,7 @@ export type FinInstitutionUncheckedUpdateInput = {
   color?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   country?: Prisma.StringFieldUpdateOperationsInput | string
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  isSystem?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   accounts?: Prisma.FinAccountUncheckedUpdateManyWithoutInstitutionRefNestedInput
@@ -498,6 +514,7 @@ export type FinInstitutionCreateManyInput = {
   color?: string | null
   country?: string
   isActive?: boolean
+  isSystem?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -515,6 +532,7 @@ export type FinInstitutionUpdateManyMutationInput = {
   color?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   country?: Prisma.StringFieldUpdateOperationsInput | string
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  isSystem?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -533,6 +551,7 @@ export type FinInstitutionUncheckedUpdateManyInput = {
   color?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   country?: Prisma.StringFieldUpdateOperationsInput | string
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  isSystem?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -571,6 +590,7 @@ export type FinInstitutionCountOrderByAggregateInput = {
   color?: Prisma.SortOrder
   country?: Prisma.SortOrder
   isActive?: Prisma.SortOrder
+  isSystem?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -593,6 +613,7 @@ export type FinInstitutionMaxOrderByAggregateInput = {
   color?: Prisma.SortOrder
   country?: Prisma.SortOrder
   isActive?: Prisma.SortOrder
+  isSystem?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -611,6 +632,7 @@ export type FinInstitutionMinOrderByAggregateInput = {
   color?: Prisma.SortOrder
   country?: Prisma.SortOrder
   isActive?: Prisma.SortOrder
+  isSystem?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -734,6 +756,7 @@ export type FinInstitutionCreateWithoutUserInput = {
   color?: string | null
   country?: string
   isActive?: boolean
+  isSystem?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   accounts?: Prisma.FinAccountCreateNestedManyWithoutInstitutionRefInput
@@ -755,6 +778,7 @@ export type FinInstitutionUncheckedCreateWithoutUserInput = {
   color?: string | null
   country?: string
   isActive?: boolean
+  isSystem?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   accounts?: Prisma.FinAccountUncheckedCreateNestedManyWithoutInstitutionRefInput
@@ -806,6 +830,7 @@ export type FinInstitutionScalarWhereInput = {
   color?: Prisma.StringNullableFilter<"FinInstitution"> | string | null
   country?: Prisma.StringFilter<"FinInstitution"> | string
   isActive?: Prisma.BoolFilter<"FinInstitution"> | boolean
+  isSystem?: Prisma.BoolFilter<"FinInstitution"> | boolean
   createdAt?: Prisma.DateTimeFilter<"FinInstitution"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"FinInstitution"> | Date | string
 }
@@ -823,6 +848,7 @@ export type FinInstitutionCreateWithoutAccountsInput = {
   color?: string | null
   country?: string
   isActive?: boolean
+  isSystem?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   cards?: Prisma.FinCardCreateNestedManyWithoutInstitutionInput
@@ -845,6 +871,7 @@ export type FinInstitutionUncheckedCreateWithoutAccountsInput = {
   color?: string | null
   country?: string
   isActive?: boolean
+  isSystem?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   cards?: Prisma.FinCardUncheckedCreateNestedManyWithoutInstitutionInput
@@ -881,6 +908,7 @@ export type FinInstitutionUpdateWithoutAccountsInput = {
   color?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   country?: Prisma.StringFieldUpdateOperationsInput | string
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  isSystem?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   cards?: Prisma.FinCardUpdateManyWithoutInstitutionNestedInput
@@ -903,6 +931,7 @@ export type FinInstitutionUncheckedUpdateWithoutAccountsInput = {
   color?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   country?: Prisma.StringFieldUpdateOperationsInput | string
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  isSystem?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   cards?: Prisma.FinCardUncheckedUpdateManyWithoutInstitutionNestedInput
@@ -923,6 +952,7 @@ export type FinInstitutionCreateWithoutEmailSourcesInput = {
   color?: string | null
   country?: string
   isActive?: boolean
+  isSystem?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   accounts?: Prisma.FinAccountCreateNestedManyWithoutInstitutionRefInput
@@ -945,6 +975,7 @@ export type FinInstitutionUncheckedCreateWithoutEmailSourcesInput = {
   color?: string | null
   country?: string
   isActive?: boolean
+  isSystem?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   accounts?: Prisma.FinAccountUncheckedCreateNestedManyWithoutInstitutionRefInput
@@ -981,6 +1012,7 @@ export type FinInstitutionUpdateWithoutEmailSourcesInput = {
   color?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   country?: Prisma.StringFieldUpdateOperationsInput | string
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  isSystem?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   accounts?: Prisma.FinAccountUpdateManyWithoutInstitutionRefNestedInput
@@ -1003,6 +1035,7 @@ export type FinInstitutionUncheckedUpdateWithoutEmailSourcesInput = {
   color?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   country?: Prisma.StringFieldUpdateOperationsInput | string
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  isSystem?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   accounts?: Prisma.FinAccountUncheckedUpdateManyWithoutInstitutionRefNestedInput
@@ -1023,6 +1056,7 @@ export type FinInstitutionCreateWithoutCardsInput = {
   color?: string | null
   country?: string
   isActive?: boolean
+  isSystem?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   accounts?: Prisma.FinAccountCreateNestedManyWithoutInstitutionRefInput
@@ -1045,6 +1079,7 @@ export type FinInstitutionUncheckedCreateWithoutCardsInput = {
   color?: string | null
   country?: string
   isActive?: boolean
+  isSystem?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   accounts?: Prisma.FinAccountUncheckedCreateNestedManyWithoutInstitutionRefInput
@@ -1081,6 +1116,7 @@ export type FinInstitutionUpdateWithoutCardsInput = {
   color?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   country?: Prisma.StringFieldUpdateOperationsInput | string
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  isSystem?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   accounts?: Prisma.FinAccountUpdateManyWithoutInstitutionRefNestedInput
@@ -1103,6 +1139,7 @@ export type FinInstitutionUncheckedUpdateWithoutCardsInput = {
   color?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   country?: Prisma.StringFieldUpdateOperationsInput | string
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  isSystem?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   accounts?: Prisma.FinAccountUncheckedUpdateManyWithoutInstitutionRefNestedInput
@@ -1123,6 +1160,7 @@ export type FinInstitutionCreateWithoutLoansInput = {
   color?: string | null
   country?: string
   isActive?: boolean
+  isSystem?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   accounts?: Prisma.FinAccountCreateNestedManyWithoutInstitutionRefInput
@@ -1145,6 +1183,7 @@ export type FinInstitutionUncheckedCreateWithoutLoansInput = {
   color?: string | null
   country?: string
   isActive?: boolean
+  isSystem?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   accounts?: Prisma.FinAccountUncheckedCreateNestedManyWithoutInstitutionRefInput
@@ -1181,6 +1220,7 @@ export type FinInstitutionUpdateWithoutLoansInput = {
   color?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   country?: Prisma.StringFieldUpdateOperationsInput | string
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  isSystem?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   accounts?: Prisma.FinAccountUpdateManyWithoutInstitutionRefNestedInput
@@ -1203,6 +1243,7 @@ export type FinInstitutionUncheckedUpdateWithoutLoansInput = {
   color?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   country?: Prisma.StringFieldUpdateOperationsInput | string
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  isSystem?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   accounts?: Prisma.FinAccountUncheckedUpdateManyWithoutInstitutionRefNestedInput
@@ -1223,6 +1264,7 @@ export type FinInstitutionCreateManyUserInput = {
   color?: string | null
   country?: string
   isActive?: boolean
+  isSystem?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -1240,6 +1282,7 @@ export type FinInstitutionUpdateWithoutUserInput = {
   color?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   country?: Prisma.StringFieldUpdateOperationsInput | string
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  isSystem?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   accounts?: Prisma.FinAccountUpdateManyWithoutInstitutionRefNestedInput
@@ -1261,6 +1304,7 @@ export type FinInstitutionUncheckedUpdateWithoutUserInput = {
   color?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   country?: Prisma.StringFieldUpdateOperationsInput | string
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  isSystem?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   accounts?: Prisma.FinAccountUncheckedUpdateManyWithoutInstitutionRefNestedInput
@@ -1282,6 +1326,7 @@ export type FinInstitutionUncheckedUpdateManyWithoutUserInput = {
   color?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   country?: Prisma.StringFieldUpdateOperationsInput | string
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  isSystem?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -1358,6 +1403,7 @@ export type FinInstitutionSelect<ExtArgs extends runtime.Types.Extensions.Intern
   color?: boolean
   country?: boolean
   isActive?: boolean
+  isSystem?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   accounts?: boolean | Prisma.FinInstitution$accountsArgs<ExtArgs>
@@ -1382,6 +1428,7 @@ export type FinInstitutionSelectCreateManyAndReturn<ExtArgs extends runtime.Type
   color?: boolean
   country?: boolean
   isActive?: boolean
+  isSystem?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
@@ -1401,6 +1448,7 @@ export type FinInstitutionSelectUpdateManyAndReturn<ExtArgs extends runtime.Type
   color?: boolean
   country?: boolean
   isActive?: boolean
+  isSystem?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
@@ -1420,11 +1468,12 @@ export type FinInstitutionSelectScalar = {
   color?: boolean
   country?: boolean
   isActive?: boolean
+  isSystem?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type FinInstitutionOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "name" | "type" | "shortName" | "sortOrder" | "domain" | "logoPath" | "customLogoPath" | "logoUrl" | "color" | "country" | "isActive" | "createdAt" | "updatedAt", ExtArgs["result"]["finInstitution"]>
+export type FinInstitutionOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "name" | "type" | "shortName" | "sortOrder" | "domain" | "logoPath" | "customLogoPath" | "logoUrl" | "color" | "country" | "isActive" | "isSystem" | "createdAt" | "updatedAt", ExtArgs["result"]["finInstitution"]>
 export type FinInstitutionInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   accounts?: boolean | Prisma.FinInstitution$accountsArgs<ExtArgs>
   cards?: boolean | Prisma.FinInstitution$cardsArgs<ExtArgs>
@@ -1469,6 +1518,10 @@ export type $FinInstitutionPayload<ExtArgs extends runtime.Types.Extensions.Inte
     color: string | null
     country: string
     isActive: boolean
+    /**
+     * System institutions (the user's "Efectivo") cannot be renamed, archived or deleted.
+     */
+    isSystem: boolean
     createdAt: Date
     updatedAt: Date
   }, ExtArgs["result"]["finInstitution"]>
@@ -1912,6 +1965,7 @@ export interface FinInstitutionFieldRefs {
   readonly color: Prisma.FieldRef<"FinInstitution", 'String'>
   readonly country: Prisma.FieldRef<"FinInstitution", 'String'>
   readonly isActive: Prisma.FieldRef<"FinInstitution", 'Boolean'>
+  readonly isSystem: Prisma.FieldRef<"FinInstitution", 'Boolean'>
   readonly createdAt: Prisma.FieldRef<"FinInstitution", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"FinInstitution", 'DateTime'>
 }

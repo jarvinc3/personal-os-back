@@ -12,6 +12,14 @@ const optionalApiKey = z
     return trimmed;
   });
 
+/** Positive integer env value; a blank string falls back to the default. */
+const defaultedPositiveInt = (defaultValue: number) =>
+  z.preprocess(
+    (value) =>
+      typeof value === 'string' && value.trim() === '' ? undefined : value,
+    z.coerce.number().int().positive().default(defaultValue),
+  );
+
 /** true/false/1/0 only — never treat the string "false" as true. */
 const optionalStrictBoolean = z
   .unknown()
@@ -50,6 +58,23 @@ export const envSchema = z
     GROQ_API_KEY: optionalApiKey,
     CEREBRAS_API_KEY: optionalApiKey,
     OPENROUTER_API_KEY: optionalApiKey,
+    /** Hard cap on LLM email extractions per Gmail sync. Default 25. */
+    MAX_EMAIL_LLM_EXTRACTS: defaultedPositiveInt(25),
+    /** Max proactive insight LLM calls per user per UTC day. Default 20. */
+    AI_DAILY_INSIGHT_QUOTA: defaultedPositiveInt(20),
+
+    // ── Sentry (observabilidad) ───────────────────────────────
+    /** Sin DSN la SDK no se inicializa; tests y CI quedan en no-op. */
+    SENTRY_DSN: optionalApiKey,
+    SENTRY_TRACES_SAMPLE_RATE: z.preprocess(
+      (value) =>
+        typeof value === 'string' && value.trim() === '' ? undefined : value,
+      z.coerce.number().min(0).max(1).default(0.1),
+    ),
+    /** Solo para subir source maps; sin token el build no falla. */
+    SENTRY_AUTH_TOKEN: optionalApiKey,
+    SENTRY_ORG: optionalApiKey,
+    SENTRY_PROJECT: optionalApiKey,
 
     // ── Google OAuth (para Gmail API) ────────────────────────────
     GOOGLE_CLIENT_ID: z.string().min(1, 'GOOGLE_CLIENT_ID is required'),
@@ -69,7 +94,7 @@ export const envSchema = z
       .enum(['development', 'production', 'test'])
       .default('development'),
 
-    PORT: z.coerce.number().int().positive().default(3000),
+    PORT: z.coerce.number().int().positive().default(3100),
     CORS_ORIGIN: z
       .string()
       .min(1, 'CORS_ORIGIN is required')

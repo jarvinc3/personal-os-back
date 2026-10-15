@@ -63,7 +63,7 @@ export class PlanningService {
   async getBudget(userId: string, id: string) {
     const row = await this.repo.findBudget(userId, id);
     if (!row) {
-      throw new NotFoundException('Budget not found');
+      throw new NotFoundException('Presupuesto no encontrado');
     }
     return mapBudget(row);
   }
@@ -100,7 +100,7 @@ export class PlanningService {
     );
     const created = await this.repo.findBudget(userId, budgetId);
     if (!created) {
-      throw new NotFoundException('Budget not found');
+      throw new NotFoundException('Presupuesto no encontrado');
     }
     await this.applyCarriedOver(userId, created);
     return mapBudget((await this.repo.findBudget(userId, budgetId)) ?? created);
@@ -113,7 +113,7 @@ export class PlanningService {
       }
       const existing = await this.repo.findBudget(userId, id);
       if (!existing) {
-        throw new NotFoundException('Budget not found');
+        throw new NotFoundException('Presupuesto no encontrado');
       }
       await this.assertCategoriesNotBudgeted(
         userId,
@@ -147,11 +147,11 @@ export class PlanningService {
       dto.categoryIds,
     );
     if (!updatedId) {
-      throw new NotFoundException('Budget not found');
+      throw new NotFoundException('Presupuesto no encontrado');
     }
     const updated = await this.repo.findBudget(userId, updatedId);
     if (!updated) {
-      throw new NotFoundException('Budget not found');
+      throw new NotFoundException('Presupuesto no encontrado');
     }
     await this.applyCarriedOver(userId, updated);
     return mapBudget(
@@ -166,7 +166,7 @@ export class PlanningService {
   ) {
     const budget = await this.repo.findBudget(userId, id);
     if (!budget) {
-      throw new NotFoundException('Budget not found');
+      throw new NotFoundException('Presupuesto no encontrado');
     }
     const categoryIds = budget.categories.map((entry) => entry.categoryId);
     if (budget.includeChildren) {
@@ -300,7 +300,7 @@ export class PlanningService {
   async deleteBudget(userId: string, id: string) {
     const result = await this.repo.deleteBudget(userId, id);
     if (result.count === 0) {
-      throw new NotFoundException('Budget not found');
+      throw new NotFoundException('Presupuesto no encontrado');
     }
     return { success: true };
   }
@@ -316,10 +316,18 @@ export class PlanningService {
     return rows.map(mapSavingsGoal);
   }
 
+  async listSavingsGoalsPage(userId: string, query: CursorQueryDto) {
+    const rows = await this.repo.listSavingsGoalsPage(userId, query);
+    const page = toCursorPage(rows, clampPageLimit(query.limit), (row) =>
+      row.createdAt.toISOString(),
+    );
+    return { ...page, items: page.items.map(mapSavingsGoal) };
+  }
+
   async getSavingsGoal(userId: string, id: string) {
     const row = await this.repo.findSavingsGoal(userId, id);
     if (!row) {
-      throw new NotFoundException('Savings goal not found');
+      throw new NotFoundException('Meta de ahorro no encontrada');
     }
     return mapSavingsGoal(row);
   }
@@ -377,7 +385,7 @@ export class PlanningService {
     );
     const saved = await this.repo.findSavingsGoal(userId, id);
     if (!saved) {
-      throw new NotFoundException('Savings goal not found');
+      throw new NotFoundException('Meta de ahorro no encontrada');
     }
     return mapSavingsGoal(saved);
   }
@@ -385,7 +393,7 @@ export class PlanningService {
   async deleteSavingsGoal(userId: string, id: string) {
     const result = await this.repo.deleteSavingsGoal(userId, id);
     if (result.count === 0) {
-      throw new NotFoundException('Savings goal not found');
+      throw new NotFoundException('Meta de ahorro no encontrada');
     }
     return { success: true };
   }
@@ -396,10 +404,17 @@ export class PlanningService {
     return { success: true };
   }
 
-  async listSavingsGoalContributions(userId: string, id: string) {
+  async listSavingsGoalContributions(
+    userId: string,
+    id: string,
+    query: CursorQueryDto,
+  ) {
     await this.assertSavingsGoalOwned(userId, id);
-    const rows = await this.repo.listSavingsGoalContributions(id);
-    return rows.map(mapSavingsGoalContribution);
+    const rows = await this.repo.listSavingsGoalContributions(id, query);
+    const page = toCursorPage(rows, clampPageLimit(query.limit), (row) =>
+      row.contributedAt.toISOString(),
+    );
+    return { ...page, items: page.items.map(mapSavingsGoalContribution) };
   }
 
   private async assertSavingsGoalOwned(
@@ -408,7 +423,7 @@ export class PlanningService {
   ): Promise<void> {
     const goal = await this.repo.findSavingsGoal(userId, id);
     if (!goal) {
-      throw new NotFoundException('Savings goal not found');
+      throw new NotFoundException('Meta de ahorro no encontrada');
     }
   }
 
@@ -417,10 +432,18 @@ export class PlanningService {
     return rows.map(mapLoan);
   }
 
+  async listLoansPage(userId: string, query: CursorQueryDto) {
+    const rows = await this.repo.listLoansPage(userId, query);
+    const page = toCursorPage(rows, clampPageLimit(query.limit), (row) =>
+      row.nextDueDate.toISOString(),
+    );
+    return { ...page, items: page.items.map(mapLoan) };
+  }
+
   async getLoan(userId: string, id: string) {
     const row = await this.repo.findLoan(userId, id);
     if (!row) {
-      throw new NotFoundException('Loan not found');
+      throw new NotFoundException('Préstamo no encontrado');
     }
     return mapLoan(row);
   }
@@ -428,15 +451,34 @@ export class PlanningService {
   async listLoanInstallments(userId: string, id: string) {
     const loan = await this.repo.findLoan(userId, id);
     if (!loan) {
-      throw new NotFoundException('Loan not found');
+      throw new NotFoundException('Préstamo no encontrado');
     }
     const rows = await this.repo.listInstallments(id);
     return rows.map(mapLoanInstallment);
   }
 
+  async listLoanInstallmentsPage(
+    userId: string,
+    id: string,
+    query: CursorQueryDto,
+  ) {
+    const loan = await this.repo.findLoan(userId, id);
+    if (!loan) {
+      throw new NotFoundException('Préstamo no encontrado');
+    }
+    const rows = await this.repo.listInstallmentsPage(id, query);
+    const page = toCursorPage(rows, clampPageLimit(query.limit), (row) =>
+      row.dueDate.toISOString(),
+    );
+    return { ...page, items: page.items.map(mapLoanInstallment) };
+  }
+
   async createLoan(userId: string, dto: CreateLoanDto, now: Date) {
     if (dto.institutionId) {
-      await this.ownership.assertInstitutionOwned(userId, dto.institutionId);
+      await this.ownership.assertInstitutionAcceptsBankProducts(
+        userId,
+        dto.institutionId,
+      );
     }
     if (dto.accountId) {
       await this.ownership.assertLoanAccountAlignment({
@@ -479,7 +521,7 @@ export class PlanningService {
   async updateLoan(userId: string, id: string, dto: UpdateLoanDto, now: Date) {
     const existing = await this.repo.findLoan(userId, id);
     if (!existing) {
-      throw new NotFoundException('Loan not found');
+      throw new NotFoundException('Préstamo no encontrado');
     }
 
     const nextInstitutionId =
@@ -490,7 +532,10 @@ export class PlanningService {
       dto.accountId !== undefined ? dto.accountId : existing.accountId;
 
     if (dto.institutionId) {
-      await this.ownership.assertInstitutionOwned(userId, dto.institutionId);
+      await this.ownership.assertInstitutionAcceptsBankProducts(
+        userId,
+        dto.institutionId,
+      );
     }
     if (nextAccountId) {
       await this.ownership.assertLoanAccountAlignment({
@@ -507,7 +552,7 @@ export class PlanningService {
         : Number(existing.currentBalance);
     if (nextCurrentBalance > nextOriginalAmount) {
       throw new BadRequestException(
-        'currentBalance must not exceed originalAmount',
+        'currentBalance no puede superar originalAmount',
       );
     }
 
@@ -521,7 +566,7 @@ export class PlanningService {
         : existing.paidInstallments;
     if (nextPaidInstallments > nextTotalInstallments) {
       throw new BadRequestException(
-        'paidInstallments must not exceed totalInstallments',
+        'paidInstallments no puede superar totalInstallments',
       );
     }
 
@@ -563,7 +608,7 @@ export class PlanningService {
       ...(dto.notes !== undefined ? { notes: dto.notes } : {}),
     });
     if (!updated) {
-      throw new NotFoundException('Loan not found');
+      throw new NotFoundException('Préstamo no encontrado');
     }
     await this.syncInstallments.execute(updated, now);
     return mapLoan(updated);
@@ -572,7 +617,7 @@ export class PlanningService {
   async deactivateLoan(userId: string, id: string) {
     const updated = await this.repo.updateLoan(userId, id, { isActive: false });
     if (!updated) {
-      throw new NotFoundException('Loan not found');
+      throw new NotFoundException('Préstamo no encontrado');
     }
     return { success: true };
   }
@@ -580,7 +625,7 @@ export class PlanningService {
   async deleteLoan(userId: string, id: string) {
     const result = await this.repo.deleteLoan(userId, id);
     if (result.count === 0) {
-      throw new NotFoundException('Loan not found');
+      throw new NotFoundException('Préstamo no encontrado');
     }
     return { success: true };
   }
@@ -596,10 +641,18 @@ export class PlanningService {
     return rows.map(mapReceivable);
   }
 
+  async listReceivablesPage(userId: string, query: CursorQueryDto) {
+    const rows = await this.repo.listReceivablesPage(userId, query);
+    const page = toCursorPage(rows, clampPageLimit(query.limit), (row) =>
+      row.createdAt.toISOString(),
+    );
+    return { ...page, items: page.items.map(mapReceivable) };
+  }
+
   async getReceivable(userId: string, id: string) {
     const row = await this.repo.findReceivable(userId, id);
     if (!row) {
-      throw new NotFoundException('Receivable not found');
+      throw new NotFoundException('Cobro no encontrado');
     }
     return mapReceivable(row);
   }
@@ -639,15 +692,22 @@ export class PlanningService {
     );
     const saved = await this.repo.findReceivable(userId, id);
     if (!saved) {
-      throw new NotFoundException('Receivable not found');
+      throw new NotFoundException('Cobro no encontrado');
     }
     return mapReceivable(saved);
   }
 
-  async listReceivablePayments(userId: string, id: string) {
+  async listReceivablePayments(
+    userId: string,
+    id: string,
+    query: CursorQueryDto,
+  ) {
     await this.assertReceivableOwned(userId, id);
-    const rows = await this.repo.listReceivablePayments(id);
-    return rows.map(mapReceivablePayment);
+    const rows = await this.repo.listReceivablePayments(id, query);
+    const page = toCursorPage(rows, clampPageLimit(query.limit), (row) =>
+      row.paidAt.toISOString(),
+    );
+    return { ...page, items: page.items.map(mapReceivablePayment) };
   }
 
   private async assertReceivableOwned(
@@ -656,14 +716,14 @@ export class PlanningService {
   ): Promise<void> {
     const receivable = await this.repo.findReceivable(userId, id);
     if (!receivable) {
-      throw new NotFoundException('Receivable not found');
+      throw new NotFoundException('Cobro no encontrado');
     }
   }
 
   async deleteReceivable(userId: string, id: string) {
     const result = await this.repo.deleteReceivable(userId, id);
     if (result.count === 0) {
-      throw new NotFoundException('Receivable not found');
+      throw new NotFoundException('Cobro no encontrado');
     }
     return { success: true };
   }

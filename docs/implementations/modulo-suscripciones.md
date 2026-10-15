@@ -1,5 +1,8 @@
 # Módulo de Suscripciones (`sub_`)
 
+> [!IMPORTANT]
+> **Reemplazado.** Este diseño ya no se implementa como módulo `sub_` independiente. Suscripciones vive dentro de Finanzas: la detección básica de recurrentes llegó en el pendiente 07 (back v0.25.x) y el gestor completo es el pendiente 08 (`personal-os-web/docs/modules/finance/pendientes/08-suscripciones.md`), con vista principal en el tab bar de Finanzas entre Planificación y Productos. Este documento queda solo como referencia.
+
 Módulo independiente dentro de Personal OS, al mismo nivel que Finanzas (`fin_`).
 
 ## 1. Principios de diseño

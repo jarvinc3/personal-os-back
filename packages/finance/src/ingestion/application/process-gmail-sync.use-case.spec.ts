@@ -24,7 +24,6 @@ describe('ProcessGmailSyncUseCase', () => {
   const findEmailSource = jest.fn();
   const createEmailSyncLog = jest.fn();
   const updateEmailSource = jest.fn();
-  const completeEmailSyncLog = jest.fn();
   const listCategories = jest.fn();
   const findEmailMessage = jest.fn();
   const upsertEmailMessage = jest.fn();
@@ -35,7 +34,6 @@ describe('ProcessGmailSyncUseCase', () => {
     findEmailSource,
     createEmailSyncLog,
     updateEmailSource,
-    completeEmailSyncLog,
     listCategories,
     findEmailMessage,
     upsertEmailMessage,
@@ -46,9 +44,11 @@ describe('ProcessGmailSyncUseCase', () => {
 
   const getValidGmailAccessToken = jest.fn();
   const completeEmailSyncSuccessWithEvent = jest.fn();
+  const completeEmailSyncFailureWithEvent = jest.fn();
   const ingestion = {
     getValidGmailAccessToken,
     completeEmailSyncSuccessWithEvent,
+    completeEmailSyncFailureWithEvent,
   } as unknown as IngestionService;
 
   const routeExecute = jest.fn();
@@ -616,9 +616,11 @@ describe('ProcessGmailSyncUseCase', () => {
       useCase.execute({ userId: 'user-1', sourceId: 'src-1' }),
     ).rejects.toThrow('Gmail 503');
 
-    expect(completeEmailSyncLog).toHaveBeenCalledWith(
-      'log-1',
-      expect.objectContaining({ status: 'FAILED' }),
+    expect(completeEmailSyncFailureWithEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        logId: 'log-1',
+        error: 'Gmail 503',
+      }),
     );
   });
 

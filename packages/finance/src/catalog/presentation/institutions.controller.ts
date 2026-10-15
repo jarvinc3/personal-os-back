@@ -6,6 +6,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   UploadedFile,
   UseInterceptors,
 } from '@nestjs/common';
@@ -16,7 +17,11 @@ import {
   ApiOperation,
   ApiTags,
 } from '@nestjs/swagger';
-import { CurrentUser, RequiresEnabledModule } from '@personal-os/core';
+import {
+  CurrentUser,
+  CursorQueryDto,
+  RequiresEnabledModule,
+} from '@personal-os/core';
 import type { LogoUploadFile } from '@personal-os/logos';
 import { CatalogService } from '../application/catalog.service';
 import { CreateInstitutionDto } from './dto/create-institution.dto';
@@ -30,8 +35,9 @@ export class InstitutionsController {
   constructor(private readonly catalog: CatalogService) {}
 
   @Get('institutions')
-  list(@CurrentUser('sub') userId: string) {
-    return this.catalog.listInstitutions(userId);
+  @ApiOperation({ summary: 'Lista las instituciones de finanzas (cursor)' })
+  list(@CurrentUser('sub') userId: string, @Query() query: CursorQueryDto) {
+    return this.catalog.listInstitutionsPage(userId, query);
   }
 
   @Post('institutions')
@@ -44,7 +50,7 @@ export class InstitutionsController {
 
   @Post('institutions/:id/logo')
   @ApiConsumes('multipart/form-data')
-  @ApiOperation({ summary: 'Upload a custom institution logo' })
+  @ApiOperation({ summary: 'Sube un logo de institución personalizado' })
   @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 1_000_000 } }))
   uploadLogo(
     @CurrentUser('sub') userId: string,
@@ -64,13 +70,15 @@ export class InstitutionsController {
   }
 
   @Delete('institutions/:id')
-  @ApiOperation({ summary: 'Hard-delete institution and dependents' })
+  @ApiOperation({
+    summary: 'Borra de forma definitiva la institución y sus dependientes',
+  })
   remove(@CurrentUser('sub') userId: string, @Param('id') id: string) {
     return this.catalog.deleteInstitution(userId, id);
   }
 
   @Post('institutions/:id/restore')
-  @ApiOperation({ summary: 'Undo a delete from the journal snapshot' })
+  @ApiOperation({ summary: 'Deshace un borrado desde el journal' })
   restore(@CurrentUser('sub') userId: string, @Param('id') id: string) {
     return this.catalog.restoreInstitution(userId, id, new Date());
   }

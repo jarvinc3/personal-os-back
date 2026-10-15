@@ -307,6 +307,22 @@ Triggers Gmail sync for one email source. Returns `queued: true|false` — do no
 
 ---
 
+### `get_bank_charges`
+
+Cargos bancarios registrados por conciliación, agrupados por mes, institución y tipo. No muta.
+
+**Delegates to:** `FinanceFacade.getBankCharges`
+
+---
+
+### `reconcile_product`
+
+Cierra una cuenta o tarjeta contra el saldo real. Sin `apply=true` devuelve la vista previa (`difference` y `suggestedAdjustments`); con `apply=true` registra el cierre y sus ajustes (usa la sugerencia si no se pasan `adjustments`).
+
+**Delegates to:** `FinanceFacade.previewReconciliation` / `FinanceFacade.createReconciliation`
+
+---
+
 ## Related
 
 - REST: [http.md](./http.md)

@@ -6,31 +6,39 @@ Envelope `{ data, meta }`.
 
 ## Controllers
 
-| Área          | Controllers                                     |
-| ------------- | ----------------------------------------------- |
-| Ledger        | `TransactionsController`, `TransfersController` |
-| Catalog       | Institutions, Accounts, Cards, Categories       |
-| Statements    | `CardStatementsController`                      |
-| Planning      | Budgets, Savings, Loans, Receivables            |
-| Analytics     | `AnalyticsController`                           |
-| Balance sheet | `BalanceSheetController`                        |
-| FX            | `CurrenciesController`                          |
-| Ingestion     | `EmailSyncController`                           |
+| Área              | Controllers                                     |
+| ----------------- | ----------------------------------------------- |
+| Ledger            | `TransactionsController`, `TransfersController` |
+| Catalog           | Institutions, Accounts, Cards, Categories       |
+| Statements        | `CardStatementsController`                      |
+| Import de estados | `StatementImportsController`                    |
+| Planning          | Budgets, Savings, Loans, Receivables            |
+| Analytics         | `AnalyticsController`                           |
+| Balance sheet     | `BalanceSheetController`                        |
+| FX                | `CurrenciesController`                          |
+| Ingestion         | `EmailSyncController`                           |
 
 ## List shapes (`data`)
 
-| Endpoint                                                                                                                                                                | Shape                                                                         |
-| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
-| GET transactions, budgets                                                                                                                                               | `{ items, nextCursor, hasMore }`; query `cursor` + `limit` default 20 max 100 |
-| GET accounts, cards, institutions, categories, savings-goals, loans, receivables, email sources, pending, email mailboxes, cards/:id/statements, loans/:id/installments | array                                                                         |
-| GET analytics/*, balance-sheet                                                                                                                                          | object                                                                        |
-| GET recycle-bin                                                                                                                                                         | object `{ archived, deleted }`                                                |
+| Endpoint                                                                                                                                                                                                                                                      | Shape                                                                                                        |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| GET transactions, budgets, budgets/:id/transactions, cards/:id/statements, accounts/:id/history, cards/:id/history, loans/:id/installments, receivables/:id/payments, savings-goals/:id/allocations y /contributions, email-sync/pending, email-sync/messages | `{ items, nextCursor, hasMore }`; query `cursor` + `limit` default 20 max 100                                |
+| GET recycle-bin                                                                                                                                                                                                                                               | `{ archived, items, nextCursor, hasMore }`: `archived` completo; `items` (borrados) paginado por `deletedAt` |
+| GET accounts, cards, institutions, savings-goals, loans, receivables                                                                                                                                                                                          | `{ items, nextCursor, hasMore }`; query `cursor` + `limit` default 20 max 100                                |
+| GET categories, email sources, email mailboxes, loans/:id/schedule                                                                                                                                                                                            | array                                                                                                        |
+| GET analytics/*, balance-sheet                                                                                                                                                                                                                                | object                                                                                                       |
+
+El cursor es opaco: codifica la fecha de orden y el id de la última fila. Las cuotas de préstamo van de más antigua a más nueva (`dueDate`); el resto, de más reciente a más antigua (`paidAt`, `contributedAt`, `createdAt`, `cycleEnd`, `deletedAt`). Cuentas ordenan por `name` y el cursor de instituciones codifica `sortOrder` + `name`; el resto de las listas nuevas usa `createdAt` o `nextDueDate`.
+
+## Prefijo de rutas
+
+Cada recurso vive bajo `finance/<recurso>` (por ejemplo `finance/bank-charges`, no `finance/analytics/bank-charges`). `finance/analytics` agrupa solo los resúmenes (`analytics/*`); los catálogos y operaciones no se montan bajo analítica. El mismo criterio aplica fuera de finance: `ai/sessions`, `ai/actions`, `ai/sessions/:id/actions`.
 
 Sources: sync logs nested `take: 5` (detail 10); nunca tokens. Mailboxes: `{ id, emailAddress, provider, isActive, createdAt, sources[] }`. `POST /sources` exige Gmail ya autorizado + `bankSenderEmail`; 409 si la institución ya tiene vínculo. `GET oauth/google/url` no exige `institutionId`.
 
 ## Rutas (resumen)
 
-Ver inventario en código: `*controller.ts` bajo cada capability. Incluye `POST /api/finance/transactions/:id/reverse` y `/unconfirm`, `GET /api/finance/accounts/:id/history` + `/cards/:id/history`, `POST /api/finance/transfers` + `PATCH /api/finance/transfers/:id` + `POST /api/finance/transfers/:id/unconfirm` + `/confirm` + `DELETE /api/finance/transfers/:id`, `GET /api/finance/balance-sheet`, `GET /api/finance/cards/:id/statements`, `GET /api/finance/loans/:id` + `/installments`, `POST /api/finance/loans/:id/pay-next-installment`, `POST` + `DELETE /api/finance/savings-goals/:id/contributions[/:contributionId]`, `GET /api/finance/email-sync/mailboxes`, `GET /api/finance/email-sync/oauth/google/url` + `.../callback`.
+Ver inventario en código: `*controller.ts` bajo cada capability. Incluye `POST /api/finance/transactions/:id/reverse` y `/unconfirm`, `GET /api/finance/accounts/:id/history` + `/cards/:id/history`, `POST /api/finance/transfers` + `PATCH /api/finance/transfers/:id` + `POST /api/finance/transfers/:id/unconfirm` + `/confirm` + `DELETE /api/finance/transfers/:id`, `GET /api/finance/balance-sheet`, `GET /api/finance/cards/:id/statements`, `POST /api/finance/cards/:id/statements/import` + `POST /api/finance/accounts/:id/statements/import` + `GET`/`DELETE /api/finance/statement-imports/:id` + `PATCH /api/finance/statement-imports/:id/lines/:lineId` + `POST /api/finance/statement-imports/:id/apply`, `GET /api/finance/loans/:id` + `/installments`, `POST /api/finance/loans/:id/pay-next-installment`, `POST` + `DELETE /api/finance/savings-goals/:id/contributions[/:contributionId]`, `GET /api/finance/email-sync/mailboxes`, `GET /api/finance/email-sync/oauth/google/url` + `.../callback`.
 
 ## Edición y transferencias
 
@@ -52,4 +60,14 @@ Cada `DELETE` de una entidad de finance guarda un snapshot en `fin_deletion_jour
 
 ## Archivados y borrados
 
-`GET /api/finance/recycle-bin` devuelve `{ archived, deleted }`. `archived` son instituciones, cuentas, tarjetas y préstamos con `isActive:false` (`{ type, id, label }`). `deleted` son las entradas pendientes de `fin_deletion_journal` (`{ type, id, label, deletedAt }`); `label` sale de la fila principal guardada y es `null` en un presupuesto, que no tiene nombre. Restaurar un archivado es `PATCH /api/finance/<entidad>/:id { isActive: true }`.
+`GET /api/finance/recycle-bin` devuelve `{ archived, items, nextCursor, hasMore }`. `archived` son instituciones, cuentas, tarjetas y préstamos con `isActive:false` (`{ type, id, label }`), siempre completo. `items` son las entradas pendientes de `fin_deletion_journal` (`{ type, id, label, deletedAt }`) paginadas por `deletedAt`; `label` sale de la fila principal guardada y es `null` en un presupuesto, que no tiene nombre. Restaurar un archivado es `PATCH /api/finance/<entidad>/:id { isActive: true }`.
+
+## Conciliación
+
+`POST /api/finance/reconciliations/preview` calcula `difference = realBalance - appBalance` sin escribir y propone `IMPUESTO_DGII` con el 0.15 % de las salidas del mes más `OTRO` con el resto; con diferencia cero no propone líneas. `POST /api/finance/reconciliations` exige que la suma de los ajustes sea exactamente la diferencia (422 `UnprocessableEntityException` si no) y, con diferencia cero, registra el cierre sin movimientos. Un cierre por moneda del producto: una tarjeta con dos monedas se concilia dos veces.
+
+`GET /api/finance/reconciliations?accountId|cardId` devuelve el historial paginado; `GET /reconciliations/status?month=YYYY-MM` marca cada producto como conciliado o pendiente del mes; `GET /api/finance/bank-charges` agrupa los ajustes por mes, institución y tipo. `DELETE /api/finance/reconciliations/:id` solo acepta el último cierre del producto (422 si no) y guarda un snapshot en el diario de borrados (`entityType` `reconciliation`); el cierre, sus líneas y sus movimientos vuelven con `POST /api/finance/reconciliations/:id/restore`. Los ajustes no aparecen en el tablero ni en presupuestos.
+
+## Integridad de saldos
+
+`GET /api/finance/integrity/check` recalcula el saldo esperado de cada cuenta y tarjeta desde sus movimientos `CONFIRMED` y compara con el guardado; sin query revisa todos los productos y con `accountId` o `cardId` (exactamente uno) solo ese. Registra cada desviación abierta en `fin_balance_drifts` y devuelve `{ drifts: [...] }` con nombres y montos como strings. `POST /api/finance/integrity/recalculate` exige `accountId`, o `cardId` con `currency` (400 si falta), corrige el saldo guardado a la suma de los movimientos y cierra las desviaciones abiertas del producto en una sola transacción; no crea movimientos. Un `accountId`/`cardId` sin producto responde 404.

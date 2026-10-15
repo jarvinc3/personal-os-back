@@ -4,4 +4,4 @@
 
 `AiProcessingProcessor` genera insights; `AiMemoryService` actualiza `memorySnapshot`.
 
-Cuotas: `resolveDailyInsightQuota` / `process.env.AI_DAILY_INSIGHT_QUOTA` (REV-BACK-002).
+Cuotas: `resolveDailyInsightQuota`; `AI_DAILY_INSIGHT_QUOTA` validada en `env.schema` (default 20).

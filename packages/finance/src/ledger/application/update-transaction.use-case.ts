@@ -6,6 +6,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { FinanceOutboxDispatcher } from '../../events/infrastructure/finance-outbox.dispatcher';
+import { MerchantsService } from '../../merchants/application/merchants.service';
 import { ResolveAmountsUseCase } from '../../fx/application/resolve-amounts.use-case';
 import { ResolveUserBaseCurrencyUseCase } from '../../fx/application/resolve-user-base-currency';
 import { LEDGER_REPOSITORY } from '../../shared/application/tokens';
@@ -32,12 +33,13 @@ export class UpdateTransactionUseCase {
     private readonly baseCurrency: ResolveUserBaseCurrencyUseCase,
     private readonly outboxDispatcher: FinanceOutboxDispatcher,
     private readonly ownership: FinanceOwnershipService,
+    private readonly merchants: MerchantsService,
   ) {}
 
   async execute(userId: string, id: string, command: UpdateTransactionCommand) {
     const existing = await this.repo.findTransactionById(id, userId);
     if (!existing) {
-      throw new NotFoundException('Transaction not found');
+      throw new NotFoundException('Transacción no encontrada');
     }
     if (existing.transferGroupId) {
       throw new BadRequestException(
@@ -79,6 +81,9 @@ export class UpdateTransactionUseCase {
     }
     if (command.merchant !== undefined) {
       data.merchant = command.merchant;
+      data.merchantId = command.merchant
+        ? ((await this.merchants.resolve(userId, command.merchant))?.id ?? null)
+        : null;
     }
     if (command.description !== undefined) {
       data.description = command.description;
@@ -149,7 +154,7 @@ export class UpdateTransactionUseCase {
 
     const updated = await this.repo.updateTransaction(userId, id, data);
     if (!updated) {
-      throw new NotFoundException('Transaction not found');
+      throw new NotFoundException('Transacción no encontrada');
     }
     void this.outboxDispatcher.processBatch();
     return mapLedgerTransaction(updated.transaction);

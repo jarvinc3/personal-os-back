@@ -51,11 +51,11 @@ export class AiActionsService {
   ): Promise<{ action: AiActionSummary; sideEffects: SideEffectDescriptor[] }> {
     const existing = await this.actionsRepo.findById(actionId, userId);
     if (!existing) {
-      throw new NotFoundException('Action not found');
+      throw new NotFoundException('Acción no encontrada');
     }
     if (existing.status !== 'PENDING') {
       throw new BadRequestException(
-        `Action is ${existing.status}, not PENDING`,
+        `La acción está en ${existing.status}, no PENDING`,
       );
     }
 
@@ -64,9 +64,11 @@ export class AiActionsService {
       // Lost race to concurrent execute/cancel.
       const raced = await this.actionsRepo.findById(actionId, userId);
       if (!raced) {
-        throw new NotFoundException('Action not found');
+        throw new NotFoundException('Acción no encontrada');
       }
-      throw new ConflictException(`Action is ${raced.status}, not PENDING`);
+      throw new ConflictException(
+        `La acción está en ${raced.status}, no PENDING`,
+      );
     }
 
     const payload = action.payload as Record<string, unknown>;
@@ -89,7 +91,7 @@ export class AiActionsService {
       });
       const failed = await this.actionsRepo.findById(actionId, userId);
       if (!failed) {
-        throw new NotFoundException('Action not found');
+        throw new NotFoundException('Acción no encontrada');
       }
       const summary = this.toSummary(failed);
       this.emitActionUpdated(userId, summary, []);
@@ -104,7 +106,7 @@ export class AiActionsService {
 
     const updated = await this.actionsRepo.findById(actionId, userId);
     if (!updated) {
-      throw new NotFoundException('Action not found');
+      throw new NotFoundException('Acción no encontrada');
     }
 
     const summary = this.toSummary(updated);
@@ -132,11 +134,11 @@ export class AiActionsService {
   async cancel(actionId: string, userId: string): Promise<AiActionSummary> {
     const existing = await this.actionsRepo.findById(actionId, userId);
     if (!existing) {
-      throw new NotFoundException('Action not found');
+      throw new NotFoundException('Acción no encontrada');
     }
     if (existing.status !== 'PENDING') {
       throw new BadRequestException(
-        `Action is ${existing.status}, not PENDING`,
+        `La acción está en ${existing.status}, no PENDING`,
       );
     }
 
@@ -144,9 +146,11 @@ export class AiActionsService {
     if (!updated) {
       const raced = await this.actionsRepo.findById(actionId, userId);
       if (!raced) {
-        throw new NotFoundException('Action not found');
+        throw new NotFoundException('Acción no encontrada');
       }
-      throw new ConflictException(`Action is ${raced.status}, not PENDING`);
+      throw new ConflictException(
+        `La acción está en ${raced.status}, no PENDING`,
+      );
     }
     return this.toSummary(updated);
   }
@@ -159,11 +163,13 @@ export class AiActionsService {
   }) {
     const tool = getToolDefinition(data.actionType);
     if (!tool) {
-      throw new BadRequestException(`Unknown action type: ${data.actionType}`);
+      throw new BadRequestException(
+        `Tipo de acción desconocido: ${data.actionType}`,
+      );
     }
     if (!tool.mutating) {
       throw new BadRequestException(
-        `Action type ${data.actionType} is not a confirmable mutation`,
+        `El tipo de acción ${data.actionType} no es una mutación confirmable`,
       );
     }
 

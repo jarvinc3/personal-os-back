@@ -20,7 +20,7 @@ describe('CatalogRepository createAccount', () => {
       finAccount: { create },
     } as unknown as PrismaService;
 
-    const repo = new CatalogRepository(prisma);
+    const repo = new CatalogRepository(prisma, {} as never);
     await repo.createAccount('user-1', {
       name: 'QA Cuenta',
       type: 'SAVINGS',
@@ -50,7 +50,7 @@ describe('CatalogRepository createAccount', () => {
       finAccount: { create },
     } as unknown as PrismaService;
 
-    const repo = new CatalogRepository(prisma);
+    const repo = new CatalogRepository(prisma, {} as never);
     await repo.createAccount('user-1', {
       name: 'Nómina',
       type: 'CHECKING',

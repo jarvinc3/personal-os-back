@@ -1,4 +1,5 @@
 import { BadRequestException } from '@nestjs/common';
+import { Prisma } from '@personal-os/database';
 import type { ResolveAmountsUseCase } from '../../fx/application/resolve-amounts.use-case';
 import type { ResolveUserBaseCurrencyUseCase } from '../../fx/application/resolve-user-base-currency';
 import type { BalanceSheetRepository } from '../infrastructure/balance-sheet.repository';
@@ -6,13 +7,18 @@ import { BalanceSheetService } from './balance-sheet.service';
 
 describe('BalanceSheetService', () => {
   const loadPositions = jest.fn();
+  const loadCashAccounts = jest.fn();
   const toBaseCurrency = jest.fn();
+  const toBaseCurrencyOrNull = jest.fn();
   const baseCurrencyExecute = jest.fn().mockResolvedValue('DOP');
 
   const createService = () =>
     new BalanceSheetService(
-      { loadPositions } as unknown as BalanceSheetRepository,
-      { toBaseCurrency } as unknown as ResolveAmountsUseCase,
+      { loadPositions, loadCashAccounts } as unknown as BalanceSheetRepository,
+      {
+        toBaseCurrency,
+        toBaseCurrencyOrNull,
+      } as unknown as ResolveAmountsUseCase,
       {
         execute: baseCurrencyExecute,
       } as unknown as ResolveUserBaseCurrencyUseCase,
@@ -21,12 +27,17 @@ describe('BalanceSheetService', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     baseCurrencyExecute.mockResolvedValue('DOP');
+    loadCashAccounts.mockResolvedValue([]);
     toBaseCurrency.mockImplementation((amount: number, currency: string) => {
       if (currency === 'USD') {
         return Promise.resolve(amount * 60);
       }
       return Promise.resolve(amount);
     });
+    toBaseCurrencyOrNull.mockImplementation(
+      (amount: number, currency: string, base: string, asOf: Date) =>
+        toBaseCurrency(amount, currency, base, asOf),
+    );
   });
 
   it('uses limit minus available for credit debt (48000 - 42000 = 6000)', async () => {
@@ -58,10 +69,10 @@ describe('BalanceSheetService', () => {
       ],
     });
 
-    const result = await createService().getBalanceSheet('user-1');
+    const balanceSheet = await createService().getBalanceSheet('user-1');
 
-    expect(result.baseCurrency).toBe('DOP');
-    expect(result.global).toMatchObject({
+    expect(balanceSheet.baseCurrency).toBe('DOP');
+    expect(balanceSheet.global).toMatchObject({
       status: 'COMPLETE',
       assets: { accounts: '150000' },
       liabilities: { creditCards: '6000', loans: '13500' },
@@ -70,7 +81,7 @@ describe('BalanceSheetService', () => {
       netWorth: '130500',
       issues: [],
     });
-    expect(result.institutions).toEqual([
+    expect(balanceSheet.institutions).toEqual([
       expect.objectContaining({
         institutionId: 'inst-1',
         status: 'COMPLETE',
@@ -101,16 +112,51 @@ describe('BalanceSheetService', () => {
       loans: [],
     });
 
-    const result = await createService().getBalanceSheet('user-1');
+    const balanceSheet = await createService().getBalanceSheet('user-1');
 
-    expect(toBaseCurrency).toHaveBeenCalledWith(
+    expect(toBaseCurrencyOrNull).toHaveBeenCalledWith(
       10,
       'USD',
       'DOP',
       expect.any(Date),
     );
-    expect(result.global.netWorth).toBe('1600');
-    expect(result.global.assets.accounts).toBe('1600');
+    expect(balanceSheet.global.netWorth).toBe('1600');
+    expect(balanceSheet.global.assets.accounts).toBe('1600');
+  });
+
+  it('sums converted balances to the cent, rounding once at the end', async () => {
+    toBaseCurrency.mockImplementation((amount: number, currency: string) =>
+      Promise.resolve(
+        currency === 'USD'
+          ? new Prisma.Decimal(amount).times('60.5')
+          : new Prisma.Decimal(amount),
+      ),
+    );
+    loadPositions.mockResolvedValue({
+      institutions: [{ id: 'inst-1' }],
+      accounts: [
+        {
+          id: 'acc-dop',
+          institutionId: 'inst-1',
+          currency: 'DOP',
+          balance: '100.10',
+        },
+        {
+          id: 'acc-usd',
+          institutionId: 'inst-1',
+          currency: 'USD',
+          balance: '10.05',
+        },
+      ],
+      cardBalances: [],
+      loans: [],
+    });
+
+    const balanceSheet = await createService().getBalanceSheet('user-1');
+
+    // 100.10 + (10.05 * 60.5 = 608.025) = 708.125, a half cent rounded down.
+    expect(balanceSheet.global.assets.accounts).toBe('708.12');
+    expect(balanceSheet.global.netWorth).toBe('708.12');
   });
 
   it('ignores debit-only positions because the repository only returns CREDIT cards', async () => {
@@ -128,9 +174,9 @@ describe('BalanceSheetService', () => {
       loans: [],
     });
 
-    const result = await createService().getBalanceSheet('user-1');
-    expect(result.global.liabilities.creditCards).toBe('0');
-    expect(result.global.netWorth).toBe('100');
+    const balanceSheet = await createService().getBalanceSheet('user-1');
+    expect(balanceSheet.global.liabilities.creditCards).toBe('0');
+    expect(balanceSheet.global.netWorth).toBe('100');
   });
 
   it('marks global and the affected institution incomplete when a credit limit is missing', async () => {
@@ -161,21 +207,21 @@ describe('BalanceSheetService', () => {
       loans: [],
     });
 
-    const result = await createService().getBalanceSheet('user-1');
+    const balanceSheet = await createService().getBalanceSheet('user-1');
 
-    expect(result.global.status).toBe('INCOMPLETE');
-    expect(result.global.liabilities.creditCards).toBeNull();
-    expect(result.global.totalLiabilities).toBeNull();
-    expect(result.global.netWorth).toBeNull();
-    expect(result.global.assets.accounts).toBe('150');
-    expect(result.global.issues).toEqual([
+    expect(balanceSheet.global.status).toBe('INCOMPLETE');
+    expect(balanceSheet.global.liabilities.creditCards).toBeNull();
+    expect(balanceSheet.global.totalLiabilities).toBeNull();
+    expect(balanceSheet.global.netWorth).toBeNull();
+    expect(balanceSheet.global.assets.accounts).toBe('150');
+    expect(balanceSheet.global.issues).toEqual([
       { code: 'MISSING_CREDIT_LIMIT', cardId: 'card-1', currency: 'DOP' },
     ]);
 
-    const inst1 = result.institutions.find(
+    const inst1 = balanceSheet.institutions.find(
       (row) => row.institutionId === 'inst-1',
     );
-    const inst2 = result.institutions.find(
+    const inst2 = balanceSheet.institutions.find(
       (row) => row.institutionId === 'inst-2',
     );
     expect(inst1?.status).toBe('INCOMPLETE');
@@ -212,13 +258,13 @@ describe('BalanceSheetService', () => {
       ],
     });
 
-    const result = await createService().getBalanceSheet('user-1');
-    expect(result.global.netWorth).toBe('31');
-    expect(result.institutions[0]?.netWorth).toBe('10');
-    expect(result.institutions[0]?.liabilities.loans).toBe('0');
+    const balanceSheet = await createService().getBalanceSheet('user-1');
+    expect(balanceSheet.global.netWorth).toBe('31');
+    expect(balanceSheet.institutions[0]?.netWorth).toBe('10');
+    expect(balanceSheet.institutions[0]?.liabilities.loans).toBe('0');
   });
 
-  it('propagates a missing exchange rate as a 400', async () => {
+  it('marks an account with no rate incomplete instead of failing the balanceSheet', async () => {
     loadPositions.mockResolvedValue({
       institutions: [],
       accounts: [
@@ -232,6 +278,32 @@ describe('BalanceSheetService', () => {
       cardBalances: [],
       loans: [],
     });
+    toBaseCurrencyOrNull.mockResolvedValue(null);
+
+    const balanceSheet = await createService().getBalanceSheet('user-1');
+
+    expect(balanceSheet.global.status).toBe('INCOMPLETE');
+    expect(balanceSheet.global.assets.accounts).toBe('0');
+    expect(balanceSheet.global.netWorth).toBeNull();
+    expect(balanceSheet.global.issues).toEqual([
+      { code: 'MISSING_RATE', currency: 'EUR' },
+    ]);
+  });
+
+  it('still fails the balanceSheet when a card currency has no rate', async () => {
+    loadPositions.mockResolvedValue({
+      institutions: [{ id: 'inst-1' }],
+      accounts: [],
+      cardBalances: [
+        {
+          currency: 'EUR',
+          balance: 10,
+          creditLimit: 100,
+          card: { id: 'card-1', institutionId: 'inst-1' },
+        },
+      ],
+      loans: [],
+    });
     toBaseCurrency.mockRejectedValue(
       new BadRequestException(
         'Exchange rate unavailable for EUR->DOP on 2026-09-11: missing',
@@ -241,5 +313,72 @@ describe('BalanceSheetService', () => {
     await expect(
       createService().getBalanceSheet('user-1'),
     ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('converts cash to the base currency and breaks it down by currency', async () => {
+    loadCashAccounts.mockResolvedValue([
+      { id: 'cash-dop', name: 'Efectivo', currency: 'DOP', balance: '1000.00' },
+      {
+        id: 'cash-usd',
+        name: 'Efectivo USD',
+        currency: 'USD',
+        balance: '10.00',
+      },
+    ]);
+
+    const balanceSheet = await createService().getBalanceSheet('user-1');
+
+    expect(balanceSheet.cash.status).toBe('COMPLETE');
+    expect(balanceSheet.cash.totalBase).toBe('1600');
+    expect(balanceSheet.cash.baseCurrency).toBe('DOP');
+    expect(balanceSheet.cash.byCurrency).toEqual([
+      {
+        currency: 'DOP',
+        total: '1000',
+        totalBase: '1000',
+        accounts: [{ id: 'cash-dop', name: 'Efectivo', balance: '1000.00' }],
+      },
+      {
+        currency: 'USD',
+        total: '10',
+        totalBase: '600',
+        accounts: [{ id: 'cash-usd', name: 'Efectivo USD', balance: '10.00' }],
+      },
+    ]);
+  });
+
+  it('keeps the cash breakdown and marks the total incomplete when a rate is missing', async () => {
+    loadCashAccounts.mockResolvedValue([
+      { id: 'cash-dop', name: 'Efectivo', currency: 'DOP', balance: '1000.00' },
+      {
+        id: 'cash-eur',
+        name: 'Efectivo EUR',
+        currency: 'EUR',
+        balance: '10.00',
+      },
+    ]);
+    toBaseCurrencyOrNull.mockImplementation(
+      (amount: Prisma.Decimal, currency: string) =>
+        Promise.resolve(currency === 'EUR' ? null : amount),
+    );
+
+    const balanceSheet = await createService().getBalanceSheet('user-1');
+
+    expect(balanceSheet.cash.status).toBe('INCOMPLETE');
+    expect(balanceSheet.cash.totalBase).toBeNull();
+    expect(balanceSheet.cash.byCurrency).toEqual([
+      {
+        currency: 'DOP',
+        total: '1000',
+        totalBase: '1000',
+        accounts: [{ id: 'cash-dop', name: 'Efectivo', balance: '1000.00' }],
+      },
+      {
+        currency: 'EUR',
+        total: '10',
+        totalBase: null,
+        accounts: [{ id: 'cash-eur', name: 'Efectivo EUR', balance: '10.00' }],
+      },
+    ]);
   });
 });

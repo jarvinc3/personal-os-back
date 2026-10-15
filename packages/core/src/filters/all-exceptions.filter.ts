@@ -7,6 +7,7 @@ import {
   Injectable,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import * as Sentry from '@sentry/nestjs';
 import { PinoLogger } from 'nestjs-pino';
 import type { Env } from '@personal-os/config';
 import {
@@ -18,6 +19,9 @@ type PrismaKnownErrorLike = Error & {
   code?: string;
   meta?: Record<string, unknown>;
 };
+
+/** 5xx: the failures Sentry should see, unlike expected 4xx client flow. */
+const SERVER_ERROR_MIN_STATUS: number = HttpStatus.INTERNAL_SERVER_ERROR;
 
 @Injectable()
 @Catch()
@@ -35,6 +39,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
       url: string;
       id?: string;
       method: string;
+      user?: { sub?: string };
     }>();
     const response = ctx.getResponse<{
       status: (code: number) => { json: (body: unknown) => void };
@@ -61,6 +66,10 @@ export class AllExceptionsFilter implements ExceptionFilter {
       'Unhandled exception',
     );
 
+    if (statusCode >= SERVER_ERROR_MIN_STATUS) {
+      this.reportToSentry({ exception, request, statusCode });
+    }
+
     const errorCode =
       typeof details?.code === 'string' ? details.code : undefined;
     response.status(statusCode).json({
@@ -72,6 +81,30 @@ export class AllExceptionsFilter implements ExceptionFilter {
       requestId: request.id,
       timestamp: new Date().toISOString(),
       path: request.url,
+    });
+  }
+
+  /**
+   * 4xx are expected client flow and would only add noise; only 5xx reach
+   * Sentry. The query string is dropped so a token never travels with it.
+   */
+  private reportToSentry({
+    exception,
+    request,
+    statusCode,
+  }: {
+    exception: unknown;
+    request: { url: string; method: string; user?: { sub?: string } };
+    statusCode: number;
+  }): void {
+    const userId = request.user?.sub;
+    Sentry.captureException(exception, {
+      ...(userId ? { user: { id: userId } } : {}),
+      extra: {
+        method: request.method,
+        path: request.url.split('?')[0],
+        statusCode,
+      },
     });
   }
 
@@ -119,7 +152,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
       return {
         statusCode: HttpStatus.CONFLICT,
         error: 'Conflict',
-        message: 'Unique constraint violation',
+        message: 'Ya existe un registro con esos datos',
       };
     }
 
@@ -127,7 +160,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
       return {
         statusCode: HttpStatus.NOT_FOUND,
         error: 'Not Found',
-        message: 'Requested resource was not found',
+        message: 'No se encontró el recurso solicitado',
       };
     }
 

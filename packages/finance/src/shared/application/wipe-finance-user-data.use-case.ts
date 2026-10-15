@@ -19,6 +19,7 @@ export type FinanceWipeCounts = {
   emailMessages: number;
   emailSyncLogs: number;
   recurringPatterns: number;
+  merchants: number;
   budgets: number;
   savingsGoals: number;
   loans: number;
@@ -38,6 +39,7 @@ function emptyCounts(): FinanceWipeCounts {
     emailMessages: 0,
     emailSyncLogs: 0,
     recurringPatterns: 0,
+    merchants: 0,
     budgets: 0,
     savingsGoals: 0,
     loans: 0,
@@ -161,6 +163,9 @@ export class WipeFinanceUserDataUseCase {
     sourceIds: Array<{ id: string }>,
   ): Promise<Partial<FinanceWipeCounts>> {
     const sourceIdList = sourceIds.map((source) => source.id);
+    // Adjustments hold the movement with a RESTRICT foreign key, so the
+    // closes go first and cascade their lines before the movements.
+    await tx.finReconciliation.deleteMany({ where: { userId } });
     const transactions = await tx.finTransaction.deleteMany({
       where: { userId },
     });
@@ -173,6 +178,7 @@ export class WipeFinanceUserDataUseCase {
     const recurringPatterns = await tx.finRecurringPattern.deleteMany({
       where: { userId },
     });
+    const merchants = await tx.finMerchant.deleteMany({ where: { userId } });
     await tx.finAccount.updateMany({
       where: { userId },
       data: { balance: 0 },
@@ -187,6 +193,7 @@ export class WipeFinanceUserDataUseCase {
       emailMessages: emailMessages.count,
       emailSyncLogs: emailSyncLogs.count,
       recurringPatterns: recurringPatterns.count,
+      merchants: merchants.count,
     };
   }
 
@@ -201,7 +208,7 @@ export class WipeFinanceUserDataUseCase {
         select: { id: true },
       });
       if (!institution) {
-        throw new NotFoundException('Institution not found');
+        throw new NotFoundException('Institución no encontrada');
       }
     }
     const accounts = await tx.finAccount.updateMany({
@@ -290,13 +297,14 @@ export class WipeFinanceUserDataUseCase {
     userId: string,
   ): Promise<Partial<FinanceWipeCounts>> {
     const [institutions, accounts, cards] = await Promise.all([
-      tx.finInstitution.count({ where: { userId } }),
+      tx.finInstitution.count({ where: { userId, isSystem: false } }),
       tx.finAccount.count({ where: { userId } }),
       tx.finCard.count({ where: { userId } }),
     ]);
-    // Institution delete cascades accounts, cards, loans and email sources.
-    await tx.finInstitution.deleteMany({ where: { userId } });
-    // CASH accounts have no institution; cards above their own institution.
+    // The system "Efectivo" institution survives the wipe and is refilled by
+    // ensureCashInstitution; non-system institutions cascade their products.
+    await tx.finInstitution.deleteMany({ where: { userId, isSystem: false } });
+    // Cash accounts live in the system institution and are emptied, not kept.
     await tx.finAccount.deleteMany({ where: { userId } });
     await tx.finCard.deleteMany({ where: { userId } });
     return { institutions, accounts, cards };

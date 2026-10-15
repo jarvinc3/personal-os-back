@@ -37,9 +37,17 @@ export function encodeCursor(point: CursorPoint): string {
   return Buffer.from(JSON.stringify(point), 'utf8').toString('base64url');
 }
 
-const INVALID_CURSOR_MESSAGE = 'Invalid cursor';
+const INVALID_CURSOR_MESSAGE = 'Cursor inválido';
 
-export function decodeCursor(cursor: string): CursorPoint {
+/**
+ * `isValidKey` defaults to a timestamp check: almost every list orders by a
+ * date, so a key that does not parse as one is a forged cursor. A list that
+ * orders by another column passes its own check.
+ */
+export function decodeCursor(
+  cursor: string,
+  isValidKey: (key: string) => boolean = isTimestampKey,
+): CursorPoint {
   let parsed: unknown;
   try {
     parsed = JSON.parse(Buffer.from(cursor, 'base64url').toString('utf8'));
@@ -49,7 +57,14 @@ export function decodeCursor(cursor: string): CursorPoint {
   if (!isCursorPoint(parsed)) {
     throw new BadRequestException(INVALID_CURSOR_MESSAGE);
   }
+  if (!isValidKey(parsed.key)) {
+    throw new BadRequestException(INVALID_CURSOR_MESSAGE);
+  }
   return parsed;
+}
+
+function isTimestampKey(key: string): boolean {
+  return !Number.isNaN(Date.parse(key));
 }
 
 function isCursorPoint(value: unknown): value is CursorPoint {

@@ -2,6 +2,513 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [SemVer](https://semver.org/lang/es/). Reglas y ejemplo en [docs/reference/changelog-guide.md](./docs/reference/changelog-guide.md).
 
+## [0.37.3] - 2026-10-15
+
+### Agregado
+
+- `pnpm sentry:sourcemaps` sube los source maps de `dist` con `@sentry/cli` cuando existe `SENTRY_AUTH_TOKEN`; sin token no hace nada y el build no falla. `pnpm build` lo ejecuta al final.
+
+### Cambiado
+
+- `AllExceptionsFilter.reportToSentry` recibe un objeto en vez de tres parámetros.
+
+## [0.37.2] - 2026-10-15
+
+### Corregido
+
+- Las pruebas e2e esperan el formato paginado `{ items, nextCursor, hasMore }` en las listas de cuentas, tarjetas y préstamos, y los mensajes de error en español.
+- `moduleDisabledMessage` responde en español.
+
+## [0.37.1] - 2026-10-15
+
+### Corregido
+
+- `instrument.ts` importa `dotenv/config` antes de leer `process.env`, para que un `SENTRY_DSN` guardado en `.env` se aplique.
+- Se quita un `as T` innecesario en el scrubber que rompía `lint`.
+
+## [0.37.0] - 2026-10-15
+
+### Agregado
+
+- Observabilidad con Sentry (`@sentry/nestjs`): `Sentry.init` en `instrument.ts`, importado en la primera línea de `main.ts`, con `environment`, `release`, `tracesSampleRate` y un scrubber que borra body, cookies, cabeceras de auth y tokens. Sin `SENTRY_DSN` no se inicializa.
+- `AllExceptionsFilter` reporta a Sentry solo los 5xx; los 4xx no se envían.
+- Variables opcionales de Sentry en `env.schema`; `SENTRY_AUTH_TOKEN`, `SENTRY_ORG` y `SENTRY_PROJECT` solo sirven para subir source maps y su ausencia no rompe el build.
+- ADR-007: la API no lleva prefijo de versión (`/v1`) mientras web y back se desplieguen juntos.
+
+### Cambiado
+
+- Paginación por cursor en cuentas, tarjetas, instituciones, préstamos, metas de ahorro y cobros.
+- Desactivar un token push pasa a `DELETE /notifications/push-tokens/:token`; el PATCH anterior queda como alias deprecado.
+- `GET /finance/analytics/bank-charges` se monta en `GET /finance/bank-charges` (patrón `finance/<recurso>`); las acciones de IA quedan en `ai/sessions` y `ai/actions`.
+- Todos los mensajes de excepción y los resúmenes de Swagger pasan a español.
+- El CI corre `format:check` además de lint, build y tests.
+- `docs/modules/finance/contracts/http.md`, `docs/infrastructure/config.md` y las capacidades de finanzas quedan al día.
+
+### Eliminado
+
+- `tmp-bhd-balances.mjs`.
+- La excepción de CORS que permitía peticiones sin `Origin` (Expo).
+
+## [0.36.1] - 2026-10-15
+
+### Corregido
+
+- `PORT` cae a 3100 en `main.ts`, igual que `env.schema` y `.env.example`; antes el fallback decía 3000.
+- `MAX_EMAIL_LLM_EXTRACTS` y `AI_DAILY_INSIGHT_QUOTA` aceptan una variable vacía y usan el default, en vez de romper el boot.
+
+## [0.36.0] - 2026-10-15
+
+### Agregado
+
+- `finance.email_sync.failed` se encola en el outbox cuando un sync de correo falla, en la misma transacción que el log `FAILED` del sync.
+- `pnpm smoke:finance`: smoke HTTP de 16 endpoints clave de finanzas contra `SMOKE_BASE_URL` con `SMOKE_ACCESS_TOKEN`.
+
+### Cambiado
+
+- `LoggingInterceptor` queda activo como interceptor global; se borran `RolesGuard` y `@Roles` sin uso.
+- `MAX_EMAIL_LLM_EXTRACTS` y `AI_DAILY_INSIGHT_QUOTA` entran en `env.schema` (defaults 25 y 20).
+- El puerto por defecto unifica en 3100, igual que `.env.example`.
+- Saneamiento del registro de revisión (pendiente 17): `review-register.md` y la documentación de finanzas, config y eventos al día; los hallazgos sin código pasan a [docs/roadmap.md](./docs/roadmap.md).
+
+### Eliminado
+
+- El comando `db:reconcile-balances`, que apuntaba a un script inexistente.
+
+## [0.35.0] - 2026-10-15
+
+### Agregado
+
+- `GET /api/finance/recycle-bin` incluye `logoUrl` de la institución en los registros eliminados: lo lee del snapshot para una institución y lo resuelve por `institutionId` para una cuenta.
+
+## [0.34.0] - 2026-10-15
+
+### Agregado
+
+- `GET /api/finance/recycle-bin` incluye `logoUrl` resuelto de la institución en los registros archivados (instituciones y sus cuentas), para que la papelera muestre la marca.
+
+### Cambiado
+
+- El texto que el back expone al usuario (guías de preferencias y etiquetas de acciones del agente) dice App en vez de módulo, con el glosario [docs/glosario.md](./docs/glosario.md) y la regla `.cursor/rules/module-terminology.mdc`.
+
+## [0.33.5] - 2026-10-15
+
+### Cambiado
+
+- El rechazo de crear o convertir una institución en efectivo vive en un solo guard, sin repetir el mensaje.
+
+## [0.33.4] - 2026-10-15
+
+### Corregido
+
+- La institución Efectivo no se puede convertir en efectivo: `PATCH` con `type: 'cash'` sobre otra institución responde 400, así cada usuario conserva una sola.
+- La cuenta Efectivo de la moneda base no se puede borrar (responde 400); se desactiva, como aprobó la decisión del pendiente 16.
+- El wipe `finance.catalog` ya no borra la institución de sistema; `ensureCashInstitution` repone la cuenta base cuando falta, de modo que Efectivo se vacía pero no se borra.
+
+## [0.33.3] - 2026-10-15
+
+### Cambiado
+
+- Limpieza interna sin cambios de comportamiento: imports relativos y formato de Prettier en los paquetes de finanzas.
+
+## [0.33.2] - 2026-10-15
+
+### Cambiado
+
+- El comando que asegura la institución Efectivo ya no devuelve el id. La cuenta de efectivo lee la institución con la consulta del repositorio después de asegurarla, siguiendo la separación comando/consulta del resto de finanzas.
+
+## [0.33.1] - 2026-10-15
+
+### Corregido
+
+- La migración del efectivo crea el índice único de la institución de sistema solo con SQL. Declararlo en el esquema obligaba a activar la vista previa `partialIndexes`, que hacía a Prisma marcar como drift tres índices parciales previos.
+
+## [0.33.0] - 2026-10-15
+
+### Agregado
+
+- Cada usuario tiene una institución de sistema «Efectivo» (`is_system`) con una cuenta por moneda. Se crea sola al listar instituciones o cuentas y por el backfill de la migración `20261021110000_fin_cash_institution`.
+- Resumen de efectivo en el balance general (`cash`): total convertido a la moneda base, desglose por moneda y cuenta, y estado `INCOMPLETE` con total nulo cuando falta una tasa. Las cuentas sin tasa no tumban el balance general; se marcan con `MISSING_RATE`.
+- Las cuentas de efectivo nuevas y las existentes sin institución se asignan a Efectivo. El back rechaza editar, archivar o borrar la institución de sistema, y crear tarjetas, préstamos o fuentes de correo ligados a ella. Las respuestas de institución incluyen `isSystem`.
+
+### Cambiado
+
+- Toda cuenta exige institución: el check de `fin_accounts` pasa a `institution_id IS NOT NULL`.
+
+## [0.32.4] - 2026-10-15
+
+### Corregido
+
+- E2E de finanzas: el archivado de tarjeta mockea el perfil del usuario que aporta la fecha local, y el resumen de analytics usa un `Prisma.Decimal` real como saldo. Los mocks anteriores devolvían 404 y `DecimalError` al no cumplir el contrato de los datos.
+
+## [0.32.3] - 2026-10-22
+
+### Cambiado
+
+- `pnpm lint:money` cubre además `merchants/application` y `merchants/infrastructure`.
+
+### Corregido
+
+- Recurrentes: el costo equivalente mensual y anual de un patrón se calcula con `Prisma.Decimal` y `ROUND_HALF_EVEN` (`monthlyAmount`, `annualAmount`), en vez de aritmética de `Number` con `toFixed`.
+- Comercios: el gasto del mes conserva la suma exacta del agregado (`Prisma.Decimal`) y se serializa como string, sin pasar por `Number`.
+
+## [0.32.2] - 2026-10-22
+
+### Cambiado
+
+- `MoneyLike` acepta `null` como único monto ausente y deja fuera `undefined`; `toMoney` y el chequeo de límite ausente del balance general usan esa única convención.
+
+## [0.32.1] - 2026-10-22
+
+### Cambiado
+
+- `MoneyLike` documenta que un monto ausente (`null` de un agregado, `undefined` de un campo opcional) es cero, un solo significado; el spec separa ese caso del parseo de strings.
+- El resumen semanal extrae el promedio de gastos a `averageOfAmounts`, fuera del flujo de armado del resumen.
+- `pnpm lint:money` separa el escaneo de cada archivo (`offendersIn`) del reporte de la lista.
+
+## [0.32.0] - 2026-10-22 - Decimales exactos
+
+### Cambiado
+
+- El dinero se suma, resta y convierte con `Prisma.Decimal` de punta a punta en analytics, balance general, resumen semanal, costo equivalente de suscripciones y conversión de moneda, en vez de `Number`. `shared/domain/money.ts` gana `toMoney`, `sumMoney`, `roundDecimal` (`ROUND_HALF_EVEN`), `convertDecimal`, `ratioPercent` y `scalarNumber`. Las respuestas siguen como strings (ADR-002) y el redondeo a 2 decimales ocurre solo al presentar o persistir.
+- El repositorio de analytics lee la suma como `numeric` (`::text`) y no como `::float`.
+
+### Agregado
+
+- Regla ESLint `no-restricted-syntax` y `pnpm lint:money` (`scripts/finance/check-money-decimals.mjs`, en CI) que prohíben `Number`/`toNumber` en las rutas de lectura de dinero.
+
+## [0.31.1] - 2026-10-22
+
+### Cambiado
+
+- La constante `PENDING` vive en `shared/domain/transaction-status.ts` y el repositorio de catálogo la reutiliza, en vez de repetir el texto.
+- El mapeo del disponible por moneda se extrae a `mapCardBalance`, fuera de `mapCard`.
+
+## [0.31.0] - 2026-10-22 - Tarjetas prácticas
+
+### Agregado
+
+- `GET /finance/cards` y `GET /finance/cards/:id` devuelven `availableCredit` por moneda (disponible menos movimientos pendientes) y `nextStatementDate`/`nextPaymentDueDate` con la fecha local del usuario.
+- Recordatorio de pago de tarjeta: `CardPaymentRemindersScheduler` y `CardPaymentRemindersService` emiten `finance.card_payment.due` dentro de `reminders.cardDueDaysBefore` (default 3), una sola vez por corte y sin avisar si ya está pagado.
+- Ajuste `reminders.cardDueDaysBefore` validado (0-30) en la configuración del módulo de Finanzas.
+
+### Cambiado
+
+- Documentación de `statements` y `catalog` con el disponible y las próximas fechas.
+
+## [0.30.2] - 2026-10-21
+
+### Corregido
+
+- Las alertas de fin de prueba y de renovación salen de la ventana global (`subscriptions.reminderDaysBefore`), no del valor guardado por suscripción, igual que el summary y los recordatorios. La migración `20261021100000_subscription_reminder_days_default` pasa a 5 los módulos que aún guardaban el default viejo (3 días) y conserva cualquier otro valor elegido a mano.
+
+### Cambiado
+
+- Spec: la ventana global manda en las alertas de cuenta atrás.
+
+## [0.30.1] - 2026-10-21
+
+### Cambiado
+
+- El descarte masivo de alertas del repositorio deja de devolver el resultado de la escritura, que nadie leia: el cuerpo de la respuesta de la API no cambia.
+
+## [0.30.0] - 2026-10-21 - Suscripciones v3
+
+### Agregado
+
+- Alerta `AMOUNT_MISMATCH`: el último cobro no coincide con el monto esperado de la suscripción, por arriba o por abajo, sin duplicar la subida de precio ya confirmada. Migración `20261021090000_fin_subscription_amount_mismatch`.
+- `POST /finance/subscriptions/alerts/dismiss-all`: marca de una vez todas las alertas activas.
+- La lista de suscripciones devuelve `lastChargeMismatch` y `lastPaymentAmount` para la marca de advertencia de la card.
+- La lista acepta `categoryIds`, `frequency` (`MONTHLY`, `YEARLY`, `OTHER`) y `sort` (`NEXT_DATE`, `AMOUNT`, `NAME`); el cursor sigue el orden elegido.
+- `summary.reminderWindowDays`: la ventana de próximos cobros sale del ajuste global.
+
+### Cambiado
+
+- `subscriptions.reminderDaysBefore` pasa de 3 a 5 por defecto y se valida entre 1 y 30.
+- La lista de suscripciones expone y aplica los filtros y el orden en el servidor, para que la paginación por cursor no corte resultados.
+- Los recordatorios de renovación usan el ajuste global en vez del valor guardado por suscripción, que deja de mostrarse en la UI (la columna se conserva).
+- `decodeCursor` acepta un validador de clave, para las listas que ordenan por otra columna.
+
+## [0.29.1] - 2026-10-20
+
+### Corregido
+
+- El check de integridad refresca `storedBalance`, `expectedBalance` y `difference` de una desviación abierta aunque la diferencia no cambie, para no mostrar cifras viejas; el aviso solo se repite cuando cambia la diferencia.
+
+### Cambiado
+
+- Specs de integridad: transferencia con comisión, restauración tras borrado, refresco de una desviación abierta, repositorio (solo movimientos `CONFIRMED` y corrección en una transacción) y validaciones de `GET check` y `POST recalculate`.
+
+## [0.29.0] - 2026-10-20 - Integridad de saldos
+
+### Agregado
+
+- `GET /finance/integrity/check`: recalcula el saldo esperado de cada cuenta y tarjeta desde sus movimientos confirmados, registra las desviaciones abiertas y acepta `accountId` o `cardId`.
+- `POST /finance/integrity/recalculate`: corrige el saldo guardado a la suma de sus movimientos y cierra la desviación en una misma transacción, sin crear movimientos.
+- `BalanceIntegrityScheduler` nocturno y evento `finance.balance.drift_detected`; aviso controlado por `notifications.balanceIntegrity`.
+- Modelo `FinBalanceDrift` y migración `20261020120000_fin_balance_drifts`.
+- Specs del dominio (secuencia mixta de todos los tipos de movimiento), del servicio, del scheduler y e2e de detección y recálculo.
+
+## [0.28.2] - 2026-10-19
+
+### Corregido
+
+- La lista de suscripciones acepta `unassignedCategory` y `unassignedMethod` para filtrar las que no tienen categoría ni método de pago.
+- El historial de pagos de cada suscripción se ordena por fecha e id, para que la alerta de subida de precio compare siempre los mismos dos cargos.
+
+## [0.28.1] - 2026-10-19
+
+### Cambiado
+
+- Specs del registro y del ejecutor de tools que cubren `get_subscriptions_summary` y `get_subscription_alerts`.
+
+## [0.28.0] - 2026-10-19
+
+### Agregado
+
+- `GET /finance/subscriptions/breakdown`: costo mensual en moneda base agrupado por categoría, tarjeta-cuenta o moneda.
+- `GET /finance/subscriptions/upcoming`: cobros proyectados en una ventana de días o un rango, con todas las ocurrencias de los ciclos semanales.
+- `GET /finance/subscriptions/alerts`: subida de precio, prueba por vencer, renovación anual y cobro sin registrar, con descarte persistido por tipo, suscripción y fecha.
+- `GET /finance/subscriptions/summary` añade el costo del mes anterior, la tendencia, el gasto real del mes y del anterior, los detectados pendientes y el ahorro anual de las canceladas.
+- Las suscripciones guardan categoría (`category_id`, FK a `fin_categories`) y la lista incrusta `paymentMethod` y `category`; filtros nuevos `categoryId`, `cardId` y `accountId`.
+- Tools `get_subscriptions_summary` y `get_subscription_alerts`.
+- Migración `fin_subscriptions_categories_alerts`: columna e índice de categoría y tabla de descartes de alertas.
+
+## [0.27.2] - 2026-10-19
+
+### Corregido
+
+- La sugerencia de impuesto DGII usa solo las salidas en la moneda del producto, no las de todas las monedas de una tarjeta.
+- El cargo DGII sugerido nunca supera la diferencia que explica.
+- Conciliar una tarjeta de débito responde 404: su saldo se cierra desde la cuenta enlazada, y el estado del mes ya no lista esas tarjetas.
+- La fecha de corte del cierre es opcional y por defecto es hoy.
+
+### Cambiado
+
+- El desglose mensual de cargos bancarios va en orden cronológico y `groupBy` devuelve solo el grupo pedido.
+- Specs del filtro por moneda, del tope del DGII, de la fecha por defecto y del agrupado.
+
+## [0.27.1] - 2026-10-19
+
+### Cambiado
+
+- Specs de las tools de conciliación: parámetros derivados del esquema de `reconcile_product`, ruteo del preview y de la confirmación con la sugerencia, lectura de `get_bank_charges` y rechazo de un `reconcile_product` sin exactamente un producto destino.
+
+## [0.27.0] - 2026-10-19 - Conciliación
+
+### Agregado
+
+- Tablas `fin_reconciliations` y `fin_reconciliation_adjustments` con el enum de tipos de ajuste, las categorías de sistema de cada tipo y sus índices y llaves foráneas.
+- REST `/finance/reconciliations`: `preview`, alta con sus ajustes en una transacción de BD, historial por producto, detalle, borrado del último cierre, `restore` y `status` del mes.
+- `GET /finance/analytics/bank-charges`: total de cargos bancarios por mes, institución y tipo.
+- Tools `reconcile_product` (vista previa y confirmación) y `get_bank_charges`.
+- Los ajustes de conciliación mueven el saldo, no aparecen en el tablero ni en presupuestos, y se borran y restauran con el diario de borrados (`entityType` `reconciliation`).
+
+## [0.26.1] - 2026-10-14
+
+### Corregido
+
+- `PATCH /finance/subscriptions/:id` con `status: ACTIVE` recalcula `nextBillingDate` desde hoy, igual que el endpoint `resume`.
+- El emparejado de pagos compara días de calendario y no horas transcurridas: un cobro el día esperado a las 23:00 entra en la ventana de ±3 días.
+- Registrar a mano un pago con un movimiento ya vinculado a la misma suscripción responde 409 en vez del error del índice único.
+- Pausar, reanudar o cancelar limpia el sello del estado contrario (`pausedAt`/`cancelledAt`).
+- Editar el dominio a `null` ya no rompe la actualización de la suscripción.
+
+### Cambiado
+
+- Specs del servicio de suscripciones (reanudar, emparejado de una sola candidata, pago manual duplicado) y del job de recordatorios (un evento por ciclo).
+
+## [0.26.0] - 2026-10-14 - Suscripciones
+
+### Agregado
+
+- Tablas `fin_subscriptions` y `fin_subscription_payments` con enums de ciclo de facturación, estado y origen del pago, y sus índices y llaves foráneas.
+- REST `/finance/subscriptions`: listado y alta, detalle y edición, `pause`, `resume`, `cancel`, `payments`, `logo` y `summary` (costo mensual y anual en la moneda base).
+- Emparejado automático de pagos tras persistir o importar un movimiento, con el puerto `SUBSCRIPTION_MATCHER`, y job diario de recordatorios que emite `FINANCE_SUBSCRIPTION_RENEWAL_DUE`.
+- Tools `create_subscription` y `confirm_subscription_payment`; `list_subscriptions` incluye las suscripciones gestionadas.
+
+### Cambiado
+
+- Suscripciones deja de ser un módulo: sale de `MODULE_SLUGS` y de `MODULE_CONTEXT`, su configuración vive en el bloque `subscriptions` de Finanzas y una migración borra sus filas de `modules` y `user_modules`.
+- `PATCH /users/me/modules/:slug` responde 400 con un slug retirado como `subscriptions`.
+
+## [0.25.2] - 2026-10-14
+
+### Corregido
+
+- El aviso de subida de precio de un recurrente confirmado vuelve a dispararse en cada ejecución: la detección usa una banda amplia solo para refrescar el patrón y deja intacta la tolerancia guardada que compara el último cobro.
+- `GET /finance/recurring` pagina hacia delante con el cursor; la lista ordena por próximo cobro ascendente y antes repetía filas ya vistas.
+- El gasto del mes de un comercio cubre el último día completo, y `GET /finance/merchants/:id` usa la ventana del mes en vez del histórico.
+- Editar el nombre de un recurrente resuelve el comercio canónico, así que el cambio se ve en la lista y el detalle.
+- `POST /finance/recurring` rechaza un alta sin comercio ni `merchantId`, y `nextExpectedDate` se valida como fecha ISO en alta y edición.
+
+### Cambiado
+
+- Se eliminan métodos de repositorio sin uso (`listTransactions` y `clearMerchantLinks` de comercios, `deletePatterns` de recurrentes). Sin cambios de comportamiento.
+- Specs nuevos para el cursor del repositorio de recurrentes, el gasto del mes, la tolerancia del aviso de precio y la edición del comercio.
+
+## [0.25.1] - 2026-10-14
+
+### Cambiado
+
+- La detección de recurrentes devuelve el aviso de subida de precio en vez de mutar la lista del llamador. Sin cambios de comportamiento.
+
+## [0.25.0] - 2026-10-14 - Comercios y suscripciones detectadas
+
+### Agregado
+
+- Comercios canónicos: `FinMerchant` con clave normalizada y alias, `FinTransaction.merchantId` y el normalizador puro `normalize-merchant.ts` (gateway, referencias, estrella, ciudad y descriptores) con specs a partir de los correos BHD, Popular y Qik.
+- REST de comercios: `GET /finance/merchants`, `GET /finance/merchants/:id`, `GET /finance/merchants/suggest`, `PATCH /finance/merchants/:id`, `POST /finance/merchants/:id/merge` y `POST /finance/merchants/:id/logo`.
+- Recurrentes: `FinRecurringPattern` gana `merchantId`, `status`, `kind`, `lastSeenAt`, `amountTolerance`, `confirmedAt` y `createdAt`; detección pura por comercio, monto (±10 %) y periodicidad (7, 14, 30 o 365 días), con scheduler nocturno que respeta los descartados.
+- REST de recurrentes: `GET /finance/recurring`, `GET /finance/recurring/upcoming`, `POST /finance/recurring` y `PATCH /finance/recurring/:id` (confirmar, descartar, editar).
+- Eventos `finance.recurring.price_changed`, `finance.recurring.missed` y `finance.recurring.upcoming`, con su notificación en la app y el ajuste `recurringAlerts` de Finanzas.
+- Tools `list_subscriptions`, `confirm_recurring` y `list_merchants`.
+- La creación manual y la ingesta de correo resuelven y guardan el `merchantId`; `merchant` conserva el texto original.
+
+### Cambiado
+
+- `GET /finance/transactions` acepta el filtro `merchantId` y cada movimiento devuelve `merchantId`, `merchantName` y `merchantLogoUrl`.
+
+## [0.24.4] - 2026-10-14
+
+### Corregido
+
+- El resumen semanal incluye todo el domingo: la consulta de gasto usa el último instante del último día de la semana en vez de su medianoche.
+
+### Cambiado
+
+- El spec del resumen semanal comprueba el límite del último día de la semana. Sin cambios de comportamiento.
+
+## [0.24.3] - 2026-10-14
+
+### Corregido
+
+- La captura rápida rechaza una fecha imposible del modelo (por ejemplo `2026-02-31`) en el extractor, en vez de reemplazarla en silencio por la fecha de hoy. La validación vive en el borde que interpreta al modelo y el servicio confía en el contrato del puerto.
+
+### Cambiado
+
+- El spec del extractor de captura rápida cubre la fecha válida, la ausente y la imposible. Sin cambios de comportamiento aparte del rechazo.
+
+## [0.24.2] - 2026-10-14
+
+### Corregido
+
+- La notificación del resumen semanal reporta la semana anterior completa, no la que acaba de empezar el mismo día del envío.
+- `GET /api/finance/analytics/weekly-summary` responde 400 ante un `weekStart` que no es una fecha real (por ejemplo `2026-02-31`) en vez de fallar con un error interno.
+- La captura rápida ignora una fecha imposible del modelo y usa la fecha de hoy.
+
+### Cambiado
+
+- Los specs cubren el día y la hora del envío semanal, la idempotencia por semana, los destinatarios según el ajuste, el texto de la notificación, la semana anterior y las fechas imposibles. Sin cambios de comportamiento.
+
+## [0.24.1] - 2026-10-14
+
+### Corregido
+
+- El bloque de movimiento del chat ya no rellena tipo, monto, moneda, fecha ni estado que falten: un movimiento incompleto se omite en lugar de mostrar un valor inventado. La cuota del préstamo y el porcentaje del presupuesto se derivan solo de los datos presentes.
+
+## [0.24.0] - 2026-10-14
+
+### Agregado
+
+- El chat del agente responde con bloques nativos de Finanzas: `transaction_card`, `transaction_list`, `budget_progress`, `loan_summary` y `chart`. El runner los arma desde las tools de lectura (el LLM no da forma a las cifras) y se guardan con el mensaje; los clientes viejos ignoran los tipos que no conocen.
+- `POST /api/finance/quick-entry/parse` convierte una frase corta en un borrador de movimiento (tipo, monto, moneda, categoría, cuenta o tarjeta, fecha y comercio) con salida estructurada del LLM, resuelve alias contra el catálogo del usuario (por nombre, institución o últimos dígitos) y nunca guarda.
+- `GET /api/finance/analytics/weekly-summary` devuelve el gasto de la semana frente al promedio de las cuatro anteriores, el top 3 de categorías, los presupuestos en riesgo, las próximas cuotas, los vencimientos de tarjeta y los correos pendientes.
+- Un scheduler emite el resumen semanal por el outbox de notificaciones el día elegido, a las 08:00 de la zona del usuario, con idempotencia por semana.
+
+### Cambiado
+
+- La configuración de Finanzas suma `notifications.weeklySummary` (encendido por defecto) y `reports.weeklySummaryDay` (lunes por defecto).
+
+## [0.23.2] - 2026-10-14
+
+### Corregido
+
+- El prompt de sistema acota el nombre y el resumen de la entidad en foco, para que una descripción de banco larga no infle el prompt.
+
+### Cambiado
+
+- El spec del contexto de entidad cubre todas las ramas de resolución (transferencia, cuenta, tarjeta, cuota, cobro, meta, institución, correo y vencimiento ausente). Sin cambios de comportamiento.
+- El spec del repositorio de catálogo pasa el diario de eliminación que exige el constructor. Sin cambios de comportamiento.
+
+## [0.23.1] - 2026-10-14
+
+### Cambiado
+
+- Leer y guardar el contexto de la sesión son operaciones separadas. Sin cambios de comportamiento.
+
+## [0.23.0] - 2026-10-14
+
+### Agregado
+
+- `POST /api/ai/chat`, `POST /api/ai/chat/stream` y `POST /api/ai/sessions` aceptan `context` (`ChatContext`: `moduleSlug`, `screen?`, `entityRef?: { type, id }`).
+- El agente resuelve la entidad en foco con la fachada de Finanzas (dueño validado por `userId`) y suma tipo, nombre, saldo/estado e id al prompt de sistema. La sesión guarda el último `context` (`ai_agent_sessions.chat_context`).
+
+## [0.22.2] - 2026-10-14
+
+### Corregido
+
+- Un cursor paginado con forma válida pero con una fecha inválida responde 400 en vez de fallar en la consulta.
+
+### Cambiado
+
+- `GET /api/finance/budgets` desempaca el cursor con el helper compartido, igual que el resto de las listas. Sin cambios de comportamiento.
+
+## [0.22.1] - 2026-10-14
+
+### Cambiado
+
+- Los repositorios de planificación, correo y papelera comparten un helper para desempacar el cursor. Sin cambios de comportamiento.
+
+## [0.22.0] - 2026-10-14
+
+### Agregado
+
+- `GET /api/finance/loans/:id/installments`, `GET /api/finance/receivables/:id/payments`, `GET /api/finance/savings-goals/:id/allocations` (y su alias `/contributions`), `GET /api/finance/email-sync/pending` y `GET /api/finance/email-sync/messages` aceptan `cursor` + `limit` (1-100, por defecto 20) y devuelven `{ items, nextCursor, hasMore }`.
+- Los eliminados de `GET /api/finance/recycle-bin` paginan por fecha dentro de `{ archived, items, nextCursor, hasMore }`.
+
+### Cambiado
+
+- `GET /api/finance/recycle-bin` deja de devolver `{ archived, deleted }`: los archivados van completos en `archived` y los borrados paginan en `items`.
+- La tool `list_pending_emails` pide la primera página y devuelve `hasMore`.
+
+## [0.21.1] - 2026-10-14
+
+### Corregido
+
+- Subir un PDF dañado responde 400 con `STATEMENT_PARSE_FAILED` en vez de un error 500.
+- Ignorar una línea ya emparejada y volver a marcarla conserva su movimiento; antes se creaba un duplicado.
+- Aplicar un import de tarjeta registra el corte cerrado en el historial del instrumento, igual que el cierre manual.
+- Si el worker no puede leer el PDF temporal, el import queda `FAILED` en vez de quedarse en `PARSING`.
+
+## [0.21.0] - 2026-10-14
+
+### Agregado
+
+- Importar un estado de cuenta desde un PDF: `POST /api/finance/cards/:id/statements/import` y `POST /api/finance/accounts/:id/statements/import` crean el import y lo parsean en la cola `statement-import` (o en la misma petición si BullMQ no está disponible). La clave del PDF se pide y no se guarda; el archivo tampoco.
+- Conciliación de un import: `GET`/`DELETE /api/finance/statement-imports/:id`, `PATCH .../lines/:lineId` y `POST .../apply`. El matcher empareja por referencia o por monto, moneda, ±3 días y texto parecido. Aplicar crea los movimientos marcados, cierra el corte de la tarjeta y ajusta la diferencia si se pide; es idempotente.
+- Modelos `FinStatementImport` y `FinStatementImportLine` (migración `20261015230000_fin_statement_imports`).
+
+## [0.20.0] - 2026-10-13 - Reinicio de versionado beta
+
+### Cambiado
+
+- Nuevo esquema de versiones: el proyecto está en **beta** y usa `0.MINOR.PATCH` hasta `1.0.0`. Política completa en [docs/versionado.md](./docs/versionado.md).
+- Las versiones `1.x` anteriores equivalen al historial `0.x` y sus tags se borraron. `0.20.0` continúa el orden de lo publicado hasta `1.19.x`.
+- Marca "beta" en el README.
+
+> **Nota:** las entradas de abajo se publicaron como versiones `1.x` antes del reinicio de numeración. Se conservan como registro histórico; sus tags ya no existen.
+
+## [1.19.1] - 2026-10-13
+
+### Agregado
+
+- `CONTEXT.md`: glosario del dominio con los términos de negocio y los sinónimos que se descartan.
+
+### Corregido
+
+- `statements.md` lista los seis estados reales del corte (`OPEN`, `CLOSED`, `PARTIAL`, `MINIMUM_PAID`, `PAID`, `OVERDUE`) en vez de `PENDING` | `PARTIAL` | `PAID`.
+- `planning.md` incluye `WRITTEN_OFF` entre los estados del cobro.
+
 ## [1.19.0] - 2026-10-13
 
 ### Agregado

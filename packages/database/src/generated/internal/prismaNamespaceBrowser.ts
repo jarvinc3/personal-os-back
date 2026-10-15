@@ -68,6 +68,10 @@ export const ModelName = {
   FinBudgetCategory: 'FinBudgetCategory',
   FinBudgetAlert: 'FinBudgetAlert',
   FinRecurringPattern: 'FinRecurringPattern',
+  FinMerchant: 'FinMerchant',
+  FinSubscription: 'FinSubscription',
+  FinSubscriptionPayment: 'FinSubscriptionPayment',
+  FinSubscriptionAlertDismissal: 'FinSubscriptionAlertDismissal',
   FinExchangeRate: 'FinExchangeRate',
   FinInstitution: 'FinInstitution',
   FinCard: 'FinCard',
@@ -86,7 +90,12 @@ export const ModelName = {
   DomainEventOutbox: 'DomainEventOutbox',
   ProcessedDomainEvent: 'ProcessedDomainEvent',
   AuthDeletionOutbox: 'AuthDeletionOutbox',
-  FinDeletionJournal: 'FinDeletionJournal'
+  FinDeletionJournal: 'FinDeletionJournal',
+  FinStatementImport: 'FinStatementImport',
+  FinStatementImportLine: 'FinStatementImportLine',
+  FinReconciliation: 'FinReconciliation',
+  FinReconciliationAdjustment: 'FinReconciliationAdjustment',
+  FinBalanceDrift: 'FinBalanceDrift'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -154,6 +163,7 @@ export const AiAgentSessionScalarFieldEnum = {
   userId: 'userId',
   moduleId: 'moduleId',
   contextType: 'contextType',
+  chatContext: 'chatContext',
   memorySnapshot: 'memorySnapshot',
   lastActiveAt: 'lastActiveAt',
   createdAt: 'createdAt'
@@ -291,6 +301,7 @@ export const FinTransactionScalarFieldEnum = {
   ledgerCurrency: 'ledgerCurrency',
   exchangeRate: 'exchangeRate',
   merchant: 'merchant',
+  merchantId: 'merchantId',
   description: 'description',
   transactionDate: 'transactionDate',
   transferGroupId: 'transferGroupId',
@@ -373,18 +384,98 @@ export const FinRecurringPatternScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
   categoryId: 'categoryId',
+  merchantId: 'merchantId',
   merchant: 'merchant',
   avgAmount: 'avgAmount',
   currency: 'currency',
   frequency: 'frequency',
   nextExpectedDate: 'nextExpectedDate',
+  amountTolerance: 'amountTolerance',
+  status: 'status',
+  kind: 'kind',
   confidenceScore: 'confidenceScore',
+  lastSeenAt: 'lastSeenAt',
+  confirmedAt: 'confirmedAt',
   aiAnalysis: 'aiAnalysis',
   isActive: 'isActive',
+  createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
 
 export type FinRecurringPatternScalarFieldEnum = (typeof FinRecurringPatternScalarFieldEnum)[keyof typeof FinRecurringPatternScalarFieldEnum]
+
+
+export const FinMerchantScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  name: 'name',
+  normalizedKey: 'normalizedKey',
+  aliases: 'aliases',
+  categoryId: 'categoryId',
+  logoUrl: 'logoUrl',
+  createdAt: 'createdAt'
+} as const
+
+export type FinMerchantScalarFieldEnum = (typeof FinMerchantScalarFieldEnum)[keyof typeof FinMerchantScalarFieldEnum]
+
+
+export const FinSubscriptionScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  name: 'name',
+  normalizedKey: 'normalizedKey',
+  domain: 'domain',
+  logoPath: 'logoPath',
+  customLogoPath: 'customLogoPath',
+  amount: 'amount',
+  currency: 'currency',
+  billingCycle: 'billingCycle',
+  billingInterval: 'billingInterval',
+  anchorDate: 'anchorDate',
+  nextBillingDate: 'nextBillingDate',
+  trialEndsAt: 'trialEndsAt',
+  status: 'status',
+  pausedAt: 'pausedAt',
+  cancelledAt: 'cancelledAt',
+  reminderDaysBefore: 'reminderDaysBefore',
+  lastRemindedFor: 'lastRemindedFor',
+  cardId: 'cardId',
+  accountId: 'accountId',
+  categoryId: 'categoryId',
+  manageUrl: 'manageUrl',
+  notes: 'notes',
+  sourcePatternId: 'sourcePatternId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type FinSubscriptionScalarFieldEnum = (typeof FinSubscriptionScalarFieldEnum)[keyof typeof FinSubscriptionScalarFieldEnum]
+
+
+export const FinSubscriptionPaymentScalarFieldEnum = {
+  id: 'id',
+  subscriptionId: 'subscriptionId',
+  transactionId: 'transactionId',
+  amount: 'amount',
+  currency: 'currency',
+  paidAt: 'paidAt',
+  source: 'source',
+  createdAt: 'createdAt'
+} as const
+
+export type FinSubscriptionPaymentScalarFieldEnum = (typeof FinSubscriptionPaymentScalarFieldEnum)[keyof typeof FinSubscriptionPaymentScalarFieldEnum]
+
+
+export const FinSubscriptionAlertDismissalScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  subscriptionId: 'subscriptionId',
+  kind: 'kind',
+  alertDate: 'alertDate',
+  createdAt: 'createdAt'
+} as const
+
+export type FinSubscriptionAlertDismissalScalarFieldEnum = (typeof FinSubscriptionAlertDismissalScalarFieldEnum)[keyof typeof FinSubscriptionAlertDismissalScalarFieldEnum]
 
 
 export const FinExchangeRateScalarFieldEnum = {
@@ -414,6 +505,7 @@ export const FinInstitutionScalarFieldEnum = {
   color: 'color',
   country: 'country',
   isActive: 'isActive',
+  isSystem: 'isSystem',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -721,6 +813,86 @@ export const FinDeletionJournalScalarFieldEnum = {
 } as const
 
 export type FinDeletionJournalScalarFieldEnum = (typeof FinDeletionJournalScalarFieldEnum)[keyof typeof FinDeletionJournalScalarFieldEnum]
+
+
+export const FinStatementImportScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  cardId: 'cardId',
+  accountId: 'accountId',
+  statementId: 'statementId',
+  status: 'status',
+  parsed: 'parsed',
+  error: 'error',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  appliedAt: 'appliedAt'
+} as const
+
+export type FinStatementImportScalarFieldEnum = (typeof FinStatementImportScalarFieldEnum)[keyof typeof FinStatementImportScalarFieldEnum]
+
+
+export const FinStatementImportLineScalarFieldEnum = {
+  id: 'id',
+  importId: 'importId',
+  date: 'date',
+  description: 'description',
+  amount: 'amount',
+  currency: 'currency',
+  type: 'type',
+  reference: 'reference',
+  categoryId: 'categoryId',
+  transactionId: 'transactionId',
+  decision: 'decision',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type FinStatementImportLineScalarFieldEnum = (typeof FinStatementImportLineScalarFieldEnum)[keyof typeof FinStatementImportLineScalarFieldEnum]
+
+
+export const FinReconciliationScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  accountId: 'accountId',
+  cardId: 'cardId',
+  currency: 'currency',
+  asOfDate: 'asOfDate',
+  appBalance: 'appBalance',
+  realBalance: 'realBalance',
+  difference: 'difference',
+  note: 'note',
+  createdAt: 'createdAt'
+} as const
+
+export type FinReconciliationScalarFieldEnum = (typeof FinReconciliationScalarFieldEnum)[keyof typeof FinReconciliationScalarFieldEnum]
+
+
+export const FinReconciliationAdjustmentScalarFieldEnum = {
+  id: 'id',
+  reconciliationId: 'reconciliationId',
+  transactionId: 'transactionId',
+  kind: 'kind',
+  amount: 'amount'
+} as const
+
+export type FinReconciliationAdjustmentScalarFieldEnum = (typeof FinReconciliationAdjustmentScalarFieldEnum)[keyof typeof FinReconciliationAdjustmentScalarFieldEnum]
+
+
+export const FinBalanceDriftScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  accountId: 'accountId',
+  cardId: 'cardId',
+  currency: 'currency',
+  storedBalance: 'storedBalance',
+  expectedBalance: 'expectedBalance',
+  difference: 'difference',
+  detectedAt: 'detectedAt',
+  resolvedAt: 'resolvedAt'
+} as const
+
+export type FinBalanceDriftScalarFieldEnum = (typeof FinBalanceDriftScalarFieldEnum)[keyof typeof FinBalanceDriftScalarFieldEnum]
 
 
 export const SortOrder = {

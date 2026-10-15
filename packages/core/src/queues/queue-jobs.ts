@@ -27,3 +27,9 @@ export type GmailSyncJob = {
   sourceId: string;
   forceFullSync?: boolean;
 };
+
+export type StatementImportJob = {
+  userId: string;
+  importId: string;
+  password?: string;
+};

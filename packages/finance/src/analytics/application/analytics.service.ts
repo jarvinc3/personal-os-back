@@ -1,7 +1,13 @@
 import { Injectable } from '@nestjs/common';
+import type { Prisma } from '@personal-os/database';
 import { BalanceSheetService } from '../../balance-sheet/application/balance-sheet.service';
 import { decimalToString } from '../../shared/domain/mappers';
-import { roundMoney } from '../../shared/domain/money';
+import {
+  ratioPercent,
+  roundDecimal,
+  scalarNumber,
+  toMoney,
+} from '../../shared/domain/money';
 import { AnalyticsRepository } from '../infrastructure/analytics.repository';
 
 const UNCATEGORIZED_NAME = 'Sin categoría';
@@ -26,32 +32,32 @@ export class AnalyticsService {
       this.repo.getCashFlowAggregates(userId, from, to),
     ]);
 
-    let income = 0;
-    let expenses = 0;
+    let income = toMoney(0);
+    let expenses = toMoney(0);
     for (const row of aggregates) {
       if (row.status !== 'CONFIRMED') {
         continue;
       }
-      const sum = Number(row._sum?.amountBaseCurrency ?? 0);
+      const amount = toMoney(row._sum?.amountBaseCurrency ?? 0);
       if (row.type === 'CREDIT') {
-        income += sum;
+        income = income.plus(amount);
       }
       if (row.type === 'DEBIT') {
-        expenses += sum;
+        expenses = expenses.plus(amount);
       }
     }
 
     return {
       netWorth: sheet.global.netWorth,
-      cashFlow: decimalToString(roundMoney(income - expenses)),
+      cashFlow: decimalToString(roundDecimal(income.minus(expenses))),
       baseCurrency: sheet.baseCurrency,
       balanceStatus: sheet.global.status,
       balanceIssues: sheet.global.issues,
       totals: {
         accountBalance: sheet.global.assets.accounts,
         cardDebt: sheet.global.liabilities.creditCards,
-        income: decimalToString(roundMoney(income)),
-        expenses: decimalToString(roundMoney(expenses)),
+        income: decimalToString(roundDecimal(income)),
+        expenses: decimalToString(roundDecimal(expenses)),
       },
     };
   }
@@ -79,9 +85,7 @@ export class AnalyticsService {
     );
 
     return grouped.map((item) => {
-      const total = item._sum.amountBaseCurrency
-        ? Number(item._sum.amountBaseCurrency)
-        : 0;
+      const total = roundDecimal(item._sum.amountBaseCurrency);
       if (item.categoryId == null) {
         return {
           categoryId: null,
@@ -117,7 +121,7 @@ export class AnalyticsService {
 
     const byDate = new Map<
       string,
-      { date: string; expenses: number; income: number }
+      { date: string; expenses: Prisma.Decimal; income: Prisma.Decimal }
     >();
 
     for (const row of rows) {
@@ -125,13 +129,16 @@ export class AnalyticsService {
         row.bucket instanceof Date
           ? row.bucket.toISOString().slice(0, 10)
           : String(row.bucket).slice(0, 10);
-      const entry = byDate.get(date) ?? { date, expenses: 0, income: 0 };
-      const total = Number(row.total) || 0;
+      const entry = byDate.get(date) ?? {
+        date,
+        expenses: toMoney(0),
+        income: toMoney(0),
+      };
       if (row.type === 'DEBIT') {
-        entry.expenses += total;
+        entry.expenses = entry.expenses.plus(row.total);
       }
       if (row.type === 'CREDIT') {
-        entry.income += total;
+        entry.income = entry.income.plus(row.total);
       }
       byDate.set(date, entry);
     }
@@ -141,8 +148,8 @@ export class AnalyticsService {
         .sort((a, b) => a.date.localeCompare(b.date))
         .map((point) => ({
           date: point.date,
-          expenses: decimalToString(roundMoney(point.expenses)),
-          income: decimalToString(roundMoney(point.income)),
+          expenses: decimalToString(roundDecimal(point.expenses)),
+          income: decimalToString(roundDecimal(point.income)),
         })),
     };
   }
@@ -150,9 +157,8 @@ export class AnalyticsService {
   async getBudgetStatus(userId: string) {
     const budgets = await this.repo.listBudgets(userId);
     return budgets.map((budget) => {
-      const limit = Number(budget.amountLimit);
-      const spent = Number(budget.amountSpent);
-      const pctUsed = limit > 0 ? (spent / limit) * 100 : 0;
+      const limit = toMoney(budget.amountLimit);
+      const spent = toMoney(budget.amountSpent);
       return {
         id: budget.id,
         categoryId: budget.categoryId,
@@ -164,8 +170,8 @@ export class AnalyticsService {
         periodEnd: budget.periodEnd.toISOString().slice(0, 10),
         amountLimit: decimalToString(limit),
         amountSpent: decimalToString(spent),
-        pctUsed,
-        threshold: Number(budget.alertThresholdPct),
+        pctUsed: ratioPercent(spent, limit),
+        threshold: scalarNumber(budget.alertThresholdPct),
       };
     });
   }

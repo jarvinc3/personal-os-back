@@ -22,7 +22,7 @@ export class MergeTransactionUseCase {
   ): Promise<{ success: true }> {
     const keeper = await this.repo.findTransactionById(intoId, userId);
     if (!keeper) {
-      throw new NotFoundException('Transaction not found');
+      throw new NotFoundException('Transacción no encontrada');
     }
     await this.deleteTransaction.execute(userId, duplicateId);
     return { success: true };

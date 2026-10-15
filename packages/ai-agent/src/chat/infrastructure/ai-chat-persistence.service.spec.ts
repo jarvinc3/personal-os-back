@@ -21,6 +21,7 @@ describe('AiChatPersistenceService', () => {
   const touchSession = jest.fn();
   const findSessionByIdOnly = jest.fn();
   const updateSession = jest.fn();
+  const findSessionById = jest.fn();
 
   const sessionsRepo = {
     findAssistantByClientMessageId,
@@ -29,6 +30,7 @@ describe('AiChatPersistenceService', () => {
     touchSession,
     findSessionByIdOnly,
     updateSession,
+    findSessionById,
   } as unknown as jest.Mocked<AiSessionsRepository>;
 
   const usersRepository = {
@@ -137,5 +139,56 @@ describe('AiChatPersistenceService', () => {
 
     expect(result).toBe(existing);
     expect(createMessage).not.toHaveBeenCalled();
+  });
+
+  it('persists the incoming chat context', async () => {
+    updateSession.mockResolvedValue({ id: 'session-1' });
+    const context = {
+      moduleSlug: 'finance',
+      screen: 'loan-detail',
+      entityRef: { type: 'loan' as const, id: 'loan-1' },
+    };
+
+    await service.persistChatContext('session-1', context);
+
+    expect(updateSession).toHaveBeenCalledWith('session-1', {
+      chatContext: context,
+    });
+  });
+
+  it('reads the stored chat context', async () => {
+    findSessionById.mockResolvedValue({
+      id: 'session-1',
+      chatContext: {
+        moduleSlug: 'finance',
+        entityRef: { type: 'budget', id: 'budget-1' },
+      },
+    });
+
+    const stored = await service.readChatContext('user-1', 'session-1');
+
+    expect(stored).toEqual({
+      moduleSlug: 'finance',
+      entityRef: { type: 'budget', id: 'budget-1' },
+    });
+  });
+
+  it('returns null when the stored chat context is malformed', async () => {
+    findSessionById.mockResolvedValue({
+      id: 'session-1',
+      chatContext: { entityRef: { type: 'loan', id: 'loan-1' } },
+    });
+
+    const stored = await service.readChatContext('user-1', 'session-1');
+
+    expect(stored).toBeNull();
+  });
+
+  it('rejects reading the chat context of a missing session', async () => {
+    findSessionById.mockResolvedValue(null);
+
+    await expect(
+      service.readChatContext('user-1', 'session-missing'),
+    ).rejects.toThrow('Sesión de IA no encontrada');
   });
 });

@@ -2,6 +2,8 @@ import { CatalogService } from './catalog.service';
 import type { CatalogRepository } from '../infrastructure/catalog.repository';
 import type { FinanceOwnershipService } from '../../shared/application/finance-ownership.service';
 import type { PurgeInstrumentLedgerUseCase } from '../../ledger/application/purge-instrument-ledger.use-case';
+import type { EnsureCashInstitutionUseCase } from './ensure-cash-institution.use-case';
+import type { ResolveUserBaseCurrencyUseCase } from '../../fx/application/resolve-user-base-currency';
 import { BadRequestException, ConflictException } from '@nestjs/common';
 
 function ownershipMock(
@@ -12,8 +14,20 @@ function ownershipMock(
       if (id === 'inst-1') {
         return Promise.resolve({ id, name: 'Banco' });
       }
-      return Promise.reject(new BadRequestException('Institution not found'));
+      return Promise.reject(
+        new BadRequestException('Institución no encontrada'),
+      );
     }),
+    assertInstitutionAcceptsBankProducts: jest.fn(
+      (_userId: string, id: string) => {
+        if (id === 'inst-1') {
+          return Promise.resolve({ id, name: 'Banco', type: 'bank' });
+        }
+        return Promise.reject(
+          new BadRequestException('Institución no encontrada'),
+        );
+      },
+    ),
     assertAccountOwned: jest.fn(),
     assertCardOwned: jest.fn(),
     assertCategoryVisible: jest.fn(),
@@ -38,6 +52,40 @@ function purgeMock(): PurgeInstrumentLedgerUseCase {
   } as unknown as PurgeInstrumentLedgerUseCase;
 }
 
+function ensureMock(): EnsureCashInstitutionUseCase {
+  return {
+    execute: jest.fn().mockResolvedValue(undefined),
+  } as unknown as EnsureCashInstitutionUseCase;
+}
+
+function baseCurrencyMock(currency = 'DOP'): ResolveUserBaseCurrencyUseCase {
+  return {
+    execute: jest.fn().mockResolvedValue(currency),
+  } as unknown as ResolveUserBaseCurrencyUseCase;
+}
+
+/**
+ * Builds the service with the cash-institution mock in place, so every spec
+ * keeps passing only the collaborators it cares about.
+ */
+function createService(
+  repo: CatalogRepository,
+  ownership: FinanceOwnershipService,
+  purge: PurgeInstrumentLedgerUseCase,
+  logos?: never,
+  users?: never,
+) {
+  return new CatalogService(
+    repo,
+    ownership,
+    purge,
+    ensureMock(),
+    baseCurrencyMock(),
+    logos,
+    users,
+  );
+}
+
 describe('CatalogService cards archive', () => {
   const findCardById = jest.fn();
   const updateCard = jest.fn();
@@ -51,7 +99,7 @@ describe('CatalogService cards archive', () => {
     findAccountById,
   } as unknown as CatalogRepository;
 
-  const service = new CatalogService(repo, ownershipMock(), purgeMock());
+  const service = createService(repo, ownershipMock(), purgeMock());
 
   const debitCard = {
     id: 'card-1',
@@ -112,9 +160,9 @@ describe('CatalogService cards archive', () => {
     updateCard.mockResolvedValue(null);
     await expect(
       service.updateCard('user-1', 'other', { isActive: false }),
-    ).rejects.toThrow(/not found/i);
+    ).rejects.toThrow(/no encontrad/i);
     await expect(service.deactivateCard('user-1', 'other')).rejects.toThrow(
-      /not found/i,
+      /no encontrad/i,
     );
   });
 });
@@ -128,9 +176,10 @@ describe('CatalogService createAccount', () => {
     createAccount,
     listInstitutions,
     findAccountById,
+    findSystemCashInstitution: jest.fn().mockResolvedValue({ id: 'cash-inst' }),
   } as unknown as CatalogRepository;
 
-  const service = new CatalogService(repo, ownershipMock(), purgeMock());
+  const service = createService(repo, ownershipMock(), purgeMock());
 
   const created = {
     id: 'acc-1',
@@ -162,7 +211,7 @@ describe('CatalogService createAccount', () => {
         institutionId: 'missing',
         accountNumber: '001122335678',
       }),
-    ).rejects.toThrow(/Institution not found/i);
+    ).rejects.toThrow(/Institución no encontrada/i);
     expect(createAccount).not.toHaveBeenCalled();
   });
 
@@ -211,13 +260,13 @@ describe('CatalogService createAccount', () => {
     expect(result).not.toHaveProperty('institution');
   });
 
-  it('creates a CASH account without an institution', async () => {
+  it('creates a CASH account inside the system Efectivo institution', async () => {
     createAccount.mockResolvedValue({
       ...created,
       type: 'CASH',
-      institutionId: null,
+      institutionId: 'cash-inst',
       accountNumber: null,
-      institutionRef: null,
+      institutionRef: { name: 'Efectivo' },
     });
 
     const result = await service.createAccount('user-1', {
@@ -228,10 +277,11 @@ describe('CatalogService createAccount', () => {
     expect(createAccount).toHaveBeenCalledWith('user-1', {
       name: 'Efectivo',
       type: 'CASH',
+      institutionId: 'cash-inst',
     });
     expect(result).toMatchObject({
       type: 'CASH',
-      institutionId: null,
+      institutionId: 'cash-inst',
       accountNumber: null,
     });
   });
@@ -244,7 +294,7 @@ describe('CatalogService updateAccount number', () => {
     updateAccount,
     findAccountById,
   } as unknown as CatalogRepository;
-  const service = new CatalogService(repo, ownershipMock(), purgeMock());
+  const service = createService(repo, ownershipMock(), purgeMock());
 
   const existing = {
     id: 'acc-1',
@@ -294,7 +344,7 @@ describe('CatalogService updateAccount number', () => {
 describe('CatalogService createCard lastFour', () => {
   const createCard = jest.fn();
   const repo = { createCard } as unknown as CatalogRepository;
-  const service = new CatalogService(repo, ownershipMock(), purgeMock());
+  const service = createService(repo, ownershipMock(), purgeMock());
 
   it('rejects cards without lastFour', async () => {
     await expect(
@@ -321,8 +371,11 @@ describe('CatalogService archive institution', () => {
     );
 
     const updateInstitution = jest.fn();
-    const service = new CatalogService(
-      { updateInstitution } as unknown as CatalogRepository,
+    const service = createService(
+      {
+        updateInstitution,
+        findInstitution: jest.fn().mockResolvedValue({ id: 'inst-1' }),
+      } as unknown as CatalogRepository,
       ownership,
       purgeMock(),
     );
@@ -341,7 +394,7 @@ describe('CatalogService archive institution', () => {
 describe('CatalogService updateCardBalance', () => {
   const findCardById = jest.fn();
   const upsertCardBalance = jest.fn();
-  const service = new CatalogService(
+  const service = createService(
     { findCardById, upsertCardBalance } as unknown as CatalogRepository,
     ownershipMock(),
     purgeMock(),
@@ -368,7 +421,7 @@ describe('CatalogService updateCardBalance', () => {
         currency: 'DOP',
         balance: 42467,
       }),
-    ).rejects.toThrow(/CREDIT cards require creditLimit/i);
+    ).rejects.toThrow(/CREDIT requieren creditLimit/i);
     expect(upsertCardBalance).not.toHaveBeenCalled();
   });
 
@@ -407,7 +460,7 @@ describe('CatalogService updateCardBalance', () => {
 describe('CatalogService deleteCardBalance', () => {
   const findCardById = jest.fn();
   const deleteCardBalance = jest.fn();
-  const service = new CatalogService(
+  const service = createService(
     { findCardById, deleteCardBalance } as unknown as CatalogRepository,
     ownershipMock(),
     purgeMock(),
@@ -441,7 +494,7 @@ describe('CatalogService deleteCardBalance', () => {
 
     await expect(
       service.deleteCardBalance('user-1', 'card-1', 'USD'),
-    ).rejects.toThrow('Card balance not found');
+    ).rejects.toThrow('Saldo de tarjeta no encontrado');
   });
 });
 
@@ -460,7 +513,7 @@ describe('CatalogService categories', () => {
     assertParentCategory,
     assertCategoryVisible,
   });
-  const service = new CatalogService(repo, ownership, purgeMock());
+  const service = createService(repo, ownership, purgeMock());
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -483,7 +536,7 @@ describe('CatalogService categories', () => {
 
   it('rejects an INCOME child under an EXPENSE parent', async () => {
     assertParentCategory.mockRejectedValue(
-      new BadRequestException('Parent category must have the same type'),
+      new BadRequestException('La categoría padre debe tener el mismo tipo'),
     );
 
     await expect(
@@ -606,7 +659,7 @@ describe('CatalogService hard delete', () => {
     const forAccount = jest.fn().mockResolvedValue({ count: 1, rows: [] });
     const findAccountById = jest.fn().mockResolvedValue({ id: 'acc-1' });
     const deleteAccount = jest.fn().mockResolvedValue({ count: 1 });
-    const service = new CatalogService(
+    const service = createService(
       {
         findAccountById,
         deleteAccount,
@@ -630,7 +683,7 @@ describe('CatalogService hard delete', () => {
   });
 
   it('returns 404 when deleting a missing account', async () => {
-    const service = new CatalogService(
+    const service = createService(
       {
         findAccountById: jest.fn().mockResolvedValue(null),
       } as unknown as CatalogRepository,
@@ -638,14 +691,60 @@ describe('CatalogService hard delete', () => {
       purgeMock(),
     );
     await expect(service.deleteAccount('user-1', 'missing')).rejects.toThrow(
-      /not found/i,
+      /no encontrad/i,
     );
+  });
+
+  it('rejects deleting the base-currency Efectivo account', async () => {
+    const deleteAccount = jest.fn();
+    const service = createService(
+      {
+        findAccountById: jest.fn().mockResolvedValue({
+          id: 'acc-cash',
+          type: 'CASH',
+          currency: 'DOP',
+        }),
+        deleteAccount,
+      } as unknown as CatalogRepository,
+      ownershipMock(),
+      purgeMock(),
+    );
+
+    await expect(service.deleteAccount('user-1', 'acc-cash')).rejects.toThrow(
+      /moneda base/i,
+    );
+    expect(deleteAccount).not.toHaveBeenCalled();
+  });
+
+  it('deletes a cash account in another currency', async () => {
+    const forAccount = jest.fn().mockResolvedValue({ count: 1, rows: [] });
+    const deleteAccount = jest.fn().mockResolvedValue({ count: 1 });
+    const service = createService(
+      {
+        findAccountById: jest.fn().mockResolvedValue({
+          id: 'acc-usd',
+          type: 'CASH',
+          currency: 'USD',
+        }),
+        deleteAccount,
+      } as unknown as CatalogRepository,
+      ownershipMock(),
+      {
+        forAccount,
+        forCard: jest.fn(),
+      } as unknown as PurgeInstrumentLedgerUseCase,
+    );
+
+    await expect(service.deleteAccount('user-1', 'acc-usd')).resolves.toEqual({
+      success: true,
+    });
+    expect(deleteAccount).toHaveBeenCalled();
   });
 
   it('deletes a card after purging its ledger', async () => {
     const forCard = jest.fn().mockResolvedValue({ count: 1, rows: [] });
     const deleteCard = jest.fn().mockResolvedValue({ count: 1 });
-    const service = new CatalogService(
+    const service = createService(
       {
         findCardById: jest.fn().mockResolvedValue({ id: 'card-1' }),
         deleteCard,
@@ -679,7 +778,7 @@ describe('CatalogService hard delete', () => {
       .fn()
       .mockResolvedValue([{ id: 'card-credit' }]);
     const deleteInstitution = jest.fn().mockResolvedValue({ count: 1 });
-    const service = new CatalogService(
+    const service = createService(
       {
         findInstitution,
         listAccountsByInstitution,
@@ -712,8 +811,11 @@ describe('CatalogService hard delete', () => {
       country: 'DO',
       isActive: false,
     });
-    const service = new CatalogService(
-      { updateInstitution } as unknown as CatalogRepository,
+    const service = createService(
+      {
+        updateInstitution,
+        findInstitution: jest.fn().mockResolvedValue({ id: 'inst-1' }),
+      } as unknown as CatalogRepository,
       ownershipMock({ assertInstitutionCanArchive }),
       purgeMock(),
     );
@@ -728,5 +830,243 @@ describe('CatalogService hard delete', () => {
     expect(updateInstitution).toHaveBeenCalledWith('user-1', 'inst-1', {
       isActive: false,
     });
+  });
+});
+
+describe('CatalogService card credit', () => {
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  const utcDay = (iso: string) => new Date(`${iso}T00:00:00.000Z`);
+
+  it('returns available credit and the next cycle in the user timezone', async () => {
+    jest.useFakeTimers({ now: new Date('2026-02-01T12:00:00.000Z') });
+    const findCardById = jest.fn().mockResolvedValue({
+      id: 'card-1',
+      institutionId: 'inst-1',
+      institution: { name: 'Banco', logoUrl: null },
+      accountId: null,
+      account: null,
+      name: 'Visa',
+      type: 'CREDIT',
+      network: 'VISA',
+      lastFour: '1234',
+      statementClosingDay: 31,
+      paymentDueDay: 15,
+      color: null,
+      isActive: true,
+      balances: [
+        { id: 'bal-1', currency: 'DOP', balance: 38000, creditLimit: 50000 },
+      ],
+      transactions: [
+        {
+          type: 'DEBIT',
+          status: 'PENDING',
+          ledgerAmount: 1000,
+          ledgerCurrency: 'DOP',
+          transactionDate: utcDay('2026-02-01'),
+        },
+      ],
+    });
+    const users = {
+      findById: jest
+        .fn()
+        .mockResolvedValue({ timezone: 'America/Santo_Domingo' }),
+    };
+    const service = createService(
+      { findCardById } as unknown as CatalogRepository,
+      ownershipMock(),
+      purgeMock(),
+      undefined,
+      users as never,
+    );
+
+    const card = await service.getCard('user-1', 'card-1');
+
+    expect(card.balances).toEqual([
+      {
+        id: 'bal-1',
+        currency: 'DOP',
+        balance: '38000',
+        creditLimit: '50000',
+        availableCredit: '37000',
+      },
+    ]);
+    expect(card.nextStatementDate).toBe('2026-02-28');
+    expect(card.nextPaymentDueDate).toBe('2026-03-15');
+  });
+
+  it('leaves available credit and the cycle empty without a limit or closing day', async () => {
+    jest.useFakeTimers({ now: new Date('2026-02-01T12:00:00.000Z') });
+    const findCardById = jest.fn().mockResolvedValue({
+      id: 'card-1',
+      institutionId: 'inst-1',
+      institution: { name: 'Banco', logoUrl: null },
+      accountId: null,
+      account: null,
+      name: 'Visa',
+      type: 'CREDIT',
+      network: null,
+      lastFour: '1234',
+      statementClosingDay: null,
+      paymentDueDay: null,
+      color: null,
+      isActive: true,
+      balances: [
+        { id: 'bal-1', currency: 'DOP', balance: 0, creditLimit: null },
+      ],
+      transactions: [],
+    });
+    const service = createService(
+      { findCardById } as unknown as CatalogRepository,
+      ownershipMock(),
+      purgeMock(),
+    );
+
+    const card = await service.getCard('user-1', 'card-1');
+
+    expect(card.balances[0].availableCredit).toBeNull();
+    expect(card.nextStatementDate).toBeNull();
+    expect(card.nextPaymentDueDate).toBeNull();
+  });
+});
+
+describe('CatalogService cash institution rules', () => {
+  const systemInstitution = {
+    id: 'cash-inst',
+    name: 'Efectivo',
+    type: 'cash',
+    isSystem: true,
+  };
+
+  it('rejects editing the system institution', async () => {
+    const service = createService(
+      {
+        findInstitution: jest.fn().mockResolvedValue(systemInstitution),
+        updateInstitution: jest.fn(),
+      } as unknown as CatalogRepository,
+      ownershipMock(),
+      purgeMock(),
+    );
+
+    await expect(
+      service.updateInstitution('user-1', 'cash-inst', { name: 'Caja' }),
+    ).rejects.toThrow(/sistema/i);
+  });
+
+  it('rejects archiving the system institution', async () => {
+    const service = createService(
+      {
+        findInstitution: jest.fn().mockResolvedValue(systemInstitution),
+        updateInstitution: jest.fn(),
+      } as unknown as CatalogRepository,
+      ownershipMock(),
+      purgeMock(),
+    );
+
+    await expect(
+      service.deactivateInstitution('user-1', 'cash-inst'),
+    ).rejects.toThrow(/sistema/i);
+  });
+
+  it('rejects deleting the system institution', async () => {
+    const deleteInstitution = jest.fn();
+    const service = createService(
+      {
+        findInstitution: jest.fn().mockResolvedValue(systemInstitution),
+        deleteInstitution,
+      } as unknown as CatalogRepository,
+      ownershipMock(),
+      purgeMock(),
+    );
+
+    await expect(
+      service.deleteInstitution('user-1', 'cash-inst'),
+    ).rejects.toThrow(/sistema/i);
+    expect(deleteInstitution).not.toHaveBeenCalled();
+  });
+
+  it('rejects turning another institution into cash', async () => {
+    const updateInstitution = jest.fn();
+    const service = createService(
+      {
+        findInstitution: jest
+          .fn()
+          .mockResolvedValue({ id: 'inst-1', isSystem: false }),
+        updateInstitution,
+      } as unknown as CatalogRepository,
+      ownershipMock(),
+      purgeMock(),
+    );
+
+    await expect(
+      service.updateInstitution('user-1', 'inst-1', { type: 'cash' }),
+    ).rejects.toThrow(/Efectivo/i);
+    expect(updateInstitution).not.toHaveBeenCalled();
+  });
+
+  it('rejects creating another cash institution', async () => {
+    const createInstitution = jest.fn();
+    const service = createService(
+      { createInstitution } as unknown as CatalogRepository,
+      ownershipMock(),
+      purgeMock(),
+    );
+
+    await expect(
+      service.createInstitution('user-1', { name: 'Efectivo', type: 'cash' }),
+    ).rejects.toThrow(/Efectivo/i);
+    expect(createInstitution).not.toHaveBeenCalled();
+  });
+
+  it('rejects a card on the cash institution', async () => {
+    const createCard = jest.fn();
+    const service = createService(
+      { createCard } as unknown as CatalogRepository,
+      ownershipMock({
+        assertInstitutionAcceptsBankProducts: jest
+          .fn()
+          .mockRejectedValue(
+            new BadRequestException(
+              'Efectivo no admite tarjetas, préstamos ni sincronización por correo',
+            ),
+          ),
+      }),
+      purgeMock(),
+    );
+
+    await expect(
+      service.createCard('user-1', {
+        institutionId: 'cash-inst',
+        name: 'Visa',
+        type: 'CREDIT',
+        lastFour: '1234',
+      }),
+    ).rejects.toThrow(/Efectivo no admite/i);
+    expect(createCard).not.toHaveBeenCalled();
+  });
+
+  it('rejects opening a cash account outside Efectivo', async () => {
+    const createAccount = jest.fn();
+    const service = createService(
+      {
+        createAccount,
+        findSystemCashInstitution: jest
+          .fn()
+          .mockResolvedValue({ id: 'cash-inst' }),
+      } as unknown as CatalogRepository,
+      ownershipMock(),
+      purgeMock(),
+    );
+
+    await expect(
+      service.createAccount('user-1', {
+        name: 'Efectivo',
+        type: 'CASH',
+        institutionId: 'inst-1',
+      }),
+    ).rejects.toThrow(/Efectivo/i);
+    expect(createAccount).not.toHaveBeenCalled();
   });
 });

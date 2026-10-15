@@ -130,9 +130,7 @@ const bullBoardEnabled = isBullBoardEnabledFromProcessEnv();
       isGlobal: true,
       ttl: 300_000,
     }),
-    // Reserved for future cron jobs (no @Cron handlers yet).
-    // Reserved for future cron jobs (no @Cron handlers yet).
-
+    // Feature modules register their own @Cron handlers.
     ScheduleModule.forRoot(),
     PrismaModule,
     CoreModule,

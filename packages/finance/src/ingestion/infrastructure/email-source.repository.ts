@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
+import { clampPageLimit, type CursorQueryDto } from '@personal-os/core';
 import type { Prisma } from '@personal-os/database';
 import { PrismaService } from '@personal-os/database';
+import { decodeCursorPosition } from '../../shared/infrastructure/cursor-window';
 import {
   EMAIL_MESSAGE_OUTCOME,
   type EmailMessageOutcome,
@@ -197,24 +199,38 @@ export class EmailSourceRepository {
     });
   }
 
-  completeEmailSyncLog(
-    id: string,
-    data: {
-      status: 'SUCCESS' | 'FAILED';
-      emailsScanned: number;
-      transactionsNew: number;
-      error?: string;
-    },
-  ) {
-    return this.prisma.finEmailSyncLog.update({
-      where: { id },
-      data: {
-        status: data.status,
-        emailsScanned: data.emailsScanned,
-        transactionsNew: data.transactionsNew,
-        completedAt: new Date(),
-        error: data.error,
-      },
+  async completeEmailSyncFailureWithOutbox({
+    id,
+    emailsScanned,
+    transactionsNew,
+    error,
+    outbox,
+  }: {
+    id: string;
+    emailsScanned: number;
+    transactionsNew: number;
+    error: string;
+    outbox: {
+      eventId: string;
+      eventName: string;
+      aggregateType: string;
+      aggregateId: string;
+      userId: string;
+      payload: Prisma.InputJsonValue;
+    };
+  }) {
+    return this.prisma.$transaction(async (tx) => {
+      await tx.finEmailSyncLog.update({
+        where: { id },
+        data: {
+          status: 'FAILED',
+          emailsScanned,
+          transactionsNew,
+          completedAt: new Date(),
+          error,
+        },
+      });
+      await tx.domainEventOutbox.create({ data: outbox });
     });
   }
 
@@ -447,6 +463,33 @@ export class EmailSourceRepository {
     });
   }
 
+  listPendingAssignmentMessagesPage(userId: string, query: CursorQueryDto) {
+    const limit = clampPageLimit(query.limit);
+    const after = decodeCursorPosition(query.cursor);
+    return this.prisma.finEmailMessage.findMany({
+      where: {
+        outcome: {
+          in: [
+            EMAIL_MESSAGE_OUTCOME.PENDING_ASSIGNMENT,
+            EMAIL_MESSAGE_OUTCOME.PENDING_AMOUNT,
+          ],
+        },
+        source: { userId },
+        ...(after
+          ? {
+              OR: [
+                { createdAt: { lt: after.date } },
+                { createdAt: after.date, id: { lt: after.id } },
+              ],
+            }
+          : {}),
+      },
+      include: pendingMessageInclude,
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      take: limit + 1,
+    });
+  }
+
   listCashAccounts(userId: string) {
     return this.prisma.finAccount.findMany({
       where: { userId, type: 'CASH', isActive: true },
@@ -473,12 +516,24 @@ export class EmailSourceRepository {
     });
   }
 
-  listRecentEmailMessages(userId: string, take = 40) {
+  listRecentEmailMessagesPage(userId: string, query: CursorQueryDto) {
+    const limit = clampPageLimit(query.limit);
+    const after = decodeCursorPosition(query.cursor);
     return this.prisma.finEmailMessage.findMany({
-      where: { source: { userId } },
+      where: {
+        source: { userId },
+        ...(after
+          ? {
+              OR: [
+                { createdAt: { lt: after.date } },
+                { createdAt: after.date, id: { lt: after.id } },
+              ],
+            }
+          : {}),
+      },
       include: pendingMessageInclude,
-      orderBy: { createdAt: 'desc' },
-      take,
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      take: limit + 1,
     });
   }
 

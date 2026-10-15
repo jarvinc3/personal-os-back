@@ -75,16 +75,82 @@ describe('IngestionService.completeEmailSyncSuccessWithEvent', () => {
   });
 });
 
+describe('IngestionService.completeEmailSyncFailureWithEvent', () => {
+  it('enqueues finance.email_sync.failed via same-TX outbox helper', async () => {
+    const completeEmailSyncFailureWithOutbox = jest
+      .fn()
+      .mockResolvedValue(undefined);
+    const repo = {
+      completeEmailSyncFailureWithOutbox,
+    } as unknown as EmailSourceRepository;
+
+    const processBatch = jest.fn();
+    const outboxDispatcher = {
+      processBatch,
+    } as unknown as FinanceOutboxDispatcher;
+
+    const config = {
+      get: jest.fn(),
+    } as unknown as ConfigService;
+
+    const events = {
+      enqueue: jest.fn(),
+    } as unknown as DomainEventPublisherPort;
+
+    const service = new IngestionService(
+      repo,
+      config,
+      events,
+      outboxDispatcher,
+      { assertFinanceEmailSyncEnabled: jest.fn() } as never,
+      { assertInstitutionOwned: jest.fn() } as never,
+      { execute: jest.fn() } as never,
+      { findLatestCategoryIdByMerchant: jest.fn() } as never,
+      undefined,
+    );
+
+    await service.completeEmailSyncFailureWithEvent({
+      logId: 'log-1',
+      userId: 'user-1',
+      sourceId: 'src-1',
+      emailsScanned: 2,
+      transactionsNew: 0,
+      error: 'gmail 500',
+    });
+
+    expect(completeEmailSyncFailureWithOutbox).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'log-1',
+        emailsScanned: 2,
+        transactionsNew: 0,
+        error: 'gmail 500',
+        outbox: expect.objectContaining({
+          eventName: AppEvents.FINANCE_EMAIL_SYNC_FAILED,
+          aggregateType: 'FinEmailSource',
+          aggregateId: 'src-1',
+          userId: 'user-1',
+          payload: expect.objectContaining({
+            sourceId: 'src-1',
+            error: 'gmail 500',
+            version: 1,
+          }),
+        }),
+      }),
+    );
+    expect(processBatch).toHaveBeenCalled();
+  });
+});
+
 describe('IngestionService pending assignment', () => {
-  const listPendingAssignmentMessages = jest.fn();
-  const listRecentEmailMessages = jest.fn();
+  const listPendingAssignmentMessagesPage = jest.fn();
+  const listRecentEmailMessagesPage = jest.fn();
   const findEmailMessageById = jest.fn();
   const listCategories = jest.fn();
   const listInstitutionDestinations = jest.fn();
   const upsertEmailMessage = jest.fn();
   const repo = {
-    listPendingAssignmentMessages,
-    listRecentEmailMessages,
+    listPendingAssignmentMessagesPage,
+    listRecentEmailMessagesPage,
     findEmailMessageById,
     listCategories,
     listInstitutionDestinations,
@@ -158,27 +224,41 @@ describe('IngestionService pending assignment', () => {
   });
 
   it('lists pending messages without tokens', async () => {
-    listPendingAssignmentMessages.mockResolvedValue([pendingMessage]);
-    await expect(service.listPendingAssignment('user-1')).resolves.toEqual([
-      expect.objectContaining({
-        id: 'em-1',
-        institutionId: 'inst-1',
-        lastFourHint: '1234',
-      }),
-    ]);
+    listPendingAssignmentMessagesPage.mockResolvedValue([pendingMessage]);
+
+    await expect(
+      service.listPendingAssignment('user-1', { limit: 20 }),
+    ).resolves.toMatchObject({
+      items: [
+        expect.objectContaining({
+          id: 'em-1',
+          institutionId: 'inst-1',
+          lastFourHint: '1234',
+        }),
+      ],
+      hasMore: false,
+      nextCursor: null,
+    });
   });
 
   it('lists recent extract outcomes including imported mail', async () => {
-    listRecentEmailMessages.mockResolvedValue([
+    listRecentEmailMessagesPage.mockResolvedValue([
       { ...pendingMessage, outcome: 'IMPORTED' },
     ]);
-    await expect(service.listRecentMessages('user-1')).resolves.toEqual([
-      expect.objectContaining({
-        id: 'em-1',
-        outcome: 'IMPORTED',
-        institutionName: 'Bank',
-      }),
-    ]);
+
+    await expect(
+      service.listRecentMessages('user-1', { limit: 20 }),
+    ).resolves.toMatchObject({
+      items: [
+        expect.objectContaining({
+          id: 'em-1',
+          outcome: 'IMPORTED',
+          institutionName: 'Bank',
+        }),
+      ],
+      hasMore: false,
+      nextCursor: null,
+    });
   });
 
   it('returns the existing transaction when assignment is retried after import', async () => {
@@ -271,6 +351,9 @@ describe('IngestionService mailbox linking', () => {
   };
   const ownership = {
     assertInstitutionOwned: jest.fn().mockResolvedValue(undefined),
+    assertInstitutionAcceptsBankProducts: jest
+      .fn()
+      .mockResolvedValue(undefined),
   };
 
   const service = new IngestionService(
@@ -318,7 +401,7 @@ describe('IngestionService mailbox linking', () => {
         bankSenderEmail: 'alertas@bhd.com.do',
         institutionId: 'inst-1',
       }),
-    ).rejects.toThrow('Connect Gmail before linking a bank');
+    ).rejects.toThrow('Conecta Gmail antes de vincular un banco');
   });
 
   it('refuses to create a source when the mailbox has no refresh token', async () => {
@@ -332,7 +415,7 @@ describe('IngestionService mailbox linking', () => {
         bankSenderEmail: 'alertas@bhd.com.do',
         institutionId: 'inst-1',
       }),
-    ).rejects.toThrow('Connect Gmail first');
+    ).rejects.toThrow('Conecta Gmail primero');
   });
 
   it('creates a source from sender email and derives the domain', async () => {

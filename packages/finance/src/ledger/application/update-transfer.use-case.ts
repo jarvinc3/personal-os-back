@@ -42,10 +42,10 @@ export class UpdateTransferUseCase {
   ) {
     const leg = await this.repo.findTransactionById(legId, userId);
     if (!leg) {
-      throw new NotFoundException('Transaction not found');
+      throw new NotFoundException('Transacción no encontrada');
     }
     if (!leg.transferGroupId) {
-      throw new BadRequestException('Not a transfer');
+      throw new BadRequestException('No es una transferencia');
     }
 
     const legs = await this.repo.findTransactionsByTransferGroupId(
@@ -59,7 +59,9 @@ export class UpdateTransferUseCase {
       legs.find((item) => item.legRole === OPERATION_LEG_ROLE.DESTINATION) ??
       legs.find((item) => item.type === 'CREDIT');
     if (!debit || !credit) {
-      throw new NotFoundException('Transfer legs not found');
+      throw new NotFoundException(
+        'No se encontraron los movimientos de la transferencia',
+      );
     }
     if (!legs.every((item) => item.status === 'PENDING')) {
       throw new ConflictException({
@@ -141,7 +143,9 @@ export class UpdateTransferUseCase {
         : {}),
     });
     if (!updated) {
-      throw new NotFoundException('Transfer legs not found');
+      throw new NotFoundException(
+        'No se encontraron los movimientos de la transferencia',
+      );
     }
 
     void this.outboxDispatcher.processBatch();

@@ -379,8 +379,10 @@ export class ProcessGmailSyncUseCase {
         `Gmail sync completed for ${sourceId}: ${emailsScanned} scanned, ${transactionsNew} new, ${emailsSkipped} skipped, ${llmExtracts} LLM extracts`,
       );
     } catch (error) {
-      await this.emailSources.completeEmailSyncLog(syncLog.id, {
-        status: 'FAILED',
+      await this.ingestion.completeEmailSyncFailureWithEvent({
+        logId: syncLog.id,
+        userId,
+        sourceId,
         emailsScanned,
         transactionsNew,
         error: error instanceof Error ? error.message : 'Unknown error',

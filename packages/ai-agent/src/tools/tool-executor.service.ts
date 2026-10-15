@@ -60,6 +60,15 @@ const FINANCE_TOOL_NAMES = new Set([
   'complete_pending_email_amount',
   'get_spending_by_category',
   'get_spending_over_time',
+  'list_subscriptions',
+  'get_subscriptions_summary',
+  'get_subscription_alerts',
+  'confirm_recurring',
+  'list_merchants',
+  'create_subscription',
+  'confirm_subscription_payment',
+  'get_bank_charges',
+  'reconcile_product',
 ]);
 
 function toLinkCommand(args: ValidatedToolArgs<'link_transaction'>) {
@@ -831,9 +840,7 @@ export class ToolExecutorService {
         return {
           success: true,
           message: 'Pending emails loaded',
-          data: {
-            items: await this.financeFacade.listPendingEmails(ctx.userId),
-          },
+          data: await this.financeFacade.listPendingEmails(ctx.userId),
         };
       case 'assign_pending_email': {
         const assignArgs = args as ValidatedToolArgs<'assign_pending_email'>;
@@ -905,6 +912,158 @@ export class ToolExecutorService {
             typeof args.dateTo === 'string' ? args.dateTo : undefined,
             groupBy,
           ),
+        };
+      }
+      case 'list_subscriptions': {
+        const status =
+          args.status === 'SUGGESTED' ||
+          args.status === 'CONFIRMED' ||
+          args.status === 'DISMISSED'
+            ? args.status
+            : undefined;
+        const managed = await this.financeFacade.listSubscriptions(ctx.userId);
+        return {
+          success: true,
+          message: 'Subscriptions loaded',
+          data: {
+            subscriptions: managed.subscriptions,
+            recurring: status
+              ? managed.recurring.filter((item) => item.status === status)
+              : managed.recurring,
+          },
+        };
+      }
+      case 'get_subscriptions_summary': {
+        return {
+          success: true,
+          message: 'Subscriptions summary loaded',
+          data: await this.financeFacade.getSubscriptionsSummary(ctx.userId),
+        };
+      }
+      case 'get_subscription_alerts': {
+        return {
+          success: true,
+          message: 'Subscription alerts loaded',
+          data: {
+            alerts: await this.financeFacade.getSubscriptionAlerts(ctx.userId),
+          },
+        };
+      }
+      case 'create_subscription': {
+        const input = args as ValidatedToolArgs<'create_subscription'>;
+        return {
+          success: true,
+          message: 'Subscription created',
+          data: await this.financeFacade.createSubscription(ctx.userId, {
+            name: input.name,
+            amount: input.amount,
+            billingCycle: input.billingCycle,
+            anchorDate: input.anchorDate,
+            currency: input.currency ?? undefined,
+            billingInterval: input.billingInterval ?? undefined,
+            domain: input.domain ?? undefined,
+            reminderDaysBefore: input.reminderDaysBefore ?? undefined,
+            manageUrl: input.manageUrl ?? undefined,
+            notes: input.notes ?? undefined,
+            cardId: input.cardId ?? undefined,
+            accountId: input.accountId ?? undefined,
+            sourcePatternId: input.sourcePatternId ?? undefined,
+          }),
+        };
+      }
+      case 'confirm_subscription_payment': {
+        const input = args as ValidatedToolArgs<'confirm_subscription_payment'>;
+        return {
+          success: true,
+          message: 'Subscription payment registered',
+          data: await this.financeFacade.confirmSubscriptionPayment(
+            ctx.userId,
+            input.subscriptionId,
+            {
+              amount: input.amount ?? undefined,
+              currency: input.currency ?? undefined,
+              paidAt: input.paidAt ?? undefined,
+              transactionId: input.transactionId ?? undefined,
+            },
+          ),
+        };
+      }
+      case 'list_merchants':
+        return {
+          success: true,
+          message: 'Merchants loaded',
+          data: { items: await this.financeFacade.listMerchants(ctx.userId) },
+        };
+      case 'confirm_recurring': {
+        const recurring = args as ValidatedToolArgs<'confirm_recurring'>;
+        return {
+          success: true,
+          message: 'Recurring charge confirmed',
+          data: await this.financeFacade.confirmRecurring(
+            ctx.userId,
+            recurring.patternId,
+          ),
+        };
+      }
+      case 'get_bank_charges': {
+        const to = typeof args.to === 'string' ? new Date(args.to) : new Date();
+        const from =
+          typeof args.from === 'string'
+            ? new Date(args.from)
+            : new Date(Date.UTC(to.getUTCFullYear(), to.getUTCMonth(), 1));
+        const groupBy =
+          args.groupBy === 'month' ||
+          args.groupBy === 'institution' ||
+          args.groupBy === 'kind'
+            ? args.groupBy
+            : undefined;
+        return {
+          success: true,
+          message: 'Bank charges loaded',
+          data: await this.financeFacade.getBankCharges(ctx.userId, {
+            from,
+            to,
+            groupBy,
+          }),
+        };
+      }
+      case 'reconcile_product': {
+        const input = args as ValidatedToolArgs<'reconcile_product'>;
+        const previewInput = {
+          accountId: input.accountId,
+          cardId: input.cardId,
+          currency: input.currency,
+          asOfDate: input.asOfDate,
+          realBalance: input.realBalance,
+        };
+        if (input.apply !== true) {
+          return {
+            success: true,
+            message: 'Reconciliation preview',
+            data: await this.financeFacade.previewReconciliation(
+              ctx.userId,
+              previewInput,
+            ),
+          };
+        }
+        const preview = await this.financeFacade.previewReconciliation(
+          ctx.userId,
+          previewInput,
+        );
+        const adjustments =
+          input.adjustments ??
+          preview.suggestedAdjustments.map((adjustment) => ({
+            kind: adjustment.kind,
+            amount: Number(adjustment.amount),
+          }));
+        return {
+          success: true,
+          message: 'Product reconciled',
+          data: await this.financeFacade.createReconciliation(ctx.userId, {
+            ...previewInput,
+            adjustments,
+            note: input.note ?? undefined,
+          }),
         };
       }
       default:

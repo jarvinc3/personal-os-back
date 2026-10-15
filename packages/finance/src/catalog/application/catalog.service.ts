@@ -1,13 +1,20 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { Prisma } from '@personal-os/database';
+import { clampPageLimit, toCursorPage } from '@personal-os/core';
+import type { CursorQueryDto } from '@personal-os/core';
 import { LogoService, type LogoUploadFile } from '@personal-os/logos';
 import type { LogoRow } from '@personal-os/logos';
 import { normalizeDomain } from '@personal-os/logos';
+import { UsersService } from '@personal-os/users';
+import { availableCredit } from '../../statements/domain/card-statement-amounts';
+import { buildNextCardCycle } from '../../statements/domain/card-statement-cycle';
+import { isoDay, localDayStart } from '../../shared/domain/local-day';
 import { PurgeInstrumentLedgerUseCase } from '../../ledger/application/purge-instrument-ledger.use-case';
 import type { LedgerTransactionRow } from '../../ledger/application/ports/ledger.repository.port';
 import { FinanceOwnershipService } from '../../shared/application/finance-ownership.service';
@@ -22,7 +29,11 @@ import {
   decimalToNullableString,
   decimalToString,
 } from '../../shared/domain/mappers';
-import { roundMoney } from '../../shared/domain/money';
+import { normalizeCurrencyCode, roundMoney } from '../../shared/domain/money';
+import { ResolveUserBaseCurrencyUseCase } from '../../fx/application/resolve-user-base-currency';
+import { CASH_ACCOUNT_TYPE, isCashInstitution } from '../../shared/domain/cash';
+import { EnsureCashInstitutionUseCase } from './ensure-cash-institution.use-case';
+import { institutionOrderKey } from '../domain/institution-order';
 import { CatalogRepository } from '../infrastructure/catalog.repository';
 import type { CreateAccountDto } from '../presentation/dto/create-account.dto';
 import type { CreateCardDto } from '../presentation/dto/create-card.dto';
@@ -41,6 +52,37 @@ const fallbackLogos = {
   saveCustomLogo: () => Promise.reject(new Error('Logo upload unavailable')),
 } as unknown as LogoService;
 
+const fallbackUsers = {
+  findById: () => Promise.resolve({ timezone: null }),
+} as unknown as UsersService;
+
+type CardRow = NonNullable<
+  Awaited<ReturnType<CatalogRepository['findCardById']>>
+>;
+
+function mapCardBalance(
+  balance: CardRow['balances'][number],
+  transactions: CardRow['transactions'],
+) {
+  return {
+    id: balance.id,
+    currency: balance.currency,
+    balance: decimalToString(balance.balance),
+    creditLimit: decimalToNullableString(balance.creditLimit),
+    availableCredit:
+      balance.creditLimit === null
+        ? null
+        : decimalToString(
+            availableCredit({
+              storedAvailable: Number(balance.balance),
+              movements: transactions.filter(
+                (movement) => movement.ledgerCurrency === balance.currency,
+              ),
+            }),
+          ),
+  };
+}
+
 function omitAccountNumber<T extends { accountNumber?: string | null }>(
   dto: T,
 ): Omit<T, 'accountNumber'> {
@@ -55,10 +97,14 @@ export class CatalogService {
     private readonly repo: CatalogRepository,
     private readonly ownership: FinanceOwnershipService,
     private readonly purgeLedger: PurgeInstrumentLedgerUseCase,
+    private readonly ensureCashInstitution: EnsureCashInstitutionUseCase,
+    private readonly userBaseCurrency: ResolveUserBaseCurrencyUseCase,
     private readonly logos: LogoService = fallbackLogos,
+    private readonly users: UsersService = fallbackUsers,
   ) {}
 
   async listAccounts(userId: string) {
+    await this.ensureCashInstitution.execute(userId);
     const accounts = await this.repo.findAccountsByUser(userId);
     const earmarked = await this.repo.sumEarmarkedByAccountIds(
       userId,
@@ -69,37 +115,59 @@ export class CatalogService {
     );
   }
 
+  async listAccountsPage(userId: string, query: CursorQueryDto) {
+    await this.ensureCashInstitution.execute(userId);
+    const rows = await this.repo.findAccountsPage(userId, query);
+    const page = toCursorPage(
+      rows,
+      clampPageLimit(query.limit),
+      (row) => row.name,
+    );
+    const earmarked = await this.repo.sumEarmarkedByAccountIds(
+      userId,
+      page.items.map((account) => account.id),
+    );
+    return {
+      ...page,
+      items: page.items.map((account) =>
+        this.mapAccount(account, earmarked.get(account.id) ?? 0),
+      ),
+    };
+  }
+
   async getAccount(userId: string, id: string) {
     const account = await this.repo.findAccountById(id, userId);
     if (!account) {
-      throw new NotFoundException('Account not found');
+      throw new NotFoundException('Cuenta no encontrada');
     }
     const earmarked = await this.repo.sumEarmarkedByAccountIds(userId, [id]);
     return this.mapAccount(account, earmarked.get(id) ?? 0);
   }
 
   async createAccount(userId: string, dto: CreateAccountDto) {
-    this.assertAccountInstitutionRule(dto.type, dto.institutionId);
+    const institutionId = await this.resolveAccountInstitutionId(
+      userId,
+      dto.type,
+      dto.institutionId,
+    );
     const accountNumber = this.assertAccountNumberRule(
       dto.type,
       dto.accountNumber,
     );
-    if (dto.type === 'CASH' && dto.isDefaultForInstitution) {
+    if (dto.type === CASH_ACCOUNT_TYPE && dto.isDefaultForInstitution) {
       throw new BadRequestException(
         'CASH accounts cannot be the default for an institution',
       );
     }
-    if (dto.institutionId) {
-      await this.ownership.assertInstitutionOwned(userId, dto.institutionId);
-    }
     const rest = omitAccountNumber(dto);
     try {
-      if (dto.isDefaultForInstitution && dto.institutionId) {
-        await this.repo.clearDefaultAccount(userId, dto.institutionId);
+      if (dto.isDefaultForInstitution) {
+        await this.repo.clearDefaultAccount(userId, institutionId);
       }
       return this.mapAccount(
         await this.repo.createAccount(userId, {
           ...rest,
+          institutionId,
           ...(accountNumber ? { accountNumber } : {}),
         }),
       );
@@ -111,16 +179,17 @@ export class CatalogService {
   async updateAccount(userId: string, id: string, dto: UpdateAccountDto) {
     const existing = await this.repo.findAccountById(id, userId);
     if (!existing) {
-      throw new NotFoundException('Account not found');
+      throw new NotFoundException('Cuenta no encontrada');
     }
 
     const nextType = dto.type ?? existing.type;
-    const nextInstitutionId =
-      dto.institutionId !== undefined
-        ? dto.institutionId
-        : existing.institutionId;
-    this.assertAccountInstitutionRule(nextType, nextInstitutionId ?? undefined);
-    if (nextType === 'CASH' && dto.isDefaultForInstitution) {
+    const nextInstitutionId = await this.resolveAccountInstitutionId(
+      userId,
+      nextType,
+      dto.institutionId,
+      existing.institutionId,
+    );
+    if (nextType === CASH_ACCOUNT_TYPE && dto.isDefaultForInstitution) {
       throw new BadRequestException(
         'CASH accounts cannot be the default for an institution',
       );
@@ -128,38 +197,36 @@ export class CatalogService {
 
     const nextAccountNumber = this.assertAccountNumberRule(
       nextType,
-      nextType === 'CASH'
+      nextType === CASH_ACCOUNT_TYPE
         ? dto.accountNumber
         : dto.accountNumber !== undefined
           ? dto.accountNumber
           : existing.accountNumber,
     );
 
-    if (dto.institutionId) {
-      await this.ownership.assertInstitutionOwned(userId, dto.institutionId);
-    }
     if (
       dto.institutionId !== undefined &&
-      dto.institutionId !== existing.institutionId
+      nextInstitutionId !== existing.institutionId
     ) {
       await this.ownership.assertAccountInstitutionChangeAllowed({
         userId,
         accountId: id,
-        nextInstitutionId: dto.institutionId ?? null,
+        nextInstitutionId,
       });
     }
 
     const rest = omitAccountNumber(dto);
     try {
-      if (dto.isDefaultForInstitution && nextInstitutionId) {
+      if (dto.isDefaultForInstitution) {
         await this.repo.clearDefaultAccount(userId, nextInstitutionId, id);
       }
       const account = await this.repo.updateAccount(id, userId, {
         ...rest,
+        institutionId: nextInstitutionId,
         accountNumber: nextAccountNumber,
       });
       if (!account) {
-        throw new NotFoundException('Account not found');
+        throw new NotFoundException('Cuenta no encontrada');
       }
       return this.mapAccount(account);
     } catch (error) {
@@ -170,8 +237,9 @@ export class CatalogService {
   async deleteAccount(userId: string, id: string) {
     const existing = await this.repo.findAccountById(id, userId);
     if (!existing) {
-      throw new NotFoundException('Account not found');
+      throw new NotFoundException('Cuenta no encontrada');
     }
+    await this.assertCashAccountDeletable(userId, existing);
     const purged = await this.purgeLedger.forAccount(userId, id);
     const removed = await this.repo.deleteAccount({
       userId,
@@ -179,23 +247,31 @@ export class CatalogService {
       movements: purged.rows,
     });
     if (removed.count === 0) {
-      throw new NotFoundException('Account not found');
+      throw new NotFoundException('Cuenta no encontrada');
     }
     return { success: true };
   }
 
   async restoreAccount(userId: string, id: string, now: Date) {
     const restored = await this.repo.restoreAccount(userId, id, now);
-    assertRestored(restored, 'Account not found');
+    assertRestored(restored, 'Cuenta no encontrada');
     return { success: true };
   }
 
-  async listInstitutions(userId: string) {
-    const items = await this.repo.listInstitutions(userId);
-    return items.map((item) => this.mapInstitution(item));
+  async listInstitutionsPage(userId: string, query: CursorQueryDto) {
+    await this.ensureCashInstitution.execute(userId);
+    const rows = await this.repo.listInstitutions(userId, query);
+    const page = toCursorPage(rows, clampPageLimit(query.limit), (row) =>
+      institutionOrderKey(row),
+    );
+    return {
+      ...page,
+      items: page.items.map((item) => this.mapInstitution(item)),
+    };
   }
 
   async createInstitution(userId: string, dto: CreateInstitutionDto) {
+    this.assertNotCashInstitutionType(dto.type);
     const domain = this.normalizeInstitutionDomain(dto.domain);
     const logoPath = domain ? await this.logos.ensureLogo(domain) : null;
     try {
@@ -220,8 +296,13 @@ export class CatalogService {
     id: string,
     dto: UpdateInstitutionDto,
   ) {
+    const existing = await this.repo.findInstitution(userId, id);
+    if (!existing) {
+      throw new NotFoundException('Institución no encontrada');
+    }
+    this.assertInstitutionEditable(existing);
+    this.assertNotCashInstitutionType(dto.type);
     if (dto.isActive === false) {
-      await this.ownership.assertInstitutionOwned(userId, id);
       await this.ownership.assertInstitutionCanArchive(userId, id);
     }
     const data: Prisma.FinInstitutionUpdateInput = {};
@@ -254,7 +335,7 @@ export class CatalogService {
     try {
       const updated = await this.repo.updateInstitution(userId, id, data);
       if (!updated) {
-        throw new NotFoundException('Institution not found');
+        throw new NotFoundException('Institución no encontrada');
       }
       return this.mapInstitution(updated);
     } catch (error) {
@@ -270,7 +351,11 @@ export class CatalogService {
     if (!file) {
       throw new BadRequestException('Archivo obligatorio');
     }
-    await this.ownership.assertInstitutionOwned(userId, id);
+    const existing = await this.repo.findInstitution(userId, id);
+    if (!existing) {
+      throw new NotFoundException('Institución no encontrada');
+    }
+    this.assertInstitutionEditable(existing);
     let path: string;
     try {
       path = await this.logos.saveCustomLogo(userId, id, file);
@@ -283,19 +368,23 @@ export class CatalogService {
       customLogoPath: path,
     });
     if (!updated) {
-      throw new NotFoundException('Institution not found');
+      throw new NotFoundException('Institución no encontrada');
     }
     return this.mapInstitution(updated);
   }
 
   async deactivateInstitution(userId: string, id: string) {
-    await this.ownership.assertInstitutionOwned(userId, id);
+    const existing = await this.repo.findInstitution(userId, id);
+    if (!existing) {
+      throw new NotFoundException('Institución no encontrada');
+    }
+    this.assertInstitutionEditable(existing);
     await this.ownership.assertInstitutionCanArchive(userId, id);
     const updated = await this.repo.updateInstitution(userId, id, {
       isActive: false,
     });
     if (!updated) {
-      throw new NotFoundException('Institution not found');
+      throw new NotFoundException('Institución no encontrada');
     }
     return { success: true };
   }
@@ -303,8 +392,9 @@ export class CatalogService {
   async deleteInstitution(userId: string, id: string) {
     const existing = await this.repo.findInstitution(userId, id);
     if (!existing) {
-      throw new NotFoundException('Institution not found');
+      throw new NotFoundException('Institución no encontrada');
     }
+    this.assertInstitutionEditable(existing);
     const movements: LedgerTransactionRow[] = [];
     const accounts = await this.repo.listAccountsByInstitution(userId, id);
     for (const account of accounts) {
@@ -322,7 +412,7 @@ export class CatalogService {
       movements,
     });
     if (removed.count === 0) {
-      throw new NotFoundException('Institution not found');
+      throw new NotFoundException('Institución no encontrada');
     }
     return { success: true };
   }
@@ -333,27 +423,40 @@ export class CatalogService {
     return { success: true };
   }
 
+  async listCardsPage(userId: string, query: CursorQueryDto) {
+    const rows = await this.repo.listCardsPage(userId, query);
+    const page = toCursorPage(rows, clampPageLimit(query.limit), (row) =>
+      row.createdAt.toISOString(),
+    );
+    const today = await this.localToday(userId);
+    return { ...page, items: page.items.map((c) => this.mapCard(c, today)) };
+  }
+
   async listCards(userId: string) {
     const cards = await this.repo.listCards(userId);
-    return cards.map((c) => this.mapCard(c));
+    const today = await this.localToday(userId);
+    return cards.map((c) => this.mapCard(c, today));
   }
 
   async getCard(userId: string, id: string) {
     const card = await this.repo.findCardById(userId, id);
     if (!card) {
-      throw new NotFoundException('Card not found');
+      throw new NotFoundException('Tarjeta no encontrada');
     }
-    return this.mapCard(card);
+    return this.mapCard(card, await this.localToday(userId));
   }
 
   async createCard(userId: string, dto: CreateCardDto) {
     if (!dto.lastFour) {
-      throw new BadRequestException('lastFour is required');
+      throw new BadRequestException('lastFour es obligatorio');
     }
-    await this.ownership.assertInstitutionOwned(userId, dto.institutionId);
+    await this.ownership.assertInstitutionAcceptsBankProducts(
+      userId,
+      dto.institutionId,
+    );
     if (dto.type === 'DEBIT') {
       if (!dto.accountId) {
-        throw new BadRequestException('DEBIT cards require accountId');
+        throw new BadRequestException('Las tarjetas DEBIT requieren accountId');
       }
       await this.ownership.assertDebitAccountAlignment({
         userId,
@@ -362,7 +465,9 @@ export class CatalogService {
       });
     }
     if (dto.type === 'CREDIT' && dto.accountId) {
-      throw new BadRequestException('CREDIT cards must not set accountId');
+      throw new BadRequestException(
+        'Las tarjetas CREDIT no deben llevar accountId',
+      );
     }
 
     const created = await this.repo.createCard(userId, {
@@ -376,22 +481,25 @@ export class CatalogService {
       paymentDueDay: dto.paymentDueDay,
       color: dto.color,
     });
-    return this.mapCard(created);
+    return this.mapCard(created, await this.localToday(userId));
   }
 
   async updateCard(userId: string, id: string, dto: UpdateCardDto) {
     const existing = await this.repo.findCardById(userId, id);
     if (!existing) {
-      throw new NotFoundException('Card not found');
+      throw new NotFoundException('Tarjeta no encontrada');
     }
 
     const nextType = dto.type ?? existing.type;
     const nextInstitutionId = dto.institutionId ?? existing.institutionId;
     if (!dto.lastFour && !existing.lastFour) {
-      throw new BadRequestException('lastFour is required');
+      throw new BadRequestException('lastFour es obligatorio');
     }
     if (dto.institutionId) {
-      await this.ownership.assertInstitutionOwned(userId, dto.institutionId);
+      await this.ownership.assertInstitutionAcceptsBankProducts(
+        userId,
+        dto.institutionId,
+      );
     }
 
     const relocatingDebit =
@@ -404,7 +512,7 @@ export class CatalogService {
       const nextAccountId =
         dto.accountId !== undefined ? dto.accountId : existing.accountId;
       if (!nextAccountId) {
-        throw new BadRequestException('DEBIT cards require accountId');
+        throw new BadRequestException('Las tarjetas DEBIT requieren accountId');
       }
       await this.ownership.assertDebitAccountAlignment({
         userId,
@@ -413,7 +521,9 @@ export class CatalogService {
       });
     }
     if (nextType === 'CREDIT' && dto.accountId) {
-      throw new BadRequestException('CREDIT cards must not set accountId');
+      throw new BadRequestException(
+        'Las tarjetas CREDIT no deben llevar accountId',
+      );
     }
 
     const updated = await this.repo.updateCard(userId, id, {
@@ -437,15 +547,15 @@ export class CatalogService {
           : {}),
     });
     if (!updated) {
-      throw new NotFoundException('Card not found');
+      throw new NotFoundException('Tarjeta no encontrada');
     }
-    return this.mapCard(updated);
+    return this.mapCard(updated, await this.localToday(userId));
   }
 
   async deactivateCard(userId: string, id: string) {
     const updated = await this.repo.updateCard(userId, id, { isActive: false });
     if (!updated) {
-      throw new NotFoundException('Card not found');
+      throw new NotFoundException('Tarjeta no encontrada');
     }
     return { success: true };
   }
@@ -453,7 +563,7 @@ export class CatalogService {
   async deleteCard(userId: string, id: string) {
     const existing = await this.repo.findCardById(userId, id);
     if (!existing) {
-      throw new NotFoundException('Card not found');
+      throw new NotFoundException('Tarjeta no encontrada');
     }
     const purged = await this.purgeLedger.forCard(userId, id);
     const removed = await this.repo.deleteCard({
@@ -462,7 +572,7 @@ export class CatalogService {
       movements: purged.rows,
     });
     if (removed.count === 0) {
-      throw new NotFoundException('Card not found');
+      throw new NotFoundException('Tarjeta no encontrada');
     }
     return { success: true };
   }
@@ -480,7 +590,7 @@ export class CatalogService {
   ) {
     const card = await this.repo.findCardById(userId, id);
     if (!card) {
-      throw new NotFoundException('Card not found');
+      throw new NotFoundException('Tarjeta no encontrada');
     }
     if (card.type === 'DEBIT') {
       throw new BadRequestException(
@@ -488,7 +598,9 @@ export class CatalogService {
       );
     }
     if (card.type === 'CREDIT' && dto.creditLimit === undefined) {
-      throw new BadRequestException('CREDIT cards require creditLimit');
+      throw new BadRequestException(
+        'Las tarjetas CREDIT requieren creditLimit',
+      );
     }
     const updated = await this.repo.upsertCardBalance(
       userId,
@@ -498,7 +610,7 @@ export class CatalogService {
       dto.creditLimit,
     );
     if (!updated) {
-      throw new NotFoundException('Card not found');
+      throw new NotFoundException('Tarjeta no encontrada');
     }
     return {
       id: updated.id,
@@ -516,10 +628,12 @@ export class CatalogService {
   ) {
     const card = await this.repo.findCardById(userId, id);
     if (!card) {
-      throw new NotFoundException('Card not found');
+      throw new NotFoundException('Tarjeta no encontrada');
     }
     if (card.type !== 'CREDIT') {
-      throw new BadRequestException('Only credit cards have a credit limit');
+      throw new BadRequestException(
+        'Solo las tarjetas de crédito tienen límite',
+      );
     }
     const updated = await this.repo.setCardCreditLimit(
       userId,
@@ -528,7 +642,7 @@ export class CatalogService {
       dto.creditLimit,
     );
     if (!updated) {
-      throw new NotFoundException('Card not found');
+      throw new NotFoundException('Tarjeta no encontrada');
     }
     return {
       id: updated.id,
@@ -542,7 +656,7 @@ export class CatalogService {
   async deleteCardBalance(userId: string, id: string, currency: string) {
     const card = await this.repo.findCardById(userId, id);
     if (!card) {
-      throw new NotFoundException('Card not found');
+      throw new NotFoundException('Tarjeta no encontrada');
     }
     if (card.type === 'DEBIT') {
       throw new BadRequestException(
@@ -551,7 +665,7 @@ export class CatalogService {
     }
     const result = await this.repo.deleteCardBalance(userId, id, currency);
     if (result.count === 0) {
-      throw new NotFoundException('Card balance not found');
+      throw new NotFoundException('Saldo de tarjeta no encontrado');
     }
     return { success: true };
   }
@@ -562,7 +676,9 @@ export class CatalogService {
 
   async createCategory(userId: string, dto: CreateCategoryDto) {
     if (dto.type === 'TRANSFER') {
-      throw new BadRequestException('Category type must be EXPENSE or INCOME');
+      throw new BadRequestException(
+        'El tipo de categoría debe ser EXPENSE o INCOME',
+      );
     }
     const type = dto.type ?? 'EXPENSE';
     if (dto.parentId) {
@@ -584,7 +700,9 @@ export class CatalogService {
 
   async updateCategory(userId: string, id: string, dto: UpdateCategoryDto) {
     if (dto.type === 'TRANSFER') {
-      throw new BadRequestException('Category type must be EXPENSE or INCOME');
+      throw new BadRequestException(
+        'El tipo de categoría debe ser EXPENSE o INCOME',
+      );
     }
     const existing = await this.ownership.assertCategoryVisible(userId, id);
     const nextParentId =
@@ -627,7 +745,7 @@ export class CatalogService {
       cascadeType,
     );
     if (!updated) {
-      throw new NotFoundException('Category not found');
+      throw new NotFoundException('Categoría no encontrada');
     }
     return updated;
   }
@@ -635,7 +753,7 @@ export class CatalogService {
   async deleteCategory(userId: string, id: string) {
     const result = await this.repo.deleteCategory(userId, id);
     if (result.count === 0) {
-      throw new NotFoundException('Category not found');
+      throw new NotFoundException('Categoría no encontrada');
     }
     return { success: true };
   }
@@ -646,13 +764,85 @@ export class CatalogService {
     return { success: true };
   }
 
-  private assertAccountInstitutionRule(
+  /**
+   * Institution a new or updated account belongs to. Cash always lives in the
+   * system "Efectivo"; other types must name a bank institution and never the
+   * cash one.
+   */
+  private async resolveAccountInstitutionId(
+    userId: string,
     type: string,
-    institutionId: string | null | undefined,
-  ) {
-    if (type !== 'CASH' && !institutionId) {
+    requestedInstitutionId: string | undefined,
+    fallbackInstitutionId: string | null = null,
+  ): Promise<string> {
+    if (type === CASH_ACCOUNT_TYPE) {
+      return this.resolveCashInstitutionId(userId, requestedInstitutionId);
+    }
+    const institutionId = requestedInstitutionId ?? fallbackInstitutionId;
+    if (!institutionId) {
       throw new BadRequestException(
         'CHECKING, SAVINGS, and INVESTMENT accounts require institutionId',
+      );
+    }
+    await this.ownership.assertInstitutionAcceptsBankProducts(
+      userId,
+      institutionId,
+    );
+    return institutionId;
+  }
+
+  /**
+   * Cash only lives in the system "Efectivo". The command ensures it exists;
+   * the id is then read through the repository query (CQS).
+   */
+  private async resolveCashInstitutionId(
+    userId: string,
+    requestedInstitutionId: string | undefined,
+  ): Promise<string> {
+    await this.ensureCashInstitution.execute(userId);
+    const cash = await this.repo.findSystemCashInstitution(userId);
+    if (!cash) {
+      throw new NotFoundException('Efectivo no está disponible');
+    }
+    if (requestedInstitutionId && requestedInstitutionId !== cash.id) {
+      throw new BadRequestException(
+        'Las cuentas de efectivo van dentro de Efectivo',
+      );
+    }
+    return cash.id;
+  }
+
+  private assertInstitutionEditable(institution: { isSystem: boolean }) {
+    if (institution.isSystem) {
+      throw new ForbiddenException(
+        'La institución Efectivo es de sistema: no se puede editar ni borrar',
+      );
+    }
+  }
+
+  private assertNotCashInstitutionType(type: string | undefined) {
+    if (type !== undefined && isCashInstitution({ type })) {
+      throw new BadRequestException(
+        'Efectivo ya existe como institución de sistema',
+      );
+    }
+  }
+
+  /**
+   * The base-currency "Efectivo" account is the user's anchor: it can be
+   * deactivated but never hard-deleted (decision approved on 2026-10-15).
+   */
+  private async assertCashAccountDeletable(
+    userId: string,
+    account: { type: string; currency: string },
+  ) {
+    if (account.type !== CASH_ACCOUNT_TYPE) {
+      return;
+    }
+    const baseCurrency = await this.userBaseCurrency.execute(userId);
+    if (normalizeCurrencyCode(account.currency) === baseCurrency) {
+      throw new BadRequestException(
+        'La cuenta Efectivo de la moneda base no se puede borrar; desactívala',
       );
     }
   }
@@ -760,12 +950,21 @@ export class CatalogService {
       logoUrl: this.logos.resolveUrl(institution),
       country: institution.country,
       isActive: institution.isActive,
+      isSystem: institution.isSystem,
     };
   }
 
-  private mapCard(
-    card: NonNullable<Awaited<ReturnType<CatalogRepository['findCardById']>>>,
-  ) {
+  private async localToday(userId: string): Promise<Date> {
+    const profile = await this.users.findById(userId);
+    return localDayStart(profile.timezone, new Date());
+  }
+
+  private mapCard(card: CardRow, today: Date) {
+    const cycle = buildNextCardCycle({
+      closingDay: card.statementClosingDay,
+      dueDay: card.paymentDueDay,
+      today,
+    });
     return {
       id: card.id,
       institutionId: card.institutionId,
@@ -780,14 +979,15 @@ export class CatalogService {
       lastFour: card.lastFour,
       statementClosingDay: card.statementClosingDay,
       paymentDueDay: card.paymentDueDay,
+      nextStatementDate: cycle ? isoDay(cycle.statementDate) : null,
+      nextPaymentDueDate: cycle?.paymentDueDate
+        ? isoDay(cycle.paymentDueDate)
+        : null,
       color: card.color,
       isActive: card.isActive,
-      balances: card.balances.map((b) => ({
-        id: b.id,
-        currency: b.currency,
-        balance: decimalToString(b.balance),
-        creditLimit: decimalToNullableString(b.creditLimit),
-      })),
+      balances: card.balances.map((balance) =>
+        mapCardBalance(balance, card.transactions),
+      ),
     };
   }
 }

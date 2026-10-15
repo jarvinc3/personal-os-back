@@ -98,7 +98,7 @@ describe('HealthController', () => {
       const exception = error as ServiceUnavailableException;
       expect(exception.getStatus()).toBe(503);
       expect(exception.getResponse()).toEqual(
-        expect.objectContaining({ message: 'Service Unavailable' }),
+        expect.objectContaining({ message: 'Servicio no disponible' }),
       );
       const response = exception.getResponse();
       expect(JSON.stringify(response)).not.toContain('database');

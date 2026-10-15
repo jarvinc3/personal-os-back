@@ -73,7 +73,7 @@ export class LinkTransactionUseCase {
       userId,
     );
     if (!movement) {
-      throw new NotFoundException('Transaction not found');
+      throw new NotFoundException('Transacción no encontrada');
     }
     if (movement.status !== CONFIRMED) {
       throw new ConflictException({

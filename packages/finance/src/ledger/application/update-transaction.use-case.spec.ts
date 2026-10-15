@@ -62,12 +62,17 @@ describe('UpdateTransactionUseCase category type', () => {
     assertCategoryMatchesTransactionType: jest.fn(),
   };
 
+  const merchants = {
+    resolve: jest.fn().mockResolvedValue({ id: 'merchant-1' }),
+  };
+
   const useCase = new UpdateTransactionUseCase(
     repo,
     resolveAmounts,
     baseCurrency,
     outboxDispatcher,
     ownership as never,
+    merchants as never,
   );
 
   beforeEach(() => {

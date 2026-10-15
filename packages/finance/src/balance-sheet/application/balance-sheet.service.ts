@@ -1,16 +1,46 @@
 import { Injectable } from '@nestjs/common';
+import type { Prisma } from '@personal-os/database';
 import { ResolveAmountsUseCase } from '../../fx/application/resolve-amounts.use-case';
 import { ResolveUserBaseCurrencyUseCase } from '../../fx/application/resolve-user-base-currency';
 import { decimalToString } from '../../shared/domain/mappers';
-import { roundMoney } from '../../shared/domain/money';
+import {
+  normalizeCurrencyCode,
+  roundDecimal,
+  toMoney,
+  type MoneyLike,
+} from '../../shared/domain/money';
 import { BalanceSheetRepository } from '../infrastructure/balance-sheet.repository';
 
 export type BalanceSheetStatus = 'COMPLETE' | 'INCOMPLETE';
 
-export type BalanceSheetIssue = {
-  code: 'MISSING_CREDIT_LIMIT';
-  cardId: string;
+export type BalanceSheetIssue =
+  | {
+      code: 'MISSING_CREDIT_LIMIT';
+      cardId: string;
+      currency: string;
+    }
+  | { code: 'MISSING_RATE'; currency: string };
+
+export type CashAccountLine = {
+  id: string;
+  name: string;
+  balance: string;
+};
+
+export type CashCurrencyBreakdown = {
   currency: string;
+  total: string;
+  totalBase: string | null;
+  accounts: CashAccountLine[];
+};
+
+/** Cash converted to the user's base currency, with a per-currency breakdown. */
+export type FinanceCashSummary = {
+  totalBase: string | null;
+  baseCurrency: string;
+  rateDate: string;
+  status: BalanceSheetStatus;
+  byCurrency: CashCurrencyBreakdown[];
 };
 
 export type BalanceSheetSlice = {
@@ -32,48 +62,51 @@ export type FinanceBalanceSheet = {
   baseCurrency: string;
   global: BalanceSheetSlice;
   institutions: Array<BalanceSheetSlice & { institutionId: string }>;
+  cash: FinanceCashSummary;
 };
 
-type Moneyish = { toString(): string } | number | null | undefined;
-
 type Bucket = {
-  accounts: number;
-  creditCards: number;
-  loans: number;
+  accounts: Prisma.Decimal;
+  creditCards: Prisma.Decimal;
+  loans: Prisma.Decimal;
   issues: BalanceSheetIssue[];
 };
 
-function toNumber(value: Moneyish): number {
-  if (value == null) {
-    return 0;
-  }
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : 0;
+function isMissingCreditLimit(value: MoneyLike): boolean {
+  return value === null;
 }
 
-function isMissingCreditLimit(value: Moneyish): boolean {
-  return value == null;
-}
-
-function creditCardDebt(available: number, creditLimit: number): number {
-  return Math.max(0, roundMoney(creditLimit - available));
+/** Debt is what the credit limit does not cover, and it never goes negative. */
+function creditCardDebt(
+  available: MoneyLike,
+  creditLimit: MoneyLike,
+): Prisma.Decimal {
+  const debt = roundDecimal(toMoney(creditLimit).minus(toMoney(available)));
+  return debt.isNegative() ? roundDecimal(0) : debt;
 }
 
 function emptyBucket(): Bucket {
-  return { accounts: 0, creditCards: 0, loans: 0, issues: [] };
+  return {
+    accounts: roundDecimal(0),
+    creditCards: roundDecimal(0),
+    loans: roundDecimal(0),
+    issues: [],
+  };
 }
 
 function serializeSlice(bucket: Bucket): BalanceSheetSlice {
-  const totalAssets = roundMoney(bucket.accounts);
-  const loanDebt = roundMoney(bucket.loans);
+  const totalAssets = roundDecimal(bucket.accounts);
+  const loanDebt = roundDecimal(bucket.loans);
   const incomplete = bucket.issues.length > 0;
-  const cardDebt = incomplete ? null : roundMoney(bucket.creditCards);
+  const cardDebt = incomplete ? null : roundDecimal(bucket.creditCards);
   const totalLiabilities =
-    incomplete || cardDebt == null ? null : roundMoney(cardDebt + loanDebt);
+    incomplete || cardDebt == null
+      ? null
+      : roundDecimal(cardDebt.plus(loanDebt));
   const netWorth =
     totalLiabilities == null
       ? null
-      : roundMoney(totalAssets - totalLiabilities);
+      : roundDecimal(totalAssets.minus(totalLiabilities));
 
   return {
     status: incomplete ? 'INCOMPLETE' : 'COMPLETE',
@@ -111,17 +144,36 @@ export class BalanceSheetService {
       byInstitution.set(institution.id, emptyBucket());
     }
 
-    const convert = (amount: number, currency: string) =>
+    const convert = (amount: MoneyLike, currency: string) =>
       this.resolveAmounts.toBaseCurrency(amount, currency, baseCurrency, asOf);
 
     for (const account of accounts) {
-      const amount = await convert(toNumber(account.balance), account.currency);
-      global.accounts += amount;
+      const converted = await this.resolveAmounts.toBaseCurrencyOrNull(
+        account.balance,
+        account.currency,
+        baseCurrency,
+        asOf,
+      );
+      if (converted === null) {
+        const issue: BalanceSheetIssue = {
+          code: 'MISSING_RATE',
+          currency: account.currency,
+        };
+        global.issues.push(issue);
+        const bucket = account.institutionId
+          ? byInstitution.get(account.institutionId)
+          : undefined;
+        if (bucket) {
+          bucket.issues.push(issue);
+        }
+        continue;
+      }
+      global.accounts = global.accounts.plus(converted);
       const bucket = account.institutionId
         ? byInstitution.get(account.institutionId)
         : undefined;
       if (bucket) {
-        bucket.accounts += amount;
+        bucket.accounts = bucket.accounts.plus(converted);
       }
     }
 
@@ -140,29 +192,25 @@ export class BalanceSheetService {
         continue;
       }
 
-      const debtNative = creditCardDebt(
-        toNumber(row.balance),
-        toNumber(row.creditLimit),
-      );
+      const debtNative = creditCardDebt(row.balance, row.creditLimit);
       const amount = await convert(debtNative, row.currency);
-      global.creditCards += amount;
+      global.creditCards = global.creditCards.plus(amount);
       const bucket = byInstitution.get(row.card.institutionId);
       if (bucket) {
-        bucket.creditCards += amount;
+        bucket.creditCards = bucket.creditCards.plus(amount);
       }
     }
 
     for (const loan of loans) {
-      const amount = await convert(
-        Math.max(0, toNumber(loan.currentBalance)),
-        loan.currency,
-      );
-      global.loans += amount;
+      const current = toMoney(loan.currentBalance);
+      const owed = current.isNegative() ? roundDecimal(0) : current;
+      const amount = await convert(owed, loan.currency);
+      global.loans = global.loans.plus(amount);
       const bucket = loan.institutionId
         ? byInstitution.get(loan.institutionId)
         : undefined;
       if (bucket) {
-        bucket.loans += amount;
+        bucket.loans = bucket.loans.plus(amount);
       }
     }
 
@@ -175,6 +223,64 @@ export class BalanceSheetService {
         institutionId: institution.id,
         ...serializeSlice(byInstitution.get(institution.id) ?? emptyBucket()),
       })),
+      cash: await this.buildCashSummary(userId, baseCurrency, asOf),
+    };
+  }
+
+  private async buildCashSummary(
+    userId: string,
+    baseCurrency: string,
+    asOf: Date,
+  ): Promise<FinanceCashSummary> {
+    const accounts = await this.repo.loadCashAccounts(userId);
+    const grouped = new Map<
+      string,
+      { total: Prisma.Decimal; accounts: CashAccountLine[] }
+    >();
+    for (const account of accounts) {
+      const currency = normalizeCurrencyCode(account.currency);
+      const group = grouped.get(currency) ?? {
+        total: roundDecimal(0),
+        accounts: [],
+      };
+      group.total = roundDecimal(group.total.plus(account.balance));
+      group.accounts.push({
+        id: account.id,
+        name: account.name,
+        balance: decimalToString(account.balance),
+      });
+      grouped.set(currency, group);
+    }
+
+    const byCurrency: CashCurrencyBreakdown[] = [];
+    let totalBase = roundDecimal(0);
+    let incomplete = false;
+    for (const [currency, group] of grouped) {
+      const converted = await this.resolveAmounts.toBaseCurrencyOrNull(
+        group.total,
+        currency,
+        baseCurrency,
+        asOf,
+      );
+      if (converted === null) {
+        incomplete = true;
+      } else {
+        totalBase = roundDecimal(totalBase.plus(converted));
+      }
+      byCurrency.push({
+        currency,
+        total: decimalToString(group.total),
+        totalBase: converted === null ? null : decimalToString(converted),
+        accounts: group.accounts,
+      });
+    }
+
+    return {
+      totalBase: incomplete ? null : decimalToString(totalBase),
+      baseCurrency,
+      rateDate: asOf.toISOString().slice(0, 10),
+      status: incomplete ? 'INCOMPLETE' : 'COMPLETE',
+      byCurrency,
     };
   }
 }

@@ -83,7 +83,7 @@ export class LedgerQueryService {
   async getTransaction(userId: string, id: string) {
     const tx = await this.repo.findTransactionById(id, userId);
     if (!tx) {
-      throw new NotFoundException('Transaction not found');
+      throw new NotFoundException('Transacción no encontrada');
     }
     if (!tx.transferGroupId) {
       return mapLogicalTransaction(tx, undefined, this.logos);

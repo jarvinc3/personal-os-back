@@ -28,11 +28,13 @@ export type AggregateFinRecurringPattern = {
 
 export type FinRecurringPatternAvgAggregateOutputType = {
   avgAmount: runtime.Decimal | null
+  amountTolerance: runtime.Decimal | null
   confidenceScore: number | null
 }
 
 export type FinRecurringPatternSumAggregateOutputType = {
   avgAmount: runtime.Decimal | null
+  amountTolerance: runtime.Decimal | null
   confidenceScore: number | null
 }
 
@@ -40,13 +42,20 @@ export type FinRecurringPatternMinAggregateOutputType = {
   id: string | null
   userId: string | null
   categoryId: string | null
+  merchantId: string | null
   merchant: string | null
   avgAmount: runtime.Decimal | null
   currency: string | null
   frequency: string | null
   nextExpectedDate: Date | null
+  amountTolerance: runtime.Decimal | null
+  status: $Enums.FinRecurringStatus | null
+  kind: $Enums.FinRecurringKind | null
   confidenceScore: number | null
+  lastSeenAt: Date | null
+  confirmedAt: Date | null
   isActive: boolean | null
+  createdAt: Date | null
   updatedAt: Date | null
 }
 
@@ -54,13 +63,20 @@ export type FinRecurringPatternMaxAggregateOutputType = {
   id: string | null
   userId: string | null
   categoryId: string | null
+  merchantId: string | null
   merchant: string | null
   avgAmount: runtime.Decimal | null
   currency: string | null
   frequency: string | null
   nextExpectedDate: Date | null
+  amountTolerance: runtime.Decimal | null
+  status: $Enums.FinRecurringStatus | null
+  kind: $Enums.FinRecurringKind | null
   confidenceScore: number | null
+  lastSeenAt: Date | null
+  confirmedAt: Date | null
   isActive: boolean | null
+  createdAt: Date | null
   updatedAt: Date | null
 }
 
@@ -68,14 +84,21 @@ export type FinRecurringPatternCountAggregateOutputType = {
   id: number
   userId: number
   categoryId: number
+  merchantId: number
   merchant: number
   avgAmount: number
   currency: number
   frequency: number
   nextExpectedDate: number
+  amountTolerance: number
+  status: number
+  kind: number
   confidenceScore: number
+  lastSeenAt: number
+  confirmedAt: number
   aiAnalysis: number
   isActive: number
+  createdAt: number
   updatedAt: number
   _all: number
 }
@@ -83,11 +106,13 @@ export type FinRecurringPatternCountAggregateOutputType = {
 
 export type FinRecurringPatternAvgAggregateInputType = {
   avgAmount?: true
+  amountTolerance?: true
   confidenceScore?: true
 }
 
 export type FinRecurringPatternSumAggregateInputType = {
   avgAmount?: true
+  amountTolerance?: true
   confidenceScore?: true
 }
 
@@ -95,13 +120,20 @@ export type FinRecurringPatternMinAggregateInputType = {
   id?: true
   userId?: true
   categoryId?: true
+  merchantId?: true
   merchant?: true
   avgAmount?: true
   currency?: true
   frequency?: true
   nextExpectedDate?: true
+  amountTolerance?: true
+  status?: true
+  kind?: true
   confidenceScore?: true
+  lastSeenAt?: true
+  confirmedAt?: true
   isActive?: true
+  createdAt?: true
   updatedAt?: true
 }
 
@@ -109,13 +141,20 @@ export type FinRecurringPatternMaxAggregateInputType = {
   id?: true
   userId?: true
   categoryId?: true
+  merchantId?: true
   merchant?: true
   avgAmount?: true
   currency?: true
   frequency?: true
   nextExpectedDate?: true
+  amountTolerance?: true
+  status?: true
+  kind?: true
   confidenceScore?: true
+  lastSeenAt?: true
+  confirmedAt?: true
   isActive?: true
+  createdAt?: true
   updatedAt?: true
 }
 
@@ -123,14 +162,21 @@ export type FinRecurringPatternCountAggregateInputType = {
   id?: true
   userId?: true
   categoryId?: true
+  merchantId?: true
   merchant?: true
   avgAmount?: true
   currency?: true
   frequency?: true
   nextExpectedDate?: true
+  amountTolerance?: true
+  status?: true
+  kind?: true
   confidenceScore?: true
+  lastSeenAt?: true
+  confirmedAt?: true
   aiAnalysis?: true
   isActive?: true
+  createdAt?: true
   updatedAt?: true
   _all?: true
 }
@@ -225,14 +271,21 @@ export type FinRecurringPatternGroupByOutputType = {
   id: string
   userId: string
   categoryId: string | null
+  merchantId: string | null
   merchant: string
   avgAmount: runtime.Decimal
   currency: string
   frequency: string
   nextExpectedDate: Date
+  amountTolerance: runtime.Decimal
+  status: $Enums.FinRecurringStatus
+  kind: $Enums.FinRecurringKind
   confidenceScore: number
+  lastSeenAt: Date | null
+  confirmedAt: Date | null
   aiAnalysis: runtime.JsonValue
   isActive: boolean
+  createdAt: Date
   updatedAt: Date
   _count: FinRecurringPatternCountAggregateOutputType | null
   _avg: FinRecurringPatternAvgAggregateOutputType | null
@@ -263,34 +316,52 @@ export type FinRecurringPatternWhereInput = {
   id?: Prisma.StringFilter<"FinRecurringPattern"> | string
   userId?: Prisma.StringFilter<"FinRecurringPattern"> | string
   categoryId?: Prisma.StringNullableFilter<"FinRecurringPattern"> | string | null
+  merchantId?: Prisma.StringNullableFilter<"FinRecurringPattern"> | string | null
   merchant?: Prisma.StringFilter<"FinRecurringPattern"> | string
   avgAmount?: Prisma.DecimalFilter<"FinRecurringPattern"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   currency?: Prisma.StringFilter<"FinRecurringPattern"> | string
   frequency?: Prisma.StringFilter<"FinRecurringPattern"> | string
   nextExpectedDate?: Prisma.DateTimeFilter<"FinRecurringPattern"> | Date | string
+  amountTolerance?: Prisma.DecimalFilter<"FinRecurringPattern"> | runtime.Decimal | runtime.DecimalJsLike | number | string
+  status?: Prisma.EnumFinRecurringStatusFilter<"FinRecurringPattern"> | $Enums.FinRecurringStatus
+  kind?: Prisma.EnumFinRecurringKindFilter<"FinRecurringPattern"> | $Enums.FinRecurringKind
   confidenceScore?: Prisma.IntFilter<"FinRecurringPattern"> | number
+  lastSeenAt?: Prisma.DateTimeNullableFilter<"FinRecurringPattern"> | Date | string | null
+  confirmedAt?: Prisma.DateTimeNullableFilter<"FinRecurringPattern"> | Date | string | null
   aiAnalysis?: Prisma.JsonFilter<"FinRecurringPattern">
   isActive?: Prisma.BoolFilter<"FinRecurringPattern"> | boolean
+  createdAt?: Prisma.DateTimeFilter<"FinRecurringPattern"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"FinRecurringPattern"> | Date | string
   category?: Prisma.XOR<Prisma.FinCategoryNullableScalarRelationFilter, Prisma.FinCategoryWhereInput> | null
+  merchantRef?: Prisma.XOR<Prisma.FinMerchantNullableScalarRelationFilter, Prisma.FinMerchantWhereInput> | null
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
+  subscriptions?: Prisma.FinSubscriptionListRelationFilter
 }
 
 export type FinRecurringPatternOrderByWithRelationInput = {
   id?: Prisma.SortOrder
   userId?: Prisma.SortOrder
   categoryId?: Prisma.SortOrderInput | Prisma.SortOrder
+  merchantId?: Prisma.SortOrderInput | Prisma.SortOrder
   merchant?: Prisma.SortOrder
   avgAmount?: Prisma.SortOrder
   currency?: Prisma.SortOrder
   frequency?: Prisma.SortOrder
   nextExpectedDate?: Prisma.SortOrder
+  amountTolerance?: Prisma.SortOrder
+  status?: Prisma.SortOrder
+  kind?: Prisma.SortOrder
   confidenceScore?: Prisma.SortOrder
+  lastSeenAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  confirmedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   aiAnalysis?: Prisma.SortOrder
   isActive?: Prisma.SortOrder
+  createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   category?: Prisma.FinCategoryOrderByWithRelationInput
+  merchantRef?: Prisma.FinMerchantOrderByWithRelationInput
   user?: Prisma.UserOrderByWithRelationInput
+  subscriptions?: Prisma.FinSubscriptionOrderByRelationAggregateInput
 }
 
 export type FinRecurringPatternWhereUniqueInput = Prisma.AtLeast<{
@@ -300,31 +371,47 @@ export type FinRecurringPatternWhereUniqueInput = Prisma.AtLeast<{
   NOT?: Prisma.FinRecurringPatternWhereInput | Prisma.FinRecurringPatternWhereInput[]
   userId?: Prisma.StringFilter<"FinRecurringPattern"> | string
   categoryId?: Prisma.StringNullableFilter<"FinRecurringPattern"> | string | null
+  merchantId?: Prisma.StringNullableFilter<"FinRecurringPattern"> | string | null
   merchant?: Prisma.StringFilter<"FinRecurringPattern"> | string
   avgAmount?: Prisma.DecimalFilter<"FinRecurringPattern"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   currency?: Prisma.StringFilter<"FinRecurringPattern"> | string
   frequency?: Prisma.StringFilter<"FinRecurringPattern"> | string
   nextExpectedDate?: Prisma.DateTimeFilter<"FinRecurringPattern"> | Date | string
+  amountTolerance?: Prisma.DecimalFilter<"FinRecurringPattern"> | runtime.Decimal | runtime.DecimalJsLike | number | string
+  status?: Prisma.EnumFinRecurringStatusFilter<"FinRecurringPattern"> | $Enums.FinRecurringStatus
+  kind?: Prisma.EnumFinRecurringKindFilter<"FinRecurringPattern"> | $Enums.FinRecurringKind
   confidenceScore?: Prisma.IntFilter<"FinRecurringPattern"> | number
+  lastSeenAt?: Prisma.DateTimeNullableFilter<"FinRecurringPattern"> | Date | string | null
+  confirmedAt?: Prisma.DateTimeNullableFilter<"FinRecurringPattern"> | Date | string | null
   aiAnalysis?: Prisma.JsonFilter<"FinRecurringPattern">
   isActive?: Prisma.BoolFilter<"FinRecurringPattern"> | boolean
+  createdAt?: Prisma.DateTimeFilter<"FinRecurringPattern"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"FinRecurringPattern"> | Date | string
   category?: Prisma.XOR<Prisma.FinCategoryNullableScalarRelationFilter, Prisma.FinCategoryWhereInput> | null
+  merchantRef?: Prisma.XOR<Prisma.FinMerchantNullableScalarRelationFilter, Prisma.FinMerchantWhereInput> | null
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
+  subscriptions?: Prisma.FinSubscriptionListRelationFilter
 }, "id">
 
 export type FinRecurringPatternOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
   userId?: Prisma.SortOrder
   categoryId?: Prisma.SortOrderInput | Prisma.SortOrder
+  merchantId?: Prisma.SortOrderInput | Prisma.SortOrder
   merchant?: Prisma.SortOrder
   avgAmount?: Prisma.SortOrder
   currency?: Prisma.SortOrder
   frequency?: Prisma.SortOrder
   nextExpectedDate?: Prisma.SortOrder
+  amountTolerance?: Prisma.SortOrder
+  status?: Prisma.SortOrder
+  kind?: Prisma.SortOrder
   confidenceScore?: Prisma.SortOrder
+  lastSeenAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  confirmedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   aiAnalysis?: Prisma.SortOrder
   isActive?: Prisma.SortOrder
+  createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   _count?: Prisma.FinRecurringPatternCountOrderByAggregateInput
   _avg?: Prisma.FinRecurringPatternAvgOrderByAggregateInput
@@ -340,14 +427,21 @@ export type FinRecurringPatternScalarWhereWithAggregatesInput = {
   id?: Prisma.StringWithAggregatesFilter<"FinRecurringPattern"> | string
   userId?: Prisma.StringWithAggregatesFilter<"FinRecurringPattern"> | string
   categoryId?: Prisma.StringNullableWithAggregatesFilter<"FinRecurringPattern"> | string | null
+  merchantId?: Prisma.StringNullableWithAggregatesFilter<"FinRecurringPattern"> | string | null
   merchant?: Prisma.StringWithAggregatesFilter<"FinRecurringPattern"> | string
   avgAmount?: Prisma.DecimalWithAggregatesFilter<"FinRecurringPattern"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   currency?: Prisma.StringWithAggregatesFilter<"FinRecurringPattern"> | string
   frequency?: Prisma.StringWithAggregatesFilter<"FinRecurringPattern"> | string
   nextExpectedDate?: Prisma.DateTimeWithAggregatesFilter<"FinRecurringPattern"> | Date | string
+  amountTolerance?: Prisma.DecimalWithAggregatesFilter<"FinRecurringPattern"> | runtime.Decimal | runtime.DecimalJsLike | number | string
+  status?: Prisma.EnumFinRecurringStatusWithAggregatesFilter<"FinRecurringPattern"> | $Enums.FinRecurringStatus
+  kind?: Prisma.EnumFinRecurringKindWithAggregatesFilter<"FinRecurringPattern"> | $Enums.FinRecurringKind
   confidenceScore?: Prisma.IntWithAggregatesFilter<"FinRecurringPattern"> | number
+  lastSeenAt?: Prisma.DateTimeNullableWithAggregatesFilter<"FinRecurringPattern"> | Date | string | null
+  confirmedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"FinRecurringPattern"> | Date | string | null
   aiAnalysis?: Prisma.JsonWithAggregatesFilter<"FinRecurringPattern">
   isActive?: Prisma.BoolWithAggregatesFilter<"FinRecurringPattern"> | boolean
+  createdAt?: Prisma.DateTimeWithAggregatesFilter<"FinRecurringPattern"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"FinRecurringPattern"> | Date | string
 }
 
@@ -358,27 +452,43 @@ export type FinRecurringPatternCreateInput = {
   currency?: string
   frequency: string
   nextExpectedDate: Date | string
+  amountTolerance?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  status?: $Enums.FinRecurringStatus
+  kind?: $Enums.FinRecurringKind
   confidenceScore?: number
+  lastSeenAt?: Date | string | null
+  confirmedAt?: Date | string | null
   aiAnalysis?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   isActive?: boolean
+  createdAt?: Date | string
   updatedAt?: Date | string
   category?: Prisma.FinCategoryCreateNestedOneWithoutRecurringInput
+  merchantRef?: Prisma.FinMerchantCreateNestedOneWithoutRecurringInput
   user: Prisma.UserCreateNestedOneWithoutFinRecurringInput
+  subscriptions?: Prisma.FinSubscriptionCreateNestedManyWithoutSourcePatternInput
 }
 
 export type FinRecurringPatternUncheckedCreateInput = {
   id?: string
   userId: string
   categoryId?: string | null
+  merchantId?: string | null
   merchant: string
   avgAmount: runtime.Decimal | runtime.DecimalJsLike | number | string
   currency?: string
   frequency: string
   nextExpectedDate: Date | string
+  amountTolerance?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  status?: $Enums.FinRecurringStatus
+  kind?: $Enums.FinRecurringKind
   confidenceScore?: number
+  lastSeenAt?: Date | string | null
+  confirmedAt?: Date | string | null
   aiAnalysis?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   isActive?: boolean
+  createdAt?: Date | string
   updatedAt?: Date | string
+  subscriptions?: Prisma.FinSubscriptionUncheckedCreateNestedManyWithoutSourcePatternInput
 }
 
 export type FinRecurringPatternUpdateInput = {
@@ -388,41 +498,64 @@ export type FinRecurringPatternUpdateInput = {
   currency?: Prisma.StringFieldUpdateOperationsInput | string
   frequency?: Prisma.StringFieldUpdateOperationsInput | string
   nextExpectedDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  amountTolerance?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  status?: Prisma.EnumFinRecurringStatusFieldUpdateOperationsInput | $Enums.FinRecurringStatus
+  kind?: Prisma.EnumFinRecurringKindFieldUpdateOperationsInput | $Enums.FinRecurringKind
   confidenceScore?: Prisma.IntFieldUpdateOperationsInput | number
+  lastSeenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  confirmedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   aiAnalysis?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   category?: Prisma.FinCategoryUpdateOneWithoutRecurringNestedInput
+  merchantRef?: Prisma.FinMerchantUpdateOneWithoutRecurringNestedInput
   user?: Prisma.UserUpdateOneRequiredWithoutFinRecurringNestedInput
+  subscriptions?: Prisma.FinSubscriptionUpdateManyWithoutSourcePatternNestedInput
 }
 
 export type FinRecurringPatternUncheckedUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.StringFieldUpdateOperationsInput | string
   categoryId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  merchantId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   merchant?: Prisma.StringFieldUpdateOperationsInput | string
   avgAmount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   currency?: Prisma.StringFieldUpdateOperationsInput | string
   frequency?: Prisma.StringFieldUpdateOperationsInput | string
   nextExpectedDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  amountTolerance?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  status?: Prisma.EnumFinRecurringStatusFieldUpdateOperationsInput | $Enums.FinRecurringStatus
+  kind?: Prisma.EnumFinRecurringKindFieldUpdateOperationsInput | $Enums.FinRecurringKind
   confidenceScore?: Prisma.IntFieldUpdateOperationsInput | number
+  lastSeenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  confirmedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   aiAnalysis?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  subscriptions?: Prisma.FinSubscriptionUncheckedUpdateManyWithoutSourcePatternNestedInput
 }
 
 export type FinRecurringPatternCreateManyInput = {
   id?: string
   userId: string
   categoryId?: string | null
+  merchantId?: string | null
   merchant: string
   avgAmount: runtime.Decimal | runtime.DecimalJsLike | number | string
   currency?: string
   frequency: string
   nextExpectedDate: Date | string
+  amountTolerance?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  status?: $Enums.FinRecurringStatus
+  kind?: $Enums.FinRecurringKind
   confidenceScore?: number
+  lastSeenAt?: Date | string | null
+  confirmedAt?: Date | string | null
   aiAnalysis?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   isActive?: boolean
+  createdAt?: Date | string
   updatedAt?: Date | string
 }
 
@@ -433,9 +566,15 @@ export type FinRecurringPatternUpdateManyMutationInput = {
   currency?: Prisma.StringFieldUpdateOperationsInput | string
   frequency?: Prisma.StringFieldUpdateOperationsInput | string
   nextExpectedDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  amountTolerance?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  status?: Prisma.EnumFinRecurringStatusFieldUpdateOperationsInput | $Enums.FinRecurringStatus
+  kind?: Prisma.EnumFinRecurringKindFieldUpdateOperationsInput | $Enums.FinRecurringKind
   confidenceScore?: Prisma.IntFieldUpdateOperationsInput | number
+  lastSeenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  confirmedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   aiAnalysis?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -443,14 +582,21 @@ export type FinRecurringPatternUncheckedUpdateManyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.StringFieldUpdateOperationsInput | string
   categoryId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  merchantId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   merchant?: Prisma.StringFieldUpdateOperationsInput | string
   avgAmount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   currency?: Prisma.StringFieldUpdateOperationsInput | string
   frequency?: Prisma.StringFieldUpdateOperationsInput | string
   nextExpectedDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  amountTolerance?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  status?: Prisma.EnumFinRecurringStatusFieldUpdateOperationsInput | $Enums.FinRecurringStatus
+  kind?: Prisma.EnumFinRecurringKindFieldUpdateOperationsInput | $Enums.FinRecurringKind
   confidenceScore?: Prisma.IntFieldUpdateOperationsInput | number
+  lastSeenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  confirmedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   aiAnalysis?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -468,19 +614,27 @@ export type FinRecurringPatternCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
   userId?: Prisma.SortOrder
   categoryId?: Prisma.SortOrder
+  merchantId?: Prisma.SortOrder
   merchant?: Prisma.SortOrder
   avgAmount?: Prisma.SortOrder
   currency?: Prisma.SortOrder
   frequency?: Prisma.SortOrder
   nextExpectedDate?: Prisma.SortOrder
+  amountTolerance?: Prisma.SortOrder
+  status?: Prisma.SortOrder
+  kind?: Prisma.SortOrder
   confidenceScore?: Prisma.SortOrder
+  lastSeenAt?: Prisma.SortOrder
+  confirmedAt?: Prisma.SortOrder
   aiAnalysis?: Prisma.SortOrder
   isActive?: Prisma.SortOrder
+  createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
 
 export type FinRecurringPatternAvgOrderByAggregateInput = {
   avgAmount?: Prisma.SortOrder
+  amountTolerance?: Prisma.SortOrder
   confidenceScore?: Prisma.SortOrder
 }
 
@@ -488,13 +642,20 @@ export type FinRecurringPatternMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
   userId?: Prisma.SortOrder
   categoryId?: Prisma.SortOrder
+  merchantId?: Prisma.SortOrder
   merchant?: Prisma.SortOrder
   avgAmount?: Prisma.SortOrder
   currency?: Prisma.SortOrder
   frequency?: Prisma.SortOrder
   nextExpectedDate?: Prisma.SortOrder
+  amountTolerance?: Prisma.SortOrder
+  status?: Prisma.SortOrder
+  kind?: Prisma.SortOrder
   confidenceScore?: Prisma.SortOrder
+  lastSeenAt?: Prisma.SortOrder
+  confirmedAt?: Prisma.SortOrder
   isActive?: Prisma.SortOrder
+  createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
 
@@ -502,19 +663,32 @@ export type FinRecurringPatternMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
   userId?: Prisma.SortOrder
   categoryId?: Prisma.SortOrder
+  merchantId?: Prisma.SortOrder
   merchant?: Prisma.SortOrder
   avgAmount?: Prisma.SortOrder
   currency?: Prisma.SortOrder
   frequency?: Prisma.SortOrder
   nextExpectedDate?: Prisma.SortOrder
+  amountTolerance?: Prisma.SortOrder
+  status?: Prisma.SortOrder
+  kind?: Prisma.SortOrder
   confidenceScore?: Prisma.SortOrder
+  lastSeenAt?: Prisma.SortOrder
+  confirmedAt?: Prisma.SortOrder
   isActive?: Prisma.SortOrder
+  createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
 
 export type FinRecurringPatternSumOrderByAggregateInput = {
   avgAmount?: Prisma.SortOrder
+  amountTolerance?: Prisma.SortOrder
   confidenceScore?: Prisma.SortOrder
+}
+
+export type FinRecurringPatternNullableScalarRelationFilter = {
+  is?: Prisma.FinRecurringPatternWhereInput | null
+  isNot?: Prisma.FinRecurringPatternWhereInput | null
 }
 
 export type FinRecurringPatternCreateNestedManyWithoutUserInput = {
@@ -601,6 +775,72 @@ export type FinRecurringPatternUncheckedUpdateManyWithoutCategoryNestedInput = {
   deleteMany?: Prisma.FinRecurringPatternScalarWhereInput | Prisma.FinRecurringPatternScalarWhereInput[]
 }
 
+export type EnumFinRecurringStatusFieldUpdateOperationsInput = {
+  set?: $Enums.FinRecurringStatus
+}
+
+export type EnumFinRecurringKindFieldUpdateOperationsInput = {
+  set?: $Enums.FinRecurringKind
+}
+
+export type FinRecurringPatternCreateNestedManyWithoutMerchantRefInput = {
+  create?: Prisma.XOR<Prisma.FinRecurringPatternCreateWithoutMerchantRefInput, Prisma.FinRecurringPatternUncheckedCreateWithoutMerchantRefInput> | Prisma.FinRecurringPatternCreateWithoutMerchantRefInput[] | Prisma.FinRecurringPatternUncheckedCreateWithoutMerchantRefInput[]
+  connectOrCreate?: Prisma.FinRecurringPatternCreateOrConnectWithoutMerchantRefInput | Prisma.FinRecurringPatternCreateOrConnectWithoutMerchantRefInput[]
+  createMany?: Prisma.FinRecurringPatternCreateManyMerchantRefInputEnvelope
+  connect?: Prisma.FinRecurringPatternWhereUniqueInput | Prisma.FinRecurringPatternWhereUniqueInput[]
+}
+
+export type FinRecurringPatternUncheckedCreateNestedManyWithoutMerchantRefInput = {
+  create?: Prisma.XOR<Prisma.FinRecurringPatternCreateWithoutMerchantRefInput, Prisma.FinRecurringPatternUncheckedCreateWithoutMerchantRefInput> | Prisma.FinRecurringPatternCreateWithoutMerchantRefInput[] | Prisma.FinRecurringPatternUncheckedCreateWithoutMerchantRefInput[]
+  connectOrCreate?: Prisma.FinRecurringPatternCreateOrConnectWithoutMerchantRefInput | Prisma.FinRecurringPatternCreateOrConnectWithoutMerchantRefInput[]
+  createMany?: Prisma.FinRecurringPatternCreateManyMerchantRefInputEnvelope
+  connect?: Prisma.FinRecurringPatternWhereUniqueInput | Prisma.FinRecurringPatternWhereUniqueInput[]
+}
+
+export type FinRecurringPatternUpdateManyWithoutMerchantRefNestedInput = {
+  create?: Prisma.XOR<Prisma.FinRecurringPatternCreateWithoutMerchantRefInput, Prisma.FinRecurringPatternUncheckedCreateWithoutMerchantRefInput> | Prisma.FinRecurringPatternCreateWithoutMerchantRefInput[] | Prisma.FinRecurringPatternUncheckedCreateWithoutMerchantRefInput[]
+  connectOrCreate?: Prisma.FinRecurringPatternCreateOrConnectWithoutMerchantRefInput | Prisma.FinRecurringPatternCreateOrConnectWithoutMerchantRefInput[]
+  upsert?: Prisma.FinRecurringPatternUpsertWithWhereUniqueWithoutMerchantRefInput | Prisma.FinRecurringPatternUpsertWithWhereUniqueWithoutMerchantRefInput[]
+  createMany?: Prisma.FinRecurringPatternCreateManyMerchantRefInputEnvelope
+  set?: Prisma.FinRecurringPatternWhereUniqueInput | Prisma.FinRecurringPatternWhereUniqueInput[]
+  disconnect?: Prisma.FinRecurringPatternWhereUniqueInput | Prisma.FinRecurringPatternWhereUniqueInput[]
+  delete?: Prisma.FinRecurringPatternWhereUniqueInput | Prisma.FinRecurringPatternWhereUniqueInput[]
+  connect?: Prisma.FinRecurringPatternWhereUniqueInput | Prisma.FinRecurringPatternWhereUniqueInput[]
+  update?: Prisma.FinRecurringPatternUpdateWithWhereUniqueWithoutMerchantRefInput | Prisma.FinRecurringPatternUpdateWithWhereUniqueWithoutMerchantRefInput[]
+  updateMany?: Prisma.FinRecurringPatternUpdateManyWithWhereWithoutMerchantRefInput | Prisma.FinRecurringPatternUpdateManyWithWhereWithoutMerchantRefInput[]
+  deleteMany?: Prisma.FinRecurringPatternScalarWhereInput | Prisma.FinRecurringPatternScalarWhereInput[]
+}
+
+export type FinRecurringPatternUncheckedUpdateManyWithoutMerchantRefNestedInput = {
+  create?: Prisma.XOR<Prisma.FinRecurringPatternCreateWithoutMerchantRefInput, Prisma.FinRecurringPatternUncheckedCreateWithoutMerchantRefInput> | Prisma.FinRecurringPatternCreateWithoutMerchantRefInput[] | Prisma.FinRecurringPatternUncheckedCreateWithoutMerchantRefInput[]
+  connectOrCreate?: Prisma.FinRecurringPatternCreateOrConnectWithoutMerchantRefInput | Prisma.FinRecurringPatternCreateOrConnectWithoutMerchantRefInput[]
+  upsert?: Prisma.FinRecurringPatternUpsertWithWhereUniqueWithoutMerchantRefInput | Prisma.FinRecurringPatternUpsertWithWhereUniqueWithoutMerchantRefInput[]
+  createMany?: Prisma.FinRecurringPatternCreateManyMerchantRefInputEnvelope
+  set?: Prisma.FinRecurringPatternWhereUniqueInput | Prisma.FinRecurringPatternWhereUniqueInput[]
+  disconnect?: Prisma.FinRecurringPatternWhereUniqueInput | Prisma.FinRecurringPatternWhereUniqueInput[]
+  delete?: Prisma.FinRecurringPatternWhereUniqueInput | Prisma.FinRecurringPatternWhereUniqueInput[]
+  connect?: Prisma.FinRecurringPatternWhereUniqueInput | Prisma.FinRecurringPatternWhereUniqueInput[]
+  update?: Prisma.FinRecurringPatternUpdateWithWhereUniqueWithoutMerchantRefInput | Prisma.FinRecurringPatternUpdateWithWhereUniqueWithoutMerchantRefInput[]
+  updateMany?: Prisma.FinRecurringPatternUpdateManyWithWhereWithoutMerchantRefInput | Prisma.FinRecurringPatternUpdateManyWithWhereWithoutMerchantRefInput[]
+  deleteMany?: Prisma.FinRecurringPatternScalarWhereInput | Prisma.FinRecurringPatternScalarWhereInput[]
+}
+
+export type FinRecurringPatternCreateNestedOneWithoutSubscriptionsInput = {
+  create?: Prisma.XOR<Prisma.FinRecurringPatternCreateWithoutSubscriptionsInput, Prisma.FinRecurringPatternUncheckedCreateWithoutSubscriptionsInput>
+  connectOrCreate?: Prisma.FinRecurringPatternCreateOrConnectWithoutSubscriptionsInput
+  connect?: Prisma.FinRecurringPatternWhereUniqueInput
+}
+
+export type FinRecurringPatternUpdateOneWithoutSubscriptionsNestedInput = {
+  create?: Prisma.XOR<Prisma.FinRecurringPatternCreateWithoutSubscriptionsInput, Prisma.FinRecurringPatternUncheckedCreateWithoutSubscriptionsInput>
+  connectOrCreate?: Prisma.FinRecurringPatternCreateOrConnectWithoutSubscriptionsInput
+  upsert?: Prisma.FinRecurringPatternUpsertWithoutSubscriptionsInput
+  disconnect?: Prisma.FinRecurringPatternWhereInput | boolean
+  delete?: Prisma.FinRecurringPatternWhereInput | boolean
+  connect?: Prisma.FinRecurringPatternWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.FinRecurringPatternUpdateToOneWithWhereWithoutSubscriptionsInput, Prisma.FinRecurringPatternUpdateWithoutSubscriptionsInput>, Prisma.FinRecurringPatternUncheckedUpdateWithoutSubscriptionsInput>
+}
+
 export type FinRecurringPatternCreateWithoutUserInput = {
   id?: string
   merchant: string
@@ -608,25 +848,41 @@ export type FinRecurringPatternCreateWithoutUserInput = {
   currency?: string
   frequency: string
   nextExpectedDate: Date | string
+  amountTolerance?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  status?: $Enums.FinRecurringStatus
+  kind?: $Enums.FinRecurringKind
   confidenceScore?: number
+  lastSeenAt?: Date | string | null
+  confirmedAt?: Date | string | null
   aiAnalysis?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   isActive?: boolean
+  createdAt?: Date | string
   updatedAt?: Date | string
   category?: Prisma.FinCategoryCreateNestedOneWithoutRecurringInput
+  merchantRef?: Prisma.FinMerchantCreateNestedOneWithoutRecurringInput
+  subscriptions?: Prisma.FinSubscriptionCreateNestedManyWithoutSourcePatternInput
 }
 
 export type FinRecurringPatternUncheckedCreateWithoutUserInput = {
   id?: string
   categoryId?: string | null
+  merchantId?: string | null
   merchant: string
   avgAmount: runtime.Decimal | runtime.DecimalJsLike | number | string
   currency?: string
   frequency: string
   nextExpectedDate: Date | string
+  amountTolerance?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  status?: $Enums.FinRecurringStatus
+  kind?: $Enums.FinRecurringKind
   confidenceScore?: number
+  lastSeenAt?: Date | string | null
+  confirmedAt?: Date | string | null
   aiAnalysis?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   isActive?: boolean
+  createdAt?: Date | string
   updatedAt?: Date | string
+  subscriptions?: Prisma.FinSubscriptionUncheckedCreateNestedManyWithoutSourcePatternInput
 }
 
 export type FinRecurringPatternCreateOrConnectWithoutUserInput = {
@@ -662,14 +918,21 @@ export type FinRecurringPatternScalarWhereInput = {
   id?: Prisma.StringFilter<"FinRecurringPattern"> | string
   userId?: Prisma.StringFilter<"FinRecurringPattern"> | string
   categoryId?: Prisma.StringNullableFilter<"FinRecurringPattern"> | string | null
+  merchantId?: Prisma.StringNullableFilter<"FinRecurringPattern"> | string | null
   merchant?: Prisma.StringFilter<"FinRecurringPattern"> | string
   avgAmount?: Prisma.DecimalFilter<"FinRecurringPattern"> | runtime.Decimal | runtime.DecimalJsLike | number | string
   currency?: Prisma.StringFilter<"FinRecurringPattern"> | string
   frequency?: Prisma.StringFilter<"FinRecurringPattern"> | string
   nextExpectedDate?: Prisma.DateTimeFilter<"FinRecurringPattern"> | Date | string
+  amountTolerance?: Prisma.DecimalFilter<"FinRecurringPattern"> | runtime.Decimal | runtime.DecimalJsLike | number | string
+  status?: Prisma.EnumFinRecurringStatusFilter<"FinRecurringPattern"> | $Enums.FinRecurringStatus
+  kind?: Prisma.EnumFinRecurringKindFilter<"FinRecurringPattern"> | $Enums.FinRecurringKind
   confidenceScore?: Prisma.IntFilter<"FinRecurringPattern"> | number
+  lastSeenAt?: Prisma.DateTimeNullableFilter<"FinRecurringPattern"> | Date | string | null
+  confirmedAt?: Prisma.DateTimeNullableFilter<"FinRecurringPattern"> | Date | string | null
   aiAnalysis?: Prisma.JsonFilter<"FinRecurringPattern">
   isActive?: Prisma.BoolFilter<"FinRecurringPattern"> | boolean
+  createdAt?: Prisma.DateTimeFilter<"FinRecurringPattern"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"FinRecurringPattern"> | Date | string
 }
 
@@ -680,25 +943,41 @@ export type FinRecurringPatternCreateWithoutCategoryInput = {
   currency?: string
   frequency: string
   nextExpectedDate: Date | string
+  amountTolerance?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  status?: $Enums.FinRecurringStatus
+  kind?: $Enums.FinRecurringKind
   confidenceScore?: number
+  lastSeenAt?: Date | string | null
+  confirmedAt?: Date | string | null
   aiAnalysis?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   isActive?: boolean
+  createdAt?: Date | string
   updatedAt?: Date | string
+  merchantRef?: Prisma.FinMerchantCreateNestedOneWithoutRecurringInput
   user: Prisma.UserCreateNestedOneWithoutFinRecurringInput
+  subscriptions?: Prisma.FinSubscriptionCreateNestedManyWithoutSourcePatternInput
 }
 
 export type FinRecurringPatternUncheckedCreateWithoutCategoryInput = {
   id?: string
   userId: string
+  merchantId?: string | null
   merchant: string
   avgAmount: runtime.Decimal | runtime.DecimalJsLike | number | string
   currency?: string
   frequency: string
   nextExpectedDate: Date | string
+  amountTolerance?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  status?: $Enums.FinRecurringStatus
+  kind?: $Enums.FinRecurringKind
   confidenceScore?: number
+  lastSeenAt?: Date | string | null
+  confirmedAt?: Date | string | null
   aiAnalysis?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   isActive?: boolean
+  createdAt?: Date | string
   updatedAt?: Date | string
+  subscriptions?: Prisma.FinSubscriptionUncheckedCreateNestedManyWithoutSourcePatternInput
 }
 
 export type FinRecurringPatternCreateOrConnectWithoutCategoryInput = {
@@ -727,17 +1006,198 @@ export type FinRecurringPatternUpdateManyWithWhereWithoutCategoryInput = {
   data: Prisma.XOR<Prisma.FinRecurringPatternUpdateManyMutationInput, Prisma.FinRecurringPatternUncheckedUpdateManyWithoutCategoryInput>
 }
 
-export type FinRecurringPatternCreateManyUserInput = {
+export type FinRecurringPatternCreateWithoutMerchantRefInput = {
   id?: string
+  merchant: string
+  avgAmount: runtime.Decimal | runtime.DecimalJsLike | number | string
+  currency?: string
+  frequency: string
+  nextExpectedDate: Date | string
+  amountTolerance?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  status?: $Enums.FinRecurringStatus
+  kind?: $Enums.FinRecurringKind
+  confidenceScore?: number
+  lastSeenAt?: Date | string | null
+  confirmedAt?: Date | string | null
+  aiAnalysis?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  isActive?: boolean
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  category?: Prisma.FinCategoryCreateNestedOneWithoutRecurringInput
+  user: Prisma.UserCreateNestedOneWithoutFinRecurringInput
+  subscriptions?: Prisma.FinSubscriptionCreateNestedManyWithoutSourcePatternInput
+}
+
+export type FinRecurringPatternUncheckedCreateWithoutMerchantRefInput = {
+  id?: string
+  userId: string
   categoryId?: string | null
   merchant: string
   avgAmount: runtime.Decimal | runtime.DecimalJsLike | number | string
   currency?: string
   frequency: string
   nextExpectedDate: Date | string
+  amountTolerance?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  status?: $Enums.FinRecurringStatus
+  kind?: $Enums.FinRecurringKind
   confidenceScore?: number
+  lastSeenAt?: Date | string | null
+  confirmedAt?: Date | string | null
   aiAnalysis?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   isActive?: boolean
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  subscriptions?: Prisma.FinSubscriptionUncheckedCreateNestedManyWithoutSourcePatternInput
+}
+
+export type FinRecurringPatternCreateOrConnectWithoutMerchantRefInput = {
+  where: Prisma.FinRecurringPatternWhereUniqueInput
+  create: Prisma.XOR<Prisma.FinRecurringPatternCreateWithoutMerchantRefInput, Prisma.FinRecurringPatternUncheckedCreateWithoutMerchantRefInput>
+}
+
+export type FinRecurringPatternCreateManyMerchantRefInputEnvelope = {
+  data: Prisma.FinRecurringPatternCreateManyMerchantRefInput | Prisma.FinRecurringPatternCreateManyMerchantRefInput[]
+  skipDuplicates?: boolean
+}
+
+export type FinRecurringPatternUpsertWithWhereUniqueWithoutMerchantRefInput = {
+  where: Prisma.FinRecurringPatternWhereUniqueInput
+  update: Prisma.XOR<Prisma.FinRecurringPatternUpdateWithoutMerchantRefInput, Prisma.FinRecurringPatternUncheckedUpdateWithoutMerchantRefInput>
+  create: Prisma.XOR<Prisma.FinRecurringPatternCreateWithoutMerchantRefInput, Prisma.FinRecurringPatternUncheckedCreateWithoutMerchantRefInput>
+}
+
+export type FinRecurringPatternUpdateWithWhereUniqueWithoutMerchantRefInput = {
+  where: Prisma.FinRecurringPatternWhereUniqueInput
+  data: Prisma.XOR<Prisma.FinRecurringPatternUpdateWithoutMerchantRefInput, Prisma.FinRecurringPatternUncheckedUpdateWithoutMerchantRefInput>
+}
+
+export type FinRecurringPatternUpdateManyWithWhereWithoutMerchantRefInput = {
+  where: Prisma.FinRecurringPatternScalarWhereInput
+  data: Prisma.XOR<Prisma.FinRecurringPatternUpdateManyMutationInput, Prisma.FinRecurringPatternUncheckedUpdateManyWithoutMerchantRefInput>
+}
+
+export type FinRecurringPatternCreateWithoutSubscriptionsInput = {
+  id?: string
+  merchant: string
+  avgAmount: runtime.Decimal | runtime.DecimalJsLike | number | string
+  currency?: string
+  frequency: string
+  nextExpectedDate: Date | string
+  amountTolerance?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  status?: $Enums.FinRecurringStatus
+  kind?: $Enums.FinRecurringKind
+  confidenceScore?: number
+  lastSeenAt?: Date | string | null
+  confirmedAt?: Date | string | null
+  aiAnalysis?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  isActive?: boolean
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  category?: Prisma.FinCategoryCreateNestedOneWithoutRecurringInput
+  merchantRef?: Prisma.FinMerchantCreateNestedOneWithoutRecurringInput
+  user: Prisma.UserCreateNestedOneWithoutFinRecurringInput
+}
+
+export type FinRecurringPatternUncheckedCreateWithoutSubscriptionsInput = {
+  id?: string
+  userId: string
+  categoryId?: string | null
+  merchantId?: string | null
+  merchant: string
+  avgAmount: runtime.Decimal | runtime.DecimalJsLike | number | string
+  currency?: string
+  frequency: string
+  nextExpectedDate: Date | string
+  amountTolerance?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  status?: $Enums.FinRecurringStatus
+  kind?: $Enums.FinRecurringKind
+  confidenceScore?: number
+  lastSeenAt?: Date | string | null
+  confirmedAt?: Date | string | null
+  aiAnalysis?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  isActive?: boolean
+  createdAt?: Date | string
+  updatedAt?: Date | string
+}
+
+export type FinRecurringPatternCreateOrConnectWithoutSubscriptionsInput = {
+  where: Prisma.FinRecurringPatternWhereUniqueInput
+  create: Prisma.XOR<Prisma.FinRecurringPatternCreateWithoutSubscriptionsInput, Prisma.FinRecurringPatternUncheckedCreateWithoutSubscriptionsInput>
+}
+
+export type FinRecurringPatternUpsertWithoutSubscriptionsInput = {
+  update: Prisma.XOR<Prisma.FinRecurringPatternUpdateWithoutSubscriptionsInput, Prisma.FinRecurringPatternUncheckedUpdateWithoutSubscriptionsInput>
+  create: Prisma.XOR<Prisma.FinRecurringPatternCreateWithoutSubscriptionsInput, Prisma.FinRecurringPatternUncheckedCreateWithoutSubscriptionsInput>
+  where?: Prisma.FinRecurringPatternWhereInput
+}
+
+export type FinRecurringPatternUpdateToOneWithWhereWithoutSubscriptionsInput = {
+  where?: Prisma.FinRecurringPatternWhereInput
+  data: Prisma.XOR<Prisma.FinRecurringPatternUpdateWithoutSubscriptionsInput, Prisma.FinRecurringPatternUncheckedUpdateWithoutSubscriptionsInput>
+}
+
+export type FinRecurringPatternUpdateWithoutSubscriptionsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  merchant?: Prisma.StringFieldUpdateOperationsInput | string
+  avgAmount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  currency?: Prisma.StringFieldUpdateOperationsInput | string
+  frequency?: Prisma.StringFieldUpdateOperationsInput | string
+  nextExpectedDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  amountTolerance?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  status?: Prisma.EnumFinRecurringStatusFieldUpdateOperationsInput | $Enums.FinRecurringStatus
+  kind?: Prisma.EnumFinRecurringKindFieldUpdateOperationsInput | $Enums.FinRecurringKind
+  confidenceScore?: Prisma.IntFieldUpdateOperationsInput | number
+  lastSeenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  confirmedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  aiAnalysis?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  category?: Prisma.FinCategoryUpdateOneWithoutRecurringNestedInput
+  merchantRef?: Prisma.FinMerchantUpdateOneWithoutRecurringNestedInput
+  user?: Prisma.UserUpdateOneRequiredWithoutFinRecurringNestedInput
+}
+
+export type FinRecurringPatternUncheckedUpdateWithoutSubscriptionsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  userId?: Prisma.StringFieldUpdateOperationsInput | string
+  categoryId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  merchantId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  merchant?: Prisma.StringFieldUpdateOperationsInput | string
+  avgAmount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  currency?: Prisma.StringFieldUpdateOperationsInput | string
+  frequency?: Prisma.StringFieldUpdateOperationsInput | string
+  nextExpectedDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  amountTolerance?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  status?: Prisma.EnumFinRecurringStatusFieldUpdateOperationsInput | $Enums.FinRecurringStatus
+  kind?: Prisma.EnumFinRecurringKindFieldUpdateOperationsInput | $Enums.FinRecurringKind
+  confidenceScore?: Prisma.IntFieldUpdateOperationsInput | number
+  lastSeenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  confirmedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  aiAnalysis?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+}
+
+export type FinRecurringPatternCreateManyUserInput = {
+  id?: string
+  categoryId?: string | null
+  merchantId?: string | null
+  merchant: string
+  avgAmount: runtime.Decimal | runtime.DecimalJsLike | number | string
+  currency?: string
+  frequency: string
+  nextExpectedDate: Date | string
+  amountTolerance?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  status?: $Enums.FinRecurringStatus
+  kind?: $Enums.FinRecurringKind
+  confidenceScore?: number
+  lastSeenAt?: Date | string | null
+  confirmedAt?: Date | string | null
+  aiAnalysis?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  isActive?: boolean
+  createdAt?: Date | string
   updatedAt?: Date | string
 }
 
@@ -748,52 +1208,82 @@ export type FinRecurringPatternUpdateWithoutUserInput = {
   currency?: Prisma.StringFieldUpdateOperationsInput | string
   frequency?: Prisma.StringFieldUpdateOperationsInput | string
   nextExpectedDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  amountTolerance?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  status?: Prisma.EnumFinRecurringStatusFieldUpdateOperationsInput | $Enums.FinRecurringStatus
+  kind?: Prisma.EnumFinRecurringKindFieldUpdateOperationsInput | $Enums.FinRecurringKind
   confidenceScore?: Prisma.IntFieldUpdateOperationsInput | number
+  lastSeenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  confirmedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   aiAnalysis?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   category?: Prisma.FinCategoryUpdateOneWithoutRecurringNestedInput
+  merchantRef?: Prisma.FinMerchantUpdateOneWithoutRecurringNestedInput
+  subscriptions?: Prisma.FinSubscriptionUpdateManyWithoutSourcePatternNestedInput
 }
 
 export type FinRecurringPatternUncheckedUpdateWithoutUserInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   categoryId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  merchantId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   merchant?: Prisma.StringFieldUpdateOperationsInput | string
   avgAmount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   currency?: Prisma.StringFieldUpdateOperationsInput | string
   frequency?: Prisma.StringFieldUpdateOperationsInput | string
   nextExpectedDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  amountTolerance?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  status?: Prisma.EnumFinRecurringStatusFieldUpdateOperationsInput | $Enums.FinRecurringStatus
+  kind?: Prisma.EnumFinRecurringKindFieldUpdateOperationsInput | $Enums.FinRecurringKind
   confidenceScore?: Prisma.IntFieldUpdateOperationsInput | number
+  lastSeenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  confirmedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   aiAnalysis?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  subscriptions?: Prisma.FinSubscriptionUncheckedUpdateManyWithoutSourcePatternNestedInput
 }
 
 export type FinRecurringPatternUncheckedUpdateManyWithoutUserInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   categoryId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  merchantId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   merchant?: Prisma.StringFieldUpdateOperationsInput | string
   avgAmount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   currency?: Prisma.StringFieldUpdateOperationsInput | string
   frequency?: Prisma.StringFieldUpdateOperationsInput | string
   nextExpectedDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  amountTolerance?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  status?: Prisma.EnumFinRecurringStatusFieldUpdateOperationsInput | $Enums.FinRecurringStatus
+  kind?: Prisma.EnumFinRecurringKindFieldUpdateOperationsInput | $Enums.FinRecurringKind
   confidenceScore?: Prisma.IntFieldUpdateOperationsInput | number
+  lastSeenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  confirmedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   aiAnalysis?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
 export type FinRecurringPatternCreateManyCategoryInput = {
   id?: string
   userId: string
+  merchantId?: string | null
   merchant: string
   avgAmount: runtime.Decimal | runtime.DecimalJsLike | number | string
   currency?: string
   frequency: string
   nextExpectedDate: Date | string
+  amountTolerance?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  status?: $Enums.FinRecurringStatus
+  kind?: $Enums.FinRecurringKind
   confidenceScore?: number
+  lastSeenAt?: Date | string | null
+  confirmedAt?: Date | string | null
   aiAnalysis?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   isActive?: boolean
+  createdAt?: Date | string
   updatedAt?: Date | string
 }
 
@@ -804,74 +1294,230 @@ export type FinRecurringPatternUpdateWithoutCategoryInput = {
   currency?: Prisma.StringFieldUpdateOperationsInput | string
   frequency?: Prisma.StringFieldUpdateOperationsInput | string
   nextExpectedDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  amountTolerance?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  status?: Prisma.EnumFinRecurringStatusFieldUpdateOperationsInput | $Enums.FinRecurringStatus
+  kind?: Prisma.EnumFinRecurringKindFieldUpdateOperationsInput | $Enums.FinRecurringKind
   confidenceScore?: Prisma.IntFieldUpdateOperationsInput | number
+  lastSeenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  confirmedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   aiAnalysis?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  merchantRef?: Prisma.FinMerchantUpdateOneWithoutRecurringNestedInput
   user?: Prisma.UserUpdateOneRequiredWithoutFinRecurringNestedInput
+  subscriptions?: Prisma.FinSubscriptionUpdateManyWithoutSourcePatternNestedInput
 }
 
 export type FinRecurringPatternUncheckedUpdateWithoutCategoryInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.StringFieldUpdateOperationsInput | string
+  merchantId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   merchant?: Prisma.StringFieldUpdateOperationsInput | string
   avgAmount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   currency?: Prisma.StringFieldUpdateOperationsInput | string
   frequency?: Prisma.StringFieldUpdateOperationsInput | string
   nextExpectedDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  amountTolerance?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  status?: Prisma.EnumFinRecurringStatusFieldUpdateOperationsInput | $Enums.FinRecurringStatus
+  kind?: Prisma.EnumFinRecurringKindFieldUpdateOperationsInput | $Enums.FinRecurringKind
   confidenceScore?: Prisma.IntFieldUpdateOperationsInput | number
+  lastSeenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  confirmedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   aiAnalysis?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  subscriptions?: Prisma.FinSubscriptionUncheckedUpdateManyWithoutSourcePatternNestedInput
 }
 
 export type FinRecurringPatternUncheckedUpdateManyWithoutCategoryInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.StringFieldUpdateOperationsInput | string
+  merchantId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   merchant?: Prisma.StringFieldUpdateOperationsInput | string
   avgAmount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
   currency?: Prisma.StringFieldUpdateOperationsInput | string
   frequency?: Prisma.StringFieldUpdateOperationsInput | string
   nextExpectedDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  amountTolerance?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  status?: Prisma.EnumFinRecurringStatusFieldUpdateOperationsInput | $Enums.FinRecurringStatus
+  kind?: Prisma.EnumFinRecurringKindFieldUpdateOperationsInput | $Enums.FinRecurringKind
   confidenceScore?: Prisma.IntFieldUpdateOperationsInput | number
+  lastSeenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  confirmedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   aiAnalysis?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
+export type FinRecurringPatternCreateManyMerchantRefInput = {
+  id?: string
+  userId: string
+  categoryId?: string | null
+  merchant: string
+  avgAmount: runtime.Decimal | runtime.DecimalJsLike | number | string
+  currency?: string
+  frequency: string
+  nextExpectedDate: Date | string
+  amountTolerance?: runtime.Decimal | runtime.DecimalJsLike | number | string
+  status?: $Enums.FinRecurringStatus
+  kind?: $Enums.FinRecurringKind
+  confidenceScore?: number
+  lastSeenAt?: Date | string | null
+  confirmedAt?: Date | string | null
+  aiAnalysis?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  isActive?: boolean
+  createdAt?: Date | string
+  updatedAt?: Date | string
+}
+
+export type FinRecurringPatternUpdateWithoutMerchantRefInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  merchant?: Prisma.StringFieldUpdateOperationsInput | string
+  avgAmount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  currency?: Prisma.StringFieldUpdateOperationsInput | string
+  frequency?: Prisma.StringFieldUpdateOperationsInput | string
+  nextExpectedDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  amountTolerance?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  status?: Prisma.EnumFinRecurringStatusFieldUpdateOperationsInput | $Enums.FinRecurringStatus
+  kind?: Prisma.EnumFinRecurringKindFieldUpdateOperationsInput | $Enums.FinRecurringKind
+  confidenceScore?: Prisma.IntFieldUpdateOperationsInput | number
+  lastSeenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  confirmedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  aiAnalysis?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  category?: Prisma.FinCategoryUpdateOneWithoutRecurringNestedInput
+  user?: Prisma.UserUpdateOneRequiredWithoutFinRecurringNestedInput
+  subscriptions?: Prisma.FinSubscriptionUpdateManyWithoutSourcePatternNestedInput
+}
+
+export type FinRecurringPatternUncheckedUpdateWithoutMerchantRefInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  userId?: Prisma.StringFieldUpdateOperationsInput | string
+  categoryId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  merchant?: Prisma.StringFieldUpdateOperationsInput | string
+  avgAmount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  currency?: Prisma.StringFieldUpdateOperationsInput | string
+  frequency?: Prisma.StringFieldUpdateOperationsInput | string
+  nextExpectedDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  amountTolerance?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  status?: Prisma.EnumFinRecurringStatusFieldUpdateOperationsInput | $Enums.FinRecurringStatus
+  kind?: Prisma.EnumFinRecurringKindFieldUpdateOperationsInput | $Enums.FinRecurringKind
+  confidenceScore?: Prisma.IntFieldUpdateOperationsInput | number
+  lastSeenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  confirmedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  aiAnalysis?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  subscriptions?: Prisma.FinSubscriptionUncheckedUpdateManyWithoutSourcePatternNestedInput
+}
+
+export type FinRecurringPatternUncheckedUpdateManyWithoutMerchantRefInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  userId?: Prisma.StringFieldUpdateOperationsInput | string
+  categoryId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  merchant?: Prisma.StringFieldUpdateOperationsInput | string
+  avgAmount?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  currency?: Prisma.StringFieldUpdateOperationsInput | string
+  frequency?: Prisma.StringFieldUpdateOperationsInput | string
+  nextExpectedDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  amountTolerance?: Prisma.DecimalFieldUpdateOperationsInput | runtime.Decimal | runtime.DecimalJsLike | number | string
+  status?: Prisma.EnumFinRecurringStatusFieldUpdateOperationsInput | $Enums.FinRecurringStatus
+  kind?: Prisma.EnumFinRecurringKindFieldUpdateOperationsInput | $Enums.FinRecurringKind
+  confidenceScore?: Prisma.IntFieldUpdateOperationsInput | number
+  lastSeenAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  confirmedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  aiAnalysis?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  isActive?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+}
+
+
+/**
+ * Count Type FinRecurringPatternCountOutputType
+ */
+
+export type FinRecurringPatternCountOutputType = {
+  subscriptions: number
+}
+
+export type FinRecurringPatternCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  subscriptions?: boolean | FinRecurringPatternCountOutputTypeCountSubscriptionsArgs
+}
+
+/**
+ * FinRecurringPatternCountOutputType without action
+ */
+export type FinRecurringPatternCountOutputTypeDefaultArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the FinRecurringPatternCountOutputType
+   */
+  select?: Prisma.FinRecurringPatternCountOutputTypeSelect<ExtArgs> | null
+}
+
+/**
+ * FinRecurringPatternCountOutputType without action
+ */
+export type FinRecurringPatternCountOutputTypeCountSubscriptionsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.FinSubscriptionWhereInput
+}
 
 
 export type FinRecurringPatternSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   userId?: boolean
   categoryId?: boolean
+  merchantId?: boolean
   merchant?: boolean
   avgAmount?: boolean
   currency?: boolean
   frequency?: boolean
   nextExpectedDate?: boolean
+  amountTolerance?: boolean
+  status?: boolean
+  kind?: boolean
   confidenceScore?: boolean
+  lastSeenAt?: boolean
+  confirmedAt?: boolean
   aiAnalysis?: boolean
   isActive?: boolean
+  createdAt?: boolean
   updatedAt?: boolean
   category?: boolean | Prisma.FinRecurringPattern$categoryArgs<ExtArgs>
+  merchantRef?: boolean | Prisma.FinRecurringPattern$merchantRefArgs<ExtArgs>
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
+  subscriptions?: boolean | Prisma.FinRecurringPattern$subscriptionsArgs<ExtArgs>
+  _count?: boolean | Prisma.FinRecurringPatternCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["finRecurringPattern"]>
 
 export type FinRecurringPatternSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   userId?: boolean
   categoryId?: boolean
+  merchantId?: boolean
   merchant?: boolean
   avgAmount?: boolean
   currency?: boolean
   frequency?: boolean
   nextExpectedDate?: boolean
+  amountTolerance?: boolean
+  status?: boolean
+  kind?: boolean
   confidenceScore?: boolean
+  lastSeenAt?: boolean
+  confirmedAt?: boolean
   aiAnalysis?: boolean
   isActive?: boolean
+  createdAt?: boolean
   updatedAt?: boolean
   category?: boolean | Prisma.FinRecurringPattern$categoryArgs<ExtArgs>
+  merchantRef?: boolean | Prisma.FinRecurringPattern$merchantRefArgs<ExtArgs>
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["finRecurringPattern"]>
 
@@ -879,16 +1525,24 @@ export type FinRecurringPatternSelectUpdateManyAndReturn<ExtArgs extends runtime
   id?: boolean
   userId?: boolean
   categoryId?: boolean
+  merchantId?: boolean
   merchant?: boolean
   avgAmount?: boolean
   currency?: boolean
   frequency?: boolean
   nextExpectedDate?: boolean
+  amountTolerance?: boolean
+  status?: boolean
+  kind?: boolean
   confidenceScore?: boolean
+  lastSeenAt?: boolean
+  confirmedAt?: boolean
   aiAnalysis?: boolean
   isActive?: boolean
+  createdAt?: boolean
   updatedAt?: boolean
   category?: boolean | Prisma.FinRecurringPattern$categoryArgs<ExtArgs>
+  merchantRef?: boolean | Prisma.FinRecurringPattern$merchantRefArgs<ExtArgs>
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["finRecurringPattern"]>
 
@@ -896,28 +1550,40 @@ export type FinRecurringPatternSelectScalar = {
   id?: boolean
   userId?: boolean
   categoryId?: boolean
+  merchantId?: boolean
   merchant?: boolean
   avgAmount?: boolean
   currency?: boolean
   frequency?: boolean
   nextExpectedDate?: boolean
+  amountTolerance?: boolean
+  status?: boolean
+  kind?: boolean
   confidenceScore?: boolean
+  lastSeenAt?: boolean
+  confirmedAt?: boolean
   aiAnalysis?: boolean
   isActive?: boolean
+  createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type FinRecurringPatternOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "categoryId" | "merchant" | "avgAmount" | "currency" | "frequency" | "nextExpectedDate" | "confidenceScore" | "aiAnalysis" | "isActive" | "updatedAt", ExtArgs["result"]["finRecurringPattern"]>
+export type FinRecurringPatternOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "categoryId" | "merchantId" | "merchant" | "avgAmount" | "currency" | "frequency" | "nextExpectedDate" | "amountTolerance" | "status" | "kind" | "confidenceScore" | "lastSeenAt" | "confirmedAt" | "aiAnalysis" | "isActive" | "createdAt" | "updatedAt", ExtArgs["result"]["finRecurringPattern"]>
 export type FinRecurringPatternInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   category?: boolean | Prisma.FinRecurringPattern$categoryArgs<ExtArgs>
+  merchantRef?: boolean | Prisma.FinRecurringPattern$merchantRefArgs<ExtArgs>
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
+  subscriptions?: boolean | Prisma.FinRecurringPattern$subscriptionsArgs<ExtArgs>
+  _count?: boolean | Prisma.FinRecurringPatternCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type FinRecurringPatternIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   category?: boolean | Prisma.FinRecurringPattern$categoryArgs<ExtArgs>
+  merchantRef?: boolean | Prisma.FinRecurringPattern$merchantRefArgs<ExtArgs>
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
 }
 export type FinRecurringPatternIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   category?: boolean | Prisma.FinRecurringPattern$categoryArgs<ExtArgs>
+  merchantRef?: boolean | Prisma.FinRecurringPattern$merchantRefArgs<ExtArgs>
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
 }
 
@@ -925,20 +1591,38 @@ export type $FinRecurringPatternPayload<ExtArgs extends runtime.Types.Extensions
   name: "FinRecurringPattern"
   objects: {
     category: Prisma.$FinCategoryPayload<ExtArgs> | null
+    merchantRef: Prisma.$FinMerchantPayload<ExtArgs> | null
     user: Prisma.$UserPayload<ExtArgs>
+    subscriptions: Prisma.$FinSubscriptionPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
     userId: string
     categoryId: string | null
+    merchantId: string | null
     merchant: string
     avgAmount: runtime.Decimal
     currency: string
     frequency: string
     nextExpectedDate: Date
+    /**
+     * Percentage band around avgAmount that still counts as the same charge.
+     */
+    amountTolerance: runtime.Decimal
+    status: $Enums.FinRecurringStatus
+    kind: $Enums.FinRecurringKind
     confidenceScore: number
+    /**
+     * Last movement date seen for this pattern; drives "no llegó".
+     */
+    lastSeenAt: Date | null
+    /**
+     * When the user confirmed, so a confirmed annual survives with 2 charges.
+     */
+    confirmedAt: Date | null
     aiAnalysis: runtime.JsonValue
     isActive: boolean
+    createdAt: Date
     updatedAt: Date
   }, ExtArgs["result"]["finRecurringPattern"]>
   composites: {}
@@ -1335,7 +2019,9 @@ readonly fields: FinRecurringPatternFieldRefs;
 export interface Prisma__FinRecurringPatternClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
   category<T extends Prisma.FinRecurringPattern$categoryArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.FinRecurringPattern$categoryArgs<ExtArgs>>): Prisma.Prisma__FinCategoryClient<runtime.Types.Result.GetResult<Prisma.$FinCategoryPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  merchantRef<T extends Prisma.FinRecurringPattern$merchantRefArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.FinRecurringPattern$merchantRefArgs<ExtArgs>>): Prisma.Prisma__FinMerchantClient<runtime.Types.Result.GetResult<Prisma.$FinMerchantPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   user<T extends Prisma.UserDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.UserDefaultArgs<ExtArgs>>): Prisma.Prisma__UserClient<runtime.Types.Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+  subscriptions<T extends Prisma.FinRecurringPattern$subscriptionsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.FinRecurringPattern$subscriptionsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$FinSubscriptionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1368,14 +2054,21 @@ export interface FinRecurringPatternFieldRefs {
   readonly id: Prisma.FieldRef<"FinRecurringPattern", 'String'>
   readonly userId: Prisma.FieldRef<"FinRecurringPattern", 'String'>
   readonly categoryId: Prisma.FieldRef<"FinRecurringPattern", 'String'>
+  readonly merchantId: Prisma.FieldRef<"FinRecurringPattern", 'String'>
   readonly merchant: Prisma.FieldRef<"FinRecurringPattern", 'String'>
   readonly avgAmount: Prisma.FieldRef<"FinRecurringPattern", 'Decimal'>
   readonly currency: Prisma.FieldRef<"FinRecurringPattern", 'String'>
   readonly frequency: Prisma.FieldRef<"FinRecurringPattern", 'String'>
   readonly nextExpectedDate: Prisma.FieldRef<"FinRecurringPattern", 'DateTime'>
+  readonly amountTolerance: Prisma.FieldRef<"FinRecurringPattern", 'Decimal'>
+  readonly status: Prisma.FieldRef<"FinRecurringPattern", 'FinRecurringStatus'>
+  readonly kind: Prisma.FieldRef<"FinRecurringPattern", 'FinRecurringKind'>
   readonly confidenceScore: Prisma.FieldRef<"FinRecurringPattern", 'Int'>
+  readonly lastSeenAt: Prisma.FieldRef<"FinRecurringPattern", 'DateTime'>
+  readonly confirmedAt: Prisma.FieldRef<"FinRecurringPattern", 'DateTime'>
   readonly aiAnalysis: Prisma.FieldRef<"FinRecurringPattern", 'Json'>
   readonly isActive: Prisma.FieldRef<"FinRecurringPattern", 'Boolean'>
+  readonly createdAt: Prisma.FieldRef<"FinRecurringPattern", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"FinRecurringPattern", 'DateTime'>
 }
     
@@ -1794,6 +2487,49 @@ export type FinRecurringPattern$categoryArgs<ExtArgs extends runtime.Types.Exten
    */
   include?: Prisma.FinCategoryInclude<ExtArgs> | null
   where?: Prisma.FinCategoryWhereInput
+}
+
+/**
+ * FinRecurringPattern.merchantRef
+ */
+export type FinRecurringPattern$merchantRefArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the FinMerchant
+   */
+  select?: Prisma.FinMerchantSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the FinMerchant
+   */
+  omit?: Prisma.FinMerchantOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.FinMerchantInclude<ExtArgs> | null
+  where?: Prisma.FinMerchantWhereInput
+}
+
+/**
+ * FinRecurringPattern.subscriptions
+ */
+export type FinRecurringPattern$subscriptionsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the FinSubscription
+   */
+  select?: Prisma.FinSubscriptionSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the FinSubscription
+   */
+  omit?: Prisma.FinSubscriptionOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.FinSubscriptionInclude<ExtArgs> | null
+  where?: Prisma.FinSubscriptionWhereInput
+  orderBy?: Prisma.FinSubscriptionOrderByWithRelationInput | Prisma.FinSubscriptionOrderByWithRelationInput[]
+  cursor?: Prisma.FinSubscriptionWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.FinSubscriptionScalarFieldEnum | Prisma.FinSubscriptionScalarFieldEnum[]
 }
 
 /**

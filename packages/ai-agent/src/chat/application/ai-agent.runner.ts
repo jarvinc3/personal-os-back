@@ -3,6 +3,8 @@ import { Injectable, Optional } from '@nestjs/common';
 import { Queue } from 'bullmq';
 import { AiProcessingJob } from '@personal-os/core';
 import { QueueNames } from '@personal-os/core';
+import type { ChatContext, ChatContextEntity } from '@personal-os/core';
+import { FinanceFacade } from '@personal-os/finance';
 import { AiActionsService } from '../../actions/application/ai-actions.service';
 import { AiChatPersistenceService } from '../infrastructure/ai-chat-persistence.service';
 import { AiChatTurnCoordinator } from './ai-chat-turn-coordinator.service';
@@ -30,8 +32,17 @@ import type {
   ToolExecutionResult,
 } from '../../shared/ai.types';
 import { replayStreamChunks } from '../../shared/replay-stream-chunks';
+import { buildChatBlocks } from '../../shared/build-chat-blocks';
 
 const MAX_TOOL_ITERATIONS = 5;
+
+type AgentRunInput = {
+  userId: string;
+  sessionId: string;
+  userContent: string;
+  clientMessageId?: string;
+  context?: ChatContext;
+};
 
 function userLikelyNeedsTool(
   userContent: string,
@@ -42,7 +53,7 @@ function userLikelyNeedsTool(
   }
 
   const lower = userContent.toLowerCase();
-  return /tema|theme|light|dark|oscuro|claro|notificaci|notification|email|push|activa|desactiva|cambia|change|actualiza|update|preferenc|módulo|module|nombre|name|avatar|foto|perfil|profile|zona horaria|timezone|locale|idioma/.test(
+  return /tema|theme|light|dark|oscuro|claro|notificaci|notification|email|push|activa|desactiva|cambia|change|actualiza|update|preferenc|app|apps|módulo|module|nombre|name|avatar|foto|perfil|profile|zona horaria|timezone|locale|idioma/.test(
     lower,
   );
 }
@@ -56,6 +67,7 @@ function applyContextSwitch(
       ReturnType<AiChatPersistenceService['buildMessagesForProvider']>
     >['prefs'];
     memorySnapshot: Record<string, unknown>;
+    entityContext: ChatContextEntity | null;
   },
 ): string | null {
   const slug = execResult.data?.moduleSlug;
@@ -73,6 +85,7 @@ function applyContextSwitch(
         confirmBeforeActions: options.prefs.ai.confirmBeforeActions,
         memorySnapshot: options.memorySnapshot,
         moduleSlug: activeModuleSlug,
+        entityContext: options.entityContext,
       }),
     };
   }
@@ -89,18 +102,14 @@ export class AiAgentRunner {
     private readonly actionsService: AiActionsService,
     private readonly toolExecutor: ToolExecutorService,
     private readonly sessionsRepo: AiSessionsRepository,
+    private readonly financeFacade: FinanceFacade,
     @Optional()
     @InjectQueue(QueueNames.AI_PROCESSING)
     private readonly aiProcessingQueue?: Queue<AiProcessingJob>,
   ) {}
 
   async run(
-    input: {
-      userId: string;
-      sessionId: string;
-      userContent: string;
-      clientMessageId?: string;
-    },
+    input: AgentRunInput,
     onStream?: (event: AgentStreamEvent) => void,
   ): Promise<AgentRunResult> {
     return this.turnCoordinator.run(
@@ -111,12 +120,7 @@ export class AiAgentRunner {
   }
 
   private async executeRun(
-    input: {
-      userId: string;
-      sessionId: string;
-      userContent: string;
-      clientMessageId?: string;
-    },
+    input: AgentRunInput,
     onStream?: (event: AgentStreamEvent) => void,
   ): Promise<AgentRunResult> {
     const emitStart = (provider: string, model: string) => {
@@ -172,6 +176,19 @@ export class AiAgentRunner {
       input.clientMessageId,
     );
 
+    const chatContext =
+      input.context ??
+      (await this.persistence.readChatContext(input.userId, input.sessionId));
+    if (input.context) {
+      await this.persistence.persistChatContext(input.sessionId, input.context);
+    }
+    const entityContext = chatContext?.entityRef
+      ? await this.financeFacade.resolveChatContextEntity(
+          input.userId,
+          chatContext.entityRef,
+        )
+      : null;
+
     const {
       messages,
       prefs,
@@ -179,11 +196,12 @@ export class AiAgentRunner {
       moduleSlug: initialModuleSlug,
       memorySnapshot,
       locale,
-    } = await this.persistence.buildMessagesForProvider(
-      input.userId,
-      input.sessionId,
-      input.userContent,
-    );
+    } = await this.persistence.buildMessagesForProvider({
+      userId: input.userId,
+      sessionId: input.sessionId,
+      latestUserContent: input.userContent,
+      entityContext,
+    });
 
     let activeModuleSlug = initialModuleSlug;
     let tools = getToolsForModule(activeModuleSlug);
@@ -197,6 +215,7 @@ export class AiAgentRunner {
     const conversation = [...messages];
     const pendingActions: AiActionSummary[] = [];
     const sideEffects: SideEffectDescriptor[] = [];
+    const toolResults: { toolName: string; result: ToolExecutionResult }[] = [];
     let finalContent = '';
     let provider = '';
     let model = '';
@@ -311,12 +330,16 @@ export class AiAgentRunner {
           tc.arguments,
         );
         sideEffects.push(...(execResult.sideEffects ?? []));
+        if (execResult.success) {
+          toolResults.push({ toolName: tc.name, result: execResult });
+        }
 
         if (tc.name === MODULE_CONTEXT_SWITCH_TOOL && execResult.success) {
           activeModuleSlug = applyContextSwitch(conversation, execResult, {
             locale,
             prefs,
             memorySnapshot,
+            entityContext,
           });
           toolCtx.moduleSlug = activeModuleSlug;
           tools = getToolsForModule(activeModuleSlug);
@@ -370,8 +393,21 @@ export class AiAgentRunner {
     const responseModuleSlug = resolveModuleContextKey(activeModuleSlug);
     const responseModuleLabel = getModuleContextLabel(activeModuleSlug);
 
+    let toolBlocks: ChatBlock[] = [];
+    if (toolResults.length > 0) {
+      const baseCurrency = await this.financeFacade.getBaseCurrency(
+        input.userId,
+      );
+      toolBlocks = buildChatBlocks({
+        toolResults,
+        userText: input.userContent,
+        baseCurrency,
+      });
+    }
+
     const blocks: ChatBlock[] = [
       { type: 'markdown', content: finalContent },
+      ...toolBlocks,
       ...pendingActions.map((action) => ({ type: 'action' as const, action })),
     ];
 

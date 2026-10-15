@@ -7,12 +7,19 @@ import {
 } from '@personal-os/core';
 import { FINANCE_NOTIFICATION_KEYS } from '@personal-os/users';
 import {
+  balanceDriftCopy,
   budgetThresholdCopy,
+  cardPaymentDueCopy,
   cardStatementReminderCopy,
   formatNotificationAmount,
+  recurringMissedCopy,
+  recurringPriceChangedCopy,
+  recurringUpcomingCopy,
+  subscriptionRenewalDueCopy,
   transactionPendingCopy,
   transactionRecordedCopy,
   transactionUpdatedCopy,
+  weeklySummaryCopy,
   type NotificationCopy,
 } from '../domain/notification-copy';
 import { NotificationsService } from './notifications.service';
@@ -50,6 +57,76 @@ type CardStatementReminderEvent = {
   sourceId?: string;
   gmailMessageId?: string;
   subject?: string;
+};
+
+type CardPaymentDueEvent = {
+  eventId?: string;
+  userId: string;
+  cardId: string;
+  statementId: string;
+  cardName?: string;
+  currency?: string;
+  remaining?: number;
+  dueDate?: string;
+  daysUntil?: number;
+};
+
+type WeeklySummaryEvent = {
+  eventId?: string;
+  userId: string;
+  weekStart?: string;
+  summary?: {
+    currency?: string;
+    expenses?: string;
+    averageExpenses?: string;
+    topCategories?: { name?: string }[];
+    budgetsAtRisk?: unknown[];
+    upcomingInstallments?: unknown[];
+    pendingEmails?: number;
+  };
+};
+
+type RecurringPriceChangeEvent = {
+  eventId?: string;
+  userId: string;
+  patternId: string;
+  merchant: string;
+  currency?: string;
+  previousAmount: number;
+  newAmount: number;
+};
+
+type RecurringChargeEvent = {
+  eventId?: string;
+  userId: string;
+  patternId: string;
+  merchant: string;
+  amount: number;
+  currency?: string;
+  nextExpectedDate?: string;
+  daysUntil?: number;
+};
+
+type SubscriptionRenewalEvent = {
+  eventId?: string;
+  userId: string;
+  subscriptionId: string;
+  name: string;
+  amount: number;
+  currency?: string;
+  nextBillingDate?: string;
+  daysUntil?: number;
+};
+
+type BalanceDriftEvent = {
+  eventId?: string;
+  userId: string;
+  driftId: string;
+  accountId?: string | null;
+  cardId?: string | null;
+  currency?: string;
+  name?: string | null;
+  difference?: string;
 };
 
 @Injectable()
@@ -191,6 +268,219 @@ export class NotificationsEventsListener {
         moduleSlug: FINANCE_MODULE_SLUG,
         reminder: 'card_statement',
         sourceId: event.sourceId ?? null,
+      },
+    });
+  }
+
+  @OnEvent(AppEvents.FINANCE_CARD_PAYMENT_DUE)
+  async onCardPaymentDue(event: CardPaymentDueEvent): Promise<void> {
+    if (
+      !(await this.idempotency.tryClaim(
+        event.eventId,
+        `${NotificationsEventsListener.CONSUMER}:card-payment-due`,
+      ))
+    ) {
+      return;
+    }
+    const copy = cardPaymentDueCopy({
+      cardName: event.cardName?.trim() ? event.cardName : 'tu tarjeta',
+      remainingLabel: formatNotificationAmount(
+        Number(event.remaining ?? 0),
+        event.currency ?? '',
+      ),
+      daysUntil: event.daysUntil ?? 0,
+    });
+    await this.createFinanceInApp(event.userId, {
+      type: 'card.payment_due',
+      title: copy.title,
+      body: copy.body,
+      data: {
+        moduleSlug: FINANCE_MODULE_SLUG,
+        notificationKey: FINANCE_NOTIFICATION_KEYS.cardDueDate,
+        cardId: event.cardId,
+        statementId: event.statementId,
+        dueDate: event.dueDate ?? null,
+      },
+    });
+  }
+
+  @OnEvent(AppEvents.FINANCE_WEEKLY_SUMMARY)
+  async onWeeklySummary(event: WeeklySummaryEvent): Promise<void> {
+    if (
+      !(await this.idempotency.tryClaim(
+        event.eventId,
+        `${NotificationsEventsListener.CONSUMER}:weekly-summary`,
+      ))
+    ) {
+      return;
+    }
+
+    const summary = event.summary ?? {};
+    const currency = summary.currency ?? '';
+    const averageValue = Number(summary.averageExpenses ?? 0);
+    const copy = weeklySummaryCopy({
+      amountLabel: formatNotificationAmount(
+        Number(summary.expenses ?? 0),
+        currency,
+      ),
+      averageLabel:
+        averageValue > 0
+          ? formatNotificationAmount(averageValue, currency)
+          : '',
+      topCategories: (summary.topCategories ?? []).flatMap((category) =>
+        category.name ? [category.name] : [],
+      ),
+      budgetsAtRisk: (summary.budgetsAtRisk ?? []).length,
+      upcoming: (summary.upcomingInstallments ?? []).length,
+      pendingEmails: summary.pendingEmails ?? 0,
+    });
+
+    await this.createFinanceInApp(event.userId, {
+      type: 'finance.weekly_summary',
+      title: copy.title,
+      body: copy.body,
+      data: {
+        moduleSlug: FINANCE_MODULE_SLUG,
+        notificationKey: FINANCE_NOTIFICATION_KEYS.weeklySummary,
+        weekStart: event.weekStart ?? null,
+      },
+    });
+  }
+
+  @OnEvent(AppEvents.FINANCE_RECURRING_PRICE_CHANGED)
+  async onRecurringPriceChanged(
+    event: RecurringPriceChangeEvent,
+  ): Promise<void> {
+    if (
+      !(await this.idempotency.tryClaim(
+        event.eventId,
+        `${NotificationsEventsListener.CONSUMER}:recurring-price`,
+      ))
+    ) {
+      return;
+    }
+    const currency = event.currency ?? '';
+    const copy = recurringPriceChangedCopy({
+      merchant: event.merchant,
+      previousLabel: formatNotificationAmount(event.previousAmount, currency),
+      newLabel: formatNotificationAmount(event.newAmount, currency),
+    });
+    await this.createFinanceInApp(event.userId, {
+      type: 'recurring.price_changed',
+      title: copy.title,
+      body: copy.body,
+      data: {
+        moduleSlug: FINANCE_MODULE_SLUG,
+        notificationKey: FINANCE_NOTIFICATION_KEYS.priceIncreaseAlerts,
+        patternId: event.patternId,
+      },
+    });
+  }
+
+  @OnEvent(AppEvents.FINANCE_SUBSCRIPTION_RENEWAL_DUE)
+  async onSubscriptionRenewalDue(
+    event: SubscriptionRenewalEvent,
+  ): Promise<void> {
+    if (
+      !(await this.idempotency.tryClaim(
+        event.eventId,
+        `${NotificationsEventsListener.CONSUMER}:subscription-renewal`,
+      ))
+    ) {
+      return;
+    }
+    const copy = subscriptionRenewalDueCopy({
+      merchant: event.name,
+      amountLabel: formatNotificationAmount(event.amount, event.currency ?? ''),
+      daysUntil: event.daysUntil ?? 0,
+    });
+    await this.createFinanceInApp(event.userId, {
+      type: 'subscription.renewal_due',
+      title: copy.title,
+      body: copy.body,
+      data: {
+        moduleSlug: FINANCE_MODULE_SLUG,
+        notificationKey: FINANCE_NOTIFICATION_KEYS.subscriptionReminders,
+        subscriptionId: event.subscriptionId,
+        nextBillingDate: event.nextBillingDate ?? null,
+      },
+    });
+  }
+
+  @OnEvent(AppEvents.FINANCE_RECURRING_MISSED)
+  async onRecurringMissed(event: RecurringChargeEvent): Promise<void> {
+    await this.createRecurringCharge(event, 'recurring.missed', 'missed');
+  }
+  @OnEvent(AppEvents.FINANCE_RECURRING_UPCOMING)
+  async onRecurringUpcoming(event: RecurringChargeEvent): Promise<void> {
+    await this.createRecurringCharge(event, 'recurring.upcoming', 'upcoming');
+  }
+
+  @OnEvent(AppEvents.FINANCE_BALANCE_DRIFT_DETECTED)
+  async onBalanceDrift(event: BalanceDriftEvent): Promise<void> {
+    if (
+      !(await this.idempotency.tryClaim(
+        event.eventId,
+        `${NotificationsEventsListener.CONSUMER}:balance-drift`,
+      ))
+    ) {
+      return;
+    }
+    const copy = balanceDriftCopy({
+      name: event.name?.trim() ? event.name : 'una cuenta',
+      differenceLabel: formatNotificationAmount(
+        Number(event.difference ?? 0),
+        event.currency ?? '',
+      ),
+    });
+    await this.createFinanceInApp(event.userId, {
+      type: 'finance.balance_drift',
+      title: copy.title,
+      body: copy.body,
+      data: {
+        moduleSlug: FINANCE_MODULE_SLUG,
+        notificationKey: FINANCE_NOTIFICATION_KEYS.balanceIntegrity,
+        driftId: event.driftId,
+        accountId: event.accountId ?? null,
+        cardId: event.cardId ?? null,
+        currency: event.currency ?? null,
+      },
+    });
+  }
+
+  private async createRecurringCharge(
+    event: RecurringChargeEvent,
+    type: string,
+    copyKind: 'missed' | 'upcoming',
+  ): Promise<void> {
+    if (
+      !(await this.idempotency.tryClaim(
+        event.eventId,
+        `${NotificationsEventsListener.CONSUMER}:${type}`,
+      ))
+    ) {
+      return;
+    }
+    const amountLabel = formatNotificationAmount(
+      event.amount,
+      event.currency ?? '',
+    );
+    const copy =
+      copyKind === 'missed'
+        ? recurringMissedCopy({ merchant: event.merchant, amountLabel })
+        : recurringUpcomingCopy({
+            merchant: event.merchant,
+            amountLabel,
+            daysUntil: event.daysUntil ?? 0,
+          });
+    await this.createFinanceInApp(event.userId, {
+      type,
+      title: copy.title,
+      body: copy.body,
+      data: {
+        moduleSlug: FINANCE_MODULE_SLUG,
+        notificationKey: FINANCE_NOTIFICATION_KEYS.recurringAlerts,
+        patternId: event.patternId,
       },
     });
   }

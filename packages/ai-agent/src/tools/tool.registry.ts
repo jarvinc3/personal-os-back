@@ -82,7 +82,7 @@ const STATIC_TOOLS: StaticToolDef[] = [
   {
     name: 'update_module_config',
     description:
-      'Update configuration for a module (agenda, projects, health, subscriptions).',
+      'Update configuration for a module (agenda, projects, health).',
     mutating: true,
     targetModule: 'modules',
   },
@@ -330,7 +330,8 @@ const STATIC_TOOLS: StaticToolDef[] = [
   },
   {
     name: 'list_pending_emails',
-    description: 'List email imports waiting for an account, card or amount.',
+    description:
+      'List the first page of email imports waiting for an account, card or amount. hasMore tells whether more remain.',
     mutating: false,
     targetModule: 'finance',
     parameters: { type: 'object', properties: {} },
@@ -384,6 +385,84 @@ const STATIC_TOOLS: StaticToolDef[] = [
         },
       },
     },
+  },
+  {
+    name: 'list_subscriptions',
+    description:
+      'List managed subscriptions and detected recurring charges with their monthly and annual cost.',
+    mutating: false,
+    targetModule: 'finance',
+    parameters: {
+      type: 'object',
+      properties: {
+        status: {
+          type: 'string',
+          enum: ['SUGGESTED', 'CONFIRMED', 'DISMISSED'],
+        },
+      },
+    },
+  },
+  {
+    name: 'get_subscriptions_summary',
+    description:
+      'Monthly and annual subscription cost, active count, real spend and the month-over-month trend.',
+    mutating: false,
+    targetModule: 'finance',
+  },
+  {
+    name: 'get_subscription_alerts',
+    description:
+      'Price increases, ending trials, upcoming yearly renewals and missed charges for subscriptions.',
+    mutating: false,
+    targetModule: 'finance',
+  },
+  {
+    name: 'create_subscription',
+    description:
+      'Create a managed subscription with its amount, billing cycle and first charge date.',
+    mutating: true,
+    targetModule: 'finance',
+  },
+  {
+    name: 'confirm_subscription_payment',
+    description: 'Register a payment for a managed subscription.',
+    mutating: true,
+    targetModule: 'finance',
+  },
+  {
+    name: 'confirm_recurring',
+    description: 'Confirm a suggested recurring charge so it is tracked.',
+    mutating: true,
+    targetModule: 'finance',
+  },
+  {
+    name: 'list_merchants',
+    description: 'List merchants with their spending for the current month.',
+    mutating: false,
+    targetModule: 'finance',
+    parameters: { type: 'object', properties: {} },
+  },
+  {
+    name: 'get_bank_charges',
+    description:
+      'Get bank charges recorded by reconciliation, grouped by month, institution and kind.',
+    mutating: false,
+    targetModule: 'finance',
+    parameters: {
+      type: 'object',
+      properties: {
+        from: { type: 'string', description: 'Start date (ISO)' },
+        to: { type: 'string', description: 'End date (ISO)' },
+        groupBy: { type: 'string', enum: ['month', 'institution', 'kind'] },
+      },
+    },
+  },
+  {
+    name: 'reconcile_product',
+    description:
+      'Close an account or card against the balance the bank shows. Without apply=true it returns the difference and a suggested split; with apply=true it records the close and its adjustments.',
+    mutating: true,
+    targetModule: 'finance',
   },
 ];
 
@@ -444,9 +523,9 @@ export function getActionLabel(
     case 'update_notification_settings':
       return 'Actualizar preferencias de notificaciones';
     case 'update_module_config':
-      return `Actualizar configuración de ${payloadString(payload.slug, 'módulo')}`;
+      return `Actualizar configuración de ${payloadString(payload.slug, 'app')}`;
     case 'toggle_module':
-      return `${payload.isEnabled === true ? 'Activar' : 'Desactivar'} módulo ${payloadString(payload.slug, '')}`;
+      return `${payload.isEnabled === true ? 'Activar' : 'Desactivar'} app ${payloadString(payload.slug, '')}`;
     case 'update_preferences':
       return 'Actualizar preferencias';
     case MODULE_CONTEXT_SWITCH_TOOL:

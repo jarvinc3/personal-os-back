@@ -31,6 +31,12 @@ export type UserModuleRecord = {
   config: unknown;
 };
 
+export type FinanceSummaryRecipientRow = {
+  userId: string;
+  timezone: string;
+  config: unknown;
+};
+
 export type UpdateProfileData = {
   fullName?: string;
   timezone?: string;
@@ -60,6 +66,7 @@ export interface UsersRepositoryPort {
     userId: string,
     slug: string,
   ): Promise<UserModuleRecord | null>;
+  findFinanceSummaryRecipients(): Promise<FinanceSummaryRecipientRow[]>;
   updateProfile(
     id: string,
     data: UpdateProfileData,

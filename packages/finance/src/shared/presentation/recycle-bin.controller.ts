@@ -1,6 +1,10 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { CurrentUser, RequiresEnabledModule } from '@personal-os/core';
+import {
+  CurrentUser,
+  CursorQueryDto,
+  RequiresEnabledModule,
+} from '@personal-os/core';
 import { RecycleBinService } from '../application/recycle-bin.service';
 
 @ApiTags('finance')
@@ -11,8 +15,11 @@ export class RecycleBinController {
   constructor(private readonly recycleBin: RecycleBinService) {}
 
   @Get('recycle-bin')
-  @ApiOperation({ summary: 'List archived records and pending deletes' })
-  list(@CurrentUser('sub') userId: string) {
-    return this.recycleBin.get(userId);
+  @ApiOperation({
+    summary:
+      'Lista los registros archivados y los borrados pendientes (borrados paginados)',
+  })
+  list(@CurrentUser('sub') userId: string, @Query() query: CursorQueryDto) {
+    return this.recycleBin.get(userId, query);
   }
 }

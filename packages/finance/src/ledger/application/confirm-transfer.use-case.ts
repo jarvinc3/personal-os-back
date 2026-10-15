@@ -19,10 +19,10 @@ export class ConfirmTransferUseCase {
   async execute(userId: string, legId: string): Promise<void> {
     const leg = await this.repo.findTransactionById(legId, userId);
     if (!leg) {
-      throw new NotFoundException('Transaction not found');
+      throw new NotFoundException('Transacción no encontrada');
     }
     if (!leg.transferGroupId) {
-      throw new BadRequestException('Not a transfer');
+      throw new BadRequestException('No es una transferencia');
     }
 
     await this.repo.confirmTransactionsByTransferGroupId(

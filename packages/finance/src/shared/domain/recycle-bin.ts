@@ -20,12 +20,16 @@ export type RecycleBinArchivedItem = {
   type: RecycleBinArchivedType;
   id: string;
   label: string;
+  /** Resolved institution logo, so the card can show the brand. */
+  logoUrl: string | null;
 };
 
 export type RecycleBinDeletedItem = {
   type: DeletionEntity;
   id: string;
   label: string | null;
+  /** Resolved institution logo, so a deleted institution shows its brand. */
+  logoUrl: string | null;
   deletedAt: string;
   /** Snapshot size, so the UI can warn before a slow restore. */
   sizeBytes: number;
@@ -33,7 +37,9 @@ export type RecycleBinDeletedItem = {
 
 export type RecycleBinView = {
   archived: RecycleBinArchivedItem[];
-  deleted: RecycleBinDeletedItem[];
+  items: RecycleBinDeletedItem[];
+  nextCursor: string | null;
+  hasMore: boolean;
 };
 
 type DeletedLabelTarget = {
@@ -59,6 +65,10 @@ const DELETED_LABEL_TARGET: Record<DeletionEntity, DeletedLabelTarget | null> =
       model: DELETION_MODEL.receivable,
       field: 'debtorName',
     },
+    [DELETION_ENTITY.reconciliation]: {
+      model: DELETION_MODEL.reconciliation,
+      field: 'note',
+    },
     [DELETION_ENTITY.savingsGoal]: {
       model: DELETION_MODEL.savingsGoal,
       field: 'name',
@@ -68,6 +78,51 @@ const DELETED_LABEL_TARGET: Record<DeletionEntity, DeletedLabelTarget | null> =
       field: 'description',
     },
   };
+
+/** Stored logo columns of a row kept in a deletion snapshot. */
+export type StoredLogoRow = {
+  logoPath: string | null;
+  customLogoPath: string | null;
+  logoUrl: string | null;
+};
+
+function stringOrNull(value: unknown): string | null {
+  return typeof value === 'string' ? value : null;
+}
+
+/**
+ * Logo columns of the institution kept in a deletion snapshot, so the recycle
+ * bin can show the brand of a deleted institution.
+ */
+export function deletedInstitutionLogo(
+  snapshot: DeletionSnapshot,
+): StoredLogoRow | null {
+  const row = snapshot.rows.find(
+    (entry) => entry.model === DELETION_MODEL.institution,
+  );
+  if (!row) {
+    return null;
+  }
+  return {
+    logoPath: stringOrNull(row.values.logoPath),
+    customLogoPath: stringOrNull(row.values.customLogoPath),
+    logoUrl: stringOrNull(row.values.logoUrl),
+  };
+}
+
+/**
+ * Institution a deleted account belonged to, so the recycle bin can resolve
+ * the brand from the institution that still owns the logo.
+ */
+export function deletedAccountInstitutionId(
+  snapshot: DeletionSnapshot,
+): string | null {
+  const row = snapshot.rows.find(
+    (entry) => entry.model === DELETION_MODEL.account,
+  );
+  const institutionId = row?.values.institutionId;
+  return typeof institutionId === 'string' ? institutionId : null;
+}
 
 /**
  * Reads the visible label of a deleted record from its journal copy. Budgets

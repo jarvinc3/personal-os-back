@@ -92,7 +92,7 @@ describe('Users (e2e)', () => {
       .expect((res) => {
         expect(res.body).toMatchObject({
           statusCode: 404,
-          message: 'User not found',
+          message: 'Usuario no encontrado',
           path: '/api/users/me',
         });
       });
@@ -465,7 +465,7 @@ describe('Users (e2e)', () => {
       .set('Authorization', `Bearer ${token}`)
       .expect(404)
       .expect((res) => {
-        expect(res.body.message).toBe('User not found');
+        expect(res.body.message).toBe('Usuario no encontrado');
         expect(res.body.path).toBe('/api/users/me');
       });
 

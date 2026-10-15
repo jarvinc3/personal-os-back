@@ -6,10 +6,12 @@ function creditRestoreSql(tx: { $executeRaw: jest.Mock }): string {
 
 function buildMocks() {
   const tx = {
+    finReconciliation: { deleteMany: jest.fn() },
     finTransaction: { deleteMany: jest.fn() },
     finEmailMessage: { deleteMany: jest.fn() },
     finEmailSyncLog: { deleteMany: jest.fn() },
     finRecurringPattern: { deleteMany: jest.fn() },
+    finMerchant: { deleteMany: jest.fn() },
     finAccount: {
       updateMany: jest.fn(),
       count: jest.fn(),
@@ -71,6 +73,9 @@ describe('WipeFinanceUserDataUseCase', () => {
     expect(tx.finRecurringPattern.deleteMany).toHaveBeenCalledWith({
       where: { userId: 'user-1' },
     });
+    expect(tx.finMerchant.deleteMany).toHaveBeenCalledWith({
+      where: { userId: 'user-1' },
+    });
     expect(tx.finAccount.updateMany).toHaveBeenCalledWith({
       where: { userId: 'user-1' },
       data: { balance: 0 },
@@ -116,7 +121,7 @@ describe('WipeFinanceUserDataUseCase', () => {
     const counts = await useCase.execute('user-1', ['finance.catalog']);
 
     expect(tx.finInstitution.deleteMany).toHaveBeenCalledWith({
-      where: { userId: 'user-1' },
+      where: { userId: 'user-1', isSystem: false },
     });
     expect(tx.finAccount.deleteMany).toHaveBeenCalledWith({
       where: { userId: 'user-1' },
@@ -232,6 +237,6 @@ describe('WipeFinanceUserDataUseCase', () => {
       useCase.execute('user-1', ['finance.balances'], {
         balanceInstitutionId: 'missing',
       }),
-    ).rejects.toThrow('Institution not found');
+    ).rejects.toThrow('Institución no encontrada');
   });
 });

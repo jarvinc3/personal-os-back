@@ -104,6 +104,26 @@ export type FinBudgetAlert = Prisma.FinBudgetAlertModel
  */
 export type FinRecurringPattern = Prisma.FinRecurringPatternModel
 /**
+ * Model FinMerchant
+ * 
+ */
+export type FinMerchant = Prisma.FinMerchantModel
+/**
+ * Model FinSubscription
+ * 
+ */
+export type FinSubscription = Prisma.FinSubscriptionModel
+/**
+ * Model FinSubscriptionPayment
+ * 
+ */
+export type FinSubscriptionPayment = Prisma.FinSubscriptionPaymentModel
+/**
+ * Model FinSubscriptionAlertDismissal
+ * One row per alert the user dismissed, so it never comes back for that date.
+ */
+export type FinSubscriptionAlertDismissal = Prisma.FinSubscriptionAlertDismissalModel
+/**
  * Model FinExchangeRate
  * 
  */
@@ -204,3 +224,34 @@ export type AuthDeletionOutbox = Prisma.AuthDeletionOutboxModel
  * re-creates the stored rows and re-applies the reversed ledger deltas.
  */
 export type FinDeletionJournal = Prisma.FinDeletionJournalModel
+/**
+ * Model FinStatementImport
+ * One uploaded statement PDF waiting for review, being parsed, or already
+ * applied. The file itself is never stored.
+ */
+export type FinStatementImport = Prisma.FinStatementImportModel
+/**
+ * Model FinStatementImportLine
+ * One movement read from the statement PDF plus its proposed reconciliation.
+ */
+export type FinStatementImportLine = Prisma.FinStatementImportLineModel
+/**
+ * Model FinReconciliation
+ * One close of an account or card against the balance the bank shows.
+ * Exactly one of `accountId`/`cardId` (DB check), and `currency` is the
+ * product currency so a two-currency card reconciles once per currency.
+ */
+export type FinReconciliation = Prisma.FinReconciliationModel
+/**
+ * Model FinReconciliationAdjustment
+ * One categorized line of a reconciliation. Each line owns the adjustment
+ * movement that moves the product balance.
+ */
+export type FinReconciliationAdjustment = Prisma.FinReconciliationAdjustmentModel
+/**
+ * Model FinBalanceDrift
+ * Open or closed deviation between a product's stored balance and the sum of
+ * its confirmed movements (invariant I1). Recalculating corrects the stored
+ * balance and closes the open row; no movement is created.
+ */
+export type FinBalanceDrift = Prisma.FinBalanceDriftModel

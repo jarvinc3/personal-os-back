@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - master
+      - develop
   pull_request:
 
 jobs:
@@ -108,6 +109,12 @@ jobs:
 
       - name: Lint
         run: pnpm lint
+
+      - name: Format check
+        run: pnpm format:check
+
+      - name: Money decimal guard
+        run: pnpm lint:money
 
       - name: Build
         run: pnpm build

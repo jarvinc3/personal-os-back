@@ -30,9 +30,9 @@ export class AccountsController {
   ) {}
 
   @Get('accounts')
-  @ApiOperation({ summary: 'List finance accounts' })
-  list(@CurrentUser('sub') userId: string) {
-    return this.catalog.listAccounts(userId);
+  @ApiOperation({ summary: 'Lista las cuentas de finanzas (cursor)' })
+  list(@CurrentUser('sub') userId: string, @Query() query: CursorQueryDto) {
+    return this.catalog.listAccountsPage(userId, query);
   }
 
   @Post('accounts')
@@ -46,7 +46,9 @@ export class AccountsController {
   }
 
   @Get('accounts/:id/history')
-  @ApiOperation({ summary: 'Account timeline: adjustments and limit changes' })
+  @ApiOperation({
+    summary: 'Cronología de la cuenta: ajustes y cambios de límite',
+  })
   getHistory(
     @CurrentUser('sub') userId: string,
     @Param('id') id: string,
@@ -66,14 +68,15 @@ export class AccountsController {
 
   @Delete('accounts/:id')
   @ApiOperation({
-    summary: 'Hard-delete account, debit cards, and ledger rows',
+    summary:
+      'Borra de forma definitiva la cuenta, sus tarjetas de débito y sus movimientos',
   })
   remove(@CurrentUser('sub') userId: string, @Param('id') id: string) {
     return this.catalog.deleteAccount(userId, id);
   }
 
   @Post('accounts/:id/restore')
-  @ApiOperation({ summary: 'Undo a delete from the journal snapshot' })
+  @ApiOperation({ summary: 'Deshace un borrado desde el journal' })
   restore(@CurrentUser('sub') userId: string, @Param('id') id: string) {
     return this.catalog.restoreAccount(userId, id, new Date());
   }

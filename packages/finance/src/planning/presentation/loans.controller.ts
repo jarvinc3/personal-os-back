@@ -10,6 +10,7 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CurrentUser, RequiresEnabledModule } from '@personal-os/core';
+import { CursorQueryDto } from '@personal-os/core';
 import { ApplyLoanPrepaymentUseCase } from '../application/apply-loan-prepayment.use-case';
 import { PayNextLoanInstallmentUseCase } from '../application/pay-next-loan-installment.use-case';
 import { PlanningService } from '../application/planning.service';
@@ -33,8 +34,9 @@ export class LoansController {
   ) {}
 
   @Get('loans')
-  list(@CurrentUser('sub') userId: string) {
-    return this.planning.listLoans(userId);
+  @ApiOperation({ summary: 'Lista los préstamos activos (cursor)' })
+  list(@CurrentUser('sub') userId: string, @Query() query: CursorQueryDto) {
+    return this.planning.listLoansPage(userId, query);
   }
 
   @Post('loans')
@@ -43,29 +45,33 @@ export class LoansController {
   }
 
   @Get('loans/:id')
-  @ApiOperation({ summary: 'Get loan by id' })
+  @ApiOperation({ summary: 'Obtiene un préstamo por id' })
   get(@CurrentUser('sub') userId: string, @Param('id') id: string) {
     return this.planning.getLoan(userId, id);
   }
 
   @Get('loans/:id/installments')
-  @ApiOperation({ summary: 'Instalment schedule of a loan, oldest first' })
+  @ApiOperation({
+    summary:
+      'Cuotas de un préstamo, más antiguas primero (paginado por cursor)',
+  })
   listInstallments(
     @CurrentUser('sub') userId: string,
     @Param('id') id: string,
+    @Query() query: CursorQueryDto,
   ) {
-    return this.planning.listLoanInstallments(userId, id);
+    return this.planning.listLoanInstallmentsPage(userId, id, query);
   }
 
   @Get('loans/:id/schedule')
-  @ApiOperation({ summary: 'Full instalment projection of a loan' })
+  @ApiOperation({ summary: 'Proyección completa de cuotas de un préstamo' })
   schedule(@CurrentUser('sub') userId: string, @Param('id') id: string) {
     return this.planning.listLoanInstallments(userId, id);
   }
 
   @Post('loans/:id/pay-next-installment')
   @ApiOperation({
-    summary: 'Pay the oldest unpaid instalment and return the breakdown',
+    summary: 'Paga la cuota impaga más antigua y devuelve el desglose',
   })
   payNext(
     @CurrentUser('sub') userId: string,
@@ -77,7 +83,7 @@ export class LoansController {
 
   @Post('loans/:id/prepayments')
   @ApiOperation({
-    summary: 'Pay a capital prepayment and rebuild the schedule',
+    summary: 'Paga un prepago de capital y reconstruye el calendario',
   })
   prepay(
     @CurrentUser('sub') userId: string,
@@ -88,7 +94,7 @@ export class LoansController {
   }
 
   @Get('loans/:id/prepayments/preview')
-  @ApiOperation({ summary: 'Preview a prepayment without writing' })
+  @ApiOperation({ summary: 'Vista previa de un prepago sin guardar' })
   preview(
     @CurrentUser('sub') userId: string,
     @Param('id') id: string,
@@ -107,13 +113,13 @@ export class LoansController {
   }
 
   @Delete('loans/:id')
-  @ApiOperation({ summary: 'Hard-delete loan' })
+  @ApiOperation({ summary: 'Borra un préstamo de forma definitiva' })
   remove(@CurrentUser('sub') userId: string, @Param('id') id: string) {
     return this.planning.deleteLoan(userId, id);
   }
 
   @Post('loans/:id/restore')
-  @ApiOperation({ summary: 'Undo a delete from the journal snapshot' })
+  @ApiOperation({ summary: 'Deshace un borrado desde el journal' })
   restore(@CurrentUser('sub') userId: string, @Param('id') id: string) {
     return this.planning.restoreLoan(userId, id, new Date());
   }

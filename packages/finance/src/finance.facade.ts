@@ -1,4 +1,6 @@
 import { Injectable } from '@nestjs/common';
+import { DEFAULT_PAGE_LIMIT } from '@personal-os/core';
+import type { ChatContextEntity, EntityRef } from '@personal-os/core';
 import { AnalyticsService } from './analytics/application/analytics.service';
 import { CatalogService } from './catalog/application/catalog.service';
 import { IngestionService } from './ingestion/application/ingestion.service';
@@ -16,6 +18,14 @@ import { CreateCardPaymentUseCase } from './ledger/application/create-card-payme
 import { CreateTransactionUseCase } from './ledger/application/create-transaction.use-case';
 import { CreateTransferUseCase } from './ledger/application/create-transfer.use-case';
 import { LedgerQueryService } from './ledger/application/ledger-query.service';
+import { MerchantsService } from './merchants/application/merchants.service';
+import { RecurringService } from './recurring/application/recurring.service';
+import { ReconciliationsService } from './reconciliation/application/reconciliations.service';
+import type { BankChargesGroupBy } from './reconciliation/presentation/dto/bank-charges-query.dto';
+import type { CreateReconciliationDto } from './reconciliation/presentation/dto/create-reconciliation.dto';
+import type { ListReconciliationsQueryDto } from './reconciliation/presentation/dto/list-reconciliations-query.dto';
+import type { PreviewReconciliationDto } from './reconciliation/presentation/dto/preview-reconciliation.dto';
+import { SubscriptionsService } from './subscriptions/application/subscriptions.service';
 import { ReverseTransactionUseCase } from './ledger/application/reverse-transaction.use-case';
 import { UpdateTransactionUseCase } from './ledger/application/update-transaction.use-case';
 import { UnconfirmTransactionUseCase } from './ledger/application/unconfirm-transaction.use-case';
@@ -41,6 +51,8 @@ import type { UpdateBudgetDto } from './planning/presentation/dto/update-budget.
 import type { UpdateLoanDto } from './planning/presentation/dto/update-loan.dto';
 import type { UpdateSavingsGoalDto } from './planning/presentation/dto/update-savings-goal.dto';
 import { WipeFinanceUserDataUseCase } from './shared/application/wipe-finance-user-data.use-case';
+import { ResolveUserBaseCurrencyUseCase } from './fx/application/resolve-user-base-currency';
+import { ChatContextEntityService } from './shared/application/chat-context-entity.service';
 import type { FinanceWipeLayer } from './shared/domain/finance-wipe-layers';
 
 /**
@@ -71,10 +83,27 @@ export class FinanceFacade {
     private readonly linkTx: LinkTransactionUseCase,
     private readonly unlinkTx: UnlinkTransactionUseCase,
     private readonly wipeFinance: WipeFinanceUserDataUseCase,
+    private readonly chatContextEntities: ChatContextEntityService,
+    private readonly resolveBaseCurrency: ResolveUserBaseCurrencyUseCase,
+    private readonly merchants: MerchantsService,
+    private readonly recurring: RecurringService,
+    private readonly subscriptions: SubscriptionsService,
+    private readonly reconciliations: ReconciliationsService,
   ) {}
+
+  getBaseCurrency(userId: string) {
+    return this.resolveBaseCurrency.execute(userId);
+  }
 
   listAccounts(userId: string) {
     return this.catalog.listAccounts(userId);
+  }
+
+  resolveChatContextEntity(
+    userId: string,
+    ref: EntityRef,
+  ): Promise<ChatContextEntity | null> {
+    return this.chatContextEntities.resolve(userId, ref);
   }
 
   listCards(userId: string) {
@@ -150,8 +179,11 @@ export class FinanceFacade {
     return this.unlinkTx.execute(userId, transactionId, new Date());
   }
 
-  listPendingEmails(userId: string) {
-    return this.ingestion.listPendingAssignment(userId);
+  async listPendingEmails(userId: string) {
+    const page = await this.ingestion.listPendingAssignment(userId, {
+      limit: DEFAULT_PAGE_LIMIT,
+    });
+    return { items: page.items, hasMore: page.hasMore };
   }
 
   assignPendingEmail(
@@ -279,6 +311,72 @@ export class FinanceFacade {
 
   listCategories(userId: string, type?: 'EXPENSE' | 'INCOME') {
     return this.catalog.listCategories(userId, type);
+  }
+
+  async listMerchants(userId: string) {
+    const page = await this.merchants.list(userId, { limit: 50 });
+    return page.items;
+  }
+
+  async listSubscriptions(userId: string) {
+    const [recurringPage, subscriptionPage] = await Promise.all([
+      this.recurring.list(userId, { limit: 50 }),
+      this.subscriptions.list(userId, { limit: 50 }),
+    ]);
+    return {
+      subscriptions: subscriptionPage.items,
+      recurring: recurringPage.items,
+    };
+  }
+
+  getSubscriptionsSummary(userId: string) {
+    return this.subscriptions.summary(userId);
+  }
+
+  getSubscriptionAlerts(userId: string) {
+    return this.subscriptions.alerts(userId);
+  }
+
+  previewReconciliation(userId: string, dto: PreviewReconciliationDto) {
+    return this.reconciliations.preview(userId, dto);
+  }
+
+  createReconciliation(userId: string, dto: CreateReconciliationDto) {
+    return this.reconciliations.create(userId, dto);
+  }
+
+  listReconciliations(userId: string, query: ListReconciliationsQueryDto) {
+    return this.reconciliations.list(userId, query);
+  }
+
+  getReconciliationStatus(userId: string, month: string) {
+    return this.reconciliations.status(userId, month);
+  }
+
+  getBankCharges(
+    userId: string,
+    input: { from: Date; to: Date; groupBy?: BankChargesGroupBy },
+  ) {
+    return this.reconciliations.bankCharges(userId, input);
+  }
+
+  createSubscription(
+    userId: string,
+    dto: Parameters<SubscriptionsService['create']>[1],
+  ) {
+    return this.subscriptions.create(userId, dto);
+  }
+
+  confirmSubscriptionPayment(
+    userId: string,
+    subscriptionId: string,
+    dto: Parameters<SubscriptionsService['recordManualPayment']>[2],
+  ) {
+    return this.subscriptions.recordManualPayment(userId, subscriptionId, dto);
+  }
+
+  confirmRecurring(userId: string, patternId: string) {
+    return this.recurring.update(userId, patternId, { status: 'CONFIRMED' });
   }
 
   listEmailSources(userId: string) {

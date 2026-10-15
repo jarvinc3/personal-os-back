@@ -115,7 +115,7 @@ describe('UsersService.assertModuleEnabled', () => {
     findEnabledUserModuleBySlug.mockResolvedValue(null);
     await expect(
       service.assertModuleEnabled('user-1', 'finance'),
-    ).rejects.toThrow('Finance module is disabled');
+    ).rejects.toThrow('El módulo finance está desactivado');
   });
 });
 
@@ -157,7 +157,9 @@ describe('UsersService.assertFinanceEmailSyncEnabled', () => {
     });
     await expect(
       service.assertFinanceEmailSyncEnabled('user-1'),
-    ).rejects.toThrow('Finance email sync is disabled');
+    ).rejects.toThrow(
+      'La sincronización de correo de finanzas está desactivada',
+    );
   });
 
   it('throws when emailSync is omitted (default is disabled)', async () => {
@@ -168,7 +170,9 @@ describe('UsersService.assertFinanceEmailSyncEnabled', () => {
     });
     await expect(
       service.assertFinanceEmailSyncEnabled('user-1'),
-    ).rejects.toThrow('Finance email sync is disabled');
+    ).rejects.toThrow(
+      'La sincronización de correo de finanzas está desactivada',
+    );
   });
 });
 
@@ -277,5 +281,66 @@ describe('UsersService.updateModuleConfig schedule validation', () => {
       },
     });
     expect(upsertUserModule).toHaveBeenCalled();
+  });
+
+  it('rejects the retired subscriptions slug', async () => {
+    await expect(
+      service.updateModuleConfig('user-1', 'subscriptions', {
+        config: {},
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(upsertUserModule).not.toHaveBeenCalled();
+  });
+});
+
+describe('UsersService.listWeeklySummaryRecipients', () => {
+  const findFinanceSummaryRecipients = jest.fn();
+  const usersRepository = {
+    findFinanceSummaryRecipients,
+  } as unknown as UsersRepositoryPort;
+  const service = new UsersService(
+    usersRepository,
+    { emit: jest.fn() } as unknown as EventEmitter2,
+    {} as unknown as SupabaseAdminService,
+  );
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('defaults to Monday when the report day is not configured', async () => {
+    findFinanceSummaryRecipients.mockResolvedValue([
+      { userId: 'user-1', timezone: 'America/Santo_Domingo', config: {} },
+    ]);
+
+    await expect(service.listWeeklySummaryRecipients()).resolves.toEqual([
+      { userId: 'user-1', timezone: 'America/Santo_Domingo', day: 1 },
+    ]);
+  });
+
+  it('skips users who turned the weekly summary off', async () => {
+    findFinanceSummaryRecipients.mockResolvedValue([
+      {
+        userId: 'user-1',
+        timezone: 'UTC',
+        config: { notifications: { weeklySummary: false } },
+      },
+    ]);
+
+    await expect(service.listWeeklySummaryRecipients()).resolves.toEqual([]);
+  });
+
+  it('uses the configured report day', async () => {
+    findFinanceSummaryRecipients.mockResolvedValue([
+      {
+        userId: 'user-1',
+        timezone: 'UTC',
+        config: { reports: { weeklySummaryDay: 5 } },
+      },
+    ]);
+
+    await expect(service.listWeeklySummaryRecipients()).resolves.toEqual([
+      { userId: 'user-1', timezone: 'UTC', day: 5 },
+    ]);
   });
 });

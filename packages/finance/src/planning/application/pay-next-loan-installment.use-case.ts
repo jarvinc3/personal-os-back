@@ -56,7 +56,7 @@ export class PayNextLoanInstallmentUseCase {
     await this.syncInstallments.execute(loan, now);
     const installment = await this.repo.findNextUnpaidInstallment(loanId);
     if (!installment) {
-      throw new BadRequestException('Loan has no pending instalment');
+      throw new BadRequestException('El préstamo no tiene cuota pendiente');
     }
 
     const dueTotal = installmentDueTotal({

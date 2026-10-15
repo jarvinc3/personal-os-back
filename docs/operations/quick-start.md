@@ -16,7 +16,7 @@ pnpm db:generate
 pnpm start:dev
 ```
 
-- API: `http://localhost:$PORT/api` (`.env.example` usa `PORT=3100`; el default del schema Zod es `3000`)
+- API: `http://localhost:$PORT/api` (`.env.example` y el default del schema Zod usan `PORT=3100`)
 - Swagger: `http://localhost:$PORT/docs` (off en production)
 - Bull Board: `http://localhost:$PORT/admin/queues` (solo development + Redis)
 

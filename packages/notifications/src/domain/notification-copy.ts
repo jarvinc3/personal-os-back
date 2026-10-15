@@ -61,6 +61,56 @@ export function cardStatementReminderCopy(): NotificationCopy {
   };
 }
 
+export function cardPaymentDueCopy(fields: {
+  cardName: string;
+  remainingLabel: string;
+  daysUntil: number;
+}): NotificationCopy {
+  const when =
+    fields.daysUntil <= 0
+      ? 'hoy'
+      : fields.daysUntil === 1
+        ? 'mañana'
+        : `en ${fields.daysUntil} días`;
+  return {
+    title: 'Pago de tarjeta próximo',
+    body: `El corte de ${fields.cardName} vence ${when}. Falta por pagar ${fields.remainingLabel}.`,
+  };
+}
+
+export type WeeklySummaryNotificationFields = {
+  amountLabel: string;
+  averageLabel: string;
+  topCategories: string[];
+  budgetsAtRisk: number;
+  upcoming: number;
+  pendingEmails: number;
+};
+
+export function weeklySummaryCopy(
+  fields: WeeklySummaryNotificationFields,
+): NotificationCopy {
+  const details = joinDetails([
+    fields.averageLabel ? `promedio ${fields.averageLabel}` : null,
+    fields.topCategories.length > 0
+      ? `Top: ${fields.topCategories.join(', ')}`
+      : null,
+    fields.budgetsAtRisk > 0
+      ? `${fields.budgetsAtRisk} presupuestos en riesgo`
+      : null,
+    fields.upcoming > 0 ? `${fields.upcoming} cuotas próximas` : null,
+    fields.pendingEmails > 0
+      ? `${fields.pendingEmails} correos por revisar`
+      : null,
+  ]);
+  return {
+    title: 'Resumen semanal',
+    body: details
+      ? `Gastaste ${fields.amountLabel} · ${details}`
+      : `Gastaste ${fields.amountLabel}`,
+  };
+}
+
 export function transactionRecordedCopy(
   fields: TransactionNotificationFields,
 ): NotificationCopy {
@@ -103,5 +153,70 @@ export function budgetThresholdCopy(percentageUsed: number): NotificationCopy {
   return {
     title: `Presupuesto al ${rounded}%`,
     body: `Un presupuesto alcanzó el ${rounded}% de su límite.`,
+  };
+}
+
+export type RecurringNotificationFields = {
+  merchant: string;
+  amountLabel: string;
+};
+
+export function recurringPriceChangedCopy(input: {
+  merchant: string;
+  previousLabel: string;
+  newLabel: string;
+}): NotificationCopy {
+  return {
+    title: 'Subió el precio',
+    body: `${input.merchant} pasó de ${input.previousLabel} a ${input.newLabel}.`,
+  };
+}
+
+export function recurringMissedCopy(
+  fields: RecurringNotificationFields,
+): NotificationCopy {
+  return {
+    title: 'No llegó el cobro',
+    body: `El cobro de ${fields.merchant} (${fields.amountLabel}) no llegó en la fecha esperada.`,
+  };
+}
+
+export function recurringUpcomingCopy(
+  fields: RecurringNotificationFields & { daysUntil: number },
+): NotificationCopy {
+  const when =
+    fields.daysUntil <= 0
+      ? 'hoy'
+      : fields.daysUntil === 1
+        ? 'mañana'
+        : `en ${fields.daysUntil} días`;
+  return {
+    title: 'Próximo cobro',
+    body: `${fields.merchant} cobra ${fields.amountLabel} ${when}.`,
+  };
+}
+
+export function subscriptionRenewalDueCopy(
+  fields: RecurringNotificationFields & { daysUntil: number },
+): NotificationCopy {
+  const when =
+    fields.daysUntil <= 0
+      ? 'hoy'
+      : fields.daysUntil === 1
+        ? 'mañana'
+        : `en ${fields.daysUntil} días`;
+  return {
+    title: 'Renovación próxima',
+    body: `Tu suscripción ${fields.merchant} se renueva ${when} por ${fields.amountLabel}.`,
+  };
+}
+
+export function balanceDriftCopy(fields: {
+  name: string;
+  differenceLabel: string;
+}): NotificationCopy {
+  return {
+    title: 'Saldo descuadrado',
+    body: `El saldo de ${fields.name} no coincide con sus movimientos (${fields.differenceLabel}).`,
   };
 }

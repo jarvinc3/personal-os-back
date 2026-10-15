@@ -2,6 +2,7 @@ import { Controller, Get, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { CurrentUser, RequiresEnabledModule } from '@personal-os/core';
 import { AnalyticsService } from '../application/analytics.service';
+import { WeeklySummaryService } from '../application/weekly-summary.service';
 import { SpendingOverTimeQueryDto } from './dto/spending-over-time-query.dto';
 
 @ApiTags('finance')
@@ -9,7 +10,18 @@ import { SpendingOverTimeQueryDto } from './dto/spending-over-time-query.dto';
 @RequiresEnabledModule('finance')
 @Controller('finance/analytics')
 export class AnalyticsController {
-  constructor(private readonly analytics: AnalyticsService) {}
+  constructor(
+    private readonly analytics: AnalyticsService,
+    private readonly weeklySummary: WeeklySummaryService,
+  ) {}
+
+  @Get('weekly-summary')
+  weeklySummaryReport(
+    @CurrentUser('sub') userId: string,
+    @Query('weekStart') weekStart?: string,
+  ) {
+    return this.weeklySummary.build(userId, weekStart);
+  }
 
   @Get('summary')
   summary(

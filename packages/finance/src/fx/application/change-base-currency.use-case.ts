@@ -15,10 +15,11 @@ import {
 } from '@personal-os/users';
 import { EXCHANGE_RATE_PORT } from '../../shared/application/tokens';
 import {
-  convertAmount,
+  convertDecimal,
   isIsoCurrency,
   normalizeCurrencyCode,
-  roundMoney,
+  roundDecimal,
+  type MoneyLike,
 } from '../../shared/domain/money';
 import type { ExchangeRatePort } from './ports/exchange-rate.port';
 
@@ -80,7 +81,7 @@ export class ChangeBaseCurrencyUseCase {
     const nextBaseCurrency = normalizeCurrencyCode(requestedBaseCurrency);
     if (!isIsoCurrency(nextBaseCurrency)) {
       throw new BadRequestException(
-        `Invalid currency code: ${requestedBaseCurrency}`,
+        `Código de moneda inválido: ${requestedBaseCurrency}`,
       );
     }
 
@@ -204,12 +205,12 @@ export class ChangeBaseCurrencyUseCase {
   private async rebaseTransactions(
     transactions: readonly RebaseTransaction[],
     nextBaseCurrency: string,
-  ): Promise<Array<{ id: string; amountBaseCurrency: number }>> {
+  ): Promise<Array<{ id: string; amountBaseCurrency: Prisma.Decimal }>> {
     return Promise.all(
       transactions.map(async (transaction) => ({
         id: transaction.id,
         amountBaseCurrency: await this.convertToBase(
-          Number(transaction.amount),
+          transaction.amount,
           transaction.currency,
           nextBaseCurrency,
           transaction.transactionDate,
@@ -223,27 +224,27 @@ export class ChangeBaseCurrencyUseCase {
     previousBaseCurrency: string,
     nextBaseCurrency: string,
     periodStart: Date,
-  ): Promise<number> {
+  ): Promise<Prisma.Decimal> {
     const rate = await this.requireRate(
       previousBaseCurrency,
       nextBaseCurrency,
       periodStart,
     );
-    return convertAmount(Number(amountLimit), rate);
+    return convertDecimal(amountLimit, rate);
   }
 
   private async convertToBase(
-    amount: number,
+    amount: MoneyLike,
     currency: string,
     nextBaseCurrency: string,
     date: Date,
-  ): Promise<number> {
+  ): Promise<Prisma.Decimal> {
     const from = normalizeCurrencyCode(currency);
     if (from === nextBaseCurrency) {
-      return roundMoney(amount);
+      return roundDecimal(amount);
     }
     const rate = await this.requireRate(from, nextBaseCurrency, date);
-    return convertAmount(amount, rate);
+    return convertDecimal(amount, rate);
   }
 
   private async requireRate(
@@ -267,10 +268,10 @@ export class ChangeBaseCurrencyUseCase {
 
   private sumSpent(
     transactions: readonly RebaseTransaction[],
-    baseAmountById: Map<string, number>,
+    baseAmountById: Map<string, Prisma.Decimal>,
     budget: RebaseBudget,
-  ): number {
-    let spent = 0;
+  ): Prisma.Decimal {
+    let spent = new Prisma.Decimal(0);
     for (const transaction of transactions) {
       if (
         transaction.type !== 'DEBIT' ||
@@ -287,9 +288,9 @@ export class ChangeBaseCurrencyUseCase {
       ) {
         continue;
       }
-      spent += baseAmountById.get(transaction.id) ?? 0;
+      spent = spent.plus(baseAmountById.get(transaction.id) ?? 0);
     }
-    return roundMoney(spent);
+    return roundDecimal(spent);
   }
 
   private buildNextConfig(

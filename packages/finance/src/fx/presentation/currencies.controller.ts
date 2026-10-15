@@ -21,7 +21,7 @@ export class CurrenciesController {
 
   @Get('currencies')
   @ApiOperation({
-    summary: 'List ISO currencies from cached FX rates or exchangerate.host',
+    summary: 'Lista las monedas ISO desde tasas en caché o exchangerate.host',
   })
   list() {
     return this.rates.listCurrencies();
@@ -29,7 +29,7 @@ export class CurrenciesController {
 
   @Get('exchange-rates')
   @ApiOperation({
-    summary: 'Market rates for quoted currencies in a base currency',
+    summary: 'Tasas de mercado de las monedas cotizadas en una moneda base',
   })
   exchangeRates(@Query() query: ExchangeRatesQueryDto) {
     return this.getExchangeRates.execute(
@@ -42,7 +42,7 @@ export class CurrenciesController {
   @Post('base-currency')
   @HttpCode(200)
   @ApiOperation({
-    summary: 'Change base currency and rebase stored base amounts',
+    summary: 'Cambia la moneda base y reconvierte los montos base guardados',
   })
   setBaseCurrency(
     @CurrentUser('sub') userId: string,

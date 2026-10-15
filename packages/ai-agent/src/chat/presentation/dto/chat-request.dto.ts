@@ -8,6 +8,7 @@ import {
   MaxLength,
   ValidateNested,
 } from 'class-validator';
+import { ChatContextDto } from './chat-context.dto';
 import { ChatMessageDto } from './chat-message.dto';
 
 export class ChatRequestDto {
@@ -25,6 +26,12 @@ export class ChatRequestDto {
   @IsString()
   @MaxLength(64)
   clientMessageId?: string;
+
+  @ApiPropertyOptional({ type: ChatContextDto })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => ChatContextDto)
+  context?: ChatContextDto;
 
   @ApiProperty({ type: [ChatMessageDto] })
   @IsArray()

@@ -151,4 +151,90 @@ describe('NotificationPolicyService', () => {
       );
     }
   });
+
+  it('blocks subscription renewals when subscriptionReminders is false', async () => {
+    usersRepository.findById = jest.fn().mockResolvedValue({
+      id: 'user-1',
+      timezone: 'America/Santo_Domingo',
+      preferences: {
+        notifications: {
+          channels: { push: true, email: false, inApp: true },
+          quietHours: {
+            enabled: false,
+            start: '22:00',
+            end: '08:00',
+            timezone: null,
+          },
+        },
+      },
+      userModules: [
+        {
+          isEnabled: true,
+          module: { slug: 'finance' },
+          config: {
+            notifications: { subscriptionReminders: false },
+          },
+        },
+      ],
+    });
+
+    const subscriptionResult = await service.evaluate({
+      userId: 'user-1',
+      channel: 'IN_APP',
+      data: {
+        moduleSlug: 'finance',
+        notificationKey: 'subscriptionReminders',
+      },
+    });
+
+    expect(subscriptionResult.allowed).toBe(false);
+    if (!subscriptionResult.allowed) {
+      expect(subscriptionResult.reason).toBe(
+        'module_notification_disabled:finance.subscriptionReminders',
+      );
+    }
+  });
+
+  it('blocks price increase alerts when priceIncreaseAlerts is false', async () => {
+    usersRepository.findById = jest.fn().mockResolvedValue({
+      id: 'user-1',
+      timezone: 'America/Santo_Domingo',
+      preferences: {
+        notifications: {
+          channels: { push: true, email: false, inApp: true },
+          quietHours: {
+            enabled: false,
+            start: '22:00',
+            end: '08:00',
+            timezone: null,
+          },
+        },
+      },
+      userModules: [
+        {
+          isEnabled: true,
+          module: { slug: 'finance' },
+          config: {
+            notifications: { priceIncreaseAlerts: false },
+          },
+        },
+      ],
+    });
+
+    const priceResult = await service.evaluate({
+      userId: 'user-1',
+      channel: 'IN_APP',
+      data: {
+        moduleSlug: 'finance',
+        notificationKey: 'priceIncreaseAlerts',
+      },
+    });
+
+    expect(priceResult.allowed).toBe(false);
+    if (!priceResult.allowed) {
+      expect(priceResult.reason).toBe(
+        'module_notification_disabled:finance.priceIncreaseAlerts',
+      );
+    }
+  });
 });

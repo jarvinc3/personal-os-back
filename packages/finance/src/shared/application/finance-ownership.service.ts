@@ -8,6 +8,7 @@ import {
   categoryTypeForTransaction,
   type FinCategoryTypeValue,
 } from '../domain/category-type';
+import { isCashInstitution } from '../domain/cash';
 
 const VISIBLE_CATEGORY = (userId: string) => ({
   OR: [{ userId }, { isSystem: true }],
@@ -22,7 +23,27 @@ export class FinanceOwnershipService {
       where: { id: institutionId, userId },
     });
     if (!institution) {
-      throw new BadRequestException('Institution not found');
+      throw new BadRequestException('Institución no encontrada');
+    }
+    return institution;
+  }
+
+  /**
+   * Cards, loans and email sources belong to banks: the cash institution
+   * (system "Efectivo" or a legacy cash one) is rejected.
+   */
+  async assertInstitutionAcceptsBankProducts(
+    userId: string,
+    institutionId: string,
+  ) {
+    const institution = await this.assertInstitutionOwned(
+      userId,
+      institutionId,
+    );
+    if (isCashInstitution(institution)) {
+      throw new BadRequestException(
+        'Efectivo no admite tarjetas, préstamos ni sincronización por correo',
+      );
     }
     return institution;
   }
@@ -32,7 +53,7 @@ export class FinanceOwnershipService {
       where: { id: accountId, userId },
     });
     if (!account) {
-      throw new BadRequestException('Account not found');
+      throw new BadRequestException('Cuenta no encontrada');
     }
     return account;
   }
@@ -42,7 +63,7 @@ export class FinanceOwnershipService {
       where: { id: cardId, userId },
     });
     if (!card) {
-      throw new BadRequestException('Card not found');
+      throw new BadRequestException('Tarjeta no encontrada');
     }
     return card;
   }
@@ -52,7 +73,7 @@ export class FinanceOwnershipService {
       where: { id: categoryId, ...VISIBLE_CATEGORY(userId) },
     });
     if (!category) {
-      throw new BadRequestException('Category not found');
+      throw new BadRequestException('Categoría no encontrada');
     }
     return category;
   }
@@ -72,7 +93,9 @@ export class FinanceOwnershipService {
   async assertExpenseCategory(userId: string, categoryId: string) {
     const category = await this.assertCategoryVisible(userId, categoryId);
     if (category.type !== 'EXPENSE') {
-      throw new BadRequestException('Budgets require an expense category');
+      throw new BadRequestException(
+        'Los presupuestos requieren una categoría de gasto',
+      );
     }
     return category;
   }
@@ -85,7 +108,9 @@ export class FinanceOwnershipService {
   ) {
     const parent = await this.assertCategoryVisible(userId, parentId);
     if (childId && parentId === childId) {
-      throw new BadRequestException('Category cannot be its own parent');
+      throw new BadRequestException(
+        'Una categoría no puede ser su propia padre',
+      );
     }
 
     let requiredType = expectedType;
@@ -97,7 +122,9 @@ export class FinanceOwnershipService {
       requiredType = child?.type;
     }
     if (requiredType && parent.type !== requiredType) {
-      throw new BadRequestException('Parent category must have the same type');
+      throw new BadRequestException(
+        'La categoría padre debe tener el mismo tipo',
+      );
     }
 
     if (childId) {
@@ -105,7 +132,7 @@ export class FinanceOwnershipService {
       const seen = new Set<string>([childId]);
       while (cursor) {
         if (seen.has(cursor)) {
-          throw new BadRequestException('Category parent would create a cycle');
+          throw new BadRequestException('La categoría padre crearía un ciclo');
         }
         seen.add(cursor);
         const row = await this.prisma.finCategory.findFirst({
@@ -149,7 +176,7 @@ export class FinanceOwnershipService {
       account.institutionId !== params.institutionId
     ) {
       throw new BadRequestException(
-        'Loan payment account must belong to the same institution',
+        'La cuenta de pago del préstamo debe ser de la misma institución',
       );
     }
     return account;
@@ -177,7 +204,7 @@ export class FinanceOwnershipService {
     if (incompatible.length > 0) {
       throw new ConflictException({
         message:
-          'Cannot change account institution while debit cards remain on another institution',
+          'No se puede cambiar la institución de la cuenta mientras tenga tarjetas de débito en otra',
         debitCardIds: incompatible.map((card) => card.id),
       });
     }
@@ -201,7 +228,7 @@ export class FinanceOwnershipService {
     if (accounts + cards + sources + loans > 0) {
       throw new ConflictException({
         message:
-          'Cannot archive institution while active accounts, cards, email sources, or loans remain',
+          'No se puede archivar la institución mientras tenga cuentas, tarjetas, correos o préstamos activos',
         dependents: { accounts, cards, emailSources: sources, loans },
       });
     }

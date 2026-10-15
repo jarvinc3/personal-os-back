@@ -11,9 +11,11 @@ import type { FinTransactionType, Prisma } from '@personal-os/database';
 import { PrismaService } from '@personal-os/database';
 import type { DomainEventPublisherPort } from '../../events/application/ports/domain-event-publisher.port';
 import type { BudgetThresholdPort } from '../../shared/application/budget-threshold.port';
+import type { SubscriptionMatcherPort } from '../../shared/application/subscription-matcher.port';
 import {
   BUDGET_THRESHOLD_PORT,
   DOMAIN_EVENT_PUBLISHER,
+  SUBSCRIPTION_MATCHER,
 } from '../../shared/application/tokens';
 import type { BudgetSpendSnapshot } from '../../shared/domain/budget-snapshot';
 import {
@@ -75,6 +77,9 @@ const transactionPartyInclude = {
         },
       },
     },
+  },
+  merchantRef: {
+    select: { id: true, name: true, logoUrl: true },
   },
 } satisfies Prisma.FinTransactionInclude;
 
@@ -150,6 +155,9 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
     @Optional()
     @Inject(BUDGET_THRESHOLD_PORT)
     private readonly thresholds?: BudgetThresholdPort,
+    @Optional()
+    @Inject(SUBSCRIPTION_MATCHER)
+    private readonly subscriptionMatcher?: SubscriptionMatcherPort,
   ) {}
 
   async findTransactions(userId: string, query: ListTransactionsQuery) {
@@ -522,7 +530,7 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
     return row?.categoryId ?? null;
   }
 
-  createTransaction(
+  async createTransaction(
     userId: string,
     command: CreateTransactionCommand,
     amounts: ResolvedAmounts,
@@ -534,7 +542,7 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
       transferGroupId?: string;
     },
   ): Promise<CreateTransactionResult | null> {
-    return this.prisma.$transaction(async (tx) => {
+    const createdTransaction = await this.prisma.$transaction(async (tx) => {
       const target = await resolveLedgerTarget(
         tx,
         userId,
@@ -559,6 +567,7 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
           ledgerCurrency: amounts.ledgerCurrency,
           exchangeRate: amounts.exchangeRate,
           merchant: command.merchant,
+          merchantId: command.merchantId,
           description: command.description,
           categoryId: command.categoryId,
           notes: command.notes,
@@ -615,6 +624,13 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
         budgetSnapshots,
       };
     });
+    if (createdTransaction) {
+      await this.subscriptionMatcher?.matchTransaction({
+        userId,
+        transactionId: createdTransaction.transaction.id,
+      });
+    }
+    return createdTransaction;
   }
 
   createBalanceAdjustment(
@@ -988,7 +1004,7 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
     },
   ): Promise<void> {
     if (!input.transferGroupId) {
-      throw new NotFoundException('Transfer group not found');
+      throw new NotFoundException('Grupo de transferencia no encontrado');
     }
     const amountFields = {
       amount: input.feeAmounts.amount,
@@ -1105,7 +1121,9 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
         },
       );
       if (!debit || !credit) {
-        throw new NotFoundException('Transfer leg not found');
+        throw new NotFoundException(
+          'Movimiento de la transferencia no encontrado',
+        );
       }
       if (input.feeAmounts) {
         await this.upsertTransferFeeLeg(tx, {
@@ -1201,6 +1219,9 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
     const data: Prisma.FinTransactionUncheckedUpdateManyInput = {
       ...(fields.type !== undefined ? { type: fields.type } : {}),
       ...(fields.merchant !== undefined ? { merchant: fields.merchant } : {}),
+      ...(fields.merchantId !== undefined
+        ? { merchantId: fields.merchantId }
+        : {}),
       ...(fields.description !== undefined
         ? { description: fields.description }
         : {}),
@@ -1841,7 +1862,7 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
     userId: string,
     data: ImportEmailTransactionCommand,
   ) {
-    return this.prisma.$transaction(async (tx) => {
+    const imported = this.prisma.$transaction(async (tx) => {
       const target = await resolveLedgerTarget(
         tx,
         userId,
@@ -1865,6 +1886,7 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
           ledgerCurrency: data.amounts.ledgerCurrency,
           exchangeRate: data.amounts.exchangeRate,
           merchant: data.merchant,
+          merchantId: data.merchantId,
           description: data.description,
           notes: data.notes ?? null,
           transactionDate: data.transactionDate,
@@ -1911,6 +1933,13 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
       );
       await this.thresholds?.processThresholds(userId, budgetSnapshots, tx);
 
+      return created;
+    });
+    return imported.then(async (created) => {
+      await this.subscriptionMatcher?.matchTransaction({
+        userId,
+        transactionId: created.id,
+      });
       return created;
     });
   }
