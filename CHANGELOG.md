@@ -2,6 +2,12 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [SemVer](https://semver.org/lang/es/). Reglas y ejemplo en [docs/reference/changelog-guide.md](./docs/reference/changelog-guide.md).
 
+## [0.33.3] - 2026-10-15
+
+### Cambiado
+
+- Limpieza interna sin cambios de comportamiento: imports relativos y formato de Prettier en los paquetes de finanzas.
+
 ## [0.33.2] - 2026-10-15
 
 ### Cambiado
