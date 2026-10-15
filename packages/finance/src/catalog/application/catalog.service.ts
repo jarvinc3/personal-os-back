@@ -729,13 +729,7 @@ export class CatalogService {
     fallbackInstitutionId: string | null = null,
   ): Promise<string> {
     if (type === CASH_ACCOUNT_TYPE) {
-      const cash = await this.ensureCashInstitution.execute(userId);
-      if (requestedInstitutionId && requestedInstitutionId !== cash.id) {
-        throw new BadRequestException(
-          'Las cuentas de efectivo van dentro de Efectivo',
-        );
-      }
-      return cash.id;
+      return this.resolveCashInstitutionId(userId, requestedInstitutionId);
     }
     const institutionId = requestedInstitutionId ?? fallbackInstitutionId;
     if (!institutionId) {
@@ -748,6 +742,27 @@ export class CatalogService {
       institutionId,
     );
     return institutionId;
+  }
+
+  /**
+   * Cash only lives in the system "Efectivo". The command ensures it exists;
+   * the id is then read through the repository query (CQS).
+   */
+  private async resolveCashInstitutionId(
+    userId: string,
+    requestedInstitutionId: string | undefined,
+  ): Promise<string> {
+    await this.ensureCashInstitution.execute(userId);
+    const cash = await this.repo.findSystemCashInstitution(userId);
+    if (!cash) {
+      throw new NotFoundException('Efectivo no está disponible');
+    }
+    if (requestedInstitutionId && requestedInstitutionId !== cash.id) {
+      throw new BadRequestException(
+        'Las cuentas de efectivo van dentro de Efectivo',
+      );
+    }
+    return cash.id;
   }
 
   private assertInstitutionEditable(institution: { isSystem: boolean }) {

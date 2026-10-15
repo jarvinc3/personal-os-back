@@ -51,7 +51,7 @@ function purgeMock(): PurgeInstrumentLedgerUseCase {
 
 function ensureMock(): EnsureCashInstitutionUseCase {
   return {
-    execute: jest.fn().mockResolvedValue({ id: 'cash-inst' }),
+    execute: jest.fn().mockResolvedValue(undefined),
   } as unknown as EnsureCashInstitutionUseCase;
 }
 
@@ -159,6 +159,9 @@ describe('CatalogService createAccount', () => {
     createAccount,
     listInstitutions,
     findAccountById,
+    findSystemCashInstitution: jest
+      .fn()
+      .mockResolvedValue({ id: 'cash-inst' }),
   } as unknown as CatalogRepository;
 
   const service = createService(repo, ownershipMock(), purgeMock());
@@ -967,7 +970,12 @@ describe('CatalogService cash institution rules', () => {
   it('rejects opening a cash account outside Efectivo', async () => {
     const createAccount = jest.fn();
     const service = createService(
-      { createAccount } as unknown as CatalogRepository,
+      {
+        createAccount,
+        findSystemCashInstitution: jest
+          .fn()
+          .mockResolvedValue({ id: 'cash-inst' }),
+      } as unknown as CatalogRepository,
       ownershipMock(),
       purgeMock(),
     );

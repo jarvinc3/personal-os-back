@@ -10,7 +10,8 @@ import { CatalogRepository } from '../infrastructure/catalog.repository';
  * Idempotent: an existing institution short-circuits with a single query. When
  * it is missing, the institution is created, institution-less CASH accounts are
  * moved into it, and a base-currency "Efectivo" account is added so a new user
- * sees cash without creating anything.
+ * sees cash without creating anything. The read of the ensured id belongs to the
+ * caller, through the repository query (CQS).
  */
 @Injectable()
 export class EnsureCashInstitutionUseCase {
@@ -19,19 +20,18 @@ export class EnsureCashInstitutionUseCase {
     private readonly baseCurrency: ResolveUserBaseCurrencyUseCase,
   ) {}
 
-  async execute(userId: string): Promise<{ id: string }> {
+  async execute(userId: string): Promise<void> {
     const existing = await this.repo.findSystemCashInstitution(userId);
     if (existing) {
-      return { id: existing.id };
+      return;
     }
-    return this.provision(userId);
+    await this.provision(userId);
   }
 
-  private async provision(userId: string): Promise<{ id: string }> {
+  private async provision(userId: string): Promise<void> {
     const institution = await this.createInstitution(userId);
     await this.repo.assignInstitutionlessCashAccounts(userId, institution.id);
     await this.ensureDefaultAccount(userId, institution.id);
-    return { id: institution.id };
   }
 
   private async createInstitution(userId: string) {

@@ -35,9 +35,7 @@ describe('EnsureCashInstitutionUseCase', () => {
   it('returns the existing institution without provisioning', async () => {
     findSystemCashInstitution.mockResolvedValue({ id: 'cash-1' });
 
-    await expect(createUseCase().execute('user-1')).resolves.toEqual({
-      id: 'cash-1',
-    });
+    await expect(createUseCase().execute('user-1')).resolves.toBeUndefined();
     expect(createSystemCashInstitution).not.toHaveBeenCalled();
     expect(assignInstitutionlessCashAccounts).not.toHaveBeenCalled();
     expect(createCashAccount).not.toHaveBeenCalled();
@@ -50,9 +48,7 @@ describe('EnsureCashInstitutionUseCase', () => {
       name: 'Efectivo',
     });
 
-    await expect(createUseCase().execute('user-1')).resolves.toEqual({
-      id: 'cash-1',
-    });
+    await expect(createUseCase().execute('user-1')).resolves.toBeUndefined();
     expect(createSystemCashInstitution).toHaveBeenCalledWith('user-1');
     expect(assignInstitutionlessCashAccounts).toHaveBeenCalledWith(
       'user-1',
@@ -90,9 +86,7 @@ describe('EnsureCashInstitutionUseCase', () => {
       }),
     );
 
-    await expect(createUseCase().execute('user-1')).resolves.toEqual({
-      id: 'cash-1',
-    });
+    await expect(createUseCase().execute('user-1')).resolves.toBeUndefined();
     expect(assignInstitutionlessCashAccounts).toHaveBeenCalledWith(
       'user-1',
       'cash-1',
