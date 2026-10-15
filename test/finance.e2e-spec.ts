@@ -150,6 +150,7 @@ describe('Finance (e2e)', () => {
             type: 'transaction',
             id: 'tx-1',
             label: 'Supermercado',
+            logoUrl: null,
             deletedAt: '2026-10-12T10:00:00.000Z',
           },
         ]);

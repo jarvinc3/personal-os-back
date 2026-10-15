@@ -48,4 +48,20 @@ export class RecycleBinRepository {
       orderBy: { lenderName: 'asc' },
     });
   }
+
+  /**
+   * Logos of the named institutions, for the deleted accounts that still point
+   * to them.
+   */
+  listInstitutionLogos(userId: string, ids: readonly string[]) {
+    return this.prisma.finInstitution.findMany({
+      where: { userId, id: { in: [...ids] } },
+      select: {
+        id: true,
+        logoPath: true,
+        customLogoPath: true,
+        logoUrl: true,
+      },
+    });
+  }
 }
