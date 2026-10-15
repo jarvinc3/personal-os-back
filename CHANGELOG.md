@@ -2,6 +2,16 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [SemVer](https://semver.org/lang/es/). Reglas y ejemplo en [docs/reference/changelog-guide.md](./docs/reference/changelog-guide.md).
 
+## [0.34.0] - 2026-10-15
+
+### Agregado
+
+- `GET /api/finance/recycle-bin` incluye `logoUrl` resuelto de la institución en los registros archivados (instituciones y sus cuentas), para que la papelera muestre la marca.
+
+### Cambiado
+
+- El texto que el back expone al usuario (guías de preferencias y etiquetas de acciones del agente) dice App en vez de módulo, con el glosario [docs/glosario.md](./docs/glosario.md) y la regla `.cursor/rules/module-terminology.mdc`.
+
 ## [0.33.5] - 2026-10-15
 
 ### Cambiado
