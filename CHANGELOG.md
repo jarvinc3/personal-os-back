@@ -2,6 +2,13 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [SemVer](https://semver.org/lang/es/). Reglas y ejemplo en [docs/reference/changelog-guide.md](./docs/reference/changelog-guide.md).
 
+## [0.37.2] - 2026-10-15
+
+### Corregido
+
+- Las pruebas e2e esperan el formato paginado `{ items, nextCursor, hasMore }` en las listas de cuentas, tarjetas y préstamos, y los mensajes de error en español.
+- `moduleDisabledMessage` responde en español.
+
 ## [0.37.1] - 2026-10-15
 
 ### Corregido
