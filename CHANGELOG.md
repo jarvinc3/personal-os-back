@@ -2,6 +2,12 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [SemVer](https://semver.org/lang/es/). Reglas y ejemplo en [docs/reference/changelog-guide.md](./docs/reference/changelog-guide.md).
 
+## [0.33.1] - 2026-10-15
+
+### Corregido
+
+- La migración del efectivo crea el índice único de la institución de sistema solo con SQL. Declararlo en el esquema obligaba a activar la vista previa `partialIndexes`, que hacía a Prisma marcar como drift tres índices parciales previos.
+
 ## [0.33.0] - 2026-10-15
 
 ### Agregado
