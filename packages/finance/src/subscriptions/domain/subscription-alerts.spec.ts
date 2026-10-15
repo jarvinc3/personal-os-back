@@ -17,7 +17,7 @@ function fact(
     amount: 100,
     nextBillingDate: day('2026-11-10'),
     trialEndsAt: null,
-    reminderDaysBefore: 3,
+    reminderWindowDays: 3,
     lastPaymentAmount: null,
     lastPaymentDate: null,
     previousPaymentAmount: null,
@@ -63,7 +63,7 @@ describe('buildSubscriptionAlerts', () => {
 
   it('reports a trial ending inside the reminder window and not before', () => {
     const inside = buildSubscriptionAlerts(
-      fact({ trialEndsAt: day('2026-10-30'), reminderDaysBefore: 3 }),
+      fact({ trialEndsAt: day('2026-10-30'), reminderWindowDays: 3 }),
       day('2026-10-28'),
     );
     expect(inside.map((alert) => alert.kind)).toContain('TRIAL_ENDING');
@@ -72,7 +72,7 @@ describe('buildSubscriptionAlerts', () => {
     ).toBe(2);
 
     const outside = buildSubscriptionAlerts(
-      fact({ trialEndsAt: day('2026-11-30'), reminderDaysBefore: 3 }),
+      fact({ trialEndsAt: day('2026-11-30'), reminderWindowDays: 3 }),
       day('2026-10-28'),
     );
     expect(outside.map((alert) => alert.kind)).not.toContain('TRIAL_ENDING');
@@ -83,7 +83,7 @@ describe('buildSubscriptionAlerts', () => {
       fact({
         billingCycle: 'YEARLY',
         nextBillingDate: day('2026-10-30'),
-        reminderDaysBefore: 5,
+        reminderWindowDays: 5,
       }),
       day('2026-10-28'),
     );
@@ -93,7 +93,7 @@ describe('buildSubscriptionAlerts', () => {
       fact({
         billingCycle: 'MONTHLY',
         nextBillingDate: day('2026-10-30'),
-        reminderDaysBefore: 5,
+        reminderWindowDays: 5,
       }),
       day('2026-10-28'),
     );

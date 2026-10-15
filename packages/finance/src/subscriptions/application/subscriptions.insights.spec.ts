@@ -324,6 +324,24 @@ describe('SubscriptionsService.alerts', () => {
     expect(alerts.map((alert) => alert.kind)).not.toContain('MISSED_CHARGE');
   });
 
+  it('uses the global warning window for the countdown alerts', async () => {
+    const { service, repo } = build({ reminderDaysBefore: 10 });
+    repo.findActive.mockResolvedValue([
+      subscriptionRow({
+        id: 'sub-1',
+        billingCycle: 'YEARLY',
+        trialEndsAt: day('2026-11-05'),
+        nextBillingDate: day('2026-11-05'),
+        reminderDaysBefore: 3,
+      }),
+    ]);
+
+    const alerts = await service.alerts('user-1', day('2026-10-28'));
+
+    expect(alerts.map((alert) => alert.kind)).toContain('TRIAL_ENDING');
+    expect(alerts.map((alert) => alert.kind)).toContain('ANNUAL_RENEWAL');
+  });
+
   it('reports a charge that differs from the expected amount', async () => {
     const { service, repo } = build();
     repo.findActive.mockResolvedValue([subscriptionRow({ id: 'sub-1' })]);

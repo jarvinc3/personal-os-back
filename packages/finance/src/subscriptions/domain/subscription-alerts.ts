@@ -47,7 +47,8 @@ export type SubscriptionAlertFact = {
   amount: number;
   nextBillingDate: Date;
   trialEndsAt: Date | null;
-  reminderDaysBefore: number;
+  /** Warning window in days, from the global finance setting. */
+  reminderWindowDays: number;
   /** Last two payments, newest first, used for the price increase. */
   lastPaymentAmount: number | null;
   lastPaymentDate: Date | null;
@@ -155,7 +156,7 @@ function trialEnding(
     return null;
   }
   const remaining = daysUntil(fact.trialEndsAt, now);
-  if (remaining < 0 || remaining > fact.reminderDaysBefore) {
+  if (remaining < 0 || remaining > fact.reminderWindowDays) {
     return null;
   }
   return {
@@ -181,7 +182,7 @@ function annualRenewal(
     return null;
   }
   const remaining = daysUntil(fact.nextBillingDate, now);
-  if (remaining < 0 || remaining > fact.reminderDaysBefore) {
+  if (remaining < 0 || remaining > fact.reminderWindowDays) {
     return null;
   }
   return {

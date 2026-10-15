@@ -323,6 +323,9 @@ export class SubscriptionsService implements SubscriptionMatcherPort {
       await this.repo.listPaymentsForSubscriptions(active.map((row) => row.id)),
     );
     const dismissals = await this.repo.listAlertDismissals(userId);
+    // The countdown alerts follow the global window, not the per-subscription
+    // column kept in the database from the previous design.
+    const reminderWindowDays = await this.reminderWindowDays(userId);
     const dismissed = new Set(
       dismissals.map(
         (row) => `${row.kind}:${row.subscriptionId}:${isoDate(row.alertDate)}`,
@@ -340,7 +343,7 @@ export class SubscriptionsService implements SubscriptionMatcherPort {
           amount: Number(row.amount),
           nextBillingDate: row.nextBillingDate,
           trialEndsAt: row.trialEndsAt,
-          reminderDaysBefore: row.reminderDaysBefore,
+          reminderWindowDays,
           lastPaymentAmount: history[0] ? Number(history[0].amount) : null,
           lastPaymentDate: history[0]?.paidAt ?? null,
           previousPaymentAmount: history[1] ? Number(history[1].amount) : null,
