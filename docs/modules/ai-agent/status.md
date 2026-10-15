@@ -11,4 +11,4 @@ Fecha: 2026-10-14
 | Bloques visuales del chat                       | `implemented`                 | `ChatBlock` en `shared/ai.types.ts`: `transaction_card`, `transaction_list`, `budget_progress`, `loan_summary`, `chart` (v0.24.x)        |
 | Tools de comercios, recurrentes y suscripciones | `implemented`                 | `list_merchants`, `list_subscriptions`, `confirm_recurring`, `create_subscription`, `confirm_subscription_payment` en `tool.registry.ts` |
 | Contextos agenda/projects/health                | `implemented` (tools mínimas) | `MODULE_CONTEXT`                                                                                                                         |
-| Tools de producto de esos slugs                 | `planned`                     | no hay registry extra — REV-BACK-008                                                                                                     |
+| Tools de producto de esos slugs                 | `planned`                     | no hay registry extra; ver [docs/roadmap.md](../../roadmap.md)                                                                           |

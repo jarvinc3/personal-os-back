@@ -199,24 +199,32 @@ export class EmailSourceRepository {
     });
   }
 
-  completeEmailSyncLog(
-    id: string,
-    data: {
-      status: 'SUCCESS' | 'FAILED';
-      emailsScanned: number;
-      transactionsNew: number;
-      error?: string;
-    },
-  ) {
-    return this.prisma.finEmailSyncLog.update({
-      where: { id },
-      data: {
-        status: data.status,
-        emailsScanned: data.emailsScanned,
-        transactionsNew: data.transactionsNew,
-        completedAt: new Date(),
-        error: data.error,
-      },
+  async completeEmailSyncFailureWithOutbox(input: {
+    id: string;
+    emailsScanned: number;
+    transactionsNew: number;
+    error: string;
+    outbox: {
+      eventId: string;
+      eventName: string;
+      aggregateType: string;
+      aggregateId: string;
+      userId: string;
+      payload: Prisma.InputJsonValue;
+    };
+  }) {
+    return this.prisma.$transaction(async (tx) => {
+      await tx.finEmailSyncLog.update({
+        where: { id: input.id },
+        data: {
+          status: 'FAILED',
+          emailsScanned: input.emailsScanned,
+          transactionsNew: input.transactionsNew,
+          completedAt: new Date(),
+          error: input.error,
+        },
+      });
+      await tx.domainEventOutbox.create({ data: input.outbox });
     });
   }
 

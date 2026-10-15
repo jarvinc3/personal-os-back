@@ -50,6 +50,10 @@ export const envSchema = z
     GROQ_API_KEY: optionalApiKey,
     CEREBRAS_API_KEY: optionalApiKey,
     OPENROUTER_API_KEY: optionalApiKey,
+    /** Hard cap on LLM email extractions per Gmail sync. Default 25. */
+    MAX_EMAIL_LLM_EXTRACTS: z.coerce.number().int().positive().default(25),
+    /** Max proactive insight LLM calls per user per UTC day. Default 20. */
+    AI_DAILY_INSIGHT_QUOTA: z.coerce.number().int().positive().default(20),
 
     // ── Google OAuth (para Gmail API) ────────────────────────────
     GOOGLE_CLIENT_ID: z.string().min(1, 'GOOGLE_CLIENT_ID is required'),
@@ -69,7 +73,7 @@ export const envSchema = z
       .enum(['development', 'production', 'test'])
       .default('development'),
 
-    PORT: z.coerce.number().int().positive().default(3000),
+    PORT: z.coerce.number().int().positive().default(3100),
     CORS_ORIGIN: z
       .string()
       .min(1, 'CORS_ORIGIN is required')

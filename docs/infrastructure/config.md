@@ -10,11 +10,12 @@ Fuente: [`packages/config/src/env.schema.ts`](../../packages/config/src/env.sche
 | `SUPABASE_URL`                                                      | URL                                                             |
 | `SUPABASE_SERVICE_ROLE_KEY`                                         | Requerida                                                       |
 | `GROQ_API_KEY` / `CEREBRAS_API_KEY` / `OPENROUTER_API_KEY`          | Al menos una, salvo `NODE_ENV=test`                             |
+| `MAX_EMAIL_LLM_EXTRACTS` / `AI_DAILY_INSIGHT_QUOTA`                 | Enteros > 0; defaults 25 y 20                                   |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` / `GOOGLE_REDIRECT_URI` | Requeridas (Gmail OAuth)                                        |
 | `ENCRYPTION_KEY`                                                    | ≥32                                                             |
 | `OAUTH_STATE_SECRET`                                                | ≥32; **obligatoria en production**                              |
 | `NODE_ENV`                                                          | `development` \| `production` \| `test` (default `development`) |
-| `PORT`                                                              | Default **3000** en schema; `.env.example` usa `3100`           |
+| `PORT`                                                              | Default **3100** en schema y `.env.example`                     |
 | `CORS_ORIGIN`                                                       | URLs CSV                                                        |
 | `REDIS_URL`                                                         | URL; **obligatoria en production**                              |
 | `REDIS_ENABLED`                                                     | true solo con `true`/`1`                                        |
@@ -35,9 +36,6 @@ Fuente: [`packages/config/src/env.schema.ts`](../../packages/config/src/env.sche
 **Redis en development:** BullMQ solo si `REDIS_ENABLED=true` y `REDIS_URL`.
 
 **TLS:** `PrismaService` aplica rejectUnauthorized/CA; Prisma CLI usa `DATABASE_URL`/`sslmode`.
-
-> [!WARNING]
-> **REV-BACK-002** (`NO_VERIFICABLE` / fuera de schema) — `MAX_EMAIL_LLM_EXTRACTS` y `AI_DAILY_INSIGHT_QUOTA` se leen de `process.env` en AI Agent y no están en `env.schema.ts`. [review-register.md](../review-register.md#rev-back-002)
 
 ## Evidencia
 

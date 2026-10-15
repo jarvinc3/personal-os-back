@@ -11,6 +11,7 @@ import { CustomThrottlerGuard } from './guards/custom-throttler.guard';
 import { EnabledModuleGuard } from './guards/enabled-module.guard';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { AiMetricsInterceptor } from './interceptors/ai-metrics.interceptor';
+import { LoggingInterceptor } from './interceptors/logging.interceptor';
 import { TimeoutInterceptor } from './interceptors/timeout.interceptor';
 import { TransformInterceptor } from './interceptors/transform.interceptor';
 import { PaginationService } from './pagination/pagination.service';
@@ -51,6 +52,10 @@ import { PaginationService } from './pagination/pagination.service';
     {
       provide: APP_INTERCEPTOR,
       useClass: AiMetricsInterceptor,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: LoggingInterceptor,
     },
     PaginationService,
   ],

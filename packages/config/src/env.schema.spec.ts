@@ -65,3 +65,29 @@ describe('envSchema Bull Board credentials', () => {
     expect(parsed.BULL_BOARD_PASSWORD).toBeUndefined();
   });
 });
+
+describe('envSchema AI limits', () => {
+  it('defaults both limits when omitted', () => {
+    const parsed = parseEnv(validBaseEnv);
+
+    expect(parsed.MAX_EMAIL_LLM_EXTRACTS).toBe(25);
+    expect(parsed.AI_DAILY_INSIGHT_QUOTA).toBe(20);
+  });
+
+  it('parses numeric strings', () => {
+    const parsed = parseEnv({
+      ...validBaseEnv,
+      MAX_EMAIL_LLM_EXTRACTS: '10',
+      AI_DAILY_INSIGHT_QUOTA: '5',
+    });
+
+    expect(parsed.MAX_EMAIL_LLM_EXTRACTS).toBe(10);
+    expect(parsed.AI_DAILY_INSIGHT_QUOTA).toBe(5);
+  });
+
+  it('rejects non-positive limits', () => {
+    expect(() =>
+      parseEnv({ ...validBaseEnv, MAX_EMAIL_LLM_EXTRACTS: '0' }),
+    ).toThrow();
+  });
+});

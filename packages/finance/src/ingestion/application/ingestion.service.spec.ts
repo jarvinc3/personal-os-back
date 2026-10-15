@@ -75,6 +75,72 @@ describe('IngestionService.completeEmailSyncSuccessWithEvent', () => {
   });
 });
 
+describe('IngestionService.completeEmailSyncFailureWithEvent', () => {
+  it('enqueues finance.email_sync.failed via same-TX outbox helper', async () => {
+    const completeEmailSyncFailureWithOutbox = jest
+      .fn()
+      .mockResolvedValue(undefined);
+    const repo = {
+      completeEmailSyncFailureWithOutbox,
+    } as unknown as EmailSourceRepository;
+
+    const processBatch = jest.fn();
+    const outboxDispatcher = {
+      processBatch,
+    } as unknown as FinanceOutboxDispatcher;
+
+    const config = {
+      get: jest.fn(),
+    } as unknown as ConfigService;
+
+    const events = {
+      enqueue: jest.fn(),
+    } as unknown as DomainEventPublisherPort;
+
+    const service = new IngestionService(
+      repo,
+      config,
+      events,
+      outboxDispatcher,
+      { assertFinanceEmailSyncEnabled: jest.fn() } as never,
+      { assertInstitutionOwned: jest.fn() } as never,
+      { execute: jest.fn() } as never,
+      { findLatestCategoryIdByMerchant: jest.fn() } as never,
+      undefined,
+    );
+
+    await service.completeEmailSyncFailureWithEvent({
+      logId: 'log-1',
+      userId: 'user-1',
+      sourceId: 'src-1',
+      emailsScanned: 2,
+      transactionsNew: 0,
+      error: 'gmail 500',
+    });
+
+    expect(completeEmailSyncFailureWithOutbox).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'log-1',
+        emailsScanned: 2,
+        transactionsNew: 0,
+        error: 'gmail 500',
+        outbox: expect.objectContaining({
+          eventName: AppEvents.FINANCE_EMAIL_SYNC_FAILED,
+          aggregateType: 'FinEmailSource',
+          aggregateId: 'src-1',
+          userId: 'user-1',
+          payload: expect.objectContaining({
+            sourceId: 'src-1',
+            error: 'gmail 500',
+            version: 1,
+          }),
+        }),
+      }),
+    );
+    expect(processBatch).toHaveBeenCalled();
+  });
+});
+
 describe('IngestionService pending assignment', () => {
   const listPendingAssignmentMessagesPage = jest.fn();
   const listRecentEmailMessagesPage = jest.fn();

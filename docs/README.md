@@ -9,6 +9,7 @@ Mapa para agentes y reviewers. Estándar: [documentation-standard.md](./document
 | [infrastructure/](./infrastructure/README.md) | Config, health, eventos, colas, Prisma, WS, seguridad |
 | [operations/](./operations/README.md)         | Quick start, env, scripts, tests, CI                  |
 | [reference/](./reference/README.md)           | Trazabilidad                                          |
+| [roadmap.md](./roadmap.md)                    | Hallazgos del registro sin código y su disparador     |
 | [decisions/](./decisions/README.md)           | ADR                                                   |
 | [_templates/](./_templates/module/README.md)  | Plantillas                                            |
 | [glosario.md](./glosario.md)                  | App vs módulo: qué dice la interfaz y qué el código   |

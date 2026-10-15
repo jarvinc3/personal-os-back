@@ -31,9 +31,6 @@ Enums relevantes: ver `packages/database/prisma/schema.prisma` (`FinTransactionS
 
 No usar `migrate reset` sobre datos reales.
 
-> [!WARNING]
-> **REV-BACK-005** (`NO_IMPLEMENTADO`) — `pnpm db:reconcile-balances` apunta a `prisma/scripts/reconcile-balances.ts`, directorio inexistente. Igual el smoke `prisma/scripts/smoke-finance-http.ts` citado en docs antiguas. [review-register.md](../review-register.md#rev-back-005)
-
 ## Migraciones y fechas
 
 El nombre de la carpeta de una migración Prisma (`YYYYMMDDHHMMSS_slug`) es su única clave de orden: Prisma aplica las pendientes en orden lexicográfico. Debe reflejar la fecha real del sistema al crearla; no se adelanta la fecha para forzar el orden.
