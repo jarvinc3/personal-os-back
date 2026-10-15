@@ -789,6 +789,18 @@ describe('Finance (e2e)', () => {
       institutionId: 'inst-1',
       isActive: true,
     });
+    prismaMock.user.findUnique.mockResolvedValue({
+      id: 'user-123',
+      email: 'test@example.com',
+      fullName: 'Test User',
+      avatarUrl: null,
+      timezone: 'UTC',
+      locale: 'es',
+      preferences: {},
+      userModules: [],
+      createdAt: new Date('2026-01-01T00:00:00.000Z'),
+      updatedAt: new Date('2026-01-01T00:00:00.000Z'),
+    });
 
     await request(app.getHttpServer())
       .patch(`/api/finance/cards/${cardId}`)
@@ -1014,7 +1026,7 @@ describe('Finance (e2e)', () => {
       {
         id: 'acc-1',
         institutionId: null,
-        balance: { toString: () => '100' },
+        balance: new Prisma.Decimal(100),
         currency: 'DOP',
       },
     ]);
