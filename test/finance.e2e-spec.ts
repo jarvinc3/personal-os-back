@@ -102,7 +102,13 @@ describe('Finance (e2e)', () => {
 
   it('GET /api/finance/recycle-bin lists archived and deleted records', async () => {
     prismaMock.finInstitution.findMany.mockResolvedValue([
-      { id: 'inst-1', name: 'Banco X' },
+      {
+        id: 'inst-1',
+        name: 'Banco X',
+        logoPath: null,
+        customLogoPath: null,
+        logoUrl: null,
+      },
     ]);
     prismaMock.finLoan.findMany.mockResolvedValue([
       { id: 'loan-1', lenderName: 'Banco Y' },
@@ -130,8 +136,13 @@ describe('Finance (e2e)', () => {
       .expect((res) => {
         expect(res.body.data.archived).toEqual(
           expect.arrayContaining([
-            { type: 'institution', id: 'inst-1', label: 'Banco X' },
-            { type: 'loan', id: 'loan-1', label: 'Banco Y' },
+            {
+              type: 'institution',
+              id: 'inst-1',
+              label: 'Banco X',
+              logoUrl: null,
+            },
+            { type: 'loan', id: 'loan-1', label: 'Banco Y', logoUrl: null },
           ]),
         );
         expect(res.body.data.items).toEqual([

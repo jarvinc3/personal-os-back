@@ -6,6 +6,7 @@ infraestructura (paquetes Nest, colas, Prisma) queda fuera.
 ## Lenguaje
 
 **Module** (módulo de producto):
+De cara al usuario se llama **App** ([docs/glosario.md](./docs/glosario.md)); el código mantiene `module`.
 Capacidad que un usuario activa o desactiva en su cuenta (finance, agenda, projects, health).
 Su estado y configuración viven por usuario; no es un paquete Nest. Suscripciones no es un
 módulo: es parte de Finanzas.

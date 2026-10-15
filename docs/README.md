@@ -11,6 +11,7 @@ Mapa para agentes y reviewers. Estándar: [documentation-standard.md](./document
 | [reference/](./reference/README.md)           | Trazabilidad                                          |
 | [decisions/](./decisions/README.md)           | ADR                                                   |
 | [_templates/](./_templates/module/README.md)  | Plantillas                                            |
+| [glosario.md](./glosario.md)                  | App vs módulo: qué dice la interfaz y qué el código   |
 
 ## Módulos Nest reales
 

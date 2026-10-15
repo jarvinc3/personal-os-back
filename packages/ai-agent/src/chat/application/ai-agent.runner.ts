@@ -53,7 +53,7 @@ function userLikelyNeedsTool(
   }
 
   const lower = userContent.toLowerCase();
-  return /tema|theme|light|dark|oscuro|claro|notificaci|notification|email|push|activa|desactiva|cambia|change|actualiza|update|preferenc|módulo|module|nombre|name|avatar|foto|perfil|profile|zona horaria|timezone|locale|idioma/.test(
+  return /tema|theme|light|dark|oscuro|claro|notificaci|notification|email|push|activa|desactiva|cambia|change|actualiza|update|preferenc|app|apps|módulo|module|nombre|name|avatar|foto|perfil|profile|zona horaria|timezone|locale|idioma/.test(
     lower,
   );
 }

@@ -4,6 +4,7 @@ import {
   toCursorPage,
   type CursorQueryDto,
 } from '@personal-os/core';
+import { LogoService } from '@personal-os/logos';
 import { deletedEntryLabel, type RecycleBinView } from '../domain/recycle-bin';
 import type {
   DeletionEntity,
@@ -17,6 +18,7 @@ export class RecycleBinService {
   constructor(
     private readonly recycleBin: RecycleBinRepository,
     private readonly journal: DeletionJournalRepository,
+    private readonly logos: LogoService,
   ) {}
 
   async get(userId: string, query: CursorQueryDto): Promise<RecycleBinView> {
@@ -39,21 +41,25 @@ export class RecycleBinService {
           type: 'institution' as const,
           id: item.id,
           label: item.name,
+          logoUrl: this.logos.resolveUrl(item),
         })),
         ...accounts.map((item) => ({
           type: 'account' as const,
           id: item.id,
           label: item.name,
+          logoUrl: this.logos.resolveUrl(item.institutionRef),
         })),
         ...cards.map((item) => ({
           type: 'card' as const,
           id: item.id,
           label: item.name,
+          logoUrl: null,
         })),
         ...loans.map((item) => ({
           type: 'loan' as const,
           id: item.id,
           label: item.lenderName,
+          logoUrl: null,
         })),
       ],
       items: page.items.map((entry) => {

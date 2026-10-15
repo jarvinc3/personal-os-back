@@ -23,6 +23,7 @@ Si una afirmación no está `VERIFICADO`, leer [docs/review-register.md](docs/re
 | Envelope HTTP `{ data, meta }`                   | `packages/core/src/interceptors/transform.interceptor.ts`                                                        |
 | Eventos                                          | `packages/core/src/events/event.constants.ts`                                                                    |
 | Env                                              | `packages/config/src/env.schema.ts`                                                                              |
+| App (interfaz) vs módulo (código)                | [docs/glosario.md](docs/glosario.md) · regla `.cursor/rules/module-terminology.mdc`                              |
 | Tools IA                                         | `packages/ai-agent/src/tools/tool.registry.ts` + `prompts/module-context.ts`                                     |
 | API pública entre módulos Nest                   | `packages/<nombre>/src/index.ts` y barrels `@personal-os/<nombre>` (regla `.cursor/rules/module-public-api.mdc`) |
 

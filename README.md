@@ -4,7 +4,7 @@
 
 API NestJS para Personal OS: auth Supabase, usuarios, finanzas, notificaciones, agente IA y núcleo transversal.
 
-**Documentación:** [docs/README.md](./docs/README.md) · [AGENTS.md](./AGENTS.md)
+**Documentación:** [docs/README.md](./docs/README.md) · [AGENTS.md](./AGENTS.md) · [Glosario: App y módulo](./docs/glosario.md)
 
 ## Inicio rápido
 

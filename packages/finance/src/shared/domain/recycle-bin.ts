@@ -20,6 +20,8 @@ export type RecycleBinArchivedItem = {
   type: RecycleBinArchivedType;
   id: string;
   label: string;
+  /** Resolved institution logo, so the card can show the brand. */
+  logoUrl: string | null;
 };
 
 export type RecycleBinDeletedItem = {

@@ -523,9 +523,9 @@ export function getActionLabel(
     case 'update_notification_settings':
       return 'Actualizar preferencias de notificaciones';
     case 'update_module_config':
-      return `Actualizar configuración de ${payloadString(payload.slug, 'módulo')}`;
+      return `Actualizar configuración de ${payloadString(payload.slug, 'app')}`;
     case 'toggle_module':
-      return `${payload.isEnabled === true ? 'Activar' : 'Desactivar'} módulo ${payloadString(payload.slug, '')}`;
+      return `${payload.isEnabled === true ? 'Activar' : 'Desactivar'} app ${payloadString(payload.slug, '')}`;
     case 'update_preferences':
       return 'Actualizar preferencias';
     case MODULE_CONTEXT_SWITCH_TOOL:
