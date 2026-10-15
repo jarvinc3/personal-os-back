@@ -1,6 +1,6 @@
 {
   "name": "personal-os-back",
-  "version": "0.36.1",
+  "version": "0.37.0",
   "description": "Personal OS es un backend para la aplicación Personal OS que permite gestionar cada área de la vida cotidiana.",
   "author": "jarvinc3",
   "private": true,
@@ -76,6 +76,7 @@
     "@personal-os/users": "workspace:*",
     "@prisma/adapter-pg": "^7.10.0",
     "@prisma/client": "^7.10.0",
+    "@sentry/nestjs": "11.8.0",
     "@supabase/supabase-js": "^2.117.2",
     "axios": "1.20.0",
     "bullmq": "^5.81.5",

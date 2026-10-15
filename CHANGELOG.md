@@ -2,6 +2,29 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [SemVer](https://semver.org/lang/es/). Reglas y ejemplo en [docs/reference/changelog-guide.md](./docs/reference/changelog-guide.md).
 
+## [0.37.0] - 2026-10-15
+
+### Agregado
+
+- Observabilidad con Sentry (`@sentry/nestjs`): `Sentry.init` en `instrument.ts`, importado en la primera línea de `main.ts`, con `environment`, `release`, `tracesSampleRate` y un scrubber que borra body, cookies, cabeceras de auth y tokens. Sin `SENTRY_DSN` no se inicializa.
+- `AllExceptionsFilter` reporta a Sentry solo los 5xx; los 4xx no se envían.
+- Variables opcionales de Sentry en `env.schema`; `SENTRY_AUTH_TOKEN`, `SENTRY_ORG` y `SENTRY_PROJECT` solo sirven para subir source maps y su ausencia no rompe el build.
+- ADR-007: la API no lleva prefijo de versión (`/v1`) mientras web y back se desplieguen juntos.
+
+### Cambiado
+
+- Paginación por cursor en cuentas, tarjetas, instituciones, préstamos, metas de ahorro y cobros.
+- Desactivar un token push pasa a `DELETE /notifications/push-tokens/:token`; el PATCH anterior queda como alias deprecado.
+- `GET /finance/analytics/bank-charges` se monta en `GET /finance/bank-charges` (patrón `finance/<recurso>`); las acciones de IA quedan en `ai/sessions` y `ai/actions`.
+- Todos los mensajes de excepción y los resúmenes de Swagger pasan a español.
+- El CI corre `format:check` además de lint, build y tests.
+- `docs/modules/finance/contracts/http.md`, `docs/infrastructure/config.md` y las capacidades de finanzas quedan al día.
+
+### Eliminado
+
+- `tmp-bhd-balances.mjs`.
+- La excepción de CORS que permitía peticiones sin `Origin` (Expo).
+
 ## [0.36.1] - 2026-10-15
 
 ### Corregido
