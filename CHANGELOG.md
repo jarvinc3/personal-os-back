@@ -2,6 +2,12 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [SemVer](https://semver.org/lang/es/). Reglas y ejemplo en [docs/reference/changelog-guide.md](./docs/reference/changelog-guide.md).
 
+## [0.30.1] - 2026-10-21
+
+### Cambiado
+
+- El descarte masivo de alertas del repositorio deja de devolver el resultado de la escritura, que nadie leia: el cuerpo de la respuesta de la API no cambia.
+
 ## [0.30.0] - 2026-10-21 - Suscripciones v3
 
 ### Agregado
