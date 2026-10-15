@@ -44,7 +44,7 @@ export function scrubSentryEvent<T extends ScrubbableEvent>(event: T): T {
       query_string: scrubQueryString(request.query_string),
       data: undefined,
     },
-  } as T;
+  };
 }
 
 function scrubHeaders(

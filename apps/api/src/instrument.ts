@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import * as Sentry from '@sentry/nestjs';
 import { scrubSentryEvent } from '@personal-os/core';
 import { appVersion } from './app-version';
