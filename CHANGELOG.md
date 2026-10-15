@@ -2,6 +2,12 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [SemVer](https://semver.org/lang/es/). Reglas y ejemplo en [docs/reference/changelog-guide.md](./docs/reference/changelog-guide.md).
 
+## [0.32.4] - 2026-10-15
+
+### Corregido
+
+- E2E de finanzas: el archivado de tarjeta mockea el perfil del usuario que aporta la fecha local, y el resumen de analytics usa un `Prisma.Decimal` real como saldo. Los mocks anteriores devolvían 404 y `DecimalError` al no cumplir el contrato de los datos.
+
 ## [0.32.3] - 2026-10-22
 
 ### Cambiado
