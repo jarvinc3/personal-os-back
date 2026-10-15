@@ -2,6 +2,14 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [SemVer](https://semver.org/lang/es/). Reglas y ejemplo en [docs/reference/changelog-guide.md](./docs/reference/changelog-guide.md).
 
+## [0.33.4] - 2026-10-15
+
+### Corregido
+
+- La institución Efectivo no se puede convertir en efectivo: `PATCH` con `type: 'cash'` sobre otra institución responde 400, así cada usuario conserva una sola.
+- La cuenta Efectivo de la moneda base no se puede borrar (responde 400); se desactiva, como aprobó la decisión del pendiente 16.
+- El wipe `finance.catalog` ya no borra la institución de sistema; `ensureCashInstitution` repone la cuenta base cuando falta, de modo que Efectivo se vacía pero no se borra.
+
 ## [0.33.3] - 2026-10-15
 
 ### Cambiado
