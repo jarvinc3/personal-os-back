@@ -1,3 +1,4 @@
+import { Prisma } from '@personal-os/database';
 import { MerchantsService } from './merchants.service';
 import type { MerchantsRepository } from '../infrastructure/merchants.repository';
 
@@ -129,11 +130,13 @@ describe('MerchantsService.get', () => {
   it('sums the current month through the end of its last day', async () => {
     const { service, repo } = build({
       findMerchantById: jest.fn().mockResolvedValue(merchantRow()),
-      sumSpendByMerchant: jest
-        .fn()
-        .mockResolvedValue([
-          { merchantId: 'merchant-1', spend: 500, movements: 2 },
-        ]),
+      sumSpendByMerchant: jest.fn().mockResolvedValue([
+        {
+          merchantId: 'merchant-1',
+          spend: new Prisma.Decimal(500),
+          movements: 2,
+        },
+      ]),
     });
 
     const merchant = await service.get(
@@ -152,6 +155,23 @@ describe('MerchantsService.get', () => {
     );
     expect(merchant.monthSpend).toBe('500');
     expect(merchant.monthMovements).toBe(2);
+  });
+
+  it('keeps the exact sum of a large spend', async () => {
+    const { service } = build({
+      findMerchantById: jest.fn().mockResolvedValue(merchantRow()),
+      sumSpendByMerchant: jest.fn().mockResolvedValue([
+        {
+          merchantId: 'merchant-1',
+          spend: new Prisma.Decimal('9007199254740993.01'),
+          movements: 2,
+        },
+      ]),
+    });
+
+    const merchant = await service.get('user-1', 'merchant-1');
+
+    expect(merchant.monthSpend).toBe('9007199254740993.01');
   });
 });
 

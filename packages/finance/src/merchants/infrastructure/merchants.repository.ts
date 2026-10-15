@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import type { CursorPoint } from '@personal-os/core';
 import type { Prisma } from '@personal-os/database';
 import { PrismaService } from '@personal-os/database';
+import { toMoney } from '../../shared/domain/money';
 
 export type MerchantPage = {
   cursor: CursorPoint | null;
@@ -11,7 +12,7 @@ export type MerchantPage = {
 
 export type MerchantSpend = {
   merchantId: string;
-  spend: number;
+  spend: Prisma.Decimal;
   movements: number;
 };
 
@@ -123,7 +124,7 @@ export class MerchantsRepository {
             ? [
                 {
                   merchantId: row.merchantId,
-                  spend: Number(row._sum.amountBaseCurrency ?? 0),
+                  spend: toMoney(row._sum.amountBaseCurrency ?? 0),
                   movements: row._count._all,
                 },
               ]

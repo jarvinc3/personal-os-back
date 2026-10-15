@@ -3,6 +3,12 @@
  * went up, whether the next one is late, and its monthly/annual equivalent.
  */
 
+import {
+  roundDecimal,
+  toMoney,
+  type Decimal,
+  type MoneyLike,
+} from '../../shared/domain/money';
 import type { RecurringPeriodicity } from './recurring-detection';
 
 const MS_PER_DAY = 86_400_000;
@@ -50,18 +56,20 @@ export function isChargeMissed(input: {
   );
 }
 
+/** Monthly cost of a charge that repeats every `frequency` days, to cents. */
 export function monthlyAmount(
-  amount: number,
+  amount: MoneyLike,
   frequency: RecurringPeriodicity,
-): number {
-  return (amount * DAYS_PER_MONTH) / frequency;
+): Decimal {
+  return roundDecimal(toMoney(amount).times(DAYS_PER_MONTH).div(frequency));
 }
 
+/** Annual cost of a charge that repeats every `frequency` days, to cents. */
 export function annualAmount(
-  amount: number,
+  amount: MoneyLike,
   frequency: RecurringPeriodicity,
-): number {
-  return (amount * DAYS_PER_YEAR) / frequency;
+): Decimal {
+  return roundDecimal(toMoney(amount).times(DAYS_PER_YEAR).div(frequency));
 }
 
 export type UpcomingPattern<T> = {

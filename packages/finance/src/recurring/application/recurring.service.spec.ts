@@ -1,3 +1,4 @@
+import { Prisma } from '@personal-os/database';
 import { RecurringService } from './recurring.service';
 import type { RecurringRepository } from '../infrastructure/recurring.repository';
 import type { MerchantsService } from '../../merchants/application/merchants.service';
@@ -30,11 +31,11 @@ function patternRow(overrides: Record<string, unknown> = {}) {
     categoryId: null,
     merchantId: 'merchant-1',
     merchant: 'Netflix',
-    avgAmount: { toString: () => '100.00' },
+    avgAmount: new Prisma.Decimal('100.00'),
     currency: 'DOP',
     frequency: '30',
     nextExpectedDate: new Date(Date.UTC(2026, 1, 1)),
-    amountTolerance: { toString: () => '10' },
+    amountTolerance: new Prisma.Decimal('10'),
     status: 'SUGGESTED' as const,
     kind: 'SUBSCRIPTION' as const,
     confidenceScore: 70,
@@ -135,7 +136,7 @@ describe('RecurringService.detect', () => {
       findPatternByMerchantAndKind: jest.fn().mockResolvedValue(
         patternRow({
           status: 'CONFIRMED',
-          avgAmount: { toString: () => '100.00' },
+          avgAmount: new Prisma.Decimal('100.00'),
         }),
       ),
     });
@@ -166,7 +167,7 @@ describe('RecurringService.detect', () => {
       findPatternByMerchantAndKind: jest.fn().mockResolvedValue(
         patternRow({
           status: 'CONFIRMED',
-          avgAmount: { toString: () => '100.00' },
+          avgAmount: new Prisma.Decimal('100.00'),
         }),
       ),
     });
@@ -188,7 +189,7 @@ describe('RecurringService.detect', () => {
       findPatternByMerchantAndKind: jest.fn().mockResolvedValue(
         patternRow({
           status: 'CONFIRMED',
-          amountTolerance: { toString: () => '10' },
+          amountTolerance: new Prisma.Decimal('10'),
         }),
       ),
     });
@@ -241,6 +242,22 @@ describe('RecurringService.create', () => {
 });
 
 describe('RecurringService.update', () => {
+  it('computes the monthly and annual equivalents as exact decimals', async () => {
+    const { service } = build({
+      updatePattern: jest
+        .fn()
+        .mockResolvedValue(
+          patternRow({ avgAmount: '0.125', frequency: '365' }),
+        ),
+    });
+
+    const updated = await service.update('user-1', 'pattern-1', {});
+
+    // 0.125 a year is 0.01 a month; the half cent rounds to the even cent.
+    expect(updated.monthlyEquivalent).toBe('0.01');
+    expect(updated.annualEquivalent).toBe('0.12');
+  });
+
   it('resolves the merchant when the name is edited', async () => {
     const { service, repo, merchants } = build();
     merchants.resolve.mockResolvedValue({

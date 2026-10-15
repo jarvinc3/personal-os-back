@@ -47,13 +47,21 @@ describe('missed charge', () => {
 
 describe('equivalents', () => {
   it('turns a monthly charge into its annual cost', () => {
-    expect(monthlyAmount(500, 30)).toBeCloseTo(500, 5);
-    expect(annualAmount(500, 30)).toBeCloseTo(6083.33, 2);
+    expect(monthlyAmount(500, 30).toFixed(2)).toBe('500.00');
+    expect(annualAmount(500, 30).toFixed(2)).toBe('6083.33');
   });
 
   it('turns an annual charge into its monthly cost', () => {
-    expect(annualAmount(1200, 365)).toBeCloseTo(1200, 5);
-    expect(monthlyAmount(1200, 365)).toBeCloseTo(98.63, 2);
+    expect(annualAmount(1200, 365).toFixed(2)).toBe('1200.00');
+    expect(monthlyAmount(1200, 365).toFixed(2)).toBe('98.63');
+  });
+
+  it('rounds a half cent to the even cent (ROUND_HALF_EVEN)', () => {
+    expect(annualAmount('0.125', 365).toFixed(2)).toBe('0.12');
+  });
+
+  it('reads the decimal strings the API returns', () => {
+    expect(monthlyAmount('99.99', 30).toFixed(2)).toBe('99.99');
   });
 });
 

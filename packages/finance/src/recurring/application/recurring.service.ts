@@ -61,7 +61,6 @@ function isoDate(date: Date): string {
 
 function mapPattern(row: RecurringPatternWithMerchant, now: Date) {
   const frequency = Number(row.frequency) as RecurringPeriodicity;
-  const amount = Number(row.avgAmount);
   return {
     id: row.id,
     merchantId: row.merchantId,
@@ -78,8 +77,8 @@ function mapPattern(row: RecurringPatternWithMerchant, now: Date) {
     kind: row.kind,
     confidenceScore: row.confidenceScore,
     amountTolerancePct: Number(row.amountTolerance),
-    monthlyEquivalent: monthlyAmount(amount, frequency).toFixed(2),
-    annualEquivalent: annualAmount(amount, frequency).toFixed(2),
+    monthlyEquivalent: monthlyAmount(row.avgAmount, frequency).toFixed(2),
+    annualEquivalent: annualAmount(row.avgAmount, frequency).toFixed(2),
     daysUntil: daysUntil(row.nextExpectedDate, now),
   };
 }

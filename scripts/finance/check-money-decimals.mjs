@@ -15,6 +15,8 @@ const TARGET_DIRS = [
   'packages/finance/src/analytics/application',
   'packages/finance/src/balance-sheet/application',
   'packages/finance/src/fx/application',
+  'packages/finance/src/merchants/application',
+  'packages/finance/src/merchants/infrastructure',
   'packages/finance/src/subscriptions/application',
 ];
 
