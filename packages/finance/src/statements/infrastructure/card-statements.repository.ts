@@ -73,6 +73,26 @@ export class CardStatementsRepository {
     });
   }
 
+  async listUserIdsWithActiveCreditCards(): Promise<string[]> {
+    const rows = await this.prisma.finCard.findMany({
+      where: { type: CREDIT_CARD_TYPE, isActive: true },
+      select: { userId: true },
+      distinct: ['userId'],
+    });
+    return rows.map((row) => row.userId);
+  }
+
+  listDueStatements(input: { userId: string; from: Date; to: Date }) {
+    return this.prisma.finCardStatement.findMany({
+      where: {
+        card: { userId: input.userId, type: CREDIT_CARD_TYPE, isActive: true },
+        dueDate: { not: null, gte: input.from, lte: input.to },
+      },
+      include: { card: { select: { id: true, name: true, lastFour: true } } },
+      orderBy: { dueDate: 'asc' },
+    });
+  }
+
   listStatements(
     cardId: string,
     page: { cursor: CursorPoint | null; take: number },

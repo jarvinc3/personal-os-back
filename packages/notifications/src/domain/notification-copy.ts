@@ -61,6 +61,23 @@ export function cardStatementReminderCopy(): NotificationCopy {
   };
 }
 
+export function cardPaymentDueCopy(fields: {
+  cardName: string;
+  remainingLabel: string;
+  daysUntil: number;
+}): NotificationCopy {
+  const when =
+    fields.daysUntil <= 0
+      ? 'hoy'
+      : fields.daysUntil === 1
+        ? 'mañana'
+        : `en ${fields.daysUntil} días`;
+  return {
+    title: 'Pago de tarjeta próximo',
+    body: `El corte de ${fields.cardName} vence ${when}. Falta por pagar ${fields.remainingLabel}.`,
+  };
+}
+
 export type WeeklySummaryNotificationFields = {
   amountLabel: string;
   averageLabel: string;

@@ -1,5 +1,6 @@
 import {
   buildClosedCardCycles,
+  buildNextCardCycle,
   firstDueDateAfter,
   isStatementDay,
   shiftStatementMonths,
@@ -61,6 +62,49 @@ describe('card-statement-cycle', () => {
     expect(firstDueDateAfter(utc(2026, 3, 19), 4)).toEqual(utc(2026, 4, 4));
     expect(firstDueDateAfter(utc(2026, 3, 5), 20)).toEqual(utc(2026, 3, 20));
     expect(firstDueDateAfter(utc(2026, 1, 31), 31)).toEqual(utc(2026, 2, 28));
+  });
+
+  it('buildNextCardCycle clamps the closing day to the end of the month', () => {
+    const cycle = buildNextCardCycle({
+      closingDay: 31,
+      dueDay: 15,
+      today: utc(2026, 2, 1),
+    });
+
+    expect(cycle?.statementDate).toEqual(utc(2026, 2, 28));
+    expect(cycle?.paymentDueDate).toEqual(utc(2026, 3, 15));
+  });
+
+  it('buildNextCardCycle keeps the closing day when it is today', () => {
+    const cycle = buildNextCardCycle({
+      closingDay: 20,
+      dueDay: 5,
+      today: utc(2026, 3, 20),
+    });
+
+    expect(cycle?.statementDate).toEqual(utc(2026, 3, 20));
+    expect(cycle?.paymentDueDate).toEqual(utc(2026, 4, 5));
+  });
+
+  it('buildNextCardCycle has no due date without a due day', () => {
+    const cycle = buildNextCardCycle({
+      closingDay: 20,
+      dueDay: null,
+      today: utc(2026, 3, 10),
+    });
+
+    expect(cycle).not.toBeNull();
+    expect(cycle?.paymentDueDate).toBeNull();
+  });
+
+  it('buildNextCardCycle returns null without a closing day', () => {
+    expect(
+      buildNextCardCycle({
+        closingDay: null,
+        dueDay: 5,
+        today: utc(2026, 3, 10),
+      }),
+    ).toBeNull();
   });
 
   it('buildClosedCardCycles lists closed cycles oldest first', () => {

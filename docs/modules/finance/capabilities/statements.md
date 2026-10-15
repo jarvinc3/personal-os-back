@@ -9,6 +9,9 @@ Estados de cuenta (ciclos de facturación cerrados) de tarjetas de crédito.
 - Sin `statementClosingDay` no hay estados; sin `creditLimit` la moneda se omite en lugar de inventar la deuda; sin `paymentDueDay`, `dueDate` queda nulo.
 - Generación: tarea diaria que recorre las tarjetas `CREDIT` activas y hace upsert de todos los ciclos cerrados. La primera ejecución cubre el histórico; repetirla no duplica.
 - Multi-moneda: un estado por moneda, cada uno con su propio disponible y su propio límite.
+- Crédito disponible por moneda: `availableCredit = balance - pendientes`. `FinCardBalance.balance` ya es el disponible confirmado; los movimientos `PENDING` de la tarjeta (compras, pagos, reversas) se suman con su signo. Sin `creditLimit` no hay `availableCredit`.
+- Próximo corte: `nextStatementDate` y `nextPaymentDueDate` en la respuesta de la tarjeta, con la regla de fin de mes del día de corte y la fecha local del usuario.
+- Recordatorio de pago: el barrido diario `CardPaymentRemindersScheduler` llama a `CardPaymentRemindersService`, que emite `finance.card_payment.due` una sola vez por corte y fecha límite. Solo si el corte no está pagado y `dueDate` cae dentro de `reminders.cardDueDaysBefore` (default 3). No se emite si el corte está `PAID` ni si el evento ya está en el outbox.
 
 `GET /finance/cards/:id/statements` devuelve `{ items, nextCursor, hasMore }` ordenado por `cycleEnd` descendente.
 

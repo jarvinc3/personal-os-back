@@ -14,6 +14,7 @@ export {
   FINANCE_NOTIFICATION_KEYS,
   isModuleSlug,
   MODULE_SLUGS,
+  resolveCardDueDaysBefore,
   resolveSubscriptionReminderDays,
   type FinanceNotificationKey,
   type ModuleSlug,

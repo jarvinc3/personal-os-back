@@ -3,6 +3,7 @@ import { roundMoney } from '../../shared/domain/money';
 import type { FinTransactionTypeValue } from '../../shared/domain/transaction-status';
 
 export const CONFIRMED_TRANSACTION_STATUS = 'CONFIRMED';
+export const PENDING_TRANSACTION_STATUS = 'PENDING';
 
 export type StatementMovement = {
   type: FinTransactionTypeValue;
@@ -77,6 +78,36 @@ export function paymentsInWindow(
     }
   }
   return roundMoney(paid);
+}
+
+/**
+ * Net change of the card's available credit from movements still pending.
+ * A purchase already registered but not confirmed spends part of the limit.
+ */
+export function pendingCreditDelta(
+  movements: readonly StatementMovement[],
+): number {
+  let delta = 0;
+  for (const movement of movements) {
+    if (movement.status === PENDING_TRANSACTION_STATUS) {
+      delta += statementLedgerDelta(movement);
+    }
+  }
+  return roundMoney(delta);
+}
+
+/**
+ * Credit available right now: `FinCardBalance.balance` holds the available
+ * credit already confirmed, plus the pending movements that also use it. A
+ * purchase is a negative delta, so it lowers the available credit.
+ */
+export function availableCredit(input: {
+  storedAvailable: number;
+  movements: readonly StatementMovement[];
+}): number {
+  return roundMoney(
+    input.storedAvailable + pendingCreditDelta(input.movements),
+  );
 }
 
 /**

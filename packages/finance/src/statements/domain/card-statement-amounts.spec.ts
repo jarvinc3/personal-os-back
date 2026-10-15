@@ -1,7 +1,9 @@
 import {
+  availableCredit,
   availableCreditDelta,
   debtAtClosing,
   paymentsInWindow,
+  pendingCreditDelta,
   statementLedgerDelta,
   type StatementMovement,
 } from './card-statement-amounts';
@@ -99,6 +101,37 @@ describe('card-statement-amounts', () => {
         today: utc(2026, 3, 1),
       }),
     ).toBe(0);
+  });
+
+  it('pendingCreditDelta sums pending movements only', () => {
+    const movements = [
+      movement({ type: 'DEBIT', ledgerAmount: 1000, status: 'PENDING' }),
+      movement({ type: 'CARD_PAYMENT', ledgerAmount: 250, status: 'PENDING' }),
+      movement({ type: 'DEBIT', ledgerAmount: 999, status: 'CONFIRMED' }),
+    ];
+
+    expect(pendingCreditDelta(movements)).toBe(-750);
+  });
+
+  it('availableCredit matches limit minus confirmed debt minus pending', () => {
+    const creditLimit = 50000;
+    const confirmedDebt = 12000;
+    const pending = [
+      movement({ type: 'DEBIT', ledgerAmount: 1000, status: 'PENDING' }),
+    ];
+
+    expect(
+      availableCredit({
+        storedAvailable: creditLimit - confirmedDebt,
+        movements: pending,
+      }),
+    ).toBe(37000);
+  });
+
+  it('availableCredit keeps the stored available when nothing is pending', () => {
+    expect(availableCredit({ storedAvailable: 38000, movements: [] })).toBe(
+      38000,
+    );
   });
 
   it('paymentsInWindow counts only payments inside the window', () => {

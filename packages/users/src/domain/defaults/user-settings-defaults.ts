@@ -28,6 +28,10 @@ export const DEFAULT_MODULE_CONFIG_BY_SLUG = {
     weekStartsOn: 1,
     dashboardPeriod: 'month',
     display: { showCents: true, compactNumbers: false },
+    reminders: {
+      /** Days before a card payment due date the user gets a heads-up. */
+      cardDueDaysBefore: 3,
+    },
     notifications: {
       [FINANCE_NOTIFICATION_KEYS.budgetAlerts]: true,
       [FINANCE_NOTIFICATION_KEYS.aiSuggestions]: true,
@@ -92,6 +96,36 @@ export const DEFAULT_MODULE_CONFIG_BY_SLUG = {
 /** Allowed range for the global `subscriptions.reminderDaysBefore` setting. */
 export const SUBSCRIPTION_REMINDER_DAYS_MIN = 1;
 export const SUBSCRIPTION_REMINDER_DAYS_MAX = 30;
+
+/** Allowed range for the global `reminders.cardDueDaysBefore` setting. */
+export const CARD_DUE_DAYS_BEFORE_MIN = 0;
+export const CARD_DUE_DAYS_BEFORE_MAX = 30;
+
+/**
+ * Warning window before a card payment due date, read from a user module
+ * config that may be partial.
+ */
+export function resolveCardDueDaysBefore(config: unknown): number {
+  const settings = config as
+    { reminders?: { cardDueDaysBefore?: unknown } } | null | undefined;
+  const value = settings?.reminders?.cardDueDaysBefore;
+  return typeof value === 'number'
+    ? value
+    : DEFAULT_MODULE_CONFIG_BY_SLUG.finance.reminders.cardDueDaysBefore;
+}
+
+/** Message when the setting is out of range, or null when it is valid. */
+export function validateCardDueDaysBefore(value: unknown): string | null {
+  if (
+    typeof value !== 'number' ||
+    !Number.isInteger(value) ||
+    value < CARD_DUE_DAYS_BEFORE_MIN ||
+    value > CARD_DUE_DAYS_BEFORE_MAX
+  ) {
+    return `reminders.cardDueDaysBefore must be an integer between ${CARD_DUE_DAYS_BEFORE_MIN} and ${CARD_DUE_DAYS_BEFORE_MAX}`;
+  }
+  return null;
+}
 
 /**
  * Window in days for upcoming-charge warnings, read from a user module config

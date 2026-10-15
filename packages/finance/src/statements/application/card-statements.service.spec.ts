@@ -121,6 +121,20 @@ describe('CardStatementsService', () => {
     ).toEqual(['DOP', 'DOP']);
   });
 
+  it('materializes the same snapshots when the job runs twice', async () => {
+    const { repo, service } = setup(creditCard());
+
+    await service.syncCardStatements('card-1', utc(2026, 3, 20));
+    const firstRun = repo.upsertStatement.mock.calls.map((call) => call[0]);
+
+    await service.syncCardStatements('card-1', utc(2026, 3, 20));
+    const secondRun = repo.upsertStatement.mock.calls
+      .slice(firstRun.length)
+      .map((call) => call[0]);
+
+    expect(secondRun).toEqual(firstRun);
+  });
+
   it('reports payments and status when listing statements', async () => {
     const { service } = setup(
       creditCard({

@@ -14,6 +14,7 @@ import { GLOBAL_USER_PREFERENCES_DEFAULTS } from '../domain/defaults/global-pref
 import {
   DEFAULT_MODULE_CONFIG_BY_SLUG,
   isModuleSlug,
+  validateCardDueDaysBefore,
   validateSubscriptionReminderDays,
   type ModuleSlug,
 } from '../domain/defaults/user-settings-defaults';
@@ -75,6 +76,7 @@ export class UsersService {
     const financeConfig = config as {
       emailSync?: { schedule?: unknown };
       subscriptions?: { reminderDaysBefore?: unknown };
+      reminders?: { cardDueDaysBefore?: unknown };
     };
     if (financeConfig.emailSync?.schedule !== undefined) {
       const scheduleError = validateEmailSyncSchedule(
@@ -89,6 +91,13 @@ export class UsersService {
       const reminderError = validateSubscriptionReminderDays(reminderDays);
       if (reminderError) {
         throw new BadRequestException(reminderError);
+      }
+    }
+    const cardDueDays = financeConfig.reminders?.cardDueDaysBefore;
+    if (cardDueDays !== undefined) {
+      const cardDueError = validateCardDueDaysBefore(cardDueDays);
+      if (cardDueError) {
+        throw new BadRequestException(cardDueError);
       }
     }
   }

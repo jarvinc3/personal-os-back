@@ -9,6 +9,7 @@ import { FINANCE_NOTIFICATION_KEYS } from '@personal-os/users';
 import {
   balanceDriftCopy,
   budgetThresholdCopy,
+  cardPaymentDueCopy,
   cardStatementReminderCopy,
   formatNotificationAmount,
   recurringMissedCopy,
@@ -56,6 +57,18 @@ type CardStatementReminderEvent = {
   sourceId?: string;
   gmailMessageId?: string;
   subject?: string;
+};
+
+type CardPaymentDueEvent = {
+  eventId?: string;
+  userId: string;
+  cardId: string;
+  statementId: string;
+  cardName?: string;
+  currency?: string;
+  remaining?: number;
+  dueDate?: string;
+  daysUntil?: number;
 };
 
 type WeeklySummaryEvent = {
@@ -255,6 +268,38 @@ export class NotificationsEventsListener {
         moduleSlug: FINANCE_MODULE_SLUG,
         reminder: 'card_statement',
         sourceId: event.sourceId ?? null,
+      },
+    });
+  }
+
+  @OnEvent(AppEvents.FINANCE_CARD_PAYMENT_DUE)
+  async onCardPaymentDue(event: CardPaymentDueEvent): Promise<void> {
+    if (
+      !(await this.idempotency.tryClaim(
+        event.eventId,
+        `${NotificationsEventsListener.CONSUMER}:card-payment-due`,
+      ))
+    ) {
+      return;
+    }
+    const copy = cardPaymentDueCopy({
+      cardName: event.cardName?.trim() ? event.cardName : 'tu tarjeta',
+      remainingLabel: formatNotificationAmount(
+        Number(event.remaining ?? 0),
+        event.currency ?? '',
+      ),
+      daysUntil: event.daysUntil ?? 0,
+    });
+    await this.createFinanceInApp(event.userId, {
+      type: 'card.payment_due',
+      title: copy.title,
+      body: copy.body,
+      data: {
+        moduleSlug: FINANCE_MODULE_SLUG,
+        notificationKey: FINANCE_NOTIFICATION_KEYS.cardDueDate,
+        cardId: event.cardId,
+        statementId: event.statementId,
+        dueDate: event.dueDate ?? null,
       },
     });
   }

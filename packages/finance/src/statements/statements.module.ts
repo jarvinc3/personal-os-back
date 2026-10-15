@@ -2,6 +2,7 @@ import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
 import { isBullMqEnabledFromProcessEnv } from '@personal-os/config';
 import { QueueNames } from '@personal-os/core';
+import { FinanceEventsModule } from '../events/events.module';
 import { FinanceLedgerModule } from '../ledger/ledger.module';
 import { FinanceOwnershipModule } from '../shared/finance-ownership.module';
 import { STATEMENT_EXTRACTOR } from './application/ports/statement-extractor.port';
@@ -11,9 +12,11 @@ import {
 } from './application/ports/statement-pdf.port';
 import { ProcessStatementImportUseCase } from './application/process-statement-import.use-case';
 import { StatementImportsService } from './application/statement-imports.service';
+import { CardPaymentRemindersService } from './application/card-payment-reminders.service';
 import { CardStatementsService } from './application/card-statements.service';
 import { AiStatementExtractor } from './infrastructure/ai-statement.extractor';
 import { CardStatementsRepository } from './infrastructure/card-statements.repository';
+import { CardPaymentRemindersScheduler } from './infrastructure/card-payment-reminders.scheduler';
 import { CardStatementsScheduler } from './infrastructure/card-statements.scheduler';
 import {
   PdfjsStatementTextExtractor,
@@ -34,6 +37,7 @@ const bullMqEnabled = isBullMqEnabledFromProcessEnv();
   imports: [
     FinanceOwnershipModule,
     FinanceLedgerModule,
+    FinanceEventsModule,
     ...(bullMqEnabled
       ? [BullModule.registerQueue({ name: QueueNames.STATEMENT_IMPORT })]
       : []),
@@ -43,6 +47,8 @@ const bullMqEnabled = isBullMqEnabledFromProcessEnv();
     CardStatementsRepository,
     CardStatementsService,
     CardStatementsScheduler,
+    CardPaymentRemindersService,
+    CardPaymentRemindersScheduler,
     StatementImportsRepository,
     StatementImportsService,
     ProcessStatementImportUseCase,

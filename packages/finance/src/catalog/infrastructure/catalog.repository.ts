@@ -24,6 +24,18 @@ type LedgerPurge = {
   movements: readonly LedgerTransactionRow[];
 };
 
+/** Movements that already use the card's limit but are not confirmed yet. */
+const PENDING_CARD_MOVEMENTS = {
+  where: { status: 'PENDING' as const },
+  select: {
+    type: true,
+    status: true,
+    ledgerAmount: true,
+    ledgerCurrency: true,
+    transactionDate: true,
+  },
+};
+
 @Injectable()
 export class CatalogRepository {
   constructor(
@@ -180,6 +192,7 @@ export class CatalogRepository {
         institution: true,
         account: { select: { id: true, name: true } },
         balances: true,
+        transactions: PENDING_CARD_MOVEMENTS,
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -192,6 +205,7 @@ export class CatalogRepository {
         institution: true,
         account: { select: { id: true, name: true } },
         balances: true,
+        transactions: PENDING_CARD_MOVEMENTS,
       },
     });
   }
@@ -213,6 +227,7 @@ export class CatalogRepository {
         institution: true,
         balances: true,
         account: { select: { id: true, name: true } },
+        transactions: PENDING_CARD_MOVEMENTS,
       },
     });
   }

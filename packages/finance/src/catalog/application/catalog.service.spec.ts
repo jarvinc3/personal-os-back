@@ -730,3 +730,102 @@ describe('CatalogService hard delete', () => {
     });
   });
 });
+
+describe('CatalogService card credit', () => {
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  const utcDay = (iso: string) => new Date(`${iso}T00:00:00.000Z`);
+
+  it('returns available credit and the next cycle in the user timezone', async () => {
+    jest.useFakeTimers({ now: new Date('2026-02-01T12:00:00.000Z') });
+    const findCardById = jest.fn().mockResolvedValue({
+      id: 'card-1',
+      institutionId: 'inst-1',
+      institution: { name: 'Banco', logoUrl: null },
+      accountId: null,
+      account: null,
+      name: 'Visa',
+      type: 'CREDIT',
+      network: 'VISA',
+      lastFour: '1234',
+      statementClosingDay: 31,
+      paymentDueDay: 15,
+      color: null,
+      isActive: true,
+      balances: [
+        { id: 'bal-1', currency: 'DOP', balance: 38000, creditLimit: 50000 },
+      ],
+      transactions: [
+        {
+          type: 'DEBIT',
+          status: 'PENDING',
+          ledgerAmount: 1000,
+          ledgerCurrency: 'DOP',
+          transactionDate: utcDay('2026-02-01'),
+        },
+      ],
+    });
+    const users = {
+      findById: jest
+        .fn()
+        .mockResolvedValue({ timezone: 'America/Santo_Domingo' }),
+    };
+    const service = new CatalogService(
+      { findCardById } as unknown as CatalogRepository,
+      ownershipMock(),
+      purgeMock(),
+      undefined,
+      users as never,
+    );
+
+    const card = await service.getCard('user-1', 'card-1');
+
+    expect(card.balances).toEqual([
+      {
+        id: 'bal-1',
+        currency: 'DOP',
+        balance: '38000',
+        creditLimit: '50000',
+        availableCredit: '37000',
+      },
+    ]);
+    expect(card.nextStatementDate).toBe('2026-02-28');
+    expect(card.nextPaymentDueDate).toBe('2026-03-15');
+  });
+
+  it('leaves available credit and the cycle empty without a limit or closing day', async () => {
+    jest.useFakeTimers({ now: new Date('2026-02-01T12:00:00.000Z') });
+    const findCardById = jest.fn().mockResolvedValue({
+      id: 'card-1',
+      institutionId: 'inst-1',
+      institution: { name: 'Banco', logoUrl: null },
+      accountId: null,
+      account: null,
+      name: 'Visa',
+      type: 'CREDIT',
+      network: null,
+      lastFour: '1234',
+      statementClosingDay: null,
+      paymentDueDay: null,
+      color: null,
+      isActive: true,
+      balances: [
+        { id: 'bal-1', currency: 'DOP', balance: 0, creditLimit: null },
+      ],
+      transactions: [],
+    });
+    const service = new CatalogService(
+      { findCardById } as unknown as CatalogRepository,
+      ownershipMock(),
+      purgeMock(),
+    );
+
+    const card = await service.getCard('user-1', 'card-1');
+
+    expect(card.balances[0].availableCredit).toBeNull();
+    expect(card.nextStatementDate).toBeNull();
+    expect(card.nextPaymentDueDate).toBeNull();
+  });
+});

@@ -80,6 +80,35 @@ export function firstDueDateAfter(closingDate: Date, dueDay: number): Date {
   return shiftStatementMonths(candidate, dueDay, 1);
 }
 
+export type NextCardCycle = {
+  /** Closing date still ahead, or today. */
+  statementDate: Date;
+  /** Payment due date after that closing; null when the card has no due day. */
+  paymentDueDate: Date | null;
+};
+
+/**
+ * Closing still ahead (or today) and its due date. The caller passes the day it
+ * considers today, so the projection follows the user's timezone.
+ */
+export function buildNextCardCycle(input: {
+  closingDay: number | null | undefined;
+  dueDay: number | null | undefined;
+  today: Date;
+}): NextCardCycle | null {
+  const { closingDay, dueDay, today } = input;
+  if (!isStatementDay(closingDay)) {
+    return null;
+  }
+  const statementDate = statementDateOnOrAfter(closingDay, today);
+  return {
+    statementDate,
+    paymentDueDate: isStatementDay(dueDay)
+      ? firstDueDateAfter(statementDate, dueDay)
+      : null,
+  };
+}
+
 /**
  * Every billing cycle that has already closed, oldest first. A cycle counts as
  * closed only once its closing day is behind `today`, so an in-progress day

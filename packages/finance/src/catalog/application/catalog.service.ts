@@ -8,6 +8,10 @@ import { Prisma } from '@personal-os/database';
 import { LogoService, type LogoUploadFile } from '@personal-os/logos';
 import type { LogoRow } from '@personal-os/logos';
 import { normalizeDomain } from '@personal-os/logos';
+import { UsersService } from '@personal-os/users';
+import { availableCredit } from '../../statements/domain/card-statement-amounts';
+import { buildNextCardCycle } from '../../statements/domain/card-statement-cycle';
+import { isoDay, localDayStart } from '../../shared/domain/local-day';
 import { PurgeInstrumentLedgerUseCase } from '../../ledger/application/purge-instrument-ledger.use-case';
 import type { LedgerTransactionRow } from '../../ledger/application/ports/ledger.repository.port';
 import { FinanceOwnershipService } from '../../shared/application/finance-ownership.service';
@@ -41,6 +45,10 @@ const fallbackLogos = {
   saveCustomLogo: () => Promise.reject(new Error('Logo upload unavailable')),
 } as unknown as LogoService;
 
+const fallbackUsers = {
+  findById: () => Promise.resolve({ timezone: null }),
+} as unknown as UsersService;
+
 function omitAccountNumber<T extends { accountNumber?: string | null }>(
   dto: T,
 ): Omit<T, 'accountNumber'> {
@@ -56,6 +64,7 @@ export class CatalogService {
     private readonly ownership: FinanceOwnershipService,
     private readonly purgeLedger: PurgeInstrumentLedgerUseCase,
     private readonly logos: LogoService = fallbackLogos,
+    private readonly users: UsersService = fallbackUsers,
   ) {}
 
   async listAccounts(userId: string) {
@@ -335,7 +344,8 @@ export class CatalogService {
 
   async listCards(userId: string) {
     const cards = await this.repo.listCards(userId);
-    return cards.map((c) => this.mapCard(c));
+    const today = await this.localToday(userId);
+    return cards.map((c) => this.mapCard(c, today));
   }
 
   async getCard(userId: string, id: string) {
@@ -343,7 +353,7 @@ export class CatalogService {
     if (!card) {
       throw new NotFoundException('Card not found');
     }
-    return this.mapCard(card);
+    return this.mapCard(card, await this.localToday(userId));
   }
 
   async createCard(userId: string, dto: CreateCardDto) {
@@ -376,7 +386,7 @@ export class CatalogService {
       paymentDueDay: dto.paymentDueDay,
       color: dto.color,
     });
-    return this.mapCard(created);
+    return this.mapCard(created, await this.localToday(userId));
   }
 
   async updateCard(userId: string, id: string, dto: UpdateCardDto) {
@@ -439,7 +449,7 @@ export class CatalogService {
     if (!updated) {
       throw new NotFoundException('Card not found');
     }
-    return this.mapCard(updated);
+    return this.mapCard(updated, await this.localToday(userId));
   }
 
   async deactivateCard(userId: string, id: string) {
@@ -763,9 +773,20 @@ export class CatalogService {
     };
   }
 
+  private async localToday(userId: string): Promise<Date> {
+    const profile = await this.users.findById(userId);
+    return localDayStart(profile.timezone, new Date());
+  }
+
   private mapCard(
     card: NonNullable<Awaited<ReturnType<CatalogRepository['findCardById']>>>,
+    today: Date,
   ) {
+    const cycle = buildNextCardCycle({
+      closingDay: card.statementClosingDay,
+      dueDay: card.paymentDueDay,
+      today,
+    });
     return {
       id: card.id,
       institutionId: card.institutionId,
@@ -780,6 +801,10 @@ export class CatalogService {
       lastFour: card.lastFour,
       statementClosingDay: card.statementClosingDay,
       paymentDueDay: card.paymentDueDay,
+      nextStatementDate: cycle ? isoDay(cycle.statementDate) : null,
+      nextPaymentDueDate: cycle?.paymentDueDate
+        ? isoDay(cycle.paymentDueDate)
+        : null,
       color: card.color,
       isActive: card.isActive,
       balances: card.balances.map((b) => ({
@@ -787,6 +812,17 @@ export class CatalogService {
         currency: b.currency,
         balance: decimalToString(b.balance),
         creditLimit: decimalToNullableString(b.creditLimit),
+        availableCredit:
+          b.creditLimit === null
+            ? null
+            : decimalToString(
+                availableCredit({
+                  storedAvailable: Number(b.balance),
+                  movements: card.transactions.filter(
+                    (movement) => movement.ledgerCurrency === b.currency,
+                  ),
+                }),
+              ),
       })),
     };
   }
