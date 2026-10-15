@@ -67,7 +67,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
     );
 
     if (statusCode >= SERVER_ERROR_MIN_STATUS) {
-      this.reportToSentry(exception, request, statusCode);
+      this.reportToSentry({ exception, request, statusCode });
     }
 
     const errorCode =
@@ -88,11 +88,15 @@ export class AllExceptionsFilter implements ExceptionFilter {
    * 4xx are expected client flow and would only add noise; only 5xx reach
    * Sentry. The query string is dropped so a token never travels with it.
    */
-  private reportToSentry(
-    exception: unknown,
-    request: { url: string; method: string; user?: { sub?: string } },
-    statusCode: number,
-  ): void {
+  private reportToSentry({
+    exception,
+    request,
+    statusCode,
+  }: {
+    exception: unknown;
+    request: { url: string; method: string; user?: { sub?: string } };
+    statusCode: number;
+  }): void {
     const userId = request.user?.sub;
     Sentry.captureException(exception, {
       ...(userId ? { user: { id: userId } } : {}),
