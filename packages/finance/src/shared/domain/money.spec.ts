@@ -39,6 +39,9 @@ describe('decimal money helpers', () => {
 
   it('reads the decimal strings the API returns', () => {
     expect(toMoney('145.63').toString()).toBe('145.63');
+  });
+
+  it('reads a missing amount as zero', () => {
     expect(toMoney(null).toString()).toBe('0');
     expect(toMoney(undefined).toString()).toBe('0');
   });

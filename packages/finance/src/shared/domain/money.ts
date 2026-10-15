@@ -20,7 +20,11 @@ export function isIsoCurrency(code: string): boolean {
 /** Money keeps two decimals in storage and display (ADR-002). */
 export const MONEY_DECIMALS = 2;
 
-/** Values accepted as money: the Decimal from a query, its string form, or a number. */
+/**
+ * Values accepted as money: the Decimal from a query, its string form, or a
+ * number. A missing amount — null from an aggregate, undefined from an
+ * optional field — means zero, never a second business state.
+ */
 export type MoneyLike = Prisma.Decimal | string | number | null | undefined;
 
 /** The decimal type amounts carry through the back. */

@@ -48,16 +48,22 @@ function targetFiles() {
   return files;
 }
 
-const offenders = [];
-for (const file of targetFiles()) {
+function offendersIn(file) {
+  const found = [];
   const lines = readFileSync(file, 'utf8').split('\n');
   lines.forEach((line, index) => {
     if (FORBIDDEN.some((pattern) => pattern.test(line))) {
-      offenders.push(`${relative(ROOT, file)}:${index + 1}: ${line.trim()}`);
+      found.push(`${relative(ROOT, file)}:${index + 1}: ${line.trim()}`);
     }
   });
+  return found;
 }
 
+function findOffenders(files) {
+  return files.flatMap(offendersIn);
+}
+
+const offenders = findOffenders(targetFiles());
 if (offenders.length > 0) {
   console.error(
     'Money must stay decimal (see shared/domain/money.ts and ADR-002):',

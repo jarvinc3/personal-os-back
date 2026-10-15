@@ -6,7 +6,12 @@ import { IngestionService } from '../../ingestion/application/ingestion.service'
 import { PlanningService } from '../../planning/application/planning.service';
 import { isValidIsoDate } from '../../shared/domain/iso-date';
 import { decimalToString } from '../../shared/domain/mappers';
-import { roundDecimal, sumMoney, toMoney } from '../../shared/domain/money';
+import {
+  roundDecimal,
+  sumMoney,
+  toMoney,
+  type Decimal,
+} from '../../shared/domain/money';
 import { AnalyticsService } from './analytics.service';
 import type { WeeklySummary } from './weekly-summary.types';
 
@@ -76,6 +81,14 @@ function dateOnly(value: string | Date | null | undefined): string | null {
   return value.slice(0, 10);
 }
 
+/** Average of the given amounts, dividing exact decimals and rounding once. */
+function averageOfAmounts(amounts: readonly Decimal[]): Decimal {
+  if (amounts.length === 0) {
+    return roundDecimal(0);
+  }
+  return roundDecimal(sumMoney(amounts).div(amounts.length));
+}
+
 @Injectable()
 export class WeeklySummaryService {
   constructor(
@@ -133,15 +146,9 @@ export class WeeklySummaryService {
     const previous = weeklyPoints
       .filter((point) => point.date < weekStart)
       .slice(-AVERAGE_WEEKS);
-    // The weekly average divides exact decimals, then rounds once to cents.
-    const averageExpenses =
-      previous.length > 0
-        ? roundDecimal(
-            sumMoney(previous.map((point) => point.expenses)).div(
-              previous.length,
-            ),
-          )
-        : roundDecimal(0);
+    const averageExpenses = averageOfAmounts(
+      previous.map((point) => point.expenses),
+    );
 
     const horizon = addDaysIso(today, UPCOMING_DAYS);
 
