@@ -459,7 +459,10 @@ export class PlanningService {
 
   async createLoan(userId: string, dto: CreateLoanDto, now: Date) {
     if (dto.institutionId) {
-      await this.ownership.assertInstitutionOwned(userId, dto.institutionId);
+      await this.ownership.assertInstitutionAcceptsBankProducts(
+        userId,
+        dto.institutionId,
+      );
     }
     if (dto.accountId) {
       await this.ownership.assertLoanAccountAlignment({
@@ -513,7 +516,10 @@ export class PlanningService {
       dto.accountId !== undefined ? dto.accountId : existing.accountId;
 
     if (dto.institutionId) {
-      await this.ownership.assertInstitutionOwned(userId, dto.institutionId);
+      await this.ownership.assertInstitutionAcceptsBankProducts(
+        userId,
+        dto.institutionId,
+      );
     }
     if (nextAccountId) {
       await this.ownership.assertLoanAccountAlignment({

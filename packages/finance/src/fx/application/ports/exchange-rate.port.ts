@@ -13,5 +13,11 @@ export interface ExchangeRatePort {
     to: string;
     date: string; // YYYY-MM-DD
   }): Promise<ExchangeRateResult>;
+  /** Latest cached rate on or before `date`, for display when the exact day has none. */
+  getLatestRateOnOrBefore(params: {
+    from: string;
+    to: string;
+    date: string; // YYYY-MM-DD
+  }): Promise<ExchangeRateResult>;
   listCurrencies(): Promise<string[]>;
 }

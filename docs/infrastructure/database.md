@@ -55,3 +55,5 @@ Recomendación:
 2. Aplicar la pendiente tal cual: ya ordena al final.
 3. Sanear el historial aparte, con respaldo: renombrar las carpetas a su fecha real de creación y actualizar `_prisma_migrations.migration_name` en la misma operación. Es la única vía para tener fechas reales sin romper el orden.
 4. Mientras no se sanee, al crear una migración revisar que su carpeta ordene después de la última existente (`20261021100000`); si no, corregir el nombre de la carpeta nueva (aún no aplicada) antes de aplicarla y registrar el ajuste.
+
+Ajuste registrado (2026-10-15): la migración `20261021110000_fin_cash_institution` (pendiente 16) tiene fecha real 2026-10-15 y timestamp corregido a `20261021110000` para ordenar después de `20261021100000`.

@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -27,6 +28,11 @@ import {
   decimalToString,
 } from '../../shared/domain/mappers';
 import { roundMoney } from '../../shared/domain/money';
+import {
+  CASH_ACCOUNT_TYPE,
+  isCashInstitution,
+} from '../../shared/domain/cash';
+import { EnsureCashInstitutionUseCase } from './ensure-cash-institution.use-case';
 import { CatalogRepository } from '../infrastructure/catalog.repository';
 import type { CreateAccountDto } from '../presentation/dto/create-account.dto';
 import type { CreateCardDto } from '../presentation/dto/create-card.dto';
@@ -90,11 +96,13 @@ export class CatalogService {
     private readonly repo: CatalogRepository,
     private readonly ownership: FinanceOwnershipService,
     private readonly purgeLedger: PurgeInstrumentLedgerUseCase,
+    private readonly ensureCashInstitution: EnsureCashInstitutionUseCase,
     private readonly logos: LogoService = fallbackLogos,
     private readonly users: UsersService = fallbackUsers,
   ) {}
 
   async listAccounts(userId: string) {
+    await this.ensureCashInstitution.execute(userId);
     const accounts = await this.repo.findAccountsByUser(userId);
     const earmarked = await this.repo.sumEarmarkedByAccountIds(
       userId,
@@ -115,27 +123,29 @@ export class CatalogService {
   }
 
   async createAccount(userId: string, dto: CreateAccountDto) {
-    this.assertAccountInstitutionRule(dto.type, dto.institutionId);
+    const institutionId = await this.resolveAccountInstitutionId(
+      userId,
+      dto.type,
+      dto.institutionId,
+    );
     const accountNumber = this.assertAccountNumberRule(
       dto.type,
       dto.accountNumber,
     );
-    if (dto.type === 'CASH' && dto.isDefaultForInstitution) {
+    if (dto.type === CASH_ACCOUNT_TYPE && dto.isDefaultForInstitution) {
       throw new BadRequestException(
         'CASH accounts cannot be the default for an institution',
       );
     }
-    if (dto.institutionId) {
-      await this.ownership.assertInstitutionOwned(userId, dto.institutionId);
-    }
     const rest = omitAccountNumber(dto);
     try {
-      if (dto.isDefaultForInstitution && dto.institutionId) {
-        await this.repo.clearDefaultAccount(userId, dto.institutionId);
+      if (dto.isDefaultForInstitution) {
+        await this.repo.clearDefaultAccount(userId, institutionId);
       }
       return this.mapAccount(
         await this.repo.createAccount(userId, {
           ...rest,
+          institutionId,
           ...(accountNumber ? { accountNumber } : {}),
         }),
       );
@@ -151,12 +161,13 @@ export class CatalogService {
     }
 
     const nextType = dto.type ?? existing.type;
-    const nextInstitutionId =
-      dto.institutionId !== undefined
-        ? dto.institutionId
-        : existing.institutionId;
-    this.assertAccountInstitutionRule(nextType, nextInstitutionId ?? undefined);
-    if (nextType === 'CASH' && dto.isDefaultForInstitution) {
+    const nextInstitutionId = await this.resolveAccountInstitutionId(
+      userId,
+      nextType,
+      dto.institutionId,
+      existing.institutionId,
+    );
+    if (nextType === CASH_ACCOUNT_TYPE && dto.isDefaultForInstitution) {
       throw new BadRequestException(
         'CASH accounts cannot be the default for an institution',
       );
@@ -164,34 +175,32 @@ export class CatalogService {
 
     const nextAccountNumber = this.assertAccountNumberRule(
       nextType,
-      nextType === 'CASH'
+      nextType === CASH_ACCOUNT_TYPE
         ? dto.accountNumber
         : dto.accountNumber !== undefined
           ? dto.accountNumber
           : existing.accountNumber,
     );
 
-    if (dto.institutionId) {
-      await this.ownership.assertInstitutionOwned(userId, dto.institutionId);
-    }
     if (
       dto.institutionId !== undefined &&
-      dto.institutionId !== existing.institutionId
+      nextInstitutionId !== existing.institutionId
     ) {
       await this.ownership.assertAccountInstitutionChangeAllowed({
         userId,
         accountId: id,
-        nextInstitutionId: dto.institutionId ?? null,
+        nextInstitutionId,
       });
     }
 
     const rest = omitAccountNumber(dto);
     try {
-      if (dto.isDefaultForInstitution && nextInstitutionId) {
+      if (dto.isDefaultForInstitution) {
         await this.repo.clearDefaultAccount(userId, nextInstitutionId, id);
       }
       const account = await this.repo.updateAccount(id, userId, {
         ...rest,
+        institutionId: nextInstitutionId,
         accountNumber: nextAccountNumber,
       });
       if (!account) {
@@ -227,11 +236,17 @@ export class CatalogService {
   }
 
   async listInstitutions(userId: string) {
+    await this.ensureCashInstitution.execute(userId);
     const items = await this.repo.listInstitutions(userId);
     return items.map((item) => this.mapInstitution(item));
   }
 
   async createInstitution(userId: string, dto: CreateInstitutionDto) {
+    if (isCashInstitution({ type: dto.type ?? 'bank' })) {
+      throw new BadRequestException(
+        'Efectivo ya existe como institución de sistema',
+      );
+    }
     const domain = this.normalizeInstitutionDomain(dto.domain);
     const logoPath = domain ? await this.logos.ensureLogo(domain) : null;
     try {
@@ -256,8 +271,12 @@ export class CatalogService {
     id: string,
     dto: UpdateInstitutionDto,
   ) {
+    const existing = await this.repo.findInstitution(userId, id);
+    if (!existing) {
+      throw new NotFoundException('Institution not found');
+    }
+    this.assertInstitutionEditable(existing);
     if (dto.isActive === false) {
-      await this.ownership.assertInstitutionOwned(userId, id);
       await this.ownership.assertInstitutionCanArchive(userId, id);
     }
     const data: Prisma.FinInstitutionUpdateInput = {};
@@ -306,7 +325,11 @@ export class CatalogService {
     if (!file) {
       throw new BadRequestException('Archivo obligatorio');
     }
-    await this.ownership.assertInstitutionOwned(userId, id);
+    const existing = await this.repo.findInstitution(userId, id);
+    if (!existing) {
+      throw new NotFoundException('Institution not found');
+    }
+    this.assertInstitutionEditable(existing);
     let path: string;
     try {
       path = await this.logos.saveCustomLogo(userId, id, file);
@@ -325,7 +348,11 @@ export class CatalogService {
   }
 
   async deactivateInstitution(userId: string, id: string) {
-    await this.ownership.assertInstitutionOwned(userId, id);
+    const existing = await this.repo.findInstitution(userId, id);
+    if (!existing) {
+      throw new NotFoundException('Institution not found');
+    }
+    this.assertInstitutionEditable(existing);
     await this.ownership.assertInstitutionCanArchive(userId, id);
     const updated = await this.repo.updateInstitution(userId, id, {
       isActive: false,
@@ -341,6 +368,7 @@ export class CatalogService {
     if (!existing) {
       throw new NotFoundException('Institution not found');
     }
+    this.assertInstitutionEditable(existing);
     const movements: LedgerTransactionRow[] = [];
     const accounts = await this.repo.listAccountsByInstitution(userId, id);
     for (const account of accounts) {
@@ -387,7 +415,10 @@ export class CatalogService {
     if (!dto.lastFour) {
       throw new BadRequestException('lastFour is required');
     }
-    await this.ownership.assertInstitutionOwned(userId, dto.institutionId);
+    await this.ownership.assertInstitutionAcceptsBankProducts(
+      userId,
+      dto.institutionId,
+    );
     if (dto.type === 'DEBIT') {
       if (!dto.accountId) {
         throw new BadRequestException('DEBIT cards require accountId');
@@ -428,7 +459,10 @@ export class CatalogService {
       throw new BadRequestException('lastFour is required');
     }
     if (dto.institutionId) {
-      await this.ownership.assertInstitutionOwned(userId, dto.institutionId);
+      await this.ownership.assertInstitutionAcceptsBankProducts(
+        userId,
+        dto.institutionId,
+      );
     }
 
     const relocatingDebit =
@@ -683,13 +717,43 @@ export class CatalogService {
     return { success: true };
   }
 
-  private assertAccountInstitutionRule(
+  /**
+   * Institution a new or updated account belongs to. Cash always lives in the
+   * system "Efectivo"; other types must name a bank institution and never the
+   * cash one.
+   */
+  private async resolveAccountInstitutionId(
+    userId: string,
     type: string,
-    institutionId: string | null | undefined,
-  ) {
-    if (type !== 'CASH' && !institutionId) {
+    requestedInstitutionId: string | undefined,
+    fallbackInstitutionId: string | null = null,
+  ): Promise<string> {
+    if (type === CASH_ACCOUNT_TYPE) {
+      const cash = await this.ensureCashInstitution.execute(userId);
+      if (requestedInstitutionId && requestedInstitutionId !== cash.id) {
+        throw new BadRequestException(
+          'Las cuentas de efectivo van dentro de Efectivo',
+        );
+      }
+      return cash.id;
+    }
+    const institutionId = requestedInstitutionId ?? fallbackInstitutionId;
+    if (!institutionId) {
       throw new BadRequestException(
         'CHECKING, SAVINGS, and INVESTMENT accounts require institutionId',
+      );
+    }
+    await this.ownership.assertInstitutionAcceptsBankProducts(
+      userId,
+      institutionId,
+    );
+    return institutionId;
+  }
+
+  private assertInstitutionEditable(institution: { isSystem: boolean }) {
+    if (institution.isSystem) {
+      throw new ForbiddenException(
+        'La institución Efectivo es de sistema: no se puede editar ni borrar',
       );
     }
   }
@@ -797,6 +861,7 @@ export class CatalogService {
       logoUrl: this.logos.resolveUrl(institution),
       country: institution.country,
       isActive: institution.isActive,
+      isSystem: institution.isSystem,
     };
   }
 

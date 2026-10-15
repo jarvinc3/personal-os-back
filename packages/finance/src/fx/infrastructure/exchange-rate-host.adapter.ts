@@ -144,6 +144,37 @@ export class ExchangeRateHostAdapter implements ExchangeRatePort {
     }
   }
 
+  async getLatestRateOnOrBefore(params: {
+    from: string;
+    to: string;
+    date: string;
+  }): Promise<ExchangeRateResult> {
+    const from = normalizeCurrencyCode(params.from);
+    const to = normalizeCurrencyCode(params.to);
+    if (from === to) {
+      return { ok: true, rate: 1, source: 'identity' };
+    }
+
+    const cached = await this.prisma.finExchangeRate.findFirst({
+      where: {
+        fromCurrency: from,
+        toCurrency: to,
+        rateDate: { lte: new Date(params.date) },
+      },
+      orderBy: { rateDate: 'desc' },
+    });
+    if (cached) {
+      return { ok: true, rate: Number(cached.rate), source: 'cache' };
+    }
+
+    return {
+      ok: false,
+      code: 'RATE_UNAVAILABLE',
+      message: `No rate for ${from}->${to} on or before ${params.date}`,
+      retryable: false,
+    };
+  }
+
   private async fetchCurrencyCodes(): Promise<string[]> {
     const apiKey = this.config.get('EXCHANGE_RATE_HOST_API_KEY', {
       infer: true,

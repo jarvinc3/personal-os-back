@@ -25,8 +25,17 @@ function build() {
     .mockImplementation((params: { from: string; to: string }) =>
       Promise.resolve(rateFor(params.from, params.to)),
     );
-  const useCase = new ResolveAmountsUseCase({ getHistoricalRate } as never);
-  return { useCase, getHistoricalRate };
+  const getLatestRateOnOrBefore = jest.fn().mockResolvedValue({
+    ok: false,
+    code: 'RATE_UNAVAILABLE',
+    message: 'missing',
+    retryable: false,
+  } satisfies ExchangeRateResult);
+  const useCase = new ResolveAmountsUseCase({
+    getHistoricalRate,
+    getLatestRateOnOrBefore,
+  } as never);
+  return { useCase, getHistoricalRate, getLatestRateOnOrBefore };
 }
 
 describe('ResolveAmountsUseCase', () => {
@@ -84,5 +93,36 @@ describe('ResolveAmountsUseCase', () => {
     await expect(
       useCase.toBaseCurrency('10', 'DOP', 'EUR', asOf),
     ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('falls back to the latest rate on or before the day', async () => {
+    const { useCase, getLatestRateOnOrBefore } = build();
+    getLatestRateOnOrBefore.mockResolvedValue({
+      ok: true,
+      rate: 2,
+      source: 'cache',
+    });
+
+    const converted = await useCase.toBaseCurrencyOrNull(
+      '10',
+      'DOP',
+      'EUR',
+      asOf,
+    );
+
+    expect(converted?.toFixed(2)).toBe('20.00');
+    expect(getLatestRateOnOrBefore).toHaveBeenCalledWith({
+      from: 'DOP',
+      to: 'EUR',
+      date: '2026-10-08',
+    });
+  });
+
+  it('returns null when neither the day nor an earlier rate exists', async () => {
+    const { useCase } = build();
+
+    await expect(
+      useCase.toBaseCurrencyOrNull('10', 'DOP', 'EUR', asOf),
+    ).resolves.toBeNull();
   });
 });

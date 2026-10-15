@@ -63,6 +63,40 @@ export class ResolveAmountsUseCase {
     return convertDecimal(amount, rate);
   }
 
+  /**
+   * Convert a position amount to the user's base currency, tolerating a
+   * missing exact-day rate: it falls back to the latest cached rate on or
+   * before `asOf`. Returns `null` when no rate exists, so a display summary can
+   * show an incomplete total instead of failing the whole response.
+   */
+  async toBaseCurrencyOrNull(
+    amount: MoneyLike,
+    currency: string,
+    baseCurrency: string,
+    asOf: Date,
+  ): Promise<Prisma.Decimal | null> {
+    const from = normalizeCurrencyCode(currency);
+    const target = normalizeCurrencyCode(baseCurrency);
+    const date = asOf.toISOString().slice(0, 10);
+    const exact = await this.rates.getHistoricalRate({
+      from,
+      to: target,
+      date,
+    });
+    if (exact.ok) {
+      return convertDecimal(amount, exact.rate);
+    }
+    const latest = await this.rates.getLatestRateOnOrBefore({
+      from,
+      to: target,
+      date,
+    });
+    if (!latest.ok) {
+      return null;
+    }
+    return convertDecimal(amount, latest.rate);
+  }
+
   private async requireRate(
     from: string,
     to: string,

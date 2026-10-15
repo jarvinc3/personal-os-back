@@ -8,6 +8,7 @@ import {
   categoryTypeForTransaction,
   type FinCategoryTypeValue,
 } from '../domain/category-type';
+import { isCashInstitution } from '../domain/cash';
 
 const VISIBLE_CATEGORY = (userId: string) => ({
   OR: [{ userId }, { isSystem: true }],
@@ -23,6 +24,26 @@ export class FinanceOwnershipService {
     });
     if (!institution) {
       throw new BadRequestException('Institution not found');
+    }
+    return institution;
+  }
+
+  /**
+   * Cards, loans and email sources belong to banks: the cash institution
+   * (system "Efectivo" or a legacy cash one) is rejected.
+   */
+  async assertInstitutionAcceptsBankProducts(
+    userId: string,
+    institutionId: string,
+  ) {
+    const institution = await this.assertInstitutionOwned(
+      userId,
+      institutionId,
+    );
+    if (isCashInstitution(institution)) {
+      throw new BadRequestException(
+        'Efectivo no admite tarjetas, préstamos ni sincronización por correo',
+      );
     }
     return institution;
   }

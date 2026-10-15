@@ -285,6 +285,9 @@ describe('IngestionService mailbox linking', () => {
   };
   const ownership = {
     assertInstitutionOwned: jest.fn().mockResolvedValue(undefined),
+    assertInstitutionAcceptsBankProducts: jest
+      .fn()
+      .mockResolvedValue(undefined),
   };
 
   const service = new IngestionService(

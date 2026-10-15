@@ -4221,6 +4221,7 @@ export const FinInstitutionScalarFieldEnum = {
   color: 'color',
   country: 'country',
   isActive: 'isActive',
+  isSystem: 'isSystem',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const

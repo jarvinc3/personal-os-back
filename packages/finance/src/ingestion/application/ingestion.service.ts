@@ -136,7 +136,10 @@ export class IngestionService {
 
   async createEmailSource(userId: string, dto: ConnectEmailSourceDto) {
     await this.users.assertFinanceEmailSyncEnabled(userId);
-    await this.ownership.assertInstitutionOwned(userId, dto.institutionId);
+    await this.ownership.assertInstitutionAcceptsBankProducts(
+      userId,
+      dto.institutionId,
+    );
 
     const connection = await this.repo.findConnectionByUserEmail(
       userId,
@@ -175,7 +178,10 @@ export class IngestionService {
     }
 
     if (dto.institutionId) {
-      await this.ownership.assertInstitutionOwned(userId, dto.institutionId);
+      await this.ownership.assertInstitutionAcceptsBankProducts(
+        userId,
+        dto.institutionId,
+      );
       const linked = await this.repo.findSourceByUserAndInstitution(
         userId,
         dto.institutionId,

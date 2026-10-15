@@ -1,7 +1,8 @@
 generator client {
-  provider     = "prisma-client"
-  output       = "../src/generated"
-  moduleFormat = "cjs"
+  provider        = "prisma-client"
+  output          = "../src/generated"
+  moduleFormat    = "cjs"
+  previewFeatures = ["partialIndexes"]
 }
 
 datasource db {
@@ -598,6 +599,8 @@ model FinInstitution {
   color          String?
   country        String       @default("DO")
   isActive       Boolean      @default(true) @map("is_active")
+  /// System institutions (the user's "Efectivo") cannot be renamed, archived or deleted.
+  isSystem       Boolean      @default(false) @map("is_system")
   createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt      DateTime     @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   accounts     FinAccount[]
@@ -606,6 +609,7 @@ model FinInstitution {
   loans        FinLoan[]
   user         User             @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
+  @@unique([userId], where: { type: "cash", isSystem: true }, map: "fin_institutions_system_cash_user_key")
   @@index([userId, isActive], map: "fin_institutions_user_id_active_idx")
   @@index([userId, name], map: "fin_institutions_user_id_name_idx")
   @@map("fin_institutions")

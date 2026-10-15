@@ -4,6 +4,7 @@ import { ResolveAmountsUseCase } from '../../fx/application/resolve-amounts.use-
 import { ResolveUserBaseCurrencyUseCase } from '../../fx/application/resolve-user-base-currency';
 import { decimalToString } from '../../shared/domain/mappers';
 import {
+  normalizeCurrencyCode,
   roundDecimal,
   toMoney,
   type MoneyLike,
@@ -12,10 +13,34 @@ import { BalanceSheetRepository } from '../infrastructure/balance-sheet.reposito
 
 export type BalanceSheetStatus = 'COMPLETE' | 'INCOMPLETE';
 
-export type BalanceSheetIssue = {
-  code: 'MISSING_CREDIT_LIMIT';
-  cardId: string;
+export type BalanceSheetIssue =
+  | {
+      code: 'MISSING_CREDIT_LIMIT';
+      cardId: string;
+      currency: string;
+    }
+  | { code: 'MISSING_RATE'; currency: string };
+
+export type CashAccountLine = {
+  id: string;
+  name: string;
+  balance: string;
+};
+
+export type CashCurrencyBreakdown = {
   currency: string;
+  total: string;
+  totalBase: string | null;
+  accounts: CashAccountLine[];
+};
+
+/** Cash converted to the user's base currency, with a per-currency breakdown. */
+export type FinanceCashSummary = {
+  totalBase: string | null;
+  baseCurrency: string;
+  rateDate: string;
+  status: BalanceSheetStatus;
+  byCurrency: CashCurrencyBreakdown[];
 };
 
 export type BalanceSheetSlice = {
@@ -37,6 +62,7 @@ export type FinanceBalanceSheet = {
   baseCurrency: string;
   global: BalanceSheetSlice;
   institutions: Array<BalanceSheetSlice & { institutionId: string }>;
+  cash: FinanceCashSummary;
 };
 
 type Bucket = {
@@ -122,13 +148,32 @@ export class BalanceSheetService {
       this.resolveAmounts.toBaseCurrency(amount, currency, baseCurrency, asOf);
 
     for (const account of accounts) {
-      const amount = await convert(account.balance, account.currency);
-      global.accounts = global.accounts.plus(amount);
+      const converted = await this.resolveAmounts.toBaseCurrencyOrNull(
+        account.balance,
+        account.currency,
+        baseCurrency,
+        asOf,
+      );
+      if (converted === null) {
+        const issue: BalanceSheetIssue = {
+          code: 'MISSING_RATE',
+          currency: account.currency,
+        };
+        global.issues.push(issue);
+        const bucket = account.institutionId
+          ? byInstitution.get(account.institutionId)
+          : undefined;
+        if (bucket) {
+          bucket.issues.push(issue);
+        }
+        continue;
+      }
+      global.accounts = global.accounts.plus(converted);
       const bucket = account.institutionId
         ? byInstitution.get(account.institutionId)
         : undefined;
       if (bucket) {
-        bucket.accounts = bucket.accounts.plus(amount);
+        bucket.accounts = bucket.accounts.plus(converted);
       }
     }
 
@@ -178,6 +223,64 @@ export class BalanceSheetService {
         institutionId: institution.id,
         ...serializeSlice(byInstitution.get(institution.id) ?? emptyBucket()),
       })),
+      cash: await this.buildCashSummary(userId, baseCurrency, asOf),
+    };
+  }
+
+  private async buildCashSummary(
+    userId: string,
+    baseCurrency: string,
+    asOf: Date,
+  ): Promise<FinanceCashSummary> {
+    const accounts = await this.repo.loadCashAccounts(userId);
+    const grouped = new Map<
+      string,
+      { total: Prisma.Decimal; accounts: CashAccountLine[] }
+    >();
+    for (const account of accounts) {
+      const currency = normalizeCurrencyCode(account.currency);
+      const group = grouped.get(currency) ?? {
+        total: roundDecimal(0),
+        accounts: [],
+      };
+      group.total = roundDecimal(group.total.plus(account.balance));
+      group.accounts.push({
+        id: account.id,
+        name: account.name,
+        balance: decimalToString(account.balance),
+      });
+      grouped.set(currency, group);
+    }
+
+    const byCurrency: CashCurrencyBreakdown[] = [];
+    let totalBase = roundDecimal(0);
+    let incomplete = false;
+    for (const [currency, group] of grouped) {
+      const converted = await this.resolveAmounts.toBaseCurrencyOrNull(
+        group.total,
+        currency,
+        baseCurrency,
+        asOf,
+      );
+      if (converted === null) {
+        incomplete = true;
+      } else {
+        totalBase = roundDecimal(totalBase.plus(converted));
+      }
+      byCurrency.push({
+        currency,
+        total: decimalToString(group.total),
+        totalBase: converted === null ? null : decimalToString(converted),
+        accounts: group.accounts,
+      });
+    }
+
+    return {
+      totalBase: incomplete ? null : decimalToString(totalBase),
+      baseCurrency,
+      rateDate: asOf.toISOString().slice(0, 10),
+      status: incomplete ? 'INCOMPLETE' : 'COMPLETE',
+      byCurrency,
     };
   }
 }

@@ -15,6 +15,11 @@ import {
 import { DeletionJournalRepository } from '../../shared/infrastructure/deletion-journal.repository';
 import { INSTRUMENT_EVENT_KIND } from '../../shared/domain/instrument-event';
 import { PENDING_TRANSACTION_STATUS } from '../../shared/domain/transaction-status';
+import {
+  CASH_ACCOUNT_TYPE,
+  CASH_INSTITUTION_NAME,
+  CASH_INSTITUTION_TYPE,
+} from '../../shared/domain/cash';
 import { normalizeCurrencyCode } from '../../shared/presentation/validation.decorators';
 import type { CreateAccountDto } from '../presentation/dto/create-account.dto';
 import type { UpdateAccountDto } from '../presentation/dto/update-account.dto';
@@ -169,6 +174,53 @@ export class CatalogRepository {
     data: Omit<Prisma.FinInstitutionUncheckedCreateInput, 'userId'>,
   ) {
     return this.prisma.finInstitution.create({ data: { ...data, userId } });
+  }
+
+  findSystemCashInstitution(userId: string) {
+    return this.prisma.finInstitution.findFirst({
+      where: { userId, type: CASH_INSTITUTION_TYPE, isSystem: true },
+    });
+  }
+
+  createSystemCashInstitution(userId: string) {
+    return this.prisma.finInstitution.create({
+      data: {
+        userId,
+        name: CASH_INSTITUTION_NAME,
+        type: CASH_INSTITUTION_TYPE,
+        country: 'DO',
+        isSystem: true,
+      },
+    });
+  }
+
+  findFirstCashAccount(userId: string) {
+    return this.prisma.finAccount.findFirst({
+      where: { userId, type: CASH_ACCOUNT_TYPE },
+      select: { id: true },
+    });
+  }
+
+  createCashAccount(
+    userId: string,
+    input: { institutionId: string; name: string; currency: string },
+  ) {
+    return this.prisma.finAccount.create({
+      data: {
+        userId,
+        institutionId: input.institutionId,
+        name: input.name,
+        type: CASH_ACCOUNT_TYPE,
+        currency: input.currency,
+      },
+    });
+  }
+
+  assignInstitutionlessCashAccounts(userId: string, institutionId: string) {
+    return this.prisma.finAccount.updateMany({
+      where: { userId, type: CASH_ACCOUNT_TYPE, institutionId: null },
+      data: { institutionId },
+    });
   }
 
   updateInstitution(

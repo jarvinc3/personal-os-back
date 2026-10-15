@@ -43,4 +43,17 @@ export class BalanceSheetRepository {
 
     return { institutions, accounts, cardBalances, loans };
   }
+
+  loadCashAccounts(userId: string) {
+    return this.prisma.finAccount.findMany({
+      where: {
+        userId,
+        isActive: true,
+        type: 'CASH',
+        institutionRef: { type: 'cash', isSystem: true },
+      },
+      select: { id: true, name: true, currency: true, balance: true },
+      orderBy: [{ currency: 'asc' }, { name: 'asc' }],
+    });
+  }
 }
