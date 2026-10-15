@@ -70,7 +70,7 @@ function build(options: { reminderDaysBefore?: number } = {}) {
     listPaymentsInRange: jest.fn().mockResolvedValue([]),
     listAlertDismissals: jest.fn().mockResolvedValue([]),
     dismissAlert: jest.fn().mockResolvedValue({}),
-    dismissAlerts: jest.fn().mockResolvedValue({ count: 1 }),
+    dismissAlerts: jest.fn().mockResolvedValue(undefined),
     countPendingDetected: jest.fn().mockResolvedValue(0),
   };
   const logos = { resolveUrl: jest.fn().mockReturnValue(null) };

@@ -257,18 +257,18 @@ export class SubscriptionsRepository {
     });
   }
 
-  dismissAlerts(
+  async dismissAlerts(
     rows: {
       userId: string;
       subscriptionId: string;
       kind: FinSubscriptionAlertKind;
       alertDate: Date;
     }[],
-  ) {
+  ): Promise<void> {
     if (rows.length === 0) {
-      return Promise.resolve({ count: 0 });
+      return;
     }
-    return this.prisma.finSubscriptionAlertDismissal.createMany({
+    await this.prisma.finSubscriptionAlertDismissal.createMany({
       data: rows,
       skipDuplicates: true,
     });
