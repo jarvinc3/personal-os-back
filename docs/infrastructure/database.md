@@ -33,3 +33,25 @@ No usar `migrate reset` sobre datos reales.
 
 > [!WARNING]
 > **REV-BACK-005** (`NO_IMPLEMENTADO`) — `pnpm db:reconcile-balances` apunta a `prisma/scripts/reconcile-balances.ts`, directorio inexistente. Igual el smoke `prisma/scripts/smoke-finance-http.ts` citado en docs antiguas. [review-register.md](../review-register.md#rev-back-005)
+
+## Migraciones y fechas
+
+El nombre de la carpeta de una migración Prisma (`YYYYMMDDHHMMSS_slug`) es su única clave de orden: Prisma aplica las pendientes en orden lexicográfico. Debe reflejar la fecha real del sistema al crearla; no se adelanta la fecha para forzar el orden.
+
+Hallazgo (2026-10-15):
+
+- Ocho carpetas están fechadas en el futuro respecto a su fecha real de creación: de `20261016090000_ai_session_chat_context` a `20261021100000_subscription_reminder_days_default` (16 al 21 de octubre). Todas se crearon entre el 14 y el 15 de octubre (verificado con `git log --diff-filter=A`).
+- `20261015220000_fin_card_charge_categories` y `20261015220000_fix_schema_drift` comparten timestamp. En orden lexicográfico queda primero `fin_card_charge_categories` (`n` < `x`), aunque `fix_schema_drift` se creó antes. Se verificó que no dependen entre sí, así que el orden no altera el resultado.
+- Salvo ese par, el orden lexicográfico coincide con el orden de creación y con las dependencias SQL.
+- Una migración nueva con la fecha real del sistema (`20261015...`) ordenaría antes que las aplicadas desde `20261015120000` en adelante y que las fechadas del 16 al 21 de octubre. En una base nueva correría antes de migraciones de las que puede depender; en Supabase quedaría fuera de secuencia respecto al historial aplicado.
+
+Estado verificado con `pnpm db:migrate:status` (2026-10-15): 52 migraciones en `packages/database/prisma/migrations`, 51 aplicadas y una pendiente, `20261021100000_subscription_reminder_days_default`.
+
+Decisión: no renombrar migraciones aplicadas. Renombrar cambia el `migration_name` en `_prisma_migrations`; Prisma trataría la carpeta como nueva, intentaría reaplicarla y fallaría o marcaría drift. El riesgo supera el beneficio de alinear las fechas.
+
+Recomendación:
+
+1. No renombrar las 51 migraciones aplicadas.
+2. Aplicar la pendiente tal cual: ya ordena al final.
+3. Sanear el historial aparte, con respaldo: renombrar las carpetas a su fecha real de creación y actualizar `_prisma_migrations.migration_name` en la misma operación. Es la única vía para tener fechas reales sin romper el orden.
+4. Mientras no se sanee, al crear una migración revisar que su carpeta ordene después de la última existente (`20261021100000`); si no, corregir el nombre de la carpeta nueva (aún no aplicada) antes de aplicarla y registrar el ajuste.
