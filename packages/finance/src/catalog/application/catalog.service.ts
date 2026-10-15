@@ -242,11 +242,7 @@ export class CatalogService {
   }
 
   async createInstitution(userId: string, dto: CreateInstitutionDto) {
-    if (isCashInstitution({ type: dto.type ?? 'bank' })) {
-      throw new BadRequestException(
-        'Efectivo ya existe como institución de sistema',
-      );
-    }
+    this.assertNotCashInstitutionType(dto.type);
     const domain = this.normalizeInstitutionDomain(dto.domain);
     const logoPath = domain ? await this.logos.ensureLogo(domain) : null;
     try {
@@ -276,11 +272,7 @@ export class CatalogService {
       throw new NotFoundException('Institution not found');
     }
     this.assertInstitutionEditable(existing);
-    if (dto.type !== undefined && isCashInstitution({ type: dto.type })) {
-      throw new BadRequestException(
-        'Efectivo ya existe como institución de sistema',
-      );
-    }
+    this.assertNotCashInstitutionType(dto.type);
     if (dto.isActive === false) {
       await this.ownership.assertInstitutionCanArchive(userId, id);
     }
@@ -774,6 +766,14 @@ export class CatalogService {
     if (institution.isSystem) {
       throw new ForbiddenException(
         'La institución Efectivo es de sistema: no se puede editar ni borrar',
+      );
+    }
+  }
+
+  private assertNotCashInstitutionType(type: string | undefined) {
+    if (type !== undefined && isCashInstitution({ type })) {
+      throw new BadRequestException(
+        'Efectivo ya existe como institución de sistema',
       );
     }
   }
