@@ -51,8 +51,8 @@ type DetectedProduct = {
   expectedCents: number;
 };
 
-const ACCOUNT_NOT_FOUND = 'Account not found';
-const CARD_BALANCE_NOT_FOUND = 'Card balance not found';
+const ACCOUNT_NOT_FOUND = 'Cuenta no encontrada';
+const CARD_BALANCE_NOT_FOUND = 'Saldo de tarjeta no encontrado';
 
 function moneyString(value: { toString(): string } | number): string {
   return roundMoney(Number(value)).toFixed(2);
@@ -111,7 +111,9 @@ export class BalanceIntegrityService {
     target: IntegrityTarget,
   ): Promise<IntegrityRecalculateResult> {
     if (!('accountId' in target) && !target.currency) {
-      throw new BadRequestException('Card recalculation requires a currency');
+      throw new BadRequestException(
+        'El recálculo de tarjeta requiere una moneda',
+      );
     }
     const snapshot = await this.repo.loadSnapshot(userId);
     const expected = computeExpectedBalances(snapshot);

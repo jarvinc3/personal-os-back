@@ -1,3 +1,4 @@
+import './instrument';
 import { Logger, RequestMethod, ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
@@ -87,9 +88,8 @@ async function bootstrap() {
         ? corsOrigins[0]
         : corsOrigins
       : (origin, callback) => {
-          // Expo Go / React Native often omit Origin; allow missing Origin in non-prod.
           if (!origin) {
-            callback(null, true);
+            callback(new Error('Origin header is required'), false);
             return;
           }
           if (

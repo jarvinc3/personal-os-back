@@ -111,7 +111,7 @@ export class MerchantsService {
   async get(userId: string, id: string, now = new Date()) {
     const merchant = await this.repo.findMerchantById(userId, id);
     if (!merchant) {
-      throw new NotFoundException('Merchant not found');
+      throw new NotFoundException('Comercio no encontrado');
     }
     const spends = await this.repo.sumSpendByMerchant(
       userId,
@@ -124,7 +124,7 @@ export class MerchantsService {
   async update(userId: string, id: string, dto: UpdateMerchantDto) {
     const existing = await this.repo.findMerchantById(userId, id);
     if (!existing) {
-      throw new NotFoundException('Merchant not found');
+      throw new NotFoundException('Comercio no encontrado');
     }
     if (dto.categoryId !== undefined && dto.categoryId !== null) {
       await this.ownership.assertCategoryVisible(userId, dto.categoryId);
@@ -138,7 +138,9 @@ export class MerchantsService {
     if (dto.name !== undefined) {
       const normalizedKey = normalizeMerchant(dto.name);
       if (!normalizedKey) {
-        throw new BadRequestException('Merchant name has no usable text');
+        throw new BadRequestException(
+          'El nombre del comercio no tiene texto utilizable',
+        );
       }
       changes.name = dto.name.trim();
       changes.normalizedKey = normalizedKey;
@@ -159,11 +161,13 @@ export class MerchantsService {
 
   async merge(userId: string, id: string, targetId: string, now = new Date()) {
     if (id === targetId) {
-      throw new BadRequestException('Cannot merge a merchant into itself');
+      throw new BadRequestException(
+        'No se puede fusionar un comercio consigo mismo',
+      );
     }
     const merged = await this.repo.mergeMerchants(userId, id, targetId);
     if (!merged) {
-      throw new NotFoundException('Merchant not found');
+      throw new NotFoundException('Comercio no encontrado');
     }
     return this.get(userId, targetId, now);
   }
@@ -179,7 +183,7 @@ export class MerchantsService {
     }
     const existing = await this.repo.findMerchantById(userId, id);
     if (!existing) {
-      throw new NotFoundException('Merchant not found');
+      throw new NotFoundException('Comercio no encontrado');
     }
     let url: string | null;
     try {

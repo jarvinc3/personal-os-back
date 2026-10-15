@@ -29,7 +29,7 @@ export class AuthController {
   ) {}
 
   @Get('session')
-  @ApiOperation({ summary: 'Get authenticated session context' })
+  @ApiOperation({ summary: 'Obtiene el contexto de la sesión autenticada' })
   @ApiOkResponse({ description: 'Current authenticated user context' })
   async session(@CurrentUser() user: AuthUserContext) {
     const cacheKey = `user.logged_in:${user.sub}`;

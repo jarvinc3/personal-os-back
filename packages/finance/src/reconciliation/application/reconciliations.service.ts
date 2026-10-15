@@ -110,7 +110,7 @@ export class ReconciliationsService {
   async list(userId: string, query: ListReconciliationsQueryDto) {
     if (Boolean(query.accountId) === Boolean(query.cardId)) {
       throw new BadRequestException(
-        'Provide exactly one of accountId or cardId',
+        'Indica exactamente uno de accountId o cardId',
       );
     }
     const limit = clampPageLimit(query.limit);
@@ -129,7 +129,7 @@ export class ReconciliationsService {
   async get(userId: string, id: string) {
     const row = await this.repo.findById(userId, id);
     if (!row) {
-      throw new NotFoundException('Reconciliation not found');
+      throw new NotFoundException('Conciliación no encontrada');
     }
     return this.mapRow(row);
   }
@@ -142,7 +142,7 @@ export class ReconciliationsService {
       );
     }
     if (outcome.count === 0) {
-      throw new NotFoundException('Reconciliation not found');
+      throw new NotFoundException('Conciliación no encontrada');
     }
     return { success: true, undoId: id };
   }
@@ -280,7 +280,7 @@ export class ReconciliationsService {
   ): Promise<ReconciliationTarget> {
     if (Boolean(dto.accountId) === Boolean(dto.cardId)) {
       throw new BadRequestException(
-        'Provide exactly one of accountId or cardId',
+        'Indica exactamente uno de accountId o cardId',
       );
     }
     const target = await this.repo.findTarget(userId, {
@@ -289,7 +289,7 @@ export class ReconciliationsService {
       currency: dto.currency,
     });
     if (!target) {
-      throw new NotFoundException('Account or card not found');
+      throw new NotFoundException('Cuenta o tarjeta no encontrada');
     }
     return target;
   }

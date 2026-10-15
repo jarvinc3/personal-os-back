@@ -401,7 +401,7 @@ describe('IngestionService mailbox linking', () => {
         bankSenderEmail: 'alertas@bhd.com.do',
         institutionId: 'inst-1',
       }),
-    ).rejects.toThrow('Connect Gmail before linking a bank');
+    ).rejects.toThrow('Conecta Gmail antes de vincular un banco');
   });
 
   it('refuses to create a source when the mailbox has no refresh token', async () => {
@@ -415,7 +415,7 @@ describe('IngestionService mailbox linking', () => {
         bankSenderEmail: 'alertas@bhd.com.do',
         institutionId: 'inst-1',
       }),
-    ).rejects.toThrow('Connect Gmail first');
+    ).rejects.toThrow('Conecta Gmail primero');
   });
 
   it('creates a source from sender email and derives the domain', async () => {

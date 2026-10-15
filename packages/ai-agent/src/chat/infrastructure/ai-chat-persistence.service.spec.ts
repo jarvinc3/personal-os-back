@@ -189,6 +189,6 @@ describe('AiChatPersistenceService', () => {
 
     await expect(
       service.readChatContext('user-1', 'session-missing'),
-    ).rejects.toThrow('AI session not found');
+    ).rejects.toThrow('Sesión de IA no encontrada');
   });
 });

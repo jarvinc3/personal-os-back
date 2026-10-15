@@ -102,3 +102,42 @@ describe('envSchema AI limits', () => {
     expect(parsed.AI_DAILY_INSIGHT_QUOTA).toBe(20);
   });
 });
+
+describe('envSchema Sentry', () => {
+  it('omits Sentry settings when no DSN is set', () => {
+    const parsed = parseEnv(validBaseEnv);
+
+    expect(parsed.SENTRY_DSN).toBeUndefined();
+    expect(parsed.SENTRY_TRACES_SAMPLE_RATE).toBe(0.1);
+  });
+
+  it('accepts a DSN, a token, and a sample rate', () => {
+    const parsed = parseEnv({
+      ...validBaseEnv,
+      SENTRY_DSN: 'https://key@o0.ingest.sentry.io/0',
+      SENTRY_TRACES_SAMPLE_RATE: '0.5',
+      SENTRY_AUTH_TOKEN: 'sntrys_token',
+      SENTRY_ORG: 'collado-studios',
+      SENTRY_PROJECT: 'personal-os-back',
+    });
+
+    expect(parsed.SENTRY_DSN).toBe('https://key@o0.ingest.sentry.io/0');
+    expect(parsed.SENTRY_TRACES_SAMPLE_RATE).toBe(0.5);
+    expect(parsed.SENTRY_AUTH_TOKEN).toBe('sntrys_token');
+  });
+
+  it('falls back to the default sample rate on a blank value', () => {
+    const parsed = parseEnv({
+      ...validBaseEnv,
+      SENTRY_TRACES_SAMPLE_RATE: '',
+    });
+
+    expect(parsed.SENTRY_TRACES_SAMPLE_RATE).toBe(0.1);
+  });
+
+  it('rejects a sample rate outside 0..1', () => {
+    expect(() =>
+      parseEnv({ ...validBaseEnv, SENTRY_TRACES_SAMPLE_RATE: '1.5' }),
+    ).toThrow();
+  });
+});

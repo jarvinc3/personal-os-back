@@ -129,7 +129,7 @@ export class IngestionService {
   async deactivateMailbox(userId: string, id: string) {
     const updated = await this.repo.deactivateMailbox(userId, id);
     if (!updated) {
-      throw new NotFoundException('Mailbox not found');
+      throw new NotFoundException('Buzón no encontrado');
     }
     return { success: true };
   }
@@ -147,10 +147,10 @@ export class IngestionService {
       dto.emailAddress,
     );
     if (!connection) {
-      throw new NotFoundException('Connect Gmail before linking a bank');
+      throw new NotFoundException('Conecta Gmail antes de vincular un banco');
     }
     if (!connection.refreshToken) {
-      throw new BadRequestException('Connect Gmail first');
+      throw new BadRequestException('Conecta Gmail primero');
     }
 
     const sender = this.resolveSenderFields({
@@ -174,7 +174,7 @@ export class IngestionService {
   ) {
     const existing = await this.repo.findEmailSource(userId, id);
     if (!existing) {
-      throw new NotFoundException('Email source not found');
+      throw new NotFoundException('Origen de correo no encontrado');
     }
 
     if (dto.institutionId) {
@@ -217,7 +217,7 @@ export class IngestionService {
 
     const updated = await this.repo.updateEmailSource(userId, id, data);
     if (!updated) {
-      throw new NotFoundException('Email source not found');
+      throw new NotFoundException('Origen de correo no encontrado');
     }
     return this.mapEmailSourceResponse(updated);
   }
@@ -227,7 +227,7 @@ export class IngestionService {
       isActive: false,
     });
     if (!updated) {
-      throw new NotFoundException('Email source not found');
+      throw new NotFoundException('Origen de correo no encontrado');
     }
     return { success: true };
   }
@@ -240,7 +240,7 @@ export class IngestionService {
     await this.users.assertFinanceEmailSyncEnabled(userId);
     const source = await this.repo.findEmailSource(userId, sourceId);
     if (!source) {
-      throw new NotFoundException('Email source not found');
+      throw new NotFoundException('Origen de correo no encontrado');
     }
     return this.enqueueGmailSyncJob(userId, sourceId, { forceFullSync });
   }
@@ -381,7 +381,7 @@ export class IngestionService {
     const corsOrigin = this.config.get('CORS_ORIGIN', { infer: true });
     const returnTo = query.returnTo?.trim();
     if (returnTo && !isAllowlistedReturnTo(returnTo, corsOrigin)) {
-      throw new BadRequestException('returnTo is not an allowed origin');
+      throw new BadRequestException('returnTo no es un origen permitido');
     }
 
     const sender = query.bankSenderEmail
@@ -458,7 +458,7 @@ export class IngestionService {
     try {
       payload = jwt.verify(state, this.oauthStateSecret) as OAuthStatePayload;
     } catch {
-      throw new BadRequestException('Invalid or expired OAuth state');
+      throw new BadRequestException('State de OAuth inválido o vencido');
     }
 
     await this.users.assertFinanceEmailSyncEnabled(payload.sub);
@@ -483,7 +483,7 @@ export class IngestionService {
     );
     const refreshToken = tokenResponse.refresh_token;
     if (!refreshToken) {
-      throw new BadRequestException('Google did not return a refresh token');
+      throw new BadRequestException('Google no devolvió un refresh token');
     }
     const encryptedRefresh = encryptToken(refreshToken, this.encryptionKey);
     const tokenExpiresAt = new Date(
@@ -532,7 +532,9 @@ export class IngestionService {
   async getValidGmailAccessToken(sourceId: string): Promise<string> {
     const source = await this.repo.findEmailSourceForRefresh(sourceId);
     if (!source?.connection.accessToken) {
-      throw new NotFoundException('Email source tokens not found');
+      throw new NotFoundException(
+        'No se encontraron los tokens del origen de correo',
+      );
     }
 
     const expiresSoon =
@@ -582,7 +584,7 @@ export class IngestionService {
     await this.users.assertFinanceEmailSyncEnabled(userId);
     const message = await this.repo.findEmailMessageById(userId, messageId);
     if (!message) {
-      throw new NotFoundException('Email message not found');
+      throw new NotFoundException('Mensaje de correo no encontrado');
     }
 
     if (
@@ -595,7 +597,9 @@ export class IngestionService {
       message.outcome !== EMAIL_MESSAGE_OUTCOME.PENDING_ASSIGNMENT &&
       message.outcome !== EMAIL_MESSAGE_OUTCOME.PENDING_AMOUNT
     ) {
-      throw new BadRequestException('Email message is not pending assignment');
+      throw new BadRequestException(
+        'El mensaje de correo no está pendiente de asignación',
+      );
     }
 
     await this.assertAssignmentTarget(
@@ -614,7 +618,7 @@ export class IngestionService {
     await this.users.assertFinanceEmailSyncEnabled(userId);
     const message = await this.repo.findEmailMessageById(userId, messageId);
     if (!message) {
-      throw new NotFoundException('Email message not found');
+      throw new NotFoundException('Mensaje de correo no encontrado');
     }
     if (
       message.outcome === EMAIL_MESSAGE_OUTCOME.IMPORTED &&
@@ -626,7 +630,9 @@ export class IngestionService {
       message.outcome !== EMAIL_MESSAGE_OUTCOME.PENDING_ASSIGNMENT &&
       message.outcome !== EMAIL_MESSAGE_OUTCOME.PENDING_AMOUNT
     ) {
-      throw new BadRequestException('Email message is not pending assignment');
+      throw new BadRequestException(
+        'El mensaje de correo no está pendiente de asignación',
+      );
     }
 
     const [accounts, cards] = await this.repo.listInstitutionDestinations(
@@ -666,7 +672,7 @@ export class IngestionService {
     await this.users.assertFinanceEmailSyncEnabled(userId);
     const message = await this.repo.findEmailMessageById(userId, messageId);
     if (!message) {
-      throw new NotFoundException('Email message not found');
+      throw new NotFoundException('Mensaje de correo no encontrado');
     }
     if (
       message.outcome === EMAIL_MESSAGE_OUTCOME.IMPORTED &&
@@ -680,7 +686,7 @@ export class IngestionService {
       );
     }
     if (!(amount > 0)) {
-      throw new BadRequestException('amount must be positive');
+      throw new BadRequestException('el monto debe ser positivo');
     }
 
     const [accounts, cards] = await this.repo.listInstitutionDestinations(
@@ -735,7 +741,7 @@ export class IngestionService {
   async listDiscoveredSenders(userId: string, sourceId: string, days = 14) {
     const source = await this.repo.findEmailSource(userId, sourceId);
     if (!source) {
-      throw new NotFoundException('Email source not found');
+      throw new NotFoundException('Origen de correo no encontrado');
     }
     const accessToken = await this.getValidGmailAccessToken(sourceId);
     const query = `from:${source.bankDomain} newer_than:${Math.max(1, days)}d`;
@@ -777,7 +783,7 @@ export class IngestionService {
   async addSourceSenders(userId: string, sourceId: string, emails: string[]) {
     const source = await this.repo.findEmailSource(userId, sourceId);
     if (!source) {
-      throw new NotFoundException('Email source not found');
+      throw new NotFoundException('Origen de correo no encontrado');
     }
     const sender = this.resolveSenderFields({
       bankSenderEmails: [...(source.bankSenderEmails ?? []), ...emails],
@@ -788,7 +794,7 @@ export class IngestionService {
       bankDomain: sender.bankDomain,
     });
     if (!updated) {
-      throw new NotFoundException('Email source not found');
+      throw new NotFoundException('Origen de correo no encontrado');
     }
     return this.mapEmailSourceResponse(updated);
   }
@@ -800,11 +806,13 @@ export class IngestionService {
   ) {
     const extracted = parseExtractedPayload(message.extractedPayload);
     if (!extracted) {
-      throw new BadRequestException('Email message has no extract to assign');
+      throw new BadRequestException(
+        'El mensaje de correo no tiene extracción para asignar',
+      );
     }
     const amount = target.amount ?? extracted.amount;
     if (amount == null) {
-      throw new BadRequestException('Email message is missing an amount');
+      throw new BadRequestException('Al mensaje de correo le falta el monto');
     }
 
     const status = mapBankStatusToInternal({
@@ -939,7 +947,7 @@ export class IngestionService {
         );
       }
       if (!account.isActive) {
-        throw new BadRequestException('Account is not active');
+        throw new BadRequestException('La cuenta no está activa');
       }
     }
     if (dto.cardId) {
@@ -950,7 +958,7 @@ export class IngestionService {
         );
       }
       if (!card.isActive) {
-        throw new BadRequestException('Card is not active');
+        throw new BadRequestException('La tarjeta no está activa');
       }
     }
   }
@@ -964,7 +972,9 @@ export class IngestionService {
   private async refreshGmailToken(sourceId: string): Promise<string> {
     const source = await this.repo.findEmailSourceForRefresh(sourceId);
     if (!source?.connection.refreshToken || !source.connection.accessToken) {
-      throw new NotFoundException('Email source tokens not found');
+      throw new NotFoundException(
+        'No se encontraron los tokens del origen de correo',
+      );
     }
 
     const refreshToken = decryptToken(

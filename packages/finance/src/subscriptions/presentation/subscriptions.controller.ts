@@ -39,7 +39,7 @@ export class SubscriptionsController {
   constructor(private readonly subscriptions: SubscriptionsService) {}
 
   @Get()
-  @ApiOperation({ summary: 'List managed subscriptions' })
+  @ApiOperation({ summary: 'Lista las suscripciones gestionadas' })
   list(
     @CurrentUser('sub') userId: string,
     @Query() query: ListSubscriptionsQueryDto,
@@ -48,13 +48,15 @@ export class SubscriptionsController {
   }
 
   @Get('summary')
-  @ApiOperation({ summary: 'Monthly and annual cost, active count, upcoming' })
+  @ApiOperation({
+    summary: 'Costo mensual y anual, cantidad activa y próximos',
+  })
   summary(@CurrentUser('sub') userId: string) {
     return this.subscriptions.summary(userId);
   }
 
   @Get('breakdown')
-  @ApiOperation({ summary: 'Cost split by category, instrument or currency' })
+  @ApiOperation({ summary: 'Costo por categoría, instrumento o moneda' })
   breakdown(
     @CurrentUser('sub') userId: string,
     @Query() query: SubscriptionBreakdownQueryDto,
@@ -63,7 +65,7 @@ export class SubscriptionsController {
   }
 
   @Get('upcoming')
-  @ApiOperation({ summary: 'Projected charges in a date window' })
+  @ApiOperation({ summary: 'Cargos previstos en una ventana de fechas' })
   upcoming(
     @CurrentUser('sub') userId: string,
     @Query() query: UpcomingSubscriptionsQueryDto,
@@ -72,19 +74,19 @@ export class SubscriptionsController {
   }
 
   @Get('alerts')
-  @ApiOperation({ summary: 'Active subscription alerts' })
+  @ApiOperation({ summary: 'Alertas activas de suscripciones' })
   alerts(@CurrentUser('sub') userId: string) {
     return this.subscriptions.alerts(userId);
   }
 
   @Post('alerts/dismiss-all')
-  @ApiOperation({ summary: 'Dismiss every active alert' })
+  @ApiOperation({ summary: 'Descarta todas las alertas activas' })
   dismissAllAlerts(@CurrentUser('sub') userId: string) {
     return this.subscriptions.dismissAllAlerts(userId);
   }
 
   @Post('alerts/dismiss')
-  @ApiOperation({ summary: 'Dismiss an alert for its occurrence' })
+  @ApiOperation({ summary: 'Descarta una alerta para su ocurrencia' })
   dismissAlert(
     @CurrentUser('sub') userId: string,
     @Body() dto: DismissSubscriptionAlertDto,
@@ -93,7 +95,7 @@ export class SubscriptionsController {
   }
 
   @Post()
-  @ApiOperation({ summary: 'Create a subscription' })
+  @ApiOperation({ summary: 'Crea una suscripción' })
   create(
     @CurrentUser('sub') userId: string,
     @Body() dto: CreateSubscriptionDto,
@@ -102,13 +104,13 @@ export class SubscriptionsController {
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Subscription detail' })
+  @ApiOperation({ summary: 'Detalle de la suscripción' })
   get(@CurrentUser('sub') userId: string, @Param('id') id: string) {
     return this.subscriptions.get(userId, id);
   }
 
   @Patch(':id')
-  @ApiOperation({ summary: 'Edit a subscription' })
+  @ApiOperation({ summary: 'Edita una suscripción' })
   update(
     @CurrentUser('sub') userId: string,
     @Param('id') id: string,
@@ -118,25 +120,25 @@ export class SubscriptionsController {
   }
 
   @Post(':id/pause')
-  @ApiOperation({ summary: 'Pause a subscription' })
+  @ApiOperation({ summary: 'Pausa una suscripción' })
   pause(@CurrentUser('sub') userId: string, @Param('id') id: string) {
     return this.subscriptions.pause(userId, id);
   }
 
   @Post(':id/resume')
-  @ApiOperation({ summary: 'Resume a paused subscription' })
+  @ApiOperation({ summary: 'Reanuda una suscripción pausada' })
   resume(@CurrentUser('sub') userId: string, @Param('id') id: string) {
     return this.subscriptions.resume(userId, id);
   }
 
   @Post(':id/cancel')
-  @ApiOperation({ summary: 'Cancel a subscription' })
+  @ApiOperation({ summary: 'Cancela una suscripción' })
   cancel(@CurrentUser('sub') userId: string, @Param('id') id: string) {
     return this.subscriptions.cancel(userId, id);
   }
 
   @Get(':id/payments')
-  @ApiOperation({ summary: 'Payment history' })
+  @ApiOperation({ summary: 'Historial de pagos' })
   listPayments(
     @CurrentUser('sub') userId: string,
     @Param('id') id: string,
@@ -146,7 +148,7 @@ export class SubscriptionsController {
   }
 
   @Post(':id/payments')
-  @ApiOperation({ summary: 'Register a manual payment' })
+  @ApiOperation({ summary: 'Registra un pago manual' })
   createPayment(
     @CurrentUser('sub') userId: string,
     @Param('id') id: string,
@@ -157,7 +159,7 @@ export class SubscriptionsController {
 
   @Post(':id/logo')
   @ApiConsumes('multipart/form-data')
-  @ApiOperation({ summary: 'Upload a custom subscription logo' })
+  @ApiOperation({ summary: 'Sube un logo de suscripción personalizado' })
   @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 1_000_000 } }))
   uploadLogo(
     @CurrentUser('sub') userId: string,

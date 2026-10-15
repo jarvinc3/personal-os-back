@@ -6,6 +6,8 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { Prisma } from '@personal-os/database';
+import { clampPageLimit, toCursorPage } from '@personal-os/core';
+import type { CursorQueryDto } from '@personal-os/core';
 import { LogoService, type LogoUploadFile } from '@personal-os/logos';
 import type { LogoRow } from '@personal-os/logos';
 import { normalizeDomain } from '@personal-os/logos';
@@ -31,6 +33,7 @@ import { normalizeCurrencyCode, roundMoney } from '../../shared/domain/money';
 import { ResolveUserBaseCurrencyUseCase } from '../../fx/application/resolve-user-base-currency';
 import { CASH_ACCOUNT_TYPE, isCashInstitution } from '../../shared/domain/cash';
 import { EnsureCashInstitutionUseCase } from './ensure-cash-institution.use-case';
+import { institutionOrderKey } from '../domain/institution-order';
 import { CatalogRepository } from '../infrastructure/catalog.repository';
 import type { CreateAccountDto } from '../presentation/dto/create-account.dto';
 import type { CreateCardDto } from '../presentation/dto/create-card.dto';
@@ -112,10 +115,30 @@ export class CatalogService {
     );
   }
 
+  async listAccountsPage(userId: string, query: CursorQueryDto) {
+    await this.ensureCashInstitution.execute(userId);
+    const rows = await this.repo.findAccountsPage(userId, query);
+    const page = toCursorPage(
+      rows,
+      clampPageLimit(query.limit),
+      (row) => row.name,
+    );
+    const earmarked = await this.repo.sumEarmarkedByAccountIds(
+      userId,
+      page.items.map((account) => account.id),
+    );
+    return {
+      ...page,
+      items: page.items.map((account) =>
+        this.mapAccount(account, earmarked.get(account.id) ?? 0),
+      ),
+    };
+  }
+
   async getAccount(userId: string, id: string) {
     const account = await this.repo.findAccountById(id, userId);
     if (!account) {
-      throw new NotFoundException('Account not found');
+      throw new NotFoundException('Cuenta no encontrada');
     }
     const earmarked = await this.repo.sumEarmarkedByAccountIds(userId, [id]);
     return this.mapAccount(account, earmarked.get(id) ?? 0);
@@ -156,7 +179,7 @@ export class CatalogService {
   async updateAccount(userId: string, id: string, dto: UpdateAccountDto) {
     const existing = await this.repo.findAccountById(id, userId);
     if (!existing) {
-      throw new NotFoundException('Account not found');
+      throw new NotFoundException('Cuenta no encontrada');
     }
 
     const nextType = dto.type ?? existing.type;
@@ -203,7 +226,7 @@ export class CatalogService {
         accountNumber: nextAccountNumber,
       });
       if (!account) {
-        throw new NotFoundException('Account not found');
+        throw new NotFoundException('Cuenta no encontrada');
       }
       return this.mapAccount(account);
     } catch (error) {
@@ -214,7 +237,7 @@ export class CatalogService {
   async deleteAccount(userId: string, id: string) {
     const existing = await this.repo.findAccountById(id, userId);
     if (!existing) {
-      throw new NotFoundException('Account not found');
+      throw new NotFoundException('Cuenta no encontrada');
     }
     await this.assertCashAccountDeletable(userId, existing);
     const purged = await this.purgeLedger.forAccount(userId, id);
@@ -224,21 +247,27 @@ export class CatalogService {
       movements: purged.rows,
     });
     if (removed.count === 0) {
-      throw new NotFoundException('Account not found');
+      throw new NotFoundException('Cuenta no encontrada');
     }
     return { success: true };
   }
 
   async restoreAccount(userId: string, id: string, now: Date) {
     const restored = await this.repo.restoreAccount(userId, id, now);
-    assertRestored(restored, 'Account not found');
+    assertRestored(restored, 'Cuenta no encontrada');
     return { success: true };
   }
 
-  async listInstitutions(userId: string) {
+  async listInstitutionsPage(userId: string, query: CursorQueryDto) {
     await this.ensureCashInstitution.execute(userId);
-    const items = await this.repo.listInstitutions(userId);
-    return items.map((item) => this.mapInstitution(item));
+    const rows = await this.repo.listInstitutions(userId, query);
+    const page = toCursorPage(rows, clampPageLimit(query.limit), (row) =>
+      institutionOrderKey(row),
+    );
+    return {
+      ...page,
+      items: page.items.map((item) => this.mapInstitution(item)),
+    };
   }
 
   async createInstitution(userId: string, dto: CreateInstitutionDto) {
@@ -269,7 +298,7 @@ export class CatalogService {
   ) {
     const existing = await this.repo.findInstitution(userId, id);
     if (!existing) {
-      throw new NotFoundException('Institution not found');
+      throw new NotFoundException('Institución no encontrada');
     }
     this.assertInstitutionEditable(existing);
     this.assertNotCashInstitutionType(dto.type);
@@ -306,7 +335,7 @@ export class CatalogService {
     try {
       const updated = await this.repo.updateInstitution(userId, id, data);
       if (!updated) {
-        throw new NotFoundException('Institution not found');
+        throw new NotFoundException('Institución no encontrada');
       }
       return this.mapInstitution(updated);
     } catch (error) {
@@ -324,7 +353,7 @@ export class CatalogService {
     }
     const existing = await this.repo.findInstitution(userId, id);
     if (!existing) {
-      throw new NotFoundException('Institution not found');
+      throw new NotFoundException('Institución no encontrada');
     }
     this.assertInstitutionEditable(existing);
     let path: string;
@@ -339,7 +368,7 @@ export class CatalogService {
       customLogoPath: path,
     });
     if (!updated) {
-      throw new NotFoundException('Institution not found');
+      throw new NotFoundException('Institución no encontrada');
     }
     return this.mapInstitution(updated);
   }
@@ -347,7 +376,7 @@ export class CatalogService {
   async deactivateInstitution(userId: string, id: string) {
     const existing = await this.repo.findInstitution(userId, id);
     if (!existing) {
-      throw new NotFoundException('Institution not found');
+      throw new NotFoundException('Institución no encontrada');
     }
     this.assertInstitutionEditable(existing);
     await this.ownership.assertInstitutionCanArchive(userId, id);
@@ -355,7 +384,7 @@ export class CatalogService {
       isActive: false,
     });
     if (!updated) {
-      throw new NotFoundException('Institution not found');
+      throw new NotFoundException('Institución no encontrada');
     }
     return { success: true };
   }
@@ -363,7 +392,7 @@ export class CatalogService {
   async deleteInstitution(userId: string, id: string) {
     const existing = await this.repo.findInstitution(userId, id);
     if (!existing) {
-      throw new NotFoundException('Institution not found');
+      throw new NotFoundException('Institución no encontrada');
     }
     this.assertInstitutionEditable(existing);
     const movements: LedgerTransactionRow[] = [];
@@ -383,7 +412,7 @@ export class CatalogService {
       movements,
     });
     if (removed.count === 0) {
-      throw new NotFoundException('Institution not found');
+      throw new NotFoundException('Institución no encontrada');
     }
     return { success: true };
   }
@@ -392,6 +421,15 @@ export class CatalogService {
     const restored = await this.repo.restoreInstitution(userId, id, now);
     assertRestored(restored, 'Institution not found');
     return { success: true };
+  }
+
+  async listCardsPage(userId: string, query: CursorQueryDto) {
+    const rows = await this.repo.listCardsPage(userId, query);
+    const page = toCursorPage(rows, clampPageLimit(query.limit), (row) =>
+      row.createdAt.toISOString(),
+    );
+    const today = await this.localToday(userId);
+    return { ...page, items: page.items.map((c) => this.mapCard(c, today)) };
   }
 
   async listCards(userId: string) {
@@ -403,14 +441,14 @@ export class CatalogService {
   async getCard(userId: string, id: string) {
     const card = await this.repo.findCardById(userId, id);
     if (!card) {
-      throw new NotFoundException('Card not found');
+      throw new NotFoundException('Tarjeta no encontrada');
     }
     return this.mapCard(card, await this.localToday(userId));
   }
 
   async createCard(userId: string, dto: CreateCardDto) {
     if (!dto.lastFour) {
-      throw new BadRequestException('lastFour is required');
+      throw new BadRequestException('lastFour es obligatorio');
     }
     await this.ownership.assertInstitutionAcceptsBankProducts(
       userId,
@@ -418,7 +456,7 @@ export class CatalogService {
     );
     if (dto.type === 'DEBIT') {
       if (!dto.accountId) {
-        throw new BadRequestException('DEBIT cards require accountId');
+        throw new BadRequestException('Las tarjetas DEBIT requieren accountId');
       }
       await this.ownership.assertDebitAccountAlignment({
         userId,
@@ -427,7 +465,9 @@ export class CatalogService {
       });
     }
     if (dto.type === 'CREDIT' && dto.accountId) {
-      throw new BadRequestException('CREDIT cards must not set accountId');
+      throw new BadRequestException(
+        'Las tarjetas CREDIT no deben llevar accountId',
+      );
     }
 
     const created = await this.repo.createCard(userId, {
@@ -447,13 +487,13 @@ export class CatalogService {
   async updateCard(userId: string, id: string, dto: UpdateCardDto) {
     const existing = await this.repo.findCardById(userId, id);
     if (!existing) {
-      throw new NotFoundException('Card not found');
+      throw new NotFoundException('Tarjeta no encontrada');
     }
 
     const nextType = dto.type ?? existing.type;
     const nextInstitutionId = dto.institutionId ?? existing.institutionId;
     if (!dto.lastFour && !existing.lastFour) {
-      throw new BadRequestException('lastFour is required');
+      throw new BadRequestException('lastFour es obligatorio');
     }
     if (dto.institutionId) {
       await this.ownership.assertInstitutionAcceptsBankProducts(
@@ -472,7 +512,7 @@ export class CatalogService {
       const nextAccountId =
         dto.accountId !== undefined ? dto.accountId : existing.accountId;
       if (!nextAccountId) {
-        throw new BadRequestException('DEBIT cards require accountId');
+        throw new BadRequestException('Las tarjetas DEBIT requieren accountId');
       }
       await this.ownership.assertDebitAccountAlignment({
         userId,
@@ -481,7 +521,9 @@ export class CatalogService {
       });
     }
     if (nextType === 'CREDIT' && dto.accountId) {
-      throw new BadRequestException('CREDIT cards must not set accountId');
+      throw new BadRequestException(
+        'Las tarjetas CREDIT no deben llevar accountId',
+      );
     }
 
     const updated = await this.repo.updateCard(userId, id, {
@@ -505,7 +547,7 @@ export class CatalogService {
           : {}),
     });
     if (!updated) {
-      throw new NotFoundException('Card not found');
+      throw new NotFoundException('Tarjeta no encontrada');
     }
     return this.mapCard(updated, await this.localToday(userId));
   }
@@ -513,7 +555,7 @@ export class CatalogService {
   async deactivateCard(userId: string, id: string) {
     const updated = await this.repo.updateCard(userId, id, { isActive: false });
     if (!updated) {
-      throw new NotFoundException('Card not found');
+      throw new NotFoundException('Tarjeta no encontrada');
     }
     return { success: true };
   }
@@ -521,7 +563,7 @@ export class CatalogService {
   async deleteCard(userId: string, id: string) {
     const existing = await this.repo.findCardById(userId, id);
     if (!existing) {
-      throw new NotFoundException('Card not found');
+      throw new NotFoundException('Tarjeta no encontrada');
     }
     const purged = await this.purgeLedger.forCard(userId, id);
     const removed = await this.repo.deleteCard({
@@ -530,7 +572,7 @@ export class CatalogService {
       movements: purged.rows,
     });
     if (removed.count === 0) {
-      throw new NotFoundException('Card not found');
+      throw new NotFoundException('Tarjeta no encontrada');
     }
     return { success: true };
   }
@@ -548,7 +590,7 @@ export class CatalogService {
   ) {
     const card = await this.repo.findCardById(userId, id);
     if (!card) {
-      throw new NotFoundException('Card not found');
+      throw new NotFoundException('Tarjeta no encontrada');
     }
     if (card.type === 'DEBIT') {
       throw new BadRequestException(
@@ -556,7 +598,9 @@ export class CatalogService {
       );
     }
     if (card.type === 'CREDIT' && dto.creditLimit === undefined) {
-      throw new BadRequestException('CREDIT cards require creditLimit');
+      throw new BadRequestException(
+        'Las tarjetas CREDIT requieren creditLimit',
+      );
     }
     const updated = await this.repo.upsertCardBalance(
       userId,
@@ -566,7 +610,7 @@ export class CatalogService {
       dto.creditLimit,
     );
     if (!updated) {
-      throw new NotFoundException('Card not found');
+      throw new NotFoundException('Tarjeta no encontrada');
     }
     return {
       id: updated.id,
@@ -584,10 +628,12 @@ export class CatalogService {
   ) {
     const card = await this.repo.findCardById(userId, id);
     if (!card) {
-      throw new NotFoundException('Card not found');
+      throw new NotFoundException('Tarjeta no encontrada');
     }
     if (card.type !== 'CREDIT') {
-      throw new BadRequestException('Only credit cards have a credit limit');
+      throw new BadRequestException(
+        'Solo las tarjetas de crédito tienen límite',
+      );
     }
     const updated = await this.repo.setCardCreditLimit(
       userId,
@@ -596,7 +642,7 @@ export class CatalogService {
       dto.creditLimit,
     );
     if (!updated) {
-      throw new NotFoundException('Card not found');
+      throw new NotFoundException('Tarjeta no encontrada');
     }
     return {
       id: updated.id,
@@ -610,7 +656,7 @@ export class CatalogService {
   async deleteCardBalance(userId: string, id: string, currency: string) {
     const card = await this.repo.findCardById(userId, id);
     if (!card) {
-      throw new NotFoundException('Card not found');
+      throw new NotFoundException('Tarjeta no encontrada');
     }
     if (card.type === 'DEBIT') {
       throw new BadRequestException(
@@ -619,7 +665,7 @@ export class CatalogService {
     }
     const result = await this.repo.deleteCardBalance(userId, id, currency);
     if (result.count === 0) {
-      throw new NotFoundException('Card balance not found');
+      throw new NotFoundException('Saldo de tarjeta no encontrado');
     }
     return { success: true };
   }
@@ -630,7 +676,9 @@ export class CatalogService {
 
   async createCategory(userId: string, dto: CreateCategoryDto) {
     if (dto.type === 'TRANSFER') {
-      throw new BadRequestException('Category type must be EXPENSE or INCOME');
+      throw new BadRequestException(
+        'El tipo de categoría debe ser EXPENSE o INCOME',
+      );
     }
     const type = dto.type ?? 'EXPENSE';
     if (dto.parentId) {
@@ -652,7 +700,9 @@ export class CatalogService {
 
   async updateCategory(userId: string, id: string, dto: UpdateCategoryDto) {
     if (dto.type === 'TRANSFER') {
-      throw new BadRequestException('Category type must be EXPENSE or INCOME');
+      throw new BadRequestException(
+        'El tipo de categoría debe ser EXPENSE o INCOME',
+      );
     }
     const existing = await this.ownership.assertCategoryVisible(userId, id);
     const nextParentId =
@@ -695,7 +745,7 @@ export class CatalogService {
       cascadeType,
     );
     if (!updated) {
-      throw new NotFoundException('Category not found');
+      throw new NotFoundException('Categoría no encontrada');
     }
     return updated;
   }
@@ -703,7 +753,7 @@ export class CatalogService {
   async deleteCategory(userId: string, id: string) {
     const result = await this.repo.deleteCategory(userId, id);
     if (result.count === 0) {
-      throw new NotFoundException('Category not found');
+      throw new NotFoundException('Categoría no encontrada');
     }
     return { success: true };
   }

@@ -18,14 +18,14 @@ export class RemoveSavingsGoalContributionUseCase {
   ) {
     const goal = await this.repo.findSavingsGoal(userId, goalId);
     if (!goal) {
-      throw new NotFoundException('Savings goal not found');
+      throw new NotFoundException('Meta de ahorro no encontrada');
     }
     const contribution = await this.repo.findSavingsGoalContribution(
       goalId,
       contributionId,
     );
     if (!contribution) {
-      throw new NotFoundException('Contribution not found');
+      throw new NotFoundException('Aporte no encontrado');
     }
 
     if (contribution.transactionId) {

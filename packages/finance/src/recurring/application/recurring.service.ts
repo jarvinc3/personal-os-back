@@ -129,7 +129,7 @@ export class RecurringService {
     }
     const resolved = await this.resolveMerchant(userId, dto);
     if (!resolved && !dto.merchant?.trim()) {
-      throw new BadRequestException('merchant or merchantId is required');
+      throw new BadRequestException('merchant o merchantId es obligatorio');
     }
     const created = await this.repo.createPattern(userId, {
       merchantId: resolved?.id ?? null,
@@ -155,7 +155,7 @@ export class RecurringService {
   ) {
     const existing = await this.repo.findPatternById(userId, id);
     if (!existing) {
-      throw new NotFoundException('Recurring pattern not found');
+      throw new NotFoundException('Patrón recurrente no encontrado');
     }
     if (dto.categoryId) {
       await this.ownership.assertCategoryVisible(userId, dto.categoryId);
@@ -193,7 +193,7 @@ export class RecurringService {
     }
     const updated = await this.repo.updatePattern(userId, id, changes);
     if (!updated) {
-      throw new NotFoundException('Recurring pattern not found');
+      throw new NotFoundException('Patrón recurrente no encontrado');
     }
     return mapPattern(updated, now);
   }

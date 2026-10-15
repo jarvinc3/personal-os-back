@@ -208,7 +208,7 @@ export class WipeFinanceUserDataUseCase {
         select: { id: true },
       });
       if (!institution) {
-        throw new NotFoundException('Institution not found');
+        throw new NotFoundException('Institución no encontrada');
       }
     }
     const accounts = await tx.finAccount.updateMany({

@@ -32,7 +32,7 @@ export class UnconfirmTransactionUseCase {
   async execute(userId: string, id: string) {
     const tx = await this.repo.findTransactionById(id, userId);
     if (!tx) {
-      throw new NotFoundException('Transaction not found');
+      throw new NotFoundException('Transacción no encontrada');
     }
     if (tx.transferGroupId) {
       throw new ConflictException({
@@ -63,7 +63,7 @@ export class UnconfirmTransactionUseCase {
 
     const updated = await this.repo.unconfirmTransaction(userId, id);
     if (!updated) {
-      throw new NotFoundException('Transaction not found');
+      throw new NotFoundException('Transacción no encontrada');
     }
     void this.outboxDispatcher.processBatch();
     return mapLedgerTransaction(updated.transaction);

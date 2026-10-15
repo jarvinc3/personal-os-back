@@ -48,7 +48,7 @@ export class WipeUserDataUseCase {
   ): Promise<WipeUserDataResult> {
     const user = await this.usersRepository.findById(userId);
     if (!user) {
-      throw new NotFoundException('User not found');
+      throw new NotFoundException('Usuario no encontrado');
     }
 
     const appliedLayers = expandWipeLayers(requestedLayers);

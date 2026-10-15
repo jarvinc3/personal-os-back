@@ -23,7 +23,7 @@ export class SupabaseJwtVerifierService {
             .then((key) => callback(null, key))
             .catch((error: unknown) => {
               callback(
-                error instanceof Error ? error : new Error('Invalid token'),
+                error instanceof Error ? error : new Error('Token inválido'),
               );
             });
         },
@@ -46,12 +46,12 @@ export class SupabaseJwtVerifierService {
       );
     }).catch((error: unknown) => {
       throw new UnauthorizedException(
-        error instanceof Error ? error.message : 'Invalid token',
+        error instanceof Error ? error.message : 'Token inválido',
       );
     });
 
     if (!payload.sub) {
-      throw new UnauthorizedException('Missing sub in JWT payload');
+      throw new UnauthorizedException('Falta el sub en el token JWT');
     }
 
     return {
@@ -63,7 +63,7 @@ export class SupabaseJwtVerifierService {
 
   private async resolveSigningKey(kid: string | undefined): Promise<string> {
     if (!kid) {
-      throw new UnauthorizedException('Missing JWT key id');
+      throw new UnauthorizedException('Falta el id de la clave JWT');
     }
 
     this.client ??= createJwksClient({

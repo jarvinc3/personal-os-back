@@ -37,7 +37,7 @@ export class AiController {
   ) {}
 
   @Get('providers')
-  @ApiOperation({ summary: 'List configured AI providers' })
+  @ApiOperation({ summary: 'Lista los proveedores de IA configurados' })
   @ApiOkResponse({
     schema: {
       type: 'object',
@@ -56,7 +56,7 @@ export class AiController {
   @Post('chat')
   @Throttle({ long: { limit: 30, ttl: 60_000 } })
   @ApiOperation({
-    summary: 'Chat with AI agent pool (aggregated JSON response)',
+    summary: 'Chat con el grupo de agentes de IA (respuesta JSON agregada)',
   })
   @ApiOkResponse({ type: ChatResponseDto })
   async chat(
@@ -67,7 +67,9 @@ export class AiController {
       .reverse()
       .find((m) => m.role === 'user');
     if (!latestUser) {
-      throw new BadRequestException('At least one user message is required');
+      throw new BadRequestException(
+        'Se requiere al menos un mensaje del usuario',
+      );
     }
 
     const session = await this.aiChatPersistence.resolveSession(
@@ -112,7 +114,7 @@ export class AiController {
 
   @Post('chat/stream')
   @Throttle({ long: { limit: 30, ttl: 60_000 } })
-  @ApiOperation({ summary: 'Chat with AI agent pool (SSE stream)' })
+  @ApiOperation({ summary: 'Chat con el grupo de agentes de IA (stream SSE)' })
   @ApiProduces('text/event-stream')
   async chatStream(
     @Body() dto: ChatRequestDto,

@@ -15,7 +15,7 @@ export class ConfirmTransactionUseCase {
   async execute(userId: string, id: string) {
     const tx = await this.repo.findTransactionById(id, userId);
     if (!tx) {
-      throw new NotFoundException('Transaction not found');
+      throw new NotFoundException('Transacción no encontrada');
     }
 
     if (tx.transferGroupId) {
@@ -25,7 +25,7 @@ export class ConfirmTransactionUseCase {
       );
       const refreshed = await this.repo.findTransactionById(id, userId);
       if (!refreshed) {
-        throw new NotFoundException('Transaction not found');
+        throw new NotFoundException('Transacción no encontrada');
       }
       void this.outboxDispatcher.processBatch();
       return mapLedgerTransaction(refreshed);
@@ -33,7 +33,7 @@ export class ConfirmTransactionUseCase {
 
     const updated = await this.repo.confirmTransaction(userId, id);
     if (!updated) {
-      throw new NotFoundException('Transaction not found');
+      throw new NotFoundException('Transacción no encontrada');
     }
     void this.outboxDispatcher.processBatch();
     return mapLedgerTransaction(updated.transaction);

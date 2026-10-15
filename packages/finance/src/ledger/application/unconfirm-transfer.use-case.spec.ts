@@ -69,7 +69,7 @@ describe('UnconfirmTransferUseCase', () => {
     findTransactionById.mockResolvedValue(leg({ transferGroupId: null }));
 
     await expect(useCase.execute('user-1', 'd1')).rejects.toThrow(
-      /not a transfer/i,
+      /no es una transferencia/i,
     );
     expect(unconfirmTransactionsByTransferGroupId).not.toHaveBeenCalled();
   });

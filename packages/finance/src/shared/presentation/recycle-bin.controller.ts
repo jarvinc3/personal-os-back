@@ -16,7 +16,8 @@ export class RecycleBinController {
 
   @Get('recycle-bin')
   @ApiOperation({
-    summary: 'List archived records and pending deletes (deletes paginated)',
+    summary:
+      'Lista los registros archivados y los borrados pendientes (borrados paginados)',
   })
   list(@CurrentUser('sub') userId: string, @Query() query: CursorQueryDto) {
     return this.recycleBin.get(userId, query);

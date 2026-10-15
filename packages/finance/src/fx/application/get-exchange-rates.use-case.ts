@@ -32,12 +32,16 @@ export class GetExchangeRatesUseCase {
   ): Promise<ExchangeRatesResult> {
     const base = normalizeCurrencyCode(baseCurrency);
     if (!isIsoCurrency(base)) {
-      throw new BadRequestException(`Invalid currency code: ${baseCurrency}`);
+      throw new BadRequestException(
+        `Código de moneda inválido: ${baseCurrency}`,
+      );
     }
     const codes = quotes.map((quote) => normalizeCurrencyCode(quote));
     const invalidQuote = codes.find((code) => !isIsoCurrency(code));
     if (invalidQuote) {
-      throw new BadRequestException(`Invalid currency code: ${invalidQuote}`);
+      throw new BadRequestException(
+        `Código de moneda inválido: ${invalidQuote}`,
+      );
     }
 
     const date = asOf.toISOString().slice(0, 10);

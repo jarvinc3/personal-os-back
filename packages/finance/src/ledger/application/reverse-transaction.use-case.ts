@@ -19,7 +19,7 @@ export class ReverseTransactionUseCase {
       aiMetadata,
     );
     if (!result) {
-      throw new NotFoundException('Transaction not found');
+      throw new NotFoundException('Transacción no encontrada');
     }
     void this.outboxDispatcher.processBatch();
     return mapLedgerTransaction(result.transaction);

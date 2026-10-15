@@ -16,7 +16,7 @@ el tablero ni los presupuestos. Dirección del módulo:
 | `DELETE /api/finance/reconciliations/:id`       | Solo el último cierre del producto. Revierte los ajustes vía diario de borrados y devuelve `undoId`.                             |
 | `POST /api/finance/reconciliations/:id/restore` | Deshace el borrado sin doble efecto.                                                                                             |
 | `GET /api/finance/reconciliations/status`       | Query `month=YYYY-MM`; lista productos conciliados y pendientes del mes.                                                         |
-| `GET /api/finance/analytics/bank-charges`       | Totales por mes, institución y tipo de ajuste (ver `analytics.md`).                                                              |
+| `GET /api/finance/bank-charges`                 | Totales por mes, institución y tipo de ajuste (ver `analytics.md`).                                                              |
 
 ## Modelo
 

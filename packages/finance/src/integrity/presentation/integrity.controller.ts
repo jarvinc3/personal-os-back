@@ -23,7 +23,9 @@ function toIntegrityTarget(input: TargetInput): IntegrityTarget | undefined {
   const hasAccount = Boolean(input.accountId);
   const hasCard = Boolean(input.cardId);
   if (hasAccount && hasCard) {
-    throw new BadRequestException('Provide exactly one of accountId or cardId');
+    throw new BadRequestException(
+      'Indica exactamente uno de accountId o cardId',
+    );
   }
   if (hasAccount && input.accountId) {
     return { accountId: input.accountId };
@@ -46,7 +48,7 @@ export class IntegrityController {
 
   @Get('check')
   @ApiOperation({
-    summary: 'Compare stored balances against the confirmed movements',
+    summary: 'Compara los saldos guardados con los movimientos confirmados',
   })
   check(
     @CurrentUser('sub') userId: string,
@@ -56,7 +58,7 @@ export class IntegrityController {
   }
 
   @Post('recalculate')
-  @ApiOperation({ summary: 'Correct a drifted balance from its movements' })
+  @ApiOperation({ summary: 'Corrige un saldo desviado desde sus movimientos' })
   recalculate(
     @CurrentUser('sub') userId: string,
     @Body() dto: RecalculateBalanceDto,
@@ -64,7 +66,7 @@ export class IntegrityController {
     const target = toIntegrityTarget(dto);
     if (!target) {
       throw new BadRequestException(
-        'Provide exactly one of accountId or cardId',
+        'Indica exactamente uno de accountId o cardId',
       );
     }
     return this.integrity.recalculate(userId, target);

@@ -29,7 +29,9 @@ export class CategoriesController {
     @Query() query: ListCategoriesQueryDto,
   ) {
     if (query.type === 'TRANSFER') {
-      throw new BadRequestException('Category type must be EXPENSE or INCOME');
+      throw new BadRequestException(
+        'El tipo de categoría debe ser EXPENSE o INCOME',
+      );
     }
     return this.catalog.listCategories(userId, query.type);
   }
@@ -54,7 +56,7 @@ export class CategoriesController {
   }
 
   @Post('categories/:id/restore')
-  @ApiOperation({ summary: 'Undo a delete from the journal snapshot' })
+  @ApiOperation({ summary: 'Deshace un borrado desde el journal' })
   restore(@CurrentUser('sub') userId: string, @Param('id') id: string) {
     return this.catalog.restoreCategory(userId, id, new Date());
   }

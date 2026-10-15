@@ -19,7 +19,7 @@ describe('httpExceptionDetails', () => {
       httpExceptionDetails({
         statusCode: 400,
         error: 'Bad Request',
-        message: 'Account not found',
+        message: 'Cuenta no encontrada',
       }),
     ).toBeUndefined();
   });

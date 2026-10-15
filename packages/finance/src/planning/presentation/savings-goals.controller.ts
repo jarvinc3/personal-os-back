@@ -30,8 +30,9 @@ export class SavingsGoalsController {
   ) {}
 
   @Get('savings-goals')
-  list(@CurrentUser('sub') userId: string) {
-    return this.planning.listSavingsGoals(userId);
+  @ApiOperation({ summary: 'Lista las metas de ahorro (cursor)' })
+  list(@CurrentUser('sub') userId: string, @Query() query: CursorQueryDto) {
+    return this.planning.listSavingsGoalsPage(userId, query);
   }
 
   @Post('savings-goals')
@@ -43,13 +44,15 @@ export class SavingsGoalsController {
   }
 
   @Get('savings-goals/:id')
-  @ApiOperation({ summary: 'Get savings goal by id' })
+  @ApiOperation({ summary: 'Obtiene una meta de ahorro por id' })
   get(@CurrentUser('sub') userId: string, @Param('id') id: string) {
     return this.planning.getSavingsGoal(userId, id);
   }
 
   @Get('savings-goals/:id/allocations')
-  @ApiOperation({ summary: 'Allocations of a savings goal, newest first' })
+  @ApiOperation({
+    summary: 'Asignaciones de una meta de ahorro, más recientes primero',
+  })
   listAllocations(
     @CurrentUser('sub') userId: string,
     @Param('id') id: string,
@@ -60,7 +63,7 @@ export class SavingsGoalsController {
 
   @Post('savings-goals/:id/allocations')
   @ApiOperation({
-    summary: 'Set money aside for a goal; it never moves money',
+    summary: 'Reserva dinero para una meta; no mueve dinero',
   })
   addAllocation(
     @CurrentUser('sub') userId: string,
@@ -71,7 +74,7 @@ export class SavingsGoalsController {
   }
 
   @Delete('savings-goals/:id/allocations/:allocationId')
-  @ApiOperation({ summary: 'Remove an allocation and recompute the balance' })
+  @ApiOperation({ summary: 'Elimina una asignación y recalcula el saldo' })
   removeAllocation(
     @CurrentUser('sub') userId: string,
     @Param('id') id: string,
@@ -87,7 +90,7 @@ export class SavingsGoalsController {
 
   @Get('savings-goals/:id/contributions')
   @ApiOperation({
-    summary: 'Deprecated alias of allocations',
+    summary: 'Alias deprecado de las asignaciones',
     deprecated: true,
   })
   listContributions(
@@ -100,7 +103,7 @@ export class SavingsGoalsController {
 
   @Post('savings-goals/:id/contributions')
   @ApiOperation({
-    summary: 'Deprecated alias of allocations',
+    summary: 'Alias deprecado de las asignaciones',
     deprecated: true,
   })
   addContribution(
@@ -113,7 +116,7 @@ export class SavingsGoalsController {
 
   @Delete('savings-goals/:id/contributions/:allocationId')
   @ApiOperation({
-    summary: 'Deprecated alias of allocation removal',
+    summary: 'Alias deprecado del borrado de asignaciones',
     deprecated: true,
   })
   removeContribution(
@@ -144,7 +147,7 @@ export class SavingsGoalsController {
   }
 
   @Post('savings-goals/:id/restore')
-  @ApiOperation({ summary: 'Undo a delete from the journal snapshot' })
+  @ApiOperation({ summary: 'Deshace un borrado desde el journal' })
   restore(@CurrentUser('sub') userId: string, @Param('id') id: string) {
     return this.planning.restoreSavingsGoal(userId, id, new Date());
   }

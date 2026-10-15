@@ -63,6 +63,19 @@ export const envSchema = z
     /** Max proactive insight LLM calls per user per UTC day. Default 20. */
     AI_DAILY_INSIGHT_QUOTA: defaultedPositiveInt(20),
 
+    // ── Sentry (observabilidad) ───────────────────────────────
+    /** Sin DSN la SDK no se inicializa; tests y CI quedan en no-op. */
+    SENTRY_DSN: optionalApiKey,
+    SENTRY_TRACES_SAMPLE_RATE: z.preprocess(
+      (value) =>
+        typeof value === 'string' && value.trim() === '' ? undefined : value,
+      z.coerce.number().min(0).max(1).default(0.1),
+    ),
+    /** Solo para subir source maps; sin token el build no falla. */
+    SENTRY_AUTH_TOKEN: optionalApiKey,
+    SENTRY_ORG: optionalApiKey,
+    SENTRY_PROJECT: optionalApiKey,
+
     // ── Google OAuth (para Gmail API) ────────────────────────────
     GOOGLE_CLIENT_ID: z.string().min(1, 'GOOGLE_CLIENT_ID is required'),
     GOOGLE_CLIENT_SECRET: z.string().min(1, 'GOOGLE_CLIENT_SECRET is required'),

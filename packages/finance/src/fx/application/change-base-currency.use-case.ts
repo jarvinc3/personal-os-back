@@ -81,7 +81,7 @@ export class ChangeBaseCurrencyUseCase {
     const nextBaseCurrency = normalizeCurrencyCode(requestedBaseCurrency);
     if (!isIsoCurrency(nextBaseCurrency)) {
       throw new BadRequestException(
-        `Invalid currency code: ${requestedBaseCurrency}`,
+        `Código de moneda inválido: ${requestedBaseCurrency}`,
       );
     }
 

@@ -19,7 +19,7 @@ export class DeleteTransactionUseCase {
   async execute(userId: string, id: string) {
     const tx = await this.repo.findTransactionById(id, userId);
     if (!tx) {
-      throw new NotFoundException('Manual transaction not found');
+      throw new NotFoundException('Transacción manual no encontrada');
     }
 
     if (tx.transferGroupId) {
@@ -28,7 +28,7 @@ export class DeleteTransactionUseCase {
         tx.transferGroupId,
       );
       if (result.count === 0) {
-        throw new NotFoundException('Manual transaction not found');
+        throw new NotFoundException('Transacción manual no encontrada');
       }
       void this.outboxDispatcher.processBatch();
       return { success: true, undoId: tx.transferGroupId };
@@ -36,7 +36,7 @@ export class DeleteTransactionUseCase {
 
     const result = await this.repo.deleteTransaction(userId, id);
     if (result.count === 0) {
-      throw new NotFoundException('Manual transaction not found');
+      throw new NotFoundException('Transacción manual no encontrada');
     }
     void this.outboxDispatcher.processBatch();
     return { success: true, undoId: id };

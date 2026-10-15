@@ -32,8 +32,9 @@ export class CardsController {
   ) {}
 
   @Get('cards')
-  list(@CurrentUser('sub') userId: string) {
-    return this.catalog.listCards(userId);
+  @ApiOperation({ summary: 'Lista las tarjetas de finanzas (cursor)' })
+  list(@CurrentUser('sub') userId: string, @Query() query: CursorQueryDto) {
+    return this.catalog.listCardsPage(userId, query);
   }
 
   @Post('cards')
@@ -47,7 +48,9 @@ export class CardsController {
   }
 
   @Get('cards/:id/history')
-  @ApiOperation({ summary: 'Card timeline: adjustments and limit changes' })
+  @ApiOperation({
+    summary: 'Cronología de la tarjeta: ajustes y cambios de límite',
+  })
   getHistory(
     @CurrentUser('sub') userId: string,
     @Param('id') id: string,
@@ -66,20 +69,22 @@ export class CardsController {
   }
 
   @Delete('cards/:id')
-  @ApiOperation({ summary: 'Hard-delete card and its ledger rows' })
+  @ApiOperation({
+    summary: 'Borra de forma definitiva la tarjeta y sus movimientos',
+  })
   remove(@CurrentUser('sub') userId: string, @Param('id') id: string) {
     return this.catalog.deleteCard(userId, id);
   }
 
   @Post('cards/:id/restore')
-  @ApiOperation({ summary: 'Undo a delete from the journal snapshot' })
+  @ApiOperation({ summary: 'Deshace un borrado desde el journal' })
   restore(@CurrentUser('sub') userId: string, @Param('id') id: string) {
     return this.catalog.restoreCard(userId, id, new Date());
   }
 
   @Post('cards/:id/balances/credit-limit')
   @ApiOperation({
-    summary: 'Update a credit card limit without changing its balance',
+    summary: 'Actualiza el límite de una tarjeta sin cambiar su saldo',
   })
   updateCreditLimit(
     @CurrentUser('sub') userId: string,
@@ -99,7 +104,7 @@ export class CardsController {
   }
 
   @Delete('cards/:id/balances/:currency')
-  @ApiOperation({ summary: 'Delete one stored currency from a card' })
+  @ApiOperation({ summary: 'Borra una moneda guardada de una tarjeta' })
   deleteBalance(
     @CurrentUser('sub') userId: string,
     @Param('id') id: string,

@@ -157,7 +157,9 @@ describe('UsersService.assertFinanceEmailSyncEnabled', () => {
     });
     await expect(
       service.assertFinanceEmailSyncEnabled('user-1'),
-    ).rejects.toThrow('Finance email sync is disabled');
+    ).rejects.toThrow(
+      'La sincronización de correo de finanzas está desactivada',
+    );
   });
 
   it('throws when emailSync is omitted (default is disabled)', async () => {
@@ -168,7 +170,9 @@ describe('UsersService.assertFinanceEmailSyncEnabled', () => {
     });
     await expect(
       service.assertFinanceEmailSyncEnabled('user-1'),
-    ).rejects.toThrow('Finance email sync is disabled');
+    ).rejects.toThrow(
+      'La sincronización de correo de finanzas está desactivada',
+    );
   });
 });
 

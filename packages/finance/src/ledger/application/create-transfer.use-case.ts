@@ -94,7 +94,7 @@ export class CreateTransferUseCase {
       feeAmounts,
     });
     if (!created) {
-      throw new NotFoundException('Invalid transfer accounts');
+      throw new NotFoundException('Cuentas de transferencia inválidas');
     }
 
     void this.outboxDispatcher.processBatch();

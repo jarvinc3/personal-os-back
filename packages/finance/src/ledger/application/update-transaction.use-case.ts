@@ -39,7 +39,7 @@ export class UpdateTransactionUseCase {
   async execute(userId: string, id: string, command: UpdateTransactionCommand) {
     const existing = await this.repo.findTransactionById(id, userId);
     if (!existing) {
-      throw new NotFoundException('Transaction not found');
+      throw new NotFoundException('Transacción no encontrada');
     }
     if (existing.transferGroupId) {
       throw new BadRequestException(
@@ -154,7 +154,7 @@ export class UpdateTransactionUseCase {
 
     const updated = await this.repo.updateTransaction(userId, id, data);
     if (!updated) {
-      throw new NotFoundException('Transaction not found');
+      throw new NotFoundException('Transacción no encontrada');
     }
     void this.outboxDispatcher.processBatch();
     return mapLedgerTransaction(updated.transaction);

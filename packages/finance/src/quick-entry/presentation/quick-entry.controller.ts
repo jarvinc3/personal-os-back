@@ -13,7 +13,8 @@ export class QuickEntryController {
 
   @Post('parse')
   @ApiOperation({
-    summary: 'Parse a quick sentence into a transaction draft (never saves)',
+    summary:
+      'Convierte una frase rápida en un borrador de transacción (nunca guarda)',
   })
   parse(@CurrentUser('sub') userId: string, @Body() dto: ParseQuickEntryDto) {
     return this.quickEntry.parse(userId, dto.text);

@@ -19,7 +19,7 @@ import { LinkTransactionDto } from './dto/link-transaction.dto';
 function toCommand(dto: LinkTransactionDto): LinkTransactionCommand {
   if (dto.kind === TRANSACTION_LINK_KIND.LOAN_INSTALLMENT) {
     if (!dto.loanId || !dto.installmentId) {
-      throw new BadRequestException('loanId and installmentId are required');
+      throw new BadRequestException('loanId e installmentId son obligatorios');
     }
     return {
       kind: TRANSACTION_LINK_KIND.LOAN_INSTALLMENT,
@@ -29,7 +29,7 @@ function toCommand(dto: LinkTransactionDto): LinkTransactionCommand {
   }
   if (dto.kind === TRANSACTION_LINK_KIND.RECEIVABLE_PAYMENT) {
     if (!dto.receivableId) {
-      throw new BadRequestException('receivableId is required');
+      throw new BadRequestException('receivableId es obligatorio');
     }
     return {
       kind: TRANSACTION_LINK_KIND.RECEIVABLE_PAYMENT,
@@ -37,7 +37,7 @@ function toCommand(dto: LinkTransactionDto): LinkTransactionCommand {
     };
   }
   if (!dto.goalId) {
-    throw new BadRequestException('goalId is required');
+    throw new BadRequestException('goalId es obligatorio');
   }
   return {
     kind: TRANSACTION_LINK_KIND.SAVINGS_CONTRIBUTION,
@@ -70,7 +70,8 @@ export class TransactionLinksController {
 
   @Delete('transactions/:id/link')
   @ApiOperation({
-    summary: 'Remove the planning link of a movement and undo its effect',
+    summary:
+      'Quita el vínculo de planificación de un movimiento y deshace su efecto',
   })
   remove(@CurrentUser('sub') userId: string, @Param('id') id: string) {
     return this.unlinkTransaction.execute(userId, id, new Date());

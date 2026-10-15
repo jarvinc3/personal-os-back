@@ -47,7 +47,7 @@ export class TransactionsController {
   ) {}
 
   @Get('transactions')
-  @ApiOperation({ summary: 'List finance transactions' })
+  @ApiOperation({ summary: 'Lista las transacciones de finanzas' })
   list(
     @CurrentUser('sub') userId: string,
     @Query() query: ListTransactionsQueryDto,
@@ -57,14 +57,14 @@ export class TransactionsController {
 
   @Post('balance-adjustments')
   @ApiOperation({
-    summary: 'Set an account or card balance by posting an adjustment',
+    summary: 'Fija el saldo de una cuenta o tarjeta con un ajuste',
   })
   adjust(@CurrentUser('sub') userId: string, @Body() dto: AdjustBalanceDto) {
     return this.adjustBalance.execute(userId, dto);
   }
 
   @Post('transactions')
-  @ApiOperation({ summary: 'Create a DEBIT or CREDIT transaction' })
+  @ApiOperation({ summary: 'Crea una transacción DEBIT o CREDIT' })
   create(
     @CurrentUser('sub') userId: string,
     @Body() dto: CreateTransactionDto,
@@ -73,13 +73,13 @@ export class TransactionsController {
   }
 
   @Get('transactions/:id')
-  @ApiOperation({ summary: 'Get transaction by id' })
+  @ApiOperation({ summary: 'Obtiene una transacción por id' })
   get(@CurrentUser('sub') userId: string, @Param('id') id: string) {
     return this.queries.getTransaction(userId, id);
   }
 
   @Patch('transactions/:id')
-  @ApiOperation({ summary: 'Update transaction' })
+  @ApiOperation({ summary: 'Actualiza una transacción' })
   update(
     @CurrentUser('sub') userId: string,
     @Param('id') id: string,
@@ -89,26 +89,26 @@ export class TransactionsController {
   }
 
   @Delete('transactions/:id')
-  @ApiOperation({ summary: 'Delete manual transaction' })
+  @ApiOperation({ summary: 'Borra una transacción manual' })
   remove(@CurrentUser('sub') userId: string, @Param('id') id: string) {
     return this.deleteTx.execute(userId, id);
   }
 
   @Post('transactions/:id/restore')
-  @ApiOperation({ summary: 'Undo a delete from the journal snapshot' })
+  @ApiOperation({ summary: 'Deshace un borrado desde el journal' })
   restore(@CurrentUser('sub') userId: string, @Param('id') id: string) {
     return this.restoreTx.execute(userId, id, new Date());
   }
 
   @Post('transactions/:id/confirm')
-  @ApiOperation({ summary: 'Confirm PENDING transaction' })
+  @ApiOperation({ summary: 'Confirma una transacción PENDING' })
   confirm(@CurrentUser('sub') userId: string, @Param('id') id: string) {
     return this.confirmTx.execute(userId, id);
   }
 
   @Post('transactions/:id/unconfirm')
   @ApiOperation({
-    summary: 'Move a CONFIRMED transaction back to PENDING to edit it',
+    summary: 'Devuelve una transacción CONFIRMED a PENDING para editarla',
   })
   unconfirm(@CurrentUser('sub') userId: string, @Param('id') id: string) {
     return this.unconfirmTx.execute(userId, id);
@@ -116,7 +116,8 @@ export class TransactionsController {
 
   @Post('transactions/:id/reverse')
   @ApiOperation({
-    summary: 'Reverse a CONFIRMED transaction (keeps the row as REVERSED)',
+    summary:
+      'Revierte una transacción CONFIRMED (conserva la fila como REVERSED)',
   })
   async reverse(@CurrentUser('sub') userId: string, @Param('id') id: string) {
     const existing = await this.queries.getTransaction(userId, id);
@@ -138,7 +139,7 @@ export class TransactionsController {
 
   @Post('transactions/:id/merge')
   @ApiOperation({
-    summary: 'Delete a possible duplicate, keeping the other one',
+    summary: 'Borra un posible duplicado y conserva el otro',
   })
   merge(
     @CurrentUser('sub') userId: string,
@@ -149,7 +150,7 @@ export class TransactionsController {
   }
 
   @Post('transactions/:id/not-duplicate')
-  @ApiOperation({ summary: 'Clear the possible-duplicate flag' })
+  @ApiOperation({ summary: 'Quita la marca de posible duplicado' })
   notDuplicate(@CurrentUser('sub') userId: string, @Param('id') id: string) {
     return this.notDuplicateTx.execute(userId, id);
   }

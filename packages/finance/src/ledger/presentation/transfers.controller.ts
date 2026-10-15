@@ -37,7 +37,7 @@ export class TransfersController {
   ) {}
 
   @Post('transfers')
-  @ApiOperation({ summary: 'Create a transfer between two accounts' })
+  @ApiOperation({ summary: 'Crea una transferencia entre dos cuentas' })
   create(@CurrentUser('sub') userId: string, @Body() dto: CreateTransferDto) {
     this.assertAccountTarget(dto);
     return this.createTransfer.execute(userId, dto);
@@ -45,7 +45,8 @@ export class TransfersController {
 
   @Patch('transfers/:id')
   @ApiOperation({
-    summary: 'Replace both legs of a transfer by one of its leg ids',
+    summary:
+      'Reemplaza ambos movimientos de una transferencia por el id de uno',
   })
   update(
     @CurrentUser('sub') userId: string,
@@ -58,7 +59,8 @@ export class TransfersController {
 
   @Post('transfers/:id/unconfirm')
   @ApiOperation({
-    summary: 'Move every leg of a transfer back to PENDING to edit it',
+    summary:
+      'Devuelve todos los movimientos de una transferencia a PENDING para editarla',
   })
   async unconfirm(@CurrentUser('sub') userId: string, @Param('id') id: string) {
     await this.unconfirmTransfer.execute(userId, id);
@@ -66,14 +68,19 @@ export class TransfersController {
   }
 
   @Post('transfers/:id/confirm')
-  @ApiOperation({ summary: 'Confirm every pending leg of a transfer' })
+  @ApiOperation({
+    summary: 'Confirma todos los movimientos pendientes de una transferencia',
+  })
   async confirm(@CurrentUser('sub') userId: string, @Param('id') id: string) {
     await this.confirmTransfer.execute(userId, id);
     return { success: true };
   }
 
   @Delete('transfers/:id')
-  @ApiOperation({ summary: 'Delete the whole transfer by one of its leg ids' })
+  @ApiOperation({
+    summary:
+      'Borra la transferencia completa por el id de uno de sus movimientos',
+  })
   remove(@CurrentUser('sub') userId: string, @Param('id') id: string) {
     return this.deleteTransaction.execute(userId, id);
   }

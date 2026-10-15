@@ -67,7 +67,7 @@ export class UsersService {
   async findById(userId: string) {
     const user = await this.usersRepository.findById(userId);
     if (!user) {
-      throw new NotFoundException('User not found');
+      throw new NotFoundException('Usuario no encontrado');
     }
     return this.mapUser(user);
   }
@@ -143,7 +143,7 @@ export class UsersService {
     dto: UpdateModuleConfigDto,
   ) {
     if (!isModuleSlug(slug)) {
-      throw new BadRequestException(`Unknown module "${slug}"`);
+      throw new BadRequestException(`Módulo desconocido "${slug}"`);
     }
 
     if (slug === 'finance' && dto.config !== undefined) {
@@ -151,14 +151,12 @@ export class UsersService {
     }
 
     if (dto.config === undefined && dto.isEnabled === undefined) {
-      throw new BadRequestException(
-        'Either config or isEnabled must be provided',
-      );
+      throw new BadRequestException('Debes indicar config o isEnabled');
     }
 
     const moduleRecord = await this.usersRepository.findModuleBySlug(slug);
     if (!moduleRecord) {
-      throw new NotFoundException(`Module "${slug}" not found`);
+      throw new NotFoundException(`Módulo "${slug}" no encontrado`);
     }
 
     const defaults = DEFAULT_MODULE_CONFIG_BY_SLUG[slug] as unknown as Record<
@@ -172,13 +170,13 @@ export class UsersService {
 
     if (!existing && dto.config === undefined) {
       throw new BadRequestException(
-        'Module is not configured yet; provide config to create a user module record',
+        'El módulo aún no está configurado; indica config para crear el registro',
       );
     }
 
     if (!existing && dto.isEnabled === false && dto.config === undefined) {
       throw new BadRequestException(
-        'Module is not configured yet; cannot disable before initial configuration',
+        'El módulo aún no está configurado; no se puede desactivar antes de configurarlo',
       );
     }
 
@@ -223,7 +221,7 @@ export class UsersService {
   async deleteAccount(userId: string): Promise<DeleteAccountResult> {
     const user = await this.usersRepository.findById(userId);
     if (!user) {
-      throw new NotFoundException('User not found');
+      throw new NotFoundException('Usuario no encontrado');
     }
 
     await this.usersRepository.deleteAccountWithAuthOutbox(userId);
@@ -267,7 +265,9 @@ export class UsersService {
       config.emailSync?.enabled ??
       DEFAULT_MODULE_CONFIG_BY_SLUG.finance.emailSync.enabled;
     if (enabled !== true) {
-      throw new ForbiddenException('Finance email sync is disabled');
+      throw new ForbiddenException(
+        'La sincronización de correo de finanzas está desactivada',
+      );
     }
   }
 

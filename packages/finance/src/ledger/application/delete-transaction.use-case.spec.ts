@@ -63,7 +63,7 @@ describe('DeleteTransactionUseCase', () => {
     findTransactionById.mockResolvedValue(null);
 
     await expect(useCase.execute('user-1', 'missing')).rejects.toThrow(
-      /not found/i,
+      /no encontrad/i,
     );
     expect(deleteTransaction).not.toHaveBeenCalled();
     expect(processBatch).not.toHaveBeenCalled();

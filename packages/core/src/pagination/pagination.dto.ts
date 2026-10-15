@@ -37,7 +37,7 @@ export function encodeCursor(point: CursorPoint): string {
   return Buffer.from(JSON.stringify(point), 'utf8').toString('base64url');
 }
 
-const INVALID_CURSOR_MESSAGE = 'Invalid cursor';
+const INVALID_CURSOR_MESSAGE = 'Cursor inválido';
 
 /**
  * `isValidKey` defaults to a timestamp check: almost every list orders by a

@@ -66,7 +66,7 @@ export class CardStatementsService {
     const cursor = query.cursor ? decodeCursor(query.cursor) : null;
     const card = await this.repo.findCreditCard(cardId);
     if (!card) {
-      throw new NotFoundException('Credit card not found');
+      throw new NotFoundException('Tarjeta de crédito no encontrada');
     }
 
     const rows = await this.repo.listStatements(cardId, {
@@ -92,11 +92,11 @@ export class CardStatementsService {
     await this.ownership.assertCardOwned(userId, cardId);
     const card = await this.repo.findCreditCard(cardId);
     if (!card) {
-      throw new NotFoundException('Credit card not found');
+      throw new NotFoundException('Tarjeta de crédito no encontrada');
     }
     const row = await this.repo.findStatement(cardId, statementId);
     if (!row) {
-      throw new NotFoundException('Statement not found');
+      throw new NotFoundException('Estado de cuenta no encontrado');
     }
     const [view] = buildCardStatementViews({
       statements: [toSnapshot(row)],
@@ -141,7 +141,7 @@ export class CardStatementsService {
     await this.ownership.assertCardOwned(userId, cardId);
     const row = await this.repo.findStatement(cardId, statementId);
     if (!row) {
-      throw new NotFoundException('Statement not found');
+      throw new NotFoundException('Estado de cuenta no encontrado');
     }
     await this.repo.updateStatement(statementId, {
       minimumPayment: dto.minimumPayment,

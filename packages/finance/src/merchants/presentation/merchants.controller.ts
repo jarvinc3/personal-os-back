@@ -32,7 +32,7 @@ export class MerchantsController {
   constructor(private readonly merchants: MerchantsService) {}
 
   @Get('merchants')
-  @ApiOperation({ summary: 'List merchants with their month spend' })
+  @ApiOperation({ summary: 'Lista los comercios con su gasto del mes' })
   list(
     @CurrentUser('sub') userId: string,
     @Query() query: ListMerchantsQueryDto,
@@ -41,7 +41,7 @@ export class MerchantsController {
   }
 
   @Get('merchants/suggest')
-  @ApiOperation({ summary: 'Best known merchant for a typed name' })
+  @ApiOperation({ summary: 'Mejor comercio conocido para un nombre escrito' })
   suggest(
     @CurrentUser('sub') userId: string,
     @Query() query: SuggestMerchantQueryDto,
@@ -50,13 +50,15 @@ export class MerchantsController {
   }
 
   @Get('merchants/:id')
-  @ApiOperation({ summary: 'Merchant detail' })
+  @ApiOperation({ summary: 'Detalle del comercio' })
   get(@CurrentUser('sub') userId: string, @Param('id') id: string) {
     return this.merchants.get(userId, id);
   }
 
   @Patch('merchants/:id')
-  @ApiOperation({ summary: 'Rename a merchant or set its category and logo' })
+  @ApiOperation({
+    summary: 'Renombra un comercio o define su categoría y logo',
+  })
   update(
     @CurrentUser('sub') userId: string,
     @Param('id') id: string,
@@ -66,7 +68,7 @@ export class MerchantsController {
   }
 
   @Post('merchants/:id/merge')
-  @ApiOperation({ summary: 'Move the movements of a merchant into another' })
+  @ApiOperation({ summary: 'Mueve los movimientos de un comercio a otro' })
   merge(
     @CurrentUser('sub') userId: string,
     @Param('id') id: string,
@@ -77,7 +79,7 @@ export class MerchantsController {
 
   @Post('merchants/:id/logo')
   @ApiConsumes('multipart/form-data')
-  @ApiOperation({ summary: 'Upload a custom merchant logo' })
+  @ApiOperation({ summary: 'Sube un logo de comercio personalizado' })
   @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 1_000_000 } }))
   uploadLogo(
     @CurrentUser('sub') userId: string,

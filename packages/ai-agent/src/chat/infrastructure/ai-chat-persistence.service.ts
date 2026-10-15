@@ -82,7 +82,7 @@ export class AiChatPersistenceService {
         userId,
       );
       if (!existing) {
-        throw new NotFoundException('AI session not found');
+        throw new NotFoundException('Sesión de IA no encontrada');
       }
       return existing;
     }
@@ -261,7 +261,7 @@ export class AiChatPersistenceService {
   ): Promise<ChatContext | null> {
     const session = await this.sessionsRepo.findSessionById(sessionId, userId);
     if (!session) {
-      throw new NotFoundException('AI session not found');
+      throw new NotFoundException('Sesión de IA no encontrada');
     }
     return parseChatContext(session.chatContext);
   }
@@ -292,12 +292,12 @@ export class AiChatPersistenceService {
   }> {
     const user = await this.usersRepository.findById(userId);
     if (!user) {
-      throw new NotFoundException('User not found');
+      throw new NotFoundException('Usuario no encontrado');
     }
 
     const session = await this.sessionsRepo.findSessionById(sessionId, userId);
     if (!session) {
-      throw new NotFoundException('AI session not found');
+      throw new NotFoundException('Sesión de IA no encontrada');
     }
 
     const prefs = parseUserPreferences(user.preferences, user.timezone);

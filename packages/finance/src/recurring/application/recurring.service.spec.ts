@@ -237,7 +237,7 @@ describe('RecurringService.create', () => {
         frequency: 30,
         nextExpectedDate: '2026-04-01',
       }),
-    ).rejects.toThrow('merchant or merchantId is required');
+    ).rejects.toThrow('merchant o merchantId es obligatorio');
   });
 });
 

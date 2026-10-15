@@ -43,7 +43,7 @@ export class HealthController {
 
   @Get()
   @Public()
-  @ApiOperation({ summary: 'Liveness probe' })
+  @ApiOperation({ summary: 'Sondeo de vida' })
   @ApiOkResponse({
     schema: {
       type: 'object',
@@ -128,7 +128,7 @@ export class HealthController {
       this.logger.warn(
         `${label} check failed: ${error instanceof Error ? error.message : String(error)}`,
       );
-      throw new ServiceUnavailableException('Service Unavailable');
+      throw new ServiceUnavailableException('Servicio no disponible');
     }
   }
 }

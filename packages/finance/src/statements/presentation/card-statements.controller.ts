@@ -13,7 +13,7 @@ export class CardStatementsController {
   constructor(private readonly statements: CardStatementsService) {}
 
   @Get('cards/:id/statements')
-  @ApiOperation({ summary: 'Billing statements of a credit card' })
+  @ApiOperation({ summary: 'Estados de facturación de una tarjeta de crédito' })
   list(
     @CurrentUser('sub') userId: string,
     @Param('id') id: string,
@@ -23,7 +23,9 @@ export class CardStatementsController {
   }
 
   @Get('cards/:id/statements/:statementId')
-  @ApiOperation({ summary: 'Statement detail with its movements and payments' })
+  @ApiOperation({
+    summary: 'Detalle del estado de cuenta con movimientos y pagos',
+  })
   detail(
     @CurrentUser('sub') userId: string,
     @Param('id') id: string,
@@ -39,7 +41,8 @@ export class CardStatementsController {
 
   @Patch('cards/:id/statements/:statementId')
   @ApiOperation({
-    summary: 'Edit a statement minimum, closing balance or due date',
+    summary:
+      'Edita el mínimo, el saldo de cierre o el vencimiento del estado de cuenta',
   })
   update(
     @CurrentUser('sub') userId: string,

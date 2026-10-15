@@ -6,6 +6,7 @@ export * from './events/domain-event-idempotency.guard';
 export * from './events/domain-events';
 export * from './events/event.constants';
 export * from './exceptions/module-disabled';
+export * from './observability/sentry-scrubber';
 export * from './pagination/pagination.dto';
 export * from './queues/bull-board.imports';
 export * from './queues/queue-jobs';

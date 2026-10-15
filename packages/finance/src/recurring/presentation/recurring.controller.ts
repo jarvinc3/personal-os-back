@@ -26,7 +26,7 @@ export class RecurringController {
 
   @Get('recurring')
   @ApiOperation({
-    summary: 'List recurring patterns (suggested and confirmed)',
+    summary: 'Lista los patrones recurrentes (sugeridos y confirmados)',
   })
   list(
     @CurrentUser('sub') userId: string,
@@ -36,7 +36,9 @@ export class RecurringController {
   }
 
   @Get('recurring/upcoming')
-  @ApiOperation({ summary: 'Confirmed charges expected in the next N days' })
+  @ApiOperation({
+    summary: 'Cargos confirmados previstos en los próximos N días',
+  })
   upcoming(
     @CurrentUser('sub') userId: string,
     @Query() query: UpcomingRecurringQueryDto,
@@ -45,13 +47,13 @@ export class RecurringController {
   }
 
   @Post('recurring')
-  @ApiOperation({ summary: 'Create a recurring charge by hand' })
+  @ApiOperation({ summary: 'Crea un cargo recurrente a mano' })
   create(@CurrentUser('sub') userId: string, @Body() dto: CreateRecurringDto) {
     return this.recurring.create(userId, dto);
   }
 
   @Patch('recurring/:id')
-  @ApiOperation({ summary: 'Confirm, dismiss or edit a recurring pattern' })
+  @ApiOperation({ summary: 'Confirma, descarta o edita un patrón recurrente' })
   update(
     @CurrentUser('sub') userId: string,
     @Param('id') id: string,

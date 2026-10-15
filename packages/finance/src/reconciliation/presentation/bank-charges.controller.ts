@@ -11,12 +11,12 @@ function startOfMonthUtc(now: Date): Date {
 @ApiTags('finance')
 @ApiBearerAuth('access-token')
 @RequiresEnabledModule('finance')
-@Controller('finance/analytics')
+@Controller('finance')
 export class BankChargesController {
   constructor(private readonly reconciliations: ReconciliationsService) {}
 
   @Get('bank-charges')
-  @ApiOperation({ summary: 'Bank charges by month, institution and kind' })
+  @ApiOperation({ summary: 'Cargos bancarios por mes, institución y tipo' })
   bankCharges(
     @CurrentUser('sub') userId: string,
     @Query() query: BankChargesQueryDto,

@@ -50,8 +50,8 @@ export type StatementUploadFile = {
 };
 
 const FILE_REQUIRED_MESSAGE = 'Archivo obligatorio';
-const NOT_FOUND_MESSAGE = 'Statement import not found';
-const NOT_READY_MESSAGE = 'Statement import is not ready';
+const NOT_FOUND_MESSAGE = 'Importación de estado de cuenta no encontrada';
+const NOT_READY_MESSAGE = 'La importación de estado de cuenta no está lista';
 
 @Injectable()
 export class StatementImportsService {
@@ -86,7 +86,9 @@ export class StatementImportsService {
     } else if (input.accountId) {
       await this.ownership.assertAccountOwned(input.userId, input.accountId);
     } else {
-      throw new BadRequestException('A statement import needs a target');
+      throw new BadRequestException(
+        'La importación de estado de cuenta necesita un destino',
+      );
     }
 
     const bytes = new Uint8Array(input.file.buffer);
@@ -144,7 +146,7 @@ export class StatementImportsService {
     }
     const line = context.lines.find((entry) => entry.id === input.lineId);
     if (!line) {
-      throw new NotFoundException('Statement line not found');
+      throw new NotFoundException('Línea del estado de cuenta no encontrada');
     }
     let transactionId: string | null;
     if (input.decision === 'CREATE') {
@@ -155,7 +157,9 @@ export class StatementImportsService {
     } else {
       transactionId = input.transactionId ?? line.transactionId;
       if (!transactionId) {
-        throw new BadRequestException('A match requires a transaction');
+        throw new BadRequestException(
+          'Una conciliación requiere una transacción',
+        );
       }
     }
     const updated = await this.repo.updateLine({
@@ -165,7 +169,7 @@ export class StatementImportsService {
       transactionId,
     });
     if (updated === 0) {
-      throw new NotFoundException('Statement line not found');
+      throw new NotFoundException('Línea del estado de cuenta no encontrada');
     }
     return this.getImport(input.userId, input.importId);
   }
@@ -178,7 +182,7 @@ export class StatementImportsService {
     const context = await this.loadContext(input.userId, input.importId);
     if (context.status === 'DISCARDED') {
       throw new ConflictException({
-        message: 'Statement import was discarded',
+        message: 'La importación de estado de cuenta se descartó',
         code: STATEMENT_IMPORT_ERROR.DISCARDED,
       });
     }
@@ -205,7 +209,7 @@ export class StatementImportsService {
     const context = await this.loadContext(userId, importId);
     if (context.status === 'APPLIED') {
       throw new ConflictException({
-        message: 'Statement import is already applied',
+        message: 'La importación de estado de cuenta ya se aplicó',
         code: STATEMENT_IMPORT_ERROR.ALREADY_APPLIED,
       });
     }
@@ -225,7 +229,7 @@ export class StatementImportsService {
     } catch (error) {
       if (error instanceof StatementPasswordError) {
         throw new BadRequestException({
-          message: 'The statement PDF needs its password',
+          message: 'El PDF del estado de cuenta necesita su contraseña',
           code: STATEMENT_IMPORT_ERROR.PASSWORD_REQUIRED,
         });
       }

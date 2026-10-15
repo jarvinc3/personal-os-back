@@ -24,21 +24,23 @@ export class BudgetsController {
 
   @Get('budgets')
   @ApiOperation({
-    summary: 'List budgets (cursor paginated, default limit=20, max 100)',
+    summary:
+      'Lista los presupuestos (cursor, límite por defecto 20, máximo 100)',
   })
   list(@CurrentUser('sub') userId: string, @Query() query: CursorQueryDto) {
     return this.planning.listBudgetsPage(userId, query);
   }
 
   @Get('budgets/:id')
-  @ApiOperation({ summary: 'Get a budget by id' })
+  @ApiOperation({ summary: 'Obtiene un presupuesto por id' })
   get(@CurrentUser('sub') userId: string, @Param('id') id: string) {
     return this.planning.getBudget(userId, id);
   }
 
   @Get('budgets/:id/transactions')
   @ApiOperation({
-    summary: 'Movements that count toward the budget, with their subcategories',
+    summary:
+      'Movimientos que cuentan para el presupuesto, con sus subcategorías',
   })
   transactions(
     @CurrentUser('sub') userId: string,
@@ -68,7 +70,7 @@ export class BudgetsController {
   }
 
   @Post('budgets/:id/restore')
-  @ApiOperation({ summary: 'Undo a delete from the journal snapshot' })
+  @ApiOperation({ summary: 'Deshace un borrado desde el journal' })
   restore(@CurrentUser('sub') userId: string, @Param('id') id: string) {
     return this.planning.restoreBudget(userId, id, new Date());
   }

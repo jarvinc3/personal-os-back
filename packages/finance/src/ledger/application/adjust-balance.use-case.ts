@@ -34,11 +34,13 @@ export class AdjustBalanceUseCase {
     const hasCard = Boolean(command.cardId);
     if (hasAccount === hasCard) {
       throw new BadRequestException(
-        'Provide exactly one of accountId or cardId',
+        'Indica exactamente uno de accountId o cardId',
       );
     }
     if (hasCard && !command.currency) {
-      throw new BadRequestException('Card adjustments require a currency');
+      throw new BadRequestException(
+        'Los ajustes de tarjeta requieren una moneda',
+      );
     }
 
     const target = await this.repo.findBalanceAdjustmentTarget(userId, {
@@ -47,7 +49,7 @@ export class AdjustBalanceUseCase {
       currency: command.currency,
     });
     if (!target) {
-      throw new NotFoundException('Account or card not found');
+      throw new NotFoundException('Cuenta o tarjeta no encontrada');
     }
 
     const delta = roundMoney(command.balance - target.currentBalance);
@@ -77,7 +79,7 @@ export class AdjustBalanceUseCase {
       },
     });
     if (!created) {
-      throw new NotFoundException('Account or card not found');
+      throw new NotFoundException('Cuenta o tarjeta no encontrada');
     }
 
     void this.outboxDispatcher.processBatch();

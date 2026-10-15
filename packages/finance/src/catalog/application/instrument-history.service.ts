@@ -38,7 +38,7 @@ export class InstrumentHistoryService {
   ) {
     const account = await this.repo.findAccountById(accountId, userId);
     if (!account) {
-      throw new NotFoundException('Account not found');
+      throw new NotFoundException('Cuenta no encontrada');
     }
     return this.buildHistory(userId, { accountId }, query);
   }
@@ -46,7 +46,7 @@ export class InstrumentHistoryService {
   async getCardHistory(userId: string, cardId: string, query: CursorQueryDto) {
     const card = await this.repo.findCardById(userId, cardId);
     if (!card) {
-      throw new NotFoundException('Card not found');
+      throw new NotFoundException('Tarjeta no encontrada');
     }
     return this.buildHistory(userId, { cardId }, query);
   }

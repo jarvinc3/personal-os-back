@@ -14,14 +14,18 @@ function ownershipMock(
       if (id === 'inst-1') {
         return Promise.resolve({ id, name: 'Banco' });
       }
-      return Promise.reject(new BadRequestException('Institution not found'));
+      return Promise.reject(
+        new BadRequestException('Institución no encontrada'),
+      );
     }),
     assertInstitutionAcceptsBankProducts: jest.fn(
       (_userId: string, id: string) => {
         if (id === 'inst-1') {
           return Promise.resolve({ id, name: 'Banco', type: 'bank' });
         }
-        return Promise.reject(new BadRequestException('Institution not found'));
+        return Promise.reject(
+          new BadRequestException('Institución no encontrada'),
+        );
       },
     ),
     assertAccountOwned: jest.fn(),
@@ -156,9 +160,9 @@ describe('CatalogService cards archive', () => {
     updateCard.mockResolvedValue(null);
     await expect(
       service.updateCard('user-1', 'other', { isActive: false }),
-    ).rejects.toThrow(/not found/i);
+    ).rejects.toThrow(/no encontrad/i);
     await expect(service.deactivateCard('user-1', 'other')).rejects.toThrow(
-      /not found/i,
+      /no encontrad/i,
     );
   });
 });
@@ -207,7 +211,7 @@ describe('CatalogService createAccount', () => {
         institutionId: 'missing',
         accountNumber: '001122335678',
       }),
-    ).rejects.toThrow(/Institution not found/i);
+    ).rejects.toThrow(/Institución no encontrada/i);
     expect(createAccount).not.toHaveBeenCalled();
   });
 
@@ -417,7 +421,7 @@ describe('CatalogService updateCardBalance', () => {
         currency: 'DOP',
         balance: 42467,
       }),
-    ).rejects.toThrow(/CREDIT cards require creditLimit/i);
+    ).rejects.toThrow(/CREDIT requieren creditLimit/i);
     expect(upsertCardBalance).not.toHaveBeenCalled();
   });
 
@@ -490,7 +494,7 @@ describe('CatalogService deleteCardBalance', () => {
 
     await expect(
       service.deleteCardBalance('user-1', 'card-1', 'USD'),
-    ).rejects.toThrow('Card balance not found');
+    ).rejects.toThrow('Saldo de tarjeta no encontrado');
   });
 });
 
@@ -532,7 +536,7 @@ describe('CatalogService categories', () => {
 
   it('rejects an INCOME child under an EXPENSE parent', async () => {
     assertParentCategory.mockRejectedValue(
-      new BadRequestException('Parent category must have the same type'),
+      new BadRequestException('La categoría padre debe tener el mismo tipo'),
     );
 
     await expect(
@@ -687,7 +691,7 @@ describe('CatalogService hard delete', () => {
       purgeMock(),
     );
     await expect(service.deleteAccount('user-1', 'missing')).rejects.toThrow(
-      /not found/i,
+      /no encontrad/i,
     );
   });
 

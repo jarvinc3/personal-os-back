@@ -39,7 +39,7 @@ describe('FinanceOwnershipService', () => {
 
     await expect(
       service.assertParentCategory('user-1', 'parent', 'child'),
-    ).rejects.toThrow(/cycle/i);
+    ).rejects.toThrow(/ciclo/i);
   });
 
   it('rejects a parent of a different type', async () => {
@@ -51,7 +51,7 @@ describe('FinanceOwnershipService', () => {
 
     await expect(
       service.assertParentCategory('user-1', 'parent', undefined, 'INCOME'),
-    ).rejects.toThrow(/same type/i);
+    ).rejects.toThrow(/mismo tipo/i);
   });
 
   it('rejects a category type that does not match the transaction', () => {
@@ -69,7 +69,7 @@ describe('FinanceOwnershipService', () => {
 
     await expect(
       service.assertExpenseCategory('user-1', 'cat-1'),
-    ).rejects.toThrow(/expense category/i);
+    ).rejects.toThrow(/categoría de gasto/i);
   });
 
   it('requires debit cards to use an account from the same institution', async () => {

@@ -36,10 +36,10 @@ export class UpdateCardPaymentUseCase {
   ) {
     const leg = await this.repo.findTransactionById(legId, userId);
     if (!leg) {
-      throw new NotFoundException('Transaction not found');
+      throw new NotFoundException('Transacción no encontrada');
     }
     if (!leg.transferGroupId) {
-      throw new BadRequestException('Not a card payment');
+      throw new BadRequestException('No es un pago de tarjeta');
     }
 
     const legs = await this.repo.findTransactionsByTransferGroupId(
@@ -53,10 +53,12 @@ export class UpdateCardPaymentUseCase {
       legs.find((item) => item.legRole === OPERATION_LEG_ROLE.DESTINATION) ??
       legs.find((item) => item.cardId !== null);
     if (!debit || !credit) {
-      throw new NotFoundException('Card payment legs not found');
+      throw new NotFoundException(
+        'No se encontraron los movimientos del pago de tarjeta',
+      );
     }
     if (debit.type !== 'CARD_PAYMENT') {
-      throw new BadRequestException('Not a card payment');
+      throw new BadRequestException('No es un pago de tarjeta');
     }
     if (!legs.every((item) => item.status === 'PENDING')) {
       throw new ConflictException({
@@ -100,7 +102,9 @@ export class UpdateCardPaymentUseCase {
       notes: command.notes,
     });
     if (!updated) {
-      throw new NotFoundException('Card payment legs not found');
+      throw new NotFoundException(
+        'No se encontraron los movimientos del pago de tarjeta',
+      );
     }
 
     void this.outboxDispatcher.processBatch();

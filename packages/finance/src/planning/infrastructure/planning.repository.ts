@@ -208,6 +208,26 @@ export class PlanningRepository {
     });
   }
 
+  listSavingsGoalsPage(userId: string, query: CursorQueryDto) {
+    const limit = clampPageLimit(query.limit);
+    const after = decodeCursorPosition(query.cursor);
+    return this.prisma.finSavingsGoal.findMany({
+      where: {
+        userId,
+        ...(after
+          ? {
+              OR: [
+                { createdAt: { lt: after.date } },
+                { createdAt: after.date, id: { lt: after.id } },
+              ],
+            }
+          : {}),
+      },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      take: limit + 1,
+    });
+  }
+
   findSavingsGoal(userId: string, id: string) {
     return this.prisma.finSavingsGoal.findFirst({ where: { id, userId } });
   }
@@ -384,6 +404,31 @@ export class PlanningRepository {
         account: { select: { id: true, name: true } },
         institution: { select: { id: true, name: true } },
       },
+    });
+  }
+
+  listLoansPage(userId: string, query: CursorQueryDto) {
+    const limit = clampPageLimit(query.limit);
+    const after = decodeCursorPosition(query.cursor);
+    return this.prisma.finLoan.findMany({
+      where: {
+        userId,
+        isActive: true,
+        ...(after
+          ? {
+              OR: [
+                { nextDueDate: { gt: after.date } },
+                { nextDueDate: after.date, id: { gt: after.id } },
+              ],
+            }
+          : {}),
+      },
+      orderBy: [{ nextDueDate: 'asc' }, { id: 'asc' }],
+      include: {
+        account: { select: { id: true, name: true } },
+        institution: { select: { id: true, name: true } },
+      },
+      take: limit + 1,
     });
   }
 
@@ -650,6 +695,26 @@ export class PlanningRepository {
     return this.prisma.finReceivable.findMany({
       where: { userId },
       orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  listReceivablesPage(userId: string, query: CursorQueryDto) {
+    const limit = clampPageLimit(query.limit);
+    const after = decodeCursorPosition(query.cursor);
+    return this.prisma.finReceivable.findMany({
+      where: {
+        userId,
+        ...(after
+          ? {
+              OR: [
+                { createdAt: { lt: after.date } },
+                { createdAt: after.date, id: { lt: after.id } },
+              ],
+            }
+          : {}),
+      },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      take: limit + 1,
     });
   }
 

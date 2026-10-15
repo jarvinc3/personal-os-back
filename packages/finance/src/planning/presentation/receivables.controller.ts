@@ -34,8 +34,9 @@ export class ReceivablesController {
   ) {}
 
   @Get('receivables')
-  list(@CurrentUser('sub') userId: string) {
-    return this.planning.listReceivables(userId);
+  @ApiOperation({ summary: 'Lista los cobros (cursor)' })
+  list(@CurrentUser('sub') userId: string, @Query() query: CursorQueryDto) {
+    return this.planning.listReceivablesPage(userId, query);
   }
 
   @Post('receivables')
@@ -44,14 +45,14 @@ export class ReceivablesController {
   }
 
   @Get('receivables/:id')
-  @ApiOperation({ summary: 'Get receivable by id' })
+  @ApiOperation({ summary: 'Obtiene un cobro por id' })
   get(@CurrentUser('sub') userId: string, @Param('id') id: string) {
     return this.planning.getReceivable(userId, id);
   }
 
   @Get('receivables/:id/payments')
   @ApiOperation({
-    summary: 'Payments collected for a receivable, newest first',
+    summary: 'Pagos cobrados de un cobro, más recientes primero',
   })
   listPayments(
     @CurrentUser('sub') userId: string,
@@ -63,7 +64,7 @@ export class ReceivablesController {
 
   @Post('receivables/:id/payments')
   @ApiOperation({
-    summary: 'Collect a payment and record the income on the given account',
+    summary: 'Cobra un pago y registra el ingreso en la cuenta indicada',
   })
   addPayment(
     @CurrentUser('sub') userId: string,
@@ -74,7 +75,7 @@ export class ReceivablesController {
   }
 
   @Post('receivables/:id/credit')
-  @ApiOperation({ summary: 'Apply a receivable credit balance to another one' })
+  @ApiOperation({ summary: 'Aplica el saldo a favor de un cobro a otro' })
   applyCreditBalance(
     @CurrentUser('sub') userId: string,
     @Param('id') id: string,
@@ -84,7 +85,7 @@ export class ReceivablesController {
   }
 
   @Post('receivables/:id/write-off')
-  @ApiOperation({ summary: 'Write off an uncollectible receivable' })
+  @ApiOperation({ summary: 'Da de baja un cobro incobrable' })
   async writeOff(
     @CurrentUser('sub') userId: string,
     @Param('id') id: string,
@@ -104,13 +105,13 @@ export class ReceivablesController {
   }
 
   @Delete('receivables/:id')
-  @ApiOperation({ summary: 'Hard-delete receivable' })
+  @ApiOperation({ summary: 'Borra un cobro de forma definitiva' })
   remove(@CurrentUser('sub') userId: string, @Param('id') id: string) {
     return this.planning.deleteReceivable(userId, id);
   }
 
   @Post('receivables/:id/restore')
-  @ApiOperation({ summary: 'Undo a delete from the journal snapshot' })
+  @ApiOperation({ summary: 'Deshace un borrado desde el journal' })
   restore(@CurrentUser('sub') userId: string, @Param('id') id: string) {
     return this.planning.restoreReceivable(userId, id, new Date());
   }

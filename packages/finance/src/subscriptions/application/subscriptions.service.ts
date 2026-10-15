@@ -386,7 +386,7 @@ export class SubscriptionsService implements SubscriptionMatcherPort {
   async dismissAlert(userId: string, dto: DismissSubscriptionAlertDto) {
     const subscription = await this.repo.findById(userId, dto.subscriptionId);
     if (!subscription) {
-      throw new NotFoundException('Subscription not found');
+      throw new NotFoundException('Suscripción no encontrada');
     }
     const alertDate = dateOnly(new Date(dto.alertDate));
     await this.repo.dismissAlert({
@@ -404,7 +404,7 @@ export class SubscriptionsService implements SubscriptionMatcherPort {
   async get(userId: string, id: string, now = new Date()) {
     const row = await this.repo.findById(userId, id);
     if (!row) {
-      throw new NotFoundException('Subscription not found');
+      throw new NotFoundException('Suscripción no encontrada');
     }
     return this.map(row, now);
   }
@@ -460,7 +460,7 @@ export class SubscriptionsService implements SubscriptionMatcherPort {
   ) {
     const existing = await this.repo.findById(userId, id);
     if (!existing) {
-      throw new NotFoundException('Subscription not found');
+      throw new NotFoundException('Suscripción no encontrada');
     }
     await this.assertTargets(userId, dto.cardId, dto.accountId);
 
@@ -547,7 +547,7 @@ export class SubscriptionsService implements SubscriptionMatcherPort {
     }
     const updated = await this.repo.update(userId, id, changes);
     if (!updated) {
-      throw new NotFoundException('Subscription not found');
+      throw new NotFoundException('Suscripción no encontrada');
     }
     return this.map(updated, now);
   }
@@ -557,7 +557,7 @@ export class SubscriptionsService implements SubscriptionMatcherPort {
     this.applyStatus(changes, 'PAUSED', now);
     const updated = await this.repo.update(userId, id, changes);
     if (!updated) {
-      throw new NotFoundException('Subscription not found');
+      throw new NotFoundException('Suscripción no encontrada');
     }
     return this.map(updated, now);
   }
@@ -565,7 +565,7 @@ export class SubscriptionsService implements SubscriptionMatcherPort {
   async resume(userId: string, id: string, now = new Date()) {
     const existing = await this.repo.findById(userId, id);
     if (!existing) {
-      throw new NotFoundException('Subscription not found');
+      throw new NotFoundException('Suscripción no encontrada');
     }
     const updated = await this.repo.update(userId, id, {
       status: 'ACTIVE',
@@ -579,7 +579,7 @@ export class SubscriptionsService implements SubscriptionMatcherPort {
       }),
     });
     if (!updated) {
-      throw new NotFoundException('Subscription not found');
+      throw new NotFoundException('Suscripción no encontrada');
     }
     return this.map(updated, now);
   }
@@ -589,7 +589,7 @@ export class SubscriptionsService implements SubscriptionMatcherPort {
     this.applyStatus(changes, 'CANCELLED', now);
     const updated = await this.repo.update(userId, id, changes);
     if (!updated) {
-      throw new NotFoundException('Subscription not found');
+      throw new NotFoundException('Suscripción no encontrada');
     }
     return this.map(updated, now);
   }
@@ -601,7 +601,7 @@ export class SubscriptionsService implements SubscriptionMatcherPort {
   ) {
     const subscription = await this.repo.findById(userId, id);
     if (!subscription) {
-      throw new NotFoundException('Subscription not found');
+      throw new NotFoundException('Suscripción no encontrada');
     }
     const limit = clampPageLimit(query.limit);
     const cursor = query.cursor ? decodeCursor(query.cursor) : null;
@@ -642,7 +642,7 @@ export class SubscriptionsService implements SubscriptionMatcherPort {
   ) {
     const subscription = await this.repo.findById(userId, id);
     if (!subscription) {
-      throw new NotFoundException('Subscription not found');
+      throw new NotFoundException('Suscripción no encontrada');
     }
     if (dto.transactionId) {
       const transaction = await this.repo.findTransaction(
@@ -650,7 +650,7 @@ export class SubscriptionsService implements SubscriptionMatcherPort {
         dto.transactionId,
       );
       if (!transaction) {
-        throw new BadRequestException('Transaction not found');
+        throw new BadRequestException('Transacción no encontrada');
       }
       const alreadyLinked = await this.repo.findPaymentByTransaction(
         id,
@@ -685,12 +685,12 @@ export class SubscriptionsService implements SubscriptionMatcherPort {
   async uploadLogo(userId: string, id: string, file: LogoUploadFile) {
     const subscription = await this.repo.findById(userId, id);
     if (!subscription) {
-      throw new NotFoundException('Subscription not found');
+      throw new NotFoundException('Suscripción no encontrada');
     }
     const customLogoPath = await this.logos.saveCustomLogo(userId, id, file);
     const updated = await this.repo.update(userId, id, { customLogoPath });
     if (!updated) {
-      throw new NotFoundException('Subscription not found');
+      throw new NotFoundException('Suscripción no encontrada');
     }
     return { logoUrl: this.logos.resolveUrl(updated) };
   }
@@ -978,14 +978,16 @@ export class SubscriptionsService implements SubscriptionMatcherPort {
       select: { id: true },
     });
     if (!pattern) {
-      throw new BadRequestException('Recurring pattern not found');
+      throw new BadRequestException('Patrón recurrente no encontrado');
     }
   }
 
   private normalizedKeyFor(name: string): string {
     const key = normalizeMerchant(name);
     if (!key) {
-      throw new BadRequestException('Subscription name is required');
+      throw new BadRequestException(
+        'El nombre de la suscripción es obligatorio',
+      );
     }
     return key;
   }

@@ -98,7 +98,7 @@ describe('PlanningService archive and receivables', () => {
       ledger,
     );
     await expect(local.deleteLoan('user-1', 'missing')).rejects.toThrow(
-      /not found/i,
+      /no encontrad/i,
     );
   });
 
@@ -125,7 +125,7 @@ describe('PlanningService archive and receivables', () => {
       ledger,
     );
     await expect(local.deleteReceivable('user-1', 'missing')).rejects.toThrow(
-      /not found/i,
+      /no encontrad/i,
     );
   });
 
@@ -196,7 +196,7 @@ describe('PlanningService archive and receivables', () => {
     updateLoan.mockResolvedValue(null);
     await expect(
       service.updateLoan('user-1', 'missing', { isActive: false }, now),
-    ).rejects.toThrow(/not found/i);
+    ).rejects.toThrow(/no encontrad/i);
   });
 
   it('hands the requested status to the repository and returns the saved row', async () => {
@@ -225,7 +225,7 @@ describe('PlanningService archive and receivables', () => {
 
     await expect(
       service.updateReceivable('user-1', 'missing', { debtorName: 'Ana' }),
-    ).rejects.toThrow(/not found/i);
+    ).rejects.toThrow(/no encontrad/i);
     expect(updateReceivable).not.toHaveBeenCalled();
   });
 
@@ -265,13 +265,15 @@ describe('PlanningService archive and receivables', () => {
   it('throws when the budget is missing', async () => {
     findBudget.mockResolvedValue(null);
     await expect(service.getBudget('user-1', 'missing')).rejects.toThrow(
-      /Budget not found/,
+      /Presupuesto no encontrado/,
     );
   });
 
   it('rejects budgets on income categories', async () => {
     (ownership.assertExpenseCategory as jest.Mock).mockRejectedValue(
-      new BadRequestException('Budgets require an expense category'),
+      new BadRequestException(
+        'Los presupuestos requieren una categoría de gasto',
+      ),
     );
 
     await expect(
@@ -282,7 +284,7 @@ describe('PlanningService archive and receivables', () => {
         periodEnd: '2026-09-30',
         amountLimit: 1000,
       }),
-    ).rejects.toThrow(/expense category/i);
+    ).rejects.toThrow(/categoría de gasto/i);
   });
 
   it('rejects creating a loan on the cash institution', async () => {

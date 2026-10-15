@@ -1004,7 +1004,7 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
     },
   ): Promise<void> {
     if (!input.transferGroupId) {
-      throw new NotFoundException('Transfer group not found');
+      throw new NotFoundException('Grupo de transferencia no encontrado');
     }
     const amountFields = {
       amount: input.feeAmounts.amount,
@@ -1121,7 +1121,9 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
         },
       );
       if (!debit || !credit) {
-        throw new NotFoundException('Transfer leg not found');
+        throw new NotFoundException(
+          'Movimiento de la transferencia no encontrado',
+        );
       }
       if (input.feeAmounts) {
         await this.upsertTransferFeeLeg(tx, {

@@ -23,7 +23,9 @@ export class ReconciliationsController {
   constructor(private readonly reconciliations: ReconciliationsService) {}
 
   @Post('preview')
-  @ApiOperation({ summary: 'Preview a close: balance, difference, suggestion' })
+  @ApiOperation({
+    summary: 'Vista previa de un cierre: saldo, diferencia y sugerencia',
+  })
   preview(
     @CurrentUser('sub') userId: string,
     @Body() dto: PreviewReconciliationDto,
@@ -32,7 +34,7 @@ export class ReconciliationsController {
   }
 
   @Post()
-  @ApiOperation({ summary: 'Close a product and create its adjustments' })
+  @ApiOperation({ summary: 'Cierra un producto y crea sus ajustes' })
   create(
     @CurrentUser('sub') userId: string,
     @Body() dto: CreateReconciliationDto,
@@ -41,7 +43,7 @@ export class ReconciliationsController {
   }
 
   @Get('status')
-  @ApiOperation({ summary: 'Products reconciled and pending for a month' })
+  @ApiOperation({ summary: 'Productos conciliados y pendientes de un mes' })
   status(
     @CurrentUser('sub') userId: string,
     @Query() query: ReconciliationStatusQueryDto,
@@ -50,7 +52,9 @@ export class ReconciliationsController {
   }
 
   @Get()
-  @ApiOperation({ summary: 'Reconciliation history of an account or card' })
+  @ApiOperation({
+    summary: 'Historial de conciliaciones de una cuenta o tarjeta',
+  })
   list(
     @CurrentUser('sub') userId: string,
     @Query() query: ListReconciliationsQueryDto,
@@ -59,19 +63,19 @@ export class ReconciliationsController {
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Reconciliation detail' })
+  @ApiOperation({ summary: 'Detalle de la conciliación' })
   get(@CurrentUser('sub') userId: string, @Param('id') id: string) {
     return this.reconciliations.get(userId, id);
   }
 
   @Delete(':id')
-  @ApiOperation({ summary: 'Delete the latest close of a product' })
+  @ApiOperation({ summary: 'Borra el último cierre de un producto' })
   remove(@CurrentUser('sub') userId: string, @Param('id') id: string) {
     return this.reconciliations.remove(userId, id);
   }
 
   @Post(':id/restore')
-  @ApiOperation({ summary: 'Undo a reconciliation delete' })
+  @ApiOperation({ summary: 'Deshace el borrado de una conciliación' })
   restore(@CurrentUser('sub') userId: string, @Param('id') id: string) {
     return this.reconciliations.restore(userId, id);
   }

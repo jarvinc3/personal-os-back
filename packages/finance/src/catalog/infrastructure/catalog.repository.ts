@@ -1,5 +1,7 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
+import { clampPageLimit } from '@personal-os/core';
 import type { CursorPoint } from '@personal-os/core';
+import type { CursorQueryDto } from '@personal-os/core';
 import type { Prisma } from '@personal-os/database';
 import { PrismaService } from '@personal-os/database';
 import type { LedgerTransactionRow } from '../../ledger/application/ports/ledger.repository.port';
@@ -13,6 +15,11 @@ import {
   type DeletionSnapshot,
 } from '../../shared/domain/deletion-snapshot';
 import { DeletionJournalRepository } from '../../shared/infrastructure/deletion-journal.repository';
+import {
+  decodeCursorKeyPosition,
+  decodeCursorPosition,
+} from '../../shared/infrastructure/cursor-window';
+import { parseInstitutionOrderKey } from '../domain/institution-order';
 import { INSTRUMENT_EVENT_KIND } from '../../shared/domain/instrument-event';
 import { PENDING_TRANSACTION_STATUS } from '../../shared/domain/transaction-status';
 import {
@@ -54,6 +61,27 @@ export class CatalogRepository {
       where: { userId, isActive: true },
       orderBy: { name: 'asc' },
       include: { institutionRef: true },
+    });
+  }
+
+  findAccountsPage(userId: string, query: CursorQueryDto) {
+    const after = decodeCursorKeyPosition(query.cursor);
+    return this.prisma.finAccount.findMany({
+      where: {
+        userId,
+        isActive: true,
+        ...(after
+          ? {
+              OR: [
+                { name: { gt: after.key } },
+                { name: after.key, id: { gt: after.id } },
+              ],
+            }
+          : {}),
+      },
+      orderBy: [{ name: 'asc' }, { id: 'asc' }],
+      include: { institutionRef: true },
+      take: clampPageLimit(query.limit) + 1,
     });
   }
 
@@ -162,10 +190,35 @@ export class CatalogRepository {
     });
   }
 
-  listInstitutions(userId: string) {
+  listInstitutions(userId: string, query: CursorQueryDto) {
+    const after = decodeCursorKeyPosition(query.cursor);
+    const position = after ? parseInstitutionOrderKey(after.key) : null;
+    if (after && !position) {
+      throw new BadRequestException('Cursor inválido');
+    }
     return this.prisma.finInstitution.findMany({
-      where: { userId, isActive: true },
-      orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+      where: {
+        userId,
+        isActive: true,
+        ...(position
+          ? {
+              OR: [
+                { sortOrder: { gt: position.sortOrder } },
+                {
+                  sortOrder: position.sortOrder,
+                  name: { gt: position.name },
+                },
+                {
+                  sortOrder: position.sortOrder,
+                  name: position.name,
+                  id: { gt: after?.id },
+                },
+              ],
+            }
+          : {}),
+      },
+      orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }, { id: 'asc' }],
+      take: clampPageLimit(query.limit) + 1,
     });
   }
 
@@ -236,6 +289,32 @@ export class CatalogRepository {
         }
         return this.prisma.finInstitution.findFirst({ where: { userId, id } });
       });
+  }
+
+  listCardsPage(userId: string, query: CursorQueryDto) {
+    const after = decodeCursorPosition(query.cursor);
+    return this.prisma.finCard.findMany({
+      where: {
+        userId,
+        isActive: true,
+        ...(after
+          ? {
+              OR: [
+                { createdAt: { lt: after.date } },
+                { createdAt: after.date, id: { lt: after.id } },
+              ],
+            }
+          : {}),
+      },
+      include: {
+        institution: true,
+        account: { select: { id: true, name: true } },
+        balances: true,
+        transactions: PENDING_CARD_MOVEMENTS,
+      },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      take: clampPageLimit(query.limit) + 1,
+    });
   }
 
   listCards(userId: string) {

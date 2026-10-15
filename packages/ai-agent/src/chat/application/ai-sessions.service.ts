@@ -71,7 +71,7 @@ export class AiSessionsService {
       const mod = await this.sessionsRepo.findModuleBySlug(requestedModuleSlug);
       if (!mod) {
         throw new NotFoundException(
-          `Module "${requestedModuleSlug}" not found`,
+          `Módulo "${requestedModuleSlug}" no encontrado`,
         );
       }
       moduleId = mod.id;
@@ -94,7 +94,7 @@ export class AiSessionsService {
   async getById(sessionId: string, userId: string) {
     const session = await this.sessionsRepo.findSessionById(sessionId, userId);
     if (!session) {
-      throw new NotFoundException('AI session not found');
+      throw new NotFoundException('Sesión de IA no encontrada');
     }
 
     const liveActions = await this.actionsService.listBySession(
@@ -134,7 +134,7 @@ export class AiSessionsService {
   async delete(sessionId: string, userId: string) {
     const deleted = await this.sessionsRepo.deleteSession(sessionId, userId);
     if (deleted.count === 0) {
-      throw new NotFoundException('AI session not found');
+      throw new NotFoundException('Sesión de IA no encontrada');
     }
     return { success: true };
   }

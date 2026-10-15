@@ -124,7 +124,7 @@ describe('UpdateTransferUseCase', () => {
         amount: 80,
         transactionDate: '2026-08-02T12:00:00.000Z',
       }),
-    ).rejects.toThrow(/not a transfer/i);
+    ).rejects.toThrow(/no es una transferencia/i);
     expect(updateTransfer).not.toHaveBeenCalled();
   });
 

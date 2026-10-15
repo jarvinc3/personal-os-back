@@ -35,7 +35,9 @@ export class StatementImportsController {
 
   @Post('cards/:id/statements/import')
   @ApiConsumes('multipart/form-data')
-  @ApiOperation({ summary: 'Upload a credit-card statement PDF and parse it' })
+  @ApiOperation({
+    summary: 'Sube y analiza el PDF del estado de cuenta de una tarjeta',
+  })
   @UseInterceptors(
     FileInterceptor('file', {
       limits: { fileSize: STATEMENT_UPLOAD_MAX_BYTES },
@@ -58,7 +60,9 @@ export class StatementImportsController {
 
   @Post('accounts/:id/statements/import')
   @ApiConsumes('multipart/form-data')
-  @ApiOperation({ summary: 'Upload a bank-account statement PDF and parse it' })
+  @ApiOperation({
+    summary: 'Sube y analiza el PDF del estado de cuenta de una cuenta',
+  })
   @UseInterceptors(
     FileInterceptor('file', {
       limits: { fileSize: STATEMENT_UPLOAD_MAX_BYTES },
@@ -81,14 +85,16 @@ export class StatementImportsController {
 
   @Get('statement-imports/:id')
   @ApiOperation({
-    summary: 'Statement import status, header and reconciliation',
+    summary: 'Estado, encabezado y conciliación de la importación',
   })
   get(@CurrentUser('sub') userId: string, @Param('id') importId: string) {
     return this.imports.getImport(userId, importId);
   }
 
   @Patch('statement-imports/:id/lines/:lineId')
-  @ApiOperation({ summary: 'Change one line decision or its matched movement' })
+  @ApiOperation({
+    summary: 'Cambia la decisión de una línea o su movimiento asociado',
+  })
   updateLine(
     @CurrentUser('sub') userId: string,
     @Param('id') importId: string,
@@ -105,7 +111,9 @@ export class StatementImportsController {
   }
 
   @Post('statement-imports/:id/apply')
-  @ApiOperation({ summary: 'Create the selected rows and close the period' })
+  @ApiOperation({
+    summary: 'Crea las líneas seleccionadas y cierra el periodo',
+  })
   apply(
     @CurrentUser('sub') userId: string,
     @Param('id') importId: string,
@@ -119,7 +127,7 @@ export class StatementImportsController {
   }
 
   @Delete('statement-imports/:id')
-  @ApiOperation({ summary: 'Discard a statement import' })
+  @ApiOperation({ summary: 'Descarta una importación de estado de cuenta' })
   async discard(
     @CurrentUser('sub') userId: string,
     @Param('id') importId: string,

@@ -56,7 +56,9 @@ export class AiService implements OnModuleInit, AiChatCompletionPort {
     stream: AsyncIterable<string>;
   }> {
     if (this.providers.length === 0) {
-      throw new ServiceUnavailableException('No AI providers available');
+      throw new ServiceUnavailableException(
+        'No hay proveedores de IA disponibles',
+      );
     }
 
     const ordered = this.getOrderedProviders(preferredProvider);
@@ -87,7 +89,7 @@ export class AiService implements OnModuleInit, AiChatCompletionPort {
     const message =
       lastError instanceof Error ? lastError.message : 'Unknown error';
     throw new ServiceUnavailableException(
-      `All AI providers failed. Last error: ${message}`,
+      `Todos los proveedores de IA fallaron. Último error: ${message}`,
     );
   }
 
@@ -97,7 +99,9 @@ export class AiService implements OnModuleInit, AiChatCompletionPort {
     tools?: AiToolDefinition[],
   ): Promise<ChatCompletionResult & { provider: string; model: string }> {
     if (this.providers.length === 0) {
-      throw new ServiceUnavailableException('No AI providers available');
+      throw new ServiceUnavailableException(
+        'No hay proveedores de IA disponibles',
+      );
     }
 
     const ordered = this.getOrderedProviders(preferredProvider);
@@ -131,7 +135,7 @@ export class AiService implements OnModuleInit, AiChatCompletionPort {
     const message =
       lastError instanceof Error ? lastError.message : 'Unknown error';
     throw new ServiceUnavailableException(
-      `All AI providers failed. Last error: ${message}`,
+      `Todos los proveedores de IA fallaron. Último error: ${message}`,
     );
   }
 
@@ -142,7 +146,9 @@ export class AiService implements OnModuleInit, AiChatCompletionPort {
     onToken: (delta: string) => void,
   ): Promise<ChatCompletionResult & { provider: string; model: string }> {
     if (this.providers.length === 0) {
-      throw new ServiceUnavailableException('No AI providers available');
+      throw new ServiceUnavailableException(
+        'No hay proveedores de IA disponibles',
+      );
     }
 
     const ordered = this.getOrderedProviders(preferredProvider);
@@ -204,7 +210,7 @@ export class AiService implements OnModuleInit, AiChatCompletionPort {
     const message =
       lastError instanceof Error ? lastError.message : 'Unknown error';
     throw new ServiceUnavailableException(
-      `All AI providers failed. Last error: ${message}`,
+      `Todos los proveedores de IA fallaron. Último error: ${message}`,
     );
   }
 

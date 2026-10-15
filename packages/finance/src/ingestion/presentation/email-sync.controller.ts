@@ -43,13 +43,17 @@ export class EmailSyncController {
   constructor(private readonly ingestion: IngestionService) {}
 
   @Get('mailboxes')
-  @ApiOperation({ summary: 'List authorized Gmail mailboxes with bank links' })
+  @ApiOperation({
+    summary: 'Lista los buzones de Gmail autorizados con sus bancos',
+  })
   listMailboxes(@CurrentUser('sub') userId: string) {
     return this.ingestion.listMailboxes(userId);
   }
 
   @Delete('mailboxes/:id')
-  @ApiOperation({ summary: 'Disconnect a Gmail mailbox and its bank links' })
+  @ApiOperation({
+    summary: 'Desconecta un buzón de Gmail y sus bancos vinculados',
+  })
   removeMailbox(@CurrentUser('sub') userId: string, @Param('id') id: string) {
     return this.ingestion.deactivateMailbox(userId, id);
   }
@@ -96,7 +100,9 @@ export class EmailSyncController {
   }
 
   @Get('pending')
-  @ApiOperation({ summary: 'List email imports waiting for a ledger target' })
+  @ApiOperation({
+    summary: 'Lista las importaciones de correo que esperan un destino',
+  })
   listPending(
     @CurrentUser('sub') userId: string,
     @Query() query: CursorQueryDto,
@@ -105,7 +111,9 @@ export class EmailSyncController {
   }
 
   @Get('messages')
-  @ApiOperation({ summary: 'List recent email extract outcomes' })
+  @ApiOperation({
+    summary: 'Lista los resultados recientes de extracción de correo',
+  })
   listRecentMessages(
     @CurrentUser('sub') userId: string,
     @Query() query: CursorQueryDto,
@@ -115,7 +123,8 @@ export class EmailSyncController {
 
   @Post('pending/:id/assign')
   @ApiOperation({
-    summary: 'Assign a pending email import to an account or card',
+    summary:
+      'Asigna una importación de correo pendiente a una cuenta o tarjeta',
   })
   assignPending(
     @CurrentUser('sub') userId: string,
@@ -127,7 +136,8 @@ export class EmailSyncController {
 
   @Post('pending/:id/retry')
   @ApiOperation({
-    summary: 'Retry automatic routing for a pending email import',
+    summary:
+      'Reintenta el enrutado automático de una importación de correo pendiente',
   })
   retryPending(@CurrentUser('sub') userId: string, @Param('id') id: string) {
     return this.ingestion.retryPendingMessage(userId, id);
@@ -135,7 +145,7 @@ export class EmailSyncController {
 
   @Post('pending/:id/amount')
   @ApiOperation({
-    summary: 'Complete a payroll/deposit import that had no amount',
+    summary: 'Completa una importación de nómina o depósito sin monto',
   })
   completeAmount(
     @CurrentUser('sub') userId: string,
@@ -159,7 +169,7 @@ export class EmailSyncController {
 
   @Post('sources/:id/senders')
   @ApiOperation({
-    summary: 'Add allowlisted sender addresses for this institution',
+    summary: 'Agrega remitentes permitidos para esta institución',
   })
   addSenders(
     @CurrentUser('sub') userId: string,
@@ -170,7 +180,7 @@ export class EmailSyncController {
   }
 
   @Get('oauth/google/url')
-  @ApiOperation({ summary: 'Get Google OAuth URL for Gmail' })
+  @ApiOperation({ summary: 'Obtiene la URL de OAuth de Google para Gmail' })
   getOAuthUrl(
     @CurrentUser('sub') userId: string,
     @Query() query: GoogleOAuthUrlQueryDto,
@@ -199,7 +209,7 @@ export class EmailSyncController {
           this.ingestion.resolveOAuthClientRedirect(state, false),
         );
       }
-      throw new BadRequestException('Missing code or state');
+      throw new BadRequestException('Falta el code o el state');
     }
     try {
       await this.ingestion.handleGoogleOAuthCallback(code, state);

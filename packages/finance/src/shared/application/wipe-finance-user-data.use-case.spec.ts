@@ -237,6 +237,6 @@ describe('WipeFinanceUserDataUseCase', () => {
       useCase.execute('user-1', ['finance.balances'], {
         balanceInstitutionId: 'missing',
       }),
-    ).rejects.toThrow('Institution not found');
+    ).rejects.toThrow('Institución no encontrada');
   });
 });
