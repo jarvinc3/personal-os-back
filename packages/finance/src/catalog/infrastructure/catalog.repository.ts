@@ -14,6 +14,7 @@ import {
 } from '../../shared/domain/deletion-snapshot';
 import { DeletionJournalRepository } from '../../shared/infrastructure/deletion-journal.repository';
 import { INSTRUMENT_EVENT_KIND } from '../../shared/domain/instrument-event';
+import { PENDING_TRANSACTION_STATUS } from '../../shared/domain/transaction-status';
 import { normalizeCurrencyCode } from '../../shared/presentation/validation.decorators';
 import type { CreateAccountDto } from '../presentation/dto/create-account.dto';
 import type { UpdateAccountDto } from '../presentation/dto/update-account.dto';
@@ -25,8 +26,8 @@ type LedgerPurge = {
 };
 
 /** Movements that already use the card's limit but are not confirmed yet. */
-const PENDING_CARD_MOVEMENTS = {
-  where: { status: 'PENDING' as const },
+const PENDING_CARD_MOVEMENTS: Prisma.FinCard$transactionsArgs = {
+  where: { status: PENDING_TRANSACTION_STATUS },
   select: {
     type: true,
     status: true,

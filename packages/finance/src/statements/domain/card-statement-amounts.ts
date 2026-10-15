@@ -1,9 +1,11 @@
 import { signedAmount } from '../../shared/domain/ledger-rules';
 import { roundMoney } from '../../shared/domain/money';
-import type { FinTransactionTypeValue } from '../../shared/domain/transaction-status';
+import {
+  PENDING_TRANSACTION_STATUS,
+  type FinTransactionTypeValue,
+} from '../../shared/domain/transaction-status';
 
 export const CONFIRMED_TRANSACTION_STATUS = 'CONFIRMED';
-export const PENDING_TRANSACTION_STATUS = 'PENDING';
 
 export type StatementMovement = {
   type: FinTransactionTypeValue;

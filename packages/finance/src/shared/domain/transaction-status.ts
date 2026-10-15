@@ -22,6 +22,9 @@ export const FIN_TRANSACTION_STATUSES = [
 export type FinTransactionStatusValue =
   (typeof FIN_TRANSACTION_STATUSES)[number];
 
+/** Status of a movement already registered that has not hit the ledger yet. */
+export const PENDING_TRANSACTION_STATUS = 'PENDING' as const;
+
 export type BankStatusNormalized =
   | 'APPROVED'
   | 'COMPLETED'

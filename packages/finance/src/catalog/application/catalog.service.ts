@@ -49,6 +49,33 @@ const fallbackUsers = {
   findById: () => Promise.resolve({ timezone: null }),
 } as unknown as UsersService;
 
+type CardRow = NonNullable<
+  Awaited<ReturnType<CatalogRepository['findCardById']>>
+>;
+
+function mapCardBalance(
+  balance: CardRow['balances'][number],
+  transactions: CardRow['transactions'],
+) {
+  return {
+    id: balance.id,
+    currency: balance.currency,
+    balance: decimalToString(balance.balance),
+    creditLimit: decimalToNullableString(balance.creditLimit),
+    availableCredit:
+      balance.creditLimit === null
+        ? null
+        : decimalToString(
+            availableCredit({
+              storedAvailable: Number(balance.balance),
+              movements: transactions.filter(
+                (movement) => movement.ledgerCurrency === balance.currency,
+              ),
+            }),
+          ),
+  };
+}
+
 function omitAccountNumber<T extends { accountNumber?: string | null }>(
   dto: T,
 ): Omit<T, 'accountNumber'> {
@@ -778,10 +805,7 @@ export class CatalogService {
     return localDayStart(profile.timezone, new Date());
   }
 
-  private mapCard(
-    card: NonNullable<Awaited<ReturnType<CatalogRepository['findCardById']>>>,
-    today: Date,
-  ) {
+  private mapCard(card: CardRow, today: Date) {
     const cycle = buildNextCardCycle({
       closingDay: card.statementClosingDay,
       dueDay: card.paymentDueDay,
@@ -807,23 +831,9 @@ export class CatalogService {
         : null,
       color: card.color,
       isActive: card.isActive,
-      balances: card.balances.map((b) => ({
-        id: b.id,
-        currency: b.currency,
-        balance: decimalToString(b.balance),
-        creditLimit: decimalToNullableString(b.creditLimit),
-        availableCredit:
-          b.creditLimit === null
-            ? null
-            : decimalToString(
-                availableCredit({
-                  storedAvailable: Number(b.balance),
-                  movements: card.transactions.filter(
-                    (movement) => movement.ledgerCurrency === b.currency,
-                  ),
-                }),
-              ),
-      })),
+      balances: card.balances.map((balance) =>
+        mapCardBalance(balance, card.transactions),
+      ),
     };
   }
 }
