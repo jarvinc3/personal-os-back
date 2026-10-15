@@ -283,7 +283,14 @@ export class IngestionService {
     void this.outboxDispatcher.processBatch();
   }
 
-  async completeEmailSyncFailureWithEvent(params: {
+  async completeEmailSyncFailureWithEvent({
+    logId,
+    userId,
+    sourceId,
+    emailsScanned,
+    transactionsNew,
+    error,
+  }: {
     logId: string;
     userId: string;
     sourceId: string;
@@ -294,21 +301,21 @@ export class IngestionService {
     const eventId = randomUUID();
     const occurredAt = new Date().toISOString();
     await this.repo.completeEmailSyncFailureWithOutbox({
-      id: params.logId,
-      emailsScanned: params.emailsScanned,
-      transactionsNew: params.transactionsNew,
-      error: params.error,
+      id: logId,
+      emailsScanned,
+      transactionsNew,
+      error,
       outbox: {
         eventId,
         eventName: AppEvents.FINANCE_EMAIL_SYNC_FAILED,
         aggregateType: 'FinEmailSource',
-        aggregateId: params.sourceId,
-        userId: params.userId,
+        aggregateId: sourceId,
+        userId,
         payload: {
-          sourceId: params.sourceId,
-          error: params.error,
-          emailsScanned: params.emailsScanned,
-          transactionsNew: params.transactionsNew,
+          sourceId,
+          error,
+          emailsScanned,
+          transactionsNew,
           occurredAt,
           version: 1,
         },

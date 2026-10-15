@@ -199,7 +199,13 @@ export class EmailSourceRepository {
     });
   }
 
-  async completeEmailSyncFailureWithOutbox(input: {
+  async completeEmailSyncFailureWithOutbox({
+    id,
+    emailsScanned,
+    transactionsNew,
+    error,
+    outbox,
+  }: {
     id: string;
     emailsScanned: number;
     transactionsNew: number;
@@ -215,16 +221,16 @@ export class EmailSourceRepository {
   }) {
     return this.prisma.$transaction(async (tx) => {
       await tx.finEmailSyncLog.update({
-        where: { id: input.id },
+        where: { id },
         data: {
           status: 'FAILED',
-          emailsScanned: input.emailsScanned,
-          transactionsNew: input.transactionsNew,
+          emailsScanned,
+          transactionsNew,
           completedAt: new Date(),
-          error: input.error,
+          error,
         },
       });
-      await tx.domainEventOutbox.create({ data: input.outbox });
+      await tx.domainEventOutbox.create({ data: outbox });
     });
   }
 
