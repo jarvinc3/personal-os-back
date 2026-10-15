@@ -2,6 +2,12 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [SemVer](https://semver.org/lang/es/). Reglas y ejemplo en [docs/reference/changelog-guide.md](./docs/reference/changelog-guide.md).
 
+## [0.35.0] - 2026-10-15
+
+### Agregado
+
+- `GET /api/finance/recycle-bin` incluye `logoUrl` de la institución en los registros eliminados: lo lee del snapshot para una institución y lo resuelve por `institutionId` para una cuenta.
+
 ## [0.34.0] - 2026-10-15
 
 ### Agregado
