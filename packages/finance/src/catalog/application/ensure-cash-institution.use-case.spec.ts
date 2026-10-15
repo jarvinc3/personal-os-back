@@ -32,13 +32,27 @@ describe('EnsureCashInstitutionUseCase', () => {
     createCashAccount.mockResolvedValue({ id: 'cash-acc-1' });
   });
 
-  it('returns the existing institution without provisioning', async () => {
+  it('keeps the existing institution and its cash account', async () => {
     findSystemCashInstitution.mockResolvedValue({ id: 'cash-1' });
+    findFirstCashAccount.mockResolvedValue({ id: 'cash-acc-1' });
 
     await expect(createUseCase().execute('user-1')).resolves.toBeUndefined();
     expect(createSystemCashInstitution).not.toHaveBeenCalled();
     expect(assignInstitutionlessCashAccounts).not.toHaveBeenCalled();
     expect(createCashAccount).not.toHaveBeenCalled();
+  });
+
+  it('restores the base-currency account when the institution survived a wipe', async () => {
+    findSystemCashInstitution.mockResolvedValue({ id: 'cash-1' });
+    findFirstCashAccount.mockResolvedValue(null);
+
+    await expect(createUseCase().execute('user-1')).resolves.toBeUndefined();
+    expect(createSystemCashInstitution).not.toHaveBeenCalled();
+    expect(createCashAccount).toHaveBeenCalledWith('user-1', {
+      institutionId: 'cash-1',
+      name: 'Efectivo',
+      currency: 'DOP',
+    });
   });
 
   it('creates Efectivo, moves loose cash and adds the base-currency account', async () => {

@@ -285,6 +285,42 @@ describe('PlanningService archive and receivables', () => {
     ).rejects.toThrow(/expense category/i);
   });
 
+  it('rejects creating a loan on the cash institution', async () => {
+    const local = new PlanningService(
+      repo,
+      {
+        ...ownership,
+        assertInstitutionAcceptsBankProducts: jest
+          .fn()
+          .mockRejectedValue(
+            new BadRequestException(
+              'Efectivo no admite tarjetas, préstamos ni sincronización por correo',
+            ),
+          ),
+      } as unknown as FinanceOwnershipService,
+      syncInstallments,
+      ledger,
+    );
+
+    await expect(
+      local.createLoan(
+        'user-1',
+        {
+          lenderName: 'Efectivo',
+          institutionId: 'cash-inst',
+          originalAmount: 1000,
+          currentBalance: 1000,
+          installmentAmount: 100,
+          installmentFreq: 'MONTHLY',
+          totalInstallments: 12,
+          nextDueDate: '2026-09-01',
+        },
+        now,
+      ),
+    ).rejects.toThrow(/Efectivo no admite/i);
+    expect(createLoan).not.toHaveBeenCalled();
+  });
+
   it('serializes created loan money and rate as strings', async () => {
     createLoan.mockResolvedValue({
       originalAmount: 1000,

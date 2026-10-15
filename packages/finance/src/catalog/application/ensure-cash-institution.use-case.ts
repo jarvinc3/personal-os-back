@@ -7,11 +7,12 @@ import { CatalogRepository } from '../infrastructure/catalog.repository';
 /**
  * Guarantees the user has the system "Efectivo" institution (pendiente 16).
  *
- * Idempotent: an existing institution short-circuits with a single query. When
- * it is missing, the institution is created, institution-less CASH accounts are
- * moved into it, and a base-currency "Efectivo" account is added so a new user
- * sees cash without creating anything. The read of the ensured id belongs to the
- * caller, through the repository query (CQS).
+ * Idempotent: an existing institution short-circuits the creation, and the
+ * base-currency "Efectivo" account is restored when a wipe left the
+ * institution without cash accounts. When the institution is missing, it is
+ * created, institution-less CASH accounts are moved into it, and a
+ * base-currency "Efectivo" account is added so a new user sees cash without
+ * creating anything.
  */
 @Injectable()
 export class EnsureCashInstitutionUseCase {
@@ -23,6 +24,7 @@ export class EnsureCashInstitutionUseCase {
   async execute(userId: string): Promise<void> {
     const existing = await this.repo.findSystemCashInstitution(userId);
     if (existing) {
+      await this.ensureDefaultAccount(userId, existing.id);
       return;
     }
     await this.provision(userId);

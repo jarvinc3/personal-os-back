@@ -3,6 +3,7 @@ import type { CatalogRepository } from '../infrastructure/catalog.repository';
 import type { FinanceOwnershipService } from '../../shared/application/finance-ownership.service';
 import type { PurgeInstrumentLedgerUseCase } from '../../ledger/application/purge-instrument-ledger.use-case';
 import type { EnsureCashInstitutionUseCase } from './ensure-cash-institution.use-case';
+import type { ResolveUserBaseCurrencyUseCase } from '../../fx/application/resolve-user-base-currency';
 import { BadRequestException, ConflictException } from '@nestjs/common';
 
 function ownershipMock(
@@ -53,6 +54,12 @@ function ensureMock(): EnsureCashInstitutionUseCase {
   } as unknown as EnsureCashInstitutionUseCase;
 }
 
+function baseCurrencyMock(currency = 'DOP'): ResolveUserBaseCurrencyUseCase {
+  return {
+    execute: jest.fn().mockResolvedValue(currency),
+  } as unknown as ResolveUserBaseCurrencyUseCase;
+}
+
 /**
  * Builds the service with the cash-institution mock in place, so every spec
  * keeps passing only the collaborators it cares about.
@@ -64,7 +71,15 @@ function createService(
   logos?: never,
   users?: never,
 ) {
-  return new CatalogService(repo, ownership, purge, ensureMock(), logos, users);
+  return new CatalogService(
+    repo,
+    ownership,
+    purge,
+    ensureMock(),
+    baseCurrencyMock(),
+    logos,
+    users,
+  );
 }
 
 describe('CatalogService cards archive', () => {
@@ -676,6 +691,52 @@ describe('CatalogService hard delete', () => {
     );
   });
 
+  it('rejects deleting the base-currency Efectivo account', async () => {
+    const deleteAccount = jest.fn();
+    const service = createService(
+      {
+        findAccountById: jest.fn().mockResolvedValue({
+          id: 'acc-cash',
+          type: 'CASH',
+          currency: 'DOP',
+        }),
+        deleteAccount,
+      } as unknown as CatalogRepository,
+      ownershipMock(),
+      purgeMock(),
+    );
+
+    await expect(service.deleteAccount('user-1', 'acc-cash')).rejects.toThrow(
+      /moneda base/i,
+    );
+    expect(deleteAccount).not.toHaveBeenCalled();
+  });
+
+  it('deletes a cash account in another currency', async () => {
+    const forAccount = jest.fn().mockResolvedValue({ count: 1, rows: [] });
+    const deleteAccount = jest.fn().mockResolvedValue({ count: 1 });
+    const service = createService(
+      {
+        findAccountById: jest.fn().mockResolvedValue({
+          id: 'acc-usd',
+          type: 'CASH',
+          currency: 'USD',
+        }),
+        deleteAccount,
+      } as unknown as CatalogRepository,
+      ownershipMock(),
+      {
+        forAccount,
+        forCard: jest.fn(),
+      } as unknown as PurgeInstrumentLedgerUseCase,
+    );
+
+    await expect(service.deleteAccount('user-1', 'acc-usd')).resolves.toEqual({
+      success: true,
+    });
+    expect(deleteAccount).toHaveBeenCalled();
+  });
+
   it('deletes a card after purging its ledger', async () => {
     const forCard = jest.fn().mockResolvedValue({ count: 1, rows: [] });
     const deleteCard = jest.fn().mockResolvedValue({ count: 1 });
@@ -920,6 +981,25 @@ describe('CatalogService cash institution rules', () => {
       service.deleteInstitution('user-1', 'cash-inst'),
     ).rejects.toThrow(/sistema/i);
     expect(deleteInstitution).not.toHaveBeenCalled();
+  });
+
+  it('rejects turning another institution into cash', async () => {
+    const updateInstitution = jest.fn();
+    const service = createService(
+      {
+        findInstitution: jest
+          .fn()
+          .mockResolvedValue({ id: 'inst-1', isSystem: false }),
+        updateInstitution,
+      } as unknown as CatalogRepository,
+      ownershipMock(),
+      purgeMock(),
+    );
+
+    await expect(
+      service.updateInstitution('user-1', 'inst-1', { type: 'cash' }),
+    ).rejects.toThrow(/Efectivo/i);
+    expect(updateInstitution).not.toHaveBeenCalled();
   });
 
   it('rejects creating another cash institution', async () => {

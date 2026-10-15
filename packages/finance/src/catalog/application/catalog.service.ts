@@ -27,7 +27,8 @@ import {
   decimalToNullableString,
   decimalToString,
 } from '../../shared/domain/mappers';
-import { roundMoney } from '../../shared/domain/money';
+import { normalizeCurrencyCode, roundMoney } from '../../shared/domain/money';
+import { ResolveUserBaseCurrencyUseCase } from '../../fx/application/resolve-user-base-currency';
 import { CASH_ACCOUNT_TYPE, isCashInstitution } from '../../shared/domain/cash';
 import { EnsureCashInstitutionUseCase } from './ensure-cash-institution.use-case';
 import { CatalogRepository } from '../infrastructure/catalog.repository';
@@ -94,6 +95,7 @@ export class CatalogService {
     private readonly ownership: FinanceOwnershipService,
     private readonly purgeLedger: PurgeInstrumentLedgerUseCase,
     private readonly ensureCashInstitution: EnsureCashInstitutionUseCase,
+    private readonly userBaseCurrency: ResolveUserBaseCurrencyUseCase,
     private readonly logos: LogoService = fallbackLogos,
     private readonly users: UsersService = fallbackUsers,
   ) {}
@@ -214,6 +216,7 @@ export class CatalogService {
     if (!existing) {
       throw new NotFoundException('Account not found');
     }
+    await this.assertCashAccountDeletable(userId, existing);
     const purged = await this.purgeLedger.forAccount(userId, id);
     const removed = await this.repo.deleteAccount({
       userId,
@@ -273,6 +276,11 @@ export class CatalogService {
       throw new NotFoundException('Institution not found');
     }
     this.assertInstitutionEditable(existing);
+    if (dto.type !== undefined && isCashInstitution({ type: dto.type })) {
+      throw new BadRequestException(
+        'Efectivo ya existe como institución de sistema',
+      );
+    }
     if (dto.isActive === false) {
       await this.ownership.assertInstitutionCanArchive(userId, id);
     }
@@ -766,6 +774,25 @@ export class CatalogService {
     if (institution.isSystem) {
       throw new ForbiddenException(
         'La institución Efectivo es de sistema: no se puede editar ni borrar',
+      );
+    }
+  }
+
+  /**
+   * The base-currency "Efectivo" account is the user's anchor: it can be
+   * deactivated but never hard-deleted (decision approved on 2026-10-15).
+   */
+  private async assertCashAccountDeletable(
+    userId: string,
+    account: { type: string; currency: string },
+  ) {
+    if (account.type !== CASH_ACCOUNT_TYPE) {
+      return;
+    }
+    const baseCurrency = await this.userBaseCurrency.execute(userId);
+    if (normalizeCurrencyCode(account.currency) === baseCurrency) {
+      throw new BadRequestException(
+        'La cuenta Efectivo de la moneda base no se puede borrar; desactívala',
       );
     }
   }

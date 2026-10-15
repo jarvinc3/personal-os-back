@@ -121,7 +121,7 @@ describe('WipeFinanceUserDataUseCase', () => {
     const counts = await useCase.execute('user-1', ['finance.catalog']);
 
     expect(tx.finInstitution.deleteMany).toHaveBeenCalledWith({
-      where: { userId: 'user-1' },
+      where: { userId: 'user-1', isSystem: false },
     });
     expect(tx.finAccount.deleteMany).toHaveBeenCalledWith({
       where: { userId: 'user-1' },

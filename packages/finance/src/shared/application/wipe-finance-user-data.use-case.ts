@@ -297,13 +297,14 @@ export class WipeFinanceUserDataUseCase {
     userId: string,
   ): Promise<Partial<FinanceWipeCounts>> {
     const [institutions, accounts, cards] = await Promise.all([
-      tx.finInstitution.count({ where: { userId } }),
+      tx.finInstitution.count({ where: { userId, isSystem: false } }),
       tx.finAccount.count({ where: { userId } }),
       tx.finCard.count({ where: { userId } }),
     ]);
-    // Institution delete cascades accounts, cards, loans and email sources.
-    await tx.finInstitution.deleteMany({ where: { userId } });
-    // CASH accounts have no institution; cards above their own institution.
+    // The system "Efectivo" institution survives the wipe and is refilled by
+    // ensureCashInstitution; non-system institutions cascade their products.
+    await tx.finInstitution.deleteMany({ where: { userId, isSystem: false } });
+    // Cash accounts live in the system institution and are emptied, not kept.
     await tx.finAccount.deleteMany({ where: { userId } });
     await tx.finCard.deleteMany({ where: { userId } });
     return { institutions, accounts, cards };
