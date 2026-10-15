@@ -2,6 +2,17 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [SemVer](https://semver.org/lang/es/). Reglas y ejemplo en [docs/reference/changelog-guide.md](./docs/reference/changelog-guide.md).
 
+## [0.32.0] - 2026-10-22 - Decimales exactos
+
+### Cambiado
+
+- El dinero se suma, resta y convierte con `Prisma.Decimal` de punta a punta en analytics, balance general, resumen semanal, costo equivalente de suscripciones y conversión de moneda, en vez de `Number`. `shared/domain/money.ts` gana `toMoney`, `sumMoney`, `roundDecimal` (`ROUND_HALF_EVEN`), `convertDecimal`, `ratioPercent` y `scalarNumber`. Las respuestas siguen como strings (ADR-002) y el redondeo a 2 decimales ocurre solo al presentar o persistir.
+- El repositorio de analytics lee la suma como `numeric` (`::text`) y no como `::float`.
+
+### Agregado
+
+- Regla ESLint `no-restricted-syntax` y `pnpm lint:money` (`scripts/finance/check-money-decimals.mjs`, en CI) que prohíben `Number`/`toNumber` en las rutas de lectura de dinero.
+
 ## [0.31.1] - 2026-10-22
 
 ### Cambiado
