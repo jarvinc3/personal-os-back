@@ -2,6 +2,12 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [SemVer](https://semver.org/lang/es/). Reglas y ejemplo en [docs/reference/changelog-guide.md](./docs/reference/changelog-guide.md).
 
+## [0.33.2] - 2026-10-15
+
+### Cambiado
+
+- El comando que asegura la institución Efectivo ya no devuelve el id. La cuenta de efectivo lee la institución con la consulta del repositorio después de asegurarla, siguiendo la separación comando/consulta del resto de finanzas.
+
 ## [0.33.1] - 2026-10-15
 
 ### Corregido
