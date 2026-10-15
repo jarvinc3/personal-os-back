@@ -2,6 +2,24 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [SemVer](https://semver.org/lang/es/). Reglas y ejemplo en [docs/reference/changelog-guide.md](./docs/reference/changelog-guide.md).
 
+## [0.36.0] - 2026-10-15
+
+### Agregado
+
+- `finance.email_sync.failed` se encola en el outbox cuando un sync de correo falla, en la misma transacción que el log `FAILED` del sync.
+- `pnpm smoke:finance`: smoke HTTP de 16 endpoints clave de finanzas contra `SMOKE_BASE_URL` con `SMOKE_ACCESS_TOKEN`.
+
+### Cambiado
+
+- `LoggingInterceptor` queda activo como interceptor global; se borran `RolesGuard` y `@Roles` sin uso.
+- `MAX_EMAIL_LLM_EXTRACTS` y `AI_DAILY_INSIGHT_QUOTA` entran en `env.schema` (defaults 25 y 20).
+- El puerto por defecto unifica en 3100, igual que `.env.example`.
+- Saneamiento del registro de revisión (pendiente 17): `review-register.md` y la documentación de finanzas, config y eventos al día; los hallazgos sin código pasan a [docs/roadmap.md](./docs/roadmap.md).
+
+### Eliminado
+
+- El comando `db:reconcile-balances`, que apuntaba a un script inexistente.
+
 ## [0.35.0] - 2026-10-15
 
 ### Agregado

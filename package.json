@@ -1,6 +1,6 @@
 {
   "name": "personal-os-back",
-  "version": "0.35.0",
+  "version": "0.36.0",
   "description": "Personal OS es un backend para la aplicación Personal OS que permite gestionar cada área de la vida cotidiana.",
   "author": "jarvinc3",
   "private": true,
@@ -37,7 +37,7 @@
     "db:validate": "prisma validate",
     "db:seed": "prisma db seed",
     "db:studio": "prisma studio",
-    "db:reconcile-balances": "ts-node -r tsconfig-paths/register prisma/scripts/reconcile-balances.ts",
+    "smoke:finance": "ts-node -r tsconfig-paths/register scripts/finance/smoke-finance-http.ts",
     "db:backfill-logos": "ts-node -r tsconfig-paths/register scripts/backfill-institution-logos.ts",
     "db:backfill-loan-schedule": "ts-node -r tsconfig-paths/register scripts/finance/backfill-loan-schedule.ts",
     "db:backfill-goal-allocations": "ts-node -r tsconfig-paths/register scripts/finance/backfill-goal-allocations.ts",
