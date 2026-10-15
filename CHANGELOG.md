@@ -2,6 +2,13 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [SemVer](https://semver.org/lang/es/). Reglas y ejemplo en [docs/reference/changelog-guide.md](./docs/reference/changelog-guide.md).
 
+## [0.37.1] - 2026-10-15
+
+### Corregido
+
+- `instrument.ts` importa `dotenv/config` antes de leer `process.env`, para que un `SENTRY_DSN` guardado en `.env` se aplique.
+- Se quita un `as T` innecesario en el scrubber que rompía `lint`.
+
 ## [0.37.0] - 2026-10-15
 
 ### Agregado
