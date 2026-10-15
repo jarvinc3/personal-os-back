@@ -18,13 +18,14 @@ Estados: ver [documentation-standard.md](./documentation-standard.md).
 
 ## REV-BACK-002 {#rev-back-002}
 
-| Campo         | Valor                                                                                                                  |
-| ------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| Categoría     | `NO_VERIFICABLE` (env no validado al boot)                                                                             |
-| Origen        | cuotas AI documentadas implícitamente vía helpers                                                                      |
-| Validación    | `MAX_EMAIL_LLM_EXTRACTS`, `AI_DAILY_INSIGHT_QUOTA` leídos de `process.env`, ausentes de `env.schema.ts`                |
-| Recomendación | Añadir al schema Zod o documentar como no soportados en boot                                                           |
-| Resolución    | `resolved` (2026-10-15, back `v0.36.0`): `MAX_EMAIL_LLM_EXTRACTS` y `AI_DAILY_INSIGHT_QUOTA` validados en `env.schema` |
+| Campo         | Valor                                                                                                                       |
+| ------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| Categoría     | `NO_VERIFICABLE` (env no validado al boot)                                                                                  |
+| Origen        | cuotas AI documentadas implícitamente vía helpers                                                                           |
+| Validación    | `MAX_EMAIL_LLM_EXTRACTS`, `AI_DAILY_INSIGHT_QUOTA` leídos de `process.env`, ausentes de `env.schema.ts`                     |
+| Recomendación | Añadir al schema Zod o documentar como no soportados en boot                                                                |
+| Revisión      | 2026-10-15 (back `v0.36.1`): una cadena vacía cae al default, igual que `ai-limits.ts`; antes un valor vacío rompía el boot |
+| Resolución    | `resolved` (2026-10-15, back `v0.36.0`): `MAX_EMAIL_LLM_EXTRACTS` y `AI_DAILY_INSIGHT_QUOTA` validados en `env.schema`      |
 
 ## REV-BACK-003 {#rev-back-003}
 
@@ -86,13 +87,14 @@ Estados: ver [documentation-standard.md](./documentation-standard.md).
 
 ## REV-BACK-009 {#rev-back-009}
 
-| Campo      | Valor                                                                                 |
-| ---------- | ------------------------------------------------------------------------------------- |
-| Categoría  | `CONTRADICE_CODIGO`                                                                   |
-| Origen     | README “API <http://localhost:3100”>; schema `PORT` default 3000                      |
-| Validación | `env.schema.ts` default 3000; `.env.example` PORT=3100                                |
-| Nota       | El valor real es el env; no hay un único default                                      |
-| Resolución | `resolved` (2026-10-15, back `v0.36.0`): `PORT` default 3100 igual que `.env.example` |
+| Campo      | Valor                                                                                                 |
+| ---------- | ----------------------------------------------------------------------------------------------------- |
+| Categoría  | `CONTRADICE_CODIGO`                                                                                   |
+| Origen     | README “API <http://localhost:3100”>; schema `PORT` default 3000                                      |
+| Validación | `env.schema.ts` default 3000; `.env.example` PORT=3100                                                |
+| Nota       | El valor real es el env; no hay un único default                                                      |
+| Revisión   | 2026-10-15 (back `v0.36.1`): `apps/api/src/main.ts` alinea su fallback en 3100; antes decía `?? 3000` |
+| Resolución | `resolved` (2026-10-15, back `v0.36.0`): `PORT` default 3100 igual que `.env.example`                 |
 
 ## REV-BACK-010 {#rev-back-010}
 

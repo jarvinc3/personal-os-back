@@ -12,6 +12,14 @@ const optionalApiKey = z
     return trimmed;
   });
 
+/** Positive integer env value; a blank string falls back to the default. */
+const defaultedPositiveInt = (fallback: number) =>
+  z.preprocess(
+    (value) =>
+      typeof value === 'string' && value.trim() === '' ? undefined : value,
+    z.coerce.number().int().positive().default(fallback),
+  );
+
 /** true/false/1/0 only — never treat the string "false" as true. */
 const optionalStrictBoolean = z
   .unknown()
@@ -51,9 +59,9 @@ export const envSchema = z
     CEREBRAS_API_KEY: optionalApiKey,
     OPENROUTER_API_KEY: optionalApiKey,
     /** Hard cap on LLM email extractions per Gmail sync. Default 25. */
-    MAX_EMAIL_LLM_EXTRACTS: z.coerce.number().int().positive().default(25),
+    MAX_EMAIL_LLM_EXTRACTS: defaultedPositiveInt(25),
     /** Max proactive insight LLM calls per user per UTC day. Default 20. */
-    AI_DAILY_INSIGHT_QUOTA: z.coerce.number().int().positive().default(20),
+    AI_DAILY_INSIGHT_QUOTA: defaultedPositiveInt(20),
 
     // ── Google OAuth (para Gmail API) ────────────────────────────
     GOOGLE_CLIENT_ID: z.string().min(1, 'GOOGLE_CLIENT_ID is required'),

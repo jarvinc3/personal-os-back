@@ -74,7 +74,7 @@ async function bootstrap() {
     .map((value) => value.trim())
     .filter(Boolean);
 
-  const port: number = configService.get('PORT', { infer: true }) ?? 3000;
+  const port: number = configService.get('PORT', { infer: true }) ?? 3100;
   // Bull Board (same host) sends Origin on PUT/DELETE; allow the API's own origin in non-prod.
   const sameServerOrigins = [
     `http://localhost:${port}`,

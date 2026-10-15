@@ -90,4 +90,15 @@ describe('envSchema AI limits', () => {
       parseEnv({ ...validBaseEnv, MAX_EMAIL_LLM_EXTRACTS: '0' }),
     ).toThrow();
   });
+
+  it('treats blank limits as the default, matching ai-limits', () => {
+    const parsed = parseEnv({
+      ...validBaseEnv,
+      MAX_EMAIL_LLM_EXTRACTS: '',
+      AI_DAILY_INSIGHT_QUOTA: '   ',
+    });
+
+    expect(parsed.MAX_EMAIL_LLM_EXTRACTS).toBe(25);
+    expect(parsed.AI_DAILY_INSIGHT_QUOTA).toBe(20);
+  });
 });
