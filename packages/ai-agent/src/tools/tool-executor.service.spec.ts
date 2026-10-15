@@ -162,14 +162,14 @@ describe('ToolExecutorService', () => {
 
   it('blocks finance tools when the finance module is disabled', async () => {
     assertModuleEnabled.mockRejectedValue(
-      new Error('Finance module is disabled'),
+      new Error('El módulo finance está desactivado'),
     );
 
     const result = await executor.execute(ctx, 'get_finance_summary', {});
 
     expect(result.success).toBe(false);
     expect(result.message).toBe(
-      'Tool execution failed: Finance module is disabled',
+      'Tool execution failed: El módulo finance está desactivado',
     );
     expect(getAnalyticsSummary).not.toHaveBeenCalled();
   });

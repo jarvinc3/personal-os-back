@@ -91,8 +91,8 @@ describe('Finance (e2e)', () => {
       .set('Authorization', `Bearer ${token}`)
       .expect(200)
       .expect((res) => {
-        expect(res.body.data).toHaveLength(1);
-        expect(res.body.data[0]).toMatchObject({
+        expect(res.body.data.items).toHaveLength(1);
+        expect(res.body.data.items[0]).toMatchObject({
           id: 'acc-1',
           name: 'Main',
           balance: '1000.00',
@@ -169,7 +169,7 @@ describe('Finance (e2e)', () => {
       .expect((res) => {
         expect(res.body).toMatchObject({
           statusCode: 403,
-          message: 'Finance module is disabled',
+          message: 'El módulo finance está desactivado',
         });
       });
 
@@ -191,7 +191,7 @@ describe('Finance (e2e)', () => {
       })
       .expect(403)
       .expect((res) => {
-        expect(res.body.message).toBe('Finance module is disabled');
+        expect(res.body.message).toBe('El módulo finance está desactivado');
       });
 
     expect(prismaMock.$transaction).not.toHaveBeenCalled();
@@ -828,7 +828,7 @@ describe('Finance (e2e)', () => {
       .set('Authorization', `Bearer ${token}`)
       .expect(200)
       .expect((res) => {
-        expect(res.body.data).toEqual([]);
+        expect(res.body.data.items).toEqual([]);
       });
   });
 
@@ -911,7 +911,7 @@ describe('Finance (e2e)', () => {
       .set('Authorization', `Bearer ${token}`)
       .expect(200)
       .expect((res) => {
-        expect(res.body.data[0]).toMatchObject({
+        expect(res.body.data.items[0]).toMatchObject({
           currency: 'USD',
           interestRate: '0.12',
           notes: 'BHD',
@@ -1941,7 +1941,7 @@ describe('Finance (e2e)', () => {
       .expect(400);
   });
 
-  it('GET /api/finance/transactions stays cursor paginated and accounts stay an array', async () => {
+  it('GET /api/finance/transactions stays cursor paginated and accounts stay cursor paginated', async () => {
     prismaMock.finTransaction.findMany.mockResolvedValue([]);
 
     await request(app.getHttpServer())
@@ -1977,8 +1977,8 @@ describe('Finance (e2e)', () => {
       .set('Authorization', `Bearer ${token}`)
       .expect(200)
       .expect((res) => {
-        expect(Array.isArray(res.body.data)).toBe(true);
-        expect(res.body.data.items).toBeUndefined();
+        expect(Array.isArray(res.body.data.items)).toBe(true);
+        expect(res.body.data).toHaveProperty('nextCursor');
       });
   });
 
@@ -2202,7 +2202,9 @@ describe('Finance (e2e)', () => {
       .send({ isActive: false })
       .expect(409)
       .expect((res) => {
-        expect(res.body.message).toMatch(/Cannot archive institution/i);
+        expect(res.body.message).toMatch(
+          /No se puede archivar la institución/i,
+        );
         expect(res.body.details.dependents).toEqual({
           accounts: 1,
           cards: 0,
