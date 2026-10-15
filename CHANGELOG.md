@@ -2,6 +2,12 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [SemVer](https://semver.org/lang/es/). Reglas y ejemplo en [docs/reference/changelog-guide.md](./docs/reference/changelog-guide.md).
 
+## [0.32.2] - 2026-10-22
+
+### Cambiado
+
+- `MoneyLike` acepta `null` como único monto ausente y deja fuera `undefined`; `toMoney` y el chequeo de límite ausente del balance general usan esa única convención.
+
 ## [0.32.1] - 2026-10-22
 
 ### Cambiado
