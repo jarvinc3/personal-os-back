@@ -13,11 +13,11 @@ const optionalApiKey = z
   });
 
 /** Positive integer env value; a blank string falls back to the default. */
-const defaultedPositiveInt = (fallback: number) =>
+const defaultedPositiveInt = (defaultValue: number) =>
   z.preprocess(
     (value) =>
       typeof value === 'string' && value.trim() === '' ? undefined : value,
-    z.coerce.number().int().positive().default(fallback),
+    z.coerce.number().int().positive().default(defaultValue),
   );
 
 /** true/false/1/0 only — never treat the string "false" as true. */
