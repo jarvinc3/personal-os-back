@@ -2,6 +2,14 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [SemVer](https://semver.org/lang/es/). Reglas y ejemplo en [docs/reference/changelog-guide.md](./docs/reference/changelog-guide.md).
 
+## [0.32.1] - 2026-10-22
+
+### Cambiado
+
+- `MoneyLike` documenta que un monto ausente (`null` de un agregado, `undefined` de un campo opcional) es cero, un solo significado; el spec separa ese caso del parseo de strings.
+- El resumen semanal extrae el promedio de gastos a `averageOfAmounts`, fuera del flujo de armado del resumen.
+- `pnpm lint:money` separa el escaneo de cada archivo (`offendersIn`) del reporte de la lista.
+
 ## [0.32.0] - 2026-10-22 - Decimales exactos
 
 ### Cambiado
