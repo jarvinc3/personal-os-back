@@ -2,6 +2,23 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [SemVer](https://semver.org/lang/es/). Reglas y ejemplo en [docs/reference/changelog-guide.md](./docs/reference/changelog-guide.md).
 
+## [0.30.0] - 2026-10-21 - Suscripciones v3
+
+### Agregado
+
+- Alerta `AMOUNT_MISMATCH`: el último cobro no coincide con el monto esperado de la suscripción, por arriba o por abajo, sin duplicar la subida de precio ya confirmada. Migración `20261021090000_fin_subscription_amount_mismatch`.
+- `POST /finance/subscriptions/alerts/dismiss-all`: marca de una vez todas las alertas activas.
+- La lista de suscripciones devuelve `lastChargeMismatch` y `lastPaymentAmount` para la marca de advertencia de la card.
+- La lista acepta `categoryIds`, `frequency` (`MONTHLY`, `YEARLY`, `OTHER`) y `sort` (`NEXT_DATE`, `AMOUNT`, `NAME`); el cursor sigue el orden elegido.
+- `summary.reminderWindowDays`: la ventana de próximos cobros sale del ajuste global.
+
+### Cambiado
+
+- `subscriptions.reminderDaysBefore` pasa de 3 a 5 por defecto y se valida entre 1 y 30.
+- La lista de suscripciones expone y aplica los filtros y el orden en el servidor, para que la paginación por cursor no corte resultados.
+- Los recordatorios de renovación usan el ajuste global en vez del valor guardado por suscripción, que deja de mostrarse en la UI (la columna se conserva).
+- `decodeCursor` acepta un validador de clave, para las listas que ordenan por otra columna.
+
 ## [0.29.1] - 2026-10-20
 
 ### Corregido
