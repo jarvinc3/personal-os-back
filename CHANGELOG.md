@@ -2,6 +2,17 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [SemVer](https://semver.org/lang/es/). Reglas y ejemplo en [docs/reference/changelog-guide.md](./docs/reference/changelog-guide.md).
 
+## [0.32.3] - 2026-10-22
+
+### Cambiado
+
+- `pnpm lint:money` cubre además `merchants/application` y `merchants/infrastructure`.
+
+### Corregido
+
+- Recurrentes: el costo equivalente mensual y anual de un patrón se calcula con `Prisma.Decimal` y `ROUND_HALF_EVEN` (`monthlyAmount`, `annualAmount`), en vez de aritmética de `Number` con `toFixed`.
+- Comercios: el gasto del mes conserva la suma exacta del agregado (`Prisma.Decimal`) y se serializa como string, sin pasar por `Number`.
+
 ## [0.32.2] - 2026-10-22
 
 ### Cambiado
