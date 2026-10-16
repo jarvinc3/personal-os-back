@@ -173,6 +173,36 @@
         ]
       }
     },
+    "/api/users/me/release-notes-seen": {
+      "patch": {
+        "operationId": "UsersController_markReleaseNotesSeen",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MarkReleaseNotesSeenDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated user profile"
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Marca la versión de Novedades que el usuario ya vio",
+        "tags": [
+          "users"
+        ]
+      }
+    },
     "/api/users/me/modules/{slug}": {
       "patch": {
         "operationId": "UsersController_updateMyModuleConfig",
@@ -6102,7 +6132,7 @@
   "info": {
     "title": "Personal OS API",
     "description": "Personal OS backend endpoints, including auth, core modules, and AI.",
-    "version": "0.40.0",
+    "version": "0.40.1",
     "contact": {}
   },
   "tags": [
@@ -6161,6 +6191,19 @@
             "type": "object"
           }
         }
+      },
+      "MarkReleaseNotesSeenDto": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "string",
+            "example": "0.20.0",
+            "description": "Versión de Novedades vista"
+          }
+        },
+        "required": [
+          "version"
+        ]
       },
       "UpdateModuleConfigDto": {
         "type": "object",
