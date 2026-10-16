@@ -2,6 +2,13 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [SemVer](https://semver.org/lang/es/). Reglas y ejemplo en [docs/reference/changelog-guide.md](./docs/reference/changelog-guide.md).
 
+## [0.39.0] - 2026-10-16
+
+### Agregado
+
+- `PATCH /api/users/me/release-notes-seen` guarda en `users.last_seen_release_version` la última versión de Novedades vista por el usuario. Migración `20261022110000_user_last_seen_release_version`.
+- `GET /api/users/me` devuelve `lastSeenReleaseVersion`, nullable hasta la primera visita.
+
 ## [0.38.1] - 2026-10-16
 
 ### Cambiado
