@@ -1,9 +1,15 @@
-import { ConflictException, HttpException } from '@nestjs/common';
+import {
+  ConflictException,
+  HttpException,
+  RequestTimeoutException,
+} from '@nestjs/common';
 import type { CallHandler, ExecutionContext } from '@nestjs/common';
+import type { Reflector } from '@nestjs/core';
 import type { PinoLogger } from 'nestjs-pino';
-import { lastValueFrom, of, throwError } from 'rxjs';
+import { NEVER, TimeoutError, lastValueFrom, of, throwError } from 'rxjs';
 import { type PrismaService } from '@personal-os/database';
 import { IdempotencyInterceptor } from './idempotency.interceptor';
+import { TimeoutInterceptor } from './timeout.interceptor';
 
 type IdempotencyKeyMock = {
   findUnique: jest.Mock;
@@ -16,7 +22,7 @@ type IdempotencyKeyMock = {
 type Harness = {
   interceptor: IdempotencyInterceptor;
   idempotencyKey: IdempotencyKeyMock;
-  logger: { setContext: jest.Mock; error: jest.Mock };
+  logger: { setContext: jest.Mock; error: jest.Mock; warn: jest.Mock };
 };
 
 function createHarness(): Harness {
@@ -27,7 +33,7 @@ function createHarness(): Harness {
     delete: jest.fn().mockResolvedValue({}),
     deleteMany: jest.fn().mockResolvedValue({ count: 1 }),
   };
-  const logger = { setContext: jest.fn(), error: jest.fn() };
+  const logger = { setContext: jest.fn(), error: jest.fn(), warn: jest.fn() };
   const prisma = { idempotencyKey } as unknown as PrismaService;
   return {
     interceptor: new IdempotencyInterceptor(
@@ -69,6 +75,8 @@ function createContext({
       getRequest: () => request,
       getResponse: () => response,
     }),
+    getHandler: () => undefined,
+    getClass: () => undefined,
   } as unknown as ExecutionContext;
 }
 
@@ -284,6 +292,56 @@ describe('IdempotencyInterceptor', () => {
       where: { userId: 'user-1', key: 'key-1' },
     });
     expect(idempotencyKey.update).not.toHaveBeenCalled();
+  });
+
+  it('keeps the key claimed when the request times out', async () => {
+    const { interceptor, idempotencyKey, logger } = createHarness();
+    const next: CallHandler = {
+      handle: () => throwError(() => new RequestTimeoutException('cut')),
+    };
+
+    const handlerResult = await interceptor.intercept(createContext(), next);
+
+    await expect(lastValueFrom(handlerResult)).rejects.toBeInstanceOf(
+      RequestTimeoutException,
+    );
+    expect(idempotencyKey.deleteMany).not.toHaveBeenCalled();
+    expect(idempotencyKey.update).not.toHaveBeenCalled();
+    expect(logger.warn).toHaveBeenCalled();
+  });
+
+  it('keeps the key claimed when RxJS raises a bare TimeoutError', async () => {
+    const { interceptor, idempotencyKey } = createHarness();
+    const next: CallHandler = {
+      handle: () => throwError(() => new TimeoutError()),
+    };
+
+    const handlerResult = await interceptor.intercept(createContext(), next);
+
+    await expect(lastValueFrom(handlerResult)).rejects.toBeInstanceOf(
+      TimeoutError,
+    );
+    expect(idempotencyKey.deleteMany).not.toHaveBeenCalled();
+  });
+
+  it('keeps the key claimed when the TimeoutInterceptor cuts a slow handler', async () => {
+    const { interceptor, idempotencyKey } = createHarness();
+    const reflector = {
+      getAllAndOverride: jest.fn().mockReturnValue(10),
+    } as unknown as Reflector;
+    const timeoutInterceptor = new TimeoutInterceptor(reflector);
+    const context = createContext({ url: '/api/fin/sources/src-1/sync' });
+    const next: CallHandler = {
+      handle: () =>
+        timeoutInterceptor.intercept(context, { handle: () => NEVER }),
+    };
+
+    const handlerResult = await interceptor.intercept(context, next);
+
+    await expect(lastValueFrom(handlerResult)).rejects.toBeInstanceOf(
+      RequestTimeoutException,
+    );
+    expect(idempotencyKey.deleteMany).not.toHaveBeenCalled();
   });
 
   it('ignores the key order of the body when comparing requests', async () => {

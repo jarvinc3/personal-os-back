@@ -242,7 +242,13 @@ export class IngestionService {
     if (!source) {
       throw new NotFoundException('Origen de correo no encontrado');
     }
-    return this.enqueueGmailSyncJob(userId, sourceId, { forceFullSync });
+    // El sync manual deduplica igual que el automático: un reintento tras un
+    // timeout no encola un segundo sync del mismo origen mientras el primero
+    // siga en vuelo.
+    return this.enqueueGmailSyncJob(userId, sourceId, {
+      forceFullSync,
+      dedupe: true,
+    });
   }
 
   async completeEmailSyncSuccessWithEvent(params: {
@@ -1073,9 +1079,7 @@ export class IngestionService {
         { userId, sourceId, forceFullSync },
         {
           ...GMAIL_SYNC_JOB_OPTIONS,
-          ...(options.dedupe && !forceFullSync
-            ? { jobId: gmailSyncJobId(sourceId) }
-            : {}),
+          ...(options.dedupe ? { jobId: gmailSyncJobId(sourceId) } : {}),
         },
       );
       return { queued: true };

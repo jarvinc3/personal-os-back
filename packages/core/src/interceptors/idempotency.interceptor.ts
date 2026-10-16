@@ -4,10 +4,11 @@ import {
   ExecutionContext,
   Injectable,
   NestInterceptor,
+  RequestTimeoutException,
 } from '@nestjs/common';
 import { createHash } from 'crypto';
 import { PinoLogger } from 'nestjs-pino';
-import { Observable, from, of, throwError } from 'rxjs';
+import { Observable, TimeoutError, from, of, throwError } from 'rxjs';
 import { catchError, mergeMap } from 'rxjs/operators';
 import { IdempotencyStatus, PrismaService } from '@personal-os/database';
 
@@ -152,8 +153,15 @@ export class IdempotencyInterceptor implements NestInterceptor {
         });
         return body;
       }),
-      catchError((error: unknown) =>
-        from(this.releaseKey(scope)).pipe(
+      catchError((error: unknown) => {
+        if (isTimeoutError(error)) {
+          this.logger.warn(
+            { key: scope.key, userId: scope.userId },
+            'La petición agotó el tiempo de espera; la Idempotency-Key queda retenida hasta el TTL',
+          );
+          return throwError(() => error);
+        }
+        return from(this.releaseKey(scope)).pipe(
           catchError((releaseError: unknown) => {
             this.logger.error(
               { err: releaseError, key: scope.key, userId: scope.userId },
@@ -162,8 +170,8 @@ export class IdempotencyInterceptor implements NestInterceptor {
             return of(undefined);
           }),
           mergeMap(() => throwError(() => error)),
-        ),
-      ),
+        );
+      }),
     );
   }
 
@@ -210,7 +218,9 @@ export class IdempotencyInterceptor implements NestInterceptor {
 
   /**
    * A failed attempt must not block the retry: the key is removed on any
-   * error, so a 5xx (or any other failure) can be sent again.
+   * error, so a 5xx (or any other failure) can be sent again. Timeouts are the
+   * exception, because there the work may have continued after the response
+   * was cut (see isTimeoutError).
    */
   private async releaseKey(scope: IdempotencyScope): Promise<void> {
     await this.prisma.idempotencyKey.deleteMany({
@@ -262,6 +272,19 @@ function stableStringify(value: unknown): string {
         `${JSON.stringify(entryKey)}:${stableStringify(entryValue)}`,
     )
     .join(',')}}`;
+}
+
+/**
+ * A timeout cuts the response, not the work: the handler may still be running
+ * (for example, waiting on `queue.add`). Releasing the key would let a retry
+ * enqueue that work twice, so the key stays claimed until its TTL.
+ * The TimeoutInterceptor runs inside this one and turns the RxJS TimeoutError
+ * into RequestTimeoutException, so both shapes must be recognized.
+ */
+function isTimeoutError(error: unknown): boolean {
+  return (
+    error instanceof TimeoutError || error instanceof RequestTimeoutException
+  );
 }
 
 function isUniqueViolation(error: unknown): boolean {

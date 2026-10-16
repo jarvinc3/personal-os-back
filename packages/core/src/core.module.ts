@@ -15,6 +15,7 @@ import { IdempotencyInterceptor } from './interceptors/idempotency.interceptor';
 import { LoggingInterceptor } from './interceptors/logging.interceptor';
 import { TimeoutInterceptor } from './interceptors/timeout.interceptor';
 import { TransformInterceptor } from './interceptors/transform.interceptor';
+import { IdempotencyKeyRetentionScheduler } from './maintenance/idempotency-key-retention.scheduler';
 import { PaginationService } from './pagination/pagination.service';
 
 @Module({
@@ -63,6 +64,7 @@ import { PaginationService } from './pagination/pagination.service';
       useClass: LoggingInterceptor,
     },
     PaginationService,
+    IdempotencyKeyRetentionScheduler,
   ],
   exports: [PassportModule, PaginationService],
 })
