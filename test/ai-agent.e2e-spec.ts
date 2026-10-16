@@ -11,6 +11,12 @@ import { applyTestEnv } from './helpers/test-env';
 
 applyTestEnv();
 
+// Loaded at file scope so the one-time ts-jest transpile of the app graph
+// does not consume the 5s hook timeout on a cold cache (#150).
+const { AppModule } = require('../apps/api/src/app.module') as {
+  AppModule: new (...args: never[]) => unknown;
+};
+
 describe('AI Agent (e2e)', () => {
   let app: INestApplication<App>;
   let prismaMock: ReturnType<typeof createPrismaMock> & {
@@ -47,9 +53,6 @@ describe('AI Agent (e2e)', () => {
 
   beforeEach(async () => {
     chatCompleteStreamCalls = 0;
-    const { AppModule } = require('../apps/api/src/app.module') as {
-      AppModule: new (...args: never[]) => unknown;
-    };
     const base = createPrismaMock();
     prismaMock = {
       ...base,

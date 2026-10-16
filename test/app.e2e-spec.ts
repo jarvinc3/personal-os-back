@@ -9,13 +9,16 @@ import { applyTestEnv } from './helpers/test-env';
 
 applyTestEnv();
 
+// Loaded at file scope so the one-time ts-jest transpile of the app graph
+// does not consume the 5s hook timeout on a cold cache (#150).
+const { AppModule } = require('../apps/api/src/app.module') as {
+  AppModule: new (...args: never[]) => unknown;
+};
+
 describe('AppController (e2e)', () => {
   let app: INestApplication<App>;
 
   beforeEach(async () => {
-    const { AppModule } = require('../apps/api/src/app.module') as {
-      AppModule: new (...args: never[]) => unknown;
-    };
     const prismaMock = createPrismaMock();
     const moduleFixture: TestingModule = await applyAuthTestOverrides(
       Test.createTestingModule({

@@ -10,6 +10,12 @@ import { applyTestEnv } from './helpers/test-env';
 
 applyTestEnv();
 
+// Loaded at file scope so the one-time ts-jest transpile of the app graph
+// does not consume the 5s hook timeout on a cold cache (#150).
+const { AppModule } = require('../apps/api/src/app.module') as {
+  AppModule: new (...args: never[]) => unknown;
+};
+
 const mockUser = {
   id: 'user-123',
   email: 'test@example.com',
@@ -29,9 +35,6 @@ describe('Notifications (e2e)', () => {
   let token: string;
 
   beforeEach(async () => {
-    const { AppModule } = require('../apps/api/src/app.module') as {
-      AppModule: new (...args: never[]) => unknown;
-    };
     prismaMock = createPrismaMock();
     token = createTestJwt({ sub: 'user-123' });
 
