@@ -105,6 +105,14 @@ export class UsersRepository implements UsersRepositoryPort {
     });
   }
 
+  setLastSeenReleaseVersion(id: string, version: string) {
+    return this.prisma.user.update({
+      where: { id },
+      data: { lastSeenReleaseVersion: version },
+      include: userWithModulesInclude,
+    });
+  }
+
   upsertUserModule(
     userId: string,
     moduleId: string,

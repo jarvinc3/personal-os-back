@@ -53,6 +53,7 @@ export class UsersService {
       timezone: user.timezone,
       locale: user.locale,
       preferences: user.preferences,
+      lastSeenReleaseVersion: user.lastSeenReleaseVersion,
       userModules: user.userModules.map((row) => ({
         slug: row.module.slug as ModuleSlug,
         isEnabled: row.isEnabled,
@@ -134,6 +135,18 @@ export class UsersService {
       });
     }
 
+    return this.mapUser(updated);
+  }
+
+  async markReleaseNotesSeen(userId: string, version: string) {
+    const user = await this.usersRepository.findById(userId);
+    if (!user) {
+      throw new NotFoundException('Usuario no encontrado');
+    }
+    const updated = await this.usersRepository.setLastSeenReleaseVersion(
+      userId,
+      version,
+    );
     return this.mapUser(updated);
   }
 

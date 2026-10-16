@@ -15,6 +15,7 @@ export type UserWithModulesRecord = {
   timezone: string;
   locale: string;
   preferences: unknown;
+  lastSeenReleaseVersion: string | null;
   userModules: UserModuleConfigRow[];
   createdAt: Date;
   updatedAt: Date;
@@ -70,6 +71,10 @@ export interface UsersRepositoryPort {
   updateProfile(
     id: string,
     data: UpdateProfileData,
+  ): Promise<UserWithModulesRecord>;
+  setLastSeenReleaseVersion(
+    id: string,
+    version: string,
   ): Promise<UserWithModulesRecord>;
   upsertUserModule(
     userId: string,

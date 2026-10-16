@@ -15,6 +15,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { CurrentUser } from '@personal-os/core';
+import { MarkReleaseNotesSeenDto } from './dto/mark-release-notes-seen.dto';
 import { UpdateModuleConfigDto } from './dto/update-module-config.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { WipeUserDataDto } from './dto/wipe-user-data.dto';
@@ -45,6 +46,18 @@ export class UsersController {
     @Body() dto: UpdateProfileDto,
   ) {
     return this.usersService.updateProfile(userId, dto);
+  }
+
+  @Patch('me/release-notes-seen')
+  @ApiOperation({
+    summary: 'Marca la versión de Novedades que el usuario ya vio',
+  })
+  @ApiOkResponse({ description: 'Updated user profile' })
+  markReleaseNotesSeen(
+    @CurrentUser('sub') userId: string,
+    @Body() dto: MarkReleaseNotesSeenDto,
+  ) {
+    return this.usersService.markReleaseNotesSeen(userId, dto.version);
   }
 
   @Patch('me/modules/:slug')

@@ -16,6 +16,7 @@ model User {
   timezone        String                @default("America/Santo_Domingo")
   locale          String                @default("es-DO")
   preferences     Json                  @default("{}")
+  lastSeenReleaseVersion String?       @map("last_seen_release_version")
   createdAt       DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt       DateTime              @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   aiSessions      AiAgentSession[]

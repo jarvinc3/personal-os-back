@@ -344,3 +344,58 @@ describe('UsersService.listWeeklySummaryRecipients', () => {
     ]);
   });
 });
+
+describe('UsersService.markReleaseNotesSeen', () => {
+  const findById = jest.fn();
+  const setLastSeenReleaseVersion = jest.fn();
+  const usersRepository = {
+    findById,
+    setLastSeenReleaseVersion,
+  } as unknown as UsersRepositoryPort;
+
+  const service = new UsersService(
+    usersRepository,
+    { emit: jest.fn() } as unknown as EventEmitter2,
+    { tryDeleteAuthUser: jest.fn() } as unknown as SupabaseAdminService,
+  );
+
+  const profileRow = {
+    id: 'user-1',
+    email: 'u@example.com',
+    fullName: 'User',
+    avatarUrl: null,
+    timezone: 'UTC',
+    locale: 'en',
+    preferences: {},
+    lastSeenReleaseVersion: null,
+    userModules: [],
+    createdAt: new Date('2026-10-01T00:00:00.000Z'),
+    updatedAt: new Date('2026-10-01T00:00:00.000Z'),
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    findById.mockResolvedValue(profileRow);
+  });
+
+  it('throws when the user does not exist', async () => {
+    findById.mockResolvedValue(null);
+
+    await expect(
+      service.markReleaseNotesSeen('missing', '0.39.0'),
+    ).rejects.toBeInstanceOf(NotFoundException);
+    expect(setLastSeenReleaseVersion).not.toHaveBeenCalled();
+  });
+
+  it('persists the version and returns it in the profile', async () => {
+    setLastSeenReleaseVersion.mockResolvedValue({
+      ...profileRow,
+      lastSeenReleaseVersion: '0.39.0',
+    });
+
+    const profile = await service.markReleaseNotesSeen('user-1', '0.39.0');
+
+    expect(setLastSeenReleaseVersion).toHaveBeenCalledWith('user-1', '0.39.0');
+    expect(profile.lastSeenReleaseVersion).toBe('0.39.0');
+  });
+});

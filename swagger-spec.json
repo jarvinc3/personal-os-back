@@ -31,7 +31,7 @@
             }
           }
         },
-        "summary": "Liveness probe",
+        "summary": "Sondeo de vida",
         "tags": [
           "health"
         ]
@@ -121,7 +121,7 @@
             "access-token": []
           }
         ],
-        "summary": "Get authenticated user profile",
+        "summary": "Obtiene el perfil del usuario autenticado",
         "tags": [
           "users"
         ]
@@ -149,7 +149,7 @@
             "access-token": []
           }
         ],
-        "summary": "Update authenticated user profile",
+        "summary": "Actualiza el perfil del usuario autenticado",
         "tags": [
           "users"
         ]
@@ -167,7 +167,7 @@
             "access-token": []
           }
         ],
-        "summary": "Delete authenticated user account and associated data",
+        "summary": "Borra la cuenta del usuario y sus datos asociados",
         "tags": [
           "users"
         ]
@@ -206,7 +206,7 @@
             "access-token": []
           }
         ],
-        "summary": "Update module config for authenticated user",
+        "summary": "Actualiza la configuración de un módulo del usuario",
         "tags": [
           "users"
         ]
@@ -236,7 +236,7 @@
             "access-token": []
           }
         ],
-        "summary": "Wipe selected data layers without closing the account",
+        "summary": "Borra capas de datos seleccionadas sin cerrar la cuenta",
         "tags": [
           "users"
         ]
@@ -256,7 +256,7 @@
             "access-token": []
           }
         ],
-        "summary": "Get authenticated session context",
+        "summary": "Obtiene el contexto de la sesión autenticada",
         "tags": [
           "auth"
         ]
@@ -276,7 +276,7 @@
             "access-token": []
           }
         ],
-        "summary": "List ISO currencies from cached FX rates or exchangerate.host",
+        "summary": "Lista las monedas ISO desde tasas en caché o exchangerate.host",
         "tags": [
           "finance"
         ]
@@ -317,7 +317,7 @@
             "access-token": []
           }
         ],
-        "summary": "Market rates for quoted currencies in a base currency",
+        "summary": "Tasas de mercado de las monedas cotizadas en una moneda base",
         "tags": [
           "finance"
         ]
@@ -347,7 +347,7 @@
             "access-token": []
           }
         ],
-        "summary": "Change base currency and rebase stored base amounts",
+        "summary": "Cambia la moneda base y reconvierte los montos base guardados",
         "tags": [
           "finance"
         ]
@@ -367,7 +367,7 @@
             "access-token": []
           }
         ],
-        "summary": "List finance accounts",
+        "summary": "Lista las cuentas de finanzas (cursor)",
         "tags": [
           "finance"
         ]
@@ -485,7 +485,7 @@
             "access-token": []
           }
         ],
-        "summary": "Hard-delete account, debit cards, and ledger rows",
+        "summary": "Borra de forma definitiva la cuenta, sus tarjetas de débito y sus movimientos",
         "tags": [
           "finance"
         ]
@@ -514,7 +514,7 @@
             "access-token": []
           }
         ],
-        "summary": "Account timeline: adjustments and limit changes",
+        "summary": "Cronología de la cuenta: ajustes y cambios de límite",
         "tags": [
           "finance"
         ]
@@ -543,7 +543,7 @@
             "access-token": []
           }
         ],
-        "summary": "Undo a delete from the journal snapshot",
+        "summary": "Deshace un borrado desde el journal",
         "tags": [
           "finance"
         ]
@@ -563,6 +563,7 @@
             "access-token": []
           }
         ],
+        "summary": "Lista las instituciones de finanzas (cursor)",
         "tags": [
           "finance"
         ]
@@ -618,7 +619,7 @@
             "access-token": []
           }
         ],
-        "summary": "Upload a custom institution logo",
+        "summary": "Sube un logo de institución personalizado",
         "tags": [
           "finance"
         ]
@@ -683,7 +684,7 @@
             "access-token": []
           }
         ],
-        "summary": "Hard-delete institution and dependents",
+        "summary": "Borra de forma definitiva la institución y sus dependientes",
         "tags": [
           "finance"
         ]
@@ -712,7 +713,7 @@
             "access-token": []
           }
         ],
-        "summary": "Undo a delete from the journal snapshot",
+        "summary": "Deshace un borrado desde el journal",
         "tags": [
           "finance"
         ]
@@ -732,6 +733,7 @@
             "access-token": []
           }
         ],
+        "summary": "Lista las tarjetas de finanzas (cursor)",
         "tags": [
           "finance"
         ]
@@ -849,7 +851,7 @@
             "access-token": []
           }
         ],
-        "summary": "Hard-delete card and its ledger rows",
+        "summary": "Borra de forma definitiva la tarjeta y sus movimientos",
         "tags": [
           "finance"
         ]
@@ -878,7 +880,7 @@
             "access-token": []
           }
         ],
-        "summary": "Card timeline: adjustments and limit changes",
+        "summary": "Cronología de la tarjeta: ajustes y cambios de límite",
         "tags": [
           "finance"
         ]
@@ -907,7 +909,7 @@
             "access-token": []
           }
         ],
-        "summary": "Undo a delete from the journal snapshot",
+        "summary": "Deshace un borrado desde el journal",
         "tags": [
           "finance"
         ]
@@ -946,7 +948,7 @@
             "access-token": []
           }
         ],
-        "summary": "Update a credit card limit without changing its balance",
+        "summary": "Actualiza el límite de una tarjeta sin cambiar su saldo",
         "tags": [
           "finance"
         ]
@@ -1021,7 +1023,7 @@
             "access-token": []
           }
         ],
-        "summary": "Delete one stored currency from a card",
+        "summary": "Borra una moneda guardada de una tarjeta",
         "tags": [
           "finance"
         ]
@@ -1174,7 +1176,7 @@
             "access-token": []
           }
         ],
-        "summary": "Undo a delete from the journal snapshot",
+        "summary": "Deshace un borrado desde el journal",
         "tags": [
           "finance"
         ]
@@ -1316,7 +1318,7 @@
             "access-token": []
           }
         ],
-        "summary": "List finance transactions",
+        "summary": "Lista las transacciones de finanzas",
         "tags": [
           "finance"
         ]
@@ -1344,7 +1346,7 @@
             "access-token": []
           }
         ],
-        "summary": "Create a DEBIT or CREDIT transaction",
+        "summary": "Crea una transacción DEBIT o CREDIT",
         "tags": [
           "finance"
         ]
@@ -1374,7 +1376,7 @@
             "access-token": []
           }
         ],
-        "summary": "Set an account or card balance by posting an adjustment",
+        "summary": "Fija el saldo de una cuenta o tarjeta con un ajuste",
         "tags": [
           "finance"
         ]
@@ -1403,7 +1405,7 @@
             "access-token": []
           }
         ],
-        "summary": "Get transaction by id",
+        "summary": "Obtiene una transacción por id",
         "tags": [
           "finance"
         ]
@@ -1430,7 +1432,7 @@
             "access-token": []
           }
         ],
-        "summary": "Update transaction",
+        "summary": "Actualiza una transacción",
         "tags": [
           "finance"
         ]
@@ -1457,7 +1459,7 @@
             "access-token": []
           }
         ],
-        "summary": "Delete manual transaction",
+        "summary": "Borra una transacción manual",
         "tags": [
           "finance"
         ]
@@ -1486,7 +1488,7 @@
             "access-token": []
           }
         ],
-        "summary": "Undo a delete from the journal snapshot",
+        "summary": "Deshace un borrado desde el journal",
         "tags": [
           "finance"
         ]
@@ -1515,7 +1517,7 @@
             "access-token": []
           }
         ],
-        "summary": "Confirm PENDING transaction",
+        "summary": "Confirma una transacción PENDING",
         "tags": [
           "finance"
         ]
@@ -1544,7 +1546,7 @@
             "access-token": []
           }
         ],
-        "summary": "Move a CONFIRMED transaction back to PENDING to edit it",
+        "summary": "Devuelve una transacción CONFIRMED a PENDING para editarla",
         "tags": [
           "finance"
         ]
@@ -1573,7 +1575,7 @@
             "access-token": []
           }
         ],
-        "summary": "Reverse a CONFIRMED transaction (keeps the row as REVERSED)",
+        "summary": "Revierte una transacción CONFIRMED (conserva la fila como REVERSED)",
         "tags": [
           "finance"
         ]
@@ -1612,7 +1614,7 @@
             "access-token": []
           }
         ],
-        "summary": "Delete a possible duplicate, keeping the other one",
+        "summary": "Borra un posible duplicado y conserva el otro",
         "tags": [
           "finance"
         ]
@@ -1641,7 +1643,7 @@
             "access-token": []
           }
         ],
-        "summary": "Clear the possible-duplicate flag",
+        "summary": "Quita la marca de posible duplicado",
         "tags": [
           "finance"
         ]
@@ -1671,7 +1673,7 @@
             "access-token": []
           }
         ],
-        "summary": "Create a transfer between two accounts",
+        "summary": "Crea una transferencia entre dos cuentas",
         "tags": [
           "finance"
         ]
@@ -1710,7 +1712,7 @@
             "access-token": []
           }
         ],
-        "summary": "Replace both legs of a transfer by one of its leg ids",
+        "summary": "Reemplaza ambos movimientos de una transferencia por el id de uno",
         "tags": [
           "finance"
         ]
@@ -1737,7 +1739,7 @@
             "access-token": []
           }
         ],
-        "summary": "Delete the whole transfer by one of its leg ids",
+        "summary": "Borra la transferencia completa por el id de uno de sus movimientos",
         "tags": [
           "finance"
         ]
@@ -1766,7 +1768,7 @@
             "access-token": []
           }
         ],
-        "summary": "Move every leg of a transfer back to PENDING to edit it",
+        "summary": "Devuelve todos los movimientos de una transferencia a PENDING para editarla",
         "tags": [
           "finance"
         ]
@@ -1795,7 +1797,7 @@
             "access-token": []
           }
         ],
-        "summary": "Confirm every pending leg of a transfer",
+        "summary": "Confirma todos los movimientos pendientes de una transferencia",
         "tags": [
           "finance"
         ]
@@ -1825,7 +1827,7 @@
             "access-token": []
           }
         ],
-        "summary": "Pay a credit card from an account",
+        "summary": "Paga una tarjeta de crédito desde una cuenta",
         "tags": [
           "finance"
         ]
@@ -1864,7 +1866,7 @@
             "access-token": []
           }
         ],
-        "summary": "Edit a pending card payment",
+        "summary": "Edita un pago de tarjeta pendiente",
         "tags": [
           "finance"
         ]
@@ -1891,7 +1893,7 @@
             "access-token": []
           }
         ],
-        "summary": "Delete the whole card payment",
+        "summary": "Borra el pago de tarjeta completo",
         "tags": [
           "finance"
         ]
@@ -1920,7 +1922,7 @@
             "access-token": []
           }
         ],
-        "summary": "Move every leg of a card payment back to PENDING",
+        "summary": "Devuelve todos los movimientos de un pago de tarjeta a PENDING",
         "tags": [
           "finance"
         ]
@@ -1949,7 +1951,7 @@
             "access-token": []
           }
         ],
-        "summary": "Confirm every pending leg of a card payment",
+        "summary": "Confirma todos los movimientos pendientes de un pago de tarjeta",
         "tags": [
           "finance"
         ]
@@ -1996,7 +1998,7 @@
             "access-token": []
           }
         ],
-        "summary": "List merchants with their month spend",
+        "summary": "Lista los comercios con su gasto del mes",
         "tags": [
           "finance"
         ]
@@ -2026,7 +2028,7 @@
             "access-token": []
           }
         ],
-        "summary": "Best known merchant for a typed name",
+        "summary": "Mejor comercio conocido para un nombre escrito",
         "tags": [
           "finance"
         ]
@@ -2055,7 +2057,7 @@
             "access-token": []
           }
         ],
-        "summary": "Merchant detail",
+        "summary": "Detalle del comercio",
         "tags": [
           "finance"
         ]
@@ -2092,7 +2094,7 @@
             "access-token": []
           }
         ],
-        "summary": "Rename a merchant or set its category and logo",
+        "summary": "Renombra un comercio o define su categoría y logo",
         "tags": [
           "finance"
         ]
@@ -2131,7 +2133,7 @@
             "access-token": []
           }
         ],
-        "summary": "Move the movements of a merchant into another",
+        "summary": "Mueve los movimientos de un comercio a otro",
         "tags": [
           "finance"
         ]
@@ -2160,7 +2162,7 @@
             "access-token": []
           }
         ],
-        "summary": "Upload a custom merchant logo",
+        "summary": "Sube un logo de comercio personalizado",
         "tags": [
           "finance"
         ]
@@ -2312,7 +2314,7 @@
             "access-token": []
           }
         ],
-        "summary": "List managed subscriptions",
+        "summary": "Lista las suscripciones gestionadas",
         "tags": [
           "finance"
         ]
@@ -2340,7 +2342,7 @@
             "access-token": []
           }
         ],
-        "summary": "Create a subscription",
+        "summary": "Crea una suscripción",
         "tags": [
           "finance"
         ]
@@ -2360,7 +2362,7 @@
             "access-token": []
           }
         ],
-        "summary": "Monthly and annual cost, active count, upcoming",
+        "summary": "Costo mensual y anual, cantidad activa y próximos",
         "tags": [
           "finance"
         ]
@@ -2395,7 +2397,7 @@
             "access-token": []
           }
         ],
-        "summary": "Cost split by category, instrument or currency",
+        "summary": "Costo por categoría, instrumento o moneda",
         "tags": [
           "finance"
         ]
@@ -2445,7 +2447,7 @@
             "access-token": []
           }
         ],
-        "summary": "Projected charges in a date window",
+        "summary": "Cargos previstos en una ventana de fechas",
         "tags": [
           "finance"
         ]
@@ -2465,7 +2467,7 @@
             "access-token": []
           }
         ],
-        "summary": "Active subscription alerts",
+        "summary": "Alertas activas de suscripciones",
         "tags": [
           "finance"
         ]
@@ -2485,7 +2487,7 @@
             "access-token": []
           }
         ],
-        "summary": "Dismiss every active alert",
+        "summary": "Descarta todas las alertas activas",
         "tags": [
           "finance"
         ]
@@ -2515,7 +2517,7 @@
             "access-token": []
           }
         ],
-        "summary": "Dismiss an alert for its occurrence",
+        "summary": "Descarta una alerta para su ocurrencia",
         "tags": [
           "finance"
         ]
@@ -2544,7 +2546,7 @@
             "access-token": []
           }
         ],
-        "summary": "Subscription detail",
+        "summary": "Detalle de la suscripción",
         "tags": [
           "finance"
         ]
@@ -2581,7 +2583,7 @@
             "access-token": []
           }
         ],
-        "summary": "Edit a subscription",
+        "summary": "Edita una suscripción",
         "tags": [
           "finance"
         ]
@@ -2610,7 +2612,7 @@
             "access-token": []
           }
         ],
-        "summary": "Pause a subscription",
+        "summary": "Pausa una suscripción",
         "tags": [
           "finance"
         ]
@@ -2639,7 +2641,7 @@
             "access-token": []
           }
         ],
-        "summary": "Resume a paused subscription",
+        "summary": "Reanuda una suscripción pausada",
         "tags": [
           "finance"
         ]
@@ -2668,7 +2670,7 @@
             "access-token": []
           }
         ],
-        "summary": "Cancel a subscription",
+        "summary": "Cancela una suscripción",
         "tags": [
           "finance"
         ]
@@ -2697,7 +2699,7 @@
             "access-token": []
           }
         ],
-        "summary": "Payment history",
+        "summary": "Historial de pagos",
         "tags": [
           "finance"
         ]
@@ -2734,7 +2736,7 @@
             "access-token": []
           }
         ],
-        "summary": "Register a manual payment",
+        "summary": "Registra un pago manual",
         "tags": [
           "finance"
         ]
@@ -2763,7 +2765,7 @@
             "access-token": []
           }
         ],
-        "summary": "Upload a custom subscription logo",
+        "summary": "Sube un logo de suscripción personalizado",
         "tags": [
           "finance"
         ]
@@ -2792,7 +2794,7 @@
             "access-token": []
           }
         ],
-        "summary": "Billing statements of a credit card",
+        "summary": "Estados de facturación de una tarjeta de crédito",
         "tags": [
           "finance"
         ]
@@ -2829,7 +2831,7 @@
             "access-token": []
           }
         ],
-        "summary": "Statement detail with its movements and payments",
+        "summary": "Detalle del estado de cuenta con movimientos y pagos",
         "tags": [
           "finance"
         ]
@@ -2874,7 +2876,7 @@
             "access-token": []
           }
         ],
-        "summary": "Edit a statement minimum, closing balance or due date",
+        "summary": "Edita el mínimo, el saldo de cierre o el vencimiento del estado de cuenta",
         "tags": [
           "finance"
         ]
@@ -2913,7 +2915,7 @@
             "access-token": []
           }
         ],
-        "summary": "Upload a credit-card statement PDF and parse it",
+        "summary": "Sube y analiza el PDF del estado de cuenta de una tarjeta",
         "tags": [
           "finance"
         ]
@@ -2952,7 +2954,7 @@
             "access-token": []
           }
         ],
-        "summary": "Upload a bank-account statement PDF and parse it",
+        "summary": "Sube y analiza el PDF del estado de cuenta de una cuenta",
         "tags": [
           "finance"
         ]
@@ -2981,7 +2983,7 @@
             "access-token": []
           }
         ],
-        "summary": "Statement import status, header and reconciliation",
+        "summary": "Estado, encabezado y conciliación de la importación",
         "tags": [
           "finance"
         ]
@@ -3008,7 +3010,7 @@
             "access-token": []
           }
         ],
-        "summary": "Discard a statement import",
+        "summary": "Descarta una importación de estado de cuenta",
         "tags": [
           "finance"
         ]
@@ -3055,7 +3057,7 @@
             "access-token": []
           }
         ],
-        "summary": "Change one line decision or its matched movement",
+        "summary": "Cambia la decisión de una línea o su movimiento asociado",
         "tags": [
           "finance"
         ]
@@ -3094,7 +3096,7 @@
             "access-token": []
           }
         ],
-        "summary": "Create the selected rows and close the period",
+        "summary": "Crea las líneas seleccionadas y cierra el periodo",
         "tags": [
           "finance"
         ]
@@ -3114,7 +3116,7 @@
             "access-token": []
           }
         ],
-        "summary": "List budgets (cursor paginated, default limit=20, max 100)",
+        "summary": "Lista los presupuestos (cursor, límite por defecto 20, máximo 100)",
         "tags": [
           "finance"
         ]
@@ -3170,7 +3172,7 @@
             "access-token": []
           }
         ],
-        "summary": "Get a budget by id",
+        "summary": "Obtiene un presupuesto por id",
         "tags": [
           "finance"
         ]
@@ -3261,7 +3263,7 @@
             "access-token": []
           }
         ],
-        "summary": "Movements that count toward the budget, with their subcategories",
+        "summary": "Movimientos que cuentan para el presupuesto, con sus subcategorías",
         "tags": [
           "finance"
         ]
@@ -3290,7 +3292,7 @@
             "access-token": []
           }
         ],
-        "summary": "Undo a delete from the journal snapshot",
+        "summary": "Deshace un borrado desde el journal",
         "tags": [
           "finance"
         ]
@@ -3310,6 +3312,7 @@
             "access-token": []
           }
         ],
+        "summary": "Lista las metas de ahorro (cursor)",
         "tags": [
           "finance"
         ]
@@ -3365,7 +3368,7 @@
             "access-token": []
           }
         ],
-        "summary": "Get savings goal by id",
+        "summary": "Obtiene una meta de ahorro por id",
         "tags": [
           "finance"
         ]
@@ -3456,7 +3459,7 @@
             "access-token": []
           }
         ],
-        "summary": "Allocations of a savings goal, newest first",
+        "summary": "Asignaciones de una meta de ahorro, más recientes primero",
         "tags": [
           "finance"
         ]
@@ -3493,7 +3496,7 @@
             "access-token": []
           }
         ],
-        "summary": "Set money aside for a goal; it never moves money",
+        "summary": "Reserva dinero para una meta; no mueve dinero",
         "tags": [
           "finance"
         ]
@@ -3530,7 +3533,7 @@
             "access-token": []
           }
         ],
-        "summary": "Remove an allocation and recompute the balance",
+        "summary": "Elimina una asignación y recalcula el saldo",
         "tags": [
           "finance"
         ]
@@ -3560,7 +3563,7 @@
             "access-token": []
           }
         ],
-        "summary": "Deprecated alias of allocations",
+        "summary": "Alias deprecado de las asignaciones",
         "tags": [
           "finance"
         ]
@@ -3598,7 +3601,7 @@
             "access-token": []
           }
         ],
-        "summary": "Deprecated alias of allocations",
+        "summary": "Alias deprecado de las asignaciones",
         "tags": [
           "finance"
         ]
@@ -3636,7 +3639,7 @@
             "access-token": []
           }
         ],
-        "summary": "Deprecated alias of allocation removal",
+        "summary": "Alias deprecado del borrado de asignaciones",
         "tags": [
           "finance"
         ]
@@ -3665,7 +3668,7 @@
             "access-token": []
           }
         ],
-        "summary": "Undo a delete from the journal snapshot",
+        "summary": "Deshace un borrado desde el journal",
         "tags": [
           "finance"
         ]
@@ -3685,6 +3688,7 @@
             "access-token": []
           }
         ],
+        "summary": "Lista los préstamos activos (cursor)",
         "tags": [
           "finance"
         ]
@@ -3740,7 +3744,7 @@
             "access-token": []
           }
         ],
-        "summary": "Get loan by id",
+        "summary": "Obtiene un préstamo por id",
         "tags": [
           "finance"
         ]
@@ -3803,7 +3807,7 @@
             "access-token": []
           }
         ],
-        "summary": "Hard-delete loan",
+        "summary": "Borra un préstamo de forma definitiva",
         "tags": [
           "finance"
         ]
@@ -3832,7 +3836,7 @@
             "access-token": []
           }
         ],
-        "summary": "Instalment schedule of a loan, oldest first (cursor paginated)",
+        "summary": "Cuotas de un préstamo, más antiguas primero (paginado por cursor)",
         "tags": [
           "finance"
         ]
@@ -3861,7 +3865,7 @@
             "access-token": []
           }
         ],
-        "summary": "Full instalment projection of a loan",
+        "summary": "Proyección completa de cuotas de un préstamo",
         "tags": [
           "finance"
         ]
@@ -3900,7 +3904,7 @@
             "access-token": []
           }
         ],
-        "summary": "Pay the oldest unpaid instalment and return the breakdown",
+        "summary": "Paga la cuota impaga más antigua y devuelve el desglose",
         "tags": [
           "finance"
         ]
@@ -3939,7 +3943,7 @@
             "access-token": []
           }
         ],
-        "summary": "Pay a capital prepayment and rebuild the schedule",
+        "summary": "Paga un prepago de capital y reconstruye el calendario",
         "tags": [
           "finance"
         ]
@@ -3988,7 +3992,7 @@
             "access-token": []
           }
         ],
-        "summary": "Preview a prepayment without writing",
+        "summary": "Vista previa de un prepago sin guardar",
         "tags": [
           "finance"
         ]
@@ -4017,7 +4021,7 @@
             "access-token": []
           }
         ],
-        "summary": "Undo a delete from the journal snapshot",
+        "summary": "Deshace un borrado desde el journal",
         "tags": [
           "finance"
         ]
@@ -4037,6 +4041,7 @@
             "access-token": []
           }
         ],
+        "summary": "Lista los cobros (cursor)",
         "tags": [
           "finance"
         ]
@@ -4092,7 +4097,7 @@
             "access-token": []
           }
         ],
-        "summary": "Get receivable by id",
+        "summary": "Obtiene un cobro por id",
         "tags": [
           "finance"
         ]
@@ -4155,7 +4160,7 @@
             "access-token": []
           }
         ],
-        "summary": "Hard-delete receivable",
+        "summary": "Borra un cobro de forma definitiva",
         "tags": [
           "finance"
         ]
@@ -4184,7 +4189,7 @@
             "access-token": []
           }
         ],
-        "summary": "Payments collected for a receivable, newest first",
+        "summary": "Pagos cobrados de un cobro, más recientes primero",
         "tags": [
           "finance"
         ]
@@ -4221,7 +4226,7 @@
             "access-token": []
           }
         ],
-        "summary": "Collect a payment and record the income on the given account",
+        "summary": "Cobra un pago y registra el ingreso en la cuenta indicada",
         "tags": [
           "finance"
         ]
@@ -4260,7 +4265,7 @@
             "access-token": []
           }
         ],
-        "summary": "Apply a receivable credit balance to another one",
+        "summary": "Aplica el saldo a favor de un cobro a otro",
         "tags": [
           "finance"
         ]
@@ -4299,7 +4304,7 @@
             "access-token": []
           }
         ],
-        "summary": "Write off an uncollectible receivable",
+        "summary": "Da de baja un cobro incobrable",
         "tags": [
           "finance"
         ]
@@ -4328,7 +4333,7 @@
             "access-token": []
           }
         ],
-        "summary": "Undo a delete from the journal snapshot",
+        "summary": "Deshace un borrado desde el journal",
         "tags": [
           "finance"
         ]
@@ -4394,7 +4399,7 @@
             "access-token": []
           }
         ],
-        "summary": "Remove the planning link of a movement and undo its effect",
+        "summary": "Quita el vínculo de planificación de un movimiento y deshace su efecto",
         "tags": [
           "finance"
         ]
@@ -4415,7 +4420,7 @@
             "access-token": []
           }
         ],
-        "summary": "Current financial position in BASE_CURRENCY",
+        "summary": "Posición financiera actual en la moneda base",
         "tags": [
           "finance"
         ]
@@ -4606,7 +4611,7 @@
             "access-token": []
           }
         ],
-        "summary": "List authorized Gmail mailboxes with bank links",
+        "summary": "Lista los buzones de Gmail autorizados con sus bancos",
         "tags": [
           "finance"
         ]
@@ -4635,7 +4640,7 @@
             "access-token": []
           }
         ],
-        "summary": "Disconnect a Gmail mailbox and its bank links",
+        "summary": "Desconecta un buzón de Gmail y sus bancos vinculados",
         "tags": [
           "finance"
         ]
@@ -4801,7 +4806,7 @@
             "access-token": []
           }
         ],
-        "summary": "List email imports waiting for a ledger target",
+        "summary": "Lista las importaciones de correo que esperan un destino",
         "tags": [
           "finance"
         ]
@@ -4821,7 +4826,7 @@
             "access-token": []
           }
         ],
-        "summary": "List recent email extract outcomes",
+        "summary": "Lista los resultados recientes de extracción de correo",
         "tags": [
           "finance"
         ]
@@ -4860,7 +4865,7 @@
             "access-token": []
           }
         ],
-        "summary": "Assign a pending email import to an account or card",
+        "summary": "Asigna una importación de correo pendiente a una cuenta o tarjeta",
         "tags": [
           "finance"
         ]
@@ -4889,7 +4894,7 @@
             "access-token": []
           }
         ],
-        "summary": "Retry automatic routing for a pending email import",
+        "summary": "Reintenta el enrutado automático de una importación de correo pendiente",
         "tags": [
           "finance"
         ]
@@ -4928,7 +4933,7 @@
             "access-token": []
           }
         ],
-        "summary": "Complete a payroll/deposit import that had no amount",
+        "summary": "Completa una importación de nómina o depósito sin monto",
         "tags": [
           "finance"
         ]
@@ -4996,7 +5001,7 @@
             "access-token": []
           }
         ],
-        "summary": "Add allowlisted sender addresses for this institution",
+        "summary": "Agrega remitentes permitidos para esta institución",
         "tags": [
           "finance"
         ]
@@ -5058,7 +5063,7 @@
             "access-token": []
           }
         ],
-        "summary": "Get Google OAuth URL for Gmail",
+        "summary": "Obtiene la URL de OAuth de Google para Gmail",
         "tags": [
           "finance"
         ]
@@ -5111,7 +5116,7 @@
             "access-token": []
           }
         ],
-        "summary": "List recurring patterns (suggested and confirmed)",
+        "summary": "Lista los patrones recurrentes (sugeridos y confirmados)",
         "tags": [
           "finance"
         ]
@@ -5139,7 +5144,7 @@
             "access-token": []
           }
         ],
-        "summary": "Create a recurring charge by hand",
+        "summary": "Crea un cargo recurrente a mano",
         "tags": [
           "finance"
         ]
@@ -5169,7 +5174,7 @@
             "access-token": []
           }
         ],
-        "summary": "Confirmed charges expected in the next N days",
+        "summary": "Cargos confirmados previstos en los próximos N días",
         "tags": [
           "finance"
         ]
@@ -5208,7 +5213,7 @@
             "access-token": []
           }
         ],
-        "summary": "Confirm, dismiss or edit a recurring pattern",
+        "summary": "Confirma, descarta o edita un patrón recurrente",
         "tags": [
           "finance"
         ]
@@ -5238,7 +5243,7 @@
             "access-token": []
           }
         ],
-        "summary": "Preview a close: balance, difference, suggestion",
+        "summary": "Vista previa de un cierre: saldo, diferencia y sugerencia",
         "tags": [
           "finance"
         ]
@@ -5268,7 +5273,7 @@
             "access-token": []
           }
         ],
-        "summary": "Close a product and create its adjustments",
+        "summary": "Cierra un producto y crea sus ajustes",
         "tags": [
           "finance"
         ]
@@ -5303,7 +5308,7 @@
             "access-token": []
           }
         ],
-        "summary": "Reconciliation history of an account or card",
+        "summary": "Historial de conciliaciones de una cuenta o tarjeta",
         "tags": [
           "finance"
         ]
@@ -5334,7 +5339,7 @@
             "access-token": []
           }
         ],
-        "summary": "Products reconciled and pending for a month",
+        "summary": "Productos conciliados y pendientes de un mes",
         "tags": [
           "finance"
         ]
@@ -5363,7 +5368,7 @@
             "access-token": []
           }
         ],
-        "summary": "Reconciliation detail",
+        "summary": "Detalle de la conciliación",
         "tags": [
           "finance"
         ]
@@ -5390,7 +5395,7 @@
             "access-token": []
           }
         ],
-        "summary": "Delete the latest close of a product",
+        "summary": "Borra el último cierre de un producto",
         "tags": [
           "finance"
         ]
@@ -5419,13 +5424,13 @@
             "access-token": []
           }
         ],
-        "summary": "Undo a reconciliation delete",
+        "summary": "Deshace el borrado de una conciliación",
         "tags": [
           "finance"
         ]
       }
     },
-    "/api/finance/analytics/bank-charges": {
+    "/api/finance/bank-charges": {
       "get": {
         "operationId": "BankChargesController_bankCharges",
         "parameters": [
@@ -5471,7 +5476,7 @@
             "access-token": []
           }
         ],
-        "summary": "Bank charges by month, institution and kind",
+        "summary": "Cargos bancarios por mes, institución y tipo",
         "tags": [
           "finance"
         ]
@@ -5510,7 +5515,7 @@
             "access-token": []
           }
         ],
-        "summary": "Compare stored balances against the confirmed movements",
+        "summary": "Compara los saldos guardados con los movimientos confirmados",
         "tags": [
           "finance"
         ]
@@ -5540,7 +5545,7 @@
             "access-token": []
           }
         ],
-        "summary": "Correct a drifted balance from its movements",
+        "summary": "Corrige un saldo desviado desde sus movimientos",
         "tags": [
           "finance"
         ]
@@ -5570,7 +5575,7 @@
             "access-token": []
           }
         ],
-        "summary": "Parse a quick sentence into a transaction draft (never saves)",
+        "summary": "Convierte una frase rápida en un borrador de transacción (nunca guarda)",
         "tags": [
           "finance"
         ]
@@ -5590,7 +5595,7 @@
             "access-token": []
           }
         ],
-        "summary": "List archived records and pending deletes (deletes paginated)",
+        "summary": "Lista los registros archivados y los borrados pendientes (borrados paginados)",
         "tags": [
           "finance"
         ]
@@ -5633,7 +5638,7 @@
             "access-token": []
           }
         ],
-        "summary": "List notifications for current user",
+        "summary": "Lista las notificaciones del usuario",
         "tags": [
           "notifications"
         ]
@@ -5661,7 +5666,7 @@
             "access-token": []
           }
         ],
-        "summary": "Create a notification for current user",
+        "summary": "Crea una notificación para el usuario",
         "tags": [
           "notifications"
         ]
@@ -5681,7 +5686,7 @@
             "access-token": []
           }
         ],
-        "summary": "Unread in-app notification count",
+        "summary": "Cantidad de notificaciones sin leer",
         "tags": [
           "notifications"
         ]
@@ -5701,7 +5706,7 @@
             "access-token": []
           }
         ],
-        "summary": "Mark all in-app notifications as read",
+        "summary": "Marca todas las notificaciones como leídas",
         "tags": [
           "notifications"
         ]
@@ -5730,7 +5735,7 @@
             "access-token": []
           }
         ],
-        "summary": "Mark notification as read for current user",
+        "summary": "Marca una notificación como leída",
         "tags": [
           "notifications"
         ]
@@ -5760,14 +5765,14 @@
             "access-token": []
           }
         ],
-        "summary": "Register a push token for current user",
+        "summary": "Registra un token push del usuario",
         "tags": [
           "notifications"
         ]
       }
     },
-    "/api/notifications/push-tokens/{token}/deactivate": {
-      "patch": {
+    "/api/notifications/push-tokens/{token}": {
+      "delete": {
         "operationId": "NotificationsController_deactivatePushToken",
         "parameters": [
           {
@@ -5789,7 +5794,37 @@
             "access-token": []
           }
         ],
-        "summary": "Deactivate a push token for current user",
+        "summary": "Desactiva un token push del usuario",
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/api/notifications/push-tokens/{token}/deactivate": {
+      "patch": {
+        "deprecated": true,
+        "operationId": "NotificationsController_deactivatePushTokenLegacy",
+        "parameters": [
+          {
+            "name": "token",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Alias deprecado de DELETE push-tokens/:token",
         "tags": [
           "notifications"
         ]
@@ -5819,7 +5854,7 @@
             }
           }
         },
-        "summary": "List configured AI providers",
+        "summary": "Lista los proveedores de IA configurados",
         "tags": [
           "ai-agent"
         ]
@@ -5851,7 +5886,7 @@
             }
           }
         },
-        "summary": "Chat with AI agent pool (aggregated JSON response)",
+        "summary": "Chat con el grupo de agentes de IA (respuesta JSON agregada)",
         "tags": [
           "ai-agent"
         ]
@@ -5876,7 +5911,7 @@
             "description": ""
           }
         },
-        "summary": "Chat with AI agent pool (SSE stream)",
+        "summary": "Chat con el grupo de agentes de IA (stream SSE)",
         "tags": [
           "ai-agent"
         ]
@@ -5896,7 +5931,7 @@
             "access-token": []
           }
         ],
-        "summary": "List AI chat sessions for current user",
+        "summary": "Lista las sesiones de chat de IA del usuario",
         "tags": [
           "ai-agent"
         ]
@@ -5924,7 +5959,36 @@
             "access-token": []
           }
         ],
-        "summary": "Create a new AI chat session",
+        "summary": "Crea una sesión de chat de IA",
+        "tags": [
+          "ai-agent"
+        ]
+      }
+    },
+    "/api/ai/sessions/{id}/actions": {
+      "get": {
+        "operationId": "AiSessionsController_listActions",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Lista las acciones de una sesión de IA",
         "tags": [
           "ai-agent"
         ]
@@ -5953,7 +6017,7 @@
             "access-token": []
           }
         ],
-        "summary": "Get AI session with messages",
+        "summary": "Obtiene una sesión de IA con sus mensajes",
         "tags": [
           "ai-agent"
         ]
@@ -5980,31 +6044,7 @@
             "access-token": []
           }
         ],
-        "summary": "Delete AI session",
-        "tags": [
-          "ai-agent"
-        ]
-      }
-    },
-    "/api/ai/sessions/{id}/actions": {
-      "get": {
-        "operationId": "AiActionsController_listSessionActions",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "List actions for an AI session",
+        "summary": "Borra una sesión de IA",
         "tags": [
           "ai-agent"
         ]
@@ -6028,7 +6068,7 @@
             "description": ""
           }
         },
-        "summary": "Execute a pending AI action",
+        "summary": "Ejecuta una acción pendiente de la IA",
         "tags": [
           "ai-agent"
         ]
@@ -6052,7 +6092,7 @@
             "description": ""
           }
         },
-        "summary": "Cancel a pending AI action",
+        "summary": "Cancela una acción pendiente de la IA",
         "tags": [
           "ai-agent"
         ]
@@ -6062,7 +6102,7 @@
   "info": {
     "title": "Personal OS API",
     "description": "Personal OS backend endpoints, including auth, core modules, and AI.",
-    "version": "0.33.2",
+    "version": "0.39.0",
     "contact": {}
   },
   "tags": [

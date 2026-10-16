@@ -3913,6 +3913,7 @@ export const UserScalarFieldEnum = {
   timezone: 'timezone',
   locale: 'locale',
   preferences: 'preferences',
+  lastSeenReleaseVersion: 'lastSeenReleaseVersion',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
