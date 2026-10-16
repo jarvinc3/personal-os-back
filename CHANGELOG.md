@@ -2,6 +2,12 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [SemVer](https://semver.org/lang/es/). Reglas y ejemplo en [docs/reference/changelog-guide.md](./docs/reference/changelog-guide.md).
 
+## [0.38.1] - 2026-10-16
+
+### Cambiado
+
+- `IdempotencyInterceptor`: la consulta de la clave ya no borra la fila vencida; el borrado es una orden aparte y la respuesta guardada se resuelve con una consulta pura. Sin cambio de comportamiento.
+
 ## [0.38.0] - 2026-10-16
 
 ### Agregado
