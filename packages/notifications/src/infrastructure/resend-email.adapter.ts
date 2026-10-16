@@ -44,7 +44,7 @@ export class ResendEmailAdapter implements EmailSenderPort {
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       this.logger.error(`Resend request failed: ${message}`);
-      throw new Error(`Resend request failed: ${message}`);
+      throw new Error(`Resend request failed: ${message}`, { cause: error });
     }
 
     if (!response.ok) {
