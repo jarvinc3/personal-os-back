@@ -55,3 +55,9 @@ pids
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
 /generated/prisma
+
+# Prisma generated client
+packages/database/src/generated/
+
+# TypeScript incremental build info
+*.tsbuildinfo
