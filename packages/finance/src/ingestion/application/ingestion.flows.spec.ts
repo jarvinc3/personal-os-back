@@ -86,8 +86,6 @@ function createService() {
 
   return {
     repo,
-    users,
-    ownership,
     importEmail,
     service: new IngestionService(
       repo as never,

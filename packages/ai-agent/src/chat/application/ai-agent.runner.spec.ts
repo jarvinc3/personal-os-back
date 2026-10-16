@@ -3,7 +3,6 @@ import type {
   ChatCompletionResult,
   ToolCallRequest,
 } from '../../shared/ai.types';
-import type { ChatContext } from '@personal-os/core';
 import {
   getActionLabel,
   getToolDefinition,
@@ -53,13 +52,7 @@ const switchModuleTool = {
 
 const SYSTEM_MESSAGE = { role: 'system' as const, content: 'prompt base' };
 
-type AgentRunInput = {
-  userId: string;
-  sessionId: string;
-  userContent: string;
-  clientMessageId?: string;
-  context?: ChatContext;
-};
+type AgentRunInput = Parameters<AiAgentRunner['run']>[0];
 
 function providerHistory(overrides: Record<string, unknown> = {}) {
   return {
@@ -146,7 +139,6 @@ function createRunner() {
     ),
     aiService,
     persistence,
-    turnCoordinator,
     actionsService,
     toolExecutor,
     sessionsRepo,
