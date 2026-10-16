@@ -2,6 +2,12 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [SemVer](https://semver.org/lang/es/). Reglas y ejemplo en [docs/reference/changelog-guide.md](./docs/reference/changelog-guide.md).
 
+## [0.37.6] - 2026-10-16
+
+### Corregido
+
+- Migración `20261022000000_db_functions_triggers`: el trigger `on_auth_user_created` ahora solo se crea si existe la tabla `auth.users` (`to_regclass`), no solo el esquema `auth`. El CI simula `auth` sin `auth.users` y fallaba `prisma migrate deploy`.
+
 ## [0.37.5] - 2026-10-16
 
 ### Agregado
