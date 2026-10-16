@@ -2,6 +2,12 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [SemVer](https://semver.org/lang/es/). Reglas y ejemplo en [docs/reference/changelog-guide.md](./docs/reference/changelog-guide.md).
 
+## [0.39.2] - 2026-10-16
+
+### Cambiado
+
+- `AGENTS.md` agrega la regla de migraciones Prisma: una migración aplicada no se renombra ni se edita; toda migración nueva ordena después de `20261022110000`; el duplicado `20261015220000` se queda tal cual; el reset que ofrece `prisma migrate dev` no se acepta.
+
 ## [0.39.1] - 2026-10-16
 
 ### Cambiado
