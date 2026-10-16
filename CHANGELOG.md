@@ -2,6 +2,22 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [SemVer](https://semver.org/lang/es/). Reglas y ejemplo en [docs/reference/changelog-guide.md](./docs/reference/changelog-guide.md).
 
+## [0.37.4] - 2026-10-16
+
+### Cambiado
+
+- La documentación deja de llevar `status.md`, `review-register.md` y `roadmap.md`: el estado, el roadmap y los hallazgos viven en GitHub Issues (label `roadmap`) y los documentos cerrados pasan a `docs/archive/`.
+- `docs/modules/logos/overview.md` absorbe la integración de Logo.dev (llaves, bucket, flujo y casos borde).
+- `AGENTS.md`, `docs/README.md` y `docs/documentation-standard.md` describen el flujo de issues con `Closes #N`, Sentry/source maps y CI con migraciones y drift.
+
+### Agregado
+
+- `docs/infrastructure/observability.md`.
+
+### Eliminado
+
+- El plan de Cursor de hallazgos de sync bancario y el diseño del módulo `sub_` de Suscripciones.
+
 ## [0.37.3] - 2026-10-15
 
 ### Agregado
