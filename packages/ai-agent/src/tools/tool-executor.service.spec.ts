@@ -34,6 +34,7 @@ describe('ToolExecutorService', () => {
   const updateTransaction = jest.fn();
   const confirmTransaction = jest.fn();
   const unconfirmTransaction = jest.fn();
+  const reverseTransaction = jest.fn();
   const previewReconciliation = jest.fn();
   const createReconciliation = jest.fn();
   const getBankCharges = jest.fn();
@@ -60,6 +61,7 @@ describe('ToolExecutorService', () => {
     updateTransaction,
     confirmTransaction,
     unconfirmTransaction,
+    reverseTransaction,
     previewReconciliation,
     createReconciliation,
     getBankCharges,
@@ -190,6 +192,19 @@ describe('ToolExecutorService', () => {
     expect(toolResult.success).toBe(true);
     expect(toolResult.message).toBe('Transaction unlocked');
     expect(unconfirmTransaction).toHaveBeenCalledWith('user-1', transactionId);
+  });
+
+  it('routes reverse_transaction through the finance facade', async () => {
+    reverseTransaction.mockResolvedValue({ id: 'tx-1', status: 'REVERSED' });
+    const transactionId = '550e8400-e29b-41d4-a716-446655440000';
+
+    const toolResult = await executor.execute(ctx, 'reverse_transaction', {
+      transactionId,
+    });
+
+    expect(toolResult.success).toBe(true);
+    expect(toolResult.message).toBe('Transaction reversed');
+    expect(reverseTransaction).toHaveBeenCalledWith('user-1', transactionId);
   });
 
   it('previews reconcile_product without writing the close', async () => {

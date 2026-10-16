@@ -201,6 +201,18 @@ Confirms a `PENDING` transaction (applies ledger).
 
 ---
 
+### `reverse_transaction`
+
+Reverses a `CONFIRMED` transaction and undoes its balance and budget effects. Reversing an already `REVERSED` transaction is idempotent; a transfer leg is rejected.
+
+| Parameter       | Type   | Required |
+| --------------- | ------ | -------- |
+| `transactionId` | string | yes      |
+
+**Delegates to:** `FinanceFacade.reverseTransaction`
+
+---
+
 ### `create_or_update_budget`
 
 Creates a new budget or updates when `budgetId` is provided.
