@@ -51,12 +51,14 @@ type IdempotencyScope = {
 };
 
 type StoredIdempotency = {
+  id: string;
+  status: IdempotencyStatus;
+  responseBody: string | null;
+  expiresAt: Date;
   method: string;
   path: string;
   requestHash: string;
 };
-
-type ReplayResult = { replayed: true; body: unknown } | { replayed: false };
 
 @Injectable()
 export class IdempotencyInterceptor implements NestInterceptor {
@@ -86,40 +88,44 @@ export class IdempotencyInterceptor implements NestInterceptor {
       requestHash: hashRequestBody(request.body),
     };
 
-    const replay = await this.replayBody(scope);
-    if (replay.replayed) {
-      return of(replay.body);
+    const stored = await this.findStored(scope);
+    if (stored) {
+      if (isExpired(stored)) {
+        await this.discardExpired(stored);
+      } else {
+        const savedBody = this.resolveStoredResponse(stored, scope);
+        return of(savedBody);
+      }
     }
 
     await this.claimKey(scope);
     return this.runOnce(context, next, scope);
   }
 
-  /** Looks up a finished request with the same key and body. */
-  private async replayBody(scope: IdempotencyScope): Promise<ReplayResult> {
-    const stored = await this.prisma.idempotencyKey.findUnique({
+  private findStored(scope: IdempotencyScope) {
+    return this.prisma.idempotencyKey.findUnique({
       where: { userId_key: { userId: scope.userId, key: scope.key } },
     });
-    if (!stored) {
-      return { replayed: false };
-    }
-    if (stored.expiresAt.getTime() <= Date.now()) {
-      await this.prisma.idempotencyKey.delete({ where: { id: stored.id } });
-      return { replayed: false };
-    }
+  }
+
+  private async discardExpired(stored: StoredIdempotency): Promise<void> {
+    await this.prisma.idempotencyKey.delete({ where: { id: stored.id } });
+  }
+
+  /** Returns the response of a finished request; throws 409 otherwise. */
+  private resolveStoredResponse(
+    stored: StoredIdempotency,
+    scope: IdempotencyScope,
+  ): unknown {
     if (stored.status === IdempotencyStatus.IN_PROGRESS) {
       throw new ConflictException(IN_PROGRESS_MESSAGE);
     }
     if (!sameRequest(stored, scope)) {
       throw new ConflictException(MISMATCH_MESSAGE);
     }
-    return {
-      replayed: true,
-      body:
-        stored.responseBody === null
-          ? undefined
-          : (JSON.parse(stored.responseBody) as unknown),
-    };
+    return stored.responseBody === null
+      ? undefined
+      : (JSON.parse(stored.responseBody) as unknown);
   }
 
   private runOnce(
@@ -211,6 +217,10 @@ export class IdempotencyInterceptor implements NestInterceptor {
       where: { userId: scope.userId, key: scope.key },
     });
   }
+}
+
+function isExpired(stored: StoredIdempotency): boolean {
+  return stored.expiresAt.getTime() <= Date.now();
 }
 
 function readIdempotencyKey(request: IdempotentRequest): string | undefined {
