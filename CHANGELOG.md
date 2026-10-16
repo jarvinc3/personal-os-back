@@ -2,6 +2,14 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [SemVer](https://semver.org/lang/es/). Reglas y ejemplo en [docs/reference/changelog-guide.md](./docs/reference/changelog-guide.md).
 
+## [0.40.1] - 2026-10-16
+
+### Cambiado
+
+- ESLint 9.39.5 → 10.12.0 y `@eslint/js` 9.39.5 → 10.0.1. La regla nueva `preserve-caught-error` obliga a adjuntar la causa: `ResendEmailAdapter.send` relanza el fallo de `fetch` con `{ cause: error }` y el mismo mensaje.
+- `typescript-eslint` 8.71.0 → 8.71.2, `eslint-plugin-prettier` 5.5.6 → 5.5.7, `prettier` 3.9.9 → 3.9.10, `pino-pretty` 13.1.3 → 13.2.0 y `ts-jest` 29.4.14 → 29.4.15.
+- `@supabase/supabase-js` 2.117.2 → 2.118.0 y `zod` 4.6.5 → 4.6.7.
+
 ## [0.40.0] - 2026-10-16
 
 ### Agregado
