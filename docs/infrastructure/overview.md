@@ -17,10 +17,7 @@ Núcleo transversal de `personal-os-back` (NestJS 11). Los módulos de dominio e
 
 ## `packages/core/src/` (VERIFICADO)
 
-Registrado en `CoreModule`: `JwtAuthGuard`, `EnabledModuleGuard`, `CustomThrottlerGuard`, `ClassSerializerInterceptor`, `TransformInterceptor`, `TimeoutInterceptor`, `AiMetricsInterceptor`, `AllExceptionsFilter`.
-
-> [!WARNING]
-> **REV-BACK-001** (`NO_IMPLEMENTADO`) — `LoggingInterceptor` y `RolesGuard` existen como archivos pero no están registrados como `APP_*`. Detalle: [review-register.md](../review-register.md#rev-back-001)
+Registrado en `CoreModule`: `JwtAuthGuard`, `EnabledModuleGuard`, `CustomThrottlerGuard`, `LoggingInterceptor`, `ClassSerializerInterceptor`, `TransformInterceptor`, `TimeoutInterceptor`, `AiMetricsInterceptor`, `AllExceptionsFilter`.
 
 Normalización `error`/`message`: `packages/core/src/exceptions/http-error.util.ts`. No hay `src/shared/` a nivel raíz.
 
@@ -34,7 +31,7 @@ Catálogo y colas: [events-and-queues.md](./events-and-queues.md).
 
 ## Observabilidad
 
-Pino + `requestId` en el envelope. Fallos de workers Bull vía `@OnWorkerEvent('failed')`.
+Pino (`nestjs-pino`) con `requestId` en el envelope y Sentry opt-in para errores y trazas. Detalle y variables en [observability.md](./observability.md).
 
 ## Relacionado
 

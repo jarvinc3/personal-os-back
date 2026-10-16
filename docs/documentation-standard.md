@@ -2,6 +2,10 @@
 
 Guía para agentes y reviewers. Aplica a `personal-os-back` y, con las mismas reglas de taxonomía, a `personal-os-web`.
 
+## Seguimiento
+
+El estado, el roadmap y los hallazgos viven en GitHub Issues del repositorio. Lo decidido y no implementado se abre con label `roadmap`. Los documentos de trabajo cerrados pasan a `docs/archive/`. Un `REV-*` no se deja suelto en un documento: se convierte en issue o se archiva con su resolución.
+
 ## Audiencia
 
 - **Agentes:** reconstruir comportamiento, alcance y evidencia antes de cambiar código.
@@ -13,7 +17,7 @@ Guía para agentes y reviewers. Aplica a `personal-os-back` y, con las mismas re
 AGENTS.md → docs/README.md → área → módulo → capacidad → código / prueba
 ```
 
-No inventar comportamiento desde nombres de carpeta. Si falta evidencia, abrir [review-register.md](./review-register.md).
+No inventar comportamiento desde nombres de carpeta. Si falta evidencia, abre un issue.
 
 ## Propiedad canónica
 
@@ -42,7 +46,6 @@ Obligatorios cuando el módulo existe en código:
 
 - `README.md` — mapa (no monolito)
 - `overview.md` — propósito, alcance, fuera de alcance, actores, dependencias
-- `status.md` — `implemented` / `in-progress` / `planned` / `blocked` / `deprecated`
 
 Opcionales, solo con contenido real:
 
@@ -79,11 +82,11 @@ Cada afirmación funcional se clasifica:
 | `NO_VERIFICABLE`            | No hay evidencia suficiente                       |
 | `CONTEXTO_NO_APLICABLE`     | Pertenece a otro cliente/repo o ya no aplica aquí |
 
-Toda categoría distinta de `VERIFICADO` se registra en `docs/review-register.md` y se resalta en el documento temático:
+Toda categoría distinta de `VERIFICADO` se registra en el registro de revisión (archivado en `docs/archive/review-register.md`) y se resalta en el documento temático:
 
 ```markdown
 > [!WARNING]
-> **REV-BACK-NNN** (`NO_IMPLEMENTADO`) — resumen. Detalle: [review-register.md](./review-register.md)
+> **REV-BACK-NNN** (`NO_IMPLEMENTADO`) — resumen. Detalle en el issue correspondiente.
 ```
 
 Ninguna afirmación original se elimina sin destino: o vive en un documento vigente, o vive en el registro.
@@ -95,7 +98,7 @@ Usar Given / When / Then. Enlazar evidencia (`ruta/archivo`, test, o smoke runti
 ## Anti-duplicación
 
 - Un contrato tiene un dueño.
-- Pendientes viven en `status.md` o en el registro, no repetidos en tres archivos.
+- Pendientes viven en GitHub Issues, no repetidos en tres archivos.
 - README de repo: setup + enlace a `docs/README.md`.
 - Paths HTTP en backend incluyen el prefijo real (`/api/...` salvo que se declare el controlador sin prefijo).
 

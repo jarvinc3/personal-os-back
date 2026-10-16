@@ -8,4 +8,4 @@
 | `BR-USR-004` | `FINANCE_NOTIFICATION_KEYS`              | `budgetAlerts`, `aiSuggestions`, `transactionDetected`, `monthlyReport`, `cardDueDate`, `unusualExpense` | barrel users                                                                  |
 
 > [!WARNING]
-> **REV-BACK-006** (`PARCIALMENTE_IMPLEMENTADO`) — docs antiguas implicaban que cada módulo de producto respeta enable; solo finance REST/tools lo enforzan. [review-register.md](../../../review-register.md#rev-back-006)
+> **REV-BACK-006** (`PARCIALMENTE_IMPLEMENTADO`) — docs antiguas implicaban que cada módulo de producto respeta enable; solo finance REST/tools lo enforzan. [back#136](https://github.com/jarvinc3/personal-os-back/issues/136)

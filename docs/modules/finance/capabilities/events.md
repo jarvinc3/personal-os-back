@@ -10,5 +10,4 @@ Consumidores: ver [infrastructure/events-and-queues.md](../../../infrastructure/
 
 `finance.balance.drift_detected` lo emite `BalanceIntegrityScheduler` una vez por desviación nueva o cambiada de saldo (invariante I1); ver `integrity.md`.
 
-> [!WARNING]
-> **REV-BACK-003** (`NO_IMPLEMENTADO`) — `finance.email_sync.failed` no se emite. [review-register.md](../../../review-register.md#rev-back-003)
+`finance.email_sync.failed` se encola en el outbox al fallar un sync.

@@ -2,7 +2,7 @@
 
 Afirmaciones de la documentación original (README, `core-infrastructure.md`, `finance.md`, módulos planos, `docs/ai-tools/*`) que no se presentan como vigentes sin marca. Ninguna se eliminó sin destino.
 
-Estados: ver [documentation-standard.md](./documentation-standard.md).
+Estados: ver [documentation-standard.md](../documentation-standard.md).
 
 ## REV-BACK-001 {#rev-back-001}
 
@@ -60,21 +60,21 @@ Estados: ver [documentation-standard.md](./documentation-standard.md).
 
 ## REV-BACK-006 {#rev-back-006}
 
-| Campo      | Valor                                                    |
-| ---------- | -------------------------------------------------------- |
-| Categoría  | `PARCIALMENTE_IMPLEMENTADO`                              |
-| Origen     | users.md “other domain APIs unchanged until they opt in” |
-| Validación | solo finance usa `@RequiresEnabledModule`                |
-| Resolución | `roadmap` — [roadmap.md](./roadmap.md)                   |
+| Campo      | Valor                                                                           |
+| ---------- | ------------------------------------------------------------------------------- |
+| Categoría  | `PARCIALMENTE_IMPLEMENTADO`                                                     |
+| Origen     | users.md “other domain APIs unchanged until they opt in”                        |
+| Validación | solo finance usa `@RequiresEnabledModule`                                       |
+| Resolución | `roadmap` — [back#136](https://github.com/jarvinc3/personal-os-back/issues/136) |
 
 ## REV-BACK-007 {#rev-back-007}
 
-| Campo      | Valor                                                                    |
-| ---------- | ------------------------------------------------------------------------ |
-| Categoría  | `NO_VERIFICABLE`                                                         |
-| Origen     | docs web/core-infra “pendiente FCM/APNs real (sender en backend)”        |
-| Validación | hay Expo access token + VAPID web-push; no hay adapter FCM/APNs dedicado |
-| Resolución | `roadmap` — [roadmap.md](./roadmap.md)                                   |
+| Campo      | Valor                                                                           |
+| ---------- | ------------------------------------------------------------------------------- |
+| Categoría  | `NO_VERIFICABLE`                                                                |
+| Origen     | docs web/core-infra “pendiente FCM/APNs real (sender en backend)”               |
+| Validación | hay Expo access token + VAPID web-push; no hay adapter FCM/APNs dedicado        |
+| Resolución | `roadmap` — [back#137](https://github.com/jarvinc3/personal-os-back/issues/137) |
 
 ## REV-BACK-008 {#rev-back-008}
 
@@ -83,7 +83,7 @@ Estados: ver [documentation-standard.md](./documentation-standard.md).
 | Categoría  | `NO_IMPLEMENTADO`                                                                  |
 | Origen     | project-guide / ai.md web: `agenda-tools.md` etc.                                  |
 | Validación | `MODULE_CONTEXT` para esos slugs solo tools de usuario/módulo, no tools de dominio |
-| Resolución | `roadmap` — [roadmap.md](./roadmap.md)                                             |
+| Resolución | `roadmap` — [back#138](https://github.com/jarvinc3/personal-os-back/issues/138)    |
 
 ## REV-BACK-009 {#rev-back-009}
 
