@@ -2,6 +2,12 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [SemVer](https://semver.org/lang/es/). Reglas y ejemplo en [docs/reference/changelog-guide.md](./docs/reference/changelog-guide.md).
 
+## [0.37.5] - 2026-10-16
+
+### Agregado
+
+- Migración `20261022000000_db_functions_triggers`: `update_updated_at()` y un trigger `trg_<tabla>_updated_at` en todas las tablas de `public` con columna `updated_at`, más `handle_new_user()` y el trigger `on_auth_user_created` sobre `auth.users`. Antes existían solo en prod, creados a mano; ahora cualquier base nueva (dev incluida) queda igual.
+
 ## [0.37.4] - 2026-10-16
 
 ### Cambiado
