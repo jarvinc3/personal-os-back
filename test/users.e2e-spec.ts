@@ -162,7 +162,7 @@ describe('Users (e2e)', () => {
 
   it('PATCH /api/users/me/release-notes-seen stores the seen version', async () => {
     const timestamp = new Date('2026-01-01T00:00:00.000Z');
-    prismaMock.user.findUnique.mockResolvedValue({
+    const profileRow = {
       id: 'user-123',
       email: 'user@example.com',
       fullName: 'User Test',
@@ -174,20 +174,13 @@ describe('Users (e2e)', () => {
       userModules: [],
       createdAt: timestamp,
       updatedAt: timestamp,
-    });
-    prismaMock.user.update.mockResolvedValue({
-      id: 'user-123',
-      email: 'user@example.com',
-      fullName: 'User Test',
-      timezone: 'America/Santo_Domingo',
-      locale: 'es-DO',
-      avatarUrl: null,
-      preferences: {},
-      lastSeenReleaseVersion: '0.39.0',
-      userModules: [],
-      createdAt: timestamp,
-      updatedAt: timestamp,
-    });
+    };
+    prismaMock.user.findUnique
+      .mockResolvedValueOnce(profileRow)
+      .mockResolvedValueOnce({
+        ...profileRow,
+        lastSeenReleaseVersion: '0.39.0',
+      });
 
     const token = createTestJwt({ sub: 'user-123', email: 'user@example.com' });
 
@@ -201,12 +194,10 @@ describe('Users (e2e)', () => {
         expect(res.body.meta.path).toBe('/api/users/me/release-notes-seen');
       });
 
-    expect(prismaMock.user.update).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: { id: 'user-123' },
-        data: { lastSeenReleaseVersion: '0.39.0' },
-      }),
-    );
+    expect(prismaMock.user.update).toHaveBeenCalledWith({
+      where: { id: 'user-123' },
+      data: { lastSeenReleaseVersion: '0.39.0' },
+    });
   });
 
   it('PATCH /api/users/me/release-notes-seen rejects a malformed version', async () => {

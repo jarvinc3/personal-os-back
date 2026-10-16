@@ -105,11 +105,10 @@ export class UsersRepository implements UsersRepositoryPort {
     });
   }
 
-  setLastSeenReleaseVersion(id: string, version: string) {
-    return this.prisma.user.update({
+  async setLastSeenReleaseVersion(id: string, version: string): Promise<void> {
+    await this.prisma.user.update({
       where: { id },
       data: { lastSeenReleaseVersion: version },
-      include: userWithModulesInclude,
     });
   }
 

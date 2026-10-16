@@ -53,11 +53,12 @@ export class UsersController {
     summary: 'Marca la versión de Novedades que el usuario ya vio',
   })
   @ApiOkResponse({ description: 'Updated user profile' })
-  markReleaseNotesSeen(
+  async markReleaseNotesSeen(
     @CurrentUser('sub') userId: string,
     @Body() dto: MarkReleaseNotesSeenDto,
   ) {
-    return this.usersService.markReleaseNotesSeen(userId, dto.version);
+    await this.usersService.markReleaseNotesSeen(userId, dto.version);
+    return this.usersService.findById(userId);
   }
 
   @Patch('me/modules/:slug')

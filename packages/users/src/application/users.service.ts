@@ -138,16 +138,12 @@ export class UsersService {
     return this.mapUser(updated);
   }
 
-  async markReleaseNotesSeen(userId: string, version: string) {
+  async markReleaseNotesSeen(userId: string, version: string): Promise<void> {
     const user = await this.usersRepository.findById(userId);
     if (!user) {
       throw new NotFoundException('Usuario no encontrado');
     }
-    const updated = await this.usersRepository.setLastSeenReleaseVersion(
-      userId,
-      version,
-    );
-    return this.mapUser(updated);
+    await this.usersRepository.setLastSeenReleaseVersion(userId, version);
   }
 
   async updateModuleConfig(

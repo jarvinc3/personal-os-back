@@ -72,10 +72,7 @@ export interface UsersRepositoryPort {
     id: string,
     data: UpdateProfileData,
   ): Promise<UserWithModulesRecord>;
-  setLastSeenReleaseVersion(
-    id: string,
-    version: string,
-  ): Promise<UserWithModulesRecord>;
+  setLastSeenReleaseVersion(id: string, version: string): Promise<void>;
   upsertUserModule(
     userId: string,
     moduleId: string,

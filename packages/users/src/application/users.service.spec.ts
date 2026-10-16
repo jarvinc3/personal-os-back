@@ -387,15 +387,13 @@ describe('UsersService.markReleaseNotesSeen', () => {
     expect(setLastSeenReleaseVersion).not.toHaveBeenCalled();
   });
 
-  it('persists the version and returns it in the profile', async () => {
-    setLastSeenReleaseVersion.mockResolvedValue({
-      ...profileRow,
-      lastSeenReleaseVersion: '0.39.0',
-    });
+  it('persists the version for the given user', async () => {
+    setLastSeenReleaseVersion.mockResolvedValue(undefined);
 
-    const profile = await service.markReleaseNotesSeen('user-1', '0.39.0');
+    await expect(
+      service.markReleaseNotesSeen('user-1', '0.39.0'),
+    ).resolves.toBeUndefined();
 
     expect(setLastSeenReleaseVersion).toHaveBeenCalledWith('user-1', '0.39.0');
-    expect(profile.lastSeenReleaseVersion).toBe('0.39.0');
   });
 });
