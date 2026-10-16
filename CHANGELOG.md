@@ -2,6 +2,17 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [SemVer](https://semver.org/lang/es/). Reglas y ejemplo en [docs/reference/changelog-guide.md](./docs/reference/changelog-guide.md).
 
+## [0.38.0] - 2026-10-16
+
+### Agregado
+
+- Idempotencia de peticiones: un interceptor global lee `Idempotency-Key` en POST, PATCH y DELETE, guarda la respuesta de la primera ejecución en `idempotency_keys` (TTL 24 h) y la reproduce en los reintentos. La misma clave con otro body o ruta responde 409; una clave en curso responde 409; un error libera la clave para permitir el reintento.
+- Migración `20261022100000_idempotency_keys`.
+
+### Cambiado
+
+- CORS: `Idempotency-Key` entra en los headers permitidos y se quitan `x-business-id` y `x-organization-id`, que no se usaban.
+
 ## [0.37.6] - 2026-10-16
 
 ### Corregido
