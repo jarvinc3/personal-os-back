@@ -2,6 +2,12 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [SemVer](https://semver.org/lang/es/). Reglas y ejemplo en [docs/reference/changelog-guide.md](./docs/reference/changelog-guide.md).
 
+## [0.39.1] - 2026-10-16
+
+### Cambiado
+
+- `PATCH /api/users/me/release-notes-seen`: el comando que persiste la versión vista ya no arma el perfil; el controlador ejecuta el comando y consulta el perfil con `findById`. La respuesta no cambia.
+
 ## [0.39.0] - 2026-10-16
 
 ### Agregado
