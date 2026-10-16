@@ -2,6 +2,21 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [SemVer](https://semver.org/lang/es/). Reglas y ejemplo en [docs/reference/changelog-guide.md](./docs/reference/changelog-guide.md).
 
+## [0.40.0] - 2026-10-16
+
+### Agregado
+
+- Tool de IA `reverse_transaction`: el agente puede revertir una transacción `CONFIRMED` y deshacer sus efectos de saldo y presupuesto. Delega en `FinanceFacade.reverseTransaction`.
+
+### Cambiado
+
+- CI: `pnpm audit --prod --audit-level=high` deja de bloquear el pipeline (`continue-on-error`).
+- `pnpm build` corre `prisma generate` antes de compilar, para que un clon sin el cliente generado compile igual.
+
+### Eliminado
+
+- `packages/database/src/generated/` y `tsconfig.tsbuildinfo` dejan de versionarse; se regeneran con `pnpm db:generate` (o `pnpm build`).
+
 ## [0.39.2] - 2026-10-16
 
 ### Cambiado
