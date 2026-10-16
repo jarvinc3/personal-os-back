@@ -29,6 +29,13 @@ export type PrismaMock = {
   aiMessage: {
     create: MockFn;
   };
+  idempotencyKey: {
+    findUnique: MockFn;
+    create: MockFn;
+    update: MockFn;
+    delete: MockFn;
+    deleteMany: MockFn;
+  };
   finAccount: {
     findMany: MockFn;
     findFirst: MockFn;
@@ -427,6 +434,98 @@ function createTransactionClient(prismaMock: PrismaMock) {
   };
 }
 
+type IdempotencyRow = {
+  id: string;
+  userId: string;
+  key: string;
+  method: string;
+  path: string;
+  requestHash: string;
+  status: string;
+  responseStatus: number | null;
+  responseBody: string | null;
+  createdAt: Date;
+  expiresAt: Date;
+};
+
+type IdempotencyRowInput = Omit<
+  IdempotencyRow,
+  'id' | 'createdAt' | 'responseStatus' | 'responseBody'
+>;
+
+/** In-memory stand-in for the idempotency_keys table in e2e tests. */
+function createIdempotencyKeyMock() {
+  const rows = new Map<string, IdempotencyRow>();
+  let sequence = 0;
+  const rowKey = (userId: string, key: string): string => `${userId}:${key}`;
+
+  return {
+    findUnique: jest.fn(
+      (args: { where: { userId_key: { userId: string; key: string } } }) =>
+        Promise.resolve(
+          rows.get(
+            rowKey(args.where.userId_key.userId, args.where.userId_key.key),
+          ) ?? null,
+        ),
+    ),
+    create: jest.fn(({ data: rowInput }: { data: IdempotencyRowInput }) => {
+      const key = rowKey(rowInput.userId, rowInput.key);
+      if (rows.has(key)) {
+        return Promise.reject(
+          Object.assign(new Error('Unique constraint failed'), {
+            code: 'P2002',
+          }),
+        );
+      }
+      sequence += 1;
+      const row: IdempotencyRow = {
+        id: `idem-${sequence}`,
+        ...rowInput,
+        responseStatus: null,
+        responseBody: null,
+        createdAt: new Date(),
+      };
+      rows.set(key, row);
+      return Promise.resolve(row);
+    }),
+    update: jest.fn(
+      ({
+        where,
+        data: rowPatch,
+      }: {
+        where: { userId_key: { userId: string; key: string } };
+        data: Partial<IdempotencyRow>;
+      }) => {
+        const key = rowKey(where.userId_key.userId, where.userId_key.key);
+        const existingRow = rows.get(key);
+        if (!existingRow) {
+          return Promise.reject(
+            Object.assign(new Error('Record not found'), { code: 'P2025' }),
+          );
+        }
+        const updatedRow = { ...existingRow, ...rowPatch };
+        rows.set(key, updatedRow);
+        return Promise.resolve(updatedRow);
+      },
+    ),
+    delete: jest.fn((args: { where: { id: string } }) => {
+      for (const [key, row] of rows) {
+        if (row.id === args.where.id) {
+          rows.delete(key);
+          return Promise.resolve(row);
+        }
+      }
+      return Promise.reject(
+        Object.assign(new Error('Record not found'), { code: 'P2025' }),
+      );
+    }),
+    deleteMany: jest.fn((args: { where: { userId: string; key: string } }) => {
+      const removed = rows.delete(rowKey(args.where.userId, args.where.key));
+      return Promise.resolve({ count: removed ? 1 : 0 });
+    }),
+  };
+}
+
 export function createPrismaMock(): PrismaMock {
   const client = {
     user: {
@@ -461,6 +560,7 @@ export function createPrismaMock(): PrismaMock {
     aiMessage: {
       create: jest.fn(),
     },
+    idempotencyKey: createIdempotencyKeyMock(),
     finAccount: {
       findMany: jest.fn().mockResolvedValue([]),
       findFirst: jest.fn(),

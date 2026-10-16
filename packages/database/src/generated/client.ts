@@ -277,3 +277,11 @@ export type FinReconciliationAdjustment = Prisma.FinReconciliationAdjustmentMode
  * balance and closes the open row; no movement is created.
  */
 export type FinBalanceDrift = Prisma.FinBalanceDriftModel
+/**
+ * Model IdempotencyKey
+ * Server-side idempotency for mutating requests. One row per user and key;
+ * it stores the response of the first execution so retries replay it. Rows
+ * expire 24 h after creation and are removed lazily when a lookup finds them
+ * expired.
+ */
+export type IdempotencyKey = Prisma.IdempotencyKeyModel

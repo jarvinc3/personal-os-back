@@ -42,6 +42,7 @@ model User {
   notifications   Notification[]
   pushTokens      PushToken[]
   userModules     UserModule[]
+  idempotencyKeys IdempotencyKey[]
 
   @@map("users")
 }
@@ -1370,4 +1371,34 @@ model FinBalanceDrift {
   @@index([accountId, resolvedAt], map: "fin_balance_drifts_account_resolved_idx")
   @@index([cardId, resolvedAt], map: "fin_balance_drifts_card_resolved_idx")
   @@map("fin_balance_drifts")
+}
+
+/// Server-side idempotency for mutating requests. One row per user and key;
+/// it stores the response of the first execution so retries replay it. Rows
+/// expire 24 h after creation and are removed lazily when a lookup finds them
+/// expired.
+model IdempotencyKey {
+  id             String            @id @default(dbgenerated("(uuid_generate_v4())::text"))
+  userId         String            @map("user_id")
+  key            String
+  method         String
+  path           String
+  requestHash    String            @map("request_hash")
+  status         IdempotencyStatus @default(IN_PROGRESS)
+  responseStatus Int?              @map("response_status")
+  responseBody   String?           @map("response_body")
+  createdAt      DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  expiresAt      DateTime          @map("expires_at") @db.Timestamptz(6)
+  user           User              @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([userId, key], map: "idempotency_keys_user_key_key")
+  @@index([expiresAt], map: "idempotency_keys_expires_at_idx")
+  @@map("idempotency_keys")
+}
+
+enum IdempotencyStatus {
+  IN_PROGRESS
+  COMPLETED
+
+  @@map("idempotency_status")
 }

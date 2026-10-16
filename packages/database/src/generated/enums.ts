@@ -367,3 +367,11 @@ export const FinReconciliationAdjustmentKind = {
 } as const
 
 export type FinReconciliationAdjustmentKind = (typeof FinReconciliationAdjustmentKind)[keyof typeof FinReconciliationAdjustmentKind]
+
+
+export const IdempotencyStatus = {
+  IN_PROGRESS: 'IN_PROGRESS',
+  COMPLETED: 'COMPLETED'
+} as const
+
+export type IdempotencyStatus = (typeof IdempotencyStatus)[keyof typeof IdempotencyStatus]

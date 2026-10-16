@@ -95,7 +95,8 @@ export const ModelName = {
   FinStatementImportLine: 'FinStatementImportLine',
   FinReconciliation: 'FinReconciliation',
   FinReconciliationAdjustment: 'FinReconciliationAdjustment',
-  FinBalanceDrift: 'FinBalanceDrift'
+  FinBalanceDrift: 'FinBalanceDrift',
+  IdempotencyKey: 'IdempotencyKey'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -893,6 +894,23 @@ export const FinBalanceDriftScalarFieldEnum = {
 } as const
 
 export type FinBalanceDriftScalarFieldEnum = (typeof FinBalanceDriftScalarFieldEnum)[keyof typeof FinBalanceDriftScalarFieldEnum]
+
+
+export const IdempotencyKeyScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  key: 'key',
+  method: 'method',
+  path: 'path',
+  requestHash: 'requestHash',
+  status: 'status',
+  responseStatus: 'responseStatus',
+  responseBody: 'responseBody',
+  createdAt: 'createdAt',
+  expiresAt: 'expiresAt'
+} as const
+
+export type IdempotencyKeyScalarFieldEnum = (typeof IdempotencyKeyScalarFieldEnum)[keyof typeof IdempotencyKeyScalarFieldEnum]
 
 
 export const SortOrder = {
