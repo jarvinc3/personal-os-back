@@ -2,6 +2,17 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [SemVer](https://semver.org/lang/es/). Reglas y ejemplo en [docs/reference/changelog-guide.md](./docs/reference/changelog-guide.md).
 
+## [0.40.2] - 2026-10-16
+
+### Cambiado
+
+- Los E2E cargan `AppModule` al abrir cada archivo, fuera del `beforeEach`: la transpilación en frío de ts-jest se comía el timeout de 5 s del hook en CI (#150). Sin cambio de comportamiento.
+- Umbrales globales de cobertura: 70 % de statements, 69 % de líneas, 51 % de funciones y 58 % de ramas; antes 25/25/19/20 (#147).
+
+### Agregado
+
+- Tests de comportamiento y ramas de error para el chat de IA, el ejecutor de tools, la ingesta de correo y el repositorio del ledger (#148). La cobertura global sube de 65.21 % a 69.34 % de líneas y de 53.89 % a 58.22 % de ramas.
+
 ## [0.40.1] - 2026-10-16
 
 ### Cambiado
