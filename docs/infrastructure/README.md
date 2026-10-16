@@ -11,4 +11,5 @@ Núcleo transversal. El dominio vive en `docs/modules/`.
 | [database.md](./database.md)                       | `prisma/`, `packages/database/src`            |
 | [websocket.md](./websocket.md)                     | `NotificationsGateway`                        |
 | [security.md](./security.md)                       | Helmet, JWT JWKS, production checklist        |
+| [observability.md](./observability.md)             | Sentry y source maps                          |
 | [errors-and-envelope.md](./errors-and-envelope.md) | `TransformInterceptor`, `AllExceptionsFilter` |

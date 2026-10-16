@@ -3,7 +3,6 @@
 | Documento                                                           | Contenido                           |
 | ------------------------------------------------------------------- | ----------------------------------- |
 | [overview.md](./overview.md)                                        | Composición AiModule / AiCoreModule |
-| [status.md](./status.md)                                            | Estado                              |
 | [capabilities/chat.md](./capabilities/chat.md)                      | Sesiones y chat                     |
 | [capabilities/actions.md](./capabilities/actions.md)                | Acciones y reaper                   |
 | [capabilities/runtime.md](./capabilities/runtime.md)                | Insights cola / memoria             |
@@ -13,3 +12,5 @@
 | [contracts/finance-tools.md](../finance/contracts/finance-tools.md) | Tools `finance` (dueño finance)     |
 
 **Código:** `packages/ai-agent/src/`
+
+Estado y trabajo pendiente: GitHub Issues del repo (label `roadmap`).

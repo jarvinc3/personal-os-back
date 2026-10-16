@@ -12,7 +12,14 @@ Instrucciones para agentes y reviewers que trabajan en el backend de Personal OS
 6. [docs/reference/changelog-guide.md](docs/reference/changelog-guide.md) — antes de cerrar la sesión, para el CHANGELOG y la versión.
    - [docs/versionado.md](docs/versionado.md) - política de versionado beta `0.x` (obligatoria; manda sobre la guía del changelog).
 
-Si una afirmación no está `VERIFICADO`, leer [docs/review-register.md](docs/review-register.md) antes de tratarla como comportamiento vigente.
+Si una afirmación no está `VERIFICADO`, no la trates como comportamiento vigente: compruébala en código o abre un issue.
+
+## Seguimiento con GitHub Issues
+
+El estado, el roadmap y los hallazgos viven en GitHub Issues. Los documentos de trabajo cerrados pasan a [docs/archive/](docs/archive/).
+
+- Un cambio resuelve un issue: el cuerpo del commit cierra con `Closes #N` cuando el issue queda resuelto, o `Refs #N` cuando solo avanza.
+- Lo decidido y no implementado se abre como issue con label `roadmap`; no se deja como `REV-*` suelto en los documentos.
 
 ## Fuentes canónicas
 
@@ -26,6 +33,7 @@ Si una afirmación no está `VERIFICADO`, leer [docs/review-register.md](docs/re
 | App (interfaz) vs módulo (código)                | [docs/glosario.md](docs/glosario.md) · regla `.cursor/rules/module-terminology.mdc`                              |
 | Tools IA                                         | `packages/ai-agent/src/tools/tool.registry.ts` + `prompts/module-context.ts`                                     |
 | API pública entre módulos Nest                   | `packages/<nombre>/src/index.ts` y barrels `@personal-os/<nombre>` (regla `.cursor/rules/module-public-api.mdc`) |
+| Prefijo de versión de la API                     | [ADR-007](docs/decisions/ADR-007-sin-prefijo-de-version.md) — sin `/v1`                                          |
 
 ## Changelog y versión
 
@@ -49,7 +57,7 @@ Usa siempre la fecha real del sistema (`date`) para nombrar migraciones, changel
 - [ ] Correr `pnpm lint`, `pnpm test` y `pnpm test:e2e` (obligatorio en todo cambio).
 - [ ] Correr `pnpm format:check`; un archivo sin formato o un test en rojo bloquea el cierre.
 - [ ] Actualizar el documento dueño (capacidad, regla o contrato), no un README monolítico.
-- [ ] Si el cambio no se puede verificar, añadir un `REV-BACK-*` en el registro.
+- [ ] Si el cambio no se puede verificar, abre un issue con el detalle.
 - [ ] Imports cruzados solo vía barrel/`FinanceFacade`.
 - [ ] Prefijo HTTP documentado como `/api/...` salvo health/Bull Board/Swagger que viven fuera o según `main.ts`.
 - [ ] No presentar módulos `agenda` / `projects` / `health` como APIs Nest: solo slugs de `user_modules`.
@@ -65,6 +73,10 @@ Todo cambio corre, antes de darlo por terminado:
 4. `pnpm test:e2e`
 
 No hay excepción por tamaño ni por tipo: un cambio de documentación también corre los cuatro. Los E2E (`test/*.e2e-spec.ts`, Prisma mock) son requisito en **todo** cambio, no solo al tocar pruebas. Un test en rojo significa que el cambio no está terminado, y no se abre un PR con la suite en rojo. Un cambio de contrato (paginación, DTO, respuesta HTTP) que no actualice su E2E deja el CI en rojo. Detalle en [docs/operations/testing.md](docs/operations/testing.md).
+
+## Observabilidad y CI
+
+Sentry corre en el back (`instrument.ts`) y no se inicializa sin `SENTRY_DSN`. `pnpm sentry:sourcemaps` sube los source maps de `dist` con `@sentry/cli` cuando existe `SENTRY_AUTH_TOKEN`; sin token el build no falla. CI en [.github/workflows/ci.yml](.github/workflows/ci.yml) corre en `develop`: Prisma validate, `db:migrate deploy`, drift check (`db:migrate:diff:check`), lint, format, money guard, build, unit y e2e.
 
 ## Estructura de código
 

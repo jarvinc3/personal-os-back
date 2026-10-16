@@ -2,6 +2,34 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [SemVer](https://semver.org/lang/es/). Reglas y ejemplo en [docs/reference/changelog-guide.md](./docs/reference/changelog-guide.md).
 
+## [0.37.6] - 2026-10-16
+
+### Corregido
+
+- Migración `20261022000000_db_functions_triggers`: el trigger `on_auth_user_created` ahora solo se crea si existe la tabla `auth.users` (`to_regclass`), no solo el esquema `auth`. El CI simula `auth` sin `auth.users` y fallaba `prisma migrate deploy`.
+
+## [0.37.5] - 2026-10-16
+
+### Agregado
+
+- Migración `20261022000000_db_functions_triggers`: `update_updated_at()` y un trigger `trg_<tabla>_updated_at` en todas las tablas de `public` con columna `updated_at`, más `handle_new_user()` y el trigger `on_auth_user_created` sobre `auth.users`. Antes existían solo en prod, creados a mano; ahora cualquier base nueva (dev incluida) queda igual.
+
+## [0.37.4] - 2026-10-16
+
+### Cambiado
+
+- La documentación deja de llevar `status.md`, `review-register.md` y `roadmap.md`: el estado, el roadmap y los hallazgos viven en GitHub Issues (label `roadmap`) y los documentos cerrados pasan a `docs/archive/`.
+- `docs/modules/logos/overview.md` absorbe la integración de Logo.dev (llaves, bucket, flujo y casos borde).
+- `AGENTS.md`, `docs/README.md` y `docs/documentation-standard.md` describen el flujo de issues con `Closes #N`, Sentry/source maps y CI con migraciones y drift.
+
+### Agregado
+
+- `docs/infrastructure/observability.md`.
+
+### Eliminado
+
+- El plan de Cursor de hallazgos de sync bancario y el diseño del módulo `sub_` de Suscripciones.
+
 ## [0.37.3] - 2026-10-15
 
 ### Agregado
@@ -68,7 +96,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [Se
 - `LoggingInterceptor` queda activo como interceptor global; se borran `RolesGuard` y `@Roles` sin uso.
 - `MAX_EMAIL_LLM_EXTRACTS` y `AI_DAILY_INSIGHT_QUOTA` entran en `env.schema` (defaults 25 y 20).
 - El puerto por defecto unifica en 3100, igual que `.env.example`.
-- Saneamiento del registro de revisión (pendiente 17): `review-register.md` y la documentación de finanzas, config y eventos al día; los hallazgos sin código pasan a [docs/roadmap.md](./docs/roadmap.md).
+- Saneamiento del registro de revisión (pendiente 17): `review-register.md` y la documentación de finanzas, config y eventos al día; los hallazgos sin código pasan a GitHub Issues (label `roadmap`).
 
 ### Eliminado
 

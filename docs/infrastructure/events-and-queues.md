@@ -16,9 +16,6 @@ Catálogo: [`packages/core/src/events/event.constants.ts`](../../packages/core/s
 | `USER_PREFERENCES_UPDATED`                       | `user.preferences.updated`                                                             | Users                      | AI                                     |
 | `MODULE_ENABLED` / `DISABLED` / `CONFIG_UPDATED` | `module.*`                                                                             | Users                      | AI                                     |
 
-> [!WARNING]
-> **REV-BACK-003** (`NO_IMPLEMENTADO`) — `finance.email_sync.failed` está en el catálogo y se documentaba como evento de ops; no hay enqueue/emit en `src/`. [review-register.md](../review-register.md#rev-back-003)
-
 Patrón Finance: persistir outbox en la misma TX → `FinanceOutboxDispatcher` (cron `EVERY_30_SECONDS` + wake) → `EventEmitter2` → listeners con `DomainEventIdempotencyGuard` (`ProcessedDomainEvent`).
 
 No es event sourcing: el outbox es durabilidad de entrega.
@@ -42,6 +39,3 @@ No es event sourcing: el outbox es durabilidad de entrega.
 | `EVERY_MINUTE`     | `AuthDeletionOutboxProcessor`                                                      |
 | `EVERY_5_MINUTES`  | `AiActionsReaperService` (RUNNING > 15 min)                                        |
 | `EVERY_6_HOURS`    | `GmailAutoSyncScheduler` (opt-in `emailSync.automatic`; LLM solo con mails nuevos) |
-
-> [!WARNING]
-> **REV-BACK-004** (`CONTRADICE_CODIGO`) — comentario en `app.module.ts` «no @Cron handlers yet» contradice los tres crons anteriores. [review-register.md](../review-register.md#rev-back-004)

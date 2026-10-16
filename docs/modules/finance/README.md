@@ -3,7 +3,6 @@
 | Documento                                                          | Contenido                                      |
 | ------------------------------------------------------------------ | ---------------------------------------------- |
 | [overview.md](./overview.md)                                       | Propósito, arquitectura, consumidores          |
-| [status.md](./status.md)                                           | Estado                                         |
 | [capabilities/catalog.md](./capabilities/catalog.md)               | Instituciones, cuentas, tarjetas, categorías   |
 | [capabilities/statements.md](./capabilities/statements.md)         | Estados de cuenta de tarjetas de crédito       |
 | [capabilities/ledger.md](./capabilities/ledger.md)                 | Transacciones, transfers, confirm, reverse     |
@@ -22,3 +21,5 @@
 | [operations/gmail-sync.md](./operations/gmail-sync.md)             | Pipeline sync                                  |
 
 UI: `personal-os-web/docs/modules/finance/`. Código: `packages/finance/src/`.
+
+Estado y trabajo pendiente: GitHub Issues del repo (label `roadmap`).
