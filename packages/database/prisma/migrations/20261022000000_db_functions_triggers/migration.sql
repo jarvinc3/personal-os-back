@@ -24,10 +24,10 @@ BEGIN
 END $$;
 
 -- Alta automática en public.users al registrarse en Supabase Auth.
--- Protegido: el shadow DB de Prisma no tiene el esquema auth.
+-- Protegido: el shadow DB de Prisma y el CI no tienen auth.users.
 DO $outer$
 BEGIN
-  IF EXISTS (SELECT 1 FROM pg_namespace WHERE nspname = 'auth') THEN
+  IF to_regclass('auth.users') IS NOT NULL THEN
     EXECUTE $f$
       CREATE OR REPLACE FUNCTION public.handle_new_user()
        RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path TO ''
