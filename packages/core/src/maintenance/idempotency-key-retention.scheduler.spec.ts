@@ -64,9 +64,7 @@ describe('IdempotencyKeyRetentionScheduler', () => {
 
     await scheduler.purgeExpired();
 
-    const [query] = idempotencyKey.findMany.mock.calls[0] as unknown as [
-      PurgeQuery,
-    ];
+    const [query] = idempotencyKey.findMany.mock.calls[0] as [PurgeQuery];
     expect(query.where.expiresAt.lt).toBeInstanceOf(Date);
     expect(query.select).toEqual({ id: true });
     expect(query.take).toBe(PURGE_BATCH_SIZE);

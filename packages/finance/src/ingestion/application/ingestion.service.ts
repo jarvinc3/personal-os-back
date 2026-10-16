@@ -242,13 +242,9 @@ export class IngestionService {
     if (!source) {
       throw new NotFoundException('Origen de correo no encontrado');
     }
-    // El sync manual deduplica igual que el automático: un reintento tras un
-    // timeout no encola un segundo sync del mismo origen mientras el primero
-    // siga en vuelo.
-    return this.enqueueGmailSyncJob(userId, sourceId, {
-      forceFullSync,
-      dedupe: true,
-    });
+    // El sync manual deduplica por origen: un reintento tras un timeout no
+    // encola un segundo sync mientras el primero siga en vuelo.
+    return this.enqueueGmailSyncJob(userId, sourceId, { forceFullSync });
   }
 
   async completeEmailSyncSuccessWithEvent(params: {
@@ -1039,7 +1035,7 @@ export class IngestionService {
       });
       const mapped = this.mapEmailSourceResponse(updated ?? existing);
       if (await this.users.isFinanceEmailSyncAutomatic(userId)) {
-        await this.enqueueGmailSyncJob(userId, mapped.id, { dedupe: true });
+        await this.enqueueGmailSyncJob(userId, mapped.id);
       }
       return mapped;
     }
@@ -1054,7 +1050,7 @@ export class IngestionService {
     });
     const mapped = this.mapEmailSourceResponse(created);
     if (await this.users.isFinanceEmailSyncAutomatic(userId)) {
-      await this.enqueueGmailSyncJob(userId, mapped.id, { dedupe: true });
+      await this.enqueueGmailSyncJob(userId, mapped.id);
     }
     return mapped;
   }
@@ -1062,7 +1058,7 @@ export class IngestionService {
   private async enqueueGmailSyncJob(
     userId: string,
     sourceId: string,
-    options: { forceFullSync?: boolean; dedupe?: boolean } = {},
+    options: { forceFullSync?: boolean } = {},
   ): Promise<{ queued: true } | { queued: false; reason: string }> {
     const forceFullSync = options.forceFullSync === true;
     if (!this.gmailSyncQueue) {
@@ -1079,7 +1075,7 @@ export class IngestionService {
         { userId, sourceId, forceFullSync },
         {
           ...GMAIL_SYNC_JOB_OPTIONS,
-          ...(options.dedupe ? { jobId: gmailSyncJobId(sourceId) } : {}),
+          jobId: gmailSyncJobId(sourceId),
         },
       );
       return { queued: true };
