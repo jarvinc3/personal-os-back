@@ -2,6 +2,17 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [SemVer](https://semver.org/lang/es/). Reglas y ejemplo en [docs/reference/changelog-guide.md](./docs/reference/changelog-guide.md).
 
+## [0.40.3] - 2026-10-16
+
+### Corregido
+
+- `Idempotency-Key` en `POST /api/finance/email-sync/sources/:id/sync`: cuando la petición agota el timeout de 8 s, la clave ya no se libera y queda `IN_PROGRESS` hasta su TTL, porque el trabajo puede seguir vivo y un reintento encolaría un sync duplicado (#153).
+- El sync manual de Gmail usa el `jobId` estable `gmail-sync-{sourceId}` (también con `forceFullSync=true`), así que un reintento en vuelo no encola un segundo job (#153).
+
+### Cambiado
+
+- `IdempotencyKeyRetentionScheduler` borra a diario (03:00) las claves de idempotencia vencidas, por lotes, en vez de esperar a que se reusen (#153).
+
 ## [0.40.2] - 2026-10-16
 
 ### Cambiado
