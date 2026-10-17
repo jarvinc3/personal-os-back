@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import {
   IsDateString,
   IsEnum,
@@ -8,6 +8,7 @@ import {
   IsString,
   MaxLength,
   Min,
+  MinLength,
 } from 'class-validator';
 import { CurrencyField } from '../../../shared/presentation/validation.decorators';
 import { RECEIVABLE_STATUSES } from '../../application/resolve-receivable-payment';
@@ -18,10 +19,12 @@ export class CreateReceivableDto {
   @MaxLength(120)
   debtorName!: string;
 
-  @ApiPropertyOptional()
-  @IsOptional()
+  @ApiProperty({ minLength: 1, maxLength: 120 })
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
   @IsString()
-  description?: string;
+  @MinLength(1)
+  @MaxLength(120)
+  description!: string;
 
   @ApiProperty()
   @Type(() => Number)

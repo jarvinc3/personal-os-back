@@ -70,6 +70,7 @@ export const MODULE_CONTEXT: Record<
       'update_transaction',
       'confirm_transaction',
       'unconfirm_transaction',
+      'reverse_transaction',
       'create_transfer',
       'get_budget_status',
       'create_or_update_budget',

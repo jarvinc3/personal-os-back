@@ -1,4 +1,4 @@
-import { INestApplication } from '@nestjs/common';
+import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';
 import { App } from 'supertest/types';
@@ -11,6 +11,12 @@ import { applyTestEnv } from './helpers/test-env';
 
 applyTestEnv();
 
+// Loaded at file scope so the one-time ts-jest transpile of the app graph
+// does not consume the 5s hook timeout on a cold cache (#150).
+const { AppModule } = require('../apps/api/src/app.module') as {
+  AppModule: new (...args: never[]) => unknown;
+};
+
 describe('Users (e2e)', () => {
   let app: INestApplication<App>;
   let prismaMock: PrismaMock;
@@ -20,9 +26,6 @@ describe('Users (e2e)', () => {
     tryDeleteAuthUserMock.mockClear();
     tryDeleteAuthUserMock.mockResolvedValue({ ok: true });
 
-    const { AppModule } = require('../apps/api/src/app.module') as {
-      AppModule: new (...args: never[]) => unknown;
-    };
     prismaMock = createPrismaMock();
 
     const moduleFixture: TestingModule = await applyAuthTestOverrides(
@@ -40,6 +43,13 @@ describe('Users (e2e)', () => {
 
     app = moduleFixture.createNestApplication();
     app.setGlobalPrefix('api');
+    app.useGlobalPipes(
+      new ValidationPipe({
+        transform: true,
+        whitelist: true,
+        forbidNonWhitelisted: true,
+      }),
+    );
     await app.init();
   });
 
@@ -58,6 +68,7 @@ describe('Users (e2e)', () => {
       locale: 'es-DO',
       avatarUrl: null,
       preferences: {},
+      lastSeenReleaseVersion: '0.38.1',
       userModules: [],
       createdAt: new Date('2026-01-01T00:00:00.000Z'),
       updatedAt: new Date('2026-01-01T00:00:00.000Z'),
@@ -73,6 +84,7 @@ describe('Users (e2e)', () => {
         expect(res.body).toMatchObject({
           data: {
             id: 'user-123',
+            lastSeenReleaseVersion: '0.38.1',
           },
           meta: {
             path: '/api/users/me',
@@ -149,6 +161,72 @@ describe('Users (e2e)', () => {
           },
         });
       });
+  });
+
+  it('PATCH /api/users/me/release-notes-seen stores the seen version', async () => {
+    const timestamp = new Date('2026-01-01T00:00:00.000Z');
+    const profileRow = {
+      id: 'user-123',
+      email: 'user@example.com',
+      fullName: 'User Test',
+      timezone: 'America/Santo_Domingo',
+      locale: 'es-DO',
+      avatarUrl: null,
+      preferences: {},
+      lastSeenReleaseVersion: null,
+      userModules: [],
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    };
+    prismaMock.user.findUnique
+      .mockResolvedValueOnce(profileRow)
+      .mockResolvedValueOnce({
+        ...profileRow,
+        lastSeenReleaseVersion: '0.39.0',
+      });
+
+    const token = createTestJwt({ sub: 'user-123', email: 'user@example.com' });
+
+    await request(app.getHttpServer())
+      .patch('/api/users/me/release-notes-seen')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ version: '0.39.0' })
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.data.lastSeenReleaseVersion).toBe('0.39.0');
+        expect(res.body.meta.path).toBe('/api/users/me/release-notes-seen');
+      });
+
+    expect(prismaMock.user.update).toHaveBeenCalledWith({
+      where: { id: 'user-123' },
+      data: { lastSeenReleaseVersion: '0.39.0' },
+    });
+  });
+
+  it('PATCH /api/users/me/release-notes-seen rejects a malformed version', async () => {
+    const token = createTestJwt({ sub: 'user-123', email: 'user@example.com' });
+
+    await request(app.getHttpServer())
+      .patch('/api/users/me/release-notes-seen')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ version: 'v0.39' })
+      .expect(400);
+
+    expect(prismaMock.user.update).not.toHaveBeenCalled();
+  });
+
+  it('PATCH /api/users/me/release-notes-seen returns 404 without a user row', async () => {
+    prismaMock.user.findUnique.mockResolvedValue(null);
+
+    const token = createTestJwt({ sub: 'missing-user' });
+
+    await request(app.getHttpServer())
+      .patch('/api/users/me/release-notes-seen')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ version: '0.39.0' })
+      .expect(404);
+
+    expect(prismaMock.user.update).not.toHaveBeenCalled();
   });
 
   it('PATCH /api/users/me/modules/finance upserts module config', async () => {

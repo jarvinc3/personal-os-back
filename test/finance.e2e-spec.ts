@@ -12,6 +12,12 @@ import { STATEMENT_EXTRACTOR, STATEMENT_PDF_TEXT } from '@personal-os/finance';
 
 applyTestEnv();
 
+// Loaded at file scope so the one-time ts-jest transpile of the app graph
+// does not consume the 5s hook timeout on a cold cache (#150).
+const { AppModule } = require('../apps/api/src/app.module') as {
+  AppModule: new (...args: never[]) => unknown;
+};
+
 describe('Finance (e2e)', () => {
   let app: INestApplication<App>;
   let prismaMock: ReturnType<typeof createPrismaMock>;
@@ -31,9 +37,6 @@ describe('Finance (e2e)', () => {
   };
 
   beforeEach(async () => {
-    const { AppModule } = require('../apps/api/src/app.module') as {
-      AppModule: new (...args: never[]) => unknown;
-    };
     prismaMock = createPrismaMock();
     token = createTestJwt({ sub: 'user-123' });
 
@@ -1019,6 +1022,20 @@ describe('Finance (e2e)', () => {
           isActive: true,
         });
       });
+  });
+
+  it('POST /api/finance/receivables requires a non-blank description', async () => {
+    await request(app.getHttpServer())
+      .post('/api/finance/receivables')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ debtorName: 'Ana', amount: 100 })
+      .expect(400);
+
+    await request(app.getHttpServer())
+      .post('/api/finance/receivables')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ debtorName: 'Ana', amount: 100, description: '   ' })
+      .expect(400);
   });
 
   it('PATCH /api/finance/receivables/:id rejects paidAmount edits', async () => {

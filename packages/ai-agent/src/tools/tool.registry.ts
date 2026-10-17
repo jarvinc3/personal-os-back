@@ -230,6 +230,13 @@ const STATIC_TOOLS: StaticToolDef[] = [
     targetModule: 'finance',
   },
   {
+    name: 'reverse_transaction',
+    description:
+      'Reverse a CONFIRMED finance transaction and undo its balance and budget effects.',
+    mutating: true,
+    targetModule: 'finance',
+  },
+  {
     name: 'get_budget_status',
     description: 'Get budget usage and threshold status.',
     mutating: false,
@@ -558,6 +565,8 @@ export function getActionLabel(
       return 'Confirmar transacción';
     case 'unconfirm_transaction':
       return 'Desbloquear transacción';
+    case 'reverse_transaction':
+      return 'Revertir transacción';
     case 'get_budget_status':
       return 'Revisar estado de presupuestos';
     case 'create_or_update_budget':

@@ -52,6 +52,18 @@ describe('tool.registry', () => {
     });
   });
 
+  it('exposes reverse_transaction as a mutating finance tool', () => {
+    const reverse = getToolDefinition('reverse_transaction');
+    expect(reverse).toMatchObject({
+      mutating: true,
+      targetModule: 'finance',
+      parameters: {
+        type: 'object',
+        properties: { transactionId: { type: 'string' } },
+      },
+    });
+  });
+
   it('exposes reconcile_product as a mutating finance tool from its schema', () => {
     const reconcile = getToolDefinition('reconcile_product');
     expect(reconcile).toMatchObject({
@@ -110,6 +122,12 @@ describe('tool.registry', () => {
   it('labels the transaction unlock action', () => {
     expect(getActionLabel('unconfirm_transaction', {})).toBe(
       'Desbloquear transacción',
+    );
+  });
+
+  it('labels the transaction reverse action', () => {
+    expect(getActionLabel('reverse_transaction', {})).toBe(
+      'Revertir transacción',
     );
   });
 

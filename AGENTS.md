@@ -50,7 +50,18 @@ La versión sigue **estrictamente** [docs/versionado.md](docs/versionado.md): be
 
 ## Fechas
 
-Usa siempre la fecha real del sistema (`date`) para nombrar migraciones, changelogs y documentos. No adelantes la fecha para "ordenar" artefactos: el nombre de la carpeta de una migración Prisma (`YYYYMMDDHHMMSS_slug`) es su posición en el historial y Prisma lo ordena de forma lexicográfica. Ver [docs/infrastructure/database.md](docs/infrastructure/database.md#migraciones-y-fechas).
+Usa siempre la fecha real del sistema (`date`) para changelogs y documentos. No adelantes la fecha para "ordenar" artefactos. En migraciones Prisma manda la sección siguiente.
+
+## Migraciones Prisma
+
+Una migración aplicada no se toca. Prisma la identifica por el nombre de su carpeta en `_prisma_migrations`: renombrarla la vuelve una migración nueva y editar su SQL cambia el checksum. En ambos casos el historial queda roto.
+
+- Toda migración nueva usa un timestamp mayor que la última existente, hoy `20261022110000`. Hay migraciones con fecha futura (hasta el 22 de octubre), así que la fecha del sistema no sirve.
+- El timestamp duplicado `20261015220000` (`fin_card_charge_categories` y `fix_schema_drift`) se queda tal cual.
+- Nunca aceptar el reset que ofrece `prisma migrate dev`: el checksum de `20261022000000` cambió en dev.
+- Prod recibe las migraciones vía Railway con `pnpm db:migrate:deploy`.
+
+Detalle en [docs/infrastructure/database.md](docs/infrastructure/database.md#migraciones-y-fechas).
 
 ## Checklist al cambiar comportamiento
 

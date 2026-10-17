@@ -7,7 +7,7 @@ import {
 
 describe('tool-arg-schemas', () => {
   it('registers schemas for all mutating tools', () => {
-    expect(Object.keys(MUTATING_TOOL_ARG_SCHEMAS)).toHaveLength(30);
+    expect(Object.keys(MUTATING_TOOL_ARG_SCHEMAS)).toHaveLength(31);
   });
 
   it('rejects the retired subscriptions module slug', () => {
@@ -16,6 +16,13 @@ describe('tool-arg-schemas', () => {
       config: {},
     });
     expect(retired.ok).toBe(false);
+  });
+
+  it('accepts reverse_transaction with a transaction id', () => {
+    const valid = validateMutatingToolArgs('reverse_transaction', {
+      transactionId: '550e8400-e29b-41d4-a716-446655440000',
+    });
+    expect(valid.ok).toBe(true);
   });
 
   it('accepts the managed subscription tools', () => {

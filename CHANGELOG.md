@@ -2,6 +2,97 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [SemVer](https://semver.org/lang/es/). Reglas y ejemplo en [docs/reference/changelog-guide.md](./docs/reference/changelog-guide.md).
 
+## [0.41.0] - 2026-10-16
+
+### Agregado
+
+- Links públicos de solo lectura para cobros compartidos: `POST/GET /api/finance/receivable-shares`, `PATCH /api/finance/receivable-shares/:id/revoke` y `PATCH /api/finance/receivable-shares/:id/regenerate`, más `GET /api/public/receivable-shares/:token` sin auth, con `X-Robots-Tag: noindex` y 30 peticiones por minuto y por IP. El token es aleatorio (base64url, 256 bits) y el conjunto de cobros queda fijo al crear. El payload público no expone cuentas, instituciones, transacciones, ids internos ni el email del dueño, y agrupa los montos en `totalsByCurrency` sin convertir monedas (#154).
+
+### Cambiado
+
+- `description` de un cobro es obligatoria al crear por `POST /api/finance/receivables` (trim, 1-120); `PATCH` aplica las mismas reglas cuando viene, y las filas ya existentes con `description` nula siguen válidas. El concepto de un cobro compartido usa `description` o, si falta, `Cobro del <d MMM>` con el día de creación (#154).
+
+## [0.40.3] - 2026-10-16
+
+### Corregido
+
+- `Idempotency-Key` en `POST /api/finance/email-sync/sources/:id/sync`: cuando la petición agota el timeout de 8 s, la clave ya no se libera y queda `IN_PROGRESS` hasta su TTL, porque el trabajo puede seguir vivo y un reintento encolaría un sync duplicado (#153).
+- El sync manual de Gmail usa el `jobId` estable `gmail-sync-{sourceId}` (también con `forceFullSync=true`), así que un reintento en vuelo no encola un segundo job (#153).
+
+### Cambiado
+
+- `IdempotencyKeyRetentionScheduler` borra a diario (03:00) las claves de idempotencia vencidas, por lotes, en vez de esperar a que se reusen (#153).
+
+## [0.40.2] - 2026-10-16
+
+### Cambiado
+
+- Los E2E cargan `AppModule` al abrir cada archivo, fuera del `beforeEach`: la transpilación en frío de ts-jest se comía el timeout de 5 s del hook en CI (#150). Sin cambio de comportamiento.
+- Umbrales globales de cobertura: 70 % de statements, 69 % de líneas, 51 % de funciones y 58 % de ramas; antes 25/25/19/20 (#147).
+
+### Agregado
+
+- Tests de comportamiento y ramas de error para el chat de IA, el ejecutor de tools, la ingesta de correo y el repositorio del ledger (#148). La cobertura global sube de 65.21 % a 69.34 % de líneas y de 53.89 % a 58.22 % de ramas.
+
+## [0.40.1] - 2026-10-16
+
+### Cambiado
+
+- ESLint 9.39.5 → 10.12.0 y `@eslint/js` 9.39.5 → 10.0.1. La regla nueva `preserve-caught-error` obliga a adjuntar la causa: `ResendEmailAdapter.send` relanza el fallo de `fetch` con `{ cause: error }` y el mismo mensaje.
+- `typescript-eslint` 8.71.0 → 8.71.2, `eslint-plugin-prettier` 5.5.6 → 5.5.7, `prettier` 3.9.9 → 3.9.10, `pino-pretty` 13.1.3 → 13.2.0 y `ts-jest` 29.4.14 → 29.4.15.
+- `@supabase/supabase-js` 2.117.2 → 2.118.0 y `zod` 4.6.5 → 4.6.7.
+
+## [0.40.0] - 2026-10-16
+
+### Agregado
+
+- Tool de IA `reverse_transaction`: el agente puede revertir una transacción `CONFIRMED` y deshacer sus efectos de saldo y presupuesto. Delega en `FinanceFacade.reverseTransaction`.
+
+### Cambiado
+
+- CI: `pnpm audit --prod --audit-level=high` deja de bloquear el pipeline (`continue-on-error`).
+- `pnpm build` corre `prisma generate` antes de compilar, para que un clon sin el cliente generado compile igual.
+
+### Eliminado
+
+- `packages/database/src/generated/` y `tsconfig.tsbuildinfo` dejan de versionarse; se regeneran con `pnpm db:generate` (o `pnpm build`).
+
+## [0.39.2] - 2026-10-16
+
+### Cambiado
+
+- `AGENTS.md` agrega la regla de migraciones Prisma: una migración aplicada no se renombra ni se edita; toda migración nueva ordena después de `20261022110000`; el duplicado `20261015220000` se queda tal cual; el reset que ofrece `prisma migrate dev` no se acepta.
+
+## [0.39.1] - 2026-10-16
+
+### Cambiado
+
+- `PATCH /api/users/me/release-notes-seen`: el comando que persiste la versión vista ya no arma el perfil; el controlador ejecuta el comando y consulta el perfil con `findById`. La respuesta no cambia.
+
+## [0.39.0] - 2026-10-16
+
+### Agregado
+
+- `PATCH /api/users/me/release-notes-seen` guarda en `users.last_seen_release_version` la última versión de Novedades vista por el usuario. Migración `20261022110000_user_last_seen_release_version`.
+- `GET /api/users/me` devuelve `lastSeenReleaseVersion`, nullable hasta la primera visita.
+
+## [0.38.1] - 2026-10-16
+
+### Cambiado
+
+- `IdempotencyInterceptor`: la consulta de la clave ya no borra la fila vencida; el borrado es una orden aparte y la respuesta guardada se resuelve con una consulta pura. Sin cambio de comportamiento.
+
+## [0.38.0] - 2026-10-16
+
+### Agregado
+
+- Idempotencia de peticiones: un interceptor global lee `Idempotency-Key` en POST, PATCH y DELETE, guarda la respuesta de la primera ejecución en `idempotency_keys` (TTL 24 h) y la reproduce en los reintentos. La misma clave con otro body o ruta responde 409; una clave en curso responde 409; un error libera la clave para permitir el reintento.
+- Migración `20261022100000_idempotency_keys`.
+
+### Cambiado
+
+- CORS: `Idempotency-Key` entra en los headers permitidos y se quitan `x-business-id` y `x-organization-id`, que no se usaban.
+
 ## [0.37.6] - 2026-10-16
 
 ### Corregido

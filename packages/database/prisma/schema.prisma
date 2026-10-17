@@ -16,6 +16,7 @@ model User {
   timezone        String                @default("America/Santo_Domingo")
   locale          String                @default("es-DO")
   preferences     Json                  @default("{}")
+  lastSeenReleaseVersion String?       @map("last_seen_release_version")
   createdAt       DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt       DateTime              @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   aiSessions      AiAgentSession[]
@@ -31,6 +32,7 @@ model User {
   finEmailSources     FinEmailSource[]
   finLoans            FinLoan[]
   finReceivables  FinReceivable[]
+  finReceivableShares FinReceivableShare[]
   finRecurring    FinRecurringPattern[]
   finSavingsGoals FinSavingsGoal[]
   finTransactions FinTransaction[]
@@ -42,6 +44,7 @@ model User {
   notifications   Notification[]
   pushTokens      PushToken[]
   userModules     UserModule[]
+  idempotencyKeys IdempotencyKey[]
 
   @@map("users")
 }
@@ -894,9 +897,41 @@ model FinReceivable {
   updatedAt   DateTime            @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   user        User                @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   payments    FinReceivablePayment[]
+  shares      FinReceivableShareItem[]
 
   @@index([userId, status], map: "fin_receivables_user_status_idx")
   @@map("fin_receivables")
+}
+
+/// Read-only public link for a fixed set of receivables. The token is the only
+/// way in; revoking flips is_active and regenerating swaps the token.
+model FinReceivableShare {
+  id         String   @id @default(dbgenerated("(uuid_generate_v4())::text"))
+  userId     String   @map("user_id")
+  token      String   @unique
+  debtorName String   @map("debtor_name")
+  isActive   Boolean  @default(true) @map("is_active")
+  expiresAt  DateTime? @map("expires_at") @db.Timestamptz(6)
+  revokedAt  DateTime? @map("revoked_at") @db.Timestamptz(6)
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt  DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  items      FinReceivableShareItem[]
+
+  @@index([userId], map: "fin_receivable_shares_user_id_idx")
+  @@map("fin_receivable_shares")
+}
+
+/// Frozen set of receivables chosen when the share was created.
+model FinReceivableShareItem {
+  shareId      String @map("share_id")
+  receivableId String @map("receivable_id")
+  share        FinReceivableShare @relation(fields: [shareId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  receivable   FinReceivable      @relation(fields: [receivableId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([shareId, receivableId])
+  @@index([receivableId], map: "fin_receivable_share_items_receivable_id_idx")
+  @@map("fin_receivable_share_items")
 }
 
 /// One amount collected for a receivable. It carries the movement that put the
@@ -1370,4 +1405,34 @@ model FinBalanceDrift {
   @@index([accountId, resolvedAt], map: "fin_balance_drifts_account_resolved_idx")
   @@index([cardId, resolvedAt], map: "fin_balance_drifts_card_resolved_idx")
   @@map("fin_balance_drifts")
+}
+
+/// Server-side idempotency for mutating requests. One row per user and key;
+/// it stores the response of the first execution so retries replay it. Rows
+/// expire 24 h after creation and are removed lazily when a lookup finds them
+/// expired.
+model IdempotencyKey {
+  id             String            @id @default(dbgenerated("(uuid_generate_v4())::text"))
+  userId         String            @map("user_id")
+  key            String
+  method         String
+  path           String
+  requestHash    String            @map("request_hash")
+  status         IdempotencyStatus @default(IN_PROGRESS)
+  responseStatus Int?              @map("response_status")
+  responseBody   String?           @map("response_body")
+  createdAt      DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  expiresAt      DateTime          @map("expires_at") @db.Timestamptz(6)
+  user           User              @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([userId, key], map: "idempotency_keys_user_key_key")
+  @@index([expiresAt], map: "idempotency_keys_expires_at_idx")
+  @@map("idempotency_keys")
+}
+
+enum IdempotencyStatus {
+  IN_PROGRESS
+  COMPLETED
+
+  @@map("idempotency_status")
 }

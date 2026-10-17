@@ -39,6 +39,7 @@ const FINANCE_TOOL_NAMES = new Set([
   'update_transaction',
   'confirm_transaction',
   'unconfirm_transaction',
+  'reverse_transaction',
   'get_budget_status',
   'create_or_update_budget',
   'list_savings_goals',
@@ -606,6 +607,17 @@ export class ToolExecutorService {
           success: true,
           message: 'Transaction unlocked',
           data: await this.financeFacade.unconfirmTransaction(
+            ctx.userId,
+            tx.transactionId,
+          ),
+        };
+      }
+      case 'reverse_transaction': {
+        const tx = args as ValidatedToolArgs<'reverse_transaction'>;
+        return {
+          success: true,
+          message: 'Transaction reversed',
+          data: await this.financeFacade.reverseTransaction(
             ctx.userId,
             tx.transactionId,
           ),

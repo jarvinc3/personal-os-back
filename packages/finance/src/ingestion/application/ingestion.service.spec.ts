@@ -556,7 +556,7 @@ describe('IngestionService.triggerEmailSync', () => {
     findEmailSource.mockResolvedValue({ id: 'src-1', isActive: true });
   });
 
-  it('enqueues a manual sync without a stable jobId so repeats are not dropped', async () => {
+  it('enqueues a manual sync with the per-source jobId so a retry dedupes', async () => {
     const add = jest.fn().mockResolvedValue({});
     const service = serviceWithQueue(add);
 
@@ -567,10 +567,23 @@ describe('IngestionService.triggerEmailSync', () => {
     expect(add).toHaveBeenCalledWith(
       'gmail-sync-source',
       { userId: 'user-1', sourceId: 'src-1', forceFullSync: false },
-      expect.not.objectContaining({ jobId: 'gmail-sync-src-1' }),
+      expect.objectContaining({ jobId: 'gmail-sync-src-1' }),
     );
-    const opts = add.mock.calls[0][2] as { jobId?: string };
-    expect(opts.jobId).toBeUndefined();
+  });
+
+  it('dedupes a forced full resync with the same per-source jobId', async () => {
+    const add = jest.fn().mockResolvedValue({});
+    const service = serviceWithQueue(add);
+
+    await expect(
+      service.triggerEmailSync('user-1', 'src-1', true),
+    ).resolves.toEqual({ queued: true });
+
+    expect(add).toHaveBeenCalledWith(
+      'gmail-sync-source',
+      { userId: 'user-1', sourceId: 'src-1', forceFullSync: true },
+      expect.objectContaining({ jobId: 'gmail-sync-src-1' }),
+    );
   });
 
   it('returns queued false when BullMQ add fails instead of pretending success', async () => {

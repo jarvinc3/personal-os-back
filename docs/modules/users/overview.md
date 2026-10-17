@@ -9,6 +9,7 @@ Perfil (`users`), preferencias JSONB y configuración por módulo (`user_modules
 - `GET/PATCH/DELETE /api/users/me`
 - `POST /api/users/me/data/wipe` (vaciado por capas, no cierra la cuenta)
 - `PATCH /api/users/me/modules/:slug`
+- `PATCH /api/users/me/release-notes-seen` (última versión de Novedades vista)
 - Merge server-side de defaults (`GLOBAL_USER_PREFERENCES_DEFAULTS`, `DEFAULT_MODULE_CONFIG_BY_SLUG`)
 - `UsersModule` es `@Global()`
 - Outbox de borrado Auth: `AuthDeletionOutboxProcessor` cada minuto
