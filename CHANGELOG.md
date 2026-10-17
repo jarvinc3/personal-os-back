@@ -2,6 +2,16 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [SemVer](https://semver.org/lang/es/). Reglas y ejemplo en [docs/reference/changelog-guide.md](./docs/reference/changelog-guide.md).
 
+## [0.41.0] - 2026-10-16
+
+### Agregado
+
+- Links públicos de solo lectura para cobros compartidos: `POST/GET /api/finance/receivable-shares`, `PATCH /api/finance/receivable-shares/:id/revoke` y `PATCH /api/finance/receivable-shares/:id/regenerate`, más `GET /api/public/receivable-shares/:token` sin auth, con `X-Robots-Tag: noindex` y 30 peticiones por minuto y por IP. El token es aleatorio (base64url, 256 bits) y el conjunto de cobros queda fijo al crear. El payload público no expone cuentas, instituciones, transacciones, ids internos ni el email del dueño, y agrupa los montos en `totalsByCurrency` sin convertir monedas (#154).
+
+### Cambiado
+
+- `description` de un cobro es obligatoria al crear por `POST /api/finance/receivables` (trim, 1-120); `PATCH` aplica las mismas reglas cuando viene, y las filas ya existentes con `description` nula siguen válidas. El concepto de un cobro compartido usa `description` o, si falta, `Cobro del <d MMM>` con el día de creación (#154).
+
 ## [0.40.3] - 2026-10-16
 
 ### Corregido
