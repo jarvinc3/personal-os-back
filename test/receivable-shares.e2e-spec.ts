@@ -136,9 +136,8 @@ describe('Receivable shares (e2e)', () => {
     expect(publicPayload).not.toContain('institutionId');
     expect(publicPayload).not.toContain('rec-1');
 
-    prismaMock.finReceivableShare.updateMany.mockResolvedValue({ count: 1 });
     prismaMock.finReceivableShare.findFirst.mockResolvedValue({
-      ...shareRow({ isActive: false, revokedAt: new Date() }),
+      ...shareRow(),
       _count: { items: 1 },
     });
     const revoked = await request(app.getHttpServer())

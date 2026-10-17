@@ -28,6 +28,7 @@ function setup() {
       .mockResolvedValue([{ id: 'rec-1' }, { id: 'rec-2' }]),
     createShare: jest.fn().mockResolvedValue(shareRow()),
     listShares: jest.fn().mockResolvedValue([]),
+    findShare: jest.fn(),
     revokeShare: jest.fn(),
     rotateShareToken: jest.fn(),
   };
@@ -124,52 +125,62 @@ describe('ReceivableSharesService', () => {
 
   it('revokes a link', async () => {
     const { repo, service } = setup();
-    repo.revokeShare.mockResolvedValue(
-      shareRow({
-        isActive: false,
-        revokedAt: now,
-        _count: { items: 2 },
-      }),
-    );
+    repo.findShare.mockResolvedValue(shareRow({ _count: { items: 2 } }));
 
-    const revoked = await service.revoke('user-1', 'share-1', now);
+    const revoked = await service.revoke({
+      userId: 'user-1',
+      shareId: 'share-1',
+      now,
+    });
 
-    expect(repo.revokeShare).toHaveBeenCalledWith('user-1', 'share-1', now);
+    expect(repo.revokeShare).toHaveBeenCalledWith({
+      userId: 'user-1',
+      shareId: 'share-1',
+      now,
+    });
     expect(revoked.isActive).toBe(false);
     expect(revoked.revokedAt).toBe(now);
+    expect(revoked.itemCount).toBe(2);
   });
 
   it('fails to revoke a link from another user', async () => {
     const { repo, service } = setup();
-    repo.revokeShare.mockResolvedValue(null);
+    repo.findShare.mockResolvedValue(null);
 
     await expect(
-      service.revoke('user-1', 'share-1', now),
+      service.revoke({ userId: 'user-1', shareId: 'share-1', now }),
     ).rejects.toBeInstanceOf(NotFoundException);
+
+    expect(repo.revokeShare).not.toHaveBeenCalled();
   });
 
   it('regenerates the token, reactivating the link', async () => {
     const { repo, service } = setup();
-    repo.rotateShareToken.mockResolvedValue(
-      shareRow({ token: 'tok-2', _count: { items: 2 } }),
+    repo.findShare.mockResolvedValue(
+      shareRow({ isActive: false, revokedAt: now, _count: { items: 2 } }),
     );
 
     const regenerated = await service.regenerate('user-1', 'share-1');
 
-    expect(repo.rotateShareToken).toHaveBeenCalledWith(
-      'user-1',
-      'share-1',
-      expect.stringMatching(/^[A-Za-z0-9_-]{40,}$/),
-    );
-    expect(regenerated.url).toBe('http://localhost:5173/c/tok-2');
+    expect(repo.rotateShareToken).toHaveBeenCalledWith({
+      userId: 'user-1',
+      shareId: 'share-1',
+      token: expect.stringMatching(/^[A-Za-z0-9_-]{40,}$/),
+    });
+    const { token } = repo.rotateShareToken.mock.calls[0][0];
+    expect(regenerated.url).toBe(`http://localhost:5173/c/${token}`);
+    expect(regenerated.isActive).toBe(true);
+    expect(regenerated.revokedAt).toBeNull();
   });
 
   it('fails to regenerate a link that does not exist', async () => {
     const { repo, service } = setup();
-    repo.rotateShareToken.mockResolvedValue(null);
+    repo.findShare.mockResolvedValue(null);
 
     await expect(
       service.regenerate('user-1', 'share-1'),
     ).rejects.toBeInstanceOf(NotFoundException);
+
+    expect(repo.rotateShareToken).not.toHaveBeenCalled();
   });
 });

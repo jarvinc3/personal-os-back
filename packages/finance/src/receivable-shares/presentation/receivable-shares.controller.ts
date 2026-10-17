@@ -29,7 +29,7 @@ export class ReceivableSharesController {
   @Patch(':id/revoke')
   @ApiOperation({ summary: 'Revoca el link; deja de resolver' })
   revoke(@CurrentUser('sub') userId: string, @Param('id') id: string) {
-    return this.shares.revoke(userId, id, new Date());
+    return this.shares.revoke({ userId, shareId: id, now: new Date() });
   }
 
   @Patch(':id/regenerate')

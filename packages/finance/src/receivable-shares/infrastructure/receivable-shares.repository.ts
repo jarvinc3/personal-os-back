@@ -53,27 +53,27 @@ export class ReceivableSharesRepository {
     });
   }
 
-  async revokeShare(userId: string, shareId: string, now: Date) {
-    const revoked = await this.prisma.finReceivableShare.updateMany({
-      where: { id: shareId, userId },
-      data: { isActive: false, revokedAt: now },
+  async revokeShare(input: {
+    userId: string;
+    shareId: string;
+    now: Date;
+  }): Promise<void> {
+    await this.prisma.finReceivableShare.updateMany({
+      where: { id: input.shareId, userId: input.userId },
+      data: { isActive: false, revokedAt: input.now },
     });
-    if (revoked.count === 0) {
-      return null;
-    }
-    return this.findShare(userId, shareId);
   }
 
   /** Rotates the token and reactivates, so the previous URL stops resolving. */
-  async rotateShareToken(userId: string, shareId: string, token: string) {
-    const rotated = await this.prisma.finReceivableShare.updateMany({
-      where: { id: shareId, userId },
-      data: { token, isActive: true, revokedAt: null },
+  async rotateShareToken(input: {
+    userId: string;
+    shareId: string;
+    token: string;
+  }): Promise<void> {
+    await this.prisma.finReceivableShare.updateMany({
+      where: { id: input.shareId, userId: input.userId },
+      data: { token: input.token, isActive: true, revokedAt: null },
     });
-    if (rotated.count === 0) {
-      return null;
-    }
-    return this.findShare(userId, shareId);
   }
 
   findShareByToken(token: string) {

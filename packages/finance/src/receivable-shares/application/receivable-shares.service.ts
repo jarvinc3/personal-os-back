@@ -67,24 +67,29 @@ export class ReceivableSharesService {
     return shares.map((share) => this.summary(share));
   }
 
-  async revoke(userId: string, shareId: string, now: Date) {
-    const share = await this.shares.revokeShare(userId, shareId, now);
-    if (!share) {
-      throw this.notFound();
-    }
-    return this.summary(share);
+  /** Reads the link, runs the revoke command and returns the resulting view. */
+  async revoke(input: { userId: string; shareId: string; now: Date }) {
+    const share = await this.requireShare(input.userId, input.shareId);
+    await this.shares.revokeShare(input);
+    return this.summary({ ...share, isActive: false, revokedAt: input.now });
   }
 
   async regenerate(userId: string, shareId: string) {
-    const share = await this.shares.rotateShareToken(
-      userId,
-      shareId,
-      generateReceivableShareToken(),
-    );
+    const share = await this.requireShare(userId, shareId);
+    const token = generateReceivableShareToken();
+    await this.shares.rotateShareToken({ userId, shareId, token });
+    return this.summary({ ...share, token, isActive: true, revokedAt: null });
+  }
+
+  private async requireShare(
+    userId: string,
+    shareId: string,
+  ): Promise<ShareSummaryRow> {
+    const share = await this.shares.findShare(userId, shareId);
     if (!share) {
       throw this.notFound();
     }
-    return this.summary(share);
+    return share;
   }
 
   private shareUrl(token: string): string {

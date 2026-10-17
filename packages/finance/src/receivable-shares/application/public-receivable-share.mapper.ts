@@ -98,7 +98,11 @@ export function mapPublicReceivableShare(
     updatedAt: share.updatedAt,
     totalsByCurrency: totalsByCurrency(receivables),
     items: receivables.map((receivable) =>
-      publicItem(share.id, receivable, share.user.timezone),
+      publicItem({
+        shareId: share.id,
+        receivable,
+        timezone: share.user.timezone,
+      }),
     ),
   };
 }
@@ -129,11 +133,12 @@ function totalsByCurrency(
   });
 }
 
-function publicItem(
-  shareId: string,
-  receivable: PublicShareReceivableRow,
-  timezone: string | null,
-) {
+function publicItem(input: {
+  shareId: string;
+  receivable: PublicShareReceivableRow;
+  timezone: string | null;
+}) {
+  const { shareId, receivable, timezone } = input;
   const amount = toMoney(receivable.amount);
   const paid = toMoney(receivable.paidAmount);
   return {
