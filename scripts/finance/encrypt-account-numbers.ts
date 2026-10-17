@@ -23,6 +23,15 @@ type MigrationCounts = {
   unchanged: number;
 };
 
+type MigrationOutcome = keyof MigrationCounts;
+
+function countOutcome(
+  counts: MigrationCounts,
+  outcome: MigrationOutcome,
+): MigrationCounts {
+  return { ...counts, [outcome]: counts[outcome] + 1 };
+}
+
 /**
  * Encrypts every plaintext `fin_accounts.account_number` with
  * DATA_ENCRYPTION_KEY and fills `account_number_last4` / `account_number_hash`.
@@ -38,7 +47,7 @@ async function main(): Promise<void> {
     );
   }
   const prisma = createScriptPrismaClient();
-  const counts: MigrationCounts = { encrypted: 0, completed: 0, unchanged: 0 };
+  let counts: MigrationCounts = { encrypted: 0, completed: 0, unchanged: 0 };
   let cursor: string | undefined;
   let processed = 0;
   try {
@@ -61,7 +70,14 @@ async function main(): Promise<void> {
         break;
       }
       for (const account of batch) {
-        await migrateAccount(prisma, account, secret, counts);
+        const migration = planAccountMigration(account, secret);
+        await persistAccountMigration({
+          prisma,
+          accountId: account.id,
+          secret,
+          migration,
+        });
+        counts = countOutcome(counts, migration.outcome);
       }
       cursor = batch[batch.length - 1].id;
       processed += batch.length;
@@ -76,45 +92,61 @@ async function main(): Promise<void> {
   }
 }
 
-async function migrateAccount(
-  prisma: ReturnType<typeof createScriptPrismaClient>,
+type AccountMigration = {
+  outcome: MigrationOutcome;
+  plaintext: string | null;
+};
+
+/** Pure decision for one row: what it needs and the plaintext involved. */
+function planAccountMigration(
   account: AccountNumberRow,
   secret: string,
-  counts: MigrationCounts,
-): Promise<void> {
+): AccountMigration {
   const stored = account.accountNumber;
   if (stored === null) {
-    return;
+    return { outcome: 'unchanged', plaintext: null };
   }
   if (DIGITS_ONLY.test(stored)) {
-    await prisma.finAccount.update({
-      where: { id: account.id },
-      data: {
-        accountNumber: encryptAccountNumber(stored, secret),
-        accountNumberLast4: accountNumberLast4(stored),
-        accountNumberHash: fingerprintAccountNumber(stored, secret),
-      },
-    });
-    counts.encrypted += 1;
-    return;
+    return { outcome: 'encrypted', plaintext: stored };
   }
-
   const plaintext = decryptAccountNumber(stored, secret);
   if (
     account.accountNumberLast4 !== null &&
     account.accountNumberHash !== null
   ) {
-    counts.unchanged += 1;
+    return { outcome: 'unchanged', plaintext };
+  }
+  return { outcome: 'completed', plaintext };
+}
+
+async function persistAccountMigration(params: {
+  prisma: ReturnType<typeof createScriptPrismaClient>;
+  accountId: string;
+  secret: string;
+  migration: AccountMigration;
+}): Promise<void> {
+  const { prisma, accountId, secret, migration } = params;
+  if (migration.outcome === 'unchanged' || migration.plaintext === null) {
+    return;
+  }
+  const derived = {
+    accountNumberLast4: accountNumberLast4(migration.plaintext),
+    accountNumberHash: fingerprintAccountNumber(migration.plaintext, secret),
+  };
+  if (migration.outcome === 'encrypted') {
+    await prisma.finAccount.update({
+      where: { id: accountId },
+      data: {
+        accountNumber: encryptAccountNumber(migration.plaintext, secret),
+        ...derived,
+      },
+    });
     return;
   }
   await prisma.finAccount.update({
-    where: { id: account.id },
-    data: {
-      accountNumberLast4: accountNumberLast4(plaintext),
-      accountNumberHash: fingerprintAccountNumber(plaintext, secret),
-    },
+    where: { id: accountId },
+    data: derived,
   });
-  counts.completed += 1;
 }
 
 void main().catch((error: unknown) => {

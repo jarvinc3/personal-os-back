@@ -105,13 +105,15 @@ describe('EmailMessageRetentionScheduler', () => {
     expect(finEmailMessage.updateMany).not.toHaveBeenCalled();
   });
 
-  it('stops when a full batch was already cleared by another instance', async () => {
+  it('keeps going after a full batch cleared by another instance, then stops', async () => {
     const { scheduler, finEmailMessage } = createHarness();
-    finEmailMessage.findMany.mockResolvedValue(rows(RETENTION_BATCH_SIZE));
-    finEmailMessage.updateMany.mockResolvedValue({ count: 0 });
+    finEmailMessage.findMany
+      .mockResolvedValueOnce(rows(RETENTION_BATCH_SIZE))
+      .mockResolvedValueOnce([]);
 
     await scheduler.purgeExpiredPayloads();
 
-    expect(finEmailMessage.findMany).toHaveBeenCalledTimes(1);
+    expect(finEmailMessage.findMany).toHaveBeenCalledTimes(2);
+    expect(finEmailMessage.updateMany).toHaveBeenCalledTimes(1);
   });
 });

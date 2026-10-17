@@ -23,27 +23,26 @@ export class EmailMessageRetentionScheduler {
 
   @Cron(CronExpression.EVERY_DAY_AT_4AM)
   async purgeExpiredPayloads(): Promise<void> {
-    const purged = await this.purgeBatches(new Date());
-    if (purged > 0) {
-      this.logger.log(`Cleared ${purged} expired email extracted payloads`);
-    }
-  }
-
-  private async purgeBatches(now: Date): Promise<number> {
-    const cutoff = new Date(
-      now.getTime() - EMAIL_PAYLOAD_RETENTION_DAYS * DAY_MS,
-    );
-    let purged = 0;
+    const cutoff = new Date(Date.now() - EMAIL_PAYLOAD_RETENTION_DAYS * DAY_MS);
+    let cleared = 0;
     for (;;) {
-      const cleared = await this.clearBatch(cutoff);
-      purged += cleared;
-      if (cleared < RETENTION_BATCH_SIZE) {
-        return purged;
+      const expiredIds = await this.findExpiredIds(cutoff);
+      if (expiredIds.length === 0) {
+        break;
+      }
+      await this.clearPayloads(expiredIds);
+      cleared += expiredIds.length;
+      if (expiredIds.length < RETENTION_BATCH_SIZE) {
+        break;
       }
     }
+    if (cleared > 0) {
+      this.logger.log(`Cleared ${cleared} expired email extracted payloads`);
+    }
   }
 
-  private async clearBatch(cutoff: Date): Promise<number> {
+  /** Read-only: expired ids, oldest first, bounded to one batch. */
+  private async findExpiredIds(cutoff: Date): Promise<string[]> {
     const expired = await this.prisma.finEmailMessage.findMany({
       where: {
         createdAt: { lt: cutoff },
@@ -53,13 +52,13 @@ export class EmailMessageRetentionScheduler {
       orderBy: { createdAt: 'asc' },
       take: RETENTION_BATCH_SIZE,
     });
-    if (expired.length === 0) {
-      return 0;
-    }
-    const { count } = await this.prisma.finEmailMessage.updateMany({
-      where: { id: { in: expired.map((row) => row.id) } },
+    return expired.map((row) => row.id);
+  }
+
+  private async clearPayloads(ids: string[]): Promise<void> {
+    await this.prisma.finEmailMessage.updateMany({
+      where: { id: { in: ids } },
       data: { extractedPayload: Prisma.DbNull },
     });
-    return count;
   }
 }

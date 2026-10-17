@@ -231,12 +231,12 @@ export class CatalogService {
     }
 
     const clearAccountNumber = nextType === CASH_ACCOUNT_TYPE;
-    const accountNumberColumns = this.resolveAccountNumberColumns(
-      nextType,
+    const accountNumberColumns = this.resolveAccountNumberColumns({
+      type: nextType,
       clearAccountNumber,
-      dto.accountNumber,
-      existing.accountNumber,
-    );
+      requested: dto.accountNumber,
+      existingAccountNumber: existing.accountNumber,
+    });
 
     if (
       dto.institutionId !== undefined &&
@@ -881,12 +881,14 @@ export class CatalogService {
     }
   }
 
-  private resolveAccountNumberColumns(
-    type: string,
-    clearAccountNumber: boolean,
-    requested: string | null | undefined,
-    existingAccountNumber: string | null,
-  ): AccountNumberColumns | Partial<AccountNumberColumns> {
+  private resolveAccountNumberColumns(params: {
+    type: string;
+    clearAccountNumber: boolean;
+    requested: string | null | undefined;
+    existingAccountNumber: string | null;
+  }): AccountNumberColumns | Partial<AccountNumberColumns> {
+    const { type, clearAccountNumber, requested, existingAccountNumber } =
+      params;
     if (clearAccountNumber) {
       this.assertAccountNumberRule(type, requested);
       return this.buildAccountNumberColumns(null);
