@@ -2,6 +2,12 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [SemVer](https://semver.org/lang/es/). Reglas y ejemplo en [docs/reference/changelog-guide.md](./docs/reference/changelog-guide.md).
 
+## [0.42.1] - 2026-10-17
+
+### Cambiado
+
+- Interno: el backfill de cuentas planifica antes de escribir y deja de mutar su contador; el scheduler de retención separa la consulta de ids del borrado en lote. Sin cambio de comportamiento (#139).
+
 ## [0.42.0] - 2026-10-17
 
 ### Agregado
