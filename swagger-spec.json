@@ -5611,6 +5611,136 @@
         ]
       }
     },
+    "/api/finance/receivable-shares": {
+      "post": {
+        "operationId": "ReceivableSharesController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateReceivableShareDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Crea un link público de solo lectura",
+        "tags": [
+          "finance"
+        ]
+      },
+      "get": {
+        "operationId": "ReceivableSharesController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Lista los links del usuario, activos y revocados",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
+    "/api/finance/receivable-shares/{id}/revoke": {
+      "patch": {
+        "operationId": "ReceivableSharesController_revoke",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Revoca el link; deja de resolver",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
+    "/api/finance/receivable-shares/{id}/regenerate": {
+      "patch": {
+        "operationId": "ReceivableSharesController_regenerate",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Rota el token y reactiva el link",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
+    "/api/public/receivable-shares/{token}": {
+      "get": {
+        "operationId": "PublicReceivableSharesController_get",
+        "parameters": [
+          {
+            "name": "token",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Cobros compartidos por link público, en solo lectura",
+        "tags": [
+          "public"
+        ]
+      }
+    },
     "/api/finance/recycle-bin": {
       "get": {
         "operationId": "RecycleBinController_list",
@@ -5668,7 +5798,7 @@
             "access-token": []
           }
         ],
-        "summary": "Lista las notificaciones del usuario",
+        "summary": "List notifications for current user",
         "tags": [
           "notifications"
         ]
@@ -5696,7 +5826,7 @@
             "access-token": []
           }
         ],
-        "summary": "Crea una notificación para el usuario",
+        "summary": "Create a notification for current user",
         "tags": [
           "notifications"
         ]
@@ -5716,7 +5846,7 @@
             "access-token": []
           }
         ],
-        "summary": "Cantidad de notificaciones sin leer",
+        "summary": "Unread in-app notification count",
         "tags": [
           "notifications"
         ]
@@ -5736,7 +5866,7 @@
             "access-token": []
           }
         ],
-        "summary": "Marca todas las notificaciones como leídas",
+        "summary": "Mark all in-app notifications as read",
         "tags": [
           "notifications"
         ]
@@ -5765,7 +5895,7 @@
             "access-token": []
           }
         ],
-        "summary": "Marca una notificación como leída",
+        "summary": "Mark notification as read for current user",
         "tags": [
           "notifications"
         ]
@@ -5795,14 +5925,14 @@
             "access-token": []
           }
         ],
-        "summary": "Registra un token push del usuario",
+        "summary": "Register a push token for current user",
         "tags": [
           "notifications"
         ]
       }
     },
-    "/api/notifications/push-tokens/{token}": {
-      "delete": {
+    "/api/notifications/push-tokens/{token}/deactivate": {
+      "patch": {
         "operationId": "NotificationsController_deactivatePushToken",
         "parameters": [
           {
@@ -5824,37 +5954,7 @@
             "access-token": []
           }
         ],
-        "summary": "Desactiva un token push del usuario",
-        "tags": [
-          "notifications"
-        ]
-      }
-    },
-    "/api/notifications/push-tokens/{token}/deactivate": {
-      "patch": {
-        "deprecated": true,
-        "operationId": "NotificationsController_deactivatePushTokenLegacy",
-        "parameters": [
-          {
-            "name": "token",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
-        "summary": "Alias deprecado de DELETE push-tokens/:token",
+        "summary": "Deactivate a push token for current user",
         "tags": [
           "notifications"
         ]
@@ -5884,7 +5984,7 @@
             }
           }
         },
-        "summary": "Lista los proveedores de IA configurados",
+        "summary": "List configured AI providers",
         "tags": [
           "ai-agent"
         ]
@@ -5916,7 +6016,7 @@
             }
           }
         },
-        "summary": "Chat con el grupo de agentes de IA (respuesta JSON agregada)",
+        "summary": "Chat with AI agent pool (aggregated JSON response)",
         "tags": [
           "ai-agent"
         ]
@@ -5941,7 +6041,7 @@
             "description": ""
           }
         },
-        "summary": "Chat con el grupo de agentes de IA (stream SSE)",
+        "summary": "Chat with AI agent pool (SSE stream)",
         "tags": [
           "ai-agent"
         ]
@@ -5961,7 +6061,7 @@
             "access-token": []
           }
         ],
-        "summary": "Lista las sesiones de chat de IA del usuario",
+        "summary": "List AI chat sessions for current user",
         "tags": [
           "ai-agent"
         ]
@@ -5989,36 +6089,7 @@
             "access-token": []
           }
         ],
-        "summary": "Crea una sesión de chat de IA",
-        "tags": [
-          "ai-agent"
-        ]
-      }
-    },
-    "/api/ai/sessions/{id}/actions": {
-      "get": {
-        "operationId": "AiSessionsController_listActions",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "access-token": []
-          }
-        ],
-        "summary": "Lista las acciones de una sesión de IA",
+        "summary": "Create a new AI chat session",
         "tags": [
           "ai-agent"
         ]
@@ -6047,7 +6118,7 @@
             "access-token": []
           }
         ],
-        "summary": "Obtiene una sesión de IA con sus mensajes",
+        "summary": "Get AI session with messages",
         "tags": [
           "ai-agent"
         ]
@@ -6074,7 +6145,31 @@
             "access-token": []
           }
         ],
-        "summary": "Borra una sesión de IA",
+        "summary": "Delete AI session",
+        "tags": [
+          "ai-agent"
+        ]
+      }
+    },
+    "/api/ai/sessions/{id}/actions": {
+      "get": {
+        "operationId": "AiActionsController_listSessionActions",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "List actions for an AI session",
         "tags": [
           "ai-agent"
         ]
@@ -6098,7 +6193,7 @@
             "description": ""
           }
         },
-        "summary": "Ejecuta una acción pendiente de la IA",
+        "summary": "Execute a pending AI action",
         "tags": [
           "ai-agent"
         ]
@@ -6122,7 +6217,7 @@
             "description": ""
           }
         },
-        "summary": "Cancela una acción pendiente de la IA",
+        "summary": "Cancel a pending AI action",
         "tags": [
           "ai-agent"
         ]
@@ -6132,7 +6227,7 @@
   "info": {
     "title": "Personal OS API",
     "description": "Personal OS backend endpoints, including auth, core modules, and AI.",
-    "version": "0.40.1",
+    "version": "0.41.0",
     "contact": {}
   },
   "tags": [
@@ -7652,7 +7747,9 @@
             "type": "string"
           },
           "description": {
-            "type": "string"
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
           },
           "amount": {
             "type": "number"
@@ -7683,6 +7780,7 @@
         },
         "required": [
           "debtorName",
+          "description",
           "amount"
         ]
       },
@@ -7762,7 +7860,9 @@
             "type": "string"
           },
           "description": {
-            "type": "string"
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
           },
           "amount": {
             "type": "number"
@@ -8127,6 +8227,26 @@
         },
         "required": [
           "text"
+        ]
+      },
+      "CreateReceivableShareDto": {
+        "type": "object",
+        "properties": {
+          "receivableIds": {
+            "minItems": 1,
+            "maxItems": 50,
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "debtorName": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "receivableIds",
+          "debtorName"
         ]
       },
       "CreateNotificationDto": {

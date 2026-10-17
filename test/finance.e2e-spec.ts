@@ -1024,6 +1024,20 @@ describe('Finance (e2e)', () => {
       });
   });
 
+  it('POST /api/finance/receivables requires a non-blank description', async () => {
+    await request(app.getHttpServer())
+      .post('/api/finance/receivables')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ debtorName: 'Ana', amount: 100 })
+      .expect(400);
+
+    await request(app.getHttpServer())
+      .post('/api/finance/receivables')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ debtorName: 'Ana', amount: 100, description: '   ' })
+      .expect(400);
+  });
+
   it('PATCH /api/finance/receivables/:id rejects paidAmount edits', async () => {
     const recId = '88888888-8888-4888-8888-888888888888';
 

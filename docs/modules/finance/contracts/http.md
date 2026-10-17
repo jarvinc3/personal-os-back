@@ -6,17 +6,18 @@ Envelope `{ data, meta }`.
 
 ## Controllers
 
-| Área              | Controllers                                     |
-| ----------------- | ----------------------------------------------- |
-| Ledger            | `TransactionsController`, `TransfersController` |
-| Catalog           | Institutions, Accounts, Cards, Categories       |
-| Statements        | `CardStatementsController`                      |
-| Import de estados | `StatementImportsController`                    |
-| Planning          | Budgets, Savings, Loans, Receivables            |
-| Analytics         | `AnalyticsController`                           |
-| Balance sheet     | `BalanceSheetController`                        |
-| FX                | `CurrenciesController`                          |
-| Ingestion         | `EmailSyncController`                           |
+| Área               | Controllers                                                                            |
+| ------------------ | -------------------------------------------------------------------------------------- |
+| Ledger             | `TransactionsController`, `TransfersController`                                        |
+| Catalog            | Institutions, Accounts, Cards, Categories                                              |
+| Statements         | `CardStatementsController`                                                             |
+| Import de estados  | `StatementImportsController`                                                           |
+| Planning           | Budgets, Savings, Loans, Receivables                                                   |
+| Cobros compartidos | `ReceivableSharesController` (auth) y `PublicReceivableSharesController` (`@Public()`) |
+| Analytics          | `AnalyticsController`                                                                  |
+| Balance sheet      | `BalanceSheetController`                                                               |
+| FX                 | `CurrenciesController`                                                                 |
+| Ingestion          | `EmailSyncController`                                                                  |
 
 ## List shapes (`data`)
 
@@ -25,7 +26,7 @@ Envelope `{ data, meta }`.
 | GET transactions, budgets, budgets/:id/transactions, cards/:id/statements, accounts/:id/history, cards/:id/history, loans/:id/installments, receivables/:id/payments, savings-goals/:id/allocations y /contributions, email-sync/pending, email-sync/messages | `{ items, nextCursor, hasMore }`; query `cursor` + `limit` default 20 max 100                                |
 | GET recycle-bin                                                                                                                                                                                                                                               | `{ archived, items, nextCursor, hasMore }`: `archived` completo; `items` (borrados) paginado por `deletedAt` |
 | GET accounts, cards, institutions, savings-goals, loans, receivables                                                                                                                                                                                          | `{ items, nextCursor, hasMore }`; query `cursor` + `limit` default 20 max 100                                |
-| GET categories, email sources, email mailboxes, loans/:id/schedule                                                                                                                                                                                            | array                                                                                                        |
+| GET categories, email sources, email mailboxes, loans/:id/schedule, receivable-shares                                                                                                                                                                         | array                                                                                                        |
 | GET analytics/*, balance-sheet                                                                                                                                                                                                                                | object                                                                                                       |
 
 El cursor es opaco: codifica la fecha de orden y el id de la última fila. Las cuotas de préstamo van de más antigua a más nueva (`dueDate`); el resto, de más reciente a más antigua (`paidAt`, `contributedAt`, `createdAt`, `cycleEnd`, `deletedAt`). Cuentas ordenan por `name` y el cursor de instituciones codifica `sortOrder` + `name`; el resto de las listas nuevas usa `createdAt` o `nextDueDate`.
@@ -67,6 +68,12 @@ Cada `DELETE` de una entidad de finance guarda un snapshot en `fin_deletion_jour
 `POST /api/finance/reconciliations/preview` calcula `difference = realBalance - appBalance` sin escribir y propone `IMPUESTO_DGII` con el 0.15 % de las salidas del mes más `OTRO` con el resto; con diferencia cero no propone líneas. `POST /api/finance/reconciliations` exige que la suma de los ajustes sea exactamente la diferencia (422 `UnprocessableEntityException` si no) y, con diferencia cero, registra el cierre sin movimientos. Un cierre por moneda del producto: una tarjeta con dos monedas se concilia dos veces.
 
 `GET /api/finance/reconciliations?accountId|cardId` devuelve el historial paginado; `GET /reconciliations/status?month=YYYY-MM` marca cada producto como conciliado o pendiente del mes; `GET /api/finance/bank-charges` agrupa los ajustes por mes, institución y tipo. `DELETE /api/finance/reconciliations/:id` solo acepta el último cierre del producto (422 si no) y guarda un snapshot en el diario de borrados (`entityType` `reconciliation`); el cierre, sus líneas y sus movimientos vuelven con `POST /api/finance/reconciliations/:id/restore`. Los ajustes no aparecen en el tablero ni en presupuestos.
+
+## Cobros compartidos
+
+`POST /api/finance/receivable-shares` (`receivableIds` 1-50 sin duplicados, `debtorName`) respeta `Idempotency-Key`, exige que todo cobro sea del usuario (404 `RECEIVABLE_SHARE_RECEIVABLE_NOT_FOUND` si no) y devuelve `{ id, token, url, debtorName, isActive, expiresAt, createdAt, items }`; `url` se arma con el primer origin de `CORS_ORIGIN` y la ruta web `/c/<token>`. `GET /api/finance/receivable-shares` lista los links del usuario (activos y revocados) con `itemCount`. `PATCH /api/finance/receivable-shares/:id/revoke` marca `isActive=false` y `revokedAt`; `PATCH /api/finance/receivable-shares/:id/regenerate` rota el token y reactiva.
+
+`GET /api/public/receivable-shares/:token` no exige auth, va limitado a 30 peticiones por minuto y por IP y responde `X-Robots-Tag: noindex`. Falta, inactivo, revocado o vencido dan el mismo 404 genérico (`RECEIVABLE_SHARE_NOT_FOUND`). El payload trae `ownerFirstName`, `debtorName`, `updatedAt`, `totalsByCurrency` (una entrada por moneda, sin convertir) e `items` (`ref` opaco, `concept`, `createdAt`, `dueDate`, `amount`, `paid`, `pending`, `currency`, `status`, `note`, `payments`). No expone cuentas, instituciones, transacciones, ids internos ni el email del dueño; `CANCELLED` y `WRITTEN_OFF` se excluyen.
 
 ## Integridad de saldos
 

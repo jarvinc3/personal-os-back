@@ -186,6 +186,17 @@ export type PrismaMock = {
     findMany: MockFn;
     deleteMany: MockFn;
   };
+  finReceivableShare: {
+    findUnique: MockFn;
+    findFirst: MockFn;
+    findMany: MockFn;
+    create: MockFn;
+    updateMany: MockFn;
+  };
+  finReceivableShareItem: {
+    createMany: MockFn;
+    deleteMany: MockFn;
+  };
   finSavingsGoalContribution: {
     findMany: MockFn;
     deleteMany: MockFn;
@@ -294,6 +305,17 @@ function createTransactionClient(prismaMock: PrismaMock) {
     },
     finReceivablePayment: {
       findMany: jest.fn().mockResolvedValue([]),
+      deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
+    },
+    finReceivableShare: {
+      findUnique: prismaMock.finReceivableShare.findUnique,
+      findFirst: prismaMock.finReceivableShare.findFirst,
+      findMany: jest.fn().mockResolvedValue([]),
+      create: prismaMock.finReceivableShare.create,
+      updateMany: prismaMock.finReceivableShare.updateMany,
+    },
+    finReceivableShareItem: {
+      createMany: prismaMock.finReceivableShareItem.createMany,
       deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
     },
     finSavingsGoalContribution: {
@@ -723,6 +745,17 @@ export function createPrismaMock(): PrismaMock {
     },
     finReceivablePayment: {
       findMany: jest.fn().mockResolvedValue([]),
+      deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
+    },
+    finReceivableShare: {
+      findUnique: jest.fn().mockResolvedValue(null),
+      findFirst: jest.fn().mockResolvedValue(null),
+      findMany: jest.fn().mockResolvedValue([]),
+      create: jest.fn(),
+      updateMany: jest.fn().mockResolvedValue({ count: 0 }),
+    },
+    finReceivableShareItem: {
+      createMany: jest.fn().mockResolvedValue({ count: 0 }),
       deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
     },
     finSavingsGoalContribution: {

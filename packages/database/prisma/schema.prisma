@@ -32,6 +32,7 @@ model User {
   finEmailSources     FinEmailSource[]
   finLoans            FinLoan[]
   finReceivables  FinReceivable[]
+  finReceivableShares FinReceivableShare[]
   finRecurring    FinRecurringPattern[]
   finSavingsGoals FinSavingsGoal[]
   finTransactions FinTransaction[]
@@ -896,9 +897,41 @@ model FinReceivable {
   updatedAt   DateTime            @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   user        User                @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   payments    FinReceivablePayment[]
+  shares      FinReceivableShareItem[]
 
   @@index([userId, status], map: "fin_receivables_user_status_idx")
   @@map("fin_receivables")
+}
+
+/// Read-only public link for a fixed set of receivables. The token is the only
+/// way in; revoking flips is_active and regenerating swaps the token.
+model FinReceivableShare {
+  id         String   @id @default(dbgenerated("(uuid_generate_v4())::text"))
+  userId     String   @map("user_id")
+  token      String   @unique
+  debtorName String   @map("debtor_name")
+  isActive   Boolean  @default(true) @map("is_active")
+  expiresAt  DateTime? @map("expires_at") @db.Timestamptz(6)
+  revokedAt  DateTime? @map("revoked_at") @db.Timestamptz(6)
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt  DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  items      FinReceivableShareItem[]
+
+  @@index([userId], map: "fin_receivable_shares_user_id_idx")
+  @@map("fin_receivable_shares")
+}
+
+/// Frozen set of receivables chosen when the share was created.
+model FinReceivableShareItem {
+  shareId      String @map("share_id")
+  receivableId String @map("receivable_id")
+  share        FinReceivableShare @relation(fields: [shareId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  receivable   FinReceivable      @relation(fields: [receivableId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([shareId, receivableId])
+  @@index([receivableId], map: "fin_receivable_share_items_receivable_id_idx")
+  @@map("fin_receivable_share_items")
 }
 
 /// One amount collected for a receivable. It carries the movement that put the
