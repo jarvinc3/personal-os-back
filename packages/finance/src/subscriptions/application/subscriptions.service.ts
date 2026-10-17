@@ -896,7 +896,7 @@ export class SubscriptionsService implements SubscriptionMatcherPort {
         id: row.account.id,
         name: row.account.name,
         institution: row.account.institutionRef?.name ?? null,
-        last4: row.account.accountNumber?.slice(-4) ?? null,
+        last4: row.account.accountNumberLast4 ?? null,
         logoUrl: this.logos.resolveUrl(row.account.institutionRef),
       };
     }

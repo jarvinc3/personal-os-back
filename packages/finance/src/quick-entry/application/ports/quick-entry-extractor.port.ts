@@ -2,7 +2,7 @@ export type QuickEntryCatalogAccount = {
   id: string;
   name: string;
   institutionName: string | null;
-  accountNumber: string | null;
+  accountNumberLast4: string | null;
   currency: string;
 };
 

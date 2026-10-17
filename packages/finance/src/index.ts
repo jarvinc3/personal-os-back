@@ -9,4 +9,10 @@ export {
   isFinanceWipeLayer,
   type FinanceWipeLayer,
 } from './shared/domain/finance-wipe-layers';
+export {
+  accountNumberLast4,
+  decryptAccountNumber,
+  encryptAccountNumber,
+  fingerprintAccountNumber,
+} from './shared/infrastructure/account-number-encryption.util';
 export type { FinanceWipeCounts } from './shared/application/wipe-finance-user-data.use-case';

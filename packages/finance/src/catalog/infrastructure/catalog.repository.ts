@@ -37,6 +37,13 @@ type LedgerPurge = {
   movements: readonly LedgerTransactionRow[];
 };
 
+/** Encrypted account number plus the columns that work without decrypting. */
+export type AccountNumberColumns = {
+  accountNumber: string | null;
+  accountNumberLast4: string | null;
+  accountNumberHash: string | null;
+};
+
 /** Movements that already use the card's limit but are not confirmed yet. */
 const PENDING_CARD_MOVEMENTS: Prisma.FinCard$transactionsArgs = {
   where: { status: PENDING_TRANSACTION_STATUS },
@@ -122,7 +129,10 @@ export class CatalogRepository {
     return byAccount;
   }
 
-  createAccount(userId: string, dto: CreateAccountDto) {
+  createAccount(
+    userId: string,
+    dto: Omit<CreateAccountDto, 'accountNumber'> & AccountNumberColumns,
+  ) {
     const data: Prisma.FinAccountUncheckedCreateInput = {
       userId,
       name: dto.name,
@@ -130,7 +140,9 @@ export class CatalogRepository {
       currency: dto.currency ?? 'DOP',
       balance: 0,
       institutionId: dto.institutionId ?? null,
-      accountNumber: dto.accountNumber ?? null,
+      accountNumber: dto.accountNumber,
+      accountNumberLast4: dto.accountNumberLast4,
+      accountNumberHash: dto.accountNumberHash,
       isDefaultForInstitution: dto.isDefaultForInstitution === true,
     };
     if (dto.color) {
@@ -146,9 +158,8 @@ export class CatalogRepository {
   updateAccount(
     id: string,
     userId: string,
-    dto: Omit<UpdateAccountDto, 'accountNumber'> & {
-      accountNumber?: string | null;
-    },
+    dto: Omit<UpdateAccountDto, 'accountNumber'> &
+      Partial<AccountNumberColumns>,
   ) {
     return this.prisma.finAccount
       .updateMany({
@@ -161,6 +172,8 @@ export class CatalogRepository {
           color: dto.color,
           isActive: dto.isActive,
           accountNumber: dto.accountNumber,
+          accountNumberLast4: dto.accountNumberLast4,
+          accountNumberHash: dto.accountNumberHash,
           ...(dto.isDefaultForInstitution !== undefined
             ? { isDefaultForInstitution: dto.isDefaultForInstitution }
             : {}),

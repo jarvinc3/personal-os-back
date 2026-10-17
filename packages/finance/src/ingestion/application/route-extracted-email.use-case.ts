@@ -46,7 +46,7 @@ export class RouteExtractedEmailUseCase {
     model?: string | null;
     accounts: Array<{
       id: string;
-      accountNumber: string | null;
+      accountNumberLast4: string | null;
       isDefaultForInstitution?: boolean;
     }>;
     cards: Array<{ id: string; lastFour: string | null }>;

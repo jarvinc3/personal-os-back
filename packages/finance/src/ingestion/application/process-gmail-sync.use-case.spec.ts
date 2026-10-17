@@ -164,7 +164,7 @@ describe('ProcessGmailSyncUseCase', () => {
     findLatestCategoryIdByMerchant.mockResolvedValue(null);
     upsertEmailMessage.mockResolvedValue({ id: 'em-row-1' });
     listInstitutionDestinations.mockResolvedValue([
-      [{ id: 'acc-1', name: 'Main', accountNumber: '00001234' }],
+      [{ id: 'acc-1', name: 'Main', accountNumberLast4: '1234' }],
       [],
     ]);
     listCashAccounts.mockResolvedValue([]);

@@ -33,7 +33,7 @@ export const SUBSCRIPTION_INCLUDE = {
     select: {
       id: true,
       name: true,
-      accountNumber: true,
+      accountNumberLast4: true,
       color: true,
       institutionRef: {
         select: {

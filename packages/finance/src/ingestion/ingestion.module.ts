@@ -17,6 +17,7 @@ import { RouteExtractedEmailUseCase } from './application/route-extracted-email.
 import { RetryPendingReversesUseCase } from './application/retry-pending-reverses.use-case';
 import { AiEmailTransactionExtractor } from './infrastructure/ai-email-transaction.extractor';
 import { EmailSourceRepository } from './infrastructure/email-source.repository';
+import { EmailMessageRetentionScheduler } from './infrastructure/email-message-retention.scheduler';
 import { GmailAutoSyncScheduler } from './infrastructure/gmail-auto-sync.scheduler';
 import { GmailSyncProcessor } from './infrastructure/gmail-sync.processor';
 import { EmailSyncController } from './presentation/email-sync.controller';
@@ -38,6 +39,7 @@ const bullMqEnabled = isBullMqEnabledFromProcessEnv();
     IngestionService,
     EnqueueDueGmailSyncsUseCase,
     GmailAutoSyncScheduler,
+    EmailMessageRetentionScheduler,
     ProcessGmailSyncUseCase,
     RouteExtractedEmailUseCase,
     RetryPendingReversesUseCase,

@@ -21,15 +21,20 @@ Enums relevantes: ver `packages/database/prisma/schema.prisma` (`FinTransactionS
 
 ## Operación
 
-| Comando                                      | Uso                |
-| -------------------------------------------- | ------------------ |
-| `pnpm db:generate`                           | Client             |
-| `pnpm db:migrate`                            | Dev                |
-| `pnpm db:migrate:deploy`                     | Aplicar pendientes |
-| `pnpm db:migrate:status` / `db:migrate:diff` | Drift              |
-| `pnpm db:validate`                           | Schema             |
+| Comando                                      | Uso                             |
+| -------------------------------------------- | ------------------------------- |
+| `pnpm db:generate`                           | Client                          |
+| `pnpm db:migrate`                            | Dev                             |
+| `pnpm db:migrate:deploy`                     | Aplicar pendientes              |
+| `pnpm db:migrate:status` / `db:migrate:diff` | Drift                           |
+| `pnpm db:validate`                           | Schema                          |
+| `pnpm db:encrypt-account-numbers`            | Cifrar cuentas planas (una vez) |
 
 No usar `migrate reset` sobre datos reales.
+
+## Scripts de datos
+
+`pnpm db:encrypt-account-numbers` cifra los `fin_accounts.account_number` que sigan en texto plano con `DATA_ENCRYPTION_KEY` y completa `account_number_last4` / `account_number_hash`. Es idempotente (no recifra lo ya cifrado, solo completa columnas faltantes) y se corre una vez por entorno después de `pnpm db:migrate:deploy`; sin `DATA_ENCRYPTION_KEY` falla al arrancar.
 
 ## Migraciones y fechas
 

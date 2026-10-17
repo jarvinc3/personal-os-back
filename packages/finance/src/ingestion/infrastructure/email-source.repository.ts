@@ -356,7 +356,7 @@ export class EmailSourceRepository {
         select: {
           id: true,
           name: true,
-          accountNumber: true,
+          accountNumberLast4: true,
           isDefaultForInstitution: true,
         },
       }),

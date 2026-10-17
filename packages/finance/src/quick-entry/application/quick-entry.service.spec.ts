@@ -11,7 +11,7 @@ const account = (overrides: Record<string, unknown> = {}) => ({
   id: 'account-popular',
   name: 'Cuenta Popular',
   institutionName: 'Banco Popular',
-  accountNumber: '00003447',
+  accountNumberLast4: '3447',
   currency: 'DOP',
   ...overrides,
 });

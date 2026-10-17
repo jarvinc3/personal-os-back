@@ -5,6 +5,17 @@ import type { PurgeInstrumentLedgerUseCase } from '../../ledger/application/purg
 import type { EnsureCashInstitutionUseCase } from './ensure-cash-institution.use-case';
 import type { ResolveUserBaseCurrencyUseCase } from '../../fx/application/resolve-user-base-currency';
 import { BadRequestException, ConflictException } from '@nestjs/common';
+import type { ConfigService } from '@nestjs/config';
+import type { Env } from '@personal-os/config';
+
+const TEST_DATA_ENCRYPTION_KEY = 'test-data-encryption-key-minimum-32-chars!!';
+const BASE64_CIPHERTEXT = /^[A-Za-z0-9+/]+=*$/;
+
+function configMock(): ConfigService<Env, true> {
+  return {
+    get: jest.fn().mockReturnValue(TEST_DATA_ENCRYPTION_KEY),
+  } as unknown as ConfigService<Env, true>;
+}
 
 function ownershipMock(
   overrides: Partial<Record<keyof FinanceOwnershipService, jest.Mock>> = {},
@@ -83,6 +94,7 @@ function createService(
     baseCurrencyMock(),
     logos,
     users,
+    configMock(),
   );
 }
 
@@ -188,7 +200,7 @@ describe('CatalogService createAccount', () => {
     name: 'Nómina',
     type: 'CHECKING',
     currency: 'DOP',
-    accountNumber: '001122335678',
+    accountNumberLast4: '5678',
     balance: { toString: () => '0.00' },
     color: null,
     isActive: true,
@@ -249,15 +261,18 @@ describe('CatalogService createAccount', () => {
       name: 'Nómina',
       type: 'CHECKING',
       institutionId: 'inst-1',
-      accountNumber: '001122335678',
+      accountNumber: expect.stringMatching(BASE64_CIPHERTEXT),
+      accountNumberLast4: '5678',
+      accountNumberHash: expect.stringMatching(/^[a-f0-9]{64}$/),
     });
     expect(result).toMatchObject({
       id: 'acc-1',
       institutionId: 'inst-1',
       institutionName: 'Banco',
-      accountNumber: '001122335678',
+      accountNumberLast4: '5678',
     });
     expect(result).not.toHaveProperty('institution');
+    expect(result).not.toHaveProperty('accountNumber');
   });
 
   it('creates a CASH account inside the system Efectivo institution', async () => {
@@ -265,7 +280,7 @@ describe('CatalogService createAccount', () => {
       ...created,
       type: 'CASH',
       institutionId: 'cash-inst',
-      accountNumber: null,
+      accountNumberLast4: null,
       institutionRef: { name: 'Efectivo' },
     });
 
@@ -278,11 +293,14 @@ describe('CatalogService createAccount', () => {
       name: 'Efectivo',
       type: 'CASH',
       institutionId: 'cash-inst',
+      accountNumber: null,
+      accountNumberLast4: null,
+      accountNumberHash: null,
     });
     expect(result).toMatchObject({
       type: 'CASH',
       institutionId: 'cash-inst',
-      accountNumber: null,
+      accountNumberLast4: null,
     });
   });
 });
@@ -304,6 +322,8 @@ describe('CatalogService updateAccount number', () => {
     type: 'CHECKING',
     currency: 'DOP',
     accountNumber: null,
+    accountNumberLast4: null,
+    accountNumberHash: null,
     balance: { toString: () => '0.00' },
     color: null,
     isActive: true,
@@ -327,7 +347,7 @@ describe('CatalogService updateAccount number', () => {
   it('saves the account number on edit', async () => {
     updateAccount.mockResolvedValue({
       ...existing,
-      accountNumber: '001122335678',
+      accountNumberLast4: '5678',
     });
     const result = await service.updateAccount('user-1', 'acc-1', {
       accountNumber: '001122335678',
@@ -335,9 +355,13 @@ describe('CatalogService updateAccount number', () => {
     expect(updateAccount).toHaveBeenCalledWith(
       'acc-1',
       'user-1',
-      expect.objectContaining({ accountNumber: '001122335678' }),
+      expect.objectContaining({
+        accountNumber: expect.stringMatching(BASE64_CIPHERTEXT),
+        accountNumberLast4: '5678',
+        accountNumberHash: expect.stringMatching(/^[a-f0-9]{64}$/),
+      }),
     );
-    expect(result.accountNumber).toBe('001122335678');
+    expect(result.accountNumberLast4).toBe('5678');
   });
 });
 

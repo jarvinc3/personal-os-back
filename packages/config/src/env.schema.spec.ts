@@ -8,6 +8,7 @@ const validBaseEnv: Record<string, unknown> = {
   GOOGLE_CLIENT_SECRET: 'test-google-client-secret',
   GOOGLE_REDIRECT_URI: 'http://localhost:3100/auth/google/callback',
   ENCRYPTION_KEY: 'test-encryption-key-minimum-32-chars!!',
+  DATA_ENCRYPTION_KEY: 'test-data-encryption-key-minimum-32-chars!!',
   CORS_ORIGIN: 'http://localhost:5173',
   NODE_ENV: 'test',
   GROQ_API_KEY: 'test-groq-key',

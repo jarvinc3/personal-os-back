@@ -54,6 +54,7 @@ describe('AiActionsService', () => {
       await expect(
         service.createPendingAction({
           sessionId: 'session-1',
+          userId: 'user-1',
           actionType: 'set_theme',
           payload: { value: 'neon' },
         }),
@@ -69,6 +70,7 @@ describe('AiActionsService', () => {
 
       await service.createPendingAction({
         sessionId: 'session-1',
+        userId: 'user-1',
         actionType: 'set_theme',
         payload: { value: 'dark' },
       });

@@ -14,7 +14,7 @@
 10. Cuerpo: partes `text/plain` o `text/html`; el HTML se limpia tanto en subpartes como en `payload.body` raíz (sin tablas ni estilos).
 11. LLM Zod union `kind: transaction | pending_amount | not_transaction` + hints `instrumentHint` / `lastFourHint` (PAN) / `accountNumberHint` (cuenta, 4+; nunca cédula) + `bankReference` (referencia o autorización; nunca cédula, teléfono ni OTP). Nómina/depósito sin monto visible da `pending_amount` y queda `PENDING_AMOUNT` para completar el importe a mano; nunca se inventa el salario.
 12. Clase de movimiento: `PURCHASE`, `INCOME`, `PAYROLL`, `ATM_WITHDRAWAL`, `TRANSFER_OUT`, `TRANSFER_IN`, `FEE`, `REFUND`, `OTHER`. Transferencias y retiros no llevan categoría de gasto/ingreso.
-13. Match único: CARD por lastFour; ACCOUNT por número completo o sufijo (p. ej. `****5678`). Si no hay dígitos y hay varias cuentas, se usa la cuenta marcada `isDefaultForInstitution` solo cuando el movimiento no es transferencia ni retiro. Si no, `PENDING_ASSIGNMENT`.
+13. Match único: CARD por lastFour; ACCOUNT por `accountNumberLast4` (un hint completo o enmascarado cuenta si termina en esos 4 dígitos). Si no hay dígitos y hay varias cuentas, se usa la cuenta marcada `isDefaultForInstitution` solo cuando el movimiento no es transferencia ni retiro. Si no, `PENDING_ASSIGNMENT`.
 14. Retiro en cajero: con una única cuenta `CASH` activa se crea transferencia banco/cuenta a efectivo (dos patas, `transferGroupId`). Sin cuenta CASH o con varias, queda pendiente.
 15. Transferencias: la pata sin par se guarda sin categoría como transferencia sin par. En cada sync, un segundo pase (`TransferMatch`) busca par por sentido opuesto, mismo monto (con tolerancia de comisión), misma moneda, distinta institución y fecha dentro de 3 días; si hay un único candidato, las une con `transferGroupId`. También corrige gastos/ingresos ya importados que en realidad son transferencias y completa retiros en cajero ya importados como gasto, mirando hasta un año atrás.
 16. `not_transaction` da `SKIPPED_NOT_TX`; `ok:false retryable:false` da `FAILED_NON_RETRYABLE`; retryable true no se persiste.
@@ -22,6 +22,7 @@
 18. Cola previa: en cada sync se reprocesan las filas `PENDING_ASSIGNMENT` desde el extract guardado (sin Gmail ni modelo) y se clasifican con las reglas 12 a 15.
 19. Review: `GET pending`; `POST pending/:id/assign` XOR account/card misma institución; `POST pending/:id/retry` re-resuelve; `POST pending/:id/amount` completa el importe de un `PENDING_AMOUNT`. Idempotente si ya `IMPORTED`.
 20. Success: `FinEmailSyncLog` + outbox `finance.email_sync.completed` misma TX.
+21. Retención: `EmailMessageRetentionScheduler` corre a diario (04:00) y pone en NULL `FinEmailMessage.extractedPayload` de las filas con más de 30 días, por lotes de 1.000. La fila se conserva para dedup (`gmailMessageId`/`fingerprint`) y las transacciones no se tocan. Un mensaje `PENDING` de más de 30 días ya no puede re-extraerse desde el payload.
 
 ## Preconditions
 
@@ -43,4 +44,4 @@ Mailbox con tokens, source active, `emailSync.enabled`, institución owned. Cola
 - Reverso sin cargo original: el correo queda `PENDING_REVERSE` y se reintenta en cada sync.
 - Transferencia contabilizada como gasto/ingreso: el pase de empareje la une en el siguiente sync; si no hay par único, revisar monto, fecha e institución.
 
-Evidencia: `process-gmail-sync.use-case.ts` + `route-extracted-email.use-case.ts` + `resolve-reverse-original.ts` + `retry-pending-reverses.use-case.ts` + `gmail-sync-schedule.ts` + `gmail-sync.constants.ts` + `token-encryption.util.ts` + `shared/domain/money.ts` + `match-email-transfers.ts` + `backfill-pending-email.use-case.ts` + `enqueue-due-gmail-syncs.use-case.ts` + `ingestion.service.ts` + specs.
+Evidencia: `process-gmail-sync.use-case.ts` + `route-extracted-email.use-case.ts` + `resolve-reverse-original.ts` + `retry-pending-reverses.use-case.ts` + `gmail-sync-schedule.ts` + `gmail-sync.constants.ts` + `token-encryption.util.ts` + `account-number-encryption.util.ts` + `email-message-retention.scheduler.ts` + `shared/domain/money.ts` + `match-email-transfers.ts` + `backfill-pending-email.use-case.ts` + `enqueue-due-gmail-syncs.use-case.ts` + `ingestion.service.ts` + specs.

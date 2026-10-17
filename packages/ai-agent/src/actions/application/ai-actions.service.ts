@@ -157,6 +157,7 @@ export class AiActionsService {
 
   async createPendingAction(data: {
     sessionId: string;
+    userId: string;
     messageId?: string;
     actionType: string;
     payload: Record<string, unknown>;
@@ -180,6 +181,7 @@ export class AiActionsService {
 
     return this.actionsRepo.create({
       sessionId: data.sessionId,
+      userId: data.userId,
       messageId: data.messageId,
       actionType: data.actionType,
       targetModule: tool.targetModule,

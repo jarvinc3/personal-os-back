@@ -225,7 +225,7 @@ describe('Finance (e2e)', () => {
       name: 'Savings',
       type: 'SAVINGS',
       institutionId,
-      accountNumber: '12345678',
+      accountNumberLast4: '5678',
       currency: 'DOP',
       balance: { toString: () => '0.00' },
       color: '#fff',
