@@ -2,6 +2,22 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [SemVer](https://semver.org/lang/es/). Reglas y ejemplo en [docs/reference/changelog-guide.md](./docs/reference/changelog-guide.md).
 
+## [0.42.0] - 2026-10-17
+
+### Agregado
+
+- `fin_accounts.account_number_last4` y `fin_accounts.account_number_hash`: la API expone `accountNumberLast4` en las respuestas de cuentas y el hash HMAC conserva la unicidad `(user_id, institution_id)` sin descifrar (#139).
+- `pnpm db:encrypt-account-numbers` cifra las filas de `fin_accounts` que sigan en texto plano con `DATA_ENCRYPTION_KEY` y completa `last4`/hash. Idempotente; se corre una vez por entorno tras `db:migrate:deploy` (#139).
+- Retención de `fin_email_messages.extracted_payload`: `EmailMessageRetentionScheduler` lo pone en NULL a los 30 días, a diario y por lotes, conservando la fila para dedup; las transacciones no se tocan (#139).
+- `ai_actions.user_id` (desde su sesión) y `ai_actions.created_at` para auditoría (#139).
+- `fin_budgets.updated_at` y `fin_email_sources.updated_at` (#139).
+
+### Cambiado
+
+- `fin_accounts.account_number` se guarda cifrado (AES-256-GCM con `DATA_ENCRYPTION_KEY`, distinta de la clave de tokens de Gmail). Las respuestas ya no devuelven el número completo; en edición, omitir `accountNumber` conserva el guardado y enviarlo lo recifra (#139).
+- El match de correos a cuentas usa `accountNumberLast4`; dos cuentas de la misma institución con el mismo last4 quedan ambiguas (#139).
+- `fin_budgets` suma el índice único `(user_id, category_id, period_start)` y el check `period_end >= period_start`; la base DEV no tenía duplicados (#139).
+
 ## [0.41.0] - 2026-10-16
 
 ### Agregado
