@@ -126,6 +126,17 @@ export function transactionRecordedCopy(
   };
 }
 
+/** A transfer has two legs, so it notifies once instead of once per leg. */
+export function transferRecordedCopy(
+  fields: TransactionNotificationFields,
+): NotificationCopy {
+  const details = joinDetails([fields.accountName]);
+  return {
+    title: 'Transferencia registrada',
+    body: details ? `${fields.amountLabel} · ${details}` : fields.amountLabel,
+  };
+}
+
 export function transactionPendingCopy(
   fields: TransactionNotificationFields,
 ): NotificationCopy {

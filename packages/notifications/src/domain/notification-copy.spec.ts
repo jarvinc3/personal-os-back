@@ -4,6 +4,7 @@ import {
   transactionPendingCopy,
   transactionRecordedCopy,
   transactionUpdatedCopy,
+  transferRecordedCopy,
   weeklySummaryCopy,
 } from './notification-copy';
 
@@ -43,6 +44,22 @@ describe('notification-copy', () => {
       body: 'DOP $1,200.00 · Supermercado Nacional · Comida · Cuenta principal',
     });
     expect(credit.title).toBe('Ingreso registrado');
+  });
+
+  it('describes a transfer once with its source account', () => {
+    expect(
+      transferRecordedCopy({
+        type: 'DEBIT',
+        amountLabel: 'DOP $1,200.00',
+        merchant: null,
+        categoryName: null,
+        accountName: 'Cuenta principal',
+        cardName: null,
+      }),
+    ).toEqual({
+      title: 'Transferencia registrada',
+      body: 'DOP $1,200.00 · Cuenta principal',
+    });
   });
 
   it('describes a pending imported movement', () => {
