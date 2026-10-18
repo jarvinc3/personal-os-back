@@ -2,6 +2,22 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [SemVer](https://semver.org/lang/es/). Reglas y ejemplo en [docs/reference/changelog-guide.md](./docs/reference/changelog-guide.md).
 
+## [0.43.0] - 2026-10-18
+
+### Agregado
+
+- `POST /api/finance/savings-goals/:id/allocations` acepta `fromAccountId`: si la cuenta de origen no es la de la meta, valida su saldo libre, crea la transferencia y guarda `transferGroupId` + `transactionId`.
+
+### Cambiado
+
+- Borrar un aporte con transferencia enlazada borra también el movimiento que creó; antes la transferencia quedaba en el ledger.
+- Una transferencia entre cuentas propias genera un solo aviso «Transferencia registrada» desde la cuenta de origen; antes cada pata avisaba como gasto o ingreso.
+- `PATCH /api/finance/savings-goals/:id` acepta `targetDate: null` para quitar la fecha objetivo; antes solo se podía cambiar por otra.
+
+### Corregido
+
+- Un aporte desde otra cuenta ya no deja la cuenta de origen en negativo: si el saldo libre no alcanza, responde `EARMARK_EXCEEDS_BALANCE`.
+
 ## [0.42.1] - 2026-10-17
 
 ### Cambiado
