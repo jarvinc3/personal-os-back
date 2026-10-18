@@ -34,6 +34,14 @@ export class CreateSavingsGoalAllocationDto {
   @IsString()
   notes?: string;
 
+  @ApiPropertyOptional({
+    description:
+      'Cuenta de origen cuando es distinta a la cuenta de la meta. El aporte crea la transferencia.',
+  })
+  @IsOptional()
+  @IsUUID()
+  fromAccountId?: string;
+
   @ApiPropertyOptional()
   @IsOptional()
   @IsUUID()

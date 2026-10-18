@@ -1,3 +1,4 @@
+import type { CreateTransferUseCase } from '../../ledger/application/create-transfer.use-case';
 import type { FinanceOwnershipService } from '../../shared/application/finance-ownership.service';
 import type { PlanningRepository } from '../infrastructure/planning.repository';
 import { AllocateToGoalUseCase } from './allocate-to-goal.use-case';
@@ -33,13 +34,23 @@ function setup(options: {
   const ownership = {
     assertAccountOwned: jest
       .fn()
-      .mockResolvedValue({ id: 'acc-1', balance: options.balance ?? 5000 }),
+      .mockImplementation((_userId: string, accountId: string) =>
+        Promise.resolve({ id: accountId, balance: options.balance ?? 5000 }),
+      ),
+  };
+  const createTransfer = {
+    execute: jest.fn().mockResolvedValue({
+      transferGroupId: 'group-1',
+      debit: { id: 'debit-1' },
+      credit: { id: 'credit-1' },
+    }),
   };
   const useCase = new AllocateToGoalUseCase(
     repo as unknown as PlanningRepository,
     ownership as unknown as FinanceOwnershipService,
+    createTransfer as unknown as CreateTransferUseCase,
   );
-  return { repo, useCase };
+  return { repo, useCase, createTransfer };
 }
 
 describe('AllocateToGoalUseCase', () => {
@@ -104,5 +115,65 @@ describe('AllocateToGoalUseCase', () => {
     await expect(
       useCase.execute('user-1', 'missing', { amount: 100 }, new Date()),
     ).rejects.toMatchObject({ response: { code: 'GOAL_NOT_FOUND' } });
+  });
+
+  it('moves the money and links the movement when the source account differs', async () => {
+    const { repo, useCase, createTransfer } = setup({});
+
+    await useCase.execute(
+      'user-1',
+      'goal-1',
+      { amount: 100, fromAccountId: 'acc-2' },
+      new Date('2026-08-02T12:00:00.000Z'),
+    );
+
+    expect(createTransfer.execute).toHaveBeenCalledWith(
+      'user-1',
+      expect.objectContaining({
+        fromAccountId: 'acc-2',
+        toAccountId: 'acc-1',
+        amount: 100,
+        currency: 'DOP',
+      }),
+    );
+    expect(repo.addSavingsGoalContribution).toHaveBeenCalledWith(
+      'goal-1',
+      expect.objectContaining({
+        transferGroupId: 'group-1',
+        transactionId: 'credit-1',
+      }),
+      expect.any(Date),
+    );
+  });
+
+  it('keeps the transfer out when the source account is the goal account', async () => {
+    const { useCase, createTransfer } = setup({});
+
+    await useCase.execute(
+      'user-1',
+      'goal-1',
+      { amount: 100, fromAccountId: 'acc-1' },
+      new Date(),
+    );
+
+    expect(createTransfer.execute).not.toHaveBeenCalled();
+  });
+
+  it('rejects the transfer when the source account has no free balance', async () => {
+    const { repo, useCase, createTransfer } = setup({
+      balance: 500,
+      earmarked: 450,
+    });
+
+    await expect(
+      useCase.execute(
+        'user-1',
+        'goal-1',
+        { amount: 100, fromAccountId: 'acc-2' },
+        new Date(),
+      ),
+    ).rejects.toMatchObject({ response: { code: 'EARMARK_EXCEEDS_BALANCE' } });
+    expect(createTransfer.execute).not.toHaveBeenCalled();
+    expect(repo.addSavingsGoalContribution).not.toHaveBeenCalled();
   });
 });
