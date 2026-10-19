@@ -2,6 +2,12 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [SemVer](https://semver.org/lang/es/). Reglas y ejemplo en [docs/reference/changelog-guide.md](./docs/reference/changelog-guide.md).
 
+## [0.43.2] - 2026-10-19
+
+### Cambiado
+
+- Interno: `shareUrl()` separa la resolución de la base (`PUBLIC_WEB_URL` o el primer `CORS_ORIGIN`) de la ruta, y las pruebas reutilizan la URL esperada. Sin cambio de comportamiento (#155).
+
 ## [0.43.1] - 2026-10-19
 
 ### Agregado
