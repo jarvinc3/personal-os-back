@@ -104,6 +104,36 @@ describe('envSchema AI limits', () => {
   });
 });
 
+describe('envSchema PUBLIC_WEB_URL', () => {
+  it('accepts a web base URL', () => {
+    const parsed = parseEnv({
+      ...validBaseEnv,
+      PUBLIC_WEB_URL: 'https://personal-os-web-one.vercel.app',
+    });
+
+    expect(parsed.PUBLIC_WEB_URL).toBe(
+      'https://personal-os-web-one.vercel.app',
+    );
+  });
+
+  it('trims the value and treats a blank string as unset', () => {
+    const withSpaces = parseEnv({
+      ...validBaseEnv,
+      PUBLIC_WEB_URL: '  https://web.example.com  ',
+    });
+    const blank = parseEnv({ ...validBaseEnv, PUBLIC_WEB_URL: '   ' });
+
+    expect(withSpaces.PUBLIC_WEB_URL).toBe('https://web.example.com');
+    expect(blank.PUBLIC_WEB_URL).toBeUndefined();
+  });
+
+  it('rejects a value that is not a URL', () => {
+    expect(() =>
+      parseEnv({ ...validBaseEnv, PUBLIC_WEB_URL: 'personal-os-web' }),
+    ).toThrow(/PUBLIC_WEB_URL must be a valid URL/);
+  });
+});
+
 describe('envSchema Sentry', () => {
   it('omits Sentry settings when no DSN is set', () => {
     const parsed = parseEnv(validBaseEnv);

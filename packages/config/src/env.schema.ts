@@ -123,6 +123,21 @@ export const envSchema = z
             'CORS_ORIGIN must be one or more valid URLs separated by commas',
         },
       ),
+    /**
+     * Base URL of the public web app used to build links shared with other
+     * people (`<PUBLIC_WEB_URL>/c/<token>`). Falls back to the first
+     * CORS_ORIGIN entry when unset.
+     */
+    PUBLIC_WEB_URL: z
+      .string()
+      .optional()
+      .transform((value) => {
+        const trimmed = value?.trim();
+        return trimmed || undefined;
+      })
+      .pipe(
+        z.union([z.url('PUBLIC_WEB_URL must be a valid URL'), z.undefined()]),
+      ),
     REDIS_URL: z
       .string()
       .optional()

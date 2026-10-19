@@ -93,6 +93,14 @@ export class ReceivableSharesService {
   }
 
   private shareUrl(token: string): string {
+    const base =
+      this.config.get('PUBLIC_WEB_URL', { infer: true }) ??
+      this.firstCorsOrigin();
+    return `${base.replace(/\/+$/, '')}${PUBLIC_SHARE_PATH}${token}`;
+  }
+
+  /** Legacy fallback for environments without PUBLIC_WEB_URL. */
+  private firstCorsOrigin(): string {
     const [origin] = this.config
       .getOrThrow('CORS_ORIGIN', { infer: true })
       .split(',')
@@ -101,7 +109,7 @@ export class ReceivableSharesService {
     if (!origin) {
       throw new Error('CORS_ORIGIN has no origin to build the share link');
     }
-    return `${origin}${PUBLIC_SHARE_PATH}${token}`;
+    return origin;
   }
 
   private summary(share: ShareSummaryRow) {
