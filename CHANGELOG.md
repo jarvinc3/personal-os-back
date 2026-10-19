@@ -2,6 +2,16 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [SemVer](https://semver.org/lang/es/). Reglas y ejemplo en [docs/reference/changelog-guide.md](./docs/reference/changelog-guide.md).
 
+## [0.43.1] - 2026-10-19
+
+### Agregado
+
+- `PUBLIC_WEB_URL` en el env schema: URL opcional de la web pública; se ignora si viene en blanco (#155).
+
+### Corregido
+
+- El link de un cobro compartido se arma con `PUBLIC_WEB_URL` en vez del primer origin de `CORS_ORIGIN`: create, list, revoke y regenerate devuelven `https://<web>/c/<token>`. Sin `PUBLIC_WEB_URL` se conserva el fallback anterior (#155).
+
 ## [0.43.0] - 2026-10-18
 
 ### Agregado
