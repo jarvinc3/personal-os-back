@@ -93,10 +93,15 @@ export class ReceivableSharesService {
   }
 
   private shareUrl(token: string): string {
-    const base =
+    return `${this.shareBaseUrl()}${PUBLIC_SHARE_PATH}${token}`;
+  }
+
+  /** PUBLIC_WEB_URL wins; the first CORS origin is the legacy fallback. */
+  private shareBaseUrl(): string {
+    return (
       this.config.get('PUBLIC_WEB_URL', { infer: true }) ??
-      this.firstCorsOrigin();
-    return `${base.replace(/\/+$/, '')}${PUBLIC_SHARE_PATH}${token}`;
+      this.firstCorsOrigin()
+    ).replace(/\/+$/, '');
   }
 
   /** Legacy fallback for environments without PUBLIC_WEB_URL. */

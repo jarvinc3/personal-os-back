@@ -127,7 +127,7 @@ describe('Receivable shares (e2e)', () => {
     const created = await createShare().expect(201);
 
     expect(created.body.data.token).toBe('tok-1');
-    expect(created.body.data.url).toBe('https://web.test/c/tok-1');
+    expect(created.body.data.url).toBe(`${PUBLIC_WEB_URL}/c/tok-1`);
     expect(created.body.data.items).toEqual(['rec-1']);
     expect(prismaMock.finReceivableShareItem.createMany).toHaveBeenCalledWith({
       data: [{ shareId: 'share-1', receivableId: 'rec-1' }],
@@ -160,15 +160,16 @@ describe('Receivable shares (e2e)', () => {
       .set('Authorization', `Bearer ${token}`)
       .expect(200);
     expect(revoked.body.data.isActive).toBe(false);
-    expect(revoked.body.data.url).toBe('https://web.test/c/tok-1');
+    expect(revoked.body.data.url).toBe(`${PUBLIC_WEB_URL}/c/tok-1`);
 
     const regenerated = await request(app.getHttpServer())
       .patch('/api/finance/receivable-shares/share-1/regenerate')
       .set('Authorization', `Bearer ${token}`)
       .expect(200);
-    expect(regenerated.body.data.url).toMatch(
-      /^https:\/\/web\.test\/c\/[A-Za-z0-9_-]{40,}$/,
+    expect(regenerated.body.data.url.startsWith(`${PUBLIC_WEB_URL}/c/`)).toBe(
+      true,
     );
+    expect(regenerated.body.data.url).toMatch(/\/c\/[A-Za-z0-9_-]{40,}$/);
     expect(regenerated.body.data.isActive).toBe(true);
 
     prismaMock.finReceivableShare.findUnique.mockResolvedValue(

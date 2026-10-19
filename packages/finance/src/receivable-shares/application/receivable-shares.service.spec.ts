@@ -5,6 +5,9 @@ import type { ReceivableSharesRepository } from '../infrastructure/receivable-sh
 import { ReceivableSharesService } from './receivable-shares.service';
 
 const now = new Date('2026-10-16T12:00:00.000Z');
+const SHARE_WEB_URL = 'https://web.example.com';
+const SHARE_BASE_URL = `${SHARE_WEB_URL}/c/`;
+const shareUrl = (token: string) => `${SHARE_BASE_URL}${token}`;
 
 function shareRow(overrides: Record<string, unknown> = {}) {
   return {
@@ -47,30 +50,30 @@ function setup({ publicWebUrl }: { publicWebUrl?: string } = {}) {
 
 describe('ReceivableSharesService', () => {
   it('creates the link with PUBLIC_WEB_URL', async () => {
-    const { service } = setup({ publicWebUrl: 'https://web.example.com' });
+    const { service } = setup({ publicWebUrl: SHARE_WEB_URL });
 
     const created = await service.create('user-1', {
       receivableIds: ['rec-1', 'rec-2'],
       debtorName: 'Carlos Méndez',
     });
 
-    expect(created.url).toBe('https://web.example.com/c/tok-1');
+    expect(created.url).toBe(shareUrl('tok-1'));
   });
 
   it('ignores trailing slashes on PUBLIC_WEB_URL', async () => {
-    const { service } = setup({ publicWebUrl: 'https://web.example.com/' });
+    const { service } = setup({ publicWebUrl: `${SHARE_WEB_URL}/` });
 
     const created = await service.create('user-1', {
       receivableIds: ['rec-1', 'rec-2'],
       debtorName: 'Carlos Méndez',
     });
 
-    expect(created.url).toBe('https://web.example.com/c/tok-1');
+    expect(created.url).toBe(shareUrl('tok-1'));
   });
 
   it('uses PUBLIC_WEB_URL in list, revoke and regenerate', async () => {
     const { repo, service } = setup({
-      publicWebUrl: 'https://web.example.com',
+      publicWebUrl: SHARE_WEB_URL,
     });
     repo.listShares.mockResolvedValue([shareRow({ _count: { items: 2 } })]);
     repo.findShare.mockResolvedValue(shareRow({ _count: { items: 2 } }));
@@ -83,10 +86,11 @@ describe('ReceivableSharesService', () => {
     });
     const regenerated = await service.regenerate('user-1', 'share-1');
 
-    expect(listed.url).toBe('https://web.example.com/c/tok-1');
-    expect(revoked.url).toBe('https://web.example.com/c/tok-1');
-    expect(regenerated.url).toMatch(
-      /^https:\/\/web\.example\.com\/c\/[A-Za-z0-9_-]{40,}$/,
+    expect(listed.url).toBe(shareUrl('tok-1'));
+    expect(revoked.url).toBe(shareUrl('tok-1'));
+    expect(regenerated.url.startsWith(SHARE_BASE_URL)).toBe(true);
+    expect(regenerated.url.slice(SHARE_BASE_URL.length)).toMatch(
+      /^[A-Za-z0-9_-]{40,}$/,
     );
   });
 
