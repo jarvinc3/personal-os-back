@@ -143,9 +143,9 @@ Example:
 {
   "semanticType": "TRAVEL_BOOKING_CONFIRMATION",
   "routes": [
-    {"domain": "TRAVEL", "score": 0.99},
-    {"domain": "CALENDAR", "score": 0.96},
-    {"domain": "FINANCE", "score": 0.78}
+    { "domain": "TRAVEL", "score": 0.99 },
+    { "domain": "CALENDAR", "score": 0.96 },
+    { "domain": "FINANCE", "score": 0.78 }
   ]
 }
 ```
@@ -365,14 +365,14 @@ Do not assume every email is a distinct financial event.
 
 Decided by the owner on 2026-10-20. Values are configurable via env.
 
-| Topic | Default |
-|---|---|
-| Order of processing | Canonicalize -> deterministic relevance detector -> (only if relevant or uncertain) LLM. |
-| LLM exposure | By default only `RELEVANT` or `UNCERTAIN` messages reach inference. |
-| Recall audit | Recall audit: a random sample (default 2%, configurable) of deterministically-discarded mail is sent to the LLM classifier to detect false negatives. Only for the owner/admin account and users with contribution consent. Results become evidence/evaluation data (review queue), never auto-import. |
-| Minimization | Send the canonical body (trackers, quoted history, signatures and long footers stripped), truncated to a configured max length. No attachments. |
-| Providers | All providers configured in the gateway are allowed; record provider/model per inference. Per-task allowlist remains possible. |
-| Raw retention | DEV: raw body kept up to 30 days, then purged; PROD: 7 days. Canonical/sanitized content and fingerprints are durable. Configurable via env. |
-| Encryption | OAuth tokens encrypted at rest (keep current token-encryption utility). Raw/canonical bodies stored in the app DB with DB-level encryption; no field-level encryption in V1. |
-| Bootstrap budget | Configurable max LLM calls per run (2,000 per run) and optionally per day; a run stops in a resumable state when the budget is reached and reports how many messages were skipped. |
-| Uncertain queue | Messages over budget or uncertain are surfaced in the review UI instead of being silently dropped. |
+| Topic               | Default                                                                                                                                                                                                                                                                                                |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Order of processing | Canonicalize -> deterministic relevance detector -> (only if relevant or uncertain) LLM.                                                                                                                                                                                                               |
+| LLM exposure        | By default only `RELEVANT` or `UNCERTAIN` messages reach inference.                                                                                                                                                                                                                                    |
+| Recall audit        | Recall audit: a random sample (default 2%, configurable) of deterministically-discarded mail is sent to the LLM classifier to detect false negatives. Only for the owner/admin account and users with contribution consent. Results become evidence/evaluation data (review queue), never auto-import. |
+| Minimization        | Send the canonical body (trackers, quoted history, signatures and long footers stripped), truncated to a configured max length. No attachments.                                                                                                                                                        |
+| Providers           | All providers configured in the gateway are allowed; record provider/model per inference. Per-task allowlist remains possible.                                                                                                                                                                         |
+| Raw retention       | DEV: raw body kept up to 30 days, then purged; PROD: 7 days. Canonical/sanitized content and fingerprints are durable. Configurable via env.                                                                                                                                                           |
+| Encryption          | OAuth tokens encrypted at rest (keep current token-encryption utility). Raw/canonical bodies stored in the app DB with DB-level encryption; no field-level encryption in V1.                                                                                                                           |
+| Bootstrap budget    | Configurable max LLM calls per run (2,000 per run) and optionally per day; a run stops in a resumable state when the budget is reached and reports how many messages were skipped.                                                                                                                     |
+| Uncertain queue     | Messages over budget or uncertain are surfaced in the review UI instead of being silently dropped.                                                                                                                                                                                                     |

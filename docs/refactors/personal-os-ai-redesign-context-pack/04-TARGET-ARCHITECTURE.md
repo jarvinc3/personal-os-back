@@ -84,9 +84,7 @@ interface AiModuleCapabilityProvider {
     request: AiEntityContextRequest,
   ): Promise<AiEntityContext | null>;
 
-  getAgentContext?(
-    userId: string,
-  ): Promise<AiModuleContext>;
+  getAgentContext?(userId: string): Promise<AiModuleContext>;
 }
 ```
 

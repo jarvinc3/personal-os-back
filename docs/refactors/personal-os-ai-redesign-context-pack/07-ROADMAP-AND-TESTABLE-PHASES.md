@@ -33,7 +33,7 @@ Open balance/ledger/planning bugs are fixed in parallel and are out of scope (se
 - selective multi-model consensus;
 - month-by-month learning replay;
 - multiple datasets / dataset versioning;
-- cross-account knowledge *sharing features* beyond GLOBAL structural knowledge.
+- cross-account knowledge _sharing features_ beyond GLOBAL structural knowledge.
 
 ---
 
@@ -301,17 +301,17 @@ Proactive help without turning every event into an LLM prompt or chat message.
 
 ## Phase mapping (old -> new)
 
-| Old | New |
-|---|---|
-| 0, 1, 2 | 0, 1, 2 |
-| 3 Datasets/Runs + 4 Evidence | 3 |
-| 5 Knowledge Engine | 4 |
-| 6 Knowledge Snapshots | V2 (V1: watermark on runs) |
-| 7 Email Intelligence | 5 |
-| 8 Evaluation + 9 Review UI completion | 6 |
-| 10 Signals | 7 |
-| 11 Capability Registry | 8 |
-| 12 Agent Runtime V2 | 9 |
-| 13 Action Policy | 10 |
-| 14 Finance IMPORT | 11 |
-| 15 Proactive | 12 |
+| Old                                   | New                        |
+| ------------------------------------- | -------------------------- |
+| 0, 1, 2                               | 0, 1, 2                    |
+| 3 Datasets/Runs + 4 Evidence          | 3                          |
+| 5 Knowledge Engine                    | 4                          |
+| 6 Knowledge Snapshots                 | V2 (V1: watermark on runs) |
+| 7 Email Intelligence                  | 5                          |
+| 8 Evaluation + 9 Review UI completion | 6                          |
+| 10 Signals                            | 7                          |
+| 11 Capability Registry                | 8                          |
+| 12 Agent Runtime V2                   | 9                          |
+| 13 Action Policy                      | 10                         |
+| 14 Finance IMPORT                     | 11                         |
+| 15 Proactive                          | 12                         |

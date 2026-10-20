@@ -8,28 +8,28 @@ None until the owner deploys `0.50.0`. Everything below applies to `develop` and
 
 ## Backend endpoints at Phase 0
 
-| Endpoint / code | Phase 0 action | Returns in |
-|---|---|---|
-| `finance/email-sync/*` (`packages/finance/src/ingestion/**`, `email-sync.controller.ts`) | Deleted with all `FinEmail*` models and Gmail scheduler/processors. | Phase 2 as AI-owned `AiEmailConnection` endpoints (OAuth/connect/sync/status); Finance import in Phase 11. |
-| `ledger/application/import-email-transaction.use-case.ts` | Deleted (no caller remains). Reusable logic noted for Phase 11. | Phase 11 (`FinanceSignalConsumer`). |
-| `notifications/.../email-sync.processor.ts` | Deleted/adjusted if only tied to Finance email sync. | — |
-| `ai`, `ai/sessions`, `ai/actions` (chat) + `chat/**`, `tools/**`, `prompts/**`, `runtime/**` in `packages/ai-agent` | **Deleted.** Salvage `providers/**`, retry/failover, streaming helpers, Zod schemas and `AiAction` claim/confirm concepts for Phase 1/10. | Rebuilt in Phases 8–10; chat UX pending owner redesign. |
-| `finance/quick-entry`, `finance` statements (`card-statements`, `statement-imports`) | Kept; extractors migrated to the gateway in Phase 1. | — |
+| Endpoint / code                                                                                                     | Phase 0 action                                                                                                                            | Returns in                                                                                                 |
+| ------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `finance/email-sync/*` (`packages/finance/src/ingestion/**`, `email-sync.controller.ts`)                            | Deleted with all `FinEmail*` models and Gmail scheduler/processors.                                                                       | Phase 2 as AI-owned `AiEmailConnection` endpoints (OAuth/connect/sync/status); Finance import in Phase 11. |
+| `ledger/application/import-email-transaction.use-case.ts`                                                           | Deleted (no caller remains). Reusable logic noted for Phase 11.                                                                           | Phase 11 (`FinanceSignalConsumer`).                                                                        |
+| `notifications/.../email-sync.processor.ts`                                                                         | Deleted/adjusted if only tied to Finance email sync.                                                                                      | —                                                                                                          |
+| `ai`, `ai/sessions`, `ai/actions` (chat) + `chat/**`, `tools/**`, `prompts/**`, `runtime/**` in `packages/ai-agent` | **Deleted.** Salvage `providers/**`, retry/failover, streaming helpers, Zod schemas and `AiAction` claim/confirm concepts for Phase 1/10. | Rebuilt in Phases 8–10; chat UX pending owner redesign.                                                    |
+| `finance/quick-entry`, `finance` statements (`card-statements`, `statement-imports`)                                | Kept; extractors migrated to the gateway in Phase 1.                                                                                      | —                                                                                                          |
 
 Decided: chat is deleted at Phase 0; no chat in DEV until Phase 9.
 
 ## Web (`personal-os-web`, develop) screens at Phase 0
 
-| Area / files | Phase 0 action |
-|---|---|
-| Finance sync: `src/modules/finance/sync/**` (`mailboxes-view`, `mailbox-group`, `mailbox-sheet`, `email-source-sheet`, `email-source-form`, `link-institution-mailbox-sheet`, `assign-email-message-sheet`, `email-sync-history`, `oauth-gmail-result-sheet`) | Deleted. Gmail connection reappears in the Intelligence screen (Phase 2). |
-| `src/modules/finance/shared/hooks/use-email-sources.ts`, email types in `shared/types/{api,entities}.ts`, `finance-query-options.ts`, `src/shared/constants/api-endpoints.ts` | Remove email-sync endpoints/types/queries. |
-| `institutions/institution-detail-screen.tsx` (linked mailboxes) | Remove mailbox section. |
-| `transactions/components/transactions-list.tsx` (email-origin badge/notes) | Keep rendering existing source field if present; remove email-message links. |
-| `settings/finance-module-settings-form.tsx` (sync schedule settings) | Remove Gmail sync schedule fields. |
-| Chat: `src/modules/ai/**`, `app/(app)/chat/page.tsx`, chat launcher in `app/(app)/layout.tsx` | Hidden/removed (route, launcher, sockets, hooks). New chat UI awaits owner redesign. |
-| Quick entry, card statements, `app/(app)/finance/statement-imports/[importId]` | Unchanged. |
-| New: `app/(app)/intelligence/**` | Created in Phase 2 (review UI v0), labeling by Phase 3. |
+| Area / files                                                                                                                                                                                                                                                  | Phase 0 action                                                                       |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| Finance sync: `src/modules/finance/sync/**` (`mailboxes-view`, `mailbox-group`, `mailbox-sheet`, `email-source-sheet`, `email-source-form`, `link-institution-mailbox-sheet`, `assign-email-message-sheet`, `email-sync-history`, `oauth-gmail-result-sheet`) | Deleted. Gmail connection reappears in the Intelligence screen (Phase 2).            |
+| `src/modules/finance/shared/hooks/use-email-sources.ts`, email types in `shared/types/{api,entities}.ts`, `finance-query-options.ts`, `src/shared/constants/api-endpoints.ts`                                                                                 | Remove email-sync endpoints/types/queries.                                           |
+| `institutions/institution-detail-screen.tsx` (linked mailboxes)                                                                                                                                                                                               | Remove mailbox section.                                                              |
+| `transactions/components/transactions-list.tsx` (email-origin badge/notes)                                                                                                                                                                                    | Keep rendering existing source field if present; remove email-message links.         |
+| `settings/finance-module-settings-form.tsx` (sync schedule settings)                                                                                                                                                                                          | Remove Gmail sync schedule fields.                                                   |
+| Chat: `src/modules/ai/**`, `app/(app)/chat/page.tsx`, chat launcher in `app/(app)/layout.tsx`                                                                                                                                                                 | Hidden/removed (route, launcher, sockets, hooks). New chat UI awaits owner redesign. |
+| Quick entry, card statements, `app/(app)/finance/statement-imports/[importId]`                                                                                                                                                                                | Unchanged.                                                                           |
+| New: `app/(app)/intelligence/**`                                                                                                                                                                                                                              | Created in Phase 2 (review UI v0), labeling by Phase 3.                              |
 
 Web and backend must ship `0.50.0` together.
 
