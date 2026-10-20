@@ -16,6 +16,12 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [Se
 
 - `AGENTS.md` y `docs/README.md` enlazan las convenciones de issues y la nueva documentación.
 
+## [0.46.3] - 2026-10-20
+
+### Cambiado
+
+- Interno: el borrado, la restauración y el aviso de eliminación del ledger salen de `prisma-ledger.repository.ts` a `prisma-ledger-deletion.repository.ts`, y la reversa de los enlaces de planificación a `planning-link-reversal.ts`; el repositorio principal delega. Sin cambio de contrato ni de comportamiento (jarvinc3/personal-os-back#149).
+
 ## [0.46.2] - 2026-10-20
 
 ### Cambiado
