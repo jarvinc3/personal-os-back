@@ -56,7 +56,21 @@ describe('UpdateTransferUseCase', () => {
     amountBaseCurrency: 80,
     exchangeRate: 1,
   });
-  const resolveAmounts = { execute } as unknown as ResolveAmountsUseCase;
+  const resolveTransferDestination = jest.fn().mockResolvedValue({
+    amounts: {
+      amount: 80,
+      currency: 'DOP',
+      ledgerAmount: 80,
+      ledgerCurrency: 'DOP',
+      amountBaseCurrency: 80,
+      exchangeRate: 1,
+    },
+    estimated: false,
+  });
+  const resolveAmounts = {
+    execute,
+    resolveTransferDestination,
+  } as unknown as ResolveAmountsUseCase;
   const processBatch = jest.fn();
   const outboxDispatcher = {
     processBatch,

@@ -26,6 +26,7 @@ export type LedgerTransactionRow = {
   currency: string;
   ledgerCurrency?: string | null;
   exchangeRate?: { toString(): string } | number | null;
+  isEstimated?: boolean;
   merchant: string | null;
   merchantId?: string | null;
   merchantRef?: {
@@ -231,6 +232,7 @@ export interface LedgerRepositoryPort {
     fromAmounts: ResolvedAmounts;
     toAmounts: ResolvedAmounts;
     feeAmounts?: ResolvedAmounts;
+    estimated: boolean;
   }): Promise<CreateTransferResult | null>;
 
   /** A card payment is two CARD_PAYMENT legs: account out, card available up. */
@@ -255,6 +257,7 @@ export interface LedgerRepositoryPort {
     creditTarget: { accountId: string | null; cardId: string | null };
     fromAmounts: ResolvedAmounts;
     toAmounts: ResolvedAmounts;
+    estimated: boolean;
     transactionDate: Date;
     description?: string | null;
     notes?: string | null;

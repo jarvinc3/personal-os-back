@@ -117,13 +117,14 @@ export class ImportEmailTransactionUseCase {
       baseCurrency,
       transactionDate: data.transactionDate,
     });
-    const toAmounts = await this.resolveAmounts.execute({
-      amount: data.amount,
-      currency: data.currency,
-      ledgerCurrency: toLedgerCurrency,
-      baseCurrency,
-      transactionDate: data.transactionDate,
-    });
+    const { amounts: toAmounts, estimated } =
+      await this.resolveAmounts.resolveTransferDestination({
+        sourceAmount: data.amount,
+        sourceCurrency: data.currency,
+        destinationCurrency: toLedgerCurrency,
+        baseCurrency,
+        transactionDate: data.transactionDate,
+      });
     const created = await this.repo.createTransfer({
       userId,
       command: {
@@ -142,6 +143,7 @@ export class ImportEmailTransactionUseCase {
       },
       fromAmounts,
       toAmounts,
+      estimated,
     });
     void this.outboxDispatcher.processBatch();
     return created;

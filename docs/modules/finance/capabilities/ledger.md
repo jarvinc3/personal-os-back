@@ -6,7 +6,7 @@ El detalle de un movimiento expone `planningLink { kind, targetId, label }` cuan
 
 `GET /api/finance/transactions` paginado `{ items, pagination }` default page=1 limit=20 max 100. Filtros: fechas, cuenta, tarjeta, categoría, tipo, status, search, `transferGroupId`.
 
-Writes: create DEBIT/CREDIT, PATCH metadata/update, confirm, reverse, DELETE, `POST /transfers` y `PATCH /transfers/:id` (editar una transferencia reajusta las dos patas del par).
+Writes: create DEBIT/CREDIT, PATCH metadata/update, confirm, reverse, DELETE, `POST /transfers` y `PATCH /transfers/:id` (editar una transferencia reajusta las dos patas del par). La pata destino acepta `exchangeRate` o `receivedAmount`; sin ellos usa la tasa del día y queda `isEstimated`.
 
 **AC-FIN-001:** Given cuenta DOP y DEBIT USD CONFIRMED, When create, Then `ledgerAmount` ≠ raw amount si hay FX del día.
 

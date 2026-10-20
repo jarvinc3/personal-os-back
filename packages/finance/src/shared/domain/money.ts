@@ -88,6 +88,11 @@ export function roundMoney(amount: number): number {
   return roundDecimal(amount).toNumber();
 }
 
+/** Exchange rates keep 8 decimals in storage, unlike money's 2. */
+export function roundRate(rate: number): number {
+  return Number(rate.toFixed(8));
+}
+
 /** Multiply amount × rate and round to money precision, for a number-only write path. */
 export function convertAmount(amount: number, rate: number): number {
   return convertDecimal(amount, rate).toNumber();

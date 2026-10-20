@@ -253,6 +253,7 @@ describe('PrismaLedgerRepository outbox-in-TX', () => {
       },
       fromAmounts: dopAmounts,
       toAmounts: dopAmounts,
+      estimated: false,
     });
 
     expect(createdTransfer?.transferGroupId).toBeDefined();

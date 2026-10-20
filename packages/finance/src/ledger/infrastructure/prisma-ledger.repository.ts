@@ -705,8 +705,10 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
     fromAmounts: ResolvedAmounts;
     toAmounts: ResolvedAmounts;
     feeAmounts?: ResolvedAmounts;
+    estimated: boolean;
   }): Promise<CreateTransferResult | null> {
-    const { userId, command, fromAmounts, toAmounts, feeAmounts } = input;
+    const { userId, command, fromAmounts, toAmounts, feeAmounts, estimated } =
+      input;
     return this.prisma.$transaction(async (tx) => {
       const fromTarget = await resolveLedgerTarget(
         tx,
@@ -757,6 +759,7 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
             currency: leg.amounts.currency,
             ledgerCurrency: leg.amounts.ledgerCurrency,
             exchangeRate: leg.amounts.exchangeRate,
+            isEstimated: estimated,
             categoryId: leg.categoryId ?? null,
             description: command.description,
             notes: command.notes,
@@ -1071,6 +1074,7 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
     creditTarget: { accountId: string | null; cardId: string | null };
     fromAmounts: ResolvedAmounts;
     toAmounts: ResolvedAmounts;
+    estimated: boolean;
     transactionDate: Date;
     description?: string | null;
     notes?: string | null;
@@ -1101,6 +1105,7 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
           ledgerCurrency: input.fromAmounts.ledgerCurrency,
           amountBaseCurrency: input.fromAmounts.amountBaseCurrency,
           exchangeRate: input.fromAmounts.exchangeRate,
+          isEstimated: input.estimated,
           ...sharedFields,
         },
       );
@@ -1117,6 +1122,7 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
           ledgerCurrency: input.toAmounts.ledgerCurrency,
           amountBaseCurrency: input.toAmounts.amountBaseCurrency,
           exchangeRate: input.toAmounts.exchangeRate,
+          isEstimated: input.estimated,
           ...sharedFields,
         },
       );
@@ -1248,6 +1254,9 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
         : {}),
       ...(fields.exchangeRate !== undefined
         ? { exchangeRate: fields.exchangeRate }
+        : {}),
+      ...(fields.isEstimated !== undefined
+        ? { isEstimated: fields.isEstimated }
         : {}),
     };
 

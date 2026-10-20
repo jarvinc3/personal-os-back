@@ -97,6 +97,7 @@ export class UpdateCardPaymentUseCase {
       creditTarget: { accountId: credit.accountId, cardId: credit.cardId },
       fromAmounts,
       toAmounts,
+      estimated: false,
       transactionDate,
       description: command.description,
       notes: command.notes,

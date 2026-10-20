@@ -308,6 +308,8 @@ model FinTransaction {
   ledgerCurrency       String               @default("DOP") @map("ledger_currency")
   /// Rate used for original → ledger conversion (1 when same currency).
   exchangeRate         Decimal              @default(1) @map("exchange_rate") @db.Decimal(18, 8)
+  /// Transfer rate came from the market quote instead of a received amount or a user rate.
+  isEstimated          Boolean              @default(false) @map("is_estimated")
   merchant             String?
   /// Canonical merchant resolved from `merchant`; `merchant` keeps the raw text.
   merchantId           String?              @map("merchant_id")

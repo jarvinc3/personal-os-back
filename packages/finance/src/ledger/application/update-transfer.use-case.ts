@@ -107,13 +107,25 @@ export class UpdateTransferUseCase {
       baseCurrency,
       transactionDate,
     });
-    const toAmounts = await this.resolveAmounts.execute({
-      amount,
-      currency,
-      ledgerCurrency: toAccount.currency,
+    const crossCurrency = currency !== toAccount.currency;
+    const existingRate = Number(decimalToString(credit.exchangeRate));
+    const keepExistingRate =
+      crossCurrency &&
+      command.exchangeRate === undefined &&
+      command.receivedAmount === undefined;
+    const destination = await this.resolveAmounts.resolveTransferDestination({
+      sourceAmount: amount,
+      sourceCurrency: currency,
+      destinationCurrency: toAccount.currency,
+      receivedAmount: command.receivedAmount,
+      exchangeRate: keepExistingRate ? existingRate : command.exchangeRate,
       baseCurrency,
       transactionDate,
     });
+    const toAmounts = destination.amounts;
+    const estimated = keepExistingRate
+      ? Boolean(credit.isEstimated)
+      : destination.estimated;
     const feeAmounts = command.fee
       ? await this.resolveAmounts.execute({
           amount: command.fee.amount,
@@ -132,6 +144,7 @@ export class UpdateTransferUseCase {
       creditTarget: { accountId: toAccountId, cardId: null },
       fromAmounts,
       toAmounts,
+      estimated,
       transactionDate,
       description: command.description,
       notes: command.notes,

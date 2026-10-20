@@ -6,6 +6,7 @@ import {
   IsEnum,
   IsNumber,
   IsOptional,
+  IsPositive,
   IsString,
   IsUUID,
   MaxLength,
@@ -106,6 +107,24 @@ export class CreateTransferDto {
   @IsOptional()
   @IsBoolean()
   destinationPending?: boolean;
+
+  @ApiPropertyOptional({
+    description: 'Tasa aplicada de la moneda de origen a la de destino',
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber({ maxDecimalPlaces: 8 })
+  @IsPositive()
+  exchangeRate?: number;
+
+  @ApiPropertyOptional({
+    description: 'Monto que entra en la cuenta de destino, en su moneda',
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @IsPositive()
+  receivedAmount?: number;
 }
 
 export class UpdateTransferDto extends PartialType(CreateTransferDto) {}
