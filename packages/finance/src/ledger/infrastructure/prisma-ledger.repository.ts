@@ -830,7 +830,7 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
   reverseTransactionsByTransferGroupId(
     userId: string,
     transferGroupId: string,
-  ) {
+  ): Promise<void> {
     return this.prisma.$transaction(async (tx) => {
       const rows = await tx.finTransaction.findMany({
         where: { userId, transferGroupId },
@@ -876,7 +876,6 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
           );
         }
       }
-      return { count: reversedIds.length };
     });
   }
 

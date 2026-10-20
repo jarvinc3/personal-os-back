@@ -335,7 +335,7 @@ export interface LedgerRepositoryPort {
   reverseTransactionsByTransferGroupId(
     userId: string,
     transferGroupId: string,
-  ): Promise<{ count: number }>;
+  ): Promise<void>;
 
   createEmailImportTransaction(
     userId: string,
