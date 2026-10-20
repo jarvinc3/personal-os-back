@@ -29,6 +29,7 @@ import { UpdateTransactionUseCase } from './application/update-transaction.use-c
 import { UnconfirmTransactionUseCase } from './application/unconfirm-transaction.use-case';
 import { UpdateTransferUseCase } from './application/update-transfer.use-case';
 import { UnconfirmTransferUseCase } from './application/unconfirm-transfer.use-case';
+import { PrismaLedgerDeletionRepository } from './infrastructure/prisma-ledger-deletion.repository';
 import { PrismaLedgerReadRepository } from './infrastructure/prisma-ledger-read.repository';
 import { PrismaLedgerRepository } from './infrastructure/prisma-ledger.repository';
 import { TransactionsController } from './presentation/transactions.controller';
@@ -54,6 +55,7 @@ import { CardPaymentsController } from './presentation/card-payments.controller'
   providers: [
     PrismaLedgerRepository,
     PrismaLedgerReadRepository,
+    PrismaLedgerDeletionRepository,
     { provide: LEDGER_REPOSITORY, useExisting: PrismaLedgerRepository },
     LedgerQueryService,
     CreateTransactionUseCase,

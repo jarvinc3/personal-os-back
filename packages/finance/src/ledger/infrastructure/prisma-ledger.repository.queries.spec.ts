@@ -1,7 +1,9 @@
 import type { PrismaService } from '@personal-os/database';
+import type { DomainEventPublisherPort } from '../../events/application/ports/domain-event-publisher.port';
 import type { DeletionJournalRepository } from '../../shared/infrastructure/deletion-journal.repository';
 import { TRANSACTION_LINK_KIND } from '../../shared/domain/transaction-links';
 import { EMAIL_DUPLICATE_DATE_TOLERANCE_MS } from '../../shared/domain/email-dedupe';
+import { PrismaLedgerDeletionRepository } from './prisma-ledger-deletion.repository';
 import { PrismaLedgerReadRepository } from './prisma-ledger-read.repository';
 import { PrismaLedgerRepository } from './prisma-ledger.repository';
 
@@ -21,13 +23,23 @@ function createRepository() {
     finCardBalance: { findFirst: jest.fn() },
   };
 
+  const events = { enqueue: jest.fn() } as unknown as DomainEventPublisherPort;
+  const journal = {
+    record: jest.fn(),
+    restore: jest.fn(),
+  } as unknown as DeletionJournalRepository;
+
   return {
     prisma,
     repository: new PrismaLedgerRepository(
       prisma as unknown as PrismaService,
       new PrismaLedgerReadRepository(prisma as unknown as PrismaService),
-      { enqueue: jest.fn() },
-      { record: jest.fn() } as unknown as DeletionJournalRepository,
+      events,
+      new PrismaLedgerDeletionRepository(
+        prisma as unknown as PrismaService,
+        events,
+        journal,
+      ),
     ),
   };
 }
