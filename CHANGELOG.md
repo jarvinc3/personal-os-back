@@ -10,6 +10,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [Se
 - Skill `archify` en `.agents/skills/archify/` (registrada en `skills-lock.json`) y diagramas generados en `.archify/` (arquitectura, ERD de finanzas, ingesta de correo, ledger, estado de cuenta, releases, monorepo, sync de Gmail, resumen semanal).
 - En desarrollo, la API sirve los diagramas de `.archify/` como estáticos en `/docs/diagramas/`; en producción no se montan.
 - Convenciones de issues en `docs/issue-conventions.md` y plantillas `.github/ISSUE_TEMPLATE/bug.yml` y `feature.yml`.
+- Convenciones de issues: regla contra issues espejo entre repositorios y secciones «Notas técnicas» y «Definición de terminado» en `docs/issue-conventions.md` y en las plantillas `feature.yml` y `bug.yml`.
 
 ### Cambiado
 
