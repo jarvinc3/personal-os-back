@@ -16,6 +16,12 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [Se
 
 - `AGENTS.md` y `docs/README.md` enlazan las convenciones de issues y la nueva documentación.
 
+## [0.46.1] - 2026-10-20
+
+### Cambiado
+
+- Interno: las consultas y búsquedas del ledger salen de `prisma-ledger.repository.ts` a `prisma-ledger-read.repository.ts`; el repositorio principal delega el listado y las lecturas. Sin cambio de contrato ni de comportamiento (jarvinc3/personal-os-back#149).
+
 ## [0.46.0] - 2026-10-20
 
 ### Agregado
