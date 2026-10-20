@@ -2,6 +2,12 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [SemVer](https://semver.org/lang/es/). Reglas y ejemplo en [docs/reference/changelog-guide.md](./docs/reference/changelog-guide.md).
 
+## [0.44.0] - 2026-10-20
+
+### Corregido
+
+- La lista de cuotas y el plan de amortización de un préstamo entregan `amount`, `principal`, `interest`, `insurance`, `fees`, `lateFee` y `paidAmount` como texto decimal. Antes solo `amount` llegaba como texto y el resto viajaba como objeto, así que la web no podía calcular la amortización y el detalle del préstamo fallaba (#156). Cambio de formato incompatible con clientes anteriores, en beta.
+
 ## [0.43.2] - 2026-10-19
 
 ### Cambiado
