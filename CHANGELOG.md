@@ -16,6 +16,16 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [Se
 
 - `AGENTS.md` y `docs/README.md` enlazan las convenciones de issues y la nueva documentación.
 
+## [0.46.0] - 2026-10-20
+
+### Agregado
+
+- `POST /api/finance/transfers/:id/reverse` reversa todas las patas de una transferencia completada, devuelve saldo y presupuesto y las deja `REVERSED`. Responde 409 `TRANSFER_NOT_COMPLETED` si alguna pata no está completada.
+
+### Corregido
+
+- El listado lógico incluye los pagos de tarjeta como una operación `TRANSFER` y resuelve el destino por `legRole`, así que aparecen en Movimientos y en el historial de la cuenta y la tarjeta (#176).
+
 ## [0.45.0] - 2026-10-20
 
 ### Agregado
