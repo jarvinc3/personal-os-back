@@ -2,6 +2,79 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [SemVer](https://semver.org/lang/es/). Reglas y ejemplo en [docs/reference/changelog-guide.md](./docs/reference/changelog-guide.md).
 
+## [Sin publicar]
+
+### Agregado
+
+- Paquete de contexto del rediseño de IA en `docs/refactors/personal-os-ai-redesign-context-pack/` (00–12): visión, estado actual, decisiones e invariantes, arquitectura objetivo (Inference Gateway, Capability Registry, Signals, Action Policy), conocimiento con evidencia append-only y alcance GLOBAL/USER, Email Intelligence V1, roadmap de 13 fases (0–12) con pruebas, demo y gate por fase, modelo de datos, capa de roles (USER | CONTRIBUTOR | ADMIN), impacto en back y web, y decisiones del dueño registradas. Solo documentación; no cambia el comportamiento.
+- Skill `archify` en `.agents/skills/archify/` (registrada en `skills-lock.json`) y diagramas generados en `.archify/` (arquitectura, ERD de finanzas, ingesta de correo, ledger, estado de cuenta, releases, monorepo, sync de Gmail, resumen semanal).
+- En desarrollo, la API sirve los diagramas de `.archify/` como estáticos en `/docs/diagramas/`; en producción no se montan.
+- Convenciones de issues en `docs/issue-conventions.md` y plantillas `.github/ISSUE_TEMPLATE/bug.yml` y `feature.yml`.
+
+### Cambiado
+
+- `AGENTS.md` y `docs/README.md` enlazan las convenciones de issues y la nueva documentación.
+
+## [0.44.0] - 2026-10-20
+
+### Corregido
+
+- La lista de cuotas y el plan de amortización de un préstamo entregan `amount`, `principal`, `interest`, `insurance`, `fees`, `lateFee` y `paidAmount` como texto decimal. Antes solo `amount` llegaba como texto y el resto viajaba como objeto, así que la web no podía calcular la amortización y el detalle del préstamo fallaba (#156). Cambio de formato incompatible con clientes anteriores, en beta.
+
+## [0.43.2] - 2026-10-19
+
+### Cambiado
+
+- Interno: `shareUrl()` separa la resolución de la base (`PUBLIC_WEB_URL` o el primer `CORS_ORIGIN`) de la ruta, y las pruebas reutilizan la URL esperada. Sin cambio de comportamiento (#155).
+
+## [0.43.1] - 2026-10-19
+
+### Agregado
+
+- `PUBLIC_WEB_URL` en el env schema: URL opcional de la web pública; se ignora si viene en blanco (#155).
+
+### Corregido
+
+- El link de un cobro compartido se arma con `PUBLIC_WEB_URL` en vez del primer origin de `CORS_ORIGIN`: create, list, revoke y regenerate devuelven `https://<web>/c/<token>`. Sin `PUBLIC_WEB_URL` se conserva el fallback anterior (#155).
+
+## [0.43.0] - 2026-10-18
+
+### Agregado
+
+- `POST /api/finance/savings-goals/:id/allocations` acepta `fromAccountId`: si la cuenta de origen no es la de la meta, valida su saldo libre, crea la transferencia y guarda `transferGroupId` + `transactionId`.
+
+### Cambiado
+
+- Borrar un aporte con transferencia enlazada borra también el movimiento que creó; antes la transferencia quedaba en el ledger.
+- Una transferencia entre cuentas propias genera un solo aviso «Transferencia registrada» desde la cuenta de origen; antes cada pata avisaba como gasto o ingreso.
+- `PATCH /api/finance/savings-goals/:id` acepta `targetDate: null` para quitar la fecha objetivo; antes solo se podía cambiar por otra.
+
+### Corregido
+
+- Un aporte desde otra cuenta ya no deja la cuenta de origen en negativo: si el saldo libre no alcanza, responde `EARMARK_EXCEEDS_BALANCE`.
+
+## [0.42.1] - 2026-10-17
+
+### Cambiado
+
+- Interno: el backfill de cuentas planifica antes de escribir y deja de mutar su contador; el scheduler de retención separa la consulta de ids del borrado en lote. Sin cambio de comportamiento (#139).
+
+## [0.42.0] - 2026-10-17
+
+### Agregado
+
+- `fin_accounts.account_number_last4` y `fin_accounts.account_number_hash`: la API expone `accountNumberLast4` en las respuestas de cuentas y el hash HMAC conserva la unicidad `(user_id, institution_id)` sin descifrar (#139).
+- `pnpm db:encrypt-account-numbers` cifra las filas de `fin_accounts` que sigan en texto plano con `DATA_ENCRYPTION_KEY` y completa `last4`/hash. Idempotente; se corre una vez por entorno tras `db:migrate:deploy` (#139).
+- Retención de `fin_email_messages.extracted_payload`: `EmailMessageRetentionScheduler` lo pone en NULL a los 30 días, a diario y por lotes, conservando la fila para dedup; las transacciones no se tocan (#139).
+- `ai_actions.user_id` (desde su sesión) y `ai_actions.created_at` para auditoría (#139).
+- `fin_budgets.updated_at` y `fin_email_sources.updated_at` (#139).
+
+### Cambiado
+
+- `fin_accounts.account_number` se guarda cifrado (AES-256-GCM con `DATA_ENCRYPTION_KEY`, distinta de la clave de tokens de Gmail). Las respuestas ya no devuelven el número completo; en edición, omitir `accountNumber` conserva el guardado y enviarlo lo recifra (#139).
+- El match de correos a cuentas usa `accountNumberLast4`; dos cuentas de la misma institución con el mismo last4 quedan ambiguas (#139).
+- `fin_budgets` suma el índice único `(user_id, category_id, period_start)` y el check `period_end >= period_start`; la base DEV no tenía duplicados (#139).
+
 ## [0.41.0] - 2026-10-16
 
 ### Agregado

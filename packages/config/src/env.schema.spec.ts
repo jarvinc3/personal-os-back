@@ -8,6 +8,7 @@ const validBaseEnv: Record<string, unknown> = {
   GOOGLE_CLIENT_SECRET: 'test-google-client-secret',
   GOOGLE_REDIRECT_URI: 'http://localhost:3100/auth/google/callback',
   ENCRYPTION_KEY: 'test-encryption-key-minimum-32-chars!!',
+  DATA_ENCRYPTION_KEY: 'test-data-encryption-key-minimum-32-chars!!',
   CORS_ORIGIN: 'http://localhost:5173',
   NODE_ENV: 'test',
   GROQ_API_KEY: 'test-groq-key',
@@ -100,6 +101,36 @@ describe('envSchema AI limits', () => {
 
     expect(parsed.MAX_EMAIL_LLM_EXTRACTS).toBe(25);
     expect(parsed.AI_DAILY_INSIGHT_QUOTA).toBe(20);
+  });
+});
+
+describe('envSchema PUBLIC_WEB_URL', () => {
+  it('accepts a web base URL', () => {
+    const parsed = parseEnv({
+      ...validBaseEnv,
+      PUBLIC_WEB_URL: 'https://personal-os-web-one.vercel.app',
+    });
+
+    expect(parsed.PUBLIC_WEB_URL).toBe(
+      'https://personal-os-web-one.vercel.app',
+    );
+  });
+
+  it('trims the value and treats a blank string as unset', () => {
+    const withSpaces = parseEnv({
+      ...validBaseEnv,
+      PUBLIC_WEB_URL: '  https://web.example.com  ',
+    });
+    const blank = parseEnv({ ...validBaseEnv, PUBLIC_WEB_URL: '   ' });
+
+    expect(withSpaces.PUBLIC_WEB_URL).toBe('https://web.example.com');
+    expect(blank.PUBLIC_WEB_URL).toBeUndefined();
+  });
+
+  it('rejects a value that is not a URL', () => {
+    expect(() =>
+      parseEnv({ ...validBaseEnv, PUBLIC_WEB_URL: 'personal-os-web' }),
+    ).toThrow(/PUBLIC_WEB_URL must be a valid URL/);
   });
 });
 

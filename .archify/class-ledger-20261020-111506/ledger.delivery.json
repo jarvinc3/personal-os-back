@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "f15bc846-41aa-4439-95cd-24a89b93301a",
+  "status": "current",
+  "command": "deliver",
+  "type": "class",
+  "input": "/home/jarvinc/projects/personal-os-workspace/personal-os-back/.archify/class-ledger-20261020-111506/candidate.json",
+  "output": "/home/jarvinc/projects/personal-os-workspace/personal-os-back/.archify/class-ledger-20261020-111506/ledger.html",
+  "specification": {
+    "sha256": "e4b6f5ee5b81bddcd1e3a292fe3da0dea59a866c1c680309ac6027de1f72d500",
+    "bytes": 7577
+  },
+  "artifact": {
+    "sha256": "afeec1fccf6a8b6d21fd7c9ce9b81c41c997a577518f3ab66f0c9752a2951847",
+    "bytes": 836248
+  }
+}

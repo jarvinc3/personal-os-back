@@ -2,8 +2,8 @@ import { resolveEmailLedgerTarget } from './resolve-email-ledger-target';
 
 describe('resolveEmailLedgerTarget', () => {
   const accounts = [
-    { id: 'acc-1', accountNumber: '001122335678' },
-    { id: 'acc-2', accountNumber: '998877440000' },
+    { id: 'acc-1', accountNumberLast4: '5678' },
+    { id: 'acc-2', accountNumberLast4: '0000' },
   ];
   const cards = [
     { id: 'card-1', lastFour: '9999' },
@@ -65,8 +65,8 @@ describe('resolveEmailLedgerTarget', () => {
         lastFourHint: null,
         accountNumberHint: '1111',
         accounts: [
-          { id: 'acc-a', accountNumber: '22221111' },
-          { id: 'acc-b', accountNumber: '33331111' },
+          { id: 'acc-a', accountNumberLast4: '1111' },
+          { id: 'acc-b', accountNumberLast4: '1111' },
         ],
         cards,
       }),
@@ -139,7 +139,7 @@ describe('resolveEmailLedgerTarget', () => {
         instrumentHint: null,
         lastFourHint: '1234',
         accountNumberHint: null,
-        accounts: [{ id: 'acc-same-suffix', accountNumber: '99001234' }],
+        accounts: [{ id: 'acc-same-suffix', accountNumberLast4: '1234' }],
         cards,
       }),
     ).toEqual({ kind: 'unique', cardId: 'card-2' });
@@ -151,7 +151,7 @@ describe('resolveEmailLedgerTarget', () => {
         instrumentHint: null,
         lastFourHint: null,
         accountNumberHint: null,
-        accounts: [{ id: 'acc-only', accountNumber: null }],
+        accounts: [{ id: 'acc-only', accountNumberLast4: null }],
         cards: [],
       }),
     ).toEqual({ kind: 'unique', accountId: 'acc-only' });
@@ -159,10 +159,14 @@ describe('resolveEmailLedgerTarget', () => {
 
   it('uses the institution default account only when there are no digits', () => {
     const many = [
-      { id: 'acc-1', accountNumber: '11111111', isDefaultForInstitution: true },
+      {
+        id: 'acc-1',
+        accountNumberLast4: '1111',
+        isDefaultForInstitution: true,
+      },
       {
         id: 'acc-2',
-        accountNumber: '22222222',
+        accountNumberLast4: '2222',
         isDefaultForInstitution: false,
       },
     ];

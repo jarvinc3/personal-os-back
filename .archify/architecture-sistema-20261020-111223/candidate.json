@@ -1,0 +1,294 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Personal OS: qué hay detrás de una pantalla",
+    "locale": "es",
+    "output": ".archify/architecture-sistema-20261020-111223/sistema.html",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/jarvinc3/personal-os-back.git",
+      "provider": "github",
+      "revision": "b2d61c4cc9f4e853387445e1e4dfde927c1a3c1b"
+    }
+  },
+  "layout": {
+    "mode": "grid",
+    "cols": 4,
+    "gapX": 120,
+    "gapY": 70
+  },
+  "components": [
+    {
+      "id": "web",
+      "type": "frontend",
+      "label": "Pantallas Next.js",
+      "sublabel": "App Router y React Query",
+      "row": 1,
+      "col": 0
+    },
+    {
+      "id": "api",
+      "type": "backend",
+      "label": "API NestJS",
+      "sublabel": "apps/api",
+      "row": 1,
+      "col": 1,
+      "sources": [
+        {
+          "path": "apps/api/src/app.module.ts",
+          "line": 1,
+          "end_line": 30
+        }
+      ]
+    },
+    {
+      "id": "auth",
+      "type": "security",
+      "label": "Guard JWT",
+      "sublabel": "permite o rechaza cada ruta",
+      "row": 0,
+      "col": 1,
+      "sources": [
+        {
+          "path": "packages/core/src/guards/jwt-auth.guard.ts",
+          "line": 11,
+          "end_line": 27
+        }
+      ]
+    },
+    {
+      "id": "supabase",
+      "type": "external",
+      "label": "Supabase Auth",
+      "sublabel": "emite el token",
+      "row": 0,
+      "col": 0,
+      "sources": [
+        {
+          "path": "packages/auth/src/index.ts",
+          "line": 1
+        }
+      ]
+    },
+    {
+      "id": "finance",
+      "type": "backend",
+      "label": "Finance",
+      "sublabel": "ledger, ingesta y analytics",
+      "row": 1,
+      "col": 2,
+      "sources": [
+        {
+          "path": "packages/finance/src/index.ts",
+          "line": 1
+        }
+      ]
+    },
+    {
+      "id": "agent",
+      "type": "backend",
+      "label": "Agente",
+      "sublabel": "chat, tools y acciones",
+      "row": 2,
+      "col": 1,
+      "sources": [
+        {
+          "path": "packages/ai-agent/src/ai-core.module.ts",
+          "line": 13,
+          "end_line": 24
+        }
+      ]
+    },
+    {
+      "id": "notifications",
+      "type": "backend",
+      "label": "Notificaciones",
+      "sublabel": "push, websockets y correo",
+      "row": 0,
+      "col": 2,
+      "sources": [
+        {
+          "path": "packages/notifications/src/index.ts",
+          "line": 1
+        }
+      ]
+    },
+    {
+      "id": "db",
+      "type": "database",
+      "label": "PostgreSQL",
+      "sublabel": "un esquema Prisma",
+      "row": 1,
+      "col": 3,
+      "sources": [
+        {
+          "path": "packages/database/prisma/schema.prisma",
+          "line": 286,
+          "end_line": 292
+        }
+      ]
+    },
+    {
+      "id": "redis",
+      "type": "messagebus",
+      "label": "Redis",
+      "sublabel": "colas BullMQ",
+      "row": 2,
+      "col": 2,
+      "sources": [
+        {
+          "path": "packages/core/src/queues/queue.constants.ts",
+          "line": 1,
+          "end_line": 9
+        }
+      ]
+    },
+    {
+      "id": "gmail",
+      "type": "external",
+      "label": "Gmail",
+      "sublabel": "correos del banco",
+      "row": 0,
+      "col": 3,
+      "sources": [
+        {
+          "path": "packages/finance/src/ingestion/infrastructure/gmail-api.util.ts",
+          "line": 106,
+          "end_line": 131
+        }
+      ]
+    },
+    {
+      "id": "ia",
+      "type": "cloud",
+      "label": "Proveedores de IA",
+      "sublabel": "Groq, Cerebras u OpenRouter",
+      "row": 2,
+      "col": 3,
+      "sources": [
+        {
+          "path": "packages/ai-agent/src/ai-core.module.ts",
+          "line": 20,
+          "end_line": 46
+        }
+      ]
+    },
+    {
+      "id": "sentry",
+      "type": "cloud",
+      "label": "Sentry",
+      "sublabel": "solo errores 5xx",
+      "row": 3,
+      "col": 0,
+      "sources": [
+        {
+          "path": "apps/api/src/instrument.ts",
+          "line": 1,
+          "end_line": 20
+        }
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "login",
+      "from": "web",
+      "to": "supabase",
+      "label": "login",
+      "variant": "security"
+    },
+    {
+      "id": "llamadas",
+      "from": "web",
+      "to": "api",
+      "label": "con token",
+      "variant": "emphasis"
+    },
+    {
+      "id": "valida",
+      "from": "api",
+      "to": "auth",
+      "label": "valida JWT",
+      "variant": "security"
+    },
+    {
+      "id": "casos",
+      "from": "api",
+      "to": "finance",
+      "label": "casos de uso",
+      "variant": "emphasis"
+    },
+    {
+      "id": "chat",
+      "from": "api",
+      "to": "agent",
+      "label": "chat"
+    },
+    {
+      "id": "avisos",
+      "from": "api",
+      "to": "notifications",
+      "label": "avisos"
+    },
+    {
+      "id": "persiste",
+      "from": "finance",
+      "to": "db",
+      "label": "movimientos",
+      "variant": "emphasis"
+    },
+    {
+      "id": "correos",
+      "from": "finance",
+      "to": "gmail",
+      "label": "lee correos",
+      "variant": "dashed"
+    },
+    {
+      "id": "extrae",
+      "from": "finance",
+      "to": "ia",
+      "label": "extracción"
+    },
+    {
+      "id": "encola",
+      "from": "finance",
+      "to": "redis",
+      "label": "encola sync",
+      "variant": "dashed"
+    },
+    {
+      "id": "errores",
+      "from": "api",
+      "to": "sentry",
+      "label": "5xx"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Un solo despliegue",
+      "items": [
+        "Un proceso Nest, un despliegue y una base: los módulos son paquetes, no servicios",
+        "La web habla solo con la API; nunca con la base"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Quién guarda qué",
+      "items": [
+        "Postgres es el dueño del estado; Redis solo sostiene colas",
+        "El token lo emite Supabase y lo valida la API en cada ruta"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Fuera de casa",
+      "items": [
+        "Gmail entrega los correos del banco",
+        "Los proveedores de IA convierten texto en datos y también atienden el chat"
+      ]
+    }
+  ]
+}

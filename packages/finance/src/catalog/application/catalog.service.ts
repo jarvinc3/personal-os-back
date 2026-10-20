@@ -5,9 +5,11 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Prisma } from '@personal-os/database';
 import { clampPageLimit, toCursorPage } from '@personal-os/core';
 import type { CursorQueryDto } from '@personal-os/core';
+import type { Env } from '@personal-os/config';
 import { LogoService, type LogoUploadFile } from '@personal-os/logos';
 import type { LogoRow } from '@personal-os/logos';
 import { normalizeDomain } from '@personal-os/logos';
@@ -31,10 +33,16 @@ import {
 } from '../../shared/domain/mappers';
 import { normalizeCurrencyCode, roundMoney } from '../../shared/domain/money';
 import { ResolveUserBaseCurrencyUseCase } from '../../fx/application/resolve-user-base-currency';
+import {
+  accountNumberLast4,
+  encryptAccountNumber,
+  fingerprintAccountNumber,
+} from '../../shared/infrastructure/account-number-encryption.util';
 import { CASH_ACCOUNT_TYPE, isCashInstitution } from '../../shared/domain/cash';
 import { EnsureCashInstitutionUseCase } from './ensure-cash-institution.use-case';
 import { institutionOrderKey } from '../domain/institution-order';
 import { CatalogRepository } from '../infrastructure/catalog.repository';
+import type { AccountNumberColumns } from '../infrastructure/catalog.repository';
 import type { CreateAccountDto } from '../presentation/dto/create-account.dto';
 import type { CreateCardDto } from '../presentation/dto/create-card.dto';
 import type { CreateCategoryDto } from '../presentation/dto/create-category.dto';
@@ -101,7 +109,34 @@ export class CatalogService {
     private readonly userBaseCurrency: ResolveUserBaseCurrencyUseCase,
     private readonly logos: LogoService = fallbackLogos,
     private readonly users: UsersService = fallbackUsers,
+    private readonly config: ConfigService<Env, true>,
   ) {}
+
+  /**
+   * Account numbers are encrypted with DATA_ENCRYPTION_KEY, independent from
+   * the Gmail token key (ENCRYPTION_KEY). The plaintext never reaches storage.
+   */
+  private get dataEncryptionKey(): string {
+    return this.config.get('DATA_ENCRYPTION_KEY', { infer: true });
+  }
+
+  private buildAccountNumberColumns(
+    plaintext: string | null,
+  ): AccountNumberColumns {
+    if (!plaintext) {
+      return {
+        accountNumber: null,
+        accountNumberLast4: null,
+        accountNumberHash: null,
+      };
+    }
+    const secret = this.dataEncryptionKey;
+    return {
+      accountNumber: encryptAccountNumber(plaintext, secret),
+      accountNumberLast4: accountNumberLast4(plaintext),
+      accountNumberHash: fingerprintAccountNumber(plaintext, secret),
+    };
+  }
 
   async listAccounts(userId: string) {
     await this.ensureCashInstitution.execute(userId);
@@ -168,7 +203,7 @@ export class CatalogService {
         await this.repo.createAccount(userId, {
           ...rest,
           institutionId,
-          ...(accountNumber ? { accountNumber } : {}),
+          ...this.buildAccountNumberColumns(accountNumber),
         }),
       );
     } catch (error) {
@@ -195,14 +230,13 @@ export class CatalogService {
       );
     }
 
-    const nextAccountNumber = this.assertAccountNumberRule(
-      nextType,
-      nextType === CASH_ACCOUNT_TYPE
-        ? dto.accountNumber
-        : dto.accountNumber !== undefined
-          ? dto.accountNumber
-          : existing.accountNumber,
-    );
+    const clearAccountNumber = nextType === CASH_ACCOUNT_TYPE;
+    const accountNumberColumns = this.resolveAccountNumberColumns({
+      type: nextType,
+      clearAccountNumber,
+      requested: dto.accountNumber,
+      existingAccountNumber: existing.accountNumber,
+    });
 
     if (
       dto.institutionId !== undefined &&
@@ -223,7 +257,7 @@ export class CatalogService {
       const account = await this.repo.updateAccount(id, userId, {
         ...rest,
         institutionId: nextInstitutionId,
-        accountNumber: nextAccountNumber,
+        ...accountNumberColumns,
       });
       if (!account) {
         throw new NotFoundException('Cuenta no encontrada');
@@ -847,6 +881,29 @@ export class CatalogService {
     }
   }
 
+  private resolveAccountNumberColumns(params: {
+    type: string;
+    clearAccountNumber: boolean;
+    requested: string | null | undefined;
+    existingAccountNumber: string | null;
+  }): AccountNumberColumns | Partial<AccountNumberColumns> {
+    const { type, clearAccountNumber, requested, existingAccountNumber } =
+      params;
+    if (clearAccountNumber) {
+      this.assertAccountNumberRule(type, requested);
+      return this.buildAccountNumberColumns(null);
+    }
+    if (requested !== undefined) {
+      return this.buildAccountNumberColumns(
+        this.assertAccountNumberRule(type, requested),
+      );
+    }
+    if (existingAccountNumber === null) {
+      this.assertAccountNumberRule(type, null);
+    }
+    return {};
+  }
+
   private assertAccountNumberRule(
     type: string,
     raw: string | null | undefined,
@@ -922,7 +979,7 @@ export class CatalogService {
       name: account.name,
       type: account.type,
       currency: account.currency,
-      accountNumber: account.accountNumber,
+      accountNumberLast4: account.accountNumberLast4,
       isDefaultForInstitution: account.isDefaultForInstitution,
       balance: decimalToString(account.balance),
       earmarkedAmount: decimalToString(earmarkedAmount),

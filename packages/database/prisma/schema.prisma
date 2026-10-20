@@ -20,6 +20,7 @@ model User {
   createdAt       DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt       DateTime              @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   aiSessions      AiAgentSession[]
+  aiActions       AiAction[]
   finAccounts     FinAccount[]
   finCards        FinCard[]
   finInstitutions FinInstitution[]
@@ -121,6 +122,7 @@ model AiMessage {
 model AiAction {
   id           String         @id @default(dbgenerated("(uuid_generate_v4())::text"))
   sessionId    String         @map("session_id")
+  userId       String         @map("user_id")
   messageId    String?        @map("message_id")
   actionType   String         @map("action_type")
   targetModule String         @map("target_module")
@@ -128,10 +130,13 @@ model AiAction {
   status       AiActionStatus @default(PENDING)
   result       Json?
   executedAt   DateTime?      @map("executed_at") @db.Timestamptz(6)
+  createdAt    DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
   message      AiMessage?     @relation(fields: [messageId], references: [id], onDelete: SetNull, onUpdate: NoAction)
   session      AiAgentSession @relation(fields: [sessionId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([sessionId], map: "ai_actions_session_id_idx")
+  @@index([userId], map: "ai_actions_user_id_idx")
   @@index([messageId], map: "ai_actions_message_id_idx")
   @@map("ai_actions")
 }
@@ -175,8 +180,12 @@ model FinAccount {
   institutionId  String?          @map("institution_id")
   name           String
   type           FinAccountType
-  /// Full bank account number (digits only). Null for CASH and legacy rows.
-  accountNumber  String?          @map("account_number")
+  /// Bank account number encrypted at rest (AES-256-GCM, DATA_ENCRYPTION_KEY). Null for CASH and legacy rows.
+  accountNumber      String?          @map("account_number")
+  /// Last four digits for display and email matching, kept out of the ciphertext.
+  accountNumberLast4 String?          @map("account_number_last4")
+  /// HMAC-SHA256 of the account number with DATA_ENCRYPTION_KEY; enforces one account per number.
+  accountNumberHash  String?          @map("account_number_hash")
   /// Fallback ledger target for this institution when an email has no account digits.
   isDefaultForInstitution Boolean @default(false) @map("is_default_for_institution")
   currency       String           @default("DOP")
@@ -199,6 +208,7 @@ model FinAccount {
   reconciliations FinReconciliation[]
   balanceDrifts   FinBalanceDrift[]
 
+  @@unique([userId, institutionId, accountNumberHash], map: "fin_accounts_user_institution_number_hash_key")
   @@index([userId, isActive], map: "fin_accounts_user_id_active_idx")
   @@index([institutionId], map: "fin_accounts_institution_id_idx")
   @@index([userId, institutionId, isDefaultForInstitution], map: "fin_accounts_user_institution_default_idx")
@@ -241,6 +251,7 @@ model FinEmailSource {
   lastMessageId String?            @map("last_message_id")
   isActive      Boolean            @default(true) @map("is_active")
   createdAt     DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime           @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   logs          FinEmailSyncLog[]
   emailMessages FinEmailMessage[]
   connection    FinEmailConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade, onUpdate: NoAction)
@@ -390,11 +401,13 @@ model FinBudget {
   aiSuggestionStatus  AiSuggestionStatus  @default(NONE) @map("ai_suggestion_status")
   aiSuggestionPayload Json?               @map("ai_suggestion_payload")
   createdAt           DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime            @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   alerts              FinBudgetAlert[]
   category            FinCategory?        @relation(fields: [categoryId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   categories          FinBudgetCategory[]
   user                User                @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
+  @@unique([userId, categoryId, periodStart], map: "fin_budgets_user_category_period_key")
   @@index([userId, periodType, periodStart], map: "fin_budgets_user_period_idx")
   @@index([categoryId], map: "fin_budgets_category_id_idx")
   @@map("fin_budgets")

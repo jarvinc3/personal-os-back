@@ -374,7 +374,9 @@ export class PlanningService {
           ? { targetAmount: dto.targetAmount }
           : {}),
         ...(dto.currency ? { currency: dto.currency } : {}),
-        ...(dto.targetDate ? { targetDate: new Date(dto.targetDate) } : {}),
+        ...(dto.targetDate !== undefined
+          ? { targetDate: dto.targetDate ? new Date(dto.targetDate) : null }
+          : {}),
         ...(dto.accountId !== undefined ? { accountId: dto.accountId } : {}),
         ...(dto.mode ? { mode: dto.mode } : {}),
         ...(dto.spendReducesProgress !== undefined

@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "architecture",
+  "quality": "showcase",
+  "specification": {
+    "path": "/home/jarvinc/projects/personal-os-workspace/personal-os-back/.archify/architecture-sistema-20261020-111223/candidate.json",
+    "sha256": "56d900539c8bddd380c070671176deaa368a08a2acd4c6b7f768e06326d26322",
+    "bytes": 6212
+  },
+  "artifact": {
+    "path": "/home/jarvinc/projects/personal-os-workspace/personal-os-back/.archify/architecture-sistema-20261020-111223/sistema.html",
+    "sha256": "e7c2f859f5889d30cfbb9ac8e5b4aa3f9c699f21ad5f53060a25782f539fb4bb",
+    "bytes": 837285
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "pass"
+  },
+  "diagnostics": [],
+  "diagnosticSummary": {
+    "total": 0,
+    "shown": 0,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "/home/jarvinc/projects/personal-os-workspace/personal-os-back/.archify/architecture-sistema-20261020-111223/review-2/sistema.finalize.json",
+    "summaryReceipt": "/home/jarvinc/projects/personal-os-workspace/personal-os-back/.archify/architecture-sistema-20261020-111223/review-2/sistema.finalize-summary.json",
+    "browserCheckReceipt": "/home/jarvinc/projects/personal-os-workspace/personal-os-back/.archify/architecture-sistema-20261020-111223/review-2/sistema.browser-check.json"
+  },
+  "update": {
+    "status": "current",
+    "installedVersion": "3.2.0",
+    "availableVersion": "3.2.0",
+    "releaseNotes": null,
+    "checkedAt": "2026-10-20T14:40:23.511Z",
+    "source": "cache",
+    "noticeRequired": false,
+    "noticeText": null
+  },
+  "visualReview": "not-requested",
+  "durationMs": 8364,
+  "browserCheck": {
+    "requested": true,
+    "ran": true
+  },
+  "visualReviewRecommendation": {
+    "action": "inspect-route-readability",
+    "signals": {
+      "resolvedCrossovers": 1
+    },
+    "reason": "Automated gates passed, but crossings or detours still need perceptual review before claiming visual quality.",
+    "affectedRoutes": {
+      "crossings": [
+        {
+          "left": {
+            "id": "persiste",
+            "from": "finance",
+            "to": "db",
+            "label": "movimientos",
+            "collectionIndex": 6,
+            "artifactIndex": 7
+          },
+          "right": {
+            "id": "extrae",
+            "from": "finance",
+            "to": "ia",
+            "label": "extracción",
+            "collectionIndex": 8,
+            "artifactIndex": 9
+          },
+          "point": [
+            758,
+            298
+          ],
+          "sharedNode": "finance"
+        }
+      ],
+      "detours": [],
+      "truncated": false
+    },
+    "hints": [
+      "finance → db and finance → ia cross next to finance: move node db or ia so the two reach finance from different sides (for example one level with it, one directly above or below it)."
+    ],
+    "repair": "Trace these relationships at the desktop viewport. For Architecture, use references/architecture-layout-repair.md: reflow a blocked main path or tangled connected scene, and repair an isolated defect locally only when the surrounding composition is accepted. Preserve all semantic content and user-fixed geometry. Rerun finalize once after the edit."
+  }
+}

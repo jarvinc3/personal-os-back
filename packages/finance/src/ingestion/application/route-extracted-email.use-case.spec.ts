@@ -34,7 +34,7 @@ const params = {
   provider: 'groq',
   model: 'test',
   accounts: [
-    { id: 'acc-1', accountNumber: '3447', isDefaultForInstitution: false },
+    { id: 'acc-1', accountNumberLast4: '3447', isDefaultForInstitution: false },
   ],
   cards: [],
   cashAccounts: [{ id: 'cash-1' }],

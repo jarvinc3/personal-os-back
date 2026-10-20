@@ -1,0 +1,219 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "Una petición del resumen semanal, paso a paso",
+    "locale": "es",
+    "output": ".archify/sequence-resumen-semanal-20261020-111102/resumen-semanal.html",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/jarvinc3/personal-os-back.git",
+      "provider": "github",
+      "revision": "b2d61c4cc9f4e853387445e1e4dfde927c1a3c1b"
+    }
+  },
+  "participants": [
+    {
+      "id": "pantalla",
+      "type": "frontend",
+      "label": "Pantalla de inicio",
+      "sublabel": "Next.js + React Query"
+    },
+    {
+      "id": "api",
+      "type": "backend",
+      "label": "API NestJS",
+      "sublabel": "AnalyticsController",
+      "sources": [
+        {
+          "path": "packages/finance/src/analytics/presentation/analytics.controller.ts",
+          "line": 18,
+          "end_line": 24
+        }
+      ]
+    },
+    {
+      "id": "auth",
+      "type": "security",
+      "label": "Guard JWT",
+      "sublabel": "supabase-jwt",
+      "sources": [
+        {
+          "path": "packages/core/src/guards/jwt-auth.guard.ts",
+          "line": 11,
+          "end_line": 27
+        }
+      ]
+    },
+    {
+      "id": "modulo",
+      "type": "security",
+      "label": "Guard de módulo",
+      "sublabel": "finance habilitado",
+      "sources": [
+        {
+          "path": "packages/core/src/guards/enabled-module.guard.ts",
+          "line": 19,
+          "end_line": 40
+        }
+      ]
+    },
+    {
+      "id": "servicio",
+      "type": "backend",
+      "label": "WeeklySummary",
+      "sublabel": "arma el resumen",
+      "sources": [
+        {
+          "path": "packages/finance/src/analytics/application/weekly-summary.service.ts",
+          "line": 104,
+          "end_line": 135
+        }
+      ]
+    },
+    {
+      "id": "db",
+      "type": "database",
+      "label": "PostgreSQL",
+      "sublabel": "vía Prisma",
+      "sources": [
+        {
+          "path": "packages/database/prisma/schema.prisma",
+          "line": 286,
+          "end_line": 292
+        }
+      ]
+    }
+  ],
+  "messages": [
+    {
+      "id": "pide",
+      "from": "pantalla",
+      "to": "api",
+      "y": 200,
+      "label": "GET /finance/analytics/weekly-summary",
+      "variant": "emphasis"
+    },
+    {
+      "id": "token",
+      "from": "api",
+      "to": "auth",
+      "y": 250,
+      "label": "valida el token",
+      "variant": "security"
+    },
+    {
+      "id": "usuario",
+      "from": "auth",
+      "to": "api",
+      "y": 288,
+      "label": "usuario y sub",
+      "variant": "return"
+    },
+    {
+      "id": "pregunta-modulo",
+      "from": "api",
+      "to": "modulo",
+      "y": 334,
+      "label": "¿finance activo?",
+      "variant": "security"
+    },
+    {
+      "id": "lee-modulo",
+      "from": "modulo",
+      "to": "db",
+      "y": 374,
+      "label": "configuración del módulo"
+    },
+    {
+      "id": "config-modulo",
+      "from": "db",
+      "to": "modulo",
+      "y": 412,
+      "label": "config",
+      "variant": "return"
+    },
+    {
+      "id": "permite",
+      "from": "modulo",
+      "to": "api",
+      "y": 452,
+      "label": "acceso concedido",
+      "variant": "return"
+    },
+    {
+      "id": "build",
+      "from": "api",
+      "to": "servicio",
+      "y": 502,
+      "label": "build(userId, semana)",
+      "note": "Promise.all de seis consultas"
+    },
+    {
+      "id": "consulta",
+      "from": "servicio",
+      "to": "db",
+      "y": 574,
+      "label": "gasto, presupuestos, cuotas"
+    },
+    {
+      "id": "filas",
+      "from": "db",
+      "to": "servicio",
+      "y": 616,
+      "label": "filas",
+      "variant": "return"
+    },
+    {
+      "id": "resumen",
+      "from": "servicio",
+      "to": "api",
+      "y": 658,
+      "label": "resumen en moneda base",
+      "variant": "return"
+    },
+    {
+      "id": "respuesta",
+      "from": "api",
+      "to": "pantalla",
+      "y": 700,
+      "label": "{ data, meta }",
+      "variant": "return"
+    }
+  ],
+  "activations": [
+    { "participant": "pantalla", "from": 196, "to": 704 },
+    { "participant": "api", "from": 200, "to": 704 },
+    { "participant": "auth", "from": 250, "to": 288 },
+    { "participant": "modulo", "from": 334, "to": 452 },
+    { "participant": "servicio", "from": 502, "to": 658 },
+    { "participant": "db", "from": 374, "to": 412 },
+    { "participant": "db", "from": 574, "to": 616 }
+  ],
+  "cards": [
+    {
+      "dot": "rose",
+      "title": "Dos puertas antes del servicio",
+      "items": [
+        "Primero el token de Supabase; sin usuario válido responde 401",
+        "Después el módulo finance del usuario; apagado responde 403"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "Las seis consultas",
+      "items": [
+        "Moneda base, gasto en el tiempo, gasto por categoría y estado de presupuestos",
+        "Préstamos, tarjetas y correos pendientes de asignar"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "La respuesta",
+      "items": [
+        "Un interceptor envuelve todo en { data, meta } con ruta y requestId",
+        "El navegador cachea por semana con React Query"
+      ]
+    }
+  ]
+}

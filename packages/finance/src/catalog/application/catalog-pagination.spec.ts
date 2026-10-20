@@ -4,6 +4,8 @@ import type { FinanceOwnershipService } from '../../shared/application/finance-o
 import type { PurgeInstrumentLedgerUseCase } from '../../ledger/application/purge-instrument-ledger.use-case';
 import type { EnsureCashInstitutionUseCase } from './ensure-cash-institution.use-case';
 import type { ResolveUserBaseCurrencyUseCase } from '../../fx/application/resolve-user-base-currency';
+import type { ConfigService } from '@nestjs/config';
+import type { Env } from '@personal-os/config';
 
 function createService(repo: CatalogRepository): CatalogService {
   return new CatalogService(
@@ -19,6 +21,13 @@ function createService(repo: CatalogRepository): CatalogService {
     {
       execute: jest.fn().mockResolvedValue('DOP'),
     } as unknown as ResolveUserBaseCurrencyUseCase,
+    undefined,
+    undefined,
+    {
+      get: jest
+        .fn()
+        .mockReturnValue('test-data-encryption-key-minimum-32-chars!!'),
+    } as unknown as ConfigService<Env, true>,
   );
 }
 
@@ -32,7 +41,7 @@ function accountRow(index: number) {
     name: `Cuenta ${String(index).padStart(2, '0')}`,
     type: 'CHECKING',
     currency: 'DOP',
-    accountNumber: '1234',
+    accountNumberLast4: '1234',
     isDefaultForInstitution: false,
     balance: 0,
     color: null,

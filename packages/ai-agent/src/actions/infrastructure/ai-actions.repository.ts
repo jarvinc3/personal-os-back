@@ -8,6 +8,7 @@ export class AiActionsRepository {
 
   create(data: {
     sessionId: string;
+    userId: string;
     messageId?: string;
     actionType: string;
     targetModule: string;
@@ -18,6 +19,7 @@ export class AiActionsRepository {
     return this.prisma.aiAction.create({
       data: {
         sessionId: data.sessionId,
+        userId: data.userId,
         messageId: data.messageId,
         actionType: data.actionType,
         targetModule: data.targetModule,

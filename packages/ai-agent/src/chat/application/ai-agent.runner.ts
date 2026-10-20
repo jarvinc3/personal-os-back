@@ -294,6 +294,7 @@ export class AiAgentRunner {
           try {
             const action = await this.actionsService.createPendingAction({
               sessionId: input.sessionId,
+              userId: input.userId,
               actionType: tc.name,
               payload: tc.arguments,
             });

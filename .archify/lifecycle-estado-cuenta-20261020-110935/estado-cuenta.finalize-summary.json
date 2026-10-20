@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "lifecycle",
+  "quality": "showcase",
+  "specification": {
+    "path": "/home/jarvinc/projects/personal-os-workspace/personal-os-back/.archify/lifecycle-estado-cuenta-20261020-110935/candidate.json",
+    "sha256": "de51ac8cab03cc7f062f5c2bc572c4d12847b24a4c62f4a404fd00d949121b16",
+    "bytes": 4477
+  },
+  "artifact": {
+    "path": "/home/jarvinc/projects/personal-os-workspace/personal-os-back/.archify/lifecycle-estado-cuenta-20261020-110935/estado-cuenta.html",
+    "sha256": "71e2907f76a4e5f13a7041986daef663afd30acd1a83a4a51ef90525c04dde1c",
+    "bytes": 823992
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "pass"
+  },
+  "diagnostics": [],
+  "diagnosticSummary": {
+    "total": 0,
+    "shown": 0,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "/home/jarvinc/projects/personal-os-workspace/personal-os-back/.archify/lifecycle-estado-cuenta-20261020-110935/estado-cuenta.finalize.json",
+    "summaryReceipt": "/home/jarvinc/projects/personal-os-workspace/personal-os-back/.archify/lifecycle-estado-cuenta-20261020-110935/estado-cuenta.finalize-summary.json",
+    "browserCheckReceipt": "/home/jarvinc/projects/personal-os-workspace/personal-os-back/.archify/lifecycle-estado-cuenta-20261020-110935/estado-cuenta.browser-check.json"
+  },
+  "update": {
+    "status": "current",
+    "installedVersion": "3.2.0",
+    "availableVersion": "3.2.0",
+    "releaseNotes": null,
+    "checkedAt": "2026-10-20T14:40:23.511Z",
+    "source": "cache",
+    "noticeRequired": false,
+    "noticeText": null
+  },
+  "visualReview": "not-requested",
+  "durationMs": 5074,
+  "browserCheck": {
+    "requested": true,
+    "ran": true
+  }
+}

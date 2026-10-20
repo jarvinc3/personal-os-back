@@ -5798,7 +5798,7 @@
             "access-token": []
           }
         ],
-        "summary": "List notifications for current user",
+        "summary": "Lista las notificaciones del usuario",
         "tags": [
           "notifications"
         ]
@@ -5826,7 +5826,7 @@
             "access-token": []
           }
         ],
-        "summary": "Create a notification for current user",
+        "summary": "Crea una notificación para el usuario",
         "tags": [
           "notifications"
         ]
@@ -5846,7 +5846,7 @@
             "access-token": []
           }
         ],
-        "summary": "Unread in-app notification count",
+        "summary": "Cantidad de notificaciones sin leer",
         "tags": [
           "notifications"
         ]
@@ -5866,7 +5866,7 @@
             "access-token": []
           }
         ],
-        "summary": "Mark all in-app notifications as read",
+        "summary": "Marca todas las notificaciones como leídas",
         "tags": [
           "notifications"
         ]
@@ -5895,7 +5895,7 @@
             "access-token": []
           }
         ],
-        "summary": "Mark notification as read for current user",
+        "summary": "Marca una notificación como leída",
         "tags": [
           "notifications"
         ]
@@ -5925,14 +5925,14 @@
             "access-token": []
           }
         ],
-        "summary": "Register a push token for current user",
+        "summary": "Registra un token push del usuario",
         "tags": [
           "notifications"
         ]
       }
     },
-    "/api/notifications/push-tokens/{token}/deactivate": {
-      "patch": {
+    "/api/notifications/push-tokens/{token}": {
+      "delete": {
         "operationId": "NotificationsController_deactivatePushToken",
         "parameters": [
           {
@@ -5954,7 +5954,37 @@
             "access-token": []
           }
         ],
-        "summary": "Deactivate a push token for current user",
+        "summary": "Desactiva un token push del usuario",
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/api/notifications/push-tokens/{token}/deactivate": {
+      "patch": {
+        "deprecated": true,
+        "operationId": "NotificationsController_deactivatePushTokenLegacy",
+        "parameters": [
+          {
+            "name": "token",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Alias deprecado de DELETE push-tokens/:token",
         "tags": [
           "notifications"
         ]
@@ -6227,7 +6257,7 @@
   "info": {
     "title": "Personal OS API",
     "description": "Personal OS backend endpoints, including auth, core modules, and AI.",
-    "version": "0.41.0",
+    "version": "0.43.0",
     "contact": {}
   },
   "tags": [
@@ -7453,7 +7483,8 @@
             "example": "DOP"
           },
           "targetDate": {
-            "type": "string"
+            "type": "string",
+            "nullable": true
           },
           "currentAmount": {
             "type": "number"
@@ -7488,6 +7519,10 @@
           },
           "notes": {
             "type": "string"
+          },
+          "fromAccountId": {
+            "type": "string",
+            "description": "Cuenta de origen cuando es distinta a la cuenta de la meta. El aporte crea la transferencia."
           },
           "fromTransferGroupId": {
             "type": "string"
@@ -7530,7 +7565,8 @@
             "example": "DOP"
           },
           "targetDate": {
-            "type": "string"
+            "type": "string",
+            "nullable": true
           },
           "spendReducesProgress": {
             "type": "boolean",

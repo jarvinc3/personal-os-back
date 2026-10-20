@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "a59ad6b2-3a3b-45e2-988c-ff6d0d2ad5a0",
+  "status": "current",
+  "command": "deliver",
+  "type": "erd",
+  "input": "/home/jarvinc/projects/personal-os-workspace/personal-os-back/.archify/erd-finanzas-20261020-111756/candidate.json",
+  "output": "/home/jarvinc/projects/personal-os-workspace/personal-os-back/.archify/erd-finanzas-20261020-111756/finanzas.html",
+  "specification": {
+    "sha256": "e1a23243615f92a236ef640856c0944779feb8d1bd0df275766413a3e9642530",
+    "bytes": 15601
+  },
+  "artifact": {
+    "sha256": "d399b4c914df4ca961b0b419e469d091397711ade4741c04937dabb851cd92e4",
+    "bytes": 886529
+  }
+}

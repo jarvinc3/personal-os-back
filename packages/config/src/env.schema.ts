@@ -81,9 +81,14 @@ export const envSchema = z
     GOOGLE_CLIENT_SECRET: z.string().min(1, 'GOOGLE_CLIENT_SECRET is required'),
     GOOGLE_REDIRECT_URI: z.url('GOOGLE_REDIRECT_URI must be a valid URL'),
 
+    /** Encrypts Gmail OAuth tokens at rest. */
     ENCRYPTION_KEY: z
       .string()
       .min(32, 'ENCRYPTION_KEY must be at least 32 chars'),
+    /** Encrypts bank account numbers at rest; unrelated to Gmail tokens. */
+    DATA_ENCRYPTION_KEY: z
+      .string()
+      .min(32, 'DATA_ENCRYPTION_KEY must be at least 32 chars'),
     OAUTH_STATE_SECRET: z
       .string()
       .min(32, 'OAUTH_STATE_SECRET must be at least 32 chars')
@@ -117,6 +122,21 @@ export const envSchema = z
           message:
             'CORS_ORIGIN must be one or more valid URLs separated by commas',
         },
+      ),
+    /**
+     * Base URL of the public web app used to build links shared with other
+     * people (`<PUBLIC_WEB_URL>/c/<token>`). Falls back to the first
+     * CORS_ORIGIN entry when unset.
+     */
+    PUBLIC_WEB_URL: z
+      .string()
+      .optional()
+      .transform((value) => {
+        const trimmed = value?.trim();
+        return trimmed || undefined;
+      })
+      .pipe(
+        z.union([z.url('PUBLIC_WEB_URL must be a valid URL'), z.undefined()]),
       ),
     REDIS_URL: z
       .string()

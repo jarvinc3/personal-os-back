@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "waterfall",
+  "quality": "showcase",
+  "specification": {
+    "path": "/home/jarvinc/projects/personal-os-workspace/personal-os-back/.archify/waterfall-resumen-semanal-20261020-111640/candidate.json",
+    "sha256": "ed4823c9ea442dac41f966b6865995d3b8c3a0750a2c665abd6eac8bf2df414c",
+    "bytes": 3912
+  },
+  "artifact": {
+    "path": "/home/jarvinc/projects/personal-os-workspace/personal-os-back/.archify/waterfall-resumen-semanal-20261020-111640/resumen-semanal.html",
+    "sha256": "904993481503115193b344a59383618415f73bc68ba777d427b8f15abef0b841",
+    "bytes": 828788
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "pass"
+  },
+  "diagnostics": [],
+  "diagnosticSummary": {
+    "total": 0,
+    "shown": 0,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "/home/jarvinc/projects/personal-os-workspace/personal-os-back/.archify/waterfall-resumen-semanal-20261020-111640/resumen-semanal.finalize.json",
+    "summaryReceipt": "/home/jarvinc/projects/personal-os-workspace/personal-os-back/.archify/waterfall-resumen-semanal-20261020-111640/resumen-semanal.finalize-summary.json",
+    "browserCheckReceipt": "/home/jarvinc/projects/personal-os-workspace/personal-os-back/.archify/waterfall-resumen-semanal-20261020-111640/resumen-semanal.browser-check.json"
+  },
+  "update": {
+    "status": "current",
+    "installedVersion": "3.2.0",
+    "availableVersion": "3.2.0",
+    "releaseNotes": null,
+    "checkedAt": "2026-10-20T14:40:23.511Z",
+    "source": "cache",
+    "noticeRequired": false,
+    "noticeText": null
+  },
+  "visualReview": "not-requested",
+  "durationMs": 13556,
+  "browserCheck": {
+    "requested": true,
+    "ran": true
+  }
+}

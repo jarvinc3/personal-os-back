@@ -5,13 +5,39 @@ import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import 'dotenv/config';
-import { writeFileSync } from 'fs';
+import { existsSync, writeFileSync } from 'fs';
 import helmet from 'helmet';
 import { join } from 'path';
 import { AppModule } from './app.module';
 import { appVersion } from './app-version';
 import { isBullMqEnabled } from '@personal-os/config';
 import type { Env } from '@personal-os/config';
+
+const DIAGRAMS_DIR = '.archify';
+const DIAGRAMS_URL_PATH = 'docs/diagramas';
+
+type MountDiagramAssetsInput = {
+  app: NestExpressApplication;
+  logger: Logger;
+  port: number;
+};
+
+function mountDiagramAssets({
+  app,
+  logger,
+  port,
+}: MountDiagramAssetsInput): void {
+  const diagramsDir = join(process.cwd(), DIAGRAMS_DIR);
+  if (!existsSync(diagramsDir)) {
+    logger.warn(
+      `No diagrams found in ${diagramsDir}; /${DIAGRAMS_URL_PATH} stays unmounted.`,
+    );
+    return;
+  }
+
+  app.useStaticAssets(diagramsDir, { prefix: `/${DIAGRAMS_URL_PATH}` });
+  logger.log(`Diagrams: http://0.0.0.0:${port}/${DIAGRAMS_URL_PATH}/`);
+}
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
@@ -81,6 +107,12 @@ async function bootstrap() {
     `http://localhost:${port}`,
     `http://127.0.0.1:${port}`,
   ];
+
+  // Diagrams are static documentation: mounted before CORS so a plain browser
+  // navigation, which sends no Origin, can open them.
+  if (!isProduction) {
+    mountDiagramAssets({ app, logger, port });
+  }
 
   app.enableCors({
     origin: isProduction

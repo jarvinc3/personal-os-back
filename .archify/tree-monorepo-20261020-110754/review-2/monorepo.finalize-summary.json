@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "tree",
+  "quality": "showcase",
+  "specification": {
+    "path": "/home/jarvinc/projects/personal-os-workspace/personal-os-back/.archify/tree-monorepo-20261020-110754/candidate.json",
+    "sha256": "735e05acc802e92e7b7d8d2c690f7769d4084a166e09582b51aabb27ed128e60",
+    "bytes": 4559
+  },
+  "artifact": {
+    "path": "/home/jarvinc/projects/personal-os-workspace/personal-os-back/.archify/tree-monorepo-20261020-110754/monorepo.html",
+    "sha256": "6b01302c5062326169702e2c2c2b806c6c1b0a44a70dc82660fba447b557a5c6",
+    "bytes": 833257
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "pass"
+  },
+  "diagnostics": [],
+  "diagnosticSummary": {
+    "total": 0,
+    "shown": 0,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "/home/jarvinc/projects/personal-os-workspace/personal-os-back/.archify/tree-monorepo-20261020-110754/review-2/monorepo.finalize.json",
+    "summaryReceipt": "/home/jarvinc/projects/personal-os-workspace/personal-os-back/.archify/tree-monorepo-20261020-110754/review-2/monorepo.finalize-summary.json",
+    "browserCheckReceipt": "/home/jarvinc/projects/personal-os-workspace/personal-os-back/.archify/tree-monorepo-20261020-110754/review-2/monorepo.browser-check.json"
+  },
+  "update": {
+    "status": "current",
+    "installedVersion": "3.2.0",
+    "availableVersion": "3.2.0",
+    "releaseNotes": null,
+    "checkedAt": "2026-10-20T14:40:23.511Z",
+    "source": "cache",
+    "noticeRequired": false,
+    "noticeText": null
+  },
+  "visualReview": "not-requested",
+  "durationMs": 5687,
+  "browserCheck": {
+    "requested": true,
+    "ran": true
+  }
+}

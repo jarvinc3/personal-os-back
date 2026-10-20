@@ -269,7 +269,7 @@ describe('SubscriptionsService.upcoming', () => {
         account: {
           id: 'acc-1',
           name: 'Cuenta Popular',
-          accountNumber: '00012345678',
+          accountNumberLast4: '5678',
           color: null,
           institutionRef: null,
         },

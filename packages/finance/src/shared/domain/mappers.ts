@@ -23,6 +23,8 @@ type NotificationTransactionRow = {
   source: string;
   type: string;
   merchant: string | null;
+  transferGroupId: string | null;
+  legRole: string | null;
   account: { name: string } | null;
   card: { name: string } | null;
   category: { name: string; icon: string | null; color: string | null } | null;
@@ -43,6 +45,8 @@ export function notificationTransactionPayload(
     source: row.source,
     type: row.type,
     merchant: row.merchant,
+    transferGroupId: row.transferGroupId,
+    legRole: row.legRole,
     accountName: row.account?.name ?? null,
     cardName: row.card?.name ?? null,
     categoryName: row.category?.name ?? null,

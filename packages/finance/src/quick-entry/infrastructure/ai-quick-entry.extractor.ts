@@ -134,8 +134,8 @@ export class AiQuickEntryExtractor implements QuickEntryExtractorPort {
         [
           account.name,
           account.institutionName,
-          account.accountNumber
-            ? `terminada en ${account.accountNumber.slice(-4)}`
+          account.accountNumberLast4
+            ? `terminada en ${account.accountNumberLast4}`
             : null,
           account.currency,
         ]

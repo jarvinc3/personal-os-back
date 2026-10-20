@@ -1,0 +1,170 @@
+{
+  "schema_version": 3,
+  "diagram_type": "lifecycle",
+  "meta": {
+    "title": "Cómo cambia el estado de cuenta de una tarjeta",
+    "locale": "es",
+    "output": ".archify/lifecycle-estado-cuenta-20261020-110935/estado-cuenta.html",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/jarvinc3/personal-os-back.git",
+      "provider": "github",
+      "revision": "b2d61c4cc9f4e853387445e1e4dfde927c1a3c1b"
+    }
+  },
+  "mainPath": ["open", "closed", "partial", "minimum", "paid"],
+  "states": [
+    {
+      "id": "open",
+      "type": "start",
+      "label": "Ciclo abierto",
+      "sublabel": "hasta la fecha de cierre",
+      "tag": "OPEN",
+      "sources": [
+        { "path": "packages/finance/src/statements/domain/card-statement-views.ts", "line": 58, "end_line": 60 }
+      ]
+    },
+    {
+      "id": "closed",
+      "type": "waiting",
+      "label": "Cerrado sin pagos",
+      "sublabel": "espera el pago del cliente",
+      "tag": "CLOSED",
+      "sources": [
+        { "path": "packages/finance/src/statements/domain/card-statement-views.ts", "line": 74, "end_line": 77 }
+      ]
+    },
+    {
+      "id": "partial",
+      "type": "active",
+      "label": "Pago parcial",
+      "sublabel": "abonó algo, no el mínimo",
+      "tag": "PARTIAL",
+      "sources": [
+        { "path": "packages/finance/src/statements/domain/card-statement-views.ts", "line": 74, "end_line": 76 }
+      ]
+    },
+    {
+      "id": "minimum",
+      "type": "active",
+      "label": "Mínimo cubierto",
+      "sublabel": "sigue debiendo el resto",
+      "tag": "MINIMUM_PAID",
+      "sources": [
+        { "path": "packages/finance/src/statements/domain/card-statement-views.ts", "line": 71, "end_line": 73 }
+      ]
+    },
+    {
+      "id": "paid",
+      "type": "success",
+      "label": "Pagado",
+      "sublabel": "sin saldo o cubierto entero",
+      "tag": "PAID",
+      "sources": [
+        { "path": "packages/finance/src/statements/domain/card-statement-views.ts", "line": 61, "end_line": 63 }
+      ]
+    },
+    {
+      "id": "overdue",
+      "type": "failure",
+      "label": "Vencido",
+      "sublabel": "pasó el vencimiento sin el mínimo",
+      "tag": "OVERDUE",
+      "sources": [
+        { "path": "packages/finance/src/statements/domain/card-statement-views.ts", "line": 64, "end_line": 70 }
+      ]
+    }
+  ],
+  "transitions": [
+    {
+      "id": "cierra",
+      "from": "open",
+      "to": "closed",
+      "label": "cierre",
+      "note": "El saldo queda fijo"
+    },
+    {
+      "id": "abono",
+      "from": "closed",
+      "to": "partial",
+      "label": "abono",
+      "variant": "default"
+    },
+    {
+      "id": "minimo",
+      "from": "partial",
+      "to": "minimum",
+      "label": "mínimo",
+      "variant": "default"
+    },
+    {
+      "id": "saldo",
+      "from": "minimum",
+      "to": "paid",
+      "label": "saldo",
+      "variant": "emphasis"
+    },
+    {
+      "id": "total",
+      "from": "closed",
+      "to": "paid",
+      "label": "pago total",
+      "variant": "emphasis"
+    },
+    {
+      "id": "vence-sin-pago",
+      "from": "closed",
+      "to": "overdue",
+      "label": "vence",
+      "variant": "security"
+    },
+    {
+      "id": "vence-corto",
+      "from": "partial",
+      "to": "overdue",
+      "label": "vence sin mínimo",
+      "variant": "security"
+    },
+    {
+      "id": "tarde-minimo",
+      "from": "overdue",
+      "to": "minimum",
+      "label": "mínimo tarde",
+      "variant": "default"
+    },
+    {
+      "id": "tarde-total",
+      "from": "overdue",
+      "to": "paid",
+      "label": "saldo tarde",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "El estado se calcula, no se guarda",
+      "items": [
+        "Cada lectura compara cierre, vencimiento, mínimo y pagos",
+        "El pagado se cuenta dentro de la ventana entre cierre y vencimiento",
+        "Si el mínimo no vino importado, se estima 1/36 del saldo de cierre"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Qué lo mueve hacia atrás",
+      "items": [
+        "Borrar o revertir un pago baja lo pagado y el estado retrocede en la siguiente lectura",
+        "El estado no se escribe en ninguna tabla"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Orden de las reglas",
+      "items": [
+        "Primero gana ciclo abierto; luego saldo pagado; después vencido",
+        "Recién entonces se mira mínimo y pago parcial"
+      ]
+    }
+  ]
+}

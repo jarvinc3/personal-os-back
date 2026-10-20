@@ -1,0 +1,300 @@
+{
+  "schema_version": 1,
+  "diagram_type": "class",
+  "meta": {
+    "title": "Los contratos que escriben un movimiento",
+    "locale": "es",
+    "output": ".archify/class-ledger-20261020-111506/ledger.html",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/jarvinc3/personal-os-back.git",
+      "provider": "github",
+      "revision": "b2d61c4cc9f4e853387445e1e4dfde927c1a3c1b"
+    }
+  },
+  "layout": {
+    "mode": "grid"
+  },
+  "types": [
+    {
+      "id": "import_uc",
+      "label": "ImportEmailTransactionUseCase",
+      "kind": "class",
+      "sublabel": "arma y guarda el movimiento",
+      "row": 1,
+      "col": 2,
+      "attributes": [
+        {
+          "name": "repo",
+          "type": "LedgerRepositoryPort",
+          "visibility": "private"
+        },
+        {
+          "name": "resolveAmounts",
+          "type": "ResolveAmountsUseCase",
+          "visibility": "private"
+        },
+        {
+          "name": "baseCurrency",
+          "type": "ResolveUserBaseCurrencyUseCase",
+          "visibility": "private"
+        }
+      ],
+      "methods": [
+        {
+          "name": "execute",
+          "parameters": "userId, data",
+          "returns": "ImportResult",
+          "visibility": "public"
+        },
+        {
+          "name": "executeAtmWithdrawal",
+          "parameters": "userId, data",
+          "returns": "ImportResult",
+          "visibility": "public"
+        },
+        {
+          "name": "executeUnpairedTransfer",
+          "parameters": "userId, data",
+          "returns": "ImportResult",
+          "visibility": "public"
+        }
+      ],
+      "sources": [
+        {
+          "path": "packages/finance/src/ledger/application/import-email-transaction.use-case.ts",
+          "line": 45,
+          "end_line": 54
+        }
+      ]
+    },
+    {
+      "id": "resolve_amounts",
+      "label": "ResolveAmountsUseCase",
+      "kind": "class",
+      "sublabel": "convierte monto y moneda",
+      "row": 0,
+      "col": 2,
+      "attributes": [
+        {
+          "name": "rates",
+          "type": "ExchangeRatePort",
+          "visibility": "private"
+        }
+      ],
+      "methods": [
+        {
+          "name": "execute",
+          "parameters": "amount, currencies, date",
+          "returns": "ResolvedAmounts",
+          "visibility": "public"
+        },
+        {
+          "name": "toBaseCurrency",
+          "parameters": "amount, currency, base, asOf",
+          "returns": "Decimal",
+          "visibility": "public"
+        },
+        {
+          "name": "toBaseCurrencyOrNull",
+          "parameters": "amount, currency, base, asOf",
+          "returns": "Decimal | null",
+          "visibility": "public"
+        }
+      ],
+      "sources": [
+        {
+          "path": "packages/finance/src/fx/application/resolve-amounts.use-case.ts",
+          "line": 13,
+          "end_line": 46
+        }
+      ]
+    },
+    {
+      "id": "base_currency",
+      "label": "ResolveUserBaseCurrencyUseCase",
+      "kind": "class",
+      "sublabel": "config del módulo o env",
+      "row": 0,
+      "col": 3,
+      "methods": [
+        {
+          "name": "execute",
+          "parameters": "userId",
+          "returns": "string",
+          "visibility": "public"
+        }
+      ],
+      "sources": [
+        {
+          "path": "packages/finance/src/fx/application/resolve-user-base-currency.ts",
+          "line": 22,
+          "end_line": 50
+        }
+      ]
+    },
+    {
+      "id": "ledger_port",
+      "label": "LedgerRepositoryPort",
+      "kind": "interface",
+      "sublabel": "lo que el ledger necesita de la base",
+      "row": 1,
+      "col": 1,
+      "methods": [
+        {
+          "name": "findTransactions",
+          "parameters": "userId, query",
+          "returns": "LedgerTransactionRow[]",
+          "visibility": "public",
+          "abstract": true
+        },
+        {
+          "name": "findTransactionByEmailMessageId",
+          "parameters": "gmailMessageId, userId",
+          "returns": "LedgerTransactionRow | null",
+          "visibility": "public",
+          "abstract": true
+        },
+        {
+          "name": "createTransaction",
+          "parameters": "data",
+          "returns": "LedgerTransactionRow",
+          "visibility": "public",
+          "abstract": true
+        }
+      ],
+      "sources": [
+        {
+          "path": "packages/finance/src/ledger/application/ports/ledger.repository.port.ts",
+          "line": 108,
+          "end_line": 117
+        }
+      ]
+    },
+    {
+      "id": "prisma_repo",
+      "label": "PrismaLedgerRepository",
+      "kind": "class",
+      "sublabel": "cumple el puerto con Prisma",
+      "row": 1,
+      "col": 0,
+      "sources": [
+        {
+          "path": "packages/finance/src/ledger/infrastructure/prisma-ledger.repository.ts",
+          "line": 149,
+          "end_line": 160
+        }
+      ]
+    },
+    {
+      "id": "rate_port",
+      "label": "ExchangeRatePort",
+      "kind": "interface",
+      "sublabel": "tasas históricas y de respaldo",
+      "row": 0,
+      "col": 1,
+      "methods": [
+        {
+          "name": "getHistoricalRate",
+          "parameters": "from, to, date",
+          "returns": "ExchangeRateResult",
+          "visibility": "public",
+          "abstract": true
+        },
+        {
+          "name": "getLatestRateOnOrBefore",
+          "parameters": "from, to, date",
+          "returns": "ExchangeRateResult",
+          "visibility": "public",
+          "abstract": true
+        }
+      ],
+      "sources": [
+        {
+          "path": "packages/finance/src/fx/application/ports/exchange-rate.port.ts",
+          "line": 12,
+          "end_line": 22
+        }
+      ]
+    },
+    {
+      "id": "rate_adapter",
+      "label": "ExchangeRateHostAdapter",
+      "kind": "class",
+      "sublabel": "exchangerate.host con caché",
+      "row": 0,
+      "col": 0,
+      "sources": [
+        {
+          "path": "packages/finance/src/fx/infrastructure/exchange-rate-host.adapter.ts",
+          "line": 44,
+          "end_line": 60
+        }
+      ]
+    }
+  ],
+  "relationships": [
+    {
+      "id": "adapter-realizes",
+      "from": "rate_adapter",
+      "to": "rate_port",
+      "kind": "realization"
+    },
+    {
+      "id": "amounts-uses-rates",
+      "from": "resolve_amounts",
+      "to": "rate_port",
+      "kind": "dependency"
+    },
+    {
+      "id": "import-uses-amounts",
+      "from": "import_uc",
+      "to": "resolve_amounts",
+      "kind": "dependency"
+    },
+    {
+      "id": "import-uses-base",
+      "from": "import_uc",
+      "to": "base_currency",
+      "kind": "dependency"
+    },
+    {
+      "id": "import-uses-ledger",
+      "from": "import_uc",
+      "to": "ledger_port",
+      "kind": "dependency"
+    },
+    {
+      "id": "prisma-realizes",
+      "from": "prisma_repo",
+      "to": "ledger_port",
+      "kind": "realization"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Por qué hay puertos",
+      "items": [
+        "El caso de uso no conoce Prisma ni el proveedor de tasas",
+        "Las pruebas sustituyen ambos puertos sin levantar base ni red"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Quién decide la moneda base",
+      "items": [
+        "La configuración del módulo finance manda",
+        "Si no hay código ISO válido, responde BASE_CURRENCY del entorno"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Conversión sin sorpresas",
+      "items": [
+        "Se resuelve la tasa del día exacto, no la de hoy",
+        "Sin tasa no se escribe el movimiento"
+      ]
+    }
+  ]
+}

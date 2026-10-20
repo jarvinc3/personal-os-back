@@ -401,6 +401,7 @@ describe('AiAgentRunner', () => {
     expect(toolExecutor.execute).not.toHaveBeenCalled();
     expect(actionsService.createPendingAction).toHaveBeenCalledWith({
       sessionId: 'session-1',
+      userId: 'user-1',
       actionType: 'update_user_preferences',
       payload: { theme: 'dark' },
     });

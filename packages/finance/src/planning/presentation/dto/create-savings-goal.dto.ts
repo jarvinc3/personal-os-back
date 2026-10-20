@@ -41,10 +41,10 @@ export class CreateSavingsGoalDto {
   @CurrencyField()
   currency?: string;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({ nullable: true, type: String })
   @IsOptional()
   @IsDateString()
-  targetDate?: string;
+  targetDate?: string | null;
 
   @ApiPropertyOptional()
   @IsOptional()

@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "41dbb5fa-9921-4947-a133-334d56005ed3",
+  "status": "current",
+  "command": "deliver",
+  "type": "architecture",
+  "input": "/home/jarvinc/projects/personal-os-workspace/personal-os-back/.archify/architecture-sistema-20261020-111223/candidate.json",
+  "output": "/home/jarvinc/projects/personal-os-workspace/personal-os-back/.archify/architecture-sistema-20261020-111223/sistema.html",
+  "specification": {
+    "sha256": "56d900539c8bddd380c070671176deaa368a08a2acd4c6b7f768e06326d26322",
+    "bytes": 6212
+  },
+  "artifact": {
+    "sha256": "e7c2f859f5889d30cfbb9ac8e5b4aa3f9c699f21ad5f53060a25782f539fb4bb",
+    "bytes": 837285
+  }
+}

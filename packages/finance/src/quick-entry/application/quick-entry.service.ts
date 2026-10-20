@@ -76,7 +76,7 @@ function resolveAccount(
       const label = normalize(
         [account.name, account.institutionName].filter(Boolean).join(' '),
       );
-      const accountDigits = digitsOf(account.accountNumber);
+      const accountDigits = digitsOf(account.accountNumberLast4);
       const textMatch = label.includes(needle) ? 2 : 0;
       const digitMatch =
         needleDigits.length >= MIN_MATCH_DIGITS &&
@@ -190,7 +190,7 @@ export class QuickEntryService {
         id: account.id,
         name: account.name,
         institutionName: account.institutionName,
-        accountNumber: account.accountNumber,
+        accountNumberLast4: account.accountNumberLast4,
         currency: account.currency,
       }),
     );

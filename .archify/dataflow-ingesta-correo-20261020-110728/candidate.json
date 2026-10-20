@@ -1,0 +1,241 @@
+{
+  "schema_version": 1,
+  "diagram_type": "dataflow",
+  "meta": {
+    "title": "De un correo del banco a la pantalla",
+    "locale": "es",
+    "output": ".archify/dataflow-ingesta-correo-20261020-110728/ingesta-correo.html",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/jarvinc3/personal-os-back.git",
+      "provider": "github",
+      "revision": "b2d61c4cc9f4e853387445e1e4dfde927c1a3c1b"
+    }
+  },
+  "stages": [
+    { "label": "Buzón" },
+    { "label": "Extracción" },
+    { "label": "Registro" },
+    { "label": "Lectura" },
+    { "label": "Pantallas" }
+  ],
+  "nodes": [
+    {
+      "id": "gmail",
+      "type": "external",
+      "label": "Buzón Gmail",
+      "sublabel": "correos del banco",
+      "tag": "API Gmail",
+      "stage": 0,
+      "row": 2,
+      "sources": [
+        {
+          "path": "packages/finance/src/ingestion/infrastructure/gmail-api.util.ts",
+          "line": 106,
+          "end_line": 131
+        }
+      ]
+    },
+    {
+      "id": "ia",
+      "type": "cloud",
+      "label": "Proveedor de IA",
+      "sublabel": "Groq, Cerebras u OpenRouter",
+      "tag": "devuelve JSON",
+      "stage": 1,
+      "row": 0,
+      "sources": [
+        {
+          "path": "packages/ai-agent/src/ai-core.module.ts",
+          "line": 20,
+          "end_line": 46
+        },
+        {
+          "path": "packages/finance/src/ingestion/infrastructure/ai-email-transaction.extractor.ts",
+          "line": 185,
+          "end_line": 189
+        }
+      ]
+    },
+    {
+      "id": "extraccion",
+      "type": "backend",
+      "label": "Extracción del correo",
+      "sublabel": "descarga, deduplica y clasifica",
+      "tag": "job de sync",
+      "stage": 1,
+      "row": 2,
+      "sources": [
+        {
+          "path": "packages/finance/src/ingestion/application/process-gmail-sync.use-case.ts",
+          "line": 158,
+          "end_line": 167
+        },
+        {
+          "path": "packages/finance/src/ingestion/infrastructure/gmail-api.util.ts",
+          "line": 106,
+          "end_line": 131
+        }
+      ]
+    },
+    {
+      "id": "tasas",
+      "type": "external",
+      "label": "Tasas de cambio",
+      "sublabel": "exchangerate.host",
+      "tag": "por fecha",
+      "stage": 2,
+      "row": 0,
+      "sources": [
+        {
+          "path": "packages/finance/src/fx/infrastructure/exchange-rate-host.adapter.ts",
+          "line": 218,
+          "end_line": 231
+        }
+      ]
+    },
+    {
+      "id": "ledger",
+      "type": "backend",
+      "label": "Ledger",
+      "sublabel": "movimiento, saldo y presupuesto",
+      "tag": "una transacción",
+      "stage": 2,
+      "row": 2,
+      "sources": [
+        {
+          "path": "packages/finance/src/ledger/application/import-email-transaction.use-case.ts",
+          "line": 56,
+          "end_line": 70
+        },
+        {
+          "path": "packages/finance/src/ledger/infrastructure/balance.helpers.ts",
+          "line": 23,
+          "end_line": 35
+        }
+      ]
+    },
+    {
+      "id": "postgres",
+      "type": "database",
+      "label": "PostgreSQL",
+      "sublabel": "tablas Fin* vía Prisma",
+      "tag": "escribe y lee",
+      "stage": 2,
+      "row": 4,
+      "sources": [
+        {
+          "path": "packages/database/prisma/schema.prisma",
+          "line": 286,
+          "end_line": 292
+        },
+        {
+          "path": "packages/database/prisma/schema.prisma",
+          "line": 386,
+          "end_line": 392
+        }
+      ]
+    },
+    {
+      "id": "api",
+      "type": "backend",
+      "label": "API de lectura",
+      "sublabel": "GET /finance/analytics",
+      "tag": "NestJS",
+      "stage": 3,
+      "row": 4,
+      "sources": [
+        {
+          "path": "packages/finance/src/analytics/presentation/analytics.controller.ts",
+          "line": 18,
+          "end_line": 24
+        }
+      ]
+    },
+    {
+      "id": "web",
+      "type": "frontend",
+      "label": "Pantallas Next.js",
+      "sublabel": "resumen semanal en la app",
+      "tag": "React Query",
+      "stage": 4,
+      "row": 4
+    }
+  ],
+  "flows": [
+    {
+      "id": "correos",
+      "from": "gmail",
+      "to": "extraccion",
+      "label": "correos del banco",
+      "variant": "emphasis"
+    },
+    {
+      "id": "json",
+      "from": "ia",
+      "to": "extraccion",
+      "label": "JSON validado"
+    },
+    {
+      "id": "movimiento",
+      "from": "extraccion",
+      "to": "ledger",
+      "label": "movimiento extraído",
+      "variant": "emphasis"
+    },
+    {
+      "id": "tasa",
+      "from": "tasas",
+      "to": "ledger",
+      "label": "tasa del día"
+    },
+    {
+      "id": "asiento",
+      "from": "ledger",
+      "to": "postgres",
+      "label": "movimiento y saldo",
+      "variant": "emphasis"
+    },
+    {
+      "id": "totales",
+      "from": "postgres",
+      "to": "api",
+      "label": "movimientos y presupuestos"
+    },
+    {
+      "id": "pantalla",
+      "from": "api",
+      "to": "web",
+      "label": "resumen semanal"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "Disparo y cola",
+      "items": [
+        "El sync corre en la cola gmail-sync (BullMQ sobre Redis), un job por origen con jobId deduplicado",
+        "Lo encola el planificador automático o el botón de la pantalla de sincronización",
+        "Sin Redis disponible el endpoint responde que el job no se encoló"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "Extracción con IA",
+      "items": [
+        "El cuerpo del correo se recorta y viaja con las categorías del usuario; el modelo devuelve JSON",
+        "Si no hay JSON válido, el movimiento se arma con reglas sobre el texto del correo",
+        "Un correo repetido se descarta por huella antes de llamar al modelo"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Qué guarda el registro",
+      "items": [
+        "Monto original, monto aplicado al saldo y monto en moneda base",
+        "El saldo de la cuenta o tarjeta solo se mueve con movimientos confirmados",
+        "El presupuesto suma gastado y avisa al cruzar su umbral"
+      ]
+    }
+  ]
+}

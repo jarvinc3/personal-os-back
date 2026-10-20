@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "60c94f88-7c3c-41ea-9cd7-8e0e9ea05b93",
+  "status": "current",
+  "command": "deliver",
+  "type": "workflow",
+  "input": "/home/jarvinc/projects/personal-os-workspace/personal-os-back/.archify/workflow-sync-gmail-20261020-111143/candidate.json",
+  "output": "/home/jarvinc/projects/personal-os-workspace/personal-os-back/.archify/workflow-sync-gmail-20261020-111143/sync-gmail.html",
+  "specification": {
+    "sha256": "5f9ab371b4a8407aad41b5e06ce999c3e14eb5be7239b3e169d2cb33fa344940",
+    "bytes": 6242
+  },
+  "artifact": {
+    "sha256": "046d2166710be3d28b5f33ec1af3098b1dd796db8c214879a975ee64ab71f617",
+    "bytes": 829660
+  }
+}

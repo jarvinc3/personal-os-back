@@ -19,12 +19,14 @@ import {
   transactionPendingCopy,
   transactionRecordedCopy,
   transactionUpdatedCopy,
+  transferRecordedCopy,
   weeklySummaryCopy,
   type NotificationCopy,
 } from '../domain/notification-copy';
 import { NotificationsService } from './notifications.service';
 
 const FINANCE_MODULE_SLUG = 'finance';
+const TRANSFER_SOURCE_LEG = 'SOURCE';
 
 type FinanceTxEvent = {
   eventId?: string;
@@ -34,6 +36,8 @@ type FinanceTxEvent = {
   currency?: string;
   status?: string;
   source?: string;
+  transferGroupId?: string | null;
+  legRole?: string | null;
   type?: string;
   merchant?: string | null;
   accountName?: string | null;
@@ -176,6 +180,11 @@ export class NotificationsEventsListener {
     }
 
     if (event.status !== 'CONFIRMED') {
+      return;
+    }
+
+    if (event.transferGroupId) {
+      await this.notifyTransfer(event);
       return;
     }
 
@@ -483,6 +492,28 @@ export class NotificationsEventsListener {
         patternId: event.patternId,
       },
     });
+  }
+
+  /**
+   * A transfer moves money between the user's own accounts: it notifies once,
+   * from the source leg, instead of once per leg.
+   */
+  private async notifyTransfer(event: FinanceTxEvent): Promise<void> {
+    if (event.legRole !== TRANSFER_SOURCE_LEG || !event.transferGroupId) {
+      return;
+    }
+    const claimed = await this.idempotency.tryClaim(
+      event.transferGroupId,
+      `${NotificationsEventsListener.CONSUMER}:transfer`,
+    );
+    if (!claimed) {
+      return;
+    }
+    await this.createTransactionNotification(
+      event,
+      'transaction.transfer',
+      transferRecordedCopy(this.transactionNotificationFields(event)),
+    );
   }
 
   private transactionNotificationFields(event: FinanceTxEvent) {

@@ -397,8 +397,8 @@ describe('IngestionService.completePendingAmount', () => {
     });
     repo.listInstitutionDestinations.mockResolvedValue([
       [
-        { id: 'acc-1', accountNumber: '001122335678' },
-        { id: 'acc-2', accountNumber: '998877440000' },
+        { id: 'acc-1', accountNumberLast4: '5678' },
+        { id: 'acc-2', accountNumberLast4: '0000' },
       ],
       [],
     ]);

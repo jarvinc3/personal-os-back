@@ -9,7 +9,7 @@ export type EmailLedgerTargetMatch =
 
 export type EmailLedgerAccount = {
   id: string;
-  accountNumber: string | null;
+  accountNumberLast4: string | null;
   isDefaultForInstitution?: boolean;
 };
 
@@ -19,10 +19,10 @@ export type EmailLedgerCard = {
 };
 
 export function accountMatchesHint(
-  accountNumber: string | null,
+  accountNumberLast4: string | null,
   hint: string | null,
 ): boolean {
-  const account = digitsOnly(accountNumber);
+  const account = digitsOnly(accountNumberLast4);
   const needle = digitsOnly(hint);
   if (!needle) {
     return true;
@@ -33,13 +33,10 @@ export function accountMatchesHint(
   if (account === needle) {
     return true;
   }
-  if (needle.length >= 4 && account.endsWith(needle)) {
+  if (account.endsWith(needle)) {
     return true;
   }
-  if (account.length >= 4 && needle.endsWith(account)) {
-    return true;
-  }
-  return false;
+  return needle.endsWith(account);
 }
 
 export function resolveEmailLedgerTarget(params: {
@@ -115,7 +112,7 @@ function matchAccounts(
 ): Array<{ accountId: string }> {
   const hint = accountHint ?? lastFourFallback;
   return accounts
-    .filter((row) => accountMatchesHint(row.accountNumber, hint))
+    .filter((row) => accountMatchesHint(row.accountNumberLast4, hint))
     .map((row) => ({ accountId: row.id }));
 }
 

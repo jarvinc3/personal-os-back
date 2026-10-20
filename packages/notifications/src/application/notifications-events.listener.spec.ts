@@ -50,6 +50,64 @@ describe('NotificationsEventsListener', () => {
     ]);
   });
 
+  it('notifies a transfer once, from the source leg', async () => {
+    await listener.onFinanceTransactionCreated({
+      userId: 'user-1',
+      transactionId: 'tx-transfer-out',
+      amount: 500,
+      status: 'CONFIRMED',
+      source: 'MANUAL',
+      transferGroupId: 'group-1',
+      legRole: 'SOURCE',
+      accountName: 'Cuenta principal',
+      eventId: 'evt-transfer-out',
+    });
+
+    expect(create).toHaveBeenCalledTimes(1);
+    expect(create.mock.calls[0]?.[1]).toEqual(
+      expect.objectContaining({
+        type: 'transaction.transfer',
+        title: 'Transferencia registrada',
+      }),
+    );
+    expect(tryClaim).toHaveBeenCalledWith(
+      'group-1',
+      expect.stringContaining(':transfer'),
+    );
+  });
+
+  it('skips the destination leg of a transfer', async () => {
+    await listener.onFinanceTransactionCreated({
+      userId: 'user-1',
+      transactionId: 'tx-transfer-in',
+      amount: 500,
+      status: 'CONFIRMED',
+      source: 'MANUAL',
+      transferGroupId: 'group-1',
+      legRole: 'DESTINATION',
+      accountName: 'Cuenta ahorro',
+      eventId: 'evt-transfer-in',
+    });
+
+    expect(create).not.toHaveBeenCalled();
+  });
+
+  it('skips a transfer whose group was already notified', async () => {
+    tryClaim.mockResolvedValueOnce(true).mockResolvedValueOnce(false);
+
+    await listener.onFinanceTransactionCreated({
+      userId: 'user-1',
+      transactionId: 'tx-transfer-out',
+      amount: 500,
+      status: 'CONFIRMED',
+      transferGroupId: 'group-1',
+      legRole: 'SOURCE',
+      eventId: 'evt-transfer-out',
+    });
+
+    expect(create).not.toHaveBeenCalled();
+  });
+
   it('uses pending import message for EMAIL PENDING', async () => {
     await listener.onFinanceTransactionCreated({
       userId: 'user-1',

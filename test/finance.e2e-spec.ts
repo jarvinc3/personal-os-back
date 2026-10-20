@@ -225,7 +225,7 @@ describe('Finance (e2e)', () => {
       name: 'Savings',
       type: 'SAVINGS',
       institutionId,
-      accountNumber: '12345678',
+      accountNumberLast4: '5678',
       currency: 'DOP',
       balance: { toString: () => '0.00' },
       color: '#fff',
@@ -1414,6 +1414,12 @@ describe('Finance (e2e)', () => {
           installmentNo: 1,
           dueDate: new Date('2026-01-01'),
           amount: 100,
+          principal: 80,
+          interest: 15,
+          insurance: 3,
+          fees: 1,
+          lateFee: 0,
+          paidAmount: 0,
         },
         {
           id: 'inst-2',
@@ -1440,6 +1446,14 @@ describe('Finance (e2e)', () => {
     expect(firstPage.body.data.items).toHaveLength(1);
     expect(firstPage.body.data.items[0].id).toBe('inst-1');
     expect(firstPage.body.data.items[0].amount).toBe('100');
+    expect(firstPage.body.data.items[0]).toMatchObject({
+      principal: '80',
+      interest: '15',
+      insurance: '3',
+      fees: '1',
+      lateFee: '0',
+      paidAmount: '0',
+    });
     expect(firstPage.body.data.hasMore).toBe(true);
     expect(typeof firstPage.body.data.nextCursor).toBe('string');
 

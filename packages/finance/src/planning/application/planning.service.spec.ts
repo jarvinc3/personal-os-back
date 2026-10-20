@@ -359,3 +359,51 @@ describe('PlanningService archive and receivables', () => {
     });
   });
 });
+
+describe('PlanningService savings goal updates', () => {
+  const now = new Date('2026-09-15T12:00:00.000Z');
+  const updateSavingsGoal = jest.fn();
+  const findSavingsGoal = jest.fn().mockResolvedValue({
+    id: 'goal-1',
+    targetAmount: '5000',
+    currentAmount: '0',
+  });
+
+  const service = new PlanningService(
+    { updateSavingsGoal, findSavingsGoal } as unknown as PlanningRepository,
+    {} as unknown as FinanceOwnershipService,
+    {} as unknown as SyncLoanInstallmentsUseCase,
+    {} as unknown as LedgerQueryService,
+  );
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('clears the target date when null arrives', async () => {
+    await service.updateSavingsGoal(
+      'user-1',
+      'goal-1',
+      { targetDate: null },
+      now,
+    );
+
+    expect(updateSavingsGoal).toHaveBeenCalledWith(
+      'user-1',
+      'goal-1',
+      { targetDate: null },
+      now,
+    );
+  });
+
+  it('leaves the target date untouched when the field is not sent', async () => {
+    await service.updateSavingsGoal('user-1', 'goal-1', { name: 'Fondo' }, now);
+
+    expect(updateSavingsGoal).toHaveBeenCalledWith(
+      'user-1',
+      'goal-1',
+      { name: 'Fondo' },
+      now,
+    );
+  });
+});
