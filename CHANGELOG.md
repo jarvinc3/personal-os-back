@@ -16,6 +16,12 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [Se
 
 - `AGENTS.md` y `docs/README.md` enlazan las convenciones de issues y la nueva documentación.
 
+## [0.46.2] - 2026-10-20
+
+### Cambiado
+
+- Interno: `reverseTransactionsByTransferGroupId` ya no devuelve un conteo; el puerto declara `Promise<void>` y la reversa queda como comando sin valor de retorno. Sin cambio de comportamiento.
+
 ## [0.46.1] - 2026-10-20
 
 ### Cambiado
