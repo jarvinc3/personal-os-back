@@ -1,6 +1,7 @@
 import {
   mapBudget,
   mapLoan,
+  mapLoanInstallment,
   mapReceivable,
   mapSavingsGoal,
 } from './planning-mappers';
@@ -37,6 +38,30 @@ describe('planning money mappers', () => {
         interestRate: 0,
       }).interestRate,
     ).toBe('0');
+  });
+
+  it('maps every installment money field to a decimal string', () => {
+    const decimal = (value: string) => ({ toString: () => value });
+
+    expect(
+      mapLoanInstallment({
+        amount: decimal('1134.72'),
+        principal: decimal('894.72'),
+        interest: decimal('240'),
+        insurance: 0,
+        fees: 0,
+        lateFee: 0,
+        paidAmount: 0,
+      }),
+    ).toEqual({
+      amount: '1134.72',
+      principal: '894.72',
+      interest: '240',
+      insurance: '0',
+      fees: '0',
+      lateFee: '0',
+      paidAmount: '0',
+    });
   });
 
   it('maps savings goal and receivable money to strings', () => {

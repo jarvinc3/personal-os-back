@@ -78,11 +78,23 @@ export function mapLoan<
 export function mapLoanInstallment<
   T extends {
     amount: Decimalish;
+    principal: Decimalish;
+    interest: Decimalish;
+    insurance: Decimalish;
+    fees: Decimalish;
+    lateFee: Decimalish;
+    paidAmount: Decimalish;
   },
 >(row: T) {
   return {
     ...row,
     amount: decimalToString(row.amount),
+    principal: decimalToString(row.principal),
+    interest: decimalToString(row.interest),
+    insurance: decimalToString(row.insurance),
+    fees: decimalToString(row.fees),
+    lateFee: decimalToString(row.lateFee),
+    paidAmount: decimalToString(row.paidAmount),
   };
 }
 
