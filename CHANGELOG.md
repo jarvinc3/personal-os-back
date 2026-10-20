@@ -16,6 +16,12 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [Se
 
 - `AGENTS.md` y `docs/README.md` enlazan las convenciones de issues y la nueva documentación.
 
+## [0.45.0] - 2026-10-20
+
+### Agregado
+
+- Las transferencias entre monedas aceptan `exchangeRate` (tasa par origen→destino) o `receivedAmount` (monto que entra en la cuenta destino). El monto recibido manda si vienen ambos. Sin ninguno se usa la tasa del día y la operación queda marcada como estimada. El detalle devuelve monto enviado, monto recibido, tasa y la marca (#157).
+
 ## [0.44.0] - 2026-10-20
 
 ### Corregido
