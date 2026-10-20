@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "dataflow",
+  "quality": "showcase",
+  "specification": {
+    "path": "/home/jarvinc/projects/personal-os-workspace/personal-os-back/.archify/dataflow-ingesta-correo-20261020-110728/candidate.json",
+    "sha256": "84f6531fcec880d6a7d02c0b4e991af66acb4099885d60f399c9dc51b27a1758",
+    "bytes": 6105
+  },
+  "artifact": {
+    "path": "/home/jarvinc/projects/personal-os-workspace/personal-os-back/.archify/dataflow-ingesta-correo-20261020-110728/ingesta-correo.html",
+    "sha256": "d561abaa7701eb0daf43196dadf94094d7072e9012a7260260577c3982080541",
+    "bytes": 823370
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "pass"
+  },
+  "diagnostics": [],
+  "diagnosticSummary": {
+    "total": 0,
+    "shown": 0,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "/home/jarvinc/projects/personal-os-workspace/personal-os-back/.archify/dataflow-ingesta-correo-20261020-110728/ingesta-correo.finalize.json",
+    "summaryReceipt": "/home/jarvinc/projects/personal-os-workspace/personal-os-back/.archify/dataflow-ingesta-correo-20261020-110728/ingesta-correo.finalize-summary.json",
+    "browserCheckReceipt": "/home/jarvinc/projects/personal-os-workspace/personal-os-back/.archify/dataflow-ingesta-correo-20261020-110728/ingesta-correo.browser-check.json"
+  },
+  "update": {
+    "status": "current",
+    "installedVersion": "3.2.0",
+    "availableVersion": "3.2.0",
+    "releaseNotes": null,
+    "checkedAt": "2026-10-20T14:40:23.511Z",
+    "source": "cache",
+    "noticeRequired": false,
+    "noticeText": null
+  },
+  "visualReview": "not-requested",
+  "durationMs": 11718,
+  "browserCheck": {
+    "requested": true,
+    "ran": true
+  }
+}

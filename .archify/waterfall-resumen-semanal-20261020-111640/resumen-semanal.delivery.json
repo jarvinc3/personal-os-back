@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "19e28455-3c9a-486a-8ad9-51c757479ad2",
+  "status": "current",
+  "command": "deliver",
+  "type": "waterfall",
+  "input": "/home/jarvinc/projects/personal-os-workspace/personal-os-back/.archify/waterfall-resumen-semanal-20261020-111640/candidate.json",
+  "output": "/home/jarvinc/projects/personal-os-workspace/personal-os-back/.archify/waterfall-resumen-semanal-20261020-111640/resumen-semanal.html",
+  "specification": {
+    "sha256": "ed4823c9ea442dac41f966b6865995d3b8c3a0750a2c665abd6eac8bf2df414c",
+    "bytes": 3912
+  },
+  "artifact": {
+    "sha256": "904993481503115193b344a59383618415f73bc68ba777d427b8f15abef0b841",
+    "bytes": 828788
+  }
+}

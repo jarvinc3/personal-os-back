@@ -1,0 +1,212 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Qué hace el sync de Gmail en cada corrida",
+    "locale": "es",
+    "output": ".archify/workflow-sync-gmail-20261020-111143/sync-gmail.html",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/jarvinc3/personal-os-back.git",
+      "provider": "github",
+      "revision": "b2d61c4cc9f4e853387445e1e4dfde927c1a3c1b"
+    }
+  },
+  "lanes": [
+    { "id": "orq", "label": "Orquestación" },
+    { "id": "correo", "label": "Correo y modelo" },
+    { "id": "exc", "label": "Excepciones", "variant": "exception" }
+  ],
+  "phases": [
+    { "id": "arranque", "label": "Arranque", "fromCol": 0, "toCol": 1 },
+    { "id": "trabajo", "label": "Lectura y registro", "fromCol": 2, "toCol": 4, "variant": "emphasis" },
+    { "id": "cierre", "label": "Cierre", "fromCol": 5, "toCol": 5 }
+  ],
+  "groups": [
+    {
+      "id": "sin-modelo",
+      "label": "Sin modelo o sin destino",
+      "lane": "exc",
+      "fromCol": 3,
+      "toCol": 4,
+      "variant": "security"
+    }
+  ],
+  "mainPath": ["job", "prep", "read", "extract", "route", "close"],
+  "nodes": [
+    {
+      "id": "job",
+      "lane": "orq",
+      "col": 0,
+      "type": "messagebus",
+      "label": "Job gmail-sync",
+      "sublabel": "uno por origen",
+      "tag": "BullMQ",
+      "sources": [
+        { "path": "packages/finance/src/ingestion/application/ingestion.service.ts", "line": 1073, "end_line": 1080 }
+      ]
+    },
+    {
+      "id": "prep",
+      "lane": "orq",
+      "col": 1,
+      "type": "backend",
+      "label": "Prepara el sync",
+      "sublabel": "log, token y consulta",
+      "sources": [
+        { "path": "packages/finance/src/ingestion/application/process-gmail-sync.use-case.ts", "line": 56, "end_line": 74 }
+      ]
+    },
+    {
+      "id": "close",
+      "lane": "orq",
+      "col": 5,
+      "type": "backend",
+      "label": "Cierra el log",
+      "sublabel": "evento de éxito o de fallo",
+      "sources": [
+        { "path": "packages/finance/src/ingestion/application/process-gmail-sync.use-case.ts", "line": 368, "end_line": 376 }
+      ]
+    },
+    {
+      "id": "read",
+      "lane": "correo",
+      "col": 2,
+      "type": "external",
+      "label": "Lee el buzón",
+      "sublabel": "remitente y fecha",
+      "sources": [
+        { "path": "packages/finance/src/ingestion/application/process-gmail-sync.use-case.ts", "line": 103, "end_line": 108 }
+      ]
+    },
+    {
+      "id": "extract",
+      "lane": "correo",
+      "col": 3,
+      "type": "backend",
+      "label": "Extrae con IA",
+      "sublabel": "hasta el tope de llamadas",
+      "sources": [
+        { "path": "packages/finance/src/ingestion/application/process-gmail-sync.use-case.ts", "line": 158, "end_line": 167 }
+      ]
+    },
+    {
+      "id": "route",
+      "lane": "correo",
+      "col": 4,
+      "type": "backend",
+      "label": "Rutea el movimiento",
+      "sublabel": "importa o deja pendiente",
+      "sources": [
+        { "path": "packages/finance/src/ingestion/application/route-extracted-email.use-case.ts", "line": 207, "end_line": 212 }
+      ]
+    },
+    {
+      "id": "inactive",
+      "lane": "exc",
+      "col": 1,
+      "type": "security",
+      "label": "Origen inactivo",
+      "sublabel": "termina sin abrir log",
+      "sources": [
+        { "path": "packages/finance/src/ingestion/application/process-gmail-sync.use-case.ts", "line": 56, "end_line": 60 }
+      ]
+    },
+    {
+      "id": "rules",
+      "lane": "exc",
+      "col": 3,
+      "type": "backend",
+      "label": "Reglas por texto",
+      "sublabel": "cuando el modelo no da JSON",
+      "sources": [
+        { "path": "packages/finance/src/ingestion/infrastructure/ai-email-transaction.extractor.ts", "line": 246, "end_line": 252 }
+      ]
+    },
+    {
+      "id": "pending",
+      "lane": "exc",
+      "col": 4,
+      "type": "security",
+      "label": "Pendiente de destino",
+      "sublabel": "espera que el usuario asigne",
+      "sources": [
+        { "path": "packages/finance/src/ingestion/application/route-extracted-email.use-case.ts", "line": 160, "end_line": 165 }
+      ]
+    }
+  ],
+  "edges": [
+    { "id": "a-prep", "from": "job", "to": "prep", "variant": "emphasis" },
+    { "id": "a-read", "from": "prep", "to": "read" },
+    {
+      "id": "a-inactive",
+      "from": "prep",
+      "to": "inactive",
+      "label": "origen inactivo",
+      "variant": "security",
+      "role": "error"
+    },
+    { "id": "a-extract", "from": "read", "to": "extract", "variant": "emphasis" },
+    {
+      "id": "a-rules",
+      "from": "extract",
+      "to": "rules",
+      "label": "sin JSON",
+      "variant": "dashed",
+      "role": "branch"
+    },
+    {
+      "id": "a-route-rules",
+      "from": "rules",
+      "to": "route",
+      "label": "movimiento por reglas",
+      "variant": "dashed",
+      "role": "return"
+    },
+    { "id": "a-route", "from": "extract", "to": "route", "variant": "emphasis" },
+    {
+      "id": "a-pending",
+      "from": "route",
+      "to": "pending",
+      "label": "sin destino",
+      "variant": "security",
+      "role": "error"
+    },
+    {
+      "id": "a-close",
+      "from": "route",
+      "to": "close",
+      "label": "registrado",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "amber",
+      "title": "Topes y reintentos",
+      "items": [
+        "Tope de 25 extracciones por corrida (MAX_EMAIL_LLM_EXTRACTS)",
+        "Al llegar al tope se corta la paginación y no avanza la marca de último sync",
+        "El job se reintenta 3 veces con espera exponencial"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "Qué deja el cierre",
+      "items": [
+        "Backfill de pendientes, reversas pendientes y emparejado de transferencias",
+        "El éxito escribe un evento con contadores en el outbox",
+        "El fallo registra el log y vuelve a lanzar el error"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Por qué no todo entra",
+      "items": [
+        "Un correo repetido se descarta por id o por huella",
+        "Sin cuenta ni tarjeta, el movimiento queda pendiente en vez de perderse",
+        "Una reversión pendiente se aplica en la corrida siguiente"
+      ]
+    }
+  ]
+}

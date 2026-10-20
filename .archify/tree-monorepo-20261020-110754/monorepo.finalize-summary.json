@@ -1,0 +1,161 @@
+{
+  "schemaVersion": 1,
+  "ok": false,
+  "command": "finalize",
+  "status": "fail",
+  "type": "tree",
+  "quality": "showcase",
+  "specification": {
+    "path": "/home/jarvinc/projects/personal-os-workspace/personal-os-back/.archify/tree-monorepo-20261020-110754/candidate.json",
+    "sha256": "2db3350a2591b8d9cbe0e217d6f6b41b0ce4e0795a574a601cd6c82568b654bc",
+    "bytes": 4703
+  },
+  "artifact": {
+    "path": "/home/jarvinc/projects/personal-os-workspace/personal-os-back/.archify/tree-monorepo-20261020-110754/monorepo.html"
+  },
+  "gates": {
+    "validate": "fail",
+    "deliver": "not-run",
+    "check": "not-run",
+    "browser-check": "not-run"
+  },
+  "failedStage": "validate",
+  "diagnostics": [
+    {
+      "code": "repository-evidence/line-out-of-range",
+      "severity": "error",
+      "message": "/nodes/4/sources/0 requests line 10, but packages/config/src/index.ts has 7 lines at revision b2d61c4cc9f4e853387445e1e4dfde927c1a3c1b.",
+      "subject": {
+        "surface": "repository-evidence",
+        "path": "/nodes/4/sources/0",
+        "diagramType": "tree",
+        "collection": "nodes",
+        "nodeId": "config"
+      },
+      "evidence": {
+        "sourcePath": "packages/config/src/index.ts",
+        "requestedLine": 10,
+        "lineCount": 7,
+        "revision": "b2d61c4cc9f4e853387445e1e4dfde927c1a3c1b"
+      },
+      "supportedFixes": [
+        "use a line range that exists at the pinned revision"
+      ]
+    },
+    {
+      "code": "repository-evidence/line-out-of-range",
+      "severity": "error",
+      "message": "/nodes/7/sources/0 requests line 10, but packages/logos/src/index.ts has 4 lines at revision b2d61c4cc9f4e853387445e1e4dfde927c1a3c1b.",
+      "subject": {
+        "surface": "repository-evidence",
+        "path": "/nodes/7/sources/0",
+        "diagramType": "tree",
+        "collection": "nodes",
+        "nodeId": "logos"
+      },
+      "evidence": {
+        "sourcePath": "packages/logos/src/index.ts",
+        "requestedLine": 10,
+        "lineCount": 4,
+        "revision": "b2d61c4cc9f4e853387445e1e4dfde927c1a3c1b"
+      },
+      "supportedFixes": [
+        "use a line range that exists at the pinned revision"
+      ]
+    },
+    {
+      "code": "repository-evidence/line-out-of-range",
+      "severity": "error",
+      "message": "/nodes/8/sources/0 requests line 10, but packages/auth/src/index.ts has 8 lines at revision b2d61c4cc9f4e853387445e1e4dfde927c1a3c1b.",
+      "subject": {
+        "surface": "repository-evidence",
+        "path": "/nodes/8/sources/0",
+        "diagramType": "tree",
+        "collection": "nodes",
+        "nodeId": "auth"
+      },
+      "evidence": {
+        "sourcePath": "packages/auth/src/index.ts",
+        "requestedLine": 10,
+        "lineCount": 8,
+        "revision": "b2d61c4cc9f4e853387445e1e4dfde927c1a3c1b"
+      },
+      "supportedFixes": [
+        "use a line range that exists at the pinned revision"
+      ]
+    },
+    {
+      "code": "repository-evidence/line-out-of-range",
+      "severity": "error",
+      "message": "/nodes/11/sources/0 requests line 10, but packages/notifications/src/index.ts has 5 lines at revision b2d61c4cc9f4e853387445e1e4dfde927c1a3c1b.",
+      "subject": {
+        "surface": "repository-evidence",
+        "path": "/nodes/11/sources/0",
+        "diagramType": "tree",
+        "collection": "nodes",
+        "nodeId": "notifications"
+      },
+      "evidence": {
+        "sourcePath": "packages/notifications/src/index.ts",
+        "requestedLine": 10,
+        "lineCount": 5,
+        "revision": "b2d61c4cc9f4e853387445e1e4dfde927c1a3c1b"
+      },
+      "supportedFixes": [
+        "use a line range that exists at the pinned revision"
+      ]
+    },
+    {
+      "code": "repository-evidence/line-out-of-range",
+      "severity": "error",
+      "message": "/nodes/12/sources/0 requests line 10, but packages/ai-agent/src/index.ts has 5 lines at revision b2d61c4cc9f4e853387445e1e4dfde927c1a3c1b.",
+      "subject": {
+        "surface": "repository-evidence",
+        "path": "/nodes/12/sources/0",
+        "diagramType": "tree",
+        "collection": "nodes",
+        "nodeId": "ai-agent"
+      },
+      "evidence": {
+        "sourcePath": "packages/ai-agent/src/index.ts",
+        "requestedLine": 10,
+        "lineCount": 5,
+        "revision": "b2d61c4cc9f4e853387445e1e4dfde927c1a3c1b"
+      },
+      "supportedFixes": [
+        "use a line range that exists at the pinned revision"
+      ]
+    }
+  ],
+  "diagnosticSummary": {
+    "total": 5,
+    "shown": 5,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "/home/jarvinc/projects/personal-os-workspace/personal-os-back/.archify/tree-monorepo-20261020-110754/monorepo.finalize.json",
+    "summaryReceipt": "/home/jarvinc/projects/personal-os-workspace/personal-os-back/.archify/tree-monorepo-20261020-110754/monorepo.finalize-summary.json"
+  },
+  "update": {
+    "status": "current",
+    "installedVersion": "3.2.0",
+    "availableVersion": "3.2.0",
+    "releaseNotes": null,
+    "checkedAt": "2026-10-20T14:40:23.511Z",
+    "source": "cache",
+    "noticeRequired": false,
+    "noticeText": null
+  },
+  "visualReview": "not-requested",
+  "durationMs": 560,
+  "browserCheck": {
+    "requested": true,
+    "ran": false
+  },
+  "nextAction": {
+    "action": "edit-in-place",
+    "candidate": "/home/jarvinc/projects/personal-os-workspace/personal-os-back/.archify/tree-monorepo-20261020-110754/candidate.json",
+    "constraint": "Preserve unaffected semantics and geometry; apply each diagnostic's supportedFixes, or the fix its message names, and do not replace the whole candidate.",
+    "then": "finalize-once"
+  }
+}

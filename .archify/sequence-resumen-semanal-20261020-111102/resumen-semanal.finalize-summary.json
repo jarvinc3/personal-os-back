@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "sequence",
+  "quality": "showcase",
+  "specification": {
+    "path": "/home/jarvinc/projects/personal-os-workspace/personal-os-back/.archify/sequence-resumen-semanal-20261020-111102/candidate.json",
+    "sha256": "d5f084af15fb22b98a81eef745c96a638dcf78f58dd9315a282cb3b0c4a5b886",
+    "bytes": 5174
+  },
+  "artifact": {
+    "path": "/home/jarvinc/projects/personal-os-workspace/personal-os-back/.archify/sequence-resumen-semanal-20261020-111102/resumen-semanal.html",
+    "sha256": "6f965a2aab9b52181790ed4f0c226179617870d4b0b6474a412683569de405ab",
+    "bytes": 822269
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "pass"
+  },
+  "diagnostics": [],
+  "diagnosticSummary": {
+    "total": 0,
+    "shown": 0,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "/home/jarvinc/projects/personal-os-workspace/personal-os-back/.archify/sequence-resumen-semanal-20261020-111102/resumen-semanal.finalize.json",
+    "summaryReceipt": "/home/jarvinc/projects/personal-os-workspace/personal-os-back/.archify/sequence-resumen-semanal-20261020-111102/resumen-semanal.finalize-summary.json",
+    "browserCheckReceipt": "/home/jarvinc/projects/personal-os-workspace/personal-os-back/.archify/sequence-resumen-semanal-20261020-111102/resumen-semanal.browser-check.json"
+  },
+  "update": {
+    "status": "current",
+    "installedVersion": "3.2.0",
+    "availableVersion": "3.2.0",
+    "releaseNotes": null,
+    "checkedAt": "2026-10-20T14:40:23.511Z",
+    "source": "cache",
+    "noticeRequired": false,
+    "noticeText": null
+  },
+  "visualReview": "not-requested",
+  "durationMs": 6336,
+  "browserCheck": {
+    "requested": true,
+    "ran": true
+  }
+}

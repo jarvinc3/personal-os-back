@@ -1,0 +1,171 @@
+{
+  "schema_version": 1,
+  "diagram_type": "tree",
+  "meta": {
+    "title": "Cómo se descompone el backend",
+    "locale": "es",
+    "output": ".archify/tree-monorepo-20261020-110754/monorepo.html",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/jarvinc3/personal-os-back.git",
+      "provider": "github",
+      "revision": "b2d61c4cc9f4e853387445e1e4dfde927c1a3c1b"
+    }
+  },
+  "layout": {
+    "direction": "right"
+  },
+  "nodes": [
+    {
+      "id": "root",
+      "label": "personal-os-back",
+      "sublabel": "un solo backend desplegable",
+      "sources": [
+        { "path": "docs/architecture/monorepo.md", "line": 1, "end_line": 8 }
+      ]
+    },
+    {
+      "id": "apps",
+      "label": "apps",
+      "parent": "root",
+      "sublabel": "procesos desplegables",
+      "sources": [
+        { "path": "apps/api/src/main.ts", "line": 1, "end_line": 20 }
+      ]
+    },
+    {
+      "id": "api",
+      "label": "api",
+      "parent": "apps",
+      "sublabel": "app Nest: main, app.module, health",
+      "sources": [
+        { "path": "apps/api/src/app.module.ts", "line": 1, "end_line": 30 }
+      ]
+    },
+    {
+      "id": "packages",
+      "label": "packages",
+      "parent": "root",
+      "sublabel": "9 paquetes del workspace",
+      "sources": [
+        { "path": "docs/architecture/monorepo.md", "line": 10, "end_line": 24 }
+      ]
+    },
+    {
+      "id": "config",
+      "label": "@personal-os/config",
+      "parent": "packages",
+      "sublabel": "env con Zod y límites de IA",
+      "sources": [
+        { "path": "packages/config/src/index.ts", "line": 1 }
+      ]
+    },
+    {
+      "id": "database",
+      "label": "@personal-os/database",
+      "parent": "packages",
+      "sublabel": "Prisma, cliente generado, pool pg",
+      "sources": [
+        { "path": "packages/database/src/index.ts", "line": 1 }
+      ]
+    },
+    {
+      "id": "core",
+      "label": "@personal-os/core",
+      "parent": "packages",
+      "sublabel": "guards, filtros, colas, puerto de IA",
+      "sources": [
+        { "path": "packages/core/src/index.ts", "line": 1 }
+      ]
+    },
+    {
+      "id": "logos",
+      "label": "@personal-os/logos",
+      "parent": "packages",
+      "sublabel": "LogoService y dominio",
+      "sources": [
+        { "path": "packages/logos/src/index.ts", "line": 1 }
+      ]
+    },
+    {
+      "id": "auth",
+      "label": "@personal-os/auth",
+      "parent": "packages",
+      "sublabel": "JWT de Supabase, admin",
+      "sources": [
+        { "path": "packages/auth/src/index.ts", "line": 1 }
+      ]
+    },
+    {
+      "id": "users",
+      "label": "@personal-os/users",
+      "parent": "packages",
+      "sublabel": "usuarios, módulos, preferencias",
+      "sources": [
+        { "path": "packages/users/src/index.ts", "line": 1 }
+      ]
+    },
+    {
+      "id": "finance",
+      "label": "@personal-os/finance",
+      "parent": "packages",
+      "sublabel": "ledger, ingesta, analytics",
+      "sources": [
+        { "path": "packages/finance/src/index.ts", "line": 1 }
+      ]
+    },
+    {
+      "id": "notifications",
+      "label": "@personal-os/notifications",
+      "parent": "packages",
+      "sublabel": "push, websockets, correo",
+      "sources": [
+        { "path": "packages/notifications/src/index.ts", "line": 1 }
+      ]
+    },
+    {
+      "id": "ai-agent",
+      "label": "@personal-os/ai-agent",
+      "parent": "packages",
+      "sublabel": "chat, tools, acciones",
+      "sources": [
+        { "path": "packages/ai-agent/src/index.ts", "line": 1 }
+      ]
+    },
+    {
+      "id": "docs",
+      "label": "docs",
+      "parent": "root",
+      "sublabel": "arquitectura, módulos, operaciones",
+      "sources": [
+        { "path": "docs/README.md", "line": 1, "end_line": 12 }
+      ]
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "Paquetes, no apps",
+      "items": [
+        "Un módulo nuevo es un paquete del workspace, no un despliegue aparte",
+        "Un paquete importa a otro solo por su barrel; ESLint y tsc -b lo verifican"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "Qué comparte el workspace",
+      "items": [
+        "Un esquema Prisma único, con dueño en packages/database",
+        "El guard de idempotencia y el puerto de chat viven en core para romper ciclos"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Dónde mirar",
+      "items": [
+        "apps/api compone los módulos Nest y expone la API",
+        "docs/architecture/monorepo.md guarda la regla completa"
+      ]
+    }
+  ]
+}

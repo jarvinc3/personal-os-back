@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "32c71bfe-259d-4802-a4fa-6e48a7384e9c",
+  "status": "current",
+  "command": "deliver",
+  "type": "dataflow",
+  "input": "/home/jarvinc/projects/personal-os-workspace/personal-os-back/.archify/dataflow-ingesta-correo-20261020-110728/candidate.json",
+  "output": "/home/jarvinc/projects/personal-os-workspace/personal-os-back/.archify/dataflow-ingesta-correo-20261020-110728/ingesta-correo.html",
+  "specification": {
+    "sha256": "84f6531fcec880d6a7d02c0b4e991af66acb4099885d60f399c9dc51b27a1758",
+    "bytes": 6105
+  },
+  "artifact": {
+    "sha256": "d561abaa7701eb0daf43196dadf94094d7072e9012a7260260577c3982080541",
+    "bytes": 823370
+  }
+}

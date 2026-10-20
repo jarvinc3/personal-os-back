@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "955188ae-5018-46fc-8477-c7fbd308744b",
+  "status": "current",
+  "command": "deliver",
+  "type": "timeline",
+  "input": "/home/jarvinc/projects/personal-os-workspace/personal-os-back/.archify/timeline-releases-20261020-110855/candidate.json",
+  "output": "/home/jarvinc/projects/personal-os-workspace/personal-os-back/.archify/timeline-releases-20261020-110855/releases.html",
+  "specification": {
+    "sha256": "f2626d80fa32df69a5ae4a74822025bbf6e04dca0ff27a05b9489b4a69614c51",
+    "bytes": 5724
+  },
+  "artifact": {
+    "sha256": "15f30d7fbc2fcb94b7eb56d894d9d46539a5fcd05f49a51e5d700c5fb03e853a",
+    "bytes": 834152
+  }
+}

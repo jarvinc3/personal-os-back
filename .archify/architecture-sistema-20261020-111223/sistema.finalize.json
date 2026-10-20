@@ -1,0 +1,1065 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "architecture",
+  "quality": "showcase",
+  "startedAt": "2026-10-20T15:12:46.707Z",
+  "specification": {
+    "path": "/home/jarvinc/projects/personal-os-workspace/personal-os-back/.archify/architecture-sistema-20261020-111223/candidate.json",
+    "sha256": "5ff8279c73b3506edfe32bbf98224c78542304a84548ba32ab956c85d8a30ef1",
+    "bytes": 5825
+  },
+  "artifact": {
+    "path": "/home/jarvinc/projects/personal-os-workspace/personal-os-back/.archify/architecture-sistema-20261020-111223/sistema.html",
+    "sha256": "ca984ecde81f4b35b1bf12431b290f58d7b6f4f1e544dc8a758f87fc0f0aff1a",
+    "bytes": 837896
+  },
+  "stages": {
+    "validate": {
+      "status": "pass",
+      "exitCode": 0,
+      "durationMs": null,
+      "execution": "embedded-in-deliver",
+      "command": [
+        "/home/jarvinc/.nvm/versions/node/v24.13.1/bin/node",
+        "/home/jarvinc/projects/personal-os-workspace/personal-os-back/.agents/skills/archify/bin/archify.mjs",
+        "deliver",
+        "architecture",
+        "/home/jarvinc/projects/personal-os-workspace/personal-os-back/.archify/architecture-sistema-20261020-111223/candidate.json",
+        "/home/jarvinc/projects/personal-os-workspace/personal-os-back/.archify/architecture-sistema-20261020-111223/sistema.html",
+        "--quality",
+        "showcase",
+        "--repo-root",
+        "/home/jarvinc/projects/personal-os-workspace/personal-os-back",
+        "--json"
+      ],
+      "receipt": {
+        "schemaVersion": 1,
+        "ok": true,
+        "command": "validate",
+        "specification": {
+          "sha256": "5ff8279c73b3506edfe32bbf98224c78542304a84548ba32ab956c85d8a30ef1",
+          "bytes": 5825
+        },
+        "validation": {
+          "checksPassed": 9,
+          "checkCount": 9,
+          "compositionProfile": "showcase",
+          "compositionStatus": "pass",
+          "errors": 0,
+          "warnings": 0
+        }
+      }
+    },
+    "deliver": {
+      "status": "pass",
+      "exitCode": 0,
+      "durationMs": 1700,
+      "command": [
+        "/home/jarvinc/.nvm/versions/node/v24.13.1/bin/node",
+        "/home/jarvinc/projects/personal-os-workspace/personal-os-back/.agents/skills/archify/bin/archify.mjs",
+        "deliver",
+        "architecture",
+        "/home/jarvinc/projects/personal-os-workspace/personal-os-back/.archify/architecture-sistema-20261020-111223/candidate.json",
+        "/home/jarvinc/projects/personal-os-workspace/personal-os-back/.archify/architecture-sistema-20261020-111223/sistema.html",
+        "--quality",
+        "showcase",
+        "--repo-root",
+        "/home/jarvinc/projects/personal-os-workspace/personal-os-back",
+        "--json"
+      ],
+      "receipt": {
+        "schemaVersion": 1,
+        "receiptId": "6e1186f7-d7ff-4d8a-b8e5-d54d0db730e0",
+        "ok": true,
+        "command": "deliver",
+        "type": "architecture",
+        "input": "/home/jarvinc/projects/personal-os-workspace/personal-os-back/.archify/architecture-sistema-20261020-111223/candidate.json",
+        "output": "/home/jarvinc/projects/personal-os-workspace/personal-os-back/.archify/architecture-sistema-20261020-111223/sistema.html",
+        "specification": {
+          "sha256": "5ff8279c73b3506edfe32bbf98224c78542304a84548ba32ab956c85d8a30ef1",
+          "bytes": 5825
+        },
+        "artifact": {
+          "sha256": "ca984ecde81f4b35b1bf12431b290f58d7b6f4f1e544dc8a758f87fc0f0aff1a",
+          "bytes": 837896
+        },
+        "validation": {
+          "checksPassed": 9,
+          "checkCount": 9,
+          "compositionProfile": "showcase",
+          "compositionStatus": "pass",
+          "errors": 0,
+          "warnings": 0
+        },
+        "evidence": {
+          "verified": true,
+          "repository": "https://github.com/jarvinc3/personal-os-back",
+          "revision": "b2d61c4cc9f4e853387445e1e4dfde927c1a3c1b",
+          "references": 11
+        },
+        "update": {
+          "status": "unavailable",
+          "installedVersion": null,
+          "availableVersion": null,
+          "releaseNotes": null,
+          "checkedAt": null,
+          "source": null,
+          "noticeRequired": false,
+          "noticeText": null,
+          "reason": "disabled"
+        }
+      }
+    },
+    "check": {
+      "status": "pass",
+      "exitCode": 0,
+      "durationMs": 333,
+      "command": [
+        "/home/jarvinc/.nvm/versions/node/v24.13.1/bin/node",
+        "/home/jarvinc/projects/personal-os-workspace/personal-os-back/.agents/skills/archify/bin/archify.mjs",
+        "check",
+        "/home/jarvinc/projects/personal-os-workspace/personal-os-back/.archify/architecture-sistema-20261020-111223/sistema.html",
+        "--require-provenance"
+      ],
+      "receipt": {
+        "ok": true,
+        "file": "/home/jarvinc/projects/personal-os-workspace/personal-os-back/.archify/architecture-sistema-20261020-111223/sistema.html",
+        "artifact": {
+          "sha256": "ca984ecde81f4b35b1bf12431b290f58d7b6f4f1e544dc8a758f87fc0f0aff1a",
+          "bytes": 837896
+        },
+        "checks": [
+          {
+            "name": "single_svg",
+            "ok": true,
+            "details": [
+              "found 1 <svg> block(s)"
+            ]
+          },
+          {
+            "name": "finite_svg",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "orthogonal_arrows",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "label_route_clearance",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "relationship_crossings",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "relationship_corridors",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "container_border_runs",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "route_rhythm",
+            "ok": true,
+            "details": []
+          },
+          {
+            "name": "legend_clearance",
+            "ok": true,
+            "details": []
+          }
+        ],
+        "composition": {
+          "schemaVersion": 1,
+          "profile": "showcase",
+          "status": "pass",
+          "summary": {
+            "errors": 0,
+            "warnings": 0
+          },
+          "metrics": {
+            "properCrossings": 0,
+            "resolvedCrossovers": 3,
+            "ambiguousCorridors": 0,
+            "arrowheadCollisions": 0,
+            "containerBorderRuns": 0,
+            "labelRouteClearanceIssues": 0,
+            "labelCanvasOverflowIssues": 0,
+            "minLabelRouteClearance": 5,
+            "desktopReadabilityIssues": 0,
+            "viewportHeightIssues": 0,
+            "minProjectedNodeTextPx": 6.9,
+            "maxBends": 2,
+            "routesOverSuggestedBends": 0,
+            "maxStretch": 1.205,
+            "routesOverSuggestedStretch": 0,
+            "minSegmentPx": 24,
+            "minInteriorSegmentPx": 120,
+            "shortSegmentCount": 0,
+            "shortEndpointSegmentCount": 0,
+            "shortInteriorSegmentCount": 0,
+            "microSegmentCount": 0
+          },
+          "suggestedLimits": {
+            "bendsPerRelationship": 2,
+            "stretch": 1.35,
+            "segmentPx": 16,
+            "microSegmentPx": 8
+          },
+          "routeReview": {
+            "crossings": [
+              {
+                "left": {
+                  "id": "casos",
+                  "from": "api",
+                  "to": "finance",
+                  "label": "casos de uso",
+                  "collectionIndex": 3,
+                  "artifactIndex": 4
+                },
+                "right": {
+                  "id": "chat",
+                  "from": "api",
+                  "to": "agent",
+                  "label": "chat",
+                  "collectionIndex": 4,
+                  "artifactIndex": 5
+                },
+                "point": [
+                  507.99999999999994,
+                  190
+                ],
+                "sharedNode": "api"
+              },
+              {
+                "left": {
+                  "id": "avisos",
+                  "from": "api",
+                  "to": "notifications",
+                  "label": "avisos",
+                  "collectionIndex": 5,
+                  "artifactIndex": 6
+                },
+                "right": {
+                  "id": "encola",
+                  "from": "finance",
+                  "to": "redis",
+                  "label": "encola sync",
+                  "collectionIndex": 9,
+                  "artifactIndex": 10
+                },
+                "point": [
+                  466.96666666666664,
+                  258
+                ]
+              },
+              {
+                "left": {
+                  "id": "persiste",
+                  "from": "finance",
+                  "to": "db",
+                  "label": "movimientos",
+                  "collectionIndex": 6,
+                  "artifactIndex": 7
+                },
+                "right": {
+                  "id": "correos",
+                  "from": "finance",
+                  "to": "gmail",
+                  "label": "lee correos",
+                  "collectionIndex": 7,
+                  "artifactIndex": 8
+                },
+                "point": [
+                  725,
+                  190
+                ],
+                "sharedNode": "finance"
+              }
+            ],
+            "detours": []
+          },
+          "leadingSpace": {
+            "measured": true,
+            "emptyTopPx": 80,
+            "emptyTopRatio": 0.131,
+            "occupiedTop": 80,
+            "viewBoxTop": 0,
+            "canvasHeight": 610,
+            "typicalNodeHeight": 60,
+            "reviewSuggested": false
+          },
+          "desktopReadability": {
+            "budgetBasis": "recognized-declared-wide",
+            "readerContract": "declared-wide-v1",
+            "availableDiagramWidth": 950,
+            "actualBudgetPx": 950,
+            "actualReaderWidth": 980,
+            "desiredReaderWidth": 980,
+            "viewportCap": 1376,
+            "limit": "source-size",
+            "requestedTargetPx": 7.5,
+            "requestedTargetMet": false,
+            "hardFloorPx": 6,
+            "hardFloorMet": true,
+            "minimumOwner": {
+              "kind": "node",
+              "id": "auth"
+            },
+            "minimumSourceTextPx": 6.9,
+            "minimumProjectedTextPx": 6.9,
+            "semanticTextCount": 35
+          },
+          "issues": []
+        },
+        "provenance": "current",
+        "deliveryReceiptId": "6e1186f7-d7ff-4d8a-b8e5-d54d0db730e0"
+      }
+    },
+    "browser-check": {
+      "status": "pass",
+      "exitCode": 0,
+      "durationMs": 6876,
+      "command": [
+        "/home/jarvinc/.nvm/versions/node/v24.13.1/bin/node",
+        "/home/jarvinc/projects/personal-os-workspace/personal-os-back/.agents/skills/archify/bin/archify.mjs",
+        "browser-check",
+        "/home/jarvinc/projects/personal-os-workspace/personal-os-back/.archify/architecture-sistema-20261020-111223/sistema.html",
+        "--json",
+        "--require-provenance"
+      ],
+      "execution": "in-process",
+      "receipt": {
+        "schemaVersion": 1,
+        "ok": true,
+        "command": "browser-check",
+        "evidenceKind": "automated-browser",
+        "status": "pass",
+        "visualReview": "not-requested",
+        "provenance": "current",
+        "deliveryReceiptId": "6e1186f7-d7ff-4d8a-b8e5-d54d0db730e0",
+        "artifact": {
+          "path": "/home/jarvinc/projects/personal-os-workspace/personal-os-back/.archify/architecture-sistema-20261020-111223/sistema.html",
+          "sha256": "ca984ecde81f4b35b1bf12431b290f58d7b6f4f1e544dc8a758f87fc0f0aff1a",
+          "bytes": 837896
+        },
+        "state": {
+          "detail": "read",
+          "motion": "still"
+        },
+        "chrome": {
+          "status": "available",
+          "executable": "/home/jarvinc/.cache/puppeteer/chrome/linux-146.0.7680.31/chrome-linux64/chrome"
+        },
+        "diagnostics": [],
+        "containment": {
+          "status": "pass",
+          "policy": "fit-or-reader-declared-readable-vertical-scroll",
+          "viewports": [
+            {
+              "width": 1440,
+              "height": 900,
+              "theme": "light",
+              "innerWidth": 1440,
+              "innerHeight": 900,
+              "scrollWidth": 1440,
+              "scrollHeight": 900,
+              "overflowX": false,
+              "overflowY": false,
+              "verticalScrollAccepted": false,
+              "overflowDisposition": "contained",
+              "readerLayout": "adaptive",
+              "readerOverflow": null,
+              "readerFit": "intrinsic-height",
+              "ok": true,
+              "readerWidth": 1192,
+              "diagramWidth": 1162,
+              "pageComposition": {
+                "bodyPaddingPx": 12,
+                "headerPx": 52,
+                "diagramChromePx": 78,
+                "svgPx": 746,
+                "cardsPx": 0,
+                "viewBoxHeight": 610
+              },
+              "viewBoxWidth": 950,
+              "minimumProjectedNodeTextPx": 6.9,
+              "minimumProjectedNonEdgeTextPx": 6.9,
+              "minimumProjectedEdgeTextPx": 8,
+              "minimumProjectedNodeText": "permite o rechaza cada ruta",
+              "minimumProjectedNodeTextDetail": "context",
+              "minimumProjectedNodeTextOwner": {
+                "kind": "node",
+                "id": "auth"
+              },
+              "minimumRequiredNodeTextPx": 6,
+              "readabilityOk": true,
+              "hasLegend": true,
+              "hasNavigationDock": true,
+              "legendDockIntersectionArea": 0,
+              "dockStageIntersectionArea": 0,
+              "dockStageGap": 10,
+              "requiredDockStageGap": 10,
+              "viewerChromeStageOk": true,
+              "viewerChromeReserve": 54,
+              "viewerChromeActive": true,
+              "viewerChromeOk": true,
+              "resolvedTheme": "light"
+            },
+            {
+              "width": 1600,
+              "height": 1000,
+              "theme": "light",
+              "innerWidth": 1600,
+              "innerHeight": 1000,
+              "scrollWidth": 1600,
+              "scrollHeight": 1000,
+              "overflowX": false,
+              "overflowY": false,
+              "verticalScrollAccepted": false,
+              "overflowDisposition": "contained",
+              "readerLayout": "adaptive",
+              "readerOverflow": null,
+              "readerFit": "intrinsic-height",
+              "ok": true,
+              "readerWidth": 1245,
+              "diagramWidth": 1215,
+              "pageComposition": {
+                "bodyPaddingPx": 64,
+                "headerPx": 60,
+                "diagramChromePx": 84,
+                "svgPx": 780,
+                "cardsPx": 0,
+                "viewBoxHeight": 610
+              },
+              "viewBoxWidth": 950,
+              "minimumProjectedNodeTextPx": 6.9,
+              "minimumProjectedNonEdgeTextPx": 6.9,
+              "minimumProjectedEdgeTextPx": 8,
+              "minimumProjectedNodeText": "permite o rechaza cada ruta",
+              "minimumProjectedNodeTextDetail": "context",
+              "minimumProjectedNodeTextOwner": {
+                "kind": "node",
+                "id": "auth"
+              },
+              "minimumRequiredNodeTextPx": 6,
+              "readabilityOk": true,
+              "hasLegend": true,
+              "hasNavigationDock": true,
+              "legendDockIntersectionArea": 0,
+              "dockStageIntersectionArea": 0,
+              "dockStageGap": 10,
+              "requiredDockStageGap": 10,
+              "viewerChromeStageOk": true,
+              "viewerChromeReserve": 54,
+              "viewerChromeActive": true,
+              "viewerChromeOk": true,
+              "resolvedTheme": "light"
+            },
+            {
+              "width": 1920,
+              "height": 1080,
+              "theme": "light",
+              "innerWidth": 1920,
+              "innerHeight": 1080,
+              "scrollWidth": 1920,
+              "scrollHeight": 1080,
+              "overflowX": false,
+              "overflowY": false,
+              "verticalScrollAccepted": false,
+              "overflowDisposition": "contained",
+              "readerLayout": "adaptive",
+              "readerOverflow": null,
+              "readerFit": "intrinsic-height",
+              "ok": true,
+              "readerWidth": 1369,
+              "diagramWidth": 1339,
+              "pageComposition": {
+                "bodyPaddingPx": 64,
+                "headerPx": 60,
+                "diagramChromePx": 84,
+                "svgPx": 860,
+                "cardsPx": 0,
+                "viewBoxHeight": 610
+              },
+              "viewBoxWidth": 950,
+              "minimumProjectedNodeTextPx": 6.9,
+              "minimumProjectedNonEdgeTextPx": 6.9,
+              "minimumProjectedEdgeTextPx": 8,
+              "minimumProjectedNodeText": "permite o rechaza cada ruta",
+              "minimumProjectedNodeTextDetail": "context",
+              "minimumProjectedNodeTextOwner": {
+                "kind": "node",
+                "id": "auth"
+              },
+              "minimumRequiredNodeTextPx": 6,
+              "readabilityOk": true,
+              "hasLegend": true,
+              "hasNavigationDock": true,
+              "legendDockIntersectionArea": 0,
+              "dockStageIntersectionArea": 0,
+              "dockStageGap": 10,
+              "requiredDockStageGap": 10,
+              "viewerChromeStageOk": true,
+              "viewerChromeReserve": 54,
+              "viewerChromeActive": true,
+              "viewerChromeOk": true,
+              "resolvedTheme": "light"
+            },
+            {
+              "width": 2048,
+              "height": 1320,
+              "theme": "light",
+              "innerWidth": 2048,
+              "innerHeight": 1320,
+              "scrollWidth": 2048,
+              "scrollHeight": 1320,
+              "overflowX": false,
+              "overflowY": false,
+              "verticalScrollAccepted": false,
+              "overflowDisposition": "contained",
+              "readerLayout": "adaptive",
+              "readerOverflow": null,
+              "readerFit": "intrinsic-height",
+              "ok": true,
+              "readerWidth": 1804,
+              "diagramWidth": 1425,
+              "pageComposition": {
+                "bodyPaddingPx": 64,
+                "headerPx": 68,
+                "diagramChromePx": 261,
+                "svgPx": 915,
+                "cardsPx": 0,
+                "viewBoxHeight": 610
+              },
+              "viewBoxWidth": 950,
+              "minimumProjectedNodeTextPx": 6.9,
+              "minimumProjectedNonEdgeTextPx": 6.9,
+              "minimumProjectedEdgeTextPx": 8,
+              "minimumProjectedNodeText": "permite o rechaza cada ruta",
+              "minimumProjectedNodeTextDetail": "context",
+              "minimumProjectedNodeTextOwner": {
+                "kind": "node",
+                "id": "auth"
+              },
+              "minimumRequiredNodeTextPx": 6,
+              "readabilityOk": true,
+              "hasLegend": true,
+              "hasNavigationDock": true,
+              "legendDockIntersectionArea": 0,
+              "dockStageIntersectionArea": 0,
+              "dockStageGap": 71.5,
+              "requiredDockStageGap": 10,
+              "viewerChromeStageOk": true,
+              "viewerChromeReserve": 0,
+              "viewerChromeActive": false,
+              "viewerChromeOk": true,
+              "resolvedTheme": "light"
+            }
+          ]
+        },
+        "themeStates": {
+          "status": "pass",
+          "viewports": [
+            {
+              "width": 1440,
+              "height": 900,
+              "requestedTheme": "light",
+              "resolvedTheme": "light",
+              "ok": true
+            },
+            {
+              "width": 1600,
+              "height": 1000,
+              "requestedTheme": "light",
+              "resolvedTheme": "light",
+              "ok": true
+            },
+            {
+              "width": 1920,
+              "height": 1080,
+              "requestedTheme": "light",
+              "resolvedTheme": "light",
+              "ok": true
+            },
+            {
+              "width": 2048,
+              "height": 1320,
+              "requestedTheme": "light",
+              "resolvedTheme": "light",
+              "ok": true
+            },
+            {
+              "width": 1440,
+              "height": 900,
+              "requestedTheme": "dark",
+              "resolvedTheme": "dark",
+              "ok": true
+            },
+            {
+              "width": 2048,
+              "height": 1320,
+              "requestedTheme": "dark",
+              "resolvedTheme": "dark",
+              "ok": true
+            }
+          ]
+        },
+        "readability": {
+          "status": "pass",
+          "minimumProjectedNodeTextPx": 6,
+          "viewports": [
+            {
+              "width": 1440,
+              "height": 900,
+              "theme": "light",
+              "innerWidth": 1440,
+              "innerHeight": 900,
+              "scrollWidth": 1440,
+              "scrollHeight": 900,
+              "overflowX": false,
+              "overflowY": false,
+              "verticalScrollAccepted": false,
+              "overflowDisposition": "contained",
+              "readerLayout": "adaptive",
+              "readerOverflow": null,
+              "readerFit": "intrinsic-height",
+              "ok": true,
+              "readerWidth": 1192,
+              "diagramWidth": 1162,
+              "pageComposition": {
+                "bodyPaddingPx": 12,
+                "headerPx": 52,
+                "diagramChromePx": 78,
+                "svgPx": 746,
+                "cardsPx": 0,
+                "viewBoxHeight": 610
+              },
+              "viewBoxWidth": 950,
+              "minimumProjectedNodeTextPx": 6.9,
+              "minimumProjectedNonEdgeTextPx": 6.9,
+              "minimumProjectedEdgeTextPx": 8,
+              "minimumProjectedNodeText": "permite o rechaza cada ruta",
+              "minimumProjectedNodeTextDetail": "context",
+              "minimumProjectedNodeTextOwner": {
+                "kind": "node",
+                "id": "auth"
+              },
+              "minimumRequiredNodeTextPx": 6,
+              "readabilityOk": true,
+              "hasLegend": true,
+              "hasNavigationDock": true,
+              "legendDockIntersectionArea": 0,
+              "dockStageIntersectionArea": 0,
+              "dockStageGap": 10,
+              "requiredDockStageGap": 10,
+              "viewerChromeStageOk": true,
+              "viewerChromeReserve": 54,
+              "viewerChromeActive": true,
+              "viewerChromeOk": true,
+              "resolvedTheme": "light"
+            },
+            {
+              "width": 1600,
+              "height": 1000,
+              "theme": "light",
+              "innerWidth": 1600,
+              "innerHeight": 1000,
+              "scrollWidth": 1600,
+              "scrollHeight": 1000,
+              "overflowX": false,
+              "overflowY": false,
+              "verticalScrollAccepted": false,
+              "overflowDisposition": "contained",
+              "readerLayout": "adaptive",
+              "readerOverflow": null,
+              "readerFit": "intrinsic-height",
+              "ok": true,
+              "readerWidth": 1245,
+              "diagramWidth": 1215,
+              "pageComposition": {
+                "bodyPaddingPx": 64,
+                "headerPx": 60,
+                "diagramChromePx": 84,
+                "svgPx": 780,
+                "cardsPx": 0,
+                "viewBoxHeight": 610
+              },
+              "viewBoxWidth": 950,
+              "minimumProjectedNodeTextPx": 6.9,
+              "minimumProjectedNonEdgeTextPx": 6.9,
+              "minimumProjectedEdgeTextPx": 8,
+              "minimumProjectedNodeText": "permite o rechaza cada ruta",
+              "minimumProjectedNodeTextDetail": "context",
+              "minimumProjectedNodeTextOwner": {
+                "kind": "node",
+                "id": "auth"
+              },
+              "minimumRequiredNodeTextPx": 6,
+              "readabilityOk": true,
+              "hasLegend": true,
+              "hasNavigationDock": true,
+              "legendDockIntersectionArea": 0,
+              "dockStageIntersectionArea": 0,
+              "dockStageGap": 10,
+              "requiredDockStageGap": 10,
+              "viewerChromeStageOk": true,
+              "viewerChromeReserve": 54,
+              "viewerChromeActive": true,
+              "viewerChromeOk": true,
+              "resolvedTheme": "light"
+            },
+            {
+              "width": 1920,
+              "height": 1080,
+              "theme": "light",
+              "innerWidth": 1920,
+              "innerHeight": 1080,
+              "scrollWidth": 1920,
+              "scrollHeight": 1080,
+              "overflowX": false,
+              "overflowY": false,
+              "verticalScrollAccepted": false,
+              "overflowDisposition": "contained",
+              "readerLayout": "adaptive",
+              "readerOverflow": null,
+              "readerFit": "intrinsic-height",
+              "ok": true,
+              "readerWidth": 1369,
+              "diagramWidth": 1339,
+              "pageComposition": {
+                "bodyPaddingPx": 64,
+                "headerPx": 60,
+                "diagramChromePx": 84,
+                "svgPx": 860,
+                "cardsPx": 0,
+                "viewBoxHeight": 610
+              },
+              "viewBoxWidth": 950,
+              "minimumProjectedNodeTextPx": 6.9,
+              "minimumProjectedNonEdgeTextPx": 6.9,
+              "minimumProjectedEdgeTextPx": 8,
+              "minimumProjectedNodeText": "permite o rechaza cada ruta",
+              "minimumProjectedNodeTextDetail": "context",
+              "minimumProjectedNodeTextOwner": {
+                "kind": "node",
+                "id": "auth"
+              },
+              "minimumRequiredNodeTextPx": 6,
+              "readabilityOk": true,
+              "hasLegend": true,
+              "hasNavigationDock": true,
+              "legendDockIntersectionArea": 0,
+              "dockStageIntersectionArea": 0,
+              "dockStageGap": 10,
+              "requiredDockStageGap": 10,
+              "viewerChromeStageOk": true,
+              "viewerChromeReserve": 54,
+              "viewerChromeActive": true,
+              "viewerChromeOk": true,
+              "resolvedTheme": "light"
+            },
+            {
+              "width": 2048,
+              "height": 1320,
+              "theme": "light",
+              "innerWidth": 2048,
+              "innerHeight": 1320,
+              "scrollWidth": 2048,
+              "scrollHeight": 1320,
+              "overflowX": false,
+              "overflowY": false,
+              "verticalScrollAccepted": false,
+              "overflowDisposition": "contained",
+              "readerLayout": "adaptive",
+              "readerOverflow": null,
+              "readerFit": "intrinsic-height",
+              "ok": true,
+              "readerWidth": 1804,
+              "diagramWidth": 1425,
+              "pageComposition": {
+                "bodyPaddingPx": 64,
+                "headerPx": 68,
+                "diagramChromePx": 261,
+                "svgPx": 915,
+                "cardsPx": 0,
+                "viewBoxHeight": 610
+              },
+              "viewBoxWidth": 950,
+              "minimumProjectedNodeTextPx": 6.9,
+              "minimumProjectedNonEdgeTextPx": 6.9,
+              "minimumProjectedEdgeTextPx": 8,
+              "minimumProjectedNodeText": "permite o rechaza cada ruta",
+              "minimumProjectedNodeTextDetail": "context",
+              "minimumProjectedNodeTextOwner": {
+                "kind": "node",
+                "id": "auth"
+              },
+              "minimumRequiredNodeTextPx": 6,
+              "readabilityOk": true,
+              "hasLegend": true,
+              "hasNavigationDock": true,
+              "legendDockIntersectionArea": 0,
+              "dockStageIntersectionArea": 0,
+              "dockStageGap": 71.5,
+              "requiredDockStageGap": 10,
+              "viewerChromeStageOk": true,
+              "viewerChromeReserve": 0,
+              "viewerChromeActive": false,
+              "viewerChromeOk": true,
+              "resolvedTheme": "light"
+            }
+          ]
+        },
+        "viewerChrome": {
+          "status": "pass",
+          "viewports": [
+            {
+              "width": 1440,
+              "height": 900,
+              "theme": "light",
+              "innerWidth": 1440,
+              "innerHeight": 900,
+              "scrollWidth": 1440,
+              "scrollHeight": 900,
+              "overflowX": false,
+              "overflowY": false,
+              "verticalScrollAccepted": false,
+              "overflowDisposition": "contained",
+              "readerLayout": "adaptive",
+              "readerOverflow": null,
+              "readerFit": "intrinsic-height",
+              "ok": true,
+              "readerWidth": 1192,
+              "diagramWidth": 1162,
+              "pageComposition": {
+                "bodyPaddingPx": 12,
+                "headerPx": 52,
+                "diagramChromePx": 78,
+                "svgPx": 746,
+                "cardsPx": 0,
+                "viewBoxHeight": 610
+              },
+              "viewBoxWidth": 950,
+              "minimumProjectedNodeTextPx": 6.9,
+              "minimumProjectedNonEdgeTextPx": 6.9,
+              "minimumProjectedEdgeTextPx": 8,
+              "minimumProjectedNodeText": "permite o rechaza cada ruta",
+              "minimumProjectedNodeTextDetail": "context",
+              "minimumProjectedNodeTextOwner": {
+                "kind": "node",
+                "id": "auth"
+              },
+              "minimumRequiredNodeTextPx": 6,
+              "readabilityOk": true,
+              "hasLegend": true,
+              "hasNavigationDock": true,
+              "legendDockIntersectionArea": 0,
+              "dockStageIntersectionArea": 0,
+              "dockStageGap": 10,
+              "requiredDockStageGap": 10,
+              "viewerChromeStageOk": true,
+              "viewerChromeReserve": 54,
+              "viewerChromeActive": true,
+              "viewerChromeOk": true,
+              "resolvedTheme": "light"
+            },
+            {
+              "width": 1600,
+              "height": 1000,
+              "theme": "light",
+              "innerWidth": 1600,
+              "innerHeight": 1000,
+              "scrollWidth": 1600,
+              "scrollHeight": 1000,
+              "overflowX": false,
+              "overflowY": false,
+              "verticalScrollAccepted": false,
+              "overflowDisposition": "contained",
+              "readerLayout": "adaptive",
+              "readerOverflow": null,
+              "readerFit": "intrinsic-height",
+              "ok": true,
+              "readerWidth": 1245,
+              "diagramWidth": 1215,
+              "pageComposition": {
+                "bodyPaddingPx": 64,
+                "headerPx": 60,
+                "diagramChromePx": 84,
+                "svgPx": 780,
+                "cardsPx": 0,
+                "viewBoxHeight": 610
+              },
+              "viewBoxWidth": 950,
+              "minimumProjectedNodeTextPx": 6.9,
+              "minimumProjectedNonEdgeTextPx": 6.9,
+              "minimumProjectedEdgeTextPx": 8,
+              "minimumProjectedNodeText": "permite o rechaza cada ruta",
+              "minimumProjectedNodeTextDetail": "context",
+              "minimumProjectedNodeTextOwner": {
+                "kind": "node",
+                "id": "auth"
+              },
+              "minimumRequiredNodeTextPx": 6,
+              "readabilityOk": true,
+              "hasLegend": true,
+              "hasNavigationDock": true,
+              "legendDockIntersectionArea": 0,
+              "dockStageIntersectionArea": 0,
+              "dockStageGap": 10,
+              "requiredDockStageGap": 10,
+              "viewerChromeStageOk": true,
+              "viewerChromeReserve": 54,
+              "viewerChromeActive": true,
+              "viewerChromeOk": true,
+              "resolvedTheme": "light"
+            },
+            {
+              "width": 1920,
+              "height": 1080,
+              "theme": "light",
+              "innerWidth": 1920,
+              "innerHeight": 1080,
+              "scrollWidth": 1920,
+              "scrollHeight": 1080,
+              "overflowX": false,
+              "overflowY": false,
+              "verticalScrollAccepted": false,
+              "overflowDisposition": "contained",
+              "readerLayout": "adaptive",
+              "readerOverflow": null,
+              "readerFit": "intrinsic-height",
+              "ok": true,
+              "readerWidth": 1369,
+              "diagramWidth": 1339,
+              "pageComposition": {
+                "bodyPaddingPx": 64,
+                "headerPx": 60,
+                "diagramChromePx": 84,
+                "svgPx": 860,
+                "cardsPx": 0,
+                "viewBoxHeight": 610
+              },
+              "viewBoxWidth": 950,
+              "minimumProjectedNodeTextPx": 6.9,
+              "minimumProjectedNonEdgeTextPx": 6.9,
+              "minimumProjectedEdgeTextPx": 8,
+              "minimumProjectedNodeText": "permite o rechaza cada ruta",
+              "minimumProjectedNodeTextDetail": "context",
+              "minimumProjectedNodeTextOwner": {
+                "kind": "node",
+                "id": "auth"
+              },
+              "minimumRequiredNodeTextPx": 6,
+              "readabilityOk": true,
+              "hasLegend": true,
+              "hasNavigationDock": true,
+              "legendDockIntersectionArea": 0,
+              "dockStageIntersectionArea": 0,
+              "dockStageGap": 10,
+              "requiredDockStageGap": 10,
+              "viewerChromeStageOk": true,
+              "viewerChromeReserve": 54,
+              "viewerChromeActive": true,
+              "viewerChromeOk": true,
+              "resolvedTheme": "light"
+            },
+            {
+              "width": 2048,
+              "height": 1320,
+              "theme": "light",
+              "innerWidth": 2048,
+              "innerHeight": 1320,
+              "scrollWidth": 2048,
+              "scrollHeight": 1320,
+              "overflowX": false,
+              "overflowY": false,
+              "verticalScrollAccepted": false,
+              "overflowDisposition": "contained",
+              "readerLayout": "adaptive",
+              "readerOverflow": null,
+              "readerFit": "intrinsic-height",
+              "ok": true,
+              "readerWidth": 1804,
+              "diagramWidth": 1425,
+              "pageComposition": {
+                "bodyPaddingPx": 64,
+                "headerPx": 68,
+                "diagramChromePx": 261,
+                "svgPx": 915,
+                "cardsPx": 0,
+                "viewBoxHeight": 610
+              },
+              "viewBoxWidth": 950,
+              "minimumProjectedNodeTextPx": 6.9,
+              "minimumProjectedNonEdgeTextPx": 6.9,
+              "minimumProjectedEdgeTextPx": 8,
+              "minimumProjectedNodeText": "permite o rechaza cada ruta",
+              "minimumProjectedNodeTextDetail": "context",
+              "minimumProjectedNodeTextOwner": {
+                "kind": "node",
+                "id": "auth"
+              },
+              "minimumRequiredNodeTextPx": 6,
+              "readabilityOk": true,
+              "hasLegend": true,
+              "hasNavigationDock": true,
+              "legendDockIntersectionArea": 0,
+              "dockStageIntersectionArea": 0,
+              "dockStageGap": 71.5,
+              "requiredDockStageGap": 10,
+              "viewerChromeStageOk": true,
+              "viewerChromeReserve": 0,
+              "viewerChromeActive": false,
+              "viewerChromeOk": true,
+              "resolvedTheme": "light"
+            }
+          ]
+        },
+        "captures": {
+          "status": "not-requested",
+          "screenshots": [],
+          "contactSheet": null
+        },
+        "sidecars": {
+          "receipt": "sistema.browser-check.json",
+          "files": []
+        }
+      }
+    }
+  },
+  "browserCheck": {
+    "requested": true,
+    "ran": true
+  },
+  "diagnostics": [],
+  "evidence": {
+    "receipt": "/home/jarvinc/projects/personal-os-workspace/personal-os-back/.archify/architecture-sistema-20261020-111223/sistema.finalize.json",
+    "summaryReceipt": "/home/jarvinc/projects/personal-os-workspace/personal-os-back/.archify/architecture-sistema-20261020-111223/sistema.finalize-summary.json",
+    "browserCheckReceipt": "/home/jarvinc/projects/personal-os-workspace/personal-os-back/.archify/architecture-sistema-20261020-111223/sistema.browser-check.json"
+  },
+  "visualReview": "not-requested",
+  "finishedAt": "2026-10-20T15:12:56.622Z",
+  "durationMs": 9915,
+  "update": {
+    "status": "current",
+    "installedVersion": "3.2.0",
+    "availableVersion": "3.2.0",
+    "releaseNotes": null,
+    "checkedAt": "2026-10-20T14:40:23.511Z",
+    "source": "cache",
+    "noticeRequired": false,
+    "noticeText": null
+  }
+}

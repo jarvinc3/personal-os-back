@@ -1,0 +1,165 @@
+{
+  "schema_version": 1,
+  "diagram_type": "waterfall",
+  "meta": {
+    "title": "Dónde se iría el tiempo del resumen semanal",
+    "locale": "es",
+    "output": ".archify/waterfall-resumen-semanal-20261020-111640/resumen-semanal.html",
+    "quality_profile": "showcase",
+    "evidence": "illustrative",
+    "unit": "ms",
+    "repository": {
+      "url": "https://github.com/jarvinc3/personal-os-back.git",
+      "provider": "github",
+      "revision": "b2d61c4cc9f4e853387445e1e4dfde927c1a3c1b"
+    }
+  },
+  "spans": [
+    {
+      "id": "total",
+      "name": "Petición completa",
+      "start": 0,
+      "duration": 420,
+      "service": "Pantalla → API",
+      "status": "ok"
+    },
+    {
+      "id": "envio",
+      "name": "Envío y red",
+      "start": 0,
+      "duration": 30,
+      "parent": "total",
+      "service": "Pantalla",
+      "status": "ok"
+    },
+    {
+      "id": "jwt",
+      "name": "Guard JWT",
+      "start": 30,
+      "duration": 25,
+      "parent": "total",
+      "service": "API",
+      "status": "ok"
+    },
+    {
+      "id": "modulo",
+      "name": "Guard de módulo",
+      "start": 55,
+      "duration": 45,
+      "parent": "total",
+      "service": "API",
+      "status": "ok",
+      "detail": "Lee la configuración del módulo del usuario"
+    },
+    {
+      "id": "servicio",
+      "name": "WeeklySummary",
+      "start": 100,
+      "duration": 250,
+      "parent": "total",
+      "service": "Finance",
+      "status": "ok",
+      "sources": [
+        { "path": "packages/finance/src/analytics/application/weekly-summary.service.ts", "line": 104, "end_line": 135 }
+      ]
+    },
+    {
+      "id": "perfil",
+      "name": "Perfil y moneda base",
+      "start": 100,
+      "duration": 30,
+      "parent": "servicio",
+      "service": "Finance",
+      "status": "ok"
+    },
+    {
+      "id": "consultas",
+      "name": "Seis consultas en paralelo",
+      "start": 130,
+      "duration": 180,
+      "parent": "servicio",
+      "service": "Finance",
+      "status": "ok"
+    },
+    {
+      "id": "gasto",
+      "name": "Gasto en el tiempo",
+      "start": 130,
+      "duration": 90,
+      "parent": "consultas",
+      "service": "PostgreSQL",
+      "status": "ok"
+    },
+    {
+      "id": "presupuestos",
+      "name": "Estado de presupuestos",
+      "start": 130,
+      "duration": 70,
+      "parent": "consultas",
+      "service": "PostgreSQL",
+      "status": "ok"
+    },
+    {
+      "id": "planeacion",
+      "name": "Préstamos, tarjetas y pendientes",
+      "start": 140,
+      "duration": 60,
+      "parent": "consultas",
+      "service": "PostgreSQL",
+      "status": "ok"
+    },
+    {
+      "id": "armado",
+      "name": "Arma el resumen",
+      "start": 310,
+      "duration": 40,
+      "parent": "servicio",
+      "service": "Finance",
+      "status": "ok"
+    },
+    {
+      "id": "serializa",
+      "name": "Serializa y envuelve",
+      "start": 350,
+      "duration": 20,
+      "parent": "total",
+      "service": "API",
+      "status": "ok"
+    },
+    {
+      "id": "pinta",
+      "name": "Pinta la tarjeta",
+      "start": 370,
+      "duration": 50,
+      "parent": "total",
+      "service": "Pantalla",
+      "status": "ok"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "rose",
+      "title": "Estos tiempos no se midieron",
+      "items": [
+        "El diagrama es ilustrativo: muestra el orden y el peso esperado, no una traza",
+        "Medirlo pide instrumentar el request y guardar la traza real"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "Dónde mirar primero",
+      "items": [
+        "El servicio concentra casi todo el tiempo",
+        "Las seis consultas van en paralelo: la más lenta manda"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Antes del servicio",
+      "items": [
+        "Dos puertas: token y módulo habilitado",
+        "El guard de módulo toca la base; el de token no necesita hacerlo"
+      ]
+    }
+  ]
+}

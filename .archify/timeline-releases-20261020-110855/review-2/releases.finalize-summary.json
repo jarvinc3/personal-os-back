@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "timeline",
+  "quality": "showcase",
+  "specification": {
+    "path": "/home/jarvinc/projects/personal-os-workspace/personal-os-back/.archify/timeline-releases-20261020-110855/candidate.json",
+    "sha256": "f2626d80fa32df69a5ae4a74822025bbf6e04dca0ff27a05b9489b4a69614c51",
+    "bytes": 5724
+  },
+  "artifact": {
+    "path": "/home/jarvinc/projects/personal-os-workspace/personal-os-back/.archify/timeline-releases-20261020-110855/releases.html",
+    "sha256": "15f30d7fbc2fcb94b7eb56d894d9d46539a5fcd05f49a51e5d700c5fb03e853a",
+    "bytes": 834152
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "pass"
+  },
+  "diagnostics": [],
+  "diagnosticSummary": {
+    "total": 0,
+    "shown": 0,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "/home/jarvinc/projects/personal-os-workspace/personal-os-back/.archify/timeline-releases-20261020-110855/review-2/releases.finalize.json",
+    "summaryReceipt": "/home/jarvinc/projects/personal-os-workspace/personal-os-back/.archify/timeline-releases-20261020-110855/review-2/releases.finalize-summary.json",
+    "browserCheckReceipt": "/home/jarvinc/projects/personal-os-workspace/personal-os-back/.archify/timeline-releases-20261020-110855/review-2/releases.browser-check.json"
+  },
+  "update": {
+    "status": "current",
+    "installedVersion": "3.2.0",
+    "availableVersion": "3.2.0",
+    "releaseNotes": null,
+    "checkedAt": "2026-10-20T14:40:23.511Z",
+    "source": "cache",
+    "noticeRequired": false,
+    "noticeText": null
+  },
+  "visualReview": "not-requested",
+  "durationMs": 6592,
+  "browserCheck": {
+    "requested": true,
+    "ran": true
+  }
+}

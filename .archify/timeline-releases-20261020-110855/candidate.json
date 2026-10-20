@@ -1,0 +1,183 @@
+{
+  "schema_version": 1,
+  "diagram_type": "timeline",
+  "meta": {
+    "title": "Seis días que cambiaron el backend",
+    "locale": "es",
+    "output": ".archify/timeline-releases-20261020-110855/releases.html",
+    "quality_profile": "showcase",
+    "evidence": "observed",
+    "timezone": "America/Santo_Domingo",
+    "repository": {
+      "url": "https://github.com/jarvinc3/personal-os-back.git",
+      "provider": "github",
+      "revision": "b2d61c4cc9f4e853387445e1e4dfde927c1a3c1b"
+    }
+  },
+  "lanes": [
+    { "id": "dinero", "label": "Dinero y saldos" },
+    { "id": "ingesta", "label": "Ingesta y conciliación" },
+    { "id": "suscripciones", "label": "Suscripciones" },
+    { "id": "plataforma", "label": "Plataforma y releases" }
+  ],
+  "events": [
+    {
+      "id": "v0200",
+      "at": "2026-10-13T21:07:40-04:00",
+      "title": "0.20.0 · reinicio del versionado",
+      "detail": "El proyecto pasa a beta con 0.MINOR.PATCH y los tags 1.x desaparecen",
+      "lane": "plataforma",
+      "kind": "change",
+      "sources": [
+        { "path": "CHANGELOG.md", "line": 664, "end_line": 670 }
+      ]
+    },
+    {
+      "id": "v0250",
+      "at": "2026-10-14T06:06:41-04:00",
+      "title": "0.25.0 · comercios y recurrentes",
+      "detail": "FinMerchant con alias normalizados y detección de patrones por monto y periodicidad",
+      "lane": "suscripciones",
+      "kind": "default",
+      "sources": [
+        { "path": "CHANGELOG.md", "line": 528, "end_line": 534 }
+      ]
+    },
+    {
+      "id": "v0260",
+      "at": "2026-10-14T08:45:38-04:00",
+      "title": "0.26.0 · suscripciones",
+      "detail": "Tablas propias, REST completo y emparejado automático de pagos",
+      "lane": "suscripciones",
+      "kind": "default",
+      "sources": [
+        { "path": "CHANGELOG.md", "line": 493, "end_line": 499 }
+      ]
+    },
+    {
+      "id": "v0270",
+      "at": "2026-10-14T11:07:19-04:00",
+      "title": "0.27.0 · conciliación",
+      "detail": "Los cargos del banco se cruzan con los correos importados",
+      "lane": "ingesta",
+      "kind": "default",
+      "sources": [
+        { "path": "CHANGELOG.md", "line": 469, "end_line": 474 }
+      ]
+    },
+    {
+      "id": "v0290",
+      "at": "2026-10-14T16:39:47-04:00",
+      "title": "0.29.0 · integridad de saldos",
+      "detail": "Los saldos se recalculan y se verifican contra el ledger",
+      "lane": "dinero",
+      "kind": "change",
+      "sources": [
+        { "path": "CHANGELOG.md", "line": 414, "end_line": 420 }
+      ]
+    },
+    {
+      "id": "v0300",
+      "at": "2026-10-15T04:06:05-04:00",
+      "title": "0.30.0 · suscripciones v3",
+      "detail": "Tercera pasada del modelo de suscripciones",
+      "lane": "suscripciones",
+      "kind": "change",
+      "sources": [
+        { "path": "CHANGELOG.md", "line": 387, "end_line": 393 }
+      ]
+    },
+    {
+      "id": "v0310",
+      "at": "2026-10-15T05:00:06-04:00",
+      "title": "0.31.0 · tarjetas prácticas",
+      "detail": "Cambios de uso diario sobre tarjetas de crédito",
+      "lane": "dinero",
+      "kind": "default",
+      "sources": [
+        { "path": "CHANGELOG.md", "line": 359, "end_line": 365 }
+      ]
+    },
+    {
+      "id": "v0320",
+      "at": "2026-10-15T05:34:55-04:00",
+      "title": "0.32.0 · decimales exactos",
+      "detail": "El dinero deja de pasar por números flotantes",
+      "lane": "dinero",
+      "kind": "change",
+      "sources": [
+        { "path": "CHANGELOG.md", "line": 341, "end_line": 347 }
+      ]
+    },
+    {
+      "id": "v0370",
+      "at": "2026-10-15T16:02:51-04:00",
+      "title": "0.37.0 · Sentry y API sin prefijo",
+      "detail": "Errores 5xx con scrubber de datos sensibles; ADR-007 quita /v1",
+      "lane": "plataforma",
+      "kind": "default",
+      "sources": [
+        { "path": "CHANGELOG.md", "line": 202, "end_line": 212 }
+      ]
+    },
+    {
+      "id": "v0400",
+      "at": "2026-10-16T14:00:05-04:00",
+      "title": "0.40.0 · el agente revierte movimientos",
+      "detail": "Tool reverse_transaction que deshace saldo y presupuesto",
+      "lane": "dinero",
+      "kind": "default",
+      "sources": [
+        { "path": "CHANGELOG.md", "line": 99, "end_line": 105 }
+      ]
+    },
+    {
+      "id": "v0420",
+      "at": "2026-10-17T06:39:54-04:00",
+      "title": "0.42.0 · cuentas cifradas",
+      "detail": "Hash HMAC de la cuenta, último4 expuesto y retención del payload de correo",
+      "lane": "plataforma",
+      "kind": "default",
+      "sources": [
+        { "path": "CHANGELOG.md", "line": 43, "end_line": 49 }
+      ]
+    },
+    {
+      "id": "v0432",
+      "at": "2026-10-19T13:40:18-04:00",
+      "title": "0.43.2 · link público con PUBLIC_WEB_URL",
+      "detail": "El cobro compartido arma su URL desde la web pública y no desde CORS",
+      "lane": "plataforma",
+      "kind": "default",
+      "sources": [
+        { "path": "CHANGELOG.md", "line": 5, "end_line": 9 }
+      ]
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "Qué es tiempo real y qué no",
+      "items": [
+        "Las horas vienen del commit de cada tag; el CHANGELOG solo aporta el número",
+        "Algunas fechas del CHANGELOG no coinciden con el commit: manda el tag"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "Ritmo",
+      "items": [
+        "71 tags en seis días: el repo publica varias veces al día",
+        "Cada versión menor trae una capacidad completa, no un arreglo suelto"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Numeración",
+      "items": [
+        "Las 1.x se borraron al pasar a beta; siguen en el CHANGELOG como historia",
+        "Antes de 0.20.0 el orden de lectura del archivo se invierte"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "63146268-9e53-49e9-ab3b-51d19336a1b5",
+  "status": "current",
+  "command": "deliver",
+  "type": "sequence",
+  "input": "/home/jarvinc/projects/personal-os-workspace/personal-os-back/.archify/sequence-resumen-semanal-20261020-111102/candidate.json",
+  "output": "/home/jarvinc/projects/personal-os-workspace/personal-os-back/.archify/sequence-resumen-semanal-20261020-111102/resumen-semanal.html",
+  "specification": {
+    "sha256": "d5f084af15fb22b98a81eef745c96a638dcf78f58dd9315a282cb3b0c4a5b886",
+    "bytes": 5174
+  },
+  "artifact": {
+    "sha256": "6f965a2aab9b52181790ed4f0c226179617870d4b0b6474a412683569de405ab",
+    "bytes": 822269
+  }
+}

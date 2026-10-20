@@ -2,6 +2,19 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [SemVer](https://semver.org/lang/es/). Reglas y ejemplo en [docs/reference/changelog-guide.md](./docs/reference/changelog-guide.md).
 
+## [Sin publicar]
+
+### Agregado
+
+- Paquete de contexto del rediseño de IA en `docs/refactors/personal-os-ai-redesign-context-pack/` (00–12): visión, estado actual, decisiones e invariantes, arquitectura objetivo (Inference Gateway, Capability Registry, Signals, Action Policy), conocimiento con evidencia append-only y alcance GLOBAL/USER, Email Intelligence V1, roadmap de 13 fases (0–12) con pruebas, demo y gate por fase, modelo de datos, capa de roles (USER | CONTRIBUTOR | ADMIN), impacto en back y web, y decisiones del dueño registradas. Solo documentación; no cambia el comportamiento.
+- Skill `archify` en `.agents/skills/archify/` (registrada en `skills-lock.json`) y diagramas generados en `.archify/` (arquitectura, ERD de finanzas, ingesta de correo, ledger, estado de cuenta, releases, monorepo, sync de Gmail, resumen semanal).
+- En desarrollo, la API sirve los diagramas de `.archify/` como estáticos en `/docs/diagramas/`; en producción no se montan.
+- Convenciones de issues en `docs/issue-conventions.md` y plantillas `.github/ISSUE_TEMPLATE/bug.yml` y `feature.yml`.
+
+### Cambiado
+
+- `AGENTS.md` y `docs/README.md` enlazan las convenciones de issues y la nueva documentación.
+
 ## [0.44.0] - 2026-10-20
 
 ### Corregido

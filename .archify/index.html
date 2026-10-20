@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Diagramas de Personal OS</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: #f6f7f9;
+        --panel: #ffffff;
+        --ink: #14161a;
+        --muted: #5d646f;
+        --line: #e2e5ea;
+        --accent: #0f766e;
+        --chip: #eef2f6;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #0e1116;
+          --panel: #161a21;
+          --ink: #e9edf2;
+          --muted: #9aa4b2;
+          --line: #262c36;
+          --accent: #5eead4;
+          --chip: #1d2530;
+        }
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        padding: 40px 24px 64px;
+        background: var(--bg);
+        color: var(--ink);
+        font: 15px/1.55 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      }
+      header,
+      main {
+        max-width: 1040px;
+        margin: 0 auto;
+      }
+      h1 {
+        margin: 0 0 6px;
+        font-size: 26px;
+        letter-spacing: -0.01em;
+      }
+      .lead {
+        margin: 0 0 28px;
+        color: var(--muted);
+        max-width: 70ch;
+      }
+      .grid {
+        display: grid;
+        gap: 14px;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      }
+      a.card {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        padding: 16px 18px;
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        color: inherit;
+        text-decoration: none;
+      }
+      a.card:hover,
+      a.card:focus-visible {
+        border-color: var(--accent);
+        outline: none;
+      }
+      .top {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 12px;
+      }
+      .name {
+        font-weight: 600;
+        font-size: 16px;
+      }
+      .chip {
+        flex: none;
+        padding: 2px 8px;
+        border-radius: 999px;
+        background: var(--chip);
+        color: var(--muted);
+        font-size: 12px;
+        letter-spacing: 0.02em;
+        text-transform: uppercase;
+      }
+      .desc {
+        color: var(--muted);
+        font-size: 14px;
+      }
+      .meta {
+        margin-top: 2px;
+        color: var(--muted);
+        font-size: 12px;
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      }
+      footer {
+        max-width: 1040px;
+        margin: 32px auto 0;
+        color: var(--muted);
+        font-size: 13px;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Diagramas de Personal OS</h1>
+      <p class="lead">
+        Diez vistas del backend y de su pantalla, todas generadas desde el código y ancladas al commit
+        <code>b2d61c4</code>. Cada tarjeta abre un HTML autocontenido con tema claro y oscuro, animación y
+        exportación.
+      </p>
+    </header>
+
+    <main class="grid">
+      <a class="card" href="architecture-sistema-20261020-111223/sistema.html">
+        <div class="top"><span class="name">Qué hay detrás de una pantalla</span><span class="chip">Arquitectura</span></div>
+        <div class="desc">Next.js, la API NestJS, los paquetes y los servicios externos. El mapa para ubicarse.</div>
+      </a>
+
+      <a class="card" href="tree-monorepo-20261020-110754/monorepo.html">
+        <div class="top"><span class="name">Cómo se descompone el backend</span><span class="chip">Árbol</span></div>
+        <div class="desc">apps, los nueve paquetes del workspace y qué contiene cada uno.</div>
+      </a>
+
+      <a class="card" href="sequence-resumen-semanal-20261020-111102/resumen-semanal.html">
+        <div class="top"><span class="name">Una petición del resumen semanal</span><span class="chip">Secuencia</span></div>
+        <div class="desc">De la pantalla al token, los dos guards, el servicio, la base y la respuesta.</div>
+      </a>
+
+      <a class="card" href="dataflow-ingesta-correo-20261020-110728/ingesta-correo.html">
+        <div class="top"><span class="name">De un correo del banco a la pantalla</span><span class="chip">Flujo de datos</span></div>
+        <div class="desc">Gmail, extracción con IA, tasas, ledger, Postgres y el resumen que se ve.</div>
+      </a>
+
+      <a class="card" href="workflow-sync-gmail-20261020-111143/sync-gmail.html">
+        <div class="top"><span class="name">Qué hace el sync de Gmail</span><span class="chip">Flujo de trabajo</span></div>
+        <div class="desc">Lectura del buzón, extracción, ruteo y las salidas por excepción.</div>
+      </a>
+
+      <a class="card" href="lifecycle-estado-cuenta-20261020-110935/estado-cuenta.html">
+        <div class="top"><span class="name">Estados de cuenta de una tarjeta</span><span class="chip">Ciclo de vida</span></div>
+        <div class="desc">Seis estados calculados en cada lectura, con el vencido como desvío recuperable.</div>
+      </a>
+
+      <a class="card" href="erd-finanzas-20261020-111756/finanzas.html">
+        <div class="top"><span class="name">Las siete tablas del dinero</span><span class="chip">ERD</span></div>
+        <div class="desc">Instituciones, instrumentos, movimientos y presupuestos con todas sus columnas.</div>
+      </a>
+
+      <a class="card" href="class-ledger-20261020-111506/ledger.html">
+        <div class="top"><span class="name">Los contratos que escriben un movimiento</span><span class="chip">Clases</span></div>
+        <div class="desc">Casos de uso, puertos y adaptadores del ledger y del tipo de cambio.</div>
+      </a>
+
+      <a class="card" href="waterfall-resumen-semanal-20261020-111640/resumen-semanal.html">
+        <div class="top"><span class="name">Dónde se iría el tiempo del resumen</span><span class="chip">Cascada</span></div>
+        <div class="desc">Reparto ilustrativo de 420 ms, no una traza medida.</div>
+      </a>
+
+      <a class="card" href="timeline-releases-20261020-110855/releases.html">
+        <div class="top"><span class="name">Seis días que cambiaron el backend</span><span class="chip">Cronología</span></div>
+        <div class="desc">Doce releases con la hora real de su commit, no la fecha del CHANGELOG.</div>
+      </a>
+    </main>
+
+    <footer>
+      Generado con archify. Las cifras de la cascada son ilustrativas; el resto se apoya en el código del commit citado.
+    </footer>
+  </body>
+</html>

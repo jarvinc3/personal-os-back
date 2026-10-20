@@ -1,0 +1,719 @@
+{
+  "schema_version": 1,
+  "diagram_type": "erd",
+  "meta": {
+    "title": "Las siete tablas del dinero",
+    "locale": "es",
+    "output": ".archify/erd-finanzas-20261020-111756/finanzas.html",
+    "quality_profile": "standard",
+    "repository": {
+      "url": "https://github.com/jarvinc3/personal-os-back.git",
+      "provider": "github",
+      "revision": "b2d61c4cc9f4e853387445e1e4dfde927c1a3c1b"
+    }
+  },
+  "entities": [
+    {
+      "id": "FinInstitution",
+      "label": "FinInstitution",
+      "sublabel": "banco o billetera",
+      "tag": "Instituciones",
+      "row": 0,
+      "col": 0,
+      "attributes": [
+        {
+          "name": "id",
+          "type": "text",
+          "key": "pk"
+        },
+        {
+          "name": "userId",
+          "type": "text"
+        },
+        {
+          "name": "name",
+          "type": "text"
+        },
+        {
+          "name": "type",
+          "type": "text"
+        },
+        {
+          "name": "shortName",
+          "type": "text"
+        },
+        {
+          "name": "sortOrder",
+          "type": "int"
+        },
+        {
+          "name": "domain",
+          "type": "text"
+        },
+        {
+          "name": "logoPath",
+          "type": "text"
+        },
+        {
+          "name": "customLogoPath",
+          "type": "text"
+        },
+        {
+          "name": "logoUrl",
+          "type": "text"
+        },
+        {
+          "name": "color",
+          "type": "text"
+        },
+        {
+          "name": "country",
+          "type": "text"
+        },
+        {
+          "name": "isActive",
+          "type": "boolean"
+        },
+        {
+          "name": "isSystem",
+          "type": "boolean"
+        },
+        {
+          "name": "createdAt",
+          "type": "timestamptz"
+        },
+        {
+          "name": "updatedAt",
+          "type": "timestamptz"
+        }
+      ],
+      "sources": [
+        {
+          "path": "packages/database/prisma/schema.prisma",
+          "line": 601,
+          "end_line": 630
+        }
+      ],
+      "width": 300
+    },
+    {
+      "id": "FinAccount",
+      "label": "FinAccount",
+      "sublabel": "cuenta de cheques o ahorro",
+      "tag": "Instrumentos",
+      "row": 0,
+      "col": 1,
+      "attributes": [
+        {
+          "name": "id",
+          "type": "text",
+          "key": "pk"
+        },
+        {
+          "name": "userId",
+          "type": "text"
+        },
+        {
+          "name": "institutionId",
+          "type": "text",
+          "key": "fk",
+          "references": "FinInstitution.id"
+        },
+        {
+          "name": "name",
+          "type": "text"
+        },
+        {
+          "name": "type",
+          "type": "FinAccountType"
+        },
+        {
+          "name": "accountNumber",
+          "type": "text"
+        },
+        {
+          "name": "accountNumberLast4",
+          "type": "text"
+        },
+        {
+          "name": "accountNumberHash",
+          "type": "text"
+        },
+        {
+          "name": "isDefaultForInstitution",
+          "type": "boolean"
+        },
+        {
+          "name": "currency",
+          "type": "text"
+        },
+        {
+          "name": "balance",
+          "type": "numeric(15, 2)"
+        },
+        {
+          "name": "color",
+          "type": "text"
+        },
+        {
+          "name": "isActive",
+          "type": "boolean"
+        },
+        {
+          "name": "createdAt",
+          "type": "timestamptz"
+        },
+        {
+          "name": "updatedAt",
+          "type": "timestamptz"
+        }
+      ],
+      "sources": [
+        {
+          "path": "packages/database/prisma/schema.prisma",
+          "line": 176,
+          "end_line": 216
+        }
+      ],
+      "width": 300
+    },
+    {
+      "id": "FinCard",
+      "label": "FinCard",
+      "sublabel": "tarjeta de crédito o débito",
+      "tag": "Instrumentos",
+      "row": 1,
+      "col": 1,
+      "attributes": [
+        {
+          "name": "id",
+          "type": "text",
+          "key": "pk"
+        },
+        {
+          "name": "userId",
+          "type": "text"
+        },
+        {
+          "name": "institutionId",
+          "type": "text",
+          "key": "fk",
+          "references": "FinInstitution.id"
+        },
+        {
+          "name": "accountId",
+          "type": "text",
+          "key": "fk",
+          "references": "FinAccount.id"
+        },
+        {
+          "name": "name",
+          "type": "text"
+        },
+        {
+          "name": "lastFour",
+          "type": "text"
+        },
+        {
+          "name": "type",
+          "type": "FinCardType"
+        },
+        {
+          "name": "network",
+          "type": "FinCardNetwork"
+        },
+        {
+          "name": "statementClosingDay",
+          "type": "int"
+        },
+        {
+          "name": "paymentDueDay",
+          "type": "int"
+        },
+        {
+          "name": "color",
+          "type": "text"
+        },
+        {
+          "name": "isActive",
+          "type": "boolean"
+        },
+        {
+          "name": "createdAt",
+          "type": "timestamptz"
+        },
+        {
+          "name": "updatedAt",
+          "type": "timestamptz"
+        }
+      ],
+      "sources": [
+        {
+          "path": "packages/database/prisma/schema.prisma",
+          "line": 632,
+          "end_line": 663
+        }
+      ],
+      "width": 300
+    },
+    {
+      "id": "FinCardBalance",
+      "label": "FinCardBalance",
+      "sublabel": "saldo por moneda",
+      "tag": "Instrumentos",
+      "row": 2,
+      "col": 1,
+      "attributes": [
+        {
+          "name": "id",
+          "type": "text",
+          "key": "pk"
+        },
+        {
+          "name": "cardId",
+          "type": "text",
+          "key": "fk",
+          "references": "FinCard.id"
+        },
+        {
+          "name": "currency",
+          "type": "text"
+        },
+        {
+          "name": "balance",
+          "type": "numeric(15, 2)"
+        },
+        {
+          "name": "creditLimit",
+          "type": "numeric(15, 2)"
+        },
+        {
+          "name": "createdAt",
+          "type": "timestamptz"
+        },
+        {
+          "name": "updatedAt",
+          "type": "timestamptz"
+        }
+      ],
+      "sources": [
+        {
+          "path": "packages/database/prisma/schema.prisma",
+          "line": 665,
+          "end_line": 677
+        }
+      ],
+      "width": 300
+    },
+    {
+      "id": "FinTransaction",
+      "label": "FinTransaction",
+      "sublabel": "evento de dinero",
+      "tag": "Movimientos",
+      "row": 1,
+      "col": 2,
+      "attributes": [
+        {
+          "name": "id",
+          "type": "text",
+          "key": "pk"
+        },
+        {
+          "name": "accountId",
+          "type": "text",
+          "key": "fk",
+          "references": "FinAccount.id"
+        },
+        {
+          "name": "cardId",
+          "type": "text",
+          "key": "fk",
+          "references": "FinCard.id"
+        },
+        {
+          "name": "userId",
+          "type": "text"
+        },
+        {
+          "name": "categoryId",
+          "type": "text",
+          "key": "fk",
+          "references": "FinCategory.id"
+        },
+        {
+          "name": "emailMessageId",
+          "type": "text"
+        },
+        {
+          "name": "externalReference",
+          "type": "text"
+        },
+        {
+          "name": "institutionId",
+          "type": "text"
+        },
+        {
+          "name": "possibleDuplicateOfId",
+          "type": "text"
+        },
+        {
+          "name": "type",
+          "type": "FinTransactionType"
+        },
+        {
+          "name": "amount",
+          "type": "numeric(15, 2)"
+        },
+        {
+          "name": "ledgerAmount",
+          "type": "numeric(15, 2)"
+        },
+        {
+          "name": "amountBaseCurrency",
+          "type": "numeric(15, 2)"
+        },
+        {
+          "name": "currency",
+          "type": "text"
+        },
+        {
+          "name": "ledgerCurrency",
+          "type": "text"
+        },
+        {
+          "name": "exchangeRate",
+          "type": "numeric(18, 8)"
+        },
+        {
+          "name": "merchant",
+          "type": "text"
+        },
+        {
+          "name": "merchantId",
+          "type": "text"
+        },
+        {
+          "name": "description",
+          "type": "text"
+        },
+        {
+          "name": "transactionDate",
+          "type": "timestamptz"
+        },
+        {
+          "name": "transferGroupId",
+          "type": "text"
+        },
+        {
+          "name": "linkedTransactionId",
+          "type": "text",
+          "key": "fk",
+          "references": "FinTransaction.id"
+        },
+        {
+          "name": "status",
+          "type": "FinTransactionStatus"
+        },
+        {
+          "name": "isRecurring",
+          "type": "boolean"
+        },
+        {
+          "name": "aiMetadata",
+          "type": "jsonb"
+        },
+        {
+          "name": "notes",
+          "type": "text"
+        },
+        {
+          "name": "source",
+          "type": "FinTransactionSource"
+        },
+        {
+          "name": "legRole",
+          "type": "FinOperationLegRole"
+        },
+        {
+          "name": "rail",
+          "type": "FinTransferRail"
+        },
+        {
+          "name": "createdAt",
+          "type": "timestamptz"
+        },
+        {
+          "name": "updatedAt",
+          "type": "timestamptz"
+        }
+      ],
+      "sources": [
+        {
+          "path": "packages/database/prisma/schema.prisma",
+          "line": 286,
+          "end_line": 356
+        }
+      ],
+      "width": 300
+    },
+    {
+      "id": "FinCategory",
+      "label": "FinCategory",
+      "sublabel": "etiqueta de gasto o ingreso",
+      "tag": "Clasificación",
+      "row": 0,
+      "col": 3,
+      "attributes": [
+        {
+          "name": "id",
+          "type": "text",
+          "key": "pk"
+        },
+        {
+          "name": "userId",
+          "type": "text"
+        },
+        {
+          "name": "name",
+          "type": "text"
+        },
+        {
+          "name": "icon",
+          "type": "text"
+        },
+        {
+          "name": "color",
+          "type": "text"
+        },
+        {
+          "name": "parentId",
+          "type": "text",
+          "key": "fk",
+          "references": "FinCategory.id"
+        },
+        {
+          "name": "isSystem",
+          "type": "boolean"
+        },
+        {
+          "name": "systemKind",
+          "type": "text"
+        },
+        {
+          "name": "type",
+          "type": "FinCategoryType"
+        },
+        {
+          "name": "createdAt",
+          "type": "timestamptz"
+        },
+        {
+          "name": "updatedAt",
+          "type": "timestamptz"
+        }
+      ],
+      "sources": [
+        {
+          "path": "packages/database/prisma/schema.prisma",
+          "line": 358,
+          "end_line": 384
+        }
+      ],
+      "width": 300
+    },
+    {
+      "id": "FinBudget",
+      "label": "FinBudget",
+      "sublabel": "límite por categoría",
+      "tag": "Clasificación",
+      "row": 1,
+      "col": 3,
+      "attributes": [
+        {
+          "name": "id",
+          "type": "text",
+          "key": "pk"
+        },
+        {
+          "name": "userId",
+          "type": "text"
+        },
+        {
+          "name": "categoryId",
+          "type": "text",
+          "key": "fk",
+          "references": "FinCategory.id"
+        },
+        {
+          "name": "name",
+          "type": "text"
+        },
+        {
+          "name": "includeChildren",
+          "type": "boolean"
+        },
+        {
+          "name": "rollover",
+          "type": "FinBudgetRollover"
+        },
+        {
+          "name": "carriedOver",
+          "type": "numeric(15, 2)"
+        },
+        {
+          "name": "recurring",
+          "type": "boolean"
+        },
+        {
+          "name": "periodType",
+          "type": "FinBudgetPeriodType"
+        },
+        {
+          "name": "periodStart",
+          "type": "date"
+        },
+        {
+          "name": "periodEnd",
+          "type": "date"
+        },
+        {
+          "name": "amountLimit",
+          "type": "numeric(15, 2)"
+        },
+        {
+          "name": "amountSpent",
+          "type": "numeric(15, 2)"
+        },
+        {
+          "name": "alertThresholdPct",
+          "type": "numeric(5, 2)"
+        },
+        {
+          "name": "aiSuggestionStatus",
+          "type": "AiSuggestionStatus"
+        },
+        {
+          "name": "aiSuggestionPayload",
+          "type": "jsonb"
+        },
+        {
+          "name": "createdAt",
+          "type": "timestamptz"
+        },
+        {
+          "name": "updatedAt",
+          "type": "timestamptz"
+        }
+      ],
+      "sources": [
+        {
+          "path": "packages/database/prisma/schema.prisma",
+          "line": 386,
+          "end_line": 414
+        }
+      ],
+      "width": 300
+    }
+  ],
+  "relationships": [
+    {
+      "id": "FinAccount-FinInstitution-institutionId",
+      "from": "FinAccount",
+      "to": "FinInstitution",
+      "label": "tiene",
+      "fromCardinality": "many",
+      "toCardinality": "one",
+      "fromOptional": true
+    },
+    {
+      "id": "FinCard-FinInstitution-institutionId",
+      "from": "FinCard",
+      "to": "FinInstitution",
+      "label": "tiene",
+      "fromCardinality": "many",
+      "toCardinality": "one"
+    },
+    {
+      "id": "FinCard-FinAccount-accountId",
+      "from": "FinCard",
+      "to": "FinAccount",
+      "label": "descuenta de",
+      "fromCardinality": "many",
+      "toCardinality": "one",
+      "fromOptional": true
+    },
+    {
+      "id": "FinCardBalance-FinCard-cardId",
+      "from": "FinCardBalance",
+      "to": "FinCard",
+      "label": "sostiene",
+      "fromCardinality": "many",
+      "toCardinality": "one"
+    },
+    {
+      "id": "FinTransaction-FinAccount-accountId",
+      "from": "FinTransaction",
+      "to": "FinAccount",
+      "label": "toca",
+      "fromCardinality": "many",
+      "toCardinality": "one",
+      "fromOptional": true
+    },
+    {
+      "id": "FinTransaction-FinCard-cardId",
+      "from": "FinTransaction",
+      "to": "FinCard",
+      "label": "toca",
+      "fromCardinality": "many",
+      "toCardinality": "one",
+      "fromOptional": true
+    },
+    {
+      "id": "FinTransaction-FinCategory-categoryId",
+      "from": "FinTransaction",
+      "to": "FinCategory",
+      "label": "clasifica",
+      "fromCardinality": "many",
+      "toCardinality": "one",
+      "fromOptional": true
+    },
+    {
+      "id": "FinBudget-FinCategory-categoryId",
+      "from": "FinBudget",
+      "to": "FinCategory",
+      "label": "limita",
+      "fromCardinality": "many",
+      "toCardinality": "one",
+      "fromOptional": true
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Tres montos por movimiento",
+      "items": [
+        "El monto original en su moneda",
+        "El monto aplicado al saldo del destino",
+        "El monto convertido a moneda base para analítica"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "El saldo de la tarjeta no es deuda",
+      "items": [
+        "En crédito se guarda el crédito disponible",
+        "La deuda es el límite menos el disponible",
+        "El estado de cuenta se arma desde el ledger"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Una transferencia son varias filas",
+      "items": [
+        "Cada pata lleva su rol: origen, destino o comisión",
+        "Comparten grupo de transferencia",
+        "El filtro por transferencia apunta a la pata de origen"
+      ]
+    }
+  ]
+}
