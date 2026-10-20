@@ -1,5 +1,6 @@
 import { AppEvents } from '@personal-os/core';
 import type { DomainEventPublisherPort } from '../../events/application/ports/domain-event-publisher.port';
+import { PrismaLedgerReadRepository } from './prisma-ledger-read.repository';
 import { PrismaLedgerRepository } from './prisma-ledger.repository';
 import { DeletionJournalRepository } from '../../shared/infrastructure/deletion-journal.repository';
 
@@ -124,6 +125,7 @@ describe('PrismaLedgerRepository outbox-in-TX', () => {
 
     const repo = new PrismaLedgerRepository(
       prisma as never,
+      new PrismaLedgerReadRepository(prisma as never),
       events,
       journal,
       undefined,
@@ -238,6 +240,7 @@ describe('PrismaLedgerRepository outbox-in-TX', () => {
 
     const repo = new PrismaLedgerRepository(
       prisma as never,
+      new PrismaLedgerReadRepository(prisma as never),
       events,
       journal,
       undefined,
@@ -356,6 +359,7 @@ describe('PrismaLedgerRepository outbox-in-TX', () => {
 
     const repo = new PrismaLedgerRepository(
       prisma as never,
+      new PrismaLedgerReadRepository(prisma as never),
       events,
       journal,
       undefined,
@@ -428,6 +432,7 @@ describe('PrismaLedgerRepository outbox-in-TX', () => {
 
     const repo = new PrismaLedgerRepository(
       prisma as never,
+      new PrismaLedgerReadRepository(prisma as never),
       events,
       journal,
       undefined,
@@ -489,6 +494,7 @@ describe('PrismaLedgerRepository outbox-in-TX', () => {
 
     const repo = new PrismaLedgerRepository(
       prisma as never,
+      new PrismaLedgerReadRepository(prisma as never),
       events,
       journal,
       undefined,
@@ -551,6 +557,7 @@ describe('PrismaLedgerRepository outbox-in-TX', () => {
 
     const repo = new PrismaLedgerRepository(
       prisma as never,
+      new PrismaLedgerReadRepository(prisma as never),
       events,
       journal,
       undefined,
@@ -616,6 +623,7 @@ describe('PrismaLedgerRepository outbox-in-TX', () => {
 
     const repo = new PrismaLedgerRepository(
       prisma as never,
+      new PrismaLedgerReadRepository(prisma as never),
       events,
       journal,
       undefined,
@@ -667,6 +675,7 @@ describe('PrismaLedgerRepository outbox-in-TX', () => {
 
     const repo = new PrismaLedgerRepository(
       prisma as never,
+      new PrismaLedgerReadRepository(prisma as never),
       events,
       journal,
       undefined,
@@ -725,6 +734,7 @@ describe('PrismaLedgerRepository outbox-in-TX', () => {
     };
     const repo = new PrismaLedgerRepository(
       prisma as never,
+      new PrismaLedgerReadRepository(prisma as never),
       { enqueue: jest.fn() },
       journal,
       undefined,
@@ -799,6 +809,7 @@ describe('PrismaLedgerRepository outbox-in-TX', () => {
 
     const repo = new PrismaLedgerRepository(
       prisma as never,
+      new PrismaLedgerReadRepository(prisma as never),
       events,
       journal,
       undefined,
@@ -855,6 +866,7 @@ describe('PrismaLedgerRepository outbox-in-TX', () => {
 
     const repo = new PrismaLedgerRepository(
       prisma as never,
+      new PrismaLedgerReadRepository(prisma as never),
       events,
       journal,
       undefined,
@@ -887,6 +899,7 @@ describe('PrismaLedgerRepository outbox-in-TX', () => {
 
     const repo = new PrismaLedgerRepository(
       prisma as never,
+      new PrismaLedgerReadRepository(prisma as never),
       events,
       journal,
       undefined,
@@ -908,6 +921,7 @@ describe('PrismaLedgerRepository outbox-in-TX', () => {
     };
     const repo = new PrismaLedgerRepository(
       prisma as never,
+      new PrismaLedgerReadRepository(prisma as never),
       { enqueue: jest.fn() },
       journal,
       undefined,
@@ -930,8 +944,10 @@ describe('PrismaLedgerRepository outbox-in-TX', () => {
 
   it('findLatestCategoryIdByMerchant returns null for blank merchant', async () => {
     const findFirst = jest.fn();
+    const prisma = { finTransaction: { findFirst } };
     const repo = new PrismaLedgerRepository(
-      { finTransaction: { findFirst } } as never,
+      prisma as never,
+      new PrismaLedgerReadRepository(prisma as never),
       { enqueue: jest.fn() },
       journal,
       undefined,

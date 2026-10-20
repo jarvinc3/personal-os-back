@@ -2,6 +2,7 @@ import type { PrismaService } from '@personal-os/database';
 import type { DeletionJournalRepository } from '../../shared/infrastructure/deletion-journal.repository';
 import { TRANSACTION_LINK_KIND } from '../../shared/domain/transaction-links';
 import { EMAIL_DUPLICATE_DATE_TOLERANCE_MS } from '../../shared/domain/email-dedupe';
+import { PrismaLedgerReadRepository } from './prisma-ledger-read.repository';
 import { PrismaLedgerRepository } from './prisma-ledger.repository';
 
 function createRepository() {
@@ -24,6 +25,7 @@ function createRepository() {
     prisma,
     repository: new PrismaLedgerRepository(
       prisma as unknown as PrismaService,
+      new PrismaLedgerReadRepository(prisma as unknown as PrismaService),
       { enqueue: jest.fn() },
       { record: jest.fn() } as unknown as DeletionJournalRepository,
     ),
