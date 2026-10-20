@@ -204,7 +204,10 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
             where: {
               userId,
               transferGroupId: { in: groupIds },
-              type: 'CREDIT',
+              OR: [
+                { legRole: OPERATION_LEG_ROLE.DESTINATION },
+                { type: 'CREDIT' },
+              ],
             },
             include: transactionPartyInclude,
           })) as LedgerTransactionRow[]);
@@ -1141,6 +1144,59 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
         });
       }
       return { debit: debit.transaction, credit: credit.transaction };
+    });
+  }
+
+  reverseTransactionsByTransferGroupId(
+    userId: string,
+    transferGroupId: string,
+  ) {
+    return this.prisma.$transaction(async (tx) => {
+      const rows = await tx.finTransaction.findMany({
+        where: { userId, transferGroupId },
+      });
+      const reversedIds: string[] = [];
+      for (const row of rows) {
+        if (row.status !== 'CONFIRMED') {
+          continue;
+        }
+        const ctx = await this.loadCardContext(tx, userId, row.cardId);
+        const ledger = ledgerFields(row);
+        await applyBalanceForTransaction(tx, {
+          accountId: row.accountId,
+          cardId: row.cardId,
+          cardType: ctx.cardType,
+          derivedAccountId: ctx.derivedAccountId,
+          currency: ledger.currency,
+          type: row.type,
+          amount: ledger.amount,
+          direction: -1,
+        });
+        await adjustBudgetSpent(tx, {
+          userId,
+          categoryId: row.categoryId,
+          type: row.type,
+          amountBaseCurrency: Number(row.amountBaseCurrency),
+          transactionDate: row.transactionDate,
+          direction: -1,
+        });
+        reversedIds.push(row.id);
+      }
+      if (reversedIds.length > 0) {
+        await tx.finTransaction.updateMany({
+          where: { id: { in: reversedIds } },
+          data: { status: 'REVERSED' },
+        });
+        for (const transactionId of reversedIds) {
+          await this.enqueueTransactionEvent(
+            tx,
+            userId,
+            AppEvents.FINANCE_TRANSACTION_REVERSED,
+            transactionId,
+          );
+        }
+      }
+      return { count: reversedIds.length };
     });
   }
 

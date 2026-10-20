@@ -16,6 +16,7 @@ import {
 import { ConfirmTransferUseCase } from '../application/confirm-transfer.use-case';
 import { CreateTransferUseCase } from '../application/create-transfer.use-case';
 import { DeleteTransactionUseCase } from '../application/delete-transaction.use-case';
+import { ReverseTransferUseCase } from '../application/reverse-transfer.use-case';
 import { UnconfirmTransferUseCase } from '../application/unconfirm-transfer.use-case';
 import { UpdateTransferUseCase } from '../application/update-transfer.use-case';
 import {
@@ -33,6 +34,7 @@ export class TransfersController {
     private readonly updateTransfer: UpdateTransferUseCase,
     private readonly unconfirmTransfer: UnconfirmTransferUseCase,
     private readonly confirmTransfer: ConfirmTransferUseCase,
+    private readonly reverseTransfer: ReverseTransferUseCase,
     private readonly deleteTransaction: DeleteTransactionUseCase,
   ) {}
 
@@ -73,6 +75,15 @@ export class TransfersController {
   })
   async confirm(@CurrentUser('sub') userId: string, @Param('id') id: string) {
     await this.confirmTransfer.execute(userId, id);
+    return { success: true };
+  }
+
+  @Post('transfers/:id/reverse')
+  @ApiOperation({
+    summary: 'Reversa todos los movimientos de una transferencia completada',
+  })
+  async reverse(@CurrentUser('sub') userId: string, @Param('id') id: string) {
+    await this.reverseTransfer.execute(userId, id);
     return { success: true };
   }
 

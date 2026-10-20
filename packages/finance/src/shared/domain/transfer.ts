@@ -31,3 +31,7 @@ export const ACCOUNT_NOT_FOUND_MESSAGE = 'No encontramos la cuenta.';
 export const TRANSFER_TARGET_NOT_ACCOUNT = 'TRANSFER_TARGET_NOT_ACCOUNT';
 export const TRANSFER_TARGET_NOT_ACCOUNT_MESSAGE =
   'El destino de una transferencia debe ser una cuenta. Para pagar una tarjeta usa Pagar tarjeta.';
+
+export const TRANSFER_NOT_COMPLETED = 'TRANSFER_NOT_COMPLETED';
+export const TRANSFER_NOT_COMPLETED_MESSAGE =
+  'Solo una transferencia completada se puede reversar.';

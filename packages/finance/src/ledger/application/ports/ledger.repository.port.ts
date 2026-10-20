@@ -331,6 +331,12 @@ export interface LedgerRepositoryPort {
     aiMetadata?: unknown,
   ): Promise<CreateTransactionResult | null>;
 
+  /** Reverts every CONFIRMED leg of an operation and marks it REVERSED. */
+  reverseTransactionsByTransferGroupId(
+    userId: string,
+    transferGroupId: string,
+  ): Promise<{ count: number }>;
+
   createEmailImportTransaction(
     userId: string,
     data: ImportEmailTransactionCommand,

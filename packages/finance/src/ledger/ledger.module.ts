@@ -24,6 +24,7 @@ import { PurgeInstrumentLedgerUseCase } from './application/purge-instrument-led
 import { RestoreInstrumentLedgerUseCase } from './application/restore-instrument-ledger.use-case';
 import { RestoreTransactionUseCase } from './application/restore-transaction.use-case';
 import { ReverseTransactionUseCase } from './application/reverse-transaction.use-case';
+import { ReverseTransferUseCase } from './application/reverse-transfer.use-case';
 import { UpdateTransactionUseCase } from './application/update-transaction.use-case';
 import { UnconfirmTransactionUseCase } from './application/unconfirm-transaction.use-case';
 import { UpdateTransferUseCase } from './application/update-transfer.use-case';
@@ -68,6 +69,7 @@ import { CardPaymentsController } from './presentation/card-payments.controller'
     UpdateTransferUseCase,
     UnconfirmTransferUseCase,
     ConfirmTransferUseCase,
+    ReverseTransferUseCase,
     CreateCardPaymentUseCase,
     UpdateCardPaymentUseCase,
     ReverseTransactionUseCase,
@@ -91,6 +93,7 @@ import { CardPaymentsController } from './presentation/card-payments.controller'
     UpdateTransferUseCase,
     UnconfirmTransferUseCase,
     ConfirmTransferUseCase,
+    ReverseTransferUseCase,
     CreateCardPaymentUseCase,
     UpdateCardPaymentUseCase,
     ReverseTransactionUseCase,

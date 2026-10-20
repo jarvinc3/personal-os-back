@@ -2054,7 +2054,7 @@ describe('Finance (e2e)', () => {
 
     prismaMock.finTransaction.findMany.mockImplementation(
       (args?: { where?: { type?: string } }) => {
-        if (args?.where?.type === 'CREDIT') {
+        if (args?.where?.OR) {
           return Promise.resolve([credit]);
         }
         return Promise.resolve([debit]);
@@ -2106,7 +2106,7 @@ describe('Finance (e2e)', () => {
     const transferWhere = JSON.stringify(
       prismaMock.finTransaction.findMany.mock.calls[0]?.[0]?.where ?? {},
     );
-    expect(transferWhere).toContain('"type":"DEBIT"');
+    expect(transferWhere).toContain('"CARD_PAYMENT"');
     expect(transferWhere).toContain('"not":null');
   });
 
