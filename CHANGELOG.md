@@ -16,6 +16,12 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [Se
 
 - `AGENTS.md` y `docs/README.md` enlazan las convenciones de issues y la nueva documentación.
 
+## [0.47.1] - 2026-10-20
+
+### Corregido
+
+- El comercio creado desde un movimiento conserva el nombre tal como lo escribió el usuario, sin re-capitalizarlo. La clave normalizada sigue uniendo las variantes y la ingesta de correo mantiene su nombre limpio (#159).
+
 ## [0.47.0] - 2026-10-20
 
 ### Agregado
