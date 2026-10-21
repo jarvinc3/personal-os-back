@@ -2,6 +2,12 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [SemVer](https://semver.org/lang/es/). Reglas y ejemplo en [docs/reference/changelog-guide.md](./docs/reference/changelog-guide.md).
 
+## [0.51.1] - 2026-10-21
+
+### Cambiado
+
+- Interno: el balance sheet acumula sus incidencias en las líneas locales en vez de mutar un parámetro. Sin cambio de comportamiento.
+
 ## [0.51.0] - 2026-10-21 - Patrimonio
 
 ### Agregado
