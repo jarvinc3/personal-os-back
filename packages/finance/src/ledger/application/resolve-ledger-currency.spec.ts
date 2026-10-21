@@ -1,16 +1,13 @@
 import { BadRequestException } from '@nestjs/common';
-import type { LedgerRepositoryPort } from './ports/ledger.repository.port';
+import type {
+  CardLedgerContext,
+  LedgerRepositoryPort,
+} from './ports/ledger.repository.port';
 import { resolveLedgerCurrencyForTarget } from './resolve-ledger-currency';
-
-type CardContext = {
-  cardType: 'CREDIT' | 'DEBIT';
-  accountId: string | null;
-  currencies: string[];
-};
 
 function buildRepo(input: {
   accountCurrency?: string;
-  cardContext?: CardContext | null;
+  cardContext?: CardLedgerContext | null;
 }) {
   const findAccountById = jest
     .fn()

@@ -115,6 +115,13 @@ export type EmailTransferCounterpart = {
   aiMetadata?: unknown;
 };
 
+/** Card a movement targets, with the currencies the card already declares. */
+export type CardLedgerContext = {
+  cardType: LedgerCardType;
+  accountId: string | null;
+  currencies: string[];
+};
+
 /**
  * Persistence port for ledger reads and multi-step writes
  * (balance + budget spent + outbox inside the same transaction).
@@ -147,11 +154,7 @@ export interface LedgerRepositoryPort {
   findCardLedgerContext(
     id: string,
     userId: string,
-  ): Promise<{
-    cardType: LedgerCardType;
-    accountId: string | null;
-    currencies: string[];
-  } | null>;
+  ): Promise<CardLedgerContext | null>;
 
   /** Savings goal that earmarks this account, if any. */
   findSavingsGoalIdByAccount(
