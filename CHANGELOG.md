@@ -16,6 +16,17 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [Se
 
 - `AGENTS.md` y `docs/README.md` enlazan las convenciones de issues y la nueva documentación.
 
+## [0.47.0] - 2026-10-20
+
+### Agregado
+
+- Push a Android por Firebase Cloud Messaging: los avisos llegan al móvil con la app cerrada. Web Push mantiene su canal y los tokens de iOS se ignoran sin error porque no hay cuenta de Apple Developer (jarvinc3/personal-os-back#137).
+
+### Cambiado
+
+- El 403 de una app apagada nombra la app en lugar de su identificador interno, y el decorador `RequiresEnabledModule` sigue siendo el hueco que cualquier app nueva reutiliza al montar sus controladores (jarvinc3/personal-os-back#136).
+- Interno: el repositorio del ledger se parte en lectura, escritura, borrado y restauración, importación de correo y aviso de movimiento; el catálogo separa las categorías, y la ingesta separa las fuentes de correo y la cola de sincronización (jarvinc3/personal-os-back#149).
+
 ## [0.46.3] - 2026-10-20
 
 ### Cambiado
