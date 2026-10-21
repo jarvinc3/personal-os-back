@@ -1,33 +1,33 @@
-# Platform Boundaries — Core Events and Module Settings
+# Fronteras de plataforma — Core Events y Module Settings
 
-This is a cross-cutting cleanup, not a rewrite of Core or Users.
+Es una limpieza transversal, no una reescritura de Core ni de Users.
 
 ## A. Core Events
 
-### Current issue
+### Problema actual
 
-Core currently owns `AppEvents`, which contains User, Finance, Notification and module/config event names. Core also contains Finance-specific event DTO classes such as transaction, budget, email sync and transfer events.
+Core hoy es dueño de `AppEvents`, que contiene nombres de eventos de User, Finance, Notification y módulos/configuración. Core también contiene clases DTO de eventos específicas de Finance, como eventos de transacciones, presupuestos, email sync y transferencias.
 
-At the same time, Finance already has its own `events/` package area with a publisher port and outbox repository/dispatcher. This is evidence that semantic event ownership and transport infrastructure are partially split in two places.
+Al mismo tiempo, Finance ya tiene su propia área de paquete `events/` con un port de publicación y un repositorio/dispatcher de outbox. Esto evidencia que la propiedad semántica de los eventos y la infraestructura de transporte están parcialmente repartidas en dos lugares.
 
-### Target
+### Objetivo
 
-**Core/shared platform owns:**
+**Core / plataforma compartida es dueña de:**
 
-- event envelope primitives;
-- outbox storage/relay abstractions;
-- idempotency guard;
-- queue/event transport infrastructure;
-- generic observability/retry concerns.
+- primitivas de envelope de eventos;
+- abstracciones de almacenamiento/relay del outbox;
+- guard de idempotencia;
+- infraestructura de colas/transporte de eventos;
+- temas genéricos de observabilidad/reintentos.
 
-**Domains own:**
+**Los dominios son dueños de:**
 
-- event names/types;
-- event payload contracts;
-- when events are emitted;
-- semantic versioning of those contracts.
+- nombres/tipos de eventos;
+- contratos de payload de eventos;
+- cuándo se emiten los eventos;
+- el versionado semántico de esos contratos.
 
-Example:
+Ejemplo:
 
 ```text
 Finance
@@ -35,79 +35,79 @@ Finance
   FinanceTransactionConfirmedEvent
           |
           v
-Platform event publisher/outbox
+publisher/outbox de eventos de la plataforma
           |
           v
-Consumers
+Consumidores
 ```
 
-Core should not need a code change when a new Finance event is introduced.
+Core no debería necesitar cambios de código cuando se introduce un evento nuevo de Finance.
 
-### Outbox observation
+### Observación sobre el outbox
 
-The current `FinanceOutboxDispatcher` directly queries the shared `domainEventOutbox` table and dispatches all rows through `EventEmitter2`. Its implementation is generic despite its Finance name/location. This should become platform infrastructure rather than being duplicated for future domains.
+El `FinanceOutboxDispatcher` actual consulta directamente la tabla compartida `domainEventOutbox` y despacha todas las filas mediante `EventEmitter2`. Su implementación es genérica pese a su nombre/ubicación de Finance. Debe convertirse en infraestructura de plataforma en lugar de duplicarse para dominios futuros.
 
-### Phases
+### Fases
 
-#### PLATFORM-EVENTS-0 — Contracts ownership
+#### PLATFORM-EVENTS-0 — Propiedad de los contratos
 
-Create domain-owned event contract locations and migrate constants/DTOs without changing transport behavior.
+Crear ubicaciones de contratos de eventos propiedad de cada dominio y migrar constantes/DTOs sin cambiar el comportamiento del transporte.
 
-**Gate:** Core event constants contain no Finance semantic catalog.
+**Gate:** las constantes de eventos de Core no contienen el catálogo semántico de Finance.
 
-#### PLATFORM-EVENTS-1 — Generic outbox relay
+#### PLATFORM-EVENTS-1 — Relay de outbox genérico
 
-Promote the generic parts of Finance outbox dispatcher/repository into shared event infrastructure. Domains publish through a shared port/envelope.
+Promover las partes genéricas del dispatcher/repositorio de outbox de Finance a infraestructura de eventos compartida. Los dominios publican mediante un port/envelope compartido.
 
 Decisión: `FinanceOutboxDispatcher` se promueve a Core como `OutboxRelay`, detrás de un port `DomainEventPublisher`. Los use-cases (hoy ~18 en `ledger/application` inyectan el dispatcher concreto) pasan a depender solo del port. El outbox de borrado en Auth de Users (`deleteAccountWithAuthOutbox`) se evalúa por separado; no se fuerza la unificación.
 
-**Gate:** a non-Finance domain can publish reliably without copying Finance infrastructure.
+**Gate:** un dominio distinto de Finance puede publicar de forma confiable sin copiar la infraestructura de Finance.
 
 ---
 
-## B. Users and Module Settings
+## B. Users y Module Settings
 
-### Current issue
+### Problema actual
 
-`UsersService` and Users domain defaults currently know substantial module business configuration:
+`UsersService` y los defaults del dominio Users hoy conocen una parte importante de la configuración de negocio de los módulos:
 
-- Finance email-sync schedule and enablement;
-- Finance subscription reminder validation;
-- Finance card-due reminder validation;
-- Finance weekly-summary recipient rules;
-- Finance notification keys;
-- detailed defaults for Finance, Agenda, Projects and Health.
+- horario y activación del email sync de Finance;
+- validación de recordatorios de suscripciones de Finance;
+- validación de recordatorios de vencimiento de tarjetas de Finance;
+- reglas de destinatarios del resumen semanal de Finance;
+- claves de notificación de Finance;
+- defaults detallados de Finance, Agenda, Projects y Health.
 
-This makes Users a semantic owner of every Personal OS module and guarantees that adding module settings requires editing Users.
+Esto convierte a Users en dueño semántico de todos los módulos de Personal OS y garantiza que agregar settings de un módulo requiera editar Users.
 
-### Target split
+### Reparto objetivo
 
-**Users owns:**
+**Users es dueño de:**
 
-- user identity/profile;
-- timezone/locale/avatar;
-- global user preferences;
-- account deletion orchestration;
-- persistence/association of which modules a user has enabled, if this remains the chosen storage boundary.
+- identidad/perfil del usuario;
+- zona horaria/locale/avatar;
+- preferencias globales del usuario;
+- orquestación del borrado de cuenta;
+- persistencia/asociación de qué módulos tiene habilitados el usuario, si esta sigue siendo la frontera de almacenamiento elegida.
 
-**Each module owns:**
+**Cada módulo es dueño de:**
 
-- its settings schema;
-- defaults;
-- validation;
-- migrations/versioning of its config payload;
-- notification preference keys;
-- domain-specific recipient/query semantics.
+- el schema de sus settings;
+- sus defaults;
+- su validación;
+- migraciones/versionado del payload de su configuración;
+- sus claves de preferencias de notificación;
+- la semántica de destinatarios/consultas específica del dominio.
 
-**Platform module-settings layer owns:**
+**La capa de module settings de la plataforma es dueña de:**
 
-- registry/discovery of module settings descriptors;
-- generic merge/validate/update flow;
-- module enable/disable state;
-- a generic read API used by guards/Notifications/AI;
-- persistence adapter to `UserModule` if retained.
+- registro/descubrimiento de los descriptores de settings de los módulos;
+- flujo genérico de merge/validación/actualización;
+- estado de activación/desactivación de módulos;
+- una API de lectura genérica usada por guards/Notifications/IA;
+- el adaptador de persistencia a `UserModule`, si se conserva.
 
-Conceptual contract:
+Contrato conceptual:
 
 ```ts
 interface ModuleSettingsProvider<TConfig> {
@@ -118,42 +118,42 @@ interface ModuleSettingsProvider<TConfig> {
 }
 ```
 
-Exact API is deferred to implementation design.
+La API exacta se define en el diseño de implementación.
 
-### Why a registry is preferable to moving all defaults into another central file
+### Por qué un registro es preferible a mover todos los defaults a otro archivo central
 
-Moving `DEFAULT_MODULE_CONFIG_BY_SLUG` from Users to Core would preserve the same coupling under a different name. Modules should register their descriptors; the platform layer should not encode their fields.
+Mover `DEFAULT_MODULE_CONFIG_BY_SLUG` de Users a Core conservaría el mismo acoplamiento con otro nombre. Los módulos deben registrar sus descriptores; la capa de plataforma no debe codificar sus campos.
 
-### Interaction with AI roles/consent
+### Interacción con roles/consentimiento de IA
 
-The AI roadmap proposes roles and `contributeToGlobalKnowledge`. Roles are authorization/account concerns and can live in Users/Auth-facing platform services as already planned. AI contribution consent is an AI/privacy preference; its semantic schema should be AI-owned even if persisted through generic user/module settings infrastructure.
+El roadmap de IA propone roles y `contributeToGlobalKnowledge`. Los roles son temas de autorización/cuenta y pueden vivir en servicios de plataforma orientados a Users/Auth, como ya está planeado. El consentimiento de contribución a la IA es una preferencia de IA/privacidad; su schema semántico debe ser propiedad de la IA aunque se persista mediante la infraestructura genérica de settings de usuario/módulo.
 
-### Phases
+### Fases
 
 Mientras tanto (web #216/#217): no se agregan claves nuevas a Users; un backend de "Vaciar datos" vive como endpoint dentro de cada módulo.
 
-#### PLATFORM-SETTINGS-0 — Module settings contract/registry
+#### PLATFORM-SETTINGS-0 — Contrato/registro de module settings
 
-Define provider descriptor + registry + generic read/validate/update interface. Register existing modules without changing persisted data shape.
+Definir el descriptor de provider + registro + interfaz genérica de lectura/validación/actualización. Registrar los módulos existentes sin cambiar la forma de los datos persistidos.
 
-**Gate:** adding a dummy module with settings requires no edit to Users defaults/switch statements.
+**Gate:** agregar un módulo de prueba con settings no requiere editar los defaults/switches de Users.
 
-#### PLATFORM-SETTINGS-1 — Move module semantics
+#### PLATFORM-SETTINGS-1 — Mover la semántica de los módulos
 
-Move Finance/Agenda/Projects/Health defaults and validators to owning modules. Move Finance notification keys with Finance. Remove Finance-specific methods from `UsersService`.
+Mover los defaults y validadores de Finance/Agenda/Projects/Health a sus módulos dueños. Mover las claves de notificación de Finance junto con Finance. Quitar de `UsersService` los métodos específicos de Finance.
 
-**Gate:** Users contains no Finance-specific config parsing/validation/query methods.
+**Gate:** Users no contiene parsing/validación/métodos de consulta de configuración específicos de Finance.
 
-#### PLATFORM-SETTINGS-2 — Consumer migration
+#### PLATFORM-SETTINGS-2 — Migración de consumidores
 
-Migrate Notifications policy, module-enabled guard and schedulers/recipients to generic settings contracts or domain-owned queries as appropriate.
+Migrar la policy de Notifications, el guard de módulo habilitado y los schedulers/destinatarios a contratos genéricos de settings o a consultas propiedad del dominio, según corresponda.
 
-**Gate:** Notifications does not import module-specific defaults from Users.
+**Gate:** Notifications no importa desde Users defaults específicos de módulos.
 
-## Explicitly preserved
+## Se conserva explícitamente
 
-- Supabase Auth boundary;
-- Users account deletion/outbox behavior unless AI data deletion requires extension;
-- user profile API;
-- existing `UserModule` persistence can remain if it works with the registry;
-- Core guards/queues/observability unrelated to semantic ownership.
+- la frontera de Supabase Auth;
+- el comportamiento de borrado de cuenta/outbox de Users, salvo que el borrado de datos de IA requiera extenderlo;
+- la API de perfil de usuario;
+- la persistencia existente de `UserModule` puede mantenerse si funciona con el registro;
+- guards/colas/observabilidad de Core no relacionados con la propiedad semántica.

@@ -1,70 +1,70 @@
-# Finance Architecture Boundary Refactor
+# Refactor de fronteras de arquitectura de Finance
 
-## Scope
+## Alcance
 
-This is **not Finance V2** and does not rebuild healthy Finance domain logic. It removes responsibilities that leaked into Finance because email and the old agent architecture were Finance-centric.
+Esto **no es Finance V2** y no reconstruye la lógica de dominio de Finance que está sana. Retira responsabilidades que se filtraron a Finance porque el email y la arquitectura anterior del agente estaban centrados en Finance.
 
-## Current strengths to preserve
+## Fortalezas actuales a conservar
 
-Finance is already decomposed into focused submodules: analytics, balance sheet, catalog, FX, integrity, ledger, merchants, planning, quick entry, receivables, reconciliation, recurring, statements, subscriptions and others. Preserve their business behavior unless a separate bug requires change.
+Finance ya está descompuesto en submódulos enfocados: analytics, balance sheet, catalog, FX, integrity, ledger, merchants, planning, quick entry, receivables, reconciliation, recurring, statements, subscriptions y otros. Se conserva su comportamiento de negocio salvo que un bug aparte requiera cambiarlo.
 
-The Finance events package also already contains an application port plus outbox infrastructure. The underlying reliable-delivery/idempotency concepts should survive even if ownership of generic dispatch infrastructure moves.
+El paquete de eventos de Finance ya contiene un port de aplicación e infraestructura de outbox. Los conceptos de entrega confiable/idempotencia deben sobrevivir aunque cambie el dueño de la infraestructura genérica de despacho.
 
-## Problems to correct
+## Problemas a corregir
 
-### 1. Email ingestion owns too much
+### 1. La ingesta de email abarca demasiado
 
-`packages/finance/src/ingestion/**` currently contains both source intelligence and legitimate Finance application behavior.
+`packages/finance/src/ingestion/**` contiene hoy tanto inteligencia de fuentes como comportamiento legítimo de aplicación de Finance.
 
-**Move to AI Intelligence:**
+**Mover a AI Intelligence:**
 
-- Gmail OAuth/source connection;
-- provider sync/cursor/bootstrap;
-- raw/sanitized/canonical email persistence;
-- sender/domain/template detection;
-- email relevance/classification;
-- LLM email extraction infrastructure;
-- general email review/evidence.
+- conexión OAuth/fuente de Gmail;
+- sync/cursor/bootstrap del proveedor;
+- persistencia de email crudo/sanitizado/canónico;
+- detección de remitente/dominio/plantilla;
+- relevancia/clasificación de emails;
+- infraestructura de extracción de emails con LLM;
+- revisión/evidencia general de emails.
 
-**Keep/rehome inside Finance:**
+**Conservar/reubicar dentro de Finance:**
 
-- financial transaction normalization after a Finance signal;
-- institution/instrument resolution;
-- financial-event deduplication;
-- pending/final/reversal behavior;
-- transfer matching;
-- ledger import;
-- reconciliation/backfill behavior that is truly financial.
+- normalización de transacciones financieras a partir de una señal de Finance;
+- resolución de institución/instrumento;
+- deduplicación de eventos financieros;
+- comportamiento pendiente/final/reverso;
+- emparejamiento de transferencias;
+- importación al ledger;
+- comportamiento de conciliación/backfill realmente financiero.
 
-The new entry boundary is `FinanceSignalConsumer`, not Gmail.
+La nueva frontera de entrada es `FinanceSignalConsumer`, no Gmail.
 
-### 2. `FinanceFacade` is too broad as a cross-module/AI contract
+### 2. `FinanceFacade` es demasiado amplio como contrato entre módulos/IA
 
-The facade delegates rather than implementing all business logic, so it is not an internal god service. The issue is its role as a universal public API, especially for AI.
+El facade delega en vez de implementar toda la lógica de negocio, así que no es un god service interno. El problema es su papel como API pública universal, sobre todo para la IA.
 
-Target direction:
+Dirección objetivo:
 
-- normal HTTP controllers may continue using application services inside Finance;
-- AI uses `FinanceAiCapabilities` / `FinanceAiContextProvider` registered through generic AI contracts;
-- signal ingestion uses `FinanceSignalConsumer`;
-- other modules depend on narrow explicit contracts only when necessary;
-- no generic AI layer imports `FinanceFacade`.
+- los controllers HTTP normales pueden seguir usando servicios de aplicación dentro de Finance;
+- la IA usa `FinanceAiCapabilities` / `FinanceAiContextProvider` registrados mediante contratos genéricos de IA;
+- la ingesta de señales usa `FinanceSignalConsumer`;
+- otros módulos dependen de contratos explícitos y acotados solo cuando sea necesario;
+- ninguna capa genérica de IA importa `FinanceFacade`.
 
-Whether `FinanceFacade` remains as an internal convenience facade can be decided during implementation; it must stop being the architectural boundary for every consumer.
+Si `FinanceFacade` sigue como facade interno de conveniencia se decide durante la implementación; debe dejar de ser la frontera arquitectónica para todos los consumidores.
 
-### 3. Chat context is not a Finance concept
+### 3. El contexto de chat no es un concepto de Finance
 
-Any Finance service whose API is expressed in terms of `ChatContextEntity` should become a Finance-owned entity/context resolver behind an AI capability/context adapter. Finance can resolve its own entities; it should not know that the caller is a chat.
+Cualquier servicio de Finance cuya API se exprese en términos de `ChatContextEntity` debe convertirse en un resolvedor de entidades/contexto propiedad de Finance, detrás de un adaptador de capacidad/contexto de IA. Finance puede resolver sus propias entidades; no debe saber que quien llama es un chat.
 
-### 4. Notification semantics belong with Finance, delivery does not
+### 4. La semántica de notificaciones pertenece a Finance; la entrega no
 
-Finance should own the decision that a financial occurrence has a user-facing semantic message and construct a `NotificationIntent` through a Finance adapter/factory. Notifications owns policy, persistence and channel delivery.
+Finance debe decidir cuándo un hecho financiero tiene un mensaje semántico para el usuario y construir un `NotificationIntent` mediante un adaptador/factory de Finance. Notifications es dueño de la policy, la persistencia y la entrega por canales.
 
-### 5. Finance event semantics belong to Finance
+### 5. La semántica de los eventos de Finance pertenece a Finance
 
-Finance event names/contracts currently centralized in Core should move to Finance-owned contracts. Shared event transport/outbox infrastructure remains platform infrastructure.
+Los nombres/contratos de eventos de Finance, hoy centralizados en Core, deben pasar a contratos propiedad de Finance. La infraestructura compartida de transporte/outbox sigue siendo infraestructura de plataforma.
 
-## Target integration surface
+## Superficie de integración objetivo
 
 ```text
 AI Email Intelligence
@@ -76,19 +76,19 @@ AI Email Intelligence
 FinanceSignalConsumer
         |
         v
- Finance application/domain
+ aplicación/dominio Finance
         |
    +----+-------------------+
    |                        |
-Finance domain events   FinanceNotificationAdapter
-   |                        |
-shared transport       NotificationIntent
-                            |
+eventos de dominio     FinanceNotificationAdapter
+Finance                     |
+   |                   NotificationIntent
+transporte compartido       |
                             v
                       Notifications
 ```
 
-AI conversation path:
+Ruta de conversación con la IA:
 
 ```text
 Agent Runtime
@@ -97,49 +97,49 @@ AiCapabilityRegistry
     |
 FinanceAiCapabilities
     |
-Finance application services
+servicios de aplicación de Finance
 ```
 
-## Testable phases
+## Fases verificables
 
-### FIN-0 — Boundary contracts
+### FIN-0 — Contratos de frontera
 
-Define Finance-owned event contracts, Finance AI adapter contracts, `FinanceSignalConsumer` boundary and Finance notification-intent adapter shape. No business behavior changes.
+Definir los contratos de eventos propiedad de Finance, los contratos de adaptadores de IA de Finance, la frontera `FinanceSignalConsumer` y la forma del adaptador de intents de notificación de Finance. Sin cambios de comportamiento de negocio.
 
-**Gate:** architecture tests/import rules can express the intended dependency direction.
+**Gate:** los tests de arquitectura/reglas de imports pueden expresar la dirección de dependencias deseada.
 
-### FIN-1 — Remove legacy source ownership
+### FIN-1 — Retirar la propiedad legacy de fuentes
 
-Coordinated with AI Phase 0/2: delete Finance-owned Gmail/source infrastructure and email-specific public endpoints/settings dependencies. Preserve identified financial algorithms as reusable application/domain code or tests.
+Coordinado con las Fases 0/2 de IA: eliminar la infraestructura de Gmail/fuentes propiedad de Finance y los endpoints públicos/dependencias de settings específicos de email. Conservar los algoritmos financieros identificados como código reutilizable de aplicación/dominio o como tests.
 
 En el mismo paso se eliminan los eventos de importación por email y todo lo que dependa de ellos: `FINANCE_TRANSACTION_IMPORTED`, `FinanceEmailSyncCompletedEvent` (Core `domain-events.ts` / `event.constants.ts`), sus handlers en `NotificationsEventsListener`, el copy asociado en `notification-copy.ts` y las constantes/claves de notificación exclusivas de la importación. No se dejan huérfanos hasta NOTIF-2.
 
-**Gate:** Finance builds without Gmail/OAuth/source models, y no queda ningún emisor, listener, copy ni constante de eventos de importación por email.
+**Gate:** Finance compila sin modelos de Gmail/OAuth/fuentes, y no queda ningún emisor, listener, copy ni constante de eventos de importación por email.
 
-### FIN-2 — Public integration cleanup
+### FIN-2 — Limpieza de la integración pública
 
-Move AI/chat consumers off `FinanceFacade`; replace chat-context types with Finance entity/context adapters; narrow external contracts.
+Sacar a los consumidores de IA/chat de `FinanceFacade`; reemplazar los tipos de contexto de chat por adaptadores de entidades/contexto de Finance; acotar los contratos externos.
 
-**Gate:** AI package has zero imports of Finance implementation/facade and Finance has zero imports of chat concepts.
+**Gate:** el paquete de IA no tiene ningún import de la implementación/facade de Finance y Finance no tiene ningún import de conceptos de chat.
 
-### FIN-3 — Signal import
+### FIN-3 — Importación por señales
 
-Coordinated with AI Signals/IMPORT phases. Implement idempotent `FinanceSignalConsumer` using preserved financial behavior.
+Coordinado con las fases de Signals/IMPORT de IA. Implementar un `FinanceSignalConsumer` idempotente usando el comportamiento financiero conservado.
 
 Cada movimiento importado en moneda distinta a la del producto guarda el **monto original, la moneda original y la tasa** aplicada, reutilizando la conversión de ledger/FX entregada en back #161.
 
-**Gate:** a routed Finance signal can create/update the correct financial state without Finance reading an email.
+**Gate:** una señal de Finance enrutada puede crear/actualizar el estado financiero correcto sin que Finance lea un email.
 
-### FIN-4 — Notification/event ownership cleanup
+### FIN-4 — Limpieza de propiedad de notificaciones/eventos
 
-Finance publishes Finance-owned event contracts and creates domain-owned notification intents. Remove Finance semantic interpretation from Notifications.
+Finance publica contratos de eventos propios y crea intents de notificación propiedad del dominio. Se retira de Notifications la interpretación semántica de Finance.
 
-**Gate:** adding a new Finance notification does not require editing a central Notifications Finance-event switch.
+**Gate:** agregar una notificación nueva de Finance no requiere editar un switch central de eventos de Finance en Notifications.
 
-## Explicit non-goals
+## No-objetivos explícitos
 
-- rewriting Ledger;
-- redesigning budgets/planning;
-- rewriting catalog/accounts/cards;
-- changing reconciliation semantics without evidence;
-- fixing unrelated balance/ledger bugs as part of this refactor.
+- reescribir Ledger;
+- rediseñar budgets/planning;
+- reescribir catalog/cuentas/tarjetas;
+- cambiar la semántica de conciliación sin evidencia;
+- corregir bugs de saldos/ledger no relacionados como parte de este refactor.

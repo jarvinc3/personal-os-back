@@ -1,39 +1,39 @@
-# Notifications Boundary Refactor
+# Refactor de frontera de Notifications
 
-## Diagnosis
+## Diagnóstico
 
-The package structure itself is healthy: application/domain/infrastructure/presentation, repository, queue processor, WebSocket gateway, push/email adapters and policy service have clear roles.
+La estructura del paquete en sí está sana: application/domain/infrastructure/presentation, repositorio, processor de colas, gateway WebSocket, adaptadores de push/email y servicio de policy tienen roles claros.
 
-The architectural problem is the inbound boundary. `NotificationsEventsListener` currently understands Finance event payloads and business semantics, including transaction status/source, transfer legs, budgets, statements, card due dates, weekly summaries, recurring charges, subscriptions and balance drift. It also selects Finance notification keys and constructs Finance-specific copy.
+El problema arquitectónico es la frontera de entrada. `NotificationsEventsListener` hoy entiende los payloads de eventos de Finance y su semántica de negocio: estado/origen de transacciones, piernas de transferencias, presupuestos, estados de cuenta, vencimientos de tarjetas, resúmenes semanales, cargos recurrentes, suscripciones y descuadres de saldo. También elige las claves de notificación de Finance y construye copy específico de Finance.
 
-That design will become a central switch over every Personal OS domain.
+Ese diseño se convertirá en un switch central sobre todos los dominios de Personal OS.
 
-## Target responsibility
+## Responsabilidad objetivo
 
-Notifications becomes a **delivery engine**.
+Notifications pasa a ser un **motor de entrega**.
 
-It owns:
+Es dueño de:
 
-- Notification persistence/read state;
-- channel dispatch (`IN_APP`, `PUSH`, `EMAIL`, future channels);
+- persistencia y estado de lectura de las notificaciones;
+- despacho por canal (`IN_APP`, `PUSH`, `EMAIL`, canales futuros);
 - push tokens;
-- delivery retry/queue integration;
-- quiet hours;
-- global channel preferences;
-- evaluation of the requested module notification preference through a generic settings contract;
-- delivery observability.
+- reintentos de entrega / integración con colas;
+- horas de silencio;
+- preferencias globales de canal;
+- evaluación de la preferencia de notificación del módulo solicitada, mediante un contrato genérico de settings;
+- observabilidad de la entrega.
 
-It does **not** own:
+**No** es dueño de:
 
-- what a Finance event means;
-- Finance copy/business wording;
-- Finance payload types;
-- which Finance event should notify;
-- Agenda/Projects/Health semantics.
+- qué significa un evento de Finance;
+- el copy / la redacción de negocio de Finance;
+- los tipos de payload de Finance;
+- qué evento de Finance debe notificar;
+- la semántica de Agenda/Projects/Health.
 
 ## NotificationIntent
 
-Proposed boundary concept:
+Concepto de frontera propuesto:
 
 ```ts
 type NotificationIntent = {
@@ -50,12 +50,12 @@ type NotificationIntent = {
 };
 ```
 
-Exact schema remains implementation detail, but it must be domain-neutral.
+El schema exacto queda como detalle de implementación, pero debe ser neutral respecto del dominio.
 
-A domain adapter/factory constructs the intent:
+Un adaptador/factory del dominio construye el intent:
 
 ```text
-Finance event/state
+evento/estado de Finance
       |
 FinanceNotificationAdapter
       |
@@ -63,67 +63,67 @@ NotificationIntent
       |
 Notifications
       |
-Policy -> persist -> dispatch
+Policy -> persistencia -> despacho
 ```
 
-## Important separation
+## Separación importante
 
 `AiSignal != DomainEvent != NotificationIntent`.
 
-- Signal: intelligence detected a fact/relevant occurrence.
-- DomainEvent: a domain state transition occurred.
-- NotificationIntent: a producer requests user communication.
+- Signal: la inteligencia detectó un hecho/suceso relevante.
+- DomainEvent: ocurrió una transición de estado en un dominio.
+- NotificationIntent: un productor solicita comunicarse con el usuario.
 
-Notifications must not become the signal bus.
+Notifications no debe convertirse en el bus de señales.
 
-## What to preserve
+## Qué se conserva
 
-- `NotificationsService` persistence/list/read operations;
-- `NotificationPolicyService` concept;
-- queue processor/retries;
-- WebSocket delivery;
-- FCM/push-token infrastructure;
-- email sender port/provider;
-- quiet-hours logic;
-- idempotency concepts.
+- operaciones de persistencia/listado/lectura de `NotificationsService`;
+- el concepto de `NotificationPolicyService`;
+- processor de colas / reintentos;
+- entrega por WebSocket;
+- infraestructura FCM / push tokens;
+- port/proveedor de envío de email;
+- lógica de horas de silencio;
+- conceptos de idempotencia.
 
-## Policy adjustment
+## Ajuste de la policy
 
-The current policy reads module-specific defaults directly from `@personal-os/users`. After the platform-settings cleanup, Notifications should ask a generic module-settings/preference resolver whether `sourceDomain + preferenceKey` is enabled. It should not import Finance notification constants or Finance config defaults.
+La policy actual lee defaults específicos de módulos directamente desde `@personal-os/users`. Tras la limpieza de platform settings, Notifications debe preguntar a un resolvedor genérico de module settings/preferencias si `sourceDomain + preferenceKey` está habilitado. No debe importar constantes de notificación ni defaults de configuración de Finance.
 
-## Testable phases
+## Fases verificables
 
-### NOTIF-0 — Generic intent contract
+### NOTIF-0 — Contrato genérico de intents
 
-Introduce/document the domain-neutral intent contract and adapter boundary while preserving current behavior.
+Introducir/documentar el contrato de intent neutral respecto del dominio y la frontera de adaptadores, preservando el comportamiento actual.
 
-**Gate:** Notifications can accept a test intent without any Finance type.
+**Gate:** Notifications puede aceptar un intent de prueba sin ningún tipo de Finance.
 
-### NOTIF-1 — Delivery pipeline
+### NOTIF-1 — Pipeline de entrega
 
-Route intent -> policy -> persistence -> channel dispatch. Add dedup/idempotency at the intent boundary where needed.
+Enrutar intent -> policy -> persistencia -> despacho por canal. Agregar dedup/idempotencia en la frontera del intent donde haga falta.
 
-**Gate:** same intent cannot accidentally create duplicate user notifications; all current channel tests remain green.
+**Gate:** un mismo intent no puede crear por accidente notificaciones duplicadas; todos los tests de canales actuales siguen en verde.
 
 ### Excepción: eventos de importación por email
 
-Los handlers/copy de `FINANCE_TRANSACTION_IMPORTED` y `FinanceEmailSyncCompletedEvent` no esperan a NOTIF-2: se eliminan junto con FIN-1 (Wave B), en el mismo paso que retira Gmail de Finance. Si AI-7/FIN-3 necesitan notificar importaciones, lo harán vía `NotificationIntent` producido por Finance.
+Los handlers/copy de `FINANCE_TRANSACTION_IMPORTED` y `FinanceEmailSyncCompletedEvent` no esperan a NOTIF-2: se eliminan junto con FIN-1 (Wave B1), en el mismo paso que retira Gmail de Finance. Si AI-7/FIN-3 necesitan notificar importaciones, lo harán vía `NotificationIntent` producido por Finance.
 
-### NOTIF-2 — Finance producer migration
+### NOTIF-2 — Migración del productor de Finance
 
-Move Finance copy/semantic mapping out of `NotificationsEventsListener` into Finance-owned notification adapter/factory. Remove Finance payload types and `FINANCE_NOTIFICATION_KEYS` imports from Notifications.
+Mover el copy y el mapeo semántico de Finance fuera de `NotificationsEventsListener` hacia un adaptador/factory de notificaciones propiedad de Finance. Quitar de Notifications los tipos de payload de Finance y los imports de `FINANCE_NOTIFICATION_KEYS`.
 
-**Gate:** Notifications package contains no Finance-specific event handlers or copy decisions.
+**Gate:** el paquete Notifications no contiene handlers de eventos específicos de Finance ni decisiones de copy.
 
-### NOTIF-3 — Settings decoupling
+### NOTIF-3 — Desacople de settings
 
-Replace direct dependency on module-specific defaults in Users with the platform module-settings contract.
+Reemplazar la dependencia directa de defaults específicos de módulos en Users por el contrato de module settings de la plataforma.
 
-**Gate:** Notifications can evaluate any module preference without code changes for a new module.
+**Gate:** Notifications puede evaluar la preferencia de cualquier módulo sin cambios de código para un módulo nuevo.
 
-## Non-goals
+## No-objetivos
 
-- changing UI notification design;
-- replacing BullMQ;
-- replacing WebSocket/FCM/Resend infrastructure merely for architectural symmetry;
-- making an LLM generate notification copy by default.
+- cambiar el diseño de UI de las notificaciones;
+- reemplazar BullMQ;
+- reemplazar la infraestructura WebSocket/FCM/Resend solo por simetría arquitectónica;
+- hacer que un LLM genere el copy de las notificaciones por defecto.

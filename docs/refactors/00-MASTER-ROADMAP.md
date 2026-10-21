@@ -1,57 +1,57 @@
-# Personal OS — Master Architecture Refactor Roadmap
+# Personal OS — Roadmap maestro del refactor de arquitectura
 
-## Purpose
+## Propósito
 
-Coordinate independent but related architecture programs without turning the AI roadmap into the roadmap for all of Personal OS.
+Coordinar programas de arquitectura independientes pero relacionados, sin convertir el roadmap de IA en el roadmap de todo Personal OS.
 
-Detailed programs:
+Programas detallados:
 
-- AI Intelligence + Email: `personal-os-ai-redesign-context-pack/07-ROADMAP-AND-TESTABLE-PHASES.md` (existing source of truth until folder rename).
-- Finance boundaries: `finance-boundaries/00-README.md`.
+- AI Intelligence + Email: `personal-os-ai-redesign-context-pack/07-ROADMAP-AND-TESTABLE-PHASES.md` (fuente de verdad vigente hasta renombrar la carpeta).
+- Fronteras de Finance: `finance-boundaries/00-README.md`.
 - Notifications: `notifications/00-README.md`.
 - Core Events + Module Settings: `platform-boundaries/00-README.md`.
-- Cross-cutting audit/invariants: `00-ARCHITECTURE-AUDIT.md`.
+- Auditoría e invariantes transversales: `00-ARCHITECTURE-AUDIT.md`.
 
-## Principle
+## Principio
 
-Each program has its own testable phases. This master roadmap defines ordering and integration gates, not duplicate implementation detail.
+Cada programa tiene sus propias fases verificables. Este roadmap maestro define el orden y los gates de integración, no duplica el detalle de implementación.
 
-## Dependency map
+## Mapa de dependencias
 
 ```text
-FOUNDATION / CLEAN BASELINE
+BASE / BASELINE LIMPIO
         |
         +------------------------------+
         |                              |
         v                              v
-AI-0 controlled reset          PLATFORM-EVENTS-0 contracts
-        |                       PLATFORM-SETTINGS-0 registry
+AI-0 reset controlado          PLATFORM-EVENTS-0 contratos
+        |                       PLATFORM-SETTINGS-0 registro
         |                              |
         +-----------+------------------+
                     |
           +---------+---------+
           |                   |
           v                   v
- AI-1 Inference Gateway    FIN-0 boundary contracts
+ AI-1 Inference Gateway    FIN-0 contratos de frontera
           |                   |
           v                   v
- AI-2 Gmail/corpus         FIN-1 remove Gmail ownership
+ AI-2 Gmail/corpus         FIN-1 quitar Gmail de Finance
           |
- AI-3 evidence/review
+ AI-3 evidencia/revisión
           |
  AI-4 knowledge
           |
  AI-5 email intelligence
           |
- AI-6 evaluation
+ AI-6 evaluación
           |
           v
  AI-7 Signals -----------------------> FIN-3 Signal Consumer
           |                                  |
           |                                  v
-          |                           Finance domain state/events
+          |                           estado/eventos de dominio Finance
           |
-          +-----> AI-8 Capabilities <------ FIN-2 AI adapters
+          +-----> AI-8 Capabilities <------ FIN-2 adaptadores de IA
           |                |
           |                v
           |          AI-9 Agent Runtime
@@ -60,30 +60,30 @@ AI-0 controlled reset          PLATFORM-EVENTS-0 contracts
           |
           +------------------------------+
                                          |
-                              NOTIF-0/1 generic intents
+                              NOTIF-0/1 intents genéricos
                                          |
-                              FIN-4 Finance intent producer
+                              FIN-4 productor de intents de Finance
                                          |
-                              NOTIF-2 Finance migration
+                              NOTIF-2 migración de Finance
                                          |
-                              NOTIF-3 settings decoupling
+                              NOTIF-3 desacople de settings
 ```
 
-The diagram shows dependencies, not a strict one-task-at-a-time schedule. Independent phases may proceed in parallel after their prerequisites are stable.
+El diagrama muestra dependencias, no un calendario estricto de una tarea a la vez. Las fases independientes pueden avanzar en paralelo cuando sus prerrequisitos estén estables.
 
-## Recommended execution waves
+## Waves de ejecución recomendadas
 
-### Wave A — Architecture baseline
+### Wave A — Baseline de arquitectura
 
-- AI-0 controlled reset;
-- FIN-0 boundary contracts;
-- PLATFORM-EVENTS-0 semantic ownership;
-- PLATFORM-SETTINGS-0 module settings contract/registry;
-- NOTIF-0 NotificationIntent contract.
+- AI-0 reset controlado;
+- FIN-0 contratos de frontera;
+- PLATFORM-EVENTS-0 propiedad semántica de eventos;
+- PLATFORM-SETTINGS-0 contrato/registro de module settings;
+- NOTIF-0 contrato `NotificationIntent`.
 
-**Integrated gate:** dependency rules are explicit before new infrastructure is built. No new legacy coupling is introduced during the reset.
+**Gate integrado:** las reglas de dependencia son explícitas antes de construir infraestructura nueva. No se introduce acoplamiento legacy nuevo durante el reset.
 
-### Wave B — Infrastructure ownership
+### Wave B — Propiedad de la infraestructura
 
 Se divide en dos sub-waves con gates propios para reducir el riesgo.
 
@@ -91,85 +91,85 @@ Se divide en dos sub-waves con gates propios para reducir el riesgo.
 
 - AI-1 Inference Gateway;
 - AI-2 Gmail/corpus;
-- FIN-1 removal of Finance Gmail ownership (incluye borrar en el mismo paso los eventos de importación por email: `FINANCE_TRANSACTION_IMPORTED`, `FinanceEmailSyncCompletedEvent` y sus listeners/copy/constantes; no quedan huérfanos hasta NOTIF-2);
+- FIN-1 retirar a Finance la propiedad de Gmail (incluye borrar en el mismo paso los eventos de importación por email: `FINANCE_TRANSACTION_IMPORTED`, `FinanceEmailSyncCompletedEvent` y sus listeners/copy/constantes; no quedan huérfanos hasta NOTIF-2).
 
 **Gate B1:** AI posee la fuente de email y Finance compila sin Gmail/OAuth ni eventos de importación por email.
 
 #### Wave B2 — Eventos, settings y delivery
 
-- PLATFORM-EVENTS-1 generic outbox relay (`OutboxRelay` en Core detrás del port `DomainEventPublisher`);
-- PLATFORM-SETTINGS-1 move module config semantics;
-- NOTIF-1 generic intent delivery pipeline.
+- PLATFORM-EVENTS-1 relay de outbox genérico (`OutboxRelay` en Core detrás del port `DomainEventPublisher`);
+- PLATFORM-SETTINGS-1 mover la semántica de configuración a cada módulo;
+- NOTIF-1 pipeline genérico de entrega de intents.
 
-**Gate B2 / integrated gate:** AI owns external email source, Finance is source-agnostic, domains own event/settings semantics, Notifications can deliver a generic intent.
+**Gate B2 / gate integrado:** AI posee la fuente externa de email, Finance es agnóstico de la fuente, los dominios son dueños de la semántica de sus eventos y settings, y Notifications puede entregar un intent genérico.
 
-### Wave C — Intelligence loop
+### Wave C — Ciclo de inteligencia
 
-- AI-3 Dataset/Runs/Evidence/Human Verification;
+- AI-3 Dataset/Runs/Evidencia/Verificación humana;
 - AI-4 Knowledge Engine;
 - AI-5 Email Intelligence;
-- AI-6 Evaluation.
+- AI-6 Evaluación.
 
-Other programs should remain stable while this loop is proven.
+Los demás programas deben mantenerse estables mientras se valida este ciclo.
 
-**Integrated gate:** intelligence can classify/evaluate without mutating Finance.
+**Gate integrado:** la inteligencia puede clasificar/evaluar sin mutar Finance.
 
-### Wave D — Cross-domain integration
+### Wave D — Integración entre dominios
 
 - AI-7 Signals;
 - FIN-3 Finance Signal Consumer;
-- FIN-2 Finance AI/context adapters;
+- FIN-2 adaptadores de IA/contexto de Finance;
 - AI-8 Capability Registry.
 
-**Integrated gate:** Email -> Signal -> Finance works without Gmail in Finance, and AI discovers Finance through capability contracts rather than a facade.
+**Gate integrado:** Email -> Signal -> Finance funciona sin Gmail en Finance, y la IA descubre Finance mediante contratos de capacidades y no mediante un facade.
 
-### Wave E — Agency and notification cleanup
+### Wave E — Agencia y limpieza de notificaciones
 
 - AI-9 Agent Runtime V2;
 - AI-10 Action Policy;
-- FIN-4 Finance notification/event ownership cleanup;
-- NOTIF-2 migrate Finance notification semantics;
-- PLATFORM-SETTINGS-2 consumer migration;
-- NOTIF-3 settings decoupling.
+- FIN-4 limpieza de propiedad de notificaciones/eventos de Finance;
+- NOTIF-2 migrar la semántica de notificaciones de Finance;
+- PLATFORM-SETTINGS-2 migración de consumidores;
+- NOTIF-3 desacople de settings.
 
-**Integrated gate:** Agent, Finance, Notifications, Core and Users interact through explicit boundaries; no central domain switch remains in AI/Notifications/Core/Users.
+**Gate integrado:** Agent, Finance, Notifications, Core y Users interactúan mediante fronteras explícitas; no queda ningún switch central de dominios en AI/Notifications/Core/Users.
 
-### Wave F — Finance IMPORT / release gate
+### Wave F — Finance IMPORT / gate de release
 
-Contiene AI-11 (Finance Signal Consumer / IMPORT) junto con FIN-3 como gate de 0.50.0. AI-12 (Proactive Intelligence) queda **después** del release, como 0.51. The existing AI roadmap currently places Finance IMPORT at AI Phase 11 and PROD deployment after it. Preserve that release condition: `0.50.0` is not PROD-ready until end-to-end Finance import is restored and all boundary integration tests pass.
+Contiene AI-11 (Finance Signal Consumer / IMPORT) junto con FIN-3 como gate de 0.50.0. AI-12 (Proactive Intelligence) queda **después** del release, como 0.51. El roadmap de IA ya ubica Finance IMPORT en la Fase 11 y el despliegue a PROD después de ella. Se mantiene esa condición: `0.50.0` no está listo para PROD hasta que la importación de Finance funcione de punta a punta y pasen todos los tests de integración de fronteras.
 
-Mientras el gate no se cumpla, los hotfixes de PROD siguen la estrategia de `release/0.49.x` descrita en *Estrategia de release y hotfixes*.
+Mientras el gate no se cumpla, los hotfixes de PROD siguen la estrategia de `release/0.49.x` descrita en *Estrategia de release y hotfixes durante el reset*.
 
-## Required cross-program architecture tests
+## Tests de arquitectura obligatorios entre programas
 
-Add static/import tests or equivalent checks for these invariants:
+Agregar tests estáticos/de imports o verificaciones equivalentes para estos invariantes:
 
-1. AI generic runtime cannot import Finance implementation/facade.
-2. Finance cannot import Gmail provider/source infrastructure.
-3. Finance cannot import chat-context contracts.
-4. Notifications cannot import Finance event payloads/copy/settings constants after migration.
-5. Core cannot own Finance event constants/DTOs after migration.
-6. Users cannot import Finance config validators/defaults after migration.
-7. New module settings can register without modifying Users central defaults.
-8. New domain events can be published without modifying Core event constants.
+1. El runtime genérico de IA no puede importar la implementación ni el facade de Finance.
+2. Finance no puede importar infraestructura de proveedor/fuente de Gmail.
+3. Finance no puede importar contratos de contexto de chat.
+4. Tras la migración, Notifications no puede importar payloads de eventos, copy ni constantes de settings de Finance.
+5. Tras la migración, Core no puede contener constantes/DTOs de eventos de Finance.
+6. Tras la migración, Users no puede importar validadores/defaults de configuración de Finance.
+7. Los settings de un módulo nuevo se registran sin modificar los defaults centrales de Users.
+8. Los eventos de dominio nuevos se publican sin modificar las constantes de eventos de Core.
 
-## Phase completion rule
+## Regla de cierre de fase
 
-Every local phase still requires:
+Cada fase local sigue requiriendo:
 
 ```text
-IMPLEMENTATION
+IMPLEMENTACIÓN
       |
-AUTOMATED TESTS
+TESTS AUTOMATIZADOS
       |
-OBSERVABLE DEMO
+DEMO OBSERVABLE
       |
-LOCAL GATE
+GATE LOCAL
       |
-MASTER INTEGRATION GATE (when applicable)
+GATE DE INTEGRACIÓN MAESTRO (cuando aplique)
 ```
 
-A refactor is not considered complete merely because files moved.
+Un refactor no se considera terminado solo porque se movieron archivos.
 
 ## Decisiones del owner sobre trabajo en curso
 
@@ -188,5 +188,6 @@ Decisión del owner: excepción explícita a la regla "todo en `develop`, sin ra
 - La rama se retira cuando 0.50.0 llega a PROD.
 - Merges y deploys siguen siendo decisión del owner.
 
-## Release relationship
-This master roadmap does not create independent production releases for every documentation phase. The existing `0.50.0` architecture-reset release remains the coordinated backend/web target unless the owner later changes that decision. Hasta su salida a PROD, los parches de producción van por `release/0.49.x` (ver sección anterior).
+## Relación con los releases
+
+Este roadmap maestro no crea releases de producción independientes por cada fase documentada. El release de reset de arquitectura `0.50.0` sigue siendo el objetivo coordinado de backend y web, salvo que el owner cambie esa decisión. Hasta su salida a PROD, los parches de producción van por `release/0.49.x` (ver sección anterior).
