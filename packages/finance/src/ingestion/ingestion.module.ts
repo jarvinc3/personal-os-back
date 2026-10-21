@@ -7,6 +7,8 @@ import { FinanceLedgerModule } from '../ledger/ledger.module';
 import { FinanceOwnershipModule } from '../shared/finance-ownership.module';
 import { EMAIL_TRANSACTION_EXTRACTOR } from '../shared/application/tokens';
 import { EnqueueDueGmailSyncsUseCase } from './application/enqueue-due-gmail-syncs.use-case';
+import { EmailSourceService } from './application/email-source.service';
+import { GmailSyncQueueService } from './application/gmail-sync-queue.service';
 import { IngestionService } from './application/ingestion.service';
 import { ProcessGmailSyncUseCase } from './application/process-gmail-sync.use-case';
 import {
@@ -37,6 +39,8 @@ const bullMqEnabled = isBullMqEnabledFromProcessEnv();
   providers: [
     EmailSourceRepository,
     IngestionService,
+    EmailSourceService,
+    GmailSyncQueueService,
     EnqueueDueGmailSyncsUseCase,
     GmailAutoSyncScheduler,
     EmailMessageRetentionScheduler,

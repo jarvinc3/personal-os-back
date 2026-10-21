@@ -3,6 +3,8 @@ import {
   ConflictException,
   NotFoundException,
 } from '@nestjs/common';
+import { EmailSourceService } from './email-source.service';
+import { GmailSyncQueueService } from './gmail-sync-queue.service';
 import { IngestionService } from './ingestion.service';
 
 jest.mock('../infrastructure/token-encryption.util', () => ({
@@ -98,7 +100,13 @@ function createService() {
       {
         findLatestCategoryIdByMerchant: jest.fn().mockResolvedValue(null),
       } as never,
-      undefined,
+      new EmailSourceService(
+        repo as never,
+        users as never,
+        ownership as never,
+        new GmailSyncQueueService(undefined),
+      ),
+      new GmailSyncQueueService(undefined),
     ),
   };
 }

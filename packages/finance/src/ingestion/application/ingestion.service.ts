@@ -1,15 +1,11 @@
-import { InjectQueue } from '@nestjs/bullmq';
 import {
   BadRequestException,
-  ConflictException,
   Inject,
   Injectable,
   Logger,
   NotFoundException,
-  Optional,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Queue } from 'bullmq';
 import { randomUUID } from 'crypto';
 import * as jwt from 'jsonwebtoken';
 import type { Env } from '@personal-os/config';
@@ -19,8 +15,6 @@ import {
   toCursorPage,
   type CursorQueryDto,
 } from '@personal-os/core';
-import type { GmailSyncJob } from '@personal-os/core';
-import { QueueNames } from '@personal-os/core';
 import { UsersService } from '@personal-os/users';
 import type { DomainEventPublisherPort } from '../../events/application/ports/domain-event-publisher.port';
 import { FinanceOutboxDispatcher } from '../../events/infrastructure/finance-outbox.dispatcher';
@@ -55,12 +49,13 @@ import {
 } from './bank-sender';
 import { buildEmailImportNotes } from './build-email-import-notes';
 import { isAtmMovementClass, isTransferMovementClass } from './email-movement';
-import { EMAIL_MESSAGE_OUTCOME } from './email-message-outcome';
+import { EmailSourceService } from './email-source.service';
 import {
-  GMAIL_SYNC_JOB_NAME,
-  GMAIL_SYNC_JOB_OPTIONS,
-  gmailSyncJobId,
-} from './gmail-sync.constants';
+  mapEmailSourceResponse,
+  resolveSenderFields,
+} from './email-source-view';
+import { GmailSyncQueueService } from './gmail-sync-queue.service';
+import { EMAIL_MESSAGE_OUTCOME } from './email-message-outcome';
 import { uniqueCashAccountId } from './match-email-transfers';
 import {
   buildFallbackWebOAuthRedirect,
@@ -81,10 +76,6 @@ type OAuthStatePayload = {
   returnTo?: string;
 };
 
-type EmailSourceRow = Awaited<
-  ReturnType<EmailSourceRepository['listEmailSources']>
->[number];
-
 type PendingMessageRow = Awaited<
   ReturnType<EmailSourceRepository['listPendingAssignmentMessages']>
 >[number];
@@ -103,133 +94,32 @@ export class IngestionService {
     private readonly ownership: FinanceOwnershipService,
     private readonly importEmail: ImportEmailTransactionUseCase,
     private readonly ledger: LedgerQueryService,
-    @Optional()
-    @InjectQueue(QueueNames.GMAIL_SYNC)
-    private readonly gmailSyncQueue?: Queue<GmailSyncJob>,
+    private readonly emailSources: EmailSourceService,
+    private readonly gmailSyncQueue: GmailSyncQueueService,
   ) {}
 
   listEmailSources(userId: string) {
-    return this.repo
-      .listEmailSources(userId)
-      .then((sources) => sources.map((s) => this.mapEmailSourceResponse(s)));
+    return this.emailSources.listEmailSources(userId);
   }
 
-  async listMailboxes(userId: string) {
-    const rows = await this.repo.listMailboxes(userId);
-    return rows.map((row) => ({
-      id: row.id,
-      emailAddress: row.emailAddress,
-      provider: row.provider,
-      isActive: row.isActive,
-      createdAt: row.createdAt.toISOString(),
-      sources: row.sources.map((source) => this.mapEmailSourceResponse(source)),
-    }));
+  listMailboxes(userId: string) {
+    return this.emailSources.listMailboxes(userId);
   }
 
-  async deactivateMailbox(userId: string, id: string) {
-    const updated = await this.repo.deactivateMailbox(userId, id);
-    if (!updated) {
-      throw new NotFoundException('Buzón no encontrado');
-    }
-    return { success: true };
+  deactivateMailbox(userId: string, id: string) {
+    return this.emailSources.deactivateMailbox(userId, id);
   }
 
-  async createEmailSource(userId: string, dto: ConnectEmailSourceDto) {
-    await this.users.assertFinanceEmailSyncEnabled(userId);
-    await this.ownership.assertInstitutionAcceptsBankProducts(
-      userId,
-      dto.institutionId,
-    );
-
-    const connection = await this.repo.findConnectionByUserEmail(
-      userId,
-      'gmail',
-      dto.emailAddress,
-    );
-    if (!connection) {
-      throw new NotFoundException('Conecta Gmail antes de vincular un banco');
-    }
-    if (!connection.refreshToken) {
-      throw new BadRequestException('Conecta Gmail primero');
-    }
-
-    const sender = this.resolveSenderFields({
-      bankSenderEmail: dto.bankSenderEmail,
-      bankSenderEmails: dto.bankSenderEmails,
-      bankDomain: dto.bankDomain,
-    });
-    return this.upsertInstitutionSource(userId, {
-      connectionId: connection.id,
-      institutionId: dto.institutionId,
-      bankSenderEmails: sender.bankSenderEmails,
-      bankDomain: sender.bankDomain,
-      label: dto.label,
-    });
+  createEmailSource(userId: string, dto: ConnectEmailSourceDto) {
+    return this.emailSources.createEmailSource(userId, dto);
   }
 
-  async updateEmailSource(
-    userId: string,
-    id: string,
-    dto: UpdateEmailSourceDto,
-  ) {
-    const existing = await this.repo.findEmailSource(userId, id);
-    if (!existing) {
-      throw new NotFoundException('Origen de correo no encontrado');
-    }
-
-    if (dto.institutionId) {
-      await this.ownership.assertInstitutionAcceptsBankProducts(
-        userId,
-        dto.institutionId,
-      );
-      const linked = await this.repo.findSourceByUserAndInstitution(
-        userId,
-        dto.institutionId,
-      );
-      if (linked && linked.id !== id && linked.isActive) {
-        throw new ConflictException(
-          'This institution is already linked to a mailbox',
-        );
-      }
-    }
-
-    const data: Record<string, unknown> = {};
-    if (dto.institutionId !== undefined) {
-      data.institutionId = dto.institutionId;
-    }
-    if (dto.label !== undefined) {
-      data.label = dto.label;
-    }
-    if (
-      dto.bankSenderEmail !== undefined ||
-      dto.bankSenderEmails !== undefined
-    ) {
-      const sender = this.resolveSenderFields({
-        bankSenderEmail: dto.bankSenderEmail,
-        bankSenderEmails: dto.bankSenderEmails,
-        bankDomain: dto.bankDomain ?? existing.bankDomain,
-      });
-      data.bankSenderEmails = sender.bankSenderEmails;
-      data.bankDomain = sender.bankDomain;
-    } else if (dto.bankDomain !== undefined) {
-      data.bankDomain = dto.bankDomain.trim();
-    }
-
-    const updated = await this.repo.updateEmailSource(userId, id, data);
-    if (!updated) {
-      throw new NotFoundException('Origen de correo no encontrado');
-    }
-    return this.mapEmailSourceResponse(updated);
+  updateEmailSource(userId: string, id: string, dto: UpdateEmailSourceDto) {
+    return this.emailSources.updateEmailSource(userId, id, dto);
   }
 
-  async deactivateEmailSource(userId: string, id: string) {
-    const updated = await this.repo.updateEmailSource(userId, id, {
-      isActive: false,
-    });
-    if (!updated) {
-      throw new NotFoundException('Origen de correo no encontrado');
-    }
-    return { success: true };
+  deactivateEmailSource(userId: string, id: string) {
+    return this.emailSources.deactivateEmailSource(userId, id);
   }
 
   async triggerEmailSync(
@@ -244,7 +134,7 @@ export class IngestionService {
     }
     // El sync manual deduplica por origen: un reintento tras un timeout no
     // encola un segundo sync mientras el primero siga en vuelo.
-    return this.enqueueGmailSyncJob(userId, sourceId, { forceFullSync });
+    return this.gmailSyncQueue.enqueue(userId, sourceId, { forceFullSync });
   }
 
   async completeEmailSyncSuccessWithEvent(params: {
@@ -387,7 +277,7 @@ export class IngestionService {
     }
 
     const sender = query.bankSenderEmail
-      ? this.resolveSenderFields({
+      ? resolveSenderFields({
           bankSenderEmail: query.bankSenderEmail,
           bankDomain: query.bankDomain,
         })
@@ -518,11 +408,11 @@ export class IngestionService {
       return;
     }
 
-    const sender = this.resolveSenderFields({
+    const sender = resolveSenderFields({
       bankSenderEmail: payload.bankSenderEmail,
       bankDomain: payload.bankDomain,
     });
-    await this.upsertInstitutionSource(payload.sub, {
+    await this.emailSources.upsertInstitutionSource(payload.sub, {
       connectionId: connection.id,
       institutionId: payload.institutionId,
       bankSenderEmails: sender.bankSenderEmails,
@@ -787,7 +677,7 @@ export class IngestionService {
     if (!source) {
       throw new NotFoundException('Origen de correo no encontrado');
     }
-    const sender = this.resolveSenderFields({
+    const sender = resolveSenderFields({
       bankSenderEmails: [...(source.bankSenderEmails ?? []), ...emails],
       bankDomain: source.bankDomain,
     });
@@ -798,7 +688,7 @@ export class IngestionService {
     if (!updated) {
       throw new NotFoundException('Origen de correo no encontrado');
     }
-    return this.mapEmailSourceResponse(updated);
+    return mapEmailSourceResponse(updated);
   }
 
   private async importPendingMessage(
@@ -1006,121 +896,6 @@ export class IngestionService {
     return tokenResponse.access_token;
   }
 
-  private async upsertInstitutionSource(
-    userId: string,
-    input: {
-      connectionId: string;
-      institutionId: string;
-      bankSenderEmails: string[];
-      bankDomain: string;
-      label?: string;
-    },
-  ) {
-    const existing = await this.repo.findSourceByUserAndInstitution(
-      userId,
-      input.institutionId,
-    );
-    if (existing?.isActive && existing.connectionId !== input.connectionId) {
-      throw new ConflictException(
-        'This institution is already linked to a mailbox',
-      );
-    }
-    if (existing) {
-      const updated = await this.repo.updateEmailSource(userId, existing.id, {
-        connectionId: input.connectionId,
-        bankSenderEmails: input.bankSenderEmails,
-        bankDomain: input.bankDomain,
-        ...(input.label !== undefined ? { label: input.label } : {}),
-        isActive: true,
-      });
-      const mapped = this.mapEmailSourceResponse(updated ?? existing);
-      if (await this.users.isFinanceEmailSyncAutomatic(userId)) {
-        await this.enqueueGmailSyncJob(userId, mapped.id);
-      }
-      return mapped;
-    }
-
-    const created = await this.repo.createEmailSource(userId, {
-      connectionId: input.connectionId,
-      institutionId: input.institutionId,
-      bankSenderEmails: input.bankSenderEmails,
-      bankDomain: input.bankDomain,
-      label: input.label,
-      isActive: true,
-    });
-    const mapped = this.mapEmailSourceResponse(created);
-    if (await this.users.isFinanceEmailSyncAutomatic(userId)) {
-      await this.enqueueGmailSyncJob(userId, mapped.id);
-    }
-    return mapped;
-  }
-
-  private async enqueueGmailSyncJob(
-    userId: string,
-    sourceId: string,
-    options: { forceFullSync?: boolean } = {},
-  ): Promise<{ queued: true } | { queued: false; reason: string }> {
-    const forceFullSync = options.forceFullSync === true;
-    if (!this.gmailSyncQueue) {
-      return {
-        queued: false,
-        reason:
-          'gmail-sync queue is unavailable. Verify REDIS_ENABLED=true and REDIS_URL, then restart the API.',
-      };
-    }
-
-    try {
-      await this.gmailSyncQueue.add(
-        GMAIL_SYNC_JOB_NAME,
-        { userId, sourceId, forceFullSync },
-        {
-          ...GMAIL_SYNC_JOB_OPTIONS,
-          jobId: gmailSyncJobId(sourceId),
-        },
-      );
-      return { queued: true };
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'unknown';
-      this.logger.warn(
-        `Failed to enqueue Gmail sync for ${sourceId}: ${message}`,
-      );
-      return {
-        queued: false,
-        reason: `Could not enqueue gmail-sync: ${message}`,
-      };
-    }
-  }
-
-  private resolveSenderFields(input: {
-    bankSenderEmail?: string;
-    bankSenderEmails?: string[];
-    bankDomain?: string;
-  }): { bankSenderEmails: string[]; bankDomain: string } {
-    const senders = normalizeBankSenderEmails({
-      bankSenderEmail: input.bankSenderEmail,
-      bankSenderEmails: input.bankSenderEmails,
-    });
-    if (senders.length === 0) {
-      const domain = input.bankDomain?.trim();
-      if (!domain) {
-        throw new BadRequestException(
-          'bankSenderEmail or bankDomain is required',
-        );
-      }
-      return { bankSenderEmails: [], bankDomain: domain };
-    }
-    const domain = extractEmailDomain(senders[0]);
-    const mismatched = senders.filter(
-      (email) => extractEmailDomain(email) !== domain,
-    );
-    if (mismatched.length > 0) {
-      throw new BadRequestException(
-        'All sender emails must share the same domain',
-      );
-    }
-    return { bankSenderEmails: senders, bankDomain: domain };
-  }
-
   private get encryptionKey(): string {
     return this.config.get('ENCRYPTION_KEY', { infer: true });
   }
@@ -1140,33 +915,6 @@ export class IngestionService {
       'OAUTH_STATE_SECRET is not set; falling back to ENCRYPTION_KEY (non-production only)',
     );
     return this.encryptionKey;
-  }
-
-  private mapEmailSourceResponse(source: EmailSourceRow) {
-    return {
-      id: source.id,
-      connectionId: source.connectionId,
-      institutionId: source.institutionId,
-      institutionName: source.institution?.name ?? null,
-      emailAddress: source.connection.emailAddress,
-      bankSenderEmail: source.bankSenderEmails?.[0] ?? null,
-      bankSenderEmails: source.bankSenderEmails ?? [],
-      bankDomain: source.bankDomain,
-      label: source.label,
-      provider: source.connection.provider,
-      isActive: source.isActive,
-      lastSyncedAt: source.lastSyncedAt?.toISOString() ?? null,
-      createdAt: source.createdAt.toISOString(),
-      logs: (source.logs ?? []).map((log) => ({
-        id: log.id,
-        status: log.status,
-        error: log.error,
-        emailsScanned: log.emailsScanned,
-        transactionsNew: log.transactionsNew,
-        startedAt: log.startedAt.toISOString(),
-        completedAt: log.completedAt?.toISOString() ?? null,
-      })),
-    };
   }
 
   private mapPendingMessage(row: PendingMessageRow) {

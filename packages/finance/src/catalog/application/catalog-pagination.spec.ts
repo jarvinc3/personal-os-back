@@ -1,3 +1,4 @@
+import { CatalogCategoriesService } from './catalog-categories.service';
 import { CatalogService } from './catalog.service';
 import type { CatalogRepository } from '../infrastructure/catalog.repository';
 import type { FinanceOwnershipService } from '../../shared/application/finance-ownership.service';
@@ -11,6 +12,10 @@ function createService(repo: CatalogRepository): CatalogService {
   return new CatalogService(
     repo,
     {} as unknown as FinanceOwnershipService,
+    new CatalogCategoriesService(
+      repo,
+      {} as unknown as FinanceOwnershipService,
+    ),
     {
       forAccount: jest.fn(),
       forCard: jest.fn(),

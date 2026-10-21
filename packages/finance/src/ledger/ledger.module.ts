@@ -30,6 +30,8 @@ import { UnconfirmTransactionUseCase } from './application/unconfirm-transaction
 import { UpdateTransferUseCase } from './application/update-transfer.use-case';
 import { UnconfirmTransferUseCase } from './application/unconfirm-transfer.use-case';
 import { PrismaLedgerDeletionRepository } from './infrastructure/prisma-ledger-deletion.repository';
+import { PrismaLedgerEmailImportRepository } from './infrastructure/prisma-ledger-email-import.repository';
+import { PrismaLedgerWriteRepository } from './infrastructure/prisma-ledger-write.repository';
 import { PrismaLedgerReadRepository } from './infrastructure/prisma-ledger-read.repository';
 import { PrismaLedgerRepository } from './infrastructure/prisma-ledger.repository';
 import { TransactionsController } from './presentation/transactions.controller';
@@ -56,6 +58,8 @@ import { CardPaymentsController } from './presentation/card-payments.controller'
     PrismaLedgerRepository,
     PrismaLedgerReadRepository,
     PrismaLedgerDeletionRepository,
+    PrismaLedgerEmailImportRepository,
+    PrismaLedgerWriteRepository,
     { provide: LEDGER_REPOSITORY, useExisting: PrismaLedgerRepository },
     LedgerQueryService,
     CreateTransactionUseCase,

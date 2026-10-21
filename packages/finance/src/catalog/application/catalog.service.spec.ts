@@ -1,3 +1,4 @@
+import { CatalogCategoriesService } from './catalog-categories.service';
 import { CatalogService } from './catalog.service';
 import type { CatalogRepository } from '../infrastructure/catalog.repository';
 import type { FinanceOwnershipService } from '../../shared/application/finance-ownership.service';
@@ -89,6 +90,7 @@ function createService(
   return new CatalogService(
     repo,
     ownership,
+    new CatalogCategoriesService(repo, ownership),
     purge,
     ensureMock(),
     baseCurrencyMock(),

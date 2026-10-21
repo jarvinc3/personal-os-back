@@ -5,6 +5,7 @@ import { FinanceLedgerModule } from '../ledger/ledger.module';
 import { FinanceOwnershipModule } from '../shared/finance-ownership.module';
 import { DeletionJournalModule } from '../shared/deletion-journal.module';
 import { CatalogService } from './application/catalog.service';
+import { CatalogCategoriesService } from './application/catalog-categories.service';
 import { EnsureCashInstitutionUseCase } from './application/ensure-cash-institution.use-case';
 import { InstrumentHistoryService } from './application/instrument-history.service';
 import { CatalogRepository } from './infrastructure/catalog.repository';
@@ -30,6 +31,7 @@ import { InstitutionsController } from './presentation/institutions.controller';
   providers: [
     CatalogRepository,
     CatalogService,
+    CatalogCategoriesService,
     InstrumentHistoryService,
     EnsureCashInstitutionUseCase,
   ],

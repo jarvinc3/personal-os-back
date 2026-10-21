@@ -1,6 +1,8 @@
 import { AppEvents } from '@personal-os/core';
 import type { DomainEventPublisherPort } from '../../events/application/ports/domain-event-publisher.port';
 import { PrismaLedgerDeletionRepository } from './prisma-ledger-deletion.repository';
+import { PrismaLedgerEmailImportRepository } from './prisma-ledger-email-import.repository';
+import { PrismaLedgerWriteRepository } from './prisma-ledger-write.repository';
 import { PrismaLedgerReadRepository } from './prisma-ledger-read.repository';
 import { PrismaLedgerRepository } from './prisma-ledger.repository';
 import { DeletionJournalRepository } from '../../shared/infrastructure/deletion-journal.repository';
@@ -129,6 +131,8 @@ describe('PrismaLedgerRepository outbox-in-TX', () => {
       new PrismaLedgerReadRepository(prisma as never),
       events,
       new PrismaLedgerDeletionRepository(prisma as never, events, journal),
+      new PrismaLedgerEmailImportRepository(prisma as never, events),
+      new PrismaLedgerWriteRepository(prisma as never, events),
       undefined,
     );
 
@@ -244,6 +248,8 @@ describe('PrismaLedgerRepository outbox-in-TX', () => {
       new PrismaLedgerReadRepository(prisma as never),
       events,
       new PrismaLedgerDeletionRepository(prisma as never, events, journal),
+      new PrismaLedgerEmailImportRepository(prisma as never, events),
+      new PrismaLedgerWriteRepository(prisma as never, events),
       undefined,
     );
 
@@ -363,6 +369,8 @@ describe('PrismaLedgerRepository outbox-in-TX', () => {
       new PrismaLedgerReadRepository(prisma as never),
       events,
       new PrismaLedgerDeletionRepository(prisma as never, events, journal),
+      new PrismaLedgerEmailImportRepository(prisma as never, events),
+      new PrismaLedgerWriteRepository(prisma as never, events),
       undefined,
     );
 
@@ -436,6 +444,8 @@ describe('PrismaLedgerRepository outbox-in-TX', () => {
       new PrismaLedgerReadRepository(prisma as never),
       events,
       new PrismaLedgerDeletionRepository(prisma as never, events, journal),
+      new PrismaLedgerEmailImportRepository(prisma as never, events),
+      new PrismaLedgerWriteRepository(prisma as never, events),
       undefined,
     );
 
@@ -498,6 +508,8 @@ describe('PrismaLedgerRepository outbox-in-TX', () => {
       new PrismaLedgerReadRepository(prisma as never),
       events,
       new PrismaLedgerDeletionRepository(prisma as never, events, journal),
+      new PrismaLedgerEmailImportRepository(prisma as never, events),
+      new PrismaLedgerWriteRepository(prisma as never, events),
       undefined,
     );
 
@@ -561,6 +573,8 @@ describe('PrismaLedgerRepository outbox-in-TX', () => {
       new PrismaLedgerReadRepository(prisma as never),
       events,
       new PrismaLedgerDeletionRepository(prisma as never, events, journal),
+      new PrismaLedgerEmailImportRepository(prisma as never, events),
+      new PrismaLedgerWriteRepository(prisma as never, events),
       undefined,
     );
 
@@ -627,6 +641,8 @@ describe('PrismaLedgerRepository outbox-in-TX', () => {
       new PrismaLedgerReadRepository(prisma as never),
       events,
       new PrismaLedgerDeletionRepository(prisma as never, events, journal),
+      new PrismaLedgerEmailImportRepository(prisma as never, events),
+      new PrismaLedgerWriteRepository(prisma as never, events),
       undefined,
     );
 
@@ -679,6 +695,8 @@ describe('PrismaLedgerRepository outbox-in-TX', () => {
       new PrismaLedgerReadRepository(prisma as never),
       events,
       new PrismaLedgerDeletionRepository(prisma as never, events, journal),
+      new PrismaLedgerEmailImportRepository(prisma as never, events),
+      new PrismaLedgerWriteRepository(prisma as never, events),
       undefined,
     );
 
@@ -742,6 +760,10 @@ describe('PrismaLedgerRepository outbox-in-TX', () => {
         { enqueue: jest.fn() },
         journal,
       ),
+      new PrismaLedgerEmailImportRepository(prisma as never, {
+        enqueue: jest.fn(),
+      }),
+      new PrismaLedgerWriteRepository(prisma as never, { enqueue: jest.fn() }),
       undefined,
     );
 
@@ -817,6 +839,8 @@ describe('PrismaLedgerRepository outbox-in-TX', () => {
       new PrismaLedgerReadRepository(prisma as never),
       events,
       new PrismaLedgerDeletionRepository(prisma as never, events, journal),
+      new PrismaLedgerEmailImportRepository(prisma as never, events),
+      new PrismaLedgerWriteRepository(prisma as never, events),
       undefined,
     );
 
@@ -874,6 +898,8 @@ describe('PrismaLedgerRepository outbox-in-TX', () => {
       new PrismaLedgerReadRepository(prisma as never),
       events,
       new PrismaLedgerDeletionRepository(prisma as never, events, journal),
+      new PrismaLedgerEmailImportRepository(prisma as never, events),
+      new PrismaLedgerWriteRepository(prisma as never, events),
       undefined,
     );
 
@@ -907,6 +933,8 @@ describe('PrismaLedgerRepository outbox-in-TX', () => {
       new PrismaLedgerReadRepository(prisma as never),
       events,
       new PrismaLedgerDeletionRepository(prisma as never, events, journal),
+      new PrismaLedgerEmailImportRepository(prisma as never, events),
+      new PrismaLedgerWriteRepository(prisma as never, events),
       undefined,
     );
 
@@ -933,6 +961,10 @@ describe('PrismaLedgerRepository outbox-in-TX', () => {
         { enqueue: jest.fn() },
         journal,
       ),
+      new PrismaLedgerEmailImportRepository(prisma as never, {
+        enqueue: jest.fn(),
+      }),
+      new PrismaLedgerWriteRepository(prisma as never, { enqueue: jest.fn() }),
       undefined,
     );
 
@@ -963,6 +995,10 @@ describe('PrismaLedgerRepository outbox-in-TX', () => {
         { enqueue: jest.fn() },
         journal,
       ),
+      new PrismaLedgerEmailImportRepository(prisma as never, {
+        enqueue: jest.fn(),
+      }),
+      new PrismaLedgerWriteRepository(prisma as never, { enqueue: jest.fn() }),
       undefined,
     );
     await expect(

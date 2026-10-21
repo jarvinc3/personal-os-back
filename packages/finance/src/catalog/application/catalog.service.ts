@@ -40,6 +40,7 @@ import {
 } from '../../shared/infrastructure/account-number-encryption.util';
 import { CASH_ACCOUNT_TYPE, isCashInstitution } from '../../shared/domain/cash';
 import { EnsureCashInstitutionUseCase } from './ensure-cash-institution.use-case';
+import { CatalogCategoriesService } from './catalog-categories.service';
 import { institutionOrderKey } from '../domain/institution-order';
 import { CatalogRepository } from '../infrastructure/catalog.repository';
 import type { AccountNumberColumns } from '../infrastructure/catalog.repository';
@@ -104,6 +105,7 @@ export class CatalogService {
   constructor(
     private readonly repo: CatalogRepository,
     private readonly ownership: FinanceOwnershipService,
+    private readonly categories: CatalogCategoriesService,
     private readonly purgeLedger: PurgeInstrumentLedgerUseCase,
     private readonly ensureCashInstitution: EnsureCashInstitutionUseCase,
     private readonly userBaseCurrency: ResolveUserBaseCurrencyUseCase,
@@ -705,104 +707,24 @@ export class CatalogService {
   }
 
   listCategories(userId: string, type?: 'EXPENSE' | 'INCOME') {
-    return this.repo.listCategories(userId, type);
+    return this.categories.listCategories(userId, type);
   }
 
-  async createCategory(userId: string, dto: CreateCategoryDto) {
-    if (dto.type === 'TRANSFER') {
-      throw new BadRequestException(
-        'El tipo de categoría debe ser EXPENSE o INCOME',
-      );
-    }
-    const type = dto.type ?? 'EXPENSE';
-    if (dto.parentId) {
-      await this.ownership.assertParentCategory(
-        userId,
-        dto.parentId,
-        undefined,
-        type,
-      );
-    }
-    return this.repo.createCategory(userId, {
-      name: dto.name,
-      icon: dto.icon,
-      color: dto.color,
-      parentId: dto.parentId,
-      type,
-    });
+  createCategory(userId: string, dto: CreateCategoryDto) {
+    return this.categories.createCategory(userId, dto);
   }
 
-  async updateCategory(userId: string, id: string, dto: UpdateCategoryDto) {
-    if (dto.type === 'TRANSFER') {
-      throw new BadRequestException(
-        'El tipo de categoría debe ser EXPENSE o INCOME',
-      );
-    }
-    const existing = await this.ownership.assertCategoryVisible(userId, id);
-    const nextParentId =
-      dto.parentId === undefined ? existing.parentId : dto.parentId;
-    const nextType = dto.type ?? existing.type;
-    const typeChanged = dto.type !== undefined && dto.type !== existing.type;
-
-    if (typeChanged && nextParentId) {
-      throw new BadRequestException(
-        'Cannot change type while the category has a parent',
-      );
-    }
-
-    if (typeof nextParentId === 'string') {
-      await this.ownership.assertParentCategory(
-        userId,
-        nextParentId,
-        id,
-        nextType,
-      );
-    }
-
-    const cascadeType =
-      typeChanged &&
-      !nextParentId &&
-      (dto.type === 'EXPENSE' || dto.type === 'INCOME')
-        ? dto.type
-        : undefined;
-
-    const updated = await this.repo.updateCategory(
-      userId,
-      id,
-      {
-        name: dto.name,
-        icon: dto.icon,
-        color: dto.color,
-        parentId: dto.parentId,
-        ...(cascadeType ? { type: cascadeType } : {}),
-      },
-      cascadeType,
-    );
-    if (!updated) {
-      throw new NotFoundException('Categoría no encontrada');
-    }
-    return updated;
+  updateCategory(userId: string, id: string, dto: UpdateCategoryDto) {
+    return this.categories.updateCategory(userId, id, dto);
   }
 
-  async deleteCategory(userId: string, id: string) {
-    const result = await this.repo.deleteCategory(userId, id);
-    if (result.count === 0) {
-      throw new NotFoundException('Categoría no encontrada');
-    }
-    return { success: true };
+  deleteCategory(userId: string, id: string) {
+    return this.categories.deleteCategory(userId, id);
   }
 
-  async restoreCategory(userId: string, id: string, now: Date) {
-    const restored = await this.repo.restoreCategory(userId, id, now);
-    assertRestored(restored, 'Category not found');
-    return { success: true };
+  restoreCategory(userId: string, id: string, now: Date) {
+    return this.categories.restoreCategory(userId, id, now);
   }
-
-  /**
-   * Institution a new or updated account belongs to. Cash always lives in the
-   * system "Efectivo"; other types must name a bank institution and never the
-   * cash one.
-   */
   private async resolveAccountInstitutionId(
     userId: string,
     type: string,

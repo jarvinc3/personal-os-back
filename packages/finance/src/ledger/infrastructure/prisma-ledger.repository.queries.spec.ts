@@ -4,6 +4,8 @@ import type { DeletionJournalRepository } from '../../shared/infrastructure/dele
 import { TRANSACTION_LINK_KIND } from '../../shared/domain/transaction-links';
 import { EMAIL_DUPLICATE_DATE_TOLERANCE_MS } from '../../shared/domain/email-dedupe';
 import { PrismaLedgerDeletionRepository } from './prisma-ledger-deletion.repository';
+import { PrismaLedgerEmailImportRepository } from './prisma-ledger-email-import.repository';
+import { PrismaLedgerWriteRepository } from './prisma-ledger-write.repository';
 import { PrismaLedgerReadRepository } from './prisma-ledger-read.repository';
 import { PrismaLedgerRepository } from './prisma-ledger.repository';
 
@@ -39,6 +41,14 @@ function createRepository() {
         prisma as unknown as PrismaService,
         events,
         journal,
+      ),
+      new PrismaLedgerEmailImportRepository(
+        prisma as unknown as PrismaService,
+        events,
+      ),
+      new PrismaLedgerWriteRepository(
+        prisma as unknown as PrismaService,
+        events,
       ),
     ),
   };

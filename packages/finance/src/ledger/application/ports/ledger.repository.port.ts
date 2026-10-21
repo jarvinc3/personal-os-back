@@ -102,6 +102,18 @@ export type BalanceAdjustmentTarget = {
   currentBalance: number;
 };
 
+/** The leg the email import creates on the other side of an imported movement. */
+export type EmailTransferCounterpart = {
+  accountId?: string;
+  cardId?: string;
+  amounts: ResolvedAmounts;
+  description?: string | null;
+  notes?: string | null;
+  status: FinTxStatus;
+  emailMessageId?: string;
+  aiMetadata?: unknown;
+};
+
 /**
  * Persistence port for ledger reads and multi-step writes
  * (balance + budget spent + outbox inside the same transaction).
@@ -351,15 +363,6 @@ export interface LedgerRepositoryPort {
   addEmailTransferCounterpart(
     userId: string,
     existingId: string,
-    counterpart: {
-      accountId?: string;
-      cardId?: string;
-      amounts: ResolvedAmounts;
-      description?: string | null;
-      notes?: string | null;
-      status: FinTxStatus;
-      emailMessageId?: string;
-      aiMetadata?: unknown;
-    },
+    counterpart: EmailTransferCounterpart,
   ): Promise<CreateTransferResult | null>;
 }
