@@ -81,6 +81,29 @@ export type BalanceSheetCurrencyGroup = {
   totalsBase: BalanceSheetCurrencyTotalsBase;
 };
 
+export type BalanceSheetCurrencySlice = {
+  currency: string;
+  assets: string;
+  available: string;
+  receivables: string;
+  liabilities: string;
+  netWorth: string;
+};
+
+/** Native totals per currency, without the lines, for a summary slice. */
+export function currencySlices(
+  groups: readonly BalanceSheetCurrencyGroup[],
+): BalanceSheetCurrencySlice[] {
+  return groups.map((group) => ({
+    currency: group.currency,
+    assets: group.totals.assets,
+    available: group.totals.available,
+    receivables: group.totals.receivables,
+    liabilities: group.totals.liabilities,
+    netWorth: group.totals.netWorth,
+  }));
+}
+
 export type BalanceSheetBreakdown = {
   byCurrency: BalanceSheetCurrencyGroup[];
   totals: BalanceSheetCurrencyTotalsBase;

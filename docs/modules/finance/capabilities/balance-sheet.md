@@ -13,6 +13,7 @@
 ## Payload
 
 - `global`, una fila por institución activa y `cash` conservan los campos del dashboard. `global.assets.accounts` incluye Efectivo; `global.assets.cash` es el subconjunto informativo y no se suma otra vez. `global.assets.receivables` sí se suma a `totalAssets` y `netWorth`.
+- `global.byCurrency` y el `byCurrency` de cada institución traen los totales nativos por moneda (`assets`, `available`, `receivables`, `liabilities`, `netWorth`). No convierten: una institución con DOP y USD muestra dos líneas y la web no suma monedas distintas.
 - `breakdown.byCurrency[]` agrupa una línea por producto (`accounts`, `cash`, `receivables`, `creditCards`, `loans`, `doubtfulReceivables`) con `balance` nativo y `balanceBase`. Cada grupo trae `totals` nativos y `totalsBase`; `breakdown.totals` es la suma de esos grupos en moneda base.
 - Toda línea trae `hasDrift`, `driftDifference` (desviación abierta de integridad), `reconciliation` (`RECONCILED`/`PENDING` del mes en curso, o `NOT_APPLICABLE`) y, cuando aplica, `creditLimit`, `availableCredit` y `dueDate`.
 - Los totales se calculan sumando las mismas líneas que se devuelven. Si falta una tasa o el límite de una tarjeta, el total afectado queda `null` y `status` pasa a `INCOMPLETE`; un descuadre o una conciliación pendiente **no** invalidan el total.

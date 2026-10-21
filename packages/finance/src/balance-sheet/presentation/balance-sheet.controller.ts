@@ -10,6 +10,18 @@ import { BalanceSheetService } from '../application/balance-sheet.service';
 
 const MONEY_STRING = { type: 'string', example: '1500.00' };
 
+const CURRENCY_SLICE_SCHEMA = {
+  type: 'object',
+  properties: {
+    currency: { type: 'string', example: 'DOP' },
+    assets: MONEY_STRING,
+    available: MONEY_STRING,
+    receivables: MONEY_STRING,
+    liabilities: MONEY_STRING,
+    netWorth: MONEY_STRING,
+  },
+};
+
 const BALANCE_SHEET_RESPONSE_SCHEMA = {
   type: 'object',
   properties: {
@@ -38,6 +50,11 @@ const BALANCE_SHEET_RESPONSE_SCHEMA = {
         totalAssets: MONEY_STRING,
         totalLiabilities: { type: 'string', nullable: true },
         netWorth: { type: 'string', nullable: true },
+        byCurrency: {
+          type: 'array',
+          description: 'Native totals per currency; no conversion.',
+          items: CURRENCY_SLICE_SCHEMA,
+        },
         issues: { type: 'array', items: { type: 'object' } },
       },
     },
@@ -85,7 +102,7 @@ export class BalanceSheetController {
   @ApiOperation({
     summary: 'Posición financiera actual en la moneda base',
     description:
-      'Snapshot of active accounts, pending receivables, credit-card utilization and loan balances. Receivables overdue more than 90 days are listed as doubtful and do not add to net worth. The breakdown groups one line per product by currency; missing rates or credit limits return status INCOMPLETE with null netWorth.',
+      'Snapshot of active accounts, pending receivables, credit-card utilization and loan balances. Receivables overdue more than 90 days are listed as doubtful and do not add to net worth. Both global and each institution expose native byCurrency totals; the breakdown groups one line per product by currency. Missing rates or credit limits return status INCOMPLETE with null netWorth.',
   })
   @ApiOkResponse({
     description: 'Net worth summary plus the atomic breakdown by currency.',

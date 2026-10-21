@@ -146,6 +146,20 @@ describe('SubscriptionsService.summary', () => {
     const summary = await service.summary('user-1', day('2026-11-15'));
 
     expect(summary.monthlyCost).toBe('720.00');
+    expect(summary.byCurrency).toEqual([
+      {
+        currency: 'DOP',
+        monthlyCost: '120.00',
+        annualCost: '1440.00',
+        activeCount: 1,
+      },
+      {
+        currency: 'USD',
+        monthlyCost: '10.00',
+        annualCost: '120.00',
+        activeCount: 1,
+      },
+    ]);
     expect(summary.previousMonthlyCost).toBe('700.00');
     expect(summary.trend).toEqual({ direction: 'up', percent: 2.9 });
     expect(summary.realSpendThisMonth).toBe('720.00');

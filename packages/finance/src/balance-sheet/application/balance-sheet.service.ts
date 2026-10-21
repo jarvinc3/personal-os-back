@@ -18,8 +18,10 @@ import {
 import {
   BALANCE_SHEET_LINE_KIND,
   BALANCE_SHEET_RECONCILIATION,
+  currencySlices,
   groupBalanceSheetLines,
   type BalanceSheetBreakdown,
+  type BalanceSheetCurrencySlice,
   type BalanceSheetLine,
 } from '../domain/balance-sheet-breakdown';
 import { BalanceSheetRepository } from '../infrastructure/balance-sheet.repository';
@@ -66,6 +68,8 @@ export type BalanceSheetSlice = {
   totalAssets: string;
   totalLiabilities: string | null;
   netWorth: string | null;
+  /** Native totals per currency; no conversion and no receivables without institution. */
+  byCurrency: BalanceSheetCurrencySlice[];
   issues: BalanceSheetIssue[];
 };
 
@@ -135,7 +139,10 @@ function emptyBucket(): Bucket {
   };
 }
 
-function serializeSlice(bucket: Bucket): BalanceSheetSlice {
+function serializeSlice(
+  bucket: Bucket,
+  byCurrency: BalanceSheetCurrencySlice[],
+): BalanceSheetSlice {
   // `accounts` already includes cash; `cash` is the informational subset.
   const totalAssets = roundDecimal(bucket.accounts.plus(bucket.receivables));
   const loanDebt = roundDecimal(bucket.loans);
@@ -165,6 +172,7 @@ function serializeSlice(bucket: Bucket): BalanceSheetSlice {
     totalLiabilities:
       totalLiabilities == null ? null : decimalToString(totalLiabilities),
     netWorth: netWorth == null ? null : decimalToString(netWorth),
+    byCurrency,
     issues: bucket.issues,
   };
 }
@@ -456,17 +464,37 @@ export class BalanceSheetService {
       });
     }
 
+    const breakdown = groupBalanceSheetLines(lines, baseCurrency);
+    const linesByInstitution = new Map<string, BalanceSheetLine[]>();
+    for (const line of lines) {
+      if (!line.institutionId) {
+        continue;
+      }
+      const group = linesByInstitution.get(line.institutionId) ?? [];
+      group.push(line);
+      linesByInstitution.set(line.institutionId, group);
+    }
+
     return {
       asOf: asOf.toISOString(),
       rateDate,
       baseCurrency,
-      global: serializeSlice(global),
-      institutions: institutions.map((institution) => ({
-        institutionId: institution.id,
-        ...serializeSlice(byInstitution.get(institution.id) ?? emptyBucket()),
-      })),
+      global: serializeSlice(global, currencySlices(breakdown.byCurrency)),
+      institutions: institutions.map((institution) => {
+        const institutionBreakdown = groupBalanceSheetLines(
+          linesByInstitution.get(institution.id) ?? [],
+          baseCurrency,
+        );
+        return {
+          institutionId: institution.id,
+          ...serializeSlice(
+            byInstitution.get(institution.id) ?? emptyBucket(),
+            currencySlices(institutionBreakdown.byCurrency),
+          ),
+        };
+      }),
       cash: await this.buildCashSummary(userId, baseCurrency, asOf),
-      breakdown: groupBalanceSheetLines(lines, baseCurrency),
+      breakdown,
     };
   }
 

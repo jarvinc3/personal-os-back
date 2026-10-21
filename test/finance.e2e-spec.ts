@@ -1242,6 +1242,24 @@ describe('Finance (e2e)', () => {
           netWorth: '1200',
           doubtfulReceivables: '3000',
         });
+        expect(res.body.data.global.byCurrency).toEqual([
+          {
+            currency: 'DOP',
+            assets: '1200',
+            available: '1000',
+            receivables: '200',
+            liabilities: '0',
+            netWorth: '1200',
+          },
+          {
+            currency: 'USD',
+            assets: '0',
+            available: '0',
+            receivables: '0',
+            liabilities: '0',
+            netWorth: '0',
+          },
+        ]);
         const dop = res.body.data.breakdown.byCurrency.find(
           (group: { currency: string }) => group.currency === 'DOP',
         );

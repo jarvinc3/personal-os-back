@@ -674,4 +674,62 @@ describe('BalanceSheetService', () => {
       netWorth: '5',
     });
   });
+
+  it('keeps institution totals in their own currencies', async () => {
+    loadPositions.mockResolvedValue({
+      institutions: [{ id: 'inst-1' }],
+      accounts: [
+        {
+          id: 'acc-dop',
+          name: 'Cuenta DOP',
+          type: 'CHECKING',
+          institutionId: 'inst-1',
+          currency: 'DOP',
+          balance: new Prisma.Decimal(100),
+        },
+        {
+          id: 'acc-usd',
+          name: 'Cuenta USD',
+          type: 'CHECKING',
+          institutionId: 'inst-1',
+          currency: 'USD',
+          balance: new Prisma.Decimal(10),
+        },
+      ],
+      cardBalances: [],
+      loans: [],
+    });
+    toBaseCurrencyOrNull.mockImplementation(
+      (amount: Prisma.Decimal, currency: string) =>
+        Promise.resolve(
+          currency === 'USD'
+            ? new Prisma.Decimal(amount).times(60)
+            : new Prisma.Decimal(amount),
+        ),
+    );
+
+    const balanceSheet = await createService().getBalanceSheet('user-1');
+
+    expect(balanceSheet.global.byCurrency).toEqual([
+      {
+        currency: 'DOP',
+        assets: '100',
+        available: '100',
+        receivables: '0',
+        liabilities: '0',
+        netWorth: '100',
+      },
+      {
+        currency: 'USD',
+        assets: '10',
+        available: '10',
+        receivables: '0',
+        liabilities: '0',
+        netWorth: '10',
+      },
+    ]);
+    expect(balanceSheet.institutions[0]?.byCurrency).toEqual(
+      balanceSheet.global.byCurrency,
+    );
+  });
 });
