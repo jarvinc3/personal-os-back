@@ -138,7 +138,7 @@ Los demás programas deben mantenerse estables mientras se valida este ciclo.
 
 Contiene AI-11 (Finance Signal Consumer / IMPORT) junto con FIN-3 como gate de 0.50.0. AI-12 (Proactive Intelligence) queda **después** del release, como 0.51. El roadmap de IA ya ubica Finance IMPORT en la Fase 11 y el despliegue a PROD después de ella. Se mantiene esa condición: `0.50.0` no está listo para PROD hasta que la importación de Finance funcione de punta a punta y pasen todos los tests de integración de fronteras.
 
-Mientras el gate no se cumpla, los hotfixes de PROD siguen la estrategia de `release/0.49.x` descrita en *Estrategia de release y hotfixes durante el reset*.
+Mientras el gate no se cumpla, los hotfixes de PROD siguen la estrategia de `release/0.49.x` descrita en _Estrategia de release y hotfixes durante el reset_.
 
 ## Tests de arquitectura obligatorios entre programas
 
