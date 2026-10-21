@@ -16,6 +16,12 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [Se
 
 - `AGENTS.md` y `docs/README.md` enlazan las convenciones de issues y la nueva documentación.
 
+## [0.47.2] - 2026-10-20
+
+### Cambiado
+
+- Interno: el servicio de comercios separa `resolve` del texto derivado y `resolveTyped` del texto escrito, con un helper privado que recibe un objeto. Sin cambio de comportamiento (#159).
+
 ## [0.47.1] - 2026-10-20
 
 ### Corregido
