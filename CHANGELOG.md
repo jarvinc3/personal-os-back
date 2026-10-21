@@ -2,6 +2,16 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [SemVer](https://semver.org/lang/es/). Reglas y ejemplo en [docs/reference/changelog-guide.md](./docs/reference/changelog-guide.md).
 
+## [0.48.0] - 2026-10-21
+
+### Agregado
+
+- El perfil acepta una zona horaria IANA y la rechaza con el error en el campo cuando no existe o no tiene forma de zona (por ejemplo `+04:00`), no solo por longitud (#162).
+
+### Cambiado
+
+- `transactionDate` en movimientos, transferencias y pagos de tarjeta exige un instante con zona (`Z` u offset). Una hora de reloj sin zona se rechaza en vez de leerse en la zona del servidor (#211).
+
 ## [Sin publicar]
 
 ### Agregado
