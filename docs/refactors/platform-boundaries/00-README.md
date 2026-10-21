@@ -59,6 +59,8 @@ Create domain-owned event contract locations and migrate constants/DTOs without 
 
 Promote the generic parts of Finance outbox dispatcher/repository into shared event infrastructure. Domains publish through a shared port/envelope.
 
+Decisión: `FinanceOutboxDispatcher` se promueve a Core como `OutboxRelay`, detrás de un port `DomainEventPublisher`. Los use-cases (hoy ~18 en `ledger/application` inyectan el dispatcher concreto) pasan a depender solo del port. El outbox de borrado en Auth de Users (`deleteAccountWithAuthOutbox`) se evalúa por separado; no se fuerza la unificación.
+
 **Gate:** a non-Finance domain can publish reliably without copying Finance infrastructure.
 
 ---
@@ -127,6 +129,8 @@ Moving `DEFAULT_MODULE_CONFIG_BY_SLUG` from Users to Core would preserve the sam
 The AI roadmap proposes roles and `contributeToGlobalKnowledge`. Roles are authorization/account concerns and can live in Users/Auth-facing platform services as already planned. AI contribution consent is an AI/privacy preference; its semantic schema should be AI-owned even if persisted through generic user/module settings infrastructure.
 
 ### Phases
+
+Mientras tanto (web #216/#217): no se agregan claves nuevas a Users; un backend de "Vaciar datos" vive como endpoint dentro de cada módulo.
 
 #### PLATFORM-SETTINGS-0 — Module settings contract/registry
 

@@ -85,14 +85,23 @@ The diagram shows dependencies, not a strict one-task-at-a-time schedule. Indepe
 
 ### Wave B — Infrastructure ownership
 
+Se divide en dos sub-waves con gates propios para reducir el riesgo.
+
+#### Wave B1 — Fuente de email
+
 - AI-1 Inference Gateway;
 - AI-2 Gmail/corpus;
 - FIN-1 removal of Finance Gmail ownership (incluye borrar en el mismo paso los eventos de importación por email: `FINANCE_TRANSACTION_IMPORTED`, `FinanceEmailSyncCompletedEvent` y sus listeners/copy/constantes; no quedan huérfanos hasta NOTIF-2);
-- PLATFORM-EVENTS-1 generic outbox relay;
+
+**Gate B1:** AI posee la fuente de email y Finance compila sin Gmail/OAuth ni eventos de importación por email.
+
+#### Wave B2 — Eventos, settings y delivery
+
+- PLATFORM-EVENTS-1 generic outbox relay (`OutboxRelay` en Core detrás del port `DomainEventPublisher`);
 - PLATFORM-SETTINGS-1 move module config semantics;
 - NOTIF-1 generic intent delivery pipeline.
 
-**Integrated gate:** AI owns external email source, Finance is source-agnostic, domains own event/settings semantics, Notifications can deliver a generic intent.
+**Gate B2 / integrated gate:** AI owns external email source, Finance is source-agnostic, domains own event/settings semantics, Notifications can deliver a generic intent.
 
 ### Wave C — Intelligence loop
 
@@ -127,7 +136,7 @@ Other programs should remain stable while this loop is proven.
 
 ### Wave F — Finance IMPORT / release gate
 
-The existing AI roadmap currently places Finance IMPORT at AI Phase 11 and PROD deployment after it. Preserve that release condition: `0.50.0` is not PROD-ready until end-to-end Finance import is restored and all boundary integration tests pass.
+Contiene AI-11 (Finance Signal Consumer / IMPORT) junto con FIN-3 como gate de 0.50.0. AI-12 (Proactive Intelligence) queda **después** del release, como 0.51. The existing AI roadmap currently places Finance IMPORT at AI Phase 11 and PROD deployment after it. Preserve that release condition: `0.50.0` is not PROD-ready until end-to-end Finance import is restored and all boundary integration tests pass.
 
 Mientras el gate no se cumpla, los hotfixes de PROD siguen la estrategia de `release/0.49.x` descrita en *Estrategia de release y hotfixes*.
 
@@ -162,8 +171,22 @@ MASTER INTEGRATION GATE (when applicable)
 
 A refactor is not considered complete merely because files moved.
 
+## Decisiones del owner sobre trabajo en curso
+
+- **web #216 / #217 (settings):** solo web por ahora. No se agregan claves nuevas a `user-settings-defaults.ts` ni métodos a `UsersService`. Cualquier backend de "Vaciar datos" es un endpoint por módulo dentro de cada módulo. PLATFORM-SETTINGS-0 se mantiene en Wave A.
+- **back #161 (moneda extranjera):** se hace ahora solo la conversión de ledger/FX (dominio Finance que se conserva). La parte de importación por email no se adapta; FIN-3 debe guardar monto original y tasa.
+- **AI-12:** fuera de 0.50.0; release 0.51.
+
 ## Estrategia de release y hotfixes durante el reset
 
-Decisión del owner: excepción explícita a la regla \
+Decisión del owner: excepción explícita a la regla "todo en `develop`, sin ramas".
 
+- Al iniciar el reset (AI-0 / Wave A) se crea `release/0.49.x` desde `master`. No se crea antes.
+- Esa rama se usa **solo** para hotfixes de PROD mientras `develop` contiene el reset 0.50.0 y no es desplegable.
+- Cada hotfix se versiona como `0.49.x` según `docs/versionado.md` y se lleva de vuelta a `develop` (cherry-pick o merge) cuando aplique; si el código afectado fue eliminado o rediseñado por el reset, se deja constancia en el issue de que no aplica.
+- No se desarrollan features en `release/0.49.x`.
+- La rama se retira cuando 0.50.0 llega a PROD.
+- Merges y deploys siguen siendo decisión del owner.
+
+## Release relationship
 This master roadmap does not create independent production releases for every documentation phase. The existing `0.50.0` architecture-reset release remains the coordinated backend/web target unless the owner later changes that decision. Hasta su salida a PROD, los parches de producción van por `release/0.49.x` (ver sección anterior).

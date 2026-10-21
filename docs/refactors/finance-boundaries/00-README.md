@@ -126,6 +126,8 @@ Move AI/chat consumers off `FinanceFacade`; replace chat-context types with Fina
 
 Coordinated with AI Signals/IMPORT phases. Implement idempotent `FinanceSignalConsumer` using preserved financial behavior.
 
+Cada movimiento importado en moneda distinta a la del producto guarda el **monto original, la moneda original y la tasa** aplicada, reutilizando la conversión de ledger/FX entregada en back #161.
+
 **Gate:** a routed Finance signal can create/update the correct financial state without Finance reading an email.
 
 ### FIN-4 — Notification/event ownership cleanup
