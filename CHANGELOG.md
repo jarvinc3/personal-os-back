@@ -2,6 +2,17 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [SemVer](https://semver.org/lang/es/). Reglas y ejemplo en [docs/reference/changelog-guide.md](./docs/reference/changelog-guide.md).
 
+## [0.50.0] - 2026-10-21
+
+### Agregado
+
+- El perfil guarda el primer día de la semana en `preferences.regional.weekStartsOn`: domingo, lunes, sábado o automático desde el locale (#223).
+- Script `db:backfill-week-starts-on` para copiar al perfil el día que estaba guardado en Finanzas o Agenda (#223).
+
+### Cambiado
+
+- `PATCH /users/me` valida `locale` como etiqueta BCP-47 y rechaza un `weekStartsOn` distinto de 0, 1, 6 o null (#223).
+
 ## [0.49.0] - 2026-10-21
 
 ### Agregado
