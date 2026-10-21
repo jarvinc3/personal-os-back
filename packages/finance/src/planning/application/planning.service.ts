@@ -434,6 +434,35 @@ export class PlanningService {
     return { ...page, items: page.items.map(mapSavingsGoalContribution) };
   }
 
+  /**
+   * Credits the disbursed principal to the chosen account as an adjustment, so
+   * the account grows without counting as monthly income.
+   */
+  private async disburseLoan(input: {
+    userId: string;
+    accountId: string;
+    currency: string;
+    amount: number;
+    label: string;
+    transactionDate: Date;
+  }): Promise<string> {
+    const account = await this.assertDisbursementAccount(
+      input.userId,
+      input.accountId,
+      input.currency,
+    );
+    const adjusted = await this.adjustBalance.execute(input.userId, {
+      accountId: account.id,
+      balance: roundMoney(Number(account.balance) + input.amount),
+      description: `Desembolso de préstamo · ${input.label}`,
+      transactionDate: input.transactionDate,
+    });
+    if (!adjusted.transaction) {
+      throw new BadRequestException('No se pudo registrar el desembolso');
+    }
+    return adjusted.transaction.id;
+  }
+
   private async assertDisbursementAccount(
     userId: string,
     accountId: string,
@@ -536,31 +565,19 @@ export class PlanningService {
     }
     const currency = dto.currency ?? 'DOP';
     const loanName = dto.name?.trim() || null;
-    const disbursementAccount = dto.disbursementAccountId
-      ? await this.assertDisbursementAccount(
+    const disbursementAccountId = dto.disbursementAccountId ?? null;
+    const disbursementTransactionId = disbursementAccountId
+      ? await this.disburseLoan({
           userId,
-          dto.disbursementAccountId,
+          accountId: disbursementAccountId,
           currency,
-        )
+          amount: dto.originalAmount,
+          label: loanName ?? dto.lenderName,
+          transactionDate: dto.disbursementDate
+            ? new Date(dto.disbursementDate)
+            : now,
+        })
       : null;
-
-    let disbursementTransactionId: string | null = null;
-    if (disbursementAccount) {
-      const adjusted = await this.adjustBalance.execute(userId, {
-        accountId: disbursementAccount.id,
-        balance: roundMoney(
-          Number(disbursementAccount.balance) + dto.originalAmount,
-        ),
-        description: `Desembolso de préstamo · ${loanName ?? dto.lenderName}`,
-        transactionDate: dto.disbursementDate
-          ? new Date(dto.disbursementDate)
-          : now,
-      });
-      if (!adjusted.transaction) {
-        throw new BadRequestException('No se pudo registrar el desembolso');
-      }
-      disbursementTransactionId = adjusted.transaction.id;
-    }
 
     let created: Awaited<ReturnType<PlanningRepository['createLoan']>>;
     try {
@@ -569,7 +586,7 @@ export class PlanningService {
         lenderName: dto.lenderName,
         institutionId: dto.institutionId,
         accountId: dto.accountId,
-        disbursementAccountId: disbursementAccount?.id,
+        disbursementAccountId: disbursementAccountId ?? undefined,
         disbursementTransactionId: disbursementTransactionId ?? undefined,
         originalAmount: dto.originalAmount,
         currentBalance: dto.currentBalance,
