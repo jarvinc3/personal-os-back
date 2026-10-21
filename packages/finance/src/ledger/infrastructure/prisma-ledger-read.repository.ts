@@ -209,6 +209,25 @@ export class PrismaLedgerReadRepository {
     });
   }
 
+  async findCardLedgerContext(id: string, userId: string) {
+    const card = await this.prisma.finCard.findFirst({
+      where: { id, userId },
+      select: {
+        type: true,
+        accountId: true,
+        balances: { select: { currency: true } },
+      },
+    });
+    if (!card) {
+      return null;
+    }
+    return {
+      cardType: card.type,
+      accountId: card.accountId,
+      currencies: card.balances.map((balance) => balance.currency),
+    };
+  }
+
   async findSavingsGoalIdByAccount(
     userId: string,
     accountId: string,

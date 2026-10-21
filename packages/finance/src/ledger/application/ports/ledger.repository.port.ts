@@ -1,6 +1,7 @@
 import type { BudgetSpendSnapshot } from '../../../shared/domain/budget-snapshot';
 import type { StoredMovement } from '../../../shared/domain/deletion-snapshot';
 import type { RestoreResult } from '../../../shared/domain/deletion-snapshot';
+import type { LedgerCardType } from '../../../shared/domain/ledger-rules';
 import type { ResolvedAmounts } from '../../../shared/domain/money';
 import type { TransactionLinkKind } from '../../../shared/domain/transaction-links';
 import type {
@@ -141,6 +142,16 @@ export interface LedgerRepositoryPort {
     id: string,
     userId: string,
   ): Promise<{ id: string; currency: string } | null>;
+
+  /** Card with the currencies it declares, for the ledger target of a movement. */
+  findCardLedgerContext(
+    id: string,
+    userId: string,
+  ): Promise<{
+    cardType: LedgerCardType;
+    accountId: string | null;
+    currencies: string[];
+  } | null>;
 
   /** Savings goal that earmarks this account, if any. */
   findSavingsGoalIdByAccount(

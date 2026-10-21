@@ -76,6 +76,10 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
     return this.read.findAccountById(id, userId);
   }
 
+  findCardLedgerContext(id: string, userId: string) {
+    return this.read.findCardLedgerContext(id, userId);
+  }
+
   findSavingsGoalIdByAccount(userId: string, accountId: string) {
     return this.read.findSavingsGoalIdByAccount(userId, accountId);
   }
