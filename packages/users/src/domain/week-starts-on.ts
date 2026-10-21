@@ -14,7 +14,7 @@ const ICU_FIRST_DAY_TO_WEEK_STARTS_ON: Record<
   7: 0,
 };
 
-/** `weekInfo` is newer than the TypeScript lib; `getWeekInfo` guards older shapes. */
+/** `getWeekInfo` is the method-shaped variant some engines expose; the lib types only the getter. */
 function readFirstDay(locale: Intl.Locale): number | undefined {
   const withWeekInfo = locale as Intl.Locale & {
     weekInfo?: { firstDay: number };
