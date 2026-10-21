@@ -112,12 +112,12 @@ export class EmailSourceService {
       }
     }
 
-    const data: Record<string, unknown> = {};
+    const patch: Record<string, unknown> = {};
     if (dto.institutionId !== undefined) {
-      data.institutionId = dto.institutionId;
+      patch.institutionId = dto.institutionId;
     }
     if (dto.label !== undefined) {
-      data.label = dto.label;
+      patch.label = dto.label;
     }
     if (
       dto.bankSenderEmail !== undefined ||
@@ -128,13 +128,13 @@ export class EmailSourceService {
         bankSenderEmails: dto.bankSenderEmails,
         bankDomain: dto.bankDomain ?? existing.bankDomain,
       });
-      data.bankSenderEmails = sender.bankSenderEmails;
-      data.bankDomain = sender.bankDomain;
+      patch.bankSenderEmails = sender.bankSenderEmails;
+      patch.bankDomain = sender.bankDomain;
     } else if (dto.bankDomain !== undefined) {
-      data.bankDomain = dto.bankDomain.trim();
+      patch.bankDomain = dto.bankDomain.trim();
     }
 
-    const updated = await this.repo.updateEmailSource(userId, id, data);
+    const updated = await this.repo.updateEmailSource(userId, id, patch);
     if (!updated) {
       throw new NotFoundException('Origen de correo no encontrado');
     }
