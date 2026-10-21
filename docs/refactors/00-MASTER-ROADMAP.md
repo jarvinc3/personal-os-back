@@ -87,7 +87,7 @@ The diagram shows dependencies, not a strict one-task-at-a-time schedule. Indepe
 
 - AI-1 Inference Gateway;
 - AI-2 Gmail/corpus;
-- FIN-1 removal of Finance Gmail ownership;
+- FIN-1 removal of Finance Gmail ownership (incluye borrar en el mismo paso los eventos de importación por email: `FINANCE_TRANSACTION_IMPORTED`, `FinanceEmailSyncCompletedEvent` y sus listeners/copy/constantes; no quedan huérfanos hasta NOTIF-2);
 - PLATFORM-EVENTS-1 generic outbox relay;
 - PLATFORM-SETTINGS-1 move module config semantics;
 - NOTIF-1 generic intent delivery pipeline.
@@ -129,6 +129,8 @@ Other programs should remain stable while this loop is proven.
 
 The existing AI roadmap currently places Finance IMPORT at AI Phase 11 and PROD deployment after it. Preserve that release condition: `0.50.0` is not PROD-ready until end-to-end Finance import is restored and all boundary integration tests pass.
 
+Mientras el gate no se cumpla, los hotfixes de PROD siguen la estrategia de `release/0.49.x` descrita en *Estrategia de release y hotfixes*.
+
 ## Required cross-program architecture tests
 
 Add static/import tests or equivalent checks for these invariants:
@@ -160,6 +162,8 @@ MASTER INTEGRATION GATE (when applicable)
 
 A refactor is not considered complete merely because files moved.
 
-## Release relationship
+## Estrategia de release y hotfixes durante el reset
 
-This master roadmap does not create independent production releases for every documentation phase. The existing `0.50.0` architecture-reset release remains the coordinated backend/web target unless the owner later changes that decision.
+Decisión del owner: excepción explícita a la regla \
+
+This master roadmap does not create independent production releases for every documentation phase. The existing `0.50.0` architecture-reset release remains the coordinated backend/web target unless the owner later changes that decision. Hasta su salida a PROD, los parches de producción van por `release/0.49.x` (ver sección anterior).

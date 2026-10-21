@@ -105,6 +105,10 @@ Route intent -> policy -> persistence -> channel dispatch. Add dedup/idempotency
 
 **Gate:** same intent cannot accidentally create duplicate user notifications; all current channel tests remain green.
 
+### Excepción: eventos de importación por email
+
+Los handlers/copy de `FINANCE_TRANSACTION_IMPORTED` y `FinanceEmailSyncCompletedEvent` no esperan a NOTIF-2: se eliminan junto con FIN-1 (Wave B), en el mismo paso que retira Gmail de Finance. Si AI-7/FIN-3 necesitan notificar importaciones, lo harán vía `NotificationIntent` producido por Finance.
+
 ### NOTIF-2 — Finance producer migration
 
 Move Finance copy/semantic mapping out of `NotificationsEventsListener` into Finance-owned notification adapter/factory. Remove Finance payload types and `FINANCE_NOTIFICATION_KEYS` imports from Notifications.

@@ -112,7 +112,9 @@ Define Finance-owned event contracts, Finance AI adapter contracts, `FinanceSign
 
 Coordinated with AI Phase 0/2: delete Finance-owned Gmail/source infrastructure and email-specific public endpoints/settings dependencies. Preserve identified financial algorithms as reusable application/domain code or tests.
 
-**Gate:** Finance builds without Gmail/OAuth/source models.
+En el mismo paso se eliminan los eventos de importación por email y todo lo que dependa de ellos: `FINANCE_TRANSACTION_IMPORTED`, `FinanceEmailSyncCompletedEvent` (Core `domain-events.ts` / `event.constants.ts`), sus handlers en `NotificationsEventsListener`, el copy asociado en `notification-copy.ts` y las constantes/claves de notificación exclusivas de la importación. No se dejan huérfanos hasta NOTIF-2.
+
+**Gate:** Finance builds without Gmail/OAuth/source models, y no queda ningún emisor, listener, copy ni constante de eventos de importación por email.
 
 ### FIN-2 — Public integration cleanup
 
