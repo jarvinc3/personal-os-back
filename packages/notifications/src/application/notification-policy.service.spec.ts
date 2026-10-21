@@ -16,6 +16,7 @@ describe('NotificationPolicyService', () => {
     usersRepository.findById = jest.fn().mockResolvedValue({
       id: 'user-1',
       timezone: 'America/Santo_Domingo',
+      locale: 'es-DO',
       preferences: {
         notifications: {
           channels: { push: true, email: false, inApp: false },
@@ -57,6 +58,7 @@ describe('NotificationPolicyService', () => {
     usersRepository.findById = jest.fn().mockResolvedValue({
       id: 'user-1',
       timezone: 'UTC',
+      locale: 'es-DO',
       preferences: prefs,
       userModules: [],
     });
@@ -78,6 +80,7 @@ describe('NotificationPolicyService', () => {
     usersRepository.findById = jest.fn().mockResolvedValue({
       id: 'user-1',
       timezone: 'America/Santo_Domingo',
+      locale: 'es-DO',
       preferences: {
         notifications: {
           channels: { push: true, email: false, inApp: true },
@@ -113,6 +116,7 @@ describe('NotificationPolicyService', () => {
     usersRepository.findById = jest.fn().mockResolvedValue({
       id: 'user-1',
       timezone: 'America/Santo_Domingo',
+      locale: 'es-DO',
       preferences: {
         notifications: {
           channels: { push: true, email: false, inApp: true },
@@ -156,6 +160,7 @@ describe('NotificationPolicyService', () => {
     usersRepository.findById = jest.fn().mockResolvedValue({
       id: 'user-1',
       timezone: 'America/Santo_Domingo',
+      locale: 'es-DO',
       preferences: {
         notifications: {
           channels: { push: true, email: false, inApp: true },
@@ -199,6 +204,7 @@ describe('NotificationPolicyService', () => {
     usersRepository.findById = jest.fn().mockResolvedValue({
       id: 'user-1',
       timezone: 'America/Santo_Domingo',
+      locale: 'es-DO',
       preferences: {
         notifications: {
           channels: { push: true, email: false, inApp: true },

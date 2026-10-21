@@ -43,6 +43,7 @@
     "db:backfill-loan-schedule": "ts-node -r tsconfig-paths/register scripts/finance/backfill-loan-schedule.ts",
     "db:backfill-goal-allocations": "ts-node -r tsconfig-paths/register scripts/finance/backfill-goal-allocations.ts",
     "db:backfill-budget-spent": "ts-node -r tsconfig-paths/register scripts/finance/backfill-budget-spent.ts",
+    "db:backfill-week-starts-on": "ts-node -r tsconfig-paths/register scripts/users/backfill-week-starts-on.ts",
     "db:encrypt-account-numbers": "ts-node -r tsconfig-paths/register -r dotenv/config scripts/finance/encrypt-account-numbers.ts",
     "db:dedupe-existing": "ts-node -r tsconfig-paths/register scripts/finance/dedupe-existing.ts"
   },

@@ -9,6 +9,7 @@ import {
   ValidatorConstraint,
   ValidatorConstraintInterface,
 } from 'class-validator';
+import { isLocaleTag } from '../../domain/locale';
 import { isIanaTimeZone } from '../../domain/timezone';
 
 const PREFERENCES_MAX_JSON_CHARS = 8_000;
@@ -21,6 +22,17 @@ class IanaTimeZoneConstraint implements ValidatorConstraintInterface {
 
   defaultMessage(): string {
     return 'timezone must be a valid IANA zone (e.g. America/Santo_Domingo)';
+  }
+}
+
+@ValidatorConstraint({ name: 'localeTag', async: false })
+class LocaleTagConstraint implements ValidatorConstraintInterface {
+  validate(value: unknown): boolean {
+    return isLocaleTag(value);
+  }
+
+  defaultMessage(): string {
+    return 'locale must be a valid BCP-47 language tag';
   }
 }
 
@@ -60,6 +72,7 @@ export class UpdateProfileDto {
   @IsOptional()
   @IsString()
   @MaxLength(20)
+  @Validate(LocaleTagConstraint)
   locale?: string;
 
   @ApiPropertyOptional({ nullable: true })
