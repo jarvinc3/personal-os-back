@@ -36,7 +36,10 @@ export class NotificationPolicyService {
       return { allowed: false, reason: 'user_not_found' };
     }
 
-    const prefs = parseUserPreferences(user.preferences, user.timezone);
+    const prefs = parseUserPreferences(user.preferences, {
+      timezone: user.timezone,
+      locale: user.locale,
+    });
 
     const moduleCheck = this.evaluateModuleToggle(
       context.data,
@@ -63,7 +66,10 @@ export class NotificationPolicyService {
     if (!user) {
       return false;
     }
-    const prefs = parseUserPreferences(user.preferences, user.timezone);
+    const prefs = parseUserPreferences(user.preferences, {
+      timezone: user.timezone,
+      locale: user.locale,
+    });
     return prefs.notifications.channels.inApp;
   }
 
