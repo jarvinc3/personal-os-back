@@ -2,6 +2,21 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [SemVer](https://semver.org/lang/es/). Reglas y ejemplo en [docs/reference/changelog-guide.md](./docs/reference/changelog-guide.md).
 
+## [0.49.0] - 2026-10-21
+
+### Agregado
+
+- Una tarjeta con varias monedas y ninguna coincidente responde 400 `CARD_CURRENCY_UNDECLARED` con el motivo, en vez de abrir un balance nuevo (#161).
+
+### Cambiado
+
+- Un movimiento en una moneda que la tarjeta no declara se convierte a la moneda que la tarjeta ya tiene, con la tasa del día; el monto original, la moneda original y la tasa quedan guardados. Agregar la moneda al producto deja de ser obligatorio (#161).
+- Una tarjeta de débito aplica la moneda de su cuenta en el ledger, no la del movimiento (#161).
+
+### Corregido
+
+- Ya no aparece un balance en la moneda de la compra cuando la tarjeta tiene una sola moneda, así que el descuadre por esa moneda desaparece (#161).
+
 ## [0.48.0] - 2026-10-21
 
 ### Agregado
