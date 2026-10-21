@@ -2,6 +2,19 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [SemVer](https://semver.org/lang/es/). Reglas y ejemplo en [docs/reference/changelog-guide.md](./docs/reference/changelog-guide.md).
 
+## [0.51.0] - 2026-10-21 - Patrimonio
+
+### Agregado
+
+- `GET /api/finance/balance-sheet` devuelve `breakdown.byCurrency` con una línea por producto (cuentas, efectivo, cobros, tarjetas y préstamos), totales nativos y en moneda base, y `breakdown.totals` con Disponible, Por cobrar, Deudas y Patrimonio (#163).
+- Cada línea trae `hasDrift`, `driftDifference` y el estado de conciliación del mes, además de límite y crédito disponible en las tarjetas (#163).
+- Los cobros `PENDING`/`PARTIAL` no vencidos o vencidos hace 90 días o menos suman al patrimonio; los vencidos hace más de 90 días se devuelven como dudosos y no suman (#163, #207).
+- El Swagger del balance sheet documenta el desglose y los campos nuevos (#163).
+
+### Cambiado
+
+- El patrimonio neto incluye los cobros vigentes. `global.assets` agrega `cash` y `receivables`; `totalAssets` y `netWorth` los reflejan. La decisión queda en el ADR-005 de la web (#207).
+
 ## [0.50.0] - 2026-10-21
 
 ### Agregado
