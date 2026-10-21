@@ -44,13 +44,13 @@ Open balance/ledger/planning bugs are fixed in parallel and are out of scope (se
 - verify PROD `_prisma_migrations` (read-only);
 - reset migration history in repo/DEV; clean Prisma baseline;
 - update `AGENTS.md`, `docs/versionado.md`; mark ADR-003/ADR-004 to be superseded;
-- bump backend/frontend to `0.50.0` (unreleased);
+- bump backend/frontend to `0.100.0` (unreleased);
 - define module boundaries;
 - remove legacy email code **and the current chat** (agent runner, tool executor/registry, prompts, chat/sessions/actions endpoints, proactive event listener/processor); keep provider adapters, failover, streaming, Zod schemas and `AiAction` claim/confirm concepts for reuse;
 - hide/remove web screens and endpoints listed in `12-REPO-IMPACT.md`;
 - ensure project builds from empty DB.
 
-PROD is not touched: it keeps the current version and database until the owner decides the `0.50.0` deploy. Migrations run only against DEV.
+PROD is not touched: it keeps the current version and database until the owner decides the `0.100.0` deploy. Migrations run only against DEV.
 
 ## Demo
 

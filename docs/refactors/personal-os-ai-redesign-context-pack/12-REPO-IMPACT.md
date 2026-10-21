@@ -4,7 +4,7 @@ Status: prepared from the repositories on 2026-10-20; decisions confirmed by the
 
 ## PROD impact
 
-None until the owner deploys `0.50.0`. Everything below applies to `develop` and DEV only.
+None until the owner deploys `0.100.0`. Everything below applies to `develop` and DEV only.
 
 ## Backend endpoints at Phase 0
 
@@ -31,7 +31,7 @@ Decided: chat is deleted at Phase 0; no chat in DEV until Phase 9.
 | Quick entry, card statements, `app/(app)/finance/statement-imports/[importId]`                                                                                                                                                                                | Unchanged.                                                                           |
 | New: `app/(app)/intelligence/**`                                                                                                                                                                                                                              | Created in Phase 2 (review UI v0), labeling by Phase 3.                              |
 
-Web and backend must ship `0.50.0` together.
+Web and backend must ship `0.100.0` together.
 
 ## Signals vs existing outbox / BullMQ
 
@@ -54,9 +54,9 @@ Current infrastructure: `DomainEventOutbox` (ADR-002) with BullMQ processors.
 
 ### `docs/versionado.md`
 
-- Document the one-off jump to `0.50.0` for backend and web as an architecture reset.
-- Intermediate commits during Phases 0–12 do not bump the version or create releases; they accumulate under an `Unreleased — 0.50.0` CHANGELOG section described coherently (not per phase).
-- Decided: `0.50.0` is deployed to PROD only after Phase 11 (Finance import restored); the owner executes the deploy.
+- Document the one-off jump to `0.100.0` for backend and web as an architecture reset.
+- Intermediate commits during Phases 0–12 do not bump the version or create releases; they accumulate under an `Unreleased — 0.100.0` CHANGELOG section described coherently (not per phase).
+- Decided: `0.100.0` is deployed to PROD only after Phase 11 (Finance import restored); the owner executes the deploy.
 
 ### `AGENTS.md`
 
