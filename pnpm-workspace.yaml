@@ -2,6 +2,7 @@ packages:
   - '.'
   - 'packages/*'
 allowBuilds:
+  '@firebase/util': false
   '@nestjs/core': true
   '@openrouter/sdk': true
   '@parcel/watcher': false
@@ -10,6 +11,7 @@ allowBuilds:
   '@sentry/cli': true
   msgpackr-extract: true
   prisma: true
+  protobufjs: false
   unrs-resolver: true
 minimumReleaseAgeExclude:
   - '@sentry/bundler-plugins@11.8.0'

@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import webpush from 'web-push';
 import type { Env } from '@personal-os/config';
 import { NotificationsRepository } from './notifications.repository';
+import { FcmPushService } from './fcm-push.service';
 import type {
   PushPayload,
   PushSendResult,
@@ -31,16 +32,20 @@ type ExpoPushResponse = {
 const EXPO_PUSH_CHUNK_SIZE = 100;
 const EXPO_PUSH_TIMEOUT_MS = 10_000;
 
-function isExpoToken(entry: PushTokenEntry): boolean {
-  return (
-    entry.platform === 'ios' ||
-    entry.platform === 'android' ||
-    entry.token.startsWith('ExponentPushToken[')
-  );
+function isLegacyExpoToken(entry: PushTokenEntry): boolean {
+  return entry.token.startsWith('ExponentPushToken[');
+}
+
+function isAndroidToken(entry: PushTokenEntry): boolean {
+  return entry.platform === 'android' && !isLegacyExpoToken(entry);
 }
 
 function isWebToken(entry: PushTokenEntry): boolean {
   return entry.platform === 'web';
+}
+
+function noSend(): PushSendResult {
+  return { sent: 0, failed: 0, deactivatedTokens: [] };
 }
 
 @Injectable()
@@ -52,6 +57,7 @@ export class PushSenderService {
   constructor(
     private readonly config: ConfigService<Env, true>,
     private readonly notificationsRepo: NotificationsRepository,
+    private readonly fcm: FcmPushService,
   ) {
     this.expoAccessToken = this.config.get('EXPO_ACCESS_TOKEN', {
       infer: true,
@@ -75,22 +81,29 @@ export class PushSenderService {
     entries: PushTokenEntry[],
     payload: PushPayload,
   ): Promise<PushSendResult> {
-    const expoEntries = entries.filter(isExpoToken);
+    const legacyExpoTokens = entries
+      .filter(isLegacyExpoToken)
+      .map((entry) => entry.token);
+    const androidTokens = entries
+      .filter(isAndroidToken)
+      .map((entry) => entry.token);
     const webEntries = entries.filter(isWebToken);
 
-    const [expoResult, webResult] = await Promise.all([
-      this.sendExpoTokens(
-        expoEntries.map((entry) => entry.token),
-        payload,
-      ),
+    // iOS has no native channel yet: those tokens are ignored, not failed.
+    const [expoResult, fcmResult, webResult] = await Promise.all([
+      this.sendExpoTokens(legacyExpoTokens, payload),
+      androidTokens.length > 0
+        ? this.fcm.send(androidTokens, payload)
+        : noSend(),
       this.sendWebTokens(webEntries, payload),
     ]);
 
     return {
-      sent: expoResult.sent + webResult.sent,
-      failed: expoResult.failed + webResult.failed,
+      sent: expoResult.sent + fcmResult.sent + webResult.sent,
+      failed: expoResult.failed + fcmResult.failed + webResult.failed,
       deactivatedTokens: [
         ...expoResult.deactivatedTokens,
+        ...fcmResult.deactivatedTokens,
         ...webResult.deactivatedTokens,
       ],
     };
