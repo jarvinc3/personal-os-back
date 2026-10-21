@@ -25,11 +25,12 @@ describe('weekStartsOnFromLocale', () => {
     expect(weekStartsOnFromLocale('ar-EG')).toBe(6);
   });
 
-  it('falls back to monday when the locale is missing or malformed', () => {
-    expect(weekStartsOnFromLocale(undefined)).toBe(1);
-    expect(weekStartsOnFromLocale('')).toBe(1);
-    expect(weekStartsOnFromLocale('es_DO')).toBe(1);
-    expect(weekStartsOnFromLocale('not a locale')).toBe(1);
+  it('rejects a malformed locale instead of guessing the day', () => {
+    expect(() => weekStartsOnFromLocale('es_DO')).toThrow(/Invalid locale/);
+    expect(() => weekStartsOnFromLocale('not a locale')).toThrow(
+      /Invalid locale/,
+    );
+    expect(() => weekStartsOnFromLocale('')).toThrow(/Invalid locale/);
   });
 });
 

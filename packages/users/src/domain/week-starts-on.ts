@@ -4,10 +4,7 @@ import {
   type WeekStartsOn,
 } from './defaults/global-preferences-defaults';
 
-/**
- * ICU `weekInfo.firstDay` numbers Monday as 1 and Sunday as 7. Mid-week starts
- * (2-5) cannot be stored, so they fall back to Monday.
- */
+/** ICU `weekInfo.firstDay` numbers Monday as 1 and Sunday as 7. */
 const ICU_FIRST_DAY_TO_WEEK_STARTS_ON: Record<
   number,
   WeekStartsOn | undefined
@@ -17,21 +14,16 @@ const ICU_FIRST_DAY_TO_WEEK_STARTS_ON: Record<
   7: 0,
 };
 
-/**
- * Last resort for engines without `Intl.Locale.weekInfo`. Covers the locales
- * the product ships.
- */
-const WEEK_STARTS_ON_BY_LOCALE: Record<string, WeekStartsOn | undefined> = {
-  'es-do': 0,
-  'en-us': 0,
-  'es-es': 1,
-};
-
-/**
- * `Intl.Locale` throws on malformed tags and stored locales predate any
- * validation, so only the simple language[-region] shape reaches it.
- */
-const SIMPLE_LOCALE_TAG = /^[a-z]{2,3}(-[a-z]{2}|-[0-9]{3})?$/i;
+/** `weekInfo` is newer than the TypeScript lib; `getWeekInfo` guards older shapes. */
+function readFirstDay(locale: Intl.Locale): number | undefined {
+  const withWeekInfo = locale as Intl.Locale & {
+    weekInfo?: { firstDay: number };
+    getWeekInfo?: () => { firstDay: number };
+  };
+  return (
+    withWeekInfo.weekInfo?.firstDay ?? withWeekInfo.getWeekInfo?.().firstDay
+  );
+}
 
 export function isWeekStartsOn(value: unknown): value is WeekStartsOn {
   return WEEK_STARTS_ON_VALUES.includes(value as WeekStartsOn);
@@ -59,32 +51,34 @@ export function readWeekStartsOnInput(preferences: unknown): unknown {
   return (regional as { weekStartsOn?: unknown }).weekStartsOn;
 }
 
-export function weekStartsOnFromLocale(locale?: string | null): WeekStartsOn {
-  const normalizedLocale = locale?.trim().toLowerCase();
-  if (!normalizedLocale) {
+/**
+ * The locale decides the first day when the profile stores `null`. Monday is
+ * the answer only when the engine lacks `weekInfo`; a locale whose first day
+ * cannot be stored is an unsupported value, not a missing one.
+ */
+export function weekStartsOnFromLocale(locale: string): WeekStartsOn {
+  const parsedLocale = parseLocale(locale);
+  const firstDay = readFirstDay(parsedLocale);
+
+  if (firstDay === undefined) {
     return DEFAULT_WEEK_STARTS_ON;
   }
 
-  if (!SIMPLE_LOCALE_TAG.test(normalizedLocale)) {
-    return WEEK_STARTS_ON_BY_LOCALE[normalizedLocale] ?? DEFAULT_WEEK_STARTS_ON;
+  const weekStartsOn = ICU_FIRST_DAY_TO_WEEK_STARTS_ON[firstDay];
+  if (weekStartsOn === undefined) {
+    throw new Error(
+      `Locale ${locale} starts the week on unsupported day ${firstDay}`,
+    );
   }
-
-  const icuFirstDay = readIcuFirstDay(normalizedLocale);
-  if (icuFirstDay === undefined) {
-    return WEEK_STARTS_ON_BY_LOCALE[normalizedLocale] ?? DEFAULT_WEEK_STARTS_ON;
-  }
-
-  return ICU_FIRST_DAY_TO_WEEK_STARTS_ON[icuFirstDay] ?? DEFAULT_WEEK_STARTS_ON;
+  return weekStartsOn;
 }
 
-function readIcuFirstDay(locale: string): number | undefined {
-  const localeWithWeekInfo = new Intl.Locale(locale) as Intl.Locale & {
-    weekInfo?: { firstDay: number };
-    getWeekInfo?: () => { firstDay: number };
-  };
-
-  return (
-    localeWithWeekInfo.weekInfo?.firstDay ??
-    localeWithWeekInfo.getWeekInfo?.().firstDay
-  );
+function parseLocale(locale: string): Intl.Locale {
+  try {
+    return new Intl.Locale(locale);
+  } catch (error) {
+    throw new Error(`Invalid locale on the user profile: ${locale}`, {
+      cause: error,
+    });
+  }
 }

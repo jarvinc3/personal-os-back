@@ -25,12 +25,13 @@ describe('parseUserPreferences regional', () => {
     expect(prefs.regional.weekStartsOn).toBe(0);
   });
 
-  it('ignores an invalid stored value and uses the locale', () => {
-    const prefs = parseUserPreferences(
-      { regional: { weekStartsOn: 3 } },
-      { locale: 'es-ES' },
-    );
-    expect(prefs.regional.weekStartsOn).toBe(1);
+  it('rejects an invalid stored value instead of guessing', () => {
+    expect(() =>
+      parseUserPreferences(
+        { regional: { weekStartsOn: 3 } },
+        { locale: 'es-ES' },
+      ),
+    ).toThrow(/Invalid regional.weekStartsOn/);
   });
 
   it('keeps the rest of the preferences untouched', () => {
@@ -39,7 +40,7 @@ describe('parseUserPreferences regional', () => {
         ai: { tone: 'concise' },
         notifications: { channels: { email: true } },
       },
-      { timezone: 'Europe/Madrid' },
+      { timezone: 'Europe/Madrid', locale: 'es-ES' },
     );
 
     expect(prefs.ai.tone).toBe('concise');

@@ -13,7 +13,7 @@ Auth: Bearer JWT. Envelope `{ data, meta }`.
 
 `preferences` no guarda config de módulo; eso va en `user_modules.config`.
 
-`preferences.regional` agrupa las preferencias de región. `weekStartsOn` acepta `0` (domingo), `1` (lunes), `6` (sábado) o `null`; `null` resuelve el primer día desde `users.locale` (`Intl.Locale.weekInfo`, lunes si el locale no lo expone). `PATCH /users/me` responde 400 para cualquier otro valor y `GET /users/me` devuelve lo guardado, sin resolver. Los valores `weekStartsOn` que quedaron en `user_modules.config` de Finanzas y Agenda se copian al perfil con `pnpm db:backfill-week-starts-on` (`--dry-run` para revisar).
+`preferences.regional` agrupa las preferencias de región. `weekStartsOn` acepta `0` (domingo), `1` (lunes), `6` (sábado) o `null`; `null` resuelve el primer día desde `users.locale` (`Intl.Locale.weekInfo`; lunes solo si el motor no expone `weekInfo`). `PATCH /users/me` responde 400 para cualquier otro valor y para un `locale` que no sea una etiqueta BCP-47 válida; `GET /users/me` devuelve lo guardado, sin resolver. Un locale inválido o un primer día fuera de `0`/`1`/`6` en datos viejos hace fallar la lectura en lugar de adivinar. Los valores `weekStartsOn` que quedaron en `user_modules.config` de Finanzas y Agenda se copian al perfil con `pnpm db:backfill-week-starts-on` (`--dry-run` para revisar).
 
 La fila `users` la crea un trigger de Supabase al signup (checklist web/back). Sin fila, `GET /users/me` falla.
 

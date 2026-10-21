@@ -2,23 +2,36 @@ import {
   GLOBAL_USER_PREFERENCES_DEFAULTS,
   type AiTone,
   type ParsedUserPreferences,
+  type WeekStartsOn,
 } from './defaults/global-preferences-defaults';
 import { mergeWithDefaults } from './settings-merge';
 import { isWeekStartsOn, weekStartsOnFromLocale } from './week-starts-on';
 
-/** Fallbacks used only when the stored profile lacks the value. */
 export type ParseUserPreferencesOptions = {
+  /** IANA zone used when quiet hours carry none. */
   timezone?: string | null;
-  locale?: string | null;
+  locale: string;
 };
 
 function isAiTone(value: unknown): value is AiTone {
   return value === 'concise' || value === 'balanced' || value === 'detailed';
 }
 
+function readStoredWeekStartsOn(value: unknown): WeekStartsOn | null {
+  if (value === undefined || value === null) {
+    return null;
+  }
+  if (!isWeekStartsOn(value)) {
+    throw new Error(
+      `Invalid regional.weekStartsOn stored on the user profile: ${JSON.stringify(value)}`,
+    );
+  }
+  return value;
+}
+
 export function parseUserPreferences(
   raw: unknown,
-  options: ParseUserPreferencesOptions = {},
+  options: ParseUserPreferencesOptions,
 ): ParsedUserPreferences {
   const merged = mergeWithDefaults(
     typeof raw === 'object' && raw !== null ? raw : {},
@@ -30,7 +43,7 @@ export function parseUserPreferences(
   };
 
   const regionalRaw = merged.regional ?? {};
-  const storedWeekStartsOn = regionalRaw.weekStartsOn;
+  const storedWeekStartsOn = readStoredWeekStartsOn(regionalRaw.weekStartsOn);
 
   const aiRaw = merged.ai ?? {};
   const notifRaw = merged.notifications ?? {};
@@ -49,9 +62,8 @@ export function parseUserPreferences(
 
   return {
     regional: {
-      weekStartsOn: isWeekStartsOn(storedWeekStartsOn)
-        ? storedWeekStartsOn
-        : weekStartsOnFromLocale(options.locale),
+      weekStartsOn:
+        storedWeekStartsOn ?? weekStartsOnFromLocale(options.locale),
     },
     ai: {
       tone,
