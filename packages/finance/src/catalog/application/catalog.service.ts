@@ -39,6 +39,10 @@ import {
   fingerprintAccountNumber,
 } from '../../shared/infrastructure/account-number-encryption.util';
 import { CASH_ACCOUNT_TYPE, isCashInstitution } from '../../shared/domain/cash';
+import {
+  ACCOUNT_HAS_GOAL_MONEY,
+  ACCOUNT_HAS_GOAL_MONEY_MESSAGE,
+} from '../../shared/domain/savings-goal';
 import { EnsureCashInstitutionUseCase } from './ensure-cash-institution.use-case';
 import { CatalogCategoriesService } from './catalog-categories.service';
 import { institutionOrderKey } from '../domain/institution-order';
@@ -217,6 +221,12 @@ export class CatalogService {
     const existing = await this.repo.findAccountById(id, userId);
     if (!existing) {
       throw new NotFoundException('Cuenta no encontrada');
+    }
+    if (dto.isActive === false && (await this.repo.hasSavingsGoalMoney(id))) {
+      throw new ConflictException({
+        code: ACCOUNT_HAS_GOAL_MONEY,
+        message: ACCOUNT_HAS_GOAL_MONEY_MESSAGE,
+      });
     }
 
     const nextType = dto.type ?? existing.type;

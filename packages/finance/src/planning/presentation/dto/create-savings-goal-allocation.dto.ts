@@ -42,6 +42,14 @@ export class CreateSavingsGoalAllocationDto {
   @IsUUID()
   fromAccountId?: string;
 
+  @ApiPropertyOptional({
+    description:
+      'Cuenta que recibe el dinero en un retiro. Obligatoria cuando kind es WITHDRAWAL.',
+  })
+  @IsOptional()
+  @IsUUID()
+  toAccountId?: string;
+
   @ApiPropertyOptional()
   @IsOptional()
   @IsUUID()

@@ -11,6 +11,9 @@ import {
 } from '@personal-os/core';
 import { FinanceOwnershipService } from '../../shared/application/finance-ownership.service';
 import { assertRestored } from '../../shared/application/assert-restored';
+import { roundMoney } from '../../shared/domain/money';
+import { AdjustBalanceUseCase } from '../../ledger/application/adjust-balance.use-case';
+import { DeleteTransactionUseCase } from '../../ledger/application/delete-transaction.use-case';
 import { LedgerQueryService } from '../../ledger/application/ledger-query.service';
 import { PlanningRepository } from '../infrastructure/planning.repository';
 import {
@@ -45,6 +48,8 @@ export class PlanningService {
     private readonly ownership: FinanceOwnershipService,
     private readonly syncInstallments: SyncLoanInstallmentsUseCase,
     private readonly ledger: LedgerQueryService,
+    private readonly adjustBalance: AdjustBalanceUseCase,
+    private readonly deleteTransaction: DeleteTransactionUseCase,
   ) {}
 
   async listBudgets(userId: string) {
@@ -337,13 +342,15 @@ export class PlanningService {
     dto: CreateSavingsGoalDto,
     now: Date,
   ) {
+    const currency = dto.currency ?? 'DOP';
+    await this.assertGoalAccount(userId, dto.accountId, currency);
     const created = await this.repo.createSavingsGoal(
       userId,
       {
-        name: dto.name,
+        name: dto.name.trim(),
         description: dto.description,
         targetAmount: dto.targetAmount,
-        currency: dto.currency ?? 'DOP',
+        currency,
         targetDate: dto.targetDate ? new Date(dto.targetDate) : null,
         accountId: dto.accountId,
         mode: dto.mode ?? 'EARMARK',
@@ -361,12 +368,20 @@ export class PlanningService {
     dto: UpdateSavingsGoalDto,
     now: Date,
   ) {
-    await this.assertSavingsGoalOwned(userId, id);
+    const existing = await this.repo.findSavingsGoal(userId, id);
+    if (!existing) {
+      throw new NotFoundException('Meta de ahorro no encontrada');
+    }
+    const nextCurrency = dto.currency ?? existing.currency;
+    const nextAccountId = dto.accountId ?? existing.accountId;
+    if (nextAccountId) {
+      await this.assertGoalAccount(userId, nextAccountId, nextCurrency);
+    }
     await this.repo.updateSavingsGoal(
       userId,
       id,
       {
-        ...(dto.name ? { name: dto.name } : {}),
+        ...(dto.name ? { name: dto.name.trim() } : {}),
         ...(dto.description !== undefined
           ? { description: dto.description }
           : {}),
@@ -417,6 +432,36 @@ export class PlanningService {
       row.contributedAt.toISOString(),
     );
     return { ...page, items: page.items.map(mapSavingsGoalContribution) };
+  }
+
+  private async assertDisbursementAccount(
+    userId: string,
+    accountId: string,
+    currency: string,
+  ) {
+    const account = await this.ownership.assertAccountOwned(userId, accountId);
+    if (!account.isActive) {
+      throw new BadRequestException('La cuenta del desembolso está archivada');
+    }
+    if (account.currency !== currency) {
+      throw new BadRequestException(
+        'La cuenta del desembolso debe estar en la moneda del préstamo',
+      );
+    }
+    return account;
+  }
+
+  private async assertGoalAccount(
+    userId: string,
+    accountId: string,
+    currency: string,
+  ): Promise<void> {
+    const account = await this.ownership.assertAccountOwned(userId, accountId);
+    if (account.currency !== currency) {
+      throw new BadRequestException(
+        'La cuenta de la meta debe estar en la moneda de la meta',
+      );
+    }
   }
 
   private async assertSavingsGoalOwned(
@@ -489,33 +534,72 @@ export class PlanningService {
         institutionId: dto.institutionId,
       });
     }
-    const created = await this.repo.createLoan(userId, {
-      lenderName: dto.lenderName,
-      institutionId: dto.institutionId,
-      accountId: dto.accountId,
-      originalAmount: dto.originalAmount,
-      currentBalance: dto.currentBalance,
-      currency: dto.currency ?? 'DOP',
-      installmentAmount: dto.installmentAmount,
-      installmentFreq: dto.installmentFreq,
-      totalInstallments: dto.totalInstallments,
-      paidInstallments: dto.paidInstallments ?? 0,
-      nextDueDate: new Date(dto.nextDueDate),
-      ...(dto.interestRate !== undefined
-        ? { interestRate: dto.interestRate }
-        : {}),
-      ...(dto.rateType ? { rateType: dto.rateType } : {}),
-      ...(dto.insuranceAmount !== undefined
-        ? { insuranceAmount: dto.insuranceAmount }
-        : {}),
-      ...(dto.prepaymentPenaltyPct !== undefined
-        ? { prepaymentPenaltyPct: dto.prepaymentPenaltyPct }
-        : {}),
-      ...(dto.disbursementDate
-        ? { disbursementDate: new Date(dto.disbursementDate) }
-        : {}),
-      ...(dto.notes !== undefined ? { notes: dto.notes } : {}),
-    });
+    const currency = dto.currency ?? 'DOP';
+    const loanName = dto.name?.trim() || null;
+    const disbursementAccount = dto.disbursementAccountId
+      ? await this.assertDisbursementAccount(
+          userId,
+          dto.disbursementAccountId,
+          currency,
+        )
+      : null;
+
+    let disbursementTransactionId: string | null = null;
+    if (disbursementAccount) {
+      const adjusted = await this.adjustBalance.execute(userId, {
+        accountId: disbursementAccount.id,
+        balance: roundMoney(
+          Number(disbursementAccount.balance) + dto.originalAmount,
+        ),
+        description: `Desembolso de préstamo · ${loanName ?? dto.lenderName}`,
+        transactionDate: dto.disbursementDate
+          ? new Date(dto.disbursementDate)
+          : now,
+      });
+      if (!adjusted.transaction) {
+        throw new BadRequestException('No se pudo registrar el desembolso');
+      }
+      disbursementTransactionId = adjusted.transaction.id;
+    }
+
+    let created: Awaited<ReturnType<PlanningRepository['createLoan']>>;
+    try {
+      created = await this.repo.createLoan(userId, {
+        name: loanName,
+        lenderName: dto.lenderName,
+        institutionId: dto.institutionId,
+        accountId: dto.accountId,
+        disbursementAccountId: disbursementAccount?.id,
+        disbursementTransactionId: disbursementTransactionId ?? undefined,
+        originalAmount: dto.originalAmount,
+        currentBalance: dto.currentBalance,
+        currency,
+        installmentAmount: dto.installmentAmount,
+        installmentFreq: dto.installmentFreq,
+        totalInstallments: dto.totalInstallments,
+        paidInstallments: dto.paidInstallments ?? 0,
+        nextDueDate: new Date(dto.nextDueDate),
+        ...(dto.interestRate !== undefined
+          ? { interestRate: dto.interestRate }
+          : {}),
+        ...(dto.rateType ? { rateType: dto.rateType } : {}),
+        ...(dto.insuranceAmount !== undefined
+          ? { insuranceAmount: dto.insuranceAmount }
+          : {}),
+        ...(dto.prepaymentPenaltyPct !== undefined
+          ? { prepaymentPenaltyPct: dto.prepaymentPenaltyPct }
+          : {}),
+        ...(dto.disbursementDate
+          ? { disbursementDate: new Date(dto.disbursementDate) }
+          : {}),
+        ...(dto.notes !== undefined ? { notes: dto.notes } : {}),
+      });
+    } catch (error) {
+      if (disbursementTransactionId) {
+        await this.deleteTransaction.execute(userId, disbursementTransactionId);
+      }
+      throw error;
+    }
     await this.syncInstallments.execute(created, now);
     return mapLoan(created);
   }
@@ -573,6 +657,7 @@ export class PlanningService {
     }
 
     const updated = await this.repo.updateLoan(userId, id, {
+      ...(dto.name !== undefined ? { name: dto.name?.trim() || null } : {}),
       ...(dto.lenderName ? { lenderName: dto.lenderName } : {}),
       ...(dto.institutionId !== undefined
         ? { institutionId: dto.institutionId }

@@ -1,4 +1,7 @@
+import { ApiPropertyOptional } from '@nestjs/swagger';
 import {
+  IsOptional,
+  IsUUID,
   Validate,
   ValidationArguments,
   ValidatorConstraint,
@@ -39,6 +42,14 @@ class LoanPaidWithinTotalConstraint implements ValidatorConstraintInterface {
 }
 
 export class CreateLoanDto extends LoanFieldsDto {
+  @ApiPropertyOptional({
+    description:
+      'Cuenta que recibe el capital desembolsado. Se acredita al crear el préstamo.',
+  })
+  @IsOptional()
+  @IsUUID()
+  disbursementAccountId?: string;
+
   @Validate(LoanBalanceWithinOriginalConstraint)
   @Validate(LoanPaidWithinTotalConstraint)
   private readonly _loanConsistency?: never;

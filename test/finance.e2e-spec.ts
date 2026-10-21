@@ -922,6 +922,45 @@ describe('Finance (e2e)', () => {
       });
   });
 
+  it('POST /api/finance/loans persists the alias', async () => {
+    prismaMock.finLoan.create.mockResolvedValue({
+      id: 'loan-named',
+      userId: 'user-123',
+      name: 'Carro',
+      lenderName: 'BHD',
+      originalAmount: 1000,
+      currentBalance: 1000,
+      currency: 'DOP',
+      installmentAmount: 100,
+      installmentFreq: 'MONTHLY',
+      totalInstallments: 12,
+      paidInstallments: 0,
+      nextDueDate: new Date('2026-09-01'),
+      interestRate: null,
+      notes: null,
+      isActive: true,
+      account: null,
+    });
+
+    await request(app.getHttpServer())
+      .post('/api/finance/loans')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        name: 'Carro',
+        lenderName: 'BHD',
+        originalAmount: 1000,
+        currentBalance: 1000,
+        installmentAmount: 100,
+        installmentFreq: 'MONTHLY',
+        totalInstallments: 12,
+        nextDueDate: '2026-09-01',
+      })
+      .expect(201)
+      .expect((res) => {
+        expect(res.body.data.name).toBe('Carro');
+      });
+  });
+
   it('POST /api/finance/loans defaults currency to DOP and rejects invalid rate or code', async () => {
     prismaMock.finLoan.create.mockResolvedValue({
       id: 'loan-dop',
@@ -1648,6 +1687,57 @@ describe('Finance (e2e)', () => {
 
     expect(lastPage.body.data.items[0].id).toBe('con-2');
     expect(lastPage.body.data.hasMore).toBe(false);
+  });
+
+  it('POST /api/finance/savings-goals/:id/allocations requires a destination on withdrawal', async () => {
+    prismaMock.finSavingsGoal.findFirst.mockResolvedValue({
+      id: 'goal-1',
+      userId: 'user-123',
+      name: 'Viaje',
+      accountId: 'acc-1',
+      currency: 'DOP',
+      currentAmount: 100,
+      mode: 'EARMARK',
+    });
+
+    await request(app.getHttpServer())
+      .post('/api/finance/savings-goals/goal-1/allocations')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ amount: 10, kind: 'WITHDRAWAL' })
+      .expect(400)
+      .expect((res) => {
+        expect(res.body.code).toBe('GOAL_WITHDRAWAL_ACCOUNT_REQUIRED');
+      });
+  });
+
+  it('POST /api/finance/savings-goals/:id/allocations rejects a withdrawal over the available amount', async () => {
+    prismaMock.finSavingsGoal.findFirst.mockResolvedValue({
+      id: 'goal-1',
+      userId: 'user-123',
+      name: 'Viaje',
+      accountId: 'acc-1',
+      currency: 'DOP',
+      currentAmount: 50,
+      mode: 'EARMARK',
+    });
+    prismaMock.finAccount.findFirst.mockResolvedValue({
+      id: '22222222-2222-4222-8222-222222222222',
+      currency: 'DOP',
+      isActive: true,
+    });
+
+    await request(app.getHttpServer())
+      .post('/api/finance/savings-goals/goal-1/allocations')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        amount: 100,
+        kind: 'WITHDRAWAL',
+        toAccountId: '22222222-2222-4222-8222-222222222222',
+      })
+      .expect(409)
+      .expect((res) => {
+        expect(res.body.code).toBe('GOAL_WITHDRAWAL_EXCEEDS_AVAILABLE');
+      });
   });
 
   it('GET /api/finance/email-sync/messages paginates newest first', async () => {

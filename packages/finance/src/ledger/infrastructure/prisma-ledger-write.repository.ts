@@ -178,6 +178,8 @@ export class PrismaLedgerWriteRepository {
       accountId?: string | null;
       cardId?: string | null;
       amounts: ResolvedAmounts;
+      description?: string;
+      transactionDate?: Date;
     },
   ): Promise<CreateTransactionResult | null> {
     return this.prisma.$transaction(async (tx) => {
@@ -203,10 +205,10 @@ export class PrismaLedgerWriteRepository {
           currency: input.amounts.currency,
           ledgerCurrency: input.amounts.ledgerCurrency,
           exchangeRate: input.amounts.exchangeRate,
-          description: 'Reajuste de saldo',
+          description: input.description ?? 'Reajuste de saldo',
           source: 'MANUAL',
           status: 'CONFIRMED',
-          transactionDate: new Date(),
+          transactionDate: input.transactionDate ?? new Date(),
         },
         include: {
           account: { select: { id: true, name: true } },

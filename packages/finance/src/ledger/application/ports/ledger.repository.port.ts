@@ -236,6 +236,8 @@ export interface LedgerRepositoryPort {
       accountId?: string | null;
       cardId?: string | null;
       amounts: ResolvedAmounts;
+      description?: string;
+      transactionDate?: Date;
     },
   ): Promise<CreateTransactionResult | null>;
 
