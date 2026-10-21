@@ -214,11 +214,28 @@ export class MerchantsService {
   }
 
   /** Resolves (creating when needed) the canonical merchant for raw text. */
-  async resolve(
-    userId: string,
-    rawName: string | null | undefined,
-    options?: { displayName?: string | null },
-  ): Promise<ResolvedMerchant | null> {
+  resolve(userId: string, rawName: string | null | undefined) {
+    return this.resolveMerchant({ userId, rawName });
+  }
+
+  /** Resolves text the user typed, keeping its capitalisation as the name. */
+  resolveTyped(userId: string, typedName: string | null | undefined) {
+    return this.resolveMerchant({
+      userId,
+      rawName: typedName,
+      displayName: typedName,
+    });
+  }
+
+  private async resolveMerchant({
+    userId,
+    rawName,
+    displayName,
+  }: {
+    userId: string;
+    rawName: string | null | undefined;
+    displayName?: string | null;
+  }): Promise<ResolvedMerchant | null> {
     const normalizedKey = normalizeMerchant(rawName);
     if (!normalizedKey) {
       return null;
@@ -229,7 +246,7 @@ export class MerchantsService {
       return this.toResolved(existing);
     }
     const name = visibleMerchantName({
-      displayName: options?.displayName,
+      displayName,
       rawName,
       normalizedKey,
     });

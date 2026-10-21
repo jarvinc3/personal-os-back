@@ -71,9 +71,7 @@ describe('MerchantsService.resolve', () => {
     };
     const { service } = build(repo);
 
-    await service.resolve('user-1', 'QA Almuerzo', {
-      displayName: 'QA Almuerzo',
-    });
+    await service.resolveTyped('user-1', 'QA Almuerzo');
 
     expect(repo.createMerchant).toHaveBeenCalledWith('user-1', {
       name: 'QA Almuerzo',

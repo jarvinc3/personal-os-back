@@ -63,7 +63,7 @@ describe('UpdateTransactionUseCase category type', () => {
   };
 
   const merchants = {
-    resolve: jest.fn().mockResolvedValue({ id: 'merchant-1' }),
+    resolveTyped: jest.fn().mockResolvedValue({ id: 'merchant-1' }),
   };
 
   const useCase = new UpdateTransactionUseCase(
