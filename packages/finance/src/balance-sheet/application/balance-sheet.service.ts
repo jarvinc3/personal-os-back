@@ -199,10 +199,6 @@ function reconciliationState(
     : BALANCE_SHEET_RECONCILIATION.PENDING;
 }
 
-function addIssue(bucket: Bucket, issue: BalanceSheetIssue): void {
-  bucket.issues.push(issue);
-}
-
 @Injectable()
 export class BalanceSheetService {
   constructor(
@@ -304,12 +300,12 @@ export class BalanceSheetService {
       });
 
       if (converted === null) {
-        addIssue(global, { code: 'MISSING_RATE', currency });
+        global.issues.push({ code: 'MISSING_RATE', currency });
         const bucket = account.institutionId
           ? byInstitution.get(account.institutionId)
           : undefined;
         if (bucket) {
-          addIssue(bucket, { code: 'MISSING_RATE', currency });
+          bucket.issues.push({ code: 'MISSING_RATE', currency });
         }
         continue;
       }
@@ -356,10 +352,10 @@ export class BalanceSheetService {
           cardId: row.card.id,
           currency,
         };
-        addIssue(global, issue);
+        global.issues.push(issue);
         const bucket = byInstitution.get(row.card.institutionId);
         if (bucket) {
-          addIssue(bucket, issue);
+          bucket.issues.push(issue);
         }
         lines.push({
           ...baseLine,
@@ -433,7 +429,7 @@ export class BalanceSheetService {
         asOf,
       );
       if (converted === null && !doubtful) {
-        addIssue(global, { code: 'MISSING_RATE', currency });
+        global.issues.push({ code: 'MISSING_RATE', currency });
       }
       if (converted !== null && !doubtful) {
         global.receivables = global.receivables.plus(converted);
