@@ -82,7 +82,11 @@ export class UpdateTransactionUseCase {
     if (command.merchant !== undefined) {
       data.merchant = command.merchant;
       data.merchantId = command.merchant
-        ? ((await this.merchants.resolve(userId, command.merchant))?.id ?? null)
+        ? ((
+            await this.merchants.resolve(userId, command.merchant, {
+              displayName: command.merchant,
+            })
+          )?.id ?? null)
         : null;
     }
     if (command.description !== undefined) {

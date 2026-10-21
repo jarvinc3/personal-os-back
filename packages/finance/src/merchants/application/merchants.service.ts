@@ -73,6 +73,21 @@ function mapMerchant(row: MerchantRow, spend: MerchantSpend | undefined) {
   };
 }
 
+const MAX_MERCHANT_NAME_LENGTH = 120;
+
+/** Typed text is kept as written; bank descriptors get a clean display name. */
+function visibleMerchantName(input: {
+  displayName?: string | null;
+  rawName: string | null | undefined;
+  normalizedKey: string;
+}): string {
+  const typed = input.displayName?.replace(/\s+/g, ' ').trim();
+  if (typed) {
+    return typed.slice(0, MAX_MERCHANT_NAME_LENGTH);
+  }
+  return merchantDisplayName(input.rawName) ?? input.normalizedKey;
+}
+
 @Injectable()
 export class MerchantsService {
   constructor(
@@ -202,6 +217,7 @@ export class MerchantsService {
   async resolve(
     userId: string,
     rawName: string | null | undefined,
+    options?: { displayName?: string | null },
   ): Promise<ResolvedMerchant | null> {
     const normalizedKey = normalizeMerchant(rawName);
     if (!normalizedKey) {
@@ -212,7 +228,11 @@ export class MerchantsService {
       await this.appendAlias(userId, existing.id, existing.aliases, rawName);
       return this.toResolved(existing);
     }
-    const name = merchantDisplayName(rawName) ?? normalizedKey;
+    const name = visibleMerchantName({
+      displayName: options?.displayName,
+      rawName,
+      normalizedKey,
+    });
     try {
       const created = await this.repo.createMerchant(userId, {
         name,

@@ -60,6 +60,28 @@ describe('MerchantsService.resolve', () => {
     });
   });
 
+  it('keeps the typed capitalisation as the visible name', async () => {
+    const repo = {
+      findMerchantByKey: jest.fn().mockResolvedValue(null),
+      createMerchant: jest
+        .fn()
+        .mockResolvedValue(
+          merchantRow({ name: 'QA Almuerzo', normalizedKey: 'QA ALMUERZO' }),
+        ),
+    };
+    const { service } = build(repo);
+
+    await service.resolve('user-1', 'QA Almuerzo', {
+      displayName: 'QA Almuerzo',
+    });
+
+    expect(repo.createMerchant).toHaveBeenCalledWith('user-1', {
+      name: 'QA Almuerzo',
+      normalizedKey: 'QA ALMUERZO',
+      rawAlias: 'QA Almuerzo',
+    });
+  });
+
   it('reuses a known merchant and keeps the new text as alias', async () => {
     const repo = {
       findMerchantByKey: jest.fn().mockResolvedValue(merchantRow()),
