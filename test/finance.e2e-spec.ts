@@ -1169,6 +1169,100 @@ describe('Finance (e2e)', () => {
       });
   });
 
+  it('GET /api/finance/balance-sheet returns the atomic breakdown with doubtful receivables', async () => {
+    const accountId = '11111111-1111-4111-8111-111111111111';
+    const ninetyOneDaysAgo = new Date();
+    ninetyOneDaysAgo.setUTCDate(ninetyOneDaysAgo.getUTCDate() - 91);
+
+    prismaMock.finInstitution.findMany.mockResolvedValue([]);
+    prismaMock.finAccount.findMany.mockResolvedValue([
+      {
+        id: accountId,
+        name: 'Ahorros',
+        type: 'SAVINGS',
+        institutionId: null,
+        currency: 'DOP',
+        balance: new Prisma.Decimal(1000),
+      },
+    ]);
+    prismaMock.finCardBalance.findMany.mockResolvedValue([]);
+    prismaMock.finLoan.findMany.mockResolvedValue([]);
+    prismaMock.finReceivable.findMany.mockResolvedValue([
+      {
+        id: 'rec-dop',
+        debtorName: 'Ana',
+        description: 'Préstamo',
+        amount: new Prisma.Decimal(200),
+        paidAmount: new Prisma.Decimal(0),
+        writtenOffAmount: new Prisma.Decimal(0),
+        currency: 'DOP',
+        dueDate: null,
+      },
+      {
+        id: 'rec-usd',
+        debtorName: 'Marta',
+        description: null,
+        amount: new Prisma.Decimal(50),
+        paidAmount: new Prisma.Decimal(0),
+        writtenOffAmount: new Prisma.Decimal(0),
+        currency: 'USD',
+        dueDate: ninetyOneDaysAgo,
+      },
+    ]);
+    prismaMock.finBalanceDrift.findMany.mockResolvedValue([
+      {
+        accountId,
+        cardId: null,
+        currency: 'DOP',
+        difference: new Prisma.Decimal(-25),
+      },
+    ]);
+    prismaMock.finReconciliation.findMany.mockResolvedValue([
+      { accountId, cardId: null, currency: 'DOP' },
+    ]);
+    prismaMock.finExchangeRate.findUnique.mockResolvedValue({
+      rate: { toString: () => '60' },
+    });
+
+    await request(app.getHttpServer())
+      .get('/api/finance/balance-sheet')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.data.global).toMatchObject({
+          assets: { accounts: '1000', cash: '0', receivables: '200' },
+          totalAssets: '1200',
+          netWorth: '1200',
+        });
+        expect(res.body.data.breakdown.totals).toEqual({
+          assets: '1200',
+          available: '1000',
+          receivables: '200',
+          liabilities: '0',
+          netWorth: '1200',
+          doubtfulReceivables: '3000',
+        });
+        const dop = res.body.data.breakdown.byCurrency.find(
+          (group: { currency: string }) => group.currency === 'DOP',
+        );
+        expect(dop.accounts[0]).toMatchObject({
+          id: accountId,
+          hasDrift: true,
+          driftDifference: '-25',
+          reconciliation: 'RECONCILED',
+        });
+        const usd = res.body.data.breakdown.byCurrency.find(
+          (group: { currency: string }) => group.currency === 'USD',
+        );
+        expect(usd.doubtfulReceivables[0]).toMatchObject({
+          id: 'rec-usd',
+          doubtful: true,
+          balance: '50',
+          balanceBase: '3000',
+        });
+      });
+  });
+
   it('GET /api/finance/balance-sheet uses the user finance base currency', async () => {
     prismaMock.userModule.findFirst.mockResolvedValue({
       id: 'um-finance',

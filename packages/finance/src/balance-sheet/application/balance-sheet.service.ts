@@ -2,13 +2,26 @@ import { Injectable } from '@nestjs/common';
 import type { Prisma } from '@personal-os/database';
 import { ResolveAmountsUseCase } from '../../fx/application/resolve-amounts.use-case';
 import { ResolveUserBaseCurrencyUseCase } from '../../fx/application/resolve-user-base-currency';
-import { decimalToString } from '../../shared/domain/mappers';
+import { monthBounds } from '../../reconciliation/domain/reconciliation-adjustment';
+import { CASH_ACCOUNT_TYPE } from '../../shared/domain/cash';
+import {
+  decimalToString,
+  decimalToNullableString,
+} from '../../shared/domain/mappers';
+import { localDateIso, localDayStart } from '../../shared/domain/local-day';
 import {
   normalizeCurrencyCode,
   roundDecimal,
   toMoney,
   type MoneyLike,
 } from '../../shared/domain/money';
+import {
+  BALANCE_SHEET_LINE_KIND,
+  BALANCE_SHEET_RECONCILIATION,
+  groupBalanceSheetLines,
+  type BalanceSheetBreakdown,
+  type BalanceSheetLine,
+} from '../domain/balance-sheet-breakdown';
 import { BalanceSheetRepository } from '../infrastructure/balance-sheet.repository';
 
 export type BalanceSheetStatus = 'COMPLETE' | 'INCOMPLETE';
@@ -45,7 +58,7 @@ export type FinanceCashSummary = {
 
 export type BalanceSheetSlice = {
   status: BalanceSheetStatus;
-  assets: { accounts: string };
+  assets: { accounts: string; cash: string; receivables: string };
   liabilities: {
     creditCards: string | null;
     loans: string;
@@ -63,14 +76,31 @@ export type FinanceBalanceSheet = {
   global: BalanceSheetSlice;
   institutions: Array<BalanceSheetSlice & { institutionId: string }>;
   cash: FinanceCashSummary;
+  breakdown: BalanceSheetBreakdown;
 };
 
 type Bucket = {
   accounts: Prisma.Decimal;
+  cash: Prisma.Decimal;
+  receivables: Prisma.Decimal;
   creditCards: Prisma.Decimal;
   loans: Prisma.Decimal;
   issues: BalanceSheetIssue[];
 };
+
+type ReceivableRow = {
+  id: string;
+  debtorName: string;
+  description: string | null;
+  amount: Prisma.Decimal;
+  paidAmount: Prisma.Decimal;
+  writtenOffAmount: Prisma.Decimal;
+  currency: string;
+  dueDate: Date | null;
+};
+
+const DOUBTFUL_RECEIVABLE_DAYS = 90;
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 function isMissingCreditLimit(value: MoneyLike): boolean {
   return value === null;
@@ -85,9 +115,20 @@ function creditCardDebt(
   return debt.isNegative() ? roundDecimal(0) : debt;
 }
 
+function receivableOutstanding(row: ReceivableRow): Prisma.Decimal {
+  const outstanding = roundDecimal(
+    toMoney(row.amount)
+      .minus(toMoney(row.paidAmount))
+      .minus(toMoney(row.writtenOffAmount)),
+  );
+  return outstanding.isNegative() ? roundDecimal(0) : outstanding;
+}
+
 function emptyBucket(): Bucket {
   return {
     accounts: roundDecimal(0),
+    cash: roundDecimal(0),
+    receivables: roundDecimal(0),
     creditCards: roundDecimal(0),
     loans: roundDecimal(0),
     issues: [],
@@ -95,7 +136,8 @@ function emptyBucket(): Bucket {
 }
 
 function serializeSlice(bucket: Bucket): BalanceSheetSlice {
-  const totalAssets = roundDecimal(bucket.accounts);
+  // `accounts` already includes cash; `cash` is the informational subset.
+  const totalAssets = roundDecimal(bucket.accounts.plus(bucket.receivables));
   const loanDebt = roundDecimal(bucket.loans);
   const incomplete = bucket.issues.length > 0;
   const cardDebt = incomplete ? null : roundDecimal(bucket.creditCards);
@@ -110,7 +152,11 @@ function serializeSlice(bucket: Bucket): BalanceSheetSlice {
 
   return {
     status: incomplete ? 'INCOMPLETE' : 'COMPLETE',
-    assets: { accounts: decimalToString(totalAssets) },
+    assets: {
+      accounts: decimalToString(roundDecimal(bucket.accounts)),
+      cash: decimalToString(roundDecimal(bucket.cash)),
+      receivables: decimalToString(roundDecimal(bucket.receivables)),
+    },
     liabilities: {
       creditCards: cardDebt == null ? null : decimalToString(cardDebt),
       loans: decimalToString(loanDebt),
@@ -121,6 +167,40 @@ function serializeSlice(bucket: Bucket): BalanceSheetSlice {
     netWorth: netWorth == null ? null : decimalToString(netWorth),
     issues: bucket.issues,
   };
+}
+
+function accountKey(accountId: string, currency: string): string {
+  return `account:${accountId}:${normalizeCurrencyCode(currency)}`;
+}
+
+function cardKey(cardId: string, currency: string): string {
+  return `card:${cardId}:${normalizeCurrencyCode(currency)}`;
+}
+
+function driftValue(drift: { difference: Prisma.Decimal } | undefined): {
+  hasDrift: boolean;
+  driftDifference: string | null;
+} {
+  if (!drift) {
+    return { hasDrift: false, driftDifference: null };
+  }
+  return {
+    hasDrift: true,
+    driftDifference: decimalToString(drift.difference),
+  };
+}
+
+function reconciliationState(
+  reconciledKeys: ReadonlySet<string>,
+  key: string,
+): (typeof BALANCE_SHEET_RECONCILIATION)[keyof typeof BALANCE_SHEET_RECONCILIATION] {
+  return reconciledKeys.has(key)
+    ? BALANCE_SHEET_RECONCILIATION.RECONCILED
+    : BALANCE_SHEET_RECONCILIATION.PENDING;
+}
+
+function addIssue(bucket: Bucket, issue: BalanceSheetIssue): void {
+  bucket.issues.push(issue);
 }
 
 @Injectable()
@@ -135,8 +215,18 @@ export class BalanceSheetService {
     const asOf = new Date();
     const rateDate = asOf.toISOString().slice(0, 10);
     const baseCurrency = await this.baseCurrency.execute(userId);
-    const { institutions, accounts, cardBalances, loans } =
-      await this.repo.loadPositions(userId);
+    const timezone = await this.repo.loadUserTimezone(userId);
+    const month = localDateIso(timezone, asOf).slice(0, 7);
+    const { from, to } = monthBounds(month);
+    const [positions, receivables, drifts, reconciliations] = await Promise.all(
+      [
+        this.repo.loadPositions(userId),
+        this.repo.loadReceivables(userId),
+        this.repo.loadOpenDrifts(userId),
+        this.repo.loadMonthReconciliations(userId, from, to),
+      ],
+    );
+    const { institutions, accounts, cardBalances, loans } = positions;
 
     const global = emptyBucket();
     const byInstitution = new Map<string, Bucket>();
@@ -144,56 +234,148 @@ export class BalanceSheetService {
       byInstitution.set(institution.id, emptyBucket());
     }
 
+    const reconciledKeys = new Set<string>();
+    for (const reconciliation of reconciliations) {
+      if (reconciliation.accountId) {
+        reconciledKeys.add(
+          accountKey(reconciliation.accountId, reconciliation.currency),
+        );
+      }
+      if (reconciliation.cardId) {
+        reconciledKeys.add(
+          cardKey(reconciliation.cardId, reconciliation.currency),
+        );
+      }
+    }
+
+    const driftByAccount = new Map<string, { difference: Prisma.Decimal }>();
+    const driftByCard = new Map<string, { difference: Prisma.Decimal }>();
+    for (const drift of drifts) {
+      if (drift.accountId) {
+        driftByAccount.set(accountKey(drift.accountId, drift.currency), {
+          difference: drift.difference,
+        });
+      }
+      if (drift.cardId) {
+        driftByCard.set(cardKey(drift.cardId, drift.currency), {
+          difference: drift.difference,
+        });
+      }
+    }
+
     const convert = (amount: MoneyLike, currency: string) =>
       this.resolveAmounts.toBaseCurrency(amount, currency, baseCurrency, asOf);
+    const lines: BalanceSheetLine[] = [];
 
     for (const account of accounts) {
+      const currency = normalizeCurrencyCode(account.currency);
+      const isCash = account.type === CASH_ACCOUNT_TYPE;
       const converted = await this.resolveAmounts.toBaseCurrencyOrNull(
         account.balance,
-        account.currency,
+        currency,
         baseCurrency,
         asOf,
       );
+      const drift = driftValue(
+        driftByAccount.get(accountKey(account.id, currency)),
+      );
+      lines.push({
+        id: account.id,
+        kind: isCash
+          ? BALANCE_SHEET_LINE_KIND.CASH
+          : BALANCE_SHEET_LINE_KIND.ACCOUNT,
+        name: account.name ?? (isCash ? 'Efectivo' : 'Cuenta'),
+        description: null,
+        institutionId: account.institutionId,
+        currency,
+        balance: decimalToString(account.balance),
+        balanceBase:
+          converted === null ? null : decimalToNullableString(converted),
+        hasDrift: drift.hasDrift,
+        driftDifference: drift.driftDifference,
+        reconciliation: reconciliationState(
+          reconciledKeys,
+          accountKey(account.id, currency),
+        ),
+        creditLimit: null,
+        availableCredit: null,
+        dueDate: null,
+        doubtful: false,
+      });
+
       if (converted === null) {
-        const issue: BalanceSheetIssue = {
-          code: 'MISSING_RATE',
-          currency: account.currency,
-        };
-        global.issues.push(issue);
+        addIssue(global, { code: 'MISSING_RATE', currency });
         const bucket = account.institutionId
           ? byInstitution.get(account.institutionId)
           : undefined;
         if (bucket) {
-          bucket.issues.push(issue);
+          addIssue(bucket, { code: 'MISSING_RATE', currency });
         }
         continue;
       }
       global.accounts = global.accounts.plus(converted);
+      if (isCash) {
+        global.cash = global.cash.plus(converted);
+      }
       const bucket = account.institutionId
         ? byInstitution.get(account.institutionId)
         : undefined;
       if (bucket) {
         bucket.accounts = bucket.accounts.plus(converted);
+        if (isCash) {
+          bucket.cash = bucket.cash.plus(converted);
+        }
       }
     }
 
     for (const row of cardBalances) {
+      const currency = normalizeCurrencyCode(row.currency);
+      const drift = driftValue(driftByCard.get(cardKey(row.card.id, currency)));
+      const baseLine = {
+        id: row.card.id,
+        kind: BALANCE_SHEET_LINE_KIND.CREDIT_CARD,
+        name: row.card.name ?? 'Tarjeta',
+        description: null,
+        institutionId: row.card.institutionId,
+        currency,
+        hasDrift: drift.hasDrift,
+        driftDifference: drift.driftDifference,
+        reconciliation: reconciliationState(
+          reconciledKeys,
+          cardKey(row.card.id, currency),
+        ),
+        creditLimit: decimalToNullableString(row.creditLimit),
+        availableCredit: decimalToString(row.balance),
+        dueDate: null,
+        doubtful: false,
+      };
+
       if (isMissingCreditLimit(row.creditLimit)) {
         const issue: BalanceSheetIssue = {
           code: 'MISSING_CREDIT_LIMIT',
           cardId: row.card.id,
-          currency: row.currency,
+          currency,
         };
-        global.issues.push(issue);
+        addIssue(global, issue);
         const bucket = byInstitution.get(row.card.institutionId);
         if (bucket) {
-          bucket.issues.push(issue);
+          addIssue(bucket, issue);
         }
+        lines.push({
+          ...baseLine,
+          balance: '0',
+          balanceBase: null,
+        });
         continue;
       }
 
       const debtNative = creditCardDebt(row.balance, row.creditLimit);
-      const amount = await convert(debtNative, row.currency);
+      const amount = await convert(debtNative, currency);
+      lines.push({
+        ...baseLine,
+        balance: decimalToString(debtNative),
+        balanceBase: decimalToString(amount),
+      });
       global.creditCards = global.creditCards.plus(amount);
       const bucket = byInstitution.get(row.card.institutionId);
       if (bucket) {
@@ -202,9 +384,27 @@ export class BalanceSheetService {
     }
 
     for (const loan of loans) {
+      const currency = normalizeCurrencyCode(loan.currency);
       const current = toMoney(loan.currentBalance);
       const owed = current.isNegative() ? roundDecimal(0) : current;
-      const amount = await convert(owed, loan.currency);
+      const amount = await convert(owed, currency);
+      lines.push({
+        id: loan.id,
+        kind: BALANCE_SHEET_LINE_KIND.LOAN,
+        name: loan.lenderName ?? 'Préstamo',
+        description: null,
+        institutionId: loan.institutionId,
+        currency,
+        balance: decimalToString(owed),
+        balanceBase: decimalToString(amount),
+        hasDrift: false,
+        driftDifference: null,
+        reconciliation: BALANCE_SHEET_RECONCILIATION.NOT_APPLICABLE,
+        creditLimit: null,
+        availableCredit: null,
+        dueDate: null,
+        doubtful: false,
+      });
       global.loans = global.loans.plus(amount);
       const bucket = loan.institutionId
         ? byInstitution.get(loan.institutionId)
@@ -212,6 +412,52 @@ export class BalanceSheetService {
       if (bucket) {
         bucket.loans = bucket.loans.plus(amount);
       }
+    }
+
+    const today = localDayStart(timezone, asOf);
+    const doubtfulCutoff = new Date(
+      today.getTime() - DOUBTFUL_RECEIVABLE_DAYS * DAY_MS,
+    );
+    for (const receivable of receivables) {
+      const outstanding = receivableOutstanding(receivable);
+      if (outstanding.isZero()) {
+        continue;
+      }
+      const currency = normalizeCurrencyCode(receivable.currency);
+      const doubtful =
+        receivable.dueDate !== null && receivable.dueDate < doubtfulCutoff;
+      const converted = await this.resolveAmounts.toBaseCurrencyOrNull(
+        outstanding,
+        currency,
+        baseCurrency,
+        asOf,
+      );
+      if (converted === null && !doubtful) {
+        addIssue(global, { code: 'MISSING_RATE', currency });
+      }
+      if (converted !== null && !doubtful) {
+        global.receivables = global.receivables.plus(converted);
+      }
+      lines.push({
+        id: receivable.id,
+        kind: BALANCE_SHEET_LINE_KIND.RECEIVABLE,
+        name: receivable.debtorName,
+        description: receivable.description,
+        institutionId: null,
+        currency,
+        balance: decimalToString(outstanding),
+        balanceBase:
+          converted === null ? null : decimalToNullableString(converted),
+        hasDrift: false,
+        driftDifference: null,
+        reconciliation: BALANCE_SHEET_RECONCILIATION.NOT_APPLICABLE,
+        creditLimit: null,
+        availableCredit: null,
+        dueDate: receivable.dueDate
+          ? receivable.dueDate.toISOString().slice(0, 10)
+          : null,
+        doubtful,
+      });
     }
 
     return {
@@ -224,6 +470,7 @@ export class BalanceSheetService {
         ...serializeSlice(byInstitution.get(institution.id) ?? emptyBucket()),
       })),
       cash: await this.buildCashSummary(userId, baseCurrency, asOf),
+      breakdown: groupBalanceSheetLines(lines, baseCurrency),
     };
   }
 
