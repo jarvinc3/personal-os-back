@@ -115,7 +115,7 @@ describe('UsersService.assertModuleEnabled', () => {
     findEnabledUserModuleBySlug.mockResolvedValue(null);
     await expect(
       service.assertModuleEnabled('user-1', 'finance'),
-    ).rejects.toThrow('El módulo finance está desactivado');
+    ).rejects.toThrow('La app Finanzas está desactivada');
   });
 });
 

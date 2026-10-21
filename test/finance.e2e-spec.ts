@@ -172,7 +172,7 @@ describe('Finance (e2e)', () => {
       .expect((res) => {
         expect(res.body).toMatchObject({
           statusCode: 403,
-          message: 'El módulo finance está desactivado',
+          message: 'La app Finanzas está desactivada',
         });
       });
 
@@ -194,7 +194,7 @@ describe('Finance (e2e)', () => {
       })
       .expect(403)
       .expect((res) => {
-        expect(res.body.message).toBe('El módulo finance está desactivado');
+        expect(res.body.message).toBe('La app Finanzas está desactivada');
       });
 
     expect(prismaMock.$transaction).not.toHaveBeenCalled();
