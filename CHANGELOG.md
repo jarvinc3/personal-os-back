@@ -2,6 +2,17 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [SemVer](https://semver.org/lang/es/). Reglas y ejemplo en [docs/reference/changelog-guide.md](./docs/reference/changelog-guide.md).
 
+## [0.52.0] - 2026-10-21 - Monedas
+
+### Agregado
+
+- `GET /api/finance/balance-sheet` agrega `byCurrency` en `global` y en cada institución, con totales nativos por moneda sin conversión (#178, #183).
+- `GET /api/finance/subscriptions/summary` agrega `byCurrency` con costo mensual, costo anual y cantidad activa por moneda (#178).
+
+### Cambiado
+
+- Los totales por moneda de instituciones y suscripciones ya no dependen de una única cifra convertida a la moneda base.
+
 ## [0.51.1] - 2026-10-21
 
 ### Cambiado
