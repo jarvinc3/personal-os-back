@@ -1,7 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
-  IsDateString,
   IsEnum,
   IsNumber,
   IsOptional,
@@ -13,7 +12,10 @@ import {
   ValidatorConstraint,
   ValidatorConstraintInterface,
 } from 'class-validator';
-import { CurrencyField } from '../../../shared/presentation/validation.decorators';
+import {
+  CurrencyField,
+  InstantDateField,
+} from '../../../shared/presentation/validation.decorators';
 import { isXorTargetValid } from '../../../shared/domain/ledger-rules';
 import {
   FIN_TRANSACTION_STATUSES,
@@ -60,7 +62,7 @@ export class CreateTransactionDto {
   currency?: string;
 
   @ApiProperty()
-  @IsDateString()
+  @InstantDateField()
   transactionDate!: string;
 
   @ApiPropertyOptional()
