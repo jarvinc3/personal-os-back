@@ -2,6 +2,19 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [SemVer](https://semver.org/lang/es/). Reglas y ejemplo en [docs/reference/changelog-guide.md](./docs/reference/changelog-guide.md).
 
+## [0.53.0] - 2026-10-21 - Préstamos y metas
+
+### Agregado
+
+- `POST /api/finance/loans` acepta `name` y `disbursementAccountId`: el capital entra a esa cuenta con un `ADJUSTMENT` que no cuenta como ingreso y queda ligado por `disbursementTransactionId` (#181, #182).
+- `GET /api/finance/loans` y `GET /api/finance/loans/:id` devuelven `name` y `disbursementAccount` (#182).
+- `POST /api/finance/savings-goals/:id/allocations` con `kind: WITHDRAWAL` mueve el dinero a `toAccountId` y guarda `destinationAccountId`; borrar el retiro revierte la transferencia (#188).
+
+### Cambiado
+
+- Crear o editar una meta de ahorro valida que la cuenta exista y esté en la moneda de la meta (#189).
+- Archivar una cuenta con dinero apartado en una meta responde 409 `ACCOUNT_HAS_GOAL_MONEY` (#189).
+
 ## [0.52.0] - 2026-10-21 - Monedas
 
 ### Agregado
