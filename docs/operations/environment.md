@@ -8,11 +8,12 @@ Notas operativas:
 - `CORS_ORIGIN` debe incluir el origin de `personal-os-web` (`http://localhost:3000` en el ejemplo)
 - `PUBLIC_WEB_URL` es la base de los links de cobros compartidos (`<PUBLIC_WEB_URL>/c/<token>`). En producción debe ser el dominio de la web; sin valor se usa el primer origin de `CORS_ORIGIN`
 - Production: `REDIS_URL` + `OAUTH_STATE_SECRET` obligatorios
+- Production: `DATABASE_SSL_REJECT_UNAUTHORIZED=false` obligatorio. La cadena de certificados del pooler de Supabase no pasa la verificación estricta; quitar la variable tumbó prod el 2026-10-22. El arreglo correcto a futuro es cargar el CA de Supabase en `DATABASE_SSL_CA` y volver a `true`
 - Sentry es opcional: sin `SENTRY_DSN` no se inicializa; `SENTRY_AUTH_TOKEN` solo sirve para subir source maps y sin él el build no falla
 
 ## Variables de entorno y secretos
 
-Infisical es la fuente de verdad: proyecto `personal-os`, entornos `dev` y `prod`, carpetas `/back` y `/web`. Railway (back) y Vercel (web) se llenan con sus Secret Syncs, así que no edites variables directo en esas plataformas: el siguiente sync sobrescribe el cambio.
+Infisical es la fuente de verdad: proyecto `personal-os`, entornos `dev` y `prod`, carpetas `/back` y `/web`. Railway (back) y Vercel (web) se llenan con sus Secret Syncs, así que no edites variables directo en esas plataformas. Los syncs tienen activado el borrado: cualquier variable de Railway o Vercel que no exista en Infisical se elimina en el siguiente sync, y los cambios manuales se sobrescriben. Las variables nuevas se agregan solo en Infisical.
 
 El repo trae `.infisical.json` con el `workspaceId`. Con la CLI de Infisical instalada y la sesión iniciada:
 
