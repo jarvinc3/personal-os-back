@@ -1,6 +1,5 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, type OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { readFile } from 'node:fs/promises';
 import { cert, getApps, initializeApp } from 'firebase-admin/app';
 import { getMessaging, type Messaging } from 'firebase-admin/messaging';
 import type { Env } from '@personal-os/config';
@@ -8,6 +7,15 @@ import type { PushPayload, PushSendResult } from './push-sender.types';
 
 const FCM_APP_NAME = 'personal-os-push';
 const FCM_CHUNK_SIZE = 500;
+
+type FcmCredentialVariable =
+  'FIREBASE_PROJECT_ID' | 'FIREBASE_CLIENT_EMAIL' | 'FIREBASE_PRIVATE_KEY';
+
+type FcmCredential = {
+  projectId: string;
+  clientEmail: string;
+  privateKey: string;
+};
 
 /** Codes that mean the device can never receive again; the token is dropped. */
 const DEAD_TOKEN_CODES = new Set([
@@ -31,17 +39,21 @@ function textData(
 }
 
 /**
- * Android push through Firebase Cloud Messaging. The service account comes from
- * the environment (inline JSON or a path outside the repository) and is never
- * logged or stored here; without it the channel stays off and the rest of the
- * notifications keep flowing.
+ * Android push through Firebase Cloud Messaging. The service account is built
+ * from three separate environment variables and is never logged or stored here;
+ * without it the channel stays off and the rest of the notifications keep
+ * flowing.
  */
 @Injectable()
-export class FcmPushService {
+export class FcmPushService implements OnModuleInit {
   private readonly logger = new Logger(FcmPushService.name);
   private messagingPromise: Promise<Messaging | null> | null = null;
 
   constructor(private readonly config: ConfigService<Env, true>) {}
+
+  async onModuleInit(): Promise<void> {
+    await this.messaging();
+  }
 
   async send(
     tokens: readonly string[],
@@ -53,7 +65,7 @@ export class FcmPushService {
 
     const messaging = await this.messaging();
     if (!messaging) {
-      this.logger.warn('FCM skipped: no service account configured');
+      this.logger.warn('FCM skipped: credential not configured');
       return { sent: 0, failed: tokens.length, deactivatedTokens: [] };
     }
 
@@ -88,50 +100,67 @@ export class FcmPushService {
 
   private messaging(): Promise<Messaging | null> {
     if (!this.messagingPromise) {
-      this.messagingPromise = this.createMessaging();
+      this.messagingPromise = Promise.resolve(this.createMessaging());
     }
     return this.messagingPromise;
   }
 
-  private async createMessaging(): Promise<Messaging | null> {
-    const inlineJson = this.config.get('FIREBASE_SERVICE_ACCOUNT_JSON', {
-      infer: true,
-    });
-    const credentialPath = this.config.get('FIREBASE_SERVICE_ACCOUNT_PATH', {
-      infer: true,
-    });
+  private createMessaging(): Messaging | null {
+    const credential = this.readCredential();
+    if (!credential) {
+      return null;
+    }
 
     try {
-      const serviceAccount = await this.readServiceAccount(
-        inlineJson,
-        credentialPath,
-      );
-      if (!serviceAccount) {
-        return null;
-      }
       const existing = getApps().find((app) => app.name === FCM_APP_NAME);
       const app =
         existing ??
-        initializeApp({ credential: cert(serviceAccount) }, FCM_APP_NAME);
+        initializeApp({ credential: cert(credential) }, FCM_APP_NAME);
       return getMessaging(app);
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'unknown';
-      this.logger.error(`FCM credential could not be loaded: ${message}`);
+      this.logger.error(
+        `FCM credential could not be loaded: ${this.safeErrorMessage(error)}`,
+      );
       return null;
     }
   }
 
-  private async readServiceAccount(
-    inlineJson: string | undefined,
-    credentialPath: string | undefined,
-  ): Promise<object | null> {
-    if (inlineJson) {
-      return JSON.parse(inlineJson) as object;
-    }
-    if (!credentialPath) {
+  private readCredential(): FcmCredential | null {
+    const projectId = this.config.get('FIREBASE_PROJECT_ID', { infer: true });
+    const clientEmail = this.config.get('FIREBASE_CLIENT_EMAIL', {
+      infer: true,
+    });
+    const privateKey = this.config.get('FIREBASE_PRIVATE_KEY', { infer: true });
+
+    if (!projectId || !clientEmail || !privateKey) {
+      const missing = [
+        !projectId ? 'FIREBASE_PROJECT_ID' : null,
+        !clientEmail ? 'FIREBASE_CLIENT_EMAIL' : null,
+        !privateKey ? 'FIREBASE_PRIVATE_KEY' : null,
+      ].filter((name): name is FcmCredentialVariable => name !== null);
+      this.logger.warn(`FCM skipped: missing ${missing.join(', ')}`);
       return null;
     }
-    const fromFile = await readFile(credentialPath, 'utf8');
-    return JSON.parse(fromFile) as object;
+
+    return {
+      projectId,
+      clientEmail,
+      privateKey: privateKey.replace(/\\n/g, '\n'),
+    };
+  }
+
+  /** Removes PEM blocks so a credential error never echoes the private key. */
+  private safeErrorMessage(error: unknown): string {
+    if (!(error instanceof Error)) {
+      return 'unknown error';
+    }
+    const sanitized = error.message
+      .replace(
+        /-----BEGIN [^-]+-----[\s\S]*?-----END [^-]+-----/g,
+        '[redacted private key]',
+      )
+      .replace(/\s+/g, ' ')
+      .trim();
+    return sanitized || 'unknown error';
   }
 }

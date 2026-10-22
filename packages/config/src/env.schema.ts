@@ -198,10 +198,10 @@ export const envSchema = z
 
     // ── Push (FCM Android + Web Push) ───────────────────────────
     EXPO_ACCESS_TOKEN: optionalApiKey,
-    /** Service account JSON inline; alternative to the file path below. */
-    FIREBASE_SERVICE_ACCOUNT_JSON: optionalApiKey,
-    /** Path to the service account JSON, kept outside the repository. */
-    FIREBASE_SERVICE_ACCOUNT_PATH: optionalApiKey,
+    /** Service account for FCM; all three are needed to enable the channel. */
+    FIREBASE_PROJECT_ID: optionalApiKey,
+    FIREBASE_CLIENT_EMAIL: optionalApiKey,
+    FIREBASE_PRIVATE_KEY: optionalApiKey,
     VAPID_PUBLIC_KEY: optionalApiKey,
     VAPID_PRIVATE_KEY: optionalApiKey,
     VAPID_SUBJECT: z
