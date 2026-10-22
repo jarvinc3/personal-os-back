@@ -2,6 +2,16 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [SemVer](https://semver.org/lang/es/). Reglas y ejemplo en [docs/reference/changelog-guide.md](./docs/reference/changelog-guide.md).
 
+## [0.53.2] - 2026-10-22
+
+### Cambiado
+
+- El push Android (FCM) se configura con `FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL` y `FIREBASE_PRIVATE_KEY` separadas; la clave acepta saltos de línea reales o `\n` literales, y si falta alguna el canal queda apagado y la API arranca igual (#167).
+
+### Eliminado
+
+- `FIREBASE_SERVICE_ACCOUNT_JSON` y `FIREBASE_SERVICE_ACCOUNT_PATH` salen del código, del esquema `Env` y de `.env.example`; si siguen definidas, se ignoran (#167).
+
 ## [0.53.1] - 2026-10-21
 
 ### Cambiado
