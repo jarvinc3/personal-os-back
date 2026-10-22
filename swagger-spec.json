@@ -1833,6 +1833,35 @@
         ]
       }
     },
+    "/api/finance/transfers/{id}/reverse": {
+      "post": {
+        "operationId": "TransfersController_reverse",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Reversa todos los movimientos de una transferencia completada",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
     "/api/finance/card-payments": {
       "post": {
         "operationId": "CardPaymentsController_create",
@@ -4437,12 +4466,197 @@
     },
     "/api/finance/balance-sheet": {
       "get": {
-        "description": "Snapshot of active accounts minus credit-card utilization and loan balances. Credit debt is creditLimit - available balance. Missing credit limits return status INCOMPLETE with null netWorth.",
+        "description": "Snapshot of active accounts, pending receivables, credit-card utilization and loan balances. Receivables overdue more than 90 days are listed as doubtful and do not add to net worth. Both global and each institution expose native byCurrency totals; the breakdown groups one line per product by currency. Missing rates or credit limits return status INCOMPLETE with null netWorth.",
         "operationId": "BalanceSheetController_get",
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "Net worth summary plus the atomic breakdown by currency.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "asOf": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "rateDate": {
+                      "type": "string",
+                      "format": "date"
+                    },
+                    "baseCurrency": {
+                      "type": "string",
+                      "example": "DOP"
+                    },
+                    "global": {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "COMPLETE",
+                            "INCOMPLETE"
+                          ]
+                        },
+                        "assets": {
+                          "type": "object",
+                          "properties": {
+                            "accounts": {
+                              "type": "string",
+                              "example": "1500.00"
+                            },
+                            "cash": {
+                              "type": "string",
+                              "example": "1500.00"
+                            },
+                            "receivables": {
+                              "type": "string",
+                              "example": "1500.00"
+                            }
+                          }
+                        },
+                        "liabilities": {
+                          "type": "object",
+                          "properties": {
+                            "creditCards": {
+                              "type": "string",
+                              "nullable": true
+                            },
+                            "loans": {
+                              "type": "string",
+                              "example": "1500.00"
+                            }
+                          }
+                        },
+                        "totalAssets": {
+                          "type": "string",
+                          "example": "1500.00"
+                        },
+                        "totalLiabilities": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "netWorth": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "byCurrency": {
+                          "type": "array",
+                          "description": "Native totals per currency; no conversion.",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "currency": {
+                                "type": "string",
+                                "example": "DOP"
+                              },
+                              "assets": {
+                                "type": "string",
+                                "example": "1500.00"
+                              },
+                              "available": {
+                                "type": "string",
+                                "example": "1500.00"
+                              },
+                              "receivables": {
+                                "type": "string",
+                                "example": "1500.00"
+                              },
+                              "liabilities": {
+                                "type": "string",
+                                "example": "1500.00"
+                              },
+                              "netWorth": {
+                                "type": "string",
+                                "example": "1500.00"
+                              }
+                            }
+                          }
+                        },
+                        "issues": {
+                          "type": "array",
+                          "items": {
+                            "type": "object"
+                          }
+                        }
+                      }
+                    },
+                    "institutions": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    },
+                    "cash": {
+                      "type": "object"
+                    },
+                    "breakdown": {
+                      "type": "object",
+                      "description": "Product lines grouped by currency. Every total is the sum of its lines; doubtful receivables never add to net worth.",
+                      "properties": {
+                        "byCurrency": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "currency": {
+                                "type": "string"
+                              },
+                              "accounts": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object"
+                                }
+                              },
+                              "cash": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object"
+                                }
+                              },
+                              "receivables": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object"
+                                }
+                              },
+                              "creditCards": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object"
+                                }
+                              },
+                              "loans": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object"
+                                }
+                              },
+                              "doubtfulReceivables": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object"
+                                }
+                              },
+                              "totals": {
+                                "type": "object"
+                              },
+                              "totalsBase": {
+                                "type": "object"
+                              }
+                            }
+                          }
+                        },
+                        "totals": {
+                          "type": "object"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
           }
         },
         "security": [
@@ -6014,7 +6228,7 @@
             }
           }
         },
-        "summary": "List configured AI providers",
+        "summary": "Lista los proveedores de IA configurados",
         "tags": [
           "ai-agent"
         ]
@@ -6046,7 +6260,7 @@
             }
           }
         },
-        "summary": "Chat with AI agent pool (aggregated JSON response)",
+        "summary": "Chat con el grupo de agentes de IA (respuesta JSON agregada)",
         "tags": [
           "ai-agent"
         ]
@@ -6071,7 +6285,7 @@
             "description": ""
           }
         },
-        "summary": "Chat with AI agent pool (SSE stream)",
+        "summary": "Chat con el grupo de agentes de IA (stream SSE)",
         "tags": [
           "ai-agent"
         ]
@@ -6091,7 +6305,7 @@
             "access-token": []
           }
         ],
-        "summary": "List AI chat sessions for current user",
+        "summary": "Lista las sesiones de chat de IA del usuario",
         "tags": [
           "ai-agent"
         ]
@@ -6119,7 +6333,36 @@
             "access-token": []
           }
         ],
-        "summary": "Create a new AI chat session",
+        "summary": "Crea una sesión de chat de IA",
+        "tags": [
+          "ai-agent"
+        ]
+      }
+    },
+    "/api/ai/sessions/{id}/actions": {
+      "get": {
+        "operationId": "AiSessionsController_listActions",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Lista las acciones de una sesión de IA",
         "tags": [
           "ai-agent"
         ]
@@ -6148,7 +6391,7 @@
             "access-token": []
           }
         ],
-        "summary": "Get AI session with messages",
+        "summary": "Obtiene una sesión de IA con sus mensajes",
         "tags": [
           "ai-agent"
         ]
@@ -6175,31 +6418,7 @@
             "access-token": []
           }
         ],
-        "summary": "Delete AI session",
-        "tags": [
-          "ai-agent"
-        ]
-      }
-    },
-    "/api/ai/sessions/{id}/actions": {
-      "get": {
-        "operationId": "AiActionsController_listSessionActions",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "summary": "List actions for an AI session",
+        "summary": "Borra una sesión de IA",
         "tags": [
           "ai-agent"
         ]
@@ -6223,7 +6442,7 @@
             "description": ""
           }
         },
-        "summary": "Execute a pending AI action",
+        "summary": "Ejecuta una acción pendiente de la IA",
         "tags": [
           "ai-agent"
         ]
@@ -6247,7 +6466,7 @@
             "description": ""
           }
         },
-        "summary": "Cancel a pending AI action",
+        "summary": "Cancela una acción pendiente de la IA",
         "tags": [
           "ai-agent"
         ]
@@ -6257,7 +6476,7 @@
   "info": {
     "title": "Personal OS API",
     "description": "Personal OS backend endpoints, including auth, core modules, and AI.",
-    "version": "0.43.0",
+    "version": "0.53.3",
     "contact": {}
   },
   "tags": [
@@ -6916,6 +7135,14 @@
           "destinationPending": {
             "type": "boolean",
             "default": false
+          },
+          "exchangeRate": {
+            "type": "number",
+            "description": "Tasa aplicada de la moneda de origen a la de destino"
+          },
+          "receivedAmount": {
+            "type": "number",
+            "description": "Monto que entra en la cuenta de destino, en su moneda"
           }
         },
         "required": [
@@ -6983,6 +7210,14 @@
           "destinationPending": {
             "type": "boolean",
             "default": false
+          },
+          "exchangeRate": {
+            "type": "number",
+            "description": "Tasa aplicada de la moneda de origen a la de destino"
+          },
+          "receivedAmount": {
+            "type": "number",
+            "description": "Monto que entra en la cuenta de destino, en su moneda"
           }
         }
       },
@@ -7524,6 +7759,10 @@
             "type": "string",
             "description": "Cuenta de origen cuando es distinta a la cuenta de la meta. El aporte crea la transferencia."
           },
+          "toAccountId": {
+            "type": "string",
+            "description": "Cuenta que recibe el dinero en un retiro. Obligatoria cuando kind es WITHDRAWAL."
+          },
           "fromTransferGroupId": {
             "type": "string"
           },
@@ -7577,6 +7816,10 @@
       "CreateLoanDto": {
         "type": "object",
         "properties": {
+          "name": {
+            "type": "object",
+            "description": "Alias opcional para distinguir préstamos del mismo prestamista."
+          },
           "lenderName": {
             "type": "string"
           },
@@ -7644,6 +7887,10 @@
           },
           "disbursementDate": {
             "type": "object"
+          },
+          "disbursementAccountId": {
+            "type": "string",
+            "description": "Cuenta que recibe el capital desembolsado. Se acredita al crear el préstamo."
           }
         },
         "required": [
@@ -7703,6 +7950,10 @@
       "UpdateLoanDto": {
         "type": "object",
         "properties": {
+          "name": {
+            "type": "object",
+            "description": "Alias opcional para distinguir préstamos del mismo prestamista."
+          },
           "lenderName": {
             "type": "string"
           },
