@@ -15,6 +15,7 @@
     "start:dev": "pnpm build:packages && nest start --watch",
     "start:debug": "pnpm build:packages && nest start --debug --watch",
     "start:prod": "node dist/main",
+    "env:pull": "infisical export --env=dev --path=/back > .env",
     "lint": "eslint \"{apps,packages/*/src,libs,test}/**/*.ts\"",
     "lint:fix": "eslint \"{apps,packages/*/src,libs,test}/**/*.ts\" --fix",
     "lint:money": "node scripts/finance/check-money-decimals.mjs",
