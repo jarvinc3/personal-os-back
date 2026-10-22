@@ -17,6 +17,10 @@ type FcmCredential = {
   privateKey: string;
 };
 
+type FcmCredentialResult =
+  | { kind: 'ready'; credential: FcmCredential }
+  | { kind: 'incomplete'; missing: FcmCredentialVariable[] };
+
 /** Codes that mean the device can never receive again; the token is dropped. */
 const DEAD_TOKEN_CODES = new Set([
   'messaging/registration-token-not-registered',
@@ -106,8 +110,11 @@ export class FcmPushService implements OnModuleInit {
   }
 
   private createMessaging(): Messaging | null {
-    const credential = this.readCredential();
-    if (!credential) {
+    const credentialLookup = this.readCredential();
+    if (credentialLookup.kind === 'incomplete') {
+      this.logger.warn(
+        `FCM skipped: missing ${credentialLookup.missing.join(', ')}`,
+      );
       return null;
     }
 
@@ -115,7 +122,10 @@ export class FcmPushService implements OnModuleInit {
       const existing = getApps().find((app) => app.name === FCM_APP_NAME);
       const app =
         existing ??
-        initializeApp({ credential: cert(credential) }, FCM_APP_NAME);
+        initializeApp(
+          { credential: cert(credentialLookup.credential) },
+          FCM_APP_NAME,
+        );
       return getMessaging(app);
     } catch (error) {
       this.logger.error(
@@ -125,7 +135,7 @@ export class FcmPushService implements OnModuleInit {
     }
   }
 
-  private readCredential(): FcmCredential | null {
+  private readCredential(): FcmCredentialResult {
     const projectId = this.config.get('FIREBASE_PROJECT_ID', { infer: true });
     const clientEmail = this.config.get('FIREBASE_CLIENT_EMAIL', {
       infer: true,
@@ -138,14 +148,16 @@ export class FcmPushService implements OnModuleInit {
         !clientEmail ? 'FIREBASE_CLIENT_EMAIL' : null,
         !privateKey ? 'FIREBASE_PRIVATE_KEY' : null,
       ].filter((name): name is FcmCredentialVariable => name !== null);
-      this.logger.warn(`FCM skipped: missing ${missing.join(', ')}`);
-      return null;
+      return { kind: 'incomplete', missing };
     }
 
     return {
-      projectId,
-      clientEmail,
-      privateKey: privateKey.replace(/\\n/g, '\n'),
+      kind: 'ready',
+      credential: {
+        projectId,
+        clientEmail,
+        privateKey: privateKey.replace(/\\n/g, '\n'),
+      },
     };
   }
 

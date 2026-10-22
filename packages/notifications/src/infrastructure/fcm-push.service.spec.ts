@@ -89,6 +89,20 @@ describe('FcmPushService', () => {
     expect(mockInitializeApp).not.toHaveBeenCalled();
   });
 
+  it('initializes FCM on boot when the three variables are set', async () => {
+    const service = createService(validCredential);
+
+    await service.onModuleInit();
+
+    expect(mockCert).toHaveBeenCalledWith({
+      projectId: 'personal-os-496605',
+      clientEmail: 'push@example.test',
+      privateKey: PRIVATE_KEY,
+    });
+    expect(mockInitializeApp).toHaveBeenCalled();
+    expect(warnSpy).not.toHaveBeenCalled();
+  });
+
   it('keeps the channel off and names the missing variables', async () => {
     const service = createService({});
 
@@ -189,6 +203,7 @@ describe('FcmPushService', () => {
       throw new Error(`Invalid PEM block: ${PRIVATE_KEY}`);
     });
 
+    await expect(service.onModuleInit()).resolves.toBeUndefined();
     await expect(
       service.send(['token-1'], { title: 'a', body: 'b' }),
     ).resolves.toEqual({ sent: 0, failed: 1, deactivatedTokens: [] });
