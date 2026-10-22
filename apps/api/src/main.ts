@@ -10,6 +10,7 @@ import helmet from 'helmet';
 import { join } from 'path';
 import { AppModule } from './app.module';
 import { appVersion } from './app-version';
+import { resolveNonProductionCorsOrigin } from './cors';
 import { isBullMqEnabled } from '@personal-os/config';
 import type { Env } from '@personal-os/config';
 
@@ -108,8 +109,7 @@ async function bootstrap() {
     `http://127.0.0.1:${port}`,
   ];
 
-  // Diagrams are static documentation: mounted before CORS so a plain browser
-  // navigation, which sends no Origin, can open them.
+  // Diagrams are static documentation and need no CORS headers.
   if (!isProduction) {
     mountDiagramAssets({ app, logger, port });
   }
@@ -119,21 +119,10 @@ async function bootstrap() {
       ? corsOrigins.length === 1
         ? corsOrigins[0]
         : corsOrigins
-      : (origin, callback) => {
-          if (!origin) {
-            callback(new Error('Origin header is required'), false);
-            return;
-          }
-          if (
-            corsOrigins.includes(origin) ||
-            corsOrigins.includes('*') ||
-            sameServerOrigins.includes(origin)
-          ) {
-            callback(null, true);
-            return;
-          }
-          callback(new Error(`Origin ${origin} not allowed by CORS`), false);
-        },
+      : resolveNonProductionCorsOrigin({
+          allowedOrigins: corsOrigins,
+          sameServerOrigins,
+        }),
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: [
       'Content-Type',
