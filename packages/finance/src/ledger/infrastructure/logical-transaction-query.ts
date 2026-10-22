@@ -1,13 +1,16 @@
 import type { Prisma } from '@personal-os/database';
 import type { ListTransactionsQuery } from '../application/commands/ledger.commands';
 
+/** Source legs of operations that change two products at once. */
+const SOURCE_LEG_TYPES = ['DEBIT', 'CARD_PAYMENT'] as const;
+
 /**
  * The list shows one row per operation: the SOURCE leg. The destination and the
  * fee travel inside the operation (or the counterpart lookup).
  */
 const SOURCE_TRANSFER_LEG: Prisma.FinTransactionWhereInput = {
   transferGroupId: { not: null },
-  type: 'DEBIT',
+  type: { in: [...SOURCE_LEG_TYPES] },
   OR: [{ legRole: null }, { legRole: 'SOURCE' }],
 };
 

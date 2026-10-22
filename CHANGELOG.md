@@ -2,6 +2,91 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [SemVer](https://semver.org/lang/es/). Reglas y ejemplo en [docs/reference/changelog-guide.md](./docs/reference/changelog-guide.md).
 
+## [0.53.1] - 2026-10-21
+
+### Cambiado
+
+- Interno: el alta del préstamo nombra el paso del desembolso y deja la orquestación separada de la acreditación. Sin cambio de comportamiento.
+
+## [0.53.0] - 2026-10-21 - Préstamos y metas
+
+### Agregado
+
+- `POST /api/finance/loans` acepta `name` y `disbursementAccountId`: el capital entra a esa cuenta con un `ADJUSTMENT` que no cuenta como ingreso y queda ligado por `disbursementTransactionId` (#181, #182).
+- `GET /api/finance/loans` y `GET /api/finance/loans/:id` devuelven `name` y `disbursementAccount` (#182).
+- `POST /api/finance/savings-goals/:id/allocations` con `kind: WITHDRAWAL` mueve el dinero a `toAccountId` y guarda `destinationAccountId`; borrar el retiro revierte la transferencia (#188).
+
+### Cambiado
+
+- Crear o editar una meta de ahorro valida que la cuenta exista y esté en la moneda de la meta (#189).
+- Archivar una cuenta con dinero apartado en una meta responde 409 `ACCOUNT_HAS_GOAL_MONEY` (#189).
+
+## [0.52.0] - 2026-10-21 - Monedas
+
+### Agregado
+
+- `GET /api/finance/balance-sheet` agrega `byCurrency` en `global` y en cada institución, con totales nativos por moneda sin conversión (#178, #183).
+- `GET /api/finance/subscriptions/summary` agrega `byCurrency` con costo mensual, costo anual y cantidad activa por moneda (#178).
+
+### Cambiado
+
+- Los totales por moneda de instituciones y suscripciones ya no dependen de una única cifra convertida a la moneda base.
+
+## [0.51.1] - 2026-10-21
+
+### Cambiado
+
+- Interno: el balance sheet acumula sus incidencias en las líneas locales en vez de mutar un parámetro. Sin cambio de comportamiento.
+
+## [0.51.0] - 2026-10-21 - Patrimonio
+
+### Agregado
+
+- `GET /api/finance/balance-sheet` devuelve `breakdown.byCurrency` con una línea por producto (cuentas, efectivo, cobros, tarjetas y préstamos), totales nativos y en moneda base, y `breakdown.totals` con Disponible, Por cobrar, Deudas y Patrimonio (#163).
+- Cada línea trae `hasDrift`, `driftDifference` y el estado de conciliación del mes, además de límite y crédito disponible en las tarjetas (#163).
+- Los cobros `PENDING`/`PARTIAL` no vencidos o vencidos hace 90 días o menos suman al patrimonio; los vencidos hace más de 90 días se devuelven como dudosos y no suman (#163, #207).
+- El Swagger del balance sheet documenta el desglose y los campos nuevos (#163).
+
+### Cambiado
+
+- El patrimonio neto incluye los cobros vigentes. `global.assets` agrega `cash` y `receivables`; `totalAssets` y `netWorth` los reflejan. La decisión queda en el ADR-005 de la web (#207).
+
+## [0.50.0] - 2026-10-21
+
+### Agregado
+
+- El perfil guarda el primer día de la semana en `preferences.regional.weekStartsOn`: domingo, lunes, sábado o automático desde el locale (#223).
+- Script `db:backfill-week-starts-on` para copiar al perfil el día que estaba guardado en Finanzas o Agenda (#223).
+
+### Cambiado
+
+- `PATCH /users/me` valida `locale` como etiqueta BCP-47 y rechaza un `weekStartsOn` distinto de 0, 1, 6 o null (#223).
+
+## [0.49.0] - 2026-10-21
+
+### Agregado
+
+- Una tarjeta con varias monedas y ninguna coincidente responde 400 `CARD_CURRENCY_UNDECLARED` con el motivo, en vez de abrir un balance nuevo (#161).
+
+### Cambiado
+
+- Un movimiento en una moneda que la tarjeta no declara se convierte a la moneda que la tarjeta ya tiene, con la tasa del día; el monto original, la moneda original y la tasa quedan guardados. Agregar la moneda al producto deja de ser obligatorio (#161).
+- Una tarjeta de débito aplica la moneda de su cuenta en el ledger, no la del movimiento (#161).
+
+### Corregido
+
+- Ya no aparece un balance en la moneda de la compra cuando la tarjeta tiene una sola moneda, así que el descuadre por esa moneda desaparece (#161).
+
+## [0.48.0] - 2026-10-21
+
+### Agregado
+
+- El perfil acepta una zona horaria IANA y la rechaza con el error en el campo cuando no existe o no tiene forma de zona (por ejemplo `+04:00`), no solo por longitud (#162).
+
+### Cambiado
+
+- `transactionDate` en movimientos, transferencias y pagos de tarjeta exige un instante con zona (`Z` u offset). Una hora de reloj sin zona se rechaza en vez de leerse en la zona del servidor (#211).
+
 ## [Sin publicar]
 
 ### Agregado
@@ -10,10 +95,68 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [Se
 - Skill `archify` en `.agents/skills/archify/` (registrada en `skills-lock.json`) y diagramas generados en `.archify/` (arquitectura, ERD de finanzas, ingesta de correo, ledger, estado de cuenta, releases, monorepo, sync de Gmail, resumen semanal).
 - En desarrollo, la API sirve los diagramas de `.archify/` como estáticos en `/docs/diagramas/`; en producción no se montan.
 - Convenciones de issues en `docs/issue-conventions.md` y plantillas `.github/ISSUE_TEMPLATE/bug.yml` y `feature.yml`.
+- Convenciones de issues: regla contra issues espejo entre repositorios y secciones «Notas técnicas» y «Definición de terminado» en `docs/issue-conventions.md` y en las plantillas `feature.yml` y `bug.yml`.
 
 ### Cambiado
 
 - `AGENTS.md` y `docs/README.md` enlazan las convenciones de issues y la nueva documentación.
+
+## [0.47.2] - 2026-10-20
+
+### Cambiado
+
+- Interno: el servicio de comercios separa `resolve` del texto derivado y `resolveTyped` del texto escrito, con un helper privado que recibe un objeto. Sin cambio de comportamiento (#159).
+
+## [0.47.1] - 2026-10-20
+
+### Corregido
+
+- El comercio creado desde un movimiento conserva el nombre tal como lo escribió el usuario, sin re-capitalizarlo. La clave normalizada sigue uniendo las variantes y la ingesta de correo mantiene su nombre limpio (#159).
+
+## [0.47.0] - 2026-10-20
+
+### Agregado
+
+- Push a Android por Firebase Cloud Messaging: los avisos llegan al móvil con la app cerrada. Web Push mantiene su canal y los tokens de iOS se ignoran sin error porque no hay cuenta de Apple Developer (jarvinc3/personal-os-back#137).
+
+### Cambiado
+
+- El 403 de una app apagada nombra la app en lugar de su identificador interno, y el decorador `RequiresEnabledModule` sigue siendo el hueco que cualquier app nueva reutiliza al montar sus controladores (jarvinc3/personal-os-back#136).
+- Interno: el repositorio del ledger se parte en lectura, escritura, borrado y restauración, importación de correo y aviso de movimiento; el catálogo separa las categorías, y la ingesta separa las fuentes de correo y la cola de sincronización (jarvinc3/personal-os-back#149).
+
+## [0.46.3] - 2026-10-20
+
+### Cambiado
+
+- Interno: el borrado, la restauración y el aviso de eliminación del ledger salen de `prisma-ledger.repository.ts` a `prisma-ledger-deletion.repository.ts`, y la reversa de los enlaces de planificación a `planning-link-reversal.ts`; el repositorio principal delega. Sin cambio de contrato ni de comportamiento (jarvinc3/personal-os-back#149).
+
+## [0.46.2] - 2026-10-20
+
+### Cambiado
+
+- Interno: `reverseTransactionsByTransferGroupId` ya no devuelve un conteo; el puerto declara `Promise<void>` y la reversa queda como comando sin valor de retorno. Sin cambio de comportamiento.
+
+## [0.46.1] - 2026-10-20
+
+### Cambiado
+
+- Interno: las consultas y búsquedas del ledger salen de `prisma-ledger.repository.ts` a `prisma-ledger-read.repository.ts`; el repositorio principal delega el listado y las lecturas. Sin cambio de contrato ni de comportamiento (jarvinc3/personal-os-back#149).
+
+## [0.46.0] - 2026-10-20
+
+### Agregado
+
+- `POST /api/finance/transfers/:id/reverse` reversa todas las patas de una transferencia completada, devuelve saldo y presupuesto y las deja `REVERSED`. Responde 409 `TRANSFER_NOT_COMPLETED` si alguna pata no está completada.
+
+### Corregido
+
+- El listado lógico incluye los pagos de tarjeta como una operación `TRANSFER` y resuelve el destino por `legRole`, así que aparecen en Movimientos y en el historial de la cuenta y la tarjeta (#176).
+
+## [0.45.0] - 2026-10-20
+
+### Agregado
+
+- Las transferencias entre monedas aceptan `exchangeRate` (tasa par origen→destino) o `receivedAmount` (monto que entra en la cuenta destino). El monto recibido manda si vienen ambos. Sin ninguno se usa la tasa del día y la operación queda marcada como estimada. El detalle devuelve monto enviado, monto recibido, tasa y la marca (#157).
 
 ## [0.44.0] - 2026-10-20
 

@@ -73,6 +73,21 @@ function mapMerchant(row: MerchantRow, spend: MerchantSpend | undefined) {
   };
 }
 
+const MAX_MERCHANT_NAME_LENGTH = 120;
+
+/** Typed text is kept as written; bank descriptors get a clean display name. */
+function visibleMerchantName(input: {
+  displayName?: string | null;
+  rawName: string | null | undefined;
+  normalizedKey: string;
+}): string {
+  const typed = input.displayName?.replace(/\s+/g, ' ').trim();
+  if (typed) {
+    return typed.slice(0, MAX_MERCHANT_NAME_LENGTH);
+  }
+  return merchantDisplayName(input.rawName) ?? input.normalizedKey;
+}
+
 @Injectable()
 export class MerchantsService {
   constructor(
@@ -199,10 +214,28 @@ export class MerchantsService {
   }
 
   /** Resolves (creating when needed) the canonical merchant for raw text. */
-  async resolve(
-    userId: string,
-    rawName: string | null | undefined,
-  ): Promise<ResolvedMerchant | null> {
+  resolve(userId: string, rawName: string | null | undefined) {
+    return this.resolveMerchant({ userId, rawName });
+  }
+
+  /** Resolves text the user typed, keeping its capitalisation as the name. */
+  resolveTyped(userId: string, typedName: string | null | undefined) {
+    return this.resolveMerchant({
+      userId,
+      rawName: typedName,
+      displayName: typedName,
+    });
+  }
+
+  private async resolveMerchant({
+    userId,
+    rawName,
+    displayName,
+  }: {
+    userId: string;
+    rawName: string | null | undefined;
+    displayName?: string | null;
+  }): Promise<ResolvedMerchant | null> {
     const normalizedKey = normalizeMerchant(rawName);
     if (!normalizedKey) {
       return null;
@@ -212,7 +245,11 @@ export class MerchantsService {
       await this.appendAlias(userId, existing.id, existing.aliases, rawName);
       return this.toResolved(existing);
     }
-    const name = merchantDisplayName(rawName) ?? normalizedKey;
+    const name = visibleMerchantName({
+      displayName,
+      rawName,
+      normalizedKey,
+    });
     try {
       const created = await this.repo.createMerchant(userId, {
         name,

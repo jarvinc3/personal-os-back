@@ -15,9 +15,9 @@ Use this before another engineering agent starts implementation.
 - Existing data may be deleted.
 - DEV/PROD are separate.
 - Verify PROD migrations before reset (read-only).
-- PROD stays on its current version and DB until the owner decides the `0.50.0` deploy; agents run migrations only against DEV.
+- PROD stays on its current version and DB until the owner decides the `0.100.0` deploy; agents run migrations only against DEV.
 - Open Finance bugs are out of scope and fixed in parallel.
-- New baseline targets version `0.50.0`.
+- New baseline targets version `0.100.0`.
 
 ## Do not accidentally preserve these architectural assumptions
 

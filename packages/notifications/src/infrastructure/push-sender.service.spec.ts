@@ -11,17 +11,25 @@ describe('PushSenderService', () => {
     deactivatePushTokenByToken: jest.fn().mockResolvedValue({ count: 1 }),
   };
 
+  const fcm = { send: jest.fn() };
+
   function createService(env: Record<string, string | undefined>) {
     const config = {
       get: jest.fn((key: string) => env[key]),
     } as unknown as ConfigService;
 
-    return new PushSenderService(config as never, notificationsRepo as never);
+    return new PushSenderService(
+      config as never,
+      notificationsRepo as never,
+      fcm as never,
+    );
   }
 
   beforeEach(() => {
     jest.restoreAllMocks();
     notificationsRepo.deactivatePushTokenByToken.mockClear();
+    fcm.send.mockReset();
+    fcm.send.mockResolvedValue({ sent: 0, failed: 0, deactivatedTokens: [] });
   });
 
   it('routes Expo tokens to Expo API', async () => {
@@ -62,5 +70,54 @@ describe('PushSenderService', () => {
     expect(notificationsRepo.deactivatePushTokenByToken).toHaveBeenCalledWith(
       webSubscription,
     );
+  });
+});
+
+describe('PushSenderService channel routing', () => {
+  const notificationsRepo = {
+    deactivatePushTokenByToken: jest.fn(),
+  };
+
+  function createService(fcmSend: jest.Mock) {
+    const config = {
+      get: jest.fn(() => undefined),
+    } as unknown as ConfigService;
+
+    return new PushSenderService(
+      config as never,
+      notificationsRepo as never,
+      { send: fcmSend } as never,
+    );
+  }
+
+  it('sends android tokens through FCM', async () => {
+    const fcmSend = jest
+      .fn()
+      .mockResolvedValue({ sent: 1, failed: 0, deactivatedTokens: [] });
+    const service = createService(fcmSend);
+
+    const result = await service.sendToTokenEntries(
+      [{ token: 'fcm-device-token', platform: 'android' }],
+      { title: 'Hello', body: 'World' },
+    );
+
+    expect(fcmSend).toHaveBeenCalledWith(['fcm-device-token'], {
+      title: 'Hello',
+      body: 'World',
+    });
+    expect(result.sent).toBe(1);
+  });
+
+  it('ignores ios tokens without failing the send', async () => {
+    const fcmSend = jest.fn();
+    const service = createService(fcmSend);
+
+    const result = await service.sendToTokenEntries(
+      [{ token: 'apns-device-token', platform: 'ios' }],
+      { title: 'Hello', body: 'World' },
+    );
+
+    expect(fcmSend).not.toHaveBeenCalled();
+    expect(result).toEqual({ sent: 0, failed: 0, deactivatedTokens: [] });
   });
 });

@@ -68,13 +68,16 @@ export class CreateTransferUseCase {
       baseCurrency,
       transactionDate: new Date(command.transactionDate),
     });
-    const toAmounts = await this.resolveAmounts.execute({
-      amount: command.amount,
-      currency,
-      ledgerCurrency: toLedgerCurrency,
-      baseCurrency,
-      transactionDate: new Date(command.transactionDate),
-    });
+    const { amounts: toAmounts, estimated } =
+      await this.resolveAmounts.resolveTransferDestination({
+        sourceAmount: command.amount,
+        sourceCurrency: currency,
+        destinationCurrency: toLedgerCurrency,
+        receivedAmount: command.receivedAmount,
+        exchangeRate: command.exchangeRate,
+        baseCurrency,
+        transactionDate: new Date(command.transactionDate),
+      });
 
     const feeAmounts = command.fee
       ? await this.resolveAmounts.execute({
@@ -92,6 +95,7 @@ export class CreateTransferUseCase {
       fromAmounts,
       toAmounts,
       feeAmounts,
+      estimated,
     });
     if (!created) {
       throw new NotFoundException('Cuentas de transferencia inválidas');

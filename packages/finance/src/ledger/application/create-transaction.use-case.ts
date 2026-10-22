@@ -53,7 +53,7 @@ export class CreateTransactionUseCase {
     );
 
     const resolved = command.merchant
-      ? await this.merchants.resolve(userId, command.merchant)
+      ? await this.merchants.resolveTyped(userId, command.merchant)
       : null;
 
     const amounts = await this.resolveAmounts.execute({

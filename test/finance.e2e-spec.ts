@@ -172,7 +172,7 @@ describe('Finance (e2e)', () => {
       .expect((res) => {
         expect(res.body).toMatchObject({
           statusCode: 403,
-          message: 'El módulo finance está desactivado',
+          message: 'La app Finanzas está desactivada',
         });
       });
 
@@ -194,7 +194,7 @@ describe('Finance (e2e)', () => {
       })
       .expect(403)
       .expect((res) => {
-        expect(res.body.message).toBe('El módulo finance está desactivado');
+        expect(res.body.message).toBe('La app Finanzas está desactivada');
       });
 
     expect(prismaMock.$transaction).not.toHaveBeenCalled();
@@ -922,6 +922,45 @@ describe('Finance (e2e)', () => {
       });
   });
 
+  it('POST /api/finance/loans persists the alias', async () => {
+    prismaMock.finLoan.create.mockResolvedValue({
+      id: 'loan-named',
+      userId: 'user-123',
+      name: 'Carro',
+      lenderName: 'BHD',
+      originalAmount: 1000,
+      currentBalance: 1000,
+      currency: 'DOP',
+      installmentAmount: 100,
+      installmentFreq: 'MONTHLY',
+      totalInstallments: 12,
+      paidInstallments: 0,
+      nextDueDate: new Date('2026-09-01'),
+      interestRate: null,
+      notes: null,
+      isActive: true,
+      account: null,
+    });
+
+    await request(app.getHttpServer())
+      .post('/api/finance/loans')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        name: 'Carro',
+        lenderName: 'BHD',
+        originalAmount: 1000,
+        currentBalance: 1000,
+        installmentAmount: 100,
+        installmentFreq: 'MONTHLY',
+        totalInstallments: 12,
+        nextDueDate: '2026-09-01',
+      })
+      .expect(201)
+      .expect((res) => {
+        expect(res.body.data.name).toBe('Carro');
+      });
+  });
+
   it('POST /api/finance/loans defaults currency to DOP and rejects invalid rate or code', async () => {
     prismaMock.finLoan.create.mockResolvedValue({
       id: 'loan-dop',
@@ -1166,6 +1205,118 @@ describe('Finance (e2e)', () => {
             currency: 'DOP',
           },
         ]);
+      });
+  });
+
+  it('GET /api/finance/balance-sheet returns the atomic breakdown with doubtful receivables', async () => {
+    const accountId = '11111111-1111-4111-8111-111111111111';
+    const ninetyOneDaysAgo = new Date();
+    ninetyOneDaysAgo.setUTCDate(ninetyOneDaysAgo.getUTCDate() - 91);
+
+    prismaMock.finInstitution.findMany.mockResolvedValue([]);
+    prismaMock.finAccount.findMany.mockResolvedValue([
+      {
+        id: accountId,
+        name: 'Ahorros',
+        type: 'SAVINGS',
+        institutionId: null,
+        currency: 'DOP',
+        balance: new Prisma.Decimal(1000),
+      },
+    ]);
+    prismaMock.finCardBalance.findMany.mockResolvedValue([]);
+    prismaMock.finLoan.findMany.mockResolvedValue([]);
+    prismaMock.finReceivable.findMany.mockResolvedValue([
+      {
+        id: 'rec-dop',
+        debtorName: 'Ana',
+        description: 'Préstamo',
+        amount: new Prisma.Decimal(200),
+        paidAmount: new Prisma.Decimal(0),
+        writtenOffAmount: new Prisma.Decimal(0),
+        currency: 'DOP',
+        dueDate: null,
+      },
+      {
+        id: 'rec-usd',
+        debtorName: 'Marta',
+        description: null,
+        amount: new Prisma.Decimal(50),
+        paidAmount: new Prisma.Decimal(0),
+        writtenOffAmount: new Prisma.Decimal(0),
+        currency: 'USD',
+        dueDate: ninetyOneDaysAgo,
+      },
+    ]);
+    prismaMock.finBalanceDrift.findMany.mockResolvedValue([
+      {
+        accountId,
+        cardId: null,
+        currency: 'DOP',
+        difference: new Prisma.Decimal(-25),
+      },
+    ]);
+    prismaMock.finReconciliation.findMany.mockResolvedValue([
+      { accountId, cardId: null, currency: 'DOP' },
+    ]);
+    prismaMock.finExchangeRate.findUnique.mockResolvedValue({
+      rate: { toString: () => '60' },
+    });
+
+    await request(app.getHttpServer())
+      .get('/api/finance/balance-sheet')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.data.global).toMatchObject({
+          assets: { accounts: '1000', cash: '0', receivables: '200' },
+          totalAssets: '1200',
+          netWorth: '1200',
+        });
+        expect(res.body.data.breakdown.totals).toEqual({
+          assets: '1200',
+          available: '1000',
+          receivables: '200',
+          liabilities: '0',
+          netWorth: '1200',
+          doubtfulReceivables: '3000',
+        });
+        expect(res.body.data.global.byCurrency).toEqual([
+          {
+            currency: 'DOP',
+            assets: '1200',
+            available: '1000',
+            receivables: '200',
+            liabilities: '0',
+            netWorth: '1200',
+          },
+          {
+            currency: 'USD',
+            assets: '0',
+            available: '0',
+            receivables: '0',
+            liabilities: '0',
+            netWorth: '0',
+          },
+        ]);
+        const dop = res.body.data.breakdown.byCurrency.find(
+          (group: { currency: string }) => group.currency === 'DOP',
+        );
+        expect(dop.accounts[0]).toMatchObject({
+          id: accountId,
+          hasDrift: true,
+          driftDifference: '-25',
+          reconciliation: 'RECONCILED',
+        });
+        const usd = res.body.data.breakdown.byCurrency.find(
+          (group: { currency: string }) => group.currency === 'USD',
+        );
+        expect(usd.doubtfulReceivables[0]).toMatchObject({
+          id: 'rec-usd',
+          doubtful: true,
+          balance: '50',
+          balanceBase: '3000',
+        });
       });
   });
 
@@ -1536,6 +1687,57 @@ describe('Finance (e2e)', () => {
 
     expect(lastPage.body.data.items[0].id).toBe('con-2');
     expect(lastPage.body.data.hasMore).toBe(false);
+  });
+
+  it('POST /api/finance/savings-goals/:id/allocations requires a destination on withdrawal', async () => {
+    prismaMock.finSavingsGoal.findFirst.mockResolvedValue({
+      id: 'goal-1',
+      userId: 'user-123',
+      name: 'Viaje',
+      accountId: 'acc-1',
+      currency: 'DOP',
+      currentAmount: 100,
+      mode: 'EARMARK',
+    });
+
+    await request(app.getHttpServer())
+      .post('/api/finance/savings-goals/goal-1/allocations')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ amount: 10, kind: 'WITHDRAWAL' })
+      .expect(400)
+      .expect((res) => {
+        expect(res.body.code).toBe('GOAL_WITHDRAWAL_ACCOUNT_REQUIRED');
+      });
+  });
+
+  it('POST /api/finance/savings-goals/:id/allocations rejects a withdrawal over the available amount', async () => {
+    prismaMock.finSavingsGoal.findFirst.mockResolvedValue({
+      id: 'goal-1',
+      userId: 'user-123',
+      name: 'Viaje',
+      accountId: 'acc-1',
+      currency: 'DOP',
+      currentAmount: 50,
+      mode: 'EARMARK',
+    });
+    prismaMock.finAccount.findFirst.mockResolvedValue({
+      id: '22222222-2222-4222-8222-222222222222',
+      currency: 'DOP',
+      isActive: true,
+    });
+
+    await request(app.getHttpServer())
+      .post('/api/finance/savings-goals/goal-1/allocations')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        amount: 100,
+        kind: 'WITHDRAWAL',
+        toAccountId: '22222222-2222-4222-8222-222222222222',
+      })
+      .expect(409)
+      .expect((res) => {
+        expect(res.body.code).toBe('GOAL_WITHDRAWAL_EXCEEDS_AVAILABLE');
+      });
   });
 
   it('GET /api/finance/email-sync/messages paginates newest first', async () => {
@@ -2054,7 +2256,7 @@ describe('Finance (e2e)', () => {
 
     prismaMock.finTransaction.findMany.mockImplementation(
       (args?: { where?: { type?: string } }) => {
-        if (args?.where?.type === 'CREDIT') {
+        if (args?.where?.OR) {
           return Promise.resolve([credit]);
         }
         return Promise.resolve([debit]);
@@ -2106,7 +2308,7 @@ describe('Finance (e2e)', () => {
     const transferWhere = JSON.stringify(
       prismaMock.finTransaction.findMany.mock.calls[0]?.[0]?.where ?? {},
     );
-    expect(transferWhere).toContain('"type":"DEBIT"');
+    expect(transferWhere).toContain('"CARD_PAYMENT"');
     expect(transferWhere).toContain('"not":null');
   });
 

@@ -17,6 +17,8 @@ export type AdjustBalanceCommand = {
   cardId?: string;
   currency?: string;
   balance: number;
+  description?: string;
+  transactionDate?: Date;
 };
 
 @Injectable()
@@ -61,13 +63,14 @@ export class AdjustBalanceUseCase {
       };
     }
 
+    const transactionDate = command.transactionDate ?? new Date();
     const userBaseCurrency = await this.baseCurrency.execute(userId);
     const amounts = await this.resolveAmounts.execute({
       amount: Math.abs(delta),
       currency: target.currency,
       ledgerCurrency: target.currency,
       baseCurrency: userBaseCurrency,
-      transactionDate: new Date(),
+      transactionDate,
     });
 
     const created = await this.repo.createBalanceAdjustment(userId, {
@@ -77,6 +80,8 @@ export class AdjustBalanceUseCase {
         ...amounts,
         ledgerAmount: delta,
       },
+      ...(command.description ? { description: command.description } : {}),
+      transactionDate,
     });
     if (!created) {
       throw new NotFoundException('Cuenta o tarjeta no encontrada');

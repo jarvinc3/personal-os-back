@@ -9,6 +9,7 @@ import { PushTokensService } from './application/push-tokens.service';
 import { EMAIL_SENDER } from './application/tokens';
 import { EmailSyncProcessor } from './infrastructure/email-sync.processor';
 import { NotificationsRepository } from './infrastructure/notifications.repository';
+import { FcmPushService } from './infrastructure/fcm-push.service';
 import { PushSenderService } from './infrastructure/push-sender.service';
 import { ResendEmailAdapter } from './infrastructure/resend-email.adapter';
 import { NotificationsController } from './presentation/notifications.controller';
@@ -25,6 +26,7 @@ import { NotificationsGateway } from './presentation/notifications.gateway';
     NotificationsGateway,
     PushTokensService,
     PushSenderService,
+    FcmPushService,
     ResendEmailAdapter,
     {
       provide: EMAIL_SENDER,

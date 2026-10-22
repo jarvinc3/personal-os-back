@@ -70,6 +70,10 @@ export type CreateTransferCommand = {
   fee?: TransferFeeCommand | null;
   /** Creates the destination leg as PENDING while the money is in transit. */
   destinationPending?: boolean;
+  /** Rate from the source currency to the destination currency. */
+  exchangeRate?: number;
+  /** Amount that actually enters the destination account, in its currency. */
+  receivedAmount?: number;
   source?: 'MANUAL' | 'EMAIL' | 'AI';
   fromEmailMessageId?: string;
   toEmailMessageId?: string;
@@ -147,4 +151,5 @@ export type TransactionUpdateFields = {
   ledgerCurrency?: string;
   amountBaseCurrency?: number;
   exchangeRate?: number;
+  isEstimated?: boolean;
 };

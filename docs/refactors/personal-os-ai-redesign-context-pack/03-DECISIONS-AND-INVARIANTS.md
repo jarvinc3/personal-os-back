@@ -23,7 +23,7 @@ Before doing so:
 PROD runs on its own database and environment.
 
 - Phase 0 deletes legacy code and resets migrations **in the repository and DEV only**.
-- PROD keeps running the current released version (including legacy email import and chat) until the owner explicitly decides to deploy `0.50.0`.
+- PROD keeps running the current released version (including legacy email import and chat) until the owner explicitly decides to deploy `0.100.0`.
 - Migrations (including the new baseline) are executed only against DEV by agents. Applying the baseline to PROD is a separate, owner-executed deploy step.
 - Inspecting PROD `_prisma_migrations` is read-only.
 
@@ -41,7 +41,7 @@ Open balance, ledger, planning, card, loan and reconciliation bugs (e.g. the QA 
 Backend and frontend target:
 
 ```text
-0.50.0
+0.100.0
 ```
 
 The CHANGELOG should describe the architecture reset coherently rather than pretending every internal phase is a separate product release.

@@ -26,7 +26,21 @@ describe('CreateTransferUseCase', () => {
     amountBaseCurrency: 50,
     exchangeRate: 1,
   });
-  const resolveAmounts = { execute } as unknown as ResolveAmountsUseCase;
+  const resolveTransferDestination = jest.fn().mockResolvedValue({
+    amounts: {
+      amount: 50,
+      currency: 'DOP',
+      ledgerAmount: 50,
+      ledgerCurrency: 'DOP',
+      amountBaseCurrency: 50,
+      exchangeRate: 1,
+    },
+    estimated: false,
+  });
+  const resolveAmounts = {
+    execute,
+    resolveTransferDestination,
+  } as unknown as ResolveAmountsUseCase;
   const processBatch = jest.fn();
   const outboxDispatcher = {
     processBatch,
@@ -103,7 +117,10 @@ describe('CreateTransferUseCase', () => {
       transactionDate: '2026-08-01',
     });
     expect(createdTransfer.transferGroupId).toBe('grp-1');
-    expect(execute.mock.calls).toHaveLength(2);
+    expect(execute.mock.calls).toHaveLength(1);
+    expect(resolveTransferDestination).toHaveBeenCalledWith(
+      expect.objectContaining({ sourceAmount: 50, sourceCurrency: 'DOP' }),
+    );
     expect(createTransfer).toHaveBeenCalled();
     expect(processBatch).toHaveBeenCalled();
   });
@@ -153,7 +170,7 @@ describe('CreateTransferUseCase', () => {
       fee: { amount: 5 },
     });
 
-    expect(execute.mock.calls).toHaveLength(3);
+    expect(execute.mock.calls).toHaveLength(2);
     const transferInput = createTransfer.mock.calls[0][0] as {
       feeAmounts?: unknown;
     };

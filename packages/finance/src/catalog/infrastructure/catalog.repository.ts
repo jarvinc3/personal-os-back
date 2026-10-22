@@ -99,6 +99,14 @@ export class CatalogRepository {
     });
   }
 
+  async hasSavingsGoalMoney(accountId: string): Promise<boolean> {
+    const goal = await this.prisma.finSavingsGoal.findFirst({
+      where: { accountId, currentAmount: { gt: 0 } },
+      select: { id: true },
+    });
+    return goal !== null;
+  }
+
   async sumEarmarkedByAccountIds(
     userId: string,
     accountIds: string[],

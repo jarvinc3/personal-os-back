@@ -11,7 +11,7 @@ describe('logicalTransactionsWhere', () => {
             { transferGroupId: null },
             {
               transferGroupId: { not: null },
-              type: 'DEBIT',
+              type: { in: ['DEBIT', 'CARD_PAYMENT'] },
               OR: [{ legRole: null }, { legRole: 'SOURCE' }],
             },
           ],
@@ -47,7 +47,7 @@ describe('logicalTransactionsWhere', () => {
       expect.arrayContaining([
         {
           transferGroupId: { not: null },
-          type: 'DEBIT',
+          type: { in: ['DEBIT', 'CARD_PAYMENT'] },
           OR: [{ legRole: null }, { legRole: 'SOURCE' }],
         },
       ]),
@@ -76,7 +76,7 @@ describe('logicalTransactionsWhere', () => {
             { transferGroupId: null, accountId: 'acc-to' },
             {
               transferGroupId: { in: ['grp-1'] },
-              type: 'DEBIT',
+              type: { in: ['DEBIT', 'CARD_PAYMENT'] },
               OR: [{ legRole: null }, { legRole: 'SOURCE' }],
             },
           ],

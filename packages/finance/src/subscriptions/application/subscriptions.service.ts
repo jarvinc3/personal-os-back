@@ -19,6 +19,7 @@ import { normalizeMerchant } from '../../merchants/domain/normalize-merchant';
 import { FinanceOwnershipService } from '../../shared/application/finance-ownership.service';
 import type { SubscriptionMatcherPort } from '../../shared/application/subscription-matcher.port';
 import {
+  normalizeCurrencyCode,
   ratioPercent,
   roundDecimal,
   scalarNumber,
@@ -137,18 +138,21 @@ export class SubscriptionsService implements SubscriptionMatcherPort {
     const monthlyBuckets = new Map<string, Prisma.Decimal>();
     const annualBuckets = new Map<string, Prisma.Decimal>();
     const previousBuckets = new Map<string, Prisma.Decimal>();
+    const activeByCurrency = new Map<string, number>();
     for (const row of active) {
       const amount = toMoney(row.amount);
       const cycle = row.billingCycle;
       const interval = row.billingInterval;
+      const currency = normalizeCurrencyCode(row.currency);
+      activeByCurrency.set(currency, (activeByCurrency.get(currency) ?? 0) + 1);
       this.addToBucket(
         monthlyBuckets,
-        row.currency,
+        currency,
         monthlyCost({ amount, cycle, interval }),
       );
       this.addToBucket(
         annualBuckets,
-        row.currency,
+        currency,
         annualCost({ amount, cycle, interval }),
       );
       // The previous price is the charge before the newest one; without a
@@ -157,7 +161,7 @@ export class SubscriptionsService implements SubscriptionMatcherPort {
       const previousAmount = history[1] ? toMoney(history[1].amount) : amount;
       this.addToBucket(
         previousBuckets,
-        row.currency,
+        currency,
         monthlyCost({ amount: previousAmount, cycle, interval }),
       );
     }
@@ -218,6 +222,16 @@ export class SubscriptionsService implements SubscriptionMatcherPort {
       activeCount: active.length,
       monthlyCost: monthlyTotal.toFixed(2),
       annualCost: annualTotal.toFixed(2),
+      byCurrency: [...monthlyBuckets.entries()]
+        .map(([currency, monthly]) => ({
+          currency,
+          monthlyCost: monthly.toFixed(2),
+          annualCost: (
+            annualBuckets.get(currency) ?? new Prisma.Decimal(0)
+          ).toFixed(2),
+          activeCount: activeByCurrency.get(currency) ?? 0,
+        }))
+        .sort((left, right) => left.currency.localeCompare(right.currency)),
       previousMonthlyCost: previousMonthlyTotal.toFixed(2),
       realSpendThisMonth: realSpendThisMonth.toFixed(2),
       realSpendPreviousMonth: realSpendPreviousMonth.toFixed(2),

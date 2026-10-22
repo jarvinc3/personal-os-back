@@ -115,7 +115,7 @@ describe('UsersService.assertModuleEnabled', () => {
     findEnabledUserModuleBySlug.mockResolvedValue(null);
     await expect(
       service.assertModuleEnabled('user-1', 'finance'),
-    ).rejects.toThrow('El módulo finance está desactivado');
+    ).rejects.toThrow('La app Finanzas está desactivada');
   });
 });
 
@@ -395,5 +395,72 @@ describe('UsersService.markReleaseNotesSeen', () => {
     ).resolves.toBeUndefined();
 
     expect(setLastSeenReleaseVersion).toHaveBeenCalledWith('user-1', '0.39.0');
+  });
+});
+
+describe('UsersService.updateProfile', () => {
+  const findById = jest.fn();
+  const updateProfile = jest.fn();
+  const usersRepository = {
+    findById,
+    updateProfile,
+  } as unknown as UsersRepositoryPort;
+  const eventEmitter = { emit: jest.fn() } as unknown as EventEmitter2;
+  const supabaseAdminService = {
+    tryDeleteAuthUser: jest.fn(),
+  } as unknown as SupabaseAdminService;
+
+  const service = new UsersService(
+    usersRepository,
+    eventEmitter,
+    supabaseAdminService,
+  );
+
+  const profileRow = {
+    id: 'user-1',
+    email: 'u@example.com',
+    fullName: 'User',
+    avatarUrl: null,
+    timezone: 'America/Santo_Domingo',
+    locale: 'es-DO',
+    preferences: {},
+    lastSeenReleaseVersion: null,
+    userModules: [],
+    createdAt: new Date('2026-10-01T00:00:00.000Z'),
+    updatedAt: new Date('2026-10-01T00:00:00.000Z'),
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    findById.mockResolvedValue(profileRow);
+    updateProfile.mockImplementation(
+      (_userId: string, data: Record<string, unknown>) =>
+        Promise.resolve({ ...profileRow, ...data }),
+    );
+  });
+
+  it('rejects a week start outside the supported values', async () => {
+    await expect(
+      service.updateProfile('user-1', {
+        preferences: { regional: { weekStartsOn: 3 } },
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+
+    expect(updateProfile).not.toHaveBeenCalled();
+  });
+
+  it('persists the regional week start', async () => {
+    await service.updateProfile('user-1', {
+      preferences: { regional: { weekStartsOn: 0 } },
+    });
+
+    expect(updateProfile).toHaveBeenCalledWith(
+      'user-1',
+      expect.objectContaining({
+        preferences: expect.objectContaining({
+          regional: { weekStartsOn: 0 },
+        }),
+      }),
+    );
   });
 });

@@ -4,6 +4,7 @@ import {
   IsBoolean,
   IsDateString,
   IsEnum,
+  IsNotEmpty,
   IsNumber,
   IsOptional,
   IsString,
@@ -15,6 +16,7 @@ import { CurrencyField } from '../../../shared/presentation/validation.decorator
 export class CreateSavingsGoalDto {
   @ApiProperty()
   @IsString()
+  @IsNotEmpty()
   @MaxLength(120)
   name!: string;
 

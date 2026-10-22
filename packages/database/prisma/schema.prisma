@@ -199,6 +199,8 @@ model FinAccount {
   cards          FinCard[]
   transactions   FinTransaction[]
   finLoans       FinLoan[]
+  loanDisbursements FinLoan[] @relation("LoanDisbursementAccount")
+  goalWithdrawalDestinations FinSavingsGoalContribution[] @relation("GoalWithdrawalDestination")
   subscriptions  FinSubscription[]
   receivablePayments FinReceivablePayment[]
   savingsGoalContributions FinSavingsGoalContribution[]
@@ -308,6 +310,8 @@ model FinTransaction {
   ledgerCurrency       String               @default("DOP") @map("ledger_currency")
   /// Rate used for original → ledger conversion (1 when same currency).
   exchangeRate         Decimal              @default(1) @map("exchange_rate") @db.Decimal(18, 8)
+  /// Transfer rate came from the market quote instead of a received amount or a user rate.
+  isEstimated          Boolean              @default(false) @map("is_estimated")
   merchant             String?
   /// Canonical merchant resolved from `merchant`; `merchant` keeps the raw text.
   merchantId           String?              @map("merchant_id")
@@ -337,6 +341,7 @@ model FinTransaction {
   receivablePayment    FinReceivablePayment?
   subscriptionPayments FinSubscriptionPayment[]
   savingsGoalContribution FinSavingsGoalContribution?
+  loanDisbursement      FinLoan? @relation("LoanDisbursementTransaction")
   loanInstallment      FinLoanInstallment?
   loanPrepayment       FinLoanPrepayment?
   statementImportLines FinStatementImportLine[]
@@ -784,17 +789,21 @@ model FinSavingsGoalContribution {
   contributedAt DateTime       @map("contributed_at") @db.Date
   /// Account the money left. Null only after that account is deleted.
   accountId     String?        @map("account_id")
+  /// Account that received a withdrawal; null for a contribution.
+  destinationAccountId String? @map("destination_account_id")
   transactionId String?        @unique @map("transaction_id")
   kind          FinAllocationKind @default(CONTRIBUTION)
   transferGroupId String?      @map("transfer_group_id")
   notes         String?
   createdAt     DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
   account       FinAccount?    @relation(fields: [accountId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  destinationAccount FinAccount? @relation("GoalWithdrawalDestination", fields: [destinationAccountId], references: [id], onDelete: SetNull, onUpdate: NoAction)
   goal          FinSavingsGoal @relation(fields: [goalId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   transaction   FinTransaction? @relation(fields: [transactionId], references: [id], onDelete: SetNull, onUpdate: NoAction)
 
   @@index([goalId, contributedAt], map: "fin_savings_goal_contributions_goal_id_date_idx")
   @@index([accountId], map: "fin_savings_goal_contributions_account_id_idx")
+  @@index([destinationAccountId], map: "fin_savings_goal_contributions_destination_account_id_idx")
   @@map("fin_savings_goal_contributions")
 }
 
@@ -803,6 +812,8 @@ model FinLoan {
   userId            String             @map("user_id")
   institutionId     String?            @map("institution_id")
   accountId         String?            @map("account_id")
+  /// Optional alias that distinguishes loans from the same lender.
+  name              String?
   lenderName        String             @map("lender_name")
   originalAmount    Decimal            @map("original_amount") @db.Decimal(15, 2)
   currentBalance    Decimal            @map("current_balance") @db.Decimal(15, 2)
@@ -818,11 +829,17 @@ model FinLoan {
   lateFeePolicy     Json?              @map("late_fee_policy")
   prepaymentPenaltyPct Decimal?        @map("prepayment_penalty_pct") @db.Decimal(5, 4)
   disbursementDate  DateTime?          @map("disbursement_date") @db.Date
+  /// Account that received the disbursed principal; null when it was not recorded.
+  disbursementAccountId String?        @map("disbursement_account_id")
+  /// Movement that credited the disbursed principal to the account.
+  disbursementTransactionId String?    @unique @map("disbursement_transaction_id")
   notes             String?
   isActive          Boolean            @default(true) @map("is_active")
   createdAt         DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt         DateTime           @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   account           FinAccount?        @relation(fields: [accountId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  disbursementAccount FinAccount?      @relation("LoanDisbursementAccount", fields: [disbursementAccountId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  disbursementTransaction FinTransaction? @relation("LoanDisbursementTransaction", fields: [disbursementTransactionId], references: [id], onDelete: SetNull, onUpdate: NoAction)
   institution       FinInstitution?    @relation(fields: [institutionId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   installments      FinLoanInstallment[]
   prepayments       FinLoanPrepayment[]
@@ -830,6 +847,7 @@ model FinLoan {
 
   @@index([userId, isActive, nextDueDate], map: "fin_loans_user_id_active_due_idx")
   @@index([accountId], map: "fin_loans_account_id_idx")
+  @@index([disbursementAccountId], map: "fin_loans_disbursement_account_id_idx")
   @@index([institutionId], map: "fin_loans_institution_id_idx")
   @@map("fin_loans")
 }

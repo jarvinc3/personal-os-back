@@ -24,10 +24,15 @@ import { PurgeInstrumentLedgerUseCase } from './application/purge-instrument-led
 import { RestoreInstrumentLedgerUseCase } from './application/restore-instrument-ledger.use-case';
 import { RestoreTransactionUseCase } from './application/restore-transaction.use-case';
 import { ReverseTransactionUseCase } from './application/reverse-transaction.use-case';
+import { ReverseTransferUseCase } from './application/reverse-transfer.use-case';
 import { UpdateTransactionUseCase } from './application/update-transaction.use-case';
 import { UnconfirmTransactionUseCase } from './application/unconfirm-transaction.use-case';
 import { UpdateTransferUseCase } from './application/update-transfer.use-case';
 import { UnconfirmTransferUseCase } from './application/unconfirm-transfer.use-case';
+import { PrismaLedgerDeletionRepository } from './infrastructure/prisma-ledger-deletion.repository';
+import { PrismaLedgerEmailImportRepository } from './infrastructure/prisma-ledger-email-import.repository';
+import { PrismaLedgerWriteRepository } from './infrastructure/prisma-ledger-write.repository';
+import { PrismaLedgerReadRepository } from './infrastructure/prisma-ledger-read.repository';
 import { PrismaLedgerRepository } from './infrastructure/prisma-ledger.repository';
 import { TransactionsController } from './presentation/transactions.controller';
 import { TransfersController } from './presentation/transfers.controller';
@@ -51,6 +56,10 @@ import { CardPaymentsController } from './presentation/card-payments.controller'
   ],
   providers: [
     PrismaLedgerRepository,
+    PrismaLedgerReadRepository,
+    PrismaLedgerDeletionRepository,
+    PrismaLedgerEmailImportRepository,
+    PrismaLedgerWriteRepository,
     { provide: LEDGER_REPOSITORY, useExisting: PrismaLedgerRepository },
     LedgerQueryService,
     CreateTransactionUseCase,
@@ -68,6 +77,7 @@ import { CardPaymentsController } from './presentation/card-payments.controller'
     UpdateTransferUseCase,
     UnconfirmTransferUseCase,
     ConfirmTransferUseCase,
+    ReverseTransferUseCase,
     CreateCardPaymentUseCase,
     UpdateCardPaymentUseCase,
     ReverseTransactionUseCase,
@@ -91,6 +101,7 @@ import { CardPaymentsController } from './presentation/card-payments.controller'
     UpdateTransferUseCase,
     UnconfirmTransferUseCase,
     ConfirmTransferUseCase,
+    ReverseTransferUseCase,
     CreateCardPaymentUseCase,
     UpdateCardPaymentUseCase,
     ReverseTransactionUseCase,

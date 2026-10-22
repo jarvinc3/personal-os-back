@@ -3,6 +3,8 @@ import type { SyncLoanInstallmentsUseCase } from './sync-loan-installments.use-c
 import type { PlanningRepository } from '../infrastructure/planning.repository';
 import type { FinanceOwnershipService } from '../../shared/application/finance-ownership.service';
 import type { LedgerQueryService } from '../../ledger/application/ledger-query.service';
+import type { AdjustBalanceUseCase } from '../../ledger/application/adjust-balance.use-case';
+import type { DeleteTransactionUseCase } from '../../ledger/application/delete-transaction.use-case';
 
 describe('PlanningService budgets', () => {
   const now = new Date('2026-11-01T12:00:00.000Z');
@@ -40,6 +42,8 @@ describe('PlanningService budgets', () => {
       ownership,
       syncInstallments,
       ledger,
+      {} as unknown as AdjustBalanceUseCase,
+      {} as unknown as DeleteTransactionUseCase,
     );
 
     await service.getBudgetTransactions('user-1', 'budget-1', {
@@ -100,6 +104,8 @@ describe('PlanningService budgets', () => {
       ownership,
       syncInstallments,
       ledger,
+      {} as unknown as AdjustBalanceUseCase,
+      {} as unknown as DeleteTransactionUseCase,
     );
 
     await expect(service.createRecurringBudgets(now)).resolves.toEqual({

@@ -18,6 +18,15 @@ const installmentFreqs = ['WEEKLY', 'BIWEEKLY', 'MONTHLY'] as const;
 
 /** Fields shared by creating and editing a loan. */
 export class LoanFieldsDto {
+  @ApiPropertyOptional({
+    description:
+      'Alias opcional para distinguir préstamos del mismo prestamista.',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  name?: string | null;
+
   @ApiProperty()
   @IsString()
   @MaxLength(120)

@@ -300,7 +300,10 @@ export class AiChatPersistenceService {
       throw new NotFoundException('Sesión de IA no encontrada');
     }
 
-    const prefs = parseUserPreferences(user.preferences, user.timezone);
+    const prefs = parseUserPreferences(user.preferences, {
+      timezone: user.timezone,
+      locale: user.locale,
+    });
     const memorySnapshot =
       (session.memorySnapshot as Record<string, unknown>) ?? {};
     const moduleSlug =

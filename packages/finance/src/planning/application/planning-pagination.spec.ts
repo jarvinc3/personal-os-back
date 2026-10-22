@@ -3,6 +3,8 @@ import type { PlanningRepository } from '../infrastructure/planning.repository';
 import type { FinanceOwnershipService } from '../../shared/application/finance-ownership.service';
 import type { SyncLoanInstallmentsUseCase } from './sync-loan-installments.use-case';
 import type { LedgerQueryService } from '../../ledger/application/ledger-query.service';
+import type { AdjustBalanceUseCase } from '../../ledger/application/adjust-balance.use-case';
+import type { DeleteTransactionUseCase } from '../../ledger/application/delete-transaction.use-case';
 
 function createService(repo: PlanningRepository): PlanningService {
   return new PlanningService(
@@ -10,6 +12,8 @@ function createService(repo: PlanningRepository): PlanningService {
     {} as unknown as FinanceOwnershipService,
     {} as unknown as SyncLoanInstallmentsUseCase,
     {} as unknown as LedgerQueryService,
+    {} as unknown as AdjustBalanceUseCase,
+    {} as unknown as DeleteTransactionUseCase,
   );
 }
 

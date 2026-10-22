@@ -196,8 +196,12 @@ export const envSchema = z
       .transform((v) => v.toUpperCase()),
     EXCHANGE_RATE_HOST_API_KEY: optionalApiKey,
 
-    // ── Push (Expo + Web Push) ───────────────────────────────────
+    // ── Push (FCM Android + Web Push) ───────────────────────────
     EXPO_ACCESS_TOKEN: optionalApiKey,
+    /** Service account JSON inline; alternative to the file path below. */
+    FIREBASE_SERVICE_ACCOUNT_JSON: optionalApiKey,
+    /** Path to the service account JSON, kept outside the repository. */
+    FIREBASE_SERVICE_ACCOUNT_PATH: optionalApiKey,
     VAPID_PUBLIC_KEY: optionalApiKey,
     VAPID_PRIVATE_KEY: optionalApiKey,
     VAPID_SUBJECT: z

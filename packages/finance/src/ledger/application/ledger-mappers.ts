@@ -85,6 +85,9 @@ export type MappedTransaction = {
   transferToAccountName: string | null;
   transferToCardId: string | null;
   transferToCardName: string | null;
+  transferToAmount: string | null;
+  transferToCurrency: string | null;
+  transferEstimated: boolean;
   institutionLogoUrl: string | null;
   network: string | null;
   networkLogoUrl: string | null;
@@ -159,6 +162,9 @@ function mapPhysicalTransaction(
     transferToAccountName: null,
     transferToCardId: null,
     transferToCardName: null,
+    transferToAmount: null,
+    transferToCurrency: null,
+    transferEstimated: false,
     institutionLogoUrl: origin.institutionLogoUrl,
     network: origin.network,
     networkLogoUrl: origin.networkLogoUrl,
@@ -247,7 +253,7 @@ export function mapLogicalTransaction(
     amountBaseCurrency: decimalToString(from.amountBaseCurrency),
     currency: from.currency,
     ledgerCurrency: from.ledgerCurrency,
-    exchangeRate: decimalToString(from.exchangeRate),
+    exchangeRate: decimalToString(to?.exchangeRate ?? from.exchangeRate),
     merchant: from.merchant,
     merchantId: from.merchantId ?? null,
     merchantName: from.merchantRef?.name ?? null,
@@ -265,6 +271,9 @@ export function mapLogicalTransaction(
     transferToAccountName: destination.accountName,
     transferToCardId: destination.cardId,
     transferToCardName: destination.cardName,
+    transferToAmount: to ? decimalToString(to.ledgerAmount) : null,
+    transferToCurrency: to ? (to.ledgerCurrency ?? to.currency) : null,
+    transferEstimated: Boolean(to?.isEstimated ?? from.isEstimated),
     institutionLogoUrl: origin.institutionLogoUrl,
     network: origin.network,
     networkLogoUrl: origin.networkLogoUrl,

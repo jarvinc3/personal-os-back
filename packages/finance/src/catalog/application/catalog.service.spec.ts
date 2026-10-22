@@ -1,3 +1,4 @@
+import { CatalogCategoriesService } from './catalog-categories.service';
 import { CatalogService } from './catalog.service';
 import type { CatalogRepository } from '../infrastructure/catalog.repository';
 import type { FinanceOwnershipService } from '../../shared/application/finance-ownership.service';
@@ -89,6 +90,7 @@ function createService(
   return new CatalogService(
     repo,
     ownership,
+    new CatalogCategoriesService(repo, ownership),
     purge,
     ensureMock(),
     baseCurrencyMock(),
@@ -342,6 +344,47 @@ describe('CatalogService updateAccount number', () => {
       service.updateAccount('user-1', 'acc-1', { name: 'Nómina 2' }),
     ).rejects.toThrow(/account number/i);
     expect(updateAccount).not.toHaveBeenCalled();
+  });
+
+  it('refuses to archive an account with money set aside in a goal', async () => {
+    const local = createService(
+      {
+        ...repo,
+        hasSavingsGoalMoney: jest.fn().mockResolvedValue(true),
+      } as unknown as CatalogRepository,
+      ownershipMock(),
+      purgeMock(),
+    );
+
+    await expect(
+      local.updateAccount('user-1', 'acc-1', { isActive: false }),
+    ).rejects.toMatchObject({
+      response: { code: 'ACCOUNT_HAS_GOAL_MONEY' },
+    });
+    expect(updateAccount).not.toHaveBeenCalled();
+  });
+
+  it('archives an account when no goal keeps money there', async () => {
+    updateAccount.mockResolvedValue({ ...existing, isActive: false });
+    const local = createService(
+      {
+        ...repo,
+        hasSavingsGoalMoney: jest.fn().mockResolvedValue(false),
+      } as unknown as CatalogRepository,
+      ownershipMock(),
+      purgeMock(),
+    );
+
+    await local.updateAccount('user-1', 'acc-1', {
+      isActive: false,
+      accountNumber: '001122335678',
+    });
+
+    expect(updateAccount).toHaveBeenCalledWith(
+      'acc-1',
+      'user-1',
+      expect.objectContaining({ isActive: false }),
+    );
   });
 
   it('saves the account number on edit', async () => {

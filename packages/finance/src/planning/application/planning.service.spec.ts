@@ -4,6 +4,8 @@ import type { SyncLoanInstallmentsUseCase } from './sync-loan-installments.use-c
 import type { PlanningRepository } from '../infrastructure/planning.repository';
 import type { FinanceOwnershipService } from '../../shared/application/finance-ownership.service';
 import type { LedgerQueryService } from '../../ledger/application/ledger-query.service';
+import type { AdjustBalanceUseCase } from '../../ledger/application/adjust-balance.use-case';
+import type { DeleteTransactionUseCase } from '../../ledger/application/delete-transaction.use-case';
 
 describe('PlanningService archive and receivables', () => {
   const now = new Date('2026-09-15T12:00:00.000Z');
@@ -32,6 +34,7 @@ describe('PlanningService archive and receivables', () => {
   const assertLoanAccountAlignment = jest.fn();
   const ownership = {
     assertInstitutionOwned: jest.fn(),
+    assertAccountOwned: jest.fn(),
     assertLoanAccountAlignment,
     assertCategoryVisible: jest.fn(),
     assertExpenseCategory: jest.fn(),
@@ -44,12 +47,21 @@ describe('PlanningService archive and receivables', () => {
   const ledger = {
     listTransactions: jest.fn(),
   } as unknown as LedgerQueryService;
+  const adjustBalanceExecute = jest.fn();
+  const adjustBalance = {
+    execute: adjustBalanceExecute,
+  } as unknown as AdjustBalanceUseCase;
+  const deleteTransaction = {
+    execute: jest.fn(),
+  } as unknown as DeleteTransactionUseCase;
 
   const service = new PlanningService(
     repo,
     ownership,
     syncInstallments,
     ledger,
+    adjustBalance,
+    deleteTransaction,
   );
 
   beforeEach(() => {
@@ -82,6 +94,8 @@ describe('PlanningService archive and receivables', () => {
       ownership,
       syncInstallments,
       ledger,
+      adjustBalance,
+      deleteTransaction,
     );
     await expect(local.deleteLoan('user-1', 'loan-1')).resolves.toEqual({
       success: true,
@@ -96,6 +110,8 @@ describe('PlanningService archive and receivables', () => {
       ownership,
       syncInstallments,
       ledger,
+      adjustBalance,
+      deleteTransaction,
     );
     await expect(local.deleteLoan('user-1', 'missing')).rejects.toThrow(
       /no encontrad/i,
@@ -109,6 +125,8 @@ describe('PlanningService archive and receivables', () => {
       ownership,
       syncInstallments,
       ledger,
+      adjustBalance,
+      deleteTransaction,
     );
     await expect(local.deleteReceivable('user-1', 'rec-1')).resolves.toEqual({
       success: true,
@@ -123,6 +141,8 @@ describe('PlanningService archive and receivables', () => {
       ownership,
       syncInstallments,
       ledger,
+      adjustBalance,
+      deleteTransaction,
     );
     await expect(local.deleteReceivable('user-1', 'missing')).rejects.toThrow(
       /no encontrad/i,
@@ -302,6 +322,8 @@ describe('PlanningService archive and receivables', () => {
       } as unknown as FinanceOwnershipService,
       syncInstallments,
       ledger,
+      adjustBalance,
+      deleteTransaction,
     );
 
     await expect(
@@ -321,6 +343,150 @@ describe('PlanningService archive and receivables', () => {
       ),
     ).rejects.toThrow(/Efectivo no admite/i);
     expect(createLoan).not.toHaveBeenCalled();
+  });
+
+  it('credits the disbursement account and links the movement', async () => {
+    (ownership.assertAccountOwned as jest.Mock).mockResolvedValue({
+      id: 'acc-1',
+      balance: 500,
+      currency: 'DOP',
+      isActive: true,
+    });
+    adjustBalanceExecute.mockResolvedValue({
+      adjusted: true,
+      transaction: { id: 'tx-1' },
+    });
+    createLoan.mockResolvedValue({
+      id: 'loan-1',
+      name: 'Carro',
+      originalAmount: 1000,
+      currentBalance: 1000,
+      installmentAmount: 100,
+      interestRate: null,
+      currency: 'DOP',
+    });
+
+    await service.createLoan(
+      'user-1',
+      {
+        name: 'Carro',
+        lenderName: 'BHD',
+        disbursementAccountId: 'acc-1',
+        originalAmount: 1000,
+        currentBalance: 1000,
+        installmentAmount: 100,
+        installmentFreq: 'MONTHLY',
+        totalInstallments: 12,
+        nextDueDate: '2026-09-01',
+      },
+      now,
+    );
+
+    expect(adjustBalanceExecute).toHaveBeenCalledWith(
+      'user-1',
+      expect.objectContaining({
+        accountId: 'acc-1',
+        balance: 1500,
+        description: expect.stringContaining('Carro'),
+      }),
+    );
+    expect(createLoan).toHaveBeenCalledWith(
+      'user-1',
+      expect.objectContaining({
+        name: 'Carro',
+        disbursementAccountId: 'acc-1',
+        disbursementTransactionId: 'tx-1',
+      }),
+    );
+  });
+
+  it('creates a loan without a movement when no account received the money', async () => {
+    createLoan.mockResolvedValue({
+      id: 'loan-1',
+      originalAmount: 1000,
+      currentBalance: 1000,
+      installmentAmount: 100,
+      interestRate: null,
+      currency: 'DOP',
+    });
+
+    await service.createLoan(
+      'user-1',
+      {
+        lenderName: 'BHD',
+        originalAmount: 1000,
+        currentBalance: 1000,
+        installmentAmount: 100,
+        installmentFreq: 'MONTHLY',
+        totalInstallments: 12,
+        nextDueDate: '2026-09-01',
+      },
+      now,
+    );
+
+    expect(adjustBalanceExecute).not.toHaveBeenCalled();
+    expect(createLoan).toHaveBeenCalledWith(
+      'user-1',
+      expect.objectContaining({
+        name: null,
+        disbursementAccountId: undefined,
+      }),
+    );
+  });
+
+  it('rejects a disbursement account in another currency', async () => {
+    (ownership.assertAccountOwned as jest.Mock).mockResolvedValue({
+      id: 'acc-1',
+      balance: 500,
+      currency: 'USD',
+      isActive: true,
+    });
+
+    await expect(
+      service.createLoan(
+        'user-1',
+        {
+          lenderName: 'BHD',
+          disbursementAccountId: 'acc-1',
+          originalAmount: 1000,
+          currentBalance: 1000,
+          installmentAmount: 100,
+          installmentFreq: 'MONTHLY',
+          totalInstallments: 12,
+          nextDueDate: '2026-09-01',
+        },
+        now,
+      ),
+    ).rejects.toThrow(/moneda del préstamo/i);
+    expect(adjustBalanceExecute).not.toHaveBeenCalled();
+  });
+
+  it('updates the loan alias without touching the disbursement', async () => {
+    findLoan.mockResolvedValue({
+      id: 'loan-1',
+      institutionId: null,
+      accountId: null,
+      originalAmount: 1000,
+      currentBalance: 800,
+      currency: 'DOP',
+    });
+    updateLoan.mockResolvedValue({
+      id: 'loan-1',
+      name: 'Carro',
+      originalAmount: 1000,
+      currentBalance: 800,
+      installmentAmount: 100,
+      interestRate: null,
+      currency: 'DOP',
+    });
+
+    await service.updateLoan('user-1', 'loan-1', { name: '  Carro  ' }, now);
+
+    expect(updateLoan).toHaveBeenCalledWith(
+      'user-1',
+      'loan-1',
+      expect.objectContaining({ name: 'Carro' }),
+    );
   });
 
   it('serializes created loan money and rate as strings', async () => {
@@ -374,6 +540,8 @@ describe('PlanningService savings goal updates', () => {
     {} as unknown as FinanceOwnershipService,
     {} as unknown as SyncLoanInstallmentsUseCase,
     {} as unknown as LedgerQueryService,
+    {} as unknown as AdjustBalanceUseCase,
+    {} as unknown as DeleteTransactionUseCase,
   );
 
   beforeEach(() => {

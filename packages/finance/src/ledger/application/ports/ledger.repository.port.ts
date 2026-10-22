@@ -1,6 +1,7 @@
 import type { BudgetSpendSnapshot } from '../../../shared/domain/budget-snapshot';
 import type { StoredMovement } from '../../../shared/domain/deletion-snapshot';
 import type { RestoreResult } from '../../../shared/domain/deletion-snapshot';
+import type { LedgerCardType } from '../../../shared/domain/ledger-rules';
 import type { ResolvedAmounts } from '../../../shared/domain/money';
 import type { TransactionLinkKind } from '../../../shared/domain/transaction-links';
 import type {
@@ -26,6 +27,7 @@ export type LedgerTransactionRow = {
   currency: string;
   ledgerCurrency?: string | null;
   exchangeRate?: { toString(): string } | number | null;
+  isEstimated?: boolean;
   merchant: string | null;
   merchantId?: string | null;
   merchantRef?: {
@@ -101,6 +103,25 @@ export type BalanceAdjustmentTarget = {
   currentBalance: number;
 };
 
+/** The leg the email import creates on the other side of an imported movement. */
+export type EmailTransferCounterpart = {
+  accountId?: string;
+  cardId?: string;
+  amounts: ResolvedAmounts;
+  description?: string | null;
+  notes?: string | null;
+  status: FinTxStatus;
+  emailMessageId?: string;
+  aiMetadata?: unknown;
+};
+
+/** Card a movement targets, with the currencies the card already declares. */
+export type CardLedgerContext = {
+  cardType: LedgerCardType;
+  accountId: string | null;
+  currencies: string[];
+};
+
 /**
  * Persistence port for ledger reads and multi-step writes
  * (balance + budget spent + outbox inside the same transaction).
@@ -128,6 +149,12 @@ export interface LedgerRepositoryPort {
     id: string,
     userId: string,
   ): Promise<{ id: string; currency: string } | null>;
+
+  /** Card with the currencies it declares, for the ledger target of a movement. */
+  findCardLedgerContext(
+    id: string,
+    userId: string,
+  ): Promise<CardLedgerContext | null>;
 
   /** Savings goal that earmarks this account, if any. */
   findSavingsGoalIdByAccount(
@@ -209,6 +236,8 @@ export interface LedgerRepositoryPort {
       accountId?: string | null;
       cardId?: string | null;
       amounts: ResolvedAmounts;
+      description?: string;
+      transactionDate?: Date;
     },
   ): Promise<CreateTransactionResult | null>;
 
@@ -231,6 +260,7 @@ export interface LedgerRepositoryPort {
     fromAmounts: ResolvedAmounts;
     toAmounts: ResolvedAmounts;
     feeAmounts?: ResolvedAmounts;
+    estimated: boolean;
   }): Promise<CreateTransferResult | null>;
 
   /** A card payment is two CARD_PAYMENT legs: account out, card available up. */
@@ -255,6 +285,7 @@ export interface LedgerRepositoryPort {
     creditTarget: { accountId: string | null; cardId: string | null };
     fromAmounts: ResolvedAmounts;
     toAmounts: ResolvedAmounts;
+    estimated: boolean;
     transactionDate: Date;
     description?: string | null;
     notes?: string | null;
@@ -328,6 +359,12 @@ export interface LedgerRepositoryPort {
     aiMetadata?: unknown,
   ): Promise<CreateTransactionResult | null>;
 
+  /** Reverts every CONFIRMED leg of an operation and marks it REVERSED. */
+  reverseTransactionsByTransferGroupId(
+    userId: string,
+    transferGroupId: string,
+  ): Promise<void>;
+
   createEmailImportTransaction(
     userId: string,
     data: ImportEmailTransactionCommand,
@@ -342,15 +379,6 @@ export interface LedgerRepositoryPort {
   addEmailTransferCounterpart(
     userId: string,
     existingId: string,
-    counterpart: {
-      accountId?: string;
-      cardId?: string;
-      amounts: ResolvedAmounts;
-      description?: string | null;
-      notes?: string | null;
-      status: FinTxStatus;
-      emailMessageId?: string;
-      aiMetadata?: unknown;
-    },
+    counterpart: EmailTransferCounterpart,
   ): Promise<CreateTransferResult | null>;
 }

@@ -23,6 +23,10 @@ import { UpdateModuleConfigDto } from '../presentation/dto/update-module-config.
 import { UpdateProfileDto } from '../presentation/dto/update-profile.dto';
 import { mergeWithDefaults } from '../domain/settings-merge';
 import {
+  readWeekStartsOnInput,
+  validateWeekStartsOn,
+} from '../domain/week-starts-on';
+import {
   USERS_REPOSITORY,
   type UserWithModulesRecord,
   type UsersRepositoryPort,
@@ -104,6 +108,13 @@ export class UsersService {
   }
 
   async updateProfile(userId: string, dto: UpdateProfileDto) {
+    const weekStartsOnError = validateWeekStartsOn(
+      readWeekStartsOnInput(dto.preferences),
+    );
+    if (weekStartsOnError) {
+      throw new BadRequestException(weekStartsOnError);
+    }
+
     const current = await this.findById(userId);
 
     let mergedPreferences = current.preferences as Record<string, unknown>;

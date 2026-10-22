@@ -56,7 +56,10 @@ export class AiProcessingProcessor extends WorkerHost {
       return;
     }
 
-    const prefs = parseUserPreferences(user.preferences, user.timezone);
+    const prefs = parseUserPreferences(user.preferences, {
+      timezone: user.timezone,
+      locale: user.locale,
+    });
     if (!prefs.ai.proactiveInsights) {
       this.logger.debug(
         `AI job skipped for user ${userId}: proactiveInsights disabled`,

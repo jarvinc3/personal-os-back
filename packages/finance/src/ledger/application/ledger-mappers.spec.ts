@@ -61,8 +61,43 @@ describe('mapLogicalTransaction', () => {
     expect(mapped.accountName).toBe('Nómina');
     expect(mapped.transferToAccountName).toBe('Ahorros');
     expect(mapped.transferToAccountId).toBe('acc-to');
+    expect(mapped.transferToAmount).toBe('50');
+    expect(mapped.transferToCurrency).toBe('DOP');
+    expect(mapped.transferEstimated).toBe(false);
     expect(mapped.institutionLogoUrl).toBeNull();
     expect(mapped.transferToNetworkLogoUrl).toBeNull();
+  });
+
+  it('reads the received amount and pair rate from the destination leg', () => {
+    const debit = row({
+      id: 'd1',
+      type: 'DEBIT',
+      accountId: 'acc-from',
+      transferGroupId: 'grp-1',
+      amount: 100,
+      ledgerAmount: 100,
+      exchangeRate: 1,
+    });
+    const credit = row({
+      id: 'c1',
+      type: 'CREDIT',
+      accountId: 'acc-to',
+      transferGroupId: 'grp-1',
+      amount: 19,
+      ledgerAmount: 19,
+      currency: 'USD',
+      ledgerCurrency: 'USD',
+      exchangeRate: 0.19,
+      isEstimated: false,
+    });
+
+    const mapped = mapLogicalTransaction(debit, credit);
+
+    expect(mapped.amount).toBe('100');
+    expect(mapped.exchangeRate).toBe('0.19');
+    expect(mapped.transferToAmount).toBe('19');
+    expect(mapped.transferToCurrency).toBe('USD');
+    expect(mapped.transferEstimated).toBe(false);
   });
 
   it('copies institution and network logos onto the origin and the counterpart', () => {

@@ -37,3 +37,7 @@ export function isXorTargetValid(
 ): boolean {
   return Boolean(accountId) !== Boolean(cardId);
 }
+
+export const CARD_CURRENCY_UNDECLARED = 'CARD_CURRENCY_UNDECLARED';
+export const CARD_CURRENCY_UNDECLARED_MESSAGE =
+  'La tarjeta tiene varias monedas y ninguna es la del movimiento. Agrega esa moneda a la tarjeta o usa otra cuenta.';

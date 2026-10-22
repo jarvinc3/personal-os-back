@@ -5,10 +5,26 @@ import {
   convertAmount,
   convertDecimal,
   normalizeCurrencyCode,
+  roundRate,
   type MoneyLike,
   type ResolvedAmounts,
 } from '../../shared/domain/money';
 import type { ExchangeRatePort } from './ports/exchange-rate.port';
+
+export type TransferDestinationInput = {
+  sourceAmount: number;
+  sourceCurrency: string;
+  destinationCurrency: string;
+  receivedAmount?: number;
+  exchangeRate?: number;
+  baseCurrency: string;
+  transactionDate: Date;
+};
+
+export type TransferDestinationAmounts = {
+  amounts: ResolvedAmounts;
+  estimated: boolean;
+};
 
 @Injectable()
 export class ResolveAmountsUseCase {
@@ -43,6 +59,75 @@ export class ResolveAmountsUseCase {
       amountBaseCurrency,
       exchangeRate: ledgerRate,
     };
+  }
+
+  /**
+   * Destination leg of a transfer. A received amount wins over a rate; without
+   * either, the market quote is used and the transfer is marked as estimated.
+   */
+  async resolveTransferDestination(
+    input: TransferDestinationInput,
+  ): Promise<TransferDestinationAmounts> {
+    const sourceCurrency = normalizeCurrencyCode(input.sourceCurrency);
+    const destinationCurrency = normalizeCurrencyCode(
+      input.destinationCurrency,
+    );
+    const crossCurrency = sourceCurrency !== destinationCurrency;
+
+    if (input.receivedAmount !== undefined) {
+      const received = input.receivedAmount;
+      return {
+        amounts: await this.fromDestinationAmount({
+          received,
+          pairRate: roundRate(received / input.sourceAmount),
+          destinationCurrency,
+          baseCurrency: input.baseCurrency,
+          transactionDate: input.transactionDate,
+        }),
+        estimated: false,
+      };
+    }
+
+    if (input.exchangeRate !== undefined) {
+      return {
+        amounts: await this.fromDestinationAmount({
+          received: convertAmount(input.sourceAmount, input.exchangeRate),
+          pairRate: roundRate(input.exchangeRate),
+          destinationCurrency,
+          baseCurrency: input.baseCurrency,
+          transactionDate: input.transactionDate,
+        }),
+        estimated: false,
+      };
+    }
+
+    return {
+      amounts: await this.execute({
+        amount: input.sourceAmount,
+        currency: sourceCurrency,
+        ledgerCurrency: destinationCurrency,
+        baseCurrency: input.baseCurrency,
+        transactionDate: input.transactionDate,
+      }),
+      estimated: crossCurrency,
+    };
+  }
+
+  private async fromDestinationAmount(input: {
+    received: number;
+    pairRate: number;
+    destinationCurrency: string;
+    baseCurrency: string;
+    transactionDate: Date;
+  }): Promise<ResolvedAmounts> {
+    const converted = await this.execute({
+      amount: input.received,
+      currency: input.destinationCurrency,
+      ledgerCurrency: input.destinationCurrency,
+      baseCurrency: input.baseCurrency,
+      transactionDate: input.transactionDate,
+    });
+    return { ...converted, exchangeRate: input.pairRate };
   }
 
   /**

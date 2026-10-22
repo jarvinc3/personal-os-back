@@ -125,4 +125,63 @@ describe('ResolveAmountsUseCase', () => {
       useCase.toBaseCurrencyOrNull('10', 'DOP', 'EUR', asOf),
     ).resolves.toBeNull();
   });
+
+  it('uses the received amount as the destination value', async () => {
+    const { useCase } = build();
+
+    const destination = await useCase.resolveTransferDestination({
+      sourceAmount: 100,
+      sourceCurrency: 'DOP',
+      destinationCurrency: 'USD',
+      receivedAmount: 2,
+      baseCurrency: 'USD',
+      transactionDate: asOf,
+    });
+
+    expect(destination.estimated).toBe(false);
+    expect(destination.amounts).toMatchObject({
+      amount: 2,
+      currency: 'USD',
+      ledgerAmount: 2,
+      ledgerCurrency: 'USD',
+      exchangeRate: 0.02,
+    });
+  });
+
+  it('computes the received amount from a user rate', async () => {
+    const { useCase } = build();
+
+    const destination = await useCase.resolveTransferDestination({
+      sourceAmount: 100,
+      sourceCurrency: 'DOP',
+      destinationCurrency: 'USD',
+      exchangeRate: 0.02,
+      baseCurrency: 'USD',
+      transactionDate: asOf,
+    });
+
+    expect(destination.estimated).toBe(false);
+    expect(destination.amounts).toMatchObject({
+      amount: 2,
+      ledgerAmount: 2,
+      ledgerCurrency: 'USD',
+      exchangeRate: 0.02,
+    });
+  });
+
+  it('marks the market-rate destination as estimated', async () => {
+    const { useCase } = build();
+
+    const destination = await useCase.resolveTransferDestination({
+      sourceAmount: 100,
+      sourceCurrency: 'DOP',
+      destinationCurrency: 'USD',
+      baseCurrency: 'USD',
+      transactionDate: asOf,
+    });
+
+    expect(destination.estimated).toBe(true);
+    expect(destination.amounts.ledgerAmount).toBe(1.81);
+    expect(destination.amounts.exchangeRate).toBe(0.018123);
+  });
 });

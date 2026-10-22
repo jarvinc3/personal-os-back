@@ -333,6 +333,13 @@ export class PlanningRepository {
     });
   }
 
+  findTransactionByTransferGroupId(userId: string, transferGroupId: string) {
+    return this.prisma.finTransaction.findFirst({
+      where: { userId, transferGroupId },
+      select: { id: true },
+    });
+  }
+
   async addSavingsGoalContribution(
     goalId: string,
     contribution: {
@@ -340,6 +347,7 @@ export class PlanningRepository {
       contributedAt: Date;
       kind: 'CONTRIBUTION' | 'WITHDRAWAL';
       accountId?: string | null;
+      destinationAccountId?: string | null;
       transactionId?: string | null;
       transferGroupId?: string | null;
       notes?: string;
@@ -402,6 +410,7 @@ export class PlanningRepository {
       orderBy: { nextDueDate: 'asc' },
       include: {
         account: { select: { id: true, name: true } },
+        disbursementAccount: { select: { id: true, name: true } },
         institution: { select: { id: true, name: true } },
       },
     });
@@ -426,6 +435,7 @@ export class PlanningRepository {
       orderBy: [{ nextDueDate: 'asc' }, { id: 'asc' }],
       include: {
         account: { select: { id: true, name: true } },
+        disbursementAccount: { select: { id: true, name: true } },
         institution: { select: { id: true, name: true } },
       },
       take: limit + 1,
@@ -437,6 +447,7 @@ export class PlanningRepository {
       where: { id, userId },
       include: {
         account: { select: { id: true, name: true } },
+        disbursementAccount: { select: { id: true, name: true } },
         institution: { select: { id: true, name: true } },
       },
     });
@@ -450,6 +461,7 @@ export class PlanningRepository {
       data: { ...data, userId },
       include: {
         account: { select: { id: true, name: true } },
+        disbursementAccount: { select: { id: true, name: true } },
         institution: { select: { id: true, name: true } },
       },
     });
@@ -685,6 +697,7 @@ export class PlanningRepository {
           where: { id, userId },
           include: {
             account: { select: { id: true, name: true } },
+            disbursementAccount: { select: { id: true, name: true } },
             institution: { select: { id: true, name: true } },
           },
         });
