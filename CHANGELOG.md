@@ -2,6 +2,30 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [SemVer](https://semver.org/lang/es/). Reglas y ejemplo en [docs/reference/changelog-guide.md](./docs/reference/changelog-guide.md).
 
+## [0.53.3] - 2026-10-22
+
+### Agregado
+
+- Interno: `.infisical.json` y `pnpm env:pull` traen las variables locales del proyecto `personal-os`; `docs/operations/environment.md` documenta que Infisical es la fuente de verdad y que Railway se llena por sync (#168).
+
+### Cambiado
+
+- Interno: `.env.example` deja `OPENCODE_API_KEY` comentada hasta #170 y conserva documentadas las claves de Sentry y los límites de IA que ya existían (#168).
+
+### Corregido
+
+- Las peticiones sin cabecera `Origin` (abrir `/api/docs` en el navegador, el favicon, curl) pasan sin cabeceras CORS en vez de responder 500 con `Origin header is required`; los orígenes fuera de `CORS_ORIGIN` siguen rechazados en non-prod.
+
+## [0.53.2] - 2026-10-22
+
+### Cambiado
+
+- El push Android (FCM) se configura con `FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL` y `FIREBASE_PRIVATE_KEY` separadas; la clave acepta saltos de línea reales o `\n` literales, y si falta alguna el canal queda apagado y la API arranca igual (#167).
+
+### Eliminado
+
+- `FIREBASE_SERVICE_ACCOUNT_JSON` y `FIREBASE_SERVICE_ACCOUNT_PATH` salen del código, del esquema `Env` y de `.env.example`; si siguen definidas, se ignoran (#167).
+
 ## [0.53.1] - 2026-10-21
 
 ### Cambiado

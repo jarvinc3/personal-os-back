@@ -134,6 +134,43 @@ describe('envSchema PUBLIC_WEB_URL', () => {
   });
 });
 
+describe('envSchema Firebase push credential', () => {
+  it('accepts the three FCM variables separately', () => {
+    const parsed = parseEnv({
+      ...validBaseEnv,
+      FIREBASE_PROJECT_ID: 'personal-os-test',
+      FIREBASE_CLIENT_EMAIL: 'push@example.test',
+      FIREBASE_PRIVATE_KEY:
+        '-----BEGIN PRIVATE KEY-----\\nkey\\n-----END PRIVATE KEY-----\\n',
+    });
+
+    expect(parsed.FIREBASE_PROJECT_ID).toBe('personal-os-test');
+    expect(parsed.FIREBASE_CLIENT_EMAIL).toBe('push@example.test');
+    expect(parsed.FIREBASE_PRIVATE_KEY).toBe(
+      '-----BEGIN PRIVATE KEY-----\\nkey\\n-----END PRIVATE KEY-----\\n',
+    );
+  });
+
+  it('accepts omitting all three variables', () => {
+    const parsed = parseEnv(validBaseEnv);
+
+    expect(parsed.FIREBASE_PROJECT_ID).toBeUndefined();
+    expect(parsed.FIREBASE_CLIENT_EMAIL).toBeUndefined();
+    expect(parsed.FIREBASE_PRIVATE_KEY).toBeUndefined();
+  });
+
+  it('ignores the removed service account variables', () => {
+    const parsed = parseEnv({
+      ...validBaseEnv,
+      FIREBASE_SERVICE_ACCOUNT_JSON: '{"project_id":"personal-os-test"}',
+      FIREBASE_SERVICE_ACCOUNT_PATH: '/tmp/firebase-service-account.json',
+    });
+
+    expect(parsed).not.toHaveProperty('FIREBASE_SERVICE_ACCOUNT_JSON');
+    expect(parsed).not.toHaveProperty('FIREBASE_SERVICE_ACCOUNT_PATH');
+  });
+});
+
 describe('envSchema Sentry', () => {
   it('omits Sentry settings when no DSN is set', () => {
     const parsed = parseEnv(validBaseEnv);
