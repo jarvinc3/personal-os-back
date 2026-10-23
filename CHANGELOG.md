@@ -2,6 +2,12 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [SemVer](https://semver.org/lang/es/). Reglas y ejemplo en [docs/reference/changelog-guide.md](./docs/reference/changelog-guide.md).
 
+## [0.54.3] - 2026-10-22
+
+### Cambiado
+
+- Interno: un solo helper mapea el presupuesto con su gastado y el fin del día del periodo se define una vez en el dominio compartido; la lista de movimientos y la suma del gastado usan el mismo rango (#172). Sin cambio de comportamiento.
+
 ## [0.54.2] - 2026-10-22
 
 ### Corregido
