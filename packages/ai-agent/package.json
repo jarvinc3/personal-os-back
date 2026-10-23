@@ -12,7 +12,6 @@
     "clean": "rm -rf dist tsconfig.tsbuildinfo"
   },
   "dependencies": {
-    "@cerebras/cerebras_cloud_sdk": "^1.91.0",
     "@nestjs/bullmq": "^11.0.5",
     "@nestjs/common": "^11.2.6",
     "@nestjs/config": "^4.0.4",
@@ -32,6 +31,7 @@
     "class-validator": "^0.15.1",
     "express": "^5.2.1",
     "groq-sdk": "^1.6.0",
+    "openai": "^7.41.0",
     "zod": "^4.6.5"
   }
 }

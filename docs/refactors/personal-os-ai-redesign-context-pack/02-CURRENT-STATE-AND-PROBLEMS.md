@@ -5,7 +5,7 @@
 The existing `packages/ai-agent` already contains useful components:
 
 - provider abstraction;
-- Groq/Cerebras/OpenRouter support;
+- Groq/OpenCode/OpenRouter support;
 - round-robin provider selection;
 - preferred provider;
 - retry/failover;

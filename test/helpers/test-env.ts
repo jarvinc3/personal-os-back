@@ -8,7 +8,7 @@ export function applyTestEnv(): void {
   process.env.SUPABASE_SERVICE_ROLE_KEY =
     process.env.SUPABASE_SERVICE_ROLE_KEY ?? 'test-service-key';
   process.env.GROQ_API_KEY = '';
-  process.env.CEREBRAS_API_KEY = '';
+  process.env.OPENCODE_API_KEY = '';
   process.env.OPENROUTER_API_KEY = '';
   process.env.GOOGLE_CLIENT_ID =
     process.env.GOOGLE_CLIENT_ID ?? 'test-google-client-id';

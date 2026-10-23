@@ -6,7 +6,8 @@ Agente conversacional único: sesiones, tool-calling, acciones con confirmación
 
 ## Alcance
 
-- Multi-provider: Groq, Cerebras, OpenRouter
+- Multi-provider: Groq, OpenCode, OpenRouter
+- Cadena de respaldo en ese orden; cada proveedor entra solo si su key existe
 - Chat JSON + SSE, idempotencia `clientMessageId`
 - CRUD sesiones/mensajes; acciones PENDING execute/cancel
 - Registry + `ToolExecutorService`; finance via `FinanceFacade` only
