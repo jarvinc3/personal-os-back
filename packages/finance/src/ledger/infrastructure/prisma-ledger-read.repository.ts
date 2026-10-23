@@ -172,6 +172,14 @@ export class PrismaLedgerReadRepository {
     }) as Promise<LedgerTransactionRow | null>;
   }
 
+  /** One query for many movements, for the bulk entity lookup. */
+  findTransactionsByIds(userId: string, ids: readonly string[]) {
+    return this.prisma.finTransaction.findMany({
+      where: { id: { in: [...ids] }, userId },
+      include: { ...transactionPartyInclude, ...transactionLinkInclude },
+    }) as Promise<LedgerTransactionRow[]>;
+  }
+
   async findPlanningLinkKind(
     transactionId: string,
     userId: string,

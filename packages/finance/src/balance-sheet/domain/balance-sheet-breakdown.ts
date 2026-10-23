@@ -1,5 +1,9 @@
 import { Prisma } from '@personal-os/database';
 import {
+  FINANCE_ENTITY_TYPE,
+  type FinanceEntityType,
+} from '../../entities/domain/entity-reference';
+import {
   decimalToNullableString,
   decimalToString,
 } from '../../shared/domain/mappers';
@@ -20,6 +24,23 @@ export const BALANCE_SHEET_LINE_KIND = {
 
 export type BalanceSheetLineKind =
   (typeof BALANCE_SHEET_LINE_KIND)[keyof typeof BALANCE_SHEET_LINE_KIND];
+
+/** Each line kind belongs to one finance product type. */
+export function entityTypeForLineKind(
+  kind: BalanceSheetLineKind,
+): FinanceEntityType {
+  switch (kind) {
+    case BALANCE_SHEET_LINE_KIND.CREDIT_CARD:
+      return FINANCE_ENTITY_TYPE.CARD;
+    case BALANCE_SHEET_LINE_KIND.LOAN:
+      return FINANCE_ENTITY_TYPE.LOAN;
+    case BALANCE_SHEET_LINE_KIND.RECEIVABLE:
+      return FINANCE_ENTITY_TYPE.RECEIVABLE;
+    case BALANCE_SHEET_LINE_KIND.ACCOUNT:
+    case BALANCE_SHEET_LINE_KIND.CASH:
+      return FINANCE_ENTITY_TYPE.ACCOUNT;
+  }
+}
 
 export const BALANCE_SHEET_RECONCILIATION = {
   RECONCILED: 'RECONCILED',
@@ -49,6 +70,11 @@ export type BalanceSheetLine = {
   availableCredit: string | null;
   dueDate: string | null;
   doubtful: boolean;
+  /**
+   * The product behind the line, in the same shape as its own endpoint, so the
+   * web draws its canonical card. Never feeds the totals.
+   */
+  entity: unknown;
 };
 
 export type BalanceSheetCurrencyTotals = {

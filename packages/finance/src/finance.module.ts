@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { FinanceAnalyticsModule } from './analytics/analytics.module';
 import { FinanceBalanceSheetModule } from './balance-sheet/balance-sheet.module';
 import { FinanceCatalogModule } from './catalog/catalog.module';
+import { FinanceEntitiesModule } from './entities/entities.module';
 import { FinanceEventsModule } from './events/events.module';
 import { FinanceFacade } from './finance.facade';
 import { FinanceFxModule } from './fx/fx.module';
@@ -31,6 +32,7 @@ import { FinanceWipeModule } from './shared/wipe-finance.module';
     FinanceStatementsModule,
     FinancePlanningModule,
     FinanceBalanceSheetModule,
+    FinanceEntitiesModule,
     FinanceAnalyticsModule,
     FinanceLedgerModule,
     FinanceMerchantsModule,

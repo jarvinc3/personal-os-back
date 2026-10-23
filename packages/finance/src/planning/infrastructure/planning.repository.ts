@@ -73,6 +73,13 @@ export class PlanningRepository {
     });
   }
 
+  findBudgetsByIds(userId: string, ids: readonly string[]) {
+    return this.prisma.finBudget.findMany({
+      where: { id: { in: [...ids] }, userId },
+      include: { category: true, categories: { include: { category: true } } },
+    });
+  }
+
   createBudget(
     userId: string,
     data: Omit<Prisma.FinBudgetUncheckedCreateInput, 'userId'>,
@@ -239,6 +246,12 @@ export class PlanningRepository {
 
   findSavingsGoal(userId: string, id: string) {
     return this.prisma.finSavingsGoal.findFirst({ where: { id, userId } });
+  }
+
+  findSavingsGoalsByIds(userId: string, ids: readonly string[]) {
+    return this.prisma.finSavingsGoal.findMany({
+      where: { id: { in: [...ids] }, userId },
+    });
   }
 
   async createSavingsGoal(
@@ -454,6 +467,17 @@ export class PlanningRepository {
   findLoan(userId: string, id: string) {
     return this.prisma.finLoan.findFirst({
       where: { id, userId },
+      include: {
+        account: { select: { id: true, name: true } },
+        disbursementAccount: { select: { id: true, name: true } },
+        institution: { select: { id: true, name: true } },
+      },
+    });
+  }
+
+  findLoansByIds(userId: string, ids: readonly string[]) {
+    return this.prisma.finLoan.findMany({
+      where: { id: { in: [...ids] }, userId },
       include: {
         account: { select: { id: true, name: true } },
         disbursementAccount: { select: { id: true, name: true } },
@@ -742,6 +766,12 @@ export class PlanningRepository {
 
   findReceivable(userId: string, id: string) {
     return this.prisma.finReceivable.findFirst({ where: { id, userId } });
+  }
+
+  findReceivablesByIds(userId: string, ids: readonly string[]) {
+    return this.prisma.finReceivable.findMany({
+      where: { id: { in: [...ids] }, userId },
+    });
   }
 
   async createReceivable(

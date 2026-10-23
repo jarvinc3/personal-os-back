@@ -187,6 +187,13 @@ export class SubscriptionsRepository {
     });
   }
 
+  findByIds(userId: string, ids: readonly string[]) {
+    return this.prisma.finSubscription.findMany({
+      where: { id: { in: [...ids] }, userId },
+      include: SUBSCRIPTION_INCLUDE,
+    });
+  }
+
   findActive(userId: string) {
     return this.prisma.finSubscription.findMany({
       where: { userId, status: 'ACTIVE' },

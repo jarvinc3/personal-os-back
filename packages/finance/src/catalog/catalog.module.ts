@@ -38,6 +38,7 @@ import { InstitutionsController } from './presentation/institutions.controller';
   exports: [
     CatalogService,
     CatalogRepository,
+    CatalogCategoriesService,
     InstrumentHistoryService,
     EnsureCashInstitutionUseCase,
   ],

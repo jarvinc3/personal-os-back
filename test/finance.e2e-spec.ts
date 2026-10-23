@@ -3451,4 +3451,86 @@ describe('Finance (e2e)', () => {
       .send({ cardId: '22222222-2222-4222-8222-222222222222' })
       .expect(400);
   });
+  it('POST /api/finance/entities/lookup keeps the order and nulls the missing ones', async () => {
+    const at = new Date('2026-09-01T12:00:00.000Z');
+    const transactionId = '11111111-1111-4111-8111-111111111111';
+    const accountId = '22222222-2222-4222-8222-222222222222';
+    const missingId = '33333333-3333-4333-8333-333333333333';
+    prismaMock.finTransaction.findMany.mockResolvedValue([
+      {
+        id: transactionId,
+        userId: 'user-123',
+        accountId,
+        cardId: null,
+        type: 'DEBIT',
+        amount: { toString: () => '25.00' },
+        ledgerAmount: { toString: () => '25.00' },
+        amountBaseCurrency: { toString: () => '25.00' },
+        currency: 'DOP',
+        ledgerCurrency: 'DOP',
+        exchangeRate: { toString: () => '1' },
+        merchant: 'Café',
+        description: null,
+        notes: null,
+        categoryId: null,
+        status: 'CONFIRMED',
+        source: 'MANUAL',
+        transferGroupId: null,
+        linkedTransactionId: null,
+        aiMetadata: null,
+        transactionDate: at,
+        createdAt: at,
+        account: { id: accountId, name: 'Ahorros' },
+        card: null,
+      },
+    ]);
+    prismaMock.finAccount.findMany.mockResolvedValue([
+      {
+        id: accountId,
+        userId: 'user-123',
+        name: 'Ahorros',
+        type: 'SAVINGS',
+        institutionId: null,
+        currency: 'DOP',
+        balance: { toString: () => '1000.00' },
+        color: null,
+        isActive: true,
+        createdAt: at,
+        updatedAt: at,
+        institutionRef: null,
+      },
+    ]);
+
+    const response = await request(app.getHttpServer())
+      .post('/api/finance/entities/lookup')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        refs: [
+          { type: 'transaction', id: transactionId },
+          { type: 'account', id: accountId },
+          { type: 'transaction', id: missingId },
+        ],
+      })
+      .expect(200);
+
+    const [transaction, account, missing] = response.body.data;
+    expect(transaction.id).toBe(transactionId);
+    expect(transaction.accountName).toBe('Ahorros');
+    expect(account.id).toBe(accountId);
+    expect(account.type).toBe('SAVINGS');
+    expect(missing).toBeNull();
+  });
+
+  it('POST /api/finance/entities/lookup rejects more than 50 references', async () => {
+    const refs = Array.from({ length: 51 }, (_, index) => ({
+      type: 'transaction',
+      id: `1111111${index}-1111-4111-8111-11111111111`.slice(0, 36),
+    }));
+
+    await request(app.getHttpServer())
+      .post('/api/finance/entities/lookup')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ refs })
+      .expect(400);
+  });
 });

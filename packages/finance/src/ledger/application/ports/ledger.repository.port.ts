@@ -182,6 +182,11 @@ export interface LedgerRepositoryPort {
     transferGroupIds: string[],
   ): Promise<LedgerTransactionRow[]>;
 
+  findTransactionsByIds(
+    userId: string,
+    ids: readonly string[],
+  ): Promise<LedgerTransactionRow[]>;
+
   findCandidatesForReverse(
     userId: string,
     params: {

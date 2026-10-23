@@ -136,6 +136,29 @@ export class MerchantsService {
     return mapMerchant(merchant, spends[0]);
   }
 
+  /** Merchants with the same shape as `get`, in batch and without throwing. */
+  async lookupMerchants(
+    userId: string,
+    ids: readonly string[],
+    now = new Date(),
+  ) {
+    const rows = await this.repo.findMerchantsByIds(userId, ids);
+    const spends = await this.repo.sumSpendByMerchant(
+      userId,
+      rows.map((row) => row.id),
+      monthRange({}, now),
+    );
+    const spendByMerchant = new Map(
+      spends.map((spend) => [spend.merchantId, spend] as const),
+    );
+    return new Map(
+      rows.map((row) => [
+        row.id,
+        mapMerchant(row, spendByMerchant.get(row.id)),
+      ]),
+    );
+  }
+
   async update(userId: string, id: string, dto: UpdateMerchantDto) {
     const existing = await this.repo.findMerchantById(userId, id);
     if (!existing) {

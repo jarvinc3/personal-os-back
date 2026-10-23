@@ -53,6 +53,12 @@ export class MerchantsRepository {
     return this.prisma.finMerchant.findFirst({ where: { id, userId } });
   }
 
+  findMerchantsByIds(userId: string, ids: readonly string[]) {
+    return this.prisma.finMerchant.findMany({
+      where: { id: { in: [...ids] }, userId },
+    });
+  }
+
   findMerchantByKey(userId: string, normalizedKey: string) {
     return this.prisma.finMerchant.findFirst({
       where: { userId, normalizedKey },

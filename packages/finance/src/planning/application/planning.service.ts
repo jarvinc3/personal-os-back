@@ -83,6 +83,15 @@ export class PlanningService {
     return this.mapBudgetWithSpent(userId, row);
   }
 
+  /** Budgets with the same shape as `getBudget`, in batch and without throwing. */
+  async lookupBudgets(userId: string, ids: readonly string[]) {
+    const rows = await this.repo.findBudgetsByIds(userId, ids);
+    const mapped = await Promise.all(
+      rows.map((row) => this.mapBudgetWithSpent(userId, row)),
+    );
+    return new Map(mapped.map((row) => [row.id, row]));
+  }
+
   /**
    * The spent figure comes from the movements, so the budget can never show a
    * total that disagrees with its own list. The stored counter keeps feeding
@@ -369,6 +378,11 @@ export class PlanningService {
     return mapSavingsGoal(row);
   }
 
+  async lookupSavingsGoals(userId: string, ids: readonly string[]) {
+    const rows = await this.repo.findSavingsGoalsByIds(userId, ids);
+    return new Map(rows.map((row) => [row.id, mapSavingsGoal(row)]));
+  }
+
   async createSavingsGoal(
     userId: string,
     dto: CreateSavingsGoalDto,
@@ -554,6 +568,11 @@ export class PlanningService {
       throw new NotFoundException('Préstamo no encontrado');
     }
     return mapLoan(row);
+  }
+
+  async lookupLoans(userId: string, ids: readonly string[]) {
+    const rows = await this.repo.findLoansByIds(userId, ids);
+    return new Map(rows.map((row) => [row.id, mapLoan(row)]));
   }
 
   async listLoanInstallments(userId: string, id: string) {
@@ -791,6 +810,11 @@ export class PlanningService {
       throw new NotFoundException('Cobro no encontrado');
     }
     return mapReceivable(row);
+  }
+
+  async lookupReceivables(userId: string, ids: readonly string[]) {
+    const rows = await this.repo.findReceivablesByIds(userId, ids);
+    return new Map(rows.map((row) => [row.id, mapReceivable(row)]));
   }
 
   async createReceivable(userId: string, dto: CreateReceivableDto) {
