@@ -2,6 +2,13 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [SemVer](https://semver.org/lang/es/). Reglas y ejemplo en [docs/reference/changelog-guide.md](./docs/reference/changelog-guide.md).
 
+## [0.54.1] - 2026-10-22
+
+### Corregido
+
+- `GET /api/finance/receivables`, el detalle de un cobro y su edición entregan `creditBalance` y `writtenOffAmount` como texto decimal en vez de un objeto (#166).
+- Los pagos de un cobro entregan `amount`, `appliedAmount` y `excessAmount` como texto decimal; antes solo `amount` lo era (#166).
+
 ## [0.54.0] - 2026-10-22
 
 ### Agregado
