@@ -1,4 +1,5 @@
 import { Prisma, type PrismaService } from '@personal-os/database';
+import { endOfUtcDay } from '../domain/local-day';
 import { roundDecimal } from '../domain/money';
 
 export type BudgetSpentScope = {
@@ -33,16 +34,16 @@ export async function sumBudgetSpent(
     return roundDecimal(0);
   }
 
-  const endOfDay = new Date(scope.periodEnd);
-  endOfDay.setUTCHours(23, 59, 59, 999);
-
   const total = await prisma.finTransaction.aggregate({
     where: {
       userId: scope.userId,
       type: 'DEBIT',
       status: 'CONFIRMED',
       categoryId: { in: categoryIds },
-      transactionDate: { gte: scope.periodStart, lte: endOfDay },
+      transactionDate: {
+        gte: scope.periodStart,
+        lte: endOfUtcDay(scope.periodEnd),
+      },
     },
     _sum: { amountBaseCurrency: true },
   });

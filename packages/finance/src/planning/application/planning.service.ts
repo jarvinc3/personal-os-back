@@ -22,7 +22,8 @@ import {
   carriedOverFrom,
   type BudgetRollover,
 } from '../domain/budget-rollover';
-import { endOfUtcDay, nextBudgetPeriod } from '../domain/budget-period';
+import { endOfUtcDay } from '../../shared/domain/local-day';
+import { nextBudgetPeriod } from '../domain/budget-period';
 import type { CreateBudgetDto } from '../presentation/dto/create-budget.dto';
 import type { CreateLoanDto } from '../presentation/dto/create-loan.dto';
 import type { CreateReceivableDto } from '../presentation/dto/create-receivable.dto';
@@ -42,6 +43,11 @@ import {
 } from './planning-mappers';
 import { SyncLoanInstallmentsUseCase } from './sync-loan-installments.use-case';
 
+/** Budget row as the repository returns it: category plus every joined category. */
+type BudgetRow = NonNullable<
+  Awaited<ReturnType<PlanningRepository['findBudget']>>
+>;
+
 @Injectable()
 export class PlanningService {
   constructor(
@@ -55,11 +61,7 @@ export class PlanningService {
 
   async listBudgets(userId: string) {
     const rows = await this.repo.listBudgets(userId);
-    return Promise.all(
-      rows.map(async (row) =>
-        mapBudget({ ...row, amountSpent: await this.budgetSpent(userId, row) }),
-      ),
-    );
+    return Promise.all(rows.map((row) => this.mapBudgetWithSpent(userId, row)));
   }
 
   async listBudgetsPage(userId: string, query: CursorQueryDto) {
@@ -68,9 +70,7 @@ export class PlanningService {
       row.periodStart.toISOString(),
     );
     const items = await Promise.all(
-      page.items.map(async (row) =>
-        mapBudget({ ...row, amountSpent: await this.budgetSpent(userId, row) }),
-      ),
+      page.items.map((row) => this.mapBudgetWithSpent(userId, row)),
     );
     return { ...page, items };
   }
@@ -80,10 +80,7 @@ export class PlanningService {
     if (!row) {
       throw new NotFoundException('Presupuesto no encontrado');
     }
-    return mapBudget({
-      ...row,
-      amountSpent: await this.budgetSpent(userId, row),
-    });
+    return this.mapBudgetWithSpent(userId, row);
   }
 
   /**
@@ -91,16 +88,14 @@ export class PlanningService {
    * total that disagrees with its own list. The stored counter keeps feeding
    * only the threshold alerts.
    */
-  private budgetSpent(
-    userId: string,
-    row: {
-      categoryId: string | null;
-      periodStart: Date;
-      periodEnd: Date;
-      includeChildren: boolean;
-      categories?: ReadonlyArray<{ categoryId: string }>;
-    },
-  ) {
+  private async mapBudgetWithSpent(userId: string, row: BudgetRow) {
+    return mapBudget({
+      ...row,
+      amountSpent: await this.budgetSpent(userId, row),
+    });
+  }
+
+  private budgetSpent(userId: string, row: BudgetRow) {
     return this.repo.sumBudgetSpent({
       userId,
       periodStart: row.periodStart,
@@ -146,10 +141,7 @@ export class PlanningService {
     }
     await this.applyCarriedOver(userId, created);
     const saved = (await this.repo.findBudget(userId, budgetId)) ?? created;
-    return mapBudget({
-      ...saved,
-      amountSpent: await this.budgetSpent(userId, saved),
-    });
+    return this.mapBudgetWithSpent(userId, saved);
   }
 
   async updateBudget(userId: string, id: string, dto: UpdateBudgetDto) {
@@ -201,10 +193,7 @@ export class PlanningService {
     }
     await this.applyCarriedOver(userId, updated);
     const saved = (await this.repo.findBudget(userId, updatedId)) ?? updated;
-    return mapBudget({
-      ...saved,
-      amountSpent: await this.budgetSpent(userId, saved),
-    });
+    return this.mapBudgetWithSpent(userId, saved);
   }
 
   async getBudgetTransactions(

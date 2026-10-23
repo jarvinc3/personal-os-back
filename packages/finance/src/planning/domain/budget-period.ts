@@ -59,10 +59,3 @@ export function nextBudgetPeriod(input: {
     periodEnd: addDays(periodStart, Math.max(1, lengthDays) - 1),
   };
 }
-
-/** Last millisecond of a stored day, in UTC. */
-export function endOfUtcDay(date: Date): Date {
-  const copy = new Date(date);
-  copy.setUTCHours(23, 59, 59, 999);
-  return copy;
-}

@@ -20,3 +20,10 @@ export function localDayStart(timezone: string | null, now: Date): Date {
 export function isoDay(date: Date): string {
   return date.toISOString().slice(0, 10);
 }
+
+/** Last millisecond of a stored date-only day, in UTC. */
+export function endOfUtcDay(date: Date): Date {
+  const copy = new Date(date);
+  copy.setUTCHours(23, 59, 59, 999);
+  return copy;
+}
