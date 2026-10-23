@@ -25,9 +25,12 @@ function setup(options: { found?: unknown } = {}) {
   const found = 'found' in options ? options.found : receivable();
   const repo = {
     findReceivable: jest.fn().mockResolvedValue(found),
-    createReceivablePayment: jest
-      .fn()
-      .mockResolvedValue({ id: 'pay-1', amount: 50 }),
+    createReceivablePayment: jest.fn().mockResolvedValue({
+      id: 'pay-1',
+      amount: 50,
+      appliedAmount: 50,
+      excessAmount: 0,
+    }),
     addReceivableCreditBalance: jest.fn().mockResolvedValue({}),
     findExtraIncomeCategoryId: jest.fn().mockResolvedValue(null),
   };
@@ -72,7 +75,12 @@ describe('RecordReceivablePaymentUseCase', () => {
       accountId: 'acc-1',
       transactionId: 'tx-1',
     });
-    expect(payment).toEqual({ id: 'pay-1', amount: '50' });
+    expect(payment).toEqual({
+      id: 'pay-1',
+      amount: '50',
+      appliedAmount: '50',
+      excessAmount: '0',
+    });
   });
 
   it('asks what to do when the payment exceeds the outstanding amount', async () => {

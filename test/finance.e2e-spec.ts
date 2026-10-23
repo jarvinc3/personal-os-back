@@ -1088,6 +1088,71 @@ describe('Finance (e2e)', () => {
       .expect(400);
   });
 
+  it('GET /api/finance/receivables returns every amount as a decimal string', async () => {
+    prismaMock.finReceivable.findMany.mockResolvedValue([
+      {
+        id: 'rec-credit',
+        userId: 'user-123',
+        debtorName: 'Ana',
+        description: 'Préstamo',
+        amount: new Prisma.Decimal(200),
+        paidAmount: new Prisma.Decimal(50),
+        creditBalance: new Prisma.Decimal('25.50'),
+        writtenOffAmount: new Prisma.Decimal(0),
+        currency: 'DOP',
+        status: 'PARTIAL',
+        dueDate: null,
+        writtenOffAt: null,
+        notes: null,
+        createdAt: new Date('2026-10-01T12:00:00.000Z'),
+        updatedAt: new Date('2026-10-01T12:00:00.000Z'),
+      },
+    ]);
+
+    await request(app.getHttpServer())
+      .get('/api/finance/receivables?limit=10')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.data.items[0]).toMatchObject({
+          amount: '200',
+          paidAmount: '50',
+          creditBalance: '25.5',
+          writtenOffAmount: '0',
+        });
+      });
+  });
+
+  it('GET /api/finance/receivables/:id/payments returns every amount as a decimal string', async () => {
+    const receivableId = '99999999-9999-4999-8999-999999999999';
+    prismaMock.finReceivable.findFirst.mockResolvedValue({
+      id: receivableId,
+      userId: 'user-123',
+    });
+    prismaMock.finReceivablePayment.findMany.mockResolvedValue([
+      {
+        id: 'payment-1',
+        receivableId,
+        amount: new Prisma.Decimal(120),
+        appliedAmount: new Prisma.Decimal(100),
+        excessAmount: new Prisma.Decimal(20),
+        paidAt: new Date('2026-10-02T12:00:00.000Z'),
+      },
+    ]);
+
+    await request(app.getHttpServer())
+      .get(`/api/finance/receivables/${receivableId}/payments?limit=10`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.data.items[0]).toMatchObject({
+          amount: '120',
+          appliedAmount: '100',
+          excessAmount: '20',
+        });
+      });
+  });
+
   it('GET /api/finance/analytics/summary returns totals envelope', async () => {
     prismaMock.finInstitution.findMany.mockResolvedValue([]);
     prismaMock.finAccount.findMany.mockResolvedValue([
