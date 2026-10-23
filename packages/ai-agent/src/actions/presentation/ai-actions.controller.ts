@@ -1,9 +1,10 @@
 import { Controller, Param, Post } from '@nestjs/common';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CurrentUser, Timeout } from '@personal-os/core';
 import { AiActionsService } from '../application/ai-actions.service';
 
 @ApiTags('ai-agent')
+@ApiBearerAuth('access-token')
 @Controller('ai/actions')
 @Timeout(30_000)
 export class AiActionsController {

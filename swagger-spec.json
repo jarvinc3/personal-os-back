@@ -6214,20 +6214,17 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "providers": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/AiProviderInfoDto"
-                      }
-                    }
-                  }
+                  "$ref": "#/components/schemas/AiProvidersResponseDto"
                 }
               }
             }
           }
         },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
         "summary": "Lista los proveedores de IA configurados",
         "tags": [
           "ai-agent"
@@ -6260,6 +6257,11 @@
             }
           }
         },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
         "summary": "Chat con el grupo de agentes de IA (respuesta JSON agregada)",
         "tags": [
           "ai-agent"
@@ -6285,6 +6287,11 @@
             "description": ""
           }
         },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
         "summary": "Chat con el grupo de agentes de IA (stream SSE)",
         "tags": [
           "ai-agent"
@@ -6442,6 +6449,11 @@
             "description": ""
           }
         },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
         "summary": "Ejecuta una acción pendiente de la IA",
         "tags": [
           "ai-agent"
@@ -6466,6 +6478,11 @@
             "description": ""
           }
         },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
         "summary": "Cancela una acción pendiente de la IA",
         "tags": [
           "ai-agent"
@@ -6476,7 +6493,7 @@
   "info": {
     "title": "Personal OS API",
     "description": "Personal OS backend endpoints, including auth, core modules, and AI.",
-    "version": "0.54.2",
+    "version": "0.54.3",
     "contact": {}
   },
   "tags": [
@@ -8586,6 +8603,37 @@
         "required": [
           "platform",
           "token"
+        ]
+      },
+      "AiProviderInfoDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Groq"
+          },
+          "model": {
+            "type": "string",
+            "example": "llama-3.3-70b-versatile"
+          }
+        },
+        "required": [
+          "name",
+          "model"
+        ]
+      },
+      "AiProvidersResponseDto": {
+        "type": "object",
+        "properties": {
+          "providers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AiProviderInfoDto"
+            }
+          }
+        },
+        "required": [
+          "providers"
         ]
       },
       "EntityRefDto": {
