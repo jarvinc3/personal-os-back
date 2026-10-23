@@ -18,6 +18,7 @@ describe('PlanningService archive and receivables', () => {
   const createReceivable = jest.fn();
   const listBudgetsPage = jest.fn();
   const findBudget = jest.fn();
+  const sumBudgetSpent = jest.fn().mockResolvedValue(0);
 
   const repo = {
     updateLoan,
@@ -29,6 +30,7 @@ describe('PlanningService archive and receivables', () => {
     createReceivable,
     listBudgetsPage,
     findBudget,
+    sumBudgetSpent,
   } as unknown as PlanningRepository;
 
   const assertLoanAccountAlignment = jest.fn();
@@ -271,13 +273,14 @@ describe('PlanningService archive and receivables', () => {
       alertThresholdPct: 80,
       category: { id: 'cat-1', name: 'Food' },
     });
+    sumBudgetSpent.mockResolvedValue(420);
 
     await expect(
       service.getBudget('user-1', 'budget-1'),
     ).resolves.toMatchObject({
       id: 'budget-1',
       amountLimit: '1000',
-      amountSpent: '10',
+      amountSpent: '420',
       alertThresholdPct: 80,
     });
   });

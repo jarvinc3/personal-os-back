@@ -1582,6 +1582,35 @@ describe('Finance (e2e)', () => {
       });
   });
 
+  it('GET /api/finance/budgets/:id sums the spent from the period movements', async () => {
+    const budgetId = '33333333-3333-4333-8333-333333333333';
+    prismaMock.finBudget.findFirst.mockResolvedValue({
+      id: budgetId,
+      userId: 'user-123',
+      categoryId: 'cat-1',
+      categories: [{ categoryId: 'cat-1', category: { id: 'cat-1' } }],
+      includeChildren: false,
+      periodType: 'MONTHLY',
+      periodStart: new Date('2026-10-01'),
+      periodEnd: new Date('2026-10-31'),
+      amountLimit: 5000,
+      amountSpent: 999,
+      alertThresholdPct: 80,
+      category: { id: 'cat-1', name: 'Food' },
+    });
+    prismaMock.finTransaction.aggregate.mockResolvedValue({
+      _sum: { amountBaseCurrency: new Prisma.Decimal('1814.51') },
+    });
+
+    await request(app.getHttpServer())
+      .get(`/api/finance/budgets/${budgetId}`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.data.amountSpent).toBe('1814.51');
+      });
+  });
+
   it('GET /api/finance/budgets/:id returns 404 when missing', async () => {
     prismaMock.finBudget.findFirst.mockResolvedValue(null);
 

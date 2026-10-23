@@ -12,6 +12,7 @@ import {
 import { FinanceOwnershipService } from '../../shared/application/finance-ownership.service';
 import { assertRestored } from '../../shared/application/assert-restored';
 import { roundMoney } from '../../shared/domain/money';
+import { budgetCategoryIds } from '../../shared/infrastructure/budget-spent.reader';
 import { AdjustBalanceUseCase } from '../../ledger/application/adjust-balance.use-case';
 import { DeleteTransactionUseCase } from '../../ledger/application/delete-transaction.use-case';
 import { LedgerQueryService } from '../../ledger/application/ledger-query.service';
@@ -54,7 +55,11 @@ export class PlanningService {
 
   async listBudgets(userId: string) {
     const rows = await this.repo.listBudgets(userId);
-    return rows.map(mapBudget);
+    return Promise.all(
+      rows.map(async (row) =>
+        mapBudget({ ...row, amountSpent: await this.budgetSpent(userId, row) }),
+      ),
+    );
   }
 
   async listBudgetsPage(userId: string, query: CursorQueryDto) {
@@ -62,7 +67,12 @@ export class PlanningService {
     const page = toCursorPage(rows, clampPageLimit(query.limit), (row) =>
       row.periodStart.toISOString(),
     );
-    return { ...page, items: page.items.map(mapBudget) };
+    const items = await Promise.all(
+      page.items.map(async (row) =>
+        mapBudget({ ...row, amountSpent: await this.budgetSpent(userId, row) }),
+      ),
+    );
+    return { ...page, items };
   }
 
   async getBudget(userId: string, id: string) {
@@ -70,7 +80,34 @@ export class PlanningService {
     if (!row) {
       throw new NotFoundException('Presupuesto no encontrado');
     }
-    return mapBudget(row);
+    return mapBudget({
+      ...row,
+      amountSpent: await this.budgetSpent(userId, row),
+    });
+  }
+
+  /**
+   * The spent figure comes from the movements, so the budget can never show a
+   * total that disagrees with its own list. The stored counter keeps feeding
+   * only the threshold alerts.
+   */
+  private budgetSpent(
+    userId: string,
+    row: {
+      categoryId: string | null;
+      periodStart: Date;
+      periodEnd: Date;
+      includeChildren: boolean;
+      categories?: ReadonlyArray<{ categoryId: string }>;
+    },
+  ) {
+    return this.repo.sumBudgetSpent({
+      userId,
+      periodStart: row.periodStart,
+      periodEnd: row.periodEnd,
+      categoryIds: budgetCategoryIds(row),
+      includeChildren: row.includeChildren,
+    });
   }
 
   async createBudget(userId: string, dto: CreateBudgetDto) {
@@ -108,7 +145,11 @@ export class PlanningService {
       throw new NotFoundException('Presupuesto no encontrado');
     }
     await this.applyCarriedOver(userId, created);
-    return mapBudget((await this.repo.findBudget(userId, budgetId)) ?? created);
+    const saved = (await this.repo.findBudget(userId, budgetId)) ?? created;
+    return mapBudget({
+      ...saved,
+      amountSpent: await this.budgetSpent(userId, saved),
+    });
   }
 
   async updateBudget(userId: string, id: string, dto: UpdateBudgetDto) {
@@ -159,9 +200,11 @@ export class PlanningService {
       throw new NotFoundException('Presupuesto no encontrado');
     }
     await this.applyCarriedOver(userId, updated);
-    return mapBudget(
-      (await this.repo.findBudget(userId, updatedId)) ?? updated,
-    );
+    const saved = (await this.repo.findBudget(userId, updatedId)) ?? updated;
+    return mapBudget({
+      ...saved,
+      amountSpent: await this.budgetSpent(userId, saved),
+    });
   }
 
   async getBudgetTransactions(

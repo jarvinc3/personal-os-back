@@ -9,6 +9,10 @@ import {
   DELETION_MODEL,
   toDeletionValues,
 } from '../../shared/domain/deletion-snapshot';
+import {
+  sumBudgetSpent,
+  type BudgetSpentScope,
+} from '../../shared/infrastructure/budget-spent.reader';
 import { decodeCursorPosition } from '../../shared/infrastructure/cursor-window';
 import { DeletionJournalRepository } from '../../shared/infrastructure/deletion-journal.repository';
 import { applyReceivableBalance } from './receivable-balance';
@@ -30,6 +34,11 @@ export class PlanningRepository {
       include: { category: true, categories: { include: { category: true } } },
       orderBy: { periodStart: 'desc' },
     });
+  }
+
+  /** Spent money read from the movements so it matches the budget's list. */
+  sumBudgetSpent(scope: BudgetSpentScope) {
+    return sumBudgetSpent(this.prisma, scope);
   }
 
   listBudgetsPage(userId: string, query: CursorQueryDto) {
