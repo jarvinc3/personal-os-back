@@ -2,6 +2,21 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [SemVer](https://semver.org/lang/es/). Reglas y ejemplo en [docs/reference/changelog-guide.md](./docs/reference/changelog-guide.md).
 
+## [0.54.0] - 2026-10-22
+
+### Agregado
+
+- Proveedor de IA `OpenCode` con el modelo gratuito `deepseek-v4.1-flash-free`: entra en la cadena cuando existe `OPENCODE_API_KEY` y responde chat con streaming y tool calls (#170).
+
+### Cambiado
+
+- La cadena de respaldo de IA pasa a ser Groq → OpenCode → OpenRouter; si un proveedor agota su cuota, falla o responde 429, el chat sigue con el siguiente (#170).
+- El error de arranque por falta de proveedores nombra `GROQ_API_KEY`, `OPENCODE_API_KEY` y `OPENROUTER_API_KEY` (#170).
+
+### Eliminado
+
+- Cerebras sale de la cadena de IA, del entorno, de las dependencias y de la documentación; `CEREBRAS_API_KEY` deja de leerse (#170).
+
 ## [0.53.3] - 2026-10-22
 
 ### Agregado
