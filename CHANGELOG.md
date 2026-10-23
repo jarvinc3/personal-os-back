@@ -2,6 +2,13 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [SemVer](https://semver.org/lang/es/). Reglas y ejemplo en [docs/reference/changelog-guide.md](./docs/reference/changelog-guide.md).
 
+## [0.54.2] - 2026-10-22
+
+### Corregido
+
+- El gastado de un presupuesto se suma al leer desde sus movimientos del periodo, así que la lista, el detalle, el hero de Planificación, el aviso del formulario de gasto y el estado de presupuestos de analytics muestran la misma cifra y no la de un contador guardado (#172).
+- El contador guardado deja de alimentar lo que ve el dueño de la cuenta; sigue disparando las alertas de umbral (#172).
+
 ## [0.54.1] - 2026-10-22
 
 ### Corregido
