@@ -1,8 +1,7 @@
 import type {
   ChatBlock,
   ChatChartPoint,
-  ChatNextInstallment,
-  ChatTransactionSnapshot,
+  ChatEntityRef,
   ToolExecutionResult,
 } from './ai.types';
 
@@ -21,6 +20,8 @@ const TRANSACTION_LIST_LIMIT = 5;
 const BUDGET_BLOCK_LIMIT = 3;
 const CHART_SERIES_LIMIT = 6;
 const TRANSACTIONS_HREF = '/finance/transactions';
+const BUDGETS_HREF = '/finance/budgets';
+const LOANS_HREF = '/finance/loans';
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -63,92 +64,77 @@ function normalizeText(value: string): string {
     .toLowerCase();
 }
 
-function toTransactionSnapshot(raw: unknown): ChatTransactionSnapshot | null {
+function toRef(
+  type: ChatEntityRef['type'],
+  raw: unknown,
+): ChatEntityRef | null {
   if (!isRecord(raw)) {
     return null;
   }
   const id = asString(raw.id);
-  const type = asString(raw.type);
-  const amount = asString(raw.amount);
-  const currency = asString(raw.currency);
-  const transactionDate = asString(raw.transactionDate);
-  const status = asString(raw.status);
-  if (!id || !type || !amount || !currency || !transactionDate || !status) {
-    return null;
-  }
-  return {
-    id,
-    type,
-    amount,
-    currency,
-    transactionDate,
-    merchant: asNullableString(raw.merchant),
-    description: asNullableString(raw.description),
-    accountName: asNullableString(raw.accountName),
-    cardName: asNullableString(raw.cardName),
-    status,
-  };
+  return id ? { type, id } : null;
 }
 
-function transactionCardBlocks(payload: unknown): ChatBlock[] {
-  const snapshot = toTransactionSnapshot(payload);
-  if (!snapshot) {
+/**
+ * The block keeps only the reference: the client asks for the current entity,
+ * so the chat card never shows a stale copy.
+ */
+function entityCardBlocks(type: ChatEntityRef['type'], payload: unknown) {
+  const ref = toRef(type, payload);
+  if (!ref) {
     return [];
   }
-  return [{ type: 'transaction_card', transactionId: snapshot.id, snapshot }];
+  return [{ type: 'entity_card' as const, ref }];
+}
+
+function entityListBlock(
+  refs: ChatEntityRef[],
+  moreHref?: string,
+): ChatBlock[] {
+  if (refs.length === 0) {
+    return [];
+  }
+  return [{ type: 'entity_list', refs, ...(moreHref ? { moreHref } : {}) }];
 }
 
 function transactionListBlocks(payload: unknown): ChatBlock[] {
   if (!isRecord(payload)) {
     return [];
   }
-  const items = asArray(payload.items)
-    .map(toTransactionSnapshot)
+  const refs = asArray(payload.items)
+    .map((item) => toRef('transaction', item))
     .filter(isPresent)
     .slice(0, TRANSACTION_LIST_LIMIT);
-  if (items.length === 0) {
-    return [];
-  }
-  return [{ type: 'transaction_list', items, moreHref: TRANSACTIONS_HREF }];
+  return entityListBlock(refs, TRANSACTIONS_HREF);
 }
 
-type BudgetView = {
-  id: string;
+type BudgetCandidate = {
+  ref: ChatEntityRef;
   name: string | null;
-  color: string | null;
-  icon: string | null;
-  spent: string;
-  limit: string;
   pctUsed: number;
 };
 
-function toBudgetView(raw: unknown): BudgetView | null {
+function toBudgetCandidate(raw: unknown): BudgetCandidate | null {
   if (!isRecord(raw)) {
     return null;
   }
-  const id = asString(raw.id);
-  const spent = asString(raw.amountSpent);
-  const limit = asString(raw.amountLimit);
-  if (!id || !spent || !limit) {
+  const ref = toRef('budget', raw);
+  if (!ref) {
     return null;
   }
-  const limitNumber = Number(limit);
-  const spentNumber = Number(spent);
-  const pctUsed =
-    asNumber(raw.pctUsed) ??
-    (limitNumber > 0 ? (spentNumber / limitNumber) * 100 : 0);
+  const limit = asNumber(raw.amountLimit) ?? 0;
+  const spent = asNumber(raw.amountSpent) ?? 0;
   return {
-    id,
+    ref,
     name: asNullableString(raw.category) ?? asNullableString(raw.name),
-    color: asNullableString(raw.color),
-    icon: asNullableString(raw.icon),
-    spent,
-    limit,
-    pctUsed,
+    pctUsed: asNumber(raw.pctUsed) ?? (limit > 0 ? (spent / limit) * 100 : 0),
   };
 }
 
-function selectBudgets(budgets: BudgetView[], userText: string): BudgetView[] {
+function selectBudgets(
+  budgets: BudgetCandidate[],
+  userText: string,
+): BudgetCandidate[] {
   const normalizedText = normalizeText(userText);
   const matching = budgets.filter(
     (budget) =>
@@ -158,77 +144,31 @@ function selectBudgets(budgets: BudgetView[], userText: string): BudgetView[] {
   const pool =
     matching.length > 0
       ? matching
-      : [...budgets].sort((a, b) => b.pctUsed - a.pctUsed);
+      : [...budgets].sort((left, right) => right.pctUsed - left.pctUsed);
   return pool.slice(0, BUDGET_BLOCK_LIMIT);
 }
 
-function budgetProgressBlocks(
-  payload: unknown,
-  userText: string,
-  baseCurrency: string,
-): ChatBlock[] {
+function budgetBlocks(payload: unknown, userText: string): ChatBlock[] {
   if (!isRecord(payload)) {
     return [];
   }
-  const budgets = asArray(payload.items).map(toBudgetView).filter(isPresent);
-  return selectBudgets(budgets, userText).map((budget) => ({
-    type: 'budget_progress' as const,
-    budgetId: budget.id,
-    spent: budget.spent,
-    limit: budget.limit,
-    currency: baseCurrency,
-    ...(budget.name !== null ? { name: budget.name } : {}),
-    pctUsed: budget.pctUsed,
-    color: budget.color,
-    icon: budget.icon,
-  }));
+  const budgets = asArray(payload.items)
+    .map(toBudgetCandidate)
+    .filter(isPresent);
+  return entityListBlock(
+    selectBudgets(budgets, userText).map((budget) => budget.ref),
+    BUDGETS_HREF,
+  );
 }
 
-function toNextInstallment(
-  raw: Record<string, unknown>,
-  currency: string,
-): ChatNextInstallment | undefined {
-  const amount = asString(raw.installmentAmount);
-  const dueDate = asString(raw.nextDueDate);
-  const paidInstallments = asNumber(raw.paidInstallments);
-  if (!amount || !dueDate || paidInstallments === null) {
-    return undefined;
-  }
-  return {
-    amount,
-    currency,
-    dueDate,
-    installmentNo: paidInstallments + 1,
-  };
-}
-
-function loanSummaryBlocks(payload: unknown): ChatBlock[] {
+function loanBlocks(payload: unknown): ChatBlock[] {
   if (!isRecord(payload)) {
     return [];
   }
-  const blocks: ChatBlock[] = [];
-  for (const raw of asArray(payload.items)) {
-    if (!isRecord(raw)) {
-      continue;
-    }
-    const loanId = asString(raw.id);
-    const balance = asString(raw.currentBalance);
-    const currency = asString(raw.currency);
-    if (!loanId || !balance || !currency) {
-      continue;
-    }
-    const name = asNullableString(raw.lenderName);
-    const nextInstallment = toNextInstallment(raw, currency);
-    blocks.push({
-      type: 'loan_summary',
-      loanId,
-      balance,
-      currency,
-      ...(name !== null ? { name } : {}),
-      ...(nextInstallment ? { nextInstallment } : {}),
-    });
-  }
-  return blocks;
+  const refs = asArray(payload.items)
+    .map((item) => toRef('loan', item))
+    .filter(isPresent);
+  return entityListBlock(refs, LOANS_HREF);
 }
 
 function toChartPoint(raw: unknown): ChatChartPoint | null {
@@ -313,13 +253,13 @@ function blocksForTool({
 }): ChatBlock[] {
   switch (toolName) {
     case 'get_transaction':
-      return transactionCardBlocks(payload);
+      return entityCardBlocks('transaction', payload);
     case 'list_transactions':
       return transactionListBlocks(payload);
     case 'get_budget_status':
-      return budgetProgressBlocks(payload, userText, baseCurrency);
+      return budgetBlocks(payload, userText);
     case 'list_loans':
-      return loanSummaryBlocks(payload);
+      return loanBlocks(payload);
     case 'get_spending_by_category':
       return spendingCategoryBlocks(payload, baseCurrency);
     case 'get_spending_over_time':

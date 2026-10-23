@@ -12,21 +12,12 @@ function failed(): ToolExecutionResult {
 const baseCurrency = 'DOP';
 
 describe('buildChatBlocks', () => {
-  it('turns a single transaction into a transaction_card', () => {
+  it('turns a single transaction into an entity_card reference', () => {
     const blocks = buildChatBlocks({
       toolResults: [
         {
           toolName: 'get_transaction',
-          result: ok({
-            id: 'tx-1',
-            type: 'DEBIT',
-            amount: '250',
-            currency: 'DOP',
-            transactionDate: '2026-10-14T10:00:00.000Z',
-            merchant: 'Café',
-            accountName: 'Popular',
-            status: 'CONFIRMED',
-          }),
+          result: ok({ id: 'tx-1', type: 'DEBIT', amount: '250' }),
         },
       ],
       userText: 'muéstrame ese movimiento',
@@ -34,33 +25,14 @@ describe('buildChatBlocks', () => {
     });
 
     expect(blocks).toEqual([
-      {
-        type: 'transaction_card',
-        transactionId: 'tx-1',
-        snapshot: {
-          id: 'tx-1',
-          type: 'DEBIT',
-          amount: '250',
-          currency: 'DOP',
-          transactionDate: '2026-10-14T10:00:00.000Z',
-          merchant: 'Café',
-          description: null,
-          accountName: 'Popular',
-          cardName: null,
-          status: 'CONFIRMED',
-        },
-      },
+      { type: 'entity_card', ref: { type: 'transaction', id: 'tx-1' } },
     ]);
   });
 
   it('caps a transaction list and points to the ledger', () => {
     const items = Array.from({ length: 8 }, (_, index) => ({
       id: `tx-${index}`,
-      type: 'DEBIT',
       amount: '10',
-      currency: 'DOP',
-      transactionDate: '2026-10-14T10:00:00.000Z',
-      status: 'CONFIRMED',
     }));
     const blocks = buildChatBlocks({
       toolResults: [{ toolName: 'list_transactions', result: ok({ items }) }],
@@ -68,13 +40,15 @@ describe('buildChatBlocks', () => {
       baseCurrency,
     });
 
-    const list = blocks[0];
-    expect(list.type).toBe('transaction_list');
-    if (list.type !== 'transaction_list') {
-      return;
-    }
-    expect(list.items).toHaveLength(5);
-    expect(list.moreHref).toBe('/finance/transactions');
+    expect(blocks).toEqual([
+      {
+        type: 'entity_list',
+        refs: items
+          .slice(0, 5)
+          .map((item) => ({ type: 'transaction', id: item.id })),
+        moreHref: '/finance/transactions',
+      },
+    ]);
   });
 
   it('picks the budget named in the message', () => {
@@ -106,16 +80,13 @@ describe('buildChatBlocks', () => {
       baseCurrency,
     });
 
-    expect(blocks).toHaveLength(1);
-    const block = blocks[0];
-    expect(block.type).toBe('budget_progress');
-    if (block.type !== 'budget_progress') {
-      return;
-    }
-    expect(block.budgetId).toBe('budget-food');
-    expect(block.spent).toBe('300');
-    expect(block.limit).toBe('1000');
-    expect(block.currency).toBe('DOP');
+    expect(blocks).toEqual([
+      {
+        type: 'entity_list',
+        refs: [{ type: 'budget', id: 'budget-food' }],
+        moreHref: '/finance/budgets',
+      },
+    ]);
   });
 
   it('falls back to the budgets closest to their limit', () => {
@@ -147,30 +118,53 @@ describe('buildChatBlocks', () => {
       baseCurrency,
     });
 
-    const first = blocks[0];
-    expect(first.type).toBe('budget_progress');
-    if (first.type !== 'budget_progress') {
+    const block = blocks[0];
+    expect(block.type).toBe('entity_list');
+    if (block.type !== 'entity_list') {
       return;
     }
-    expect(first.budgetId).toBe('budget-high');
+    expect(block.refs[0]).toEqual({ type: 'budget', id: 'budget-high' });
   });
 
-  it('builds a loan_summary with the next installment', () => {
+  it('derives the budget percentage when the payload omits it', () => {
+    const blocks = buildChatBlocks({
+      toolResults: [
+        {
+          toolName: 'get_budget_status',
+          result: ok({
+            items: [
+              {
+                id: 'budget-1',
+                category: 'Comida',
+                amountSpent: '250',
+                amountLimit: '1000',
+              },
+            ],
+          }),
+        },
+      ],
+      userText: 'presupuesto',
+      baseCurrency,
+    });
+
+    expect(blocks).toEqual([
+      {
+        type: 'entity_list',
+        refs: [{ type: 'budget', id: 'budget-1' }],
+        moreHref: '/finance/budgets',
+      },
+    ]);
+  });
+
+  it('lists loan references without copying their data', () => {
     const blocks = buildChatBlocks({
       toolResults: [
         {
           toolName: 'list_loans',
           result: ok({
             items: [
-              {
-                id: 'loan-1',
-                lenderName: 'Banco',
-                currentBalance: '50000',
-                currency: 'DOP',
-                installmentAmount: '4500',
-                nextDueDate: '2026-11-01',
-                paidInstallments: 3,
-              },
+              { id: 'loan-1', lenderName: 'Banco', currentBalance: '50000' },
+              { id: 'loan-2', lenderName: 'Cooperativa' },
             ],
           }),
         },
@@ -181,17 +175,12 @@ describe('buildChatBlocks', () => {
 
     expect(blocks).toEqual([
       {
-        type: 'loan_summary',
-        loanId: 'loan-1',
-        balance: '50000',
-        currency: 'DOP',
-        name: 'Banco',
-        nextInstallment: {
-          amount: '4500',
-          currency: 'DOP',
-          dueDate: '2026-11-01',
-          installmentNo: 4,
-        },
+        type: 'entity_list',
+        refs: [
+          { type: 'loan', id: 'loan-1' },
+          { type: 'loan', id: 'loan-2' },
+        ],
+        moreHref: '/finance/loans',
       },
     ]);
   });
@@ -253,43 +242,27 @@ describe('buildChatBlocks', () => {
       toolResults: [
         { toolName: 'set_theme', result: ok({ theme: 'dark' }) },
         { toolName: 'get_transaction', result: failed() },
-        {
-          toolName: 'get_transaction',
-          result: ok({
-            id: 'tx-1',
-            type: 'DEBIT',
-            amount: '1',
-            currency: 'DOP',
-            transactionDate: '2026-10-14T10:00:00.000Z',
-            status: 'CONFIRMED',
-          }),
-        },
-        {
-          toolName: 'get_transaction',
-          result: ok({
-            id: 'tx-1',
-            type: 'DEBIT',
-            amount: '1',
-            currency: 'DOP',
-            transactionDate: '2026-10-14T10:00:00.000Z',
-            status: 'CONFIRMED',
-          }),
-        },
+        { toolName: 'get_transaction', result: ok({ id: 'tx-1' }) },
+        { toolName: 'get_transaction', result: ok({ id: 'tx-1' }) },
       ],
       userText: 'algo',
       baseCurrency,
     });
 
     expect(blocks).toHaveLength(1);
-    expect(blocks[0].type).toBe('transaction_card');
+    expect(blocks[0].type).toBe('entity_card');
   });
 
-  it('skips a malformed transaction instead of inventing values', () => {
+  it('skips a payload without an id instead of inventing a reference', () => {
     const blocks = buildChatBlocks({
       toolResults: [
         {
           toolName: 'get_transaction',
-          result: ok({ id: 'tx-1', amount: '10', currency: 'DOP' }),
+          result: ok({ amount: '10', currency: 'DOP' }),
+        },
+        {
+          toolName: 'list_loans',
+          result: ok({ items: [{ lenderName: 'Banco' }] }),
         },
       ],
       userText: 'algo',
@@ -297,68 +270,5 @@ describe('buildChatBlocks', () => {
     });
 
     expect(blocks).toEqual([]);
-  });
-
-  it('derives the budget percentage when the payload omits it', () => {
-    const blocks = buildChatBlocks({
-      toolResults: [
-        {
-          toolName: 'get_budget_status',
-          result: ok({
-            items: [
-              {
-                id: 'budget-1',
-                category: 'Comida',
-                amountSpent: '250',
-                amountLimit: '1000',
-              },
-            ],
-          }),
-        },
-      ],
-      userText: 'presupuesto',
-      baseCurrency,
-    });
-
-    const block = blocks[0];
-    expect(block.type).toBe('budget_progress');
-    if (block.type !== 'budget_progress') {
-      return;
-    }
-    expect(block.pctUsed).toBe(25);
-  });
-
-  it('omits the next installment when the loan has no installment number', () => {
-    const blocks = buildChatBlocks({
-      toolResults: [
-        {
-          toolName: 'list_loans',
-          result: ok({
-            items: [
-              {
-                id: 'loan-1',
-                lenderName: 'Banco',
-                currentBalance: '50000',
-                currency: 'DOP',
-                installmentAmount: '4500',
-                nextDueDate: '2026-11-01',
-              },
-            ],
-          }),
-        },
-      ],
-      userText: 'mis préstamos',
-      baseCurrency,
-    });
-
-    expect(blocks).toEqual([
-      {
-        type: 'loan_summary',
-        loanId: 'loan-1',
-        balance: '50000',
-        currency: 'DOP',
-        name: 'Banco',
-      },
-    ]);
   });
 });
