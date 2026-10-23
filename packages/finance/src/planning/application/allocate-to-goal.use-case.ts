@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { CreateTransferUseCase } from '../../ledger/application/create-transfer.use-case';
 import { FinanceOwnershipService } from '../../shared/application/finance-ownership.service';
+import { resolveLocalMoment } from '../../shared/domain/local-day';
 import { roundMoney } from '../../shared/domain/money';
 import {
   EARMARK_EXCEEDS_BALANCE,
@@ -65,7 +66,11 @@ export class AllocateToGoalUseCase {
     }
 
     const kind = dto.kind ?? 'CONTRIBUTION';
-    const contributedAt = dto.date ? new Date(dto.date) : now;
+    const contributedAt = resolveLocalMoment({
+      timezone: await this.repo.findUserTimezone(userId),
+      date: dto.date,
+      now,
+    });
     const accountId = goal.accountId;
 
     if (kind === 'CONTRIBUTION' && goal.mode === 'EARMARK' && !accountId) {

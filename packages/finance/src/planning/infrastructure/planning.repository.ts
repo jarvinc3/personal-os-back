@@ -244,6 +244,14 @@ export class PlanningRepository {
     });
   }
 
+  async findUserTimezone(userId: string): Promise<string | null> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { timezone: true },
+    });
+    return user?.timezone ?? null;
+  }
+
   findSavingsGoal(userId: string, id: string) {
     return this.prisma.finSavingsGoal.findFirst({ where: { id, userId } });
   }

@@ -4,6 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { CreateTransactionUseCase } from '../../ledger/application/create-transaction.use-case';
+import { resolveLocalMoment } from '../../shared/domain/local-day';
 import { roundMoney } from '../../shared/domain/money';
 import {
   LOAN_HAS_OVERDUE,
@@ -69,7 +70,11 @@ export class ApplyLoanPrepaymentUseCase {
     const penalty =
       command.penaltyAmount ??
       roundMoney(Number(loan.prepaymentPenaltyPct ?? 0) * command.amount);
-    const paidAt = command.date ? new Date(command.date) : now;
+    const paidAt = resolveLocalMoment({
+      timezone: await this.repo.findUserTimezone(userId),
+      date: command.date,
+      now,
+    });
     const categoryId = await this.repo.findLoanPaymentCategoryId();
     const movement = await this.createTransaction.execute(userId, {
       accountId: command.accountId,
