@@ -19,6 +19,7 @@ import {
 import { CurrentUser, RequiresEnabledModule } from '@personal-os/core';
 import type { LogoUploadFile } from '@personal-os/logos';
 import { MerchantsService } from '../application/merchants.service';
+import { CreateMerchantDto } from './dto/create-merchant.dto';
 import { ListMerchantsQueryDto } from './dto/list-merchants-query.dto';
 import { MergeMerchantDto } from './dto/merge-merchant.dto';
 import { SuggestMerchantQueryDto } from './dto/suggest-merchant-query.dto';
@@ -47,6 +48,12 @@ export class MerchantsController {
     @Query() query: SuggestMerchantQueryDto,
   ) {
     return this.merchants.suggest(userId, query.merchant);
+  }
+
+  @Post('merchants')
+  @ApiOperation({ summary: 'Crea un comercio con nombre, categoría y alias' })
+  create(@CurrentUser('sub') userId: string, @Body() dto: CreateMerchantDto) {
+    return this.merchants.create(userId, dto);
   }
 
   @Get('merchants/:id')

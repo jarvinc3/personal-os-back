@@ -3533,4 +3533,57 @@ describe('Finance (e2e)', () => {
       .send({ refs })
       .expect(400);
   });
+  it('POST /api/finance/merchants creates the merchant with its aliases', async () => {
+    const createdAt = new Date('2026-10-20T10:00:00.000Z');
+    prismaMock.finMerchant.create.mockResolvedValue({
+      id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      userId: 'user-123',
+      name: 'Supermercado Nacional',
+      normalizedKey: 'SUPERMERCADO NACIONAL',
+      aliases: ['Nacional'],
+      categoryId: null,
+      logoUrl: null,
+      createdAt,
+    });
+    prismaMock.finMerchant.findFirst.mockResolvedValue({
+      id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      userId: 'user-123',
+      name: 'Supermercado Nacional',
+      normalizedKey: 'SUPERMERCADO NACIONAL',
+      aliases: ['Nacional'],
+      categoryId: null,
+      logoUrl: null,
+      createdAt,
+    });
+
+    const response = await request(app.getHttpServer())
+      .post('/api/finance/merchants')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ name: 'Supermercado Nacional', aliases: ['Nacional'] })
+      .expect(201);
+
+    expect(response.body.data).toMatchObject({
+      id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      name: 'Supermercado Nacional',
+      aliases: ['Nacional'],
+      categoryId: null,
+      logoUrl: null,
+    });
+    expect(prismaMock.finMerchant.create).toHaveBeenCalledWith({
+      data: {
+        userId: 'user-123',
+        name: 'Supermercado Nacional',
+        normalizedKey: 'SUPERMERCADO NACIONAL',
+        aliases: ['Nacional'],
+      },
+    });
+  });
+
+  it('POST /api/finance/merchants rejects a name without usable text', async () => {
+    await request(app.getHttpServer())
+      .post('/api/finance/merchants')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ name: '*** 1234' })
+      .expect(400);
+  });
 });

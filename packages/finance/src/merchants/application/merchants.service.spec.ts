@@ -50,7 +50,7 @@ describe('MerchantsService.resolve', () => {
     expect(repo.createMerchant).toHaveBeenCalledWith('user-1', {
       name: 'Uber',
       normalizedKey: 'UBER',
-      rawAlias: 'UBER *TRIP 1234',
+      aliases: ['UBER *TRIP 1234'],
     });
     expect(resolved).toEqual({
       id: 'merchant-1',
@@ -76,7 +76,7 @@ describe('MerchantsService.resolve', () => {
     expect(repo.createMerchant).toHaveBeenCalledWith('user-1', {
       name: 'QA Almuerzo',
       normalizedKey: 'QA ALMUERZO',
-      rawAlias: 'QA Almuerzo',
+      aliases: ['QA Almuerzo'],
     });
   });
 
@@ -209,5 +209,134 @@ describe('MerchantsService.list', () => {
       from: new Date('2026-10-01T00:00:00.000Z'),
       to: new Date('2026-10-31T23:59:59.999Z'),
     });
+  });
+});
+
+describe('MerchantsService.create', () => {
+  function createdRow(overrides: Record<string, unknown> = {}) {
+    return merchantRow({
+      id: 'merchant-new',
+      name: 'Supermercado Nacional',
+      normalizedKey: 'SUPERMERCADO NACIONAL',
+      aliases: ['Nacional'],
+      ...overrides,
+    });
+  }
+
+  it('creates the merchant and answers with the detail shape', async () => {
+    const repo = {
+      findMerchantByKey: jest.fn(),
+      createMerchant: jest.fn().mockResolvedValue(createdRow()),
+      findMerchantById: jest.fn().mockResolvedValue(createdRow()),
+      sumSpendByMerchant: jest
+        .fn()
+        .mockResolvedValue([
+          { merchantId: 'merchant-new', spend: 0, movements: 0 },
+        ]),
+    };
+    const { service } = build(repo);
+
+    const merchant = await service.create('user-1', {
+      name: '  Supermercado Nacional ',
+      aliases: ['Nacional'],
+    });
+
+    expect(repo.createMerchant).toHaveBeenCalledWith('user-1', {
+      name: 'Supermercado Nacional',
+      normalizedKey: 'SUPERMERCADO NACIONAL',
+      aliases: ['Nacional'],
+    });
+    expect(merchant).toMatchObject({
+      id: 'merchant-new',
+      name: 'Supermercado Nacional',
+      categoryId: null,
+      aliases: ['Nacional'],
+      logoUrl: null,
+      monthSpend: '0',
+      monthMovements: 0,
+    });
+  });
+
+  it('removes repeated and empty aliases', async () => {
+    const repo = {
+      createMerchant: jest.fn().mockResolvedValue(createdRow()),
+      findMerchantById: jest.fn().mockResolvedValue(createdRow()),
+      sumSpendByMerchant: jest.fn().mockResolvedValue([]),
+    };
+    const { service } = build(repo);
+
+    await service.create('user-1', {
+      name: 'Supermercado Nacional',
+      aliases: ['Nacional', '  ', 'NACIONAL', 'Súper'],
+    });
+
+    expect(repo.createMerchant).toHaveBeenCalledWith(
+      'user-1',
+      expect.objectContaining({ aliases: ['Nacional', 'Súper'] }),
+    );
+  });
+
+  it('rejects a name without usable text', async () => {
+    const { service } = build();
+
+    await expect(service.create('user-1', { name: '*** 1234' })).rejects.toMatchObject(
+      {
+        response: {
+          message: 'El nombre del comercio no tiene texto utilizable',
+        },
+      },
+    );
+  });
+
+  it('rejects a blank name', async () => {
+    const { service } = build();
+
+    await expect(service.create('user-1', { name: '   ' })).rejects.toMatchObject({
+      response: {
+        message: 'El nombre del comercio no tiene texto utilizable',
+      },
+    });
+  });
+
+  it('answers 409 with the merchant that already holds the key', async () => {
+    const duplicate = new Prisma.PrismaClientKnownRequestError('duplicate', {
+      code: 'P2002',
+      clientVersion: 'test',
+    });
+    const repo = {
+      createMerchant: jest.fn().mockRejectedValue(duplicate),
+      findMerchantByKey: jest.fn().mockResolvedValue(merchantRow()),
+    };
+    const { service } = build(repo);
+
+    await expect(
+      service.create('user-1', { name: 'Uber Eats' }),
+    ).rejects.toMatchObject({
+      response: {
+        message: 'Ya existe un comercio con ese nombre',
+        existingMerchantId: 'merchant-1',
+      },
+    });
+  });
+
+  it('rejects a category the user cannot see', async () => {
+    const repo = { createMerchant: jest.fn() };
+    const { service } = build(repo);
+    const ownership = (
+      service as unknown as {
+        ownership: { assertCategoryVisible: jest.Mock };
+      }
+    ).ownership;
+    ownership.assertCategoryVisible.mockRejectedValue(
+      new Error('Categoría no encontrada'),
+    );
+
+    await expect(
+      service.create('user-1', {
+        name: 'Supermercado Nacional',
+        categoryId: 'cat-other',
+      }),
+    ).rejects.toThrow('Categoría no encontrada');
+    expect(repo.createMerchant).not.toHaveBeenCalled();
   });
 });

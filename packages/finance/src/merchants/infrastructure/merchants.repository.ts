@@ -74,14 +74,14 @@ export class MerchantsRepository {
 
   createMerchant(
     userId: string,
-    data: { name: string; normalizedKey: string; rawAlias: string | null },
+    data: { name: string; normalizedKey: string; aliases: string[] },
   ) {
     return this.prisma.finMerchant.create({
       data: {
         userId,
         name: data.name,
         normalizedKey: data.normalizedKey,
-        aliases: data.rawAlias ? [data.rawAlias] : [],
+        aliases: data.aliases,
       },
     });
   }

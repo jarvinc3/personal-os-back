@@ -9,6 +9,7 @@ import { Prisma } from '@personal-os/database';
 import { LogoService, type LogoUploadFile } from '@personal-os/logos';
 import { FinanceOwnershipService } from '../../shared/application/finance-ownership.service';
 import { decimalToString } from '../../shared/domain/mappers';
+import { normalizeAliasList } from '../domain/merchant-aliases';
 import {
   merchantDisplayName,
   normalizeMerchant,
@@ -17,6 +18,7 @@ import {
   MerchantsRepository,
   type MerchantSpend,
 } from '../infrastructure/merchants.repository';
+import type { CreateMerchantDto } from '../presentation/dto/create-merchant.dto';
 import type { ListMerchantsQueryDto } from '../presentation/dto/list-merchants-query.dto';
 import type { UpdateMerchantDto } from '../presentation/dto/update-merchant.dto';
 
@@ -159,6 +161,34 @@ export class MerchantsService {
     );
   }
 
+  async create(userId: string, dto: CreateMerchantDto, now = new Date()) {
+    const name = dto.name.trim();
+    if (!name) {
+      throw new BadRequestException(
+        'El nombre del comercio no tiene texto utilizable',
+      );
+    }
+    const normalizedKey = normalizeMerchant(name);
+    if (!normalizedKey) {
+      throw new BadRequestException(
+        'El nombre del comercio no tiene texto utilizable',
+      );
+    }
+    if (dto.categoryId) {
+      await this.ownership.assertCategoryVisible(userId, dto.categoryId);
+    }
+    try {
+      const created = await this.repo.createMerchant(userId, {
+        name,
+        normalizedKey,
+        aliases: normalizeAliasList(dto.aliases ?? []),
+      });
+      return this.get(userId, created.id, now);
+    } catch (error) {
+      await this.throwNameConflict(error, userId, normalizedKey);
+    }
+  }
+
   async update(userId: string, id: string, dto: UpdateMerchantDto) {
     const existing = await this.repo.findMerchantById(userId, id);
     if (!existing) {
@@ -192,7 +222,11 @@ export class MerchantsService {
     try {
       await this.repo.updateMerchant(userId, id, changes);
     } catch (error) {
-      this.rethrowNameConflict(error);
+      await this.throwNameConflict(
+        error,
+        userId,
+        changes.normalizedKey ?? existing.normalizedKey,
+      );
     }
     return this.get(userId, id);
   }
@@ -277,11 +311,11 @@ export class MerchantsService {
       const created = await this.repo.createMerchant(userId, {
         name,
         normalizedKey,
-        rawAlias: rawName ?? null,
+        aliases: rawName ? [rawName] : [],
       });
       return this.toResolved(created);
     } catch (error) {
-      this.rethrowNameConflict(error);
+      return this.throwNameConflict(error, userId, normalizedKey);
     }
   }
 
@@ -332,12 +366,21 @@ export class MerchantsService {
     });
   }
 
-  private rethrowNameConflict(error: unknown): never {
+  /** 409 with the merchant that already holds the key, so the web can open it. */
+  private async throwNameConflict(
+    error: unknown,
+    userId: string,
+    normalizedKey: string,
+  ): Promise<never> {
     if (
       error instanceof Prisma.PrismaClientKnownRequestError &&
       error.code === 'P2002'
     ) {
-      throw new ConflictException('Ya existe un comercio con ese nombre');
+      const existing = await this.repo.findMerchantByKey(userId, normalizedKey);
+      throw new ConflictException({
+        message: 'Ya existe un comercio con ese nombre',
+        existingMerchantId: existing?.id ?? null,
+      });
     }
     throw error;
   }
