@@ -33,7 +33,8 @@ Open balance/ledger/planning bugs are fixed in parallel and are out of scope (se
 - selective multi-model consensus;
 - month-by-month learning replay;
 - multiple datasets / dataset versioning;
-- cross-account knowledge _sharing features_ beyond GLOBAL structural knowledge.
+- cross-account knowledge _sharing features_ beyond GLOBAL structural knowledge;
+- Gmail push/Pub/Sub as the primary sync trigger (V1 keeps the provider-sync boundary compatible with it).
 
 ---
 
@@ -93,6 +94,10 @@ No package imports a concrete provider. Quick-entry and statement import still w
 
 - diagnose OAuth failures;
 - `AiEmailConnection` (per user), historical bootstrap from 2026-01-01, incremental cursor design;
+- after bootstrap, use **scheduled incremental polling** as the V1 discovery trigger (configurable interval; initial operational target approximately 5–15 minutes): each tick resumes from the persisted provider cursor/history state and fetches only changes/new messages rather than re-querying broad date ranges;
+- keep the incremental-sync use case trigger-agnostic so Gmail push via Google Cloud Pub/Sub can later wake the exact same pipeline without redesigning Email Intelligence; Pub/Sub is optional/deferred and is not a `0.100.0` release dependency;
+- preserve scheduled reconciliation/recovery even if push is enabled later; correctness depends on persisted cursor + idempotency, not reliable delivery of a cron tick or push notification;
+- define recovery for missed runs and invalid/expired provider history cursor, including bounded recovery/full resync;
 - `AiEmailMessage` + content (raw/sanitized/canonical), fingerprints, idempotency;
 - strict per-user isolation in repositories/queries;
 - **roles layer**: `UserRole` table (one role per user: USER | CONTRIBUTOR | ADMIN, default USER; owner seeded as ADMIN in DEV), `@Roles()` decorator + `RolesGuard` registered after the existing global `JwtAuthGuard` (Supabase JWT), role loaded from DB by `userId` (short cache); admin endpoints to list/change roles;
@@ -101,7 +106,7 @@ No package imports a concrete provider. Quick-entry and statement import still w
 
 ## Tests
 
-OAuth/token lifecycle, pagination, date range, duplicate import, canonicalization, fingerprint stability, retry/errors, **cross-user isolation** (user A can never read B's messages), consent default on and revocable, role guard (USER blocked from admin endpoints, ADMIN allowed, unknown user -> USER, role change effective without re-login).
+OAuth/token lifecycle, pagination, date range, duplicate import, canonicalization, fingerprint stability, retry/errors, **incremental cursor advancement**, no-change scheduled sync, replay/recovery idempotency, invalid/expired cursor recovery, trigger independence, **cross-user isolation** (user A can never read B's messages), consent default on and revocable, role guard (USER blocked from admin endpoints, ADMIN allowed, unknown user -> USER, role change effective without re-login).
 
 ## Review UI increment (v0, read-only)
 
@@ -109,7 +114,7 @@ OAuth/token lifecycle, pagination, date range, duplicate import, canonicalizatio
 
 ## Gate
 
-Re-running bootstrap does not duplicate; experiments run without re-fetching Gmail; isolation tests green; every admin/intelligence endpoint is covered by the roles guard.
+Re-running bootstrap does not duplicate; experiments run without re-fetching Gmail; scheduled incremental sync processes only provider changes; a missed/duplicate trigger cannot corrupt or duplicate corpus state; the provider-sync boundary can accept a future push trigger without changing downstream Email Intelligence; isolation tests green; every admin/intelligence endpoint is covered by the roles guard.
 
 ---
 
