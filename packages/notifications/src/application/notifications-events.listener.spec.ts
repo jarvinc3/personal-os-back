@@ -5,14 +5,19 @@ import { NotificationsService } from './notifications.service';
 
 describe('NotificationsEventsListener', () => {
   const create = jest.fn();
+  const tx = {};
+  const runOnce = jest.fn((_eventId, _consumer, effect) => effect(tx));
+  const publishInApp = jest.fn();
   const tryClaim = jest.fn().mockResolvedValue(true);
 
   const notificationsService = {
     create,
+    publishInApp,
   } as unknown as NotificationsService;
 
   const idempotency = {
     tryClaim,
+    runOnce,
   } as unknown as DomainEventIdempotencyGuard;
 
   const listener = new NotificationsEventsListener(
@@ -24,6 +29,7 @@ describe('NotificationsEventsListener', () => {
     jest.clearAllMocks();
     create.mockResolvedValue({ id: 'n-1' });
     tryClaim.mockResolvedValue(true);
+    runOnce.mockImplementation((_eventId, _consumer, effect) => effect(tx));
   });
 
   it('uses transactionDetected key for CONFIRMED finance.transaction.confirmed', async () => {
@@ -47,6 +53,7 @@ describe('NotificationsEventsListener', () => {
           transactionId: 'tx-1',
         }),
       }),
+      tx,
     ]);
   });
 
@@ -102,9 +109,10 @@ describe('NotificationsEventsListener', () => {
         title: 'Transferencia registrada',
       }),
     );
-    expect(tryClaim).toHaveBeenCalledWith(
+    expect(runOnce).toHaveBeenCalledWith(
       'group-1',
       expect.stringContaining(':transfer'),
+      expect.any(Function),
     );
   });
 
@@ -125,7 +133,7 @@ describe('NotificationsEventsListener', () => {
   });
 
   it('skips a transfer whose group was already notified', async () => {
-    tryClaim.mockResolvedValueOnce(true).mockResolvedValueOnce(false);
+    runOnce.mockResolvedValueOnce(undefined);
 
     await listener.onFinanceTransactionCreated({
       userId: 'user-1',
@@ -207,5 +215,32 @@ describe('NotificationsEventsListener', () => {
 
     expect(tryClaim).toHaveBeenCalledWith('evt-del', 'notifications:deleted');
     expect(create).not.toHaveBeenCalled();
+  });
+  it('propagates persistence failure without publishing a socket update', async () => {
+    create.mockRejectedValueOnce(new Error('database failed'));
+    await expect(
+      listener.onBudgetThreshold({
+        userId: 'u1',
+        budgetId: 'b1',
+        percentageUsed: 90,
+        eventId: 'e1',
+      }),
+    ).rejects.toThrow('database failed');
+    expect(publishInApp).not.toHaveBeenCalled();
+  });
+
+  it('publishes only after the receipt transaction resolves', async () => {
+    runOnce.mockImplementationOnce(async (_id, _consumer, effect) => {
+      const created = await effect(tx);
+      expect(publishInApp).not.toHaveBeenCalled();
+      return created;
+    });
+    await listener.onBudgetThreshold({
+      userId: 'u1',
+      budgetId: 'b1',
+      percentageUsed: 90,
+      eventId: 'e1',
+    });
+    expect(publishInApp).toHaveBeenCalledTimes(1);
   });
 });

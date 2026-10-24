@@ -152,18 +152,9 @@ export class NotificationsEventsListener {
     );
   }
 
-  @OnEvent(AppEvents.FINANCE_TRANSACTION_CONFIRMED)
-  @OnEvent(AppEvents.FINANCE_TRANSACTION_IMPORTED)
+  @OnEvent(AppEvents.FINANCE_TRANSACTION_CONFIRMED, { suppressErrors: false })
+  @OnEvent(AppEvents.FINANCE_TRANSACTION_IMPORTED, { suppressErrors: false })
   async onFinanceTransactionCreated(event: FinanceTxEvent): Promise<void> {
-    if (
-      !(await this.idempotency.tryClaim(
-        event.eventId,
-        NotificationsEventsListener.CONSUMER,
-      ))
-    ) {
-      return;
-    }
-
     this.logger.debug(
       `event=finance.transaction handled=true transactionId=${event.transactionId} userId=${event.userId} status=${event.status}`,
     );
@@ -203,7 +194,7 @@ export class NotificationsEventsListener {
     );
   }
 
-  @OnEvent(AppEvents.FINANCE_TRANSACTION_DELETED)
+  @OnEvent(AppEvents.FINANCE_TRANSACTION_DELETED, { suppressErrors: false })
   async onFinanceTransactionDeleted(event: FinanceTxEvent): Promise<void> {
     await this.idempotency.tryClaim(
       event.eventId,
@@ -223,16 +214,8 @@ export class NotificationsEventsListener {
     );
   }
 
-  @OnEvent(AppEvents.FINANCE_TRANSACTION_UPDATED)
+  @OnEvent(AppEvents.FINANCE_TRANSACTION_UPDATED, { suppressErrors: false })
   async onFinanceTransactionUpdated(event: FinanceTxEvent): Promise<void> {
-    if (
-      !(await this.idempotency.tryClaim(
-        event.eventId,
-        `${NotificationsEventsListener.CONSUMER}:updated`,
-      ))
-    ) {
-      return;
-    }
     await this.createTransactionNotification(
       event,
       'transaction.updated',
@@ -240,18 +223,12 @@ export class NotificationsEventsListener {
     );
   }
 
-  @OnEvent(AppEvents.FINANCE_BUDGET_THRESHOLD_CROSSED)
+  @OnEvent(AppEvents.FINANCE_BUDGET_THRESHOLD_CROSSED, {
+    suppressErrors: false,
+  })
   async onBudgetThreshold(event: BudgetThresholdEvent): Promise<void> {
-    if (
-      !(await this.idempotency.tryClaim(
-        event.eventId,
-        `${NotificationsEventsListener.CONSUMER}:budget`,
-      ))
-    ) {
-      return;
-    }
     const budgetCopy = budgetThresholdCopy(event.percentageUsed);
-    await this.createFinanceInApp(event.userId, {
+    await this.createFinanceInApp(event, {
       type: 'budget.threshold_reached',
       title: budgetCopy.title,
       body: budgetCopy.body,
@@ -264,20 +241,12 @@ export class NotificationsEventsListener {
     });
   }
 
-  @OnEvent(AppEvents.FINANCE_CARD_STATEMENT_REMINDER)
+  @OnEvent(AppEvents.FINANCE_CARD_STATEMENT_REMINDER, { suppressErrors: false })
   async onCardStatementReminder(
     event: CardStatementReminderEvent,
   ): Promise<void> {
-    if (
-      !(await this.idempotency.tryClaim(
-        event.eventId,
-        `${NotificationsEventsListener.CONSUMER}:card-statement`,
-      ))
-    ) {
-      return;
-    }
     const copy = cardStatementReminderCopy();
-    await this.createFinanceInApp(event.userId, {
+    await this.createFinanceInApp(event, {
       type: 'card.statement_reminder',
       title: copy.title,
       body: copy.body,
@@ -289,16 +258,8 @@ export class NotificationsEventsListener {
     });
   }
 
-  @OnEvent(AppEvents.FINANCE_CARD_PAYMENT_DUE)
+  @OnEvent(AppEvents.FINANCE_CARD_PAYMENT_DUE, { suppressErrors: false })
   async onCardPaymentDue(event: CardPaymentDueEvent): Promise<void> {
-    if (
-      !(await this.idempotency.tryClaim(
-        event.eventId,
-        `${NotificationsEventsListener.CONSUMER}:card-payment-due`,
-      ))
-    ) {
-      return;
-    }
     const copy = cardPaymentDueCopy({
       cardName: event.cardName?.trim() ? event.cardName : 'tu tarjeta',
       remainingLabel: formatNotificationAmount(
@@ -307,7 +268,7 @@ export class NotificationsEventsListener {
       ),
       daysUntil: event.daysUntil ?? 0,
     });
-    await this.createFinanceInApp(event.userId, {
+    await this.createFinanceInApp(event, {
       type: 'card.payment_due',
       title: copy.title,
       body: copy.body,
@@ -321,17 +282,8 @@ export class NotificationsEventsListener {
     });
   }
 
-  @OnEvent(AppEvents.FINANCE_WEEKLY_SUMMARY)
+  @OnEvent(AppEvents.FINANCE_WEEKLY_SUMMARY, { suppressErrors: false })
   async onWeeklySummary(event: WeeklySummaryEvent): Promise<void> {
-    if (
-      !(await this.idempotency.tryClaim(
-        event.eventId,
-        `${NotificationsEventsListener.CONSUMER}:weekly-summary`,
-      ))
-    ) {
-      return;
-    }
-
     const summary = event.summary ?? {};
     const currency = summary.currency ?? '';
     const averageValue = Number(summary.averageExpenses ?? 0);
@@ -352,7 +304,7 @@ export class NotificationsEventsListener {
       pendingEmails: summary.pendingEmails ?? 0,
     });
 
-    await this.createFinanceInApp(event.userId, {
+    await this.createFinanceInApp(event, {
       type: 'finance.weekly_summary',
       title: copy.title,
       body: copy.body,
@@ -364,25 +316,17 @@ export class NotificationsEventsListener {
     });
   }
 
-  @OnEvent(AppEvents.FINANCE_RECURRING_PRICE_CHANGED)
+  @OnEvent(AppEvents.FINANCE_RECURRING_PRICE_CHANGED, { suppressErrors: false })
   async onRecurringPriceChanged(
     event: RecurringPriceChangeEvent,
   ): Promise<void> {
-    if (
-      !(await this.idempotency.tryClaim(
-        event.eventId,
-        `${NotificationsEventsListener.CONSUMER}:recurring-price`,
-      ))
-    ) {
-      return;
-    }
     const currency = event.currency ?? '';
     const copy = recurringPriceChangedCopy({
       merchant: event.merchant,
       previousLabel: formatNotificationAmount(event.previousAmount, currency),
       newLabel: formatNotificationAmount(event.newAmount, currency),
     });
-    await this.createFinanceInApp(event.userId, {
+    await this.createFinanceInApp(event, {
       type: 'recurring.price_changed',
       title: copy.title,
       body: copy.body,
@@ -394,24 +338,18 @@ export class NotificationsEventsListener {
     });
   }
 
-  @OnEvent(AppEvents.FINANCE_SUBSCRIPTION_RENEWAL_DUE)
+  @OnEvent(AppEvents.FINANCE_SUBSCRIPTION_RENEWAL_DUE, {
+    suppressErrors: false,
+  })
   async onSubscriptionRenewalDue(
     event: SubscriptionRenewalEvent,
   ): Promise<void> {
-    if (
-      !(await this.idempotency.tryClaim(
-        event.eventId,
-        `${NotificationsEventsListener.CONSUMER}:subscription-renewal`,
-      ))
-    ) {
-      return;
-    }
     const copy = subscriptionRenewalDueCopy({
       merchant: event.name,
       amountLabel: formatNotificationAmount(event.amount, event.currency ?? ''),
       daysUntil: event.daysUntil ?? 0,
     });
-    await this.createFinanceInApp(event.userId, {
+    await this.createFinanceInApp(event, {
       type: 'subscription.renewal_due',
       title: copy.title,
       body: copy.body,
@@ -424,25 +362,17 @@ export class NotificationsEventsListener {
     });
   }
 
-  @OnEvent(AppEvents.FINANCE_RECURRING_MISSED)
+  @OnEvent(AppEvents.FINANCE_RECURRING_MISSED, { suppressErrors: false })
   async onRecurringMissed(event: RecurringChargeEvent): Promise<void> {
     await this.createRecurringCharge(event, 'recurring.missed', 'missed');
   }
-  @OnEvent(AppEvents.FINANCE_RECURRING_UPCOMING)
+  @OnEvent(AppEvents.FINANCE_RECURRING_UPCOMING, { suppressErrors: false })
   async onRecurringUpcoming(event: RecurringChargeEvent): Promise<void> {
     await this.createRecurringCharge(event, 'recurring.upcoming', 'upcoming');
   }
 
-  @OnEvent(AppEvents.FINANCE_BALANCE_DRIFT_DETECTED)
+  @OnEvent(AppEvents.FINANCE_BALANCE_DRIFT_DETECTED, { suppressErrors: false })
   async onBalanceDrift(event: BalanceDriftEvent): Promise<void> {
-    if (
-      !(await this.idempotency.tryClaim(
-        event.eventId,
-        `${NotificationsEventsListener.CONSUMER}:balance-drift`,
-      ))
-    ) {
-      return;
-    }
     const copy = balanceDriftCopy({
       name: event.name?.trim() ? event.name : 'una cuenta',
       differenceLabel: formatNotificationAmount(
@@ -450,7 +380,7 @@ export class NotificationsEventsListener {
         event.currency ?? '',
       ),
     });
-    await this.createFinanceInApp(event.userId, {
+    await this.createFinanceInApp(event, {
       type: 'finance.balance_drift',
       title: copy.title,
       body: copy.body,
@@ -470,14 +400,6 @@ export class NotificationsEventsListener {
     type: string,
     copyKind: 'missed' | 'upcoming',
   ): Promise<void> {
-    if (
-      !(await this.idempotency.tryClaim(
-        event.eventId,
-        `${NotificationsEventsListener.CONSUMER}:${type}`,
-      ))
-    ) {
-      return;
-    }
     const amountLabel = formatNotificationAmount(
       event.amount,
       event.currency ?? '',
@@ -490,7 +412,7 @@ export class NotificationsEventsListener {
             amountLabel,
             daysUntil: event.daysUntil ?? 0,
           });
-    await this.createFinanceInApp(event.userId, {
+    await this.createFinanceInApp(event, {
       type,
       title: copy.title,
       body: copy.body,
@@ -510,15 +432,8 @@ export class NotificationsEventsListener {
     if (event.legRole !== TRANSFER_SOURCE_LEG || !event.transferGroupId) {
       return;
     }
-    const claimed = await this.idempotency.tryClaim(
-      event.transferGroupId,
-      `${NotificationsEventsListener.CONSUMER}:transfer`,
-    );
-    if (!claimed) {
-      return;
-    }
     await this.createTransactionNotification(
-      event,
+      { ...event, eventId: event.transferGroupId },
       'transaction.transfer',
       transferRecordedCopy(this.transactionNotificationFields(event)),
     );
@@ -557,7 +472,7 @@ export class NotificationsEventsListener {
     type: string,
     copy: NotificationCopy,
   ): Promise<void> {
-    await this.createFinanceInApp(event.userId, {
+    await this.createFinanceInApp(event, {
       type,
       title: copy.title,
       body: copy.body,
@@ -566,7 +481,7 @@ export class NotificationsEventsListener {
   }
 
   private async createFinanceInApp(
-    userId: string,
+    event: { userId: string; eventId?: string },
     input: {
       type: string;
       title: string;
@@ -574,19 +489,44 @@ export class NotificationsEventsListener {
       data: Record<string, unknown>;
     },
   ): Promise<void> {
-    try {
-      await this.notificationsService.create(userId, {
-        type: input.type,
-        channel: 'IN_APP',
-        title: input.title,
-        body: input.body,
-        data: input.data,
-      });
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      this.logger.warn(
-        `Failed to create ${input.type} notification for user ${userId}: ${message}`,
-      );
+    // Keep the existing receipt keys valid across the deployment.
+    const consumers: Record<string, string> = {
+      'transaction.created': 'notifications',
+      'transaction.imported_pending': 'notifications',
+      'transaction.updated': 'notifications:updated',
+      'transaction.transfer': 'notifications:transfer',
+      'budget.threshold_reached': 'notifications:budget',
+      'card.statement_reminder': 'notifications:card-statement',
+      'card.payment_due': 'notifications:card-payment-due',
+      'finance.weekly_summary': 'notifications:weekly-summary',
+      'recurring.price_changed': 'notifications:recurring-price',
+      'subscription.renewal_due': 'notifications:subscription-renewal',
+      'recurring.missed': 'notifications:recurring.missed',
+      'recurring.upcoming': 'notifications:recurring.upcoming',
+      'finance.balance_drift': 'notifications:balance-drift',
+    };
+    const consumer = consumers[input.type];
+    if (!consumer) {
+      throw new Error('Missing notification consumer: ' + input.type);
+    }
+    const created = await this.idempotency.runOnce(
+      event.eventId,
+      consumer,
+      (tx) =>
+        this.notificationsService.create(
+          event.userId,
+          {
+            type: input.type,
+            channel: 'IN_APP',
+            title: input.title,
+            body: input.body,
+            data: input.data,
+          },
+          tx,
+        ),
+    );
+    if (created) {
+      this.notificationsService.publishInApp(created);
     }
   }
 }

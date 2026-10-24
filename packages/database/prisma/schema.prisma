@@ -1249,8 +1249,10 @@ model DomainEventOutbox {
   lastError     String?                 @map("last_error")
   createdAt     DateTime                @default(now()) @map("created_at") @db.Timestamptz(6)
   processedAt   DateTime?               @map("processed_at") @db.Timestamptz(6)
+  claimedAt     DateTime?               @map("claimed_at") @db.Timestamptz(6)
 
   @@index([status, nextAttemptAt], map: "domain_event_outbox_status_next_attempt_idx")
+  @@index([status, claimedAt], map: "domain_event_outbox_status_claimed_at_idx")
   @@index([userId], map: "domain_event_outbox_user_id_idx")
   @@map("domain_event_outbox")
 }
