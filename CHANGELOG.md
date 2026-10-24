@@ -2,6 +2,19 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [SemVer](https://semver.org/lang/es/). Reglas y ejemplo en [docs/reference/changelog-guide.md](./docs/reference/changelog-guide.md).
 
+## [0.55.2] - 2026-10-24
+
+### Corregido
+
+- El outbox recupera entregas con lease vencido, impide que un worker antiguo cierre otro intento y confirma recibos junto con efectos PostgreSQL. Notifications persiste antes del aviso WebSocket; IA deduplica el encolado por evento sin confirmar antes de Redis (#192).
+- Las tablas de alias y descartes de duplicados de comercios reciben los defaults UUID que ya declaraba Prisma, eliminando el drift al migrar una base vacía sin tocar datos existentes (#194).
+- El build de paquetes selecciona los nueve paquetes también desde scripts en Windows.
+
+### Cambiado
+
+- Decisiones e inventario del reset actualizados: conservación de lógica financiera, contratos neutrales, exclusiones de consentimiento, revisión de promociones y reproducción incompleta tras borrar evidencia. Se documenta la excepción condicional de 0.100.0 unreleased; el reset todavía no comienza (#193).
+- CI añade integración PostgreSQL con rollback, concurrencia y procesos terminados antes/después del commit del consumidor.
+
 ## [0.55.1] - 2026-10-23
 
 ### Corregido
