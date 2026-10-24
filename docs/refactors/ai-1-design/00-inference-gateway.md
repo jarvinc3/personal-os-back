@@ -1,7 +1,9 @@
 # AI-1 — Inference Gateway design
 
-Status: implementation in progress on `refactor/ai-1`, based on the AI-0
-merge in `develop` (`cd5f9ab`).
+Status: merged into `develop` through [PR #196](https://github.com/jarvinc3/personal-os-back/pull/196)
+at `5f9125c`. CI and Railway DEV deployment `7296557646` succeeded on
+2026-10-24. Production was not modified. The GitHub deployment record exposed
+only the Railway dashboard URL, so no remote API health check is recorded.
 
 Source of scope: [roadmap Phase 1](../personal-os-ai-redesign-context-pack/07-ROADMAP-AND-TESTABLE-PHASES.md#phase-1--inference-gateway).
 
