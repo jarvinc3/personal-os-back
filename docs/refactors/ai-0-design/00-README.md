@@ -1,12 +1,14 @@
 # AI-0 — diseño técnico del corte
 
-Estado: **propuesta técnica validada en una base local aislada**, preparada el
-2026-10-24 sobre backend `37b9ec875a640e023745add670a7d3b381a83c12` (`0.55.2`).
+Estado: **corte de código implementado en rama aislada y baseline validada en
+PostgreSQL local**, preparado el 2026-10-24 sobre `origin/develop` `da123e1`
+(`0.55.3`).
 Seguimiento: [programa #193](https://github.com/jarvinc3/personal-os-back/issues/193).
 Avance preparatorio de código: [estado de ejecución](07-execution-status.md).
-El código de AI-0 se inicia en rama aislada tras confirmación del corte/backup
-por el owner; ver el estado enlazado. No se ha reseteado DEV ni consultado o
-cambiado la base de PROD. Los archivos de `artifacts/` no son migraciones activas.
+El owner confirmó el corte PROD y el backup DEV. El preflight PROD readonly fue
+entregado y auditado; no se ha escrito en PROD ni se ha reseteado Supabase DEV.
+La ejecución remota espera la identificación inequívoca del proyecto DEV y una
+restauración verificada. Los archivos de `artifacts/` no son migraciones activas.
 
 | Entregable                             | Documento / artefacto                                                                                   |
 | -------------------------------------- | ------------------------------------------------------------------------------------------------------- |
@@ -46,27 +48,25 @@ cambiado la base de PROD. Los archivos de `artifacts/` no son migraciones activa
 
 ## Qué significa la validación
 
-La candidata pasó validación Prisma y un ensayo SQL de 16 comprobaciones con
+La candidata pasó validación Prisma y un ensayo SQL de 18 comprobaciones con
 fixtures explícitos de `auth` y `storage`. Es evidencia del DDL, restricciones,
 policies, privilegios, triggers, referencias e independencia de sesiones.
 El reporte no prueba Google OAuth, un despliegue Railway, APIs administradas
 de Supabase ni que el código de aplicación ya compile contra esta candidata.
-Ese último gate se ejecuta al implementar AI-0, después de aplicar el plan de
-archivos; el comportamiento activo conserva el del origen `0.55.2`, con un
-PATCH documental independiente para este diseño.
+El corte de código compila y sus pruebas unitarias y E2E se ejecutan en la rama;
+el comportamiento activo no se ha desplegado y conserva como rollback el
+origen `0.55.3`.
 
 ## Gates pendientes antes de ejecutar
 
-- Merge/corte estable real de back y web; comprobación del despliegue y estado
-  de workers. No basta con que exista un tag en develop.
-- Lectura de `_prisma_migrations`, extensiones y objetos no versionados en PROD
-  con conexión identificada de solo lectura; comparar con el manifiesto local.
+- Identificar el proyecto/conexión de Supabase DEV sin compartir secretos y
+  verificar una restauración del backup correspondiente.
+- Aplicar y verificar la baseline en ese DEV; no usar el SQL de esquema local
+  de contexto como script de ejecución.
 - Evidencia operativa de los fallos OAuth. El diagnóstico estático identifica
   casos concretos, pero no atribuye a uno de ellos los incidentes reportados.
-- Congelar el SHA web y resolver sus cambios de trabajo con su autor. No se han
-  sobrescrito ni incluido en commits de este diseño.
-- Backup DEV verificable y ensayo de restauración; no hay restauración real
-  de datos de DEV validada mediante fixtures locales.
+- Ejecutar smoke tests sobre DEV aislado y comprobar jobs, Auth, RLS, logos y
+  balances antes de reabrir sus escritores.
 
-La excepción a release por sesión todavía no se activa. Este diseño documental
-lleva PATCH normal. Solo la ejecución aprobada de AI-0 inicia `0.100.0` unreleased.
+La excepción a release por sesión para AI-0 está activa: ambos repos se
+mantienen en `0.100.0` unreleased hasta decisión del owner tras AI-11.

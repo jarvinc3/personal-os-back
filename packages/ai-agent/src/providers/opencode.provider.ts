@@ -2,7 +2,7 @@ import OpenAI from 'openai';
 import {
   parseToolCallArguments,
   toolsToOpenAiFormat,
-} from '../tools/tool.registry';
+} from '../shared/provider-tool-codec';
 import type {
   AIService,
   AiToolDefinition,

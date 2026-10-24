@@ -7,7 +7,8 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [Se
 ### Cambiado
 
 - AI-0 en rama aislada: `@personal-os/contracts` reúne interfaces y tokens neutrales; el pool de inferencia y sus pruebas salen de chat. Los extractores financieros usan `INFERENCE_COMPLETION` y conservan sus respuestas y reglas (#193).
-- Se prueba la composición del núcleo sin chat/Finance, el failover por el puerto neutral y la validación de estados de cuenta. El corte estable y el backup están confirmados por el owner; la baseline y el reset DEV requieren todavía el reporte de metadatos PROD.
+- El corte de runtime elimina chat, sesiones, Gmail Finance y su configuración. Queda preservada y probada la lógica de importación financiera hasta AI-11; la entrega de correo por Resend sigue operativa.
+- La baseline conserva SQL manual, RLS/grants, triggers y el índice parcial de transferencias. Pasa `migrate deploy`, drift y 18 validaciones PostgreSQL locales; el preflight PROD fue auditado y no hubo escrituras remotas. El reset Supabase DEV espera la identificación del proyecto y una restauración verificada.
 
 ## [0.55.3] - 2026-10-24
 

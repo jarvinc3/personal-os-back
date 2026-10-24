@@ -1,6 +1,5 @@
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import * as jwt from 'jsonwebtoken';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { Prisma, PrismaService } from '@personal-os/database';
@@ -200,20 +199,6 @@ describe('Finance (e2e)', () => {
     expect(prismaMock.$transaction).not.toHaveBeenCalled();
   });
 
-  it('GET /api/finance/email-sync/oauth/google/callback stays public when finance is disabled', async () => {
-    prismaMock.userModule.findFirst.mockResolvedValue(null);
-
-    await request(app.getHttpServer())
-      .get('/api/finance/email-sync/oauth/google/callback')
-      .query({
-        code: 'test-auth-code',
-        state: 'invalid-state',
-      })
-      .expect(302);
-
-    expect(prismaMock.userModule.findFirst).not.toHaveBeenCalled();
-  });
-
   it('POST /api/finance/accounts creates account', async () => {
     const institutionId = '11111111-1111-4111-8111-111111111111';
     prismaMock.finInstitution.findMany.mockResolvedValue([
@@ -291,270 +276,6 @@ describe('Finance (e2e)', () => {
       .expect((res) => {
         expect(res.body.data.type).toBe('CASH');
         expect(res.body.data.institutionId).toBeNull();
-      });
-  });
-
-  it('GET /api/finance/email-sync/oauth/google/url includes institutionId in state', async () => {
-    const institutionId = '11111111-1111-4111-8111-111111111111';
-    prismaMock.finInstitution.findFirst.mockResolvedValue({
-      id: institutionId,
-      userId: 'user-123',
-      name: 'Bank',
-    });
-
-    await request(app.getHttpServer())
-      .get('/api/finance/email-sync/oauth/google/url')
-      .query({ bankDomain: 'qik.com.do', institutionId })
-      .set('Authorization', `Bearer ${token}`)
-      .expect(200)
-      .expect((res) => {
-        expect(res.body.data.url).toContain('accounts.google.com');
-        expect(res.body.data.url).toContain('state=');
-      });
-  });
-
-  it('GET /api/finance/email-sync/oauth/google/url allows omitting institutionId', async () => {
-    await request(app.getHttpServer())
-      .get('/api/finance/email-sync/oauth/google/url')
-      .set('Authorization', `Bearer ${token}`)
-      .expect(200)
-      .expect((res) => {
-        expect(res.body.data.url).toContain('accounts.google.com');
-        expect(res.body.data.url).toContain('state=');
-      });
-  });
-
-  it('GET /api/finance/email-sync/oauth/google/url rejects returnTo outside CORS_ORIGIN', async () => {
-    const institutionId = '11111111-1111-4111-8111-111111111111';
-    await request(app.getHttpServer())
-      .get('/api/finance/email-sync/oauth/google/url')
-      .query({ institutionId, returnTo: 'https://evil.example/phish' })
-      .set('Authorization', `Bearer ${token}`)
-      .expect(400);
-  });
-
-  it('GET /api/finance/email-sync/mailboxes includes connections without sources', async () => {
-    prismaMock.finEmailConnection.findMany.mockResolvedValue([
-      {
-        id: 'conn-1',
-        emailAddress: 'me@gmail.com',
-        provider: 'gmail',
-        isActive: true,
-        createdAt: new Date('2026-09-01'),
-        sources: [],
-      },
-    ]);
-
-    await request(app.getHttpServer())
-      .get('/api/finance/email-sync/mailboxes')
-      .set('Authorization', `Bearer ${token}`)
-      .expect(200)
-      .expect((res) => {
-        expect(res.body.data).toEqual([
-          expect.objectContaining({
-            id: 'conn-1',
-            emailAddress: 'me@gmail.com',
-            sources: [],
-          }),
-        ]);
-      });
-  });
-
-  it('POST /api/finance/email-sync/sources returns 400 without Gmail tokens', async () => {
-    prismaMock.finInstitution.findFirst.mockResolvedValue({
-      id: '11111111-1111-4111-8111-111111111111',
-      userId: 'user-123',
-      name: 'BHD',
-    });
-    prismaMock.finEmailConnection.findUnique.mockResolvedValue({
-      id: 'conn-1',
-      refreshToken: null,
-    });
-
-    await request(app.getHttpServer())
-      .post('/api/finance/email-sync/sources')
-      .set('Authorization', `Bearer ${token}`)
-      .send({
-        emailAddress: 'me@gmail.com',
-        bankSenderEmail: 'alertas@bhd.com.do',
-        institutionId: '11111111-1111-4111-8111-111111111111',
-      })
-      .expect(400);
-  });
-
-  it('POST /api/finance/email-sync/sources returns 409 when the institution is already linked', async () => {
-    const institutionId = '11111111-1111-4111-8111-111111111111';
-    prismaMock.finInstitution.findFirst.mockResolvedValue({
-      id: institutionId,
-      userId: 'user-123',
-      name: 'BHD',
-    });
-    prismaMock.finEmailConnection.findUnique.mockResolvedValue({
-      id: 'conn-2',
-      refreshToken: 'enc',
-    });
-    prismaMock.finEmailSource.findFirst.mockResolvedValue({
-      id: 'src-1',
-      connectionId: 'conn-1',
-      institutionId,
-      isActive: true,
-      bankDomain: 'bhd.com.do',
-      bankSenderEmail: 'alertas@bhd.com.do',
-      label: null,
-      lastSyncedAt: null,
-      createdAt: new Date('2026-09-01'),
-      logs: [],
-      connection: { emailAddress: 'me@gmail.com', provider: 'gmail' },
-      institution: { name: 'BHD' },
-    });
-
-    await request(app.getHttpServer())
-      .post('/api/finance/email-sync/sources')
-      .set('Authorization', `Bearer ${token}`)
-      .send({
-        emailAddress: 'other@gmail.com',
-        bankSenderEmail: 'alertas@bhd.com.do',
-        institutionId,
-      })
-      .expect(409);
-  });
-
-  it('PATCH /api/finance/email-sync/sources/:id updates institution without leaking tokens', async () => {
-    const sourceId = 'src-1';
-    const institutionId = '11111111-1111-4111-8111-111111111111';
-    const updatedSource = {
-      id: sourceId,
-      userId: 'user-123',
-      connectionId: 'conn-1',
-      institutionId,
-      bankDomain: 'bhd.com.do',
-      label: 'BHD principal',
-      isActive: true,
-      lastSyncedAt: null,
-      createdAt: new Date('2026-01-01'),
-      connection: {
-        id: 'conn-1',
-        emailAddress: 'user@gmail.com',
-        provider: 'gmail',
-        isActive: true,
-      },
-      institution: { id: institutionId, name: 'BHD', isActive: true },
-      logs: [],
-    };
-
-    prismaMock.finInstitution.findFirst.mockResolvedValue({
-      id: institutionId,
-      userId: 'user-123',
-      name: 'BHD',
-    });
-    prismaMock.finEmailSource.findFirst.mockResolvedValue(updatedSource);
-    prismaMock.finEmailSource.updateMany.mockResolvedValue({ count: 1 });
-
-    await request(app.getHttpServer())
-      .patch(`/api/finance/email-sync/sources/${sourceId}`)
-      .set('Authorization', `Bearer ${token}`)
-      .send({ institutionId, label: 'BHD principal' })
-      .expect(200)
-      .expect((res) => {
-        expect(res.body.data).toMatchObject({
-          id: sourceId,
-          institutionId,
-          label: 'BHD principal',
-          emailAddress: 'user@gmail.com',
-        });
-        expect(res.body.data).not.toHaveProperty('accessToken');
-        expect(res.body.data).not.toHaveProperty('accountId');
-        expect(res.body.data.logs).toEqual([]);
-      });
-  });
-
-  it('GET /api/finance/email-sync/oauth/google/callback ignores extra Google query params', async () => {
-    await request(app.getHttpServer())
-      .get('/api/finance/email-sync/oauth/google/callback')
-      .query({
-        code: 'test-auth-code',
-        state: 'invalid-state',
-        iss: 'https://accounts.google.com',
-        scope: 'email https://www.googleapis.com/auth/gmail.readonly',
-        authuser: '0',
-        prompt: 'consent',
-      })
-      .expect(302)
-      .expect(
-        'Location',
-        'http://localhost:5173/finance/accounts/sync?sheet=oauth-gmail-result&success=false',
-      );
-  });
-
-  it('GET /api/finance/email-sync/oauth/google/callback redirects to allowlisted returnTo', async () => {
-    const state = jwt.sign(
-      {
-        sub: 'user-123',
-        bankDomain: 'qik.com.do',
-        returnTo: 'http://localhost:5173/finance/oauth',
-      },
-      process.env.OAUTH_STATE_SECRET as string,
-      { expiresIn: '15m' },
-    );
-
-    await request(app.getHttpServer())
-      .get('/api/finance/email-sync/oauth/google/callback')
-      .query({
-        code: 'test-auth-code',
-        state,
-      })
-      .expect(302)
-      .expect('Location', 'http://localhost:5173/finance/oauth?success=false');
-  });
-
-  it('GET /api/finance/email-sync/oauth/google/callback ignores non-allowlisted returnTo', async () => {
-    const state = jwt.sign(
-      {
-        sub: 'user-123',
-        bankDomain: 'qik.com.do',
-        returnTo: 'https://evil.example/phish',
-      },
-      process.env.OAUTH_STATE_SECRET as string,
-      { expiresIn: '15m' },
-    );
-
-    await request(app.getHttpServer())
-      .get('/api/finance/email-sync/oauth/google/callback')
-      .query({
-        code: 'test-auth-code',
-        state,
-      })
-      .expect(302)
-      .expect(
-        'Location',
-        'http://localhost:5173/finance/accounts/sync?sheet=oauth-gmail-result&success=false',
-      );
-  });
-
-  it('POST /api/finance/email-sync/sources/:id/sync returns queued false without Redis', async () => {
-    prismaMock.finEmailSource.findFirst.mockResolvedValue({
-      id: 'src-1',
-      userId: 'user-123',
-      institutionId: 'inst-1',
-      isActive: true,
-      connection: {
-        id: 'conn-1',
-        emailAddress: 'user@gmail.com',
-        provider: 'gmail',
-      },
-      institution: { id: 'inst-1', name: 'Bank', isActive: true },
-      logs: [],
-    });
-
-    await request(app.getHttpServer())
-      .post('/api/finance/email-sync/sources/src-1/sync')
-      .set('Authorization', `Bearer ${token}`)
-      .expect(201)
-      .expect((res) => {
-        expect(res.body.data).toMatchObject({ queued: false });
-        expect(res.body.data.reason).toContain(
-          'gmail-sync queue is unavailable',
-        );
       });
   });
 
@@ -1879,53 +1600,6 @@ describe('Finance (e2e)', () => {
       });
   });
 
-  it('GET /api/finance/email-sync/messages paginates newest first', async () => {
-    const message = (id: string, createdAt: string) => ({
-      id,
-      sourceId: 'src-1',
-      gmailMessageId: `msg-${id}`,
-      outcome: 'IMPORTED',
-      instrumentHint: 'ACCOUNT',
-      lastFourHint: '1234',
-      extractedPayload: { amount: 12.5, currency: 'DOP' },
-      reason: null,
-      createdAt: new Date(createdAt),
-      source: {
-        institutionId: 'inst-1',
-        connection: { emailAddress: 'user@gmail.com' },
-        institution: { name: 'BHD' },
-      },
-      transaction: null,
-    });
-    prismaMock.finEmailMessage.findMany
-      .mockResolvedValueOnce([
-        message('em-1', '2026-08-02T00:00:00.000Z'),
-        message('em-2', '2026-08-01T00:00:00.000Z'),
-      ])
-      .mockResolvedValueOnce([message('em-2', '2026-08-01T00:00:00.000Z')]);
-
-    const firstPage = await request(app.getHttpServer())
-      .get('/api/finance/email-sync/messages')
-      .query({ limit: 1 })
-      .set('Authorization', `Bearer ${token}`)
-      .expect(200);
-
-    expect(firstPage.body.data.items[0]).toMatchObject({
-      id: 'em-1',
-      outcome: 'IMPORTED',
-    });
-    expect(firstPage.body.data.hasMore).toBe(true);
-
-    const lastPage = await request(app.getHttpServer())
-      .get('/api/finance/email-sync/messages')
-      .query({ limit: 1, cursor: firstPage.body.data.nextCursor })
-      .set('Authorization', `Bearer ${token}`)
-      .expect(200);
-
-    expect(lastPage.body.data.items[0].id).toBe('em-2');
-    expect(lastPage.body.data.hasMore).toBe(false);
-  });
-
   it('GET /api/finance/recycle-bin paginates deleted records', async () => {
     prismaMock.finInstitution.findMany.mockResolvedValue([]);
     prismaMock.finAccount.findMany.mockResolvedValue([]);
@@ -2119,51 +1793,6 @@ describe('Finance (e2e)', () => {
       .expect(200);
 
     expect(lastPage.body.data.items[0].id).toBe('tx-1');
-    expect(lastPage.body.data.hasMore).toBe(false);
-    expect(lastPage.body.data.nextCursor).toBeNull();
-  });
-
-  it('GET /api/finance/email-sync/pending paginates newest first', async () => {
-    const pending = (id: string, createdAt: string) => ({
-      id,
-      sourceId: 'src-1',
-      gmailMessageId: `msg-${id}`,
-      outcome: 'PENDING_ASSIGNMENT',
-      instrumentHint: 'ACCOUNT',
-      lastFourHint: '1234',
-      extractedPayload: { amount: 12.5, currency: 'DOP' },
-      reason: null,
-      createdAt: new Date(createdAt),
-      source: {
-        institutionId: 'inst-1',
-        connection: { emailAddress: 'user@gmail.com' },
-        institution: { name: 'BHD' },
-      },
-      transaction: null,
-    });
-    prismaMock.finEmailMessage.findMany
-      .mockResolvedValueOnce([
-        pending('em-2', '2026-08-02T00:00:00.000Z'),
-        pending('em-1', '2026-08-01T00:00:00.000Z'),
-      ])
-      .mockResolvedValueOnce([pending('em-1', '2026-08-01T00:00:00.000Z')]);
-
-    const firstPage = await request(app.getHttpServer())
-      .get('/api/finance/email-sync/pending')
-      .query({ limit: 1 })
-      .set('Authorization', `Bearer ${token}`)
-      .expect(200);
-
-    expect(firstPage.body.data.items[0].id).toBe('em-2');
-    expect(firstPage.body.data.hasMore).toBe(true);
-
-    const lastPage = await request(app.getHttpServer())
-      .get('/api/finance/email-sync/pending')
-      .query({ limit: 1, cursor: firstPage.body.data.nextCursor })
-      .set('Authorization', `Bearer ${token}`)
-      .expect(200);
-
-    expect(lastPage.body.data.items[0].id).toBe('em-1');
     expect(lastPage.body.data.hasMore).toBe(false);
     expect(lastPage.body.data.nextCursor).toBeNull();
   });
@@ -2565,7 +2194,6 @@ describe('Finance (e2e)', () => {
     });
     prismaMock.finAccount.count.mockResolvedValue(1);
     prismaMock.finCard.count.mockResolvedValue(0);
-    prismaMock.finEmailSource.count.mockResolvedValue(0);
     prismaMock.finLoan.count.mockResolvedValue(0);
 
     await request(app.getHttpServer())
@@ -2580,7 +2208,6 @@ describe('Finance (e2e)', () => {
         expect(res.body.details.dependents).toEqual({
           accounts: 1,
           cards: 0,
-          emailSources: 0,
           loans: 0,
         });
       });
@@ -2600,7 +2227,6 @@ describe('Finance (e2e)', () => {
     });
     prismaMock.finAccount.count.mockResolvedValue(0);
     prismaMock.finCard.count.mockResolvedValue(0);
-    prismaMock.finEmailSource.count.mockResolvedValue(0);
     prismaMock.finLoan.count.mockResolvedValue(0);
     prismaMock.finInstitution.updateMany.mockResolvedValue({ count: 1 });
 
@@ -2653,85 +2279,6 @@ describe('Finance (e2e)', () => {
       .expect(200)
       .expect((res) => {
         expect(res.body.data.accountId).toBe(accountId);
-      });
-  });
-
-  it('GET /api/finance/email-sync/pending lists review-queue messages', async () => {
-    prismaMock.finEmailMessage.findMany.mockResolvedValue([
-      {
-        id: 'em-1',
-        sourceId: 'src-1',
-        gmailMessageId: 'msg-1',
-        outcome: 'PENDING_ASSIGNMENT',
-        instrumentHint: 'ACCOUNT',
-        lastFourHint: '1234',
-        extractedPayload: { amount: 12.5, currency: 'DOP' },
-        reason: null,
-        createdAt: new Date('2026-08-01T00:00:00.000Z'),
-        source: {
-          institutionId: 'inst-1',
-          connection: { emailAddress: 'user@gmail.com' },
-          institution: { name: 'BHD' },
-        },
-        transaction: null,
-      },
-    ]);
-
-    await request(app.getHttpServer())
-      .get('/api/finance/email-sync/pending')
-      .set('Authorization', `Bearer ${token}`)
-      .expect(200)
-      .expect((res) => {
-        expect(res.body.data.items).toHaveLength(1);
-        expect(res.body.data.items[0]).toMatchObject({
-          id: 'em-1',
-          institutionId: 'inst-1',
-          lastFourHint: '1234',
-        });
-        expect(res.body.data.items[0]).not.toHaveProperty('accessToken');
-      });
-  });
-
-  it('POST /api/finance/email-sync/pending/:id/assign requires XOR account or card', async () => {
-    await request(app.getHttpServer())
-      .post(
-        '/api/finance/email-sync/pending/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/assign',
-      )
-      .set('Authorization', `Bearer ${token}`)
-      .send({})
-      .expect(400);
-  });
-
-  it('POST /api/finance/email-sync/pending/:id/assign is idempotent after import', async () => {
-    const messageId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
-    prismaMock.finEmailMessage.findFirst.mockResolvedValue({
-      id: messageId,
-      sourceId: 'src-1',
-      gmailMessageId: 'msg-1',
-      outcome: 'IMPORTED',
-      instrumentHint: 'ACCOUNT',
-      lastFourHint: '1234',
-      extractedPayload: null,
-      reason: null,
-      createdAt: new Date('2026-08-01T00:00:00.000Z'),
-      source: {
-        institutionId: 'inst-1',
-        connection: { emailAddress: 'user@gmail.com' },
-        institution: { name: 'BHD' },
-      },
-      transaction: { id: 'tx-1' },
-    });
-
-    await request(app.getHttpServer())
-      .post(`/api/finance/email-sync/pending/${messageId}/assign`)
-      .set('Authorization', `Bearer ${token}`)
-      .send({ accountId: '11111111-1111-4111-8111-111111111111' })
-      .expect(201)
-      .expect((res) => {
-        expect(res.body.data).toEqual({
-          assigned: true,
-          transactionId: 'tx-1',
-        });
       });
   });
 
@@ -3928,5 +3475,11 @@ describe('Finance (e2e)', () => {
       where: { id: merchantId, userId: 'user-123' },
       data: { customLogoPath: null },
     });
+  });
+  it('returns 404 for the retired Gmail sync API', async () => {
+    await request(app.getHttpServer())
+      .get('/api/finance/email-sync/mailboxes')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(404);
   });
 });

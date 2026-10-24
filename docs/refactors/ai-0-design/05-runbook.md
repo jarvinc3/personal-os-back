@@ -1,8 +1,9 @@
 # Reconstrucción DEV y vuelta atrás
 
-Estado: procedimiento propuesto `NO_IMPLEMENTADO`; [#193](https://github.com/jarvinc3/personal-os-back/issues/193).
-La validación local no equivale a backup ni restauración del proyecto Supabase.
-No ejecutar este procedimiento contra PROD.
+Estado: código y ensayo de baseline listos; reset remoto `NO_EJECUTADO`;
+[#193](https://github.com/jarvinc3/personal-os-back/issues/193). El owner
+confirmó backup DEV, pero falta identificar su project ref y comprobar la
+restauración de ese proyecto. Nunca ejecutar contra PROD.
 
 ## Preparación sin reset
 

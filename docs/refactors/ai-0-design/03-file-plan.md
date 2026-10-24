@@ -1,9 +1,9 @@
 # Plan de archivos del corte
 
-Estado: `NO_IMPLEMENTADO`; [#193](https://github.com/jarvinc3/personal-os-back/issues/193).
-El [manifiesto](artifacts/file-plan.json) captura rutas, operación propuesta,
-revisión y hashes. Las rutas nuevas están marcadas como propuestas; no son
-archivos ya implementados. Antes de ejecutar se regenera contra los SHA finales.
+Estado: corte de código implementado en `refactor/ai-0`; reset remoto pendiente;
+[#193](https://github.com/jarvinc3/personal-os-back/issues/193). El
+[manifiesto](artifacts/file-plan.json) es el inventario base del plan; los
+cambios y archivos nuevos ya se aplican en los checkouts back/web.
 
 | Área                   | Operación de AI-0                                                                                                        |
 | ---------------------- | ------------------------------------------------------------------------------------------------------------------------ |
@@ -24,15 +24,12 @@ EMAIL_SYNC y pruebas. Se retiran exclusivamente productores/copy de la antigua
 ingesta. WeeklySummary deja de consultar FinEmail; si conserva temporalmente un
 campo `pendingEmails` por compatibilidad, devuelve cero documentado.
 
-La web tiene trabajo ajeno sin commit, capturado por hash y estado en el
-manifiesto. Este diseño no modifica ni incorpora esos archivos. Los helpers de
-entity lookup y las tarjetas de dominio pueden ser reutilizables aunque hoy se
-consuman desde chat: no se borran por coincidencia textual.
+La rama web conserva `docs/handoff/` y `public/images/neo-sekuo-art-style.png`
+fuera del commit. Los helpers de entity lookup y tarjetas de dominio se revisan
+por uso real; no se borran por coincidencia textual.
 
-Hay un gate adicional de contrato: `src/modules/settings/lib/wipe-layers.ts`
-todavía representa capas mientras el backend recibe ramas. Antes del corte, la
-web debe consumir el catálogo real de ramas y enviar el DTO actual. Eliminar
-botones no resuelve esa incompatibilidad.
+El selector web de vaciado refleja las ramas vigentes del backend. Chat/Gmail y
+sus ramas retiradas no se pueden enviar desde el cliente.
 
 Para cada grupo del manifiesto se revisan imports, barrels, módulos Nest,
 providers, scripts, tests y documentación. La búsqueda textual es un inventario

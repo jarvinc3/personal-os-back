@@ -2,7 +2,7 @@ import { Readable } from 'node:stream';
 import OpenAI from 'openai';
 import type { AiToolDefinition, ChatMessage } from '../shared/ai.types';
 import { mapMessagesToOpenAi } from '../shared/map-messages-to-openai';
-import { toolsToOpenAiFormat } from '../tools/tool.registry';
+import { toolsToOpenAiFormat } from '../shared/provider-tool-codec';
 import { createOpenCodeProvider } from './opencode.provider';
 
 jest.mock('openai', () => ({

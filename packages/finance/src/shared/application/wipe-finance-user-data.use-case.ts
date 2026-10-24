@@ -1,25 +1,18 @@
-import { InjectQueue } from '@nestjs/bullmq';
 import {
+  BadRequestException,
   Injectable,
   Logger,
   NotFoundException,
-  Optional,
 } from '@nestjs/common';
-import { Queue } from 'bullmq';
 import { Prisma, PrismaService } from '@personal-os/database';
 import { LogoService } from '@personal-os/logos';
-import { QueueNames, type GmailSyncJob } from '@personal-os/core';
 import type { DataBranchDescriptor } from '@personal-os/users';
-import { gmailSyncJobId } from '../../ingestion/application/gmail-sync.constants';
 import { FINANCE_DATA_BRANCHES } from '../domain/finance-data-branches';
-
 type TxClient = Prisma.TransactionClient;
-
 /** What one branch removed, so each branch reports its own count. */
 export type FinanceWipeBranchResult = {
   primary: number;
 };
-
 /**
  * Bulk finance wipe by data branch. Never reuses the per-instrument purge: that
  * would emit one outbox event per transaction and flood the listeners.
@@ -27,66 +20,55 @@ export type FinanceWipeBranchResult = {
 @Injectable()
 export class WipeFinanceUserDataUseCase {
   private readonly logger = new Logger(WipeFinanceUserDataUseCase.name);
-
   constructor(
     private readonly prisma: PrismaService,
     private readonly logos: LogoService,
-    @Optional()
-    @InjectQueue(QueueNames.GMAIL_SYNC)
-    private readonly gmailSyncQueue?: Queue<GmailSyncJob>,
   ) {}
-
   /** Branch registry this package declares, consulted by the orchestrator. */
   dataBranches(): readonly DataBranchDescriptor[] {
     return FINANCE_DATA_BRANCHES;
   }
-
   /** Rows each branch would delete today, with the same rules as the wipe. */
   async countBranches(
     userId: string,
     branchIds: readonly string[],
   ): Promise<Record<string, number>> {
+    this.assertKnownBranches(branchIds);
     const counts: Record<string, number> = {};
     for (const branchId of branchIds) {
       counts[branchId] = await this.countBranch(userId, branchId);
     }
     return counts;
   }
-
   /** Applies the branches in one transaction and returns what each removed. */
   async wipeBranches(
     userId: string,
     branchIds: readonly string[],
-    options?: { balanceInstitutionId?: string },
+    options?: {
+      balanceInstitutionId?: string;
+    },
   ): Promise<Record<string, number>> {
-    const sourceIds = await this.affectedSourceIds(userId, branchIds);
-    await this.cancelGmailSyncJobs(sourceIds);
-
+    this.assertKnownBranches(branchIds);
     const logoPaths = await this.findLogoPaths(userId, branchIds);
-
     const counts = await this.prisma.$transaction(async (tx) => {
       const applied: Record<string, number> = {};
       for (const branchId of branchIds) {
         applied[branchId] = await this.applyBranch(tx, {
           userId,
           branchId,
-          sourceIds,
           balanceInstitutionId: options?.balanceInstitutionId,
         });
       }
       return applied;
     });
-
     await this.deleteLogos(logoPaths);
     return counts;
   }
-
   private async applyBranch(
     tx: TxClient,
     input: {
       userId: string;
       branchId: string;
-      sourceIds: readonly string[];
       balanceInstitutionId?: string;
     },
   ): Promise<number> {
@@ -96,7 +78,16 @@ export class WipeFinanceUserDataUseCase {
     }
     return handler(tx, input);
   }
-
+  private assertKnownBranches(branchIds: readonly string[]): void {
+    const known = new Set(FINANCE_DATA_BRANCHES.map(({ id }) => id));
+    const unknown = branchIds.filter((id) => !known.has(id));
+    if (unknown.length > 0) {
+      throw new BadRequestException({
+        message: 'Una o más ramas de datos ya no están disponibles',
+        branches: unknown,
+      });
+    }
+  }
   /**
    * One handler per branch. The order the orchestrator applies comes from the
    * registry, so a branch that needs another one to go first declares it there.
@@ -107,7 +98,6 @@ export class WipeFinanceUserDataUseCase {
       tx: TxClient,
       input: {
         userId: string;
-        sourceIds: readonly string[];
         balanceInstitutionId?: string;
       },
     ) => Promise<number>
@@ -173,15 +163,6 @@ export class WipeFinanceUserDataUseCase {
         });
         return merchants.count;
       },
-      'finance.emailMessages': async (tx, { userId }) => {
-        const messages = await tx.finEmailMessage.deleteMany({
-          where: { source: { userId } },
-        });
-        await tx.finEmailSyncLog.deleteMany({
-          where: { source: { userId } },
-        });
-        return messages.count;
-      },
       'finance.statements': async (tx, { userId }) => {
         const imports = await tx.finStatementImport.deleteMany({
           where: { userId },
@@ -215,15 +196,8 @@ export class WipeFinanceUserDataUseCase {
         });
         return categories.count;
       },
-      'finance.emailConnections': async (tx, { userId }) => {
-        const connections = await tx.finEmailConnection.deleteMany({
-          where: { userId },
-        });
-        return connections.count;
-      },
     };
   }
-
   private async countBranch(userId: string, branchId: string): Promise<number> {
     switch (branchId) {
       case 'finance.reconciliations':
@@ -256,10 +230,6 @@ export class WipeFinanceUserDataUseCase {
         return this.prisma.finRecurringPattern.count({ where: { userId } });
       case 'finance.merchants':
         return this.prisma.finMerchant.count({ where: { userId } });
-      case 'finance.emailMessages':
-        return this.prisma.finEmailMessage.count({
-          where: { source: { userId } },
-        });
       case 'finance.statements':
         return (
           (await this.prisma.finStatementImport.count({ where: { userId } })) +
@@ -279,44 +249,10 @@ export class WipeFinanceUserDataUseCase {
         return this.prisma.finCategory.count({
           where: { userId, isSystem: false },
         });
-      case 'finance.emailConnections':
-        return this.prisma.finEmailConnection.count({ where: { userId } });
       default:
         return 0;
     }
   }
-
-  private findSourceIds(userId: string): Promise<Array<{ id: string }>> {
-    return this.prisma.finEmailSource.findMany({
-      where: { userId },
-      select: { id: true },
-    });
-  }
-
-  /**
-   * Mail sources whose sync job must stop: the ones this wipe deletes. An
-   * unrelated branch must not cancel a sync the user still needs.
-   */
-  private async affectedSourceIds(
-    userId: string,
-    branchIds: readonly string[],
-  ): Promise<string[]> {
-    if (branchIds.includes('finance.emailConnections')) {
-      return (await this.findSourceIds(userId)).map((source) => source.id);
-    }
-    if (!branchIds.includes('finance.institutions')) {
-      return [];
-    }
-    const sources = await this.prisma.finEmailSource.findMany({
-      where: {
-        userId,
-        institution: { isSystem: false },
-      },
-      select: { id: true },
-    });
-    return sources.map((source) => source.id);
-  }
-
   private async findLogoPaths(
     userId: string,
     branchIds: readonly string[],
@@ -346,30 +282,11 @@ export class WipeFinanceUserDataUseCase {
     }
     return paths;
   }
-
-  private async cancelGmailSyncJobs(sourceIds: readonly string[]) {
-    if (!this.gmailSyncQueue || sourceIds.length === 0) {
-      return;
-    }
-    for (const sourceId of sourceIds) {
-      try {
-        await this.gmailSyncQueue.remove(gmailSyncJobId(sourceId));
-      } catch (error) {
-        this.logger.warn(
-          `Failed to cancel Gmail sync job for source ${sourceId}: ${
-            error instanceof Error ? error.message : 'unknown error'
-          }`,
-        );
-      }
-    }
-  }
-
   private async deleteLogos(paths: readonly string[]) {
     for (const path of paths) {
       await this.logos.deleteCustomLogo(path);
     }
   }
-
   private async resetBalances(
     tx: TxClient,
     userId: string,
@@ -395,7 +312,6 @@ export class WipeFinanceUserDataUseCase {
     );
     return accounts.count + cardBalances;
   }
-
   /**
    * Credit-card `balance` is available credit. Restoring it to the limit
    * clears the debt the balance sheet shows. Debit cards hold cash, so
@@ -431,7 +347,6 @@ export class WipeFinanceUserDataUseCase {
     });
     return Number(restored) + debits.count;
   }
-
   /**
    * Non-system institutions go, and with them their accounts, cards and what
    * those drag. The system "Efectivo" institution survives.

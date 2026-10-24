@@ -576,7 +576,6 @@ describe('Users (e2e)', () => {
 
     it('GET /api/users/me/data/branches groups the branches by app with counts', async () => {
       prismaMock.finTransaction.count.mockResolvedValue(7);
-      prismaMock.aiAgentSession.count.mockResolvedValue(2);
 
       await request(app.getHttpServer())
         .get('/api/users/me/data/branches')
@@ -584,34 +583,22 @@ describe('Users (e2e)', () => {
         .expect(200)
         .expect((res) => {
           const apps = res.body.data.map((group: { app: string }) => group.app);
-          expect(apps).toEqual(['finance', 'ai', 'notifications', 'settings']);
+          expect(apps).toEqual(['finance', 'notifications', 'settings']);
           const transactionBranch = res.body.data[0].branches.find(
             (branch: { id: string }) => branch.id === 'finance.transactions',
           );
           expect(transactionBranch.count).toBe(7);
           const settings = res.body.data.at(-1);
           expect(settings.branches[0].count).toBe(1);
-          const aiBranch = res.body.data[1].branches[0];
-          expect(aiBranch).toMatchObject({ id: 'ai.sessions', count: 2 });
         });
     });
 
-    it('POST /api/users/me/data/wipe deletes the requested branches', async () => {
-      prismaMock.aiAgentSession.deleteMany.mockResolvedValue({ count: 2 });
-
+    it('POST /api/users/me/data/wipe rejects the retired AI history branch', async () => {
       await request(app.getHttpServer())
         .post('/api/users/me/data/wipe')
         .set('Authorization', `Bearer ${token()}`)
         .send({ branches: ['ai.sessions'] })
-        .expect(200)
-        .expect((res) => {
-          expect(res.body.data.appliedBranches).toEqual(['ai.sessions']);
-          expect(res.body.data.counts).toEqual({ 'ai.sessions': 2 });
-        });
-
-      expect(prismaMock.aiAgentSession.deleteMany).toHaveBeenCalledWith({
-        where: { userId: 'user-123' },
-      });
+        .expect(400);
     });
 
     it('POST /api/users/me/data/wipe rejects a branch that does not exist', async () => {
@@ -620,26 +607,6 @@ describe('Users (e2e)', () => {
         .set('Authorization', `Bearer ${token()}`)
         .send({ branches: ['finance.unknown'] })
         .expect(400);
-
-      expect(prismaMock.aiAgentSession.deleteMany).not.toHaveBeenCalled();
-    });
-
-    it('POST /api/users/me/data/wipe answers 409 when a count changed', async () => {
-      prismaMock.aiAgentSession.count.mockResolvedValue(3);
-
-      await request(app.getHttpServer())
-        .post('/api/users/me/data/wipe')
-        .set('Authorization', `Bearer ${token()}`)
-        .send({
-          branches: ['ai.sessions'],
-          expectedCounts: { 'ai.sessions': 1 },
-        })
-        .expect(409)
-        .expect((res) => {
-          expect(res.body.details.counts).toEqual({ 'ai.sessions': 3 });
-        });
-
-      expect(prismaMock.aiAgentSession.deleteMany).not.toHaveBeenCalled();
     });
     it('POST /api/users/me/data/wipe expands the finance branches they drag', async () => {
       prismaMock.finTransaction.deleteMany.mockResolvedValue({ count: 2 });

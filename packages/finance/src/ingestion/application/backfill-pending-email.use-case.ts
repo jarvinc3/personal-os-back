@@ -1,8 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ImportEmailTransactionUseCase } from '../../ledger/application/import-email-transaction.use-case';
-import { EmailSourceRepository } from '../infrastructure/email-source.repository';
-import { isAtmMovementClass } from './email-movement';
 import { EMAIL_MESSAGE_OUTCOME } from './email-message-outcome';
+import { isAtmMovementClass } from './email-movement';
 import {
   isUnpairedTransferCandidate,
   movementClassOf,
@@ -10,6 +9,7 @@ import {
   uniqueCashAccountId,
 } from './match-email-transfers';
 import { parseExtractedPayload } from './parse-extracted-email';
+import { FinancialImportCandidatesPort } from './ports/financial-import-candidates.port';
 import { RouteExtractedEmailUseCase } from './route-extracted-email.use-case';
 
 const TRANSFER_MATCH_LOOKBACK_DAYS = 365;
@@ -19,14 +19,14 @@ export class BackfillPendingEmailUseCase {
   private readonly logger = new Logger(BackfillPendingEmailUseCase.name);
 
   constructor(
-    private readonly emailSources: EmailSourceRepository,
+    private readonly emailSources: FinancialImportCandidatesPort,
     private readonly routeExtracted: RouteExtractedEmailUseCase,
     private readonly importEmail: ImportEmailTransactionUseCase,
   ) {}
 
   async execute(userId: string): Promise<{ imported: number }> {
     const pending =
-      await this.emailSources.listPendingAssignmentMessages(userId);
+      await this.emailSources.listPendingAssignmentCandidates(userId);
     let imported = 0;
     for (const message of pending) {
       if (message.outcome === EMAIL_MESSAGE_OUTCOME.PENDING_AMOUNT) {
@@ -45,7 +45,7 @@ export class BackfillPendingEmailUseCase {
         const result = await this.routeExtracted.execute({
           userId,
           sourceId: message.sourceId,
-          gmailMessageId: message.gmailMessageId,
+          sourceReference: message.sourceReference,
           extracted,
           provider: message.provider,
           model: message.model,
@@ -59,7 +59,7 @@ export class BackfillPendingEmailUseCase {
       } catch (error) {
         const reason = error instanceof Error ? error.message : 'Unknown error';
         this.logger.warn(
-          `Backfill: message ${message.gmailMessageId} failed; skipping for this run: ${reason}`,
+          `Backfill: message ${message.sourceReference} failed; skipping for this run: ${reason}`,
         );
       }
     }
@@ -70,7 +70,7 @@ export class BackfillPendingEmailUseCase {
 @Injectable()
 export class MatchEmailTransfersUseCase {
   constructor(
-    private readonly emailSources: EmailSourceRepository,
+    private readonly emailSources: FinancialImportCandidatesPort,
     private readonly importEmail: ImportEmailTransactionUseCase,
   ) {}
 
@@ -79,7 +79,7 @@ export class MatchEmailTransfersUseCase {
   ): Promise<{ paired: number; atmCompleted: number }> {
     const since = new Date();
     since.setUTCDate(since.getUTCDate() - TRANSFER_MATCH_LOOKBACK_DAYS);
-    const rows = await this.emailSources.listEmailMovementsForTransferMatch(
+    const rows = await this.emailSources.listMovementsForTransferMatch(
       userId,
       since,
     );
@@ -122,8 +122,10 @@ export class MatchEmailTransfersUseCase {
       }
     }
 
-    const refreshed =
-      await this.emailSources.listEmailMovementsForTransferMatch(userId, since);
+    const refreshed = await this.emailSources.listMovementsForTransferMatch(
+      userId,
+      since,
+    );
     const unpaired = refreshed.filter((row) =>
       isUnpairedTransferCandidate(row, refreshed),
     );

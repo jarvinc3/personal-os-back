@@ -1,7 +1,9 @@
 # Baseline Prisma y SQL
 
-La fuente exacta propuesta es [artifacts/schema.prisma](artifacts/schema.prisma).
-No se modifica `packages/database/prisma/schema.prisma` en esta preparación.
+La fuente aplicada en la rama AI-0 es
+[artifacts/schema.prisma](artifacts/schema.prisma), promovida a
+`packages/database/prisma/schema.prisma`. La migración candidata activa es
+`20261101090003_ai0_baseline`; todavía no está desplegada en Supabase DEV/PROD.
 
 ## Delta de modelos
 

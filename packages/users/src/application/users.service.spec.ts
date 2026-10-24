@@ -119,107 +119,6 @@ describe('UsersService.assertModuleEnabled', () => {
   });
 });
 
-describe('UsersService.assertFinanceEmailSyncEnabled', () => {
-  const findEnabledUserModuleBySlug = jest.fn();
-  const findUserModuleBySlug = jest.fn();
-  const usersRepository = {
-    findEnabledUserModuleBySlug,
-    findUserModuleBySlug,
-  } as unknown as UsersRepositoryPort;
-
-  const service = new UsersService(
-    usersRepository,
-    { emit: jest.fn() } as unknown as EventEmitter2,
-    { tryDeleteAuthUser: jest.fn() } as unknown as SupabaseAdminService,
-  );
-
-  beforeEach(() => {
-    jest.clearAllMocks();
-    findEnabledUserModuleBySlug.mockResolvedValue({ id: 'um-1' });
-  });
-
-  it('resolves when emailSync.enabled is true', async () => {
-    findUserModuleBySlug.mockResolvedValue({
-      id: 'um-1',
-      isEnabled: true,
-      config: { emailSync: { enabled: true } },
-    });
-    await expect(
-      service.assertFinanceEmailSyncEnabled('user-1'),
-    ).resolves.toBeUndefined();
-  });
-
-  it('throws when emailSync is disabled', async () => {
-    findUserModuleBySlug.mockResolvedValue({
-      id: 'um-1',
-      isEnabled: true,
-      config: { emailSync: { enabled: false } },
-    });
-    await expect(
-      service.assertFinanceEmailSyncEnabled('user-1'),
-    ).rejects.toThrow(
-      'La sincronización de correo de finanzas está desactivada',
-    );
-  });
-
-  it('throws when emailSync is omitted (default is disabled)', async () => {
-    findUserModuleBySlug.mockResolvedValue({
-      id: 'um-1',
-      isEnabled: true,
-      config: {},
-    });
-    await expect(
-      service.assertFinanceEmailSyncEnabled('user-1'),
-    ).rejects.toThrow(
-      'La sincronización de correo de finanzas está desactivada',
-    );
-  });
-});
-
-describe('UsersService.isFinanceEmailSyncAutomatic', () => {
-  const findUserModuleBySlug = jest.fn();
-  const usersRepository = {
-    findUserModuleBySlug,
-  } as unknown as UsersRepositoryPort;
-
-  const service = new UsersService(
-    usersRepository,
-    { emit: jest.fn() } as unknown as EventEmitter2,
-    { tryDeleteAuthUser: jest.fn() } as unknown as SupabaseAdminService,
-  );
-
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
-
-  it('returns true only when both enabled and automatic are true', async () => {
-    findUserModuleBySlug.mockResolvedValue({
-      config: { emailSync: { enabled: true, automatic: true } },
-    });
-    await expect(service.isFinanceEmailSyncAutomatic('user-1')).resolves.toBe(
-      true,
-    );
-  });
-
-  it('returns false when automatic is omitted (default off)', async () => {
-    findUserModuleBySlug.mockResolvedValue({
-      config: { emailSync: { enabled: true } },
-    });
-    await expect(service.isFinanceEmailSyncAutomatic('user-1')).resolves.toBe(
-      false,
-    );
-  });
-
-  it('returns false when sync is enabled but automatic is off', async () => {
-    findUserModuleBySlug.mockResolvedValue({
-      config: { emailSync: { enabled: true, automatic: false } },
-    });
-    await expect(service.isFinanceEmailSyncAutomatic('user-1')).resolves.toBe(
-      false,
-    );
-  });
-});
-
 describe('UsersService.updateModuleConfig schedule validation', () => {
   const findModuleBySlug = jest.fn();
   const findUserModule = jest.fn();
@@ -261,26 +160,6 @@ describe('UsersService.updateModuleConfig schedule validation', () => {
       createdAt: new Date(),
       updatedAt: new Date(),
     });
-  });
-
-  it('rejects an interval below the minimum', async () => {
-    await expect(
-      service.updateModuleConfig('user-1', 'finance', {
-        config: {
-          emailSync: { schedule: { mode: 'interval', everyMinutes: 5 } },
-        },
-      }),
-    ).rejects.toBeInstanceOf(BadRequestException);
-    expect(upsertUserModule).not.toHaveBeenCalled();
-  });
-
-  it('accepts fixed times in HH:MM', async () => {
-    await service.updateModuleConfig('user-1', 'finance', {
-      config: {
-        emailSync: { schedule: { mode: 'times', times: ['08:00', '18:00'] } },
-      },
-    });
-    expect(upsertUserModule).toHaveBeenCalled();
   });
 
   it('rejects the retired subscriptions slug', async () => {

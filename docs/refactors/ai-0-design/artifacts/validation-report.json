@@ -1,8 +1,8 @@
 {
-  "verifiedAt": "2026-10-24T05:51:31.591Z",
+  "verifiedAt": "2026-10-24T06:48:52.079Z",
   "kind": "LOCAL_DESIGN_ARTIFACT_ONLY",
-  "sourceRevision": "37b9ec875a640e023745add670a7d3b381a83c12",
-  "databaseName": "ai0_design_f161baf8d18745eb83113a3b64813c72",
+  "sourceRevision": "018c4e021a1f54e755500ee3afefa9dc3037c84f",
+  "databaseName": "ai0_design_ff3ce26a268b4b268610abd1b1b66000",
   "serverVersion": "17.2",
   "tests": [
     {
@@ -19,6 +19,14 @@
     },
     {
       "name": "Enable RLS on every application table and retain policies",
+      "passed": true
+    },
+    {
+      "name": "Keep uuid-ossp in the verified Supabase extensions schema",
+      "passed": true
+    },
+    {
+      "name": "Automatically enable RLS on future public tables",
       "passed": true
     },
     {

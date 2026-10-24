@@ -1,7 +1,7 @@
 import {
   parseToolCallArguments,
   toolsToOpenAiFormat,
-} from '../tools/tool.registry';
+} from './provider-tool-codec';
 import type {
   AiToolDefinition,
   ChatCompletionResult,

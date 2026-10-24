@@ -1,7 +1,7 @@
 import type { ImportEmailTransactionUseCase } from '../../ledger/application/import-email-transaction.use-case';
-import type { EmailSourceRepository } from '../infrastructure/email-source.repository';
-import { EMAIL_MESSAGE_OUTCOME } from './email-message-outcome';
 import { BackfillPendingEmailUseCase } from './backfill-pending-email.use-case';
+import { EMAIL_MESSAGE_OUTCOME } from './email-message-outcome';
+import type { FinancialImportCandidatesPort } from './ports/financial-import-candidates.port';
 import type { RouteExtractedEmailUseCase } from './route-extracted-email.use-case';
 
 describe('BackfillPendingEmailUseCase', () => {
@@ -14,11 +14,11 @@ describe('BackfillPendingEmailUseCase', () => {
     merchant: 'Comercio',
   };
 
-  function pendingMessage(gmailMessageId: string) {
+  function pendingMessage(sourceReference: string) {
     return {
       sourceId: 'src-1',
       source: { institutionId: 'inst-1' },
-      gmailMessageId,
+      sourceReference,
       outcome: EMAIL_MESSAGE_OUTCOME.PENDING_ASSIGNMENT,
       provider: 'groq',
       model: 'test-model',
@@ -31,11 +31,11 @@ describe('BackfillPendingEmailUseCase', () => {
     routeExecute: jest.Mock,
   ): BackfillPendingEmailUseCase {
     const emailSources = {
-      listPendingAssignmentMessages: jest
+      listPendingAssignmentCandidates: jest
         .fn()
         .mockResolvedValue(pendingMessages),
       listInstitutionDestinations: jest.fn().mockResolvedValue([[], []]),
-    } as unknown as EmailSourceRepository;
+    } as unknown as FinancialImportCandidatesPort;
     const routeExtracted = {
       execute: routeExecute,
     } as unknown as RouteExtractedEmailUseCase;

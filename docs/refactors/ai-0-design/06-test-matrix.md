@@ -1,10 +1,10 @@
 # Matriz de aceptación y evidencia
 
-Seguimiento de implementación pendiente: [#193](https://github.com/jarvinc3/personal-os-back/issues/193).
+Seguimiento: [#193](https://github.com/jarvinc3/personal-os-back/issues/193).
 
 | Fase                   | Given / When / Then                                                                                                    | Evidencia requerida                               |
 | ---------------------- | ---------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------- |
-| AI-0 esquema           | Dada una base vacía, al aplicar baseline, existen 44 tablas, 18 checks y 3 índices parciales conservados               | Catálogo SQL y drift Prisma                       |
+| AI-0 esquema           | Dada una base vacía, al aplicar baseline, existen 44 tablas, 18 checks y 4 índices parciales conservados               | Catálogo SQL y drift Prisma                       |
 | AI-0 aislamiento       | Dados dos usuarios, al consultar con rol autenticado y filtro de identidad, no se leen filas ajenas                    | PostgreSQL real; no mock                          |
 | AI-0 privilegios       | Dada una conexión anon/authenticated, al intentar acceso directo, los REVOKE siguen vigentes                           | Grants y prueba de permisos                       |
 | AI-0 Auth              | Dadas identidades nuevas y anteriores al reset, al disparar alta/reconciliar, existe un perfil único                   | Trigger y reconciliación idempotente              |
@@ -28,11 +28,16 @@ CHECK de scope/userId cuando se agreguen esos modelos.
 
 ## Validación ya realizada del diseño
 
-[validation-report.json](artifacts/validation-report.json) contiene 16 checks
+[validation-report.json](artifacts/validation-report.json) contiene 18 checks
 verdes contra PostgreSQL local 17.2, con fixtures mínimos de Auth/Storage.
 `validate-baseline.mjs` crea una base nueva de nombre aleatorio; requiere URL
 explícita loopback y nunca carga credenciales de `.env`. No reinicia una base
 existente. El resultado acredita SQL, no APIs gestionadas de Supabase.
+
+La rama también pasa las suites unitarias back/web, 120 E2E back relevantes,
+build Nest/paquetes, typecheck web y sus gates de lint/formato. La matriz de
+smoke final sobre Supabase DEV sigue pendiente de identificar y restaurar ese
+proyecto.
 
 Para reproducir: levantar un cluster local aislado con roles de fixture
 anon/authenticated/service_role, definir `AI0_VALIDATION_ADMIN_URL` apuntando

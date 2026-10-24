@@ -30,16 +30,18 @@ tener reproducción y prueba propia antes de entrar a la rama estable.
 
 ## Corte y Supabase
 
-La revisión de origen es develop `37b9ec8` (0.55.2). El master remoto observado
-seguía en `0306083`, versión 0.53.3: no acredita el corte estable previsto.
-El despliegue development de develop no acredita un despliegue PROD.
+El corte estable confirmado por el owner es 0.55.3. El reporte PROD recibido
+se capturó el 2026-10-24, servidor PostgreSQL 17.6, con 67 migraciones
+completadas. Su SHA-256 es `6a0198fc065bb3454eb0bb686f7c30afd27768098cf5400e8c6cfd12c860b1f2`.
+El reporte no guarda el project ref Supabase; por ello no identifica por sí solo
+si la configuración local apunta a DEV o PROD.
 
 El [preflight SQL](artifacts/prod-preflight.readonly.sql) usa transacción de solo
 lectura y timeouts. Debe ejecutarse identificando proyecto/entorno y guardando
 metadatos de resultados saneados: migraciones/checksums, namespaces de
 extensiones, RLS/policies, grants, funciones SECURITY DEFINER y trigger Auth.
-Todavía no se ha ejecutado contra PROD. Tampoco se ha accedido a logs operativos
-de Google en esta sesión.
+El reporte ya se auditó contra el manifiesto. No se ha escrito en PROD ni se ha
+accedido a logs operativos de Google.
 
 Comprobar expresamente uuid-ossp y su esquema antes de usar los defaults
 cualificados de la candidata; no mover extensiones gestionadas. Inspeccionar

@@ -1,12 +1,11 @@
-import type { DynamicModule } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { BullMQAdapter } from '@bull-board/api/bullMQAdapter';
 import { ExpressAdapter } from '@bull-board/express';
 import { BullBoardModule } from '@bull-board/nestjs';
+import type { DynamicModule } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import type { Env } from '@personal-os/config';
 import { createBullBoardAuthMiddleware } from './bull-board-auth.middleware';
 import { QueueNames } from './queue.constants';
-
 export function getBullBoardImports(): DynamicModule[] {
   return [
     BullBoardModule.forRootAsync({
@@ -25,15 +24,7 @@ export function getBullBoardImports(): DynamicModule[] {
       adapter: BullMQAdapter,
     }),
     BullBoardModule.forFeature({
-      name: QueueNames.AI_PROCESSING,
-      adapter: BullMQAdapter,
-    }),
-    BullBoardModule.forFeature({
       name: QueueNames.EMAIL_SYNC,
-      adapter: BullMQAdapter,
-    }),
-    BullBoardModule.forFeature({
-      name: QueueNames.GMAIL_SYNC,
       adapter: BullMQAdapter,
     }),
   ];

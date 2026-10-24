@@ -38,6 +38,11 @@ El estado, el roadmap y los hallazgos viven en GitHub Issues. Los documentos de 
 
 ## Changelog y versión
 
+Excepción aprobada para AI-0 y su cadena de PRs: back y web permanecen en
+`0.100.0` unreleased hasta que el owner autorice el corte final. No crear tags,
+releases ni deploys por sesión durante este trabajo; registrar cambios bajo
+`[Unreleased]` y referenciar el issue correspondiente.
+
 ### Excepción acordada: reset de arquitectura 0.100.0
 
 Esta excepción se activa solo al iniciar AI-0, después de verificar el corte
@@ -53,11 +58,13 @@ Lectura obligatoria antes de AI/email:
 [decisiones](docs/refactors/01-IMPLEMENTATION-DECISIONS.md) e
 [inventario](docs/refactors/02-PHASE-0-INVENTORY.md).
 
-Toda sesión de agente cierra con un release: `CHANGELOG.md` actualizado y `version` de `package.json` subida. Antes de escribirlo, lee [docs/reference/changelog-guide.md](docs/reference/changelog-guide.md) completo; ahí están las reglas, las secciones y un ejemplo.
+Cada sesión actualiza `CHANGELOG.md`. Durante la excepción AI-0 no se sube la
+versión ni se crea release/tag por sesión; el owner decide el corte final tras
+AI-11. Antes de escribir el changelog, lee [docs/reference/changelog-guide.md](docs/reference/changelog-guide.md) completo.
 
 La versión sigue **estrictamente** [docs/versionado.md](docs/versionado.md): beta `0.MINOR.PATCH`, nunca bajar de versión, `1.0.0` solo cuando el usuario lo decida y los hitos de módulo como nombre de release.
 
-- Un release por sesión, aunque el cambio sea pequeño. El bump es el más alto de la sesión: `MAJOR` si rompe un contrato o los datos guardados, `MINOR` si agrega un endpoint o un dato nuevo y `PATCH` en el resto.
+- Fuera de la excepción AI-0, un release por sesión: `MAJOR` si rompe un contrato o los datos guardados, `MINOR` si agrega un endpoint o dato nuevo y `PATCH` en el resto.
 - Una sola versión para el monorepo: el `package.json` de la raíz. Los paquetes de `packages/*` no se publican por separado.
 - El CHANGELOG va en español, de la versión más nueva a la más vieja, con la fecha en `AAAA-MM-DD`.
 - Cierra con `chore(release): vX.Y.Z` y crea el tag `vX.Y.Z`.

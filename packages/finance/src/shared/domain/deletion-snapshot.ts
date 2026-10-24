@@ -22,7 +22,6 @@ export const DELETION_MODEL = {
   cardBalance: 'FinCardBalance',
   cardStatement: 'FinCardStatement',
   category: 'FinCategory',
-  emailSource: 'FinEmailSource',
   institution: 'FinInstitution',
   loan: 'FinLoan',
   loanInstallment: 'FinLoanInstallment',

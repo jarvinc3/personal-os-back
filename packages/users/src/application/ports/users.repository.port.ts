@@ -81,7 +81,6 @@ export interface UsersRepositoryPort {
   ): Promise<unknown>;
   deleteAccountWithAuthOutbox(userId: string): Promise<void>;
   resetSettingsToDefaults(userId: string): Promise<void>;
-  pauseFinanceEmailSyncAutomatic(userId: string): Promise<void>;
   markAuthOutboxCompleted(userId: string): Promise<unknown>;
   claimNextAuthDeletion(maxAttempts: number): Promise<AuthDeletionClaim | null>;
   completeAuthDeletion(id: string): Promise<unknown>;

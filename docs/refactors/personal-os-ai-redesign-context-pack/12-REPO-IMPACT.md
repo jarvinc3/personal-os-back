@@ -1,6 +1,6 @@
 # Repository Impact, Signals Delivery and Instruction Changes
 
-Status: prepared from the repositories on 2026-10-20; decisions confirmed by the owner on 2026-10-20 (changelog (c)).
+Status: decisions confirmed 2026-10-24; Phase 0 runtime cut implemented on the isolated `refactor/ai-0` branches.
 
 ## PROD impact
 
@@ -15,7 +15,7 @@ The [2026-10-24 inventory](../02-PHASE-0-INVENTORY.md) includes branch-based dat
 | Endpoint / code                                                                                                     | Phase 0 action                                                                                                                            | Returns in                                                                                                 |
 | ------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
 | `finance/email-sync/*` (`packages/finance/src/ingestion/**`, `email-sync.controller.ts`)                            | Deleted with all `FinEmail*` models and Gmail scheduler/processors.                                                                       | Phase 2 as AI-owned `AiEmailConnection` endpoints (OAuth/connect/sync/status); Finance import in Phase 11. |
-| `ledger/application/import-email-transaction.use-case.ts`                                                           | Preserved with tests, without callers until Phase 11. Remove only dependencies on deleted `FinEmail*` models; retain financial behavior.  | Phase 11 (`FinanceSignalConsumer`).                                                                        |
+| `ledger/application/import-email-transaction.use-case.ts`                                                           | Preserved with financial tests, without callers until Phase 11. Its candidate port no longer depends on deleted `FinEmail*` models.       | Phase 11 (`FinanceSignalConsumer`).                                                                        |
 | `notifications/.../email-sync.processor.ts`                                                                         | Kept: this is notification EMAIL delivery through Resend, not Gmail ingestion.                                                            | —                                                                                                          |
 | `ai`, `ai/sessions`, `ai/actions` (chat) + `chat/**`, `tools/**`, `prompts/**`, `runtime/**` in `packages/ai-agent` | **Deleted.** Salvage `providers/**`, retry/failover, streaming helpers, Zod schemas and `AiAction` claim/confirm concepts for Phase 1/10. | Rebuilt in Phases 8–10; chat UX pending owner redesign.                                                    |
 | `finance/quick-entry`, `finance` statements (`card-statements`, `statement-imports`)                                | Kept; extractors migrated to the gateway in Phase 1.                                                                                      | —                                                                                                          |

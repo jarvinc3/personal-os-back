@@ -1,14 +1,12 @@
 // Generates a review artifact only. Never changes the runtime schema or DB.
-import { readFile, writeFile } from 'node:fs/promises';
+import { writeFile } from 'node:fs/promises';
+import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { resolve, dirname } from 'node:path';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repo = resolve(here, '../../../..');
-const source = await readFile(
-  resolve(repo, 'packages/database/prisma/schema.prisma'),
-  'utf8',
-);
+const source = execFileSync('git', ['show', '018c4e021a1f54e755500ee3afefa9dc3037c84f:packages/database/prisma/schema.prisma'], { cwd: repo, encoding: 'utf8' });
 const removedModels = [
   'AiAgentSession',
   'AiMessage',
@@ -72,6 +70,8 @@ candidate = candidate.replace(/^model FinTransaction \{[\s\S]*?^\}/m, (block) =>
 if (/\b(FinEmail\w*|AiAgentSession|AiMessage|AiRole)\b/.test(candidate)) {
   throw new Error('Removed model/enum still referenced');
 }
+candidate = candidate.replaceAll('uuid_generate_v4()', 'extensions.uuid_generate_v4()');
+candidate = candidate.replace(/^model FinTransaction \{[\s\S]*?^\}/m, (block) => block.replace(/^\s*@@index\(\[transferGroupId\](?:,\s*map:\s*"fin_transactions_transfer_group_id_idx")?\)\r?\n/m, ''));
 await writeFile(resolve(here, 'schema.prisma'), candidate);
 console.log(
   `Candidate schema: ${[...candidate.matchAll(/^model /gm)].length} models; no runtime files changed.`,
