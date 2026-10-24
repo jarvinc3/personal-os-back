@@ -22,6 +22,28 @@ Las [decisiones del 2026-10-24](01-IMPLEMENTATION-DECISIONS.md) precisan corte, 
 
 Antes de Wave A se entrega la corrección independiente del outbox: leases recuperables, fencing, efectos PostgreSQL transaccionales, deduplicación del encolado externo y pruebas de caída con PostgreSQL real. Su gate no espera a AI-7.
 
+## Seguimiento de fases en GitHub
+
+Cada fase tiene un issue propio en `personal-os-back`, enlazado como sub-issue del [programa #193](https://github.com/jarvinc3/personal-os-back/issues/193). La prioridad del Project 3 sigue este criterio: **High** cuando la fase es prerrequisito de un gate de otro programa o del release; **Medium** para el resto del trabajo de `0.100.0`; **Low** para lo que sale después del release.
+
+| Fase                                 | Issue                                                           | Wave                 | Estado  | Prioridad |
+| ------------------------------------ | --------------------------------------------------------------- | -------------------- | ------- | --------- |
+| AI-0 reset controlado                | [#203](https://github.com/jarvinc3/personal-os-back/issues/203) | A                    | Cerrado | High      |
+| AI-1 Inference Gateway               | [#204](https://github.com/jarvinc3/personal-os-back/issues/204) | B1                   | Cerrado | High      |
+| AI-2 Gmail/corpus                    | [#205](https://github.com/jarvinc3/personal-os-back/issues/205) | B1                   | Abierto | High      |
+| AI-3 evidencia y verificación humana | [#206](https://github.com/jarvinc3/personal-os-back/issues/206) | C                    | Abierto | Medium    |
+| AI-4 knowledge                       | [#207](https://github.com/jarvinc3/personal-os-back/issues/207) | C                    | Abierto | Medium    |
+| AI-5 email intelligence              | [#208](https://github.com/jarvinc3/personal-os-back/issues/208) | C                    | Abierto | Medium    |
+| AI-6 evaluación                      | [#209](https://github.com/jarvinc3/personal-os-back/issues/209) | C                    | Abierto | Medium    |
+| AI-7 Signals                         | [#210](https://github.com/jarvinc3/personal-os-back/issues/210) | D                    | Abierto | High      |
+| AI-8 Capabilities                    | [#211](https://github.com/jarvinc3/personal-os-back/issues/211) | D                    | Abierto | Medium    |
+| AI-9 Agent Runtime                   | [#212](https://github.com/jarvinc3/personal-os-back/issues/212) | E                    | Abierto | Medium    |
+| AI-10 Action Policy                  | [#213](https://github.com/jarvinc3/personal-os-back/issues/213) | E                    | Abierto | Medium    |
+| AI-11 Finance IMPORT                 | [#214](https://github.com/jarvinc3/personal-os-back/issues/214) | F                    | Abierto | High      |
+| AI-12 Proactive Intelligence         | [#215](https://github.com/jarvinc3/personal-os-back/issues/215) | Después de `0.100.0` | Abierto | Low       |
+
+Cada diseño de fase enlaza su issue: [AI-0](ai-0-design/00-README.md) y [AI-1](ai-1-design/00-inference-gateway.md).
+
 ## Principio
 
 Cada programa tiene sus propias fases verificables. Este roadmap maestro define el orden y los gates de integración, no duplica el detalle de implementación.

@@ -2,6 +2,8 @@
 
 > V1 roadmap, simplified 2026-10-20: 13 phases (0–12). The previous 16-phase plan was compressed: datasets + evidence merged, logical snapshots deferred to V2, review UI completion folded into evaluation, agent runtime and action policy kept separate.
 
+Phase tracking in GitHub: [AI-0 to AI-12 issue index](../00-MASTER-ROADMAP.md#seguimiento-de-fases-en-github).
+
 ## Roadmap philosophy
 
 Total architecture replacement implemented incrementally. Legacy is removed rather than carried indefinitely.

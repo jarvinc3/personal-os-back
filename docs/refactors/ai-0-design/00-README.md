@@ -3,7 +3,7 @@
 Estado: **corte de código implementado en rama aislada y baseline validada en
 PostgreSQL local**, preparado el 2026-10-24 sobre `origin/develop` `da123e1`
 (`0.55.3`).
-Seguimiento: [programa #193](https://github.com/jarvinc3/personal-os-back/issues/193).
+Seguimiento: [AI-0 #203](https://github.com/jarvinc3/personal-os-back/issues/203) y [programa #193](https://github.com/jarvinc3/personal-os-back/issues/193).
 Avance preparatorio de código: [estado de ejecución](07-execution-status.md).
 El owner confirmó el corte PROD y autorizó resetear DEV sin backup ni
 restauración porque sus datos son de prueba. El preflight PROD readonly fue

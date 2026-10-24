@@ -4,6 +4,7 @@ Status: merged into `develop` through [PR #196](https://github.com/jarvinc3/pers
 at `5f9125c`. CI and Railway DEV deployment `7296557646` succeeded on
 2026-10-24. Production was not modified. The GitHub deployment record exposed
 only the Railway dashboard URL, so no remote API health check is recorded.
+Phase issue: [#204](https://github.com/jarvinc3/personal-os-back/issues/204).
 
 Source of scope: [roadmap Phase 1](../personal-os-ai-redesign-context-pack/07-ROADMAP-AND-TESTABLE-PHASES.md#phase-1--inference-gateway).
 
