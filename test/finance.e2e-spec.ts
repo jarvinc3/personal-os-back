@@ -3811,4 +3811,73 @@ describe('Finance (e2e)', () => {
         ]);
       });
   });
+  it('POST and DELETE /api/finance/merchants/:id/duplicates/:otherId/dismiss', async () => {
+    const first = '11111111-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+    const second = '22222222-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+    prismaMock.finMerchant.findFirst.mockImplementation(
+      (args: { where: { id: string } }) =>
+        Promise.resolve({
+          id: args.where.id,
+          userId: 'user-123',
+          name: 'Supermercado Nacional',
+          normalizedKey: 'SUPERMERCADO NACIONAL',
+          aliases: [],
+          categoryId: null,
+          categorySource: null,
+          logoUrl: null,
+          createdAt: new Date('2026-10-20T10:00:00.000Z'),
+        }),
+    );
+
+    await request(app.getHttpServer())
+      .post(`/api/finance/merchants/${first}/duplicates/${second}/dismiss`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.data).toEqual({ dismissed: true });
+      });
+
+    expect(
+      prismaMock.finMerchantDuplicateDismissal.upsert,
+    ).toHaveBeenCalledWith({
+      where: {
+        userId_merchantId_otherMerchantId: {
+          userId: 'user-123',
+          merchantId: first,
+          otherMerchantId: second,
+        },
+      },
+      create: {
+        userId: 'user-123',
+        merchantId: first,
+        otherMerchantId: second,
+      },
+      update: {},
+    });
+
+    await request(app.getHttpServer())
+      .delete(`/api/finance/merchants/${first}/duplicates/${second}/dismiss`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.data).toEqual({ dismissed: false });
+      });
+
+    expect(
+      prismaMock.finMerchantDuplicateDismissal.deleteMany,
+    ).toHaveBeenCalledWith({
+      where: { userId: 'user-123', merchantId: first, otherMerchantId: second },
+    });
+  });
+
+  it('POST /api/finance/merchants/:id/duplicates/:otherId/dismiss rejects the same merchant', async () => {
+    const merchantId = '33333333-cccc-4ccc-8ccc-cccccccccccc';
+
+    await request(app.getHttpServer())
+      .post(
+        `/api/finance/merchants/${merchantId}/duplicates/${merchantId}/dismiss`,
+      )
+      .set('Authorization', `Bearer ${token}`)
+      .expect(400);
+  });
 });

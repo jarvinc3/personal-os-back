@@ -35,6 +35,7 @@ function build(repo: Partial<Mocked> = {}) {
     replaceAliases: jest.fn().mockResolvedValue(undefined),
     findMerchantsByIds: jest.fn().mockResolvedValue([]),
     listMerchantComparables: jest.fn().mockResolvedValue([]),
+    listDismissedPairs: jest.fn().mockResolvedValue([]),
     ...repo,
   } as unknown as MerchantsRepository;
   const ownership = { assertCategoryVisible: jest.fn() };
@@ -812,5 +813,125 @@ describe('MerchantsService duplicates', () => {
     const page = await service.list('user-1', {} as never);
 
     expect(page.items.map((item) => item.possibleDuplicates)).toEqual([1, 1]);
+  });
+});
+
+describe('MerchantsService dismissed pairs', () => {
+  function pairRepo() {
+    return {
+      findMerchantById: jest
+        .fn()
+        .mockImplementation((_userId, id) =>
+          Promise.resolve(
+            id === 'merchant-missing' ? null : merchantRow({ id }),
+          ),
+        ),
+      dismissPair: jest.fn().mockResolvedValue({ id: 'dismissal-1' }),
+      undoDismissPair: jest.fn().mockResolvedValue(undefined),
+    };
+  }
+
+  it('stores the pair in canonical order', async () => {
+    const repo = pairRepo();
+    const { service } = build(repo);
+
+    await service.dismissDuplicate('user-1', 'merchant-b', 'merchant-a');
+
+    expect(repo.dismissPair).toHaveBeenCalledWith(
+      'user-1',
+      'merchant-a',
+      'merchant-b',
+    );
+  });
+
+  it('is idempotent: repeating the dismissal stores the same pair', async () => {
+    const repo = pairRepo();
+    const { service } = build(repo);
+
+    await service.dismissDuplicate('user-1', 'merchant-a', 'merchant-b');
+    await service.dismissDuplicate('user-1', 'merchant-b', 'merchant-a');
+
+    expect(repo.dismissPair).toHaveBeenCalledTimes(2);
+    expect(repo.dismissPair).toHaveBeenNthCalledWith(
+      2,
+      'user-1',
+      'merchant-a',
+      'merchant-b',
+    );
+  });
+
+  it('rejects a merchant with itself', async () => {
+    const repo = pairRepo();
+    const { service } = build(repo);
+
+    await expect(
+      service.dismissDuplicate('user-1', 'merchant-a', 'merchant-a'),
+    ).rejects.toMatchObject({
+      response: {
+        message: 'No se puede descartar un comercio consigo mismo',
+      },
+    });
+    expect(repo.dismissPair).not.toHaveBeenCalled();
+  });
+
+  it('answers 404 when the other merchant is not the user one', async () => {
+    const repo = pairRepo();
+    const { service } = build(repo);
+
+    await expect(
+      service.dismissDuplicate('user-1', 'merchant-a', 'merchant-missing'),
+    ).rejects.toMatchObject({
+      response: { message: 'Comercio no encontrado' },
+    });
+    expect(repo.dismissPair).not.toHaveBeenCalled();
+  });
+
+  it('undoes the dismissal', async () => {
+    const repo = pairRepo();
+    const { service } = build(repo);
+
+    await expect(
+      service.undoDismissDuplicate('user-1', 'merchant-b', 'merchant-a'),
+    ).resolves.toEqual({ dismissed: false });
+    expect(repo.undoDismissPair).toHaveBeenCalledWith(
+      'user-1',
+      'merchant-a',
+      'merchant-b',
+    );
+  });
+
+  it('keeps a dismissed pair out of the candidates and the count', async () => {
+    const repo = {
+      findMerchantById: jest
+        .fn()
+        .mockResolvedValue(merchantRow({ name: 'Supermercado Nacional' })),
+      listMerchantComparables: jest.fn().mockResolvedValue([
+        {
+          id: 'merchant-1',
+          name: 'Supermercado Nacional',
+          normalizedKey: 'SUPERMERCADO NACIONAL',
+          logoUrl: null,
+          aliases: [],
+        },
+        {
+          id: 'merchant-2',
+          name: 'Supermercado Nacional 5',
+          normalizedKey: 'SUPERMERCADO NACIONAL 5',
+          logoUrl: null,
+          aliases: [],
+        },
+      ]),
+      listDismissedPairs: jest
+        .fn()
+        .mockResolvedValue([
+          { merchantId: 'merchant-1', otherMerchantId: 'merchant-2' },
+        ]),
+      sumSpendByMerchant: jest.fn().mockResolvedValue([]),
+    };
+    const { service } = build(repo);
+
+    await expect(service.duplicates('user-1', 'merchant-1')).resolves.toEqual(
+      [],
+    );
   });
 });

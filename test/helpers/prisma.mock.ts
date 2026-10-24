@@ -234,6 +234,12 @@ export type PrismaMock = {
     updateMany: MockFn;
     deleteMany: MockFn;
   };
+  finMerchantDuplicateDismissal: {
+    findMany: MockFn;
+    upsert: MockFn;
+    createMany: MockFn;
+    deleteMany: MockFn;
+  };
   finMerchantAlias: {
     findMany: MockFn;
     create: MockFn;
@@ -382,6 +388,12 @@ function createTransactionClient(prismaMock: PrismaMock) {
       findFirst: prismaMock.finRecurringPattern.findFirst,
       updateMany: prismaMock.finRecurringPattern.updateMany,
       deleteMany: prismaMock.finRecurringPattern.deleteMany,
+    },
+    finMerchantDuplicateDismissal: {
+      findMany: prismaMock.finMerchantDuplicateDismissal.findMany,
+      upsert: prismaMock.finMerchantDuplicateDismissal.upsert,
+      createMany: prismaMock.finMerchantDuplicateDismissal.createMany,
+      deleteMany: prismaMock.finMerchantDuplicateDismissal.deleteMany,
     },
     finCardBalance: {
       findFirst: jest.fn().mockResolvedValue(null),
@@ -829,6 +841,12 @@ export function createPrismaMock(): PrismaMock {
       findMany: jest.fn().mockResolvedValue([]),
       findFirst: jest.fn().mockResolvedValue(null),
       updateMany: jest.fn().mockResolvedValue({ count: 0 }),
+      deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
+    },
+    finMerchantDuplicateDismissal: {
+      findMany: jest.fn().mockResolvedValue([]),
+      upsert: jest.fn().mockResolvedValue({ id: 'dismissal-1' }),
+      createMany: jest.fn().mockResolvedValue({ count: 0 }),
       deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
     },
     finReconciliationAdjustment: {

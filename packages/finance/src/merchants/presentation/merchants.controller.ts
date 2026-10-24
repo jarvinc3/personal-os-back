@@ -1,7 +1,9 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
+  HttpCode,
   Param,
   Patch,
   Post,
@@ -68,6 +70,27 @@ export class MerchantsController {
   })
   duplicates(@CurrentUser('sub') userId: string, @Param('id') id: string) {
     return this.merchants.duplicates(userId, id);
+  }
+
+  @Post('merchants/:id/duplicates/:otherId/dismiss')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Marca un par de comercios como «no es duplicado»' })
+  dismissDuplicate(
+    @CurrentUser('sub') userId: string,
+    @Param('id') id: string,
+    @Param('otherId') otherId: string,
+  ) {
+    return this.merchants.dismissDuplicate(userId, id, otherId);
+  }
+
+  @Delete('merchants/:id/duplicates/:otherId/dismiss')
+  @ApiOperation({ summary: 'Revierte el descarte de un par de comercios' })
+  undoDismissDuplicate(
+    @CurrentUser('sub') userId: string,
+    @Param('id') id: string,
+    @Param('otherId') otherId: string,
+  ) {
+    return this.merchants.undoDismissDuplicate(userId, id, otherId);
   }
 
   @Patch('merchants/:id')

@@ -83,3 +83,16 @@ La clave de búsqueda de un comercio sale de `normalizeMerchant` (`merchants/dom
 - La unión sigue siendo solo manual (`POST /finance/merchants/:id/merge`) y nunca se hace sola: la fusión borra el comercio origen y no se puede deshacer.
 
 Evidencia: `merchants/domain/normalize-merchant.ts`, `merchants/domain/merchant-duplicates.ts` y sus specs.
+
+## Pares descartados
+
+Un par de comercios del mismo usuario puede quedar descartado como «no es duplicado» (`fin_merchant_duplicate_dismissals`), para que el aviso no se repita cuando ambos son legítimos.
+
+- `POST /api/finance/merchants/:id/duplicates/:otherId/dismiss` descarta el par. Es idempotente y guarda los dos identificadores en orden canónico, así que A–B y B–A son el mismo registro.
+- `DELETE` del mismo camino revierte el descarte; el par vuelve a aparecer como candidato si sigue cumpliendo la regla.
+- Un par descartado deja de contar en `duplicates` y en `possibleDuplicates` de ambos comercios, en los dos sentidos, y el descarte no se reactiva solo (ni al renombrar ni con movimientos nuevos).
+- Solo se descarta un par del mismo usuario: un comercio de otro usuario responde 404 y un comercio consigo mismo, 400.
+- El registro desaparece al borrar cualquiera de los dos comercios (cascada). Al fusionar, los descartes del origen pasan al destino, salvo el que lo relaciona con el propio destino.
+- Descartar no une, no borra y no cambia movimientos ni nombres. Ningún proceso automático crea ni borra un descarte.
+
+Evidencia: `merchants/infrastructure/merchants.repository.ts` (`dismissPair`, `undoDismissPair`, `moveDismissals`), `merchants.service.ts` y sus specs.

@@ -234,6 +234,78 @@ export class MerchantsRepository {
     }
   }
 
+  /** Dismissed pairs of the user, as canonical pairs of merchant ids. */
+  listDismissedPairs(userId: string) {
+    return this.prisma.finMerchantDuplicateDismissal.findMany({
+      where: { userId },
+      select: { merchantId: true, otherMerchantId: true },
+    });
+  }
+
+  dismissPair(userId: string, merchantId: string, otherMerchantId: string) {
+    return this.prisma.finMerchantDuplicateDismissal.upsert({
+      where: {
+        userId_merchantId_otherMerchantId: {
+          userId,
+          merchantId,
+          otherMerchantId,
+        },
+      },
+      create: { userId, merchantId, otherMerchantId },
+      update: {},
+    });
+  }
+
+  async undoDismissPair(
+    userId: string,
+    merchantId: string,
+    otherMerchantId: string,
+  ): Promise<void> {
+    await this.prisma.finMerchantDuplicateDismissal.deleteMany({
+      where: { userId, merchantId, otherMerchantId },
+    });
+  }
+
+  /**
+   * A dismissed pair follows the merchant that survives a merge, except the
+   * pair between both of them.
+   */
+  private async moveDismissals(
+    tx: Prisma.TransactionClient,
+    userId: string,
+    sourceId: string,
+    targetId: string,
+  ): Promise<void> {
+    const rows = await tx.finMerchantDuplicateDismissal.findMany({
+      where: {
+        userId,
+        OR: [{ merchantId: sourceId }, { otherMerchantId: sourceId }],
+        NOT: {
+          OR: [{ merchantId: targetId }, { otherMerchantId: targetId }],
+        },
+      },
+    });
+    await tx.finMerchantDuplicateDismissal.deleteMany({
+      where: {
+        id: { in: rows.map((row) => row.id) },
+      },
+    });
+    if (rows.length === 0) {
+      return;
+    }
+    const moved = rows.map((row) => {
+      const partner =
+        row.merchantId === sourceId ? row.otherMerchantId : row.merchantId;
+      const [merchantId, otherMerchantId] =
+        targetId < partner ? [targetId, partner] : [partner, targetId];
+      return { userId, merchantId, otherMerchantId };
+    });
+    await tx.finMerchantDuplicateDismissal.createMany({
+      data: moved,
+      skipDuplicates: true,
+    });
+  }
+
   listAliasKeys(merchantId: string): Promise<Array<{ normalizedKey: string }>> {
     return this.prisma.finMerchantAlias.findMany({
       where: { merchantId },
@@ -311,6 +383,7 @@ export class MerchantsRepository {
         where: { userId, merchantId: sourceId },
         data: { merchantId: targetId },
       });
+      await this.moveDismissals(tx, userId, sourceId, targetId);
       await tx.finMerchant.delete({ where: { id: sourceId } });
       const existing = new Set(
         target.aliases.map((entry) => aliasNormalizedKey(entry.alias)),

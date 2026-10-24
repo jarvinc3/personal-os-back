@@ -28,6 +28,7 @@ model User {
   finCategories                  FinCategory[]
   finMerchants                   FinMerchant[]
   finMerchantAliases             FinMerchantAlias[]
+  finMerchantDuplicateDismissals FinMerchantDuplicateDismissal[]
   finSubscriptions               FinSubscription[]
   finSubscriptionAlertDismissals FinSubscriptionAlertDismissal[]
   finEmailConnections            FinEmailConnection[]
@@ -488,26 +489,46 @@ model FinRecurringPattern {
 }
 
 model FinMerchant {
-  id             String                     @id @default(dbgenerated("(uuid_generate_v4())::text"))
-  userId         String                     @map("user_id")
-  name           String
+  id                  String                          @id @default(dbgenerated("(uuid_generate_v4())::text"))
+  userId              String                          @map("user_id")
+  name                String
   /// Normalized lookup key: unique per user.
-  normalizedKey  String                     @map("normalized_key")
-  categoryId     String?                    @map("category_id")
+  normalizedKey       String                          @map("normalized_key")
+  categoryId          String?                         @map("category_id")
   /// Where the category came from: set by hand, learned from movements or guessed by keywords.
-  categorySource FinMerchantCategorySource? @map("category_source")
-  logoUrl        String?                    @map("logo_url")
-  createdAt      DateTime                   @default(now()) @map("created_at") @db.Timestamptz(6)
-  user           User                       @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  category       FinCategory?               @relation(fields: [categoryId], references: [id], onDelete: SetNull, onUpdate: NoAction)
-  aliases        FinMerchantAlias[]
-  transactions   FinTransaction[]
-  recurring      FinRecurringPattern[]
+  categorySource      FinMerchantCategorySource?      @map("category_source")
+  logoUrl             String?                         @map("logo_url")
+  createdAt           DateTime                        @default(now()) @map("created_at") @db.Timestamptz(6)
+  user                User                            @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  category            FinCategory?                    @relation(fields: [categoryId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  aliases             FinMerchantAlias[]
+  duplicateDismissals FinMerchantDuplicateDismissal[] @relation("MerchantDuplicateDismissalMain")
+  dismissedAsOther    FinMerchantDuplicateDismissal[] @relation("MerchantDuplicateDismissalOther")
+  transactions        FinTransaction[]
+  recurring           FinRecurringPattern[]
 
   @@unique([userId, normalizedKey], map: "fin_merchants_user_normalized_key_uq")
   @@index([userId], map: "fin_merchants_user_id_idx")
   @@index([categoryId], map: "fin_merchants_category_id_idx")
   @@map("fin_merchants")
+}
+
+/// Pair of merchants the user marked as "not a duplicate". Canonical order, so
+/// A-B and B-A are the same row; it disappears with either merchant.
+model FinMerchantDuplicateDismissal {
+  id              String      @id @default(dbgenerated("(uuid_generate_v4())::text"))
+  userId          String      @map("user_id")
+  merchantId      String      @map("merchant_id")
+  otherMerchantId String      @map("other_merchant_id")
+  createdAt       DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  merchant        FinMerchant @relation("MerchantDuplicateDismissalMain", fields: [merchantId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  otherMerchant   FinMerchant @relation("MerchantDuplicateDismissalOther", fields: [otherMerchantId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([userId, merchantId, otherMerchantId], map: "fin_merchant_duplicate_dismissals_pair_uq")
+  @@index([merchantId], map: "fin_merchant_duplicate_dismissals_merchant_id_idx")
+  @@index([otherMerchantId], map: "fin_merchant_duplicate_dismissals_other_id_idx")
+  @@map("fin_merchant_duplicate_dismissals")
 }
 
 /// Other names a merchant appears with; the key is unique per user so a text
