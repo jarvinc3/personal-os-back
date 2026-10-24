@@ -95,7 +95,7 @@ No package imports a concrete provider. Quick-entry and statement import still w
 - diagnose OAuth failures;
 - `AiEmailConnection` (per user), historical bootstrap from 2026-01-01, incremental cursor design;
 - after bootstrap, use **scheduled incremental polling** as the V1 discovery trigger (configurable interval; initial operational target approximately 5–15 minutes): each tick resumes from the persisted provider cursor/history state and fetches only changes/new messages rather than re-querying broad date ranges;
-- keep the incremental-sync use case trigger-agnostic so Gmail push via Google Cloud Pub/Sub can later wake the exact same pipeline without redesigning Email Intelligence; Pub/Sub is optional/deferred and is not a `0.50.0` release dependency;
+- keep the incremental-sync use case trigger-agnostic so Gmail push via Google Cloud Pub/Sub can later wake the exact same pipeline without redesigning Email Intelligence; Pub/Sub is optional/deferred and is not a `0.100.0` release dependency;
 - preserve scheduled reconciliation/recovery even if push is enabled later; correctness depends on persisted cursor + idempotency, not reliable delivery of a cron tick or push notification;
 - define recovery for missed runs and invalid/expired provider history cursor, including bounded recovery/full resync;
 - `AiEmailMessage` + content (raw/sanitized/canonical), fingerprints, idempotency;

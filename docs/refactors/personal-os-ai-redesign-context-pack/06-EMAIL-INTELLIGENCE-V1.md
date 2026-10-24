@@ -85,7 +85,7 @@ trigger
 
 ### V1 trigger strategy — scheduled incremental polling
 
-For `0.50.0`, the baseline trigger is a scheduler/cron that wakes incremental sync at a configurable interval (initial operational target: approximately every 5–15 minutes).
+For `0.100.0`, the baseline trigger is a scheduler/cron that wakes incremental sync at a configurable interval (initial operational target: approximately every 5–15 minutes).
 
 This replaces the legacy idea of repeatedly querying Gmail by broad time ranges. A scheduled run with no provider changes should finish cheaply without re-reading the mailbox.
 
@@ -112,7 +112,7 @@ Gmail -> Pub/Sub ---------+
                   same incremental sync
 ```
 
-Enabling Pub/Sub may require Google Cloud billing/payment configuration even when actual usage remains within free allowances. Therefore Pub/Sub is **not a `0.50.0` release dependency**.
+Enabling Pub/Sub may require Google Cloud billing/payment configuration even when actual usage remains within free allowances. Therefore Pub/Sub is **not a `0.100.0` release dependency**.
 
 When push is enabled, scheduled polling should remain available as recovery/reconciliation rather than the primary discovery mechanism. Push notifications are wake-up signals; provider history/cursor state remains the source for determining what changed.
 

@@ -12,6 +12,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [Se
 
 - El diagnóstico local de AI-1 muestra proveedor/modelo, intentos, código normalizado y estado HTTP de los SDK sin exponer errores crudos; permite probar cada proveedor por separado.
 - El pool de inferencia usa Groq y OpenRouter; se retira OpenCode, cuyo modelo gratuito no admite llamadas desde el SDK del backend. Groq usa `qwen/qwen3.8-27b`.
+- AI-2 (diseño): se define polling incremental programado de Gmail con cursor persistido, recuperación idempotente y Pub/Sub opcional; no es requisito para el release `0.100.0`.
 - AI-0 integrado en `develop`: `@personal-os/contracts` reúne interfaces y tokens neutrales; el pool de inferencia y sus pruebas salen de chat. Los extractores financieros usan `INFERENCE_COMPLETION` y conservan sus respuestas y reglas (#193).
 - El corte de runtime elimina chat, sesiones, Gmail Finance y su configuración. Queda preservada y probada la lógica de importación financiera hasta AI-11; la entrega de correo por Resend sigue operativa.
 - La baseline conserva SQL manual, RLS/grants, triggers y el índice parcial de transferencias. Se aplicó en DEV junto con el reset autorizado de datos de prueba; PROD no recibió escrituras.
