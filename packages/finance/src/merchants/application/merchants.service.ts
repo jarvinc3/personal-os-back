@@ -6,7 +6,11 @@ import {
 } from '@nestjs/common';
 import { clampPageLimit, decodeCursor, toCursorPage } from '@personal-os/core';
 import { Prisma } from '@personal-os/database';
-import { LogoService, type LogoUploadFile } from '@personal-os/logos';
+import {
+  LogoService,
+  normalizeDomain,
+  type LogoUploadFile,
+} from '@personal-os/logos';
 import { FinanceOwnershipService } from '../../shared/application/finance-ownership.service';
 import { decimalToString } from '../../shared/domain/mappers';
 import { categoryTypeForTransaction } from '../../shared/domain/category-type';
@@ -51,6 +55,9 @@ type MerchantRow = {
   aliases: Array<{ alias: string }>;
   categoryId: string | null;
   categorySource?: MerchantCategorySource | null;
+  domain?: string | null;
+  logoPath?: string | null;
+  customLogoPath?: string | null;
   logoUrl: string | null;
   createdAt: Date;
 };
@@ -91,7 +98,11 @@ function monthRange(query: { dateFrom?: string; dateTo?: string }, now: Date) {
   return { from, to };
 }
 
-function mapMerchant(row: MerchantRow, spend: MerchantSpend | undefined) {
+function mapMerchant(
+  row: MerchantRow,
+  spend: MerchantSpend | undefined,
+  logos: LogoService,
+) {
   return {
     id: row.id,
     name: row.name,
@@ -99,7 +110,8 @@ function mapMerchant(row: MerchantRow, spend: MerchantSpend | undefined) {
     aliases: row.aliases.map((entry) => entry.alias),
     categoryId: row.categoryId,
     categorySource: row.categorySource ?? null,
-    logoUrl: row.logoUrl,
+    domain: row.domain ?? null,
+    logoUrl: logos.resolveUrl(row),
     createdAt: row.createdAt.toISOString(),
     monthSpend: decimalToString(spend?.spend ?? 0),
     monthMovements: spend?.movements ?? 0,
@@ -173,7 +185,7 @@ export class MerchantsService {
     return {
       ...page,
       items: page.items.map((row) => ({
-        ...mapMerchant(row, spendByMerchant.get(row.id)),
+        ...mapMerchant(row, spendByMerchant.get(row.id), this.logos),
         possibleDuplicates: countPossibleDuplicates(
           comparable(row),
           comparables,
@@ -193,7 +205,7 @@ export class MerchantsService {
       [id],
       monthRange({}, now),
     );
-    return mapMerchant(merchant, spends[0]);
+    return mapMerchant(merchant, spends[0], this.logos);
   }
 
   /** Merchants with the same shape as `get`, in batch and without throwing. */
@@ -214,7 +226,7 @@ export class MerchantsService {
     return new Map(
       rows.map((row) => [
         row.id,
-        mapMerchant(row, spendByMerchant.get(row.id)),
+        mapMerchant(row, spendByMerchant.get(row.id), this.logos),
       ]),
     );
   }
@@ -343,12 +355,15 @@ export class MerchantsService {
       : await this.guessCategory(userId, { name });
     const aliases = normalizeAliasList(dto.aliases ?? []);
     await this.assertAliasesFree(userId, aliases);
+    const domain = await this.resolveLogoDomain(dto.domain);
     try {
       const created = await this.repo.createMerchant(userId, {
         name,
         normalizedKey,
         aliases,
         ...initialCategory,
+        domain: domain.domain,
+        logoPath: domain.logoPath,
       });
       return this.get(userId, created.id, now);
     } catch (error) {
@@ -369,7 +384,9 @@ export class MerchantsService {
       normalizedKey?: string;
       categoryId?: string | null;
       categorySource?: MerchantCategorySource | null;
-      logoUrl?: string | null;
+      domain?: string | null;
+      logoPath?: string | null;
+      customLogoPath?: string | null;
     } = {};
     if (dto.name !== undefined) {
       const normalizedKey = normalizeMerchant(dto.name);
@@ -388,8 +405,14 @@ export class MerchantsService {
         ? MERCHANT_CATEGORY_SOURCE.MANUAL
         : null;
     }
-    if (dto.logoUrl !== undefined) {
-      changes.logoUrl = dto.logoUrl?.trim() || null;
+    const previousCustomLogoPath =
+      dto.domain !== undefined ? existing.customLogoPath : null;
+    if (dto.domain !== undefined) {
+      const domain = await this.resolveLogoDomain(dto.domain);
+      changes.domain = domain.domain;
+      changes.logoPath = domain.logoPath;
+      // Choosing a brand replaces the own upload, which would hide it.
+      changes.customLogoPath = null;
     }
     const aliases =
       dto.aliases === undefined ? null : normalizeAliasList(dto.aliases);
@@ -408,6 +431,9 @@ export class MerchantsService {
     if (aliases) {
       await this.repo.replaceAliases(userId, id, aliases);
     }
+    if (previousCustomLogoPath) {
+      await this.logos.deleteCustomLogo(previousCustomLogoPath);
+    }
     if (
       changes.normalizedKey &&
       changes.normalizedKey !== existing.normalizedKey
@@ -424,9 +450,17 @@ export class MerchantsService {
         'No se puede fusionar un comercio consigo mismo',
       );
     }
+    const [source, target] = await Promise.all([
+      this.repo.findMerchantById(userId, id),
+      this.repo.findMerchantById(userId, targetId),
+    ]);
     const merged = await this.repo.mergeMerchants(userId, id, targetId);
     if (!merged) {
       throw new NotFoundException('Comercio no encontrado');
+    }
+    // The target kept its own upload, so the source file would be orphaned.
+    if (source?.customLogoPath && target?.customLogoPath) {
+      await this.logos.deleteCustomLogo(source.customLogoPath);
     }
     return this.get(userId, targetId, now);
   }
@@ -444,17 +478,43 @@ export class MerchantsService {
     if (!existing) {
       throw new NotFoundException('Comercio no encontrado');
     }
-    let url: string | null;
+    let path: string;
     try {
-      const path = await this.logos.saveCustomLogo(userId, id, file);
-      url = this.logos.publicUrl(path);
+      path = await this.logos.saveCustomLogo(userId, id, file);
     } catch (error) {
       throw new BadRequestException(
         error instanceof Error ? error.message : 'No se pudo guardar el logo',
       );
     }
-    await this.repo.updateMerchant(userId, id, { logoUrl: url });
+    await this.repo.updateMerchant(userId, id, { customLogoPath: path });
     return this.get(userId, id, now);
+  }
+
+  /** Removes the own upload, so the brand logo can show again. */
+  async deleteLogo(userId: string, id: string, now = new Date()) {
+    const existing = await this.repo.findMerchantById(userId, id);
+    if (!existing) {
+      throw new NotFoundException('Comercio no encontrado');
+    }
+    await this.repo.updateMerchant(userId, id, { customLogoPath: null });
+    if (existing.customLogoPath) {
+      await this.logos.deleteCustomLogo(existing.customLogoPath);
+    }
+    return this.get(userId, id, now);
+  }
+
+  /** Normalizes the domain and ensures its brand file, like institutions do. */
+  private async resolveLogoDomain(
+    rawDomain: string | null | undefined,
+  ): Promise<{ domain: string | null; logoPath: string | null }> {
+    if (rawDomain == null || rawDomain.trim() === '') {
+      return { domain: null, logoPath: null };
+    }
+    const domain = normalizeDomain(rawDomain);
+    if (!domain) {
+      throw new BadRequestException('Dominio inválido');
+    }
+    return { domain, logoPath: await this.logos.ensureLogo(domain) };
   }
 
   /** Resolves (creating when needed) the canonical merchant for raw text. */

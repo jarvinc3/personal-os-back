@@ -115,6 +115,12 @@ export class MerchantsController {
     return this.merchants.merge(userId, id, dto.targetId);
   }
 
+  @Delete('merchants/:id/logo')
+  @ApiOperation({ summary: 'Quita el logo propio de un comercio' })
+  deleteLogo(@CurrentUser('sub') userId: string, @Param('id') id: string) {
+    return this.merchants.deleteLogo(userId, id);
+  }
+
   @Post('merchants/:id/logo')
   @ApiConsumes('multipart/form-data')
   @ApiOperation({ summary: 'Sube un logo de comercio personalizado' })

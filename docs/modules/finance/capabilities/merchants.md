@@ -96,3 +96,17 @@ Un par de comercios del mismo usuario puede quedar descartado como «no es dupli
 - Descartar no une, no borra y no cambia movimientos ni nombres. Ningún proceso automático crea ni borra un descarte.
 
 Evidencia: `merchants/infrastructure/merchants.repository.ts` (`dismissPair`, `undoDismissPair`, `moveDismissals`), `merchants.service.ts` y sus specs.
+
+## Logo: propio o de marca
+
+`FinMerchant` usa la misma semántica que `FinInstitution`: `domain`, `logoPath` (archivo `brands/{domain}.png` del bucket) y `customLogoPath` (subida propia en `custom/{userId}/{merchantId}.ext`). La respuesta devuelve `logoUrl` resuelto con `LogoService.resolveUrl` y añade `domain`.
+
+- Prioridad: logo propio, luego logo de marca, luego el `logoUrl` legado. Los comercios con un logo subido antes de este cambio siguen mostrándolo sin migrar datos.
+- `POST /finance/merchants` y `PATCH /finance/merchants/:id` aceptan `domain`: se normaliza como en instituciones, se llama a `ensureLogo` y se guarda `logoPath`. `domain: null` quita el logo de marca.
+- Elegir una marca reemplaza el logo propio: se limpia `customLogoPath` y se borra el archivo. `DELETE /finance/merchants/:id/logo` quita el logo propio y borra su archivo, para que la marca vuelva a mostrarse.
+- `POST /finance/merchants/:id/logo` guarda el archivo propio en `customLogoPath`. Los límites siguen igual: PNG, JPG o WEBP, máximo 1 MB, sin SVG.
+- Un dominio sin logo en Logo.dev no rompe el guardado: `logoPath` queda nulo y la web muestra iniciales.
+- `PATCH` ya no acepta `logoUrl` libre (responde 400): no se guardan URL arbitrarias.
+- El vaciado de datos borra los archivos propios de los comercios afectados, y la fusión borra el archivo del origen cuando el destino ya tenía el suyo.
+
+Evidencia: `merchants/application/merchants.service.ts`, `merchants/infrastructure/merchants.repository.ts`, `fin_merchants` (domain, logo_path, custom_logo_path) y sus specs.

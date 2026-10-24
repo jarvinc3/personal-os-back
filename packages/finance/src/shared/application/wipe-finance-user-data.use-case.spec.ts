@@ -47,6 +47,7 @@ function buildMocks() {
   const prisma = {
     finEmailSource: { findMany: jest.fn().mockResolvedValue([]) },
     finInstitution: { findMany: jest.fn().mockResolvedValue([]) },
+    finMerchant: { findMany: jest.fn().mockResolvedValue([]) },
     $transaction: jest.fn((callback: (client: typeof tx) => unknown) =>
       callback(tx),
     ),

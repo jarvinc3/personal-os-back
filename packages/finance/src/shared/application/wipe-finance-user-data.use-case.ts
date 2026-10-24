@@ -79,9 +79,7 @@ export class WipeFinanceUserDataUseCase {
     const sourceIds = await this.findSourceIds(userId);
     await this.cancelGmailSyncJobs(sourceIds);
 
-    const customLogoPaths = selected.has('finance.catalog')
-      ? await this.findCustomLogoPaths(userId)
-      : [];
+    const customLogoPaths = await this.findCustomLogoPaths(userId, selected);
 
     const counts = await this.prisma.$transaction(async (tx) => {
       const applied = emptyCounts();
@@ -123,15 +121,35 @@ export class WipeFinanceUserDataUseCase {
     });
   }
 
-  private findCustomLogoPaths(userId: string): Promise<string[]> {
-    return this.prisma.finInstitution
-      .findMany({
+  /** Own logo files the selected layers are about to orphan. */
+  private async findCustomLogoPaths(
+    userId: string,
+    selected: ReadonlySet<FinanceWipeLayer>,
+  ): Promise<string[]> {
+    const paths: string[] = [];
+    if (selected.has('finance.catalog')) {
+      const institutions = await this.prisma.finInstitution.findMany({
         where: { userId, customLogoPath: { not: null } },
         select: { customLogoPath: true },
-      })
-      .then((rows) =>
-        rows.flatMap((row) => (row.customLogoPath ? [row.customLogoPath] : [])),
+      });
+      paths.push(
+        ...institutions.flatMap((row) =>
+          row.customLogoPath ? [row.customLogoPath] : [],
+        ),
       );
+    }
+    if (selected.has('finance.ledger')) {
+      const merchants = await this.prisma.finMerchant.findMany({
+        where: { userId, customLogoPath: { not: null } },
+        select: { customLogoPath: true },
+      });
+      paths.push(
+        ...merchants.flatMap((row) =>
+          row.customLogoPath ? [row.customLogoPath] : [],
+        ),
+      );
+    }
+    return paths;
   }
 
   private async cancelGmailSyncJobs(sourceIds: Array<{ id: string }>) {

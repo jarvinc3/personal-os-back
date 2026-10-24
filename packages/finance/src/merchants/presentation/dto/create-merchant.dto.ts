@@ -26,6 +26,15 @@ export class CreateMerchantDto {
   categoryId?: string | null;
 
   @ApiPropertyOptional({
+    nullable: true,
+    description: 'Brand domain from the logo search',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(255)
+  domain?: string | null;
+
+  @ApiPropertyOptional({
     type: [String],
     maxItems: MAX_MERCHANT_ALIASES,
     description: 'Other names the merchant appears with',

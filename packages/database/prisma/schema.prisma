@@ -497,6 +497,11 @@ model FinMerchant {
   categoryId          String?                         @map("category_id")
   /// Where the category came from: set by hand, learned from movements or guessed by keywords.
   categorySource      FinMerchantCategorySource?      @map("category_source")
+  /// Brand domain chosen from the logo search; its file lands in the bucket.
+  domain              String?
+  logoPath            String?                         @map("logo_path")
+  customLogoPath      String?                         @map("custom_logo_path")
+  /// Legacy external URL, kept so logos uploaded before still show.
   logoUrl             String?                         @map("logo_url")
   createdAt           DateTime                        @default(now()) @map("created_at") @db.Timestamptz(6)
   user                User                            @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)

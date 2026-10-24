@@ -3710,6 +3710,8 @@ describe('Finance (e2e)', () => {
     prismaMock.finMerchant.findFirst
       .mockResolvedValueOnce(source)
       .mockResolvedValueOnce(target)
+      .mockResolvedValueOnce(source)
+      .mockResolvedValueOnce(target)
       .mockResolvedValue({
         ...target,
         categoryId: 'cat-food',
@@ -3879,5 +3881,52 @@ describe('Finance (e2e)', () => {
       )
       .set('Authorization', `Bearer ${token}`)
       .expect(400);
+  });
+  it('PATCH /api/finance/merchants/:id rejects a free logoUrl', async () => {
+    const merchantId = '44444444-dddd-4ddd-8ddd-dddddddddddd';
+
+    await request(app.getHttpServer())
+      .patch(`/api/finance/merchants/${merchantId}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ logoUrl: 'https://example.com/logo.png' })
+      .expect(400);
+  });
+
+  it('DELETE /api/finance/merchants/:id/logo clears the own logo', async () => {
+    const merchantId = '55555555-eeee-4eee-8eee-eeeeeeeeeeee';
+    const row = {
+      id: merchantId,
+      userId: 'user-123',
+      name: 'Netflix',
+      normalizedKey: 'NETFLIX',
+      aliases: [],
+      categoryId: null,
+      categorySource: null,
+      domain: null,
+      logoPath: null,
+      customLogoPath: null,
+      logoUrl: null,
+      createdAt: new Date('2026-10-20T10:00:00.000Z'),
+    };
+    prismaMock.finMerchant.findFirst
+      .mockResolvedValueOnce({
+        ...row,
+        customLogoPath: 'custom/user-123/merchant.png',
+      })
+      .mockResolvedValue(row);
+    prismaMock.finMerchant.updateMany.mockResolvedValue({ count: 1 });
+
+    await request(app.getHttpServer())
+      .delete(`/api/finance/merchants/${merchantId}/logo`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.data.logoUrl).toBeNull();
+      });
+
+    expect(prismaMock.finMerchant.updateMany).toHaveBeenCalledWith({
+      where: { id: merchantId, userId: 'user-123' },
+      data: { customLogoPath: null },
+    });
   });
 });

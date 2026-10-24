@@ -39,7 +39,13 @@ function build(repo: Partial<Mocked> = {}) {
     ...repo,
   } as unknown as MerchantsRepository;
   const ownership = { assertCategoryVisible: jest.fn() };
-  const logos = { saveCustomLogo: jest.fn(), publicUrl: jest.fn() };
+  const logos = {
+    saveCustomLogo: jest.fn(),
+    publicUrl: jest.fn(),
+    ensureLogo: jest.fn().mockResolvedValue(null),
+    deleteCustomLogo: jest.fn().mockResolvedValue(undefined),
+    resolveUrl: jest.fn().mockReturnValue(null),
+  };
   return {
     service: new MerchantsService(fullRepo, ownership as never, logos as never),
     repo: fullRepo as unknown as Mocked,
@@ -326,6 +332,8 @@ describe('MerchantsService.create', () => {
       aliases: ['Nacional'],
       categoryId: null,
       categorySource: null,
+      domain: null,
+      logoPath: null,
     });
     expect(merchant).toMatchObject({
       id: 'merchant-new',
@@ -933,5 +941,139 @@ describe('MerchantsService dismissed pairs', () => {
     await expect(service.duplicates('user-1', 'merchant-1')).resolves.toEqual(
       [],
     );
+  });
+});
+
+describe('MerchantsService logo', () => {
+  function logoRepo(overrides: Record<string, unknown> = {}) {
+    return {
+      findMerchantById: jest.fn().mockResolvedValue(merchantRow()),
+      updateMerchant: jest.fn().mockResolvedValue({ count: 1 }),
+      replaceAliases: jest.fn().mockResolvedValue(undefined),
+      ...overrides,
+    };
+  }
+
+  function serviceWithLogos(repo: Record<string, unknown>) {
+    const built = build(repo);
+    const logos = (
+      built.service as unknown as {
+        logos: {
+          ensureLogo: jest.Mock;
+          saveCustomLogo: jest.Mock;
+          deleteCustomLogo: jest.Mock;
+          resolveUrl: jest.Mock;
+        };
+      }
+    ).logos;
+    return { ...built, logos };
+  }
+
+  it('saves the brand file and its domain on PATCH', async () => {
+    const repo = logoRepo();
+    const { service, logos } = serviceWithLogos(repo);
+    logos.ensureLogo.mockResolvedValue('brands/netflix.com.png');
+
+    await service.update('user-1', 'merchant-1', {
+      domain: 'https://Netflix.com',
+    });
+
+    expect(logos.ensureLogo).toHaveBeenCalledWith('netflix.com');
+    expect(repo.updateMerchant).toHaveBeenCalledWith('user-1', 'merchant-1', {
+      domain: 'netflix.com',
+      logoPath: 'brands/netflix.com.png',
+      customLogoPath: null,
+    });
+  });
+
+  it('deletes the own file when a brand replaces it', async () => {
+    const repo = logoRepo({
+      findMerchantById: jest
+        .fn()
+        .mockResolvedValue(
+          merchantRow({ customLogoPath: 'custom/user-1/merchant-1.png' }),
+        ),
+    });
+    const { service, logos } = serviceWithLogos(repo);
+
+    await service.update('user-1', 'merchant-1', { domain: 'netflix.com' });
+
+    expect(logos.deleteCustomLogo).toHaveBeenCalledWith(
+      'custom/user-1/merchant-1.png',
+    );
+  });
+
+  it('removes the brand logo with domain null', async () => {
+    const repo = logoRepo();
+    const { service, logos } = serviceWithLogos(repo);
+
+    await service.update('user-1', 'merchant-1', { domain: null });
+
+    expect(logos.ensureLogo).not.toHaveBeenCalled();
+    expect(repo.updateMerchant).toHaveBeenCalledWith('user-1', 'merchant-1', {
+      domain: null,
+      logoPath: null,
+      customLogoPath: null,
+    });
+  });
+
+  it('rejects an invalid domain', async () => {
+    const repo = logoRepo();
+    const { service } = serviceWithLogos(repo);
+
+    await expect(
+      service.update('user-1', 'merchant-1', { domain: '%%%' }),
+    ).rejects.toMatchObject({ response: { message: 'Dominio inválido' } });
+    expect(repo.updateMerchant).not.toHaveBeenCalled();
+  });
+
+  it('stores the own upload in customLogoPath', async () => {
+    const repo = logoRepo();
+    const { service, logos } = serviceWithLogos(repo);
+    logos.saveCustomLogo.mockResolvedValue('custom/user-1/merchant-1.png');
+
+    await service.uploadLogo('user-1', 'merchant-1', {
+      mimetype: 'image/png',
+      size: 100,
+      buffer: Buffer.from('x'),
+    });
+
+    expect(repo.updateMerchant).toHaveBeenCalledWith('user-1', 'merchant-1', {
+      customLogoPath: 'custom/user-1/merchant-1.png',
+    });
+  });
+
+  it('deletes the own file with DELETE logo', async () => {
+    const repo = logoRepo({
+      findMerchantById: jest
+        .fn()
+        .mockResolvedValue(
+          merchantRow({ customLogoPath: 'custom/user-1/merchant-1.png' }),
+        ),
+    });
+    const { service, logos } = serviceWithLogos(repo);
+
+    await service.deleteLogo('user-1', 'merchant-1');
+
+    expect(repo.updateMerchant).toHaveBeenCalledWith('user-1', 'merchant-1', {
+      customLogoPath: null,
+    });
+    expect(logos.deleteCustomLogo).toHaveBeenCalledWith(
+      'custom/user-1/merchant-1.png',
+    );
+  });
+
+  it('resolves the logo URL with the shared priority', async () => {
+    const repo = {
+      ...logoRepo(),
+      sumSpendByMerchant: jest.fn().mockResolvedValue([]),
+    };
+    const { service, logos } = serviceWithLogos(repo);
+    logos.resolveUrl.mockReturnValue('https://cdn/brands/netflix.com.png');
+
+    const merchant = await service.get('user-1', 'merchant-1');
+
+    expect(merchant.logoUrl).toBe('https://cdn/brands/netflix.com.png');
+    expect(logos.resolveUrl).toHaveBeenCalledWith(expect.anything());
   });
 });

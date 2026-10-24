@@ -146,6 +146,8 @@ export class MerchantsRepository {
       aliases: string[];
       categoryId?: string | null;
       categorySource?: FinMerchantCategorySource | null;
+      domain?: string | null;
+      logoPath?: string | null;
     },
   ) {
     return this.prisma.finMerchant.create({
@@ -155,6 +157,8 @@ export class MerchantsRepository {
         normalizedKey: data.normalizedKey,
         categoryId: data.categoryId ?? null,
         categorySource: data.categorySource ?? null,
+        domain: data.domain ?? null,
+        logoPath: data.logoPath ?? null,
         aliases: {
           create: data.aliases.flatMap((alias) => {
             const normalizedKey = normalizeMerchant(alias);
@@ -182,7 +186,9 @@ export class MerchantsRepository {
       normalizedKey?: string;
       categoryId?: string | null;
       categorySource?: FinMerchantCategorySource | null;
-      logoUrl?: string | null;
+      domain?: string | null;
+      logoPath?: string | null;
+      customLogoPath?: string | null;
     },
   ) {
     return this.prisma.finMerchant.updateMany({
@@ -410,6 +416,11 @@ export class MerchantsRepository {
             ? {}
             : { categorySource: source.categorySource }),
           ...(target.logoUrl ? {} : { logoUrl: source.logoUrl }),
+          ...(target.domain ? {} : { domain: source.domain }),
+          ...(target.logoPath ? {} : { logoPath: source.logoPath }),
+          ...(target.customLogoPath
+            ? {}
+            : { customLogoPath: source.customLogoPath }),
         },
       });
       return tx.finMerchant.findFirst({

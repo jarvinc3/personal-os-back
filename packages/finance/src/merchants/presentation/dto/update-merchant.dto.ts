@@ -36,9 +36,13 @@ export class UpdateMerchantDto {
   @MaxLength(MAX_MERCHANT_ALIAS_LENGTH, { each: true })
   aliases?: string[];
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({
+    nullable: true,
+    description:
+      'Brand domain from the logo search; null removes the brand logo',
+  })
   @IsOptional()
   @IsString()
-  @MaxLength(500)
-  logoUrl?: string | null;
+  @MaxLength(255)
+  domain?: string | null;
 }
