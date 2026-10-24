@@ -147,8 +147,80 @@ export class WipeFinanceUserDataUseCase {
         const accounts = await tx.finAccount.deleteMany({ where: { userId } });
         return accounts.count;
       },
-      'finance.institutions': (tx, { userId, sourceIds }) =>
-        this.wipeInstitutions(tx, userId, sourceIds),
+      'finance.institutions': (tx, { userId }) =>
+        this.wipeInstitutions(tx, userId),
+      'finance.subscriptions': async (tx, { userId }) => {
+        await tx.finSubscriptionPayment.deleteMany({
+          where: { subscription: { userId } },
+        });
+        await tx.finSubscriptionAlertDismissal.deleteMany({
+          where: { userId },
+        });
+        const subscriptions = await tx.finSubscription.deleteMany({
+          where: { userId },
+        });
+        return subscriptions.count;
+      },
+      'finance.recurring': async (tx, { userId }) => {
+        const patterns = await tx.finRecurringPattern.deleteMany({
+          where: { userId },
+        });
+        return patterns.count;
+      },
+      'finance.merchants': async (tx, { userId }) => {
+        const merchants = await tx.finMerchant.deleteMany({
+          where: { userId },
+        });
+        return merchants.count;
+      },
+      'finance.emailMessages': async (tx, { userId }) => {
+        const messages = await tx.finEmailMessage.deleteMany({
+          where: { source: { userId } },
+        });
+        await tx.finEmailSyncLog.deleteMany({
+          where: { source: { userId } },
+        });
+        return messages.count;
+      },
+      'finance.statements': async (tx, { userId }) => {
+        const imports = await tx.finStatementImport.deleteMany({
+          where: { userId },
+        });
+        const statements = await tx.finCardStatement.deleteMany({
+          where: { card: { userId } },
+        });
+        return imports.count + statements.count;
+      },
+      'finance.loans': async (tx, { userId }) => {
+        const loans = await tx.finLoan.deleteMany({ where: { userId } });
+        return loans.count;
+      },
+      'finance.savingsGoals': async (tx, { userId }) => {
+        const goals = await tx.finSavingsGoal.deleteMany({ where: { userId } });
+        return goals.count;
+      },
+      'finance.receivables': async (tx, { userId }) => {
+        const receivables = await tx.finReceivable.deleteMany({
+          where: { userId },
+        });
+        return receivables.count;
+      },
+      'finance.budgets': async (tx, { userId }) => {
+        const budgets = await tx.finBudget.deleteMany({ where: { userId } });
+        return budgets.count;
+      },
+      'finance.categories': async (tx, { userId }) => {
+        const categories = await tx.finCategory.deleteMany({
+          where: { userId, isSystem: false },
+        });
+        return categories.count;
+      },
+      'finance.emailConnections': async (tx, { userId }) => {
+        const connections = await tx.finEmailConnection.deleteMany({
+          where: { userId },
+        });
+        return connections.count;
+      },
     };
   }
 
@@ -178,6 +250,37 @@ export class WipeFinanceUserDataUseCase {
         return this.prisma.finInstitution.count({
           where: { userId, isSystem: false },
         });
+      case 'finance.subscriptions':
+        return this.prisma.finSubscription.count({ where: { userId } });
+      case 'finance.recurring':
+        return this.prisma.finRecurringPattern.count({ where: { userId } });
+      case 'finance.merchants':
+        return this.prisma.finMerchant.count({ where: { userId } });
+      case 'finance.emailMessages':
+        return this.prisma.finEmailMessage.count({
+          where: { source: { userId } },
+        });
+      case 'finance.statements':
+        return (
+          (await this.prisma.finStatementImport.count({ where: { userId } })) +
+          (await this.prisma.finCardStatement.count({
+            where: { card: { userId } },
+          }))
+        );
+      case 'finance.loans':
+        return this.prisma.finLoan.count({ where: { userId } });
+      case 'finance.savingsGoals':
+        return this.prisma.finSavingsGoal.count({ where: { userId } });
+      case 'finance.receivables':
+        return this.prisma.finReceivable.count({ where: { userId } });
+      case 'finance.budgets':
+        return this.prisma.finBudget.count({ where: { userId } });
+      case 'finance.categories':
+        return this.prisma.finCategory.count({
+          where: { userId, isSystem: false },
+        });
+      case 'finance.emailConnections':
+        return this.prisma.finEmailConnection.count({ where: { userId } });
       default:
         return 0;
     }
@@ -230,11 +333,7 @@ export class WipeFinanceUserDataUseCase {
         ),
       );
     }
-    if (
-      branchIds.includes('finance.accounts') ||
-      branchIds.includes('finance.cards') ||
-      branchIds.includes('finance.institutions')
-    ) {
+    if (branchIds.includes('finance.merchants')) {
       const merchants = await this.prisma.finMerchant.findMany({
         where: { userId, customLogoPath: { not: null } },
         select: { customLogoPath: true },
@@ -340,7 +439,6 @@ export class WipeFinanceUserDataUseCase {
   private async wipeInstitutions(
     tx: TxClient,
     userId: string,
-    sourceIds: readonly string[],
   ): Promise<number> {
     const institutions = await tx.finInstitution.findMany({
       where: { userId, isSystem: false },
@@ -350,13 +448,7 @@ export class WipeFinanceUserDataUseCase {
     await tx.finLoan.deleteMany({
       where: { userId, institutionId: { in: institutionIds } },
     });
-    const sourceIdList = [...sourceIds];
-    await tx.finEmailMessage.deleteMany({
-      where: { sourceId: { in: sourceIdList } },
-    });
-    await tx.finEmailSyncLog.deleteMany({
-      where: { sourceId: { in: sourceIdList } },
-    });
+    // Accounts, cards and mail sources (with their messages) cascade.
     const deleted = await tx.finInstitution.deleteMany({
       where: { userId, isSystem: false },
     });
