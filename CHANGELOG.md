@@ -2,6 +2,34 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [SemVer](https://semver.org/lang/es/). Reglas y ejemplo en [docs/reference/changelog-guide.md](./docs/reference/changelog-guide.md).
 
+## [0.55.0] - 2026-10-23
+
+### Agregado
+
+- Cada línea de `GET /api/finance/balance-sheet` trae `entity`: la cuenta, tarjeta, préstamo o cobro completo con su institución (nombre, logo y color), para que la web pinte su card canónica sin pedir cada producto (#187).
+- `POST /api/finance/entities/lookup`: hasta 50 referencias `{ type, id }`, devueltas en el mismo orden con la forma pública de su endpoint, `null` en la posición de una que ya no existe o es de otro usuario, y una consulta por tipo (#188).
+- Las cuentas y tarjetas exponen `institutionColor` (#187).
+- `POST /api/finance/merchants` crea un comercio a mano con nombre, categoría y hasta 20 alias; el 409 de nombre repetido incluye `existingMerchantId` (#173).
+- Los comercios aprenden la categoría de sus movimientos (`categorySource`: `MANUAL`, `LEARNED` o `KEYWORD`); `suggest` la devuelve con su origen, una categoría a mano nunca se pisa y la importación por correo la usa antes del historial (#174).
+- Los alias reconocen comercios (`fin_merchant_aliases`, clave normalizada única por usuario), `PATCH` acepta `aliases` y la fusión conserva nombre, alias, categoría y logo del origen (#176).
+- `normalizeMerchant` pliega acentos y «Ñ», ignora el sufijo web y el plural de la primera palabra; `GET /api/finance/merchants/:id/duplicates` propone hasta 5 candidatos con su motivo y la lista añade `possibleDuplicates` (#177).
+- `POST`/`DELETE /api/finance/merchants/:id/duplicates/:otherId/dismiss` descartan y revierten un par como «no es duplicado» (#183).
+- Los comercios eligen logo por marca: `domain`, `logoPath` y `customLogoPath`, con `DELETE /api/finance/merchants/:id/logo`; `logoUrl` se resuelve con la prioridad propio → marca → legado (#175).
+- `GET /api/users/me/data/branches`: cada app declara sus ramas con su conteo y lo que arrastran. El vaciado por ramas sustituye a las capas, acepta `expectedCounts` y responde 409 sin borrar si un conteo cambió (#184).
+- Finanzas se vacía por ramas finas: conciliaciones, movimientos, saldos, tarjetas, cuentas, instituciones, suscripciones, recurrentes, comercios, correos importados, estados de cuenta, préstamos, metas, cobros, presupuestos, categorías y conexiones de Gmail (#185, #186).
+- El chat de IA usa bloques `entity_card` y `entity_list` que solo guardan la referencia; la web pide los datos al consultar en lote (#188).
+
+### Corregido
+
+- Un aporte, retiro o abono con fecha elegida se registra en el día local del usuario, no el anterior, y conserva la hora actual cuando la fecha es hoy (#189).
+- Un aporte a una meta o un abono a capital ya no anuncia además su movimiento interno: el usuario recibe un solo aviso (#190).
+
+### Cambiado
+
+- Contrato: `POST /api/users/me/data/wipe` recibe `branches` (antes `layers`) y responde `requestedBranches`/`appliedBranches`; las capas antiguas desaparecen.
+- Contrato: los bloques `transaction_card`, `transaction_list`, `budget_progress` y `loan_summary` del chat se reemplazan por `entity_card` y `entity_list`.
+- Contrato: `PATCH /api/finance/merchants/:id` deja de aceptar `logoUrl` libre (responde 400) y acepta `aliases` y `domain`.
+
 ## [0.54.3] - 2026-10-22
 
 ### Cambiado
