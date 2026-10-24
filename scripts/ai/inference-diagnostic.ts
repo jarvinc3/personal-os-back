@@ -1,4 +1,8 @@
 import type { JsonObject } from '@personal-os/contracts';
+import {
+  StructuredInferenceOutputError,
+  StructuredInferenceProviderError,
+} from '@personal-os/contracts';
 import type { Env } from '@personal-os/config';
 import { AiInferenceGateway } from '@personal-os/ai-agent';
 import type { ConfigService } from '@nestjs/config';
@@ -22,6 +26,7 @@ function configuredProvider(
 }
 
 async function main(): Promise<void> {
+  const startedAt = Date.now();
   const providers = [
     configuredProvider('GROQ_API_KEY', createGroqProvider),
     configuredProvider('OPENCODE_API_KEY', createOpenCodeProvider),
@@ -83,6 +88,7 @@ async function main(): Promise<void> {
           result: result.value,
           latencyMs: result.latencyMs,
           fallbackCount: result.fallbackCount,
+          attempts: result.fallbackCount + 1,
           error: null,
         },
         null,
@@ -90,15 +96,29 @@ async function main(): Promise<void> {
       ),
     );
   } catch (error) {
+    const inferenceError =
+      error instanceof StructuredInferenceProviderError ||
+      error instanceof StructuredInferenceOutputError
+        ? error
+        : undefined;
     console.error(
       JSON.stringify(
         {
           task: 'diagnostic.structured-output',
-          provider: null,
-          model: null,
+          provider: inferenceError?.provider ?? null,
+          model: inferenceError?.model ?? null,
           result: null,
-          latencyMs: null,
-          fallbackCount: null,
+          latencyMs: Date.now() - startedAt,
+          fallbackCount:
+            inferenceError && inferenceError.attempts > 0
+              ? inferenceError.attempts - 1
+              : null,
+          attempts: inferenceError?.attempts ?? 0,
+          httpStatus:
+            error instanceof StructuredInferenceProviderError
+              ? error.httpStatus
+              : null,
+          errorCode: inferenceError?.code ?? 'DIAGNOSTIC_FAILED',
           error: error instanceof Error ? error.message : 'Unknown error',
         },
         null,

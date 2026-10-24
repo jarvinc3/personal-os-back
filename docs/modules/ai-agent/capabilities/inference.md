@@ -42,3 +42,6 @@ y `DELETE /api/users/me/data`.
 Con al menos una clave de proveedor en `.env`, ejecutar `pnpm ai:diagnostic`.
 Usa un prompt sintético, muestra tarea, proveedor, modelo, salida, latencia,
 fallbacks y error, y no envía `userId`; por ello no crea telemetría.
+Si falla, muestra el último proveedor/modelo intentado, número de intentos,
+código normalizado y estado HTTP cuando está disponible. Nunca imprime el
+mensaje crudo del SDK ni la clave.

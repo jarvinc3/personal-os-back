@@ -83,6 +83,19 @@ function addDays(date: Date, days: number): Date {
   return result;
 }
 
+function safeHttpStatus(error: unknown): number | null {
+  if (!error || typeof error !== 'object') {
+    return null;
+  }
+  const status = (error as { status?: unknown }).status;
+  return typeof status === 'number' &&
+    Number.isInteger(status) &&
+    status >= 100 &&
+    status <= 599
+    ? status
+    : null;
+}
+
 @Injectable()
 export class AiInferenceGateway {
   private readonly logger = new Logger(AiInferenceGateway.name);
@@ -115,6 +128,7 @@ export class AiInferenceGateway {
     const messages = toProviderMessages(request.messages, request.jsonSchema);
     let attempts = 0;
     let lastProvider: AIProviderClient | undefined;
+    let lastHttpStatus: number | null = null;
     let lastErrorCode = 'NO_PROVIDER';
 
     try {
@@ -171,8 +185,15 @@ export class AiInferenceGateway {
             continue;
           }
           lastErrorCode = 'PROVIDER_FAILURE';
+          lastHttpStatus = safeHttpStatus(error);
           if (!isRetryableProviderError(error)) {
-            throw new StructuredInferenceProviderError(false);
+            throw new StructuredInferenceProviderError(
+              false,
+              provider.name,
+              provider.model,
+              attempts,
+              lastHttpStatus,
+            );
           }
         }
       }
@@ -182,9 +203,19 @@ export class AiInferenceGateway {
         (lastErrorCode === 'INVALID_JSON' ||
           lastErrorCode === 'SCHEMA_VALIDATION')
       ) {
-        throw new StructuredInferenceOutputError();
+        throw new StructuredInferenceOutputError(
+          lastProvider?.name ?? null,
+          lastProvider?.model ?? null,
+          attempts,
+        );
       }
-      throw new StructuredInferenceProviderError(attempts > 0);
+      throw new StructuredInferenceProviderError(
+        attempts > 0,
+        lastProvider?.name ?? null,
+        lastProvider?.model ?? null,
+        attempts,
+        lastHttpStatus,
+      );
     } catch (error) {
       await this.persistTelemetry(request, {
         inputFingerprint,

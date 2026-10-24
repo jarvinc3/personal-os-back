@@ -53,7 +53,11 @@ export interface StructuredInference<T> {
 export class StructuredInferenceOutputError extends Error {
   readonly code = 'STRUCTURED_OUTPUT_INVALID';
 
-  constructor() {
+  constructor(
+    readonly provider: string | null = null,
+    readonly model: string | null = null,
+    readonly attempts = 0,
+  ) {
     super('The model output did not match the required structured schema');
     this.name = 'StructuredInferenceOutputError';
   }
@@ -61,7 +65,13 @@ export class StructuredInferenceOutputError extends Error {
 export class StructuredInferenceProviderError extends Error {
   readonly code = 'INFERENCE_PROVIDER_FAILURE';
 
-  constructor(readonly retryable: boolean) {
+  constructor(
+    readonly retryable: boolean,
+    readonly provider: string | null = null,
+    readonly model: string | null = null,
+    readonly attempts = 0,
+    readonly httpStatus: number | null = null,
+  ) {
     super('AI inference provider unavailable');
     this.name = 'StructuredInferenceProviderError';
   }

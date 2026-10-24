@@ -176,6 +176,10 @@ describe('AiInferenceGateway', () => {
     await expect(gateway.infer(request())).rejects.toMatchObject({
       message: 'AI inference provider unavailable',
       retryable: false,
+      provider: 'provider',
+      model: 'model',
+      attempts: 1,
+      httpStatus: 401,
     } satisfies Partial<StructuredInferenceProviderError>);
     const persisted = JSON.stringify(create.mock.calls[0][0]);
     expect(persisted).not.toContain('private test text');
