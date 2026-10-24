@@ -14,6 +14,8 @@ type EnqueueTransactionEventInput = {
   userId: string;
   eventName: string;
   transactionId: string;
+  /** `false` keeps the notification quiet: the user already saw the action. */
+  announce?: boolean;
 };
 
 /** Announces a movement with the parties every notification consumer reads. */
@@ -23,6 +25,7 @@ export async function enqueueTransactionEvent({
   userId,
   eventName,
   transactionId,
+  announce,
 }: EnqueueTransactionEventInput) {
   const row = await tx.finTransaction.findFirst({
     where: { id: transactionId, userId },
@@ -38,7 +41,10 @@ export async function enqueueTransactionEvent({
       aggregateType: 'FinTransaction',
       aggregateId: transactionId,
       userId,
-      payload: notificationTransactionPayload(row),
+      payload: {
+        ...notificationTransactionPayload(row),
+        ...(announce === false ? { announce: false } : {}),
+      },
     },
     tx,
   );

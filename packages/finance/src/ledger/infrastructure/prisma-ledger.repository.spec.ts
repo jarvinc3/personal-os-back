@@ -161,6 +161,87 @@ describe('PrismaLedgerRepository outbox-in-TX', () => {
     expect(enqueueTx?.name).toBe('same-tx');
   });
 
+  it('marks the movement as quiet when the action already announced itself', async () => {
+    const enqueue = jest.fn().mockResolvedValue({});
+    const events = { enqueue } as unknown as DomainEventPublisherPort;
+    const prisma = {
+      $transaction: jest.fn(async (fn: (tx: unknown) => Promise<unknown>) => {
+        const tx = {
+          finAccount: {
+            findFirst: jest.fn().mockResolvedValue({
+              id: 'acc-1',
+              userId: 'user-1',
+              currency: 'DOP',
+              type: 'CHECKING',
+              balance: 100,
+            }),
+            update: jest.fn(),
+          },
+          finCard: { findFirst: jest.fn() },
+          finCardBalance: { upsert: jest.fn() },
+          finTransaction: {
+            create: jest.fn().mockResolvedValue({
+              id: 'tx-goal',
+              amount: 10,
+              status: 'CONFIRMED',
+              source: 'MANUAL',
+            }),
+            findFirst: jest.fn().mockResolvedValue({
+              id: 'tx-goal',
+              amount: 10,
+              status: 'CONFIRMED',
+              source: 'MANUAL',
+              currency: 'DOP',
+              type: 'CREDIT',
+              merchant: null,
+              account: null,
+              card: null,
+              category: null,
+            }),
+          },
+          finBudget: {
+            findMany: jest.fn().mockResolvedValue([]),
+            update: jest.fn(),
+          },
+        };
+        return fn(tx);
+      }),
+    };
+    const repo = new PrismaLedgerRepository(
+      prisma as never,
+      new PrismaLedgerReadRepository(prisma as never),
+      events,
+      new PrismaLedgerDeletionRepository(prisma as never, events, journal),
+      new PrismaLedgerEmailImportRepository(prisma as never, events),
+      new PrismaLedgerWriteRepository(prisma as never, events),
+      undefined,
+    );
+
+    await repo.createTransaction(
+      'user-1',
+      {
+        type: 'CREDIT',
+        amount: 10,
+        transactionDate: '2026-08-01',
+        accountId: 'acc-1',
+        announce: false,
+      },
+      {
+        amount: 10,
+        currency: 'DOP',
+        ledgerAmount: 10,
+        ledgerCurrency: 'DOP',
+        amountBaseCurrency: 10,
+        exchangeRate: 1,
+      },
+      'MANUAL',
+    );
+
+    expect(
+      (enqueue.mock.calls[0]?.[0] as { payload?: unknown }).payload,
+    ).toEqual(expect.objectContaining({ announce: false }));
+  });
+
   it('createTransfer applies balances on both legs and enqueues finance.transfer.created', async () => {
     const enqueue = jest.fn().mockResolvedValue({});
     const events = { enqueue } as unknown as DomainEventPublisherPort;

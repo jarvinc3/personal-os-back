@@ -98,6 +98,7 @@ describe('AllocateToGoalUseCase', () => {
       'user-1',
       expect.objectContaining({
         transactionDate: '2026-10-24T00:00:00.000Z',
+        announce: false,
       }),
     );
     const allocation = repo.addSavingsGoalContribution.mock.calls[0][1];
@@ -199,6 +200,7 @@ describe('AllocateToGoalUseCase', () => {
         toAccountId: 'acc-2',
         amount: 100,
         currency: 'DOP',
+        announce: false,
       }),
     );
     expect(repo.addSavingsGoalContribution).toHaveBeenCalledWith(

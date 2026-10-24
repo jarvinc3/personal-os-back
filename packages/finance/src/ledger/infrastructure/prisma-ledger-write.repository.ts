@@ -155,6 +155,7 @@ export class PrismaLedgerWriteRepository {
         userId,
         eventName: transactionCreatedEventName(created.status),
         transactionId: created.id,
+        announce: command.announce,
       });
       await this.thresholds?.processThresholds(userId, budgetSnapshots, tx);
 
@@ -348,6 +349,7 @@ export class PrismaLedgerWriteRepository {
           userId,
           eventName: transactionCreatedEventName(created.status),
           transactionId: created.id,
+          announce: command.announce,
         });
         return created as LedgerTransactionRow;
       };

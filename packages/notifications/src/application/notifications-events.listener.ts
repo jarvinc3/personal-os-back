@@ -32,6 +32,8 @@ type FinanceTxEvent = {
   eventId?: string;
   userId: string;
   transactionId: string;
+  /** `false` for a movement that is a side effect the user already confirmed. */
+  announce?: boolean;
   amount: number;
   currency?: string;
   status?: string;
@@ -165,6 +167,12 @@ export class NotificationsEventsListener {
     this.logger.debug(
       `event=finance.transaction handled=true transactionId=${event.transactionId} userId=${event.userId} status=${event.status}`,
     );
+
+    // One fact, one notice: a contribution or prepayment already announced
+    // itself on screen, so its internal movement stays quiet.
+    if (event.announce === false) {
+      return;
+    }
 
     if (event.source === 'EMAIL' && event.status === 'PENDING') {
       await this.createTransactionNotification(

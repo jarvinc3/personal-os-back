@@ -150,6 +150,8 @@ export class AllocateToGoalUseCase {
       currency: goal.currency,
       transactionDate: contributedAt.toISOString(),
       description: `Aporte a ${goal.name}`,
+      // The screen already confirmed the contribution.
+      announce: false,
     });
     return {
       transferGroupId: transfer.transferGroupId,
@@ -214,6 +216,8 @@ export class AllocateToGoalUseCase {
       currency: goal.currency,
       transactionDate: contributedAt.toISOString(),
       description: `Retiro de ${goal.name}`,
+      // The screen already confirmed the withdrawal.
+      announce: false,
     });
     return { transferGroupId: transfer.transferGroupId };
   }

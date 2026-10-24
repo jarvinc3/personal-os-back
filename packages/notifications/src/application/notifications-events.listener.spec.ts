@@ -50,6 +50,38 @@ describe('NotificationsEventsListener', () => {
     ]);
   });
 
+  it('stays quiet when the movement is a side effect the user already saw', async () => {
+    await listener.onFinanceTransactionCreated({
+      userId: 'user-1',
+      transactionId: 'tx-goal',
+      amount: 100,
+      status: 'CONFIRMED',
+      source: 'MANUAL',
+      transferGroupId: 'group-goal',
+      legRole: 'SOURCE',
+      announce: false,
+      eventId: 'evt-goal',
+    });
+
+    expect(create).not.toHaveBeenCalled();
+  });
+
+  it('still announces a movement created by email', async () => {
+    await listener.onFinanceTransactionCreated({
+      userId: 'user-1',
+      transactionId: 'tx-email',
+      amount: 100,
+      status: 'CONFIRMED',
+      source: 'EMAIL',
+      eventId: 'evt-email',
+    });
+
+    expect(create).toHaveBeenCalledTimes(1);
+    expect(create.mock.calls[0][1]).toEqual(
+      expect.objectContaining({ type: 'transaction.created' }),
+    );
+  });
+
   it('notifies a transfer once, from the source leg', async () => {
     await listener.onFinanceTransactionCreated({
       userId: 'user-1',

@@ -84,6 +84,8 @@ export class ApplyLoanPrepaymentUseCase {
       transactionDate: paidAt.toISOString(),
       description: `Abono a capital: ${loan.lenderName}`,
       ...(categoryId ? { categoryId } : {}),
+      // The screen already confirmed the prepayment.
+      announce: false,
     });
 
     const prepayment = await this.repo.createLoanPrepayment({

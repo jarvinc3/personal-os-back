@@ -63,7 +63,10 @@ describe('ApplyLoanPrepaymentUseCase', () => {
 
     expect(createTransaction.execute).toHaveBeenCalledWith(
       'user-1',
-      expect.objectContaining({ transactionDate: '2026-10-24T00:00:00.000Z' }),
+      expect.objectContaining({
+        transactionDate: '2026-10-24T00:00:00.000Z',
+        announce: false,
+      }),
     );
     const prepayment = repo.createLoanPrepayment.mock.calls[0][0] as {
       paidAt: Date;
