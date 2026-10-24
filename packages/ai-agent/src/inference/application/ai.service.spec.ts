@@ -75,12 +75,12 @@ describe('AiService', () => {
   it('exposes the configured providers', () => {
     const service = new AiService([
       createProvider('groq'),
-      createProvider('opencode'),
+      createProvider('fallback'),
     ]);
 
     expect(service.getProviders()).toEqual([
       { name: 'groq', model: 'groq-model' },
-      { name: 'opencode', model: 'opencode-model' },
+      { name: 'fallback', model: 'fallback-model' },
     ]);
   });
 
@@ -96,14 +96,14 @@ describe('AiService', () => {
     it('rotates providers between calls', async () => {
       const service = new AiService([
         createProvider('groq'),
-        createProvider('opencode'),
+        createProvider('fallback'),
       ]);
 
       await expect(service.chat(MESSAGES)).resolves.toMatchObject({
         provider: 'groq',
       });
       await expect(service.chat(MESSAGES)).resolves.toMatchObject({
-        provider: 'opencode',
+        provider: 'fallback',
       });
       await expect(service.chat(MESSAGES)).resolves.toMatchObject({
         provider: 'groq',
@@ -113,21 +113,21 @@ describe('AiService', () => {
     it('moves the preferred provider to the front', async () => {
       const service = new AiService([
         createProvider('groq'),
-        createProvider('opencode'),
+        createProvider('fallback'),
       ]);
 
-      await expect(service.chat(MESSAGES, 'OpenCode')).resolves.toMatchObject({
-        provider: 'opencode',
+      await expect(service.chat(MESSAGES, 'Fallback')).resolves.toMatchObject({
+        provider: 'fallback',
       });
-      await expect(service.chat(MESSAGES, 'opencode')).resolves.toMatchObject({
-        provider: 'opencode',
+      await expect(service.chat(MESSAGES, 'fallback')).resolves.toMatchObject({
+        provider: 'fallback',
       });
     });
 
     it('ignores an unknown preferred provider', async () => {
       const service = new AiService([
         createProvider('groq'),
-        createProvider('opencode'),
+        createProvider('fallback'),
       ]);
 
       await expect(service.chat(MESSAGES, 'unknown')).resolves.toMatchObject({
@@ -152,7 +152,7 @@ describe('AiService', () => {
     });
 
     it('retries the next provider after a retryable failure', async () => {
-      const next = createProvider('opencode');
+      const next = createProvider('fallback');
       const service = new AiService([
         createProvider('groq', {
           chat: () => Promise.reject(providerError(RETRYABLE_STATUS)),
@@ -161,7 +161,7 @@ describe('AiService', () => {
       ]);
 
       await expect(service.chat(MESSAGES)).resolves.toMatchObject({
-        provider: 'opencode',
+        provider: 'fallback',
       });
     });
 
@@ -170,7 +170,7 @@ describe('AiService', () => {
       const failure = providerError(NON_RETRYABLE_STATUS);
       const service = new AiService([
         createProvider('groq', { chat: () => Promise.reject(failure) }),
-        createProvider('opencode', { chat: nextChat }),
+        createProvider('fallback', { chat: nextChat }),
       ]);
 
       await expect(service.chat(MESSAGES)).rejects.toBe(failure);
@@ -182,7 +182,7 @@ describe('AiService', () => {
         createProvider('groq', {
           chat: () => Promise.reject(providerError(RETRYABLE_STATUS)),
         }),
-        createProvider('opencode', {
+        createProvider('fallback', {
           chat: () => Promise.reject(providerError(503)),
         }),
       ]);
@@ -197,11 +197,11 @@ describe('AiService', () => {
         createProvider('groq', {
           chat: () => Promise.reject({ status: 503 }),
         }),
-        createProvider('opencode'),
+        createProvider('fallback'),
       ]);
 
       await expect(service.chat(MESSAGES)).resolves.toMatchObject({
-        provider: 'opencode',
+        provider: 'fallback',
       });
     });
 
@@ -230,7 +230,7 @@ describe('AiService', () => {
     it('skips providers without chatComplete support', async () => {
       const service = new AiService([
         createProvider('groq'),
-        createProvider('opencode', {
+        createProvider('fallback', {
           chatComplete: () => Promise.resolve(completion('hecho')),
         }),
       ]);
@@ -238,8 +238,8 @@ describe('AiService', () => {
       await expect(service.chatComplete(MESSAGES)).resolves.toEqual({
         content: 'hecho',
         toolCalls: [],
-        provider: 'opencode',
-        model: 'opencode-model',
+        provider: 'fallback',
+        model: 'fallback-model',
       });
     });
 
@@ -248,14 +248,14 @@ describe('AiService', () => {
         createProvider('groq', {
           chatComplete: () => Promise.resolve(completion('groq')),
         }),
-        createProvider('opencode', {
-          chatComplete: () => Promise.resolve(completion('opencode')),
+        createProvider('fallback', {
+          chatComplete: () => Promise.resolve(completion('fallback')),
         }),
       ]);
 
       await expect(
-        service.chatComplete(MESSAGES, 'opencode'),
-      ).resolves.toMatchObject({ provider: 'opencode' });
+        service.chatComplete(MESSAGES, 'fallback'),
+      ).resolves.toMatchObject({ provider: 'fallback' });
     });
 
     it('retries the next capable provider after a retryable failure', async () => {
@@ -263,13 +263,13 @@ describe('AiService', () => {
         createProvider('groq', {
           chatComplete: () => Promise.reject(providerError(RETRYABLE_STATUS)),
         }),
-        createProvider('opencode', {
+        createProvider('fallback', {
           chatComplete: () => Promise.resolve(completion('segundo')),
         }),
       ]);
 
       await expect(service.chatComplete(MESSAGES)).resolves.toMatchObject({
-        provider: 'opencode',
+        provider: 'fallback',
         content: 'segundo',
       });
     });
@@ -298,13 +298,13 @@ describe('AiService', () => {
         createProvider('groq', {
           chatComplete: () => Promise.reject({ status: 503 }),
         }),
-        createProvider('opencode', {
+        createProvider('fallback', {
           chatComplete: () => Promise.resolve(completion('segundo')),
         }),
       ]);
 
       await expect(service.chatComplete(MESSAGES)).resolves.toMatchObject({
-        provider: 'opencode',
+        provider: 'fallback',
       });
     });
 
@@ -347,14 +347,14 @@ describe('AiService', () => {
           chatCompleteStream: () =>
             Promise.reject(providerError(RETRYABLE_STATUS)),
         }),
-        createProvider('opencode', {
+        createProvider('fallback', {
           chatCompleteStream: () => Promise.resolve(completion('segundo')),
         }),
       ]);
 
       await expect(
         service.chatCompleteStream(MESSAGES, null, undefined, jest.fn()),
-      ).resolves.toMatchObject({ provider: 'opencode', content: 'segundo' });
+      ).resolves.toMatchObject({ provider: 'fallback', content: 'segundo' });
     });
 
     it('falls back to chatComplete and forwards its content as a token', async () => {
@@ -364,7 +364,7 @@ describe('AiService', () => {
           chatCompleteStream: () =>
             Promise.reject(providerError(RETRYABLE_STATUS)),
         }),
-        createProvider('opencode', {
+        createProvider('fallback', {
           chatComplete: () => Promise.resolve(completion('parcial')),
         }),
       ]);
@@ -372,7 +372,7 @@ describe('AiService', () => {
       await expect(
         service.chatCompleteStream(MESSAGES, null, undefined, onToken),
       ).resolves.toMatchObject({
-        provider: 'opencode',
+        provider: 'fallback',
         content: 'parcial',
       });
       expect(onToken).toHaveBeenCalledWith('parcial');
@@ -385,7 +385,7 @@ describe('AiService', () => {
           chatCompleteStream: () =>
             Promise.reject(providerError(RETRYABLE_STATUS)),
         }),
-        createProvider('opencode', {
+        createProvider('fallback', {
           chatComplete: () => Promise.resolve(completion('')),
         }),
       ]);
@@ -397,7 +397,7 @@ describe('AiService', () => {
 
     it('rethrows a non-retryable stream failure', async () => {
       const failure = providerError(NON_RETRYABLE_STATUS);
-      const next = createProvider('opencode', {
+      const next = createProvider('fallback', {
         chatCompleteStream: () => Promise.resolve(completion('next')),
       });
       const service = new AiService([
@@ -418,7 +418,7 @@ describe('AiService', () => {
           chatCompleteStream: () =>
             Promise.reject(providerError(RETRYABLE_STATUS)),
         }),
-        createProvider('opencode', {
+        createProvider('fallback', {
           chatComplete: () => Promise.reject(providerError(RETRYABLE_STATUS)),
         }),
         createProvider('openrouter', {
@@ -441,7 +441,7 @@ describe('AiService', () => {
           chatCompleteStream: () =>
             Promise.reject(providerError(RETRYABLE_STATUS)),
         }),
-        createProvider('opencode', {
+        createProvider('fallback', {
           chatComplete: () => Promise.reject(failure),
         }),
       ]);
@@ -466,7 +466,7 @@ describe('AiService', () => {
         createProvider('groq', {
           chatCompleteStream: () => Promise.reject({ status: 503 }),
         }),
-        createProvider('opencode', {
+        createProvider('fallback', {
           chatCompleteStream: () => Promise.resolve(completion('segundo')),
         }),
       ]);
@@ -474,7 +474,7 @@ describe('AiService', () => {
       await expect(
         service.chatCompleteStream(MESSAGES, null, undefined, jest.fn()),
       ).resolves.toMatchObject({
-        provider: 'opencode',
+        provider: 'fallback',
         content: 'segundo',
       });
     });

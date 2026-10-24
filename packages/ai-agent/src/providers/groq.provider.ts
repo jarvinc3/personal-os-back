@@ -13,7 +13,7 @@ import type {
 import { mapMessagesToOpenAi } from '../shared/map-messages-to-openai';
 import { streamOpenAiChatComplete } from '../shared/stream-openai-chat-complete';
 
-const GROQ_MODEL = 'llama-3.3-70b-versatile';
+const GROQ_MODEL = 'qwen/qwen3.8-27b';
 
 export function createGroqProvider(apiKey: string): AIService {
   const groq = new Groq({ apiKey });

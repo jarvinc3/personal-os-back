@@ -6,7 +6,7 @@ Kernel de proveedores de IA e inferencias estructuradas. El runtime de chat se r
 
 ## Alcance
 
-- Multi-provider: Groq, OpenCode, OpenRouter
+- Multi-provider: Groq, OpenRouter
 - Cadena de respaldo en ese orden; cada proveedor entra solo si su key existe
 - Pool multi-provider con round-robin, proveedor preferido y failover
 - Salida JSON estructurada y validación local del consumidor
@@ -25,7 +25,7 @@ Chat, sesiones, acciones del agente y Gmail fueron retirados en AI-0; su regreso
 ai.module.ts          # módulo del kernel
 ai-core.module.ts     # AI_PROVIDER, pool, gateway y contratos
 inference/            # inferencia, retención y rama de borrado
-providers/            # adaptadores Groq, OpenCode y OpenRouter
+providers/            # adaptadores Groq y OpenRouter
 ```
 
 **Barrel:** `AiModule`, `AiCoreModule`, `AiService`, `AI_DATA_BRANCHES`.

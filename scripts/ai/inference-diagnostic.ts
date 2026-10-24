@@ -7,7 +7,6 @@ import type { Env } from '@personal-os/config';
 import { AiInferenceGateway } from '@personal-os/ai-agent';
 import type { ConfigService } from '@nestjs/config';
 import { createGroqProvider } from '../../packages/ai-agent/src/providers/groq.provider';
-import { createOpenCodeProvider } from '../../packages/ai-agent/src/providers/opencode.provider';
 import { createOpenRouterProvider } from '../../packages/ai-agent/src/providers/openrouter.provider';
 import type { AIService } from '../../packages/ai-agent/src/shared/ai.types';
 import type { PrismaService } from '@personal-os/database';
@@ -25,7 +24,7 @@ function configuredProvider(
   return key ? create(key) : undefined;
 }
 
-type ProviderId = 'groq' | 'opencode' | 'openrouter';
+type ProviderId = 'groq' | 'openrouter';
 
 function selectedProvider(args: string[] = process.argv.slice(2)):
   | ProviderId
@@ -38,10 +37,10 @@ function selectedProvider(args: string[] = process.argv.slice(2)):
   if (
     options.length !== 2 ||
     options[0] !== '--provider' ||
-    !['groq', 'opencode', 'openrouter'].includes(provider ?? '')
+    !['groq', 'openrouter'].includes(provider ?? '')
   ) {
     throw new Error(
-      'Usage: pnpm run ai:diagnostic -- --provider groq|opencode|openrouter',
+      'Usage: pnpm run ai:diagnostic -- --provider groq|openrouter',
     );
   }
   return provider as ProviderId;
@@ -52,7 +51,6 @@ async function main(): Promise<void> {
   const requestedProvider = selectedProvider();
   const configured = [
     { id: 'groq', env: 'GROQ_API_KEY', create: createGroqProvider },
-    { id: 'opencode', env: 'OPENCODE_API_KEY', create: createOpenCodeProvider },
     {
       id: 'openrouter',
       env: 'OPENROUTER_API_KEY',
