@@ -2,6 +2,12 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [SemVer](https://semver.org/lang/es/). Reglas y ejemplo en [docs/reference/changelog-guide.md](./docs/reference/changelog-guide.md).
 
+## [0.55.1] - 2026-10-23
+
+### Corregido
+
+- Documentación: `catalog.md`, `events.md` y la guía de `users` hablan de ramas de datos (`requestedBranches`/`appliedBranches`) en lugar de las capas retiradas, y el contrato de `GET /api/users/me/data/branches` lista las ramas finales de Finanzas (#184, #185, #186).
+
 ## [0.55.0] - 2026-10-23
 
 ### Agregado
