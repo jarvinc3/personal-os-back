@@ -1,8 +1,8 @@
 import { Inject, Injectable, Optional } from '@nestjs/common';
-import { randomUUID } from 'crypto';
 import { AppEvents } from '@personal-os/core';
 import type { FinTransactionType, Prisma } from '@personal-os/database';
 import { PrismaService } from '@personal-os/database';
+import { randomUUID } from 'crypto';
 import type { DomainEventPublisherPort } from '../../events/application/ports/domain-event-publisher.port';
 import type { BudgetThresholdPort } from '../../shared/application/budget-threshold.port';
 import type { SubscriptionMatcherPort } from '../../shared/application/subscription-matcher.port';
@@ -80,7 +80,7 @@ export class PrismaLedgerEmailImportRepository {
           transactionDate: data.transactionDate,
           status: data.status,
           source: 'EMAIL',
-          emailMessageId: data.emailMessageId,
+          importReference: data.importReference,
           externalReference: data.externalReference ?? undefined,
           possibleDuplicateOfId: data.possibleDuplicateOfId ?? undefined,
           categoryId: data.categoryId ?? undefined,
@@ -254,8 +254,8 @@ export class PrismaLedgerEmailImportRepository {
           status: counterpart.status,
           transferGroupId,
           transactionDate: existing.transactionDate,
-          ...(counterpart.emailMessageId
-            ? { emailMessageId: counterpart.emailMessageId }
+          ...(counterpart.importReference
+            ? { importReference: counterpart.importReference }
             : {}),
           ...(counterpart.aiMetadata
             ? { aiMetadata: counterpart.aiMetadata }

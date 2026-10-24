@@ -18,7 +18,6 @@ import {
   validateSubscriptionReminderDays,
   type ModuleSlug,
 } from '../domain/defaults/user-settings-defaults';
-import { validateEmailSyncSchedule } from '@personal-os/config';
 import { UpdateModuleConfigDto } from '../presentation/dto/update-module-config.dto';
 import { UpdateProfileDto } from '../presentation/dto/update-profile.dto';
 import { mergeWithDefaults } from '../domain/settings-merge';
@@ -79,18 +78,9 @@ export class UsersService {
 
   private assertFinanceConfig(config: Record<string, unknown>): void {
     const financeConfig = config as {
-      emailSync?: { schedule?: unknown };
       subscriptions?: { reminderDaysBefore?: unknown };
       reminders?: { cardDueDaysBefore?: unknown };
     };
-    if (financeConfig.emailSync?.schedule !== undefined) {
-      const scheduleError = validateEmailSyncSchedule(
-        financeConfig.emailSync.schedule,
-      );
-      if (scheduleError) {
-        throw new BadRequestException(scheduleError);
-      }
-    }
     const reminderDays = financeConfig.subscriptions?.reminderDaysBefore;
     if (reminderDays !== undefined) {
       const reminderError = validateSubscriptionReminderDays(reminderDays);
@@ -270,42 +260,6 @@ export class UsersService {
     if (!enabled) {
       throw new ForbiddenException(moduleDisabledMessage(slug));
     }
-  }
-
-  async assertFinanceEmailSyncEnabled(userId: string): Promise<void> {
-    await this.assertModuleEnabled(userId, 'finance');
-    const row = await this.usersRepository.findUserModuleBySlug(
-      userId,
-      'finance',
-    );
-    const config = (row?.config ?? {}) as {
-      emailSync?: { enabled?: boolean };
-    };
-    const enabled =
-      config.emailSync?.enabled ??
-      DEFAULT_MODULE_CONFIG_BY_SLUG.finance.emailSync.enabled;
-    if (enabled !== true) {
-      throw new ForbiddenException(
-        'La sincronización de correo de finanzas está desactivada',
-      );
-    }
-  }
-
-  async isFinanceEmailSyncAutomatic(userId: string): Promise<boolean> {
-    const row = await this.usersRepository.findUserModuleBySlug(
-      userId,
-      'finance',
-    );
-    const config = (row?.config ?? {}) as {
-      emailSync?: { enabled?: boolean; automatic?: boolean };
-    };
-    const enabled =
-      config.emailSync?.enabled ??
-      DEFAULT_MODULE_CONFIG_BY_SLUG.finance.emailSync.enabled;
-    const automatic =
-      config.emailSync?.automatic ??
-      DEFAULT_MODULE_CONFIG_BY_SLUG.finance.emailSync.automatic;
-    return enabled === true && automatic === true;
   }
 
   /** Users with finance on whose weekly summary is not turned off. */

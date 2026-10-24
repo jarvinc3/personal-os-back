@@ -7,7 +7,6 @@ function prismaMock() {
     finAccount: { findFirst: jest.fn(), count: jest.fn() },
     finCard: { findFirst: jest.fn(), findMany: jest.fn(), count: jest.fn() },
     finCategory: { findFirst: jest.fn() },
-    finEmailSource: { count: jest.fn() },
     finLoan: { count: jest.fn() },
   };
 }
@@ -105,7 +104,6 @@ describe('FinanceOwnershipService', () => {
   it('blocks archiving an institution with active accounts', async () => {
     prisma.finAccount.count.mockResolvedValue(1);
     prisma.finCard.count.mockResolvedValue(0);
-    prisma.finEmailSource.count.mockResolvedValue(0);
     prisma.finLoan.count.mockResolvedValue(0);
 
     await expect(
@@ -115,7 +113,6 @@ describe('FinanceOwnershipService', () => {
         dependents: {
           accounts: 1,
           cards: 0,
-          emailSources: 0,
           loans: 0,
         },
       }),

@@ -2,6 +2,15 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [SemVer](https://semver.org/lang/es/). Reglas y ejemplo en [docs/reference/changelog-guide.md](./docs/reference/changelog-guide.md).
 
+## Unreleased — 0.100.0
+
+### Cambiado
+
+- AI-0 en rama aislada: `@personal-os/contracts` reúne interfaces y tokens neutrales; el pool de inferencia y sus pruebas salen de chat. Los extractores financieros usan `INFERENCE_COMPLETION` y conservan sus respuestas y reglas (#193).
+- El corte de runtime elimina chat, sesiones, Gmail Finance y su configuración. Queda preservada y probada la lógica de importación financiera hasta AI-11; la entrega de correo por Resend sigue operativa.
+- La baseline conserva SQL manual, RLS/grants, triggers y el índice parcial de transferencias. Se aplicó en DEV junto con el reset autorizado de datos de prueba; PROD no recibió escrituras.
+- La eliminación directa de un usuario en Supabase Auth elimina ahora su perfil de `public.users` y los datos de aplicación sujetos a sus FKs en cascada. El endpoint propio conserva su borrado app-first con outbox.
+
 ## [0.55.3] - 2026-10-24
 
 ### Cambiado

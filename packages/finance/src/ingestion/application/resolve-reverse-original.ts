@@ -28,7 +28,7 @@ export async function findReverseOriginal(
     }
   }
   if (params.reverseEmailMessageId) {
-    const byEmail = await ledger.findTransactionByEmailMessageId(
+    const byEmail = await ledger.findTransactionByImportReference(
       params.reverseEmailMessageId,
       userId,
     );

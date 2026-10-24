@@ -1,11 +1,15 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
+import type { CursorPoint, CursorQueryDto } from '@personal-os/core';
 import { clampPageLimit } from '@personal-os/core';
-import type { CursorPoint } from '@personal-os/core';
-import type { CursorQueryDto } from '@personal-os/core';
 import type { Prisma } from '@personal-os/database';
 import { PrismaService } from '@personal-os/database';
 import type { LedgerTransactionRow } from '../../ledger/application/ports/ledger.repository.port';
 import { restoreLedgerRows } from '../../ledger/infrastructure/balance.helpers';
+import {
+  CASH_ACCOUNT_TYPE,
+  CASH_INSTITUTION_NAME,
+  CASH_INSTITUTION_TYPE,
+} from '../../shared/domain/cash';
 import {
   DELETION_ENTITY,
   DELETION_MODEL,
@@ -14,36 +18,28 @@ import {
   type ClearedAccountLink,
   type DeletionSnapshot,
 } from '../../shared/domain/deletion-snapshot';
-import { DeletionJournalRepository } from '../../shared/infrastructure/deletion-journal.repository';
+import { INSTRUMENT_EVENT_KIND } from '../../shared/domain/instrument-event';
+import { PENDING_TRANSACTION_STATUS } from '../../shared/domain/transaction-status';
 import {
   decodeCursorKeyPosition,
   decodeCursorPosition,
 } from '../../shared/infrastructure/cursor-window';
-import { parseInstitutionOrderKey } from '../domain/institution-order';
-import { INSTRUMENT_EVENT_KIND } from '../../shared/domain/instrument-event';
-import { PENDING_TRANSACTION_STATUS } from '../../shared/domain/transaction-status';
-import {
-  CASH_ACCOUNT_TYPE,
-  CASH_INSTITUTION_NAME,
-  CASH_INSTITUTION_TYPE,
-} from '../../shared/domain/cash';
+import { DeletionJournalRepository } from '../../shared/infrastructure/deletion-journal.repository';
 import { normalizeCurrencyCode } from '../../shared/presentation/validation.decorators';
+import { parseInstitutionOrderKey } from '../domain/institution-order';
 import type { CreateAccountDto } from '../presentation/dto/create-account.dto';
 import type { UpdateAccountDto } from '../presentation/dto/update-account.dto';
-
 type LedgerPurge = {
   userId: string;
   id: string;
   movements: readonly LedgerTransactionRow[];
 };
-
 /** Encrypted account number plus the columns that work without decrypting. */
 export type AccountNumberColumns = {
   accountNumber: string | null;
   accountNumberLast4: string | null;
   accountNumberHash: string | null;
 };
-
 /** Movements that already use the card's limit but are not confirmed yet. */
 const PENDING_CARD_MOVEMENTS: Prisma.FinCard$transactionsArgs = {
   where: { status: PENDING_TRANSACTION_STATUS },
@@ -55,14 +51,12 @@ const PENDING_CARD_MOVEMENTS: Prisma.FinCard$transactionsArgs = {
     transactionDate: true,
   },
 };
-
 @Injectable()
 export class CatalogRepository {
   constructor(
     private readonly prisma: PrismaService,
     private readonly journal: DeletionJournalRepository,
   ) {}
-
   findAccountsByUser(userId: string) {
     return this.prisma.finAccount.findMany({
       where: { userId, isActive: true },
@@ -70,7 +64,6 @@ export class CatalogRepository {
       include: { institutionRef: true },
     });
   }
-
   findAccountsPage(userId: string, query: CursorQueryDto) {
     const after = decodeCursorKeyPosition(query.cursor);
     return this.prisma.finAccount.findMany({
@@ -91,14 +84,12 @@ export class CatalogRepository {
       take: clampPageLimit(query.limit) + 1,
     });
   }
-
   findAccountById(id: string, userId: string) {
     return this.prisma.finAccount.findFirst({
       where: { id, userId },
       include: { institutionRef: true },
     });
   }
-
   /** One query for many accounts, for the bulk entity lookup. */
   findAccountsByIds(userId: string, ids: readonly string[]) {
     return this.prisma.finAccount.findMany({
@@ -106,7 +97,6 @@ export class CatalogRepository {
       include: { institutionRef: true },
     });
   }
-
   async hasSavingsGoalMoney(accountId: string): Promise<boolean> {
     const goal = await this.prisma.finSavingsGoal.findFirst({
       where: { accountId, currentAmount: { gt: 0 } },
@@ -114,7 +104,6 @@ export class CatalogRepository {
     });
     return goal !== null;
   }
-
   async sumEarmarkedByAccountIds(
     userId: string,
     accountIds: string[],
@@ -144,7 +133,6 @@ export class CatalogRepository {
     }
     return byAccount;
   }
-
   createAccount(
     userId: string,
     dto: Omit<CreateAccountDto, 'accountNumber'> & AccountNumberColumns,
@@ -164,13 +152,11 @@ export class CatalogRepository {
     if (dto.color) {
       data.color = dto.color;
     }
-
     return this.prisma.finAccount.create({
       data,
       include: { institutionRef: true },
     });
   }
-
   updateAccount(
     id: string,
     userId: string,
@@ -202,7 +188,6 @@ export class CatalogRepository {
         return this.findAccountById(id, userId);
       });
   }
-
   clearDefaultAccount(
     userId: string,
     institutionId: string,
@@ -218,7 +203,6 @@ export class CatalogRepository {
       data: { isDefaultForInstitution: false },
     });
   }
-
   listInstitutions(userId: string, query: CursorQueryDto) {
     const after = decodeCursorKeyPosition(query.cursor);
     const position = after ? parseInstitutionOrderKey(after.key) : null;
@@ -250,20 +234,17 @@ export class CatalogRepository {
       take: clampPageLimit(query.limit) + 1,
     });
   }
-
   createInstitution(
     userId: string,
     data: Omit<Prisma.FinInstitutionUncheckedCreateInput, 'userId'>,
   ) {
     return this.prisma.finInstitution.create({ data: { ...data, userId } });
   }
-
   findSystemCashInstitution(userId: string) {
     return this.prisma.finInstitution.findFirst({
       where: { userId, type: CASH_INSTITUTION_TYPE, isSystem: true },
     });
   }
-
   createSystemCashInstitution(userId: string) {
     return this.prisma.finInstitution.create({
       data: {
@@ -275,17 +256,19 @@ export class CatalogRepository {
       },
     });
   }
-
   findFirstCashAccount(userId: string) {
     return this.prisma.finAccount.findFirst({
       where: { userId, type: CASH_ACCOUNT_TYPE },
       select: { id: true },
     });
   }
-
   createCashAccount(
     userId: string,
-    input: { institutionId: string; name: string; currency: string },
+    input: {
+      institutionId: string;
+      name: string;
+      currency: string;
+    },
   ) {
     return this.prisma.finAccount.create({
       data: {
@@ -297,14 +280,12 @@ export class CatalogRepository {
       },
     });
   }
-
   assignInstitutionlessCashAccounts(userId: string, institutionId: string) {
     return this.prisma.finAccount.updateMany({
       where: { userId, type: CASH_ACCOUNT_TYPE, institutionId: null },
       data: { institutionId },
     });
   }
-
   updateInstitution(
     userId: string,
     id: string,
@@ -319,7 +300,6 @@ export class CatalogRepository {
         return this.prisma.finInstitution.findFirst({ where: { userId, id } });
       });
   }
-
   listCardsPage(userId: string, query: CursorQueryDto) {
     const after = decodeCursorPosition(query.cursor);
     return this.prisma.finCard.findMany({
@@ -345,7 +325,6 @@ export class CatalogRepository {
       take: clampPageLimit(query.limit) + 1,
     });
   }
-
   listCards(userId: string) {
     return this.prisma.finCard.findMany({
       where: { userId, isActive: true },
@@ -358,7 +337,6 @@ export class CatalogRepository {
       orderBy: { createdAt: 'desc' },
     });
   }
-
   findCardById(userId: string, id: string) {
     return this.prisma.finCard.findFirst({
       where: { id, userId },
@@ -370,7 +348,6 @@ export class CatalogRepository {
       },
     });
   }
-
   /** One query for many cards, for the bulk entity lookup. */
   findCardsByIds(userId: string, ids: readonly string[]) {
     return this.prisma.finCard.findMany({
@@ -383,14 +360,12 @@ export class CatalogRepository {
       },
     });
   }
-
   /** Categories the user can see: their own plus the system ones. */
   findCategoriesByIds(userId: string, ids: readonly string[]) {
     return this.prisma.finCategory.findMany({
       where: { id: { in: [...ids] }, OR: [{ userId }, { isSystem: true }] },
     });
   }
-
   createCard(
     userId: string,
     data: Omit<Prisma.FinCardUncheckedCreateInput, 'userId'>,
@@ -412,7 +387,6 @@ export class CatalogRepository {
       },
     });
   }
-
   updateCard(userId: string, id: string, data: Prisma.FinCardUpdateInput) {
     return this.prisma.finCard
       .updateMany({ where: { id, userId }, data })
@@ -423,7 +397,6 @@ export class CatalogRepository {
         return this.findCardById(userId, id);
       });
   }
-
   upsertCardBalance(
     userId: string,
     cardId: string,
@@ -479,7 +452,6 @@ export class CatalogRepository {
       });
     });
   }
-
   setCardCreditLimit(
     userId: string,
     cardId: string,
@@ -527,11 +499,16 @@ export class CatalogRepository {
       });
     });
   }
-
   findInstrumentEvents(
     userId: string,
-    target: { accountId?: string; cardId?: string },
-    page: { cursor: CursorPoint | null; take: number },
+    target: {
+      accountId?: string;
+      cardId?: string;
+    },
+    page: {
+      cursor: CursorPoint | null;
+      take: number;
+    },
   ) {
     return this.prisma.finInstrumentEvent.findMany({
       where: {
@@ -554,11 +531,16 @@ export class CatalogRepository {
       take: page.take,
     });
   }
-
   findAdjustmentTransactions(
     userId: string,
-    target: { accountId?: string; cardId?: string },
-    page: { cursor: CursorPoint | null; take: number },
+    target: {
+      accountId?: string;
+      cardId?: string;
+    },
+    page: {
+      cursor: CursorPoint | null;
+      take: number;
+    },
   ) {
     return this.prisma.finTransaction.findMany({
       where: {
@@ -582,7 +564,6 @@ export class CatalogRepository {
       take: page.take,
     });
   }
-
   private async recordCreditLimitChange(
     tx: Prisma.TransactionClient,
     input: {
@@ -613,7 +594,6 @@ export class CatalogRepository {
       },
     });
   }
-
   deleteCardBalance(userId: string, cardId: string, currency: string) {
     return this.prisma.finCardBalance.deleteMany({
       where: {
@@ -623,7 +603,6 @@ export class CatalogRepository {
       },
     });
   }
-
   listCategories(userId: string, type?: 'EXPENSE' | 'INCOME') {
     return this.prisma.finCategory.findMany({
       where: {
@@ -633,13 +612,11 @@ export class CatalogRepository {
       orderBy: [{ isSystem: 'desc' }, { name: 'asc' }],
     });
   }
-
   createCategory(userId: string, data: Prisma.FinCategoryUncheckedCreateInput) {
     return this.prisma.finCategory.create({
       data: { ...data, userId, isSystem: false },
     });
   }
-
   updateCategory(
     userId: string,
     id: string,
@@ -663,7 +640,6 @@ export class CatalogRepository {
       return tx.finCategory.findFirst({ where: { id, userId } });
     });
   }
-
   deleteCategory(userId: string, id: string) {
     return this.prisma.$transaction(async (tx) => {
       const category = await tx.finCategory.findFirst({
@@ -724,29 +700,24 @@ export class CatalogRepository {
       });
     });
   }
-
   restoreCategory(userId: string, id: string, now: Date) {
     return this.journal.restore(userId, DELETION_ENTITY.category, id, now);
   }
-
   findInstitution(userId: string, id: string) {
     return this.prisma.finInstitution.findFirst({ where: { id, userId } });
   }
-
   listAccountsByInstitution(userId: string, institutionId: string) {
     return this.prisma.finAccount.findMany({
       where: { userId, institutionId },
       select: { id: true },
     });
   }
-
   listCardsByInstitution(userId: string, institutionId: string) {
     return this.prisma.finCard.findMany({
       where: { userId, institutionId },
       select: { id: true },
     });
   }
-
   deleteCard({ userId, id, movements }: LedgerPurge) {
     return this.prisma.$transaction(async (tx) => {
       const card = await tx.finCard.findFirst({
@@ -789,7 +760,6 @@ export class CatalogRepository {
       return tx.finCard.deleteMany({ where: { id, userId } });
     });
   }
-
   restoreCard(userId: string, id: string, now: Date) {
     return this.journal.restore(
       userId,
@@ -799,7 +769,6 @@ export class CatalogRepository {
       (tx, snapshot) => this.restoreLedgerWithin(tx, userId, snapshot),
     );
   }
-
   deleteAccount({ userId, id, movements }: LedgerPurge) {
     return this.prisma.$transaction(async (tx) => {
       const account = await tx.finAccount.findFirst({ where: { id, userId } });
@@ -867,7 +836,6 @@ export class CatalogRepository {
       return tx.finAccount.deleteMany({ where: { id, userId } });
     });
   }
-
   restoreAccount(userId: string, id: string, now: Date) {
     return this.journal.restore(
       userId,
@@ -877,7 +845,6 @@ export class CatalogRepository {
       (tx, snapshot) => this.restoreLedgerWithin(tx, userId, snapshot),
     );
   }
-
   deleteInstitution({ userId, id, movements }: LedgerPurge) {
     return this.prisma.$transaction(async (tx) => {
       const institution = await tx.finInstitution.findFirst({
@@ -897,9 +864,6 @@ export class CatalogRepository {
       const loans = await tx.finLoan.findMany({
         where: { userId, institutionId: id },
         include: { installments: true },
-      });
-      const emailSources = await tx.finEmailSource.findMany({
-        where: { userId, institutionId: id },
       });
       const clearedLinks: ClearedAccountLink[] = [];
       for (const account of accounts) {
@@ -947,10 +911,6 @@ export class CatalogRepository {
                 values: toDeletionValues(installment),
               })),
             ),
-            ...emailSources.map((source) => ({
-              model: DELETION_MODEL.emailSource,
-              values: toDeletionValues(source),
-            })),
             ...movements.map((movement) => ({
               model: DELETION_MODEL.transaction,
               values: toDeletionValues(movement),
@@ -963,7 +923,6 @@ export class CatalogRepository {
       return tx.finInstitution.deleteMany({ where: { id, userId } });
     });
   }
-
   restoreInstitution(userId: string, id: string, now: Date) {
     return this.journal.restore(
       userId,
@@ -973,7 +932,6 @@ export class CatalogRepository {
       (tx, snapshot) => this.restoreLedgerWithin(tx, userId, snapshot),
     );
   }
-
   private restoreLedgerWithin(
     tx: Prisma.TransactionClient,
     userId: string,
@@ -981,7 +939,6 @@ export class CatalogRepository {
   ) {
     return restoreLedgerRows(tx, userId, reversedMovements(snapshot));
   }
-
   private async listClearedAccountLinks(
     tx: Prisma.TransactionClient,
     accountId: string,

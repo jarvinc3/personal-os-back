@@ -6,13 +6,6 @@ export type NotificationDispatchJob = {
   body: string;
   data?: Record<string, unknown>;
 };
-
-export type AiProcessingJob = {
-  userId: string;
-  actionType: string;
-  payload: Record<string, unknown>;
-};
-
 export type EmailSyncJob = {
   userId: string;
   template: string;
@@ -21,13 +14,6 @@ export type EmailSyncJob = {
   body: string;
   data?: Record<string, unknown>;
 };
-
-export type GmailSyncJob = {
-  userId: string;
-  sourceId: string;
-  forceFullSync?: boolean;
-};
-
 export type StatementImportJob = {
   userId: string;
   importId: string;

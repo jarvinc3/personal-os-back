@@ -10,7 +10,7 @@ import { mapMessagesToOpenRouter } from '../shared/map-messages-to-openrouter';
 import {
   parseToolCallArguments,
   toolsToOpenAiFormat,
-} from '../tools/tool.registry';
+} from '../shared/provider-tool-codec';
 
 const OPENROUTER_MODEL = 'deepseek/deepseek-v4-flash';
 

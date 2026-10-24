@@ -1,106 +1,42 @@
 import {
   BadRequestException,
-  Inject,
   Injectable,
-  Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { randomUUID } from 'crypto';
-import * as jwt from 'jsonwebtoken';
-import type { Env } from '@personal-os/config';
 import {
-  AppEvents,
   clampPageLimit,
   toCursorPage,
   type CursorQueryDto,
 } from '@personal-os/core';
-import { UsersService } from '@personal-os/users';
-import type { DomainEventPublisherPort } from '../../events/application/ports/domain-event-publisher.port';
-import { FinanceOutboxDispatcher } from '../../events/infrastructure/finance-outbox.dispatcher';
 import { ImportEmailTransactionUseCase } from '../../ledger/application/import-email-transaction.use-case';
 import { LedgerQueryService } from '../../ledger/application/ledger-query.service';
+import { MerchantsService } from '../../merchants/application/merchants.service';
 import { FinanceOwnershipService } from '../../shared/application/finance-ownership.service';
-import { DOMAIN_EVENT_PUBLISHER } from '../../shared/application/tokens';
 import { resolveCategoryIdForImport } from '../../shared/domain/category-type';
 import { mapBankStatusToInternal } from '../../shared/domain/transaction-status';
-import { EmailSourceRepository } from '../infrastructure/email-source.repository';
-import {
-  exchangeGoogleAuthCode,
-  fetchGoogleUserEmail,
-  getGmailMessageFromHeader,
-  listGmailMessages,
-  refreshGoogleAccessToken,
-} from '../infrastructure/gmail-api.util';
-import {
-  decryptToken,
-  encryptToken,
-} from '../infrastructure/token-encryption.util';
-import type { ConnectEmailSourceDto } from '../presentation/dto/connect-email-source.dto';
-import type {
-  AssignEmailMessageDto,
-  GoogleOAuthUrlQueryDto,
-} from '../presentation/dto/oauth-callback-query.dto';
-import type { UpdateEmailSourceDto } from '../presentation/dto/update-email-source.dto';
-import {
-  extractEmailAddress,
-  extractEmailDomain,
-  normalizeBankSenderEmails,
-} from './bank-sender';
-import { MerchantsService } from '../../merchants/application/merchants.service';
 import { buildEmailImportNotes } from './build-email-import-notes';
-import { isAtmMovementClass, isTransferMovementClass } from './email-movement';
-import { EmailSourceService } from './email-source.service';
-import {
-  mapEmailSourceResponse,
-  resolveSenderFields,
-} from './email-source-view';
-import { GmailSyncQueueService } from './gmail-sync-queue.service';
 import { EMAIL_MESSAGE_OUTCOME } from './email-message-outcome';
+import { isAtmMovementClass, isTransferMovementClass } from './email-movement';
 import { uniqueCashAccountId } from './match-email-transfers';
-import {
-  buildFallbackWebOAuthRedirect,
-  buildMobileOAuthRedirect,
-  buildWebOAuthRedirect,
-  isAllowlistedReturnTo,
-} from './oauth-client-redirect';
 import { parseExtractedPayload } from './parse-extracted-email';
 import type { ExtractedEmailTransaction } from './ports/email-transaction-extractor.port';
+import {
+  FinancialImportCandidatesPort,
+  type AssignFinancialCandidateCommand,
+  type FinancialImportCandidate,
+} from './ports/financial-import-candidates.port';
 import { resolveEmailLedgerTarget } from './resolve-email-ledger-target';
-
-type OAuthStatePayload = {
-  sub: string;
-  institutionId?: string;
-  bankDomain?: string;
-  bankSenderEmail?: string;
-  label?: string;
-  returnTo?: string;
-};
-
-type PendingMessageRow = Awaited<
-  ReturnType<EmailSourceRepository['listPendingAssignmentMessages']>
->[number];
-
+type PendingMessageRow = FinancialImportCandidate;
+type AssignEmailMessageDto = AssignFinancialCandidateCommand;
 @Injectable()
 export class IngestionService {
-  private readonly logger = new Logger(IngestionService.name);
-
   constructor(
-    private readonly repo: EmailSourceRepository,
-    private readonly config: ConfigService<Env, true>,
-    @Inject(DOMAIN_EVENT_PUBLISHER)
-    private readonly events: DomainEventPublisherPort,
-    private readonly outboxDispatcher: FinanceOutboxDispatcher,
-    private readonly users: UsersService,
+    private readonly repo: FinancialImportCandidatesPort,
     private readonly ownership: FinanceOwnershipService,
     private readonly importEmail: ImportEmailTransactionUseCase,
     private readonly ledger: LedgerQueryService,
-    private readonly emailSources: EmailSourceService,
-    private readonly gmailSyncQueue: GmailSyncQueueService,
     private readonly merchants: MerchantsService,
   ) {}
-
-  /** Category the merchant already remembers for the imported text, if any. */
   private async findMerchantCategoryId(
     userId: string,
     merchant: string,
@@ -108,351 +44,8 @@ export class IngestionService {
     const suggestion = await this.merchants.suggest(userId, merchant);
     return suggestion?.categoryId ?? null;
   }
-
-  listEmailSources(userId: string) {
-    return this.emailSources.listEmailSources(userId);
-  }
-
-  listMailboxes(userId: string) {
-    return this.emailSources.listMailboxes(userId);
-  }
-
-  deactivateMailbox(userId: string, id: string) {
-    return this.emailSources.deactivateMailbox(userId, id);
-  }
-
-  createEmailSource(userId: string, dto: ConnectEmailSourceDto) {
-    return this.emailSources.createEmailSource(userId, dto);
-  }
-
-  updateEmailSource(userId: string, id: string, dto: UpdateEmailSourceDto) {
-    return this.emailSources.updateEmailSource(userId, id, dto);
-  }
-
-  deactivateEmailSource(userId: string, id: string) {
-    return this.emailSources.deactivateEmailSource(userId, id);
-  }
-
-  async triggerEmailSync(
-    userId: string,
-    sourceId: string,
-    forceFullSync = false,
-  ) {
-    await this.users.assertFinanceEmailSyncEnabled(userId);
-    const source = await this.repo.findEmailSource(userId, sourceId);
-    if (!source) {
-      throw new NotFoundException('Origen de correo no encontrado');
-    }
-    // El sync manual deduplica por origen: un reintento tras un timeout no
-    // encola un segundo sync mientras el primero siga en vuelo.
-    return this.gmailSyncQueue.enqueue(userId, sourceId, { forceFullSync });
-  }
-
-  async completeEmailSyncSuccessWithEvent(params: {
-    logId: string;
-    userId: string;
-    sourceId: string;
-    emailsScanned: number;
-    transactionsNew: number;
-    transactionIds: string[];
-    countsByStatus: Record<string, number>;
-  }) {
-    const eventId = randomUUID();
-    const occurredAt = new Date().toISOString();
-    await this.repo.completeEmailSyncSuccessWithOutbox(
-      params.logId,
-      {
-        status: 'SUCCESS',
-        emailsScanned: params.emailsScanned,
-        transactionsNew: params.transactionsNew,
-      },
-      {
-        eventId,
-        eventName: AppEvents.FINANCE_EMAIL_SYNC_COMPLETED,
-        aggregateType: 'FinEmailSource',
-        aggregateId: params.sourceId,
-        userId: params.userId,
-        payload: {
-          sourceId: params.sourceId,
-          emailsScanned: params.emailsScanned,
-          transactionsNew: params.transactionsNew,
-          transactionIds: params.transactionIds,
-          countsByStatus: params.countsByStatus,
-          occurredAt,
-          version: 1,
-        },
-      },
-    );
-    void this.outboxDispatcher.processBatch();
-  }
-
-  async completeEmailSyncFailureWithEvent({
-    logId,
-    userId,
-    sourceId,
-    emailsScanned,
-    transactionsNew,
-    error,
-  }: {
-    logId: string;
-    userId: string;
-    sourceId: string;
-    emailsScanned: number;
-    transactionsNew: number;
-    error: string;
-  }) {
-    const eventId = randomUUID();
-    const occurredAt = new Date().toISOString();
-    await this.repo.completeEmailSyncFailureWithOutbox({
-      id: logId,
-      emailsScanned,
-      transactionsNew,
-      error,
-      outbox: {
-        eventId,
-        eventName: AppEvents.FINANCE_EMAIL_SYNC_FAILED,
-        aggregateType: 'FinEmailSource',
-        aggregateId: sourceId,
-        userId,
-        payload: {
-          sourceId,
-          error,
-          emailsScanned,
-          transactionsNew,
-          occurredAt,
-          version: 1,
-        },
-      },
-    });
-    void this.outboxDispatcher.processBatch();
-  }
-
-  /** @deprecated Prefer completeEmailSyncSuccessWithEvent (same TX). */
-  async publishEmailSyncCompleted(event: {
-    userId: string;
-    sourceId: string;
-    emailsScanned: number;
-    transactionsNew: number;
-    transactionIds: string[];
-    countsByStatus: Record<string, number>;
-  }) {
-    await this.events.enqueue({
-      eventName: AppEvents.FINANCE_EMAIL_SYNC_COMPLETED,
-      aggregateType: 'FinEmailSource',
-      aggregateId: event.sourceId,
-      userId: event.userId,
-      payload: {
-        sourceId: event.sourceId,
-        emailsScanned: event.emailsScanned,
-        transactionsNew: event.transactionsNew,
-        transactionIds: event.transactionIds,
-        countsByStatus: event.countsByStatus,
-      },
-    });
-    void this.outboxDispatcher.processBatch();
-  }
-
-  async enqueueCardStatementReminder(
-    userId: string,
-    input: { sourceId: string; gmailMessageId: string; subject: string },
-  ) {
-    await this.events.enqueue({
-      eventName: AppEvents.FINANCE_CARD_STATEMENT_REMINDER,
-      aggregateType: 'FinEmailSource',
-      aggregateId: input.sourceId,
-      userId,
-      payload: {
-        sourceId: input.sourceId,
-        gmailMessageId: input.gmailMessageId,
-        subject: input.subject,
-        occurredAt: new Date().toISOString(),
-        version: 1,
-      },
-    });
-    void this.outboxDispatcher.processBatch();
-  }
-
-  async getGoogleOAuthUrl(
-    userId: string,
-    query: GoogleOAuthUrlQueryDto,
-  ): Promise<{ url: string }> {
-    await this.users.assertFinanceEmailSyncEnabled(userId);
-    if (query.institutionId) {
-      await this.ownership.assertInstitutionOwned(userId, query.institutionId);
-    }
-
-    const corsOrigin = this.config.get('CORS_ORIGIN', { infer: true });
-    const returnTo = query.returnTo?.trim();
-    if (returnTo && !isAllowlistedReturnTo(returnTo, corsOrigin)) {
-      throw new BadRequestException('returnTo no es un origen permitido');
-    }
-
-    const sender = query.bankSenderEmail
-      ? resolveSenderFields({
-          bankSenderEmail: query.bankSenderEmail,
-          bankDomain: query.bankDomain,
-        })
-      : {
-          bankSenderEmails: [] as string[],
-          bankDomain: query.bankDomain?.trim() || undefined,
-        };
-
-    const state = jwt.sign(
-      {
-        sub: userId,
-        institutionId: query.institutionId,
-        bankDomain:
-          sender.bankDomain || (query.institutionId ? 'bhd.com.do' : undefined),
-        bankSenderEmail: sender.bankSenderEmails[0],
-        label: query.label?.trim() || undefined,
-        returnTo: returnTo || undefined,
-      } satisfies OAuthStatePayload,
-      this.oauthStateSecret,
-      { expiresIn: '15m' },
-    );
-
-    const params = new URLSearchParams({
-      client_id: this.config.get('GOOGLE_CLIENT_ID', { infer: true }),
-      redirect_uri: this.config.get('GOOGLE_REDIRECT_URI', { infer: true }),
-      response_type: 'code',
-      scope:
-        'https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/userinfo.email',
-      access_type: 'offline',
-      prompt: 'consent',
-      state,
-    });
-
-    return {
-      url: `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`,
-    };
-  }
-
-  resolveOAuthClientRedirect(
-    state: string | undefined,
-    success: boolean,
-  ): string {
-    const corsOrigin = this.config.get('CORS_ORIGIN', { infer: true });
-    const payload = this.peekOAuthState(state);
-    if (payload?.returnTo) {
-      const web = buildWebOAuthRedirect(payload.returnTo, corsOrigin, success);
-      if (web) {
-        return web;
-      }
-    }
-    return (
-      buildFallbackWebOAuthRedirect(corsOrigin, success) ??
-      buildMobileOAuthRedirect(success)
-    );
-  }
-
-  private peekOAuthState(state: string | undefined): OAuthStatePayload | null {
-    if (!state) {
-      return null;
-    }
-    try {
-      return jwt.verify(state, this.oauthStateSecret) as OAuthStatePayload;
-    } catch {
-      return null;
-    }
-  }
-
-  async handleGoogleOAuthCallback(code: string, state: string) {
-    let payload: OAuthStatePayload;
-    try {
-      payload = jwt.verify(state, this.oauthStateSecret) as OAuthStatePayload;
-    } catch {
-      throw new BadRequestException('State de OAuth inválido o vencido');
-    }
-
-    await this.users.assertFinanceEmailSyncEnabled(payload.sub);
-    if (payload.institutionId) {
-      await this.ownership.assertInstitutionOwned(
-        payload.sub,
-        payload.institutionId,
-      );
-    }
-
-    const tokenResponse = await exchangeGoogleAuthCode(
-      code,
-      this.config.get('GOOGLE_CLIENT_ID', { infer: true }),
-      this.config.get('GOOGLE_CLIENT_SECRET', { infer: true }),
-      this.config.get('GOOGLE_REDIRECT_URI', { infer: true }),
-    );
-
-    const emailAddress = await fetchGoogleUserEmail(tokenResponse.access_token);
-    const encryptedAccess = encryptToken(
-      tokenResponse.access_token,
-      this.encryptionKey,
-    );
-    const refreshToken = tokenResponse.refresh_token;
-    if (!refreshToken) {
-      throw new BadRequestException('Google no devolvió un refresh token');
-    }
-    const encryptedRefresh = encryptToken(refreshToken, this.encryptionKey);
-    const tokenExpiresAt = new Date(
-      Date.now() + tokenResponse.expires_in * 1000,
-    );
-
-    const existingConnection = await this.repo.findConnectionByUserEmail(
-      payload.sub,
-      'gmail',
-      emailAddress,
-    );
-    const connection = existingConnection
-      ? await this.repo.updateConnectionTokens(existingConnection.id, {
-          accessToken: encryptedAccess,
-          refreshToken: encryptedRefresh,
-          tokenExpiresAt,
-          emailAddress,
-          isActive: true,
-        })
-      : await this.repo.createConnection(payload.sub, {
-          provider: 'gmail',
-          emailAddress,
-          accessToken: encryptedAccess,
-          refreshToken: encryptedRefresh,
-          tokenExpiresAt,
-          isActive: true,
-        });
-
-    if (!payload.institutionId) {
-      return;
-    }
-
-    const sender = resolveSenderFields({
-      bankSenderEmail: payload.bankSenderEmail,
-      bankDomain: payload.bankDomain,
-    });
-    await this.emailSources.upsertInstitutionSource(payload.sub, {
-      connectionId: connection.id,
-      institutionId: payload.institutionId,
-      bankSenderEmails: sender.bankSenderEmails,
-      bankDomain: sender.bankDomain,
-      label: payload.label,
-    });
-  }
-
-  async getValidGmailAccessToken(sourceId: string): Promise<string> {
-    const source = await this.repo.findEmailSourceForRefresh(sourceId);
-    if (!source?.connection.accessToken) {
-      throw new NotFoundException(
-        'No se encontraron los tokens del origen de correo',
-      );
-    }
-
-    const expiresSoon =
-      !source.connection.tokenExpiresAt ||
-      source.connection.tokenExpiresAt.getTime() - Date.now() < 5 * 60 * 1000;
-
-    if (expiresSoon) {
-      return this.refreshGmailToken(sourceId);
-    }
-
-    return decryptToken(source.connection.accessToken, this.encryptionKey);
-  }
-
   async listPendingAssignment(userId: string, query: CursorQueryDto) {
-    const rows = await this.repo.listPendingAssignmentMessagesPage(
+    const rows = await this.repo.listPendingAssignmentCandidatesPage(
       userId,
       query,
     );
@@ -464,9 +57,8 @@ export class IngestionService {
       items: page.items.map((row) => this.mapPendingMessage(row)),
     };
   }
-
   async listRecentMessages(userId: string, query: CursorQueryDto) {
-    const rows = await this.repo.listRecentEmailMessagesPage(userId, query);
+    const rows = await this.repo.listRecentCandidatesPage(userId, query);
     const page = toCursorPage(rows, clampPageLimit(query.limit), (row) =>
       row.createdAt.toISOString(),
     );
@@ -478,14 +70,12 @@ export class IngestionService {
       })),
     };
   }
-
   async assignPendingMessage(
     userId: string,
     messageId: string,
     dto: AssignEmailMessageDto,
   ) {
-    await this.users.assertFinanceEmailSyncEnabled(userId);
-    const message = await this.repo.findEmailMessageById(userId, messageId);
+    const message = await this.repo.findCandidateById(userId, messageId);
     if (!message) {
       throw new NotFoundException('Mensaje de correo no encontrado');
     }
@@ -516,10 +106,8 @@ export class IngestionService {
       amount: dto.amount,
     });
   }
-
   async retryPendingMessage(userId: string, messageId: string) {
-    await this.users.assertFinanceEmailSyncEnabled(userId);
-    const message = await this.repo.findEmailMessageById(userId, messageId);
+    const message = await this.repo.findCandidateById(userId, messageId);
     if (!message) {
       throw new NotFoundException('Mensaje de correo no encontrado');
     }
@@ -566,14 +154,12 @@ export class IngestionService {
       cardId: match.cardId,
     });
   }
-
   async completePendingAmount(
     userId: string,
     messageId: string,
     amount: number,
   ) {
-    await this.users.assertFinanceEmailSyncEnabled(userId);
-    const message = await this.repo.findEmailMessageById(userId, messageId);
+    const message = await this.repo.findCandidateById(userId, messageId);
     if (!message) {
       throw new NotFoundException('Mensaje de correo no encontrado');
     }
@@ -613,9 +199,10 @@ export class IngestionService {
         !isAtmMovementClass(movementClass),
     });
     if (match.kind !== 'unique') {
-      await this.repo.upsertEmailMessage({
+      await this.repo.persistCandidate({
+        userId,
         sourceId: message.sourceId,
-        gmailMessageId: message.gmailMessageId,
+        sourceReference: message.sourceReference,
         outcome: EMAIL_MESSAGE_OUTCOME.PENDING_ASSIGNMENT,
         reason:
           match.kind === 'ambiguous'
@@ -631,7 +218,7 @@ export class IngestionService {
           amount,
         },
       });
-      const updated = await this.repo.findEmailMessageById(userId, messageId);
+      const updated = await this.repo.findCandidateById(userId, messageId);
       return this.mapPendingMessage(updated ?? message);
     }
     return this.importPendingMessage(userId, message, {
@@ -640,68 +227,6 @@ export class IngestionService {
       amount,
     });
   }
-
-  async listDiscoveredSenders(userId: string, sourceId: string, days = 14) {
-    const source = await this.repo.findEmailSource(userId, sourceId);
-    if (!source) {
-      throw new NotFoundException('Origen de correo no encontrado');
-    }
-    const accessToken = await this.getValidGmailAccessToken(sourceId);
-    const query = `from:${source.bankDomain} newer_than:${Math.max(1, days)}d`;
-    const known = new Set(
-      normalizeBankSenderEmails({
-        bankSenderEmails: source.bankSenderEmails,
-      }),
-    );
-    const discovered = new Map<string, number>();
-    let pageToken: string | undefined;
-    let scanned = 0;
-    do {
-      const page = await listGmailMessages(accessToken, query, pageToken);
-      for (const ref of page.messages) {
-        scanned += 1;
-        if (scanned > 80) {
-          break;
-        }
-        const raw = await getGmailMessageFromHeader(accessToken, ref.id);
-        const email = extractEmailAddress(raw);
-        if (!email || known.has(email)) {
-          continue;
-        }
-        if (extractEmailDomain(email) !== source.bankDomain) {
-          continue;
-        }
-        discovered.set(email, (discovered.get(email) ?? 0) + 1);
-      }
-      if (scanned > 80) {
-        break;
-      }
-      pageToken = page.nextPageToken;
-    } while (pageToken);
-    return [...discovered.entries()]
-      .sort((a, b) => b[1] - a[1])
-      .map(([email, count]) => ({ email, count }));
-  }
-
-  async addSourceSenders(userId: string, sourceId: string, emails: string[]) {
-    const source = await this.repo.findEmailSource(userId, sourceId);
-    if (!source) {
-      throw new NotFoundException('Origen de correo no encontrado');
-    }
-    const sender = resolveSenderFields({
-      bankSenderEmails: [...(source.bankSenderEmails ?? []), ...emails],
-      bankDomain: source.bankDomain,
-    });
-    const updated = await this.repo.updateEmailSource(userId, sourceId, {
-      bankSenderEmails: sender.bankSenderEmails,
-      bankDomain: sender.bankDomain,
-    });
-    if (!updated) {
-      throw new NotFoundException('Origen de correo no encontrado');
-    }
-    return mapEmailSourceResponse(updated);
-  }
-
   private async importPendingMessage(
     userId: string,
     message: PendingMessageRow,
@@ -746,7 +271,7 @@ export class IngestionService {
         accountId: target.accountId,
         cardId: target.cardId,
         cashAccountId,
-        emailMessageId: message.id,
+        importReference: message.id,
         amount,
         currency: extracted.currency,
         merchant: extracted.merchant,
@@ -760,7 +285,7 @@ export class IngestionService {
           assignedAt: new Date().toISOString(),
         },
       });
-      await this.markImported(message, { ...extracted, amount, notes });
+      await this.markImported(userId, message, { ...extracted, amount, notes });
       return {
         assigned: true as const,
         transactionId: created?.debit.id ?? message.id,
@@ -792,7 +317,7 @@ export class IngestionService {
     const importInput = {
       accountId: target.accountId,
       cardId: target.cardId,
-      emailMessageId: message.id,
+      importReference: message.id,
       amount,
       currency: extracted.currency,
       merchant: extracted.merchant,
@@ -815,17 +340,18 @@ export class IngestionService {
       ? await this.importEmail.executeUnpairedTransfer(userId, importInput)
       : await this.importEmail.execute(userId, importInput);
 
-    await this.markImported(message, { ...extracted, amount, notes });
+    await this.markImported(userId, message, { ...extracted, amount, notes });
     return { assigned: true as const, transactionId: created.id };
   }
-
   private markImported(
+    userId: string,
     message: PendingMessageRow,
     extracted: ExtractedEmailTransaction,
   ) {
-    return this.repo.upsertEmailMessage({
+    return this.repo.persistCandidate({
+      userId,
       sourceId: message.sourceId,
-      gmailMessageId: message.gmailMessageId,
+      sourceReference: message.sourceReference,
       outcome: EMAIL_MESSAGE_OUTCOME.IMPORTED,
       provider: message.provider,
       model: message.model,
@@ -835,7 +361,6 @@ export class IngestionService {
       extractedPayload: extracted,
     });
   }
-
   private async assertAssignmentTarget(
     userId: string,
     institutionId: string,
@@ -867,77 +392,19 @@ export class IngestionService {
       }
     }
   }
-
   private parseExtractedPayload(
     payload: unknown,
   ): ExtractedEmailTransaction | null {
     return parseExtractedPayload(payload);
   }
-
-  private async refreshGmailToken(sourceId: string): Promise<string> {
-    const source = await this.repo.findEmailSourceForRefresh(sourceId);
-    if (!source?.connection.refreshToken || !source.connection.accessToken) {
-      throw new NotFoundException(
-        'No se encontraron los tokens del origen de correo',
-      );
-    }
-
-    const refreshToken = decryptToken(
-      source.connection.refreshToken,
-      this.encryptionKey,
-    );
-    const tokenResponse = await refreshGoogleAccessToken(
-      refreshToken,
-      this.config.get('GOOGLE_CLIENT_ID', { infer: true }),
-      this.config.get('GOOGLE_CLIENT_SECRET', { infer: true }),
-    );
-
-    const encryptedAccess = encryptToken(
-      tokenResponse.access_token,
-      this.encryptionKey,
-    );
-    const tokenExpiresAt = new Date(
-      Date.now() + tokenResponse.expires_in * 1000,
-    );
-
-    await this.repo.updateConnectionTokens(source.connection.id, {
-      accessToken: encryptedAccess,
-      refreshToken: source.connection.refreshToken,
-      tokenExpiresAt,
-    });
-
-    return tokenResponse.access_token;
-  }
-
-  private get encryptionKey(): string {
-    return this.config.get('ENCRYPTION_KEY', { infer: true });
-  }
-
-  private get oauthStateSecret(): string {
-    const secret = this.config.get('OAUTH_STATE_SECRET', { infer: true });
-    if (secret) {
-      return secret;
-    }
-
-    const nodeEnv = this.config.get('NODE_ENV', { infer: true });
-    if (nodeEnv === 'production') {
-      throw new Error('OAUTH_STATE_SECRET is required in production');
-    }
-
-    this.logger.warn(
-      'OAUTH_STATE_SECRET is not set; falling back to ENCRYPTION_KEY (non-production only)',
-    );
-    return this.encryptionKey;
-  }
-
   private mapPendingMessage(row: PendingMessageRow) {
     return {
       id: row.id,
       sourceId: row.sourceId,
-      gmailMessageId: row.gmailMessageId,
+      sourceReference: row.sourceReference,
       institutionId: row.source.institutionId,
       institutionName: row.source.institution.name,
-      emailAddress: row.source.connection.emailAddress,
+
       instrumentHint: row.instrumentHint,
       lastFourHint: row.lastFourHint,
       accountNumberHint: row.accountNumberHint,

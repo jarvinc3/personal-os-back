@@ -4,11 +4,11 @@ import type { Prisma } from '@personal-os/database';
 import { PrismaService } from '@personal-os/database';
 import { EMAIL_DUPLICATE_DATE_TOLERANCE_MS } from '../../shared/domain/email-dedupe';
 import { normalizeCurrencyCode } from '../../shared/domain/money';
-import { OPERATION_LEG_ROLE } from '../../shared/domain/transfer';
 import {
   TRANSACTION_LINK_KIND,
   type TransactionLinkKind,
 } from '../../shared/domain/transaction-links';
+import { OPERATION_LEG_ROLE } from '../../shared/domain/transfer';
 import type {
   FinTxStatus,
   ListTransactionsQuery,
@@ -304,11 +304,11 @@ export class PrismaLedgerReadRepository {
     };
   }
 
-  findTransactionByEmailMessageId(gmailMessageId: string, userId?: string) {
+  findTransactionByImportReference(importReference: string, userId: string) {
     return this.prisma.finTransaction.findFirst({
       where: {
-        emailMessage: { gmailMessageId },
-        ...(userId ? { userId } : {}),
+        importReference,
+        userId,
       },
     }) as Promise<LedgerTransactionRow | null>;
   }

@@ -13,6 +13,9 @@ Perfil (`users`), preferencias JSONB y configuración por módulo (`user_modules
 - Merge server-side de defaults (`GLOBAL_USER_PREFERENCES_DEFAULTS`, `DEFAULT_MODULE_CONFIG_BY_SLUG`)
 - `UsersModule` es `@Global()`
 - Outbox de borrado Auth: `AuthDeletionOutboxProcessor` cada minuto
+- El alta Auth crea el perfil por trigger; un borrado directo en Auth elimina el
+  perfil y sus datos relacionados por cascada. La ruta de cuenta de la app borra
+  primero el perfil y usa el outbox para borrar Auth.
 
 ## Fuera de alcance
 

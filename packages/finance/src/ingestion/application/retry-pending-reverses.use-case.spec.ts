@@ -1,26 +1,26 @@
 import type { LedgerQueryService } from '../../ledger/application/ledger-query.service';
 import type { ReverseTransactionUseCase } from '../../ledger/application/reverse-transaction.use-case';
-import type { EmailSourceRepository } from '../infrastructure/email-source.repository';
 import type { ExtractedEmailTransaction } from './ports/email-transaction-extractor.port';
+import type { FinancialImportCandidatesPort } from './ports/financial-import-candidates.port';
 import {
   RetryPendingReversesUseCase,
   type PendingReversalAction,
 } from './retry-pending-reverses.use-case';
 
 describe('RetryPendingReversesUseCase', () => {
-  const listPendingReverseMessages = jest.fn();
-  const upsertEmailMessage = jest.fn();
+  const listPendingReversalCandidates = jest.fn();
+  const persistCandidate = jest.fn();
   const emailSources = {
-    listPendingReverseMessages,
-    upsertEmailMessage,
-  } as unknown as EmailSourceRepository;
+    listPendingReversalCandidates,
+    persistCandidate,
+  } as unknown as FinancialImportCandidatesPort;
 
   const findTransactionByExternalReference = jest.fn();
-  const findTransactionByEmailMessageId = jest.fn();
+  const findTransactionByImportReference = jest.fn();
   const findReverseCandidates = jest.fn();
   const ledger = {
     findTransactionByExternalReference,
-    findTransactionByEmailMessageId,
+    findTransactionByImportReference,
     findReverseCandidates,
   } as unknown as LedgerQueryService;
 
@@ -60,17 +60,17 @@ describe('RetryPendingReversesUseCase', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     findTransactionByExternalReference.mockResolvedValue(null);
-    findTransactionByEmailMessageId.mockResolvedValue(null);
+    findTransactionByImportReference.mockResolvedValue(null);
     findReverseCandidates.mockResolvedValue([]);
     reverseExecute.mockResolvedValue(undefined);
-    upsertEmailMessage.mockResolvedValue({ id: 'em-1' });
+    persistCandidate.mockResolvedValue({ id: 'em-1' });
   });
 
   it('plans an apply action when the original is still confirmed', async () => {
-    listPendingReverseMessages.mockResolvedValue([
+    listPendingReversalCandidates.mockResolvedValue([
       {
         sourceId: 'src-1',
-        gmailMessageId: 'msg-1',
+        sourceReference: 'msg-1',
         provider: 'groq',
         model: 'test',
         extractedPayload,
@@ -88,10 +88,10 @@ describe('RetryPendingReversesUseCase', () => {
   });
 
   it('plans a duplicate action when the original is already reversed', async () => {
-    listPendingReverseMessages.mockResolvedValue([
+    listPendingReversalCandidates.mockResolvedValue([
       {
         sourceId: 'src-1',
-        gmailMessageId: 'msg-1',
+        sourceReference: 'msg-1',
         provider: null,
         model: null,
         extractedPayload,
@@ -111,10 +111,10 @@ describe('RetryPendingReversesUseCase', () => {
   });
 
   it('plans an unusable action when the stored payload is missing', async () => {
-    listPendingReverseMessages.mockResolvedValue([
+    listPendingReversalCandidates.mockResolvedValue([
       {
         sourceId: 'src-1',
-        gmailMessageId: 'msg-1',
+        sourceReference: 'msg-1',
         provider: null,
         model: null,
         extractedPayload: null,
@@ -130,7 +130,7 @@ describe('RetryPendingReversesUseCase', () => {
     const action: PendingReversalAction = {
       kind: 'apply',
       sourceId: 'src-1',
-      gmailMessageId: 'msg-1',
+      sourceReference: 'msg-1',
       originalId: 'tx-1',
       extracted: extractedPayload,
       provider: 'groq',
@@ -144,9 +144,9 @@ describe('RetryPendingReversesUseCase', () => {
       'tx-1',
       expect.objectContaining({ reverseEmailMessageId: 'msg-1' }),
     );
-    expect(upsertEmailMessage).toHaveBeenCalledWith(
+    expect(persistCandidate).toHaveBeenCalledWith(
       expect.objectContaining({
-        gmailMessageId: 'msg-1',
+        sourceReference: 'msg-1',
         outcome: 'IMPORTED',
       }),
     );

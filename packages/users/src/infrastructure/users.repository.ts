@@ -9,8 +9,6 @@ import {
 } from '../domain/defaults/user-settings-defaults';
 
 const FINANCE_MODULE_SLUG = 'finance';
-const EMAIL_SYNC_CONFIG_KEY = 'emailSync';
-const EMAIL_SYNC_AUTOMATIC_KEY = 'automatic';
 
 const userWithModulesInclude = {
   userModules: {
@@ -166,41 +164,6 @@ export class UsersRepository implements UsersRepositoryPort {
           },
         });
       }
-    });
-  }
-
-  /** Ledger wipe pauses the cron so it cannot refill the ledger right away. */
-  async pauseFinanceEmailSyncAutomatic(userId: string): Promise<void> {
-    const financeModule = await this.prisma.module.findUnique({
-      where: { slug: FINANCE_MODULE_SLUG },
-      select: { id: true },
-    });
-    if (!financeModule) {
-      return;
-    }
-    const userModule = await this.prisma.userModule.findUnique({
-      where: { userId_moduleId: { userId, moduleId: financeModule.id } },
-      select: { id: true, config: true },
-    });
-    if (!userModule) {
-      return;
-    }
-    const config = (userModule.config ?? {}) as Record<string, unknown>;
-    const emailSync = (config[EMAIL_SYNC_CONFIG_KEY] ?? {}) as Record<
-      string,
-      unknown
-    >;
-    await this.prisma.userModule.update({
-      where: { id: userModule.id },
-      data: {
-        config: {
-          ...config,
-          [EMAIL_SYNC_CONFIG_KEY]: {
-            ...emailSync,
-            [EMAIL_SYNC_AUTOMATIC_KEY]: false,
-          },
-        },
-      },
     });
   }
 

@@ -131,8 +131,8 @@ export class LedgerQueryService {
     );
   }
 
-  findTransactionByEmailMessageId(gmailMessageId: string, userId?: string) {
-    return this.repo.findTransactionByEmailMessageId(gmailMessageId, userId);
+  findTransactionByImportReference(importReference: string, userId: string) {
+    return this.repo.findTransactionByImportReference(importReference, userId);
   }
 
   findTransactionByExternalReference(userId: string, reference: string) {

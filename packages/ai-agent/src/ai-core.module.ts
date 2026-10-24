@@ -1,14 +1,14 @@
 import { Global, Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { Env } from '@personal-os/config';
-import { AI_CHAT_COMPLETION } from '@personal-os/core';
-import { AiService } from './chat/application/ai.service';
+import { INFERENCE_COMPLETION } from '@personal-os/contracts';
+import { AiService } from './inference/application/ai.service';
 import { AI_PROVIDER } from './shared/ai-provider.token';
 import type { AIService as AIProviderClient } from './shared/ai.types';
 
 /**
  * Provider kernel with no Finance/Notifications imports.
- * Global so Finance ingestion injects the chat port without importing this package.
+ * Global so Finance injects the neutral inference port without importing AI.
  */
 @Global()
 @Module({
@@ -50,10 +50,10 @@ import type { AIService as AIProviderClient } from './shared/ai.types';
     },
     AiService,
     {
-      provide: AI_CHAT_COMPLETION,
+      provide: INFERENCE_COMPLETION,
       useExisting: AiService,
     },
   ],
-  exports: [AiService, AI_CHAT_COMPLETION],
+  exports: [AiService, INFERENCE_COMPLETION],
 })
 export class AiCoreModule {}

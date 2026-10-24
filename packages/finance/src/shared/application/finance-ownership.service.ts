@@ -4,11 +4,11 @@ import {
   Injectable,
 } from '@nestjs/common';
 import { PrismaService } from '@personal-os/database';
+import { isCashInstitution } from '../domain/cash';
 import {
   categoryTypeForTransaction,
   type FinCategoryTypeValue,
 } from '../domain/category-type';
-import { isCashInstitution } from '../domain/cash';
 
 const VISIBLE_CATEGORY = (userId: string) => ({
   OR: [{ userId }, { isSystem: true }],
@@ -211,25 +211,22 @@ export class FinanceOwnershipService {
   }
 
   async assertInstitutionCanArchive(userId: string, institutionId: string) {
-    const [accounts, cards, sources, loans] = await Promise.all([
+    const [accounts, cards, loans] = await Promise.all([
       this.prisma.finAccount.count({
         where: { userId, institutionId, isActive: true },
       }),
       this.prisma.finCard.count({
         where: { userId, institutionId, isActive: true },
       }),
-      this.prisma.finEmailSource.count({
-        where: { userId, institutionId, isActive: true },
-      }),
       this.prisma.finLoan.count({
         where: { userId, institutionId, isActive: true },
       }),
     ]);
-    if (accounts + cards + sources + loans > 0) {
+    if (accounts + cards + loans > 0) {
       throw new ConflictException({
         message:
-          'No se puede archivar la institución mientras tenga cuentas, tarjetas, correos o préstamos activos',
-        dependents: { accounts, cards, emailSources: sources, loans },
+          'No se puede archivar la institución mientras tenga cuentas, tarjetas o préstamos activos',
+        dependents: { accounts, cards, loans },
       });
     }
   }

@@ -111,7 +111,7 @@ CREATE TYPE "idempotency_status" AS ENUM ('IN_PROGRESS', 'COMPLETED');
 
 -- CreateTable
 CREATE TABLE "users" (
-    "id" TEXT NOT NULL DEFAULT (uuid_generate_v4())::text,
+    "id" TEXT NOT NULL DEFAULT (extensions.uuid_generate_v4())::text,
     "email" TEXT NOT NULL,
     "full_name" TEXT NOT NULL,
     "avatar_url" TEXT,
@@ -127,7 +127,7 @@ CREATE TABLE "users" (
 
 -- CreateTable
 CREATE TABLE "modules" (
-    "id" TEXT NOT NULL DEFAULT (uuid_generate_v4())::text,
+    "id" TEXT NOT NULL DEFAULT (extensions.uuid_generate_v4())::text,
     "slug" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "is_active" BOOLEAN NOT NULL DEFAULT true,
@@ -142,7 +142,7 @@ CREATE TABLE "modules" (
 
 -- CreateTable
 CREATE TABLE "user_modules" (
-    "id" TEXT NOT NULL DEFAULT (uuid_generate_v4())::text,
+    "id" TEXT NOT NULL DEFAULT (extensions.uuid_generate_v4())::text,
     "user_id" TEXT NOT NULL,
     "module_id" TEXT NOT NULL,
     "is_enabled" BOOLEAN NOT NULL DEFAULT true,
@@ -156,7 +156,7 @@ CREATE TABLE "user_modules" (
 
 -- CreateTable
 CREATE TABLE "ai_actions" (
-    "id" TEXT NOT NULL DEFAULT (uuid_generate_v4())::text,
+    "id" TEXT NOT NULL DEFAULT (extensions.uuid_generate_v4())::text,
     "origin_type" TEXT NOT NULL DEFAULT 'AGENT',
     "origin_reference" TEXT,
     "user_id" TEXT NOT NULL,
@@ -173,7 +173,7 @@ CREATE TABLE "ai_actions" (
 
 -- CreateTable
 CREATE TABLE "notifications" (
-    "id" TEXT NOT NULL DEFAULT (uuid_generate_v4())::text,
+    "id" TEXT NOT NULL DEFAULT (extensions.uuid_generate_v4())::text,
     "user_id" TEXT NOT NULL,
     "type" TEXT NOT NULL,
     "channel" "NotificationChannel" NOT NULL,
@@ -190,7 +190,7 @@ CREATE TABLE "notifications" (
 
 -- CreateTable
 CREATE TABLE "push_tokens" (
-    "id" TEXT NOT NULL DEFAULT (uuid_generate_v4())::text,
+    "id" TEXT NOT NULL DEFAULT (extensions.uuid_generate_v4())::text,
     "user_id" TEXT NOT NULL,
     "platform" TEXT NOT NULL,
     "token" TEXT NOT NULL,
@@ -202,7 +202,7 @@ CREATE TABLE "push_tokens" (
 
 -- CreateTable
 CREATE TABLE "fin_accounts" (
-    "id" TEXT NOT NULL DEFAULT (uuid_generate_v4())::text,
+    "id" TEXT NOT NULL DEFAULT (extensions.uuid_generate_v4())::text,
     "user_id" TEXT NOT NULL,
     "institution_id" TEXT,
     "name" TEXT NOT NULL,
@@ -223,7 +223,7 @@ CREATE TABLE "fin_accounts" (
 
 -- CreateTable
 CREATE TABLE "fin_transactions" (
-    "id" TEXT NOT NULL DEFAULT (uuid_generate_v4())::text,
+    "id" TEXT NOT NULL DEFAULT (extensions.uuid_generate_v4())::text,
     "account_id" TEXT,
     "card_id" TEXT,
     "user_id" TEXT NOT NULL,
@@ -261,7 +261,7 @@ CREATE TABLE "fin_transactions" (
 
 -- CreateTable
 CREATE TABLE "fin_categories" (
-    "id" TEXT NOT NULL DEFAULT (uuid_generate_v4())::text,
+    "id" TEXT NOT NULL DEFAULT (extensions.uuid_generate_v4())::text,
     "user_id" TEXT,
     "name" TEXT NOT NULL,
     "icon" TEXT,
@@ -278,7 +278,7 @@ CREATE TABLE "fin_categories" (
 
 -- CreateTable
 CREATE TABLE "fin_budgets" (
-    "id" TEXT NOT NULL DEFAULT (uuid_generate_v4())::text,
+    "id" TEXT NOT NULL DEFAULT (extensions.uuid_generate_v4())::text,
     "user_id" TEXT NOT NULL,
     "category_id" TEXT,
     "name" TEXT,
@@ -310,7 +310,7 @@ CREATE TABLE "fin_budget_categories" (
 
 -- CreateTable
 CREATE TABLE "fin_budget_alerts" (
-    "id" TEXT NOT NULL DEFAULT (uuid_generate_v4())::text,
+    "id" TEXT NOT NULL DEFAULT (extensions.uuid_generate_v4())::text,
     "budget_id" TEXT NOT NULL,
     "type" TEXT NOT NULL,
     "pct_used" DECIMAL(5,2) NOT NULL,
@@ -322,7 +322,7 @@ CREATE TABLE "fin_budget_alerts" (
 
 -- CreateTable
 CREATE TABLE "fin_recurring_patterns" (
-    "id" TEXT NOT NULL DEFAULT (uuid_generate_v4())::text,
+    "id" TEXT NOT NULL DEFAULT (extensions.uuid_generate_v4())::text,
     "user_id" TEXT NOT NULL,
     "category_id" TEXT,
     "merchant_id" TEXT,
@@ -347,7 +347,7 @@ CREATE TABLE "fin_recurring_patterns" (
 
 -- CreateTable
 CREATE TABLE "fin_merchants" (
-    "id" TEXT NOT NULL DEFAULT (uuid_generate_v4())::text,
+    "id" TEXT NOT NULL DEFAULT (extensions.uuid_generate_v4())::text,
     "user_id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "normalized_key" TEXT NOT NULL,
@@ -364,7 +364,7 @@ CREATE TABLE "fin_merchants" (
 
 -- CreateTable
 CREATE TABLE "fin_merchant_duplicate_dismissals" (
-    "id" TEXT NOT NULL DEFAULT (uuid_generate_v4())::text,
+    "id" TEXT NOT NULL DEFAULT (extensions.uuid_generate_v4())::text,
     "user_id" TEXT NOT NULL,
     "merchant_id" TEXT NOT NULL,
     "other_merchant_id" TEXT NOT NULL,
@@ -375,7 +375,7 @@ CREATE TABLE "fin_merchant_duplicate_dismissals" (
 
 -- CreateTable
 CREATE TABLE "fin_merchant_aliases" (
-    "id" TEXT NOT NULL DEFAULT (uuid_generate_v4())::text,
+    "id" TEXT NOT NULL DEFAULT (extensions.uuid_generate_v4())::text,
     "merchant_id" TEXT NOT NULL,
     "user_id" TEXT NOT NULL,
     "alias" TEXT NOT NULL,
@@ -387,7 +387,7 @@ CREATE TABLE "fin_merchant_aliases" (
 
 -- CreateTable
 CREATE TABLE "fin_subscriptions" (
-    "id" TEXT NOT NULL DEFAULT (uuid_generate_v4())::text,
+    "id" TEXT NOT NULL DEFAULT (extensions.uuid_generate_v4())::text,
     "user_id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "normalized_key" TEXT NOT NULL,
@@ -420,7 +420,7 @@ CREATE TABLE "fin_subscriptions" (
 
 -- CreateTable
 CREATE TABLE "fin_subscription_payments" (
-    "id" TEXT NOT NULL DEFAULT (uuid_generate_v4())::text,
+    "id" TEXT NOT NULL DEFAULT (extensions.uuid_generate_v4())::text,
     "subscription_id" TEXT NOT NULL,
     "transaction_id" TEXT,
     "amount" DECIMAL(15,2) NOT NULL,
@@ -434,7 +434,7 @@ CREATE TABLE "fin_subscription_payments" (
 
 -- CreateTable
 CREATE TABLE "fin_subscription_alert_dismissals" (
-    "id" TEXT NOT NULL DEFAULT (uuid_generate_v4())::text,
+    "id" TEXT NOT NULL DEFAULT (extensions.uuid_generate_v4())::text,
     "user_id" TEXT NOT NULL,
     "subscription_id" TEXT NOT NULL,
     "kind" "fin_subscription_alert_kind" NOT NULL,
@@ -446,7 +446,7 @@ CREATE TABLE "fin_subscription_alert_dismissals" (
 
 -- CreateTable
 CREATE TABLE "fin_exchange_rates" (
-    "id" TEXT NOT NULL DEFAULT (uuid_generate_v4())::text,
+    "id" TEXT NOT NULL DEFAULT (extensions.uuid_generate_v4())::text,
     "from_currency" TEXT NOT NULL,
     "to_currency" TEXT NOT NULL,
     "rate" DECIMAL(15,6) NOT NULL,
@@ -459,7 +459,7 @@ CREATE TABLE "fin_exchange_rates" (
 
 -- CreateTable
 CREATE TABLE "fin_institutions" (
-    "id" TEXT NOT NULL DEFAULT (uuid_generate_v4())::text,
+    "id" TEXT NOT NULL DEFAULT (extensions.uuid_generate_v4())::text,
     "user_id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "type" TEXT NOT NULL DEFAULT 'bank',
@@ -481,7 +481,7 @@ CREATE TABLE "fin_institutions" (
 
 -- CreateTable
 CREATE TABLE "fin_cards" (
-    "id" TEXT NOT NULL DEFAULT (uuid_generate_v4())::text,
+    "id" TEXT NOT NULL DEFAULT (extensions.uuid_generate_v4())::text,
     "user_id" TEXT NOT NULL,
     "institution_id" TEXT NOT NULL,
     "account_id" TEXT,
@@ -501,7 +501,7 @@ CREATE TABLE "fin_cards" (
 
 -- CreateTable
 CREATE TABLE "fin_card_balances" (
-    "id" TEXT NOT NULL DEFAULT (uuid_generate_v4())::text,
+    "id" TEXT NOT NULL DEFAULT (extensions.uuid_generate_v4())::text,
     "card_id" TEXT NOT NULL,
     "currency" TEXT NOT NULL,
     "balance" DECIMAL(15,2) NOT NULL DEFAULT 0,
@@ -514,7 +514,7 @@ CREATE TABLE "fin_card_balances" (
 
 -- CreateTable
 CREATE TABLE "fin_instrument_events" (
-    "id" TEXT NOT NULL DEFAULT (uuid_generate_v4())::text,
+    "id" TEXT NOT NULL DEFAULT (extensions.uuid_generate_v4())::text,
     "user_id" TEXT NOT NULL,
     "account_id" TEXT,
     "card_id" TEXT,
@@ -527,7 +527,7 @@ CREATE TABLE "fin_instrument_events" (
 
 -- CreateTable
 CREATE TABLE "fin_card_statements" (
-    "id" TEXT NOT NULL DEFAULT (uuid_generate_v4())::text,
+    "id" TEXT NOT NULL DEFAULT (extensions.uuid_generate_v4())::text,
     "card_id" TEXT NOT NULL,
     "currency" TEXT NOT NULL,
     "cycle_start" DATE NOT NULL,
@@ -546,7 +546,7 @@ CREATE TABLE "fin_card_statements" (
 
 -- CreateTable
 CREATE TABLE "fin_savings_goals" (
-    "id" TEXT NOT NULL DEFAULT (uuid_generate_v4())::text,
+    "id" TEXT NOT NULL DEFAULT (extensions.uuid_generate_v4())::text,
     "user_id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "description" TEXT,
@@ -569,7 +569,7 @@ CREATE TABLE "fin_savings_goals" (
 
 -- CreateTable
 CREATE TABLE "fin_savings_goal_contributions" (
-    "id" TEXT NOT NULL DEFAULT (uuid_generate_v4())::text,
+    "id" TEXT NOT NULL DEFAULT (extensions.uuid_generate_v4())::text,
     "goal_id" TEXT NOT NULL,
     "amount" DECIMAL(15,2) NOT NULL,
     "contributed_at" DATE NOT NULL,
@@ -586,7 +586,7 @@ CREATE TABLE "fin_savings_goal_contributions" (
 
 -- CreateTable
 CREATE TABLE "fin_loans" (
-    "id" TEXT NOT NULL DEFAULT (uuid_generate_v4())::text,
+    "id" TEXT NOT NULL DEFAULT (extensions.uuid_generate_v4())::text,
     "user_id" TEXT NOT NULL,
     "institution_id" TEXT,
     "account_id" TEXT,
@@ -618,7 +618,7 @@ CREATE TABLE "fin_loans" (
 
 -- CreateTable
 CREATE TABLE "fin_loan_installments" (
-    "id" TEXT NOT NULL DEFAULT (uuid_generate_v4())::text,
+    "id" TEXT NOT NULL DEFAULT (extensions.uuid_generate_v4())::text,
     "loan_id" TEXT NOT NULL,
     "installment_no" INTEGER NOT NULL,
     "due_date" DATE NOT NULL,
@@ -640,7 +640,7 @@ CREATE TABLE "fin_loan_installments" (
 
 -- CreateTable
 CREATE TABLE "fin_loan_prepayments" (
-    "id" TEXT NOT NULL DEFAULT (uuid_generate_v4())::text,
+    "id" TEXT NOT NULL DEFAULT (extensions.uuid_generate_v4())::text,
     "loan_id" TEXT NOT NULL,
     "amount" DECIMAL(15,2) NOT NULL,
     "penalty" DECIMAL(15,2) NOT NULL DEFAULT 0,
@@ -654,7 +654,7 @@ CREATE TABLE "fin_loan_prepayments" (
 
 -- CreateTable
 CREATE TABLE "fin_receivables" (
-    "id" TEXT NOT NULL DEFAULT (uuid_generate_v4())::text,
+    "id" TEXT NOT NULL DEFAULT (extensions.uuid_generate_v4())::text,
     "user_id" TEXT NOT NULL,
     "debtor_name" TEXT NOT NULL,
     "description" TEXT,
@@ -675,7 +675,7 @@ CREATE TABLE "fin_receivables" (
 
 -- CreateTable
 CREATE TABLE "fin_receivable_shares" (
-    "id" TEXT NOT NULL DEFAULT (uuid_generate_v4())::text,
+    "id" TEXT NOT NULL DEFAULT (extensions.uuid_generate_v4())::text,
     "user_id" TEXT NOT NULL,
     "token" TEXT NOT NULL,
     "debtor_name" TEXT NOT NULL,
@@ -698,7 +698,7 @@ CREATE TABLE "fin_receivable_share_items" (
 
 -- CreateTable
 CREATE TABLE "fin_receivable_payments" (
-    "id" TEXT NOT NULL DEFAULT (uuid_generate_v4())::text,
+    "id" TEXT NOT NULL DEFAULT (extensions.uuid_generate_v4())::text,
     "receivable_id" TEXT NOT NULL,
     "amount" DECIMAL(15,2) NOT NULL,
     "applied_amount" DECIMAL(15,2) NOT NULL,
@@ -715,7 +715,7 @@ CREATE TABLE "fin_receivable_payments" (
 
 -- CreateTable
 CREATE TABLE "domain_event_outbox" (
-    "id" TEXT NOT NULL DEFAULT (uuid_generate_v4())::text,
+    "id" TEXT NOT NULL DEFAULT (extensions.uuid_generate_v4())::text,
     "event_id" TEXT NOT NULL,
     "event_name" TEXT NOT NULL,
     "aggregate_type" TEXT NOT NULL,
@@ -735,7 +735,7 @@ CREATE TABLE "domain_event_outbox" (
 
 -- CreateTable
 CREATE TABLE "processed_domain_events" (
-    "id" TEXT NOT NULL DEFAULT (uuid_generate_v4())::text,
+    "id" TEXT NOT NULL DEFAULT (extensions.uuid_generate_v4())::text,
     "event_id" TEXT NOT NULL,
     "consumer" TEXT NOT NULL,
     "processed_at" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -745,7 +745,7 @@ CREATE TABLE "processed_domain_events" (
 
 -- CreateTable
 CREATE TABLE "auth_deletion_outbox" (
-    "id" TEXT NOT NULL DEFAULT (uuid_generate_v4())::text,
+    "id" TEXT NOT NULL DEFAULT (extensions.uuid_generate_v4())::text,
     "user_id" TEXT NOT NULL,
     "status" "auth_deletion_outbox_status" NOT NULL DEFAULT 'PENDING',
     "attempts" INTEGER NOT NULL DEFAULT 0,
@@ -760,7 +760,7 @@ CREATE TABLE "auth_deletion_outbox" (
 
 -- CreateTable
 CREATE TABLE "fin_deletion_journal" (
-    "id" TEXT NOT NULL DEFAULT (uuid_generate_v4())::text,
+    "id" TEXT NOT NULL DEFAULT (extensions.uuid_generate_v4())::text,
     "user_id" TEXT NOT NULL,
     "entity_type" TEXT NOT NULL,
     "entity_id" TEXT NOT NULL,
@@ -776,7 +776,7 @@ CREATE TABLE "fin_deletion_journal" (
 
 -- CreateTable
 CREATE TABLE "fin_statement_imports" (
-    "id" TEXT NOT NULL DEFAULT (uuid_generate_v4())::text,
+    "id" TEXT NOT NULL DEFAULT (extensions.uuid_generate_v4())::text,
     "user_id" TEXT NOT NULL,
     "card_id" TEXT,
     "account_id" TEXT,
@@ -793,7 +793,7 @@ CREATE TABLE "fin_statement_imports" (
 
 -- CreateTable
 CREATE TABLE "fin_statement_import_lines" (
-    "id" TEXT NOT NULL DEFAULT (uuid_generate_v4())::text,
+    "id" TEXT NOT NULL DEFAULT (extensions.uuid_generate_v4())::text,
     "import_id" TEXT NOT NULL,
     "date" DATE NOT NULL,
     "description" TEXT NOT NULL,
@@ -812,7 +812,7 @@ CREATE TABLE "fin_statement_import_lines" (
 
 -- CreateTable
 CREATE TABLE "fin_reconciliations" (
-    "id" TEXT NOT NULL DEFAULT (uuid_generate_v4())::text,
+    "id" TEXT NOT NULL DEFAULT (extensions.uuid_generate_v4())::text,
     "user_id" TEXT NOT NULL,
     "account_id" TEXT,
     "card_id" TEXT,
@@ -829,7 +829,7 @@ CREATE TABLE "fin_reconciliations" (
 
 -- CreateTable
 CREATE TABLE "fin_reconciliation_adjustments" (
-    "id" TEXT NOT NULL DEFAULT (uuid_generate_v4())::text,
+    "id" TEXT NOT NULL DEFAULT (extensions.uuid_generate_v4())::text,
     "reconciliation_id" TEXT NOT NULL,
     "transaction_id" TEXT NOT NULL,
     "kind" "fin_reconciliation_adjustment_kind" NOT NULL,
@@ -840,7 +840,7 @@ CREATE TABLE "fin_reconciliation_adjustments" (
 
 -- CreateTable
 CREATE TABLE "fin_balance_drifts" (
-    "id" TEXT NOT NULL DEFAULT (uuid_generate_v4())::text,
+    "id" TEXT NOT NULL DEFAULT (extensions.uuid_generate_v4())::text,
     "user_id" TEXT NOT NULL,
     "account_id" TEXT,
     "card_id" TEXT,
@@ -856,7 +856,7 @@ CREATE TABLE "fin_balance_drifts" (
 
 -- CreateTable
 CREATE TABLE "idempotency_keys" (
-    "id" TEXT NOT NULL DEFAULT (uuid_generate_v4())::text,
+    "id" TEXT NOT NULL DEFAULT (extensions.uuid_generate_v4())::text,
     "user_id" TEXT NOT NULL,
     "key" TEXT NOT NULL,
     "method" TEXT NOT NULL,
@@ -933,9 +933,6 @@ CREATE INDEX "fin_transactions_user_status_date_idx" ON "fin_transactions"("user
 
 -- CreateIndex
 CREATE INDEX "fin_transactions_user_ref_idx" ON "fin_transactions"("user_id", "external_reference");
-
--- CreateIndex
-CREATE INDEX "fin_transactions_transfer_group_id_idx" ON "fin_transactions"("transfer_group_id");
 
 -- CreateIndex
 CREATE INDEX "fin_transactions_category_id_idx" ON "fin_transactions"("category_id");
