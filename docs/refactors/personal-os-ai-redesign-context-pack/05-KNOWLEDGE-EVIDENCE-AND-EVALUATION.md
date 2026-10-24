@@ -28,7 +28,7 @@ evidence sequence watermark (observationSequence, verificationSequence)
 + policyVersion
 ```
 
-recorded on every `AiAnalysisRun`. Re-running the projector over evidence `<= watermark` with the same versions reproduces the knowledge a run used.
+recorded on every `AiAnalysisRun`, together with the consent/exclusion version. Rebuilding with equivalent available evidence and versions reproduces the projection. After privacy removal, historical reproduction is `INCOMPLETE`, records missing-evidence counts and is excluded from comparisons requiring equivalent evidence. See [implementation decisions](../01-IMPLEMENTATION-DECISIONS.md#evidencia-consentimiento-y-borrado).
 
 **V2:** first-class logical `AiKnowledgeSnapshot` entities (named snapshots, parent/child diff, configuration hash).
 
@@ -42,7 +42,7 @@ recorded on every `AiAnalysisRun`. Re-running the projector over evidence `<= wa
 
 ## Observations
 
-Provisional machine/system evidence. Append-only; never updated in place.
+Provisional machine/system evidence. Content is append-only during normal processing; consent/exclusion markers live separately. Privacy deletion is an explicit exception: remove personal content and source links, retaining only eligible structural tombstones.
 
 ```text
 id
@@ -123,13 +123,14 @@ Each user has a contribution flag, **on by default (opt-out)**, shown in setting
 
 - the user's data produces USER knowledge only;
 - none of their observations count toward GLOBAL promotion;
-- revoking consent excludes their evidence at the next projection rebuild.
+- revoking consent appends an exclusion marker and excludes their evidence at the next projection rebuild;
+- if an automatic promotion loses its two-contributor support and has no valid CONTRIBUTOR/ADMIN authorization, it enters `REVIEW_REQUIRED` and is unavailable for automatic use until reviewed.
 
 ### Export and deletion
 
 - A user can export everything about them: corpus/messages, content, USER knowledge, mappings, observations and verifications they own.
 - A user can delete all of it. Deletion removes messages/content/USER knowledge/mappings and the user's verifications' personal payloads.
-- GLOBAL knowledge is kept. Observations that supported GLOBAL items are **detached**: `userId` set to null and replaced by a non-reversible tombstone id (so `distinctUsers` stays countable), personal payload fields stripped. GLOBAL projections stay reproducible without personal data.
+- GLOBAL knowledge is kept. Observations that supported GLOBAL items are **detached**: `userId` set to null and replaced by a non-reversible tombstone id (so `distinctUsers` stays countable), personal payload fields stripped. Only structural type/template/version and a non-reversible anonymous contributor token may remain. The tombstone is eligible only if consent was active at deletion; prior revocation is never undone. GLOBAL items remain stored, but unsupported automatic promotions enter review and cannot be used automatically. Historical runs with missing evidence are marked `INCOMPLETE`.
 
 ### Per-user isolation
 

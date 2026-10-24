@@ -58,7 +58,7 @@ Auto-promotion with evidence from >= 2 distinct consenting users (or a CONTRIBUT
 
 ## Retention and deletion (decided)
 
-Raw 30 days DEV / 7 days PROD. Users can export and delete everything about them. GLOBAL knowledge stays; their evidence is detached/tombstoned. GLOBAL never contains private data.
+Raw 30 days DEV / 7 days PROD. Users can export and delete everything about them. GLOBAL knowledge stays; only structural tombstones with consent active at deletion remain eligible. Prior revocation is never undone. Unsupported automatic promotions enter REVIEW_REQUIRED and stop automatic use. Runs with removed evidence are INCOMPLETE and excluded from equivalent-evidence comparisons. GLOBAL never contains private data.
 
 ## Roles (decided)
 

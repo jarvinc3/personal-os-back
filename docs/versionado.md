@@ -4,11 +4,30 @@
 
 ## Estado actual
 
-- **Versión actual:** `0.20.0` (2026-10-13).
+- **Versión vigente:** consultar `package.json` y el primer release de `CHANGELOG.md`; no usar una copia estática en este documento.
 - **Etapa:** beta (`0.x`).
 - El 2026-10-13 se reinició el esquema: las versiones `1.4.0` a `1.19.x` pasaron a ser historial y sus tags se borraron. El historial completo sigue en `CHANGELOG.md`.
 
 ## Regla 1: versión y etapa
+
+### Excepción única: reset de arquitectura 0.100.0
+
+Al iniciar AI-0, después de verificar el corte estable de PROD (base prevista
+0.55.1 más hotfixes previos aprobados), backend y web pasan a `0.100.0`
+**unreleased**. Los commits del programa acumulan cambios bajo
+`Unreleased — 0.100.0`, sin bump, release ni tag por sesión. Esta excepción
+prevalece sobre la regla general de release por sesión. Las correcciones
+independientes previas al reset siguen con PATCH normal.
+
+La rama de hotfixes del backend será `release/0.55.x`, creada desde el master
+estable verificado al iniciar el reset. El master local antiguo no acredita
+el despliegue de 0.55.1. No se crea esa rama anticipadamente. El owner decide
+merges y deploys. `0.100.0` solo puede salir tras AI-11 y los gates integrados;
+AI-12 pertenece a `0.101.0`. Después del release final vuelve la política normal.
+
+Detalle: [decisiones de implementación](refactors/01-IMPLEMENTATION-DECISIONS.md).
+
+### Política general
 
 1. Mientras el proyecto esté en beta, la versión es siempre `0.MINOR.PATCH`.
 2. **MINOR** (`0.20.0` → `0.21.0`): una función nueva, una pantalla, un endpoint, una capacidad visible o un módulo nuevo (por ejemplo agenda o proyectos). En `0.x` un cambio que rompe compatibilidad también sube MINOR, y se marca en el changelog.

@@ -51,6 +51,10 @@ Still open: consent UX, admin review for GLOBAL promotion, multi-user retention 
 | New `12-REPO-IMPACT.md`: affected web screens/endpoints at Phase 0, Signals vs outbox/BullMQ proposal, ADR and repo-instruction changes. | Fill gaps required before implementation.                                                                                                       |
 | Items still needing owner decision are tagged **[DECISION: Jarvin]**.                                                                    | Make pending decisions searchable.                                                                                                              |
 
+## Update — 2026-10-24
+
+The [implementation decisions](../01-IMPLEMENTATION-DECISIONS.md) and [cut inventory](../02-PHASE-0-INVENTORY.md) resolve the import cut, pre-reset outbox fix, contract placement, consent/deletion semantics and release exception. Earlier changelog entries describe decision history, not implementation status.
+
 ## Purpose
 
 This package is the handoff/context bundle for the redesign of the Personal OS AI architecture and Email Intelligence Engine.

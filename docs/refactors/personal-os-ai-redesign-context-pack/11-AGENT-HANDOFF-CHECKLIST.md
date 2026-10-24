@@ -142,6 +142,10 @@ Read `07-ROADMAP-AND-TESTABLE-PHASES.md` (V1: 13 phases, 0–12) before changing
 
 Every phase from Phase 2 must be verifiable in the web Intelligence Review UI; labeling exists by Phase 3.
 
+## Updated decisions and inventory
+
+Read [implementation decisions](../01-IMPLEMENTATION-DECISIONS.md) and the [updated inventory](../02-PHASE-0-INVENTORY.md). Preserve financial algorithms and their tests through Phase 0; only Gmail ownership is removed. Outbox lease/atomicity is an independent pre-reset fix.
+
 ## Before implementation begins
 
 The next technical deliverable should include:

@@ -1,0 +1,279 @@
+{
+  "capturedAt": "2026-10-24",
+  "sourceRevision": "a0aa950b1bddcde83ccb6b0551c9a5ea1636290c",
+  "note": "Incluye las dos migraciones nuevas de lease y defaults UUID, aún no incluidas en el SHA de origen. Inventario de evidencia, no baseline propuesta ni autorización de reset.",
+  "migrations": [
+    {
+      "path": "packages/database/prisma/migrations/20260804160000_baseline/migration.sql",
+      "sha256": "20d2ae8b3e4411068d43a0de4f7428a6084c806ae1708dd5870465ea8fd149b9"
+    },
+    {
+      "path": "packages/database/prisma/migrations/20260804160000_baseline/supabase-baseline.sql",
+      "sha256": "0387f4a58cce07dbc17021031a9b246ff4c520ced17ab504422a7aeeb5ed4c1c"
+    },
+    {
+      "path": "packages/database/prisma/migrations/20260804161000_auth_deletion_outbox/migration.sql",
+      "sha256": "6965cd62fe069d6e8296d3bd21b8fa995bf284c8c288703e5311d43b9fe47a31"
+    },
+    {
+      "path": "packages/database/prisma/migrations/20260806120000_normalize_finance_schema/migration.sql",
+      "sha256": "fb2aa76f1424fca70b7c627911cb3e2049260f6ca636fc5ebdaed4b0d45721a1"
+    },
+    {
+      "path": "packages/database/prisma/migrations/20260807120000_finance_hexagonal_events_fx/migration.sql",
+      "sha256": "8ea8d39026b33233181eeac06a7673d20ac474f24020f6a74d7054e992e40e8b"
+    },
+    {
+      "path": "packages/database/prisma/migrations/20260812140000_mutable_model_timestamps/migration.sql",
+      "sha256": "5df9af2401c8b5a032955d6b00facc2ad38199c8a1b0cfe6f1385913d65ae930"
+    },
+    {
+      "path": "packages/database/prisma/migrations/20260820190000_fin_email_messages/migration.sql",
+      "sha256": "943ea1309bec7a9d7bd4ab52e048af24f27a19951d669594e038dba37d0e5140"
+    },
+    {
+      "path": "packages/database/prisma/migrations/20260901193000_fin_accounts_institution_optional/migration.sql",
+      "sha256": "5bb34b20cf9654175902c3b66fbfdd2e87d095baacdf29c342a1a26a26279b40"
+    },
+    {
+      "path": "packages/database/prisma/migrations/20260901210000_fin_accounts_require_institution/migration.sql",
+      "sha256": "ad6035307c5dc2a7037b5e0104e671a0b7dae797bd9b8a7bdea502f1953c06e3"
+    },
+    {
+      "path": "packages/database/prisma/migrations/20260904180000_finance_ownership_email_connections/migration.sql",
+      "sha256": "cd8cb74602e3fe3aa4232c4a4998bc2486c5fc742f66c19fc39745ec4bb91830"
+    },
+    {
+      "path": "packages/database/prisma/migrations/20260904210000_account_card_email_message_fk/migration.sql",
+      "sha256": "aa222d6b48b43d196c1d10d530ef1325e1d4652dc645e4340a17d96409a61632"
+    },
+    {
+      "path": "packages/database/prisma/migrations/20260916140000_add_email_source_sender_and_user_institution_unique/migration.sql",
+      "sha256": "3b7b3066185b7b42e824c05654e91ca714e5ed7e4a3e9e31fe7cc397767862f8"
+    },
+    {
+      "path": "packages/database/prisma/migrations/20260916210000_add_fin_category_type/migration.sql",
+      "sha256": "c30a7fbdda28c08c4c75aa5306dfc05f0fbb51f2c903d8471171758c5359d799"
+    },
+    {
+      "path": "packages/database/prisma/migrations/20260923120000_fin_account_number_and_email_hint/migration.sql",
+      "sha256": "b81f7860590f91e11651bdf2a1731be7d8841bd82704893fed61585851350f6c"
+    },
+    {
+      "path": "packages/database/prisma/migrations/20260929120000_institution_logos/migration.sql",
+      "sha256": "1bd8f6ede1dac51ef069df33ae9c402e37386d5ee143ae3768fbf1c92c540002"
+    },
+    {
+      "path": "packages/database/prisma/migrations/20261001140000_email_sync_findings/migration.sql",
+      "sha256": "6b5dc98bbf8b6c52836ec8db6f5845246f4f3e839dfd94b7e72821a0f8fa5291"
+    },
+    {
+      "path": "packages/database/prisma/migrations/20261002120000_email_transaction_dedupe/migration.sql",
+      "sha256": "575c6550aac70b364a9e99463c317b0293690d38df15b328afddd3a1fedbf445"
+    },
+    {
+      "path": "packages/database/prisma/migrations/20261003120000_align_user_defaults_and_account_index/migration.sql",
+      "sha256": "1030f4d0055fa8df9340cb39f56c9523058e8d46378bb407cb36ce69fec396ca"
+    },
+    {
+      "path": "packages/database/prisma/migrations/20261003130000_align_institution_fks/migration.sql",
+      "sha256": "254ee71179ea62890a4808590e88283b198a79abaa42a01ae78baa2331f064d9"
+    },
+    {
+      "path": "packages/database/prisma/migrations/20261007120000_system_child_category_colors/migration.sql",
+      "sha256": "a4c37836f2b748760d7822f42d661d71e7d1bd95233429ceb90660d12fb8c75d"
+    },
+    {
+      "path": "packages/database/prisma/migrations/20261008124049_finance_cascade_institution_category/migration.sql",
+      "sha256": "171867159bb1ef495cea9092f237f0953adaba8ea37b4b8dc2177c5fc2f7d09f"
+    },
+    {
+      "path": "packages/database/prisma/migrations/20261008141831_fin_loans_account_cascade/migration.sql",
+      "sha256": "daab1d8214834173a8a02361e1ba9807ac547484876254b0091355a1a6e64189"
+    },
+    {
+      "path": "packages/database/prisma/migrations/20261009050000_fin_transaction_adjustment/migration.sql",
+      "sha256": "6660296adde4f2ad7f35d2744437c82321e7965044043f818abf2204e44a778d"
+    },
+    {
+      "path": "packages/database/prisma/migrations/20261010090000_fin_card_statements_loan_installments/migration.sql",
+      "sha256": "a9843c59921cbf42d2a6e63ba577dad9cd22f985626457b28880872b4ba111a4"
+    },
+    {
+      "path": "packages/database/prisma/migrations/20261011120000_fin_savings_goal_contributions/migration.sql",
+      "sha256": "7178bae99097789aa07faf51cba58a38d22cad7008d94c188199eb60fdbdb356"
+    },
+    {
+      "path": "packages/database/prisma/migrations/20261012120000_fin_receivable_payments_and_installment_transaction/migration.sql",
+      "sha256": "c6eee2c2ffc998fd14ad64f222ac2cae24a2b13b01f152d58be48b29625c64ac"
+    },
+    {
+      "path": "packages/database/prisma/migrations/20261013120000_fin_savings_goal_contribution_account/migration.sql",
+      "sha256": "8e42c933997b1d45e2d736400586caa2d50d0b936ae402d161f49dde3a12069e"
+    },
+    {
+      "path": "packages/database/prisma/migrations/20261015120000_fin_deletion_journal/migration.sql",
+      "sha256": "a559437ba93501a7b04ffd4896668ce8cfa46f49136871db09e7615640d38e52"
+    },
+    {
+      "path": "packages/database/prisma/migrations/20261015130000_fin_instrument_events/migration.sql",
+      "sha256": "969b3d46cf9b5d8dbbb8fb21e1fffc620b68e7c8625a3f6371d2315774e6d046"
+    },
+    {
+      "path": "packages/database/prisma/migrations/20261015140000_fin_transfer_legs/migration.sql",
+      "sha256": "e11db75573304638b9390b6329da1a88146ae1f7dacd0923c6b72ec18d518f6a"
+    },
+    {
+      "path": "packages/database/prisma/migrations/20261015150000_fin_deletion_journal_retention/migration.sql",
+      "sha256": "ff07123eda7d3628103992b4482e412c3f3e90fb5009f212194aefe4df6c7f64"
+    },
+    {
+      "path": "packages/database/prisma/migrations/20261015160000_fin_card_payment_enum/migration.sql",
+      "sha256": "33db088fa1247456e801097a398c6a813f073bfdb165c1a28f96e48e5985231f"
+    },
+    {
+      "path": "packages/database/prisma/migrations/20261015160100_fin_card_statement_status/migration.sql",
+      "sha256": "dcd7202dc4d5d72dc166a282f497e074fb6bdaf590dd4b596f2b6cb630db6419"
+    },
+    {
+      "path": "packages/database/prisma/migrations/20261015170000_fin_loan_schedule/migration.sql",
+      "sha256": "d42383bb438044805ec4fd4c0737a9457d688bab2a8e35fdade189a491189521"
+    },
+    {
+      "path": "packages/database/prisma/migrations/20261015170100_fin_loan_payment_category/migration.sql",
+      "sha256": "2d86ff4f7a5b7bc7be31b30ce012ee500ae66deafdf2cefd2291589575ae0239"
+    },
+    {
+      "path": "packages/database/prisma/migrations/20261015180000_fin_goal_mode/migration.sql",
+      "sha256": "73393084d6efdd353dc50f466021cca6a4b18fd5aa84b55b26c5823d58ec3039"
+    },
+    {
+      "path": "packages/database/prisma/migrations/20261015190000_fin_receivable_written_off/migration.sql",
+      "sha256": "76a80881485c8d153c19a9d6a2776cecd8a7d442457b9bc425e7b7c3dd0e6424"
+    },
+    {
+      "path": "packages/database/prisma/migrations/20261015190100_fin_receivable_excess/migration.sql",
+      "sha256": "eecc5ac4fde4401d92e391949286dc38ff4193445c1193f890626e41e247d4b9"
+    },
+    {
+      "path": "packages/database/prisma/migrations/20261015190200_fin_extra_income_category/migration.sql",
+      "sha256": "3b78523674911e6d9d8b9bc09678e2d8036024534cb35fe8012624e3e08a6bfc"
+    },
+    {
+      "path": "packages/database/prisma/migrations/20261015200000_fin_budget_categories/migration.sql",
+      "sha256": "570bdfdfecb28dd848d3f1d6cb8287504152698b1c05873640bdd846f4b09591"
+    },
+    {
+      "path": "packages/database/prisma/migrations/20261015210000_fin_email_idempotency/migration.sql",
+      "sha256": "39e95693902f773e2df8fc68d0b736f174b16e4912af7def84402b8b4f8da9df"
+    },
+    {
+      "path": "packages/database/prisma/migrations/20261015220000_fin_card_charge_categories/migration.sql",
+      "sha256": "c29ce3b03bc085c292bf8339920bcc6856dd4eaa14443e7ad0d803e6b7a2c72b"
+    },
+    {
+      "path": "packages/database/prisma/migrations/20261015220000_fix_schema_drift/migration.sql",
+      "sha256": "dc4ec47683fcb20749a58a72918f68bbc28119d30a347884f56833ff6a7cda8c"
+    },
+    {
+      "path": "packages/database/prisma/migrations/20261015230000_fin_statement_imports/migration.sql",
+      "sha256": "4a1a741ba386a705dc1ab40d390300359c29691832eac7be6653bf9de3209f07"
+    },
+    {
+      "path": "packages/database/prisma/migrations/20261016090000_ai_session_chat_context/migration.sql",
+      "sha256": "362cdffd757842c14b849bb8942e1f34cc56e13f97780585cbbdbe8d7f3b45df"
+    },
+    {
+      "path": "packages/database/prisma/migrations/20261017090000_fin_merchants_recurring/migration.sql",
+      "sha256": "8607ceded5b92c8e6d96c32b7eb50f72236cd5e222a3a05b9912fc429b347242"
+    },
+    {
+      "path": "packages/database/prisma/migrations/20261018090000_fin_subscriptions/migration.sql",
+      "sha256": "5ec02603e2175cdd4e92bedc92b2a361ff5f3b518e7cb5f768d6ad1a7d368c14"
+    },
+    {
+      "path": "packages/database/prisma/migrations/20261018090100_remove_subscriptions_module/migration.sql",
+      "sha256": "4a72c6874a59c1daa1274d0fc4580872f881d866d428d0549e34c49715ffab6d"
+    },
+    {
+      "path": "packages/database/prisma/migrations/20261019090000_fin_reconciliations/migration.sql",
+      "sha256": "559f283490d87d9857a177a4a2134f1dd1ad04acb2430ff07971ac219762072a"
+    },
+    {
+      "path": "packages/database/prisma/migrations/20261019120000_fin_subscriptions_categories_alerts/migration.sql",
+      "sha256": "65c0bcd2d3f669b7386940a562156fe15c6ed61d7eddf7239be936f6feb2df0e"
+    },
+    {
+      "path": "packages/database/prisma/migrations/20261020120000_fin_balance_drifts/migration.sql",
+      "sha256": "6afb1c026aabeaf125247e36156c93d352e9253b8e2814573190b5d321993b64"
+    },
+    {
+      "path": "packages/database/prisma/migrations/20261021090000_fin_subscription_amount_mismatch/migration.sql",
+      "sha256": "f1134babe8d42a4dff8d383adb4cf709911892d1b5100303d7e3f9bb5c646ece"
+    },
+    {
+      "path": "packages/database/prisma/migrations/20261021100000_subscription_reminder_days_default/migration.sql",
+      "sha256": "23086e4e371b5995014d30b7ace5f7ad40be602e99b76af1be3ec1f9280958ac"
+    },
+    {
+      "path": "packages/database/prisma/migrations/20261021110000_fin_cash_institution/migration.sql",
+      "sha256": "542f8b082d8ed1b9ae6c1183170600b01bf56d37b8cf693313129153940189b9"
+    },
+    {
+      "path": "packages/database/prisma/migrations/20261022000000_db_functions_triggers/migration.sql",
+      "sha256": "0c36013a1722244ea62d5d17c83ade6de35e1f6050360c5660ba2620e6ca0e6c"
+    },
+    {
+      "path": "packages/database/prisma/migrations/20261022100000_idempotency_keys/migration.sql",
+      "sha256": "a81540ed138253f0c6a712bc2f4eb4e99d65823f3d12a58daadee9ceafc05c76"
+    },
+    {
+      "path": "packages/database/prisma/migrations/20261022110000_user_last_seen_release_version/migration.sql",
+      "sha256": "48a81cc39c1e0a2a8b64a2358bb74de589680894a3935146c1980cc6bd14dba1"
+    },
+    {
+      "path": "packages/database/prisma/migrations/20261023090000_fin_receivable_shares/migration.sql",
+      "sha256": "e9892a90de12610ce43fe679226003eeef0584b5eb3c13336d65a11821bee9e6"
+    },
+    {
+      "path": "packages/database/prisma/migrations/20261024090000_fin_account_encryption_and_schema_hardening/migration.sql",
+      "sha256": "997ccf82cc0ce37b68f4be3dcb722ab03f597c3ee6381963fc87fcd0a343d9fa"
+    },
+    {
+      "path": "packages/database/prisma/migrations/20261025090000_fin_transfer_estimated_rate/migration.sql",
+      "sha256": "442318b93d2f7c9aeee3afd2f72432e2dd02ad6c12587bab5b27de5d96d9c2f0"
+    },
+    {
+      "path": "packages/database/prisma/migrations/20261026090000_fin_loan_disbursement_goal_withdrawal/migration.sql",
+      "sha256": "9251de5d206eaa09b907315ab8afac2a17ceb24440ea734eb659ae9740ef13eb"
+    },
+    {
+      "path": "packages/database/prisma/migrations/20261027090000_close_public_data_api_169/migration.sql",
+      "sha256": "023be0be873a659a559a34214372cf830320bd863feda548acca85355ecce7cd"
+    },
+    {
+      "path": "packages/database/prisma/migrations/20261028090000_fin_merchant_category_source/migration.sql",
+      "sha256": "69d9d433d1e15f29e49c9207e3233a0e624f46d4e8e9aed5365943828fb10982"
+    },
+    {
+      "path": "packages/database/prisma/migrations/20261030090000_fin_merchant_aliases/migration.sql",
+      "sha256": "227df0547a49eb73f9542118584807fc860aedd1f175308667c54938cd42aeac"
+    },
+    {
+      "path": "packages/database/prisma/migrations/20261031090000_fin_merchant_duplicate_dismissals/migration.sql",
+      "sha256": "0bde1c54b7a51210234d91bbea644aff1787329c9247ca7b86d4e61ca7073cf9"
+    },
+    {
+      "path": "packages/database/prisma/migrations/20261101090000_fin_merchant_logo_domain/migration.sql",
+      "sha256": "61408850002a629253cc1441d308ebd88ed9987260cd7bb0b61197e97d2bb281"
+    },
+    {
+      "path": "packages/database/prisma/migrations/20261101090001_outbox_delivery_lease/migration.sql",
+      "sha256": "2a4102b45f1e26f888d9597c0ea70b3ac06eae433a58117a3be18e96be0a634e"
+    },
+    {
+      "path": "packages/database/prisma/migrations/20261101090002_align_merchant_id_defaults/migration.sql",
+      "sha256": "49373cb828cfe890978a9dc932692103ee6f084ce7b7c091d783cd99ff814916"
+    }
+  ]
+}
