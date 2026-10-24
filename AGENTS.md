@@ -87,9 +87,10 @@ Una migración aplicada no se toca. Prisma la identifica por el nombre de su car
 Detalle en [docs/infrastructure/database.md](docs/infrastructure/database.md#migraciones-y-fechas).
 
 Excepción única de AI-0: se permite reemplazar el historial por una baseline en
-repo/DEV tras inspeccionar PROD `_prisma_migrations` de solo lectura, comprobar
-el SQL preservado y preparar backup/rebuild DEV. Fuera de ese paso se mantienen
-las reglas anteriores. Los agentes nunca aplican migraciones ni resets a PROD.
+repo/DEV tras inspeccionar PROD `_prisma_migrations` de solo lectura y comprobar
+el SQL preservado. Para este DEV, Jarvin autorizó perder los datos de prueba sin
+backup ni restauración. Fuera de ese paso se mantienen las reglas anteriores.
+Los agentes nunca aplican migraciones ni resets a PROD.
 
 ## Checklist al cambiar comportamiento
 

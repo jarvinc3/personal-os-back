@@ -2,21 +2,21 @@
 
 Seguimiento: [#193](https://github.com/jarvinc3/personal-os-back/issues/193).
 
-| Fase                   | Given / When / Then                                                                                                    | Evidencia requerida                               |
-| ---------------------- | ---------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------- |
-| AI-0 esquema           | Dada una base vacía, al aplicar baseline, existen 44 tablas, 18 checks y 4 índices parciales conservados               | Catálogo SQL y drift Prisma                       |
-| AI-0 aislamiento       | Dados dos usuarios, al consultar con rol autenticado y filtro de identidad, no se leen filas ajenas                    | PostgreSQL real; no mock                          |
-| AI-0 privilegios       | Dada una conexión anon/authenticated, al intentar acceso directo, los REVOKE siguen vigentes                           | Grants y prueba de permisos                       |
-| AI-0 Auth              | Dadas identidades nuevas y anteriores al reset, al disparar alta/reconciliar, existe un perfil único                   | Trigger y reconciliación idempotente              |
-| AI-0 Finance           | Dados fixtures de importación, al retirar FinEmail, dedupe, reversos, resolución y transferencias conservan resultados | Suites financieras ejecutables sin skip           |
-| AI-0 acciones          | Dado un usuario ajeno o estado no PENDING, al reclamar/cancelar, no se cambia la acción                                | CAS persistido sin joins de sesión                |
-| AI-0 superficie        | Dado el corte desplegado, al invocar chat/Gmail o sus schedulers, no existen rutas/productores antiguos                | E2E HTTP y registro de workers                    |
-| AI-0 preservación      | Dados Resend, entidad financiera, settings y wipe vigentes, al usarlos siguen funcionando                              | E2E y smoke Supabase DEV/web                      |
-| AI-1 inferencia        | Dado fallo de proveedor, al completar, fallback/pool preservan comportamiento y métricas                               | Unitarias del pool y timeout/cancelación          |
-| AI-1 límites           | Dado consumidor de inferencia, al compilar, no depende de chat ni importa Finance                                      | Build de paquetes y grafo de imports              |
-| AI-2 settings          | Dados ajustes anteriores, al normalizar/aplicar patch, defaults y valores válidos se conservan                         | Fixtures de migración; rechazo de patch inválido  |
-| AI-2 aislamiento       | Dados dos usuarios, al cambiar rol/consentimiento, solo cambia configuración propia y queda versión/auditoría          | Integración PostgreSQL y E2E autenticado          |
-| AI-2 no consentimiento | Dado usuario nuevo o revocación, al producir evidencia, no se incorpora a GLOBAL sin autorización vigente              | Tests de política; integración completa en AI-3/4 |
+| Fase                   | Given / When / Then                                                                                                     | Evidencia requerida                                 |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- |
+| AI-0 esquema           | Dada una base vacía, al aplicar baseline, existen 44 tablas, 18 checks y 4 índices parciales conservados                | Catálogo SQL y drift Prisma                         |
+| AI-0 aislamiento       | Dados dos usuarios, al consultar con rol autenticado y filtro de identidad, no se leen filas ajenas                     | PostgreSQL real; no mock                            |
+| AI-0 privilegios       | Dada una conexión anon/authenticated, al intentar acceso directo, los REVOKE siguen vigentes                            | Grants y prueba de permisos                         |
+| AI-0 Auth              | Dadas identidades nuevas, preexistentes y eliminadas, alta/reconciliación crea perfiles únicos y Auth DELETE los limpia | Triggers y reconciliación idempotente en PostgreSQL |
+| AI-0 Finance           | Dados fixtures de importación, al retirar FinEmail, dedupe, reversos, resolución y transferencias conservan resultados  | Suites financieras ejecutables sin skip             |
+| AI-0 acciones          | Dado un usuario ajeno o estado no PENDING, al reclamar/cancelar, no se cambia la acción                                 | CAS persistido sin joins de sesión                  |
+| AI-0 superficie        | Dado el corte desplegado, al invocar chat/Gmail o sus schedulers, no existen rutas/productores antiguos                 | E2E HTTP y registro de workers                      |
+| AI-0 preservación      | Dados Resend, entidad financiera, settings y wipe vigentes, al usarlos siguen funcionando                               | E2E y smoke Supabase DEV/web                        |
+| AI-1 inferencia        | Dado fallo de proveedor, al completar, fallback/pool preservan comportamiento y métricas                                | Unitarias del pool y timeout/cancelación            |
+| AI-1 límites           | Dado consumidor de inferencia, al compilar, no depende de chat ni importa Finance                                       | Build de paquetes y grafo de imports                |
+| AI-2 settings          | Dados ajustes anteriores, al normalizar/aplicar patch, defaults y valores válidos se conservan                          | Fixtures de migración; rechazo de patch inválido    |
+| AI-2 aislamiento       | Dados dos usuarios, al cambiar rol/consentimiento, solo cambia configuración propia y queda versión/auditoría           | Integración PostgreSQL y E2E autenticado            |
+| AI-2 no consentimiento | Dado usuario nuevo o revocación, al producir evidencia, no se incorpora a GLOBAL sin autorización vigente               | Tests de política; integración completa en AI-3/4   |
 
 AI-3/4 completan marcas separadas, tombstones y reconstrucción: retirar evidencia
 debe desactivar una promoción automática insuficiente llevándola a revisión;
@@ -35,9 +35,11 @@ explícita loopback y nunca carga credenciales de `.env`. No reinicia una base
 existente. El resultado acredita SQL, no APIs gestionadas de Supabase.
 
 La rama también pasa las suites unitarias back/web, 120 E2E back relevantes,
-build Nest/paquetes, typecheck web y sus gates de lint/formato. La matriz de
-smoke final sobre Supabase DEV sigue pendiente de identificar y restaurar ese
-proyecto.
+build Nest/paquetes, typecheck web y sus gates de lint/formato. El smoke contra
+Supabase DEV pasó desde este checkout para Auth, perfil, Finance, settings,
+notificaciones, marcas y wipe; chat/Gmail responden 404. El API no se ha
+desplegado ni reabierto en Railway DEV. Jarvin autorizó perder los datos de
+prueba sin dump, backup ni restauración; PROD permanece fuera de alcance.
 
 Para reproducir: levantar un cluster local aislado con roles de fixture
 anon/authenticated/service_role, definir `AI0_VALIDATION_ADMIN_URL` apuntando

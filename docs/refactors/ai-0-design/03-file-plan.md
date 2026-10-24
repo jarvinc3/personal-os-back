@@ -1,6 +1,7 @@
 # Plan de archivos del corte
 
-Estado: corte de código implementado en `refactor/ai-0`; reset remoto pendiente;
+Estado: corte de código implementado en `refactor/ai-0`; reset y baseline DEV
+ejecutados el 2026-10-24;
 [#193](https://github.com/jarvinc3/personal-os-back/issues/193). El
 [manifiesto](artifacts/file-plan.json) es el inventario base del plan; los
 cambios y archivos nuevos ya se aplican en los checkouts back/web.

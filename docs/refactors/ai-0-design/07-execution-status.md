@@ -31,17 +31,39 @@ pendientes; el corte AI-0 del runtime sí está implementado en la rama.
 
 ## Gate operativo
 
-El owner confirmó corte PROD 0.55.3 y backup DEV el 2026-10-24. Se recibió y
+El owner confirmó corte PROD 0.55.3 el 2026-10-24. Se recibió y
 auditó el reporte de metadatos PostgreSQL de PROD: 67 migraciones aplicadas,
 sin pendientes, extensiones y objetos, RLS/policies, grants y cuatro índices
 parciales fueron comparados con los artefactos locales. No se escribió en PROD.
 
 AI-0 continúa como trabajo aislado con 0.100.0 unreleased, sin tags, releases
 ni deploys. La baseline pasó `migrate deploy`, comparación de drift y 18
-validaciones contra PostgreSQL local 17. El reset Supabase DEV sigue pendiente
-de identificar la conexión/proyecto correcto y demostrar la restauración del
-backup de ese proyecto.
+validaciones contra PostgreSQL local 17. Jarvin decidió que no se requiere
+dump, backup ni restauración: los datos DEV son de prueba y se acepta su pérdida.
+La configuración local apunta al proyecto DEV `knqfgybflkpzplkqcocz`. El
+preflight remoto confirmó PostgreSQL 17.11, 59 migraciones antiguas y 49 tablas
+`public` con RLS. El 2026-10-24 se retiraron en una transacción las 49 tablas,
+los 38 enums de aplicación y el trigger/Auth helper legado; luego se aplicó
+`20261101090003_ai0_baseline` y se ejecutó `06-dev-auth-reconcile.sql`.
+Luego se aplicó `20261101090004_auth_user_delete_cascade`, que elimina el perfil
+de `public.users` cuando se borra directamente la identidad Auth y deja que sus
+FKs limpien los datos asociados.
 
-El backup y el corte se registran como confirmación del owner, no como una
-restauración ejecutada por el agente. No se necesitan secretos en el chat.
-Los gates y comandos de ensayo están en [05-runbook.md](05-runbook.md).
+La verificación remota encontró 45 tablas `public` incluyendo el historial,
+todas con RLS; 23 policies, 18 checks, 4 índices parciales, 4 módulos, 31
+categorías y 1 perfil reconciliado con la identidad Auth existente. Auth,
+Storage, `uuid-ossp`, el event trigger `ensure_rls` y el bucket `logos` se
+preservaron. No se escribió en PROD. El smoke de API desde este checkout contra
+Supabase DEV pasó para Auth, perfil, settings, Finance, notificaciones, marcas
+y wipe; las rutas chat/Gmail devuelven 404. Se usó Redis local Docker. Los
+workers reiniciaron y readiness devolvió 200; al no haber jobs pendientes, no
+se pudo ejercitar recuperación de leases. En Redis Railway DEV se retiraron
+solo las claves de `gmail-sync` (32 claves terminales) y `ai-processing` (2
+metadatos), preservando las colas vigentes. El deploy/reapertura del servicio
+API Railway DEV queda pendiente del pipeline habitual. PROD sigue sin cambios.
+Una prueba transaccional en DEV confirmó alta del perfil por INSERT, limpieza
+por DELETE de Auth y rollback completo del usuario sintético.
+
+La decisión del owner sobre los datos de prueba reemplaza el gate de backup y
+restauración. No se necesitan secretos en el chat. El resultado y los pasos
+pendientes están en [05-runbook.md](05-runbook.md).

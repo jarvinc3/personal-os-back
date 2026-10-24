@@ -5,10 +5,12 @@ PostgreSQL local**, preparado el 2026-10-24 sobre `origin/develop` `da123e1`
 (`0.55.3`).
 Seguimiento: [programa #193](https://github.com/jarvinc3/personal-os-back/issues/193).
 Avance preparatorio de código: [estado de ejecución](07-execution-status.md).
-El owner confirmó el corte PROD y el backup DEV. El preflight PROD readonly fue
-entregado y auditado; no se ha escrito en PROD ni se ha reseteado Supabase DEV.
-La ejecución remota espera la identificación inequívoca del proyecto DEV y una
-restauración verificada. Los archivos de `artifacts/` no son migraciones activas.
+El owner confirmó el corte PROD y autorizó resetear DEV sin backup ni
+restauración porque sus datos son de prueba. El preflight PROD readonly fue
+entregado y auditado; la baseline se aplicó únicamente en DEV el 2026-10-24. No
+se ha escrito en PROD. El proyecto DEV identificado es
+`knqfgybflkpzplkqcocz`. Los archivos de
+`artifacts/` no son migraciones activas.
 
 | Entregable                             | Documento / artefacto                                                                                   |
 | -------------------------------------- | ------------------------------------------------------------------------------------------------------- |
@@ -57,16 +59,21 @@ El corte de código compila y sus pruebas unitarias y E2E se ejecutan en la rama
 el comportamiento activo no se ha desplegado y conserva como rollback el
 origen `0.55.3`.
 
-## Gates pendientes antes de ejecutar
+## Estado y gates restantes
 
-- Identificar el proyecto/conexión de Supabase DEV sin compartir secretos y
-  verificar una restauración del backup correspondiente.
-- Aplicar y verificar la baseline en ese DEV; no usar el SQL de esquema local
-  de contexto como script de ejecución.
+- Resetear y aplicar/verificar la baseline en DEV; completado el 2026-10-24.
+  No se requirió backup ni restauración por decisión del owner; PROD quedó fuera
+  de alcance.
+- Aplicar y comprobar el trigger de borrado directo de Auth; completado en DEV
+  mediante migración posterior y prueba transaccional reversible.
 - Evidencia operativa de los fallos OAuth. El diagnóstico estático identifica
   casos concretos, pero no atribuye a uno de ellos los incidentes reportados.
-- Ejecutar smoke tests sobre DEV aislado y comprobar jobs, Auth, RLS, logos y
-  balances antes de reabrir sus escritores.
+- El smoke de API contra Supabase DEV pasó desde este checkout: alta/login/baja
+  de usuario sintético, perfil, settings, Finance, notificaciones, marcas,
+  ramas y wipe; chat/Gmail responden 404. Se usó Redis local Docker. Los workers
+  vigentes arrancaron tras reiniciar el proceso y readiness respondió 200; no
+  había jobs pendientes para probar recuperación de lease. Falta desplegar este
+  SHA al servicio Railway DEV y reabrirlo.
 
 La excepción a release por sesión para AI-0 está activa: ambos repos se
 mantienen en `0.100.0` unreleased hasta decisión del owner tras AI-11.

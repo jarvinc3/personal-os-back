@@ -2,7 +2,8 @@
 
 Inventario refrescado el 2026-10-24 sobre `origin/develop` `da123e1` (0.55.3),
 antes del corte de código AI-0. La rama de ejecución implementa el corte; el
-reset remoto DEV sigue pendiente de identificar y autorizar el proyecto correcto.
+reset remoto y la baseline se aplicaron al proyecto DEV autorizado
+`knqfgybflkpzplkqcocz` el 2026-10-24.
 Decisiones: [01-IMPLEMENTATION-DECISIONS.md](01-IMPLEMENTATION-DECISIONS.md).
 
 ## Finance: preservar implementación y pruebas
@@ -236,11 +237,10 @@ URL obtenida implícitamente de .env para una demo o una prueba.
   `personal-os-web` en la misma rama. No se tocan `docs/handoff/` ni la imagen
   protegida de marca.
 
-## Gates antes del reset
+## Ejecución y gates restantes
 
-1. Confirmar el corte PROD 0.55.3 y el backup DEV con el owner; ambos fueron
-   confirmados el 2026-10-24. El preflight PROD se recibió y auditó en modo
-   readonly; no se hicieron escrituras remotas.
+1. Confirmar el corte PROD 0.55.3 con el owner (2026-10-24). El preflight PROD
+   se recibió y auditó en modo readonly; no se hicieron escrituras remotas.
 2. Baseline, SQL complementario, Prisma schema y branches de wipe están
    implementados. `migrate deploy`, drift y 18 validaciones corrieron contra
    PostgreSQL local desechable; esto no sustituye Supabase DEV.
@@ -248,7 +248,21 @@ URL obtenida implícitamente de .env para una demo o una prueba.
    documentado como no atribuible sin logs operativos.
 4. Las reglas financieras conservadas mantienen pruebas de caracterización;
    los gates de build, unit, E2E y PostgreSQL real se ejecutan en esta rama.
-5. El reset de DEV no se inicia hasta identificar el proyecto/conexión DEV y
-   comprobar una restauración del backup de ese proyecto.
-6. Conservar el SHA anterior para rollback de código. Un rollback no restaura
-   por sí solo una base reseteada.
+5. Jarvin confirmó que los datos DEV son de prueba y autorizó resetearlos sin
+   dump, backup ni restauración. El 2026-10-24 se validó la conexión al proyecto
+   DEV `knqfgybflkpzplkqcocz` y se ejecutó el reset más la baseline. PROD no se
+   tocó.
+6. Conservar el SHA anterior para rollback de código. No hay rollback de datos:
+   la pérdida de los datos de prueba está aceptada; un rollback solo devuelve un
+   binario compatible con el esquema que exista.
+7. La verificación estructural DEV encontró 45 tablas `public` con RLS, 23
+   policies, 18 checks, 4 índices parciales, 4 módulos, 31 categorías y un perfil
+   Auth reconciliado. La migración `20261101090004_auth_user_delete_cascade`
+   limpia el perfil y sus filas dependientes al borrar directamente una identidad
+   Auth; una prueba transaccional verificó alta y eliminación del perfil y revirtió
+   el usuario sintético. El smoke de API contra DEV pasó para Auth, settings,
+   Finance, notificaciones, marcas y wipe; las rutas chat/Gmail dan 404. Workers
+   reiniciados y readiness 200 con Redis Docker local. No había jobs pendientes
+   para probar leases. Se limpiaron en Railway DEV solo las claves terminales de
+   `gmail-sync` y los metadatos de `ai-processing`. El deploy/reapertura del API
+   Railway DEV queda pendiente; PROD no se tocó.

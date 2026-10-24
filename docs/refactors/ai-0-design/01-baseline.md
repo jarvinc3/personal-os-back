@@ -70,7 +70,9 @@ capturado del catálogo PostgreSQL real del fixture.
 - `ai_actions_all_own` usa la columna `user_id`, no un join a la tabla retirada.
 - `handle_new_user` vive en `app_private`, con search_path vacío y sin EXECUTE
   de PUBLIC/anon/authenticated. El trigger de `auth.users` mantiene el alta con
-  id de Auth, email, nombre y avatar. Metadata de usuario sirve para perfil,
+  id de Auth, email, nombre y avatar. La migración posterior
+  `20261101090004_auth_user_delete_cascade` elimina el perfil cuando la identidad
+  se borra directamente desde Auth. Metadata de usuario sirve para perfil,
   nunca para roles de autorización.
 - Todos los triggers `updated_at` se recrean. Se acepta normalizar su nombre
   a `trg_<tabla>_updated_at`; no se cambia cuándo ni cómo actualizan la fecha.
