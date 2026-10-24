@@ -1158,9 +1158,17 @@ describe('Finance (e2e)', () => {
     prismaMock.finAccount.findMany.mockResolvedValue([
       {
         id: 'acc-1',
+        userId: 'user-123',
+        name: 'Ahorros',
+        type: 'SAVINGS',
         institutionId: null,
         balance: new Prisma.Decimal(100),
         currency: 'DOP',
+        color: null,
+        isActive: true,
+        isDefaultForInstitution: false,
+        createdAt: new Date('2026-01-01'),
+        updatedAt: new Date('2026-01-01'),
       },
     ]);
     prismaMock.finCardBalance.findMany.mockResolvedValue([]);
@@ -1187,9 +1195,18 @@ describe('Finance (e2e)', () => {
     prismaMock.finAccount.findMany.mockResolvedValue([
       {
         id: 'acc-1',
+        userId: 'user-123',
+        name: 'Ahorros',
+        type: 'SAVINGS',
         institutionId: 'inst-1',
         currency: 'DOP',
         balance: 150000,
+        color: null,
+        isActive: true,
+        isDefaultForInstitution: false,
+        createdAt: new Date('2026-01-01'),
+        updatedAt: new Date('2026-01-01'),
+        institutionRef: null,
       },
     ]);
     prismaMock.finCardBalance.findMany.mockResolvedValue([
@@ -1237,9 +1254,18 @@ describe('Finance (e2e)', () => {
     prismaMock.finAccount.findMany.mockResolvedValue([
       {
         id: 'acc-usd',
+        userId: 'user-123',
+        name: 'Ahorros USD',
+        type: 'SAVINGS',
         institutionId: 'inst-1',
         currency: 'USD',
         balance: 10,
+        color: null,
+        isActive: true,
+        isDefaultForInstitution: false,
+        createdAt: new Date('2026-01-01'),
+        updatedAt: new Date('2026-01-01'),
+        institutionRef: null,
       },
     ]);
     prismaMock.finCardBalance.findMany.mockResolvedValue([
@@ -1282,11 +1308,17 @@ describe('Finance (e2e)', () => {
     prismaMock.finAccount.findMany.mockResolvedValue([
       {
         id: accountId,
+        userId: 'user-123',
         name: 'Ahorros',
         type: 'SAVINGS',
         institutionId: null,
         currency: 'DOP',
         balance: new Prisma.Decimal(1000),
+        color: null,
+        isActive: true,
+        isDefaultForInstitution: false,
+        createdAt: new Date('2026-01-01'),
+        updatedAt: new Date('2026-01-01'),
       },
     ]);
     prismaMock.finCardBalance.findMany.mockResolvedValue([]);
@@ -1393,7 +1425,20 @@ describe('Finance (e2e)', () => {
     });
     prismaMock.finInstitution.findMany.mockResolvedValue([]);
     prismaMock.finAccount.findMany.mockResolvedValue([
-      { id: 'acc-1', institutionId: null, currency: 'DOP', balance: 100 },
+      {
+        id: 'acc-1',
+        userId: 'user-123',
+        name: 'Ahorros',
+        type: 'SAVINGS',
+        institutionId: null,
+        currency: 'DOP',
+        balance: 100,
+        color: null,
+        isActive: true,
+        isDefaultForInstitution: false,
+        createdAt: new Date('2026-01-01'),
+        updatedAt: new Date('2026-01-01'),
+      },
     ]);
     prismaMock.finCardBalance.findMany.mockResolvedValue([]);
     prismaMock.finLoan.findMany.mockResolvedValue([]);
@@ -3575,6 +3620,8 @@ describe('Finance (e2e)', () => {
         name: 'Supermercado Nacional',
         normalizedKey: 'SUPERMERCADO NACIONAL',
         aliases: ['Nacional'],
+        categoryId: null,
+        categorySource: null,
       },
     });
   });
@@ -3585,5 +3632,42 @@ describe('Finance (e2e)', () => {
       .set('Authorization', `Bearer ${token}`)
       .send({ name: '*** 1234' })
       .expect(400);
+  });
+  it('PATCH /api/finance/merchants/:id confirms the category as manual', async () => {
+    const merchantId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+    const categoryId = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+    prismaMock.finCategory.findFirst.mockResolvedValue({
+      id: categoryId,
+      name: 'Supermercado',
+      type: 'EXPENSE',
+      isSystem: true,
+    });
+    prismaMock.finMerchant.findFirst.mockResolvedValue({
+      id: merchantId,
+      userId: 'user-123',
+      name: 'Supermercado Nacional',
+      normalizedKey: 'SUPERMERCADO NACIONAL',
+      aliases: [],
+      categoryId,
+      categorySource: 'MANUAL',
+      logoUrl: null,
+      createdAt: new Date('2026-10-20T10:00:00.000Z'),
+    });
+    prismaMock.finMerchant.updateMany.mockResolvedValue({ count: 1 });
+
+    await request(app.getHttpServer())
+      .patch(`/api/finance/merchants/${merchantId}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ categoryId })
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.data.categoryId).toBe(categoryId);
+        expect(res.body.data.categorySource).toBe('MANUAL');
+      });
+
+    expect(prismaMock.finMerchant.updateMany).toHaveBeenCalledWith({
+      where: { id: merchantId, userId: 'user-123' },
+      data: { categoryId, categorySource: 'MANUAL' },
+    });
   });
 });

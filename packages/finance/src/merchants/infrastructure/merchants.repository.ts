@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import type { CursorPoint } from '@personal-os/core';
 import type { Prisma } from '@personal-os/database';
 import { PrismaService } from '@personal-os/database';
+import type { FinMerchantCategorySource } from '@personal-os/database';
 import { toMoney } from '../../shared/domain/money';
 
 export type MerchantPage = {
@@ -74,7 +75,13 @@ export class MerchantsRepository {
 
   createMerchant(
     userId: string,
-    data: { name: string; normalizedKey: string; aliases: string[] },
+    data: {
+      name: string;
+      normalizedKey: string;
+      aliases: string[];
+      categoryId?: string | null;
+      categorySource?: FinMerchantCategorySource | null;
+    },
   ) {
     return this.prisma.finMerchant.create({
       data: {
@@ -82,7 +89,17 @@ export class MerchantsRepository {
         name: data.name,
         normalizedKey: data.normalizedKey,
         aliases: data.aliases,
+        categoryId: data.categoryId ?? null,
+        categorySource: data.categorySource ?? null,
       },
+    });
+  }
+
+  /** Categories the user can see, for the keyword guess. */
+  listVisibleCategories(userId: string) {
+    return this.prisma.finCategory.findMany({
+      where: { OR: [{ userId }, { isSystem: true }] },
+      select: { id: true, name: true, type: true },
     });
   }
 
@@ -93,6 +110,7 @@ export class MerchantsRepository {
       name?: string;
       normalizedKey?: string;
       categoryId?: string | null;
+      categorySource?: FinMerchantCategorySource | null;
       logoUrl?: string | null;
       aliases?: string[];
     },

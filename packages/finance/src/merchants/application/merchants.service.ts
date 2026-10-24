@@ -9,7 +9,14 @@ import { Prisma } from '@personal-os/database';
 import { LogoService, type LogoUploadFile } from '@personal-os/logos';
 import { FinanceOwnershipService } from '../../shared/application/finance-ownership.service';
 import { decimalToString } from '../../shared/domain/mappers';
+import { categoryTypeForTransaction } from '../../shared/domain/category-type';
 import { normalizeAliasList } from '../domain/merchant-aliases';
+import { matchCategoryByKeyword } from '../domain/merchant-category-keywords';
+import {
+  canLearnCategory,
+  MERCHANT_CATEGORY_SOURCE,
+  type MerchantCategorySource,
+} from '../domain/merchant-category-source';
 import {
   merchantDisplayName,
   normalizeMerchant,
@@ -35,8 +42,23 @@ type MerchantRow = {
   normalizedKey: string;
   aliases: string[];
   categoryId: string | null;
+  categorySource?: MerchantCategorySource | null;
   logoUrl: string | null;
   createdAt: Date;
+};
+
+type CategoryState = {
+  categoryId: string | null;
+  categorySource: MerchantCategorySource | null;
+};
+
+/** What a movement knows about the merchant it is linking to. */
+export type ResolveMerchantInput = {
+  userId: string;
+  rawName: string | null | undefined;
+  /** Category of the movement, learned by the merchant. */
+  categoryId?: string | null;
+  transactionType?: 'DEBIT' | 'CREDIT' | 'TRANSFER';
 };
 
 /** The `dateTo` bound is a calendar day, so it must cover the whole day. */
@@ -68,6 +90,7 @@ function mapMerchant(row: MerchantRow, spend: MerchantSpend | undefined) {
     normalizedKey: row.normalizedKey,
     aliases: row.aliases,
     categoryId: row.categoryId,
+    categorySource: row.categorySource ?? null,
     logoUrl: row.logoUrl,
     createdAt: row.createdAt.toISOString(),
     monthSpend: decimalToString(spend?.spend ?? 0),
@@ -177,11 +200,18 @@ export class MerchantsService {
     if (dto.categoryId) {
       await this.ownership.assertCategoryVisible(userId, dto.categoryId);
     }
+    const initialCategory = dto.categoryId
+      ? {
+          categoryId: dto.categoryId,
+          categorySource: MERCHANT_CATEGORY_SOURCE.MANUAL,
+        }
+      : await this.guessCategory(userId, { name });
     try {
       const created = await this.repo.createMerchant(userId, {
         name,
         normalizedKey,
         aliases: normalizeAliasList(dto.aliases ?? []),
+        ...initialCategory,
       });
       return this.get(userId, created.id, now);
     } catch (error) {
@@ -201,6 +231,7 @@ export class MerchantsService {
       name?: string;
       normalizedKey?: string;
       categoryId?: string | null;
+      categorySource?: MerchantCategorySource | null;
       logoUrl?: string | null;
     } = {};
     if (dto.name !== undefined) {
@@ -214,7 +245,11 @@ export class MerchantsService {
       changes.normalizedKey = normalizedKey;
     }
     if (dto.categoryId !== undefined) {
+      // Sending the category, even the same one, is the user confirming it.
       changes.categoryId = dto.categoryId;
+      changes.categorySource = dto.categoryId
+        ? MERCHANT_CATEGORY_SOURCE.MANUAL
+        : null;
     }
     if (dto.logoUrl !== undefined) {
       changes.logoUrl = dto.logoUrl?.trim() || null;
@@ -271,26 +306,26 @@ export class MerchantsService {
   }
 
   /** Resolves (creating when needed) the canonical merchant for raw text. */
-  resolve(userId: string, rawName: string | null | undefined) {
-    return this.resolveMerchant({ userId, rawName });
+  resolve(input: ResolveMerchantInput) {
+    return this.resolveMerchant(input);
   }
 
   /** Resolves text the user typed, keeping its capitalisation as the name. */
-  resolveTyped(userId: string, typedName: string | null | undefined) {
-    return this.resolveMerchant({
-      userId,
-      rawName: typedName,
-      displayName: typedName,
-    });
+  resolveTyped(input: ResolveMerchantInput) {
+    return this.resolveMerchant({ ...input, displayName: input.rawName });
   }
 
+  /**
+   * Finds or creates the merchant for a text, then keeps what the movement
+   * teaches: the category it carries and the text it appeared with.
+   */
   private async resolveMerchant({
     userId,
     rawName,
+    categoryId,
+    transactionType,
     displayName,
-  }: {
-    userId: string;
-    rawName: string | null | undefined;
+  }: ResolveMerchantInput & {
     displayName?: string | null;
   }): Promise<ResolvedMerchant | null> {
     const normalizedKey = normalizeMerchant(rawName);
@@ -300,22 +335,34 @@ export class MerchantsService {
     const existing = await this.repo.findMerchantByKey(userId, normalizedKey);
     if (existing) {
       await this.appendAlias(userId, existing.id, existing.aliases, rawName);
-      return this.toResolved(existing);
+      const learned = await this.learnCategory(userId, existing, categoryId);
+      return this.toResolved({ ...existing, ...learned });
     }
     const name = visibleMerchantName({
       displayName,
       rawName,
       normalizedKey,
     });
+    const initialCategory = categoryId
+      ? {
+          categoryId,
+          categorySource: MERCHANT_CATEGORY_SOURCE.LEARNED,
+        }
+      : await this.guessCategory(userId, { name, transactionType });
     try {
       const created = await this.repo.createMerchant(userId, {
         name,
         normalizedKey,
         aliases: rawName ? [rawName] : [],
+        ...initialCategory,
       });
       return this.toResolved(created);
     } catch (error) {
-      return this.throwNameConflict(error, userId, normalizedKey);
+      return this.reuseOrThrow(error, {
+        userId,
+        normalizedKey,
+        categoryId,
+      });
     }
   }
 
@@ -335,7 +382,96 @@ export class MerchantsService {
       merchantId: candidate.id,
       name: candidate.name,
       categoryId: candidate.categoryId,
+      categorySource: candidate.categorySource ?? null,
     };
+  }
+
+  /**
+   * The category a movement brought. It fills an empty merchant and replaces a
+   * keyword guess; a manual one, or one already learned, stays as it is.
+   */
+  private async learnCategory(
+    userId: string,
+    merchant: MerchantRow,
+    categoryId: string | null | undefined,
+  ): Promise<CategoryState> {
+    const state: CategoryState = {
+      categoryId: merchant.categoryId,
+      categorySource: merchant.categorySource ?? null,
+    };
+    if (!categoryId || !canLearnCategory(state)) {
+      return state;
+    }
+    await this.repo.updateMerchant(userId, merchant.id, {
+      categoryId,
+      categorySource: MERCHANT_CATEGORY_SOURCE.LEARNED,
+    });
+    return {
+      categoryId,
+      categorySource: MERCHANT_CATEGORY_SOURCE.LEARNED,
+    };
+  }
+
+  /** A keyword guess only fills a merchant that has no category yet. */
+  private async guessCategory(
+    userId: string,
+    input: {
+      name: string;
+      transactionType?: 'DEBIT' | 'CREDIT' | 'TRANSFER';
+    },
+  ): Promise<CategoryState> {
+    const categoryType = input.transactionType
+      ? categoryTypeForTransaction(input.transactionType)
+      : 'EXPENSE';
+    if (categoryType !== 'EXPENSE' && categoryType !== 'INCOME') {
+      return { categoryId: null, categorySource: null };
+    }
+    const categories = await this.repo.listVisibleCategories(userId);
+    const categoryId = matchCategoryByKeyword({
+      merchantName: input.name,
+      categories,
+      categoryType,
+    });
+    if (!categoryId) {
+      return { categoryId: null, categorySource: null };
+    }
+    return {
+      categoryId,
+      categorySource: MERCHANT_CATEGORY_SOURCE.KEYWORD,
+    };
+  }
+
+  /**
+   * Two requests may create the same merchant at once: the second one reuses
+   * the row the first one wrote instead of failing the movement.
+   */
+  private async reuseOrThrow(
+    error: unknown,
+    input: {
+      userId: string;
+      normalizedKey: string;
+      categoryId?: string | null;
+    },
+  ): Promise<ResolvedMerchant> {
+    if (!(
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === 'P2002'
+    )) {
+      throw error;
+    }
+    const existing = await this.repo.findMerchantByKey(
+      input.userId,
+      input.normalizedKey,
+    );
+    if (!existing) {
+      throw error;
+    }
+    const learned = await this.learnCategory(
+      input.userId,
+      existing,
+      input.categoryId,
+    );
+    return this.toResolved({ ...existing, ...learned });
   }
 
   private toResolved(row: {

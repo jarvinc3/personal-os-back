@@ -1,7 +1,7 @@
 export const FIN_CATEGORY_TYPES = ['EXPENSE', 'INCOME', 'TRANSFER'] as const;
 export type FinCategoryTypeValue = (typeof FIN_CATEGORY_TYPES)[number];
 
-export type CategoryResolveSource = 'hint' | 'merchant_history';
+export type CategoryResolveSource = 'hint' | 'merchant' | 'merchant_history';
 
 export type CategoryResolveResult = {
   categoryId: string | null;
@@ -61,13 +61,15 @@ export function matchCategoryByHint(
 }
 
 /**
- * Resolve category for an email import: LLM hint first, then merchant history.
+ * Resolve category for an email import: LLM hint first, then the category the
+ * merchant already remembers, then the history of the same raw text.
  */
 export async function resolveCategoryIdForImport(params: {
   categories: Array<{ id: string; name: string; type: string }>;
   hint: string | null | undefined;
   transactionType: 'DEBIT' | 'CREDIT' | 'TRANSFER';
   merchant: string | null | undefined;
+  findMerchantCategoryId: (merchant: string) => Promise<string | null>;
   findCategoryIdByMerchant: (merchant: string) => Promise<string | null>;
 }): Promise<CategoryResolveResult> {
   const fromHint = matchCategoryByHint(
@@ -87,6 +89,14 @@ export async function resolveCategoryIdForImport(params: {
   const expected = categoryTypeForTransaction(params.transactionType);
   if (!expected) {
     return { categoryId: null, source: null };
+  }
+
+  const fromMerchant = await params.findMerchantCategoryId(merchant);
+  const merchantAllowed =
+    fromMerchant !== null &&
+    params.categories.some((c) => c.id === fromMerchant && c.type === expected);
+  if (merchantAllowed) {
+    return { categoryId: fromMerchant, source: 'merchant' };
   }
 
   const fromHistory = await params.findCategoryIdByMerchant(merchant);

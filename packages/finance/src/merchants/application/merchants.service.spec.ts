@@ -27,6 +27,7 @@ function build(repo: Partial<Mocked> = {}) {
     findMerchantById: jest.fn(),
     listMerchants: jest.fn().mockResolvedValue([]),
     sumSpendByMerchant: jest.fn().mockResolvedValue([]),
+    listVisibleCategories: jest.fn().mockResolvedValue([]),
     ...repo,
   } as unknown as MerchantsRepository;
   const ownership = { assertCategoryVisible: jest.fn() };
@@ -45,12 +46,17 @@ describe('MerchantsService.resolve', () => {
     };
     const { service } = build(repo);
 
-    const resolved = await service.resolve('user-1', 'UBER *TRIP 1234');
+    const resolved = await service.resolve({
+      userId: 'user-1',
+      rawName: 'UBER *TRIP 1234',
+    });
 
     expect(repo.createMerchant).toHaveBeenCalledWith('user-1', {
       name: 'Uber',
       normalizedKey: 'UBER',
       aliases: ['UBER *TRIP 1234'],
+      categoryId: null,
+      categorySource: null,
     });
     expect(resolved).toEqual({
       id: 'merchant-1',
@@ -71,12 +77,14 @@ describe('MerchantsService.resolve', () => {
     };
     const { service } = build(repo);
 
-    await service.resolveTyped('user-1', 'QA Almuerzo');
+    await service.resolveTyped({ userId: 'user-1', rawName: 'QA Almuerzo' });
 
     expect(repo.createMerchant).toHaveBeenCalledWith('user-1', {
       name: 'QA Almuerzo',
       normalizedKey: 'QA ALMUERZO',
       aliases: ['QA Almuerzo'],
+      categoryId: null,
+      categorySource: null,
     });
   });
 
@@ -88,7 +96,7 @@ describe('MerchantsService.resolve', () => {
     };
     const { service } = build(repo);
 
-    await service.resolve('user-1', 'Uber Eats');
+    await service.resolve({ userId: 'user-1', rawName: 'Uber Eats' });
 
     expect(repo.createMerchant).not.toHaveBeenCalled();
     expect(repo.updateMerchant).toHaveBeenCalledWith('user-1', 'merchant-1', {
@@ -98,7 +106,9 @@ describe('MerchantsService.resolve', () => {
 
   it('returns null when the text has no usable key', async () => {
     const { service } = build();
-    await expect(service.resolve('user-1', '1234')).resolves.toBeNull();
+    await expect(
+      service.resolve({ userId: 'user-1', rawName: '1234' }),
+    ).resolves.toBeNull();
   });
 });
 
@@ -116,6 +126,7 @@ describe('MerchantsService.suggest', () => {
       merchantId: 'merchant-1',
       name: 'Uber',
       categoryId: null,
+      categorySource: null,
     });
     expect(repo.findMerchantByKeyPrefix).not.toHaveBeenCalled();
   });
@@ -245,6 +256,8 @@ describe('MerchantsService.create', () => {
       name: 'Supermercado Nacional',
       normalizedKey: 'SUPERMERCADO NACIONAL',
       aliases: ['Nacional'],
+      categoryId: null,
+      categorySource: null,
     });
     expect(merchant).toMatchObject({
       id: 'merchant-new',
@@ -279,19 +292,21 @@ describe('MerchantsService.create', () => {
   it('rejects a name without usable text', async () => {
     const { service } = build();
 
-    await expect(service.create('user-1', { name: '*** 1234' })).rejects.toMatchObject(
-      {
-        response: {
-          message: 'El nombre del comercio no tiene texto utilizable',
-        },
+    await expect(
+      service.create('user-1', { name: '*** 1234' }),
+    ).rejects.toMatchObject({
+      response: {
+        message: 'El nombre del comercio no tiene texto utilizable',
       },
-    );
+    });
   });
 
   it('rejects a blank name', async () => {
     const { service } = build();
 
-    await expect(service.create('user-1', { name: '   ' })).rejects.toMatchObject({
+    await expect(
+      service.create('user-1', { name: '   ' }),
+    ).rejects.toMatchObject({
       response: {
         message: 'El nombre del comercio no tiene texto utilizable',
       },
@@ -338,5 +353,201 @@ describe('MerchantsService.create', () => {
       }),
     ).rejects.toThrow('Categoría no encontrada');
     expect(repo.createMerchant).not.toHaveBeenCalled();
+  });
+});
+
+describe('MerchantsService category learning', () => {
+  it('learns the category of a new merchant from its first movement', async () => {
+    const repo = {
+      findMerchantByKey: jest.fn().mockResolvedValue(null),
+      createMerchant: jest
+        .fn()
+        .mockResolvedValue(
+          merchantRow({ categoryId: 'cat-food', categorySource: 'LEARNED' }),
+        ),
+    };
+    const { service } = build(repo);
+
+    const resolved = await service.resolve({
+      userId: 'user-1',
+      rawName: 'Supermercado Nacional',
+      categoryId: 'cat-food',
+      transactionType: 'DEBIT',
+    });
+
+    expect(repo.createMerchant).toHaveBeenCalledWith(
+      'user-1',
+      expect.objectContaining({
+        categoryId: 'cat-food',
+        categorySource: 'LEARNED',
+      }),
+    );
+    expect(resolved?.categoryId).toBe('cat-food');
+  });
+
+  it('adopts the movement category when the merchant has none', async () => {
+    const repo = {
+      findMerchantByKey: jest.fn().mockResolvedValue(merchantRow()),
+      updateMerchant: jest.fn().mockResolvedValue({ count: 1 }),
+    };
+    const { service } = build(repo);
+
+    await service.resolve({
+      userId: 'user-1',
+      rawName: 'Uber',
+      categoryId: 'cat-transport',
+      transactionType: 'DEBIT',
+    });
+
+    expect(repo.updateMerchant).toHaveBeenCalledWith('user-1', 'merchant-1', {
+      categoryId: 'cat-transport',
+      categorySource: 'LEARNED',
+    });
+  });
+
+  it('replaces a keyword guess with the movement category', async () => {
+    const repo = {
+      findMerchantByKey: jest
+        .fn()
+        .mockResolvedValue(
+          merchantRow({ categoryId: 'cat-guess', categorySource: 'KEYWORD' }),
+        ),
+      updateMerchant: jest.fn().mockResolvedValue({ count: 1 }),
+    };
+    const { service } = build(repo);
+
+    await service.resolve({
+      userId: 'user-1',
+      rawName: 'Uber',
+      categoryId: 'cat-transport',
+      transactionType: 'DEBIT',
+    });
+
+    expect(repo.updateMerchant).toHaveBeenCalledWith('user-1', 'merchant-1', {
+      categoryId: 'cat-transport',
+      categorySource: 'LEARNED',
+    });
+  });
+
+  it('never overwrites a category set by hand', async () => {
+    const repo = {
+      findMerchantByKey: jest
+        .fn()
+        .mockResolvedValue(
+          merchantRow({ categoryId: 'cat-manual', categorySource: 'MANUAL' }),
+        ),
+      updateMerchant: jest.fn(),
+    };
+    const { service } = build(repo);
+
+    await service.resolve({
+      userId: 'user-1',
+      rawName: 'Uber',
+      categoryId: 'cat-transport',
+      transactionType: 'DEBIT',
+    });
+
+    expect(repo.updateMerchant).not.toHaveBeenCalledWith(
+      'user-1',
+      'merchant-1',
+      expect.objectContaining({ categoryId: expect.anything() }),
+    );
+  });
+
+  it('guesses a category by keyword when there is no history', async () => {
+    const repo = {
+      findMerchantByKey: jest.fn().mockResolvedValue(null),
+      listVisibleCategories: jest
+        .fn()
+        .mockResolvedValue([
+          { id: 'cat-food', name: 'Supermercado', type: 'EXPENSE' },
+        ]),
+      createMerchant: jest.fn().mockResolvedValue(
+        merchantRow({
+          name: 'Supermercado Nacional',
+          normalizedKey: 'SUPERMERCADO NACIONAL',
+          categoryId: 'cat-food',
+          categorySource: 'KEYWORD',
+        }),
+      ),
+    };
+    const { service } = build(repo);
+
+    await service.resolve({
+      userId: 'user-1',
+      rawName: 'Supermercado Nacional',
+      transactionType: 'DEBIT',
+    });
+
+    expect(repo.createMerchant).toHaveBeenCalledWith(
+      'user-1',
+      expect.objectContaining({
+        categoryId: 'cat-food',
+        categorySource: 'KEYWORD',
+      }),
+    );
+  });
+
+  it('leaves an ambiguous merchant without a category', async () => {
+    const repo = {
+      findMerchantByKey: jest.fn().mockResolvedValue(null),
+      listVisibleCategories: jest
+        .fn()
+        .mockResolvedValue([
+          { id: 'cat-food', name: 'Supermercado', type: 'EXPENSE' },
+        ]),
+      createMerchant: jest
+        .fn()
+        .mockResolvedValue(merchantRow({ name: 'Google' })),
+    };
+    const { service } = build(repo);
+
+    await service.resolve({
+      userId: 'user-1',
+      rawName: 'Google',
+      transactionType: 'DEBIT',
+    });
+
+    expect(repo.createMerchant).toHaveBeenCalledWith(
+      'user-1',
+      expect.objectContaining({ categoryId: null, categorySource: null }),
+    );
+  });
+
+  it('marks a category confirmed by the user as manual', async () => {
+    const repo = {
+      findMerchantById: jest
+        .fn()
+        .mockResolvedValue(
+          merchantRow({ categoryId: 'cat-food', categorySource: 'KEYWORD' }),
+        ),
+      updateMerchant: jest.fn().mockResolvedValue({ count: 1 }),
+    };
+    const { service } = build(repo);
+
+    await service.update('user-1', 'merchant-1', { categoryId: 'cat-food' });
+
+    expect(repo.updateMerchant).toHaveBeenCalledWith('user-1', 'merchant-1', {
+      categoryId: 'cat-food',
+      categorySource: 'MANUAL',
+    });
+  });
+
+  it('suggests the category with its origin', async () => {
+    const repo = {
+      findMerchantByKey: jest
+        .fn()
+        .mockResolvedValue(
+          merchantRow({ categoryId: 'cat-food', categorySource: 'LEARNED' }),
+        ),
+    };
+    const { service } = build(repo);
+
+    await expect(service.suggest('user-1', 'Uber')).resolves.toEqual({
+      merchantId: 'merchant-1',
+      name: 'Uber',
+      categoryId: 'cat-food',
+      categorySource: 'LEARNED',
+    });
   });
 });

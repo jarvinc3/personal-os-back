@@ -972,6 +972,9 @@ export class CatalogService {
     ids: readonly string[],
   ): Promise<Map<string, ReturnType<CatalogService['mapCard']>>> {
     const rows = await this.repo.findCardsByIds(userId, ids);
+    if (rows.length === 0) {
+      return new Map<string, ReturnType<CatalogService['mapCard']>>();
+    }
     const today = await this.localToday(userId);
     return new Map(rows.map((row) => [row.id, this.mapCard(row, today)]));
   }

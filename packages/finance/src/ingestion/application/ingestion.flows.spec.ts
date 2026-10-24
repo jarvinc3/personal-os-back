@@ -107,6 +107,7 @@ function createService() {
         new GmailSyncQueueService(undefined),
       ),
       new GmailSyncQueueService(undefined),
+      { suggest: jest.fn().mockResolvedValue(null) } as never,
     ),
   };
 }

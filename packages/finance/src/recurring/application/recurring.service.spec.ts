@@ -269,7 +269,12 @@ describe('RecurringService.update', () => {
 
     await service.update('user-1', 'pattern-1', { merchant: 'Renta' });
 
-    expect(merchants.resolve).toHaveBeenCalledWith('user-1', 'Renta');
+    expect(merchants.resolve).toHaveBeenCalledWith({
+      userId: 'user-1',
+      rawName: 'Renta',
+      categoryId: null,
+      transactionType: 'DEBIT',
+    });
     expect(repo.updatePattern).toHaveBeenCalledWith(
       'user-1',
       'pattern-1',

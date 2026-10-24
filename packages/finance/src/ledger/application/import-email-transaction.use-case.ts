@@ -71,7 +71,12 @@ export class ImportEmailTransactionUseCase {
     });
 
     const resolvedMerchant = data.merchant
-      ? await this.merchants.resolve(userId, data.merchant)
+      ? await this.merchants.resolve({
+          userId,
+          rawName: data.merchant,
+          categoryId: data.categoryId,
+          transactionType: data.type,
+        })
       : null;
 
     const created = await this.repo.createEmailImportTransaction(userId, {

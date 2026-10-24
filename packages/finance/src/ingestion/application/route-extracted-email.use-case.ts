@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ImportEmailTransactionUseCase } from '../../ledger/application/import-email-transaction.use-case';
 import { LedgerQueryService } from '../../ledger/application/ledger-query.service';
+import { MerchantsService } from '../../merchants/application/merchants.service';
 import { resolveCategoryIdForImport } from '../../shared/domain/category-type';
 import { mapBankStatusToInternal } from '../../shared/domain/transaction-status';
 import { buildEmailImportNotes } from './build-email-import-notes';
@@ -34,7 +35,17 @@ export class RouteExtractedEmailUseCase {
     private readonly emailSources: EmailSourceRepository,
     private readonly importEmail: ImportEmailTransactionUseCase,
     private readonly ledger: LedgerQueryService,
+    private readonly merchants: MerchantsService,
   ) {}
+
+  /** Category the merchant already remembers for the imported text, if any. */
+  private async findMerchantCategoryId(
+    userId: string,
+    merchant: string,
+  ): Promise<string | null> {
+    const suggestion = await this.merchants.suggest(userId, merchant);
+    return suggestion?.categoryId ?? null;
+  }
 
   async execute(params: {
     userId: string;
@@ -146,6 +157,8 @@ export class RouteExtractedEmailUseCase {
           hint: extracted.categoryNameHint,
           transactionType: extracted.type,
           merchant: extracted.merchant,
+          findMerchantCategoryId: (merchant) =>
+            this.findMerchantCategoryId(params.userId, merchant),
           findCategoryIdByMerchant: (merchant) =>
             this.ledger.findLatestCategoryIdByMerchant(params.userId, merchant),
         });
