@@ -25,15 +25,50 @@ function configuredProvider(
   return key ? create(key) : undefined;
 }
 
+type ProviderId = 'groq' | 'opencode' | 'openrouter';
+
+function selectedProvider(args: string[] = process.argv.slice(2)):
+  | ProviderId
+  | undefined {
+  const options = args[0] === '--' ? args.slice(1) : args;
+  if (options.length === 0) {
+    return undefined;
+  }
+  const provider = options[1]?.toLowerCase();
+  if (
+    options.length !== 2 ||
+    options[0] !== '--provider' ||
+    !['groq', 'opencode', 'openrouter'].includes(provider ?? '')
+  ) {
+    throw new Error(
+      'Usage: pnpm run ai:diagnostic -- --provider groq|opencode|openrouter',
+    );
+  }
+  return provider as ProviderId;
+}
+
 async function main(): Promise<void> {
   const startedAt = Date.now();
+  const requestedProvider = selectedProvider();
+  const configured = [
+    { id: 'groq', env: 'GROQ_API_KEY', create: createGroqProvider },
+    { id: 'opencode', env: 'OPENCODE_API_KEY', create: createOpenCodeProvider },
+    {
+      id: 'openrouter',
+      env: 'OPENROUTER_API_KEY',
+      create: createOpenRouterProvider,
+    },
+  ] as const;
   const providers = [
-    configuredProvider('GROQ_API_KEY', createGroqProvider),
-    configuredProvider('OPENCODE_API_KEY', createOpenCodeProvider),
-    configuredProvider('OPENROUTER_API_KEY', createOpenRouterProvider),
+    ...configured
+      .filter(({ id }) => !requestedProvider || id === requestedProvider)
+      .map(({ env, create }) => configuredProvider(env, create)),
   ].filter((provider) => provider !== undefined);
 
   if (providers.length === 0) {
+    if (requestedProvider) {
+      throw new Error(`Configure ${requestedProvider} provider key in .env`);
+    }
     throw new Error('Configure at least one AI provider key in .env');
   }
 

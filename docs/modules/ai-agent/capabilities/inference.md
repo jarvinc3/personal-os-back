@@ -45,3 +45,6 @@ fallbacks y error, y no envía `userId`; por ello no crea telemetría.
 Si falla, muestra el último proveedor/modelo intentado, número de intentos,
 código normalizado y estado HTTP cuando está disponible. Nunca imprime el
 mensaje crudo del SDK ni la clave.
+
+Para probar un proveedor de forma aislada, pasar uno de `groq`, `opencode` o
+`openrouter`, por ejemplo `pnpm run ai:diagnostic -- --provider groq`.

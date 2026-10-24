@@ -140,6 +140,39 @@ describe('AiInferenceGateway', () => {
     expect(first.chatComplete).not.toHaveBeenCalled();
   });
 
+  it('rotates the first provider across requests on the same gateway', async () => {
+    const first = {
+      name: 'first',
+      model: 'one',
+      chat: jest.fn(),
+      chatComplete: jest.fn().mockResolvedValue({
+        content: '{"value":"first"}',
+        toolCalls: [],
+      }),
+    };
+    const second = {
+      name: 'second',
+      model: 'two',
+      chat: jest.fn(),
+      chatComplete: jest.fn().mockResolvedValue({
+        content: '{"value":"second"}',
+        toolCalls: [],
+      }),
+    };
+    const { gateway } = build([first, second]);
+
+    await expect(gateway.infer(request())).resolves.toMatchObject({
+      provider: 'first',
+      fallbackCount: 0,
+    });
+    await expect(gateway.infer(request())).resolves.toMatchObject({
+      provider: 'second',
+      fallbackCount: 0,
+    });
+    expect(first.chatComplete).toHaveBeenCalledTimes(1);
+    expect(second.chatComplete).toHaveBeenCalledTimes(1);
+  });
+
   it('does not fail an inference when the telemetry write fails', async () => {
     const provider = {
       name: 'provider',
@@ -167,7 +200,7 @@ describe('AiInferenceGateway', () => {
       chat: jest.fn(),
       chatComplete: jest.fn().mockRejectedValue(
         Object.assign(new Error('private test text in request body'), {
-          status: 401,
+          statusCode: 401,
         }),
       ),
     };
@@ -184,5 +217,36 @@ describe('AiInferenceGateway', () => {
     const persisted = JSON.stringify(create.mock.calls[0][0]);
     expect(persisted).not.toContain('private test text');
     expect(persisted).toContain('PROVIDER_FAILURE');
+  });
+
+  it('reads SDK statusCode and fails over on a retryable HTTP response', async () => {
+    const rateLimited = {
+      name: 'OpenRouter',
+      model: 'model-one',
+      chat: jest.fn(),
+      chatComplete: jest.fn().mockRejectedValue(
+        Object.assign(new Error('private provider response'), {
+          statusCode: 429,
+        }),
+      ),
+    };
+    const fallback = {
+      name: 'fallback',
+      model: 'model-two',
+      chat: jest.fn(),
+      chatComplete: jest.fn().mockResolvedValue({
+        content: '{"value":"ok"}',
+        toolCalls: [],
+      }),
+    };
+    const { gateway } = build([rateLimited, fallback]);
+
+    await expect(gateway.infer(request())).resolves.toMatchObject({
+      value: { value: 'ok' },
+      provider: 'fallback',
+      fallbackCount: 1,
+    });
+    expect(rateLimited.chatComplete).toHaveBeenCalledTimes(1);
+    expect(fallback.chatComplete).toHaveBeenCalledTimes(1);
   });
 });

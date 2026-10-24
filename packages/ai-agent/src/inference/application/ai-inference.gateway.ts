@@ -17,7 +17,10 @@ import type {
   AIService as AIProviderClient,
   ChatMessage,
 } from '../../shared/ai.types';
-import { isRetryableProviderError } from '../../shared/is-retryable-provider-error';
+import {
+  getProviderHttpStatus,
+  isRetryableProviderError,
+} from '../../shared/is-retryable-provider-error';
 
 const RETENTION_DAYS = 90;
 const FINGERPRINT_VERSION = 'v1';
@@ -81,19 +84,6 @@ function addDays(date: Date, days: number): Date {
   const result = new Date(date);
   result.setUTCDate(result.getUTCDate() + days);
   return result;
-}
-
-function safeHttpStatus(error: unknown): number | null {
-  if (!error || typeof error !== 'object') {
-    return null;
-  }
-  const status = (error as { status?: unknown }).status;
-  return typeof status === 'number' &&
-    Number.isInteger(status) &&
-    status >= 100 &&
-    status <= 599
-    ? status
-    : null;
 }
 
 @Injectable()
@@ -185,7 +175,7 @@ export class AiInferenceGateway {
             continue;
           }
           lastErrorCode = 'PROVIDER_FAILURE';
-          lastHttpStatus = safeHttpStatus(error);
+          lastHttpStatus = getProviderHttpStatus(error);
           if (!isRetryableProviderError(error)) {
             throw new StructuredInferenceProviderError(
               false,
