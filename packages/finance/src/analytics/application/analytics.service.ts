@@ -8,6 +8,7 @@ import {
   scalarNumber,
   toMoney,
 } from '../../shared/domain/money';
+import { budgetCategoryIds } from '../../shared/infrastructure/budget-spent.reader';
 import { AnalyticsRepository } from '../infrastructure/analytics.repository';
 
 const UNCATEGORIZED_NAME = 'Sin categoría';
@@ -156,23 +157,31 @@ export class AnalyticsService {
 
   async getBudgetStatus(userId: string) {
     const budgets = await this.repo.listBudgets(userId);
-    return budgets.map((budget) => {
-      const limit = toMoney(budget.amountLimit);
-      const spent = toMoney(budget.amountSpent);
-      return {
-        id: budget.id,
-        categoryId: budget.categoryId,
-        category: budget.name ?? budget.category?.name ?? 'Presupuesto',
-        color: budget.category?.color ?? null,
-        icon: budget.category?.icon ?? null,
-        periodType: budget.periodType,
-        periodStart: budget.periodStart.toISOString().slice(0, 10),
-        periodEnd: budget.periodEnd.toISOString().slice(0, 10),
-        amountLimit: decimalToString(limit),
-        amountSpent: decimalToString(spent),
-        pctUsed: ratioPercent(spent, limit),
-        threshold: scalarNumber(budget.alertThresholdPct),
-      };
-    });
+    return Promise.all(
+      budgets.map(async (budget) => {
+        const limit = toMoney(budget.amountLimit);
+        const spent = await this.repo.sumBudgetSpent({
+          userId,
+          periodStart: budget.periodStart,
+          periodEnd: budget.periodEnd,
+          categoryIds: budgetCategoryIds(budget),
+          includeChildren: budget.includeChildren,
+        });
+        return {
+          id: budget.id,
+          categoryId: budget.categoryId,
+          category: budget.name ?? budget.category?.name ?? 'Presupuesto',
+          color: budget.category?.color ?? null,
+          icon: budget.category?.icon ?? null,
+          periodType: budget.periodType,
+          periodStart: budget.periodStart.toISOString().slice(0, 10),
+          periodEnd: budget.periodEnd.toISOString().slice(0, 10),
+          amountLimit: decimalToString(limit),
+          amountSpent: decimalToString(spent),
+          pctUsed: ratioPercent(spent, limit),
+          threshold: scalarNumber(budget.alertThresholdPct),
+        };
+      }),
+    );
   }
 }

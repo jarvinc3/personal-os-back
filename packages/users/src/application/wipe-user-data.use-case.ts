@@ -1,12 +1,26 @@
-import { Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Inject,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { randomUUID } from 'crypto';
 import { AppEvents } from '@personal-os/core';
 import {
-  expandWipeLayers,
-  WIPE_LAYERS,
-  type WipeLayerId,
-} from '../domain/wipe-layers';
+  DATA_APP,
+  expandDataBranches,
+  groupDataBranchCounts,
+  isKnownDataBranch,
+  type DataAppBranches,
+  type DataBranchDescriptor,
+} from '../domain/data-branches';
+import {
+  SETTINGS_DATA_BRANCHES,
+  SETTINGS_DEFAULTS_BRANCH,
+} from '../domain/settings-data-branches';
 import {
   USERS_REPOSITORY,
   type UsersRepositoryPort,
@@ -16,18 +30,24 @@ import {
   type UserDataWipeDomainsPort,
 } from './ports/user-data-wipe-domains.port';
 
-const FINANCE_LAYER_PREFIX = 'finance.';
-
 export type WipeUserDataResult = {
   success: true;
-  requestedLayers: WipeLayerId[];
-  appliedLayers: WipeLayerId[];
+  requestedBranches: string[];
+  appliedBranches: string[];
   counts: Record<string, number>;
 };
 
+export type WipeUserDataOptions = {
+  expectedCounts?: Record<string, number>;
+  balanceInstitutionId?: string;
+};
+
+const FINANCE_BALANCES_BRANCH = 'finance.balances';
+
 /**
- * Expands the requested layers, fans out to the domain ports and emits one
- * aggregated event. Finance/ai/notifications never see a per-row event here.
+ * Consults the branch registry each app declares, expands what the requested
+ * branches drag, checks the counts the user saw and then lets every app apply
+ * its own part in one transaction. One aggregated event at the end.
  */
 @Injectable()
 export class WipeUserDataUseCase {
@@ -41,67 +61,166 @@ export class WipeUserDataUseCase {
     private readonly eventEmitter: EventEmitter2,
   ) {}
 
+  /** Every branch of every app, with what the user would delete today. */
+  async listBranches(userId: string): Promise<DataAppBranches[]> {
+    const user = await this.requireUser(userId);
+    const descriptors = this.descriptorsFor(user);
+    const counts = await this.countBranches(userId, descriptors, user);
+    return groupDataBranchCounts(descriptors, counts);
+  }
+
   async execute(
     userId: string,
-    requestedLayers: WipeLayerId[],
-    options?: { balanceInstitutionId?: string },
+    requestedBranches: string[],
+    options: WipeUserDataOptions = {},
   ): Promise<WipeUserDataResult> {
-    const user = await this.usersRepository.findById(userId);
-    if (!user) {
-      throw new NotFoundException('Usuario no encontrado');
-    }
+    const user = await this.requireUser(userId);
+    const descriptors = this.descriptorsFor(user);
+    this.assertKnownBranches(descriptors, requestedBranches);
 
-    const appliedLayers = expandWipeLayers(requestedLayers);
-    const counts: Record<string, number> = {};
+    const applied = expandDataBranches(descriptors, requestedBranches);
+    const currentCounts = await this.countBranches(userId, applied, user);
+    this.assertExpectedCounts(requestedBranches, currentCounts, options);
 
-    if (appliedLayers.includes(WIPE_LAYERS.FINANCE_LEDGER)) {
-      await this.usersRepository.pauseFinanceEmailSyncAutomatic(userId);
-    }
-
-    const financeLayers = appliedLayers.filter((layer) =>
-      layer.startsWith(FINANCE_LAYER_PREFIX),
-    );
-    if (financeLayers.length > 0) {
-      const balanceInstitutionId =
-        options?.balanceInstitutionId &&
-        appliedLayers.includes(WIPE_LAYERS.FINANCE_BALANCES)
-          ? options.balanceInstitutionId
-          : undefined;
-      Object.assign(
-        counts,
-        balanceInstitutionId
-          ? await this.domains.wipeFinance(userId, financeLayers, {
-              balanceInstitutionId,
-            })
-          : await this.domains.wipeFinance(userId, financeLayers),
-      );
-    }
-    if (appliedLayers.includes(WIPE_LAYERS.AI_SESSIONS)) {
-      Object.assign(counts, await this.domains.wipeAi(userId));
-    }
-    if (appliedLayers.includes(WIPE_LAYERS.NOTIFICATIONS)) {
-      Object.assign(counts, await this.domains.wipeNotifications(userId));
-    }
-    if (appliedLayers.includes(WIPE_LAYERS.SETTINGS_DEFAULTS)) {
-      await this.usersRepository.resetSettingsToDefaults(userId);
-    }
+    const counts = await this.applyBranches(userId, applied, options);
+    const appliedIds = applied.map((branch) => branch.id);
 
     this.eventEmitter.emit(AppEvents.USER_DATA_WIPED, {
       eventId: randomUUID(),
       userId,
-      requestedLayers,
-      appliedLayers,
+      requestedBranches,
+      appliedBranches: appliedIds,
       counts,
     });
     this.logger.log(
-      `user_data_wiped userId=${userId} requested=${requestedLayers.join(',')} applied=${appliedLayers.join(',')}`,
+      `user_data_wiped userId=${userId} requested=${requestedBranches.join(',')} applied=${appliedIds.join(',')}`,
     );
 
     return {
       success: true,
-      requestedLayers,
-      appliedLayers,
+      requestedBranches,
+      appliedBranches: appliedIds,
       counts,
     };
+  }
+
+  private descriptors(): DataBranchDescriptor[] {
+    return [...this.domains.dataBranches(), ...SETTINGS_DATA_BRANCHES];
+  }
+
+  /** A branch of an app the user does not have enabled is not offered. */
+  private descriptorsFor(user: {
+    userModules: Array<{ isEnabled: boolean; module: { slug: string } }>;
+  }): DataBranchDescriptor[] {
+    const enabled = new Set(
+      user.userModules
+        .filter((userModule) => userModule.isEnabled)
+        .map((userModule) => userModule.module.slug),
+    );
+    return this.descriptors().filter(
+      (branch) => branch.app !== DATA_APP.FINANCE || enabled.has('finance'),
+    );
+  }
+
+  private async requireUser(userId: string) {
+    const user = await this.usersRepository.findById(userId);
+    if (!user) {
+      throw new NotFoundException('Usuario no encontrado');
+    }
+    return user;
+  }
+
+  private assertKnownBranches(
+    descriptors: readonly DataBranchDescriptor[],
+    requested: readonly string[],
+  ): void {
+    const unknown = requested.filter(
+      (id) => !isKnownDataBranch(descriptors, id),
+    );
+    if (unknown.length > 0) {
+      throw new BadRequestException({
+        message: 'Rama de datos desconocida',
+        branches: unknown,
+      });
+    }
+  }
+
+  /** Counts come from the same definition each app uses to delete. */
+  private async countBranches(
+    userId: string,
+    branches: readonly DataBranchDescriptor[],
+    user: { preferences: unknown },
+  ): Promise<Record<string, number>> {
+    const ids = branches.map((branch) => branch.id);
+    const foreignIds = ids.filter((id) => id !== SETTINGS_DEFAULTS_BRANCH);
+    const counts = foreignIds.length
+      ? await this.domains.countDataBranches(userId, foreignIds)
+      : {};
+    if (ids.includes(SETTINGS_DEFAULTS_BRANCH)) {
+      counts[SETTINGS_DEFAULTS_BRANCH] = this.settingsCount(user.preferences);
+    }
+    return counts;
+  }
+
+  private settingsCount(preferences: unknown): number {
+    if (
+      typeof preferences !== 'object' ||
+      preferences === null ||
+      Array.isArray(preferences)
+    ) {
+      return 0;
+    }
+    return Object.keys(preferences).length > 0 ? 1 : 0;
+  }
+
+  /** Nothing is deleted when the counts the user saw no longer hold. */
+  private assertExpectedCounts(
+    requested: readonly string[],
+    currentCounts: Readonly<Record<string, number>>,
+    options: WipeUserDataOptions,
+  ): void {
+    const expected = options.expectedCounts;
+    if (!expected) {
+      return;
+    }
+    const mismatched = requested.filter(
+      (id) => expected[id] !== undefined && expected[id] !== currentCounts[id],
+    );
+    if (mismatched.length === 0) {
+      return;
+    }
+    throw new ConflictException({
+      message: 'Los conteos cambiaron; vuelve a revisar antes de vaciar',
+      counts: Object.fromEntries(
+        requested
+          .filter((id) => expected[id] !== undefined)
+          .map((id) => [id, currentCounts[id] ?? 0]),
+      ),
+    });
+  }
+
+  private async applyBranches(
+    userId: string,
+    applied: readonly DataBranchDescriptor[],
+    options: WipeUserDataOptions,
+  ): Promise<Record<string, number>> {
+    const ids = applied.map((branch) => branch.id);
+    const settingsRequested = ids.includes(SETTINGS_DEFAULTS_BRANCH);
+    const foreignIds = ids.filter((id) => id !== SETTINGS_DEFAULTS_BRANCH);
+    const balanceInstitutionId = ids.includes(FINANCE_BALANCES_BRANCH)
+      ? options.balanceInstitutionId
+      : undefined;
+
+    const counts = foreignIds.length
+      ? await this.domains.wipeDataBranches(
+          userId,
+          foreignIds,
+          balanceInstitutionId ? { balanceInstitutionId } : undefined,
+        )
+      : {};
+    if (settingsRequested) {
+      await this.usersRepository.resetSettingsToDefaults(userId);
+    }
+    return counts;
   }
 }

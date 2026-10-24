@@ -18,7 +18,7 @@ import type { AIService as AIProviderClient } from './shared/ai.types';
       useFactory: (config: ConfigService<Env, true>) => {
         const providers: AIProviderClient[] = [];
         const groqKey = config.get('GROQ_API_KEY', { infer: true });
-        const cerebrasKey = config.get('CEREBRAS_API_KEY', { infer: true });
+        const openCodeKey = config.get('OPENCODE_API_KEY', { infer: true });
         const openRouterKey = config.get('OPENROUTER_API_KEY', {
           infer: true,
         });
@@ -30,12 +30,12 @@ import type { AIService as AIProviderClient } from './shared/ai.types';
             };
           providers.push(createGroqProvider(groqKey));
         }
-        if (cerebrasKey) {
-          const { createCerebrasProvider } =
-            require('./providers/cerebras.provider') as {
-              createCerebrasProvider: (apiKey: string) => AIProviderClient;
+        if (openCodeKey) {
+          const { createOpenCodeProvider } =
+            require('./providers/opencode.provider') as {
+              createOpenCodeProvider: (apiKey: string) => AIProviderClient;
             };
-          providers.push(createCerebrasProvider(cerebrasKey));
+          providers.push(createOpenCodeProvider(openCodeKey));
         }
         if (openRouterKey) {
           const { createOpenRouterProvider } =

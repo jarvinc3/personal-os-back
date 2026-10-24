@@ -35,6 +35,17 @@ El `data` guarda `transactionId`, `amount`, `currency`, `merchant`, `categoryNam
 `categoryIcon`, `categoryColor`, `accountName`, `cardName` y `status`, para que la
 web muestre el ícono de categoría y abra el detalle del movimiento.
 
+### Un hecho, un aviso
+
+Un movimiento que solo existe como efecto interno de una acción ya confirmada en
+pantalla no se anuncia: el aporte o retiro de una meta y el gasto de un abono a
+capital viajan con `announce: false` en el payload del evento, y el listener no
+crea la notificación de `transaction.created` ni la de transferencia para ellos.
+La pantalla ya mostró «Aporte registrado» o «Abono aplicado», así que el usuario
+no lee el mismo hecho dos veces. Un gasto o ingreso registrado a mano, uno
+importado por correo o uno creado por el agente de IA siguen avisando igual,
+porque no llevan esa marca.
+
 ## Quiet hours
 
 `BR-NTF-001`: quiet hours suprime PUSH y EMAIL; IN_APP sigue visible.

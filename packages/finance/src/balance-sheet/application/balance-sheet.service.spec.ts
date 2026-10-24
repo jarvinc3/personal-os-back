@@ -1,5 +1,6 @@
 import { BadRequestException } from '@nestjs/common';
 import { Prisma } from '@personal-os/database';
+import type { FinanceEntityLookupService } from '../../entities/application/finance-entity-lookup.service';
 import type { ResolveAmountsUseCase } from '../../fx/application/resolve-amounts.use-case';
 import type { ResolveUserBaseCurrencyUseCase } from '../../fx/application/resolve-user-base-currency';
 import type { BalanceSheetRepository } from '../infrastructure/balance-sheet.repository';
@@ -15,6 +16,7 @@ describe('BalanceSheetService', () => {
   const toBaseCurrency = jest.fn();
   const toBaseCurrencyOrNull = jest.fn();
   const baseCurrencyExecute = jest.fn().mockResolvedValue('DOP');
+  const lookupByKey = jest.fn().mockResolvedValue(new Map());
 
   const createService = () =>
     new BalanceSheetService(
@@ -33,6 +35,7 @@ describe('BalanceSheetService', () => {
       {
         execute: baseCurrencyExecute,
       } as unknown as ResolveUserBaseCurrencyUseCase,
+      { lookupByKey } as unknown as FinanceEntityLookupService,
     );
 
   beforeEach(() => {
@@ -43,6 +46,7 @@ describe('BalanceSheetService', () => {
     loadOpenDrifts.mockResolvedValue([]);
     loadMonthReconciliations.mockResolvedValue([]);
     loadUserTimezone.mockResolvedValue(null);
+    lookupByKey.mockResolvedValue(new Map());
     toBaseCurrency.mockImplementation((amount: number, currency: string) => {
       if (currency === 'USD') {
         return Promise.resolve(amount * 60);
@@ -731,5 +735,81 @@ describe('BalanceSheetService', () => {
     expect(balanceSheet.institutions[0]?.byCurrency).toEqual(
       balanceSheet.global.byCurrency,
     );
+  });
+  it('attaches the full entity behind every line in a single lookup', async () => {
+    loadPositions.mockResolvedValue({
+      institutions: [],
+      accounts: [
+        {
+          id: 'acc-1',
+          institutionId: null,
+          currency: 'DOP',
+          balance: 1000,
+        },
+      ],
+      cardBalances: [
+        {
+          currency: 'DOP',
+          balance: 4,
+          creditLimit: 10,
+          card: { id: 'card-1', institutionId: null },
+        },
+      ],
+      loans: [
+        {
+          id: 'loan-1',
+          institutionId: null,
+          currency: 'DOP',
+          currentBalance: 5,
+        },
+      ],
+    });
+    lookupByKey.mockResolvedValue(
+      new Map([
+        ['account:acc-1', { id: 'acc-1', kind: 'account' }],
+        ['card:card-1', { id: 'card-1', kind: 'card' }],
+        ['loan:loan-1', { id: 'loan-1', kind: 'loan' }],
+      ]),
+    );
+
+    const balanceSheet = await createService().getBalanceSheet('user-1');
+    const lines = balanceSheet.breakdown.byCurrency.flatMap((group) => [
+      ...group.accounts,
+      ...group.cash,
+      ...group.receivables,
+      ...group.creditCards,
+      ...group.loans,
+    ]);
+
+    expect(lines).toHaveLength(3);
+    expect(lookupByKey).toHaveBeenCalledTimes(1);
+    expect(lookupByKey).toHaveBeenCalledWith('user-1', [
+      { type: 'account', id: 'acc-1' },
+      { type: 'card', id: 'card-1' },
+      { type: 'loan', id: 'loan-1' },
+    ]);
+    expect(lines.map((line) => line.entity)).toEqual([
+      { id: 'acc-1', kind: 'account' },
+      { id: 'card-1', kind: 'card' },
+      { id: 'loan-1', kind: 'loan' },
+    ]);
+    expect(balanceSheet.global.netWorth).toBe('989');
+  });
+
+  it('keeps the line without entity when the product is gone', async () => {
+    loadPositions.mockResolvedValue({
+      institutions: [],
+      accounts: [
+        { id: 'acc-1', institutionId: null, currency: 'DOP', balance: 10 },
+      ],
+      cardBalances: [],
+      loans: [],
+    });
+
+    const balanceSheet = await createService().getBalanceSheet('user-1');
+
+    expect(
+      balanceSheet.breakdown.byCurrency[0]?.accounts[0]?.entity,
+    ).toBeNull();
   });
 });

@@ -65,6 +65,10 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
     return this.read.findTransactionById(id, userId);
   }
 
+  findTransactionsByIds(userId: string, ids: readonly string[]) {
+    return this.read.findTransactionsByIds(userId, ids);
+  }
+
   findPlanningLinkKind(
     transactionId: string,
     userId: string,

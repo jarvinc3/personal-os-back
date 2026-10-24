@@ -82,8 +82,14 @@ export class UpdateTransactionUseCase {
     if (command.merchant !== undefined) {
       data.merchant = command.merchant;
       data.merchantId = command.merchant
-        ? ((await this.merchants.resolveTyped(userId, command.merchant))?.id ??
-          null)
+        ? ((
+            await this.merchants.resolveTyped({
+              userId,
+              rawName: command.merchant,
+              categoryId: command.categoryId ?? existing.categoryId,
+              transactionType: command.type ?? (existing.type as FinTxType),
+            })
+          )?.id ?? null)
         : null;
     }
     if (command.description !== undefined) {

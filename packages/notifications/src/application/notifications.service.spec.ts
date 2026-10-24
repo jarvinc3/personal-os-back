@@ -15,8 +15,9 @@ describe('NotificationsService', () => {
     evaluate: jest.fn().mockResolvedValue({ allowed: true }),
     logSkipped: jest.fn(),
   };
+  const emit = jest.fn();
   const eventEmitter = {
-    emit: jest.fn(),
+    emit,
   } as unknown as EventEmitter2;
   const queueAdd = jest.fn().mockResolvedValue({ id: 'q1' });
   const notificationsQueue = {
@@ -139,5 +140,45 @@ describe('NotificationsService', () => {
       expect.objectContaining({ id: 'n1', title: 'Hello' }),
     );
     expect(queueAdd).toHaveBeenCalled();
+  });
+
+  it('persists an event notification in the supplied transaction without external effects', async () => {
+    const service = createService(false);
+    const tx = {};
+    await service.create(
+      'u1',
+      {
+        type: 'test',
+        channel: 'IN_APP',
+        title: 'Hello',
+        body: 'World',
+        data: { source: 'dev' },
+      },
+      tx as never,
+    );
+    expect(notificationsRepo.createNotification).toHaveBeenCalledWith(
+      expect.objectContaining({ userId: 'u1' }),
+      tx,
+    );
+    expect(notificationsGateway.emitToUser).not.toHaveBeenCalled();
+    expect(emit).not.toHaveBeenCalled();
+    expect(queueAdd).not.toHaveBeenCalled();
+  });
+
+  it('rejects transactional PUSH/EMAIL instead of silently dropping dispatch', async () => {
+    const service = createService(true);
+    await expect(
+      service.create(
+        'u1',
+        {
+          type: 'test',
+          channel: 'PUSH',
+          title: 'Hello',
+          body: 'World',
+        },
+        {} as never,
+      ),
+    ).rejects.toThrow('only supports IN_APP');
+    expect(notificationsRepo.createNotification).not.toHaveBeenCalled();
   });
 });

@@ -6,9 +6,13 @@ import { AiEventsListener } from './ai-events.listener';
 describe('AiEventsListener.onEmailSyncCompleted', () => {
   const add = jest.fn();
   const tryClaim = jest.fn().mockResolvedValue(true);
+  const wasProcessed = jest.fn().mockResolvedValue(false);
 
   const queue = { add } as unknown as Queue<AiProcessingJob>;
-  const idempotency = { tryClaim } as unknown as DomainEventIdempotencyGuard;
+  const idempotency = {
+    tryClaim,
+    wasProcessed,
+  } as unknown as DomainEventIdempotencyGuard;
 
   const listener = new AiEventsListener(queue, idempotency);
 
@@ -25,6 +29,8 @@ describe('AiEventsListener.onEmailSyncCompleted', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     tryClaim.mockResolvedValue(true);
+    wasProcessed.mockResolvedValue(false);
+    add.mockResolvedValue({ id: 'job' });
   });
 
   it('returns without claiming when transactionsNew is zero', async () => {
@@ -38,12 +44,13 @@ describe('AiEventsListener.onEmailSyncCompleted', () => {
     expect(add).not.toHaveBeenCalled();
   });
 
-  it('skips enqueue when idempotency claim fails', async () => {
-    tryClaim.mockResolvedValue(false);
+  it('skips enqueue when the event was already processed', async () => {
+    wasProcessed.mockResolvedValue(true);
 
     await listener.onEmailSyncCompleted(baseEvent);
 
-    expect(tryClaim).toHaveBeenCalledWith('evt-1', 'ai-agent:email-sync');
+    expect(wasProcessed).toHaveBeenCalledWith('evt-1', 'ai-agent:email-sync');
+    expect(tryClaim).not.toHaveBeenCalled();
     expect(add).not.toHaveBeenCalled();
   });
 
@@ -66,8 +73,34 @@ describe('AiEventsListener.onEmailSyncCompleted', () => {
         }),
       },
       expect.objectContaining({
-        jobId: expect.stringContaining('ai-email-sync-'),
+        jobId: expect.stringContaining('ai-event-'),
+        removeOnComplete: false,
+        removeOnFail: false,
       }),
     );
+  });
+  it('does not mark an event when Redis enqueue fails', async () => {
+    add.mockRejectedValueOnce(new Error('Redis unavailable'));
+    await expect(listener.onEmailSyncCompleted(baseEvent)).rejects.toThrow(
+      'Redis unavailable',
+    );
+    expect(tryClaim).not.toHaveBeenCalled();
+  });
+
+  it('reuses the job ID when receipt commit fails after enqueue', async () => {
+    tryClaim.mockRejectedValueOnce(new Error('commit failed'));
+    await expect(listener.onEmailSyncCompleted(baseEvent)).rejects.toThrow(
+      'commit failed',
+    );
+    await listener.onEmailSyncCompleted(baseEvent);
+    expect(add.mock.calls[0][2].jobId).toBe(add.mock.calls[1][2].jobId);
+  });
+
+  it('rejects durable events when the queue is unavailable', async () => {
+    const offline = new AiEventsListener(undefined, idempotency);
+    await expect(offline.onEmailSyncCompleted(baseEvent)).rejects.toThrow(
+      'requires its queue',
+    );
+    expect(tryClaim).not.toHaveBeenCalled();
   });
 });

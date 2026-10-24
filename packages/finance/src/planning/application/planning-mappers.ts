@@ -112,11 +112,15 @@ export function mapSavingsGoalContribution<
 export function mapReceivablePayment<
   T extends {
     amount: Decimalish;
+    appliedAmount: Decimalish;
+    excessAmount: Decimalish;
   },
 >(row: T) {
   return {
     ...row,
     amount: decimalToString(row.amount),
+    appliedAmount: decimalToString(row.appliedAmount),
+    excessAmount: decimalToString(row.excessAmount),
   };
 }
 
@@ -124,11 +128,15 @@ export function mapReceivable<
   T extends {
     amount: Decimalish;
     paidAmount: Decimalish;
+    creditBalance: Decimalish;
+    writtenOffAmount: Decimalish;
   },
 >(row: T) {
   return {
     ...row,
     amount: decimalToString(row.amount),
     paidAmount: decimalToString(row.paidAmount),
+    creditBalance: decimalToString(row.creditBalance),
+    writtenOffAmount: decimalToString(row.writtenOffAmount),
   };
 }

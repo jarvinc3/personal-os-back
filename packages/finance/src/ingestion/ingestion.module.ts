@@ -4,6 +4,7 @@ import { isBullMqEnabledFromProcessEnv } from '@personal-os/config';
 import { QueueNames } from '@personal-os/core';
 import { FinanceEventsModule } from '../events/events.module';
 import { FinanceLedgerModule } from '../ledger/ledger.module';
+import { FinanceMerchantsModule } from '../merchants/merchants.module';
 import { FinanceOwnershipModule } from '../shared/finance-ownership.module';
 import { EMAIL_TRANSACTION_EXTRACTOR } from '../shared/application/tokens';
 import { EnqueueDueGmailSyncsUseCase } from './application/enqueue-due-gmail-syncs.use-case';
@@ -30,6 +31,7 @@ const bullMqEnabled = isBullMqEnabledFromProcessEnv();
   imports: [
     FinanceEventsModule,
     FinanceLedgerModule,
+    FinanceMerchantsModule,
     FinanceOwnershipModule,
     ...(bullMqEnabled
       ? [BullModule.registerQueue({ name: QueueNames.GMAIL_SYNC })]

@@ -9,54 +9,20 @@ import { Queue } from 'bullmq';
 import { Prisma, PrismaService } from '@personal-os/database';
 import { LogoService } from '@personal-os/logos';
 import { QueueNames, type GmailSyncJob } from '@personal-os/core';
+import type { DataBranchDescriptor } from '@personal-os/users';
 import { gmailSyncJobId } from '../../ingestion/application/gmail-sync.constants';
-import type { FinanceWipeLayer } from '../domain/finance-wipe-layers';
+import { FINANCE_DATA_BRANCHES } from '../domain/finance-data-branches';
 
 type TxClient = Prisma.TransactionClient;
 
-export type FinanceWipeCounts = {
-  transactions: number;
-  emailMessages: number;
-  emailSyncLogs: number;
-  recurringPatterns: number;
-  merchants: number;
-  budgets: number;
-  savingsGoals: number;
-  loans: number;
-  receivables: number;
-  categories: number;
-  institutions: number;
-  accounts: number;
-  cards: number;
-  emailConnections: number;
-  accountBalances: number;
-  cardBalances: number;
+/** What one branch removed, so each branch reports its own count. */
+export type FinanceWipeBranchResult = {
+  primary: number;
 };
 
-function emptyCounts(): FinanceWipeCounts {
-  return {
-    transactions: 0,
-    emailMessages: 0,
-    emailSyncLogs: 0,
-    recurringPatterns: 0,
-    merchants: 0,
-    budgets: 0,
-    savingsGoals: 0,
-    loans: 0,
-    receivables: 0,
-    categories: 0,
-    institutions: 0,
-    accounts: 0,
-    cards: 0,
-    emailConnections: 0,
-    accountBalances: 0,
-    cardBalances: 0,
-  };
-}
-
 /**
- * Bulk finance wipe. Never reuses the per-instrument purge: that would emit one
- * outbox event per transaction and flood the AI/notifications listeners.
+ * Bulk finance wipe by data branch. Never reuses the per-instrument purge: that
+ * would emit one outbox event per transaction and flood the listeners.
  */
 @Injectable()
 export class WipeFinanceUserDataUseCase {
@@ -70,50 +36,254 @@ export class WipeFinanceUserDataUseCase {
     private readonly gmailSyncQueue?: Queue<GmailSyncJob>,
   ) {}
 
-  async execute(
+  /** Branch registry this package declares, consulted by the orchestrator. */
+  dataBranches(): readonly DataBranchDescriptor[] {
+    return FINANCE_DATA_BRANCHES;
+  }
+
+  /** Rows each branch would delete today, with the same rules as the wipe. */
+  async countBranches(
     userId: string,
-    layers: readonly FinanceWipeLayer[],
+    branchIds: readonly string[],
+  ): Promise<Record<string, number>> {
+    const counts: Record<string, number> = {};
+    for (const branchId of branchIds) {
+      counts[branchId] = await this.countBranch(userId, branchId);
+    }
+    return counts;
+  }
+
+  /** Applies the branches in one transaction and returns what each removed. */
+  async wipeBranches(
+    userId: string,
+    branchIds: readonly string[],
     options?: { balanceInstitutionId?: string },
-  ): Promise<FinanceWipeCounts> {
-    const selected = new Set<FinanceWipeLayer>(layers);
-    const sourceIds = await this.findSourceIds(userId);
+  ): Promise<Record<string, number>> {
+    const sourceIds = await this.affectedSourceIds(userId, branchIds);
     await this.cancelGmailSyncJobs(sourceIds);
 
-    const customLogoPaths = selected.has('finance.catalog')
-      ? await this.findCustomLogoPaths(userId)
-      : [];
+    const logoPaths = await this.findLogoPaths(userId, branchIds);
 
     const counts = await this.prisma.$transaction(async (tx) => {
-      const applied = emptyCounts();
-      if (selected.has('finance.ledger')) {
-        Object.assign(applied, await this.wipeLedger(tx, userId, sourceIds));
-      }
-      if (selected.has('finance.balances')) {
-        Object.assign(
-          applied,
-          await this.wipeBalances(tx, userId, options?.balanceInstitutionId),
-        );
-      }
-      if (selected.has('finance.planning')) {
-        Object.assign(applied, await this.wipePlanning(tx, userId));
-      }
-      if (selected.has('finance.categories')) {
-        Object.assign(applied, await this.wipeCategories(tx, userId));
-      }
-      if (selected.has('finance.catalog')) {
-        Object.assign(applied, await this.wipeCatalog(tx, userId));
-      }
-      if (selected.has('finance.emailConnections')) {
-        const deleted = await tx.finEmailConnection.deleteMany({
-          where: { userId },
+      const applied: Record<string, number> = {};
+      for (const branchId of branchIds) {
+        applied[branchId] = await this.applyBranch(tx, {
+          userId,
+          branchId,
+          sourceIds,
+          balanceInstitutionId: options?.balanceInstitutionId,
         });
-        applied.emailConnections = deleted.count;
       }
       return applied;
     });
 
-    await this.deleteCustomLogos(customLogoPaths);
+    await this.deleteLogos(logoPaths);
     return counts;
+  }
+
+  private async applyBranch(
+    tx: TxClient,
+    input: {
+      userId: string;
+      branchId: string;
+      sourceIds: readonly string[];
+      balanceInstitutionId?: string;
+    },
+  ): Promise<number> {
+    const handler = this.branchHandlers()[input.branchId];
+    if (!handler) {
+      return 0;
+    }
+    return handler(tx, input);
+  }
+
+  /**
+   * One handler per branch. The order the orchestrator applies comes from the
+   * registry, so a branch that needs another one to go first declares it there.
+   */
+  private branchHandlers(): Record<
+    string,
+    (
+      tx: TxClient,
+      input: {
+        userId: string;
+        sourceIds: readonly string[];
+        balanceInstitutionId?: string;
+      },
+    ) => Promise<number>
+  > {
+    return {
+      'finance.reconciliations': async (tx, { userId }) => {
+        const reconciliations = await tx.finReconciliation.deleteMany({
+          where: { userId },
+        });
+        const drifts = await tx.finBalanceDrift.deleteMany({
+          where: { userId },
+        });
+        return reconciliations.count + drifts.count;
+      },
+      'finance.transactions': async (tx, { userId }) => {
+        const transactions = await tx.finTransaction.deleteMany({
+          where: { userId },
+        });
+        await tx.finAccount.updateMany({
+          where: { userId },
+          data: { balance: 0 },
+        });
+        await this.resetCardBalances(tx, userId);
+        await tx.finBudget.updateMany({
+          where: { userId },
+          data: { amountSpent: 0 },
+        });
+        return transactions.count;
+      },
+      'finance.balances': (tx, { userId, balanceInstitutionId }) =>
+        this.resetBalances(tx, userId, balanceInstitutionId),
+      'finance.cards': async (tx, { userId }) => {
+        const cards = await tx.finCard.deleteMany({ where: { userId } });
+        return cards.count;
+      },
+      'finance.accounts': async (tx, { userId }) => {
+        const accounts = await tx.finAccount.deleteMany({ where: { userId } });
+        return accounts.count;
+      },
+      'finance.institutions': (tx, { userId }) =>
+        this.wipeInstitutions(tx, userId),
+      'finance.subscriptions': async (tx, { userId }) => {
+        await tx.finSubscriptionPayment.deleteMany({
+          where: { subscription: { userId } },
+        });
+        await tx.finSubscriptionAlertDismissal.deleteMany({
+          where: { userId },
+        });
+        const subscriptions = await tx.finSubscription.deleteMany({
+          where: { userId },
+        });
+        return subscriptions.count;
+      },
+      'finance.recurring': async (tx, { userId }) => {
+        const patterns = await tx.finRecurringPattern.deleteMany({
+          where: { userId },
+        });
+        return patterns.count;
+      },
+      'finance.merchants': async (tx, { userId }) => {
+        const merchants = await tx.finMerchant.deleteMany({
+          where: { userId },
+        });
+        return merchants.count;
+      },
+      'finance.emailMessages': async (tx, { userId }) => {
+        const messages = await tx.finEmailMessage.deleteMany({
+          where: { source: { userId } },
+        });
+        await tx.finEmailSyncLog.deleteMany({
+          where: { source: { userId } },
+        });
+        return messages.count;
+      },
+      'finance.statements': async (tx, { userId }) => {
+        const imports = await tx.finStatementImport.deleteMany({
+          where: { userId },
+        });
+        const statements = await tx.finCardStatement.deleteMany({
+          where: { card: { userId } },
+        });
+        return imports.count + statements.count;
+      },
+      'finance.loans': async (tx, { userId }) => {
+        const loans = await tx.finLoan.deleteMany({ where: { userId } });
+        return loans.count;
+      },
+      'finance.savingsGoals': async (tx, { userId }) => {
+        const goals = await tx.finSavingsGoal.deleteMany({ where: { userId } });
+        return goals.count;
+      },
+      'finance.receivables': async (tx, { userId }) => {
+        const receivables = await tx.finReceivable.deleteMany({
+          where: { userId },
+        });
+        return receivables.count;
+      },
+      'finance.budgets': async (tx, { userId }) => {
+        const budgets = await tx.finBudget.deleteMany({ where: { userId } });
+        return budgets.count;
+      },
+      'finance.categories': async (tx, { userId }) => {
+        const categories = await tx.finCategory.deleteMany({
+          where: { userId, isSystem: false },
+        });
+        return categories.count;
+      },
+      'finance.emailConnections': async (tx, { userId }) => {
+        const connections = await tx.finEmailConnection.deleteMany({
+          where: { userId },
+        });
+        return connections.count;
+      },
+    };
+  }
+
+  private async countBranch(userId: string, branchId: string): Promise<number> {
+    switch (branchId) {
+      case 'finance.reconciliations':
+        return (
+          (await this.prisma.finReconciliation.count({ where: { userId } })) +
+          (await this.prisma.finBalanceDrift.count({
+            where: { userId, resolvedAt: null },
+          }))
+        );
+      case 'finance.transactions':
+        return this.prisma.finTransaction.count({ where: { userId } });
+      case 'finance.balances':
+        return (
+          (await this.prisma.finAccount.count({ where: { userId } })) +
+          (await this.prisma.finCardBalance.count({
+            where: { card: { userId } },
+          }))
+        );
+      case 'finance.cards':
+        return this.prisma.finCard.count({ where: { userId } });
+      case 'finance.accounts':
+        return this.prisma.finAccount.count({ where: { userId } });
+      case 'finance.institutions':
+        return this.prisma.finInstitution.count({
+          where: { userId, isSystem: false },
+        });
+      case 'finance.subscriptions':
+        return this.prisma.finSubscription.count({ where: { userId } });
+      case 'finance.recurring':
+        return this.prisma.finRecurringPattern.count({ where: { userId } });
+      case 'finance.merchants':
+        return this.prisma.finMerchant.count({ where: { userId } });
+      case 'finance.emailMessages':
+        return this.prisma.finEmailMessage.count({
+          where: { source: { userId } },
+        });
+      case 'finance.statements':
+        return (
+          (await this.prisma.finStatementImport.count({ where: { userId } })) +
+          (await this.prisma.finCardStatement.count({
+            where: { card: { userId } },
+          }))
+        );
+      case 'finance.loans':
+        return this.prisma.finLoan.count({ where: { userId } });
+      case 'finance.savingsGoals':
+        return this.prisma.finSavingsGoal.count({ where: { userId } });
+      case 'finance.receivables':
+        return this.prisma.finReceivable.count({ where: { userId } });
+      case 'finance.budgets':
+        return this.prisma.finBudget.count({ where: { userId } });
+      case 'finance.categories':
+        return this.prisma.finCategory.count({
+          where: { userId, isSystem: false },
+        });
+      case 'finance.emailConnections':
+        return this.prisma.finEmailConnection.count({ where: { userId } });
+      default:
+        return 0;
+    }
   }
 
   private findSourceIds(userId: string): Promise<Array<{ id: string }>> {
@@ -123,27 +293,70 @@ export class WipeFinanceUserDataUseCase {
     });
   }
 
-  private findCustomLogoPaths(userId: string): Promise<string[]> {
-    return this.prisma.finInstitution
-      .findMany({
-        where: { userId, customLogoPath: { not: null } },
-        select: { customLogoPath: true },
-      })
-      .then((rows) =>
-        rows.flatMap((row) => (row.customLogoPath ? [row.customLogoPath] : [])),
-      );
+  /**
+   * Mail sources whose sync job must stop: the ones this wipe deletes. An
+   * unrelated branch must not cancel a sync the user still needs.
+   */
+  private async affectedSourceIds(
+    userId: string,
+    branchIds: readonly string[],
+  ): Promise<string[]> {
+    if (branchIds.includes('finance.emailConnections')) {
+      return (await this.findSourceIds(userId)).map((source) => source.id);
+    }
+    if (!branchIds.includes('finance.institutions')) {
+      return [];
+    }
+    const sources = await this.prisma.finEmailSource.findMany({
+      where: {
+        userId,
+        institution: { isSystem: false },
+      },
+      select: { id: true },
+    });
+    return sources.map((source) => source.id);
   }
 
-  private async cancelGmailSyncJobs(sourceIds: Array<{ id: string }>) {
+  private async findLogoPaths(
+    userId: string,
+    branchIds: readonly string[],
+  ): Promise<string[]> {
+    const paths: string[] = [];
+    if (branchIds.includes('finance.institutions')) {
+      const institutions = await this.prisma.finInstitution.findMany({
+        where: { userId, isSystem: false, customLogoPath: { not: null } },
+        select: { customLogoPath: true },
+      });
+      paths.push(
+        ...institutions.flatMap((row) =>
+          row.customLogoPath ? [row.customLogoPath] : [],
+        ),
+      );
+    }
+    if (branchIds.includes('finance.merchants')) {
+      const merchants = await this.prisma.finMerchant.findMany({
+        where: { userId, customLogoPath: { not: null } },
+        select: { customLogoPath: true },
+      });
+      paths.push(
+        ...merchants.flatMap((row) =>
+          row.customLogoPath ? [row.customLogoPath] : [],
+        ),
+      );
+    }
+    return paths;
+  }
+
+  private async cancelGmailSyncJobs(sourceIds: readonly string[]) {
     if (!this.gmailSyncQueue || sourceIds.length === 0) {
       return;
     }
-    for (const source of sourceIds) {
+    for (const sourceId of sourceIds) {
       try {
-        await this.gmailSyncQueue.remove(gmailSyncJobId(source.id));
+        await this.gmailSyncQueue.remove(gmailSyncJobId(sourceId));
       } catch (error) {
         this.logger.warn(
-          `Failed to cancel Gmail sync job for source ${source.id}: ${
+          `Failed to cancel Gmail sync job for source ${sourceId}: ${
             error instanceof Error ? error.message : 'unknown error'
           }`,
         );
@@ -151,57 +364,17 @@ export class WipeFinanceUserDataUseCase {
     }
   }
 
-  private async deleteCustomLogos(paths: readonly string[]) {
+  private async deleteLogos(paths: readonly string[]) {
     for (const path of paths) {
       await this.logos.deleteCustomLogo(path);
     }
   }
 
-  private async wipeLedger(
-    tx: TxClient,
-    userId: string,
-    sourceIds: Array<{ id: string }>,
-  ): Promise<Partial<FinanceWipeCounts>> {
-    const sourceIdList = sourceIds.map((source) => source.id);
-    // Adjustments hold the movement with a RESTRICT foreign key, so the
-    // closes go first and cascade their lines before the movements.
-    await tx.finReconciliation.deleteMany({ where: { userId } });
-    const transactions = await tx.finTransaction.deleteMany({
-      where: { userId },
-    });
-    const emailMessages = await tx.finEmailMessage.deleteMany({
-      where: { sourceId: { in: sourceIdList } },
-    });
-    const emailSyncLogs = await tx.finEmailSyncLog.deleteMany({
-      where: { sourceId: { in: sourceIdList } },
-    });
-    const recurringPatterns = await tx.finRecurringPattern.deleteMany({
-      where: { userId },
-    });
-    const merchants = await tx.finMerchant.deleteMany({ where: { userId } });
-    await tx.finAccount.updateMany({
-      where: { userId },
-      data: { balance: 0 },
-    });
-    await this.resetCardBalances(tx, userId);
-    await tx.finBudget.updateMany({
-      where: { userId },
-      data: { amountSpent: 0 },
-    });
-    return {
-      transactions: transactions.count,
-      emailMessages: emailMessages.count,
-      emailSyncLogs: emailSyncLogs.count,
-      recurringPatterns: recurringPatterns.count,
-      merchants: merchants.count,
-    };
-  }
-
-  private async wipeBalances(
+  private async resetBalances(
     tx: TxClient,
     userId: string,
     institutionId?: string,
-  ): Promise<Partial<FinanceWipeCounts>> {
+  ): Promise<number> {
     if (institutionId) {
       const institution = await tx.finInstitution.findFirst({
         where: { id: institutionId, userId },
@@ -220,10 +393,7 @@ export class WipeFinanceUserDataUseCase {
       userId,
       institutionId,
     );
-    return {
-      accountBalances: accounts.count,
-      cardBalances,
-    };
+    return accounts.count + cardBalances;
   }
 
   /**
@@ -262,51 +432,26 @@ export class WipeFinanceUserDataUseCase {
     return Number(restored) + debits.count;
   }
 
-  private async wipePlanning(
+  /**
+   * Non-system institutions go, and with them their accounts, cards and what
+   * those drag. The system "Efectivo" institution survives.
+   */
+  private async wipeInstitutions(
     tx: TxClient,
     userId: string,
-  ): Promise<Partial<FinanceWipeCounts>> {
-    const budgets = await tx.finBudget.deleteMany({ where: { userId } });
-    const savingsGoals = await tx.finSavingsGoal.deleteMany({
-      where: { userId },
+  ): Promise<number> {
+    const institutions = await tx.finInstitution.findMany({
+      where: { userId, isSystem: false },
+      select: { id: true },
     });
-    const loans = await tx.finLoan.deleteMany({ where: { userId } });
-    const receivables = await tx.finReceivable.deleteMany({
-      where: { userId },
+    const institutionIds = institutions.map((institution) => institution.id);
+    await tx.finLoan.deleteMany({
+      where: { userId, institutionId: { in: institutionIds } },
     });
-    return {
-      budgets: budgets.count,
-      savingsGoals: savingsGoals.count,
-      loans: loans.count,
-      receivables: receivables.count,
-    };
-  }
-
-  private async wipeCategories(
-    tx: TxClient,
-    userId: string,
-  ): Promise<Partial<FinanceWipeCounts>> {
-    const categories = await tx.finCategory.deleteMany({
+    // Accounts, cards and mail sources (with their messages) cascade.
+    const deleted = await tx.finInstitution.deleteMany({
       where: { userId, isSystem: false },
     });
-    return { categories: categories.count };
-  }
-
-  private async wipeCatalog(
-    tx: TxClient,
-    userId: string,
-  ): Promise<Partial<FinanceWipeCounts>> {
-    const [institutions, accounts, cards] = await Promise.all([
-      tx.finInstitution.count({ where: { userId, isSystem: false } }),
-      tx.finAccount.count({ where: { userId } }),
-      tx.finCard.count({ where: { userId } }),
-    ]);
-    // The system "Efectivo" institution survives the wipe and is refilled by
-    // ensureCashInstitution; non-system institutions cascade their products.
-    await tx.finInstitution.deleteMany({ where: { userId, isSystem: false } });
-    // Cash accounts live in the system institution and are emptied, not kept.
-    await tx.finAccount.deleteMany({ where: { userId } });
-    await tx.finCard.deleteMany({ where: { userId } });
-    return { institutions, accounts, cards };
+    return deleted.count;
   }
 }

@@ -242,6 +242,26 @@
         ]
       }
     },
+    "/api/users/me/data/branches": {
+      "get": {
+        "operationId": "UsersController_myDataBranches",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Branches grouped by app with their counts"
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Ramas de datos por app, con su conteo y lo que arrastran",
+        "tags": [
+          "users"
+        ]
+      }
+    },
     "/api/users/me/data/wipe": {
       "post": {
         "operationId": "UsersController_wipeMyData",
@@ -258,7 +278,7 @@
         },
         "responses": {
           "200": {
-            "description": "Requested and applied layers with counts"
+            "description": "Requested and applied branches with counts"
           }
         },
         "security": [
@@ -266,7 +286,7 @@
             "access-token": []
           }
         ],
-        "summary": "Borra capas de datos seleccionadas sin cerrar la cuenta",
+        "summary": "Borra las ramas de datos elegidas sin cerrar la cuenta",
         "tags": [
           "users"
         ]
@@ -2061,6 +2081,34 @@
         "tags": [
           "finance"
         ]
+      },
+      "post": {
+        "operationId": "MerchantsController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateMerchantDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Crea un comercio con nombre, categoría y alias",
+        "tags": [
+          "finance"
+        ]
       }
     },
     "/api/finance/merchants/suggest": {
@@ -2159,6 +2207,107 @@
         ]
       }
     },
+    "/api/finance/merchants/{id}/duplicates": {
+      "get": {
+        "operationId": "MerchantsController_duplicates",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Comercios que parecen el mismo, con el motivo",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
+    "/api/finance/merchants/{id}/duplicates/{otherId}/dismiss": {
+      "post": {
+        "operationId": "MerchantsController_dismissDuplicate",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "otherId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Marca un par de comercios como «no es duplicado»",
+        "tags": [
+          "finance"
+        ]
+      },
+      "delete": {
+        "operationId": "MerchantsController_undoDismissDuplicate",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "otherId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Revierte el descarte de un par de comercios",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
     "/api/finance/merchants/{id}/merge": {
       "post": {
         "operationId": "MerchantsController_merge",
@@ -2199,6 +2348,33 @@
       }
     },
     "/api/finance/merchants/{id}/logo": {
+      "delete": {
+        "operationId": "MerchantsController_deleteLogo",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Quita el logo propio de un comercio",
+        "tags": [
+          "finance"
+        ]
+      },
       "post": {
         "operationId": "MerchantsController_uploadLogo",
         "parameters": [
@@ -4670,6 +4846,37 @@
         ]
       }
     },
+    "/api/finance/entities/lookup": {
+      "post": {
+        "description": "Returns the same public representation as each entity endpoint, in the same order as the references. A reference the user cannot see, or that no longer exists, comes back as null in its position. Read-only: it does not record activity.",
+        "operationId": "EntitiesController_lookupEntities",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LookupEntitiesDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Resuelve entidades de Finanzas por referencia, en lote",
+        "tags": [
+          "finance"
+        ]
+      }
+    },
     "/api/finance/analytics/weekly-summary": {
       "get": {
         "operationId": "AnalyticsController_weeklySummaryReport",
@@ -6214,20 +6421,17 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "providers": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/AiProviderInfoDto"
-                      }
-                    }
-                  }
+                  "$ref": "#/components/schemas/AiProvidersResponseDto"
                 }
               }
             }
           }
         },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
         "summary": "Lista los proveedores de IA configurados",
         "tags": [
           "ai-agent"
@@ -6260,6 +6464,11 @@
             }
           }
         },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
         "summary": "Chat con el grupo de agentes de IA (respuesta JSON agregada)",
         "tags": [
           "ai-agent"
@@ -6285,6 +6494,11 @@
             "description": ""
           }
         },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
         "summary": "Chat con el grupo de agentes de IA (stream SSE)",
         "tags": [
           "ai-agent"
@@ -6442,6 +6656,11 @@
             "description": ""
           }
         },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
         "summary": "Ejecuta una acción pendiente de la IA",
         "tags": [
           "ai-agent"
@@ -6466,6 +6685,11 @@
             "description": ""
           }
         },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
         "summary": "Cancela una acción pendiente de la IA",
         "tags": [
           "ai-agent"
@@ -6476,7 +6700,7 @@
   "info": {
     "title": "Personal OS API",
     "description": "Personal OS backend endpoints, including auth, core modules, and AI.",
-    "version": "0.53.3",
+    "version": "0.55.1",
     "contact": {}
   },
   "tags": [
@@ -6565,31 +6789,31 @@
       "WipeUserDataDto": {
         "type": "object",
         "properties": {
-          "layers": {
+          "branches": {
+            "example": [
+              "finance.transactions",
+              "ai.sessions"
+            ],
+            "description": "Data branches to wipe, as returned by GET /users/me/data/branches",
             "type": "array",
-            "description": "Data layers to wipe; at least one, no duplicates",
             "items": {
-              "type": "string",
-              "enum": [
-                "finance.ledger",
-                "finance.balances",
-                "finance.planning",
-                "finance.categories",
-                "finance.catalog",
-                "finance.emailConnections",
-                "ai.sessions",
-                "notifications",
-                "settings.defaults"
-              ]
+              "type": "string"
             }
+          },
+          "expectedCounts": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "number"
+            },
+            "description": "Branch counts the user saw. A different count answers 409 without deleting anything."
           },
           "balanceInstitutionId": {
             "type": "string",
-            "description": "Institution whose accounts to zero and whose credit cards to restore to their limit. Omit to cover every institution, including cash. Applied only when finance.balances is selected."
+            "description": "Institution whose accounts to zero and whose credit cards to restore to their limit. Applies only to finance.balances."
           }
         },
         "required": [
-          "layers"
+          "branches"
         ]
       },
       "ChangeBaseCurrencyDto": {
@@ -7307,6 +7531,36 @@
           }
         }
       },
+      "CreateMerchantDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 120,
+            "example": "Supermercado Nacional"
+          },
+          "categoryId": {
+            "type": "object",
+            "nullable": true
+          },
+          "domain": {
+            "type": "object",
+            "nullable": true,
+            "description": "Brand domain from the logo search"
+          },
+          "aliases": {
+            "maxItems": 20,
+            "description": "Other names the merchant appears with",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
       "UpdateMerchantDto": {
         "type": "object",
         "properties": {
@@ -7317,9 +7571,18 @@
             "type": "object",
             "nullable": true
           },
-          "logoUrl": {
+          "aliases": {
+            "maxItems": 20,
+            "description": "Complete alias list that replaces the current one",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "domain": {
             "type": "object",
-            "nullable": true
+            "nullable": true,
+            "description": "Brand domain from the logo search; null removes the brand logo"
           }
         }
       },
@@ -8204,6 +8467,50 @@
           "kind"
         ]
       },
+      "EntityReferenceDto": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "transaction",
+              "account",
+              "card",
+              "loan",
+              "budget",
+              "savingsGoal",
+              "receivable",
+              "subscription",
+              "merchant",
+              "category"
+            ],
+            "description": "Finance product the reference points at"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "type",
+          "id"
+        ]
+      },
+      "LookupEntitiesDto": {
+        "type": "object",
+        "properties": {
+          "refs": {
+            "description": "References to resolve, at most 50 per call",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EntityReferenceDto"
+            }
+          }
+        },
+        "required": [
+          "refs"
+        ]
+      },
       "ConnectEmailSourceDto": {
         "type": "object",
         "properties": {
@@ -8586,6 +8893,37 @@
         "required": [
           "platform",
           "token"
+        ]
+      },
+      "AiProviderInfoDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Groq"
+          },
+          "model": {
+            "type": "string",
+            "example": "llama-3.3-70b-versatile"
+          }
+        },
+        "required": [
+          "name",
+          "model"
+        ]
+      },
+      "AiProvidersResponseDto": {
+        "type": "object",
+        "properties": {
+          "providers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AiProviderInfoDto"
+            }
+          }
+        },
+        "required": [
+          "providers"
         ]
       },
       "EntityRefDto": {

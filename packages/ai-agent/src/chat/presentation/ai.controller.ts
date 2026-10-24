@@ -7,6 +7,7 @@ import {
   Res,
 } from '@nestjs/common';
 import {
+  ApiBearerAuth,
   ApiOkResponse,
   ApiOperation,
   ApiProduces,
@@ -19,13 +20,14 @@ import { NotificationsGateway } from '@personal-os/notifications';
 import { AiAgentRunner } from '../application/ai-agent.runner';
 import { AiChatPersistenceService } from '../infrastructure/ai-chat-persistence.service';
 import { AiService } from '../application/ai.service';
-import { AiProviderInfoDto } from './dto/ai-provider-info.dto';
+import { AiProvidersResponseDto } from './dto/ai-providers-response.dto';
 import { ChatRequestDto } from './dto/chat-request.dto';
 import { ChatResponseDto } from './dto/chat-response.dto';
 import type { AiResponseWsPayload } from '../../shared/ai.types';
 import { replayStreamChunks } from '../../shared/replay-stream-chunks';
 
 @ApiTags('ai-agent')
+@ApiBearerAuth('access-token')
 @Controller('ai')
 @Timeout(30_000)
 export class AiController {
@@ -38,18 +40,8 @@ export class AiController {
 
   @Get('providers')
   @ApiOperation({ summary: 'Lista los proveedores de IA configurados' })
-  @ApiOkResponse({
-    schema: {
-      type: 'object',
-      properties: {
-        providers: {
-          type: 'array',
-          items: { $ref: '#/components/schemas/AiProviderInfoDto' },
-        },
-      },
-    },
-  })
-  listProviders(): { providers: AiProviderInfoDto[] } {
+  @ApiOkResponse({ type: AiProvidersResponseDto })
+  listProviders(): AiProvidersResponseDto {
     return { providers: this.aiService.getProviders() };
   }
 

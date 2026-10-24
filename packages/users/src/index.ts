@@ -21,14 +21,19 @@ export {
 } from './domain/defaults/user-settings-defaults';
 export { parseUserPreferences } from './domain/parse-user-preferences';
 export {
-  expandWipeLayers,
-  isWipeLayerId,
-  sortWipeLayers,
-  WIPE_EXECUTION_ORDER,
-  WIPE_LAYERS,
-  WIPE_LAYER_IDS,
-  type WipeLayerId,
-} from './domain/wipe-layers';
+  DATA_APP,
+  expandDataBranches,
+  groupDataBranchCounts,
+  isKnownDataBranch,
+  type DataApp,
+  type DataAppBranches,
+  type DataBranchCount,
+  type DataBranchDescriptor,
+} from './domain/data-branches';
+export {
+  SETTINGS_DATA_BRANCHES,
+  SETTINGS_DEFAULTS_BRANCH,
+} from './domain/settings-data-branches';
 export { mergeWithDefaults } from './domain/settings-merge';
 export {
   USERS_REPOSITORY,

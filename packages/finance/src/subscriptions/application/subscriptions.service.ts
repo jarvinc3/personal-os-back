@@ -423,6 +423,16 @@ export class SubscriptionsService implements SubscriptionMatcherPort {
     return this.map(row, now);
   }
 
+  /** Subscriptions with the same shape as `get`, in batch and without throwing. */
+  async lookupSubscriptions(
+    userId: string,
+    ids: readonly string[],
+    now = new Date(),
+  ) {
+    const rows = await this.repo.findByIds(userId, ids);
+    return new Map(rows.map((row) => [row.id, this.map(row, now)]));
+  }
+
   async create(userId: string, dto: CreateSubscriptionDto, now = new Date()) {
     await this.assertTargets(userId, dto.cardId, dto.accountId);
     if (dto.categoryId) {

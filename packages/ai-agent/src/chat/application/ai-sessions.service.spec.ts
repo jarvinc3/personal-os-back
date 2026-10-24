@@ -12,6 +12,7 @@ function createService() {
     findSessionById: jest.fn(),
     deleteSession: jest.fn(),
     deleteAllForUser: jest.fn(),
+    countAllForUser: jest.fn(),
   };
   const actionsService = { listBySession: jest.fn().mockResolvedValue([]) };
 
@@ -322,7 +323,16 @@ describe('AiSessionsService', () => {
     sessionsRepo.deleteAllForUser.mockResolvedValue({ count: 3 });
 
     await expect(service.wipeAllForUser('user-1')).resolves.toEqual({
-      sessions: 3,
+      'ai.sessions': 3,
+    });
+  });
+
+  it('counts the sessions it would wipe', async () => {
+    const { service, sessionsRepo } = createService();
+    sessionsRepo.countAllForUser.mockResolvedValue(5);
+
+    await expect(service.countForUser('user-1')).resolves.toEqual({
+      'ai.sessions': 5,
     });
   });
 });

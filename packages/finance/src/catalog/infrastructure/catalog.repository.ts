@@ -99,6 +99,14 @@ export class CatalogRepository {
     });
   }
 
+  /** One query for many accounts, for the bulk entity lookup. */
+  findAccountsByIds(userId: string, ids: readonly string[]) {
+    return this.prisma.finAccount.findMany({
+      where: { id: { in: [...ids] }, userId },
+      include: { institutionRef: true },
+    });
+  }
+
   async hasSavingsGoalMoney(accountId: string): Promise<boolean> {
     const goal = await this.prisma.finSavingsGoal.findFirst({
       where: { accountId, currentAmount: { gt: 0 } },
@@ -360,6 +368,26 @@ export class CatalogRepository {
         balances: true,
         transactions: PENDING_CARD_MOVEMENTS,
       },
+    });
+  }
+
+  /** One query for many cards, for the bulk entity lookup. */
+  findCardsByIds(userId: string, ids: readonly string[]) {
+    return this.prisma.finCard.findMany({
+      where: { id: { in: [...ids] }, userId },
+      include: {
+        institution: true,
+        account: { select: { id: true, name: true } },
+        balances: true,
+        transactions: PENDING_CARD_MOVEMENTS,
+      },
+    });
+  }
+
+  /** Categories the user can see: their own plus the system ones. */
+  findCategoriesByIds(userId: string, ids: readonly string[]) {
+    return this.prisma.finCategory.findMany({
+      where: { id: { in: [...ids] }, OR: [{ userId }, { isSystem: true }] },
     });
   }
 

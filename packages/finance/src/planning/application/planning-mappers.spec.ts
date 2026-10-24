@@ -3,6 +3,7 @@ import {
   mapLoan,
   mapLoanInstallment,
   mapReceivable,
+  mapReceivablePayment,
   mapSavingsGoal,
 } from './planning-mappers';
 
@@ -69,9 +70,32 @@ describe('planning money mappers', () => {
       targetAmount: '500',
       currentAmount: '20',
     });
-    expect(mapReceivable({ amount: 80, paidAmount: 0 })).toEqual({
+    expect(
+      mapReceivable({
+        amount: 80,
+        paidAmount: 0,
+        creditBalance: '12.50',
+        writtenOffAmount: 0,
+      }),
+    ).toEqual({
       amount: '80',
       paidAmount: '0',
+      creditBalance: '12.50',
+      writtenOffAmount: '0',
+    });
+  });
+
+  it('maps every receivable payment amount to strings', () => {
+    expect(
+      mapReceivablePayment({
+        amount: 120,
+        appliedAmount: 100,
+        excessAmount: 20,
+      }),
+    ).toEqual({
+      amount: '120',
+      appliedAmount: '100',
+      excessAmount: '20',
     });
   });
 });

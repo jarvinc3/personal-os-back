@@ -4,6 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Queue } from 'bullmq';
 import type { Env } from '@personal-os/config';
+import type { Notification, Prisma } from '@personal-os/database';
 import { NotificationCreatedEvent } from '@personal-os/core';
 import { AppEvents } from '@personal-os/core';
 import { clampPageLimit, toCursorPage } from '@personal-os/core';
@@ -30,7 +31,16 @@ export class NotificationsService {
     private readonly notificationsQueue?: Queue<NotificationDispatchJob>,
   ) {}
 
-  async create(userId: string, dto: CreateNotificationDto) {
+  async create(
+    userId: string,
+    dto: CreateNotificationDto,
+    tx?: Prisma.TransactionClient,
+  ) {
+    if (tx && dto.channel !== 'IN_APP') {
+      throw new Error(
+        'Transactional notification creation only supports IN_APP',
+      );
+    }
     const isDevTestNotification =
       process.env.NODE_ENV === 'test' && dto.data?.source === 'dev';
 
@@ -50,14 +60,23 @@ export class NotificationsService {
       }
     }
 
-    const created = await this.notificationsRepo.createNotification({
+    const input = {
       userId,
       type: dto.type,
       channel: dto.channel,
       title: dto.title,
       body: dto.body,
       data: dto.data,
-    });
+    };
+    const created = tx
+      ? await this.notificationsRepo.createNotification(input, tx)
+      : await this.notificationsRepo.createNotification(input);
+
+    if (tx) {
+      // The listener publishes the transient WebSocket update after commit.
+      // The persisted IN_APP notification is the durable delivery.
+      return created;
+    }
 
     if (dto.channel === 'IN_APP') {
       this.notificationsGateway.emitToUser(created.userId, 'notification.new', {
@@ -107,6 +126,29 @@ export class NotificationsService {
     return created;
   }
 
+  publishInApp(created: Notification): void {
+    try {
+      this.notificationsGateway.emitToUser(created.userId, 'notification.new', {
+        id: created.id,
+        type: created.type,
+        title: created.title,
+        body: created.body,
+        data: created.data,
+        createdAt: created.createdAt,
+      });
+      this.eventEmitter.emit(
+        AppEvents.NOTIFICATION_CREATED,
+        new NotificationCreatedEvent(created.userId, created.id),
+      );
+    } catch (error) {
+      // A disconnected socket cannot undo a committed notification. The client
+      // recovers it through the list/unread endpoints after reconnecting.
+      this.logger.warn(
+        `IN_APP update unavailable for notification ${created.id}: ${String(error)}`,
+      );
+    }
+  }
+
   async list(userId: string, query: ListNotificationsQueryDto) {
     const inAppEnabled =
       await this.notificationPolicy.isInAppListingEnabled(userId);
@@ -139,10 +181,35 @@ export class NotificationsService {
     return { updated: result.count };
   }
 
-  async wipeAllForUser(userId: string) {
-    const notifications = await this.notificationsRepo.deleteAllForUser(userId);
-    const pushTokens =
-      await this.notificationsRepo.deleteAllPushTokensForUser(userId);
-    return { notifications: notifications.count, pushTokens: pushTokens.count };
+  /** Deletes the requested branches only; each one counts its own rows. */
+  async wipeAllForUser(
+    userId: string,
+    branchIds: readonly string[] = [
+      'notifications.history',
+      'notifications.pushTokens',
+    ],
+  ): Promise<Record<string, number>> {
+    const counts: Record<string, number> = {};
+    if (branchIds.includes('notifications.history')) {
+      counts['notifications.history'] = (
+        await this.notificationsRepo.deleteAllForUser(userId)
+      ).count;
+    }
+    if (branchIds.includes('notifications.pushTokens')) {
+      counts['notifications.pushTokens'] = (
+        await this.notificationsRepo.deleteAllPushTokensForUser(userId)
+      ).count;
+    }
+    return counts;
+  }
+
+  /** Rows the wipe would delete today, with the same definition it uses. */
+  async countForUser(userId: string): Promise<Record<string, number>> {
+    return {
+      'notifications.history':
+        await this.notificationsRepo.countAllForUser(userId),
+      'notifications.pushTokens':
+        await this.notificationsRepo.countAllPushTokensForUser(userId),
+    };
   }
 }

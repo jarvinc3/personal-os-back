@@ -70,6 +70,7 @@ describe('resolveCategoryIdForImport', () => {
   ];
 
   it('prefers the LLM hint over merchant history', async () => {
+    const findMerchantCategoryId = jest.fn().mockResolvedValue(null);
     const findCategoryIdByMerchant = jest
       .fn()
       .mockResolvedValue('exp-transport');
@@ -79,6 +80,7 @@ describe('resolveCategoryIdForImport', () => {
         hint: 'Alimentación',
         transactionType: 'DEBIT',
         merchant: 'Uber',
+        findMerchantCategoryId,
         findCategoryIdByMerchant,
       }),
     ).resolves.toEqual({ categoryId: 'exp-food', source: 'hint' });
@@ -86,6 +88,7 @@ describe('resolveCategoryIdForImport', () => {
   });
 
   it('falls back to merchant history when hint is missing', async () => {
+    const findMerchantCategoryId = jest.fn().mockResolvedValue(null);
     const findCategoryIdByMerchant = jest
       .fn()
       .mockResolvedValue('exp-transport');
@@ -95,6 +98,7 @@ describe('resolveCategoryIdForImport', () => {
         hint: null,
         transactionType: 'DEBIT',
         merchant: 'Uber',
+        findMerchantCategoryId,
         findCategoryIdByMerchant,
       }),
     ).resolves.toEqual({
@@ -103,7 +107,44 @@ describe('resolveCategoryIdForImport', () => {
     });
   });
 
+  it('takes the category the merchant already remembers before the history', async () => {
+    const findMerchantCategoryId = jest.fn().mockResolvedValue('exp-transport');
+    const findCategoryIdByMerchant = jest.fn().mockResolvedValue('exp-food');
+
+    await expect(
+      resolveCategoryIdForImport({
+        categories,
+        hint: null,
+        transactionType: 'DEBIT',
+        merchant: 'Uber',
+        findMerchantCategoryId,
+        findCategoryIdByMerchant,
+      }),
+    ).resolves.toEqual({ categoryId: 'exp-transport', source: 'merchant' });
+    expect(findCategoryIdByMerchant).not.toHaveBeenCalled();
+  });
+
+  it('ignores a merchant category whose type does not match', async () => {
+    const findMerchantCategoryId = jest.fn().mockResolvedValue('inc-1');
+    const findCategoryIdByMerchant = jest.fn().mockResolvedValue('exp-food');
+
+    await expect(
+      resolveCategoryIdForImport({
+        categories: [
+          ...categories,
+          { id: 'inc-1', name: 'Salario', type: 'INCOME' },
+        ],
+        hint: null,
+        transactionType: 'DEBIT',
+        merchant: 'Payroll Co',
+        findMerchantCategoryId,
+        findCategoryIdByMerchant,
+      }),
+    ).resolves.toEqual({ categoryId: 'exp-food', source: 'merchant_history' });
+  });
+
   it('returns null when history category type does not match', async () => {
+    const findMerchantCategoryId = jest.fn().mockResolvedValue(null);
     const findCategoryIdByMerchant = jest.fn().mockResolvedValue('inc-1');
     await expect(
       resolveCategoryIdForImport({
@@ -114,6 +155,7 @@ describe('resolveCategoryIdForImport', () => {
         hint: null,
         transactionType: 'DEBIT',
         merchant: 'Payroll Co',
+        findMerchantCategoryId,
         findCategoryIdByMerchant,
       }),
     ).resolves.toEqual({ categoryId: null, source: null });

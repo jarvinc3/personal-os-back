@@ -96,6 +96,41 @@ export class LedgerQueryService {
     return mapLogicalTransaction(tx, counterpart, this.logos);
   }
 
+  /**
+   * Movements with the same shape as `getTransaction`, in batch and without
+   * throwing: a missing or foreign id is simply absent from the map.
+   */
+  async lookupTransactions(userId: string, ids: readonly string[]) {
+    const rows = await this.repo.findTransactionsByIds(userId, ids);
+    const transferGroupIds = [
+      ...new Set(
+        rows.flatMap((row) =>
+          row.transferGroupId ? [row.transferGroupId] : [],
+        ),
+      ),
+    ];
+    const legs = await this.repo.findTransactionsByTransferGroupIds(
+      userId,
+      transferGroupIds,
+    );
+    return new Map(
+      rows.map((row) => [
+        row.id,
+        mapLogicalTransaction(
+          row,
+          row.transferGroupId
+            ? (legs.find(
+                (leg) =>
+                  leg.transferGroupId === row.transferGroupId &&
+                  leg.id !== row.id,
+              ) ?? null)
+            : undefined,
+          this.logos,
+        ),
+      ]),
+    );
+  }
+
   findTransactionByEmailMessageId(gmailMessageId: string, userId?: string) {
     return this.repo.findTransactionByEmailMessageId(gmailMessageId, userId);
   }

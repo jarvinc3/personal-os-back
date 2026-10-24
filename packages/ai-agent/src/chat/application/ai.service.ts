@@ -34,7 +34,7 @@ export class AiService implements OnModuleInit, AiChatCompletionPort {
       }
 
       throw new Error(
-        'No AI providers configured. Set at least one of: GROQ_API_KEY, CEREBRAS_API_KEY, OPENROUTER_API_KEY.',
+        'No AI providers configured. Set at least one of: GROQ_API_KEY, OPENCODE_API_KEY, OPENROUTER_API_KEY.',
       );
     }
 

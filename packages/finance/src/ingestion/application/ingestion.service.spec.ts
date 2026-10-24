@@ -38,6 +38,7 @@ describe('IngestionService.completeEmailSyncSuccessWithEvent', () => {
       { execute: jest.fn() } as never,
       { findLatestCategoryIdByMerchant: jest.fn() } as never,
       undefined,
+      { suggest: jest.fn().mockResolvedValue(null) } as never,
     );
 
     await service.completeEmailSyncSuccessWithEvent({
@@ -108,6 +109,7 @@ describe('IngestionService.completeEmailSyncFailureWithEvent', () => {
       { execute: jest.fn() } as never,
       { findLatestCategoryIdByMerchant: jest.fn() } as never,
       undefined,
+      { suggest: jest.fn().mockResolvedValue(null) } as never,
     );
 
     await service.completeEmailSyncFailureWithEvent({
@@ -184,6 +186,8 @@ describe('IngestionService pending assignment', () => {
     importEmail as never,
     ledger as never,
     undefined,
+    undefined,
+    { suggest: jest.fn().mockResolvedValue(null) } as never,
   );
 
   const pendingMessage = {
@@ -349,6 +353,7 @@ describe('IngestionService.triggerEmailSync', () => {
       { findLatestCategoryIdByMerchant: jest.fn() } as never,
       {} as never,
       new GmailSyncQueueService({ add } as never),
+      { suggest: jest.fn().mockResolvedValue(null) } as never,
     );
   }
 

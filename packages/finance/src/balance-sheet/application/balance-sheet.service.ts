@@ -1,5 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import type { Prisma } from '@personal-os/database';
+import { FinanceEntityLookupService } from '../../entities/application/finance-entity-lookup.service';
+import {
+  entityRefKey,
+  type FinanceEntityRef,
+} from '../../entities/domain/entity-reference';
 import { ResolveAmountsUseCase } from '../../fx/application/resolve-amounts.use-case';
 import { ResolveUserBaseCurrencyUseCase } from '../../fx/application/resolve-user-base-currency';
 import { monthBounds } from '../../reconciliation/domain/reconciliation-adjustment';
@@ -19,6 +24,7 @@ import {
   BALANCE_SHEET_LINE_KIND,
   BALANCE_SHEET_RECONCILIATION,
   currencySlices,
+  entityTypeForLineKind,
   groupBalanceSheetLines,
   type BalanceSheetBreakdown,
   type BalanceSheetCurrencySlice,
@@ -213,6 +219,7 @@ export class BalanceSheetService {
     private readonly repo: BalanceSheetRepository,
     private readonly resolveAmounts: ResolveAmountsUseCase,
     private readonly baseCurrency: ResolveUserBaseCurrencyUseCase,
+    private readonly entities: FinanceEntityLookupService,
   ) {}
 
   async getBalanceSheet(userId: string): Promise<FinanceBalanceSheet> {
@@ -269,7 +276,7 @@ export class BalanceSheetService {
 
     const convert = (amount: MoneyLike, currency: string) =>
       this.resolveAmounts.toBaseCurrency(amount, currency, baseCurrency, asOf);
-    const lines: BalanceSheetLine[] = [];
+    const lines: Array<Omit<BalanceSheetLine, 'entity'>> = [];
 
     for (const account of accounts) {
       const currency = normalizeCurrencyCode(account.currency);
@@ -464,9 +471,22 @@ export class BalanceSheetService {
       });
     }
 
-    const breakdown = groupBalanceSheetLines(lines, baseCurrency);
+    const entityRefs = lines.map((line): FinanceEntityRef => ({
+      type: entityTypeForLineKind(line.kind),
+      id: line.id,
+    }));
+    const entities =
+      entityRefs.length > 0
+        ? await this.entities.lookupByKey(userId, entityRefs)
+        : new Map<string, unknown>();
+    const linesWithEntities: BalanceSheetLine[] = lines.map((line, index) => ({
+      ...line,
+      entity: entities.get(entityRefKey(entityRefs[index])) ?? null,
+    }));
+
+    const breakdown = groupBalanceSheetLines(linesWithEntities, baseCurrency);
     const linesByInstitution = new Map<string, BalanceSheetLine[]>();
-    for (const line of lines) {
+    for (const line of linesWithEntities) {
       if (!line.institutionId) {
         continue;
       }

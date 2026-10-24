@@ -47,6 +47,7 @@ import {
   extractEmailDomain,
   normalizeBankSenderEmails,
 } from './bank-sender';
+import { MerchantsService } from '../../merchants/application/merchants.service';
 import { buildEmailImportNotes } from './build-email-import-notes';
 import { isAtmMovementClass, isTransferMovementClass } from './email-movement';
 import { EmailSourceService } from './email-source.service';
@@ -96,7 +97,17 @@ export class IngestionService {
     private readonly ledger: LedgerQueryService,
     private readonly emailSources: EmailSourceService,
     private readonly gmailSyncQueue: GmailSyncQueueService,
+    private readonly merchants: MerchantsService,
   ) {}
+
+  /** Category the merchant already remembers for the imported text, if any. */
+  private async findMerchantCategoryId(
+    userId: string,
+    merchant: string,
+  ): Promise<string | null> {
+    const suggestion = await this.merchants.suggest(userId, merchant);
+    return suggestion?.categoryId ?? null;
+  }
 
   listEmailSources(userId: string) {
     return this.emailSources.listEmailSources(userId);
@@ -764,6 +775,8 @@ export class IngestionService {
           hint: extracted.categoryNameHint,
           transactionType: extracted.type,
           merchant: extracted.merchant,
+          findMerchantCategoryId: (merchant) =>
+            this.findMerchantCategoryId(userId, merchant),
           findCategoryIdByMerchant: (merchant) =>
             this.ledger.findLatestCategoryIdByMerchant(userId, merchant),
         });

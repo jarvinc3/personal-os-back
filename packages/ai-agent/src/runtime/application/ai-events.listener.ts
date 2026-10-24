@@ -1,3 +1,4 @@
+import { createHash } from 'crypto';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable, Logger, Optional } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
@@ -113,7 +114,7 @@ export class AiEventsListener {
     );
   }
 
-  @OnEvent(AppEvents.FINANCE_TRANSACTION_CONFIRMED)
+  @OnEvent(AppEvents.FINANCE_TRANSACTION_CONFIRMED, { suppressErrors: false })
   async onTransactionConfirmed(event: FinanceTxEvent): Promise<void> {
     if (event.source === 'EMAIL') {
       return;
@@ -121,16 +122,9 @@ export class AiEventsListener {
     if (event.status && event.status !== 'CONFIRMED') {
       return;
     }
-    if (
-      this.idempotency &&
-      !(await this.idempotency.tryClaim(
-        event.eventId,
-        `${AiEventsListener.CONSUMER}:tx-confirmed`,
-      ))
-    ) {
-      return;
-    }
-    await this.enqueue(
+    await this.enqueueFromEvent(
+      event.eventId,
+      `${AiEventsListener.CONSUMER}:tx-confirmed`,
       'ai-insight-transaction-created',
       event.userId,
       'finance.transaction.confirmed',
@@ -145,21 +139,14 @@ export class AiEventsListener {
     );
   }
 
-  @OnEvent(AppEvents.FINANCE_EMAIL_SYNC_COMPLETED)
+  @OnEvent(AppEvents.FINANCE_EMAIL_SYNC_COMPLETED, { suppressErrors: false })
   async onEmailSyncCompleted(event: EmailSyncEvent): Promise<void> {
     if (event.transactionsNew <= 0) {
       return;
     }
-    if (
-      this.idempotency &&
-      !(await this.idempotency.tryClaim(
-        event.eventId,
-        `${AiEventsListener.CONSUMER}:email-sync`,
-      ))
-    ) {
-      return;
-    }
-    await this.enqueue(
+    await this.enqueueFromEvent(
+      event.eventId,
+      `${AiEventsListener.CONSUMER}:email-sync`,
       'ai-insight-email-sync',
       event.userId,
       'finance.email_sync.completed',
@@ -175,18 +162,11 @@ export class AiEventsListener {
     );
   }
 
-  @OnEvent(AppEvents.FINANCE_TRANSACTION_UPDATED)
+  @OnEvent(AppEvents.FINANCE_TRANSACTION_UPDATED, { suppressErrors: false })
   async onTransactionUpdated(event: FinanceTxEvent): Promise<void> {
-    if (
-      this.idempotency &&
-      !(await this.idempotency.tryClaim(
-        event.eventId,
-        `${AiEventsListener.CONSUMER}:tx-updated`,
-      ))
-    ) {
-      return;
-    }
-    await this.enqueue(
+    await this.enqueueFromEvent(
+      event.eventId,
+      `${AiEventsListener.CONSUMER}:tx-updated`,
       'ai-insight-transaction-updated',
       event.userId,
       'finance.transaction.updated',
@@ -200,18 +180,11 @@ export class AiEventsListener {
     );
   }
 
-  @OnEvent(AppEvents.FINANCE_TRANSACTION_DELETED)
+  @OnEvent(AppEvents.FINANCE_TRANSACTION_DELETED, { suppressErrors: false })
   async onTransactionDeleted(event: FinanceTxEvent): Promise<void> {
-    if (
-      this.idempotency &&
-      !(await this.idempotency.tryClaim(
-        event.eventId,
-        `${AiEventsListener.CONSUMER}:tx-deleted`,
-      ))
-    ) {
-      return;
-    }
-    await this.enqueue(
+    await this.enqueueFromEvent(
+      event.eventId,
+      `${AiEventsListener.CONSUMER}:tx-deleted`,
       'ai-insight-transaction-deleted',
       event.userId,
       'finance.transaction.deleted',
@@ -226,18 +199,13 @@ export class AiEventsListener {
     );
   }
 
-  @OnEvent(AppEvents.FINANCE_BUDGET_THRESHOLD_CROSSED)
+  @OnEvent(AppEvents.FINANCE_BUDGET_THRESHOLD_CROSSED, {
+    suppressErrors: false,
+  })
   async onBudgetThresholdReached(event: BudgetEvent): Promise<void> {
-    if (
-      this.idempotency &&
-      !(await this.idempotency.tryClaim(
-        event.eventId,
-        `${AiEventsListener.CONSUMER}:budget`,
-      ))
-    ) {
-      return;
-    }
-    await this.enqueue(
+    await this.enqueueFromEvent(
+      event.eventId,
+      `${AiEventsListener.CONSUMER}:budget`,
       'ai-insight-budget-threshold',
       event.userId,
       'finance.budget.threshold_crossed',
@@ -264,12 +232,50 @@ export class AiEventsListener {
     }
   }
 
+  private async enqueueFromEvent(
+    eventId: string | undefined,
+    consumer: string,
+    jobName: string,
+    userId: string,
+    actionType: string,
+    payload: Record<string, unknown>,
+    fallbackJobId: string,
+  ): Promise<void> {
+    if (!eventId) {
+      await this.enqueue(jobName, userId, actionType, payload, fallbackJobId);
+      return;
+    }
+    if (!this.idempotency || !this.aiProcessingQueue) {
+      throw new Error(
+        'Durable AI event requires its queue and idempotency store',
+      );
+    }
+    if (await this.idempotency.wasProcessed(eventId, consumer)) {
+      return;
+    }
+    const key = createHash('sha256')
+      .update(JSON.stringify([userId, consumer, eventId]))
+      .digest('hex');
+    // Redis is outside the DB transaction. Retain the job so a crash between
+    // enqueue and receipt commit cannot enqueue a second job on replay.
+    await this.enqueue(
+      jobName,
+      userId,
+      actionType,
+      payload,
+      'ai-event-' + key,
+      true,
+    );
+    await this.idempotency.tryClaim(eventId, consumer);
+  }
+
   private async enqueue(
     jobName: string,
     userId: string,
     actionType: string,
     payload: Record<string, unknown>,
     jobId?: string,
+    durable = false,
   ) {
     if (!this.aiProcessingQueue) {
       this.logger.warn(
@@ -283,8 +289,8 @@ export class AiEventsListener {
       jobId
         ? {
             jobId,
-            removeOnComplete: 100,
-            removeOnFail: 200,
+            removeOnComplete: durable ? false : 100,
+            removeOnFail: durable ? false : 200,
           }
         : undefined,
     );

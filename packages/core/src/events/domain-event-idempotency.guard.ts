@@ -1,36 +1,52 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '@personal-os/database';
+import { PrismaService, type Prisma } from '@personal-os/database';
 
 /**
- * Ensures domain event consumers process each (eventId, consumer) at most once.
+ * Commits the receipt and PostgreSQL effects together. A failed/crashed
+ * transaction leaves neither a receipt nor a partially applied effect.
  */
 @Injectable()
 export class DomainEventIdempotencyGuard {
   constructor(private readonly prisma: PrismaService) {}
 
-  /**
-   * @returns true if this consumer should process the event (claimed successfully)
-   */
+  async runOnce<T>(
+    eventId: string | undefined,
+    consumer: string,
+    effect: (tx: Prisma.TransactionClient) => Promise<T>,
+  ): Promise<T | undefined> {
+    return this.prisma.$transaction(async (tx) => {
+      if (eventId) {
+        // ON CONFLICT waits for an in-flight transaction: if it rolls back,
+        // this insert succeeds; if it commits, the duplicate is skipped.
+        const receipt = await tx.processedDomainEvent.createMany({
+          data: { eventId, consumer },
+          skipDuplicates: true,
+        });
+        if (receipt.count === 0) {
+          return undefined;
+        }
+      }
+      return effect(tx);
+    });
+  }
+
+  async wasProcessed(eventId: string, consumer: string): Promise<boolean> {
+    return Boolean(
+      await this.prisma.processedDomainEvent.findUnique({
+        where: { eventId_consumer: { eventId, consumer } },
+        select: { id: true },
+      }),
+    );
+  }
+
+  /** Effect-free receipt write; an external handoff must already be durable. */
   async tryClaim(
     eventId: string | undefined,
     consumer: string,
   ): Promise<boolean> {
-    if (!eventId) {
-      // Without eventId we cannot de-duplicate; process once (in-process fanout).
-      return true;
-    }
-    try {
-      await this.prisma.processedDomainEvent.create({
-        data: { eventId, consumer },
-      });
-      return true;
-    } catch {
-      const existing = await this.prisma.processedDomainEvent.findUnique({
-        where: {
-          eventId_consumer: { eventId, consumer },
-        },
-      });
-      return !existing;
-    }
+    return (
+      (await this.runOnce(eventId, consumer, () => Promise.resolve(true))) ===
+      true
+    );
   }
 }

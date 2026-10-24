@@ -38,6 +38,21 @@ El estado, el roadmap y los hallazgos viven en GitHub Issues. Los documentos de 
 
 ## Changelog y versión
 
+### Excepción acordada: reset de arquitectura 0.100.0
+
+Esta excepción se activa solo al iniciar AI-0, después de verificar el corte
+estable de PROD (base prevista 0.55.1 más hotfixes previos aprobados). Antes de
+AI-0, correcciones independientes como el outbox siguen con su PATCH normal.
+Durante el reset, back y web mantienen `0.100.0` y acumulan cambios bajo
+`Unreleased — 0.100.0`: no hay bump, release ni tag por sesión. El owner decide
+el deploy tras AI-11; AI-12 queda para `0.101.0`. Merges y deploys no se ejecutan
+como consecuencia de esta excepción.
+
+Lectura obligatoria antes de AI/email:
+[roadmap](docs/refactors/00-MASTER-ROADMAP.md),
+[decisiones](docs/refactors/01-IMPLEMENTATION-DECISIONS.md) e
+[inventario](docs/refactors/02-PHASE-0-INVENTORY.md).
+
 Toda sesión de agente cierra con un release: `CHANGELOG.md` actualizado y `version` de `package.json` subida. Antes de escribirlo, lee [docs/reference/changelog-guide.md](docs/reference/changelog-guide.md) completo; ahí están las reglas, las secciones y un ejemplo.
 
 La versión sigue **estrictamente** [docs/versionado.md](docs/versionado.md): beta `0.MINOR.PATCH`, nunca bajar de versión, `1.0.0` solo cuando el usuario lo decida y los hitos de módulo como nombre de release.
@@ -57,12 +72,17 @@ Usa siempre la fecha real del sistema (`date`) para changelogs y documentos. No 
 
 Una migración aplicada no se toca. Prisma la identifica por el nombre de su carpeta en `_prisma_migrations`: renombrarla la vuelve una migración nueva y editar su SQL cambia el checksum. En ambos casos el historial queda roto.
 
-- Toda migración nueva usa un timestamp mayor que la última existente, hoy `20261022110000`. Hay migraciones con fecha futura (hasta el 22 de octubre), así que la fecha del sistema no sirve.
+- Antes de nombrar una migración, inspeccionar la última carpeta existente. Si la fecha real no ordena después, usar el siguiente timestamp libre y registrar la fecha real en el SQL. No confiar en un timestamp fijo de este documento.
 - El timestamp duplicado `20261015220000` (`fin_card_charge_categories` y `fix_schema_drift`) se queda tal cual.
 - Nunca aceptar el reset que ofrece `prisma migrate dev`: el checksum de `20261022000000` cambió en dev.
 - Prod recibe las migraciones vía Railway con `pnpm db:migrate:deploy`.
 
 Detalle en [docs/infrastructure/database.md](docs/infrastructure/database.md#migraciones-y-fechas).
+
+Excepción única de AI-0: se permite reemplazar el historial por una baseline en
+repo/DEV tras inspeccionar PROD `_prisma_migrations` de solo lectura, comprobar
+el SQL preservado y preparar backup/rebuild DEV. Fuera de ese paso se mantienen
+las reglas anteriores. Los agentes nunca aplican migraciones ni resets a PROD.
 
 ## Checklist al cambiar comportamiento
 

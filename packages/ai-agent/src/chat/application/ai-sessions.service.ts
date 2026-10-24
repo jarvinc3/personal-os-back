@@ -141,6 +141,11 @@ export class AiSessionsService {
 
   async wipeAllForUser(userId: string) {
     const deletedSessions = await this.sessionsRepo.deleteAllForUser(userId);
-    return { sessions: deletedSessions.count };
+    return { 'ai.sessions': deletedSessions.count };
+  }
+
+  /** Rows the wipe would delete today, with the same definition it uses. */
+  async countForUser(userId: string): Promise<Record<string, number>> {
+    return { 'ai.sessions': await this.sessionsRepo.countAllForUser(userId) };
   }
 }

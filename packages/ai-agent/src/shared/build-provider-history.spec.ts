@@ -14,7 +14,7 @@ describe('buildProviderHistoryFromStored', () => {
         role: 'assistant',
         content: 'Listo, cambié el tema a oscuro.',
         toolCalls: null,
-        metadata: { provider: 'cerebras', model: 'zai-glm-4.7' },
+        metadata: { provider: 'opencode', model: 'deepseek-v4.1-flash-free' },
       },
       {
         role: 'tool',

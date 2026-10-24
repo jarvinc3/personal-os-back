@@ -53,7 +53,6 @@ import type { UpdateSavingsGoalDto } from './planning/presentation/dto/update-sa
 import { WipeFinanceUserDataUseCase } from './shared/application/wipe-finance-user-data.use-case';
 import { ResolveUserBaseCurrencyUseCase } from './fx/application/resolve-user-base-currency';
 import { ChatContextEntityService } from './shared/application/chat-context-entity.service';
-import type { FinanceWipeLayer } from './shared/domain/finance-wipe-layers';
 
 /**
  * Stable public API for AI tools and external modules.
@@ -391,11 +390,19 @@ export class FinanceFacade {
     return this.analytics.getSpendingByCategory(userId, dateFrom, dateTo);
   }
 
-  wipeUserData(
+  dataBranches() {
+    return this.wipeFinance.dataBranches();
+  }
+
+  countUserDataBranches(userId: string, branchIds: readonly string[]) {
+    return this.wipeFinance.countBranches(userId, branchIds);
+  }
+
+  wipeUserDataBranches(
     userId: string,
-    layers: readonly FinanceWipeLayer[],
+    branchIds: readonly string[],
     options?: { balanceInstitutionId?: string },
   ) {
-    return this.wipeFinance.execute(userId, layers, options);
+    return this.wipeFinance.wipeBranches(userId, branchIds, options);
   }
 }

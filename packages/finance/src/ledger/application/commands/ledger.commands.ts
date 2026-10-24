@@ -38,6 +38,12 @@ export type CreateTransactionCommand = {
   notes?: string;
   categoryId?: string;
   status?: FinTxStatus;
+  /**
+   * `false` when the movement is a side effect of an action the user already
+   * confirmed on screen (a goal contribution, a loan prepayment), so it does not
+   * announce itself again.
+   */
+  announce?: boolean;
 };
 
 export type UpdateTransactionCommand = {
@@ -75,6 +81,8 @@ export type CreateTransferCommand = {
   /** Amount that actually enters the destination account, in its currency. */
   receivedAmount?: number;
   source?: 'MANUAL' | 'EMAIL' | 'AI';
+  /** Same meaning as in a single movement: `false` skips the notification. */
+  announce?: boolean;
   fromEmailMessageId?: string;
   toEmailMessageId?: string;
   aiMetadata?: unknown;

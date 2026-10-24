@@ -1,5 +1,6 @@
 import type { CreateTransferUseCase } from '../../ledger/application/create-transfer.use-case';
 import type { FinanceOwnershipService } from '../../shared/application/finance-ownership.service';
+import { localDateIso } from '../../shared/domain/local-day';
 import type { PlanningRepository } from '../infrastructure/planning.repository';
 import { AllocateToGoalUseCase } from './allocate-to-goal.use-case';
 
@@ -22,6 +23,7 @@ function setup(options: {
 }) {
   const found = 'found' in options ? options.found : goal();
   const repo = {
+    findUserTimezone: jest.fn().mockResolvedValue('America/Santo_Domingo'),
     findSavingsGoal: jest.fn().mockResolvedValue(found),
     sumEarmarkedByAccount: jest.fn().mockResolvedValue(options.earmarked ?? 0),
     addSavingsGoalContribution: jest.fn().mockResolvedValue({
@@ -79,6 +81,43 @@ describe('AllocateToGoalUseCase', () => {
       }),
       expect.any(Date),
     );
+  });
+
+  it('registers the contribution on the local day the user picked', async () => {
+    const { repo, useCase, createTransfer } = setup({});
+
+    // 2026-10-23 20:00 in Santo Domingo, the case the QA reported.
+    await useCase.execute(
+      'user-1',
+      'goal-1',
+      { amount: 100, date: '2026-10-23', fromAccountId: 'acc-2' },
+      new Date('2026-10-24T00:00:00.000Z'),
+    );
+
+    expect(createTransfer.execute).toHaveBeenCalledWith(
+      'user-1',
+      expect.objectContaining({
+        transactionDate: '2026-10-24T00:00:00.000Z',
+        announce: false,
+      }),
+    );
+    const allocation = repo.addSavingsGoalContribution.mock.calls[0][1];
+    expect((allocation.contributedAt as Date).toISOString()).toBe(
+      '2026-10-24T00:00:00.000Z',
+    );
+    expect(
+      localDateIso('America/Santo_Domingo', allocation.contributedAt as Date),
+    ).toBe('2026-10-23');
+  });
+
+  it('keeps the server time when no date is sent', async () => {
+    const { repo, useCase } = setup({});
+    const now = new Date('2026-10-24T00:00:00.000Z');
+
+    await useCase.execute('user-1', 'goal-1', { amount: 100 }, now);
+
+    const allocation = repo.addSavingsGoalContribution.mock.calls[0][1];
+    expect(allocation.contributedAt).toBe(now);
   });
 
   it('rejects an earmark over the free balance', async () => {
@@ -161,6 +200,7 @@ describe('AllocateToGoalUseCase', () => {
         toAccountId: 'acc-2',
         amount: 100,
         currency: 'DOP',
+        announce: false,
       }),
     );
     expect(repo.addSavingsGoalContribution).toHaveBeenCalledWith(

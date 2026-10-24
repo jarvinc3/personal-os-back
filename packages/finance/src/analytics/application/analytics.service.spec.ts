@@ -125,6 +125,7 @@ describe('AnalyticsService', () => {
           alertThresholdPct: 80,
         },
       ]),
+      sumBudgetSpent: jest.fn().mockResolvedValue(25),
     }).getBudgetStatus('user-1');
 
     expect(result[0]).toMatchObject({
@@ -132,6 +133,38 @@ describe('AnalyticsService', () => {
       color: '#f00',
       icon: '🍽️',
     });
+  });
+
+  it('reads the spent amount from the movements instead of the stored counter', async () => {
+    const sumBudgetSpent = jest.fn().mockResolvedValue(60);
+    const result = await createService({
+      listBudgets: jest.fn().mockResolvedValue([
+        {
+          id: 'budget-1',
+          categoryId: 'cat-food',
+          categories: [],
+          includeChildren: false,
+          name: 'Comida',
+          category: { name: 'Comida', color: null, icon: null },
+          periodType: 'MONTHLY',
+          periodStart: new Date('2026-09-01'),
+          periodEnd: new Date('2026-09-30'),
+          amountLimit: 100,
+          amountSpent: 25,
+          alertThresholdPct: 80,
+        },
+      ]),
+      sumBudgetSpent,
+    }).getBudgetStatus('user-1');
+
+    expect(sumBudgetSpent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: 'user-1',
+        categoryIds: ['cat-food'],
+        includeChildren: false,
+      }),
+    );
+    expect(result[0]).toMatchObject({ amountSpent: '60', pctUsed: 60 });
   });
 
   it('adds decimal amounts without the float error of 0.1 + 0.2', async () => {

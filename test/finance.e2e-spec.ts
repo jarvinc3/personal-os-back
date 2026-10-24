@@ -1088,14 +1088,87 @@ describe('Finance (e2e)', () => {
       .expect(400);
   });
 
+  it('GET /api/finance/receivables returns every amount as a decimal string', async () => {
+    prismaMock.finReceivable.findMany.mockResolvedValue([
+      {
+        id: 'rec-credit',
+        userId: 'user-123',
+        debtorName: 'Ana',
+        description: 'Préstamo',
+        amount: new Prisma.Decimal(200),
+        paidAmount: new Prisma.Decimal(50),
+        creditBalance: new Prisma.Decimal('25.50'),
+        writtenOffAmount: new Prisma.Decimal(0),
+        currency: 'DOP',
+        status: 'PARTIAL',
+        dueDate: null,
+        writtenOffAt: null,
+        notes: null,
+        createdAt: new Date('2026-10-01T12:00:00.000Z'),
+        updatedAt: new Date('2026-10-01T12:00:00.000Z'),
+      },
+    ]);
+
+    await request(app.getHttpServer())
+      .get('/api/finance/receivables?limit=10')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.data.items[0]).toMatchObject({
+          amount: '200',
+          paidAmount: '50',
+          creditBalance: '25.5',
+          writtenOffAmount: '0',
+        });
+      });
+  });
+
+  it('GET /api/finance/receivables/:id/payments returns every amount as a decimal string', async () => {
+    const receivableId = '99999999-9999-4999-8999-999999999999';
+    prismaMock.finReceivable.findFirst.mockResolvedValue({
+      id: receivableId,
+      userId: 'user-123',
+    });
+    prismaMock.finReceivablePayment.findMany.mockResolvedValue([
+      {
+        id: 'payment-1',
+        receivableId,
+        amount: new Prisma.Decimal(120),
+        appliedAmount: new Prisma.Decimal(100),
+        excessAmount: new Prisma.Decimal(20),
+        paidAt: new Date('2026-10-02T12:00:00.000Z'),
+      },
+    ]);
+
+    await request(app.getHttpServer())
+      .get(`/api/finance/receivables/${receivableId}/payments?limit=10`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.data.items[0]).toMatchObject({
+          amount: '120',
+          appliedAmount: '100',
+          excessAmount: '20',
+        });
+      });
+  });
+
   it('GET /api/finance/analytics/summary returns totals envelope', async () => {
     prismaMock.finInstitution.findMany.mockResolvedValue([]);
     prismaMock.finAccount.findMany.mockResolvedValue([
       {
         id: 'acc-1',
+        userId: 'user-123',
+        name: 'Ahorros',
+        type: 'SAVINGS',
         institutionId: null,
         balance: new Prisma.Decimal(100),
         currency: 'DOP',
+        color: null,
+        isActive: true,
+        isDefaultForInstitution: false,
+        createdAt: new Date('2026-01-01'),
+        updatedAt: new Date('2026-01-01'),
       },
     ]);
     prismaMock.finCardBalance.findMany.mockResolvedValue([]);
@@ -1122,9 +1195,18 @@ describe('Finance (e2e)', () => {
     prismaMock.finAccount.findMany.mockResolvedValue([
       {
         id: 'acc-1',
+        userId: 'user-123',
+        name: 'Ahorros',
+        type: 'SAVINGS',
         institutionId: 'inst-1',
         currency: 'DOP',
         balance: 150000,
+        color: null,
+        isActive: true,
+        isDefaultForInstitution: false,
+        createdAt: new Date('2026-01-01'),
+        updatedAt: new Date('2026-01-01'),
+        institutionRef: null,
       },
     ]);
     prismaMock.finCardBalance.findMany.mockResolvedValue([
@@ -1172,9 +1254,18 @@ describe('Finance (e2e)', () => {
     prismaMock.finAccount.findMany.mockResolvedValue([
       {
         id: 'acc-usd',
+        userId: 'user-123',
+        name: 'Ahorros USD',
+        type: 'SAVINGS',
         institutionId: 'inst-1',
         currency: 'USD',
         balance: 10,
+        color: null,
+        isActive: true,
+        isDefaultForInstitution: false,
+        createdAt: new Date('2026-01-01'),
+        updatedAt: new Date('2026-01-01'),
+        institutionRef: null,
       },
     ]);
     prismaMock.finCardBalance.findMany.mockResolvedValue([
@@ -1217,11 +1308,17 @@ describe('Finance (e2e)', () => {
     prismaMock.finAccount.findMany.mockResolvedValue([
       {
         id: accountId,
+        userId: 'user-123',
         name: 'Ahorros',
         type: 'SAVINGS',
         institutionId: null,
         currency: 'DOP',
         balance: new Prisma.Decimal(1000),
+        color: null,
+        isActive: true,
+        isDefaultForInstitution: false,
+        createdAt: new Date('2026-01-01'),
+        updatedAt: new Date('2026-01-01'),
       },
     ]);
     prismaMock.finCardBalance.findMany.mockResolvedValue([]);
@@ -1328,7 +1425,20 @@ describe('Finance (e2e)', () => {
     });
     prismaMock.finInstitution.findMany.mockResolvedValue([]);
     prismaMock.finAccount.findMany.mockResolvedValue([
-      { id: 'acc-1', institutionId: null, currency: 'DOP', balance: 100 },
+      {
+        id: 'acc-1',
+        userId: 'user-123',
+        name: 'Ahorros',
+        type: 'SAVINGS',
+        institutionId: null,
+        currency: 'DOP',
+        balance: 100,
+        color: null,
+        isActive: true,
+        isDefaultForInstitution: false,
+        createdAt: new Date('2026-01-01'),
+        updatedAt: new Date('2026-01-01'),
+      },
     ]);
     prismaMock.finCardBalance.findMany.mockResolvedValue([]);
     prismaMock.finLoan.findMany.mockResolvedValue([]);
@@ -1514,6 +1624,35 @@ describe('Finance (e2e)', () => {
         expect(typeof res.body.data.amountLimit).toBe('string');
         expect(res.body.data.amountLimit).toBe('1000');
         expect(res.body.data.category).toEqual({ id: 'cat-1', name: 'Food' });
+      });
+  });
+
+  it('GET /api/finance/budgets/:id sums the spent from the period movements', async () => {
+    const budgetId = '33333333-3333-4333-8333-333333333333';
+    prismaMock.finBudget.findFirst.mockResolvedValue({
+      id: budgetId,
+      userId: 'user-123',
+      categoryId: 'cat-1',
+      categories: [{ categoryId: 'cat-1', category: { id: 'cat-1' } }],
+      includeChildren: false,
+      periodType: 'MONTHLY',
+      periodStart: new Date('2026-10-01'),
+      periodEnd: new Date('2026-10-31'),
+      amountLimit: 5000,
+      amountSpent: 999,
+      alertThresholdPct: 80,
+      category: { id: 'cat-1', name: 'Food' },
+    });
+    prismaMock.finTransaction.aggregate.mockResolvedValue({
+      _sum: { amountBaseCurrency: new Prisma.Decimal('1814.51') },
+    });
+
+    await request(app.getHttpServer())
+      .get(`/api/finance/budgets/${budgetId}`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.data.amountSpent).toBe('1814.51');
       });
   });
 
@@ -3356,5 +3495,438 @@ describe('Finance (e2e)', () => {
       .set('Authorization', `Bearer ${token}`)
       .send({ cardId: '22222222-2222-4222-8222-222222222222' })
       .expect(400);
+  });
+  it('POST /api/finance/entities/lookup keeps the order and nulls the missing ones', async () => {
+    const at = new Date('2026-09-01T12:00:00.000Z');
+    const transactionId = '11111111-1111-4111-8111-111111111111';
+    const accountId = '22222222-2222-4222-8222-222222222222';
+    const missingId = '33333333-3333-4333-8333-333333333333';
+    prismaMock.finTransaction.findMany.mockResolvedValue([
+      {
+        id: transactionId,
+        userId: 'user-123',
+        accountId,
+        cardId: null,
+        type: 'DEBIT',
+        amount: { toString: () => '25.00' },
+        ledgerAmount: { toString: () => '25.00' },
+        amountBaseCurrency: { toString: () => '25.00' },
+        currency: 'DOP',
+        ledgerCurrency: 'DOP',
+        exchangeRate: { toString: () => '1' },
+        merchant: 'Café',
+        description: null,
+        notes: null,
+        categoryId: null,
+        status: 'CONFIRMED',
+        source: 'MANUAL',
+        transferGroupId: null,
+        linkedTransactionId: null,
+        aiMetadata: null,
+        transactionDate: at,
+        createdAt: at,
+        account: { id: accountId, name: 'Ahorros' },
+        card: null,
+      },
+    ]);
+    prismaMock.finAccount.findMany.mockResolvedValue([
+      {
+        id: accountId,
+        userId: 'user-123',
+        name: 'Ahorros',
+        type: 'SAVINGS',
+        institutionId: null,
+        currency: 'DOP',
+        balance: { toString: () => '1000.00' },
+        color: null,
+        isActive: true,
+        createdAt: at,
+        updatedAt: at,
+        institutionRef: null,
+      },
+    ]);
+
+    const response = await request(app.getHttpServer())
+      .post('/api/finance/entities/lookup')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        refs: [
+          { type: 'transaction', id: transactionId },
+          { type: 'account', id: accountId },
+          { type: 'transaction', id: missingId },
+        ],
+      })
+      .expect(200);
+
+    const [transaction, account, missing] = response.body.data;
+    expect(transaction.id).toBe(transactionId);
+    expect(transaction.accountName).toBe('Ahorros');
+    expect(account.id).toBe(accountId);
+    expect(account.type).toBe('SAVINGS');
+    expect(missing).toBeNull();
+  });
+
+  it('POST /api/finance/entities/lookup rejects more than 50 references', async () => {
+    const refs = Array.from({ length: 51 }, (_, index) => ({
+      type: 'transaction',
+      id: `1111111${index}-1111-4111-8111-11111111111`.slice(0, 36),
+    }));
+
+    await request(app.getHttpServer())
+      .post('/api/finance/entities/lookup')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ refs })
+      .expect(400);
+  });
+  it('POST /api/finance/merchants creates the merchant with its aliases', async () => {
+    const createdAt = new Date('2026-10-20T10:00:00.000Z');
+    prismaMock.finMerchant.create.mockResolvedValue({
+      id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      userId: 'user-123',
+      name: 'Supermercado Nacional',
+      normalizedKey: 'SUPERMERCADO NACIONAL',
+      aliases: [{ alias: 'Nacional' }],
+      categoryId: null,
+      logoUrl: null,
+      createdAt,
+    });
+    prismaMock.finMerchant.findFirst
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(null)
+      .mockResolvedValue({
+        id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        userId: 'user-123',
+        name: 'Supermercado Nacional',
+        normalizedKey: 'SUPERMERCADO NACIONAL',
+        aliases: [{ alias: 'Nacional' }],
+        categoryId: null,
+        categorySource: null,
+        logoUrl: null,
+        createdAt,
+      });
+
+    const response = await request(app.getHttpServer())
+      .post('/api/finance/merchants')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ name: 'Supermercado Nacional', aliases: ['Nacional'] })
+      .expect(201);
+
+    expect(response.body.data).toMatchObject({
+      id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      name: 'Supermercado Nacional',
+      aliases: ['Nacional'],
+      categoryId: null,
+      logoUrl: null,
+    });
+    expect(prismaMock.finMerchant.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          userId: 'user-123',
+          name: 'Supermercado Nacional',
+          normalizedKey: 'SUPERMERCADO NACIONAL',
+          aliases: {
+            create: [
+              {
+                userId: 'user-123',
+                alias: 'Nacional',
+                normalizedKey: 'NACIONAL',
+              },
+            ],
+          },
+        }),
+      }),
+    );
+  });
+
+  it('POST /api/finance/merchants rejects a name without usable text', async () => {
+    await request(app.getHttpServer())
+      .post('/api/finance/merchants')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ name: '*** 1234' })
+      .expect(400);
+  });
+  it('PATCH /api/finance/merchants/:id confirms the category as manual', async () => {
+    const merchantId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+    const categoryId = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+    prismaMock.finCategory.findFirst.mockResolvedValue({
+      id: categoryId,
+      name: 'Supermercado',
+      type: 'EXPENSE',
+      isSystem: true,
+    });
+    prismaMock.finMerchant.findFirst.mockResolvedValue({
+      id: merchantId,
+      userId: 'user-123',
+      name: 'Supermercado Nacional',
+      normalizedKey: 'SUPERMERCADO NACIONAL',
+      aliases: [],
+      categoryId,
+      categorySource: 'MANUAL',
+      logoUrl: null,
+      createdAt: new Date('2026-10-20T10:00:00.000Z'),
+    });
+    prismaMock.finMerchant.updateMany.mockResolvedValue({ count: 1 });
+
+    await request(app.getHttpServer())
+      .patch(`/api/finance/merchants/${merchantId}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ categoryId })
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.data.categoryId).toBe(categoryId);
+        expect(res.body.data.categorySource).toBe('MANUAL');
+      });
+
+    expect(prismaMock.finMerchant.updateMany).toHaveBeenCalledWith({
+      where: { id: merchantId, userId: 'user-123' },
+      data: { categoryId, categorySource: 'MANUAL' },
+    });
+  });
+  it('POST /api/finance/merchants/:id/merge keeps the source name as an alias', async () => {
+    const sourceId = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
+    const targetId = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
+    const source = {
+      id: sourceId,
+      userId: 'user-123',
+      name: 'Supermercado Nacional',
+      normalizedKey: 'SUPERMERCADO NACIONAL',
+      aliases: [{ alias: 'Nacional' }],
+      categoryId: 'cat-food',
+      categorySource: 'LEARNED',
+      logoUrl: null,
+      createdAt: new Date('2026-10-20T10:00:00.000Z'),
+    };
+    const target = {
+      id: targetId,
+      userId: 'user-123',
+      name: 'Nacional Express',
+      normalizedKey: 'NACIONAL EXPRESS',
+      aliases: [],
+      categoryId: null,
+      categorySource: null,
+      logoUrl: null,
+      createdAt: new Date('2026-10-21T10:00:00.000Z'),
+    };
+    prismaMock.finMerchant.findFirst
+      .mockResolvedValueOnce(source)
+      .mockResolvedValueOnce(target)
+      .mockResolvedValueOnce(source)
+      .mockResolvedValueOnce(target)
+      .mockResolvedValue({
+        ...target,
+        categoryId: 'cat-food',
+        categorySource: 'LEARNED',
+        aliases: [{ alias: 'Supermercado Nacional' }, { alias: 'Nacional' }],
+      });
+
+    await request(app.getHttpServer())
+      .post(`/api/finance/merchants/${sourceId}/merge`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ targetId })
+      .expect(201)
+      .expect((res) => {
+        expect(res.body.data.id).toBe(targetId);
+        expect(res.body.data.aliases).toEqual([
+          'Supermercado Nacional',
+          'Nacional',
+        ]);
+        expect(res.body.data.categoryId).toBe('cat-food');
+      });
+
+    expect(prismaMock.finMerchantAlias.createMany).toHaveBeenCalledWith({
+      data: [
+        {
+          userId: 'user-123',
+          merchantId: targetId,
+          alias: 'Supermercado Nacional',
+          normalizedKey: 'SUPERMERCADO NACIONAL',
+        },
+        {
+          userId: 'user-123',
+          merchantId: targetId,
+          alias: 'Nacional',
+          normalizedKey: 'NACIONAL',
+        },
+      ],
+      skipDuplicates: true,
+    });
+    expect(prismaMock.finMerchant.update).toHaveBeenCalledWith({
+      where: { id: targetId },
+      data: {
+        categoryId: 'cat-food',
+        categorySource: 'LEARNED',
+        logoUrl: null,
+      },
+    });
+  });
+  it('GET /api/finance/merchants/:id/duplicates lists the candidates with the reason', async () => {
+    const merchantId = 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee';
+    prismaMock.finMerchant.findFirst.mockResolvedValue({
+      id: merchantId,
+      userId: 'user-123',
+      name: 'Supermercado Nacional',
+      normalizedKey: 'SUPERMERCADO NACIONAL',
+      aliases: [],
+      categoryId: null,
+      categorySource: null,
+      logoUrl: null,
+      createdAt: new Date('2026-10-20T10:00:00.000Z'),
+    });
+    prismaMock.finMerchant.findMany.mockResolvedValue([
+      {
+        id: merchantId,
+        name: 'Supermercado Nacional',
+        normalizedKey: 'SUPERMERCADO NACIONAL',
+        logoUrl: null,
+        aliases: [],
+      },
+      {
+        id: 'ffffffff-ffff-4fff-8fff-ffffffffffff',
+        name: 'Supermercado Nacional 5',
+        normalizedKey: 'SUPERMERCADO NACIONAL 5',
+        logoUrl: null,
+        aliases: [],
+      },
+    ]);
+    prismaMock.finTransaction.groupBy.mockResolvedValue([
+      {
+        merchantId: 'ffffffff-ffff-4fff-8fff-ffffffffffff',
+        _sum: { amountBaseCurrency: 300 },
+        _count: { _all: 2 },
+      },
+    ]);
+
+    await request(app.getHttpServer())
+      .get(`/api/finance/merchants/${merchantId}/duplicates`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.data).toEqual([
+          {
+            id: 'ffffffff-ffff-4fff-8fff-ffffffffffff',
+            name: 'Supermercado Nacional 5',
+            logoUrl: null,
+            monthSpend: '300',
+            monthMovements: 2,
+            reason: 'TRAILING_NUMBER',
+          },
+        ]);
+      });
+  });
+  it('POST and DELETE /api/finance/merchants/:id/duplicates/:otherId/dismiss', async () => {
+    const first = '11111111-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+    const second = '22222222-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+    prismaMock.finMerchant.findFirst.mockImplementation(
+      (args: { where: { id: string } }) =>
+        Promise.resolve({
+          id: args.where.id,
+          userId: 'user-123',
+          name: 'Supermercado Nacional',
+          normalizedKey: 'SUPERMERCADO NACIONAL',
+          aliases: [],
+          categoryId: null,
+          categorySource: null,
+          logoUrl: null,
+          createdAt: new Date('2026-10-20T10:00:00.000Z'),
+        }),
+    );
+
+    await request(app.getHttpServer())
+      .post(`/api/finance/merchants/${first}/duplicates/${second}/dismiss`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.data).toEqual({ dismissed: true });
+      });
+
+    expect(
+      prismaMock.finMerchantDuplicateDismissal.upsert,
+    ).toHaveBeenCalledWith({
+      where: {
+        userId_merchantId_otherMerchantId: {
+          userId: 'user-123',
+          merchantId: first,
+          otherMerchantId: second,
+        },
+      },
+      create: {
+        userId: 'user-123',
+        merchantId: first,
+        otherMerchantId: second,
+      },
+      update: {},
+    });
+
+    await request(app.getHttpServer())
+      .delete(`/api/finance/merchants/${first}/duplicates/${second}/dismiss`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.data).toEqual({ dismissed: false });
+      });
+
+    expect(
+      prismaMock.finMerchantDuplicateDismissal.deleteMany,
+    ).toHaveBeenCalledWith({
+      where: { userId: 'user-123', merchantId: first, otherMerchantId: second },
+    });
+  });
+
+  it('POST /api/finance/merchants/:id/duplicates/:otherId/dismiss rejects the same merchant', async () => {
+    const merchantId = '33333333-cccc-4ccc-8ccc-cccccccccccc';
+
+    await request(app.getHttpServer())
+      .post(
+        `/api/finance/merchants/${merchantId}/duplicates/${merchantId}/dismiss`,
+      )
+      .set('Authorization', `Bearer ${token}`)
+      .expect(400);
+  });
+  it('PATCH /api/finance/merchants/:id rejects a free logoUrl', async () => {
+    const merchantId = '44444444-dddd-4ddd-8ddd-dddddddddddd';
+
+    await request(app.getHttpServer())
+      .patch(`/api/finance/merchants/${merchantId}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ logoUrl: 'https://example.com/logo.png' })
+      .expect(400);
+  });
+
+  it('DELETE /api/finance/merchants/:id/logo clears the own logo', async () => {
+    const merchantId = '55555555-eeee-4eee-8eee-eeeeeeeeeeee';
+    const row = {
+      id: merchantId,
+      userId: 'user-123',
+      name: 'Netflix',
+      normalizedKey: 'NETFLIX',
+      aliases: [],
+      categoryId: null,
+      categorySource: null,
+      domain: null,
+      logoPath: null,
+      customLogoPath: null,
+      logoUrl: null,
+      createdAt: new Date('2026-10-20T10:00:00.000Z'),
+    };
+    prismaMock.finMerchant.findFirst
+      .mockResolvedValueOnce({
+        ...row,
+        customLogoPath: 'custom/user-123/merchant.png',
+      })
+      .mockResolvedValue(row);
+    prismaMock.finMerchant.updateMany.mockResolvedValue({ count: 1 });
+
+    await request(app.getHttpServer())
+      .delete(`/api/finance/merchants/${merchantId}/logo`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.data.logoUrl).toBeNull();
+      });
+
+    expect(prismaMock.finMerchant.updateMany).toHaveBeenCalledWith({
+      where: { id: merchantId, userId: 'user-123' },
+      data: { customLogoPath: null },
+    });
   });
 });

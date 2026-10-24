@@ -29,6 +29,8 @@ export function buildEmailImportNotes(input: {
           ? `Sin categoría asignada (hint: ${hint}).`
           : 'Sin categoría asignada; revisa el movimiento.',
       );
+    } else if (input.categorySource === 'merchant') {
+      parts.push('Categoría tomada del comercio.');
     } else if (input.categorySource === 'merchant_history') {
       parts.push(
         'Categoría tomada de un movimiento anterior del mismo comercio.',
