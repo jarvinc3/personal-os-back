@@ -79,6 +79,22 @@ export function createOpenRouterProvider(apiKey: string): AIService {
       return {
         content: choice?.content ?? '',
         toolCalls,
+        usage: (() => {
+          const usage = (
+            response as unknown as {
+              usage?: {
+                promptTokens?: number;
+                completionTokens?: number;
+              };
+            }
+          ).usage;
+          return usage
+            ? {
+                inputTokens: usage.promptTokens,
+                outputTokens: usage.completionTokens,
+              }
+            : undefined;
+        })(),
       };
     },
   };

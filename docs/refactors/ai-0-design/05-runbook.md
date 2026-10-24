@@ -86,9 +86,11 @@ modifica hasta una decisión expresa posterior de Jarvin.
 - El proceso API/workers reinició con las colas activas `email-sync`,
   `notifications` y `statement-import`; readiness respondió 200 y Redis local
   solo mostró esas colas. No había jobs pendientes/activos para ejercer
-  recuperación de leases. El API de Railway DEV no se desplegó ni se reabrió
-  desde este entorno; queda pendiente el pipeline de deploy DEV. PROD sigue sin
-  cambios.
+  recuperación de leases. El pipeline habitual desplegó correctamente el API de
+  Railway DEV (deployment `7296206450`, entorno development). Desde este entorno
+  no se encontró una URL pública para repetir el health check de ese deployment;
+  el smoke descrito arriba se ejecutó desde el checkout conectado a Supabase
+  DEV. PROD sigue sin cambios.
 - La prueba transaccional de la migración de borrado y su verificación posterior
   pasó: el trigger de alta creó el perfil de prueba, el trigger de Auth DELETE lo
   eliminó y la transacción se revirtió. No se conservó ningún usuario de prueba.

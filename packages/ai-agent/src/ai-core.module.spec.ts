@@ -1,9 +1,28 @@
+import { Global, Module } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Test } from '@nestjs/testing';
 import { INFERENCE_COMPLETION } from '@personal-os/contracts';
 import type { InferenceCompletionPort } from '@personal-os/contracts';
+import { PrismaService } from '@personal-os/database';
 import { AiCoreModule } from './ai-core.module';
 import { AI_PROVIDER } from './shared/ai-provider.token';
-import { AiService } from './inference/application/ai.service';
+import { InferenceCompletionAdapter } from './inference/application/inference-completion.adapter';
+
+@Global()
+@Module({
+  providers: [
+    {
+      provide: ConfigService,
+      useValue: { getOrThrow: () => 'test-data-encryption-key-long-enough' },
+    },
+    {
+      provide: PrismaService,
+      useValue: { aiInference: { create: jest.fn() } },
+    },
+  ],
+  exports: [ConfigService, PrismaService],
+})
+class AiTestDependenciesModule {}
 
 describe('Inference composition without chat or Finance', () => {
   it('resolves the neutral port and preserves retryable failover and attribution', async () => {
@@ -16,7 +35,9 @@ describe('Inference composition without chat or Finance', () => {
       content: '{"amount":"250.00"}',
       toolCalls: [],
     });
-    const module = await Test.createTestingModule({ imports: [AiCoreModule] })
+    const module = await Test.createTestingModule({
+      imports: [AiTestDependenciesModule, AiCoreModule],
+    })
       .overrideProvider(AI_PROVIDER)
       .useValue([
         { name: 'primary', model: 'one', chatComplete: unavailable },
@@ -26,7 +47,7 @@ describe('Inference composition without chat or Finance', () => {
     try {
       const inference =
         module.get<InferenceCompletionPort>(INFERENCE_COMPLETION);
-      expect(inference).toBe(module.get(AiService));
+      expect(inference).toBe(module.get(InferenceCompletionAdapter));
       const messages = Object.freeze([
         Object.freeze({ role: 'user' as const, content: 'gasto de 250' }),
       ]);

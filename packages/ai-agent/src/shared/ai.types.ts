@@ -96,6 +96,7 @@ export type ToolCallRequest = {
 export type ChatCompletionResult = {
   content: string;
   toolCalls: ToolCallRequest[];
+  usage?: { inputTokens?: number; outputTokens?: number };
 };
 
 export interface ChatMessage extends InferenceMessage {

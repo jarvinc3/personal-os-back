@@ -89,6 +89,8 @@ export class ProcessStatementImportUseCase {
       }
       const categories = await this.repo.listCategories(input.userId);
       const extraction = await this.extractor.extract({
+        userId: input.userId,
+        sourceId: context.id,
         text,
         categories: categories.map((category) => ({
           name: category.name,

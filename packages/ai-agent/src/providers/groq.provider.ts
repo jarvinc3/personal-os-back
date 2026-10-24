@@ -61,6 +61,12 @@ export function createGroqProvider(apiKey: string): AIService {
       return {
         content: choice?.content ?? '',
         toolCalls,
+        usage: response.usage
+          ? {
+              inputTokens: response.usage.prompt_tokens,
+              outputTokens: response.usage.completion_tokens,
+            }
+          : undefined,
       };
     },
     async chatCompleteStream(messages, tools, onToken) {

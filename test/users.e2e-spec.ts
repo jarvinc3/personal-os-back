@@ -583,11 +583,18 @@ describe('Users (e2e)', () => {
         .expect(200)
         .expect((res) => {
           const apps = res.body.data.map((group: { app: string }) => group.app);
-          expect(apps).toEqual(['finance', 'notifications', 'settings']);
+          expect(apps).toEqual(['finance', 'ai', 'notifications', 'settings']);
           const transactionBranch = res.body.data[0].branches.find(
             (branch: { id: string }) => branch.id === 'finance.transactions',
           );
           expect(transactionBranch.count).toBe(7);
+          const ai = res.body.data.find(
+            (group: { app: string }) => group.app === 'ai',
+          );
+          expect(ai.branches[0]).toMatchObject({
+            id: 'ai.inferences',
+            count: 0,
+          });
           const settings = res.body.data.at(-1);
           expect(settings.branches[0].count).toBe(1);
         });
@@ -599,6 +606,26 @@ describe('Users (e2e)', () => {
         .set('Authorization', `Bearer ${token()}`)
         .send({ branches: ['ai.sessions'] })
         .expect(400);
+    });
+
+    it('POST /api/users/me/data/wipe deletes the users inference telemetry', async () => {
+      prismaMock.aiInference.deleteMany.mockResolvedValue({ count: 3 });
+
+      await request(app.getHttpServer())
+        .post('/api/users/me/data/wipe')
+        .set('Authorization', `Bearer ${token()}`)
+        .send({ branches: ['ai.inferences'] })
+        .expect(200)
+        .expect((res) => {
+          expect(res.body.data).toMatchObject({
+            requestedBranches: ['ai.inferences'],
+            appliedBranches: ['ai.inferences'],
+            counts: { 'ai.inferences': 3 },
+          });
+        });
+      expect(prismaMock.aiInference.deleteMany).toHaveBeenCalledWith({
+        where: { userId: 'user-123' },
+      });
     });
 
     it('POST /api/users/me/data/wipe rejects a branch that does not exist', async () => {

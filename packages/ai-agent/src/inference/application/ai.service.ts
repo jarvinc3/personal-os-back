@@ -6,7 +6,6 @@ import {
   ServiceUnavailableException,
 } from '@nestjs/common';
 import type {
-  InferenceCompletionPort,
   InferenceCompletion,
   InferenceMessage,
 } from '@personal-os/contracts';
@@ -21,7 +20,7 @@ import type {
 import { isRetryableProviderError } from '../../shared/is-retryable-provider-error';
 
 @Injectable()
-export class AiService implements OnModuleInit, InferenceCompletionPort {
+export class AiService implements OnModuleInit {
   private readonly logger = new Logger(AiService.name);
   private roundRobinIndex = 0;
 

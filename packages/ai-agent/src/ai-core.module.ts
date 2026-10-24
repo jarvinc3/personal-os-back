@@ -2,7 +2,11 @@ import { Global, Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { Env } from '@personal-os/config';
 import { INFERENCE_COMPLETION } from '@personal-os/contracts';
+import { AiInferenceGateway } from './inference/application/ai-inference.gateway';
+import { InferenceCompletionAdapter } from './inference/application/inference-completion.adapter';
 import { AiService } from './inference/application/ai.service';
+import { AiInferenceDataService } from './inference/infrastructure/ai-inference-data.service';
+import { AiInferenceRetentionScheduler } from './inference/infrastructure/ai-inference-retention.scheduler';
 import { AI_PROVIDER } from './shared/ai-provider.token';
 import type { AIService as AIProviderClient } from './shared/ai.types';
 
@@ -49,11 +53,20 @@ import type { AIService as AIProviderClient } from './shared/ai.types';
       inject: [ConfigService],
     },
     AiService,
+    AiInferenceGateway,
+    InferenceCompletionAdapter,
+    AiInferenceDataService,
+    AiInferenceRetentionScheduler,
     {
       provide: INFERENCE_COMPLETION,
-      useExisting: AiService,
+      useExisting: InferenceCompletionAdapter,
     },
   ],
-  exports: [AiService, INFERENCE_COMPLETION],
+  exports: [
+    AiService,
+    AiInferenceGateway,
+    AiInferenceDataService,
+    INFERENCE_COMPLETION,
+  ],
 })
 export class AiCoreModule {}

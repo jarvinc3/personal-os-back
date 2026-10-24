@@ -210,6 +210,7 @@ export class QuickEntryService {
     );
 
     const extraction = await this.runExtractor({
+      userId,
       text,
       todayIso: todayIso(profile.timezone, new Date()),
       baseCurrency,

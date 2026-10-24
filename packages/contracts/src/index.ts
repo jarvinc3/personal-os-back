@@ -29,9 +29,49 @@ export interface InferenceCompletion {
   provider: string;
   model: string;
 }
-// AI-0 adapter delegates to the preserved pool; AI-1 adds structured inference.
+export interface StructuredInferenceRequest<T> {
+  task: string;
+  messages: readonly InferenceMessage[];
+  jsonSchema: JsonObject;
+  validate(value: unknown): T;
+  promptVersion: string;
+  schemaVersion: string;
+  userId?: string;
+  sourceType?: string;
+  sourceId?: string;
+  preferredProvider?: string | null;
+}
+export interface StructuredInference<T> {
+  value: T;
+  provider: string;
+  model: string;
+  latencyMs: number;
+  fallbackCount: number;
+  inputTokens: number | null;
+  outputTokens: number | null;
+}
+export class StructuredInferenceOutputError extends Error {
+  readonly code = 'STRUCTURED_OUTPUT_INVALID';
+
+  constructor() {
+    super('The model output did not match the required structured schema');
+    this.name = 'StructuredInferenceOutputError';
+  }
+}
+export class StructuredInferenceProviderError extends Error {
+  readonly code = 'INFERENCE_PROVIDER_FAILURE';
+
+  constructor(readonly retryable: boolean) {
+    super('AI inference provider unavailable');
+    this.name = 'StructuredInferenceProviderError';
+  }
+}
+// AI-0 preserved the provider pool; AI-1 adds structured, validated inference.
 export interface InferenceCompletionPort {
   complete(messages: readonly InferenceMessage[]): Promise<InferenceCompletion>;
+  infer<T>(
+    request: StructuredInferenceRequest<T>,
+  ): Promise<StructuredInference<T>>;
 }
 
 export interface SettingsDescriptor<T extends JsonObject = JsonObject> {

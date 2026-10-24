@@ -1,6 +1,6 @@
-# Preparación de AI-0 — estado de ejecución
+# AI-0 — estado de ejecución
 
-2026-10-24. Rama aislada `refactor/ai-0`; seguimiento en
+2026-10-24. Integrado en `develop` desde `refactor/ai-0`; seguimiento en
 [#193](https://github.com/jarvinc3/personal-os-back/issues/193).
 
 ## Corte de código implementado
@@ -36,8 +36,9 @@ auditó el reporte de metadatos PostgreSQL de PROD: 67 migraciones aplicadas,
 sin pendientes, extensiones y objetos, RLS/policies, grants y cuatro índices
 parciales fueron comparados con los artefactos locales. No se escribió en PROD.
 
-AI-0 continúa como trabajo aislado con 0.100.0 unreleased, sin tags, releases
-ni deploys. La baseline pasó `migrate deploy`, comparación de drift y 18
+AI-0 fue integrado en `develop` mediante el PR de backend #195 y el PR web #311.
+La línea 0.100.0 sigue unreleased, sin tags ni release de producción. La
+baseline pasó `migrate deploy`, comparación de drift y 18
 validaciones contra PostgreSQL local 17. Jarvin decidió que no se requiere
 dump, backup ni restauración: los datos DEV son de prueba y se acepta su pérdida.
 La configuración local apunta al proyecto DEV `knqfgybflkpzplkqcocz`. El
@@ -59,8 +60,11 @@ y wipe; las rutas chat/Gmail devuelven 404. Se usó Redis local Docker. Los
 workers reiniciaron y readiness devolvió 200; al no haber jobs pendientes, no
 se pudo ejercitar recuperación de leases. En Redis Railway DEV se retiraron
 solo las claves de `gmail-sync` (32 claves terminales) y `ai-processing` (2
-metadatos), preservando las colas vigentes. El deploy/reapertura del servicio
-API Railway DEV queda pendiente del pipeline habitual. PROD sigue sin cambios.
+metadatos), preservando las colas vigentes. El pipeline habitual desplegó el API
+de Railway DEV en el deployment `7296206450` (entorno development). No se
+encontró una URL pública desde este entorno para repetir el health check del
+deployment; el smoke anterior se ejecutó desde el checkout conectado a DEV.
+PROD sigue sin cambios.
 Una prueba transaccional en DEV confirmó alta del perfil por INSERT, limpieza
 por DELETE de Auth y rollback completo del usuario sintético.
 
