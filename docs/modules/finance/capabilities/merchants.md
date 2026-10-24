@@ -61,3 +61,25 @@ Los alias viven en `fin_merchant_aliases` (un registro por texto con su clave no
 - Quitar un alias a mano es definitivo: si el texto vuelve a llegar y ya no coincide con nada, se resuelve por su clave como cualquier texto nuevo.
 
 Evidencia: `merchants/infrastructure/merchants.repository.ts`, `merchants/application/merchants.service.ts`, `fin_merchants_aliases` en el schema y sus specs.
+
+## Clave normalizada, duplicados y fusion
+
+La clave de búsqueda de un comercio sale de `normalizeMerchant` (`merchants/domain/normalize-merchant.ts`): mayúsculas, sin acentos ni «Ñ», sin sufijo web (`.com`, `.com.do`), sin prefijo de pasarela, sin códigos de referencia, sin cola de ciudad y con el plural de la primera palabra plegado al singular («Cinemas Centro» = «Cinema Centro»). Las palabras posteriores no se tocan, para no mutilar apellidos que acaban en S. Un número final suelto **no** se descarta: «Supermercado Nacional 5» y «Supermercado Nacional» son dos comercios distintos.
+
+`GET /api/finance/merchants/:id/duplicates` devuelve hasta 5 comercios del usuario que parecen el mismo, con `reason` y sus datos de lista (`id`, `name`, `logoUrl`, `monthSpend`, `monthMovements`):
+
+| `reason`          | Cuándo                                                      |
+| ----------------- | ----------------------------------------------------------- |
+| `SAME_KEY`        | La clave nueva del nombre es la misma                       |
+| `ALIAS_MATCH`     | Un alias de uno coincide con el nombre o un alias del otro  |
+| `TRAILING_NUMBER` | Solo difieren en un número final, con una base de 5+ letras |
+| `NAME_CONTAINED`  | Un nombre contiene al otro                                  |
+| `SIMILAR_NAME`    | Difieren en una sola letra                                  |
+
+- La relación es simétrica, un comercio nunca es candidato de sí mismo y solo se comparan comercios del mismo usuario.
+- Reglas conservadoras: un nombre de menos de 5 letras solo coincide si es idéntico, y la regla del número final exige una base de al menos 5 letras.
+- La lista de comercios añade `possibleDuplicates` (cantidad) a cada elemento.
+- La detección calcula la normalización nueva sobre el nombre y los alias **al consultar**: los comercios creados antes de este cambio generan candidatos sin recalcular sus claves guardadas. La clave nueva se aplica a los comercios nuevos y a los renombrados.
+- La unión sigue siendo solo manual (`POST /finance/merchants/:id/merge`) y nunca se hace sola: la fusión borra el comercio origen y no se puede deshacer.
+
+Evidencia: `merchants/domain/normalize-merchant.ts`, `merchants/domain/merchant-duplicates.ts` y sus specs.

@@ -69,6 +69,20 @@ export class MerchantsRepository {
     });
   }
 
+  /** Name, key and alias of every merchant, for the duplicate detection. */
+  listMerchantComparables(userId: string) {
+    return this.prisma.finMerchant.findMany({
+      where: { userId },
+      select: {
+        id: true,
+        name: true,
+        normalizedKey: true,
+        logoUrl: true,
+        aliases: { select: { alias: true } },
+      },
+    });
+  }
+
   findMerchantsByIds(userId: string, ids: readonly string[]) {
     return this.prisma.finMerchant.findMany({
       where: { id: { in: [...ids] }, userId },

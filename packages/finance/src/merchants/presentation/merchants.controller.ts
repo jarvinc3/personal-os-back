@@ -62,6 +62,14 @@ export class MerchantsController {
     return this.merchants.get(userId, id);
   }
 
+  @Get('merchants/:id/duplicates')
+  @ApiOperation({
+    summary: 'Comercios que parecen el mismo, con el motivo',
+  })
+  duplicates(@CurrentUser('sub') userId: string, @Param('id') id: string) {
+    return this.merchants.duplicates(userId, id);
+  }
+
   @Patch('merchants/:id')
   @ApiOperation({
     summary: 'Renombra un comercio o define su categoría y logo',

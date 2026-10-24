@@ -17,6 +17,10 @@ import {
 } from '../domain/merchant-aliases';
 import { matchCategoryByKeyword } from '../domain/merchant-category-keywords';
 import {
+  countPossibleDuplicates,
+  findDuplicateCandidates,
+} from '../domain/merchant-duplicates';
+import {
   canLearnCategory,
   MERCHANT_CATEGORY_SOURCE,
   type MerchantCategorySource,
@@ -103,6 +107,24 @@ function mapMerchant(row: MerchantRow, spend: MerchantSpend | undefined) {
 }
 
 const MAX_MERCHANT_NAME_LENGTH = 120;
+const DUPLICATE_CANDIDATE_LIMIT = 5;
+
+/** Duplicate detection reads plain alias texts, not the relation rows. */
+function comparable(row: {
+  id: string;
+  name: string;
+  normalizedKey: string;
+  logoUrl: string | null;
+  aliases: Array<{ alias: string }>;
+}) {
+  return {
+    id: row.id,
+    name: row.name,
+    normalizedKey: row.normalizedKey,
+    logoUrl: row.logoUrl,
+    aliases: row.aliases.map((entry) => entry.alias),
+  };
+}
 
 /** Typed text is kept as written; bank descriptors get a clean display name. */
 function visibleMerchantName(input: {
@@ -144,11 +166,19 @@ export class MerchantsService {
     const spendByMerchant = new Map(
       spends.map((spend) => [spend.merchantId, spend] as const),
     );
+    const comparables = (await this.repo.listMerchantComparables(userId)).map(
+      comparable,
+    );
     return {
       ...page,
-      items: page.items.map((row) =>
-        mapMerchant(row, spendByMerchant.get(row.id)),
-      ),
+      items: page.items.map((row) => ({
+        ...mapMerchant(row, spendByMerchant.get(row.id)),
+        possibleDuplicates: countPossibleDuplicates(
+          comparable(row),
+          comparables,
+          new Set<string>(),
+        ),
+      })),
     };
   }
 
@@ -186,6 +216,42 @@ export class MerchantsService {
         mapMerchant(row, spendByMerchant.get(row.id)),
       ]),
     );
+  }
+
+  /**
+   * Up to five merchants that look like this one, with the reason. The new
+   * normalization is computed here, so merchants stored before it still get
+   * candidates without recalculating anything.
+   */
+  async duplicates(userId: string, id: string, now = new Date()) {
+    const target = await this.repo.findMerchantById(userId, id);
+    if (!target) {
+      throw new NotFoundException('Comercio no encontrado');
+    }
+    const others = (await this.repo.listMerchantComparables(userId))
+      .filter((row) => row.id !== id)
+      .map(comparable);
+    const candidates = findDuplicateCandidates(
+      comparable(target),
+      others,
+      DUPLICATE_CANDIDATE_LIMIT,
+    );
+    const spends = await this.repo.sumSpendByMerchant(
+      userId,
+      candidates.map((candidate) => candidate.merchant.id),
+      monthRange({}, now),
+    );
+    const spendByMerchant = new Map(
+      spends.map((spend) => [spend.merchantId, spend] as const),
+    );
+    return candidates.map(({ merchant, reason }) => ({
+      id: merchant.id,
+      name: merchant.name,
+      logoUrl: merchant.logoUrl,
+      monthSpend: decimalToString(spendByMerchant.get(merchant.id)?.spend ?? 0),
+      monthMovements: spendByMerchant.get(merchant.id)?.movements ?? 0,
+      reason,
+    }));
   }
 
   async create(userId: string, dto: CreateMerchantDto, now = new Date()) {

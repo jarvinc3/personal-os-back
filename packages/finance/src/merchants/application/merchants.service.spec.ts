@@ -34,6 +34,7 @@ function build(repo: Partial<Mocked> = {}) {
     addAlias: jest.fn().mockResolvedValue(undefined),
     replaceAliases: jest.fn().mockResolvedValue(undefined),
     findMerchantsByIds: jest.fn().mockResolvedValue([]),
+    listMerchantComparables: jest.fn().mockResolvedValue([]),
     ...repo,
   } as unknown as MerchantsRepository;
   const ownership = { assertCategoryVisible: jest.fn() };
@@ -698,5 +699,118 @@ describe('MerchantsService aliases', () => {
       'Supermercado Nacional',
       'SUPERMERCADO NACIONAL',
     );
+  });
+});
+
+describe('MerchantsService duplicates', () => {
+  it('returns candidates with their reason and month data', async () => {
+    const repo = {
+      findMerchantById: jest
+        .fn()
+        .mockResolvedValue(merchantRow({ name: 'Supermercado Nacional' })),
+      listMerchantComparables: jest.fn().mockResolvedValue([
+        {
+          id: 'merchant-1',
+          name: 'Supermercado Nacional',
+          normalizedKey: 'SUPERMERCADO NACIONAL',
+          logoUrl: null,
+          aliases: [],
+        },
+        {
+          id: 'merchant-2',
+          name: 'Supermercado Nacional 5',
+          normalizedKey: 'SUPERMERCADO NACIONAL 5',
+          logoUrl: null,
+          aliases: [],
+        },
+        {
+          id: 'merchant-3',
+          name: 'Farmacia Carol',
+          normalizedKey: 'FARMACIA CAROL',
+          logoUrl: null,
+          aliases: [],
+        },
+      ]),
+      sumSpendByMerchant: jest
+        .fn()
+        .mockResolvedValue([
+          { merchantId: 'merchant-2', spend: 250, movements: 3 },
+        ]),
+    };
+    const { service } = build(repo);
+
+    const candidates = await service.duplicates('user-1', 'merchant-1');
+
+    expect(candidates).toEqual([
+      {
+        id: 'merchant-2',
+        name: 'Supermercado Nacional 5',
+        logoUrl: null,
+        monthSpend: '250',
+        monthMovements: 3,
+        reason: 'TRAILING_NUMBER',
+      },
+    ]);
+  });
+
+  it('returns an empty list when nothing looks the same', async () => {
+    const repo = {
+      findMerchantById: jest.fn().mockResolvedValue(merchantRow()),
+      listMerchantComparables: jest.fn().mockResolvedValue([
+        {
+          id: 'merchant-1',
+          name: 'Uber',
+          normalizedKey: 'UBER',
+          logoUrl: null,
+          aliases: [],
+        },
+      ]),
+      sumSpendByMerchant: jest.fn().mockResolvedValue([]),
+    };
+    const { service } = build(repo);
+
+    await expect(service.duplicates('user-1', 'merchant-1')).resolves.toEqual(
+      [],
+    );
+  });
+
+  it('flags the count on each list item', async () => {
+    const repo = {
+      listMerchants: jest.fn().mockResolvedValue([
+        merchantRow({
+          id: 'merchant-1',
+          name: 'Supermercado Nacional',
+          aliases: [],
+        }),
+        merchantRow({
+          id: 'merchant-2',
+          name: 'Supermercado Nacional 5',
+          normalizedKey: 'SUPERMERCADO NACIONAL 5',
+          aliases: [],
+        }),
+      ]),
+      sumSpendByMerchant: jest.fn().mockResolvedValue([]),
+      listMerchantComparables: jest.fn().mockResolvedValue([
+        {
+          id: 'merchant-1',
+          name: 'Supermercado Nacional',
+          normalizedKey: 'SUPERMERCADO NACIONAL',
+          logoUrl: null,
+          aliases: [],
+        },
+        {
+          id: 'merchant-2',
+          name: 'Supermercado Nacional 5',
+          normalizedKey: 'SUPERMERCADO NACIONAL 5',
+          logoUrl: null,
+          aliases: [],
+        },
+      ]),
+    };
+    const { service } = build(repo);
+
+    const page = await service.list('user-1', {} as never);
+
+    expect(page.items.map((item) => item.possibleDuplicates)).toEqual([1, 1]);
   });
 });

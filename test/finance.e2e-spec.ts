@@ -3757,4 +3757,58 @@ describe('Finance (e2e)', () => {
       },
     });
   });
+  it('GET /api/finance/merchants/:id/duplicates lists the candidates with the reason', async () => {
+    const merchantId = 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee';
+    prismaMock.finMerchant.findFirst.mockResolvedValue({
+      id: merchantId,
+      userId: 'user-123',
+      name: 'Supermercado Nacional',
+      normalizedKey: 'SUPERMERCADO NACIONAL',
+      aliases: [],
+      categoryId: null,
+      categorySource: null,
+      logoUrl: null,
+      createdAt: new Date('2026-10-20T10:00:00.000Z'),
+    });
+    prismaMock.finMerchant.findMany.mockResolvedValue([
+      {
+        id: merchantId,
+        name: 'Supermercado Nacional',
+        normalizedKey: 'SUPERMERCADO NACIONAL',
+        logoUrl: null,
+        aliases: [],
+      },
+      {
+        id: 'ffffffff-ffff-4fff-8fff-ffffffffffff',
+        name: 'Supermercado Nacional 5',
+        normalizedKey: 'SUPERMERCADO NACIONAL 5',
+        logoUrl: null,
+        aliases: [],
+      },
+    ]);
+    prismaMock.finTransaction.groupBy.mockResolvedValue([
+      {
+        merchantId: 'ffffffff-ffff-4fff-8fff-ffffffffffff',
+        _sum: { amountBaseCurrency: 300 },
+        _count: { _all: 2 },
+      },
+    ]);
+
+    await request(app.getHttpServer())
+      .get(`/api/finance/merchants/${merchantId}/duplicates`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.data).toEqual([
+          {
+            id: 'ffffffff-ffff-4fff-8fff-ffffffffffff',
+            name: 'Supermercado Nacional 5',
+            logoUrl: null,
+            monthSpend: '300',
+            monthMovements: 2,
+            reason: 'TRAILING_NUMBER',
+          },
+        ]);
+      });
+  });
 });
