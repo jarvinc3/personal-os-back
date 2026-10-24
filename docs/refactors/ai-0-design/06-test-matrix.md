@@ -41,6 +41,12 @@ notificaciones, marcas y wipe; chat/Gmail responden 404. El API no se ha
 desplegado ni reabierto en Railway DEV. Jarvin autorizó perder los datos de
 prueba sin dump, backup ni restauración; PROD permanece fuera de alcance.
 
+Los umbrales globales de cobertura de Jest se mantienen en 70 % de sentencias,
+58 % de branches y 69 % de líneas. El reporte unitario excluye `presentation/**`:
+controladores y DTOs se validan mediante E2E. Tras aplicar ese alcance, las 178
+suites y 1193 pruebas pasan con 71.28 % de sentencias, 59.05 % de branches,
+60.74 % de funciones y 71.03 % de líneas.
+
 Para reproducir: levantar un cluster local aislado con roles de fixture
 anon/authenticated/service_role, definir `AI0_VALIDATION_ADMIN_URL` apuntando
 explícitamente a ese cluster y ejecutar `node` sobre el script. No usar una URL

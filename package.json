@@ -159,6 +159,8 @@
     "collectCoverageFrom": [
       "apps/*/src/**/*.(t|j)s",
       "packages/*/src/**/*.(t|j)s",
+      "!apps/*/src/**/presentation/**/*.ts",
+      "!packages/*/src/**/presentation/**/*.ts",
       "!**/generated/**",
       "!**/*.module.ts",
       "!**/main.ts"
