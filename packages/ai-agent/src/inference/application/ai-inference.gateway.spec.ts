@@ -140,6 +140,39 @@ describe('AiInferenceGateway', () => {
     expect(first.chatComplete).not.toHaveBeenCalled();
   });
 
+  it('rotates the first provider across requests on the same gateway', async () => {
+    const first = {
+      name: 'first',
+      model: 'one',
+      chat: jest.fn(),
+      chatComplete: jest.fn().mockResolvedValue({
+        content: '{"value":"first"}',
+        toolCalls: [],
+      }),
+    };
+    const second = {
+      name: 'second',
+      model: 'two',
+      chat: jest.fn(),
+      chatComplete: jest.fn().mockResolvedValue({
+        content: '{"value":"second"}',
+        toolCalls: [],
+      }),
+    };
+    const { gateway } = build([first, second]);
+
+    await expect(gateway.infer(request())).resolves.toMatchObject({
+      provider: 'first',
+      fallbackCount: 0,
+    });
+    await expect(gateway.infer(request())).resolves.toMatchObject({
+      provider: 'second',
+      fallbackCount: 0,
+    });
+    expect(first.chatComplete).toHaveBeenCalledTimes(1);
+    expect(second.chatComplete).toHaveBeenCalledTimes(1);
+  });
+
   it('does not fail an inference when the telemetry write fails', async () => {
     const provider = {
       name: 'provider',
