@@ -398,4 +398,20 @@ export class FinanceFacade {
   ) {
     return this.wipeFinance.execute(userId, layers, options);
   }
+
+  dataBranches() {
+    return this.wipeFinance.dataBranches();
+  }
+
+  countUserDataBranches(userId: string, branchIds: readonly string[]) {
+    return this.wipeFinance.countBranches(userId, branchIds);
+  }
+
+  wipeUserDataBranches(
+    userId: string,
+    branchIds: readonly string[],
+    options?: { balanceInstitutionId?: string },
+  ) {
+    return this.wipeFinance.wipeBranches(userId, branchIds, options);
+  }
 }

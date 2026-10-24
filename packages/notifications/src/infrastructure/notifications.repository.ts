@@ -127,6 +127,14 @@ export class NotificationsRepository {
     });
   }
 
+  countAllForUser(userId: string) {
+    return this.prisma.notification.count({ where: { userId } });
+  }
+
+  countAllPushTokensForUser(userId: string) {
+    return this.prisma.pushToken.count({ where: { userId } });
+  }
+
   deleteAllForUser(userId: string) {
     return this.prisma.notification.deleteMany({ where: { userId } });
   }

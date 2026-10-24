@@ -554,4 +554,92 @@ describe('Users (e2e)', () => {
   it('DELETE /api/users/me returns 401 without token', async () => {
     await request(app.getHttpServer()).delete('/api/users/me').expect(401);
   });
+  describe('data branches', () => {
+    const token = () => createTestJwt({ sub: 'user-123' });
+    const userWithFinance = {
+      id: 'user-123',
+      email: 'user@example.com',
+      fullName: 'User Test',
+      timezone: 'America/Santo_Domingo',
+      locale: 'es-DO',
+      avatarUrl: null,
+      preferences: { theme: 'dark' },
+      lastSeenReleaseVersion: '0.38.1',
+      userModules: [{ isEnabled: true, module: { slug: 'finance' } }],
+      createdAt: new Date('2026-01-01T00:00:00.000Z'),
+      updatedAt: new Date('2026-01-01T00:00:00.000Z'),
+    };
+
+    beforeEach(() => {
+      prismaMock.user.findUnique.mockResolvedValue(userWithFinance);
+    });
+
+    it('GET /api/users/me/data/branches groups the branches by app with counts', async () => {
+      prismaMock.finTransaction.count.mockResolvedValue(7);
+      prismaMock.aiAgentSession.count.mockResolvedValue(2);
+
+      await request(app.getHttpServer())
+        .get('/api/users/me/data/branches')
+        .set('Authorization', `Bearer ${token()}`)
+        .expect(200)
+        .expect((res) => {
+          const apps = res.body.data.map((group: { app: string }) => group.app);
+          expect(apps).toEqual(['finance', 'ai', 'notifications', 'settings']);
+          const transactionBranch = res.body.data[0].branches.find(
+            (branch: { id: string }) => branch.id === 'finance.ledger',
+          );
+          expect(transactionBranch.count).toBe(7);
+          const settings = res.body.data.at(-1);
+          expect(settings.branches[0].count).toBe(1);
+          const aiBranch = res.body.data[1].branches[0];
+          expect(aiBranch).toMatchObject({ id: 'ai.sessions', count: 2 });
+        });
+    });
+
+    it('POST /api/users/me/data/wipe deletes the requested branches', async () => {
+      prismaMock.aiAgentSession.deleteMany.mockResolvedValue({ count: 2 });
+
+      await request(app.getHttpServer())
+        .post('/api/users/me/data/wipe')
+        .set('Authorization', `Bearer ${token()}`)
+        .send({ branches: ['ai.sessions'] })
+        .expect(200)
+        .expect((res) => {
+          expect(res.body.data.appliedBranches).toEqual(['ai.sessions']);
+          expect(res.body.data.counts).toEqual({ 'ai.sessions': 2 });
+        });
+
+      expect(prismaMock.aiAgentSession.deleteMany).toHaveBeenCalledWith({
+        where: { userId: 'user-123' },
+      });
+    });
+
+    it('POST /api/users/me/data/wipe rejects a branch that does not exist', async () => {
+      await request(app.getHttpServer())
+        .post('/api/users/me/data/wipe')
+        .set('Authorization', `Bearer ${token()}`)
+        .send({ branches: ['finance.unknown'] })
+        .expect(400);
+
+      expect(prismaMock.aiAgentSession.deleteMany).not.toHaveBeenCalled();
+    });
+
+    it('POST /api/users/me/data/wipe answers 409 when a count changed', async () => {
+      prismaMock.aiAgentSession.count.mockResolvedValue(3);
+
+      await request(app.getHttpServer())
+        .post('/api/users/me/data/wipe')
+        .set('Authorization', `Bearer ${token()}`)
+        .send({
+          branches: ['ai.sessions'],
+          expectedCounts: { 'ai.sessions': 1 },
+        })
+        .expect(409)
+        .expect((res) => {
+          expect(res.body.details.counts).toEqual({ 'ai.sessions': 3 });
+        });
+
+      expect(prismaMock.aiAgentSession.deleteMany).not.toHaveBeenCalled();
+    });
+  });
 });

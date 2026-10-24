@@ -10,9 +10,36 @@ import { Prisma, PrismaService } from '@personal-os/database';
 import { LogoService } from '@personal-os/logos';
 import { QueueNames, type GmailSyncJob } from '@personal-os/core';
 import { gmailSyncJobId } from '../../ingestion/application/gmail-sync.constants';
+import type { DataBranchDescriptor } from '@personal-os/users';
+import {
+  FINANCE_DATA_BRANCHES,
+  layerForBranch,
+} from '../domain/finance-data-branches';
 import type { FinanceWipeLayer } from '../domain/finance-wipe-layers';
 
 type TxClient = Prisma.TransactionClient;
+
+/** Rows a branch removed, from the detailed counts of its wipe. */
+function rowsForBranch(branchId: string, counts: FinanceWipeCounts): number {
+  switch (branchId) {
+    case 'finance.ledger':
+      return counts.transactions;
+    case 'finance.balances':
+      return counts.accountBalances + counts.cardBalances;
+    case 'finance.planning':
+      return (
+        counts.budgets + counts.savingsGoals + counts.loans + counts.receivables
+      );
+    case 'finance.categories':
+      return counts.categories;
+    case 'finance.catalog':
+      return counts.institutions + counts.accounts + counts.cards;
+    case 'finance.emailConnections':
+      return counts.emailConnections;
+    default:
+      return 0;
+  }
+}
 
 export type FinanceWipeCounts = {
   transactions: number;
@@ -69,6 +96,76 @@ export class WipeFinanceUserDataUseCase {
     @InjectQueue(QueueNames.GMAIL_SYNC)
     private readonly gmailSyncQueue?: Queue<GmailSyncJob>,
   ) {}
+
+  /** Branch registry this package declares, consulted by the orchestrator. */
+  dataBranches(): readonly DataBranchDescriptor[] {
+    return FINANCE_DATA_BRANCHES;
+  }
+
+  /** Rows each branch would delete today, with the same rules as the wipe. */
+  async countBranches(
+    userId: string,
+    branchIds: readonly string[],
+  ): Promise<Record<string, number>> {
+    const counts: Record<string, number> = {};
+    for (const branchId of branchIds) {
+      counts[branchId] = await this.countBranch(userId, branchId);
+    }
+    return counts;
+  }
+
+  /** Applies the branches in one transaction and returns what each removed. */
+  async wipeBranches(
+    userId: string,
+    branchIds: readonly string[],
+    options?: { balanceInstitutionId?: string },
+  ): Promise<Record<string, number>> {
+    const counts = await this.execute(
+      userId,
+      branchIds.map(layerForBranch),
+      options,
+    );
+    return Object.fromEntries(
+      branchIds.map((branchId) => [branchId, rowsForBranch(branchId, counts)]),
+    );
+  }
+
+  private async countBranch(userId: string, branchId: string): Promise<number> {
+    switch (branchId) {
+      case 'finance.ledger':
+        return this.prisma.finTransaction.count({ where: { userId } });
+      case 'finance.balances':
+        return (
+          (await this.prisma.finAccount.count({ where: { userId } })) +
+          (await this.prisma.finCardBalance.count({
+            where: { card: { userId } },
+          }))
+        );
+      case 'finance.planning':
+        return (
+          (await this.prisma.finBudget.count({ where: { userId } })) +
+          (await this.prisma.finSavingsGoal.count({ where: { userId } })) +
+          (await this.prisma.finLoan.count({ where: { userId } })) +
+          (await this.prisma.finReceivable.count({ where: { userId } }))
+        );
+      case 'finance.categories':
+        return this.prisma.finCategory.count({
+          where: { userId, isSystem: false },
+        });
+      case 'finance.catalog':
+        return (
+          (await this.prisma.finInstitution.count({
+            where: { userId, isSystem: false },
+          })) +
+          (await this.prisma.finAccount.count({ where: { userId } })) +
+          (await this.prisma.finCard.count({ where: { userId } }))
+        );
+      case 'finance.emailConnections':
+        return this.prisma.finEmailConnection.count({ where: { userId } });
+      default:
+        return 0;
+    }
+  }
 
   async execute(
     userId: string,

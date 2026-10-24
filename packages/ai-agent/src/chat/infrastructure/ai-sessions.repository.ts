@@ -94,6 +94,10 @@ export class AiSessionsRepository {
     return this.prisma.aiAgentSession.deleteMany({ where: { userId } });
   }
 
+  countAllForUser(userId: string) {
+    return this.prisma.aiAgentSession.count({ where: { userId } });
+  }
+
   createMessage(data: {
     sessionId: string;
     role: AiRole;

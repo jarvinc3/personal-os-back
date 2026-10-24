@@ -139,10 +139,35 @@ export class NotificationsService {
     return { updated: result.count };
   }
 
-  async wipeAllForUser(userId: string) {
-    const notifications = await this.notificationsRepo.deleteAllForUser(userId);
-    const pushTokens =
-      await this.notificationsRepo.deleteAllPushTokensForUser(userId);
-    return { notifications: notifications.count, pushTokens: pushTokens.count };
+  /** Deletes the requested branches only; each one counts its own rows. */
+  async wipeAllForUser(
+    userId: string,
+    branchIds: readonly string[] = [
+      'notifications.history',
+      'notifications.pushTokens',
+    ],
+  ): Promise<Record<string, number>> {
+    const counts: Record<string, number> = {};
+    if (branchIds.includes('notifications.history')) {
+      counts['notifications.history'] = (
+        await this.notificationsRepo.deleteAllForUser(userId)
+      ).count;
+    }
+    if (branchIds.includes('notifications.pushTokens')) {
+      counts['notifications.pushTokens'] = (
+        await this.notificationsRepo.deleteAllPushTokensForUser(userId)
+      ).count;
+    }
+    return counts;
+  }
+
+  /** Rows the wipe would delete today, with the same definition it uses. */
+  async countForUser(userId: string): Promise<Record<string, number>> {
+    return {
+      'notifications.history':
+        await this.notificationsRepo.countAllForUser(userId),
+      'notifications.pushTokens':
+        await this.notificationsRepo.countAllPushTokensForUser(userId),
+    };
   }
 }

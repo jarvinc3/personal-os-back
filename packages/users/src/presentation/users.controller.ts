@@ -83,14 +83,24 @@ export class UsersController {
     return this.usersService.deleteAccount(userId);
   }
 
+  @Get('me/data/branches')
+  @ApiOperation({
+    summary: 'Ramas de datos por app, con su conteo y lo que arrastran',
+  })
+  @ApiOkResponse({ description: 'Branches grouped by app with their counts' })
+  myDataBranches(@CurrentUser('sub') userId: string) {
+    return this.wipeUserData.listBranches(userId);
+  }
+
   @Post('me/data/wipe')
   @HttpCode(200)
   @ApiOperation({
-    summary: 'Borra capas de datos seleccionadas sin cerrar la cuenta',
+    summary: 'Borra las ramas de datos elegidas sin cerrar la cuenta',
   })
-  @ApiOkResponse({ description: 'Requested and applied layers with counts' })
+  @ApiOkResponse({ description: 'Requested and applied branches with counts' })
   wipeMyData(@CurrentUser('sub') userId: string, @Body() dto: WipeUserDataDto) {
-    return this.wipeUserData.execute(userId, dto.layers, {
+    return this.wipeUserData.execute(userId, dto.branches, {
+      expectedCounts: dto.expectedCounts,
       balanceInstitutionId: dto.balanceInstitutionId,
     });
   }

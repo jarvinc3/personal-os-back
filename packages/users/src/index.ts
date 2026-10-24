@@ -21,6 +21,20 @@ export {
 } from './domain/defaults/user-settings-defaults';
 export { parseUserPreferences } from './domain/parse-user-preferences';
 export {
+  DATA_APP,
+  expandDataBranches,
+  groupDataBranchCounts,
+  isKnownDataBranch,
+  type DataApp,
+  type DataAppBranches,
+  type DataBranchCount,
+  type DataBranchDescriptor,
+} from './domain/data-branches';
+export {
+  SETTINGS_DATA_BRANCHES,
+  SETTINGS_DEFAULTS_BRANCH,
+} from './domain/settings-data-branches';
+export {
   expandWipeLayers,
   isWipeLayerId,
   sortWipeLayers,
