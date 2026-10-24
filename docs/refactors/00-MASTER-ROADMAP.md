@@ -14,6 +14,10 @@ Programas detallados:
 
 ## Decisiones e inventario actualizados
 
+El [diseño técnico de AI-0](ai-0-design/00-README.md) concreta la baseline
+candidata, SQL preservado, contratos, archivos, preflight y reconstrucción DEV.
+Sus artefactos están validados localmente; no inicia el reset ni acredita PROD.
+
 Las [decisiones del 2026-10-24](01-IMPLEMENTATION-DECISIONS.md) precisan corte, contratos, evidencia y releases. El [inventario de fase 0](02-PHASE-0-INVENTORY.md) reemplaza las listas de borrado anteriores.
 
 Antes de Wave A se entrega la corrección independiente del outbox: leases recuperables, fencing, efectos PostgreSQL transaccionales, deduplicación del encolado externo y pruebas de caída con PostgreSQL real. Su gate no espera a AI-7.
