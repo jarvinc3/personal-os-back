@@ -54,9 +54,8 @@ export const envSchema = z
     /** Logo.dev publishable key. Logo download is skipped when unset. */
     LOGO_DEV_PUBLISHABLE_KEY: optionalApiKey,
 
-    // ── IA (free-tier providers) ───────────────
+    // ── IA providers ───────────────────────────
     GROQ_API_KEY: optionalApiKey,
-    OPENCODE_API_KEY: optionalApiKey,
     OPENROUTER_API_KEY: optionalApiKey,
     /** Hard cap on LLM email extractions per Gmail sync. Default 25. */
     MAX_EMAIL_LLM_EXTRACTS: defaultedPositiveInt(25),
@@ -274,15 +273,11 @@ export const envSchema = z
       return;
     }
 
-    if (
-      !data.GROQ_API_KEY &&
-      !data.OPENCODE_API_KEY &&
-      !data.OPENROUTER_API_KEY
-    ) {
+    if (!data.GROQ_API_KEY && !data.OPENROUTER_API_KEY) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message:
-          'At least one AI provider key is required (GROQ_API_KEY, OPENCODE_API_KEY, or OPENROUTER_API_KEY)',
+          'At least one AI provider key is required (GROQ_API_KEY or OPENROUTER_API_KEY)',
         path: ['GROQ_API_KEY'],
       });
     }

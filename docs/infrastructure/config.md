@@ -9,7 +9,7 @@ Fuente: [`packages/config/src/env.schema.ts`](../../packages/config/src/env.sche
 | `DATABASE_URL`                                                           | Requerida                                                                               |
 | `SUPABASE_URL`                                                           | URL                                                                                     |
 | `SUPABASE_SERVICE_ROLE_KEY`                                              | Requerida                                                                               |
-| `GROQ_API_KEY` / `OPENCODE_API_KEY` / `OPENROUTER_API_KEY`               | Al menos una, salvo `NODE_ENV=test`                                                     |
+| `GROQ_API_KEY` / `OPENROUTER_API_KEY`                                    | Al menos una, salvo `NODE_ENV=test`                                                     |
 | `MAX_EMAIL_LLM_EXTRACTS` / `AI_DAILY_INSIGHT_QUOTA`                      | Enteros > 0; defaults 25 y 20                                                           |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` / `GOOGLE_REDIRECT_URI`      | Requeridas (Gmail OAuth)                                                                |
 | `ENCRYPTION_KEY`                                                         | ≥32; solo tokens OAuth de Gmail                                                         |
