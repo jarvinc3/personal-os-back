@@ -2,6 +2,12 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [SemVer](https://semver.org/lang/es/). Reglas y ejemplo en [docs/reference/changelog-guide.md](./docs/reference/changelog-guide.md).
 
+## [0.55.3] - 2026-10-24
+
+### Cambiado
+
+- Diseño técnico de AI-0 con baseline candidata de 44 modelos, SQL complementario, contratos neutrales, inventario de archivos back/web, preflight OAuth/Supabase y procedimiento de reconstrucción y rollback DEV (#193). Los artefactos pasan 16 comprobaciones PostgreSQL locales y comparación Prisma sin drift; no se inicia el reset ni se cambia producción.
+
 ## [0.55.2] - 2026-10-24
 
 ### Corregido
