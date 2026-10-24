@@ -273,10 +273,7 @@ export const envSchema = z
       return;
     }
 
-    if (
-      !data.GROQ_API_KEY &&
-      !data.OPENROUTER_API_KEY
-    ) {
+    if (!data.GROQ_API_KEY && !data.OPENROUTER_API_KEY) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message:
