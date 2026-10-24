@@ -3,6 +3,10 @@ import type { Prisma } from '@personal-os/database';
 import { Prisma as PrismaNS } from '@personal-os/database';
 import { PrismaService } from '@personal-os/database';
 import { toMoney } from '../../shared/domain/money';
+import {
+  sumBudgetSpent,
+  type BudgetSpentScope,
+} from '../../shared/infrastructure/budget-spent.reader';
 import { OPERATION_LEG_ROLE } from '../../shared/domain/transfer';
 
 /** Standalone movements plus the fee leg of a transfer (the only leg that is real spending). */
@@ -121,8 +125,13 @@ export class AnalyticsRepository {
   listBudgets(userId: string) {
     return this.prisma.finBudget.findMany({
       where: { userId },
-      include: { category: true },
+      include: { category: true, categories: true },
       orderBy: { periodStart: 'desc' },
     });
+  }
+
+  /** Spent money read from the movements so every surface shows the same figure. */
+  sumBudgetSpent(scope: BudgetSpentScope) {
+    return sumBudgetSpent(this.prisma, scope);
   }
 }

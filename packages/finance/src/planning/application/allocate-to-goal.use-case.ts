@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { CreateTransferUseCase } from '../../ledger/application/create-transfer.use-case';
 import { FinanceOwnershipService } from '../../shared/application/finance-ownership.service';
+import { resolveLocalMoment } from '../../shared/domain/local-day';
 import { roundMoney } from '../../shared/domain/money';
 import {
   EARMARK_EXCEEDS_BALANCE,
@@ -14,27 +15,33 @@ import {
   GOAL_ACCOUNT_REQUIRED_MESSAGE,
   GOAL_NOT_FOUND,
   GOAL_NOT_FOUND_MESSAGE,
+  GOAL_WITHDRAWAL_ACCOUNT_REQUIRED,
+  GOAL_WITHDRAWAL_ACCOUNT_REQUIRED_MESSAGE,
+  GOAL_WITHDRAWAL_EXCEEDS_AVAILABLE,
+  GOAL_WITHDRAWAL_EXCEEDS_AVAILABLE_MESSAGE,
 } from '../../shared/domain/savings-goal';
 import { PlanningRepository } from '../infrastructure/planning.repository';
 import type { CreateSavingsGoalAllocationDto } from '../presentation/dto/create-savings-goal-allocation.dto';
 import { mapSavingsGoalContribution } from './planning-mappers';
 
-type GoalAccount = {
+type GoalAllocation = {
   name: string;
   currency: string;
   accountId: string | null;
+  currentAmount: unknown;
   mode: 'EARMARK' | 'DEDICATED';
 };
 
-type SourceMovement = {
-  transferGroupId: string;
-  transactionId: string;
+type AllocationMovement = {
+  transferGroupId?: string;
+  transactionId?: string;
 };
 
 /**
- * Sets money aside for a goal. Money from another account reaches the goal
- * account first, and the allocation keeps the transfer linked, so removing the
- * allocation also removes the movement.
+ * Sets money aside for a goal or returns it to an account. A contribution from
+ * another account reaches the goal account first; a withdrawal leaves it for
+ * the chosen destination. The allocation keeps the transfer linked, so removing
+ * the allocation also removes the movement.
  */
 @Injectable()
 export class AllocateToGoalUseCase {
@@ -59,7 +66,11 @@ export class AllocateToGoalUseCase {
     }
 
     const kind = dto.kind ?? 'CONTRIBUTION';
-    const contributedAt = dto.date ? new Date(dto.date) : now;
+    const contributedAt = resolveLocalMoment({
+      timezone: await this.repo.findUserTimezone(userId),
+      date: dto.date,
+      now,
+    });
     const accountId = goal.accountId;
 
     if (kind === 'CONTRIBUTION' && goal.mode === 'EARMARK' && !accountId) {
@@ -69,10 +80,10 @@ export class AllocateToGoalUseCase {
       });
     }
 
-    const sourceMovement =
+    const movement =
       kind === 'CONTRIBUTION'
         ? await this.moveSourceMoney({ userId, goal, dto, contributedAt })
-        : null;
+        : await this.moveWithdrawalMoney({ userId, goal, dto, contributedAt });
 
     const allocation = await this.repo.addSavingsGoalContribution(
       goalId,
@@ -81,11 +92,19 @@ export class AllocateToGoalUseCase {
         contributedAt,
         kind,
         ...(accountId ? { accountId } : {}),
+        ...(kind === 'WITHDRAWAL' && dto.toAccountId
+          ? { destinationAccountId: dto.toAccountId }
+          : {}),
         ...(dto.fromTransferGroupId
           ? { transferGroupId: dto.fromTransferGroupId }
           : {}),
         ...(dto.transactionId ? { transactionId: dto.transactionId } : {}),
-        ...(sourceMovement ?? {}),
+        ...(movement?.transferGroupId
+          ? { transferGroupId: movement.transferGroupId }
+          : {}),
+        ...(movement?.transactionId
+          ? { transactionId: movement.transactionId }
+          : {}),
         ...(dto.notes !== undefined ? { notes: dto.notes } : {}),
       },
       now,
@@ -100,10 +119,10 @@ export class AllocateToGoalUseCase {
    */
   private async moveSourceMoney(input: {
     userId: string;
-    goal: GoalAccount;
+    goal: GoalAllocation;
     dto: CreateSavingsGoalAllocationDto;
     contributedAt: Date;
-  }): Promise<SourceMovement | null> {
+  }): Promise<AllocationMovement | null> {
     const { userId, goal, dto, contributedAt } = input;
     if (!goal.accountId) {
       return null;
@@ -131,11 +150,76 @@ export class AllocateToGoalUseCase {
       currency: goal.currency,
       transactionDate: contributedAt.toISOString(),
       description: `Aporte a ${goal.name}`,
+      // The screen already confirmed the contribution.
+      announce: false,
     });
     return {
       transferGroupId: transfer.transferGroupId,
       transactionId: transfer.credit.id,
     };
+  }
+
+  /**
+   * A withdrawal returns money from the goal account to the chosen account.
+   * The allocation keeps only the transfer group, so the goal always subtracts
+   * the amount even when spending does not reduce progress.
+   */
+  private async moveWithdrawalMoney(input: {
+    userId: string;
+    goal: GoalAllocation;
+    dto: CreateSavingsGoalAllocationDto;
+    contributedAt: Date;
+  }): Promise<AllocationMovement | null> {
+    const { userId, goal, dto, contributedAt } = input;
+    if (!goal.accountId) {
+      throw new BadRequestException({
+        code: GOAL_ACCOUNT_REQUIRED,
+        message: GOAL_ACCOUNT_REQUIRED_MESSAGE,
+      });
+    }
+    if (!dto.toAccountId) {
+      throw new BadRequestException({
+        code: GOAL_WITHDRAWAL_ACCOUNT_REQUIRED,
+        message: GOAL_WITHDRAWAL_ACCOUNT_REQUIRED_MESSAGE,
+      });
+    }
+
+    const destinationAccount = await this.ownership.assertAccountOwned(
+      userId,
+      dto.toAccountId,
+    );
+    if (!destinationAccount.isActive) {
+      throw new BadRequestException('La cuenta de destino está archivada');
+    }
+    if (destinationAccount.currency !== goal.currency) {
+      throw new BadRequestException(
+        'La cuenta de destino debe estar en la moneda de la meta',
+      );
+    }
+
+    const available = roundMoney(Number(goal.currentAmount));
+    if (roundMoney(dto.amount) > available + 0.005) {
+      throw new ConflictException({
+        code: GOAL_WITHDRAWAL_EXCEEDS_AVAILABLE,
+        message: GOAL_WITHDRAWAL_EXCEEDS_AVAILABLE_MESSAGE,
+        max: available,
+      });
+    }
+    if (dto.toAccountId === goal.accountId) {
+      return null;
+    }
+
+    const transfer = await this.createTransfer.execute(userId, {
+      fromAccountId: goal.accountId,
+      toAccountId: dto.toAccountId,
+      amount: dto.amount,
+      currency: goal.currency,
+      transactionDate: contributedAt.toISOString(),
+      description: `Retiro de ${goal.name}`,
+      // The screen already confirmed the withdrawal.
+      announce: false,
+    });
+    return { transferGroupId: transfer.transferGroupId };
   }
 
   /** An account only lends the balance no other goal has already claimed. */

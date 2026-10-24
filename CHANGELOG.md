@@ -2,6 +2,218 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [SemVer](https://semver.org/lang/es/). Reglas y ejemplo en [docs/reference/changelog-guide.md](./docs/reference/changelog-guide.md).
 
+## Unreleased — 0.100.0
+
+### Agregado
+
+- AI-1: gateway de inferencia estructurada con fallback por respuesta inválida, telemetría minimizada con HMAC y retención de 90 días; Quick Entry y extractos bancarios validan antes de devolver resultados. Diagnóstico disponible con `pnpm ai:diagnostic`.
+
+### Cambiado
+
+- El diagnóstico local de AI-1 muestra proveedor/modelo, intentos, código normalizado y estado HTTP de los SDK sin exponer errores crudos; permite probar cada proveedor por separado.
+- El pool de inferencia usa Groq y OpenRouter; se retira OpenCode, cuyo modelo gratuito no admite llamadas desde el SDK del backend. Groq usa `qwen/qwen3.8-27b`.
+- AI-0 integrado en `develop`: `@personal-os/contracts` reúne interfaces y tokens neutrales; el pool de inferencia y sus pruebas salen de chat. Los extractores financieros usan `INFERENCE_COMPLETION` y conservan sus respuestas y reglas (#193).
+- El corte de runtime elimina chat, sesiones, Gmail Finance y su configuración. Queda preservada y probada la lógica de importación financiera hasta AI-11; la entrega de correo por Resend sigue operativa.
+- La baseline conserva SQL manual, RLS/grants, triggers y el índice parcial de transferencias. Se aplicó en DEV junto con el reset autorizado de datos de prueba; PROD no recibió escrituras.
+- La eliminación directa de un usuario en Supabase Auth elimina ahora su perfil de `public.users` y los datos de aplicación sujetos a sus FKs en cascada. El endpoint propio conserva su borrado app-first con outbox.
+
+## [0.55.3] - 2026-10-24
+
+### Cambiado
+
+- Diseño técnico de AI-0 con baseline candidata de 44 modelos, SQL complementario, contratos neutrales, inventario de archivos back/web, preflight OAuth/Supabase y procedimiento de reconstrucción y rollback DEV (#193). Los artefactos pasan 16 comprobaciones PostgreSQL locales y comparación Prisma sin drift; no se inicia el reset ni se cambia producción.
+
+## [0.55.2] - 2026-10-24
+
+### Corregido
+
+- El outbox recupera entregas con lease vencido, impide que un worker antiguo cierre otro intento y confirma recibos junto con efectos PostgreSQL. Notifications persiste antes del aviso WebSocket; IA deduplica el encolado por evento sin confirmar antes de Redis (#192).
+- Las tablas de alias y descartes de duplicados de comercios reciben los defaults UUID que ya declaraba Prisma, eliminando el drift al migrar una base vacía sin tocar datos existentes (#194).
+- El build de paquetes selecciona los nueve paquetes también desde scripts en Windows.
+
+### Cambiado
+
+- Decisiones e inventario del reset actualizados: conservación de lógica financiera, contratos neutrales, exclusiones de consentimiento, revisión de promociones y reproducción incompleta tras borrar evidencia. Se documenta la excepción condicional de 0.100.0 unreleased; el reset todavía no comienza (#193).
+- CI añade integración PostgreSQL con rollback, concurrencia y procesos terminados antes/después del commit del consumidor.
+
+## [0.55.1] - 2026-10-23
+
+### Corregido
+
+- Documentación: `catalog.md`, `events.md` y la guía de `users` hablan de ramas de datos (`requestedBranches`/`appliedBranches`) en lugar de las capas retiradas, y el contrato de `GET /api/users/me/data/branches` lista las ramas finales de Finanzas (#184, #185, #186).
+
+## [0.55.0] - 2026-10-23
+
+### Agregado
+
+- Cada línea de `GET /api/finance/balance-sheet` trae `entity`: la cuenta, tarjeta, préstamo o cobro completo con su institución (nombre, logo y color), para que la web pinte su card canónica sin pedir cada producto (#187).
+- `POST /api/finance/entities/lookup`: hasta 50 referencias `{ type, id }`, devueltas en el mismo orden con la forma pública de su endpoint, `null` en la posición de una que ya no existe o es de otro usuario, y una consulta por tipo (#188).
+- Las cuentas y tarjetas exponen `institutionColor` (#187).
+- `POST /api/finance/merchants` crea un comercio a mano con nombre, categoría y hasta 20 alias; el 409 de nombre repetido incluye `existingMerchantId` (#173).
+- Los comercios aprenden la categoría de sus movimientos (`categorySource`: `MANUAL`, `LEARNED` o `KEYWORD`); `suggest` la devuelve con su origen, una categoría a mano nunca se pisa y la importación por correo la usa antes del historial (#174).
+- Los alias reconocen comercios (`fin_merchant_aliases`, clave normalizada única por usuario), `PATCH` acepta `aliases` y la fusión conserva nombre, alias, categoría y logo del origen (#176).
+- `normalizeMerchant` pliega acentos y «Ñ», ignora el sufijo web y el plural de la primera palabra; `GET /api/finance/merchants/:id/duplicates` propone hasta 5 candidatos con su motivo y la lista añade `possibleDuplicates` (#177).
+- `POST`/`DELETE /api/finance/merchants/:id/duplicates/:otherId/dismiss` descartan y revierten un par como «no es duplicado» (#183).
+- Los comercios eligen logo por marca: `domain`, `logoPath` y `customLogoPath`, con `DELETE /api/finance/merchants/:id/logo`; `logoUrl` se resuelve con la prioridad propio → marca → legado (#175).
+- `GET /api/users/me/data/branches`: cada app declara sus ramas con su conteo y lo que arrastran. El vaciado por ramas sustituye a las capas, acepta `expectedCounts` y responde 409 sin borrar si un conteo cambió (#184).
+- Finanzas se vacía por ramas finas: conciliaciones, movimientos, saldos, tarjetas, cuentas, instituciones, suscripciones, recurrentes, comercios, correos importados, estados de cuenta, préstamos, metas, cobros, presupuestos, categorías y conexiones de Gmail (#185, #186).
+- El chat de IA usa bloques `entity_card` y `entity_list` que solo guardan la referencia; la web pide los datos al consultar en lote (#188).
+
+### Corregido
+
+- Un aporte, retiro o abono con fecha elegida se registra en el día local del usuario, no el anterior, y conserva la hora actual cuando la fecha es hoy (#189).
+- Un aporte a una meta o un abono a capital ya no anuncia además su movimiento interno: el usuario recibe un solo aviso (#190).
+
+### Cambiado
+
+- Contrato: `POST /api/users/me/data/wipe` recibe `branches` (antes `layers`) y responde `requestedBranches`/`appliedBranches`; las capas antiguas desaparecen.
+- Contrato: los bloques `transaction_card`, `transaction_list`, `budget_progress` y `loan_summary` del chat se reemplazan por `entity_card` y `entity_list`.
+- Contrato: `PATCH /api/finance/merchants/:id` deja de aceptar `logoUrl` libre (responde 400) y acepta `aliases` y `domain`.
+
+## [0.54.3] - 2026-10-22
+
+### Cambiado
+
+- Interno: un solo helper mapea el presupuesto con su gastado y el fin del día del periodo se define una vez en el dominio compartido; la lista de movimientos y la suma del gastado usan el mismo rango (#172). Sin cambio de comportamiento.
+
+## [0.54.2] - 2026-10-22
+
+### Corregido
+
+- El gastado de un presupuesto se suma al leer desde sus movimientos del periodo, así que la lista, el detalle, el hero de Planificación, el aviso del formulario de gasto y el estado de presupuestos de analytics muestran la misma cifra y no la de un contador guardado (#172).
+- El contador guardado deja de alimentar lo que ve el dueño de la cuenta; sigue disparando las alertas de umbral (#172).
+
+## [0.54.1] - 2026-10-22
+
+### Corregido
+
+- `GET /api/finance/receivables`, el detalle de un cobro y su edición entregan `creditBalance` y `writtenOffAmount` como texto decimal en vez de un objeto (#166).
+- Los pagos de un cobro entregan `amount`, `appliedAmount` y `excessAmount` como texto decimal; antes solo `amount` lo era (#166).
+
+## [0.54.0] - 2026-10-22
+
+### Agregado
+
+- Proveedor de IA `OpenCode` con el modelo gratuito `deepseek-v4.1-flash-free`: entra en la cadena cuando existe `OPENCODE_API_KEY` y responde chat con streaming y tool calls (#170).
+
+### Cambiado
+
+- La cadena de respaldo de IA pasa a ser Groq → OpenCode → OpenRouter; si un proveedor agota su cuota, falla o responde 429, el chat sigue con el siguiente (#170).
+- El error de arranque por falta de proveedores nombra `GROQ_API_KEY`, `OPENCODE_API_KEY` y `OPENROUTER_API_KEY` (#170).
+
+### Eliminado
+
+- Cerebras sale de la cadena de IA, del entorno, de las dependencias y de la documentación; `CEREBRAS_API_KEY` deja de leerse (#170).
+
+## [0.53.3] - 2026-10-22
+
+### Agregado
+
+- Interno: `.infisical.json` y `pnpm env:pull` traen las variables locales del proyecto `personal-os`; `docs/operations/environment.md` documenta que Infisical es la fuente de verdad y que Railway se llena por sync (#168).
+
+### Cambiado
+
+- Interno: `.env.example` deja `OPENCODE_API_KEY` comentada hasta #170 y conserva documentadas las claves de Sentry y los límites de IA que ya existían (#168).
+
+### Corregido
+
+- Las peticiones sin cabecera `Origin` (abrir `/api/docs` en el navegador, el favicon, curl) pasan sin cabeceras CORS en vez de responder 500 con `Origin header is required`; los orígenes fuera de `CORS_ORIGIN` siguen rechazados en non-prod.
+
+## [0.53.2] - 2026-10-22
+
+### Cambiado
+
+- El push Android (FCM) se configura con `FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL` y `FIREBASE_PRIVATE_KEY` separadas; la clave acepta saltos de línea reales o `\n` literales, y si falta alguna el canal queda apagado y la API arranca igual (#167).
+
+### Eliminado
+
+- `FIREBASE_SERVICE_ACCOUNT_JSON` y `FIREBASE_SERVICE_ACCOUNT_PATH` salen del código, del esquema `Env` y de `.env.example`; si siguen definidas, se ignoran (#167).
+
+## [0.53.1] - 2026-10-21
+
+### Cambiado
+
+- Interno: el alta del préstamo nombra el paso del desembolso y deja la orquestación separada de la acreditación. Sin cambio de comportamiento.
+
+## [0.53.0] - 2026-10-21 - Préstamos y metas
+
+### Agregado
+
+- `POST /api/finance/loans` acepta `name` y `disbursementAccountId`: el capital entra a esa cuenta con un `ADJUSTMENT` que no cuenta como ingreso y queda ligado por `disbursementTransactionId` (#181, #182).
+- `GET /api/finance/loans` y `GET /api/finance/loans/:id` devuelven `name` y `disbursementAccount` (#182).
+- `POST /api/finance/savings-goals/:id/allocations` con `kind: WITHDRAWAL` mueve el dinero a `toAccountId` y guarda `destinationAccountId`; borrar el retiro revierte la transferencia (#188).
+
+### Cambiado
+
+- Crear o editar una meta de ahorro valida que la cuenta exista y esté en la moneda de la meta (#189).
+- Archivar una cuenta con dinero apartado en una meta responde 409 `ACCOUNT_HAS_GOAL_MONEY` (#189).
+
+## [0.52.0] - 2026-10-21 - Monedas
+
+### Agregado
+
+- `GET /api/finance/balance-sheet` agrega `byCurrency` en `global` y en cada institución, con totales nativos por moneda sin conversión (#178, #183).
+- `GET /api/finance/subscriptions/summary` agrega `byCurrency` con costo mensual, costo anual y cantidad activa por moneda (#178).
+
+### Cambiado
+
+- Los totales por moneda de instituciones y suscripciones ya no dependen de una única cifra convertida a la moneda base.
+
+## [0.51.1] - 2026-10-21
+
+### Cambiado
+
+- Interno: el balance sheet acumula sus incidencias en las líneas locales en vez de mutar un parámetro. Sin cambio de comportamiento.
+
+## [0.51.0] - 2026-10-21 - Patrimonio
+
+### Agregado
+
+- `GET /api/finance/balance-sheet` devuelve `breakdown.byCurrency` con una línea por producto (cuentas, efectivo, cobros, tarjetas y préstamos), totales nativos y en moneda base, y `breakdown.totals` con Disponible, Por cobrar, Deudas y Patrimonio (#163).
+- Cada línea trae `hasDrift`, `driftDifference` y el estado de conciliación del mes, además de límite y crédito disponible en las tarjetas (#163).
+- Los cobros `PENDING`/`PARTIAL` no vencidos o vencidos hace 90 días o menos suman al patrimonio; los vencidos hace más de 90 días se devuelven como dudosos y no suman (#163, #207).
+- El Swagger del balance sheet documenta el desglose y los campos nuevos (#163).
+
+### Cambiado
+
+- El patrimonio neto incluye los cobros vigentes. `global.assets` agrega `cash` y `receivables`; `totalAssets` y `netWorth` los reflejan. La decisión queda en el ADR-005 de la web (#207).
+
+## [0.50.0] - 2026-10-21
+
+### Agregado
+
+- El perfil guarda el primer día de la semana en `preferences.regional.weekStartsOn`: domingo, lunes, sábado o automático desde el locale (#223).
+- Script `db:backfill-week-starts-on` para copiar al perfil el día que estaba guardado en Finanzas o Agenda (#223).
+
+### Cambiado
+
+- `PATCH /users/me` valida `locale` como etiqueta BCP-47 y rechaza un `weekStartsOn` distinto de 0, 1, 6 o null (#223).
+
+## [0.49.0] - 2026-10-21
+
+### Agregado
+
+- Una tarjeta con varias monedas y ninguna coincidente responde 400 `CARD_CURRENCY_UNDECLARED` con el motivo, en vez de abrir un balance nuevo (#161).
+
+### Cambiado
+
+- Un movimiento en una moneda que la tarjeta no declara se convierte a la moneda que la tarjeta ya tiene, con la tasa del día; el monto original, la moneda original y la tasa quedan guardados. Agregar la moneda al producto deja de ser obligatorio (#161).
+- Una tarjeta de débito aplica la moneda de su cuenta en el ledger, no la del movimiento (#161).
+
+### Corregido
+
+- Ya no aparece un balance en la moneda de la compra cuando la tarjeta tiene una sola moneda, así que el descuadre por esa moneda desaparece (#161).
+
+## [0.48.0] - 2026-10-21
+
+### Agregado
+
+- El perfil acepta una zona horaria IANA y la rechaza con el error en el campo cuando no existe o no tiene forma de zona (por ejemplo `+04:00`), no solo por longitud (#162).
+
+### Cambiado
+
+- `transactionDate` en movimientos, transferencias y pagos de tarjeta exige un instante con zona (`Z` u offset). Una hora de reloj sin zona se rechaza en vez de leerse en la zona del servidor (#211).
+
 ## [Sin publicar]
 
 ### Agregado

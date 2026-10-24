@@ -142,7 +142,9 @@ lastSeenAt
 updatedAt
 ```
 
-Unique: `(scope, userId, knowledgeType, knowledgeKey)`.
+Use SQL partial unique indexes: `(knowledgeType, knowledgeKey)` WHERE scope = GLOBAL; `(userId, knowledgeType, knowledgeKey)` WHERE scope = USER. Add a CHECK requiring null userId for GLOBAL and non-null userId for USER. A nullable composite unique alone does not prevent duplicate GLOBAL items.
+
+Add `REVIEW_REQUIRED` and an explicit promotion authorization/provenance field: insufficient support disables automatic use unless a valid CONTRIBUTOR/ADMIN authorization remains.
 
 Replaces the previously proposed `AiEmailSenderKnowledge`, `AiEmailDomainKnowledge`, `AiEmailTemplateKnowledge`, `AiKnowledgeEntity`, `AiKnowledgeRelation`, `AiUserKnowledge` and `AiUserEntityMapping` (now `knowledgeType = USER_MAPPING`, scope USER only, with hashed external hints).
 
@@ -189,6 +191,8 @@ startedAt
 completedAt
 error?
 ```
+
+Each run also records consent/exclusion revision, reproduction status (`COMPLETE | INCOMPLETE`) and missing-evidence counts. Structural tombstone eligibility captures consent active at deletion; consent revocation is a separate append-only marker, never inferred from a deleted user row.
 
 V2: `AiKnowledgeSnapshot` (named logical snapshots, parent/child diff, configuration hash).
 

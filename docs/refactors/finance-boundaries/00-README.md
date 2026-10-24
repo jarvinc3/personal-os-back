@@ -110,7 +110,7 @@ Definir los contratos de eventos propiedad de Finance, los contratos de adaptado
 
 ### FIN-1 — Retirar la propiedad legacy de fuentes
 
-Coordinado con las Fases 0/2 de IA: eliminar la infraestructura de Gmail/fuentes propiedad de Finance y los endpoints públicos/dependencias de settings específicos de email. Conservar los algoritmos financieros identificados como código reutilizable de aplicación/dominio o como tests.
+Coordinado con las Fases 0/2 de IA: eliminar la infraestructura de Gmail/fuentes propiedad de Finance y los endpoints públicos/dependencias de settings específicos de email. Conservar los algoritmos financieros y sus pruebas como código de aplicación/dominio, aunque temporalmente no tengan llamadores. Desacoplar sus contratos de `FinEmail*` sin reescribir reglas de saldos; fase 11 los conecta a `FinanceSignalConsumer`.
 
 En el mismo paso se eliminan los eventos de importación por email y todo lo que dependa de ellos: `FINANCE_TRANSACTION_IMPORTED`, `FinanceEmailSyncCompletedEvent` (Core `domain-events.ts` / `event.constants.ts`), sus handlers en `NotificationsEventsListener`, el copy asociado en `notification-copy.ts` y las constantes/claves de notificación exclusivas de la importación. No se dejan huérfanos hasta NOTIF-2.
 

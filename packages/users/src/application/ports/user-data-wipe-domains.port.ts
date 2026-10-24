@@ -1,4 +1,4 @@
-import type { WipeLayerId } from '../../domain/wipe-layers';
+import type { DataBranchDescriptor } from '../../domain/data-branches';
 
 export const USER_DATA_WIPE_DOMAINS = 'USER_DATA_WIPE_DOMAINS' as const;
 
@@ -8,11 +8,15 @@ export const USER_DATA_WIPE_DOMAINS = 'USER_DATA_WIPE_DOMAINS' as const;
  * direct dependency would close a module cycle.
  */
 export interface UserDataWipeDomainsPort {
-  wipeFinance(
+  /** Branches declared by the apps that own data. */
+  dataBranches(): readonly DataBranchDescriptor[];
+  countDataBranches(
     userId: string,
-    layers: readonly WipeLayerId[],
+    branchIds: readonly string[],
+  ): Promise<Record<string, number>>;
+  wipeDataBranches(
+    userId: string,
+    branchIds: readonly string[],
     options?: { balanceInstitutionId?: string },
   ): Promise<Record<string, number>>;
-  wipeAi(userId: string): Promise<Record<string, number>>;
-  wipeNotifications(userId: string): Promise<Record<string, number>>;
 }

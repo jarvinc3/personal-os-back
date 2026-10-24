@@ -1,0 +1,688 @@
+{
+  "source": "owner-supplied-prod-readonly-report",
+  "sourceRevision": "018c4e021a1f54e755500ee3afefa9dc3037c84f",
+  "tables": [
+    "ai_actions",
+    "auth_deletion_outbox",
+    "domain_event_outbox",
+    "fin_accounts",
+    "fin_balance_drifts",
+    "fin_budget_alerts",
+    "fin_budget_categories",
+    "fin_budgets",
+    "fin_card_balances",
+    "fin_card_statements",
+    "fin_cards",
+    "fin_categories",
+    "fin_deletion_journal",
+    "fin_exchange_rates",
+    "fin_institutions",
+    "fin_instrument_events",
+    "fin_loan_installments",
+    "fin_loan_prepayments",
+    "fin_loans",
+    "fin_merchant_aliases",
+    "fin_merchant_duplicate_dismissals",
+    "fin_merchants",
+    "fin_receivable_payments",
+    "fin_receivable_share_items",
+    "fin_receivable_shares",
+    "fin_receivables",
+    "fin_reconciliation_adjustments",
+    "fin_reconciliations",
+    "fin_recurring_patterns",
+    "fin_savings_goal_contributions",
+    "fin_savings_goals",
+    "fin_statement_import_lines",
+    "fin_statement_imports",
+    "fin_subscription_alert_dismissals",
+    "fin_subscription_payments",
+    "fin_subscriptions",
+    "fin_transactions",
+    "idempotency_keys",
+    "modules",
+    "notifications",
+    "processed_domain_events",
+    "push_tokens",
+    "user_modules",
+    "users"
+  ],
+  "checks": [
+    {
+      "table_name": "fin_accounts",
+      "name": "fin_accounts_currency_iso_check",
+      "definition": "CHECK ((currency ~ '^[A-Z]{3}$'::text))"
+    },
+    {
+      "table_name": "fin_accounts",
+      "name": "fin_accounts_institution_required_check",
+      "definition": "CHECK ((institution_id IS NOT NULL))"
+    },
+    {
+      "table_name": "fin_balance_drifts",
+      "name": "fin_balance_drifts_target_check",
+      "definition": "CHECK ((num_nonnulls(account_id, card_id) = 1))"
+    },
+    {
+      "table_name": "fin_budgets",
+      "name": "fin_budgets_period_range_check",
+      "definition": "CHECK ((period_end >= period_start))"
+    },
+    {
+      "table_name": "fin_card_balances",
+      "name": "fin_card_balances_currency_iso_check",
+      "definition": "CHECK ((currency ~ '^[A-Z]{3}$'::text))"
+    },
+    {
+      "table_name": "fin_cards",
+      "name": "fin_cards_last_four_digits_check",
+      "definition": "CHECK (((last_four IS NULL) OR (last_four ~ '^[0-9]{4}$'::text)))"
+    },
+    {
+      "table_name": "fin_cards",
+      "name": "fin_cards_payment_day_check",
+      "definition": "CHECK (((payment_due_day IS NULL) OR ((payment_due_day >= 1) AND (payment_due_day <= 31))))"
+    },
+    {
+      "table_name": "fin_cards",
+      "name": "fin_cards_statement_day_check",
+      "definition": "CHECK (((statement_closing_day IS NULL) OR ((statement_closing_day >= 1) AND (statement_closing_day <= 31))))"
+    },
+    {
+      "table_name": "fin_cards",
+      "name": "fin_cards_type_account_check",
+      "definition": "CHECK ((((type = 'DEBIT'::\"FinCardType\") AND (account_id IS NOT NULL)) OR ((type = 'CREDIT'::\"FinCardType\") AND (account_id IS NULL))))"
+    },
+    {
+      "table_name": "fin_institutions",
+      "name": "fin_institutions_domain_check",
+      "definition": "CHECK (((domain IS NULL) OR (domain ~ '^[a-z0-9.-]+\\.[a-z]{2,}$'::text)))"
+    },
+    {
+      "table_name": "fin_institutions",
+      "name": "fin_institutions_type_check",
+      "definition": "CHECK ((type = ANY (ARRAY['bank'::text, 'credit_union'::text, 'digital_wallet'::text, 'broker'::text, 'cash'::text, 'other'::text])))"
+    },
+    {
+      "table_name": "fin_loans",
+      "name": "fin_loans_currency_iso_check",
+      "definition": "CHECK ((currency ~ '^[A-Z]{3}$'::text))"
+    },
+    {
+      "table_name": "fin_receivables",
+      "name": "fin_receivables_currency_iso_check",
+      "definition": "CHECK ((currency ~ '^[A-Z]{3}$'::text))"
+    },
+    {
+      "table_name": "fin_reconciliations",
+      "name": "fin_reconciliations_target_check",
+      "definition": "CHECK ((num_nonnulls(account_id, card_id) = 1))"
+    },
+    {
+      "table_name": "fin_recurring_patterns",
+      "name": "fin_recurring_patterns_currency_iso_check",
+      "definition": "CHECK ((currency ~ '^[A-Z]{3}$'::text))"
+    },
+    {
+      "table_name": "fin_savings_goals",
+      "name": "fin_savings_goals_currency_iso_check",
+      "definition": "CHECK ((currency ~ '^[A-Z]{3}$'::text))"
+    },
+    {
+      "table_name": "fin_transactions",
+      "name": "fin_transactions_account_xor_card_check",
+      "definition": "CHECK ((num_nonnulls(account_id, card_id) = 1))"
+    },
+    {
+      "table_name": "fin_transactions",
+      "name": "fin_transactions_currency_iso_check",
+      "definition": "CHECK ((currency ~ '^[A-Z]{3}$'::text))"
+    }
+  ],
+  "partialIndexes": [
+    {
+      "table_name": "fin_accounts",
+      "name": "fin_accounts_user_institution_default_key",
+      "definition": "CREATE UNIQUE INDEX fin_accounts_user_institution_default_key ON public.fin_accounts USING btree (user_id, institution_id) WHERE ((is_default_for_institution = true) AND (institution_id IS NOT NULL) AND (is_active = true))"
+    },
+    {
+      "table_name": "fin_institutions",
+      "name": "fin_institutions_system_cash_user_key",
+      "definition": "CREATE UNIQUE INDEX fin_institutions_system_cash_user_key ON public.fin_institutions USING btree (user_id) WHERE ((type = 'cash'::text) AND (is_system = true))"
+    },
+    {
+      "table_name": "fin_transactions",
+      "name": "fin_transactions_transfer_group_id_idx",
+      "definition": "CREATE INDEX fin_transactions_transfer_group_id_idx ON public.fin_transactions USING btree (transfer_group_id) WHERE (transfer_group_id IS NOT NULL)"
+    },
+    {
+      "table_name": "fin_transactions",
+      "name": "fin_transactions_user_inst_ref_key",
+      "definition": "CREATE UNIQUE INDEX fin_transactions_user_inst_ref_key ON public.fin_transactions USING btree (user_id, institution_id, external_reference) WHERE ((external_reference IS NOT NULL) AND (status <> 'REVERSED'::\"FinTransactionStatus\"))"
+    }
+  ],
+  "sourcePolicies": [
+    {
+      "table_name": "ai_actions",
+      "name": "ai_actions_all_own",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "ALL",
+      "qual": "(session_id IN ( SELECT s.id\n   FROM ai_agent_sessions s\n  WHERE (s.user_id = (( SELECT auth.uid() AS uid))::text)))",
+      "with_check": "(session_id IN ( SELECT s.id\n   FROM ai_agent_sessions s\n  WHERE (s.user_id = (( SELECT auth.uid() AS uid))::text)))"
+    },
+    {
+      "table_name": "fin_accounts",
+      "name": "fin_accounts_all_own",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "ALL",
+      "qual": "(user_id = (( SELECT auth.uid() AS uid))::text)",
+      "with_check": "(user_id = (( SELECT auth.uid() AS uid))::text)"
+    },
+    {
+      "table_name": "fin_budget_alerts",
+      "name": "fin_budget_alerts_all_own",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "ALL",
+      "qual": "(budget_id IN ( SELECT b.id\n   FROM fin_budgets b\n  WHERE (b.user_id = (( SELECT auth.uid() AS uid))::text)))",
+      "with_check": "(budget_id IN ( SELECT b.id\n   FROM fin_budgets b\n  WHERE (b.user_id = (( SELECT auth.uid() AS uid))::text)))"
+    },
+    {
+      "table_name": "fin_budgets",
+      "name": "fin_budgets_all_own",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "ALL",
+      "qual": "(user_id = (( SELECT auth.uid() AS uid))::text)",
+      "with_check": "(user_id = (( SELECT auth.uid() AS uid))::text)"
+    },
+    {
+      "table_name": "fin_card_balances",
+      "name": "fin_card_balances_all_own",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "ALL",
+      "qual": "(card_id IN ( SELECT c.id\n   FROM fin_cards c\n  WHERE (c.user_id = (( SELECT auth.uid() AS uid))::text)))",
+      "with_check": "(card_id IN ( SELECT c.id\n   FROM fin_cards c\n  WHERE (c.user_id = (( SELECT auth.uid() AS uid))::text)))"
+    },
+    {
+      "table_name": "fin_cards",
+      "name": "fin_cards_all_own",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "ALL",
+      "qual": "(user_id = (( SELECT auth.uid() AS uid))::text)",
+      "with_check": "(user_id = (( SELECT auth.uid() AS uid))::text)"
+    },
+    {
+      "table_name": "fin_categories",
+      "name": "fin_categories_delete_own",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "DELETE",
+      "qual": "((user_id = (( SELECT auth.uid() AS uid))::text) AND (is_system = false))",
+      "with_check": null
+    },
+    {
+      "table_name": "fin_categories",
+      "name": "fin_categories_insert_own",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "((user_id = (( SELECT auth.uid() AS uid))::text) AND (is_system = false))"
+    },
+    {
+      "table_name": "fin_categories",
+      "name": "fin_categories_select_own_or_system",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "SELECT",
+      "qual": "((user_id = (( SELECT auth.uid() AS uid))::text) OR (is_system = true))",
+      "with_check": null
+    },
+    {
+      "table_name": "fin_categories",
+      "name": "fin_categories_update_own",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "UPDATE",
+      "qual": "((user_id = (( SELECT auth.uid() AS uid))::text) AND (is_system = false))",
+      "with_check": "((user_id = (( SELECT auth.uid() AS uid))::text) AND (is_system = false))"
+    },
+    {
+      "table_name": "fin_exchange_rates",
+      "name": "fin_exchange_rates_select_public",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "SELECT",
+      "qual": "true",
+      "with_check": null
+    },
+    {
+      "table_name": "fin_institutions",
+      "name": "fin_institutions_all_own",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "ALL",
+      "qual": "(user_id = (( SELECT auth.uid() AS uid))::text)",
+      "with_check": "(user_id = (( SELECT auth.uid() AS uid))::text)"
+    },
+    {
+      "table_name": "fin_loans",
+      "name": "fin_loans_all_own",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "ALL",
+      "qual": "(user_id = (( SELECT auth.uid() AS uid))::text)",
+      "with_check": "(user_id = (( SELECT auth.uid() AS uid))::text)"
+    },
+    {
+      "table_name": "fin_receivables",
+      "name": "fin_receivables_all_own",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "ALL",
+      "qual": "(user_id = (( SELECT auth.uid() AS uid))::text)",
+      "with_check": "(user_id = (( SELECT auth.uid() AS uid))::text)"
+    },
+    {
+      "table_name": "fin_recurring_patterns",
+      "name": "fin_recurring_all_own",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "ALL",
+      "qual": "(user_id = (( SELECT auth.uid() AS uid))::text)",
+      "with_check": "(user_id = (( SELECT auth.uid() AS uid))::text)"
+    },
+    {
+      "table_name": "fin_savings_goals",
+      "name": "fin_savings_goals_all_own",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "ALL",
+      "qual": "(user_id = (( SELECT auth.uid() AS uid))::text)",
+      "with_check": "(user_id = (( SELECT auth.uid() AS uid))::text)"
+    },
+    {
+      "table_name": "fin_transactions",
+      "name": "fin_transactions_all_own",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "ALL",
+      "qual": "(user_id = (( SELECT auth.uid() AS uid))::text)",
+      "with_check": "(user_id = (( SELECT auth.uid() AS uid))::text)"
+    },
+    {
+      "table_name": "modules",
+      "name": "modules_select_public",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "SELECT",
+      "qual": "true",
+      "with_check": null
+    },
+    {
+      "table_name": "notifications",
+      "name": "notifications_all_own",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "ALL",
+      "qual": "(user_id = (( SELECT auth.uid() AS uid))::text)",
+      "with_check": "(user_id = (( SELECT auth.uid() AS uid))::text)"
+    },
+    {
+      "table_name": "push_tokens",
+      "name": "push_tokens_all_own",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "ALL",
+      "qual": "(user_id = (( SELECT auth.uid() AS uid))::text)",
+      "with_check": "(user_id = (( SELECT auth.uid() AS uid))::text)"
+    },
+    {
+      "table_name": "user_modules",
+      "name": "user_modules_all_own",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "ALL",
+      "qual": "(user_id = (( SELECT auth.uid() AS uid))::text)",
+      "with_check": "(user_id = (( SELECT auth.uid() AS uid))::text)"
+    },
+    {
+      "table_name": "users",
+      "name": "users_select_own",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "SELECT",
+      "qual": "(id = (( SELECT auth.uid() AS uid))::text)",
+      "with_check": null
+    },
+    {
+      "table_name": "users",
+      "name": "users_update_own",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "UPDATE",
+      "qual": "(id = (( SELECT auth.uid() AS uid))::text)",
+      "with_check": "(id = (( SELECT auth.uid() AS uid))::text)"
+    }
+  ],
+  "targetPolicies": [
+    {
+      "table_name": "ai_actions",
+      "name": "ai_actions_all_own",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "ALL",
+      "qual": "(user_id = (SELECT auth.uid())::text)",
+      "with_check": "(user_id = (SELECT auth.uid())::text)"
+    },
+    {
+      "table_name": "fin_accounts",
+      "name": "fin_accounts_all_own",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "ALL",
+      "qual": "(user_id = (( SELECT auth.uid() AS uid))::text)",
+      "with_check": "(user_id = (( SELECT auth.uid() AS uid))::text)"
+    },
+    {
+      "table_name": "fin_budget_alerts",
+      "name": "fin_budget_alerts_all_own",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "ALL",
+      "qual": "(budget_id IN ( SELECT b.id\n   FROM fin_budgets b\n  WHERE (b.user_id = (( SELECT auth.uid() AS uid))::text)))",
+      "with_check": "(budget_id IN ( SELECT b.id\n   FROM fin_budgets b\n  WHERE (b.user_id = (( SELECT auth.uid() AS uid))::text)))"
+    },
+    {
+      "table_name": "fin_budgets",
+      "name": "fin_budgets_all_own",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "ALL",
+      "qual": "(user_id = (( SELECT auth.uid() AS uid))::text)",
+      "with_check": "(user_id = (( SELECT auth.uid() AS uid))::text)"
+    },
+    {
+      "table_name": "fin_card_balances",
+      "name": "fin_card_balances_all_own",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "ALL",
+      "qual": "(card_id IN ( SELECT c.id\n   FROM fin_cards c\n  WHERE (c.user_id = (( SELECT auth.uid() AS uid))::text)))",
+      "with_check": "(card_id IN ( SELECT c.id\n   FROM fin_cards c\n  WHERE (c.user_id = (( SELECT auth.uid() AS uid))::text)))"
+    },
+    {
+      "table_name": "fin_cards",
+      "name": "fin_cards_all_own",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "ALL",
+      "qual": "(user_id = (( SELECT auth.uid() AS uid))::text)",
+      "with_check": "(user_id = (( SELECT auth.uid() AS uid))::text)"
+    },
+    {
+      "table_name": "fin_categories",
+      "name": "fin_categories_delete_own",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "DELETE",
+      "qual": "((user_id = (( SELECT auth.uid() AS uid))::text) AND (is_system = false))",
+      "with_check": null
+    },
+    {
+      "table_name": "fin_categories",
+      "name": "fin_categories_insert_own",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "INSERT",
+      "qual": null,
+      "with_check": "((user_id = (( SELECT auth.uid() AS uid))::text) AND (is_system = false))"
+    },
+    {
+      "table_name": "fin_categories",
+      "name": "fin_categories_select_own_or_system",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "SELECT",
+      "qual": "((user_id = (( SELECT auth.uid() AS uid))::text) OR (is_system = true))",
+      "with_check": null
+    },
+    {
+      "table_name": "fin_categories",
+      "name": "fin_categories_update_own",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "UPDATE",
+      "qual": "((user_id = (( SELECT auth.uid() AS uid))::text) AND (is_system = false))",
+      "with_check": "((user_id = (( SELECT auth.uid() AS uid))::text) AND (is_system = false))"
+    },
+    {
+      "table_name": "fin_exchange_rates",
+      "name": "fin_exchange_rates_select_public",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "SELECT",
+      "qual": "true",
+      "with_check": null
+    },
+    {
+      "table_name": "fin_institutions",
+      "name": "fin_institutions_all_own",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "ALL",
+      "qual": "(user_id = (( SELECT auth.uid() AS uid))::text)",
+      "with_check": "(user_id = (( SELECT auth.uid() AS uid))::text)"
+    },
+    {
+      "table_name": "fin_loans",
+      "name": "fin_loans_all_own",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "ALL",
+      "qual": "(user_id = (( SELECT auth.uid() AS uid))::text)",
+      "with_check": "(user_id = (( SELECT auth.uid() AS uid))::text)"
+    },
+    {
+      "table_name": "fin_receivables",
+      "name": "fin_receivables_all_own",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "ALL",
+      "qual": "(user_id = (( SELECT auth.uid() AS uid))::text)",
+      "with_check": "(user_id = (( SELECT auth.uid() AS uid))::text)"
+    },
+    {
+      "table_name": "fin_recurring_patterns",
+      "name": "fin_recurring_all_own",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "ALL",
+      "qual": "(user_id = (( SELECT auth.uid() AS uid))::text)",
+      "with_check": "(user_id = (( SELECT auth.uid() AS uid))::text)"
+    },
+    {
+      "table_name": "fin_savings_goals",
+      "name": "fin_savings_goals_all_own",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "ALL",
+      "qual": "(user_id = (( SELECT auth.uid() AS uid))::text)",
+      "with_check": "(user_id = (( SELECT auth.uid() AS uid))::text)"
+    },
+    {
+      "table_name": "fin_transactions",
+      "name": "fin_transactions_all_own",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "ALL",
+      "qual": "(user_id = (( SELECT auth.uid() AS uid))::text)",
+      "with_check": "(user_id = (( SELECT auth.uid() AS uid))::text)"
+    },
+    {
+      "table_name": "modules",
+      "name": "modules_select_public",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "SELECT",
+      "qual": "true",
+      "with_check": null
+    },
+    {
+      "table_name": "notifications",
+      "name": "notifications_all_own",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "ALL",
+      "qual": "(user_id = (( SELECT auth.uid() AS uid))::text)",
+      "with_check": "(user_id = (( SELECT auth.uid() AS uid))::text)"
+    },
+    {
+      "table_name": "push_tokens",
+      "name": "push_tokens_all_own",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "ALL",
+      "qual": "(user_id = (( SELECT auth.uid() AS uid))::text)",
+      "with_check": "(user_id = (( SELECT auth.uid() AS uid))::text)"
+    },
+    {
+      "table_name": "user_modules",
+      "name": "user_modules_all_own",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "ALL",
+      "qual": "(user_id = (( SELECT auth.uid() AS uid))::text)",
+      "with_check": "(user_id = (( SELECT auth.uid() AS uid))::text)"
+    },
+    {
+      "table_name": "users",
+      "name": "users_select_own",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "SELECT",
+      "qual": "(id = (( SELECT auth.uid() AS uid))::text)",
+      "with_check": null
+    },
+    {
+      "table_name": "users",
+      "name": "users_update_own",
+      "permissive": "PERMISSIVE",
+      "roles": [
+        "authenticated"
+      ],
+      "cmd": "UPDATE",
+      "qual": "(id = (( SELECT auth.uid() AS uid))::text)",
+      "with_check": "(id = (( SELECT auth.uid() AS uid))::text)"
+    }
+  ],
+  "referenceRows": {
+    "modules": 0,
+    "fin_categories": 31,
+    "fin_institutions": 0
+  },
+  "policyChanges": [
+    "ai_actions ownership uses its user_id instead of the removed conversation session"
+  ],
+  "bootstrapChanges": [
+    "Create the four configurable module rows; a migrated empty database currently has none"
+  ],
+  "sourceSchemaSha256": "a7b87a6e2437f71be69b7827ccff69ffdd7cb393b79d338e8d6b659ebe614fa0",
+  "preflightSha256": "6a0198fc065bb3454eb0bb686f7c30afd27768098cf5400e8c6cfd12c860b1f2",
+  "preflightCapturedAt": "2026-10-24T06:21:32.765894+00:00"
+}

@@ -1,10 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { LedgerQueryService } from '../../ledger/application/ledger-query.service';
 import { ReverseTransactionUseCase } from '../../ledger/application/reverse-transaction.use-case';
-import { EmailSourceRepository } from '../infrastructure/email-source.repository';
 import { EMAIL_MESSAGE_OUTCOME } from './email-message-outcome';
 import { parseExtractedPayload } from './parse-extracted-email';
 import type { ExtractedEmailTransaction } from './ports/email-transaction-extractor.port';
+import { FinancialImportCandidatesPort } from './ports/financial-import-candidates.port';
 import { findReverseOriginal } from './resolve-reverse-original';
 
 const PENDING_REVERSE_BATCH_SIZE = 50;
@@ -13,7 +13,7 @@ export type PendingReversalAction =
   | {
       kind: 'apply';
       sourceId: string;
-      gmailMessageId: string;
+      sourceReference: string;
       originalId: string;
       extracted: ExtractedEmailTransaction;
       provider: string | null;
@@ -22,7 +22,7 @@ export type PendingReversalAction =
   | {
       kind: 'duplicate';
       sourceId: string;
-      gmailMessageId: string;
+      sourceReference: string;
       originalId: string;
       provider: string | null;
       model: string | null;
@@ -30,7 +30,7 @@ export type PendingReversalAction =
   | {
       kind: 'unusable';
       sourceId: string;
-      gmailMessageId: string;
+      sourceReference: string;
       provider: string | null;
       model: string | null;
     };
@@ -38,13 +38,13 @@ export type PendingReversalAction =
 @Injectable()
 export class RetryPendingReversesUseCase {
   constructor(
-    private readonly emailSources: EmailSourceRepository,
+    private readonly emailSources: FinancialImportCandidatesPort,
     private readonly ledger: LedgerQueryService,
     private readonly reverseTx: ReverseTransactionUseCase,
   ) {}
 
   async listActions(userId: string): Promise<PendingReversalAction[]> {
-    const messages = await this.emailSources.listPendingReverseMessages(
+    const messages = await this.emailSources.listPendingReversalCandidates(
       userId,
       PENDING_REVERSE_BATCH_SIZE,
     );
@@ -55,7 +55,7 @@ export class RetryPendingReversesUseCase {
         actions.push({
           kind: 'unusable',
           sourceId: message.sourceId,
-          gmailMessageId: message.gmailMessageId,
+          sourceReference: message.sourceReference,
           provider: message.provider,
           model: message.model,
         });
@@ -76,7 +76,7 @@ export class RetryPendingReversesUseCase {
         actions.push({
           kind: 'duplicate',
           sourceId: message.sourceId,
-          gmailMessageId: message.gmailMessageId,
+          sourceReference: message.sourceReference,
           originalId: original.id,
           provider: message.provider,
           model: message.model,
@@ -86,7 +86,7 @@ export class RetryPendingReversesUseCase {
       actions.push({
         kind: 'apply',
         sourceId: message.sourceId,
-        gmailMessageId: message.gmailMessageId,
+        sourceReference: message.sourceReference,
         originalId: original.id,
         extracted,
         provider: message.provider,
@@ -101,11 +101,11 @@ export class RetryPendingReversesUseCase {
     action: PendingReversalAction,
   ): Promise<void> {
     if (action.kind === 'unusable') {
-      await this.markUnusable(action);
+      await this.markUnusable(userId, action);
       return;
     }
     if (action.kind === 'duplicate') {
-      await this.markDuplicate(action);
+      await this.markDuplicate(userId, action);
       return;
     }
     await this.applyReverse(userId, action);
@@ -120,14 +120,15 @@ export class RetryPendingReversesUseCase {
       bankStatusNormalized: action.extracted.bankStatusNormalized,
       statusEvidence: action.extracted.statusEvidence,
       statusConfidence: action.extracted.statusConfidence,
-      reverseEmailMessageId: action.gmailMessageId,
+      reverseEmailMessageId: action.sourceReference,
       provider: action.provider,
       model: action.model,
       extractedAt: new Date().toISOString(),
     });
-    await this.emailSources.upsertEmailMessage({
+    await this.emailSources.persistCandidate({
+      userId,
       sourceId: action.sourceId,
-      gmailMessageId: action.gmailMessageId,
+      sourceReference: action.sourceReference,
       outcome: EMAIL_MESSAGE_OUTCOME.IMPORTED,
       provider: action.provider,
       model: action.model,
@@ -136,11 +137,13 @@ export class RetryPendingReversesUseCase {
   }
 
   private async markDuplicate(
+    userId: string,
     action: Extract<PendingReversalAction, { kind: 'duplicate' }>,
   ): Promise<void> {
-    await this.emailSources.upsertEmailMessage({
+    await this.emailSources.persistCandidate({
+      userId,
       sourceId: action.sourceId,
-      gmailMessageId: action.gmailMessageId,
+      sourceReference: action.sourceReference,
       outcome: EMAIL_MESSAGE_OUTCOME.SKIPPED_DUPLICATE,
       reason: `Reversal already applied to transaction ${action.originalId}`,
       provider: action.provider,
@@ -149,11 +152,13 @@ export class RetryPendingReversesUseCase {
   }
 
   private async markUnusable(
+    userId: string,
     action: Extract<PendingReversalAction, { kind: 'unusable' }>,
   ): Promise<void> {
-    await this.emailSources.upsertEmailMessage({
+    await this.emailSources.persistCandidate({
+      userId,
       sourceId: action.sourceId,
-      gmailMessageId: action.gmailMessageId,
+      sourceReference: action.sourceReference,
       outcome: EMAIL_MESSAGE_OUTCOME.FAILED_NON_RETRYABLE,
       reason: 'Pending reversal has no usable extracted payload',
       provider: action.provider,

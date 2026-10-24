@@ -8,6 +8,7 @@ const PACKAGE_NAMES = [
   'ai-agent',
   'auth',
   'config',
+  'contracts',
   'core',
   'database',
   'finance',
@@ -64,6 +65,31 @@ export default tseslint.config(
         'error',
         {
           patterns: restrictedPackageDeepPaths,
+        },
+      ],
+    },
+  },
+  {
+    files: ['packages/contracts/src/**/*.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: [
+                '@nestjs/*',
+                '@prisma/*',
+                '@personal-os/*',
+                'zod',
+                'openai',
+                'groq-sdk',
+                '@openrouter/*',
+              ],
+              message:
+                'contracts solo contiene interfaces y tokens neutrales; no depende de frameworks, SDK ni dominios.',
+            },
+          ],
         },
       ],
     },

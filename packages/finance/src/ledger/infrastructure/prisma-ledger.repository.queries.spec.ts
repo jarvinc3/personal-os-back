@@ -1,12 +1,12 @@
 import type { PrismaService } from '@personal-os/database';
 import type { DomainEventPublisherPort } from '../../events/application/ports/domain-event-publisher.port';
-import type { DeletionJournalRepository } from '../../shared/infrastructure/deletion-journal.repository';
-import { TRANSACTION_LINK_KIND } from '../../shared/domain/transaction-links';
 import { EMAIL_DUPLICATE_DATE_TOLERANCE_MS } from '../../shared/domain/email-dedupe';
+import { TRANSACTION_LINK_KIND } from '../../shared/domain/transaction-links';
+import type { DeletionJournalRepository } from '../../shared/infrastructure/deletion-journal.repository';
 import { PrismaLedgerDeletionRepository } from './prisma-ledger-deletion.repository';
 import { PrismaLedgerEmailImportRepository } from './prisma-ledger-email-import.repository';
-import { PrismaLedgerWriteRepository } from './prisma-ledger-write.repository';
 import { PrismaLedgerReadRepository } from './prisma-ledger-read.repository';
+import { PrismaLedgerWriteRepository } from './prisma-ledger-write.repository';
 import { PrismaLedgerRepository } from './prisma-ledger.repository';
 
 function createRepository() {
@@ -241,18 +241,13 @@ describe('PrismaLedgerRepository lookups', () => {
     expect(target?.currentBalance).toBe(0);
   });
 
-  it('finds a transaction by its Gmail message, scoped or not to the user', async () => {
+  it('finds a transaction by its opaque import reference and required owner', async () => {
     const { repository, prisma } = createRepository();
 
-    await repository.findTransactionByEmailMessageId('msg-1');
-    expect(prisma.finTransaction.findFirst).toHaveBeenLastCalledWith({
-      where: { emailMessage: { gmailMessageId: 'msg-1' } },
-    });
-
-    await repository.findTransactionByEmailMessageId('msg-1', 'user-1');
+    await repository.findTransactionByImportReference('msg-1', 'user-1');
     expect(prisma.finTransaction.findFirst).toHaveBeenLastCalledWith({
       where: {
-        emailMessage: { gmailMessageId: 'msg-1' },
+        importReference: 'msg-1',
         userId: 'user-1',
       },
     });

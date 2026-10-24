@@ -8,28 +8,28 @@ function buildMocks() {
   const tx = {
     finReconciliation: { deleteMany: jest.fn() },
     finTransaction: { deleteMany: jest.fn() },
-    finEmailMessage: { deleteMany: jest.fn() },
-    finEmailSyncLog: { deleteMany: jest.fn() },
+    finBalanceDrift: { deleteMany: jest.fn() },
+    finAccount: { updateMany: jest.fn(), deleteMany: jest.fn() },
+    finCardBalance: { updateMany: jest.fn() },
+    finCard: { deleteMany: jest.fn() },
+    finBudget: { updateMany: jest.fn() },
+    finInstitution: {
+      findFirst: jest.fn(),
+      findMany: jest.fn(),
+      deleteMany: jest.fn(),
+    },
+    finLoan: { deleteMany: jest.fn() },
+    finSubscription: { deleteMany: jest.fn(), count: jest.fn() },
+    finSubscriptionPayment: { deleteMany: jest.fn() },
+    finSubscriptionAlertDismissal: { deleteMany: jest.fn() },
     finRecurringPattern: { deleteMany: jest.fn() },
     finMerchant: { deleteMany: jest.fn() },
-    finAccount: {
-      updateMany: jest.fn(),
-      count: jest.fn(),
-      deleteMany: jest.fn(),
-    },
-    finCardBalance: { updateMany: jest.fn() },
-    finBudget: { updateMany: jest.fn(), deleteMany: jest.fn() },
+    finStatementImport: { deleteMany: jest.fn() },
+    finCardStatement: { deleteMany: jest.fn() },
     finSavingsGoal: { deleteMany: jest.fn() },
-    finLoan: { deleteMany: jest.fn() },
     finReceivable: { deleteMany: jest.fn() },
+    finBudget: { updateMany: jest.fn(), deleteMany: jest.fn() },
     finCategory: { deleteMany: jest.fn() },
-    finInstitution: {
-      count: jest.fn(),
-      deleteMany: jest.fn(),
-      findFirst: jest.fn(),
-    },
-    finCard: { count: jest.fn(), deleteMany: jest.fn() },
-    finEmailConnection: { deleteMany: jest.fn() },
     $executeRaw: jest.fn().mockResolvedValue(0),
   };
   for (const model of Object.values(tx)) {
@@ -40,174 +40,109 @@ function buildMocks() {
       method.mockResolvedValue({ count: 0 });
     }
   }
-  tx.finAccount.count.mockResolvedValue(0);
-  tx.finCard.count.mockResolvedValue(0);
-  tx.finInstitution.count.mockResolvedValue(0);
+  tx.finInstitution.findMany.mockResolvedValue([{ id: 'inst-1' }]);
 
   const prisma = {
-    finEmailSource: { findMany: jest.fn().mockResolvedValue([]) },
-    finInstitution: { findMany: jest.fn().mockResolvedValue([]) },
+    finTransaction: { count: jest.fn().mockResolvedValue(4) },
+    finReconciliation: { count: jest.fn().mockResolvedValue(1) },
+    finBalanceDrift: { count: jest.fn().mockResolvedValue(2) },
+    finAccount: { count: jest.fn().mockResolvedValue(3) },
+    finCardBalance: { count: jest.fn().mockResolvedValue(2) },
+    finCard: { count: jest.fn().mockResolvedValue(1) },
+    finInstitution: {
+      count: jest.fn().mockResolvedValue(2),
+      findMany: jest.fn().mockResolvedValue([]),
+    },
+    finSubscription: { count: jest.fn().mockResolvedValue(3) },
+    finRecurringPattern: { count: jest.fn().mockResolvedValue(2) },
+    finMerchant: {
+      count: jest.fn().mockResolvedValue(5),
+      findMany: jest.fn().mockResolvedValue([]),
+    },
+    finStatementImport: { count: jest.fn().mockResolvedValue(2) },
+    finCardStatement: { count: jest.fn().mockResolvedValue(1) },
+    finLoan: { count: jest.fn().mockResolvedValue(1) },
+    finSavingsGoal: { count: jest.fn().mockResolvedValue(2) },
+    finReceivable: { count: jest.fn().mockResolvedValue(2) },
+    finBudget: { count: jest.fn().mockResolvedValue(3) },
+    finCategory: { count: jest.fn().mockResolvedValue(4) },
     $transaction: jest.fn((callback: (client: typeof tx) => unknown) =>
       callback(tx),
     ),
   };
   const logos = { deleteCustomLogo: jest.fn().mockResolvedValue(undefined) };
-  const gmailSyncQueue = { remove: jest.fn().mockResolvedValue(undefined) };
-  return { prisma, tx, logos, gmailSyncQueue };
+  return { prisma, tx, logos };
 }
 
 describe('WipeFinanceUserDataUseCase', () => {
-  it('empties the ledger without touching catalog rows', async () => {
-    const { prisma, tx, logos, gmailSyncQueue } = buildMocks();
+  it('wipes transactions without touching merchants, recurring or email', async () => {
+    const { prisma, tx, logos } = buildMocks();
+    tx.finTransaction.deleteMany.mockResolvedValue({ count: 4 });
     const useCase = new WipeFinanceUserDataUseCase(
       prisma as never,
       logos as never,
-      gmailSyncQueue as never,
     );
 
-    await useCase.execute('user-1', ['finance.ledger']);
+    await expect(
+      useCase.wipeBranches('user-1', ['finance.transactions']),
+    ).resolves.toEqual({ 'finance.transactions': 4 });
 
     expect(tx.finTransaction.deleteMany).toHaveBeenCalledWith({
       where: { userId: 'user-1' },
     });
-    expect(tx.finRecurringPattern.deleteMany).toHaveBeenCalledWith({
-      where: { userId: 'user-1' },
-    });
-    expect(tx.finMerchant.deleteMany).toHaveBeenCalledWith({
-      where: { userId: 'user-1' },
-    });
     expect(tx.finAccount.updateMany).toHaveBeenCalledWith({
       where: { userId: 'user-1' },
-      data: { balance: 0 },
-    });
-    expect(creditRestoreSql(tx)).toContain('credit_limit');
-    expect(creditRestoreSql(tx)).toContain('user-1');
-    expect(tx.finCardBalance.updateMany).toHaveBeenCalledWith({
-      where: { card: { userId: 'user-1', type: 'DEBIT' } },
       data: { balance: 0 },
     });
     expect(tx.finBudget.updateMany).toHaveBeenCalledWith({
       where: { userId: 'user-1' },
       data: { amountSpent: 0 },
     });
-    expect(tx.finInstitution.deleteMany).not.toHaveBeenCalled();
-    expect(tx.finEmailConnection.deleteMany).not.toHaveBeenCalled();
+    expect(creditRestoreSql(tx)).toContain("c.type = 'CREDIT'");
+    expect(tx.finMerchant.deleteMany).not.toHaveBeenCalled();
   });
 
-  it('never touches system categories', async () => {
+  it('wipes reconciliations and drifts, keeping the adjustment movements', async () => {
     const { prisma, tx, logos } = buildMocks();
+    tx.finReconciliation.deleteMany.mockResolvedValue({ count: 3 });
+    tx.finBalanceDrift.deleteMany.mockResolvedValue({ count: 2 });
     const useCase = new WipeFinanceUserDataUseCase(
       prisma as never,
       logos as never,
     );
 
-    await useCase.execute('user-1', ['finance.categories']);
+    await expect(
+      useCase.wipeBranches('user-1', ['finance.reconciliations']),
+    ).resolves.toEqual({ 'finance.reconciliations': 5 });
 
-    expect(tx.finCategory.deleteMany).toHaveBeenCalledWith({
-      where: { userId: 'user-1', isSystem: false },
-    });
-  });
-
-  it('counts and deletes the whole catalog', async () => {
-    const { prisma, tx, logos } = buildMocks();
-    tx.finInstitution.count.mockResolvedValue(2);
-    tx.finAccount.count.mockResolvedValue(3);
-    tx.finCard.count.mockResolvedValue(1);
-    const useCase = new WipeFinanceUserDataUseCase(
-      prisma as never,
-      logos as never,
-    );
-
-    const counts = await useCase.execute('user-1', ['finance.catalog']);
-
-    expect(tx.finInstitution.deleteMany).toHaveBeenCalledWith({
-      where: { userId: 'user-1', isSystem: false },
-    });
-    expect(tx.finAccount.deleteMany).toHaveBeenCalledWith({
+    expect(tx.finReconciliation.deleteMany).toHaveBeenCalledWith({
       where: { userId: 'user-1' },
     });
-    expect(tx.finCard.deleteMany).toHaveBeenCalledWith({
+    expect(tx.finBalanceDrift.deleteMany).toHaveBeenCalledWith({
       where: { userId: 'user-1' },
     });
-    expect(counts).toMatchObject({
-      institutions: 2,
-      accounts: 3,
-      cards: 1,
-    });
-  });
-
-  it('cancels queued Gmail sync jobs for the user sources', async () => {
-    const { prisma, logos, gmailSyncQueue } = buildMocks();
-    prisma.finEmailSource.findMany.mockResolvedValue([{ id: 'src-1' }]);
-    const useCase = new WipeFinanceUserDataUseCase(
-      prisma as never,
-      logos as never,
-      gmailSyncQueue as never,
-    );
-
-    await useCase.execute('user-1', ['finance.ledger']);
-
-    expect(gmailSyncQueue.remove).toHaveBeenCalledWith('gmail-sync-src-1');
-  });
-
-  it('deletes custom logos best-effort after the transaction', async () => {
-    const { prisma, logos } = buildMocks();
-    prisma.finInstitution.findMany.mockResolvedValue([
-      { customLogoPath: 'custom/user-1/inst-1.png' },
-    ]);
-    const useCase = new WipeFinanceUserDataUseCase(
-      prisma as never,
-      logos as never,
-    );
-
-    await useCase.execute('user-1', ['finance.catalog']);
-
-    expect(logos.deleteCustomLogo).toHaveBeenCalledWith(
-      'custom/user-1/inst-1.png',
-    );
-  });
-
-  it('hard-deletes email connections', async () => {
-    const { prisma, tx, logos } = buildMocks();
-    const useCase = new WipeFinanceUserDataUseCase(
-      prisma as never,
-      logos as never,
-    );
-
-    await useCase.execute('user-1', ['finance.emailConnections']);
-
-    expect(tx.finEmailConnection.deleteMany).toHaveBeenCalledWith({
-      where: { userId: 'user-1' },
-    });
-  });
-
-  it('zeros accounts and restores credit cards without deleting movements', async () => {
-    const { prisma, tx, logos } = buildMocks();
-    tx.finAccount.updateMany.mockResolvedValue({ count: 2 });
-    tx.$executeRaw.mockResolvedValue(1);
-    tx.finCardBalance.updateMany.mockResolvedValue({ count: 2 });
-    const useCase = new WipeFinanceUserDataUseCase(
-      prisma as never,
-      logos as never,
-    );
-
-    const counts = await useCase.execute('user-1', ['finance.balances']);
-
     expect(tx.finTransaction.deleteMany).not.toHaveBeenCalled();
-    expect(tx.finAccount.updateMany).toHaveBeenCalledWith({
-      where: { userId: 'user-1' },
-      data: { balance: 0 },
-    });
-    expect(creditRestoreSql(tx)).toContain('credit_limit');
-    expect(creditRestoreSql(tx)).toContain('user-1');
-    expect(tx.finCardBalance.updateMany).toHaveBeenCalledWith({
-      where: { card: { userId: 'user-1', type: 'DEBIT' } },
-      data: { balance: 0 },
-    });
-    expect(counts).toMatchObject({ accountBalances: 2, cardBalances: 3 });
   });
 
-  it('zeros balances for one institution and rejects an unknown one', async () => {
+  it('zeroes balances without deleting anything', async () => {
+    const { prisma, tx, logos } = buildMocks();
+    tx.finAccount.updateMany.mockResolvedValue({ count: 3 });
+    tx.finCardBalance.updateMany.mockResolvedValue({ count: 1 });
+    tx.$executeRaw.mockResolvedValue(2);
+    const useCase = new WipeFinanceUserDataUseCase(
+      prisma as never,
+      logos as never,
+    );
+
+    await expect(
+      useCase.wipeBranches('user-1', ['finance.balances']),
+    ).resolves.toEqual({ 'finance.balances': 6 });
+
+    expect(tx.finAccount.deleteMany).not.toHaveBeenCalled();
+    expect(tx.finCard.deleteMany).not.toHaveBeenCalled();
+  });
+
+  it('scopes the balances reset to one institution', async () => {
     const { prisma, tx, logos } = buildMocks();
     tx.finInstitution.findFirst.mockResolvedValue({ id: 'inst-1' });
     const useCase = new WipeFinanceUserDataUseCase(
@@ -215,7 +150,7 @@ describe('WipeFinanceUserDataUseCase', () => {
       logos as never,
     );
 
-    await useCase.execute('user-1', ['finance.balances'], {
+    await useCase.wipeBranches('user-1', ['finance.balances'], {
       balanceInstitutionId: 'inst-1',
     });
 
@@ -223,20 +158,277 @@ describe('WipeFinanceUserDataUseCase', () => {
       where: { userId: 'user-1', institutionId: 'inst-1' },
       data: { balance: 0 },
     });
-    expect(creditRestoreSql(tx)).toContain('institution_id');
     expect(creditRestoreSql(tx)).toContain('inst-1');
-    expect(tx.finCardBalance.updateMany).toHaveBeenCalledWith({
-      where: {
-        card: { userId: 'user-1', institutionId: 'inst-1', type: 'DEBIT' },
-      },
-      data: { balance: 0 },
-    });
+  });
 
+  it('rejects a balance scope that is not the user institution', async () => {
+    const { prisma, tx, logos } = buildMocks();
     tx.finInstitution.findFirst.mockResolvedValue(null);
+    const useCase = new WipeFinanceUserDataUseCase(
+      prisma as never,
+      logos as never,
+    );
+
     await expect(
-      useCase.execute('user-1', ['finance.balances'], {
-        balanceInstitutionId: 'missing',
+      useCase.wipeBranches('user-1', ['finance.balances'], {
+        balanceInstitutionId: 'inst-other',
       }),
-    ).rejects.toThrow('Institución no encontrada');
+    ).rejects.toMatchObject({
+      response: { message: 'Institución no encontrada' },
+    });
+    expect(tx.finAccount.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('deletes the cards with what they drag and keeps accounts', async () => {
+    const { prisma, tx, logos } = buildMocks();
+    tx.finCard.deleteMany.mockResolvedValue({ count: 2 });
+    const useCase = new WipeFinanceUserDataUseCase(
+      prisma as never,
+      logos as never,
+    );
+
+    await expect(
+      useCase.wipeBranches('user-1', ['finance.cards']),
+    ).resolves.toEqual({ 'finance.cards': 2 });
+
+    expect(tx.finCard.deleteMany).toHaveBeenCalledWith({
+      where: { userId: 'user-1' },
+    });
+    expect(tx.finAccount.deleteMany).not.toHaveBeenCalled();
+    expect(tx.finInstitution.deleteMany).not.toHaveBeenCalled();
+  });
+
+  it('deletes the accounts and keeps the cards', async () => {
+    const { prisma, tx, logos } = buildMocks();
+    tx.finAccount.deleteMany.mockResolvedValue({ count: 3 });
+    const useCase = new WipeFinanceUserDataUseCase(
+      prisma as never,
+      logos as never,
+    );
+
+    await expect(
+      useCase.wipeBranches('user-1', ['finance.accounts']),
+    ).resolves.toEqual({ 'finance.accounts': 3 });
+
+    expect(tx.finAccount.deleteMany).toHaveBeenCalledWith({
+      where: { userId: 'user-1' },
+    });
+    expect(tx.finCard.deleteMany).not.toHaveBeenCalled();
+  });
+
+  it('deletes non-system institutions with their loans and mail sources', async () => {
+    const { prisma, tx, logos } = buildMocks();
+    prisma.finInstitution.findMany.mockResolvedValue([
+      { customLogoPath: 'custom/user-1/inst-1.png' },
+    ]);
+    prisma.finMerchant.findMany.mockResolvedValue([]);
+    tx.finInstitution.deleteMany.mockResolvedValue({ count: 2 });
+    const useCase = new WipeFinanceUserDataUseCase(
+      prisma as never,
+      logos as never,
+    );
+
+    await expect(
+      useCase.wipeBranches('user-1', ['finance.institutions']),
+    ).resolves.toEqual({ 'finance.institutions': 2 });
+
+    expect(tx.finInstitution.deleteMany).toHaveBeenCalledWith({
+      where: { userId: 'user-1', isSystem: false },
+    });
+    expect(tx.finLoan.deleteMany).toHaveBeenCalledWith({
+      where: { userId: 'user-1', institutionId: { in: ['inst-1'] } },
+    });
+    expect(logos.deleteCustomLogo).toHaveBeenCalledWith(
+      'custom/user-1/inst-1.png',
+    );
+  });
+
+  it('counts each branch with the same rules as the wipe', async () => {
+    const { prisma, logos } = buildMocks();
+    const useCase = new WipeFinanceUserDataUseCase(
+      prisma as never,
+      logos as never,
+    );
+
+    await expect(
+      useCase.countBranches('user-1', [
+        'finance.transactions',
+        'finance.reconciliations',
+        'finance.balances',
+        'finance.cards',
+        'finance.accounts',
+        'finance.institutions',
+      ]),
+    ).resolves.toEqual({
+      'finance.transactions': 4,
+      'finance.reconciliations': 3,
+      'finance.balances': 5,
+      'finance.cards': 1,
+      'finance.accounts': 3,
+      'finance.institutions': 2,
+    });
+  });
+
+  it('applies every requested branch in a single transaction', async () => {
+    const { prisma, tx, logos } = buildMocks();
+    const useCase = new WipeFinanceUserDataUseCase(
+      prisma as never,
+      logos as never,
+    );
+
+    await useCase.wipeBranches('user-1', [
+      'finance.reconciliations',
+      'finance.transactions',
+    ]);
+
+    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+    expect(tx.finReconciliation.deleteMany).toHaveBeenCalled();
+    expect(tx.finTransaction.deleteMany).toHaveBeenCalled();
+  });
+});
+
+describe('WipeFinanceUserDataUseCase rest of the branches', () => {
+  function buildUseCase() {
+    const mocks = buildMocks();
+    const useCase = new WipeFinanceUserDataUseCase(
+      mocks.prisma as never,
+      mocks.logos as never,
+    );
+    return { ...mocks, useCase };
+  }
+
+  it('deletes subscriptions with their payments and dismissed alerts', async () => {
+    const { tx, useCase } = buildUseCase();
+    tx.finSubscription.deleteMany.mockResolvedValue({ count: 3 });
+
+    await expect(
+      useCase.wipeBranches('user-1', ['finance.subscriptions']),
+    ).resolves.toEqual({ 'finance.subscriptions': 3 });
+
+    expect(tx.finSubscriptionPayment.deleteMany).toHaveBeenCalled();
+    expect(tx.finSubscriptionAlertDismissal.deleteMany).toHaveBeenCalled();
+    expect(tx.finSubscription.deleteMany).toHaveBeenCalledWith({
+      where: { userId: 'user-1' },
+    });
+  });
+
+  it('deletes only the detected recurring patterns', async () => {
+    const { tx, useCase } = buildUseCase();
+    tx.finRecurringPattern.deleteMany.mockResolvedValue({ count: 2 });
+
+    await expect(
+      useCase.wipeBranches('user-1', ['finance.recurring']),
+    ).resolves.toEqual({ 'finance.recurring': 2 });
+
+    expect(tx.finRecurringPattern.deleteMany).toHaveBeenCalledWith({
+      where: { userId: 'user-1' },
+    });
+    expect(tx.finSubscription.deleteMany).not.toHaveBeenCalled();
+  });
+
+  it('deletes the merchants and leaves the movement text alone', async () => {
+    const { prisma, tx, logos, useCase } = buildUseCase();
+    prisma.finMerchant.findMany.mockResolvedValue([
+      { customLogoPath: 'custom/user-1/merchant-1.png' },
+    ]);
+    tx.finMerchant.deleteMany.mockResolvedValue({ count: 5 });
+
+    await expect(
+      useCase.wipeBranches('user-1', ['finance.merchants']),
+    ).resolves.toEqual({ 'finance.merchants': 5 });
+
+    expect(tx.finMerchant.deleteMany).toHaveBeenCalledWith({
+      where: { userId: 'user-1' },
+    });
+    expect(tx.finTransaction.deleteMany).not.toHaveBeenCalled();
+    expect(logos.deleteCustomLogo).toHaveBeenCalledWith(
+      'custom/user-1/merchant-1.png',
+    );
+  });
+
+  it('deletes the imported statements with their imports and keeps the cards', async () => {
+    const { tx, useCase } = buildUseCase();
+    tx.finStatementImport.deleteMany.mockResolvedValue({ count: 2 });
+    tx.finCardStatement.deleteMany.mockResolvedValue({ count: 1 });
+
+    await expect(
+      useCase.wipeBranches('user-1', ['finance.statements']),
+    ).resolves.toEqual({ 'finance.statements': 3 });
+
+    expect(tx.finCardStatement.deleteMany).toHaveBeenCalledWith({
+      where: { card: { userId: 'user-1' } },
+    });
+    expect(tx.finCard.deleteMany).not.toHaveBeenCalled();
+  });
+
+  it('deletes loans, goals, receivables and budgets on their own', async () => {
+    const { tx, useCase } = buildUseCase();
+    tx.finLoan.deleteMany.mockResolvedValue({ count: 1 });
+
+    await expect(
+      useCase.wipeBranches('user-1', ['finance.loans']),
+    ).resolves.toEqual({ 'finance.loans': 1 });
+
+    expect(tx.finSavingsGoal.deleteMany).not.toHaveBeenCalled();
+    expect(tx.finReceivable.deleteMany).not.toHaveBeenCalled();
+    expect(tx.finBudget.deleteMany).not.toHaveBeenCalled();
+    expect(tx.finTransaction.deleteMany).not.toHaveBeenCalled();
+  });
+
+  it('deletes the own categories and keeps the system ones', async () => {
+    const { tx, useCase } = buildUseCase();
+    tx.finCategory.deleteMany.mockResolvedValue({ count: 4 });
+
+    await expect(
+      useCase.wipeBranches('user-1', ['finance.categories']),
+    ).resolves.toEqual({ 'finance.categories': 4 });
+
+    expect(tx.finCategory.deleteMany).toHaveBeenCalledWith({
+      where: { userId: 'user-1', isSystem: false },
+    });
+    expect(tx.finTransaction.deleteMany).not.toHaveBeenCalled();
+  });
+
+  it('rejects retired Gmail data branches instead of silently ignoring them', async () => {
+    const { useCase } = buildUseCase();
+
+    await expect(
+      useCase.wipeBranches('user-1', ['finance.emailMessages']),
+    ).rejects.toMatchObject({
+      status: 400,
+    });
+    await expect(
+      useCase.countBranches('user-1', ['finance.emailConnections']),
+    ).rejects.toMatchObject({
+      status: 400,
+    });
+  });
+
+  it('counts each new branch with the same rules as the wipe', async () => {
+    const { useCase } = buildUseCase();
+
+    await expect(
+      useCase.countBranches('user-1', [
+        'finance.subscriptions',
+        'finance.recurring',
+        'finance.merchants',
+        'finance.statements',
+        'finance.loans',
+        'finance.savingsGoals',
+        'finance.receivables',
+        'finance.budgets',
+        'finance.categories',
+      ]),
+    ).resolves.toEqual({
+      'finance.subscriptions': 3,
+      'finance.recurring': 2,
+      'finance.merchants': 5,
+      'finance.statements': 3,
+      'finance.loans': 1,
+      'finance.savingsGoals': 2,
+      'finance.receivables': 2,
+      'finance.budgets': 3,
+      'finance.categories': 4,
+    });
   });
 });

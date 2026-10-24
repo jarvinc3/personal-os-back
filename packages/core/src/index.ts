@@ -1,4 +1,3 @@
-export * from './ai/ai-chat.port';
 export * from './ai/chat-context';
 export * from './core.module';
 export * from './decorators';

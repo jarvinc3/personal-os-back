@@ -4,11 +4,11 @@ import type { Prisma } from '@personal-os/database';
 import { PrismaService } from '@personal-os/database';
 import { EMAIL_DUPLICATE_DATE_TOLERANCE_MS } from '../../shared/domain/email-dedupe';
 import { normalizeCurrencyCode } from '../../shared/domain/money';
-import { OPERATION_LEG_ROLE } from '../../shared/domain/transfer';
 import {
   TRANSACTION_LINK_KIND,
   type TransactionLinkKind,
 } from '../../shared/domain/transaction-links';
+import { OPERATION_LEG_ROLE } from '../../shared/domain/transfer';
 import type {
   FinTxStatus,
   ListTransactionsQuery,
@@ -172,6 +172,14 @@ export class PrismaLedgerReadRepository {
     }) as Promise<LedgerTransactionRow | null>;
   }
 
+  /** One query for many movements, for the bulk entity lookup. */
+  findTransactionsByIds(userId: string, ids: readonly string[]) {
+    return this.prisma.finTransaction.findMany({
+      where: { id: { in: [...ids] }, userId },
+      include: { ...transactionPartyInclude, ...transactionLinkInclude },
+    }) as Promise<LedgerTransactionRow[]>;
+  }
+
   async findPlanningLinkKind(
     transactionId: string,
     userId: string,
@@ -207,6 +215,25 @@ export class PrismaLedgerReadRepository {
       where: { id, userId },
       select: { id: true, currency: true },
     });
+  }
+
+  async findCardLedgerContext(id: string, userId: string) {
+    const card = await this.prisma.finCard.findFirst({
+      where: { id, userId },
+      select: {
+        type: true,
+        accountId: true,
+        balances: { select: { currency: true } },
+      },
+    });
+    if (!card) {
+      return null;
+    }
+    return {
+      cardType: card.type,
+      accountId: card.accountId,
+      currencies: card.balances.map((balance) => balance.currency),
+    };
   }
 
   async findSavingsGoalIdByAccount(
@@ -277,11 +304,11 @@ export class PrismaLedgerReadRepository {
     };
   }
 
-  findTransactionByEmailMessageId(gmailMessageId: string, userId?: string) {
+  findTransactionByImportReference(importReference: string, userId: string) {
     return this.prisma.finTransaction.findFirst({
       where: {
-        emailMessage: { gmailMessageId },
-        ...(userId ? { userId } : {}),
+        importReference,
+        userId,
       },
     }) as Promise<LedgerTransactionRow | null>;
   }

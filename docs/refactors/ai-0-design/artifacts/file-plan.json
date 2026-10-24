@@ -1,0 +1,1598 @@
+{
+  "capturedAt": "2026-10-24T06:02:21.719Z",
+  "status": "PROPOSED_NOT_EXECUTED",
+  "rule": "Review each consumer; never bulk-delete by substring. Preserve dirty web work.",
+  "inventories": [
+    {
+      "repo": "back",
+      "revision": "37b9ec875a640e023745add670a7d3b381a83c12",
+      "worktreeStatus": "M docs/README.md\n M docs/refactors/00-MASTER-ROADMAP.md\n?? docs/refactors/ai-0-design/",
+      "entries": [
+        {
+          "path": "apps/api/src/app.module.ts",
+          "operation": "ADAPT_CONSUMER_AND_TEST",
+          "deletedInWorktree": false,
+          "sha256": "6416b3a016c58c98375243a9702ffae0c0b8f2eaa149193b3debd0d1293ec87c"
+        },
+        {
+          "path": "apps/api/src/user-data-wipe/user-data-wipe-domains.adapter.ts",
+          "operation": "ADAPT_CONSUMER_AND_TEST",
+          "deletedInWorktree": false,
+          "sha256": "e5c5f68310d3b38d1ec8eb0b1f44ecedad38c19958f362f112afe12de2665981"
+        },
+        {
+          "path": "apps/api/src/user-data-wipe/user-data-wipe.module.ts",
+          "operation": "ADAPT_CONSUMER_AND_TEST",
+          "deletedInWorktree": false,
+          "sha256": "51adbc8c534ce7bf763813bec86769091fb91e1b7d986d2a44ef87b06ae93cb5"
+        },
+        {
+          "path": "packages/ai-agent/src/actions/application/ai-actions-reaper.service.ts",
+          "operation": "DETACH_SESSION_OWNERSHIP_PRESERVE_CAS_DISABLE_RUNTIME",
+          "deletedInWorktree": false,
+          "sha256": "adba4157023fec80d950c9193c0fd27e956ed783ca66b0e6b92a921f7c77e190"
+        },
+        {
+          "path": "packages/ai-agent/src/actions/application/ai-actions.service.spec.ts",
+          "operation": "DETACH_SESSION_OWNERSHIP_PRESERVE_CAS_DISABLE_RUNTIME",
+          "deletedInWorktree": false,
+          "sha256": "75f4b69ebf9526e151db1446989873d0bc60bd6b39dca2ae621332891361a190"
+        },
+        {
+          "path": "packages/ai-agent/src/actions/application/ai-actions.service.ts",
+          "operation": "DETACH_SESSION_OWNERSHIP_PRESERVE_CAS_DISABLE_RUNTIME",
+          "deletedInWorktree": false,
+          "sha256": "ee1ac4ff4df4251ca7d5366f5dc6746939505ffd9e3e0247f9f3a9d26b79b5df"
+        },
+        {
+          "path": "packages/ai-agent/src/actions/infrastructure/ai-actions.repository.ts",
+          "operation": "DETACH_SESSION_OWNERSHIP_PRESERVE_CAS_DISABLE_RUNTIME",
+          "deletedInWorktree": false,
+          "sha256": "e0edafea7dda7308a515a1b7e8378253c6b0751181288a2ef43b97c01727e8f6"
+        },
+        {
+          "path": "packages/ai-agent/src/actions/presentation/ai-actions.controller.ts",
+          "operation": "DETACH_SESSION_OWNERSHIP_PRESERVE_CAS_DISABLE_RUNTIME",
+          "deletedInWorktree": false,
+          "sha256": "397f1652c7aa72b9e95002ed08f12ccf580fdc22a62b237369dc7361c66e956d"
+        },
+        {
+          "path": "packages/ai-agent/src/ai-core.module.ts",
+          "operation": "ADAPT_CONSUMER_AND_TEST",
+          "deletedInWorktree": false,
+          "sha256": "ec71c888db8dd06c82ff171061d9f215bac1af4b20dce072e4b932f6c79819de"
+        },
+        {
+          "path": "packages/ai-agent/src/ai.module.ts",
+          "operation": "ADAPT_CONSUMER_AND_TEST",
+          "deletedInWorktree": false,
+          "sha256": "4698a190c703c24039eb31d4c256f4eb4b8208f319b403cc2484b402489ec52d"
+        },
+        {
+          "path": "packages/ai-agent/src/chat/application/ai-agent.runner.spec.ts",
+          "operation": "REMOVE_OLD_CHAT_REVIEW_SHARED_HELPERS",
+          "deletedInWorktree": false,
+          "sha256": "b2ab81a1e10b0b3b6648403c650758ba8e35a4a9949809629f9956dfa225ae64"
+        },
+        {
+          "path": "packages/ai-agent/src/chat/application/ai-agent.runner.ts",
+          "operation": "REMOVE_OLD_CHAT_REVIEW_SHARED_HELPERS",
+          "deletedInWorktree": false,
+          "sha256": "4371ffb5fab593c11e22d3d663b737fde1e8c9fb273a4bb857d846c827c5248e"
+        },
+        {
+          "path": "packages/ai-agent/src/chat/application/ai-chat-turn-coordinator.service.spec.ts",
+          "operation": "REMOVE_OLD_CHAT_REVIEW_SHARED_HELPERS",
+          "deletedInWorktree": false,
+          "sha256": "505dd8c4280ebefcae3c0b01bd662480e68c621b4f5ac230f9fd0696e577e140"
+        },
+        {
+          "path": "packages/ai-agent/src/chat/application/ai-chat-turn-coordinator.service.ts",
+          "operation": "REMOVE_OLD_CHAT_REVIEW_SHARED_HELPERS",
+          "deletedInWorktree": false,
+          "sha256": "238d72ebea20a4f7239eb46ddb71654dc1ca14b90a17764416b4b3ad5a6210a8"
+        },
+        {
+          "path": "packages/ai-agent/src/chat/application/ai-sessions.service.spec.ts",
+          "operation": "REMOVE_OLD_CHAT_REVIEW_SHARED_HELPERS",
+          "deletedInWorktree": false,
+          "sha256": "c7e06b076007754183eaddaf1d06b62578dff465787217cf3b8d26c0ebcd27b0"
+        },
+        {
+          "path": "packages/ai-agent/src/chat/application/ai-sessions.service.ts",
+          "operation": "REMOVE_OLD_CHAT_REVIEW_SHARED_HELPERS",
+          "deletedInWorktree": false,
+          "sha256": "8f2e50dd9b075b1f7d1a9f4200515ea11ab1af7e417da7952249384f349e71f4"
+        },
+        {
+          "path": "packages/ai-agent/src/chat/application/ai.service.spec.ts",
+          "operation": "PRESERVE_INFERENCE_AND_TESTS",
+          "deletedInWorktree": false,
+          "sha256": "050fe38233e455eff5391483770ffad706c7579f98dbaa5c8ae79cf9e2d7c592"
+        },
+        {
+          "path": "packages/ai-agent/src/chat/application/ai.service.ts",
+          "operation": "PRESERVE_INFERENCE_AND_TESTS",
+          "deletedInWorktree": false,
+          "sha256": "12de848ca1fecd94d6ba867e2f7116543e3199b7a4844e0793618dd29e3bdc58"
+        },
+        {
+          "path": "packages/ai-agent/src/chat/application/build-system-prompt.spec.ts",
+          "operation": "REMOVE_OLD_CHAT_REVIEW_SHARED_HELPERS",
+          "deletedInWorktree": false,
+          "sha256": "4d6ced9e431034da5ceb88172d10265acb0e312731be31d0669536b83fdc6c35"
+        },
+        {
+          "path": "packages/ai-agent/src/chat/application/build-system-prompt.ts",
+          "operation": "REMOVE_OLD_CHAT_REVIEW_SHARED_HELPERS",
+          "deletedInWorktree": false,
+          "sha256": "cc5dadd598b59f6240ef25b7ccb7f2e15136a1c0a75e66c5aa95d0796df26187"
+        },
+        {
+          "path": "packages/ai-agent/src/chat/infrastructure/ai-chat-persistence.service.spec.ts",
+          "operation": "REMOVE_OLD_CHAT_REVIEW_SHARED_HELPERS",
+          "deletedInWorktree": false,
+          "sha256": "3fb31dc420d36c4edd91475a037e70a5b34e4695d9b17b5cbdd25652c0fb999f"
+        },
+        {
+          "path": "packages/ai-agent/src/chat/infrastructure/ai-chat-persistence.service.ts",
+          "operation": "REMOVE_OLD_CHAT_REVIEW_SHARED_HELPERS",
+          "deletedInWorktree": false,
+          "sha256": "048e6e299ab71325785f3735a3896258947137832e25de09657b6fed581bd85a"
+        },
+        {
+          "path": "packages/ai-agent/src/chat/infrastructure/ai-sessions.repository.spec.ts",
+          "operation": "REMOVE_OLD_CHAT_REVIEW_SHARED_HELPERS",
+          "deletedInWorktree": false,
+          "sha256": "3e6a5402107aa1910a0dcfb28e402a6b811664009b7e080f797a6a26b15b88ce"
+        },
+        {
+          "path": "packages/ai-agent/src/chat/infrastructure/ai-sessions.repository.ts",
+          "operation": "REMOVE_OLD_CHAT_REVIEW_SHARED_HELPERS",
+          "deletedInWorktree": false,
+          "sha256": "d199feece233707af641c70792a11a8f9e3a98a442627ae23b84bdba75f27fc9"
+        },
+        {
+          "path": "packages/ai-agent/src/chat/presentation/ai-sessions.controller.ts",
+          "operation": "REMOVE_OLD_CHAT_REVIEW_SHARED_HELPERS",
+          "deletedInWorktree": false,
+          "sha256": "4d8d2009dab9a764e4ac6398e2749f2585d15d813cf93af6610b15f357d58820"
+        },
+        {
+          "path": "packages/ai-agent/src/chat/presentation/ai.controller.ts",
+          "operation": "REMOVE_OLD_CHAT_REVIEW_SHARED_HELPERS",
+          "deletedInWorktree": false,
+          "sha256": "0caa0a7ca4484764f1ccc5730fcce05197fba84688ed0f7149f988eb5710455e"
+        },
+        {
+          "path": "packages/ai-agent/src/chat/presentation/dto/ai-provider-info.dto.ts",
+          "operation": "REMOVE_OLD_CHAT_REVIEW_SHARED_HELPERS",
+          "deletedInWorktree": false,
+          "sha256": "c268e50383138b7438273f85ae05f623bff1468a42223e55661f000e493316c2"
+        },
+        {
+          "path": "packages/ai-agent/src/chat/presentation/dto/ai-providers-response.dto.ts",
+          "operation": "REMOVE_OLD_CHAT_REVIEW_SHARED_HELPERS",
+          "deletedInWorktree": false,
+          "sha256": "4eea6b14d491f9261dc6b6dea6fcc99439655a0b047f339f1207115b2615b829"
+        },
+        {
+          "path": "packages/ai-agent/src/chat/presentation/dto/chat-context.dto.ts",
+          "operation": "REMOVE_OLD_CHAT_REVIEW_SHARED_HELPERS",
+          "deletedInWorktree": false,
+          "sha256": "2c2e2a2909500e41ec47d0dc6dacf8b50168fcf87b34a7bafaebb4ef0f27b7d5"
+        },
+        {
+          "path": "packages/ai-agent/src/chat/presentation/dto/chat-message.dto.ts",
+          "operation": "REMOVE_OLD_CHAT_REVIEW_SHARED_HELPERS",
+          "deletedInWorktree": false,
+          "sha256": "db5f3297e2cb16d4e1935fcd329d93c709d92f532c776404d09693c48b6026e8"
+        },
+        {
+          "path": "packages/ai-agent/src/chat/presentation/dto/chat-request.dto.ts",
+          "operation": "REMOVE_OLD_CHAT_REVIEW_SHARED_HELPERS",
+          "deletedInWorktree": false,
+          "sha256": "bdbb0d929b9be62c592e8f26bfb9305db3052f9de8cc6950d1849b321bf8d69f"
+        },
+        {
+          "path": "packages/ai-agent/src/chat/presentation/dto/chat-response.dto.ts",
+          "operation": "REMOVE_OLD_CHAT_REVIEW_SHARED_HELPERS",
+          "deletedInWorktree": false,
+          "sha256": "eebdb3c1a09d3237200d30f4d9b309984b2d308d929bcdf942c65e9fbafa4ece"
+        },
+        {
+          "path": "packages/ai-agent/src/chat/presentation/dto/create-ai-session.dto.ts",
+          "operation": "REMOVE_OLD_CHAT_REVIEW_SHARED_HELPERS",
+          "deletedInWorktree": false,
+          "sha256": "b3c29ac44454ddd38c48f5a33ee1c1723b35ddb98e7b7543b08492ba04625110"
+        },
+        {
+          "path": "packages/ai-agent/src/index.ts",
+          "operation": "ADAPT_CONSUMER_AND_TEST",
+          "deletedInWorktree": false,
+          "sha256": "a2941e6bba394c21f7c9e1b289ba02c63ab82c1cb528967f6440e88e580fb787"
+        },
+        {
+          "path": "packages/ai-agent/src/prompts/build-agent-prompt.spec.ts",
+          "operation": "REMOVE_OLD_CHAT_REVIEW_SHARED_HELPERS",
+          "deletedInWorktree": false,
+          "sha256": "460881e8e4b3333d5bff7cfbf7785ea197324c4a566122dce02974e95c0f4b35"
+        },
+        {
+          "path": "packages/ai-agent/src/prompts/build-agent-prompt.ts",
+          "operation": "REMOVE_OLD_CHAT_REVIEW_SHARED_HELPERS",
+          "deletedInWorktree": false,
+          "sha256": "224800af2d163de782ee22422f0539f5d6ff3fe6999555fa24b7f113952b94ed"
+        },
+        {
+          "path": "packages/ai-agent/src/prompts/module-context.spec.ts",
+          "operation": "REMOVE_OLD_CHAT_REVIEW_SHARED_HELPERS",
+          "deletedInWorktree": false,
+          "sha256": "71bee7100eed67b383104533b121029f7f926c235decdd28d0f84562a6df1b01"
+        },
+        {
+          "path": "packages/ai-agent/src/prompts/module-context.ts",
+          "operation": "REMOVE_OLD_CHAT_REVIEW_SHARED_HELPERS",
+          "deletedInWorktree": false,
+          "sha256": "bbe2968e8fd118bba9b80439d791dbb7637d1aa1f303c604c9782c8c4b7a49a8"
+        },
+        {
+          "path": "packages/ai-agent/src/prompts/system-base.ts",
+          "operation": "REMOVE_OLD_CHAT_REVIEW_SHARED_HELPERS",
+          "deletedInWorktree": false,
+          "sha256": "b8089e4cb24c93852b7422e1848bfc50a08047ce01eee2bb31af9ffa169f6c38"
+        },
+        {
+          "path": "packages/ai-agent/src/prompts/tools-instructions.ts",
+          "operation": "REMOVE_OLD_CHAT_REVIEW_SHARED_HELPERS",
+          "deletedInWorktree": false,
+          "sha256": "34a792c8d8c81e2f4f8a13f1c8273c2c8fed31dacb40c905cc9bf35d9b60552f"
+        },
+        {
+          "path": "packages/ai-agent/src/providers/groq.provider.ts",
+          "operation": "PRESERVE_INFERENCE_AND_TESTS",
+          "deletedInWorktree": false,
+          "sha256": "38a3e4a4bc8cfecee9741df58a1862aa1550f32bea181e231babc05ef8a4a5f5"
+        },
+        {
+          "path": "packages/ai-agent/src/providers/opencode.provider.spec.ts",
+          "operation": "PRESERVE_INFERENCE_AND_TESTS",
+          "deletedInWorktree": false,
+          "sha256": "efc537fc7659497a654806f9db857204de54b1c496a4381fdf36810e9e855e2c"
+        },
+        {
+          "path": "packages/ai-agent/src/providers/opencode.provider.ts",
+          "operation": "PRESERVE_INFERENCE_AND_TESTS",
+          "deletedInWorktree": false,
+          "sha256": "78edb65061857e5e613dbaec0b2f0d7d4c82670f280a31f5367202ee53e35b92"
+        },
+        {
+          "path": "packages/ai-agent/src/providers/openrouter.provider.ts",
+          "operation": "PRESERVE_INFERENCE_AND_TESTS",
+          "deletedInWorktree": false,
+          "sha256": "d07f4bda9ea4ad3530a1affd953c26e37c504173e4332d70b982a4a1305ece4d"
+        },
+        {
+          "path": "packages/ai-agent/src/runtime/application/ai-events.listener.spec.ts",
+          "operation": "ADAPT_CONSUMER_AND_TEST",
+          "deletedInWorktree": false,
+          "sha256": "62e7e6d7785e48f8504ba64e3be9b77708fdf8a16f6cfab3dcf000e4189ab016"
+        },
+        {
+          "path": "packages/ai-agent/src/runtime/application/ai-events.listener.ts",
+          "operation": "ADAPT_CONSUMER_AND_TEST",
+          "deletedInWorktree": false,
+          "sha256": "0f7c9b193d7ea09f05a91d972157d685c20fe3053c4f316779352023bec3008f"
+        },
+        {
+          "path": "packages/ai-agent/src/runtime/application/ai-memory.service.ts",
+          "operation": "ADAPT_CONSUMER_AND_TEST",
+          "deletedInWorktree": false,
+          "sha256": "e97dcdc9be488ed2afb91cc3e7ba0504340912a2b7a997ed489c277762ce1c3e"
+        },
+        {
+          "path": "packages/ai-agent/src/runtime/application/ai-processing.processor.spec.ts",
+          "operation": "ADAPT_CONSUMER_AND_TEST",
+          "deletedInWorktree": false,
+          "sha256": "e984b0f7dfc56769bfc5a085a0d2be41b82a9c4426e366f51e48c45fcb7e5b16"
+        },
+        {
+          "path": "packages/ai-agent/src/runtime/application/ai-processing.processor.ts",
+          "operation": "ADAPT_CONSUMER_AND_TEST",
+          "deletedInWorktree": false,
+          "sha256": "312c16e6699405825f77f2fb33c95e36a42e6def4a94d178152a43b241792a7e"
+        },
+        {
+          "path": "packages/ai-agent/src/shared/ai-data-branches.ts",
+          "operation": "ADAPT_CONSUMER_AND_TEST",
+          "deletedInWorktree": false,
+          "sha256": "e64b822c7c92e65fccda2522674eca9e45523905278c9e20f94163215e844dd8"
+        },
+        {
+          "path": "packages/ai-agent/src/shared/ai-provider.token.ts",
+          "operation": "ADAPT_CONSUMER_AND_TEST",
+          "deletedInWorktree": false,
+          "sha256": "b7d38ae4b38d8c2f84b621fc710181c1021d8891f1388e1d11f7d695cd96f89f"
+        },
+        {
+          "path": "packages/ai-agent/src/shared/ai.types.ts",
+          "operation": "ADAPT_CONSUMER_AND_TEST",
+          "deletedInWorktree": false,
+          "sha256": "8cd38e9deeec941dfb729791aa387d267079e1277af06e4c7e536dbf55aa949b"
+        },
+        {
+          "path": "packages/ai-agent/src/shared/build-chat-blocks.spec.ts",
+          "operation": "ADAPT_CONSUMER_AND_TEST",
+          "deletedInWorktree": false,
+          "sha256": "67879ecd542cb6fd62524d4f361055a74a8deb44240aa28594e4cf68559e5889"
+        },
+        {
+          "path": "packages/ai-agent/src/shared/build-chat-blocks.ts",
+          "operation": "ADAPT_CONSUMER_AND_TEST",
+          "deletedInWorktree": false,
+          "sha256": "10c5e267f3bc6b099b623561610d02801ac7d5cddf5fbb1e876a6e7e4d7d0575"
+        },
+        {
+          "path": "packages/ai-agent/src/shared/build-provider-history.spec.ts",
+          "operation": "ADAPT_CONSUMER_AND_TEST",
+          "deletedInWorktree": false,
+          "sha256": "ff26fc58f6d006f2c5ec725cec4565449efa956a8a1a6acd4202ad1bf1136848"
+        },
+        {
+          "path": "packages/ai-agent/src/shared/build-provider-history.ts",
+          "operation": "ADAPT_CONSUMER_AND_TEST",
+          "deletedInWorktree": false,
+          "sha256": "a29cff4ab1121da583c5c6d64dd22b72a8029458905e31472348cc3a7e97071e"
+        },
+        {
+          "path": "packages/ai-agent/src/shared/enrich-session-messages.spec.ts",
+          "operation": "ADAPT_CONSUMER_AND_TEST",
+          "deletedInWorktree": false,
+          "sha256": "8713096fd468c4c308e6bf0f9914e75f38dae7bea4c4cd4b28e647c5a70f3359"
+        },
+        {
+          "path": "packages/ai-agent/src/shared/enrich-session-messages.ts",
+          "operation": "ADAPT_CONSUMER_AND_TEST",
+          "deletedInWorktree": false,
+          "sha256": "9daf337d1dea1919c27bb030c7db8fc71bfcffd0bb071098a0716ac1e9a73113"
+        },
+        {
+          "path": "packages/ai-agent/src/shared/is-retryable-provider-error.ts",
+          "operation": "PRESERVE_INFERENCE_AND_TESTS",
+          "deletedInWorktree": false,
+          "sha256": "5f97a37114cdc54e8fe2493bfe2aed1059e502485b31d1665ea27343355d5ae4"
+        },
+        {
+          "path": "packages/ai-agent/src/shared/map-messages-to-openai.spec.ts",
+          "operation": "PRESERVE_INFERENCE_AND_TESTS",
+          "deletedInWorktree": false,
+          "sha256": "56a0d791716356e89a5cb36087c70d2567ab8f52ff7208ff0d2c828d88c88040"
+        },
+        {
+          "path": "packages/ai-agent/src/shared/map-messages-to-openai.ts",
+          "operation": "PRESERVE_INFERENCE_AND_TESTS",
+          "deletedInWorktree": false,
+          "sha256": "4421711c539a95ee43fcd80fa95a8937a67e0e39fa6d4503bba6adaec081b77c"
+        },
+        {
+          "path": "packages/ai-agent/src/shared/map-messages-to-openrouter.spec.ts",
+          "operation": "PRESERVE_INFERENCE_AND_TESTS",
+          "deletedInWorktree": false,
+          "sha256": "b86371c37ee9d880e72f52e372b1700a1af7f4b792135b686acb72ff14662e67"
+        },
+        {
+          "path": "packages/ai-agent/src/shared/map-messages-to-openrouter.ts",
+          "operation": "PRESERVE_INFERENCE_AND_TESTS",
+          "deletedInWorktree": false,
+          "sha256": "def050973d950821e889c4908ce49e1329b2cea615b2ed0ef0d923dc971a8483"
+        },
+        {
+          "path": "packages/ai-agent/src/shared/replay-stream-chunks.spec.ts",
+          "operation": "ADAPT_CONSUMER_AND_TEST",
+          "deletedInWorktree": false,
+          "sha256": "07baf5648690780b5ebf1176297aa7e6b6e8af8b45b9887832f6df6fdc8b8cf9"
+        },
+        {
+          "path": "packages/ai-agent/src/shared/replay-stream-chunks.ts",
+          "operation": "ADAPT_CONSUMER_AND_TEST",
+          "deletedInWorktree": false,
+          "sha256": "58b70dafa92f8d43bc8d30f2252c9b15234002cae7ff879b5a4d1cf9fd9f7d72"
+        },
+        {
+          "path": "packages/ai-agent/src/shared/response.ts",
+          "operation": "ADAPT_CONSUMER_AND_TEST",
+          "deletedInWorktree": false,
+          "sha256": "c9a7772b0d03133095553c0699ae8b4ac1d8f59e63bf54613ffc28219e333a06"
+        },
+        {
+          "path": "packages/ai-agent/src/shared/stream-openai-chat-complete.ts",
+          "operation": "PRESERVE_INFERENCE_AND_TESTS",
+          "deletedInWorktree": false,
+          "sha256": "f5382d7065ab454484520912b492437bcce204d66deaab7fa673d2ae5f7be281"
+        },
+        {
+          "path": "packages/ai-agent/src/tools/tool-arg-schemas.spec.ts",
+          "operation": "REMOVE_OLD_CHAT_REVIEW_SHARED_HELPERS",
+          "deletedInWorktree": false,
+          "sha256": "e783bb11a465036c503c64463457c61e41c73e08a66631cf20abb66c66718a88"
+        },
+        {
+          "path": "packages/ai-agent/src/tools/tool-arg-schemas.ts",
+          "operation": "REMOVE_OLD_CHAT_REVIEW_SHARED_HELPERS",
+          "deletedInWorktree": false,
+          "sha256": "7736532d860cc4837354245449b0461aeb09fc7b5885c3e7b1a5557e26870965"
+        },
+        {
+          "path": "packages/ai-agent/src/tools/tool-executor.dispatch.spec.ts",
+          "operation": "REMOVE_OLD_CHAT_REVIEW_SHARED_HELPERS",
+          "deletedInWorktree": false,
+          "sha256": "6ecdf32f6034b850019d68177e2ec4a9c471047b277554a583e4790ba203f19e"
+        },
+        {
+          "path": "packages/ai-agent/src/tools/tool-executor.finance-facade.spec.ts",
+          "operation": "REMOVE_OLD_CHAT_REVIEW_SHARED_HELPERS",
+          "deletedInWorktree": false,
+          "sha256": "af9b43ad3369e10705c33ff4456219041b024510ac13099735ca7bb55d426146"
+        },
+        {
+          "path": "packages/ai-agent/src/tools/tool-executor.service.spec.ts",
+          "operation": "REMOVE_OLD_CHAT_REVIEW_SHARED_HELPERS",
+          "deletedInWorktree": false,
+          "sha256": "234a9b89021a404a84d5ccdc4016970bae6e298167a64bfb7ba33db76beb2f9d"
+        },
+        {
+          "path": "packages/ai-agent/src/tools/tool-executor.service.ts",
+          "operation": "REMOVE_OLD_CHAT_REVIEW_SHARED_HELPERS",
+          "deletedInWorktree": false,
+          "sha256": "3d80702e11591513149aa2524a4ccdbf29ace619fab6560dd8ca2536fef79296"
+        },
+        {
+          "path": "packages/ai-agent/src/tools/tool.registry.spec.ts",
+          "operation": "REMOVE_OLD_CHAT_REVIEW_SHARED_HELPERS",
+          "deletedInWorktree": false,
+          "sha256": "104726ff897ef1960d8a1602c94238a370d8300180d04b392b0ddba2e96b6526"
+        },
+        {
+          "path": "packages/ai-agent/src/tools/tool.registry.ts",
+          "operation": "REMOVE_OLD_CHAT_REVIEW_SHARED_HELPERS",
+          "deletedInWorktree": false,
+          "sha256": "fa5e1d3667b125314bd50a0dcadd80bffb647ea374dc50c5767f02c00f3fa03b"
+        },
+        {
+          "path": "packages/config/src/email-sync-schedule.ts",
+          "operation": "ADAPT_CONSUMER_AND_TEST",
+          "deletedInWorktree": false,
+          "sha256": "ef84cb516a1ef121fb7a8658e594b4656bcbe03a0239557e8f698ae7307866a1"
+        },
+        {
+          "path": "packages/core/src/ai/ai-chat.port.ts",
+          "operation": "ADAPT_CONSUMER_AND_TEST",
+          "deletedInWorktree": false,
+          "sha256": "d336c754abddbb085ebc1716da0c9df74d4413ee1e6be4ae42a5da1802e33ffc"
+        },
+        {
+          "path": "packages/core/src/ai/chat-context.ts",
+          "operation": "ADAPT_CONSUMER_AND_TEST",
+          "deletedInWorktree": false,
+          "sha256": "471bdaea393980b51bfc8004b1980002479082083bda90659fe94c30266651fb"
+        },
+        {
+          "path": "packages/core/src/events/event.constants.ts",
+          "operation": "ADAPT_CONSUMER_AND_TEST",
+          "deletedInWorktree": false,
+          "sha256": "981dbf17d10c219ed32780e177158c00bf1749170b8a756cf8f54bb6a76240eb"
+        },
+        {
+          "path": "packages/core/src/interceptors/ai-metrics.interceptor.ts",
+          "operation": "ADAPT_CONSUMER_AND_TEST",
+          "deletedInWorktree": false,
+          "sha256": "9d7cc42baa6958235e106891d2387409d92227a27b18a809f9848fd495cc3e7a"
+        },
+        {
+          "path": "packages/core/src/queues/bull-board.imports.ts",
+          "operation": "ADAPT_CONSUMER_AND_TEST",
+          "deletedInWorktree": false,
+          "sha256": "bd9c17d3f35e0e1005b8bda94291c695e0c6dfbc0f34be48e0a1f938ff045ec4"
+        },
+        {
+          "path": "packages/core/src/queues/queue.constants.ts",
+          "operation": "ADAPT_CONSUMER_AND_TEST",
+          "deletedInWorktree": false,
+          "sha256": "3557397006bd43e10d773bd98f5652e42751ff68c6a2e473b12f30ff251e93ac"
+        },
+        {
+          "path": "packages/finance/src/finance.facade.ts",
+          "operation": "ADAPT_CONSUMER_AND_TEST",
+          "deletedInWorktree": false,
+          "sha256": "479eae14cad1e555b5be373a3c5fc87f49f765ff5f27aa65be265764974192bd"
+        },
+        {
+          "path": "packages/finance/src/finance.module.ts",
+          "operation": "ADAPT_CONSUMER_AND_TEST",
+          "deletedInWorktree": false,
+          "sha256": "57775f76d64c509dc48bcef85e9ef0962effae9d2a2f4f8e47cbc8e20f4f13f8"
+        },
+        {
+          "path": "packages/finance/src/ingestion/application/backfill-pending-email.use-case.spec.ts",
+          "operation": "PRESERVE_FINANCIAL_RULES_ADAPT_PORTS_AND_TESTS",
+          "deletedInWorktree": false,
+          "sha256": "45158bf0c3ddb0f7a88fe1d703f24a06f15cb994e85af1fa81e4783423e6b91c"
+        },
+        {
+          "path": "packages/finance/src/ingestion/application/backfill-pending-email.use-case.ts",
+          "operation": "PRESERVE_FINANCIAL_RULES_ADAPT_PORTS_AND_TESTS",
+          "deletedInWorktree": false,
+          "sha256": "49533373618ad82130743e4bf5d17d93002d268a6825f44d3677577aa98d64a9"
+        },
+        {
+          "path": "packages/finance/src/ingestion/application/bank-email-fixtures.spec.ts",
+          "operation": "ADAPT_CONSUMER_AND_TEST",
+          "deletedInWorktree": false,
+          "sha256": "87bfe968fd7326585be7cb27ff0d51c33777a98d666fccccda44ab5c407ee089"
+        },
+        {
+          "path": "packages/finance/src/ingestion/application/bank-sender.spec.ts",
+          "operation": "ADAPT_CONSUMER_AND_TEST",
+          "deletedInWorktree": false,
+          "sha256": "ff8e21394ca16cc4825440ce346ef70d3b4dd670b80a37d056e2dab1ff7d060e"
+        },
+        {
+          "path": "packages/finance/src/ingestion/application/bank-sender.ts",
+          "operation": "ADAPT_CONSUMER_AND_TEST",
+          "deletedInWorktree": false,
+          "sha256": "4339b089d9cdf97c6e46cc11b2a45b1490559636fb9358b50a956132c9d006d0"
+        },
+        {
+          "path": "packages/finance/src/ingestion/application/build-email-import-notes.spec.ts",
+          "operation": "ADAPT_CONSUMER_AND_TEST",
+          "deletedInWorktree": false,
+          "sha256": "da0ae01c5c7bc1c7db5e057b3714783e332bdb9941aff3dcfef3a4ed3bd9f4ac"
+        },
+        {
+          "path": "packages/finance/src/ingestion/application/build-email-import-notes.ts",
+          "operation": "ADAPT_CONSUMER_AND_TEST",
+          "deletedInWorktree": false,
+          "sha256": "40c35ba72cbc274ef0a34ab54838dd9f00b7af513f644db68d9e84a2b6717dff"
+        },
+        {
+          "path": "packages/finance/src/ingestion/application/email-message-outcome.ts",
+          "operation": "ADAPT_CONSUMER_AND_TEST",
+          "deletedInWorktree": false,
+          "sha256": "0d0c60852bcabdb9dd6f10a8cce3c130448874d4d98c6af1ae4947937badc2bb"
+        },
+        {
+          "path": "packages/finance/src/ingestion/application/email-movement.spec.ts",
+          "operation": "PRESERVE_FINANCIAL_RULES_ADAPT_PORTS_AND_TESTS",
+          "deletedInWorktree": false,
+          "sha256": "fb36b643797c1c2eeda1f5204d12472e048ea094074c413e7dfea9665a63552e"
+        },
+        {
+          "path": "packages/finance/src/ingestion/application/email-movement.ts",
+          "operation": "PRESERVE_FINANCIAL_RULES_ADAPT_PORTS_AND_TESTS",
+          "deletedInWorktree": false,
+          "sha256": "9c0b24477d2327b5e947b07aad6838b0273f1be461f3a4bf6773b7b26244107d"
+        },
+        {
+          "path": "packages/finance/src/ingestion/application/email-source-view.ts",
+          "operation": "REMOVE_GMAIL_TRANSPORT_AND_EXCLUSIVE_TESTS",
+          "deletedInWorktree": false,
+          "sha256": "a8d87bc219caf72e9cad2702da4a8e10d9e3f395bb7efec8b0433f3bee50fba4"
+        },
+        {
+          "path": "packages/finance/src/ingestion/application/email-source.service.spec.ts",
+          "operation": "REMOVE_GMAIL_TRANSPORT_AND_EXCLUSIVE_TESTS",
+          "deletedInWorktree": false,
+          "sha256": "9e770a090aff29c2507638a971bf38668cb7e778d5c3d30536d2d24b7314adbd"
+        },
+        {
+          "path": "packages/finance/src/ingestion/application/email-source.service.ts",
+          "operation": "REMOVE_GMAIL_TRANSPORT_AND_EXCLUSIVE_TESTS",
+          "deletedInWorktree": false,
+          "sha256": "f58df2ebdb0cf09181c4524c4621479fbc07fa993ddfbd424c62ed4b20534959"
+        },
+        {
+          "path": "packages/finance/src/ingestion/application/enqueue-due-gmail-syncs.use-case.spec.ts",
+          "operation": "REMOVE_GMAIL_TRANSPORT_AND_EXCLUSIVE_TESTS",
+          "deletedInWorktree": false,
+          "sha256": "f2f118897b1b184b45f4ebd8672be62cd99bad3b9f7d58f17efb2a5aa94ef31e"
+        },
+        {
+          "path": "packages/finance/src/ingestion/application/enqueue-due-gmail-syncs.use-case.ts",
+          "operation": "REMOVE_GMAIL_TRANSPORT_AND_EXCLUSIVE_TESTS",
+          "deletedInWorktree": false,
+          "sha256": "df2254776622a82f481592b41a0541448f665e054b6295e6470ca68e8658d53e"
+        },
+        {
+          "path": "packages/finance/src/ingestion/application/gmail-sync-queue.service.ts",
+          "operation": "REMOVE_GMAIL_TRANSPORT_AND_EXCLUSIVE_TESTS",
+          "deletedInWorktree": false,
+          "sha256": "e391fb3999211c09e33403adc178036029931613059546e6c07cbb1afbc8f989"
+        },
+        {
+          "path": "packages/finance/src/ingestion/application/gmail-sync-schedule.spec.ts",
+          "operation": "REMOVE_GMAIL_TRANSPORT_AND_EXCLUSIVE_TESTS",
+          "deletedInWorktree": false,
+          "sha256": "5f0e5ccf13bda5438ed66de1333a7fe0a86d6b463637d907f68a34bc3fc2a234"
+        },
+        {
+          "path": "packages/finance/src/ingestion/application/gmail-sync-schedule.ts",
+          "operation": "REMOVE_GMAIL_TRANSPORT_AND_EXCLUSIVE_TESTS",
+          "deletedInWorktree": false,
+          "sha256": "6c0e4dc7bdef9eeaab9e02a2333c8e83cf9c17b841e23d3d01b218c762901ce3"
+        },
+        {
+          "path": "packages/finance/src/ingestion/application/gmail-sync.constants.ts",
+          "operation": "REMOVE_GMAIL_TRANSPORT_AND_EXCLUSIVE_TESTS",
+          "deletedInWorktree": false,
+          "sha256": "1e6613386a88f891455c1db49ec85d7ae6f58ddd1e350dfbd2f7d516a6e0aa44"
+        },
+        {
+          "path": "packages/finance/src/ingestion/application/ingestion.flows.spec.ts",
+          "operation": "ADAPT_CONSUMER_AND_TEST",
+          "deletedInWorktree": false,
+          "sha256": "5b3a725c8b7697305f0626b186de19434516550003d0828ca7c07c1d472d1526"
+        },
+        {
+          "path": "packages/finance/src/ingestion/application/ingestion.service.spec.ts",
+          "operation": "ADAPT_CONSUMER_AND_TEST",
+          "deletedInWorktree": false,
+          "sha256": "b10615d80580007749bc6a9d3f36d1d39fecee3ed3a53f25e1fedc962890af7c"
+        },
+        {
+          "path": "packages/finance/src/ingestion/application/ingestion.service.ts",
+          "operation": "ADAPT_CONSUMER_AND_TEST",
+          "deletedInWorktree": false,
+          "sha256": "1b204e67c3e13f14606662fced0a938a42e8d1c224d099538f67907bac3a25c0"
+        },
+        {
+          "path": "packages/finance/src/ingestion/application/match-email-transfers.spec.ts",
+          "operation": "PRESERVE_FINANCIAL_RULES_ADAPT_PORTS_AND_TESTS",
+          "deletedInWorktree": false,
+          "sha256": "d2a5a15a8b99022e47d48b48159d72bfa9b24cca1255f713b8221adeaedf4a4f"
+        },
+        {
+          "path": "packages/finance/src/ingestion/application/match-email-transfers.ts",
+          "operation": "PRESERVE_FINANCIAL_RULES_ADAPT_PORTS_AND_TESTS",
+          "deletedInWorktree": false,
+          "sha256": "dbc84a83aa8faa4f4536d1777669cb995596f6f383ef8ed87390b2575debba1e"
+        },
+        {
+          "path": "packages/finance/src/ingestion/application/oauth-client-redirect.spec.ts",
+          "operation": "ADAPT_CONSUMER_AND_TEST",
+          "deletedInWorktree": false,
+          "sha256": "8d47468db6925f94753233bd3984482ced79bb41cb2a333e3c695b89173a505c"
+        },
+        {
+          "path": "packages/finance/src/ingestion/application/oauth-client-redirect.ts",
+          "operation": "ADAPT_CONSUMER_AND_TEST",
+          "deletedInWorktree": false,
+          "sha256": "33314933bb370d3532c9cbbe377b876b7615df5c2785a311814788a713d7d115"
+        },
+        {
+          "path": "packages/finance/src/ingestion/application/parse-extracted-email.spec.ts",
+          "operation": "PRESERVE_FINANCIAL_RULES_ADAPT_PORTS_AND_TESTS",
+          "deletedInWorktree": false,
+          "sha256": "8e4572e0f49430f52f05f5f1e190e020636fa43566ea7b6393e0fbafa0056cd0"
+        },
+        {
+          "path": "packages/finance/src/ingestion/application/parse-extracted-email.ts",
+          "operation": "PRESERVE_FINANCIAL_RULES_ADAPT_PORTS_AND_TESTS",
+          "deletedInWorktree": false,
+          "sha256": "f5a5407383d42ff95bdff662495704b92cce79d6b7b401885e18abd1ed01e69f"
+        },
+        {
+          "path": "packages/finance/src/ingestion/application/ports/email-transaction-extractor.port.ts",
+          "operation": "ADAPT_CONSUMER_AND_TEST",
+          "deletedInWorktree": false,
+          "sha256": "bc226c9f396e8ed41802a65983af11a30c7fc4b877fae16f03518d8546945e37"
+        },
+        {
+          "path": "packages/finance/src/ingestion/application/process-gmail-sync.use-case.spec.ts",
+          "operation": "REMOVE_GMAIL_TRANSPORT_AND_EXCLUSIVE_TESTS",
+          "deletedInWorktree": false,
+          "sha256": "6ccfa68c09085211ae60dd2af69c679320fb9d41615c41b8be066b18ce9330fd"
+        },
+        {
+          "path": "packages/finance/src/ingestion/application/process-gmail-sync.use-case.ts",
+          "operation": "REMOVE_GMAIL_TRANSPORT_AND_EXCLUSIVE_TESTS",
+          "deletedInWorktree": false,
+          "sha256": "dd5162d9e606bc157d731632de79cd7f1bb7fc163a708bd7e27e8fec49a00c7f"
+        },
+        {
+          "path": "packages/finance/src/ingestion/application/resolve-email-ledger-target.spec.ts",
+          "operation": "PRESERVE_FINANCIAL_RULES_ADAPT_PORTS_AND_TESTS",
+          "deletedInWorktree": false,
+          "sha256": "24bd075a63ece5acb311d287c3d59dd3581b39e54bd3c10726f8438eade43552"
+        },
+        {
+          "path": "packages/finance/src/ingestion/application/resolve-email-ledger-target.ts",
+          "operation": "PRESERVE_FINANCIAL_RULES_ADAPT_PORTS_AND_TESTS",
+          "deletedInWorktree": false,
+          "sha256": "974464d6aa28db5c89b80b2eab449581fc56619a430a7f7de9587b9ad97dcff4"
+        },
+        {
+          "path": "packages/finance/src/ingestion/application/resolve-reverse-original.ts",
+          "operation": "ADAPT_CONSUMER_AND_TEST",
+          "deletedInWorktree": false,
+          "sha256": "e36ede9cc0cf0ea023e40f25a22c4f4003e0602039cec074396924c9fd84c3ca"
+        },
+        {
+          "path": "packages/finance/src/ingestion/application/retry-pending-reverses.use-case.spec.ts",
+          "operation": "ADAPT_CONSUMER_AND_TEST",
+          "deletedInWorktree": false,
+          "sha256": "8b96a1ac19ddb59f7d11bbc7b2e411e99f73f16aa4e61230795542884c4ad068"
+        },
+        {
+          "path": "packages/finance/src/ingestion/application/retry-pending-reverses.use-case.ts",
+          "operation": "ADAPT_CONSUMER_AND_TEST",
+          "deletedInWorktree": false,
+          "sha256": "9ff62741c37316264445a1c9fc93cc4f13723c3bf5e36daf8bbafb23be680703"
+        },
+        {
+          "path": "packages/finance/src/ingestion/application/route-extracted-email.use-case.spec.ts",
+          "operation": "PRESERVE_FINANCIAL_RULES_ADAPT_PORTS_AND_TESTS",
+          "deletedInWorktree": false,
+          "sha256": "1e85caadbd3805caf237b5204bd12e81c11b9a783d524a4d5a6626cfbc95388b"
+        },
+        {
+          "path": "packages/finance/src/ingestion/application/route-extracted-email.use-case.ts",
+          "operation": "PRESERVE_FINANCIAL_RULES_ADAPT_PORTS_AND_TESTS",
+          "deletedInWorktree": false,
+          "sha256": "7d0086076fab493d89f424598cd6ca5b1d1b111b6319aac6e7f88458c05765d3"
+        },
+        {
+          "path": "packages/finance/src/ingestion/infrastructure/ai-email-transaction.extractor.spec.ts",
+          "operation": "ADAPT_CONSUMER_AND_TEST",
+          "deletedInWorktree": false,
+          "sha256": "fd2e735131578de0725d6d577bc7fe21f01ee5d34cd082af8bbe4de655590d01"
+        },
+        {
+          "path": "packages/finance/src/ingestion/infrastructure/ai-email-transaction.extractor.ts",
+          "operation": "ADAPT_CONSUMER_AND_TEST",
+          "deletedInWorktree": false,
+          "sha256": "68a083a388c9c1574d0a03d2da5170dbf7991636f97b03e96b77061b3791628a"
+        },
+        {
+          "path": "packages/finance/src/ingestion/infrastructure/email-message-retention.scheduler.spec.ts",
+          "operation": "REMOVE_GMAIL_TRANSPORT_AND_EXCLUSIVE_TESTS",
+          "deletedInWorktree": false,
+          "sha256": "7fc86bd682abb392c9fdf3210832f0ca3092adfdce137b89a7189c4c301bd28c"
+        },
+        {
+          "path": "packages/finance/src/ingestion/infrastructure/email-message-retention.scheduler.ts",
+          "operation": "REMOVE_GMAIL_TRANSPORT_AND_EXCLUSIVE_TESTS",
+          "deletedInWorktree": false,
+          "sha256": "0f9d6d957bbe10b03fbd9d82d55bd49ba4e7e1dce50308c31262ed33be4dec47"
+        },
+        {
+          "path": "packages/finance/src/ingestion/infrastructure/email-source.repository.spec.ts",
+          "operation": "REMOVE_GMAIL_TRANSPORT_AND_EXCLUSIVE_TESTS",
+          "deletedInWorktree": false,
+          "sha256": "4400fe4e3f45bc35cccfe67f9996789852bb3f85e01f1ec748bc83aa39c0dabb"
+        },
+        {
+          "path": "packages/finance/src/ingestion/infrastructure/email-source.repository.ts",
+          "operation": "REMOVE_GMAIL_TRANSPORT_AND_EXCLUSIVE_TESTS",
+          "deletedInWorktree": false,
+          "sha256": "04948ac89a9fa17e033e777267dbe7c5f3dd029ed0a1cb71db59ca2dd7c085b2"
+        },
+        {
+          "path": "packages/finance/src/ingestion/infrastructure/gmail-api.util.spec.ts",
+          "operation": "REMOVE_GMAIL_TRANSPORT_AND_EXCLUSIVE_TESTS",
+          "deletedInWorktree": false,
+          "sha256": "2f9bf0bfecd0a0ee5d426339cfd0b2c6cf73910d1f7bae268af389768e868ca3"
+        },
+        {
+          "path": "packages/finance/src/ingestion/infrastructure/gmail-api.util.ts",
+          "operation": "REMOVE_GMAIL_TRANSPORT_AND_EXCLUSIVE_TESTS",
+          "deletedInWorktree": false,
+          "sha256": "4f75aea15401e3c8feb39afa3a2099396c8ed0915166083ba7b6b9ee976133e5"
+        },
+        {
+          "path": "packages/finance/src/ingestion/infrastructure/gmail-auto-sync.scheduler.ts",
+          "operation": "REMOVE_GMAIL_TRANSPORT_AND_EXCLUSIVE_TESTS",
+          "deletedInWorktree": false,
+          "sha256": "a046f701f67a20876ba638d61f9a6a5069333d6fb20fa4b2ce7a41d1b10f6780"
+        },
+        {
+          "path": "packages/finance/src/ingestion/infrastructure/gmail-sync.processor.ts",
+          "operation": "REMOVE_GMAIL_TRANSPORT_AND_EXCLUSIVE_TESTS",
+          "deletedInWorktree": false,
+          "sha256": "99f0463c7a865c833a9782c365802768d0b884429bd61663bb33f22ef3374ee6"
+        },
+        {
+          "path": "packages/finance/src/ingestion/infrastructure/token-encryption.util.spec.ts",
+          "operation": "ADAPT_CONSUMER_AND_TEST",
+          "deletedInWorktree": false,
+          "sha256": "1d85b44f3e24bcbb660af65e3a67369e7681c6dac5a3a32822d0c5c19ffaa5b5"
+        },
+        {
+          "path": "packages/finance/src/ingestion/infrastructure/token-encryption.util.ts",
+          "operation": "ADAPT_CONSUMER_AND_TEST",
+          "deletedInWorktree": false,
+          "sha256": "6a0f375f4d8e10fb504a93a038a4cf53bf6923919b50d522829c66e710cca561"
+        },
+        {
+          "path": "packages/finance/src/ingestion/ingestion.module.ts",
+          "operation": "ADAPT_CONSUMER_AND_TEST",
+          "deletedInWorktree": false,
+          "sha256": "ecb3ec07a8033d5d38af4afdf6d1fc14a4bfefb355bbf57d227aaad4770a421d"
+        },
+        {
+          "path": "packages/finance/src/ingestion/presentation/dto/connect-email-source.dto.ts",
+          "operation": "REMOVE_GMAIL_TRANSPORT_AND_EXCLUSIVE_TESTS",
+          "deletedInWorktree": false,
+          "sha256": "02e9d252aa6141ae27a6299b17467e75fa0a4a7620d0f63121f129c3ae62581b"
+        },
+        {
+          "path": "packages/finance/src/ingestion/presentation/dto/oauth-callback-query.dto.ts",
+          "operation": "ADAPT_CONSUMER_AND_TEST",
+          "deletedInWorktree": false,
+          "sha256": "ec64fe25c40d87f113878748851ef500f5f8e314caee1cecfeb9e6f9d0f6ce1c"
+        },
+        {
+          "path": "packages/finance/src/ingestion/presentation/dto/update-email-source.dto.ts",
+          "operation": "REMOVE_GMAIL_TRANSPORT_AND_EXCLUSIVE_TESTS",
+          "deletedInWorktree": false,
+          "sha256": "a003130e56bf006c30662519013b8a3d857dfab12840f6887ef8972266d82939"
+        },
+        {
+          "path": "packages/finance/src/ingestion/presentation/email-sync.controller.ts",
+          "operation": "REMOVE_GMAIL_TRANSPORT_AND_EXCLUSIVE_TESTS",
+          "deletedInWorktree": false,
+          "sha256": "c80c50ab4977d35800bb6b8aca3ef82f0b5fa8bd35311cfb480e63866d3e3cff"
+        },
+        {
+          "path": "packages/finance/src/ledger/application/commands/ledger.commands.ts",
+          "operation": "ADAPT_CONSUMER_AND_TEST",
+          "deletedInWorktree": false,
+          "sha256": "69e942c27354dc0a8d3a8d069d732baeb51d1721dc8c9b580750a70ec83c3fa3"
+        },
+        {
+          "path": "packages/finance/src/ledger/application/import-email-transaction.use-case.ts",
+          "operation": "PRESERVE_FINANCIAL_RULES_ADAPT_PORTS_AND_TESTS",
+          "deletedInWorktree": false,
+          "sha256": "c5639e661a98ba63a79394d231566a1faa624d6aa76220a180284c31ab87a778"
+        },
+        {
+          "path": "packages/finance/src/ledger/application/ports/ledger.repository.port.ts",
+          "operation": "ADAPT_CONSUMER_AND_TEST",
+          "deletedInWorktree": false,
+          "sha256": "541523b6c95aca0387d35242fcd42336146e15a47cee34515eefb067e7397d9e"
+        },
+        {
+          "path": "packages/finance/src/ledger/infrastructure/prisma-ledger-email-import.repository.ts",
+          "operation": "PRESERVE_FINANCIAL_RULES_ADAPT_PORTS_AND_TESTS",
+          "deletedInWorktree": false,
+          "sha256": "a21cf3d578f38d7d70b4e40cc6198e2a3296ed093933b3695997655532b992c3"
+        },
+        {
+          "path": "packages/finance/src/ledger/infrastructure/prisma-ledger-write.repository.ts",
+          "operation": "ADAPT_CONSUMER_AND_TEST",
+          "deletedInWorktree": false,
+          "sha256": "0d1459557e3be32c6e0122fbcece63b1039fe82347ef618328ffe05ed789c357"
+        },
+        {
+          "path": "packages/finance/src/ledger/infrastructure/prisma-ledger.repository.ts",
+          "operation": "ADAPT_CONSUMER_AND_TEST",
+          "deletedInWorktree": false,
+          "sha256": "b91837b3cf2c9255a4c08688f3bd79faf47bad25bf1e9d651246d6ac27cf3fd5"
+        },
+        {
+          "path": "packages/finance/src/quick-entry/infrastructure/ai-quick-entry.extractor.ts",
+          "operation": "ADAPT_CONSUMER_AND_TEST",
+          "deletedInWorktree": false,
+          "sha256": "d13afce92dc312840506871710a28df9a5d238828dd77d527ad0a2354cb8997d"
+        },
+        {
+          "path": "packages/finance/src/shared/application/chat-context-entity.service.spec.ts",
+          "operation": "ADAPT_CONSUMER_AND_TEST",
+          "deletedInWorktree": false,
+          "sha256": "03615bce92e041a738ed59436b06da7b087b31b905ce51b3ea5dca72574c068a"
+        },
+        {
+          "path": "packages/finance/src/shared/application/chat-context-entity.service.ts",
+          "operation": "ADAPT_CONSUMER_AND_TEST",
+          "deletedInWorktree": false,
+          "sha256": "1c46f652b4a923774d99b3884df7cf18a45465c35fc8c8f8e82badb1595db045"
+        },
+        {
+          "path": "packages/finance/src/shared/application/wipe-finance-user-data.use-case.spec.ts",
+          "operation": "ADAPT_CONSUMER_AND_TEST",
+          "deletedInWorktree": false,
+          "sha256": "14feb79f6fa314506016629e2d9da8b79880ea09f34d9a7383899935eaab98a5"
+        },
+        {
+          "path": "packages/finance/src/shared/application/wipe-finance-user-data.use-case.ts",
+          "operation": "ADAPT_CONSUMER_AND_TEST",
+          "deletedInWorktree": false,
+          "sha256": "c4d17ad72fc759e70265f5e4b84b8c36126cc950c3d10a581560961d560f834d"
+        },
+        {
+          "path": "packages/finance/src/shared/chat-context.module.ts",
+          "operation": "ADAPT_CONSUMER_AND_TEST",
+          "deletedInWorktree": false,
+          "sha256": "a61b24faf8d9cc0d85cc0784969ce325680f265f2435460e523525a59851179e"
+        },
+        {
+          "path": "packages/finance/src/shared/domain/deletion-snapshot.ts",
+          "operation": "ADAPT_CONSUMER_AND_TEST",
+          "deletedInWorktree": false,
+          "sha256": "b8830d2a096072e8677bc2617d0c1487d3ffa416b6916ddf2a73ea0b88f64988"
+        },
+        {
+          "path": "packages/finance/src/shared/domain/finance-data-branches.ts",
+          "operation": "ADAPT_CONSUMER_AND_TEST",
+          "deletedInWorktree": false,
+          "sha256": "6056099766114f545421ea091fa4be83cefae211a9fa86e3af113f93195ee392"
+        },
+        {
+          "path": "packages/finance/src/shared/wipe-finance.module.ts",
+          "operation": "ADAPT_CONSUMER_AND_TEST",
+          "deletedInWorktree": false,
+          "sha256": "954a70e05652b20f2a46b4815fea1c6140f05193fc1e07137bb8a35693c747f1"
+        },
+        {
+          "path": "packages/finance/src/statements/infrastructure/ai-statement.extractor.ts",
+          "operation": "ADAPT_CONSUMER_AND_TEST",
+          "deletedInWorktree": false,
+          "sha256": "c32eb45ca7d551836889a4827873e2bb0c469ad81aa55ec34391774c0c25f1aa"
+        },
+        {
+          "path": "packages/notifications/src/application/notifications.processor.ts",
+          "operation": "ADAPT_CONSUMER_AND_TEST",
+          "deletedInWorktree": false,
+          "sha256": "7e5de67dade5a99dd9f22437aa6b0f6821298711db8d431ca92ac1fe09f3fca0"
+        },
+        {
+          "path": "packages/notifications/src/infrastructure/email-sync.processor.ts",
+          "operation": "KEEP_RESEND_PROCESSOR_AND_TESTS",
+          "deletedInWorktree": false,
+          "sha256": "30eb426e5810c472c4a0e74aaa60ebefb1b44dbea64ece8fb4bdef8bcf1f4335"
+        },
+        {
+          "path": "packages/users/src/application/ports/user-data-wipe-domains.port.ts",
+          "operation": "ADAPT_CONSUMER_AND_TEST",
+          "deletedInWorktree": false,
+          "sha256": "d657abfbf146880a4d2dedd04e53c6095152f5be771e76f890aa5d8bd2af0787"
+        },
+        {
+          "path": "packages/users/src/application/wipe-user-data.use-case.spec.ts",
+          "operation": "ADAPT_CONSUMER_AND_TEST",
+          "deletedInWorktree": false,
+          "sha256": "c14a3e8d28179ec4cbdc384d5eda48334a7c5d2d75d478ec0b06b7657074b8bd"
+        },
+        {
+          "path": "packages/users/src/application/wipe-user-data.use-case.ts",
+          "operation": "ADAPT_CONSUMER_AND_TEST",
+          "deletedInWorktree": false,
+          "sha256": "12b7a455a9bd370ff0e6c1fc4d1e21e57f1fc3a6f00e3a34e89e2380df4a7f62"
+        },
+        {
+          "path": "packages/users/src/domain/defaults/user-settings-defaults.ts",
+          "operation": "ADAPT_CONSUMER_AND_TEST",
+          "deletedInWorktree": false,
+          "sha256": "eca03ef5277f5b5767f9dc6439467d945bcc20f16584528f6475bd60772553c1"
+        },
+        {
+          "path": "packages/users/src/infrastructure/users.repository.ts",
+          "operation": "ADAPT_CONSUMER_AND_TEST",
+          "deletedInWorktree": false,
+          "sha256": "283ef888178877e5688ef45ca579edf37a329003fb4d7203d852614ae7b158ab"
+        },
+        {
+          "path": "packages/users/src/presentation/dto/wipe-user-data.dto.ts",
+          "operation": "ADAPT_CONSUMER_AND_TEST",
+          "deletedInWorktree": false,
+          "sha256": "fa483827b52c9c4562ac77b87c84d01a34b30388a7632d7192e304eeb573938f"
+        },
+        {
+          "path": "test/ai-agent.e2e-spec.ts",
+          "operation": "ADAPT_CONSUMER_AND_TEST",
+          "deletedInWorktree": false,
+          "sha256": "797cdf796a247033a2f7faf53dfb3de8a36a91ab278b30506ed9a92b4ef445dc"
+        },
+        {
+          "path": "test/helpers/prisma.mock.ts",
+          "operation": "ADAPT_CONSUMER_AND_TEST",
+          "deletedInWorktree": false,
+          "sha256": "6320d7ed59ee599d341965213940d992ba0a532fe481f2c98247a83adaac04ae"
+        },
+        {
+          "path": "test/users.e2e-spec.ts",
+          "operation": "ADAPT_CONSUMER_AND_TEST",
+          "deletedInWorktree": false,
+          "sha256": "bba460ba317698e42bddd30b801ce12f03e2c41218ee57a4157191b5b5970fe0"
+        }
+      ]
+    },
+    {
+      "repo": "web",
+      "revision": "bd48886bf0cb92d554eccc4238002584b0f1087c",
+      "worktreeStatus": "M src/modules/ai/components/blocks/chat-block-renderer.tsx\n D src/modules/ai/components/blocks/chat-budget-progress.tsx\n D src/modules/ai/components/blocks/chat-loan-summary.tsx\n D src/modules/ai/components/blocks/chat-movement-row.tsx\n D src/modules/ai/components/blocks/chat-transaction-card.tsx\n D src/modules/ai/components/blocks/chat-transaction-list.tsx\n M src/modules/ai/components/chat-message-renderer.tsx\n M src/modules/ai/types/chat.types.ts\n M src/modules/card-gallery/README.md\n D src/modules/card-gallery/drafts/chat-entity-block.tsx\n M src/modules/card-gallery/entities.ts\n M src/modules/card-gallery/variants/chat.tsx\n M src/modules/finance/index.ts\n M src/shared/constants/api-endpoints.ts\n?? docs/handoff/\n?? public/images/neo-sekuo-art-style.png\n?? src/modules/ai/components/blocks/chat-entity-block.tsx\n?? src/modules/ai/components/blocks/chat-entity-card.tsx\n?? src/modules/ai/components/blocks/chat-entity-fallback.tsx\n?? src/modules/ai/components/blocks/chat-entity-list.tsx\n?? src/modules/ai/components/blocks/chat-entity-ref-card.tsx\n?? src/modules/ai/lib/chat-entity-refs.ts\n?? src/modules/finance/shared/hooks/use-entity-lookup.ts\n?? src/modules/finance/shared/lib/entity-lookup.ts",
+      "entries": [
+        {
+          "path": "src/modules/ai/components/blocks/chat-entity-block.tsx",
+          "operation": "REMOVE_OLD_CHAT_REVIEW_REUSABLE_ENTITY_CARDS",
+          "deletedInWorktree": false,
+          "sha256": "d1af904d9842320c390aec24a893bb6905e24507d526ce8db7088f49c5345391"
+        },
+        {
+          "path": "src/modules/ai/components/blocks/chat-entity-card.tsx",
+          "operation": "REMOVE_OLD_CHAT_REVIEW_REUSABLE_ENTITY_CARDS",
+          "deletedInWorktree": false,
+          "sha256": "1e100d175de603ed6fc7c586ffcd4423e279155da0b16efe54821256aaeae797"
+        },
+        {
+          "path": "src/modules/ai/components/blocks/chat-entity-fallback.tsx",
+          "operation": "REMOVE_OLD_CHAT_REVIEW_REUSABLE_ENTITY_CARDS",
+          "deletedInWorktree": false,
+          "sha256": "5548f5fe1a792dd28ea5b65b784f8af054d0fd37fe4fc2558b29c808113d67d6"
+        },
+        {
+          "path": "src/modules/ai/components/blocks/chat-entity-list.tsx",
+          "operation": "REMOVE_OLD_CHAT_REVIEW_REUSABLE_ENTITY_CARDS",
+          "deletedInWorktree": false,
+          "sha256": "8ea65e62e74f92e9b515b17238acb64d1c1f9ed14eeac7ba2c6c6e18d41c6d93"
+        },
+        {
+          "path": "src/modules/ai/components/blocks/chat-entity-ref-card.tsx",
+          "operation": "REMOVE_OLD_CHAT_REVIEW_REUSABLE_ENTITY_CARDS",
+          "deletedInWorktree": false,
+          "sha256": "1c73989b27d3c45022bd12b03a23d0e100cd0ccfcce5511e2cd40e81c7992b02"
+        },
+        {
+          "path": "src/modules/ai/lib/chat-entity-refs.ts",
+          "operation": "REMOVE_OLD_CHAT_REVIEW_REUSABLE_ENTITY_CARDS",
+          "deletedInWorktree": false,
+          "sha256": "d2ddb8e27210424cc12743facaaa31be175edea019cb41516aa54279346225f6"
+        },
+        {
+          "path": "app/(app)/finance/sync/page.tsx",
+          "operation": "REMOVE_GMAIL_SURFACE_AND_TESTS",
+          "deletedInWorktree": false,
+          "sha256": "fccdd9f955eeb04c3c0ea40b0d47703323575f7aafb62771fc7243cea01e3700"
+        },
+        {
+          "path": "app/(app)/layout.tsx",
+          "operation": "ADAPT_CONSUMER_AND_TEST",
+          "deletedInWorktree": false,
+          "sha256": "e063c129a2b4f99adfb5a51fd5e54b36714ab176cd2ae7000d8f2f84b695ca7c"
+        },
+        {
+          "path": "src/modules/ai/ai-gate.tsx",
+          "operation": "REMOVE_OLD_CHAT_REVIEW_REUSABLE_ENTITY_CARDS",
+          "deletedInWorktree": false,
+          "sha256": "8e7107a76bf5397cd5d99863962d61c15052ee377973fe00595d6009260bb04c"
+        },
+        {
+          "path": "src/modules/ai/chat-screen.tsx",
+          "operation": "REMOVE_OLD_CHAT_REVIEW_REUSABLE_ENTITY_CARDS",
+          "deletedInWorktree": false,
+          "sha256": "5bb0e18d02372c6f7c240eadae03ffdf65338d2f64b206c79a85ceb98fdc1105"
+        },
+        {
+          "path": "src/modules/ai/components/blocks/chat-block-renderer.tsx",
+          "operation": "REMOVE_OLD_CHAT_REVIEW_REUSABLE_ENTITY_CARDS",
+          "deletedInWorktree": false,
+          "sha256": "576f1e7f8c0a6b8aff4ad92ff52793f82190759f6b03d6967021991d26c6ed3e"
+        },
+        {
+          "path": "src/modules/ai/components/blocks/chat-budget-progress.tsx",
+          "operation": "REMOVE_OLD_CHAT_REVIEW_REUSABLE_ENTITY_CARDS",
+          "deletedInWorktree": true,
+          "sha256": "ce3db9893357596cb0de88d23c662401042f6e49beb358dc8d7222e7d958d62c"
+        },
+        {
+          "path": "src/modules/ai/components/blocks/chat-chart-data.spec.ts",
+          "operation": "REMOVE_OLD_CHAT_REVIEW_REUSABLE_ENTITY_CARDS",
+          "deletedInWorktree": false,
+          "sha256": "46487a3266a71ba199819abe2c379d6142aaaca3b4fbfca57e51b54e00ef4c55"
+        },
+        {
+          "path": "src/modules/ai/components/blocks/chat-chart-data.ts",
+          "operation": "REMOVE_OLD_CHAT_REVIEW_REUSABLE_ENTITY_CARDS",
+          "deletedInWorktree": false,
+          "sha256": "9cb8be1b4769171fc06d64a32464c956aa6ae1e24706a0ce3ce527caae8033bb"
+        },
+        {
+          "path": "src/modules/ai/components/blocks/chat-chart.tsx",
+          "operation": "REMOVE_OLD_CHAT_REVIEW_REUSABLE_ENTITY_CARDS",
+          "deletedInWorktree": false,
+          "sha256": "20053e3a740d247111754122a9e138ac5563594273f44d232f35f8a04d739f6d"
+        },
+        {
+          "path": "src/modules/ai/components/blocks/chat-loan-summary.tsx",
+          "operation": "REMOVE_OLD_CHAT_REVIEW_REUSABLE_ENTITY_CARDS",
+          "deletedInWorktree": true,
+          "sha256": "f769dcf78f4a1e8f24cf508c017e0e63ca8865cfb024d8641ef460d6b9a35f0a"
+        },
+        {
+          "path": "src/modules/ai/components/blocks/chat-money.ts",
+          "operation": "REMOVE_OLD_CHAT_REVIEW_REUSABLE_ENTITY_CARDS",
+          "deletedInWorktree": false,
+          "sha256": "0cf369e261de26f908a3c63d2f313caf78b9d9d04009296e188a08eaccf24c69"
+        },
+        {
+          "path": "src/modules/ai/components/blocks/chat-movement-row.tsx",
+          "operation": "REMOVE_OLD_CHAT_REVIEW_REUSABLE_ENTITY_CARDS",
+          "deletedInWorktree": true,
+          "sha256": "8a65dbc33c7e8bbc131ab5a4efd860aa030f9d677d82b6950500a3c9cfae41c2"
+        },
+        {
+          "path": "src/modules/ai/components/blocks/chat-transaction-card.tsx",
+          "operation": "REMOVE_OLD_CHAT_REVIEW_REUSABLE_ENTITY_CARDS",
+          "deletedInWorktree": true,
+          "sha256": "e51059cfde107ed0771ebc705f84dcfa94d35f5955d9594fcf4fbad07fec3937"
+        },
+        {
+          "path": "src/modules/ai/components/blocks/chat-transaction-list.tsx",
+          "operation": "REMOVE_OLD_CHAT_REVIEW_REUSABLE_ENTITY_CARDS",
+          "deletedInWorktree": true,
+          "sha256": "0e58c31fc03d8f1f65ee13fd3f0e647dfc978cbde2c6e7b1accbc8a462f86824"
+        },
+        {
+          "path": "src/modules/ai/components/chat-action-card.tsx",
+          "operation": "REMOVE_OLD_CHAT_REVIEW_REUSABLE_ENTITY_CARDS",
+          "deletedInWorktree": false,
+          "sha256": "b9e7f3feff9416bb4c95ed4a6ab6f38baea8fbb7fe701ea15d03f3cdddd00006"
+        },
+        {
+          "path": "src/modules/ai/components/chat-empty-suggestions.tsx",
+          "operation": "REMOVE_OLD_CHAT_REVIEW_REUSABLE_ENTITY_CARDS",
+          "deletedInWorktree": false,
+          "sha256": "8098b0b286600c9ddc779f98c99bd2f39a542ee2942ae8fe191a1f3dd87e9933"
+        },
+        {
+          "path": "src/modules/ai/components/chat-input.tsx",
+          "operation": "REMOVE_OLD_CHAT_REVIEW_REUSABLE_ENTITY_CARDS",
+          "deletedInWorktree": false,
+          "sha256": "e070c3ef7ebafd1a1ab53f2fee66f513096b55495524c01e8d6be5977af7c830"
+        },
+        {
+          "path": "src/modules/ai/components/chat-launcher-button.tsx",
+          "operation": "REMOVE_OLD_CHAT_REVIEW_REUSABLE_ENTITY_CARDS",
+          "deletedInWorktree": false,
+          "sha256": "ef54145aa6903aac3ccf031d67c42025f7cbf47d0ea0713215b6589fe02e84af"
+        },
+        {
+          "path": "src/modules/ai/components/chat-markdown-block.tsx",
+          "operation": "REMOVE_OLD_CHAT_REVIEW_REUSABLE_ENTITY_CARDS",
+          "deletedInWorktree": false,
+          "sha256": "093bfb0ed40ec44280c3866eacf5b0aafb237c5ce2555bf3e2cea50862779e91"
+        },
+        {
+          "path": "src/modules/ai/components/chat-message-renderer.tsx",
+          "operation": "REMOVE_OLD_CHAT_REVIEW_REUSABLE_ENTITY_CARDS",
+          "deletedInWorktree": false,
+          "sha256": "592db203b1455d9825255c07ec7bb493b798bd165734cae320bb0e90ae21e3ef"
+        },
+        {
+          "path": "src/modules/ai/components/chat-session-sheet.tsx",
+          "operation": "REMOVE_OLD_CHAT_REVIEW_REUSABLE_ENTITY_CARDS",
+          "deletedInWorktree": false,
+          "sha256": "f38bad17fdb557ace84cddc4c1e07ae7b79e211d408eee768a9ef93173da40b8"
+        },
+        {
+          "path": "src/modules/ai/constants/chat-suggestions.ts",
+          "operation": "REMOVE_OLD_CHAT_REVIEW_REUSABLE_ENTITY_CARDS",
+          "deletedInWorktree": false,
+          "sha256": "62bfe02210fa5a87d4b9896ff65eca15511aa0dc54cce9436a39fa4b61895a74"
+        },
+        {
+          "path": "src/modules/ai/context/chat-context.tsx",
+          "operation": "REMOVE_OLD_CHAT_REVIEW_REUSABLE_ENTITY_CARDS",
+          "deletedInWorktree": false,
+          "sha256": "87590f4091834cdcb8043a2f8b1896f66aa9bdcdeeb9e6490e54ea1db759743a"
+        },
+        {
+          "path": "src/modules/ai/hooks/use-ai-actions.ts",
+          "operation": "DETACH_SESSION_OWNERSHIP_PRESERVE_CAS_DISABLE_RUNTIME",
+          "deletedInWorktree": false,
+          "sha256": "8d87c487b66f0e2b8fb60d8c2ed1c92e4633ae95c0c005f749a577019d8fddde"
+        },
+        {
+          "path": "src/modules/ai/hooks/use-ai-chat.ts",
+          "operation": "REMOVE_OLD_CHAT_REVIEW_REUSABLE_ENTITY_CARDS",
+          "deletedInWorktree": false,
+          "sha256": "2747e44a2c2a357049c65f80c0ce90999f75e0091a1c94a41f48d320138068a6"
+        },
+        {
+          "path": "src/modules/ai/hooks/use-ai-sessions.ts",
+          "operation": "REMOVE_OLD_CHAT_REVIEW_REUSABLE_ENTITY_CARDS",
+          "deletedInWorktree": false,
+          "sha256": "99fedbb1194ec71b1f666cf91cc9aef931c9532b0b13e82013394421c120666a"
+        },
+        {
+          "path": "src/modules/ai/hooks/use-ai-side-effects.ts",
+          "operation": "REMOVE_OLD_CHAT_REVIEW_REUSABLE_ENTITY_CARDS",
+          "deletedInWorktree": false,
+          "sha256": "dfd802fdba30be7cb229e5b49cbb17b3e0145759a5fd985a95dc9d8e8bda2621"
+        },
+        {
+          "path": "src/modules/ai/hooks/use-ai-socket.ts",
+          "operation": "REMOVE_OLD_CHAT_REVIEW_REUSABLE_ENTITY_CARDS",
+          "deletedInWorktree": false,
+          "sha256": "22f862efb250f11763fcd166c4ec1a36a99f0683528f18e366317d61488835f3"
+        },
+        {
+          "path": "src/modules/ai/index.ts",
+          "operation": "REMOVE_OLD_CHAT_REVIEW_REUSABLE_ENTITY_CARDS",
+          "deletedInWorktree": false,
+          "sha256": "2d3166a7bcfcb2dd052251aa5a11fb5303986fb661ef87d19c15f994e5b07aff"
+        },
+        {
+          "path": "src/modules/ai/lib/action-status-label.ts",
+          "operation": "REMOVE_OLD_CHAT_REVIEW_REUSABLE_ENTITY_CARDS",
+          "deletedInWorktree": false,
+          "sha256": "6e446aa6524aeec6b7eb0c034c382567732ea430086110348bd6333fcb06dee4"
+        },
+        {
+          "path": "src/modules/ai/lib/ai-chat-stream.ts",
+          "operation": "REMOVE_OLD_CHAT_REVIEW_REUSABLE_ENTITY_CARDS",
+          "deletedInWorktree": false,
+          "sha256": "79d4e18d89c2dec7fc3ef4e8e10c11a9144a62fae293988572fd0b97fe478c67"
+        },
+        {
+          "path": "src/modules/ai/lib/chat-context-params.spec.ts",
+          "operation": "REMOVE_OLD_CHAT_REVIEW_REUSABLE_ENTITY_CARDS",
+          "deletedInWorktree": false,
+          "sha256": "27de6dc8d68fd967a6e2ae9d87d070315d4a7ed2af4ed405e5a31a482286e7b5"
+        },
+        {
+          "path": "src/modules/ai/lib/chat-context-params.ts",
+          "operation": "REMOVE_OLD_CHAT_REVIEW_REUSABLE_ENTITY_CARDS",
+          "deletedInWorktree": false,
+          "sha256": "78e7af2d141c8ba2e0a303f3ee4dcc1d805dce5e097d5da3f60de5cf342ca5c4"
+        },
+        {
+          "path": "src/modules/ai/lib/chat-context-registry.spec.ts",
+          "operation": "REMOVE_OLD_CHAT_REVIEW_REUSABLE_ENTITY_CARDS",
+          "deletedInWorktree": false,
+          "sha256": "3947ea1e426ab917ebd28c62290ddd2850384be386c668b10a20af5082ae502e"
+        },
+        {
+          "path": "src/modules/ai/lib/chat-context-registry.ts",
+          "operation": "REMOVE_OLD_CHAT_REVIEW_REUSABLE_ENTITY_CARDS",
+          "deletedInWorktree": false,
+          "sha256": "cbcbf927ef805db879c48f4786e7a8e2b9193856ef5f9451359d8c5c2b17e6ff"
+        },
+        {
+          "path": "src/modules/ai/lib/merge-session-messages.spec.ts",
+          "operation": "REMOVE_OLD_CHAT_REVIEW_REUSABLE_ENTITY_CARDS",
+          "deletedInWorktree": false,
+          "sha256": "2690476036793c55a1b36c489ce5b289bb08c0574e332fda71302333a1715b17"
+        },
+        {
+          "path": "src/modules/ai/lib/merge-session-messages.ts",
+          "operation": "REMOVE_OLD_CHAT_REVIEW_REUSABLE_ENTITY_CARDS",
+          "deletedInWorktree": false,
+          "sha256": "1db920c0b7654567c594cb427650b2484afaac45cbfdfb6181a0f1b7634c5a5b"
+        },
+        {
+          "path": "src/modules/ai/lib/resolve-message-blocks.spec.ts",
+          "operation": "REMOVE_OLD_CHAT_REVIEW_REUSABLE_ENTITY_CARDS",
+          "deletedInWorktree": false,
+          "sha256": "927dd3a34b4fa5c50cb540bc2d1a6926506b58c202340ebeb46e509d793e73fe"
+        },
+        {
+          "path": "src/modules/ai/lib/resolve-message-blocks.ts",
+          "operation": "REMOVE_OLD_CHAT_REVIEW_REUSABLE_ENTITY_CARDS",
+          "deletedInWorktree": false,
+          "sha256": "3302fd5565c97150dd04ec37151e5661e287095bf9d8d95a40b29e7bb8834f9d"
+        },
+        {
+          "path": "src/modules/ai/types/chat.types.ts",
+          "operation": "REMOVE_OLD_CHAT_REVIEW_REUSABLE_ENTITY_CARDS",
+          "deletedInWorktree": false,
+          "sha256": "0823f582da874f41e77b38d5c8617ba2352f24e2c472b13fdfe885bc8d61aa47"
+        },
+        {
+          "path": "src/modules/finance/accounts/account-detail-screen.tsx",
+          "operation": "ADAPT_CONSUMER_AND_TEST",
+          "deletedInWorktree": false,
+          "sha256": "a066dd0263e55a5ee427000fe79ff0bed1628b20e5c22d15769eec336bd5c572"
+        },
+        {
+          "path": "src/modules/finance/budgets/budget-detail-screen.tsx",
+          "operation": "ADAPT_CONSUMER_AND_TEST",
+          "deletedInWorktree": false,
+          "sha256": "19df634c5459ff2ce19c3884c1e52c1a88d6a667340734ba7bdad5ecc17e3f5d"
+        },
+        {
+          "path": "src/modules/finance/cards/card-detail-screen.tsx",
+          "operation": "ADAPT_CONSUMER_AND_TEST",
+          "deletedInWorktree": false,
+          "sha256": "aa4f3b06ede4a9b720028b9241a3e7deb603f0ebdd43396fd3872011bf659f6d"
+        },
+        {
+          "path": "src/modules/finance/cards/components/card-statement-sheet.tsx",
+          "operation": "ADAPT_CONSUMER_AND_TEST",
+          "deletedInWorktree": false,
+          "sha256": "1f20d69b302270df401dec03bcf06b13f0506d2f16359f464b04d53419347ef9"
+        },
+        {
+          "path": "src/modules/finance/institutions/institution-detail-screen.tsx",
+          "operation": "ADAPT_CONSUMER_AND_TEST",
+          "deletedInWorktree": false,
+          "sha256": "ebc441db687785d960f862ba10bafdf269424e100bbe8bfdfcb771d7c5e42199"
+        },
+        {
+          "path": "src/modules/finance/loans/components/installment-detail-sheet.tsx",
+          "operation": "ADAPT_CONSUMER_AND_TEST",
+          "deletedInWorktree": false,
+          "sha256": "b92665b5bb5de56d995e38c1bd3e17bc15ece662b9c698a2e035f380df634613"
+        },
+        {
+          "path": "src/modules/finance/loans/loan-detail-screen.tsx",
+          "operation": "ADAPT_CONSUMER_AND_TEST",
+          "deletedInWorktree": false,
+          "sha256": "393470f171337a125d3a21850c25c2ebcbd00f35a71b08076964f76200e9de55"
+        },
+        {
+          "path": "src/modules/finance/products/components/products-list.tsx",
+          "operation": "ADAPT_CONSUMER_AND_TEST",
+          "deletedInWorktree": false,
+          "sha256": "a5641fea62c40a53e11acbd6011624148847f675a2ca13bb6145dd5b5fab1702"
+        },
+        {
+          "path": "src/modules/finance/receivables/receivable-detail-screen.tsx",
+          "operation": "ADAPT_CONSUMER_AND_TEST",
+          "deletedInWorktree": false,
+          "sha256": "4002eb7402802c5de99c73a5f8da8d7008699e599d7bc10ad3140456fe36eae0"
+        },
+        {
+          "path": "src/modules/finance/savings-goals/savings-goal-detail-screen.tsx",
+          "operation": "ADAPT_CONSUMER_AND_TEST",
+          "deletedInWorktree": false,
+          "sha256": "b86e497f42ed21109e2bc3597ae155988a9042568c6080bd931532933a0cbd20"
+        },
+        {
+          "path": "src/modules/finance/settings/components/email-sync-section.tsx",
+          "operation": "REMOVE_GMAIL_SURFACE_AND_TESTS",
+          "deletedInWorktree": false,
+          "sha256": "c2e4e1b0c3aa8d26877b247b7eba00038f5c667c673ec070be63f2521fbe61ac"
+        },
+        {
+          "path": "src/modules/finance/settings/email-sync-schedule-fields.tsx",
+          "operation": "REMOVE_GMAIL_SURFACE_AND_TESTS",
+          "deletedInWorktree": false,
+          "sha256": "53917065bf5e7cd5152df56f7da615eeb6014167bda65c4995140978150279b8"
+        },
+        {
+          "path": "src/modules/finance/settings/finance-module-settings-form.tsx",
+          "operation": "ADAPT_CONSUMER_AND_TEST",
+          "deletedInWorktree": false,
+          "sha256": "a76df04f1bbd97b0e753b88392fac2f9c6c552407f2a6e64086f303fadd02f75"
+        },
+        {
+          "path": "src/modules/finance/shared/components/layout/layout.tsx",
+          "operation": "ADAPT_CONSUMER_AND_TEST",
+          "deletedInWorktree": false,
+          "sha256": "0b6d96d714642619f0836e242680ba28aa87895f7ba9c09e4a3982ef8c8b3e67"
+        },
+        {
+          "path": "src/modules/finance/shared/hooks/use-email-sources.ts",
+          "operation": "ADAPT_CONSUMER_AND_TEST",
+          "deletedInWorktree": false,
+          "sha256": "c524be0a46728e26dcb0c5f3b897a337318d6a942d917d0157964f083aa7173c"
+        },
+        {
+          "path": "src/modules/finance/shared/lib/email-sync-display.spec.ts",
+          "operation": "REMOVE_GMAIL_SURFACE_AND_TESTS",
+          "deletedInWorktree": false,
+          "sha256": "c4256719047a1cd7f194b85b9a9c464f6b7048a57d4ee66c487b616c37f3fe10"
+        },
+        {
+          "path": "src/modules/finance/shared/lib/email-sync-display.ts",
+          "operation": "REMOVE_GMAIL_SURFACE_AND_TESTS",
+          "deletedInWorktree": false,
+          "sha256": "e33cfcf83b8451be8584fc97d7e8075e1bd5b907f1b0a4bc66acf9f837c9fc88"
+        },
+        {
+          "path": "src/modules/finance/shared/lib/finance-prefetch.spec.ts",
+          "operation": "ADAPT_CONSUMER_AND_TEST",
+          "deletedInWorktree": false,
+          "sha256": "25d75c1431b0fe367369f7440abab20620b2c90608d6a01a4833753796146da5"
+        },
+        {
+          "path": "src/modules/finance/shared/lib/finance-prefetch.ts",
+          "operation": "ADAPT_CONSUMER_AND_TEST",
+          "deletedInWorktree": false,
+          "sha256": "e165b5fa9abf873604405b910c2b3e34e83fd16169bfa445859f6cd529b83a25"
+        },
+        {
+          "path": "src/modules/finance/shared/lib/finance-query-options.ts",
+          "operation": "ADAPT_CONSUMER_AND_TEST",
+          "deletedInWorktree": false,
+          "sha256": "7e676dcd15264aa2bc0e08afc1e0fd61d6c3f516b4a5a0b72a8484bb6030ac56"
+        },
+        {
+          "path": "src/modules/finance/shared/types/api.ts",
+          "operation": "ADAPT_CONSUMER_AND_TEST",
+          "deletedInWorktree": false,
+          "sha256": "eeebab46e955d2f9650ce539a7680d6a0f1aaced63184a7923081b4591c2caf6"
+        },
+        {
+          "path": "src/modules/finance/sync/components/assign-email-message-sheet.tsx",
+          "operation": "REMOVE_GMAIL_SURFACE_AND_TESTS",
+          "deletedInWorktree": false,
+          "sha256": "a2876531b7f176c04c3e7f692da18b4af10c46d26db356bfa3f8012578dd4503"
+        },
+        {
+          "path": "src/modules/finance/sync/components/connect-gmail-sheet.tsx",
+          "operation": "REMOVE_GMAIL_SURFACE_AND_TESTS",
+          "deletedInWorktree": false,
+          "sha256": "e23c4f52daae8dde370611c0932699867900ddace4e284317500b18676460be6"
+        },
+        {
+          "path": "src/modules/finance/sync/components/email-source-sheet.tsx",
+          "operation": "REMOVE_GMAIL_SURFACE_AND_TESTS",
+          "deletedInWorktree": false,
+          "sha256": "c3fe15d86a90d37b59fad46f8e353287624498d88f58fe6e8c313e8fcacfa120"
+        },
+        {
+          "path": "src/modules/finance/sync/components/email-sync-history.tsx",
+          "operation": "REMOVE_GMAIL_SURFACE_AND_TESTS",
+          "deletedInWorktree": false,
+          "sha256": "3541f876345b55a8cb1581b3249245b8ab89d850b479b27a5f4ee6ec5ec1819d"
+        },
+        {
+          "path": "src/modules/finance/sync/components/link-institution-mailbox-sheet.tsx",
+          "operation": "REMOVE_GMAIL_SURFACE_AND_TESTS",
+          "deletedInWorktree": false,
+          "sha256": "9d40da919391f7a2146b08df61838ae4d80f9d8d1438515e3e5ad4ee85fffc9b"
+        },
+        {
+          "path": "src/modules/finance/sync/components/mailbox-group.tsx",
+          "operation": "REMOVE_GMAIL_SURFACE_AND_TESTS",
+          "deletedInWorktree": false,
+          "sha256": "5ae178f5ef05845fe541e825733fb1a92b4a34af3ed1ec5353e14dc287b3a4a4"
+        },
+        {
+          "path": "src/modules/finance/sync/components/mailbox-sheet.tsx",
+          "operation": "REMOVE_GMAIL_SURFACE_AND_TESTS",
+          "deletedInWorktree": false,
+          "sha256": "9ba45ec4cb9128c67424195e378a32c1b66b993fe698a88090fe9085d0e574c4"
+        },
+        {
+          "path": "src/modules/finance/sync/components/mailboxes-view.tsx",
+          "operation": "REMOVE_GMAIL_SURFACE_AND_TESTS",
+          "deletedInWorktree": false,
+          "sha256": "d19676164e13556abf41367c694f774fc496d36cd6de755bcaefaf9dd929b520"
+        },
+        {
+          "path": "src/modules/finance/sync/components/oauth-gmail-result-sheet.tsx",
+          "operation": "REMOVE_GMAIL_SURFACE_AND_TESTS",
+          "deletedInWorktree": false,
+          "sha256": "3c2778547887ee17d6d32293255f97ab7acdaa2fb91782c50c4f7680a6c78ee4"
+        },
+        {
+          "path": "src/modules/finance/sync/components/sync-card.tsx",
+          "operation": "REMOVE_GMAIL_SURFACE_AND_TESTS",
+          "deletedInWorktree": false,
+          "sha256": "e335d255c5d359f54da33540d6f05b1fcaad5a952f611874e6fd84cbdc334f68"
+        },
+        {
+          "path": "src/modules/finance/sync/index.ts",
+          "operation": "REMOVE_GMAIL_SURFACE_AND_TESTS",
+          "deletedInWorktree": false,
+          "sha256": "72534545c15ae68fcbf718add28e8aad98c2619e0817c604b6e1c92ad2d33b09"
+        },
+        {
+          "path": "src/modules/finance/sync/lib/assign-email-message-form.spec.ts",
+          "operation": "REMOVE_GMAIL_SURFACE_AND_TESTS",
+          "deletedInWorktree": false,
+          "sha256": "7089548c8f7e69ecdccc668bd29b9245154b782b46899a572742ccd5e0f24174"
+        },
+        {
+          "path": "src/modules/finance/sync/lib/assign-email-message-form.ts",
+          "operation": "REMOVE_GMAIL_SURFACE_AND_TESTS",
+          "deletedInWorktree": false,
+          "sha256": "0b51b2f68a20c9f11f7a72f535a2cadde3c117a4fc9bf08832038252416ece6d"
+        },
+        {
+          "path": "src/modules/finance/sync/lib/email-source-form.spec.ts",
+          "operation": "REMOVE_GMAIL_SURFACE_AND_TESTS",
+          "deletedInWorktree": false,
+          "sha256": "0c87f0a18437a157e0cceccb38ae01649bf47874152c1468a7d824d7d861526f"
+        },
+        {
+          "path": "src/modules/finance/sync/lib/email-source-form.ts",
+          "operation": "REMOVE_GMAIL_SURFACE_AND_TESTS",
+          "deletedInWorktree": false,
+          "sha256": "849b598b9e122c8cd9e258ed2d50e4e48efce0f54f4d08c839cbcfdce9c521c1"
+        },
+        {
+          "path": "src/modules/finance/sync/lib/link-institution-mailbox-form.spec.ts",
+          "operation": "REMOVE_GMAIL_SURFACE_AND_TESTS",
+          "deletedInWorktree": false,
+          "sha256": "ee28bbcd25f09841566d59a449909255887bd5a176aa15b41c5ea2025d36a300"
+        },
+        {
+          "path": "src/modules/finance/sync/lib/link-institution-mailbox-form.ts",
+          "operation": "REMOVE_GMAIL_SURFACE_AND_TESTS",
+          "deletedInWorktree": false,
+          "sha256": "cb0f9b1fdb3dc4e92ec8f281a62e86b8ad199d6f03708e2359c809968098a6d8"
+        },
+        {
+          "path": "src/modules/finance/sync/sync-screen.tsx",
+          "operation": "REMOVE_GMAIL_SURFACE_AND_TESTS",
+          "deletedInWorktree": false,
+          "sha256": "747c65b8425886c1c4a6c057d6f70e73cca458018efb28f10a520b1218341ada"
+        },
+        {
+          "path": "src/modules/finance/transactions/transaction-detail-screen.tsx",
+          "operation": "ADAPT_CONSUMER_AND_TEST",
+          "deletedInWorktree": false,
+          "sha256": "95c08b994bcef0bb6faa53b2638e6658f9927546659ad0b68e7870ba788b4f3b"
+        },
+        {
+          "path": "src/modules/settings/components/pending-data-wipe-handler.tsx",
+          "operation": "ADAPT_CONSUMER_AND_TEST",
+          "deletedInWorktree": false,
+          "sha256": "bb67816f13441bd3be98a9f3e37c53c18cc4278093537c0eaecd5c1e2cb8a61f"
+        },
+        {
+          "path": "src/modules/settings/components/sheets/wipe-user-data-sheet.tsx",
+          "operation": "ADAPT_CONSUMER_AND_TEST",
+          "deletedInWorktree": false,
+          "sha256": "d00d70560d6e01d731846972ccc319c79c95539d9d1fa52b495a78309a812792"
+        },
+        {
+          "path": "src/modules/settings/hooks/use-wipe-user-data.ts",
+          "operation": "ADAPT_CONSUMER_AND_TEST",
+          "deletedInWorktree": false,
+          "sha256": "257451bc393e66a98068693be9934c900c06d6d6a11a2220b703648abb7b49d0"
+        },
+        {
+          "path": "src/modules/settings/lib/pending-data-wipe.ts",
+          "operation": "ADAPT_CONSUMER_AND_TEST",
+          "deletedInWorktree": false,
+          "sha256": "95f5b55786841dbf568f5c436e4fbda786ea318b07545dcb8a52d5db9e42a080"
+        },
+        {
+          "path": "src/modules/settings/lib/wipe-layers.spec.ts",
+          "operation": "ADAPT_CONSUMER_AND_TEST",
+          "deletedInWorktree": false,
+          "sha256": "9bffa6fae40dbba9bb2d782047c2aa037990ebf13ec86b06bb6fd2673402ea38"
+        },
+        {
+          "path": "src/modules/settings/lib/wipe-layers.ts",
+          "operation": "ADAPT_CONSUMER_AND_TEST",
+          "deletedInWorktree": false,
+          "sha256": "f7c479513e48811d341023ca5390b37e91be7cb08294ae5ecafb88ff3f28ad63"
+        },
+        {
+          "path": "src/modules/settings/screens/privacy-settings-screen.tsx",
+          "operation": "ADAPT_CONSUMER_AND_TEST",
+          "deletedInWorktree": false,
+          "sha256": "8ca4e68c207a8b1d876b123ebf7bafa71cc1c957fce7daa33c85bc8d99fae8bb"
+        },
+        {
+          "path": "src/shared/constants/api-endpoints.ts",
+          "operation": "ADAPT_CONSUMER_AND_TEST",
+          "deletedInWorktree": false,
+          "sha256": "1666463602fdf450b386f51efb6451edd1804f4369a679d6f59b44fc1ae9fde4"
+        }
+      ]
+    }
+  ],
+  "proposedFiles": [
+    "packages/contracts/package.json",
+    "packages/contracts/tsconfig.json",
+    "packages/contracts/src/index.ts",
+    "packages/contracts/src/inference.ts",
+    "packages/contracts/src/capabilities.ts",
+    "packages/contracts/src/settings.ts",
+    "packages/contracts/src/notifications.ts",
+    "packages/contracts/src/events.ts",
+    "packages/contracts/src/signals.ts",
+    "apps/api/src/module-settings/descriptors/agenda.settings.descriptor.ts",
+    "apps/api/src/module-settings/descriptors/projects.settings.descriptor.ts",
+    "apps/api/src/module-settings/descriptors/health.settings.descriptor.ts",
+    "packages/finance/src/shared/settings.descriptor.ts",
+    "packages/ai-agent/src/shared/settings.descriptor.ts",
+    "packages/finance/src/ingestion/application/ports/pending-financial-candidates.port.ts"
+  ]
+}

@@ -1,34 +1,84 @@
 import { Injectable } from '@nestjs/common';
-import { AiSessionsService } from '@personal-os/ai-agent';
-import { FinanceFacade, isFinanceWipeLayer } from '@personal-os/finance';
-import { NotificationsService } from '@personal-os/notifications';
-import type { UserDataWipeDomainsPort, WipeLayerId } from '@personal-os/users';
-
+import {
+  AI_DATA_BRANCHES,
+  AiInferenceDataService,
+} from '@personal-os/ai-agent';
+import { FinanceFacade, isFinanceDataBranch } from '@personal-os/finance';
+import {
+  NOTIFICATIONS_DATA_BRANCHES,
+  NotificationsService,
+} from '@personal-os/notifications';
+import type {
+  DataBranchDescriptor,
+  UserDataWipeDomainsPort,
+} from '@personal-os/users';
 @Injectable()
 export class UserDataWipeDomainsAdapter implements UserDataWipeDomainsPort {
   constructor(
     private readonly finance: FinanceFacade,
-    private readonly aiSessions: AiSessionsService,
     private readonly notifications: NotificationsService,
+    private readonly ai: AiInferenceDataService,
   ) {}
-
-  async wipeFinance(
+  dataBranches(): readonly DataBranchDescriptor[] {
+    return [
+      ...this.finance.dataBranches(),
+      ...AI_DATA_BRANCHES,
+      ...NOTIFICATIONS_DATA_BRANCHES,
+    ];
+  }
+  async countDataBranches(
     userId: string,
-    layers: readonly WipeLayerId[],
-    options?: { balanceInstitutionId?: string },
+    branchIds: readonly string[],
   ): Promise<Record<string, number>> {
-    const financeLayers = layers.filter(isFinanceWipeLayer);
-    if (financeLayers.length === 0) {
-      return {};
+    const counts: Record<string, number> = {};
+    const financeIds = branchIds.filter(isFinanceDataBranch);
+    if (financeIds.length > 0) {
+      Object.assign(
+        counts,
+        await this.finance.countUserDataBranches(userId, financeIds),
+      );
     }
-    return this.finance.wipeUserData(userId, financeLayers, options);
+    const notificationIds = branchIds.filter((id) =>
+      id.startsWith('notifications.'),
+    );
+    if (notificationIds.length > 0) {
+      const all = await this.notifications.countForUser(userId);
+      for (const id of notificationIds) {
+        counts[id] = all[id] ?? 0;
+      }
+    }
+    if (branchIds.includes('ai.inferences')) {
+      counts['ai.inferences'] = await this.ai.countForUser(userId);
+    }
+    return counts;
   }
-
-  async wipeAi(userId: string): Promise<Record<string, number>> {
-    return this.aiSessions.wipeAllForUser(userId);
-  }
-
-  async wipeNotifications(userId: string): Promise<Record<string, number>> {
-    return this.notifications.wipeAllForUser(userId);
+  async wipeDataBranches(
+    userId: string,
+    branchIds: readonly string[],
+    options?: {
+      balanceInstitutionId?: string;
+    },
+  ): Promise<Record<string, number>> {
+    const counts: Record<string, number> = {};
+    const financeIds = branchIds.filter(isFinanceDataBranch);
+    if (financeIds.length > 0) {
+      Object.assign(
+        counts,
+        await this.finance.wipeUserDataBranches(userId, financeIds, options),
+      );
+    }
+    const notificationIds = branchIds.filter((id) =>
+      id.startsWith('notifications.'),
+    );
+    if (notificationIds.length > 0) {
+      Object.assign(
+        counts,
+        await this.notifications.wipeAllForUser(userId, notificationIds),
+      );
+    }
+    if (branchIds.includes('ai.inferences')) {
+      counts['ai.inferences'] = await this.ai.wipeForUser(userId);
+    }
+    return counts;
   }
 }

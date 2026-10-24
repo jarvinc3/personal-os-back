@@ -11,6 +11,9 @@
 | [capabilities/reconciliation.md](./capabilities/reconciliation.md) | Cierre de cuenta o tarjeta contra el banco     |
 | [capabilities/integrity.md](./capabilities/integrity.md)           | Saldo vs. movimientos (invariante I1)          |
 | [capabilities/balance-sheet.md](./capabilities/balance-sheet.md)   | Snapshot `BASE_CURRENCY`                       |
+| [capabilities/entities.md](./capabilities/entities.md)             | Consulta de entidades en lote por referencia   |
+| [capabilities/merchants.md](./capabilities/merchants.md)           | Comercios, alias, categoría y logo             |
+| [capabilities/data-wipe.md](./capabilities/data-wipe.md)           | Ramas del vaciado de datos de Finanzas         |
 | [capabilities/ingestion.md](./capabilities/ingestion.md)           | Gmail OAuth, sources, pending assign           |
 | [capabilities/fx.md](./capabilities/fx.md)                         | Tasas históricas                               |
 | [capabilities/events.md](./capabilities/events.md)                 | Outbox                                         |

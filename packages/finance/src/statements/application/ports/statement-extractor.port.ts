@@ -40,6 +40,8 @@ export type StatementExtractionResult =
   | { ok: false; reason: string; retryable: boolean };
 
 export type StatementExtractionInput = {
+  userId: string;
+  sourceId: string;
   text: string;
   categories?: StatementCategoryOption[];
   /** Header the upload already knows (target currency, card due day). */

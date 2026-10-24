@@ -9,6 +9,10 @@ import {
   DELETION_MODEL,
   toDeletionValues,
 } from '../../shared/domain/deletion-snapshot';
+import {
+  sumBudgetSpent,
+  type BudgetSpentScope,
+} from '../../shared/infrastructure/budget-spent.reader';
 import { decodeCursorPosition } from '../../shared/infrastructure/cursor-window';
 import { DeletionJournalRepository } from '../../shared/infrastructure/deletion-journal.repository';
 import { applyReceivableBalance } from './receivable-balance';
@@ -30,6 +34,11 @@ export class PlanningRepository {
       include: { category: true, categories: { include: { category: true } } },
       orderBy: { periodStart: 'desc' },
     });
+  }
+
+  /** Spent money read from the movements so it matches the budget's list. */
+  sumBudgetSpent(scope: BudgetSpentScope) {
+    return sumBudgetSpent(this.prisma, scope);
   }
 
   listBudgetsPage(userId: string, query: CursorQueryDto) {
@@ -60,6 +69,13 @@ export class PlanningRepository {
   findBudget(userId: string, id: string) {
     return this.prisma.finBudget.findFirst({
       where: { id, userId },
+      include: { category: true, categories: { include: { category: true } } },
+    });
+  }
+
+  findBudgetsByIds(userId: string, ids: readonly string[]) {
+    return this.prisma.finBudget.findMany({
+      where: { id: { in: [...ids] }, userId },
       include: { category: true, categories: { include: { category: true } } },
     });
   }
@@ -228,8 +244,22 @@ export class PlanningRepository {
     });
   }
 
+  async findUserTimezone(userId: string): Promise<string | null> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { timezone: true },
+    });
+    return user?.timezone ?? null;
+  }
+
   findSavingsGoal(userId: string, id: string) {
     return this.prisma.finSavingsGoal.findFirst({ where: { id, userId } });
+  }
+
+  findSavingsGoalsByIds(userId: string, ids: readonly string[]) {
+    return this.prisma.finSavingsGoal.findMany({
+      where: { id: { in: [...ids] }, userId },
+    });
   }
 
   async createSavingsGoal(
@@ -333,6 +363,13 @@ export class PlanningRepository {
     });
   }
 
+  findTransactionByTransferGroupId(userId: string, transferGroupId: string) {
+    return this.prisma.finTransaction.findFirst({
+      where: { userId, transferGroupId },
+      select: { id: true },
+    });
+  }
+
   async addSavingsGoalContribution(
     goalId: string,
     contribution: {
@@ -340,6 +377,7 @@ export class PlanningRepository {
       contributedAt: Date;
       kind: 'CONTRIBUTION' | 'WITHDRAWAL';
       accountId?: string | null;
+      destinationAccountId?: string | null;
       transactionId?: string | null;
       transferGroupId?: string | null;
       notes?: string;
@@ -402,6 +440,7 @@ export class PlanningRepository {
       orderBy: { nextDueDate: 'asc' },
       include: {
         account: { select: { id: true, name: true } },
+        disbursementAccount: { select: { id: true, name: true } },
         institution: { select: { id: true, name: true } },
       },
     });
@@ -426,6 +465,7 @@ export class PlanningRepository {
       orderBy: [{ nextDueDate: 'asc' }, { id: 'asc' }],
       include: {
         account: { select: { id: true, name: true } },
+        disbursementAccount: { select: { id: true, name: true } },
         institution: { select: { id: true, name: true } },
       },
       take: limit + 1,
@@ -437,6 +477,18 @@ export class PlanningRepository {
       where: { id, userId },
       include: {
         account: { select: { id: true, name: true } },
+        disbursementAccount: { select: { id: true, name: true } },
+        institution: { select: { id: true, name: true } },
+      },
+    });
+  }
+
+  findLoansByIds(userId: string, ids: readonly string[]) {
+    return this.prisma.finLoan.findMany({
+      where: { id: { in: [...ids] }, userId },
+      include: {
+        account: { select: { id: true, name: true } },
+        disbursementAccount: { select: { id: true, name: true } },
         institution: { select: { id: true, name: true } },
       },
     });
@@ -450,6 +502,7 @@ export class PlanningRepository {
       data: { ...data, userId },
       include: {
         account: { select: { id: true, name: true } },
+        disbursementAccount: { select: { id: true, name: true } },
         institution: { select: { id: true, name: true } },
       },
     });
@@ -685,6 +738,7 @@ export class PlanningRepository {
           where: { id, userId },
           include: {
             account: { select: { id: true, name: true } },
+            disbursementAccount: { select: { id: true, name: true } },
             institution: { select: { id: true, name: true } },
           },
         });
@@ -720,6 +774,12 @@ export class PlanningRepository {
 
   findReceivable(userId: string, id: string) {
     return this.prisma.finReceivable.findFirst({ where: { id, userId } });
+  }
+
+  findReceivablesByIds(userId: string, ids: readonly string[]) {
+    return this.prisma.finReceivable.findMany({
+      where: { id: { in: [...ids] }, userId },
+    });
   }
 
   async createReceivable(

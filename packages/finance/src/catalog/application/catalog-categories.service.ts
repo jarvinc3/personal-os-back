@@ -21,6 +21,12 @@ export class CatalogCategoriesService {
     return this.repo.listCategories(userId, type);
   }
 
+  /** Categories visible to the user, loaded in batch for the entity lookup. */
+  async lookupCategories(userId: string, ids: readonly string[]) {
+    const rows = await this.repo.findCategoriesByIds(userId, ids);
+    return new Map(rows.map((row) => [row.id, row]));
+  }
+
   async createCategory(userId: string, dto: CreateCategoryDto) {
     if (dto.type === 'TRANSFER') {
       throw new BadRequestException(

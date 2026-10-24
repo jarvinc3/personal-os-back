@@ -30,6 +30,14 @@ export class RemoveSavingsGoalContributionUseCase {
 
     if (contribution.transactionId) {
       await this.deleteTransaction.execute(userId, contribution.transactionId);
+    } else if (contribution.transferGroupId) {
+      const movement = await this.repo.findTransactionByTransferGroupId(
+        userId,
+        contribution.transferGroupId,
+      );
+      if (movement) {
+        await this.deleteTransaction.execute(userId, movement.id);
+      }
     }
     await this.repo.removeSavingsGoalContribution(goalId, contributionId, now);
     return { success: true };

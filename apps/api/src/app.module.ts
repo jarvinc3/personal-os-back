@@ -5,9 +5,8 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerModule } from '@nestjs/throttler';
-import { randomUUID } from 'crypto';
-import { ClsModule } from 'nestjs-cls';
-import { LoggerModule } from 'nestjs-pino';
+import { AiModule } from '@personal-os/ai-agent';
+import { AuthModule } from '@personal-os/auth';
 import type { Env } from '@personal-os/config';
 import {
   bullmqRedisConnection,
@@ -15,21 +14,18 @@ import {
   isBullMqEnabledFromProcessEnv,
   parseEnv,
 } from '@personal-os/config';
-import { CoreModule } from '@personal-os/core';
-import { getBullBoardImports } from '@personal-os/core';
-import { QueueNames } from '@personal-os/core';
-import { HealthModule } from './health/health.module';
-import { UserDataWipeModule } from './user-data-wipe/user-data-wipe.module';
-import { AiModule } from '@personal-os/ai-agent';
-import { AuthModule } from '@personal-os/auth';
+import { CoreModule, getBullBoardImports, QueueNames } from '@personal-os/core';
+import { PrismaModule } from '@personal-os/database';
 import { FinanceModule } from '@personal-os/finance';
 import { NotificationsModule } from '@personal-os/notifications';
 import { UsersModule } from '@personal-os/users';
-import { PrismaModule } from '@personal-os/database';
-
+import { randomUUID } from 'crypto';
+import { ClsModule } from 'nestjs-cls';
+import { LoggerModule } from 'nestjs-pino';
+import { HealthModule } from './health/health.module';
+import { UserDataWipeModule } from './user-data-wipe/user-data-wipe.module';
 const bullMqEnabled = isBullMqEnabledFromProcessEnv();
 const bullBoardEnabled = isBullBoardEnabledFromProcessEnv();
-
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -64,7 +60,13 @@ const bullBoardEnabled = isBullBoardEnabledFromProcessEnv();
             );
           },
           customProps: (req) => ({
-            userId: (req as { user?: { sub?: string } }).user?.sub,
+            userId: (
+              req as {
+                user?: {
+                  sub?: string;
+                };
+              }
+            ).user?.sub,
           }),
         },
         forRoutes: [{ path: '*path', method: RequestMethod.ALL }],
@@ -85,12 +87,12 @@ const bullBoardEnabled = isBullBoardEnabledFromProcessEnv();
       },
       {
         name: 'medium',
-        ttl: 10_000,
+        ttl: 10000,
         limit: 30,
       },
       {
         name: 'long',
-        ttl: 60_000,
+        ttl: 60000,
         limit: 100,
       },
     ]),
@@ -119,8 +121,6 @@ const bullBoardEnabled = isBullBoardEnabledFromProcessEnv();
           }),
           BullModule.registerQueue(
             { name: QueueNames.EMAIL_SYNC },
-            { name: QueueNames.GMAIL_SYNC },
-            { name: QueueNames.AI_PROCESSING },
             { name: QueueNames.NOTIFICATIONS },
           ),
         ]
@@ -128,7 +128,7 @@ const bullBoardEnabled = isBullBoardEnabledFromProcessEnv();
     ...(bullBoardEnabled ? getBullBoardImports() : []),
     CacheModule.register({
       isGlobal: true,
-      ttl: 300_000,
+      ttl: 300000,
     }),
     // Feature modules register their own @Cron handlers.
     ScheduleModule.forRoot(),

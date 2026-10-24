@@ -1,18 +1,22 @@
 # Repository Impact, Signals Delivery and Instruction Changes
 
-Status: prepared from the repositories on 2026-10-20; decisions confirmed by the owner on 2026-10-20 (changelog (c)).
+Status: decisions confirmed 2026-10-24; Phase 0 runtime cut implemented on the isolated `refactor/ai-0` branches.
 
 ## PROD impact
 
-None until the owner deploys `0.50.0`. Everything below applies to `develop` and DEV only.
+None until the owner deploys `0.100.0`. Everything below applies to `develop` and DEV only.
+
+## Updated inventory
+
+The [2026-10-24 inventory](../02-PHASE-0-INVENTORY.md) includes branch-based data wipe, merchants, Resend delivery, preserved financial algorithms and SQL fingerprints. Refresh it at the exact cut revision.
 
 ## Backend endpoints at Phase 0
 
 | Endpoint / code                                                                                                     | Phase 0 action                                                                                                                            | Returns in                                                                                                 |
 | ------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
 | `finance/email-sync/*` (`packages/finance/src/ingestion/**`, `email-sync.controller.ts`)                            | Deleted with all `FinEmail*` models and Gmail scheduler/processors.                                                                       | Phase 2 as AI-owned `AiEmailConnection` endpoints (OAuth/connect/sync/status); Finance import in Phase 11. |
-| `ledger/application/import-email-transaction.use-case.ts`                                                           | Deleted (no caller remains). Reusable logic noted for Phase 11.                                                                           | Phase 11 (`FinanceSignalConsumer`).                                                                        |
-| `notifications/.../email-sync.processor.ts`                                                                         | Deleted/adjusted if only tied to Finance email sync.                                                                                      | —                                                                                                          |
+| `ledger/application/import-email-transaction.use-case.ts`                                                           | Preserved with financial tests, without callers until Phase 11. Its candidate port no longer depends on deleted `FinEmail*` models.       | Phase 11 (`FinanceSignalConsumer`).                                                                        |
+| `notifications/.../email-sync.processor.ts`                                                                         | Kept: this is notification EMAIL delivery through Resend, not Gmail ingestion.                                                            | —                                                                                                          |
 | `ai`, `ai/sessions`, `ai/actions` (chat) + `chat/**`, `tools/**`, `prompts/**`, `runtime/**` in `packages/ai-agent` | **Deleted.** Salvage `providers/**`, retry/failover, streaming helpers, Zod schemas and `AiAction` claim/confirm concepts for Phase 1/10. | Rebuilt in Phases 8–10; chat UX pending owner redesign.                                                    |
 | `finance/quick-entry`, `finance` statements (`card-statements`, `statement-imports`)                                | Kept; extractors migrated to the gateway in Phase 1.                                                                                      | —                                                                                                          |
 
@@ -31,16 +35,16 @@ Decided: chat is deleted at Phase 0; no chat in DEV until Phase 9.
 | Quick entry, card statements, `app/(app)/finance/statement-imports/[importId]`                                                                                                                                                                                | Unchanged.                                                                           |
 | New: `app/(app)/intelligence/**`                                                                                                                                                                                                                              | Created in Phase 2 (review UI v0), labeling by Phase 3.                              |
 
-Web and backend must ship `0.50.0` together.
+Web and backend must ship `0.100.0` together.
 
 ## Signals vs existing outbox / BullMQ
 
-Current infrastructure: `DomainEventOutbox` (ADR-002) with BullMQ processors.
+Current infrastructure: `DomainEventOutbox` (ADR-002) dispatches through `EventEmitter2`. BullMQ processors exist downstream; there is no generic outbox-to-BullMQ bridge yet. The independent pre-reset outbox fix is specified in [implementation decisions](../01-IMPLEMENTATION-DECISIONS.md).
 
 **Decided:**
 
 - `AiSignal` is its own table: the durable, queryable record with lifecycle (`DETECTED … CONSUMED/FAILED`), dedup/correlation keys and evidence links. The outbox is not a substitute because it is a delivery log, not domain state.
-- Delivery reuses the existing outbox: when a signal reaches `ROUTED`, insert a `DomainEventOutbox` row (`ai.signal.routed`, signalId) in the same transaction; the existing relay publishes to BullMQ; `FinanceSignalConsumer` processes it idempotently by `signalId` and updates the signal state.
+- Delivery reuses the existing outbox: when a signal reaches `ROUTED`, insert a `DomainEventOutbox` row (`ai.signal.routed`, signalId) in the same transaction; an explicit bridge added in Phase 7 publishes to BullMQ; `FinanceSignalConsumer` processes it idempotently by `signalId` and updates the signal state.
 - No new queue technology. Rejected alternatives: signals only as outbox events (no lifecycle/review), or direct in-process calls (couples AI to Finance).
 
 ## ADRs
@@ -54,9 +58,9 @@ Current infrastructure: `DomainEventOutbox` (ADR-002) with BullMQ processors.
 
 ### `docs/versionado.md`
 
-- Document the one-off jump to `0.50.0` for backend and web as an architecture reset.
-- Intermediate commits during Phases 0–12 do not bump the version or create releases; they accumulate under an `Unreleased — 0.50.0` CHANGELOG section described coherently (not per phase).
-- Decided: `0.50.0` is deployed to PROD only after Phase 11 (Finance import restored); the owner executes the deploy.
+- Document the one-off jump to `0.100.0` for backend and web as an architecture reset.
+- Intermediate commits during Phases 0–12 do not bump the version or create releases; they accumulate under an `Unreleased — 0.100.0` CHANGELOG section described coherently (not per phase).
+- Decided: `0.100.0` is deployed to PROD only after Phase 11 (Finance import restored); the owner executes the deploy.
 
 ### `AGENTS.md`
 

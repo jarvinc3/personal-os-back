@@ -1,5 +1,6 @@
 import { BadRequestException } from '@nestjs/common';
 import { Prisma } from '@personal-os/database';
+import type { FinanceEntityLookupService } from '../../entities/application/finance-entity-lookup.service';
 import type { ResolveAmountsUseCase } from '../../fx/application/resolve-amounts.use-case';
 import type { ResolveUserBaseCurrencyUseCase } from '../../fx/application/resolve-user-base-currency';
 import type { BalanceSheetRepository } from '../infrastructure/balance-sheet.repository';
@@ -8,13 +9,25 @@ import { BalanceSheetService } from './balance-sheet.service';
 describe('BalanceSheetService', () => {
   const loadPositions = jest.fn();
   const loadCashAccounts = jest.fn();
+  const loadReceivables = jest.fn();
+  const loadOpenDrifts = jest.fn();
+  const loadMonthReconciliations = jest.fn();
+  const loadUserTimezone = jest.fn();
   const toBaseCurrency = jest.fn();
   const toBaseCurrencyOrNull = jest.fn();
   const baseCurrencyExecute = jest.fn().mockResolvedValue('DOP');
+  const lookupByKey = jest.fn().mockResolvedValue(new Map());
 
   const createService = () =>
     new BalanceSheetService(
-      { loadPositions, loadCashAccounts } as unknown as BalanceSheetRepository,
+      {
+        loadPositions,
+        loadCashAccounts,
+        loadReceivables,
+        loadOpenDrifts,
+        loadMonthReconciliations,
+        loadUserTimezone,
+      } as unknown as BalanceSheetRepository,
       {
         toBaseCurrency,
         toBaseCurrencyOrNull,
@@ -22,12 +35,18 @@ describe('BalanceSheetService', () => {
       {
         execute: baseCurrencyExecute,
       } as unknown as ResolveUserBaseCurrencyUseCase,
+      { lookupByKey } as unknown as FinanceEntityLookupService,
     );
 
   beforeEach(() => {
     jest.clearAllMocks();
     baseCurrencyExecute.mockResolvedValue('DOP');
     loadCashAccounts.mockResolvedValue([]);
+    loadReceivables.mockResolvedValue([]);
+    loadOpenDrifts.mockResolvedValue([]);
+    loadMonthReconciliations.mockResolvedValue([]);
+    loadUserTimezone.mockResolvedValue(null);
+    lookupByKey.mockResolvedValue(new Map());
     toBaseCurrency.mockImplementation((amount: number, currency: string) => {
       if (currency === 'USD') {
         return Promise.resolve(amount * 60);
@@ -380,5 +399,417 @@ describe('BalanceSheetService', () => {
         accounts: [{ id: 'cash-eur', name: 'Efectivo EUR', balance: '10.00' }],
       },
     ]);
+  });
+
+  it('includes pending receivables and keeps doubtful ones out of net worth', async () => {
+    const today = new Date().toISOString().slice(0, 10);
+    const ninetyDaysAgo = new Date(
+      new Date(`${today}T00:00:00.000Z`).getTime() - 90 * 24 * 60 * 60 * 1000,
+    );
+    const ninetyOneDaysAgo = new Date(
+      new Date(`${today}T00:00:00.000Z`).getTime() - 91 * 24 * 60 * 60 * 1000,
+    );
+    loadPositions.mockResolvedValue({
+      institutions: [],
+      accounts: [],
+      cardBalances: [],
+      loans: [],
+    });
+    loadReceivables.mockResolvedValue([
+      {
+        id: 'rec-1',
+        debtorName: 'Ana',
+        description: 'Préstamo',
+        amount: new Prisma.Decimal(100),
+        paidAmount: new Prisma.Decimal(0),
+        writtenOffAmount: new Prisma.Decimal(0),
+        currency: 'DOP',
+        dueDate: null,
+      },
+      {
+        id: 'rec-2',
+        debtorName: 'Luis',
+        description: null,
+        amount: new Prisma.Decimal(40),
+        paidAmount: new Prisma.Decimal(0),
+        writtenOffAmount: new Prisma.Decimal(0),
+        currency: 'DOP',
+        dueDate: ninetyDaysAgo,
+      },
+      {
+        id: 'rec-3',
+        debtorName: 'Marta',
+        description: null,
+        amount: new Prisma.Decimal(50),
+        paidAmount: new Prisma.Decimal(0),
+        writtenOffAmount: new Prisma.Decimal(0),
+        currency: 'USD',
+        dueDate: ninetyOneDaysAgo,
+      },
+      {
+        id: 'rec-4',
+        debtorName: 'Pedro',
+        description: null,
+        amount: new Prisma.Decimal(20),
+        paidAmount: new Prisma.Decimal(20),
+        writtenOffAmount: new Prisma.Decimal(0),
+        currency: 'DOP',
+        dueDate: null,
+      },
+    ]);
+    toBaseCurrencyOrNull.mockImplementation(
+      (amount: Prisma.Decimal, currency: string) =>
+        Promise.resolve(
+          currency === 'USD'
+            ? new Prisma.Decimal(amount).times(60)
+            : new Prisma.Decimal(amount),
+        ),
+    );
+
+    const balanceSheet = await createService().getBalanceSheet('user-1');
+
+    expect(balanceSheet.global.assets.receivables).toBe('140');
+    expect(balanceSheet.global.totalAssets).toBe('140');
+    expect(balanceSheet.global.netWorth).toBe('140');
+    expect(balanceSheet.breakdown.totals).toEqual({
+      assets: '140',
+      available: '0',
+      receivables: '140',
+      liabilities: '0',
+      netWorth: '140',
+      doubtfulReceivables: '3000',
+    });
+    const usd = balanceSheet.breakdown.byCurrency.find(
+      (group) => group.currency === 'USD',
+    );
+    expect(usd?.doubtfulReceivables).toEqual([
+      expect.objectContaining({
+        id: 'rec-3',
+        doubtful: true,
+        balance: '50',
+        balanceBase: '3000',
+      }),
+    ]);
+    expect(
+      balanceSheet.breakdown.byCurrency
+        .flatMap((group) => group.receivables)
+        .map((line) => line.id),
+    ).toEqual(['rec-1', 'rec-2']);
+  });
+
+  it('marks open drifts and the current-month reconciliation on each product line', async () => {
+    loadPositions.mockResolvedValue({
+      institutions: [],
+      accounts: [
+        {
+          id: 'acc-1',
+          name: 'Ahorros',
+          type: 'SAVINGS',
+          institutionId: null,
+          currency: 'DOP',
+          balance: new Prisma.Decimal(100),
+        },
+      ],
+      cardBalances: [
+        {
+          currency: 'DOP',
+          balance: new Prisma.Decimal(90),
+          creditLimit: new Prisma.Decimal(100),
+          card: { id: 'card-1', name: 'Visa', institutionId: null },
+        },
+      ],
+      loans: [
+        {
+          id: 'loan-1',
+          lenderName: 'Banco',
+          institutionId: null,
+          currency: 'DOP',
+          currentBalance: new Prisma.Decimal(50),
+        },
+      ],
+    });
+    loadOpenDrifts.mockResolvedValue([
+      {
+        accountId: 'acc-1',
+        cardId: null,
+        currency: 'DOP',
+        difference: new Prisma.Decimal(-10),
+      },
+      {
+        accountId: null,
+        cardId: 'card-1',
+        currency: 'DOP',
+        difference: new Prisma.Decimal(5),
+      },
+    ]);
+    loadMonthReconciliations.mockResolvedValue([
+      { accountId: 'acc-1', cardId: null, currency: 'DOP' },
+    ]);
+
+    const balanceSheet = await createService().getBalanceSheet('user-1');
+    const lines = balanceSheet.breakdown.byCurrency.flatMap((group) => [
+      ...group.accounts,
+      ...group.creditCards,
+      ...group.loans,
+    ]);
+
+    expect(lines.find((line) => line.id === 'acc-1')).toMatchObject({
+      hasDrift: true,
+      driftDifference: '-10',
+      reconciliation: 'RECONCILED',
+    });
+    expect(lines.find((line) => line.id === 'card-1')).toMatchObject({
+      hasDrift: true,
+      driftDifference: '5',
+      reconciliation: 'PENDING',
+      creditLimit: '100',
+      availableCredit: '90',
+      balance: '10',
+    });
+    expect(lines.find((line) => line.id === 'loan-1')).toMatchObject({
+      hasDrift: false,
+      reconciliation: 'NOT_APPLICABLE',
+      balance: '50',
+    });
+  });
+
+  it('groups lines by currency and derives every total from them', async () => {
+    loadPositions.mockResolvedValue({
+      institutions: [],
+      accounts: [
+        {
+          id: 'acc-dop',
+          name: 'Cuenta DOP',
+          type: 'CHECKING',
+          institutionId: null,
+          currency: 'DOP',
+          balance: new Prisma.Decimal(100),
+        },
+        {
+          id: 'acc-usd',
+          name: 'Cuenta USD',
+          type: 'CHECKING',
+          institutionId: null,
+          currency: 'USD',
+          balance: new Prisma.Decimal(10),
+        },
+      ],
+      cardBalances: [
+        {
+          currency: 'DOP',
+          balance: new Prisma.Decimal(50),
+          creditLimit: new Prisma.Decimal(100),
+          card: { id: 'card-1', name: 'Visa', institutionId: null },
+        },
+      ],
+      loans: [
+        {
+          id: 'loan-usd',
+          lenderName: 'Banco',
+          institutionId: null,
+          currency: 'USD',
+          currentBalance: new Prisma.Decimal(5),
+        },
+      ],
+    });
+    loadReceivables.mockResolvedValue([
+      {
+        id: 'rec-1',
+        debtorName: 'Ana',
+        description: null,
+        amount: new Prisma.Decimal(25),
+        paidAmount: new Prisma.Decimal(0),
+        writtenOffAmount: new Prisma.Decimal(0),
+        currency: 'DOP',
+        dueDate: null,
+      },
+    ]);
+    toBaseCurrency.mockImplementation(
+      (amount: Prisma.Decimal, currency: string) =>
+        Promise.resolve(
+          currency === 'USD'
+            ? new Prisma.Decimal(amount).times(60)
+            : new Prisma.Decimal(amount),
+        ),
+    );
+    toBaseCurrencyOrNull.mockImplementation(
+      (amount: Prisma.Decimal, currency: string) =>
+        Promise.resolve(
+          currency === 'USD'
+            ? new Prisma.Decimal(amount).times(60)
+            : new Prisma.Decimal(amount),
+        ),
+    );
+
+    const balanceSheet = await createService().getBalanceSheet('user-1');
+
+    expect(balanceSheet.global).toMatchObject({
+      assets: { accounts: '700', cash: '0', receivables: '25' },
+      totalAssets: '725',
+      liabilities: { creditCards: '50', loans: '300' },
+      totalLiabilities: '350',
+      netWorth: '375',
+    });
+    expect(balanceSheet.breakdown.totals).toEqual({
+      assets: '725',
+      available: '700',
+      receivables: '25',
+      liabilities: '350',
+      netWorth: '375',
+      doubtfulReceivables: '0',
+    });
+    expect(
+      balanceSheet.breakdown.byCurrency.map((group) => group.currency),
+    ).toEqual(['DOP', 'USD']);
+    const dop = balanceSheet.breakdown.byCurrency[0];
+    const usd = balanceSheet.breakdown.byCurrency[1];
+    expect(dop.totals).toMatchObject({
+      assets: '125',
+      available: '100',
+      receivables: '25',
+      liabilities: '50',
+      netWorth: '75',
+    });
+    expect(usd.totals).toMatchObject({
+      assets: '10',
+      available: '10',
+      receivables: '0',
+      liabilities: '5',
+      netWorth: '5',
+    });
+  });
+
+  it('keeps institution totals in their own currencies', async () => {
+    loadPositions.mockResolvedValue({
+      institutions: [{ id: 'inst-1' }],
+      accounts: [
+        {
+          id: 'acc-dop',
+          name: 'Cuenta DOP',
+          type: 'CHECKING',
+          institutionId: 'inst-1',
+          currency: 'DOP',
+          balance: new Prisma.Decimal(100),
+        },
+        {
+          id: 'acc-usd',
+          name: 'Cuenta USD',
+          type: 'CHECKING',
+          institutionId: 'inst-1',
+          currency: 'USD',
+          balance: new Prisma.Decimal(10),
+        },
+      ],
+      cardBalances: [],
+      loans: [],
+    });
+    toBaseCurrencyOrNull.mockImplementation(
+      (amount: Prisma.Decimal, currency: string) =>
+        Promise.resolve(
+          currency === 'USD'
+            ? new Prisma.Decimal(amount).times(60)
+            : new Prisma.Decimal(amount),
+        ),
+    );
+
+    const balanceSheet = await createService().getBalanceSheet('user-1');
+
+    expect(balanceSheet.global.byCurrency).toEqual([
+      {
+        currency: 'DOP',
+        assets: '100',
+        available: '100',
+        receivables: '0',
+        liabilities: '0',
+        netWorth: '100',
+      },
+      {
+        currency: 'USD',
+        assets: '10',
+        available: '10',
+        receivables: '0',
+        liabilities: '0',
+        netWorth: '10',
+      },
+    ]);
+    expect(balanceSheet.institutions[0]?.byCurrency).toEqual(
+      balanceSheet.global.byCurrency,
+    );
+  });
+  it('attaches the full entity behind every line in a single lookup', async () => {
+    loadPositions.mockResolvedValue({
+      institutions: [],
+      accounts: [
+        {
+          id: 'acc-1',
+          institutionId: null,
+          currency: 'DOP',
+          balance: 1000,
+        },
+      ],
+      cardBalances: [
+        {
+          currency: 'DOP',
+          balance: 4,
+          creditLimit: 10,
+          card: { id: 'card-1', institutionId: null },
+        },
+      ],
+      loans: [
+        {
+          id: 'loan-1',
+          institutionId: null,
+          currency: 'DOP',
+          currentBalance: 5,
+        },
+      ],
+    });
+    lookupByKey.mockResolvedValue(
+      new Map([
+        ['account:acc-1', { id: 'acc-1', kind: 'account' }],
+        ['card:card-1', { id: 'card-1', kind: 'card' }],
+        ['loan:loan-1', { id: 'loan-1', kind: 'loan' }],
+      ]),
+    );
+
+    const balanceSheet = await createService().getBalanceSheet('user-1');
+    const lines = balanceSheet.breakdown.byCurrency.flatMap((group) => [
+      ...group.accounts,
+      ...group.cash,
+      ...group.receivables,
+      ...group.creditCards,
+      ...group.loans,
+    ]);
+
+    expect(lines).toHaveLength(3);
+    expect(lookupByKey).toHaveBeenCalledTimes(1);
+    expect(lookupByKey).toHaveBeenCalledWith('user-1', [
+      { type: 'account', id: 'acc-1' },
+      { type: 'card', id: 'card-1' },
+      { type: 'loan', id: 'loan-1' },
+    ]);
+    expect(lines.map((line) => line.entity)).toEqual([
+      { id: 'acc-1', kind: 'account' },
+      { id: 'card-1', kind: 'card' },
+      { id: 'loan-1', kind: 'loan' },
+    ]);
+    expect(balanceSheet.global.netWorth).toBe('989');
+  });
+
+  it('keeps the line without entity when the product is gone', async () => {
+    loadPositions.mockResolvedValue({
+      institutions: [],
+      accounts: [
+        { id: 'acc-1', institutionId: null, currency: 'DOP', balance: 10 },
+      ],
+      cardBalances: [],
+      loans: [],
+    });
+
+    const balanceSheet = await createService().getBalanceSheet('user-1');
+
+    expect(
+      balanceSheet.breakdown.byCurrency[0]?.accounts[0]?.entity,
+    ).toBeNull();
   });
 });

@@ -11,6 +11,10 @@ import {
 } from '@personal-os/core';
 import { FinanceOwnershipService } from '../../shared/application/finance-ownership.service';
 import { assertRestored } from '../../shared/application/assert-restored';
+import { roundMoney } from '../../shared/domain/money';
+import { budgetCategoryIds } from '../../shared/infrastructure/budget-spent.reader';
+import { AdjustBalanceUseCase } from '../../ledger/application/adjust-balance.use-case';
+import { DeleteTransactionUseCase } from '../../ledger/application/delete-transaction.use-case';
 import { LedgerQueryService } from '../../ledger/application/ledger-query.service';
 import { PlanningRepository } from '../infrastructure/planning.repository';
 import {
@@ -18,7 +22,8 @@ import {
   carriedOverFrom,
   type BudgetRollover,
 } from '../domain/budget-rollover';
-import { endOfUtcDay, nextBudgetPeriod } from '../domain/budget-period';
+import { endOfUtcDay } from '../../shared/domain/local-day';
+import { nextBudgetPeriod } from '../domain/budget-period';
 import type { CreateBudgetDto } from '../presentation/dto/create-budget.dto';
 import type { CreateLoanDto } from '../presentation/dto/create-loan.dto';
 import type { CreateReceivableDto } from '../presentation/dto/create-receivable.dto';
@@ -38,6 +43,11 @@ import {
 } from './planning-mappers';
 import { SyncLoanInstallmentsUseCase } from './sync-loan-installments.use-case';
 
+/** Budget row as the repository returns it: category plus every joined category. */
+type BudgetRow = NonNullable<
+  Awaited<ReturnType<PlanningRepository['findBudget']>>
+>;
+
 @Injectable()
 export class PlanningService {
   constructor(
@@ -45,11 +55,13 @@ export class PlanningService {
     private readonly ownership: FinanceOwnershipService,
     private readonly syncInstallments: SyncLoanInstallmentsUseCase,
     private readonly ledger: LedgerQueryService,
+    private readonly adjustBalance: AdjustBalanceUseCase,
+    private readonly deleteTransaction: DeleteTransactionUseCase,
   ) {}
 
   async listBudgets(userId: string) {
     const rows = await this.repo.listBudgets(userId);
-    return rows.map(mapBudget);
+    return Promise.all(rows.map((row) => this.mapBudgetWithSpent(userId, row)));
   }
 
   async listBudgetsPage(userId: string, query: CursorQueryDto) {
@@ -57,7 +69,10 @@ export class PlanningService {
     const page = toCursorPage(rows, clampPageLimit(query.limit), (row) =>
       row.periodStart.toISOString(),
     );
-    return { ...page, items: page.items.map(mapBudget) };
+    const items = await Promise.all(
+      page.items.map((row) => this.mapBudgetWithSpent(userId, row)),
+    );
+    return { ...page, items };
   }
 
   async getBudget(userId: string, id: string) {
@@ -65,7 +80,38 @@ export class PlanningService {
     if (!row) {
       throw new NotFoundException('Presupuesto no encontrado');
     }
-    return mapBudget(row);
+    return this.mapBudgetWithSpent(userId, row);
+  }
+
+  /** Budgets with the same shape as `getBudget`, in batch and without throwing. */
+  async lookupBudgets(userId: string, ids: readonly string[]) {
+    const rows = await this.repo.findBudgetsByIds(userId, ids);
+    const mapped = await Promise.all(
+      rows.map((row) => this.mapBudgetWithSpent(userId, row)),
+    );
+    return new Map(mapped.map((row) => [row.id, row]));
+  }
+
+  /**
+   * The spent figure comes from the movements, so the budget can never show a
+   * total that disagrees with its own list. The stored counter keeps feeding
+   * only the threshold alerts.
+   */
+  private async mapBudgetWithSpent(userId: string, row: BudgetRow) {
+    return mapBudget({
+      ...row,
+      amountSpent: await this.budgetSpent(userId, row),
+    });
+  }
+
+  private budgetSpent(userId: string, row: BudgetRow) {
+    return this.repo.sumBudgetSpent({
+      userId,
+      periodStart: row.periodStart,
+      periodEnd: row.periodEnd,
+      categoryIds: budgetCategoryIds(row),
+      includeChildren: row.includeChildren,
+    });
   }
 
   async createBudget(userId: string, dto: CreateBudgetDto) {
@@ -103,7 +149,8 @@ export class PlanningService {
       throw new NotFoundException('Presupuesto no encontrado');
     }
     await this.applyCarriedOver(userId, created);
-    return mapBudget((await this.repo.findBudget(userId, budgetId)) ?? created);
+    const saved = (await this.repo.findBudget(userId, budgetId)) ?? created;
+    return this.mapBudgetWithSpent(userId, saved);
   }
 
   async updateBudget(userId: string, id: string, dto: UpdateBudgetDto) {
@@ -154,9 +201,8 @@ export class PlanningService {
       throw new NotFoundException('Presupuesto no encontrado');
     }
     await this.applyCarriedOver(userId, updated);
-    return mapBudget(
-      (await this.repo.findBudget(userId, updatedId)) ?? updated,
-    );
+    const saved = (await this.repo.findBudget(userId, updatedId)) ?? updated;
+    return this.mapBudgetWithSpent(userId, saved);
   }
 
   async getBudgetTransactions(
@@ -332,18 +378,25 @@ export class PlanningService {
     return mapSavingsGoal(row);
   }
 
+  async lookupSavingsGoals(userId: string, ids: readonly string[]) {
+    const rows = await this.repo.findSavingsGoalsByIds(userId, ids);
+    return new Map(rows.map((row) => [row.id, mapSavingsGoal(row)]));
+  }
+
   async createSavingsGoal(
     userId: string,
     dto: CreateSavingsGoalDto,
     now: Date,
   ) {
+    const currency = dto.currency ?? 'DOP';
+    await this.assertGoalAccount(userId, dto.accountId, currency);
     const created = await this.repo.createSavingsGoal(
       userId,
       {
-        name: dto.name,
+        name: dto.name.trim(),
         description: dto.description,
         targetAmount: dto.targetAmount,
-        currency: dto.currency ?? 'DOP',
+        currency,
         targetDate: dto.targetDate ? new Date(dto.targetDate) : null,
         accountId: dto.accountId,
         mode: dto.mode ?? 'EARMARK',
@@ -361,12 +414,20 @@ export class PlanningService {
     dto: UpdateSavingsGoalDto,
     now: Date,
   ) {
-    await this.assertSavingsGoalOwned(userId, id);
+    const existing = await this.repo.findSavingsGoal(userId, id);
+    if (!existing) {
+      throw new NotFoundException('Meta de ahorro no encontrada');
+    }
+    const nextCurrency = dto.currency ?? existing.currency;
+    const nextAccountId = dto.accountId ?? existing.accountId;
+    if (nextAccountId) {
+      await this.assertGoalAccount(userId, nextAccountId, nextCurrency);
+    }
     await this.repo.updateSavingsGoal(
       userId,
       id,
       {
-        ...(dto.name ? { name: dto.name } : {}),
+        ...(dto.name ? { name: dto.name.trim() } : {}),
         ...(dto.description !== undefined
           ? { description: dto.description }
           : {}),
@@ -419,6 +480,65 @@ export class PlanningService {
     return { ...page, items: page.items.map(mapSavingsGoalContribution) };
   }
 
+  /**
+   * Credits the disbursed principal to the chosen account as an adjustment, so
+   * the account grows without counting as monthly income.
+   */
+  private async disburseLoan(input: {
+    userId: string;
+    accountId: string;
+    currency: string;
+    amount: number;
+    label: string;
+    transactionDate: Date;
+  }): Promise<string> {
+    const account = await this.assertDisbursementAccount(
+      input.userId,
+      input.accountId,
+      input.currency,
+    );
+    const adjusted = await this.adjustBalance.execute(input.userId, {
+      accountId: account.id,
+      balance: roundMoney(Number(account.balance) + input.amount),
+      description: `Desembolso de préstamo · ${input.label}`,
+      transactionDate: input.transactionDate,
+    });
+    if (!adjusted.transaction) {
+      throw new BadRequestException('No se pudo registrar el desembolso');
+    }
+    return adjusted.transaction.id;
+  }
+
+  private async assertDisbursementAccount(
+    userId: string,
+    accountId: string,
+    currency: string,
+  ) {
+    const account = await this.ownership.assertAccountOwned(userId, accountId);
+    if (!account.isActive) {
+      throw new BadRequestException('La cuenta del desembolso está archivada');
+    }
+    if (account.currency !== currency) {
+      throw new BadRequestException(
+        'La cuenta del desembolso debe estar en la moneda del préstamo',
+      );
+    }
+    return account;
+  }
+
+  private async assertGoalAccount(
+    userId: string,
+    accountId: string,
+    currency: string,
+  ): Promise<void> {
+    const account = await this.ownership.assertAccountOwned(userId, accountId);
+    if (account.currency !== currency) {
+      throw new BadRequestException(
+        'La cuenta de la meta debe estar en la moneda de la meta',
+      );
+    }
+  }
+
   private async assertSavingsGoalOwned(
     userId: string,
     id: string,
@@ -448,6 +568,11 @@ export class PlanningService {
       throw new NotFoundException('Préstamo no encontrado');
     }
     return mapLoan(row);
+  }
+
+  async lookupLoans(userId: string, ids: readonly string[]) {
+    const rows = await this.repo.findLoansByIds(userId, ids);
+    return new Map(rows.map((row) => [row.id, mapLoan(row)]));
   }
 
   async listLoanInstallments(userId: string, id: string) {
@@ -489,33 +614,60 @@ export class PlanningService {
         institutionId: dto.institutionId,
       });
     }
-    const created = await this.repo.createLoan(userId, {
-      lenderName: dto.lenderName,
-      institutionId: dto.institutionId,
-      accountId: dto.accountId,
-      originalAmount: dto.originalAmount,
-      currentBalance: dto.currentBalance,
-      currency: dto.currency ?? 'DOP',
-      installmentAmount: dto.installmentAmount,
-      installmentFreq: dto.installmentFreq,
-      totalInstallments: dto.totalInstallments,
-      paidInstallments: dto.paidInstallments ?? 0,
-      nextDueDate: new Date(dto.nextDueDate),
-      ...(dto.interestRate !== undefined
-        ? { interestRate: dto.interestRate }
-        : {}),
-      ...(dto.rateType ? { rateType: dto.rateType } : {}),
-      ...(dto.insuranceAmount !== undefined
-        ? { insuranceAmount: dto.insuranceAmount }
-        : {}),
-      ...(dto.prepaymentPenaltyPct !== undefined
-        ? { prepaymentPenaltyPct: dto.prepaymentPenaltyPct }
-        : {}),
-      ...(dto.disbursementDate
-        ? { disbursementDate: new Date(dto.disbursementDate) }
-        : {}),
-      ...(dto.notes !== undefined ? { notes: dto.notes } : {}),
-    });
+    const currency = dto.currency ?? 'DOP';
+    const loanName = dto.name?.trim() || null;
+    const disbursementAccountId = dto.disbursementAccountId ?? null;
+    const disbursementTransactionId = disbursementAccountId
+      ? await this.disburseLoan({
+          userId,
+          accountId: disbursementAccountId,
+          currency,
+          amount: dto.originalAmount,
+          label: loanName ?? dto.lenderName,
+          transactionDate: dto.disbursementDate
+            ? new Date(dto.disbursementDate)
+            : now,
+        })
+      : null;
+
+    let created: Awaited<ReturnType<PlanningRepository['createLoan']>>;
+    try {
+      created = await this.repo.createLoan(userId, {
+        name: loanName,
+        lenderName: dto.lenderName,
+        institutionId: dto.institutionId,
+        accountId: dto.accountId,
+        disbursementAccountId: disbursementAccountId ?? undefined,
+        disbursementTransactionId: disbursementTransactionId ?? undefined,
+        originalAmount: dto.originalAmount,
+        currentBalance: dto.currentBalance,
+        currency,
+        installmentAmount: dto.installmentAmount,
+        installmentFreq: dto.installmentFreq,
+        totalInstallments: dto.totalInstallments,
+        paidInstallments: dto.paidInstallments ?? 0,
+        nextDueDate: new Date(dto.nextDueDate),
+        ...(dto.interestRate !== undefined
+          ? { interestRate: dto.interestRate }
+          : {}),
+        ...(dto.rateType ? { rateType: dto.rateType } : {}),
+        ...(dto.insuranceAmount !== undefined
+          ? { insuranceAmount: dto.insuranceAmount }
+          : {}),
+        ...(dto.prepaymentPenaltyPct !== undefined
+          ? { prepaymentPenaltyPct: dto.prepaymentPenaltyPct }
+          : {}),
+        ...(dto.disbursementDate
+          ? { disbursementDate: new Date(dto.disbursementDate) }
+          : {}),
+        ...(dto.notes !== undefined ? { notes: dto.notes } : {}),
+      });
+    } catch (error) {
+      if (disbursementTransactionId) {
+        await this.deleteTransaction.execute(userId, disbursementTransactionId);
+      }
+      throw error;
+    }
     await this.syncInstallments.execute(created, now);
     return mapLoan(created);
   }
@@ -573,6 +725,7 @@ export class PlanningService {
     }
 
     const updated = await this.repo.updateLoan(userId, id, {
+      ...(dto.name !== undefined ? { name: dto.name?.trim() || null } : {}),
       ...(dto.lenderName ? { lenderName: dto.lenderName } : {}),
       ...(dto.institutionId !== undefined
         ? { institutionId: dto.institutionId }
@@ -657,6 +810,11 @@ export class PlanningService {
       throw new NotFoundException('Cobro no encontrado');
     }
     return mapReceivable(row);
+  }
+
+  async lookupReceivables(userId: string, ids: readonly string[]) {
+    const rows = await this.repo.findReceivablesByIds(userId, ids);
+    return new Map(rows.map((row) => [row.id, mapReceivable(row)]));
   }
 
   async createReceivable(userId: string, dto: CreateReceivableDto) {

@@ -40,7 +40,7 @@ jobs:
       DATA_ENCRYPTION_KEY: test-data-encryption-key-minimum-32-chars!!
       OAUTH_STATE_SECRET: test-oauth-state-secret-minimum-32chars
       GROQ_API_KEY: ''
-      CEREBRAS_API_KEY: ''
+      OPENCODE_API_KEY: ''
       OPENROUTER_API_KEY: ''
 
     steps:
@@ -126,3 +126,8 @@ jobs:
 
       - name: E2E tests
         run: pnpm test:e2e
+
+      - name: PostgreSQL integration and crash recovery
+        env:
+          TEST_DATABASE_URL: postgresql://postgres:test@localhost:5432/postgres
+        run: pnpm test:integration

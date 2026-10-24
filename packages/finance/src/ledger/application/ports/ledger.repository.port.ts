@@ -1,6 +1,9 @@
 import type { BudgetSpendSnapshot } from '../../../shared/domain/budget-snapshot';
-import type { StoredMovement } from '../../../shared/domain/deletion-snapshot';
-import type { RestoreResult } from '../../../shared/domain/deletion-snapshot';
+import type {
+  RestoreResult,
+  StoredMovement,
+} from '../../../shared/domain/deletion-snapshot';
+import type { LedgerCardType } from '../../../shared/domain/ledger-rules';
 import type { ResolvedAmounts } from '../../../shared/domain/money';
 import type { TransactionLinkKind } from '../../../shared/domain/transaction-links';
 import type {
@@ -44,7 +47,7 @@ export type LedgerTransactionRow = {
   transferGroupId: string | null;
   linkedTransactionId: string | null;
   possibleDuplicateOfId?: string | null;
-  emailMessageId?: string | null;
+  importReference?: string | null;
   aiMetadata?: unknown;
   loanInstallment?: {
     id: string;
@@ -110,8 +113,15 @@ export type EmailTransferCounterpart = {
   description?: string | null;
   notes?: string | null;
   status: FinTxStatus;
-  emailMessageId?: string;
+  importReference?: string;
   aiMetadata?: unknown;
+};
+
+/** Card a movement targets, with the currencies the card already declares. */
+export type CardLedgerContext = {
+  cardType: LedgerCardType;
+  accountId: string | null;
+  currencies: string[];
 };
 
 /**
@@ -142,15 +152,21 @@ export interface LedgerRepositoryPort {
     userId: string,
   ): Promise<{ id: string; currency: string } | null>;
 
+  /** Card with the currencies it declares, for the ledger target of a movement. */
+  findCardLedgerContext(
+    id: string,
+    userId: string,
+  ): Promise<CardLedgerContext | null>;
+
   /** Savings goal that earmarks this account, if any. */
   findSavingsGoalIdByAccount(
     userId: string,
     accountId: string,
   ): Promise<string | null>;
 
-  findTransactionByEmailMessageId(
-    gmailMessageId: string,
-    userId?: string,
+  findTransactionByImportReference(
+    importReference: string,
+    userId: string,
   ): Promise<LedgerTransactionRow | null>;
 
   findTransactionByExternalReference(
@@ -166,6 +182,11 @@ export interface LedgerRepositoryPort {
   findTransactionsByTransferGroupIds(
     userId: string,
     transferGroupIds: string[],
+  ): Promise<LedgerTransactionRow[]>;
+
+  findTransactionsByIds(
+    userId: string,
+    ids: readonly string[],
   ): Promise<LedgerTransactionRow[]>;
 
   findCandidatesForReverse(
@@ -222,6 +243,8 @@ export interface LedgerRepositoryPort {
       accountId?: string | null;
       cardId?: string | null;
       amounts: ResolvedAmounts;
+      description?: string;
+      transactionDate?: Date;
     },
   ): Promise<CreateTransactionResult | null>;
 
@@ -231,7 +254,7 @@ export interface LedgerRepositoryPort {
     amounts: ResolvedAmounts,
     source?: 'MANUAL' | 'EMAIL' | 'AI',
     extras?: {
-      emailMessageId?: string;
+      importReference?: string;
       aiMetadata?: unknown;
       linkedTransactionId?: string;
       transferGroupId?: string;

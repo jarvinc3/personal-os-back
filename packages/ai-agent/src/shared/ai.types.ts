@@ -1,4 +1,4 @@
-import type { AiChatMessage } from '@personal-os/core';
+import type { InferenceMessage } from '@personal-os/contracts';
 
 export type SideEffectDescriptor =
   | { type: 'invalidate'; keys: string[] }
@@ -14,17 +14,22 @@ export type AiActionSummary = {
   label?: string;
 };
 
-export type ChatTransactionSnapshot = {
+export type ChatEntityRefType =
+  | 'transaction'
+  | 'account'
+  | 'card'
+  | 'loan'
+  | 'budget'
+  | 'savingsGoal'
+  | 'receivable'
+  | 'subscription'
+  | 'merchant'
+  | 'category';
+
+/** The chat block stores only the reference; the client resolves it in bulk. */
+export type ChatEntityRef = {
+  type: ChatEntityRefType;
   id: string;
-  type: string;
-  amount: string;
-  currency: string;
-  transactionDate: string;
-  merchant: string | null;
-  description: string | null;
-  accountName: string | null;
-  cardName: string | null;
-  status: string;
 };
 
 export type ChatChartPoint = {
@@ -33,45 +38,11 @@ export type ChatChartPoint = {
   color?: string | null;
 };
 
-export type ChatNextInstallment = {
-  amount: string;
-  currency: string;
-  dueDate: string;
-  installmentNo: number;
-};
-
 export type ChatBlock =
   | { type: 'markdown'; content: string }
   | { type: 'action'; action: AiActionSummary }
-  | {
-      type: 'transaction_card';
-      transactionId: string;
-      snapshot: ChatTransactionSnapshot;
-    }
-  | {
-      type: 'transaction_list';
-      items: ChatTransactionSnapshot[];
-      moreHref?: string;
-    }
-  | {
-      type: 'budget_progress';
-      budgetId: string;
-      spent: string;
-      limit: string;
-      currency: string;
-      name?: string;
-      pctUsed?: number;
-      color?: string | null;
-      icon?: string | null;
-    }
-  | {
-      type: 'loan_summary';
-      loanId: string;
-      balance: string;
-      currency: string;
-      name?: string;
-      nextInstallment?: ChatNextInstallment;
-    }
+  | { type: 'entity_card'; ref: ChatEntityRef }
+  | { type: 'entity_list'; refs: ChatEntityRef[]; moreHref?: string }
   | {
       type: 'chart';
       kind: 'bar' | 'donut' | 'line';
@@ -125,9 +96,10 @@ export type ToolCallRequest = {
 export type ChatCompletionResult = {
   content: string;
   toolCalls: ToolCallRequest[];
+  usage?: { inputTokens?: number; outputTokens?: number };
 };
 
-export interface ChatMessage extends AiChatMessage {
+export interface ChatMessage extends InferenceMessage {
   toolCallId?: string;
   name?: string;
   toolCalls?: ToolCallRequest[];

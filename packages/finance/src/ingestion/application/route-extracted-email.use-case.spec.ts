@@ -1,8 +1,8 @@
-import type { LedgerQueryService } from '../../ledger/application/ledger-query.service';
 import type { ImportEmailTransactionUseCase } from '../../ledger/application/import-email-transaction.use-case';
-import type { EmailSourceRepository } from '../infrastructure/email-source.repository';
-import { RouteExtractedEmailUseCase } from './route-extracted-email.use-case';
+import type { LedgerQueryService } from '../../ledger/application/ledger-query.service';
 import type { ExtractedEmailTransaction } from './ports/email-transaction-extractor.port';
+import type { FinancialImportCandidatesPort } from './ports/financial-import-candidates.port';
+import { RouteExtractedEmailUseCase } from './route-extracted-email.use-case';
 
 const payrollWithoutAmount: ExtractedEmailTransaction = {
   amount: null,
@@ -29,7 +29,7 @@ const payrollWithoutAmount: ExtractedEmailTransaction = {
 const params = {
   userId: 'user-1',
   sourceId: 'src-1',
-  gmailMessageId: 'gmail-1',
+  sourceReference: 'gmail-1',
   extracted: payrollWithoutAmount,
   provider: 'groq',
   model: 'test',
@@ -42,11 +42,11 @@ const params = {
 
 function setup() {
   const emailSources = {
-    upsertEmailMessage: jest.fn().mockResolvedValue({ id: 'msg-1' }),
+    persistCandidate: jest.fn().mockResolvedValue({ id: 'msg-1' }),
     listCategories: jest.fn().mockResolvedValue([]),
     findSuggestedPayrollAmount: jest.fn().mockResolvedValue(null),
     findFixedIncomeAmount: jest.fn().mockResolvedValue(null),
-    findEmailSyncMode: jest.fn().mockResolvedValue('DIRECT'),
+    findImportMode: jest.fn().mockResolvedValue('DIRECT'),
   };
   const importEmail = {
     execute: jest.fn().mockResolvedValue({ id: 'tx-1' }),
@@ -58,7 +58,7 @@ function setup() {
     findLatestCategoryIdByMerchant: jest.fn().mockResolvedValue(null),
   };
   const useCase = new RouteExtractedEmailUseCase(
-    emailSources as unknown as EmailSourceRepository,
+    emailSources as unknown as FinancialImportCandidatesPort,
     importEmail as unknown as ImportEmailTransactionUseCase,
     ledger as unknown as LedgerQueryService,
   );
@@ -95,7 +95,7 @@ describe('RouteExtractedEmailUseCase payroll without amount', () => {
     const routed = await useCase.execute(params);
 
     expect(importEmail.execute).not.toHaveBeenCalled();
-    expect(emailSources.upsertEmailMessage).toHaveBeenCalledWith(
+    expect(emailSources.persistCandidate).toHaveBeenCalledWith(
       expect.objectContaining({ outcome: 'PENDING_AMOUNT' }),
     );
     expect(routed).toMatchObject({ kind: 'pending_amount' });
@@ -117,7 +117,7 @@ describe('RouteExtractedEmailUseCase payroll without amount', () => {
 
   it('leaves email movements pending when the module asks for review', async () => {
     const { emailSources, importEmail, useCase } = setup();
-    emailSources.findEmailSyncMode.mockResolvedValue('PENDING');
+    emailSources.findImportMode.mockResolvedValue('PENDING');
 
     await useCase.execute({
       ...params,

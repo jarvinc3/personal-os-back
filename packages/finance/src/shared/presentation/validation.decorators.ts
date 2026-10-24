@@ -1,5 +1,6 @@
 import { Transform, Type } from 'class-transformer';
 import {
+  IsDateString,
   IsInt,
   IsOptional,
   IsString,
@@ -13,6 +14,10 @@ import { normalizeCurrencyCode as normalizeDomainCurrencyCode } from '../domain/
 export const ISO_CURRENCY_REGEX = /^[A-Z]{3}$/;
 export const LAST_FOUR_REGEX = /^[0-9]{4}$/;
 
+/** Date, time and a zone designator: never a bare wall clock. */
+export const INSTANT_DATE_REGEX =
+  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d{1,9})?)?(Z|[+-]\d{2}:\d{2})$/;
+
 export function normalizeCurrencyCode(value: unknown): unknown {
   if (typeof value !== 'string') {
     return value;
@@ -25,6 +30,20 @@ export function normalizeLastFour(value: unknown): unknown {
     return value;
   }
   return value.trim();
+}
+
+/**
+ * A movement is stored as an instant. A wall clock without a zone would be read
+ * in the server's zone and land hours away from the user's own day.
+ */
+export function InstantDateField() {
+  return function (target: object, propertyKey: string | symbol) {
+    IsDateString()(target, propertyKey);
+    Matches(INSTANT_DATE_REGEX, {
+      message:
+        'transactionDate must be an ISO instant with a zone (e.g. 2026-10-21T17:02:00.000Z)',
+    })(target, propertyKey);
+  };
 }
 
 /** Optional ISO 4217 alpha-3 currency (uppercase). */

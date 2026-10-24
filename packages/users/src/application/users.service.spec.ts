@@ -119,107 +119,6 @@ describe('UsersService.assertModuleEnabled', () => {
   });
 });
 
-describe('UsersService.assertFinanceEmailSyncEnabled', () => {
-  const findEnabledUserModuleBySlug = jest.fn();
-  const findUserModuleBySlug = jest.fn();
-  const usersRepository = {
-    findEnabledUserModuleBySlug,
-    findUserModuleBySlug,
-  } as unknown as UsersRepositoryPort;
-
-  const service = new UsersService(
-    usersRepository,
-    { emit: jest.fn() } as unknown as EventEmitter2,
-    { tryDeleteAuthUser: jest.fn() } as unknown as SupabaseAdminService,
-  );
-
-  beforeEach(() => {
-    jest.clearAllMocks();
-    findEnabledUserModuleBySlug.mockResolvedValue({ id: 'um-1' });
-  });
-
-  it('resolves when emailSync.enabled is true', async () => {
-    findUserModuleBySlug.mockResolvedValue({
-      id: 'um-1',
-      isEnabled: true,
-      config: { emailSync: { enabled: true } },
-    });
-    await expect(
-      service.assertFinanceEmailSyncEnabled('user-1'),
-    ).resolves.toBeUndefined();
-  });
-
-  it('throws when emailSync is disabled', async () => {
-    findUserModuleBySlug.mockResolvedValue({
-      id: 'um-1',
-      isEnabled: true,
-      config: { emailSync: { enabled: false } },
-    });
-    await expect(
-      service.assertFinanceEmailSyncEnabled('user-1'),
-    ).rejects.toThrow(
-      'La sincronización de correo de finanzas está desactivada',
-    );
-  });
-
-  it('throws when emailSync is omitted (default is disabled)', async () => {
-    findUserModuleBySlug.mockResolvedValue({
-      id: 'um-1',
-      isEnabled: true,
-      config: {},
-    });
-    await expect(
-      service.assertFinanceEmailSyncEnabled('user-1'),
-    ).rejects.toThrow(
-      'La sincronización de correo de finanzas está desactivada',
-    );
-  });
-});
-
-describe('UsersService.isFinanceEmailSyncAutomatic', () => {
-  const findUserModuleBySlug = jest.fn();
-  const usersRepository = {
-    findUserModuleBySlug,
-  } as unknown as UsersRepositoryPort;
-
-  const service = new UsersService(
-    usersRepository,
-    { emit: jest.fn() } as unknown as EventEmitter2,
-    { tryDeleteAuthUser: jest.fn() } as unknown as SupabaseAdminService,
-  );
-
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
-
-  it('returns true only when both enabled and automatic are true', async () => {
-    findUserModuleBySlug.mockResolvedValue({
-      config: { emailSync: { enabled: true, automatic: true } },
-    });
-    await expect(service.isFinanceEmailSyncAutomatic('user-1')).resolves.toBe(
-      true,
-    );
-  });
-
-  it('returns false when automatic is omitted (default off)', async () => {
-    findUserModuleBySlug.mockResolvedValue({
-      config: { emailSync: { enabled: true } },
-    });
-    await expect(service.isFinanceEmailSyncAutomatic('user-1')).resolves.toBe(
-      false,
-    );
-  });
-
-  it('returns false when sync is enabled but automatic is off', async () => {
-    findUserModuleBySlug.mockResolvedValue({
-      config: { emailSync: { enabled: true, automatic: false } },
-    });
-    await expect(service.isFinanceEmailSyncAutomatic('user-1')).resolves.toBe(
-      false,
-    );
-  });
-});
-
 describe('UsersService.updateModuleConfig schedule validation', () => {
   const findModuleBySlug = jest.fn();
   const findUserModule = jest.fn();
@@ -261,26 +160,6 @@ describe('UsersService.updateModuleConfig schedule validation', () => {
       createdAt: new Date(),
       updatedAt: new Date(),
     });
-  });
-
-  it('rejects an interval below the minimum', async () => {
-    await expect(
-      service.updateModuleConfig('user-1', 'finance', {
-        config: {
-          emailSync: { schedule: { mode: 'interval', everyMinutes: 5 } },
-        },
-      }),
-    ).rejects.toBeInstanceOf(BadRequestException);
-    expect(upsertUserModule).not.toHaveBeenCalled();
-  });
-
-  it('accepts fixed times in HH:MM', async () => {
-    await service.updateModuleConfig('user-1', 'finance', {
-      config: {
-        emailSync: { schedule: { mode: 'times', times: ['08:00', '18:00'] } },
-      },
-    });
-    expect(upsertUserModule).toHaveBeenCalled();
   });
 
   it('rejects the retired subscriptions slug', async () => {
@@ -395,5 +274,72 @@ describe('UsersService.markReleaseNotesSeen', () => {
     ).resolves.toBeUndefined();
 
     expect(setLastSeenReleaseVersion).toHaveBeenCalledWith('user-1', '0.39.0');
+  });
+});
+
+describe('UsersService.updateProfile', () => {
+  const findById = jest.fn();
+  const updateProfile = jest.fn();
+  const usersRepository = {
+    findById,
+    updateProfile,
+  } as unknown as UsersRepositoryPort;
+  const eventEmitter = { emit: jest.fn() } as unknown as EventEmitter2;
+  const supabaseAdminService = {
+    tryDeleteAuthUser: jest.fn(),
+  } as unknown as SupabaseAdminService;
+
+  const service = new UsersService(
+    usersRepository,
+    eventEmitter,
+    supabaseAdminService,
+  );
+
+  const profileRow = {
+    id: 'user-1',
+    email: 'u@example.com',
+    fullName: 'User',
+    avatarUrl: null,
+    timezone: 'America/Santo_Domingo',
+    locale: 'es-DO',
+    preferences: {},
+    lastSeenReleaseVersion: null,
+    userModules: [],
+    createdAt: new Date('2026-10-01T00:00:00.000Z'),
+    updatedAt: new Date('2026-10-01T00:00:00.000Z'),
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    findById.mockResolvedValue(profileRow);
+    updateProfile.mockImplementation(
+      (_userId: string, data: Record<string, unknown>) =>
+        Promise.resolve({ ...profileRow, ...data }),
+    );
+  });
+
+  it('rejects a week start outside the supported values', async () => {
+    await expect(
+      service.updateProfile('user-1', {
+        preferences: { regional: { weekStartsOn: 3 } },
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+
+    expect(updateProfile).not.toHaveBeenCalled();
+  });
+
+  it('persists the regional week start', async () => {
+    await service.updateProfile('user-1', {
+      preferences: { regional: { weekStartsOn: 0 } },
+    });
+
+    expect(updateProfile).toHaveBeenCalledWith(
+      'user-1',
+      expect.objectContaining({
+        preferences: expect.objectContaining({
+          regional: { weekStartsOn: 0 },
+        }),
+      }),
+    );
   });
 });

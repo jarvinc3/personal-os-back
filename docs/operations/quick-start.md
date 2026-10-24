@@ -6,7 +6,7 @@
 - pnpm
 - PostgreSQL (Supabase) + Auth
 - Redis opcional en local; obligatorio en production
-- Al menos una API key: `GROQ_API_KEY`, `CEREBRAS_API_KEY` o `OPENROUTER_API_KEY`
+- Al menos una API key: `GROQ_API_KEY` o `OPENROUTER_API_KEY`
 
 ```bash
 cd personal-os-back

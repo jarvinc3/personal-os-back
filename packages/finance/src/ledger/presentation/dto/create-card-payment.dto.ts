@@ -1,7 +1,6 @@
 import { ApiProperty, ApiPropertyOptional, PartialType } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
-  IsDateString,
   IsEnum,
   IsNumber,
   IsOptional,
@@ -9,7 +8,10 @@ import {
   IsUUID,
   MaxLength,
 } from 'class-validator';
-import { CurrencyField } from '../../../shared/presentation/validation.decorators';
+import {
+  CurrencyField,
+  InstantDateField,
+} from '../../../shared/presentation/validation.decorators';
 
 const transactionStatuses = ['PENDING', 'CONFIRMED', 'CANCELLED'] as const;
 
@@ -32,7 +34,7 @@ export class CreateCardPaymentDto {
   currency?: string;
 
   @ApiProperty()
-  @IsDateString()
+  @InstantDateField()
   transactionDate!: string;
 
   @ApiPropertyOptional()

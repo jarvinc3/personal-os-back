@@ -12,6 +12,16 @@ Programas detallados:
 - Core Events + Module Settings: `platform-boundaries/00-README.md`.
 - Auditoría e invariantes transversales: `00-ARCHITECTURE-AUDIT.md`.
 
+## Decisiones e inventario actualizados
+
+El [diseño técnico de AI-0](ai-0-design/00-README.md) concreta la baseline
+candidata, SQL preservado, contratos, archivos, preflight y reconstrucción DEV.
+Sus artefactos están validados localmente; no inicia el reset ni acredita PROD.
+
+Las [decisiones del 2026-10-24](01-IMPLEMENTATION-DECISIONS.md) precisan corte, contratos, evidencia y releases. El [inventario de fase 0](02-PHASE-0-INVENTORY.md) reemplaza las listas de borrado anteriores.
+
+Antes de Wave A se entrega la corrección independiente del outbox: leases recuperables, fencing, efectos PostgreSQL transaccionales, deduplicación del encolado externo y pruebas de caída con PostgreSQL real. Su gate no espera a AI-7.
+
 ## Principio
 
 Cada programa tiene sus propias fases verificables. Este roadmap maestro define el orden y los gates de integración, no duplica el detalle de implementación.
@@ -136,9 +146,9 @@ Los demás programas deben mantenerse estables mientras se valida este ciclo.
 
 ### Wave F — Finance IMPORT / gate de release
 
-Contiene AI-11 (Finance Signal Consumer / IMPORT) junto con FIN-3 como gate de 0.50.0. AI-12 (Proactive Intelligence) queda **después** del release, como 0.51. El roadmap de IA ya ubica Finance IMPORT en la Fase 11 y el despliegue a PROD después de ella. Se mantiene esa condición: `0.50.0` no está listo para PROD hasta que la importación de Finance funcione de punta a punta y pasen todos los tests de integración de fronteras.
+Contiene AI-11 (Finance Signal Consumer / IMPORT) junto con FIN-3 como gate de 0.100.0. AI-12 (Proactive Intelligence) queda **después** del release, como `0.101.0`. El roadmap de IA ya ubica Finance IMPORT en la Fase 11 y el despliegue a PROD después de ella. Se mantiene esa condición: `0.100.0` no está listo para PROD hasta que la importación de Finance funcione de punta a punta y pasen todos los tests de integración de fronteras.
 
-Mientras el gate no se cumpla, los hotfixes de PROD siguen la estrategia de `release/0.49.x` descrita en *Estrategia de release y hotfixes durante el reset*.
+Mientras el gate no se cumpla, los hotfixes de PROD siguen la estrategia de `release/0.55.x` descrita en _Estrategia de release y hotfixes durante el reset_.
 
 ## Tests de arquitectura obligatorios entre programas
 
@@ -175,19 +185,22 @@ Un refactor no se considera terminado solo porque se movieron archivos.
 
 - **web #216 / #217 (settings):** solo web por ahora. No se agregan claves nuevas a `user-settings-defaults.ts` ni métodos a `UsersService`. Cualquier backend de "Vaciar datos" es un endpoint por módulo dentro de cada módulo. PLATFORM-SETTINGS-0 se mantiene en Wave A.
 - **back #161 (moneda extranjera):** se hace ahora solo la conversión de ledger/FX (dominio Finance que se conserva). La parte de importación por email no se adapta; FIN-3 debe guardar monto original y tasa.
-- **AI-12:** fuera de 0.50.0; release 0.51.
+- **AI-12:** fuera de 0.100.0; release `0.101.0`.
 
 ## Estrategia de release y hotfixes durante el reset
 
 Decisión del owner: excepción explícita a la regla "todo en `develop`, sin ramas".
 
-- Al iniciar el reset (AI-0 / Wave A) se crea `release/0.49.x` desde `master`. No se crea antes.
-- Esa rama se usa **solo** para hotfixes de PROD mientras `develop` contiene el reset 0.50.0 y no es desplegable.
-- Cada hotfix se versiona como `0.49.x` según `docs/versionado.md` y se lleva de vuelta a `develop` (cherry-pick o merge) cuando aplique; si el código afectado fue eliminado o rediseñado por el reset, se deja constancia en el issue de que no aplica.
-- No se desarrollan features en `release/0.49.x`.
-- La rama se retira cuando 0.50.0 llega a PROD.
+- Al iniciar el reset (AI-0 / Wave A) se crea `release/0.55.x` desde `master`. No se crea antes. Primero se verifica que master contenga la base estable prevista 0.55.1 y los hotfixes previos aprobados; el master local antiguo no sirve como corte. El nombre sigue la línea estable verificada.
+- Las ramas de hotfix son **por repo**: cada repo crea `release/<minor actual>.x` desde su propio `master` (por ejemplo `release/0.55.x` en back y la línea vigente de web, como `release/0.50.x`).
+- Esa rama se usa **solo** para hotfixes de PROD mientras `develop` contiene el reset 0.100.0 y no es desplegable.
+- Cada hotfix se versiona como `0.55.x` según `docs/versionado.md` y se lleva de vuelta a `develop` (cherry-pick o merge) cuando aplique; si el código afectado fue eliminado o rediseñado por el reset, se deja constancia en el issue de que no aplica.
+- No se desarrollan features en `release/0.55.x`.
+- La rama se retira cuando 0.100.0 llega a PROD.
 - Merges y deploys siguen siendo decisión del owner.
 
 ## Relación con los releases
 
-Este roadmap maestro no crea releases de producción independientes por cada fase documentada. El release de reset de arquitectura `0.50.0` sigue siendo el objetivo coordinado de backend y web, salvo que el owner cambie esa decisión. Hasta su salida a PROD, los parches de producción van por `release/0.49.x` (ver sección anterior).
+Este roadmap maestro no crea releases de producción independientes por cada fase documentada. El release de reset de arquitectura `0.100.0` sigue siendo el objetivo coordinado de backend y web, salvo que el owner cambie esa decisión.
+
+**Versión del release del refactor:** `0.100.0` es la versión coordinada para **back y web** cuando salga el refactor: ambos repos saltan a `0.100.0` en ese release, sin importar en qué versión estén. Hasta entonces, cada repo sigue con sus números normales de patch/minor (por ejemplo, web ya llegó a `0.50.x` por su cuenta), que no tienen relación con el refactor. Se eligió `0.100.0` en lugar de `0.50.0` para evitar esa confusión. AI-12 sale después, como `0.101.0`. Hasta su salida a PROD, los parches de producción van por `release/0.55.x` (ver sección anterior).

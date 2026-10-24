@@ -3,27 +3,38 @@ import {
   ArrayMinSize,
   ArrayUnique,
   IsArray,
-  IsIn,
+  IsObject,
   IsOptional,
+  IsString,
   IsUUID,
 } from 'class-validator';
-import { WIPE_LAYER_IDS, type WipeLayerId } from '../../domain/wipe-layers';
 
 export class WipeUserDataDto {
   @ApiProperty({
-    enum: WIPE_LAYER_IDS,
-    isArray: true,
-    description: 'Data layers to wipe; at least one, no duplicates',
+    type: [String],
+    example: ['finance.transactions', 'notifications.history'],
+    description:
+      'Data branches to wipe, as returned by GET /users/me/data/branches',
   })
   @IsArray()
   @ArrayMinSize(1)
   @ArrayUnique()
-  @IsIn(WIPE_LAYER_IDS, { each: true })
-  layers!: WipeLayerId[];
+  @IsString({ each: true })
+  branches!: string[];
+
+  @ApiPropertyOptional({
+    type: 'object',
+    additionalProperties: { type: 'number' },
+    description:
+      'Branch counts the user saw. A different count answers 409 without deleting anything.',
+  })
+  @IsOptional()
+  @IsObject()
+  expectedCounts?: Record<string, number>;
 
   @ApiPropertyOptional({
     description:
-      'Institution whose accounts to zero and whose credit cards to restore to their limit. Omit to cover every institution, including cash. Applied only when finance.balances is selected.',
+      'Institution whose accounts to zero and whose credit cards to restore to their limit. Applies only to finance.balances.',
   })
   @IsOptional()
   @IsUUID()

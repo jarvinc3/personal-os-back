@@ -8,15 +8,18 @@ import type { ListNotificationsQueryDto } from '../presentation/dto/list-notific
 export class NotificationsRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  createNotification(data: {
-    userId: string;
-    type: string;
-    channel: NotificationChannel;
-    title: string;
-    body: string;
-    data?: Record<string, unknown>;
-  }) {
-    return this.prisma.notification.create({
+  createNotification(
+    data: {
+      userId: string;
+      type: string;
+      channel: NotificationChannel;
+      title: string;
+      body: string;
+      data?: Record<string, unknown>;
+    },
+    tx?: Prisma.TransactionClient,
+  ) {
+    return (tx ?? this.prisma).notification.create({
       data: {
         userId: data.userId,
         type: data.type,
@@ -125,6 +128,14 @@ export class NotificationsRepository {
         platform: true,
       },
     });
+  }
+
+  countAllForUser(userId: string) {
+    return this.prisma.notification.count({ where: { userId } });
+  }
+
+  countAllPushTokensForUser(userId: string) {
+    return this.prisma.pushToken.count({ where: { userId } });
   }
 
   deleteAllForUser(userId: string) {

@@ -39,6 +39,10 @@ import {
   fingerprintAccountNumber,
 } from '../../shared/infrastructure/account-number-encryption.util';
 import { CASH_ACCOUNT_TYPE, isCashInstitution } from '../../shared/domain/cash';
+import {
+  ACCOUNT_HAS_GOAL_MONEY,
+  ACCOUNT_HAS_GOAL_MONEY_MESSAGE,
+} from '../../shared/domain/savings-goal';
 import { EnsureCashInstitutionUseCase } from './ensure-cash-institution.use-case';
 import { CatalogCategoriesService } from './catalog-categories.service';
 import { institutionOrderKey } from '../domain/institution-order';
@@ -181,6 +185,23 @@ export class CatalogService {
     return this.mapAccount(account, earmarked.get(id) ?? 0);
   }
 
+  /** Same public shape as `getAccount`, loaded in batch and without throwing. */
+  async lookupAccounts(
+    userId: string,
+    ids: readonly string[],
+  ): Promise<Map<string, ReturnType<CatalogService['mapAccount']>>> {
+    const rows = await this.repo.findAccountsByIds(userId, ids);
+    const earmarked = await this.repo.sumEarmarkedByAccountIds(userId, [
+      ...rows.map((row) => row.id),
+    ]);
+    return new Map(
+      rows.map((row) => [
+        row.id,
+        this.mapAccount(row, earmarked.get(row.id) ?? 0),
+      ]),
+    );
+  }
+
   async createAccount(userId: string, dto: CreateAccountDto) {
     const institutionId = await this.resolveAccountInstitutionId(
       userId,
@@ -217,6 +238,12 @@ export class CatalogService {
     const existing = await this.repo.findAccountById(id, userId);
     if (!existing) {
       throw new NotFoundException('Cuenta no encontrada');
+    }
+    if (dto.isActive === false && (await this.repo.hasSavingsGoalMoney(id))) {
+      throw new ConflictException({
+        code: ACCOUNT_HAS_GOAL_MONEY,
+        message: ACCOUNT_HAS_GOAL_MONEY_MESSAGE,
+      });
     }
 
     const nextType = dto.type ?? existing.type;
@@ -898,6 +925,7 @@ export class CatalogService {
       institutionId: account.institutionId,
       institutionName: account.institutionRef?.name ?? null,
       institutionLogoUrl: this.logos.resolveUrl(account.institutionRef),
+      institutionColor: account.institutionRef?.color ?? null,
       name: account.name,
       type: account.type,
       currency: account.currency,
@@ -938,6 +966,19 @@ export class CatalogService {
     return localDayStart(profile.timezone, new Date());
   }
 
+  /** Same public shape as the card detail, loaded in batch and without throwing. */
+  async lookupCards(
+    userId: string,
+    ids: readonly string[],
+  ): Promise<Map<string, ReturnType<CatalogService['mapCard']>>> {
+    const rows = await this.repo.findCardsByIds(userId, ids);
+    if (rows.length === 0) {
+      return new Map<string, ReturnType<CatalogService['mapCard']>>();
+    }
+    const today = await this.localToday(userId);
+    return new Map(rows.map((row) => [row.id, this.mapCard(row, today)]));
+  }
+
   private mapCard(card: CardRow, today: Date) {
     const cycle = buildNextCardCycle({
       closingDay: card.statementClosingDay,
@@ -949,6 +990,7 @@ export class CatalogService {
       institutionId: card.institutionId,
       institutionName: card.institution.name,
       institutionLogoUrl: this.logos.resolveUrl(card.institution),
+      institutionColor: card.institution.color ?? null,
       networkLogoUrl: this.logos.networkLogoUrl(card.network),
       accountId: card.accountId,
       accountName: card.account?.name ?? null,

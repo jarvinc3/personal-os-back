@@ -2,7 +2,6 @@ import { ApiProperty, ApiPropertyOptional, PartialType } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
   IsBoolean,
-  IsDateString,
   IsEnum,
   IsNumber,
   IsOptional,
@@ -13,7 +12,10 @@ import {
   ValidateIf,
   ValidateNested,
 } from 'class-validator';
-import { CurrencyField } from '../../../shared/presentation/validation.decorators';
+import {
+  CurrencyField,
+  InstantDateField,
+} from '../../../shared/presentation/validation.decorators';
 import { TRANSFER_RAILS } from '../../application/commands/ledger.commands';
 
 const transactionStatuses = ['PENDING', 'CONFIRMED', 'CANCELLED'] as const;
@@ -73,7 +75,7 @@ export class CreateTransferDto {
   currency?: string;
 
   @ApiProperty()
-  @IsDateString()
+  @InstantDateField()
   transactionDate!: string;
 
   @ApiPropertyOptional()

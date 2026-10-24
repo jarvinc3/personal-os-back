@@ -162,7 +162,12 @@ export class RecurringService {
     }
     const changes: Prisma.FinRecurringPatternUncheckedUpdateInput = {};
     if (dto.merchant !== undefined) {
-      const resolved = await this.merchants.resolve(userId, dto.merchant);
+      const resolved = await this.merchants.resolve({
+        userId,
+        rawName: dto.merchant,
+        categoryId: dto.categoryId ?? existing.categoryId,
+        transactionType: existing.kind === 'INCOME' ? 'CREDIT' : 'DEBIT',
+      });
       changes.merchant = resolved?.name ?? dto.merchant.trim();
       changes.merchantId = resolved?.id ?? null;
     }
@@ -320,7 +325,12 @@ export class RecurringService {
         categoryId: merchant.categoryId,
       };
     }
-    return this.merchants.resolve(userId, dto.merchant);
+    return this.merchants.resolve({
+      userId,
+      rawName: dto.merchant,
+      categoryId: dto.categoryId ?? null,
+      transactionType: dto.kind === 'INCOME' ? 'CREDIT' : 'DEBIT',
+    });
   }
 }
 

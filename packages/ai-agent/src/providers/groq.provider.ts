@@ -2,7 +2,7 @@ import { Groq } from 'groq-sdk';
 import {
   parseToolCallArguments,
   toolsToOpenAiFormat,
-} from '../tools/tool.registry';
+} from '../shared/provider-tool-codec';
 import type {
   AIService,
   AiToolDefinition,
@@ -13,7 +13,7 @@ import type {
 import { mapMessagesToOpenAi } from '../shared/map-messages-to-openai';
 import { streamOpenAiChatComplete } from '../shared/stream-openai-chat-complete';
 
-const GROQ_MODEL = 'llama-3.3-70b-versatile';
+const GROQ_MODEL = 'qwen/qwen3.8-27b';
 
 export function createGroqProvider(apiKey: string): AIService {
   const groq = new Groq({ apiKey });
@@ -61,6 +61,12 @@ export function createGroqProvider(apiKey: string): AIService {
       return {
         content: choice?.content ?? '',
         toolCalls,
+        usage: response.usage
+          ? {
+              inputTokens: response.usage.prompt_tokens,
+              outputTokens: response.usage.completion_tokens,
+            }
+          : undefined,
       };
     },
     async chatCompleteStream(messages, tools, onToken) {

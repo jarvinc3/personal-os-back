@@ -17,6 +17,9 @@ Mapa para agentes y reviewers. Estándar: [documentation-standard.md](./document
 
 Estado, roadmap y hallazgos: GitHub Issues del repositorio (label `roadmap`).
 
+Refactor en preparación: [roadmap](refactors/00-MASTER-ROADMAP.md) y
+[diseño técnico de AI-0](refactors/ai-0-design/00-README.md).
+
 ## Módulos Nest reales
 
 `auth`, `users`, `logos`, `notifications`, `ai-agent`, `finance`. Slugs `agenda` / `projects` / `health` son configuración de `user_modules`, no módulos Nest.

@@ -1,0 +1,81 @@
+{
+  "verifiedAt": "2026-10-24T06:48:52.079Z",
+  "kind": "LOCAL_DESIGN_ARTIFACT_ONLY",
+  "sourceRevision": "018c4e021a1f54e755500ee3afefa9dc3037c84f",
+  "databaseName": "ai0_design_ff3ce26a268b4b268610abd1b1b66000",
+  "serverVersion": "17.2",
+  "tests": [
+    {
+      "name": "Apply complete baseline to an empty app schema",
+      "passed": true
+    },
+    {
+      "name": "All 44 target tables exist; removed models are absent",
+      "passed": true
+    },
+    {
+      "name": "Preserve non-Prisma checks and partial indexes exactly",
+      "passed": true
+    },
+    {
+      "name": "Enable RLS on every application table and retain policies",
+      "passed": true
+    },
+    {
+      "name": "Keep uuid-ossp in the verified Supabase extensions schema",
+      "passed": true
+    },
+    {
+      "name": "Automatically enable RLS on future public tables",
+      "passed": true
+    },
+    {
+      "name": "Close table Data API privileges for anon and authenticated",
+      "passed": true
+    },
+    {
+      "name": "Keep privileged auth trigger private and non-executable by clients",
+      "passed": true
+    },
+    {
+      "name": "Restore DEV app profiles for preexisting Auth identities idempotently",
+      "passed": true
+    },
+    {
+      "name": "Bootstrap future Auth identities using the private trigger",
+      "passed": true
+    },
+    {
+      "name": "Seed four configurable modules and retain 31 system categories",
+      "passed": true
+    },
+    {
+      "name": "Import references are unique within the user and opaque to sources",
+      "passed": true
+    },
+    {
+      "name": "Keep target XOR and currency checks",
+      "passed": true
+    },
+    {
+      "name": "Preserve bank-reference dedup and reversed exception",
+      "passed": true
+    },
+    {
+      "name": "RLS isolates users even if SELECT is temporarily granted for the probe",
+      "passed": true
+    },
+    {
+      "name": "AiAction has no conversation FK and retains atomic owner/status claims",
+      "passed": true
+    },
+    {
+      "name": "Retain updated_at, outbox lease and consumer receipt uniqueness",
+      "passed": true
+    },
+    {
+      "name": "Align logo bucket limits with runtime MIME validation",
+      "passed": true
+    }
+  ]
+}

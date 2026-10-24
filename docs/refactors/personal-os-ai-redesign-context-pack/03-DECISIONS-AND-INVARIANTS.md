@@ -23,7 +23,7 @@ Before doing so:
 PROD runs on its own database and environment.
 
 - Phase 0 deletes legacy code and resets migrations **in the repository and DEV only**.
-- PROD keeps running the current released version (including legacy email import and chat) until the owner explicitly decides to deploy `0.50.0`.
+- PROD keeps running the current released version (including legacy email import and chat) until the owner explicitly decides to deploy `0.100.0`.
 - Migrations (including the new baseline) are executed only against DEV by agents. Applying the baseline to PROD is a separate, owner-executed deploy step.
 - Inspecting PROD `_prisma_migrations` is read-only.
 
@@ -33,7 +33,7 @@ Open balance, ledger, planning, card, loan and reconciliation bugs (e.g. the QA 
 
 - They are fixed in parallel on `develop`.
 - They must not be blocked by, or wait for, the redesign.
-- The redesign must not delete or rewrite ledger/planning/reconciliation code except where it consumes email (`import-email-transaction`) — and only in Phase 11.
+- Phase 0 removes Gmail transport, OAuth, schedulers/processors and `FinEmail*` models. Preserve the financial import use cases, institution/instrument resolution, financial deduplication, reversals and transfer matching together with their tests, even without callers until Phase 11. Mechanically decouple their contracts from removed tables; do not rewrite their financial behavior. Phase 11 connects them to `FinanceSignalConsumer`.
 - Bugs located only in code scheduled for deletion (legacy ingestion/AI) may be closed as superseded, with a reference to this pack.
 
 ### Version
@@ -41,7 +41,7 @@ Open balance, ledger, planning, card, loan and reconciliation bugs (e.g. the QA 
 Backend and frontend target:
 
 ```text
-0.50.0
+0.100.0
 ```
 
 The CHANGELOG should describe the architecture reset coherently rather than pretending every internal phase is a separate product release.
@@ -65,6 +65,8 @@ ADMIN        can promote/revert any knowledge, see admin queues, manage roles
 Fine-grained permissions are V2. Roles may later be mirrored into JWT claims as a cache only; the DB remains the source of truth.
 
 ### Data ownership and deletion
+
+The [2026-10-24 decisions](../01-IMPLEMENTATION-DECISIONS.md#evidencia-consentimiento-y-borrado) define consent exclusions, structural tombstone eligibility, review suspension and incomplete historical reproduction; they qualify the reproducibility statements below.
 
 Each user can export and delete all data about them. GLOBAL knowledge is never deleted by a user deletion; the user's evidence is anonymized/detached so GLOBAL projections remain reproducible. GLOBAL never contains private data (invariant).
 
@@ -226,7 +228,7 @@ Initial implementation includes:
 
 Initially excluded:
 
-- cross-account shared knowledge;
+- cross-account sharing features beyond structural GLOBAL knowledge;
 - fully proactive agent;
 - automatic cross-module actions;
 - new domain implementations such as Health/Agenda intelligence;

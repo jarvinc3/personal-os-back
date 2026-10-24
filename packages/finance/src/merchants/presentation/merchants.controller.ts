@@ -1,7 +1,9 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
+  HttpCode,
   Param,
   Patch,
   Post,
@@ -19,6 +21,7 @@ import {
 import { CurrentUser, RequiresEnabledModule } from '@personal-os/core';
 import type { LogoUploadFile } from '@personal-os/logos';
 import { MerchantsService } from '../application/merchants.service';
+import { CreateMerchantDto } from './dto/create-merchant.dto';
 import { ListMerchantsQueryDto } from './dto/list-merchants-query.dto';
 import { MergeMerchantDto } from './dto/merge-merchant.dto';
 import { SuggestMerchantQueryDto } from './dto/suggest-merchant-query.dto';
@@ -49,10 +52,45 @@ export class MerchantsController {
     return this.merchants.suggest(userId, query.merchant);
   }
 
+  @Post('merchants')
+  @ApiOperation({ summary: 'Crea un comercio con nombre, categoría y alias' })
+  create(@CurrentUser('sub') userId: string, @Body() dto: CreateMerchantDto) {
+    return this.merchants.create(userId, dto);
+  }
+
   @Get('merchants/:id')
   @ApiOperation({ summary: 'Detalle del comercio' })
   get(@CurrentUser('sub') userId: string, @Param('id') id: string) {
     return this.merchants.get(userId, id);
+  }
+
+  @Get('merchants/:id/duplicates')
+  @ApiOperation({
+    summary: 'Comercios que parecen el mismo, con el motivo',
+  })
+  duplicates(@CurrentUser('sub') userId: string, @Param('id') id: string) {
+    return this.merchants.duplicates(userId, id);
+  }
+
+  @Post('merchants/:id/duplicates/:otherId/dismiss')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Marca un par de comercios como «no es duplicado»' })
+  dismissDuplicate(
+    @CurrentUser('sub') userId: string,
+    @Param('id') id: string,
+    @Param('otherId') otherId: string,
+  ) {
+    return this.merchants.dismissDuplicate(userId, id, otherId);
+  }
+
+  @Delete('merchants/:id/duplicates/:otherId/dismiss')
+  @ApiOperation({ summary: 'Revierte el descarte de un par de comercios' })
+  undoDismissDuplicate(
+    @CurrentUser('sub') userId: string,
+    @Param('id') id: string,
+    @Param('otherId') otherId: string,
+  ) {
+    return this.merchants.undoDismissDuplicate(userId, id, otherId);
   }
 
   @Patch('merchants/:id')
@@ -75,6 +113,12 @@ export class MerchantsController {
     @Body() dto: MergeMerchantDto,
   ) {
     return this.merchants.merge(userId, id, dto.targetId);
+  }
+
+  @Delete('merchants/:id/logo')
+  @ApiOperation({ summary: 'Quita el logo propio de un comercio' })
+  deleteLogo(@CurrentUser('sub') userId: string, @Param('id') id: string) {
+    return this.merchants.deleteLogo(userId, id);
   }
 
   @Post('merchants/:id/logo')

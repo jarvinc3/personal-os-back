@@ -47,6 +47,10 @@ Core no debería necesitar cambios de código cuando se introduce un evento nuev
 
 El `FinanceOutboxDispatcher` actual consulta directamente la tabla compartida `domainEventOutbox` y despacha todas las filas mediante `EventEmitter2`. Su implementación es genérica pese a su nombre/ubicación de Finance. Debe convertirse en infraestructura de plataforma en lugar de duplicarse para dominios futuros.
 
+### Corrección previa al reset
+
+Leases, fencing y atomicidad del consumidor se entregan primero como hotfix independiente; ver [decisiones](../01-IMPLEMENTATION-DECISIONS.md). PLATFORM-EVENTS-1 conserva esas garantías al mover el relay; AI-7 añade el puente BullMQ explícito.
+
 ### Fases
 
 #### PLATFORM-EVENTS-0 — Propiedad de los contratos
@@ -118,7 +122,7 @@ interface ModuleSettingsProvider<TConfig> {
 }
 ```
 
-La API exacta se define en el diseño de implementación.
+La API exacta se define en el diseño de implementación. Interfaces y tokens genéricos viven en `@personal-os/contracts`, sin dependencias de ejecución Nest/Prisma/SDK. `apps/api` compone los providers. Para las apps sin módulo Nest se registran descriptores estáticos separados; ubicación y transición en [decisiones](../01-IMPLEMENTATION-DECISIONS.md#contratos-y-composición).
 
 ### Por qué un registro es preferible a mover todos los defaults a otro archivo central
 

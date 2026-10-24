@@ -45,13 +45,14 @@ Open balance/ledger/planning bugs are fixed in parallel and are out of scope (se
 - verify PROD `_prisma_migrations` (read-only);
 - reset migration history in repo/DEV; clean Prisma baseline;
 - update `AGENTS.md`, `docs/versionado.md`; mark ADR-003/ADR-004 to be superseded;
-- bump backend/frontend to `0.50.0` (unreleased);
+- bump backend/frontend to `0.100.0` (unreleased);
 - define module boundaries;
-- remove legacy email code **and the current chat** (agent runner, tool executor/registry, prompts, chat/sessions/actions endpoints, proactive event listener/processor); keep provider adapters, failover, streaming, Zod schemas and `AiAction` claim/confirm concepts for reuse;
+- preserve financial import/resolution/dedup/reversal/transfer algorithms and their tests; remove dependencies on deleted tables without rewriting financial rules; reconnect in Phase 11;
+- remove Gmail-specific legacy email code **and the current chat** (agent runner, tool executor/registry, prompts, chat/sessions/actions endpoints, proactive event listener/processor); keep provider adapters, failover, streaming, Zod schemas and `AiAction` claim/confirm concepts for reuse;
 - hide/remove web screens and endpoints listed in `12-REPO-IMPACT.md`;
 - ensure project builds from empty DB.
 
-PROD is not touched: it keeps the current version and database until the owner decides the `0.50.0` deploy. Migrations run only against DEV.
+PROD is not touched: it keeps the current version and database until the owner decides the `0.100.0` deploy. Migrations run only against DEV.
 
 ## Demo
 
@@ -158,7 +159,7 @@ Any future knowledge item can be traced to evidence; labeling works from the web
 
 ## Tests
 
-Same evidence + versions => same projection; human correction changes projection; **private identifiers/amounts/last4/names never reach GLOBAL** (adversarial fixtures); single-user evidence never promotes without a CONTRIBUTOR/ADMIN verification; USER verification alone never promotes; admin revert; deletion detaches evidence and GLOBAL rebuild stays equivalent with no personal data; export completeness; non-consenting user's evidence ignored for GLOBAL; consent revocation removes contribution on rebuild; clear + rebuild equivalence.
+Same evidence + versions => same projection; human correction changes projection; **private identifiers/amounts/last4/names never reach GLOBAL** (adversarial fixtures); single-user evidence never promotes without a CONTRIBUTOR/ADMIN verification; USER verification alone never promotes; admin revert; deletion strips personal data and keeps only consent-eligible structural tombstones; historical runs with missing evidence are explicitly INCOMPLETE; export completeness; non-consenting user's evidence ignored for GLOBAL; consent revocation removes contribution on rebuild, unsupported automatic promotions enter REVIEW_REQUIRED and stop automatic use, valid CONTRIBUTOR/ADMIN authorization remains independent; prior revocation is not undone by deletion; clear + rebuild equivalence when evidence remains available.
 
 ## Review UI increment
 
@@ -214,7 +215,7 @@ Changes can be objectively compared; full human -> evidence -> knowledge -> eval
 
 ## Work
 
-`AiSignal`, `AiSignalEvidence`, lifecycle/dedup/correlation; delivery via existing outbox/BullMQ (proposal in `12`).
+`AiSignal`, `AiSignalEvidence`, lifecycle/dedup/correlation; explicit outbox-to-BullMQ bridge. The independent pre-reset lease/atomicity fix must already pass its PostgreSQL crash-recovery gate; retain those tests.
 
 ## Tests
 

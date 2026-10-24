@@ -15,9 +15,9 @@ Use this before another engineering agent starts implementation.
 - Existing data may be deleted.
 - DEV/PROD are separate.
 - Verify PROD migrations before reset (read-only).
-- PROD stays on its current version and DB until the owner decides the `0.50.0` deploy; agents run migrations only against DEV.
+- PROD stays on its current version and DB until the owner decides the `0.100.0` deploy; agents run migrations only against DEV.
 - Open Finance bugs are out of scope and fixed in parallel.
-- New baseline targets version `0.50.0`.
+- New baseline targets version `0.100.0`.
 
 ## Do not accidentally preserve these architectural assumptions
 
@@ -141,6 +141,10 @@ Read `07-ROADMAP-AND-TESTABLE-PHASES.md` (V1: 13 phases, 0–12) before changing
 ## Owner verification
 
 Every phase from Phase 2 must be verifiable in the web Intelligence Review UI; labeling exists by Phase 3.
+
+## Updated decisions and inventory
+
+Read [implementation decisions](../01-IMPLEMENTATION-DECISIONS.md) and the [updated inventory](../02-PHASE-0-INVENTORY.md). Preserve financial algorithms and their tests through Phase 0; only Gmail ownership is removed. Outbox lease/atomicity is an independent pre-reset fix.
 
 ## Before implementation begins
 

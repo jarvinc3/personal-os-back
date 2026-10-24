@@ -38,11 +38,33 @@ El estado, el roadmap y los hallazgos viven en GitHub Issues. Los documentos de 
 
 ## Changelog y versión
 
-Toda sesión de agente cierra con un release: `CHANGELOG.md` actualizado y `version` de `package.json` subida. Antes de escribirlo, lee [docs/reference/changelog-guide.md](docs/reference/changelog-guide.md) completo; ahí están las reglas, las secciones y un ejemplo.
+Excepción aprobada para AI-0 y su cadena de PRs: back y web permanecen en
+`0.100.0` unreleased hasta que el owner autorice el corte final. No crear tags,
+releases ni deploys por sesión durante este trabajo; registrar cambios bajo
+`[Unreleased]` y referenciar el issue correspondiente.
+
+### Excepción acordada: reset de arquitectura 0.100.0
+
+Esta excepción se activa solo al iniciar AI-0, después de verificar el corte
+estable de PROD (base prevista 0.55.1 más hotfixes previos aprobados). Antes de
+AI-0, correcciones independientes como el outbox siguen con su PATCH normal.
+Durante el reset, back y web mantienen `0.100.0` y acumulan cambios bajo
+`Unreleased — 0.100.0`: no hay bump, release ni tag por sesión. El owner decide
+el deploy tras AI-11; AI-12 queda para `0.101.0`. Merges y deploys no se ejecutan
+como consecuencia de esta excepción.
+
+Lectura obligatoria antes de AI/email:
+[roadmap](docs/refactors/00-MASTER-ROADMAP.md),
+[decisiones](docs/refactors/01-IMPLEMENTATION-DECISIONS.md) e
+[inventario](docs/refactors/02-PHASE-0-INVENTORY.md).
+
+Cada sesión actualiza `CHANGELOG.md`. Durante la excepción AI-0 no se sube la
+versión ni se crea release/tag por sesión; el owner decide el corte final tras
+AI-11. Antes de escribir el changelog, lee [docs/reference/changelog-guide.md](docs/reference/changelog-guide.md) completo.
 
 La versión sigue **estrictamente** [docs/versionado.md](docs/versionado.md): beta `0.MINOR.PATCH`, nunca bajar de versión, `1.0.0` solo cuando el usuario lo decida y los hitos de módulo como nombre de release.
 
-- Un release por sesión, aunque el cambio sea pequeño. El bump es el más alto de la sesión: `MAJOR` si rompe un contrato o los datos guardados, `MINOR` si agrega un endpoint o un dato nuevo y `PATCH` en el resto.
+- Fuera de la excepción AI-0, un release por sesión: `MAJOR` si rompe un contrato o los datos guardados, `MINOR` si agrega un endpoint o dato nuevo y `PATCH` en el resto.
 - Una sola versión para el monorepo: el `package.json` de la raíz. Los paquetes de `packages/*` no se publican por separado.
 - El CHANGELOG va en español, de la versión más nueva a la más vieja, con la fecha en `AAAA-MM-DD`.
 - Cierra con `chore(release): vX.Y.Z` y crea el tag `vX.Y.Z`.
@@ -57,12 +79,18 @@ Usa siempre la fecha real del sistema (`date`) para changelogs y documentos. No 
 
 Una migración aplicada no se toca. Prisma la identifica por el nombre de su carpeta en `_prisma_migrations`: renombrarla la vuelve una migración nueva y editar su SQL cambia el checksum. En ambos casos el historial queda roto.
 
-- Toda migración nueva usa un timestamp mayor que la última existente, hoy `20261022110000`. Hay migraciones con fecha futura (hasta el 22 de octubre), así que la fecha del sistema no sirve.
+- Antes de nombrar una migración, inspeccionar la última carpeta existente. Si la fecha real no ordena después, usar el siguiente timestamp libre y registrar la fecha real en el SQL. No confiar en un timestamp fijo de este documento.
 - El timestamp duplicado `20261015220000` (`fin_card_charge_categories` y `fix_schema_drift`) se queda tal cual.
 - Nunca aceptar el reset que ofrece `prisma migrate dev`: el checksum de `20261022000000` cambió en dev.
 - Prod recibe las migraciones vía Railway con `pnpm db:migrate:deploy`.
 
 Detalle en [docs/infrastructure/database.md](docs/infrastructure/database.md#migraciones-y-fechas).
+
+Excepción única de AI-0: se permite reemplazar el historial por una baseline en
+repo/DEV tras inspeccionar PROD `_prisma_migrations` de solo lectura y comprobar
+el SQL preservado. Para este DEV, Jarvin autorizó perder los datos de prueba sin
+backup ni restauración. Fuera de ese paso se mantienen las reglas anteriores.
+Los agentes nunca aplican migraciones ni resets a PROD.
 
 ## Checklist al cambiar comportamiento
 
@@ -96,7 +124,8 @@ Sentry corre en el back (`instrument.ts`) y no se inicializa sin `SENTRY_DSN`. `
 apps/api/src/            # app Nest: main, app.module, health
 packages/                # workspace pnpm; cada paquete compila a dist
   config/                # env Zod y límites de IA
-  core/                  # guards, filters, eventos, colas, puerto de chat IA
+  contracts/             # interfaces y tokens neutrales, sin dependencias
+  core/                  # guards, filters, eventos y colas
   database/              # PrismaService, cliente generado, schema y migraciones
   logos/
   auth/

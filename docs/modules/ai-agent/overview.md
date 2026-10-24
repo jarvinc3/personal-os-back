@@ -2,27 +2,31 @@
 
 ## Propósito
 
-Agente conversacional único: sesiones, tool-calling, acciones con confirmación, insights asíncronos. Un agente central, no uno por módulo; el contexto (`moduleSlug`) selecciona tools.
+Kernel de proveedores de IA e inferencias estructuradas. El runtime de chat se retiró en AI-0. El gateway valida las respuestas y da servicio a consumidores de Finance por el contrato neutral.
 
 ## Alcance
 
-- Multi-provider: Groq, Cerebras, OpenRouter
-- Chat JSON + SSE, idempotencia `clientMessageId`
-- CRUD sesiones/mensajes; acciones PENDING execute/cancel
-- Registry + `ToolExecutorService`; finance via `FinanceFacade` only
-- Cola `ai-processing`; listener de eventos usuario/finance
-- Extractor de emails bancarios: Finance ingestion importa **`AiCoreModule`** (no `AiModule`) para evitar ciclos Nest
+- Multi-provider: Groq, OpenRouter
+- Cadena de respaldo en ese orden; cada proveedor entra solo si su key existe
+- Pool multi-provider con round-robin, proveedor preferido y failover
+- Salida JSON estructurada y validación local del consumidor
+- Telemetría minimizada y retenida 90 días; borrado de usuario en cascada
+- Extractores de Finance: inyectan `INFERENCE_COMPLETION` desde contracts, sin
+  importar AI. AiCoreModule global conecta el puerto con el gateway.
+- Rama de autogestión `ai.inferences` para borrar su telemetría
 
 ## Fuera de alcance
 
-Tools de agenda/projects/health más allá de `get_user_context` / `update_module_config` / `toggle_module` (y notif settings donde aplica). No hay `docs/ai-tools/agenda-tools.md`.
+Chat, sesiones, acciones del agente y Gmail fueron retirados en AI-0; su regreso requiere las fases futuras del roadmap.
 
 ## Arquitectura
 
 ```text
-ai.module.ts          # composition root (imports Finance, Notifications)
-ai-core.module.ts     # AI_PROVIDER + AiService
-chat/ actions/ runtime/ providers/ tools/ prompts/ shared/
+ai.module.ts          # módulo del kernel
+ai-core.module.ts     # AI_PROVIDER, pool, gateway y contratos
+inference/            # inferencia, retención y rama de borrado
+providers/            # adaptadores Groq y OpenRouter
 ```
 
-**Barrel:** `AiModule`, `AiCoreModule`, `AiService`, `resolveMaxEmailLlmExtracts`, `DEFAULT_MAX_EMAIL_LLM_EXTRACTS`, `resolveDailyInsightQuota`, `DEFAULT_DAILY_INSIGHT_QUOTA`.
+**Barrel:** `AiModule`, `AiCoreModule`, `AiService`, `AI_DATA_BRANCHES`.
+Los límites de extracción e insights pertenecen a `@personal-os/config`.

@@ -4,10 +4,10 @@ import {
   NotFoundException,
   Optional,
 } from '@nestjs/common';
-import { randomUUID } from 'crypto';
 import { AppEvents } from '@personal-os/core';
 import type { Prisma } from '@personal-os/database';
 import { PrismaService } from '@personal-os/database';
+import { randomUUID } from 'crypto';
 import type { DomainEventPublisherPort } from '../../events/application/ports/domain-event-publisher.port';
 import type { BudgetThresholdPort } from '../../shared/application/budget-threshold.port';
 import type { SubscriptionMatcherPort } from '../../shared/application/subscription-matcher.port';
@@ -21,6 +21,11 @@ import { transactionCreatedEventName } from '../../shared/domain/mappers';
 import type { ResolvedAmounts } from '../../shared/domain/money';
 import { normalizeCurrencyCode } from '../../shared/domain/money';
 import { statusAffectsLedger } from '../../shared/domain/transaction-status';
+import {
+  OPERATION_LEG_ROLE,
+  TRANSFER_FEE_CATEGORY_NAME,
+  type OperationLegRole,
+} from '../../shared/domain/transfer';
 import type {
   CreateCardPaymentCommand,
   CreateTransactionCommand,
@@ -35,11 +40,6 @@ import type {
   CreateTransferResult,
   LedgerTransactionRow,
 } from '../application/ports/ledger.repository.port';
-import {
-  OPERATION_LEG_ROLE,
-  TRANSFER_FEE_CATEGORY_NAME,
-  type OperationLegRole,
-} from '../../shared/domain/transfer';
 import {
   adjustBudgetSpent,
   applyBalanceForTransaction,
@@ -74,7 +74,7 @@ export class PrismaLedgerWriteRepository {
     amounts: ResolvedAmounts,
     source: 'MANUAL' | 'EMAIL' | 'AI' = 'MANUAL',
     extras?: {
-      emailMessageId?: string;
+      importReference?: string;
       aiMetadata?: unknown;
       linkedTransactionId?: string;
       transferGroupId?: string;
@@ -112,8 +112,8 @@ export class PrismaLedgerWriteRepository {
           source,
           status,
           transactionDate: new Date(command.transactionDate),
-          ...(extras?.emailMessageId
-            ? { emailMessageId: extras.emailMessageId }
+          ...(extras?.importReference
+            ? { importReference: extras.importReference }
             : {}),
           ...(extras?.aiMetadata ? { aiMetadata: extras.aiMetadata } : {}),
           ...(extras?.linkedTransactionId
@@ -155,6 +155,7 @@ export class PrismaLedgerWriteRepository {
         userId,
         eventName: transactionCreatedEventName(created.status),
         transactionId: created.id,
+        announce: command.announce,
       });
       await this.thresholds?.processThresholds(userId, budgetSnapshots, tx);
 
@@ -178,6 +179,8 @@ export class PrismaLedgerWriteRepository {
       accountId?: string | null;
       cardId?: string | null;
       amounts: ResolvedAmounts;
+      description?: string;
+      transactionDate?: Date;
     },
   ): Promise<CreateTransactionResult | null> {
     return this.prisma.$transaction(async (tx) => {
@@ -203,10 +206,10 @@ export class PrismaLedgerWriteRepository {
           currency: input.amounts.currency,
           ledgerCurrency: input.amounts.ledgerCurrency,
           exchangeRate: input.amounts.exchangeRate,
-          description: 'Reajuste de saldo',
+          description: input.description ?? 'Reajuste de saldo',
           source: 'MANUAL',
           status: 'CONFIRMED',
-          transactionDate: new Date(),
+          transactionDate: input.transactionDate ?? new Date(),
         },
         include: {
           account: { select: { id: true, name: true } },
@@ -285,7 +288,7 @@ export class PrismaLedgerWriteRepository {
         legRole: OperationLegRole;
         legStatus: TransferStatus;
         categoryId?: string | null;
-        emailMessageId?: string;
+        importReference?: string;
       }) => {
         const created = await tx.finTransaction.create({
           data: {
@@ -309,8 +312,8 @@ export class PrismaLedgerWriteRepository {
             rail: command.rail ?? null,
             transferGroupId,
             transactionDate,
-            ...(leg.emailMessageId
-              ? { emailMessageId: leg.emailMessageId }
+            ...(leg.importReference
+              ? { importReference: leg.importReference }
               : {}),
             ...(command.aiMetadata ? { aiMetadata: command.aiMetadata } : {}),
           },
@@ -346,6 +349,7 @@ export class PrismaLedgerWriteRepository {
           userId,
           eventName: transactionCreatedEventName(created.status),
           transactionId: created.id,
+          announce: command.announce,
         });
         return created as LedgerTransactionRow;
       };
@@ -359,7 +363,7 @@ export class PrismaLedgerWriteRepository {
         amounts: fromAmounts,
         legRole: OPERATION_LEG_ROLE.SOURCE,
         legStatus: status,
-        emailMessageId: command.fromEmailMessageId,
+        importReference: command.fromEmailMessageId,
       });
       const credit = await createLeg({
         type: 'CREDIT',
@@ -367,7 +371,7 @@ export class PrismaLedgerWriteRepository {
         amounts: toAmounts,
         legRole: OPERATION_LEG_ROLE.DESTINATION,
         legStatus: destinationStatus,
-        emailMessageId: command.toEmailMessageId,
+        importReference: command.toEmailMessageId,
       });
 
       const fee =

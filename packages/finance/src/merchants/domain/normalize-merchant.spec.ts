@@ -61,3 +61,41 @@ describe('merchantDisplayName', () => {
     expect(merchantDisplayName('1234')).toBeNull();
   });
 });
+
+describe('normalizeMerchant accents, plurals and domains', () => {
+  it('folds accents without cutting the word', () => {
+    expect(normalizeMerchant('Café Lindo')).toBe('CAFE LINDO');
+    expect(normalizeMerchant('Cafe Lindo')).toBe('CAFE LINDO');
+    expect(normalizeMerchant('Pan Ñandú')).toBe('PAN NANDU');
+  });
+
+  it('treats the head word plural as the same merchant', () => {
+    expect(normalizeMerchant('Cinema Centro')).toBe(
+      normalizeMerchant('Cinemas Centro'),
+    );
+    expect(normalizeMerchant('Supermercado Nacional')).toBe(
+      normalizeMerchant('Supermercados Nacional'),
+    );
+  });
+
+  it('ignores the web suffix', () => {
+    expect(normalizeMerchant('Netflix.com')).toBe('NETFLIX');
+    expect(normalizeMerchant('Netflix')).toBe('NETFLIX');
+    expect(normalizeMerchant('Claro.com.do')).toBe('CLARO');
+  });
+
+  it('keeps a trailing number, which is a different merchant', () => {
+    expect(normalizeMerchant('Supermercado Nacional 5')).toBe(
+      'SUPERMERCADO NACIONAL 5',
+    );
+    expect(normalizeMerchant('Supermercado Nacional')).not.toBe(
+      normalizeMerchant('Supermercado Nacional 5'),
+    );
+  });
+
+  it('keeps surnames that end in S', () => {
+    expect(normalizeMerchant('LUIS MIGUEL SANTOS FERNANDE')).toBe(
+      'LUIS MIGUEL SANTOS FERNANDE',
+    );
+  });
+});

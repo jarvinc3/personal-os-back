@@ -1,14 +1,18 @@
 import { Global, Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { Env } from '@personal-os/config';
-import { AI_CHAT_COMPLETION } from '@personal-os/core';
-import { AiService } from './chat/application/ai.service';
+import { INFERENCE_COMPLETION } from '@personal-os/contracts';
+import { AiInferenceGateway } from './inference/application/ai-inference.gateway';
+import { InferenceCompletionAdapter } from './inference/application/inference-completion.adapter';
+import { AiService } from './inference/application/ai.service';
+import { AiInferenceDataService } from './inference/infrastructure/ai-inference-data.service';
+import { AiInferenceRetentionScheduler } from './inference/infrastructure/ai-inference-retention.scheduler';
 import { AI_PROVIDER } from './shared/ai-provider.token';
 import type { AIService as AIProviderClient } from './shared/ai.types';
 
 /**
  * Provider kernel with no Finance/Notifications imports.
- * Global so Finance ingestion injects the chat port without importing this package.
+ * Global so Finance injects the neutral inference port without importing AI.
  */
 @Global()
 @Module({
@@ -18,7 +22,6 @@ import type { AIService as AIProviderClient } from './shared/ai.types';
       useFactory: (config: ConfigService<Env, true>) => {
         const providers: AIProviderClient[] = [];
         const groqKey = config.get('GROQ_API_KEY', { infer: true });
-        const cerebrasKey = config.get('CEREBRAS_API_KEY', { infer: true });
         const openRouterKey = config.get('OPENROUTER_API_KEY', {
           infer: true,
         });
@@ -29,13 +32,6 @@ import type { AIService as AIProviderClient } from './shared/ai.types';
               createGroqProvider: (apiKey: string) => AIProviderClient;
             };
           providers.push(createGroqProvider(groqKey));
-        }
-        if (cerebrasKey) {
-          const { createCerebrasProvider } =
-            require('./providers/cerebras.provider') as {
-              createCerebrasProvider: (apiKey: string) => AIProviderClient;
-            };
-          providers.push(createCerebrasProvider(cerebrasKey));
         }
         if (openRouterKey) {
           const { createOpenRouterProvider } =
@@ -49,11 +45,20 @@ import type { AIService as AIProviderClient } from './shared/ai.types';
       inject: [ConfigService],
     },
     AiService,
+    AiInferenceGateway,
+    InferenceCompletionAdapter,
+    AiInferenceDataService,
+    AiInferenceRetentionScheduler,
     {
-      provide: AI_CHAT_COMPLETION,
-      useExisting: AiService,
+      provide: INFERENCE_COMPLETION,
+      useExisting: InferenceCompletionAdapter,
     },
   ],
-  exports: [AiService, AI_CHAT_COMPLETION],
+  exports: [
+    AiService,
+    AiInferenceGateway,
+    AiInferenceDataService,
+    INFERENCE_COMPLETION,
+  ],
 })
 export class AiCoreModule {}

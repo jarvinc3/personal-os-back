@@ -1,7 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import type { CursorPoint } from '@personal-os/core';
-import type { Prisma } from '@personal-os/database';
+import { Prisma } from '@personal-os/database';
 import { PrismaService } from '@personal-os/database';
+import type { FinMerchantCategorySource } from '@personal-os/database';
+import { aliasNormalizedKey } from '../domain/merchant-aliases';
+import { normalizeMerchant } from '../domain/normalize-merchant';
 import { toMoney } from '../../shared/domain/money';
 
 export type MerchantPage = {
@@ -16,6 +19,10 @@ export type MerchantSpend = {
   movements: number;
 };
 
+const MERCHANT_INCLUDE = {
+  aliases: { select: { alias: true }, orderBy: { createdAt: 'asc' } },
+} satisfies Prisma.FinMerchantInclude;
+
 @Injectable()
 export class MerchantsRepository {
   constructor(private readonly prisma: PrismaService) {}
@@ -28,6 +35,11 @@ export class MerchantsRepository {
         OR: [
           { name: { contains: search, mode: 'insensitive' } },
           { normalizedKey: { contains: search.toUpperCase() } },
+          {
+            aliases: {
+              some: { alias: { contains: search, mode: 'insensitive' } },
+            },
+          },
         ],
       });
     }
@@ -44,39 +56,125 @@ export class MerchantsRepository {
     }
     return this.prisma.finMerchant.findMany({
       where: conditions.length > 0 ? { userId, AND: conditions } : { userId },
+      include: MERCHANT_INCLUDE,
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       take: page.take,
     });
   }
 
   findMerchantById(userId: string, id: string) {
-    return this.prisma.finMerchant.findFirst({ where: { id, userId } });
+    return this.prisma.finMerchant.findFirst({
+      where: { id, userId },
+      include: MERCHANT_INCLUDE,
+    });
+  }
+
+  /** Name, key and alias of every merchant, for the duplicate detection. */
+  listMerchantComparables(userId: string) {
+    return this.prisma.finMerchant.findMany({
+      where: { userId },
+      select: {
+        id: true,
+        name: true,
+        normalizedKey: true,
+        logoUrl: true,
+        aliases: { select: { alias: true } },
+      },
+    });
+  }
+
+  findMerchantsByIds(userId: string, ids: readonly string[]) {
+    return this.prisma.finMerchant.findMany({
+      where: { id: { in: [...ids] }, userId },
+      include: MERCHANT_INCLUDE,
+    });
   }
 
   findMerchantByKey(userId: string, normalizedKey: string) {
     return this.prisma.finMerchant.findFirst({
       where: { userId, normalizedKey },
+      include: MERCHANT_INCLUDE,
+    });
+  }
+
+  /** Merchant that already claims this text as an alias. */
+  findMerchantByAliasKey(userId: string, normalizedKey: string) {
+    return this.prisma.finMerchant.findFirst({
+      where: { userId, aliases: { some: { normalizedKey } } },
+      include: MERCHANT_INCLUDE,
     });
   }
 
   findMerchantByKeyPrefix(userId: string, normalizedKey: string) {
     return this.prisma.finMerchant.findFirst({
       where: { userId, normalizedKey: { startsWith: normalizedKey } },
+      include: MERCHANT_INCLUDE,
       orderBy: { createdAt: 'asc' },
+    });
+  }
+
+  /** Merchant holding any of these alias keys, for the 409 of an edit. */
+  findMerchantByAliasKeys(userId: string, normalizedKeys: readonly string[]) {
+    if (normalizedKeys.length === 0) {
+      return Promise.resolve(null);
+    }
+    return this.prisma.finMerchant.findFirst({
+      where: {
+        userId,
+        aliases: { some: { normalizedKey: { in: [...normalizedKeys] } } },
+      },
+      include: MERCHANT_INCLUDE,
+    });
+  }
+
+  /** Merchant whose own key matches any of these alias keys. */
+  findMerchantByKeys(userId: string, normalizedKeys: readonly string[]) {
+    if (normalizedKeys.length === 0) {
+      return Promise.resolve(null);
+    }
+    return this.prisma.finMerchant.findFirst({
+      where: { userId, normalizedKey: { in: [...normalizedKeys] } },
+      include: MERCHANT_INCLUDE,
     });
   }
 
   createMerchant(
     userId: string,
-    data: { name: string; normalizedKey: string; rawAlias: string | null },
+    data: {
+      name: string;
+      normalizedKey: string;
+      aliases: string[];
+      categoryId?: string | null;
+      categorySource?: FinMerchantCategorySource | null;
+      domain?: string | null;
+      logoPath?: string | null;
+    },
   ) {
     return this.prisma.finMerchant.create({
       data: {
         userId,
         name: data.name,
         normalizedKey: data.normalizedKey,
-        aliases: data.rawAlias ? [data.rawAlias] : [],
+        categoryId: data.categoryId ?? null,
+        categorySource: data.categorySource ?? null,
+        domain: data.domain ?? null,
+        logoPath: data.logoPath ?? null,
+        aliases: {
+          create: data.aliases.flatMap((alias) => {
+            const normalizedKey = normalizeMerchant(alias);
+            return normalizedKey ? [{ userId, alias, normalizedKey }] : [];
+          }),
+        },
       },
+      include: MERCHANT_INCLUDE,
+    });
+  }
+
+  /** Categories the user can see, for the keyword guess. */
+  listVisibleCategories(userId: string) {
+    return this.prisma.finCategory.findMany({
+      where: { OR: [{ userId }, { isSystem: true }] },
+      select: { id: true, name: true, type: true },
     });
   }
 
@@ -87,14 +185,142 @@ export class MerchantsRepository {
       name?: string;
       normalizedKey?: string;
       categoryId?: string | null;
-      logoUrl?: string | null;
-      aliases?: string[];
+      categorySource?: FinMerchantCategorySource | null;
+      domain?: string | null;
+      logoPath?: string | null;
+      customLogoPath?: string | null;
     },
   ) {
     return this.prisma.finMerchant.updateMany({
       where: { id, userId },
       data,
     });
+  }
+
+  /** Replaces the whole alias list of a merchant. */
+  async replaceAliases(
+    userId: string,
+    merchantId: string,
+    aliases: readonly string[],
+  ) {
+    const rows = aliases.flatMap((alias) => {
+      const normalizedKey = normalizeMerchant(alias);
+      return normalizedKey
+        ? [{ userId, merchantId, alias, normalizedKey }]
+        : [];
+    });
+    await this.prisma.$transaction([
+      this.prisma.finMerchantAlias.deleteMany({ where: { merchantId } }),
+      this.prisma.finMerchantAlias.createMany({ data: rows }),
+    ]);
+  }
+
+  /**
+   * Adds one alias without throwing when another merchant already holds it:
+   * the resolver still returns the merchant it matched by key.
+   */
+  async addAlias(
+    userId: string,
+    merchantId: string,
+    alias: string,
+    normalizedKey: string,
+  ): Promise<void> {
+    try {
+      await this.prisma.finMerchantAlias.create({
+        data: { userId, merchantId, alias, normalizedKey },
+      });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        return;
+      }
+      throw error;
+    }
+  }
+
+  /** Dismissed pairs of the user, as canonical pairs of merchant ids. */
+  listDismissedPairs(userId: string) {
+    return this.prisma.finMerchantDuplicateDismissal.findMany({
+      where: { userId },
+      select: { merchantId: true, otherMerchantId: true },
+    });
+  }
+
+  dismissPair(userId: string, merchantId: string, otherMerchantId: string) {
+    return this.prisma.finMerchantDuplicateDismissal.upsert({
+      where: {
+        userId_merchantId_otherMerchantId: {
+          userId,
+          merchantId,
+          otherMerchantId,
+        },
+      },
+      create: { userId, merchantId, otherMerchantId },
+      update: {},
+    });
+  }
+
+  async undoDismissPair(
+    userId: string,
+    merchantId: string,
+    otherMerchantId: string,
+  ): Promise<void> {
+    await this.prisma.finMerchantDuplicateDismissal.deleteMany({
+      where: { userId, merchantId, otherMerchantId },
+    });
+  }
+
+  /**
+   * A dismissed pair follows the merchant that survives a merge, except the
+   * pair between both of them.
+   */
+  private async moveDismissals(
+    tx: Prisma.TransactionClient,
+    userId: string,
+    sourceId: string,
+    targetId: string,
+  ): Promise<void> {
+    const rows = await tx.finMerchantDuplicateDismissal.findMany({
+      where: {
+        userId,
+        OR: [{ merchantId: sourceId }, { otherMerchantId: sourceId }],
+        NOT: {
+          OR: [{ merchantId: targetId }, { otherMerchantId: targetId }],
+        },
+      },
+    });
+    await tx.finMerchantDuplicateDismissal.deleteMany({
+      where: {
+        id: { in: rows.map((row) => row.id) },
+      },
+    });
+    if (rows.length === 0) {
+      return;
+    }
+    const moved = rows.map((row) => {
+      const partner =
+        row.merchantId === sourceId ? row.otherMerchantId : row.merchantId;
+      const [merchantId, otherMerchantId] =
+        targetId < partner ? [targetId, partner] : [partner, targetId];
+      return { userId, merchantId, otherMerchantId };
+    });
+    await tx.finMerchantDuplicateDismissal.createMany({
+      data: moved,
+      skipDuplicates: true,
+    });
+  }
+
+  listAliasKeys(merchantId: string): Promise<Array<{ normalizedKey: string }>> {
+    return this.prisma.finMerchantAlias.findMany({
+      where: { merchantId },
+      select: { normalizedKey: true },
+    });
+  }
+
+  countAliases(merchantId: string) {
+    return this.prisma.finMerchantAlias.count({ where: { merchantId } });
   }
 
   sumSpendByMerchant(
@@ -133,18 +359,28 @@ export class MerchantsRepository {
       );
   }
 
+  /**
+   * Moves everything the source taught to the target: its own name and key and
+   * its aliases become aliases, and the target inherits the category and logo it
+   * does not have. The source is removed.
+   */
   async mergeMerchants(userId: string, sourceId: string, targetId: string) {
     return this.prisma.$transaction(async (tx) => {
       const source = await tx.finMerchant.findFirst({
         where: { id: sourceId, userId },
+        include: MERCHANT_INCLUDE,
       });
       const target = await tx.finMerchant.findFirst({
         where: { id: targetId, userId },
+        include: MERCHANT_INCLUDE,
       });
       if (!source || !target) {
         return null;
       }
-      const aliases = [...new Set([...target.aliases, ...source.aliases])];
+      const learnedAliases = [
+        source.name,
+        ...source.aliases.map((entry) => entry.alias),
+      ];
       await tx.finTransaction.updateMany({
         where: { userId, merchantId: sourceId },
         data: { merchantId: targetId },
@@ -153,12 +389,44 @@ export class MerchantsRepository {
         where: { userId, merchantId: sourceId },
         data: { merchantId: targetId },
       });
-      const updated = await tx.finMerchant.update({
-        where: { id: targetId },
-        data: { aliases },
-      });
+      await this.moveDismissals(tx, userId, sourceId, targetId);
       await tx.finMerchant.delete({ where: { id: sourceId } });
-      return updated;
+      const existing = new Set(
+        target.aliases.map((entry) => aliasNormalizedKey(entry.alias)),
+      );
+      const newAliases = learnedAliases.flatMap((alias) => {
+        const key = aliasNormalizedKey(alias);
+        if (!key || existing.has(key) || key === target.normalizedKey) {
+          return [];
+        }
+        existing.add(key);
+        return [{ userId, merchantId: targetId, alias, normalizedKey: key }];
+      });
+      if (newAliases.length > 0) {
+        await tx.finMerchantAlias.createMany({
+          data: newAliases,
+          skipDuplicates: true,
+        });
+      }
+      await tx.finMerchant.update({
+        where: { id: targetId },
+        data: {
+          ...(target.categoryId ? {} : { categoryId: source.categoryId }),
+          ...(target.categoryId || !source.categoryId
+            ? {}
+            : { categorySource: source.categorySource }),
+          ...(target.logoUrl ? {} : { logoUrl: source.logoUrl }),
+          ...(target.domain ? {} : { domain: source.domain }),
+          ...(target.logoPath ? {} : { logoPath: source.logoPath }),
+          ...(target.customLogoPath
+            ? {}
+            : { customLogoPath: source.customLogoPath }),
+        },
+      });
+      return tx.finMerchant.findFirst({
+        where: { id: targetId },
+        include: MERCHANT_INCLUDE,
+      });
     });
   }
 }

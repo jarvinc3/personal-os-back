@@ -18,23 +18,23 @@ Cada componente se clasifica como:
 
 ## Hallazgos confirmados
 
-| Área | Componente | Decisión | Destino |
-| --- | --- | --- | --- |
-| AI | Propiedad de Email/Gmail | REDESIGN | AI Intelligence es dueña de fuente/corpus/inteligencia; los dominios consumen señales |
-| Finance | Módulos núcleo del dominio (ledger, catalog, planning, analytics, reconciliation, etc.) | KEEP | Finance |
-| Finance | Responsabilidades de Gmail/fuente/clasificación en `ingestion/**` | MOVE/DELETE | AI Email Intelligence |
-| Finance | Comportamiento de ingesta propio de Finance (resolución de instrumentos, reversos, emparejamiento de transferencias, importación al ledger) | MOVE/REFACTOR | Consumidor de señales / servicios de aplicación de Finance |
-| Finance | `FinanceFacade` como API amplia para IA/externos | REFACTOR | Contratos/capacidades específicos por consumidor |
-| Finance | Conceptos de contexto de chat | MOVE | Integración de capacidades/contexto de IA |
-| Notifications | Infraestructura de policy/canales/entrega | KEEP | Notifications |
-| Notifications | Semántica de Finance y construcción de copy en `NotificationsEventsListener` | REDESIGN | Adaptadores de intents de notificación propiedad de cada dominio + entrega genérica en Notifications |
-| Core | Primitivas de outbox/idempotencia/colas | KEEP | Core/infraestructura compartida |
-| Core | Catálogo global `AppEvents` y DTOs de eventos de dominio | REFACTOR/MOVE | Semántica de eventos propiedad de los dominios; Core conserva las primitivas de transporte |
-| Core | Contratos específicos de chat en `src/ai` | MOVE/DELETE | Paquete de IA en la nueva arquitectura |
-| Users | Identidad/perfil/preferencias globales | KEEP | Users |
-| Users | Validación/defaults/claves de notificación/métodos de email sync de Finance | MOVE/REDESIGN | Contratos de settings propiedad de cada módulo; Users persiste/coordina los settings de módulo del usuario |
-| Auth | Frontera de autenticación con Supabase | KEEP | Auth |
-| Config | Configuración del horario de Gmail | DELETE/MOVE | Configuración de sync de fuentes de IA, si el nuevo diseño de cursor aún la necesita |
+| Área          | Componente                                                                                                                                  | Decisión      | Destino                                                                                                    |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------- | ------------- | ---------------------------------------------------------------------------------------------------------- |
+| AI            | Propiedad de Email/Gmail                                                                                                                    | REDESIGN      | AI Intelligence es dueña de fuente/corpus/inteligencia; los dominios consumen señales                      |
+| Finance       | Módulos núcleo del dominio (ledger, catalog, planning, analytics, reconciliation, etc.)                                                     | KEEP          | Finance                                                                                                    |
+| Finance       | Responsabilidades de Gmail/fuente/clasificación en `ingestion/**`                                                                           | MOVE/DELETE   | AI Email Intelligence                                                                                      |
+| Finance       | Comportamiento de ingesta propio de Finance (resolución de instrumentos, reversos, emparejamiento de transferencias, importación al ledger) | MOVE/REFACTOR | Consumidor de señales / servicios de aplicación de Finance                                                 |
+| Finance       | `FinanceFacade` como API amplia para IA/externos                                                                                            | REFACTOR      | Contratos/capacidades específicos por consumidor                                                           |
+| Finance       | Conceptos de contexto de chat                                                                                                               | MOVE          | Integración de capacidades/contexto de IA                                                                  |
+| Notifications | Infraestructura de policy/canales/entrega                                                                                                   | KEEP          | Notifications                                                                                              |
+| Notifications | Semántica de Finance y construcción de copy en `NotificationsEventsListener`                                                                | REDESIGN      | Adaptadores de intents de notificación propiedad de cada dominio + entrega genérica en Notifications       |
+| Core          | Primitivas de outbox/idempotencia/colas                                                                                                     | KEEP          | Core/infraestructura compartida                                                                            |
+| Core          | Catálogo global `AppEvents` y DTOs de eventos de dominio                                                                                    | REFACTOR/MOVE | Semántica de eventos propiedad de los dominios; Core conserva las primitivas de transporte                 |
+| Core          | Contratos específicos de chat en `src/ai`                                                                                                   | MOVE/DELETE   | Paquete de IA en la nueva arquitectura                                                                     |
+| Users         | Identidad/perfil/preferencias globales                                                                                                      | KEEP          | Users                                                                                                      |
+| Users         | Validación/defaults/claves de notificación/métodos de email sync de Finance                                                                 | MOVE/REDESIGN | Contratos de settings propiedad de cada módulo; Users persiste/coordina los settings de módulo del usuario |
+| Auth          | Frontera de autenticación con Supabase                                                                                                      | KEEP          | Auth                                                                                                       |
+| Config        | Configuración del horario de Gmail                                                                                                          | DELETE/MOVE   | Configuración de sync de fuentes de IA, si el nuevo diseño de cursor aún la necesita                       |
 
 ## Evidencia en develop
 

@@ -346,6 +346,47 @@ describe('CatalogService updateAccount number', () => {
     expect(updateAccount).not.toHaveBeenCalled();
   });
 
+  it('refuses to archive an account with money set aside in a goal', async () => {
+    const local = createService(
+      {
+        ...repo,
+        hasSavingsGoalMoney: jest.fn().mockResolvedValue(true),
+      } as unknown as CatalogRepository,
+      ownershipMock(),
+      purgeMock(),
+    );
+
+    await expect(
+      local.updateAccount('user-1', 'acc-1', { isActive: false }),
+    ).rejects.toMatchObject({
+      response: { code: 'ACCOUNT_HAS_GOAL_MONEY' },
+    });
+    expect(updateAccount).not.toHaveBeenCalled();
+  });
+
+  it('archives an account when no goal keeps money there', async () => {
+    updateAccount.mockResolvedValue({ ...existing, isActive: false });
+    const local = createService(
+      {
+        ...repo,
+        hasSavingsGoalMoney: jest.fn().mockResolvedValue(false),
+      } as unknown as CatalogRepository,
+      ownershipMock(),
+      purgeMock(),
+    );
+
+    await local.updateAccount('user-1', 'acc-1', {
+      isActive: false,
+      accountNumber: '001122335678',
+    });
+
+    expect(updateAccount).toHaveBeenCalledWith(
+      'acc-1',
+      'user-1',
+      expect.objectContaining({ isActive: false }),
+    );
+  });
+
   it('saves the account number on edit', async () => {
     updateAccount.mockResolvedValue({
       ...existing,

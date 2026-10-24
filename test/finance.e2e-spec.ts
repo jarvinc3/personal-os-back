@@ -1,6 +1,5 @@
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import * as jwt from 'jsonwebtoken';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { Prisma, PrismaService } from '@personal-os/database';
@@ -200,20 +199,6 @@ describe('Finance (e2e)', () => {
     expect(prismaMock.$transaction).not.toHaveBeenCalled();
   });
 
-  it('GET /api/finance/email-sync/oauth/google/callback stays public when finance is disabled', async () => {
-    prismaMock.userModule.findFirst.mockResolvedValue(null);
-
-    await request(app.getHttpServer())
-      .get('/api/finance/email-sync/oauth/google/callback')
-      .query({
-        code: 'test-auth-code',
-        state: 'invalid-state',
-      })
-      .expect(302);
-
-    expect(prismaMock.userModule.findFirst).not.toHaveBeenCalled();
-  });
-
   it('POST /api/finance/accounts creates account', async () => {
     const institutionId = '11111111-1111-4111-8111-111111111111';
     prismaMock.finInstitution.findMany.mockResolvedValue([
@@ -291,270 +276,6 @@ describe('Finance (e2e)', () => {
       .expect((res) => {
         expect(res.body.data.type).toBe('CASH');
         expect(res.body.data.institutionId).toBeNull();
-      });
-  });
-
-  it('GET /api/finance/email-sync/oauth/google/url includes institutionId in state', async () => {
-    const institutionId = '11111111-1111-4111-8111-111111111111';
-    prismaMock.finInstitution.findFirst.mockResolvedValue({
-      id: institutionId,
-      userId: 'user-123',
-      name: 'Bank',
-    });
-
-    await request(app.getHttpServer())
-      .get('/api/finance/email-sync/oauth/google/url')
-      .query({ bankDomain: 'qik.com.do', institutionId })
-      .set('Authorization', `Bearer ${token}`)
-      .expect(200)
-      .expect((res) => {
-        expect(res.body.data.url).toContain('accounts.google.com');
-        expect(res.body.data.url).toContain('state=');
-      });
-  });
-
-  it('GET /api/finance/email-sync/oauth/google/url allows omitting institutionId', async () => {
-    await request(app.getHttpServer())
-      .get('/api/finance/email-sync/oauth/google/url')
-      .set('Authorization', `Bearer ${token}`)
-      .expect(200)
-      .expect((res) => {
-        expect(res.body.data.url).toContain('accounts.google.com');
-        expect(res.body.data.url).toContain('state=');
-      });
-  });
-
-  it('GET /api/finance/email-sync/oauth/google/url rejects returnTo outside CORS_ORIGIN', async () => {
-    const institutionId = '11111111-1111-4111-8111-111111111111';
-    await request(app.getHttpServer())
-      .get('/api/finance/email-sync/oauth/google/url')
-      .query({ institutionId, returnTo: 'https://evil.example/phish' })
-      .set('Authorization', `Bearer ${token}`)
-      .expect(400);
-  });
-
-  it('GET /api/finance/email-sync/mailboxes includes connections without sources', async () => {
-    prismaMock.finEmailConnection.findMany.mockResolvedValue([
-      {
-        id: 'conn-1',
-        emailAddress: 'me@gmail.com',
-        provider: 'gmail',
-        isActive: true,
-        createdAt: new Date('2026-09-01'),
-        sources: [],
-      },
-    ]);
-
-    await request(app.getHttpServer())
-      .get('/api/finance/email-sync/mailboxes')
-      .set('Authorization', `Bearer ${token}`)
-      .expect(200)
-      .expect((res) => {
-        expect(res.body.data).toEqual([
-          expect.objectContaining({
-            id: 'conn-1',
-            emailAddress: 'me@gmail.com',
-            sources: [],
-          }),
-        ]);
-      });
-  });
-
-  it('POST /api/finance/email-sync/sources returns 400 without Gmail tokens', async () => {
-    prismaMock.finInstitution.findFirst.mockResolvedValue({
-      id: '11111111-1111-4111-8111-111111111111',
-      userId: 'user-123',
-      name: 'BHD',
-    });
-    prismaMock.finEmailConnection.findUnique.mockResolvedValue({
-      id: 'conn-1',
-      refreshToken: null,
-    });
-
-    await request(app.getHttpServer())
-      .post('/api/finance/email-sync/sources')
-      .set('Authorization', `Bearer ${token}`)
-      .send({
-        emailAddress: 'me@gmail.com',
-        bankSenderEmail: 'alertas@bhd.com.do',
-        institutionId: '11111111-1111-4111-8111-111111111111',
-      })
-      .expect(400);
-  });
-
-  it('POST /api/finance/email-sync/sources returns 409 when the institution is already linked', async () => {
-    const institutionId = '11111111-1111-4111-8111-111111111111';
-    prismaMock.finInstitution.findFirst.mockResolvedValue({
-      id: institutionId,
-      userId: 'user-123',
-      name: 'BHD',
-    });
-    prismaMock.finEmailConnection.findUnique.mockResolvedValue({
-      id: 'conn-2',
-      refreshToken: 'enc',
-    });
-    prismaMock.finEmailSource.findFirst.mockResolvedValue({
-      id: 'src-1',
-      connectionId: 'conn-1',
-      institutionId,
-      isActive: true,
-      bankDomain: 'bhd.com.do',
-      bankSenderEmail: 'alertas@bhd.com.do',
-      label: null,
-      lastSyncedAt: null,
-      createdAt: new Date('2026-09-01'),
-      logs: [],
-      connection: { emailAddress: 'me@gmail.com', provider: 'gmail' },
-      institution: { name: 'BHD' },
-    });
-
-    await request(app.getHttpServer())
-      .post('/api/finance/email-sync/sources')
-      .set('Authorization', `Bearer ${token}`)
-      .send({
-        emailAddress: 'other@gmail.com',
-        bankSenderEmail: 'alertas@bhd.com.do',
-        institutionId,
-      })
-      .expect(409);
-  });
-
-  it('PATCH /api/finance/email-sync/sources/:id updates institution without leaking tokens', async () => {
-    const sourceId = 'src-1';
-    const institutionId = '11111111-1111-4111-8111-111111111111';
-    const updatedSource = {
-      id: sourceId,
-      userId: 'user-123',
-      connectionId: 'conn-1',
-      institutionId,
-      bankDomain: 'bhd.com.do',
-      label: 'BHD principal',
-      isActive: true,
-      lastSyncedAt: null,
-      createdAt: new Date('2026-01-01'),
-      connection: {
-        id: 'conn-1',
-        emailAddress: 'user@gmail.com',
-        provider: 'gmail',
-        isActive: true,
-      },
-      institution: { id: institutionId, name: 'BHD', isActive: true },
-      logs: [],
-    };
-
-    prismaMock.finInstitution.findFirst.mockResolvedValue({
-      id: institutionId,
-      userId: 'user-123',
-      name: 'BHD',
-    });
-    prismaMock.finEmailSource.findFirst.mockResolvedValue(updatedSource);
-    prismaMock.finEmailSource.updateMany.mockResolvedValue({ count: 1 });
-
-    await request(app.getHttpServer())
-      .patch(`/api/finance/email-sync/sources/${sourceId}`)
-      .set('Authorization', `Bearer ${token}`)
-      .send({ institutionId, label: 'BHD principal' })
-      .expect(200)
-      .expect((res) => {
-        expect(res.body.data).toMatchObject({
-          id: sourceId,
-          institutionId,
-          label: 'BHD principal',
-          emailAddress: 'user@gmail.com',
-        });
-        expect(res.body.data).not.toHaveProperty('accessToken');
-        expect(res.body.data).not.toHaveProperty('accountId');
-        expect(res.body.data.logs).toEqual([]);
-      });
-  });
-
-  it('GET /api/finance/email-sync/oauth/google/callback ignores extra Google query params', async () => {
-    await request(app.getHttpServer())
-      .get('/api/finance/email-sync/oauth/google/callback')
-      .query({
-        code: 'test-auth-code',
-        state: 'invalid-state',
-        iss: 'https://accounts.google.com',
-        scope: 'email https://www.googleapis.com/auth/gmail.readonly',
-        authuser: '0',
-        prompt: 'consent',
-      })
-      .expect(302)
-      .expect(
-        'Location',
-        'http://localhost:5173/finance/accounts/sync?sheet=oauth-gmail-result&success=false',
-      );
-  });
-
-  it('GET /api/finance/email-sync/oauth/google/callback redirects to allowlisted returnTo', async () => {
-    const state = jwt.sign(
-      {
-        sub: 'user-123',
-        bankDomain: 'qik.com.do',
-        returnTo: 'http://localhost:5173/finance/oauth',
-      },
-      process.env.OAUTH_STATE_SECRET as string,
-      { expiresIn: '15m' },
-    );
-
-    await request(app.getHttpServer())
-      .get('/api/finance/email-sync/oauth/google/callback')
-      .query({
-        code: 'test-auth-code',
-        state,
-      })
-      .expect(302)
-      .expect('Location', 'http://localhost:5173/finance/oauth?success=false');
-  });
-
-  it('GET /api/finance/email-sync/oauth/google/callback ignores non-allowlisted returnTo', async () => {
-    const state = jwt.sign(
-      {
-        sub: 'user-123',
-        bankDomain: 'qik.com.do',
-        returnTo: 'https://evil.example/phish',
-      },
-      process.env.OAUTH_STATE_SECRET as string,
-      { expiresIn: '15m' },
-    );
-
-    await request(app.getHttpServer())
-      .get('/api/finance/email-sync/oauth/google/callback')
-      .query({
-        code: 'test-auth-code',
-        state,
-      })
-      .expect(302)
-      .expect(
-        'Location',
-        'http://localhost:5173/finance/accounts/sync?sheet=oauth-gmail-result&success=false',
-      );
-  });
-
-  it('POST /api/finance/email-sync/sources/:id/sync returns queued false without Redis', async () => {
-    prismaMock.finEmailSource.findFirst.mockResolvedValue({
-      id: 'src-1',
-      userId: 'user-123',
-      institutionId: 'inst-1',
-      isActive: true,
-      connection: {
-        id: 'conn-1',
-        emailAddress: 'user@gmail.com',
-        provider: 'gmail',
-      },
-      institution: { id: 'inst-1', name: 'Bank', isActive: true },
-      logs: [],
-    });
-
-    await request(app.getHttpServer())
-      .post('/api/finance/email-sync/sources/src-1/sync')
-      .set('Authorization', `Bearer ${token}`)
-      .expect(201)
-      .expect((res) => {
-        expect(res.body.data).toMatchObject({ queued: false });
-        expect(res.body.data.reason).toContain(
-          'gmail-sync queue is unavailable',
-        );
       });
   });
 
@@ -922,6 +643,45 @@ describe('Finance (e2e)', () => {
       });
   });
 
+  it('POST /api/finance/loans persists the alias', async () => {
+    prismaMock.finLoan.create.mockResolvedValue({
+      id: 'loan-named',
+      userId: 'user-123',
+      name: 'Carro',
+      lenderName: 'BHD',
+      originalAmount: 1000,
+      currentBalance: 1000,
+      currency: 'DOP',
+      installmentAmount: 100,
+      installmentFreq: 'MONTHLY',
+      totalInstallments: 12,
+      paidInstallments: 0,
+      nextDueDate: new Date('2026-09-01'),
+      interestRate: null,
+      notes: null,
+      isActive: true,
+      account: null,
+    });
+
+    await request(app.getHttpServer())
+      .post('/api/finance/loans')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        name: 'Carro',
+        lenderName: 'BHD',
+        originalAmount: 1000,
+        currentBalance: 1000,
+        installmentAmount: 100,
+        installmentFreq: 'MONTHLY',
+        totalInstallments: 12,
+        nextDueDate: '2026-09-01',
+      })
+      .expect(201)
+      .expect((res) => {
+        expect(res.body.data.name).toBe('Carro');
+      });
+  });
+
   it('POST /api/finance/loans defaults currency to DOP and rejects invalid rate or code', async () => {
     prismaMock.finLoan.create.mockResolvedValue({
       id: 'loan-dop',
@@ -1049,14 +809,87 @@ describe('Finance (e2e)', () => {
       .expect(400);
   });
 
+  it('GET /api/finance/receivables returns every amount as a decimal string', async () => {
+    prismaMock.finReceivable.findMany.mockResolvedValue([
+      {
+        id: 'rec-credit',
+        userId: 'user-123',
+        debtorName: 'Ana',
+        description: 'Préstamo',
+        amount: new Prisma.Decimal(200),
+        paidAmount: new Prisma.Decimal(50),
+        creditBalance: new Prisma.Decimal('25.50'),
+        writtenOffAmount: new Prisma.Decimal(0),
+        currency: 'DOP',
+        status: 'PARTIAL',
+        dueDate: null,
+        writtenOffAt: null,
+        notes: null,
+        createdAt: new Date('2026-10-01T12:00:00.000Z'),
+        updatedAt: new Date('2026-10-01T12:00:00.000Z'),
+      },
+    ]);
+
+    await request(app.getHttpServer())
+      .get('/api/finance/receivables?limit=10')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.data.items[0]).toMatchObject({
+          amount: '200',
+          paidAmount: '50',
+          creditBalance: '25.5',
+          writtenOffAmount: '0',
+        });
+      });
+  });
+
+  it('GET /api/finance/receivables/:id/payments returns every amount as a decimal string', async () => {
+    const receivableId = '99999999-9999-4999-8999-999999999999';
+    prismaMock.finReceivable.findFirst.mockResolvedValue({
+      id: receivableId,
+      userId: 'user-123',
+    });
+    prismaMock.finReceivablePayment.findMany.mockResolvedValue([
+      {
+        id: 'payment-1',
+        receivableId,
+        amount: new Prisma.Decimal(120),
+        appliedAmount: new Prisma.Decimal(100),
+        excessAmount: new Prisma.Decimal(20),
+        paidAt: new Date('2026-10-02T12:00:00.000Z'),
+      },
+    ]);
+
+    await request(app.getHttpServer())
+      .get(`/api/finance/receivables/${receivableId}/payments?limit=10`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.data.items[0]).toMatchObject({
+          amount: '120',
+          appliedAmount: '100',
+          excessAmount: '20',
+        });
+      });
+  });
+
   it('GET /api/finance/analytics/summary returns totals envelope', async () => {
     prismaMock.finInstitution.findMany.mockResolvedValue([]);
     prismaMock.finAccount.findMany.mockResolvedValue([
       {
         id: 'acc-1',
+        userId: 'user-123',
+        name: 'Ahorros',
+        type: 'SAVINGS',
         institutionId: null,
         balance: new Prisma.Decimal(100),
         currency: 'DOP',
+        color: null,
+        isActive: true,
+        isDefaultForInstitution: false,
+        createdAt: new Date('2026-01-01'),
+        updatedAt: new Date('2026-01-01'),
       },
     ]);
     prismaMock.finCardBalance.findMany.mockResolvedValue([]);
@@ -1083,9 +916,18 @@ describe('Finance (e2e)', () => {
     prismaMock.finAccount.findMany.mockResolvedValue([
       {
         id: 'acc-1',
+        userId: 'user-123',
+        name: 'Ahorros',
+        type: 'SAVINGS',
         institutionId: 'inst-1',
         currency: 'DOP',
         balance: 150000,
+        color: null,
+        isActive: true,
+        isDefaultForInstitution: false,
+        createdAt: new Date('2026-01-01'),
+        updatedAt: new Date('2026-01-01'),
+        institutionRef: null,
       },
     ]);
     prismaMock.finCardBalance.findMany.mockResolvedValue([
@@ -1133,9 +975,18 @@ describe('Finance (e2e)', () => {
     prismaMock.finAccount.findMany.mockResolvedValue([
       {
         id: 'acc-usd',
+        userId: 'user-123',
+        name: 'Ahorros USD',
+        type: 'SAVINGS',
         institutionId: 'inst-1',
         currency: 'USD',
         balance: 10,
+        color: null,
+        isActive: true,
+        isDefaultForInstitution: false,
+        createdAt: new Date('2026-01-01'),
+        updatedAt: new Date('2026-01-01'),
+        institutionRef: null,
       },
     ]);
     prismaMock.finCardBalance.findMany.mockResolvedValue([
@@ -1169,6 +1020,124 @@ describe('Finance (e2e)', () => {
       });
   });
 
+  it('GET /api/finance/balance-sheet returns the atomic breakdown with doubtful receivables', async () => {
+    const accountId = '11111111-1111-4111-8111-111111111111';
+    const ninetyOneDaysAgo = new Date();
+    ninetyOneDaysAgo.setUTCDate(ninetyOneDaysAgo.getUTCDate() - 91);
+
+    prismaMock.finInstitution.findMany.mockResolvedValue([]);
+    prismaMock.finAccount.findMany.mockResolvedValue([
+      {
+        id: accountId,
+        userId: 'user-123',
+        name: 'Ahorros',
+        type: 'SAVINGS',
+        institutionId: null,
+        currency: 'DOP',
+        balance: new Prisma.Decimal(1000),
+        color: null,
+        isActive: true,
+        isDefaultForInstitution: false,
+        createdAt: new Date('2026-01-01'),
+        updatedAt: new Date('2026-01-01'),
+      },
+    ]);
+    prismaMock.finCardBalance.findMany.mockResolvedValue([]);
+    prismaMock.finLoan.findMany.mockResolvedValue([]);
+    prismaMock.finReceivable.findMany.mockResolvedValue([
+      {
+        id: 'rec-dop',
+        debtorName: 'Ana',
+        description: 'Préstamo',
+        amount: new Prisma.Decimal(200),
+        paidAmount: new Prisma.Decimal(0),
+        writtenOffAmount: new Prisma.Decimal(0),
+        currency: 'DOP',
+        dueDate: null,
+      },
+      {
+        id: 'rec-usd',
+        debtorName: 'Marta',
+        description: null,
+        amount: new Prisma.Decimal(50),
+        paidAmount: new Prisma.Decimal(0),
+        writtenOffAmount: new Prisma.Decimal(0),
+        currency: 'USD',
+        dueDate: ninetyOneDaysAgo,
+      },
+    ]);
+    prismaMock.finBalanceDrift.findMany.mockResolvedValue([
+      {
+        accountId,
+        cardId: null,
+        currency: 'DOP',
+        difference: new Prisma.Decimal(-25),
+      },
+    ]);
+    prismaMock.finReconciliation.findMany.mockResolvedValue([
+      { accountId, cardId: null, currency: 'DOP' },
+    ]);
+    prismaMock.finExchangeRate.findUnique.mockResolvedValue({
+      rate: { toString: () => '60' },
+    });
+
+    await request(app.getHttpServer())
+      .get('/api/finance/balance-sheet')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.data.global).toMatchObject({
+          assets: { accounts: '1000', cash: '0', receivables: '200' },
+          totalAssets: '1200',
+          netWorth: '1200',
+        });
+        expect(res.body.data.breakdown.totals).toEqual({
+          assets: '1200',
+          available: '1000',
+          receivables: '200',
+          liabilities: '0',
+          netWorth: '1200',
+          doubtfulReceivables: '3000',
+        });
+        expect(res.body.data.global.byCurrency).toEqual([
+          {
+            currency: 'DOP',
+            assets: '1200',
+            available: '1000',
+            receivables: '200',
+            liabilities: '0',
+            netWorth: '1200',
+          },
+          {
+            currency: 'USD',
+            assets: '0',
+            available: '0',
+            receivables: '0',
+            liabilities: '0',
+            netWorth: '0',
+          },
+        ]);
+        const dop = res.body.data.breakdown.byCurrency.find(
+          (group: { currency: string }) => group.currency === 'DOP',
+        );
+        expect(dop.accounts[0]).toMatchObject({
+          id: accountId,
+          hasDrift: true,
+          driftDifference: '-25',
+          reconciliation: 'RECONCILED',
+        });
+        const usd = res.body.data.breakdown.byCurrency.find(
+          (group: { currency: string }) => group.currency === 'USD',
+        );
+        expect(usd.doubtfulReceivables[0]).toMatchObject({
+          id: 'rec-usd',
+          doubtful: true,
+          balance: '50',
+          balanceBase: '3000',
+        });
+      });
+  });
+
   it('GET /api/finance/balance-sheet uses the user finance base currency', async () => {
     prismaMock.userModule.findFirst.mockResolvedValue({
       id: 'um-finance',
@@ -1177,7 +1146,20 @@ describe('Finance (e2e)', () => {
     });
     prismaMock.finInstitution.findMany.mockResolvedValue([]);
     prismaMock.finAccount.findMany.mockResolvedValue([
-      { id: 'acc-1', institutionId: null, currency: 'DOP', balance: 100 },
+      {
+        id: 'acc-1',
+        userId: 'user-123',
+        name: 'Ahorros',
+        type: 'SAVINGS',
+        institutionId: null,
+        currency: 'DOP',
+        balance: 100,
+        color: null,
+        isActive: true,
+        isDefaultForInstitution: false,
+        createdAt: new Date('2026-01-01'),
+        updatedAt: new Date('2026-01-01'),
+      },
     ]);
     prismaMock.finCardBalance.findMany.mockResolvedValue([]);
     prismaMock.finLoan.findMany.mockResolvedValue([]);
@@ -1366,6 +1348,35 @@ describe('Finance (e2e)', () => {
       });
   });
 
+  it('GET /api/finance/budgets/:id sums the spent from the period movements', async () => {
+    const budgetId = '33333333-3333-4333-8333-333333333333';
+    prismaMock.finBudget.findFirst.mockResolvedValue({
+      id: budgetId,
+      userId: 'user-123',
+      categoryId: 'cat-1',
+      categories: [{ categoryId: 'cat-1', category: { id: 'cat-1' } }],
+      includeChildren: false,
+      periodType: 'MONTHLY',
+      periodStart: new Date('2026-10-01'),
+      periodEnd: new Date('2026-10-31'),
+      amountLimit: 5000,
+      amountSpent: 999,
+      alertThresholdPct: 80,
+      category: { id: 'cat-1', name: 'Food' },
+    });
+    prismaMock.finTransaction.aggregate.mockResolvedValue({
+      _sum: { amountBaseCurrency: new Prisma.Decimal('1814.51') },
+    });
+
+    await request(app.getHttpServer())
+      .get(`/api/finance/budgets/${budgetId}`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.data.amountSpent).toBe('1814.51');
+      });
+  });
+
   it('GET /api/finance/budgets/:id returns 404 when missing', async () => {
     prismaMock.finBudget.findFirst.mockResolvedValue(null);
 
@@ -1538,51 +1549,55 @@ describe('Finance (e2e)', () => {
     expect(lastPage.body.data.hasMore).toBe(false);
   });
 
-  it('GET /api/finance/email-sync/messages paginates newest first', async () => {
-    const message = (id: string, createdAt: string) => ({
-      id,
-      sourceId: 'src-1',
-      gmailMessageId: `msg-${id}`,
-      outcome: 'IMPORTED',
-      instrumentHint: 'ACCOUNT',
-      lastFourHint: '1234',
-      extractedPayload: { amount: 12.5, currency: 'DOP' },
-      reason: null,
-      createdAt: new Date(createdAt),
-      source: {
-        institutionId: 'inst-1',
-        connection: { emailAddress: 'user@gmail.com' },
-        institution: { name: 'BHD' },
-      },
-      transaction: null,
+  it('POST /api/finance/savings-goals/:id/allocations requires a destination on withdrawal', async () => {
+    prismaMock.finSavingsGoal.findFirst.mockResolvedValue({
+      id: 'goal-1',
+      userId: 'user-123',
+      name: 'Viaje',
+      accountId: 'acc-1',
+      currency: 'DOP',
+      currentAmount: 100,
+      mode: 'EARMARK',
     });
-    prismaMock.finEmailMessage.findMany
-      .mockResolvedValueOnce([
-        message('em-1', '2026-08-02T00:00:00.000Z'),
-        message('em-2', '2026-08-01T00:00:00.000Z'),
-      ])
-      .mockResolvedValueOnce([message('em-2', '2026-08-01T00:00:00.000Z')]);
 
-    const firstPage = await request(app.getHttpServer())
-      .get('/api/finance/email-sync/messages')
-      .query({ limit: 1 })
+    await request(app.getHttpServer())
+      .post('/api/finance/savings-goals/goal-1/allocations')
       .set('Authorization', `Bearer ${token}`)
-      .expect(200);
+      .send({ amount: 10, kind: 'WITHDRAWAL' })
+      .expect(400)
+      .expect((res) => {
+        expect(res.body.code).toBe('GOAL_WITHDRAWAL_ACCOUNT_REQUIRED');
+      });
+  });
 
-    expect(firstPage.body.data.items[0]).toMatchObject({
-      id: 'em-1',
-      outcome: 'IMPORTED',
+  it('POST /api/finance/savings-goals/:id/allocations rejects a withdrawal over the available amount', async () => {
+    prismaMock.finSavingsGoal.findFirst.mockResolvedValue({
+      id: 'goal-1',
+      userId: 'user-123',
+      name: 'Viaje',
+      accountId: 'acc-1',
+      currency: 'DOP',
+      currentAmount: 50,
+      mode: 'EARMARK',
     });
-    expect(firstPage.body.data.hasMore).toBe(true);
+    prismaMock.finAccount.findFirst.mockResolvedValue({
+      id: '22222222-2222-4222-8222-222222222222',
+      currency: 'DOP',
+      isActive: true,
+    });
 
-    const lastPage = await request(app.getHttpServer())
-      .get('/api/finance/email-sync/messages')
-      .query({ limit: 1, cursor: firstPage.body.data.nextCursor })
+    await request(app.getHttpServer())
+      .post('/api/finance/savings-goals/goal-1/allocations')
       .set('Authorization', `Bearer ${token}`)
-      .expect(200);
-
-    expect(lastPage.body.data.items[0].id).toBe('em-2');
-    expect(lastPage.body.data.hasMore).toBe(false);
+      .send({
+        amount: 100,
+        kind: 'WITHDRAWAL',
+        toAccountId: '22222222-2222-4222-8222-222222222222',
+      })
+      .expect(409)
+      .expect((res) => {
+        expect(res.body.code).toBe('GOAL_WITHDRAWAL_EXCEEDS_AVAILABLE');
+      });
   });
 
   it('GET /api/finance/recycle-bin paginates deleted records', async () => {
@@ -1778,51 +1793,6 @@ describe('Finance (e2e)', () => {
       .expect(200);
 
     expect(lastPage.body.data.items[0].id).toBe('tx-1');
-    expect(lastPage.body.data.hasMore).toBe(false);
-    expect(lastPage.body.data.nextCursor).toBeNull();
-  });
-
-  it('GET /api/finance/email-sync/pending paginates newest first', async () => {
-    const pending = (id: string, createdAt: string) => ({
-      id,
-      sourceId: 'src-1',
-      gmailMessageId: `msg-${id}`,
-      outcome: 'PENDING_ASSIGNMENT',
-      instrumentHint: 'ACCOUNT',
-      lastFourHint: '1234',
-      extractedPayload: { amount: 12.5, currency: 'DOP' },
-      reason: null,
-      createdAt: new Date(createdAt),
-      source: {
-        institutionId: 'inst-1',
-        connection: { emailAddress: 'user@gmail.com' },
-        institution: { name: 'BHD' },
-      },
-      transaction: null,
-    });
-    prismaMock.finEmailMessage.findMany
-      .mockResolvedValueOnce([
-        pending('em-2', '2026-08-02T00:00:00.000Z'),
-        pending('em-1', '2026-08-01T00:00:00.000Z'),
-      ])
-      .mockResolvedValueOnce([pending('em-1', '2026-08-01T00:00:00.000Z')]);
-
-    const firstPage = await request(app.getHttpServer())
-      .get('/api/finance/email-sync/pending')
-      .query({ limit: 1 })
-      .set('Authorization', `Bearer ${token}`)
-      .expect(200);
-
-    expect(firstPage.body.data.items[0].id).toBe('em-2');
-    expect(firstPage.body.data.hasMore).toBe(true);
-
-    const lastPage = await request(app.getHttpServer())
-      .get('/api/finance/email-sync/pending')
-      .query({ limit: 1, cursor: firstPage.body.data.nextCursor })
-      .set('Authorization', `Bearer ${token}`)
-      .expect(200);
-
-    expect(lastPage.body.data.items[0].id).toBe('em-1');
     expect(lastPage.body.data.hasMore).toBe(false);
     expect(lastPage.body.data.nextCursor).toBeNull();
   });
@@ -2224,7 +2194,6 @@ describe('Finance (e2e)', () => {
     });
     prismaMock.finAccount.count.mockResolvedValue(1);
     prismaMock.finCard.count.mockResolvedValue(0);
-    prismaMock.finEmailSource.count.mockResolvedValue(0);
     prismaMock.finLoan.count.mockResolvedValue(0);
 
     await request(app.getHttpServer())
@@ -2239,7 +2208,6 @@ describe('Finance (e2e)', () => {
         expect(res.body.details.dependents).toEqual({
           accounts: 1,
           cards: 0,
-          emailSources: 0,
           loans: 0,
         });
       });
@@ -2259,7 +2227,6 @@ describe('Finance (e2e)', () => {
     });
     prismaMock.finAccount.count.mockResolvedValue(0);
     prismaMock.finCard.count.mockResolvedValue(0);
-    prismaMock.finEmailSource.count.mockResolvedValue(0);
     prismaMock.finLoan.count.mockResolvedValue(0);
     prismaMock.finInstitution.updateMany.mockResolvedValue({ count: 1 });
 
@@ -2312,85 +2279,6 @@ describe('Finance (e2e)', () => {
       .expect(200)
       .expect((res) => {
         expect(res.body.data.accountId).toBe(accountId);
-      });
-  });
-
-  it('GET /api/finance/email-sync/pending lists review-queue messages', async () => {
-    prismaMock.finEmailMessage.findMany.mockResolvedValue([
-      {
-        id: 'em-1',
-        sourceId: 'src-1',
-        gmailMessageId: 'msg-1',
-        outcome: 'PENDING_ASSIGNMENT',
-        instrumentHint: 'ACCOUNT',
-        lastFourHint: '1234',
-        extractedPayload: { amount: 12.5, currency: 'DOP' },
-        reason: null,
-        createdAt: new Date('2026-08-01T00:00:00.000Z'),
-        source: {
-          institutionId: 'inst-1',
-          connection: { emailAddress: 'user@gmail.com' },
-          institution: { name: 'BHD' },
-        },
-        transaction: null,
-      },
-    ]);
-
-    await request(app.getHttpServer())
-      .get('/api/finance/email-sync/pending')
-      .set('Authorization', `Bearer ${token}`)
-      .expect(200)
-      .expect((res) => {
-        expect(res.body.data.items).toHaveLength(1);
-        expect(res.body.data.items[0]).toMatchObject({
-          id: 'em-1',
-          institutionId: 'inst-1',
-          lastFourHint: '1234',
-        });
-        expect(res.body.data.items[0]).not.toHaveProperty('accessToken');
-      });
-  });
-
-  it('POST /api/finance/email-sync/pending/:id/assign requires XOR account or card', async () => {
-    await request(app.getHttpServer())
-      .post(
-        '/api/finance/email-sync/pending/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/assign',
-      )
-      .set('Authorization', `Bearer ${token}`)
-      .send({})
-      .expect(400);
-  });
-
-  it('POST /api/finance/email-sync/pending/:id/assign is idempotent after import', async () => {
-    const messageId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
-    prismaMock.finEmailMessage.findFirst.mockResolvedValue({
-      id: messageId,
-      sourceId: 'src-1',
-      gmailMessageId: 'msg-1',
-      outcome: 'IMPORTED',
-      instrumentHint: 'ACCOUNT',
-      lastFourHint: '1234',
-      extractedPayload: null,
-      reason: null,
-      createdAt: new Date('2026-08-01T00:00:00.000Z'),
-      source: {
-        institutionId: 'inst-1',
-        connection: { emailAddress: 'user@gmail.com' },
-        institution: { name: 'BHD' },
-      },
-      transaction: { id: 'tx-1' },
-    });
-
-    await request(app.getHttpServer())
-      .post(`/api/finance/email-sync/pending/${messageId}/assign`)
-      .set('Authorization', `Bearer ${token}`)
-      .send({ accountId: '11111111-1111-4111-8111-111111111111' })
-      .expect(201)
-      .expect((res) => {
-        expect(res.body.data).toEqual({
-          assigned: true,
-          transactionId: 'tx-1',
-        });
       });
   });
 
@@ -3154,5 +3042,444 @@ describe('Finance (e2e)', () => {
       .set('Authorization', `Bearer ${token}`)
       .send({ cardId: '22222222-2222-4222-8222-222222222222' })
       .expect(400);
+  });
+  it('POST /api/finance/entities/lookup keeps the order and nulls the missing ones', async () => {
+    const at = new Date('2026-09-01T12:00:00.000Z');
+    const transactionId = '11111111-1111-4111-8111-111111111111';
+    const accountId = '22222222-2222-4222-8222-222222222222';
+    const missingId = '33333333-3333-4333-8333-333333333333';
+    prismaMock.finTransaction.findMany.mockResolvedValue([
+      {
+        id: transactionId,
+        userId: 'user-123',
+        accountId,
+        cardId: null,
+        type: 'DEBIT',
+        amount: { toString: () => '25.00' },
+        ledgerAmount: { toString: () => '25.00' },
+        amountBaseCurrency: { toString: () => '25.00' },
+        currency: 'DOP',
+        ledgerCurrency: 'DOP',
+        exchangeRate: { toString: () => '1' },
+        merchant: 'Café',
+        description: null,
+        notes: null,
+        categoryId: null,
+        status: 'CONFIRMED',
+        source: 'MANUAL',
+        transferGroupId: null,
+        linkedTransactionId: null,
+        aiMetadata: null,
+        transactionDate: at,
+        createdAt: at,
+        account: { id: accountId, name: 'Ahorros' },
+        card: null,
+      },
+    ]);
+    prismaMock.finAccount.findMany.mockResolvedValue([
+      {
+        id: accountId,
+        userId: 'user-123',
+        name: 'Ahorros',
+        type: 'SAVINGS',
+        institutionId: null,
+        currency: 'DOP',
+        balance: { toString: () => '1000.00' },
+        color: null,
+        isActive: true,
+        createdAt: at,
+        updatedAt: at,
+        institutionRef: null,
+      },
+    ]);
+
+    const response = await request(app.getHttpServer())
+      .post('/api/finance/entities/lookup')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        refs: [
+          { type: 'transaction', id: transactionId },
+          { type: 'account', id: accountId },
+          { type: 'transaction', id: missingId },
+        ],
+      })
+      .expect(200);
+
+    const [transaction, account, missing] = response.body.data;
+    expect(transaction.id).toBe(transactionId);
+    expect(transaction.accountName).toBe('Ahorros');
+    expect(account.id).toBe(accountId);
+    expect(account.type).toBe('SAVINGS');
+    expect(missing).toBeNull();
+  });
+
+  it('POST /api/finance/entities/lookup rejects more than 50 references', async () => {
+    const refs = Array.from({ length: 51 }, (_, index) => ({
+      type: 'transaction',
+      id: `1111111${index}-1111-4111-8111-11111111111`.slice(0, 36),
+    }));
+
+    await request(app.getHttpServer())
+      .post('/api/finance/entities/lookup')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ refs })
+      .expect(400);
+  });
+  it('POST /api/finance/merchants creates the merchant with its aliases', async () => {
+    const createdAt = new Date('2026-10-20T10:00:00.000Z');
+    prismaMock.finMerchant.create.mockResolvedValue({
+      id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      userId: 'user-123',
+      name: 'Supermercado Nacional',
+      normalizedKey: 'SUPERMERCADO NACIONAL',
+      aliases: [{ alias: 'Nacional' }],
+      categoryId: null,
+      logoUrl: null,
+      createdAt,
+    });
+    prismaMock.finMerchant.findFirst
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(null)
+      .mockResolvedValue({
+        id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        userId: 'user-123',
+        name: 'Supermercado Nacional',
+        normalizedKey: 'SUPERMERCADO NACIONAL',
+        aliases: [{ alias: 'Nacional' }],
+        categoryId: null,
+        categorySource: null,
+        logoUrl: null,
+        createdAt,
+      });
+
+    const response = await request(app.getHttpServer())
+      .post('/api/finance/merchants')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ name: 'Supermercado Nacional', aliases: ['Nacional'] })
+      .expect(201);
+
+    expect(response.body.data).toMatchObject({
+      id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      name: 'Supermercado Nacional',
+      aliases: ['Nacional'],
+      categoryId: null,
+      logoUrl: null,
+    });
+    expect(prismaMock.finMerchant.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          userId: 'user-123',
+          name: 'Supermercado Nacional',
+          normalizedKey: 'SUPERMERCADO NACIONAL',
+          aliases: {
+            create: [
+              {
+                userId: 'user-123',
+                alias: 'Nacional',
+                normalizedKey: 'NACIONAL',
+              },
+            ],
+          },
+        }),
+      }),
+    );
+  });
+
+  it('POST /api/finance/merchants rejects a name without usable text', async () => {
+    await request(app.getHttpServer())
+      .post('/api/finance/merchants')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ name: '*** 1234' })
+      .expect(400);
+  });
+  it('PATCH /api/finance/merchants/:id confirms the category as manual', async () => {
+    const merchantId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+    const categoryId = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+    prismaMock.finCategory.findFirst.mockResolvedValue({
+      id: categoryId,
+      name: 'Supermercado',
+      type: 'EXPENSE',
+      isSystem: true,
+    });
+    prismaMock.finMerchant.findFirst.mockResolvedValue({
+      id: merchantId,
+      userId: 'user-123',
+      name: 'Supermercado Nacional',
+      normalizedKey: 'SUPERMERCADO NACIONAL',
+      aliases: [],
+      categoryId,
+      categorySource: 'MANUAL',
+      logoUrl: null,
+      createdAt: new Date('2026-10-20T10:00:00.000Z'),
+    });
+    prismaMock.finMerchant.updateMany.mockResolvedValue({ count: 1 });
+
+    await request(app.getHttpServer())
+      .patch(`/api/finance/merchants/${merchantId}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ categoryId })
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.data.categoryId).toBe(categoryId);
+        expect(res.body.data.categorySource).toBe('MANUAL');
+      });
+
+    expect(prismaMock.finMerchant.updateMany).toHaveBeenCalledWith({
+      where: { id: merchantId, userId: 'user-123' },
+      data: { categoryId, categorySource: 'MANUAL' },
+    });
+  });
+  it('POST /api/finance/merchants/:id/merge keeps the source name as an alias', async () => {
+    const sourceId = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
+    const targetId = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
+    const source = {
+      id: sourceId,
+      userId: 'user-123',
+      name: 'Supermercado Nacional',
+      normalizedKey: 'SUPERMERCADO NACIONAL',
+      aliases: [{ alias: 'Nacional' }],
+      categoryId: 'cat-food',
+      categorySource: 'LEARNED',
+      logoUrl: null,
+      createdAt: new Date('2026-10-20T10:00:00.000Z'),
+    };
+    const target = {
+      id: targetId,
+      userId: 'user-123',
+      name: 'Nacional Express',
+      normalizedKey: 'NACIONAL EXPRESS',
+      aliases: [],
+      categoryId: null,
+      categorySource: null,
+      logoUrl: null,
+      createdAt: new Date('2026-10-21T10:00:00.000Z'),
+    };
+    prismaMock.finMerchant.findFirst
+      .mockResolvedValueOnce(source)
+      .mockResolvedValueOnce(target)
+      .mockResolvedValueOnce(source)
+      .mockResolvedValueOnce(target)
+      .mockResolvedValue({
+        ...target,
+        categoryId: 'cat-food',
+        categorySource: 'LEARNED',
+        aliases: [{ alias: 'Supermercado Nacional' }, { alias: 'Nacional' }],
+      });
+
+    await request(app.getHttpServer())
+      .post(`/api/finance/merchants/${sourceId}/merge`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ targetId })
+      .expect(201)
+      .expect((res) => {
+        expect(res.body.data.id).toBe(targetId);
+        expect(res.body.data.aliases).toEqual([
+          'Supermercado Nacional',
+          'Nacional',
+        ]);
+        expect(res.body.data.categoryId).toBe('cat-food');
+      });
+
+    expect(prismaMock.finMerchantAlias.createMany).toHaveBeenCalledWith({
+      data: [
+        {
+          userId: 'user-123',
+          merchantId: targetId,
+          alias: 'Supermercado Nacional',
+          normalizedKey: 'SUPERMERCADO NACIONAL',
+        },
+        {
+          userId: 'user-123',
+          merchantId: targetId,
+          alias: 'Nacional',
+          normalizedKey: 'NACIONAL',
+        },
+      ],
+      skipDuplicates: true,
+    });
+    expect(prismaMock.finMerchant.update).toHaveBeenCalledWith({
+      where: { id: targetId },
+      data: {
+        categoryId: 'cat-food',
+        categorySource: 'LEARNED',
+        logoUrl: null,
+      },
+    });
+  });
+  it('GET /api/finance/merchants/:id/duplicates lists the candidates with the reason', async () => {
+    const merchantId = 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee';
+    prismaMock.finMerchant.findFirst.mockResolvedValue({
+      id: merchantId,
+      userId: 'user-123',
+      name: 'Supermercado Nacional',
+      normalizedKey: 'SUPERMERCADO NACIONAL',
+      aliases: [],
+      categoryId: null,
+      categorySource: null,
+      logoUrl: null,
+      createdAt: new Date('2026-10-20T10:00:00.000Z'),
+    });
+    prismaMock.finMerchant.findMany.mockResolvedValue([
+      {
+        id: merchantId,
+        name: 'Supermercado Nacional',
+        normalizedKey: 'SUPERMERCADO NACIONAL',
+        logoUrl: null,
+        aliases: [],
+      },
+      {
+        id: 'ffffffff-ffff-4fff-8fff-ffffffffffff',
+        name: 'Supermercado Nacional 5',
+        normalizedKey: 'SUPERMERCADO NACIONAL 5',
+        logoUrl: null,
+        aliases: [],
+      },
+    ]);
+    prismaMock.finTransaction.groupBy.mockResolvedValue([
+      {
+        merchantId: 'ffffffff-ffff-4fff-8fff-ffffffffffff',
+        _sum: { amountBaseCurrency: 300 },
+        _count: { _all: 2 },
+      },
+    ]);
+
+    await request(app.getHttpServer())
+      .get(`/api/finance/merchants/${merchantId}/duplicates`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.data).toEqual([
+          {
+            id: 'ffffffff-ffff-4fff-8fff-ffffffffffff',
+            name: 'Supermercado Nacional 5',
+            logoUrl: null,
+            monthSpend: '300',
+            monthMovements: 2,
+            reason: 'TRAILING_NUMBER',
+          },
+        ]);
+      });
+  });
+  it('POST and DELETE /api/finance/merchants/:id/duplicates/:otherId/dismiss', async () => {
+    const first = '11111111-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+    const second = '22222222-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+    prismaMock.finMerchant.findFirst.mockImplementation(
+      (args: { where: { id: string } }) =>
+        Promise.resolve({
+          id: args.where.id,
+          userId: 'user-123',
+          name: 'Supermercado Nacional',
+          normalizedKey: 'SUPERMERCADO NACIONAL',
+          aliases: [],
+          categoryId: null,
+          categorySource: null,
+          logoUrl: null,
+          createdAt: new Date('2026-10-20T10:00:00.000Z'),
+        }),
+    );
+
+    await request(app.getHttpServer())
+      .post(`/api/finance/merchants/${first}/duplicates/${second}/dismiss`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.data).toEqual({ dismissed: true });
+      });
+
+    expect(
+      prismaMock.finMerchantDuplicateDismissal.upsert,
+    ).toHaveBeenCalledWith({
+      where: {
+        userId_merchantId_otherMerchantId: {
+          userId: 'user-123',
+          merchantId: first,
+          otherMerchantId: second,
+        },
+      },
+      create: {
+        userId: 'user-123',
+        merchantId: first,
+        otherMerchantId: second,
+      },
+      update: {},
+    });
+
+    await request(app.getHttpServer())
+      .delete(`/api/finance/merchants/${first}/duplicates/${second}/dismiss`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.data).toEqual({ dismissed: false });
+      });
+
+    expect(
+      prismaMock.finMerchantDuplicateDismissal.deleteMany,
+    ).toHaveBeenCalledWith({
+      where: { userId: 'user-123', merchantId: first, otherMerchantId: second },
+    });
+  });
+
+  it('POST /api/finance/merchants/:id/duplicates/:otherId/dismiss rejects the same merchant', async () => {
+    const merchantId = '33333333-cccc-4ccc-8ccc-cccccccccccc';
+
+    await request(app.getHttpServer())
+      .post(
+        `/api/finance/merchants/${merchantId}/duplicates/${merchantId}/dismiss`,
+      )
+      .set('Authorization', `Bearer ${token}`)
+      .expect(400);
+  });
+  it('PATCH /api/finance/merchants/:id rejects a free logoUrl', async () => {
+    const merchantId = '44444444-dddd-4ddd-8ddd-dddddddddddd';
+
+    await request(app.getHttpServer())
+      .patch(`/api/finance/merchants/${merchantId}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ logoUrl: 'https://example.com/logo.png' })
+      .expect(400);
+  });
+
+  it('DELETE /api/finance/merchants/:id/logo clears the own logo', async () => {
+    const merchantId = '55555555-eeee-4eee-8eee-eeeeeeeeeeee';
+    const row = {
+      id: merchantId,
+      userId: 'user-123',
+      name: 'Netflix',
+      normalizedKey: 'NETFLIX',
+      aliases: [],
+      categoryId: null,
+      categorySource: null,
+      domain: null,
+      logoPath: null,
+      customLogoPath: null,
+      logoUrl: null,
+      createdAt: new Date('2026-10-20T10:00:00.000Z'),
+    };
+    prismaMock.finMerchant.findFirst
+      .mockResolvedValueOnce({
+        ...row,
+        customLogoPath: 'custom/user-123/merchant.png',
+      })
+      .mockResolvedValue(row);
+    prismaMock.finMerchant.updateMany.mockResolvedValue({ count: 1 });
+
+    await request(app.getHttpServer())
+      .delete(`/api/finance/merchants/${merchantId}/logo`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.data.logoUrl).toBeNull();
+      });
+
+    expect(prismaMock.finMerchant.updateMany).toHaveBeenCalledWith({
+      where: { id: merchantId, userId: 'user-123' },
+      data: { customLogoPath: null },
+    });
+  });
+  it('returns 404 for the retired Gmail sync API', async () => {
+    await request(app.getHttpServer())
+      .get('/api/finance/email-sync/mailboxes')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(404);
   });
 });

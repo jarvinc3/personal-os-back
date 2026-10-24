@@ -54,9 +54,8 @@ export const envSchema = z
     /** Logo.dev publishable key. Logo download is skipped when unset. */
     LOGO_DEV_PUBLISHABLE_KEY: optionalApiKey,
 
-    // ── IA (free-tier providers) ───────────────
+    // ── IA providers ───────────────────────────
     GROQ_API_KEY: optionalApiKey,
-    CEREBRAS_API_KEY: optionalApiKey,
     OPENROUTER_API_KEY: optionalApiKey,
     /** Hard cap on LLM email extractions per Gmail sync. Default 25. */
     MAX_EMAIL_LLM_EXTRACTS: defaultedPositiveInt(25),
@@ -76,23 +75,10 @@ export const envSchema = z
     SENTRY_ORG: optionalApiKey,
     SENTRY_PROJECT: optionalApiKey,
 
-    // ── Google OAuth (para Gmail API) ────────────────────────────
-    GOOGLE_CLIENT_ID: z.string().min(1, 'GOOGLE_CLIENT_ID is required'),
-    GOOGLE_CLIENT_SECRET: z.string().min(1, 'GOOGLE_CLIENT_SECRET is required'),
-    GOOGLE_REDIRECT_URI: z.url('GOOGLE_REDIRECT_URI must be a valid URL'),
-
-    /** Encrypts Gmail OAuth tokens at rest. */
-    ENCRYPTION_KEY: z
-      .string()
-      .min(32, 'ENCRYPTION_KEY must be at least 32 chars'),
-    /** Encrypts bank account numbers at rest; unrelated to Gmail tokens. */
+    /** Encrypts bank account numbers at rest. */
     DATA_ENCRYPTION_KEY: z
       .string()
       .min(32, 'DATA_ENCRYPTION_KEY must be at least 32 chars'),
-    OAUTH_STATE_SECRET: z
-      .string()
-      .min(32, 'OAUTH_STATE_SECRET must be at least 32 chars')
-      .optional(),
 
     // ── App ──────────────────────────────────────────────────────
     NODE_ENV: z
@@ -198,10 +184,10 @@ export const envSchema = z
 
     // ── Push (FCM Android + Web Push) ───────────────────────────
     EXPO_ACCESS_TOKEN: optionalApiKey,
-    /** Service account JSON inline; alternative to the file path below. */
-    FIREBASE_SERVICE_ACCOUNT_JSON: optionalApiKey,
-    /** Path to the service account JSON, kept outside the repository. */
-    FIREBASE_SERVICE_ACCOUNT_PATH: optionalApiKey,
+    /** Service account for FCM; all three are needed to enable the channel. */
+    FIREBASE_PROJECT_ID: optionalApiKey,
+    FIREBASE_CLIENT_EMAIL: optionalApiKey,
+    FIREBASE_PRIVATE_KEY: optionalApiKey,
     VAPID_PUBLIC_KEY: optionalApiKey,
     VAPID_PRIVATE_KEY: optionalApiKey,
     VAPID_SUBJECT: z
@@ -253,15 +239,6 @@ export const envSchema = z
       });
     }
 
-    if (data.NODE_ENV === 'production' && !data.OAUTH_STATE_SECRET) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message:
-          'OAUTH_STATE_SECRET is required in production (must differ from ENCRYPTION_KEY)',
-        path: ['OAUTH_STATE_SECRET'],
-      });
-    }
-
     const hasBullBoardUser = data.BULL_BOARD_USER !== undefined;
     const hasBullBoardPassword = data.BULL_BOARD_PASSWORD !== undefined;
     if (hasBullBoardUser !== hasBullBoardPassword) {
@@ -296,15 +273,11 @@ export const envSchema = z
       return;
     }
 
-    if (
-      !data.GROQ_API_KEY &&
-      !data.CEREBRAS_API_KEY &&
-      !data.OPENROUTER_API_KEY
-    ) {
+    if (!data.GROQ_API_KEY && !data.OPENROUTER_API_KEY) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message:
-          'At least one AI provider key is required (GROQ_API_KEY, CEREBRAS_API_KEY, or OPENROUTER_API_KEY)',
+          'At least one AI provider key is required (GROQ_API_KEY or OPENROUTER_API_KEY)',
         path: ['GROQ_API_KEY'],
       });
     }

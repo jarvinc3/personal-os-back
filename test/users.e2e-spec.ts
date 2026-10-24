@@ -554,4 +554,108 @@ describe('Users (e2e)', () => {
   it('DELETE /api/users/me returns 401 without token', async () => {
     await request(app.getHttpServer()).delete('/api/users/me').expect(401);
   });
+  describe('data branches', () => {
+    const token = () => createTestJwt({ sub: 'user-123' });
+    const userWithFinance = {
+      id: 'user-123',
+      email: 'user@example.com',
+      fullName: 'User Test',
+      timezone: 'America/Santo_Domingo',
+      locale: 'es-DO',
+      avatarUrl: null,
+      preferences: { theme: 'dark' },
+      lastSeenReleaseVersion: '0.38.1',
+      userModules: [{ isEnabled: true, module: { slug: 'finance' } }],
+      createdAt: new Date('2026-01-01T00:00:00.000Z'),
+      updatedAt: new Date('2026-01-01T00:00:00.000Z'),
+    };
+
+    beforeEach(() => {
+      prismaMock.user.findUnique.mockResolvedValue(userWithFinance);
+    });
+
+    it('GET /api/users/me/data/branches groups the branches by app with counts', async () => {
+      prismaMock.finTransaction.count.mockResolvedValue(7);
+
+      await request(app.getHttpServer())
+        .get('/api/users/me/data/branches')
+        .set('Authorization', `Bearer ${token()}`)
+        .expect(200)
+        .expect((res) => {
+          const apps = res.body.data.map((group: { app: string }) => group.app);
+          expect(apps).toEqual(['finance', 'ai', 'notifications', 'settings']);
+          const transactionBranch = res.body.data[0].branches.find(
+            (branch: { id: string }) => branch.id === 'finance.transactions',
+          );
+          expect(transactionBranch.count).toBe(7);
+          const ai = res.body.data.find(
+            (group: { app: string }) => group.app === 'ai',
+          );
+          expect(ai.branches[0]).toMatchObject({
+            id: 'ai.inferences',
+            count: 0,
+          });
+          const settings = res.body.data.at(-1);
+          expect(settings.branches[0].count).toBe(1);
+        });
+    });
+
+    it('POST /api/users/me/data/wipe rejects the retired AI history branch', async () => {
+      await request(app.getHttpServer())
+        .post('/api/users/me/data/wipe')
+        .set('Authorization', `Bearer ${token()}`)
+        .send({ branches: ['ai.sessions'] })
+        .expect(400);
+    });
+
+    it('POST /api/users/me/data/wipe deletes the users inference telemetry', async () => {
+      prismaMock.aiInference.deleteMany.mockResolvedValue({ count: 3 });
+
+      await request(app.getHttpServer())
+        .post('/api/users/me/data/wipe')
+        .set('Authorization', `Bearer ${token()}`)
+        .send({ branches: ['ai.inferences'] })
+        .expect(200)
+        .expect((res) => {
+          expect(res.body.data).toMatchObject({
+            requestedBranches: ['ai.inferences'],
+            appliedBranches: ['ai.inferences'],
+            counts: { 'ai.inferences': 3 },
+          });
+        });
+      expect(prismaMock.aiInference.deleteMany).toHaveBeenCalledWith({
+        where: { userId: 'user-123' },
+      });
+    });
+
+    it('POST /api/users/me/data/wipe rejects a branch that does not exist', async () => {
+      await request(app.getHttpServer())
+        .post('/api/users/me/data/wipe')
+        .set('Authorization', `Bearer ${token()}`)
+        .send({ branches: ['finance.unknown'] })
+        .expect(400);
+    });
+    it('POST /api/users/me/data/wipe expands the finance branches they drag', async () => {
+      prismaMock.finTransaction.deleteMany.mockResolvedValue({ count: 2 });
+      prismaMock.finReconciliation.deleteMany.mockResolvedValue({ count: 1 });
+
+      await request(app.getHttpServer())
+        .post('/api/users/me/data/wipe')
+        .set('Authorization', `Bearer ${token()}`)
+        .send({ branches: ['finance.transactions'] })
+        .expect(200)
+        .expect((res) => {
+          expect(res.body.data.appliedBranches).toEqual([
+            'finance.reconciliations',
+            'finance.transactions',
+          ]);
+          expect(res.body.data.counts).toEqual({
+            'finance.reconciliations': 1,
+            'finance.transactions': 2,
+          });
+        });
+
+      expect(prismaMock.$transaction).toHaveBeenCalled();
+    });
+  });
 });

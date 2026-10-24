@@ -1,9 +1,9 @@
-import { randomUUID } from 'crypto';
 import { Inject, Injectable } from '@nestjs/common';
+import { randomUUID } from 'crypto';
 import { FinanceOutboxDispatcher } from '../../events/infrastructure/finance-outbox.dispatcher';
-import { MerchantsService } from '../../merchants/application/merchants.service';
 import { ResolveAmountsUseCase } from '../../fx/application/resolve-amounts.use-case';
 import { ResolveUserBaseCurrencyUseCase } from '../../fx/application/resolve-user-base-currency';
+import { MerchantsService } from '../../merchants/application/merchants.service';
 import { LEDGER_REPOSITORY } from '../../shared/application/tokens';
 import {
   TRANSFER_STATUS,
@@ -26,7 +26,7 @@ function toTransferStatus(status: FinTxStatus): TransferStatus {
 export type ImportEmailMovementInput = {
   accountId?: string;
   cardId?: string;
-  emailMessageId: string;
+  importReference: string;
   externalReference?: string | null;
   amount: number;
   currency: string;
@@ -71,7 +71,12 @@ export class ImportEmailTransactionUseCase {
     });
 
     const resolvedMerchant = data.merchant
-      ? await this.merchants.resolve(userId, data.merchant)
+      ? await this.merchants.resolve({
+          userId,
+          rawName: data.merchant,
+          categoryId: data.categoryId,
+          transactionType: data.type,
+        })
       : null;
 
     const created = await this.repo.createEmailImportTransaction(userId, {
@@ -138,7 +143,7 @@ export class ImportEmailTransactionUseCase {
         notes: data.notes ?? undefined,
         status: toTransferStatus(data.status),
         source: 'EMAIL',
-        fromEmailMessageId: data.emailMessageId,
+        fromEmailMessageId: data.importReference,
         aiMetadata: data.aiMetadata,
       },
       fromAmounts,

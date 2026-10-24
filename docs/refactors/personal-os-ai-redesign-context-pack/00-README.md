@@ -19,7 +19,7 @@ All `[DECISION: Jarvin]` items are now resolved.
 | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------- |
 | Current chat deleted in Phase 0 (runner, tool executor/registry, prompts, chat endpoints, proactive listener) together with email legacy; web chat hidden/removed. | No chat until Phase 9; chat UX pending owner redesign input. Provider adapters, failover, streaming, Zod and `AiAction` concepts are preserved. |
 | Signals: own `AiSignal` table + existing `DomainEventOutbox`/BullMQ.                                                                                               | Accepted (`12`).                                                                                                                                |
-| `0.50.0` PROD deploy after Phase 11 (Finance import).                                                                                                              | Accepted.                                                                                                                                       |
+| `0.100.0` PROD deploy after Phase 11 (Finance import).                                                                                                             | Accepted.                                                                                                                                       |
 | Raw retention 30 days DEV / 7 days PROD.                                                                                                                           | Accepted.                                                                                                                                       |
 | No field-level encryption in V1.                                                                                                                                   | Accepted.                                                                                                                                       |
 | All configured LLM providers allowed; only RELEVANT/UNCERTAIN mail by default + recall audit sample (2%) of discarded mail for admin/consenting users.             | `03`, `06`, `08`.                                                                                                                               |
@@ -41,15 +41,19 @@ Still open: consent UX, admin review for GLOBAL promotion, multi-user retention 
 
 ### 2026-10-20 — Owner decisions incorporated
 
-| Change                                                                                                                                   | Why                                                                                                                                            |
-| ---------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| Phase 0 (legacy deletion + migration reset) confirmed; PROD isolation documented (`03`, `07`, `11`).                                     | PROD has its own DB/environment and stays on the current version until the owner decides the `0.50.0` deploy. Migrations run only against DEV. |
-| Open balance/ledger/planning bugs declared out of scope and non-blocking (`03`, `10`).                                                   | They are fixed in parallel on `develop`; the refactor must not wait for them nor block them.                                                   |
-| Full-mailbox Gmail download from 2026-01-01 approved; default privacy/cost policy proposed (`03`, `06`, `10`).                           | Needed to measure false negatives; defaults keep non-financial mail away from LLMs and bound cost/retention.                                   |
-| Review/labeling UI moved earlier: minimal UI by Phase 2–4, growing every phase; old Phase 9 becomes "Review UI completion" (`07`, `08`). | The owner must verify results of every phase, and evaluation (Phase 8) needs human labels that already exist.                                  |
-| Quick-entry and statement extractors migrate to the Inference Gateway in Phase 1 (`07`).                                                 | They also call LLMs and were not covered.                                                                                                      |
-| New `12-REPO-IMPACT.md`: affected web screens/endpoints at Phase 0, Signals vs outbox/BullMQ proposal, ADR and repo-instruction changes. | Fill gaps required before implementation.                                                                                                      |
-| Items still needing owner decision are tagged **[DECISION: Jarvin]**.                                                                    | Make pending decisions searchable.                                                                                                             |
+| Change                                                                                                                                   | Why                                                                                                                                             |
+| ---------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| Phase 0 (legacy deletion + migration reset) confirmed; PROD isolation documented (`03`, `07`, `11`).                                     | PROD has its own DB/environment and stays on the current version until the owner decides the `0.100.0` deploy. Migrations run only against DEV. |
+| Open balance/ledger/planning bugs declared out of scope and non-blocking (`03`, `10`).                                                   | They are fixed in parallel on `develop`; the refactor must not wait for them nor block them.                                                    |
+| Full-mailbox Gmail download from 2026-01-01 approved; default privacy/cost policy proposed (`03`, `06`, `10`).                           | Needed to measure false negatives; defaults keep non-financial mail away from LLMs and bound cost/retention.                                    |
+| Review/labeling UI moved earlier: minimal UI by Phase 2–4, growing every phase; old Phase 9 becomes "Review UI completion" (`07`, `08`). | The owner must verify results of every phase, and evaluation (Phase 8) needs human labels that already exist.                                   |
+| Quick-entry and statement extractors migrate to the Inference Gateway in Phase 1 (`07`).                                                 | They also call LLMs and were not covered.                                                                                                       |
+| New `12-REPO-IMPACT.md`: affected web screens/endpoints at Phase 0, Signals vs outbox/BullMQ proposal, ADR and repo-instruction changes. | Fill gaps required before implementation.                                                                                                       |
+| Items still needing owner decision are tagged **[DECISION: Jarvin]**.                                                                    | Make pending decisions searchable.                                                                                                              |
+
+## Update — 2026-10-24
+
+The [implementation decisions](../01-IMPLEMENTATION-DECISIONS.md) and [cut inventory](../02-PHASE-0-INVENTORY.md) resolve the import cut, pre-reset outbox fix, contract placement, consent/deletion semantics and release exception. Earlier changelog entries describe decision history, not implementation status.
 
 ## Purpose
 
@@ -90,11 +94,11 @@ Email is therefore considered a general information source for Personal OS, not 
 
 - Closed beta.
 - Closed beta, opening soon to several users who contribute email data (contribution on by default, opt-out).
-- DEV and PROD have separate databases and environments. PROD is unaffected by the redesign until a deliberate `0.50.0` deploy decided by the owner; migrations run only against DEV.
+- DEV and PROD have separate databases and environments. PROD is unaffected by the redesign until a deliberate `0.100.0` deploy decided by the owner; migrations run only against DEV.
 - Existing production data is not relevant and may be deleted.
 - The migration history may be reset after verifying PROD `_prisma_migrations`.
 - The redesign intentionally removes legacy code rather than preserving backward compatibility.
-- Backend and frontend target version: `0.50.0`.
+- Backend and frontend target version: `0.100.0`.
 - Initial historical email corpus: Gmail from 2026-01-01 to the current date.
 - BHD, Banco Popular and Qik are the initial Finance benchmark institutions.
 - Historical analysis will be executed repeatedly.

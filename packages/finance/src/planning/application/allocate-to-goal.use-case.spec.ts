@@ -1,5 +1,6 @@
 import type { CreateTransferUseCase } from '../../ledger/application/create-transfer.use-case';
 import type { FinanceOwnershipService } from '../../shared/application/finance-ownership.service';
+import { localDateIso } from '../../shared/domain/local-day';
 import type { PlanningRepository } from '../infrastructure/planning.repository';
 import { AllocateToGoalUseCase } from './allocate-to-goal.use-case';
 
@@ -9,6 +10,7 @@ function goal(overrides: Record<string, unknown> = {}) {
     name: 'Viaje',
     currency: 'DOP',
     accountId: 'acc-1',
+    currentAmount: '1000',
     mode: 'EARMARK',
     ...overrides,
   };
@@ -21,6 +23,7 @@ function setup(options: {
 }) {
   const found = 'found' in options ? options.found : goal();
   const repo = {
+    findUserTimezone: jest.fn().mockResolvedValue('America/Santo_Domingo'),
     findSavingsGoal: jest.fn().mockResolvedValue(found),
     sumEarmarkedByAccount: jest.fn().mockResolvedValue(options.earmarked ?? 0),
     addSavingsGoalContribution: jest.fn().mockResolvedValue({
@@ -35,7 +38,12 @@ function setup(options: {
     assertAccountOwned: jest
       .fn()
       .mockImplementation((_userId: string, accountId: string) =>
-        Promise.resolve({ id: accountId, balance: options.balance ?? 5000 }),
+        Promise.resolve({
+          id: accountId,
+          balance: options.balance ?? 5000,
+          currency: 'DOP',
+          isActive: true,
+        }),
       ),
   };
   const createTransfer = {
@@ -75,6 +83,43 @@ describe('AllocateToGoalUseCase', () => {
     );
   });
 
+  it('registers the contribution on the local day the user picked', async () => {
+    const { repo, useCase, createTransfer } = setup({});
+
+    // 2026-10-23 20:00 in Santo Domingo, the case the QA reported.
+    await useCase.execute(
+      'user-1',
+      'goal-1',
+      { amount: 100, date: '2026-10-23', fromAccountId: 'acc-2' },
+      new Date('2026-10-24T00:00:00.000Z'),
+    );
+
+    expect(createTransfer.execute).toHaveBeenCalledWith(
+      'user-1',
+      expect.objectContaining({
+        transactionDate: '2026-10-24T00:00:00.000Z',
+        announce: false,
+      }),
+    );
+    const allocation = repo.addSavingsGoalContribution.mock.calls[0][1];
+    expect((allocation.contributedAt as Date).toISOString()).toBe(
+      '2026-10-24T00:00:00.000Z',
+    );
+    expect(
+      localDateIso('America/Santo_Domingo', allocation.contributedAt as Date),
+    ).toBe('2026-10-23');
+  });
+
+  it('keeps the server time when no date is sent', async () => {
+    const { repo, useCase } = setup({});
+    const now = new Date('2026-10-24T00:00:00.000Z');
+
+    await useCase.execute('user-1', 'goal-1', { amount: 100 }, now);
+
+    const allocation = repo.addSavingsGoalContribution.mock.calls[0][1];
+    expect(allocation.contributedAt).toBe(now);
+  });
+
   it('rejects an earmark over the free balance', async () => {
     const { repo, useCase } = setup({ balance: 500, earmarked: 450 });
 
@@ -90,15 +135,85 @@ describe('AllocateToGoalUseCase', () => {
     await useCase.execute(
       'user-1',
       'goal-1',
-      { amount: 100, kind: 'WITHDRAWAL' },
+      { amount: 100, kind: 'WITHDRAWAL', toAccountId: 'acc-2' },
       new Date(),
     );
 
     expect(repo.addSavingsGoalContribution).toHaveBeenCalledWith(
       'goal-1',
-      expect.objectContaining({ kind: 'WITHDRAWAL' }),
+      expect.objectContaining({
+        kind: 'WITHDRAWAL',
+        destinationAccountId: 'acc-2',
+      }),
       expect.any(Date),
     );
+  });
+
+  it('rejects a withdrawal without a destination account', async () => {
+    const { repo, useCase } = setup({});
+
+    await expect(
+      useCase.execute(
+        'user-1',
+        'goal-1',
+        { amount: 100, kind: 'WITHDRAWAL' },
+        new Date(),
+      ),
+    ).rejects.toMatchObject({
+      response: { code: 'GOAL_WITHDRAWAL_ACCOUNT_REQUIRED' },
+    });
+    expect(repo.addSavingsGoalContribution).not.toHaveBeenCalled();
+  });
+
+  it('rejects a withdrawal over the available amount', async () => {
+    const { repo, useCase } = setup({
+      found: goal({ currentAmount: '50' }),
+    });
+
+    await expect(
+      useCase.execute(
+        'user-1',
+        'goal-1',
+        { amount: 100, kind: 'WITHDRAWAL', toAccountId: 'acc-2' },
+        new Date(),
+      ),
+    ).rejects.toMatchObject({
+      response: { code: 'GOAL_WITHDRAWAL_EXCEEDS_AVAILABLE', max: 50 },
+    });
+    expect(repo.addSavingsGoalContribution).not.toHaveBeenCalled();
+  });
+
+  it('moves a withdrawal to another account and links only the group', async () => {
+    const { repo, useCase, createTransfer } = setup({});
+
+    await useCase.execute(
+      'user-1',
+      'goal-1',
+      { amount: 100, kind: 'WITHDRAWAL', toAccountId: 'acc-2' },
+      new Date('2026-08-02T12:00:00.000Z'),
+    );
+
+    expect(createTransfer.execute).toHaveBeenCalledWith(
+      'user-1',
+      expect.objectContaining({
+        fromAccountId: 'acc-1',
+        toAccountId: 'acc-2',
+        amount: 100,
+        currency: 'DOP',
+        announce: false,
+      }),
+    );
+    expect(repo.addSavingsGoalContribution).toHaveBeenCalledWith(
+      'goal-1',
+      expect.objectContaining({
+        kind: 'WITHDRAWAL',
+        destinationAccountId: 'acc-2',
+        transferGroupId: 'group-1',
+      }),
+      expect.any(Date),
+    );
+    const allocation = repo.addSavingsGoalContribution.mock.calls[0][1];
+    expect(allocation.transactionId).toBeUndefined();
   });
 
   it('requires an account when the goal has none', async () => {
