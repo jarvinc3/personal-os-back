@@ -586,7 +586,7 @@ describe('Users (e2e)', () => {
           const apps = res.body.data.map((group: { app: string }) => group.app);
           expect(apps).toEqual(['finance', 'ai', 'notifications', 'settings']);
           const transactionBranch = res.body.data[0].branches.find(
-            (branch: { id: string }) => branch.id === 'finance.ledger',
+            (branch: { id: string }) => branch.id === 'finance.transactions',
           );
           expect(transactionBranch.count).toBe(7);
           const settings = res.body.data.at(-1);
@@ -640,6 +640,28 @@ describe('Users (e2e)', () => {
         });
 
       expect(prismaMock.aiAgentSession.deleteMany).not.toHaveBeenCalled();
+    });
+    it('POST /api/users/me/data/wipe expands the finance branches they drag', async () => {
+      prismaMock.finTransaction.deleteMany.mockResolvedValue({ count: 2 });
+      prismaMock.finReconciliation.deleteMany.mockResolvedValue({ count: 1 });
+
+      await request(app.getHttpServer())
+        .post('/api/users/me/data/wipe')
+        .set('Authorization', `Bearer ${token()}`)
+        .send({ branches: ['finance.transactions'] })
+        .expect(200)
+        .expect((res) => {
+          expect(res.body.data.appliedBranches).toEqual([
+            'finance.reconciliations',
+            'finance.transactions',
+          ]);
+          expect(res.body.data.counts).toEqual({
+            'finance.reconciliations': 1,
+            'finance.transactions': 2,
+          });
+        });
+
+      expect(prismaMock.$transaction).toHaveBeenCalled();
     });
   });
 });

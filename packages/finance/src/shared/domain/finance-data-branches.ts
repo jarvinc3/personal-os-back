@@ -1,51 +1,49 @@
 import { DATA_APP, type DataBranchDescriptor } from '@personal-os/users';
-import type { FinanceWipeLayer } from './finance-wipe-layers';
 
 /**
- * Finance branches. During the transition the coarse layers are exposed as
- * branches with their current effects; the fine branches replace them without
- * touching the orchestrator.
+ * Finance branches, in execution order. The identifiers are part of the HTTP
+ * contract and the web shows their labels, so they are not renamed silently.
  */
 export const FINANCE_DATA_BRANCHES: readonly DataBranchDescriptor[] = [
   {
-    id: 'finance.ledger',
+    id: 'finance.reconciliations',
     app: DATA_APP.FINANCE,
-    label: 'Movimientos y saldos',
+    label: 'Conciliaciones y descuadres',
     includes: [],
     order: 1,
+  },
+  {
+    id: 'finance.transactions',
+    app: DATA_APP.FINANCE,
+    label: 'Movimientos y transferencias',
+    includes: ['finance.reconciliations'],
+    order: 2,
   },
   {
     id: 'finance.balances',
     app: DATA_APP.FINANCE,
     label: 'Saldos a cero',
     includes: [],
-    order: 2,
-  },
-  {
-    id: 'finance.planning',
-    app: DATA_APP.FINANCE,
-    label: 'Presupuestos, metas y préstamos',
-    includes: [],
     order: 3,
   },
   {
-    id: 'finance.categories',
+    id: 'finance.cards',
     app: DATA_APP.FINANCE,
-    label: 'Categorías propias',
-    includes: ['finance.planning'],
+    label: 'Tarjetas',
+    includes: [],
     order: 4,
   },
   {
-    id: 'finance.catalog',
+    id: 'finance.accounts',
     app: DATA_APP.FINANCE,
-    label: 'Instituciones, cuentas y tarjetas',
-    includes: ['finance.ledger'],
+    label: 'Cuentas, incluido el efectivo',
+    includes: [],
     order: 5,
   },
   {
-    id: 'finance.emailConnections',
+    id: 'finance.institutions',
     app: DATA_APP.FINANCE,
-    label: 'Conexiones de Gmail',
+    label: 'Instituciones',
     includes: [],
     order: 6,
   },
@@ -57,9 +55,4 @@ export const FINANCE_DATA_BRANCH_IDS = FINANCE_DATA_BRANCHES.map(
 
 export function isFinanceDataBranch(id: string): boolean {
   return FINANCE_DATA_BRANCH_IDS.includes(id);
-}
-
-/** A finance branch maps to the wipe layer with the same id today. */
-export function layerForBranch(id: string): FinanceWipeLayer {
-  return id as FinanceWipeLayer;
 }

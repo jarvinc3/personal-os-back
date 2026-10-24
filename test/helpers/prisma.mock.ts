@@ -76,6 +76,7 @@ export type PrismaMock = {
     aggregate: MockFn;
     update: MockFn;
     updateMany: MockFn;
+    deleteMany: MockFn;
   };
   finCard: {
     findMany: MockFn;
@@ -233,6 +234,7 @@ export type PrismaMock = {
     create: MockFn;
     delete: MockFn;
     deleteMany: MockFn;
+    count: MockFn;
   };
   finMerchant: {
     findMany: MockFn;
@@ -272,6 +274,8 @@ export type PrismaMock = {
     create: MockFn;
     update: MockFn;
     updateMany: MockFn;
+    deleteMany: MockFn;
+    count: MockFn;
   };
   domainEventOutbox: {
     create: MockFn;
@@ -295,6 +299,7 @@ export type PrismaMock = {
 function createTransactionClient(prismaMock: PrismaMock) {
   return {
     $queryRaw: jest.fn().mockResolvedValue([]),
+    $executeRaw: jest.fn().mockResolvedValue(0),
     // The delete flows read the entity and remove it inside the transaction,
     // so those models share the root mock: a test configures and asserts in
     // one place.
@@ -302,6 +307,7 @@ function createTransactionClient(prismaMock: PrismaMock) {
       findFirst: prismaMock.finAccount.findFirst,
       findMany: jest.fn().mockResolvedValue([]),
       update: jest.fn().mockResolvedValue({}),
+      updateMany: prismaMock.finAccount.updateMany,
       deleteMany: prismaMock.finAccount.deleteMany,
     },
     finCard: {
@@ -370,6 +376,7 @@ function createTransactionClient(prismaMock: PrismaMock) {
       create: prismaMock.finReconciliation.create,
       delete: prismaMock.finReconciliation.delete,
       deleteMany: prismaMock.finReconciliation.deleteMany,
+      count: prismaMock.finReconciliation.count,
     },
     finReconciliationAdjustment: {
       create: prismaMock.finReconciliationAdjustment.create,
@@ -381,6 +388,8 @@ function createTransactionClient(prismaMock: PrismaMock) {
       create: prismaMock.finBalanceDrift.create,
       update: prismaMock.finBalanceDrift.update,
       updateMany: prismaMock.finBalanceDrift.updateMany,
+      deleteMany: prismaMock.finBalanceDrift.deleteMany,
+      count: prismaMock.finBalanceDrift.count,
     },
     finMerchant: {
       findMany: prismaMock.finMerchant.findMany,
@@ -414,6 +423,7 @@ function createTransactionClient(prismaMock: PrismaMock) {
       findFirst: jest.fn().mockResolvedValue(null),
       create: jest.fn().mockResolvedValue({}),
       update: jest.fn().mockResolvedValue({}),
+      updateMany: jest.fn().mockResolvedValue({ count: 0 }),
       count: jest.fn().mockResolvedValue(0),
     },
     finCardStatement: {
@@ -453,6 +463,7 @@ function createTransactionClient(prismaMock: PrismaMock) {
       findMany: jest.fn().mockResolvedValue([]),
       findFirst: jest.fn().mockResolvedValue(null),
       update: jest.fn(),
+      updateMany: prismaMock.finBudget.updateMany,
       deleteMany: prismaMock.finBudget.deleteMany,
     },
     finBudgetCategory: {
@@ -486,11 +497,11 @@ function createTransactionClient(prismaMock: PrismaMock) {
         account: { id: 'acc-1', name: 'Main' },
         card: null,
       }),
-      findFirst: jest.fn(),
-      findMany: jest.fn().mockResolvedValue([]),
-      update: jest.fn(),
-      updateMany: jest.fn().mockResolvedValue({ count: 0 }),
-      deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
+      findFirst: prismaMock.finTransaction.findFirst,
+      findMany: prismaMock.finTransaction.findMany,
+      update: prismaMock.finTransaction.update,
+      updateMany: prismaMock.finTransaction.updateMany,
+      deleteMany: prismaMock.finTransaction.deleteMany,
     },
     domainEventOutbox: {
       create: jest.fn().mockResolvedValue({ id: 'out-1' }),
@@ -796,6 +807,7 @@ export function createPrismaMock(): PrismaMock {
       aggregate: jest.fn().mockResolvedValue({ _sum: { ledgerAmount: null } }),
       update: jest.fn(),
       updateMany: jest.fn().mockResolvedValue({ count: 0 }),
+      deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
     },
     finEmailSource: {
       findMany: jest.fn().mockResolvedValue([]),
@@ -858,6 +870,7 @@ export function createPrismaMock(): PrismaMock {
       create: jest.fn(),
       delete: jest.fn(),
       deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
+      count: jest.fn().mockResolvedValue(0),
     },
     finMerchant: {
       findMany: jest.fn().mockResolvedValue([]),
@@ -898,6 +911,8 @@ export function createPrismaMock(): PrismaMock {
       create: jest.fn(),
       update: jest.fn(),
       updateMany: jest.fn().mockResolvedValue({ count: 0 }),
+      deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
+      count: jest.fn().mockResolvedValue(0),
     },
     // Root-level model used by FinanceOutboxDispatcher.processBatch after commit wake.
     domainEventOutbox: {
