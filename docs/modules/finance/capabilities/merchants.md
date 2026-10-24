@@ -46,3 +46,18 @@ Cada comercio recuerda una sola categoría y expone de dónde salió (`categoryS
 - Los movimientos ya guardados no se tocan.
 
 Evidencia: `merchants/application/merchants.service.ts`, `merchants/domain/merchant-category-*.ts`, `shared/domain/category-type.ts` y sus specs.
+
+## Alias
+
+Los alias viven en `fin_merchant_aliases` (un registro por texto con su clave normalizada, única por usuario) y sirven para **reconocer** el comercio, no solo para guardar historia.
+
+- Al resolver un texto, primero se busca por la clave del nombre y, si no hay, por la clave de un alias: coincidencia exacta tras normalizar, nunca por parecido.
+- `PATCH /finance/merchants/:id` acepta `aliases` (lista completa que reemplaza la actual): se recortan, se quitan vacíos y repetidos (sin distinguir mayúsculas ni acentos), máximo 20 de 120 caracteres.
+- Un alias no puede coincidir con la clave de **otro** comercio ni con un alias de **otro**: responde 409 con `existingMerchantId`.
+- La lista automática no crece sin límite: no se añade un texto cuya clave ya coincide con el nombre, la clave o un alias existente, y se detiene en 20. Una lista editada a mano reemplaza todo el conjunto, así que siempre tiene prioridad.
+- Al renombrar con `name`, el nombre anterior pasa a alias para que un movimiento con ese texto siga apuntando al mismo comercio.
+- La fusión conserva lo aprendido: el nombre, la clave y los alias del comercio origen pasan como alias del destino, y el destino hereda la categoría y el logo que no tenía.
+- Dos solicitudes simultáneas que crean el mismo comercio nuevo no fallan: la segunda reutiliza el comercio de la primera.
+- Quitar un alias a mano es definitivo: si el texto vuelve a llegar y ya no coincide con nada, se resuelve por su clave como cualquier texto nuevo.
+
+Evidencia: `merchants/infrastructure/merchants.repository.ts`, `merchants/application/merchants.service.ts`, `fin_merchants_aliases` en el schema y sus specs.

@@ -27,6 +27,7 @@ model User {
   finBudgets                     FinBudget[]
   finCategories                  FinCategory[]
   finMerchants                   FinMerchant[]
+  finMerchantAliases             FinMerchantAlias[]
   finSubscriptions               FinSubscription[]
   finSubscriptionAlertDismissals FinSubscriptionAlertDismissal[]
   finEmailConnections            FinEmailConnection[]
@@ -492,8 +493,6 @@ model FinMerchant {
   name           String
   /// Normalized lookup key: unique per user.
   normalizedKey  String                     @map("normalized_key")
-  /// Raw merchant strings that map to this merchant.
-  aliases        String[]                   @default([])
   categoryId     String?                    @map("category_id")
   /// Where the category came from: set by hand, learned from movements or guessed by keywords.
   categorySource FinMerchantCategorySource? @map("category_source")
@@ -501,6 +500,7 @@ model FinMerchant {
   createdAt      DateTime                   @default(now()) @map("created_at") @db.Timestamptz(6)
   user           User                       @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   category       FinCategory?               @relation(fields: [categoryId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  aliases        FinMerchantAlias[]
   transactions   FinTransaction[]
   recurring      FinRecurringPattern[]
 
@@ -508,6 +508,25 @@ model FinMerchant {
   @@index([userId], map: "fin_merchants_user_id_idx")
   @@index([categoryId], map: "fin_merchants_category_id_idx")
   @@map("fin_merchants")
+}
+
+/// Other names a merchant appears with; the key is unique per user so a text
+/// resolves to one merchant only.
+model FinMerchantAlias {
+  id            String      @id @default(dbgenerated("(uuid_generate_v4())::text"))
+  merchantId    String      @map("merchant_id")
+  userId        String      @map("user_id")
+  /// Alias text as the user or the bank wrote it.
+  alias         String
+  /// Normalized lookup key of the alias.
+  normalizedKey String      @map("normalized_key")
+  createdAt     DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+  merchant      FinMerchant @relation(fields: [merchantId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([userId, normalizedKey], map: "fin_merchant_aliases_user_key_uq")
+  @@index([merchantId], map: "fin_merchant_aliases_merchant_id_idx")
+  @@map("fin_merchant_aliases")
 }
 
 model FinSubscription {

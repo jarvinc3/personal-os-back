@@ -10,7 +10,11 @@ import { LogoService, type LogoUploadFile } from '@personal-os/logos';
 import { FinanceOwnershipService } from '../../shared/application/finance-ownership.service';
 import { decimalToString } from '../../shared/domain/mappers';
 import { categoryTypeForTransaction } from '../../shared/domain/category-type';
-import { normalizeAliasList } from '../domain/merchant-aliases';
+import {
+  aliasNormalizedKey,
+  MAX_MERCHANT_ALIASES,
+  normalizeAliasList,
+} from '../domain/merchant-aliases';
 import { matchCategoryByKeyword } from '../domain/merchant-category-keywords';
 import {
   canLearnCategory,
@@ -40,7 +44,7 @@ type MerchantRow = {
   id: string;
   name: string;
   normalizedKey: string;
-  aliases: string[];
+  aliases: Array<{ alias: string }>;
   categoryId: string | null;
   categorySource?: MerchantCategorySource | null;
   logoUrl: string | null;
@@ -88,7 +92,7 @@ function mapMerchant(row: MerchantRow, spend: MerchantSpend | undefined) {
     id: row.id,
     name: row.name,
     normalizedKey: row.normalizedKey,
-    aliases: row.aliases,
+    aliases: row.aliases.map((entry) => entry.alias),
     categoryId: row.categoryId,
     categorySource: row.categorySource ?? null,
     logoUrl: row.logoUrl,
@@ -206,11 +210,13 @@ export class MerchantsService {
           categorySource: MERCHANT_CATEGORY_SOURCE.MANUAL,
         }
       : await this.guessCategory(userId, { name });
+    const aliases = normalizeAliasList(dto.aliases ?? []);
+    await this.assertAliasesFree(userId, aliases);
     try {
       const created = await this.repo.createMerchant(userId, {
         name,
         normalizedKey,
-        aliases: normalizeAliasList(dto.aliases ?? []),
+        aliases,
         ...initialCategory,
       });
       return this.get(userId, created.id, now);
@@ -254,6 +260,11 @@ export class MerchantsService {
     if (dto.logoUrl !== undefined) {
       changes.logoUrl = dto.logoUrl?.trim() || null;
     }
+    const aliases =
+      dto.aliases === undefined ? null : normalizeAliasList(dto.aliases);
+    if (aliases) {
+      await this.assertAliasesFree(userId, aliases, id);
+    }
     try {
       await this.repo.updateMerchant(userId, id, changes);
     } catch (error) {
@@ -262,6 +273,16 @@ export class MerchantsService {
         userId,
         changes.normalizedKey ?? existing.normalizedKey,
       );
+    }
+    if (aliases) {
+      await this.repo.replaceAliases(userId, id, aliases);
+    }
+    if (
+      changes.normalizedKey &&
+      changes.normalizedKey !== existing.normalizedKey
+    ) {
+      // The previous name must keep pointing at the same merchant.
+      await this.appendAlias(userId, existing, existing.name);
     }
     return this.get(userId, id);
   }
@@ -332,9 +353,11 @@ export class MerchantsService {
     if (!normalizedKey) {
       return null;
     }
-    const existing = await this.repo.findMerchantByKey(userId, normalizedKey);
+    const existing =
+      (await this.repo.findMerchantByKey(userId, normalizedKey)) ??
+      (await this.repo.findMerchantByAliasKey(userId, normalizedKey));
     if (existing) {
-      await this.appendAlias(userId, existing.id, existing.aliases, rawName);
+      await this.appendAlias(userId, existing, rawName);
       const learned = await this.learnCategory(userId, existing, categoryId);
       return this.toResolved({ ...existing, ...learned });
     }
@@ -488,17 +511,59 @@ export class MerchantsService {
     };
   }
 
+  /**
+   * Keeps the text that reached the merchant, without growing forever: a text
+   * that already matches the name, the key or an alias adds nothing, and the
+   * list stops at the maximum. A manual list replaces the whole thing, so it
+   * always wins over the automatic one.
+   */
   private async appendAlias(
     userId: string,
-    id: string,
-    aliases: string[],
+    merchant: MerchantRow,
     rawName: string | null | undefined,
   ): Promise<void> {
-    if (!rawName || aliases.includes(rawName)) {
+    const normalizedKey = normalizeMerchant(rawName);
+    if (!rawName || !normalizedKey) {
       return;
     }
-    await this.repo.updateMerchant(userId, id, {
-      aliases: [...aliases, rawName],
+    if (normalizedKey === merchant.normalizedKey) {
+      return;
+    }
+    const known = merchant.aliases.some(
+      (entry) => aliasNormalizedKey(entry.alias) === normalizedKey,
+    );
+    if (known || merchant.aliases.length >= MAX_MERCHANT_ALIASES) {
+      return;
+    }
+    await this.repo.addAlias(userId, merchant.id, rawName, normalizedKey);
+  }
+
+  /**
+   * An alias cannot repeat another merchant's key or another merchant's alias:
+   * a text must resolve to one merchant only.
+   */
+  private async assertAliasesFree(
+    userId: string,
+    aliases: readonly string[],
+    ownId?: string,
+  ): Promise<void> {
+    const keys = aliases.flatMap((alias) => {
+      const key = aliasNormalizedKey(alias);
+      return key ? [key] : [];
+    });
+    const [byKey, byAlias] = await Promise.all([
+      this.repo.findMerchantByKeys(userId, keys),
+      this.repo.findMerchantByAliasKeys(userId, keys),
+    ]);
+    const holder = [byKey, byAlias].find(
+      (candidate) => candidate !== null && candidate.id !== ownId,
+    );
+    if (!holder) {
+      return;
+    }
+    throw new ConflictException({
+      message: 'Ya existe un comercio con ese nombre',
+      existingMerchantId: holder.id,
     });
   }
 

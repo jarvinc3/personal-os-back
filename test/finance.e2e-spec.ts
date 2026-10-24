@@ -3585,21 +3585,25 @@ describe('Finance (e2e)', () => {
       userId: 'user-123',
       name: 'Supermercado Nacional',
       normalizedKey: 'SUPERMERCADO NACIONAL',
-      aliases: ['Nacional'],
+      aliases: [{ alias: 'Nacional' }],
       categoryId: null,
       logoUrl: null,
       createdAt,
     });
-    prismaMock.finMerchant.findFirst.mockResolvedValue({
-      id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
-      userId: 'user-123',
-      name: 'Supermercado Nacional',
-      normalizedKey: 'SUPERMERCADO NACIONAL',
-      aliases: ['Nacional'],
-      categoryId: null,
-      logoUrl: null,
-      createdAt,
-    });
+    prismaMock.finMerchant.findFirst
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(null)
+      .mockResolvedValue({
+        id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+        userId: 'user-123',
+        name: 'Supermercado Nacional',
+        normalizedKey: 'SUPERMERCADO NACIONAL',
+        aliases: [{ alias: 'Nacional' }],
+        categoryId: null,
+        categorySource: null,
+        logoUrl: null,
+        createdAt,
+      });
 
     const response = await request(app.getHttpServer())
       .post('/api/finance/merchants')
@@ -3614,16 +3618,24 @@ describe('Finance (e2e)', () => {
       categoryId: null,
       logoUrl: null,
     });
-    expect(prismaMock.finMerchant.create).toHaveBeenCalledWith({
-      data: {
-        userId: 'user-123',
-        name: 'Supermercado Nacional',
-        normalizedKey: 'SUPERMERCADO NACIONAL',
-        aliases: ['Nacional'],
-        categoryId: null,
-        categorySource: null,
-      },
-    });
+    expect(prismaMock.finMerchant.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          userId: 'user-123',
+          name: 'Supermercado Nacional',
+          normalizedKey: 'SUPERMERCADO NACIONAL',
+          aliases: {
+            create: [
+              {
+                userId: 'user-123',
+                alias: 'Nacional',
+                normalizedKey: 'NACIONAL',
+              },
+            ],
+          },
+        }),
+      }),
+    );
   });
 
   it('POST /api/finance/merchants rejects a name without usable text', async () => {
@@ -3668,6 +3680,81 @@ describe('Finance (e2e)', () => {
     expect(prismaMock.finMerchant.updateMany).toHaveBeenCalledWith({
       where: { id: merchantId, userId: 'user-123' },
       data: { categoryId, categorySource: 'MANUAL' },
+    });
+  });
+  it('POST /api/finance/merchants/:id/merge keeps the source name as an alias', async () => {
+    const sourceId = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
+    const targetId = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
+    const source = {
+      id: sourceId,
+      userId: 'user-123',
+      name: 'Supermercado Nacional',
+      normalizedKey: 'SUPERMERCADO NACIONAL',
+      aliases: [{ alias: 'Nacional' }],
+      categoryId: 'cat-food',
+      categorySource: 'LEARNED',
+      logoUrl: null,
+      createdAt: new Date('2026-10-20T10:00:00.000Z'),
+    };
+    const target = {
+      id: targetId,
+      userId: 'user-123',
+      name: 'Nacional Express',
+      normalizedKey: 'NACIONAL EXPRESS',
+      aliases: [],
+      categoryId: null,
+      categorySource: null,
+      logoUrl: null,
+      createdAt: new Date('2026-10-21T10:00:00.000Z'),
+    };
+    prismaMock.finMerchant.findFirst
+      .mockResolvedValueOnce(source)
+      .mockResolvedValueOnce(target)
+      .mockResolvedValue({
+        ...target,
+        categoryId: 'cat-food',
+        categorySource: 'LEARNED',
+        aliases: [{ alias: 'Supermercado Nacional' }, { alias: 'Nacional' }],
+      });
+
+    await request(app.getHttpServer())
+      .post(`/api/finance/merchants/${sourceId}/merge`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ targetId })
+      .expect(201)
+      .expect((res) => {
+        expect(res.body.data.id).toBe(targetId);
+        expect(res.body.data.aliases).toEqual([
+          'Supermercado Nacional',
+          'Nacional',
+        ]);
+        expect(res.body.data.categoryId).toBe('cat-food');
+      });
+
+    expect(prismaMock.finMerchantAlias.createMany).toHaveBeenCalledWith({
+      data: [
+        {
+          userId: 'user-123',
+          merchantId: targetId,
+          alias: 'Supermercado Nacional',
+          normalizedKey: 'SUPERMERCADO NACIONAL',
+        },
+        {
+          userId: 'user-123',
+          merchantId: targetId,
+          alias: 'Nacional',
+          normalizedKey: 'NACIONAL',
+        },
+      ],
+      skipDuplicates: true,
+    });
+    expect(prismaMock.finMerchant.update).toHaveBeenCalledWith({
+      where: { id: targetId },
+      data: {
+        categoryId: 'cat-food',
+        categorySource: 'LEARNED',
+        logoUrl: null,
+      },
     });
   });
 });

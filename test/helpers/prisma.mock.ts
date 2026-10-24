@@ -228,6 +228,19 @@ export type PrismaMock = {
     updateMany: MockFn;
     count: MockFn;
   };
+  finRecurringPattern: {
+    findMany: MockFn;
+    findFirst: MockFn;
+    updateMany: MockFn;
+    deleteMany: MockFn;
+  };
+  finMerchantAlias: {
+    findMany: MockFn;
+    create: MockFn;
+    createMany: MockFn;
+    deleteMany: MockFn;
+    count: MockFn;
+  };
   finReconciliationAdjustment: {
     findMany: MockFn;
     create: MockFn;
@@ -349,11 +362,26 @@ function createTransactionClient(prismaMock: PrismaMock) {
       updateMany: prismaMock.finBalanceDrift.updateMany,
     },
     finMerchant: {
-      findMany: jest.fn().mockResolvedValue([]),
-      findFirst: jest.fn().mockResolvedValue(null),
-      create: jest.fn().mockResolvedValue({ id: 'merchant-1' }),
-      update: jest.fn().mockResolvedValue({}),
-      updateMany: jest.fn().mockResolvedValue({ count: 0 }),
+      findMany: prismaMock.finMerchant.findMany,
+      findFirst: prismaMock.finMerchant.findFirst,
+      create: prismaMock.finMerchant.create,
+      update: prismaMock.finMerchant.update,
+      updateMany: prismaMock.finMerchant.updateMany,
+      count: prismaMock.finMerchant.count,
+      delete: jest.fn().mockResolvedValue({}),
+    },
+    finMerchantAlias: {
+      findMany: prismaMock.finMerchantAlias.findMany,
+      create: prismaMock.finMerchantAlias.create,
+      createMany: prismaMock.finMerchantAlias.createMany,
+      deleteMany: prismaMock.finMerchantAlias.deleteMany,
+      count: prismaMock.finMerchantAlias.count,
+    },
+    finRecurringPattern: {
+      findMany: prismaMock.finRecurringPattern.findMany,
+      findFirst: prismaMock.finRecurringPattern.findFirst,
+      updateMany: prismaMock.finRecurringPattern.updateMany,
+      deleteMany: prismaMock.finRecurringPattern.deleteMany,
     },
     finCardBalance: {
       findFirst: jest.fn().mockResolvedValue(null),
@@ -788,6 +816,20 @@ export function createPrismaMock(): PrismaMock {
       update: jest.fn().mockResolvedValue({}),
       updateMany: jest.fn().mockResolvedValue({ count: 0 }),
       count: jest.fn().mockResolvedValue(0),
+      delete: jest.fn().mockResolvedValue({}),
+    },
+    finMerchantAlias: {
+      findMany: jest.fn().mockResolvedValue([]),
+      create: jest.fn().mockResolvedValue({ id: 'alias-1' }),
+      createMany: jest.fn().mockResolvedValue({ count: 0 }),
+      deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
+      count: jest.fn().mockResolvedValue(0),
+    },
+    finRecurringPattern: {
+      findMany: jest.fn().mockResolvedValue([]),
+      findFirst: jest.fn().mockResolvedValue(null),
+      updateMany: jest.fn().mockResolvedValue({ count: 0 }),
+      deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
     },
     finReconciliationAdjustment: {
       findMany: jest.fn().mockResolvedValue([]),

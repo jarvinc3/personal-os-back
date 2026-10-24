@@ -10,7 +10,7 @@ function merchantRow(overrides: Record<string, unknown> = {}) {
     userId: 'user-1',
     name: 'Uber',
     normalizedKey: 'UBER',
-    aliases: ['UBER *TRIP 1234'],
+    aliases: [{ alias: 'UBER *TRIP 1234' }],
     categoryId: null,
     logoUrl: null,
     createdAt: new Date('2026-10-01T00:00:00.000Z'),
@@ -28,6 +28,12 @@ function build(repo: Partial<Mocked> = {}) {
     listMerchants: jest.fn().mockResolvedValue([]),
     sumSpendByMerchant: jest.fn().mockResolvedValue([]),
     listVisibleCategories: jest.fn().mockResolvedValue([]),
+    findMerchantByAliasKey: jest.fn().mockResolvedValue(null),
+    findMerchantByAliasKeys: jest.fn().mockResolvedValue(null),
+    findMerchantByKeys: jest.fn().mockResolvedValue(null),
+    addAlias: jest.fn().mockResolvedValue(undefined),
+    replaceAliases: jest.fn().mockResolvedValue(undefined),
+    findMerchantsByIds: jest.fn().mockResolvedValue([]),
     ...repo,
   } as unknown as MerchantsRepository;
   const ownership = { assertCategoryVisible: jest.fn() };
@@ -88,20 +94,80 @@ describe('MerchantsService.resolve', () => {
     });
   });
 
-  it('reuses a known merchant and keeps the new text as alias', async () => {
+  it('reuses a known merchant and keeps a new text as alias', async () => {
     const repo = {
       findMerchantByKey: jest.fn().mockResolvedValue(merchantRow()),
-      updateMerchant: jest.fn().mockResolvedValue({ count: 1 }),
       createMerchant: jest.fn(),
+      addAlias: jest.fn().mockResolvedValue(undefined),
+    };
+    const { service } = build(repo);
+
+    await service.resolve({ userId: 'user-1', rawName: 'Uber Viaje 9' });
+
+    expect(repo.createMerchant).not.toHaveBeenCalled();
+    expect(repo.addAlias).toHaveBeenCalledWith(
+      'user-1',
+      'merchant-1',
+      'Uber Viaje 9',
+      'UBER VIAJE 9',
+    );
+  });
+
+  it('does not store a text that normalizes to the same key', async () => {
+    const repo = {
+      findMerchantByKey: jest.fn().mockResolvedValue(merchantRow()),
+      createMerchant: jest.fn(),
+      addAlias: jest.fn(),
     };
     const { service } = build(repo);
 
     await service.resolve({ userId: 'user-1', rawName: 'Uber Eats' });
 
-    expect(repo.createMerchant).not.toHaveBeenCalled();
-    expect(repo.updateMerchant).toHaveBeenCalledWith('user-1', 'merchant-1', {
-      aliases: ['UBER *TRIP 1234', 'Uber Eats'],
+    expect(repo.addAlias).not.toHaveBeenCalled();
+  });
+
+  it('recognizes a merchant by one of its aliases', async () => {
+    const repo = {
+      findMerchantByKey: jest.fn().mockResolvedValue(null),
+      findMerchantByAliasKey: jest
+        .fn()
+        .mockResolvedValue(
+          merchantRow({ aliases: [{ alias: 'Supermercado Nacional' }] }),
+        ),
+      createMerchant: jest.fn(),
+      addAlias: jest.fn(),
+    };
+    const { service } = build(repo);
+
+    const resolved = await service.resolve({
+      userId: 'user-1',
+      rawName: 'Supermercado Nacional',
     });
+
+    expect(repo.findMerchantByAliasKey).toHaveBeenCalledWith(
+      'user-1',
+      'SUPERMERCADO NACIONAL',
+    );
+    expect(resolved?.id).toBe('merchant-1');
+    expect(repo.createMerchant).not.toHaveBeenCalled();
+  });
+
+  it('stops growing the alias list at the maximum', async () => {
+    const full = merchantRow({
+      aliases: Array.from({ length: 20 }, (_, index) => ({
+        alias: `Alias ${index}`,
+      })),
+    });
+    const repo = {
+      findMerchantByKey: jest.fn().mockResolvedValue(full),
+      createMerchant: jest.fn(),
+      addAlias: jest.fn(),
+    };
+    const { service } = build(repo);
+
+    await service.resolve({ userId: 'user-1', rawName: 'Uber Nuevo' });
+
+    expect(repo.addAlias).not.toHaveBeenCalled();
   });
 
   it('returns null when the text has no usable key', async () => {
@@ -229,7 +295,7 @@ describe('MerchantsService.create', () => {
       id: 'merchant-new',
       name: 'Supermercado Nacional',
       normalizedKey: 'SUPERMERCADO NACIONAL',
-      aliases: ['Nacional'],
+      aliases: [{ alias: 'Nacional' }],
       ...overrides,
     });
   }
@@ -549,5 +615,88 @@ describe('MerchantsService category learning', () => {
       categoryId: 'cat-food',
       categorySource: 'LEARNED',
     });
+  });
+});
+
+describe('MerchantsService aliases', () => {
+  it('replaces the whole alias list on PATCH', async () => {
+    const repo = {
+      findMerchantById: jest
+        .fn()
+        .mockResolvedValue(merchantRow({ aliases: [{ alias: 'Viejo' }] })),
+      replaceAliases: jest.fn().mockResolvedValue(undefined),
+    };
+    const { service } = build(repo);
+
+    await service.update('user-1', 'merchant-1', {
+      aliases: ['Nacional', 'NACIONAL', '  ', 'Súper'],
+    });
+
+    expect(repo.replaceAliases).toHaveBeenCalledWith('user-1', 'merchant-1', [
+      'Nacional',
+      'Súper',
+    ]);
+  });
+
+  it('rejects an alias that is another merchant key', async () => {
+    const repo = {
+      findMerchantById: jest.fn().mockResolvedValue(merchantRow()),
+      findMerchantByKeys: jest
+        .fn()
+        .mockResolvedValue(merchantRow({ id: 'merchant-2' })),
+      findMerchantByAliasKeys: jest.fn().mockResolvedValue(null),
+      replaceAliases: jest.fn(),
+    };
+    const { service } = build(repo);
+
+    await expect(
+      service.update('user-1', 'merchant-1', { aliases: ['Nacional'] }),
+    ).rejects.toMatchObject({
+      response: {
+        message: 'Ya existe un comercio con ese nombre',
+        existingMerchantId: 'merchant-2',
+      },
+    });
+    expect(repo.replaceAliases).not.toHaveBeenCalled();
+  });
+
+  it('rejects an alias that another merchant already has', async () => {
+    const repo = {
+      findMerchantById: jest.fn().mockResolvedValue(merchantRow()),
+      findMerchantByKeys: jest.fn().mockResolvedValue(null),
+      findMerchantByAliasKeys: jest
+        .fn()
+        .mockResolvedValue(merchantRow({ id: 'merchant-3' })),
+      replaceAliases: jest.fn(),
+    };
+    const { service } = build(repo);
+
+    await expect(
+      service.update('user-1', 'merchant-1', { aliases: ['Nacional'] }),
+    ).rejects.toMatchObject({
+      response: { existingMerchantId: 'merchant-3' },
+    });
+  });
+
+  it('keeps the previous name as an alias when the merchant is renamed', async () => {
+    const repo = {
+      findMerchantById: jest
+        .fn()
+        .mockResolvedValue(
+          merchantRow({ name: 'Supermercado Nacional', aliases: [] }),
+        ),
+      updateMerchant: jest.fn().mockResolvedValue({ count: 1 }),
+      addAlias: jest.fn().mockResolvedValue(undefined),
+    };
+    const { service } = build(repo);
+
+    await service.update('user-1', 'merchant-1', { name: 'Nacional Express' });
+
+    expect(repo.addAlias).toHaveBeenCalledWith(
+      'user-1',
+      'merchant-1',
+      'Supermercado Nacional',
+      'SUPERMERCADO NACIONAL',
+    );
   });
 });

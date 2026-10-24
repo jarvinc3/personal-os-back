@@ -1,3 +1,5 @@
+import { normalizeMerchant } from './normalize-merchant';
+
 /** Alias list bounds: part of the merchant contract. */
 export const MAX_MERCHANT_ALIASES = 20;
 export const MAX_MERCHANT_ALIAS_LENGTH = 120;
@@ -28,4 +30,9 @@ export function normalizeAliasList(aliases: readonly string[]): string[] {
     normalized.push(text);
   }
   return normalized;
+}
+
+/** Lookup key of an alias: the same rule as a merchant key. */
+export function aliasNormalizedKey(value: string): string | null {
+  return normalizeMerchant(value);
 }
