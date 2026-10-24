@@ -21,6 +21,11 @@ model User {
   updatedAt                      DateTime                        @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   aiActions                      AiAction[]
   aiInferences                   AiInference[]
+  aiEmailConnection              AiEmailConnection?
+  aiEmailMessages                AiEmailMessage[]
+  aiSettings                     UserAiSettings?
+  aiRole                         UserRole?
+  grantedAiRoles                 UserRole[]                      @relation("AiRoleGrantedBy")
   finAccounts                    FinAccount[]
   finCards                       FinCard[]
   finInstitutions                FinInstitution[]
@@ -134,6 +139,112 @@ enum AiInferenceStatus {
   FAILED
 
   @@map("ai_inference_status")
+}
+
+enum AiUserRole {
+  USER
+  CONTRIBUTOR
+  ADMIN
+
+  @@map("ai_user_role")
+}
+
+enum AiEmailProcessingStatus {
+  INGESTED
+  QUEUED
+  PROCESSED
+  REVIEW_REQUIRED
+  FAILED
+
+  @@map("ai_email_processing_status")
+}
+
+model UserRole {
+  userId        String     @id @map("user_id")
+  role          AiUserRole @default(USER)
+  grantedBy     String?    @map("granted_by")
+  grantedAt     DateTime   @default(now()) @map("granted_at") @db.Timestamptz(6)
+  updatedAt     DateTime   @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  user          User       @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  grantedByUser User?      @relation("AiRoleGrantedBy", fields: [grantedBy], references: [id], onDelete: SetNull, onUpdate: NoAction)
+
+  @@index([role, updatedAt], map: "user_roles_role_updated_at_idx")
+  @@map("user_roles")
+}
+
+model UserAiSettings {
+  userId                      String   @id @map("user_id")
+  contributeToGlobalKnowledge Boolean  @default(true) @map("contribute_to_global_knowledge")
+  contributionConsentAt       DateTime @default(now()) @map("contribution_consent_at") @db.Timestamptz(6)
+  createdAt                   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt                   DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  user                        User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@map("user_ai_settings")
+}
+
+model AiEmailConnection {
+  id                     String           @id @default(dbgenerated("(extensions.uuid_generate_v4())::text"))
+  userId                 String           @unique @map("user_id")
+  provider               String           @default("GMAIL")
+  emailAddress           String           @map("email_address")
+  isActive               Boolean          @default(true) @map("is_active")
+  accessTokenEncrypted   String           @map("access_token_encrypted") @db.Text
+  refreshTokenEncrypted  String?          @map("refresh_token_encrypted") @db.Text
+  tokenExpiresAt         DateTime?        @map("token_expires_at") @db.Timestamptz(6)
+  providerCursor         String?          @map("provider_cursor")
+  bootstrapPageToken     String?          @map("bootstrap_page_token")
+  bootstrapStartedAt     DateTime?        @map("bootstrap_started_at") @db.Timestamptz(6)
+  initialSyncCompletedAt DateTime?        @map("initial_sync_completed_at") @db.Timestamptz(6)
+  lastSyncedAt           DateTime?        @map("last_synced_at") @db.Timestamptz(6)
+  lastRecoverySyncAt     DateTime?        @map("last_recovery_sync_at") @db.Timestamptz(6)
+  importedMessageCount   Int              @default(0) @map("imported_message_count")
+  lastSyncErrorCode      String?          @map("last_sync_error_code")
+  createdAt              DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt              DateTime         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  user                   User             @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  messages               AiEmailMessage[]
+
+  @@unique([id, userId], map: "ai_email_connections_id_user_id_key")
+  @@map("ai_email_connections")
+}
+
+model AiEmailMessage {
+  id                  String                  @id @default(dbgenerated("(extensions.uuid_generate_v4())::text"))
+  userId              String                  @map("user_id")
+  connectionId        String                  @map("connection_id")
+  providerMessageId   String                  @map("provider_message_id")
+  providerThreadId    String?                 @map("provider_thread_id")
+  receivedAt          DateTime                @map("received_at") @db.Timestamptz(6)
+  fromAddress         String                  @map("from_address")
+  fromDomain          String                  @map("from_domain")
+  subject             String
+  contentFingerprint  String                  @map("content_fingerprint")
+  templateFingerprint String?                 @map("template_fingerprint")
+  processingStatus    AiEmailProcessingStatus @default(INGESTED) @map("processing_status")
+  createdAt           DateTime                @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime                @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  user                User                    @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  connection          AiEmailConnection       @relation(fields: [connectionId, userId], references: [id, userId], onDelete: Cascade, onUpdate: NoAction)
+  content             AiEmailMessageContent?
+
+  @@unique([connectionId, providerMessageId], map: "ai_email_messages_connection_provider_id_key")
+  @@index([userId, receivedAt(sort: Desc)], map: "ai_email_messages_user_received_at_idx")
+  @@index([userId, processingStatus, receivedAt(sort: Desc)], map: "ai_email_messages_user_status_received_at_idx")
+  @@map("ai_email_messages")
+}
+
+model AiEmailMessageContent {
+  messageId          String         @id @map("message_id")
+  rawBody            String?        @map("raw_body") @db.Text
+  sanitizedBody      String?        @map("sanitized_body") @db.Text
+  canonicalBody      String?        @map("canonical_body") @db.Text
+  snippet            String?        @db.Text
+  retentionExpiresAt DateTime?      @map("retention_expires_at") @db.Timestamptz(6)
+  message            AiEmailMessage @relation(fields: [messageId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([retentionExpiresAt], map: "ai_email_message_content_retention_idx")
+  @@map("ai_email_message_content")
 }
 
 model Notification {

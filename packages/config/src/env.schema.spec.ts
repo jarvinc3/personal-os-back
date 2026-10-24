@@ -104,6 +104,34 @@ describe('envSchema AI limits', () => {
   });
 });
 
+describe('envSchema Gmail OAuth encryption key', () => {
+  it('requires a dedicated key when any Gmail OAuth setting is configured', () => {
+    expect(() =>
+      parseEnv({
+        ...validBaseEnv,
+        NODE_ENV: 'development',
+        AI_GMAIL_CLIENT_ID: 'gmail-client-id',
+      }),
+    ).toThrow(/AI_GMAIL_TOKEN_ENCRYPTION_KEY is required/);
+  });
+
+  it('accepts a dedicated key of at least 32 characters', () => {
+    const parsed = parseEnv({
+      ...validBaseEnv,
+      NODE_ENV: 'development',
+      AI_GMAIL_CLIENT_ID: 'gmail-client-id',
+      AI_GMAIL_CLIENT_SECRET: 'gmail-client-secret',
+      AI_GMAIL_REDIRECT_URI:
+        'http://localhost:3100/api/intelligence/email/oauth/callback',
+      AI_GMAIL_TOKEN_ENCRYPTION_KEY: 'test-gmail-token-encryption-key-32-chars',
+    });
+
+    expect(parsed.AI_GMAIL_TOKEN_ENCRYPTION_KEY).toBe(
+      'test-gmail-token-encryption-key-32-chars',
+    );
+  });
+});
+
 describe('envSchema PUBLIC_WEB_URL', () => {
   it('accepts a web base URL', () => {
     const parsed = parseEnv({

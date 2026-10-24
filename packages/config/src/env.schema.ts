@@ -57,6 +57,20 @@ export const envSchema = z
     // ── IA providers ───────────────────────────
     GROQ_API_KEY: optionalApiKey,
     OPENROUTER_API_KEY: optionalApiKey,
+    AI_GMAIL_CLIENT_ID: optionalApiKey,
+    AI_GMAIL_CLIENT_SECRET: optionalApiKey,
+    AI_GMAIL_TOKEN_ENCRYPTION_KEY: z
+      .string()
+      .min(32, 'AI_GMAIL_TOKEN_ENCRYPTION_KEY must be at least 32 chars')
+      .optional(),
+    AI_GMAIL_REDIRECT_URI: z
+      .string()
+      .optional()
+      .transform((value) => value?.trim() || undefined)
+      .pipe(z.union([z.url(), z.undefined()])),
+    /** Dev-only seed target for the initial Intelligence administrator. */
+    AI_DEV_ADMIN_EMAIL: optionalApiKey,
+    AI_EMAIL_SYNC_INTERVAL_MINUTES: defaultedPositiveInt(10),
     /** Hard cap on LLM email extractions per Gmail sync. Default 25. */
     MAX_EMAIL_LLM_EXTRACTS: defaultedPositiveInt(25),
     /** Max proactive insight LLM calls per user per UTC day. Default 20. */
@@ -266,6 +280,20 @@ export const envSchema = z
           path: ['MAIL_FROM'],
         });
       }
+    }
+
+    if (
+      (data.AI_GMAIL_CLIENT_ID ||
+        data.AI_GMAIL_CLIENT_SECRET ||
+        data.AI_GMAIL_REDIRECT_URI) &&
+      !data.AI_GMAIL_TOKEN_ENCRYPTION_KEY
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message:
+          'AI_GMAIL_TOKEN_ENCRYPTION_KEY is required when Gmail OAuth is configured',
+        path: ['AI_GMAIL_TOKEN_ENCRYPTION_KEY'],
+      });
     }
 
     // AI provider keys are optional under NODE_ENV=test (CI / e2e).
