@@ -2,6 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { z } from 'zod';
 import {
   INFERENCE_COMPLETION,
+  type JsonObject,
   type InferenceCompletionPort,
 } from '@personal-os/contracts';
 import { normalizeCurrencyCode } from '../../shared/domain/money';
@@ -71,15 +72,6 @@ function nullableText(value: string | null | undefined): string | null {
   return trimmed.length > 0 ? trimmed : null;
 }
 
-function extractJson(content: string): string | null {
-  const start = content.indexOf('{');
-  const end = content.lastIndexOf('}');
-  if (start === -1 || end === -1 || end <= start) {
-    return null;
-  }
-  return content.slice(start, end + 1);
-}
-
 @Injectable()
 export class AiQuickEntryExtractor implements QuickEntryExtractorPort {
   constructor(
@@ -90,24 +82,29 @@ export class AiQuickEntryExtractor implements QuickEntryExtractorPort {
   async extract(
     input: QuickEntryExtractionInput,
   ): Promise<QuickEntryExtraction> {
-    const completion = await this.aiService.complete([
-      { role: 'system', content: SYSTEM_PROMPT },
-      { role: 'user', content: this.buildUserContent(input) },
-    ]);
+    const inference = await this.aiService.infer({
+      task: 'finance.quick-entry',
+      messages: [
+        { role: 'system', content: SYSTEM_PROMPT },
+        { role: 'user', content: this.buildUserContent(input) },
+      ],
+      jsonSchema: z.toJSONSchema(extractionSchema, {
+        unrepresentable: 'any',
+      }) as JsonObject,
+      validate(value: unknown) {
+        const parsed = extractionSchema.safeParse(value);
+        if (!parsed.success) {
+          throw parsed.error;
+        }
+        return parsed.data;
+      },
+      promptVersion: 'quick-entry-v1',
+      schemaVersion: 'quick-entry-extraction-v1',
+      userId: input.userId,
+      sourceType: 'quick_entry',
+    });
 
-    const jsonText = extractJson(completion.content ?? '');
-    if (!jsonText) {
-      throw new Error('Quick entry model did not return JSON');
-    }
-
-    const validated = extractionSchema.safeParse(JSON.parse(jsonText));
-    if (!validated.success) {
-      throw new Error(
-        `Quick entry payload failed validation: ${validated.error.message}`,
-      );
-    }
-
-    const parsed = validated.data;
+    const parsed = inference.value;
     const currency = normalizeCurrencyCode(
       parsed.currency ?? input.baseCurrency,
     );

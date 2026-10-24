@@ -14,6 +14,11 @@ export type PrismaMock = {
     findFirst: MockFn;
     upsert: MockFn;
   };
+  aiInference: {
+    count: MockFn;
+    deleteMany: MockFn;
+    create: MockFn;
+  };
   notification: {
     create: MockFn;
     update: MockFn;
@@ -654,6 +659,11 @@ export function createPrismaMock(): PrismaMock {
         isEnabled: true,
       }),
       upsert: jest.fn(),
+    },
+    aiInference: {
+      create: jest.fn().mockResolvedValue({ id: 'ai-inference-1' }),
+      count: jest.fn().mockResolvedValue(0),
+      deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
     },
     notification: {
       create: jest.fn(),

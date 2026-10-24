@@ -2,7 +2,10 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import { z } from 'zod';
 import {
   INFERENCE_COMPLETION,
+  type JsonObject,
   type InferenceCompletionPort,
+  StructuredInferenceOutputError,
+  StructuredInferenceProviderError,
 } from '@personal-os/contracts';
 import { normalizeCurrencyCode } from '../../shared/domain/money';
 import type {
@@ -86,17 +89,6 @@ Rules:
 - Skip rows that are not movements: headers, subtotals, page numbers, legal text, promotional messages.
 - Do not invent movements, balances or dates. Use null when the document does not show a field.`;
 
-function extractJson(content: string): string | null {
-  const fenced = content.match(/```(?:json)?\s*([\s\S]*?)```/i);
-  const candidate = fenced ? fenced[1] : content;
-  const start = candidate.indexOf('{');
-  const end = candidate.lastIndexOf('}');
-  if (start < 0 || end <= start) {
-    return null;
-  }
-  return candidate.slice(start, end + 1);
-}
-
 function toStatement(
   parsed: z.infer<typeof statementSchema>,
   knownCurrency: string | undefined,
@@ -149,49 +141,55 @@ export class AiStatementExtractor implements StatementExtractorPort {
       .join('\n');
 
     try {
-      const completion = await this.aiService.complete([
-        { role: 'system', content: SYSTEM_PROMPT },
-        { role: 'user', content: userContent },
-      ]);
-      const jsonText = extractJson(completion.content ?? '');
-      if (!jsonText) {
-        return {
-          ok: false,
-          reason: 'Model did not return JSON',
-          retryable: true,
-        };
-      }
-      let parsed: unknown;
-      try {
-        parsed = JSON.parse(jsonText);
-      } catch {
-        return {
-          ok: false,
-          reason: 'Model returned invalid JSON',
-          retryable: true,
-        };
-      }
-      const validated = statementSchema.safeParse(parsed);
-      if (!validated.success) {
-        this.logger.debug(
-          `Statement extraction validation failed: ${validated.error.message}`,
-        );
+      const inference = await this.aiService.infer({
+        task: 'finance.statement-extraction',
+        messages: [
+          { role: 'system', content: SYSTEM_PROMPT },
+          { role: 'user', content: userContent },
+        ],
+        jsonSchema: z.toJSONSchema(statementSchema, {
+          unrepresentable: 'any',
+        }) as JsonObject,
+        validate(value: unknown) {
+          const parsed = statementSchema.safeParse(value);
+          if (!parsed.success) {
+            throw parsed.error;
+          }
+          return parsed.data;
+        },
+        promptVersion: 'statement-extraction-v1',
+        schemaVersion: 'statement-extraction-v1',
+        userId: input.userId,
+        sourceType: 'statement_import',
+        sourceId: input.sourceId,
+      });
+      return {
+        ok: true,
+        statement: toStatement(inference.value, input.knownCurrency),
+        provider: inference.provider,
+        model: inference.model,
+      };
+    } catch (error) {
+      if (error instanceof StructuredInferenceOutputError) {
         return {
           ok: false,
           reason: 'Extracted statement failed schema validation',
           retryable: false,
         };
       }
+      if (error instanceof StructuredInferenceProviderError) {
+        return {
+          ok: false,
+          reason: error.message,
+          retryable: error.retryable,
+        };
+      }
+      this.logger.warn('Statement extraction AI inference failed');
       return {
-        ok: true,
-        statement: toStatement(validated.data, input.knownCurrency),
-        provider: completion.provider,
-        model: completion.model,
+        ok: false,
+        reason: 'Statement extraction failed',
+        retryable: true,
       };
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      this.logger.warn(`Statement extraction AI error: ${message}`);
-      return { ok: false, reason: message, retryable: true };
     }
   }
 
