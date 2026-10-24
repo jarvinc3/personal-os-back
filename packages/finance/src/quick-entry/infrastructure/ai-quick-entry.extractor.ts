@@ -1,9 +1,9 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { z } from 'zod';
 import {
-  AI_CHAT_COMPLETION,
-  type AiChatCompletionPort,
-} from '@personal-os/core';
+  INFERENCE_COMPLETION,
+  type InferenceCompletionPort,
+} from '@personal-os/contracts';
 import { normalizeCurrencyCode } from '../../shared/domain/money';
 import { isValidIsoDate } from '../../shared/domain/iso-date';
 import type {
@@ -83,14 +83,14 @@ function extractJson(content: string): string | null {
 @Injectable()
 export class AiQuickEntryExtractor implements QuickEntryExtractorPort {
   constructor(
-    @Inject(AI_CHAT_COMPLETION)
-    private readonly aiService: AiChatCompletionPort,
+    @Inject(INFERENCE_COMPLETION)
+    private readonly aiService: InferenceCompletionPort,
   ) {}
 
   async extract(
     input: QuickEntryExtractionInput,
   ): Promise<QuickEntryExtraction> {
-    const completion = await this.aiService.chatComplete([
+    const completion = await this.aiService.complete([
       { role: 'system', content: SYSTEM_PROMPT },
       { role: 'user', content: this.buildUserContent(input) },
     ]);

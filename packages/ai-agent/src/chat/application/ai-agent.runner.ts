@@ -9,7 +9,7 @@ import { AiActionsService } from '../../actions/application/ai-actions.service';
 import { AiChatPersistenceService } from '../infrastructure/ai-chat-persistence.service';
 import { AiChatTurnCoordinator } from './ai-chat-turn-coordinator.service';
 import { AiSessionsRepository } from '../infrastructure/ai-sessions.repository';
-import { AiService } from './ai.service';
+import { AiService } from '../../inference/application/ai.service';
 import { buildAgentPrompt } from '../../prompts/build-agent-prompt';
 import {
   getModuleContextLabel,

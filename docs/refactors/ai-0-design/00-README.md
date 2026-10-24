@@ -3,8 +3,10 @@
 Estado: **propuesta técnica validada en una base local aislada**, preparada el
 2026-10-24 sobre backend `37b9ec875a640e023745add670a7d3b381a83c12` (`0.55.2`).
 Seguimiento: [programa #193](https://github.com/jarvinc3/personal-os-back/issues/193).
-No se ha iniciado AI-0, no se ha reseteado DEV y no se ha consultado ni cambiado
-la base de PROD. Los archivos de `artifacts/` no son migraciones activas.
+Avance preparatorio de código: [estado de ejecución](07-execution-status.md).
+El código de AI-0 se inicia en rama aislada tras confirmación del corte/backup
+por el owner; ver el estado enlazado. No se ha reseteado DEV ni consultado o
+cambiado la base de PROD. Los archivos de `artifacts/` no son migraciones activas.
 
 | Entregable                             | Documento / artefacto                                                                                   |
 | -------------------------------------- | ------------------------------------------------------------------------------------------------------- |

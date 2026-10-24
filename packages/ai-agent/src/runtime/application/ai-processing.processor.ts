@@ -12,7 +12,7 @@ import {
 import { resolveDailyInsightQuota } from '@personal-os/config';
 import { AiMemoryService } from './ai-memory.service';
 import { AiSessionsRepository } from '../../chat/infrastructure/ai-sessions.repository';
-import { AiService } from '../../chat/application/ai.service';
+import { AiService } from '../../inference/application/ai.service';
 import { buildAgentPrompt } from '../../prompts/build-agent-prompt';
 import type { AiResponseWsPayload } from '../../shared/ai.types';
 

@@ -5,7 +5,11 @@ import {
   OnModuleInit,
   ServiceUnavailableException,
 } from '@nestjs/common';
-import type { AiChatCompletionPort } from '@personal-os/core';
+import type {
+  InferenceCompletionPort,
+  InferenceCompletion,
+  InferenceMessage,
+} from '@personal-os/contracts';
 import { AI_PROVIDER } from '../../shared/ai-provider.token';
 import type {
   AIService as AIProviderClient,
@@ -17,7 +21,7 @@ import type {
 import { isRetryableProviderError } from '../../shared/is-retryable-provider-error';
 
 @Injectable()
-export class AiService implements OnModuleInit, AiChatCompletionPort {
+export class AiService implements OnModuleInit, InferenceCompletionPort {
   private readonly logger = new Logger(AiService.name);
   private roundRobinIndex = 0;
 
@@ -91,6 +95,13 @@ export class AiService implements OnModuleInit, AiChatCompletionPort {
     throw new ServiceUnavailableException(
       `Todos los proveedores de IA fallaron. Último error: ${message}`,
     );
+  }
+
+  async complete(
+    messages: readonly InferenceMessage[],
+  ): Promise<InferenceCompletion> {
+    const { content, provider, model } = await this.chatComplete([...messages]);
+    return { content, provider, model };
   }
 
   async chatComplete(

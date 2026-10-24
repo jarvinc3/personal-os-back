@@ -116,7 +116,8 @@ Sentry corre en el back (`instrument.ts`) y no se inicializa sin `SENTRY_DSN`. `
 apps/api/src/            # app Nest: main, app.module, health
 packages/                # workspace pnpm; cada paquete compila a dist
   config/                # env Zod y límites de IA
-  core/                  # guards, filters, eventos, colas, puerto de chat IA
+  contracts/             # interfaces y tokens neutrales, sin dependencias
+  core/                  # guards, filters, eventos y colas
   database/              # PrismaService, cliente generado, schema y migraciones
   logos/
   auth/

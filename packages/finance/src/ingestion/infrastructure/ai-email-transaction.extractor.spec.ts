@@ -1,9 +1,11 @@
-import type { AiChatCompletionPort } from '@personal-os/core';
+import type { InferenceCompletionPort } from '@personal-os/contracts';
 import { AiEmailTransactionExtractor } from './ai-email-transaction.extractor';
 
 describe('AiEmailTransactionExtractor', () => {
   const chatComplete = jest.fn();
-  const aiService = { chatComplete } as unknown as AiChatCompletionPort;
+  const aiService = {
+    complete: chatComplete,
+  } as unknown as InferenceCompletionPort;
   const extractor = new AiEmailTransactionExtractor(aiService);
 
   const input = {

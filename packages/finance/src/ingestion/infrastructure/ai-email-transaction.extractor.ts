@@ -1,9 +1,9 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { z } from 'zod';
 import {
-  AI_CHAT_COMPLETION,
-  type AiChatCompletionPort,
-} from '@personal-os/core';
+  INFERENCE_COMPLETION,
+  type InferenceCompletionPort,
+} from '@personal-os/contracts';
 import {
   EMAIL_MOVEMENT_CLASSES,
   accountHintFromTerminatedIn,
@@ -164,8 +164,8 @@ export class AiEmailTransactionExtractor implements EmailTransactionExtractorPor
   private readonly logger = new Logger(AiEmailTransactionExtractor.name);
 
   constructor(
-    @Inject(AI_CHAT_COMPLETION)
-    private readonly aiService: AiChatCompletionPort,
+    @Inject(INFERENCE_COMPLETION)
+    private readonly aiService: InferenceCompletionPort,
   ) {}
 
   async extract(input: EmailExtractionInput): Promise<EmailExtractionResult> {
@@ -183,7 +183,7 @@ export class AiEmailTransactionExtractor implements EmailTransactionExtractorPor
       .join('\n');
 
     try {
-      const result = await this.aiService.chatComplete([
+      const result = await this.aiService.complete([
         { role: 'system', content: SYSTEM_PROMPT },
         { role: 'user', content: userContent },
       ]);

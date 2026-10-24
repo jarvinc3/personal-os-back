@@ -12,7 +12,8 @@ Agente conversacional único: sesiones, tool-calling, acciones con confirmación
 - CRUD sesiones/mensajes; acciones PENDING execute/cancel
 - Registry + `ToolExecutorService`; finance via `FinanceFacade` only
 - Cola `ai-processing`; listener de eventos usuario/finance
-- Extractor de emails bancarios: Finance ingestion importa **`AiCoreModule`** (no `AiModule`) para evitar ciclos Nest
+- Extractores de Finance: inyectan `INFERENCE_COMPLETION` desde contracts, sin
+  importar AI. AiCoreModule global conecta el puerto con el pool.
 
 ## Fuera de alcance
 
@@ -23,7 +24,9 @@ Tools de agenda/projects/health más allá de `get_user_context` / `update_modul
 ```text
 ai.module.ts          # composition root (imports Finance, Notifications)
 ai-core.module.ts     # AI_PROVIDER + AiService
+inference/           # AiService y pruebas del pool; independiente del chat
 chat/ actions/ runtime/ providers/ tools/ prompts/ shared/
 ```
 
-**Barrel:** `AiModule`, `AiCoreModule`, `AiService`, `resolveMaxEmailLlmExtracts`, `DEFAULT_MAX_EMAIL_LLM_EXTRACTS`, `resolveDailyInsightQuota`, `DEFAULT_DAILY_INSIGHT_QUOTA`.
+**Barrel:** `AiModule`, `AiCoreModule`, `AiService`, `AI_DATA_BRANCHES`.
+Los límites de extracción e insights pertenecen a `@personal-os/config`.

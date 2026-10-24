@@ -240,6 +240,9 @@ importers:
       '@personal-os/config':
         specifier: workspace:*
         version: link:packages/config
+      '@personal-os/contracts':
+        specifier: workspace:*
+        version: link:packages/contracts
       '@personal-os/core':
         specifier: workspace:*
         version: link:packages/core
@@ -466,6 +469,9 @@ importers:
       '@personal-os/config':
         specifier: workspace:*
         version: link:../config
+      '@personal-os/contracts':
+        specifier: workspace:*
+        version: link:../contracts
       '@personal-os/core':
         specifier: workspace:*
         version: link:../core
@@ -544,6 +550,8 @@ importers:
       zod:
         specifier: ^4.6.5
         version: 4.6.7
+
+  packages/contracts: {}
 
   packages/core:
     dependencies:
@@ -634,6 +642,9 @@ importers:
       '@personal-os/config':
         specifier: workspace:*
         version: link:../config
+      '@personal-os/contracts':
+        specifier: workspace:*
+        version: link:../contracts
       '@personal-os/core':
         specifier: workspace:*
         version: link:../core

@@ -1,9 +1,9 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { z } from 'zod';
 import {
-  AI_CHAT_COMPLETION,
-  type AiChatCompletionPort,
-} from '@personal-os/core';
+  INFERENCE_COMPLETION,
+  type InferenceCompletionPort,
+} from '@personal-os/contracts';
 import { normalizeCurrencyCode } from '../../shared/domain/money';
 import type {
   ExtractedStatement,
@@ -131,8 +131,8 @@ export class AiStatementExtractor implements StatementExtractorPort {
   private readonly logger = new Logger(AiStatementExtractor.name);
 
   constructor(
-    @Inject(AI_CHAT_COMPLETION)
-    private readonly aiService: AiChatCompletionPort,
+    @Inject(INFERENCE_COMPLETION)
+    private readonly aiService: InferenceCompletionPort,
   ) {}
 
   async extract(
@@ -149,7 +149,7 @@ export class AiStatementExtractor implements StatementExtractorPort {
       .join('\n');
 
     try {
-      const completion = await this.aiService.chatComplete([
+      const completion = await this.aiService.complete([
         { role: 'system', content: SYSTEM_PROMPT },
         { role: 'user', content: userContent },
       ]);

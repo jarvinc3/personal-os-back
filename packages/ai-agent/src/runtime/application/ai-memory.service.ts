@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import type { Prisma } from '@personal-os/database';
 import { AiSessionsRepository } from '../../chat/infrastructure/ai-sessions.repository';
-import { AiService } from '../../chat/application/ai.service';
+import { AiService } from '../../inference/application/ai.service';
 
 @Injectable()
 export class AiMemoryService {

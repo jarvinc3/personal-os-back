@@ -1,4 +1,4 @@
-import type { AiChatMessage } from '@personal-os/core';
+import type { InferenceMessage } from '@personal-os/contracts';
 
 export type SideEffectDescriptor =
   | { type: 'invalidate'; keys: string[] }
@@ -98,7 +98,7 @@ export type ChatCompletionResult = {
   toolCalls: ToolCallRequest[];
 };
 
-export interface ChatMessage extends AiChatMessage {
+export interface ChatMessage extends InferenceMessage {
   toolCallId?: string;
   name?: string;
   toolCalls?: ToolCallRequest[];

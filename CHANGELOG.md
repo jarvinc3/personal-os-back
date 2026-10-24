@@ -2,6 +2,13 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [SemVer](https://semver.org/lang/es/). Reglas y ejemplo en [docs/reference/changelog-guide.md](./docs/reference/changelog-guide.md).
 
+## Unreleased — 0.100.0
+
+### Cambiado
+
+- AI-0 en rama aislada: `@personal-os/contracts` reúne interfaces y tokens neutrales; el pool de inferencia y sus pruebas salen de chat. Los extractores financieros usan `INFERENCE_COMPLETION` y conservan sus respuestas y reglas (#193).
+- Se prueba la composición del núcleo sin chat/Finance, el failover por el puerto neutral y la validación de estados de cuenta. El corte estable y el backup están confirmados por el owner; la baseline y el reset DEV requieren todavía el reporte de metadatos PROD.
+
 ## [0.55.3] - 2026-10-24
 
 ### Cambiado

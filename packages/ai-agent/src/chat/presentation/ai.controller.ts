@@ -19,7 +19,7 @@ import { CurrentUser, Timeout } from '@personal-os/core';
 import { NotificationsGateway } from '@personal-os/notifications';
 import { AiAgentRunner } from '../application/ai-agent.runner';
 import { AiChatPersistenceService } from '../infrastructure/ai-chat-persistence.service';
-import { AiService } from '../application/ai.service';
+import { AiService } from '../../inference/application/ai.service';
 import { AiProvidersResponseDto } from './dto/ai-providers-response.dto';
 import { ChatRequestDto } from './dto/chat-request.dto';
 import { ChatResponseDto } from './dto/chat-response.dto';

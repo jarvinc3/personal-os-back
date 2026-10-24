@@ -1,4 +1,4 @@
-import type { AiChatCompletionPort } from '@personal-os/core';
+import type { InferenceCompletionPort } from '@personal-os/contracts';
 import { AiQuickEntryExtractor } from './ai-quick-entry.extractor';
 import type { QuickEntryExtractionInput } from '../application/ports/quick-entry-extractor.port';
 
@@ -29,8 +29,8 @@ function completion(payload: unknown) {
 }
 
 describe('AiQuickEntryExtractor', () => {
-  const chatComplete = jest.fn();
-  const aiService = { chatComplete } as unknown as AiChatCompletionPort;
+  const complete = jest.fn();
+  const aiService = { complete } as unknown as InferenceCompletionPort;
   const extractor = new AiQuickEntryExtractor(aiService);
 
   beforeEach(() => {
@@ -38,7 +38,7 @@ describe('AiQuickEntryExtractor', () => {
   });
 
   it('returns the parsed draft for a valid payload', async () => {
-    chatComplete.mockResolvedValue(completion(validPayload));
+    complete.mockResolvedValue(completion(validPayload));
 
     await expect(extractor.extract(input)).resolves.toMatchObject({
       type: 'DEBIT',
@@ -53,7 +53,7 @@ describe('AiQuickEntryExtractor', () => {
   });
 
   it('keeps a null date when the sentence states none', async () => {
-    chatComplete.mockResolvedValue(completion({ ...validPayload, date: null }));
+    complete.mockResolvedValue(completion({ ...validPayload, date: null }));
 
     await expect(extractor.extract(input)).resolves.toMatchObject({
       date: null,
@@ -61,7 +61,7 @@ describe('AiQuickEntryExtractor', () => {
   });
 
   it('rejects an impossible calendar date', async () => {
-    chatComplete.mockResolvedValue(
+    complete.mockResolvedValue(
       completion({ ...validPayload, date: '2026-02-31' }),
     );
 
@@ -71,7 +71,7 @@ describe('AiQuickEntryExtractor', () => {
   });
 
   it('rejects a response that is not JSON', async () => {
-    chatComplete.mockResolvedValue({
+    complete.mockResolvedValue({
       content: 'no json here',
       provider: 'test',
       model: 'test',
