@@ -1,5 +1,6 @@
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { PrismaService } from '@personal-os/database';
@@ -8,6 +9,12 @@ import { applyAuthTestOverrides } from './helpers/auth-test.providers';
 import { createTestJwt } from './helpers/jwt.helper';
 import { createPrismaMock } from './helpers/prisma.mock';
 import { applyTestEnv } from './helpers/test-env';
+import {
+  SEMANTIC_ROUTES,
+  SEMANTIC_TYPES,
+  TRANSACTION_DIRECTIONS,
+  TRANSACTION_KINDS,
+} from '../packages/ai-agent/src/intelligence/evidence/human-verification.constants';
 
 applyTestEnv();
 const { AppModule } = require('../apps/api/src/app.module') as {
@@ -47,7 +54,11 @@ describe('Retired AI chat API (e2e)', () => {
     app = moduleFixture.createNestApplication();
     app.setGlobalPrefix('api');
     app.useGlobalPipes(
-      new ValidationPipe({ transform: true, whitelist: true }),
+      new ValidationPipe({
+        transform: true,
+        whitelist: true,
+        forbidNonWhitelisted: true,
+      }),
     );
     await app.init();
   });
@@ -79,7 +90,11 @@ describe('Retired AI chat API (e2e)', () => {
       .get('/api/intelligence/review-queue?cursor=next-page')
       .set('Authorization', `Bearer ${token}`)
       .expect(200);
-    expect(evidence.reviewQueue).toHaveBeenCalledWith('user-123', 'next-page');
+    expect(evidence.reviewQueue).toHaveBeenCalledWith(
+      'user-123',
+      'next-page',
+      undefined,
+    );
 
     await request(app.getHttpServer())
       .post('/api/intelligence/messages/message-1/verifications')
@@ -96,5 +111,77 @@ describe('Retired AI chat API (e2e)', () => {
       .get('/api/intelligence/runs')
       .set('Authorization', `Bearer ${token}`)
       .expect(200);
+  });
+
+  it.each([
+    { semanticType: 'notificacion empleo' },
+    { routes: ['FINANCE', 'FINANCE'] },
+    { routes: ['TRAVEL'] },
+    {
+      semanticType: 'FIN_TRANSACTION',
+      transaction: { kind: 'TRANSACTION', amount: -1 },
+    },
+    {
+      semanticType: 'FIN_TRANSACTION',
+      transaction: { kind: 'TRANSACTION', last4: '123' },
+    },
+    {
+      semanticType: 'FIN_TRANSACTION',
+      transaction: { kind: 'TRANSACTION', unknownField: 'x' },
+    },
+  ])('rejects an invalid label payload %# before persistence', async (body) => {
+    evidence.verifyMessage.mockClear();
+    await request(app.getHttpServer())
+      .post('/api/intelligence/messages/message-1/verifications')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ verdict: 'CORRECTED', ...body })
+      .expect(400);
+    expect(evidence.verifyMessage).not.toHaveBeenCalled();
+  });
+
+  it('accepts a typed financial transaction payload', async () => {
+    evidence.verifyMessage.mockClear();
+    await request(app.getHttpServer())
+      .post('/api/intelligence/messages/message-1/verifications')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        verdict: 'CORRECTED',
+        semanticType: 'FIN_TRANSACTION',
+        routes: ['FINANCE'],
+        transaction: {
+          kind: 'TRANSACTION',
+          amount: 1250,
+          currency: 'DOP',
+          direction: 'DEBIT',
+        },
+      })
+      .expect(201);
+    expect(evidence.verifyMessage).toHaveBeenCalledTimes(1);
+  });
+
+  it('publishes the exact label enums in OpenAPI', () => {
+    const document = SwaggerModule.createDocument(
+      app,
+      new DocumentBuilder().setTitle('Test').setVersion('1').build(),
+    );
+    const verification = document.components?.schemas
+      ?.CreateHumanVerificationDto as { properties: Record<string, never> };
+    const transaction = document.components?.schemas
+      ?.HumanVerificationTransactionDto as {
+      properties: Record<string, never>;
+    };
+
+    expect(verification.properties.semanticType).toMatchObject({
+      enum: [...SEMANTIC_TYPES],
+    });
+    expect(verification.properties.routes).toMatchObject({
+      items: { enum: [...SEMANTIC_ROUTES] },
+    });
+    expect(transaction.properties.kind).toMatchObject({
+      enum: [...TRANSACTION_KINDS],
+    });
+    expect(transaction.properties.direction).toMatchObject({
+      enum: [...TRANSACTION_DIRECTIONS],
+    });
   });
 });

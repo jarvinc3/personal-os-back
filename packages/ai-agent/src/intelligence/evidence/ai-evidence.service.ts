@@ -187,6 +187,29 @@ export class AiEvidenceService {
     ) {
       throw new BadRequestException('Incluye al menos una etiqueta corregida');
     }
+    if (dto.semanticType === 'OTHER' && !dto.notes?.trim()) {
+      throw new BadRequestException('El tipo Otro requiere una nota');
+    }
+    if (dto.semanticType === 'FIN_TRANSACTION') {
+      if (!dto.transaction?.kind) {
+        throw new BadRequestException('Indica el tipo de transacción');
+      }
+    } else if (
+      dto.semanticType === 'PURCHASE_RECEIPT' ||
+      dto.semanticType === 'SUBSCRIPTION_BILLING'
+    ) {
+      if (dto.transaction?.kind !== undefined) {
+        throw new BadRequestException('El recibo o cobro no admite kind');
+      }
+    } else if (dto.transaction !== undefined) {
+      throw new BadRequestException('Este tipo no admite transacción');
+    }
+    if (
+      (dto.semanticType === 'SECURITY_ALERT' && dto.relevance === false) ||
+      (dto.semanticType === 'SECURITY_OTP' && dto.relevance === true)
+    ) {
+      throw new BadRequestException('Relevancia incompatible con el tipo');
+    }
 
     const correctedPayload = this.labelPayload(dto);
     const verification = await this.prisma.aiHumanVerification.create({

@@ -2,6 +2,78 @@ import { BadRequestException } from '@nestjs/common';
 import { AiEvidenceService } from './ai-evidence.service';
 
 describe('AiEvidenceService', () => {
+  const reviewPrisma = () => ({
+    aiDataset: { upsert: jest.fn().mockResolvedValue({ id: 'dataset-1' }) },
+    aiEmailMessage: {
+      findMany: jest.fn().mockResolvedValue([]),
+      findFirst: jest.fn().mockResolvedValue({ id: 'message-1' }),
+    },
+    aiDatasetItem: {
+      findMany: jest.fn().mockResolvedValue([]),
+      findFirst: jest.fn().mockResolvedValue({ partition: 'TRAIN' }),
+    },
+    userRole: { findUnique: jest.fn().mockResolvedValue(null) },
+    aiHumanVerification: {
+      create: jest.fn().mockResolvedValue({ sequence: 1n }),
+    },
+  });
+
+  it.each([
+    [{ semanticType: 'FIN_TRANSACTION' }, 'transacción'],
+    [
+      {
+        semanticType: 'PURCHASE_RECEIPT',
+        transaction: { kind: 'TRANSACTION' },
+      },
+      'kind',
+    ],
+    [{ semanticType: 'MARKETING', transaction: {} }, 'transacción'],
+    [{ semanticType: 'OTHER' }, 'nota'],
+    [{ semanticType: 'SECURITY_ALERT', relevance: false }, 'Relevancia'],
+    [{ semanticType: 'SECURITY_OTP', relevance: true }, 'Relevancia'],
+  ] as const)('rejects inconsistent labels %#', async (labels, error) => {
+    const prisma = reviewPrisma();
+    const service = new AiEvidenceService(prisma as never);
+    await expect(
+      service.verifyMessage('user-1', 'message-1', {
+        verdict: 'CORRECTED',
+        ...labels,
+      }),
+    ).rejects.toThrow(error);
+    expect(prisma.aiHumanVerification.create).not.toHaveBeenCalled();
+  });
+
+  it('stores an empty route list and a complete financial transaction', async () => {
+    const prisma = reviewPrisma();
+    const service = new AiEvidenceService(prisma as never);
+    await service.verifyMessage('user-1', 'message-1', {
+      verdict: 'CORRECTED',
+      semanticType: 'FIN_TRANSACTION',
+      routes: [],
+      transaction: {
+        kind: 'TRANSACTION',
+        amount: 1250,
+        currency: 'DOP',
+        direction: 'DEBIT',
+      },
+    });
+    expect(prisma.aiHumanVerification.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          correctedPayload: {
+            semanticType: 'FIN_TRANSACTION',
+            routes: [],
+            transaction: {
+              kind: 'TRANSACTION',
+              amount: 1250,
+              currency: 'DOP',
+              direction: 'DEBIT',
+            },
+          },
+        }),
+      }),
+    );
+  });
   it('appends a verification with role snapshot and marks HOLDOUT as ground truth', async () => {
     const create = jest.fn().mockResolvedValue({
       sequence: 8n,

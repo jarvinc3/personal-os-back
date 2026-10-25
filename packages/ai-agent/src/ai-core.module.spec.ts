@@ -1,5 +1,6 @@
 import { Global, Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 import { Test } from '@nestjs/testing';
 import { INFERENCE_COMPLETION } from '@personal-os/contracts';
 import type { InferenceCompletionPort } from '@personal-os/contracts';
@@ -36,7 +37,11 @@ describe('Inference composition without chat or Finance', () => {
       toolCalls: [],
     });
     const module = await Test.createTestingModule({
-      imports: [AiTestDependenciesModule, AiCoreModule],
+      imports: [
+        EventEmitterModule.forRoot(),
+        AiTestDependenciesModule,
+        AiCoreModule,
+      ],
     })
       .overrideProvider(AI_PROVIDER)
       .useValue([

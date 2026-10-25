@@ -12,6 +12,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [Se
 
 ### Cambiado
 
+- #217: la verificación humana de correo valida tipos y dominios cerrados, relevancia de seguridad y datos estructurados de transacción; Swagger publica los valores permitidos.
 - Gmail mantiene visible el tiempo de espera por cuota con reintentos de 5, 10 y 20 segundos cuando el proveedor no indica otro plazo (#205, #318).
 - Si los reintentos rápidos no liberan la cuota, Gmail permanece en espera con una próxima reejecución automática persistida y su cuenta regresiva (#205, #318).
 

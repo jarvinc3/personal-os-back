@@ -4,6 +4,10 @@
 
 Las verificaciones se guardan en `ai_human_verifications` como registros nuevos con secuencia PostgreSQL, rol del verificador leído del backend y vínculo `EMAIL_MESSAGE` al mensaje de la misma cuenta. `CORRECTED` exige al menos una etiqueta y `REJECTED` exige motivo. No hay endpoint de edición ni borrado de una verificación. Si el mensaje pertenece a `HOLDOUT`, la fila guarda `isGroundTruth = true`.
 
+La clasificación humana usa `semanticType` de la lista cerrada `FIN_TRANSACTION`, `PURCHASE_RECEIPT`, `SUBSCRIPTION_BILLING`, `FIN_STATEMENT_NOTICE`, `FIN_ACCOUNT_NOTICE`, `SECURITY_OTP`, `SECURITY_ALERT`, `TECH_NOTIFICATION`, `JOB`, `CALENDAR_EVENT`, `MARKETING`, `SOCIAL`, `OTHER`. `routes` admite una lista sin duplicados de `FINANCE`, `SUBSCRIPTIONS`, `CALENDAR`, `SECURITY`; `[]` significa ningún dominio. `OTHER` requiere nota. `SECURITY_ALERT` no admite `relevance: false` y `SECURITY_OTP` no admite `relevance: true`.
+
+`FIN_TRANSACTION` requiere `transaction.kind` (`TRANSACTION`, `PENDING` o `NOT_TRANSACTION`). `PURCHASE_RECEIPT` y `SUBSCRIPTION_BILLING` admiten `transaction` opcional sin `kind`; los demás tipos no admiten `transaction`. El objeto puede contener `amount` positivo, `currency` ISO 4217, `transactionDate` ISO 8601, `direction` (`DEBIT`, `CREDIT`, `TRANSFER`), `merchant`, `bankReference` y `last4` de cuatro dígitos. El DTO y Swagger comparten los mismos valores enumerados; los valores fuera de lista y las propiedades desconocidas se rechazan antes de escribir evidencia.
+
 Los runs pertenecen a la cuenta y congelan dataset, modo, versiones, configuración y watermarks globales de observaciones y verificaciones. Al cerrar un run solo se escriben estado, resultado y fecha de cierre; la configuración queda intacta. Los listados siempre filtran por usuario.
 
 ## HTTP
