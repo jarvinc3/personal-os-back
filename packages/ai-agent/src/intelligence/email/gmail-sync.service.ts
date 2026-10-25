@@ -50,6 +50,7 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(GmailSyncService.name);
   private timer?: NodeJS.Timeout;
   private running = false;
+  private readonly activeSyncConnections = new Set<string>();
 
   constructor(
     private readonly prisma: PrismaService,
@@ -86,9 +87,16 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
       select: { id: true },
     });
     if (!connection) {
-      return { connected: false, imported: 0 };
+      return { connected: false, syncStarted: false };
     }
-    return this.syncConnection(connection.id);
+    await this.prisma.aiEmailConnection.update({
+      where: { id: connection.id },
+      data: { lastSyncErrorCode: null },
+    });
+    return {
+      connected: true,
+      syncStarted: this.startSyncConnection(connection.id),
+    };
   }
 
   async syncAllActiveConnections(): Promise<void> {
@@ -117,14 +125,50 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
   }
 
   async syncConnection(connectionId: string) {
+    if (this.activeSyncConnections.has(connectionId)) {
+      return {
+        connected: true,
+        imported: 0,
+        bootstrapComplete: false,
+        alreadyRunning: true,
+      };
+    }
+    this.activeSyncConnections.add(connectionId);
+    try {
+      return await this.runSyncConnection(connectionId);
+    } finally {
+      this.activeSyncConnections.delete(connectionId);
+    }
+  }
+
+  private startSyncConnection(connectionId: string) {
+    if (this.activeSyncConnections.has(connectionId)) {
+      return false;
+    }
+    this.activeSyncConnections.add(connectionId);
+    void this.runSyncConnection(connectionId)
+      .catch((error: unknown) => {
+        this.logger.warn(
+          `Gmail sync failed for connection ${connectionId}: ${this.safeErrorCode(error)}`,
+        );
+      })
+      .finally(() => this.activeSyncConnections.delete(connectionId));
+    return true;
+  }
+
+  private async runSyncConnection(connectionId: string) {
     const connection = await this.prisma.aiEmailConnection.findUnique({
       where: { id: connectionId },
     });
     if (!connection?.isActive) {
       return { connected: false, imported: 0 };
     }
-    const accessToken = await this.source.getAccessToken(connectionId);
     try {
+      await this.prisma.aiEmailConnection.update({
+        where: { id: connectionId },
+        data: { lastSyncErrorCode: null },
+      });
+      const accessToken = await this.source.getAccessToken(connectionId);
       const result = connection.initialSyncCompletedAt
         ? await this.syncIncremental(connection, accessToken)
         : await this.bootstrapPage(connection, accessToken);

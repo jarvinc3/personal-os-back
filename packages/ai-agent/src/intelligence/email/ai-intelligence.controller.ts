@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Controller,
   Get,
+  HttpCode,
   Param,
   Post,
   Query,
@@ -54,6 +55,7 @@ export class AiIntelligenceController {
   }
 
   @Post('email/sync')
+  @HttpCode(202)
   syncNow(@CurrentUser() user: { sub: string }) {
     return this.sync.syncForUser(user.sub);
   }
