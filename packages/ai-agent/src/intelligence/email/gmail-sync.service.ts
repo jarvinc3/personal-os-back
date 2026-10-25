@@ -1,4 +1,5 @@
 import {
+  HttpException,
   Injectable,
   Logger,
   OnModuleDestroy,
@@ -327,11 +328,18 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
           if (existing) {
             return 0;
           }
-          const message = await this.source.gmailApiRequest<GmailMessage>(
-            accessToken,
-            `/users/me/messages/${encodeURIComponent(ref.id)}?format=full`,
-          );
-          return this.persistMessage(connectionId, userId, message);
+          try {
+            const message = await this.source.gmailApiRequest<GmailMessage>(
+              accessToken,
+              `/users/me/messages/${encodeURIComponent(ref.id)}?format=full`,
+            );
+            return this.persistMessage(connectionId, userId, message);
+          } catch (error) {
+            if (this.isMissingGmailMessage(error)) {
+              return 0;
+            }
+            throw error;
+          }
         }),
       );
       imported += counts.reduce((sum, count) => sum + count, 0 as number);
@@ -482,9 +490,34 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
   }
 
   private safeErrorCode(error: unknown) {
+    const providerCode = this.providerErrorCode(error);
+    if (providerCode) {
+      return providerCode.slice(0, 120).replace(/[^a-zA-Z0-9_.:-]/g, '_');
+    }
     if (error instanceof Error) {
       return error.message.slice(0, 120).replace(/[^a-zA-Z0-9_.:-]/g, '_');
     }
     return 'gmail_sync_failed';
+  }
+
+  private isMissingGmailMessage(error: unknown) {
+    const providerCode = this.providerErrorCode(error);
+    return (
+      providerCode === 'NOT_FOUND' ||
+      providerCode === 'notFound' ||
+      providerCode === 'http_404'
+    );
+  }
+
+  private providerErrorCode(error: unknown): string | undefined {
+    if (!(error instanceof HttpException)) {
+      return undefined;
+    }
+    const response = error.getResponse();
+    if (typeof response !== 'object' || response === null) {
+      return undefined;
+    }
+    const providerCode = (response as Record<string, unknown>).providerCode;
+    return typeof providerCode === 'string' ? providerCode : undefined;
   }
 }
