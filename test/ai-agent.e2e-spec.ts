@@ -4,17 +4,17 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { PrismaService } from '@personal-os/database';
-import { AiEvidenceService } from '@personal-os/ai-agent';
-import { applyAuthTestOverrides } from './helpers/auth-test.providers';
-import { createTestJwt } from './helpers/jwt.helper';
-import { createPrismaMock } from './helpers/prisma.mock';
-import { applyTestEnv } from './helpers/test-env';
 import {
+  AiEvidenceService,
   SEMANTIC_ROUTES,
   SEMANTIC_TYPES,
   TRANSACTION_DIRECTIONS,
   TRANSACTION_KINDS,
-} from '../packages/ai-agent/src/intelligence/evidence/human-verification.constants';
+} from '@personal-os/ai-agent';
+import { applyAuthTestOverrides } from './helpers/auth-test.providers';
+import { createTestJwt } from './helpers/jwt.helper';
+import { createPrismaMock } from './helpers/prisma.mock';
+import { applyTestEnv } from './helpers/test-env';
 
 applyTestEnv();
 const { AppModule } = require('../apps/api/src/app.module') as {
