@@ -48,33 +48,24 @@ export class AiEvidenceService {
       distinct: ['targetId'],
       select: { targetId: true },
     });
-    const items = await this.prisma.aiDatasetItem.findMany({
+    const messages = await this.prisma.aiEmailMessage.findMany({
       where: {
-        datasetId: dataset.id,
         userId,
-        sourceType: EMAIL_SOURCE_TYPE,
-        sourceId: { notIn: reviewed.map(({ targetId }) => targetId) },
+        id: { notIn: reviewed.map(({ targetId }) => targetId) },
         ...(cursorValues
           ? {
               OR: [
-                { createdAt: { lt: new Date(cursorValues.createdAt) } },
+                { receivedAt: { gt: new Date(cursorValues.receivedAt) } },
                 {
-                  createdAt: new Date(cursorValues.createdAt),
-                  id: { lt: cursorValues.id },
+                  receivedAt: new Date(cursorValues.receivedAt),
+                  id: { gt: cursorValues.id },
                 },
               ],
             }
           : {}),
       },
-      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      orderBy: [{ receivedAt: 'asc' }, { id: 'asc' }],
       take: PAGE_SIZE + 1,
-      select: { id: true, sourceId: true, partition: true, createdAt: true },
-    });
-    const hasMore = items.length > PAGE_SIZE;
-    const pageItems = hasMore ? items.slice(0, PAGE_SIZE) : items;
-    const messageIds = pageItems.map(({ sourceId }) => sourceId);
-    const messages = await this.prisma.aiEmailMessage.findMany({
-      where: { userId, id: { in: messageIds } },
       select: {
         id: true,
         receivedAt: true,
@@ -85,14 +76,26 @@ export class AiEvidenceService {
         processingStatus: true,
       },
     });
-    const messageById = new Map(
-      messages.map((message) => [message.id, message]),
-    );
-    const rows = pageItems.flatMap((item) => {
-      const message = messageById.get(item.sourceId);
-      return message ? [{ ...message, partition: item.partition }] : [];
+    const hasMore = messages.length > PAGE_SIZE;
+    const pageMessages = hasMore ? messages.slice(0, PAGE_SIZE) : messages;
+    const messageIds = pageMessages.map(({ id }) => id);
+    const datasetItems = await this.prisma.aiDatasetItem.findMany({
+      where: {
+        datasetId: dataset.id,
+        userId,
+        sourceType: EMAIL_SOURCE_TYPE,
+        sourceId: { in: messageIds },
+      },
+      select: { sourceId: true, partition: true },
     });
-    const last = pageItems.at(-1);
+    const partitionByMessageId = new Map(
+      datasetItems.map((item) => [item.sourceId, item.partition]),
+    );
+    const rows = pageMessages.flatMap((message) => {
+      const partition = partitionByMessageId.get(message.id);
+      return partition ? [{ ...message, partition }] : [];
+    });
+    const last = pageMessages.at(-1);
     return {
       items: rows,
       hasMore,
@@ -100,7 +103,7 @@ export class AiEvidenceService {
         hasMore && last
           ? Buffer.from(
               JSON.stringify({
-                createdAt: last.createdAt.toISOString(),
+                receivedAt: last.receivedAt.toISOString(),
                 id: last.id,
               }),
             ).toString('base64url')
@@ -351,11 +354,11 @@ export class AiEvidenceService {
     try {
       const values = JSON.parse(
         Buffer.from(cursor, 'base64url').toString('utf8'),
-      ) as { createdAt?: string; id?: string };
-      if (!values.id || !Number.isFinite(Date.parse(values.createdAt ?? ''))) {
+      ) as { receivedAt?: string; id?: string };
+      if (!values.id || !Number.isFinite(Date.parse(values.receivedAt ?? ''))) {
         throw new Error('invalid cursor');
       }
-      return { createdAt: values.createdAt!, id: values.id };
+      return { receivedAt: values.receivedAt!, id: values.id };
     } catch {
       throw new BadRequestException('Cursor de revisión inválido');
     }

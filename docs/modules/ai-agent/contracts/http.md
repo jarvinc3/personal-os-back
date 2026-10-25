@@ -17,11 +17,11 @@ Auth: JWT. Envelope `{ data, meta }` salvo SSE.
 
 AI-3 (JWT):
 
-| Método | Path                                                  | Notas                                                                                             |
-| ------ | ----------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
-| GET    | `/api/intelligence/dataset`                           | Conteos `TRAIN`, `VALIDATION`, `HOLDOUT` de `EMAIL_V1`, filtrados por cuenta                      |
-| GET    | `/api/intelligence/review-queue?cursor=...`           | Cola de mensajes sin verificación, keyset-paginada y aislada por usuario                          |
-| POST   | `/api/intelligence/messages/:messageId/verifications` | `CONFIRMED`, `CORRECTED` o `REJECTED`; guarda secuencia y marca HOLDOUT como verdad de referencia |
-| GET    | `/api/intelligence/runs`                              | Runs del usuario con configuración, versiones y watermarks de evidencia                           |
+| Método | Path                                                  | Notas                                                                                                            |
+| ------ | ----------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| GET    | `/api/intelligence/dataset`                           | Conteos `TRAIN`, `VALIDATION`, `HOLDOUT` de `EMAIL_V1`, filtrados por cuenta                                     |
+| GET    | `/api/intelligence/review-queue?cursor=...`           | Cola de mensajes sin verificación, ordenada por fecha recibida ascendente, keyset-paginada y aislada por usuario |
+| POST   | `/api/intelligence/messages/:messageId/verifications` | `CONFIRMED`, `CORRECTED` o `REJECTED`; guarda secuencia y marca HOLDOUT como verdad de referencia                |
+| GET    | `/api/intelligence/runs`                              | Runs del usuario con configuración, versiones y watermarks de evidencia                                          |
 
 `GET /api/intelligence/messages/:messageId` incluye `provenance.observations` y `provenance.verifications` en orden de secuencia.
