@@ -28,7 +28,18 @@ export class AiIntelligenceController {
 
   @Get()
   dashboard(@CurrentUser() user: { sub: string }) {
-    return this.email.dashboard(user.sub);
+    return Promise.all([
+      this.email.dashboard(user.sub),
+      this.sync.isSyncingForUser(user.sub),
+    ]).then(([dashboard, syncInProgress]) => {
+      if (!dashboard.connection.connected) {
+        return dashboard;
+      }
+      return {
+        ...dashboard,
+        connection: { ...dashboard.connection, syncInProgress },
+      };
+    });
   }
 
   @Get('messages')

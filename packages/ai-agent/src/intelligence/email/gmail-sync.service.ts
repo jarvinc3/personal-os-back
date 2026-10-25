@@ -99,6 +99,16 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
     };
   }
 
+  async isSyncingForUser(userId: string) {
+    const connection = await this.prisma.aiEmailConnection.findUnique({
+      where: { userId },
+      select: { id: true },
+    });
+    return connection
+      ? this.activeSyncConnections.has(connection.id)
+      : false;
+  }
+
   async syncAllActiveConnections(): Promise<void> {
     if (this.running) {
       return;
