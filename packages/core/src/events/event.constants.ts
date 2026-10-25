@@ -24,6 +24,9 @@ export const AppEvents = {
   // ── Notification ──────────────────────────────────────────────
   NOTIFICATION_CREATED: 'notification.created',
 
+  // ── AI email synchronization ─────────────────────────────────
+  AI_EMAIL_SYNC_UPDATED: 'ai.email.sync.updated',
+
   // ── Preferences / modules (non-finance) ─────────────
   USER_PREFERENCES_UPDATED: 'user.preferences.updated',
   MODULE_ENABLED: 'module.enabled',

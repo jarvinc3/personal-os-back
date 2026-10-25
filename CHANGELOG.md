@@ -12,6 +12,8 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [Se
 
 ### Cambiado
 
+- AI-2 (#205): progreso de Gmail persistente y en vivo por usuario; muestra etapas, reintentos, próxima ejecución y causas seguras, permite reconectar y reiniciar el corpus desde 2026-01-01.
+- AI-3 (#206): filtros de revisión por partición y Todos con conteos de pendientes; la paginación conserva filtro y orden cronológico.
 - AI-3 (#206): Intelligence agrupa correo, revisión y análisis en pestañas; presenta cobertura, fechas extremas y particiones como badges, y lista los mensajes desde el más antiguo.
 - AI-3 (#206): la cola de revisión también muestra los correos del más antiguo al más reciente, usando su fecha recibida.
 - Cada fase AI-0 a AI-12 tiene su issue, enlazado como sub-issue del programa (#193); el roadmap maestro y los diseños de AI-0 y AI-1 apuntan a su issue y el Project 3 fija estado y prioridad de cada fase.

@@ -11,6 +11,9 @@ const DATASET_NAME = 'EMAIL_V1';
 const EMAIL_SOURCE_TYPE = 'EMAIL_MESSAGE';
 const REVIEW_TARGET_TYPE = 'EMAIL_MESSAGE';
 const PAGE_SIZE = 50;
+const REVIEW_PARTITIONS = ['TRAIN', 'VALIDATION', 'HOLDOUT'] as const;
+
+type ReviewPartition = (typeof REVIEW_PARTITIONS)[number];
 
 @Injectable()
 export class AiEvidenceService {
@@ -39,7 +42,13 @@ export class AiEvidenceService {
     };
   }
 
-  async reviewQueue(userId: string, cursor?: string) {
+  async reviewQueue(userId: string, cursor?: string, partition?: string) {
+    if (
+      partition &&
+      !REVIEW_PARTITIONS.includes(partition as ReviewPartition)
+    ) {
+      throw new BadRequestException('Partición de revisión inválida');
+    }
     const dataset = await this.ensureDataset();
     await this.ensureDatasetItems(userId, dataset.id);
     const cursorValues = this.parseCursor(cursor);
@@ -48,10 +57,45 @@ export class AiEvidenceService {
       distinct: ['targetId'],
       select: { targetId: true },
     });
+    const reviewedIds = reviewed.map(({ targetId }) => targetId);
+    const pendingWhere = {
+      datasetId: dataset.id,
+      userId,
+      sourceType: EMAIL_SOURCE_TYPE,
+      ...(reviewedIds.length ? { sourceId: { notIn: reviewedIds } } : {}),
+    };
+    const [partitionCounts, pendingItems] = await Promise.all([
+      this.prisma.aiDatasetItem.groupBy({
+        by: ['partition'],
+        where: pendingWhere,
+        _count: { _all: true },
+      }),
+      this.prisma.aiDatasetItem.findMany({
+        where: {
+          ...pendingWhere,
+          ...(partition ? { partition: partition as ReviewPartition } : {}),
+        },
+        select: { sourceId: true, partition: true },
+      }),
+    ]);
+    const counts = {
+      TRAIN:
+        partitionCounts.find((item) => item.partition === 'TRAIN')?._count
+          ._all ?? 0,
+      VALIDATION:
+        partitionCounts.find((item) => item.partition === 'VALIDATION')?._count
+          ._all ?? 0,
+      HOLDOUT:
+        partitionCounts.find((item) => item.partition === 'HOLDOUT')?._count
+          ._all ?? 0,
+    };
+    const partitionByMessageId = new Map(
+      pendingItems.map((item) => [item.sourceId, item.partition]),
+    );
     const messages = await this.prisma.aiEmailMessage.findMany({
       where: {
         userId,
-        id: { notIn: reviewed.map(({ targetId }) => targetId) },
+        id: { in: pendingItems.map(({ sourceId }) => sourceId) },
         ...(cursorValues
           ? {
               OR: [
@@ -78,19 +122,6 @@ export class AiEvidenceService {
     });
     const hasMore = messages.length > PAGE_SIZE;
     const pageMessages = hasMore ? messages.slice(0, PAGE_SIZE) : messages;
-    const messageIds = pageMessages.map(({ id }) => id);
-    const datasetItems = await this.prisma.aiDatasetItem.findMany({
-      where: {
-        datasetId: dataset.id,
-        userId,
-        sourceType: EMAIL_SOURCE_TYPE,
-        sourceId: { in: messageIds },
-      },
-      select: { sourceId: true, partition: true },
-    });
-    const partitionByMessageId = new Map(
-      datasetItems.map((item) => [item.sourceId, item.partition]),
-    );
     const rows = pageMessages.flatMap((message) => {
       const partition = partitionByMessageId.get(message.id);
       return partition ? [{ ...message, partition }] : [];
@@ -98,6 +129,10 @@ export class AiEvidenceService {
     const last = pageMessages.at(-1);
     return {
       items: rows,
+      counts: {
+        ...counts,
+        all: counts.TRAIN + counts.VALIDATION + counts.HOLDOUT,
+      },
       hasMore,
       nextCursor:
         hasMore && last

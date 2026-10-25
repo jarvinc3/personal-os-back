@@ -19,8 +19,9 @@ export class AiEvidenceController {
   reviewQueue(
     @CurrentUser() user: { sub: string },
     @Query('cursor') cursor?: string,
+    @Query('partition') partition?: string,
   ) {
-    return this.evidence.reviewQueue(user.sub, cursor);
+    return this.evidence.reviewQueue(user.sub, cursor, partition);
   }
 
   @Post('messages/:messageId/verifications')

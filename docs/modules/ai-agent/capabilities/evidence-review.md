@@ -9,9 +9,9 @@ Los runs pertenecen a la cuenta y congelan dataset, modo, versiones, configuraci
 ## HTTP
 
 - `GET /api/intelligence/dataset`: conteos privados de particiones para la cuenta autenticada.
-- `GET /api/intelligence/review-queue?cursor=...`: cola keyset-paginada de mensajes aún no verificados, ordenada por fecha recibida ascendente (del correo más antiguo al más reciente).
+- `GET /api/intelligence/review-queue?partition=TRAIN|VALIDATION|HOLDOUT&cursor=...`: cola keyset-paginada de mensajes aún no verificados, ordenada por fecha recibida ascendente; devuelve conteos pendientes por partición y total.
 - `POST /api/intelligence/messages/:messageId/verifications`: agrega `CONFIRMED`, `CORRECTED` o `REJECTED`, etiquetas rápidas y nota.
 - `GET /api/intelligence/runs`: historial de runs del usuario, con versiones, watermarks y configuración capturada.
 - `GET /api/intelligence/messages/:messageId`: ahora incluye observaciones y verificaciones de ese mensaje como procedencia.
 
-La cola, el detalle y las verificaciones se consultan con `userId` en cada acceso. La paginación usa `receivedAt` e ID como cursor estable. Rechazar saca el mensaje de la cola pero conserva su motivo e historial. Esta fase registra evidencia y etiquetas; la proyección de conocimiento se implementa en AI-4 y el análisis de correo en AI-5.
+La cola, el detalle y las verificaciones se consultan con `userId` en cada acceso. La paginación usa `receivedAt` e ID como cursor estable. Los conteos consideran solo mensajes pendientes, y el filtro se conserva al cargar más páginas. Rechazar saca el mensaje de la cola pero conserva su motivo e historial. Esta fase registra evidencia y etiquetas; la proyección de conocimiento se implementa en AI-4 y el análisis de correo en AI-5.

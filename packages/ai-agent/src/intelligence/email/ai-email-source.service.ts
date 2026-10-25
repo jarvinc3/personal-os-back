@@ -382,7 +382,8 @@ export class AiEmailSourceService {
       status: 'waiting' | 'retrying';
       retryAt?: number;
       attempt: number;
-    }) => void,
+      errorCategory: 'rate_limit' | 'temporary';
+    }) => void | Promise<void>,
   ): Promise<T> {
     for (let attempt = 0; ; attempt += 1) {
       const response = await fetch(`${GMAIL_API}${path}`, {
@@ -418,13 +419,28 @@ export class AiEmailSourceService {
         const retryDelay = Number.isFinite(retryAfterSeconds)
           ? Math.min(30_000, Math.max(0, retryAfterSeconds * 1_000))
           : GMAIL_API_BASE_RETRY_MS * 2 ** attempt;
-        onRetryState?.({
+        await onRetryState?.({
           status: 'waiting',
           retryAt: Date.now() + retryDelay,
           attempt: attempt + 1,
+          errorCategory:
+            response.status === 429 ||
+            providerCode === 'rateLimitExceeded' ||
+            providerCode === 'userRateLimitExceeded'
+              ? 'rate_limit'
+              : 'temporary',
         });
         await new Promise((resolve) => setTimeout(resolve, retryDelay));
-        onRetryState?.({ status: 'retrying', attempt: attempt + 1 });
+        await onRetryState?.({
+          status: 'retrying',
+          attempt: attempt + 1,
+          errorCategory:
+            response.status === 429 ||
+            providerCode === 'rateLimitExceeded' ||
+            providerCode === 'userRateLimitExceeded'
+              ? 'rate_limit'
+              : 'temporary',
+        });
         continue;
       }
       throw new BadRequestException({

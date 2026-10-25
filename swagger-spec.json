@@ -528,6 +528,35 @@
         ]
       }
     },
+    "/api/intelligence/email/reset": {
+      "post": {
+        "operationId": "AiIntelligenceController_resetEmailCorpus",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResetEmailCorpusDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "tags": [
+          "intelligence"
+        ]
+      }
+    },
     "/api/intelligence/email/oauth/callback": {
       "get": {
         "operationId": "AiIntelligenceController_callback",
@@ -591,6 +620,14 @@
         "parameters": [
           {
             "name": "cursor",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "partition",
             "required": true,
             "in": "query",
             "schema": {
@@ -6403,6 +6440,10 @@
         "properties": {}
       },
       "UpdateConsentDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "ResetEmailCorpusDto": {
         "type": "object",
         "properties": {}
       },

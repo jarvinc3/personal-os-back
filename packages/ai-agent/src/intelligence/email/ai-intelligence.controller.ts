@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  Body,
   Controller,
   Get,
   HttpCode,
@@ -15,6 +16,7 @@ import { CurrentUser, Public, Timeout } from '@personal-os/core';
 import type { Response } from 'express';
 import { AiEmailSourceService } from './ai-email-source.service';
 import { GmailSyncService } from './gmail-sync.service';
+import { ResetEmailCorpusDto } from './dto/reset-email-corpus.dto';
 
 @ApiTags('intelligence')
 @ApiBearerAuth('access-token')
@@ -30,15 +32,14 @@ export class AiIntelligenceController {
   dashboard(@CurrentUser() user: { sub: string }) {
     return Promise.all([
       this.email.dashboard(user.sub),
-      this.sync.isSyncingForUser(user.sub),
-      this.sync.getProgressForUser(user.sub),
-    ]).then(([dashboard, syncInProgress, syncProgress]) => {
+      this.sync.getSyncSnapshotForUser(user.sub),
+    ]).then(([dashboard, syncSnapshot]) => {
       if (!dashboard.connection.connected) {
         return dashboard;
       }
       return {
         ...dashboard,
-        connection: { ...dashboard.connection, syncInProgress, syncProgress },
+        connection: { ...dashboard.connection, ...syncSnapshot },
       };
     });
   }
@@ -70,6 +71,17 @@ export class AiIntelligenceController {
   @HttpCode(202)
   syncNow(@CurrentUser() user: { sub: string }) {
     return this.sync.syncForUser(user.sub);
+  }
+
+  @Post('email/reset')
+  resetEmailCorpus(
+    @CurrentUser() user: { sub: string },
+    @Body() dto: ResetEmailCorpusDto,
+  ) {
+    if (dto.confirmed !== true) {
+      throw new BadRequestException('Confirma el reinicio del correo');
+    }
+    return this.sync.resetEmailCorpus(user.sub);
   }
 
   @Get('email/oauth/callback')

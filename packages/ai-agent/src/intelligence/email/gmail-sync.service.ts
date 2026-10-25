@@ -1,4 +1,5 @@
 import {
+  ConflictException,
   HttpException,
   Injectable,
   Logger,
@@ -6,8 +7,10 @@ import {
   OnModuleInit,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import type { Env } from '@personal-os/config';
-import { PrismaService } from '@personal-os/database';
+import { AppEvents } from '@personal-os/core';
+import { Prisma, PrismaService } from '@personal-os/database';
 import { createHash } from 'node:crypto';
 import { AiEmailSourceService } from './ai-email-source.service';
 
@@ -19,14 +22,29 @@ const RAW_RETENTION_PROD_DAYS = 7;
 const GMAIL_MESSAGE_FETCH_CONCURRENCY = 3;
 
 type GmailSyncProgress = {
-  status: 'waiting' | 'retrying';
-  retryAt?: number;
+  status:
+    'running' | 'waiting' | 'retrying' | 'scheduled' | 'completed' | 'failed';
+  phase: 'bootstrap' | 'incremental' | 'recovery';
   attempt: number;
+  processedThisRun: number;
+  importedThisRun: number;
+  batchSize?: number;
+  totalEstimate?: number;
+  retryAt?: number;
+  nextRunAt?: number;
+  errorCode?: string;
+  errorCategory?:
+    'authorization' | 'configuration' | 'rate_limit' | 'temporary' | 'unknown';
+  startedAt: string;
+  updatedAt: string;
 };
+
+type GmailSyncProgressPatch = Partial<GmailSyncProgress>;
 
 type GmailMessageList = {
   messages?: Array<{ id: string; threadId?: string }>;
   nextPageToken?: string;
+  resultSizeEstimate?: number;
 };
 
 type GmailHistoryPage = {
@@ -58,19 +76,27 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
   private timer?: NodeJS.Timeout;
   private running = false;
   private readonly activeSyncConnections = new Set<string>();
+  private readonly resettingConnections = new Set<string>();
   private readonly syncProgress = new Map<string, GmailSyncProgress>();
+  private readonly syncStateWrites = new Map<string, Promise<void>>();
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly source: AiEmailSourceService,
     private readonly config: ConfigService<Env, true>,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   onModuleInit(): void {
-    if (
-      this.config.get('NODE_ENV', { infer: true }) === 'test' ||
-      !this.source.oauthDiagnostics().configured
-    ) {
+    if (this.config.get('NODE_ENV', { infer: true }) === 'test') {
+      return;
+    }
+    void this.markInterruptedSyncs().catch((error: unknown) => {
+      this.logger.warn(
+        `Unable to recover Gmail sync state: ${this.safeErrorCode(error)}`,
+      );
+    });
+    if (!this.source.oauthDiagnostics().configured) {
       return;
     }
     const intervalMinutes = this.config.get('AI_EMAIL_SYNC_INTERVAL_MINUTES', {
@@ -108,19 +134,103 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
   }
 
   async isSyncingForUser(userId: string) {
-    const connection = await this.prisma.aiEmailConnection.findUnique({
-      where: { userId },
-      select: { id: true },
-    });
-    return connection ? this.activeSyncConnections.has(connection.id) : false;
+    return (await this.getSyncSnapshotForUser(userId)).syncInProgress;
   }
 
   async getProgressForUser(userId: string) {
+    return (await this.getSyncSnapshotForUser(userId)).syncProgress;
+  }
+
+  async getSyncSnapshotForUser(userId: string) {
     const connection = await this.prisma.aiEmailConnection.findUnique({
       where: { userId },
-      select: { id: true },
+      select: { id: true, syncState: true },
     });
-    return connection ? (this.syncProgress.get(connection.id) ?? null) : null;
+    const stored = connection?.syncState;
+    const syncProgress = stored
+      ? (stored as unknown as GmailSyncProgress)
+      : null;
+    return {
+      syncProgress,
+      syncInProgress:
+        Boolean(connection && this.activeSyncConnections.has(connection.id)) ||
+        syncProgress?.status === 'running' ||
+        syncProgress?.status === 'waiting' ||
+        syncProgress?.status === 'retrying',
+    };
+  }
+
+  async resetEmailCorpus(userId: string) {
+    const connection = await this.prisma.aiEmailConnection.findUnique({
+      where: { userId },
+      select: { id: true, syncState: true },
+    });
+    if (!connection) {
+      return { connected: false, deletedMessages: 0 };
+    }
+    if (this.activeSyncConnections.has(connection.id)) {
+      throw new ConflictException(
+        'Espera a que termine la sincronización antes de reiniciar el correo.',
+      );
+    }
+    const existingState = connection.syncState as GmailSyncProgress | null;
+    if (
+      existingState &&
+      ['running', 'waiting', 'retrying'].includes(existingState.status)
+    ) {
+      throw new ConflictException(
+        'La sincronización sigue activa. Actualiza el estado e inténtalo de nuevo.',
+      );
+    }
+    this.resettingConnections.add(connection.id);
+    try {
+      const deletedMessages = await this.prisma.$transaction(async (tx) => {
+        const dataset = await tx.aiDataset.findUnique({
+          where: { name: 'EMAIL_V1' },
+          select: { id: true },
+        });
+        if (dataset) {
+          await tx.aiAnalysisRun.deleteMany({
+            where: { userId, datasetId: dataset.id },
+          });
+          await tx.aiDatasetItem.deleteMany({
+            where: {
+              datasetId: dataset.id,
+              userId,
+              sourceType: 'EMAIL_MESSAGE',
+            },
+          });
+        }
+        await tx.aiKnowledgeObservation.deleteMany({
+          where: { userId, sourceType: 'EMAIL_MESSAGE' },
+        });
+        await tx.aiHumanVerification.deleteMany({
+          where: { userId, targetType: 'EMAIL_MESSAGE' },
+        });
+        const deleted = await tx.aiEmailMessage.deleteMany({
+          where: { userId, connectionId: connection.id },
+        });
+        await tx.aiEmailConnection.update({
+          where: { id: connection.id },
+          data: {
+            providerCursor: null,
+            bootstrapPageToken: null,
+            bootstrapStartedAt: null,
+            initialSyncCompletedAt: null,
+            lastSyncedAt: null,
+            lastRecoverySyncAt: null,
+            importedMessageCount: 0,
+            lastSyncErrorCode: null,
+            syncState: Prisma.DbNull,
+          },
+        });
+        return deleted.count;
+      });
+      this.syncProgress.delete(connection.id);
+      return { connected: true, deletedMessages };
+    } finally {
+      this.resettingConnections.delete(connection.id);
+    }
   }
 
   async syncAllActiveConnections(): Promise<void> {
@@ -149,6 +259,9 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
   }
 
   async syncConnection(connectionId: string) {
+    if (this.resettingConnections.has(connectionId)) {
+      return { connected: false, imported: 0, resetInProgress: true };
+    }
     if (this.activeSyncConnections.has(connectionId)) {
       return {
         connected: true,
@@ -162,12 +275,14 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
       return await this.runSyncConnection(connectionId);
     } finally {
       this.activeSyncConnections.delete(connectionId);
-      this.syncProgress.delete(connectionId);
     }
   }
 
   private startSyncConnection(connectionId: string) {
-    if (this.activeSyncConnections.has(connectionId)) {
+    if (
+      this.activeSyncConnections.has(connectionId) ||
+      this.resettingConnections.has(connectionId)
+    ) {
       return false;
     }
     this.activeSyncConnections.add(connectionId);
@@ -179,7 +294,6 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
       })
       .finally(() => {
         this.activeSyncConnections.delete(connectionId);
-        this.syncProgress.delete(connectionId);
       });
     return true;
   }
@@ -191,6 +305,23 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
     if (!connection?.isActive) {
       return { connected: false, imported: 0 };
     }
+    const phase = connection.initialSyncCompletedAt
+      ? 'incremental'
+      : 'bootstrap';
+    await this.updateSyncProgress(connection.id, connection.userId, {
+      status: 'running',
+      phase,
+      attempt: 0,
+      processedThisRun: 0,
+      importedThisRun: 0,
+      batchSize: 0,
+      totalEstimate: undefined,
+      retryAt: undefined,
+      nextRunAt: undefined,
+      errorCode: undefined,
+      errorCategory: undefined,
+      startedAt: new Date().toISOString(),
+    });
     try {
       await this.prisma.aiEmailConnection.update({
         where: { id: connectionId },
@@ -207,6 +338,18 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
           lastSyncErrorCode: null,
         },
       });
+      const intervalMinutes = this.config.get(
+        'AI_EMAIL_SYNC_INTERVAL_MINUTES',
+        { infer: true },
+      );
+      await this.updateSyncProgress(connection.id, connection.userId, {
+        status: result.bootstrapComplete ? 'completed' : 'scheduled',
+        phase: this.syncProgress.get(connection.id)?.phase ?? phase,
+        nextRunAt: result.bootstrapComplete
+          ? undefined
+          : Date.now() + intervalMinutes * 60_000,
+        retryAt: undefined,
+      });
       return { connected: true, ...result };
     } catch (error) {
       const code = this.safeErrorCode(error);
@@ -214,7 +357,106 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
         where: { id: connectionId },
         data: { lastSyncErrorCode: code },
       });
+      await this.updateSyncProgress(connection.id, connection.userId, {
+        status: 'failed',
+        errorCode: code,
+        errorCategory: this.classifyError(code),
+        retryAt: undefined,
+        nextRunAt: undefined,
+      });
       throw error;
+    }
+  }
+
+  private async updateSyncProgress(
+    connectionId: string,
+    userId: string,
+    patch: GmailSyncProgressPatch,
+    delta?: { processed: number; imported: number },
+  ) {
+    const previousWrite =
+      this.syncStateWrites.get(connectionId) ?? Promise.resolve();
+    const nextWrite = previousWrite.then(async () => {
+      const current = this.syncProgress.get(connectionId) ?? {
+        status: 'running' as const,
+        phase: 'bootstrap' as const,
+        attempt: 0,
+        processedThisRun: 0,
+        importedThisRun: 0,
+        startedAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      const state: GmailSyncProgress = {
+        ...current,
+        ...patch,
+        processedThisRun:
+          (patch.processedThisRun ?? current.processedThisRun) +
+          (delta?.processed ?? 0),
+        importedThisRun:
+          (patch.importedThisRun ?? current.importedThisRun) +
+          (delta?.imported ?? 0),
+        updatedAt: new Date().toISOString(),
+      };
+      this.syncProgress.set(connectionId, state);
+      await this.prisma.aiEmailConnection.update({
+        where: { id: connectionId },
+        data: { syncState: JSON.parse(JSON.stringify(state)) },
+      });
+      this.eventEmitter.emit(AppEvents.AI_EMAIL_SYNC_UPDATED, {
+        userId,
+        state,
+      });
+    });
+    this.syncStateWrites.set(
+      connectionId,
+      nextWrite.catch(() => undefined),
+    );
+    await nextWrite;
+  }
+
+  private classifyError(code: string): GmailSyncProgress['errorCategory'] {
+    if (
+      /invalid_grant|token_refresh|refresh_token|unauthorized|http_401/i.test(
+        code,
+      )
+    ) {
+      return 'authorization';
+    }
+    if (
+      /not_configured|missing_configuration|redirect_uri_mismatch/i.test(code)
+    ) {
+      return 'configuration';
+    }
+    if (/rateLimit|quota|userRateLimit|http_429/i.test(code)) {
+      return 'rate_limit';
+    }
+    if (/timeout|network|fetch|http_5\d\d|unavailable/i.test(code)) {
+      return 'temporary';
+    }
+    return 'unknown';
+  }
+
+  private async markInterruptedSyncs() {
+    const connections = await this.prisma.aiEmailConnection.findMany({
+      where: { isActive: true },
+      select: { id: true, userId: true, syncState: true },
+    });
+    for (const connection of connections) {
+      const state = connection.syncState as GmailSyncProgress | null;
+      if (
+        !state ||
+        !['running', 'waiting', 'retrying'].includes(state.status)
+      ) {
+        continue;
+      }
+      this.syncProgress.set(connection.id, state);
+      await this.updateSyncProgress(connection.id, connection.userId, {
+        status: 'failed',
+        errorCode: 'worker_interrupted',
+        errorCategory: 'temporary',
+        retryAt: undefined,
+        nextRunAt: undefined,
+      });
     }
   }
 
@@ -234,13 +476,30 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
     const page = await this.source.gmailApiRequest<GmailMessageList>(
       accessToken,
       `/users/me/messages?${query}`,
-      (state) => this.syncProgress.set(connection.id, state),
+      (state) =>
+        this.updateSyncProgress(connection.id, connection.userId, {
+          ...state,
+          retryAt: state.retryAt,
+        }),
     );
+    await this.updateSyncProgress(connection.id, connection.userId, {
+      status: 'running',
+      batchSize: page.messages?.length ?? 0,
+      totalEstimate: page.resultSizeEstimate,
+    });
     const imported = await this.importMessageBatch(
       connection.id,
       connection.userId,
       accessToken,
       page.messages ?? [],
+      async (processed, importedCount) => {
+        await this.updateSyncProgress(
+          connection.id,
+          connection.userId,
+          { status: 'running' },
+          { processed, imported: importedCount },
+        );
+      },
     );
     await this.prisma.aiEmailConnection.update({
       where: { id: connection.id },
@@ -266,6 +525,9 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
     accessToken: string,
   ) {
     if (!connection.providerCursor) {
+      await this.updateSyncProgress(connection.id, connection.userId, {
+        phase: 'recovery',
+      });
       return this.recoverFromCursor(connection, accessToken);
     }
 
@@ -306,6 +568,14 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
         connection.userId,
         accessToken,
         ids,
+        async (processed, importedCount) => {
+          await this.updateSyncProgress(
+            connection.id,
+            connection.userId,
+            { status: 'running', batchSize: ids.length },
+            { processed, imported: importedCount },
+          );
+        },
       );
       pageToken = page.nextPageToken;
     } while (pageToken);
@@ -329,7 +599,12 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
     const profile = await this.source.gmailApiRequest<{ historyId?: string }>(
       accessToken,
       '/users/me/profile',
-      (state) => this.syncProgress.set(connection.id, state),
+      (state) =>
+        this.updateSyncProgress(connection.id, connection.userId, {
+          ...state,
+          phase: 'recovery',
+          retryAt: state.retryAt,
+        }),
     );
     const nowSeconds = Math.floor(Date.now() / 1000);
     const startSeconds = Math.floor(
@@ -353,13 +628,33 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
       const page = await this.source.gmailApiRequest<GmailMessageList>(
         accessToken,
         `/users/me/messages?${query}`,
-        (state) => this.syncProgress.set(connection.id, state),
+        (state) =>
+          this.updateSyncProgress(connection.id, connection.userId, {
+            ...state,
+            status: state.status,
+            phase: 'recovery',
+            retryAt: state.retryAt,
+          }),
       );
+      await this.updateSyncProgress(connection.id, connection.userId, {
+        status: 'running',
+        phase: 'recovery',
+        batchSize: page.messages?.length ?? 0,
+        totalEstimate: page.resultSizeEstimate,
+      });
       imported += await this.importMessageBatch(
         connection.id,
         connection.userId,
         accessToken,
         page.messages ?? [],
+        async (processed, importedCount) => {
+          await this.updateSyncProgress(
+            connection.id,
+            connection.userId,
+            { status: 'running', phase: 'recovery' },
+            { processed, imported: importedCount },
+          );
+        },
       );
       pageToken = page.nextPageToken;
       if (pageToken) {
@@ -385,8 +680,11 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
     userId: string,
     accessToken: string,
     refs: Array<{ id: string; threadId?: string }>,
+    onBatchProgress?: (processed: number, imported: number) => Promise<void>,
   ) {
     let imported = 0;
+    let unreportedProcessed = 0;
+    let unreportedImported = 0;
     for (
       let offset = 0;
       offset < refs.length;
@@ -414,7 +712,11 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
             const message = await this.source.gmailApiRequest<GmailMessage>(
               accessToken,
               `/users/me/messages/${encodeURIComponent(ref.id)}?format=full`,
-              (state) => this.syncProgress.set(connectionId, state),
+              (state) =>
+                this.updateSyncProgress(connectionId, userId, {
+                  ...state,
+                  retryAt: state.retryAt,
+                }),
             );
             return this.persistMessage(connectionId, userId, message);
           } catch (error) {
@@ -425,7 +727,19 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
           }
         }),
       );
-      imported += counts.reduce((sum, count) => sum + count, 0 as number);
+      const batchImported = counts.reduce<number>(
+        (sum, count) => sum + count,
+        0,
+      );
+      imported += batchImported;
+      unreportedProcessed += batch.length;
+      unreportedImported += batchImported;
+      const isLastBatch = offset + batch.length >= refs.length;
+      if (unreportedProcessed >= 30 || isLastBatch) {
+        await onBatchProgress?.(unreportedProcessed, unreportedImported);
+        unreportedProcessed = 0;
+        unreportedImported = 0;
+      }
     }
     return imported;
   }

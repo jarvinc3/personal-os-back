@@ -24,6 +24,7 @@ import {
   type NotificationCopy,
 } from '../domain/notification-copy';
 import { NotificationsService } from './notifications.service';
+import { NotificationsGateway } from '../presentation/notifications.gateway';
 
 const FINANCE_MODULE_SLUG = 'finance';
 const TRANSFER_SOURCE_LEG = 'SOURCE';
@@ -124,6 +125,11 @@ type SubscriptionRenewalEvent = {
   daysUntil?: number;
 };
 
+type AiEmailSyncUpdatedEvent = {
+  userId: string;
+  state: Record<string, unknown>;
+};
+
 type BalanceDriftEvent = {
   eventId?: string;
   userId: string;
@@ -143,7 +149,19 @@ export class NotificationsEventsListener {
   constructor(
     private readonly notificationsService: NotificationsService,
     private readonly idempotency: DomainEventIdempotencyGuard,
+    private readonly notificationsGateway: NotificationsGateway,
   ) {}
+
+  @OnEvent(AppEvents.AI_EMAIL_SYNC_UPDATED)
+  onAiEmailSyncUpdated(event: AiEmailSyncUpdatedEvent): void {
+    this.notificationsGateway.emitToUser(
+      event.userId,
+      'ai.email.sync.updated',
+      {
+        state: event.state,
+      },
+    );
+  }
 
   @OnEvent(AppEvents.NOTIFICATION_CREATED)
   onNotificationCreated(event: NotificationCreatedEvent): void {
