@@ -6,6 +6,8 @@ The first sync paginates from 2026-01-01. Later syncs use the persisted Gmail hi
 
 Sync progress is persisted on the user's connection so refreshes can recover its current stage, page counters, retry wait, next scheduled tick, and safe failure category. The authenticated notifications socket emits `ai.email.sync.updated` to the owning user's room; the REST dashboard remains the durable snapshot. The scheduler resumes the next bootstrap page every configured interval (10 minutes by default), so a completed page with more history is shown as scheduled rather than stopped.
 
+Gmail quota errors honor the provider's `Retry-After` value, bounded between 1 and 30 seconds. When Gmail omits it, the backend shows a visible exponential wait of 5, 10, and 20 seconds before its three retries.
+
 Endpoints:
 
 - `GET /api/intelligence`: connection, counts, current role, and first/latest received-message dates.

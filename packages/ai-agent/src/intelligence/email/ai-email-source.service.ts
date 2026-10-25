@@ -15,6 +15,7 @@ const GMAIL_TOKEN_URL = 'https://oauth2.googleapis.com/token';
 const GMAIL_API = 'https://gmail.googleapis.com/gmail/v1';
 const GMAIL_API_MAX_RETRIES = 3;
 const GMAIL_API_BASE_RETRY_MS = 1_000;
+const GMAIL_API_RATE_LIMIT_RETRY_MS = 5_000;
 const GMAIL_SCOPES = [
   'https://www.googleapis.com/auth/gmail.readonly',
   'https://www.googleapis.com/auth/userinfo.email',
@@ -410,6 +411,10 @@ export class AiEmailSourceService {
           .find(Boolean) ??
         body.error?.status ??
         `http_${response.status}`;
+      const isRateLimit =
+        response.status === 429 ||
+        providerCode === 'rateLimitExceeded' ||
+        providerCode === 'userRateLimitExceeded';
       if (
         attempt < GMAIL_API_MAX_RETRIES &&
         this.isRetryableGmailError(response.status, providerCode)
@@ -417,29 +422,22 @@ export class AiEmailSourceService {
         const retryAfter = response.headers.get('retry-after');
         const retryAfterSeconds = retryAfter ? Number(retryAfter) : Number.NaN;
         const retryDelay = Number.isFinite(retryAfterSeconds)
-          ? Math.min(30_000, Math.max(0, retryAfterSeconds * 1_000))
-          : GMAIL_API_BASE_RETRY_MS * 2 ** attempt;
+          ? Math.min(30_000, Math.max(1_000, retryAfterSeconds * 1_000))
+          : (isRateLimit
+              ? GMAIL_API_RATE_LIMIT_RETRY_MS
+              : GMAIL_API_BASE_RETRY_MS) *
+            2 ** attempt;
         await onRetryState?.({
           status: 'waiting',
           retryAt: Date.now() + retryDelay,
           attempt: attempt + 1,
-          errorCategory:
-            response.status === 429 ||
-            providerCode === 'rateLimitExceeded' ||
-            providerCode === 'userRateLimitExceeded'
-              ? 'rate_limit'
-              : 'temporary',
+          errorCategory: isRateLimit ? 'rate_limit' : 'temporary',
         });
         await new Promise((resolve) => setTimeout(resolve, retryDelay));
         await onRetryState?.({
           status: 'retrying',
           attempt: attempt + 1,
-          errorCategory:
-            response.status === 429 ||
-            providerCode === 'rateLimitExceeded' ||
-            providerCode === 'userRateLimitExceeded'
-              ? 'rate_limit'
-              : 'temporary',
+          errorCategory: isRateLimit ? 'rate_limit' : 'temporary',
         });
         continue;
       }
