@@ -21,6 +21,10 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [Se
 - La baseline conserva SQL manual, RLS/grants, triggers y el índice parcial de transferencias. Se aplicó en DEV junto con el reset autorizado de datos de prueba; PROD no recibió escrituras.
 - La eliminación directa de un usuario en Supabase Auth elimina ahora su perfil de `public.users` y los datos de aplicación sujetos a sus FKs en cascada. El endpoint propio conserva su borrado app-first con outbox.
 
+### Cambiado
+
+- Se reescribe el README con banner, módulos, arquitectura, arranque, scripts y enlaces a los repos hermanos; se añade licencia MIT y archivos de comunidad (CONTRIBUTING, SECURITY y plantilla de PR).
+
 ## [0.55.3] - 2026-10-24
 
 ### Cambiado
