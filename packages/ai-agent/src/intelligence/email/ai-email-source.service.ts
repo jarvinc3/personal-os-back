@@ -159,7 +159,47 @@ export class AiEmailSourceService {
       // Avoid confirming that another user's message exists.
       throw new NotFoundException('Mensaje no encontrado');
     }
-    return message;
+    const [observations, verifications] = await Promise.all([
+      this.prisma.aiKnowledgeObservation.findMany({
+        where: { userId, sourceType: 'EMAIL_MESSAGE', sourceId: messageId },
+        orderBy: { sequence: 'asc' },
+        select: {
+          sequence: true,
+          runId: true,
+          knowledgeType: true,
+          knowledgeKey: true,
+          proposedScope: true,
+          payload: true,
+          createdAt: true,
+        },
+      }),
+      this.prisma.aiHumanVerification.findMany({
+        where: { userId, targetType: 'EMAIL_MESSAGE', targetId: messageId },
+        orderBy: { sequence: 'asc' },
+        select: {
+          sequence: true,
+          verifierRole: true,
+          verdict: true,
+          correctedPayload: true,
+          notes: true,
+          isGroundTruth: true,
+          createdAt: true,
+        },
+      }),
+    ]);
+    return {
+      ...message,
+      provenance: {
+        observations: observations.map((item) => ({
+          ...item,
+          sequence: item.sequence.toString(),
+        })),
+        verifications: verifications.map((item) => ({
+          ...item,
+          sequence: item.sequence.toString(),
+        })),
+      },
+    };
   }
 
   createAuthorizationUrl(userId: string): string {
@@ -326,7 +366,15 @@ export class AiEmailSourceService {
     return token.access_token;
   }
 
-  async gmailApiRequest<T>(accessToken: string, path: string): Promise<T> {
+  async gmailApiRequest<T>(
+    accessToken: string,
+    path: string,
+    onRetryState?: (state: {
+      status: 'waiting' | 'retrying';
+      retryAt?: number;
+      attempt: number;
+    }) => void,
+  ): Promise<T> {
     for (let attempt = 0; ; attempt += 1) {
       const response = await fetch(`${GMAIL_API}${path}`, {
         headers: { authorization: `Bearer ${accessToken}` },
@@ -361,7 +409,13 @@ export class AiEmailSourceService {
         const retryDelay = Number.isFinite(retryAfterSeconds)
           ? Math.min(30_000, Math.max(0, retryAfterSeconds * 1_000))
           : GMAIL_API_BASE_RETRY_MS * 2 ** attempt;
+        onRetryState?.({
+          status: 'waiting',
+          retryAt: Date.now() + retryDelay,
+          attempt: attempt + 1,
+        });
         await new Promise((resolve) => setTimeout(resolve, retryDelay));
+        onRetryState?.({ status: 'retrying', attempt: attempt + 1 });
         continue;
       }
       throw new BadRequestException({

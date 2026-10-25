@@ -18,6 +18,12 @@ const RAW_RETENTION_DEV_DAYS = 30;
 const RAW_RETENTION_PROD_DAYS = 7;
 const GMAIL_MESSAGE_FETCH_CONCURRENCY = 3;
 
+type GmailSyncProgress = {
+  status: 'waiting' | 'retrying';
+  retryAt?: number;
+  attempt: number;
+};
+
 type GmailMessageList = {
   messages?: Array<{ id: string; threadId?: string }>;
   nextPageToken?: string;
@@ -52,6 +58,7 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
   private timer?: NodeJS.Timeout;
   private running = false;
   private readonly activeSyncConnections = new Set<string>();
+  private readonly syncProgress = new Map<string, GmailSyncProgress>();
 
   constructor(
     private readonly prisma: PrismaService,
@@ -105,9 +112,15 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
       where: { userId },
       select: { id: true },
     });
-    return connection
-      ? this.activeSyncConnections.has(connection.id)
-      : false;
+    return connection ? this.activeSyncConnections.has(connection.id) : false;
+  }
+
+  async getProgressForUser(userId: string) {
+    const connection = await this.prisma.aiEmailConnection.findUnique({
+      where: { userId },
+      select: { id: true },
+    });
+    return connection ? (this.syncProgress.get(connection.id) ?? null) : null;
   }
 
   async syncAllActiveConnections(): Promise<void> {
@@ -149,6 +162,7 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
       return await this.runSyncConnection(connectionId);
     } finally {
       this.activeSyncConnections.delete(connectionId);
+      this.syncProgress.delete(connectionId);
     }
   }
 
@@ -163,7 +177,10 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
           `Gmail sync failed for connection ${connectionId}: ${this.safeErrorCode(error)}`,
         );
       })
-      .finally(() => this.activeSyncConnections.delete(connectionId));
+      .finally(() => {
+        this.activeSyncConnections.delete(connectionId);
+        this.syncProgress.delete(connectionId);
+      });
     return true;
   }
 
@@ -217,6 +234,7 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
     const page = await this.source.gmailApiRequest<GmailMessageList>(
       accessToken,
       `/users/me/messages?${query}`,
+      (state) => this.syncProgress.set(connection.id, state),
     );
     const imported = await this.importMessageBatch(
       connection.id,
@@ -311,6 +329,7 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
     const profile = await this.source.gmailApiRequest<{ historyId?: string }>(
       accessToken,
       '/users/me/profile',
+      (state) => this.syncProgress.set(connection.id, state),
     );
     const nowSeconds = Math.floor(Date.now() / 1000);
     const startSeconds = Math.floor(
@@ -334,6 +353,7 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
       const page = await this.source.gmailApiRequest<GmailMessageList>(
         accessToken,
         `/users/me/messages?${query}`,
+        (state) => this.syncProgress.set(connection.id, state),
       );
       imported += await this.importMessageBatch(
         connection.id,
@@ -394,6 +414,7 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
             const message = await this.source.gmailApiRequest<GmailMessage>(
               accessToken,
               `/users/me/messages/${encodeURIComponent(ref.id)}?format=full`,
+              (state) => this.syncProgress.set(connectionId, state),
             );
             return this.persistMessage(connectionId, userId, message);
           } catch (error) {

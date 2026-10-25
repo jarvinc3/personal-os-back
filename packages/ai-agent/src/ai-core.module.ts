@@ -19,6 +19,8 @@ import { AiIntelligenceController } from './intelligence/email/ai-intelligence.c
 import { AiEmailSourceService } from './intelligence/email/ai-email-source.service';
 import { AiEmailRetentionScheduler } from './intelligence/email/ai-email-retention.scheduler';
 import { GmailSyncService } from './intelligence/email/gmail-sync.service';
+import { AiEvidenceController } from './intelligence/evidence/ai-evidence.controller';
+import { AiEvidenceService } from './intelligence/evidence/ai-evidence.service';
 
 /**
  * Provider kernel with no Finance/Notifications imports.
@@ -30,6 +32,7 @@ import { GmailSyncService } from './intelligence/email/gmail-sync.service';
     AiRolesController,
     AiConsentController,
     AiIntelligenceController,
+    AiEvidenceController,
   ],
   providers: [
     { provide: APP_GUARD, useClass: RolesGuard },
@@ -39,6 +42,7 @@ import { GmailSyncService } from './intelligence/email/gmail-sync.service';
     AiEmailSourceService,
     AiEmailRetentionScheduler,
     GmailSyncService,
+    AiEvidenceService,
     {
       provide: AI_PROVIDER,
       useFactory: (config: ConfigService<Env, true>) => {

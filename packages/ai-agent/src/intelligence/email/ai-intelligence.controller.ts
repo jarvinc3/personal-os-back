@@ -31,13 +31,14 @@ export class AiIntelligenceController {
     return Promise.all([
       this.email.dashboard(user.sub),
       this.sync.isSyncingForUser(user.sub),
-    ]).then(([dashboard, syncInProgress]) => {
+      this.sync.getProgressForUser(user.sub),
+    ]).then(([dashboard, syncInProgress, syncProgress]) => {
       if (!dashboard.connection.connected) {
         return dashboard;
       }
       return {
         ...dashboard,
-        connection: { ...dashboard.connection, syncInProgress },
+        connection: { ...dashboard.connection, syncInProgress, syncProgress },
       };
     });
   }

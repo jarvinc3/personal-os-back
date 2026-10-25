@@ -26,6 +26,10 @@ model User {
   aiSettings                     UserAiSettings?
   aiRole                         UserRole?
   grantedAiRoles                 UserRole[]                      @relation("AiRoleGrantedBy")
+  aiDatasetItems                 AiDatasetItem[]
+  aiAnalysisRuns                 AiAnalysisRun[]
+  aiKnowledgeObservations        AiKnowledgeObservation[]
+  aiHumanVerifications           AiHumanVerification[]
   finAccounts                    FinAccount[]
   finCards                       FinCard[]
   finInstitutions                FinInstitution[]
@@ -157,6 +161,134 @@ enum AiEmailProcessingStatus {
   FAILED
 
   @@map("ai_email_processing_status")
+}
+
+enum AiDatasetPartition {
+  TRAIN
+  VALIDATION
+  HOLDOUT
+
+  @@map("ai_dataset_partition")
+}
+
+enum AiAnalysisMode {
+  ANALYZE_ONLY
+  EVALUATE
+  IMPORT
+
+  @@map("ai_analysis_mode")
+}
+
+enum AiAnalysisRunStatus {
+  RUNNING
+  COMPLETED
+  FAILED
+
+  @@map("ai_analysis_run_status")
+}
+
+enum AiHumanVerificationVerdict {
+  CONFIRMED
+  CORRECTED
+  REJECTED
+
+  @@map("ai_human_verification_verdict")
+}
+
+model AiDataset {
+  id         String          @id @default(dbgenerated("(extensions.uuid_generate_v4())::text"))
+  name       String          @unique
+  purpose    String
+  sourceType String          @default("EMAIL") @map("source_type")
+  createdAt  DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  items      AiDatasetItem[]
+  runs       AiAnalysisRun[]
+
+  @@map("ai_datasets")
+}
+
+model AiDatasetItem {
+  id         String             @id @default(dbgenerated("(extensions.uuid_generate_v4())::text"))
+  datasetId  String             @map("dataset_id")
+  userId     String             @map("user_id")
+  sourceType String             @map("source_type")
+  sourceId   String             @map("source_id")
+  partition  AiDatasetPartition
+  createdAt  DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  dataset    AiDataset          @relation(fields: [datasetId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  user       User               @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([datasetId, sourceType, sourceId], map: "ai_dataset_items_source_key")
+  @@index([datasetId, userId, partition, createdAt], map: "ai_dataset_items_user_partition_idx")
+  @@map("ai_dataset_items")
+}
+
+model AiAnalysisRun {
+  id                   String                   @id @default(dbgenerated("(extensions.uuid_generate_v4())::text"))
+  userId               String                   @map("user_id")
+  datasetId            String                   @map("dataset_id")
+  mode                 AiAnalysisMode           @default(ANALYZE_ONLY)
+  status               AiAnalysisRunStatus      @default(RUNNING)
+  observationSequence  BigInt                   @default(0) @map("observation_sequence")
+  verificationSequence BigInt                   @default(0) @map("verification_sequence")
+  projectorVersion     String                   @map("projector_version")
+  policyVersion        String                   @map("policy_version")
+  pipelineVersion      String                   @map("pipeline_version")
+  detectorVersion      String?                  @map("detector_version")
+  promptVersion        String?                  @map("prompt_version")
+  schemaVersion        String?                  @map("schema_version")
+  configuration        Json                     @default("{}")
+  metrics              Json?
+  error                String?
+  startedAt            DateTime                 @default(now()) @map("started_at") @db.Timestamptz(6)
+  completedAt          DateTime?                @map("completed_at") @db.Timestamptz(6)
+  createdAt            DateTime                 @default(now()) @map("created_at") @db.Timestamptz(6)
+  dataset              AiDataset                @relation(fields: [datasetId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  user                 User                     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  observations         AiKnowledgeObservation[]
+
+  @@index([userId, createdAt(sort: Desc)], map: "ai_analysis_runs_user_created_idx")
+  @@index([datasetId, status, createdAt(sort: Desc)], map: "ai_analysis_runs_dataset_status_idx")
+  @@map("ai_analysis_runs")
+}
+
+model AiKnowledgeObservation {
+  sequence      BigInt         @id @default(autoincrement())
+  runId         String?        @map("run_id")
+  userId        String?        @map("user_id")
+  knowledgeType String         @map("knowledge_type")
+  knowledgeKey  String         @map("knowledge_key")
+  proposedScope String         @map("proposed_scope")
+  sourceType    String         @map("source_type")
+  sourceId      String         @map("source_id")
+  inferenceId   String?        @map("inference_id")
+  payload       Json
+  weight        Float          @default(1)
+  createdAt     DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  run           AiAnalysisRun? @relation(fields: [runId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  user          User?          @relation(fields: [userId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+
+  @@index([userId, sequence], map: "ai_knowledge_observations_user_sequence_idx")
+  @@index([sourceType, sourceId, sequence], map: "ai_knowledge_observations_source_sequence_idx")
+  @@map("ai_knowledge_observations")
+}
+
+model AiHumanVerification {
+  sequence         BigInt                     @id @default(autoincrement())
+  userId           String                     @map("user_id")
+  verifierRole     AiUserRole                 @map("verifier_role")
+  targetType       String                     @map("target_type")
+  targetId         String                     @map("target_id")
+  verdict          AiHumanVerificationVerdict
+  correctedPayload Json?                      @map("corrected_payload")
+  notes            String?                    @db.Text
+  isGroundTruth    Boolean                    @default(false) @map("is_ground_truth")
+  createdAt        DateTime                   @default(now()) @map("created_at") @db.Timestamptz(6)
+  user             User                       @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([userId, targetType, targetId, sequence(sort: Desc)], map: "ai_human_verifications_user_target_idx")
+  @@index([targetType, targetId, sequence(sort: Desc)], map: "ai_human_verifications_target_idx")
+  @@map("ai_human_verifications")
 }
 
 model UserRole {
