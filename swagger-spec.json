@@ -312,6 +312,364 @@
         ]
       }
     },
+    "/api/ai/admin/roles": {
+      "get": {
+        "operationId": "AiRolesController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "tags": [
+          "intelligence-roles"
+        ]
+      }
+    },
+    "/api/ai/admin/roles/{userId}": {
+      "patch": {
+        "operationId": "AiRolesController_update",
+        "parameters": [
+          {
+            "name": "userId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateAiRoleDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "tags": [
+          "intelligence-roles"
+        ]
+      }
+    },
+    "/api/ai/preferences/consent": {
+      "get": {
+        "operationId": "AiConsentController_get",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "tags": [
+          "intelligence-preferences"
+        ]
+      },
+      "patch": {
+        "operationId": "AiConsentController_update",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateConsentDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "tags": [
+          "intelligence-preferences"
+        ]
+      }
+    },
+    "/api/intelligence": {
+      "get": {
+        "operationId": "AiIntelligenceController_dashboard",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "tags": [
+          "intelligence"
+        ]
+      }
+    },
+    "/api/intelligence/messages": {
+      "get": {
+        "operationId": "AiIntelligenceController_messages",
+        "parameters": [
+          {
+            "name": "cursor",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "tags": [
+          "intelligence"
+        ]
+      }
+    },
+    "/api/intelligence/messages/{messageId}": {
+      "get": {
+        "operationId": "AiIntelligenceController_message",
+        "parameters": [
+          {
+            "name": "messageId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "tags": [
+          "intelligence"
+        ]
+      }
+    },
+    "/api/intelligence/email/connect": {
+      "post": {
+        "operationId": "AiIntelligenceController_connect",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "tags": [
+          "intelligence"
+        ]
+      }
+    },
+    "/api/intelligence/email/sync": {
+      "post": {
+        "operationId": "AiIntelligenceController_syncNow",
+        "parameters": [],
+        "responses": {
+          "202": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "tags": [
+          "intelligence"
+        ]
+      }
+    },
+    "/api/intelligence/email/oauth/callback": {
+      "get": {
+        "operationId": "AiIntelligenceController_callback",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "tags": [
+          "intelligence"
+        ]
+      }
+    },
+    "/api/intelligence/email/oauth/diagnostics": {
+      "get": {
+        "operationId": "AiIntelligenceController_diagnostics",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "tags": [
+          "intelligence"
+        ]
+      }
+    },
+    "/api/intelligence/dataset": {
+      "get": {
+        "operationId": "AiEvidenceController_dataset",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "tags": [
+          "intelligence-evidence"
+        ]
+      }
+    },
+    "/api/intelligence/review-queue": {
+      "get": {
+        "operationId": "AiEvidenceController_reviewQueue",
+        "parameters": [
+          {
+            "name": "cursor",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "tags": [
+          "intelligence-evidence"
+        ]
+      }
+    },
+    "/api/intelligence/messages/{messageId}/verifications": {
+      "post": {
+        "operationId": "AiEvidenceController_verifyMessage",
+        "parameters": [
+          {
+            "name": "messageId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateHumanVerificationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "tags": [
+          "intelligence-evidence"
+        ]
+      }
+    },
+    "/api/intelligence/runs": {
+      "get": {
+        "operationId": "AiEvidenceController_runs",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "tags": [
+          "intelligence-evidence"
+        ]
+      }
+    },
     "/api/finance/currencies": {
       "get": {
         "operationId": "CurrenciesController_list",
@@ -6039,6 +6397,18 @@
         "required": [
           "branches"
         ]
+      },
+      "UpdateAiRoleDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "UpdateConsentDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreateHumanVerificationDto": {
+        "type": "object",
+        "properties": {}
       },
       "ChangeBaseCurrencyDto": {
         "type": "object",
