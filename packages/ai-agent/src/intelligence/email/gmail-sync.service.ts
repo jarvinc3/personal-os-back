@@ -16,6 +16,7 @@ const BOOTSTRAP_START = Math.floor(Date.UTC(2026, 0, 1) / 1000);
 const RECOVERY_WINDOW_MS = 7 * 86400_000;
 const RAW_RETENTION_DEV_DAYS = 30;
 const RAW_RETENTION_PROD_DAYS = 7;
+const GMAIL_MESSAGE_FETCH_CONCURRENCY = 3;
 
 type GmailMessageList = {
   messages?: Array<{ id: string; threadId?: string }>;
@@ -366,8 +367,15 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
     refs: Array<{ id: string; threadId?: string }>,
   ) {
     let imported = 0;
-    for (let offset = 0; offset < refs.length; offset += 10) {
-      const batch = refs.slice(offset, offset + 10);
+    for (
+      let offset = 0;
+      offset < refs.length;
+      offset += GMAIL_MESSAGE_FETCH_CONCURRENCY
+    ) {
+      const batch = refs.slice(
+        offset,
+        offset + GMAIL_MESSAGE_FETCH_CONCURRENCY,
+      );
       const counts = await Promise.all(
         batch.map(async (ref) => {
           const existing = await this.prisma.aiEmailMessage.findUnique({

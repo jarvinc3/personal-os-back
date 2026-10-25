@@ -13,6 +13,8 @@ import { decryptToken, encryptToken } from './token-encryption.util';
 const GMAIL_AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth';
 const GMAIL_TOKEN_URL = 'https://oauth2.googleapis.com/token';
 const GMAIL_API = 'https://gmail.googleapis.com/gmail/v1';
+const GMAIL_API_MAX_RETRIES = 3;
+const GMAIL_API_BASE_RETRY_MS = 1_000;
 const GMAIL_SCOPES = [
   'https://www.googleapis.com/auth/gmail.readonly',
   'https://www.googleapis.com/auth/userinfo.email',
@@ -325,21 +327,24 @@ export class AiEmailSourceService {
   }
 
   async gmailApiRequest<T>(accessToken: string, path: string): Promise<T> {
-    const response = await fetch(`${GMAIL_API}${path}`, {
-      headers: { authorization: `Bearer ${accessToken}` },
-    });
-    const body = (await response.json()) as {
-      error?: {
-        code?: number;
-        status?: string;
-        errors?: Array<{ reason?: string }>;
-        details?: Array<{
-          reason?: string;
-          metadata?: { reason?: string };
-        }>;
+    for (let attempt = 0; ; attempt += 1) {
+      const response = await fetch(`${GMAIL_API}${path}`, {
+        headers: { authorization: `Bearer ${accessToken}` },
+      });
+      const body = (await response.json().catch(() => ({}))) as {
+        error?: {
+          code?: number;
+          status?: string;
+          errors?: Array<{ reason?: string }>;
+          details?: Array<{
+            reason?: string;
+            metadata?: { reason?: string };
+          }>;
+        };
       };
-    };
-    if (!response.ok) {
+      if (response.ok) {
+        return body as T;
+      }
       const providerCode =
         body.error?.errors?.find((entry) => entry.reason)?.reason ??
         body.error?.details
@@ -347,13 +352,33 @@ export class AiEmailSourceService {
           .find(Boolean) ??
         body.error?.status ??
         `http_${response.status}`;
+      if (
+        attempt < GMAIL_API_MAX_RETRIES &&
+        this.isRetryableGmailError(response.status, providerCode)
+      ) {
+        const retryAfter = response.headers.get('retry-after');
+        const retryAfterSeconds = retryAfter ? Number(retryAfter) : Number.NaN;
+        const retryDelay = Number.isFinite(retryAfterSeconds)
+          ? Math.min(30_000, Math.max(0, retryAfterSeconds * 1_000))
+          : GMAIL_API_BASE_RETRY_MS * 2 ** attempt;
+        await new Promise((resolve) => setTimeout(resolve, retryDelay));
+        continue;
+      }
       throw new BadRequestException({
         code: 'gmail_api_request_failed',
         providerCode,
         diagnostic: this.oauthDiagnostic(providerCode),
       });
     }
-    return body as T;
+  }
+
+  private isRetryableGmailError(status: number, providerCode: string) {
+    return (
+      status === 429 ||
+      status >= 500 ||
+      providerCode === 'rateLimitExceeded' ||
+      providerCode === 'userRateLimitExceeded'
+    );
   }
 
   private requireOAuthConfig() {
