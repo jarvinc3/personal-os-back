@@ -12,6 +12,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [Se
 
 ### Cambiado
 
+- AI-3 (#206): Intelligence agrupa correo, revisión y análisis en pestañas; presenta cobertura, fechas extremas y particiones como badges, y lista los mensajes desde el más antiguo.
 - Cada fase AI-0 a AI-12 tiene su issue, enlazado como sub-issue del programa (#193); el roadmap maestro y los diseños de AI-0 y AI-1 apuntan a su issue y el Project 3 fija estado y prioridad de cada fase.
 
 - El diagnóstico local de AI-1 muestra proveedor/modelo, intentos, código normalizado y estado HTTP de los SDK sin exponer errores crudos; permite probar cada proveedor por separado.

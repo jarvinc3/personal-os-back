@@ -52,7 +52,7 @@ export class AiEmailSourceService {
         lastSyncErrorCode: true,
       },
     });
-    const [messageCount, recentCount] = connection
+    const [messageCount, recentCount, receivedRange] = connection
       ? await Promise.all([
           this.prisma.aiEmailMessage.count({ where: { userId } }),
           this.prisma.aiEmailMessage.count({
@@ -61,8 +61,13 @@ export class AiEmailSourceService {
               receivedAt: { gte: new Date(Date.now() - 30 * 86400_000) },
             },
           }),
+          this.prisma.aiEmailMessage.aggregate({
+            where: { userId },
+            _min: { receivedAt: true },
+            _max: { receivedAt: true },
+          }),
         ])
-      : [0, 0];
+      : [0, 0, { _min: { receivedAt: null }, _max: { receivedAt: null } }];
     const role = await this.prisma.userRole.findUnique({
       where: { userId },
       select: { role: true },
@@ -83,6 +88,10 @@ export class AiEmailSourceService {
         importedMessages: messageCount,
         recentMessages: recentCount,
         bootstrapImportedMessages: connection?.importedMessageCount ?? 0,
+      },
+      receivedRange: {
+        firstMessageAt: receivedRange._min.receivedAt,
+        latestMessageAt: receivedRange._max.receivedAt,
       },
       role: role?.role ?? 'USER',
     };
@@ -111,16 +120,16 @@ export class AiEmailSourceService {
         ...(cursorValues
           ? {
               OR: [
-                { receivedAt: { lt: new Date(cursorValues.receivedAt) } },
+                { receivedAt: { gt: new Date(cursorValues.receivedAt) } },
                 {
                   receivedAt: new Date(cursorValues.receivedAt),
-                  id: { lt: cursorValues.id },
+                  id: { gt: cursorValues.id },
                 },
               ],
             }
           : {}),
       },
-      orderBy: [{ receivedAt: 'desc' }, { id: 'desc' }],
+      orderBy: [{ receivedAt: 'asc' }, { id: 'asc' }],
       take: 51,
       select: {
         id: true,
