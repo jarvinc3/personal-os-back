@@ -10,7 +10,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import type { Env } from '@personal-os/config';
-import { CurrentUser, Public } from '@personal-os/core';
+import { CurrentUser, Public, Timeout } from '@personal-os/core';
 import type { Response } from 'express';
 import { AiEmailSourceService } from './ai-email-source.service';
 import { GmailSyncService } from './gmail-sync.service';
@@ -60,6 +60,7 @@ export class AiIntelligenceController {
 
   @Get('email/oauth/callback')
   @Public()
+  @Timeout(20_000)
   callback(
     @Query('code') code: string | undefined,
     @Query('state') state: string | undefined,
@@ -81,8 +82,13 @@ export class AiIntelligenceController {
     }
     return this.email
       .completeAuthorization(code, state)
-      .then((connection) => this.sync.syncConnection(connection.id))
-      .then(() => redirect('connected'))
+      .then((connection) => {
+        // The initial Gmail bootstrap can import hundreds of messages and
+        // exceed the global request timeout. Persist OAuth first, redirect,
+        // and let the sync run independently of the browser request.
+        void this.sync.syncConnection(connection.id).catch(() => undefined);
+        return redirect('connected');
+      })
       .catch(() => redirect('error'));
   }
 
