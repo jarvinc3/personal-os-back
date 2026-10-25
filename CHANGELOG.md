@@ -13,6 +13,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [Se
 ### Cambiado
 
 - Gmail mantiene visible el tiempo de espera por cuota con reintentos de 5, 10 y 20 segundos cuando el proveedor no indica otro plazo (#205, #318).
+- Si los reintentos rápidos no liberan la cuota, Gmail permanece en espera con una próxima reejecución automática persistida y su cuenta regresiva (#205, #318).
 
 - AI-2 (#205): progreso de Gmail persistente y en vivo por usuario; muestra etapas, reintentos, próxima ejecución y causas seguras, permite reconectar y reiniciar el corpus desde 2026-01-01.
 - AI-3 (#206): filtros de revisión por partición y Todos con conteos de pendientes; la paginación conserva filtro y orden cronológico.

@@ -20,12 +20,14 @@ const RECOVERY_WINDOW_MS = 7 * 86400_000;
 const RAW_RETENTION_DEV_DAYS = 30;
 const RAW_RETENTION_PROD_DAYS = 7;
 const GMAIL_MESSAGE_FETCH_CONCURRENCY = 3;
+const GMAIL_RATE_LIMIT_COOLDOWN_MS = 60_000;
 
 type GmailSyncProgress = {
   status:
     'running' | 'waiting' | 'retrying' | 'scheduled' | 'completed' | 'failed';
   phase: 'bootstrap' | 'incremental' | 'recovery';
   attempt: number;
+  rateLimitRetryCount?: number;
   processedThisRun: number;
   importedThisRun: number;
   batchSize?: number;
@@ -79,6 +81,7 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
   private readonly resettingConnections = new Set<string>();
   private readonly syncProgress = new Map<string, GmailSyncProgress>();
   private readonly syncStateWrites = new Map<string, Promise<void>>();
+  private readonly rateLimitRetryTimers = new Map<string, NodeJS.Timeout>();
 
   constructor(
     private readonly prisma: PrismaService,
@@ -91,7 +94,7 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
     if (this.config.get('NODE_ENV', { infer: true }) === 'test') {
       return;
     }
-    void this.markInterruptedSyncs().catch((error: unknown) => {
+    void this.recoverSyncStates().catch((error: unknown) => {
       this.logger.warn(
         `Unable to recover Gmail sync state: ${this.safeErrorCode(error)}`,
       );
@@ -113,6 +116,10 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
     if (this.timer) {
       clearInterval(this.timer);
     }
+    for (const retryTimer of this.rateLimitRetryTimers.values()) {
+      clearTimeout(retryTimer);
+    }
+    this.rateLimitRetryTimers.clear();
   }
 
   async syncForUser(userId: string) {
@@ -176,13 +183,19 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
     const existingState = connection.syncState as GmailSyncProgress | null;
     if (
       existingState &&
-      ['running', 'waiting', 'retrying'].includes(existingState.status)
+      ['running', 'waiting', 'retrying'].includes(existingState.status) &&
+      existingState.errorCode !== 'rate_limit_retry_scheduled'
     ) {
       throw new ConflictException(
         'La sincronización sigue activa. Actualiza el estado e inténtalo de nuevo.',
       );
     }
     this.resettingConnections.add(connection.id);
+    const retryTimer = this.rateLimitRetryTimers.get(connection.id);
+    if (retryTimer) {
+      clearTimeout(retryTimer);
+      this.rateLimitRetryTimers.delete(connection.id);
+    }
     try {
       const deletedMessages = await this.prisma.$transaction(async (tx) => {
         const dataset = await tx.aiDataset.findUnique({
@@ -270,6 +283,30 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
         alreadyRunning: true,
       };
     }
+    const connection = await this.prisma.aiEmailConnection.findUnique({
+      where: { id: connectionId },
+      select: { isActive: true, syncState: true },
+    });
+    const storedState = connection?.syncState as GmailSyncProgress | null;
+    if (
+      connection?.isActive &&
+      storedState?.status === 'waiting' &&
+      storedState.errorCode === 'rate_limit_retry_scheduled' &&
+      storedState.retryAt &&
+      storedState.retryAt > Date.now()
+    ) {
+      return {
+        connected: true,
+        imported: 0,
+        retryScheduled: true,
+        nextRunAt: storedState.retryAt,
+      };
+    }
+    const retryTimer = this.rateLimitRetryTimers.get(connectionId);
+    if (retryTimer) {
+      clearTimeout(retryTimer);
+      this.rateLimitRetryTimers.delete(connectionId);
+    }
     this.activeSyncConnections.add(connectionId);
     try {
       return await this.runSyncConnection(connectionId);
@@ -284,6 +321,11 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
       this.resettingConnections.has(connectionId)
     ) {
       return false;
+    }
+    const retryTimer = this.rateLimitRetryTimers.get(connectionId);
+    if (retryTimer) {
+      clearTimeout(retryTimer);
+      this.rateLimitRetryTimers.delete(connectionId);
     }
     this.activeSyncConnections.add(connectionId);
     void this.runSyncConnection(connectionId)
@@ -345,6 +387,7 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
       await this.updateSyncProgress(connection.id, connection.userId, {
         status: result.bootstrapComplete ? 'completed' : 'scheduled',
         phase: this.syncProgress.get(connection.id)?.phase ?? phase,
+        rateLimitRetryCount: 0,
         nextRunAt: result.bootstrapComplete
           ? undefined
           : Date.now() + intervalMinutes * 60_000,
@@ -353,6 +396,29 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
       return { connected: true, ...result };
     } catch (error) {
       const code = this.safeErrorCode(error);
+      if (this.classifyError(code) === 'rate_limit') {
+        const rateLimitRetryCount =
+          (this.syncProgress.get(connectionId)?.rateLimitRetryCount ?? 0) + 1;
+        const retryDelay = Math.min(
+          GMAIL_RATE_LIMIT_COOLDOWN_MS * 2 ** (rateLimitRetryCount - 1),
+          15 * 60_000,
+        );
+        const retryAt = Date.now() + retryDelay;
+        await this.prisma.aiEmailConnection.update({
+          where: { id: connectionId },
+          data: { lastSyncErrorCode: null },
+        });
+        await this.updateSyncProgress(connection.id, connection.userId, {
+          status: 'waiting',
+          errorCode: 'rate_limit_retry_scheduled',
+          errorCategory: 'rate_limit',
+          rateLimitRetryCount,
+          retryAt,
+          nextRunAt: undefined,
+        });
+        this.scheduleRateLimitRetry(connection.id, retryAt - Date.now());
+        return { connected: true, imported: 0, retryScheduled: true };
+      }
       await this.prisma.aiEmailConnection.update({
         where: { id: connectionId },
         data: { lastSyncErrorCode: code },
@@ -436,13 +502,25 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
     return 'unknown';
   }
 
-  private async markInterruptedSyncs() {
+  private async recoverSyncStates() {
     const connections = await this.prisma.aiEmailConnection.findMany({
       where: { isActive: true },
       select: { id: true, userId: true, syncState: true },
     });
     for (const connection of connections) {
       const state = connection.syncState as GmailSyncProgress | null;
+      if (
+        state?.status === 'waiting' &&
+        state.errorCode === 'rate_limit_retry_scheduled' &&
+        state.retryAt
+      ) {
+        this.syncProgress.set(connection.id, state);
+        this.scheduleRateLimitRetry(
+          connection.id,
+          Math.max(0, state.retryAt - Date.now()),
+        );
+        continue;
+      }
       if (
         !state ||
         !['running', 'waiting', 'retrying'].includes(state.status)
@@ -458,6 +536,22 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
         nextRunAt: undefined,
       });
     }
+  }
+
+  private scheduleRateLimitRetry(connectionId: string, delayMs: number) {
+    const previousTimer = this.rateLimitRetryTimers.get(connectionId);
+    if (previousTimer) {
+      clearTimeout(previousTimer);
+    }
+    const retryTimer = setTimeout(
+      () => {
+        this.rateLimitRetryTimers.delete(connectionId);
+        this.startSyncConnection(connectionId);
+      },
+      Math.max(0, delayMs),
+    );
+    retryTimer.unref();
+    this.rateLimitRetryTimers.set(connectionId, retryTimer);
   }
 
   private async bootstrapPage(
