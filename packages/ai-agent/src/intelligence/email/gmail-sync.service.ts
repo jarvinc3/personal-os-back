@@ -509,6 +509,29 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
     });
     for (const connection of connections) {
       const state = connection.syncState as GmailSyncProgress | null;
+      if (state?.status === 'failed' && state.errorCategory === 'rate_limit') {
+        const rateLimitRetryCount = (state.rateLimitRetryCount ?? 0) + 1;
+        const retryDelay = Math.min(
+          GMAIL_RATE_LIMIT_COOLDOWN_MS * 2 ** (rateLimitRetryCount - 1),
+          15 * 60_000,
+        );
+        const retryAt = Date.now() + retryDelay;
+        this.syncProgress.set(connection.id, state);
+        await this.prisma.aiEmailConnection.update({
+          where: { id: connection.id },
+          data: { lastSyncErrorCode: null },
+        });
+        await this.updateSyncProgress(connection.id, connection.userId, {
+          status: 'waiting',
+          errorCode: 'rate_limit_retry_scheduled',
+          errorCategory: 'rate_limit',
+          rateLimitRetryCount,
+          retryAt,
+          nextRunAt: undefined,
+        });
+        this.scheduleRateLimitRetry(connection.id, retryDelay);
+        continue;
+      }
       if (
         state?.status === 'waiting' &&
         state.errorCode === 'rate_limit_retry_scheduled' &&
