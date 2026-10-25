@@ -44,6 +44,15 @@ const bullBoardEnabled = isBullBoardEnabledFromProcessEnv();
             config.get('NODE_ENV', { infer: true }) === 'development'
               ? {
                   target: 'pino-pretty',
+                  options: {
+                    colorize: true,
+                    levelFirst: true,
+                    singleLine: true,
+                    translateTime: 'SYS:yyyy-mm-dd HH:MM:ss.l',
+                    ignore: 'pid,hostname,req,res,userId',
+                    messageFormat:
+                      '{msg}{if context} [{context}]{end}{if method} | {method} {path} | {statusCode} | {responseTime}ms | requestId={requestId}{end}',
+                  },
                 }
               : undefined,
           redact: [

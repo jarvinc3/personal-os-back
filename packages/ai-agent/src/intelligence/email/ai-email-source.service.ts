@@ -329,10 +329,24 @@ export class AiEmailSourceService {
       headers: { authorization: `Bearer ${accessToken}` },
     });
     const body = (await response.json()) as {
-      error?: { code?: number; status?: string };
+      error?: {
+        code?: number;
+        status?: string;
+        errors?: Array<{ reason?: string }>;
+        details?: Array<{
+          reason?: string;
+          metadata?: { reason?: string };
+        }>;
+      };
     };
     if (!response.ok) {
-      const providerCode = body.error?.status ?? `http_${response.status}`;
+      const providerCode =
+        body.error?.errors?.find((entry) => entry.reason)?.reason ??
+        body.error?.details
+          ?.map((entry) => entry.reason ?? entry.metadata?.reason)
+          .find(Boolean) ??
+        body.error?.status ??
+        `http_${response.status}`;
       throw new BadRequestException({
         code: 'gmail_api_request_failed',
         providerCode,
