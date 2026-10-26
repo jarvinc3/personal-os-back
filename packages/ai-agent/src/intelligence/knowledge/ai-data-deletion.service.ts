@@ -96,33 +96,10 @@ export class AiDataDeletionService {
       userId,
       deleteConnection: true,
       // The tombstone keeps the consent that was in force when the owner asked
-      // for the deletion; the revocation below is recorded after anonymizing.
+      // for the deletion; the revocation is recorded after anonymizing.
       consentAtDeletion: currentConsent?.contributeToGlobalKnowledge ?? true,
     });
-    const now = new Date();
-    await this.prisma.$transaction(async (tx) => {
-      await tx.userAiSettings.upsert({
-        where: { userId },
-        create: {
-          userId,
-          contributeToGlobalKnowledge: false,
-          contributionConsentAt: now,
-        },
-        update: {
-          contributeToGlobalKnowledge: false,
-          contributionConsentAt: now,
-        },
-      });
-      await tx.aiConsentEvent.create({
-        data: {
-          userId,
-          contributeToGlobalKnowledge: false,
-          reason: 'USER_DELETED_AI_DATA',
-        },
-      });
-      await tx.aiAnalysisRun.deleteMany({ where: { userId } });
-      await tx.aiInference.deleteMany({ where: { userId } });
-    });
+    await this.revokeConsentAndDropDerivedData(userId);
     return { deleted: true, ...result };
   }
 
@@ -369,5 +346,32 @@ export class AiDataDeletionService {
     );
     await this.knowledge.rebuild(userId);
     return result;
+  }
+
+  private async revokeConsentAndDropDerivedData(userId: string) {
+    const now = new Date();
+    await this.prisma.$transaction(async (tx) => {
+      await tx.userAiSettings.upsert({
+        where: { userId },
+        create: {
+          userId,
+          contributeToGlobalKnowledge: false,
+          contributionConsentAt: now,
+        },
+        update: {
+          contributeToGlobalKnowledge: false,
+          contributionConsentAt: now,
+        },
+      });
+      await tx.aiConsentEvent.create({
+        data: {
+          userId,
+          contributeToGlobalKnowledge: false,
+          reason: 'USER_DELETED_AI_DATA',
+        },
+      });
+      await tx.aiAnalysisRun.deleteMany({ where: { userId } });
+      await tx.aiInference.deleteMany({ where: { userId } });
+    });
   }
 }

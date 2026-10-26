@@ -7,8 +7,8 @@ import {
   TRANSACTION_KINDS,
 } from '../../evidence/human-verification.constants';
 
-export const KNOWLEDGE_SCOPES = ['GLOBAL', 'USER'] as const;
-export const KNOWLEDGE_TYPES = [
+const KNOWLEDGE_SCOPES = ['GLOBAL', 'USER'] as const;
+const KNOWLEDGE_TYPES = [
   'EMAIL_SENDER',
   'EMAIL_DOMAIN',
   'EMAIL_TEMPLATE',
@@ -16,13 +16,13 @@ export const KNOWLEDGE_TYPES = [
   'RELATION',
   'USER_MAPPING',
 ] as const;
-export const KNOWLEDGE_STATES = [
+const KNOWLEDGE_STATES = [
   'OBSERVED',
   'STABLE',
   'REVIEW_REQUIRED',
   'BLOCKED',
 ] as const;
-export const KNOWLEDGE_PROMOTIONS = ['AUTO', 'CONTRIBUTOR', 'ADMIN'] as const;
+const KNOWLEDGE_PROMOTIONS = ['AUTO', 'CONTRIBUTOR', 'ADMIN'] as const;
 
 export class KnowledgeTransactionDto {
   @ApiPropertyOptional({

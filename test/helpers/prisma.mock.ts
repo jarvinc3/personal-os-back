@@ -796,8 +796,8 @@ export function createPrismaMock(): PrismaMock {
     aiAnalysisRun: {
       create: jest
         .fn()
-        .mockImplementation(({ data }: { data: object }) =>
-          Promise.resolve({ ...data, id: 'run-1' }),
+        .mockImplementation((command: { data: object }) =>
+          Promise.resolve({ ...command.data, id: 'run-1' }),
         ),
       findMany: jest.fn().mockResolvedValue([]),
       update: jest.fn().mockResolvedValue({}),

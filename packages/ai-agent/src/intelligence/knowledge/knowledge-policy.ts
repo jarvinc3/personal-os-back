@@ -1,10 +1,10 @@
 export const POLICY_VERSION = 'email-knowledge-policy-v1';
 
 /** The winning label needs at least 2/3 of the votes for its key. */
-export const GLOBAL_APPROVAL_MIN_NUMERATOR = 2;
-export const GLOBAL_APPROVAL_MIN_DENOMINATOR = 3;
-export const GLOBAL_MIN_CONTRIBUTORS_DEFAULT = 3;
-export const GLOBAL_MIN_CONTRIBUTORS_DEVELOPMENT = 1;
+const GLOBAL_APPROVAL_MIN_NUMERATOR = 2;
+const GLOBAL_APPROVAL_MIN_DENOMINATOR = 3;
+const GLOBAL_MIN_CONTRIBUTORS_DEFAULT = 3;
+const GLOBAL_MIN_CONTRIBUTORS_DEVELOPMENT = 1;
 
 export function resolveMinimumContributors({
   configured,
