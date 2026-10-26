@@ -3,7 +3,6 @@ import { AiConsentService } from './ai-consent.service';
 describe('AiConsentService', () => {
   const settings = {
     findUnique: jest.fn(),
-    create: jest.fn(),
     upsert: jest.fn(),
   };
   const event = { create: jest.fn() };
@@ -20,7 +19,7 @@ describe('AiConsentService', () => {
 
   it('crea un evento DEFAULT_ON junto con la vista inicial', async () => {
     settings.findUnique.mockResolvedValue(null);
-    settings.create.mockResolvedValue({
+    settings.upsert.mockResolvedValue({
       contributeToGlobalKnowledge: true,
       contributionConsentAt: new Date('2026-10-24T00:00:00Z'),
     });

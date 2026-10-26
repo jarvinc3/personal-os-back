@@ -16,16 +16,20 @@ export class AiConsentService {
           contributionConsentAt: existing.contributionConsentAt,
         };
       }
-      const settings = await tx.userAiSettings.create({
-        data: { userId, contributeToGlobalKnowledge: true },
+      const settings = await tx.userAiSettings.upsert({
+        where: { userId },
+        create: { userId, contributeToGlobalKnowledge: true },
+        update: {},
       });
-      await tx.aiConsentEvent.create({
-        data: {
-          userId,
-          contributeToGlobalKnowledge: true,
-          reason: 'DEFAULT_ON',
-        },
-      });
+      if (!existing) {
+        await tx.aiConsentEvent.create({
+          data: {
+            userId,
+            contributeToGlobalKnowledge: true,
+            reason: 'DEFAULT_ON',
+          },
+        });
+      }
       return {
         contributeToGlobalKnowledge: settings.contributeToGlobalKnowledge,
         contributionConsentAt: settings.contributionConsentAt,
