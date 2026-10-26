@@ -20,7 +20,10 @@ export class AiDataDeletionService {
 
   @OnEvent(AppEvents.USER_ACCOUNT_DELETING)
   async beforeAccountDeletion(event: { userId: string }) {
-    await this.removeEmailData(event.userId, true);
+    await this.removeEmailData({
+      userId: event.userId,
+      deleteConnection: true,
+    });
   }
 
   async exportForUser(userId: string) {
@@ -85,21 +88,31 @@ export class AiDataDeletionService {
   }
 
   async deleteMyData(userId: string) {
-    const now = new Date();
-    await this.prisma.userAiSettings.upsert({
+    const currentConsent = await this.prisma.userAiSettings.findUnique({
       where: { userId },
-      create: {
-        userId,
-        contributeToGlobalKnowledge: false,
-        contributionConsentAt: now,
-      },
-      update: {
-        contributeToGlobalKnowledge: false,
-        contributionConsentAt: now,
-      },
+      select: { contributeToGlobalKnowledge: true },
     });
-    const result = await this.removeEmailData(userId, true);
+    const result = await this.removeEmailData({
+      userId,
+      deleteConnection: true,
+      // The tombstone keeps the consent that was in force when the owner asked
+      // for the deletion; the revocation below is recorded after anonymizing.
+      consentAtDeletion: currentConsent?.contributeToGlobalKnowledge ?? true,
+    });
+    const now = new Date();
     await this.prisma.$transaction(async (tx) => {
+      await tx.userAiSettings.upsert({
+        where: { userId },
+        create: {
+          userId,
+          contributeToGlobalKnowledge: false,
+          contributionConsentAt: now,
+        },
+        update: {
+          contributeToGlobalKnowledge: false,
+          contributionConsentAt: now,
+        },
+      });
       await tx.aiConsentEvent.create({
         data: {
           userId,
@@ -113,7 +126,15 @@ export class AiDataDeletionService {
     return { deleted: true, ...result };
   }
 
-  async removeEmailData(userId: string, deleteConnection = false) {
+  async removeEmailData({
+    userId,
+    deleteConnection = false,
+    consentAtDeletion,
+  }: {
+    userId: string;
+    deleteConnection?: boolean;
+    consentAtDeletion?: boolean;
+  }) {
     const result = await this.prisma.$transaction(
       async (tx) => {
         const [
@@ -150,7 +171,8 @@ export class AiDataDeletionService {
           }),
         ]);
         const contributorTombstone = randomUUID();
-        const consentActive = settings?.contributeToGlobalKnowledge ?? true;
+        const consentActive =
+          consentAtDeletion ?? settings?.contributeToGlobalKnowledge ?? true;
         const byId = new Map(messages.map((message) => [message.id, message]));
         const partitionBySource = new Map(
           datasetItems.map((item) => [item.sourceId, item.partition]),

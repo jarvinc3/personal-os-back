@@ -40,6 +40,7 @@ describe('AiDataDeletionService', () => {
         findUnique: jest.fn(() =>
           Promise.resolve({ contributeToGlobalKnowledge: consentEnabled }),
         ),
+        upsert: jest.fn(() => Promise.resolve({})),
       },
       aiConsentEvent: {
         findMany: jest.fn().mockResolvedValue([]),
@@ -72,6 +73,9 @@ describe('AiDataDeletionService', () => {
         callback(tx),
       ),
       userAiSettings: {
+        findUnique: jest.fn(() =>
+          Promise.resolve({ contributeToGlobalKnowledge: consentEnabled }),
+        ),
         upsert: jest.fn(() => {
           consentEnabled = false;
         }),
@@ -87,7 +91,7 @@ describe('AiDataDeletionService', () => {
 
   it('retira datos personales y conserva solo estructura elegible al borrar', async () => {
     const { tx, knowledge, service } = fixture(true);
-    expect(await service.removeEmailData('u1')).toMatchObject({
+    expect(await service.removeEmailData({ userId: 'u1' })).toMatchObject({
       deletedMessages: 1,
     });
     const update = tx.aiHumanVerification.update.mock.calls[0][0].data;
@@ -120,7 +124,7 @@ describe('AiDataDeletionService', () => {
 
   it('no deja evidencia GLOBAL elegible tras revocación', async () => {
     const { tx, service } = fixture(false);
-    await service.removeEmailData('u1');
+    await service.removeEmailData({ userId: 'u1' });
     const update = tx.aiHumanVerification.update.mock.calls[0][0].data;
     expect(update.tombstoneEligible).toBe(false);
     expect(update.structuralPayload).not.toEqual(
@@ -133,7 +137,7 @@ describe('AiDataDeletionService', () => {
     tx.aiEmailMessage.findMany.mockResolvedValue([
       { ...message, subject: 'Consumo de Ana Gómez RD$1,250' },
     ]);
-    await service.removeEmailData('u1');
+    await service.removeEmailData({ userId: 'u1' });
     const update = tx.aiHumanVerification.update.mock.calls[0][0].data;
     expect(update.structuralKeys).toEqual([
       { knowledgeType: 'EMAIL_DOMAIN', knowledgeKey: 'bank.com' },
@@ -155,7 +159,7 @@ describe('AiDataDeletionService', () => {
       },
     ]);
     tx.aiKnowledgeObservation.update.mockResolvedValue({});
-    await service.removeEmailData('u1');
+    await service.removeEmailData({ userId: 'u1' });
     expect(tx.aiKnowledgeObservation.update).toHaveBeenCalledWith({
       where: { sequence: 8n },
       data: expect.objectContaining({
@@ -183,7 +187,7 @@ describe('AiDataDeletionService', () => {
       },
     ]);
     tx.aiKnowledgeObservation.update.mockResolvedValue({});
-    await service.removeEmailData('u1');
+    await service.removeEmailData({ userId: 'u1' });
     expect(
       tx.aiKnowledgeObservation.update.mock.calls[0][0].data,
     ).toMatchObject({
@@ -192,12 +196,19 @@ describe('AiDataDeletionService', () => {
     });
   });
 
-  it('revoca el consentimiento antes de anonimizar para no dejar lápidas elegibles', async () => {
+  it('deja lápidas elegibles si el consentimiento estaba vigente al borrar', async () => {
     const { tx, service } = fixture(true);
     await service.deleteMyData('u1');
     expect(
       tx.aiHumanVerification.update.mock.calls[0][0].data.tombstoneEligible,
-    ).toBe(false);
+    ).toBe(true);
+    expect(tx.aiConsentEvent.create).toHaveBeenCalledWith({
+      data: {
+        userId: 'u1',
+        contributeToGlobalKnowledge: false,
+        reason: 'USER_DELETED_AI_DATA',
+      },
+    });
   });
 
   it('marca INCOMPLETE solo los runs que cubrían la evidencia borrada', async () => {
@@ -228,7 +239,7 @@ describe('AiDataDeletionService', () => {
         missingEvidence: {},
       },
     ]);
-    await service.removeEmailData('u1');
+    await service.removeEmailData({ userId: 'u1' });
     expect(tx.aiAnalysisRun.update).toHaveBeenCalledTimes(1);
     expect(tx.aiAnalysisRun.update).toHaveBeenCalledWith({
       where: { id: 'run-affected' },

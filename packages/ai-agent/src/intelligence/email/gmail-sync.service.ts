@@ -199,7 +199,9 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
       this.rateLimitRetryTimers.delete(connection.id);
     }
     try {
-      const { deletedMessages } = await this.deletion.removeEmailData(userId);
+      const { deletedMessages } = await this.deletion.removeEmailData({
+        userId,
+      });
       this.syncProgress.delete(connection.id);
       return { connected: true, deletedMessages };
     } finally {

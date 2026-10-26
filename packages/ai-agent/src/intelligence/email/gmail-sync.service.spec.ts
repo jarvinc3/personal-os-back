@@ -242,6 +242,6 @@ describe('GmailSyncService', () => {
       connected: true,
       deletedMessages: 4,
     });
-    expect(deletion.removeEmailData).toHaveBeenCalledWith('user-1');
+    expect(deletion.removeEmailData).toHaveBeenCalledWith({ userId: 'user-1' });
   });
 });
