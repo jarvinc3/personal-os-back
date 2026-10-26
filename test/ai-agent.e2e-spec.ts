@@ -58,6 +58,7 @@ describe('Retired AI chat API (e2e)', () => {
   const userRole = { findUnique: jest.fn().mockResolvedValue(null) };
 
   beforeEach(async () => {
+    jest.clearAllMocks();
     token = createTestJwt({ sub: 'user-123' });
     const moduleFixture = await applyAuthTestOverrides(
       Test.createTestingModule({ imports: [AppModule] })
@@ -119,12 +120,27 @@ describe('Retired AI chat API (e2e)', () => {
       .post('/api/intelligence/knowledge/admin/rebuild')
       .set('Authorization', `Bearer ${token}`)
       .expect(403);
+    await request(app.getHttpServer())
+      .post('/api/intelligence/knowledge/admin/knowledge-1/revert')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(403);
+    expect(knowledge.revert).not.toHaveBeenCalled();
     userRole.findUnique.mockResolvedValue({ role: 'ADMIN' });
     await request(app.getHttpServer())
       .post('/api/intelligence/knowledge/admin/rebuild')
       .set('Authorization', `Bearer ${token}`)
       .expect(201);
     expect(knowledge.rebuild).toHaveBeenCalledWith('user-123');
+    await request(app.getHttpServer())
+      .get('/api/intelligence/knowledge/admin/queue')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+    expect(knowledge.adminQueue).toHaveBeenCalled();
+    await request(app.getHttpServer())
+      .post('/api/intelligence/knowledge/admin/knowledge-1/revert')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(201);
+    expect(knowledge.revert).toHaveBeenCalledWith('user-123', 'knowledge-1');
   });
 
   it('returns 404 for chat and session routes removed in AI-0', async () => {
