@@ -261,5 +261,32 @@ describe('Retired AI chat API (e2e)', () => {
     expect(transaction.properties.direction).toMatchObject({
       enum: [...TRANSACTION_DIRECTIONS],
     });
+
+    const knowledge = document.components?.schemas?.KnowledgeItemDto as {
+      properties: Record<string, never>;
+    };
+    expect(knowledge.properties.scope).toMatchObject({
+      enum: ['GLOBAL', 'USER'],
+    });
+    expect(knowledge.properties.knowledgeType).toMatchObject({
+      enum: [
+        'EMAIL_SENDER',
+        'EMAIL_DOMAIN',
+        'EMAIL_TEMPLATE',
+        'ENTITY',
+        'RELATION',
+        'USER_MAPPING',
+      ],
+    });
+    expect(knowledge.properties.state).toMatchObject({
+      enum: ['OBSERVED', 'STABLE', 'REVIEW_REQUIRED', 'BLOCKED'],
+    });
+    expect(
+      document.paths?.['/api/intelligence/knowledge/admin/rebuild']?.post
+        ?.responses?.['201'],
+    ).toBeDefined();
+    expect(
+      document.paths?.['/api/intelligence/knowledge/me/export']?.get,
+    ).toBeDefined();
   });
 });

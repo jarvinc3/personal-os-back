@@ -8,23 +8,26 @@ import {
   Post,
 } from '@nestjs/common';
 import {
+  ApiBadRequestResponse,
   ApiBearerAuth,
   ApiBody,
   ApiCreatedResponse,
+  ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
   ApiTags,
 } from '@nestjs/swagger';
-import { IsBoolean } from 'class-validator';
 import { CurrentUser } from '@personal-os/core';
 import { Roles } from '../roles/ai-role.decorator';
 import { AiDataDeletionService } from './ai-data-deletion.service';
 import { AiKnowledgeService } from './ai-knowledge.service';
-
-class ConfirmAiDataDeletionDto {
-  @IsBoolean()
-  confirmed!: boolean;
-}
+import {
+  ConfirmAiDataDeletionDto,
+  KnowledgeDeletionDto,
+  KnowledgeExplorerDto,
+  KnowledgeItemDto,
+  KnowledgeRebuildDto,
+} from './dto/knowledge.dto';
 
 @ApiTags('intelligence-knowledge')
 @ApiBearerAuth('access-token')
@@ -39,9 +42,7 @@ export class AiKnowledgeController {
   @ApiOperation({
     summary: 'Explorar conocimiento USER propio y GLOBAL estable',
   })
-  @ApiOkResponse({
-    description: '{ personal: AiKnowledge[], global: AiKnowledge[] }',
-  })
+  @ApiOkResponse({ type: KnowledgeExplorerDto })
   list(@CurrentUser() user: { sub: string }) {
     return this.knowledge.listForUser(user.sub);
   }
@@ -49,7 +50,7 @@ export class AiKnowledgeController {
   @Get('admin/queue')
   @Roles('ADMIN')
   @ApiOperation({ summary: 'Cola administrativa de conocimiento GLOBAL' })
-  @ApiOkResponse({ description: 'AiKnowledge[] de alcance GLOBAL' })
+  @ApiOkResponse({ type: [KnowledgeItemDto] })
   adminQueue() {
     return this.knowledge.adminQueue();
   }
@@ -59,10 +60,7 @@ export class AiKnowledgeController {
   @ApiOperation({
     summary: 'Reconstruir la proyección desde un corte REPEATABLE READ',
   })
-  @ApiCreatedResponse({
-    description:
-      '{ runId, observationSequence, verificationSequence, consentRevision, items }',
-  })
+  @ApiCreatedResponse({ type: KnowledgeRebuildDto })
   rebuild(@CurrentUser() user: { sub: string }) {
     return this.knowledge.rebuild(user.sub);
   }
@@ -72,7 +70,8 @@ export class AiKnowledgeController {
   @ApiOperation({
     summary: 'Revertir una promoción GLOBAL con evidencia ADMIN',
   })
-  @ApiCreatedResponse({ description: 'AiKnowledge GLOBAL con state BLOCKED' })
+  @ApiCreatedResponse({ type: KnowledgeItemDto })
+  @ApiNotFoundResponse({ description: 'Conocimiento GLOBAL no encontrado' })
   revert(
     @CurrentUser() user: { sub: string },
     @Param('knowledgeId') knowledgeId: string,
@@ -83,8 +82,23 @@ export class AiKnowledgeController {
   @Get('me/export')
   @ApiOperation({ summary: 'Exportar los datos AI y correo propios en JSON' })
   @ApiOkResponse({
-    description:
-      '{ exportedAt, connection, messages, datasetItems, runs, observations, verifications, knowledge, consent, settings, inferences }',
+    description: 'Exportación JSON de los datos AI y correo propios.',
+    schema: {
+      type: 'object',
+      properties: {
+        exportedAt: { type: 'string', format: 'date-time' },
+        connection: { type: 'object', nullable: true },
+        messages: { type: 'array', items: { type: 'object' } },
+        datasetItems: { type: 'array', items: { type: 'object' } },
+        runs: { type: 'array', items: { type: 'object' } },
+        observations: { type: 'array', items: { type: 'object' } },
+        verifications: { type: 'array', items: { type: 'object' } },
+        knowledge: { type: 'array', items: { type: 'object' } },
+        consent: { type: 'array', items: { type: 'object' } },
+        settings: { type: 'object', nullable: true },
+        inferences: { type: 'array', items: { type: 'object' } },
+      },
+    },
   })
   export(@CurrentUser() user: { sub: string }) {
     return this.deletion.exportForUser(user.sub);
@@ -96,10 +110,8 @@ export class AiKnowledgeController {
     summary:
       'Borrar inmediatamente los datos AI propios y dejar lápidas estructurales elegibles',
   })
-  @ApiOkResponse({
-    description:
-      '{ deleted, deletedMessages, detachedVerifications, detachedObservations }',
-  })
+  @ApiOkResponse({ type: KnowledgeDeletionDto })
+  @ApiBadRequestResponse({ description: 'Falta confirmed: true' })
   remove(
     @CurrentUser() user: { sub: string },
     @Body() dto: ConfirmAiDataDeletionDto,
