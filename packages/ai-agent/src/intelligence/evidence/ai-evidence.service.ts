@@ -6,10 +6,8 @@ import {
 import { Prisma, PrismaService } from '@personal-os/database';
 import type { CreateHumanVerificationDto } from './dto/create-human-verification.dto';
 import { partitionEmailDatasetItem } from './dataset-partition.util';
-import {
-  PROJECTOR_VERSION,
-  POLICY_VERSION,
-} from '../knowledge/knowledge-projector';
+import { PROJECTOR_VERSION } from '../knowledge/knowledge-projector';
+import { POLICY_VERSION } from '../knowledge/knowledge-policy';
 
 import { EMAIL_DATASET_NAME, EMAIL_DATASET_PURPOSE } from './dataset.constants';
 

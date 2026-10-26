@@ -15,6 +15,7 @@ La proyección se borra y vuelve a crearse dentro de la misma transacción. Los 
 ## Evidencia
 
 - `packages/ai-agent/src/intelligence/knowledge/knowledge-projector.spec.ts`: normalización, saneamiento, determinismo, corrección, umbral, HOLDOUT, consentimiento, realimentación, lápidas por versión y reversión ADMIN.
+- `packages/ai-agent/src/intelligence/knowledge/knowledge-policy.spec.ts`: mínimo de colaboradores por entorno y umbral de 2/3 con desempate.
 - `packages/ai-agent/src/intelligence/knowledge/ai-knowledge.service.spec.ts`: rebuild determinista y bloqueo de un GLOBAL sin evidencia.
 - `packages/ai-agent/src/intelligence/knowledge/ai-data-deletion.service.spec.ts`: lápidas elegibles, opt-out, HOLDOUT y runs `INCOMPLETE`.
 - `test/ai-agent.e2e-spec.ts`: JWT, aislamiento de rutas, confirmación de borrado y acceso ADMIN.

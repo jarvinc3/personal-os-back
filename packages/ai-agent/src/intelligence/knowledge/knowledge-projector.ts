@@ -9,9 +9,9 @@ import {
   parseUserEmailPayload,
   type EmailLabel,
 } from './knowledge-payload';
+import { POLICY_VERSION, isGlobalPromotable } from './knowledge-policy';
 
 export const PROJECTOR_VERSION = 'email-knowledge-projector-v1';
-export const POLICY_VERSION = 'email-knowledge-policy-v1';
 
 export type ProjectionMessage = {
   id: string;
@@ -377,10 +377,13 @@ export function projectKnowledge(input: ProjectionInput): ProjectedKnowledge[] {
     const contributors = new Set(leaders.map((vote) => vote.contributor));
     const hasConsensus =
       ranked.length === 1 || leaders.length > ranked[1][1].length;
-    const passes =
-      hasConsensus &&
-      leaders.length * 3 >= votes.length * 2 &&
-      contributors.size >= input.minimumContributors;
+    const passes = isGlobalPromotable({
+      leaderVotes: leaders.length,
+      totalVotes: votes.length,
+      contributors: contributors.size,
+      hasConsensus,
+      minimumContributors: input.minimumContributors,
+    });
     const winner = leaders.reduce((a, b) => (a.sequence > b.sequence ? a : b));
     const result = row(winner, 'GLOBAL');
     result.payload = sanitizeGlobalLabel(winner.label);

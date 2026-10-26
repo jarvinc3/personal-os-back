@@ -6,9 +6,9 @@ import {
   projectKnowledge,
   latestRevertedKeys,
   PROJECTOR_VERSION,
-  POLICY_VERSION,
   type KnowledgeReversion,
 } from './knowledge-projector';
+import { POLICY_VERSION, resolveMinimumContributors } from './knowledge-policy';
 import { NORMALIZER_VERSION } from './knowledge-normalizer';
 import {
   EMAIL_DATASET_NAME,
@@ -85,9 +85,12 @@ export class AiKnowledgeService {
 
   /** Reads the watermarks and their evidence from one committed snapshot. */
   async rebuild(requesterId: string) {
-    const minimumContributors =
-      this.config.get('AI_GLOBAL_MIN_CONTRIBUTORS', { infer: true }) ??
-      (this.config.get('NODE_ENV', { infer: true }) === 'development' ? 1 : 3);
+    const minimumContributors = resolveMinimumContributors({
+      configured: this.config.get('AI_GLOBAL_MIN_CONTRIBUTORS', {
+        infer: true,
+      }),
+      nodeEnv: this.config.get('NODE_ENV', { infer: true }),
+    });
     return this.prisma.$transaction(
       async (tx) => {
         const [
