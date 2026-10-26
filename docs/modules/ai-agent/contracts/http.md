@@ -26,3 +26,5 @@ AI-3 (JWT):
 | POST   | `/api/intelligence/email/reset`                           | Requiere `{ "confirmed": true }`; vacía el corpus de correo y derivados del usuario, conserva OAuth          |
 
 `GET /api/intelligence/messages/:messageId` incluye `provenance.observations` y `provenance.verifications` en orden de secuencia.
+
+AI-4 (JWT): contrato en [knowledge-http.md](./knowledge-http.md).
