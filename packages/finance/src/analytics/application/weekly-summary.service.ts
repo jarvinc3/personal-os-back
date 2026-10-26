@@ -2,7 +2,6 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { UsersService } from '@personal-os/users';
 import { CatalogService } from '../../catalog/application/catalog.service';
 import { ResolveUserBaseCurrencyUseCase } from '../../fx/application/resolve-user-base-currency';
-import { IngestionService } from '../../ingestion/application/ingestion.service';
 import { PlanningService } from '../../planning/application/planning.service';
 import { isValidIsoDate } from '../../shared/domain/iso-date';
 import { decimalToString } from '../../shared/domain/mappers';
@@ -19,7 +18,6 @@ const AVERAGE_WEEKS = 4;
 const TOP_CATEGORY_LIMIT = 3;
 const BUDGET_RISK_PCT = 80;
 const UPCOMING_DAYS = 7;
-const PENDING_EMAIL_SCAN = 50;
 const MS_PER_DAY = 86_400_000;
 
 function localDateIso(timezone: string | null, now: Date): string {
@@ -95,7 +93,7 @@ export class WeeklySummaryService {
     private readonly analytics: AnalyticsService,
     private readonly planning: PlanningService,
     private readonly catalog: CatalogService,
-    private readonly ingestion: IngestionService,
+
     private readonly users: UsersService,
     private readonly baseCurrency: ResolveUserBaseCurrencyUseCase,
   ) {}
@@ -107,34 +105,24 @@ export class WeeklySummaryService {
     const weekEnd = addDaysIso(weekStart, 6);
     const rangeFrom = addDaysIso(weekStart, -7 * AVERAGE_WEEKS);
 
-    const [
-      currency,
-      overTime,
-      spendingByCategory,
-      budgets,
-      loans,
-      cards,
-      pending,
-    ] = await Promise.all([
-      this.baseCurrency.execute(userId),
-      this.analytics.getSpendingOverTime(
-        userId,
-        rangeFrom,
-        endOfDayIso(weekEnd),
-        'week',
-      ),
-      this.analytics.getSpendingByCategory(
-        userId,
-        weekStart,
-        endOfDayIso(weekEnd),
-      ),
-      this.analytics.getBudgetStatus(userId),
-      this.planning.listLoans(userId),
-      this.catalog.listCards(userId),
-      this.ingestion.listPendingAssignment(userId, {
-        limit: PENDING_EMAIL_SCAN,
-      }),
-    ]);
+    const [currency, overTime, spendingByCategory, budgets, loans, cards] =
+      await Promise.all([
+        this.baseCurrency.execute(userId),
+        this.analytics.getSpendingOverTime(
+          userId,
+          rangeFrom,
+          endOfDayIso(weekEnd),
+          'week',
+        ),
+        this.analytics.getSpendingByCategory(
+          userId,
+          weekStart,
+          endOfDayIso(weekEnd),
+        ),
+        this.analytics.getBudgetStatus(userId),
+        this.planning.listLoans(userId),
+        this.catalog.listCards(userId),
+      ]);
 
     const weeklyPoints = overTime.points.map((point) => ({
       date: point.date,
@@ -208,7 +196,7 @@ export class WeeklySummaryService {
           },
         ];
       }),
-      pendingEmails: pending.items.length,
+      pendingEmails: 0,
     };
   }
 

@@ -137,6 +137,20 @@ try {
       expected.targetPolicies.length,
     );
   });
+  await test('Keep uuid-ossp in the verified Supabase extensions schema', async () => {
+    assert.equal(
+      await scalar("SELECT n.nspname AS value FROM pg_extension e JOIN pg_namespace n ON n.oid=e.extnamespace WHERE e.extname='uuid-ossp'"),
+      'extensions',
+    );
+  });
+  await test('Automatically enable RLS on future public tables', async () => {
+    await pool.query('CREATE TABLE public.ai0_rls_probe (id integer PRIMARY KEY)');
+    assert.equal(
+      await scalar("SELECT relrowsecurity AS value FROM pg_class WHERE oid='public.ai0_rls_probe'::regclass"),
+      true,
+    );
+    await pool.query('DROP TABLE public.ai0_rls_probe');
+  });
   await test('Close table Data API privileges for anon and authenticated', async () => {
     for (const role of ['anon', 'authenticated']) {
       assert.equal(

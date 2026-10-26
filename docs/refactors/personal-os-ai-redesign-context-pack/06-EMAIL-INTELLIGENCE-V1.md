@@ -57,11 +57,11 @@ These are separate mechanisms.
 
 ### Historical bootstrap
 
-Fetch messages over the historical date range.
+Fetch messages over the historical date range once to establish the persisted corpus and the initial provider cursor.
 
 ### Incremental sync
 
-Use provider cursor/history semantics rather than institution sender filters.
+After bootstrap, normal operation must be incremental. Use Gmail/provider cursor/history semantics rather than institution sender filters or repeated date-range scans.
 
 `AiEmailConnection` should support fields conceptually similar to:
 
@@ -69,7 +69,65 @@ Use provider cursor/history semantics rather than institution sender filters.
 providerCursor
 initialSyncCompletedAt
 lastSyncedAt
+lastRecoverySyncAt
 ```
+
+The incremental sync pipeline must not depend on how it is triggered. A trigger only wakes the same application use case:
+
+```text
+trigger
+  -> incremental sync from providerCursor
+  -> fetch only provider changes/new messages
+  -> persist/canonicalize idempotently
+  -> advance providerCursor after successful processing
+  -> Email Intelligence
+```
+
+### V1 trigger strategy — scheduled incremental polling
+
+For `0.100.0`, the baseline trigger is a scheduler/cron that wakes incremental sync at a configurable interval (initial operational target: approximately every 5–15 minutes).
+
+This replaces the legacy idea of repeatedly querying Gmail by broad time ranges. A scheduled run with no provider changes should finish cheaply without re-reading the mailbox.
+
+The scheduler is infrastructure, not part of Email Intelligence semantics. Email Intelligence must never assume that a cron caused the sync.
+
+### Future trigger — Gmail push notifications
+
+Gmail push via Google Cloud Pub/Sub is an optional later optimization for near-real-time processing. It must be additive, not a redesign:
+
+```text
+V1:
+cron/scheduler -----------+
+                         |
+                         v
+                  incremental sync
+                         |
+                         v
+                 Email Intelligence
+
+Future:
+Gmail -> Pub/Sub ---------+
+                         |
+                         v
+                  same incremental sync
+```
+
+Enabling Pub/Sub may require Google Cloud billing/payment configuration even when actual usage remains within free allowances. Therefore Pub/Sub is **not a `0.100.0` release dependency**.
+
+When push is enabled, scheduled polling should remain available as recovery/reconciliation rather than the primary discovery mechanism. Push notifications are wake-up signals; provider history/cursor state remains the source for determining what changed.
+
+### Recovery and cursor failure
+
+The design must tolerate missed triggers, temporary provider/backend downtime and an invalid/expired provider history cursor.
+
+Recovery policy:
+
+1. normal sync resumes from `providerCursor`;
+2. periodic reconciliation verifies that incremental state continues progressing;
+3. if the provider can no longer serve history from the stored cursor, perform a bounded recovery/full resync according to the provider adapter policy;
+4. message idempotency prevents duplicate corpus entries during replay/recovery.
+
+The correctness invariant is: **delivery of a cron tick or push notification is not the durable state; the persisted provider cursor and idempotent corpus are.**
 
 ## Message representations
 

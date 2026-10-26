@@ -14,6 +14,58 @@ export type PrismaMock = {
     findFirst: MockFn;
     upsert: MockFn;
   };
+  aiInference: {
+    count: MockFn;
+    deleteMany: MockFn;
+    create: MockFn;
+  };
+  aiKnowledgeObservation: {
+    aggregate: MockFn;
+    findMany: MockFn;
+    update: MockFn;
+  };
+  aiHumanVerification: {
+    aggregate: MockFn;
+    findMany: MockFn;
+    update: MockFn;
+  };
+  aiConsentEvent: {
+    aggregate: MockFn;
+    findMany: MockFn;
+    update: MockFn;
+    create: MockFn;
+  };
+  aiDataset: {
+    upsert: MockFn;
+  };
+  aiDatasetItem: {
+    findMany: MockFn;
+    createMany: MockFn;
+    deleteMany: MockFn;
+  };
+  aiEmailMessage: {
+    findMany: MockFn;
+    deleteMany: MockFn;
+  };
+  userAiSettings: {
+    findMany: MockFn;
+    findUnique: MockFn;
+    upsert: MockFn;
+  };
+  aiAnalysisRun: {
+    create: MockFn;
+    findMany: MockFn;
+    update: MockFn;
+    deleteMany: MockFn;
+  };
+  aiKnowledge: {
+    findMany: MockFn;
+    findFirst: MockFn;
+    deleteMany: MockFn;
+    createMany: MockFn;
+    update: MockFn;
+    updateMany: MockFn;
+  };
   notification: {
     create: MockFn;
     update: MockFn;
@@ -25,17 +77,6 @@ export type PrismaMock = {
     upsert: MockFn;
     updateMany: MockFn;
     findMany: MockFn;
-    count: MockFn;
-  };
-  aiMessage: {
-    create: MockFn;
-  };
-  aiAgentSession: {
-    findFirst: MockFn;
-    findMany: MockFn;
-    create: MockFn;
-    update: MockFn;
-    deleteMany: MockFn;
     count: MockFn;
   };
   idempotencyKey: {
@@ -173,10 +214,6 @@ export type PrismaMock = {
     findMany: MockFn;
     deleteMany: MockFn;
   };
-  finEmailSyncLog: {
-    findMany: MockFn;
-    deleteMany: MockFn;
-  };
   finStatementImportLine: {
     createMany: MockFn;
     update: MockFn;
@@ -195,32 +232,6 @@ export type PrismaMock = {
     findMany: MockFn;
     createMany: MockFn;
     deleteMany: MockFn;
-  };
-  finEmailSource: {
-    findMany: MockFn;
-    findFirst: MockFn;
-    findUnique: MockFn;
-    create: MockFn;
-    updateMany: MockFn;
-    deleteMany: MockFn;
-    count: MockFn;
-  };
-  finEmailConnection: {
-    findMany: MockFn;
-    findUnique: MockFn;
-    findFirst: MockFn;
-    create: MockFn;
-    update: MockFn;
-    updateMany: MockFn;
-    count: MockFn;
-  };
-  finEmailMessage: {
-    findMany: MockFn;
-    findFirst: MockFn;
-    findUnique: MockFn;
-    upsert: MockFn;
-    deleteMany: MockFn;
-    count: MockFn;
   };
   finReceivablePayment: {
     findMany: MockFn;
@@ -326,6 +337,54 @@ function createTransactionClient(prismaMock: PrismaMock) {
   return {
     $queryRaw: jest.fn().mockResolvedValue([]),
     $executeRaw: jest.fn().mockResolvedValue(0),
+    // The knowledge projection reads the same rows the tests configure at root.
+    aiKnowledgeObservation: {
+      aggregate: prismaMock.aiKnowledgeObservation.aggregate,
+      findMany: prismaMock.aiKnowledgeObservation.findMany,
+      update: prismaMock.aiKnowledgeObservation.update,
+    },
+    aiHumanVerification: {
+      aggregate: prismaMock.aiHumanVerification.aggregate,
+      findMany: prismaMock.aiHumanVerification.findMany,
+      update: prismaMock.aiHumanVerification.update,
+    },
+    aiConsentEvent: {
+      aggregate: prismaMock.aiConsentEvent.aggregate,
+      findMany: prismaMock.aiConsentEvent.findMany,
+      create: prismaMock.aiConsentEvent.create,
+      update: prismaMock.aiConsentEvent.update,
+    },
+    aiDataset: {
+      upsert: prismaMock.aiDataset.upsert,
+    },
+    aiDatasetItem: {
+      findMany: prismaMock.aiDatasetItem.findMany,
+      createMany: prismaMock.aiDatasetItem.createMany,
+      deleteMany: prismaMock.aiDatasetItem.deleteMany,
+    },
+    aiEmailMessage: {
+      findMany: prismaMock.aiEmailMessage.findMany,
+      deleteMany: prismaMock.aiEmailMessage.deleteMany,
+    },
+    userAiSettings: {
+      findMany: prismaMock.userAiSettings.findMany,
+      findUnique: prismaMock.userAiSettings.findUnique,
+      upsert: prismaMock.userAiSettings.upsert,
+    },
+    aiAnalysisRun: {
+      create: prismaMock.aiAnalysisRun.create,
+      findMany: prismaMock.aiAnalysisRun.findMany,
+      update: prismaMock.aiAnalysisRun.update,
+      deleteMany: prismaMock.aiAnalysisRun.deleteMany,
+    },
+    aiKnowledge: {
+      findMany: prismaMock.aiKnowledge.findMany,
+      findFirst: prismaMock.aiKnowledge.findFirst,
+      deleteMany: prismaMock.aiKnowledge.deleteMany,
+      createMany: prismaMock.aiKnowledge.createMany,
+      update: prismaMock.aiKnowledge.update,
+      updateMany: prismaMock.aiKnowledge.updateMany,
+    },
     // The delete flows read the entity and remove it inside the transaction,
     // so those models share the root mock: a test configures and asserts in
     // one place.
@@ -359,10 +418,6 @@ function createTransactionClient(prismaMock: PrismaMock) {
       findUniqueOrThrow: jest.fn().mockResolvedValue(null),
       update: jest.fn().mockResolvedValue({}),
       deleteMany: prismaMock.finReceivable.deleteMany,
-    },
-    finEmailSource: {
-      findMany: jest.fn().mockResolvedValue([]),
-      deleteMany: prismaMock.finEmailSource.deleteMany,
     },
     finCategory: {
       findFirst: jest.fn().mockResolvedValue(null),
@@ -517,10 +572,6 @@ function createTransactionClient(prismaMock: PrismaMock) {
       findMany: jest.fn().mockResolvedValue([]),
       deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
     },
-    finEmailSyncLog: {
-      findMany: jest.fn().mockResolvedValue([]),
-      deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
-    },
     finSubscription: {
       findMany: jest.fn().mockResolvedValue([]),
       findFirst: jest.fn().mockResolvedValue(null),
@@ -532,9 +583,6 @@ function createTransactionClient(prismaMock: PrismaMock) {
     },
     finSubscriptionAlertDismissal: {
       deleteMany: prismaMock.finSubscriptionAlertDismissal.deleteMany,
-    },
-    finEmailSyncLog: {
-      deleteMany: prismaMock.finEmailSyncLog.deleteMany,
     },
     finStatementImport: {
       deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
@@ -704,9 +752,64 @@ export function createPrismaMock(): PrismaMock {
       findFirst: jest.fn().mockResolvedValue({
         id: 'um-finance',
         isEnabled: true,
-        config: { emailSync: { enabled: true, autoCategorize: true } },
       }),
       upsert: jest.fn(),
+    },
+    aiInference: {
+      create: jest.fn().mockResolvedValue({ id: 'ai-inference-1' }),
+      count: jest.fn().mockResolvedValue(0),
+      deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
+    },
+    aiKnowledgeObservation: {
+      aggregate: jest.fn().mockResolvedValue({ _max: { sequence: null } }),
+      findMany: jest.fn().mockResolvedValue([]),
+      update: jest.fn().mockResolvedValue({}),
+    },
+    aiHumanVerification: {
+      aggregate: jest.fn().mockResolvedValue({ _max: { sequence: null } }),
+      findMany: jest.fn().mockResolvedValue([]),
+      update: jest.fn().mockResolvedValue({}),
+    },
+    aiConsentEvent: {
+      aggregate: jest.fn().mockResolvedValue({ _max: { sequence: null } }),
+      findMany: jest.fn().mockResolvedValue([]),
+      update: jest.fn().mockResolvedValue({}),
+      create: jest.fn().mockResolvedValue({}),
+    },
+    aiDataset: {
+      upsert: jest.fn().mockResolvedValue({ id: 'dataset-1' }),
+    },
+    aiDatasetItem: {
+      findMany: jest.fn().mockResolvedValue([]),
+      createMany: jest.fn().mockResolvedValue({ count: 0 }),
+      deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
+    },
+    aiEmailMessage: {
+      findMany: jest.fn().mockResolvedValue([]),
+      deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
+    },
+    userAiSettings: {
+      findMany: jest.fn().mockResolvedValue([]),
+      findUnique: jest.fn().mockResolvedValue(null),
+      upsert: jest.fn().mockResolvedValue({}),
+    },
+    aiAnalysisRun: {
+      create: jest
+        .fn()
+        .mockImplementation((command: { data: object }) =>
+          Promise.resolve({ ...command.data, id: 'run-1' }),
+        ),
+      findMany: jest.fn().mockResolvedValue([]),
+      update: jest.fn().mockResolvedValue({}),
+      deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
+    },
+    aiKnowledge: {
+      findMany: jest.fn().mockResolvedValue([]),
+      findFirst: jest.fn().mockResolvedValue(null),
+      deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
+      createMany: jest.fn().mockResolvedValue({ count: 0 }),
+      update: jest.fn().mockResolvedValue({}),
+      updateMany: jest.fn().mockResolvedValue({ count: 0 }),
     },
     notification: {
       create: jest.fn(),
@@ -719,25 +822,6 @@ export function createPrismaMock(): PrismaMock {
       upsert: jest.fn(),
       updateMany: jest.fn(),
       findMany: jest.fn().mockResolvedValue([]),
-      count: jest.fn().mockResolvedValue(0),
-    },
-    aiMessage: {
-      create: jest.fn(),
-    },
-    aiAgentSession: {
-      findFirst: jest.fn().mockResolvedValue(null),
-      findMany: jest.fn().mockResolvedValue([]),
-      create: jest.fn().mockResolvedValue({ id: 'session-1' }),
-      update: jest.fn().mockResolvedValue({}),
-      deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
-      count: jest.fn().mockResolvedValue(0),
-    },
-    aiAgentSession: {
-      findFirst: jest.fn().mockResolvedValue(null),
-      findMany: jest.fn().mockResolvedValue([]),
-      create: jest.fn().mockResolvedValue({ id: 'session-1' }),
-      update: jest.fn().mockResolvedValue({}),
-      deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
       count: jest.fn().mockResolvedValue(0),
     },
     idempotencyKey: createIdempotencyKeyMock(),
@@ -891,10 +975,6 @@ export function createPrismaMock(): PrismaMock {
       findMany: jest.fn().mockResolvedValue([]),
       deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
     },
-    finEmailSyncLog: {
-      findMany: jest.fn().mockResolvedValue([]),
-      deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
-    },
     finTransaction: {
       findMany: jest.fn().mockResolvedValue([]),
       findFirst: jest.fn(),
@@ -905,32 +985,6 @@ export function createPrismaMock(): PrismaMock {
       update: jest.fn(),
       updateMany: jest.fn().mockResolvedValue({ count: 0 }),
       deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
-    },
-    finEmailSource: {
-      findMany: jest.fn().mockResolvedValue([]),
-      findFirst: jest.fn(),
-      findUnique: jest.fn(),
-      create: jest.fn(),
-      updateMany: jest.fn().mockResolvedValue({ count: 0 }),
-      deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
-      count: jest.fn().mockResolvedValue(0),
-    },
-    finEmailConnection: {
-      findMany: jest.fn().mockResolvedValue([]),
-      count: jest.fn().mockResolvedValue(0),
-      findUnique: jest.fn(),
-      findFirst: jest.fn(),
-      create: jest.fn(),
-      update: jest.fn(),
-      updateMany: jest.fn().mockResolvedValue({ count: 0 }),
-    },
-    finEmailMessage: {
-      findMany: jest.fn().mockResolvedValue([]),
-      findFirst: jest.fn(),
-      findUnique: jest.fn(),
-      upsert: jest.fn(),
-      deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
-      count: jest.fn().mockResolvedValue(0),
     },
     finReceivablePayment: {
       findMany: jest.fn().mockResolvedValue([]),

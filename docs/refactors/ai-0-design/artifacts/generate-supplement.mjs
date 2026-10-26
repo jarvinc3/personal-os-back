@@ -1,5 +1,5 @@
-// Capture non-Prisma invariants from a migrated LOCAL reference fixture only.
-// No .env fallback, no DDL/DML against the source. Writes design artifacts.
+// Capture a local design comparison only; never overwrite the PROD-preflight
+// invariant manifest or the artifacts used by the active DEV baseline.
 import { readFile, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
@@ -76,7 +76,7 @@ try {
   if (/email_message_id|fin_email_|ai_messages|ai_agent_sessions/.test(ddl)) {
     throw new Error('Non-Prisma invariant still depends on a removed object');
   }
-  await writeFile(resolve(here, '02-invariants.sql'), ddl);
+  await writeFile(resolve(here, '02-invariants.local-reference.sql'), ddl);
   const policySql =
     [
       '-- RLS is enabled even though public app tables are closed to the Data API.',
@@ -92,7 +92,7 @@ try {
   if (/fin_email_|ai_messages|ai_agent_sessions/.test(policySql)) {
     throw new Error('Policy still depends on a removed object');
   }
-  await writeFile(resolve(here, '03-rls.sql'), policySql);
+  await writeFile(resolve(here, '03-rls.local-reference.sql'), policySql);
   const seed = [
     `-- Explicit DEV bootstrap: these rows are absent in the migrated empty reference.\n` +
       `INSERT INTO public.modules (id,slug,key,name,sort_order) VALUES\n` +
@@ -120,12 +120,12 @@ try {
     );
   }
   await writeFile(
-    resolve(here, '05-reference-data.sql'),
+    resolve(here, '05-reference-data.local-reference.sql'),
     seed.join('\n\n') + '\n',
   );
   const manifest = {
     source: 'local-postgres-reference-only',
-    sourceRevision: '37b9ec875a640e023745add670a7d3b381a83c12',
+    sourceRevision: '018c4e021a1f54e755500ee3afefa9dc3037c84f',
     tables: tables.sort(),
     checks,
     partialIndexes: indexes,
@@ -141,7 +141,7 @@ try {
     sourceSchemaSha256: createHash('sha256').update(schema).digest('hex'),
   };
   await writeFile(
-    resolve(here, 'invariants-manifest.json'),
+    resolve(here, 'invariants-manifest.local-reference.json'),
     JSON.stringify(manifest, null, 2) + '\n',
   );
   console.log(

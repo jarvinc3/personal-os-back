@@ -4,10 +4,9 @@ import { FinanceModule } from '@personal-os/finance';
 import { NotificationsModule } from '@personal-os/notifications';
 import { USER_DATA_WIPE_DOMAINS } from '@personal-os/users';
 import { UserDataWipeDomainsAdapter } from './user-data-wipe-domains.adapter';
-
 @Global()
 @Module({
-  imports: [FinanceModule, NotificationsModule, AiModule],
+  imports: [AiModule, FinanceModule, NotificationsModule],
   providers: [
     {
       provide: USER_DATA_WIPE_DOMAINS,

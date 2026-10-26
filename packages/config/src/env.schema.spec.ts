@@ -104,6 +104,34 @@ describe('envSchema AI limits', () => {
   });
 });
 
+describe('envSchema Gmail OAuth encryption key', () => {
+  it('requires a dedicated key when any Gmail OAuth setting is configured', () => {
+    expect(() =>
+      parseEnv({
+        ...validBaseEnv,
+        NODE_ENV: 'development',
+        AI_GMAIL_CLIENT_ID: 'gmail-client-id',
+      }),
+    ).toThrow(/AI_GMAIL_TOKEN_ENCRYPTION_KEY is required/);
+  });
+
+  it('accepts a dedicated key of at least 32 characters', () => {
+    const parsed = parseEnv({
+      ...validBaseEnv,
+      NODE_ENV: 'development',
+      AI_GMAIL_CLIENT_ID: 'gmail-client-id',
+      AI_GMAIL_CLIENT_SECRET: 'gmail-client-secret',
+      AI_GMAIL_REDIRECT_URI:
+        'http://localhost:3100/api/intelligence/email/oauth/callback',
+      AI_GMAIL_TOKEN_ENCRYPTION_KEY: 'test-gmail-token-encryption-key-32-chars',
+    });
+
+    expect(parsed.AI_GMAIL_TOKEN_ENCRYPTION_KEY).toBe(
+      'test-gmail-token-encryption-key-32-chars',
+    );
+  });
+});
+
 describe('envSchema PUBLIC_WEB_URL', () => {
   it('accepts a web base URL', () => {
     const parsed = parseEnv({
@@ -207,5 +235,46 @@ describe('envSchema Sentry', () => {
     expect(() =>
       parseEnv({ ...validBaseEnv, SENTRY_TRACES_SAMPLE_RATE: '1.5' }),
     ).toThrow();
+  });
+});
+
+describe('envSchema CORS_ORIGIN_PATTERNS', () => {
+  const previewPattern =
+    '^https://personal-os-web-git-[a-z0-9-]+-collado-studios\\.vercel\\.app$';
+
+  it('accepts anchored preview patterns outside production', () => {
+    const parsed = parseEnv({
+      ...validBaseEnv,
+      NODE_ENV: 'development',
+      CORS_ORIGIN_PATTERNS: ` ${previewPattern} `,
+    });
+
+    expect(parsed.CORS_ORIGIN_PATTERNS).toBe(previewPattern);
+  });
+
+  it('treats a blank value as omitted', () => {
+    const parsed = parseEnv({ ...validBaseEnv, CORS_ORIGIN_PATTERNS: '  ' });
+
+    expect(parsed.CORS_ORIGIN_PATTERNS).toBeUndefined();
+  });
+
+  it('rejects a pattern that is not anchored', () => {
+    expect(() =>
+      parseEnv({
+        ...validBaseEnv,
+        CORS_ORIGIN_PATTERNS: 'https://personal-os-web-git-.*',
+      }),
+    ).toThrow(/must be anchored with \^ and \$/);
+  });
+
+  it('rejects the variable in production', () => {
+    expect(() =>
+      parseEnv({
+        ...validBaseEnv,
+        NODE_ENV: 'production',
+        REDIS_URL: 'redis://localhost:6379',
+        CORS_ORIGIN_PATTERNS: previewPattern,
+      }),
+    ).toThrow(/CORS_ORIGIN_PATTERNS is not allowed in production/);
   });
 });

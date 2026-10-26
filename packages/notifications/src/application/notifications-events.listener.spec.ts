@@ -1,5 +1,6 @@
 import type { DomainEventIdempotencyGuard } from '@personal-os/core';
 import { FINANCE_NOTIFICATION_KEYS } from '@personal-os/users';
+import type { NotificationsGateway } from '../presentation/notifications.gateway';
 import { NotificationsEventsListener } from './notifications-events.listener';
 import { NotificationsService } from './notifications.service';
 
@@ -23,6 +24,7 @@ describe('NotificationsEventsListener', () => {
   const listener = new NotificationsEventsListener(
     notificationsService,
     idempotency,
+    { emitToUser: jest.fn() } as unknown as NotificationsGateway,
   );
 
   beforeEach(() => {

@@ -1,170 +1,76 @@
 import { INestApplication, ValidationPipe } from '@nestjs/common';
-import { Test, TestingModule } from '@nestjs/testing';
+import { Test } from '@nestjs/testing';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import request from 'supertest';
 import { App } from 'supertest/types';
-import { AiService } from '@personal-os/ai-agent';
 import { PrismaService } from '@personal-os/database';
+import {
+  AiEvidenceService,
+  AiKnowledgeService,
+  AiDataDeletionService,
+  SEMANTIC_ROUTES,
+  SEMANTIC_TYPES,
+  TRANSACTION_DIRECTIONS,
+  TRANSACTION_KINDS,
+} from '@personal-os/ai-agent';
 import { applyAuthTestOverrides } from './helpers/auth-test.providers';
 import { createTestJwt } from './helpers/jwt.helper';
 import { createPrismaMock } from './helpers/prisma.mock';
 import { applyTestEnv } from './helpers/test-env';
 
 applyTestEnv();
-
-// Loaded at file scope so the one-time ts-jest transpile of the app graph
-// does not consume the 5s hook timeout on a cold cache (#150).
 const { AppModule } = require('../apps/api/src/app.module') as {
   AppModule: new (...args: never[]) => unknown;
 };
 
-describe('AI Agent (e2e)', () => {
+describe('Retired AI chat API (e2e)', () => {
   let app: INestApplication<App>;
-  let prismaMock: ReturnType<typeof createPrismaMock> & {
-    aiAgentSession: Record<string, jest.Mock>;
-    aiAction: Record<string, jest.Mock>;
-    aiMessage: Record<string, jest.Mock>;
-  };
   let token: string;
-  let chatCompleteStreamCalls = 0;
-
-  const session = {
-    id: 'session-1',
-    userId: 'user-123',
-    moduleId: null,
-    contextType: 'general',
-    memorySnapshot: {},
-    lastActiveAt: new Date(),
-    createdAt: new Date(),
-    module: null,
-    messages: [] as unknown[],
+  const evidence = {
+    datasetSummary: jest.fn().mockResolvedValue({
+      id: 'dataset-1',
+      name: 'EMAIL_V1',
+      partitions: { TRAIN: 3, VALIDATION: 1, HOLDOUT: 1 },
+    }),
+    reviewQueue: jest.fn().mockResolvedValue({
+      items: [],
+      hasMore: false,
+      nextCursor: null,
+    }),
+    verifyMessage: jest.fn().mockResolvedValue({
+      sequence: '7',
+      verdict: 'CONFIRMED',
+    }),
+    listRuns: jest.fn().mockResolvedValue([]),
   };
-
-  const pendingAction = {
-    id: 'action-1',
-    sessionId: 'session-1',
-    messageId: null,
-    actionType: 'set_theme',
-    targetModule: 'core',
-    payload: { value: 'dark' },
-    status: 'PENDING',
-    result: null,
-    executedAt: null,
+  const knowledge = {
+    listForUser: jest.fn().mockResolvedValue({ personal: [], global: [] }),
+    adminQueue: jest.fn().mockResolvedValue([]),
+    rebuild: jest.fn().mockResolvedValue({ runId: 'run-1', items: 0 }),
+    revert: jest.fn().mockResolvedValue({ state: 'BLOCKED' }),
   };
+  const deletion = {
+    exportForUser: jest.fn().mockResolvedValue({ messages: [], knowledge: [] }),
+    deleteMyData: jest
+      .fn()
+      .mockResolvedValue({ deleted: true, deletedMessages: 0 }),
+  };
+  const userRole = { findUnique: jest.fn().mockResolvedValue(null) };
 
   beforeEach(async () => {
-    chatCompleteStreamCalls = 0;
-    const base = createPrismaMock();
-    prismaMock = {
-      ...base,
-      aiAgentSession: {
-        create: jest.fn().mockResolvedValue(session),
-        findFirst: jest.fn().mockResolvedValue({
-          ...session,
-          messages: [],
-        }),
-        findUnique: jest.fn().mockResolvedValue(session),
-        update: jest.fn().mockResolvedValue(session),
-        deleteMany: jest.fn().mockResolvedValue({ count: 1 }),
-      },
-      aiMessage: {
-        create: jest
-          .fn()
-          .mockImplementation((args: { data: Record<string, unknown> }) =>
-            Promise.resolve({
-              id: `msg-${Date.now()}`,
-              createdAt: new Date(),
-              ...args.data,
-            }),
-          ),
-        findFirst: jest.fn().mockResolvedValue(null),
-        findMany: jest.fn().mockResolvedValue([]),
-        findUnique: jest.fn().mockResolvedValue(null),
-        count: jest.fn().mockResolvedValue(0),
-      },
-      aiAction: {
-        create: jest.fn().mockResolvedValue(pendingAction),
-        findFirst: jest.fn().mockResolvedValue(pendingAction),
-        findMany: jest.fn().mockResolvedValue([pendingAction]),
-        updateMany: jest.fn().mockResolvedValue({ count: 1 }),
-        update: jest
-          .fn()
-          .mockImplementation((args: { data: Record<string, unknown> }) =>
-            Promise.resolve({
-              ...pendingAction,
-              ...args.data,
-              status: args.data.status ?? 'SUCCESS',
-            }),
-          ),
-      },
-    };
-
-    prismaMock.user.findUnique.mockResolvedValue({
-      id: 'user-123',
-      email: 'test@example.com',
-      fullName: 'Test User',
-      avatarUrl: null,
-      timezone: 'UTC',
-      locale: 'es',
-      preferences: {
-        ai: {
-          confirmBeforeActions: true,
-          proactiveInsights: true,
-          tone: 'balanced',
-          defaultProvider: null,
-        },
-      },
-      userModules: [],
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
-    prismaMock.user.update.mockResolvedValue({
-      id: 'user-123',
-      preferences: { theme: 'dark' },
-    });
-
+    jest.clearAllMocks();
     token = createTestJwt({ sub: 'user-123' });
-
-    const aiServiceMock = {
-      getProviders: () => [
-        { name: 'mock', model: 'mock-model', available: true },
-      ],
-      chatCompleteStream: jest.fn(() => {
-        chatCompleteStreamCalls += 1;
-        if (chatCompleteStreamCalls === 1) {
-          return Promise.resolve({
-            provider: 'mock',
-            model: 'mock-model',
-            content: '',
-            toolCalls: [
-              {
-                id: 'call_1',
-                name: 'set_theme',
-                arguments: { value: 'dark' },
-              },
-            ],
-          });
-        }
-        return Promise.resolve({
-          provider: 'mock',
-          model: 'mock-model',
-          content: 'Theme change is pending your confirmation.',
-          toolCalls: [],
-        });
-      }),
-      chatComplete: jest.fn(),
-      chat: jest.fn(),
-    };
-
-    const moduleFixture: TestingModule = await applyAuthTestOverrides(
-      Test.createTestingModule({
-        imports: [AppModule],
-      })
+    const moduleFixture = await applyAuthTestOverrides(
+      Test.createTestingModule({ imports: [AppModule] })
         .overrideProvider(PrismaService)
-        .useValue(prismaMock)
-        .overrideProvider(AiService)
-        .useValue(aiServiceMock),
+        .useValue({ ...createPrismaMock(), userRole })
+        .overrideProvider(AiEvidenceService)
+        .useValue(evidence)
+        .overrideProvider(AiKnowledgeService)
+        .useValue(knowledge)
+        .overrideProvider(AiDataDeletionService)
+        .useValue(deletion),
     ).compile();
-
     app = moduleFixture.createNestApplication();
     app.setGlobalPrefix('api');
     app.useGlobalPipes(
@@ -177,47 +83,220 @@ describe('AI Agent (e2e)', () => {
     await app.init();
   });
 
-  afterEach(async () => {
-    if (app) {
-      await app.close();
-    }
+  afterEach(async () => app?.close());
+
+  it('aísla el explorador/exportación y protege la cola ADMIN', async () => {
+    userRole.findUnique.mockResolvedValue(null);
+    await request(app.getHttpServer())
+      .get('/api/intelligence/knowledge')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+    expect(knowledge.listForUser).toHaveBeenCalledWith('user-123');
+    await request(app.getHttpServer())
+      .get('/api/intelligence/knowledge/me/export')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+    expect(deletion.exportForUser).toHaveBeenCalledWith('user-123');
+    await request(app.getHttpServer())
+      .get('/api/intelligence/knowledge/admin/queue')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(403);
+    expect(knowledge.adminQueue).not.toHaveBeenCalled();
   });
 
-  it('POST /api/ai/chat stages mutating tool then execute succeeds', async () => {
-    const chatRes = await request(app.getHttpServer())
+  it('exige confirmación para borrar y permite reconstruir solo a ADMIN', async () => {
+    await request(app.getHttpServer())
+      .delete('/api/intelligence/knowledge/me')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ confirmed: false })
+      .expect(400);
+    await request(app.getHttpServer())
+      .delete('/api/intelligence/knowledge/me')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(400);
+    await request(app.getHttpServer())
+      .delete('/api/intelligence/knowledge/me')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ confirmed: true, extra: 'no' })
+      .expect(400);
+    expect(deletion.deleteMyData).not.toHaveBeenCalled();
+    await request(app.getHttpServer())
+      .delete('/api/intelligence/knowledge/me')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ confirmed: true })
+      .expect(200);
+    expect(deletion.deleteMyData).toHaveBeenCalledWith('user-123');
+    await request(app.getHttpServer())
+      .post('/api/intelligence/knowledge/admin/rebuild')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(403);
+    await request(app.getHttpServer())
+      .post('/api/intelligence/knowledge/admin/knowledge-1/revert')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(403);
+    expect(knowledge.revert).not.toHaveBeenCalled();
+    userRole.findUnique.mockResolvedValue({ role: 'ADMIN' });
+    await request(app.getHttpServer())
+      .post('/api/intelligence/knowledge/admin/rebuild')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(201);
+    expect(knowledge.rebuild).toHaveBeenCalledWith('user-123');
+    await request(app.getHttpServer())
+      .get('/api/intelligence/knowledge/admin/queue')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+    expect(knowledge.adminQueue).toHaveBeenCalled();
+    await request(app.getHttpServer())
+      .post('/api/intelligence/knowledge/admin/knowledge-1/revert')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(201);
+    expect(knowledge.revert).toHaveBeenCalledWith('user-123', 'knowledge-1');
+  });
+
+  it('returns 404 for chat and session routes removed in AI-0', async () => {
+    await request(app.getHttpServer())
       .post('/api/ai/chat')
       .set('Authorization', `Bearer ${token}`)
+      .send({ messages: [{ role: 'user', content: 'hola' }] })
+      .expect(404);
+    await request(app.getHttpServer())
+      .get('/api/ai/sessions')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(404);
+  });
+
+  it('exposes the authenticated AI-3 dataset, review, verification, and run routes', async () => {
+    await request(app.getHttpServer())
+      .get('/api/intelligence/dataset')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body.data.name).toBe('EMAIL_V1');
+      });
+
+    await request(app.getHttpServer())
+      .get('/api/intelligence/review-queue?cursor=next-page')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+    expect(evidence.reviewQueue).toHaveBeenCalledWith(
+      'user-123',
+      'next-page',
+      undefined,
+    );
+
+    await request(app.getHttpServer())
+      .post('/api/intelligence/messages/message-1/verifications')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ verdict: 'CONFIRMED' })
+      .expect(201);
+    expect(evidence.verifyMessage).toHaveBeenCalledWith(
+      'user-123',
+      'message-1',
+      { verdict: 'CONFIRMED' },
+    );
+
+    await request(app.getHttpServer())
+      .get('/api/intelligence/runs')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+  });
+
+  it.each([
+    { semanticType: 'notificacion empleo' },
+    { routes: ['FINANCE', 'FINANCE'] },
+    { routes: ['TRAVEL'] },
+    {
+      semanticType: 'FIN_TRANSACTION',
+      transaction: { kind: 'TRANSACTION', amount: -1 },
+    },
+    {
+      semanticType: 'FIN_TRANSACTION',
+      transaction: { kind: 'TRANSACTION', last4: '123' },
+    },
+    {
+      semanticType: 'FIN_TRANSACTION',
+      transaction: { kind: 'TRANSACTION', unknownField: 'x' },
+    },
+  ])('rejects an invalid label payload %# before persistence', async (body) => {
+    evidence.verifyMessage.mockClear();
+    await request(app.getHttpServer())
+      .post('/api/intelligence/messages/message-1/verifications')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ verdict: 'CORRECTED', ...body })
+      .expect(400);
+    expect(evidence.verifyMessage).not.toHaveBeenCalled();
+  });
+
+  it('accepts a typed financial transaction payload', async () => {
+    evidence.verifyMessage.mockClear();
+    await request(app.getHttpServer())
+      .post('/api/intelligence/messages/message-1/verifications')
+      .set('Authorization', `Bearer ${token}`)
       .send({
-        messages: [{ role: 'user', content: 'cambia el tema a dark' }],
+        verdict: 'CORRECTED',
+        semanticType: 'FIN_TRANSACTION',
+        routes: ['FINANCE'],
+        transaction: {
+          kind: 'TRANSACTION',
+          amount: 1250,
+          currency: 'DOP',
+          direction: 'DEBIT',
+        },
       })
       .expect(201);
+    expect(evidence.verifyMessage).toHaveBeenCalledTimes(1);
+  });
 
-    expect(chatRes.body.data ?? chatRes.body).toEqual(
-      expect.objectContaining({
-        sessionId: 'session-1',
-        requiresConfirmation: true,
-        actions: expect.arrayContaining([
-          expect.objectContaining({
-            id: 'action-1',
-            actionType: 'set_theme',
-            status: 'PENDING',
-          }),
-        ]),
-      }),
+  it('publishes the exact label enums in OpenAPI', () => {
+    const document = SwaggerModule.createDocument(
+      app,
+      new DocumentBuilder().setTitle('Test').setVersion('1').build(),
     );
+    const verification = document.components?.schemas
+      ?.CreateHumanVerificationDto as { properties: Record<string, never> };
+    const transaction = document.components?.schemas
+      ?.HumanVerificationTransactionDto as {
+      properties: Record<string, never>;
+    };
 
-    const execRes = await request(app.getHttpServer())
-      .post('/api/ai/actions/action-1/execute')
-      .set('Authorization', `Bearer ${token}`)
-      .expect(201);
+    expect(verification.properties.semanticType).toMatchObject({
+      enum: [...SEMANTIC_TYPES],
+    });
+    expect(verification.properties.routes).toMatchObject({
+      items: { enum: [...SEMANTIC_ROUTES] },
+    });
+    expect(transaction.properties.kind).toMatchObject({
+      enum: [...TRANSACTION_KINDS],
+    });
+    expect(transaction.properties.direction).toMatchObject({
+      enum: [...TRANSACTION_DIRECTIONS],
+    });
 
-    expect(execRes.body.data ?? execRes.body).toEqual(
-      expect.objectContaining({
-        action: expect.objectContaining({
-          id: 'action-1',
-          actionType: 'set_theme',
-        }),
-      }),
-    );
+    const knowledge = document.components?.schemas?.KnowledgeItemDto as {
+      properties: Record<string, never>;
+    };
+    expect(knowledge.properties.scope).toMatchObject({
+      enum: ['GLOBAL', 'USER'],
+    });
+    expect(knowledge.properties.knowledgeType).toMatchObject({
+      enum: [
+        'EMAIL_SENDER',
+        'EMAIL_DOMAIN',
+        'EMAIL_TEMPLATE',
+        'ENTITY',
+        'RELATION',
+        'USER_MAPPING',
+      ],
+    });
+    expect(knowledge.properties.state).toMatchObject({
+      enum: ['OBSERVED', 'STABLE', 'REVIEW_REQUIRED', 'BLOCKED'],
+    });
+    expect(
+      document.paths?.['/api/intelligence/knowledge/admin/rebuild']?.post
+        ?.responses?.['201'],
+    ).toBeDefined();
+    expect(
+      document.paths?.['/api/intelligence/knowledge/me/export']?.get,
+    ).toBeDefined();
   });
 });

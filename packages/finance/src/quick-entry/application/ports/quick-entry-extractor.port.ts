@@ -21,6 +21,7 @@ export type QuickEntryCatalogCategory = {
 };
 
 export type QuickEntryExtractionInput = {
+  userId: string;
   text: string;
   todayIso: string;
   baseCurrency: string;

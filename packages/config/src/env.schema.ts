@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { parseCorsOriginPatterns } from './cors-origins';
 import { parseStrictEnvBoolean } from './parse-env-boolean';
 
 const optionalApiKey = z
@@ -54,10 +55,29 @@ export const envSchema = z
     /** Logo.dev publishable key. Logo download is skipped when unset. */
     LOGO_DEV_PUBLISHABLE_KEY: optionalApiKey,
 
-    // ── IA (free-tier providers) ───────────────
+    // ── IA providers ───────────────────────────
     GROQ_API_KEY: optionalApiKey,
-    OPENCODE_API_KEY: optionalApiKey,
     OPENROUTER_API_KEY: optionalApiKey,
+    AI_GMAIL_CLIENT_ID: optionalApiKey,
+    AI_GMAIL_CLIENT_SECRET: optionalApiKey,
+    AI_GMAIL_TOKEN_ENCRYPTION_KEY: z
+      .string()
+      .min(32, 'AI_GMAIL_TOKEN_ENCRYPTION_KEY must be at least 32 chars')
+      .optional(),
+    AI_GMAIL_REDIRECT_URI: z
+      .string()
+      .optional()
+      .transform((value) => value?.trim() || undefined)
+      .pipe(z.union([z.url(), z.undefined()])),
+    /** Dev-only seed target for the initial Intelligence administrator. */
+    AI_DEV_ADMIN_EMAIL: optionalApiKey,
+    AI_EMAIL_SYNC_INTERVAL_MINUTES: defaultedPositiveInt(10),
+    /** Minimum distinct contributors for automatic GLOBAL knowledge. */
+    AI_GLOBAL_MIN_CONTRIBUTORS: z.preprocess(
+      (value) =>
+        typeof value === 'string' && value.trim() === '' ? undefined : value,
+      z.coerce.number().int().positive().optional(),
+    ),
     /** Hard cap on LLM email extractions per Gmail sync. Default 25. */
     MAX_EMAIL_LLM_EXTRACTS: defaultedPositiveInt(25),
     /** Max proactive insight LLM calls per user per UTC day. Default 20. */
@@ -76,23 +96,10 @@ export const envSchema = z
     SENTRY_ORG: optionalApiKey,
     SENTRY_PROJECT: optionalApiKey,
 
-    // ── Google OAuth (para Gmail API) ────────────────────────────
-    GOOGLE_CLIENT_ID: z.string().min(1, 'GOOGLE_CLIENT_ID is required'),
-    GOOGLE_CLIENT_SECRET: z.string().min(1, 'GOOGLE_CLIENT_SECRET is required'),
-    GOOGLE_REDIRECT_URI: z.url('GOOGLE_REDIRECT_URI must be a valid URL'),
-
-    /** Encrypts Gmail OAuth tokens at rest. */
-    ENCRYPTION_KEY: z
-      .string()
-      .min(32, 'ENCRYPTION_KEY must be at least 32 chars'),
-    /** Encrypts bank account numbers at rest; unrelated to Gmail tokens. */
+    /** Encrypts bank account numbers at rest. */
     DATA_ENCRYPTION_KEY: z
       .string()
       .min(32, 'DATA_ENCRYPTION_KEY must be at least 32 chars'),
-    OAUTH_STATE_SECRET: z
-      .string()
-      .min(32, 'OAUTH_STATE_SECRET must be at least 32 chars')
-      .optional(),
 
     // ── App ──────────────────────────────────────────────────────
     NODE_ENV: z
@@ -123,6 +130,17 @@ export const envSchema = z
             'CORS_ORIGIN must be one or more valid URLs separated by commas',
         },
       ),
+    /**
+     * Anchored regex sources for branch preview origins (CSV). Only allowed
+     * outside production: production keeps the exact `CORS_ORIGIN` list.
+     */
+    CORS_ORIGIN_PATTERNS: z
+      .string()
+      .optional()
+      .transform((value) => {
+        const trimmed = value?.trim();
+        return trimmed || undefined;
+      }),
     /**
      * Base URL of the public web app used to build links shared with other
      * people (`<PUBLIC_WEB_URL>/c/<token>`). Falls back to the first
@@ -245,20 +263,34 @@ export const envSchema = z
       }),
   })
   .superRefine((data, ctx) => {
+    if (data.CORS_ORIGIN_PATTERNS) {
+      if (data.NODE_ENV === 'production') {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'CORS_ORIGIN_PATTERNS is not allowed in production',
+          path: ['CORS_ORIGIN_PATTERNS'],
+        });
+      } else {
+        try {
+          parseCorsOriginPatterns(data.CORS_ORIGIN_PATTERNS);
+        } catch (error) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message:
+              error instanceof Error
+                ? error.message
+                : 'Invalid CORS_ORIGIN_PATTERNS',
+            path: ['CORS_ORIGIN_PATTERNS'],
+          });
+        }
+      }
+    }
+
     if (data.NODE_ENV === 'production' && !data.REDIS_URL) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: 'REDIS_URL is required in production (BullMQ job queues)',
         path: ['REDIS_URL'],
-      });
-    }
-
-    if (data.NODE_ENV === 'production' && !data.OAUTH_STATE_SECRET) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message:
-          'OAUTH_STATE_SECRET is required in production (must differ from ENCRYPTION_KEY)',
-        path: ['OAUTH_STATE_SECRET'],
       });
     }
 
@@ -291,20 +323,30 @@ export const envSchema = z
       }
     }
 
+    if (
+      (data.AI_GMAIL_CLIENT_ID ||
+        data.AI_GMAIL_CLIENT_SECRET ||
+        data.AI_GMAIL_REDIRECT_URI) &&
+      !data.AI_GMAIL_TOKEN_ENCRYPTION_KEY
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message:
+          'AI_GMAIL_TOKEN_ENCRYPTION_KEY is required when Gmail OAuth is configured',
+        path: ['AI_GMAIL_TOKEN_ENCRYPTION_KEY'],
+      });
+    }
+
     // AI provider keys are optional under NODE_ENV=test (CI / e2e).
     if (data.NODE_ENV === 'test') {
       return;
     }
 
-    if (
-      !data.GROQ_API_KEY &&
-      !data.OPENCODE_API_KEY &&
-      !data.OPENROUTER_API_KEY
-    ) {
+    if (!data.GROQ_API_KEY && !data.OPENROUTER_API_KEY) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message:
-          'At least one AI provider key is required (GROQ_API_KEY, OPENCODE_API_KEY, or OPENROUTER_API_KEY)',
+          'At least one AI provider key is required (GROQ_API_KEY or OPENROUTER_API_KEY)',
         path: ['GROQ_API_KEY'],
       });
     }

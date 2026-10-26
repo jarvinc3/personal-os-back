@@ -1,8 +1,9 @@
 # Inventario previo a fase 0
 
-Capturado el 2026-10-24 sobre develop, base a0aa950b1bddcde83ccb6b0551c9a5ea1636290c
-(0.55.1), con el arreglo de outbox de esta sesión todavía en el working tree.
-Debe actualizarse al SHA del corte. No se ha ejecutado AI-0 ni reset de datos.
+Inventario refrescado el 2026-10-24 sobre `origin/develop` `da123e1` (0.55.3),
+antes del corte de código AI-0. La rama de ejecución implementa el corte; el
+reset remoto y la baseline se aplicaron al proyecto DEV autorizado
+`knqfgybflkpzplkqcocz` el 2026-10-24.
 Decisiones: [01-IMPLEMENTATION-DECISIONS.md](01-IMPLEMENTATION-DECISIONS.md).
 
 ## Finance: preservar implementación y pruebas
@@ -186,7 +187,8 @@ resolverla antes de retirar tablas de chat; no se deja una FK huérfana.
   conservar ownership financiero; retirar fuente y tipos ChatContextEntity.
 - packages/core/src/events/event.constants.ts y domain-events.ts, listeners de
   IA/Notifications y notification-copy.ts: retirar eventos/copy exclusivos de
-  importación junto con la fuente, sin afectar eventos financieros vigentes.
+  sincronización Gmail junto con la fuente; conservar `FINANCE_TRANSACTION_IMPORTED`,
+  que representa un resultado financiero y no requiere tablas `FinEmail*`.
 - packages/users/src/application/users.service.ts y domain/defaults/user-settings-defaults.ts,
   packages/config/src/email-sync-schedule.ts y env.schema.ts: retirar settings
   Gmail y registrar settings propios de cada dominio.
@@ -194,7 +196,7 @@ resolverla antes de retirar tablas de chat; no se deja una FK huérfana.
   entrega EMAIL por Resend, no sincroniza Gmail. Su cola email-sync también permanece.
 - quick-entry/infrastructure/ai-quick-entry.extractor.ts y
   statements/infrastructure/ai-statement.extractor.ts siguen operativos; el puerto
-  AI_CHAT_COMPLETION tiene implementación de inferencia incluso sin chat.
+  `INFERENCE_COMPLETION` tiene implementación de inferencia incluso sin chat.
 - scripts/finance/dedupe-existing.ts, postman.json, swagger-spec.json, seeds y
   mocks de E2E: revisar referencias a tablas, endpoints y eventos retirados.
 
@@ -222,24 +224,45 @@ No se cambia ningún SQL aplicado. El reset futuro solo está permitido en
 repo/DEV tras verificar PROD de solo lectura. Nunca ejecutar reset contra una
 URL obtenida implícitamente de .env para una demo o una prueba.
 
-## Creaciones previstas, todavía no implementadas
+## Estado después del corte de código
 
-- packages/contracts: interfaces/tokens neutrales; registro desde apps/api.
-- Descriptores por dominio y adaptadores Finance de capacidades, contexto,
-  señales e intents. Sin imports desde runtime genérico hacia Finance.
-- Fuente AiEmail, corpus y roles en fase 2; evidencia/revisión en fase 3;
-  conocimiento/proyección en fase 4; señales y puente BullMQ en fase 7.
-- Web: retirar chat y controles Gmail financieros en fase 0; Intelligence
-  Review aparece en fase 2. El inventario detallado web de 12-REPO-IMPACT sigue
-  pendiente de verificación contra el SHA de corte de ese repositorio.
+- `@personal-os/contracts`, el runtime de inferencia independiente de chat,
+  los adaptadores financieros del puerto neutral y el baseline local están
+  implementados en `refactor/ai-0`.
+- El historial de chat, Gmail y sus ramas de borrado ya no se publican desde
+  API ni web. La importación financiera probada queda sin callers hasta AI-11.
+- La fuente AiEmail/corpus, evidencia/revisión, conocimiento/proyección y el
+  puente Signals → BullMQ siguen siendo fases futuras del roadmap.
+- El cliente web tiene su corte inicial en `512b0dc`; el checkout de trabajo es
+  `personal-os-web` en la misma rama. No se tocan `docs/handoff/` ni la imagen
+  protegida de marca.
 
-## Gates antes del reset
+## Ejecución y gates restantes
 
-1. Verificar master/PROD y crear rama estable desde la revisión correcta.
-2. Finalizar modelos, índices, FKs y SQL de baseline; probar en base vacía.
-3. Diagnosticar OAuth con errores/logs sanitizados y configuración real de Google.
-4. Caracterizar reglas financieras conservadas y demostrar quick-entry/statements.
-5. Acordar y probar cambios de vaciado por ramas en back y web.
-6. Disponer de backup/restore DEV y conservar el SHA anterior para rollback de
-   código. Un rollback de código no restaura por sí solo una base reseteada.
-7. Pasar format, lint, unit, E2E, build, drift e integración con PostgreSQL real.
+1. Confirmar el corte PROD 0.55.3 con el owner (2026-10-24). El preflight PROD
+   se recibió y auditó en modo readonly; no se hicieron escrituras remotas.
+2. Baseline, SQL complementario, Prisma schema y branches de wipe están
+   implementados. `migrate deploy`, drift y 18 validaciones corrieron contra
+   PostgreSQL local desechable; esto no sustituye Supabase DEV.
+3. No se requiere diagnosticar OAuth para retirar el flujo. El incidente queda
+   documentado como no atribuible sin logs operativos.
+4. Las reglas financieras conservadas mantienen pruebas de caracterización;
+   los gates de build, unit, E2E y PostgreSQL real se ejecutan en esta rama.
+5. Jarvin confirmó que los datos DEV son de prueba y autorizó resetearlos sin
+   dump, backup ni restauración. El 2026-10-24 se validó la conexión al proyecto
+   DEV `knqfgybflkpzplkqcocz` y se ejecutó el reset más la baseline. PROD no se
+   tocó.
+6. Conservar el SHA anterior para rollback de código. No hay rollback de datos:
+   la pérdida de los datos de prueba está aceptada; un rollback solo devuelve un
+   binario compatible con el esquema que exista.
+7. La verificación estructural DEV encontró 45 tablas `public` con RLS, 23
+   policies, 18 checks, 4 índices parciales, 4 módulos, 31 categorías y un perfil
+   Auth reconciliado. La migración `20261101090004_auth_user_delete_cascade`
+   limpia el perfil y sus filas dependientes al borrar directamente una identidad
+   Auth; una prueba transaccional verificó alta y eliminación del perfil y revirtió
+   el usuario sintético. El smoke de API contra DEV pasó para Auth, settings,
+   Finance, notificaciones, marcas y wipe; las rutas chat/Gmail dan 404. Workers
+   reiniciados y readiness 200 con Redis Docker local. No había jobs pendientes
+   para probar leases. Se limpiaron en Railway DEV solo las claves terminales de
+   `gmail-sync` y los metadatos de `ai-processing`. El deploy/reapertura del API
+   Railway DEV queda pendiente; PROD no se tocó.

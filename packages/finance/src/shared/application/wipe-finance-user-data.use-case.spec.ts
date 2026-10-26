@@ -19,10 +19,6 @@ function buildMocks() {
       deleteMany: jest.fn(),
     },
     finLoan: { deleteMany: jest.fn() },
-    finEmailSource: { deleteMany: jest.fn() },
-    finEmailMessage: { deleteMany: jest.fn() },
-    finEmailSyncLog: { deleteMany: jest.fn() },
-    finEmailConnection: { deleteMany: jest.fn() },
     finSubscription: { deleteMany: jest.fn(), count: jest.fn() },
     finSubscriptionPayment: { deleteMany: jest.fn() },
     finSubscriptionAlertDismissal: { deleteMany: jest.fn() },
@@ -47,7 +43,6 @@ function buildMocks() {
   tx.finInstitution.findMany.mockResolvedValue([{ id: 'inst-1' }]);
 
   const prisma = {
-    finEmailSource: { findMany: jest.fn().mockResolvedValue([]) },
     finTransaction: { count: jest.fn().mockResolvedValue(4) },
     finReconciliation: { count: jest.fn().mockResolvedValue(1) },
     finBalanceDrift: { count: jest.fn().mockResolvedValue(2) },
@@ -64,8 +59,6 @@ function buildMocks() {
       count: jest.fn().mockResolvedValue(5),
       findMany: jest.fn().mockResolvedValue([]),
     },
-    finEmailMessage: { count: jest.fn().mockResolvedValue(4) },
-    finEmailConnection: { count: jest.fn().mockResolvedValue(1) },
     finStatementImport: { count: jest.fn().mockResolvedValue(2) },
     finCardStatement: { count: jest.fn().mockResolvedValue(1) },
     finLoan: { count: jest.fn().mockResolvedValue(1) },
@@ -78,18 +71,16 @@ function buildMocks() {
     ),
   };
   const logos = { deleteCustomLogo: jest.fn().mockResolvedValue(undefined) };
-  const gmailSyncQueue = { remove: jest.fn().mockResolvedValue(undefined) };
-  return { prisma, tx, logos, gmailSyncQueue };
+  return { prisma, tx, logos };
 }
 
 describe('WipeFinanceUserDataUseCase', () => {
   it('wipes transactions without touching merchants, recurring or email', async () => {
-    const { prisma, tx, logos, gmailSyncQueue } = buildMocks();
+    const { prisma, tx, logos } = buildMocks();
     tx.finTransaction.deleteMany.mockResolvedValue({ count: 4 });
     const useCase = new WipeFinanceUserDataUseCase(
       prisma as never,
       logos as never,
-      gmailSyncQueue as never,
     );
 
     await expect(
@@ -109,17 +100,15 @@ describe('WipeFinanceUserDataUseCase', () => {
     });
     expect(creditRestoreSql(tx)).toContain("c.type = 'CREDIT'");
     expect(tx.finMerchant.deleteMany).not.toHaveBeenCalled();
-    expect(tx.finEmailMessage.deleteMany).not.toHaveBeenCalled();
   });
 
   it('wipes reconciliations and drifts, keeping the adjustment movements', async () => {
-    const { prisma, tx, logos, gmailSyncQueue } = buildMocks();
+    const { prisma, tx, logos } = buildMocks();
     tx.finReconciliation.deleteMany.mockResolvedValue({ count: 3 });
     tx.finBalanceDrift.deleteMany.mockResolvedValue({ count: 2 });
     const useCase = new WipeFinanceUserDataUseCase(
       prisma as never,
       logos as never,
-      gmailSyncQueue as never,
     );
 
     await expect(
@@ -136,14 +125,13 @@ describe('WipeFinanceUserDataUseCase', () => {
   });
 
   it('zeroes balances without deleting anything', async () => {
-    const { prisma, tx, logos, gmailSyncQueue } = buildMocks();
+    const { prisma, tx, logos } = buildMocks();
     tx.finAccount.updateMany.mockResolvedValue({ count: 3 });
     tx.finCardBalance.updateMany.mockResolvedValue({ count: 1 });
     tx.$executeRaw.mockResolvedValue(2);
     const useCase = new WipeFinanceUserDataUseCase(
       prisma as never,
       logos as never,
-      gmailSyncQueue as never,
     );
 
     await expect(
@@ -155,12 +143,11 @@ describe('WipeFinanceUserDataUseCase', () => {
   });
 
   it('scopes the balances reset to one institution', async () => {
-    const { prisma, tx, logos, gmailSyncQueue } = buildMocks();
+    const { prisma, tx, logos } = buildMocks();
     tx.finInstitution.findFirst.mockResolvedValue({ id: 'inst-1' });
     const useCase = new WipeFinanceUserDataUseCase(
       prisma as never,
       logos as never,
-      gmailSyncQueue as never,
     );
 
     await useCase.wipeBranches('user-1', ['finance.balances'], {
@@ -175,12 +162,11 @@ describe('WipeFinanceUserDataUseCase', () => {
   });
 
   it('rejects a balance scope that is not the user institution', async () => {
-    const { prisma, tx, logos, gmailSyncQueue } = buildMocks();
+    const { prisma, tx, logos } = buildMocks();
     tx.finInstitution.findFirst.mockResolvedValue(null);
     const useCase = new WipeFinanceUserDataUseCase(
       prisma as never,
       logos as never,
-      gmailSyncQueue as never,
     );
 
     await expect(
@@ -194,12 +180,11 @@ describe('WipeFinanceUserDataUseCase', () => {
   });
 
   it('deletes the cards with what they drag and keeps accounts', async () => {
-    const { prisma, tx, logos, gmailSyncQueue } = buildMocks();
+    const { prisma, tx, logos } = buildMocks();
     tx.finCard.deleteMany.mockResolvedValue({ count: 2 });
     const useCase = new WipeFinanceUserDataUseCase(
       prisma as never,
       logos as never,
-      gmailSyncQueue as never,
     );
 
     await expect(
@@ -214,12 +199,11 @@ describe('WipeFinanceUserDataUseCase', () => {
   });
 
   it('deletes the accounts and keeps the cards', async () => {
-    const { prisma, tx, logos, gmailSyncQueue } = buildMocks();
+    const { prisma, tx, logos } = buildMocks();
     tx.finAccount.deleteMany.mockResolvedValue({ count: 3 });
     const useCase = new WipeFinanceUserDataUseCase(
       prisma as never,
       logos as never,
-      gmailSyncQueue as never,
     );
 
     await expect(
@@ -233,7 +217,7 @@ describe('WipeFinanceUserDataUseCase', () => {
   });
 
   it('deletes non-system institutions with their loans and mail sources', async () => {
-    const { prisma, tx, logos, gmailSyncQueue } = buildMocks();
+    const { prisma, tx, logos } = buildMocks();
     prisma.finInstitution.findMany.mockResolvedValue([
       { customLogoPath: 'custom/user-1/inst-1.png' },
     ]);
@@ -242,7 +226,6 @@ describe('WipeFinanceUserDataUseCase', () => {
     const useCase = new WipeFinanceUserDataUseCase(
       prisma as never,
       logos as never,
-      gmailSyncQueue as never,
     );
 
     await expect(
@@ -261,11 +244,10 @@ describe('WipeFinanceUserDataUseCase', () => {
   });
 
   it('counts each branch with the same rules as the wipe', async () => {
-    const { prisma, logos, gmailSyncQueue } = buildMocks();
+    const { prisma, logos } = buildMocks();
     const useCase = new WipeFinanceUserDataUseCase(
       prisma as never,
       logos as never,
-      gmailSyncQueue as never,
     );
 
     await expect(
@@ -288,11 +270,10 @@ describe('WipeFinanceUserDataUseCase', () => {
   });
 
   it('applies every requested branch in a single transaction', async () => {
-    const { prisma, tx, logos, gmailSyncQueue } = buildMocks();
+    const { prisma, tx, logos } = buildMocks();
     const useCase = new WipeFinanceUserDataUseCase(
       prisma as never,
       logos as never,
-      gmailSyncQueue as never,
     );
 
     await useCase.wipeBranches('user-1', [
@@ -312,7 +293,6 @@ describe('WipeFinanceUserDataUseCase rest of the branches', () => {
     const useCase = new WipeFinanceUserDataUseCase(
       mocks.prisma as never,
       mocks.logos as never,
-      mocks.gmailSyncQueue as never,
     );
     return { ...mocks, useCase };
   }
@@ -366,21 +346,6 @@ describe('WipeFinanceUserDataUseCase rest of the branches', () => {
     );
   });
 
-  it('deletes the imported mail and its log without the movements', async () => {
-    const { tx, useCase } = buildUseCase();
-    tx.finEmailMessage.deleteMany.mockResolvedValue({ count: 4 });
-
-    await expect(
-      useCase.wipeBranches('user-1', ['finance.emailMessages']),
-    ).resolves.toEqual({ 'finance.emailMessages': 4 });
-
-    expect(tx.finEmailMessage.deleteMany).toHaveBeenCalledWith({
-      where: { source: { userId: 'user-1' } },
-    });
-    expect(tx.finEmailSyncLog.deleteMany).toHaveBeenCalled();
-    expect(tx.finTransaction.deleteMany).not.toHaveBeenCalled();
-  });
-
   it('deletes the imported statements with their imports and keeps the cards', async () => {
     const { tx, useCase } = buildUseCase();
     tx.finStatementImport.deleteMany.mockResolvedValue({ count: 2 });
@@ -424,19 +389,19 @@ describe('WipeFinanceUserDataUseCase rest of the branches', () => {
     expect(tx.finTransaction.deleteMany).not.toHaveBeenCalled();
   });
 
-  it('deletes the Gmail connection and cancels its sync jobs', async () => {
-    const { prisma, tx, gmailSyncQueue, useCase } = buildUseCase();
-    prisma.finEmailSource.findMany.mockResolvedValue([{ id: 'src-1' }]);
-    tx.finEmailConnection.deleteMany.mockResolvedValue({ count: 1 });
+  it('rejects retired Gmail data branches instead of silently ignoring them', async () => {
+    const { useCase } = buildUseCase();
 
     await expect(
-      useCase.wipeBranches('user-1', ['finance.emailConnections']),
-    ).resolves.toEqual({ 'finance.emailConnections': 1 });
-
-    expect(tx.finEmailConnection.deleteMany).toHaveBeenCalledWith({
-      where: { userId: 'user-1' },
+      useCase.wipeBranches('user-1', ['finance.emailMessages']),
+    ).rejects.toMatchObject({
+      status: 400,
     });
-    expect(gmailSyncQueue.remove).toHaveBeenCalledWith('gmail-sync-src-1');
+    await expect(
+      useCase.countBranches('user-1', ['finance.emailConnections']),
+    ).rejects.toMatchObject({
+      status: 400,
+    });
   });
 
   it('counts each new branch with the same rules as the wipe', async () => {
@@ -447,27 +412,23 @@ describe('WipeFinanceUserDataUseCase rest of the branches', () => {
         'finance.subscriptions',
         'finance.recurring',
         'finance.merchants',
-        'finance.emailMessages',
         'finance.statements',
         'finance.loans',
         'finance.savingsGoals',
         'finance.receivables',
         'finance.budgets',
         'finance.categories',
-        'finance.emailConnections',
       ]),
     ).resolves.toEqual({
       'finance.subscriptions': 3,
       'finance.recurring': 2,
       'finance.merchants': 5,
-      'finance.emailMessages': 4,
       'finance.statements': 3,
       'finance.loans': 1,
       'finance.savingsGoals': 2,
       'finance.receivables': 2,
       'finance.budgets': 3,
       'finance.categories': 4,
-      'finance.emailConnections': 1,
     });
   });
 });

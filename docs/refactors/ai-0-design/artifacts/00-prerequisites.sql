@@ -1,3 +1,4 @@
--- Design artifact: only apply to a new, explicitly selected empty database.
+-- Match verified Supabase extension namespace; never relocate an existing extension.
 CREATE SCHEMA IF NOT EXISTS public;
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA public;
+CREATE SCHEMA IF NOT EXISTS extensions;
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA extensions;

@@ -13,11 +13,18 @@
 
 ## Modelos (inventario)
 
-Users/core: `User`, `Module`, `UserModule`, `AiAgentSession`, `AiMessage`, `AiAction`, `Notification`, `PushToken`, `AuthDeletionOutbox`.
+Users/core: `User`, `Module`, `UserModule`, `AiAction`, `AiInference`, `Notification`, `PushToken`, `AuthDeletionOutbox`.
 
-Finance: `FinAccount`, `FinInstitution`, `FinCard`, `FinCardBalance`, `FinTransaction`, `FinCategory`, `FinBudget`, `FinBudgetAlert`, `FinSavingsGoal`, `FinLoan`, `FinReceivable`, `FinEmailConnection`, `FinEmailSource` (`bank_sender_email` opcional; unique `(user_id, institution_id)`), `FinEmailMessage`, `FinEmailSyncLog`, `FinExchangeRate`, `FinRecurringPattern` (reservado, sin API), `DomainEventOutbox`, `ProcessedDomainEvent`.
+Finance: `FinAccount`, `FinInstitution`, `FinCard`, `FinCardBalance`, `FinTransaction`, `FinCategory`, `FinBudget`, `FinBudgetAlert`, `FinSavingsGoal`, `FinLoan`, `FinReceivable`, `FinExchangeRate`, `FinRecurringPattern` (reservado, sin API), `DomainEventOutbox`, `ProcessedDomainEvent`.
 
-Enums relevantes: ver `packages/database/prisma/schema.prisma` (`FinTransactionStatus`, `FinEmailMessageOutcome`, etc.).
+Enums relevantes: ver `packages/database/prisma/schema.prisma` (`FinTransactionStatus`, etc.).
+
+AI-0 mantiene una sola baseline activa. El historial anterior está preservado
+por checksum en [`docs/archive/migrations-pre-ai0/`](../archive/migrations-pre-ai0/);
+no se concatena ni se modifica. La baseline se comprobó en una base PostgreSQL
+desechable con fixtures locales de `auth` y `storage`, y Prisma no detectó drift.
+La metadata de PROD solo alimentó checksums y objetos no modelados; PROD no fue
+modificado. Ver [los artefactos de AI-0](../refactors/ai-0-design/artifacts/).
 
 ## Operación
 
@@ -31,6 +38,21 @@ Enums relevantes: ver `packages/database/prisma/schema.prisma` (`FinTransactionS
 | `pnpm db:encrypt-account-numbers`            | Cifrar cuentas planas (una vez) |
 
 No usar `migrate reset` sobre datos reales.
+
+## Migraciones en Railway
+
+El repo declara [`railway.json`](../../railway.json) con el pre-deploy del servicio back:
+
+```json
+{ "deploy": { "preDeployCommand": "pnpm db:migrate:deploy" } }
+```
+
+- Antes de arrancar la versión nueva, Railway aplica las migraciones pendientes con `prisma migrate deploy` y el `DATABASE_URL` del entorno. Si una migración falla, el deploy se cancela y la versión anterior sigue sirviendo.
+- DEV lo corre en cada deploy de `develop`. Producción lo corre al mergear a `master`: ese release requiere el OK de Jarvin antes del merge.
+- El archivo solo agrega el pre-deploy; no fija el build ni el comando de arranque, que siguen configurados en el servicio.
+- El CLI de Prisma es dependencia de producción (`dependencies`) porque la imagen de ejecución no instala `devDependencies`.
+
+Nunca `prisma migrate reset` ni `prisma db push` contra un entorno con datos; el pre-deploy solo ejecuta `migrate deploy`.
 
 ## Scripts de datos
 

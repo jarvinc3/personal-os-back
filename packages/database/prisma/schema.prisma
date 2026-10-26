@@ -9,7 +9,7 @@ datasource db {
 }
 
 model User {
-  id                             String                          @id @default(dbgenerated("(uuid_generate_v4())::text"))
+  id                             String                          @id @default(dbgenerated("(extensions.uuid_generate_v4())::text"))
   email                          String                          @unique
   fullName                       String                          @map("full_name")
   avatarUrl                      String?                         @map("avatar_url")
@@ -19,8 +19,19 @@ model User {
   lastSeenReleaseVersion         String?                         @map("last_seen_release_version")
   createdAt                      DateTime                        @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt                      DateTime                        @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
-  aiSessions                     AiAgentSession[]
   aiActions                      AiAction[]
+  aiInferences                   AiInference[]
+  aiEmailConnection              AiEmailConnection?
+  aiEmailMessages                AiEmailMessage[]
+  aiSettings                     UserAiSettings?
+  aiRole                         UserRole?
+  grantedAiRoles                 UserRole[]                      @relation("AiRoleGrantedBy")
+  aiDatasetItems                 AiDatasetItem[]
+  aiAnalysisRuns                 AiAnalysisRun[]
+  aiKnowledgeObservations        AiKnowledgeObservation[]
+  aiHumanVerifications           AiHumanVerification[]
+  aiKnowledge                    AiKnowledge[]
+  aiConsentEvents                AiConsentEvent[]
   finAccounts                    FinAccount[]
   finCards                       FinCard[]
   finInstitutions                FinInstitution[]
@@ -31,8 +42,6 @@ model User {
   finMerchantDuplicateDismissals FinMerchantDuplicateDismissal[]
   finSubscriptions               FinSubscription[]
   finSubscriptionAlertDismissals FinSubscriptionAlertDismissal[]
-  finEmailConnections            FinEmailConnection[]
-  finEmailSources                FinEmailSource[]
   finLoans                       FinLoan[]
   finReceivables                 FinReceivable[]
   finReceivableShares            FinReceivableShare[]
@@ -53,23 +62,22 @@ model User {
 }
 
 model Module {
-  id          String           @id @default(dbgenerated("(uuid_generate_v4())::text"))
-  slug        String           @unique
+  id          String       @id @default(dbgenerated("(extensions.uuid_generate_v4())::text"))
+  slug        String       @unique
   name        String
-  isActive    Boolean          @default(true) @map("is_active")
-  sortOrder   Int              @default(0) @map("sort_order")
-  key         String           @unique
+  isActive    Boolean      @default(true) @map("is_active")
+  sortOrder   Int          @default(0) @map("sort_order")
+  key         String       @unique
   description String?
-  createdAt   DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt   DateTime         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
-  aiSessions  AiAgentSession[]
+  createdAt   DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime     @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   userModules UserModule[]
 
   @@map("modules")
 }
 
 model UserModule {
-  id        String   @id @default(dbgenerated("(uuid_generate_v4())::text"))
+  id        String   @id @default(dbgenerated("(extensions.uuid_generate_v4())::text"))
   userId    String   @map("user_id")
   moduleId  String   @map("module_id")
   isEnabled Boolean  @default(true) @map("is_enabled")
@@ -85,66 +93,391 @@ model UserModule {
   @@map("user_modules")
 }
 
-model AiAgentSession {
-  id             String      @id @default(dbgenerated("(uuid_generate_v4())::text"))
-  userId         String      @map("user_id")
-  moduleId       String?     @map("module_id")
-  contextType    String      @default("general") @map("context_type")
-  chatContext    Json        @default("{}") @map("chat_context")
-  memorySnapshot Json        @default("{}") @map("memory_snapshot")
-  lastActiveAt   DateTime    @default(now()) @map("last_active_at") @db.Timestamptz(6)
-  createdAt      DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
-  actions        AiAction[]
-  module         Module?     @relation(fields: [moduleId], references: [id], onDelete: SetNull, onUpdate: NoAction)
-  user           User        @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  messages       AiMessage[]
-
-  @@index([userId, lastActiveAt], map: "ai_agent_sessions_user_id_last_active_idx")
-  @@index([moduleId], map: "ai_agent_sessions_module_id_idx")
-  @@map("ai_agent_sessions")
-}
-
-model AiMessage {
-  id              String         @id @default(dbgenerated("(uuid_generate_v4())::text"))
-  sessionId       String         @map("session_id")
-  role            AiRole
-  content         String
-  clientMessageId String?        @map("client_message_id")
-  toolCalls       Json?          @map("tool_calls")
-  metadata        Json           @default("{}")
-  createdAt       DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
-  actions         AiAction[]
-  session         AiAgentSession @relation(fields: [sessionId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-
-  @@unique([sessionId, role, clientMessageId])
-  @@index([sessionId, clientMessageId])
-  @@map("ai_messages")
-}
-
 model AiAction {
-  id           String         @id @default(dbgenerated("(uuid_generate_v4())::text"))
-  sessionId    String         @map("session_id")
-  userId       String         @map("user_id")
-  messageId    String?        @map("message_id")
-  actionType   String         @map("action_type")
-  targetModule String         @map("target_module")
-  payload      Json
-  status       AiActionStatus @default(PENDING)
-  result       Json?
-  executedAt   DateTime?      @map("executed_at") @db.Timestamptz(6)
-  createdAt    DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
-  message      AiMessage?     @relation(fields: [messageId], references: [id], onDelete: SetNull, onUpdate: NoAction)
-  session      AiAgentSession @relation(fields: [sessionId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  id              String         @id @default(dbgenerated("(extensions.uuid_generate_v4())::text"))
+  originType      String         @default("AGENT") @map("origin_type")
+  originReference String?        @map("origin_reference")
+  userId          String         @map("user_id")
+  actionType      String         @map("action_type")
+  targetModule    String         @map("target_module")
+  payload         Json
+  status          AiActionStatus @default(PENDING)
+  result          Json?
+  executedAt      DateTime?      @map("executed_at") @db.Timestamptz(6)
+  createdAt       DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  user            User           @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
-  @@index([sessionId], map: "ai_actions_session_id_idx")
   @@index([userId], map: "ai_actions_user_id_idx")
-  @@index([messageId], map: "ai_actions_message_id_idx")
   @@map("ai_actions")
 }
 
+/// Privacy-minimized operational record for one structured model inference.
+/// Prompts and model outputs are intentionally never persisted here.
+model AiInference {
+  id                 String            @id @default(dbgenerated("(extensions.uuid_generate_v4())::text"))
+  userId             String            @map("user_id")
+  task               String
+  sourceType         String?           @map("source_type")
+  sourceId           String?           @map("source_id")
+  provider           String
+  model              String
+  promptVersion      String            @map("prompt_version")
+  schemaVersion      String            @map("schema_version")
+  inputFingerprint   String            @map("input_fingerprint")
+  fingerprintVersion String            @map("fingerprint_version")
+  status             AiInferenceStatus
+  errorCode          String?           @map("error_code")
+  fallbackCount      Int               @default(0) @map("fallback_count")
+  latencyMs          Int               @map("latency_ms")
+  inputTokens        Int?              @map("input_tokens")
+  outputTokens       Int?              @map("output_tokens")
+  createdAt          DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  expiresAt          DateTime          @map("expires_at") @db.Timestamptz(6)
+  user               User              @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([userId, createdAt], map: "ai_inferences_user_created_at_idx")
+  @@index([expiresAt], map: "ai_inferences_expires_at_idx")
+  @@map("ai_inferences")
+}
+
+enum AiInferenceStatus {
+  SUCCEEDED
+  FAILED
+
+  @@map("ai_inference_status")
+}
+
+enum AiUserRole {
+  USER
+  CONTRIBUTOR
+  ADMIN
+
+  @@map("ai_user_role")
+}
+
+enum AiEmailProcessingStatus {
+  INGESTED
+  QUEUED
+  PROCESSED
+  REVIEW_REQUIRED
+  FAILED
+
+  @@map("ai_email_processing_status")
+}
+
+enum AiDatasetPartition {
+  TRAIN
+  VALIDATION
+  HOLDOUT
+
+  @@map("ai_dataset_partition")
+}
+
+enum AiAnalysisMode {
+  ANALYZE_ONLY
+  EVALUATE
+  IMPORT
+
+  @@map("ai_analysis_mode")
+}
+
+enum AiAnalysisRunStatus {
+  RUNNING
+  COMPLETED
+  FAILED
+
+  @@map("ai_analysis_run_status")
+}
+
+enum AiHumanVerificationVerdict {
+  CONFIRMED
+  CORRECTED
+  REJECTED
+
+  @@map("ai_human_verification_verdict")
+}
+
+enum AiKnowledgeScope {
+  GLOBAL
+  USER
+
+  @@map("ai_knowledge_scope")
+}
+
+enum AiKnowledgeType {
+  EMAIL_SENDER
+  EMAIL_DOMAIN
+  EMAIL_TEMPLATE
+  ENTITY
+  RELATION
+  USER_MAPPING
+
+  @@map("ai_knowledge_type")
+}
+
+enum AiKnowledgeState {
+  OBSERVED
+  STABLE
+  REVIEW_REQUIRED
+  BLOCKED
+
+  @@map("ai_knowledge_state")
+}
+
+enum AiKnowledgePromotion {
+  AUTO
+  CONTRIBUTOR
+  ADMIN
+
+  @@map("ai_knowledge_promotion")
+}
+
+enum AiRunReproductionStatus {
+  COMPLETE
+  INCOMPLETE
+
+  @@map("ai_run_reproduction_status")
+}
+
+model AiDataset {
+  id         String          @id @default(dbgenerated("(extensions.uuid_generate_v4())::text"))
+  name       String          @unique
+  purpose    String
+  sourceType String          @default("EMAIL") @map("source_type")
+  createdAt  DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  items      AiDatasetItem[]
+  runs       AiAnalysisRun[]
+
+  @@map("ai_datasets")
+}
+
+model AiDatasetItem {
+  id         String             @id @default(dbgenerated("(extensions.uuid_generate_v4())::text"))
+  datasetId  String             @map("dataset_id")
+  userId     String             @map("user_id")
+  sourceType String             @map("source_type")
+  sourceId   String             @map("source_id")
+  partition  AiDatasetPartition
+  createdAt  DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  dataset    AiDataset          @relation(fields: [datasetId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  user       User               @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([datasetId, sourceType, sourceId], map: "ai_dataset_items_source_key")
+  @@index([datasetId, userId, partition, createdAt], map: "ai_dataset_items_user_partition_idx")
+  @@map("ai_dataset_items")
+}
+
+model AiAnalysisRun {
+  id                   String                   @id @default(dbgenerated("(extensions.uuid_generate_v4())::text"))
+  userId               String                   @map("user_id")
+  datasetId            String                   @map("dataset_id")
+  mode                 AiAnalysisMode           @default(ANALYZE_ONLY)
+  status               AiAnalysisRunStatus      @default(RUNNING)
+  observationSequence  BigInt                   @default(0) @map("observation_sequence")
+  verificationSequence BigInt                   @default(0) @map("verification_sequence")
+  consentRevision      BigInt                   @default(0) @map("consent_revision")
+  reproductionStatus   AiRunReproductionStatus  @default(COMPLETE) @map("reproduction_status")
+  missingEvidence      Json                     @default("{}") @map("missing_evidence")
+  projectorVersion     String                   @map("projector_version")
+  policyVersion        String                   @map("policy_version")
+  pipelineVersion      String                   @map("pipeline_version")
+  detectorVersion      String?                  @map("detector_version")
+  promptVersion        String?                  @map("prompt_version")
+  schemaVersion        String?                  @map("schema_version")
+  configuration        Json                     @default("{}")
+  metrics              Json?
+  error                String?
+  startedAt            DateTime                 @default(now()) @map("started_at") @db.Timestamptz(6)
+  completedAt          DateTime?                @map("completed_at") @db.Timestamptz(6)
+  createdAt            DateTime                 @default(now()) @map("created_at") @db.Timestamptz(6)
+  dataset              AiDataset                @relation(fields: [datasetId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  user                 User                     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  observations         AiKnowledgeObservation[]
+
+  @@index([userId, createdAt(sort: Desc)], map: "ai_analysis_runs_user_created_idx")
+  @@index([datasetId, status, createdAt(sort: Desc)], map: "ai_analysis_runs_dataset_status_idx")
+  @@map("ai_analysis_runs")
+}
+
+model AiKnowledgeObservation {
+  sequence                BigInt         @id @default(autoincrement())
+  runId                   String?        @map("run_id")
+  userId                  String?        @map("user_id")
+  knowledgeType           String         @map("knowledge_type")
+  knowledgeKey            String         @map("knowledge_key")
+  proposedScope           String         @map("proposed_scope")
+  sourceType              String         @map("source_type")
+  sourceId                String?        @map("source_id")
+  inferenceId             String?        @map("inference_id")
+  payload                 Json?
+  contributorTombstone    String?        @map("contributor_tombstone")
+  tombstoneEligible       Boolean        @default(false) @map("tombstone_eligible")
+  normalizerVersion       String?        @map("normalizer_version")
+  derivedFromKnowledgeIds String[]       @default([]) @map("derived_from_knowledge_ids")
+  weight                  Float          @default(1)
+  createdAt               DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  run                     AiAnalysisRun? @relation(fields: [runId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  user                    User?          @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+
+  @@index([userId, sequence], map: "ai_knowledge_observations_user_sequence_idx")
+  @@index([sourceType, sourceId, sequence], map: "ai_knowledge_observations_source_sequence_idx")
+  @@map("ai_knowledge_observations")
+}
+
+model AiHumanVerification {
+  sequence             BigInt                     @id @default(autoincrement())
+  userId               String?                    @map("user_id")
+  verifierRole         AiUserRole                 @map("verifier_role")
+  targetType           String                     @map("target_type")
+  targetId             String?                    @map("target_id")
+  verdict              AiHumanVerificationVerdict
+  correctedPayload     Json?                      @map("corrected_payload")
+  notes                String?                    @db.Text
+  structuralKeys       Json?                      @map("structural_keys")
+  structuralPayload    Json?                      @map("structural_payload")
+  contributorTombstone String?                    @map("contributor_tombstone")
+  tombstoneEligible    Boolean                    @default(false) @map("tombstone_eligible")
+  normalizerVersion    String?                    @map("normalizer_version")
+  isGroundTruth        Boolean                    @default(false) @map("is_ground_truth")
+  createdAt            DateTime                   @default(now()) @map("created_at") @db.Timestamptz(6)
+  user                 User?                      @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+
+  @@index([userId, targetType, targetId, sequence(sort: Desc)], map: "ai_human_verifications_user_target_idx")
+  @@index([targetType, targetId, sequence(sort: Desc)], map: "ai_human_verifications_target_idx")
+  @@map("ai_human_verifications")
+}
+
+model AiKnowledge {
+  id                 String                @id @default(dbgenerated("(extensions.uuid_generate_v4())::text"))
+  scope              AiKnowledgeScope
+  userId             String?               @map("user_id")
+  knowledgeType      AiKnowledgeType       @map("knowledge_type")
+  knowledgeKey       String                @map("knowledge_key")
+  state              AiKnowledgeState
+  payload            Json
+  messagesSeen       Int                   @default(0) @map("messages_seen")
+  rejectedMessages   Int                   @default(0) @map("rejected_messages")
+  distinctUsers      Int                   @default(0) @map("distinct_users")
+  humanVerifiedCount Int                   @default(0) @map("human_verified_count")
+  promotedBy         AiKnowledgePromotion? @map("promoted_by")
+  projectorVersion   String                @map("projector_version")
+  policyVersion      String                @map("policy_version")
+  normalizerVersion  String                @map("normalizer_version")
+  sanitizerVersion   String                @map("sanitizer_version")
+  firstSeenAt        DateTime              @map("first_seen_at") @db.Timestamptz(6)
+  lastSeenAt         DateTime              @map("last_seen_at") @db.Timestamptz(6)
+  updatedAt          DateTime              @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  user               User?                 @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([scope, state, updatedAt], map: "ai_knowledge_scope_state_idx")
+  @@index([userId, knowledgeType, knowledgeKey], map: "ai_knowledge_user_lookup_idx")
+  @@map("ai_knowledge")
+}
+
+model AiConsentEvent {
+  sequence                    BigInt   @id @default(autoincrement())
+  userId                      String?  @map("user_id")
+  contributorTombstone        String?  @map("contributor_tombstone")
+  contributeToGlobalKnowledge Boolean  @map("contribute_to_global_knowledge")
+  reason                      String
+  createdAt                   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  user                        User?    @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+
+  @@index([userId, sequence(sort: Desc)], map: "ai_consent_events_user_sequence_idx")
+  @@map("ai_consent_events")
+}
+
+model UserRole {
+  userId        String     @id @map("user_id")
+  role          AiUserRole @default(USER)
+  grantedBy     String?    @map("granted_by")
+  grantedAt     DateTime   @default(now()) @map("granted_at") @db.Timestamptz(6)
+  updatedAt     DateTime   @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  user          User       @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  grantedByUser User?      @relation("AiRoleGrantedBy", fields: [grantedBy], references: [id], onDelete: SetNull, onUpdate: NoAction)
+
+  @@index([role, updatedAt], map: "user_roles_role_updated_at_idx")
+  @@map("user_roles")
+}
+
+model UserAiSettings {
+  userId                      String   @id @map("user_id")
+  contributeToGlobalKnowledge Boolean  @default(true) @map("contribute_to_global_knowledge")
+  contributionConsentAt       DateTime @default(now()) @map("contribution_consent_at") @db.Timestamptz(6)
+  createdAt                   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt                   DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  user                        User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@map("user_ai_settings")
+}
+
+model AiEmailConnection {
+  id                     String           @id @default(dbgenerated("(extensions.uuid_generate_v4())::text"))
+  userId                 String           @unique @map("user_id")
+  provider               String           @default("GMAIL")
+  emailAddress           String           @map("email_address")
+  isActive               Boolean          @default(true) @map("is_active")
+  accessTokenEncrypted   String           @map("access_token_encrypted") @db.Text
+  refreshTokenEncrypted  String?          @map("refresh_token_encrypted") @db.Text
+  tokenExpiresAt         DateTime?        @map("token_expires_at") @db.Timestamptz(6)
+  providerCursor         String?          @map("provider_cursor")
+  bootstrapPageToken     String?          @map("bootstrap_page_token")
+  bootstrapStartedAt     DateTime?        @map("bootstrap_started_at") @db.Timestamptz(6)
+  initialSyncCompletedAt DateTime?        @map("initial_sync_completed_at") @db.Timestamptz(6)
+  lastSyncedAt           DateTime?        @map("last_synced_at") @db.Timestamptz(6)
+  lastRecoverySyncAt     DateTime?        @map("last_recovery_sync_at") @db.Timestamptz(6)
+  importedMessageCount   Int              @default(0) @map("imported_message_count")
+  lastSyncErrorCode      String?          @map("last_sync_error_code")
+  syncState              Json?            @map("sync_state")
+  createdAt              DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt              DateTime         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  user                   User             @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  messages               AiEmailMessage[]
+
+  @@unique([id, userId], map: "ai_email_connections_id_user_id_key")
+  @@map("ai_email_connections")
+}
+
+model AiEmailMessage {
+  id                  String                  @id @default(dbgenerated("(extensions.uuid_generate_v4())::text"))
+  userId              String                  @map("user_id")
+  connectionId        String                  @map("connection_id")
+  providerMessageId   String                  @map("provider_message_id")
+  providerThreadId    String?                 @map("provider_thread_id")
+  receivedAt          DateTime                @map("received_at") @db.Timestamptz(6)
+  fromAddress         String                  @map("from_address")
+  fromDomain          String                  @map("from_domain")
+  subject             String
+  contentFingerprint  String                  @map("content_fingerprint")
+  templateFingerprint String?                 @map("template_fingerprint")
+  processingStatus    AiEmailProcessingStatus @default(INGESTED) @map("processing_status")
+  createdAt           DateTime                @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime                @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  user                User                    @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  connection          AiEmailConnection       @relation(fields: [connectionId, userId], references: [id, userId], onDelete: Cascade, onUpdate: NoAction)
+  content             AiEmailMessageContent?
+
+  @@unique([connectionId, providerMessageId], map: "ai_email_messages_connection_provider_id_key")
+  @@index([userId, receivedAt(sort: Desc)], map: "ai_email_messages_user_received_at_idx")
+  @@index([userId, processingStatus, receivedAt(sort: Desc)], map: "ai_email_messages_user_status_received_at_idx")
+  @@map("ai_email_messages")
+}
+
+model AiEmailMessageContent {
+  messageId          String         @id @map("message_id")
+  rawBody            String?        @map("raw_body") @db.Text
+  sanitizedBody      String?        @map("sanitized_body") @db.Text
+  canonicalBody      String?        @map("canonical_body") @db.Text
+  snippet            String?        @db.Text
+  retentionExpiresAt DateTime?      @map("retention_expires_at") @db.Timestamptz(6)
+  message            AiEmailMessage @relation(fields: [messageId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([retentionExpiresAt], map: "ai_email_message_content_retention_idx")
+  @@map("ai_email_message_content")
+}
+
 model Notification {
-  id          String              @id @default(dbgenerated("(uuid_generate_v4())::text"))
+  id          String              @id @default(dbgenerated("(extensions.uuid_generate_v4())::text"))
   userId      String              @map("user_id")
   type        String
   channel     NotificationChannel
@@ -163,7 +496,7 @@ model Notification {
 }
 
 model PushToken {
-  id        String   @id @default(dbgenerated("(uuid_generate_v4())::text"))
+  id        String   @id @default(dbgenerated("(extensions.uuid_generate_v4())::text"))
   userId    String   @map("user_id")
   platform  String
   token     String   @unique
@@ -176,7 +509,7 @@ model PushToken {
 }
 
 model FinAccount {
-  id                         String                       @id @default(dbgenerated("(uuid_generate_v4())::text"))
+  id                         String                       @id @default(dbgenerated("(extensions.uuid_generate_v4())::text"))
   userId                     String                       @map("user_id")
   /// Required for CHECKING/SAVINGS/INVESTMENT. Null only for CASH (DB check).
   institutionId              String?                      @map("institution_id")
@@ -220,56 +553,8 @@ model FinAccount {
 }
 
 /// One Gmail/IMAP inbox (OAuth tokens). Shared by every bank watched on that mailbox.
-model FinEmailConnection {
-  id             String           @id @default(dbgenerated("(uuid_generate_v4())::text"))
-  userId         String           @map("user_id")
-  provider       String
-  emailAddress   String           @map("email_address")
-  accessToken    String?          @map("access_token")
-  refreshToken   String?          @map("refresh_token")
-  imapHost       String?          @map("imap_host")
-  tokenExpiresAt DateTime?        @map("token_expires_at") @db.Timestamptz(6)
-  isActive       Boolean          @default(true) @map("is_active")
-  createdAt      DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt      DateTime         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
-  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  sources        FinEmailSource[]
-
-  @@unique([userId, provider, emailAddress], map: "fin_email_connections_user_provider_email_key")
-  @@index([userId, isActive], map: "fin_email_connections_user_id_active_idx")
-  @@map("fin_email_connections")
-}
-
 /// Bank sender filter on a connection. Not a ledger target and not OAuth.
 /// `bankDomain` is derived from `bankSenderEmails` when set; used as Gmail `from:` fallback.
-model FinEmailSource {
-  id               String             @id @default(dbgenerated("(uuid_generate_v4())::text"))
-  userId           String             @map("user_id")
-  connectionId     String             @map("connection_id")
-  institutionId    String             @map("institution_id")
-  /// Allowlisted From addresses for this institution. Gmail query is `from:(a OR b)`.
-  bankSenderEmails String[]           @default([]) @map("bank_sender_emails")
-  bankDomain       String             @map("bank_domain")
-  label            String?
-  lastSyncedAt     DateTime?          @map("last_synced_at") @db.Timestamptz(6)
-  lastMessageId    String?            @map("last_message_id")
-  isActive         Boolean            @default(true) @map("is_active")
-  createdAt        DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt        DateTime           @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
-  logs             FinEmailSyncLog[]
-  emailMessages    FinEmailMessage[]
-  connection       FinEmailConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  institution      FinInstitution     @relation(fields: [institutionId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  user             User               @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-
-  @@unique([connectionId, institutionId], map: "fin_email_sources_connection_institution_key")
-  @@unique([userId, institutionId], map: "fin_email_sources_user_institution_key")
-  @@index([userId, isActive], map: "fin_email_sources_user_id_active_idx")
-  @@index([institutionId], map: "fin_email_sources_institution_id_idx")
-  @@index([connectionId], map: "fin_email_sources_connection_id_idx")
-  @@map("fin_email_sources")
-}
-
 enum FinOperationLegRole {
   SOURCE
   DESTINATION
@@ -288,13 +573,13 @@ enum FinTransferRail {
 }
 
 model FinTransaction {
-  id                       String                       @id @default(dbgenerated("(uuid_generate_v4())::text"))
+  id                       String                       @id @default(dbgenerated("(extensions.uuid_generate_v4())::text"))
   accountId                String?                      @map("account_id")
   cardId                   String?                      @map("card_id")
   userId                   String                       @map("user_id")
   categoryId               String?                      @map("category_id")
-  /// FK to FinEmailMessage.id. Gmail's provider id lives on FinEmailMessage.gmailMessageId.
-  emailMessageId           String?                      @unique @map("email_message_id")
+  /// Opaque financial import identity; no foreign key to an AI/source table.
+  importReference          String?                      @map("import_reference")
   /// Bank reference / authorization code from the source email; dedupes re-sent notices.
   externalReference        String?                      @map("external_reference")
   /// Denormalized institution, for the idempotency index.
@@ -336,7 +621,6 @@ model FinTransaction {
   card                     FinCard?                     @relation(fields: [cardId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   category                 FinCategory?                 @relation(fields: [categoryId], references: [id], onDelete: SetNull, onUpdate: NoAction)
   merchantRef              FinMerchant?                 @relation(fields: [merchantId], references: [id], onDelete: SetNull, onUpdate: NoAction)
-  emailMessage             FinEmailMessage?             @relation(fields: [emailMessageId], references: [id], onDelete: SetNull, onUpdate: NoAction)
   user                     User                         @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   linkedTransaction        FinTransaction?              @relation("TransactionLink", fields: [linkedTransactionId], references: [id], onDelete: SetNull, onUpdate: NoAction)
   linkedFrom               FinTransaction[]             @relation("TransactionLink")
@@ -349,6 +633,7 @@ model FinTransaction {
   statementImportLines     FinStatementImportLine[]
   reconciliationAdjustment FinReconciliationAdjustment?
 
+  @@unique([userId, importReference], map: "fin_transactions_user_import_reference_key")
   @@index([accountId, transactionDate], map: "fin_transactions_account_id_date_idx")
   @@index([cardId, transactionDate], map: "fin_transactions_card_id_date_idx")
   @@index([userId, categoryId], map: "fin_transactions_user_id_category_idx")
@@ -356,14 +641,13 @@ model FinTransaction {
   @@index([userId, transactionDate], map: "fin_transactions_user_id_date_idx")
   @@index([userId, status, transactionDate], map: "fin_transactions_user_status_date_idx")
   @@index([userId, externalReference], map: "fin_transactions_user_ref_idx")
-  @@index([transferGroupId], map: "fin_transactions_transfer_group_id_idx")
   @@index([categoryId], map: "fin_transactions_category_id_idx")
   @@index([linkedTransactionId], map: "fin_transactions_linked_transaction_id_idx")
   @@map("fin_transactions")
 }
 
 model FinCategory {
-  id               String                @id @default(dbgenerated("(uuid_generate_v4())::text"))
+  id               String                @id @default(dbgenerated("(extensions.uuid_generate_v4())::text"))
   userId           String?               @map("user_id")
   name             String
   icon             String?
@@ -391,7 +675,7 @@ model FinCategory {
 }
 
 model FinBudget {
-  id                  String              @id @default(dbgenerated("(uuid_generate_v4())::text"))
+  id                  String              @id @default(dbgenerated("(extensions.uuid_generate_v4())::text"))
   userId              String              @map("user_id")
   categoryId          String?             @map("category_id")
   name                String?
@@ -440,7 +724,7 @@ model FinBudgetCategory {
 }
 
 model FinBudgetAlert {
-  id          String    @id @default(dbgenerated("(uuid_generate_v4())::text"))
+  id          String    @id @default(dbgenerated("(extensions.uuid_generate_v4())::text"))
   budgetId    String    @map("budget_id")
   type        String
   pctUsed     Decimal   @map("pct_used") @db.Decimal(5, 2)
@@ -454,7 +738,7 @@ model FinBudgetAlert {
 }
 
 model FinRecurringPattern {
-  id               String             @id @default(dbgenerated("(uuid_generate_v4())::text"))
+  id               String             @id @default(dbgenerated("(extensions.uuid_generate_v4())::text"))
   userId           String             @map("user_id")
   categoryId       String?            @map("category_id")
   merchantId       String?            @map("merchant_id")
@@ -489,7 +773,7 @@ model FinRecurringPattern {
 }
 
 model FinMerchant {
-  id                  String                          @id @default(dbgenerated("(uuid_generate_v4())::text"))
+  id                  String                          @id @default(dbgenerated("(extensions.uuid_generate_v4())::text"))
   userId              String                          @map("user_id")
   name                String
   /// Normalized lookup key: unique per user.
@@ -521,7 +805,7 @@ model FinMerchant {
 /// Pair of merchants the user marked as "not a duplicate". Canonical order, so
 /// A-B and B-A are the same row; it disappears with either merchant.
 model FinMerchantDuplicateDismissal {
-  id              String      @id @default(dbgenerated("(uuid_generate_v4())::text"))
+  id              String      @id @default(dbgenerated("(extensions.uuid_generate_v4())::text"))
   userId          String      @map("user_id")
   merchantId      String      @map("merchant_id")
   otherMerchantId String      @map("other_merchant_id")
@@ -539,7 +823,7 @@ model FinMerchantDuplicateDismissal {
 /// Other names a merchant appears with; the key is unique per user so a text
 /// resolves to one merchant only.
 model FinMerchantAlias {
-  id            String      @id @default(dbgenerated("(uuid_generate_v4())::text"))
+  id            String      @id @default(dbgenerated("(extensions.uuid_generate_v4())::text"))
   merchantId    String      @map("merchant_id")
   userId        String      @map("user_id")
   /// Alias text as the user or the bank wrote it.
@@ -556,7 +840,7 @@ model FinMerchantAlias {
 }
 
 model FinSubscription {
-  id                 String                          @id @default(dbgenerated("(uuid_generate_v4())::text"))
+  id                 String                          @id @default(dbgenerated("(extensions.uuid_generate_v4())::text"))
   userId             String                          @map("user_id")
   name               String
   /// Normalized merchant key used by the payment matcher.
@@ -604,7 +888,7 @@ model FinSubscription {
 }
 
 model FinSubscriptionPayment {
-  id             String                       @id @default(dbgenerated("(uuid_generate_v4())::text"))
+  id             String                       @id @default(dbgenerated("(extensions.uuid_generate_v4())::text"))
   subscriptionId String                       @map("subscription_id")
   transactionId  String?                      @map("transaction_id")
   amount         Decimal                      @db.Decimal(15, 2)
@@ -623,7 +907,7 @@ model FinSubscriptionPayment {
 
 /// One row per alert the user dismissed, so it never comes back for that date.
 model FinSubscriptionAlertDismissal {
-  id             String                   @id @default(dbgenerated("(uuid_generate_v4())::text"))
+  id             String                   @id @default(dbgenerated("(extensions.uuid_generate_v4())::text"))
   userId         String                   @map("user_id")
   subscriptionId String                   @map("subscription_id")
   kind           FinSubscriptionAlertKind
@@ -638,7 +922,7 @@ model FinSubscriptionAlertDismissal {
 }
 
 model FinExchangeRate {
-  id           String   @id @default(dbgenerated("(uuid_generate_v4())::text"))
+  id           String   @id @default(dbgenerated("(extensions.uuid_generate_v4())::text"))
   fromCurrency String   @map("from_currency")
   toCurrency   String   @map("to_currency")
   rate         Decimal  @db.Decimal(15, 6)
@@ -652,30 +936,29 @@ model FinExchangeRate {
 }
 
 model FinInstitution {
-  id             String           @id @default(dbgenerated("(uuid_generate_v4())::text"))
-  userId         String           @map("user_id")
+  id             String       @id @default(dbgenerated("(extensions.uuid_generate_v4())::text"))
+  userId         String       @map("user_id")
   name           String
   /// bank | credit_union | digital_wallet | broker | cash | other
-  type           String           @default("bank")
-  shortName      String?          @map("short_name")
-  sortOrder      Int              @default(0) @map("sort_order")
+  type           String       @default("bank")
+  shortName      String?      @map("short_name")
+  sortOrder      Int          @default(0) @map("sort_order")
   domain         String?
-  logoPath       String?          @map("logo_path")
-  customLogoPath String?          @map("custom_logo_path")
+  logoPath       String?      @map("logo_path")
+  customLogoPath String?      @map("custom_logo_path")
   /// Legacy external URL. Response logoUrl prefers customLogoPath, then logoPath.
-  logoUrl        String?          @map("logo_url")
+  logoUrl        String?      @map("logo_url")
   color          String?
-  country        String           @default("DO")
-  isActive       Boolean          @default(true) @map("is_active")
+  country        String       @default("DO")
+  isActive       Boolean      @default(true) @map("is_active")
   /// System institutions (the user's "Efectivo") cannot be renamed, archived or deleted.
-  isSystem       Boolean          @default(false) @map("is_system")
-  createdAt      DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt      DateTime         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  isSystem       Boolean      @default(false) @map("is_system")
+  createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime     @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   accounts       FinAccount[]
   cards          FinCard[]
-  emailSources   FinEmailSource[]
   loans          FinLoan[]
-  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([userId, isActive], map: "fin_institutions_user_id_active_idx")
   @@index([userId, name], map: "fin_institutions_user_id_name_idx")
@@ -683,7 +966,7 @@ model FinInstitution {
 }
 
 model FinCard {
-  id                  String               @id @default(dbgenerated("(uuid_generate_v4())::text"))
+  id                  String               @id @default(dbgenerated("(extensions.uuid_generate_v4())::text"))
   userId              String               @map("user_id")
   institutionId       String               @map("institution_id")
   accountId           String?              @map("account_id")
@@ -716,7 +999,7 @@ model FinCard {
 }
 
 model FinCardBalance {
-  id          String   @id @default(dbgenerated("(uuid_generate_v4())::text"))
+  id          String   @id @default(dbgenerated("(extensions.uuid_generate_v4())::text"))
   cardId      String   @map("card_id")
   currency    String
   balance     Decimal  @default(0) @db.Decimal(15, 2)
@@ -732,7 +1015,7 @@ model FinCardBalance {
 /// Instrument timeline row (limit change, adjustment, closed statement).
 /// Adjustments also live in FinTransaction; the history query unions both.
 model FinInstrumentEvent {
-  id        String      @id @default(dbgenerated("(uuid_generate_v4())::text"))
+  id        String      @id @default(dbgenerated("(extensions.uuid_generate_v4())::text"))
   userId    String      @map("user_id")
   accountId String?     @map("account_id")
   cardId    String?     @map("card_id")
@@ -751,7 +1034,7 @@ model FinInstrumentEvent {
 /// Immutable closing snapshot. Paid amount and status are derived from the
 /// ledger on read, so a stale row can never misreport a payment.
 model FinCardStatement {
-  id               String                 @id @default(dbgenerated("(uuid_generate_v4())::text"))
+  id               String                 @id @default(dbgenerated("(extensions.uuid_generate_v4())::text"))
   cardId           String                 @map("card_id")
   currency         String
   cycleStart       DateTime               @map("cycle_start") @db.Date
@@ -792,7 +1075,7 @@ enum FinAmountSource {
 }
 
 model FinSavingsGoal {
-  id                   String                       @id @default(dbgenerated("(uuid_generate_v4())::text"))
+  id                   String                       @id @default(dbgenerated("(extensions.uuid_generate_v4())::text"))
   userId               String                       @map("user_id")
   name                 String
   description          String?
@@ -835,7 +1118,7 @@ enum FinAllocationKind {
 /// One amount set aside for a savings goal. The goal balance is the sum of its
 /// contributions; the money is not moved between accounts.
 model FinSavingsGoalContribution {
-  id                   String            @id @default(dbgenerated("(uuid_generate_v4())::text"))
+  id                   String            @id @default(dbgenerated("(extensions.uuid_generate_v4())::text"))
   goalId               String            @map("goal_id")
   amount               Decimal           @db.Decimal(15, 2)
   contributedAt        DateTime          @map("contributed_at") @db.Date
@@ -860,7 +1143,7 @@ model FinSavingsGoalContribution {
 }
 
 model FinLoan {
-  id                        String               @id @default(dbgenerated("(uuid_generate_v4())::text"))
+  id                        String               @id @default(dbgenerated("(extensions.uuid_generate_v4())::text"))
   userId                    String               @map("user_id")
   institutionId             String?              @map("institution_id")
   accountId                 String?              @map("account_id")
@@ -907,7 +1190,7 @@ model FinLoan {
 /// One scheduled loan instalment. paidAt null means unpaid; amount is the scheduled
 /// instalment and does not change when the loan balance is adjusted.
 model FinLoanInstallment {
-  id            String               @id @default(dbgenerated("(uuid_generate_v4())::text"))
+  id            String               @id @default(dbgenerated("(extensions.uuid_generate_v4())::text"))
   loanId        String               @map("loan_id")
   installmentNo Int                  @map("installment_no")
   dueDate       DateTime             @map("due_date") @db.Date
@@ -949,7 +1232,7 @@ enum FinRateType {
 }
 
 model FinLoanPrepayment {
-  id            String          @id @default(dbgenerated("(uuid_generate_v4())::text"))
+  id            String          @id @default(dbgenerated("(extensions.uuid_generate_v4())::text"))
   loanId        String          @map("loan_id")
   amount        Decimal         @db.Decimal(15, 2)
   penalty       Decimal         @default(0) @db.Decimal(15, 2)
@@ -965,7 +1248,7 @@ model FinLoanPrepayment {
 }
 
 model FinReceivable {
-  id               String                   @id @default(dbgenerated("(uuid_generate_v4())::text"))
+  id               String                   @id @default(dbgenerated("(extensions.uuid_generate_v4())::text"))
   userId           String                   @map("user_id")
   debtorName       String                   @map("debtor_name")
   description      String?
@@ -991,7 +1274,7 @@ model FinReceivable {
 /// Read-only public link for a fixed set of receivables. The token is the only
 /// way in; revoking flips is_active and regenerating swaps the token.
 model FinReceivableShare {
-  id         String                   @id @default(dbgenerated("(uuid_generate_v4())::text"))
+  id         String                   @id @default(dbgenerated("(extensions.uuid_generate_v4())::text"))
   userId     String                   @map("user_id")
   token      String                   @unique
   debtorName String                   @map("debtor_name")
@@ -1022,7 +1305,7 @@ model FinReceivableShareItem {
 /// One amount collected for a receivable. It carries the movement that put the
 /// money in the account, so both sides can be undone together.
 model FinReceivablePayment {
-  id             String          @id @default(dbgenerated("(uuid_generate_v4())::text"))
+  id             String          @id @default(dbgenerated("(extensions.uuid_generate_v4())::text"))
   receivableId   String          @map("receivable_id")
   amount         Decimal         @db.Decimal(15, 2)
   appliedAmount  Decimal         @map("applied_amount") @db.Decimal(15, 2)
@@ -1044,54 +1327,7 @@ model FinReceivablePayment {
 }
 
 /// One sync run against a source (scanned / imported / error). Operational history.
-model FinEmailSyncLog {
-  id              String             @id @default(dbgenerated("(uuid_generate_v4())::text"))
-  sourceId        String             @map("source_id")
-  startedAt       DateTime           @map("started_at") @db.Timestamptz(6)
-  completedAt     DateTime?          @map("completed_at") @db.Timestamptz(6)
-  emailsScanned   Int                @default(0) @map("emails_scanned")
-  transactionsNew Int                @default(0) @map("transactions_new")
-  status          FinEmailSyncStatus @default(RUNNING)
-  error           String?
-  source          FinEmailSource     @relation(fields: [sourceId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-
-  @@index([sourceId, startedAt], map: "fin_email_sync_logs_source_started_idx")
-  @@map("fin_email_sync_logs")
-}
-
 /// Per-Gmail-message extract outcome (idempotency + review queue). Provider id is gmailMessageId.
-model FinEmailMessage {
-  id                       String                 @id @default(dbgenerated("(uuid_generate_v4())::text"))
-  sourceId                 String                 @map("source_id")
-  gmailMessageId           String                 @map("gmail_message_id")
-  outcome                  FinEmailMessageOutcome
-  reason                   String?
-  provider                 String?
-  model                    String?
-  instrumentHint           String?                @map("instrument_hint")
-  lastFourHint             String?                @map("last_four_hint")
-  accountNumberHint        String?                @map("account_number_hint")
-  extractedPayload         Json?                  @map("extracted_payload")
-  fingerprint              String?
-  duplicateOfTransactionId String?                @map("duplicate_of_transaction_id")
-  createdAt                DateTime               @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt                DateTime               @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
-  source                   FinEmailSource         @relation(fields: [sourceId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  transaction              FinTransaction?
-
-  @@unique([sourceId, gmailMessageId], map: "fin_email_messages_source_gmail_key")
-  @@unique([sourceId, fingerprint], map: "fin_email_messages_source_fingerprint_key")
-  @@index([sourceId], map: "fin_email_messages_source_id_idx")
-  @@index([outcome], map: "fin_email_messages_outcome_idx")
-  @@map("fin_email_messages")
-}
-
-enum AiRole {
-  user
-  assistant
-  tool
-}
-
 enum AiActionStatus {
   PENDING
   RUNNING
@@ -1214,16 +1450,6 @@ enum FinTransactionSource {
   AI
 }
 
-enum FinEmailMessageOutcome {
-  IMPORTED
-  SKIPPED_NOT_TX
-  FAILED_NON_RETRYABLE
-  PENDING_ASSIGNMENT
-  PENDING_AMOUNT
-  SKIPPED_DUPLICATE
-  PENDING_REVERSE
-}
-
 enum DomainEventOutboxStatus {
   PENDING
   PROCESSING
@@ -1236,7 +1462,7 @@ enum DomainEventOutboxStatus {
 
 /// Durable domain events published post-commit (transactional outbox).
 model DomainEventOutbox {
-  id            String                  @id @default(dbgenerated("(uuid_generate_v4())::text"))
+  id            String                  @id @default(dbgenerated("(extensions.uuid_generate_v4())::text"))
   eventId       String                  @unique @map("event_id")
   eventName     String                  @map("event_name")
   aggregateType String                  @map("aggregate_type")
@@ -1259,7 +1485,7 @@ model DomainEventOutbox {
 
 /// Idempotency for domain event consumers.
 model ProcessedDomainEvent {
-  id          String   @id @default(dbgenerated("(uuid_generate_v4())::text"))
+  id          String   @id @default(dbgenerated("(extensions.uuid_generate_v4())::text"))
   eventId     String   @map("event_id")
   consumer    String
   processedAt DateTime @default(now()) @map("processed_at") @db.Timestamptz(6)
@@ -1288,12 +1514,6 @@ enum FinReceivableStatus {
   WRITTEN_OFF
 }
 
-enum FinEmailSyncStatus {
-  RUNNING
-  SUCCESS
-  FAILED
-}
-
 enum AiSuggestionStatus {
   NONE
   PENDING
@@ -1314,7 +1534,7 @@ enum AuthDeletionOutboxStatus {
 }
 
 model AuthDeletionOutbox {
-  id            String                   @id @default(dbgenerated("(uuid_generate_v4())::text"))
+  id            String                   @id @default(dbgenerated("(extensions.uuid_generate_v4())::text"))
   userId        String                   @unique @map("user_id")
   status        AuthDeletionOutboxStatus @default(PENDING)
   attempts      Int                      @default(0)
@@ -1331,7 +1551,7 @@ model AuthDeletionOutbox {
 /// Snapshot of a finance record removed from the detail menu. "Deshacer"
 /// re-creates the stored rows and re-applies the reversed ledger deltas.
 model FinDeletionJournal {
-  id               String    @id @default(dbgenerated("(uuid_generate_v4())::text"))
+  id               String    @id @default(dbgenerated("(extensions.uuid_generate_v4())::text"))
   userId           String    @map("user_id")
   entityType       String    @map("entity_type")
   entityId         String    @map("entity_id")
@@ -1351,7 +1571,7 @@ model FinDeletionJournal {
 /// One uploaded statement PDF waiting for review, being parsed, or already
 /// applied. The file itself is never stored.
 model FinStatementImport {
-  id          String                   @id @default(dbgenerated("(uuid_generate_v4())::text"))
+  id          String                   @id @default(dbgenerated("(extensions.uuid_generate_v4())::text"))
   userId      String                   @map("user_id")
   cardId      String?                  @map("card_id")
   accountId   String?                  @map("account_id")
@@ -1378,7 +1598,7 @@ model FinStatementImport {
 
 /// One movement read from the statement PDF plus its proposed reconciliation.
 model FinStatementImportLine {
-  id            String                   @id @default(dbgenerated("(uuid_generate_v4())::text"))
+  id            String                   @id @default(dbgenerated("(extensions.uuid_generate_v4())::text"))
   importId      String                   @map("import_id")
   date          DateTime                 @db.Date
   description   String
@@ -1440,7 +1660,7 @@ enum FinReconciliationAdjustmentKind {
 /// Exactly one of `accountId`/`cardId` (DB check), and `currency` is the
 /// product currency so a two-currency card reconciles once per currency.
 model FinReconciliation {
-  id          String                        @id @default(dbgenerated("(uuid_generate_v4())::text"))
+  id          String                        @id @default(dbgenerated("(extensions.uuid_generate_v4())::text"))
   userId      String                        @map("user_id")
   accountId   String?                       @map("account_id")
   cardId      String?                       @map("card_id")
@@ -1466,7 +1686,7 @@ model FinReconciliation {
 /// One categorized line of a reconciliation. Each line owns the adjustment
 /// movement that moves the product balance.
 model FinReconciliationAdjustment {
-  id               String                          @id @default(dbgenerated("(uuid_generate_v4())::text"))
+  id               String                          @id @default(dbgenerated("(extensions.uuid_generate_v4())::text"))
   reconciliationId String                          @map("reconciliation_id")
   transactionId    String                          @unique @map("transaction_id")
   kind             FinReconciliationAdjustmentKind
@@ -1483,7 +1703,7 @@ model FinReconciliationAdjustment {
 /// its confirmed movements (invariant I1). Recalculating corrects the stored
 /// balance and closes the open row; no movement is created.
 model FinBalanceDrift {
-  id              String      @id @default(dbgenerated("(uuid_generate_v4())::text"))
+  id              String      @id @default(dbgenerated("(extensions.uuid_generate_v4())::text"))
   userId          String      @map("user_id")
   accountId       String?     @map("account_id")
   cardId          String?     @map("card_id")
@@ -1508,7 +1728,7 @@ model FinBalanceDrift {
 /// expire 24 h after creation and are removed lazily when a lookup finds them
 /// expired.
 model IdempotencyKey {
-  id             String            @id @default(dbgenerated("(uuid_generate_v4())::text"))
+  id             String            @id @default(dbgenerated("(extensions.uuid_generate_v4())::text"))
   userId         String            @map("user_id")
   key            String
   method         String

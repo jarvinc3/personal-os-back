@@ -14,13 +14,19 @@ Instrucciones para agentes y reviewers que trabajan en el backend de Personal OS
 
 Si una afirmación no está `VERIFICADO`, no la trates como comportamiento vigente: compruébala en código o abre un issue.
 
-## Seguimiento con GitHub Issues
+## Flujo de trabajo obligatorio
 
-El estado, el roadmap y los hallazgos viven en GitHub Issues. Los documentos de trabajo cerrados pasan a [docs/archive/](docs/archive/).
+1. **Antes de codear:** lee el issue correspondiente. Si no existe, busca duplicados y créalo según [docs/issue-conventions.md](docs/issue-conventions.md), agrégalo al Project 3 con Priority `High`, `Medium` o `Low`, y muévelo a `In Progress`.
+2. **Repo y rama:** trabaja en una rama corta por issue (`fix/<n>-<slug>`, `feat/<n>-<slug>`) o por fase del refactor (`refactor/<fase>`), dentro de una copia temporal en `C:\dev\personal\personal-os\temp\` creada con `git worktree add`. Nunca trabajes en la carpeta principal del repo ni compartas una copia con otro agente. Commitea solo tus archivos (`git add <rutas>`, nunca `git add -A`). Integra a `develop` por PR: el CI debe pasar y, en la web, QA prueba la preview de Vercel del PR y deja su OK en un comentario; recién ahí el agente hace el merge. En el back (sin preview) alcanza con el CI en verde, y QA lo verifica en `develop` justo después del merge.
+3. **Límites:** no toques `master`, producción, `.env` ni despliegues; los merges a `master` los decide Jarvin. Las migraciones se ejecutan solo en DEV.
+4. **Antes del commit:** revisa el diff contra los criterios de aceptación del issue, busca huecos o implementaciones faltantes y corrígelos. Luego ejecuta format, lint, typecheck y pruebas.
+5. **Cierre:** commit en español con `Closes #N` o `Refs #N` y push. Después cierra el issue a mano con un comentario y muévelo a `Done` en el Project 3; `Closes` solo cierra el issue cuando el cambio llega a `master`.
 
-- Un cambio resuelve un issue: el cuerpo del commit cierra con `Closes #N` cuando el issue queda resuelto, o `Refs #N` cuando solo avanza.
-- Lo decidido y no implementado se abre como issue con label `roadmap`; no se deja como `REV-*` suelto en los documentos.
-- Cómo se escribe un issue: [docs/issue-conventions.md](docs/issue-conventions.md) — estructura, título, criterios de aceptación, etiquetas, talla y cierre.
+**Limpieza al terminar:** al integrar la rama, bórrala (local y remota), elimina la copia de `temp` (`git worktree remove` y `git worktree prune`) y pon al día `develop` y la carpeta principal del repo en el workspace (`git pull`). Los merges a `master` y los deploys siguen siendo decisión de Jarvin.
+
+**Credenciales:** nunca adivines ni pruebes contraseñas, tokens o claves (bases de datos, APIs, cuentas). Usa solo las credenciales que el repo documenta o que Jarvin entregó; si falta una, detente y pregunta. Nunca imprimas ni commitees secretos.
+
+Lo decidido y no implementado se abre como issue con label `roadmap`; no se deja como `REV-*` suelto en los documentos.
 
 ## Fuentes canónicas
 
@@ -38,6 +44,11 @@ El estado, el roadmap y los hallazgos viven en GitHub Issues. Los documentos de 
 
 ## Changelog y versión
 
+Excepción aprobada para AI-0 y su cadena de PRs: back y web permanecen en
+`0.100.0` unreleased hasta que el owner autorice el corte final. No crear tags,
+releases ni deploys por sesión durante este trabajo; registrar cambios bajo
+`[Unreleased]` y referenciar el issue correspondiente.
+
 ### Excepción acordada: reset de arquitectura 0.100.0
 
 Esta excepción se activa solo al iniciar AI-0, después de verificar el corte
@@ -53,11 +64,13 @@ Lectura obligatoria antes de AI/email:
 [decisiones](docs/refactors/01-IMPLEMENTATION-DECISIONS.md) e
 [inventario](docs/refactors/02-PHASE-0-INVENTORY.md).
 
-Toda sesión de agente cierra con un release: `CHANGELOG.md` actualizado y `version` de `package.json` subida. Antes de escribirlo, lee [docs/reference/changelog-guide.md](docs/reference/changelog-guide.md) completo; ahí están las reglas, las secciones y un ejemplo.
+Cada sesión actualiza `CHANGELOG.md`. Durante la excepción AI-0 no se sube la
+versión ni se crea release/tag por sesión; el owner decide el corte final tras
+AI-11. Antes de escribir el changelog, lee [docs/reference/changelog-guide.md](docs/reference/changelog-guide.md) completo.
 
 La versión sigue **estrictamente** [docs/versionado.md](docs/versionado.md): beta `0.MINOR.PATCH`, nunca bajar de versión, `1.0.0` solo cuando el usuario lo decida y los hitos de módulo como nombre de release.
 
-- Un release por sesión, aunque el cambio sea pequeño. El bump es el más alto de la sesión: `MAJOR` si rompe un contrato o los datos guardados, `MINOR` si agrega un endpoint o un dato nuevo y `PATCH` en el resto.
+- Fuera de la excepción AI-0, un release por sesión: `MAJOR` si rompe un contrato o los datos guardados, `MINOR` si agrega un endpoint o dato nuevo y `PATCH` en el resto.
 - Una sola versión para el monorepo: el `package.json` de la raíz. Los paquetes de `packages/*` no se publican por separado.
 - El CHANGELOG va en español, de la versión más nueva a la más vieja, con la fecha en `AAAA-MM-DD`.
 - Cierra con `chore(release): vX.Y.Z` y crea el tag `vX.Y.Z`.
@@ -75,14 +88,15 @@ Una migración aplicada no se toca. Prisma la identifica por el nombre de su car
 - Antes de nombrar una migración, inspeccionar la última carpeta existente. Si la fecha real no ordena después, usar el siguiente timestamp libre y registrar la fecha real en el SQL. No confiar en un timestamp fijo de este documento.
 - El timestamp duplicado `20261015220000` (`fin_card_charge_categories` y `fix_schema_drift`) se queda tal cual.
 - Nunca aceptar el reset que ofrece `prisma migrate dev`: el checksum de `20261022000000` cambió en dev.
-- Prod recibe las migraciones vía Railway con `pnpm db:migrate:deploy`.
+- Prod recibe las migraciones vía Railway con `pnpm db:migrate:deploy` como pre-deploy de [`railway.json`](railway.json).
 
 Detalle en [docs/infrastructure/database.md](docs/infrastructure/database.md#migraciones-y-fechas).
 
 Excepción única de AI-0: se permite reemplazar el historial por una baseline en
-repo/DEV tras inspeccionar PROD `_prisma_migrations` de solo lectura, comprobar
-el SQL preservado y preparar backup/rebuild DEV. Fuera de ese paso se mantienen
-las reglas anteriores. Los agentes nunca aplican migraciones ni resets a PROD.
+repo/DEV tras inspeccionar PROD `_prisma_migrations` de solo lectura y comprobar
+el SQL preservado. Para este DEV, Jarvin autorizó perder los datos de prueba sin
+backup ni restauración. Fuera de ese paso se mantienen las reglas anteriores.
+Los agentes nunca aplican migraciones ni resets a PROD.
 
 ## Checklist al cambiar comportamiento
 
@@ -116,7 +130,8 @@ Sentry corre en el back (`instrument.ts`) y no se inicializa sin `SENTRY_DSN`. `
 apps/api/src/            # app Nest: main, app.module, health
 packages/                # workspace pnpm; cada paquete compila a dist
   config/                # env Zod y límites de IA
-  core/                  # guards, filters, eventos, colas, puerto de chat IA
+  contracts/             # interfaces y tokens neutrales, sin dependencias
+  core/                  # guards, filters, eventos y colas
   database/              # PrismaService, cliente generado, schema y migraciones
   logos/
   auth/

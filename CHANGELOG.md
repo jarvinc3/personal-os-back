@@ -2,6 +2,46 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [SemVer](https://semver.org/lang/es/). Reglas y ejemplo en [docs/reference/changelog-guide.md](./docs/reference/changelog-guide.md).
 
+## Unreleased — 0.100.0
+
+### Agregado
+
+- Seed idempotente de Knowledge para QA en DEV (#327): diez filas sintéticas USER/GLOBAL con estados estables, pendientes y bloqueados, y guardas de entorno antes de escribir.
+- El deploy del back corre `prisma migrate deploy` como pre-deploy de Railway (`railway.json`): si una migración falla, el deploy se cancela y sigue la versión anterior; DEV lo aplica en cada deploy y producción al mergear a `master` con el OK de Jarvin (#230).
+- AI-4 (#207): conocimiento USER/GLOBAL reconstruible desde evidencia y consentimiento con cortes `REPEATABLE READ`, saneamiento estructural, cola ADMIN, exportación JSON y borrado con lápidas; `AI_GLOBAL_MIN_CONTRIBUTORS` controla el mínimo de colaboradores.
+- AI-3 (#206): dataset `EMAIL_V1` con particiones deterministas, cola privada de revisión, verificaciones humanas append-only con roles/secuencia y verdad de referencia HOLDOUT; runs capturan versiones y watermarks, y el detalle de correo expone su procedencia.
+- AI-2 (#205): roles de IA por usuario y consentimiento revocable; conexión OAuth Gmail de solo lectura con tokens cifrados, bootstrap desde 2026-01-01, polling incremental, recuperación acotada por cursor, correo aislado por usuario, detalle con contenido canónico/saneado/crudo y purga según retención DEV/PROD.
+- AI-1: gateway de inferencia estructurada con fallback por respuesta inválida, telemetría minimizada con HMAC y retención de 90 días; Quick Entry y extractos bancarios validan antes de devolver resultados. Diagnóstico disponible con `pnpm ai:diagnostic`.
+
+### Cambiado
+
+- AI-4 (#207): el reinicio del corpus anonimiza verificaciones y observaciones en lugar de borrarlas; los runs afectados indican reproducción `INCOMPLETE` y conteos de evidencia retirada.
+- #217: la verificación humana de correo valida tipos y dominios cerrados, relevancia de seguridad y datos estructurados de transacción; Swagger publica los valores permitidos.
+- Gmail mantiene visible el tiempo de espera por cuota con reintentos de 5, 10 y 20 segundos cuando el proveedor no indica otro plazo (#205, #318).
+- Si los reintentos rápidos no liberan la cuota, Gmail permanece en espera con una próxima reejecución automática persistida y su cuenta regresiva (#205, #318).
+
+- AI-2 (#205): progreso de Gmail persistente y en vivo por usuario; muestra etapas, reintentos, próxima ejecución y causas seguras, permite reconectar y reiniciar el corpus desde 2026-01-01.
+- AI-3 (#206): filtros de revisión por partición y Todos con conteos de pendientes; la paginación conserva filtro y orden cronológico.
+- AI-3 (#206): Intelligence agrupa correo, revisión y análisis en pestañas; presenta cobertura, fechas extremas y particiones como badges, y lista los mensajes desde el más antiguo.
+- AI-3 (#206): la cola de revisión también muestra los correos del más antiguo al más reciente, usando su fecha recibida.
+- Cada fase AI-0 a AI-12 tiene su issue, enlazado como sub-issue del programa (#193); el roadmap maestro y los diseños de AI-0 y AI-1 apuntan a su issue y el Project 3 fija estado y prioridad de cada fase.
+
+- El diagnóstico local de AI-1 muestra proveedor/modelo, intentos, código normalizado y estado HTTP de los SDK sin exponer errores crudos; permite probar cada proveedor por separado.
+- El pool de inferencia usa Groq y OpenRouter; se retira OpenCode, cuyo modelo gratuito no admite llamadas desde el SDK del backend. Groq usa `qwen/qwen3.8-27b`.
+- AI-2 (diseño): se define polling incremental programado de Gmail con cursor persistido, recuperación idempotente y Pub/Sub opcional; no es requisito para el release `0.100.0`.
+- AI-0 integrado en `develop`: `@personal-os/contracts` reúne interfaces y tokens neutrales; el pool de inferencia y sus pruebas salen de chat. Los extractores financieros usan `INFERENCE_COMPLETION` y conservan sus respuestas y reglas (#193).
+- El corte de runtime elimina chat, sesiones, Gmail Finance y su configuración. Queda preservada y probada la lógica de importación financiera hasta AI-11; la entrega de correo por Resend sigue operativa.
+- La baseline conserva SQL manual, RLS/grants, triggers y el índice parcial de transferencias. Se aplicó en DEV junto con el reset autorizado de datos de prueba; PROD no recibió escrituras.
+- La eliminación directa de un usuario en Supabase Auth elimina ahora su perfil de `public.users` y los datos de aplicación sujetos a sus FKs en cascada. El endpoint propio conserva su borrado app-first con outbox.
+
+### Cambiado
+
+- Se reescribe el README con banner, módulos, arquitectura, arranque, scripts y enlaces a los repos hermanos; se añade licencia MIT y archivos de comunidad (CONTRIBUTING, SECURITY y plantilla de PR).
+
+### Corregido
+
+- En dev, el CORS de la API y del gateway de notificaciones acepta los previews de rama de Vercel mediante `CORS_ORIGIN_PATTERNS`, una lista de patrones anclados que en production no se acepta. `CORS_ORIGIN` y su primer valor para armar enlaces no cambian, y un origen no permitido responde sin cabeceras CORS en vez de 500 (#222).
+
 ## [0.55.3] - 2026-10-24
 
 ### Cambiado

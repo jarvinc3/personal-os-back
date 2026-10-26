@@ -12,7 +12,7 @@ import {
 export class WipeUserDataDto {
   @ApiProperty({
     type: [String],
-    example: ['finance.transactions', 'ai.sessions'],
+    example: ['finance.transactions', 'notifications.history'],
     description:
       'Data branches to wipe, as returned by GET /users/me/data/branches',
   })

@@ -1,5 +1,3 @@
-import { DEFAULT_EMAIL_SYNC_SCHEDULE } from '@personal-os/config';
-
 /** Toggle keys under `config.notifications` for finance module alerts. */
 export const FINANCE_NOTIFICATION_KEYS = {
   budgetAlerts: 'budgetAlerts',
@@ -52,12 +50,6 @@ export const DEFAULT_MODULE_CONFIG_BY_SLUG = {
        */
       reminderDaysBefore: 5,
       groupBy: 'none',
-    },
-    emailSync: {
-      enabled: false,
-      automatic: false,
-      autoCategorize: true,
-      schedule: DEFAULT_EMAIL_SYNC_SCHEDULE,
     },
     reports: {
       /** 0 = Sunday … 6 = Saturday, in the user's timezone. */

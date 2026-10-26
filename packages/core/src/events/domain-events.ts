@@ -43,18 +43,6 @@ export class NotificationCreatedEvent {
   ) {}
 }
 
-export class FinanceEmailSyncCompletedEvent {
-  constructor(
-    public readonly userId: string,
-    public readonly sourceId: string,
-    public readonly emailsScanned: number,
-    public readonly transactionsNew: number,
-    public readonly transactionIds: string[],
-    public readonly countsByStatus: Record<string, number>,
-    public readonly eventId?: string,
-  ) {}
-}
-
 export class FinanceTransferCreatedEvent {
   constructor(
     public readonly userId: string,

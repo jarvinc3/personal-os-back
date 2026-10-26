@@ -1,6 +1,6 @@
 {
   "name": "personal-os-back",
-  "version": "0.55.3",
+  "version": "0.100.0",
   "description": "Personal OS es un backend para la aplicación Personal OS que permite gestionar cada área de la vida cotidiana.",
   "author": "jarvinc3",
   "private": true,
@@ -40,6 +40,7 @@
     "db:seed": "prisma db seed",
     "db:studio": "prisma studio",
     "smoke:finance": "ts-node -r tsconfig-paths/register scripts/finance/smoke-finance-http.ts",
+    "ai:diagnostic": "ts-node -r tsconfig-paths/register -r dotenv/config scripts/ai/inference-diagnostic.ts",
     "sentry:sourcemaps": "node scripts/sentry/upload-sourcemaps.mjs",
     "db:backfill-logos": "ts-node -r tsconfig-paths/register scripts/backfill-institution-logos.ts",
     "db:backfill-loan-schedule": "ts-node -r tsconfig-paths/register scripts/finance/backfill-loan-schedule.ts",
@@ -101,11 +102,13 @@
     "passport-jwt": "^4.0.1",
     "pg": "^8.23.1",
     "pino-http": "^11.0.0",
+    "prisma": "^7.10.1",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2",
     "socket.io": "^4.8.4",
     "web-push": "^3.6.7",
-    "zod": "^4.6.7"
+    "zod": "^4.6.7",
+    "@personal-os/contracts": "workspace:*"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.7",
@@ -130,7 +133,6 @@
     "jest": "^30.5.2",
     "pino-pretty": "^13.2.0",
     "prettier": "^3.9.10",
-    "prisma": "^7.10.1",
     "source-map-support": "^0.5.21",
     "supertest": "^7.3.1",
     "ts-jest": "^29.4.15",
@@ -158,6 +160,8 @@
     "collectCoverageFrom": [
       "apps/*/src/**/*.(t|j)s",
       "packages/*/src/**/*.(t|j)s",
+      "!apps/*/src/**/presentation/**/*.ts",
+      "!packages/*/src/**/presentation/**/*.ts",
       "!**/generated/**",
       "!**/*.module.ts",
       "!**/main.ts"

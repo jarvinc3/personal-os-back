@@ -1,5 +1,4 @@
 import { DATA_APP, type DataBranchDescriptor } from '@personal-os/users';
-
 /**
  * Finance branches, in execution order. The identifiers are part of the HTTP
  * contract and the web shows their labels, so they are not renamed silently.
@@ -69,13 +68,6 @@ export const FINANCE_DATA_BRANCHES: readonly DataBranchDescriptor[] = [
     order: 9,
   },
   {
-    id: 'finance.emailMessages',
-    app: DATA_APP.FINANCE,
-    label: 'Correos importados',
-    includes: [],
-    order: 10,
-  },
-  {
     id: 'finance.statements',
     app: DATA_APP.FINANCE,
     label: 'Estados de cuenta',
@@ -117,19 +109,10 @@ export const FINANCE_DATA_BRANCHES: readonly DataBranchDescriptor[] = [
     includes: ['finance.budgets'],
     order: 16,
   },
-  {
-    id: 'finance.emailConnections',
-    app: DATA_APP.FINANCE,
-    label: 'Conexiones de Gmail',
-    includes: [],
-    order: 17,
-  },
 ];
-
 export const FINANCE_DATA_BRANCH_IDS = FINANCE_DATA_BRANCHES.map(
   (branch) => branch.id,
 );
-
 export function isFinanceDataBranch(id: string): boolean {
   return FINANCE_DATA_BRANCH_IDS.includes(id);
 }

@@ -6,17 +6,17 @@ import { resolveCategoryIdForImport } from '../../shared/domain/category-type';
 import { mapBankStatusToInternal } from '../../shared/domain/transaction-status';
 import { buildEmailImportNotes } from './build-email-import-notes';
 import {
+  EMAIL_MESSAGE_OUTCOME,
+  type EmailMessageOutcome,
+} from './email-message-outcome';
+import {
   isAtmMovementClass,
   isTransferMovementClass,
   type EmailMovementClass,
 } from './email-movement';
-import {
-  EMAIL_MESSAGE_OUTCOME,
-  type EmailMessageOutcome,
-} from './email-message-outcome';
-import { EmailSourceRepository } from '../infrastructure/email-source.repository';
 import { uniqueCashAccountId } from './match-email-transfers';
 import type { ExtractedEmailTransaction } from './ports/email-transaction-extractor.port';
+import { FinancialImportCandidatesPort } from './ports/financial-import-candidates.port';
 import {
   resolveEmailLedgerTarget,
   type EmailLedgerTargetMatch,
@@ -32,7 +32,7 @@ export type RoutedEmailImport =
 @Injectable()
 export class RouteExtractedEmailUseCase {
   constructor(
-    private readonly emailSources: EmailSourceRepository,
+    private readonly emailSources: FinancialImportCandidatesPort,
     private readonly importEmail: ImportEmailTransactionUseCase,
     private readonly ledger: LedgerQueryService,
     private readonly merchants: MerchantsService,
@@ -50,8 +50,7 @@ export class RouteExtractedEmailUseCase {
   async execute(params: {
     userId: string;
     sourceId: string;
-    gmailMessageId: string;
-    emailMessageId?: string;
+    sourceReference: string;
     extracted: ExtractedEmailTransaction;
     provider?: string | null;
     model?: string | null;
@@ -143,7 +142,7 @@ export class RouteExtractedEmailUseCase {
 
     const categories = await this.emailSources.listCategories(params.userId);
     const status =
-      (await this.emailSources.findEmailSyncMode(params.userId)) === 'PENDING'
+      (await this.emailSources.findImportMode(params.userId)) === 'PENDING'
         ? 'PENDING'
         : mapBankStatusToInternal({
             bankStatusNormalized: extracted.bankStatusNormalized,
@@ -189,7 +188,7 @@ export class RouteExtractedEmailUseCase {
     const importInput = {
       accountId: match.accountId,
       cardId: match.cardId,
-      emailMessageId: persisted.id,
+      importReference: persisted.id,
       externalReference: extracted.bankReference,
       ...(possibleDuplicate
         ? { possibleDuplicateOfId: possibleDuplicate.id }
@@ -295,7 +294,7 @@ export class RouteExtractedEmailUseCase {
     params: {
       userId: string;
       sourceId: string;
-      gmailMessageId: string;
+      sourceReference: string;
       provider?: string | null;
       model?: string | null;
     },
@@ -317,7 +316,7 @@ export class RouteExtractedEmailUseCase {
       return { kind: 'pending_cash', reason };
     }
     const status =
-      (await this.emailSources.findEmailSyncMode(params.userId)) === 'PENDING'
+      (await this.emailSources.findImportMode(params.userId)) === 'PENDING'
         ? 'PENDING'
         : mapBankStatusToInternal({
             bankStatusNormalized: extracted.bankStatusNormalized,
@@ -339,7 +338,7 @@ export class RouteExtractedEmailUseCase {
       accountId: match.accountId,
       cardId: match.cardId,
       cashAccountId,
-      emailMessageId: persisted.id,
+      importReference: persisted.id,
       amount: extracted.amount,
       currency: extracted.currency,
       merchant: extracted.merchant,
@@ -369,8 +368,9 @@ export class RouteExtractedEmailUseCase {
 
   private persist(
     params: {
+      userId: string;
       sourceId: string;
-      gmailMessageId: string;
+      sourceReference: string;
       provider?: string | null;
       model?: string | null;
     },
@@ -378,9 +378,10 @@ export class RouteExtractedEmailUseCase {
     outcome: EmailMessageOutcome,
     reason?: string,
   ) {
-    return this.emailSources.upsertEmailMessage({
+    return this.emailSources.persistCandidate({
+      userId: params.userId,
       sourceId: params.sourceId,
-      gmailMessageId: params.gmailMessageId,
+      sourceReference: params.sourceReference,
       outcome,
       reason: reason ?? null,
       provider: params.provider,

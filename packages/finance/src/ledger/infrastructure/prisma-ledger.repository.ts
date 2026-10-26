@@ -95,8 +95,8 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
     return this.read.findBalanceAdjustmentTarget(userId, input);
   }
 
-  findTransactionByEmailMessageId(gmailMessageId: string, userId?: string) {
-    return this.read.findTransactionByEmailMessageId(gmailMessageId, userId);
+  findTransactionByImportReference(importReference: string, userId: string) {
+    return this.read.findTransactionByImportReference(importReference, userId);
   }
 
   findTransactionsByTransferGroupId(transferGroupId: string, userId: string) {
@@ -170,7 +170,7 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
     amounts: ResolvedAmounts,
     source: 'MANUAL' | 'EMAIL' | 'AI' = 'MANUAL',
     extras?: {
-      emailMessageId?: string;
+      importReference?: string;
       aiMetadata?: unknown;
       linkedTransactionId?: string;
       transferGroupId?: string;

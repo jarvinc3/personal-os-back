@@ -12,7 +12,10 @@ import {
   type PrismaService,
 } from '@personal-os/database';
 import { AppEvents, DomainEventIdempotencyGuard } from '@personal-os/core';
-import { NotificationsService } from '@personal-os/notifications';
+import {
+  NotificationsGateway,
+  NotificationsService,
+} from '@personal-os/notifications';
 // eslint-disable-next-line no-restricted-imports -- Verify the real Nest event decorator and consumer transaction together.
 import { NotificationsEventsListener } from '../../packages/notifications/src/application/notifications-events.listener';
 // eslint-disable-next-line no-restricted-imports -- Integration exercises the private relay without widening its production barrel.
@@ -239,6 +242,7 @@ describe('Outbox recovery with PostgreSQL', () => {
         NotificationsEventsListener,
         { provide: DomainEventIdempotencyGuard, useValue: guard },
         { provide: NotificationsService, useValue: { create, publishInApp } },
+        { provide: NotificationsGateway, useValue: { emitToUser: jest.fn() } },
       ],
     }).compile();
     const app = module.createNestApplication();

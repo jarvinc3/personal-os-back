@@ -1,10 +1,16 @@
 # AI-0 — diseño técnico del corte
 
-Estado: **propuesta técnica validada en una base local aislada**, preparada el
-2026-10-24 sobre backend `37b9ec875a640e023745add670a7d3b381a83c12` (`0.55.2`).
-Seguimiento: [programa #193](https://github.com/jarvinc3/personal-os-back/issues/193).
-No se ha iniciado AI-0, no se ha reseteado DEV y no se ha consultado ni cambiado
-la base de PROD. Los archivos de `artifacts/` no son migraciones activas.
+Estado: **corte de código implementado en rama aislada y baseline validada en
+PostgreSQL local**, preparado el 2026-10-24 sobre `origin/develop` `da123e1`
+(`0.55.3`).
+Seguimiento: [AI-0 #203](https://github.com/jarvinc3/personal-os-back/issues/203) y [programa #193](https://github.com/jarvinc3/personal-os-back/issues/193).
+Avance preparatorio de código: [estado de ejecución](07-execution-status.md).
+El owner confirmó el corte PROD y autorizó resetear DEV sin backup ni
+restauración porque sus datos son de prueba. El preflight PROD readonly fue
+entregado y auditado; la baseline se aplicó únicamente en DEV el 2026-10-24. No
+se ha escrito en PROD. El proyecto DEV identificado es
+`knqfgybflkpzplkqcocz`. Los archivos de
+`artifacts/` no son migraciones activas.
 
 | Entregable                             | Documento / artefacto                                                                                   |
 | -------------------------------------- | ------------------------------------------------------------------------------------------------------- |
@@ -44,27 +50,30 @@ la base de PROD. Los archivos de `artifacts/` no son migraciones activas.
 
 ## Qué significa la validación
 
-La candidata pasó validación Prisma y un ensayo SQL de 16 comprobaciones con
+La candidata pasó validación Prisma y un ensayo SQL de 18 comprobaciones con
 fixtures explícitos de `auth` y `storage`. Es evidencia del DDL, restricciones,
 policies, privilegios, triggers, referencias e independencia de sesiones.
 El reporte no prueba Google OAuth, un despliegue Railway, APIs administradas
 de Supabase ni que el código de aplicación ya compile contra esta candidata.
-Ese último gate se ejecuta al implementar AI-0, después de aplicar el plan de
-archivos; el comportamiento activo conserva el del origen `0.55.2`, con un
-PATCH documental independiente para este diseño.
+El corte de código compila y sus pruebas unitarias y E2E se ejecutan en la rama;
+el comportamiento activo no se ha desplegado y conserva como rollback el
+origen `0.55.3`.
 
-## Gates pendientes antes de ejecutar
+## Estado y gates restantes
 
-- Merge/corte estable real de back y web; comprobación del despliegue y estado
-  de workers. No basta con que exista un tag en develop.
-- Lectura de `_prisma_migrations`, extensiones y objetos no versionados en PROD
-  con conexión identificada de solo lectura; comparar con el manifiesto local.
+- Resetear y aplicar/verificar la baseline en DEV; completado el 2026-10-24.
+  No se requirió backup ni restauración por decisión del owner; PROD quedó fuera
+  de alcance.
+- Aplicar y comprobar el trigger de borrado directo de Auth; completado en DEV
+  mediante migración posterior y prueba transaccional reversible.
 - Evidencia operativa de los fallos OAuth. El diagnóstico estático identifica
   casos concretos, pero no atribuye a uno de ellos los incidentes reportados.
-- Congelar el SHA web y resolver sus cambios de trabajo con su autor. No se han
-  sobrescrito ni incluido en commits de este diseño.
-- Backup DEV verificable y ensayo de restauración; no hay restauración real
-  de datos de DEV validada mediante fixtures locales.
+- El smoke de API contra Supabase DEV pasó desde este checkout: alta/login/baja
+  de usuario sintético, perfil, settings, Finance, notificaciones, marcas,
+  ramas y wipe; chat/Gmail responden 404. Se usó Redis local Docker. Los workers
+  vigentes arrancaron tras reiniciar el proceso y readiness respondió 200; no
+  había jobs pendientes para probar recuperación de lease. Falta desplegar este
+  SHA al servicio Railway DEV y reabrirlo.
 
-La excepción a release por sesión todavía no se activa. Este diseño documental
-lleva PATCH normal. Solo la ejecución aprobada de AI-0 inicia `0.100.0` unreleased.
+La excepción a release por sesión para AI-0 está activa: ambos repos se
+mantienen en `0.100.0` unreleased hasta decisión del owner tras AI-11.

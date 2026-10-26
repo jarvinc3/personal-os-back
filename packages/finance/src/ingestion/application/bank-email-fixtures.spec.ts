@@ -7,7 +7,7 @@ import {
   looksLikePayrollWithoutAmount,
   sanitizeAccountNumberHint,
 } from './email-movement';
-import { stripHtmlToText } from '../infrastructure/gmail-api.util';
+import { stripHtmlToText } from './strip-html-to-text';
 
 type FixtureCase = {
   name: string;

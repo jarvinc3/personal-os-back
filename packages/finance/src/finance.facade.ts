@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import { DEFAULT_PAGE_LIMIT } from '@personal-os/core';
-import type { ChatContextEntity, EntityRef } from '@personal-os/core';
 import { AnalyticsService } from './analytics/application/analytics.service';
 import { CatalogService } from './catalog/application/catalog.service';
-import { IngestionService } from './ingestion/application/ingestion.service';
+import { ResolveUserBaseCurrencyUseCase } from './fx/application/resolve-user-base-currency';
+import type { AdjustBalanceCommand } from './ledger/application/adjust-balance.use-case';
+import { AdjustBalanceUseCase } from './ledger/application/adjust-balance.use-case';
 import type {
   CreateCardPaymentCommand,
   CreateTransactionCommand,
@@ -12,48 +12,42 @@ import type {
   UpdateTransactionCommand,
 } from './ledger/application/commands/ledger.commands';
 import { ConfirmTransactionUseCase } from './ledger/application/confirm-transaction.use-case';
-import { AdjustBalanceUseCase } from './ledger/application/adjust-balance.use-case';
-import type { AdjustBalanceCommand } from './ledger/application/adjust-balance.use-case';
 import { CreateCardPaymentUseCase } from './ledger/application/create-card-payment.use-case';
 import { CreateTransactionUseCase } from './ledger/application/create-transaction.use-case';
 import { CreateTransferUseCase } from './ledger/application/create-transfer.use-case';
 import { LedgerQueryService } from './ledger/application/ledger-query.service';
+import { ReverseTransactionUseCase } from './ledger/application/reverse-transaction.use-case';
+import { UnconfirmTransactionUseCase } from './ledger/application/unconfirm-transaction.use-case';
+import { UpdateTransactionUseCase } from './ledger/application/update-transaction.use-case';
 import { MerchantsService } from './merchants/application/merchants.service';
-import { RecurringService } from './recurring/application/recurring.service';
+import { AllocateToGoalUseCase } from './planning/application/allocate-to-goal.use-case';
+import type { LoanPrepaymentCommand } from './planning/application/apply-loan-prepayment.use-case';
+import { ApplyLoanPrepaymentUseCase } from './planning/application/apply-loan-prepayment.use-case';
+import {
+  LinkTransactionUseCase,
+  type LinkTransactionCommand,
+} from './planning/application/link-transaction.use-case';
+import type { PayInstallmentCommand } from './planning/application/pay-next-loan-installment.use-case';
+import { PayNextLoanInstallmentUseCase } from './planning/application/pay-next-loan-installment.use-case';
+import { PlanningService } from './planning/application/planning.service';
+import { RecordReceivablePaymentUseCase } from './planning/application/record-receivable-payment.use-case';
+import { UnlinkTransactionUseCase } from './planning/application/unlink-transaction.use-case';
+import type { CreateBudgetDto } from './planning/presentation/dto/create-budget.dto';
+import type { CreateReceivablePaymentDto } from './planning/presentation/dto/create-receivable-payment.dto';
+import type { CreateSavingsGoalAllocationDto } from './planning/presentation/dto/create-savings-goal-allocation.dto';
+import type { CreateSavingsGoalDto } from './planning/presentation/dto/create-savings-goal.dto';
+import type { UpdateBudgetDto } from './planning/presentation/dto/update-budget.dto';
+import type { UpdateLoanDto } from './planning/presentation/dto/update-loan.dto';
+import type { UpdateSavingsGoalDto } from './planning/presentation/dto/update-savings-goal.dto';
 import { ReconciliationsService } from './reconciliation/application/reconciliations.service';
 import type { BankChargesGroupBy } from './reconciliation/presentation/dto/bank-charges-query.dto';
 import type { CreateReconciliationDto } from './reconciliation/presentation/dto/create-reconciliation.dto';
 import type { ListReconciliationsQueryDto } from './reconciliation/presentation/dto/list-reconciliations-query.dto';
 import type { PreviewReconciliationDto } from './reconciliation/presentation/dto/preview-reconciliation.dto';
-import { SubscriptionsService } from './subscriptions/application/subscriptions.service';
-import { ReverseTransactionUseCase } from './ledger/application/reverse-transaction.use-case';
-import { UpdateTransactionUseCase } from './ledger/application/update-transaction.use-case';
-import { UnconfirmTransactionUseCase } from './ledger/application/unconfirm-transaction.use-case';
-import { PlanningService } from './planning/application/planning.service';
-import { ApplyLoanPrepaymentUseCase } from './planning/application/apply-loan-prepayment.use-case';
-import { PayNextLoanInstallmentUseCase } from './planning/application/pay-next-loan-installment.use-case';
-import { AllocateToGoalUseCase } from './planning/application/allocate-to-goal.use-case';
-import { RecordReceivablePaymentUseCase } from './planning/application/record-receivable-payment.use-case';
-import type { LoanPrepaymentCommand } from './planning/application/apply-loan-prepayment.use-case';
-import type { PayInstallmentCommand } from './planning/application/pay-next-loan-installment.use-case';
-import { CardStatementsService } from './statements/application/card-statements.service';
-import {
-  LinkTransactionUseCase,
-  type LinkTransactionCommand,
-} from './planning/application/link-transaction.use-case';
-import { UnlinkTransactionUseCase } from './planning/application/unlink-transaction.use-case';
-import type { AssignEmailMessageDto } from './ingestion/presentation/dto/oauth-callback-query.dto';
-import type { CreateBudgetDto } from './planning/presentation/dto/create-budget.dto';
-import type { CreateSavingsGoalDto } from './planning/presentation/dto/create-savings-goal.dto';
-import type { CreateSavingsGoalAllocationDto } from './planning/presentation/dto/create-savings-goal-allocation.dto';
-import type { CreateReceivablePaymentDto } from './planning/presentation/dto/create-receivable-payment.dto';
-import type { UpdateBudgetDto } from './planning/presentation/dto/update-budget.dto';
-import type { UpdateLoanDto } from './planning/presentation/dto/update-loan.dto';
-import type { UpdateSavingsGoalDto } from './planning/presentation/dto/update-savings-goal.dto';
+import { RecurringService } from './recurring/application/recurring.service';
 import { WipeFinanceUserDataUseCase } from './shared/application/wipe-finance-user-data.use-case';
-import { ResolveUserBaseCurrencyUseCase } from './fx/application/resolve-user-base-currency';
-import { ChatContextEntityService } from './shared/application/chat-context-entity.service';
-
+import { CardStatementsService } from './statements/application/card-statements.service';
+import { SubscriptionsService } from './subscriptions/application/subscriptions.service';
 /**
  * Stable public API for AI tools and external modules.
  * Root composition only — no god service underneath.
@@ -78,41 +72,27 @@ export class FinanceFacade {
     private readonly recordReceivable: RecordReceivablePaymentUseCase,
     private readonly analytics: AnalyticsService,
     private readonly statements: CardStatementsService,
-    private readonly ingestion: IngestionService,
     private readonly linkTx: LinkTransactionUseCase,
     private readonly unlinkTx: UnlinkTransactionUseCase,
     private readonly wipeFinance: WipeFinanceUserDataUseCase,
-    private readonly chatContextEntities: ChatContextEntityService,
     private readonly resolveBaseCurrency: ResolveUserBaseCurrencyUseCase,
     private readonly merchants: MerchantsService,
     private readonly recurring: RecurringService,
     private readonly subscriptions: SubscriptionsService,
     private readonly reconciliations: ReconciliationsService,
   ) {}
-
   getBaseCurrency(userId: string) {
     return this.resolveBaseCurrency.execute(userId);
   }
-
   listAccounts(userId: string) {
     return this.catalog.listAccounts(userId);
   }
-
-  resolveChatContextEntity(
-    userId: string,
-    ref: EntityRef,
-  ): Promise<ChatContextEntity | null> {
-    return this.chatContextEntities.resolve(userId, ref);
-  }
-
   listCards(userId: string) {
     return this.catalog.listCards(userId);
   }
-
   getAnalyticsSummary(userId: string, dateFrom?: string, dateTo?: string) {
     return this.analytics.getAnalyticsSummary(userId, dateFrom, dateTo);
   }
-
   getSpendingOverTime(
     userId: string,
     dateFrom?: string,
@@ -126,22 +106,18 @@ export class FinanceFacade {
       groupBy ?? 'day',
     );
   }
-
   listTransactions(userId: string, query: ListTransactionsQuery) {
     return this.ledgerQueries.listTransactions(userId, query);
   }
-
   getTransaction(userId: string, id: string) {
     return this.ledgerQueries.getTransaction(userId, id);
   }
-
   listPossibleDuplicates(userId: string) {
     return this.ledgerQueries.listTransactions(userId, {
       possibleDuplicates: true,
       limit: 50,
     });
   }
-
   createTransaction(
     userId: string,
     command: CreateTransactionCommand,
@@ -149,7 +125,6 @@ export class FinanceFacade {
   ) {
     return this.createTx.execute(userId, command, source);
   }
-
   updateTransaction(
     userId: string,
     id: string,
@@ -157,15 +132,12 @@ export class FinanceFacade {
   ) {
     return this.updateTx.execute(userId, id, command);
   }
-
   confirmTransaction(userId: string, id: string) {
     return this.confirmTx.execute(userId, id);
   }
-
   adjustBalance(userId: string, command: AdjustBalanceCommand) {
     return this.adjustBalanceTx.execute(userId, command);
   }
-
   linkTransaction(
     userId: string,
     transactionId: string,
@@ -173,54 +145,21 @@ export class FinanceFacade {
   ) {
     return this.linkTx.execute(userId, transactionId, command, new Date());
   }
-
   unlinkTransaction(userId: string, transactionId: string) {
     return this.unlinkTx.execute(userId, transactionId, new Date());
   }
-
-  async listPendingEmails(userId: string) {
-    const page = await this.ingestion.listPendingAssignment(userId, {
-      limit: DEFAULT_PAGE_LIMIT,
-    });
-    return { items: page.items, hasMore: page.hasMore };
-  }
-
-  assignPendingEmail(
-    userId: string,
-    messageId: string,
-    dto: AssignEmailMessageDto,
-  ) {
-    return this.ingestion.assignPendingMessage(userId, messageId, dto);
-  }
-
-  retryPendingEmail(userId: string, messageId: string) {
-    return this.ingestion.retryPendingMessage(userId, messageId);
-  }
-
-  completePendingEmailAmount(
-    userId: string,
-    messageId: string,
-    amount: number,
-  ) {
-    return this.ingestion.completePendingAmount(userId, messageId, amount);
-  }
-
   unconfirmTransaction(userId: string, id: string) {
     return this.unconfirmTx.execute(userId, id);
   }
-
   reverseTransaction(userId: string, id: string, aiMetadata?: unknown) {
     return this.reverseTx.execute(userId, id, aiMetadata);
   }
-
   createTransferTransaction(userId: string, command: CreateTransferCommand) {
     return this.createTransfer.execute(userId, command);
   }
-
   createCardPayment(userId: string, command: CreateCardPaymentCommand) {
     return this.createCardPaymentTx.execute(userId, command);
   }
-
   async getCardStatements(userId: string, cardId: string) {
     const page = await this.statements.listCardStatements(
       userId,
@@ -230,7 +169,6 @@ export class FinanceFacade {
     );
     return page.items;
   }
-
   getCardStatement(userId: string, cardId: string, statementId: string) {
     return this.statements.getStatementDetail(
       userId,
@@ -239,11 +177,9 @@ export class FinanceFacade {
       new Date(),
     );
   }
-
   getBudgetStatus(userId: string) {
     return this.analytics.getBudgetStatus(userId);
   }
-
   payNextLoanInstallment(
     userId: string,
     loanId: string,
@@ -251,39 +187,30 @@ export class FinanceFacade {
   ) {
     return this.payLoanInstallment.execute(userId, loanId, new Date(), command);
   }
-
   prepayLoan(userId: string, loanId: string, command: LoanPrepaymentCommand) {
     return this.prepayLoanTx.execute(userId, loanId, new Date(), command);
   }
-
   getLoanSchedule(userId: string, loanId: string) {
     return this.planning.listLoanInstallments(userId, loanId);
   }
-
   listBudgets(userId: string) {
     return this.planning.listBudgets(userId);
   }
-
   createBudget(userId: string, dto: CreateBudgetDto) {
     return this.planning.createBudget(userId, dto);
   }
-
   updateBudget(userId: string, id: string, dto: UpdateBudgetDto) {
     return this.planning.updateBudget(userId, id, dto);
   }
-
   listSavingsGoals(userId: string) {
     return this.planning.listSavingsGoals(userId);
   }
-
   createSavingsGoal(userId: string, dto: CreateSavingsGoalDto) {
     return this.planning.createSavingsGoal(userId, dto, new Date());
   }
-
   updateSavingsGoal(userId: string, id: string, dto: UpdateSavingsGoalDto) {
     return this.planning.updateSavingsGoal(userId, id, dto, new Date());
   }
-
   recordSavingsGoalContribution(
     userId: string,
     goalId: string,
@@ -291,7 +218,6 @@ export class FinanceFacade {
   ) {
     return this.allocateToGoal.execute(userId, goalId, dto, new Date());
   }
-
   recordReceivablePayment(
     userId: string,
     receivableId: string,
@@ -299,24 +225,19 @@ export class FinanceFacade {
   ) {
     return this.recordReceivable.execute(userId, receivableId, dto, new Date());
   }
-
   listLoans(userId: string) {
     return this.planning.listLoans(userId);
   }
-
   updateLoan(userId: string, id: string, dto: UpdateLoanDto) {
     return this.planning.updateLoan(userId, id, dto, new Date());
   }
-
   listCategories(userId: string, type?: 'EXPENSE' | 'INCOME') {
     return this.catalog.listCategories(userId, type);
   }
-
   async listMerchants(userId: string) {
     const page = await this.merchants.list(userId, { limit: 50 });
     return page.items;
   }
-
   async listSubscriptions(userId: string) {
     const [recurringPage, subscriptionPage] = await Promise.all([
       this.recurring.list(userId, { limit: 50 }),
@@ -327,45 +248,40 @@ export class FinanceFacade {
       recurring: recurringPage.items,
     };
   }
-
   getSubscriptionsSummary(userId: string) {
     return this.subscriptions.summary(userId);
   }
-
   getSubscriptionAlerts(userId: string) {
     return this.subscriptions.alerts(userId);
   }
-
   previewReconciliation(userId: string, dto: PreviewReconciliationDto) {
     return this.reconciliations.preview(userId, dto);
   }
-
   createReconciliation(userId: string, dto: CreateReconciliationDto) {
     return this.reconciliations.create(userId, dto);
   }
-
   listReconciliations(userId: string, query: ListReconciliationsQueryDto) {
     return this.reconciliations.list(userId, query);
   }
-
   getReconciliationStatus(userId: string, month: string) {
     return this.reconciliations.status(userId, month);
   }
-
   getBankCharges(
     userId: string,
-    input: { from: Date; to: Date; groupBy?: BankChargesGroupBy },
+    input: {
+      from: Date;
+      to: Date;
+      groupBy?: BankChargesGroupBy;
+    },
   ) {
     return this.reconciliations.bankCharges(userId, input);
   }
-
   createSubscription(
     userId: string,
     dto: Parameters<SubscriptionsService['create']>[1],
   ) {
     return this.subscriptions.create(userId, dto);
   }
-
   confirmSubscriptionPayment(
     userId: string,
     subscriptionId: string,
@@ -373,35 +289,24 @@ export class FinanceFacade {
   ) {
     return this.subscriptions.recordManualPayment(userId, subscriptionId, dto);
   }
-
   confirmRecurring(userId: string, patternId: string) {
     return this.recurring.update(userId, patternId, { status: 'CONFIRMED' });
   }
-
-  listEmailSources(userId: string) {
-    return this.ingestion.listEmailSources(userId);
-  }
-
-  triggerEmailSync(userId: string, sourceId: string, forceFullSync = false) {
-    return this.ingestion.triggerEmailSync(userId, sourceId, forceFullSync);
-  }
-
   getSpendingByCategory(userId: string, dateFrom?: string, dateTo?: string) {
     return this.analytics.getSpendingByCategory(userId, dateFrom, dateTo);
   }
-
   dataBranches() {
     return this.wipeFinance.dataBranches();
   }
-
   countUserDataBranches(userId: string, branchIds: readonly string[]) {
     return this.wipeFinance.countBranches(userId, branchIds);
   }
-
   wipeUserDataBranches(
     userId: string,
     branchIds: readonly string[],
-    options?: { balanceInstitutionId?: string },
+    options?: {
+      balanceInstitutionId?: string;
+    },
   ) {
     return this.wipeFinance.wipeBranches(userId, branchIds, options);
   }

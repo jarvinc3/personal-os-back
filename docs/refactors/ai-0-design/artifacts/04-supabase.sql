@@ -72,3 +72,29 @@ BEGIN
     WHERE id='logos';
   END IF;
 END $$;
+
+-- Preserve ensure_rls behavior observed in PROD. Do not alter managed event triggers.
+CREATE OR REPLACE FUNCTION app_private.enable_created_tables_rls() RETURNS event_trigger
+LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'pg_catalog' AS $$
+DECLARE command record;
+BEGIN
+ FOR command IN SELECT * FROM pg_event_trigger_ddl_commands()
+ WHERE command_tag IN ('CREATE TABLE','CREATE TABLE AS','SELECT INTO')
+ AND object_type IN ('table','partitioned table') LOOP
+  IF command.schema_name='public' THEN
+   EXECUTE format('ALTER TABLE %s ENABLE ROW LEVEL SECURITY',command.object_identity);
+  END IF;
+ END LOOP;
+END;
+$$;
+REVOKE ALL ON FUNCTION app_private.enable_created_tables_rls() FROM PUBLIC,anon,authenticated;
+DO $$ BEGIN
+ IF NOT EXISTS(SELECT 1 FROM pg_event_trigger WHERE evtname='ensure_rls') THEN
+  CREATE EVENT TRIGGER ensure_rls ON ddl_command_end
+  WHEN TAG IN ('CREATE TABLE','CREATE TABLE AS','SELECT INTO')
+  EXECUTE FUNCTION app_private.enable_created_tables_rls();
+ END IF;
+ IF to_regclass('public._prisma_migrations') IS NOT NULL THEN
+  ALTER TABLE public._prisma_migrations ENABLE ROW LEVEL SECURITY;
+ END IF;
+END $$;

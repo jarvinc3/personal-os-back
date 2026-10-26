@@ -3,7 +3,6 @@ import { FinanceBalanceSheetModule } from '../balance-sheet/balance-sheet.module
 import { FinanceCatalogModule } from '../catalog/catalog.module';
 import { FinanceEventsModule } from '../events/events.module';
 import { FinanceFxModule } from '../fx/fx.module';
-import { FinanceIngestionModule } from '../ingestion/ingestion.module';
 import { FinancePlanningModule } from '../planning/planning.module';
 import { AnalyticsService } from './application/analytics.service';
 import { WeeklySummaryService } from './application/weekly-summary.service';
@@ -17,7 +16,7 @@ import { AnalyticsController } from './presentation/analytics.controller';
     FinanceCatalogModule,
     FinanceEventsModule,
     FinanceFxModule,
-    FinanceIngestionModule,
+
     FinancePlanningModule,
   ],
   controllers: [AnalyticsController],

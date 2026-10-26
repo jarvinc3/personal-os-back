@@ -1,6 +1,7 @@
 export const AppEvents = {
   // ── User ──────────────────────────────────────────────
   USER_LOGGED_IN: 'user.logged_in',
+  USER_ACCOUNT_DELETING: 'user.account.deleting',
 
   // ── Finance (versioned only) ──────────────────────────
   FINANCE_TRANSACTION_IMPORTED: 'finance.transaction.imported',
@@ -12,8 +13,6 @@ export const AppEvents = {
   FINANCE_TRANSACTION_DELETED: 'finance.transaction.deleted',
   FINANCE_TRANSFER_CREATED: 'finance.transfer.created',
   FINANCE_BUDGET_THRESHOLD_CROSSED: 'finance.budget.threshold_crossed',
-  FINANCE_EMAIL_SYNC_COMPLETED: 'finance.email_sync.completed',
-  FINANCE_EMAIL_SYNC_FAILED: 'finance.email_sync.failed',
   FINANCE_CARD_STATEMENT_REMINDER: 'finance.card_statement.reminder',
   FINANCE_CARD_PAYMENT_DUE: 'finance.card_payment.due',
   FINANCE_WEEKLY_SUMMARY: 'finance.weekly_summary',
@@ -25,6 +24,9 @@ export const AppEvents = {
 
   // ── Notification ──────────────────────────────────────────────
   NOTIFICATION_CREATED: 'notification.created',
+
+  // ── AI email synchronization ─────────────────────────────────
+  AI_EMAIL_SYNC_UPDATED: 'ai.email.sync.updated',
 
   // ── Preferences / modules (non-finance) ─────────────
   USER_PREFERENCES_UPDATED: 'user.preferences.updated',

@@ -1,6 +1,8 @@
 import type { BudgetSpendSnapshot } from '../../../shared/domain/budget-snapshot';
-import type { StoredMovement } from '../../../shared/domain/deletion-snapshot';
-import type { RestoreResult } from '../../../shared/domain/deletion-snapshot';
+import type {
+  RestoreResult,
+  StoredMovement,
+} from '../../../shared/domain/deletion-snapshot';
 import type { LedgerCardType } from '../../../shared/domain/ledger-rules';
 import type { ResolvedAmounts } from '../../../shared/domain/money';
 import type { TransactionLinkKind } from '../../../shared/domain/transaction-links';
@@ -45,7 +47,7 @@ export type LedgerTransactionRow = {
   transferGroupId: string | null;
   linkedTransactionId: string | null;
   possibleDuplicateOfId?: string | null;
-  emailMessageId?: string | null;
+  importReference?: string | null;
   aiMetadata?: unknown;
   loanInstallment?: {
     id: string;
@@ -111,7 +113,7 @@ export type EmailTransferCounterpart = {
   description?: string | null;
   notes?: string | null;
   status: FinTxStatus;
-  emailMessageId?: string;
+  importReference?: string;
   aiMetadata?: unknown;
 };
 
@@ -162,9 +164,9 @@ export interface LedgerRepositoryPort {
     accountId: string,
   ): Promise<string | null>;
 
-  findTransactionByEmailMessageId(
-    gmailMessageId: string,
-    userId?: string,
+  findTransactionByImportReference(
+    importReference: string,
+    userId: string,
   ): Promise<LedgerTransactionRow | null>;
 
   findTransactionByExternalReference(
@@ -252,7 +254,7 @@ export interface LedgerRepositoryPort {
     amounts: ResolvedAmounts,
     source?: 'MANUAL' | 'EMAIL' | 'AI',
     extras?: {
-      emailMessageId?: string;
+      importReference?: string;
       aiMetadata?: unknown;
       linkedTransactionId?: string;
       transferGroupId?: string;

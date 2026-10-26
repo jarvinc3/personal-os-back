@@ -123,7 +123,7 @@ export type CreateCardPaymentCommand = {
 export type ImportEmailTransactionCommand = {
   accountId?: string;
   cardId?: string;
-  emailMessageId: string;
+  importReference: string;
   externalReference?: string | null;
   possibleDuplicateOfId?: string | null;
   amount: number;
