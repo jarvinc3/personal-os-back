@@ -22,6 +22,7 @@ describe('AiDataDeletionService', () => {
   };
 
   function fixture(consent: boolean) {
+    let consentEnabled = consent;
     const tx = {
       aiEmailMessage: {
         findMany: jest.fn().mockResolvedValue([message]),
@@ -36,17 +37,19 @@ describe('AiDataDeletionService', () => {
         update: jest.fn(),
       },
       userAiSettings: {
-        findUnique: jest
-          .fn()
-          .mockResolvedValue({ contributeToGlobalKnowledge: consent }),
+        findUnique: jest.fn(() =>
+          Promise.resolve({ contributeToGlobalKnowledge: consentEnabled }),
+        ),
       },
       aiConsentEvent: {
         findMany: jest.fn().mockResolvedValue([]),
         update: jest.fn(),
+        create: jest.fn().mockResolvedValue({}),
       },
       aiAnalysisRun: {
         findMany: jest.fn().mockResolvedValue([]),
         update: jest.fn(),
+        deleteMany: jest.fn().mockResolvedValue({}),
       },
       aiKnowledge: {
         deleteMany: jest.fn().mockResolvedValue({}),
@@ -59,12 +62,21 @@ describe('AiDataDeletionService', () => {
         deleteMany: jest.fn().mockResolvedValue({}),
       },
       aiInference: { deleteMany: jest.fn().mockResolvedValue({}) },
-      aiEmailConnection: { updateMany: jest.fn().mockResolvedValue({}) },
+      aiEmailConnection: {
+        updateMany: jest.fn().mockResolvedValue({}),
+        deleteMany: jest.fn().mockResolvedValue({}),
+      },
     };
     const prisma = {
       $transaction: jest.fn((callback: (arg: typeof tx) => unknown) =>
         callback(tx),
       ),
+      userAiSettings: {
+        upsert: jest.fn(() => {
+          consentEnabled = false;
+          return Promise.resolve({ contributeToGlobalKnowledge: false });
+        }),
+      },
     };
     const knowledge = { rebuild: jest.fn().mockResolvedValue({}) };
     const service = new AiDataDeletionService(
@@ -178,6 +190,53 @@ describe('AiDataDeletionService', () => {
     ).toMatchObject({
       tombstoneEligible: false,
       knowledgeKey: 'REDACTED',
+    });
+  });
+
+  it('revoca el consentimiento antes de anonimizar para no dejar lápidas elegibles', async () => {
+    const { tx, service } = fixture(true);
+    await service.deleteMyData('u1');
+    expect(
+      tx.aiHumanVerification.update.mock.calls[0][0].data.tombstoneEligible,
+    ).toBe(false);
+  });
+
+  it('marca INCOMPLETE solo los runs que cubrían la evidencia borrada', async () => {
+    const { tx, service } = fixture(true);
+    tx.aiKnowledgeObservation.findMany.mockResolvedValue([
+      {
+        sequence: 8n,
+        userId: 'u1',
+        sourceId: 'm1',
+        sourceType: 'EMAIL_MESSAGE',
+        knowledgeType: 'EMAIL_DOMAIN',
+        knowledgeKey: 'bank.com',
+        derivedFromKnowledgeIds: [],
+      },
+    ]);
+    tx.aiKnowledgeObservation.update.mockResolvedValue({});
+    tx.aiAnalysisRun.findMany.mockResolvedValue([
+      {
+        id: 'run-affected',
+        observationSequence: 10n,
+        verificationSequence: 10n,
+        missingEvidence: {},
+      },
+      {
+        id: 'run-before',
+        observationSequence: 1n,
+        verificationSequence: 1n,
+        missingEvidence: {},
+      },
+    ]);
+    await service.removeEmailData('u1');
+    expect(tx.aiAnalysisRun.update).toHaveBeenCalledTimes(1);
+    expect(tx.aiAnalysisRun.update).toHaveBeenCalledWith({
+      where: { id: 'run-affected' },
+      data: {
+        reproductionStatus: 'INCOMPLETE',
+        missingEvidence: { humanVerifications: 1, observations: 1 },
+      },
     });
   });
 });

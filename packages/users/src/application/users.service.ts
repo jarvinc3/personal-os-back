@@ -234,7 +234,9 @@ export class UsersService {
       throw new NotFoundException('Usuario no encontrado');
     }
 
-    await this.eventEmitter.emitAsync('users.account.deleting', { userId });
+    await this.eventEmitter.emitAsync(AppEvents.USER_ACCOUNT_DELETING, {
+      userId,
+    });
     await this.usersRepository.deleteAccountWithAuthOutbox(userId);
 
     const authResult =

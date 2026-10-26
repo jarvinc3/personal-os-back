@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
+import { AppEvents } from '@personal-os/core';
 import { randomUUID } from 'node:crypto';
 import { Prisma, PrismaService } from '@personal-os/database';
 import {
@@ -17,7 +18,7 @@ export class AiDataDeletionService {
     private readonly knowledge: AiKnowledgeService,
   ) {}
 
-  @OnEvent('users.account.deleting')
+  @OnEvent(AppEvents.USER_ACCOUNT_DELETING)
   async beforeAccountDeletion(event: { userId: string }) {
     await this.removeEmailData(event.userId, true);
   }
@@ -84,16 +85,21 @@ export class AiDataDeletionService {
   }
 
   async deleteMyData(userId: string) {
+    const now = new Date();
+    await this.prisma.userAiSettings.upsert({
+      where: { userId },
+      create: {
+        userId,
+        contributeToGlobalKnowledge: false,
+        contributionConsentAt: now,
+      },
+      update: {
+        contributeToGlobalKnowledge: false,
+        contributionConsentAt: now,
+      },
+    });
     const result = await this.removeEmailData(userId, true);
     await this.prisma.$transaction(async (tx) => {
-      await tx.userAiSettings.upsert({
-        where: { userId },
-        create: { userId, contributeToGlobalKnowledge: false },
-        update: {
-          contributeToGlobalKnowledge: false,
-          contributionConsentAt: new Date(),
-        },
-      });
       await tx.aiConsentEvent.create({
         data: {
           userId,

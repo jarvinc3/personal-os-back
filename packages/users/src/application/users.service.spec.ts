@@ -1,6 +1,7 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { SupabaseAdminService } from '@personal-os/auth';
+import { AppEvents } from '@personal-os/core';
 import type { UsersRepositoryPort } from './ports/users.repository.port';
 import { UsersService } from './users.service';
 
@@ -66,7 +67,7 @@ describe('UsersService.deleteAccount', () => {
     const result = await service.deleteAccount('user-1');
 
     expect(deleteAccountWithAuthOutbox).toHaveBeenCalledWith('user-1');
-    expect(emitAsync).toHaveBeenCalledWith('users.account.deleting', {
+    expect(emitAsync).toHaveBeenCalledWith(AppEvents.USER_ACCOUNT_DELETING, {
       userId: 'user-1',
     });
     expect(markAuthOutboxCompleted).toHaveBeenCalledWith('user-1');
