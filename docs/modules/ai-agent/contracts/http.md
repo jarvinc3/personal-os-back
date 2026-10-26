@@ -1,6 +1,6 @@
 # AI Agent — HTTP
 
-Auth: JWT de Supabase (`Authorization: Bearer <token>`). Envelope `{ data, meta }` salvo SSE; `meta` es `{ timestamp, path, requestId? }`. Fechas ISO 8601. Error estándar: `{ statusCode, error, message, code?, details?, requestId, timestamp, path }`. Las rutas de administración se autorizan con el rol guardado en `ai_user_roles`; sin fila, el rol es `USER`.
+Auth: JWT de Supabase (`Authorization: Bearer <token>`). Envelope `{ data, meta }` salvo SSE; `meta` es `{ timestamp, path, requestId? }`. Fechas ISO 8601. Error estándar: `{ statusCode, error, message, code?, details?, requestId, timestamp, path }`. Las rutas de administración se autorizan con el rol guardado en `user_roles`; sin fila, el rol es `USER`.
 
 | Método | Path                           | Notas                                                                                          |
 | ------ | ------------------------------ | ---------------------------------------------------------------------------------------------- |
