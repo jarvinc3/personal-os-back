@@ -1,6 +1,6 @@
 # AI Agent — HTTP
 
-Auth: JWT. Envelope `{ data, meta }` salvo SSE.
+Auth: JWT de Supabase (`Authorization: Bearer <token>`). Envelope `{ data, meta }` salvo SSE; `meta` es `{ timestamp, path, requestId? }`. Fechas ISO 8601. Error estándar: `{ statusCode, error, message, code?, details?, requestId, timestamp, path }`. Las rutas de administración se autorizan con el rol guardado en `ai_user_roles`; sin fila, el rol es `USER`.
 
 | Método | Path                           | Notas                                                                                          |
 | ------ | ------------------------------ | ---------------------------------------------------------------------------------------------- |
@@ -27,4 +27,140 @@ AI-3 (JWT):
 
 `GET /api/intelligence/messages/:messageId` incluye `provenance.observations` y `provenance.verifications` en orden de secuencia.
 
-AI-4 (JWT): contrato en [knowledge-http.md](./knowledge-http.md).
+## AI-4: Knowledge
+
+Todas las rutas requieren JWT. `data` es el objeto o array indicado; `meta` es el envelope común. No hay paginación en estas rutas.
+
+| Método | Ruta                                                    | Rol                      | Request                 | HTTP | `data` en éxito                                             |
+| ------ | ------------------------------------------------------- | ------------------------ | ----------------------- | ---- | ----------------------------------------------------------- |
+| GET    | `/api/intelligence/knowledge`                           | USER, CONTRIBUTOR, ADMIN | —                       | 200  | `KnowledgeExplorer`                                         |
+| GET    | `/api/intelligence/knowledge/admin/queue`               | ADMIN                    | —                       | 200  | `KnowledgeItem[]`                                           |
+| POST   | `/api/intelligence/knowledge/admin/rebuild`             | ADMIN                    | sin body                | 201  | `KnowledgeRebuild`                                          |
+| POST   | `/api/intelligence/knowledge/admin/:knowledgeId/revert` | ADMIN                    | sin body                | 201  | `KnowledgeItem` GLOBAL en `BLOCKED`; 404 si el id no existe |
+| GET    | `/api/intelligence/knowledge/me/export`                 | USER, CONTRIBUTOR, ADMIN | —                       | 200  | `KnowledgeExport` (JSON)                                    |
+| DELETE | `/api/intelligence/knowledge/me`                        | USER, CONTRIBUTOR, ADMIN | `{ "confirmed": true }` | 200  | `KnowledgeDeletion`                                         |
+
+### `KnowledgeExplorer`
+
+```json
+{
+  "personal": ["KnowledgeItem"],
+  "global": ["KnowledgeItem"]
+}
+```
+
+`personal` son las filas `USER` del usuario autenticado, que pueden estar en `OBSERVED` o `STABLE`. `global` solo devuelve filas `GLOBAL` en `STABLE`; `REVIEW_REQUIRED` y `BLOCKED` no se exponen al usuario general. Ambas listas ordenan por `knowledgeType` y después por `knowledgeKey`. La cola ADMIN devuelve todos los estados `GLOBAL` y ordena por estado (orden del enum) y después por `updatedAt` descendente.
+
+### `KnowledgeItem`
+
+| Campo                | Tipo                                                                                             | Notas                                                                                                                                                                    |
+| -------------------- | ------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `id`                 | string                                                                                           | UUID estable entre rebuilds mientras exista la misma clave.                                                                                                              |
+| `scope`              | `USER` \| `GLOBAL`                                                                               |                                                                                                                                                                          |
+| `userId`             | string \| null                                                                                   | Solo en `USER`; `GLOBAL` siempre `null`.                                                                                                                                 |
+| `knowledgeType`      | `EMAIL_SENDER` \| `EMAIL_DOMAIN` \| `EMAIL_TEMPLATE` \| `ENTITY` \| `RELATION` \| `USER_MAPPING` | AI-4 solo genera los tres `EMAIL_*`; los otros valores existen en el enum de base de datos.                                                                              |
+| `knowledgeKey`       | string                                                                                           | `EMAIL_SENDER`: dirección sin nombre ni `+alias`. `EMAIL_DOMAIN`: dominio registrable. `EMAIL_TEMPLATE`: `dominio\|asunto` normalizado con `<n>`, `<fecha>` y `<monto>`. |
+| `state`              | `OBSERVED` \| `STABLE` \| `REVIEW_REQUIRED` \| `BLOCKED`                                         | `OBSERVED` es una observación automática sin verificación humana.                                                                                                        |
+| `payload`            | `{ label: KnowledgeLabel }`                                                                      | Ver abajo. `GLOBAL` solo lleva estructura; nunca montos, last4, comercio ni referencia.                                                                                  |
+| `messagesSeen`       | number                                                                                           | Mensajes que alimentaron la fila con su verificación vigente.                                                                                                            |
+| `rejectedMessages`   | number                                                                                           | Mensajes rechazados para esa clave; no crean conocimiento.                                                                                                               |
+| `distinctUsers`      | number                                                                                           | Colaboradores distintos que votaron la clave en `GLOBAL`; `0` en `USER`.                                                                                                 |
+| `humanVerifiedCount` | number                                                                                           | Verificaciones humanas vigentes que alimentaron la fila.                                                                                                                 |
+| `promotedBy`         | `AUTO` \| `CONTRIBUTOR` \| `ADMIN` \| null                                                       | `AUTO` solo en `GLOBAL` `STABLE`; `null` en el resto.                                                                                                                    |
+| `projectorVersion`   | string                                                                                           | Constante del proyector.                                                                                                                                                 |
+| `policyVersion`      | string                                                                                           | Constante de la política de promoción.                                                                                                                                   |
+| `normalizerVersion`  | string                                                                                           | Versión del normalizador de claves.                                                                                                                                      |
+| `sanitizerVersion`   | string                                                                                           | Versión del saneador GLOBAL.                                                                                                                                             |
+| `firstSeenAt`        | string (ISO 8601)                                                                                |                                                                                                                                                                          |
+| `lastSeenAt`         | string (ISO 8601)                                                                                |                                                                                                                                                                          |
+| `updatedAt`          | string (ISO 8601)                                                                                |                                                                                                                                                                          |
+
+### `KnowledgeLabel`
+
+| Campo                         | Tipo                                                                                                                                                                                                                        | USER | GLOBAL |
+| ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- | ------ |
+| `relevance`                   | boolean                                                                                                                                                                                                                     | sí   | sí     |
+| `semanticType`                | `FIN_TRANSACTION`, `PURCHASE_RECEIPT`, `SUBSCRIPTION_BILLING`, `FIN_STATEMENT_NOTICE`, `FIN_ACCOUNT_NOTICE`, `SECURITY_OTP`, `SECURITY_ALERT`, `TECH_NOTIFICATION`, `JOB`, `CALENDAR_EVENT`, `MARKETING`, `SOCIAL`, `OTHER` | sí   | sí     |
+| `routes`                      | array de `FINANCE`, `SUBSCRIPTIONS`, `CALENDAR`, `SECURITY`                                                                                                                                                                 | sí   | sí     |
+| `transaction.kind`            | `TRANSACTION`, `PENDING`, `NOT_TRANSACTION`                                                                                                                                                                                 | sí   | sí     |
+| `transaction.amount`          | number positivo                                                                                                                                                                                                             | sí   | no     |
+| `transaction.currency`        | string ISO 4217 de 3 letras                                                                                                                                                                                                 | sí   | no     |
+| `transaction.transactionDate` | string ISO 8601                                                                                                                                                                                                             | sí   | no     |
+| `transaction.direction`       | `DEBIT`, `CREDIT`, `TRANSFER`                                                                                                                                                                                               | sí   | no     |
+| `transaction.merchant`        | string                                                                                                                                                                                                                      | sí   | no     |
+| `transaction.bankReference`   | string                                                                                                                                                                                                                      | sí   | no     |
+| `transaction.last4`           | string de 4 dígitos                                                                                                                                                                                                         | sí   | no     |
+
+### `KnowledgeRebuild`
+
+`POST /api/intelligence/knowledge/admin/rebuild` lee los watermarks y todas las filas de evidencia dentro de una sola transacción PostgreSQL `REPEATABLE READ`, borra la proyección y la vuelve a crear. Después registra un `AiAnalysisRun` con `configuration.snapshot = "REPEATABLE_READ"`.
+
+```json
+{
+  "runId": "uuid",
+  "observationSequence": "42",
+  "verificationSequence": "42",
+  "consentRevision": "7",
+  "items": 11
+}
+```
+
+`observationSequence`, `verificationSequence` y `consentRevision` son `BigInt` y se serializan como strings decimales. `items` es la cantidad de filas proyectadas más las filas `GLOBAL` retenidas sin evidencia.
+
+### `KnowledgeExport`
+
+`GET /api/intelligence/knowledge/me/export` devuelve en `data` un JSON con los datos de la cuenta. Las secuencias `BigInt` van como strings decimales; las fechas, en ISO 8601.
+
+| Campo           | Contenido                                                                                                                                                                                                      |
+| --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `exportedAt`    | string ISO 8601                                                                                                                                                                                                |
+| `connection`    | `null` o `{ id, provider, emailAddress, isActive, initialSyncCompletedAt, lastSyncedAt, createdAt }`                                                                                                           |
+| `messages`      | Correos propios con `content` (`messageId`, `rawBody`, `sanitizedBody`, `canonicalBody`, `snippet`, `retentionExpiresAt`); los cuerpos ya purgados son `null`.                                                 |
+| `datasetItems`  | `{ id, datasetId, userId, sourceType, sourceId, partition, createdAt }`                                                                                                                                        |
+| `runs`          | `AiAnalysisRun` con `observationSequence`, `verificationSequence` y `consentRevision` como strings                                                                                                             |
+| `observations`  | `AiKnowledgeObservation`; `sequence` como string                                                                                                                                                               |
+| `verifications` | `AiHumanVerification`; `sequence` como string                                                                                                                                                                  |
+| `knowledge`     | Filas `USER` propias (`KnowledgeItem`)                                                                                                                                                                         |
+| `consent`       | `AiConsentEvent`; `sequence` como string                                                                                                                                                                       |
+| `settings`      | `null` o `{ userId, contributeToGlobalKnowledge, contributionConsentAt, createdAt, updatedAt }`                                                                                                                |
+| `inferences`    | `AiInference` con `id`, `userId`, `task`, `sourceType`, `sourceId`, `provider`, `model`, versiones, estado, `errorCode`, `fallbackCount`, `latencyMs`, `inputTokens`, `outputTokens`, `createdAt`, `expiresAt` |
+
+La exportación nunca incluye `accessTokenEncrypted` ni `refreshTokenEncrypted`. Tampoco incluye filas `GLOBAL` ni evidencia anonimizada de otros usuarios.
+
+### `KnowledgeDeletion`
+
+`DELETE /api/intelligence/knowledge/me` exige el body exacto `{ "confirmed": true }`. Cualquier otro valor, un campo extra o la ausencia del body devuelve 400. El borrado es inmediato, sin periodo de gracia.
+
+```json
+{
+  "deleted": true,
+  "deletedMessages": 128,
+  "detachedVerifications": 12,
+  "detachedObservations": 40
+}
+```
+
+Qué hace en una sola operación:
+
+- Borra los correos, los `datasetItems`, los runs y todas las inferencias del usuario.
+- Borra su conocimiento `USER` y reconstruye `GLOBAL`.
+- Anonimiza sus verificaciones y observaciones: quita `userId`, `targetId`/`sourceId`, payload y notas. Los eventos de consentimiento anteriores quedan anonimizados con la misma lápida.
+- Conserva una lápida solo si el consentimiento estaba vigente al borrar y la clave es segura para `GLOBAL` (`EMAIL_DOMAIN` y plantillas del vocabulario permitido). La lápida lleva `contributorTombstone`, `normalizerVersion`, `structuralKeys` y `structuralPayload` estructurales.
+- Revoca el consentimiento y escribe un `AiConsentEvent` con `reason: "USER_DELETED_AI_DATA"`. La revocación se registra después de anonimizar para no borrar la elegibilidad de la lápida.
+- Elimina la conexión de Gmail y sus tokens OAuth. El reinicio de correo (`POST /api/intelligence/email/reset`) es la ruta que conserva la conexión.
+
+`detachedVerifications` y `detachedObservations` son las filas anonimizadas; no se borran físicamente.
+
+### Errores
+
+| HTTP | Cuándo                                                                            | `message`                                                  |
+| ---- | --------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| 400  | Body inválido o sin `confirmed: true` en `DELETE /me`                             | `Confirma el borrado de datos AI` o el error de validación |
+| 401  | Sin JWT, JWT vencido o inválido                                                   | `Authentication required`                                  |
+| 403  | Rol insuficiente en `admin/queue`, `admin/rebuild` o `admin/:knowledgeId/revert`  | `No tienes permisos para esta operación`                   |
+| 404  | `admin/:knowledgeId/revert` con un id inexistente o que no es de alcance `GLOBAL` | `Conocimiento GLOBAL no encontrado`                        |
+
+### Efectos en endpoints existentes
+
+- `GET /api/intelligence/runs` (array, máximo 50, más reciente primero) añade `consentRevision` (string), `reproductionStatus` (`COMPLETE` o `INCOMPLETE`) y `missingEvidence` (`{ observations, humanVerifications }`). Un run pasa a `INCOMPLETE` cuando se retiró evidencia que cubría su corte; no participa en comparaciones de evidencia equivalente.
+- `POST /api/intelligence/email/reset` mantiene `{ "confirmed": true }` y responde `{ connected: false, deletedMessages: 0 }` sin conexión, o `{ connected: true, deletedMessages }` cuando existe. Anonimiza verificaciones y observaciones antes de vaciar el corpus, conserva la conexión OAuth y reconstruye `GLOBAL`. Devuelve 409 si hay una sincronización activa.

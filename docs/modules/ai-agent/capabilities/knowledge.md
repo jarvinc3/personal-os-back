@@ -19,4 +19,4 @@ La proyección se borra y vuelve a crearse dentro de la misma transacción. Los 
 - `packages/ai-agent/src/intelligence/knowledge/ai-data-deletion.service.spec.ts`: lápidas elegibles, opt-out, HOLDOUT y runs `INCOMPLETE`.
 - `test/ai-agent.e2e-spec.ts`: JWT, aislamiento de rutas, confirmación de borrado y acceso ADMIN.
 
-Contrato HTTP: [knowledge-http.md](../contracts/knowledge-http.md).
+Contrato HTTP: [http.md](../contracts/http.md#ai-4-knowledge).

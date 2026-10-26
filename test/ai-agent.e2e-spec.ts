@@ -113,6 +113,16 @@ describe('Retired AI chat API (e2e)', () => {
     await request(app.getHttpServer())
       .delete('/api/intelligence/knowledge/me')
       .set('Authorization', `Bearer ${token}`)
+      .expect(400);
+    await request(app.getHttpServer())
+      .delete('/api/intelligence/knowledge/me')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ confirmed: true, extra: 'no' })
+      .expect(400);
+    expect(deletion.deleteMyData).not.toHaveBeenCalled();
+    await request(app.getHttpServer())
+      .delete('/api/intelligence/knowledge/me')
+      .set('Authorization', `Bearer ${token}`)
       .send({ confirmed: true })
       .expect(200);
     expect(deletion.deleteMyData).toHaveBeenCalledWith('user-123');
