@@ -6,6 +6,8 @@ import { App } from 'supertest/types';
 import { PrismaService } from '@personal-os/database';
 import {
   AiEvidenceService,
+  AiKnowledgeService,
+  AiDataDeletionService,
   SEMANTIC_ROUTES,
   SEMANTIC_TYPES,
   TRANSACTION_DIRECTIONS,
@@ -41,15 +43,32 @@ describe('Retired AI chat API (e2e)', () => {
     }),
     listRuns: jest.fn().mockResolvedValue([]),
   };
+  const knowledge = {
+    listForUser: jest.fn().mockResolvedValue({ personal: [], global: [] }),
+    adminQueue: jest.fn().mockResolvedValue([]),
+    rebuild: jest.fn().mockResolvedValue({ runId: 'run-1', items: 0 }),
+    revert: jest.fn().mockResolvedValue({ state: 'BLOCKED' }),
+  };
+  const deletion = {
+    exportForUser: jest.fn().mockResolvedValue({ messages: [], knowledge: [] }),
+    deleteMyData: jest
+      .fn()
+      .mockResolvedValue({ deleted: true, deletedMessages: 0 }),
+  };
+  const userRole = { findUnique: jest.fn().mockResolvedValue(null) };
 
   beforeEach(async () => {
     token = createTestJwt({ sub: 'user-123' });
     const moduleFixture = await applyAuthTestOverrides(
       Test.createTestingModule({ imports: [AppModule] })
         .overrideProvider(PrismaService)
-        .useValue(createPrismaMock())
+        .useValue({ ...createPrismaMock(), userRole })
         .overrideProvider(AiEvidenceService)
-        .useValue(evidence),
+        .useValue(evidence)
+        .overrideProvider(AiKnowledgeService)
+        .useValue(knowledge)
+        .overrideProvider(AiDataDeletionService)
+        .useValue(deletion),
     ).compile();
     app = moduleFixture.createNestApplication();
     app.setGlobalPrefix('api');
@@ -64,6 +83,49 @@ describe('Retired AI chat API (e2e)', () => {
   });
 
   afterEach(async () => app?.close());
+
+  it('aísla el explorador/exportación y protege la cola ADMIN', async () => {
+    userRole.findUnique.mockResolvedValue(null);
+    await request(app.getHttpServer())
+      .get('/api/intelligence/knowledge')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+    expect(knowledge.listForUser).toHaveBeenCalledWith('user-123');
+    await request(app.getHttpServer())
+      .get('/api/intelligence/knowledge/me/export')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+    expect(deletion.exportForUser).toHaveBeenCalledWith('user-123');
+    await request(app.getHttpServer())
+      .get('/api/intelligence/knowledge/admin/queue')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(403);
+    expect(knowledge.adminQueue).not.toHaveBeenCalled();
+  });
+
+  it('exige confirmación para borrar y permite reconstruir solo a ADMIN', async () => {
+    await request(app.getHttpServer())
+      .delete('/api/intelligence/knowledge/me')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ confirmed: false })
+      .expect(400);
+    await request(app.getHttpServer())
+      .delete('/api/intelligence/knowledge/me')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ confirmed: true })
+      .expect(200);
+    expect(deletion.deleteMyData).toHaveBeenCalledWith('user-123');
+    await request(app.getHttpServer())
+      .post('/api/intelligence/knowledge/admin/rebuild')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(403);
+    userRole.findUnique.mockResolvedValue({ role: 'ADMIN' });
+    await request(app.getHttpServer())
+      .post('/api/intelligence/knowledge/admin/rebuild')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(201);
+    expect(knowledge.rebuild).toHaveBeenCalledWith('user-123');
+  });
 
   it('returns 404 for chat and session routes removed in AI-0', async () => {
     await request(app.getHttpServer())

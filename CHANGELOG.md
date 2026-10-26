@@ -6,12 +6,14 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [Se
 
 ### Agregado
 
+- AI-4 (#207): conocimiento USER/GLOBAL reconstruible desde evidencia y consentimiento con cortes `REPEATABLE READ`, saneamiento estructural, cola ADMIN, exportación JSON y borrado con lápidas; `AI_GLOBAL_MIN_CONTRIBUTORS` controla el mínimo de colaboradores.
 - AI-3 (#206): dataset `EMAIL_V1` con particiones deterministas, cola privada de revisión, verificaciones humanas append-only con roles/secuencia y verdad de referencia HOLDOUT; runs capturan versiones y watermarks, y el detalle de correo expone su procedencia.
 - AI-2 (#205): roles de IA por usuario y consentimiento revocable; conexión OAuth Gmail de solo lectura con tokens cifrados, bootstrap desde 2026-01-01, polling incremental, recuperación acotada por cursor, correo aislado por usuario, detalle con contenido canónico/saneado/crudo y purga según retención DEV/PROD.
 - AI-1: gateway de inferencia estructurada con fallback por respuesta inválida, telemetría minimizada con HMAC y retención de 90 días; Quick Entry y extractos bancarios validan antes de devolver resultados. Diagnóstico disponible con `pnpm ai:diagnostic`.
 
 ### Cambiado
 
+- AI-4 (#207): el reinicio del corpus anonimiza verificaciones y observaciones en lugar de borrarlas; los runs afectados indican reproducción `INCOMPLETE` y conteos de evidencia retirada.
 - #217: la verificación humana de correo valida tipos y dominios cerrados, relevancia de seguridad y datos estructurados de transacción; Swagger publica los valores permitidos.
 - Gmail mantiene visible el tiempo de espera por cuota con reintentos de 5, 10 y 20 segundos cuando el proveedor no indica otro plazo (#205, #318).
 - Si los reintentos rápidos no liberan la cuota, Gmail permanece en espera con una próxima reejecución automática persistida y su cuenta regresiva (#205, #318).
