@@ -74,22 +74,25 @@ const GLOBAL_TEMPLATE_WORDS = new Set([
   'your',
 ]);
 
-// Multi-label public suffixes used by the initial corpus. A sender outside this
-// set is kept at its full hostname rather than merging unrelated tenants.
-const MULTI_LABEL_SUFFIXES = new Set([
-  'co.uk',
-  'org.uk',
-  'ac.uk',
-  'gov.uk',
-  'com.do',
-  'edu.do',
-  'gob.do',
-  'com.mx',
-  'com.br',
-  'com.ar',
-  'com.co',
-  'com.au',
-  'co.jp',
+// Public second-level labels registered under country-code TLDs. A ccTLD host
+// keeps the third label as part of its suffix; any other host uses two labels.
+const PUBLIC_SECOND_LEVEL_LABELS = new Set([
+  'ac',
+  'co',
+  'com',
+  'edu',
+  'go',
+  'gob',
+  'gov',
+  'gouv',
+  'ltd',
+  'mil',
+  'ne',
+  'net',
+  'or',
+  'org',
+  'plc',
+  'sch',
 ]);
 
 export function normalizeSender(value: string): string | null {
@@ -118,16 +121,16 @@ export function registrableDomain(sender: string): string | null {
   if (labels.some((part) => !part) || labels.length < 2) {
     return null;
   }
-  const suffix = labels.slice(-2).join('.');
-  if (MULTI_LABEL_SUFFIXES.has(suffix)) {
-    return labels.length > 2 ? labels.slice(-3).join('.') : null;
+  const topLevel = labels.at(-1)!;
+  const secondLevel = labels.at(-2)!;
+  const suffixLength =
+    topLevel.length === 2 && PUBLIC_SECOND_LEVEL_LABELS.has(secondLevel)
+      ? 3
+      : 2;
+  if (labels.length < suffixLength) {
+    return null;
   }
-  // Country-code domains not in the known suffix list remain separate. This
-  // avoids treating every tenant under an unknown second-level suffix as one.
-  if (labels.at(-1)?.length === 2 && (labels.at(-2)?.length ?? 0) <= 3) {
-    return domain;
-  }
-  return suffix;
+  return labels.slice(-suffixLength).join('.');
 }
 
 export function normalizeSubject(subject: string): string {

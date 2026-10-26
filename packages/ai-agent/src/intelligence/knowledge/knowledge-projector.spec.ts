@@ -89,6 +89,14 @@ describe('AI-4 knowledge', () => {
     );
   });
 
+  it('extrae el dominio registrable con sufijos públicos de dos niveles', () => {
+    expect(registrableDomain('alerts@alerts.bank.com.pe')).toBe('bank.com.pe');
+    expect(registrableDomain('alerts@a.b.bank.co.uk')).toBe('bank.co.uk');
+    expect(registrableDomain('alerts@mail.bank.de')).toBe('bank.de');
+    expect(registrableDomain('alerts@mail.bar.co')).toBe('bar.co');
+    expect(registrableDomain('alerts@co.uk')).toBeNull();
+  });
+
   it('sanea GLOBAL por lista permitida y no deja datos privados', () => {
     const serialized = JSON.stringify(sanitizeGlobalLabel(label));
     for (const privateValue of [
