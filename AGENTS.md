@@ -88,7 +88,7 @@ Una migración aplicada no se toca. Prisma la identifica por el nombre de su car
 - Antes de nombrar una migración, inspeccionar la última carpeta existente. Si la fecha real no ordena después, usar el siguiente timestamp libre y registrar la fecha real en el SQL. No confiar en un timestamp fijo de este documento.
 - El timestamp duplicado `20261015220000` (`fin_card_charge_categories` y `fix_schema_drift`) se queda tal cual.
 - Nunca aceptar el reset que ofrece `prisma migrate dev`: el checksum de `20261022000000` cambió en dev.
-- Prod recibe las migraciones vía Railway con `pnpm db:migrate:deploy`.
+- Prod recibe las migraciones vía Railway con `pnpm db:migrate:deploy` como pre-deploy de [`railway.json`](railway.json).
 
 Detalle en [docs/infrastructure/database.md](docs/infrastructure/database.md#migraciones-y-fechas).
 
