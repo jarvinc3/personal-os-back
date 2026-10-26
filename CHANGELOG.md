@@ -34,6 +34,10 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [Se
 
 - Se reescribe el README con banner, módulos, arquitectura, arranque, scripts y enlaces a los repos hermanos; se añade licencia MIT y archivos de comunidad (CONTRIBUTING, SECURITY y plantilla de PR).
 
+### Corregido
+
+- En dev, el CORS de la API y del gateway de notificaciones acepta los previews de rama de Vercel mediante `CORS_ORIGIN_PATTERNS`, una lista de patrones anclados que en production no se acepta. `CORS_ORIGIN` y su primer valor para armar enlaces no cambian, y un origen no permitido responde sin cabeceras CORS en vez de 500 (#222).
+
 ## [0.55.3] - 2026-10-24
 
 ### Cambiado

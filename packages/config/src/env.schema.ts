@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { parseCorsOriginPatterns } from './cors-origins';
 import { parseStrictEnvBoolean } from './parse-env-boolean';
 
 const optionalApiKey = z
@@ -124,6 +125,17 @@ export const envSchema = z
         },
       ),
     /**
+     * Anchored regex sources for branch preview origins (CSV). Only allowed
+     * outside production: production keeps the exact `CORS_ORIGIN` list.
+     */
+    CORS_ORIGIN_PATTERNS: z
+      .string()
+      .optional()
+      .transform((value) => {
+        const trimmed = value?.trim();
+        return trimmed || undefined;
+      }),
+    /**
      * Base URL of the public web app used to build links shared with other
      * people (`<PUBLIC_WEB_URL>/c/<token>`). Falls back to the first
      * CORS_ORIGIN entry when unset.
@@ -245,6 +257,29 @@ export const envSchema = z
       }),
   })
   .superRefine((data, ctx) => {
+    if (data.CORS_ORIGIN_PATTERNS) {
+      if (data.NODE_ENV === 'production') {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'CORS_ORIGIN_PATTERNS is not allowed in production',
+          path: ['CORS_ORIGIN_PATTERNS'],
+        });
+      } else {
+        try {
+          parseCorsOriginPatterns(data.CORS_ORIGIN_PATTERNS);
+        } catch (error) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message:
+              error instanceof Error
+                ? error.message
+                : 'Invalid CORS_ORIGIN_PATTERNS',
+            path: ['CORS_ORIGIN_PATTERNS'],
+          });
+        }
+      }
+    }
+
     if (data.NODE_ENV === 'production' && !data.REDIS_URL) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,

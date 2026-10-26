@@ -11,6 +11,7 @@ import {
   SupabaseJwtVerifierService,
   type AuthUserContext,
 } from '@personal-os/auth';
+import { resolveNotificationsCorsOrigin } from './notifications-cors';
 
 interface NotificationsSocketData {
   user?: AuthUserContext;
@@ -18,45 +19,14 @@ interface NotificationsSocketData {
 
 type SocketWithUser = Socket<NotificationsSocketData>;
 
-function resolveNotificationsCorsOrigin():
-  | string
-  | string[]
-  | boolean
-  | ((
-      origin: string | undefined,
-      callback: (err: Error | null, allow?: boolean) => void,
-    ) => void) {
-  const corsOrigin = process.env.CORS_ORIGIN ?? '';
-  const corsOrigins = corsOrigin
-    .split(',')
-    .map((value) => value.trim())
-    .filter(Boolean);
-  const isProduction = process.env.NODE_ENV === 'production';
-
-  if (isProduction) {
-    if (corsOrigins.length === 0) {
-      return false;
-    }
-    return corsOrigins.length === 1 ? corsOrigins[0] : corsOrigins;
-  }
-
-  return (origin, callback) => {
-    if (!origin) {
-      callback(null, true);
-      return;
-    }
-    if (corsOrigins.includes(origin) || corsOrigins.includes('*')) {
-      callback(null, true);
-      return;
-    }
-    callback(new Error(`Origin ${origin} not allowed by CORS`), false);
-  };
-}
-
 @WebSocketGateway({
   namespace: '/notifications',
   cors: {
-    origin: resolveNotificationsCorsOrigin(),
+    origin: resolveNotificationsCorsOrigin({
+      corsOrigin: process.env.CORS_ORIGIN,
+      previewPatterns: process.env.CORS_ORIGIN_PATTERNS,
+      isProduction: process.env.NODE_ENV === 'production',
+    }),
     credentials: true,
   },
 })

@@ -7,8 +7,8 @@ Checklist verificable en `main.ts` + guards:
 - Helmet + `trust proxy`
 - Body limit 1mb
 - 500 genéricos al cliente (`AllExceptionsFilter`)
-- WS CORS = `CORS_ORIGIN`
-- CORS REST = `CORS_ORIGIN`; una petición sin `Origin` (navegación directa a Swagger, curl) pasa sin cabeceras CORS
+- WS CORS = `CORS_ORIGIN`; en non-prod también `CORS_ORIGIN_PATTERNS` (previews de rama)
+- CORS REST = `CORS_ORIGIN`; en non-prod también `CORS_ORIGIN_PATTERNS`. Un origen no permitido responde sin cabeceras CORS (sin 500) y una petición sin `Origin` (navegación directa a Swagger, curl) pasa sin cabeceras CORS
 - `/api/health` y `/api/health/ready` (y `/startup`) públicos; ready/startup sanitizan el contrato
 - Separar `OAUTH_STATE_SECRET` de `ENCRYPTION_KEY` (schema exige OAuth secret en prod)
 - JWT vía JWKS, no `SUPABASE_JWT_SECRET`
