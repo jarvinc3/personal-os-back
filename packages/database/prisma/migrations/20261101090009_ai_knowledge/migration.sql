@@ -12,6 +12,7 @@ ALTER TABLE "ai_analysis_runs"
 
 ALTER TABLE "ai_knowledge_observations"
   DROP CONSTRAINT "ai_knowledge_observations_user_id_fkey",
+  ALTER COLUMN "user_id" DROP NOT NULL,
   ALTER COLUMN "source_id" DROP NOT NULL,
   ALTER COLUMN "payload" DROP NOT NULL,
   ADD COLUMN "contributor_tombstone" TEXT,
