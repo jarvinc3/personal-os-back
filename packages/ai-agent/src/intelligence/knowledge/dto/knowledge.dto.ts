@@ -27,7 +27,8 @@ const KNOWLEDGE_PROMOTIONS = ['AUTO', 'CONTRIBUTOR', 'ADMIN'] as const;
 export class KnowledgeTransactionDto {
   @ApiPropertyOptional({
     enum: TRANSACTION_KINDS,
-    description: 'Siempre presente en GLOBAL; el resto es privado de USER.',
+    description:
+      'Único campo de transacción que se publica en GLOBAL; el resto es privado de USER.',
   })
   kind?: (typeof TRANSACTION_KINDS)[number];
 
@@ -79,11 +80,11 @@ export class KnowledgeItemDto {
   @ApiProperty({ enum: KNOWLEDGE_SCOPES })
   scope!: (typeof KNOWLEDGE_SCOPES)[number];
 
-  @ApiPropertyOptional({
+  @ApiProperty({
     nullable: true,
     description: 'Solo en USER; GLOBAL siempre devuelve null.',
   })
-  userId?: string | null;
+  userId!: string | null;
 
   @ApiProperty({ enum: KNOWLEDGE_TYPES })
   knowledgeType!: (typeof KNOWLEDGE_TYPES)[number];
@@ -109,8 +110,8 @@ export class KnowledgeItemDto {
   @ApiProperty()
   humanVerifiedCount!: number;
 
-  @ApiPropertyOptional({ enum: KNOWLEDGE_PROMOTIONS, nullable: true })
-  promotedBy?: (typeof KNOWLEDGE_PROMOTIONS)[number] | null;
+  @ApiProperty({ enum: KNOWLEDGE_PROMOTIONS, nullable: true })
+  promotedBy!: (typeof KNOWLEDGE_PROMOTIONS)[number] | null;
 
   @ApiProperty()
   projectorVersion!: string;
