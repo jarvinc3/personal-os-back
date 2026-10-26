@@ -237,3 +237,44 @@ describe('envSchema Sentry', () => {
     ).toThrow();
   });
 });
+
+describe('envSchema CORS_ORIGIN_PATTERNS', () => {
+  const previewPattern =
+    '^https://personal-os-web-git-[a-z0-9-]+-collado-studios\\.vercel\\.app$';
+
+  it('accepts anchored preview patterns outside production', () => {
+    const parsed = parseEnv({
+      ...validBaseEnv,
+      NODE_ENV: 'development',
+      CORS_ORIGIN_PATTERNS: ` ${previewPattern} `,
+    });
+
+    expect(parsed.CORS_ORIGIN_PATTERNS).toBe(previewPattern);
+  });
+
+  it('treats a blank value as omitted', () => {
+    const parsed = parseEnv({ ...validBaseEnv, CORS_ORIGIN_PATTERNS: '  ' });
+
+    expect(parsed.CORS_ORIGIN_PATTERNS).toBeUndefined();
+  });
+
+  it('rejects a pattern that is not anchored', () => {
+    expect(() =>
+      parseEnv({
+        ...validBaseEnv,
+        CORS_ORIGIN_PATTERNS: 'https://personal-os-web-git-.*',
+      }),
+    ).toThrow(/must be anchored with \^ and \$/);
+  });
+
+  it('rejects the variable in production', () => {
+    expect(() =>
+      parseEnv({
+        ...validBaseEnv,
+        NODE_ENV: 'production',
+        REDIS_URL: 'redis://localhost:6379',
+        CORS_ORIGIN_PATTERNS: previewPattern,
+      }),
+    ).toThrow(/CORS_ORIGIN_PATTERNS is not allowed in production/);
+  });
+});

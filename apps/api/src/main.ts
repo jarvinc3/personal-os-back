@@ -11,7 +11,7 @@ import { join } from 'path';
 import { AppModule } from './app.module';
 import { appVersion } from './app-version';
 import { resolveNonProductionCorsOrigin } from './cors';
-import { isBullMqEnabled } from '@personal-os/config';
+import { isBullMqEnabled, parseCorsOriginPatterns } from '@personal-os/config';
 import type { Env } from '@personal-os/config';
 
 const DIAGRAMS_DIR = '.archify';
@@ -102,6 +102,13 @@ async function bootstrap() {
     .map((value) => value.trim())
     .filter(Boolean);
 
+  // Branch previews rotate per branch, so dev matches them by pattern.
+  const corsOriginPatterns: RegExp[] = isProduction
+    ? []
+    : parseCorsOriginPatterns(
+        configService.get('CORS_ORIGIN_PATTERNS', { infer: true }),
+      );
+
   const port: number = configService.get('PORT', { infer: true }) ?? 3100;
   // Bull Board (same host) sends Origin on PUT/DELETE; allow the API's own origin in non-prod.
   const sameServerOrigins = [
@@ -122,6 +129,7 @@ async function bootstrap() {
       : resolveNonProductionCorsOrigin({
           allowedOrigins: corsOrigins,
           sameServerOrigins,
+          originPatterns: corsOriginPatterns,
         }),
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: [

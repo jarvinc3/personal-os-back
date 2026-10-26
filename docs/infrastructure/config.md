@@ -18,6 +18,7 @@ Fuente: [`packages/config/src/env.schema.ts`](../../packages/config/src/env.sche
 | `NODE_ENV`                                                               | `development` \| `production` \| `test` (default `development`)                         |
 | `PORT`                                                                   | Default **3100** en schema y `.env.example`                                             |
 | `CORS_ORIGIN`                                                            | URLs CSV                                                                                |
+| `CORS_ORIGIN_PATTERNS`                                                   | Regex ancladas CSV (`^…$`) para previews de rama; solo fuera de production              |
 | `PUBLIC_WEB_URL`                                                         | URL opcional; base de los links `/c/<token>`. Sin valor, primer origin de `CORS_ORIGIN` |
 | `REDIS_URL`                                                              | URL; **obligatoria en production**                                                      |
 | `REDIS_ENABLED`                                                          | true solo con `true`/`1`                                                                |
