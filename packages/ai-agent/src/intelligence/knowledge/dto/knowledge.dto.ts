@@ -81,6 +81,7 @@ export class KnowledgeItemDto {
   scope!: (typeof KNOWLEDGE_SCOPES)[number];
 
   @ApiProperty({
+    type: String,
     nullable: true,
     description: 'Solo en USER; GLOBAL siempre devuelve null.',
   })
