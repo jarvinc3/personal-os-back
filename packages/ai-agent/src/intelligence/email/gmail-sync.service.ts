@@ -10,9 +10,10 @@ import { ConfigService } from '@nestjs/config';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import type { Env } from '@personal-os/config';
 import { AppEvents } from '@personal-os/core';
-import { Prisma, PrismaService } from '@personal-os/database';
+import { PrismaService } from '@personal-os/database';
 import { createHash } from 'node:crypto';
 import { AiEmailSourceService } from './ai-email-source.service';
+import { AiDataDeletionService } from '../knowledge/ai-data-deletion.service';
 
 const GMAIL_API = 'https://gmail.googleapis.com/gmail/v1';
 const BOOTSTRAP_START = Math.floor(Date.UTC(2026, 0, 1) / 1000);
@@ -88,6 +89,7 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
     private readonly source: AiEmailSourceService,
     private readonly config: ConfigService<Env, true>,
     private readonly eventEmitter: EventEmitter2,
+    private readonly deletion: AiDataDeletionService,
   ) {}
 
   onModuleInit(): void {
@@ -197,48 +199,7 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
       this.rateLimitRetryTimers.delete(connection.id);
     }
     try {
-      const deletedMessages = await this.prisma.$transaction(async (tx) => {
-        const dataset = await tx.aiDataset.findUnique({
-          where: { name: 'EMAIL_V1' },
-          select: { id: true },
-        });
-        if (dataset) {
-          await tx.aiAnalysisRun.deleteMany({
-            where: { userId, datasetId: dataset.id },
-          });
-          await tx.aiDatasetItem.deleteMany({
-            where: {
-              datasetId: dataset.id,
-              userId,
-              sourceType: 'EMAIL_MESSAGE',
-            },
-          });
-        }
-        await tx.aiKnowledgeObservation.deleteMany({
-          where: { userId, sourceType: 'EMAIL_MESSAGE' },
-        });
-        await tx.aiHumanVerification.deleteMany({
-          where: { userId, targetType: 'EMAIL_MESSAGE' },
-        });
-        const deleted = await tx.aiEmailMessage.deleteMany({
-          where: { userId, connectionId: connection.id },
-        });
-        await tx.aiEmailConnection.update({
-          where: { id: connection.id },
-          data: {
-            providerCursor: null,
-            bootstrapPageToken: null,
-            bootstrapStartedAt: null,
-            initialSyncCompletedAt: null,
-            lastSyncedAt: null,
-            lastRecoverySyncAt: null,
-            importedMessageCount: 0,
-            lastSyncErrorCode: null,
-            syncState: Prisma.DbNull,
-          },
-        });
-        return deleted.count;
-      });
+      const { deletedMessages } = await this.deletion.removeEmailData(userId);
       this.syncProgress.delete(connection.id);
       return { connected: true, deletedMessages };
     } finally {

@@ -3,9 +3,13 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { PrismaService } from '@personal-os/database';
+import { Prisma, PrismaService } from '@personal-os/database';
 import type { CreateHumanVerificationDto } from './dto/create-human-verification.dto';
 import { partitionEmailDatasetItem } from './dataset-partition.util';
+import {
+  PROJECTOR_VERSION,
+  POLICY_VERSION,
+} from '../knowledge/knowledge-projector';
 
 const DATASET_NAME = 'EMAIL_V1';
 const EMAIL_SOURCE_TYPE = 'EMAIL_MESSAGE';
@@ -57,7 +61,9 @@ export class AiEvidenceService {
       distinct: ['targetId'],
       select: { targetId: true },
     });
-    const reviewedIds = reviewed.map(({ targetId }) => targetId);
+    const reviewedIds = reviewed
+      .map(({ targetId }) => targetId)
+      .filter((targetId): targetId is string => targetId !== null);
     const pendingWhere = {
       datasetId: dataset.id,
       userId,
@@ -245,27 +251,37 @@ export class AiEvidenceService {
   ) {
     const dataset = await this.ensureDataset();
     await this.ensureDatasetItems(userId, dataset.id);
-    const [observationWatermark, verificationWatermark] = await Promise.all([
-      this.prisma.aiKnowledgeObservation.aggregate({
-        _max: { sequence: true },
-      }),
-      this.prisma.aiHumanVerification.aggregate({ _max: { sequence: true } }),
-    ]);
-    return this.prisma.aiAnalysisRun.create({
-      data: {
-        userId,
-        datasetId: dataset.id,
-        mode,
-        observationSequence: observationWatermark._max.sequence ?? 0n,
-        verificationSequence: verificationWatermark._max.sequence ?? 0n,
-        projectorVersion: 'ai-projector-v1',
-        policyVersion: 'ai-policy-v1',
-        pipelineVersion: 'ai-pipeline-v1',
-        detectorVersion: 'email-detector-v1',
-        schemaVersion: 'ai-review-v1',
-        configuration: JSON.parse(JSON.stringify(configuration)),
+    return this.prisma.$transaction(
+      async (tx) => {
+        const [observationWatermark, verificationWatermark, consentWatermark] =
+          await Promise.all([
+            tx.aiKnowledgeObservation.aggregate({ _max: { sequence: true } }),
+            tx.aiHumanVerification.aggregate({ _max: { sequence: true } }),
+            tx.aiConsentEvent.aggregate({ _max: { sequence: true } }),
+          ]);
+        return tx.aiAnalysisRun.create({
+          data: {
+            userId,
+            datasetId: dataset.id,
+            mode,
+            observationSequence: observationWatermark._max.sequence ?? 0n,
+            verificationSequence: verificationWatermark._max.sequence ?? 0n,
+            consentRevision: consentWatermark._max.sequence ?? 0n,
+            reproductionStatus: 'COMPLETE',
+            projectorVersion: PROJECTOR_VERSION,
+            policyVersion: POLICY_VERSION,
+            pipelineVersion: 'ai-pipeline-v1',
+            detectorVersion: 'email-detector-v1',
+            schemaVersion: 'ai-review-v1',
+            configuration: {
+              ...JSON.parse(JSON.stringify(configuration)),
+              snapshot: 'REPEATABLE_READ',
+            },
+          },
+        });
       },
-    });
+      { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead },
+    );
   }
 
   async completeAnalysisRun(
@@ -346,6 +362,9 @@ export class AiEvidenceService {
         status: true,
         observationSequence: true,
         verificationSequence: true,
+        consentRevision: true,
+        reproductionStatus: true,
+        missingEvidence: true,
         projectorVersion: true,
         policyVersion: true,
         pipelineVersion: true,
@@ -363,6 +382,7 @@ export class AiEvidenceService {
       ...run,
       observationSequence: run.observationSequence.toString(),
       verificationSequence: run.verificationSequence.toString(),
+      consentRevision: run.consentRevision.toString(),
     }));
   }
 

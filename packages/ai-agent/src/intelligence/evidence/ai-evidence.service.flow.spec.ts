@@ -209,6 +209,9 @@ describe('AiEvidenceService review and analysis flows', () => {
         id: 'run-1',
         observationSequence: 2n,
         verificationSequence: 1n,
+        consentRevision: 3n,
+        reproductionStatus: 'COMPLETE',
+        missingEvidence: {},
       },
     ]);
     expect(await service.listRuns('user-1')).toEqual([
@@ -216,6 +219,9 @@ describe('AiEvidenceService review and analysis flows', () => {
         id: 'run-1',
         observationSequence: '2',
         verificationSequence: '1',
+        consentRevision: '3',
+        reproductionStatus: 'COMPLETE',
+        missingEvidence: {},
       },
     ]);
   });
