@@ -74,7 +74,6 @@ describe('AiDataDeletionService', () => {
       userAiSettings: {
         upsert: jest.fn(() => {
           consentEnabled = false;
-          return Promise.resolve({ contributeToGlobalKnowledge: false });
         }),
       },
     };
