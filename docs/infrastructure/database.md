@@ -39,6 +39,21 @@ modificado. Ver [los artefactos de AI-0](../refactors/ai-0-design/artifacts/).
 
 No usar `migrate reset` sobre datos reales.
 
+## Migraciones en Railway
+
+El repo declara [`railway.json`](../../railway.json) con el pre-deploy del servicio back:
+
+```json
+{ "deploy": { "preDeployCommand": "pnpm db:migrate:deploy" } }
+```
+
+- Antes de arrancar la versión nueva, Railway aplica las migraciones pendientes con `prisma migrate deploy` y el `DATABASE_URL` del entorno. Si una migración falla, el deploy se cancela y la versión anterior sigue sirviendo.
+- DEV lo corre en cada deploy de `develop`. Producción lo corre al mergear a `master`: ese release requiere el OK de Jarvin antes del merge.
+- El archivo solo agrega el pre-deploy; no fija el build ni el comando de arranque, que siguen configurados en el servicio.
+- El CLI de Prisma es dependencia de producción (`dependencies`) porque la imagen de ejecución no instala `devDependencies`.
+
+Nunca `prisma migrate reset` ni `prisma db push` contra un entorno con datos; el pre-deploy solo ejecuta `migrate deploy`.
+
 ## Scripts de datos
 
 `pnpm db:encrypt-account-numbers` cifra los `fin_accounts.account_number` que sigan en texto plano con `DATA_ENCRYPTION_KEY` y completa `account_number_last4` / `account_number_hash`. Es idempotente (no recifra lo ya cifrado, solo completa columnas faltantes) y se corre una vez por entorno después de `pnpm db:migrate:deploy`; sin `DATA_ENCRYPTION_KEY` falla al arrancar.
