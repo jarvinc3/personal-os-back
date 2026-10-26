@@ -54,7 +54,7 @@ La migración es aditiva y no borra datos existentes. Los defaults cubren las fi
 
 ## Riesgo
 
-- El rebuild borra y recrea toda la proyección dentro de una transacción; es idempotente y no toca la evidencia. Un fallo deja la proyección anterior o ninguna, y el rebuild se puede repetir.
+- El rebuild borra y recrea toda la proyección dentro de una transacción; es idempotente y no toca la evidencia. Un fallo revierte la transacción y deja la proyección anterior; el rebuild se puede repetir.
 - La promoción GLOBAL depende de `AI_GLOBAL_MIN_CONTRIBUTORS`; en development vale 1 para QA y en test/production 3. Un valor mal configurado en producción cambia cuándo se publica conocimiento compartido.
 - El borrado de datos propios revoca el consentimiento y elimina la conexión de Gmail. Es inmediato y sin periodo de gracia; la UI debe confirmar la acción.
 - La reversión ADMIN es append-only; no hay endpoint para desbloquear una clave. Para volver a habilitarla hace falta una verificación `KNOWLEDGE` posterior con otro veredicto.

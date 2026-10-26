@@ -29,7 +29,7 @@ AI-3 (JWT):
 
 ## AI-4: Knowledge
 
-Todas las rutas requieren JWT. `data` es el objeto o array indicado; `meta` es el envelope común. No hay paginación: ninguna ruta de Knowledge acepta `cursor`, `limit` ni `page`, y un query string enviado se ignora. El explorador, la cola y la exportación devuelven todas las filas de su alcance.
+Todas las rutas requieren JWT. `data` es el objeto o array indicado; `meta` es el envelope común. No hay paginación: ninguna ruta de Knowledge acepta `cursor`, `limit` ni `page`, y un query string enviado se ignora. El explorador, la cola y la exportación devuelven todas las filas que cumplen su filtro, sin recortes por página.
 
 | Método | Ruta                                                    | Rol                      | Request                 | HTTP | `data` en éxito                                             |
 | ------ | ------------------------------------------------------- | ------------------------ | ----------------------- | ---- | ----------------------------------------------------------- |
