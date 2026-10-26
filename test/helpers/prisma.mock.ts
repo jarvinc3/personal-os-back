@@ -19,6 +19,53 @@ export type PrismaMock = {
     deleteMany: MockFn;
     create: MockFn;
   };
+  aiKnowledgeObservation: {
+    aggregate: MockFn;
+    findMany: MockFn;
+    update: MockFn;
+  };
+  aiHumanVerification: {
+    aggregate: MockFn;
+    findMany: MockFn;
+    update: MockFn;
+  };
+  aiConsentEvent: {
+    aggregate: MockFn;
+    findMany: MockFn;
+    update: MockFn;
+    create: MockFn;
+  };
+  aiDataset: {
+    upsert: MockFn;
+  };
+  aiDatasetItem: {
+    findMany: MockFn;
+    createMany: MockFn;
+    deleteMany: MockFn;
+  };
+  aiEmailMessage: {
+    findMany: MockFn;
+    deleteMany: MockFn;
+  };
+  userAiSettings: {
+    findMany: MockFn;
+    findUnique: MockFn;
+    upsert: MockFn;
+  };
+  aiAnalysisRun: {
+    create: MockFn;
+    findMany: MockFn;
+    update: MockFn;
+    deleteMany: MockFn;
+  };
+  aiKnowledge: {
+    findMany: MockFn;
+    findFirst: MockFn;
+    deleteMany: MockFn;
+    createMany: MockFn;
+    update: MockFn;
+    updateMany: MockFn;
+  };
   notification: {
     create: MockFn;
     update: MockFn;
@@ -290,6 +337,54 @@ function createTransactionClient(prismaMock: PrismaMock) {
   return {
     $queryRaw: jest.fn().mockResolvedValue([]),
     $executeRaw: jest.fn().mockResolvedValue(0),
+    // The knowledge projection reads the same rows the tests configure at root.
+    aiKnowledgeObservation: {
+      aggregate: prismaMock.aiKnowledgeObservation.aggregate,
+      findMany: prismaMock.aiKnowledgeObservation.findMany,
+      update: prismaMock.aiKnowledgeObservation.update,
+    },
+    aiHumanVerification: {
+      aggregate: prismaMock.aiHumanVerification.aggregate,
+      findMany: prismaMock.aiHumanVerification.findMany,
+      update: prismaMock.aiHumanVerification.update,
+    },
+    aiConsentEvent: {
+      aggregate: prismaMock.aiConsentEvent.aggregate,
+      findMany: prismaMock.aiConsentEvent.findMany,
+      create: prismaMock.aiConsentEvent.create,
+      update: prismaMock.aiConsentEvent.update,
+    },
+    aiDataset: {
+      upsert: prismaMock.aiDataset.upsert,
+    },
+    aiDatasetItem: {
+      findMany: prismaMock.aiDatasetItem.findMany,
+      createMany: prismaMock.aiDatasetItem.createMany,
+      deleteMany: prismaMock.aiDatasetItem.deleteMany,
+    },
+    aiEmailMessage: {
+      findMany: prismaMock.aiEmailMessage.findMany,
+      deleteMany: prismaMock.aiEmailMessage.deleteMany,
+    },
+    userAiSettings: {
+      findMany: prismaMock.userAiSettings.findMany,
+      findUnique: prismaMock.userAiSettings.findUnique,
+      upsert: prismaMock.userAiSettings.upsert,
+    },
+    aiAnalysisRun: {
+      create: prismaMock.aiAnalysisRun.create,
+      findMany: prismaMock.aiAnalysisRun.findMany,
+      update: prismaMock.aiAnalysisRun.update,
+      deleteMany: prismaMock.aiAnalysisRun.deleteMany,
+    },
+    aiKnowledge: {
+      findMany: prismaMock.aiKnowledge.findMany,
+      findFirst: prismaMock.aiKnowledge.findFirst,
+      deleteMany: prismaMock.aiKnowledge.deleteMany,
+      createMany: prismaMock.aiKnowledge.createMany,
+      update: prismaMock.aiKnowledge.update,
+      updateMany: prismaMock.aiKnowledge.updateMany,
+    },
     // The delete flows read the entity and remove it inside the transaction,
     // so those models share the root mock: a test configures and asserts in
     // one place.
@@ -664,6 +759,57 @@ export function createPrismaMock(): PrismaMock {
       create: jest.fn().mockResolvedValue({ id: 'ai-inference-1' }),
       count: jest.fn().mockResolvedValue(0),
       deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
+    },
+    aiKnowledgeObservation: {
+      aggregate: jest.fn().mockResolvedValue({ _max: { sequence: null } }),
+      findMany: jest.fn().mockResolvedValue([]),
+      update: jest.fn().mockResolvedValue({}),
+    },
+    aiHumanVerification: {
+      aggregate: jest.fn().mockResolvedValue({ _max: { sequence: null } }),
+      findMany: jest.fn().mockResolvedValue([]),
+      update: jest.fn().mockResolvedValue({}),
+    },
+    aiConsentEvent: {
+      aggregate: jest.fn().mockResolvedValue({ _max: { sequence: null } }),
+      findMany: jest.fn().mockResolvedValue([]),
+      update: jest.fn().mockResolvedValue({}),
+      create: jest.fn().mockResolvedValue({}),
+    },
+    aiDataset: {
+      upsert: jest.fn().mockResolvedValue({ id: 'dataset-1' }),
+    },
+    aiDatasetItem: {
+      findMany: jest.fn().mockResolvedValue([]),
+      createMany: jest.fn().mockResolvedValue({ count: 0 }),
+      deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
+    },
+    aiEmailMessage: {
+      findMany: jest.fn().mockResolvedValue([]),
+      deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
+    },
+    userAiSettings: {
+      findMany: jest.fn().mockResolvedValue([]),
+      findUnique: jest.fn().mockResolvedValue(null),
+      upsert: jest.fn().mockResolvedValue({}),
+    },
+    aiAnalysisRun: {
+      create: jest
+        .fn()
+        .mockImplementation(({ data }: { data: object }) =>
+          Promise.resolve({ ...data, id: 'run-1' }),
+        ),
+      findMany: jest.fn().mockResolvedValue([]),
+      update: jest.fn().mockResolvedValue({}),
+      deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
+    },
+    aiKnowledge: {
+      findMany: jest.fn().mockResolvedValue([]),
+      findFirst: jest.fn().mockResolvedValue(null),
+      deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
+      createMany: jest.fn().mockResolvedValue({ count: 0 }),
+      update: jest.fn().mockResolvedValue({}),
+      updateMany: jest.fn().mockResolvedValue({ count: 0 }),
     },
     notification: {
       create: jest.fn(),
