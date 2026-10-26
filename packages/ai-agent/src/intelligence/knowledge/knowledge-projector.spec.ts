@@ -3,6 +3,7 @@ import {
   knowledgeKeys,
   normalizeSubject,
   registrableDomain,
+  NORMALIZER_VERSION,
 } from './knowledge-normalizer';
 import { sanitizeGlobalLabel } from './knowledge-payload';
 
@@ -266,5 +267,44 @@ describe('AI-4 knowledge', () => {
     const projected = projectKnowledge(input);
     expect(projected).toHaveLength(1);
     expect(projected[0]).toMatchObject({ scope: 'USER', state: 'OBSERVED' });
+  });
+
+  it('descarta lápidas de otra versión del normalizador', () => {
+    const input: ProjectionInput = {
+      messages: [],
+      verifications: [
+        {
+          sequence: 1n,
+          userId: null,
+          targetId: null,
+          verdict: 'CORRECTED',
+          verifierRole: 'USER',
+          correctedPayload: null,
+          isGroundTruth: false,
+          createdAt: date,
+          contributorTombstone: 'tombstone-1',
+          tombstoneEligible: true,
+          normalizerVersion: 'email-knowledge-normalizer-v0',
+          structuralKeys: [
+            { knowledgeType: 'EMAIL_DOMAIN', knowledgeKey: 'bank.com' },
+          ],
+          structuralPayload: { semanticType: 'FIN_TRANSACTION' },
+        },
+      ],
+      consentByUser: new Map(),
+      verificationSequence: 1n,
+      minimumContributors: 1,
+    };
+    expect(projectKnowledge(input)).toHaveLength(0);
+
+    input.verifications[0].normalizerVersion = NORMALIZER_VERSION;
+    expect(projectKnowledge(input)).toEqual([
+      expect.objectContaining({
+        scope: 'GLOBAL',
+        knowledgeType: 'EMAIL_DOMAIN',
+        knowledgeKey: 'bank.com',
+        state: 'STABLE',
+      }),
+    ]);
   });
 });

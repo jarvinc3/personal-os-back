@@ -4,10 +4,16 @@ import type { Env } from '@personal-os/config';
 import { Prisma, PrismaService } from '@personal-os/database';
 import {
   projectKnowledge,
+  latestRevertedKeys,
   PROJECTOR_VERSION,
   POLICY_VERSION,
+  type KnowledgeReversion,
 } from './knowledge-projector';
 import { NORMALIZER_VERSION } from './knowledge-normalizer';
+import {
+  EMAIL_DATASET_NAME,
+  EMAIL_DATASET_PURPOSE,
+} from '../evidence/dataset.constants';
 import { partitionEmailDatasetItem } from '../evidence/dataset-partition.util';
 
 @Injectable()
@@ -94,12 +100,16 @@ export class AiKnowledgeService {
           tx.aiKnowledgeObservation.aggregate({ _max: { sequence: true } }),
           tx.aiHumanVerification.aggregate({ _max: { sequence: true } }),
           tx.aiConsentEvent.aggregate({ _max: { sequence: true } }),
-          tx.aiDataset.findUnique({ where: { name: 'EMAIL_V1' } }),
+          tx.aiDataset.upsert({
+            where: { name: EMAIL_DATASET_NAME },
+            create: {
+              name: EMAIL_DATASET_NAME,
+              purpose: EMAIL_DATASET_PURPOSE,
+            },
+            update: {},
+          }),
           tx.aiKnowledge.findMany(),
         ]);
-        if (!dataset) {
-          throw new NotFoundException('Dataset EMAIL_V1 no encontrado');
-        }
         const [
           items,
           messages,
@@ -138,6 +148,7 @@ export class AiKnowledgeService {
               tombstoneEligible: true,
               structuralKeys: true,
               structuralPayload: true,
+              normalizerVersion: true,
             },
           }),
           tx.aiHumanVerification.findMany({
@@ -201,6 +212,7 @@ export class AiKnowledgeService {
             consentByUser.set(message.userId, true);
           }
         }
+        const adminReversions = this.toKnowledgeReversions(reversions);
         const rows = projectKnowledge({
           messages: inputMessages,
           verifications,
@@ -209,43 +221,12 @@ export class AiKnowledgeService {
           observationSequence: observationCut._max.sequence ?? 0n,
           verificationSequence: verificationCut._max.sequence ?? 0n,
           minimumContributors,
-          adminReversions: reversions.flatMap((reversal) => {
-            if (!Array.isArray(reversal.structuralKeys)) {
-              return [];
-            }
-            return reversal.structuralKeys.flatMap((candidate) => {
-              if (
-                !candidate ||
-                typeof candidate !== 'object' ||
-                Array.isArray(candidate)
-              ) {
-                return [];
-              }
-              const type = candidate.knowledgeType;
-              const key = candidate.knowledgeKey;
-              if (
-                (type !== 'EMAIL_DOMAIN' && type !== 'EMAIL_TEMPLATE') ||
-                typeof key !== 'string'
-              ) {
-                return [];
-              }
-              if (
-                reversal.verdict !== 'CONFIRMED' &&
-                reversal.verdict !== 'REJECTED'
-              ) {
-                return [];
-              }
-              return [
-                {
-                  knowledgeType: type,
-                  knowledgeKey: key,
-                  sequence: reversal.sequence,
-                  verdict: reversal.verdict,
-                },
-              ];
-            });
-          }),
+          adminReversions,
         });
+        const blockedGlobalKeys = latestRevertedKeys(
+          adminReversions,
+          verificationCut._max.sequence ?? 0n,
+        );
         const projectedGlobalKeys = new Set(
           rows
             .filter((row) => row.scope === 'GLOBAL')
@@ -275,27 +256,32 @@ export class AiKnowledgeService {
               payload: row.payload,
               updatedAt: row.lastSeenAt,
             })),
-            ...unsupportedGlobal.map((row) => ({
-              id: row.id,
-              scope: row.scope,
-              userId: null,
-              knowledgeType: row.knowledgeType,
-              knowledgeKey: row.knowledgeKey,
-              state: 'REVIEW_REQUIRED' as const,
-              payload: row.payload as Prisma.InputJsonValue,
-              messagesSeen: 0,
-              rejectedMessages: row.rejectedMessages,
-              distinctUsers: 0,
-              humanVerifiedCount: 0,
-              promotedBy: null,
-              projectorVersion: PROJECTOR_VERSION,
-              policyVersion: POLICY_VERSION,
-              normalizerVersion: NORMALIZER_VERSION,
-              sanitizerVersion: row.sanitizerVersion,
-              firstSeenAt: row.firstSeenAt,
-              lastSeenAt: row.lastSeenAt,
-              updatedAt: row.updatedAt,
-            })),
+            ...unsupportedGlobal.map((row) => {
+              const key = `${row.knowledgeType}|${row.knowledgeKey}`;
+              return {
+                id: row.id,
+                scope: row.scope,
+                userId: null,
+                knowledgeType: row.knowledgeType,
+                knowledgeKey: row.knowledgeKey,
+                state: blockedGlobalKeys.has(key)
+                  ? ('BLOCKED' as const)
+                  : ('REVIEW_REQUIRED' as const),
+                payload: row.payload as Prisma.InputJsonValue,
+                messagesSeen: 0,
+                rejectedMessages: row.rejectedMessages,
+                distinctUsers: 0,
+                humanVerifiedCount: 0,
+                promotedBy: null,
+                projectorVersion: PROJECTOR_VERSION,
+                policyVersion: POLICY_VERSION,
+                normalizerVersion: NORMALIZER_VERSION,
+                sanitizerVersion: row.sanitizerVersion,
+                firstSeenAt: row.firstSeenAt,
+                lastSeenAt: row.lastSeenAt,
+                updatedAt: row.updatedAt,
+              };
+            }),
           ],
         });
         const run = await tx.aiAnalysisRun.create({
@@ -325,5 +311,48 @@ export class AiKnowledgeService {
       },
       { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead },
     );
+  }
+
+  private toKnowledgeReversions(
+    rows: Array<{
+      sequence: bigint;
+      verdict: string;
+      structuralKeys: unknown;
+    }>,
+  ): KnowledgeReversion[] {
+    return rows.flatMap((row) => {
+      if (row.verdict !== 'CONFIRMED' && row.verdict !== 'REJECTED') {
+        return [];
+      }
+      if (!Array.isArray(row.structuralKeys)) {
+        return [];
+      }
+      const verdict = row.verdict;
+      return row.structuralKeys.flatMap((candidate) => {
+        if (
+          !candidate ||
+          typeof candidate !== 'object' ||
+          Array.isArray(candidate)
+        ) {
+          return [];
+        }
+        const type = (candidate as { knowledgeType?: unknown }).knowledgeType;
+        const key = (candidate as { knowledgeKey?: unknown }).knowledgeKey;
+        if (
+          (type !== 'EMAIL_DOMAIN' && type !== 'EMAIL_TEMPLATE') ||
+          typeof key !== 'string'
+        ) {
+          return [];
+        }
+        return [
+          {
+            knowledgeType: type,
+            knowledgeKey: key,
+            sequence: row.sequence,
+            verdict,
+          },
+        ];
+      });
+    });
   }
 }

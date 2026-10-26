@@ -32,6 +32,7 @@ export type ProjectionVerification = {
   createdAt: Date;
   contributorTombstone?: string | null;
   tombstoneEligible?: boolean;
+  normalizerVersion?: string | null;
   structuralKeys?: unknown;
   structuralPayload?: unknown;
 };
@@ -95,6 +96,33 @@ type Vote = {
 function labelId(label: EmailLabel): string {
   const structural = sanitizeGlobalLabel(label).label;
   return JSON.stringify(structural);
+}
+
+export type KnowledgeReversion = NonNullable<
+  ProjectionInput['adminReversions']
+>[number];
+
+/** Latest ADMIN reversal per key before the cut; only rejections block. */
+export function latestRevertedKeys(
+  reversions: readonly KnowledgeReversion[],
+  verificationSequence: bigint,
+): Set<string> {
+  const latest = new Map<string, KnowledgeReversion>();
+  for (const reversion of reversions) {
+    if (reversion.sequence > verificationSequence) {
+      continue;
+    }
+    const key = `${reversion.knowledgeType}|${reversion.knowledgeKey}`;
+    const previous = latest.get(key);
+    if (!previous || previous.sequence < reversion.sequence) {
+      latest.set(key, reversion);
+    }
+  }
+  return new Set(
+    [...latest.entries()]
+      .filter(([, reversion]) => reversion.verdict === 'REJECTED')
+      .map(([key]) => key),
+  );
 }
 
 function row(vote: Vote, scope: 'USER' | 'GLOBAL'): ProjectedKnowledge {
@@ -257,6 +285,7 @@ export function projectKnowledge(input: ProjectionInput): ProjectedKnowledge[] {
 
   for (const verification of tombstones) {
     if (
+      verification.normalizerVersion !== NORMALIZER_VERSION ||
       !Array.isArray(verification.structuralKeys) ||
       !verification.structuralPayload
     ) {
@@ -369,28 +398,15 @@ export function projectKnowledge(input: ProjectionInput): ProjectedKnowledge[] {
     );
     projected.push(result);
   }
-  const latestReversions = new Map<
-    string,
-    NonNullable<ProjectionInput['adminReversions']>[number]
-  >();
-  for (const reversal of input.adminReversions ?? []) {
-    if (reversal.sequence > input.verificationSequence) {
-      continue;
-    }
-    const key = `${reversal.knowledgeType}|${reversal.knowledgeKey}`;
-    const previous = latestReversions.get(key);
-    if (!previous || previous.sequence < reversal.sequence) {
-      latestReversions.set(key, reversal);
-    }
-  }
+  const reverted = latestRevertedKeys(
+    input.adminReversions ?? [],
+    input.verificationSequence,
+  );
   for (const item of projected) {
     if (item.scope !== 'GLOBAL') {
       continue;
     }
-    if (
-      latestReversions.get(`${item.knowledgeType}|${item.knowledgeKey}`)
-        ?.verdict === 'REJECTED'
-    ) {
+    if (reverted.has(`${item.knowledgeType}|${item.knowledgeKey}`)) {
       item.state = 'BLOCKED';
       item.promotedBy = null;
     }

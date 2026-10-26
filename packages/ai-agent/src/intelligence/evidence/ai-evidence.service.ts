@@ -11,7 +11,8 @@ import {
   POLICY_VERSION,
 } from '../knowledge/knowledge-projector';
 
-const DATASET_NAME = 'EMAIL_V1';
+import { EMAIL_DATASET_NAME, EMAIL_DATASET_PURPOSE } from './dataset.constants';
+
 const EMAIL_SOURCE_TYPE = 'EMAIL_MESSAGE';
 const REVIEW_TARGET_TYPE = 'EMAIL_MESSAGE';
 const PAGE_SIZE = 50;
@@ -388,10 +389,10 @@ export class AiEvidenceService {
 
   private ensureDataset() {
     return this.prisma.aiDataset.upsert({
-      where: { name: DATASET_NAME },
+      where: { name: EMAIL_DATASET_NAME },
       create: {
-        name: DATASET_NAME,
-        purpose: 'Corpus versionado de mensajes para análisis y evaluación.',
+        name: EMAIL_DATASET_NAME,
+        purpose: EMAIL_DATASET_PURPOSE,
       },
       update: {},
     });
