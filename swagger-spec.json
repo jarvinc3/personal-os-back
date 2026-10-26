@@ -707,6 +707,258 @@
         ]
       }
     },
+    "/api/intelligence/knowledge": {
+      "get": {
+        "operationId": "AiKnowledgeController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KnowledgeExplorerDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Explorar conocimiento USER propio y GLOBAL estable",
+        "tags": [
+          "intelligence-knowledge"
+        ]
+      }
+    },
+    "/api/intelligence/knowledge/admin/queue": {
+      "get": {
+        "operationId": "AiKnowledgeController_adminQueue",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/KnowledgeItemDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Cola administrativa de conocimiento GLOBAL",
+        "tags": [
+          "intelligence-knowledge"
+        ]
+      }
+    },
+    "/api/intelligence/knowledge/admin/rebuild": {
+      "post": {
+        "operationId": "AiKnowledgeController_rebuild",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KnowledgeRebuildDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Reconstruir la proyección desde un corte REPEATABLE READ",
+        "tags": [
+          "intelligence-knowledge"
+        ]
+      }
+    },
+    "/api/intelligence/knowledge/admin/{knowledgeId}/revert": {
+      "post": {
+        "operationId": "AiKnowledgeController_revert",
+        "parameters": [
+          {
+            "name": "knowledgeId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KnowledgeItemDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Conocimiento GLOBAL no encontrado"
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Revertir una promoción GLOBAL con evidencia ADMIN",
+        "tags": [
+          "intelligence-knowledge"
+        ]
+      }
+    },
+    "/api/intelligence/knowledge/me/export": {
+      "get": {
+        "operationId": "AiKnowledgeController_export",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Exportación JSON de los datos AI y correo propios.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "exportedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "connection": {
+                      "type": "object",
+                      "nullable": true
+                    },
+                    "messages": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    },
+                    "datasetItems": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    },
+                    "runs": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    },
+                    "observations": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    },
+                    "verifications": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    },
+                    "knowledge": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    },
+                    "consent": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    },
+                    "settings": {
+                      "type": "object",
+                      "nullable": true
+                    },
+                    "inferences": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Exportar los datos AI y correo propios en JSON",
+        "tags": [
+          "intelligence-knowledge"
+        ]
+      }
+    },
+    "/api/intelligence/knowledge/me": {
+      "delete": {
+        "operationId": "AiKnowledgeController_remove",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfirmAiDataDeletionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KnowledgeDeletionDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Falta confirmed: true"
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Borrar inmediatamente los datos AI propios y dejar lápidas estructurales elegibles",
+        "tags": [
+          "intelligence-knowledge"
+        ]
+      }
+    },
     "/api/finance/currencies": {
       "get": {
         "operationId": "CurrenciesController_list",
@@ -6528,6 +6780,306 @@
             "$ref": "#/components/schemas/HumanVerificationTransactionDto"
           }
         }
+      },
+      "KnowledgeTransactionDto": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "TRANSACTION",
+              "PENDING",
+              "NOT_TRANSACTION"
+            ],
+            "description": "Único campo de transacción que se publica en GLOBAL; el resto es privado de USER."
+          },
+          "amount": {
+            "type": "number",
+            "minimum": 0,
+            "exclusiveMinimum": true
+          },
+          "currency": {
+            "type": "string",
+            "example": "DOP"
+          },
+          "transactionDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "direction": {
+            "type": "string",
+            "enum": [
+              "DEBIT",
+              "CREDIT",
+              "TRANSFER"
+            ]
+          },
+          "merchant": {
+            "type": "string"
+          },
+          "bankReference": {
+            "type": "string"
+          },
+          "last4": {
+            "type": "string",
+            "example": "4821",
+            "pattern": "^\\d{4}$"
+          }
+        }
+      },
+      "KnowledgeLabelDto": {
+        "type": "object",
+        "properties": {
+          "relevance": {
+            "type": "boolean"
+          },
+          "semanticType": {
+            "type": "string",
+            "enum": [
+              "FIN_TRANSACTION",
+              "PURCHASE_RECEIPT",
+              "SUBSCRIPTION_BILLING",
+              "FIN_STATEMENT_NOTICE",
+              "FIN_ACCOUNT_NOTICE",
+              "SECURITY_OTP",
+              "SECURITY_ALERT",
+              "TECH_NOTIFICATION",
+              "JOB",
+              "CALENDAR_EVENT",
+              "MARKETING",
+              "SOCIAL",
+              "OTHER"
+            ]
+          },
+          "routes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "FINANCE",
+                "SUBSCRIPTIONS",
+                "CALENDAR",
+                "SECURITY"
+              ]
+            }
+          },
+          "transaction": {
+            "$ref": "#/components/schemas/KnowledgeTransactionDto"
+          }
+        }
+      },
+      "KnowledgePayloadDto": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "$ref": "#/components/schemas/KnowledgeLabelDto"
+          }
+        },
+        "required": [
+          "label"
+        ]
+      },
+      "KnowledgeItemDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "scope": {
+            "type": "string",
+            "enum": [
+              "GLOBAL",
+              "USER"
+            ]
+          },
+          "userId": {
+            "type": "string",
+            "nullable": true,
+            "description": "Solo en USER; GLOBAL siempre devuelve null."
+          },
+          "knowledgeType": {
+            "type": "string",
+            "enum": [
+              "EMAIL_SENDER",
+              "EMAIL_DOMAIN",
+              "EMAIL_TEMPLATE",
+              "ENTITY",
+              "RELATION",
+              "USER_MAPPING"
+            ]
+          },
+          "knowledgeKey": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "OBSERVED",
+              "STABLE",
+              "REVIEW_REQUIRED",
+              "BLOCKED"
+            ]
+          },
+          "payload": {
+            "$ref": "#/components/schemas/KnowledgePayloadDto"
+          },
+          "messagesSeen": {
+            "type": "number"
+          },
+          "rejectedMessages": {
+            "type": "number"
+          },
+          "distinctUsers": {
+            "type": "number"
+          },
+          "humanVerifiedCount": {
+            "type": "number"
+          },
+          "promotedBy": {
+            "type": "string",
+            "enum": [
+              "AUTO",
+              "CONTRIBUTOR",
+              "ADMIN"
+            ],
+            "nullable": true
+          },
+          "projectorVersion": {
+            "type": "string"
+          },
+          "policyVersion": {
+            "type": "string"
+          },
+          "normalizerVersion": {
+            "type": "string"
+          },
+          "sanitizerVersion": {
+            "type": "string"
+          },
+          "firstSeenAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lastSeenAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "scope",
+          "userId",
+          "knowledgeType",
+          "knowledgeKey",
+          "state",
+          "payload",
+          "messagesSeen",
+          "rejectedMessages",
+          "distinctUsers",
+          "humanVerifiedCount",
+          "promotedBy",
+          "projectorVersion",
+          "policyVersion",
+          "normalizerVersion",
+          "sanitizerVersion",
+          "firstSeenAt",
+          "lastSeenAt",
+          "updatedAt"
+        ]
+      },
+      "KnowledgeExplorerDto": {
+        "type": "object",
+        "properties": {
+          "personal": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/KnowledgeItemDto"
+            }
+          },
+          "global": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/KnowledgeItemDto"
+            }
+          }
+        },
+        "required": [
+          "personal",
+          "global"
+        ]
+      },
+      "KnowledgeRebuildDto": {
+        "type": "object",
+        "properties": {
+          "runId": {
+            "type": "string"
+          },
+          "observationSequence": {
+            "type": "string",
+            "example": "42",
+            "description": "Secuencia BigInt como string decimal."
+          },
+          "verificationSequence": {
+            "type": "string",
+            "example": "42",
+            "description": "Secuencia BigInt como string decimal."
+          },
+          "consentRevision": {
+            "type": "string",
+            "example": "7",
+            "description": "Secuencia BigInt como string decimal."
+          },
+          "items": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "runId",
+          "observationSequence",
+          "verificationSequence",
+          "consentRevision",
+          "items"
+        ]
+      },
+      "ConfirmAiDataDeletionDto": {
+        "type": "object",
+        "properties": {
+          "confirmed": {
+            "type": "boolean",
+            "example": true
+          }
+        },
+        "required": [
+          "confirmed"
+        ]
+      },
+      "KnowledgeDeletionDto": {
+        "type": "object",
+        "properties": {
+          "deleted": {
+            "type": "boolean",
+            "example": true
+          },
+          "deletedMessages": {
+            "type": "number"
+          },
+          "detachedVerifications": {
+            "type": "number"
+          },
+          "detachedObservations": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "deleted",
+          "deletedMessages",
+          "detachedVerifications",
+          "detachedObservations"
+        ]
       },
       "ChangeBaseCurrencyDto": {
         "type": "object",

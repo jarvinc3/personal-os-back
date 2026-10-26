@@ -30,6 +30,8 @@ model User {
   aiAnalysisRuns                 AiAnalysisRun[]
   aiKnowledgeObservations        AiKnowledgeObservation[]
   aiHumanVerifications           AiHumanVerification[]
+  aiKnowledge                    AiKnowledge[]
+  aiConsentEvents                AiConsentEvent[]
   finAccounts                    FinAccount[]
   finCards                       FinCard[]
   finInstitutions                FinInstitution[]
@@ -195,6 +197,48 @@ enum AiHumanVerificationVerdict {
   @@map("ai_human_verification_verdict")
 }
 
+enum AiKnowledgeScope {
+  GLOBAL
+  USER
+
+  @@map("ai_knowledge_scope")
+}
+
+enum AiKnowledgeType {
+  EMAIL_SENDER
+  EMAIL_DOMAIN
+  EMAIL_TEMPLATE
+  ENTITY
+  RELATION
+  USER_MAPPING
+
+  @@map("ai_knowledge_type")
+}
+
+enum AiKnowledgeState {
+  OBSERVED
+  STABLE
+  REVIEW_REQUIRED
+  BLOCKED
+
+  @@map("ai_knowledge_state")
+}
+
+enum AiKnowledgePromotion {
+  AUTO
+  CONTRIBUTOR
+  ADMIN
+
+  @@map("ai_knowledge_promotion")
+}
+
+enum AiRunReproductionStatus {
+  COMPLETE
+  INCOMPLETE
+
+  @@map("ai_run_reproduction_status")
+}
+
 model AiDataset {
   id         String          @id @default(dbgenerated("(extensions.uuid_generate_v4())::text"))
   name       String          @unique
@@ -231,6 +275,9 @@ model AiAnalysisRun {
   status               AiAnalysisRunStatus      @default(RUNNING)
   observationSequence  BigInt                   @default(0) @map("observation_sequence")
   verificationSequence BigInt                   @default(0) @map("verification_sequence")
+  consentRevision      BigInt                   @default(0) @map("consent_revision")
+  reproductionStatus   AiRunReproductionStatus  @default(COMPLETE) @map("reproduction_status")
+  missingEvidence      Json                     @default("{}") @map("missing_evidence")
   projectorVersion     String                   @map("projector_version")
   policyVersion        String                   @map("policy_version")
   pipelineVersion      String                   @map("pipeline_version")
@@ -253,20 +300,24 @@ model AiAnalysisRun {
 }
 
 model AiKnowledgeObservation {
-  sequence      BigInt         @id @default(autoincrement())
-  runId         String?        @map("run_id")
-  userId        String?        @map("user_id")
-  knowledgeType String         @map("knowledge_type")
-  knowledgeKey  String         @map("knowledge_key")
-  proposedScope String         @map("proposed_scope")
-  sourceType    String         @map("source_type")
-  sourceId      String         @map("source_id")
-  inferenceId   String?        @map("inference_id")
-  payload       Json
-  weight        Float          @default(1)
-  createdAt     DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
-  run           AiAnalysisRun? @relation(fields: [runId], references: [id], onDelete: SetNull, onUpdate: NoAction)
-  user          User?          @relation(fields: [userId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  sequence                BigInt         @id @default(autoincrement())
+  runId                   String?        @map("run_id")
+  userId                  String?        @map("user_id")
+  knowledgeType           String         @map("knowledge_type")
+  knowledgeKey            String         @map("knowledge_key")
+  proposedScope           String         @map("proposed_scope")
+  sourceType              String         @map("source_type")
+  sourceId                String?        @map("source_id")
+  inferenceId             String?        @map("inference_id")
+  payload                 Json?
+  contributorTombstone    String?        @map("contributor_tombstone")
+  tombstoneEligible       Boolean        @default(false) @map("tombstone_eligible")
+  normalizerVersion       String?        @map("normalizer_version")
+  derivedFromKnowledgeIds String[]       @default([]) @map("derived_from_knowledge_ids")
+  weight                  Float          @default(1)
+  createdAt               DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  run                     AiAnalysisRun? @relation(fields: [runId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  user                    User?          @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: NoAction)
 
   @@index([userId, sequence], map: "ai_knowledge_observations_user_sequence_idx")
   @@index([sourceType, sourceId, sequence], map: "ai_knowledge_observations_source_sequence_idx")
@@ -274,21 +325,66 @@ model AiKnowledgeObservation {
 }
 
 model AiHumanVerification {
-  sequence         BigInt                     @id @default(autoincrement())
-  userId           String                     @map("user_id")
-  verifierRole     AiUserRole                 @map("verifier_role")
-  targetType       String                     @map("target_type")
-  targetId         String                     @map("target_id")
-  verdict          AiHumanVerificationVerdict
-  correctedPayload Json?                      @map("corrected_payload")
-  notes            String?                    @db.Text
-  isGroundTruth    Boolean                    @default(false) @map("is_ground_truth")
-  createdAt        DateTime                   @default(now()) @map("created_at") @db.Timestamptz(6)
-  user             User                       @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  sequence             BigInt                     @id @default(autoincrement())
+  userId               String?                    @map("user_id")
+  verifierRole         AiUserRole                 @map("verifier_role")
+  targetType           String                     @map("target_type")
+  targetId             String?                    @map("target_id")
+  verdict              AiHumanVerificationVerdict
+  correctedPayload     Json?                      @map("corrected_payload")
+  notes                String?                    @db.Text
+  structuralKeys       Json?                      @map("structural_keys")
+  structuralPayload    Json?                      @map("structural_payload")
+  contributorTombstone String?                    @map("contributor_tombstone")
+  tombstoneEligible    Boolean                    @default(false) @map("tombstone_eligible")
+  normalizerVersion    String?                    @map("normalizer_version")
+  isGroundTruth        Boolean                    @default(false) @map("is_ground_truth")
+  createdAt            DateTime                   @default(now()) @map("created_at") @db.Timestamptz(6)
+  user                 User?                      @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: NoAction)
 
   @@index([userId, targetType, targetId, sequence(sort: Desc)], map: "ai_human_verifications_user_target_idx")
   @@index([targetType, targetId, sequence(sort: Desc)], map: "ai_human_verifications_target_idx")
   @@map("ai_human_verifications")
+}
+
+model AiKnowledge {
+  id                 String                @id @default(dbgenerated("(extensions.uuid_generate_v4())::text"))
+  scope              AiKnowledgeScope
+  userId             String?               @map("user_id")
+  knowledgeType      AiKnowledgeType       @map("knowledge_type")
+  knowledgeKey       String                @map("knowledge_key")
+  state              AiKnowledgeState
+  payload            Json
+  messagesSeen       Int                   @default(0) @map("messages_seen")
+  rejectedMessages   Int                   @default(0) @map("rejected_messages")
+  distinctUsers      Int                   @default(0) @map("distinct_users")
+  humanVerifiedCount Int                   @default(0) @map("human_verified_count")
+  promotedBy         AiKnowledgePromotion? @map("promoted_by")
+  projectorVersion   String                @map("projector_version")
+  policyVersion      String                @map("policy_version")
+  normalizerVersion  String                @map("normalizer_version")
+  sanitizerVersion   String                @map("sanitizer_version")
+  firstSeenAt        DateTime              @map("first_seen_at") @db.Timestamptz(6)
+  lastSeenAt         DateTime              @map("last_seen_at") @db.Timestamptz(6)
+  updatedAt          DateTime              @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  user               User?                 @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([scope, state, updatedAt], map: "ai_knowledge_scope_state_idx")
+  @@index([userId, knowledgeType, knowledgeKey], map: "ai_knowledge_user_lookup_idx")
+  @@map("ai_knowledge")
+}
+
+model AiConsentEvent {
+  sequence                    BigInt   @id @default(autoincrement())
+  userId                      String?  @map("user_id")
+  contributorTombstone        String?  @map("contributor_tombstone")
+  contributeToGlobalKnowledge Boolean  @map("contribute_to_global_knowledge")
+  reason                      String
+  createdAt                   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  user                        User?    @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+
+  @@index([userId, sequence(sort: Desc)], map: "ai_consent_events_user_sequence_idx")
+  @@map("ai_consent_events")
 }
 
 model UserRole {

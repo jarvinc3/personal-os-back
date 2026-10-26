@@ -38,13 +38,17 @@ describe('GmailSyncService', () => {
       get: jest.fn((key: string) => (key === 'NODE_ENV' ? 'development' : 1)),
     };
     const events = { emit: jest.fn() };
+    const deletion = {
+      removeEmailData: jest.fn().mockResolvedValue({ deletedMessages: 0 }),
+    };
     const service = new GmailSyncService(
       prisma as never,
       source as never,
       config as never,
       events as never,
+      deletion as never,
     );
-    return { current, prisma, source, config, events, service };
+    return { current, prisma, source, config, events, deletion, service };
   };
 
   it('imports a bootstrap message with sanitized content and completes bootstrap', async () => {
@@ -229,37 +233,15 @@ describe('GmailSyncService', () => {
     expect(prisma.$transaction).not.toHaveBeenCalled();
   });
 
-  it('resets all EMAIL_V1 rows and clears the connection cursor', async () => {
-    const { current, prisma, service } = makeFixture();
+  it('usa la ruta de lápidas para reiniciar el corpus', async () => {
+    const { current, deletion, service } = makeFixture();
     current.syncState = { status: 'completed' };
-    const tx = {
-      aiDataset: {
-        findUnique: jest.fn().mockResolvedValue({ id: 'dataset-1' }),
-      },
-      aiAnalysisRun: { deleteMany: jest.fn().mockResolvedValue({}) },
-      aiDatasetItem: { deleteMany: jest.fn().mockResolvedValue({}) },
-      aiKnowledgeObservation: { deleteMany: jest.fn().mockResolvedValue({}) },
-      aiHumanVerification: { deleteMany: jest.fn().mockResolvedValue({}) },
-      aiEmailMessage: { deleteMany: jest.fn().mockResolvedValue({ count: 4 }) },
-      aiEmailConnection: { update: jest.fn().mockResolvedValue({}) },
-    };
-    prisma.$transaction.mockImplementation(
-      async (callback: (value: typeof tx) => Promise<number>) => callback(tx),
-    );
+    deletion.removeEmailData.mockResolvedValue({ deletedMessages: 4 });
 
     expect(await service.resetEmailCorpus('user-1')).toEqual({
       connected: true,
       deletedMessages: 4,
     });
-    expect(tx.aiHumanVerification.deleteMany).toHaveBeenCalledWith({
-      where: { userId: 'user-1', targetType: 'EMAIL_MESSAGE' },
-    });
-    expect(tx.aiEmailConnection.update).toHaveBeenCalledWith({
-      where: { id: 'connection-1' },
-      data: expect.objectContaining({
-        providerCursor: null,
-        importedMessageCount: 0,
-      }),
-    });
+    expect(deletion.removeEmailData).toHaveBeenCalledWith({ userId: 'user-1' });
   });
 });

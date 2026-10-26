@@ -5,6 +5,8 @@ export { AiInferenceGateway } from './inference/application/ai-inference.gateway
 export { AI_DATA_BRANCHES } from './inference/infrastructure/ai-inference-data.service';
 export { AiInferenceDataService } from './inference/infrastructure/ai-inference-data.service';
 export { AiEvidenceService } from './intelligence/evidence/ai-evidence.service';
+export { AiKnowledgeService } from './intelligence/knowledge/ai-knowledge.service';
+export { AiDataDeletionService } from './intelligence/knowledge/ai-data-deletion.service';
 export {
   SEMANTIC_ROUTES,
   SEMANTIC_TYPES,

@@ -1,6 +1,7 @@
 export const AppEvents = {
   // ── User ──────────────────────────────────────────────
   USER_LOGGED_IN: 'user.logged_in',
+  USER_ACCOUNT_DELETING: 'user.account.deleting',
 
   // ── Finance (versioned only) ──────────────────────────
   FINANCE_TRANSACTION_IMPORTED: 'finance.transaction.imported',

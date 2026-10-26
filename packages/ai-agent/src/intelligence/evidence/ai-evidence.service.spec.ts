@@ -153,7 +153,13 @@ describe('AiEvidenceService', () => {
       aiHumanVerification: {
         aggregate: jest.fn().mockResolvedValue({ _max: { sequence: 9n } }),
       },
+      aiConsentEvent: {
+        aggregate: jest.fn().mockResolvedValue({ _max: { sequence: 3n } }),
+      },
       aiAnalysisRun: { create },
+      $transaction: jest.fn((callback: (tx: unknown) => unknown) =>
+        callback(prisma),
+      ),
     };
     const service = new AiEvidenceService(prisma as never);
 
@@ -163,8 +169,9 @@ describe('AiEvidenceService', () => {
       data: expect.objectContaining({
         observationSequence: 14n,
         verificationSequence: 9n,
+        consentRevision: 3n,
         mode: 'EVALUATE',
-        configuration: { policy: 'v2' },
+        configuration: { policy: 'v2', snapshot: 'REPEATABLE_READ' },
       }),
     });
   });

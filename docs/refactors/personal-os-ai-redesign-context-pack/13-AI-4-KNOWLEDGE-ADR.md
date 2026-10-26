@@ -34,6 +34,7 @@ La clave de remitente solo existe en USER. GLOBAL solo admite `EMAIL_DOMAIN` y `
 
 - Por mensaje vale la verificación de mayor `sequence`. Las anteriores se conservan como historial.
 - En USER, gana la verificación vigente más reciente del propio usuario, sin votación. En GLOBAL, por clave se agregan las verificaciones vigentes de sus mensajes y gana la etiqueta con más mensajes. Si hay empate, si la ganadora no llega a 2/3 de los votos o si la apoyan menos de AI_GLOBAL_MIN_CONTRIBUTORS colaboradores distintos (variable de entorno, 3 por defecto y 1 en develop para QA), el ítem queda en REVIEW_REQUIRED y no se usa automáticamente.
+- Aclaración del owner (2026-10-26): el rol CONTRIBUTOR/ADMIN no salta ni el umbral de 2/3 ni el mínimo de colaboradores. Una plantilla cuyo asunto normalizado pueda contener nombres, comercios o referencias literales se queda en USER y se bloquea para GLOBAL.
 - `REJECTED` vale 0 para la etiqueta: excluye el mensaje del cálculo de esa clave, pero suma al conteo de mensajes rechazados para auditoría. Nunca crea conocimiento.
 - `CONFIRMED` y `CORRECTED` pesan 1. Las observaciones automáticas de AI-5 pesan menos que cualquier verificación humana y nunca la contradicen.
 
@@ -80,7 +81,7 @@ La promoción usa el `verifierRole` guardado en la verificación, no el rol actu
 3. Hacer la migración `ai_knowledge`: `AiKnowledge`, los enums de scope, tipo y estado, los índices únicos parciales, el CHECK de `userId`, `AiConsentEvent`, los campos de reproducción del run, `contributorTombstone` y el cambio de FK a `Restrict`.
 4. Escribir los schemas Zod de payload por `knowledgeType`, los normalizadores de clave y el saneador GLOBAL, con fixtures adversariales.
 5. Hacer el proyector puro y determinista: primero USER y luego GLOBAL, con la exclusión de HOLDOUT, la de evidencia sin consentimiento y la protección contra realimentación.
-6. Implementar la política de promoción (2/3 y al menos AI_GLOBAL_MIN_CONTRIBUTORS colaboradores distintos, configurable por entorno con 3 por defecto, o CONTRIBUTOR/ADMIN por su rol registrado), la degradación a REVIEW_REQUIRED y la reversión por ADMIN.
+6. Implementar la política de promoción (2/3 y al menos AI_GLOBAL_MIN_CONTRIBUTORS colaboradores distintos, configurable por entorno con 3 por defecto y 1 en develop sin excepción por rol), la degradación a REVIEW_REQUIRED y la reversión por ADMIN.
 7. Hacer el rebuild completo, el test de equivalencia y el marcado `INCOMPLETE`.
 8. Hacer la exportación JSON, el borrado inmediato con lápidas y la migración del reinicio de correo a lápidas.
 9. Agregar los endpoints de explorador, cola admin, exportación y borrado, con Swagger y e2e de aislamiento, roles y promoción con datos de ejemplo.

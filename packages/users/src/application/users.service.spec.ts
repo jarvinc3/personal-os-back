@@ -1,6 +1,7 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { SupabaseAdminService } from '@personal-os/auth';
+import { AppEvents } from '@personal-os/core';
 import type { UsersRepositoryPort } from './ports/users.repository.port';
 import { UsersService } from './users.service';
 
@@ -20,7 +21,11 @@ describe('UsersService.deleteAccount', () => {
     tryDeleteAuthUser,
   } as unknown as SupabaseAdminService;
 
-  const eventEmitter = { emit: jest.fn() } as unknown as EventEmitter2;
+  const emitAsync = jest.fn().mockResolvedValue([]);
+  const eventEmitter = {
+    emit: jest.fn(),
+    emitAsync,
+  } as unknown as EventEmitter2;
 
   const service = new UsersService(
     usersRepository,
@@ -62,6 +67,9 @@ describe('UsersService.deleteAccount', () => {
     const result = await service.deleteAccount('user-1');
 
     expect(deleteAccountWithAuthOutbox).toHaveBeenCalledWith('user-1');
+    expect(emitAsync).toHaveBeenCalledWith(AppEvents.USER_ACCOUNT_DELETING, {
+      userId: 'user-1',
+    });
     expect(markAuthOutboxCompleted).toHaveBeenCalledWith('user-1');
     expect(result).toEqual({ success: true, authCleanupPending: false });
   });
@@ -85,6 +93,14 @@ describe('UsersService.deleteAccount', () => {
 
     await expect(service.deleteAccount('user-1')).rejects.toThrow('db down');
     expect(tryDeleteAuthUser).not.toHaveBeenCalled();
+  });
+
+  it('no borra la cuenta si falla la anonimización AI', async () => {
+    emitAsync.mockRejectedValueOnce(new Error('ai wipe failed'));
+    await expect(service.deleteAccount('user-1')).rejects.toThrow(
+      'ai wipe failed',
+    );
+    expect(deleteAccountWithAuthOutbox).not.toHaveBeenCalled();
   });
 });
 

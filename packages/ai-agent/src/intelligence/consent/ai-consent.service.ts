@@ -6,37 +6,71 @@ export class AiConsentService {
   constructor(private readonly prisma: PrismaService) {}
 
   get(userId: string) {
-    return this.prisma.userAiSettings.upsert({
-      where: { userId },
-      create: { userId, contributeToGlobalKnowledge: true },
-      update: {},
-      select: {
-        contributeToGlobalKnowledge: true,
-        contributionConsentAt: true,
-      },
+    return this.prisma.$transaction(async (tx) => {
+      const existing = await tx.userAiSettings.findUnique({
+        where: { userId },
+      });
+      if (existing) {
+        return {
+          contributeToGlobalKnowledge: existing.contributeToGlobalKnowledge,
+          contributionConsentAt: existing.contributionConsentAt,
+        };
+      }
+      const settings = await tx.userAiSettings.upsert({
+        where: { userId },
+        create: { userId, contributeToGlobalKnowledge: true },
+        update: {},
+      });
+      if (!existing) {
+        await tx.aiConsentEvent.create({
+          data: {
+            userId,
+            contributeToGlobalKnowledge: true,
+            reason: 'DEFAULT_ON',
+          },
+        });
+      }
+      return {
+        contributeToGlobalKnowledge: settings.contributeToGlobalKnowledge,
+        contributionConsentAt: settings.contributionConsentAt,
+      };
     });
   }
 
   async update(userId: string, contributeToGlobalKnowledge: boolean) {
-    const existing = await this.prisma.userAiSettings.findUnique({
-      where: { userId },
-      select: { contributeToGlobalKnowledge: true },
-    });
-    if (existing?.contributeToGlobalKnowledge === contributeToGlobalKnowledge) {
-      return this.get(userId);
-    }
-
-    return this.prisma.userAiSettings.upsert({
-      where: { userId },
-      create: { userId, contributeToGlobalKnowledge },
-      update: {
-        contributeToGlobalKnowledge,
-        contributionConsentAt: new Date(),
-      },
-      select: {
-        contributeToGlobalKnowledge: true,
-        contributionConsentAt: true,
-      },
+    return this.prisma.$transaction(async (tx) => {
+      const existing = await tx.userAiSettings.findUnique({
+        where: { userId },
+      });
+      if (
+        existing?.contributeToGlobalKnowledge === contributeToGlobalKnowledge
+      ) {
+        return {
+          contributeToGlobalKnowledge: existing.contributeToGlobalKnowledge,
+          contributionConsentAt: existing.contributionConsentAt,
+        };
+      }
+      const now = new Date();
+      const settings = await tx.userAiSettings.upsert({
+        where: { userId },
+        create: {
+          userId,
+          contributeToGlobalKnowledge,
+          contributionConsentAt: now,
+        },
+        update: { contributeToGlobalKnowledge, contributionConsentAt: now },
+      });
+      await tx.aiConsentEvent.create({
+        data: {
+          userId,
+          contributeToGlobalKnowledge,
+          reason: existing ? 'USER_CHANGE' : 'INITIAL_CHOICE',
+        },
+      });
+      return {
+        contributeToGlobalKnowledge: settings.contributeToGlobalKnowledge,
+        contributionConsentAt: settings.contributionConsentAt,
+      };
     });
   }
 }

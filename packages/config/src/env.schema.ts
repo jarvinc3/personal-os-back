@@ -72,6 +72,12 @@ export const envSchema = z
     /** Dev-only seed target for the initial Intelligence administrator. */
     AI_DEV_ADMIN_EMAIL: optionalApiKey,
     AI_EMAIL_SYNC_INTERVAL_MINUTES: defaultedPositiveInt(10),
+    /** Minimum distinct contributors for automatic GLOBAL knowledge. */
+    AI_GLOBAL_MIN_CONTRIBUTORS: z.preprocess(
+      (value) =>
+        typeof value === 'string' && value.trim() === '' ? undefined : value,
+      z.coerce.number().int().positive().optional(),
+    ),
     /** Hard cap on LLM email extractions per Gmail sync. Default 25. */
     MAX_EMAIL_LLM_EXTRACTS: defaultedPositiveInt(25),
     /** Max proactive insight LLM calls per user per UTC day. Default 20. */

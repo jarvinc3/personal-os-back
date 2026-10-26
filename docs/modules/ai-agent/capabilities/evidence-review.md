@@ -8,7 +8,7 @@ La clasificación humana usa `semanticType` de la lista cerrada `FIN_TRANSACTION
 
 `FIN_TRANSACTION` requiere `transaction.kind` (`TRANSACTION`, `PENDING` o `NOT_TRANSACTION`). `PURCHASE_RECEIPT` y `SUBSCRIPTION_BILLING` admiten `transaction` opcional sin `kind`; los demás tipos no admiten `transaction`. El objeto puede contener `amount` positivo, `currency` ISO 4217, `transactionDate` ISO 8601, `direction` (`DEBIT`, `CREDIT`, `TRANSFER`), `merchant`, `bankReference` y `last4` de cuatro dígitos. El DTO y Swagger comparten los mismos valores enumerados; los valores fuera de lista y las propiedades desconocidas se rechazan antes de escribir evidencia.
 
-Los runs pertenecen a la cuenta y congelan dataset, modo, versiones, configuración y watermarks globales de observaciones y verificaciones. Al cerrar un run solo se escriben estado, resultado y fecha de cierre; la configuración queda intacta. Los listados siempre filtran por usuario.
+Los runs pertenecen a la cuenta y congelan dataset, modo, versiones, configuración y watermarks globales de observaciones, verificaciones y consentimiento en una instantánea `REPEATABLE READ`. Al cerrar un run solo se escriben estado, resultado y fecha de cierre; la configuración queda intacta. Los listados siempre filtran por usuario. Después de borrar evidencia, un run afectado queda `INCOMPLETE` con conteos en `missingEvidence` y no se compara como evidencia equivalente.
 
 ## HTTP
 
