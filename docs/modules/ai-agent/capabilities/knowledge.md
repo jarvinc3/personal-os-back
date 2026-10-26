@@ -21,3 +21,16 @@ La proyección se borra y vuelve a crearse dentro de la misma transacción. Los 
 - `test/ai-agent.e2e-spec.ts`: JWT, aislamiento de rutas, confirmación de borrado y acceso ADMIN.
 
 Contrato HTTP: [http.md](../contracts/http.md#ai-4-knowledge).
+
+## Datos de QA en DEV
+
+El script `scripts/seed-knowledge-dev.ts` crea diez filas sintéticas en `ai_knowledge` para probar web #327: cuatro USER del perfil `admin@gmail.com` y seis GLOBAL. Entre las GLOBAL hay dos `STABLE` (promovidas), dos `REVIEW_REQUIRED` (pendientes) y dos `BLOCKED`. Sus IDs son deterministas; repetirlo actualiza las mismas filas sin duplicarlas. Las claves usan dominios `.example` y los payloads GLOBAL solo contienen estructura permitida.
+
+Desde el repositorio, después de `pnpm db:generate` y `pnpm --filter @personal-os/database build`, ejecutar en PowerShell:
+
+```powershell
+& 'C:\Program Files\nodejs\node_modules\@infisical\cli\bin\infisical.exe' run --env=dev --path=/back -- pnpm exec ts-node -r tsconfig-paths/register scripts/seed-knowledge-dev.ts --dry-run
+& 'C:\Program Files\nodejs\node_modules\@infisical\cli\bin\infisical.exe' run --env=dev --path=/back -- pnpm exec ts-node -r tsconfig-paths/register scripts/seed-knowledge-dev.ts
+```
+
+El script exige `NODE_ENV=development`, comprueba marcadores de entorno, reconoce exclusivamente el proyecto Supabase DEV por su huella SHA-256 y exige que la migración de Knowledge esté aplicada antes de escribir. También exige que el usuario exista y tenga rol ADMIN. Solo imprime los conteos por alcance y estado. Las filas son una proyección de QA: un rebuild de Knowledge puede reemplazarlas; basta con repetir el seed en DEV después del rebuild.

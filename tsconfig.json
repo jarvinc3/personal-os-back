@@ -3,10 +3,8 @@
   "include": [
     "apps/**/*.ts",
     "packages/*/src/**/*.ts",
-    "test/**/*.ts"
+    "test/**/*.ts",
+    "scripts/seed-knowledge-dev.ts"
   ],
-  "exclude": [
-    "**/dist/**",
-    "**/node_modules/**"
-  ]
+  "exclude": ["**/dist/**", "**/node_modules/**"]
 }

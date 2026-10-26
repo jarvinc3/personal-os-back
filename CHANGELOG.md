@@ -6,6 +6,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [Se
 
 ### Agregado
 
+- Seed idempotente de Knowledge para QA en DEV (#327): diez filas sintéticas USER/GLOBAL con estados estables, pendientes y bloqueados, y guardas de entorno antes de escribir.
 - AI-4 (#207): conocimiento USER/GLOBAL reconstruible desde evidencia y consentimiento con cortes `REPEATABLE READ`, saneamiento estructural, cola ADMIN, exportación JSON y borrado con lápidas; `AI_GLOBAL_MIN_CONTRIBUTORS` controla el mínimo de colaboradores.
 - AI-3 (#206): dataset `EMAIL_V1` con particiones deterministas, cola privada de revisión, verificaciones humanas append-only con roles/secuencia y verdad de referencia HOLDOUT; runs capturan versiones y watermarks, y el detalle de correo expone su procedencia.
 - AI-2 (#205): roles de IA por usuario y consentimiento revocable; conexión OAuth Gmail de solo lectura con tokens cifrados, bootstrap desde 2026-01-01, polling incremental, recuperación acotada por cursor, correo aislado por usuario, detalle con contenido canónico/saneado/crudo y purga según retención DEV/PROD.
