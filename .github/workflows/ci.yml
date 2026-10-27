@@ -47,11 +47,8 @@ jobs:
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
-
         with:
-
           # Carpeta temporal por job: evita choques con el pnpm global de la PC y entre runners
-
           dest: ${{ runner.temp }}/setup-pnpm
         # version comes from package.json "packageManager"
 
