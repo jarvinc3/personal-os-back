@@ -44,17 +44,17 @@ Before coding, produce a technical schema document containing:
 
 ## Global Knowledge
 
-In V1: structural GLOBAL knowledge aggregated across consenting users (>= 2 distinct users or admin verification). User data is never shared.
+In V1: structural GLOBAL knowledge requires a winning label with at least 2/3 of eligible votes and `AI_GLOBAL_MIN_CONTRIBUTORS` distinct consenting contributors (3 by default, 1 in development). No verifier role bypasses either threshold. User data is never shared; see the [AI-4 ADR](13-AI-4-KNOWLEDGE-ADR.md).
 
 ## Consent (decided)
 
 Settings toggle + explanatory screen at Gmail connect; **on by default (opt-out)**; revocable anytime (effective at next projection rebuild).
 
-**Risk / TODO:** the privacy notice for beta users must clearly disclose that contribution of structural email knowledge is on by default, what is shared (only anonymous template/sender structure) and how to opt out. Required before inviting beta users.
+**Risk / TODO:** the privacy notice for beta users must clearly disclose that contribution of structural email knowledge is on by default, what is shared (only safe domain/template structure, never sender addresses) and how to opt out. Required before inviting beta users.
 
 ## GLOBAL promotion (decided)
 
-Auto-promotion with evidence from >= 2 distinct consenting users (or a CONTRIBUTOR/ADMIN verification); visible in the admin queue and reversible by ADMIN.
+Auto-promotion requires both the 2/3 vote and the configured distinct-contributor minimum; a CONTRIBUTOR/ADMIN verification cannot waive either. Promoted items are visible in the admin queue and reversible by ADMIN.
 
 ## Retention and deletion (decided)
 
@@ -145,6 +145,6 @@ Open balance/ledger/planning bugs are fixed in parallel and are not blocked by t
 
 ## Knowledge confidence
 
-Do not design promotion around one generic floating confidence number. GLOBAL promotion rule is fixed for V1 (>= 2 distinct consenting users OR admin verification).
+Do not design promotion around one generic floating confidence number. GLOBAL promotion is fixed by the 2/3 vote and `AI_GLOBAL_MIN_CONTRIBUTORS` distinct-consenting-contributor threshold, regardless of verifier role.
 
 Prefer observable evidence counts, verification, contradictions, deterministic validation and explicit state transitions.

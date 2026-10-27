@@ -1,6 +1,6 @@
 # AI-4 — conocimiento USER/GLOBAL reconstruible
 
-Borrador para la descripción del PR de `refactor/ai-4` a `develop`. Issue #207. ADR: [13-AI-4-KNOWLEDGE-ADR.md](./13-AI-4-KNOWLEDGE-ADR.md).
+Registro del borrador usado para el [PR #229](https://github.com/jarvinc3/personal-os-back/pull/229), ya fusionado en `develop`. El seed de QA llegó en el [PR #232](https://github.com/jarvinc3/personal-os-back/pull/232) y la UI web en [web #327](https://github.com/jarvinc3/personal-os-web/issues/327), ambos cerrados. Quedan la validación manual en DEV y el cierre de #207. La fuente vigente de reglas es el [ADR de AI-4](./13-AI-4-KNOWLEDGE-ADR.md).
 
 ## Qué cambia
 
@@ -8,7 +8,7 @@ AI-4 deriva conocimiento reconstruible de la evidencia de AI-3. Agrega `AiKnowle
 
 ## Por qué
 
-`Refs #207`. Cierra la fase AI-4 del rediseño de inteligencia: el conocimiento compartido solo se publica con evidencia humana suficiente, consentimiento y datos estructurales; el conocimiento personal se puede exportar y borrar sin romper la reproducibilidad de GLOBAL.
+`Refs #207`. Implementa AI-4 en el rediseño de inteligencia: el conocimiento compartido solo se publica con evidencia humana suficiente, consentimiento y datos estructurales; el conocimiento personal se puede exportar y borrar sin romper la reproducibilidad de GLOBAL.
 
 ## Alcance
 
@@ -33,24 +33,22 @@ El issue web consume [contracts/http.md](../../modules/ai-agent/contracts/http.m
 - [x] `pnpm db:validate`
 - [x] `pnpm lint:money`
 - [x] `swagger-spec.json` regenerado desde el código
-- [ ] `pnpm test:integration` — requiere PostgreSQL real; lo corre el CI
-- [ ] `pnpm db:migrate:deploy` en DEV
-- [ ] `pnpm db:migrate:diff:check` sin drift en CI
+- [x] `pnpm test:integration` — ejecutado por el CI del PR
+- [x] `pnpm db:migrate:deploy` en DEV; la migración consta como aplicada y el seed DEV se ejecutó dos veces
+- [x] `pnpm db:migrate:diff:check` sin drift en CI
 
 ## Base de datos
 
 - [x] Migración nueva con timestamp posterior a la última del repo
-- [ ] Cambio de esquema aplicado y probado en DEV
+- [x] Cambio de esquema aplicado y probado en DEV
 
 La migración es aditiva y no borra datos existentes. Los defaults cubren las filas previas; el seed de `AiConsentEvent` toma la vista actual de `UserAiSettings`. El paso de FK a `Restrict` exige que el borrado de usuario pase por el servicio explícito; el evento `USER_ACCOUNT_DELETING` ya está conectado.
 
-## Pendiente antes de producción
+## Seguimiento después del merge
 
-- **Migración en DEV:** correr `pnpm db:migrate:deploy` en DEV y el rebuild ADMIN inicial para poblar la proyección. PROD queda fuera hasta la decisión de deploy `0.100.0`.
+- **QA en `develop`:** probar un rebuild ADMIN sobre evidencia real, cola ADMIN, reversión, exportación y borrado. El seed sintético permite probar la UI sin sustituir la prueba de proyección desde evidencia. Las verificaciones ADMIN del 25/10 cuentan como evidencia real (ADR, decisión 1); HOLDOUT nunca entra en la proyección.
 - **Aviso de privacidad del opt-out:** publicarlo antes de activar la promoción GLOBAL en producción (ADR, decisión 7). No bloquea `develop`.
 - **Productor AI-5:** las observaciones automáticas, su peso menor que cualquier verificación humana y la marca `derivedFromKnowledgeIds` quedan para AI-5. El proyector ya las excluye y nunca las deja contradecir una verificación humana, pero AI-4 no las genera.
-- **QA en `develop`:** probar promoción con datos de ejemplo, cola ADMIN, reversión, exportación y borrado. Las verificaciones ADMIN del 25/10 cuentan como evidencia real (ADR, decisión 1); HOLDOUT nunca entra en la proyección.
-- **UI web:** el issue #327 empieza cuando el back esté listo; este PR solo deja el contrato.
 
 ## Riesgo
 
