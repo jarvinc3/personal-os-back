@@ -30,8 +30,8 @@ Cada fase tiene un issue propio en `personal-os-back`, enlazado como sub-issue d
 | ------------------------------------ | --------------------------------------------------------------- | -------------------- | ------- | --------- |
 | AI-0 reset controlado                | [#203](https://github.com/jarvinc3/personal-os-back/issues/203) | A                    | Cerrado | High      |
 | AI-1 Inference Gateway               | [#204](https://github.com/jarvinc3/personal-os-back/issues/204) | B1                   | Cerrado | High      |
-| AI-2 Gmail/corpus                    | [#205](https://github.com/jarvinc3/personal-os-back/issues/205) | B1                   | Abierto | High      |
-| AI-3 evidencia y verificación humana | [#206](https://github.com/jarvinc3/personal-os-back/issues/206) | C                    | Abierto | Medium    |
+| AI-2 Gmail/corpus                    | [#205](https://github.com/jarvinc3/personal-os-back/issues/205) | B1                   | Cerrado | High      |
+| AI-3 evidencia y verificación humana | [#206](https://github.com/jarvinc3/personal-os-back/issues/206) | C                    | Cerrado | Medium    |
 | AI-4 knowledge                       | [#207](https://github.com/jarvinc3/personal-os-back/issues/207) | C                    | Abierto | Medium    |
 | AI-5 email intelligence              | [#208](https://github.com/jarvinc3/personal-os-back/issues/208) | C                    | Abierto | Medium    |
 | AI-6 evaluación                      | [#209](https://github.com/jarvinc3/personal-os-back/issues/209) | C                    | Abierto | Medium    |

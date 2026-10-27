@@ -130,7 +130,7 @@ acceptance gate
 
 ```text
 per-user isolation always
-GLOBAL = structural only, auto-promote with >= 2 consenting users OR CONTRIBUTOR/ADMIN verification
+GLOBAL = safe domain/template structure only; auto-promote with >= 2/3 votes and AI_GLOBAL_MIN_CONTRIBUTORS consenting contributors (3 default, 1 development), without role bypass
 consent default on (opt-out), revocable
 users can export/delete everything; GLOBAL survives via detached evidence
 roles USER | CONTRIBUTOR | ADMIN enforced by backend guard (Phase 2)

@@ -42,6 +42,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [Se
 ### Corregido
 
 - El rebuild de Knowledge usa una transacción de 120 s: el límite anterior de 5 s abortaba en DEV con el corpus actual (#207).
+- La documentación de AI-4 refleja el umbral GLOBAL aprobado (2/3 y mínimo configurable sin atajo por rol), el esquema implementado y el estado real de los tickets y PRs (#207).
 - En dev, el CORS de la API y del gateway de notificaciones acepta los previews de rama de Vercel mediante `CORS_ORIGIN_PATTERNS`, una lista de patrones anclados que en production no se acepta. `CORS_ORIGIN` y su primer valor para armar enlaces no cambian, y un origen no permitido responde sin cabeceras CORS en vez de 500 (#222).
 
 ## [0.55.3] - 2026-10-24

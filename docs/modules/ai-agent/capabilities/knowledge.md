@@ -1,6 +1,6 @@
 # Knowledge Engine (AI-4)
 
-Estado: `VERIFICADO` en código y pruebas de `refactor/ai-4`. Issue #207.
+Estado: `VERIFICADO` en código y pruebas, integrado en `develop` mediante el PR #229. La validación manual de QA y el cierre del issue #207 siguen pendientes.
 
 `AiKnowledge` es una proyección reconstruible. Las fuentes son observaciones y verificaciones humanas con secuencias; `AiConsentEvent` registra los cambios de consentimiento. Un rebuild lee los máximos de las tres secuencias y la evidencia confirmada bajo una sola transacción PostgreSQL `REPEATABLE READ`. El run registra los tres watermarks, versiones y `snapshot: REPEATABLE_READ`.
 

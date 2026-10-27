@@ -127,16 +127,17 @@ id
 scope             GLOBAL | USER
 userId?           required when scope = USER, null when GLOBAL
 knowledgeType     EMAIL_SENDER | EMAIL_DOMAIN | EMAIL_TEMPLATE | ENTITY | RELATION | USER_MAPPING
-knowledgeKey      e.g. normalized sender, domain, template fingerprint
-state             UNKNOWN | OBSERVED | STABLE/TRUSTED | DEGRADED | BLOCKED
+knowledgeKey      e.g. normalized sender, registrable domain, domain|normalized subject
+state             OBSERVED | STABLE | REVIEW_REQUIRED | BLOCKED
 payload           JSON validated by Zod per knowledgeType
 messagesSeen
 distinctUsers     GLOBAL only (count, never a list)
 humanVerifiedCount
-promotedBy        AUTO | CONTRIBUTOR | ADMIN
-revertedAt?
+promotedBy        AUTO | CONTRIBUTOR | ADMIN (AI-4 writes AUTO or null)
 projectorVersion
 policyVersion
+normalizerVersion
+sanitizerVersion
 firstSeenAt
 lastSeenAt
 updatedAt
@@ -144,11 +145,11 @@ updatedAt
 
 Use SQL partial unique indexes: `(knowledgeType, knowledgeKey)` WHERE scope = GLOBAL; `(userId, knowledgeType, knowledgeKey)` WHERE scope = USER. Add a CHECK requiring null userId for GLOBAL and non-null userId for USER. A nullable composite unique alone does not prevent duplicate GLOBAL items.
 
-Add `REVIEW_REQUIRED` and an explicit promotion authorization/provenance field: insufficient support disables automatic use unless a valid CONTRIBUTOR/ADMIN authorization remains.
+`REVIEW_REQUIRED` disables automatic use whenever the 2/3 vote or `AI_GLOBAL_MIN_CONTRIBUTORS` distinct-contributor threshold is missing. The verifier role does not bypass these thresholds. AI-4 uses append-only ADMIN reversal evidence rather than a `revertedAt` field; see the [AI-4 ADR](13-AI-4-KNOWLEDGE-ADR.md) and the [implemented schema](../../../packages/database/prisma/schema.prisma).
 
 Replaces the previously proposed `AiEmailSenderKnowledge`, `AiEmailDomainKnowledge`, `AiEmailTemplateKnowledge`, `AiKnowledgeEntity`, `AiKnowledgeRelation`, `AiUserKnowledge` and `AiUserEntityMapping` (now `knowledgeType = USER_MAPPING`, scope USER only, with hashed external hints).
 
-GLOBAL payload invariant: structural only (see `05`), enforced by projector sanitizer.
+GLOBAL payload invariant: structural only (see `05`), enforced by projector sanitizer. `EMAIL_SENDER` is USER only; GLOBAL admits safe `EMAIL_DOMAIN` and `EMAIL_TEMPLATE` keys.
 
 ### AiDataset / AiDatasetItem
 

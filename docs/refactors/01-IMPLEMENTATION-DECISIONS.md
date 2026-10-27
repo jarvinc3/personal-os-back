@@ -69,10 +69,11 @@ providers, no conoce ni valida campos de negocio.
   Cambios de consentimiento y exclusiones forman un registro separado,
   versionado, que también debe identificarse en cada run.
 - Revocar consentimiento excluye la evidencia del usuario del siguiente
-  rebuild GLOBAL. Si una promoción automática pierde el soporte mínimo de dos
-  contribuyentes elegibles, pasa a `REVIEW_REQUIRED` y deja de utilizarse
-  automáticamente. No se borra. Una autorización CONTRIBUTOR/ADMIN vigente
-  sigue siendo una vía independiente de promoción.
+  rebuild GLOBAL. Si una promoción pierde el umbral de 2/3 o el mínimo de
+  colaboradores elegibles de `AI_GLOBAL_MIN_CONTRIBUTORS`, pasa a
+  `REVIEW_REQUIRED` y deja de utilizarse automáticamente. No se borra.
+  Una verificación CONTRIBUTOR/ADMIN tampoco salta esos umbrales; manda el
+  [ADR de AI-4](personal-os-ai-redesign-context-pack/13-AI-4-KNOWLEDGE-ADR.md).
 - El borrado elimina contenido personal, identificadores, vínculos a fuentes y
   payloads personales. Puede conservar una lápida estructural con tipo,
   plantilla normalizada, versión y un identificador anónimo no reversible para

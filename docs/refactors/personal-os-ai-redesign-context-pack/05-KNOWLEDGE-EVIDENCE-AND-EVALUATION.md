@@ -72,7 +72,7 @@ CORRECTED
 REJECTED
 ```
 
-Verifications never mutate Knowledge directly; they enter the evidence stream. Each verification records the verifier's role at the time (`verifierRole = USER | CONTRIBUTOR | ADMIN`). USER verifications are evidence only; CONTRIBUTOR verifications count toward and can authorize GLOBAL promotion; ADMIN can promote/revert anything.
+Verifications never mutate Knowledge directly; they enter the evidence stream. Each verification records the verifier's role at the time (`verifierRole = USER | CONTRIBUTOR | ADMIN`). Eligible verifications from any role count toward GLOBAL under the same 2/3 vote and distinct-contributor thresholds. No role bypasses them; ADMIN can revert a GLOBAL item through append-only evidence.
 
 ## Knowledge (single table, scoped)
 
@@ -105,17 +105,17 @@ USER knowledge (cards, accounts, mappings, user-specific senders) stays visible 
 
 ### Promotion to GLOBAL
 
-A structural knowledge item is promoted to GLOBAL **automatically** when:
+A safe structural domain or template item is promoted to GLOBAL **automatically** when:
 
 ```text
-evidence from >= 2 distinct consenting users
-OR
-CONTRIBUTOR / ADMIN human verification
+the winning label has >= 2/3 of the eligible message votes
+AND
+support from >= AI_GLOBAL_MIN_CONTRIBUTORS distinct consenting contributors
 ```
 
-Auto-promotions appear in the admin queue and can be reverted by an ADMIN (revert = a `REJECTED` admin verification, so it is evidence, not a manual edit).
+`AI_GLOBAL_MIN_CONTRIBUTORS` defaults to 3 and to 1 in development for QA. A CONTRIBUTOR/ADMIN verification does not waive the vote or contributor threshold. Auto-promotions appear in the admin queue and can be reverted by an ADMIN (revert = a `REJECTED` admin verification, so it is evidence, not a manual edit). The [AI-4 ADR](13-AI-4-KNOWLEDGE-ADR.md) specifies the current policy.
 
-and only evidence from users with **contribution consent = true** counts. Anti-feedback still applies: one model's high confidence is never sufficient; deterministic validation, repeated consistent template behavior and human verification are the accepted evidence.
+Only evidence from users with **contribution consent = true** counts. Anti-feedback still applies: one model's high confidence is never sufficient; deterministic validation, repeated consistent template behavior and human verification are the accepted evidence.
 
 ### Consent
 
@@ -124,7 +124,7 @@ Each user has a contribution flag, **on by default (opt-out)**, shown in setting
 - the user's data produces USER knowledge only;
 - none of their observations count toward GLOBAL promotion;
 - revoking consent appends an exclusion marker and excludes their evidence at the next projection rebuild;
-- if an automatic promotion loses its two-contributor support and has no valid CONTRIBUTOR/ADMIN authorization, it enters `REVIEW_REQUIRED` and is unavailable for automatic use until reviewed.
+- if a promotion loses its 2/3 vote or configured contributor support, it enters `REVIEW_REQUIRED` and is unavailable for automatic use until reviewed, regardless of verifier role.
 
 ### Export and deletion
 

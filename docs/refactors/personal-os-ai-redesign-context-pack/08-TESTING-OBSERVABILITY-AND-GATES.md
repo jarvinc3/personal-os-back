@@ -200,7 +200,7 @@ Must demonstrate: USER cannot call admin endpoints; ADMIN can change a role from
 
 ### Privacy gate (Phase 4)
 
-Must demonstrate adversarial fixtures with amounts/last4/names never reaching GLOBAL, single-user evidence not promoting without CONTRIBUTOR/ADMIN verification, user deletion retaining only eligible structural tombstones, unsupported promotions disabled pending review, incomplete historical reproductions marked and excluded from equivalent-evidence comparisons, non-consenting users ignored, and cross-user isolation.
+Must demonstrate adversarial fixtures with amounts/last4/names and unsafe literal templates never reaching GLOBAL; promotion only with at least 2/3 winning votes and `AI_GLOBAL_MIN_CONTRIBUTORS` distinct consenting contributors (3 by default, 1 in development), without a CONTRIBUTOR/ADMIN bypass; user deletion retaining only eligible structural tombstones; unsupported promotions disabled pending review; incomplete historical reproductions marked and excluded from equivalent-evidence comparisons; non-consenting users ignored; and cross-user isolation. See the [AI-4 ADR](13-AI-4-KNOWLEDGE-ADR.md).
 
 ### Knowledge gate
 
