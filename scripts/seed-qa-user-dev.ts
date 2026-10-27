@@ -2,138 +2,66 @@ import { randomBytes } from 'node:crypto';
 import { writeFile } from 'node:fs/promises';
 import { isAbsolute, relative, resolve, sep } from 'node:path';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
-import { createScriptPrismaClient, Prisma } from '../packages/database/dist';
+import { createScriptPrismaClient } from '../packages/database/dist';
+import type { EmailLabel } from '../packages/ai-agent/dist/intelligence/knowledge/knowledge-payload';
 import {
   SeedGuardError,
   assertDevelopmentEnvironment,
 } from './lib/dev-seed-guard';
-import { seedUuid } from './lib/seed-fixtures';
+import {
+  assertKnowledgeMigration,
+  describeKnowledgeEvidence,
+  seedKnowledgeEvidence,
+  type EvidenceMessage,
+  type EvidenceObservation,
+  type EvidenceVerification,
+  type KnowledgeEvidenceInput,
+} from './lib/knowledge-evidence';
 
 const QA_EMAIL = 'qa-user@personal-os.dev';
 const QA_FULL_NAME = 'QA User';
-const MIGRATION = '20261101090009_ai_knowledge';
-const SEED_VERSION = 'qa-user-dev-v1';
+const ADMIN_EMAIL = 'admin@gmail.com';
+const SEED_VERSION = 'qa-user-dev-v2';
 const DEFAULT_PASSWORD_FILE = 'C:/dev/personal/personal-os/qa-user-dev.txt';
 const PASSWORD_BYTES = 24;
-const FIRST_SEEN_AT = new Date('2026-10-26T12:00:00.000Z');
-const LAST_SEEN_AT = new Date('2026-10-26T12:05:00.000Z');
 const DRY_RUN_FLAG = '--dry-run';
+const BASE_TIME = new Date('2026-10-26T12:00:00.000Z');
 
-type SeedRow = Prisma.AiKnowledgeCreateManyInput & { id: string };
+type SeedPrisma = ReturnType<typeof createScriptPrismaClient>;
 
-type KnowledgeFixture = {
-  knowledgeType: Prisma.AiKnowledgeCreateManyInput['knowledgeType'];
-  knowledgeKey: string;
-  state: Prisma.AiKnowledgeCreateManyInput['state'];
-  payload: Prisma.InputJsonValue;
-  messagesSeen: number;
-  rejectedMessages: number;
-  humanVerifiedCount: number;
+const minutesAfter = (minutes: number) =>
+  new Date(BASE_TIME.getTime() + minutes * 60_000);
+
+const STABLE_LABEL: EmailLabel = {
+  relevance: true,
+  semanticType: 'FIN_TRANSACTION',
+  routes: ['FINANCE'],
+  transaction: { kind: 'TRANSACTION', amount: 42.5, currency: 'DOP' },
 };
 
-const KNOWLEDGE_FIXTURES: readonly KnowledgeFixture[] = [
-  {
-    knowledgeType: 'EMAIL_SENDER',
-    knowledgeKey: 'qa-user-alerts@qa-personal-os.example',
-    state: 'STABLE',
-    payload: {
-      label: {
-        relevance: true,
-        semanticType: 'SECURITY_ALERT',
-        routes: ['SECURITY'],
-      },
-    },
-    messagesSeen: 4,
-    rejectedMessages: 0,
-    humanVerifiedCount: 2,
-  },
-  {
-    knowledgeType: 'EMAIL_TEMPLATE',
-    knowledgeKey: 'qa-personal-os.example|pago de servicio <monto>',
-    state: 'STABLE',
-    payload: {
-      label: {
-        relevance: true,
-        semanticType: 'FIN_TRANSACTION',
-        routes: ['FINANCE'],
-        transaction: {
-          kind: 'TRANSACTION',
-          amount: 42.5,
-          currency: 'DOP',
-        },
-      },
-    },
-    messagesSeen: 3,
-    rejectedMessages: 0,
-    humanVerifiedCount: 1,
-  },
-  {
-    knowledgeType: 'EMAIL_SENDER',
-    knowledgeKey: 'qa-user-promos@qa-personal-os.example',
-    state: 'REVIEW_REQUIRED',
-    payload: {
-      label: {
-        relevance: true,
-        semanticType: 'MARKETING',
-        routes: [],
-      },
-    },
-    messagesSeen: 2,
-    rejectedMessages: 0,
-    humanVerifiedCount: 0,
-  },
-  {
-    knowledgeType: 'EMAIL_TEMPLATE',
-    knowledgeKey:
-      'qa-user-statements@qa-personal-os.example|estado de cuenta <mes>',
-    state: 'REVIEW_REQUIRED',
-    payload: {
-      label: {
-        relevance: true,
-        semanticType: 'FIN_STATEMENT_NOTICE',
-        routes: ['FINANCE'],
-      },
-    },
-    messagesSeen: 1,
-    rejectedMessages: 0,
-    humanVerifiedCount: 0,
-  },
-  {
-    knowledgeType: 'EMAIL_DOMAIN',
-    knowledgeKey: 'qa-blocked.example',
-    state: 'BLOCKED',
-    payload: {
-      label: {
-        relevance: false,
-        semanticType: 'SOCIAL',
-        routes: [],
-      },
-    },
-    messagesSeen: 3,
-    rejectedMessages: 1,
-    humanVerifiedCount: 0,
-  },
-  {
-    knowledgeType: 'EMAIL_TEMPLATE',
-    knowledgeKey: 'qa-blocked.example|alerta de cuenta <monto>',
-    state: 'BLOCKED',
-    payload: {
-      label: {
-        relevance: true,
-        semanticType: 'SECURITY_ALERT',
-        routes: ['SECURITY'],
-      },
-    },
-    messagesSeen: 2,
-    rejectedMessages: 2,
-    humanVerifiedCount: 0,
-  },
-];
+const PENDING_LABEL_A: EmailLabel = {
+  relevance: true,
+  semanticType: 'FIN_TRANSACTION',
+  routes: ['FINANCE'],
+  transaction: { kind: 'TRANSACTION' },
+};
 
-type KnowledgeSyncResult = {
-  created: number;
-  updated: number;
-  counts: Record<string, number>;
+const PENDING_LABEL_B: EmailLabel = {
+  relevance: true,
+  semanticType: 'SECURITY_ALERT',
+  routes: ['SECURITY'],
+};
+
+const OBSERVED_LABEL: EmailLabel = {
+  relevance: true,
+  semanticType: 'SECURITY_ALERT',
+  routes: ['SECURITY'],
+};
+
+const BLOCKED_LABEL: EmailLabel = {
+  relevance: true,
+  semanticType: 'SECURITY_ALERT',
+  routes: ['SECURITY'],
 };
 
 type EnsureQaAuthUserInput = {
@@ -142,46 +70,134 @@ type EnsureQaAuthUserInput = {
   password: string;
 };
 
-type ExistingKnowledgeRow = {
-  id: string;
-  scope: string;
-  userId: string | null;
-  knowledgeType: string;
-  knowledgeKey: string;
-};
-
-function buildFixtures(userId: string): SeedRow[] {
-  return KNOWLEDGE_FIXTURES.map((fixture) => ({
-    ...fixture,
-    id: seedUuid({
-      seedVersion: SEED_VERSION,
-      scope: 'USER',
-      type: fixture.knowledgeType,
-      key: fixture.knowledgeKey,
-      userId,
-    }),
-    scope: 'USER',
-    userId,
-    distinctUsers: 0,
-    promotedBy: null,
-    projectorVersion: SEED_VERSION,
-    policyVersion: SEED_VERSION,
-    normalizerVersion: SEED_VERSION,
-    sanitizerVersion: SEED_VERSION,
-    firstSeenAt: FIRST_SEEN_AT,
-    lastSeenAt: LAST_SEEN_AT,
-  }));
+function evidenceFixtures(
+  qaUserId: string,
+  adminUserId: string,
+): {
+  messages: EvidenceMessage[];
+  verifications: EvidenceVerification[];
+  observations: EvidenceObservation[];
+} {
+  return {
+    messages: [
+      {
+        key: 'qa-payments-stable',
+        userId: qaUserId,
+        fromAddress: 'qa-user-payments@qa-user-payments.example',
+        subject: 'Pago de factura RD$1,250',
+        receivedAt: minutesAfter(0),
+        globalState: 'STABLE',
+      },
+      {
+        key: 'admin-payments-stable',
+        userId: adminUserId,
+        fromAddress: 'billing@qa-user-payments.example',
+        subject: 'Pago de factura RD$2,500',
+        receivedAt: minutesAfter(2),
+        globalState: 'STABLE',
+      },
+      {
+        key: 'qa-observed',
+        userId: qaUserId,
+        fromAddress: 'qa-user-notices@qa-user-observed.example',
+        subject: 'Alerta de cuenta',
+        receivedAt: minutesAfter(5),
+      },
+      {
+        key: 'qa-pending',
+        userId: qaUserId,
+        fromAddress: 'qa-user-billing@qa-user-pending.example',
+        subject: 'Pago RD$3,000',
+        receivedAt: minutesAfter(10),
+        globalState: 'REVIEW_REQUIRED',
+      },
+      {
+        key: 'admin-pending',
+        userId: adminUserId,
+        fromAddress: 'billing@qa-user-pending.example',
+        subject: 'Pago RD$4,000',
+        receivedAt: minutesAfter(12),
+        globalState: 'REVIEW_REQUIRED',
+      },
+      {
+        key: 'qa-blocked',
+        userId: qaUserId,
+        fromAddress: 'qa-user-security@qa-user-security.example',
+        subject: 'Alerta de cuenta',
+        receivedAt: minutesAfter(20),
+        globalState: 'BLOCKED',
+      },
+    ],
+    verifications: [
+      {
+        messageKey: 'qa-payments-stable',
+        userId: qaUserId,
+        verdict: 'CORRECTED',
+        label: STABLE_LABEL,
+        createdAt: minutesAfter(1),
+      },
+      {
+        messageKey: 'admin-payments-stable',
+        userId: adminUserId,
+        verdict: 'CORRECTED',
+        label: STABLE_LABEL,
+        createdAt: minutesAfter(3),
+      },
+      {
+        messageKey: 'qa-pending',
+        userId: qaUserId,
+        verdict: 'CORRECTED',
+        label: PENDING_LABEL_A,
+        createdAt: minutesAfter(11),
+      },
+      {
+        messageKey: 'admin-pending',
+        userId: adminUserId,
+        verdict: 'CORRECTED',
+        label: PENDING_LABEL_B,
+        createdAt: minutesAfter(13),
+      },
+      {
+        messageKey: 'qa-blocked',
+        userId: qaUserId,
+        verdict: 'CORRECTED',
+        label: BLOCKED_LABEL,
+        createdAt: minutesAfter(21),
+      },
+    ],
+    observations: [
+      {
+        messageKey: 'qa-observed',
+        userId: qaUserId,
+        knowledgeType: 'EMAIL_SENDER',
+        label: OBSERVED_LABEL,
+        createdAt: minutesAfter(6),
+      },
+      {
+        messageKey: 'qa-observed',
+        userId: qaUserId,
+        knowledgeType: 'EMAIL_TEMPLATE',
+        label: OBSERVED_LABEL,
+        createdAt: minutesAfter(6),
+      },
+    ],
+  };
 }
 
-function plannedKnowledgeCounts(): Record<string, number> {
-  return KNOWLEDGE_FIXTURES.reduce<Record<string, number>>(
-    (summary, fixture) => {
-      const key = `USER/${fixture.state}`;
-      summary[key] = (summary[key] ?? 0) + 1;
-      return summary;
-    },
-    {},
-  );
+function evidenceInput(
+  qaUserId: string,
+  adminUserId: string,
+): KnowledgeEvidenceInput {
+  return {
+    seedVersion: SEED_VERSION,
+    users: [
+      { id: qaUserId, email: QA_EMAIL, role: 'USER' },
+      { id: adminUserId, email: ADMIN_EMAIL, role: 'ADMIN' },
+    ],
+    ...evidenceFixtures(qaUserId, adminUserId),
+    summaryUserId: qaUserId,
+    requesterId: adminUserId,
+  };
 }
 
 function requireServiceRoleKey(): string {
@@ -210,70 +226,14 @@ function resolvePasswordFile(): string {
   return passwordFile;
 }
 
-async function assertKnowledgeMigration(
-  prismaClient: Prisma.TransactionClient,
-): Promise<void> {
-  const migration = await prismaClient.$queryRaw<
-    Array<{ finished_at: Date | null; rolled_back_at: Date | null }>
-  >`SELECT finished_at, rolled_back_at FROM "_prisma_migrations" WHERE migration_name = ${MIGRATION} ORDER BY started_at DESC LIMIT 1`;
-  if (!migration[0]?.finished_at || migration[0].rolled_back_at) {
-    throw new SeedGuardError(
-      'La migración de Knowledge no está aplicada en DEV',
-    );
-  }
-}
-
-async function assertNoForeignKnowledgeCollisions({
-  rows,
-  existingRows,
-  prismaClient,
-  userId,
-}: {
-  rows: readonly SeedRow[];
-  existingRows: readonly ExistingKnowledgeRow[];
-  prismaClient: Prisma.TransactionClient;
-  userId: string;
-}): Promise<void> {
-  for (const existingRow of existingRows) {
-    const planned = rows.find((row) => row.id === existingRow.id);
-    if (
-      !planned ||
-      planned.scope !== existingRow.scope ||
-      planned.userId !== existingRow.userId ||
-      planned.knowledgeType !== existingRow.knowledgeType ||
-      planned.knowledgeKey !== existingRow.knowledgeKey
-    ) {
-      throw new SeedGuardError('Colisión con una fila ajena al seed de QA');
-    }
-  }
-
-  const conflictingKeys = await prismaClient.aiKnowledge.findMany({
-    where: {
-      scope: 'USER',
-      userId,
-      id: { notIn: rows.map((row) => row.id) },
-      OR: rows.map((row) => ({
-        knowledgeType: row.knowledgeType,
-        knowledgeKey: row.knowledgeKey,
-      })),
-    },
-    select: { id: true },
-  });
-  if (conflictingKeys.length > 0) {
-    throw new SeedGuardError(
-      'Otra fila del usuario QA ocupa una clave del seed',
-    );
-  }
-}
-
 async function ensureQaNonAdminRole({
-  prismaClient,
+  prisma,
   userId,
 }: {
-  prismaClient: Prisma.TransactionClient;
+  prisma: SeedPrisma;
   userId: string;
 }): Promise<void> {
-  const assignment = await prismaClient.userRole.findUnique({
+  const assignment = await prisma.userRole.findUnique({
     where: { userId },
     select: { role: true },
   });
@@ -281,7 +241,7 @@ async function ensureQaNonAdminRole({
     return;
   }
   if (assignment.role === 'ADMIN') {
-    const adminCount = await prismaClient.userRole.count({
+    const adminCount = await prisma.userRole.count({
       where: { role: 'ADMIN' },
     });
     if (adminCount <= 1) {
@@ -290,77 +250,7 @@ async function ensureQaNonAdminRole({
       );
     }
   }
-  await prismaClient.userRole.delete({ where: { userId } });
-}
-
-async function syncKnowledgeRows({
-  prismaClient,
-  userId,
-  rows,
-}: {
-  prismaClient: Prisma.TransactionClient;
-  userId: string;
-  rows: readonly SeedRow[];
-}): Promise<KnowledgeSyncResult> {
-  const existingRows = await prismaClient.aiKnowledge.findMany({
-    where: { id: { in: rows.map((row) => row.id) } },
-    select: {
-      id: true,
-      scope: true,
-      userId: true,
-      knowledgeType: true,
-      knowledgeKey: true,
-    },
-  });
-  await assertNoForeignKnowledgeCollisions({
-    rows,
-    existingRows,
-    prismaClient,
-    userId,
-  });
-
-  await prismaClient.aiKnowledge.createMany({
-    data: [...rows],
-    skipDuplicates: true,
-  });
-  for (const row of rows) {
-    await prismaClient.aiKnowledge.update({
-      where: { id: row.id },
-      data: {
-        state: row.state,
-        payload: row.payload,
-        messagesSeen: row.messagesSeen,
-        rejectedMessages: row.rejectedMessages,
-        distinctUsers: row.distinctUsers,
-        humanVerifiedCount: row.humanVerifiedCount,
-        promotedBy: row.promotedBy,
-        projectorVersion: row.projectorVersion,
-        policyVersion: row.policyVersion,
-        normalizerVersion: row.normalizerVersion,
-        sanitizerVersion: row.sanitizerVersion,
-        firstSeenAt: row.firstSeenAt,
-        lastSeenAt: row.lastSeenAt,
-      },
-    });
-  }
-
-  const persistedRows = await prismaClient.aiKnowledge.findMany({
-    where: { id: { in: rows.map((row) => row.id) } },
-    select: { scope: true, state: true },
-  });
-  if (persistedRows.length !== rows.length) {
-    throw new SeedGuardError('El conteo de filas del seed de QA no coincide');
-  }
-
-  return {
-    created: rows.length - existingRows.length,
-    updated: existingRows.length,
-    counts: persistedRows.reduce<Record<string, number>>((summary, row) => {
-      const key = `${row.scope}/${row.state}`;
-      summary[key] = (summary[key] ?? 0) + 1;
-      return summary;
-    }, {}),
-  };
+  await prisma.userRole.delete({ where: { userId } });
 }
 
 async function readVerifiedAuthUser({
@@ -434,36 +324,6 @@ async function writePasswordFile({
   await writeFile(filePath, `${password}\n`, { encoding: 'utf8', mode: 0o600 });
 }
 
-async function readDryRunPreview(
-  prisma: ReturnType<typeof createScriptPrismaClient>,
-) {
-  return prisma.$transaction(async (tx) => {
-    await assertKnowledgeMigration(tx);
-    const user = await tx.user.findUnique({
-      where: { email: QA_EMAIL },
-      select: { id: true },
-    });
-    if (!user) {
-      return {
-        accountExists: false,
-        created: KNOWLEDGE_FIXTURES.length,
-        updated: 0,
-        counts: plannedKnowledgeCounts(),
-      };
-    }
-    const rows = buildFixtures(user.id);
-    const existingCount = await tx.aiKnowledge.count({
-      where: { id: { in: rows.map((row) => row.id) } },
-    });
-    return {
-      accountExists: true,
-      created: rows.length - existingCount,
-      updated: existingCount,
-      counts: plannedKnowledgeCounts(),
-    };
-  });
-}
-
 async function main(): Promise<void> {
   const { supabaseUrl } = assertDevelopmentEnvironment();
   const serviceRoleKey = requireServiceRoleKey();
@@ -471,29 +331,47 @@ async function main(): Promise<void> {
   const dryRun = process.argv.includes(DRY_RUN_FLAG);
   const prisma = createScriptPrismaClient();
   try {
+    await assertKnowledgeMigration(prisma);
+    const existingUser = await prisma.user.findUnique({
+      where: { email: QA_EMAIL },
+      select: { id: true },
+    });
+    const admin = await prisma.user.findUnique({
+      where: { email: ADMIN_EMAIL },
+      select: { id: true },
+    });
+    if (!admin) {
+      throw new SeedGuardError(
+        'No existe el ADMIN de DEV para la evidencia GLOBAL',
+      );
+    }
+    const adminRole = await prisma.userRole.findUnique({
+      where: { userId: admin.id },
+      select: { role: true },
+    });
+    if (adminRole?.role !== 'ADMIN') {
+      throw new SeedGuardError('El usuario admin no tiene rol ADMIN');
+    }
+
     if (dryRun) {
-      const preview = await readDryRunPreview(prisma);
+      const plannedInput = evidenceInput(
+        existingUser?.id ?? 'dry-run-qa-user',
+        admin.id,
+      );
       console.log(
         JSON.stringify({
           mode: 'DRY_RUN',
           accountEmail: QA_EMAIL,
+          accountExists: Boolean(existingUser),
           plannedRole: 'USER',
-          ...preview,
+          planned: describeKnowledgeEvidence(plannedInput),
           passwordFile,
         }),
       );
       return;
     }
 
-    await prisma.$transaction(async (tx) => {
-      await assertKnowledgeMigration(tx);
-    });
-
     const password = randomBytes(PASSWORD_BYTES).toString('base64url');
-    const existingUser = await prisma.user.findUnique({
-      where: { email: QA_EMAIL },
-      select: { id: true },
-    });
     const authClient = createClient(supabaseUrl, serviceRoleKey, {
       auth: { autoRefreshToken: false, persistSession: false },
     });
@@ -511,24 +389,12 @@ async function main(): Promise<void> {
         'El perfil de la cuenta QA no coincide con Supabase Auth',
       );
     }
+    await ensureQaNonAdminRole({ prisma, userId: appUser.id });
 
-    const knowledgeSummary = await prisma.$transaction(
-      async (tx) => {
-        await assertKnowledgeMigration(tx);
-        await ensureQaNonAdminRole({ prismaClient: tx, userId: appUser.id });
-        return syncKnowledgeRows({
-          prismaClient: tx,
-          userId: appUser.id,
-          rows: buildFixtures(appUser.id),
-        });
-      },
-      {
-        isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
-        maxWait: 10_000,
-        timeout: 30_000,
-      },
-    );
-
+    const seedResult = await seedKnowledgeEvidence({
+      prisma,
+      input: evidenceInput(appUser.id, admin.id),
+    });
     await writePasswordFile({ filePath: passwordFile, password });
     console.log(
       JSON.stringify({
@@ -539,7 +405,7 @@ async function main(): Promise<void> {
           emailVerified: true,
           created: authUser.created,
         },
-        knowledge: knowledgeSummary,
+        ...seedResult,
         passwordFile,
       }),
     );
@@ -556,7 +422,9 @@ void main().catch((error: unknown) => {
       typeof error === 'object' && error !== null && 'code' in error
         ? String(error.code)
         : 'UNKNOWN';
-    console.error(`Seed abortado por error de base (${code})`);
+    const message =
+      error instanceof Error ? error.message : 'Error desconocido';
+    console.error(`Seed abortado por error de base (${code}): ${message}`);
   }
   process.exitCode = 1;
 });

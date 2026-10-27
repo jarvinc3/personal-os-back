@@ -6,8 +6,8 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [Se
 
 ### Agregado
 
-- Seed idempotente de Knowledge para QA en DEV (#327): diez filas sintéticas USER/GLOBAL con estados estables, pendientes y bloqueados, y guardas de entorno antes de escribir.
-- Seed de QA en DEV (#207): cuenta `qa-user@personal-os.dev` con correo verificado, sin rol ADMIN y con seis filas de conocimiento personal (dos pendientes, dos promovidas y dos bloqueadas); la contraseña aleatoria se guarda fuera del repositorio.
+- Seeds de Knowledge para QA en DEV (#207, #327): crean evidencia de correo (mensajes, dataset, verificaciones, observaciones, consentimiento y reversiones ADMIN) y ejecutan la proyección real; las filas USER/GLOBAL sobreviven a un rebuild y conservan los estados promovidos, pendientes y bloqueados.
+- Seed de la cuenta QA `qa-user@personal-os.dev` (#207): correo verificado, sin rol ADMIN, conocimiento personal `STABLE`/`OBSERVED` y evidencia GLOBAL `STABLE`/`REVIEW_REQUIRED`/`BLOCKED`; la contraseña aleatoria se guarda fuera del repositorio.
 - El deploy del back corre `prisma migrate deploy` como pre-deploy de Railway (`railway.json`): si una migración falla, el deploy se cancela y sigue la versión anterior; DEV lo aplica en cada deploy y producción al mergear a `master` con el OK de Jarvin (#230).
 - AI-4 (#207): conocimiento USER/GLOBAL reconstruible desde evidencia y consentimiento con cortes `REPEATABLE READ`, saneamiento estructural, cola ADMIN, exportación JSON y borrado con lápidas; `AI_GLOBAL_MIN_CONTRIBUTORS` controla el mínimo de colaboradores.
 - AI-3 (#206): dataset `EMAIL_V1` con particiones deterministas, cola privada de revisión, verificaciones humanas append-only con roles/secuencia y verdad de referencia HOLDOUT; runs capturan versiones y watermarks, y el detalle de correo expone su procedencia.
@@ -41,6 +41,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [Se
 
 ### Corregido
 
+- El rebuild de Knowledge usa una transacción de 120 s: el límite anterior de 5 s abortaba en DEV con el corpus actual (#207).
 - En dev, el CORS de la API y del gateway de notificaciones acepta los previews de rama de Vercel mediante `CORS_ORIGIN_PATTERNS`, una lista de patrones anclados que en production no se acepta. `CORS_ORIGIN` y su primer valor para armar enlaces no cambian, y un origen no permitido responde sin cabeceras CORS en vez de 500 (#222).
 
 ## [0.55.3] - 2026-10-24
