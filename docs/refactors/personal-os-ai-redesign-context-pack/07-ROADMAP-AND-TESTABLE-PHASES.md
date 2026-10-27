@@ -155,13 +155,13 @@ Any future knowledge item can be traced to evidence; labeling works from the web
 - Knowledge Projector over evidence `<= watermark`;
 - single `AiKnowledge` table with `scope` GLOBAL/USER and typed payloads;
 - GLOBAL sanitizer (structural only);
-- promotion policy: auto-promote to GLOBAL with evidence from >= 2 distinct consenting users OR a CONTRIBUTOR/ADMIN verification; ADMIN revert; anti-feedback;
+- promotion policy: auto-promote to GLOBAL only with a winning label supported by at least 2/3 of eligible votes and `AI_GLOBAL_MIN_CONTRIBUTORS` distinct consenting contributors (3 by default, 1 in development); no role bypass; ADMIN revert; anti-feedback;
 - user export + deletion with evidence detachment (tombstones);
 - degradation; rebuild.
 
 ## Tests
 
-Same evidence + versions => same projection; human correction changes projection; **private identifiers/amounts/last4/names never reach GLOBAL** (adversarial fixtures); single-user evidence never promotes without a CONTRIBUTOR/ADMIN verification; USER verification alone never promotes; admin revert; deletion strips personal data and keeps only consent-eligible structural tombstones; historical runs with missing evidence are explicitly INCOMPLETE; export completeness; non-consenting user's evidence ignored for GLOBAL; consent revocation removes contribution on rebuild, unsupported automatic promotions enter REVIEW_REQUIRED and stop automatic use, valid CONTRIBUTOR/ADMIN authorization remains independent; prior revocation is not undone by deletion; clear + rebuild equivalence when evidence remains available.
+Same evidence + versions => same projection; human correction changes projection; **private identifiers/amounts/last4/names never reach GLOBAL** (adversarial fixtures); unsafe literal templates remain USER; fewer than 2/3 winning votes or fewer than `AI_GLOBAL_MIN_CONTRIBUTORS` distinct consenting contributors never promotes, even with CONTRIBUTOR/ADMIN verification; admin revert; deletion strips personal data and keeps only consent-eligible structural tombstones; historical runs with missing evidence are explicitly INCOMPLETE; export completeness; non-consenting user's evidence ignored for GLOBAL; consent revocation removes contribution on rebuild, unsupported promotions enter REVIEW_REQUIRED and stop automatic use; prior revocation is not undone by deletion; clear + rebuild equivalence when evidence remains available. See the [AI-4 ADR](13-AI-4-KNOWLEDGE-ADR.md) for the accepted rule.
 
 ## Review UI increment
 

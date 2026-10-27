@@ -50,16 +50,16 @@ The CHANGELOG should describe the architecture reset coherently rather than pret
 
 ### Global and User Knowledge exist from V1
 
-The beta opens to several users. GLOBAL knowledge is structural only and is promoted only with evidence from >= 2 distinct consenting users or owner/admin verification. USER data is strictly isolated. Contribution to GLOBAL is on by default (opt-out), revocable anytime. Templates with evidence from >= 2 distinct consenting users auto-promote (visible to admins, reversible). Details in `05`.
+The beta opens to several users. GLOBAL knowledge is structural only and requires a winning label with at least 2/3 of the votes and `AI_GLOBAL_MIN_CONTRIBUTORS` distinct consenting contributors (default 3; 1 in development). A CONTRIBUTOR or ADMIN verification cannot bypass either threshold. USER data is strictly isolated. Contribution to GLOBAL is on by default (opt-out), revocable anytime. Only safe domain and template keys can promote; an ADMIN can revert them. The [AI-4 ADR](13-AI-4-KNOWLEDGE-ADR.md) is authoritative.
 
 ### Roles
 
 Authorization uses an app-owned roles layer (Prisma table + NestJS guard), independent of Supabase Postgres roles/RLS. V1 roles:
 
 ```text
-USER         adds evidence (incl. own verifications) — cannot authorize GLOBAL promotion
-CONTRIBUTOR  verifications count toward / can authorize GLOBAL promotion
-ADMIN        can promote/revert any knowledge, see admin queues, manage roles
+USER         adds evidence (incl. own verifications); eligible votes can support GLOBAL
+CONTRIBUTOR  adds verifications; does not bypass GLOBAL vote/contributor thresholds
+ADMIN        adds verifications and can revert GLOBAL, see admin queues, manage roles
 ```
 
 Fine-grained permissions are V2. Roles may later be mirrored into JWT claims as a cache only; the DB remains the source of truth.

@@ -70,9 +70,9 @@ Se agrega `AiConsentEvent`, append-only: `sequence`, `userId` o lápida, `contri
 
 El proyector ignora las observaciones cuyo origen sea el propio conocimiento (`inference` que usó un `AiKnowledge`, con una marca `derivedFromKnowledgeIds`). La confianza de un modelo nunca promueve por sí sola.
 
-### Autorización por rol al verificar
+### Rol registrado al verificar
 
-La promoción usa el `verifierRole` guardado en la verificación, no el rol actual. Si se le quita el rol a un CONTRIBUTOR, sus autorizaciones previas siguen valiendo. Para invalidarlas, un ADMIN tiene que revertir explícitamente.
+Cada verificación conserva el `verifierRole` del momento, no el rol actual. Cambiar después el rol de un CONTRIBUTOR no modifica retroactivamente sus votos; tampoco le da un atajo para promover GLOBAL. Para invalidar una promoción, un ADMIN registra una reversión explícita.
 
 ## Plan de implementación (Codex, rama `refactor/ai-4` en `temp`)
 
