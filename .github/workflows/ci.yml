@@ -1,33 +1,31 @@
 name: CI
 
+# Corre en el runner propio (PC casa) para no gastar minutos de GitHub Actions.
 on:
   push:
-    branches:
-      - main
-      - master
-      - develop
+    branches: [main, master, develop]
   pull_request:
+    branches: [main, master, develop]
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   backend:
-    runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:16-alpine
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: test
-          POSTGRES_DB: postgres
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U postgres"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
+    runs-on: [self-hosted, personal-os]
+    timeout-minutes: 45
+    defaults:
+      run:
+        shell: pwsh
     env:
+      # Evita CRLF en el checkout de Windows sin tocar la config global de git
+      GIT_CONFIG_COUNT: '1'
+      GIT_CONFIG_KEY_0: core.autocrlf
+      GIT_CONFIG_VALUE_0: 'false'
+      PG_CONTAINER: pos-ci-pg-${{ github.run_id }}-${{ github.run_attempt }}
       NODE_ENV: test
-      DATABASE_URL: postgresql://postgres:test@localhost:5432/postgres
+      DATABASE_URL: postgresql://postgres:test@localhost:55432/postgres
       SUPABASE_URL: https://example.supabase.co
       SUPABASE_SERVICE_ROLE_KEY: test-service-key
       CORS_ORIGIN: http://localhost:5173
@@ -49,6 +47,9 @@ jobs:
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
+        with:
+          # Carpeta temporal por job: evita choques con el pnpm global de la PC y entre runners
+          dest: ${{ runner.temp }}/setup-pnpm
         # version comes from package.json "packageManager"
 
       - name: Setup Node.js
@@ -57,6 +58,18 @@ jobs:
           node-version: 24
           cache: pnpm
           cache-dependency-path: pnpm-lock.yaml
+
+      - name: Start CI Postgres (Docker, puerto 55432)
+        run: |
+          docker rm -f $env:PG_CONTAINER 2>$null
+          docker run -d --name $env:PG_CONTAINER -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=test -e POSTGRES_DB=postgres -p 55432:5432 postgres:16-alpine
+          if ($LASTEXITCODE -ne 0) { throw 'No se pudo iniciar Postgres (Docker Desktop encendido?)' }
+          for ($i = 0; $i -lt 30; $i++) {
+            docker exec $env:PG_CONTAINER pg_isready -U postgres -h localhost 2>$null
+            if ($LASTEXITCODE -eq 0) { exit 0 }
+            Start-Sleep -Seconds 2
+          }
+          throw 'Postgres no quedo listo'
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -75,13 +88,9 @@ jobs:
         run: pnpm build:packages
 
       - name: Stub Supabase roles for CI Postgres
-        env:
-          PGPASSWORD: test
         run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq postgresql-client
-          psql -h localhost -U postgres -d postgres -v ON_ERROR_STOP=1 <<'SQL'
-          DO $$
+          $sql = @"
+          DO `$`$
           BEGIN
             IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'authenticated') THEN
               CREATE ROLE authenticated NOLOGIN;
@@ -93,15 +102,17 @@ jobs:
               CREATE ROLE service_role NOLOGIN BYPASSRLS;
             END IF;
           END
-          $$;
+          `$`$;
           CREATE SCHEMA IF NOT EXISTS auth;
           CREATE OR REPLACE FUNCTION auth.uid()
-          RETURNS uuid LANGUAGE sql STABLE AS $$
+          RETURNS uuid LANGUAGE sql STABLE AS `$`$
             SELECT NULLIF(current_setting('request.jwt.claim.sub', true), '')::uuid;
-          $$;
+          `$`$;
           GRANT USAGE ON SCHEMA auth TO authenticated, anon, service_role;
           GRANT EXECUTE ON FUNCTION auth.uid() TO authenticated, anon, service_role;
-          SQL
+          "@
+          $sql | docker exec -i $env:PG_CONTAINER psql -U postgres -d postgres -v ON_ERROR_STOP=1
+          if ($LASTEXITCODE -ne 0) { throw 'Fallo el stub de roles' }
 
       - name: Prisma migrate deploy
         run: pnpm db:migrate:deploy
@@ -129,5 +140,9 @@ jobs:
 
       - name: PostgreSQL integration and crash recovery
         env:
-          TEST_DATABASE_URL: postgresql://postgres:test@localhost:5432/postgres
+          TEST_DATABASE_URL: postgresql://postgres:test@localhost:55432/postgres
         run: pnpm test:integration
+
+      - name: Stop CI Postgres
+        if: always()
+        run: docker rm -f $env:PG_CONTAINER 2>$null; exit 0
