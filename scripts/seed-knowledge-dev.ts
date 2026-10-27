@@ -1,76 +1,15 @@
-import { createHash } from 'node:crypto';
 import { createScriptPrismaClient, Prisma } from '../packages/database/dist';
+import {
+  SeedGuardError,
+  assertDevelopmentEnvironment,
+} from './lib/dev-seed-guard';
+import { seedUuid } from './lib/seed-fixtures';
 
 const ADMIN_EMAIL = 'admin@gmail.com';
 const MIGRATION = '20261101090009_ai_knowledge';
 const SEED_VERSION = 'qa-ai4-knowledge-dev-v1';
-// Fingerprint of the DEV Supabase project, never a database password or token.
-const DEV_PROJECT_SHA256 =
-  'ef83b1ec8ea0c5e8fb11856bf22575b6607e8b01aeb1afcea836fe9b7d7e5688';
 const FIRST_SEEN_AT = new Date('2026-10-26T12:00:00.000Z');
 const LAST_SEEN_AT = new Date('2026-10-26T12:05:00.000Z');
-
-class SeedGuardError extends Error {}
-
-function assertDevelopmentEnvironment(): void {
-  if (process.env.NODE_ENV !== 'development') {
-    throw new SeedGuardError('NODE_ENV debe ser development');
-  }
-  for (const key of [
-    'INFISICAL_ENV',
-    'INFISICAL_ENVIRONMENT',
-    'RAILWAY_ENVIRONMENT',
-    'RAILWAY_ENVIRONMENT_NAME',
-    'APP_ENV',
-    'ENVIRONMENT',
-    'STAGE',
-  ]) {
-    const value = process.env[key]?.trim().toLowerCase();
-    if (value && value !== 'dev' && value !== 'development') {
-      throw new SeedGuardError(`${key} no indica DEV`);
-    }
-  }
-
-  const databaseUrl = process.env.DATABASE_URL;
-  const supabaseUrl = process.env.SUPABASE_URL;
-  if (!databaseUrl || !supabaseUrl) {
-    throw new SeedGuardError('Faltan las URL de la base DEV');
-  }
-  let database: URL;
-  let supabase: URL;
-  try {
-    database = new URL(databaseUrl);
-    supabase = new URL(supabaseUrl);
-  } catch {
-    throw new SeedGuardError('Las URL de DEV no son válidas');
-  }
-  const projectRef = supabase.hostname.split('.')[0];
-  const databaseRef = database.username.split('.').at(-1);
-  const fingerprint = createHash('sha256').update(projectRef).digest('hex');
-  if (
-    !['postgres:', 'postgresql:'].includes(database.protocol) ||
-    !database.hostname.endsWith('.pooler.supabase.com') ||
-    supabase.protocol !== 'https:' ||
-    !supabase.hostname.endsWith('.supabase.co') ||
-    !databaseRef ||
-    databaseRef !== projectRef ||
-    fingerprint !== DEV_PROJECT_SHA256
-  ) {
-    throw new SeedGuardError('La conexión no coincide con Supabase DEV');
-  }
-}
-
-function fixtureId(
-  scope: string,
-  type: string,
-  key: string,
-  userId: string | null,
-) {
-  const hex = createHash('sha256')
-    .update(`${SEED_VERSION}|${scope}|${userId ?? ''}|${type}|${key}`)
-    .digest('hex');
-  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-5${hex.slice(13, 16)}-a${hex.slice(17, 20)}-${hex.slice(20, 32)}`;
-}
 
 type SeedRow = Prisma.AiKnowledgeCreateManyInput & { id: string };
 
@@ -203,7 +142,13 @@ function fixtures(userId: string): SeedRow[] {
 
   return definitions.map((row) => ({
     ...row,
-    id: fixtureId(row.scope, row.knowledgeType, row.knowledgeKey, row.userId),
+    id: seedUuid({
+      seedVersion: SEED_VERSION,
+      scope: row.scope,
+      type: row.knowledgeType,
+      key: row.knowledgeKey,
+      userId: row.userId,
+    }),
     distinctUsers:
       row.scope === 'GLOBAL' ? (row.state === 'REVIEW_REQUIRED' ? 1 : 3) : 0,
     rejectedMessages: row.state === 'BLOCKED' ? 1 : 0,

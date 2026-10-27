@@ -34,3 +34,12 @@ Desde el repositorio, después de `pnpm db:generate` y `pnpm --filter @personal-
 ```
 
 El script exige `NODE_ENV=development`, comprueba marcadores de entorno, reconoce exclusivamente el proyecto Supabase DEV por su huella SHA-256 y exige que la migración de Knowledge esté aplicada antes de escribir. También exige que el usuario exista y tenga rol ADMIN. Solo imprime los conteos por alcance y estado. Las filas son una proyección de QA: un rebuild de Knowledge puede reemplazarlas; basta con repetir el seed en DEV después del rebuild.
+
+El script `scripts/seed-qa-user-dev.ts` prepara una segunda cuenta de QA, `qa-user@personal-os.dev`, sin rol ADMIN. Crea o actualiza el usuario en Supabase Auth con el correo verificado y le siembra seis filas USER de conocimiento con IDs deterministas: dos `STABLE` (promovidas), dos `REVIEW_REQUIRED` (pendientes) y dos `BLOCKED`. No crea ninguna fila en `user_roles`, así que el rol efectivo es `USER`. La contraseña es aleatoria en cada ejecución y solo se escribe en `C:\dev\personal\personal-os\qa-user-dev.txt`, fuera del repositorio; nunca se imprime ni se versiona. Repetir el script rota la contraseña y actualiza las mismas filas sin duplicarlas, y aborta si detecta un entorno distinto de DEV, una fila ajena que ocupe una clave del seed o un perfil de Auth desincronizado. Solo imprime el conteo de filas creadas y actualizadas y la ruta del archivo de contraseña.
+
+```powershell
+& 'C:\Program Files\nodejs\node_modules\@infisical\cli\bin\infisical.exe' run --env=dev --path=/back -- pnpm exec ts-node -r tsconfig-paths/register scripts/seed-qa-user-dev.ts --dry-run
+& 'C:\Program Files\nodejs\node_modules\@infisical\cli\bin\infisical.exe' run --env=dev --path=/back -- pnpm exec ts-node -r tsconfig-paths/register scripts/seed-qa-user-dev.ts
+```
+
+Este seed también necesita `SUPABASE_SERVICE_ROLE_KEY` de DEV, que Infisical ya inyecta con el resto del entorno del back. La cuenta no tiene rol ADMIN a propósito: sirve para probar la vista de conocimiento personal y los permisos de un usuario normal.
