@@ -234,14 +234,14 @@ async function assertNoForeignKnowledgeCollisions({
   prismaClient: Prisma.TransactionClient;
   userId: string;
 }): Promise<void> {
-  for (const found of existingRows) {
-    const planned = rows.find((row) => row.id === found.id);
+  for (const existingRow of existingRows) {
+    const planned = rows.find((row) => row.id === existingRow.id);
     if (
       !planned ||
-      planned.scope !== found.scope ||
-      planned.userId !== found.userId ||
-      planned.knowledgeType !== found.knowledgeType ||
-      planned.knowledgeKey !== found.knowledgeKey
+      planned.scope !== existingRow.scope ||
+      planned.userId !== existingRow.userId ||
+      planned.knowledgeType !== existingRow.knowledgeType ||
+      planned.knowledgeKey !== existingRow.knowledgeKey
     ) {
       throw new SeedGuardError('Colisión con una fila ajena al seed de QA');
     }
@@ -344,18 +344,18 @@ async function syncKnowledgeRows({
     });
   }
 
-  const actual = await prismaClient.aiKnowledge.findMany({
+  const persistedRows = await prismaClient.aiKnowledge.findMany({
     where: { id: { in: rows.map((row) => row.id) } },
     select: { scope: true, state: true },
   });
-  if (actual.length !== rows.length) {
+  if (persistedRows.length !== rows.length) {
     throw new SeedGuardError('El conteo de filas del seed de QA no coincide');
   }
 
   return {
     created: rows.length - existingRows.length,
     updated: existingRows.length,
-    counts: actual.reduce<Record<string, number>>((summary, row) => {
+    counts: persistedRows.reduce<Record<string, number>>((summary, row) => {
       const key = `${row.scope}/${row.state}`;
       summary[key] = (summary[key] ?? 0) + 1;
       return summary;
@@ -434,7 +434,7 @@ async function writePasswordFile({
   await writeFile(filePath, `${password}\n`, { encoding: 'utf8', mode: 0o600 });
 }
 
-async function previewDryRun(
+async function readDryRunPreview(
   prisma: ReturnType<typeof createScriptPrismaClient>,
 ) {
   return prisma.$transaction(async (tx) => {
@@ -469,11 +469,10 @@ async function main(): Promise<void> {
   const serviceRoleKey = requireServiceRoleKey();
   const passwordFile = resolvePasswordFile();
   const dryRun = process.argv.includes(DRY_RUN_FLAG);
-  const password = randomBytes(PASSWORD_BYTES).toString('base64url');
   const prisma = createScriptPrismaClient();
   try {
     if (dryRun) {
-      const preview = await previewDryRun(prisma);
+      const preview = await readDryRunPreview(prisma);
       console.log(
         JSON.stringify({
           mode: 'DRY_RUN',
@@ -490,6 +489,7 @@ async function main(): Promise<void> {
       await assertKnowledgeMigration(tx);
     });
 
+    const password = randomBytes(PASSWORD_BYTES).toString('base64url');
     const existingUser = await prisma.user.findUnique({
       where: { email: QA_EMAIL },
       select: { id: true },
