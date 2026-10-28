@@ -210,6 +210,22 @@ describe('AI-4 knowledge', () => {
     ).toBe(true);
   });
 
+  it('no auto-promueve una etiqueta SECURITY_ALERT aunque cumpla el umbral', () => {
+    const input = fixture();
+    const securityAlert = { semanticType: 'SECURITY_ALERT', relevance: false };
+    input.verifications = input.verifications.map((verification) => ({
+      ...verification,
+      verdict: 'CORRECTED' as const,
+      correctedPayload: securityAlert,
+    }));
+    const global = projectKnowledge(input).filter(
+      (item) => item.scope === 'GLOBAL',
+    );
+    expect(global.length).toBeGreaterThan(0);
+    expect(global.every((item) => item.state === 'REVIEW_REQUIRED')).toBe(true);
+    expect(global.every((item) => item.promotedBy === null)).toBe(true);
+  });
+
   it('deja GLOBAL pendiente hasta alcanzar el mínimo de colaboradores y bloquea la reversión ADMIN', () => {
     const input = fixture();
     input.minimumContributors = 3;

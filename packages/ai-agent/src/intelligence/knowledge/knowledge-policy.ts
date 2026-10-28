@@ -1,4 +1,6 @@
-export const POLICY_VERSION = 'email-knowledge-policy-v1';
+import { SECURITY_ALERT } from '../evidence/human-verification.constants';
+
+export const POLICY_VERSION = 'email-knowledge-policy-v2';
 
 /** The winning label needs at least 2/3 of the votes for its key. */
 const GLOBAL_APPROVAL_MIN_NUMERATOR = 2;
@@ -27,13 +29,19 @@ export function isGlobalPromotable({
   contributors,
   hasConsensus,
   minimumContributors,
+  semanticType,
 }: {
   leaderVotes: number;
   totalVotes: number;
   contributors: number;
   hasConsensus: boolean;
   minimumContributors: number;
+  semanticType?: string;
 }): boolean {
+  // A false fraud label would apply to every user, so it always needs ADMIN review.
+  if (semanticType === SECURITY_ALERT) {
+    return false;
+  }
   if (!hasConsensus) {
     return false;
   }

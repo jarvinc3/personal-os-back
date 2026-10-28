@@ -2,6 +2,7 @@ import {
   isGlobalPromotable,
   resolveMinimumContributors,
 } from './knowledge-policy';
+import { SECURITY_ALERT } from '../evidence/human-verification.constants';
 
 describe('AI-4 knowledge policy', () => {
   it('resuelve el mínimo de colaboradores por entorno', () => {
@@ -42,6 +43,13 @@ describe('AI-4 knowledge policy', () => {
         totalVotes: 6,
         leaderVotes: 3,
         contributors: 3,
+      }),
+    ).toBe(false);
+    expect(
+      isGlobalPromotable({
+        ...base,
+        leaderVotes: 2,
+        semanticType: SECURITY_ALERT,
       }),
     ).toBe(false);
   });
