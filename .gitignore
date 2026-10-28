@@ -45,6 +45,9 @@ lerna-debug.log*
 .temp
 .tmp
 
+# QA seed password (must stay outside the repository)
+qa-user-dev.txt
+
 # Runtime data
 pids
 *.pid

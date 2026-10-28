@@ -4,7 +4,9 @@
     "apps/**/*.ts",
     "packages/*/src/**/*.ts",
     "test/**/*.ts",
-    "scripts/seed-knowledge-dev.ts"
+    "scripts/seed-knowledge-dev.ts",
+    "scripts/seed-qa-user-dev.ts",
+    "scripts/lib/**/*.ts"
   ],
   "exclude": ["**/dist/**", "**/node_modules/**"]
 }

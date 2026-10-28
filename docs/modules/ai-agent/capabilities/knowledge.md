@@ -18,19 +18,35 @@ La proyección se borra y vuelve a crearse dentro de la misma transacción. Los 
 - `packages/ai-agent/src/intelligence/knowledge/knowledge-policy.spec.ts`: mínimo de colaboradores por entorno y umbral de 2/3 con desempate.
 - `packages/ai-agent/src/intelligence/knowledge/ai-knowledge.service.spec.ts`: rebuild determinista y bloqueo de un GLOBAL sin evidencia.
 - `packages/ai-agent/src/intelligence/knowledge/ai-data-deletion.service.spec.ts`: lápidas elegibles, opt-out, HOLDOUT y runs `INCOMPLETE`.
+- `scripts/seed-knowledge-dev.ts` y `scripts/seed-qa-user-dev.ts`: verifican en DEV que la evidencia produce los estados y que un rebuild conserva las filas sin contadores en cero.
 - `test/ai-agent.e2e-spec.ts`: JWT, aislamiento de rutas, confirmación de borrado y acceso ADMIN.
 
 Contrato HTTP: [http.md](../contracts/http.md#ai-4-knowledge).
 
 ## Datos de QA en DEV
 
-El script `scripts/seed-knowledge-dev.ts` crea diez filas sintéticas en `ai_knowledge` para probar web #327: cuatro USER del perfil `admin@gmail.com` y seis GLOBAL. Entre las GLOBAL hay dos `STABLE` (promovidas), dos `REVIEW_REQUIRED` (pendientes) y dos `BLOCKED`. Sus IDs son deterministas; repetirlo actualiza las mismas filas sin duplicarlas. Las claves usan dominios `.example` y los payloads GLOBAL solo contienen estructura permitida.
+Los dos seeds de Knowledge ya no insertan filas en `ai_knowledge`. Crean la evidencia que lee `knowledge-projector.ts` y ejecutan `AiKnowledgeService.rebuild()` con un ADMIN: si faltan, añaden una conexión de correo inactiva, mensajes, `ai_dataset_items` en `TRAIN`, verificaciones, observaciones, consentimiento y reversiones ADMIN. Repetir el seed no duplica la evidencia y reconstruye la proyección; un rebuild posterior conserva las filas porque vuelve a leer la misma evidencia. Cada seed falla si desaparece un estado esperado o si una clave GLOBAL del fixture queda con cero correos.
 
-Desde el repositorio, después de `pnpm db:generate` y `pnpm --filter @personal-os/database build`, ejecutar en PowerShell:
+El script `scripts/seed-knowledge-dev.ts` prepara el corpus del perfil `admin@gmail.com`:
+
+- USER: nueve filas `STABLE` (pagos, suscripciones y alertas) y una `OBSERVED` (plantilla observada).
+- GLOBAL: dos `STABLE` de pagos, dos `REVIEW_REQUIRED` de suscripciones (dos etiquetas en empate) y dos `BLOCKED` de alertas (reversión ADMIN). Reutiliza las claves `qa-ai4-*.example` del seed anterior.
+
+El script `scripts/seed-qa-user-dev.ts` prepara `qa-user@personal-os.dev`, sin rol ADMIN:
+
+- USER: nueve filas `STABLE` y dos `OBSERVED` del perfil QA.
+- GLOBAL: dos `STABLE` de pagos (QA + admin), dos `REVIEW_REQUIRED` de pendientes (etiquetas en empate) y dos `BLOCKED` de seguridad (reversión ADMIN).
+- Crea o actualiza la cuenta en Supabase Auth con el correo verificado; la contraseña aleatoria solo se escribe en `C:\dev\personal\personal-os\qa-user-dev.txt`, fuera del repositorio.
+
+Por contrato, USER solo produce `OBSERVED` o `STABLE`; `REVIEW_REQUIRED` y `BLOCKED` son GLOBAL y se ven en la cola ADMIN. La cuenta QA ve su conocimiento personal y las filas GLOBAL `STABLE`; las pendientes y bloqueadas quedan para la revisión del ADMIN.
+
+Desde el repositorio, después de `pnpm db:generate` y `pnpm build:packages`, ejecutar en PowerShell:
 
 ```powershell
 & 'C:\Program Files\nodejs\node_modules\@infisical\cli\bin\infisical.exe' run --env=dev --path=/back -- pnpm exec ts-node -r tsconfig-paths/register scripts/seed-knowledge-dev.ts --dry-run
 & 'C:\Program Files\nodejs\node_modules\@infisical\cli\bin\infisical.exe' run --env=dev --path=/back -- pnpm exec ts-node -r tsconfig-paths/register scripts/seed-knowledge-dev.ts
+& 'C:\Program Files\nodejs\node_modules\@infisical\cli\bin\infisical.exe' run --env=dev --path=/back -- pnpm exec ts-node -r tsconfig-paths/register scripts/seed-qa-user-dev.ts --dry-run
+& 'C:\Program Files\nodejs\node_modules\@infisical\cli\bin\infisical.exe' run --env=dev --path=/back -- pnpm exec ts-node -r tsconfig-paths/register scripts/seed-qa-user-dev.ts
 ```
 
-El script exige `NODE_ENV=development`, comprueba marcadores de entorno, reconoce exclusivamente el proyecto Supabase DEV por su huella SHA-256 y exige que la migración de Knowledge esté aplicada antes de escribir. También exige que el usuario exista y tenga rol ADMIN. Solo imprime los conteos por alcance y estado. Las filas son una proyección de QA: un rebuild de Knowledge puede reemplazarlas; basta con repetir el seed en DEV después del rebuild.
+Los seeds exigen `NODE_ENV=development`, comprueban marcadores de entorno, reconocen exclusivamente el proyecto Supabase DEV por su huella SHA-256 y exigen que la migración de Knowledge esté aplicada antes de escribir. El seed del admin exige que `admin@gmail.com` tenga rol ADMIN; el de QA exige ese mismo ADMIN para la evidencia GLOBAL y deja a `qa-user@personal-os.dev` sin fila en `user_roles`, así que su rol efectivo es `USER`. El seed de QA también necesita `SUPABASE_SERVICE_ROLE_KEY` de DEV, que Infisical ya inyecta con el resto del entorno del back. Solo imprimen conteos de evidencia, filas proyectadas por estado y, en QA, la ruta del archivo de contraseña. La segunda ejecución de cualquiera de los dos es la verificación de rebuild: no crea evidencia nueva y vuelve a exigir los estados.

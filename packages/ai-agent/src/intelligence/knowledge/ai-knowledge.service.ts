@@ -312,7 +312,11 @@ export class AiKnowledgeService {
           items: rows.length + unsupportedGlobal.length,
         };
       },
-      { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead },
+      {
+        isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead,
+        maxWait: 10_000,
+        timeout: 120_000,
+      },
     );
   }
 
