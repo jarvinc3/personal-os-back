@@ -7,6 +7,13 @@ type ConsentRecord = {
   contributionConsentAt: Date;
 };
 
+function toConsentRecord(settings: ConsentRecord): ConsentRecord {
+  return {
+    contributeToGlobalKnowledge: settings.contributeToGlobalKnowledge,
+    contributionConsentAt: settings.contributionConsentAt,
+  };
+}
+
 type SavedConsent = {
   consent: ConsentRecord;
   revoked: boolean;
@@ -27,10 +34,7 @@ export class AiConsentService {
         where: { userId },
       });
       if (existing) {
-        return {
-          contributeToGlobalKnowledge: existing.contributeToGlobalKnowledge,
-          contributionConsentAt: existing.contributionConsentAt,
-        };
+        return toConsentRecord(existing);
       }
       const settings = await tx.userAiSettings.upsert({
         where: { userId },
@@ -46,10 +50,7 @@ export class AiConsentService {
           },
         });
       }
-      return {
-        contributeToGlobalKnowledge: settings.contributeToGlobalKnowledge,
-        contributionConsentAt: settings.contributionConsentAt,
-      };
+      return toConsentRecord(settings);
     });
   }
 
@@ -73,10 +74,7 @@ export class AiConsentService {
         existing?.contributeToGlobalKnowledge === contributeToGlobalKnowledge
       ) {
         return {
-          consent: {
-            contributeToGlobalKnowledge: existing.contributeToGlobalKnowledge,
-            contributionConsentAt: existing.contributionConsentAt,
-          },
+          consent: toConsentRecord(existing),
           revoked: false,
         };
       }
@@ -105,10 +103,7 @@ export class AiConsentService {
         });
       }
       return {
-        consent: {
-          contributeToGlobalKnowledge: settings.contributeToGlobalKnowledge,
-          contributionConsentAt: settings.contributionConsentAt,
-        },
+        consent: toConsentRecord(settings),
         revoked: !contributeToGlobalKnowledge,
       };
     });
