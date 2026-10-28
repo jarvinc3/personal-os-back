@@ -149,7 +149,7 @@
       "ts"
     ],
     "rootDir": ".",
-    "testRegex": "(apps/[^/]+/src|packages/[^/]+/src)/.*\\.spec\\.ts$",
+    "testRegex": "(apps/[^/]+/src|packages/[^/]+/src|scripts/lib)/.*\\.spec\\.ts$",
     "moduleNameMapper": {
       "^(\\.{1,2}/.*)\\.js$": "$1",
       "^@personal-os/([^/]+)$": "<rootDir>/packages/$1/src"

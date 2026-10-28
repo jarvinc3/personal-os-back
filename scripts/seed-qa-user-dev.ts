@@ -1,4 +1,3 @@
-import { randomBytes } from 'node:crypto';
 import { writeFile } from 'node:fs/promises';
 import { isAbsolute, relative, resolve, sep } from 'node:path';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
@@ -17,13 +16,13 @@ import {
   type EvidenceVerification,
   type KnowledgeEvidenceInput,
 } from './lib/knowledge-evidence';
+import { generateQaPassword } from './lib/qa-password';
 
 const QA_EMAIL = 'qa-user@personal-os.dev';
 const QA_FULL_NAME = 'QA User';
 const ADMIN_EMAIL = 'admin@gmail.com';
 const SEED_VERSION = 'qa-user-dev-v2';
 const DEFAULT_PASSWORD_FILE = 'C:/dev/personal/personal-os/qa-user-dev.txt';
-const PASSWORD_BYTES = 24;
 const DRY_RUN_FLAG = '--dry-run';
 const BASE_TIME = new Date('2026-10-26T12:00:00.000Z');
 
@@ -371,7 +370,7 @@ async function main(): Promise<void> {
       return;
     }
 
-    const password = randomBytes(PASSWORD_BYTES).toString('base64url');
+    const password = generateQaPassword();
     const authClient = createClient(supabaseUrl, serviceRoleKey, {
       auth: { autoRefreshToken: false, persistSession: false },
     });
