@@ -1,9 +1,25 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '@personal-os/database';
+import { AiKnowledgeService } from '../knowledge/ai-knowledge.service';
+
+type ConsentRecord = {
+  contributeToGlobalKnowledge: boolean;
+  contributionConsentAt: Date;
+};
+
+type SavedConsent = {
+  consent: ConsentRecord;
+  revoked: boolean;
+};
 
 @Injectable()
 export class AiConsentService {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly logger = new Logger(AiConsentService.name);
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly knowledge: AiKnowledgeService,
+  ) {}
 
   get(userId: string) {
     return this.prisma.$transaction(async (tx) => {
@@ -38,6 +54,17 @@ export class AiConsentService {
   }
 
   async update(userId: string, contributeToGlobalKnowledge: boolean) {
+    const saved = await this.saveConsent(userId, contributeToGlobalKnowledge);
+    if (saved.revoked) {
+      await this.rebuildAfterRevocation(userId);
+    }
+    return saved.consent;
+  }
+
+  private async saveConsent(
+    userId: string,
+    contributeToGlobalKnowledge: boolean,
+  ): Promise<SavedConsent> {
     return this.prisma.$transaction(async (tx) => {
       const existing = await tx.userAiSettings.findUnique({
         where: { userId },
@@ -46,8 +73,11 @@ export class AiConsentService {
         existing?.contributeToGlobalKnowledge === contributeToGlobalKnowledge
       ) {
         return {
-          contributeToGlobalKnowledge: existing.contributeToGlobalKnowledge,
-          contributionConsentAt: existing.contributionConsentAt,
+          consent: {
+            contributeToGlobalKnowledge: existing.contributeToGlobalKnowledge,
+            contributionConsentAt: existing.contributionConsentAt,
+          },
+          revoked: false,
         };
       }
       const now = new Date();
@@ -67,10 +97,32 @@ export class AiConsentService {
           reason: existing ? 'USER_CHANGE' : 'INITIAL_CHOICE',
         },
       });
+      if (!contributeToGlobalKnowledge) {
+        // Fail closed: revoked evidence must stop being usable even if the rebuild fails.
+        await tx.aiKnowledge.updateMany({
+          where: { scope: 'GLOBAL' },
+          data: { state: 'REVIEW_REQUIRED', promotedBy: null },
+        });
+      }
       return {
-        contributeToGlobalKnowledge: settings.contributeToGlobalKnowledge,
-        contributionConsentAt: settings.contributionConsentAt,
+        consent: {
+          contributeToGlobalKnowledge: settings.contributeToGlobalKnowledge,
+          contributionConsentAt: settings.contributionConsentAt,
+        },
+        revoked: !contributeToGlobalKnowledge,
       };
     });
+  }
+
+  private async rebuildAfterRevocation(userId: string): Promise<void> {
+    try {
+      await this.knowledge.rebuild(userId);
+    } catch (error) {
+      // The revocation and the fail-closed pause are already committed.
+      this.logger.error(
+        `AI knowledge rebuild failed after consent revocation for ${userId}`,
+        error instanceof Error ? error.stack : undefined,
+      );
+    }
   }
 }

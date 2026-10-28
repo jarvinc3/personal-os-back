@@ -68,8 +68,9 @@ providers, no conoce ni valida campos de negocio.
 - El contenido de evidencia es append-only durante la operación normal.
   Cambios de consentimiento y exclusiones forman un registro separado,
   versionado, que también debe identificarse en cada run.
-- Revocar consentimiento excluye la evidencia del usuario del siguiente
-  rebuild GLOBAL. Si una promoción pierde el umbral de 2/3 o el mínimo de
+- Revocar consentimiento excluye la evidencia del usuario del rebuild que se
+  dispara al guardar el cambio (decisión del 2026-10-27); GLOBAL queda en
+  revisión si ese rebuild falla. Si una promoción pierde el umbral de 2/3 o el mínimo de
   colaboradores elegibles de `AI_GLOBAL_MIN_CONTRIBUTORS`, pasa a
   `REVIEW_REQUIRED` y deja de utilizarse automáticamente. No se borra.
   Una verificación CONTRIBUTOR/ADMIN tampoco salta esos umbrales; manda el

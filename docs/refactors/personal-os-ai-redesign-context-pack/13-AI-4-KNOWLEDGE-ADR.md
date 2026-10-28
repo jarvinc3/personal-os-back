@@ -57,7 +57,7 @@ El proyector descarta toda la evidencia de los ítems con `partition = HOLDOUT` 
 
 ### Registro de consentimiento
 
-Se agrega `AiConsentEvent`, append-only: `sequence`, `userId` o lápida, `contributeToGlobalKnowledge`, `reason` y `createdAt`. `UserAiSettings` queda como vista del último evento. Cada cambio escribe un evento, y la revisión de consentimiento de un run es el `sequence` máximo aplicado. El borrado no crea eventos que reactiven un consentimiento revocado.
+Se agrega `AiConsentEvent`, append-only: `sequence`, `userId` o lápida, `contributeToGlobalKnowledge`, `reason` y `createdAt`. `UserAiSettings` queda como vista del último evento. Cada cambio escribe un evento, y la revisión de consentimiento de un run es el `sequence` máximo aplicado. Revocar el consentimiento pausa GLOBAL y dispara el rebuild al guardar el cambio; si el rebuild falla, GLOBAL sigue en revisión. El borrado no crea eventos que reactiven un consentimiento revocado.
 
 ### Campos de reproducción del run
 
