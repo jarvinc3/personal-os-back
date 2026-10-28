@@ -1,5 +1,7 @@
 # Refactor de frontera de Notifications
 
+Seguimiento: NOTIF-0 en [#245](https://github.com/jarvinc3/personal-os-back/issues/245).
+
 ## Diagnóstico
 
 La estructura del paquete en sí está sana: application/domain/infrastructure/presentation, repositorio, processor de colas, gateway WebSocket, adaptadores de push/email y servicio de policy tienen roles claros.

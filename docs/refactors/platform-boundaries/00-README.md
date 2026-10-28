@@ -1,5 +1,7 @@
 # Fronteras de plataforma — Core Events y Module Settings
 
+Seguimiento: PLATFORM-EVENTS-0 en [#243](https://github.com/jarvinc3/personal-os-back/issues/243) y PLATFORM-SETTINGS-0 en [#244](https://github.com/jarvinc3/personal-os-back/issues/244).
+
 Es una limpieza transversal, no una reescritura de Core ni de Users.
 
 ## A. Core Events
