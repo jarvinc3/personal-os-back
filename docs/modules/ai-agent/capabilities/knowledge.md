@@ -18,6 +18,7 @@ La proyección se borra y vuelve a crearse dentro de la misma transacción. Los 
 - `packages/ai-agent/src/intelligence/knowledge/knowledge-policy.spec.ts`: mínimo de colaboradores por entorno y umbral de 2/3 con desempate.
 - `packages/ai-agent/src/intelligence/knowledge/ai-knowledge.service.spec.ts`: rebuild determinista y bloqueo de un GLOBAL sin evidencia.
 - `packages/ai-agent/src/intelligence/knowledge/ai-data-deletion.service.spec.ts`: lápidas elegibles, opt-out, HOLDOUT y runs `INCOMPLETE`.
+- `scripts/lib/qa-password.spec.ts`: la contraseña del seed de QA es aleatoria en cada llamada y siempre cumple las cuatro clases de caracteres que exige Supabase.
 - `scripts/seed-knowledge-dev.ts` y `scripts/seed-qa-user-dev.ts`: verifican en DEV que la evidencia produce los estados y que un rebuild conserva las filas sin contadores en cero.
 - `test/ai-agent.e2e-spec.ts`: JWT, aislamiento de rutas, confirmación de borrado y acceso ADMIN.
 
@@ -36,7 +37,7 @@ El script `scripts/seed-qa-user-dev.ts` prepara `qa-user@personal-os.dev`, sin r
 
 - USER: nueve filas `STABLE` y dos `OBSERVED` del perfil QA.
 - GLOBAL: dos `STABLE` de pagos (QA + admin), dos `REVIEW_REQUIRED` de pendientes (etiquetas en empate) y dos `BLOCKED` de seguridad (reversión ADMIN).
-- Crea o actualiza la cuenta en Supabase Auth con el correo verificado; la contraseña aleatoria solo se escribe en `C:\dev\personal\personal-os\qa-user-dev.txt`, fuera del repositorio.
+- Crea o actualiza la cuenta en Supabase Auth con el correo verificado; la contraseña aleatoria, de 24 caracteres con minúscula, mayúscula, dígito y símbolo, solo se escribe en `C:\dev\personal\personal-os\qa-user-dev.txt`, fuera del repositorio. Las cuatro clases evitan que Supabase la rechace con `weak_password`.
 
 Por contrato, USER solo produce `OBSERVED` o `STABLE`; `REVIEW_REQUIRED` y `BLOCKED` son GLOBAL y se ven en la cola ADMIN. La cuenta QA ve su conocimiento personal y las filas GLOBAL `STABLE`; las pendientes y bloqueadas quedan para la revisión del ADMIN.
 
