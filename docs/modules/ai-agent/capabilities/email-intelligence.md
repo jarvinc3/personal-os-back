@@ -16,7 +16,7 @@ Endpoints:
 - `POST /api/intelligence/email/connect` and `POST /api/intelligence/email/sync`.
 - `POST /api/intelligence/email/reset` with `{ "confirmed": true }` removes this user's imported mail and derived review/analysis data, resets bootstrap cursors, and retains the OAuth connection.
 - `GET /api/intelligence/email/oauth/callback`: public OAuth callback; the signed state is validated before persisting tokens.
-- `GET|PATCH /api/ai/preferences/consent`: contribution consent, enabled by default and revocable.
+- `GET|PATCH /api/ai/preferences/consent`: contribution consent, enabled by default and revocable. Revoking it pauses GLOBAL knowledge and rebuilds the projection.
 - `GET /api/ai/admin/roles` and `PATCH /api/ai/admin/roles/:userId`: ADMIN-only role management.
 
 Raw message bodies are purged 30 days after ingestion in DEV and 7 days after ingestion in PROD; canonical and sanitized representations remain available for this phase. New tables enable RLS and revoke `PUBLIC`, `anon`, and `authenticated` access where those roles exist. The backend accesses them through Prisma.
