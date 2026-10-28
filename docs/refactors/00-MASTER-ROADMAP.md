@@ -24,7 +24,7 @@ Antes de Wave A se entrega la corrección independiente del outbox: leases recup
 
 ## Seguimiento de fases en GitHub
 
-Cada fase tiene un issue propio en `personal-os-back`, enlazado como sub-issue del [programa #193](https://github.com/jarvinc3/personal-os-back/issues/193). La prioridad del Project 3 sigue este criterio: **High** cuando la fase es prerrequisito de un gate de otro programa o del release; **Medium** para el resto del trabajo de `0.100.0`; **Low** para lo que sale después del release.
+Cada fase tiene un issue propio en `personal-os-back`, enlazado como sub-issue del [programa #193](https://github.com/jarvinc3/personal-os-back/issues/193). Las fases AI-0 a AI-12 y los contratos de la oleada A ya lo tienen; las fases restantes de Finance, Notifications y plataforma abren su issue al planificarse. La prioridad del Project 3 sigue este criterio: **High** cuando la fase es prerrequisito de un gate de otro programa o del release; **Medium** para el resto del trabajo de `0.100.0`; **Low** para lo que sale después del release.
 
 | Fase                                 | Issue                                                           | Wave                 | Estado  | Prioridad |
 | ------------------------------------ | --------------------------------------------------------------- | -------------------- | ------- | --------- |
@@ -32,7 +32,7 @@ Cada fase tiene un issue propio en `personal-os-back`, enlazado como sub-issue d
 | AI-1 Inference Gateway               | [#204](https://github.com/jarvinc3/personal-os-back/issues/204) | B1                   | Cerrado | High      |
 | AI-2 Gmail/corpus                    | [#205](https://github.com/jarvinc3/personal-os-back/issues/205) | B1                   | Cerrado | High      |
 | AI-3 evidencia y verificación humana | [#206](https://github.com/jarvinc3/personal-os-back/issues/206) | C                    | Cerrado | Medium    |
-| AI-4 knowledge                       | [#207](https://github.com/jarvinc3/personal-os-back/issues/207) | C                    | Abierto | Medium    |
+| AI-4 knowledge                       | [#207](https://github.com/jarvinc3/personal-os-back/issues/207) | C                    | Cerrado | Medium    |
 | AI-5 email intelligence              | [#208](https://github.com/jarvinc3/personal-os-back/issues/208) | C                    | Abierto | Medium    |
 | AI-6 evaluación                      | [#209](https://github.com/jarvinc3/personal-os-back/issues/209) | C                    | Abierto | Medium    |
 | AI-7 Signals                         | [#210](https://github.com/jarvinc3/personal-os-back/issues/210) | D                    | Abierto | High      |
@@ -43,6 +43,21 @@ Cada fase tiene un issue propio en `personal-os-back`, enlazado como sub-issue d
 | AI-12 Proactive Intelligence         | [#215](https://github.com/jarvinc3/personal-os-back/issues/215) | Después de `0.100.0` | Abierto | Low       |
 
 Cada diseño de fase enlaza su issue: [AI-0](ai-0-design/00-README.md) y [AI-1](ai-1-design/00-inference-gateway.md).
+
+### Contratos de frontera de la oleada A
+
+Estos issues se abrieron el 2026-10-28 para que el trabajo pendiente de la oleada A quede trazable. No reinician AI-0 a AI-4 ni cambian el orden de las waves.
+
+| Fase                | Issue                                                           | Programa      | Estado  | Prioridad |
+| ------------------- | --------------------------------------------------------------- | ------------- | ------- | --------- |
+| FIN-0               | [#242](https://github.com/jarvinc3/personal-os-back/issues/242) | Finance       | Abierto | High      |
+| PLATFORM-EVENTS-0   | [#243](https://github.com/jarvinc3/personal-os-back/issues/243) | Plataforma    | Abierto | High      |
+| PLATFORM-SETTINGS-0 | [#244](https://github.com/jarvinc3/personal-os-back/issues/244) | Plataforma    | Abierto | Medium    |
+| NOTIF-0             | [#245](https://github.com/jarvinc3/personal-os-back/issues/245) | Notifications | Abierto | Medium    |
+
+El gate de la oleada A sigue abierto: AI-0 está cerrado, pero los cuatro contratos de frontera no. Las fases restantes de cada programa (FIN-1 a FIN-4, NOTIF-1 a NOTIF-3, PLATFORM-EVENTS-1 y PLATFORM-SETTINGS-1/2) abren su issue al planificarse.
+
+Los hallazgos de la QA de AI-4 forman parte de AI-5: #238 y #239 corrigen la proyección y la revocación, y #246 cubre la promoción manual de ADMIN.
 
 ## Principio
 

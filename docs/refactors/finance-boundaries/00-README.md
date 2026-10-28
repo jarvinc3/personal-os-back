@@ -1,5 +1,7 @@
 # Refactor de fronteras de arquitectura de Finance
 
+Seguimiento: FIN-0 en [#242](https://github.com/jarvinc3/personal-os-back/issues/242).
+
 ## Alcance
 
 Esto **no es Finance V2** y no reconstruye la lógica de dominio de Finance que está sana. Retira responsabilidades que se filtraron a Finance porque el email y la arquitectura anterior del agente estaban centrados en Finance.
