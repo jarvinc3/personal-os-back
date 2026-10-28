@@ -34,6 +34,7 @@ La clave de remitente solo existe en USER. GLOBAL solo admite `EMAIL_DOMAIN` y `
 
 - Por mensaje vale la verificación de mayor `sequence`. Las anteriores se conservan como historial.
 - En USER, gana la verificación vigente más reciente del propio usuario, sin votación. En GLOBAL, por clave se agregan las verificaciones vigentes de sus mensajes y gana la etiqueta con más mensajes. Si hay empate, si la ganadora no llega a 2/3 de los votos o si la apoyan menos de AI_GLOBAL_MIN_CONTRIBUTORS colaboradores distintos (variable de entorno, 3 por defecto y 1 en develop para QA), el ítem queda en REVIEW_REQUIRED y no se usa automáticamente.
+- Decisión del owner (2026-10-27): una etiqueta `SECURITY_ALERT` nunca se auto-promueve. Aunque cumpla el umbral y el mínimo de colaboradores, queda en REVIEW_REQUIRED para revisión ADMIN, porque una etiqueta de fraude equivocada afectaría a todos los usuarios.
 - Aclaración del owner (2026-10-26): el rol CONTRIBUTOR/ADMIN no salta ni el umbral de 2/3 ni el mínimo de colaboradores. Una plantilla cuyo asunto normalizado pueda contener nombres, comercios o referencias literales se queda en USER y se bloquea para GLOBAL.
 - `REJECTED` vale 0 para la etiqueta: excluye el mensaje del cálculo de esa clave, pero suma al conteo de mensajes rechazados para auditoría. Nunca crea conocimiento.
 - `CONFIRMED` y `CORRECTED` pesan 1. Las observaciones automáticas de AI-5 pesan menos que cualquier verificación humana y nunca la contradicen.

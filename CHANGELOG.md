@@ -41,6 +41,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [Se
 
 ### Corregido
 
+- AI-4 (#238): una etiqueta `SECURITY_ALERT` ya no se auto-promueve a GLOBAL; queda en revisión ADMIN aunque cumpla el umbral y el mínimo de colaboradores.
 - El seed de QA genera la contraseña con las cuatro clases de caracteres que exige Supabase (minúscula, mayúscula, dígito y símbolo) en 24 caracteres, con `randomInt` y mezcla Fisher-Yates; antes la cadena base64url podía salir sin alguna clase y Supabase la rechazaba con `weak_password` (#207).
 - El rebuild de Knowledge usa una transacción de 120 s: el límite anterior de 5 s abortaba en DEV con el corpus actual (#207).
 - La documentación de AI-4 refleja el umbral GLOBAL aprobado (2/3 y mínimo configurable sin atajo por rol), el esquema implementado y el estado real de los tickets y PRs (#207).
