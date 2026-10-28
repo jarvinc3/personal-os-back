@@ -212,7 +212,11 @@ describe('AI-4 knowledge', () => {
 
   it('no auto-promueve una etiqueta SECURITY_ALERT aunque cumpla el umbral', () => {
     const input = fixture();
-    const securityAlert = { semanticType: 'SECURITY_ALERT', relevance: false };
+    const securityAlert = {
+      semanticType: 'SECURITY_ALERT',
+      relevance: true,
+      routes: ['SECURITY'],
+    };
     input.verifications = input.verifications.map((verification) => ({
       ...verification,
       verdict: 'CORRECTED' as const,
