@@ -77,6 +77,51 @@ describe('AiEmailSourceService', () => {
     },
   );
 
+  it('expone la configuración OAuth sin valores sensibles', () => {
+    const config = {
+      get: jest.fn(
+        (key: string) =>
+          ({
+            AI_GMAIL_CLIENT_ID: 'client-id',
+            AI_GMAIL_CLIENT_SECRET: 'client-secret',
+            AI_GMAIL_REDIRECT_URI: 'http://localhost/callback',
+            AI_GMAIL_TOKEN_ENCRYPTION_KEY: 'a'.repeat(32),
+          })[key],
+      ),
+    };
+    const service = new AiEmailSourceService({} as never, config as never);
+    const diagnostics = service.oauthDiagnostics();
+
+    expect(diagnostics).toEqual({
+      configured: true,
+      provider: 'GMAIL',
+      scopes: [
+        'https://www.googleapis.com/auth/gmail.readonly',
+        'https://www.googleapis.com/auth/userinfo.email',
+      ],
+      status: 'ready',
+    });
+    expect(JSON.stringify(diagnostics)).not.toContain('client-secret');
+    expect(JSON.stringify(diagnostics)).not.toContain('client-id');
+  });
+
+  it('reporta la configuración OAuth incompleta', () => {
+    const service = new AiEmailSourceService(
+      {} as never,
+      { get: jest.fn().mockReturnValue(undefined) } as never,
+    );
+
+    expect(service.oauthDiagnostics()).toEqual({
+      configured: false,
+      provider: 'GMAIL',
+      scopes: [
+        'https://www.googleapis.com/auth/gmail.readonly',
+        'https://www.googleapis.com/auth/userinfo.email',
+      ],
+      status: 'missing_oauth_configuration',
+    });
+  });
+
   it('no reintenta un 401 y conserva el código del proveedor', async () => {
     const fetchMock = jest.fn().mockResolvedValue({
       ok: false,

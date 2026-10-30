@@ -8,6 +8,8 @@ Sync progress is persisted on the user's connection so refreshes can recover its
 
 Gmail quota errors honor the provider's `Retry-After` value, bounded between 1 and 30 seconds. When Gmail omits it, the backend shows a visible exponential wait of 5, 10, and 20 seconds before its three retries. If the quota remains exhausted, the connection stays in `waiting` and schedules another automatic attempt after 1, 2, 4, 8, then at most 15 minutes; the retry time is persisted and resumed after a worker restart. The incremental history read uses the same retries and retry states as the rest of the Gmail calls.
 
+At startup, if the OAuth variables are missing, `onModuleInit` logs a safe warning and does not schedule the automatic cycle. The authenticated `GET /api/intelligence/email/oauth/diagnostics` reports `missing_oauth_configuration` without exposing values; after the variables are set and the API restarts, it reports `ready` and the cycle starts. An existing connection is not healthy while that status is incomplete.
+
 Errors are classified as `configuration`, `authorization`, `rate_limit`, `temporary` or `unknown`. The safe provider code is kept in `errorCode` (or in `providerErrorCode` when a retry is scheduled) so the dashboard can show a concrete cause: `gmail_oauth_not_configured` stays a configuration error, `401`/`403`/`insufficientPermissions` become authorization errors, and an unrecognized provider code remains available instead of a generic exception message. A worker restart mid-run is recorded as `worker_interrupted`.
 
 Endpoints:
