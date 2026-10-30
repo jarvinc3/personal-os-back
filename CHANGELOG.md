@@ -42,6 +42,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [Se
 
 ### Corregido
 
+- El reinicio del corpus de Gmail devuelve 409 `GMAIL_NOT_CONNECTED` sin conexión y 409 `GMAIL_SYNC_IN_PROGRESS` mientras el sync está activo o esperando cuota; no borra nada en esos casos y los códigos quedan en Swagger (#225).
 - Gmail conserva la causa real de sus fallos y reintenta la lectura del historial: la falta de configuración OAuth queda como `configuration` con `gmail_oauth_not_configured`, un 401/403 como `authorization`, un 429/5xx como `rate_limit` o `temporary`, y un código no reconocido se conserva para que la pantalla muestre una causa concreta; un reinicio del API sigue marcando `worker_interrupted` (#250).
 - AI-4 (#239): revocar el consentimiento marca GLOBAL en `REVIEW_REQUIRED` y reconstruye la proyección en la misma solicitud; si el rebuild falla, la revocación y la pausa se conservan.
 - AI-4 (#238): una etiqueta `SECURITY_ALERT` ya no se auto-promueve a GLOBAL; queda en revisión ADMIN aunque cumpla el umbral y el mínimo de colaboradores.

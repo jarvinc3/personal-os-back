@@ -457,6 +457,29 @@ describe('GmailSyncService', () => {
     expect(prisma.$transaction).not.toHaveBeenCalled();
   });
 
+  it('rechaza el reinicio sin una conexión de Gmail', async () => {
+    const { prisma, deletion, service } = makeFixture();
+    prisma.aiEmailConnection.findUnique.mockResolvedValueOnce(null);
+
+    await expect(service.resetEmailCorpus('user-1')).rejects.toMatchObject({
+      response: { code: 'GMAIL_NOT_CONNECTED' },
+    });
+    expect(deletion.removeEmailData).not.toHaveBeenCalled();
+  });
+
+  it('rechaza el reinicio mientras el sync espera por cuota', async () => {
+    const { current, deletion, service } = makeFixture();
+    current.syncState = {
+      status: 'waiting',
+      errorCode: 'rate_limit_retry_scheduled',
+    };
+
+    await expect(service.resetEmailCorpus('user-1')).rejects.toMatchObject({
+      response: { code: 'GMAIL_SYNC_IN_PROGRESS' },
+    });
+    expect(deletion.removeEmailData).not.toHaveBeenCalled();
+  });
+
   it('usa la ruta de lápidas para reiniciar el corpus', async () => {
     const { current, deletion, service } = makeFixture();
     current.syncState = { status: 'completed' };
