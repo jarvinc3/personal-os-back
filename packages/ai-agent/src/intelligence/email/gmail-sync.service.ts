@@ -625,15 +625,16 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
       return this.recoverFromCursor(connection, accessToken);
     }
 
+    const startCursor = connection.providerCursor;
     let pageToken: string | undefined;
-    let cursor = connection.providerCursor;
+    let cursor = startCursor;
     let imported = 0;
     do {
       const page = await this.fetchHistoryPage({
         connectionId: connection.id,
         userId: connection.userId,
         accessToken,
-        cursor,
+        cursor: startCursor,
         pageToken,
       });
       if (!page) {
@@ -705,7 +706,7 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
           }),
       );
     } catch (error) {
-      if (this.isMissingGmailMessage(error)) {
+      if (this.isGmailNotFound(error)) {
         return null;
       }
       throw error;
@@ -842,7 +843,7 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
             );
             return this.persistMessage(connectionId, userId, message);
           } catch (error) {
-            if (this.isMissingGmailMessage(error)) {
+            if (this.isGmailNotFound(error)) {
               return 0;
             }
             throw error;
@@ -1031,7 +1032,7 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
     return typeof code === 'string' ? code : undefined;
   }
 
-  private isMissingGmailMessage(error: unknown) {
+  private isGmailNotFound(error: unknown) {
     const providerCode = this.providerErrorCode(error);
     return (
       providerCode === 'NOT_FOUND' ||
