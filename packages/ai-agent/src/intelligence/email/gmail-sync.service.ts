@@ -36,6 +36,7 @@ type GmailSyncProgress = {
   nextRunAt?: number;
   errorCode?: string;
   providerErrorCode?: string;
+  recoveryRange?: { from: string; to: string };
   errorCategory?:
     'authorization' | 'configuration' | 'rate_limit' | 'temporary' | 'unknown';
   startedAt: string;
@@ -329,6 +330,7 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
       nextRunAt: undefined,
       errorCode: undefined,
       providerErrorCode: undefined,
+      recoveryRange: undefined,
       errorCategory: undefined,
       startedAt: new Date().toISOString(),
     });
@@ -360,6 +362,7 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
           ? undefined
           : Date.now() + intervalMinutes * 60_000,
         retryAt: undefined,
+        recoveryRange: undefined,
       });
       return { connected: true, ...result };
     } catch (error) {
@@ -629,15 +632,16 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
       return this.recoverFromCursor(connection, accessToken);
     }
 
+    const startCursor = connection.providerCursor;
     let pageToken: string | undefined;
-    let cursor = connection.providerCursor;
+    let cursor = startCursor;
     let imported = 0;
     do {
       const page = await this.fetchHistoryPage({
         connectionId: connection.id,
         userId: connection.userId,
         accessToken,
-        cursor,
+        cursor: startCursor,
         pageToken,
       });
       if (!page) {
@@ -709,7 +713,7 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
           }),
       );
     } catch (error) {
-      if (this.isMissingGmailMessage(error)) {
+      if (this.isGmailNotFound(error)) {
         return null;
       }
       throw error;
@@ -722,6 +726,19 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
     >,
     accessToken: string,
   ) {
+    const nowSeconds = Math.floor(Date.now() / 1000);
+    const startSeconds = Math.floor(
+      (connection.lastSyncedAt?.getTime() ?? Date.now() - RECOVERY_WINDOW_MS) /
+        1000,
+    );
+    const recoveryRange = {
+      from: new Date(startSeconds * 1000).toISOString(),
+      to: new Date(nowSeconds * 1000).toISOString(),
+    };
+    await this.updateSyncProgress(connection.id, connection.userId, {
+      phase: 'recovery',
+      recoveryRange,
+    });
     const profile = await this.source.gmailApiRequest<{ historyId?: string }>(
       accessToken,
       '/users/me/profile',
@@ -732,17 +749,8 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
           retryAt: state.retryAt,
         }),
     );
-    const nowSeconds = Math.floor(Date.now() / 1000);
-    const startSeconds = Math.floor(
-      (connection.lastSyncedAt?.getTime() ?? Date.now() - RECOVERY_WINDOW_MS) /
-        1000,
-    );
-    const boundedStart = Math.max(
-      startSeconds,
-      Math.floor((Date.now() - RECOVERY_WINDOW_MS) / 1000),
-    );
     const query = new URLSearchParams({
-      q: `after:${boundedStart} before:${nowSeconds}`,
+      q: `after:${startSeconds} before:${nowSeconds}`,
       maxResults: '500',
     });
     let pageToken: string | undefined;
@@ -846,7 +854,7 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
             );
             return this.persistMessage(connectionId, userId, message);
           } catch (error) {
-            if (this.isMissingGmailMessage(error)) {
+            if (this.isGmailNotFound(error)) {
               return 0;
             }
             throw error;
@@ -1035,7 +1043,7 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
     return typeof code === 'string' ? code : undefined;
   }
 
-  private isMissingGmailMessage(error: unknown) {
+  private isGmailNotFound(error: unknown) {
     const providerCode = this.providerErrorCode(error);
     return (
       providerCode === 'NOT_FOUND' ||

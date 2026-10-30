@@ -54,6 +54,10 @@ describe('GmailSyncService', () => {
       events as never,
       deletion as never,
     );
+    const syncStateWrites = (): Array<Record<string, unknown>> =>
+      prisma.aiEmailConnection.update.mock.calls
+        .map(([call]) => call.data.syncState)
+        .filter((state): state is Record<string, unknown> => Boolean(state));
     return {
       current,
       prisma,
@@ -62,6 +66,7 @@ describe('GmailSyncService', () => {
       events,
       deletion,
       service,
+      syncStateWrites,
     };
   };
 
@@ -185,6 +190,41 @@ describe('GmailSyncService', () => {
     });
   });
 
+  it('keeps the original history cursor while paginating', async () => {
+    const { current, prisma, source, service } = makeFixture();
+    current.initialSyncCompletedAt = new Date('2026-10-24T00:00:00Z');
+    current.providerCursor = '100';
+    source.gmailApiRequest
+      .mockResolvedValueOnce({
+        historyId: '105',
+        nextPageToken: 'page-2',
+        history: [],
+      })
+      .mockResolvedValueOnce({ historyId: '106', history: [] });
+
+    expect(await service.syncConnection('connection-1')).toEqual({
+      connected: true,
+      imported: 0,
+      bootstrapComplete: true,
+    });
+    expect(source.gmailApiRequest).toHaveBeenNthCalledWith(
+      1,
+      'token',
+      expect.stringContaining('startHistoryId=100'),
+      expect.any(Function),
+    );
+    expect(source.gmailApiRequest).toHaveBeenNthCalledWith(
+      2,
+      'token',
+      expect.stringMatching(/startHistoryId=100.*pageToken=page-2/),
+      expect.any(Function),
+    );
+    expect(prisma.aiEmailConnection.update).toHaveBeenCalledWith({
+      where: { id: 'connection-1' },
+      data: { providerCursor: '106', importedMessageCount: { increment: 0 } },
+    });
+  });
+
   it('recovers when Gmail no longer has the history cursor', async () => {
     const { current, source, service } = makeFixture();
     current.initialSyncCompletedAt = new Date('2026-10-24T00:00:00Z');
@@ -205,7 +245,7 @@ describe('GmailSyncService', () => {
   });
 
   it('reports waiting and retrying states while the history read retries', async () => {
-    const { current, prisma, source, service } = makeFixture();
+    const { current, source, service, syncStateWrites } = makeFixture();
     current.initialSyncCompletedAt = new Date('2026-10-24T00:00:00Z');
     current.providerCursor = '100';
     source.gmailApiRequest.mockImplementationOnce(
@@ -231,9 +271,7 @@ describe('GmailSyncService', () => {
     await expect(service.syncConnection('connection-1')).rejects.toBeInstanceOf(
       BadRequestException,
     );
-    const states = prisma.aiEmailConnection.update.mock.calls
-      .map(([call]) => call.data.syncState)
-      .filter(Boolean);
+    const states = syncStateWrites();
     expect(states).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -277,8 +315,92 @@ describe('GmailSyncService', () => {
     });
   });
 
+  it('recovers from the last successful sync instead of a seven-day window', async () => {
+    const { current, prisma, source, service } = makeFixture();
+    const lastSyncedAt = new Date(Date.now() - 10 * 86400_000);
+    current.initialSyncCompletedAt = new Date('2026-10-24T00:00:00Z');
+    current.lastSyncedAt = lastSyncedAt;
+    source.gmailApiRequest
+      .mockResolvedValueOnce({ historyId: '200' })
+      .mockResolvedValueOnce({ messages: [], resultSizeEstimate: 0 });
+
+    expect(await service.syncConnection('connection-1')).toEqual({
+      connected: true,
+      imported: 0,
+      recovered: true,
+      bootstrapComplete: true,
+    });
+    const messagesPath = decodeURIComponent(
+      source.gmailApiRequest.mock.calls[1][1] as string,
+    );
+    expect(messagesPath).toContain(
+      `after:${Math.floor(lastSyncedAt.getTime() / 1000)}`,
+    );
+    const states = prisma.aiEmailConnection.update.mock.calls
+      .map(([call]) => call.data.syncState)
+      .filter(Boolean);
+    expect(states.at(-1)).not.toHaveProperty('recoveryRange');
+  });
+
+  it('paginates the entire recovery range', async () => {
+    const { current, prisma, source, service } = makeFixture();
+    current.initialSyncCompletedAt = new Date('2026-10-24T00:00:00Z');
+    current.lastSyncedAt = new Date(Date.now() - 10 * 86400_000);
+    source.gmailApiRequest
+      .mockResolvedValueOnce({ historyId: '200' })
+      .mockResolvedValueOnce({ messages: [], nextPageToken: 'page-2' })
+      .mockResolvedValueOnce({ messages: [], resultSizeEstimate: 0 });
+
+    expect(await service.syncConnection('connection-1')).toEqual({
+      connected: true,
+      imported: 0,
+      recovered: true,
+      bootstrapComplete: true,
+    });
+    expect(source.gmailApiRequest).toHaveBeenCalledTimes(3);
+    const secondPagePath = decodeURIComponent(
+      source.gmailApiRequest.mock.calls[2][1] as string,
+    );
+    expect(secondPagePath).toContain('pageToken=page-2');
+    expect(prisma.aiEmailConnection.update).toHaveBeenCalledWith({
+      where: { id: 'connection-1' },
+      data: expect.objectContaining({ providerCursor: '200' }),
+    });
+  });
+
+  it('records the recovery range when the provider fails mid-recovery', async () => {
+    const { current, prisma, source, service } = makeFixture();
+    const lastSyncedAt = new Date(Date.now() - 10 * 86400_000);
+    current.initialSyncCompletedAt = new Date('2026-10-24T00:00:00Z');
+    current.lastSyncedAt = lastSyncedAt;
+    source.gmailApiRequest
+      .mockResolvedValueOnce({ historyId: '200' })
+      .mockRejectedValueOnce(
+        new BadRequestException({ providerCode: 'http_503' }),
+      );
+
+    await expect(service.syncConnection('connection-1')).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
+    const states = prisma.aiEmailConnection.update.mock.calls
+      .map(([call]) => call.data.syncState)
+      .filter(Boolean);
+    expect(states.at(-1)).toEqual(
+      expect.objectContaining({
+        status: 'failed',
+        errorCode: 'http_503',
+        recoveryRange: {
+          from: new Date(
+            Math.floor(lastSyncedAt.getTime() / 1000) * 1000,
+          ).toISOString(),
+          to: expect.stringMatching(/^\d{4}-\d{2}-\d{2}T/),
+        },
+      }),
+    );
+  });
+
   it('classifies a missing OAuth configuration and keeps its code', async () => {
-    const { prisma, source, service } = makeFixture();
+    const { prisma, source, service, syncStateWrites } = makeFixture();
     source.getAccessToken.mockRejectedValueOnce(
       new ServiceUnavailableException({
         code: 'gmail_oauth_not_configured',
@@ -292,9 +414,7 @@ describe('GmailSyncService', () => {
       where: { id: 'connection-1' },
       data: { lastSyncErrorCode: 'gmail_oauth_not_configured' },
     });
-    const states = prisma.aiEmailConnection.update.mock.calls
-      .map(([call]) => call.data.syncState)
-      .filter(Boolean);
+    const states = syncStateWrites();
     expect(states.at(-1)).toEqual(
       expect.objectContaining({
         status: 'failed',
@@ -307,7 +427,8 @@ describe('GmailSyncService', () => {
   it.each(['http_401', 'http_403', 'insufficientPermissions'])(
     'classifies %s as authorization and keeps the provider code',
     async (providerCode) => {
-      const { current, prisma, source, service } = makeFixture();
+      const { current, prisma, source, service, syncStateWrites } =
+        makeFixture();
       current.initialSyncCompletedAt = new Date('2026-10-24T00:00:00Z');
       current.providerCursor = '100';
       source.gmailApiRequest.mockRejectedValueOnce(
@@ -321,9 +442,7 @@ describe('GmailSyncService', () => {
         where: { id: 'connection-1' },
         data: { lastSyncErrorCode: providerCode },
       });
-      const states = prisma.aiEmailConnection.update.mock.calls
-        .map(([call]) => call.data.syncState)
-        .filter(Boolean);
+      const states = syncStateWrites();
       expect(states.at(-1)).toEqual(
         expect.objectContaining({
           status: 'failed',
@@ -335,7 +454,7 @@ describe('GmailSyncService', () => {
   );
 
   it('keeps an unknown provider code and classifies it as unknown', async () => {
-    const { current, prisma, source, service } = makeFixture();
+    const { current, source, service, syncStateWrites } = makeFixture();
     current.initialSyncCompletedAt = new Date('2026-10-24T00:00:00Z');
     current.providerCursor = '100';
     source.gmailApiRequest.mockRejectedValueOnce(
@@ -345,9 +464,7 @@ describe('GmailSyncService', () => {
     await expect(service.syncConnection('connection-1')).rejects.toBeInstanceOf(
       BadRequestException,
     );
-    const states = prisma.aiEmailConnection.update.mock.calls
-      .map(([call]) => call.data.syncState)
-      .filter(Boolean);
+    const states = syncStateWrites();
     expect(states.at(-1)).toEqual(
       expect.objectContaining({
         status: 'failed',
@@ -426,7 +543,7 @@ describe('GmailSyncService', () => {
   });
 
   it('marks an interrupted run as worker_interrupted', async () => {
-    const { prisma, source, service } = makeFixture();
+    const { prisma, source, service, syncStateWrites } = makeFixture();
     source.oauthDiagnostics.mockReturnValue({
       configured: false,
       status: 'missing_oauth_configuration',
@@ -450,9 +567,7 @@ describe('GmailSyncService', () => {
     service.onModuleInit();
     await new Promise((resolve) => setTimeout(resolve, 20));
 
-    const states = prisma.aiEmailConnection.update.mock.calls
-      .map(([call]) => call.data.syncState)
-      .filter(Boolean);
+    const states = syncStateWrites();
     expect(states.at(-1)).toEqual(
       expect.objectContaining({
         status: 'failed',
