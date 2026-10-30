@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ConflictException,
   HttpException,
+  Logger,
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { GmailSyncService } from './gmail-sync.service';
@@ -68,6 +69,10 @@ describe('GmailSyncService', () => {
       syncStateWrites,
     };
   };
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
 
   it('imports a bootstrap message with sanitized content and completes bootstrap', async () => {
     const { prisma, source, service, events } = makeFixture();
@@ -499,9 +504,50 @@ describe('GmailSyncService', () => {
     }
   });
 
+  it('avisa y no programa el ciclo sin configuración OAuth', () => {
+    const { source, service } = makeFixture();
+    source.oauthDiagnostics.mockReturnValue({
+      configured: false,
+      status: 'missing_oauth_configuration',
+    });
+    const warn = jest.spyOn(Logger.prototype, 'warn').mockImplementation();
+    const setIntervalSpy = jest.spyOn(global, 'setInterval');
+
+    service.onModuleInit();
+
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining('Gmail OAuth is not configured'),
+    );
+    expect(warn.mock.calls[0][0]).toContain('missing_oauth_configuration');
+    expect(warn.mock.calls[0][0]).not.toContain('client-secret');
+    expect(setIntervalSpy).not.toHaveBeenCalled();
+    service.onModuleDestroy();
+  });
+
+  it('programa el ciclo automático con la configuración OAuth completa', () => {
+    const { service } = makeFixture();
+    const warn = jest.spyOn(Logger.prototype, 'warn').mockImplementation();
+    const unref = jest.fn();
+    const setIntervalSpy = jest.spyOn(global, 'setInterval').mockReturnValue({
+      unref,
+    } as unknown as NodeJS.Timeout);
+
+    service.onModuleInit();
+
+    expect(warn).not.toHaveBeenCalledWith(
+      expect.stringContaining('Gmail OAuth is not configured'),
+    );
+    expect(setIntervalSpy).toHaveBeenCalledWith(expect.any(Function), 60_000);
+    expect(unref).toHaveBeenCalled();
+    service.onModuleDestroy();
+  });
+
   it('marks an interrupted run as worker_interrupted', async () => {
     const { prisma, source, service, syncStateWrites } = makeFixture();
-    source.oauthDiagnostics.mockReturnValue({ configured: false });
+    source.oauthDiagnostics.mockReturnValue({
+      configured: false,
+      status: 'missing_oauth_configuration',
+    });
     prisma.aiEmailConnection.findMany.mockResolvedValueOnce([
       {
         id: 'connection-1',

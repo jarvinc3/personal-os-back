@@ -42,6 +42,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [Se
 
 ### Corregido
 
+- El arranque sin configuración OAuth de Gmail registra una advertencia sin secretos y deja apagado el ciclo automático; el diagnóstico expone `missing_oauth_configuration` hasta que las variables se corrigen y el API reinicia (#253).
 - La recuperación de Gmail cubre todo el intervalo desde la última sincronización correcta, sin el límite de siete días, y pagina hasta terminar; si el proveedor no completa el hueco, el estado conserva el rango intentado y el intento no se informa como éxito completo (#252).
 - Gmail conserva la causa real de sus fallos y reintenta la lectura del historial: la falta de configuración OAuth queda como `configuration` con `gmail_oauth_not_configured`, un 401/403 como `authorization`, un 429/5xx como `rate_limit` o `temporary`, y un código no reconocido se conserva para que la pantalla muestre una causa concreta; un reinicio del API sigue marcando `worker_interrupted` (#250).
 - AI-4 (#239): revocar el consentimiento marca GLOBAL en `REVIEW_REQUIRED` y reconstruye la proyección en la misma solicitud; si el rebuild falla, la revocación y la pausa se conservan.

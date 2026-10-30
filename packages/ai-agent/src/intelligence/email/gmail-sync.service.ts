@@ -102,7 +102,11 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
         `Unable to recover Gmail sync state: ${this.safeErrorCode(error)}`,
       );
     });
-    if (!this.source.oauthDiagnostics().configured) {
+    const oauthDiagnostics = this.source.oauthDiagnostics();
+    if (!oauthDiagnostics.configured) {
+      this.logger.warn(
+        `Gmail OAuth is not configured (${oauthDiagnostics.status}); automatic sync is disabled until the API restarts with AI_GMAIL_CLIENT_ID, AI_GMAIL_CLIENT_SECRET, AI_GMAIL_REDIRECT_URI and AI_GMAIL_TOKEN_ENCRYPTION_KEY set.`,
+      );
       return;
     }
     const intervalMinutes = this.config.get('AI_EMAIL_SYNC_INTERVAL_MINUTES', {
