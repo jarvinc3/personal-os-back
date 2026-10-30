@@ -165,6 +165,14 @@ enum AiEmailProcessingStatus {
   @@map("ai_email_processing_status")
 }
 
+enum AiEmailSyncAttemptResult {
+  SUCCEEDED
+  FAILED
+  INTERRUPTED
+
+  @@map("ai_email_sync_attempt_result")
+}
+
 enum AiDatasetPartition {
   TRAIN
   VALIDATION
@@ -412,27 +420,39 @@ model UserAiSettings {
 }
 
 model AiEmailConnection {
-  id                     String           @id @default(dbgenerated("(extensions.uuid_generate_v4())::text"))
-  userId                 String           @unique @map("user_id")
-  provider               String           @default("GMAIL")
-  emailAddress           String           @map("email_address")
-  isActive               Boolean          @default(true) @map("is_active")
-  accessTokenEncrypted   String           @map("access_token_encrypted") @db.Text
-  refreshTokenEncrypted  String?          @map("refresh_token_encrypted") @db.Text
-  tokenExpiresAt         DateTime?        @map("token_expires_at") @db.Timestamptz(6)
-  providerCursor         String?          @map("provider_cursor")
-  bootstrapPageToken     String?          @map("bootstrap_page_token")
-  bootstrapStartedAt     DateTime?        @map("bootstrap_started_at") @db.Timestamptz(6)
-  initialSyncCompletedAt DateTime?        @map("initial_sync_completed_at") @db.Timestamptz(6)
-  lastSyncedAt           DateTime?        @map("last_synced_at") @db.Timestamptz(6)
-  lastRecoverySyncAt     DateTime?        @map("last_recovery_sync_at") @db.Timestamptz(6)
-  importedMessageCount   Int              @default(0) @map("imported_message_count")
-  lastSyncErrorCode      String?          @map("last_sync_error_code")
-  syncState              Json?            @map("sync_state")
-  createdAt              DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt              DateTime         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
-  user                   User             @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  messages               AiEmailMessage[]
+  id                       String                    @id @default(dbgenerated("(extensions.uuid_generate_v4())::text"))
+  userId                   String                    @unique @map("user_id")
+  provider                 String                    @default("GMAIL")
+  emailAddress             String                    @map("email_address")
+  isActive                 Boolean                   @default(true) @map("is_active")
+  accessTokenEncrypted     String                    @map("access_token_encrypted") @db.Text
+  refreshTokenEncrypted    String?                   @map("refresh_token_encrypted") @db.Text
+  tokenExpiresAt           DateTime?                 @map("token_expires_at") @db.Timestamptz(6)
+  providerCursor           String?                   @map("provider_cursor")
+  bootstrapPageToken       String?                   @map("bootstrap_page_token")
+  bootstrapStartedAt       DateTime?                 @map("bootstrap_started_at") @db.Timestamptz(6)
+  initialSyncCompletedAt   DateTime?                 @map("initial_sync_completed_at") @db.Timestamptz(6)
+  lastSyncedAt             DateTime?                 @map("last_synced_at") @db.Timestamptz(6)
+  lastRecoverySyncAt       DateTime?                 @map("last_recovery_sync_at") @db.Timestamptz(6)
+  importedMessageCount     Int                       @default(0) @map("imported_message_count")
+  lastSyncErrorCode        String?                   @map("last_sync_error_code")
+  lastAttemptStartedAt     DateTime?                 @map("last_attempt_started_at") @db.Timestamptz(6)
+  lastAttemptFinishedAt    DateTime?                 @map("last_attempt_finished_at") @db.Timestamptz(6)
+  lastAttemptResult        AiEmailSyncAttemptResult? @map("last_attempt_result")
+  lastAttemptErrorCode     String?                   @map("last_attempt_error_code")
+  lastAttemptErrorCategory String?                   @map("last_attempt_error_category")
+  lastAttemptImportedCount Int?                      @map("last_attempt_imported_count")
+  lastAttemptPhase         String?                   @map("last_attempt_phase")
+  lastFailureAt            DateTime?                 @map("last_failure_at") @db.Timestamptz(6)
+  lastFailureErrorCode     String?                   @map("last_failure_error_code")
+  lastFailureErrorCategory String?                   @map("last_failure_error_category")
+  lastFailureImportedCount Int?                      @map("last_failure_imported_count")
+  lastFailurePhase         String?                   @map("last_failure_phase")
+  syncState                Json?                     @map("sync_state")
+  createdAt                DateTime                  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt                DateTime                  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  user                     User                      @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  messages                 AiEmailMessage[]
 
   @@unique([id, userId], map: "ai_email_connections_id_user_id_key")
   @@map("ai_email_connections")

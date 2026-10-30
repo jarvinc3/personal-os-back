@@ -318,6 +318,7 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
     const phase = connection.initialSyncCompletedAt
       ? 'incremental'
       : 'bootstrap';
+    const attemptStartedAt = new Date();
     await this.updateSyncProgress(connection.id, connection.userId, {
       status: 'running',
       phase,
@@ -332,22 +333,40 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
       providerErrorCode: undefined,
       recoveryRange: undefined,
       errorCategory: undefined,
-      startedAt: new Date().toISOString(),
+      startedAt: attemptStartedAt.toISOString(),
     });
     try {
       await this.prisma.aiEmailConnection.update({
         where: { id: connectionId },
-        data: { lastSyncErrorCode: null },
+        data: {
+          lastSyncErrorCode: null,
+          lastAttemptStartedAt: attemptStartedAt,
+          lastAttemptFinishedAt: null,
+          lastAttemptResult: null,
+          lastAttemptErrorCode: null,
+          lastAttemptErrorCategory: null,
+          lastAttemptImportedCount: 0,
+          lastAttemptPhase: phase,
+        },
       });
       const accessToken = await this.source.getAccessToken(connectionId);
       const result = connection.initialSyncCompletedAt
         ? await this.syncIncremental(connection, accessToken)
         : await this.bootstrapPage(connection, accessToken);
+      const attemptFinishedAt = new Date();
+      const attemptPhase = this.syncProgress.get(connection.id)?.phase ?? phase;
       await this.prisma.aiEmailConnection.update({
         where: { id: connectionId },
         data: {
-          lastSyncedAt: new Date(),
+          lastSyncedAt: attemptFinishedAt,
           lastSyncErrorCode: null,
+          lastAttemptStartedAt: attemptStartedAt,
+          lastAttemptFinishedAt: attemptFinishedAt,
+          lastAttemptResult: 'SUCCEEDED',
+          lastAttemptErrorCode: null,
+          lastAttemptErrorCategory: null,
+          lastAttemptImportedCount: result.imported,
+          lastAttemptPhase: attemptPhase,
         },
       });
       const intervalMinutes = this.config.get(
@@ -375,9 +394,28 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
           15 * 60_000,
         );
         const retryAt = Date.now() + retryDelay;
+        const attemptFinishedAt = new Date();
+        const attemptPhase =
+          this.syncProgress.get(connectionId)?.phase ?? phase;
+        const importedThisRun =
+          this.syncProgress.get(connectionId)?.importedThisRun ?? 0;
         await this.prisma.aiEmailConnection.update({
           where: { id: connectionId },
-          data: { lastSyncErrorCode: null },
+          data: {
+            lastSyncErrorCode: null,
+            lastAttemptStartedAt: attemptStartedAt,
+            lastAttemptFinishedAt: attemptFinishedAt,
+            lastAttemptResult: 'FAILED',
+            lastAttemptErrorCode: code,
+            lastAttemptErrorCategory: 'rate_limit',
+            lastAttemptImportedCount: importedThisRun,
+            lastAttemptPhase: attemptPhase,
+            lastFailureAt: attemptFinishedAt,
+            lastFailureErrorCode: code,
+            lastFailureErrorCategory: 'rate_limit',
+            lastFailureImportedCount: importedThisRun,
+            lastFailurePhase: attemptPhase,
+          },
         });
         await this.updateSyncProgress(connection.id, connection.userId, {
           status: 'waiting',
@@ -391,14 +429,33 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
         this.scheduleRateLimitRetry(connection.id, retryAt - Date.now());
         return { connected: true, imported: 0, retryScheduled: true };
       }
+      const category = this.classifyError(code);
+      const attemptFinishedAt = new Date();
+      const attemptPhase = this.syncProgress.get(connectionId)?.phase ?? phase;
+      const importedThisRun =
+        this.syncProgress.get(connectionId)?.importedThisRun ?? 0;
       await this.prisma.aiEmailConnection.update({
         where: { id: connectionId },
-        data: { lastSyncErrorCode: code },
+        data: {
+          lastSyncErrorCode: code,
+          lastAttemptStartedAt: attemptStartedAt,
+          lastAttemptFinishedAt: attemptFinishedAt,
+          lastAttemptResult: 'FAILED',
+          lastAttemptErrorCode: code,
+          lastAttemptErrorCategory: category,
+          lastAttemptImportedCount: importedThisRun,
+          lastAttemptPhase: attemptPhase,
+          lastFailureAt: attemptFinishedAt,
+          lastFailureErrorCode: code,
+          lastFailureErrorCategory: category,
+          lastFailureImportedCount: importedThisRun,
+          lastFailurePhase: attemptPhase,
+        },
       });
       await this.updateSyncProgress(connection.id, connection.userId, {
         status: 'failed',
         errorCode: code,
-        errorCategory: this.classifyError(code),
+        errorCategory: category,
         retryAt: undefined,
         nextRunAt: undefined,
       });
@@ -541,6 +598,20 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
         errorCategory: 'temporary',
         retryAt: undefined,
         nextRunAt: undefined,
+      });
+      await this.prisma.aiEmailConnection.update({
+        where: { id: connection.id },
+        data: {
+          lastAttemptStartedAt: state.startedAt
+            ? new Date(state.startedAt)
+            : undefined,
+          lastAttemptFinishedAt: new Date(),
+          lastAttemptResult: 'INTERRUPTED',
+          lastAttemptErrorCode: 'worker_interrupted',
+          lastAttemptErrorCategory: null,
+          lastAttemptImportedCount: state.importedThisRun ?? 0,
+          lastAttemptPhase: state.phase,
+        },
       });
     }
   }
