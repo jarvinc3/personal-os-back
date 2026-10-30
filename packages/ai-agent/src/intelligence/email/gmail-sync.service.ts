@@ -21,6 +21,8 @@ const RAW_RETENTION_DEV_DAYS = 30;
 const RAW_RETENTION_PROD_DAYS = 7;
 const GMAIL_MESSAGE_FETCH_CONCURRENCY = 3;
 const GMAIL_RATE_LIMIT_COOLDOWN_MS = 60_000;
+const GMAIL_NOT_CONNECTED = 'GMAIL_NOT_CONNECTED';
+const GMAIL_SYNC_IN_PROGRESS = 'GMAIL_SYNC_IN_PROGRESS';
 
 type GmailSyncProgress = {
   status:
@@ -180,22 +182,29 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
       select: { id: true, syncState: true },
     });
     if (!connection) {
-      return { connected: false, deletedMessages: 0 };
+      throw new ConflictException({
+        code: GMAIL_NOT_CONNECTED,
+        message:
+          'No hay una cuenta de Gmail conectada; no hay corpus que reiniciar.',
+      });
     }
     if (this.activeSyncConnections.has(connection.id)) {
-      throw new ConflictException(
-        'Espera a que termine la sincronización antes de reiniciar el correo.',
-      );
+      throw new ConflictException({
+        code: GMAIL_SYNC_IN_PROGRESS,
+        message:
+          'Espera a que termine la sincronización antes de reiniciar el correo.',
+      });
     }
     const existingState = connection.syncState as GmailSyncProgress | null;
     if (
       existingState &&
-      ['running', 'waiting', 'retrying'].includes(existingState.status) &&
-      existingState.errorCode !== 'rate_limit_retry_scheduled'
+      ['running', 'waiting', 'retrying'].includes(existingState.status)
     ) {
-      throw new ConflictException(
-        'La sincronización sigue activa. Actualiza el estado e inténtalo de nuevo.',
-      );
+      throw new ConflictException({
+        code: GMAIL_SYNC_IN_PROGRESS,
+        message:
+          'La sincronización sigue activa. Actualiza el estado e inténtalo de nuevo.',
+      });
     }
     this.resettingConnections.add(connection.id);
     const retryTimer = this.rateLimitRetryTimers.get(connection.id);

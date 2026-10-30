@@ -18,7 +18,7 @@ Endpoints:
 - `GET /api/intelligence/messages?cursor=...`: keyset-paginated summaries ordered oldest-first.
 - `GET /api/intelligence/messages/:messageId`: the caller's message and available body representations.
 - `POST /api/intelligence/email/connect` and `POST /api/intelligence/email/sync`.
-- `POST /api/intelligence/email/reset` with `{ "confirmed": true }` removes this user's imported mail and derived review/analysis data, resets bootstrap cursors, and retains the OAuth connection.
+- `POST /api/intelligence/email/reset` with `{ "confirmed": true }` removes this user's imported mail and derived review/analysis data, resets bootstrap cursors, and retains the OAuth connection. Without a connection it returns 409 `GMAIL_NOT_CONNECTED`; while a sync is active or waiting for quota it returns 409 `GMAIL_SYNC_IN_PROGRESS` and deletes nothing.
 - `GET /api/intelligence/email/oauth/callback`: public OAuth callback; the signed state is validated before persisting tokens.
 - `GET|PATCH /api/ai/preferences/consent`: contribution consent, enabled by default and revocable. Revoking it pauses GLOBAL knowledge and rebuilds the projection.
 - `GET /api/ai/admin/roles` and `PATCH /api/ai/admin/roles/:userId`: ADMIN-only role management.

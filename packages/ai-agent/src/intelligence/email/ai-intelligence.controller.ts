@@ -10,7 +10,7 @@ import {
   Res,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiConflictResponse, ApiTags } from '@nestjs/swagger';
 import type { Env } from '@personal-os/config';
 import { CurrentUser, Public, Timeout } from '@personal-os/core';
 import type { Response } from 'express';
@@ -74,6 +74,20 @@ export class AiIntelligenceController {
   }
 
   @Post('email/reset')
+  @ApiConflictResponse({
+    description:
+      'GMAIL_NOT_CONNECTED si no hay conexión; GMAIL_SYNC_IN_PROGRESS si hay una sincronización activa o esperando cuota.',
+    schema: {
+      type: 'object',
+      properties: {
+        code: {
+          type: 'string',
+          enum: ['GMAIL_NOT_CONNECTED', 'GMAIL_SYNC_IN_PROGRESS'],
+        },
+        message: { type: 'string' },
+      },
+    },
+  })
   resetEmailCorpus(
     @CurrentUser() user: { sub: string },
     @Body() dto: ResetEmailCorpusDto,
