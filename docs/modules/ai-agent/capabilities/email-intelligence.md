@@ -6,7 +6,9 @@ The first sync paginates from 2026-01-01. Later syncs use the persisted Gmail hi
 
 Sync progress is persisted on the user's connection so refreshes can recover its current stage, page counters, retry wait, next scheduled tick, and safe failure category. The authenticated notifications socket emits `ai.email.sync.updated` to the owning user's room; the REST dashboard remains the durable snapshot. The scheduler resumes the next bootstrap page every configured interval (10 minutes by default), so a completed page with more history is shown as scheduled rather than stopped.
 
-Gmail quota errors honor the provider's `Retry-After` value, bounded between 1 and 30 seconds. When Gmail omits it, the backend shows a visible exponential wait of 5, 10, and 20 seconds before its three retries. If the quota remains exhausted, the connection stays in `waiting` and schedules another automatic attempt after 1, 2, 4, 8, then at most 15 minutes; the retry time is persisted and resumed after a worker restart.
+Gmail quota errors honor the provider's `Retry-After` value, bounded between 1 and 30 seconds. When Gmail omits it, the backend shows a visible exponential wait of 5, 10, and 20 seconds before its three retries. If the quota remains exhausted, the connection stays in `waiting` and schedules another automatic attempt after 1, 2, 4, 8, then at most 15 minutes; the retry time is persisted and resumed after a worker restart. The incremental history read uses the same retries and retry states as the rest of the Gmail calls.
+
+Errors are classified as `configuration`, `authorization`, `rate_limit`, `temporary` or `unknown`. The safe provider code is kept in `errorCode` (or in `providerErrorCode` when a retry is scheduled) so the dashboard can show a concrete cause: `gmail_oauth_not_configured` stays a configuration error, `401`/`403`/`insufficientPermissions` become authorization errors, and an unrecognized provider code remains available instead of a generic exception message. A worker restart mid-run is recorded as `worker_interrupted`.
 
 Endpoints:
 

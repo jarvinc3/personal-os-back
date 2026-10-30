@@ -15,7 +15,6 @@ import { createHash } from 'node:crypto';
 import { AiEmailSourceService } from './ai-email-source.service';
 import { AiDataDeletionService } from '../knowledge/ai-data-deletion.service';
 
-const GMAIL_API = 'https://gmail.googleapis.com/gmail/v1';
 const BOOTSTRAP_START = Math.floor(Date.UTC(2026, 0, 1) / 1000);
 const RECOVERY_WINDOW_MS = 7 * 86400_000;
 const RAW_RETENTION_DEV_DAYS = 30;
@@ -36,6 +35,7 @@ type GmailSyncProgress = {
   retryAt?: number;
   nextRunAt?: number;
   errorCode?: string;
+  providerErrorCode?: string;
   errorCategory?:
     'authorization' | 'configuration' | 'rate_limit' | 'temporary' | 'unknown';
   startedAt: string;
@@ -324,6 +324,7 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
       retryAt: undefined,
       nextRunAt: undefined,
       errorCode: undefined,
+      providerErrorCode: undefined,
       errorCategory: undefined,
       startedAt: new Date().toISOString(),
     });
@@ -374,6 +375,7 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
         await this.updateSyncProgress(connection.id, connection.userId, {
           status: 'waiting',
           errorCode: 'rate_limit_retry_scheduled',
+          providerErrorCode: code,
           errorCategory: 'rate_limit',
           rateLimitRetryCount,
           retryAt,
@@ -444,22 +446,33 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
   }
 
   private classifyError(code: string): GmailSyncProgress['errorCategory'] {
+    const normalized = code.toLowerCase();
     if (
-      /invalid_grant|token_refresh|refresh_token|unauthorized|http_401/i.test(
-        code,
+      /invalid_grant|token_refresh|refresh_token|unauthorized|unauthenticated|autherror|http_401|http_403|forbidden|insufficientpermissions|permission_denied|access_denied/.test(
+        normalized,
       )
     ) {
       return 'authorization';
     }
     if (
-      /not_configured|missing_configuration|redirect_uri_mismatch/i.test(code)
+      /not_configured|missing_configuration|redirect_uri_mismatch|invalid_client/.test(
+        normalized,
+      )
     ) {
       return 'configuration';
     }
-    if (/rateLimit|quota|userRateLimit|http_429/i.test(code)) {
+    if (
+      /ratelimit|quota|userratelimit|http_429|resource_exhausted/.test(
+        normalized,
+      )
+    ) {
       return 'rate_limit';
     }
-    if (/timeout|network|fetch|http_5\d\d|unavailable/i.test(code)) {
+    if (
+      /timeout|network|fetch|http_5\d\d|unavailable|internalerror|backenderror/.test(
+        normalized,
+      )
+    ) {
       return 'temporary';
     }
     return 'unknown';
@@ -487,6 +500,7 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
         await this.updateSyncProgress(connection.id, connection.userId, {
           status: 'waiting',
           errorCode: 'rate_limit_retry_scheduled',
+          providerErrorCode: state.providerErrorCode ?? state.errorCode,
           errorCategory: 'rate_limit',
           rateLimitRetryCount,
           retryAt,
@@ -615,27 +629,15 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
     let cursor = connection.providerCursor;
     let imported = 0;
     do {
-      const query = new URLSearchParams({
-        startHistoryId: connection.providerCursor,
-        historyTypes: 'messageAdded',
-        maxResults: '500',
+      const page = await this.fetchHistoryPage({
+        connectionId: connection.id,
+        userId: connection.userId,
+        accessToken,
+        cursor,
+        pageToken,
       });
-      if (pageToken) {
-        query.set('pageToken', pageToken);
-      }
-      const response = await fetch(`${GMAIL_API}/users/me/history?${query}`, {
-        headers: { authorization: `Bearer ${accessToken}` },
-      });
-      if (response.status === 404) {
+      if (!page) {
         return this.recoverFromCursor(connection, accessToken);
-      }
-      const page = (await response.json()) as GmailHistoryPage & {
-        error?: { status?: string };
-      };
-      if (!response.ok) {
-        throw new Error(
-          page.error?.status ?? `gmail_history_http_${response.status}`,
-        );
       }
       cursor = this.maxHistoryId(cursor, page.historyId);
       const ids = (page.history ?? [])
@@ -668,6 +670,46 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
       },
     });
     return { imported, bootstrapComplete: true };
+  }
+
+  private async fetchHistoryPage({
+    connectionId,
+    userId,
+    accessToken,
+    cursor,
+    pageToken,
+  }: {
+    connectionId: string;
+    userId: string;
+    accessToken: string;
+    cursor: string;
+    pageToken?: string;
+  }): Promise<GmailHistoryPage | null> {
+    const query = new URLSearchParams({
+      startHistoryId: cursor,
+      historyTypes: 'messageAdded',
+      maxResults: '500',
+    });
+    if (pageToken) {
+      query.set('pageToken', pageToken);
+    }
+    try {
+      return await this.source.gmailApiRequest<GmailHistoryPage>(
+        accessToken,
+        `/users/me/history?${query}`,
+        (state) =>
+          this.updateSyncProgress(connectionId, userId, {
+            ...state,
+            phase: 'incremental',
+            retryAt: state.retryAt,
+          }),
+      );
+    } catch (error) {
+      if (this.isMissingGmailMessage(error)) {
+        return null;
+      }
+      throw error;
+    }
   }
 
   private async recoverFromCursor(
@@ -967,14 +1009,26 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
   }
 
   private safeErrorCode(error: unknown) {
-    const providerCode = this.providerErrorCode(error);
-    if (providerCode) {
-      return providerCode.slice(0, 120).replace(/[^a-zA-Z0-9_.:-]/g, '_');
+    const code =
+      this.providerErrorCode(error) ??
+      this.exceptionErrorCode(error) ??
+      (error instanceof Error ? error.message : 'gmail_sync_failed');
+    return code.slice(0, 120).replace(/[^a-zA-Z0-9_.:-]/g, '_');
+  }
+
+  private exceptionErrorCode(error: unknown): string | undefined {
+    if (!(error instanceof HttpException)) {
+      return undefined;
     }
-    if (error instanceof Error) {
-      return error.message.slice(0, 120).replace(/[^a-zA-Z0-9_.:-]/g, '_');
+    const response = error.getResponse();
+    if (typeof response === 'string') {
+      return response;
     }
-    return 'gmail_sync_failed';
+    if (typeof response !== 'object' || response === null) {
+      return undefined;
+    }
+    const code = (response as Record<string, unknown>).code;
+    return typeof code === 'string' ? code : undefined;
   }
 
   private isMissingGmailMessage(error: unknown) {
