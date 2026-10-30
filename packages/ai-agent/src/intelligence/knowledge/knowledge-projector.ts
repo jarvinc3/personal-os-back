@@ -74,7 +74,7 @@ export type ProjectionInput = {
   observationSequence?: bigint;
   verificationSequence: bigint;
   minimumContributors: number;
-  adminReversions?: Array<{
+  adminDecisions?: Array<{
     knowledgeType: 'EMAIL_DOMAIN' | 'EMAIL_TEMPLATE';
     knowledgeKey: string;
     sequence: bigint;
@@ -98,30 +98,28 @@ function labelId(label: EmailLabel): string {
   return JSON.stringify(structural);
 }
 
-export type KnowledgeReversion = NonNullable<
-  ProjectionInput['adminReversions']
+export type KnowledgeAdminDecision = NonNullable<
+  ProjectionInput['adminDecisions']
 >[number];
 
-/** Latest ADMIN reversal per key before the cut; only rejections block. */
-export function latestRevertedKeys(
-  reversions: readonly KnowledgeReversion[],
+/** Latest ADMIN decision per key before the cut; a rejection wins over a promotion. */
+export function latestAdminDecisions(
+  decisions: readonly KnowledgeAdminDecision[],
   verificationSequence: bigint,
-): Set<string> {
-  const latest = new Map<string, KnowledgeReversion>();
-  for (const reversion of reversions) {
-    if (reversion.sequence > verificationSequence) {
+): Map<string, KnowledgeAdminDecision['verdict']> {
+  const latest = new Map<string, KnowledgeAdminDecision>();
+  for (const decision of decisions) {
+    if (decision.sequence > verificationSequence) {
       continue;
     }
-    const key = `${reversion.knowledgeType}|${reversion.knowledgeKey}`;
+    const key = `${decision.knowledgeType}|${decision.knowledgeKey}`;
     const previous = latest.get(key);
-    if (!previous || previous.sequence < reversion.sequence) {
-      latest.set(key, reversion);
+    if (!previous || previous.sequence < decision.sequence) {
+      latest.set(key, decision);
     }
   }
-  return new Set(
-    [...latest.entries()]
-      .filter(([, reversion]) => reversion.verdict === 'REJECTED')
-      .map(([key]) => key),
+  return new Map(
+    [...latest.entries()].map(([key, decision]) => [key, decision.verdict]),
   );
 }
 
@@ -402,17 +400,23 @@ export function projectKnowledge(input: ProjectionInput): ProjectedKnowledge[] {
     );
     projected.push(result);
   }
-  const reverted = latestRevertedKeys(
-    input.adminReversions ?? [],
+  const decisions = latestAdminDecisions(
+    input.adminDecisions ?? [],
     input.verificationSequence,
   );
   for (const item of projected) {
     if (item.scope !== 'GLOBAL') {
       continue;
     }
-    if (reverted.has(`${item.knowledgeType}|${item.knowledgeKey}`)) {
+    const decision = decisions.get(
+      `${item.knowledgeType}|${item.knowledgeKey}`,
+    );
+    if (decision === 'REJECTED') {
       item.state = 'BLOCKED';
       item.promotedBy = null;
+    } else if (decision === 'CONFIRMED') {
+      item.state = 'STABLE';
+      item.promotedBy = 'ADMIN';
     }
   }
   return projected;

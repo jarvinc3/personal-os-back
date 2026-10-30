@@ -1,3 +1,4 @@
+import { ConflictException } from '@nestjs/common';
 import { AiKnowledgeService } from './ai-knowledge.service';
 
 type StoredKnowledge = Record<string, unknown>;
@@ -40,6 +41,8 @@ function makeFixture(options: FixtureOptions = {}) {
     normalizerVersion: null,
   }));
   let stored: StoredKnowledge[] = options.priorKnowledge ?? [];
+  let adminDecisions = options.reverts ?? [];
+  let verificationSequence = 4n;
   let runCount = 0;
   const tx = {
     aiKnowledgeObservation: {
@@ -47,13 +50,37 @@ function makeFixture(options: FixtureOptions = {}) {
       findMany: jest.fn().mockResolvedValue([]),
     },
     aiHumanVerification: {
-      aggregate: jest.fn().mockResolvedValue({ _max: { sequence: 4n } }),
+      aggregate: jest.fn(() =>
+        Promise.resolve({ _max: { sequence: verificationSequence } }),
+      ),
       findMany: jest.fn(({ where }: { where: { targetType: string } }) =>
         Promise.resolve(
-          where.targetType === 'EMAIL_MESSAGE'
-            ? verifications
-            : (options.reverts ?? []),
+          where.targetType === 'EMAIL_MESSAGE' ? verifications : adminDecisions,
         ),
+      ),
+      create: jest.fn(
+        ({ data: verificationInput }: { data: StoredKnowledge }) => {
+          verificationSequence += 1n;
+          const payload = verificationInput as {
+            verdict: 'CONFIRMED' | 'REJECTED';
+            structuralKeys: unknown;
+          };
+          adminDecisions = [
+            ...adminDecisions,
+            {
+              sequence: verificationSequence,
+              verdict: payload.verdict,
+              structuralKeys: payload.structuralKeys as Array<{
+                knowledgeType: string;
+                knowledgeKey: string;
+              }>,
+            },
+          ];
+          return Promise.resolve({
+            ...verificationInput,
+            sequence: verificationSequence,
+          });
+        },
       ),
     },
     aiConsentEvent: {
@@ -64,6 +91,20 @@ function makeFixture(options: FixtureOptions = {}) {
     },
     aiKnowledge: {
       findMany: jest.fn(() => Promise.resolve(stored)),
+      update: jest.fn(
+        ({
+          where,
+          data: updates,
+        }: {
+          where: { id: string };
+          data: StoredKnowledge;
+        }) => {
+          stored = stored.map((row) =>
+            row.id === where.id ? { ...row, ...updates } : row,
+          );
+          return Promise.resolve(stored.find((row) => row.id === where.id));
+        },
+      ),
       deleteMany: jest.fn(() => {
         stored = [];
         return Promise.resolve({ count: 0 });
@@ -101,6 +142,20 @@ function makeFixture(options: FixtureOptions = {}) {
     },
   };
   const prisma = {
+    aiKnowledge: {
+      findFirst: jest.fn(
+        ({ where }: { where: Record<string, string | undefined> }) =>
+          Promise.resolve(
+            stored.find(
+              (row) =>
+                (where.id !== undefined && row.id === where.id) ||
+                (where.scope === row.scope &&
+                  where.knowledgeType === row.knowledgeType &&
+                  where.knowledgeKey === row.knowledgeKey),
+            ),
+          ),
+      ),
+    },
     $transaction: jest.fn((callback: (arg: typeof tx) => unknown) =>
       callback(tx),
     ),
@@ -153,6 +208,34 @@ describe('AiKnowledgeService rebuild', () => {
       ),
     ).toHaveLength(2);
     expect(tx.aiKnowledge.deleteMany).toHaveBeenCalledTimes(2);
+  });
+
+  it('promueve una fila GLOBAL en revisión y el rebuild conserva la promoción', async () => {
+    const pending = {
+      ...priorGlobalRow(),
+      id: 'pending-global',
+      state: 'REVIEW_REQUIRED',
+      promotedBy: null,
+    };
+    const { service, tx, getStored } = makeFixture({
+      priorKnowledge: [pending],
+    });
+
+    const promoted = await service.promote('admin-1', 'pending-global');
+
+    expect(tx.aiHumanVerification.create).toHaveBeenCalled();
+    expect(promoted).toMatchObject({ state: 'STABLE', promotedBy: 'ADMIN' });
+    expect(
+      getStored().find((row) => row.knowledgeKey === 'other.com'),
+    ).toMatchObject({ state: 'STABLE', promotedBy: 'ADMIN' });
+  });
+
+  it('rechaza promover una fila GLOBAL que no está en revisión', async () => {
+    const { service } = makeFixture({ priorKnowledge: [priorGlobalRow()] });
+
+    await expect(
+      service.promote('admin-1', 'prior-global'),
+    ).rejects.toBeInstanceOf(ConflictException);
   });
 
   it('mantiene bloqueado un GLOBAL sin evidencia tras una reversión ADMIN', async () => {

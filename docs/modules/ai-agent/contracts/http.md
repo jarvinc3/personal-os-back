@@ -31,14 +31,15 @@ AI-3 (JWT):
 
 Todas las rutas requieren JWT. `data` es el objeto o array indicado; `meta` es el envelope común. No hay paginación: ninguna ruta de Knowledge acepta `cursor`, `limit` ni `page`, y un query string enviado se ignora. El explorador, la cola y la exportación devuelven todas las filas que cumplen su filtro, sin recortes por página.
 
-| Método | Ruta                                                    | Rol                      | Request                 | HTTP | `data` en éxito                                             |
-| ------ | ------------------------------------------------------- | ------------------------ | ----------------------- | ---- | ----------------------------------------------------------- |
-| GET    | `/api/intelligence/knowledge`                           | USER, CONTRIBUTOR, ADMIN | —                       | 200  | `KnowledgeExplorer`                                         |
-| GET    | `/api/intelligence/knowledge/admin/queue`               | ADMIN                    | —                       | 200  | `KnowledgeItem[]`                                           |
-| POST   | `/api/intelligence/knowledge/admin/rebuild`             | ADMIN                    | sin body                | 201  | `KnowledgeRebuild`                                          |
-| POST   | `/api/intelligence/knowledge/admin/:knowledgeId/revert` | ADMIN                    | sin body                | 201  | `KnowledgeItem` GLOBAL en `BLOCKED`; 404 si el id no existe |
-| GET    | `/api/intelligence/knowledge/me/export`                 | USER, CONTRIBUTOR, ADMIN | —                       | 200  | `KnowledgeExport` (JSON)                                    |
-| DELETE | `/api/intelligence/knowledge/me`                        | USER, CONTRIBUTOR, ADMIN | `{ "confirmed": true }` | 200  | `KnowledgeDeletion`                                         |
+| Método | Ruta                                                     | Rol                      | Request                 | HTTP | `data` en éxito                                             |
+| ------ | -------------------------------------------------------- | ------------------------ | ----------------------- | ---- | ----------------------------------------------------------- |
+| GET    | `/api/intelligence/knowledge`                            | USER, CONTRIBUTOR, ADMIN | —                       | 200  | `KnowledgeExplorer`                                         |
+| GET    | `/api/intelligence/knowledge/admin/queue`                | ADMIN                    | —                       | 200  | `KnowledgeItem[]`                                           |
+| POST   | `/api/intelligence/knowledge/admin/rebuild`              | ADMIN                    | sin body                | 201  | `KnowledgeRebuild`                                          |
+| POST   | `/api/intelligence/knowledge/admin/:knowledgeId/promote` | ADMIN                    | sin body                | 201  | `KnowledgeItem` GLOBAL en `STABLE`; 404/409                 |
+| POST   | `/api/intelligence/knowledge/admin/:knowledgeId/revert`  | ADMIN                    | sin body                | 201  | `KnowledgeItem` GLOBAL en `BLOCKED`; 404 si el id no existe |
+| GET    | `/api/intelligence/knowledge/me/export`                  | USER, CONTRIBUTOR, ADMIN | —                       | 200  | `KnowledgeExport` (JSON)                                    |
+| DELETE | `/api/intelligence/knowledge/me`                         | USER, CONTRIBUTOR, ADMIN | `{ "confirmed": true }` | 200  | `KnowledgeDeletion`                                         |
 
 ### `KnowledgeExplorer`
 
@@ -112,6 +113,8 @@ Todas las rutas requieren JWT. `data` es el objeto o array indicado; `meta` es e
 
 `POST /api/intelligence/knowledge/admin/:knowledgeId/revert` no lleva body. Registra una verificación `KNOWLEDGE` con veredicto `REJECTED` y rol `ADMIN`, reconstruye la proyección y devuelve la fila `GLOBAL` de esa clave con `state: "BLOCKED"` y `promotedBy: null`. Responde 404 si el id no existe o no es de alcance `GLOBAL`.
 
+`POST /api/intelligence/knowledge/admin/:knowledgeId/promote` no lleva body. Solo acepta una fila `GLOBAL` en `REVIEW_REQUIRED`; registra una verificación `KNOWLEDGE` con veredicto `CONFIRMED` y rol `ADMIN`, reconstruye la proyección y devuelve la fila con `state: "STABLE"` y `promotedBy: "ADMIN"`. Responde 404 si el id no existe o no es `GLOBAL`, y 409 si la fila ya no está en revisión.
+
 ### `KnowledgeExport`
 
 `GET /api/intelligence/knowledge/me/export` devuelve en `data` un JSON con los datos de la cuenta. Las secuencias `BigInt` van como strings decimales; las fechas, en ISO 8601.
@@ -158,12 +161,13 @@ Qué hace en una sola operación:
 
 ### Errores
 
-| HTTP | Cuándo                                                                            | `message`                                                  |
-| ---- | --------------------------------------------------------------------------------- | ---------------------------------------------------------- |
-| 400  | Body inválido o sin `confirmed: true` en `DELETE /me`                             | `Confirma el borrado de datos AI` o el error de validación |
-| 401  | Sin JWT, JWT vencido o inválido                                                   | `Authentication required`                                  |
-| 403  | Rol insuficiente en `admin/queue`, `admin/rebuild` o `admin/:knowledgeId/revert`  | `No tienes permisos para esta operación`                   |
-| 404  | `admin/:knowledgeId/revert` con un id inexistente o que no es de alcance `GLOBAL` | `Conocimiento GLOBAL no encontrado`                        |
+| HTTP | Cuándo                                                                                                         | `message`                                                  |
+| ---- | -------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| 400  | Body inválido o sin `confirmed: true` en `DELETE /me`                                                          | `Confirma el borrado de datos AI` o el error de validación |
+| 401  | Sin JWT, JWT vencido o inválido                                                                                | `Authentication required`                                  |
+| 403  | Rol insuficiente en `admin/queue`, `admin/rebuild`, `admin/:knowledgeId/promote` o `admin/:knowledgeId/revert` | `No tienes permisos para esta operación`                   |
+| 404  | `admin/:knowledgeId/promote` o `revert` con un id inexistente o que no es `GLOBAL`                             | `Conocimiento GLOBAL no encontrado`                        |
+| 409  | `admin/:knowledgeId/promote` sobre una fila que no está en `REVIEW_REQUIRED`                                   | `Solo se puede promover conocimiento GLOBAL en revisión`   |
 
 ### Efectos en endpoints existentes
 
