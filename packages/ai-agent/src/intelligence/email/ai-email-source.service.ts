@@ -358,11 +358,16 @@ export class AiEmailSourceService {
     });
     const token = (await response.json()) as OAuthTokenResponse;
     if (!response.ok || !token.access_token) {
+      const providerCode = token.error || `http_${response.status}`;
       await this.prisma.aiEmailConnection.update({
         where: { id: connectionId },
-        data: { lastSyncErrorCode: token.error || 'token_refresh_failed' },
+        data: { lastSyncErrorCode: providerCode },
       });
-      throw new ServiceUnavailableException('gmail_token_refresh_failed');
+      throw new ServiceUnavailableException({
+        code: 'gmail_token_refresh_failed',
+        providerCode,
+        diagnostic: this.oauthDiagnostic(providerCode),
+      });
     }
     const expiresAt = new Date(Date.now() + (token.expires_in ?? 3600) * 1000);
     await this.prisma.aiEmailConnection.update({

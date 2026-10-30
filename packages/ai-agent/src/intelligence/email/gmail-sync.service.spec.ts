@@ -1,4 +1,9 @@
-import { ConflictException, HttpException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  HttpException,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { GmailSyncService } from './gmail-sync.service';
 
 describe('GmailSyncService', () => {
@@ -42,13 +47,21 @@ describe('GmailSyncService', () => {
       removeEmailData: jest.fn().mockResolvedValue({ deletedMessages: 0 }),
     };
     const service = new GmailSyncService(
-      prisma as never,
+      prisma,
       source as never,
       config as never,
       events as never,
       deletion as never,
     );
-    return { current, prisma, source, config, events, deletion, service };
+    return {
+      current,
+      prisma,
+      source,
+      config,
+      events,
+      deletion,
+      service,
+    };
   };
 
   it('imports a bootstrap message with sanitized content and completes bootstrap', async () => {
@@ -139,34 +152,102 @@ describe('GmailSyncService', () => {
     const { current, prisma, source, service } = makeFixture();
     current.initialSyncCompletedAt = new Date('2026-10-24T00:00:00Z');
     current.providerCursor = '100';
-    source.gmailApiRequest.mockResolvedValueOnce({
-      id: 'gmail-2',
-      snippet: 'Compra 1250',
-      payload: { headers: [{ name: 'From', value: 'bank@example.com' }] },
+    source.gmailApiRequest
+      .mockResolvedValueOnce({
+        historyId: '105',
+        history: [{ messagesAdded: [{ message: { id: 'gmail-2' } }] }],
+      })
+      .mockResolvedValueOnce({
+        id: 'gmail-2',
+        snippet: 'Compra 1250',
+        payload: { headers: [{ name: 'From', value: 'bank@example.com' }] },
+      });
+
+    expect(await service.syncConnection('connection-1')).toEqual({
+      connected: true,
+      imported: 1,
+      bootstrapComplete: true,
     });
-    const previousFetch = global.fetch;
-    global.fetch = jest.fn().mockResolvedValue({
-      ok: true,
-      status: 200,
-      json: () =>
-        Promise.resolve({
-          historyId: '105',
-          history: [{ messagesAdded: [{ message: { id: 'gmail-2' } }] }],
+    expect(source.gmailApiRequest).toHaveBeenNthCalledWith(
+      1,
+      'token',
+      expect.stringContaining('/users/me/history?'),
+      expect.any(Function),
+    );
+    expect(prisma.aiEmailConnection.update).toHaveBeenCalledWith({
+      where: { id: 'connection-1' },
+      data: { providerCursor: '105', importedMessageCount: { increment: 1 } },
+    });
+  });
+
+  it('recovers when Gmail no longer has the history cursor', async () => {
+    const { current, source, service } = makeFixture();
+    current.initialSyncCompletedAt = new Date('2026-10-24T00:00:00Z');
+    current.providerCursor = '100';
+    source.gmailApiRequest
+      .mockRejectedValueOnce(
+        new BadRequestException({ providerCode: 'notFound' }),
+      )
+      .mockResolvedValueOnce({ historyId: '200' })
+      .mockResolvedValueOnce({ messages: [], resultSizeEstimate: 0 });
+
+    expect(await service.syncConnection('connection-1')).toEqual({
+      connected: true,
+      imported: 0,
+      recovered: true,
+      bootstrapComplete: true,
+    });
+  });
+
+  it('reports waiting and retrying states while the history read retries', async () => {
+    const { current, prisma, source, service } = makeFixture();
+    current.initialSyncCompletedAt = new Date('2026-10-24T00:00:00Z');
+    current.providerCursor = '100';
+    source.gmailApiRequest.mockImplementationOnce(
+      async (_token, _path, onRetryState) => {
+        await onRetryState?.({
+          status: 'waiting',
+          retryAt: Date.now() + 1_000,
+          attempt: 1,
+          errorCategory: 'temporary',
+        });
+        await onRetryState?.({
+          status: 'retrying',
+          attempt: 1,
+          errorCategory: 'temporary',
+        });
+        throw new BadRequestException({
+          code: 'gmail_api_request_failed',
+          providerCode: 'http_503',
+        });
+      },
+    );
+
+    await expect(service.syncConnection('connection-1')).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
+    const states = prisma.aiEmailConnection.update.mock.calls
+      .map(([call]) => call.data.syncState)
+      .filter(Boolean);
+    expect(states).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          status: 'waiting',
+          errorCategory: 'temporary',
         }),
-    }) as typeof fetch;
-    try {
-      expect(await service.syncConnection('connection-1')).toEqual({
-        connected: true,
-        imported: 1,
-        bootstrapComplete: true,
-      });
-      expect(prisma.aiEmailConnection.update).toHaveBeenCalledWith({
-        where: { id: 'connection-1' },
-        data: { providerCursor: '105', importedMessageCount: { increment: 1 } },
-      });
-    } finally {
-      global.fetch = previousFetch;
-    }
+        expect.objectContaining({
+          status: 'retrying',
+          errorCategory: 'temporary',
+        }),
+      ]),
+    );
+    expect(states.at(-1)).toEqual(
+      expect.objectContaining({
+        status: 'failed',
+        errorCode: 'http_503',
+        errorCategory: 'temporary',
+      }),
+    );
   });
 
   it('recovers a missing history cursor using the Gmail message list', async () => {
@@ -189,6 +270,149 @@ describe('GmailSyncService', () => {
         lastRecoverySyncAt: expect.any(Date),
       }),
     });
+  });
+
+  it('classifies a missing OAuth configuration and keeps its code', async () => {
+    const { prisma, source, service } = makeFixture();
+    source.getAccessToken.mockRejectedValueOnce(
+      new ServiceUnavailableException({
+        code: 'gmail_oauth_not_configured',
+      }),
+    );
+
+    await expect(service.syncConnection('connection-1')).rejects.toBeInstanceOf(
+      ServiceUnavailableException,
+    );
+    expect(prisma.aiEmailConnection.update).toHaveBeenCalledWith({
+      where: { id: 'connection-1' },
+      data: { lastSyncErrorCode: 'gmail_oauth_not_configured' },
+    });
+    const states = prisma.aiEmailConnection.update.mock.calls
+      .map(([call]) => call.data.syncState)
+      .filter(Boolean);
+    expect(states.at(-1)).toEqual(
+      expect.objectContaining({
+        status: 'failed',
+        errorCode: 'gmail_oauth_not_configured',
+        errorCategory: 'configuration',
+      }),
+    );
+  });
+
+  it.each(['http_401', 'http_403', 'insufficientPermissions'])(
+    'classifies %s as authorization and keeps the provider code',
+    async (providerCode) => {
+      const { current, prisma, source, service } = makeFixture();
+      current.initialSyncCompletedAt = new Date('2026-10-24T00:00:00Z');
+      current.providerCursor = '100';
+      source.gmailApiRequest.mockRejectedValueOnce(
+        new BadRequestException({ providerCode }),
+      );
+
+      await expect(
+        service.syncConnection('connection-1'),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(prisma.aiEmailConnection.update).toHaveBeenCalledWith({
+        where: { id: 'connection-1' },
+        data: { lastSyncErrorCode: providerCode },
+      });
+      const states = prisma.aiEmailConnection.update.mock.calls
+        .map(([call]) => call.data.syncState)
+        .filter(Boolean);
+      expect(states.at(-1)).toEqual(
+        expect.objectContaining({
+          status: 'failed',
+          errorCode: providerCode,
+          errorCategory: 'authorization',
+        }),
+      );
+    },
+  );
+
+  it('keeps an unknown provider code and classifies it as unknown', async () => {
+    const { current, prisma, source, service } = makeFixture();
+    current.initialSyncCompletedAt = new Date('2026-10-24T00:00:00Z');
+    current.providerCursor = '100';
+    source.gmailApiRequest.mockRejectedValueOnce(
+      new BadRequestException({ providerCode: 'mystery_provider_failure' }),
+    );
+
+    await expect(service.syncConnection('connection-1')).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
+    const states = prisma.aiEmailConnection.update.mock.calls
+      .map(([call]) => call.data.syncState)
+      .filter(Boolean);
+    expect(states.at(-1)).toEqual(
+      expect.objectContaining({
+        status: 'failed',
+        errorCode: 'mystery_provider_failure',
+        errorCategory: 'unknown',
+      }),
+    );
+  });
+
+  it('keeps the provider code when a history rate limit schedules a retry', async () => {
+    const { current, prisma, source, service } = makeFixture();
+    current.initialSyncCompletedAt = new Date('2026-10-24T00:00:00Z');
+    current.providerCursor = '100';
+    source.gmailApiRequest.mockRejectedValueOnce(
+      new BadRequestException({ providerCode: 'RESOURCE_EXHAUSTED' }),
+    );
+
+    try {
+      expect(await service.syncConnection('connection-1')).toEqual({
+        connected: true,
+        imported: 0,
+        retryScheduled: true,
+      });
+      expect(prisma.aiEmailConnection.update).toHaveBeenCalledWith({
+        where: { id: 'connection-1' },
+        data: expect.objectContaining({
+          syncState: expect.objectContaining({
+            status: 'waiting',
+            errorCode: 'rate_limit_retry_scheduled',
+            providerErrorCode: 'RESOURCE_EXHAUSTED',
+            errorCategory: 'rate_limit',
+          }),
+        }),
+      });
+    } finally {
+      service.onModuleDestroy();
+    }
+  });
+
+  it('marks an interrupted run as worker_interrupted', async () => {
+    const { prisma, source, service } = makeFixture();
+    source.oauthDiagnostics.mockReturnValue({ configured: false });
+    prisma.aiEmailConnection.findMany.mockResolvedValueOnce([
+      {
+        id: 'connection-1',
+        userId: 'user-1',
+        syncState: {
+          status: 'running',
+          phase: 'incremental',
+          attempt: 0,
+          processedThisRun: 2,
+          importedThisRun: 1,
+          startedAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+      },
+    ]);
+
+    service.onModuleInit();
+    await new Promise((resolve) => setTimeout(resolve, 20));
+
+    const states = prisma.aiEmailConnection.update.mock.calls
+      .map(([call]) => call.data.syncState)
+      .filter(Boolean);
+    expect(states.at(-1)).toEqual(
+      expect.objectContaining({
+        status: 'failed',
+        errorCode: 'worker_interrupted',
+      }),
+    );
   });
 
   it('schedules a bounded retry for a provider rate limit', async () => {
