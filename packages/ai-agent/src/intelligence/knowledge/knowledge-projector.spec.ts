@@ -230,6 +230,35 @@ describe('AI-4 knowledge', () => {
     expect(global.every((item) => item.promotedBy === null)).toBe(true);
   });
 
+  it('un ADMIN promueve una fila SECURITY_ALERT en revisión y el rebuild la conserva', () => {
+    const input = fixture();
+    input.verifications = input.verifications.map((verification) => ({
+      ...verification,
+      verdict: 'CORRECTED' as const,
+      correctedPayload: {
+        semanticType: 'SECURITY_ALERT',
+        relevance: true,
+        routes: ['SECURITY'],
+      },
+    }));
+    input.adminDecisions = [
+      {
+        knowledgeType: 'EMAIL_DOMAIN',
+        knowledgeKey: 'bank.com',
+        sequence: 3n,
+        verdict: 'CONFIRMED',
+      },
+    ];
+    input.verificationSequence = 3n;
+
+    expect(
+      projectKnowledge(input).find(
+        (item) =>
+          item.scope === 'GLOBAL' && item.knowledgeType === 'EMAIL_DOMAIN',
+      ),
+    ).toMatchObject({ state: 'STABLE', promotedBy: 'ADMIN' });
+  });
+
   it('deja GLOBAL pendiente hasta alcanzar el mínimo de colaboradores y bloquea la reversión ADMIN', () => {
     const input = fixture();
     input.minimumContributors = 3;
@@ -239,7 +268,7 @@ describe('AI-4 knowledge', () => {
         .every((item) => item.state === 'REVIEW_REQUIRED'),
     ).toBe(true);
     input.minimumContributors = 2;
-    input.adminReversions = [
+    input.adminDecisions = [
       {
         knowledgeType: 'EMAIL_DOMAIN',
         knowledgeKey: 'bank.com',
@@ -248,6 +277,33 @@ describe('AI-4 knowledge', () => {
       },
     ];
     input.verificationSequence = 3n;
+    expect(
+      projectKnowledge(input).find(
+        (item) =>
+          item.scope === 'GLOBAL' && item.knowledgeType === 'EMAIL_DOMAIN',
+      ),
+    ).toMatchObject({ state: 'BLOCKED', promotedBy: null });
+  });
+
+  it('una reversión ADMIN posterior gana sobre la promoción', () => {
+    const input = fixture();
+    input.minimumContributors = 3;
+    input.adminDecisions = [
+      {
+        knowledgeType: 'EMAIL_DOMAIN',
+        knowledgeKey: 'bank.com',
+        sequence: 3n,
+        verdict: 'CONFIRMED',
+      },
+      {
+        knowledgeType: 'EMAIL_DOMAIN',
+        knowledgeKey: 'bank.com',
+        sequence: 4n,
+        verdict: 'REJECTED',
+      },
+    ];
+    input.verificationSequence = 4n;
+
     expect(
       projectKnowledge(input).find(
         (item) =>

@@ -65,6 +65,20 @@ export class AiKnowledgeController {
     return this.knowledge.rebuild(user.sub);
   }
 
+  @Post('admin/:knowledgeId/promote')
+  @Roles('ADMIN')
+  @ApiOperation({
+    summary: 'Promover manualmente conocimiento GLOBAL en revisión',
+  })
+  @ApiCreatedResponse({ type: KnowledgeItemDto })
+  @ApiNotFoundResponse({ description: 'Conocimiento GLOBAL no encontrado' })
+  promote(
+    @CurrentUser() user: { sub: string },
+    @Param('knowledgeId') knowledgeId: string,
+  ) {
+    return this.knowledge.promote(user.sub, knowledgeId);
+  }
+
   @Post('admin/:knowledgeId/revert')
   @Roles('ADMIN')
   @ApiOperation({

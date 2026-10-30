@@ -6,6 +6,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [Se
 
 ### Agregado
 
+- Un ADMIN puede promover manualmente una fila GLOBAL en `REVIEW_REQUIRED` con `POST /api/intelligence/knowledge/admin/:id/promote`: registra una verificación `CONFIRMED`, la deja `STABLE` con `promotedBy: ADMIN` y el rebuild conserva la decisión; una reversión posterior vuelve a bloquearla (#246).
 - Seeds de Knowledge para QA en DEV (#207, #327): crean evidencia de correo (mensajes, dataset, verificaciones, observaciones, consentimiento y reversiones ADMIN) y ejecutan la proyección real; las filas USER/GLOBAL sobreviven a un rebuild y conservan los estados promovidos, pendientes y bloqueados.
 - Seed de la cuenta QA `qa-user@personal-os.dev` (#207): correo verificado, sin rol ADMIN, conocimiento personal `STABLE`/`OBSERVED` y evidencia GLOBAL `STABLE`/`REVIEW_REQUIRED`/`BLOCKED`; la contraseña aleatoria se guarda fuera del repositorio.
 - El deploy del back corre `prisma migrate deploy` como pre-deploy de Railway (`railway.json`): si una migración falla, el deploy se cancela y sigue la versión anterior; DEV lo aplica en cada deploy y producción al mergear a `master` con el OK de Jarvin (#230).
