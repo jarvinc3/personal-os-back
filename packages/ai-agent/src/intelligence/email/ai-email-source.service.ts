@@ -32,6 +32,56 @@ type OAuthTokenResponse = {
 
 type GmailProfile = { emailAddress: string; historyId?: string };
 
+type AttemptFields = {
+  lastAttemptStartedAt: Date | null;
+  lastAttemptFinishedAt: Date | null;
+  lastAttemptResult: string | null;
+  lastAttemptErrorCode: string | null;
+  lastAttemptErrorCategory: string | null;
+  lastAttemptImportedCount: number | null;
+  lastAttemptPhase: string | null;
+};
+
+type FailureFields = {
+  lastFailureAt: Date | null;
+  lastFailureErrorCode: string | null;
+  lastFailureErrorCategory: string | null;
+  lastFailureImportedCount: number | null;
+  lastFailurePhase: string | null;
+};
+
+function mapLastAttempt(connection: AttemptFields) {
+  if (
+    !connection.lastAttemptStartedAt &&
+    !connection.lastAttemptFinishedAt &&
+    !connection.lastAttemptResult
+  ) {
+    return null;
+  }
+  return {
+    startedAt: connection.lastAttemptStartedAt,
+    finishedAt: connection.lastAttemptFinishedAt,
+    result: connection.lastAttemptResult,
+    errorCode: connection.lastAttemptErrorCode,
+    errorCategory: connection.lastAttemptErrorCategory,
+    importedCount: connection.lastAttemptImportedCount,
+    phase: connection.lastAttemptPhase,
+  };
+}
+
+function mapLastFailure(connection: FailureFields) {
+  if (!connection.lastFailureAt) {
+    return null;
+  }
+  return {
+    finishedAt: connection.lastFailureAt,
+    errorCode: connection.lastFailureErrorCode,
+    errorCategory: connection.lastFailureErrorCategory,
+    importedCount: connection.lastFailureImportedCount,
+    phase: connection.lastFailurePhase,
+  };
+}
+
 @Injectable()
 export class AiEmailSourceService {
   constructor(
@@ -95,29 +145,8 @@ export class AiEmailSourceService {
             lastSyncedAt: connection.lastSyncedAt,
             lastRecoverySyncAt: connection.lastRecoverySyncAt,
             lastSyncErrorCode: connection.lastSyncErrorCode,
-            lastAttempt:
-              connection.lastAttemptStartedAt ||
-              connection.lastAttemptFinishedAt ||
-              connection.lastAttemptResult
-                ? {
-                    startedAt: connection.lastAttemptStartedAt,
-                    finishedAt: connection.lastAttemptFinishedAt,
-                    result: connection.lastAttemptResult,
-                    errorCode: connection.lastAttemptErrorCode,
-                    errorCategory: connection.lastAttemptErrorCategory,
-                    importedCount: connection.lastAttemptImportedCount,
-                    phase: connection.lastAttemptPhase,
-                  }
-                : null,
-            lastFailure: connection.lastFailureAt
-              ? {
-                  finishedAt: connection.lastFailureAt,
-                  errorCode: connection.lastFailureErrorCode,
-                  errorCategory: connection.lastFailureErrorCategory,
-                  importedCount: connection.lastFailureImportedCount,
-                  phase: connection.lastFailurePhase,
-                }
-              : null,
+            lastAttempt: mapLastAttempt(connection),
+            lastFailure: mapLastFailure(connection),
           }
         : { connected: false },
       counters: {
