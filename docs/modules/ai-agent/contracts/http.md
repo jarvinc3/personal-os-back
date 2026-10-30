@@ -17,13 +17,13 @@ Auth: JWT de Supabase (`Authorization: Bearer <token>`). Envelope `{ data, meta 
 
 AI-3 (JWT):
 
-| Método | Path                                                      | Notas                                                                                                        |
-| ------ | --------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| GET    | `/api/intelligence/dataset`                               | Conteos `TRAIN`, `VALIDATION`, `HOLDOUT` de `EMAIL_V1`, filtrados por cuenta                                 |
-| GET    | `/api/intelligence/review-queue?partition=...&cursor=...` | Cola sin verificar, ordenada por fecha recibida ascendente; incluye conteos pendientes por partición y total |
-| POST   | `/api/intelligence/messages/:messageId/verifications`     | `CONFIRMED`, `CORRECTED` o `REJECTED`; guarda secuencia y marca HOLDOUT como verdad de referencia            |
-| GET    | `/api/intelligence/runs`                                  | Runs del usuario con configuración, versiones y watermarks de evidencia                                      |
-| POST   | `/api/intelligence/email/reset`                           | Requiere `{ "confirmed": true }`; vacía el corpus de correo y derivados del usuario, conserva OAuth          |
+| Método | Path                                                      | Notas                                                                                                                                                     |
+| ------ | --------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/api/intelligence/dataset`                               | Conteos `TRAIN`, `VALIDATION`, `HOLDOUT` de `EMAIL_V1`, filtrados por cuenta                                                                              |
+| GET    | `/api/intelligence/review-queue?partition=...&cursor=...` | Cola sin verificar, ordenada por fecha recibida ascendente; incluye conteos pendientes por partición y total                                              |
+| POST   | `/api/intelligence/messages/:messageId/verifications`     | `CONFIRMED`, `CORRECTED` o `REJECTED`; guarda secuencia y marca HOLDOUT como verdad de referencia                                                         |
+| GET    | `/api/intelligence/runs`                                  | Runs del usuario con configuración, versiones y watermarks de evidencia                                                                                   |
+| POST   | `/api/intelligence/email/reset`                           | Requiere `{ "confirmed": true }`; vacía el corpus de correo y derivados del usuario, conserva OAuth; 409 `GMAIL_NOT_CONNECTED` o `GMAIL_SYNC_IN_PROGRESS` |
 
 `GET /api/intelligence/messages/:messageId` incluye `provenance.observations` y `provenance.verifications` en orden de secuencia.
 
@@ -172,4 +172,4 @@ Qué hace en una sola operación:
 ### Efectos en endpoints existentes
 
 - `GET /api/intelligence/runs` (array, máximo 50, más reciente primero) añade `consentRevision` (string), `reproductionStatus` (`COMPLETE` o `INCOMPLETE`) y `missingEvidence` (`{ observations, humanVerifications }`). Un run pasa a `INCOMPLETE` cuando se retiró evidencia que cubría su corte; no participa en comparaciones de evidencia equivalente.
-- `POST /api/intelligence/email/reset` mantiene `{ "confirmed": true }` y responde `{ connected: false, deletedMessages: 0 }` sin conexión, o `{ connected: true, deletedMessages }` cuando existe. Anonimiza verificaciones y observaciones antes de vaciar el corpus, conserva la conexión OAuth y reconstruye `GLOBAL`. Devuelve 409 si hay una sincronización activa.
+- `POST /api/intelligence/email/reset` mantiene `{ "confirmed": true }` y responde `{ connected: true, deletedMessages }` cuando existe la conexión. Anonimiza verificaciones y observaciones antes de vaciar el corpus, conserva la conexión OAuth y reconstruye `GLOBAL`. Devuelve 409 `GMAIL_NOT_CONNECTED` sin conexión y 409 `GMAIL_SYNC_IN_PROGRESS` con un sync activo o esperando cuota.

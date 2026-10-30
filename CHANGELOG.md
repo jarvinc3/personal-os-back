@@ -7,6 +7,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [Se
 ### Agregado
 
 - Un ADMIN puede promover manualmente una fila GLOBAL en `REVIEW_REQUIRED` con `POST /api/intelligence/knowledge/admin/:id/promote`: registra una verificación `CONFIRMED`, la deja `STABLE` con `promotedBy: ADMIN` y el rebuild conserva la decisión; una reversión posterior vuelve a bloquearla (#246).
+- Cada conexión de Gmail conserva el último intento de sincronización (inicio, fin, resultado, código y categoría, correos importados y fase) y el último fallo por separado; el dashboard los expone como `lastAttempt` y `lastFailure`, un intento correcto no borra el fallo anterior y un reinicio queda como `INTERRUPTED` (#251).
 - Seeds de Knowledge para QA en DEV (#207, #327): crean evidencia de correo (mensajes, dataset, verificaciones, observaciones, consentimiento y reversiones ADMIN) y ejecutan la proyección real; las filas USER/GLOBAL sobreviven a un rebuild y conservan los estados promovidos, pendientes y bloqueados.
 - Seed de la cuenta QA `qa-user@personal-os.dev` (#207): correo verificado, sin rol ADMIN, conocimiento personal `STABLE`/`OBSERVED` y evidencia GLOBAL `STABLE`/`REVIEW_REQUIRED`/`BLOCKED`; la contraseña aleatoria se guarda fuera del repositorio.
 - El deploy del back corre `prisma migrate deploy` como pre-deploy de Railway (`railway.json`): si una migración falla, el deploy se cancela y sigue la versión anterior; DEV lo aplica en cada deploy y producción al mergear a `master` con el OK de Jarvin (#230).
@@ -43,6 +44,9 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [Se
 
 ### Corregido
 
+- El reinicio del corpus de Gmail devuelve 409 `GMAIL_NOT_CONNECTED` sin conexión y 409 `GMAIL_SYNC_IN_PROGRESS` mientras el sync está activo o esperando cuota; no borra nada en esos casos y los códigos quedan en Swagger (#225).
+- El arranque sin configuración OAuth de Gmail registra una advertencia sin secretos y deja apagado el ciclo automático; el diagnóstico expone `missing_oauth_configuration` hasta que las variables se corrigen y el API reinicia (#253).
+- La recuperación de Gmail cubre todo el intervalo desde la última sincronización correcta, sin el límite de siete días, y pagina hasta terminar; si el proveedor no completa el hueco, el estado conserva el rango intentado y el intento no se informa como éxito completo (#252).
 - Gmail conserva la causa real de sus fallos y reintenta la lectura del historial: la falta de configuración OAuth queda como `configuration` con `gmail_oauth_not_configured`, un 401/403 como `authorization`, un 429/5xx como `rate_limit` o `temporary`, y un código no reconocido se conserva para que la pantalla muestre una causa concreta; un reinicio del API sigue marcando `worker_interrupted` (#250).
 - AI-4 (#239): revocar el consentimiento marca GLOBAL en `REVIEW_REQUIRED` y reconstruye la proyección en la misma solicitud; si el rebuild falla, la revocación y la pausa se conservan.
 - AI-4 (#238): una etiqueta `SECURITY_ALERT` ya no se auto-promueve a GLOBAL; queda en revisión ADMIN aunque cumpla el umbral y el mínimo de colaboradores.
