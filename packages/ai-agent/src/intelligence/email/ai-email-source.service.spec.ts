@@ -77,6 +77,65 @@ describe('AiEmailSourceService', () => {
     },
   );
 
+  it('expone el último intento y el último fallo en el dashboard', async () => {
+    const finishedAt = new Date('2026-10-30T12:00:00.000Z');
+    const connection = {
+      id: 'connection-1',
+      emailAddress: 'qa@example.com',
+      isActive: true,
+      initialSyncCompletedAt: new Date('2026-10-24T00:00:00.000Z'),
+      lastSyncedAt: finishedAt,
+      lastRecoverySyncAt: null,
+      importedMessageCount: 4,
+      lastSyncErrorCode: 'http_500',
+      lastAttemptStartedAt: new Date('2026-10-30T11:59:00.000Z'),
+      lastAttemptFinishedAt: finishedAt,
+      lastAttemptResult: 'FAILED',
+      lastAttemptErrorCode: 'http_500',
+      lastAttemptErrorCategory: 'temporary',
+      lastAttemptImportedCount: 2,
+      lastAttemptPhase: 'incremental',
+      lastFailureAt: finishedAt,
+      lastFailureErrorCode: 'http_500',
+      lastFailureErrorCategory: 'temporary',
+      lastFailureImportedCount: 2,
+      lastFailurePhase: 'incremental',
+    };
+    const prisma = {
+      aiEmailConnection: {
+        findUnique: jest.fn().mockResolvedValue(connection),
+      },
+      aiEmailMessage: {
+        count: jest.fn().mockResolvedValue(0),
+        aggregate: jest.fn().mockResolvedValue({
+          _min: { receivedAt: null },
+          _max: { receivedAt: null },
+        }),
+      },
+      userRole: { findUnique: jest.fn().mockResolvedValue({ role: 'USER' }) },
+    };
+    const service = new AiEmailSourceService(prisma as never, {} as never);
+
+    const dashboard = await service.dashboard('user-1');
+
+    expect(dashboard.connection).toMatchObject({
+      lastAttempt: {
+        result: 'FAILED',
+        errorCode: 'http_500',
+        errorCategory: 'temporary',
+        importedCount: 2,
+        phase: 'incremental',
+      },
+      lastFailure: {
+        finishedAt,
+        errorCode: 'http_500',
+        errorCategory: 'temporary',
+        importedCount: 2,
+        phase: 'incremental',
+      },
+    });
+  });
+
   it('no reintenta un 401 y conserva el código del proveedor', async () => {
     const fetchMock = jest.fn().mockResolvedValue({
       ok: false,

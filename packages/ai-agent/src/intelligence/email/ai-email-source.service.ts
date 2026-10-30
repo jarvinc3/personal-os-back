@@ -51,6 +51,18 @@ export class AiEmailSourceService {
         lastRecoverySyncAt: true,
         importedMessageCount: true,
         lastSyncErrorCode: true,
+        lastAttemptStartedAt: true,
+        lastAttemptFinishedAt: true,
+        lastAttemptResult: true,
+        lastAttemptErrorCode: true,
+        lastAttemptErrorCategory: true,
+        lastAttemptImportedCount: true,
+        lastAttemptPhase: true,
+        lastFailureAt: true,
+        lastFailureErrorCode: true,
+        lastFailureErrorCategory: true,
+        lastFailureImportedCount: true,
+        lastFailurePhase: true,
       },
     });
     const [messageCount, recentCount, receivedRange] = connection
@@ -83,6 +95,29 @@ export class AiEmailSourceService {
             lastSyncedAt: connection.lastSyncedAt,
             lastRecoverySyncAt: connection.lastRecoverySyncAt,
             lastSyncErrorCode: connection.lastSyncErrorCode,
+            lastAttempt:
+              connection.lastAttemptStartedAt ||
+              connection.lastAttemptFinishedAt ||
+              connection.lastAttemptResult
+                ? {
+                    startedAt: connection.lastAttemptStartedAt,
+                    finishedAt: connection.lastAttemptFinishedAt,
+                    result: connection.lastAttemptResult,
+                    errorCode: connection.lastAttemptErrorCode,
+                    errorCategory: connection.lastAttemptErrorCategory,
+                    importedCount: connection.lastAttemptImportedCount,
+                    phase: connection.lastAttemptPhase,
+                  }
+                : null,
+            lastFailure: connection.lastFailureAt
+              ? {
+                  finishedAt: connection.lastFailureAt,
+                  errorCode: connection.lastFailureErrorCode,
+                  errorCategory: connection.lastFailureErrorCategory,
+                  importedCount: connection.lastFailureImportedCount,
+                  phase: connection.lastFailurePhase,
+                }
+              : null,
           }
         : { connected: false },
       counters: {

@@ -121,6 +121,27 @@ describe('GmailSyncService', () => {
     expect(events.emit).toHaveBeenCalled();
   });
 
+  it('records a successful attempt without overwriting the last failure', async () => {
+    const { prisma, service } = makeFixture();
+
+    await service.syncConnection('connection-1');
+
+    const attemptUpdate = prisma.aiEmailConnection.update.mock.calls
+      .map(([call]) => call.data)
+      .find((data) => data.lastAttemptResult === 'SUCCEEDED');
+    expect(attemptUpdate).toEqual(
+      expect.objectContaining({
+        lastAttemptResult: 'SUCCEEDED',
+        lastAttemptErrorCode: null,
+        lastAttemptErrorCategory: null,
+        lastAttemptImportedCount: 0,
+        lastAttemptPhase: 'bootstrap',
+      }),
+    );
+    expect(attemptUpdate).not.toHaveProperty('lastFailureAt');
+    expect(attemptUpdate).not.toHaveProperty('lastFailureErrorCode');
+  });
+
   it('keeps the next bootstrap page and skips an already imported message', async () => {
     const { current, prisma, source, service } = makeFixture();
     current.bootstrapPageToken = 'page-1';
@@ -285,7 +306,14 @@ describe('GmailSyncService', () => {
     );
     expect(prisma.aiEmailConnection.update).toHaveBeenCalledWith({
       where: { id: 'connection-1' },
-      data: { lastSyncErrorCode: 'gmail_oauth_not_configured' },
+      data: expect.objectContaining({
+        lastSyncErrorCode: 'gmail_oauth_not_configured',
+        lastAttemptResult: 'FAILED',
+        lastAttemptErrorCode: 'gmail_oauth_not_configured',
+        lastAttemptErrorCategory: 'configuration',
+        lastFailureErrorCode: 'gmail_oauth_not_configured',
+        lastFailureErrorCategory: 'configuration',
+      }),
     });
     const states = prisma.aiEmailConnection.update.mock.calls
       .map(([call]) => call.data.syncState)
@@ -314,7 +342,14 @@ describe('GmailSyncService', () => {
       ).rejects.toBeInstanceOf(BadRequestException);
       expect(prisma.aiEmailConnection.update).toHaveBeenCalledWith({
         where: { id: 'connection-1' },
-        data: { lastSyncErrorCode: providerCode },
+        data: expect.objectContaining({
+          lastSyncErrorCode: providerCode,
+          lastAttemptResult: 'FAILED',
+          lastAttemptErrorCode: providerCode,
+          lastAttemptErrorCategory: 'authorization',
+          lastFailureErrorCode: providerCode,
+          lastFailureErrorCategory: 'authorization',
+        }),
       });
       const states = prisma.aiEmailConnection.update.mock.calls
         .map(([call]) => call.data.syncState)
@@ -377,6 +412,16 @@ describe('GmailSyncService', () => {
           }),
         }),
       });
+      expect(prisma.aiEmailConnection.update).toHaveBeenCalledWith({
+        where: { id: 'connection-1' },
+        data: expect.objectContaining({
+          lastAttemptResult: 'FAILED',
+          lastAttemptErrorCode: 'RESOURCE_EXHAUSTED',
+          lastAttemptErrorCategory: 'rate_limit',
+          lastFailureErrorCode: 'RESOURCE_EXHAUSTED',
+          lastFailureErrorCategory: 'rate_limit',
+        }),
+      });
     } finally {
       service.onModuleDestroy();
     }
@@ -413,6 +458,15 @@ describe('GmailSyncService', () => {
         errorCode: 'worker_interrupted',
       }),
     );
+    expect(prisma.aiEmailConnection.update).toHaveBeenCalledWith({
+      where: { id: 'connection-1' },
+      data: expect.objectContaining({
+        lastAttemptResult: 'INTERRUPTED',
+        lastAttemptErrorCode: 'worker_interrupted',
+        lastAttemptImportedCount: 1,
+        lastAttemptPhase: 'incremental',
+      }),
+    });
   });
 
   it('schedules a bounded retry for a provider rate limit', async () => {
