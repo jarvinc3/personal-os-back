@@ -38,6 +38,7 @@ type GmailSyncProgress = {
   nextRunAt?: number;
   errorCode?: string;
   providerErrorCode?: string;
+  recoveryRange?: { from: string; to: string };
   errorCategory?:
     'authorization' | 'configuration' | 'rate_limit' | 'temporary' | 'unknown';
   startedAt: string;
@@ -103,7 +104,11 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
         `Unable to recover Gmail sync state: ${this.safeErrorCode(error)}`,
       );
     });
-    if (!this.source.oauthDiagnostics().configured) {
+    const oauthDiagnostics = this.source.oauthDiagnostics();
+    if (!oauthDiagnostics.configured) {
+      this.logger.warn(
+        `Gmail OAuth is not configured (${oauthDiagnostics.status}); automatic sync is disabled until the API restarts with AI_GMAIL_CLIENT_ID, AI_GMAIL_CLIENT_SECRET, AI_GMAIL_REDIRECT_URI and AI_GMAIL_TOKEN_ENCRYPTION_KEY set.`,
+      );
       return;
     }
     const intervalMinutes = this.config.get('AI_EMAIL_SYNC_INTERVAL_MINUTES', {
@@ -322,6 +327,7 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
     const phase = connection.initialSyncCompletedAt
       ? 'incremental'
       : 'bootstrap';
+    const attemptStartedAt = new Date();
     await this.updateSyncProgress(connection.id, connection.userId, {
       status: 'running',
       phase,
@@ -334,23 +340,42 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
       nextRunAt: undefined,
       errorCode: undefined,
       providerErrorCode: undefined,
+      recoveryRange: undefined,
       errorCategory: undefined,
-      startedAt: new Date().toISOString(),
+      startedAt: attemptStartedAt.toISOString(),
     });
     try {
       await this.prisma.aiEmailConnection.update({
         where: { id: connectionId },
-        data: { lastSyncErrorCode: null },
+        data: {
+          lastSyncErrorCode: null,
+          lastAttemptStartedAt: attemptStartedAt,
+          lastAttemptFinishedAt: null,
+          lastAttemptResult: null,
+          lastAttemptErrorCode: null,
+          lastAttemptErrorCategory: null,
+          lastAttemptImportedCount: 0,
+          lastAttemptPhase: phase,
+        },
       });
       const accessToken = await this.source.getAccessToken(connectionId);
       const result = connection.initialSyncCompletedAt
         ? await this.syncIncremental(connection, accessToken)
         : await this.bootstrapPage(connection, accessToken);
+      const attemptFinishedAt = new Date();
+      const attemptPhase = this.syncProgress.get(connection.id)?.phase ?? phase;
       await this.prisma.aiEmailConnection.update({
         where: { id: connectionId },
         data: {
-          lastSyncedAt: new Date(),
+          lastSyncedAt: attemptFinishedAt,
           lastSyncErrorCode: null,
+          lastAttemptStartedAt: attemptStartedAt,
+          lastAttemptFinishedAt: attemptFinishedAt,
+          lastAttemptResult: 'SUCCEEDED',
+          lastAttemptErrorCode: null,
+          lastAttemptErrorCategory: null,
+          lastAttemptImportedCount: result.imported,
+          lastAttemptPhase: attemptPhase,
         },
       });
       const intervalMinutes = this.config.get(
@@ -365,6 +390,7 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
           ? undefined
           : Date.now() + intervalMinutes * 60_000,
         retryAt: undefined,
+        recoveryRange: undefined,
       });
       return { connected: true, ...result };
     } catch (error) {
@@ -377,9 +403,28 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
           15 * 60_000,
         );
         const retryAt = Date.now() + retryDelay;
+        const attemptFinishedAt = new Date();
+        const attemptPhase =
+          this.syncProgress.get(connectionId)?.phase ?? phase;
+        const importedThisRun =
+          this.syncProgress.get(connectionId)?.importedThisRun ?? 0;
         await this.prisma.aiEmailConnection.update({
           where: { id: connectionId },
-          data: { lastSyncErrorCode: null },
+          data: {
+            lastSyncErrorCode: null,
+            lastAttemptStartedAt: attemptStartedAt,
+            lastAttemptFinishedAt: attemptFinishedAt,
+            lastAttemptResult: 'FAILED',
+            lastAttemptErrorCode: code,
+            lastAttemptErrorCategory: 'rate_limit',
+            lastAttemptImportedCount: importedThisRun,
+            lastAttemptPhase: attemptPhase,
+            lastFailureAt: attemptFinishedAt,
+            lastFailureErrorCode: code,
+            lastFailureErrorCategory: 'rate_limit',
+            lastFailureImportedCount: importedThisRun,
+            lastFailurePhase: attemptPhase,
+          },
         });
         await this.updateSyncProgress(connection.id, connection.userId, {
           status: 'waiting',
@@ -393,14 +438,33 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
         this.scheduleRateLimitRetry(connection.id, retryAt - Date.now());
         return { connected: true, imported: 0, retryScheduled: true };
       }
+      const category = this.classifyError(code);
+      const attemptFinishedAt = new Date();
+      const attemptPhase = this.syncProgress.get(connectionId)?.phase ?? phase;
+      const importedThisRun =
+        this.syncProgress.get(connectionId)?.importedThisRun ?? 0;
       await this.prisma.aiEmailConnection.update({
         where: { id: connectionId },
-        data: { lastSyncErrorCode: code },
+        data: {
+          lastSyncErrorCode: code,
+          lastAttemptStartedAt: attemptStartedAt,
+          lastAttemptFinishedAt: attemptFinishedAt,
+          lastAttemptResult: 'FAILED',
+          lastAttemptErrorCode: code,
+          lastAttemptErrorCategory: category,
+          lastAttemptImportedCount: importedThisRun,
+          lastAttemptPhase: attemptPhase,
+          lastFailureAt: attemptFinishedAt,
+          lastFailureErrorCode: code,
+          lastFailureErrorCategory: category,
+          lastFailureImportedCount: importedThisRun,
+          lastFailurePhase: attemptPhase,
+        },
       });
       await this.updateSyncProgress(connection.id, connection.userId, {
         status: 'failed',
         errorCode: code,
-        errorCategory: this.classifyError(code),
+        errorCategory: category,
         retryAt: undefined,
         nextRunAt: undefined,
       });
@@ -544,6 +608,20 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
         retryAt: undefined,
         nextRunAt: undefined,
       });
+      await this.prisma.aiEmailConnection.update({
+        where: { id: connection.id },
+        data: {
+          lastAttemptStartedAt: state.startedAt
+            ? new Date(state.startedAt)
+            : undefined,
+          lastAttemptFinishedAt: new Date(),
+          lastAttemptResult: 'INTERRUPTED',
+          lastAttemptErrorCode: 'worker_interrupted',
+          lastAttemptErrorCategory: null,
+          lastAttemptImportedCount: state.importedThisRun ?? 0,
+          lastAttemptPhase: state.phase,
+        },
+      });
     }
   }
 
@@ -634,15 +712,16 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
       return this.recoverFromCursor(connection, accessToken);
     }
 
+    const startCursor = connection.providerCursor;
     let pageToken: string | undefined;
-    let cursor = connection.providerCursor;
+    let cursor = startCursor;
     let imported = 0;
     do {
       const page = await this.fetchHistoryPage({
         connectionId: connection.id,
         userId: connection.userId,
         accessToken,
-        cursor,
+        cursor: startCursor,
         pageToken,
       });
       if (!page) {
@@ -714,7 +793,7 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
           }),
       );
     } catch (error) {
-      if (this.isMissingGmailMessage(error)) {
+      if (this.isGmailNotFound(error)) {
         return null;
       }
       throw error;
@@ -727,6 +806,19 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
     >,
     accessToken: string,
   ) {
+    const nowSeconds = Math.floor(Date.now() / 1000);
+    const startSeconds = Math.floor(
+      (connection.lastSyncedAt?.getTime() ?? Date.now() - RECOVERY_WINDOW_MS) /
+        1000,
+    );
+    const recoveryRange = {
+      from: new Date(startSeconds * 1000).toISOString(),
+      to: new Date(nowSeconds * 1000).toISOString(),
+    };
+    await this.updateSyncProgress(connection.id, connection.userId, {
+      phase: 'recovery',
+      recoveryRange,
+    });
     const profile = await this.source.gmailApiRequest<{ historyId?: string }>(
       accessToken,
       '/users/me/profile',
@@ -737,17 +829,8 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
           retryAt: state.retryAt,
         }),
     );
-    const nowSeconds = Math.floor(Date.now() / 1000);
-    const startSeconds = Math.floor(
-      (connection.lastSyncedAt?.getTime() ?? Date.now() - RECOVERY_WINDOW_MS) /
-        1000,
-    );
-    const boundedStart = Math.max(
-      startSeconds,
-      Math.floor((Date.now() - RECOVERY_WINDOW_MS) / 1000),
-    );
     const query = new URLSearchParams({
-      q: `after:${boundedStart} before:${nowSeconds}`,
+      q: `after:${startSeconds} before:${nowSeconds}`,
       maxResults: '500',
     });
     let pageToken: string | undefined;
@@ -851,7 +934,7 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
             );
             return this.persistMessage(connectionId, userId, message);
           } catch (error) {
-            if (this.isMissingGmailMessage(error)) {
+            if (this.isGmailNotFound(error)) {
               return 0;
             }
             throw error;
@@ -1040,7 +1123,7 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
     return typeof code === 'string' ? code : undefined;
   }
 
-  private isMissingGmailMessage(error: unknown) {
+  private isGmailNotFound(error: unknown) {
     const providerCode = this.providerErrorCode(error);
     return (
       providerCode === 'NOT_FOUND' ||
