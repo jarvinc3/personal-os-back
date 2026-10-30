@@ -110,7 +110,7 @@ Todas las rutas requieren JWT. `data` es el objeto o array indicado; `meta` es e
 
 ### `KnowledgeRevert`
 
-`POST /api/intelligence/knowledge/admin/:knowledgeId/revert` no lleva body. Registra una verificación `KNOWLEDGE` con veredicto `REJECTED` y rol `ADMIN`, reconstruye la proyección y devuelve la fila `GLOBAL` de esa clave con `state: "BLOCKED"` y `promotedBy: null`. Responde 404 si el id no existe o no es de alcance `GLOBAL`.
+`POST /api/intelligence/knowledge/admin/:knowledgeId/revert` no lleva body. Registra una verificación `KNOWLEDGE` con veredicto `REJECTED` y rol `ADMIN`, bloquea solo esa clave y devuelve la fila `GLOBAL` con `state: "BLOCKED"` y `promotedBy: null`. No ejecuta el rebuild completo; el siguiente rebuild conserva la decisión. Responde 404 si el id no existe o no es de alcance `GLOBAL`.
 
 ### `KnowledgeExport`
 

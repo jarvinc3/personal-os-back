@@ -73,7 +73,8 @@ export class AiKnowledgeService {
         data: { state: 'BLOCKED', promotedBy: null },
       });
     });
-    await this.rebuild(userId);
+    // A GLOBAL key is independent: the append-only rejection and this row
+    // update are the complete effect; later rebuilds apply the same decision.
     return this.prisma.aiKnowledge.findFirst({
       where: {
         scope: 'GLOBAL',
