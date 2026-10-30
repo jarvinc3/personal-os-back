@@ -17,13 +17,13 @@ Auth: JWT de Supabase (`Authorization: Bearer <token>`). Envelope `{ data, meta 
 
 AI-3 (JWT):
 
-| Método | Path                                                      | Notas                                                                                                        |
-| ------ | --------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| GET    | `/api/intelligence/dataset`                               | Conteos `TRAIN`, `VALIDATION`, `HOLDOUT` de `EMAIL_V1`, filtrados por cuenta                                 |
-| GET    | `/api/intelligence/review-queue?partition=...&cursor=...` | Cola sin verificar, ordenada por fecha recibida ascendente; incluye conteos pendientes por partición y total |
-| POST   | `/api/intelligence/messages/:messageId/verifications`     | `CONFIRMED`, `CORRECTED` o `REJECTED`; guarda secuencia y marca HOLDOUT como verdad de referencia            |
-| GET    | `/api/intelligence/runs`                                  | Runs del usuario con configuración, versiones y watermarks de evidencia                                      |
-| POST   | `/api/intelligence/email/reset`                           | Requiere `{ "confirmed": true }`; vacía el corpus de correo y derivados del usuario, conserva OAuth          |
+| Método | Path                                                      | Notas                                                                                                                                                     |
+| ------ | --------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/api/intelligence/dataset`                               | Conteos `TRAIN`, `VALIDATION`, `HOLDOUT` de `EMAIL_V1`, filtrados por cuenta                                                                              |
+| GET    | `/api/intelligence/review-queue?partition=...&cursor=...` | Cola sin verificar, ordenada por fecha recibida ascendente; incluye conteos pendientes por partición y total                                              |
+| POST   | `/api/intelligence/messages/:messageId/verifications`     | `CONFIRMED`, `CORRECTED` o `REJECTED`; guarda secuencia y marca HOLDOUT como verdad de referencia                                                         |
+| GET    | `/api/intelligence/runs`                                  | Runs del usuario con configuración, versiones y watermarks de evidencia                                                                                   |
+| POST   | `/api/intelligence/email/reset`                           | Requiere `{ "confirmed": true }`; vacía el corpus de correo y derivados del usuario, conserva OAuth; 409 `GMAIL_NOT_CONNECTED` o `GMAIL_SYNC_IN_PROGRESS` |
 
 `GET /api/intelligence/messages/:messageId` incluye `provenance.observations` y `provenance.verifications` en orden de secuencia.
 
@@ -31,14 +31,15 @@ AI-3 (JWT):
 
 Todas las rutas requieren JWT. `data` es el objeto o array indicado; `meta` es el envelope común. No hay paginación: ninguna ruta de Knowledge acepta `cursor`, `limit` ni `page`, y un query string enviado se ignora. El explorador, la cola y la exportación devuelven todas las filas que cumplen su filtro, sin recortes por página.
 
-| Método | Ruta                                                    | Rol                      | Request                 | HTTP | `data` en éxito                                             |
-| ------ | ------------------------------------------------------- | ------------------------ | ----------------------- | ---- | ----------------------------------------------------------- |
-| GET    | `/api/intelligence/knowledge`                           | USER, CONTRIBUTOR, ADMIN | —                       | 200  | `KnowledgeExplorer`                                         |
-| GET    | `/api/intelligence/knowledge/admin/queue`               | ADMIN                    | —                       | 200  | `KnowledgeItem[]`                                           |
-| POST   | `/api/intelligence/knowledge/admin/rebuild`             | ADMIN                    | sin body                | 201  | `KnowledgeRebuild`                                          |
-| POST   | `/api/intelligence/knowledge/admin/:knowledgeId/revert` | ADMIN                    | sin body                | 201  | `KnowledgeItem` GLOBAL en `BLOCKED`; 404 si el id no existe |
-| GET    | `/api/intelligence/knowledge/me/export`                 | USER, CONTRIBUTOR, ADMIN | —                       | 200  | `KnowledgeExport` (JSON)                                    |
-| DELETE | `/api/intelligence/knowledge/me`                        | USER, CONTRIBUTOR, ADMIN | `{ "confirmed": true }` | 200  | `KnowledgeDeletion`                                         |
+| Método | Ruta                                                     | Rol                      | Request                 | HTTP | `data` en éxito                                             |
+| ------ | -------------------------------------------------------- | ------------------------ | ----------------------- | ---- | ----------------------------------------------------------- |
+| GET    | `/api/intelligence/knowledge`                            | USER, CONTRIBUTOR, ADMIN | —                       | 200  | `KnowledgeExplorer`                                         |
+| GET    | `/api/intelligence/knowledge/admin/queue`                | ADMIN                    | —                       | 200  | `KnowledgeItem[]`                                           |
+| POST   | `/api/intelligence/knowledge/admin/rebuild`              | ADMIN                    | sin body                | 201  | `KnowledgeRebuild`                                          |
+| POST   | `/api/intelligence/knowledge/admin/:knowledgeId/promote` | ADMIN                    | sin body                | 201  | `KnowledgeItem` GLOBAL en `STABLE`; 404/409                 |
+| POST   | `/api/intelligence/knowledge/admin/:knowledgeId/revert`  | ADMIN                    | sin body                | 201  | `KnowledgeItem` GLOBAL en `BLOCKED`; 404 si el id no existe |
+| GET    | `/api/intelligence/knowledge/me/export`                  | USER, CONTRIBUTOR, ADMIN | —                       | 200  | `KnowledgeExport` (JSON)                                    |
+| DELETE | `/api/intelligence/knowledge/me`                         | USER, CONTRIBUTOR, ADMIN | `{ "confirmed": true }` | 200  | `KnowledgeDeletion`                                         |
 
 ### `KnowledgeExplorer`
 
@@ -112,6 +113,8 @@ Todas las rutas requieren JWT. `data` es el objeto o array indicado; `meta` es e
 
 `POST /api/intelligence/knowledge/admin/:knowledgeId/revert` no lleva body. Registra una verificación `KNOWLEDGE` con veredicto `REJECTED` y rol `ADMIN`, bloquea solo esa clave y devuelve la fila `GLOBAL` con `state: "BLOCKED"` y `promotedBy: null`. No ejecuta el rebuild completo; el siguiente rebuild conserva la decisión. Responde 404 si el id no existe o no es de alcance `GLOBAL`.
 
+`POST /api/intelligence/knowledge/admin/:knowledgeId/promote` no lleva body. Solo acepta una fila `GLOBAL` en `REVIEW_REQUIRED`; registra una verificación `KNOWLEDGE` con veredicto `CONFIRMED` y rol `ADMIN`, reconstruye la proyección y devuelve la fila con `state: "STABLE"` y `promotedBy: "ADMIN"`. Responde 404 si el id no existe o no es `GLOBAL`, y 409 si la fila ya no está en revisión.
+
 ### `KnowledgeExport`
 
 `GET /api/intelligence/knowledge/me/export` devuelve en `data` un JSON con los datos de la cuenta. Las secuencias `BigInt` van como strings decimales; las fechas, en ISO 8601.
@@ -158,14 +161,15 @@ Qué hace en una sola operación:
 
 ### Errores
 
-| HTTP | Cuándo                                                                            | `message`                                                  |
-| ---- | --------------------------------------------------------------------------------- | ---------------------------------------------------------- |
-| 400  | Body inválido o sin `confirmed: true` en `DELETE /me`                             | `Confirma el borrado de datos AI` o el error de validación |
-| 401  | Sin JWT, JWT vencido o inválido                                                   | `Authentication required`                                  |
-| 403  | Rol insuficiente en `admin/queue`, `admin/rebuild` o `admin/:knowledgeId/revert`  | `No tienes permisos para esta operación`                   |
-| 404  | `admin/:knowledgeId/revert` con un id inexistente o que no es de alcance `GLOBAL` | `Conocimiento GLOBAL no encontrado`                        |
+| HTTP | Cuándo                                                                                                         | `message`                                                  |
+| ---- | -------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| 400  | Body inválido o sin `confirmed: true` en `DELETE /me`                                                          | `Confirma el borrado de datos AI` o el error de validación |
+| 401  | Sin JWT, JWT vencido o inválido                                                                                | `Authentication required`                                  |
+| 403  | Rol insuficiente en `admin/queue`, `admin/rebuild`, `admin/:knowledgeId/promote` o `admin/:knowledgeId/revert` | `No tienes permisos para esta operación`                   |
+| 404  | `admin/:knowledgeId/promote` o `revert` con un id inexistente o que no es `GLOBAL`                             | `Conocimiento GLOBAL no encontrado`                        |
+| 409  | `admin/:knowledgeId/promote` sobre una fila que no está en `REVIEW_REQUIRED`                                   | `Solo se puede promover conocimiento GLOBAL en revisión`   |
 
 ### Efectos en endpoints existentes
 
 - `GET /api/intelligence/runs` (array, máximo 50, más reciente primero) añade `consentRevision` (string), `reproductionStatus` (`COMPLETE` o `INCOMPLETE`) y `missingEvidence` (`{ observations, humanVerifications }`). Un run pasa a `INCOMPLETE` cuando se retiró evidencia que cubría su corte; no participa en comparaciones de evidencia equivalente.
-- `POST /api/intelligence/email/reset` mantiene `{ "confirmed": true }` y responde `{ connected: false, deletedMessages: 0 }` sin conexión, o `{ connected: true, deletedMessages }` cuando existe. Anonimiza verificaciones y observaciones antes de vaciar el corpus, conserva la conexión OAuth y reconstruye `GLOBAL`. Devuelve 409 si hay una sincronización activa.
+- `POST /api/intelligence/email/reset` mantiene `{ "confirmed": true }` y responde `{ connected: true, deletedMessages }` cuando existe la conexión. Anonimiza verificaciones y observaciones antes de vaciar el corpus, conserva la conexión OAuth y reconstruye `GLOBAL`. Devuelve 409 `GMAIL_NOT_CONNECTED` sin conexión y 409 `GMAIL_SYNC_IN_PROGRESS` con un sync activo o esperando cuota.

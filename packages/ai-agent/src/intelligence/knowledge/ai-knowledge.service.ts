@@ -1,12 +1,16 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { Env } from '@personal-os/config';
 import { Prisma, PrismaService } from '@personal-os/database';
 import {
   projectKnowledge,
-  latestRevertedKeys,
+  latestAdminDecisions,
   PROJECTOR_VERSION,
-  type KnowledgeReversion,
+  type KnowledgeAdminDecision,
 } from './knowledge-projector';
 import { POLICY_VERSION, resolveMinimumContributors } from './knowledge-policy';
 import { NORMALIZER_VERSION } from './knowledge-normalizer';
@@ -41,6 +45,50 @@ export class AiKnowledgeService {
     return this.prisma.aiKnowledge.findMany({
       where: { scope: 'GLOBAL' },
       orderBy: [{ state: 'asc' }, { updatedAt: 'desc' }],
+    });
+  }
+
+  async promote(userId: string, knowledgeId: string) {
+    const item = await this.prisma.aiKnowledge.findFirst({
+      where: { id: knowledgeId, scope: 'GLOBAL' },
+    });
+    if (!item) {
+      throw new NotFoundException('Conocimiento GLOBAL no encontrado');
+    }
+    if (item.state !== 'REVIEW_REQUIRED') {
+      throw new ConflictException(
+        'Solo se puede promover conocimiento GLOBAL en revisión',
+      );
+    }
+    await this.prisma.$transaction(async (tx) => {
+      await tx.aiHumanVerification.create({
+        data: {
+          userId,
+          verifierRole: 'ADMIN',
+          targetType: 'KNOWLEDGE',
+          targetId: item.id,
+          verdict: 'CONFIRMED',
+          structuralKeys: [
+            {
+              knowledgeType: item.knowledgeType,
+              knowledgeKey: item.knowledgeKey,
+            },
+          ],
+          normalizerVersion: NORMALIZER_VERSION,
+        },
+      });
+      await tx.aiKnowledge.update({
+        where: { id: item.id },
+        data: { state: 'STABLE', promotedBy: 'ADMIN' },
+      });
+    });
+    await this.rebuild(userId);
+    return this.prisma.aiKnowledge.findFirst({
+      where: {
+        scope: 'GLOBAL',
+        knowledgeType: item.knowledgeType,
+        knowledgeKey: item.knowledgeKey,
+      },
     });
   }
 
@@ -216,7 +264,7 @@ export class AiKnowledgeService {
             consentByUser.set(message.userId, true);
           }
         }
-        const adminReversions = this.toKnowledgeReversions(reversions);
+        const adminDecisions = this.toKnowledgeDecisions(reversions);
         const rows = projectKnowledge({
           messages: inputMessages,
           verifications,
@@ -225,10 +273,10 @@ export class AiKnowledgeService {
           observationSequence: observationCut._max.sequence ?? 0n,
           verificationSequence: verificationCut._max.sequence ?? 0n,
           minimumContributors,
-          adminReversions,
+          adminDecisions,
         });
-        const blockedGlobalKeys = latestRevertedKeys(
-          adminReversions,
+        const adminDecisionsByKey = latestAdminDecisions(
+          adminDecisions,
           verificationCut._max.sequence ?? 0n,
         );
         const projectedGlobalKeys = new Set(
@@ -262,21 +310,26 @@ export class AiKnowledgeService {
             })),
             ...unsupportedGlobal.map((row) => {
               const key = `${row.knowledgeType}|${row.knowledgeKey}`;
+              const decision = adminDecisionsByKey.get(key);
               return {
                 id: row.id,
                 scope: row.scope,
                 userId: null,
                 knowledgeType: row.knowledgeType,
                 knowledgeKey: row.knowledgeKey,
-                state: blockedGlobalKeys.has(key)
-                  ? ('BLOCKED' as const)
-                  : ('REVIEW_REQUIRED' as const),
+                state:
+                  decision === 'REJECTED'
+                    ? ('BLOCKED' as const)
+                    : decision === 'CONFIRMED'
+                      ? ('STABLE' as const)
+                      : ('REVIEW_REQUIRED' as const),
                 payload: row.payload as Prisma.InputJsonValue,
                 messagesSeen: 0,
                 rejectedMessages: row.rejectedMessages,
                 distinctUsers: 0,
                 humanVerifiedCount: 0,
-                promotedBy: null,
+                promotedBy:
+                  decision === 'CONFIRMED' ? ('ADMIN' as const) : null,
                 projectorVersion: PROJECTOR_VERSION,
                 policyVersion: POLICY_VERSION,
                 normalizerVersion: NORMALIZER_VERSION,
@@ -321,13 +374,13 @@ export class AiKnowledgeService {
     );
   }
 
-  private toKnowledgeReversions(
+  private toKnowledgeDecisions(
     rows: Array<{
       sequence: bigint;
       verdict: string;
       structuralKeys: unknown;
     }>,
-  ): KnowledgeReversion[] {
+  ): KnowledgeAdminDecision[] {
     return rows.flatMap((row) => {
       if (row.verdict !== 'CONFIRMED' && row.verdict !== 'REJECTED') {
         return [];
