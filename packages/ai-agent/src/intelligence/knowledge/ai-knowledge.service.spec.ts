@@ -262,3 +262,44 @@ describe('AiKnowledgeService rebuild', () => {
     });
   });
 });
+
+describe('AiKnowledgeService revert', () => {
+  it('bloquea solo la clave afectada sin rebuild completo', async () => {
+    const item = {
+      id: 'k1',
+      scope: 'GLOBAL',
+      knowledgeType: 'EMAIL_DOMAIN',
+      knowledgeKey: 'bank.com',
+      state: 'STABLE',
+      promotedBy: 'AUTO',
+    };
+    const verificationCreate = jest.fn();
+    const knowledgeUpdate = jest.fn();
+    const findFirst = jest
+      .fn()
+      .mockResolvedValueOnce(item)
+      .mockResolvedValueOnce({ ...item, state: 'BLOCKED', promotedBy: null });
+    const tx = {
+      aiHumanVerification: { create: verificationCreate },
+      aiKnowledge: { update: knowledgeUpdate },
+    };
+    const prisma = {
+      aiKnowledge: { findFirst },
+      $transaction: jest.fn((callback: (arg: typeof tx) => unknown) =>
+        callback(tx),
+      ),
+    };
+    const service = new AiKnowledgeService(prisma as never, {} as never);
+    const rebuild = jest.spyOn(service, 'rebuild');
+
+    const reverted = await service.revert('admin-1', 'k1');
+
+    expect(rebuild).not.toHaveBeenCalled();
+    expect(verificationCreate).toHaveBeenCalledTimes(1);
+    expect(knowledgeUpdate).toHaveBeenCalledTimes(1);
+    expect(knowledgeUpdate.mock.calls[0][0]).toMatchObject({
+      where: { id: 'k1' },
+    });
+    expect(reverted).toMatchObject({ state: 'BLOCKED', promotedBy: null });
+  });
+});

@@ -18,6 +18,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [Se
 
 ### Cambiado
 
+- Revertir una promoción GLOBAL bloquea solo esa clave y ya no reconstruye toda la proyección; el siguiente rebuild conserva la decisión y las demás filas no cambian (#235).
 - El roadmap maestro marca AI-4 como cerrado, enlaza los contratos de la oleada A (FIN-0 #242, PLATFORM-EVENTS-0 #243, PLATFORM-SETTINGS-0 #244 y NOTIF-0 #245) y registra la promoción manual ADMIN en #246 (#193).
 - AI-4 (#207): el reinicio del corpus anonimiza verificaciones y observaciones en lugar de borrarlas; los runs afectados indican reproducción `INCOMPLETE` y conteos de evidencia retirada.
 - #217: la verificación humana de correo valida tipos y dominios cerrados, relevancia de seguridad y datos estructurados de transacción; Swagger publica los valores permitidos.
