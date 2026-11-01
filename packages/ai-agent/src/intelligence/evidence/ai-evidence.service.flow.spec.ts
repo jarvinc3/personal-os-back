@@ -47,7 +47,7 @@ describe('AiEvidenceService review and analysis flows', () => {
       { partition: 'TRAIN', _count: { _all: 1 } },
       { partition: 'HOLDOUT', _count: { _all: 1 } },
     ]);
-    const service = new AiEvidenceService(prisma as never);
+    const service = new AiEvidenceService(prisma);
 
     expect(await service.datasetSummary('user-1')).toEqual({
       id: 'dataset-1',
@@ -82,7 +82,7 @@ describe('AiEvidenceService review and analysis flows', () => {
     prisma.aiEmailMessage.findMany
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce(messages);
-    const service = new AiEvidenceService(prisma as never);
+    const service = new AiEvidenceService(prisma);
     const page = await service.reviewQueue('user-1', { partition: 'TRAIN' });
 
     expect(page.counts).toEqual({
@@ -101,11 +101,6 @@ describe('AiEvidenceService review and analysis flows', () => {
     ]);
     expect(page.hasMore).toBe(true);
     expect(page.nextCursor).toBeTruthy();
-    expect(prisma.aiDatasetItem.groupBy).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: expect.objectContaining({ sourceId: { notIn: ['reviewed'] } }),
-      }),
-    );
     expect(prisma.aiEmailMessage.findMany).toHaveBeenLastCalledWith(
       expect.objectContaining({
         where: {
@@ -119,7 +114,7 @@ describe('AiEvidenceService review and analysis flows', () => {
 
   it('rejects an inverted range and a malformed cursor', async () => {
     const invertedPrisma = makePrisma();
-    const service = new AiEvidenceService(invertedPrisma as never);
+    const service = new AiEvidenceService(invertedPrisma);
     await expect(
       service.reviewQueue('user-1', {
         dateFrom: '2026-10-31',
@@ -130,7 +125,7 @@ describe('AiEvidenceService review and analysis flows', () => {
     expect(invertedPrisma.aiDataset.upsert).not.toHaveBeenCalled();
 
     const cursorPrisma = makePrisma();
-    const cursorService = new AiEvidenceService(cursorPrisma as never);
+    const cursorService = new AiEvidenceService(cursorPrisma);
     await expect(
       cursorService.reviewQueue('user-1', { cursor: 'not-a-cursor' }),
     ).rejects.toBeInstanceOf(BadRequestException);
@@ -139,7 +134,7 @@ describe('AiEvidenceService review and analysis flows', () => {
 
   it('filters review messages after a valid cursor', async () => {
     const prisma = makePrisma();
-    const service = new AiEvidenceService(prisma as never);
+    const service = new AiEvidenceService(prisma);
     const cursor = encodeCursor({
       key: '2026-10-25T12:00:00.000Z',
       id: 'email-1',
@@ -173,7 +168,7 @@ describe('AiEvidenceService review and analysis flows', () => {
 
   it('rejects a missing target or an empty correction', async () => {
     const prisma = makePrisma();
-    const service = new AiEvidenceService(prisma as never);
+    const service = new AiEvidenceService(prisma);
     prisma.aiEmailMessage.findFirst.mockResolvedValueOnce(null);
     await expect(
       service.verifyMessage('user-1', 'missing', { verdict: 'CONFIRMED' }),
@@ -185,7 +180,7 @@ describe('AiEvidenceService review and analysis flows', () => {
 
   it('closes an analysis run with metrics or a bounded error', async () => {
     const prisma = makePrisma();
-    const service = new AiEvidenceService(prisma as never);
+    const service = new AiEvidenceService(prisma);
     await service.completeAnalysisRun('user-1', 'run-1', {
       metrics: { reviewed: 3 },
     });
@@ -221,7 +216,7 @@ describe('AiEvidenceService review and analysis flows', () => {
 
   it('checks observation ownership and formats sequence values', async () => {
     const prisma = makePrisma();
-    const service = new AiEvidenceService(prisma as never);
+    const service = new AiEvidenceService(prisma);
     const input = {
       userId: 'user-1',
       runId: 'run-1',

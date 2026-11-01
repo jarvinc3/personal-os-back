@@ -39,7 +39,7 @@ AI-3 (JWT):
 | `order`              | `OLDEST`, `NEWEST`                              | Fecha recibida; por defecto `OLDEST` y el ID desempata                                     |
 | `cursor`             | valor opaco de la página anterior               | Reenviar los mismos filtros y el mismo orden                                               |
 
-El estado de un correo es el de su última verificación; sin verificación es `PENDING`. Con estados verificados, cada item incluye `verification` con el veredicto, las etiquetas guardadas, la nota y la fecha; en pendientes vale `null`. Los conteos por partición siguen contando solo pendientes y no cambian con los filtros. Un estado, orden o partición fuera de lista, una fecha que no sea `AAAA-MM-DD` válida o un rango invertido responden 400.
+El estado de un correo es el de su última verificación; sin verificación es `PENDING`. Con estados verificados, cada item incluye `verification` con el veredicto, las etiquetas guardadas, la nota y la fecha; en pendientes vale `null`. Los conteos por partición cuentan solo pendientes y aplican remitente, asunto y fechas; el filtro de partición y el orden no los cambian. Un estado, orden o partición fuera de lista, una fecha que no sea `AAAA-MM-DD` válida o un rango invertido responden 400.
 
 ```json
 {

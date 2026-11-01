@@ -47,6 +47,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [Se
 
 ### Corregido
 
+- Los conteos por partición de la cola de revisión aplican remitente, asunto y fechas: los chips muestran lo que queda con los filtros activos y, sin filtros, siguen mostrando los totales pendientes; el filtro de partición y el orden no los cambian (#271).
 - Las importaciones de estados de cuenta facturadas a una cuenta se borran con la rama `finance.accountImports`, que «Cuentas» arrastra y la confirmación lista con su conteo; «Estados de cuenta» se queda con el resto, así ninguna importación cae sin aviso (#266).
 - Vaciar «Cuentas» lista las tarjetas de débito vinculadas con su conteo y las borra; «Tarjetas» pasa a borrar solo crédito, y la cuenta de «Efectivo» se repone una sola vez aunque dos lecturas lleguen juntas (#268).
 - Vaciar «Tarjetas», «Cuentas» o «Instituciones» declara en `includes` las ramas que arrastra el esquema y las ejecuta antes que la rama pedida, para que la confirmación liste lo que desaparece con su conteo y el vaciado lo borre entero (#265).

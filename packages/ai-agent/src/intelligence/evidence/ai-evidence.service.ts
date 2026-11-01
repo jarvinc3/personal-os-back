@@ -27,6 +27,8 @@ import {
   latestReviewVerifications,
   reviewQueueItems,
   reviewQueueMessageFilter,
+  reviewQueueMessageSearchFilter,
+  reviewQueuePendingCounts,
   reviewQueueReceivedAtFilter,
   reviewQueueSortDirection,
 } from './review-queue.util';
@@ -95,10 +97,30 @@ export class AiEvidenceService {
     const partitionByMessageId = new Map(
       datasetItems.map((item) => [item.sourceId, item.partition]),
     );
-    const partitionCounts = await this.pendingPartitionCounts({
-      datasetId: dataset.id,
-      userId,
+    const receivedAt = reviewQueueReceivedAtFilter({
+      timezone,
+      dateFrom: query.dateFrom,
+      dateTo: query.dateTo,
+    });
+    const searchFilter = reviewQueueMessageSearchFilter({
+      fromAddress: query.fromAddress,
+      subject: query.subject,
+      receivedAt,
+    });
+    const matchingMessageIds = Object.keys(searchFilter).length
+      ? new Set(
+          (
+            await this.prisma.aiEmailMessage.findMany({
+              where: { userId, ...searchFilter },
+              select: { id: true },
+            })
+          ).map(({ id }) => id),
+        )
+      : undefined;
+    const counts = reviewQueuePendingCounts({
+      items: datasetItems,
       reviewedMessageIds: [...latestByMessageId.keys()],
+      matchingMessageIds,
     });
     const partitionMessageIds = query.partition
       ? datasetItems
@@ -114,11 +136,7 @@ export class AiEvidenceService {
         partitionMessageIds,
         fromAddress: query.fromAddress,
         subject: query.subject,
-        receivedAt: reviewQueueReceivedAtFilter({
-          timezone,
-          dateFrom: query.dateFrom,
-          dateTo: query.dateTo,
-        }),
+        receivedAt,
         cursor: query.cursor,
         order,
       }),
@@ -143,24 +161,10 @@ export class AiEvidenceService {
       partitionByMessageId,
       latestByMessageId,
     });
-    const counts = {
-      TRAIN:
-        partitionCounts.find((item) => item.partition === 'TRAIN')?._count
-          ._all ?? 0,
-      VALIDATION:
-        partitionCounts.find((item) => item.partition === 'VALIDATION')?._count
-          ._all ?? 0,
-      HOLDOUT:
-        partitionCounts.find((item) => item.partition === 'HOLDOUT')?._count
-          ._all ?? 0,
-    };
     const last = pageMessages.at(-1);
     return {
       items,
-      counts: {
-        ...counts,
-        all: counts.TRAIN + counts.VALIDATION + counts.HOLDOUT,
-      },
+      counts,
       hasMore,
       nextCursor:
         hasMore && last
@@ -525,29 +529,6 @@ export class AiEvidenceService {
       select: { timezone: true },
     });
     return profile?.timezone ?? null;
-  }
-
-  private pendingPartitionCounts({
-    datasetId,
-    userId,
-    reviewedMessageIds,
-  }: {
-    datasetId: string;
-    userId: string;
-    reviewedMessageIds: readonly string[];
-  }) {
-    return this.prisma.aiDatasetItem.groupBy({
-      by: ['partition'],
-      where: {
-        datasetId,
-        userId,
-        sourceType: EMAIL_SOURCE_TYPE,
-        ...(reviewedMessageIds.length
-          ? { sourceId: { notIn: [...reviewedMessageIds] } }
-          : {}),
-      },
-      _count: { _all: true },
-    });
   }
 
   private ensureDataset() {

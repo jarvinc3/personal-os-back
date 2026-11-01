@@ -85,14 +85,9 @@ const verification = ({
 function makePrisma({
   items,
   verifications,
-  partitionCounts = [],
 }: {
   items: StoredItem[];
   verifications: StoredVerification[];
-  partitionCounts?: Array<{
-    partition: StoredItem['partition'];
-    count: number;
-  }>;
 }) {
   const prisma = {
     aiDataset: {
@@ -110,12 +105,6 @@ function makePrisma({
             ),
           );
         },
-      ),
-      groupBy: jest.fn().mockResolvedValue(
-        partitionCounts.map(({ partition, count }) => ({
-          partition,
-          _count: { _all: count },
-        })),
       ),
       createMany: jest.fn().mockResolvedValue({ count: 0 }),
     },
@@ -137,10 +126,16 @@ function makePrisma({
 function mockMessageQueries(
   prisma: ReturnType<typeof makePrisma>,
   pageMessages: StoredMessage[],
+  matchingMessageIds?: string[],
 ) {
-  prisma.aiEmailMessage.findMany
-    .mockResolvedValueOnce([{ id: 'dataset-message' }])
-    .mockResolvedValueOnce(pageMessages);
+  const responses: Array<Array<{ id: string }>> = [[{ id: 'dataset-message' }]];
+  if (matchingMessageIds) {
+    responses.push(matchingMessageIds.map((id) => ({ id })));
+  }
+  responses.push(pageMessages);
+  for (const response of responses) {
+    prisma.aiEmailMessage.findMany.mockResolvedValueOnce(response);
+  }
 }
 
 describe('AiEvidenceService review queue filters', () => {
@@ -150,15 +145,15 @@ describe('AiEvidenceService review queue filters', () => {
       receivedAt: '2026-10-25T12:00:00.000Z',
     });
     const prisma = makePrisma({
-      items: [item('message-1', 'TRAIN')],
-      verifications: [],
-      partitionCounts: [
-        { partition: 'TRAIN', count: 1 },
-        { partition: 'HOLDOUT', count: 2 },
+      items: [
+        item('message-1', 'TRAIN'),
+        item('message-2', 'HOLDOUT'),
+        item('message-3', 'HOLDOUT'),
       ],
+      verifications: [],
     });
     mockMessageQueries(prisma, [pending]);
-    const service = new AiEvidenceService(prisma as never);
+    const service = new AiEvidenceService(prisma);
 
     const page = await service.reviewQueue('user-1');
 
@@ -183,15 +178,6 @@ describe('AiEvidenceService review queue filters', () => {
         take: 51,
       }),
     );
-    expect(prisma.aiDatasetItem.groupBy).toHaveBeenCalledWith({
-      by: ['partition'],
-      where: {
-        datasetId: 'dataset-1',
-        userId: 'user-1',
-        sourceType: 'EMAIL_MESSAGE',
-      },
-      _count: { _all: true },
-    });
     expect(prisma.user.findUnique).not.toHaveBeenCalled();
   });
 
@@ -228,10 +214,9 @@ describe('AiEvidenceService review queue filters', () => {
           overrides: { notes: 'Publicidad' },
         }),
       ],
-      partitionCounts: [{ partition: 'HOLDOUT', count: 1 }],
     });
-    mockMessageQueries(prisma, [first]);
-    const service = new AiEvidenceService(prisma as never);
+    mockMessageQueries(prisma, [first], ['message-1']);
+    const service = new AiEvidenceService(prisma);
 
     const page = await service.reviewQueue('user-1', {
       status: ['CORRECTED'],
@@ -269,13 +254,21 @@ describe('AiEvidenceService review queue filters', () => {
         distinct: ['targetId'],
       }),
     );
-    expect(prisma.aiDatasetItem.groupBy).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: expect.objectContaining({
-          sourceId: { notIn: ['message-1', 'message-2'] },
-        }),
-      }),
-    );
+    expect(prisma.aiEmailMessage.findMany).toHaveBeenNthCalledWith(2, {
+      where: {
+        userId: 'user-1',
+        fromAddress: {
+          equals: 'notifications@github.com',
+          mode: 'insensitive',
+        },
+        subject: { contains: 'Aviso', mode: 'insensitive' },
+        receivedAt: {
+          gte: new Date('2026-10-01T04:00:00.000Z'),
+          lt: new Date('2026-11-01T04:00:00.000Z'),
+        },
+      },
+      select: { id: true },
+    });
     expect(prisma.user.findUnique).toHaveBeenCalledWith({
       where: { id: 'user-1' },
       select: { timezone: true },
@@ -300,8 +293,48 @@ describe('AiEvidenceService review queue filters', () => {
     expect(page.counts).toEqual({
       TRAIN: 0,
       VALIDATION: 0,
+      HOLDOUT: 0,
+      all: 0,
+    });
+  });
+
+  it('counts only the pending messages that pass the search filters', async () => {
+    const first = message({
+      id: 'message-1',
+      receivedAt: '2026-10-25T12:00:00.000Z',
+    });
+    const prisma = makePrisma({
+      items: [
+        item('message-1', 'TRAIN'),
+        item('message-2', 'VALIDATION'),
+        item('message-3', 'HOLDOUT'),
+      ],
+      verifications: [],
+    });
+    mockMessageQueries(prisma, [first], ['message-1', 'message-3']);
+    const service = new AiEvidenceService(prisma);
+
+    const page = await service.reviewQueue('user-1', {
+      fromAddress: 'notifications@github.com',
+      subject: 'Aviso',
+    });
+
+    expect(page.counts).toEqual({
+      TRAIN: 1,
+      VALIDATION: 0,
       HOLDOUT: 1,
-      all: 1,
+      all: 2,
+    });
+    expect(prisma.aiEmailMessage.findMany).toHaveBeenNthCalledWith(2, {
+      where: {
+        userId: 'user-1',
+        fromAddress: {
+          equals: 'notifications@github.com',
+          mode: 'insensitive',
+        },
+        subject: { contains: 'Aviso', mode: 'insensitive' },
+      },
+      select: { id: true },
     });
   });
 
@@ -317,7 +350,7 @@ describe('AiEvidenceService review queue filters', () => {
       verifications: [],
     });
     mockMessageQueries(prisma, messages);
-    const service = new AiEvidenceService(prisma as never);
+    const service = new AiEvidenceService(prisma);
 
     const page = await service.reviewQueue('user-1', { order: 'NEWEST' });
 
@@ -340,7 +373,7 @@ describe('AiEvidenceService review queue filters', () => {
       items: [],
       verifications: [],
     });
-    const service = new AiEvidenceService(prisma as never);
+    const service = new AiEvidenceService(prisma);
 
     await expect(
       service.reviewQueue('user-1', {
@@ -357,7 +390,7 @@ describe('AiEvidenceService review queue filters', () => {
       items: [],
       verifications: [],
     });
-    const service = new AiEvidenceService(prisma as never);
+    const service = new AiEvidenceService(prisma);
 
     await expect(
       service.reviewQueue('user-1', { cursor: 'not-a-cursor' }),
