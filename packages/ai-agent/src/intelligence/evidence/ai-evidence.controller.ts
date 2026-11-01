@@ -5,6 +5,7 @@ import { AiEvidenceService } from './ai-evidence.service';
 import { CreateHumanVerificationDto } from './dto/create-human-verification.dto';
 import { CreateReviewGroupVerificationDto } from './dto/create-review-group-verification.dto';
 import { ReviewGroupsQueryDto } from './dto/review-groups-query.dto';
+import { ReviewQueueQueryDto } from './dto/review-queue-query.dto';
 
 @ApiTags('intelligence-evidence')
 @ApiBearerAuth('access-token')
@@ -20,10 +21,9 @@ export class AiEvidenceController {
   @Get('review-queue')
   reviewQueue(
     @CurrentUser() user: { sub: string },
-    @Query('cursor') cursor?: string,
-    @Query('partition') partition?: string,
+    @Query() query: ReviewQueueQueryDto,
   ) {
-    return this.evidence.reviewQueue(user.sub, cursor, partition);
+    return this.evidence.reviewQueue(user.sub, query);
   }
 
   @Get('review-groups')

@@ -7,6 +7,7 @@ import { Prisma, PrismaService } from '@personal-os/database';
 import type { CreateHumanVerificationDto } from './dto/create-human-verification.dto';
 import type { CreateReviewGroupVerificationDto } from './dto/create-review-group-verification.dto';
 import type { ReviewGroupsQueryDto } from './dto/review-groups-query.dto';
+import type { ReviewQueueQueryDto } from './dto/review-queue-query.dto';
 import { partitionEmailDatasetItem } from './dataset-partition.util';
 import {
   assertHumanVerificationLabels,
@@ -16,6 +17,20 @@ import {
   REVIEW_GROUPS_DEFAULT_PAGE_SIZE,
   REVIEW_GROUP_SAMPLE_SUBJECTS,
 } from './review-groups.constants';
+import {
+  REVIEW_QUEUE_DEFAULT_ORDER,
+  REVIEW_QUEUE_PAGE_SIZE,
+  REVIEW_QUEUE_PENDING_STATUS,
+} from './review-queue.constants';
+import {
+  assertReviewQueueDateRange,
+  encodeReviewQueueCursor,
+  latestReviewVerifications,
+  reviewQueueItemVerification,
+  reviewQueueMessageFilter,
+  reviewQueueReceivedAtFilter,
+  reviewQueueSortDirection,
+} from './review-queue.util';
 import { groupReviewMessages } from './review-groups.util';
 import { PROJECTOR_VERSION } from '../knowledge/knowledge-projector';
 import { POLICY_VERSION } from '../knowledge/knowledge-policy';
@@ -24,10 +39,6 @@ import { EMAIL_DATASET_NAME, EMAIL_DATASET_PURPOSE } from './dataset.constants';
 
 const EMAIL_SOURCE_TYPE = 'EMAIL_MESSAGE';
 const REVIEW_TARGET_TYPE = 'EMAIL_MESSAGE';
-const PAGE_SIZE = 50;
-const REVIEW_PARTITIONS = ['TRAIN', 'VALIDATION', 'HOLDOUT'] as const;
-
-type ReviewPartition = (typeof REVIEW_PARTITIONS)[number];
 
 @Injectable()
 export class AiEvidenceService {
@@ -56,44 +67,95 @@ export class AiEvidenceService {
     };
   }
 
-  async reviewQueue(userId: string, cursor?: string, partition?: string) {
-    if (
-      partition &&
-      !REVIEW_PARTITIONS.includes(partition as ReviewPartition)
-    ) {
-      throw new BadRequestException('Partición de revisión inválida');
-    }
+  async reviewQueue(userId: string, query: ReviewQueueQueryDto = {}) {
+    assertReviewQueueDateRange(query.dateFrom, query.dateTo);
+    const order = query.order ?? REVIEW_QUEUE_DEFAULT_ORDER;
     const dataset = await this.ensureDataset();
     await this.ensureDatasetItems(userId, dataset.id);
-    const cursorValues = this.parseCursor(cursor);
-    const reviewed = await this.prisma.aiHumanVerification.findMany({
-      where: { userId, targetType: REVIEW_TARGET_TYPE },
-      distinct: ['targetId'],
-      select: { targetId: true },
-    });
-    const reviewedIds = reviewed
-      .map(({ targetId }) => targetId)
-      .filter((targetId): targetId is string => targetId !== null);
-    const pendingWhere = {
-      datasetId: dataset.id,
-      userId,
-      sourceType: EMAIL_SOURCE_TYPE,
-      ...(reviewedIds.length ? { sourceId: { notIn: reviewedIds } } : {}),
-    };
-    const [partitionCounts, pendingItems] = await Promise.all([
-      this.prisma.aiDatasetItem.groupBy({
-        by: ['partition'],
-        where: pendingWhere,
-        _count: { _all: true },
+    const [timezone, verifications, datasetItems] = await Promise.all([
+      this.reviewQueueTimezone(userId, query),
+      this.prisma.aiHumanVerification.findMany({
+        where: { userId, targetType: REVIEW_TARGET_TYPE },
+        orderBy: [{ targetId: 'asc' }, { sequence: 'desc' }],
+        distinct: ['targetId'],
+        select: {
+          targetId: true,
+          sequence: true,
+          verdict: true,
+          correctedPayload: true,
+          notes: true,
+          createdAt: true,
+        },
       }),
       this.prisma.aiDatasetItem.findMany({
-        where: {
-          ...pendingWhere,
-          ...(partition ? { partition: partition as ReviewPartition } : {}),
-        },
+        where: { datasetId: dataset.id, userId, sourceType: EMAIL_SOURCE_TYPE },
         select: { sourceId: true, partition: true },
       }),
     ]);
+    const latestByMessageId = latestReviewVerifications(verifications);
+    const partitionByMessageId = new Map(
+      datasetItems.map((item) => [item.sourceId, item.partition]),
+    );
+    const partitionCounts = await this.pendingPartitionCounts({
+      datasetId: dataset.id,
+      userId,
+      reviewedMessageIds: [...latestByMessageId.keys()],
+    });
+    const partitionMessageIds = query.partition
+      ? datasetItems
+          .filter((item) => item.partition === query.partition)
+          .map((item) => item.sourceId)
+      : undefined;
+    const direction = reviewQueueSortDirection(order);
+    const messages = await this.prisma.aiEmailMessage.findMany({
+      where: reviewQueueMessageFilter({
+        userId,
+        latestByMessageId,
+        statuses: query.status,
+        partitionMessageIds,
+        fromAddress: query.fromAddress,
+        subject: query.subject,
+        receivedAt: reviewQueueReceivedAtFilter({
+          timezone,
+          dateFrom: query.dateFrom,
+          dateTo: query.dateTo,
+        }),
+        cursor: query.cursor,
+        order,
+      }),
+      orderBy: [{ receivedAt: direction }, { id: direction }],
+      take: REVIEW_QUEUE_PAGE_SIZE + 1,
+      select: {
+        id: true,
+        receivedAt: true,
+        fromAddress: true,
+        fromDomain: true,
+        subject: true,
+        contentFingerprint: true,
+        processingStatus: true,
+      },
+    });
+    const hasMore = messages.length > REVIEW_QUEUE_PAGE_SIZE;
+    const pageMessages = hasMore
+      ? messages.slice(0, REVIEW_QUEUE_PAGE_SIZE)
+      : messages;
+    const rows = pageMessages.flatMap((message) => {
+      const partition = partitionByMessageId.get(message.id);
+      if (!partition) {
+        return [];
+      }
+      const verification = latestByMessageId.get(message.id);
+      return [
+        {
+          ...message,
+          partition,
+          status: verification?.verdict ?? REVIEW_QUEUE_PENDING_STATUS,
+          verification: verification
+            ? reviewQueueItemVerification(verification)
+            : null,
+        },
+      ];
+    });
     const counts = {
       TRAIN:
         partitionCounts.find((item) => item.partition === 'TRAIN')?._count
@@ -105,43 +167,6 @@ export class AiEvidenceService {
         partitionCounts.find((item) => item.partition === 'HOLDOUT')?._count
           ._all ?? 0,
     };
-    const partitionByMessageId = new Map(
-      pendingItems.map((item) => [item.sourceId, item.partition]),
-    );
-    const messages = await this.prisma.aiEmailMessage.findMany({
-      where: {
-        userId,
-        id: { in: pendingItems.map(({ sourceId }) => sourceId) },
-        ...(cursorValues
-          ? {
-              OR: [
-                { receivedAt: { gt: new Date(cursorValues.receivedAt) } },
-                {
-                  receivedAt: new Date(cursorValues.receivedAt),
-                  id: { gt: cursorValues.id },
-                },
-              ],
-            }
-          : {}),
-      },
-      orderBy: [{ receivedAt: 'asc' }, { id: 'asc' }],
-      take: PAGE_SIZE + 1,
-      select: {
-        id: true,
-        receivedAt: true,
-        fromAddress: true,
-        fromDomain: true,
-        subject: true,
-        contentFingerprint: true,
-        processingStatus: true,
-      },
-    });
-    const hasMore = messages.length > PAGE_SIZE;
-    const pageMessages = hasMore ? messages.slice(0, PAGE_SIZE) : messages;
-    const rows = pageMessages.flatMap((message) => {
-      const partition = partitionByMessageId.get(message.id);
-      return partition ? [{ ...message, partition }] : [];
-    });
     const last = pageMessages.at(-1);
     return {
       items: rows,
@@ -152,12 +177,10 @@ export class AiEvidenceService {
       hasMore,
       nextCursor:
         hasMore && last
-          ? Buffer.from(
-              JSON.stringify({
-                receivedAt: last.receivedAt.toISOString(),
-                id: last.id,
-              }),
-            ).toString('base64url')
+          ? encodeReviewQueueCursor({
+              id: last.id,
+              receivedAt: last.receivedAt,
+            })
           : null,
     };
   }
@@ -503,6 +526,43 @@ export class AiEvidenceService {
     }));
   }
 
+  private async reviewQueueTimezone(
+    userId: string,
+    query: ReviewQueueQueryDto,
+  ): Promise<string | null> {
+    if (!query.dateFrom && !query.dateTo) {
+      return null;
+    }
+    const profile = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { timezone: true },
+    });
+    return profile?.timezone ?? null;
+  }
+
+  private pendingPartitionCounts({
+    datasetId,
+    userId,
+    reviewedMessageIds,
+  }: {
+    datasetId: string;
+    userId: string;
+    reviewedMessageIds: readonly string[];
+  }) {
+    return this.prisma.aiDatasetItem.groupBy({
+      by: ['partition'],
+      where: {
+        datasetId,
+        userId,
+        sourceType: EMAIL_SOURCE_TYPE,
+        ...(reviewedMessageIds.length
+          ? { sourceId: { notIn: [...reviewedMessageIds] } }
+          : {}),
+      },
+      _count: { _all: true },
+    });
+  }
+
   private ensureDataset() {
     return this.prisma.aiDataset.upsert({
       where: { name: EMAIL_DATASET_NAME },
@@ -540,23 +600,6 @@ export class AiEvidenceService {
       })),
       skipDuplicates: true,
     });
-  }
-
-  private parseCursor(cursor?: string) {
-    if (!cursor) {
-      return undefined;
-    }
-    try {
-      const values = JSON.parse(
-        Buffer.from(cursor, 'base64url').toString('utf8'),
-      ) as { receivedAt?: string; id?: string };
-      if (!values.id || !Number.isFinite(Date.parse(values.receivedAt ?? ''))) {
-        throw new Error('invalid cursor');
-      }
-      return { receivedAt: values.receivedAt!, id: values.id };
-    } catch {
-      throw new BadRequestException('Cursor de revisión inválido');
-    }
   }
 }
 

@@ -17,15 +17,60 @@ Auth: JWT de Supabase (`Authorization: Bearer <token>`). Envelope `{ data, meta 
 
 AI-3 (JWT):
 
-| Método | Path                                                      | Notas                                                                                                                                                     |
-| ------ | --------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| GET    | `/api/intelligence/dataset`                               | Conteos `TRAIN`, `VALIDATION`, `HOLDOUT` de `EMAIL_V1`, filtrados por cuenta                                                                              |
-| GET    | `/api/intelligence/review-queue?partition=...&cursor=...` | Cola sin verificar, ordenada por fecha recibida ascendente; incluye conteos pendientes por partición y total                                              |
-| POST   | `/api/intelligence/messages/:messageId/verifications`     | `CONFIRMED`, `CORRECTED` o `REJECTED`; guarda secuencia y marca HOLDOUT como verdad de referencia                                                         |
-| GET    | `/api/intelligence/runs`                                  | Runs del usuario con configuración, versiones y watermarks de evidencia                                                                                   |
-| POST   | `/api/intelligence/email/reset`                           | Requiere `{ "confirmed": true }`; vacía el corpus de correo y derivados del usuario, conserva OAuth; 409 `GMAIL_NOT_CONNECTED` o `GMAIL_SYNC_IN_PROGRESS` |
-| GET    | `/api/intelligence/review-groups?page=1&pageSize=20`      | Grupos por remitente y plantilla con total, pendientes, pendientes HOLDOUT y asuntos de muestra, ordenados por pendientes                                 |
-| POST   | `/api/intelligence/review-groups/verifications`           | Aplica `CONFIRMED` o `CORRECTED` a los pendientes del grupo; `REJECTED` responde 400                                                                      |
+| Método | Path                                                                                                                               | Notas                                                                                                                                                     |
+| ------ | ---------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/api/intelligence/dataset`                                                                                                        | Conteos `TRAIN`, `VALIDATION`, `HOLDOUT` de `EMAIL_V1`, filtrados por cuenta                                                                              |
+| GET    | `/api/intelligence/review-queue?partition=...&status=...&fromAddress=...&subject=...&dateFrom=...&dateTo=...&order=...&cursor=...` | Cola paginada por cursor con filtros combinables; sin `status` devuelve solo pendientes y cada item trae su última verificación                           |
+| POST   | `/api/intelligence/messages/:messageId/verifications`                                                                              | `CONFIRMED`, `CORRECTED` o `REJECTED`; guarda secuencia y marca HOLDOUT como verdad de referencia                                                         |
+| GET    | `/api/intelligence/runs`                                                                                                           | Runs del usuario con configuración, versiones y watermarks de evidencia                                                                                   |
+| POST   | `/api/intelligence/email/reset`                                                                                                    | Requiere `{ "confirmed": true }`; vacía el corpus de correo y derivados del usuario, conserva OAuth; 409 `GMAIL_NOT_CONNECTED` o `GMAIL_SYNC_IN_PROGRESS` |
+| GET    | `/api/intelligence/review-groups?page=1&pageSize=20`                                                                               | Grupos por remitente y plantilla con total, pendientes, pendientes HOLDOUT y asuntos de muestra, ordenados por pendientes                                 |
+| POST   | `/api/intelligence/review-groups/verifications`                                                                                    | Aplica `CONFIRMED` o `CORRECTED` a los pendientes del grupo; `REJECTED` responde 400                                                                      |
+
+`GET /api/intelligence/review-queue` acepta estos parámetros. Todos se combinan entre sí y con la paginación, siempre dentro de la cuenta autenticada.
+
+| Parámetro            | Valores                                         | Notas                                                                                      |
+| -------------------- | ----------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| `partition`          | `TRAIN`, `VALIDATION`, `HOLDOUT`                | Partición del dataset                                                                      |
+| `status`             | `PENDING`, `CONFIRMED`, `CORRECTED`, `REJECTED` | Uno o varios separados por coma o repetidos; sin el parámetro solo se devuelven pendientes |
+| `fromAddress`        | dirección completa                              | Comparación exacta sin distinguir mayúsculas                                               |
+| `subject`            | texto                                           | Se devuelven los asuntos que lo contienen, sin distinguir mayúsculas                       |
+| `dateFrom`, `dateTo` | `AAAA-MM-DD`                                    | Días completos en la zona de `users.timezone`; `dateTo` incluye ese día                    |
+| `order`              | `OLDEST`, `NEWEST`                              | Fecha recibida; por defecto `OLDEST` y el ID desempata                                     |
+| `cursor`             | valor opaco de la página anterior               | Reenviar los mismos filtros y el mismo orden                                               |
+
+El estado de un correo es el de su última verificación; sin verificación es `PENDING`. Con estados verificados, cada item incluye `verification` con el veredicto, las etiquetas guardadas, la nota y la fecha; en pendientes vale `null`. Los conteos por partición siguen contando solo pendientes y no cambian con los filtros. Un estado, orden o partición fuera de lista, una fecha que no sea `AAAA-MM-DD` válida o un rango invertido responden 400.
+
+```json
+{
+  "items": [
+    {
+      "id": "b3c1...",
+      "receivedAt": "2026-10-25T12:00:00.000Z",
+      "fromAddress": "notifications@github.com",
+      "fromDomain": "github.com",
+      "subject": "Nueva actividad en tu cuenta",
+      "contentFingerprint": "a1b2...",
+      "processingStatus": "INGESTED",
+      "partition": "TRAIN",
+      "status": "CORRECTED",
+      "verification": {
+        "verdict": "CORRECTED",
+        "labels": {
+          "relevance": true,
+          "semanticType": "TECH_NOTIFICATION",
+          "routes": []
+        },
+        "notes": "No es un cobro",
+        "createdAt": "2026-10-25T12:30:00.000Z"
+      }
+    }
+  ],
+  "counts": { "TRAIN": 410, "VALIDATION": 40, "HOLDOUT": 41, "all": 491 },
+  "hasMore": true,
+  "nextCursor": "eyJrZXk..."
+}
+```
 
 `GET /api/intelligence/review-groups` pagina por página (`page` desde 1, `pageSize` hasta 100) y devuelve solo grupos con al menos un pendiente. Un grupo con `templateFingerprint` nulo reúne los correos de ese remitente sin huella.
 

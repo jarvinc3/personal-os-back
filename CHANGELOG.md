@@ -6,6 +6,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [Se
 
 ### Agregado
 
+- #219: la cola de revisión busca por asunto y remitente, filtra por rango de días y estado (`PENDING`, `CONFIRMED`, `CORRECTED`, `REJECTED`), ordena por fecha en ambos sentidos y devuelve la última verificación de cada correo con sus etiquetas, nota y fecha; los filtros se combinan con la partición y el cursor, y un filtro inválido responde 400.
 - #218: la revisión agrupa los correos por remitente y plantilla con total, pendientes, pendientes HOLDOUT y asuntos de muestra; un lote `CONFIRMED` o `CORRECTED` verifica solo los pendientes fuera de HOLDOUT, es idempotente y conserva rol y secuencia por correo.
 - Un ADMIN puede promover manualmente una fila GLOBAL en `REVIEW_REQUIRED` con `POST /api/intelligence/knowledge/admin/:id/promote`: registra una verificación `CONFIRMED`, la deja `STABLE` con `promotedBy: ADMIN` y el rebuild conserva la decisión; una reversión posterior vuelve a bloquearla (#246).
 - Cada conexión de Gmail conserva el último intento de sincronización (inicio, fin, resultado, código y categoría, correos importados y fase) y el último fallo por separado; el dashboard los expone como `lastAttempt` y `lastFailure`, un intento correcto no borra el fallo anterior y un reinicio queda como `INTERRUPTED` (#251).

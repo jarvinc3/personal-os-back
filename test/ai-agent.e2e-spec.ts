@@ -9,6 +9,9 @@ import {
   AiKnowledgeService,
   AiDataDeletionService,
   REVIEW_GROUP_VERDICTS,
+  REVIEW_QUEUE_ORDERS,
+  REVIEW_QUEUE_PARTITIONS,
+  REVIEW_QUEUE_STATUSES,
   SEMANTIC_ROUTES,
   SEMANTIC_TYPES,
   TRANSACTION_DIRECTIONS,
@@ -188,14 +191,29 @@ describe('Retired AI chat API (e2e)', () => {
       });
 
     await request(app.getHttpServer())
-      .get('/api/intelligence/review-queue?cursor=next-page')
+      .get(
+        '/api/intelligence/review-queue?cursor=next-page&partition=TRAIN&status=CONFIRMED,CORRECTED&fromAddress=notifications@github.com&subject=Aviso&dateFrom=2026-10-01&dateTo=2026-10-31&order=NEWEST',
+      )
       .set('Authorization', `Bearer ${token}`)
       .expect(200);
-    expect(evidence.reviewQueue).toHaveBeenCalledWith(
-      'user-123',
-      'next-page',
-      undefined,
-    );
+    expect(evidence.reviewQueue).toHaveBeenCalledWith('user-123', {
+      cursor: 'next-page',
+      partition: 'TRAIN',
+      status: ['CONFIRMED', 'CORRECTED'],
+      fromAddress: 'notifications@github.com',
+      subject: 'Aviso',
+      dateFrom: '2026-10-01',
+      dateTo: '2026-10-31',
+      order: 'NEWEST',
+    });
+
+    await request(app.getHttpServer())
+      .get('/api/intelligence/review-queue?status=CONFIRMED&status=REJECTED')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+    expect(evidence.reviewQueue).toHaveBeenLastCalledWith('user-123', {
+      status: ['CONFIRMED', 'REJECTED'],
+    });
 
     await request(app.getHttpServer())
       .get('/api/intelligence/review-groups?page=2&pageSize=5')
@@ -339,6 +357,24 @@ describe('Retired AI chat API (e2e)', () => {
     expect(evidence.verifyMessage).toHaveBeenCalledTimes(1);
   });
 
+  it.each([
+    '?status=UNKNOWN',
+    '?dateFrom=2026-13-01',
+    '?dateTo=31-10-2026',
+    '?order=SIDEWAYS',
+    '?partition=OTHER',
+    '?unknownFilter=1',
+  ])('rejects the invalid review queue filter %s', async (query) => {
+    evidence.reviewQueue.mockClear();
+
+    await request(app.getHttpServer())
+      .get(`/api/intelligence/review-queue${query}`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(400);
+
+    expect(evidence.reviewQueue).not.toHaveBeenCalled();
+  });
+
   it('publishes the exact label enums in OpenAPI', () => {
     const document = SwaggerModule.createDocument(
       app,
@@ -381,6 +417,28 @@ describe('Retired AI chat API (e2e)', () => {
     expect(
       document.paths?.['/api/intelligence/review-groups/verifications']?.post,
     ).toBeDefined();
+
+    const reviewQueueParameters = (document.paths?.[
+      '/api/intelligence/review-queue'
+    ]?.get?.parameters ?? []) as Array<{
+      name: string;
+      schema?: Record<string, unknown>;
+    }>;
+    const reviewQueueParameter = (name: string) =>
+      reviewQueueParameters.find((parameter) => parameter.name === name);
+    expect(reviewQueueParameter('partition')?.schema).toMatchObject({
+      enum: [...REVIEW_QUEUE_PARTITIONS],
+    });
+    expect(reviewQueueParameter('status')?.schema).toMatchObject({
+      items: { enum: [...REVIEW_QUEUE_STATUSES] },
+    });
+    expect(reviewQueueParameter('order')?.schema).toMatchObject({
+      enum: [...REVIEW_QUEUE_ORDERS],
+    });
+    expect(reviewQueueParameter('fromAddress')?.schema).toBeDefined();
+    expect(reviewQueueParameter('subject')?.schema).toBeDefined();
+    expect(reviewQueueParameter('dateFrom')?.schema).toBeDefined();
+    expect(reviewQueueParameter('dateTo')?.schema).toBeDefined();
 
     const knowledge = document.components?.schemas?.KnowledgeItemDto as {
       properties: Record<string, never>;
