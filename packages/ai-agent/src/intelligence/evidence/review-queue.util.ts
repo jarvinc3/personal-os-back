@@ -6,6 +6,7 @@ import type { HumanVerificationVerdict } from './human-verification.constants';
 import {
   REVIEW_QUEUE_PENDING_STATUS,
   type ReviewQueueOrder,
+  type ReviewQueuePartition,
   type ReviewQueueStatus,
 } from './review-queue.constants';
 
@@ -30,6 +31,22 @@ export type ReviewQueueItemVerification = {
   labels: Record<string, unknown> | null;
   notes: string | null;
   createdAt: string;
+};
+
+export type ReviewQueueMessageRow = {
+  id: string;
+  receivedAt: Date;
+  fromAddress: string;
+  fromDomain: string;
+  subject: string;
+  contentFingerprint: string;
+  processingStatus: string;
+};
+
+export type ReviewQueueItem = ReviewQueueMessageRow & {
+  partition: ReviewQueuePartition;
+  status: ReviewQueueStatus;
+  verification: ReviewQueueItemVerification | null;
 };
 
 const INVALID_CURSOR_MESSAGE = 'Cursor de revisión inválido';
@@ -110,6 +127,34 @@ export function reviewQueueItemVerification(
     notes: verification.notes,
     createdAt: verification.createdAt.toISOString(),
   };
+}
+
+export function reviewQueueItems({
+  messages,
+  partitionByMessageId,
+  latestByMessageId,
+}: {
+  messages: readonly ReviewQueueMessageRow[];
+  partitionByMessageId: ReadonlyMap<string, ReviewQueuePartition>;
+  latestByMessageId: ReadonlyMap<string, LatestReviewVerification>;
+}): ReviewQueueItem[] {
+  return messages.flatMap((message) => {
+    const partition = partitionByMessageId.get(message.id);
+    if (!partition) {
+      return [];
+    }
+    const verification = latestByMessageId.get(message.id);
+    return [
+      {
+        ...message,
+        partition,
+        status: verification?.verdict ?? REVIEW_QUEUE_PENDING_STATUS,
+        verification: verification
+          ? reviewQueueItemVerification(verification)
+          : null,
+      },
+    ];
+  });
 }
 
 export function reviewQueueMessageFilter({

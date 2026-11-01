@@ -4,6 +4,7 @@ import {
   encodeReviewQueueCursor,
   latestReviewVerifications,
   reviewQueueItemVerification,
+  reviewQueueItems,
   reviewQueueMessageFilter,
   reviewQueueReceivedAtFilter,
   reviewQueueSortDirection,
@@ -115,11 +116,15 @@ describe('review queue utilities', () => {
   });
 
   describe('latestReviewVerifications', () => {
-    const row = (
-      targetId: string | null,
-      sequence: bigint,
-      verdict: 'CONFIRMED' | 'CORRECTED' | 'REJECTED',
-    ) => ({
+    const row = ({
+      targetId,
+      sequence,
+      verdict,
+    }: {
+      targetId: string | null;
+      sequence: bigint;
+      verdict: 'CONFIRMED' | 'CORRECTED' | 'REJECTED';
+    }) => ({
       targetId,
       sequence,
       verdict,
@@ -130,10 +135,10 @@ describe('review queue utilities', () => {
 
     it('keeps the highest sequence per message and skips untargeted rows', () => {
       const latest = latestReviewVerifications([
-        row('message-1', 1n, 'CONFIRMED'),
-        row('message-1', 3n, 'CORRECTED'),
-        row('message-2', 2n, 'REJECTED'),
-        row(null, 4n, 'CONFIRMED'),
+        row({ targetId: 'message-1', sequence: 1n, verdict: 'CONFIRMED' }),
+        row({ targetId: 'message-1', sequence: 3n, verdict: 'CORRECTED' }),
+        row({ targetId: 'message-2', sequence: 2n, verdict: 'REJECTED' }),
+        row({ targetId: null, sequence: 4n, verdict: 'CONFIRMED' }),
       ]);
 
       expect([...latest.keys()]).toEqual(['message-1', 'message-2']);
@@ -182,6 +187,85 @@ describe('review queue utilities', () => {
           correctedPayload: ['relevance'],
         }).labels,
       ).toBeNull();
+    });
+  });
+
+  describe('reviewQueueItems', () => {
+    const message = {
+      id: 'message-1',
+      receivedAt: new Date('2026-10-25T12:00:00.000Z'),
+      fromAddress: 'notifications@github.com',
+      fromDomain: 'github.com',
+      subject: 'Aviso',
+      contentFingerprint: 'fingerprint-1',
+      processingStatus: 'INGESTED',
+    };
+    const latest = new Map([
+      [
+        'message-1',
+        {
+          targetId: 'message-1',
+          sequence: 2n,
+          verdict: 'CORRECTED' as const,
+          correctedPayload: { semanticType: 'TECH_NOTIFICATION' },
+          notes: 'Corregido',
+          createdAt: new Date('2026-10-25T12:30:00.000Z'),
+        },
+      ],
+    ]);
+    const partitionByMessageId = new Map([
+      ['message-1', 'TRAIN' as const],
+      ['message-2', 'HOLDOUT' as const],
+    ]);
+
+    it('returns the derived status and the last verification', () => {
+      expect(
+        reviewQueueItems({
+          messages: [message],
+          partitionByMessageId,
+          latestByMessageId: latest,
+        }),
+      ).toEqual([
+        {
+          ...message,
+          partition: 'TRAIN',
+          status: 'CORRECTED',
+          verification: {
+            verdict: 'CORRECTED',
+            labels: { semanticType: 'TECH_NOTIFICATION' },
+            notes: 'Corregido',
+            createdAt: '2026-10-25T12:30:00.000Z',
+          },
+        },
+      ]);
+    });
+
+    it('marks a message without verification as pending', () => {
+      expect(
+        reviewQueueItems({
+          messages: [{ ...message, id: 'message-2' }],
+          partitionByMessageId,
+          latestByMessageId: latest,
+        }),
+      ).toEqual([
+        {
+          ...message,
+          id: 'message-2',
+          partition: 'HOLDOUT',
+          status: 'PENDING',
+          verification: null,
+        },
+      ]);
+    });
+
+    it('drops messages outside the dataset', () => {
+      expect(
+        reviewQueueItems({
+          messages: [{ ...message, id: 'message-3' }],
+          partitionByMessageId,
+          latestByMessageId: latest,
+        }),
+      ).toEqual([]);
     });
   });
 

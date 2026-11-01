@@ -32,11 +32,13 @@ type StoredVerification = {
   createdAt: Date;
 };
 
-const message = (
-  id: string,
-  receivedAt: string,
-  overrides: Partial<StoredMessage> = {},
-): StoredMessage => ({
+const message = ({
+  id,
+  receivedAt,
+}: {
+  id: string;
+  receivedAt: string;
+}): StoredMessage => ({
   id,
   userId: 'user-1',
   receivedAt: new Date(receivedAt),
@@ -45,7 +47,6 @@ const message = (
   subject: `Aviso ${id}`,
   contentFingerprint: `fingerprint-${id}`,
   processingStatus: 'INGESTED',
-  ...overrides,
 });
 
 const item = (
@@ -59,12 +60,17 @@ const item = (
   partition,
 });
 
-const verification = (
-  targetId: string,
-  sequence: bigint,
-  verdict: StoredVerification['verdict'],
-  overrides: Partial<StoredVerification> = {},
-): StoredVerification => ({
+const verification = ({
+  targetId,
+  sequence,
+  verdict,
+  overrides = {},
+}: {
+  targetId: string;
+  sequence: bigint;
+  verdict: StoredVerification['verdict'];
+  overrides?: Partial<StoredVerification>;
+}): StoredVerification => ({
   userId: 'user-1',
   targetType: 'EMAIL_MESSAGE',
   targetId,
@@ -139,7 +145,10 @@ function mockMessageQueries(
 
 describe('AiEvidenceService review queue filters', () => {
   it('lists pending messages with a derived status and the current counts', async () => {
-    const pending = message('message-1', '2026-10-25T12:00:00.000Z');
+    const pending = message({
+      id: 'message-1',
+      receivedAt: '2026-10-25T12:00:00.000Z',
+    });
     const prisma = makePrisma({
       items: [item('message-1', 'TRAIN')],
       verifications: [],
@@ -187,20 +196,37 @@ describe('AiEvidenceService review queue filters', () => {
   });
 
   it('filters by the last verification, sender, subject, dates, partition and order', async () => {
-    const first = message('message-1', '2026-10-25T12:00:00.000Z');
+    const first = message({
+      id: 'message-1',
+      receivedAt: '2026-10-25T12:00:00.000Z',
+    });
     const prisma = makePrisma({
       items: [item('message-1', 'TRAIN'), item('message-2', 'HOLDOUT')],
       verifications: [
-        verification('message-1', 1n, 'CONFIRMED'),
-        verification('message-1', 2n, 'CORRECTED', {
-          correctedPayload: {
-            relevance: true,
-            semanticType: 'TECH_NOTIFICATION',
-            routes: [],
-          },
-          notes: 'Corregido por el dueño',
+        verification({
+          targetId: 'message-1',
+          sequence: 1n,
+          verdict: 'CONFIRMED',
         }),
-        verification('message-2', 1n, 'REJECTED', { notes: 'Publicidad' }),
+        verification({
+          targetId: 'message-1',
+          sequence: 2n,
+          verdict: 'CORRECTED',
+          overrides: {
+            correctedPayload: {
+              relevance: true,
+              semanticType: 'TECH_NOTIFICATION',
+              routes: [],
+            },
+            notes: 'Corregido por el dueño',
+          },
+        }),
+        verification({
+          targetId: 'message-2',
+          sequence: 1n,
+          verdict: 'REJECTED',
+          overrides: { notes: 'Publicidad' },
+        }),
       ],
       partitionCounts: [{ partition: 'HOLDOUT', count: 1 }],
     });
@@ -281,7 +307,10 @@ describe('AiEvidenceService review queue filters', () => {
 
   it('keeps the newest page and cursor without dropping the order', async () => {
     const messages = Array.from({ length: 51 }, (_, index) =>
-      message(`message-${index}`, '2026-10-25T12:00:00.000Z'),
+      message({
+        id: `message-${index}`,
+        receivedAt: '2026-10-25T12:00:00.000Z',
+      }),
     );
     const prisma = makePrisma({
       items: messages.map(({ id }) => item(id, 'TRAIN')),

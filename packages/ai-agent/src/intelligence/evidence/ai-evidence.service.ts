@@ -20,13 +20,12 @@ import {
 import {
   REVIEW_QUEUE_DEFAULT_ORDER,
   REVIEW_QUEUE_PAGE_SIZE,
-  REVIEW_QUEUE_PENDING_STATUS,
 } from './review-queue.constants';
 import {
   assertReviewQueueDateRange,
   encodeReviewQueueCursor,
   latestReviewVerifications,
-  reviewQueueItemVerification,
+  reviewQueueItems,
   reviewQueueMessageFilter,
   reviewQueueReceivedAtFilter,
   reviewQueueSortDirection,
@@ -139,22 +138,10 @@ export class AiEvidenceService {
     const pageMessages = hasMore
       ? messages.slice(0, REVIEW_QUEUE_PAGE_SIZE)
       : messages;
-    const rows = pageMessages.flatMap((message) => {
-      const partition = partitionByMessageId.get(message.id);
-      if (!partition) {
-        return [];
-      }
-      const verification = latestByMessageId.get(message.id);
-      return [
-        {
-          ...message,
-          partition,
-          status: verification?.verdict ?? REVIEW_QUEUE_PENDING_STATUS,
-          verification: verification
-            ? reviewQueueItemVerification(verification)
-            : null,
-        },
-      ];
+    const items = reviewQueueItems({
+      messages: pageMessages,
+      partitionByMessageId,
+      latestByMessageId,
     });
     const counts = {
       TRAIN:
@@ -169,7 +156,7 @@ export class AiEvidenceService {
     };
     const last = pageMessages.at(-1);
     return {
-      items: rows,
+      items,
       counts: {
         ...counts,
         all: counts.TRAIN + counts.VALIDATION + counts.HOLDOUT,

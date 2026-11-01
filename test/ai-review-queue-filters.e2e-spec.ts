@@ -276,11 +276,15 @@ describe('AI-6 review queue filters (e2e)', () => {
   let partitions: StoredPartition[];
   let verifications: StoredVerification[];
 
-  const partition = (
-    sourceId: string,
-    value: StoredPartition['partition'],
+  const partition = ({
+    sourceId,
+    value,
     userId = USER_ID,
-  ): StoredPartition => ({
+  }: {
+    sourceId: string;
+    value: StoredPartition['partition'];
+    userId?: string;
+  }): StoredPartition => ({
     datasetId: 'dataset-1',
     userId,
     sourceType: 'EMAIL_MESSAGE',
@@ -288,12 +292,17 @@ describe('AI-6 review queue filters (e2e)', () => {
     partition: value,
   });
 
-  const verification = (
-    targetId: string,
-    sequence: bigint,
-    verdict: StoredVerification['verdict'],
-    overrides: Partial<StoredVerification> = {},
-  ): StoredVerification => ({
+  const verification = ({
+    targetId,
+    sequence,
+    verdict,
+    overrides = {},
+  }: {
+    targetId: string;
+    sequence: bigint;
+    verdict: StoredVerification['verdict'];
+    overrides?: Partial<StoredVerification>;
+  }): StoredVerification => ({
     userId: USER_ID,
     targetType: 'EMAIL_MESSAGE',
     targetId,
@@ -315,30 +324,49 @@ describe('AI-6 review queue filters (e2e)', () => {
       ...otherAccountMessages,
     ];
     partitions = [
-      ...bulkMessages.map(({ id }) => partition(id, 'TRAIN')),
-      partition('gh-0', 'TRAIN'),
-      partition('gh-1', 'TRAIN'),
-      partition('gh-2', 'HOLDOUT'),
-      partition('gh-3', 'TRAIN'),
-      partition('gh-4', 'TRAIN'),
-      ...dateRangeMessages.map(({ id }) => partition(id, 'VALIDATION')),
+      ...bulkMessages.map(({ id }) =>
+        partition({ sourceId: id, value: 'TRAIN' }),
+      ),
+      partition({ sourceId: 'gh-0', value: 'TRAIN' }),
+      partition({ sourceId: 'gh-1', value: 'TRAIN' }),
+      partition({ sourceId: 'gh-2', value: 'HOLDOUT' }),
+      partition({ sourceId: 'gh-3', value: 'TRAIN' }),
+      partition({ sourceId: 'gh-4', value: 'TRAIN' }),
+      ...dateRangeMessages.map(({ id }) =>
+        partition({ sourceId: id, value: 'VALIDATION' }),
+      ),
       ...otherAccountMessages.map(({ id }) =>
-        partition(id, 'TRAIN', 'other-user'),
+        partition({ sourceId: id, value: 'TRAIN', userId: 'other-user' }),
       ),
     ];
     verifications = [
-      verification('gh-0', 1n, 'CONFIRMED'),
-      verification('gh-0', 2n, 'CORRECTED', {
-        correctedPayload: {
-          relevance: true,
-          semanticType: 'TECH_NOTIFICATION',
-          routes: [],
+      verification({ targetId: 'gh-0', sequence: 1n, verdict: 'CONFIRMED' }),
+      verification({
+        targetId: 'gh-0',
+        sequence: 2n,
+        verdict: 'CORRECTED',
+        overrides: {
+          correctedPayload: {
+            relevance: true,
+            semanticType: 'TECH_NOTIFICATION',
+            routes: [],
+          },
+          notes: 'Etiqueta corregida',
         },
-        notes: 'Etiqueta corregida',
       }),
-      verification('gh-1', 3n, 'REJECTED', { notes: 'Publicidad' }),
-      verification('bulk-0', 4n, 'CONFIRMED'),
-      verification('other-0', 5n, 'CONFIRMED', { userId: 'other-user' }),
+      verification({
+        targetId: 'gh-1',
+        sequence: 3n,
+        verdict: 'REJECTED',
+        overrides: { notes: 'Publicidad' },
+      }),
+      verification({ targetId: 'bulk-0', sequence: 4n, verdict: 'CONFIRMED' }),
+      verification({
+        targetId: 'other-0',
+        sequence: 5n,
+        verdict: 'CONFIRMED',
+        overrides: { userId: 'other-user' },
+      }),
     ];
     prismaMock = createPrismaMock();
     prismaMock.user.findUnique.mockResolvedValue({
