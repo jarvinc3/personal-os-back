@@ -130,7 +130,15 @@ export class WipeFinanceUserDataUseCase {
       'finance.balances': (tx, { userId, balanceInstitutionId }) =>
         this.resetBalances(tx, userId, balanceInstitutionId),
       'finance.cards': async (tx, { userId }) => {
-        const cards = await tx.finCard.deleteMany({ where: { userId } });
+        const cards = await tx.finCard.deleteMany({
+          where: { userId, type: 'CREDIT' },
+        });
+        return cards.count;
+      },
+      'finance.debitCards': async (tx, { userId }) => {
+        const cards = await tx.finCard.deleteMany({
+          where: { userId, type: 'DEBIT' },
+        });
         return cards.count;
       },
       'finance.accounts': async (tx, { userId }) => {
@@ -217,7 +225,13 @@ export class WipeFinanceUserDataUseCase {
           }))
         );
       case 'finance.cards':
-        return this.prisma.finCard.count({ where: { userId } });
+        return this.prisma.finCard.count({
+          where: { userId, type: 'CREDIT' },
+        });
+      case 'finance.debitCards':
+        return this.prisma.finCard.count({
+          where: { userId, type: 'DEBIT' },
+        });
       case 'finance.accounts':
         return this.prisma.finAccount.count({ where: { userId } });
       case 'finance.institutions':

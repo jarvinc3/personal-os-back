@@ -396,6 +396,7 @@ function createTransactionClient(prismaMock: PrismaMock) {
     finAccount: {
       findFirst: prismaMock.finAccount.findFirst,
       findMany: jest.fn().mockResolvedValue([]),
+      create: prismaMock.finAccount.create,
       update: jest.fn().mockResolvedValue({}),
       updateMany: prismaMock.finAccount.updateMany,
       deleteMany: prismaMock.finAccount.deleteMany,

@@ -1,8 +1,7 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import type { CursorPoint, CursorQueryDto } from '@personal-os/core';
 import { clampPageLimit } from '@personal-os/core';
-import type { Prisma } from '@personal-os/database';
-import { PrismaService } from '@personal-os/database';
+import { Prisma, PrismaService } from '@personal-os/database';
 import type { LedgerTransactionRow } from '../../ledger/application/ports/ledger.repository.port';
 import { restoreLedgerRows } from '../../ledger/infrastructure/balance.helpers';
 import {
@@ -262,22 +261,36 @@ export class CatalogRepository {
       select: { id: true },
     });
   }
-  createCashAccount(
+  async ensureCashAccount(
     userId: string,
     input: {
       institutionId: string;
       name: string;
       currency: string;
     },
-  ) {
-    return this.prisma.finAccount.create({
-      data: {
-        userId,
-        institutionId: input.institutionId,
-        name: input.name,
-        type: CASH_ACCOUNT_TYPE,
-        currency: input.currency,
-      },
+  ): Promise<void> {
+    // The institution row serializes concurrent reads: the second one waits,
+    // re-checks and finds the account the first one created.
+    await this.prisma.$transaction(async (tx) => {
+      await tx.$queryRaw(
+        Prisma.sql`SELECT id FROM fin_institutions WHERE id = ${input.institutionId} FOR UPDATE`,
+      );
+      const existing = await tx.finAccount.findFirst({
+        where: { userId, type: CASH_ACCOUNT_TYPE },
+        select: { id: true },
+      });
+      if (existing) {
+        return;
+      }
+      await tx.finAccount.create({
+        data: {
+          userId,
+          institutionId: input.institutionId,
+          name: input.name,
+          type: CASH_ACCOUNT_TYPE,
+          currency: input.currency,
+        },
+      });
     });
   }
   assignInstitutionlessCashAccounts(userId: string, institutionId: string) {

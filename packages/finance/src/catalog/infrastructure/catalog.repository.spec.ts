@@ -82,3 +82,59 @@ describe('CatalogRepository createAccount', () => {
     });
   });
 });
+
+describe('CatalogRepository ensureCashAccount', () => {
+  const input = {
+    institutionId: 'cash-1',
+    name: 'Efectivo',
+    currency: 'DOP',
+  };
+
+  function buildRepo(existingCashAccount: { id: string } | null) {
+    const queryRaw = jest.fn().mockResolvedValue([{ id: 'cash-1' }]);
+    const findFirst = jest.fn().mockResolvedValue(existingCashAccount);
+    const create = jest.fn().mockResolvedValue({ id: 'cash-acc-1' });
+    const tx = { $queryRaw: queryRaw, finAccount: { findFirst, create } };
+    const transaction = jest.fn((callback: (client: typeof tx) => unknown) =>
+      callback(tx),
+    );
+    const prisma = { $transaction: transaction } as unknown as PrismaService;
+    return {
+      repo: new CatalogRepository(prisma, {} as never),
+      queryRaw,
+      findFirst,
+      create,
+    };
+  }
+
+  it('locks the institution and does not create a second cash account', async () => {
+    const { repo, queryRaw, findFirst, create } = buildRepo({
+      id: 'cash-acc-1',
+    });
+
+    await repo.ensureCashAccount('user-1', input);
+
+    expect(queryRaw).toHaveBeenCalledTimes(1);
+    expect(findFirst).toHaveBeenCalledWith({
+      where: { userId: 'user-1', type: 'CASH' },
+      select: { id: true },
+    });
+    expect(create).not.toHaveBeenCalled();
+  });
+
+  it('creates the cash account when the locked check finds none', async () => {
+    const { repo, create } = buildRepo(null);
+
+    await repo.ensureCashAccount('user-1', input);
+
+    expect(create).toHaveBeenCalledWith({
+      data: {
+        userId: 'user-1',
+        institutionId: 'cash-1',
+        name: 'Efectivo',
+        type: 'CASH',
+        currency: 'DOP',
+      },
+    });
+  });
+});

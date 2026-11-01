@@ -37,6 +37,12 @@ function requireCountedRow(
   return row;
 }
 
+function expandedIds(requested: string): string[] {
+  return expandDataBranches(FINANCE_DATA_BRANCHES, [requested]).map(
+    (branch) => branch.id,
+  );
+}
+
 describe('FINANCE_DATA_BRANCHES', () => {
   it('declares what the schema deletes with the products and institutions', () => {
     expect(requireBranch('finance.cards').includes).toEqual([
@@ -44,14 +50,17 @@ describe('FINANCE_DATA_BRANCHES', () => {
       'finance.transactions',
       'finance.statements',
     ]);
+    expect(requireBranch('finance.debitCards').includes).toEqual([]);
     expect(requireBranch('finance.accounts').includes).toEqual([
       'finance.reconciliations',
       'finance.transactions',
       'finance.loans',
+      'finance.debitCards',
     ]);
     expect(requireBranch('finance.institutions').includes).toEqual([
       'finance.accounts',
       'finance.cards',
+      'finance.debitCards',
       'finance.loans',
     ]);
   });
@@ -59,6 +68,12 @@ describe('FINANCE_DATA_BRANCHES', () => {
   it('keeps credit cards out of the accounts branch', () => {
     expect(requireBranch('finance.accounts').includes).not.toContain(
       'finance.cards',
+    );
+  });
+
+  it('keeps debit cards out of the credit cards branch', () => {
+    expect(requireBranch('finance.cards').includes).not.toContain(
+      'finance.debitCards',
     );
   });
 
@@ -91,12 +106,8 @@ describe('FINANCE_DATA_BRANCHES', () => {
     }
   });
 
-  it('expands the cards into the rows they drag, in execution order', () => {
-    const applied = expandDataBranches(FINANCE_DATA_BRANCHES, [
-      'finance.cards',
-    ]).map((branch) => branch.id);
-
-    expect(applied).toEqual([
+  it('expands the credit cards into the rows they drag', () => {
+    expect(expandedIds('finance.cards')).toEqual([
       'finance.reconciliations',
       'finance.transactions',
       'finance.statements',
@@ -104,17 +115,28 @@ describe('FINANCE_DATA_BRANCHES', () => {
     ]);
   });
 
-  it('expands the institutions into everything they drag, in execution order', () => {
-    const applied = expandDataBranches(FINANCE_DATA_BRANCHES, [
-      'finance.institutions',
-    ]).map((branch) => branch.id);
+  it('expands the debit cards alone', () => {
+    expect(expandedIds('finance.debitCards')).toEqual(['finance.debitCards']);
+  });
 
-    expect(applied).toEqual([
+  it('expands the accounts into the rows they drag, with the debit cards', () => {
+    expect(expandedIds('finance.accounts')).toEqual([
+      'finance.reconciliations',
+      'finance.transactions',
+      'finance.loans',
+      'finance.debitCards',
+      'finance.accounts',
+    ]);
+  });
+
+  it('expands the institutions into everything they drag', () => {
+    expect(expandedIds('finance.institutions')).toEqual([
       'finance.reconciliations',
       'finance.transactions',
       'finance.statements',
       'finance.loans',
       'finance.cards',
+      'finance.debitCards',
       'finance.accounts',
       'finance.institutions',
     ]);

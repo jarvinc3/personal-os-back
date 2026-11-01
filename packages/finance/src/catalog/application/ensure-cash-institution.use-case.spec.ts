@@ -8,7 +8,7 @@ describe('EnsureCashInstitutionUseCase', () => {
   const createSystemCashInstitution = jest.fn();
   const assignInstitutionlessCashAccounts = jest.fn();
   const findFirstCashAccount = jest.fn();
-  const createCashAccount = jest.fn();
+  const ensureCashAccount = jest.fn();
   const baseCurrencyExecute = jest.fn().mockResolvedValue('DOP');
 
   const repo = {
@@ -16,7 +16,7 @@ describe('EnsureCashInstitutionUseCase', () => {
     createSystemCashInstitution,
     assignInstitutionlessCashAccounts,
     findFirstCashAccount,
-    createCashAccount,
+    ensureCashAccount,
   } as unknown as CatalogRepository;
 
   const createUseCase = () =>
@@ -29,7 +29,7 @@ describe('EnsureCashInstitutionUseCase', () => {
     baseCurrencyExecute.mockResolvedValue('DOP');
     assignInstitutionlessCashAccounts.mockResolvedValue({ count: 0 });
     findFirstCashAccount.mockResolvedValue(null);
-    createCashAccount.mockResolvedValue({ id: 'cash-acc-1' });
+    ensureCashAccount.mockResolvedValue(undefined);
   });
 
   it('keeps the existing institution and its cash account', async () => {
@@ -39,7 +39,7 @@ describe('EnsureCashInstitutionUseCase', () => {
     await expect(createUseCase().execute('user-1')).resolves.toBeUndefined();
     expect(createSystemCashInstitution).not.toHaveBeenCalled();
     expect(assignInstitutionlessCashAccounts).not.toHaveBeenCalled();
-    expect(createCashAccount).not.toHaveBeenCalled();
+    expect(ensureCashAccount).not.toHaveBeenCalled();
   });
 
   it('restores the base-currency account when the institution survived a wipe', async () => {
@@ -48,7 +48,7 @@ describe('EnsureCashInstitutionUseCase', () => {
 
     await expect(createUseCase().execute('user-1')).resolves.toBeUndefined();
     expect(createSystemCashInstitution).not.toHaveBeenCalled();
-    expect(createCashAccount).toHaveBeenCalledWith('user-1', {
+    expect(ensureCashAccount).toHaveBeenCalledWith('user-1', {
       institutionId: 'cash-1',
       name: 'Efectivo',
       currency: 'DOP',
@@ -69,7 +69,7 @@ describe('EnsureCashInstitutionUseCase', () => {
       'cash-1',
     );
     expect(baseCurrencyExecute).toHaveBeenCalledWith('user-1');
-    expect(createCashAccount).toHaveBeenCalledWith('user-1', {
+    expect(ensureCashAccount).toHaveBeenCalledWith('user-1', {
       institutionId: 'cash-1',
       name: 'Efectivo',
       currency: 'DOP',
@@ -86,7 +86,7 @@ describe('EnsureCashInstitutionUseCase', () => {
 
     await createUseCase().execute('user-1');
 
-    expect(createCashAccount).not.toHaveBeenCalled();
+    expect(ensureCashAccount).not.toHaveBeenCalled();
   });
 
   it('recovers from a concurrent create via the unique index', async () => {
