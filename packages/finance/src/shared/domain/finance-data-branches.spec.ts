@@ -10,7 +10,7 @@ const ROW_COUNT_BY_BRANCH = Object.fromEntries(
   FINANCE_DATA_BRANCHES.map((branch, index) => [branch.id, index + 1]),
 );
 
-function branchById(id: string): DataBranchDescriptor {
+function requireBranch(id: string): DataBranchDescriptor {
   const branch = FINANCE_DATA_BRANCHES.find((candidate) => candidate.id === id);
   if (!branch) {
     throw new Error(`La rama ${id} no está declarada`);
@@ -18,7 +18,7 @@ function branchById(id: string): DataBranchDescriptor {
   return branch;
 }
 
-function countRows(): ReadonlyMap<string, DataBranchCount> {
+function countedRowsById(): ReadonlyMap<string, DataBranchCount> {
   const rows = groupDataBranchCounts(
     FINANCE_DATA_BRANCHES,
     ROW_COUNT_BY_BRANCH,
@@ -26,7 +26,7 @@ function countRows(): ReadonlyMap<string, DataBranchCount> {
   return new Map(rows.map((row) => [row.id, row]));
 }
 
-function countRow(
+function requireCountedRow(
   rowsById: ReadonlyMap<string, DataBranchCount>,
   id: string,
 ): DataBranchCount {
@@ -39,17 +39,17 @@ function countRow(
 
 describe('FINANCE_DATA_BRANCHES', () => {
   it('declares what the schema deletes with the products and institutions', () => {
-    expect(branchById('finance.cards').includes).toEqual([
+    expect(requireBranch('finance.cards').includes).toEqual([
       'finance.reconciliations',
       'finance.transactions',
       'finance.statements',
     ]);
-    expect(branchById('finance.accounts').includes).toEqual([
+    expect(requireBranch('finance.accounts').includes).toEqual([
       'finance.reconciliations',
       'finance.transactions',
       'finance.loans',
     ]);
-    expect(branchById('finance.institutions').includes).toEqual([
+    expect(requireBranch('finance.institutions').includes).toEqual([
       'finance.accounts',
       'finance.cards',
       'finance.loans',
@@ -57,20 +57,20 @@ describe('FINANCE_DATA_BRANCHES', () => {
   });
 
   it('keeps credit cards out of the accounts branch', () => {
-    expect(branchById('finance.accounts').includes).not.toContain(
+    expect(requireBranch('finance.accounts').includes).not.toContain(
       'finance.cards',
     );
   });
 
   it('points every include at a branch with its own count', () => {
-    const rowsById = countRows();
+    const rowsById = countedRowsById();
 
     for (const branch of FINANCE_DATA_BRANCHES) {
-      const row = countRow(rowsById, branch.id);
+      const row = requireCountedRow(rowsById, branch.id);
       for (const included of branch.includes) {
         expect(row.includes).toContainEqual({
           id: included,
-          count: countRow(rowsById, included).count,
+          count: requireCountedRow(rowsById, included).count,
         });
       }
     }
@@ -79,7 +79,7 @@ describe('FINANCE_DATA_BRANCHES', () => {
   it('runs every dragged branch before the one that drags it', () => {
     for (const branch of FINANCE_DATA_BRANCHES) {
       for (const included of branch.includes) {
-        expect(branchById(included).order).toBeLessThan(branch.order);
+        expect(requireBranch(included).order).toBeLessThan(branch.order);
       }
     }
   });
