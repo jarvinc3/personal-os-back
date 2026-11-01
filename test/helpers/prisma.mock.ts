@@ -27,6 +27,7 @@ export type PrismaMock = {
   aiHumanVerification: {
     aggregate: MockFn;
     findMany: MockFn;
+    createMany: MockFn;
     update: MockFn;
   };
   aiConsentEvent: {
@@ -45,6 +46,7 @@ export type PrismaMock = {
   };
   aiEmailMessage: {
     findMany: MockFn;
+    findFirst: MockFn;
     deleteMany: MockFn;
   };
   userAiSettings: {
@@ -346,6 +348,7 @@ function createTransactionClient(prismaMock: PrismaMock) {
     aiHumanVerification: {
       aggregate: prismaMock.aiHumanVerification.aggregate,
       findMany: prismaMock.aiHumanVerification.findMany,
+      createMany: prismaMock.aiHumanVerification.createMany,
       update: prismaMock.aiHumanVerification.update,
     },
     aiConsentEvent: {
@@ -768,6 +771,7 @@ export function createPrismaMock(): PrismaMock {
     aiHumanVerification: {
       aggregate: jest.fn().mockResolvedValue({ _max: { sequence: null } }),
       findMany: jest.fn().mockResolvedValue([]),
+      createMany: jest.fn().mockResolvedValue({ count: 0 }),
       update: jest.fn().mockResolvedValue({}),
     },
     aiConsentEvent: {
@@ -786,6 +790,7 @@ export function createPrismaMock(): PrismaMock {
     },
     aiEmailMessage: {
       findMany: jest.fn().mockResolvedValue([]),
+      findFirst: jest.fn().mockResolvedValue(null),
       deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
     },
     userAiSettings: {

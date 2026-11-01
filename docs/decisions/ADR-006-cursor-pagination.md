@@ -26,3 +26,7 @@ La web necesita scroll infinito: cargar la siguiente tanda al bajar, sin botones
 ## Consecuencias
 
 Cambia un contrato compartido (`packages/core`) y los endpoints que lo usan; la web actualiza sus tipos y hooks. Los contratos HTTP documentados (`docs/modules/finance/contracts/http.md`, `docs/modules/notifications/contracts/http.md`) se actualizan cuando se implemente, no antes. Movimientos, presupuestos, historial de instrumento, notificaciones, cortes y, tras el pendiente 04, las listas de detalle de planificación, correos y papelera ya usan cursor. Decisión espejo en `personal-os-web/docs/decisions/ADR-003-cursor-pagination.md`.
+
+## Excepción: grupos de revisión (2026-11-01)
+
+`GET /api/intelligence/review-groups` pagina por página (`page`, `pageSize`) y devuelve `totalGroups`. Su clave de orden es un agregado (pendientes, de mayor a menor) que cambia después de cada lote: aplicar un lote reordena la lista completa, así que un cursor keyset tampoco evita repetir o saltar grupos. La web vuelve a la página 1 después de aplicar un lote y usa el total para mostrar cuántos grupos quedan. Es la única lista con esta excepción; si aparece otra, se revisa este ADR.

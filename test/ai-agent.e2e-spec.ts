@@ -8,6 +8,7 @@ import {
   AiEvidenceService,
   AiKnowledgeService,
   AiDataDeletionService,
+  REVIEW_GROUP_VERDICTS,
   SEMANTIC_ROUTES,
   SEMANTIC_TYPES,
   TRANSACTION_DIRECTIONS,
@@ -40,6 +41,18 @@ describe('Retired AI chat API (e2e)', () => {
     verifyMessage: jest.fn().mockResolvedValue({
       sequence: '7',
       verdict: 'CONFIRMED',
+    }),
+    listReviewGroups: jest.fn().mockResolvedValue({
+      items: [],
+      page: 1,
+      pageSize: 20,
+      totalGroups: 0,
+      hasMore: false,
+    }),
+    verifyReviewGroup: jest.fn().mockResolvedValue({
+      verified: 91,
+      holdoutExcluded: 9,
+      alreadyVerified: 0,
     }),
     listRuns: jest.fn().mockResolvedValue([]),
   };
@@ -185,6 +198,35 @@ describe('Retired AI chat API (e2e)', () => {
     );
 
     await request(app.getHttpServer())
+      .get('/api/intelligence/review-groups?page=2&pageSize=5')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+    expect(evidence.listReviewGroups).toHaveBeenCalledWith('user-123', {
+      page: 2,
+      pageSize: 5,
+    });
+
+    await request(app.getHttpServer())
+      .post('/api/intelligence/review-groups/verifications')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        verdict: 'CONFIRMED',
+        fromAddress: 'notifications@github.com',
+        templateFingerprint: 'fp-github',
+        semanticType: 'MARKETING',
+      })
+      .expect(201);
+    expect(evidence.verifyReviewGroup).toHaveBeenCalledWith(
+      'user-123',
+      expect.objectContaining({
+        verdict: 'CONFIRMED',
+        fromAddress: 'notifications@github.com',
+        templateFingerprint: 'fp-github',
+        semanticType: 'MARKETING',
+      }),
+    );
+
+    await request(app.getHttpServer())
       .post('/api/intelligence/messages/message-1/verifications')
       .set('Authorization', `Bearer ${token}`)
       .send({ verdict: 'CONFIRMED' })
@@ -225,6 +267,56 @@ describe('Retired AI chat API (e2e)', () => {
       .send({ verdict: 'CORRECTED', ...body })
       .expect(400);
     expect(evidence.verifyMessage).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    { semanticType: 'NOT_A_TYPE' },
+    { routes: ['TRAVEL'] },
+    { verdict: 'REJECTED' },
+    { fromAddress: '' },
+    { templateFingerprint: 42 },
+  ])(
+    'rejects an invalid review group batch %# before persistence',
+    async (body) => {
+      evidence.verifyReviewGroup.mockClear();
+      await request(app.getHttpServer())
+        .post('/api/intelligence/review-groups/verifications')
+        .set('Authorization', `Bearer ${token}`)
+        .send({
+          verdict: 'CONFIRMED',
+          fromAddress: 'notifications@github.com',
+          ...body,
+        })
+        .expect(400);
+      expect(evidence.verifyReviewGroup).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each(['page=0', 'page=abc', 'pageSize=101'])(
+    'rejects an invalid review groups page %#',
+    async (query) => {
+      evidence.listReviewGroups.mockClear();
+      await request(app.getHttpServer())
+        .get(`/api/intelligence/review-groups?${query}`)
+        .set('Authorization', `Bearer ${token}`)
+        .expect(400);
+      expect(evidence.listReviewGroups).not.toHaveBeenCalled();
+    },
+  );
+
+  it('accepts a batch without a template fingerprint and with a note', async () => {
+    evidence.verifyReviewGroup.mockClear();
+    await request(app.getHttpServer())
+      .post('/api/intelligence/review-groups/verifications')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        verdict: 'CORRECTED',
+        fromAddress: 'notifications@github.com',
+        semanticType: 'OTHER',
+        notes: 'Correo conocido',
+      })
+      .expect(201);
+    expect(evidence.verifyReviewGroup).toHaveBeenCalledTimes(1);
   });
 
   it('accepts a typed financial transaction payload', async () => {
@@ -271,6 +363,24 @@ describe('Retired AI chat API (e2e)', () => {
     expect(transaction.properties.direction).toMatchObject({
       enum: [...TRANSACTION_DIRECTIONS],
     });
+
+    const reviewGroup = document.components?.schemas
+      ?.CreateReviewGroupVerificationDto as {
+      properties: Record<string, never>;
+    };
+    expect(reviewGroup.properties.verdict).toMatchObject({
+      enum: [...REVIEW_GROUP_VERDICTS],
+    });
+    expect(reviewGroup.properties.semanticType).toMatchObject({
+      enum: [...SEMANTIC_TYPES],
+    });
+    expect(reviewGroup.properties.fromAddress).toBeDefined();
+    expect(
+      document.paths?.['/api/intelligence/review-groups']?.get,
+    ).toBeDefined();
+    expect(
+      document.paths?.['/api/intelligence/review-groups/verifications']?.post,
+    ).toBeDefined();
 
     const knowledge = document.components?.schemas?.KnowledgeItemDto as {
       properties: Record<string, never>;
