@@ -23,6 +23,14 @@ type ReviewGroupInput = {
   sampleSize: number;
 };
 
+type AccumulateGroupInput = {
+  group: ReviewGroup;
+  message: ReviewGroupMessage;
+  partition: EmailDatasetPartition;
+  reviewed: boolean;
+  sampleSize: number;
+};
+
 export function groupReviewMessages({
   messages,
   partitionByMessageId,
@@ -35,38 +43,28 @@ export function groupReviewMessages({
     if (!partition) {
       continue;
     }
-    const group = findOrCreateGroup(groupsBySender, message);
-    group.total += 1;
-    if (
-      group.sampleSubjects.length < sampleSize &&
-      !group.sampleSubjects.includes(message.subject)
-    ) {
-      group.sampleSubjects.push(message.subject);
-    }
-    if (reviewedMessageIds.has(message.id)) {
-      continue;
-    }
-    group.pending += 1;
-    if (partition === 'HOLDOUT') {
-      group.pendingHoldout += 1;
-    }
+    const groupsByTemplate =
+      groupsBySender.get(message.fromAddress) ??
+      new Map<string | null, ReviewGroup>();
+    const group =
+      groupsByTemplate.get(message.templateFingerprint) ?? emptyGroup(message);
+    groupsByTemplate.set(
+      message.templateFingerprint,
+      accumulateGroup({
+        group,
+        message,
+        partition,
+        reviewed: reviewedMessageIds.has(message.id),
+        sampleSize,
+      }),
+    );
+    groupsBySender.set(message.fromAddress, groupsByTemplate);
   }
-  return flattenGroups(groupsBySender).sort(compareGroups);
+  return collectGroups(groupsBySender).sort(compareGroups);
 }
 
-function findOrCreateGroup(
-  groupsBySender: Map<string, Map<string | null, ReviewGroup>>,
-  message: ReviewGroupMessage,
-): ReviewGroup {
-  const groupsByTemplate =
-    groupsBySender.get(message.fromAddress) ??
-    new Map<string | null, ReviewGroup>();
-  groupsBySender.set(message.fromAddress, groupsByTemplate);
-  const existing = groupsByTemplate.get(message.templateFingerprint);
-  if (existing) {
-    return existing;
-  }
-  const created: ReviewGroup = {
+function emptyGroup(message: ReviewGroupMessage): ReviewGroup {
+  return {
     fromAddress: message.fromAddress,
     templateFingerprint: message.templateFingerprint,
     total: 0,
@@ -74,12 +72,34 @@ function findOrCreateGroup(
     pendingHoldout: 0,
     sampleSubjects: [],
   };
-  groupsByTemplate.set(message.templateFingerprint, created);
-  return created;
 }
 
-function flattenGroups(
-  groupsBySender: Map<string, Map<string | null, ReviewGroup>>,
+function accumulateGroup({
+  group,
+  message,
+  partition,
+  reviewed,
+  sampleSize,
+}: AccumulateGroupInput): ReviewGroup {
+  const sampleSubjects =
+    group.sampleSubjects.length < sampleSize &&
+    !group.sampleSubjects.includes(message.subject)
+      ? [...group.sampleSubjects, message.subject]
+      : group.sampleSubjects;
+  const pendingIncrement = reviewed ? 0 : 1;
+  const holdoutIncrement = !reviewed && partition === 'HOLDOUT' ? 1 : 0;
+  return {
+    fromAddress: group.fromAddress,
+    templateFingerprint: group.templateFingerprint,
+    total: group.total + 1,
+    pending: group.pending + pendingIncrement,
+    pendingHoldout: group.pendingHoldout + holdoutIncrement,
+    sampleSubjects,
+  };
+}
+
+function collectGroups(
+  groupsBySender: ReadonlyMap<string, ReadonlyMap<string | null, ReviewGroup>>,
 ): ReviewGroup[] {
   const groups: ReviewGroup[] = [];
   for (const groupsByTemplate of groupsBySender.values()) {

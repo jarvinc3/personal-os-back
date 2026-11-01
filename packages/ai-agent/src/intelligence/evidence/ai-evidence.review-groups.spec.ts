@@ -48,12 +48,13 @@ const githubPartitions = (): StoredPartition[] =>
 function makeReviewGroupPrisma({
   messages,
   partitions,
-  verifications = [],
+  initialVerifications = [],
 }: {
   messages: StoredMessage[];
   partitions: StoredPartition[];
-  verifications?: StoredVerification[];
+  initialVerifications?: StoredVerification[];
 }) {
+  const verifications: StoredVerification[] = [...initialVerifications];
   const prisma = {
     aiDataset: {
       upsert: jest
@@ -132,7 +133,7 @@ function makeReviewGroupPrisma({
   prisma.$transaction.mockImplementation((callback: (tx: unknown) => unknown) =>
     callback(prisma),
   );
-  return prisma;
+  return { prisma, verifications };
 }
 
 describe('AiEvidenceService review groups', () => {
@@ -164,7 +165,7 @@ describe('AiEvidenceService review groups', () => {
       })),
       { sourceId: 'o1', partition: 'TRAIN' },
     ];
-    const verifications: StoredVerification[] = ['n3', 'n4', 'o1'].map(
+    const initialVerifications: StoredVerification[] = ['n3', 'n4', 'o1'].map(
       (targetId) => ({
         userId: 'user-1',
         targetType: REVIEW_TARGET_TYPE,
@@ -175,10 +176,10 @@ describe('AiEvidenceService review groups', () => {
         isGroundTruth: false,
       }),
     );
-    const prisma = makeReviewGroupPrisma({
+    const { prisma } = makeReviewGroupPrisma({
       messages,
       partitions,
-      verifications,
+      initialVerifications,
     });
     const service = new AiEvidenceService(prisma as never);
 
@@ -225,7 +226,7 @@ describe('AiEvidenceService review groups', () => {
   });
 
   it('verifies every pending non-HOLDOUT message of the group once', async () => {
-    const prisma = makeReviewGroupPrisma({
+    const { prisma, verifications } = makeReviewGroupPrisma({
       messages: githubMessages(),
       partitions: githubPartitions(),
     });
@@ -241,9 +242,8 @@ describe('AiEvidenceService review groups', () => {
       { verified: 91, holdoutExcluded: 9, alreadyVerified: 0 },
     );
     expect(prisma.aiHumanVerification.createMany).toHaveBeenCalledTimes(1);
-    const rows = prisma.aiHumanVerification.createMany.mock.calls[0][0].data;
-    expect(rows).toHaveLength(91);
-    expect(rows[0]).toEqual({
+    expect(verifications).toHaveLength(91);
+    expect(verifications[0]).toEqual({
       userId: 'user-1',
       verifierRole: 'ADMIN',
       targetType: REVIEW_TARGET_TYPE,
@@ -253,7 +253,7 @@ describe('AiEvidenceService review groups', () => {
       notes: null,
       isGroundTruth: false,
     });
-    expect(rows.map(({ targetId }) => targetId)).not.toContain('g91');
+    expect(verifications.map(({ targetId }) => targetId)).not.toContain('g91');
     expect(prisma.$queryRaw.mock.invocationCallOrder[0]).toBeLessThan(
       prisma.aiHumanVerification.findMany.mock.invocationCallOrder[0],
     );
@@ -265,7 +265,7 @@ describe('AiEvidenceService review groups', () => {
   });
 
   it('counts an already verified HOLDOUT message as already verified', async () => {
-    const verifications: StoredVerification[] = [
+    const initialVerifications: StoredVerification[] = [
       {
         userId: 'user-1',
         targetType: REVIEW_TARGET_TYPE,
@@ -276,10 +276,10 @@ describe('AiEvidenceService review groups', () => {
         isGroundTruth: true,
       },
     ];
-    const prisma = makeReviewGroupPrisma({
+    const { prisma, verifications } = makeReviewGroupPrisma({
       messages: githubMessages(),
       partitions: githubPartitions(),
-      verifications,
+      initialVerifications,
     });
     const service = new AiEvidenceService(prisma as never);
 
@@ -296,16 +296,15 @@ describe('AiEvidenceService review groups', () => {
       holdoutExcluded: 8,
       alreadyVerified: 1,
     });
-    const [{ data: createdRows }] =
-      prisma.aiHumanVerification.createMany.mock.calls[0];
-    expect(createdRows[0]).toMatchObject({
+    const createdVerifications = verifications.slice(1);
+    expect(createdVerifications[0]).toMatchObject({
       correctedPayload: { semanticType: 'OTHER' },
       notes: 'plantilla conocida',
     });
   });
 
   it('does not expose or verify another account group', async () => {
-    const prisma = makeReviewGroupPrisma({
+    const { prisma } = makeReviewGroupPrisma({
       messages: githubMessages().map((message) => ({
         ...message,
         userId: 'other-user',
@@ -328,7 +327,7 @@ describe('AiEvidenceService review groups', () => {
   });
 
   it('rejects an unknown template of an existing sender', async () => {
-    const prisma = makeReviewGroupPrisma({
+    const { prisma } = makeReviewGroupPrisma({
       messages: githubMessages(),
       partitions: githubPartitions(),
     });
@@ -345,7 +344,7 @@ describe('AiEvidenceService review groups', () => {
   });
 
   it('rejects inconsistent labels before reading the group', async () => {
-    const prisma = makeReviewGroupPrisma({
+    const { prisma } = makeReviewGroupPrisma({
       messages: githubMessages(),
       partitions: githubPartitions(),
     });
