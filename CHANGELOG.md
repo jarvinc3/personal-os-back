@@ -47,6 +47,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [Se
 
 ### Corregido
 
+- Vaciar «Tarjetas», «Cuentas» o «Instituciones» declara en `includes` las ramas que arrastra el esquema y las ejecuta antes que la rama pedida, para que la confirmación liste lo que desaparece con su conteo y el vaciado lo borre entero (#265).
 - El reinicio del corpus de Gmail devuelve 409 `GMAIL_NOT_CONNECTED` sin conexión y 409 `GMAIL_SYNC_IN_PROGRESS` mientras el sync está activo o esperando cuota; no borra nada en esos casos y los códigos quedan en Swagger (#225).
 - El arranque sin configuración OAuth de Gmail registra una advertencia sin secretos y deja apagado el ciclo automático; el diagnóstico expone `missing_oauth_configuration` hasta que las variables se corrigen y el API reinicia (#253).
 - La recuperación de Gmail cubre todo el intervalo desde la última sincronización correcta, sin el límite de siete días, y pagina hasta terminar; si el proveedor no completa el hueco, el estado conserva el rango intentado y el intento no se informa como éxito completo (#252).
