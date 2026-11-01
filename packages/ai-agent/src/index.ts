@@ -8,6 +8,8 @@ export { AiEvidenceService } from './intelligence/evidence/ai-evidence.service';
 export { AiKnowledgeService } from './intelligence/knowledge/ai-knowledge.service';
 export { AiDataDeletionService } from './intelligence/knowledge/ai-data-deletion.service';
 export {
+  HUMAN_VERIFICATION_VERDICTS,
+  REVIEW_GROUP_VERDICTS,
   SEMANTIC_ROUTES,
   SEMANTIC_TYPES,
   TRANSACTION_DIRECTIONS,

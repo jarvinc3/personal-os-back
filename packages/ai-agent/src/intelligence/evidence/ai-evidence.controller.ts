@@ -3,6 +3,8 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '@personal-os/core';
 import { AiEvidenceService } from './ai-evidence.service';
 import { CreateHumanVerificationDto } from './dto/create-human-verification.dto';
+import { CreateReviewGroupVerificationDto } from './dto/create-review-group-verification.dto';
+import { ReviewGroupsQueryDto } from './dto/review-groups-query.dto';
 
 @ApiTags('intelligence-evidence')
 @ApiBearerAuth('access-token')
@@ -22,6 +24,22 @@ export class AiEvidenceController {
     @Query('partition') partition?: string,
   ) {
     return this.evidence.reviewQueue(user.sub, cursor, partition);
+  }
+
+  @Get('review-groups')
+  reviewGroups(
+    @CurrentUser() user: { sub: string },
+    @Query() query: ReviewGroupsQueryDto,
+  ) {
+    return this.evidence.listReviewGroups(user.sub, query);
+  }
+
+  @Post('review-groups/verifications')
+  verifyReviewGroup(
+    @CurrentUser() user: { sub: string },
+    @Body() dto: CreateReviewGroupVerificationDto,
+  ) {
+    return this.evidence.verifyReviewGroup(user.sub, dto);
   }
 
   @Post('messages/:messageId/verifications')

@@ -24,6 +24,56 @@ AI-3 (JWT):
 | POST   | `/api/intelligence/messages/:messageId/verifications`     | `CONFIRMED`, `CORRECTED` o `REJECTED`; guarda secuencia y marca HOLDOUT como verdad de referencia                                                         |
 | GET    | `/api/intelligence/runs`                                  | Runs del usuario con configuración, versiones y watermarks de evidencia                                                                                   |
 | POST   | `/api/intelligence/email/reset`                           | Requiere `{ "confirmed": true }`; vacía el corpus de correo y derivados del usuario, conserva OAuth; 409 `GMAIL_NOT_CONNECTED` o `GMAIL_SYNC_IN_PROGRESS` |
+| GET    | `/api/intelligence/review-groups?page=1&pageSize=20`      | Grupos por remitente y plantilla con total, pendientes, pendientes HOLDOUT y asuntos de muestra, ordenados por pendientes                                 |
+| POST   | `/api/intelligence/review-groups/verifications`           | Aplica `CONFIRMED` o `CORRECTED` a los pendientes del grupo; `REJECTED` responde 400                                                                      |
+
+`GET /api/intelligence/review-groups` pagina por página (`page` desde 1, `pageSize` hasta 100) y devuelve solo grupos con al menos un pendiente. Un grupo con `templateFingerprint` nulo reúne los correos de ese remitente sin huella.
+
+```json
+{
+  "items": [
+    {
+      "fromAddress": "notifications@github.com",
+      "templateFingerprint": "5c1e...",
+      "total": 526,
+      "pending": 526,
+      "pendingHoldout": 52,
+      "sampleSubjects": [
+        "Revisión de seguridad de <n>",
+        "Nueva actividad en tu cuenta",
+        "Aviso de inicio de sesión"
+      ]
+    }
+  ],
+  "page": 1,
+  "pageSize": 20,
+  "totalGroups": 12,
+  "hasMore": true
+}
+```
+
+`POST /api/intelligence/review-groups/verifications` recibe la identidad del grupo y las mismas etiquetas que la verificación individual. `OTHER` exige nota y `FIN_TRANSACTION` exige `transaction.kind`.
+
+```json
+{
+  "verdict": "CONFIRMED",
+  "fromAddress": "notifications@github.com",
+  "templateFingerprint": "5c1e...",
+  "relevance": true,
+  "semanticType": "TECH_NOTIFICATION",
+  "routes": []
+}
+```
+
+```json
+{
+  "verified": 91,
+  "holdoutExcluded": 9,
+  "alreadyVerified": 0
+}
+```
+
+`verified` son las filas nuevas, una por correo pendiente fuera de HOLDOUT. `holdoutExcluded` son los pendientes HOLDOUT que quedan para revisión individual. `alreadyVerified` son los correos del grupo que ya tenían verificación. Repetir la petición devuelve `verified: 0`. Un `semanticType`, `routes` o `verdict` fuera de lista responde 400 sin registrar nada, y un grupo de otra cuenta responde 404.
 
 `GET /api/intelligence/messages/:messageId` incluye `provenance.observations` y `provenance.verifications` en orden de secuencia.
 

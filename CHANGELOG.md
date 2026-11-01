@@ -6,6 +6,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [Se
 
 ### Agregado
 
+- #218: la revisión agrupa los correos por remitente y plantilla con total, pendientes, pendientes HOLDOUT y asuntos de muestra; un lote `CONFIRMED` o `CORRECTED` verifica solo los pendientes fuera de HOLDOUT, es idempotente y conserva rol y secuencia por correo.
 - Un ADMIN puede promover manualmente una fila GLOBAL en `REVIEW_REQUIRED` con `POST /api/intelligence/knowledge/admin/:id/promote`: registra una verificación `CONFIRMED`, la deja `STABLE` con `promotedBy: ADMIN` y el rebuild conserva la decisión; una reversión posterior vuelve a bloquearla (#246).
 - Cada conexión de Gmail conserva el último intento de sincronización (inicio, fin, resultado, código y categoría, correos importados y fase) y el último fallo por separado; el dashboard los expone como `lastAttempt` y `lastFailure`, un intento correcto no borra el fallo anterior y un reinicio queda como `INTERRUPTED` (#251).
 - Seeds de Knowledge para QA en DEV (#207, #327): crean evidencia de correo (mensajes, dataset, verificaciones, observaciones, consentimiento y reversiones ADMIN) y ejecutan la proyección real; las filas USER/GLOBAL sobreviven a un rebuild y conservan los estados promovidos, pendientes y bloqueados.

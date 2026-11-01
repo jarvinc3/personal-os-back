@@ -5,7 +5,18 @@ import {
 } from '@nestjs/common';
 import { Prisma, PrismaService } from '@personal-os/database';
 import type { CreateHumanVerificationDto } from './dto/create-human-verification.dto';
+import type { CreateReviewGroupVerificationDto } from './dto/create-review-group-verification.dto';
+import type { ReviewGroupsQueryDto } from './dto/review-groups-query.dto';
 import { partitionEmailDatasetItem } from './dataset-partition.util';
+import {
+  assertHumanVerificationLabels,
+  humanVerificationPayload,
+} from './human-verification.validation';
+import {
+  REVIEW_GROUPS_DEFAULT_PAGE_SIZE,
+  REVIEW_GROUP_SAMPLE_SUBJECTS,
+} from './review-groups.constants';
+import { groupReviewMessages } from './review-groups.util';
 import { PROJECTOR_VERSION } from '../knowledge/knowledge-projector';
 import { POLICY_VERSION } from '../knowledge/knowledge-policy';
 
@@ -151,6 +162,147 @@ export class AiEvidenceService {
     };
   }
 
+  async listReviewGroups(userId: string, query: ReviewGroupsQueryDto) {
+    const page = query.page ?? 1;
+    const pageSize = query.pageSize ?? REVIEW_GROUPS_DEFAULT_PAGE_SIZE;
+    const dataset = await this.ensureDataset();
+    await this.ensureDatasetItems(userId, dataset.id);
+    const [items, reviewed, messages] = await Promise.all([
+      this.prisma.aiDatasetItem.findMany({
+        where: { datasetId: dataset.id, userId, sourceType: EMAIL_SOURCE_TYPE },
+        select: { sourceId: true, partition: true },
+      }),
+      this.prisma.aiHumanVerification.findMany({
+        where: { userId, targetType: REVIEW_TARGET_TYPE },
+        distinct: ['targetId'],
+        select: { targetId: true },
+      }),
+      this.prisma.aiEmailMessage.findMany({
+        where: { userId },
+        orderBy: [{ receivedAt: 'desc' }, { id: 'desc' }],
+        select: {
+          id: true,
+          fromAddress: true,
+          subject: true,
+          templateFingerprint: true,
+        },
+      }),
+    ]);
+    const groups = groupReviewMessages({
+      messages,
+      partitionByMessageId: new Map(
+        items.map(({ sourceId, partition }) => [sourceId, partition]),
+      ),
+      reviewedMessageIds: new Set(
+        reviewed.flatMap(({ targetId }) => (targetId ? [targetId] : [])),
+      ),
+      sampleSize: REVIEW_GROUP_SAMPLE_SUBJECTS,
+    }).filter(({ pending }) => pending > 0);
+    const start = (page - 1) * pageSize;
+    return {
+      items: groups.slice(start, start + pageSize),
+      page,
+      pageSize,
+      totalGroups: groups.length,
+      hasMore: start + pageSize < groups.length,
+    };
+  }
+
+  async verifyReviewGroup(
+    userId: string,
+    dto: CreateReviewGroupVerificationDto,
+  ) {
+    assertHumanVerificationLabels(dto);
+    const dataset = await this.ensureDataset();
+    await this.ensureDatasetItems(userId, dataset.id);
+    const messages = await this.prisma.aiEmailMessage.findMany({
+      where: {
+        userId,
+        fromAddress: dto.fromAddress,
+        templateFingerprint: dto.templateFingerprint ?? null,
+      },
+      select: { id: true },
+    });
+    if (!messages.length) {
+      throw new NotFoundException('Grupo de revisión no encontrado');
+    }
+    const messageIds = messages.map(({ id }) => id);
+    const [items, roleAssignment] = await Promise.all([
+      this.prisma.aiDatasetItem.findMany({
+        where: {
+          datasetId: dataset.id,
+          userId,
+          sourceType: EMAIL_SOURCE_TYPE,
+          sourceId: { in: messageIds },
+        },
+        select: { sourceId: true, partition: true },
+      }),
+      this.prisma.userRole.findUnique({
+        where: { userId },
+        select: { role: true },
+      }),
+    ]);
+    const partitionByMessageId = new Map(
+      items.map(({ sourceId, partition }) => [sourceId, partition]),
+    );
+    const groupMessages = messages.flatMap(({ id }) => {
+      const partition = partitionByMessageId.get(id);
+      return partition ? [{ id, partition }] : [];
+    });
+    const verifierRole = roleAssignment?.role ?? 'USER';
+    const correctedPayload = humanVerificationPayload(dto);
+    const notes = dto.notes?.trim() || null;
+    const groupKey = JSON.stringify([
+      dto.fromAddress,
+      dto.templateFingerprint ?? null,
+    ]);
+    return this.prisma.$transaction(async (tx) => {
+      await lockReviewGroup(tx, { userId, groupKey });
+      const verifications = await tx.aiHumanVerification.findMany({
+        where: {
+          userId,
+          targetType: REVIEW_TARGET_TYPE,
+          targetId: { in: groupMessages.map(({ id }) => id) },
+        },
+        distinct: ['targetId'],
+        select: { targetId: true },
+      });
+      const verifiedMessageIds = new Set(
+        verifications.flatMap(({ targetId }) => (targetId ? [targetId] : [])),
+      );
+      const pending = groupMessages.filter(
+        ({ id, partition }) =>
+          !verifiedMessageIds.has(id) && partition !== 'HOLDOUT',
+      );
+      const alreadyVerified = groupMessages.filter(({ id }) =>
+        verifiedMessageIds.has(id),
+      ).length;
+      const holdoutExcluded = groupMessages.filter(
+        ({ id, partition }) =>
+          !verifiedMessageIds.has(id) && partition === 'HOLDOUT',
+      ).length;
+      if (pending.length) {
+        await tx.aiHumanVerification.createMany({
+          data: pending.map(({ id }) => ({
+            userId,
+            verifierRole,
+            targetType: REVIEW_TARGET_TYPE,
+            targetId: id,
+            verdict: dto.verdict,
+            correctedPayload: correctedPayload as never,
+            notes,
+            isGroundTruth: false,
+          })),
+        });
+      }
+      return {
+        verified: pending.length,
+        holdoutExcluded,
+        alreadyVerified,
+      };
+    });
+  }
+
   async verifyMessage(
     userId: string,
     messageId: string,
@@ -180,43 +332,9 @@ export class AiEvidenceService {
     if (!message || !item) {
       throw new NotFoundException('Mensaje no encontrado');
     }
-    if (dto.verdict === 'REJECTED' && !dto.notes?.trim()) {
-      throw new BadRequestException('Indica por qué se rechaza este mensaje');
-    }
-    if (
-      dto.verdict === 'CORRECTED' &&
-      dto.relevance === undefined &&
-      dto.semanticType === undefined &&
-      dto.routes === undefined &&
-      dto.transaction === undefined
-    ) {
-      throw new BadRequestException('Incluye al menos una etiqueta corregida');
-    }
-    if (dto.semanticType === 'OTHER' && !dto.notes?.trim()) {
-      throw new BadRequestException('El tipo Otro requiere una nota');
-    }
-    if (dto.semanticType === 'FIN_TRANSACTION') {
-      if (!dto.transaction?.kind) {
-        throw new BadRequestException('Indica el tipo de transacción');
-      }
-    } else if (
-      dto.semanticType === 'PURCHASE_RECEIPT' ||
-      dto.semanticType === 'SUBSCRIPTION_BILLING'
-    ) {
-      if (dto.transaction?.kind !== undefined) {
-        throw new BadRequestException('El recibo o cobro no admite kind');
-      }
-    } else if (dto.transaction !== undefined) {
-      throw new BadRequestException('Este tipo no admite transacción');
-    }
-    if (
-      (dto.semanticType === 'SECURITY_ALERT' && dto.relevance === false) ||
-      (dto.semanticType === 'SECURITY_OTP' && dto.relevance === true)
-    ) {
-      throw new BadRequestException('Relevancia incompatible con el tipo');
-    }
+    assertHumanVerificationLabels(dto);
 
-    const correctedPayload = this.labelPayload(dto);
+    const correctedPayload = humanVerificationPayload(dto);
     const verification = await this.prisma.aiHumanVerification.create({
       data: {
         userId,
@@ -440,12 +558,13 @@ export class AiEvidenceService {
       throw new BadRequestException('Cursor de revisión inválido');
     }
   }
+}
 
-  private labelPayload(dto: CreateHumanVerificationDto) {
-    const entries = Object.entries(dto).filter(
-      ([key, value]) =>
-        key !== 'verdict' && key !== 'notes' && value !== undefined,
-    );
-    return entries.length ? Object.fromEntries(entries) : undefined;
-  }
+async function lockReviewGroup(
+  tx: Prisma.TransactionClient,
+  { userId, groupKey }: { userId: string; groupKey: string },
+): Promise<void> {
+  // Serialize two batches of the same group: verifications are append-only,
+  // so a duplicate written concurrently could not be removed later.
+  await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtext(${userId}), hashtext(${groupKey}))`;
 }
