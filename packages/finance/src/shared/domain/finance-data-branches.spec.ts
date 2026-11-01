@@ -56,6 +56,7 @@ describe('FINANCE_DATA_BRANCHES', () => {
       'finance.transactions',
       'finance.loans',
       'finance.debitCards',
+      'finance.accountImports',
     ]);
     expect(requireBranch('finance.institutions').includes).toEqual([
       'finance.accounts',
@@ -74,6 +75,15 @@ describe('FINANCE_DATA_BRANCHES', () => {
   it('keeps debit cards out of the credit cards branch', () => {
     expect(requireBranch('finance.cards').includes).not.toContain(
       'finance.debitCards',
+    );
+  });
+
+  it('leaves the account statement imports with the accounts', () => {
+    expect(requireBranch('finance.cards').includes).not.toContain(
+      'finance.accountImports',
+    );
+    expect(expandedIds('finance.institutions')).toContain(
+      'finance.accountImports',
     );
   });
 
@@ -119,12 +129,13 @@ describe('FINANCE_DATA_BRANCHES', () => {
     expect(expandedIds('finance.debitCards')).toEqual(['finance.debitCards']);
   });
 
-  it('expands the accounts into the rows they drag, with the debit cards', () => {
+  it('expands the accounts into the rows they drag, with the debit cards and their statement imports', () => {
     expect(expandedIds('finance.accounts')).toEqual([
       'finance.reconciliations',
       'finance.transactions',
       'finance.loans',
       'finance.debitCards',
+      'finance.accountImports',
       'finance.accounts',
     ]);
   });
@@ -137,6 +148,7 @@ describe('FINANCE_DATA_BRANCHES', () => {
       'finance.loans',
       'finance.cards',
       'finance.debitCards',
+      'finance.accountImports',
       'finance.accounts',
       'finance.institutions',
     ]);
