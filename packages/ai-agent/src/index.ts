@@ -15,3 +15,8 @@ export {
   TRANSACTION_DIRECTIONS,
   TRANSACTION_KINDS,
 } from './intelligence/evidence/human-verification.constants';
+export {
+  REVIEW_QUEUE_ORDERS,
+  REVIEW_QUEUE_PARTITIONS,
+  REVIEW_QUEUE_STATUSES,
+} from './intelligence/evidence/review-queue.constants';

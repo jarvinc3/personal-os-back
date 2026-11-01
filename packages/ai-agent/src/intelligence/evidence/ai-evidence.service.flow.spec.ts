@@ -1,4 +1,5 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { encodeCursor } from '@personal-os/core';
 import { AiEvidenceService } from './ai-evidence.service';
 
 describe('AiEvidenceService review and analysis flows', () => {
@@ -82,17 +83,24 @@ describe('AiEvidenceService review and analysis flows', () => {
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce(messages);
     const service = new AiEvidenceService(prisma as never);
-    const result = await service.reviewQueue('user-1', undefined, 'TRAIN');
+    const page = await service.reviewQueue('user-1', { partition: 'TRAIN' });
 
-    expect(result.counts).toEqual({
+    expect(page.counts).toEqual({
       TRAIN: 1,
       VALIDATION: 0,
       HOLDOUT: 1,
       all: 2,
     });
-    expect(result.items).toEqual([{ ...messages[0], partition: 'TRAIN' }]);
-    expect(result.hasMore).toBe(true);
-    expect(result.nextCursor).toBeTruthy();
+    expect(page.items).toEqual([
+      {
+        ...messages[0],
+        partition: 'TRAIN',
+        status: 'PENDING',
+        verification: null,
+      },
+    ]);
+    expect(page.hasMore).toBe(true);
+    expect(page.nextCursor).toBeTruthy();
     expect(prisma.aiDatasetItem.groupBy).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({ sourceId: { notIn: ['reviewed'] } }),
@@ -100,36 +108,65 @@ describe('AiEvidenceService review and analysis flows', () => {
     );
     expect(prisma.aiEmailMessage.findMany).toHaveBeenLastCalledWith(
       expect.objectContaining({
-        where: expect.objectContaining({ id: { in: ['email-1', 'email-2'] } }),
+        where: {
+          userId: 'user-1',
+          id: { in: ['email-1'] },
+          AND: [{ id: { notIn: ['reviewed'] } }],
+        },
       }),
     );
   });
 
-  it('rejects invalid partitions and cursors before querying messages', async () => {
-    const prisma = makePrisma();
-    const service = new AiEvidenceService(prisma as never);
+  it('rejects an inverted range and a malformed cursor', async () => {
+    const invertedPrisma = makePrisma();
+    const service = new AiEvidenceService(invertedPrisma as never);
     await expect(
-      service.reviewQueue('user-1', undefined, 'OTHER'),
+      service.reviewQueue('user-1', {
+        dateFrom: '2026-10-31',
+        dateTo: '2026-10-01',
+      }),
     ).rejects.toBeInstanceOf(BadRequestException);
+    expect(invertedPrisma.aiEmailMessage.findMany).not.toHaveBeenCalled();
+    expect(invertedPrisma.aiDataset.upsert).not.toHaveBeenCalled();
+
+    const cursorPrisma = makePrisma();
+    const cursorService = new AiEvidenceService(cursorPrisma as never);
     await expect(
-      service.reviewQueue('user-1', 'not-a-cursor'),
+      cursorService.reviewQueue('user-1', { cursor: 'not-a-cursor' }),
     ).rejects.toBeInstanceOf(BadRequestException);
-    expect(prisma.aiHumanVerification.findMany).not.toHaveBeenCalled();
+    expect(cursorPrisma.aiEmailMessage.findMany).toHaveBeenCalledTimes(1);
   });
 
   it('filters review messages after a valid cursor', async () => {
     const prisma = makePrisma();
     const service = new AiEvidenceService(prisma as never);
-    const cursor = Buffer.from(
-      JSON.stringify({
-        receivedAt: '2026-10-25T12:00:00.000Z',
-        id: 'email-1',
-      }),
-    ).toString('base64url');
-    expect((await service.reviewQueue('user-1', cursor)).nextCursor).toBeNull();
+    const cursor = encodeCursor({
+      key: '2026-10-25T12:00:00.000Z',
+      id: 'email-1',
+    });
+    expect(
+      (await service.reviewQueue('user-1', { cursor })).nextCursor,
+    ).toBeNull();
     expect(prisma.aiEmailMessage.findMany).toHaveBeenLastCalledWith(
       expect.objectContaining({
-        where: expect.objectContaining({ OR: expect.any(Array) }),
+        where: {
+          userId: 'user-1',
+          AND: [
+            {
+              OR: [
+                {
+                  receivedAt: {
+                    gt: new Date('2026-10-25T12:00:00.000Z'),
+                  },
+                },
+                {
+                  receivedAt: new Date('2026-10-25T12:00:00.000Z'),
+                  id: { gt: 'email-1' },
+                },
+              ],
+            },
+          ],
+        },
       }),
     );
   });

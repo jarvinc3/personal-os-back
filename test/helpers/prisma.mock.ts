@@ -43,6 +43,7 @@ export type PrismaMock = {
     findMany: MockFn;
     createMany: MockFn;
     deleteMany: MockFn;
+    groupBy: MockFn;
   };
   aiEmailMessage: {
     findMany: MockFn;
@@ -364,6 +365,7 @@ function createTransactionClient(prismaMock: PrismaMock) {
       findMany: prismaMock.aiDatasetItem.findMany,
       createMany: prismaMock.aiDatasetItem.createMany,
       deleteMany: prismaMock.aiDatasetItem.deleteMany,
+      groupBy: prismaMock.aiDatasetItem.groupBy,
     },
     aiEmailMessage: {
       findMany: prismaMock.aiEmailMessage.findMany,
@@ -787,6 +789,7 @@ export function createPrismaMock(): PrismaMock {
       findMany: jest.fn().mockResolvedValue([]),
       createMany: jest.fn().mockResolvedValue({ count: 0 }),
       deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
+      groupBy: jest.fn().mockResolvedValue([]),
     },
     aiEmailMessage: {
       findMany: jest.fn().mockResolvedValue([]),
