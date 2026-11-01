@@ -12,7 +12,8 @@ import { CatalogRepository } from '../infrastructure/catalog.repository';
  * institution without cash accounts. When the institution is missing, it is
  * created, institution-less CASH accounts are moved into it, and a
  * base-currency "Efectivo" account is added so a new user sees cash without
- * creating anything.
+ * creating anything. The account is created under a lock, so two reads that
+ * arrive together do not add two.
  */
 @Injectable()
 export class EnsureCashInstitutionUseCase {
@@ -59,7 +60,7 @@ export class EnsureCashInstitutionUseCase {
       return;
     }
     const currency = await this.baseCurrency.execute(userId);
-    await this.repo.createCashAccount(userId, {
+    await this.repo.ensureCashAccount(userId, {
       institutionId,
       name: CASH_INSTITUTION_NAME,
       currency,

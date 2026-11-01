@@ -179,7 +179,7 @@ describe('WipeFinanceUserDataUseCase', () => {
     expect(tx.finAccount.updateMany).not.toHaveBeenCalled();
   });
 
-  it('deletes the cards with what they drag and keeps accounts', async () => {
+  it('deletes the credit cards with what they drag and keeps debit cards and accounts', async () => {
     const { prisma, tx, logos } = buildMocks();
     tx.finCard.deleteMany.mockResolvedValue({ count: 2 });
     const useCase = new WipeFinanceUserDataUseCase(
@@ -192,10 +192,28 @@ describe('WipeFinanceUserDataUseCase', () => {
     ).resolves.toEqual({ 'finance.cards': 2 });
 
     expect(tx.finCard.deleteMany).toHaveBeenCalledWith({
-      where: { userId: 'user-1' },
+      where: { userId: 'user-1', type: 'CREDIT' },
     });
     expect(tx.finAccount.deleteMany).not.toHaveBeenCalled();
     expect(tx.finInstitution.deleteMany).not.toHaveBeenCalled();
+  });
+
+  it('deletes the debit cards and keeps the credit cards', async () => {
+    const { prisma, tx, logos } = buildMocks();
+    tx.finCard.deleteMany.mockResolvedValue({ count: 1 });
+    const useCase = new WipeFinanceUserDataUseCase(
+      prisma as never,
+      logos as never,
+    );
+
+    await expect(
+      useCase.wipeBranches('user-1', ['finance.debitCards']),
+    ).resolves.toEqual({ 'finance.debitCards': 1 });
+
+    expect(tx.finCard.deleteMany).toHaveBeenCalledWith({
+      where: { userId: 'user-1', type: 'DEBIT' },
+    });
+    expect(tx.finAccount.deleteMany).not.toHaveBeenCalled();
   });
 
   it('deletes the accounts and keeps the cards', async () => {
@@ -256,6 +274,7 @@ describe('WipeFinanceUserDataUseCase', () => {
         'finance.reconciliations',
         'finance.balances',
         'finance.cards',
+        'finance.debitCards',
         'finance.accounts',
         'finance.institutions',
       ]),
@@ -264,6 +283,7 @@ describe('WipeFinanceUserDataUseCase', () => {
       'finance.reconciliations': 3,
       'finance.balances': 5,
       'finance.cards': 1,
+      'finance.debitCards': 1,
       'finance.accounts': 3,
       'finance.institutions': 2,
     });

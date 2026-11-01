@@ -8,6 +8,9 @@ import { DATA_APP, type DataBranchDescriptor } from '@personal-os/users';
  * one that drags it: the cascade would otherwise empty it first and the wipe
  * would report fewer rows than the user confirmed. References the schema leaves
  * at NULL are not includes.
+ *
+ * Credit cards are products on their own. Debit cards hang from an account, so
+ * they are wiped with the accounts and never with the credit cards.
  */
 export const FINANCE_DATA_BRANCHES: readonly DataBranchDescriptor[] = [
   {
@@ -48,7 +51,7 @@ export const FINANCE_DATA_BRANCHES: readonly DataBranchDescriptor[] = [
   {
     id: 'finance.cards',
     app: DATA_APP.FINANCE,
-    label: 'Tarjetas',
+    label: 'Tarjetas de crédito',
     includes: [
       'finance.reconciliations',
       'finance.transactions',
@@ -57,73 +60,84 @@ export const FINANCE_DATA_BRANCHES: readonly DataBranchDescriptor[] = [
     order: 6,
   },
   {
+    id: 'finance.debitCards',
+    app: DATA_APP.FINANCE,
+    label: 'Tarjetas de débito',
+    includes: [],
+    order: 7,
+  },
+  {
     id: 'finance.accounts',
     app: DATA_APP.FINANCE,
     label: 'Cuentas, incluido el efectivo',
-    // Debit cards hang from the account, but declaring `finance.cards` here
-    // would wipe every credit card too.
     includes: [
       'finance.reconciliations',
       'finance.transactions',
       'finance.loans',
+      'finance.debitCards',
     ],
-    order: 7,
+    order: 8,
   },
   {
     id: 'finance.institutions',
     app: DATA_APP.FINANCE,
     label: 'Instituciones',
-    includes: ['finance.accounts', 'finance.cards', 'finance.loans'],
-    order: 8,
+    includes: [
+      'finance.accounts',
+      'finance.cards',
+      'finance.debitCards',
+      'finance.loans',
+    ],
+    order: 9,
   },
   {
     id: 'finance.subscriptions',
     app: DATA_APP.FINANCE,
     label: 'Suscripciones',
     includes: [],
-    order: 9,
+    order: 10,
   },
   {
     id: 'finance.recurring',
     app: DATA_APP.FINANCE,
     label: 'Recurrentes detectados',
     includes: [],
-    order: 10,
+    order: 11,
   },
   {
     id: 'finance.merchants',
     app: DATA_APP.FINANCE,
     label: 'Comercios',
     includes: [],
-    order: 11,
+    order: 12,
   },
   {
     id: 'finance.savingsGoals',
     app: DATA_APP.FINANCE,
     label: 'Metas de ahorro',
     includes: [],
-    order: 12,
+    order: 13,
   },
   {
     id: 'finance.receivables',
     app: DATA_APP.FINANCE,
     label: 'Cobros',
     includes: [],
-    order: 13,
+    order: 14,
   },
   {
     id: 'finance.budgets',
     app: DATA_APP.FINANCE,
     label: 'Presupuestos',
     includes: [],
-    order: 14,
+    order: 15,
   },
   {
     id: 'finance.categories',
     app: DATA_APP.FINANCE,
     label: 'Categorías propias',
     includes: ['finance.budgets'],
-    order: 15,
+    order: 16,
   },
 ];
 export const FINANCE_DATA_BRANCH_IDS = FINANCE_DATA_BRANCHES.map(
