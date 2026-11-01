@@ -11,6 +11,10 @@ import { DATA_APP, type DataBranchDescriptor } from '@personal-os/users';
  *
  * Credit cards are products on their own. Debit cards hang from an account, so
  * they are wiped with the accounts and never with the credit cards.
+ *
+ * Billed-from imports follow their owner: the ones billed from a card travel
+ * with the card statements and the ones billed from an account with the
+ * accounts, so no import is deleted without its count on screen.
  */
 export const FINANCE_DATA_BRANCHES: readonly DataBranchDescriptor[] = [
   {
@@ -67,6 +71,13 @@ export const FINANCE_DATA_BRANCHES: readonly DataBranchDescriptor[] = [
     order: 7,
   },
   {
+    id: 'finance.accountImports',
+    app: DATA_APP.FINANCE,
+    label: 'Importaciones de cuentas',
+    includes: [],
+    order: 8,
+  },
+  {
     id: 'finance.accounts',
     app: DATA_APP.FINANCE,
     label: 'Cuentas, incluido el efectivo',
@@ -75,8 +86,9 @@ export const FINANCE_DATA_BRANCHES: readonly DataBranchDescriptor[] = [
       'finance.transactions',
       'finance.loans',
       'finance.debitCards',
+      'finance.accountImports',
     ],
-    order: 8,
+    order: 9,
   },
   {
     id: 'finance.institutions',
@@ -88,56 +100,56 @@ export const FINANCE_DATA_BRANCHES: readonly DataBranchDescriptor[] = [
       'finance.debitCards',
       'finance.loans',
     ],
-    order: 9,
+    order: 10,
   },
   {
     id: 'finance.subscriptions',
     app: DATA_APP.FINANCE,
     label: 'Suscripciones',
     includes: [],
-    order: 10,
+    order: 11,
   },
   {
     id: 'finance.recurring',
     app: DATA_APP.FINANCE,
     label: 'Recurrentes detectados',
     includes: [],
-    order: 11,
+    order: 12,
   },
   {
     id: 'finance.merchants',
     app: DATA_APP.FINANCE,
     label: 'Comercios',
     includes: [],
-    order: 12,
+    order: 13,
   },
   {
     id: 'finance.savingsGoals',
     app: DATA_APP.FINANCE,
     label: 'Metas de ahorro',
     includes: [],
-    order: 13,
+    order: 14,
   },
   {
     id: 'finance.receivables',
     app: DATA_APP.FINANCE,
     label: 'Cobros',
     includes: [],
-    order: 14,
+    order: 15,
   },
   {
     id: 'finance.budgets',
     app: DATA_APP.FINANCE,
     label: 'Presupuestos',
     includes: [],
-    order: 15,
+    order: 16,
   },
   {
     id: 'finance.categories',
     app: DATA_APP.FINANCE,
     label: 'Categorías propias',
     includes: ['finance.budgets'],
-    order: 16,
+    order: 17,
   },
 ];
 export const FINANCE_DATA_BRANCH_IDS = FINANCE_DATA_BRANCHES.map(

@@ -275,6 +275,7 @@ describe('WipeFinanceUserDataUseCase', () => {
         'finance.balances',
         'finance.cards',
         'finance.debitCards',
+        'finance.accountImports',
         'finance.accounts',
         'finance.institutions',
       ]),
@@ -284,8 +285,12 @@ describe('WipeFinanceUserDataUseCase', () => {
       'finance.balances': 5,
       'finance.cards': 1,
       'finance.debitCards': 1,
+      'finance.accountImports': 2,
       'finance.accounts': 3,
       'finance.institutions': 2,
+    });
+    expect(prisma.finStatementImport.count).toHaveBeenCalledWith({
+      where: { userId: 'user-1', accountId: { not: null } },
     });
   });
 
@@ -366,7 +371,7 @@ describe('WipeFinanceUserDataUseCase rest of the branches', () => {
     );
   });
 
-  it('deletes the imported statements with their imports and keeps the cards', async () => {
+  it('deletes the card statements with the imports not billed from an account', async () => {
     const { tx, useCase } = buildUseCase();
     tx.finStatementImport.deleteMany.mockResolvedValue({ count: 2 });
     tx.finCardStatement.deleteMany.mockResolvedValue({ count: 1 });
@@ -375,10 +380,27 @@ describe('WipeFinanceUserDataUseCase rest of the branches', () => {
       useCase.wipeBranches('user-1', ['finance.statements']),
     ).resolves.toEqual({ 'finance.statements': 3 });
 
+    expect(tx.finStatementImport.deleteMany).toHaveBeenCalledWith({
+      where: { userId: 'user-1', accountId: null },
+    });
     expect(tx.finCardStatement.deleteMany).toHaveBeenCalledWith({
       where: { card: { userId: 'user-1' } },
     });
     expect(tx.finCard.deleteMany).not.toHaveBeenCalled();
+  });
+
+  it('deletes only the statement imports billed from an account', async () => {
+    const { tx, useCase } = buildUseCase();
+    tx.finStatementImport.deleteMany.mockResolvedValue({ count: 4 });
+
+    await expect(
+      useCase.wipeBranches('user-1', ['finance.accountImports']),
+    ).resolves.toEqual({ 'finance.accountImports': 4 });
+
+    expect(tx.finStatementImport.deleteMany).toHaveBeenCalledWith({
+      where: { userId: 'user-1', accountId: { not: null } },
+    });
+    expect(tx.finCardStatement.deleteMany).not.toHaveBeenCalled();
   });
 
   it('deletes loans, goals, receivables and budgets on their own', async () => {
@@ -433,6 +455,7 @@ describe('WipeFinanceUserDataUseCase rest of the branches', () => {
         'finance.recurring',
         'finance.merchants',
         'finance.statements',
+        'finance.accountImports',
         'finance.loans',
         'finance.savingsGoals',
         'finance.receivables',
@@ -444,6 +467,7 @@ describe('WipeFinanceUserDataUseCase rest of the branches', () => {
       'finance.recurring': 2,
       'finance.merchants': 5,
       'finance.statements': 3,
+      'finance.accountImports': 2,
       'finance.loans': 1,
       'finance.savingsGoals': 2,
       'finance.receivables': 2,

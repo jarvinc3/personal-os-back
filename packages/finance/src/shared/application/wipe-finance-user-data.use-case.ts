@@ -172,13 +172,22 @@ export class WipeFinanceUserDataUseCase {
         return merchants.count;
       },
       'finance.statements': async (tx, { userId }) => {
+        // The split by account is disjoint: an import billed from an account
+        // travels with the accounts and the rest stays here, so each row is
+        // counted by exactly one branch.
         const imports = await tx.finStatementImport.deleteMany({
-          where: { userId },
+          where: { userId, accountId: null },
         });
         const statements = await tx.finCardStatement.deleteMany({
           where: { card: { userId } },
         });
         return imports.count + statements.count;
+      },
+      'finance.accountImports': async (tx, { userId }) => {
+        const imports = await tx.finStatementImport.deleteMany({
+          where: { userId, accountId: { not: null } },
+        });
+        return imports.count;
       },
       'finance.loans': async (tx, { userId }) => {
         const loans = await tx.finLoan.deleteMany({ where: { userId } });
@@ -246,11 +255,17 @@ export class WipeFinanceUserDataUseCase {
         return this.prisma.finMerchant.count({ where: { userId } });
       case 'finance.statements':
         return (
-          (await this.prisma.finStatementImport.count({ where: { userId } })) +
+          (await this.prisma.finStatementImport.count({
+            where: { userId, accountId: null },
+          })) +
           (await this.prisma.finCardStatement.count({
             where: { card: { userId } },
           }))
         );
+      case 'finance.accountImports':
+        return this.prisma.finStatementImport.count({
+          where: { userId, accountId: { not: null } },
+        });
       case 'finance.loans':
         return this.prisma.finLoan.count({ where: { userId } });
       case 'finance.savingsGoals':
