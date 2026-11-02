@@ -8,9 +8,9 @@ Finanzas personales: consolidar cuentas/tarjetas/efectivo; registrar y categoriz
 
 - REST `/api/finance/*` (controllers por capability)
 - Web (`personal-os-web`) y móvil (otro repo)
-- AI tools `moduleSlug=finance` **solo** vía `FinanceFacade`
+- AI capabilities `moduleSlug=finance` se publican desde Finance; AI-9 expone un resumen mensual solo lectura mediante `FinanceAiCapabilities`.
 
-`FinanceModule` exporta `FinanceFacade`. Barrel: `FinanceModule`, `FinanceFacade`, `FinanceEventsModule`, `DomainEventIdempotencyGuard`. Fuera de finance no importar `ledger/`, `catalog/`, etc.
+`FinanceModule` exporta `FinanceFacade` y `FinanceAiCapabilities`. El runtime AI usa el provider contractual de Finance y no importa la facade. Barrel: `FinanceModule`, `FinanceFacade`, `FinanceAiCapabilities`, `FinanceEventsModule`, `DomainEventIdempotencyGuard`. Fuera de finance no importar `ledger/`, `catalog/`, etc.
 
 ## Arquitectura
 

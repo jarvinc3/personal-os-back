@@ -1,4 +1,8 @@
-import { INestApplication, ValidationPipe } from '@nestjs/common';
+import {
+  INestApplication,
+  NotFoundException,
+  ValidationPipe,
+} from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import request from 'supertest';
@@ -8,6 +12,8 @@ import {
   AiEvidenceService,
   AiKnowledgeService,
   AiDataDeletionService,
+  AiConversationStore,
+  AiAgentOrchestrator,
   REVIEW_GROUP_VERDICTS,
   REVIEW_QUEUE_ORDERS,
   REVIEW_QUEUE_PARTITIONS,
@@ -85,7 +91,11 @@ describe('Retired AI chat API (e2e)', () => {
         .overrideProvider(AiKnowledgeService)
         .useValue(knowledge)
         .overrideProvider(AiDataDeletionService)
-        .useValue(deletion),
+        .useValue(deletion)
+        .overrideProvider(AiConversationStore)
+        .useValue(conversations)
+        .overrideProvider(AiAgentOrchestrator)
+        .useValue(orchestrator),
     ).compile();
     app = moduleFixture.createNestApplication();
     app.setGlobalPrefix('api');
@@ -169,7 +179,108 @@ describe('Retired AI chat API (e2e)', () => {
     expect(knowledge.revert).toHaveBeenCalledWith('user-123', 'knowledge-1');
   });
 
-  it('returns 404 for chat and session routes removed in AI-0', async () => {
+  const conversation = {
+    id: 'conversation-1',
+    title: 'Gastos del mes',
+    summary: null,
+    summaryUpdatedAt: null,
+    createdAt: new Date('2026-11-02T10:00:00Z'),
+    updatedAt: new Date('2026-11-02T10:05:00Z'),
+    messages: [
+      {
+        role: 'user',
+        content: '¿Cuánto gasté?',
+        createdAt: new Date('2026-11-02T10:01:00Z'),
+      },
+      {
+        role: 'assistant',
+        content: 'Gastaste RD$1,250.',
+        createdAt: new Date('2026-11-02T10:02:00Z'),
+      },
+      {
+        role: 'tool',
+        content: '{"private":"trace"}',
+        createdAt: new Date('2026-11-02T10:01:30Z'),
+      },
+    ],
+  };
+  const conversations = {
+    create: jest.fn().mockResolvedValue({
+      id: 'conversation-1',
+      title: 'Nueva conversación',
+      createdAt: conversation.createdAt,
+      updatedAt: conversation.createdAt,
+    }),
+    list: jest
+      .fn()
+      .mockResolvedValue([{ ...conversation, _count: { messages: 3 } }]),
+    findOwned: jest
+      .fn()
+      .mockImplementation((userId: string, id: string) =>
+        userId === 'user-123' && id === 'conversation-1'
+          ? Promise.resolve(conversation)
+          : Promise.reject(new NotFoundException('Conversación no encontrada')),
+      ),
+    deleteOwned: jest.fn().mockResolvedValue(undefined),
+    append: jest.fn().mockResolvedValue(undefined),
+  };
+  const orchestrator = {
+    sendMessage: jest.fn().mockResolvedValue({
+      conversationId: 'conversation-1',
+      answer: 'Gastaste RD$1,250.',
+      provider: 'Groq',
+      model: 'test-model',
+    }),
+  };
+
+  it('exposes private conversation routes and leaves the legacy chat route removed', async () => {
+    await request(app.getHttpServer())
+      .post('/api/ai/conversations')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(201);
+    expect(conversations.create).toHaveBeenCalledWith('user-123');
+
+    await request(app.getHttpServer())
+      .get('/api/ai/conversations')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
+      .expect(({ body }) => expect(body.data[0].messageCount).toBe(3));
+
+    await request(app.getHttpServer())
+      .get('/api/ai/conversations/conversation-1')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body.data.messages).toHaveLength(2);
+        expect(JSON.stringify(body)).not.toContain('private');
+      });
+
+    await request(app.getHttpServer())
+      .post('/api/ai/conversations/conversation-1/messages')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ content: '¿Cuánto gasté?' })
+      .expect(201);
+    expect(orchestrator.sendMessage).toHaveBeenCalledWith(
+      'user-123',
+      'conversation-1',
+      '¿Cuánto gasté?',
+    );
+
+    const anotherUserToken = createTestJwt({ sub: 'user-B' });
+    await request(app.getHttpServer())
+      .get('/api/ai/conversations/conversation-1')
+      .set('Authorization', `Bearer ${anotherUserToken}`)
+      .expect(404);
+
+    await request(app.getHttpServer())
+      .delete('/api/ai/conversations/conversation-1')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+    expect(conversations.deleteOwned).toHaveBeenCalledWith(
+      'user-123',
+      'conversation-1',
+    );
+
     await request(app.getHttpServer())
       .post('/api/ai/chat')
       .set('Authorization', `Bearer ${token}`)
@@ -466,5 +577,14 @@ describe('Retired AI chat API (e2e)', () => {
     expect(
       document.paths?.['/api/intelligence/knowledge/me/export']?.get,
     ).toBeDefined();
+    expect(document.paths?.['/api/ai/conversations']?.get).toBeDefined();
+    expect(
+      document.paths?.['/api/ai/conversations/{conversationId}/messages']?.post,
+    ).toBeDefined();
+    const sendMessage = document.components?.schemas
+      ?.SendAiConversationMessageDto as {
+      properties: Record<string, never>;
+    };
+    expect(sendMessage.properties.content).toBeDefined();
   });
 });

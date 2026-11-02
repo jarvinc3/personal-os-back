@@ -8,11 +8,11 @@
 | [capabilities/evidence-review.md](./capabilities/evidence-review.md)       | Dataset, evidencia y revisión humana (AI-3)       |
 | [capabilities/knowledge.md](./capabilities/knowledge.md)                   | Proyección, privacidad y lápidas (AI-4)           |
 | [capabilities/signals.md](./capabilities/signals.md)                       | Señales y evidencia durable (AI-7)                |
-| [capabilities/chat.md](./capabilities/chat.md)                             | Sesiones y chat                                   |
+| [capabilities/chat.md](./capabilities/chat.md)                             | Runtime backend de conversaciones (AI-9)          |
 | [capabilities/actions.md](./capabilities/actions.md)                       | Acciones y reaper                                 |
 | [capabilities/runtime.md](./capabilities/runtime.md)                       | Insights cola / memoria                           |
 | [capabilities/tools.md](./capabilities/tools.md)                           | Registry AI-8 y contratos de ejecución            |
-| [contracts/http.md](./contracts/http.md)                                   | REST, incluido Knowledge (AI-4)                   |
+| [contracts/http.md](./contracts/http.md)                                   | REST, Knowledge (AI-4) y conversaciones (AI-9)    |
 | [contracts/core-tools.md](./contracts/core-tools.md)                       | Tools contexto `general`                          |
 | [contracts/finance-tools.md](../finance/contracts/finance-tools.md)        | Tools `finance` (dueño finance)                   |
 

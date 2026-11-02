@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import {
   AI_DATA_BRANCHES,
+  AiConversationDataService,
   AiInferenceDataService,
 } from '@personal-os/ai-agent';
 import { FinanceFacade, isFinanceDataBranch } from '@personal-os/finance';
@@ -18,6 +19,7 @@ export class UserDataWipeDomainsAdapter implements UserDataWipeDomainsPort {
     private readonly finance: FinanceFacade,
     private readonly notifications: NotificationsService,
     private readonly ai: AiInferenceDataService,
+    private readonly aiConversations: AiConversationDataService,
   ) {}
   dataBranches(): readonly DataBranchDescriptor[] {
     return [
@@ -50,6 +52,10 @@ export class UserDataWipeDomainsAdapter implements UserDataWipeDomainsPort {
     if (branchIds.includes('ai.inferences')) {
       counts['ai.inferences'] = await this.ai.countForUser(userId);
     }
+    if (branchIds.includes('ai.conversations')) {
+      counts['ai.conversations'] =
+        await this.aiConversations.countForUser(userId);
+    }
     return counts;
   }
   async wipeDataBranches(
@@ -78,6 +84,10 @@ export class UserDataWipeDomainsAdapter implements UserDataWipeDomainsPort {
     }
     if (branchIds.includes('ai.inferences')) {
       counts['ai.inferences'] = await this.ai.wipeForUser(userId);
+    }
+    if (branchIds.includes('ai.conversations')) {
+      counts['ai.conversations'] =
+        await this.aiConversations.wipeForUser(userId);
     }
     return counts;
   }

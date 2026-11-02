@@ -3,6 +3,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
 import type { Env } from '@personal-os/config';
 import {
+  AI_AGENT_INFERENCE,
   AI_CAPABILITY_REGISTRY,
   INFERENCE_COMPLETION,
 } from '@personal-os/contracts';
@@ -35,6 +36,12 @@ import { AiSignalsController } from './intelligence/signals/ai-signals.controlle
 import { AiSignalsService } from './intelligence/signals/ai-signals.service';
 import { AiSignalOutboxBridge } from './intelligence/signals/ai-signal-outbox.bridge';
 import { AiCapabilityRegistry } from './capabilities/ai-capability.registry';
+import { AiConversationController } from './conversations/presentation/ai-conversation.controller';
+import { AiConversationStore } from './conversations/application/ai-conversation.store';
+import { AiAgentOrchestrator } from './conversations/application/ai-agent.orchestrator';
+import { AiAgentInferenceAdapter } from './conversations/infrastructure/ai-agent-inference.adapter';
+import { AiConversationDataService } from './conversations/application/ai-conversation-data.service';
+import { AiContextAssembler } from './conversations/application/ai-context-assembler';
 
 const bullMqEnabled = isBullMqEnabledFromProcessEnv();
 
@@ -56,6 +63,7 @@ const bullMqEnabled = isBullMqEnabledFromProcessEnv();
     AiEvidenceController,
     AiKnowledgeController,
     AiSignalsController,
+    AiConversationController,
   ],
   providers: [
     { provide: APP_GUARD, useClass: RolesGuard },
@@ -69,6 +77,12 @@ const bullMqEnabled = isBullMqEnabledFromProcessEnv();
     AiSignalOutboxBridge,
     AiCapabilityRegistry,
     { provide: AI_CAPABILITY_REGISTRY, useExisting: AiCapabilityRegistry },
+    AiConversationStore,
+    AiContextAssembler,
+    AiAgentOrchestrator,
+    AiAgentInferenceAdapter,
+    { provide: AI_AGENT_INFERENCE, useExisting: AiAgentInferenceAdapter },
+    AiConversationDataService,
     GmailSyncService,
     AiEvidenceService,
     AiKnowledgeService,
@@ -113,6 +127,9 @@ const bullMqEnabled = isBullMqEnabledFromProcessEnv();
   exports: [
     AiCapabilityRegistry,
     AI_CAPABILITY_REGISTRY,
+    AI_AGENT_INFERENCE,
+    AiConversationDataService,
+    AiConversationStore,
     AiSignalsService,
     AiRolesService,
     AiConsentService,

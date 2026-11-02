@@ -5,11 +5,18 @@ import { DATA_APP } from '@personal-os/users';
 
 export const AI_DATA_BRANCHES: readonly DataBranchDescriptor[] = [
   {
+    id: 'ai.conversations',
+    app: DATA_APP.AI,
+    label: 'Conversaciones del agente',
+    includes: ['mensajes y resúmenes privados del agente'],
+    order: 2,
+  },
+  {
     id: 'ai.inferences',
     app: DATA_APP.AI,
     label: 'Historial de uso de IA',
     includes: [],
-    order: 1,
+    order: 3,
   },
 ];
 

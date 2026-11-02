@@ -72,6 +72,9 @@ describe('AiDataDeletionService', () => {
       $transaction: jest.fn((callback: (arg: typeof tx) => unknown) =>
         callback(tx),
       ),
+      aiConversation: {
+        deleteMany: jest.fn().mockResolvedValue({ count: 2 }),
+      },
       userAiSettings: {
         findUnique: jest.fn(() =>
           Promise.resolve({ contributeToGlobalKnowledge: consentEnabled }),

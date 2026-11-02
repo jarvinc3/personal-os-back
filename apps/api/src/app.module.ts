@@ -17,7 +17,7 @@ import {
 } from '@personal-os/config';
 import { CoreModule, getBullBoardImports, QueueNames } from '@personal-os/core';
 import { PrismaModule } from '@personal-os/database';
-import { FinanceModule } from '@personal-os/finance';
+import { FinanceAiCapabilities, FinanceModule } from '@personal-os/finance';
 import { NotificationsModule } from '@personal-os/notifications';
 import { UsersModule } from '@personal-os/users';
 import { randomUUID } from 'crypto';
@@ -30,7 +30,11 @@ const bullMqEnabled = isBullMqEnabledFromProcessEnv();
 const bullBoardEnabled = isBullBoardEnabledFromProcessEnv();
 @Module({
   providers: [
-    { provide: AI_CAPABILITY_PROVIDERS, useValue: [] },
+    {
+      provide: AI_CAPABILITY_PROVIDERS,
+      useFactory: (finance: FinanceAiCapabilities) => [finance],
+      inject: [FinanceAiCapabilities],
+    },
     AiCapabilityCompositionService,
   ],
   imports: [

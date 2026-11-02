@@ -26,6 +26,7 @@ model User {
   aiEmailClassifications         AiEmailClassification[]
   aiEmailModelBudget             AiEmailModelBudget?
   aiSignals                      AiSignal[]
+  aiConversations                AiConversation[]
   aiSignalEvidence               AiSignalEvidence[]
   aiSettings                     UserAiSettings?
   aiRole                         UserRole?
@@ -142,6 +143,48 @@ model AiInference {
   @@index([userId, createdAt], map: "ai_inferences_user_created_at_idx")
   @@index([expiresAt], map: "ai_inferences_expires_at_idx")
   @@map("ai_inferences")
+}
+
+model AiConversation {
+  id               String                  @id @default(dbgenerated("(extensions.uuid_generate_v4())::text"))
+  userId           String                  @map("user_id")
+  title            String                  @default("Nueva conversación")
+  summary          String?                 @db.Text
+  summaryUpdatedAt DateTime?               @map("summary_updated_at") @db.Timestamptz(6)
+  createdAt        DateTime                @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime                @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  user             User                    @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  messages         AiConversationMessage[]
+
+  @@unique([id, userId], map: "ai_conversations_id_user_id_key")
+  @@index([userId, updatedAt(sort: Desc), id], map: "ai_conversations_user_updated_idx")
+  @@map("ai_conversations")
+}
+
+enum AiConversationMessageRole {
+  USER
+  ASSISTANT
+  TOOL
+
+  @@map("ai_conversation_message_role")
+}
+
+model AiConversationMessage {
+  id             String                    @id @default(dbgenerated("(extensions.uuid_generate_v4())::text"))
+  conversationId String                    @map("conversation_id")
+  userId         String                    @map("user_id")
+  sequence       Int                       @default(autoincrement())
+  role           AiConversationMessageRole
+  content        String                    @db.Text
+  name           String?
+  toolCallId     String?                   @map("tool_call_id")
+  toolCalls      Json?                     @map("tool_calls")
+  createdAt      DateTime                  @default(now()) @map("created_at") @db.Timestamptz(6)
+  conversation   AiConversation            @relation(fields: [conversationId, userId], references: [id, userId], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([conversationId, sequence], map: "ai_conversation_messages_conversation_sequence_key")
+  @@index([userId, conversationId, sequence], map: "ai_conversation_messages_user_order_idx")
+  @@map("ai_conversation_messages")
 }
 
 enum AiInferenceStatus {
