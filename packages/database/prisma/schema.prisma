@@ -448,6 +448,7 @@ model AiEmailConnection {
   lastFailureErrorCategory String?                   @map("last_failure_error_category")
   lastFailureImportedCount Int?                      @map("last_failure_imported_count")
   lastFailurePhase         String?                   @map("last_failure_phase")
+  reconnectRequiredAt      DateTime?                 @map("reconnect_required_at") @db.Timestamptz(6)
   syncState                Json?                     @map("sync_state")
   createdAt                DateTime                  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt                DateTime                  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)

@@ -9,6 +9,7 @@ import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
 import type { Env } from '@personal-os/config';
 import { PrismaService } from '@personal-os/database';
 import { decryptToken, encryptToken } from './token-encryption.util';
+import { requiresGmailReconnect } from './gmail-reconnect.util';
 
 const GMAIL_AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth';
 const GMAIL_TOKEN_URL = 'https://oauth2.googleapis.com/token';
@@ -113,6 +114,7 @@ export class AiEmailSourceService {
         lastFailureErrorCategory: true,
         lastFailureImportedCount: true,
         lastFailurePhase: true,
+        reconnectRequiredAt: true,
       },
     });
     const [messageCount, recentCount, receivedRange] = connection
@@ -147,6 +149,7 @@ export class AiEmailSourceService {
             lastSyncErrorCode: connection.lastSyncErrorCode,
             lastAttempt: mapLastAttempt(connection),
             lastFailure: mapLastFailure(connection),
+            requiresReconnect: Boolean(connection.reconnectRequiredAt),
           }
         : { connected: false },
       counters: {
@@ -361,6 +364,7 @@ export class AiEmailSourceService {
         tokenExpiresAt: expiresAt,
         providerCursor: profile.historyId,
         lastSyncErrorCode: null,
+        reconnectRequiredAt: null,
       },
       select: { id: true, userId: true, emailAddress: true },
     });
@@ -425,7 +429,12 @@ export class AiEmailSourceService {
       const providerCode = token.error || `http_${response.status}`;
       await this.prisma.aiEmailConnection.update({
         where: { id: connectionId },
-        data: { lastSyncErrorCode: providerCode },
+        data: {
+          lastSyncErrorCode: providerCode,
+          ...(requiresGmailReconnect(providerCode)
+            ? { reconnectRequiredAt: new Date() }
+            : {}),
+        },
       });
       throw new ServiceUnavailableException({
         code: 'gmail_token_refresh_failed',
@@ -440,6 +449,7 @@ export class AiEmailSourceService {
         accessTokenEncrypted: encryptToken(token.access_token, encryptionKey),
         tokenExpiresAt: expiresAt,
         lastSyncErrorCode: null,
+        reconnectRequiredAt: null,
       },
     });
     return token.access_token;
