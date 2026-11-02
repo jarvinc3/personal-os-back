@@ -9,7 +9,13 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiCreatedResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
 import { CurrentUser, RequiresEnabledModule } from '@personal-os/core';
 import { AdjustBalanceUseCase } from '../application/adjust-balance.use-case';
 import { ConfirmTransactionUseCase } from '../application/confirm-transaction.use-case';
@@ -26,6 +32,15 @@ import { AdjustBalanceDto } from './dto/adjust-balance.dto';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { ListTransactionsQueryDto } from './dto/list-transactions-query.dto';
 import { MergeTransactionDto } from './dto/merge-transaction.dto';
+import {
+  AdjustBalanceResponseDto,
+  TransactionPageResponseDto,
+  TransactionResponseDto,
+} from './dto/transaction-response.dto';
+import {
+  DeleteResponseDto,
+  SuccessResponseDto,
+} from '../../shared/presentation/success-response.dto';
 
 @ApiTags('finance')
 @ApiBearerAuth('access-token')
@@ -48,6 +63,7 @@ export class TransactionsController {
 
   @Get('transactions')
   @ApiOperation({ summary: 'Lista las transacciones de finanzas' })
+  @ApiOkResponse({ type: TransactionPageResponseDto })
   list(
     @CurrentUser('sub') userId: string,
     @Query() query: ListTransactionsQueryDto,
@@ -59,12 +75,14 @@ export class TransactionsController {
   @ApiOperation({
     summary: 'Fija el saldo de una cuenta o tarjeta con un ajuste',
   })
+  @ApiCreatedResponse({ type: AdjustBalanceResponseDto })
   adjust(@CurrentUser('sub') userId: string, @Body() dto: AdjustBalanceDto) {
     return this.adjustBalance.execute(userId, dto);
   }
 
   @Post('transactions')
   @ApiOperation({ summary: 'Crea una transacción DEBIT o CREDIT' })
+  @ApiCreatedResponse({ type: TransactionResponseDto })
   create(
     @CurrentUser('sub') userId: string,
     @Body() dto: CreateTransactionDto,
@@ -74,12 +92,14 @@ export class TransactionsController {
 
   @Get('transactions/:id')
   @ApiOperation({ summary: 'Obtiene una transacción por id' })
+  @ApiOkResponse({ type: TransactionResponseDto })
   get(@CurrentUser('sub') userId: string, @Param('id') id: string) {
     return this.queries.getTransaction(userId, id);
   }
 
   @Patch('transactions/:id')
   @ApiOperation({ summary: 'Actualiza una transacción' })
+  @ApiOkResponse({ type: TransactionResponseDto })
   update(
     @CurrentUser('sub') userId: string,
     @Param('id') id: string,
@@ -90,18 +110,21 @@ export class TransactionsController {
 
   @Delete('transactions/:id')
   @ApiOperation({ summary: 'Borra una transacción manual' })
+  @ApiOkResponse({ type: DeleteResponseDto })
   remove(@CurrentUser('sub') userId: string, @Param('id') id: string) {
     return this.deleteTx.execute(userId, id);
   }
 
   @Post('transactions/:id/restore')
   @ApiOperation({ summary: 'Deshace un borrado desde el journal' })
+  @ApiOkResponse({ type: SuccessResponseDto })
   restore(@CurrentUser('sub') userId: string, @Param('id') id: string) {
     return this.restoreTx.execute(userId, id, new Date());
   }
 
   @Post('transactions/:id/confirm')
   @ApiOperation({ summary: 'Confirma una transacción PENDING' })
+  @ApiOkResponse({ type: TransactionResponseDto })
   confirm(@CurrentUser('sub') userId: string, @Param('id') id: string) {
     return this.confirmTx.execute(userId, id);
   }
@@ -110,6 +133,7 @@ export class TransactionsController {
   @ApiOperation({
     summary: 'Devuelve una transacción CONFIRMED a PENDING para editarla',
   })
+  @ApiOkResponse({ type: TransactionResponseDto })
   unconfirm(@CurrentUser('sub') userId: string, @Param('id') id: string) {
     return this.unconfirmTx.execute(userId, id);
   }
@@ -119,6 +143,7 @@ export class TransactionsController {
     summary:
       'Revierte una transacción CONFIRMED (conserva la fila como REVERSED)',
   })
+  @ApiOkResponse({ type: TransactionResponseDto })
   async reverse(@CurrentUser('sub') userId: string, @Param('id') id: string) {
     const existing = await this.queries.getTransaction(userId, id);
     if (existing.status === 'REVERSED') {
@@ -141,6 +166,7 @@ export class TransactionsController {
   @ApiOperation({
     summary: 'Borra un posible duplicado y conserva el otro',
   })
+  @ApiOkResponse({ type: SuccessResponseDto })
   merge(
     @CurrentUser('sub') userId: string,
     @Param('id') id: string,
@@ -151,6 +177,7 @@ export class TransactionsController {
 
   @Post('transactions/:id/not-duplicate')
   @ApiOperation({ summary: 'Quita la marca de posible duplicado' })
+  @ApiOkResponse({ type: SuccessResponseDto })
   notDuplicate(@CurrentUser('sub') userId: string, @Param('id') id: string) {
     return this.notDuplicateTx.execute(userId, id);
   }

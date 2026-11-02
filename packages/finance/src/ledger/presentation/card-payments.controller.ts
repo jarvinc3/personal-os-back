@@ -1,5 +1,11 @@
 import { Body, Controller, Delete, Param, Patch, Post } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiCreatedResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
 import { CurrentUser, RequiresEnabledModule } from '@personal-os/core';
 import { ConfirmTransferUseCase } from '../application/confirm-transfer.use-case';
 import { CreateCardPaymentUseCase } from '../application/create-card-payment.use-case';
@@ -10,6 +16,11 @@ import {
   CreateCardPaymentDto,
   UpdateCardPaymentDto,
 } from './dto/create-card-payment.dto';
+import { TransferResponseDto } from './dto/transfer-response.dto';
+import {
+  DeleteResponseDto,
+  SuccessResponseDto,
+} from '../../shared/presentation/success-response.dto';
 
 @ApiTags('finance')
 @ApiBearerAuth('access-token')
@@ -26,6 +37,7 @@ export class CardPaymentsController {
 
   @Post('card-payments')
   @ApiOperation({ summary: 'Paga una tarjeta de crédito desde una cuenta' })
+  @ApiCreatedResponse({ type: TransferResponseDto })
   create(
     @CurrentUser('sub') userId: string,
     @Body() dto: CreateCardPaymentDto,
@@ -35,6 +47,7 @@ export class CardPaymentsController {
 
   @Patch('card-payments/:id')
   @ApiOperation({ summary: 'Edita un pago de tarjeta pendiente' })
+  @ApiOkResponse({ type: SuccessResponseDto })
   update(
     @CurrentUser('sub') userId: string,
     @Param('id') id: string,
@@ -47,6 +60,7 @@ export class CardPaymentsController {
   @ApiOperation({
     summary: 'Devuelve todos los movimientos de un pago de tarjeta a PENDING',
   })
+  @ApiOkResponse({ type: SuccessResponseDto })
   async unconfirm(@CurrentUser('sub') userId: string, @Param('id') id: string) {
     await this.unconfirmCardPayment.execute(userId, id);
     return { success: true };
@@ -56,6 +70,7 @@ export class CardPaymentsController {
   @ApiOperation({
     summary: 'Confirma todos los movimientos pendientes de un pago de tarjeta',
   })
+  @ApiOkResponse({ type: SuccessResponseDto })
   async confirm(@CurrentUser('sub') userId: string, @Param('id') id: string) {
     await this.confirmCardPayment.execute(userId, id);
     return { success: true };
@@ -63,6 +78,7 @@ export class CardPaymentsController {
 
   @Delete('card-payments/:id')
   @ApiOperation({ summary: 'Borra el pago de tarjeta completo' })
+  @ApiOkResponse({ type: DeleteResponseDto })
   remove(@CurrentUser('sub') userId: string, @Param('id') id: string) {
     return this.deleteTransaction.execute(userId, id);
   }
