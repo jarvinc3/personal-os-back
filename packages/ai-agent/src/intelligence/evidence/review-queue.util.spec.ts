@@ -6,6 +6,8 @@ import {
   reviewQueueItemVerification,
   reviewQueueItems,
   reviewQueueMessageFilter,
+  reviewQueueMessageSearchFilter,
+  reviewQueuePendingCounts,
   reviewQueueReceivedAtFilter,
   reviewQueueSortDirection,
   toReviewQueueStatusList,
@@ -464,6 +466,66 @@ describe('review queue utilities', () => {
     it('maps the order to the received date direction', () => {
       expect(reviewQueueSortDirection('OLDEST')).toBe('asc');
       expect(reviewQueueSortDirection('NEWEST')).toBe('desc');
+    });
+  });
+
+  describe('reviewQueueMessageSearchFilter', () => {
+    it('builds the sender, subject and date clauses', () => {
+      const receivedAt = {
+        gte: new Date('2026-10-01T04:00:00.000Z'),
+        lt: new Date('2026-11-01T04:00:00.000Z'),
+      };
+
+      expect(
+        reviewQueueMessageSearchFilter({
+          fromAddress: 'notifications@github.com',
+          subject: 'Aviso',
+          receivedAt,
+        }),
+      ).toEqual({
+        fromAddress: {
+          equals: 'notifications@github.com',
+          mode: 'insensitive',
+        },
+        subject: { contains: 'Aviso', mode: 'insensitive' },
+        receivedAt,
+      });
+      expect(reviewQueueMessageSearchFilter({})).toEqual({});
+    });
+  });
+
+  describe('reviewQueuePendingCounts', () => {
+    const items = [
+      { sourceId: 'message-1', partition: 'TRAIN' as const },
+      { sourceId: 'message-2', partition: 'VALIDATION' as const },
+      { sourceId: 'message-3', partition: 'HOLDOUT' as const },
+      { sourceId: 'message-4', partition: 'HOLDOUT' as const },
+    ];
+
+    it('counts pending items and applies the search match', () => {
+      expect(
+        reviewQueuePendingCounts({
+          items,
+          reviewedMessageIds: ['message-2'],
+          matchingMessageIds: new Set(['message-1', 'message-2', 'message-3']),
+        }),
+      ).toEqual({ TRAIN: 1, VALIDATION: 0, HOLDOUT: 1, all: 2 });
+    });
+
+    it('counts every pending item without a search', () => {
+      expect(
+        reviewQueuePendingCounts({ items, reviewedMessageIds: [] }),
+      ).toEqual({ TRAIN: 1, VALIDATION: 1, HOLDOUT: 2, all: 4 });
+    });
+
+    it('returns zeroes when no item passes the search', () => {
+      expect(
+        reviewQueuePendingCounts({
+          items,
+          reviewedMessageIds: [],
+          matchingMessageIds: new Set(),
+        }),
+      ).toEqual({ TRAIN: 0, VALIDATION: 0, HOLDOUT: 0, all: 0 });
     });
   });
 });

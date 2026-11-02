@@ -157,6 +157,24 @@ export function reviewQueueItems({
   });
 }
 
+export function reviewQueueMessageSearchFilter({
+  fromAddress,
+  subject,
+  receivedAt,
+}: {
+  fromAddress?: string;
+  subject?: string;
+  receivedAt?: Prisma.DateTimeFilter;
+}): Prisma.AiEmailMessageWhereInput {
+  return {
+    ...(fromAddress
+      ? { fromAddress: { equals: fromAddress, mode: 'insensitive' } }
+      : {}),
+    ...(subject ? { subject: { contains: subject, mode: 'insensitive' } } : {}),
+    ...(receivedAt ? { receivedAt } : {}),
+  };
+}
+
 export function reviewQueueMessageFilter({
   userId,
   latestByMessageId,
@@ -187,12 +205,45 @@ export function reviewQueueMessageFilter({
   return {
     userId,
     ...(partitionMessageIds ? { id: { in: [...partitionMessageIds] } } : {}),
-    ...(fromAddress
-      ? { fromAddress: { equals: fromAddress, mode: 'insensitive' } }
-      : {}),
-    ...(subject ? { subject: { contains: subject, mode: 'insensitive' } } : {}),
-    ...(receivedAt ? { receivedAt } : {}),
+    ...reviewQueueMessageSearchFilter({ fromAddress, subject, receivedAt }),
     ...(clauses.length ? { AND: clauses } : {}),
+  };
+}
+
+export type ReviewQueueCounts = {
+  all: number;
+  TRAIN: number;
+  VALIDATION: number;
+  HOLDOUT: number;
+};
+
+/** Cuenta los pendientes por partición, ya filtrados por la búsqueda. */
+export function reviewQueuePendingCounts({
+  items,
+  reviewedMessageIds,
+  matchingMessageIds,
+}: {
+  items: readonly {
+    sourceId: string;
+    partition: ReviewQueuePartition;
+  }[];
+  reviewedMessageIds: readonly string[];
+  matchingMessageIds?: ReadonlySet<string>;
+}): ReviewQueueCounts {
+  const reviewed = new Set(reviewedMessageIds);
+  const counts = { TRAIN: 0, VALIDATION: 0, HOLDOUT: 0 };
+  for (const item of items) {
+    if (reviewed.has(item.sourceId)) {
+      continue;
+    }
+    if (matchingMessageIds && !matchingMessageIds.has(item.sourceId)) {
+      continue;
+    }
+    counts[item.partition] += 1;
+  }
+  return {
+    ...counts,
+    all: counts.TRAIN + counts.VALIDATION + counts.HOLDOUT,
   };
 }
 
