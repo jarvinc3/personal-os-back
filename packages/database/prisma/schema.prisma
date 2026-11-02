@@ -500,7 +500,8 @@ model AiEmailMessage {
   connection              AiEmailConnection       @relation(fields: [connectionId, userId], references: [id, userId], onDelete: Cascade, onUpdate: NoAction)
   content                 AiEmailMessageContent?
   classifications         AiEmailClassification[]
-  signals                 AiSignal[]
+  signals                 AiSignal[]              @relation("AiSignalEmailMessage")
+  signalEvidence          AiSignalEvidence[]      @relation("AiSignalEvidenceEmailMessage")
 
   @@unique([connectionId, providerMessageId], map: "ai_email_messages_connection_provider_id_key")
   @@unique([id, userId], map: "ai_email_messages_id_user_id_key")
@@ -548,9 +549,9 @@ model AiSignal {
   deduplicationKey String             @map("deduplication_key")
   correlationKey   String             @map("correlation_key")
   createdAt        DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt        DateTime           @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedAt        DateTime           @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   user             User               @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  emailMessage     AiEmailMessage     @relation(fields: [sourceId, userId], references: [id, userId], onDelete: Cascade, onUpdate: NoAction)
+  emailMessage     AiEmailMessage     @relation("AiSignalEmailMessage", fields: [sourceId, userId], references: [id, userId], onDelete: Cascade, onUpdate: NoAction)
   evidence         AiSignalEvidence[]
 
   @@unique([id, userId], map: "ai_signals_id_user_id_key")
@@ -561,15 +562,16 @@ model AiSignal {
 }
 
 model AiSignalEvidence {
-  id         String   @id @default(dbgenerated("(extensions.uuid_generate_v4())::text"))
-  userId     String   @map("user_id")
-  signalId   String   @map("signal_id")
-  sourceType String   @map("source_type")
-  sourceId   String   @map("source_id")
+  id         String         @id @default(dbgenerated("(extensions.uuid_generate_v4())::text"))
+  userId     String         @map("user_id")
+  signalId   String         @map("signal_id")
+  sourceType String         @map("source_type")
+  sourceId   String         @map("source_id")
   excerpt    Json
-  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  signal     AiSignal @relation(fields: [signalId, userId], references: [id, userId], onDelete: Cascade, onUpdate: NoAction)
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  createdAt  DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  signal     AiSignal       @relation(fields: [signalId, userId], references: [id, userId], onDelete: Cascade, onUpdate: NoAction)
+  message    AiEmailMessage @relation("AiSignalEvidenceEmailMessage", fields: [sourceId, userId], references: [id, userId], onDelete: Cascade, onUpdate: NoAction)
+  user       User           @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@unique([signalId, sourceType, sourceId], map: "ai_signal_evidence_source_key")
   @@index([userId, signalId], map: "ai_signal_evidence_user_signal_idx")

@@ -38,7 +38,7 @@ CREATE TABLE "ai_signal_evidence" (
   CONSTRAINT "ai_signal_evidence_source_key" UNIQUE ("signal_id", "source_type", "source_id"),
   CONSTRAINT "ai_signal_evidence_signal_id_user_id_fkey" FOREIGN KEY ("signal_id", "user_id") REFERENCES "ai_signals"("id", "user_id") ON DELETE CASCADE ON UPDATE NO ACTION,
   CONSTRAINT "ai_signal_evidence_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE NO ACTION,
-  CONSTRAINT "ai_signal_evidence_source_id_fkey" FOREIGN KEY ("source_id") REFERENCES "ai_email_messages"("id") ON DELETE CASCADE ON UPDATE NO ACTION
+  CONSTRAINT "ai_signal_evidence_source_id_user_id_fkey" FOREIGN KEY ("source_id", "user_id") REFERENCES "ai_email_messages"("id", "user_id") ON DELETE CASCADE ON UPDATE NO ACTION
 );
 
 CREATE INDEX "ai_signals_user_detected_idx" ON "ai_signals"("user_id", "detected_at" DESC, "id");
