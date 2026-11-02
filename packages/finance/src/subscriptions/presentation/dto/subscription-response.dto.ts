@@ -2,8 +2,8 @@ import { ApiProperty } from '@nestjs/swagger';
 import { BILLING_CYCLES } from '../../domain/billing';
 import { SUBSCRIPTION_ALERT_KINDS } from '../../domain/subscription-alerts';
 import { SUBSCRIPTION_BREAKDOWNS } from './subscription-breakdown-query.dto';
+import { SUBSCRIPTION_STATUSES } from './list-subscriptions-query.dto';
 
-const SUBSCRIPTION_STATUSES = ['ACTIVE', 'PAUSED', 'CANCELLED'] as const;
 const SUBSCRIPTION_PAYMENT_SOURCES = ['AUTO', 'MANUAL'] as const;
 const PAYMENT_METHOD_TYPES = ['CARD', 'ACCOUNT'] as const;
 const TREND_DIRECTIONS = ['up', 'down', 'flat'] as const;

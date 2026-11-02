@@ -35,11 +35,17 @@ async function buildDocument(): Promise<OpenApiDocument> {
   ) as unknown as OpenApiDocument;
 }
 
-function successSchema(
-  document: OpenApiDocument,
-  path: string,
-  method: string,
-): Record<string, unknown> | undefined {
+type SuccessSchemaInput = {
+  document: OpenApiDocument;
+  path: string;
+  method: string;
+};
+
+function successSchema({
+  document,
+  path,
+  method,
+}: SuccessSchemaInput): Record<string, unknown> | undefined {
   const operation = document.paths[path]?.[method];
   return (
     operation?.responses?.['200']?.content?.['application/json']?.schema ??
@@ -66,7 +72,8 @@ describe('OpenAPI response schemas of the users profile', () => {
     ];
 
     const missing = operations.filter(
-      ([path, method]) => successSchema(document, path, method) === undefined,
+      ([path, method]) =>
+        successSchema({ document, path, method }) === undefined,
     );
 
     expect(missing).toEqual([]);

@@ -76,11 +76,17 @@ async function buildDocument(): Promise<OpenApiDocument> {
   ) as unknown as OpenApiDocument;
 }
 
-function successSchema(
-  document: OpenApiDocument,
-  path: string,
-  method: string,
-): Record<string, unknown> | undefined {
+type SuccessSchemaInput = {
+  document: OpenApiDocument;
+  path: string;
+  method: string;
+};
+
+function successSchema({
+  document,
+  path,
+  method,
+}: SuccessSchemaInput): Record<string, unknown> | undefined {
   const operation = document.paths[path]?.[method];
   const response =
     operation?.responses?.['200'] ?? operation?.responses?.['201'];
@@ -140,7 +146,8 @@ describe('OpenAPI response schemas of the finance catalog and analytics', () => 
     ];
 
     const missing = operations.filter(
-      ([path, method]) => successSchema(document, path, method) === undefined,
+      ([path, method]) =>
+        successSchema({ document, path, method }) === undefined,
     );
 
     expect(missing).toEqual([]);
@@ -185,7 +192,7 @@ describe('OpenAPI response schemas of the finance catalog and analytics', () => 
     ]) {
       const schema = resolveSchema(
         document,
-        successSchema(document, path, method),
+        successSchema({ document, path, method }),
       ) as {
         properties?: Record<string, unknown>;
       };
@@ -196,11 +203,11 @@ describe('OpenAPI response schemas of the finance catalog and analytics', () => 
   });
 
   it('publishes the entity lookup as the union of the entity responses', () => {
-    const schema = successSchema(
+    const schema = successSchema({
       document,
-      '/api/finance/entities/lookup',
-      'post',
-    ) as {
+      path: '/api/finance/entities/lookup',
+      method: 'post',
+    }) as {
       type?: string;
       items?: { oneOf?: unknown[]; nullable?: boolean };
     };

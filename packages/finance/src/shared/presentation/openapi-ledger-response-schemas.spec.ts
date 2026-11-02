@@ -88,11 +88,17 @@ async function buildDocument(): Promise<OpenApiDocument> {
   ) as unknown as OpenApiDocument;
 }
 
-function successSchema(
-  document: OpenApiDocument,
-  path: string,
-  method: string,
-): Record<string, unknown> | undefined {
+type SuccessSchemaInput = {
+  document: OpenApiDocument;
+  path: string;
+  method: string;
+};
+
+function successSchema({
+  document,
+  path,
+  method,
+}: SuccessSchemaInput): Record<string, unknown> | undefined {
   const operation = document.paths[path]?.[method];
   const response =
     operation?.responses?.['200'] ?? operation?.responses?.['201'];
@@ -156,7 +162,8 @@ describe('OpenAPI response schemas of the ledger and reconciliations', () => {
     ];
 
     const missing = operations.filter(
-      ([path, method]) => successSchema(document, path, method) === undefined,
+      ([path, method]) =>
+        successSchema({ document, path, method }) === undefined,
     );
 
     expect(missing).toEqual([]);
@@ -206,7 +213,7 @@ describe('OpenAPI response schemas of the ledger and reconciliations', () => {
     ]) {
       const schema = resolveSchema(
         document,
-        successSchema(document, path, method),
+        successSchema({ document, path, method }),
       ) as {
         properties?: Record<string, unknown>;
       };

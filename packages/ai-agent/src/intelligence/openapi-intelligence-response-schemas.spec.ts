@@ -51,11 +51,17 @@ async function buildDocument(): Promise<OpenApiDocument> {
   ) as unknown as OpenApiDocument;
 }
 
-function successSchema(
-  document: OpenApiDocument,
-  path: string,
-  method: string,
-): Record<string, unknown> | undefined {
+type SuccessSchemaInput = {
+  document: OpenApiDocument;
+  path: string;
+  method: string;
+};
+
+function successSchema({
+  document,
+  path,
+  method,
+}: SuccessSchemaInput): Record<string, unknown> | undefined {
   const operation = document.paths[path]?.[method];
   for (const status of ['200', '201', '202']) {
     const schema =
@@ -108,7 +114,8 @@ describe('OpenAPI response schemas of intelligence', () => {
     ];
 
     const missing = operations.filter(
-      ([path, method]) => successSchema(document, path, method) === undefined,
+      ([path, method]) =>
+        successSchema({ document, path, method }) === undefined,
     );
 
     expect(missing).toEqual([]);
@@ -121,7 +128,7 @@ describe('OpenAPI response schemas of intelligence', () => {
     ]) {
       const schema = resolveSchema(
         document,
-        successSchema(document, path, method),
+        successSchema({ document, path, method }),
       ) as {
         properties?: Record<string, unknown>;
       };
