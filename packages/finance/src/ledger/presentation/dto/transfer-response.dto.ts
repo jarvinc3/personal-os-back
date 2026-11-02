@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { TransactionResponseDto } from './transaction-response.dto';
+import { TransactionResponseDto } from '../../../shared/presentation/dto/transaction-response.dto';
 
 export class TransferResponseDto {
   @ApiProperty()

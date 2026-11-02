@@ -3715,7 +3715,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubscriptionPageResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -3743,7 +3750,14 @@
         },
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubscriptionResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -3763,7 +3777,14 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubscriptionSummaryResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -3798,7 +3819,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubscriptionBreakdownResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -3848,7 +3876,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubscriptionUpcomingResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -3868,7 +3903,17 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SubscriptionAlertResponseDto"
+                  }
+                }
+              }
+            }
           }
         },
         "security": [
@@ -3888,7 +3933,14 @@
         "parameters": [],
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubscriptionDismissedAlertsResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -3918,7 +3970,14 @@
         },
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubscriptionDismissedAlertResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -3947,7 +4006,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubscriptionResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -3984,7 +4050,14 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubscriptionResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -4013,7 +4086,14 @@
         ],
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubscriptionResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -4042,7 +4122,14 @@
         ],
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubscriptionResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -4071,7 +4158,14 @@
         ],
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubscriptionResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -4100,7 +4194,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubscriptionPaymentPageResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -4137,7 +4238,14 @@
         },
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubscriptionManualPaymentResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -4166,7 +4274,14 @@
         ],
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubscriptionLogoResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -4580,7 +4695,14 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BudgetPageResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -4608,7 +4730,14 @@
         },
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BudgetResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -4636,7 +4765,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BudgetResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -4673,7 +4809,14 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BudgetResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -4699,7 +4842,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -4727,7 +4877,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransactionPageResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -4756,7 +4913,14 @@
         ],
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -4776,7 +4940,14 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SavingsGoalPageResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -4804,7 +4975,14 @@
         },
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SavingsGoalResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -4832,7 +5010,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SavingsGoalResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -4869,7 +5054,14 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SavingsGoalResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -4895,7 +5087,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -4923,7 +5122,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SavingsGoalContributionPageResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -4960,7 +5166,14 @@
         },
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SavingsGoalContributionResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -4997,7 +5210,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -5027,7 +5247,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SavingsGoalContributionPageResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -5065,7 +5292,14 @@
         },
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SavingsGoalContributionResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -5103,7 +5337,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -5132,7 +5373,14 @@
         ],
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -5585,7 +5833,14 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReceivablePageResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -5613,7 +5868,14 @@
         },
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReceivableResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -5641,7 +5903,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReceivableResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -5678,7 +5947,14 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReceivableResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -5704,7 +5980,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -5733,7 +6016,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReceivablePaymentPageResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -5770,7 +6060,14 @@
         },
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReceivablePaymentResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -5809,7 +6106,14 @@
         },
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -5848,7 +6152,14 @@
         },
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -5877,7 +6188,14 @@
         ],
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -5916,7 +6234,14 @@
         },
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanningLinkResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -5943,7 +6268,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -6385,7 +6717,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecurringPageResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -6413,7 +6752,14 @@
         },
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecurringPatternResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -6443,7 +6789,17 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RecurringPatternResponseDto"
+                  }
+                }
+              }
+            }
           }
         },
         "security": [
@@ -6482,7 +6838,14 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecurringPatternResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -10007,6 +10370,624 @@
           "targetId"
         ]
       },
+      "SubscriptionCategoryResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "icon": {
+            "type": "string",
+            "nullable": true
+          },
+          "color": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "icon",
+          "color"
+        ]
+      },
+      "PaymentMethodResponseDto": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "CARD",
+              "ACCOUNT"
+            ]
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "institution": {
+            "type": "string",
+            "nullable": true
+          },
+          "last4": {
+            "type": "string",
+            "nullable": true
+          },
+          "logoUrl": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "type",
+          "id",
+          "name",
+          "institution",
+          "last4",
+          "logoUrl"
+        ]
+      },
+      "SubscriptionResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "normalizedKey": {
+            "type": "string"
+          },
+          "domain": {
+            "type": "string",
+            "nullable": true
+          },
+          "logoUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "amount": {
+            "type": "string",
+            "example": "1500.00"
+          },
+          "currency": {
+            "type": "string",
+            "example": "DOP"
+          },
+          "billingCycle": {
+            "type": "string",
+            "enum": [
+              "WEEKLY",
+              "MONTHLY",
+              "QUARTERLY",
+              "SEMIANNUAL",
+              "YEARLY"
+            ]
+          },
+          "billingInterval": {
+            "type": "number"
+          },
+          "anchorDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "nextBillingDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "trialEndsAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ACTIVE",
+              "PAUSED",
+              "CANCELLED"
+            ]
+          },
+          "pausedAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "cancelledAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "reminderDaysBefore": {
+            "type": "number"
+          },
+          "lastChargeMismatch": {
+            "type": "boolean"
+          },
+          "lastPaymentAmount": {
+            "type": "string",
+            "nullable": true,
+            "example": "1500.00"
+          },
+          "lastRemindedFor": {
+            "type": "string",
+            "nullable": true,
+            "format": "date"
+          },
+          "cardId": {
+            "type": "string",
+            "nullable": true
+          },
+          "cardName": {
+            "type": "string",
+            "nullable": true
+          },
+          "accountId": {
+            "type": "string",
+            "nullable": true
+          },
+          "accountName": {
+            "type": "string",
+            "nullable": true
+          },
+          "categoryId": {
+            "type": "string",
+            "nullable": true
+          },
+          "category": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SubscriptionCategoryResponseDto"
+              }
+            ]
+          },
+          "paymentMethod": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PaymentMethodResponseDto"
+              }
+            ]
+          },
+          "manageUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "notes": {
+            "type": "string",
+            "nullable": true
+          },
+          "sourcePatternId": {
+            "type": "string",
+            "nullable": true
+          },
+          "monthlyEquivalent": {
+            "type": "string",
+            "example": "125.00"
+          },
+          "annualEquivalent": {
+            "type": "string",
+            "example": "1500.00"
+          },
+          "daysUntil": {
+            "type": "number"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "normalizedKey",
+          "domain",
+          "logoUrl",
+          "amount",
+          "currency",
+          "billingCycle",
+          "billingInterval",
+          "anchorDate",
+          "nextBillingDate",
+          "trialEndsAt",
+          "status",
+          "pausedAt",
+          "cancelledAt",
+          "reminderDaysBefore",
+          "lastChargeMismatch",
+          "lastPaymentAmount",
+          "lastRemindedFor",
+          "cardId",
+          "cardName",
+          "accountId",
+          "accountName",
+          "categoryId",
+          "category",
+          "paymentMethod",
+          "manageUrl",
+          "notes",
+          "sourcePatternId",
+          "monthlyEquivalent",
+          "annualEquivalent",
+          "daysUntil",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "SubscriptionPageResponseDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SubscriptionResponseDto"
+            }
+          },
+          "nextCursor": {
+            "type": "string",
+            "nullable": true
+          },
+          "hasMore": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "items",
+          "nextCursor",
+          "hasMore"
+        ]
+      },
+      "SubscriptionCurrencyCostResponseDto": {
+        "type": "object",
+        "properties": {
+          "currency": {
+            "type": "string",
+            "example": "DOP"
+          },
+          "monthlyCost": {
+            "type": "string",
+            "example": "125.00"
+          },
+          "annualCost": {
+            "type": "string",
+            "example": "1500.00"
+          },
+          "activeCount": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "currency",
+          "monthlyCost",
+          "annualCost",
+          "activeCount"
+        ]
+      },
+      "SubscriptionTrendResponseDto": {
+        "type": "object",
+        "properties": {
+          "direction": {
+            "type": "string",
+            "enum": [
+              "up",
+              "down",
+              "flat"
+            ]
+          },
+          "percent": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "direction",
+          "percent"
+        ]
+      },
+      "SubscriptionSummaryResponseDto": {
+        "type": "object",
+        "properties": {
+          "baseCurrency": {
+            "type": "string",
+            "example": "DOP"
+          },
+          "activeCount": {
+            "type": "number"
+          },
+          "monthlyCost": {
+            "type": "string",
+            "example": "125.00"
+          },
+          "annualCost": {
+            "type": "string",
+            "example": "1500.00"
+          },
+          "byCurrency": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SubscriptionCurrencyCostResponseDto"
+            }
+          },
+          "previousMonthlyCost": {
+            "type": "string",
+            "example": "125.00"
+          },
+          "realSpendThisMonth": {
+            "type": "string",
+            "example": "125.00"
+          },
+          "realSpendPreviousMonth": {
+            "type": "string",
+            "example": "125.00"
+          },
+          "trend": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SubscriptionTrendResponseDto"
+              }
+            ]
+          },
+          "pendingDetectedCount": {
+            "type": "number"
+          },
+          "cancelledAnnualSavings": {
+            "type": "string",
+            "example": "0.00"
+          },
+          "reminderWindowDays": {
+            "type": "number"
+          },
+          "upcoming": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SubscriptionResponseDto"
+            }
+          }
+        },
+        "required": [
+          "baseCurrency",
+          "activeCount",
+          "monthlyCost",
+          "annualCost",
+          "byCurrency",
+          "previousMonthlyCost",
+          "realSpendThisMonth",
+          "realSpendPreviousMonth",
+          "trend",
+          "pendingDetectedCount",
+          "cancelledAnnualSavings",
+          "reminderWindowDays",
+          "upcoming"
+        ]
+      },
+      "SubscriptionBreakdownItemResponseDto": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "color": {
+            "type": "string",
+            "nullable": true
+          },
+          "count": {
+            "type": "number"
+          },
+          "amount": {
+            "type": "string",
+            "example": "125.00"
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "color",
+          "count",
+          "amount"
+        ]
+      },
+      "SubscriptionBreakdownResponseDto": {
+        "type": "object",
+        "properties": {
+          "baseCurrency": {
+            "type": "string",
+            "example": "DOP"
+          },
+          "by": {
+            "type": "string",
+            "enum": [
+              "category",
+              "instrument",
+              "currency"
+            ]
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SubscriptionBreakdownItemResponseDto"
+            }
+          }
+        },
+        "required": [
+          "baseCurrency",
+          "by",
+          "items"
+        ]
+      },
+      "SubscriptionUpcomingItemResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "subscriptionId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "logoUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "amount": {
+            "type": "string",
+            "example": "1500.00"
+          },
+          "currency": {
+            "type": "string",
+            "example": "DOP"
+          },
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "daysUntil": {
+            "type": "number"
+          },
+          "paymentMethod": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PaymentMethodResponseDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "subscriptionId",
+          "name",
+          "logoUrl",
+          "amount",
+          "currency",
+          "date",
+          "daysUntil",
+          "paymentMethod"
+        ]
+      },
+      "SubscriptionUpcomingResponseDto": {
+        "type": "object",
+        "properties": {
+          "from": {
+            "type": "string",
+            "format": "date"
+          },
+          "to": {
+            "type": "string",
+            "format": "date"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SubscriptionUpcomingItemResponseDto"
+            }
+          }
+        },
+        "required": [
+          "from",
+          "to",
+          "items"
+        ]
+      },
+      "SubscriptionAlertResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "PRICE_INCREASE",
+              "AMOUNT_MISMATCH",
+              "TRIAL_ENDING",
+              "ANNUAL_RENEWAL",
+              "MISSED_CHARGE"
+            ]
+          },
+          "subscriptionId": {
+            "type": "string"
+          },
+          "subscriptionName": {
+            "type": "string"
+          },
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "currency": {
+            "type": "string",
+            "example": "DOP"
+          },
+          "amount": {
+            "type": "string",
+            "nullable": true,
+            "example": "1500.00"
+          },
+          "previousAmount": {
+            "type": "string",
+            "nullable": true,
+            "example": "1500.00"
+          },
+          "expectedAmount": {
+            "type": "string",
+            "nullable": true,
+            "example": "1500.00"
+          },
+          "percent": {
+            "type": "number",
+            "nullable": true
+          },
+          "daysUntil": {
+            "type": "number",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "subscriptionId",
+          "subscriptionName",
+          "date",
+          "currency",
+          "amount",
+          "previousAmount",
+          "expectedAmount",
+          "percent",
+          "daysUntil"
+        ]
+      },
+      "SubscriptionDismissedAlertsResponseDto": {
+        "type": "object",
+        "properties": {
+          "dismissed": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "dismissed"
+        ]
+      },
       "DismissSubscriptionAlertDto": {
         "type": "object",
         "properties": {
@@ -10032,6 +11013,21 @@
           "kind",
           "subscriptionId",
           "alertDate"
+        ]
+      },
+      "SubscriptionDismissedAlertResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "dismissed": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "dismissed"
         ]
       },
       "CreateSubscriptionDto": {
@@ -10177,6 +11173,119 @@
           }
         }
       },
+      "SubscriptionPaymentTransactionResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "merchant": {
+            "type": "string",
+            "nullable": true
+          },
+          "amount": {
+            "type": "string",
+            "example": "1500.00"
+          },
+          "currency": {
+            "type": "string",
+            "example": "DOP"
+          },
+          "transactionDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "accountName": {
+            "type": "string",
+            "nullable": true
+          },
+          "cardName": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "merchant",
+          "amount",
+          "currency",
+          "transactionDate",
+          "accountName",
+          "cardName"
+        ]
+      },
+      "SubscriptionPaymentResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "amount": {
+            "type": "string",
+            "example": "1500.00"
+          },
+          "currency": {
+            "type": "string",
+            "example": "DOP"
+          },
+          "paidAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "AUTO",
+              "MANUAL"
+            ]
+          },
+          "transactionId": {
+            "type": "string",
+            "nullable": true
+          },
+          "transaction": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SubscriptionPaymentTransactionResponseDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "amount",
+          "currency",
+          "paidAt",
+          "source",
+          "transactionId",
+          "transaction"
+        ]
+      },
+      "SubscriptionPaymentPageResponseDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SubscriptionPaymentResponseDto"
+            }
+          },
+          "nextCursor": {
+            "type": "string",
+            "nullable": true
+          },
+          "hasMore": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "items",
+          "nextCursor",
+          "hasMore"
+        ]
+      },
       "CreateSubscriptionPaymentDto": {
         "type": "object",
         "properties": {
@@ -10195,6 +11304,52 @@
             "description": "Ledger movement to link"
           }
         }
+      },
+      "SubscriptionManualPaymentResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "amount": {
+            "type": "string",
+            "example": "1500.00"
+          },
+          "currency": {
+            "type": "string",
+            "example": "DOP"
+          },
+          "paidAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "AUTO",
+              "MANUAL"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "amount",
+          "currency",
+          "paidAt",
+          "source"
+        ]
+      },
+      "SubscriptionLogoResponseDto": {
+        "type": "object",
+        "properties": {
+          "logoUrl": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "logoUrl"
+        ]
       },
       "CardStatementResponseDto": {
         "type": "object",
@@ -10908,6 +12063,244 @@
           }
         }
       },
+      "CategoryResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "string",
+            "nullable": true
+          },
+          "name": {
+            "type": "string"
+          },
+          "icon": {
+            "type": "string",
+            "nullable": true
+          },
+          "color": {
+            "type": "string",
+            "nullable": true
+          },
+          "parentId": {
+            "type": "string",
+            "nullable": true
+          },
+          "isSystem": {
+            "type": "boolean"
+          },
+          "systemKind": {
+            "type": "string",
+            "nullable": true
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "EXPENSE",
+              "INCOME"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "userId",
+          "name",
+          "icon",
+          "color",
+          "parentId",
+          "isSystem",
+          "systemKind",
+          "type",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "CategorySummaryResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "color": {
+            "type": "string",
+            "nullable": true
+          },
+          "icon": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "color",
+          "icon"
+        ]
+      },
+      "BudgetResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "string"
+          },
+          "categoryId": {
+            "type": "string",
+            "nullable": true
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "includeChildren": {
+            "type": "boolean"
+          },
+          "rollover": {
+            "type": "string",
+            "enum": [
+              "NONE",
+              "SURPLUS",
+              "SURPLUS_AND_DEFICIT"
+            ]
+          },
+          "carriedOver": {
+            "type": "string",
+            "example": "0.00"
+          },
+          "recurring": {
+            "type": "boolean"
+          },
+          "periodType": {
+            "type": "string",
+            "enum": [
+              "MONTHLY",
+              "BIWEEKLY",
+              "CUSTOM"
+            ]
+          },
+          "periodStart": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "periodEnd": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "amountLimit": {
+            "type": "string",
+            "example": "1500.00"
+          },
+          "amountSpent": {
+            "type": "string",
+            "example": "1500.00"
+          },
+          "alertThresholdPct": {
+            "type": "number",
+            "example": 80
+          },
+          "aiSuggestionStatus": {
+            "type": "string",
+            "enum": [
+              "NONE",
+              "PENDING",
+              "ACCEPTED",
+              "REJECTED"
+            ]
+          },
+          "aiSuggestionPayload": {
+            "type": "object",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "category": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CategoryResponseDto"
+              }
+            ]
+          },
+          "categories": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CategorySummaryResponseDto"
+            }
+          },
+          "effectiveLimit": {
+            "type": "string",
+            "example": "1500.00"
+          }
+        },
+        "required": [
+          "id",
+          "userId",
+          "categoryId",
+          "name",
+          "includeChildren",
+          "rollover",
+          "carriedOver",
+          "recurring",
+          "periodType",
+          "periodStart",
+          "periodEnd",
+          "amountLimit",
+          "amountSpent",
+          "alertThresholdPct",
+          "aiSuggestionStatus",
+          "aiSuggestionPayload",
+          "createdAt",
+          "updatedAt",
+          "category",
+          "categories",
+          "effectiveLimit"
+        ]
+      },
+      "BudgetPageResponseDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BudgetResponseDto"
+            }
+          },
+          "nextCursor": {
+            "type": "string",
+            "nullable": true
+          },
+          "hasMore": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "items",
+          "nextCursor",
+          "hasMore"
+        ]
+      },
       "CreateBudgetDto": {
         "type": "object",
         "properties": {
@@ -11025,6 +12418,121 @@
           }
         }
       },
+      "SavingsGoalResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "targetAmount": {
+            "type": "string",
+            "example": "1500.00"
+          },
+          "currentAmount": {
+            "type": "string",
+            "example": "1500.00"
+          },
+          "currency": {
+            "type": "string",
+            "example": "DOP"
+          },
+          "targetDate": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "icon": {
+            "type": "string",
+            "nullable": true
+          },
+          "color": {
+            "type": "string",
+            "nullable": true
+          },
+          "accountId": {
+            "type": "string",
+            "nullable": true
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "EARMARK",
+              "DEDICATED"
+            ]
+          },
+          "spendReducesProgress": {
+            "type": "boolean"
+          },
+          "isCompleted": {
+            "type": "boolean"
+          },
+          "completedAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "userId",
+          "name",
+          "description",
+          "targetAmount",
+          "currentAmount",
+          "currency",
+          "targetDate",
+          "icon",
+          "color",
+          "accountId",
+          "mode",
+          "spendReducesProgress",
+          "isCompleted",
+          "completedAt",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "SavingsGoalPageResponseDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SavingsGoalResponseDto"
+            }
+          },
+          "nextCursor": {
+            "type": "string",
+            "nullable": true
+          },
+          "hasMore": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "items",
+          "nextCursor",
+          "hasMore"
+        ]
+      },
       "CreateSavingsGoalDto": {
         "type": "object",
         "properties": {
@@ -11069,6 +12577,92 @@
           "name",
           "targetAmount",
           "accountId"
+        ]
+      },
+      "SavingsGoalContributionResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "goalId": {
+            "type": "string"
+          },
+          "amount": {
+            "type": "string",
+            "example": "1500.00"
+          },
+          "contributedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "accountId": {
+            "type": "string",
+            "nullable": true
+          },
+          "destinationAccountId": {
+            "type": "string",
+            "nullable": true
+          },
+          "transactionId": {
+            "type": "string",
+            "nullable": true
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "CONTRIBUTION",
+              "WITHDRAWAL"
+            ]
+          },
+          "transferGroupId": {
+            "type": "string",
+            "nullable": true
+          },
+          "notes": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "goalId",
+          "amount",
+          "contributedAt",
+          "accountId",
+          "destinationAccountId",
+          "transactionId",
+          "kind",
+          "transferGroupId",
+          "notes",
+          "createdAt"
+        ]
+      },
+      "SavingsGoalContributionPageResponseDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SavingsGoalContributionResponseDto"
+            }
+          },
+          "nextCursor": {
+            "type": "string",
+            "nullable": true
+          },
+          "hasMore": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "items",
+          "nextCursor",
+          "hasMore"
         ]
       },
       "CreateSavingsGoalAllocationDto": {
@@ -11858,6 +13452,116 @@
           }
         }
       },
+      "ReceivableResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "string"
+          },
+          "debtorName": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "amount": {
+            "type": "string",
+            "example": "1500.00"
+          },
+          "paidAmount": {
+            "type": "string",
+            "example": "1500.00"
+          },
+          "currency": {
+            "type": "string",
+            "example": "DOP"
+          },
+          "dueDate": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "PARTIAL",
+              "PAID",
+              "CANCELLED",
+              "WRITTEN_OFF"
+            ]
+          },
+          "creditBalance": {
+            "type": "string",
+            "example": "0.00"
+          },
+          "writtenOffAmount": {
+            "type": "string",
+            "example": "0.00"
+          },
+          "writtenOffAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "notes": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "userId",
+          "debtorName",
+          "description",
+          "amount",
+          "paidAmount",
+          "currency",
+          "dueDate",
+          "status",
+          "creditBalance",
+          "writtenOffAmount",
+          "writtenOffAt",
+          "notes",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "ReceivablePageResponseDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReceivableResponseDto"
+            }
+          },
+          "nextCursor": {
+            "type": "string",
+            "nullable": true
+          },
+          "hasMore": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "items",
+          "nextCursor",
+          "hasMore"
+        ]
+      },
       "CreateReceivableDto": {
         "type": "object",
         "properties": {
@@ -11900,6 +13604,89 @@
           "debtorName",
           "description",
           "amount"
+        ]
+      },
+      "ReceivablePaymentResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "receivableId": {
+            "type": "string"
+          },
+          "amount": {
+            "type": "string",
+            "example": "1500.00"
+          },
+          "appliedAmount": {
+            "type": "string",
+            "example": "1500.00"
+          },
+          "excessAmount": {
+            "type": "string",
+            "example": "0.00"
+          },
+          "excessHandling": {
+            "type": "string",
+            "nullable": true
+          },
+          "paidAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "accountId": {
+            "type": "string",
+            "nullable": true
+          },
+          "transactionId": {
+            "type": "string",
+            "nullable": true
+          },
+          "notes": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "receivableId",
+          "amount",
+          "appliedAmount",
+          "excessAmount",
+          "excessHandling",
+          "paidAt",
+          "accountId",
+          "transactionId",
+          "notes",
+          "createdAt"
+        ]
+      },
+      "ReceivablePaymentPageResponseDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReceivablePaymentResponseDto"
+            }
+          },
+          "nextCursor": {
+            "type": "string",
+            "nullable": true
+          },
+          "hasMore": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "items",
+          "nextCursor",
+          "hasMore"
         ]
       },
       "CreateReceivablePaymentDto": {
@@ -12077,6 +13864,130 @@
         },
         "required": [
           "refs"
+        ]
+      },
+      "RecurringPatternResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "merchantId": {
+            "type": "string",
+            "nullable": true
+          },
+          "merchant": {
+            "type": "string"
+          },
+          "merchantName": {
+            "type": "string"
+          },
+          "logoUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "categoryId": {
+            "type": "string",
+            "nullable": true
+          },
+          "avgAmount": {
+            "type": "string",
+            "example": "1500.00"
+          },
+          "currency": {
+            "type": "string",
+            "example": "DOP"
+          },
+          "frequency": {
+            "type": "number",
+            "example": 30
+          },
+          "nextExpectedDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "lastSeenAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "SUGGESTED",
+              "CONFIRMED",
+              "DISMISSED"
+            ]
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "SUBSCRIPTION",
+              "BILL",
+              "INCOME",
+              "OTHER"
+            ]
+          },
+          "confidenceScore": {
+            "type": "number"
+          },
+          "amountTolerancePct": {
+            "type": "number"
+          },
+          "monthlyEquivalent": {
+            "type": "string",
+            "example": "125.00"
+          },
+          "annualEquivalent": {
+            "type": "string",
+            "example": "1500.00"
+          },
+          "daysUntil": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "merchantId",
+          "merchant",
+          "merchantName",
+          "logoUrl",
+          "categoryId",
+          "avgAmount",
+          "currency",
+          "frequency",
+          "nextExpectedDate",
+          "lastSeenAt",
+          "status",
+          "kind",
+          "confidenceScore",
+          "amountTolerancePct",
+          "monthlyEquivalent",
+          "annualEquivalent",
+          "daysUntil"
+        ]
+      },
+      "RecurringPageResponseDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RecurringPatternResponseDto"
+            }
+          },
+          "nextCursor": {
+            "type": "string",
+            "nullable": true
+          },
+          "hasMore": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "items",
+          "nextCursor",
+          "hasMore"
         ]
       },
       "CreateRecurringDto": {

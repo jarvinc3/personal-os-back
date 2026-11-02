@@ -7,7 +7,13 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiCreatedResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
 import { CurrentUser, RequiresEnabledModule } from '@personal-os/core';
 import { RecurringService } from '../application/recurring.service';
 import { CreateRecurringDto } from './dto/create-recurring.dto';
@@ -16,6 +22,10 @@ import {
   UpcomingRecurringQueryDto,
 } from './dto/list-recurring-query.dto';
 import { UpdateRecurringDto } from './dto/update-recurring.dto';
+import {
+  RecurringPageResponseDto,
+  RecurringPatternResponseDto,
+} from './dto/recurring-response.dto';
 
 @ApiTags('finance')
 @ApiBearerAuth('access-token')
@@ -28,6 +38,7 @@ export class RecurringController {
   @ApiOperation({
     summary: 'Lista los patrones recurrentes (sugeridos y confirmados)',
   })
+  @ApiOkResponse({ type: RecurringPageResponseDto })
   list(
     @CurrentUser('sub') userId: string,
     @Query() query: ListRecurringQueryDto,
@@ -39,6 +50,7 @@ export class RecurringController {
   @ApiOperation({
     summary: 'Cargos confirmados previstos en los próximos N días',
   })
+  @ApiOkResponse({ type: [RecurringPatternResponseDto] })
   upcoming(
     @CurrentUser('sub') userId: string,
     @Query() query: UpcomingRecurringQueryDto,
@@ -48,12 +60,14 @@ export class RecurringController {
 
   @Post('recurring')
   @ApiOperation({ summary: 'Crea un cargo recurrente a mano' })
+  @ApiCreatedResponse({ type: RecurringPatternResponseDto })
   create(@CurrentUser('sub') userId: string, @Body() dto: CreateRecurringDto) {
     return this.recurring.create(userId, dto);
   }
 
   @Patch('recurring/:id')
   @ApiOperation({ summary: 'Confirma, descarta o edita un patrón recurrente' })
+  @ApiOkResponse({ type: RecurringPatternResponseDto })
   update(
     @CurrentUser('sub') userId: string,
     @Param('id') id: string,

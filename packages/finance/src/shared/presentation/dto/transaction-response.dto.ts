@@ -195,14 +195,3 @@ export class TransactionPageResponseDto {
   @ApiProperty()
   hasMore!: boolean;
 }
-
-export class AdjustBalanceResponseDto {
-  @ApiProperty()
-  adjusted!: boolean;
-
-  @ApiProperty({ example: 1500 })
-  balance!: number;
-
-  @ApiProperty({ type: () => TransactionResponseDto, nullable: true })
-  transaction!: TransactionResponseDto | null;
-}
