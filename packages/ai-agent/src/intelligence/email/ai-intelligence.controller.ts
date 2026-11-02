@@ -4,6 +4,8 @@ import {
   Controller,
   Get,
   HttpCode,
+  HttpException,
+  Logger,
   Param,
   Post,
   Query,
@@ -38,6 +40,8 @@ import {
 @ApiBearerAuth('access-token')
 @Controller('intelligence')
 export class AiIntelligenceController {
+  private readonly logger = new Logger(AiIntelligenceController.name);
+
   constructor(
     private readonly email: AiEmailSourceService,
     private readonly sync: GmailSyncService,
@@ -148,10 +152,19 @@ export class AiIntelligenceController {
         // The initial Gmail bootstrap can import hundreds of messages and
         // exceed the global request timeout. Persist OAuth first, redirect,
         // and let the sync run independently of the browser request.
-        void this.sync.syncConnection(connection.id).catch(() => undefined);
+        void this.sync.syncConnection(connection.id).catch((error: unknown) => {
+          this.logger.warn(
+            `Gmail sync after OAuth failed for connection ${connection.id}: ${oauthErrorCode(error)}`,
+          );
+        });
         return redirect('connected');
       })
-      .catch(() => redirect('error'));
+      .catch((error: unknown) => {
+        this.logger.warn(
+          `Gmail OAuth callback failed: ${oauthErrorCode(error)}`,
+        );
+        return redirect('error');
+      });
   }
 
   @Get('email/oauth/diagnostics')
@@ -159,4 +172,21 @@ export class AiIntelligenceController {
   diagnostics() {
     return this.email.oauthDiagnostics();
   }
+}
+
+/** Código saneado para el registro: nunca el mensaje, el código OAuth ni el token. */
+function oauthErrorCode(error: unknown): string {
+  if (error instanceof HttpException) {
+    const response = error.getResponse();
+    if (typeof response === 'object' && response !== null) {
+      const { code, providerCode } = response as Record<string, unknown>;
+      if (typeof providerCode === 'string') {
+        return providerCode;
+      }
+      if (typeof code === 'string') {
+        return code;
+      }
+    }
+  }
+  return error instanceof Error ? error.name : 'unknown_error';
 }

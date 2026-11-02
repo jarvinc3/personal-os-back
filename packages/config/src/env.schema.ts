@@ -72,6 +72,10 @@ export const envSchema = z
     /** Dev-only seed target for the initial Intelligence administrator. */
     AI_DEV_ADMIN_EMAIL: optionalApiKey,
     AI_EMAIL_SYNC_INTERVAL_MINUTES: defaultedPositiveInt(10),
+    /** Tope de minutos que una corrida dedica a clasificar correo atrasado. */
+    AI_EMAIL_CLASSIFICATION_BUDGET_MINUTES: defaultedPositiveInt(5),
+    /** Minutos sin avance tras los que una sincronización «running» se marca caída. */
+    AI_EMAIL_SYNC_STALL_MINUTES: defaultedPositiveInt(15),
     /** Minimum distinct contributors for automatic GLOBAL knowledge. */
     AI_GLOBAL_MIN_CONTRIBUTORS: z.preprocess(
       (value) =>

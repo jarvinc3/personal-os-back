@@ -64,21 +64,8 @@ export class AiEmailClassificationService {
 
   /** Processes a bounded batch; model calls use a per-user UTC-day budget. */
   async processPendingForUser(userId: string) {
-    const staleClaimAt = new Date(Date.now() - STALE_CLAIM_MS);
     const pending = await this.prisma.aiEmailMessage.findMany({
-      where: {
-        userId,
-        OR: [
-          { processingStatus: { in: ['INGESTED', 'QUEUED'] } },
-          {
-            processingStatus: 'CLASSIFYING',
-            OR: [
-              { classificationStartedAt: { lt: staleClaimAt } },
-              { classificationStartedAt: null },
-            ],
-          },
-        ],
-      },
+      where: this.pendingForUserWhere(userId),
       select: { id: true },
       orderBy: [{ receivedAt: 'asc' }, { id: 'asc' }],
       take: CLASSIFICATION_BATCH_SIZE,
@@ -97,6 +84,30 @@ export class AiEmailClassificationService {
       }
     }
     return { processed, modelCalls };
+  }
+
+  /** Cuánto correo queda por clasificar con el mismo criterio de la próxima pasada. */
+  async countPendingForUser(userId: string): Promise<number> {
+    return this.prisma.aiEmailMessage.count({
+      where: this.pendingForUserWhere(userId),
+    });
+  }
+
+  private pendingForUserWhere(userId: string): Prisma.AiEmailMessageWhereInput {
+    const staleClaimAt = new Date(Date.now() - STALE_CLAIM_MS);
+    return {
+      userId,
+      OR: [
+        { processingStatus: { in: ['INGESTED', 'QUEUED'] } },
+        {
+          processingStatus: 'CLASSIFYING',
+          OR: [
+            { classificationStartedAt: { lt: staleClaimAt } },
+            { classificationStartedAt: null },
+          ],
+        },
+      ],
+    };
   }
 
   private async classifyOne(

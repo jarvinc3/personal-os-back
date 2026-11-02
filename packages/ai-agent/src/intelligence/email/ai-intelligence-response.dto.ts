@@ -18,7 +18,12 @@ const SYNC_STATUSES = [
   'completed',
   'failed',
 ] as const;
-const SYNC_PHASES = ['bootstrap', 'incremental', 'recovery'] as const;
+const SYNC_PHASES = [
+  'bootstrap',
+  'incremental',
+  'recovery',
+  'classifying',
+] as const;
 const SYNC_ERROR_CATEGORIES = [
   'authorization',
   'configuration',
