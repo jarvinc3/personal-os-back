@@ -10,6 +10,7 @@ import {
 import {
   assertKnowledgeMigration,
   describeKnowledgeEvidence,
+  ensureAdminRole,
   seedKnowledgeEvidence,
   type EvidenceMessage,
   type EvidenceObservation,
@@ -335,23 +336,7 @@ async function main(): Promise<void> {
       where: { email: QA_EMAIL },
       select: { id: true },
     });
-    const admin = await prisma.user.findUnique({
-      where: { email: ADMIN_EMAIL },
-      select: { id: true },
-    });
-    if (!admin) {
-      throw new SeedGuardError(
-        'No existe el ADMIN de DEV para la evidencia GLOBAL',
-      );
-    }
-    const adminRole = await prisma.userRole.findUnique({
-      where: { userId: admin.id },
-      select: { role: true },
-    });
-    if (adminRole?.role !== 'ADMIN') {
-      throw new SeedGuardError('El usuario admin no tiene rol ADMIN');
-    }
-
+    const admin = await ensureAdminRole({ prisma, email: ADMIN_EMAIL });
     if (dryRun) {
       const plannedInput = evidenceInput(
         existingUser?.id ?? 'dry-run-qa-user',

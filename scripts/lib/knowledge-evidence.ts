@@ -404,6 +404,29 @@ export async function assertKnowledgeMigration(
   }
 }
 
+/** Asegura el ADMIN de DEV que reconstruye Knowledge. */
+export async function ensureAdminRole({
+  prisma,
+  email,
+}: {
+  prisma: SeedPrisma;
+  email: string;
+}): Promise<{ id: string }> {
+  const admin = await prisma.user.findUnique({
+    where: { email },
+    select: { id: true },
+  });
+  if (!admin) {
+    throw new SeedGuardError(`No existe la cuenta ${email} en DEV`);
+  }
+  await prisma.userRole.upsert({
+    where: { userId: admin.id },
+    create: { userId: admin.id, role: 'ADMIN' },
+    update: { role: 'ADMIN' },
+  });
+  return admin;
+}
+
 async function ensureConnection(
   tx: TransactionClient,
   user: EvidenceUser,
