@@ -6,6 +6,8 @@ Destino se resuelve por match único de tarjeta `lastFour` o cuenta única de es
 
 Tokens cifrados. Job BullMQ `gmail-sync`. Extractor LLM (`AiEmailTransactionExtractor`) vía `AiCoreModule` (sin `forwardRef`). Sync automático (opt-in `emailSync.automatic`) al ligar un banco, al boot de la API y según `UserModule.config.emailSync.schedule` (intervalo mínimo 15 min u horas fijas en la zona del usuario; default 6 h).
 
+AI-11 consume señales financieras publicadas por AI-7 sin acceso de Finanzas a Gmail. `FinSignalImport` reserva `(userId, signalId)` de forma única; el `importReference` usa el id de señal y la evidencia queda en `aiMetadata` (correo, señal, monto/moneda originales, tasa indicada y evidencia de estado). La tasa contable se resuelve con el servicio FX. Instrumento no identificable, confianza baja y reverso sin original quedan en revisión; las referencias bancarias y el dedupe existente protegen duplicados. Las transferencias se emparejan cuando hay contraparte compatible. Una señal agrupa el candidato de un correo, limitación heredada de AI-5; varias operaciones descritas en un correo no se separan automáticamente.
+
 OAuth autoriza **solo el buzón**. Ligar un banco es `POST /api/finance/email-sync/sources` (exige connection con refresh token). Callback sin `institutionId` en `state` no crea source.
 
 Callback público 302:

@@ -17,7 +17,7 @@ Users/core: `User`, `Module`, `UserModule`, `AiAction`, `AiInference`, `AiConver
 
 `AiAction` stores the capability, validated arguments, owner, status, policy decision and version, plus an optional SHA-256 digest that binds confirmation to the exact arguments. Legacy pending actions are cancelled by the AI-10 migration so they cannot execute without a recorded policy.
 
-Finance: `FinAccount`, `FinInstitution`, `FinCard`, `FinCardBalance`, `FinTransaction`, `FinCategory`, `FinBudget`, `FinBudgetAlert`, `FinSavingsGoal`, `FinLoan`, `FinReceivable`, `FinExchangeRate`, `FinRecurringPattern` (reservado, sin API), `DomainEventOutbox`, `ProcessedDomainEvent`.
+Finance: `FinAccount`, `FinInstitution`, `FinCard`, `FinCardBalance`, `FinTransaction`, `FinSignalImport` (idempotencia, revisión y trazabilidad por señal AI), `FinCategory`, `FinBudget`, `FinBudgetAlert`, `FinSavingsGoal`, `FinLoan`, `FinReceivable`, `FinExchangeRate`, `FinRecurringPattern` (reservado, sin API), `DomainEventOutbox`, `ProcessedDomainEvent`.
 
 Enums relevantes: ver `packages/database/prisma/schema.prisma` (`FinTransactionStatus`, etc.).
 

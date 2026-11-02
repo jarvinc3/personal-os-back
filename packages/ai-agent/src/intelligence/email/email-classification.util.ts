@@ -25,6 +25,44 @@ const transactionSchema = z
       .string()
       .regex(/^\d{4}$/)
       .optional(),
+    movementClass: z
+      .enum([
+        'PURCHASE',
+        'INCOME',
+        'PAYROLL',
+        'ATM_WITHDRAWAL',
+        'TRANSFER_OUT',
+        'TRANSFER_IN',
+        'FEE',
+        'REFUND',
+        'OTHER',
+      ])
+      .optional(),
+    bankStatusNormalized: z
+      .enum([
+        'APPROVED',
+        'COMPLETED',
+        'POSTED',
+        'PENDING',
+        'IN_PROGRESS',
+        'AUTHORIZED',
+        'DECLINED',
+        'REJECTED',
+        'FAILED',
+        'CANCELLED',
+        'VOIDED',
+        'REVERSED',
+        'REFUNDED',
+        'CHARGEBACK',
+        'UNKNOWN',
+      ])
+      .optional(),
+    statusConfidence: z.number().min(0).max(1).optional(),
+    statusEvidence: z.string().trim().max(240).optional(),
+    reverseOfBankReference: z.string().trim().min(1).max(120).optional(),
+    receivedAmount: z.number().positive().optional(),
+    transferExchangeRate: z.number().positive().optional(),
+    categoryNameHint: z.string().trim().min(1).max(80).optional(),
   })
   .optional();
 

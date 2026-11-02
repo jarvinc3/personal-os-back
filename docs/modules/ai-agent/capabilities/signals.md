@@ -8,7 +8,7 @@ AI-5 conserva rutas/clasificaciones independientes, pero su candidato transaccio
 
 ## Entrega y ciclo de vida
 
-La señal se crea con estado `ROUTED`, y la señal, su evidencia `EMAIL_CLASSIFICATION` y el evento `ai.signal.routed` se guardan de forma idempotente junto con la finalización de la clasificación. El relay del outbox publica el evento a BullMQ con un `jobId` estable derivado del `eventId`; si el enqueue falla, el relay reintenta el outbox. La cola prepara la entrega para consumidores futuros, pero AI-7 no incluye un consumidor de Finance.
+La señal se crea con estado `ROUTED`, y la señal, su evidencia `EMAIL_CLASSIFICATION` y el evento `ai.signal.routed` se guardan de forma idempotente junto con la finalización de la clasificación. El relay del outbox publica el evento a BullMQ con un `jobId` estable derivado del `eventId`; si el enqueue falla, el relay reintenta el outbox. El procesador carga la señal por usuario y la entrega al consumidor registrado para su dominio. Para FINANCE, AI-11 consume el payload publicado: no lee Gmail ni modifica la señal fuente. Los resultados quedan en `payload.consumption` (`outcome`, `reason`, referencias de dominio y fecha). `APPLIED`/`ALREADY_APPLIED` pasan a `CONSUMED`; las señales de revisión permanecen `ROUTED` y el rechazo pasa a `FAILED`.
 
 Los estados reservados para el flujo son `DETECTED`, `VALIDATED`, `ROUTED`, `CONSUMED`, `DISMISSED`, `SUPERSEDED` y `FAILED`. La lectura lista hasta 50 señales recientes y filtra tanto señales como evidencia por el usuario autenticado. `GET /api/intelligence/signals/:signalId` oculta señales ajenas devolviendo `404`.
 

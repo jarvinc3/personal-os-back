@@ -28,7 +28,11 @@ export class AiSignalOutboxBridge {
     await this.queue.add(
       'route-signal',
       { signalId: event.signalId, userId: event.userId },
-      { jobId: event.eventId.replaceAll(':', '_') },
+      {
+        jobId: event.eventId.replaceAll(':', '_'),
+        attempts: 5,
+        backoff: { type: 'exponential', delay: 1000 },
+      },
     );
     this.logger.debug(`Queued signal ${event.signalId}`);
   }

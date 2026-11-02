@@ -47,6 +47,8 @@ import { AiActionsRepository } from './actions/infrastructure/ai-actions.reposit
 import { AiActionsReaperService } from './actions/infrastructure/ai-actions-reaper.service';
 import { AiActionPolicyService } from './actions/application/ai-action-policy.service';
 import { AiActionsService } from './actions/application/ai-actions.service';
+import { AiSignalConsumerRegistry } from './intelligence/signals/ai-signal-consumer.registry';
+import { AiSignalRoutingProcessor } from './intelligence/signals/ai-signal-routing.processor';
 
 const bullMqEnabled = isBullMqEnabledFromProcessEnv();
 
@@ -81,6 +83,8 @@ const bullMqEnabled = isBullMqEnabledFromProcessEnv();
     AiEmailClassificationService,
     AiSignalsService,
     AiSignalOutboxBridge,
+    AiSignalConsumerRegistry,
+    ...(bullMqEnabled ? [AiSignalRoutingProcessor] : []),
     AiCapabilityRegistry,
     AiActionsRepository,
     AiActionPolicyService,
@@ -143,6 +147,7 @@ const bullMqEnabled = isBullMqEnabledFromProcessEnv();
     AiConversationDataService,
     AiConversationStore,
     AiSignalsService,
+    AiSignalConsumerRegistry,
     AiRolesService,
     AiConsentService,
     AiEmailSourceService,

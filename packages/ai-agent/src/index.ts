@@ -1,4 +1,5 @@
 export { AiCoreModule } from './ai-core.module';
+export { AiSignalConsumerRegistry } from './intelligence/signals/ai-signal-consumer.registry';
 export { AiActionsRepository } from './actions/infrastructure/ai-actions.repository';
 export { AiActionsService } from './actions/application/ai-actions.service';
 export { AiCapabilityRegistry } from './capabilities/ai-capability.registry';
