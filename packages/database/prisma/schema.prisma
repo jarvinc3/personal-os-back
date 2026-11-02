@@ -23,6 +23,8 @@ model User {
   aiInferences                   AiInference[]
   aiEmailConnection              AiEmailConnection?
   aiEmailMessages                AiEmailMessage[]
+  aiEmailClassifications         AiEmailClassification[]
+  aiEmailModelBudget             AiEmailModelBudget?
   aiSettings                     UserAiSettings?
   aiRole                         UserRole?
   grantedAiRoles                 UserRole[]                      @relation("AiRoleGrantedBy")
@@ -158,6 +160,7 @@ enum AiUserRole {
 enum AiEmailProcessingStatus {
   INGESTED
   QUEUED
+  CLASSIFYING
   PROCESSED
   REVIEW_REQUIRED
   FAILED
@@ -460,28 +463,69 @@ model AiEmailConnection {
 }
 
 model AiEmailMessage {
-  id                  String                  @id @default(dbgenerated("(extensions.uuid_generate_v4())::text"))
-  userId              String                  @map("user_id")
-  connectionId        String                  @map("connection_id")
-  providerMessageId   String                  @map("provider_message_id")
-  providerThreadId    String?                 @map("provider_thread_id")
-  receivedAt          DateTime                @map("received_at") @db.Timestamptz(6)
-  fromAddress         String                  @map("from_address")
-  fromDomain          String                  @map("from_domain")
-  subject             String
-  contentFingerprint  String                  @map("content_fingerprint")
-  templateFingerprint String?                 @map("template_fingerprint")
-  processingStatus    AiEmailProcessingStatus @default(INGESTED) @map("processing_status")
-  createdAt           DateTime                @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt           DateTime                @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
-  user                User                    @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  connection          AiEmailConnection       @relation(fields: [connectionId, userId], references: [id, userId], onDelete: Cascade, onUpdate: NoAction)
-  content             AiEmailMessageContent?
+  id                      String                  @id @default(dbgenerated("(extensions.uuid_generate_v4())::text"))
+  userId                  String                  @map("user_id")
+  connectionId            String                  @map("connection_id")
+  providerMessageId       String                  @map("provider_message_id")
+  providerThreadId        String?                 @map("provider_thread_id")
+  receivedAt              DateTime                @map("received_at") @db.Timestamptz(6)
+  fromAddress             String                  @map("from_address")
+  fromDomain              String                  @map("from_domain")
+  subject                 String
+  contentFingerprint      String                  @map("content_fingerprint")
+  templateFingerprint     String?                 @map("template_fingerprint")
+  processingStatus        AiEmailProcessingStatus @default(INGESTED) @map("processing_status")
+  classification          Json?
+  classificationPath      String?                 @map("classification_path")
+  classificationProvider  String?                 @map("classification_provider")
+  classificationModel     String?                 @map("classification_model")
+  classificationStartedAt DateTime?               @map("classification_started_at") @db.Timestamptz(6)
+  createdAt               DateTime                @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt               DateTime                @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  user                    User                    @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  connection              AiEmailConnection       @relation(fields: [connectionId, userId], references: [id, userId], onDelete: Cascade, onUpdate: NoAction)
+  content                 AiEmailMessageContent?
+  classifications         AiEmailClassification[]
 
   @@unique([connectionId, providerMessageId], map: "ai_email_messages_connection_provider_id_key")
+  @@unique([id, userId], map: "ai_email_messages_id_user_id_key")
   @@index([userId, receivedAt(sort: Desc)], map: "ai_email_messages_user_received_at_idx")
   @@index([userId, processingStatus, receivedAt(sort: Desc)], map: "ai_email_messages_user_status_received_at_idx")
   @@map("ai_email_messages")
+}
+
+model AiEmailClassification {
+  id            String         @id @default(dbgenerated("(extensions.uuid_generate_v4())::text"))
+  userId        String         @map("user_id")
+  messageId     String         @map("message_id")
+  route         String
+  relevance     Boolean
+  semanticType  String         @map("semantic_type")
+  transaction   Json?
+  confidence    Float
+  decisionPath  String         @map("decision_path")
+  knowledgeUsed Json           @default("[]") @map("knowledge_used")
+  provider      String?
+  model         String?
+  inferenceId   String?        @map("inference_id")
+  createdAt     DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  message       AiEmailMessage @relation(fields: [messageId, userId], references: [id, userId], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([messageId, route], map: "ai_email_classifications_message_route_key")
+  @@index([userId, messageId, createdAt], map: "ai_email_classifications_user_message_idx")
+  @@map("ai_email_classifications")
+}
+
+model AiEmailModelBudget {
+  userId     String   @id @map("user_id")
+  budgetDate DateTime @map("budget_date") @db.Date
+  calls      Int      @default(0)
+  dailyLimit Int      @default(100) @map("daily_limit")
+  updatedAt  DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@map("ai_email_model_budgets")
 }
 
 model AiEmailMessageContent {

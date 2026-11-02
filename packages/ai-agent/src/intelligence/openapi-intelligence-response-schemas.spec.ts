@@ -155,4 +155,21 @@ describe('OpenAPI response schemas of intelligence', () => {
       document.components?.schemas?.AiReviewQueueResponseDto,
     ).toBeDefined();
   });
+
+  it('publishes route-level classification details for email messages', () => {
+    const message = document.components?.schemas?.AiEmailMessageResponseDto as {
+      properties?: Record<string, unknown>;
+    };
+
+    expect(message.properties).toHaveProperty('classification');
+    expect(message.properties).toHaveProperty('classificationPath');
+    expect(message.properties).toHaveProperty('classificationProvider');
+    expect(message.properties).toHaveProperty('classificationModel');
+    expect(message.properties?.classifications).toMatchObject({
+      type: 'array',
+    });
+    expect(
+      document.components?.schemas?.AiEmailClassificationResponseDto,
+    ).toBeDefined();
+  });
 });

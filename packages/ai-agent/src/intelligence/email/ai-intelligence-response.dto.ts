@@ -318,6 +318,38 @@ export class AiEmailMessageProvenanceResponseDto {
   verifications!: AiHumanVerificationResponseDto[];
 }
 
+export class AiEmailClassificationResponseDto {
+  @ApiProperty()
+  route!: string;
+
+  @ApiProperty()
+  relevance!: boolean;
+
+  @ApiProperty()
+  semanticType!: string;
+
+  @ApiProperty({ nullable: true, type: Object })
+  transaction!: Record<string, unknown> | null;
+
+  @ApiProperty({ minimum: 0, maximum: 1 })
+  confidence!: number;
+
+  @ApiProperty()
+  decisionPath!: string;
+
+  @ApiProperty({ type: [Object] })
+  knowledgeUsed!: Array<Record<string, unknown>>;
+
+  @ApiProperty({ nullable: true, type: String })
+  provider!: string | null;
+
+  @ApiProperty({ nullable: true, type: String })
+  model!: string | null;
+
+  @ApiProperty({ format: 'date-time' })
+  createdAt!: Date;
+}
+
 export class AiEmailMessageResponseDto extends AiEmailMessageSummaryResponseDto {
   @ApiProperty()
   userId!: string;
@@ -334,6 +366,18 @@ export class AiEmailMessageResponseDto extends AiEmailMessageSummaryResponseDto 
   @ApiProperty({ nullable: true, type: String })
   templateFingerprint!: string | null;
 
+  @ApiProperty({ type: Object, nullable: true })
+  classification!: Record<string, unknown> | null;
+
+  @ApiProperty({ nullable: true, type: String })
+  classificationPath!: string | null;
+
+  @ApiProperty({ nullable: true, type: String })
+  classificationProvider!: string | null;
+
+  @ApiProperty({ nullable: true, type: String })
+  classificationModel!: string | null;
+
   @ApiProperty({ format: 'date-time' })
   createdAt!: string;
 
@@ -345,6 +389,9 @@ export class AiEmailMessageResponseDto extends AiEmailMessageSummaryResponseDto 
 
   @ApiProperty({ type: () => AiEmailMessageProvenanceResponseDto })
   provenance!: AiEmailMessageProvenanceResponseDto;
+
+  @ApiProperty({ type: () => [AiEmailClassificationResponseDto] })
+  classifications!: AiEmailClassificationResponseDto[];
 }
 
 export class AiEmailConnectResponseDto {

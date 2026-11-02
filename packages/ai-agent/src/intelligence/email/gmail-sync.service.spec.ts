@@ -47,12 +47,18 @@ describe('GmailSyncService', () => {
     const deletion = {
       removeEmailData: jest.fn().mockResolvedValue({ deletedMessages: 0 }),
     };
+    const classification = {
+      processPendingForUser: jest
+        .fn()
+        .mockResolvedValue({ processed: 0, modelCalls: 0, budget: 1 }),
+    };
     const service = new GmailSyncService(
       prisma,
       source as never,
       config as never,
       events as never,
       deletion as never,
+      classification as never,
     );
     const syncStateWrites = (): Array<Record<string, unknown>> =>
       prisma.aiEmailConnection.update.mock.calls

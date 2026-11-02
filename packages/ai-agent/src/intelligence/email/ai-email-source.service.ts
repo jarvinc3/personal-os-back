@@ -230,7 +230,10 @@ export class AiEmailSourceService {
   async getMessage(userId: string, messageId: string) {
     const message = await this.prisma.aiEmailMessage.findFirst({
       where: { id: messageId, userId },
-      include: { content: true },
+      include: {
+        content: true,
+        classifications: { orderBy: { route: 'asc' } },
+      },
     });
     if (!message) {
       // Avoid confirming that another user's message exists.

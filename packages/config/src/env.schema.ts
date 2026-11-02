@@ -80,6 +80,8 @@ export const envSchema = z
     ),
     /** Hard cap on LLM email extractions per Gmail sync. Default 25. */
     MAX_EMAIL_LLM_EXTRACTS: defaultedPositiveInt(25),
+    /** Maximum email classification gateway calls per user and UTC day. */
+    AI_EMAIL_DAILY_MODEL_BUDGET: defaultedPositiveInt(100),
     /** Max proactive insight LLM calls per user per UTC day. Default 20. */
     AI_DAILY_INSIGHT_QUOTA: defaultedPositiveInt(20),
 
