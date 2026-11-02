@@ -13,6 +13,7 @@ import { AppEvents } from '@personal-os/core';
 import { PrismaService } from '@personal-os/database';
 import { createHash } from 'node:crypto';
 import { AiEmailSourceService } from './ai-email-source.service';
+import { requiresGmailReconnect } from './gmail-reconnect.util';
 import { AiDataDeletionService } from '../knowledge/ai-data-deletion.service';
 
 const BOOTSTRAP_START = Math.floor(Date.UTC(2026, 0, 1) / 1000);
@@ -230,7 +231,7 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
     this.running = true;
     try {
       const connections = await this.prisma.aiEmailConnection.findMany({
-        where: { isActive: true },
+        where: { isActive: true, reconnectRequiredAt: null },
         select: { id: true },
         orderBy: { createdAt: 'asc' },
       });
@@ -369,6 +370,7 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
         data: {
           lastSyncedAt: attemptFinishedAt,
           lastSyncErrorCode: null,
+          reconnectRequiredAt: null,
           lastAttemptStartedAt: attemptStartedAt,
           lastAttemptFinishedAt: attemptFinishedAt,
           lastAttemptResult: 'SUCCEEDED',
@@ -447,6 +449,9 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
         where: { id: connectionId },
         data: {
           lastSyncErrorCode: code,
+          ...(requiresGmailReconnect(code)
+            ? { reconnectRequiredAt: attemptFinishedAt }
+            : {}),
           lastAttemptStartedAt: attemptStartedAt,
           lastAttemptFinishedAt: attemptFinishedAt,
           lastAttemptResult: 'FAILED',

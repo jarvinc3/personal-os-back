@@ -1,5 +1,9 @@
-import { BadRequestException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { AiEmailSourceService } from './ai-email-source.service';
+import { encryptToken } from './token-encryption.util';
 
 describe('AiEmailSourceService', () => {
   const makeService = () => new AiEmailSourceService({}, {} as never);
@@ -100,6 +104,7 @@ describe('AiEmailSourceService', () => {
       lastFailureErrorCategory: 'temporary',
       lastFailureImportedCount: 2,
       lastFailurePhase: 'incremental',
+      reconnectRequiredAt: finishedAt,
     };
     const prisma = {
       aiEmailConnection: {
@@ -133,7 +138,114 @@ describe('AiEmailSourceService', () => {
         importedCount: 2,
         phase: 'incremental',
       },
+      requiresReconnect: true,
     });
+  });
+
+  it('marca la conexión para reconexión cuando Google rechaza el refresh token', async () => {
+    const encryptionKey = 'a'.repeat(32);
+    const prisma = {
+      aiEmailConnection: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: 'connection-1',
+          isActive: true,
+          accessTokenEncrypted: 'expired-access',
+          refreshTokenEncrypted: encryptToken('refresh-token', encryptionKey),
+          tokenExpiresAt: new Date('2026-10-01T00:00:00.000Z'),
+        }),
+        update: jest.fn().mockResolvedValue({}),
+      },
+    };
+    const config = {
+      get: jest.fn(
+        (key: string) =>
+          ({
+            AI_GMAIL_CLIENT_ID: 'client-id',
+            AI_GMAIL_CLIENT_SECRET: 'client-secret',
+            AI_GMAIL_REDIRECT_URI: 'http://localhost/callback',
+          })[key],
+      ),
+      getOrThrow: jest.fn().mockReturnValue(encryptionKey),
+    };
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: false,
+      status: 400,
+      json: () => Promise.resolve({ error: 'invalid_grant' }),
+    });
+    const service = new AiEmailSourceService(prisma as never, config as never);
+
+    await expect(service.getAccessToken('connection-1')).rejects.toBeInstanceOf(
+      ServiceUnavailableException,
+    );
+
+    const updatePayload = prisma.aiEmailConnection.update.mock.calls[0][0].data;
+    expect(updatePayload).toEqual(
+      expect.objectContaining({ lastSyncErrorCode: 'invalid_grant' }),
+    );
+    expect(updatePayload.reconnectRequiredAt).toBeInstanceOf(Date);
+  });
+
+  it('limpia la reconexión al completar OAuth', async () => {
+    const encryptionKey = 'a'.repeat(32);
+    const prisma = {
+      aiEmailConnection: {
+        findUnique: jest.fn().mockResolvedValue({
+          refreshTokenEncrypted: encryptToken('old-refresh', encryptionKey),
+        }),
+        upsert: jest.fn().mockResolvedValue({
+          id: 'connection-1',
+          userId: 'user-1',
+          emailAddress: 'qa@example.com',
+        }),
+      },
+    };
+    const config = {
+      get: jest.fn(
+        (key: string) =>
+          ({
+            AI_GMAIL_CLIENT_ID: 'client-id',
+            AI_GMAIL_CLIENT_SECRET: 'client-secret',
+            AI_GMAIL_REDIRECT_URI: 'http://localhost/callback',
+          })[key],
+      ),
+      getOrThrow: jest.fn().mockReturnValue(encryptionKey),
+    };
+    global.fetch = jest
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: () =>
+          Promise.resolve({
+            access_token: 'access-token',
+            refresh_token: 'refresh-token',
+            expires_in: 3600,
+          }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: () =>
+          Promise.resolve({
+            emailAddress: 'qa@example.com',
+            historyId: '100',
+          }),
+      });
+    const service = new AiEmailSourceService(prisma as never, config as never);
+    const state = new URL(
+      service.createAuthorizationUrl('user-1'),
+    ).searchParams.get('state');
+
+    await service.completeAuthorization('code', state ?? '');
+
+    expect(prisma.aiEmailConnection.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        update: expect.objectContaining({
+          lastSyncErrorCode: null,
+          reconnectRequiredAt: null,
+        }),
+      }),
+    );
   });
 
   it('expone la configuración OAuth sin valores sensibles', () => {

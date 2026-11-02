@@ -146,6 +146,7 @@ describe('GmailSyncService', () => {
         lastAttemptErrorCategory: null,
         lastAttemptImportedCount: 0,
         lastAttemptPhase: 'bootstrap',
+        reconnectRequiredAt: null,
       }),
     );
     expect(attemptUpdate).not.toHaveProperty('lastFailureAt');
@@ -466,9 +467,11 @@ describe('GmailSyncService', () => {
       await expect(
         service.syncConnection('connection-1'),
       ).rejects.toBeInstanceOf(BadRequestException);
-      expect(prisma.aiEmailConnection.update).toHaveBeenCalledWith({
-        where: { id: 'connection-1' },
-        data: expect.objectContaining({
+      const failureUpdate = prisma.aiEmailConnection.update.mock.calls
+        .map(([call]) => call.data)
+        .find((updatePayload) => updatePayload.lastAttemptResult === 'FAILED');
+      expect(failureUpdate).toEqual(
+        expect.objectContaining({
           lastSyncErrorCode: providerCode,
           lastAttemptResult: 'FAILED',
           lastAttemptErrorCode: providerCode,
@@ -476,7 +479,8 @@ describe('GmailSyncService', () => {
           lastFailureErrorCode: providerCode,
           lastFailureErrorCategory: 'authorization',
         }),
-      });
+      );
+      expect(failureUpdate).not.toHaveProperty('reconnectRequiredAt');
       const states = syncStateWrites();
       expect(states.at(-1)).toEqual(
         expect.objectContaining({
@@ -487,6 +491,60 @@ describe('GmailSyncService', () => {
       );
     },
   );
+
+  it.each([
+    {
+      label: 'Google invalida el refresh token',
+      error: new ServiceUnavailableException({
+        code: 'gmail_token_refresh_failed',
+        providerCode: 'invalid_grant',
+      }),
+      code: 'invalid_grant',
+    },
+    {
+      label: 'falta el refresh token',
+      error: new ServiceUnavailableException('gmail_refresh_token_missing'),
+      code: 'gmail_refresh_token_missing',
+    },
+  ])(
+    'marks the connection for reconnection when $label',
+    async ({ error, code }) => {
+      const { prisma, source, service } = makeFixture();
+      source.getAccessToken.mockRejectedValueOnce(error);
+
+      await expect(
+        service.syncConnection('connection-1'),
+      ).rejects.toBeInstanceOf(ServiceUnavailableException);
+
+      const failureUpdate = prisma.aiEmailConnection.update.mock.calls
+        .map(([call]) => call.data)
+        .find((updatePayload) => updatePayload.lastAttemptResult === 'FAILED');
+      expect(failureUpdate).toEqual(
+        expect.objectContaining({
+          lastSyncErrorCode: code,
+          lastAttemptResult: 'FAILED',
+          lastAttemptErrorCode: code,
+          lastAttemptErrorCategory: 'authorization',
+          lastFailureErrorCode: code,
+          lastFailureErrorCategory: 'authorization',
+        }),
+      );
+      expect(failureUpdate?.reconnectRequiredAt).toBeInstanceOf(Date);
+    },
+  );
+
+  it('omite las conexiones que requieren reconexión en el ciclo automático', async () => {
+    const { prisma, service } = makeFixture();
+
+    await service.syncAllActiveConnections();
+
+    expect(prisma.aiEmailConnection.findMany).toHaveBeenCalledWith({
+      where: { isActive: true, reconnectRequiredAt: null },
+      select: { id: true },
+      orderBy: { createdAt: 'asc' },
+    });
+    expect(prisma.aiEmailConnection.update).not.toHaveBeenCalled();
+  });
 
   it('keeps an unknown provider code and classifies it as unknown', async () => {
     const { current, source, service, syncStateWrites } = makeFixture();
