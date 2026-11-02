@@ -1,5 +1,8 @@
 export { AiCoreModule } from './ai-core.module';
 export { AiCapabilityRegistry } from './capabilities/ai-capability.registry';
+export { AiConversationDataService } from './conversations/application/ai-conversation-data.service';
+export { AiConversationStore } from './conversations/application/ai-conversation.store';
+export { AiAgentOrchestrator } from './conversations/application/ai-agent.orchestrator';
 export { AiModule } from './ai.module';
 export { AiService } from './inference/application/ai.service';
 export { AiInferenceGateway } from './inference/application/ai-inference.gateway';

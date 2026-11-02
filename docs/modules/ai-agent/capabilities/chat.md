@@ -1,25 +1,25 @@
-# Capacidad: chat y sesiones
+# Conversaciones del agente (AI-9)
 
-## Endpoints
+El backend conserva conversaciones privadas por usuario y ejecuta solo capacidades registradas con efecto `READ`. El runtime no importa módulos de dominio. El primer proveedor de Finance expone únicamente el resumen de ingresos, gastos y flujo confirmado de un mes, respetando la zona horaria y moneda base del usuario.
 
-Ver [contracts/http.md](../contracts/http.md).
+El bucle admite hasta cuatro rondas de llamadas a herramientas. Un módulo apagado o una capacidad fallida se devuelve al modelo con un código tipado sanitizado; la conversación puede continuar. No se ejecutan capacidades `WRITE` en AI-9.
 
-## Flujo chat
+Las conversaciones y sus mensajes se guardan en `ai_conversations` y `ai_conversation_messages`. El resumen privado vive en la conversación y solo se usa para reconstruir su contexto; no crea observaciones ni conocimiento global. AI-9 no programa purga automática: los mensajes completos permanecen hasta que el usuario borra la conversación, elimina sus datos AI o elimina su cuenta. El endpoint de exportación AI incluye conversaciones y mensajes.
 
-1. Cliente envía `sessionId?`, `clientMessageId?`, `context?`, `messages`.
-2. Persistencia + runner + tools según `MODULE_CONTEXT` de la sesión.
-3. `context` (`{ moduleSlug, screen?, entityRef?: { type, id } }`) se guarda como último contexto de la sesión. El runner resuelve la entidad con `FinanceFacade.resolveChatContextEntity` (dueño validado por `userId`); si no existe o es de otro usuario, la ignora. El resumen corto (tipo, nombre, saldo/estado e id) entra al prompt de sistema.
-4. Mutating tools respetan `confirmBeforeActions` → acción PENDING.
-5. Respuesta JSON o SSE (`start` → `chunk*` → `done`/`error`). `done` incluye `actions`, `sideEffects`, `blocks`.
-6. `sideEffects`: `{ type: 'invalidate', keys }` o `{ type: 'theme', value }`.
+La recuperación busca siempre por `userId` y devuelve 404 para una conversación ajena o inexistente. El borrado manual de datos incluye la rama `ai.conversations`.
 
-## Bloques nativos
+## HTTP
 
-- `blocks` los arma el back a partir del resultado de las tools de lectura; el modelo nunca les da forma. Tipos vigentes: `markdown`, `action`, `entity_card`, `entity_list` y `chart`.
-- `entity_card` trae `ref: { type, id }` y `entity_list` trae `refs: [{ type, id }]` (más `moreHref` opcional). El bloque **no** copia datos de la entidad: la web resuelve las referencias con `POST /api/finance/entities/lookup` (ver `docs/modules/finance/capabilities/entities.md`) y pinta la card canónica con el dato actual. Así el chat nunca muestra una copia desactualizada.
-- `list_transactions` produce hasta 5 referencias de movimiento; `get_transaction`, una. `get_budget_status` produce hasta 3 presupuestos (el nombrado en el mensaje o los más cerca del límite) y `list_loans` una referencia por préstamo.
-- `action` se rehidrata en cada lectura con el estado vigente de la acción; `markdown` y `chart` no cambian.
+Ver [contrato HTTP](../contracts/http.md#ai-9-conversaciones).
 
-Throttle 30/60s y timeout 30s en chat.
+## Límite de interfaz
 
-Evidencia: `chat/application/`, `AiChatTurnCoordinator`, e2e `test/ai-agent.e2e-spec.ts`.
+La vista web y la experiencia de chat siguen pendientes de decisión del owner. Esta fase solo publica API y runtime backend.
+
+**Decisión pendiente del owner:** definir si las conversaciones deben expirar automáticamente y cuál sería el plazo. AI-9 mantiene el almacenamiento hasta borrado explícito.
+
+## Evidencia
+
+- `packages/ai-agent/src/conversations/`
+- `packages/finance/src/ai/finance-ai-capabilities.spec.ts`
+- `test/ai-agent.e2e-spec.ts`

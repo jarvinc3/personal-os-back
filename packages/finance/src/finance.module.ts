@@ -18,8 +18,9 @@ import { FinanceRecycleBinModule } from './shared/recycle-bin.module';
 import { FinanceWipeModule } from './shared/wipe-finance.module';
 import { FinanceStatementsModule } from './statements/statements.module';
 import { FinanceSubscriptionsModule } from './subscriptions/subscriptions.module';
+import { FinanceAiCapabilities } from './ai/finance-ai-capabilities';
 /**
- * Finance composition root — capability modules only; exports façade alone.
+ * Finance composition root — domain capabilities and their AI read provider.
  */
 @Module({
   imports: [
@@ -42,7 +43,7 @@ import { FinanceSubscriptionsModule } from './subscriptions/subscriptions.module
     FinanceRecycleBinModule,
     FinanceWipeModule,
   ],
-  providers: [FinanceFacade],
-  exports: [FinanceFacade],
+  providers: [FinanceFacade, FinanceAiCapabilities],
+  exports: [FinanceFacade, FinanceAiCapabilities],
 })
 export class FinanceModule {}

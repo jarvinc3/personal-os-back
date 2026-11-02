@@ -245,7 +245,8 @@ La exportación nunca incluye `accessTokenEncrypted` ni `refreshTokenEncrypted`.
   "deleted": true,
   "deletedMessages": 128,
   "detachedVerifications": 12,
-  "detachedObservations": 40
+  "detachedObservations": 40,
+  "deletedConversations": 2
 }
 ```
 
@@ -257,6 +258,7 @@ Qué hace en una sola operación:
 - Conserva una lápida solo si el consentimiento estaba vigente al borrar y la clave es segura para `GLOBAL` (`EMAIL_DOMAIN` y plantillas del vocabulario permitido). La lápida lleva `contributorTombstone`, `normalizerVersion`, `structuralKeys` y `structuralPayload` estructurales.
 - Revoca el consentimiento y escribe un `AiConsentEvent` con `reason: "USER_DELETED_AI_DATA"`. La revocación se registra después de anonimizar para no borrar la elegibilidad de la lápida.
 - Elimina la conexión de Gmail y sus tokens OAuth. El reinicio de correo (`POST /api/intelligence/email/reset`) es la ruta que conserva la conexión.
+- Elimina conversaciones del agente y mensajes relacionados. La exportación incluye esas conversaciones antes del borrado.
 
 `deleted` siempre es `true`. `deletedMessages` cuenta los correos eliminados; `detachedVerifications` y `detachedObservations` son las filas anonimizadas, que no se borran físicamente.
 
@@ -281,3 +283,21 @@ Qué hace en una sola operación:
 - `GET /api/intelligence/signals/:signalId`: devuelve una señal propia con evidencia; responde `404` si no existe o pertenece a otro usuario.
 
 La respuesta contiene `type`, `domain`, `status`, `sourceType`, `sourceId`, `payload`, `correlationKey`, `occurredAt`, `detectedAt`, `confidence` y `evidence`. Las señales de correo llevan el candidato clasificado como payload y un enlace a `EMAIL_CLASSIFICATION`; no crean movimientos ni llaman a Finance. La evidencia no incluye el cuerpo del correo.
+
+# Conversaciones (AI-9)
+
+Todas las rutas requieren JWT y operan con el `userId` autenticado. Una conversación ajena o inexistente responde 404.
+
+| Método   | Ruta                                             | Respuesta                                                                                                                                                                                       |
+| -------- | ------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `POST`   | `/api/ai/conversations`                          | Crea `{ id, title, createdAt, updatedAt }`.                                                                                                                                                     |
+| `GET`    | `/api/ai/conversations`                          | Lista conversaciones propias con `messageCount`.                                                                                                                                                |
+| `GET`    | `/api/ai/conversations/:conversationId`          | Devuelve título, fechas y mensajes `user`/`assistant` en orden. Oculta llamadas y resultados internos de herramientas.                                                                          |
+| `POST`   | `/api/ai/conversations/:conversationId/messages` | Acepta `{ "content": "¿Cuánto gasté este mes?" }`, persiste el mensaje y devuelve `{ conversationId, answer, provider, model }`. El contenido debe tener entre 1 y 4.000 caracteres no blancos. |
+| `DELETE` | `/api/ai/conversations/:conversationId`          | Borra la conversación y sus mensajes en cascada; devuelve `{ deleted: true }`.                                                                                                                  |
+
+El runtime solo ofrece herramientas `READ`. `finance_monthly_summary` recibe `month` en formato `AAAA-MM`, calcula el intervalo con la zona horaria del usuario y usa el analizador financiero del dominio para devolver ingresos, gastos, flujo neto y moneda base confirmados. Los montos son cadenas decimales. Si Finance está desactivado, el runtime entrega un error de capacidad sanitizado al modelo y puede continuar la conversación.
+
+`ai_conversations` y `ai_conversation_messages` son privados por usuario, tienen RLS habilitado y revocan acceso a `anon`, `authenticated` y `PUBLIC`. Los datos completos persisten hasta un borrado explícito del usuario o de la cuenta; no hay purga automática en AI-9. La exportación AI los incluye y la rama de borrado correspondiente es `ai.conversations`.
+
+El resumen interno de conversación se guarda en `ai_conversations.summary`. Solo vuelve al contexto de esa conversación y nunca se proyecta a Knowledge.

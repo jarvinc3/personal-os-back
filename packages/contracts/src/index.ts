@@ -22,6 +22,44 @@ export const AI_CAPABILITY_REGISTRY = Symbol.for(
 export const AI_CAPABILITY_PROVIDERS = Symbol.for(
   'personal-os.contracts.ai-capability-providers',
 );
+export const AI_AGENT_INFERENCE = Symbol.for(
+  'personal-os.contracts.ai-agent-inference',
+);
+
+export type AiAgentToolCall = {
+  id: string;
+  name: string;
+  arguments: JsonObject;
+};
+
+export interface AiAgentMessage {
+  role: 'system' | 'user' | 'assistant' | 'tool';
+  content: string;
+  name?: string;
+  toolCallId?: string;
+  toolCalls?: readonly AiAgentToolCall[];
+}
+
+export interface AiAgentToolDefinition {
+  name: string;
+  description: string;
+  parameters: JsonObject;
+}
+
+export interface AiAgentCompletion {
+  content: string;
+  toolCalls: readonly AiAgentToolCall[];
+  provider: string;
+  model: string;
+}
+
+export interface AiAgentInferencePort {
+  complete(
+    messages: readonly AiAgentMessage[],
+    tools?: readonly AiAgentToolDefinition[],
+  ): Promise<AiAgentCompletion>;
+  summarize(messages: readonly AiAgentMessage[]): Promise<string>;
+}
 
 export interface InferenceMessage {
   role: 'system' | 'user' | 'assistant' | 'tool';

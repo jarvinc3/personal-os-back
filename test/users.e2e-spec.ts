@@ -591,7 +591,10 @@ describe('Users (e2e)', () => {
           const ai = res.body.data.find(
             (group: { app: string }) => group.app === 'ai',
           );
-          expect(ai.branches[0]).toMatchObject({
+          const inferenceBranch = ai.branches.find(
+            (branch: { id: string }) => branch.id === 'ai.inferences',
+          );
+          expect(inferenceBranch).toMatchObject({
             id: 'ai.inferences',
             count: 0,
           });

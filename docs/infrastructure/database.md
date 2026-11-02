@@ -13,7 +13,7 @@
 
 ## Modelos (inventario)
 
-Users/core: `User`, `Module`, `UserModule`, `AiAction`, `AiInference`, `Notification`, `PushToken`, `AuthDeletionOutbox`.
+Users/core: `User`, `Module`, `UserModule`, `AiAction`, `AiInference`, `AiConversation`, `AiConversationMessage`, `Notification`, `PushToken`, `AuthDeletionOutbox`.
 
 Finance: `FinAccount`, `FinInstitution`, `FinCard`, `FinCardBalance`, `FinTransaction`, `FinCategory`, `FinBudget`, `FinBudgetAlert`, `FinSavingsGoal`, `FinLoan`, `FinReceivable`, `FinExchangeRate`, `FinRecurringPattern` (reservado, sin API), `DomainEventOutbox`, `ProcessedDomainEvent`.
 

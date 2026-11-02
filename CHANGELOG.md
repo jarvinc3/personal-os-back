@@ -6,6 +6,8 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [Se
 
 ### Agregado
 
+- AI-9 (#212): añade conversaciones privadas, historial y resúmenes por usuario; el runtime ejecuta herramientas de solo lectura y Finance registra un resumen mensual consultado con datos reales.
+
 - AI-8 (#211): agrega contrato neutral, registro y ejecutor de capacidades con validación de entrada/salida, contexto delegado y composición de proveedores desde `apps/api`.
 
 - AI-7 (#210): publica señales financieras de correo con evidencia, deduplicación por mensaje y entrega durable a BullMQ; una señal agrupa el candidato de cada correo.

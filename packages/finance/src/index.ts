@@ -1,5 +1,6 @@
 export { FinanceEventsModule } from './events/events.module';
 export { FinanceFacade } from './finance.facade';
+export { FinanceAiCapabilities } from './ai/finance-ai-capabilities';
 export { FinanceModule } from './finance.module';
 export { FinanceStatementsModule } from './statements/statements.module';
 export { STATEMENT_EXTRACTOR } from './statements/application/ports/statement-extractor.port';
