@@ -1,17 +1,9 @@
-# Capacidad: tools
+# Registro de capacidades (AI-8)
 
-Fuente: `packages/ai-agent/src/tools/tool.registry.ts` y `prompts/module-context.ts`.
+Las capacidades pertenecen al módulo que las implementa. Ese módulo entrega al registry una definición con nombre, descripción, versión, efecto y esquemas JSON de entrada/salida, además de validadores ejecutables. El paquete neutral `@personal-os/contracts` define el contrato sin importar Nest, Prisma, SDKs ni paquetes de dominio.
 
-`MODULE_CONTEXT_SLUGS`: `general`, `agenda`, `projects`, `health`, `finance`.
+`AiCapabilityRegistry` valida definiciones al registrarlas, rechaza IDs duplicados, publica descriptores sin callbacks internos y ejecuta proveedores sin conocer sus implementaciones. Antes de invocar el proveedor valida los argumentos; después valida el resultado. Los validadores y esquemas forman una sola definición propiedad del módulo.
 
-Siempre puede añadirse `switch_module_context`.
+`apps/api` compone los proveedores mediante `AI_CAPABILITY_PROVIDERS`. Cada proveedor recibe un `AiExecutionContext` creado por el host con usuario, invocación y correlación; esos campos nunca se aceptan desde argumentos generados por el modelo. Un proveedor puede declarar que no está disponible para ese contexto; el registry responde con `CAPABILITY_UNAVAILABLE` sin afectar otras capacidades.
 
-`targetModule` de tools core es `core` salvo helpers de módulos (`modules`).
-
-Finance: ver [finance-tools](../../finance/contracts/finance-tools.md). General: [core-tools](../contracts/core-tools.md).
-
-La `description` de cada módulo es texto del prompt. La de `finance` pide que, ante un préstamo descrito en palabras, la respuesta incluya un enlace markdown a `/finance/loans/new` con `amount`, `periods`, `ratePercent` o `installment` y `lenderName` en la query; el asistente web abre el formulario relleno.
-
-**BR-AI-001:** mutating tools respetan `confirmBeforeActions`.
-
-**BR-AI-002:** `update_module_config` / `toggle_module` slugs `agenda|projects|health`; **finance slug rechazado** en `update_module_config` (config finance no editable por chat) y los slugs retirados (p. ej. `subscriptions`) tampoco son válidos.
+El registry también delega la lectura de contexto al proveedor del módulo. La infraestructura de AI no importa Finance ni ejecuta una selección central por dominio. La conversación y el bucle que llamará a estas capacidades son AI-9.

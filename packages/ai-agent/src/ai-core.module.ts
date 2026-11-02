@@ -2,7 +2,10 @@ import { Global, Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
 import type { Env } from '@personal-os/config';
-import { INFERENCE_COMPLETION } from '@personal-os/contracts';
+import {
+  AI_CAPABILITY_REGISTRY,
+  INFERENCE_COMPLETION,
+} from '@personal-os/contracts';
 import { AiInferenceGateway } from './inference/application/ai-inference.gateway';
 import { InferenceCompletionAdapter } from './inference/application/inference-completion.adapter';
 import { AiService } from './inference/application/ai.service';
@@ -31,6 +34,7 @@ import { QueueNames } from '@personal-os/core';
 import { AiSignalsController } from './intelligence/signals/ai-signals.controller';
 import { AiSignalsService } from './intelligence/signals/ai-signals.service';
 import { AiSignalOutboxBridge } from './intelligence/signals/ai-signal-outbox.bridge';
+import { AiCapabilityRegistry } from './capabilities/ai-capability.registry';
 
 const bullMqEnabled = isBullMqEnabledFromProcessEnv();
 
@@ -63,6 +67,8 @@ const bullMqEnabled = isBullMqEnabledFromProcessEnv();
     AiEmailClassificationService,
     AiSignalsService,
     AiSignalOutboxBridge,
+    AiCapabilityRegistry,
+    { provide: AI_CAPABILITY_REGISTRY, useExisting: AiCapabilityRegistry },
     GmailSyncService,
     AiEvidenceService,
     AiKnowledgeService,
@@ -105,6 +111,8 @@ const bullMqEnabled = isBullMqEnabledFromProcessEnv();
     },
   ],
   exports: [
+    AiCapabilityRegistry,
+    AI_CAPABILITY_REGISTRY,
     AiSignalsService,
     AiRolesService,
     AiConsentService,

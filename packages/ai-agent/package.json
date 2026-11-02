@@ -21,9 +21,9 @@
     "@nestjs/throttler": "^6.7.1",
     "@openrouter/sdk": "^0.12.79",
     "@personal-os/config": "workspace:*",
+    "@personal-os/contracts": "workspace:*",
     "@personal-os/core": "workspace:*",
     "@personal-os/database": "workspace:*",
-    "@personal-os/finance": "workspace:*",
     "@personal-os/notifications": "workspace:*",
     "@personal-os/users": "workspace:*",
     "bullmq": "^5.81.5",
@@ -34,7 +34,6 @@
     "express": "^5.2.1",
     "groq-sdk": "^1.6.0",
     "openai": "^7.41.0",
-    "zod": "^4.6.5",
-    "@personal-os/contracts": "workspace:*"
+    "zod": "^4.6.5"
   }
 }

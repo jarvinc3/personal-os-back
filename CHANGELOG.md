@@ -6,6 +6,8 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [Se
 
 ### Agregado
 
+- AI-8 (#211): agrega contrato neutral, registro y ejecutor de capacidades con validación de entrada/salida, contexto delegado y composición de proveedores desde `apps/api`.
+
 - AI-7 (#210): publica señales financieras de correo con evidencia, deduplicación por mensaje y entrega durable a BullMQ; una señal agrupa el candidato de cada correo.
 
 - AI-6 (#209): filtra la revisión por incertidumbre y evalúa métricas de transacciones sobre una membresía HOLDOUT congelada; compara runs compatibles con deltas, y cada reejecución crea un run sin escribir observaciones ni alterar Knowledge.
