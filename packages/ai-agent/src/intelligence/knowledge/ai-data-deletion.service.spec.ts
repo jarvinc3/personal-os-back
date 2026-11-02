@@ -75,6 +75,10 @@ describe('AiDataDeletionService', () => {
       aiConversation: {
         deleteMany: jest.fn().mockResolvedValue({ count: 2 }),
       },
+      aiAction: {
+        findMany: jest.fn().mockResolvedValue([]),
+        deleteMany: jest.fn().mockResolvedValue({ count: 3 }),
+      },
       userAiSettings: {
         findUnique: jest.fn(() =>
           Promise.resolve({ contributeToGlobalKnowledge: consentEnabled }),
@@ -89,7 +93,7 @@ describe('AiDataDeletionService', () => {
       prisma as never,
       knowledge as never,
     );
-    return { tx, knowledge, service };
+    return { tx, prisma, knowledge, service };
   }
 
   it('retira datos personales y conserva solo estructura elegible al borrar', async () => {
@@ -200,8 +204,15 @@ describe('AiDataDeletionService', () => {
   });
 
   it('deja lápidas elegibles si el consentimiento estaba vigente al borrar', async () => {
-    const { tx, service } = fixture(true);
-    await service.deleteMyData('u1');
+    const { tx, prisma, service } = fixture(true);
+    const result = await service.deleteMyData('u1');
+    expect(result).toMatchObject({
+      deletedConversations: 2,
+      deletedActions: 3,
+    });
+    expect(prisma.aiAction.deleteMany).toHaveBeenCalledWith({
+      where: { userId: 'u1' },
+    });
     expect(
       tx.aiHumanVerification.update.mock.calls[0][0].data.tombstoneEligible,
     ).toBe(true);

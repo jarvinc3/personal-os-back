@@ -631,6 +631,22 @@ describe('Users (e2e)', () => {
       });
     });
 
+    it('POST /api/users/me/data/wipe deletes the users AI action audit', async () => {
+      prismaMock.aiAction.deleteMany.mockResolvedValue({ count: 2 });
+
+      await request(app.getHttpServer())
+        .post('/api/users/me/data/wipe')
+        .set('Authorization', `Bearer ${token()}`)
+        .send({ branches: ['ai.actions'] })
+        .expect(200)
+        .expect(({ body }) => {
+          expect(body.data.counts).toEqual({ 'ai.actions': 2 });
+        });
+      expect(prismaMock.aiAction.deleteMany).toHaveBeenCalledWith({
+        where: { userId: 'user-123' },
+      });
+    });
+
     it('POST /api/users/me/data/wipe rejects a branch that does not exist', async () => {
       await request(app.getHttpServer())
         .post('/api/users/me/data/wipe')

@@ -296,8 +296,18 @@ Todas las rutas requieren JWT y operan con el `userId` autenticado. Una conversa
 | `POST`   | `/api/ai/conversations/:conversationId/messages` | Acepta `{ "content": "¿Cuánto gasté este mes?" }`, persiste el mensaje y devuelve `{ conversationId, answer, provider, model }`. El contenido debe tener entre 1 y 4.000 caracteres no blancos. |
 | `DELETE` | `/api/ai/conversations/:conversationId`          | Borra la conversación y sus mensajes en cascada; devuelve `{ deleted: true }`.                                                                                                                  |
 
-El runtime solo ofrece herramientas `READ`. `finance_monthly_summary` recibe `month` en formato `AAAA-MM`, calcula el intervalo con la zona horaria del usuario y usa el analizador financiero del dominio para devolver ingresos, gastos, flujo neto y moneda base confirmados. Los montos son cadenas decimales. Si Finance está desactivado, el runtime entrega un error de capacidad sanitizado al modelo y puede continuar la conversación.
+El runtime ofrece herramientas `READ` y `WRITE`. `finance_monthly_summary` recibe `month` en formato `AAAA-MM`, calcula el intervalo con la zona horaria del usuario y usa el analizador financiero del dominio para devolver ingresos, gastos, flujo neto y moneda base confirmados. Los montos son cadenas decimales. Si Finance está desactivado, el runtime entrega un error de capacidad sanitizado al modelo y puede continuar la conversación. Cada `WRITE` requiere política AI-10; el endpoint de mensaje devuelve `actions` con la propuesta, su política, estado y payload para mostrar la confirmación al usuario.
 
 `ai_conversations` y `ai_conversation_messages` son privados por usuario, tienen RLS habilitado y revocan acceso a `anon`, `authenticated` y `PUBLIC`. Los datos completos persisten hasta un borrado explícito del usuario o de la cuenta; no hay purga automática en AI-9. La exportación AI los incluye y la rama de borrado correspondiente es `ai.conversations`.
 
 El resumen interno de conversación se guarda en `ai_conversations.summary`. Solo vuelve al contexto de esa conversación y nunca se proyecta a Knowledge.
+
+# Acciones del agente (AI-10)
+
+| Método | Ruta                                | Respuesta                                                                                          |
+| ------ | ----------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `GET`  | `/api/ai/actions`                   | Hasta 100 acciones propias recientes, sin `userId` ni digest interno.                              |
+| `POST` | `/api/ai/actions/:actionId/confirm` | Reclama y ejecuta una acción `CONFIRM_REQUIRED`, o informa `ALREADY_CLAIMED` / `ALREADY_EXECUTED`. |
+| `POST` | `/api/ai/actions/:actionId/cancel`  | Cancela una acción propia `PENDING` con claim atómico.                                             |
+
+Solo la decisión `AUTO_ALLOWED` ejecuta sin confirmación. `CONFIRM_REQUIRED` no muta hasta confirmación. `FORBIDDEN` se audita como `FAILED` y no invoca el dominio. El registry bloquea `WRITE` si no hay una acción propia en `RUNNING` y el hash del payload validado no coincide. Una mutación fallida conserva el código tipado en el resultado; no se reintenta con una confirmación posterior.

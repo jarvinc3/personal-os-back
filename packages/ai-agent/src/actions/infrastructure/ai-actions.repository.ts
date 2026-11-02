@@ -1,5 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import type { AiActionStatus, Prisma } from '@personal-os/database';
+import type {
+  AiActionPolicy,
+  AiActionStatus,
+  Prisma,
+} from '@personal-os/database';
 import { PrismaService } from '@personal-os/database';
 
 @Injectable()
@@ -13,6 +17,9 @@ export class AiActionsRepository {
     actionType: string;
     targetModule: string;
     payload: Record<string, unknown>;
+    policy: AiActionPolicy;
+    policyVersion: string;
+    argumentDigest: string;
     status?: AiActionStatus;
     result?: Record<string, unknown>;
   }) {
@@ -24,7 +31,15 @@ export class AiActionsRepository {
         actionType: data.actionType,
         targetModule: data.targetModule,
         payload: data.payload as Prisma.InputJsonValue,
+        policy: data.policy,
+        policyVersion: data.policyVersion,
+        argumentDigest: data.argumentDigest,
         status: data.status ?? 'PENDING',
+        executedAt:
+          data.status &&
+          ['RUNNING', 'SUCCESS', 'FAILED', 'CANCELLED'].includes(data.status)
+            ? new Date()
+            : undefined,
         result: data.result
           ? (data.result as Prisma.InputJsonValue)
           : undefined,
@@ -36,6 +51,46 @@ export class AiActionsRepository {
     return this.prisma.aiAction.findFirst({
       where: { id, userId },
     });
+  }
+
+  findClaimedForExecution(input: {
+    id: string;
+    userId: string;
+    actionType: string;
+    policy: AiActionPolicy;
+    policyVersion: string;
+    argumentDigest: string;
+  }) {
+    return this.prisma.aiAction.findFirst({
+      where: {
+        id: input.id,
+        userId: input.userId,
+        actionType: input.actionType,
+        status: 'RUNNING',
+        policy: input.policy,
+        policyVersion: input.policyVersion,
+        argumentDigest: input.argumentDigest,
+      },
+    });
+  }
+
+  listForUser(userId: string) {
+    return this.prisma.aiAction.findMany({
+      where: { userId },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      take: 100,
+    });
+  }
+
+  countForUser(userId: string) {
+    return this.prisma.aiAction.count({ where: { userId } });
+  }
+
+  async wipeForUser(userId: string): Promise<number> {
+    const { count } = await this.prisma.aiAction.deleteMany({
+      where: { userId },
+    });
+    return count;
   }
 
   findByOrigin(userId: string, originType: string, originReference: string) {
@@ -117,9 +172,7 @@ export class AiActionsRepository {
       },
       data: {
         status: 'FAILED',
-        result: {
-          error: 'Action timed out while RUNNING (reaper)',
-        },
+        result: { ok: false, error: 'ACTION_TIMEOUT' },
         executedAt: new Date(),
       },
     });

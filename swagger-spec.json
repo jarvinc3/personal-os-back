@@ -8523,6 +8523,108 @@
           "ai-agent"
         ]
       }
+    },
+    "/api/ai/actions": {
+      "get": {
+        "operationId": "AiActionsController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AiActionDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Listar acciones propias del agente",
+        "tags": [
+          "ai-agent"
+        ]
+      }
+    },
+    "/api/ai/actions/{actionId}/confirm": {
+      "post": {
+        "operationId": "AiActionsController_confirm",
+        "parameters": [
+          {
+            "name": "actionId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AiActionResultDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Confirmar una acción pendiente del agente",
+        "tags": [
+          "ai-agent"
+        ]
+      }
+    },
+    "/api/ai/actions/{actionId}/cancel": {
+      "post": {
+        "operationId": "AiActionsController_cancel",
+        "parameters": [
+          {
+            "name": "actionId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AiActionResultDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Cancelar una acción pendiente del agente",
+        "tags": [
+          "ai-agent"
+        ]
+      }
     }
   },
   "info": {
@@ -18502,6 +18604,91 @@
           "provider",
           "model"
         ]
+      },
+      "AiActionDto": {
+        "type": "object",
+        "required": [
+          "id",
+          "actionType",
+          "targetModule",
+          "policy",
+          "status",
+          "payload",
+          "result",
+          "createdAt",
+          "executedAt"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "actionType": {
+            "type": "string"
+          },
+          "targetModule": {
+            "type": "string"
+          },
+          "policy": {
+            "type": "string",
+            "enum": [
+              "AUTO_ALLOWED",
+              "CONFIRM_REQUIRED",
+              "FORBIDDEN"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "RUNNING",
+              "SUCCESS",
+              "FAILED",
+              "CANCELLED"
+            ]
+          },
+          "payload": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "result": {
+            "type": "object",
+            "nullable": true,
+            "additionalProperties": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "executedAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          }
+        }
+      },
+      "AiActionResultDto": {
+        "type": "object",
+        "required": [
+          "outcome",
+          "action"
+        ],
+        "properties": {
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "PENDING_CONFIRMATION",
+              "EXECUTED",
+              "ALREADY_EXECUTED",
+              "ALREADY_CLAIMED",
+              "FORBIDDEN",
+              "FAILED",
+              "CANCELLED"
+            ]
+          },
+          "action": {
+            "$ref": "#/components/schemas/AiActionDto"
+          }
+        }
       }
     }
   }

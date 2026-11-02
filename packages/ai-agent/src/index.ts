@@ -1,4 +1,6 @@
 export { AiCoreModule } from './ai-core.module';
+export { AiActionsRepository } from './actions/infrastructure/ai-actions.repository';
+export { AiActionsService } from './actions/application/ai-actions.service';
 export { AiCapabilityRegistry } from './capabilities/ai-capability.registry';
 export { AiConversationDataService } from './conversations/application/ai-conversation-data.service';
 export { AiConversationStore } from './conversations/application/ai-conversation.store';

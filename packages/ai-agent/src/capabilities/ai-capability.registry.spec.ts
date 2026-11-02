@@ -5,7 +5,10 @@ import type {
   JsonObject,
   JsonValue,
 } from '@personal-os/contracts';
+import { AI_ACTION_POLICY_VERSION } from '@personal-os/contracts';
 import { AiCapabilityError } from '@personal-os/contracts';
+import { AiActionsRepository } from '../actions/infrastructure/ai-actions.repository';
+import { aiActionArgumentDigest } from '../actions/application/ai-action-argument-digest';
 import { AiCapabilityRegistry } from './ai-capability.registry';
 
 const context: AiExecutionContext = {
@@ -17,6 +20,7 @@ const context: AiExecutionContext = {
 function definition(
   moduleSlug: string,
   id = `${moduleSlug}.lookup`,
+  overrides: Partial<AiCapabilityDefinition> = {},
 ): AiCapabilityDefinition {
   return {
     id,
@@ -33,6 +37,7 @@ function definition(
       properties: { result: { type: 'string' } },
     },
     effect: 'READ',
+    ...overrides,
     validateInput(value: unknown): JsonObject {
       if (
         typeof value !== 'object' ||
@@ -55,6 +60,20 @@ function definition(
       }
       return value as JsonObject;
     },
+  };
+}
+
+function createRegistry(actionClaimed = false) {
+  const actions = {
+    findClaimedForExecution: jest
+      .fn()
+      .mockResolvedValue(actionClaimed ? { id: 'action-1' } : null),
+  };
+  return {
+    registry: new AiCapabilityRegistry(
+      actions as unknown as AiActionsRepository,
+    ),
+    actions,
   };
 }
 
@@ -84,7 +103,7 @@ function provider(
 
 describe('AiCapabilityRegistry', () => {
   it('discovers module capabilities with descriptions and schemas', () => {
-    const registry = new AiCapabilityRegistry();
+    const { registry } = createRegistry();
     registry.register(provider('finance').instance);
     const [capability] = registry.discover();
     expect(capability).toMatchObject({
@@ -98,7 +117,7 @@ describe('AiCapabilityRegistry', () => {
   });
 
   it('executes a registered capability using validated arguments', async () => {
-    const registry = new AiCapabilityRegistry();
+    const { registry } = createRegistry();
     const { instance, execute } = provider('finance');
     registry.register(instance);
     await expect(
@@ -110,7 +129,7 @@ describe('AiCapabilityRegistry', () => {
   });
 
   it('rejects invalid arguments before the module provider runs', async () => {
-    const registry = new AiCapabilityRegistry();
+    const { registry } = createRegistry();
     const { instance, execute } = provider('finance');
     registry.register(instance);
     await expect(
@@ -120,7 +139,7 @@ describe('AiCapabilityRegistry', () => {
   });
 
   it('rejects provider output that does not match its schema contract', async () => {
-    const registry = new AiCapabilityRegistry();
+    const { registry } = createRegistry();
     registry.register(provider('finance', { output: { result: 3 } }).instance);
     await expect(
       registry.execute(context, 'finance.lookup', { query: 'account' }),
@@ -128,7 +147,7 @@ describe('AiCapabilityRegistry', () => {
   });
 
   it('rejects duplicate capability ids without disturbing existing entries', () => {
-    const registry = new AiCapabilityRegistry();
+    const { registry } = createRegistry();
     registry.register(
       provider('finance', {
         definitions: [definition('finance', 'shared.lookup')],
@@ -145,7 +164,7 @@ describe('AiCapabilityRegistry', () => {
   });
 
   it('returns a typed unavailable error while keeping other modules usable', async () => {
-    const registry = new AiCapabilityRegistry();
+    const { registry } = createRegistry();
     registry.register(provider('offline', { available: false }).instance);
     registry.register(provider('users').instance);
     await expect(
@@ -157,12 +176,83 @@ describe('AiCapabilityRegistry', () => {
   });
 
   it('delegates context lookup to the owning module provider', async () => {
-    const registry = new AiCapabilityRegistry();
+    const { registry } = createRegistry();
     registry.register(
       provider('finance', { context: { accounts: [] } }).instance,
     );
     await expect(registry.readContext(context, 'finance')).resolves.toEqual({
       accounts: [],
     });
+  });
+
+  it('rejects mutating definitions without an explicit policy', () => {
+    const { registry } = createRegistry();
+    const mutating = definition('finance', 'finance.change', {
+      effect: 'WRITE',
+    });
+    expect(() =>
+      registry.register(
+        provider('finance', { definitions: [mutating] }).instance,
+      ),
+    ).toThrow(AiCapabilityError);
+  });
+
+  it('blocks every write without a persisted claimed action', async () => {
+    const { registry, actions } = createRegistry();
+    const execute = jest.fn().mockResolvedValue({ result: 'changed' });
+    registry.register({
+      moduleSlug: 'finance',
+      describe: () => [
+        definition('finance', 'finance.change', {
+          effect: 'WRITE',
+          actionPolicy: 'CONFIRM_REQUIRED',
+        }),
+      ],
+      execute,
+    });
+
+    await expect(
+      registry.execute(context, 'finance.change', { query: 'value' }),
+    ).rejects.toMatchObject({ code: 'CAPABILITY_MUTATION_POLICY_REQUIRED' });
+    expect(execute).not.toHaveBeenCalled();
+    expect(actions.findClaimedForExecution).not.toHaveBeenCalled();
+  });
+
+  it('executes a write only when the action is claimed and args match its digest', async () => {
+    const { registry, actions } = createRegistry(true);
+    const execute = jest.fn().mockResolvedValue({ result: 'changed' });
+    registry.register({
+      moduleSlug: 'finance',
+      describe: () => [
+        definition('finance', 'finance.change', {
+          effect: 'WRITE',
+          actionPolicy: 'CONFIRM_REQUIRED',
+        }),
+      ],
+      execute,
+    });
+    const writeContext: AiExecutionContext = {
+      ...context,
+      authorization: {
+        actionId: 'action-1',
+        capabilityId: 'finance.change',
+        argumentDigest: aiActionArgumentDigest({ query: 'value' }),
+        policyVersion: AI_ACTION_POLICY_VERSION,
+        decision: 'CONFIRM_REQUIRED',
+      },
+    };
+
+    await expect(
+      registry.execute(writeContext, 'finance.change', { query: 'value' }),
+    ).resolves.toEqual({ result: 'changed' });
+    expect(actions.findClaimedForExecution).toHaveBeenCalledWith({
+      id: 'action-1',
+      userId: context.userId,
+      actionType: 'finance.change',
+      policy: 'CONFIRM_REQUIRED',
+      policyVersion: AI_ACTION_POLICY_VERSION,
+      argumentDigest: aiActionArgumentDigest({ query: 'value' }),
+    });
+    expect(execute).toHaveBeenCalledTimes(1);
   });
 });

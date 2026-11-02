@@ -30,6 +30,14 @@ export type PrismaMock = {
   aiConversationMessage: {
     create: MockFn;
   };
+  aiAction: {
+    create: MockFn;
+    findFirst: MockFn;
+    findMany: MockFn;
+    updateMany: MockFn;
+    count: MockFn;
+    deleteMany: MockFn;
+  };
   aiKnowledgeObservation: {
     aggregate: MockFn;
     findMany: MockFn;
@@ -792,6 +800,14 @@ export function createPrismaMock(): PrismaMock {
     },
     aiConversationMessage: {
       create: jest.fn().mockResolvedValue({ id: 'message-1' }),
+    },
+    aiAction: {
+      create: jest.fn().mockResolvedValue({ id: 'action-1' }),
+      findFirst: jest.fn().mockResolvedValue(null),
+      findMany: jest.fn().mockResolvedValue([]),
+      updateMany: jest.fn().mockResolvedValue({ count: 0 }),
+      count: jest.fn().mockResolvedValue(0),
+      deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
     },
     aiKnowledgeObservation: {
       aggregate: jest.fn().mockResolvedValue({ _max: { sequence: null } }),

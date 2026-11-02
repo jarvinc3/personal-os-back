@@ -6,4 +6,4 @@ Las capacidades pertenecen al módulo que las implementa. Ese módulo entrega al
 
 `apps/api` compone los proveedores mediante `AI_CAPABILITY_PROVIDERS`. Cada proveedor recibe un `AiExecutionContext` creado por el host con usuario, invocación y correlación; esos campos nunca se aceptan desde argumentos generados por el modelo. Un proveedor puede declarar que no está disponible para ese contexto; el registry responde con `CAPABILITY_UNAVAILABLE` sin afectar otras capacidades.
 
-El registry también delega la lectura de contexto al proveedor del módulo. La infraestructura de AI no importa Finance ni ejecuta una selección central por dominio. La conversación y el bucle que llamará a estas capacidades son AI-9.
+El registry también delega la lectura de contexto al proveedor del módulo. La infraestructura de AI no importa Finance ni ejecuta una selección central por dominio. Los descriptores `WRITE` requieren `actionPolicy`; AI-10 impone el claim auditable antes de cualquier ejecución y mantiene los `READ` sin el ciclo de acciones.
