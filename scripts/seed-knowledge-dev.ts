@@ -7,6 +7,7 @@ import {
 import {
   assertKnowledgeMigration,
   describeKnowledgeEvidence,
+  ensureAdminRole,
   seedKnowledgeEvidence,
   type EvidenceMessage,
   type EvidenceObservation,
@@ -159,20 +160,7 @@ async function main(): Promise<void> {
   const prisma = createScriptPrismaClient();
   try {
     await assertKnowledgeMigration(prisma);
-    const admin = await prisma.user.findUnique({
-      where: { email: ADMIN_EMAIL },
-      select: { id: true },
-    });
-    if (!admin) {
-      throw new SeedGuardError('No existe el usuario QA admin en DEV');
-    }
-    const role = await prisma.userRole.findUnique({
-      where: { userId: admin.id },
-      select: { role: true },
-    });
-    if (role?.role !== 'ADMIN') {
-      throw new SeedGuardError('El usuario QA no tiene rol ADMIN');
-    }
+    const admin = await ensureAdminRole({ prisma, email: ADMIN_EMAIL });
     const input = evidenceInput(admin.id);
     if (dryRun) {
       console.log(
