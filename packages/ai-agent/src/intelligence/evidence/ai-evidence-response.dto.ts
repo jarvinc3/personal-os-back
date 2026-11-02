@@ -1,14 +1,11 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { HUMAN_VERIFICATION_VERDICTS } from './human-verification.constants';
+import {
+  REVIEW_QUEUE_PARTITIONS,
+  REVIEW_QUEUE_STATUSES,
+} from './review-queue.constants';
+import { AI_ROLES } from '../roles/ai-role.decorator';
 
-const REVIEW_QUEUE_PARTITIONS = ['TRAIN', 'VALIDATION', 'HOLDOUT'] as const;
-const REVIEW_QUEUE_STATUSES = [
-  'PENDING',
-  'CONFIRMED',
-  'CORRECTED',
-  'REJECTED',
-] as const;
-const AI_USER_ROLES = ['USER', 'CONTRIBUTOR', 'ADMIN'] as const;
-const VERDICTS = ['CONFIRMED', 'CORRECTED', 'REJECTED'] as const;
 const ANALYSIS_MODES = ['ANALYZE_ONLY', 'EVALUATE', 'IMPORT'] as const;
 const RUN_STATUSES = ['RUNNING', 'COMPLETED', 'FAILED'] as const;
 const REPRODUCTION_STATUSES = ['COMPLETE', 'INCOMPLETE'] as const;
@@ -36,7 +33,7 @@ export class AiDatasetResponseDto {
 }
 
 export class AiReviewItemVerificationResponseDto {
-  @ApiProperty({ enum: VERDICTS })
+  @ApiProperty({ enum: HUMAN_VERIFICATION_VERDICTS })
   verdict!: string;
 
   @ApiProperty({ type: Object, nullable: true })
@@ -167,7 +164,7 @@ export class AiMessageVerificationResponseDto {
   @ApiProperty({ example: '1' })
   sequence!: string;
 
-  @ApiProperty({ enum: AI_USER_ROLES })
+  @ApiProperty({ enum: AI_ROLES })
   verifierRole!: string;
 
   @ApiProperty()
@@ -176,7 +173,7 @@ export class AiMessageVerificationResponseDto {
   @ApiProperty({ nullable: true, type: String })
   targetId!: string | null;
 
-  @ApiProperty({ enum: VERDICTS })
+  @ApiProperty({ enum: HUMAN_VERIFICATION_VERDICTS })
   verdict!: string;
 
   @ApiProperty({ type: Object, nullable: true })

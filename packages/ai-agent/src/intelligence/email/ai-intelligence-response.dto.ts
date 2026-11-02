@@ -1,4 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { HUMAN_VERIFICATION_VERDICTS } from '../evidence/human-verification.constants';
+import { AI_ROLES } from '../roles/ai-role.decorator';
 
 const EMAIL_PROCESSING_STATUSES = [
   'INGESTED',
@@ -7,8 +9,7 @@ const EMAIL_PROCESSING_STATUSES = [
   'REVIEW_REQUIRED',
   'FAILED',
 ] as const;
-const AI_USER_ROLES = ['USER', 'CONTRIBUTOR', 'ADMIN'] as const;
-const VERDICTS = ['CONFIRMED', 'CORRECTED', 'REJECTED'] as const;
+const DIAGNOSTIC_STATUSES = ['ready', 'missing_oauth_configuration'] as const;
 const SYNC_STATUSES = [
   'running',
   'waiting',
@@ -205,7 +206,7 @@ export class AiEmailDashboardResponseDto {
   @ApiProperty({ type: () => AiEmailReceivedRangeResponseDto })
   receivedRange!: AiEmailReceivedRangeResponseDto;
 
-  @ApiProperty({ enum: AI_USER_ROLES })
+  @ApiProperty({ enum: AI_ROLES })
   role!: string;
 }
 
@@ -290,10 +291,10 @@ export class AiHumanVerificationResponseDto {
   @ApiProperty({ example: '1' })
   sequence!: string;
 
-  @ApiProperty({ enum: AI_USER_ROLES })
+  @ApiProperty({ enum: AI_ROLES })
   verifierRole!: string;
 
-  @ApiProperty({ enum: VERDICTS })
+  @ApiProperty({ enum: HUMAN_VERIFICATION_VERDICTS })
   verdict!: string;
 
   @ApiProperty({ type: Object, nullable: true })
@@ -377,6 +378,6 @@ export class AiEmailDiagnosticsResponseDto {
   @ApiProperty({ type: [String] })
   scopes!: string[];
 
-  @ApiProperty({ enum: ['ready', 'missing_oauth_configuration'] })
+  @ApiProperty({ enum: DIAGNOSTIC_STATUSES })
   status!: string;
 }

@@ -1,6 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-
-const AI_USER_ROLES = ['USER', 'CONTRIBUTOR', 'ADMIN'] as const;
+import { AI_ROLES } from './ai-role.decorator';
 
 export class AiRoleUserResponseDto {
   @ApiProperty()
@@ -12,7 +11,7 @@ export class AiRoleUserResponseDto {
   @ApiProperty()
   fullName!: string;
 
-  @ApiProperty({ enum: AI_USER_ROLES })
+  @ApiProperty({ enum: AI_ROLES })
   role!: string;
 
   @ApiProperty({ nullable: true, type: String, format: 'date-time' })
@@ -26,7 +25,7 @@ export class AiRoleAssignmentResponseDto {
   @ApiProperty()
   userId!: string;
 
-  @ApiProperty({ enum: AI_USER_ROLES })
+  @ApiProperty({ enum: AI_ROLES })
   role!: string;
 
   @ApiProperty({ nullable: true, type: String })

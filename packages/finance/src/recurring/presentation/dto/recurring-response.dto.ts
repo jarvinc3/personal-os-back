@@ -1,7 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
-
-const RECURRING_STATUSES = ['SUGGESTED', 'CONFIRMED', 'DISMISSED'] as const;
-const RECURRING_KINDS = ['SUBSCRIPTION', 'BILL', 'INCOME', 'OTHER'] as const;
+import { RECURRING_KINDS } from './create-recurring.dto';
+import { RECURRING_STATUSES } from './update-recurring.dto';
 
 export class RecurringPatternResponseDto {
   @ApiProperty()

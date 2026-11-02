@@ -1,10 +1,9 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { DELETION_ENTITY } from '../../domain/deletion-snapshot';
-
-const ARCHIVED_TYPES = ['institution', 'account', 'card', 'loan'] as const;
+import { RECYCLE_BIN_ARCHIVED_TYPES } from '../../domain/recycle-bin';
 
 export class ArchivedEntityResponseDto {
-  @ApiProperty({ enum: ARCHIVED_TYPES })
+  @ApiProperty({ enum: RECYCLE_BIN_ARCHIVED_TYPES })
   type!: string;
 
   @ApiProperty()
