@@ -15,6 +15,8 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import {
   ApiBearerAuth,
   ApiConsumes,
+  ApiCreatedResponse,
+  ApiOkResponse,
   ApiOperation,
   ApiTags,
 } from '@nestjs/swagger';
@@ -26,6 +28,13 @@ import { ListMerchantsQueryDto } from './dto/list-merchants-query.dto';
 import { MergeMerchantDto } from './dto/merge-merchant.dto';
 import { SuggestMerchantQueryDto } from './dto/suggest-merchant-query.dto';
 import { UpdateMerchantDto } from './dto/update-merchant.dto';
+import {
+  MerchantDuplicateDismissResponseDto,
+  MerchantDuplicateResponseDto,
+  MerchantPageResponseDto,
+  MerchantResponseDto,
+  MerchantSuggestResponseDto,
+} from './dto/merchant-response.dto';
 
 @ApiTags('finance')
 @ApiBearerAuth('access-token')
@@ -36,6 +45,7 @@ export class MerchantsController {
 
   @Get('merchants')
   @ApiOperation({ summary: 'Lista los comercios con su gasto del mes' })
+  @ApiOkResponse({ type: MerchantPageResponseDto })
   list(
     @CurrentUser('sub') userId: string,
     @Query() query: ListMerchantsQueryDto,
@@ -45,6 +55,7 @@ export class MerchantsController {
 
   @Get('merchants/suggest')
   @ApiOperation({ summary: 'Mejor comercio conocido para un nombre escrito' })
+  @ApiOkResponse({ type: MerchantSuggestResponseDto, nullable: true })
   suggest(
     @CurrentUser('sub') userId: string,
     @Query() query: SuggestMerchantQueryDto,
@@ -54,12 +65,14 @@ export class MerchantsController {
 
   @Post('merchants')
   @ApiOperation({ summary: 'Crea un comercio con nombre, categoría y alias' })
+  @ApiCreatedResponse({ type: MerchantResponseDto })
   create(@CurrentUser('sub') userId: string, @Body() dto: CreateMerchantDto) {
     return this.merchants.create(userId, dto);
   }
 
   @Get('merchants/:id')
   @ApiOperation({ summary: 'Detalle del comercio' })
+  @ApiOkResponse({ type: MerchantResponseDto })
   get(@CurrentUser('sub') userId: string, @Param('id') id: string) {
     return this.merchants.get(userId, id);
   }
@@ -68,6 +81,7 @@ export class MerchantsController {
   @ApiOperation({
     summary: 'Comercios que parecen el mismo, con el motivo',
   })
+  @ApiOkResponse({ type: [MerchantDuplicateResponseDto] })
   duplicates(@CurrentUser('sub') userId: string, @Param('id') id: string) {
     return this.merchants.duplicates(userId, id);
   }
@@ -75,6 +89,7 @@ export class MerchantsController {
   @Post('merchants/:id/duplicates/:otherId/dismiss')
   @HttpCode(200)
   @ApiOperation({ summary: 'Marca un par de comercios como «no es duplicado»' })
+  @ApiOkResponse({ type: MerchantDuplicateDismissResponseDto })
   dismissDuplicate(
     @CurrentUser('sub') userId: string,
     @Param('id') id: string,
@@ -85,6 +100,7 @@ export class MerchantsController {
 
   @Delete('merchants/:id/duplicates/:otherId/dismiss')
   @ApiOperation({ summary: 'Revierte el descarte de un par de comercios' })
+  @ApiOkResponse({ type: MerchantDuplicateDismissResponseDto })
   undoDismissDuplicate(
     @CurrentUser('sub') userId: string,
     @Param('id') id: string,
@@ -97,6 +113,7 @@ export class MerchantsController {
   @ApiOperation({
     summary: 'Renombra un comercio o define su categoría y logo',
   })
+  @ApiOkResponse({ type: MerchantResponseDto })
   update(
     @CurrentUser('sub') userId: string,
     @Param('id') id: string,
@@ -107,6 +124,7 @@ export class MerchantsController {
 
   @Post('merchants/:id/merge')
   @ApiOperation({ summary: 'Mueve los movimientos de un comercio a otro' })
+  @ApiCreatedResponse({ type: MerchantResponseDto })
   merge(
     @CurrentUser('sub') userId: string,
     @Param('id') id: string,
@@ -117,6 +135,7 @@ export class MerchantsController {
 
   @Delete('merchants/:id/logo')
   @ApiOperation({ summary: 'Quita el logo propio de un comercio' })
+  @ApiOkResponse({ type: MerchantResponseDto })
   deleteLogo(@CurrentUser('sub') userId: string, @Param('id') id: string) {
     return this.merchants.deleteLogo(userId, id);
   }
@@ -124,6 +143,7 @@ export class MerchantsController {
   @Post('merchants/:id/logo')
   @ApiConsumes('multipart/form-data')
   @ApiOperation({ summary: 'Sube un logo de comercio personalizado' })
+  @ApiCreatedResponse({ type: MerchantResponseDto })
   @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 1_000_000 } }))
   uploadLogo(
     @CurrentUser('sub') userId: string,

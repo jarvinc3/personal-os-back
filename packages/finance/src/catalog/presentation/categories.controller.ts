@@ -9,12 +9,20 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiCreatedResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
 import { CurrentUser, RequiresEnabledModule } from '@personal-os/core';
 import { CatalogService } from '../application/catalog.service';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { ListCategoriesQueryDto } from './dto/list-categories-query.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
+import { CategoryResponseDto } from '../../shared/presentation/dto/category-response.dto';
+import { SuccessResponseDto } from '../../shared/presentation/success-response.dto';
 
 @ApiTags('finance')
 @ApiBearerAuth('access-token')
@@ -24,6 +32,7 @@ export class CategoriesController {
   constructor(private readonly catalog: CatalogService) {}
 
   @Get('categories')
+  @ApiOkResponse({ type: [CategoryResponseDto] })
   list(
     @CurrentUser('sub') userId: string,
     @Query() query: ListCategoriesQueryDto,
@@ -37,11 +46,13 @@ export class CategoriesController {
   }
 
   @Post('categories')
+  @ApiCreatedResponse({ type: CategoryResponseDto })
   create(@CurrentUser('sub') userId: string, @Body() dto: CreateCategoryDto) {
     return this.catalog.createCategory(userId, dto);
   }
 
   @Patch('categories/:id')
+  @ApiOkResponse({ type: CategoryResponseDto })
   update(
     @CurrentUser('sub') userId: string,
     @Param('id') id: string,
@@ -51,12 +62,14 @@ export class CategoriesController {
   }
 
   @Delete('categories/:id')
+  @ApiOkResponse({ type: SuccessResponseDto })
   remove(@CurrentUser('sub') userId: string, @Param('id') id: string) {
     return this.catalog.deleteCategory(userId, id);
   }
 
   @Post('categories/:id/restore')
   @ApiOperation({ summary: 'Deshace un borrado desde el journal' })
+  @ApiCreatedResponse({ type: SuccessResponseDto })
   restore(@CurrentUser('sub') userId: string, @Param('id') id: string) {
     return this.catalog.restoreCategory(userId, id, new Date());
   }

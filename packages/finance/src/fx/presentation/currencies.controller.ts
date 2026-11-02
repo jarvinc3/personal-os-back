@@ -1,5 +1,10 @@
 import { Body, Controller, Get, HttpCode, Post, Query } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
 import { CurrentUser } from '@personal-os/core';
 import { RequiresEnabledModule } from '@personal-os/core';
 import { ChangeBaseCurrencyUseCase } from '../application/change-base-currency.use-case';
@@ -7,6 +12,10 @@ import { GetExchangeRatesUseCase } from '../application/get-exchange-rates.use-c
 import { ExchangeRateHostAdapter } from '../infrastructure/exchange-rate-host.adapter';
 import { ChangeBaseCurrencyDto } from './dto/change-base-currency.dto';
 import { ExchangeRatesQueryDto } from './dto/exchange-rates-query.dto';
+import {
+  ChangeBaseCurrencyResponseDto,
+  ExchangeRatesResponseDto,
+} from './dto/fx-response.dto';
 
 @ApiTags('finance')
 @ApiBearerAuth('access-token')
@@ -23,6 +32,7 @@ export class CurrenciesController {
   @ApiOperation({
     summary: 'Lista las monedas ISO desde tasas en caché o exchangerate.host',
   })
+  @ApiOkResponse({ type: [String] })
   list() {
     return this.rates.listCurrencies();
   }
@@ -31,6 +41,7 @@ export class CurrenciesController {
   @ApiOperation({
     summary: 'Tasas de mercado de las monedas cotizadas en una moneda base',
   })
+  @ApiOkResponse({ type: ExchangeRatesResponseDto })
   exchangeRates(@Query() query: ExchangeRatesQueryDto) {
     return this.getExchangeRates.execute(
       query.base,
@@ -44,6 +55,7 @@ export class CurrenciesController {
   @ApiOperation({
     summary: 'Cambia la moneda base y reconvierte los montos base guardados',
   })
+  @ApiOkResponse({ type: ChangeBaseCurrencyResponseDto })
   setBaseCurrency(
     @CurrentUser('sub') userId: string,
     @Body() dto: ChangeBaseCurrencyDto,

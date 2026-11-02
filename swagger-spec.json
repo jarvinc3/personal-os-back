@@ -1170,7 +1170,17 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1211,7 +1221,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExchangeRatesResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1241,7 +1258,14 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChangeBaseCurrencyResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -2112,7 +2136,17 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CategoryResponseDto"
+                  }
+                }
+              }
+            }
           }
         },
         "security": [
@@ -2139,7 +2173,14 @@
         },
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CategoryResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -2177,7 +2218,14 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CategoryResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -2203,7 +2251,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -2231,7 +2286,14 @@
         ],
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -3243,7 +3305,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MerchantPageResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -3271,7 +3340,14 @@
         },
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MerchantResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -3301,7 +3377,21 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/MerchantSuggestResponseDto"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              }
+            }
           }
         },
         "security": [
@@ -3330,7 +3420,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MerchantResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -3367,7 +3464,14 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MerchantResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -3396,7 +3500,17 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MerchantDuplicateResponseDto"
+                  }
+                }
+              }
+            }
           }
         },
         "security": [
@@ -3433,7 +3547,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MerchantDuplicateDismissResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -3468,7 +3589,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MerchantDuplicateDismissResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -3507,7 +3635,14 @@
         },
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MerchantResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -3536,7 +3671,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MerchantResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -3563,7 +3705,14 @@
         ],
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MerchantResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -6512,7 +6661,49 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "nullable": true,
+                    "oneOf": [
+                      {
+                        "$ref": "#/components/schemas/TransactionResponseDto"
+                      },
+                      {
+                        "$ref": "#/components/schemas/AccountResponseDto"
+                      },
+                      {
+                        "$ref": "#/components/schemas/CardResponseDto"
+                      },
+                      {
+                        "$ref": "#/components/schemas/LoanResponseDto"
+                      },
+                      {
+                        "$ref": "#/components/schemas/BudgetResponseDto"
+                      },
+                      {
+                        "$ref": "#/components/schemas/SavingsGoalResponseDto"
+                      },
+                      {
+                        "$ref": "#/components/schemas/ReceivableResponseDto"
+                      },
+                      {
+                        "$ref": "#/components/schemas/SubscriptionResponseDto"
+                      },
+                      {
+                        "$ref": "#/components/schemas/MerchantResponseDto"
+                      },
+                      {
+                        "$ref": "#/components/schemas/CategoryResponseDto"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
           }
         },
         "security": [
@@ -6541,7 +6732,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WeeklySummaryResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -6577,7 +6775,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsSummaryResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -6613,7 +6818,17 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SpendingByCategoryResponseDto"
+                  }
+                }
+              }
+            }
           }
         },
         "security": [
@@ -6632,7 +6847,17 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/BudgetStatusResponseDto"
+                  }
+                }
+              }
+            }
           }
         },
         "security": [
@@ -6684,7 +6909,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SpendingOverTimeResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -7157,7 +7389,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BankChargesResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -7270,7 +7509,14 @@
         },
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuickEntryParseResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -7420,7 +7666,14 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecycleBinResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -8246,6 +8499,49 @@
           "detachedObservations"
         ]
       },
+      "ExchangeRateResponseDto": {
+        "type": "object",
+        "properties": {
+          "currency": {
+            "type": "string",
+            "example": "USD"
+          },
+          "rate": {
+            "type": "string",
+            "nullable": true,
+            "example": "58.50"
+          }
+        },
+        "required": [
+          "currency",
+          "rate"
+        ]
+      },
+      "ExchangeRatesResponseDto": {
+        "type": "object",
+        "properties": {
+          "baseCurrency": {
+            "type": "string",
+            "example": "DOP"
+          },
+          "date": {
+            "type": "string",
+            "format": "date",
+            "example": "2026-11-01"
+          },
+          "rates": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ExchangeRateResponseDto"
+            }
+          }
+        },
+        "required": [
+          "baseCurrency",
+          "date",
+          "rates"
+        ]
+      },
       "ChangeBaseCurrencyDto": {
         "type": "object",
         "properties": {
@@ -8257,6 +8553,31 @@
         },
         "required": [
           "baseCurrency"
+        ]
+      },
+      "ChangeBaseCurrencyResponseDto": {
+        "type": "object",
+        "properties": {
+          "baseCurrency": {
+            "type": "string",
+            "example": "USD"
+          },
+          "previousBaseCurrency": {
+            "type": "string",
+            "example": "DOP"
+          },
+          "rebasedTransactions": {
+            "type": "number"
+          },
+          "rebasedBudgets": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "baseCurrency",
+          "previousBaseCurrency",
+          "rebasedTransactions",
+          "rebasedBudgets"
         ]
       },
       "AccountResponseDto": {
@@ -9038,6 +9359,68 @@
         "required": [
           "currency",
           "balance"
+        ]
+      },
+      "CategoryResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "string",
+            "nullable": true
+          },
+          "name": {
+            "type": "string"
+          },
+          "icon": {
+            "type": "string",
+            "nullable": true
+          },
+          "color": {
+            "type": "string",
+            "nullable": true
+          },
+          "parentId": {
+            "type": "string",
+            "nullable": true
+          },
+          "isSystem": {
+            "type": "boolean"
+          },
+          "systemKind": {
+            "type": "string",
+            "nullable": true
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "EXPENSE",
+              "INCOME"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "userId",
+          "name",
+          "icon",
+          "color",
+          "parentId",
+          "isSystem",
+          "systemKind",
+          "type",
+          "createdAt",
+          "updatedAt"
         ]
       },
       "CreateCategoryDto": {
@@ -10303,6 +10686,128 @@
           }
         }
       },
+      "MerchantListItemResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "normalizedKey": {
+            "type": "string"
+          },
+          "aliases": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "categoryId": {
+            "type": "string",
+            "nullable": true
+          },
+          "categorySource": {
+            "type": "string",
+            "enum": [
+              "MANUAL",
+              "LEARNED",
+              "KEYWORD"
+            ],
+            "nullable": true
+          },
+          "domain": {
+            "type": "string",
+            "nullable": true
+          },
+          "logoUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "monthSpend": {
+            "type": "string",
+            "example": "1500.00"
+          },
+          "monthMovements": {
+            "type": "number"
+          },
+          "possibleDuplicates": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "normalizedKey",
+          "aliases",
+          "categoryId",
+          "categorySource",
+          "domain",
+          "logoUrl",
+          "createdAt",
+          "monthSpend",
+          "monthMovements",
+          "possibleDuplicates"
+        ]
+      },
+      "MerchantPageResponseDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MerchantListItemResponseDto"
+            }
+          },
+          "nextCursor": {
+            "type": "string",
+            "nullable": true
+          },
+          "hasMore": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "items",
+          "nextCursor",
+          "hasMore"
+        ]
+      },
+      "MerchantSuggestResponseDto": {
+        "type": "object",
+        "properties": {
+          "merchantId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "categoryId": {
+            "type": "string",
+            "nullable": true
+          },
+          "categorySource": {
+            "type": "string",
+            "enum": [
+              "MANUAL",
+              "LEARNED",
+              "KEYWORD"
+            ],
+            "nullable": true
+          }
+        },
+        "required": [
+          "merchantId",
+          "name",
+          "categoryId",
+          "categorySource"
+        ]
+      },
       "CreateMerchantDto": {
         "type": "object",
         "properties": {
@@ -10331,6 +10836,122 @@
         },
         "required": [
           "name"
+        ]
+      },
+      "MerchantResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "normalizedKey": {
+            "type": "string"
+          },
+          "aliases": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "categoryId": {
+            "type": "string",
+            "nullable": true
+          },
+          "categorySource": {
+            "type": "string",
+            "enum": [
+              "MANUAL",
+              "LEARNED",
+              "KEYWORD"
+            ],
+            "nullable": true
+          },
+          "domain": {
+            "type": "string",
+            "nullable": true
+          },
+          "logoUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "monthSpend": {
+            "type": "string",
+            "example": "1500.00"
+          },
+          "monthMovements": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "normalizedKey",
+          "aliases",
+          "categoryId",
+          "categorySource",
+          "domain",
+          "logoUrl",
+          "createdAt",
+          "monthSpend",
+          "monthMovements"
+        ]
+      },
+      "MerchantDuplicateResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "logoUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "monthSpend": {
+            "type": "string",
+            "example": "1500.00"
+          },
+          "monthMovements": {
+            "type": "number"
+          },
+          "reason": {
+            "type": "string",
+            "enum": [
+              "SAME_KEY",
+              "ALIAS_MATCH",
+              "TRAILING_NUMBER",
+              "NAME_CONTAINED",
+              "SIMILAR_NAME"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "logoUrl",
+          "monthSpend",
+          "monthMovements",
+          "reason"
+        ]
+      },
+      "MerchantDuplicateDismissResponseDto": {
+        "type": "object",
+        "properties": {
+          "dismissed": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "dismissed"
         ]
       },
       "UpdateMerchantDto": {
@@ -12062,68 +12683,6 @@
             "description": "Create an adjustment for the remaining balance difference"
           }
         }
-      },
-      "CategoryResponseDto": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "userId": {
-            "type": "string",
-            "nullable": true
-          },
-          "name": {
-            "type": "string"
-          },
-          "icon": {
-            "type": "string",
-            "nullable": true
-          },
-          "color": {
-            "type": "string",
-            "nullable": true
-          },
-          "parentId": {
-            "type": "string",
-            "nullable": true
-          },
-          "isSystem": {
-            "type": "boolean"
-          },
-          "systemKind": {
-            "type": "string",
-            "nullable": true
-          },
-          "type": {
-            "type": "string",
-            "enum": [
-              "EXPENSE",
-              "INCOME"
-            ]
-          },
-          "createdAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "updatedAt": {
-            "type": "string",
-            "format": "date-time"
-          }
-        },
-        "required": [
-          "id",
-          "userId",
-          "name",
-          "icon",
-          "color",
-          "parentId",
-          "isSystem",
-          "systemKind",
-          "type",
-          "createdAt",
-          "updatedAt"
-        ]
       },
       "CategorySummaryResponseDto": {
         "type": "object",
@@ -13866,6 +14425,406 @@
           "refs"
         ]
       },
+      "WeeklySummaryTopCategoryResponseDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "icon": {
+            "type": "string",
+            "nullable": true
+          },
+          "color": {
+            "type": "string",
+            "nullable": true
+          },
+          "total": {
+            "type": "string",
+            "example": "1500.00"
+          }
+        },
+        "required": [
+          "name",
+          "icon",
+          "color",
+          "total"
+        ]
+      },
+      "WeeklySummaryBudgetRiskResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "pctUsed": {
+            "type": "number"
+          },
+          "spent": {
+            "type": "string",
+            "example": "1500.00"
+          },
+          "limit": {
+            "type": "string",
+            "example": "1500.00"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "pctUsed",
+          "spent",
+          "limit"
+        ]
+      },
+      "WeeklySummaryInstallmentResponseDto": {
+        "type": "object",
+        "properties": {
+          "loanId": {
+            "type": "string"
+          },
+          "lenderName": {
+            "type": "string"
+          },
+          "amount": {
+            "type": "string",
+            "example": "1500.00"
+          },
+          "currency": {
+            "type": "string",
+            "example": "DOP"
+          },
+          "dueDate": {
+            "type": "string",
+            "format": "date"
+          }
+        },
+        "required": [
+          "loanId",
+          "lenderName",
+          "amount",
+          "currency",
+          "dueDate"
+        ]
+      },
+      "WeeklySummaryCardDueResponseDto": {
+        "type": "object",
+        "properties": {
+          "cardId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "lastFour": {
+            "type": "string",
+            "nullable": true
+          },
+          "dueDay": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "cardId",
+          "name",
+          "lastFour",
+          "dueDay"
+        ]
+      },
+      "WeeklySummaryResponseDto": {
+        "type": "object",
+        "properties": {
+          "weekStart": {
+            "type": "string",
+            "format": "date"
+          },
+          "weekEnd": {
+            "type": "string",
+            "format": "date"
+          },
+          "currency": {
+            "type": "string",
+            "example": "DOP"
+          },
+          "expenses": {
+            "type": "string",
+            "example": "1500.00"
+          },
+          "averageExpenses": {
+            "type": "string",
+            "example": "1500.00"
+          },
+          "topCategories": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WeeklySummaryTopCategoryResponseDto"
+            }
+          },
+          "budgetsAtRisk": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WeeklySummaryBudgetRiskResponseDto"
+            }
+          },
+          "upcomingInstallments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WeeklySummaryInstallmentResponseDto"
+            }
+          },
+          "cardDueDates": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WeeklySummaryCardDueResponseDto"
+            }
+          },
+          "pendingEmails": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "weekStart",
+          "weekEnd",
+          "currency",
+          "expenses",
+          "averageExpenses",
+          "topCategories",
+          "budgetsAtRisk",
+          "upcomingInstallments",
+          "cardDueDates",
+          "pendingEmails"
+        ]
+      },
+      "AnalyticsBalanceIssueResponseDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "enum": [
+              "MISSING_CREDIT_LIMIT",
+              "MISSING_RATE"
+            ]
+          },
+          "cardId": {
+            "type": "string"
+          },
+          "currency": {
+            "type": "string",
+            "example": "DOP"
+          }
+        },
+        "required": [
+          "code",
+          "currency"
+        ]
+      },
+      "AnalyticsSummaryTotalsResponseDto": {
+        "type": "object",
+        "properties": {
+          "accountBalance": {
+            "type": "string",
+            "example": "1500.00"
+          },
+          "cardDebt": {
+            "type": "string",
+            "nullable": true,
+            "example": "0.00"
+          },
+          "income": {
+            "type": "string",
+            "example": "1500.00"
+          },
+          "expenses": {
+            "type": "string",
+            "example": "1500.00"
+          }
+        },
+        "required": [
+          "accountBalance",
+          "cardDebt",
+          "income",
+          "expenses"
+        ]
+      },
+      "AnalyticsSummaryResponseDto": {
+        "type": "object",
+        "properties": {
+          "netWorth": {
+            "type": "string",
+            "nullable": true,
+            "example": "1500.00"
+          },
+          "cashFlow": {
+            "type": "string",
+            "example": "1500.00"
+          },
+          "baseCurrency": {
+            "type": "string",
+            "example": "DOP"
+          },
+          "balanceStatus": {
+            "type": "string",
+            "enum": [
+              "COMPLETE",
+              "INCOMPLETE"
+            ]
+          },
+          "balanceIssues": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AnalyticsBalanceIssueResponseDto"
+            }
+          },
+          "totals": {
+            "$ref": "#/components/schemas/AnalyticsSummaryTotalsResponseDto"
+          }
+        },
+        "required": [
+          "netWorth",
+          "cashFlow",
+          "baseCurrency",
+          "balanceStatus",
+          "balanceIssues",
+          "totals"
+        ]
+      },
+      "SpendingByCategoryResponseDto": {
+        "type": "object",
+        "properties": {
+          "categoryId": {
+            "type": "string",
+            "nullable": true
+          },
+          "name": {
+            "type": "string"
+          },
+          "color": {
+            "type": "string",
+            "nullable": true
+          },
+          "icon": {
+            "type": "string",
+            "nullable": true
+          },
+          "total": {
+            "type": "string",
+            "example": "1500.00"
+          }
+        },
+        "required": [
+          "categoryId",
+          "name",
+          "color",
+          "icon",
+          "total"
+        ]
+      },
+      "BudgetStatusResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "categoryId": {
+            "type": "string",
+            "nullable": true
+          },
+          "category": {
+            "type": "string"
+          },
+          "color": {
+            "type": "string",
+            "nullable": true
+          },
+          "icon": {
+            "type": "string",
+            "nullable": true
+          },
+          "periodType": {
+            "type": "string",
+            "enum": [
+              "MONTHLY",
+              "BIWEEKLY",
+              "CUSTOM"
+            ]
+          },
+          "periodStart": {
+            "type": "string",
+            "format": "date"
+          },
+          "periodEnd": {
+            "type": "string",
+            "format": "date"
+          },
+          "amountLimit": {
+            "type": "string",
+            "example": "1500.00"
+          },
+          "amountSpent": {
+            "type": "string",
+            "example": "1500.00"
+          },
+          "pctUsed": {
+            "type": "number"
+          },
+          "threshold": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "categoryId",
+          "category",
+          "color",
+          "icon",
+          "periodType",
+          "periodStart",
+          "periodEnd",
+          "amountLimit",
+          "amountSpent",
+          "pctUsed",
+          "threshold"
+        ]
+      },
+      "SpendingOverTimePointResponseDto": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "expenses": {
+            "type": "string",
+            "example": "1500.00"
+          },
+          "income": {
+            "type": "string",
+            "example": "1500.00"
+          }
+        },
+        "required": [
+          "date",
+          "expenses",
+          "income"
+        ]
+      },
+      "SpendingOverTimeResponseDto": {
+        "type": "object",
+        "properties": {
+          "points": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SpendingOverTimePointResponseDto"
+            }
+          }
+        },
+        "required": [
+          "points"
+        ]
+      },
       "RecurringPatternResponseDto": {
         "type": "object",
         "properties": {
@@ -14449,6 +15408,114 @@
           "hasMore"
         ]
       },
+      "BankChargesMonthResponseDto": {
+        "type": "object",
+        "properties": {
+          "month": {
+            "type": "string",
+            "example": "2026-11"
+          },
+          "total": {
+            "type": "string",
+            "example": "1500.00"
+          },
+          "count": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "month",
+          "total",
+          "count"
+        ]
+      },
+      "BankChargesInstitutionResponseDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "total": {
+            "type": "string",
+            "example": "1500.00"
+          },
+          "count": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "name",
+          "total",
+          "count"
+        ]
+      },
+      "BankChargesKindResponseDto": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string"
+          },
+          "total": {
+            "type": "string",
+            "example": "1500.00"
+          },
+          "count": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "kind",
+          "total",
+          "count"
+        ]
+      },
+      "BankChargesResponseDto": {
+        "type": "object",
+        "properties": {
+          "from": {
+            "type": "string",
+            "format": "date"
+          },
+          "to": {
+            "type": "string",
+            "format": "date"
+          },
+          "total": {
+            "type": "string",
+            "example": "1500.00"
+          },
+          "count": {
+            "type": "number"
+          },
+          "byMonth": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BankChargesMonthResponseDto"
+            }
+          },
+          "byInstitution": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BankChargesInstitutionResponseDto"
+            }
+          },
+          "byKind": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BankChargesKindResponseDto"
+            }
+          }
+        },
+        "required": [
+          "from",
+          "to",
+          "total",
+          "count",
+          "byMonth",
+          "byInstitution",
+          "byKind"
+        ]
+      },
       "BalanceDriftResponseDto": {
         "type": "object",
         "properties": {
@@ -14582,6 +15649,84 @@
           "text"
         ]
       },
+      "QuickEntryDraftResponseDto": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "DEBIT",
+              "CREDIT"
+            ]
+          },
+          "amount": {
+            "type": "string",
+            "example": "1500.00"
+          },
+          "currency": {
+            "type": "string",
+            "example": "DOP"
+          },
+          "categoryId": {
+            "type": "string",
+            "nullable": true
+          },
+          "accountId": {
+            "type": "string",
+            "nullable": true
+          },
+          "cardId": {
+            "type": "string",
+            "nullable": true
+          },
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "merchant": {
+            "type": "string",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "type",
+          "amount",
+          "currency",
+          "categoryId",
+          "accountId",
+          "cardId",
+          "date",
+          "merchant",
+          "description"
+        ]
+      },
+      "QuickEntryParseResponseDto": {
+        "type": "object",
+        "properties": {
+          "draft": {
+            "$ref": "#/components/schemas/QuickEntryDraftResponseDto"
+          },
+          "confidence": {
+            "type": "number",
+            "example": 0.9
+          },
+          "missing": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "draft",
+          "confidence",
+          "missing"
+        ]
+      },
       "CreateReceivableShareDto": {
         "type": "object",
         "properties": {
@@ -14600,6 +15745,111 @@
         "required": [
           "receivableIds",
           "debtorName"
+        ]
+      },
+      "ArchivedEntityResponseDto": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "institution",
+              "account",
+              "card",
+              "loan"
+            ]
+          },
+          "id": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "logoUrl": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "type",
+          "id",
+          "label",
+          "logoUrl"
+        ]
+      },
+      "PendingDeletionResponseDto": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "account",
+              "budget",
+              "card",
+              "category",
+              "institution",
+              "loan",
+              "receivable",
+              "reconciliation",
+              "savingsGoal",
+              "transaction"
+            ]
+          },
+          "id": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "logoUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "deletedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "sizeBytes": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "type",
+          "id",
+          "label",
+          "logoUrl",
+          "deletedAt",
+          "sizeBytes"
+        ]
+      },
+      "RecycleBinResponseDto": {
+        "type": "object",
+        "properties": {
+          "archived": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ArchivedEntityResponseDto"
+            }
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PendingDeletionResponseDto"
+            }
+          },
+          "nextCursor": {
+            "type": "string",
+            "nullable": true
+          },
+          "hasMore": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "archived",
+          "items",
+          "nextCursor",
+          "hasMore"
         ]
       },
       "CreateNotificationDto": {

@@ -1,8 +1,14 @@
 import { Body, Controller, Post } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiCreatedResponse,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
 import { CurrentUser, RequiresEnabledModule } from '@personal-os/core';
 import { QuickEntryService } from '../application/quick-entry.service';
 import { ParseQuickEntryDto } from './dto/parse-quick-entry.dto';
+import { QuickEntryParseResponseDto } from './dto/quick-entry-response.dto';
 
 @ApiTags('finance')
 @ApiBearerAuth('access-token')
@@ -16,6 +22,7 @@ export class QuickEntryController {
     summary:
       'Convierte una frase rápida en un borrador de transacción (nunca guarda)',
   })
+  @ApiCreatedResponse({ type: QuickEntryParseResponseDto })
   parse(@CurrentUser('sub') userId: string, @Body() dto: ParseQuickEntryDto) {
     return this.quickEntry.parse(userId, dto.text);
   }
