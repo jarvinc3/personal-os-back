@@ -185,6 +185,7 @@ export function reviewQueueMessageFilter({
   receivedAt,
   cursor,
   order,
+  uncertain,
 }: {
   userId: string;
   latestByMessageId: ReadonlyMap<string, LatestReviewVerification>;
@@ -195,6 +196,7 @@ export function reviewQueueMessageFilter({
   receivedAt?: Prisma.DateTimeFilter;
   cursor?: string;
   order: ReviewQueueOrder;
+  uncertain?: boolean;
 }): Prisma.AiEmailMessageWhereInput {
   const clauses = [
     reviewQueueStatusFilter({ statuses, latestByMessageId }),
@@ -205,6 +207,14 @@ export function reviewQueueMessageFilter({
   return {
     userId,
     ...(partitionMessageIds ? { id: { in: [...partitionMessageIds] } } : {}),
+    ...(uncertain
+      ? {
+          OR: [
+            { classifications: { none: {} } },
+            { classifications: { some: { confidence: { lt: 0.7 } } } },
+          ],
+        }
+      : {}),
     ...reviewQueueMessageSearchFilter({ fromAddress, subject, receivedAt }),
     ...(clauses.length ? { AND: clauses } : {}),
   };

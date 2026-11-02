@@ -4,6 +4,7 @@ import {
   IsIn,
   IsISO8601,
   IsOptional,
+  IsBoolean,
   IsString,
   Matches,
   MaxLength,
@@ -29,6 +30,14 @@ function trimToUndefined(value: unknown): string | undefined {
 }
 
 export class ReviewQueueQueryDto {
+  @ApiPropertyOptional({
+    description: 'Solo mensajes inciertos o sin predicción',
+  })
+  @IsOptional()
+  @Transform(({ value }) => value === true || value === 'true')
+  @IsBoolean()
+  uncertain?: boolean;
+
   @ApiPropertyOptional({ description: 'Cursor opaco de la página anterior' })
   @IsOptional()
   @IsString()

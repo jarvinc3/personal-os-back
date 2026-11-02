@@ -3,6 +3,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { createHash } from 'node:crypto';
 import { Prisma, PrismaService } from '@personal-os/database';
 import type { CreateHumanVerificationDto } from './dto/create-human-verification.dto';
 import type { CreateReviewGroupVerificationDto } from './dto/create-review-group-verification.dto';
@@ -35,6 +36,8 @@ import {
 import { groupReviewMessages } from './review-groups.util';
 import { PROJECTOR_VERSION } from '../knowledge/knowledge-projector';
 import { POLICY_VERSION } from '../knowledge/knowledge-policy';
+import { EMAIL_CLASSIFICATION_VERSIONS } from '../email/email-classification.util';
+import { calculateHoldoutMetrics } from './holdout-metrics.util';
 
 import { EMAIL_DATASET_NAME, EMAIL_DATASET_PURPOSE } from './dataset.constants';
 
@@ -139,6 +142,7 @@ export class AiEvidenceService {
         receivedAt,
         cursor: query.cursor,
         order,
+        uncertain: query.uncertain,
       }),
       orderBy: [{ receivedAt: direction }, { id: direction }],
       take: REVIEW_QUEUE_PAGE_SIZE + 1,
@@ -401,9 +405,20 @@ export class AiEvidenceService {
             reproductionStatus: 'COMPLETE',
             projectorVersion: PROJECTOR_VERSION,
             policyVersion: POLICY_VERSION,
-            pipelineVersion: 'ai-pipeline-v1',
-            detectorVersion: 'email-detector-v1',
-            schemaVersion: 'ai-review-v1',
+            pipelineVersion:
+              mode === 'EVALUATE'
+                ? EMAIL_CLASSIFICATION_VERSIONS.pipeline
+                : 'ai-pipeline-v1',
+            detectorVersion:
+              mode === 'EVALUATE'
+                ? EMAIL_CLASSIFICATION_VERSIONS.detector
+                : 'email-detector-v1',
+            promptVersion:
+              mode === 'EVALUATE' ? EMAIL_CLASSIFICATION_VERSIONS.prompt : null,
+            schemaVersion:
+              mode === 'EVALUATE'
+                ? EMAIL_CLASSIFICATION_VERSIONS.schema
+                : 'ai-review-v1',
             configuration: {
               ...JSON.parse(JSON.stringify(configuration)),
               snapshot: 'REPEATABLE_READ',
@@ -517,6 +532,141 @@ export class AiEvidenceService {
     }));
   }
 
+  async evaluateHoldout(userId: string) {
+    const dataset = await this.ensureDataset();
+    await this.ensureDatasetItems(userId, dataset.id);
+    const holdout = await this.prisma.aiDatasetItem.findMany({
+      where: {
+        datasetId: dataset.id,
+        userId,
+        sourceType: EMAIL_SOURCE_TYPE,
+        partition: 'HOLDOUT',
+      },
+      orderBy: { sourceId: 'asc' },
+      select: { sourceId: true },
+    });
+    const ids = holdout.map(({ sourceId }) => sourceId);
+    const run = await this.startAnalysisRun(userId, 'EVALUATE', {
+      evaluationSet: 'HOLDOUT',
+      evaluationVersion: 'holdout-metrics-v1',
+      frozen: true,
+      holdoutMessages: ids.length,
+      holdoutFingerprint: createHash('sha256')
+        .update(ids.join('\n'))
+        .digest('hex'),
+      parserVersion: EMAIL_CLASSIFICATION_VERSIONS.parser,
+    });
+    try {
+      const [classifications, verifications] = await Promise.all([
+        this.prisma.aiEmailClassification.findMany({
+          where: {
+            userId,
+            messageId: { in: ids },
+            createdAt: { lte: run.startedAt },
+          },
+          select: {
+            messageId: true,
+            route: true,
+            relevance: true,
+            semanticType: true,
+            decisionPath: true,
+          },
+        }),
+        this.prisma.aiHumanVerification.findMany({
+          where: {
+            userId,
+            targetType: REVIEW_TARGET_TYPE,
+            targetId: { in: ids },
+            isGroundTruth: true,
+            sequence: { lte: run.verificationSequence },
+          },
+          orderBy: [{ targetId: 'asc' }, { sequence: 'desc' }],
+          distinct: ['targetId'],
+          select: { targetId: true, correctedPayload: true },
+        }),
+      ]);
+      const metrics = calculateHoldoutMetrics(
+        classifications.map((row) => ({ ...row, messageId: row.messageId })),
+        verifications.flatMap((row) =>
+          row.targetId
+            ? [{ messageId: row.targetId, payload: row.correctedPayload }]
+            : [],
+        ),
+      );
+      const completed = await this.completeAnalysisRun(userId, run.id, {
+        metrics,
+      });
+      return serializeRun(completed);
+    } catch (error) {
+      await this.completeAnalysisRun(userId, run.id, {
+        error:
+          error instanceof Error ? error.message : 'Evaluación HOLDOUT fallida',
+      });
+      throw error;
+    }
+  }
+
+  async compareRuns(userId: string, firstId: string, secondId: string) {
+    if (firstId === secondId) {
+      throw new BadRequestException('Selecciona dos runs distintos');
+    }
+    const runs = await this.prisma.aiAnalysisRun.findMany({
+      where: { userId, id: { in: [firstId, secondId] } },
+      select: {
+        id: true,
+        datasetId: true,
+        mode: true,
+        status: true,
+        observationSequence: true,
+        verificationSequence: true,
+        consentRevision: true,
+        reproductionStatus: true,
+        missingEvidence: true,
+        projectorVersion: true,
+        policyVersion: true,
+        pipelineVersion: true,
+        detectorVersion: true,
+        promptVersion: true,
+        schemaVersion: true,
+        configuration: true,
+        metrics: true,
+        startedAt: true,
+        completedAt: true,
+        error: true,
+      },
+    });
+    if (runs.length !== 2) {
+      throw new NotFoundException('Run no encontrado');
+    }
+    const [first, second] = runs;
+    const same =
+      first.mode === 'EVALUATE' &&
+      second.mode === 'EVALUATE' &&
+      first.status === 'COMPLETED' &&
+      second.status === 'COMPLETED' &&
+      first.datasetId === second.datasetId &&
+      first.observationSequence === second.observationSequence &&
+      first.verificationSequence === second.verificationSequence &&
+      first.consentRevision === second.consentRevision &&
+      first.projectorVersion === second.projectorVersion &&
+      first.policyVersion === second.policyVersion &&
+      first.pipelineVersion === second.pipelineVersion &&
+      first.detectorVersion === second.detectorVersion &&
+      first.promptVersion === second.promptVersion &&
+      first.schemaVersion === second.schemaVersion &&
+      JSON.stringify(first.configuration) ===
+        JSON.stringify(second.configuration);
+    return {
+      comparable: same,
+      warning: same
+        ? null
+        : 'Los runs usan distintos watermarks, versiones, dataset o configuración.',
+      first: serializeRun(first),
+      second: serializeRun(second),
+      deltas: same ? metricDeltas(first.metrics, second.metrics) : null,
+    };
+  }
+
   private async reviewQueueTimezone(
     userId: string,
     query: ReviewQueueQueryDto,
@@ -578,4 +728,55 @@ async function lockReviewGroup(
   // Serialize two batches of the same group: verifications are append-only,
   // so a duplicate written concurrently could not be removed later.
   await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtext(${userId}), hashtext(${groupKey}))`;
+}
+
+function serializeRun<
+  T extends {
+    observationSequence: bigint;
+    verificationSequence: bigint;
+    consentRevision?: bigint;
+  },
+>(run: T) {
+  return {
+    ...run,
+    observationSequence: run.observationSequence.toString(),
+    verificationSequence: run.verificationSequence.toString(),
+    ...(run.consentRevision !== undefined
+      ? { consentRevision: run.consentRevision.toString() }
+      : {}),
+  };
+}
+
+function metricDeltas(
+  first: unknown,
+  second: unknown,
+): Record<string, number | null> {
+  if (
+    !first ||
+    typeof first !== 'object' ||
+    !second ||
+    typeof second !== 'object'
+  ) {
+    return {};
+  }
+  const a = first as Record<string, unknown>;
+  const b = second as Record<string, unknown>;
+  return Object.fromEntries(
+    [
+      'transactionRecall',
+      'precision',
+      'deterministicCoverage',
+      'modelFallbackRate',
+      'unknownRate',
+    ].map((key) => {
+      const left = a[key];
+      const right = b[key];
+      return [
+        key,
+        typeof left === 'number' && typeof right === 'number'
+          ? right - left
+          : null,
+      ];
+    }),
+  );
 }
