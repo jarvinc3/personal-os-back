@@ -21,6 +21,7 @@ const writeCapability: AiCapabilityDescriptor = {
   ...readCapability,
   id: 'finance_create_transaction',
   effect: 'WRITE',
+  actionPolicy: 'CONFIRM_REQUIRED',
 };
 
 function setup() {
@@ -51,19 +52,32 @@ function setup() {
   };
   const capabilities: jest.Mocked<AiCapabilityRegistryPort> = {
     discover: jest.fn().mockReturnValue([readCapability, writeCapability]),
+    validateInput: jest.fn((_capabilityId, args) => args as never),
     execute: jest
       .fn()
       .mockResolvedValue({ expenses: '1250.00', currency: 'DOP' }),
     readContext: jest.fn().mockResolvedValue({ available: true }),
     register: jest.fn(),
   };
+  const actions = {
+    propose: jest.fn(),
+  };
   const service = new AiAgentOrchestrator(
     store as unknown as AiConversationStore,
     assembler as unknown as AiContextAssembler,
     inference,
     capabilities,
+    actions as never,
   );
-  return { service, store, assembler, inference, capabilities, conversation };
+  return {
+    service,
+    store,
+    assembler,
+    inference,
+    capabilities,
+    actions,
+    conversation,
+  };
 }
 
 describe('AiAgentOrchestrator', () => {
@@ -102,6 +116,16 @@ describe('AiAgentOrchestrator', () => {
         name: readCapability.id,
         description: readCapability.description,
         parameters: readCapability.inputSchema,
+        moduleSlug: readCapability.moduleSlug,
+        effect: 'READ',
+      },
+      {
+        name: writeCapability.id,
+        description: `${writeCapability.description} Política de acción: CONFIRM_REQUIRED.`,
+        parameters: writeCapability.inputSchema,
+        moduleSlug: writeCapability.moduleSlug,
+        effect: 'WRITE',
+        actionPolicy: 'CONFIRM_REQUIRED',
       },
     ]);
     // eslint-disable-next-line @typescript-eslint/unbound-method
@@ -118,6 +142,56 @@ describe('AiAgentOrchestrator', () => {
       'conversation-1',
       expect.objectContaining({ role: 'tool', toolCallId: 'call-1' }),
     );
+  });
+
+  it('envía WRITE a la política y devuelve la acción pendiente sin mutar', async () => {
+    const { service, inference, capabilities, actions } = setup();
+    inference.complete
+      .mockResolvedValueOnce({
+        content: '',
+        toolCalls: [
+          {
+            id: 'write-call-1',
+            name: writeCapability.id,
+            arguments: { month: '2026-11' },
+          },
+        ],
+        provider: 'Groq',
+        model: 'model-1',
+      })
+      .mockResolvedValueOnce({
+        content: 'Puedo hacerlo cuando lo confirmes.',
+        toolCalls: [],
+        provider: 'Groq',
+        model: 'model-1',
+      });
+    actions.propose.mockResolvedValue({
+      outcome: 'PENDING_CONFIRMATION',
+      action: {
+        id: 'action-1',
+        actionType: writeCapability.id,
+        targetModule: 'finance',
+        policy: 'CONFIRM_REQUIRED',
+        status: 'PENDING',
+        payload: { month: '2026-11' },
+        result: null,
+        createdAt: new Date('2026-11-02T10:00:00Z'),
+      },
+    });
+
+    await expect(
+      service.sendMessage('user-1', 'conversation-1', 'Haz el cambio'),
+    ).resolves.toMatchObject({
+      answer: 'Puedo hacerlo cuando lo confirmes.',
+      actions: [{ id: 'action-1', outcome: 'PENDING_CONFIRMATION' }],
+    });
+    expect(actions.propose.mock.calls[0]).toEqual([
+      expect.objectContaining({ userId: 'user-1' }),
+      writeCapability,
+      { month: '2026-11' },
+      expect.stringContaining('conversation-1:'),
+    ]);
+    expect(capabilities.execute.mock.calls).toHaveLength(0);
   });
 
   it('continúa la conversación cuando una capacidad no está disponible', async () => {

@@ -13,6 +13,10 @@ import {
 import { randomUUID } from 'node:crypto';
 import { AiContextAssembler } from './ai-context-assembler';
 import { AiConversationStore } from './ai-conversation.store';
+import {
+  AiActionsService,
+  type AiActionResult,
+} from '../../actions/application/ai-actions.service';
 
 const MAX_TOOL_ROUNDS = 4;
 const SUMMARY_AFTER_MESSAGES = 24;
@@ -27,6 +31,7 @@ export class AiAgentOrchestrator {
     private readonly inference: AiAgentInferencePort,
     @Inject(AI_CAPABILITY_REGISTRY)
     private readonly capabilities: AiCapabilityRegistryPort,
+    private readonly actions: AiActionsService,
   ) {}
 
   async sendMessage(userId: string, conversationId: string, content: string) {
@@ -58,7 +63,7 @@ export class AiAgentOrchestrator {
       history,
     );
     const latest = await this.conversations.findOwned(userId, conversationId);
-    const descriptors = this.readCapabilities();
+    const descriptors = this.availableCapabilities();
     const ctx: AiExecutionContext = {
       userId,
       invocationId: randomUUID(),
@@ -73,11 +78,20 @@ export class AiAgentOrchestrator {
     const definitions: AiAgentToolDefinition[] = descriptors.map(
       (descriptor) => ({
         name: descriptor.id,
-        description: descriptor.description,
+        description:
+          descriptor.effect === 'WRITE'
+            ? `${descriptor.description} Política de acción: ${descriptor.actionPolicy ?? 'FORBIDDEN'}.`
+            : descriptor.description,
         parameters: descriptor.inputSchema,
+        moduleSlug: descriptor.moduleSlug,
+        effect: descriptor.effect,
+        ...(descriptor.actionPolicy
+          ? { actionPolicy: descriptor.actionPolicy }
+          : {}),
       }),
     );
 
+    const proposedActions: AiActionResult[] = [];
     let completion = await this.inference.complete(messages, definitions);
     for (let round = 0; round < MAX_TOOL_ROUNDS; round += 1) {
       if (!completion.toolCalls.length) {
@@ -104,6 +118,32 @@ export class AiAgentOrchestrator {
             ok: false,
             error: 'CAPABILITY_NOT_FOUND',
           });
+        } else if (descriptor.effect === 'WRITE') {
+          try {
+            const action = await this.actions.propose(
+              ctx,
+              descriptor,
+              call.arguments,
+              `${conversationId}:${ctx.invocationId}:${call.id}`,
+            );
+            proposedActions.push(action);
+            toolContent = JSON.stringify({
+              ok: !['FORBIDDEN', 'FAILED'].includes(action.outcome),
+              outcome: action.outcome,
+              action: {
+                id: action.action.id,
+                policy: action.action.policy,
+                status: action.action.status,
+              },
+              result: action.action.result,
+            });
+          } catch (error) {
+            const code =
+              error instanceof AiCapabilityError
+                ? error.code
+                : 'ACTION_POLICY_FAILED';
+            toolContent = JSON.stringify({ ok: false, error: code });
+          }
         } else {
           try {
             const result = await this.capabilities.execute(
@@ -147,13 +187,22 @@ export class AiAgentOrchestrator {
       answer,
       provider: completion.provider,
       model: completion.model,
+      actions: proposedActions.map(({ outcome, action }) => ({
+        id: action.id,
+        actionType: action.actionType,
+        targetModule: action.targetModule,
+        policy: action.policy,
+        status: action.status,
+        payload: action.payload,
+        result: action.result,
+        outcome,
+        createdAt: action.createdAt,
+      })),
     };
   }
 
-  private readCapabilities(): AiCapabilityDescriptor[] {
-    return this.capabilities
-      .discover()
-      .filter((descriptor) => descriptor.effect === 'READ');
+  private availableCapabilities(): AiCapabilityDescriptor[] {
+    return [...this.capabilities.discover()];
   }
 
   private async refreshSummary(

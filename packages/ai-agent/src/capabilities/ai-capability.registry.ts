@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import {
+  AI_ACTION_POLICY_VERSION,
   AiCapabilityError,
   type AiCapabilityDefinition,
   type AiCapabilityDescriptor,
@@ -9,6 +10,8 @@ import {
   type JsonObject,
   type JsonValue,
 } from '@personal-os/contracts';
+import { aiActionArgumentDigest } from '../actions/application/ai-action-argument-digest';
+import { AiActionsRepository } from '../actions/infrastructure/ai-actions.repository';
 
 type RegisteredCapability = {
   provider: AiCapabilityProvider;
@@ -58,6 +61,8 @@ export class AiCapabilityRegistry implements AiCapabilityRegistryPort {
   private readonly providers = new Map<string, AiCapabilityProvider[]>();
   private readonly registeredInstances = new WeakSet<AiCapabilityProvider>();
 
+  constructor(private readonly actions: AiActionsRepository) {}
+
   register(provider: AiCapabilityProvider): void {
     if (
       typeof provider.moduleSlug !== 'string' ||
@@ -102,6 +107,12 @@ export class AiCapabilityRegistry implements AiCapabilityRegistryPort {
         !isJsonObject(definition.inputSchema) ||
         !isJsonObject(definition.outputSchema) ||
         !['READ', 'WRITE'].includes(definition.effect) ||
+        (definition.effect === 'WRITE' &&
+          !['AUTO_ALLOWED', 'CONFIRM_REQUIRED', 'FORBIDDEN'].includes(
+            definition.actionPolicy ?? '',
+          )) ||
+        (definition.effect === 'READ' &&
+          definition.actionPolicy !== undefined) ||
         typeof definition.validateInput !== 'function' ||
         typeof definition.validateOutput !== 'function'
       ) {
@@ -143,6 +154,9 @@ export class AiCapabilityRegistry implements AiCapabilityRegistryPort {
         inputSchema: cloneSchema(definition.inputSchema),
         outputSchema: cloneSchema(definition.outputSchema),
         effect: definition.effect,
+        ...(definition.actionPolicy
+          ? { actionPolicy: definition.actionPolicy }
+          : {}),
       }))
       .sort((left, right) => left.id.localeCompare(right.id));
   }
@@ -161,19 +175,40 @@ export class AiCapabilityRegistry implements AiCapabilityRegistryPort {
       );
     }
     await this.assertAvailable(registered.provider, ctx);
+    const validatedArgs = this.validateInput(capabilityId, args);
 
-    let validatedArgs: JsonObject;
-    try {
-      validatedArgs = registered.definition.validateInput(args);
-      if (!isJsonObject(validatedArgs)) {
-        throw new Error('Input validator must return a JSON object');
+    if (registered.definition.effect === 'WRITE') {
+      const authorization = ctx.authorization;
+      const allowedPolicy = registered.definition.actionPolicy;
+      if (
+        !authorization?.actionId ||
+        !authorization.argumentDigest ||
+        authorization.capabilityId !== capabilityId ||
+        authorization.policyVersion !== AI_ACTION_POLICY_VERSION ||
+        authorization.decision !== allowedPolicy ||
+        authorization.argumentDigest !== aiActionArgumentDigest(validatedArgs)
+      ) {
+        throw new AiCapabilityError(
+          'CAPABILITY_MUTATION_POLICY_REQUIRED',
+          `Capability ${capabilityId} requires an authorized AI action`,
+          { capabilityId },
+        );
       }
-    } catch (error) {
-      throw new AiCapabilityError(
-        'CAPABILITY_INVALID_ARGUMENTS',
-        `Invalid arguments for capability ${capabilityId}: ${errorMessage(error)}`,
-        { capabilityId },
-      );
+      const claimed = await this.actions.findClaimedForExecution({
+        id: authorization.actionId,
+        userId: ctx.userId,
+        actionType: capabilityId,
+        policy: authorization.decision,
+        policyVersion: authorization.policyVersion,
+        argumentDigest: authorization.argumentDigest,
+      });
+      if (!claimed) {
+        throw new AiCapabilityError(
+          'CAPABILITY_MUTATION_POLICY_REQUIRED',
+          `Capability ${capabilityId} requires a claimed AI action`,
+          { capabilityId },
+        );
+      }
     }
 
     let result: JsonValue;
@@ -204,6 +239,30 @@ export class AiCapabilityRegistry implements AiCapabilityRegistryPort {
       throw new AiCapabilityError(
         'CAPABILITY_INVALID_OUTPUT',
         `Invalid output for capability ${capabilityId}: ${errorMessage(error)}`,
+        { capabilityId },
+      );
+    }
+  }
+
+  validateInput(capabilityId: string, args: unknown): JsonObject {
+    const registered = this.capabilities.get(capabilityId);
+    if (!registered) {
+      throw new AiCapabilityError(
+        'CAPABILITY_NOT_FOUND',
+        `Capability ${capabilityId} is not registered`,
+        { capabilityId },
+      );
+    }
+    try {
+      const validatedArgs = registered.definition.validateInput(args);
+      if (!isJsonObject(validatedArgs)) {
+        throw new Error('Input validator must return a JSON object');
+      }
+      return validatedArgs;
+    } catch (error) {
+      throw new AiCapabilityError(
+        'CAPABILITY_INVALID_ARGUMENTS',
+        `Invalid arguments for capability ${capabilityId}: ${errorMessage(error)}`,
         { capabilityId },
       );
     }

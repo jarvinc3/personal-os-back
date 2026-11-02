@@ -10,13 +10,14 @@ Kernel de proveedores de IA, inferencias estructuradas y runtime de conversació
 - Inferencia estructurada validada por quien consume el resultado.
 - Telemetría de inferencia minimizada y retenida 90 días.
 - Runtime de conversación con historial y resumen privado por usuario.
-- Bucle limitado a capacidades de lectura.
+- Bucle de capacidades `READ` y `WRITE` con política de acciones obligatoria para mutaciones.
 - Primera capacidad de Finance: ingresos, gastos y flujo confirmado por mes.
+- Política común AI-10 para futuras capacidades mutantes, con auditoría y confirmación.
 - Exportación y borrado de conversaciones en el ciclo de datos AI.
 
 ## Fuera de alcance
 
-La política de acciones y cualquier mutación conversacional pertenecen a AI-10. La interfaz web del chat espera la decisión del owner. Gmail es una fuente separada de inteligencia.
+La interfaz web del chat espera la decisión del owner. Gmail es una fuente separada de inteligencia. Las capacidades `WRITE` pasan por la política común de [acciones](capabilities/actions.md); no hay aún un mutador de dominio registrado.
 
 ## Arquitectura
 

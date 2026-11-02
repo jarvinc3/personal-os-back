@@ -18,6 +18,13 @@ export const AI_DATA_BRANCHES: readonly DataBranchDescriptor[] = [
     includes: [],
     order: 3,
   },
+  {
+    id: 'ai.actions',
+    app: DATA_APP.AI,
+    label: 'Acciones del agente',
+    includes: ['propuestas, resultado y estado de ejecución'],
+    order: 4,
+  },
 ];
 
 @Injectable()

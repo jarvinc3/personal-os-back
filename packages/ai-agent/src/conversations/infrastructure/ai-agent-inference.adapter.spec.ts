@@ -23,6 +23,16 @@ describe('AiAgentInferenceAdapter', () => {
         name: 'finance_monthly_summary',
         description: 'Monthly spending',
         parameters: { type: 'object' },
+        moduleSlug: 'finance',
+        effect: 'READ' as const,
+      },
+      {
+        name: 'finance.update_budget',
+        description: 'Update budget',
+        parameters: { type: 'object' },
+        moduleSlug: 'finance',
+        effect: 'WRITE' as const,
+        actionPolicy: 'CONFIRM_REQUIRED' as const,
       },
     ];
 
@@ -43,7 +53,14 @@ describe('AiAgentInferenceAdapter', () => {
         description: 'Monthly spending',
         parameters: { type: 'object' },
         mutating: false,
-        targetModule: 'ai-capability',
+        targetModule: 'finance',
+      },
+      {
+        name: 'finance.update_budget',
+        description: 'Update budget',
+        parameters: { type: 'object' },
+        mutating: true,
+        targetModule: 'finance',
       },
     ]);
   });

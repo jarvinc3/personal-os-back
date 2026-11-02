@@ -44,7 +44,14 @@ export interface AiAgentToolDefinition {
   name: string;
   description: string;
   parameters: JsonObject;
+  moduleSlug: string;
+  effect: 'READ' | 'WRITE';
+  actionPolicy?: AiActionPolicy;
 }
+
+export type AiActionPolicy = 'AUTO_ALLOWED' | 'CONFIRM_REQUIRED' | 'FORBIDDEN';
+
+export const AI_ACTION_POLICY_VERSION = 'ai-10-v1';
 
 export interface AiAgentCompletion {
   content: string;
@@ -192,6 +199,7 @@ export interface AiCapabilityDefinition {
   inputSchema: JsonObject;
   outputSchema: JsonObject;
   effect: 'READ' | 'WRITE';
+  actionPolicy?: AiActionPolicy;
   validateInput(value: unknown): JsonObject;
   validateOutput(value: unknown): JsonValue;
 }
@@ -205,7 +213,7 @@ export interface AiExecutionContext {
     capabilityId: string;
     argumentDigest: string;
     policyVersion: string;
-    decision: 'AUTO_ALLOWED' | 'CONFIRM_REQUIRED';
+    decision: Exclude<AiActionPolicy, 'FORBIDDEN'>;
   };
 }
 export interface AiCapabilityProvider {
@@ -237,7 +245,8 @@ export type AiCapabilityErrorCode =
   | 'CAPABILITY_INVALID_OUTPUT'
   | 'CAPABILITY_EXECUTION_FAILED'
   | 'CAPABILITY_CONTEXT_UNAVAILABLE'
-  | 'CAPABILITY_INVALID_DEFINITION';
+  | 'CAPABILITY_INVALID_DEFINITION'
+  | 'CAPABILITY_MUTATION_POLICY_REQUIRED';
 
 export class AiCapabilityError extends Error {
   constructor(
@@ -258,6 +267,7 @@ export interface AiCapabilityRegistryPort {
     capabilityId: string,
     args: unknown,
   ): Promise<JsonValue>;
+  validateInput(capabilityId: string, args: unknown): JsonObject;
   readContext(ctx: AiExecutionContext, moduleSlug: string): Promise<JsonObject>;
 }
 

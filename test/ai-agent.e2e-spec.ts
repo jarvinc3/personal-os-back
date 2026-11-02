@@ -14,6 +14,7 @@ import {
   AiDataDeletionService,
   AiConversationStore,
   AiAgentOrchestrator,
+  AiActionsService,
   REVIEW_GROUP_VERDICTS,
   REVIEW_QUEUE_ORDERS,
   REVIEW_QUEUE_PARTITIONS,
@@ -95,7 +96,9 @@ describe('Retired AI chat API (e2e)', () => {
         .overrideProvider(AiConversationStore)
         .useValue(conversations)
         .overrideProvider(AiAgentOrchestrator)
-        .useValue(orchestrator),
+        .useValue(orchestrator)
+        .overrideProvider(AiActionsService)
+        .useValue(actions),
     ).compile();
     app = moduleFixture.createNestApplication();
     app.setGlobalPrefix('api');
@@ -232,6 +235,31 @@ describe('Retired AI chat API (e2e)', () => {
       model: 'test-model',
     }),
   };
+  const actionRecord = {
+    id: 'action-1',
+    actionType: 'finance.update_budget',
+    targetModule: 'finance',
+    policy: 'CONFIRM_REQUIRED',
+    status: 'PENDING',
+    payload: { budgetId: 'budget-1' },
+    result: null,
+    createdAt: new Date('2026-11-02T10:00:00Z'),
+    executedAt: null,
+  };
+  const actions = {
+    listForUser: jest.fn().mockResolvedValue([actionRecord]),
+    confirm: jest
+      .fn()
+      .mockImplementation((userId: string, id: string) =>
+        userId === 'user-123' && id === 'action-1'
+          ? Promise.resolve({ outcome: 'EXECUTED', action: actionRecord })
+          : Promise.reject(new NotFoundException('Acción no encontrada')),
+      ),
+    cancel: jest.fn().mockResolvedValue({
+      outcome: 'CANCELLED',
+      action: { ...actionRecord, status: 'CANCELLED' },
+    }),
+  };
 
   it('exposes private conversation routes and leaves the legacy chat route removed', async () => {
     await request(app.getHttpServer())
@@ -290,6 +318,45 @@ describe('Retired AI chat API (e2e)', () => {
       .get('/api/ai/sessions')
       .set('Authorization', `Bearer ${token}`)
       .expect(404);
+  });
+
+  it('lists own actions and exposes confirmation and cancellation routes', async () => {
+    await request(app.getHttpServer())
+      .get('/api/ai/actions')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body.data[0]).toMatchObject({
+          id: 'action-1',
+          policy: 'CONFIRM_REQUIRED',
+          status: 'PENDING',
+        });
+        expect(body.data[0]).not.toHaveProperty('userId');
+        expect(body.data[0]).not.toHaveProperty('argumentDigest');
+      });
+    expect(actions.listForUser).toHaveBeenCalledWith('user-123');
+
+    await request(app.getHttpServer())
+      .post('/api/ai/actions/action-1/confirm')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(201)
+      .expect(({ body }) =>
+        expect(body.data).toMatchObject({
+          outcome: 'EXECUTED',
+          action: { id: 'action-1', status: 'PENDING' },
+        }),
+      );
+    expect(actions.confirm).toHaveBeenCalledWith('user-123', 'action-1');
+
+    await request(app.getHttpServer())
+      .post('/api/ai/actions/action-1/cancel')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(201);
+    expect(actions.cancel).toHaveBeenCalledWith('user-123', 'action-1');
+
+    await request(app.getHttpServer())
+      .post('/api/ai/actions/action-1/confirm')
+      .expect(401);
   });
 
   it('exposes the authenticated AI-3 dataset, review, verification, and run routes', async () => {
@@ -578,6 +645,10 @@ describe('Retired AI chat API (e2e)', () => {
       document.paths?.['/api/intelligence/knowledge/me/export']?.get,
     ).toBeDefined();
     expect(document.paths?.['/api/ai/conversations']?.get).toBeDefined();
+    expect(document.paths?.['/api/ai/actions']?.get).toBeDefined();
+    expect(
+      document.paths?.['/api/ai/actions/{actionId}/confirm']?.post,
+    ).toBeDefined();
     expect(
       document.paths?.['/api/ai/conversations/{conversationId}/messages']?.post,
     ).toBeDefined();

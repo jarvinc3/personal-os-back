@@ -42,6 +42,11 @@ import { AiAgentOrchestrator } from './conversations/application/ai-agent.orches
 import { AiAgentInferenceAdapter } from './conversations/infrastructure/ai-agent-inference.adapter';
 import { AiConversationDataService } from './conversations/application/ai-conversation-data.service';
 import { AiContextAssembler } from './conversations/application/ai-context-assembler';
+import { AiActionsController } from './actions/presentation/ai-actions.controller';
+import { AiActionsRepository } from './actions/infrastructure/ai-actions.repository';
+import { AiActionsReaperService } from './actions/infrastructure/ai-actions-reaper.service';
+import { AiActionPolicyService } from './actions/application/ai-action-policy.service';
+import { AiActionsService } from './actions/application/ai-actions.service';
 
 const bullMqEnabled = isBullMqEnabledFromProcessEnv();
 
@@ -64,6 +69,7 @@ const bullMqEnabled = isBullMqEnabledFromProcessEnv();
     AiKnowledgeController,
     AiSignalsController,
     AiConversationController,
+    AiActionsController,
   ],
   providers: [
     { provide: APP_GUARD, useClass: RolesGuard },
@@ -76,6 +82,10 @@ const bullMqEnabled = isBullMqEnabledFromProcessEnv();
     AiSignalsService,
     AiSignalOutboxBridge,
     AiCapabilityRegistry,
+    AiActionsRepository,
+    AiActionPolicyService,
+    AiActionsService,
+    AiActionsReaperService,
     { provide: AI_CAPABILITY_REGISTRY, useExisting: AiCapabilityRegistry },
     AiConversationStore,
     AiContextAssembler,
@@ -126,6 +136,8 @@ const bullMqEnabled = isBullMqEnabledFromProcessEnv();
   ],
   exports: [
     AiCapabilityRegistry,
+    AiActionsService,
+    AiActionsRepository,
     AI_CAPABILITY_REGISTRY,
     AI_AGENT_INFERENCE,
     AiConversationDataService,

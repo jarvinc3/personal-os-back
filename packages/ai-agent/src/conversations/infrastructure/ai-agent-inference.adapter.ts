@@ -41,8 +41,8 @@ export class AiAgentInferenceAdapter implements AiAgentInferencePort {
         name: tool.name,
         description: tool.description,
         parameters: tool.parameters,
-        mutating: false,
-        targetModule: 'ai-capability',
+        mutating: tool.effect === 'WRITE',
+        targetModule: tool.moduleSlug,
       }),
     );
     const result = await this.inference.chatComplete(
