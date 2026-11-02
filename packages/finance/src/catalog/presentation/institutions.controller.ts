@@ -14,6 +14,8 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import {
   ApiBearerAuth,
   ApiConsumes,
+  ApiCreatedResponse,
+  ApiOkResponse,
   ApiOperation,
   ApiTags,
 } from '@nestjs/swagger';
@@ -25,6 +27,11 @@ import {
 import type { LogoUploadFile } from '@personal-os/logos';
 import { CatalogService } from '../application/catalog.service';
 import { CreateInstitutionDto } from './dto/create-institution.dto';
+import {
+  InstitutionPageResponseDto,
+  InstitutionResponseDto,
+} from './dto/institution-response.dto';
+import { SuccessResponseDto } from '../../shared/presentation/success-response.dto';
 import { UpdateInstitutionDto } from './dto/update-institution.dto';
 
 @ApiTags('finance')
@@ -36,11 +43,13 @@ export class InstitutionsController {
 
   @Get('institutions')
   @ApiOperation({ summary: 'Lista las instituciones de finanzas (cursor)' })
+  @ApiOkResponse({ type: InstitutionPageResponseDto })
   list(@CurrentUser('sub') userId: string, @Query() query: CursorQueryDto) {
     return this.catalog.listInstitutionsPage(userId, query);
   }
 
   @Post('institutions')
+  @ApiCreatedResponse({ type: InstitutionResponseDto })
   create(
     @CurrentUser('sub') userId: string,
     @Body() dto: CreateInstitutionDto,
@@ -51,6 +60,7 @@ export class InstitutionsController {
   @Post('institutions/:id/logo')
   @ApiConsumes('multipart/form-data')
   @ApiOperation({ summary: 'Sube un logo de institución personalizado' })
+  @ApiOkResponse({ type: InstitutionResponseDto })
   @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 1_000_000 } }))
   uploadLogo(
     @CurrentUser('sub') userId: string,
@@ -61,6 +71,7 @@ export class InstitutionsController {
   }
 
   @Patch('institutions/:id')
+  @ApiOkResponse({ type: InstitutionResponseDto })
   update(
     @CurrentUser('sub') userId: string,
     @Param('id') id: string,
@@ -73,12 +84,14 @@ export class InstitutionsController {
   @ApiOperation({
     summary: 'Borra de forma definitiva la institución y sus dependientes',
   })
+  @ApiOkResponse({ type: SuccessResponseDto })
   remove(@CurrentUser('sub') userId: string, @Param('id') id: string) {
     return this.catalog.deleteInstitution(userId, id);
   }
 
   @Post('institutions/:id/restore')
   @ApiOperation({ summary: 'Deshace un borrado desde el journal' })
+  @ApiOkResponse({ type: SuccessResponseDto })
   restore(@CurrentUser('sub') userId: string, @Param('id') id: string) {
     return this.catalog.restoreInstitution(userId, id, new Date());
   }

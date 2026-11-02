@@ -13,6 +13,8 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import {
   ApiBearerAuth,
   ApiConsumes,
+  ApiCreatedResponse,
+  ApiOkResponse,
   ApiOperation,
   ApiTags,
 } from '@nestjs/swagger';
@@ -23,6 +25,11 @@ import {
 } from '../application/statement-imports.service';
 import { STATEMENT_UPLOAD_MAX_BYTES } from '../application/statement-import.constants';
 import { ApplyStatementImportDto } from './dto/apply-statement-import.dto';
+import {
+  StatementImportCreatedResponseDto,
+  StatementImportResponseDto,
+} from './dto/statement-response.dto';
+import { SuccessResponseDto } from '../../shared/presentation/success-response.dto';
 import { StatementImportUploadDto } from './dto/statement-import-upload.dto';
 import { UpdateStatementLineDto } from './dto/update-statement-line.dto';
 
@@ -38,6 +45,7 @@ export class StatementImportsController {
   @ApiOperation({
     summary: 'Sube y analiza el PDF del estado de cuenta de una tarjeta',
   })
+  @ApiCreatedResponse({ type: StatementImportCreatedResponseDto })
   @UseInterceptors(
     FileInterceptor('file', {
       limits: { fileSize: STATEMENT_UPLOAD_MAX_BYTES },
@@ -63,6 +71,7 @@ export class StatementImportsController {
   @ApiOperation({
     summary: 'Sube y analiza el PDF del estado de cuenta de una cuenta',
   })
+  @ApiCreatedResponse({ type: StatementImportCreatedResponseDto })
   @UseInterceptors(
     FileInterceptor('file', {
       limits: { fileSize: STATEMENT_UPLOAD_MAX_BYTES },
@@ -87,6 +96,7 @@ export class StatementImportsController {
   @ApiOperation({
     summary: 'Estado, encabezado y conciliación de la importación',
   })
+  @ApiOkResponse({ type: StatementImportResponseDto })
   get(@CurrentUser('sub') userId: string, @Param('id') importId: string) {
     return this.imports.getImport(userId, importId);
   }
@@ -95,6 +105,7 @@ export class StatementImportsController {
   @ApiOperation({
     summary: 'Cambia la decisión de una línea o su movimiento asociado',
   })
+  @ApiOkResponse({ type: StatementImportResponseDto })
   updateLine(
     @CurrentUser('sub') userId: string,
     @Param('id') importId: string,
@@ -114,6 +125,7 @@ export class StatementImportsController {
   @ApiOperation({
     summary: 'Crea las líneas seleccionadas y cierra el periodo',
   })
+  @ApiCreatedResponse({ type: StatementImportResponseDto })
   apply(
     @CurrentUser('sub') userId: string,
     @Param('id') importId: string,
@@ -128,6 +140,7 @@ export class StatementImportsController {
 
   @Delete('statement-imports/:id')
   @ApiOperation({ summary: 'Descarta una importación de estado de cuenta' })
+  @ApiOkResponse({ type: SuccessResponseDto })
   async discard(
     @CurrentUser('sub') userId: string,
     @Param('id') importId: string,

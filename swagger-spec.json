@@ -543,8 +543,27 @@
           }
         },
         "responses": {
-          "201": {
-            "description": ""
+          "409": {
+            "description": "GMAIL_NOT_CONNECTED si no hay conexión; GMAIL_SYNC_IN_PROGRESS si hay una sincronización activa o esperando cuota.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "GMAIL_NOT_CONNECTED",
+                        "GMAIL_SYNC_IN_PROGRESS"
+                      ]
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
           }
         },
         "security": [
@@ -620,23 +639,170 @@
         "parameters": [
           {
             "name": "cursor",
-            "required": true,
+            "required": false,
             "in": "query",
+            "description": "Cursor opaco de la página anterior",
             "schema": {
               "type": "string"
             }
           },
           {
             "name": "partition",
-            "required": true,
+            "required": false,
             "in": "query",
             "schema": {
+              "type": "string",
+              "enum": [
+                "TRAIN",
+                "VALIDATION",
+                "HOLDOUT"
+              ]
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "description": "Estados separados por coma; sin filtro la cola devuelve solo PENDING",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "PENDING",
+                  "CONFIRMED",
+                  "CORRECTED",
+                  "REJECTED"
+                ]
+              }
+            }
+          },
+          {
+            "name": "fromAddress",
+            "required": false,
+            "in": "query",
+            "description": "Remitente exacto, sin distinguir mayúsculas",
+            "schema": {
+              "example": "notifications@github.com",
               "type": "string"
+            }
+          },
+          {
+            "name": "subject",
+            "required": false,
+            "in": "query",
+            "description": "Texto contenido en el asunto, sin distinguir mayúsculas",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "dateFrom",
+            "required": false,
+            "in": "query",
+            "description": "Primer día recibido (AAAA-MM-DD), completo en la zona del usuario",
+            "schema": {
+              "example": "2026-10-01",
+              "type": "string"
+            }
+          },
+          {
+            "name": "dateTo",
+            "required": false,
+            "in": "query",
+            "description": "Último día recibido (AAAA-MM-DD), completo en la zona del usuario",
+            "schema": {
+              "example": "2026-10-31",
+              "type": "string"
+            }
+          },
+          {
+            "name": "order",
+            "required": false,
+            "in": "query",
+            "description": "Fecha recibida, del más viejo al más nuevo o al revés",
+            "schema": {
+              "default": "OLDEST",
+              "type": "string",
+              "enum": [
+                "OLDEST",
+                "NEWEST"
+              ]
             }
           }
         ],
         "responses": {
           "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "tags": [
+          "intelligence-evidence"
+        ]
+      }
+    },
+    "/api/intelligence/review-groups": {
+      "get": {
+        "operationId": "AiEvidenceController_reviewGroups",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "pageSize",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "tags": [
+          "intelligence-evidence"
+        ]
+      }
+    },
+    "/api/intelligence/review-groups/verifications": {
+      "post": {
+        "operationId": "AiEvidenceController_verifyReviewGroup",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateReviewGroupVerificationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
             "description": ""
           }
         },
@@ -786,6 +952,45 @@
           }
         ],
         "summary": "Reconstruir la proyección desde un corte REPEATABLE READ",
+        "tags": [
+          "intelligence-knowledge"
+        ]
+      }
+    },
+    "/api/intelligence/knowledge/admin/{knowledgeId}/promote": {
+      "post": {
+        "operationId": "AiKnowledgeController_promote",
+        "parameters": [
+          {
+            "name": "knowledgeId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KnowledgeItemDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Conocimiento GLOBAL no encontrado"
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "summary": "Promover manualmente conocimiento GLOBAL en revisión",
         "tags": [
           "intelligence-knowledge"
         ]
@@ -1056,7 +1261,14 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountPageResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1084,7 +1296,14 @@
         },
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1112,7 +1331,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1148,7 +1374,14 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1174,7 +1407,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1203,7 +1443,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InstrumentHistoryPageResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1231,8 +1478,15 @@
           }
         ],
         "responses": {
-          "201": {
-            "description": ""
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1252,7 +1506,14 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InstitutionPageResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1280,7 +1541,14 @@
         },
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InstitutionResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1307,8 +1575,15 @@
           }
         ],
         "responses": {
-          "201": {
-            "description": ""
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InstitutionResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1347,7 +1622,14 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InstitutionResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1373,7 +1655,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1401,8 +1690,15 @@
           }
         ],
         "responses": {
-          "201": {
-            "description": ""
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1422,7 +1718,14 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CardPageResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1450,7 +1753,14 @@
         },
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CardResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1478,7 +1788,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CardResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1514,7 +1831,14 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CardResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1540,7 +1864,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1569,7 +1900,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InstrumentHistoryPageResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1597,8 +1935,15 @@
           }
         ],
         "responses": {
-          "201": {
-            "description": ""
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1637,7 +1982,14 @@
         },
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CardBalanceMutationResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1676,7 +2028,14 @@
         },
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CardBalanceMutationResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1712,7 +2071,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -3668,7 +4034,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CardStatementPageResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -3705,7 +4078,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CardStatementDetailResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -3750,7 +4130,14 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -3789,7 +4176,14 @@
         },
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StatementImportCreatedResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -3828,7 +4222,14 @@
         },
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StatementImportCreatedResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -3857,7 +4258,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StatementImportResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -3884,7 +4292,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -3931,7 +4346,14 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StatementImportResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -3970,7 +4392,14 @@
         },
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StatementImportResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -4562,7 +4991,14 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoanPageResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -4590,7 +5026,14 @@
         },
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoanResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -4618,7 +5061,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoanResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -4655,7 +5105,14 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoanResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -4681,7 +5138,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -4710,7 +5174,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoanInstallmentPageResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -4739,7 +5210,17 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/LoanInstallmentResponseDto"
+                  }
+                }
+              }
+            }
           }
         },
         "security": [
@@ -4778,7 +5259,14 @@
         },
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoanInstallmentPaymentResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -4817,7 +5305,14 @@
         },
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoanPrepaymentResultResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -4866,7 +5361,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoanPrepaymentPreviewResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -4894,8 +5396,15 @@
           }
         ],
         "responses": {
-          "201": {
-            "description": ""
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -6743,6 +7252,64 @@
           }
         }
       },
+      "CreateReviewGroupVerificationDto": {
+        "type": "object",
+        "properties": {
+          "semanticType": {
+            "type": "string",
+            "enum": [
+              "FIN_TRANSACTION",
+              "PURCHASE_RECEIPT",
+              "SUBSCRIPTION_BILLING",
+              "FIN_STATEMENT_NOTICE",
+              "FIN_ACCOUNT_NOTICE",
+              "SECURITY_OTP",
+              "SECURITY_ALERT",
+              "TECH_NOTIFICATION",
+              "JOB",
+              "CALENDAR_EVENT",
+              "MARKETING",
+              "SOCIAL",
+              "OTHER"
+            ]
+          },
+          "routes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "FINANCE",
+                "SUBSCRIPTIONS",
+                "CALENDAR",
+                "SECURITY"
+              ]
+            }
+          },
+          "transaction": {
+            "$ref": "#/components/schemas/HumanVerificationTransactionDto"
+          },
+          "verdict": {
+            "type": "string",
+            "enum": [
+              "CONFIRMED",
+              "CORRECTED"
+            ]
+          },
+          "fromAddress": {
+            "type": "string",
+            "example": "notifications@github.com"
+          },
+          "templateFingerprint": {
+            "type": "object",
+            "description": "Huella de la plantilla de asunto del grupo. Null agrupa los correos del remitente sin huella.",
+            "nullable": true
+          }
+        },
+        "required": [
+          "verdict",
+          "fromAddress"
+        ]
+      },
       "CreateHumanVerificationDto": {
         "type": "object",
         "properties": {
@@ -6778,8 +7345,19 @@
           },
           "transaction": {
             "$ref": "#/components/schemas/HumanVerificationTransactionDto"
+          },
+          "verdict": {
+            "type": "string",
+            "enum": [
+              "CONFIRMED",
+              "CORRECTED",
+              "REJECTED"
+            ]
           }
-        }
+        },
+        "required": [
+          "verdict"
+        ]
       },
       "KnowledgeTransactionDto": {
         "type": "object",
@@ -7094,6 +7672,122 @@
           "baseCurrency"
         ]
       },
+      "AccountResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "institutionId": {
+            "type": "string",
+            "nullable": true
+          },
+          "institutionName": {
+            "type": "string",
+            "nullable": true
+          },
+          "institutionLogoUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "institutionColor": {
+            "type": "string",
+            "nullable": true
+          },
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "CHECKING",
+              "SAVINGS",
+              "CASH",
+              "INVESTMENT"
+            ]
+          },
+          "currency": {
+            "type": "string",
+            "example": "DOP"
+          },
+          "accountNumberLast4": {
+            "type": "string",
+            "nullable": true
+          },
+          "isDefaultForInstitution": {
+            "type": "boolean"
+          },
+          "balance": {
+            "type": "string",
+            "example": "1500.00"
+          },
+          "earmarkedAmount": {
+            "type": "string",
+            "example": "0.00"
+          },
+          "freeBalance": {
+            "type": "string",
+            "example": "1500.00"
+          },
+          "color": {
+            "type": "string",
+            "nullable": true
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "institutionId",
+          "institutionName",
+          "institutionLogoUrl",
+          "institutionColor",
+          "name",
+          "type",
+          "currency",
+          "accountNumberLast4",
+          "isDefaultForInstitution",
+          "balance",
+          "earmarkedAmount",
+          "freeBalance",
+          "color",
+          "isActive",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "AccountPageResponseDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AccountResponseDto"
+            }
+          },
+          "nextCursor": {
+            "type": "string",
+            "nullable": true
+          },
+          "hasMore": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "items",
+          "nextCursor",
+          "hasMore"
+        ]
+      },
       "CreateAccountDto": {
         "type": "object",
         "properties": {
@@ -7136,6 +7830,66 @@
           "type"
         ]
       },
+      "InstrumentHistoryItemDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "example": "ADJUSTMENT"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "amount": {
+            "type": "string",
+            "nullable": true,
+            "example": "1500.00"
+          },
+          "currency": {
+            "type": "string",
+            "nullable": true,
+            "example": "DOP"
+          },
+          "payload": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "at",
+          "amount",
+          "currency",
+          "payload"
+        ]
+      },
+      "InstrumentHistoryPageResponseDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InstrumentHistoryItemDto"
+            }
+          },
+          "nextCursor": {
+            "type": "string",
+            "nullable": true
+          },
+          "hasMore": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "items",
+          "nextCursor",
+          "hasMore"
+        ]
+      },
       "UpdateAccountDto": {
         "type": "object",
         "properties": {
@@ -7176,6 +7930,100 @@
             "type": "boolean"
           }
         }
+      },
+      "SuccessResponseDto": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true
+          }
+        },
+        "required": [
+          "success"
+        ]
+      },
+      "InstitutionResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "example": "bank",
+            "description": "bank | credit_union | digital_wallet | broker | cash | other"
+          },
+          "shortName": {
+            "type": "string",
+            "nullable": true
+          },
+          "sortOrder": {
+            "type": "number"
+          },
+          "domain": {
+            "type": "string",
+            "nullable": true
+          },
+          "color": {
+            "type": "string",
+            "nullable": true
+          },
+          "logoUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "country": {
+            "type": "string",
+            "example": "DO"
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "isSystem": {
+            "type": "boolean",
+            "description": "System institutions such as «Efectivo» cannot be edited."
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "type",
+          "shortName",
+          "sortOrder",
+          "domain",
+          "color",
+          "logoUrl",
+          "country",
+          "isActive",
+          "isSystem"
+        ]
+      },
+      "InstitutionPageResponseDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InstitutionResponseDto"
+            }
+          },
+          "nextCursor": {
+            "type": "string",
+            "nullable": true
+          },
+          "hasMore": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "items",
+          "nextCursor",
+          "hasMore"
+        ]
       },
       "CreateInstitutionDto": {
         "type": "object",
@@ -7258,6 +8106,177 @@
             "type": "boolean"
           }
         }
+      },
+      "CardBalanceResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "currency": {
+            "type": "string",
+            "example": "DOP"
+          },
+          "balance": {
+            "type": "string",
+            "example": "1500.00"
+          },
+          "creditLimit": {
+            "type": "string",
+            "nullable": true,
+            "example": "50000.00"
+          },
+          "availableCredit": {
+            "type": "string",
+            "nullable": true,
+            "example": "48500.00"
+          }
+        },
+        "required": [
+          "id",
+          "currency",
+          "balance",
+          "creditLimit",
+          "availableCredit"
+        ]
+      },
+      "CardResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "institutionId": {
+            "type": "string"
+          },
+          "institutionName": {
+            "type": "string"
+          },
+          "institutionLogoUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "institutionColor": {
+            "type": "string",
+            "nullable": true
+          },
+          "networkLogoUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "accountId": {
+            "type": "string",
+            "nullable": true
+          },
+          "accountName": {
+            "type": "string",
+            "nullable": true,
+            "description": "Linked account name; only debit cards have one."
+          },
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "CREDIT",
+              "DEBIT"
+            ]
+          },
+          "network": {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              "VISA",
+              "MASTERCARD",
+              "AMEX",
+              "DISCOVER",
+              "OTHER"
+            ]
+          },
+          "lastFour": {
+            "type": "string",
+            "nullable": true,
+            "example": "4242"
+          },
+          "statementClosingDay": {
+            "type": "number",
+            "nullable": true,
+            "example": 15
+          },
+          "paymentDueDay": {
+            "type": "number",
+            "nullable": true,
+            "example": 5
+          },
+          "nextStatementDate": {
+            "type": "string",
+            "nullable": true,
+            "format": "date"
+          },
+          "nextPaymentDueDate": {
+            "type": "string",
+            "nullable": true,
+            "format": "date"
+          },
+          "color": {
+            "type": "string",
+            "nullable": true
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "balances": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CardBalanceResponseDto"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "institutionId",
+          "institutionName",
+          "institutionLogoUrl",
+          "institutionColor",
+          "networkLogoUrl",
+          "accountId",
+          "accountName",
+          "name",
+          "type",
+          "network",
+          "lastFour",
+          "statementClosingDay",
+          "paymentDueDay",
+          "nextStatementDate",
+          "nextPaymentDueDate",
+          "color",
+          "isActive",
+          "balances"
+        ]
+      },
+      "CardPageResponseDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CardResponseDto"
+            }
+          },
+          "nextCursor": {
+            "type": "string",
+            "nullable": true
+          },
+          "hasMore": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "items",
+          "nextCursor",
+          "hasMore"
+        ]
       },
       "CreateCardDto": {
         "type": "object",
@@ -7380,6 +8399,37 @@
         },
         "required": [
           "currency",
+          "creditLimit"
+        ]
+      },
+      "CardBalanceMutationResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "cardId": {
+            "type": "string"
+          },
+          "currency": {
+            "type": "string",
+            "example": "DOP"
+          },
+          "balance": {
+            "type": "string",
+            "example": "1500.00"
+          },
+          "creditLimit": {
+            "type": "string",
+            "nullable": true,
+            "example": "50000.00"
+          }
+        },
+        "required": [
+          "id",
+          "cardId",
+          "currency",
+          "balance",
           "creditLimit"
         ]
       },
@@ -8052,6 +9102,317 @@
           }
         }
       },
+      "CardStatementResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "currency": {
+            "type": "string",
+            "example": "DOP"
+          },
+          "cycleStart": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "cycleEnd": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "dueDate": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "closingBalance": {
+            "type": "string",
+            "example": "25000.00"
+          },
+          "minimumPayment": {
+            "type": "string",
+            "example": "2500.00"
+          },
+          "minimumSource": {
+            "type": "string",
+            "enum": [
+              "IMPORTED",
+              "ESTIMATED",
+              "MANUAL"
+            ],
+            "nullable": true
+          },
+          "paidAmount": {
+            "type": "string",
+            "example": "0.00"
+          },
+          "remaining": {
+            "type": "string",
+            "example": "25000.00"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "OPEN",
+              "CLOSED",
+              "PARTIAL",
+              "MINIMUM_PAID",
+              "PAID",
+              "OVERDUE"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "currency",
+          "cycleStart",
+          "cycleEnd",
+          "dueDate",
+          "closingBalance",
+          "minimumPayment",
+          "minimumSource",
+          "paidAmount",
+          "remaining",
+          "status"
+        ]
+      },
+      "CardStatementPageResponseDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CardStatementResponseDto"
+            }
+          },
+          "nextCursor": {
+            "type": "string",
+            "nullable": true
+          },
+          "hasMore": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "items",
+          "nextCursor",
+          "hasMore"
+        ]
+      },
+      "StatementTransactionResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "accountId": {
+            "type": "string",
+            "nullable": true
+          },
+          "cardId": {
+            "type": "string",
+            "nullable": true
+          },
+          "userId": {
+            "type": "string"
+          },
+          "categoryId": {
+            "type": "string",
+            "nullable": true
+          },
+          "importReference": {
+            "type": "string",
+            "nullable": true
+          },
+          "externalReference": {
+            "type": "string",
+            "nullable": true
+          },
+          "institutionId": {
+            "type": "string",
+            "nullable": true
+          },
+          "possibleDuplicateOfId": {
+            "type": "string",
+            "nullable": true
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "DEBIT",
+              "CREDIT",
+              "TRANSFER",
+              "ADJUSTMENT",
+              "CARD_PAYMENT"
+            ]
+          },
+          "amount": {
+            "type": "string",
+            "example": "1500.00"
+          },
+          "ledgerAmount": {
+            "type": "string",
+            "example": "1500.00"
+          },
+          "amountBaseCurrency": {
+            "type": "string",
+            "example": "1500.00"
+          },
+          "currency": {
+            "type": "string",
+            "example": "DOP"
+          },
+          "ledgerCurrency": {
+            "type": "string",
+            "example": "DOP"
+          },
+          "exchangeRate": {
+            "type": "string",
+            "example": "1"
+          },
+          "isEstimated": {
+            "type": "boolean"
+          },
+          "merchant": {
+            "type": "string",
+            "nullable": true
+          },
+          "merchantId": {
+            "type": "string",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "transactionDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "transferGroupId": {
+            "type": "string",
+            "nullable": true
+          },
+          "linkedTransactionId": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "CONFIRMED",
+              "CANCELLED",
+              "DECLINED",
+              "REVERSED"
+            ]
+          },
+          "isRecurring": {
+            "type": "boolean"
+          },
+          "aiMetadata": {
+            "type": "object"
+          },
+          "notes": {
+            "type": "string",
+            "nullable": true
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "MANUAL",
+              "EMAIL",
+              "AI"
+            ]
+          },
+          "legRole": {
+            "type": "string",
+            "enum": [
+              "SOURCE",
+              "DESTINATION",
+              "FEE"
+            ],
+            "nullable": true
+          },
+          "rail": {
+            "type": "string",
+            "enum": [
+              "SAME_BANK",
+              "ACH",
+              "LBTR",
+              "OTHER"
+            ],
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "accountId",
+          "cardId",
+          "userId",
+          "categoryId",
+          "importReference",
+          "externalReference",
+          "institutionId",
+          "possibleDuplicateOfId",
+          "type",
+          "amount",
+          "ledgerAmount",
+          "amountBaseCurrency",
+          "currency",
+          "ledgerCurrency",
+          "exchangeRate",
+          "isEstimated",
+          "merchant",
+          "merchantId",
+          "description",
+          "transactionDate",
+          "transferGroupId",
+          "linkedTransactionId",
+          "status",
+          "isRecurring",
+          "aiMetadata",
+          "notes",
+          "source",
+          "legRole",
+          "rail",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "CardStatementDetailResponseDto": {
+        "type": "object",
+        "properties": {
+          "statement": {
+            "$ref": "#/components/schemas/CardStatementResponseDto"
+          },
+          "movements": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StatementTransactionResponseDto"
+            }
+          },
+          "payments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StatementTransactionResponseDto"
+            }
+          }
+        },
+        "required": [
+          "statement",
+          "movements",
+          "payments"
+        ]
+      },
       "UpdateCardStatementDto": {
         "type": "object",
         "properties": {
@@ -8074,6 +9435,359 @@
             "description": "PDF password; never stored or logged"
           }
         }
+      },
+      "StatementImportCreatedResponseDto": {
+        "type": "object",
+        "properties": {
+          "importId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "importId"
+        ]
+      },
+      "StatementImportTargetResponseDto": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "CARD",
+              "ACCOUNT"
+            ]
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "currency": {
+            "type": "string",
+            "example": "DOP"
+          }
+        },
+        "required": [
+          "kind",
+          "id",
+          "name",
+          "currency"
+        ]
+      },
+      "StatementImportHeaderResponseDto": {
+        "type": "object",
+        "properties": {
+          "currency": {
+            "type": "string",
+            "example": "DOP"
+          },
+          "periodStart": {
+            "type": "string",
+            "nullable": true,
+            "format": "date"
+          },
+          "periodEnd": {
+            "type": "string",
+            "nullable": true,
+            "format": "date"
+          },
+          "dueDate": {
+            "type": "string",
+            "nullable": true,
+            "format": "date"
+          },
+          "previousBalance": {
+            "type": "string",
+            "nullable": true,
+            "example": "1000.00"
+          },
+          "closingBalance": {
+            "type": "string",
+            "nullable": true,
+            "example": "2500.00"
+          },
+          "minimumPayment": {
+            "type": "string",
+            "nullable": true,
+            "example": "250.00"
+          }
+        },
+        "required": [
+          "currency",
+          "periodStart",
+          "periodEnd",
+          "dueDate",
+          "previousBalance",
+          "closingBalance",
+          "minimumPayment"
+        ]
+      },
+      "StatementImportPeriodResponseDto": {
+        "type": "object",
+        "properties": {
+          "from": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "to": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "from",
+          "to"
+        ]
+      },
+      "StatementImportCountsResponseDto": {
+        "type": "object",
+        "properties": {
+          "lines": {
+            "type": "number"
+          },
+          "matched": {
+            "type": "number"
+          },
+          "missing": {
+            "type": "number"
+          },
+          "extra": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "lines",
+          "matched",
+          "missing",
+          "extra"
+        ]
+      },
+      "StatementImportLineResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "description": {
+            "type": "string"
+          },
+          "amount": {
+            "type": "string",
+            "example": "150.00"
+          },
+          "currency": {
+            "type": "string",
+            "example": "DOP"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "DEBIT",
+              "CREDIT"
+            ]
+          },
+          "reference": {
+            "type": "string",
+            "nullable": true
+          },
+          "decision": {
+            "type": "string",
+            "enum": [
+              "MATCH",
+              "CREATE",
+              "IGNORE"
+            ]
+          },
+          "categoryId": {
+            "type": "string",
+            "nullable": true
+          },
+          "categoryName": {
+            "type": "string",
+            "nullable": true
+          },
+          "transactionId": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "date",
+          "description",
+          "amount",
+          "currency",
+          "type",
+          "reference",
+          "decision",
+          "categoryId",
+          "categoryName",
+          "transactionId"
+        ]
+      },
+      "StatementImportExtraResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "date": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "merchant": {
+            "type": "string",
+            "nullable": true
+          },
+          "amount": {
+            "type": "string",
+            "example": "150.00"
+          },
+          "currency": {
+            "type": "string",
+            "example": "DOP"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "DEBIT",
+              "CREDIT",
+              "TRANSFER",
+              "ADJUSTMENT",
+              "CARD_PAYMENT"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "date",
+          "description",
+          "merchant",
+          "amount",
+          "currency",
+          "type"
+        ]
+      },
+      "StatementImportAdjustmentResponseDto": {
+        "type": "object",
+        "properties": {
+          "amount": {
+            "type": "string",
+            "example": "150.00"
+          },
+          "currency": {
+            "type": "string",
+            "example": "DOP"
+          }
+        },
+        "required": [
+          "amount",
+          "currency"
+        ]
+      },
+      "StatementImportResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PARSING",
+              "READY",
+              "APPLIED",
+              "FAILED",
+              "DISCARDED"
+            ]
+          },
+          "error": {
+            "type": "string",
+            "nullable": true
+          },
+          "failureReason": {
+            "type": "string",
+            "nullable": true
+          },
+          "target": {
+            "$ref": "#/components/schemas/StatementImportTargetResponseDto"
+          },
+          "header": {
+            "$ref": "#/components/schemas/StatementImportHeaderResponseDto"
+          },
+          "period": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/StatementImportPeriodResponseDto"
+              }
+            ]
+          },
+          "counts": {
+            "$ref": "#/components/schemas/StatementImportCountsResponseDto"
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StatementImportLineResponseDto"
+            }
+          },
+          "extra": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StatementImportExtraResponseDto"
+            }
+          },
+          "difference": {
+            "type": "string",
+            "nullable": true,
+            "example": "0.00"
+          },
+          "adjustment": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/StatementImportAdjustmentResponseDto"
+              }
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "appliedAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "error",
+          "failureReason",
+          "target",
+          "header",
+          "period",
+          "counts",
+          "lines",
+          "extra",
+          "difference",
+          "adjustment",
+          "createdAt",
+          "appliedAt"
+        ]
       },
       "UpdateStatementLineDto": {
         "type": "object",
@@ -8341,6 +10055,216 @@
           }
         }
       },
+      "LoanReferenceDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ]
+      },
+      "LoanResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "string"
+          },
+          "institutionId": {
+            "type": "string",
+            "nullable": true
+          },
+          "accountId": {
+            "type": "string",
+            "nullable": true
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "lenderName": {
+            "type": "string"
+          },
+          "originalAmount": {
+            "type": "string",
+            "example": "100000.00"
+          },
+          "currentBalance": {
+            "type": "string",
+            "example": "75000.00"
+          },
+          "currency": {
+            "type": "string",
+            "example": "DOP"
+          },
+          "installmentAmount": {
+            "type": "string",
+            "example": "8500.00"
+          },
+          "installmentFreq": {
+            "type": "string",
+            "enum": [
+              "WEEKLY",
+              "BIWEEKLY",
+              "MONTHLY"
+            ]
+          },
+          "totalInstallments": {
+            "type": "number"
+          },
+          "paidInstallments": {
+            "type": "number"
+          },
+          "nextDueDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "interestRate": {
+            "type": "string",
+            "nullable": true,
+            "example": "0.1800"
+          },
+          "rateType": {
+            "type": "string",
+            "enum": [
+              "FIXED",
+              "VARIABLE"
+            ]
+          },
+          "insuranceAmount": {
+            "type": "string",
+            "nullable": true,
+            "example": "500.00"
+          },
+          "lateFeePolicy": {
+            "type": "object",
+            "nullable": true
+          },
+          "prepaymentPenaltyPct": {
+            "type": "string",
+            "nullable": true,
+            "example": "0.0200"
+          },
+          "disbursementDate": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "disbursementAccountId": {
+            "type": "string",
+            "nullable": true
+          },
+          "disbursementTransactionId": {
+            "type": "string",
+            "nullable": true
+          },
+          "notes": {
+            "type": "string",
+            "nullable": true
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "account": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/LoanReferenceDto"
+              }
+            ]
+          },
+          "disbursementAccount": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/LoanReferenceDto"
+              }
+            ]
+          },
+          "institution": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/LoanReferenceDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "userId",
+          "institutionId",
+          "accountId",
+          "name",
+          "lenderName",
+          "originalAmount",
+          "currentBalance",
+          "currency",
+          "installmentAmount",
+          "installmentFreq",
+          "totalInstallments",
+          "paidInstallments",
+          "nextDueDate",
+          "interestRate",
+          "rateType",
+          "insuranceAmount",
+          "lateFeePolicy",
+          "prepaymentPenaltyPct",
+          "disbursementDate",
+          "disbursementAccountId",
+          "disbursementTransactionId",
+          "notes",
+          "isActive",
+          "createdAt",
+          "updatedAt",
+          "account",
+          "disbursementAccount",
+          "institution"
+        ]
+      },
+      "LoanPageResponseDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LoanResponseDto"
+            }
+          },
+          "nextCursor": {
+            "type": "string",
+            "nullable": true
+          },
+          "hasMore": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "items",
+          "nextCursor",
+          "hasMore"
+        ]
+      },
       "CreateLoanDto": {
         "type": "object",
         "properties": {
@@ -8431,6 +10355,119 @@
           "nextDueDate"
         ]
       },
+      "LoanInstallmentResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "loanId": {
+            "type": "string"
+          },
+          "installmentNo": {
+            "type": "number"
+          },
+          "dueDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "amount": {
+            "type": "string",
+            "example": "8500.00"
+          },
+          "principal": {
+            "type": "string",
+            "example": "7000.00"
+          },
+          "interest": {
+            "type": "string",
+            "example": "1500.00"
+          },
+          "insurance": {
+            "type": "string",
+            "example": "0.00"
+          },
+          "fees": {
+            "type": "string",
+            "example": "0.00"
+          },
+          "lateFee": {
+            "type": "string",
+            "example": "0.00"
+          },
+          "paidAmount": {
+            "type": "string",
+            "example": "0.00"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "PARTIAL",
+              "PAID",
+              "OVERDUE"
+            ]
+          },
+          "paidAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "transactionId": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "loanId",
+          "installmentNo",
+          "dueDate",
+          "amount",
+          "principal",
+          "interest",
+          "insurance",
+          "fees",
+          "lateFee",
+          "paidAmount",
+          "status",
+          "paidAt",
+          "transactionId",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "LoanInstallmentPageResponseDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LoanInstallmentResponseDto"
+            }
+          },
+          "nextCursor": {
+            "type": "string",
+            "nullable": true
+          },
+          "hasMore": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "items",
+          "nextCursor",
+          "hasMore"
+        ]
+      },
       "PayLoanInstallmentDto": {
         "type": "object",
         "properties": {
@@ -8445,6 +10482,76 @@
             "default": false
           }
         }
+      },
+      "LoanPaymentBreakdownDto": {
+        "type": "object",
+        "properties": {
+          "lateFee": {
+            "type": "number",
+            "example": "0.00"
+          },
+          "fees": {
+            "type": "number",
+            "example": "0.00"
+          },
+          "insurance": {
+            "type": "number",
+            "example": "0.00"
+          },
+          "interest": {
+            "type": "number",
+            "example": "1500.00"
+          },
+          "principal": {
+            "type": "number",
+            "example": "7000.00"
+          },
+          "applied": {
+            "type": "number",
+            "example": "8500.00"
+          }
+        },
+        "required": [
+          "lateFee",
+          "fees",
+          "insurance",
+          "interest",
+          "principal",
+          "applied"
+        ]
+      },
+      "LoanInstallmentPaymentResponseDto": {
+        "type": "object",
+        "properties": {
+          "installmentNo": {
+            "type": "number"
+          },
+          "breakdown": {
+            "$ref": "#/components/schemas/LoanPaymentBreakdownDto"
+          },
+          "paidAmount": {
+            "type": "number",
+            "example": "8500.00"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PAID",
+              "PARTIAL"
+            ]
+          },
+          "currentBalance": {
+            "type": "number",
+            "example": "66500.00"
+          }
+        },
+        "required": [
+          "installmentNo",
+          "breakdown",
+          "paidAmount",
+          "status",
+          "currentBalance"
+        ]
       },
       "LoanPrepaymentDto": {
         "type": "object",
@@ -8473,6 +10580,108 @@
           "amount",
           "accountId",
           "mode"
+        ]
+      },
+      "LoanPrepaymentResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "loanId": {
+            "type": "string"
+          },
+          "amount": {
+            "type": "string",
+            "example": "5000.00"
+          },
+          "penalty": {
+            "type": "string",
+            "example": "100.00"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "REDUCE_TERM",
+              "REDUCE_PAYMENT"
+            ]
+          },
+          "paidAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "transactionId": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "loanId",
+          "amount",
+          "penalty",
+          "mode",
+          "paidAt",
+          "transactionId",
+          "createdAt"
+        ]
+      },
+      "LoanPrepaymentResultResponseDto": {
+        "type": "object",
+        "properties": {
+          "prepayment": {
+            "$ref": "#/components/schemas/LoanPrepaymentResponseDto"
+          },
+          "loan": {
+            "$ref": "#/components/schemas/LoanResponseDto"
+          },
+          "schedulePreview": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LoanInstallmentResponseDto"
+            }
+          }
+        },
+        "required": [
+          "prepayment",
+          "loan",
+          "schedulePreview"
+        ]
+      },
+      "LoanPrepaymentPreviewResponseDto": {
+        "type": "object",
+        "properties": {
+          "newBalance": {
+            "type": "number",
+            "example": "70000.00"
+          },
+          "totalInstallments": {
+            "type": "number",
+            "example": 10
+          },
+          "installmentAmount": {
+            "type": "number",
+            "example": "8200.00"
+          },
+          "interestRemaining": {
+            "type": "number",
+            "example": "12000.00"
+          },
+          "newEndDate": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "newBalance",
+          "totalInstallments",
+          "installmentAmount",
+          "interestRemaining",
+          "newEndDate"
         ]
       },
       "UpdateLoanDto": {
