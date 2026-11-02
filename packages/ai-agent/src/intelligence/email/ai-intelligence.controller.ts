@@ -10,13 +10,29 @@ import {
   Res,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { ApiBearerAuth, ApiConflictResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiAcceptedResponse,
+  ApiBearerAuth,
+  ApiConflictResponse,
+  ApiCreatedResponse,
+  ApiOkResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import type { Env } from '@personal-os/config';
 import { CurrentUser, Public, Timeout } from '@personal-os/core';
 import type { Response } from 'express';
 import { AiEmailSourceService } from './ai-email-source.service';
 import { GmailSyncService } from './gmail-sync.service';
 import { ResetEmailCorpusDto } from './dto/reset-email-corpus.dto';
+import {
+  AiEmailConnectResponseDto,
+  AiEmailDashboardResponseDto,
+  AiEmailDiagnosticsResponseDto,
+  AiEmailMessagePageResponseDto,
+  AiEmailMessageResponseDto,
+  AiEmailResetResponseDto,
+  AiEmailSyncResponseDto,
+} from './ai-intelligence-response.dto';
 
 @ApiTags('intelligence')
 @ApiBearerAuth('access-token')
@@ -29,6 +45,7 @@ export class AiIntelligenceController {
   ) {}
 
   @Get()
+  @ApiOkResponse({ type: AiEmailDashboardResponseDto })
   dashboard(@CurrentUser() user: { sub: string }) {
     return Promise.all([
       this.email.dashboard(user.sub),
@@ -45,6 +62,7 @@ export class AiIntelligenceController {
   }
 
   @Get('messages')
+  @ApiOkResponse({ type: AiEmailMessagePageResponseDto })
   messages(
     @CurrentUser() user: { sub: string },
     @Query('cursor') cursor?: string,
@@ -53,6 +71,7 @@ export class AiIntelligenceController {
   }
 
   @Get('messages/:messageId')
+  @ApiOkResponse({ type: AiEmailMessageResponseDto })
   message(
     @CurrentUser() user: { sub: string },
     @Param('messageId') messageId: string,
@@ -61,6 +80,7 @@ export class AiIntelligenceController {
   }
 
   @Post('email/connect')
+  @ApiCreatedResponse({ type: AiEmailConnectResponseDto })
   connect(@CurrentUser() user: { sub: string }) {
     return {
       authorizationUrl: this.email.createAuthorizationUrl(user.sub),
@@ -69,11 +89,13 @@ export class AiIntelligenceController {
 
   @Post('email/sync')
   @HttpCode(202)
+  @ApiAcceptedResponse({ type: AiEmailSyncResponseDto })
   syncNow(@CurrentUser() user: { sub: string }) {
     return this.sync.syncForUser(user.sub);
   }
 
   @Post('email/reset')
+  @ApiCreatedResponse({ type: AiEmailResetResponseDto })
   @ApiConflictResponse({
     description:
       'GMAIL_NOT_CONNECTED si no hay conexión; GMAIL_SYNC_IN_PROGRESS si hay una sincronización activa o esperando cuota.',
@@ -133,6 +155,7 @@ export class AiIntelligenceController {
   }
 
   @Get('email/oauth/diagnostics')
+  @ApiOkResponse({ type: AiEmailDiagnosticsResponseDto })
   diagnostics() {
     return this.email.oauthDiagnostics();
   }

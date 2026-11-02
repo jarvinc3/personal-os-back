@@ -1,8 +1,9 @@
 import { Controller, Get, Header, Param } from '@nestjs/common';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import { Public } from '@personal-os/core';
 import { PublicReceivableSharesService } from '../application/public-receivable-shares.service';
+import { PublicReceivableShareResponseDto } from './dto/public-receivable-share-response.dto';
 
 const PUBLIC_SHARE_REQUESTS_PER_MINUTE = 30;
 const ONE_MINUTE_MS = 60_000;
@@ -21,6 +22,7 @@ export class PublicReceivableSharesController {
   @ApiOperation({
     summary: 'Cobros compartidos por link público, en solo lectura',
   })
+  @ApiOkResponse({ type: PublicReceivableShareResponseDto })
   get(@Param('token') token: string) {
     return this.shares.getByToken(token, new Date());
   }

@@ -21,6 +21,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [Se
 
 ### Cambiado
 
+- El contrato OpenAPI publica el schema de las respuestas de perfil y configuración, notificaciones, IA, autenticación y links públicos de cobros, con los montos como texto decimal y los cursores de las listas (#276, #263).
 - El contrato OpenAPI publica el schema de las respuestas de categorías, comercios, monedas y tasas, analítica, entidades, Quick Entry, cargos bancarios y papelera, con los montos como texto decimal y los campos de cursor de los listados de comercios y papelera (#275, #263).
 - El contrato OpenAPI publica el schema de las respuestas de presupuestos, metas de ahorro, cobros, suscripciones, recurrentes y vínculos de planificación, con montos como texto decimal y los campos de cursor de cada listado; `swagger-spec.json` se regenera (#274, #263).
 - El contrato OpenAPI publica el schema de las respuestas de movimientos, transferencias, pagos de tarjeta, ajustes de saldo, conciliaciones e integridad, con montos como texto decimal y los campos de cursor de cada listado; `swagger-spec.json` se regenera (#273, #263).
