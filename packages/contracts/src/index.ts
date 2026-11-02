@@ -19,6 +19,9 @@ export const DOMAIN_EVENT_PUBLISHER = Symbol.for(
 export const AI_CAPABILITY_REGISTRY = Symbol.for(
   'personal-os.contracts.ai-capability-registry',
 );
+export const AI_CAPABILITY_PROVIDERS = Symbol.for(
+  'personal-os.contracts.ai-capability-providers',
+);
 
 export interface InferenceMessage {
   role: 'system' | 'user' | 'assistant' | 'tool';
@@ -149,7 +152,10 @@ export interface AiCapabilityDefinition {
   version: number;
   description: string;
   inputSchema: JsonObject;
+  outputSchema: JsonObject;
   effect: 'READ' | 'WRITE';
+  validateInput(value: unknown): JsonObject;
+  validateOutput(value: unknown): JsonValue;
 }
 export interface AiExecutionContext {
   // Set by the host from verified auth/signal ownership, never from tool args.
@@ -167,6 +173,7 @@ export interface AiExecutionContext {
 export interface AiCapabilityProvider {
   readonly moduleSlug: string;
   describe(): readonly AiCapabilityDefinition[];
+  isAvailable?(ctx: AiExecutionContext): boolean | Promise<boolean>;
   execute(
     ctx: AiExecutionContext,
     capabilityId: string,
@@ -177,6 +184,43 @@ export interface AiCapabilityProvider {
     ref: { type: string; id: string },
   ): Promise<JsonValue>;
   readContext?(ctx: AiExecutionContext): Promise<JsonObject>;
+}
+
+export type AiCapabilityDescriptor = Omit<
+  AiCapabilityDefinition,
+  'validateInput' | 'validateOutput'
+>;
+
+export type AiCapabilityErrorCode =
+  | 'CAPABILITY_CONFLICT'
+  | 'CAPABILITY_NOT_FOUND'
+  | 'CAPABILITY_UNAVAILABLE'
+  | 'CAPABILITY_INVALID_ARGUMENTS'
+  | 'CAPABILITY_INVALID_OUTPUT'
+  | 'CAPABILITY_EXECUTION_FAILED'
+  | 'CAPABILITY_CONTEXT_UNAVAILABLE'
+  | 'CAPABILITY_INVALID_DEFINITION';
+
+export class AiCapabilityError extends Error {
+  constructor(
+    readonly code: AiCapabilityErrorCode,
+    message: string,
+    readonly details?: Readonly<Record<string, unknown>>,
+  ) {
+    super(message);
+    this.name = 'AiCapabilityError';
+  }
+}
+
+export interface AiCapabilityRegistryPort {
+  register(provider: AiCapabilityProvider): void;
+  discover(moduleSlug?: string): readonly AiCapabilityDescriptor[];
+  execute(
+    ctx: AiExecutionContext,
+    capabilityId: string,
+    args: unknown,
+  ): Promise<JsonValue>;
+  readContext(ctx: AiExecutionContext, moduleSlug: string): Promise<JsonObject>;
 }
 
 // A signal remains an intelligence record, not a domain event or intent.

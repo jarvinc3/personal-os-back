@@ -6,6 +6,7 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { AiModule } from '@personal-os/ai-agent';
+import { AI_CAPABILITY_PROVIDERS } from '@personal-os/contracts';
 import { AuthModule } from '@personal-os/auth';
 import type { Env } from '@personal-os/config';
 import {
@@ -24,9 +25,14 @@ import { ClsModule } from 'nestjs-cls';
 import { LoggerModule } from 'nestjs-pino';
 import { HealthModule } from './health/health.module';
 import { UserDataWipeModule } from './user-data-wipe/user-data-wipe.module';
+import { AiCapabilityCompositionService } from './ai-capabilities/ai-capability-composition.service';
 const bullMqEnabled = isBullMqEnabledFromProcessEnv();
 const bullBoardEnabled = isBullBoardEnabledFromProcessEnv();
 @Module({
+  providers: [
+    { provide: AI_CAPABILITY_PROVIDERS, useValue: [] },
+    AiCapabilityCompositionService,
+  ],
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,

@@ -1,4 +1,5 @@
 export { AiCoreModule } from './ai-core.module';
+export { AiCapabilityRegistry } from './capabilities/ai-capability.registry';
 export { AiModule } from './ai.module';
 export { AiService } from './inference/application/ai.service';
 export { AiInferenceGateway } from './inference/application/ai-inference.gateway';

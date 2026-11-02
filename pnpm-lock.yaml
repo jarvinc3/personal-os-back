@@ -478,9 +478,6 @@ importers:
       '@personal-os/database':
         specifier: workspace:*
         version: link:../database
-      '@personal-os/finance':
-        specifier: workspace:*
-        version: link:../finance
       '@personal-os/notifications':
         specifier: workspace:*
         version: link:../notifications
