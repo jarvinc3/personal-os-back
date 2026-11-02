@@ -46,6 +46,7 @@ describe('groupReviewMessages', () => {
         pending: 3,
         pendingHoldout: 1,
         sampleSubjects: ['Aviso'],
+        sampleMessageIds: ['m1'],
       },
     ]);
   });
@@ -94,6 +95,7 @@ describe('groupReviewMessages', () => {
     });
 
     expect(groups[0].sampleSubjects).toEqual(['Primero', 'Segundo', 'Tercero']);
+    expect(groups[0].sampleMessageIds).toEqual(['m1', 'm3', 'm4']);
   });
 
   it('orders by pending, then total, sender and template', () => {

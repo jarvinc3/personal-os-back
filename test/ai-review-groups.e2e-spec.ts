@@ -254,6 +254,12 @@ describe('AI-6 review groups batch (e2e)', () => {
       pendingHoldout: 9,
     });
     expect(groups.body.data.items[0].sampleSubjects).toHaveLength(3);
+    expect(groups.body.data.items[0].sampleMessageIds).toHaveLength(3);
+    expect(
+      groups.body.data.items[0].sampleMessageIds.every(
+        (id: unknown) => typeof id === 'string' && id.length > 0,
+      ),
+    ).toBe(true);
     expect(JSON.stringify(groups.body.data)).not.toContain('only-other');
 
     const batch = await postBatch({ relevance: true });

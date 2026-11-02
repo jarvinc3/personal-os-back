@@ -14,6 +14,8 @@ export type ReviewGroup = {
   pending: number;
   pendingHoldout: number;
   sampleSubjects: string[];
+  /** Parallel to `sampleSubjects`: `sampleMessageIds[i]` is its message. */
+  sampleMessageIds: string[];
 };
 
 type ReviewGroupInput = {
@@ -71,6 +73,7 @@ function emptyGroup(message: ReviewGroupMessage): ReviewGroup {
     pending: 0,
     pendingHoldout: 0,
     sampleSubjects: [],
+    sampleMessageIds: [],
   };
 }
 
@@ -81,11 +84,9 @@ function accumulateGroup({
   reviewed,
   sampleSize,
 }: AccumulateGroupInput): ReviewGroup {
-  const sampleSubjects =
+  const addsSample =
     group.sampleSubjects.length < sampleSize &&
-    !group.sampleSubjects.includes(message.subject)
-      ? [...group.sampleSubjects, message.subject]
-      : group.sampleSubjects;
+    !group.sampleSubjects.includes(message.subject);
   const pendingIncrement = reviewed ? 0 : 1;
   const holdoutIncrement = !reviewed && partition === 'HOLDOUT' ? 1 : 0;
   return {
@@ -94,7 +95,12 @@ function accumulateGroup({
     total: group.total + 1,
     pending: group.pending + pendingIncrement,
     pendingHoldout: group.pendingHoldout + holdoutIncrement,
-    sampleSubjects,
+    sampleSubjects: addsSample
+      ? [...group.sampleSubjects, message.subject]
+      : group.sampleSubjects,
+    sampleMessageIds: addsSample
+      ? [...group.sampleMessageIds, message.id]
+      : group.sampleMessageIds,
   };
 }
 

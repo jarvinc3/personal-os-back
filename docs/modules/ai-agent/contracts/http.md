@@ -24,7 +24,7 @@ AI-3 (JWT):
 | POST   | `/api/intelligence/messages/:messageId/verifications`                                                                              | `CONFIRMED`, `CORRECTED` o `REJECTED`; guarda secuencia y marca HOLDOUT como verdad de referencia                                                         |
 | GET    | `/api/intelligence/runs`                                                                                                           | Runs del usuario con configuración, versiones y watermarks de evidencia                                                                                   |
 | POST   | `/api/intelligence/email/reset`                                                                                                    | Requiere `{ "confirmed": true }`; vacía el corpus de correo y derivados del usuario, conserva OAuth; 409 `GMAIL_NOT_CONNECTED` o `GMAIL_SYNC_IN_PROGRESS` |
-| GET    | `/api/intelligence/review-groups?page=1&pageSize=20`                                                                               | Grupos por remitente y plantilla con total, pendientes, pendientes HOLDOUT y asuntos de muestra, ordenados por pendientes                                 |
+| GET    | `/api/intelligence/review-groups?page=1&pageSize=20`                                                                               | Grupos por remitente y plantilla con total, pendientes, pendientes HOLDOUT y muestras con su asunto e id, ordenados por pendientes                        |
 | POST   | `/api/intelligence/review-groups/verifications`                                                                                    | Aplica `CONFIRMED` o `CORRECTED` a los pendientes del grupo; `REJECTED` responde 400                                                                      |
 
 `GET /api/intelligence/review-queue` acepta estos parámetros. Todos se combinan entre sí y con la paginación, siempre dentro de la cuenta autenticada.
@@ -72,7 +72,7 @@ El estado de un correo es el de su última verificación; sin verificación es `
 }
 ```
 
-`GET /api/intelligence/review-groups` pagina por página (`page` desde 1, `pageSize` hasta 100) y devuelve solo grupos con al menos un pendiente. Un grupo con `templateFingerprint` nulo reúne los correos de ese remitente sin huella.
+`GET /api/intelligence/review-groups` pagina por página (`page` desde 1, `pageSize` hasta 100) y devuelve solo grupos con al menos un pendiente. Un grupo con `templateFingerprint` nulo reúne los correos de ese remitente sin huella. `sampleMessageIds[i]` es el correo de `sampleSubjects[i]`; un asunto repetido no duplica la muestra y conserva el primer id.
 
 ```json
 {
@@ -87,7 +87,8 @@ El estado de un correo es el de su última verificación; sin verificación es `
         "Revisión de seguridad de <n>",
         "Nueva actividad en tu cuenta",
         "Aviso de inicio de sesión"
-      ]
+      ],
+      "sampleMessageIds": ["b3c1...", "6f2a...", "9d4e..."]
     }
   ],
   "page": 1,
