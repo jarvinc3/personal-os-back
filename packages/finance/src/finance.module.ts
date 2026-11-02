@@ -19,6 +19,7 @@ import { FinanceWipeModule } from './shared/wipe-finance.module';
 import { FinanceStatementsModule } from './statements/statements.module';
 import { FinanceSubscriptionsModule } from './subscriptions/subscriptions.module';
 import { FinanceAiCapabilities } from './ai/finance-ai-capabilities';
+import { FinanceSignalConsumer } from './signals/finance-signal-consumer';
 /**
  * Finance composition root — domain capabilities and their AI read provider.
  */
@@ -43,7 +44,7 @@ import { FinanceAiCapabilities } from './ai/finance-ai-capabilities';
     FinanceRecycleBinModule,
     FinanceWipeModule,
   ],
-  providers: [FinanceFacade, FinanceAiCapabilities],
-  exports: [FinanceFacade, FinanceAiCapabilities],
+  providers: [FinanceFacade, FinanceAiCapabilities, FinanceSignalConsumer],
+  exports: [FinanceFacade, FinanceAiCapabilities, FinanceSignalConsumer],
 })
 export class FinanceModule {}

@@ -13,7 +13,11 @@ describe('AiSignalOutboxBridge', () => {
     expect(queue.add).toHaveBeenCalledWith(
       'route-signal',
       { signalId: 'email-123', userId: 'user-1' },
-      { jobId: 'ai.signal.routed_email-123' },
+      {
+        jobId: 'ai.signal.routed_email-123',
+        attempts: 5,
+        backoff: { type: 'exponential', delay: 1000 },
+      },
     );
   });
 

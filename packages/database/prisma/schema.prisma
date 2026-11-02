@@ -53,6 +53,7 @@ model User {
   finRecurring                   FinRecurringPattern[]
   finSavingsGoals                FinSavingsGoal[]
   finTransactions                FinTransaction[]
+  finSignalImports               FinSignalImport[]
   finDeletionJournal             FinDeletionJournal[]
   finInstrumentEvents            FinInstrumentEvent[]
   finStatementImports            FinStatementImport[]
@@ -805,6 +806,7 @@ model FinTransaction {
   loanPrepayment           FinLoanPrepayment?
   statementImportLines     FinStatementImportLine[]
   reconciliationAdjustment FinReconciliationAdjustment?
+  signalImports            FinSignalImport[]
 
   @@unique([userId, importReference], map: "fin_transactions_user_import_reference_key")
   @@index([accountId, transactionDate], map: "fin_transactions_account_id_date_idx")
@@ -817,6 +819,27 @@ model FinTransaction {
   @@index([categoryId], map: "fin_transactions_category_id_idx")
   @@index([linkedTransactionId], map: "fin_transactions_linked_transaction_id_idx")
   @@map("fin_transactions")
+}
+
+model FinSignalImport {
+  id                       String                @id @default(dbgenerated("(extensions.uuid_generate_v4())::text"))
+  userId                   String                @map("user_id")
+  signalId                 String                @map("signal_id")
+  sourceEmailMessageId     String                @map("source_email_message_id")
+  status                   FinSignalImportStatus
+  reviewReason             String?               @map("review_reason")
+  transactionId            String?               @map("transaction_id")
+  duplicateOfTransactionId String?               @map("duplicate_of_transaction_id")
+  candidate                Json
+  createdAt                DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt                DateTime              @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  user                     User                  @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  transaction              FinTransaction?       @relation(fields: [transactionId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+
+  @@unique([userId, signalId], map: "fin_signal_imports_user_signal_key")
+  @@index([userId, status, createdAt(sort: Desc)], map: "fin_signal_imports_user_status_created_idx")
+  @@index([userId, sourceEmailMessageId], map: "fin_signal_imports_user_email_idx")
+  @@map("fin_signal_imports")
 }
 
 model FinCategory {
@@ -1621,6 +1644,16 @@ enum FinTransactionStatus {
   CANCELLED
   DECLINED
   REVERSED
+}
+
+enum FinSignalImportStatus {
+  REVIEW_REQUIRED
+  IMPORTED
+  DUPLICATE
+  REVERSED
+  FAILED
+
+  @@map("fin_signal_import_status")
 }
 
 enum FinTransactionSource {

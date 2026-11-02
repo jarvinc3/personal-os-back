@@ -278,11 +278,15 @@ export interface RoutedSignal<T extends JsonObject = JsonObject> {
   signalType: string;
   schemaVersion: number;
   occurredAt: IsoInstant;
+  sourceType: string;
+  sourceId: string;
   payload: T;
 }
 export interface SignalConsumer<T extends JsonObject = JsonObject> {
+  readonly domain: string;
   consume(signal: RoutedSignal<T>): Promise<{
     outcome: 'APPLIED' | 'ALREADY_APPLIED' | 'REVIEW_REQUIRED' | 'REJECTED';
     domainReferences: readonly { type: string; id: string }[];
+    reason?: string;
   }>;
 }

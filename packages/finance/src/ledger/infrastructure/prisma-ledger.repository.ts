@@ -635,6 +635,25 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
         };
       }
 
+      const claimed = await tx.finTransaction.updateMany({
+        where: { id: originalId, userId, status: existing.status },
+        data: {
+          status: 'REVERSED',
+          ...(aiMetadata ? { aiMetadata: aiMetadata } : {}),
+        },
+      });
+      if (claimed.count !== 1) {
+        const current = await tx.finTransaction.findFirst({
+          where: { id: originalId, userId },
+        });
+        return current
+          ? {
+              transaction: current,
+              budgetSnapshots: [] as BudgetSpendSnapshot[],
+            }
+          : null;
+      }
+
       if (existing.status === 'CONFIRMED') {
         const ctx = await loadCardContext({
           tx,
@@ -664,12 +683,8 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
 
       await revertPlanningLinks(tx, [originalId]);
 
-      const updated = await tx.finTransaction.update({
-        where: { id: originalId },
-        data: {
-          status: 'REVERSED',
-          ...(aiMetadata ? { aiMetadata: aiMetadata } : {}),
-        },
+      const updated = await tx.finTransaction.findFirstOrThrow({
+        where: { id: originalId, userId },
         include: {
           account: { select: { id: true, name: true } },
           card: { select: { id: true, name: true } },

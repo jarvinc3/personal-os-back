@@ -113,6 +113,9 @@ export class WipeFinanceUserDataUseCase {
         return reconciliations.count + drifts.count;
       },
       'finance.transactions': async (tx, { userId }) => {
+        const signalImports = await tx.finSignalImport.deleteMany({
+          where: { userId },
+        });
         const transactions = await tx.finTransaction.deleteMany({
           where: { userId },
         });
@@ -125,7 +128,7 @@ export class WipeFinanceUserDataUseCase {
           where: { userId },
           data: { amountSpent: 0 },
         });
-        return transactions.count;
+        return transactions.count + signalImports.count;
       },
       'finance.balances': (tx, { userId, balanceInstitutionId }) =>
         this.resetBalances(tx, userId, balanceInstitutionId),
@@ -225,7 +228,10 @@ export class WipeFinanceUserDataUseCase {
           }))
         );
       case 'finance.transactions':
-        return this.prisma.finTransaction.count({ where: { userId } });
+        return (
+          (await this.prisma.finTransaction.count({ where: { userId } })) +
+          (await this.prisma.finSignalImport.count({ where: { userId } }))
+        );
       case 'finance.balances':
         return (
           (await this.prisma.finAccount.count({ where: { userId } })) +

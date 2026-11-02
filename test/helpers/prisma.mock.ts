@@ -141,6 +141,10 @@ export type PrismaMock = {
     updateMany: MockFn;
     deleteMany: MockFn;
   };
+  finSignalImport: {
+    count: MockFn;
+    deleteMany: MockFn;
+  };
   finCard: {
     findMany: MockFn;
     findFirst: MockFn;
@@ -618,6 +622,10 @@ function createTransactionClient(prismaMock: PrismaMock) {
       deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
       count: jest.fn().mockResolvedValue(0),
     },
+    finSignalImport: {
+      deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
+      count: jest.fn().mockResolvedValue(0),
+    },
     finTransaction: {
       create: jest.fn().mockResolvedValue({
         id: 'tx-1',
@@ -1037,6 +1045,10 @@ export function createPrismaMock(): PrismaMock {
       update: jest.fn(),
       updateMany: jest.fn().mockResolvedValue({ count: 0 }),
       deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
+    },
+    finSignalImport: {
+      deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
+      count: jest.fn().mockResolvedValue(0),
     },
     finReceivablePayment: {
       findMany: jest.fn().mockResolvedValue([]),

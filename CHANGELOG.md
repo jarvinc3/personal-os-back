@@ -6,6 +6,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [Se
 
 ### Agregado
 
+- AI-11 (#214): importa señales financieras idempotentemente por señal, conserva procedencia y datos monetarios originales, y envía candidatos ambiguos a revisión sin dar acceso de Gmail a Finanzas.
 - AI-10 (#213): aplica política `AUTO_ALLOWED` / `CONFIRM_REQUIRED` / `FORBIDDEN` a capacidades mutantes, con acciones auditables, confirmación, cancelación y claims atómicos.
 - AI-9 (#212): añade conversaciones privadas, historial y resúmenes por usuario; el runtime ejecuta herramientas de solo lectura y Finance registra un resumen mensual consultado con datos reales.
 

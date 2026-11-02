@@ -8,6 +8,7 @@ function buildMocks() {
   const tx = {
     finReconciliation: { deleteMany: jest.fn() },
     finTransaction: { deleteMany: jest.fn() },
+    finSignalImport: { deleteMany: jest.fn() },
     finBalanceDrift: { deleteMany: jest.fn() },
     finAccount: { updateMany: jest.fn(), deleteMany: jest.fn() },
     finCardBalance: { updateMany: jest.fn() },
@@ -44,6 +45,7 @@ function buildMocks() {
 
   const prisma = {
     finTransaction: { count: jest.fn().mockResolvedValue(4) },
+    finSignalImport: { count: jest.fn().mockResolvedValue(0) },
     finReconciliation: { count: jest.fn().mockResolvedValue(1) },
     finBalanceDrift: { count: jest.fn().mockResolvedValue(2) },
     finAccount: { count: jest.fn().mockResolvedValue(3) },
@@ -88,6 +90,9 @@ describe('WipeFinanceUserDataUseCase', () => {
     ).resolves.toEqual({ 'finance.transactions': 4 });
 
     expect(tx.finTransaction.deleteMany).toHaveBeenCalledWith({
+      where: { userId: 'user-1' },
+    });
+    expect(tx.finSignalImport.deleteMany).toHaveBeenCalledWith({
       where: { userId: 'user-1' },
     });
     expect(tx.finAccount.updateMany).toHaveBeenCalledWith({

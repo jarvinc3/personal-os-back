@@ -282,7 +282,7 @@ Qué hace en una sola operación:
 - `GET /api/intelligence/signals`: devuelve las últimas 50 señales del usuario autenticado, cada una con su evidencia.
 - `GET /api/intelligence/signals/:signalId`: devuelve una señal propia con evidencia; responde `404` si no existe o pertenece a otro usuario.
 
-La respuesta contiene `type`, `domain`, `status`, `sourceType`, `sourceId`, `payload`, `correlationKey`, `occurredAt`, `detectedAt`, `confidence` y `evidence`. Las señales de correo llevan el candidato clasificado como payload y un enlace a `EMAIL_CLASSIFICATION`; no crean movimientos ni llaman a Finance. La evidencia no incluye el cuerpo del correo.
+La respuesta contiene `type`, `domain`, `status`, `sourceType`, `sourceId`, `payload`, `correlationKey`, `occurredAt`, `detectedAt`, `confidence` y `evidence`. Las señales de correo llevan el candidato clasificado como payload y un enlace a `EMAIL_CLASSIFICATION`; `payload.consumption` registra resultado, motivo, referencias del dominio y fecha de procesamiento. AI-11 crea el movimiento en Finance solo tras una señal válida, con importación idempotente; los candidatos ambiguos quedan en revisión. La evidencia no incluye el cuerpo del correo.
 
 # Conversaciones (AI-9)
 

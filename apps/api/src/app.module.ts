@@ -1,6 +1,11 @@
 import { BullModule } from '@nestjs/bullmq';
 import { CacheModule } from '@nestjs/cache-manager';
-import { Module, RequestMethod } from '@nestjs/common';
+import {
+  Injectable,
+  Module,
+  OnModuleInit,
+  RequestMethod,
+} from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { ScheduleModule } from '@nestjs/schedule';
@@ -26,6 +31,19 @@ import { LoggerModule } from 'nestjs-pino';
 import { HealthModule } from './health/health.module';
 import { UserDataWipeModule } from './user-data-wipe/user-data-wipe.module';
 import { AiCapabilityCompositionService } from './ai-capabilities/ai-capability-composition.service';
+import { AiSignalConsumerRegistry } from '@personal-os/ai-agent';
+import { FinanceSignalConsumer } from '@personal-os/finance';
+
+@Injectable()
+class AiSignalConsumerCompositionService implements OnModuleInit {
+  constructor(
+    private readonly registry: AiSignalConsumerRegistry,
+    private readonly finance: FinanceSignalConsumer,
+  ) {}
+  onModuleInit(): void {
+    this.registry.register(this.finance);
+  }
+}
 const bullMqEnabled = isBullMqEnabledFromProcessEnv();
 const bullBoardEnabled = isBullBoardEnabledFromProcessEnv();
 @Module({
@@ -36,6 +54,7 @@ const bullBoardEnabled = isBullBoardEnabledFromProcessEnv();
       inject: [FinanceAiCapabilities],
     },
     AiCapabilityCompositionService,
+    AiSignalConsumerCompositionService,
   ],
   imports: [
     ConfigModule.forRoot({

@@ -621,7 +621,8 @@ describe('PrismaLedgerRepository outbox-in-TX', () => {
           name: 'same-tx',
           finTransaction: {
             findFirst: jest.fn().mockResolvedValue(collectedIncome()),
-            update: jest
+            updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+            findFirstOrThrow: jest
               .fn()
               .mockResolvedValue({ ...collectedIncome(), status: 'REVERSED' }),
           },
