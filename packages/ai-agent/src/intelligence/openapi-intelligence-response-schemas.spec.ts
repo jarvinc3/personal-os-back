@@ -11,6 +11,8 @@ import { AiEvidenceService } from './evidence/ai-evidence.service';
 import { AiEvidenceController } from './evidence/ai-evidence.controller';
 import { AiRolesService } from './roles/ai-roles.service';
 import { AiRolesController } from './roles/ai-roles.controller';
+import { AiSignalsController } from './signals/ai-signals.controller';
+import { AiSignalsService } from './signals/ai-signals.service';
 
 type OperationObject = {
   responses?: Record<
@@ -31,6 +33,7 @@ async function buildDocument(): Promise<OpenApiDocument> {
       AiIntelligenceController,
       AiEvidenceController,
       AiRolesController,
+      AiSignalsController,
     ],
     providers: [
       { provide: AiConsentService, useValue: {} },
@@ -38,6 +41,7 @@ async function buildDocument(): Promise<OpenApiDocument> {
       { provide: GmailSyncService, useValue: {} },
       { provide: AiEvidenceService, useValue: {} },
       { provide: AiRolesService, useValue: {} },
+      { provide: AiSignalsService, useValue: {} },
       { provide: ConfigService, useValue: {} },
     ],
   }).compile();
@@ -97,6 +101,8 @@ describe('OpenAPI response schemas of intelligence', () => {
       ['/api/ai/preferences/consent', 'get'],
       ['/api/ai/preferences/consent', 'patch'],
       ['/api/intelligence', 'get'],
+      ['/api/intelligence/signals', 'get'],
+      ['/api/intelligence/signals/{signalId}', 'get'],
       ['/api/intelligence/messages', 'get'],
       ['/api/intelligence/messages/{messageId}', 'get'],
       ['/api/intelligence/email/connect', 'post'],

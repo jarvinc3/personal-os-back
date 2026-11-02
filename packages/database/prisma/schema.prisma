@@ -25,6 +25,8 @@ model User {
   aiEmailMessages                AiEmailMessage[]
   aiEmailClassifications         AiEmailClassification[]
   aiEmailModelBudget             AiEmailModelBudget?
+  aiSignals                      AiSignal[]
+  aiSignalEvidence               AiSignalEvidence[]
   aiSettings                     UserAiSettings?
   aiRole                         UserRole?
   grantedAiRoles                 UserRole[]                      @relation("AiRoleGrantedBy")
@@ -174,6 +176,18 @@ enum AiEmailSyncAttemptResult {
   INTERRUPTED
 
   @@map("ai_email_sync_attempt_result")
+}
+
+enum AiSignalStatus {
+  DETECTED
+  VALIDATED
+  ROUTED
+  CONSUMED
+  DISMISSED
+  SUPERSEDED
+  FAILED
+
+  @@map("ai_signal_status")
 }
 
 enum AiDatasetPartition {
@@ -486,6 +500,7 @@ model AiEmailMessage {
   connection              AiEmailConnection       @relation(fields: [connectionId, userId], references: [id, userId], onDelete: Cascade, onUpdate: NoAction)
   content                 AiEmailMessageContent?
   classifications         AiEmailClassification[]
+  signals                 AiSignal[]
 
   @@unique([connectionId, providerMessageId], map: "ai_email_messages_connection_provider_id_key")
   @@unique([id, userId], map: "ai_email_messages_id_user_id_key")
@@ -515,6 +530,50 @@ model AiEmailClassification {
   @@unique([messageId, route], map: "ai_email_classifications_message_route_key")
   @@index([userId, messageId, createdAt], map: "ai_email_classifications_user_message_idx")
   @@map("ai_email_classifications")
+}
+
+model AiSignal {
+  id               String             @id @default(dbgenerated("(extensions.uuid_generate_v4())::text"))
+  userId           String             @map("user_id")
+  type             String
+  domain           String
+  sourceType       String             @map("source_type")
+  sourceId         String             @map("source_id")
+  payload          Json
+  status           AiSignalStatus     @default(DETECTED)
+  priority         Int                @default(0)
+  confidence       Float?
+  occurredAt       DateTime           @map("occurred_at") @db.Timestamptz(6)
+  detectedAt       DateTime           @default(now()) @map("detected_at") @db.Timestamptz(6)
+  deduplicationKey String             @map("deduplication_key")
+  correlationKey   String             @map("correlation_key")
+  createdAt        DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime           @updatedAt @map("updated_at") @db.Timestamptz(6)
+  user             User               @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  emailMessage     AiEmailMessage     @relation(fields: [sourceId, userId], references: [id, userId], onDelete: Cascade, onUpdate: NoAction)
+  evidence         AiSignalEvidence[]
+
+  @@unique([id, userId], map: "ai_signals_id_user_id_key")
+  @@unique([userId, deduplicationKey], map: "ai_signals_user_deduplication_key")
+  @@index([userId, detectedAt(sort: Desc), id], map: "ai_signals_user_detected_idx")
+  @@index([correlationKey], map: "ai_signals_correlation_idx")
+  @@map("ai_signals")
+}
+
+model AiSignalEvidence {
+  id         String   @id @default(dbgenerated("(extensions.uuid_generate_v4())::text"))
+  userId     String   @map("user_id")
+  signalId   String   @map("signal_id")
+  sourceType String   @map("source_type")
+  sourceId   String   @map("source_id")
+  excerpt    Json
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  signal     AiSignal @relation(fields: [signalId, userId], references: [id, userId], onDelete: Cascade, onUpdate: NoAction)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([signalId, sourceType, sourceId], map: "ai_signal_evidence_source_key")
+  @@index([userId, signalId], map: "ai_signal_evidence_user_signal_idx")
+  @@map("ai_signal_evidence")
 }
 
 model AiEmailModelBudget {

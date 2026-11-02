@@ -25,6 +25,14 @@ import { AiKnowledgeService } from './intelligence/knowledge/ai-knowledge.servic
 import { AiDataDeletionService } from './intelligence/knowledge/ai-data-deletion.service';
 import { AiKnowledgeController } from './intelligence/knowledge/ai-knowledge.controller';
 import { AiEmailClassificationService } from './intelligence/email/ai-email-classification.service';
+import { BullModule } from '@nestjs/bullmq';
+import { isBullMqEnabledFromProcessEnv } from '@personal-os/config';
+import { QueueNames } from '@personal-os/core';
+import { AiSignalsController } from './intelligence/signals/ai-signals.controller';
+import { AiSignalsService } from './intelligence/signals/ai-signals.service';
+import { AiSignalOutboxBridge } from './intelligence/signals/ai-signal-outbox.bridge';
+
+const bullMqEnabled = isBullMqEnabledFromProcessEnv();
 
 /**
  * Provider kernel with no Finance/Notifications imports.
@@ -32,12 +40,18 @@ import { AiEmailClassificationService } from './intelligence/email/ai-email-clas
  */
 @Global()
 @Module({
+  imports: [
+    ...(bullMqEnabled
+      ? [BullModule.registerQueue({ name: QueueNames.AI_SIGNAL_ROUTING })]
+      : []),
+  ],
   controllers: [
     AiRolesController,
     AiConsentController,
     AiIntelligenceController,
     AiEvidenceController,
     AiKnowledgeController,
+    AiSignalsController,
   ],
   providers: [
     { provide: APP_GUARD, useClass: RolesGuard },
@@ -47,6 +61,8 @@ import { AiEmailClassificationService } from './intelligence/email/ai-email-clas
     AiEmailSourceService,
     AiEmailRetentionScheduler,
     AiEmailClassificationService,
+    AiSignalsService,
+    AiSignalOutboxBridge,
     GmailSyncService,
     AiEvidenceService,
     AiKnowledgeService,
@@ -89,6 +105,7 @@ import { AiEmailClassificationService } from './intelligence/email/ai-email-clas
     },
   ],
   exports: [
+    AiSignalsService,
     AiRolesService,
     AiConsentService,
     AiEmailSourceService,

@@ -334,6 +334,7 @@ export class AiEmailClassificationService {
     userId: string;
     message: {
       id: string;
+      receivedAt: Date;
       fromAddress: string;
       subject: string;
       templateFingerprint: string | null;
@@ -441,6 +442,20 @@ export class AiEmailClassificationService {
       provider: input.provider,
       model: input.model,
     }));
+    const publishesFinanceSignal =
+      input.classification.relevance &&
+      input.classification.routes.includes('FINANCE') &&
+      Boolean(input.classification.transaction);
+    const signalId = `email-${input.message.id}`;
+    const signalCorrelationKey = `${input.userId}:email:${input.message.id}`;
+    const signalPayload = {
+      relevance: input.classification.relevance,
+      semanticType: input.classification.semanticType,
+      transaction: input.classification.transaction ?? null,
+      confidence: input.classification.confidence,
+      routes: input.classification.routes,
+      messageId: input.message.id,
+    } satisfies Prisma.InputJsonValue;
     const observationRows = routes.map((route) => ({
       runId: run.id,
       userId: input.userId,
@@ -501,6 +516,63 @@ export class AiEmailClassificationService {
           classificationModel: input.model,
         },
       }),
+      ...(publishesFinanceSignal
+        ? [
+            this.prisma.aiSignal.createMany({
+              data: [
+                {
+                  id: signalId,
+                  userId: input.userId,
+                  type: 'FINANCE.TRANSACTION_DETECTED',
+                  domain: 'FINANCE',
+                  sourceType: 'EMAIL_MESSAGE',
+                  sourceId: input.message.id,
+                  payload: signalPayload,
+                  status: 'ROUTED',
+                  priority: Math.round(input.classification.confidence * 100),
+                  confidence: input.classification.confidence,
+                  occurredAt: input.message.receivedAt,
+                  deduplicationKey: `EMAIL_MESSAGE:${input.message.id}`,
+                  correlationKey: signalCorrelationKey,
+                },
+              ],
+              skipDuplicates: true,
+            }),
+            this.prisma.aiSignalEvidence.createMany({
+              data: [
+                {
+                  userId: input.userId,
+                  signalId,
+                  sourceType: 'EMAIL_CLASSIFICATION',
+                  sourceId: input.message.id,
+                  excerpt: {
+                    semanticType: input.classification.semanticType,
+                    route: 'FINANCE',
+                    confidence: input.classification.confidence,
+                    transaction: input.classification.transaction,
+                    classificationPath: input.method,
+                    inferenceProvider: input.provider,
+                    inferenceModel: input.model,
+                  },
+                },
+              ],
+              skipDuplicates: true,
+            }),
+            this.prisma.domainEventOutbox.createMany({
+              data: [
+                {
+                  eventId: `ai.signal.routed:${signalId}`,
+                  eventName: 'ai.signal.routed',
+                  aggregateType: 'AiSignal',
+                  aggregateId: signalId,
+                  userId: input.userId,
+                  payload: { signalId, userId: input.userId },
+                },
+              ],
+              skipDuplicates: true,
+            }),
+          ]
+        : []),
     ]);
   }
 

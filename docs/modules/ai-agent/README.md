@@ -7,6 +7,7 @@
 | [capabilities/email-intelligence.md](./capabilities/email-intelligence.md) | Gmail, consentimiento y clasificación (AI-2/AI-5) |
 | [capabilities/evidence-review.md](./capabilities/evidence-review.md)       | Dataset, evidencia y revisión humana (AI-3)       |
 | [capabilities/knowledge.md](./capabilities/knowledge.md)                   | Proyección, privacidad y lápidas (AI-4)           |
+| [capabilities/signals.md](./capabilities/signals.md)                       | Señales y evidencia durable (AI-7)                |
 | [capabilities/chat.md](./capabilities/chat.md)                             | Sesiones y chat                                   |
 | [capabilities/actions.md](./capabilities/actions.md)                       | Acciones y reaper                                 |
 | [capabilities/runtime.md](./capabilities/runtime.md)                       | Insights cola / memoria                           |

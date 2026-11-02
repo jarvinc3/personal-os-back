@@ -8271,6 +8271,67 @@
           }
         }
       }
+    },
+    "/api/intelligence/signals": {
+      "get": {
+        "operationId": "AiSignalsController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AiSignalListResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "tags": [
+          "intelligence"
+        ]
+      }
+    },
+    "/api/intelligence/signals/{signalId}": {
+      "get": {
+        "operationId": "AiSignalsController_get",
+        "parameters": [
+          {
+            "name": "signalId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AiSignalResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "tags": [
+          "intelligence"
+        ]
+      }
     }
   },
   "info": {
@@ -17995,6 +18056,116 @@
             "type": "string"
           }
         }
+      },
+      "AiSignalEvidenceResponseDto": {
+        "type": "object",
+        "properties": {
+          "sourceType": {
+            "type": "string",
+            "example": "EMAIL_CLASSIFICATION"
+          },
+          "sourceId": {
+            "type": "string"
+          },
+          "excerpt": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "sourceType",
+          "sourceId",
+          "excerpt",
+          "createdAt"
+        ]
+      },
+      "AiSignalResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "domain": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "DETECTED",
+              "VALIDATED",
+              "ROUTED",
+              "CONSUMED",
+              "DISMISSED",
+              "SUPERSEDED",
+              "FAILED"
+            ]
+          },
+          "sourceType": {
+            "type": "string"
+          },
+          "sourceId": {
+            "type": "string"
+          },
+          "payload": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "correlationKey": {
+            "type": "string"
+          },
+          "occurredAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "detectedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "confidence": {
+            "type": "number",
+            "nullable": true
+          },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AiSignalEvidenceResponseDto"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "domain",
+          "status",
+          "sourceType",
+          "sourceId",
+          "payload",
+          "correlationKey",
+          "occurredAt",
+          "detectedAt",
+          "evidence"
+        ]
+      },
+      "AiSignalListResponseDto": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AiSignalResponseDto"
+            }
+          }
+        },
+        "required": [
+          "data"
+        ]
       }
     }
   }
