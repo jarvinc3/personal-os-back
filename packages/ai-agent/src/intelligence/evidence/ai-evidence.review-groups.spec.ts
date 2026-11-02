@@ -197,6 +197,7 @@ describe('AiEvidenceService review groups', () => {
         pending: 100,
         pendingHoldout: 9,
         sampleSubjects: ['Aviso 1', 'Aviso 2', 'Aviso 3'],
+        sampleMessageIds: ['g0', 'g1', 'g2'],
       },
       {
         fromAddress: 'news@example.com',
@@ -205,6 +206,7 @@ describe('AiEvidenceService review groups', () => {
         pending: 3,
         pendingHoldout: 0,
         sampleSubjects: ['Boletín'],
+        sampleMessageIds: ['n0'],
       },
     ]);
 
