@@ -310,6 +310,23 @@ describe('review queue utilities', () => {
       });
     });
 
+    it('filters uncertain messages by low confidence or missing predictions', () => {
+      expect(
+        reviewQueueMessageFilter({
+          userId: 'user-1',
+          latestByMessageId: new Map(),
+          order: 'OLDEST',
+          uncertain: true,
+        }),
+      ).toEqual({
+        userId: 'user-1',
+        OR: [
+          { classifications: { none: {} } },
+          { classifications: { some: { confidence: { lt: 0.7 } } } },
+        ],
+      });
+    });
+
     it('avoids an id clause when every message is pending', () => {
       expect(
         reviewQueueMessageFilter({

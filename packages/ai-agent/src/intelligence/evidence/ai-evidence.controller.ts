@@ -1,6 +1,7 @@
 import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
 import {
   ApiBearerAuth,
+  ApiBody,
   ApiCreatedResponse,
   ApiOkResponse,
   ApiTags,
@@ -11,6 +12,7 @@ import { CreateHumanVerificationDto } from './dto/create-human-verification.dto'
 import { CreateReviewGroupVerificationDto } from './dto/create-review-group-verification.dto';
 import { ReviewGroupsQueryDto } from './dto/review-groups-query.dto';
 import { ReviewQueueQueryDto } from './dto/review-queue-query.dto';
+import { CompareAnalysisRunsDto } from './dto/compare-analysis-runs.dto';
 import {
   AiAnalysisRunResponseDto,
   AiDatasetResponseDto,
@@ -73,5 +75,24 @@ export class AiEvidenceController {
   @ApiOkResponse({ type: [AiAnalysisRunResponseDto] })
   runs(@CurrentUser() user: { sub: string }) {
     return this.evidence.listRuns(user.sub);
+  }
+
+  @Post('runs/evaluate')
+  @ApiCreatedResponse({ type: AiAnalysisRunResponseDto })
+  evaluate(@CurrentUser() user: { sub: string }) {
+    return this.evidence.evaluateHoldout(user.sub);
+  }
+
+  @Post('runs/compare')
+  @ApiBody({ type: CompareAnalysisRunsDto })
+  compare(
+    @CurrentUser() user: { sub: string },
+    @Body() body: CompareAnalysisRunsDto,
+  ) {
+    return this.evidence.compareRuns(
+      user.sub,
+      body.firstRunId,
+      body.secondRunId,
+    );
   }
 }

@@ -23,11 +23,15 @@ AI-3 (JWT):
 | GET    | `/api/intelligence/review-queue?partition=...&status=...&fromAddress=...&subject=...&dateFrom=...&dateTo=...&order=...&cursor=...` | Cola paginada por cursor con filtros combinables; sin `status` devuelve solo pendientes y cada item trae su última verificación                           |
 | POST   | `/api/intelligence/messages/:messageId/verifications`                                                                              | `CONFIRMED`, `CORRECTED` o `REJECTED`; guarda secuencia y marca HOLDOUT como verdad de referencia                                                         |
 | GET    | `/api/intelligence/runs`                                                                                                           | Runs del usuario con configuración, versiones y watermarks de evidencia                                                                                   |
+| POST   | `/api/intelligence/runs/evaluate`                                                                                                  | Crea un run `EVALUATE` sobre la membresía HOLDOUT congelada; calcula métricas por correo sin escribir observaciones ni conocimiento                       |
+| POST   | `/api/intelligence/runs/compare`                                                                                                   | `{ "firstRunId": "…", "secondRunId": "…" }`; declara comparables solo runs completos con dataset, watermark, versiones y configuración iguales            |
 | POST   | `/api/intelligence/email/reset`                                                                                                    | Requiere `{ "confirmed": true }`; vacía el corpus de correo y derivados del usuario, conserva OAuth; 409 `GMAIL_NOT_CONNECTED` o `GMAIL_SYNC_IN_PROGRESS` |
 | GET    | `/api/intelligence/review-groups?page=1&pageSize=20`                                                                               | Grupos por remitente y plantilla con total, pendientes, pendientes HOLDOUT y muestras con su asunto e id, ordenados por pendientes                        |
 | POST   | `/api/intelligence/review-groups/verifications`                                                                                    | Aplica `CONFIRMED` o `CORRECTED` a los pendientes del grupo; `REJECTED` responde 400                                                                      |
 
 `GET /api/intelligence/review-queue` acepta estos parámetros. Todos se combinan entre sí y con la paginación, siempre dentro de la cuenta autenticada.
+
+Los runs `EVALUATE` guardan la cantidad y huella SHA-256 de los IDs HOLDOUT congelados junto con los watermarks y versiones. Métricas: `transactionRecall`, `precision`, `deterministicCoverage`, `modelFallbackRate`, `unknownRate`, `truePositive`, `falsePositive` y `falseNegative`. La comparación devuelve deltas solo cuando ambos runs son comparables; repetir la evaluación crea otro run y conserva los anteriores.
 
 | Parámetro            | Valores                                         | Notas                                                                                      |
 | -------------------- | ----------------------------------------------- | ------------------------------------------------------------------------------------------ |
@@ -38,6 +42,7 @@ AI-3 (JWT):
 | `dateFrom`, `dateTo` | `AAAA-MM-DD`                                    | Días completos en la zona de `users.timezone`; `dateTo` incluye ese día                    |
 | `order`              | `OLDEST`, `NEWEST`                              | Fecha recibida; por defecto `OLDEST` y el ID desempata                                     |
 | `cursor`             | valor opaco de la página anterior               | Reenviar los mismos filtros y el mismo orden                                               |
+| `uncertain`          | `true`                                          | Solo predicciones de confianza menor a 70 % o mensajes sin predicción                      |
 
 El estado de un correo es el de su última verificación; sin verificación es `PENDING`. Con estados verificados, cada item incluye `verification` con el veredicto, las etiquetas guardadas, la nota y la fecha; en pendientes vale `null`. Los conteos por partición cuentan solo pendientes y aplican remitente, asunto y fechas; el filtro de partición y el orden no los cambian. Un estado, orden o partición fuera de lista, una fecha que no sea `AAAA-MM-DD` válida o un rango invertido responden 400.
 
