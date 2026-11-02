@@ -1,8 +1,14 @@
 import { Controller, Get, Query } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
 import { CurrentUser, RequiresEnabledModule } from '@personal-os/core';
 import { ReconciliationsService } from '../application/reconciliations.service';
 import { BankChargesQueryDto } from './dto/bank-charges-query.dto';
+import { BankChargesResponseDto } from './dto/bank-charges-response.dto';
 
 function startOfMonthUtc(now: Date): Date {
   return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
@@ -17,6 +23,7 @@ export class BankChargesController {
 
   @Get('bank-charges')
   @ApiOperation({ summary: 'Cargos bancarios por mes, institución y tipo' })
+  @ApiOkResponse({ type: BankChargesResponseDto })
   bankCharges(
     @CurrentUser('sub') userId: string,
     @Query() query: BankChargesQueryDto,

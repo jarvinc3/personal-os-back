@@ -1,9 +1,16 @@
 import { Controller, Get, Query } from '@nestjs/common';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { CurrentUser, RequiresEnabledModule } from '@personal-os/core';
 import { AnalyticsService } from '../application/analytics.service';
 import { WeeklySummaryService } from '../application/weekly-summary.service';
 import { SpendingOverTimeQueryDto } from './dto/spending-over-time-query.dto';
+import {
+  AnalyticsSummaryResponseDto,
+  BudgetStatusResponseDto,
+  SpendingByCategoryResponseDto,
+  SpendingOverTimeResponseDto,
+  WeeklySummaryResponseDto,
+} from './dto/analytics-response.dto';
 
 @ApiTags('finance')
 @ApiBearerAuth('access-token')
@@ -16,6 +23,7 @@ export class AnalyticsController {
   ) {}
 
   @Get('weekly-summary')
+  @ApiOkResponse({ type: WeeklySummaryResponseDto })
   weeklySummaryReport(
     @CurrentUser('sub') userId: string,
     @Query('weekStart') weekStart?: string,
@@ -24,6 +32,7 @@ export class AnalyticsController {
   }
 
   @Get('summary')
+  @ApiOkResponse({ type: AnalyticsSummaryResponseDto })
   summary(
     @CurrentUser('sub') userId: string,
     @Query('dateFrom') dateFrom?: string,
@@ -33,6 +42,7 @@ export class AnalyticsController {
   }
 
   @Get('spending-by-category')
+  @ApiOkResponse({ type: [SpendingByCategoryResponseDto] })
   spendingByCategory(
     @CurrentUser('sub') userId: string,
     @Query('dateFrom') dateFrom?: string,
@@ -42,11 +52,13 @@ export class AnalyticsController {
   }
 
   @Get('budget-status')
+  @ApiOkResponse({ type: [BudgetStatusResponseDto] })
   budgetStatus(@CurrentUser('sub') userId: string) {
     return this.analytics.getBudgetStatus(userId);
   }
 
   @Get('spending-over-time')
+  @ApiOkResponse({ type: SpendingOverTimeResponseDto })
   spendingOverTime(
     @CurrentUser('sub') userId: string,
     @Query() query: SpendingOverTimeQueryDto,
