@@ -7,7 +7,13 @@ import {
   Patch,
   Post,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiCreatedResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
 import { CurrentUser, RequiresEnabledModule } from '@personal-os/core';
 import {
   TRANSFER_TARGET_NOT_ACCOUNT,
@@ -23,6 +29,11 @@ import {
   CreateTransferDto,
   UpdateTransferDto,
 } from './dto/create-transfer.dto';
+import { TransferResponseDto } from './dto/transfer-response.dto';
+import {
+  DeleteResponseDto,
+  SuccessResponseDto,
+} from '../../shared/presentation/success-response.dto';
 
 @ApiTags('finance')
 @ApiBearerAuth('access-token')
@@ -40,6 +51,7 @@ export class TransfersController {
 
   @Post('transfers')
   @ApiOperation({ summary: 'Crea una transferencia entre dos cuentas' })
+  @ApiCreatedResponse({ type: TransferResponseDto })
   create(@CurrentUser('sub') userId: string, @Body() dto: CreateTransferDto) {
     this.assertAccountTarget(dto);
     return this.createTransfer.execute(userId, dto);
@@ -50,6 +62,7 @@ export class TransfersController {
     summary:
       'Reemplaza ambos movimientos de una transferencia por el id de uno',
   })
+  @ApiOkResponse({ type: SuccessResponseDto })
   update(
     @CurrentUser('sub') userId: string,
     @Param('id') id: string,
@@ -64,6 +77,7 @@ export class TransfersController {
     summary:
       'Devuelve todos los movimientos de una transferencia a PENDING para editarla',
   })
+  @ApiOkResponse({ type: SuccessResponseDto })
   async unconfirm(@CurrentUser('sub') userId: string, @Param('id') id: string) {
     await this.unconfirmTransfer.execute(userId, id);
     return { success: true };
@@ -73,6 +87,7 @@ export class TransfersController {
   @ApiOperation({
     summary: 'Confirma todos los movimientos pendientes de una transferencia',
   })
+  @ApiOkResponse({ type: SuccessResponseDto })
   async confirm(@CurrentUser('sub') userId: string, @Param('id') id: string) {
     await this.confirmTransfer.execute(userId, id);
     return { success: true };
@@ -82,6 +97,7 @@ export class TransfersController {
   @ApiOperation({
     summary: 'Reversa todos los movimientos de una transferencia completada',
   })
+  @ApiOkResponse({ type: SuccessResponseDto })
   async reverse(@CurrentUser('sub') userId: string, @Param('id') id: string) {
     await this.reverseTransfer.execute(userId, id);
     return { success: true };
@@ -92,6 +108,7 @@ export class TransfersController {
     summary:
       'Borra la transferencia completa por el id de uno de sus movimientos',
   })
+  @ApiOkResponse({ type: DeleteResponseDto })
   remove(@CurrentUser('sub') userId: string, @Param('id') id: string) {
     return this.deleteTransaction.execute(userId, id);
   }

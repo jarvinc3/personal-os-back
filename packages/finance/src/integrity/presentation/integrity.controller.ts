@@ -6,12 +6,22 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiCreatedResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
 import { CurrentUser, RequiresEnabledModule } from '@personal-os/core';
 import { BalanceIntegrityService } from '../application/balance-integrity.service';
 import type { IntegrityTarget } from '../infrastructure/integrity.repository';
 import { IntegrityCheckQueryDto } from './dto/integrity-check-query.dto';
 import { RecalculateBalanceDto } from './dto/recalculate-balance.dto';
+import {
+  IntegrityCheckResponseDto,
+  IntegrityRecalculateResponseDto,
+} from './dto/integrity-response.dto';
 
 type TargetInput = {
   accountId?: string;
@@ -50,6 +60,7 @@ export class IntegrityController {
   @ApiOperation({
     summary: 'Compara los saldos guardados con los movimientos confirmados',
   })
+  @ApiOkResponse({ type: IntegrityCheckResponseDto })
   check(
     @CurrentUser('sub') userId: string,
     @Query() query: IntegrityCheckQueryDto,
@@ -59,6 +70,7 @@ export class IntegrityController {
 
   @Post('recalculate')
   @ApiOperation({ summary: 'Corrige un saldo desviado desde sus movimientos' })
+  @ApiCreatedResponse({ type: IntegrityRecalculateResponseDto })
   recalculate(
     @CurrentUser('sub') userId: string,
     @Body() dto: RecalculateBalanceDto,

@@ -21,6 +21,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [Se
 
 ### Cambiado
 
+- El contrato OpenAPI publica el schema de las respuestas de movimientos, transferencias, pagos de tarjeta, ajustes de saldo, conciliaciones e integridad, con montos como texto decimal y los campos de cursor de cada listado; `swagger-spec.json` se regenera (#273, #263).
 - El contrato OpenAPI publica el schema de las respuestas de cuentas, tarjetas, instituciones, préstamos e importaciones de estados de cuenta, con montos como texto decimal y los campos de cursor de cada listado; `swagger-spec.json` se regenera con las rutas que faltaban (#272, #263).
 - Revertir una promoción GLOBAL bloquea solo esa clave y ya no reconstruye toda la proyección; el siguiente rebuild conserva la decisión y las demás filas no cambian (#235).
 - El roadmap maestro marca AI-4 como cerrado, enlaza los contratos de la oleada A (FIN-0 #242, PLATFORM-EVENTS-0 #243, PLATFORM-SETTINGS-0 #244 y NOTIF-0 #245) y registra la promoción manual ADMIN en #246 (#193).

@@ -2373,7 +2373,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransactionPageResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -2401,7 +2408,14 @@
         },
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransactionResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -2431,7 +2445,14 @@
         },
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdjustBalanceResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -2460,7 +2481,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransactionResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -2487,7 +2515,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransactionResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -2514,7 +2549,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -2542,8 +2584,15 @@
           }
         ],
         "responses": {
-          "201": {
-            "description": ""
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -2571,8 +2620,15 @@
           }
         ],
         "responses": {
-          "201": {
-            "description": ""
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransactionResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -2600,8 +2656,15 @@
           }
         ],
         "responses": {
-          "201": {
-            "description": ""
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransactionResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -2629,8 +2692,15 @@
           }
         ],
         "responses": {
-          "201": {
-            "description": ""
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransactionResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -2668,8 +2738,15 @@
           }
         },
         "responses": {
-          "201": {
-            "description": ""
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -2697,8 +2774,15 @@
           }
         ],
         "responses": {
-          "201": {
-            "description": ""
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -2728,7 +2812,14 @@
         },
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransferResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -2767,7 +2858,14 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -2794,7 +2892,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -2822,8 +2927,15 @@
           }
         ],
         "responses": {
-          "201": {
-            "description": ""
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -2851,8 +2963,15 @@
           }
         ],
         "responses": {
-          "201": {
-            "description": ""
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -2880,8 +2999,15 @@
           }
         ],
         "responses": {
-          "201": {
-            "description": ""
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -2911,7 +3037,14 @@
         },
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransferResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -2950,7 +3083,14 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -2977,7 +3117,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -3005,8 +3152,15 @@
           }
         ],
         "responses": {
-          "201": {
-            "description": ""
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -3034,8 +3188,15 @@
           }
         ],
         "responses": {
-          "201": {
-            "description": ""
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -6351,7 +6512,14 @@
         },
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconciliationPreviewResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -6381,7 +6549,14 @@
         },
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconciliationResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -6416,7 +6591,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconciliationPageResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -6447,7 +6629,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconciliationStatusResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -6476,7 +6665,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconciliationResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -6503,7 +6699,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -6532,7 +6735,14 @@
         ],
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuccessResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -6623,7 +6833,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntegrityCheckResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -6653,7 +6870,14 @@
         },
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntegrityRecalculateResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -8511,6 +8735,811 @@
           }
         }
       },
+      "PlanningLinkResponseDto": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "TRANSFER",
+              "LOAN_INSTALLMENT",
+              "RECEIVABLE_PAYMENT",
+              "SAVINGS_CONTRIBUTION"
+            ]
+          },
+          "targetId": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "targetId",
+          "label"
+        ]
+      },
+      "TransactionOperationLegResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "accountId": {
+            "type": "string",
+            "nullable": true
+          },
+          "accountName": {
+            "type": "string",
+            "nullable": true
+          },
+          "cardId": {
+            "type": "string",
+            "nullable": true
+          },
+          "cardName": {
+            "type": "string",
+            "nullable": true
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "DEBIT",
+              "CREDIT",
+              "TRANSFER",
+              "ADJUSTMENT",
+              "CARD_PAYMENT"
+            ]
+          },
+          "amount": {
+            "type": "string",
+            "example": "1500.00"
+          },
+          "ledgerAmount": {
+            "type": "string",
+            "example": "1500.00"
+          },
+          "amountBaseCurrency": {
+            "type": "string",
+            "example": "1500.00"
+          },
+          "currency": {
+            "type": "string",
+            "example": "DOP"
+          },
+          "ledgerCurrency": {
+            "type": "string",
+            "nullable": true,
+            "example": "DOP"
+          },
+          "exchangeRate": {
+            "type": "string",
+            "example": "1.00"
+          },
+          "merchant": {
+            "type": "string",
+            "nullable": true
+          },
+          "merchantId": {
+            "type": "string",
+            "nullable": true
+          },
+          "merchantName": {
+            "type": "string",
+            "nullable": true
+          },
+          "merchantLogoUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "transactionDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "CONFIRMED",
+              "CANCELLED",
+              "DECLINED",
+              "REVERSED"
+            ]
+          },
+          "editable": {
+            "type": "string",
+            "enum": [
+              "FULL",
+              "METADATA",
+              "NOTES",
+              "NONE"
+            ]
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "MANUAL",
+              "EMAIL",
+              "AI"
+            ]
+          },
+          "categoryId": {
+            "type": "string",
+            "nullable": true
+          },
+          "notes": {
+            "type": "string",
+            "nullable": true
+          },
+          "transferGroupId": {
+            "type": "string",
+            "nullable": true
+          },
+          "transferToAccountId": {
+            "type": "string",
+            "nullable": true
+          },
+          "transferToAccountName": {
+            "type": "string",
+            "nullable": true
+          },
+          "transferToCardId": {
+            "type": "string",
+            "nullable": true
+          },
+          "transferToCardName": {
+            "type": "string",
+            "nullable": true
+          },
+          "transferToAmount": {
+            "type": "string",
+            "nullable": true,
+            "example": "1500.00"
+          },
+          "transferToCurrency": {
+            "type": "string",
+            "nullable": true,
+            "example": "DOP"
+          },
+          "transferEstimated": {
+            "type": "boolean"
+          },
+          "institutionLogoUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "network": {
+            "type": "string",
+            "nullable": true
+          },
+          "networkLogoUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "transferToInstitutionLogoUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "transferToNetwork": {
+            "type": "string",
+            "nullable": true
+          },
+          "transferToNetworkLogoUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "linkedTransactionId": {
+            "type": "string",
+            "nullable": true
+          },
+          "possibleDuplicateOfId": {
+            "type": "string",
+            "nullable": true
+          },
+          "planningLink": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PlanningLinkResponseDto"
+              }
+            ]
+          },
+          "aiMetadata": {
+            "type": "object",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "legRole": {
+            "type": "string",
+            "nullable": true,
+            "example": "SOURCE"
+          }
+        },
+        "required": [
+          "id",
+          "accountId",
+          "accountName",
+          "cardId",
+          "cardName",
+          "type",
+          "amount",
+          "ledgerAmount",
+          "amountBaseCurrency",
+          "currency",
+          "exchangeRate",
+          "merchant",
+          "merchantId",
+          "merchantName",
+          "merchantLogoUrl",
+          "description",
+          "transactionDate",
+          "status",
+          "editable",
+          "source",
+          "categoryId",
+          "notes",
+          "transferGroupId",
+          "transferToAccountId",
+          "transferToAccountName",
+          "transferToCardId",
+          "transferToCardName",
+          "transferToAmount",
+          "transferToCurrency",
+          "transferEstimated",
+          "institutionLogoUrl",
+          "network",
+          "networkLogoUrl",
+          "transferToInstitutionLogoUrl",
+          "transferToNetwork",
+          "transferToNetworkLogoUrl",
+          "linkedTransactionId",
+          "possibleDuplicateOfId",
+          "createdAt",
+          "legRole"
+        ]
+      },
+      "TransactionOperationResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "accountId": {
+            "type": "string",
+            "nullable": true
+          },
+          "accountName": {
+            "type": "string",
+            "nullable": true
+          },
+          "cardId": {
+            "type": "string",
+            "nullable": true
+          },
+          "cardName": {
+            "type": "string",
+            "nullable": true
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "DEBIT",
+              "CREDIT",
+              "TRANSFER",
+              "ADJUSTMENT",
+              "CARD_PAYMENT"
+            ]
+          },
+          "amount": {
+            "type": "string",
+            "example": "1500.00"
+          },
+          "ledgerAmount": {
+            "type": "string",
+            "example": "1500.00"
+          },
+          "amountBaseCurrency": {
+            "type": "string",
+            "example": "1500.00"
+          },
+          "currency": {
+            "type": "string",
+            "example": "DOP"
+          },
+          "ledgerCurrency": {
+            "type": "string",
+            "nullable": true,
+            "example": "DOP"
+          },
+          "exchangeRate": {
+            "type": "string",
+            "example": "1.00"
+          },
+          "merchant": {
+            "type": "string",
+            "nullable": true
+          },
+          "merchantId": {
+            "type": "string",
+            "nullable": true
+          },
+          "merchantName": {
+            "type": "string",
+            "nullable": true
+          },
+          "merchantLogoUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "transactionDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "CONFIRMED",
+              "CANCELLED",
+              "DECLINED",
+              "REVERSED"
+            ]
+          },
+          "editable": {
+            "type": "string",
+            "enum": [
+              "FULL",
+              "METADATA",
+              "NOTES",
+              "NONE"
+            ]
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "MANUAL",
+              "EMAIL",
+              "AI"
+            ]
+          },
+          "categoryId": {
+            "type": "string",
+            "nullable": true
+          },
+          "notes": {
+            "type": "string",
+            "nullable": true
+          },
+          "transferGroupId": {
+            "type": "string",
+            "nullable": true
+          },
+          "transferToAccountId": {
+            "type": "string",
+            "nullable": true
+          },
+          "transferToAccountName": {
+            "type": "string",
+            "nullable": true
+          },
+          "transferToCardId": {
+            "type": "string",
+            "nullable": true
+          },
+          "transferToCardName": {
+            "type": "string",
+            "nullable": true
+          },
+          "transferToAmount": {
+            "type": "string",
+            "nullable": true,
+            "example": "1500.00"
+          },
+          "transferToCurrency": {
+            "type": "string",
+            "nullable": true,
+            "example": "DOP"
+          },
+          "transferEstimated": {
+            "type": "boolean"
+          },
+          "institutionLogoUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "network": {
+            "type": "string",
+            "nullable": true
+          },
+          "networkLogoUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "transferToInstitutionLogoUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "transferToNetwork": {
+            "type": "string",
+            "nullable": true
+          },
+          "transferToNetworkLogoUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "linkedTransactionId": {
+            "type": "string",
+            "nullable": true
+          },
+          "possibleDuplicateOfId": {
+            "type": "string",
+            "nullable": true
+          },
+          "planningLink": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PlanningLinkResponseDto"
+              }
+            ]
+          },
+          "aiMetadata": {
+            "type": "object",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "OPERATION"
+            ]
+          },
+          "operationType": {
+            "type": "string",
+            "enum": [
+              "TRANSFER"
+            ]
+          },
+          "legs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TransactionOperationLegResponseDto"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "accountId",
+          "accountName",
+          "cardId",
+          "cardName",
+          "type",
+          "amount",
+          "ledgerAmount",
+          "amountBaseCurrency",
+          "currency",
+          "exchangeRate",
+          "merchant",
+          "merchantId",
+          "merchantName",
+          "merchantLogoUrl",
+          "description",
+          "transactionDate",
+          "status",
+          "editable",
+          "source",
+          "categoryId",
+          "notes",
+          "transferGroupId",
+          "transferToAccountId",
+          "transferToAccountName",
+          "transferToCardId",
+          "transferToCardName",
+          "transferToAmount",
+          "transferToCurrency",
+          "transferEstimated",
+          "institutionLogoUrl",
+          "network",
+          "networkLogoUrl",
+          "transferToInstitutionLogoUrl",
+          "transferToNetwork",
+          "transferToNetworkLogoUrl",
+          "linkedTransactionId",
+          "possibleDuplicateOfId",
+          "createdAt",
+          "kind",
+          "operationType",
+          "legs"
+        ]
+      },
+      "TransactionResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "accountId": {
+            "type": "string",
+            "nullable": true
+          },
+          "accountName": {
+            "type": "string",
+            "nullable": true
+          },
+          "cardId": {
+            "type": "string",
+            "nullable": true
+          },
+          "cardName": {
+            "type": "string",
+            "nullable": true
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "DEBIT",
+              "CREDIT",
+              "TRANSFER",
+              "ADJUSTMENT",
+              "CARD_PAYMENT"
+            ]
+          },
+          "amount": {
+            "type": "string",
+            "example": "1500.00"
+          },
+          "ledgerAmount": {
+            "type": "string",
+            "example": "1500.00"
+          },
+          "amountBaseCurrency": {
+            "type": "string",
+            "example": "1500.00"
+          },
+          "currency": {
+            "type": "string",
+            "example": "DOP"
+          },
+          "ledgerCurrency": {
+            "type": "string",
+            "nullable": true,
+            "example": "DOP"
+          },
+          "exchangeRate": {
+            "type": "string",
+            "example": "1.00"
+          },
+          "merchant": {
+            "type": "string",
+            "nullable": true
+          },
+          "merchantId": {
+            "type": "string",
+            "nullable": true
+          },
+          "merchantName": {
+            "type": "string",
+            "nullable": true
+          },
+          "merchantLogoUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "transactionDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "CONFIRMED",
+              "CANCELLED",
+              "DECLINED",
+              "REVERSED"
+            ]
+          },
+          "editable": {
+            "type": "string",
+            "enum": [
+              "FULL",
+              "METADATA",
+              "NOTES",
+              "NONE"
+            ]
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "MANUAL",
+              "EMAIL",
+              "AI"
+            ]
+          },
+          "categoryId": {
+            "type": "string",
+            "nullable": true
+          },
+          "notes": {
+            "type": "string",
+            "nullable": true
+          },
+          "transferGroupId": {
+            "type": "string",
+            "nullable": true
+          },
+          "transferToAccountId": {
+            "type": "string",
+            "nullable": true
+          },
+          "transferToAccountName": {
+            "type": "string",
+            "nullable": true
+          },
+          "transferToCardId": {
+            "type": "string",
+            "nullable": true
+          },
+          "transferToCardName": {
+            "type": "string",
+            "nullable": true
+          },
+          "transferToAmount": {
+            "type": "string",
+            "nullable": true,
+            "example": "1500.00"
+          },
+          "transferToCurrency": {
+            "type": "string",
+            "nullable": true,
+            "example": "DOP"
+          },
+          "transferEstimated": {
+            "type": "boolean"
+          },
+          "institutionLogoUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "network": {
+            "type": "string",
+            "nullable": true
+          },
+          "networkLogoUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "transferToInstitutionLogoUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "transferToNetwork": {
+            "type": "string",
+            "nullable": true
+          },
+          "transferToNetworkLogoUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "linkedTransactionId": {
+            "type": "string",
+            "nullable": true
+          },
+          "possibleDuplicateOfId": {
+            "type": "string",
+            "nullable": true
+          },
+          "planningLink": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PlanningLinkResponseDto"
+              }
+            ]
+          },
+          "aiMetadata": {
+            "type": "object",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "accountId",
+          "accountName",
+          "cardId",
+          "cardName",
+          "type",
+          "amount",
+          "ledgerAmount",
+          "amountBaseCurrency",
+          "currency",
+          "exchangeRate",
+          "merchant",
+          "merchantId",
+          "merchantName",
+          "merchantLogoUrl",
+          "description",
+          "transactionDate",
+          "status",
+          "editable",
+          "source",
+          "categoryId",
+          "notes",
+          "transferGroupId",
+          "transferToAccountId",
+          "transferToAccountName",
+          "transferToCardId",
+          "transferToCardName",
+          "transferToAmount",
+          "transferToCurrency",
+          "transferEstimated",
+          "institutionLogoUrl",
+          "network",
+          "networkLogoUrl",
+          "transferToInstitutionLogoUrl",
+          "transferToNetwork",
+          "transferToNetworkLogoUrl",
+          "linkedTransactionId",
+          "possibleDuplicateOfId",
+          "createdAt"
+        ]
+      },
+      "TransactionPageResponseDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/TransactionResponseDto"
+                },
+                {
+                  "$ref": "#/components/schemas/TransactionOperationResponseDto"
+                }
+              ]
+            }
+          },
+          "nextCursor": {
+            "type": "string",
+            "nullable": true
+          },
+          "hasMore": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "items",
+          "nextCursor",
+          "hasMore"
+        ]
+      },
       "AdjustBalanceDto": {
         "type": "object",
         "properties": {
@@ -8531,6 +9560,32 @@
         },
         "required": [
           "balance"
+        ]
+      },
+      "AdjustBalanceResponseDto": {
+        "type": "object",
+        "properties": {
+          "adjusted": {
+            "type": "boolean"
+          },
+          "balance": {
+            "type": "number",
+            "example": 1500
+          },
+          "transaction": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TransactionResponseDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "adjusted",
+          "balance",
+          "transaction"
         ]
       },
       "CreateTransactionDto": {
@@ -8588,6 +9643,23 @@
           "type",
           "amount",
           "transactionDate"
+        ]
+      },
+      "DeleteResponseDto": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true
+          },
+          "undoId": {
+            "type": "string",
+            "description": "Id para deshacer el borrado"
+          }
+        },
+        "required": [
+          "success",
+          "undoId"
         ]
       },
       "MergeTransactionDto": {
@@ -8689,6 +9761,28 @@
           "toAccountId",
           "amount",
           "transactionDate"
+        ]
+      },
+      "TransferResponseDto": {
+        "type": "object",
+        "properties": {
+          "transferGroupId": {
+            "type": "string"
+          },
+          "debit": {
+            "$ref": "#/components/schemas/TransactionResponseDto"
+          },
+          "credit": {
+            "$ref": "#/components/schemas/TransactionResponseDto"
+          },
+          "suggestGoalId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "transferGroupId",
+          "debit",
+          "credit"
         ]
       },
       "UpdateTransferDto": {
@@ -11112,6 +12206,77 @@
           "realBalance"
         ]
       },
+      "SuggestedAdjustmentResponseDto": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "IMPUESTO_DGII",
+              "COMISION",
+              "CARGO_PLASTICO",
+              "INTERES",
+              "OTRO"
+            ]
+          },
+          "amount": {
+            "type": "string",
+            "example": "150.00"
+          }
+        },
+        "required": [
+          "kind",
+          "amount"
+        ]
+      },
+      "ReconciliationPreviewResponseDto": {
+        "type": "object",
+        "properties": {
+          "accountId": {
+            "type": "string",
+            "nullable": true
+          },
+          "cardId": {
+            "type": "string",
+            "nullable": true
+          },
+          "currency": {
+            "type": "string",
+            "example": "DOP"
+          },
+          "name": {
+            "type": "string"
+          },
+          "appBalance": {
+            "type": "string",
+            "example": "1500.00"
+          },
+          "realBalance": {
+            "type": "string",
+            "example": "1500.00"
+          },
+          "difference": {
+            "type": "string",
+            "example": "0.00"
+          },
+          "suggestedAdjustments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SuggestedAdjustmentResponseDto"
+            }
+          }
+        },
+        "required": [
+          "accountId",
+          "cardId",
+          "currency",
+          "name",
+          "appBalance",
+          "realBalance",
+          "difference",
+          "suggestedAdjustments"
+        ]
+      },
       "ReconciliationAdjustmentDto": {
         "type": "object",
         "properties": {
@@ -11170,6 +12335,280 @@
           "realBalance"
         ]
       },
+      "ReconciliationAdjustmentResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "IMPUESTO_DGII",
+              "COMISION",
+              "CARGO_PLASTICO",
+              "INTERES",
+              "OTRO"
+            ]
+          },
+          "amount": {
+            "type": "string",
+            "example": "1500.00"
+          },
+          "transactionId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "amount",
+          "transactionId"
+        ]
+      },
+      "ReconciliationResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "accountId": {
+            "type": "string",
+            "nullable": true
+          },
+          "cardId": {
+            "type": "string",
+            "nullable": true
+          },
+          "currency": {
+            "type": "string",
+            "example": "DOP"
+          },
+          "asOfDate": {
+            "type": "string",
+            "format": "date",
+            "example": "2026-11-01"
+          },
+          "appBalance": {
+            "type": "string",
+            "example": "1500.00"
+          },
+          "realBalance": {
+            "type": "string",
+            "example": "1500.00"
+          },
+          "difference": {
+            "type": "string",
+            "example": "0.00"
+          },
+          "note": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "adjustments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReconciliationAdjustmentResponseDto"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "accountId",
+          "cardId",
+          "currency",
+          "asOfDate",
+          "appBalance",
+          "realBalance",
+          "difference",
+          "note",
+          "createdAt",
+          "adjustments"
+        ]
+      },
+      "ReconciliationStatusItemResponseDto": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "account",
+              "card"
+            ]
+          },
+          "accountId": {
+            "type": "string",
+            "nullable": true
+          },
+          "cardId": {
+            "type": "string",
+            "nullable": true
+          },
+          "currency": {
+            "type": "string",
+            "example": "DOP"
+          },
+          "name": {
+            "type": "string"
+          },
+          "institutionName": {
+            "type": "string",
+            "nullable": true
+          },
+          "balance": {
+            "type": "string",
+            "example": "1500.00"
+          },
+          "reconciled": {
+            "type": "boolean"
+          },
+          "lastReconciledAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "key",
+          "kind",
+          "accountId",
+          "cardId",
+          "currency",
+          "name",
+          "institutionName",
+          "balance",
+          "reconciled",
+          "lastReconciledAt"
+        ]
+      },
+      "ReconciliationStatusResponseDto": {
+        "type": "object",
+        "properties": {
+          "month": {
+            "type": "string",
+            "example": "2026-11"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReconciliationStatusItemResponseDto"
+            }
+          },
+          "reconciledCount": {
+            "type": "number"
+          },
+          "pendingCount": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "month",
+          "items",
+          "reconciledCount",
+          "pendingCount"
+        ]
+      },
+      "ReconciliationPageResponseDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReconciliationResponseDto"
+            }
+          },
+          "nextCursor": {
+            "type": "string",
+            "nullable": true
+          },
+          "hasMore": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "items",
+          "nextCursor",
+          "hasMore"
+        ]
+      },
+      "BalanceDriftResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "accountId": {
+            "type": "string",
+            "nullable": true
+          },
+          "cardId": {
+            "type": "string",
+            "nullable": true
+          },
+          "currency": {
+            "type": "string",
+            "example": "DOP"
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "storedBalance": {
+            "type": "string",
+            "example": "1500.00"
+          },
+          "expectedBalance": {
+            "type": "string",
+            "example": "1500.00"
+          },
+          "difference": {
+            "type": "string",
+            "example": "0.00"
+          },
+          "detectedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "resolvedAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "accountId",
+          "cardId",
+          "currency",
+          "name",
+          "storedBalance",
+          "expectedBalance",
+          "difference",
+          "detectedAt",
+          "resolvedAt"
+        ]
+      },
+      "IntegrityCheckResponseDto": {
+        "type": "object",
+        "properties": {
+          "drifts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BalanceDriftResponseDto"
+            }
+          }
+        },
+        "required": [
+          "drifts"
+        ]
+      },
       "RecalculateBalanceDto": {
         "type": "object",
         "properties": {
@@ -11187,6 +12626,37 @@
             "description": "Required when cardId is set"
           }
         }
+      },
+      "IntegrityRecalculateResponseDto": {
+        "type": "object",
+        "properties": {
+          "corrected": {
+            "type": "boolean"
+          },
+          "accountId": {
+            "type": "string",
+            "nullable": true
+          },
+          "cardId": {
+            "type": "string",
+            "nullable": true
+          },
+          "currency": {
+            "type": "string",
+            "example": "DOP"
+          },
+          "balance": {
+            "type": "string",
+            "example": "1500.00"
+          }
+        },
+        "required": [
+          "corrected",
+          "accountId",
+          "cardId",
+          "currency",
+          "balance"
+        ]
       },
       "ParseQuickEntryDto": {
         "type": "object",
