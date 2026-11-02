@@ -19,6 +19,12 @@ import { MarkReleaseNotesSeenDto } from './dto/mark-release-notes-seen.dto';
 import { UpdateModuleConfigDto } from './dto/update-module-config.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { WipeUserDataDto } from './dto/wipe-user-data.dto';
+import {
+  DataAppBranchesResponseDto,
+  DeleteAccountResponseDto,
+  UserProfileResponseDto,
+  WipeUserDataResponseDto,
+} from './dto/user-response.dto';
 import { UsersService } from '../application/users.service';
 import { WipeUserDataUseCase } from '../application/wipe-user-data.use-case';
 
@@ -33,14 +39,20 @@ export class UsersController {
 
   @Get('me')
   @ApiOperation({ summary: 'Obtiene el perfil del usuario autenticado' })
-  @ApiOkResponse({ description: 'Current user profile' })
+  @ApiOkResponse({
+    description: 'Current user profile',
+    type: UserProfileResponseDto,
+  })
   getMyProfile(@CurrentUser('sub') userId: string) {
     return this.usersService.findById(userId);
   }
 
   @Patch('me')
   @ApiOperation({ summary: 'Actualiza el perfil del usuario autenticado' })
-  @ApiOkResponse({ description: 'Updated user profile' })
+  @ApiOkResponse({
+    description: 'Updated user profile',
+    type: UserProfileResponseDto,
+  })
   updateMyProfile(
     @CurrentUser('sub') userId: string,
     @Body() dto: UpdateProfileDto,
@@ -52,7 +64,10 @@ export class UsersController {
   @ApiOperation({
     summary: 'Marca la versión de Novedades que el usuario ya vio',
   })
-  @ApiOkResponse({ description: 'Updated user profile' })
+  @ApiOkResponse({
+    description: 'Updated user profile',
+    type: UserProfileResponseDto,
+  })
   async markReleaseNotesSeen(
     @CurrentUser('sub') userId: string,
     @Body() dto: MarkReleaseNotesSeenDto,
@@ -65,7 +80,10 @@ export class UsersController {
   @ApiOperation({
     summary: 'Actualiza la configuración de un módulo del usuario',
   })
-  @ApiOkResponse({ description: 'Updated user profile with module config' })
+  @ApiOkResponse({
+    description: 'Updated user profile with module config',
+    type: UserProfileResponseDto,
+  })
   updateMyModuleConfig(
     @CurrentUser('sub') userId: string,
     @Param('slug') slug: string,
@@ -78,7 +96,10 @@ export class UsersController {
   @ApiOperation({
     summary: 'Borra la cuenta del usuario y sus datos asociados',
   })
-  @ApiOkResponse({ description: 'Account deleted successfully' })
+  @ApiOkResponse({
+    description: 'Account deleted successfully',
+    type: DeleteAccountResponseDto,
+  })
   deleteMyAccount(@CurrentUser('sub') userId: string) {
     return this.usersService.deleteAccount(userId);
   }
@@ -87,7 +108,10 @@ export class UsersController {
   @ApiOperation({
     summary: 'Ramas de datos por app, con su conteo y lo que arrastran',
   })
-  @ApiOkResponse({ description: 'Branches grouped by app with their counts' })
+  @ApiOkResponse({
+    description: 'Branches grouped by app with their counts',
+    type: [DataAppBranchesResponseDto],
+  })
   myDataBranches(@CurrentUser('sub') userId: string) {
     return this.wipeUserData.listBranches(userId);
   }
@@ -97,7 +121,10 @@ export class UsersController {
   @ApiOperation({
     summary: 'Borra las ramas de datos elegidas sin cerrar la cuenta',
   })
-  @ApiOkResponse({ description: 'Requested and applied branches with counts' })
+  @ApiOkResponse({
+    description: 'Requested and applied branches with counts',
+    type: WipeUserDataResponseDto,
+  })
   wipeMyData(@CurrentUser('sub') userId: string, @Body() dto: WipeUserDataDto) {
     return this.wipeUserData.execute(userId, dto.branches, {
       expectedCounts: dto.expectedCounts,

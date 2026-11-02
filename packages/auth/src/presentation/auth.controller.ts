@@ -11,6 +11,7 @@ import { CurrentUser } from '@personal-os/core';
 import { UserLoggedInEvent } from '@personal-os/core';
 import { AppEvents } from '@personal-os/core';
 import type { AuthUserContext } from '../domain/supabase-jwt-payload';
+import { AuthSessionResponseDto } from './dto/auth-session-response.dto';
 
 const USER_LOGGED_IN_TTL_MS = 3600_000;
 
@@ -30,7 +31,10 @@ export class AuthController {
 
   @Get('session')
   @ApiOperation({ summary: 'Obtiene el contexto de la sesión autenticada' })
-  @ApiOkResponse({ description: 'Current authenticated user context' })
+  @ApiOkResponse({
+    description: 'Current authenticated user context',
+    type: AuthSessionResponseDto,
+  })
   async session(@CurrentUser() user: AuthUserContext) {
     const cacheKey = `user.logged_in:${user.sub}`;
     const cached = await this.cache.get(cacheKey);

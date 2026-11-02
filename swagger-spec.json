@@ -113,7 +113,14 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": "Current user profile"
+            "description": "Current user profile",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserProfileResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -141,7 +148,14 @@
         },
         "responses": {
           "200": {
-            "description": "Updated user profile"
+            "description": "Updated user profile",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserProfileResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -159,7 +173,14 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": "Account deleted successfully"
+            "description": "Account deleted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteAccountResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -189,7 +210,14 @@
         },
         "responses": {
           "200": {
-            "description": "Updated user profile"
+            "description": "Updated user profile",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserProfileResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -228,7 +256,14 @@
         },
         "responses": {
           "200": {
-            "description": "Updated user profile with module config"
+            "description": "Updated user profile with module config",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserProfileResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -248,7 +283,17 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": "Branches grouped by app with their counts"
+            "description": "Branches grouped by app with their counts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DataAppBranchesResponseDto"
+                  }
+                }
+              }
+            }
           }
         },
         "security": [
@@ -278,7 +323,14 @@
         },
         "responses": {
           "200": {
-            "description": "Requested and applied branches with counts"
+            "description": "Requested and applied branches with counts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WipeUserDataResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -298,7 +350,14 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": "Current authenticated user context"
+            "description": "Current authenticated user context",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthSessionResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -318,7 +377,17 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AiRoleUserResponseDto"
+                  }
+                }
+              }
+            }
           }
         },
         "security": [
@@ -356,7 +425,14 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AiRoleAssignmentResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -375,7 +451,14 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AiConsentResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -402,7 +485,14 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AiConsentResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -421,7 +511,14 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AiEmailDashboardResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -449,7 +546,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AiEmailMessagePageResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -477,7 +581,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AiEmailMessageResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -496,7 +607,14 @@
         "parameters": [],
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AiEmailConnectResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -515,7 +633,14 @@
         "parameters": [],
         "responses": {
           "202": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AiEmailSyncResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -543,6 +668,16 @@
           }
         },
         "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AiEmailResetResponseDto"
+                }
+              }
+            }
+          },
           "409": {
             "description": "GMAIL_NOT_CONNECTED si no hay conexión; GMAIL_SYNC_IN_PROGRESS si hay una sincronización activa o esperando cuota.",
             "content": {
@@ -601,7 +736,14 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AiEmailDiagnosticsResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -620,7 +762,14 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AiDatasetResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -733,7 +882,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AiReviewQueueResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -774,7 +930,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AiReviewGroupsPageResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -803,7 +966,14 @@
         },
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AiReviewGroupVerificationResultResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -841,7 +1011,14 @@
         },
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AiMessageVerificationResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -860,7 +1037,17 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AiAnalysisRunResponseDto"
+                  }
+                }
+              }
+            }
           }
         },
         "security": [
@@ -7651,7 +7838,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicReceivableShareResponseDto"
+                }
+              }
+            }
           }
         },
         "summary": "Cobros compartidos por link público, en solo lectura",
@@ -7716,7 +7910,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationPageResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -7744,7 +7945,21 @@
         },
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/NotificationResponseDto"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              }
+            }
           }
         },
         "security": [
@@ -7764,7 +7979,14 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnreadNotificationsResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -7784,7 +8006,14 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MarkAllReadResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -7813,7 +8042,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -7843,7 +8079,14 @@
         },
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PushTokenResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -7872,7 +8115,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationSuccessResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -7902,7 +8152,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationSuccessResponseDto"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -7959,6 +8216,88 @@
       }
     },
     "schemas": {
+      "UserModuleResponseDto": {
+        "type": "object",
+        "properties": {
+          "slug": {
+            "type": "string"
+          },
+          "isEnabled": {
+            "type": "boolean"
+          },
+          "config": {
+            "type": "object"
+          },
+          "enabledAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "slug",
+          "isEnabled",
+          "config",
+          "enabledAt"
+        ]
+      },
+      "UserProfileResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "fullName": {
+            "type": "string"
+          },
+          "avatarUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "timezone": {
+            "type": "string"
+          },
+          "locale": {
+            "type": "string"
+          },
+          "preferences": {
+            "type": "object"
+          },
+          "lastSeenReleaseVersion": {
+            "type": "string",
+            "nullable": true
+          },
+          "userModules": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UserModuleResponseDto"
+            }
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "fullName",
+          "avatarUrl",
+          "timezone",
+          "locale",
+          "preferences",
+          "lastSeenReleaseVersion",
+          "userModules",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
       "UpdateProfileDto": {
         "type": "object",
         "properties": {
@@ -8006,6 +8345,86 @@
           }
         }
       },
+      "DeleteAccountResponseDto": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "authCleanupPending": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "success",
+          "authCleanupPending"
+        ]
+      },
+      "DataBranchIncludeResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "count": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "count"
+        ]
+      },
+      "DataBranchCountResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "count": {
+            "type": "number"
+          },
+          "includes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DataBranchIncludeResponseDto"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "count",
+          "includes"
+        ]
+      },
+      "DataAppBranchesResponseDto": {
+        "type": "object",
+        "properties": {
+          "app": {
+            "type": "string",
+            "enum": [
+              "finance",
+              "ai",
+              "notifications",
+              "settings"
+            ]
+          },
+          "branches": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DataBranchCountResponseDto"
+            }
+          }
+        },
+        "required": [
+          "app",
+          "branches"
+        ]
+      },
       "WipeUserDataDto": {
         "type": "object",
         "properties": {
@@ -8036,17 +8455,1091 @@
           "branches"
         ]
       },
+      "WipeUserDataResponseDto": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "requestedBranches": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "appliedBranches": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "counts": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "number"
+            }
+          }
+        },
+        "required": [
+          "success",
+          "requestedBranches",
+          "appliedBranches",
+          "counts"
+        ]
+      },
+      "AuthSessionResponseDto": {
+        "type": "object",
+        "properties": {
+          "sub": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string",
+            "nullable": true
+          },
+          "role": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "sub",
+          "email",
+          "role"
+        ]
+      },
+      "AiRoleUserResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "fullName": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "USER",
+              "CONTRIBUTOR",
+              "ADMIN"
+            ]
+          },
+          "grantedAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "fullName",
+          "role",
+          "grantedAt",
+          "updatedAt"
+        ]
+      },
       "UpdateAiRoleDto": {
         "type": "object",
         "properties": {}
+      },
+      "AiRoleAssignmentResponseDto": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "USER",
+              "CONTRIBUTOR",
+              "ADMIN"
+            ]
+          },
+          "grantedBy": {
+            "type": "string",
+            "nullable": true
+          },
+          "grantedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "userId",
+          "role",
+          "grantedBy",
+          "grantedAt"
+        ]
+      },
+      "AiConsentResponseDto": {
+        "type": "object",
+        "properties": {
+          "contributeToGlobalKnowledge": {
+            "type": "boolean"
+          },
+          "contributionConsentAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "contributeToGlobalKnowledge",
+          "contributionConsentAt"
+        ]
       },
       "UpdateConsentDto": {
         "type": "object",
         "properties": {}
       },
+      "AiEmailLastAttemptResponseDto": {
+        "type": "object",
+        "properties": {
+          "startedAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "finishedAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "result": {
+            "type": "string",
+            "enum": [
+              "SUCCEEDED",
+              "FAILED",
+              "INTERRUPTED"
+            ],
+            "nullable": true
+          },
+          "errorCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "errorCategory": {
+            "type": "string",
+            "nullable": true
+          },
+          "importedCount": {
+            "type": "number",
+            "nullable": true
+          },
+          "phase": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "startedAt",
+          "finishedAt",
+          "result",
+          "errorCode",
+          "errorCategory",
+          "importedCount",
+          "phase"
+        ]
+      },
+      "AiEmailLastFailureResponseDto": {
+        "type": "object",
+        "properties": {
+          "finishedAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "errorCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "errorCategory": {
+            "type": "string",
+            "nullable": true
+          },
+          "importedCount": {
+            "type": "number",
+            "nullable": true
+          },
+          "phase": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "finishedAt",
+          "errorCode",
+          "errorCategory",
+          "importedCount",
+          "phase"
+        ]
+      },
+      "AiEmailSyncProgressResponseDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "running",
+              "waiting",
+              "retrying",
+              "scheduled",
+              "completed",
+              "failed"
+            ]
+          },
+          "phase": {
+            "type": "string",
+            "enum": [
+              "bootstrap",
+              "incremental",
+              "recovery"
+            ]
+          },
+          "attempt": {
+            "type": "number"
+          },
+          "rateLimitRetryCount": {
+            "type": "number"
+          },
+          "processedThisRun": {
+            "type": "number"
+          },
+          "importedThisRun": {
+            "type": "number"
+          },
+          "batchSize": {
+            "type": "number"
+          },
+          "totalEstimate": {
+            "type": "number"
+          },
+          "retryAt": {
+            "type": "number"
+          },
+          "nextRunAt": {
+            "type": "number"
+          },
+          "errorCode": {
+            "type": "string"
+          },
+          "providerErrorCode": {
+            "type": "string"
+          },
+          "recoveryRange": {
+            "type": "object",
+            "properties": {
+              "from": {
+                "type": "string"
+              },
+              "to": {
+                "type": "string"
+              }
+            }
+          },
+          "errorCategory": {
+            "type": "string",
+            "enum": [
+              "authorization",
+              "configuration",
+              "rate_limit",
+              "temporary",
+              "unknown"
+            ]
+          },
+          "startedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "status",
+          "phase",
+          "attempt",
+          "processedThisRun",
+          "importedThisRun",
+          "startedAt",
+          "updatedAt"
+        ]
+      },
+      "AiEmailConnectionResponseDto": {
+        "type": "object",
+        "properties": {
+          "connected": {
+            "type": "boolean"
+          },
+          "emailAddress": {
+            "type": "string"
+          },
+          "initialSyncCompletedAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "lastSyncedAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "lastRecoverySyncAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "lastSyncErrorCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "lastAttempt": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AiEmailLastAttemptResponseDto"
+              }
+            ]
+          },
+          "lastFailure": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AiEmailLastFailureResponseDto"
+              }
+            ]
+          },
+          "requiresReconnect": {
+            "type": "boolean"
+          },
+          "syncProgress": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AiEmailSyncProgressResponseDto"
+              }
+            ]
+          },
+          "syncInProgress": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "connected"
+        ]
+      },
+      "AiEmailCountersResponseDto": {
+        "type": "object",
+        "properties": {
+          "importedMessages": {
+            "type": "number"
+          },
+          "recentMessages": {
+            "type": "number"
+          },
+          "bootstrapImportedMessages": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "importedMessages",
+          "recentMessages",
+          "bootstrapImportedMessages"
+        ]
+      },
+      "AiEmailReceivedRangeResponseDto": {
+        "type": "object",
+        "properties": {
+          "firstMessageAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "latestMessageAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "firstMessageAt",
+          "latestMessageAt"
+        ]
+      },
+      "AiEmailDashboardResponseDto": {
+        "type": "object",
+        "properties": {
+          "connection": {
+            "$ref": "#/components/schemas/AiEmailConnectionResponseDto"
+          },
+          "counters": {
+            "$ref": "#/components/schemas/AiEmailCountersResponseDto"
+          },
+          "receivedRange": {
+            "$ref": "#/components/schemas/AiEmailReceivedRangeResponseDto"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "USER",
+              "CONTRIBUTOR",
+              "ADMIN"
+            ]
+          }
+        },
+        "required": [
+          "connection",
+          "counters",
+          "receivedRange",
+          "role"
+        ]
+      },
+      "AiEmailMessageSummaryResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "receivedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "fromAddress": {
+            "type": "string"
+          },
+          "fromDomain": {
+            "type": "string"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "processingStatus": {
+            "type": "string",
+            "enum": [
+              "INGESTED",
+              "QUEUED",
+              "PROCESSED",
+              "REVIEW_REQUIRED",
+              "FAILED"
+            ]
+          },
+          "contentFingerprint": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "receivedAt",
+          "fromAddress",
+          "fromDomain",
+          "subject",
+          "processingStatus",
+          "contentFingerprint"
+        ]
+      },
+      "AiEmailMessagePageResponseDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AiEmailMessageSummaryResponseDto"
+            }
+          },
+          "hasMore": {
+            "type": "boolean"
+          },
+          "nextCursor": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "items",
+          "hasMore",
+          "nextCursor"
+        ]
+      },
+      "AiEmailContentResponseDto": {
+        "type": "object",
+        "properties": {
+          "messageId": {
+            "type": "string"
+          },
+          "rawBody": {
+            "type": "string",
+            "nullable": true
+          },
+          "sanitizedBody": {
+            "type": "string",
+            "nullable": true
+          },
+          "canonicalBody": {
+            "type": "string",
+            "nullable": true
+          },
+          "snippet": {
+            "type": "string",
+            "nullable": true
+          },
+          "retentionExpiresAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "messageId",
+          "rawBody",
+          "sanitizedBody",
+          "canonicalBody",
+          "snippet",
+          "retentionExpiresAt"
+        ]
+      },
+      "AiKnowledgeObservationResponseDto": {
+        "type": "object",
+        "properties": {
+          "sequence": {
+            "type": "string",
+            "example": "1"
+          },
+          "runId": {
+            "type": "string",
+            "nullable": true
+          },
+          "knowledgeType": {
+            "type": "string"
+          },
+          "knowledgeKey": {
+            "type": "string"
+          },
+          "proposedScope": {
+            "type": "string"
+          },
+          "payload": {
+            "type": "object",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "sequence",
+          "runId",
+          "knowledgeType",
+          "knowledgeKey",
+          "proposedScope",
+          "payload",
+          "createdAt"
+        ]
+      },
+      "AiHumanVerificationResponseDto": {
+        "type": "object",
+        "properties": {
+          "sequence": {
+            "type": "string",
+            "example": "1"
+          },
+          "verifierRole": {
+            "type": "string",
+            "enum": [
+              "USER",
+              "CONTRIBUTOR",
+              "ADMIN"
+            ]
+          },
+          "verdict": {
+            "type": "string",
+            "enum": [
+              "CONFIRMED",
+              "CORRECTED",
+              "REJECTED"
+            ]
+          },
+          "correctedPayload": {
+            "type": "object",
+            "nullable": true
+          },
+          "notes": {
+            "type": "string",
+            "nullable": true
+          },
+          "isGroundTruth": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "sequence",
+          "verifierRole",
+          "verdict",
+          "correctedPayload",
+          "notes",
+          "isGroundTruth",
+          "createdAt"
+        ]
+      },
+      "AiEmailMessageProvenanceResponseDto": {
+        "type": "object",
+        "properties": {
+          "observations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AiKnowledgeObservationResponseDto"
+            }
+          },
+          "verifications": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AiHumanVerificationResponseDto"
+            }
+          }
+        },
+        "required": [
+          "observations",
+          "verifications"
+        ]
+      },
+      "AiEmailMessageResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "receivedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "fromAddress": {
+            "type": "string"
+          },
+          "fromDomain": {
+            "type": "string"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "processingStatus": {
+            "type": "string",
+            "enum": [
+              "INGESTED",
+              "QUEUED",
+              "PROCESSED",
+              "REVIEW_REQUIRED",
+              "FAILED"
+            ]
+          },
+          "contentFingerprint": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "string"
+          },
+          "connectionId": {
+            "type": "string"
+          },
+          "providerMessageId": {
+            "type": "string"
+          },
+          "providerThreadId": {
+            "type": "string",
+            "nullable": true
+          },
+          "templateFingerprint": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "content": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AiEmailContentResponseDto"
+              }
+            ]
+          },
+          "provenance": {
+            "$ref": "#/components/schemas/AiEmailMessageProvenanceResponseDto"
+          }
+        },
+        "required": [
+          "id",
+          "receivedAt",
+          "fromAddress",
+          "fromDomain",
+          "subject",
+          "processingStatus",
+          "contentFingerprint",
+          "userId",
+          "connectionId",
+          "providerMessageId",
+          "providerThreadId",
+          "templateFingerprint",
+          "createdAt",
+          "updatedAt",
+          "content",
+          "provenance"
+        ]
+      },
+      "AiEmailConnectResponseDto": {
+        "type": "object",
+        "properties": {
+          "authorizationUrl": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "authorizationUrl"
+        ]
+      },
+      "AiEmailSyncResponseDto": {
+        "type": "object",
+        "properties": {
+          "connected": {
+            "type": "boolean"
+          },
+          "syncStarted": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "connected",
+          "syncStarted"
+        ]
+      },
       "ResetEmailCorpusDto": {
         "type": "object",
         "properties": {}
+      },
+      "AiEmailResetResponseDto": {
+        "type": "object",
+        "properties": {
+          "connected": {
+            "type": "boolean"
+          },
+          "deletedMessages": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "connected",
+          "deletedMessages"
+        ]
+      },
+      "AiEmailDiagnosticsResponseDto": {
+        "type": "object",
+        "properties": {
+          "configured": {
+            "type": "boolean"
+          },
+          "provider": {
+            "type": "string",
+            "example": "GMAIL"
+          },
+          "scopes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ready",
+              "missing_oauth_configuration"
+            ]
+          }
+        },
+        "required": [
+          "configured",
+          "provider",
+          "scopes",
+          "status"
+        ]
+      },
+      "AiDatasetPartitionsResponseDto": {
+        "type": "object",
+        "properties": {
+          "TRAIN": {
+            "type": "number"
+          },
+          "VALIDATION": {
+            "type": "number"
+          },
+          "HOLDOUT": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "TRAIN",
+          "VALIDATION",
+          "HOLDOUT"
+        ]
+      },
+      "AiDatasetResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "partitions": {
+            "$ref": "#/components/schemas/AiDatasetPartitionsResponseDto"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "partitions"
+        ]
+      },
+      "AiReviewItemVerificationResponseDto": {
+        "type": "object",
+        "properties": {
+          "verdict": {
+            "type": "string",
+            "enum": [
+              "CONFIRMED",
+              "CORRECTED",
+              "REJECTED"
+            ]
+          },
+          "labels": {
+            "type": "object",
+            "nullable": true
+          },
+          "notes": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "verdict",
+          "labels",
+          "notes",
+          "createdAt"
+        ]
+      },
+      "AiReviewQueueItemResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "receivedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "fromAddress": {
+            "type": "string"
+          },
+          "fromDomain": {
+            "type": "string"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "contentFingerprint": {
+            "type": "string"
+          },
+          "processingStatus": {
+            "type": "string"
+          },
+          "partition": {
+            "type": "string",
+            "enum": [
+              "TRAIN",
+              "VALIDATION",
+              "HOLDOUT"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "CONFIRMED",
+              "CORRECTED",
+              "REJECTED"
+            ]
+          },
+          "verification": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AiReviewItemVerificationResponseDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "receivedAt",
+          "fromAddress",
+          "fromDomain",
+          "subject",
+          "contentFingerprint",
+          "processingStatus",
+          "partition",
+          "status",
+          "verification"
+        ]
+      },
+      "AiReviewQueueCountsResponseDto": {
+        "type": "object",
+        "properties": {
+          "all": {
+            "type": "number"
+          },
+          "TRAIN": {
+            "type": "number"
+          },
+          "VALIDATION": {
+            "type": "number"
+          },
+          "HOLDOUT": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "all",
+          "TRAIN",
+          "VALIDATION",
+          "HOLDOUT"
+        ]
+      },
+      "AiReviewQueueResponseDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AiReviewQueueItemResponseDto"
+            }
+          },
+          "counts": {
+            "$ref": "#/components/schemas/AiReviewQueueCountsResponseDto"
+          },
+          "hasMore": {
+            "type": "boolean"
+          },
+          "nextCursor": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "items",
+          "counts",
+          "hasMore",
+          "nextCursor"
+        ]
+      },
+      "AiReviewGroupResponseDto": {
+        "type": "object",
+        "properties": {
+          "fromAddress": {
+            "type": "string"
+          },
+          "templateFingerprint": {
+            "type": "string",
+            "nullable": true
+          },
+          "total": {
+            "type": "number"
+          },
+          "pending": {
+            "type": "number"
+          },
+          "pendingHoldout": {
+            "type": "number"
+          },
+          "sampleSubjects": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "sampleMessageIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "fromAddress",
+          "templateFingerprint",
+          "total",
+          "pending",
+          "pendingHoldout",
+          "sampleSubjects",
+          "sampleMessageIds"
+        ]
+      },
+      "AiReviewGroupsPageResponseDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AiReviewGroupResponseDto"
+            }
+          },
+          "page": {
+            "type": "number"
+          },
+          "pageSize": {
+            "type": "number"
+          },
+          "totalGroups": {
+            "type": "number"
+          },
+          "hasMore": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "items",
+          "page",
+          "pageSize",
+          "totalGroups",
+          "hasMore"
+        ]
       },
       "HumanVerificationTransactionDto": {
         "type": "object",
@@ -8150,6 +9643,25 @@
           "fromAddress"
         ]
       },
+      "AiReviewGroupVerificationResultResponseDto": {
+        "type": "object",
+        "properties": {
+          "verified": {
+            "type": "number"
+          },
+          "holdoutExcluded": {
+            "type": "number"
+          },
+          "alreadyVerified": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "verified",
+          "holdoutExcluded",
+          "alreadyVerified"
+        ]
+      },
       "CreateHumanVerificationDto": {
         "type": "object",
         "properties": {
@@ -8197,6 +9709,176 @@
         },
         "required": [
           "verdict"
+        ]
+      },
+      "AiMessageVerificationResponseDto": {
+        "type": "object",
+        "properties": {
+          "sequence": {
+            "type": "string",
+            "example": "1"
+          },
+          "verifierRole": {
+            "type": "string",
+            "enum": [
+              "USER",
+              "CONTRIBUTOR",
+              "ADMIN"
+            ]
+          },
+          "targetType": {
+            "type": "string"
+          },
+          "targetId": {
+            "type": "string",
+            "nullable": true
+          },
+          "verdict": {
+            "type": "string",
+            "enum": [
+              "CONFIRMED",
+              "CORRECTED",
+              "REJECTED"
+            ]
+          },
+          "correctedPayload": {
+            "type": "object",
+            "nullable": true
+          },
+          "notes": {
+            "type": "string",
+            "nullable": true
+          },
+          "isGroundTruth": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "sequence",
+          "verifierRole",
+          "targetType",
+          "targetId",
+          "verdict",
+          "correctedPayload",
+          "notes",
+          "isGroundTruth",
+          "createdAt"
+        ]
+      },
+      "AiAnalysisRunResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "datasetId": {
+            "type": "string"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "ANALYZE_ONLY",
+              "EVALUATE",
+              "IMPORT"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "RUNNING",
+              "COMPLETED",
+              "FAILED"
+            ]
+          },
+          "observationSequence": {
+            "type": "string",
+            "example": "1"
+          },
+          "verificationSequence": {
+            "type": "string",
+            "example": "1"
+          },
+          "consentRevision": {
+            "type": "string",
+            "example": "1"
+          },
+          "reproductionStatus": {
+            "type": "string",
+            "enum": [
+              "COMPLETE",
+              "INCOMPLETE"
+            ]
+          },
+          "missingEvidence": {
+            "type": "object"
+          },
+          "projectorVersion": {
+            "type": "string"
+          },
+          "policyVersion": {
+            "type": "string"
+          },
+          "pipelineVersion": {
+            "type": "string"
+          },
+          "detectorVersion": {
+            "type": "string",
+            "nullable": true
+          },
+          "promptVersion": {
+            "type": "string",
+            "nullable": true
+          },
+          "schemaVersion": {
+            "type": "string",
+            "nullable": true
+          },
+          "configuration": {
+            "type": "object"
+          },
+          "metrics": {
+            "type": "object",
+            "nullable": true
+          },
+          "startedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "completedAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "error": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "datasetId",
+          "mode",
+          "status",
+          "observationSequence",
+          "verificationSequence",
+          "consentRevision",
+          "reproductionStatus",
+          "missingEvidence",
+          "projectorVersion",
+          "policyVersion",
+          "pipelineVersion",
+          "detectorVersion",
+          "promptVersion",
+          "schemaVersion",
+          "configuration",
+          "metrics",
+          "startedAt",
+          "completedAt",
+          "error"
         ]
       },
       "KnowledgeTransactionDto": {
@@ -15747,6 +17429,153 @@
           "debtorName"
         ]
       },
+      "PublicShareCurrencyTotalResponseDto": {
+        "type": "object",
+        "properties": {
+          "currency": {
+            "type": "string",
+            "example": "DOP"
+          },
+          "amount": {
+            "type": "string",
+            "example": "1500.00"
+          },
+          "paid": {
+            "type": "string",
+            "example": "1500.00"
+          },
+          "pending": {
+            "type": "string",
+            "example": "0.00"
+          }
+        },
+        "required": [
+          "currency",
+          "amount",
+          "paid",
+          "pending"
+        ]
+      },
+      "PublicSharePaymentResponseDto": {
+        "type": "object",
+        "properties": {
+          "paidAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "amount": {
+            "type": "string",
+            "example": "1500.00"
+          }
+        },
+        "required": [
+          "paidAt",
+          "amount"
+        ]
+      },
+      "PublicShareItemResponseDto": {
+        "type": "object",
+        "properties": {
+          "ref": {
+            "type": "string"
+          },
+          "concept": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "dueDate": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "amount": {
+            "type": "string",
+            "example": "1500.00"
+          },
+          "paid": {
+            "type": "string",
+            "example": "1500.00"
+          },
+          "pending": {
+            "type": "string",
+            "example": "0.00"
+          },
+          "currency": {
+            "type": "string",
+            "example": "DOP"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "PARTIAL",
+              "PAID",
+              "CANCELLED",
+              "WRITTEN_OFF"
+            ]
+          },
+          "note": {
+            "type": "string",
+            "nullable": true
+          },
+          "payments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicSharePaymentResponseDto"
+            }
+          }
+        },
+        "required": [
+          "ref",
+          "concept",
+          "createdAt",
+          "dueDate",
+          "amount",
+          "paid",
+          "pending",
+          "currency",
+          "status",
+          "note",
+          "payments"
+        ]
+      },
+      "PublicReceivableShareResponseDto": {
+        "type": "object",
+        "properties": {
+          "ownerFirstName": {
+            "type": "string"
+          },
+          "debtorName": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "totalsByCurrency": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicShareCurrencyTotalResponseDto"
+            }
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicShareItemResponseDto"
+            }
+          }
+        },
+        "required": [
+          "ownerFirstName",
+          "debtorName",
+          "updatedAt",
+          "totalsByCurrency",
+          "items"
+        ]
+      },
       "ArchivedEntityResponseDto": {
         "type": "object",
         "properties": {
@@ -15852,6 +17681,112 @@
           "hasMore"
         ]
       },
+      "NotificationResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "channel": {
+            "type": "string",
+            "enum": [
+              "PUSH",
+              "IN_APP",
+              "EMAIL"
+            ]
+          },
+          "title": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string"
+          },
+          "data": {
+            "type": "object"
+          },
+          "isRead": {
+            "type": "boolean"
+          },
+          "scheduledAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "sentAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "userId",
+          "type",
+          "channel",
+          "title",
+          "body",
+          "data",
+          "isRead",
+          "scheduledAt",
+          "sentAt",
+          "createdAt"
+        ]
+      },
+      "NotificationPageResponseDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NotificationResponseDto"
+            }
+          },
+          "nextCursor": {
+            "type": "string",
+            "nullable": true
+          },
+          "hasMore": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "items",
+          "nextCursor",
+          "hasMore"
+        ]
+      },
+      "UnreadNotificationsResponseDto": {
+        "type": "object",
+        "properties": {
+          "count": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "count"
+        ]
+      },
+      "MarkAllReadResponseDto": {
+        "type": "object",
+        "properties": {
+          "updated": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "updated"
+        ]
+      },
       "CreateNotificationDto": {
         "type": "object",
         "properties": {
@@ -15902,6 +17837,49 @@
         "required": [
           "platform",
           "token"
+        ]
+      },
+      "PushTokenResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "string"
+          },
+          "platform": {
+            "type": "string"
+          },
+          "token": {
+            "type": "string"
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "userId",
+          "platform",
+          "token",
+          "isActive",
+          "createdAt"
+        ]
+      },
+      "NotificationSuccessResponseDto": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "success"
         ]
       }
     }
