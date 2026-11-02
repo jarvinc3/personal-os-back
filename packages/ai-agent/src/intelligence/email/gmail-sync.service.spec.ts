@@ -51,6 +51,7 @@ describe('GmailSyncService', () => {
       processPendingForUser: jest
         .fn()
         .mockResolvedValue({ processed: 0, modelCalls: 0, budget: 1 }),
+      countPendingForUser: jest.fn().mockResolvedValue(0),
     };
     const service = new GmailSyncService(
       prisma,
@@ -71,6 +72,7 @@ describe('GmailSyncService', () => {
       config,
       events,
       deletion,
+      classification,
       service,
       syncStateWrites,
     };
@@ -759,15 +761,164 @@ describe('GmailSyncService', () => {
     expect(deletion.removeEmailData).not.toHaveBeenCalled();
   });
 
-  it('usa la ruta de lápidas para reiniciar el corpus', async () => {
-    const { current, deletion, service } = makeFixture();
-    current.syncState = { status: 'completed' };
-    deletion.removeEmailData.mockResolvedValue({ deletedMessages: 4 });
+  it('clasifica el atraso en lotes y deja el avance en la fase classifying', async () => {
+    const { classification, service, syncStateWrites } = makeFixture();
+    classification.countPendingForUser.mockResolvedValue(150);
+    classification.processPendingForUser
+      .mockResolvedValueOnce({ processed: 100, modelCalls: 0 })
+      .mockResolvedValueOnce({ processed: 50, modelCalls: 0 });
 
-    expect(await service.resetEmailCorpus('user-1')).toEqual({
-      connected: true,
-      deletedMessages: 4,
+    await service.syncConnection('connection-1');
+
+    expect(classification.processPendingForUser).toHaveBeenCalledTimes(2);
+    const states = syncStateWrites();
+    expect(states).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          status: 'running',
+          phase: 'classifying',
+          totalEstimate: 150,
+          processedThisRun: 0,
+        }),
+        expect.objectContaining({
+          phase: 'classifying',
+          processedThisRun: 100,
+        }),
+        expect.objectContaining({
+          phase: 'classifying',
+          processedThisRun: 150,
+        }),
+      ]),
+    );
+    expect(states.at(-1)).toEqual(
+      expect.objectContaining({ status: 'completed', phase: 'bootstrap' }),
+    );
+  });
+
+  it('corta la clasificación al agotar el tope por corrida y la deja agendada', async () => {
+    const { classification, service, syncStateWrites } = makeFixture();
+    let now = Date.parse('2026-11-02T08:00:00.000Z');
+    jest.spyOn(Date, 'now').mockImplementation(() => now);
+    classification.countPendingForUser.mockResolvedValue(500);
+    classification.processPendingForUser.mockImplementation(() => {
+      now += 2 * 60_000;
+      return Promise.resolve({ processed: 100, modelCalls: 0 });
     });
-    expect(deletion.removeEmailData).toHaveBeenCalledWith({ userId: 'user-1' });
+
+    await service.syncConnection('connection-1');
+
+    expect(classification.processPendingForUser).toHaveBeenCalledTimes(1);
+    const lastState = syncStateWrites().at(-1);
+    expect(lastState).toEqual(
+      expect.objectContaining({
+        status: 'scheduled',
+        phase: 'classifying',
+        totalEstimate: 500,
+        processedThisRun: 100,
+      }),
+    );
+    expect(typeof lastState?.nextRunAt).toBe('number');
+  });
+
+  it('cierra el intento aunque falle la clasificación del atraso', async () => {
+    const { classification, prisma, service } = makeFixture();
+    classification.countPendingForUser.mockResolvedValue(10);
+    classification.processPendingForUser.mockRejectedValueOnce(
+      new Error('classification gateway down'),
+    );
+    const warn = jest.spyOn(Logger.prototype, 'warn').mockImplementation();
+
+    await service.syncConnection('connection-1');
+
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining('Gmail classification failed'),
+    );
+    const attemptUpdate = prisma.aiEmailConnection.update.mock.calls
+      .map(([call]) => call.data)
+      .find((updatePayload) => updatePayload.lastAttemptResult === 'SUCCEEDED');
+    expect(attemptUpdate?.lastSyncedAt).toBeInstanceOf(Date);
+  });
+
+  it('marca caída una sincronización running sin avance', async () => {
+    const { prisma, service, syncStateWrites } = makeFixture();
+    const updatedAt = new Date(Date.now() - 20 * 60_000).toISOString();
+    prisma.aiEmailConnection.findMany.mockResolvedValueOnce([
+      {
+        id: 'connection-1',
+        userId: 'user-1',
+        syncState: {
+          status: 'running',
+          phase: 'incremental',
+          attempt: 0,
+          processedThisRun: 3,
+          importedThisRun: 2,
+          startedAt: updatedAt,
+          updatedAt,
+        },
+      },
+    ]);
+
+    await service.markStalledSyncs();
+
+    expect(prisma.aiEmailConnection.update).toHaveBeenCalledWith({
+      where: { id: 'connection-1' },
+      data: expect.objectContaining({
+        lastSyncErrorCode: 'sync_stalled',
+        lastFailureErrorCode: 'sync_stalled',
+        lastFailureErrorCategory: 'temporary',
+        lastFailureImportedCount: 2,
+        lastFailurePhase: 'incremental',
+      }),
+    });
+    expect(syncStateWrites().at(-1)).toEqual(
+      expect.objectContaining({
+        status: 'failed',
+        errorCode: 'sync_stalled',
+        errorCategory: 'temporary',
+      }),
+    );
+  });
+
+  it('no toca el estado de una conexión con una corrida viva', async () => {
+    const { prisma, service } = makeFixture();
+    const updatedAt = new Date(Date.now() - 20 * 60_000).toISOString();
+    prisma.aiEmailConnection.findMany.mockResolvedValueOnce([
+      {
+        id: 'connection-1',
+        userId: 'user-1',
+        syncState: {
+          status: 'running',
+          phase: 'incremental',
+          attempt: 0,
+          processedThisRun: 0,
+          importedThisRun: 0,
+          startedAt: updatedAt,
+          updatedAt,
+        },
+      },
+    ]);
+    service['activeSyncConnections'].add('connection-1');
+
+    try {
+      await service.markStalledSyncs();
+    } finally {
+      service['activeSyncConnections'].delete('connection-1');
+    }
+
+    expect(prisma.aiEmailConnection.update).not.toHaveBeenCalled();
+  });
+
+  it('registra el fallo al listar conexiones sin romper el ciclo', async () => {
+    const { prisma, service } = makeFixture();
+    prisma.aiEmailConnection.findMany.mockRejectedValueOnce(
+      new Error('database down'),
+    );
+    const warn = jest.spyOn(Logger.prototype, 'warn').mockImplementation();
+
+    await expect(service.syncAllActiveConnections()).resolves.toBeUndefined();
+
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining('Unable to list Gmail connections'),
+    );
   });
 });

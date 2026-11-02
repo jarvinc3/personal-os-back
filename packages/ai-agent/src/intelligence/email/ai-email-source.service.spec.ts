@@ -358,4 +358,130 @@ describe('AiEmailSourceService', () => {
     }
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
+
+  it('pide la API de Gmail con un límite de tiempo', async () => {
+    const fetchMock = jest.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: () => Promise.resolve({ messages: [] }),
+    });
+    global.fetch = fetchMock;
+
+    await makeService().gmailApiRequest('token', '/users/me/profile');
+
+    const requestInit = fetchMock.mock.calls[0][1] as RequestInit;
+    expect(requestInit.signal).toBeInstanceOf(AbortSignal);
+  });
+
+  it('reintenta una llamada de Gmail que agota su tiempo', async () => {
+    const timeout = Object.assign(new Error('timed out'), {
+      name: 'TimeoutError',
+    });
+    global.fetch = jest
+      .fn()
+      .mockRejectedValueOnce(timeout)
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve({ messages: [] }),
+      });
+    const states: string[] = [];
+
+    const gmailResponse = await makeService().gmailApiRequest<{
+      messages: unknown[];
+    }>('token', '/users/me/messages', (state) => {
+      states.push(state.status);
+    });
+
+    expect(gmailResponse).toEqual({ messages: [] });
+    expect(states).toEqual(['waiting', 'retrying']);
+  });
+
+  describe('reconexión de Gmail', () => {
+    const encryptionKey = 'a'.repeat(32);
+    const config = {
+      get: jest.fn(
+        (key: string) =>
+          ({
+            AI_GMAIL_CLIENT_ID: 'client-id',
+            AI_GMAIL_CLIENT_SECRET: 'client-secret',
+            AI_GMAIL_REDIRECT_URI: 'http://localhost/callback',
+          })[key],
+      ),
+      getOrThrow: jest.fn().mockReturnValue(encryptionKey),
+    };
+
+    async function reconnect(existing: Record<string, unknown> | null) {
+      const prisma = {
+        aiEmailConnection: {
+          findUnique: jest.fn().mockResolvedValue(existing),
+          upsert: jest.fn().mockResolvedValue({
+            id: 'connection-1',
+            userId: 'user-1',
+            emailAddress: 'qa@example.com',
+          }),
+        },
+      };
+      const oauthResponses = [
+        {
+          access_token: 'access-token',
+          refresh_token: 'refresh-token',
+          expires_in: 3600,
+        },
+        { emailAddress: 'qa@example.com', historyId: '4000' },
+      ];
+      global.fetch = jest.fn().mockImplementation(() =>
+        Promise.resolve({
+          ok: true,
+          status: 200,
+          json: () => Promise.resolve(oauthResponses.shift()),
+        }),
+      );
+      const service = new AiEmailSourceService(
+        prisma as never,
+        config as never,
+      );
+      const state = new URL(
+        service.createAuthorizationUrl('user-1'),
+      ).searchParams.get('state');
+
+      await service.completeAuthorization('code', state ?? '');
+
+      const upsertPayload = prisma.aiEmailConnection.upsert.mock
+        .calls[0][0] as {
+        update: Record<string, unknown>;
+      };
+      return upsertPayload.update;
+    }
+
+    it('conserva el cursor anterior al reconectar la misma cuenta', async () => {
+      const update = await reconnect({
+        refreshTokenEncrypted: encryptToken('old-refresh', encryptionKey),
+        providerCursor: '1000',
+        emailAddress: 'qa@example.com',
+      });
+
+      expect(update).not.toHaveProperty('providerCursor');
+    });
+
+    it('toma el historyId nuevo cuando conecta por primera vez', async () => {
+      const update = await reconnect(null);
+
+      expect(update).toEqual(
+        expect.objectContaining({ providerCursor: '4000' }),
+      );
+    });
+
+    it('toma el historyId nuevo cuando reconecta otra cuenta', async () => {
+      const update = await reconnect({
+        refreshTokenEncrypted: encryptToken('old-refresh', encryptionKey),
+        providerCursor: '1000',
+        emailAddress: 'otra@example.com',
+      });
+
+      expect(update).toEqual(
+        expect.objectContaining({ providerCursor: '4000' }),
+      );
+    });
+  });
 });

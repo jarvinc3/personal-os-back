@@ -17,6 +17,8 @@ const GMAIL_API = 'https://gmail.googleapis.com/gmail/v1';
 const GMAIL_API_MAX_RETRIES = 3;
 const GMAIL_API_BASE_RETRY_MS = 1_000;
 const GMAIL_API_RATE_LIMIT_RETRY_MS = 5_000;
+const GMAIL_API_TIMEOUT_MS = 30_000;
+const GMAIL_TOKEN_TIMEOUT_MS = 15_000;
 const GMAIL_SCOPES = [
   'https://www.googleapis.com/auth/gmail.readonly',
   'https://www.googleapis.com/auth/userinfo.email',
@@ -32,6 +34,19 @@ type OAuthTokenResponse = {
 };
 
 type GmailProfile = { emailAddress: string; historyId?: string };
+
+type RetryStateListener = (state: {
+  status: 'waiting' | 'retrying';
+  retryAt?: number;
+  attempt: number;
+  errorCategory: 'rate_limit' | 'temporary';
+}) => void | Promise<void>;
+
+/** `AbortSignal.timeout()` rechaza con un `DOMException` que no hereda de `Error`. */
+function isTimeoutError(error: unknown): boolean {
+  const name = (error as { name?: unknown } | null)?.name;
+  return name === 'TimeoutError' || name === 'AbortError';
+}
 
 type AttemptFields = {
   lastAttemptStartedAt: Date | null;
@@ -312,6 +327,7 @@ export class AiEmailSourceService {
         redirect_uri: redirectUri,
         grant_type: 'authorization_code',
       }),
+      signal: AbortSignal.timeout(GMAIL_TOKEN_TIMEOUT_MS),
     });
     const token = (await tokenResponse.json()) as OAuthTokenResponse;
     if (!tokenResponse.ok || !token.access_token) {
@@ -329,7 +345,11 @@ export class AiEmailSourceService {
     );
     const existing = await this.prisma.aiEmailConnection.findUnique({
       where: { userId },
-      select: { refreshTokenEncrypted: true },
+      select: {
+        refreshTokenEncrypted: true,
+        providerCursor: true,
+        emailAddress: true,
+      },
     });
     const encryptionKey = this.config.getOrThrow(
       'AI_GMAIL_TOKEN_ENCRYPTION_KEY',
@@ -349,6 +369,14 @@ export class AiEmailSourceService {
     const expiresAt = token.expires_in
       ? new Date(Date.now() + token.expires_in * 1000)
       : null;
+    // Reconectar no puede saltarse el correo del periodo desconectado: se
+    // conserva el cursor anterior y la próxima sincronización lee la historia
+    // desde ahí; si Google ya no la tiene, cae en la ventana de recuperación
+    // desde `lastSyncedAt`. El `historyId` nuevo solo se toma al conectar por
+    // primera vez o una cuenta distinta.
+    const keepsPreviousCursor =
+      Boolean(existing?.providerCursor) &&
+      existing?.emailAddress === profile.emailAddress;
     const connection = await this.prisma.aiEmailConnection.upsert({
       where: { userId },
       create: {
@@ -365,7 +393,7 @@ export class AiEmailSourceService {
         accessTokenEncrypted: encryptToken(token.access_token, encryptionKey),
         refreshTokenEncrypted,
         tokenExpiresAt: expiresAt,
-        providerCursor: profile.historyId,
+        ...(keepsPreviousCursor ? {} : { providerCursor: profile.historyId }),
         lastSyncErrorCode: null,
         reconnectRequiredAt: null,
       },
@@ -426,6 +454,7 @@ export class AiEmailSourceService {
         refresh_token: refreshToken,
         grant_type: 'refresh_token',
       }),
+      signal: AbortSignal.timeout(GMAIL_TOKEN_TIMEOUT_MS),
     });
     const token = (await response.json()) as OAuthTokenResponse;
     if (!response.ok || !token.access_token) {
@@ -461,17 +490,34 @@ export class AiEmailSourceService {
   async gmailApiRequest<T>(
     accessToken: string,
     path: string,
-    onRetryState?: (state: {
-      status: 'waiting' | 'retrying';
-      retryAt?: number;
-      attempt: number;
-      errorCategory: 'rate_limit' | 'temporary';
-    }) => void | Promise<void>,
+    onRetryState?: RetryStateListener,
   ): Promise<T> {
     for (let attempt = 0; ; attempt += 1) {
-      const response = await fetch(`${GMAIL_API}${path}`, {
-        headers: { authorization: `Bearer ${accessToken}` },
-      });
+      let response: Response;
+      try {
+        response = await fetch(`${GMAIL_API}${path}`, {
+          headers: { authorization: `Bearer ${accessToken}` },
+          signal: AbortSignal.timeout(GMAIL_API_TIMEOUT_MS),
+        });
+      } catch (error) {
+        if (!isTimeoutError(error)) {
+          throw error;
+        }
+        if (attempt >= GMAIL_API_MAX_RETRIES) {
+          throw new BadRequestException({
+            code: 'gmail_api_request_failed',
+            providerCode: 'timeout',
+            diagnostic: this.oauthDiagnostic('timeout'),
+          });
+        }
+        await this.waitBeforeRetry({
+          onRetryState,
+          attempt,
+          delayMs: GMAIL_API_BASE_RETRY_MS * 2 ** attempt,
+          errorCategory: 'temporary',
+        });
+        continue;
+      }
       const body = (await response.json().catch(() => ({}))) as {
         error?: {
           code?: number;
@@ -509,16 +555,10 @@ export class AiEmailSourceService {
               ? GMAIL_API_RATE_LIMIT_RETRY_MS
               : GMAIL_API_BASE_RETRY_MS) *
             2 ** attempt;
-        await onRetryState?.({
-          status: 'waiting',
-          retryAt: Date.now() + retryDelay,
-          attempt: attempt + 1,
-          errorCategory: isRateLimit ? 'rate_limit' : 'temporary',
-        });
-        await new Promise((resolve) => setTimeout(resolve, retryDelay));
-        await onRetryState?.({
-          status: 'retrying',
-          attempt: attempt + 1,
+        await this.waitBeforeRetry({
+          onRetryState,
+          attempt,
+          delayMs: retryDelay,
           errorCategory: isRateLimit ? 'rate_limit' : 'temporary',
         });
         continue;
@@ -529,6 +569,31 @@ export class AiEmailSourceService {
         diagnostic: this.oauthDiagnostic(providerCode),
       });
     }
+  }
+
+  private async waitBeforeRetry({
+    onRetryState,
+    attempt,
+    delayMs,
+    errorCategory,
+  }: {
+    onRetryState?: RetryStateListener;
+    attempt: number;
+    delayMs: number;
+    errorCategory: 'rate_limit' | 'temporary';
+  }): Promise<void> {
+    await onRetryState?.({
+      status: 'waiting',
+      retryAt: Date.now() + delayMs,
+      attempt: attempt + 1,
+      errorCategory,
+    });
+    await new Promise((resolve) => setTimeout(resolve, delayMs));
+    await onRetryState?.({
+      status: 'retrying',
+      attempt: attempt + 1,
+      errorCategory,
+    });
   }
 
   private isRetryableGmailError(status: number, providerCode: string) {
@@ -620,6 +685,8 @@ export class AiEmailSourceService {
       insufficientPermissions: 'La autorización no incluye gmail.readonly.',
       missing_configuration:
         'Falta AI_GMAIL_CLIENT_ID, AI_GMAIL_CLIENT_SECRET o AI_GMAIL_REDIRECT_URI.',
+      timeout:
+        'Google no respondió dentro del tiempo límite; se reintenta en la próxima corrida.',
     };
     return (
       diagnostics[providerCode] ?? 'Revisa la configuración OAuth de Gmail.'

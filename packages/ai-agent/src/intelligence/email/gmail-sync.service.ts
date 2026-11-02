@@ -25,11 +25,14 @@ const GMAIL_MESSAGE_FETCH_CONCURRENCY = 3;
 const GMAIL_RATE_LIMIT_COOLDOWN_MS = 60_000;
 const GMAIL_NOT_CONNECTED = 'GMAIL_NOT_CONNECTED';
 const GMAIL_SYNC_IN_PROGRESS = 'GMAIL_SYNC_IN_PROGRESS';
+const SYNC_STALLED_ERROR_CODE = 'sync_stalled';
+const CLASSIFICATION_FAILED_ERROR_CODE = 'classification_failed';
+const SYNC_WATCHDOG_INTERVAL_MS = 60_000;
 
 type GmailSyncProgress = {
   status:
     'running' | 'waiting' | 'retrying' | 'scheduled' | 'completed' | 'failed';
-  phase: 'bootstrap' | 'incremental' | 'recovery';
+  phase: 'bootstrap' | 'incremental' | 'recovery' | 'classifying';
   attempt: number;
   rateLimitRetryCount?: number;
   processedThisRun: number;
@@ -88,6 +91,8 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
   private readonly syncProgress = new Map<string, GmailSyncProgress>();
   private readonly syncStateWrites = new Map<string, Promise<void>>();
   private readonly rateLimitRetryTimers = new Map<string, NodeJS.Timeout>();
+  private watchdogTimer?: NodeJS.Timeout;
+  private watchdogRunning = false;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -118,15 +123,33 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
       infer: true,
     });
     this.timer = setInterval(
-      () => void this.syncAllActiveConnections(),
+      () =>
+        void this.syncAllActiveConnections().catch((error: unknown) => {
+          this.logger.warn(
+            `Gmail sync cycle failed: ${this.safeErrorCode(error)}`,
+          );
+        }),
       intervalMinutes * 60_000,
     );
     this.timer.unref();
+    this.watchdogTimer = setInterval(
+      () =>
+        void this.markStalledSyncs().catch((error: unknown) => {
+          this.logger.warn(
+            `Gmail sync watchdog failed: ${this.safeErrorCode(error)}`,
+          );
+        }),
+      SYNC_WATCHDOG_INTERVAL_MS,
+    );
+    this.watchdogTimer.unref();
   }
 
   onModuleDestroy(): void {
     if (this.timer) {
       clearInterval(this.timer);
+    }
+    if (this.watchdogTimer) {
+      clearInterval(this.watchdogTimer);
     }
     for (const retryTimer of this.rateLimitRetryTimers.values()) {
       clearTimeout(retryTimer);
@@ -232,11 +255,7 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
     }
     this.running = true;
     try {
-      const connections = await this.prisma.aiEmailConnection.findMany({
-        where: { isActive: true, reconnectRequiredAt: null },
-        select: { id: true },
-        orderBy: { createdAt: 'asc' },
-      });
+      const connections = await this.listSyncableConnections();
       for (const connection of connections) {
         try {
           await this.syncConnection(connection.id);
@@ -248,6 +267,80 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
       }
     } finally {
       this.running = false;
+    }
+  }
+
+  /**
+   * Libera conexiones que quedaron en `running` sin avance. Solo actúa cuando
+   * ninguna corrida de este proceso tiene la conexión tomada: las llamadas
+   * colgadas de una corrida viva las cortan los timeouts de fetch.
+   */
+  async markStalledSyncs(): Promise<void> {
+    if (this.watchdogRunning) {
+      return;
+    }
+    this.watchdogRunning = true;
+    try {
+      const stallMs =
+        this.config.get('AI_EMAIL_SYNC_STALL_MINUTES', { infer: true }) *
+        60_000;
+      const connections = await this.prisma.aiEmailConnection.findMany({
+        where: { isActive: true },
+        select: { id: true, userId: true, syncState: true },
+      });
+      const now = Date.now();
+      for (const connection of connections) {
+        if (this.activeSyncConnections.has(connection.id)) {
+          continue;
+        }
+        const state = connection.syncState as GmailSyncProgress | null;
+        if (state?.status !== 'running') {
+          continue;
+        }
+        const updatedAt = Date.parse(state.updatedAt);
+        if (!Number.isFinite(updatedAt) || now - updatedAt < stallMs) {
+          continue;
+        }
+        this.syncProgress.set(connection.id, state);
+        await this.updateSyncProgress(connection.id, connection.userId, {
+          status: 'failed',
+          errorCode: SYNC_STALLED_ERROR_CODE,
+          errorCategory: 'temporary',
+          retryAt: undefined,
+          nextRunAt: undefined,
+        });
+        await this.prisma.aiEmailConnection.update({
+          where: { id: connection.id },
+          data: {
+            lastSyncErrorCode: SYNC_STALLED_ERROR_CODE,
+            lastFailureAt: new Date(now),
+            lastFailureErrorCode: SYNC_STALLED_ERROR_CODE,
+            lastFailureErrorCategory: 'temporary',
+            lastFailureImportedCount: state.importedThisRun ?? 0,
+            lastFailurePhase: state.phase,
+          },
+        });
+        this.logger.warn(
+          `Gmail sync stalled for connection ${connection.id}; marked as failed`,
+        );
+      }
+    } finally {
+      this.watchdogRunning = false;
+    }
+  }
+
+  private async listSyncableConnections(): Promise<Array<{ id: string }>> {
+    try {
+      return await this.prisma.aiEmailConnection.findMany({
+        where: { isActive: true, reconnectRequiredAt: null },
+        select: { id: true },
+        orderBy: { createdAt: 'asc' },
+      });
+    } catch (error) {
+      this.logger.warn(
+        `Unable to list Gmail connections: ${this.safeErrorCode(error)}`,
+      );
+      return [];
     }
   }
 
@@ -365,9 +458,14 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
       const result = connection.initialSyncCompletedAt
         ? await this.syncIncremental(connection, accessToken)
         : await this.bootstrapPage(connection, accessToken);
-      await this.classification.processPendingForUser(connection.userId);
+      // El intento y su fase describen la sincronización; el atraso de
+      // clasificación corre después, con su propio estado y su propio tope.
+      const syncPhase = this.syncProgress.get(connection.id)?.phase ?? phase;
+      const classification = await this.classifyPendingBacklog({
+        connectionId: connection.id,
+        userId: connection.userId,
+      });
       const attemptFinishedAt = new Date();
-      const attemptPhase = this.syncProgress.get(connection.id)?.phase ?? phase;
       await this.prisma.aiEmailConnection.update({
         where: { id: connectionId },
         data: {
@@ -380,20 +478,21 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
           lastAttemptErrorCode: null,
           lastAttemptErrorCategory: null,
           lastAttemptImportedCount: result.imported,
-          lastAttemptPhase: attemptPhase,
+          lastAttemptPhase: syncPhase,
         },
       });
       const intervalMinutes = this.config.get(
         'AI_EMAIL_SYNC_INTERVAL_MINUTES',
         { infer: true },
       );
+      const backlogRemaining = classification.remaining > 0;
+      const finished = result.bootstrapComplete && !backlogRemaining;
       await this.updateSyncProgress(connection.id, connection.userId, {
-        status: result.bootstrapComplete ? 'completed' : 'scheduled',
-        phase: this.syncProgress.get(connection.id)?.phase ?? phase,
+        status: finished ? 'completed' : 'scheduled',
+        phase: backlogRemaining ? 'classifying' : syncPhase,
+        errorCode: classification.errorCode,
         rateLimitRetryCount: 0,
-        nextRunAt: result.bootstrapComplete
-          ? undefined
-          : Date.now() + intervalMinutes * 60_000,
+        nextRunAt: finished ? undefined : Date.now() + intervalMinutes * 60_000,
         retryAt: undefined,
         recoveryRange: undefined,
       });
@@ -647,6 +746,65 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
     );
     retryTimer.unref();
     this.rateLimitRetryTimers.set(connectionId, retryTimer);
+  }
+
+  /**
+   * Clasifica el atraso en lotes y escribe la fase `classifying` con su avance.
+   * Corta al agotar el tope por corrida para no retener el ciclo de sync: lo
+   * que falte queda pendiente y sigue en la próxima corrida.
+   */
+  private async classifyPendingBacklog({
+    connectionId,
+    userId,
+  }: {
+    connectionId: string;
+    userId: string;
+  }): Promise<{
+    processed: number;
+    remaining: number;
+    errorCode?: string;
+  }> {
+    const pending = await this.classification.countPendingForUser(userId);
+    if (pending === 0) {
+      return { processed: 0, remaining: 0 };
+    }
+    const budgetMinutes = this.config.get(
+      'AI_EMAIL_CLASSIFICATION_BUDGET_MINUTES',
+      { infer: true },
+    );
+    const deadline = Date.now() + budgetMinutes * 60_000;
+    await this.updateSyncProgress(connectionId, userId, {
+      status: 'running',
+      phase: 'classifying',
+      totalEstimate: pending,
+      processedThisRun: 0,
+    });
+    let processed = 0;
+    try {
+      while (processed < pending && Date.now() < deadline) {
+        const batch = await this.classification.processPendingForUser(userId);
+        if (batch.processed === 0) {
+          break;
+        }
+        processed += batch.processed;
+        await this.updateSyncProgress(
+          connectionId,
+          userId,
+          { phase: 'classifying' },
+          { processed: batch.processed, imported: 0 },
+        );
+      }
+    } catch (error) {
+      this.logger.warn(
+        `Gmail classification failed for connection ${connectionId}: ${this.safeErrorCode(error)}`,
+      );
+      return {
+        processed,
+        remaining: Math.max(0, pending - processed),
+        errorCode: CLASSIFICATION_FAILED_ERROR_CODE,
+      };
+    }
+    return { processed, remaining: Math.max(0, pending - processed) };
   }
 
   private async bootstrapPage(

@@ -74,6 +74,8 @@ describe('envSchema AI limits', () => {
     expect(parsed.MAX_EMAIL_LLM_EXTRACTS).toBe(25);
     expect(parsed.AI_EMAIL_DAILY_MODEL_BUDGET).toBe(100);
     expect(parsed.AI_DAILY_INSIGHT_QUOTA).toBe(20);
+    expect(parsed.AI_EMAIL_CLASSIFICATION_BUDGET_MINUTES).toBe(5);
+    expect(parsed.AI_EMAIL_SYNC_STALL_MINUTES).toBe(15);
   });
 
   it('parses numeric strings', () => {
@@ -82,11 +84,15 @@ describe('envSchema AI limits', () => {
       MAX_EMAIL_LLM_EXTRACTS: '10',
       AI_EMAIL_DAILY_MODEL_BUDGET: '40',
       AI_DAILY_INSIGHT_QUOTA: '5',
+      AI_EMAIL_CLASSIFICATION_BUDGET_MINUTES: '3',
+      AI_EMAIL_SYNC_STALL_MINUTES: '20',
     });
 
     expect(parsed.MAX_EMAIL_LLM_EXTRACTS).toBe(10);
     expect(parsed.AI_EMAIL_DAILY_MODEL_BUDGET).toBe(40);
     expect(parsed.AI_DAILY_INSIGHT_QUOTA).toBe(5);
+    expect(parsed.AI_EMAIL_CLASSIFICATION_BUDGET_MINUTES).toBe(3);
+    expect(parsed.AI_EMAIL_SYNC_STALL_MINUTES).toBe(20);
   });
 
   it('rejects non-positive limits', () => {
