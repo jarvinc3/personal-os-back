@@ -133,7 +133,14 @@ jobs:
     env:
       PG_CONTAINER: pos-ci-pg-${{ github.run_id }}-${{ github.run_attempt }}
     steps:
+      # El runner es dedicado: conserva node_modules entre corridas para evitar
+      # ~7 minutos de hardlinks en Windows; el resto se limpia.
       - uses: actions/checkout@v4
+        with:
+          clean: false
+
+      - name: Limpiar el workspace salvo node_modules
+        run: git clean -fdx -e node_modules
 
       - uses: pnpm/action-setup@v4
         with:
