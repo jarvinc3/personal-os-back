@@ -6,6 +6,8 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [Se
 
 ### Agregado
 
+- AI-7 (#210): publica señales financieras de correo con evidencia, deduplicación por mensaje y entrega durable a BullMQ; una señal agrupa el candidato de cada correo.
+
 - AI-6 (#209): filtra la revisión por incertidumbre y evalúa métricas de transacciones sobre una membresía HOLDOUT congelada; compara runs compatibles con deltas, y cada reejecución crea un run sin escribir observaciones ni alterar Knowledge.
 
 - AI-5 (#208): clasifica correos con conocimiento USER/GLOBAL, parser determinista y respaldo de inferencia validada; registra observaciones por ruta, envía resultados inciertos a revisión y muestra método, conocimiento y proveedor/modelo en el detalle. La ruta no crea movimientos financieros.

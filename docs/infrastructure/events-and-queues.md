@@ -18,6 +18,8 @@ Catálogo: [`packages/core/src/events/event.constants.ts`](../../packages/core/s
 
 Patrón Finance: persistir outbox en la misma TX → `FinanceOutboxDispatcher` (cron `EVERY_30_SECONDS` + wake) → `EventEmitter2` → listeners con `DomainEventIdempotencyGuard` (`ProcessedDomainEvent`).
 
+AI-7 escribe `ai.signal.routed` en el mismo commit que `AiSignal` y su evidencia. El listener `AiSignalOutboxBridge` entrega a `ai-signal-routing` con un `jobId` estable; si Redis/cola no está configurado o falla el enqueue, propaga el error para que el relay reintente el outbox.
+
 No es event sourcing: el outbox es durabilidad de entrega.
 
 ## Recuperación y atomicidad de entrega

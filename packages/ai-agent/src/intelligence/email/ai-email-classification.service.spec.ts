@@ -33,6 +33,11 @@ function fixture(
     aiEmailClassification: {
       createMany: jest.fn().mockResolvedValue({ count: 1 }),
     },
+    aiSignal: { createMany: jest.fn().mockResolvedValue({ count: 1 }) },
+    aiSignalEvidence: { createMany: jest.fn().mockResolvedValue({ count: 1 }) },
+    domainEventOutbox: {
+      createMany: jest.fn().mockResolvedValue({ count: 1 }),
+    },
   };
   const prisma = {
     aiEmailMessage: {
@@ -40,6 +45,8 @@ function fixture(
       updateMany: jest.fn().mockResolvedValue({ count: 1 }),
       findFirst: jest.fn().mockResolvedValue({
         id: 'message-1',
+        receivedAt: new Date('2026-10-01T12:00:00Z'),
+        providerThreadId: 'thread-1',
         fromAddress: 'notice@example.com',
         subject: 'Notice',
         templateFingerprint: 'template-1',
@@ -151,6 +158,39 @@ describe('AiEmailClassificationService', () => {
             model: 'test-model',
           }),
         ]),
+      }),
+    );
+    expect(prisma).not.toHaveProperty('financeTransaction');
+  });
+
+  it('publishes one idempotent signal with evidence and outbox event per email candidate', async () => {
+    const { service, prisma } = fixture();
+    await service.processPendingForUser('user-1');
+    expect(prisma.aiSignal.createMany).toHaveBeenCalledWith({
+      data: [
+        expect.objectContaining({
+          id: 'email-message-1',
+          userId: 'user-1',
+          sourceId: 'message-1',
+          correlationKey: 'user-1:email:message-1',
+          status: 'ROUTED',
+          payload: expect.objectContaining({
+            routes: ['FINANCE', 'SUBSCRIPTIONS'],
+          }),
+        }),
+      ],
+      skipDuplicates: true,
+    });
+    expect(prisma.aiSignalEvidence.createMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: [expect.objectContaining({ signalId: 'email-message-1' })],
+        skipDuplicates: true,
+      }),
+    );
+    expect(prisma.domainEventOutbox.createMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: [expect.objectContaining({ eventName: 'ai.signal.routed' })],
+        skipDuplicates: true,
       }),
     );
     expect(prisma).not.toHaveProperty('financeTransaction');

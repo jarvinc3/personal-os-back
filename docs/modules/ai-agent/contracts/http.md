@@ -274,3 +274,10 @@ Qué hace en una sola operación:
 
 - `GET /api/intelligence/runs` (array, máximo 50, más reciente primero) añade `consentRevision` (string), `reproductionStatus` (`COMPLETE` o `INCOMPLETE`) y `missingEvidence` (`{ observations, humanVerifications }`). Un run pasa a `INCOMPLETE` cuando se retiró evidencia que cubría su corte; no participa en comparaciones de evidencia equivalente.
 - `POST /api/intelligence/email/reset` mantiene `{ "confirmed": true }` y responde `{ connected: true, deletedMessages }` cuando existe la conexión. Anonimiza verificaciones y observaciones antes de vaciar el corpus, conserva la conexión OAuth y reconstruye `GLOBAL`. Devuelve 409 `GMAIL_NOT_CONNECTED` sin conexión y 409 `GMAIL_SYNC_IN_PROGRESS` con un sync activo o esperando cuota.
+
+# Señales de inteligencia (AI-7)
+
+- `GET /api/intelligence/signals`: devuelve las últimas 50 señales del usuario autenticado, cada una con su evidencia.
+- `GET /api/intelligence/signals/:signalId`: devuelve una señal propia con evidencia; responde `404` si no existe o pertenece a otro usuario.
+
+La respuesta contiene `type`, `domain`, `status`, `sourceType`, `sourceId`, `payload`, `correlationKey`, `occurredAt`, `detectedAt`, `confidence` y `evidence`. Las señales de correo llevan el candidato clasificado como payload y un enlace a `EMAIL_CLASSIFICATION`; no crean movimientos ni llaman a Finance. La evidencia no incluye el cuerpo del correo.
