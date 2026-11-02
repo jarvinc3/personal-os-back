@@ -6,6 +6,8 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [Se
 
 ### Agregado
 
+- AI-5 (#208): clasifica correos con conocimiento USER/GLOBAL, parser determinista y respaldo de inferencia validada; registra observaciones por ruta, envía resultados inciertos a revisión y muestra método, conocimiento y proveedor/modelo en el detalle. La ruta no crea movimientos financieros.
+
 - Los grupos de revisión devuelven el id de cada correo de muestra en `sampleMessageIds`, en el mismo orden que `sampleSubjects`, para abrir su detalle desde la vista de grupos (#279).
 - #219: la cola de revisión busca por asunto y remitente, filtra por rango de días y estado (`PENDING`, `CONFIRMED`, `CORRECTED`, `REJECTED`), ordena por fecha en ambos sentidos y devuelve la última verificación de cada correo con sus etiquetas, nota y fecha; los filtros se combinan con la partición y el cursor, y un filtro inválido responde 400.
 - #218: la revisión agrupa los correos por remitente y plantilla con total, pendientes, pendientes HOLDOUT y asuntos de muestra; un lote `CONFIRMED` o `CORRECTED` verifica solo los pendientes fuera de HOLDOUT, es idempotente y conserva rol y secuencia por correo.

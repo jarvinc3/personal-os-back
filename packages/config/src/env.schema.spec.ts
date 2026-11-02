@@ -68,10 +68,11 @@ describe('envSchema Bull Board credentials', () => {
 });
 
 describe('envSchema AI limits', () => {
-  it('defaults both limits when omitted', () => {
+  it('defaults the AI limits when omitted', () => {
     const parsed = parseEnv(validBaseEnv);
 
     expect(parsed.MAX_EMAIL_LLM_EXTRACTS).toBe(25);
+    expect(parsed.AI_EMAIL_DAILY_MODEL_BUDGET).toBe(100);
     expect(parsed.AI_DAILY_INSIGHT_QUOTA).toBe(20);
   });
 
@@ -79,10 +80,12 @@ describe('envSchema AI limits', () => {
     const parsed = parseEnv({
       ...validBaseEnv,
       MAX_EMAIL_LLM_EXTRACTS: '10',
+      AI_EMAIL_DAILY_MODEL_BUDGET: '40',
       AI_DAILY_INSIGHT_QUOTA: '5',
     });
 
     expect(parsed.MAX_EMAIL_LLM_EXTRACTS).toBe(10);
+    expect(parsed.AI_EMAIL_DAILY_MODEL_BUDGET).toBe(40);
     expect(parsed.AI_DAILY_INSIGHT_QUOTA).toBe(5);
   });
 
@@ -90,16 +93,21 @@ describe('envSchema AI limits', () => {
     expect(() =>
       parseEnv({ ...validBaseEnv, MAX_EMAIL_LLM_EXTRACTS: '0' }),
     ).toThrow();
+    expect(() =>
+      parseEnv({ ...validBaseEnv, AI_EMAIL_DAILY_MODEL_BUDGET: '0' }),
+    ).toThrow();
   });
 
   it('treats blank limits as the default, matching ai-limits', () => {
     const parsed = parseEnv({
       ...validBaseEnv,
       MAX_EMAIL_LLM_EXTRACTS: '',
+      AI_EMAIL_DAILY_MODEL_BUDGET: ' ',
       AI_DAILY_INSIGHT_QUOTA: '   ',
     });
 
     expect(parsed.MAX_EMAIL_LLM_EXTRACTS).toBe(25);
+    expect(parsed.AI_EMAIL_DAILY_MODEL_BUDGET).toBe(100);
     expect(parsed.AI_DAILY_INSIGHT_QUOTA).toBe(20);
   });
 });

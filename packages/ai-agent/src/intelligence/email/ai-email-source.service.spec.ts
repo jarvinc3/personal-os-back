@@ -15,6 +15,45 @@ describe('AiEmailSourceService', () => {
     jest.restoreAllMocks();
   });
 
+  it('includes scoped route classifications in the message detail', async () => {
+    const classification = {
+      route: 'FINANCE',
+      relevance: true,
+      semanticType: 'FIN_TRANSACTION',
+      confidence: 0.9,
+      decisionPath: 'MODEL',
+      knowledgeUsed: [],
+      provider: 'groq',
+      model: 'test-model',
+    };
+    const prisma = {
+      aiEmailMessage: {
+        findFirst: jest.fn().mockResolvedValue({
+          id: 'message-1',
+          userId: 'user-1',
+          classifications: [classification],
+        }),
+      },
+      aiKnowledgeObservation: { findMany: jest.fn().mockResolvedValue([]) },
+      aiHumanVerification: { findMany: jest.fn().mockResolvedValue([]) },
+    };
+
+    const result = await new AiEmailSourceService(
+      prisma as never,
+      {} as never,
+    ).getMessage('user-1', 'message-1');
+
+    expect(prisma.aiEmailMessage.findFirst).toHaveBeenCalledWith({
+      where: { id: 'message-1', userId: 'user-1' },
+      include: {
+        content: true,
+        classifications: { orderBy: { route: 'asc' } },
+      },
+    });
+    expect(result.classifications).toEqual([classification]);
+    expect(result.provenance.observations).toEqual([]);
+  });
+
   it.each([
     {
       status: 500,

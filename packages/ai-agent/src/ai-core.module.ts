@@ -24,6 +24,7 @@ import { AiEvidenceService } from './intelligence/evidence/ai-evidence.service';
 import { AiKnowledgeService } from './intelligence/knowledge/ai-knowledge.service';
 import { AiDataDeletionService } from './intelligence/knowledge/ai-data-deletion.service';
 import { AiKnowledgeController } from './intelligence/knowledge/ai-knowledge.controller';
+import { AiEmailClassificationService } from './intelligence/email/ai-email-classification.service';
 
 /**
  * Provider kernel with no Finance/Notifications imports.
@@ -45,6 +46,7 @@ import { AiKnowledgeController } from './intelligence/knowledge/ai-knowledge.con
     AiConsentService,
     AiEmailSourceService,
     AiEmailRetentionScheduler,
+    AiEmailClassificationService,
     GmailSyncService,
     AiEvidenceService,
     AiKnowledgeService,

@@ -1,4 +1,4 @@
-# Email Intelligence (AI-2)
+# Email Intelligence (AI-2, AI-5)
 
 `/api/intelligence` exposes the Gmail source and its imported messages to the authenticated account. OAuth requests Gmail read-only scope; signed state binds the callback to the initiating user. Access and refresh tokens are encrypted with the dedicated `AI_GMAIL_TOKEN_ENCRYPTION_KEY`.
 
@@ -26,5 +26,13 @@ Endpoints:
 - `GET /api/ai/admin/roles` and `PATCH /api/ai/admin/roles/:userId`: ADMIN-only role management.
 
 Raw message bodies are purged 30 days after ingestion in DEV and 7 days after ingestion in PROD; canonical and sanitized representations remain available for this phase. New tables enable RLS and revoke `PUBLIC`, `anon`, and `authenticated` access where those roles exist. The backend accesses them through Prisma.
+
+## Clasificación (AI-5)
+
+After each successful Gmail sync, the classifier takes a bounded batch of pending messages and processes them under their owning user. Stable knowledge lookup checks USER sender/domain/template entries first and falls back to GLOBAL structural knowledge. A known template is parsed deterministically; an irrelevant known label avoids a model call except for a deterministic 1/100 recall-audit sample, limited to consenting ADMIN accounts. Every model proposal is validated again against the closed semantic and route schemas before it is stored.
+
+The pipeline stores one `AiEmailClassification` and one `EMAIL_CLASSIFICATION` observation for each independent route in the message's `ANALYZE_ONLY` run. When there are no routes, a `NONE` classification row and a `null` route observation preserve the proposal. Low confidence and audit samples become `REVIEW_REQUIRED`. `AI_EMAIL_DAILY_MODEL_BUDGET` caps gateway calls per user and UTC day (default 100); exhausted messages stay `QUEUED`, and later scheduled sync cycles resume them after the budget resets. The budget table is updated atomically per user. Classification records are evidence only: they never create or import Finance movements. Email contents are untrusted data and cannot change system instructions.
+
+`GET /api/intelligence/messages/:messageId` exposes classification rows with route, labels, confidence, decision path, knowledge used, provider and model, alongside append-only provenance observations. Each read is scoped to the authenticated user. The web detail panel shows each proposed route and its inference provenance; it states no financial movement is created.
 
 Configure `AI_GMAIL_CLIENT_ID`, `AI_GMAIL_CLIENT_SECRET`, `AI_GMAIL_REDIRECT_URI`, and the dedicated 32-character `AI_GMAIL_TOKEN_ENCRYPTION_KEY` in DEV. Set `AI_DEV_ADMIN_EMAIL` to seed the development administrator. This configuration is not applied to production as part of AI-2.

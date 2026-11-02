@@ -15,6 +15,7 @@ import { createHash } from 'node:crypto';
 import { AiEmailSourceService } from './ai-email-source.service';
 import { requiresGmailReconnect } from './gmail-reconnect.util';
 import { AiDataDeletionService } from '../knowledge/ai-data-deletion.service';
+import { AiEmailClassificationService } from './ai-email-classification.service';
 
 const BOOTSTRAP_START = Math.floor(Date.UTC(2026, 0, 1) / 1000);
 const RECOVERY_WINDOW_MS = 7 * 86400_000;
@@ -94,6 +95,7 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
     private readonly config: ConfigService<Env, true>,
     private readonly eventEmitter: EventEmitter2,
     private readonly deletion: AiDataDeletionService,
+    private readonly classification: AiEmailClassificationService,
   ) {}
 
   onModuleInit(): void {
@@ -363,6 +365,7 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
       const result = connection.initialSyncCompletedAt
         ? await this.syncIncremental(connection, accessToken)
         : await this.bootstrapPage(connection, accessToken);
+      await this.classification.processPendingForUser(connection.userId);
       const attemptFinishedAt = new Date();
       const attemptPhase = this.syncProgress.get(connection.id)?.phase ?? phase;
       await this.prisma.aiEmailConnection.update({
@@ -1012,6 +1015,7 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
           subject,
           contentFingerprint: fingerprint,
           templateFingerprint,
+          processingStatus: 'QUEUED',
           content: {
             create: {
               rawBody,
