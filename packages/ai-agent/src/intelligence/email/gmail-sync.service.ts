@@ -780,6 +780,7 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
       processedThisRun: 0,
     });
     let processed = 0;
+    let errorCode: string | undefined;
     try {
       while (processed < pending && Date.now() < deadline) {
         const batch = await this.classification.processPendingForUser(userId);
@@ -798,13 +799,13 @@ export class GmailSyncService implements OnModuleInit, OnModuleDestroy {
       this.logger.warn(
         `Gmail classification failed for connection ${connectionId}: ${this.safeErrorCode(error)}`,
       );
-      return {
-        processed,
-        remaining: Math.max(0, pending - processed),
-        errorCode: CLASSIFICATION_FAILED_ERROR_CODE,
-      };
+      errorCode = CLASSIFICATION_FAILED_ERROR_CODE;
     }
-    return { processed, remaining: Math.max(0, pending - processed) };
+    return {
+      processed,
+      remaining: Math.max(0, pending - processed),
+      errorCode,
+    };
   }
 
   private async bootstrapPage(

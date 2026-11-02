@@ -397,6 +397,47 @@ describe('AiEmailSourceService', () => {
     expect(states).toEqual(['waiting', 'retrying']);
   });
 
+  it('convierte un timeout del token en un fallo temporal con su código', async () => {
+    const encryptionKey = 'a'.repeat(32);
+    const prisma = {
+      aiEmailConnection: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: 'connection-1',
+          isActive: true,
+          accessTokenEncrypted: 'expired-access',
+          refreshTokenEncrypted: encryptToken('refresh-token', encryptionKey),
+          tokenExpiresAt: new Date('2026-10-01T00:00:00.000Z'),
+        }),
+        update: jest.fn().mockResolvedValue({}),
+      },
+    };
+    const config = {
+      get: jest.fn(
+        (key: string) =>
+          ({
+            AI_GMAIL_CLIENT_ID: 'client-id',
+            AI_GMAIL_CLIENT_SECRET: 'client-secret',
+            AI_GMAIL_REDIRECT_URI: 'http://localhost/callback',
+          })[key],
+      ),
+      getOrThrow: jest.fn().mockReturnValue(encryptionKey),
+    };
+    global.fetch = jest
+      .fn()
+      .mockRejectedValue(
+        Object.assign(new Error('timed out'), { name: 'TimeoutError' }),
+      );
+    const service = new AiEmailSourceService(prisma as never, config as never);
+
+    await expect(service.getAccessToken('connection-1')).rejects.toMatchObject({
+      response: expect.objectContaining({
+        code: 'gmail_token_timeout',
+        providerCode: 'timeout',
+      }),
+    });
+    expect(prisma.aiEmailConnection.update).not.toHaveBeenCalled();
+  });
+
   describe('reconexión de Gmail', () => {
     const encryptionKey = 'a'.repeat(32);
     const config = {
