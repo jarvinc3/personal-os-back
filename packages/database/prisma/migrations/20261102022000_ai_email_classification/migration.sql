@@ -46,7 +46,7 @@ CREATE INDEX "ai_email_classifications_user_message_idx"
 
 ALTER TABLE "ai_email_classifications" ADD CONSTRAINT "ai_email_classifications_user_id_fkey"
   FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE NO ACTION;
-ALTER TABLE "ai_email_classifications" ADD CONSTRAINT "ai_email_classifications_message_id_fkey"
+ALTER TABLE "ai_email_classifications" ADD CONSTRAINT "ai_email_classifications_message_id_user_id_fkey"
   FOREIGN KEY ("message_id", "user_id") REFERENCES "ai_email_messages"("id", "user_id") ON DELETE CASCADE ON UPDATE NO ACTION;
 ALTER TABLE "ai_email_model_budgets" ADD CONSTRAINT "ai_email_model_budgets_user_id_fkey"
   FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE NO ACTION;
