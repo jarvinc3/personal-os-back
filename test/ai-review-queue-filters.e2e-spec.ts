@@ -483,7 +483,14 @@ describe('AI-6 review queue filters (e2e)', () => {
     all: 66,
   };
 
-  it('filters by sender of the authenticated account without changing counts', async () => {
+  const senderPendingCounts = {
+    TRAIN: 2,
+    VALIDATION: 0,
+    HOLDOUT: 1,
+    all: 3,
+  };
+
+  it('filters by sender of the authenticated account and recalculates the counts', async () => {
     const response = await getQueue('?fromAddress=notifications@github.com');
 
     expect(
@@ -496,7 +503,7 @@ describe('AI-6 review queue filters (e2e)', () => {
       ),
     ).toBe(true);
     expect(JSON.stringify(response.body.data)).not.toContain('other-');
-    expect(response.body.data.counts).toEqual(expectedPendingCounts);
+    expect(response.body.data.counts).toEqual(senderPendingCounts);
     expect(response.body.data).toMatchObject({
       hasMore: false,
       nextCursor: null,
