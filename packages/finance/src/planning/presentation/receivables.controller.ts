@@ -8,7 +8,13 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiCreatedResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
 import { CurrentUser, RequiresEnabledModule } from '@personal-os/core';
 import { CursorQueryDto } from '@personal-os/core';
 import { PlanningService } from '../application/planning.service';
@@ -20,6 +26,13 @@ import { CreateReceivablePaymentDto } from './dto/create-receivable-payment.dto'
 import { CreateReceivableDto } from './dto/create-receivable.dto';
 import { UpdateReceivableDto } from './dto/update-receivable.dto';
 import { WriteOffReceivableDto } from './dto/write-off-receivable.dto';
+import {
+  ReceivablePageResponseDto,
+  ReceivablePaymentPageResponseDto,
+  ReceivablePaymentResponseDto,
+  ReceivableResponseDto,
+} from './dto/receivable-response.dto';
+import { SuccessResponseDto } from '../../shared/presentation/success-response.dto';
 
 @ApiTags('finance')
 @ApiBearerAuth('access-token')
@@ -35,17 +48,20 @@ export class ReceivablesController {
 
   @Get('receivables')
   @ApiOperation({ summary: 'Lista los cobros (cursor)' })
+  @ApiOkResponse({ type: ReceivablePageResponseDto })
   list(@CurrentUser('sub') userId: string, @Query() query: CursorQueryDto) {
     return this.planning.listReceivablesPage(userId, query);
   }
 
   @Post('receivables')
+  @ApiCreatedResponse({ type: ReceivableResponseDto })
   create(@CurrentUser('sub') userId: string, @Body() dto: CreateReceivableDto) {
     return this.planning.createReceivable(userId, dto);
   }
 
   @Get('receivables/:id')
   @ApiOperation({ summary: 'Obtiene un cobro por id' })
+  @ApiOkResponse({ type: ReceivableResponseDto })
   get(@CurrentUser('sub') userId: string, @Param('id') id: string) {
     return this.planning.getReceivable(userId, id);
   }
@@ -54,6 +70,7 @@ export class ReceivablesController {
   @ApiOperation({
     summary: 'Pagos cobrados de un cobro, más recientes primero',
   })
+  @ApiOkResponse({ type: ReceivablePaymentPageResponseDto })
   listPayments(
     @CurrentUser('sub') userId: string,
     @Param('id') id: string,
@@ -66,6 +83,7 @@ export class ReceivablesController {
   @ApiOperation({
     summary: 'Cobra un pago y registra el ingreso en la cuenta indicada',
   })
+  @ApiCreatedResponse({ type: ReceivablePaymentResponseDto })
   addPayment(
     @CurrentUser('sub') userId: string,
     @Param('id') id: string,
@@ -76,6 +94,7 @@ export class ReceivablesController {
 
   @Post('receivables/:id/credit')
   @ApiOperation({ summary: 'Aplica el saldo a favor de un cobro a otro' })
+  @ApiCreatedResponse({ type: SuccessResponseDto })
   applyCreditBalance(
     @CurrentUser('sub') userId: string,
     @Param('id') id: string,
@@ -86,6 +105,7 @@ export class ReceivablesController {
 
   @Post('receivables/:id/write-off')
   @ApiOperation({ summary: 'Da de baja un cobro incobrable' })
+  @ApiCreatedResponse({ type: SuccessResponseDto })
   async writeOff(
     @CurrentUser('sub') userId: string,
     @Param('id') id: string,
@@ -96,6 +116,7 @@ export class ReceivablesController {
   }
 
   @Patch('receivables/:id')
+  @ApiOkResponse({ type: ReceivableResponseDto })
   update(
     @CurrentUser('sub') userId: string,
     @Param('id') id: string,
@@ -106,12 +127,14 @@ export class ReceivablesController {
 
   @Delete('receivables/:id')
   @ApiOperation({ summary: 'Borra un cobro de forma definitiva' })
+  @ApiOkResponse({ type: SuccessResponseDto })
   remove(@CurrentUser('sub') userId: string, @Param('id') id: string) {
     return this.planning.deleteReceivable(userId, id);
   }
 
   @Post('receivables/:id/restore')
   @ApiOperation({ summary: 'Deshace un borrado desde el journal' })
+  @ApiCreatedResponse({ type: SuccessResponseDto })
   restore(@CurrentUser('sub') userId: string, @Param('id') id: string) {
     return this.planning.restoreReceivable(userId, id, new Date());
   }

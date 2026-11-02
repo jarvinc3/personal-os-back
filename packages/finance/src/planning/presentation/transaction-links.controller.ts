@@ -6,7 +6,13 @@ import {
   Param,
   Post,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiCreatedResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
 import { CurrentUser, RequiresEnabledModule } from '@personal-os/core';
 import { TRANSACTION_LINK_KIND } from '../../shared/domain/transaction-links';
 import {
@@ -15,6 +21,8 @@ import {
 } from '../application/link-transaction.use-case';
 import { UnlinkTransactionUseCase } from '../application/unlink-transaction.use-case';
 import { LinkTransactionDto } from './dto/link-transaction.dto';
+import { PlanningLinkResponseDto } from '../../shared/presentation/dto/transaction-response.dto';
+import { SuccessResponseDto } from '../../shared/presentation/success-response.dto';
 
 function toCommand(dto: LinkTransactionDto): LinkTransactionCommand {
   if (dto.kind === TRANSACTION_LINK_KIND.LOAN_INSTALLMENT) {
@@ -60,6 +68,7 @@ export class TransactionLinksController {
     summary:
       'Link an existing movement to a loan instalment, a collection or a goal',
   })
+  @ApiCreatedResponse({ type: PlanningLinkResponseDto })
   create(
     @CurrentUser('sub') userId: string,
     @Param('id') id: string,
@@ -73,6 +82,7 @@ export class TransactionLinksController {
     summary:
       'Quita el vínculo de planificación de un movimiento y deshace su efecto',
   })
+  @ApiOkResponse({ type: SuccessResponseDto })
   remove(@CurrentUser('sub') userId: string, @Param('id') id: string) {
     return this.unlinkTransaction.execute(userId, id, new Date());
   }

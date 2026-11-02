@@ -32,11 +32,11 @@ import { AdjustBalanceDto } from './dto/adjust-balance.dto';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { ListTransactionsQueryDto } from './dto/list-transactions-query.dto';
 import { MergeTransactionDto } from './dto/merge-transaction.dto';
+import { AdjustBalanceResponseDto } from './dto/adjust-balance-response.dto';
 import {
-  AdjustBalanceResponseDto,
   TransactionPageResponseDto,
   TransactionResponseDto,
-} from './dto/transaction-response.dto';
+} from '../../shared/presentation/dto/transaction-response.dto';
 import {
   DeleteResponseDto,
   SuccessResponseDto,
