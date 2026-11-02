@@ -317,18 +317,15 @@ export class AiEmailSourceService {
   async completeAuthorization(code: string, state: string) {
     const userId = this.verifyState(state);
     const { clientId, clientSecret, redirectUri } = this.requireOAuthConfig();
-    const tokenResponse = await fetch(GMAIL_TOKEN_URL, {
-      method: 'POST',
-      headers: { 'content-type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({
+    const tokenResponse = await this.requestGoogleToken(
+      new URLSearchParams({
         code,
         client_id: clientId,
         client_secret: clientSecret,
         redirect_uri: redirectUri,
         grant_type: 'authorization_code',
       }),
-      signal: AbortSignal.timeout(GMAIL_TOKEN_TIMEOUT_MS),
-    });
+    );
     const token = (await tokenResponse.json()) as OAuthTokenResponse;
     if (!tokenResponse.ok || !token.access_token) {
       const errorCode = token.error || `http_${tokenResponse.status}`;
@@ -445,17 +442,14 @@ export class AiEmailSourceService {
       connection.refreshTokenEncrypted,
       encryptionKey,
     );
-    const response = await fetch(GMAIL_TOKEN_URL, {
-      method: 'POST',
-      headers: { 'content-type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({
+    const response = await this.requestGoogleToken(
+      new URLSearchParams({
         client_id: clientId,
         client_secret: clientSecret,
         refresh_token: refreshToken,
         grant_type: 'refresh_token',
       }),
-      signal: AbortSignal.timeout(GMAIL_TOKEN_TIMEOUT_MS),
-    });
+    );
     const token = (await response.json()) as OAuthTokenResponse;
     if (!response.ok || !token.access_token) {
       const providerCode = token.error || `http_${response.status}`;
@@ -594,6 +588,27 @@ export class AiEmailSourceService {
       attempt: attempt + 1,
       errorCategory,
     });
+  }
+
+  /** Llamada al endpoint de token con su propio límite de tiempo. */
+  private async requestGoogleToken(form: URLSearchParams): Promise<Response> {
+    try {
+      return await fetch(GMAIL_TOKEN_URL, {
+        method: 'POST',
+        headers: { 'content-type': 'application/x-www-form-urlencoded' },
+        body: form,
+        signal: AbortSignal.timeout(GMAIL_TOKEN_TIMEOUT_MS),
+      });
+    } catch (error) {
+      if (!isTimeoutError(error)) {
+        throw error;
+      }
+      throw new ServiceUnavailableException({
+        code: 'gmail_token_timeout',
+        providerCode: 'timeout',
+        diagnostic: this.oauthDiagnostic('timeout'),
+      });
+    }
   }
 
   private isRetryableGmailError(status: number, providerCode: string) {
