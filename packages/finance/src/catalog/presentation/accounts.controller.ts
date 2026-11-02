@@ -8,7 +8,13 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiCreatedResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
 import {
   CurrentUser,
   CursorQueryDto,
@@ -17,6 +23,12 @@ import {
 import { CatalogService } from '../application/catalog.service';
 import { InstrumentHistoryService } from '../application/instrument-history.service';
 import { CreateAccountDto } from './dto/create-account.dto';
+import {
+  AccountPageResponseDto,
+  AccountResponseDto,
+  InstrumentHistoryPageResponseDto,
+} from './dto/account-response.dto';
+import { SuccessResponseDto } from '../../shared/presentation/success-response.dto';
 import { UpdateAccountDto } from './dto/update-account.dto';
 
 @ApiTags('finance')
@@ -31,16 +43,19 @@ export class AccountsController {
 
   @Get('accounts')
   @ApiOperation({ summary: 'Lista las cuentas de finanzas (cursor)' })
+  @ApiOkResponse({ type: AccountPageResponseDto })
   list(@CurrentUser('sub') userId: string, @Query() query: CursorQueryDto) {
     return this.catalog.listAccountsPage(userId, query);
   }
 
   @Post('accounts')
+  @ApiCreatedResponse({ type: AccountResponseDto })
   create(@CurrentUser('sub') userId: string, @Body() dto: CreateAccountDto) {
     return this.catalog.createAccount(userId, dto);
   }
 
   @Get('accounts/:id')
+  @ApiOkResponse({ type: AccountResponseDto })
   get(@CurrentUser('sub') userId: string, @Param('id') id: string) {
     return this.catalog.getAccount(userId, id);
   }
@@ -49,6 +64,7 @@ export class AccountsController {
   @ApiOperation({
     summary: 'Cronología de la cuenta: ajustes y cambios de límite',
   })
+  @ApiOkResponse({ type: InstrumentHistoryPageResponseDto })
   getHistory(
     @CurrentUser('sub') userId: string,
     @Param('id') id: string,
@@ -58,6 +74,7 @@ export class AccountsController {
   }
 
   @Patch('accounts/:id')
+  @ApiOkResponse({ type: AccountResponseDto })
   update(
     @CurrentUser('sub') userId: string,
     @Param('id') id: string,
@@ -71,12 +88,14 @@ export class AccountsController {
     summary:
       'Borra de forma definitiva la cuenta, sus tarjetas de débito y sus movimientos',
   })
+  @ApiOkResponse({ type: SuccessResponseDto })
   remove(@CurrentUser('sub') userId: string, @Param('id') id: string) {
     return this.catalog.deleteAccount(userId, id);
   }
 
   @Post('accounts/:id/restore')
   @ApiOperation({ summary: 'Deshace un borrado desde el journal' })
+  @ApiOkResponse({ type: SuccessResponseDto })
   restore(@CurrentUser('sub') userId: string, @Param('id') id: string) {
     return this.catalog.restoreAccount(userId, id, new Date());
   }

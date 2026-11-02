@@ -1,8 +1,18 @@
 import { Body, Controller, Get, Param, Patch, Query } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
 import { CurrentUser, RequiresEnabledModule } from '@personal-os/core';
 import { CursorQueryDto } from '@personal-os/core';
 import { CardStatementsService } from '../application/card-statements.service';
+import {
+  CardStatementDetailResponseDto,
+  CardStatementPageResponseDto,
+} from './dto/statement-response.dto';
+import { SuccessResponseDto } from '../../shared/presentation/success-response.dto';
 import { UpdateCardStatementDto } from './dto/update-card-statement.dto';
 
 @ApiTags('finance')
@@ -14,6 +24,7 @@ export class CardStatementsController {
 
   @Get('cards/:id/statements')
   @ApiOperation({ summary: 'Estados de facturación de una tarjeta de crédito' })
+  @ApiOkResponse({ type: CardStatementPageResponseDto })
   list(
     @CurrentUser('sub') userId: string,
     @Param('id') id: string,
@@ -26,6 +37,7 @@ export class CardStatementsController {
   @ApiOperation({
     summary: 'Detalle del estado de cuenta con movimientos y pagos',
   })
+  @ApiOkResponse({ type: CardStatementDetailResponseDto })
   detail(
     @CurrentUser('sub') userId: string,
     @Param('id') id: string,
@@ -44,6 +56,7 @@ export class CardStatementsController {
     summary:
       'Edita el mínimo, el saldo de cierre o el vencimiento del estado de cuenta',
   })
+  @ApiOkResponse({ type: SuccessResponseDto })
   update(
     @CurrentUser('sub') userId: string,
     @Param('id') id: string,
