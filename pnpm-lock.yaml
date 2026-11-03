@@ -231,9 +231,9 @@ importers:
       '@openrouter/sdk':
         specifier: ^0.12.79
         version: 0.12.79
-      '@personal-os/ai-agent':
+      '@personal-os/intelligence':
         specifier: workspace:*
-        version: link:packages/ai-agent
+        version: link:packages/intelligence
       '@personal-os/auth':
         specifier: workspace:*
         version: link:packages/auth
@@ -440,7 +440,7 @@ importers:
         specifier: ^8.72.0
         version: 8.72.0(eslint@10.13.0(jiti@2.7.0)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@5.9.3)
 
-  packages/ai-agent:
+  packages/intelligence:
     dependencies:
       '@nestjs/bullmq':
         specifier: ^11.0.5

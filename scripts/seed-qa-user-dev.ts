@@ -1,8 +1,8 @@
 import { writeFile } from 'node:fs/promises';
 import { isAbsolute, relative, resolve, sep } from 'node:path';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
-import { createScriptPrismaClient } from '../packages/database/dist';
-import type { EmailLabel } from '../packages/ai-agent/dist/intelligence/knowledge/knowledge-payload';
+import { createScriptPrismaClient } from '@personal-os/database';
+import type { EmailLabel } from '@personal-os/intelligence';
 import {
   SeedGuardError,
   assertDevelopmentEnvironment,

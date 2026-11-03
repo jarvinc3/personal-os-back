@@ -5,7 +5,7 @@ import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
 const PACKAGE_NAMES = [
-  'ai-agent',
+  'intelligence',
   'auth',
   'config',
   'contracts',
@@ -50,8 +50,6 @@ export default tseslint.config(
   {
     files: [
       'packages/auth/src/infrastructure/jwks-rsa.loader.ts',
-      'packages/ai-agent/src/ai.module.ts',
-      'packages/ai-agent/src/ai-core.module.ts',
       'test/**/*.ts',
     ],
     rules: {

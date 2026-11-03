@@ -8,7 +8,7 @@ Fuente: `package.json`.
 | `pnpm build` / `pnpm start:prod`        | Compilar / producción                                                                |
 | `pnpm lint`                             | ESLint (incluye `no-restricted-imports` de barrels)                                  |
 | `pnpm test`                             | Unit (Jest, `src/**/*.spec.ts`)                                                      |
-| `pnpm test:e2e`                         | E2E: health, auth, users, notifications, finance, ai-agent                           |
+| `pnpm test:e2e`                         | E2E: health, auth, users, notifications, finance, intelligence                       |
 | `pnpm db:migrate`                       | Migraciones Prisma (dev)                                                             |
 | `pnpm db:migrate:status`                | Estado                                                                               |
 | `pnpm db:migrate:deploy`                | Aplicar pendientes                                                                   |

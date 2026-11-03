@@ -38,7 +38,7 @@ Lo decidido y no implementado se abre como issue con label `roadmap`; no se deja
 | Eventos                                          | `packages/core/src/events/event.constants.ts`                                                                    |
 | Env                                              | `packages/config/src/env.schema.ts`                                                                              |
 | App (interfaz) vs módulo (código)                | [docs/glosario.md](docs/glosario.md) · regla `.cursor/rules/module-terminology.mdc`                              |
-| Tools IA                                         | `packages/ai-agent/src/tools/tool.registry.ts` + `prompts/module-context.ts`                                     |
+| Tools IA                                         | `packages/intelligence/src/capabilities/ai-capability.registry.ts` + proveedores `packages/<módulo>/src/ai/`     |
 | API pública entre módulos Nest                   | `packages/<nombre>/src/index.ts` y barrels `@personal-os/<nombre>` (regla `.cursor/rules/module-public-api.mdc`) |
 | Prefijo de versión de la API                     | [ADR-007](docs/decisions/ADR-007-sin-prefijo-de-version.md) — sin `/v1`                                          |
 
@@ -138,6 +138,6 @@ packages/                # workspace pnpm; cada paquete compila a dist
   users/
   finance/
   notifications/
-  ai-agent/
+  intelligence/
 docs/
 ```

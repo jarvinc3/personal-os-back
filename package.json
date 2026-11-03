@@ -70,7 +70,7 @@
     "@nestjs/throttler": "^6.7.1",
     "@nestjs/websockets": "^11.2.7",
     "@openrouter/sdk": "^0.12.79",
-    "@personal-os/ai-agent": "workspace:*",
+    "@personal-os/intelligence": "workspace:*",
     "@personal-os/auth": "workspace:*",
     "@personal-os/config": "workspace:*",
     "@personal-os/core": "workspace:*",
@@ -152,7 +152,8 @@
     "testRegex": "(apps/[^/]+/src|packages/[^/]+/src|scripts/lib)/.*\\.spec\\.ts$",
     "moduleNameMapper": {
       "^(\\.{1,2}/.*)\\.js$": "$1",
-      "^@personal-os/([^/]+)$": "<rootDir>/packages/$1/src"
+      "^@personal-os/([^/]+)$": "<rootDir>/packages/$1/src",
+      "^@openrouter/sdk$": "<rootDir>/test/stubs/openrouter-sdk.ts"
     },
     "transform": {
       "^.+\\.(t|j)s$": "ts-jest"

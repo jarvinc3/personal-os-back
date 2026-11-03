@@ -7,21 +7,17 @@ import {
   createScriptPrismaClient,
   Prisma,
   type PrismaService,
-} from '../../packages/database/dist';
-import { AiKnowledgeService } from '../../packages/ai-agent/dist/intelligence/knowledge/ai-knowledge.service';
+} from '@personal-os/database';
 import {
+  AiKnowledgeService,
+  EMAIL_DATASET_NAME,
+  EMAIL_DATASET_PURPOSE,
   isSafeGlobalTemplateKey,
   knowledgeKeys,
   NORMALIZER_VERSION,
-} from '../../packages/ai-agent/dist/intelligence/knowledge/knowledge-normalizer';
-import {
   parseUserEmailPayload,
   type EmailLabel,
-} from '../../packages/ai-agent/dist/intelligence/knowledge/knowledge-payload';
-import {
-  EMAIL_DATASET_NAME,
-  EMAIL_DATASET_PURPOSE,
-} from '../../packages/ai-agent/dist/intelligence/evidence/dataset.constants';
+} from '@personal-os/intelligence';
 import { SeedGuardError } from './dev-seed-guard';
 import { seedUuid } from './seed-fixtures';
 

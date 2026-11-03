@@ -1,6 +1,6 @@
 # Module folder standard
 
-House style for NestJS feature modules under `packages/*/src/` (antes `src/modules/`). Feature modules first; technical layers **inside** each feature (or capability). References: `finance/` (complex), `ai-agent/` (capabilities without Nest submodules), `notifications/` / `users/` / `auth/` (simple layers).
+House style for NestJS feature modules under `packages/*/src/` (antes `src/modules/`). Feature modules first; technical layers **inside** each feature (or capability). References: `finance/` (complex), `intelligence/` (capabilities without Nest submodules), `notifications/` / `users/` / `auth/` (simple layers).
 
 ## Principles
 
@@ -48,7 +48,7 @@ module-name/
 
 ## Complex module template
 
-Use when there are ≥2 bounded contexts with their own lifecycle (e.g. `finance`, `ai-agent`).
+Use when there are ≥2 bounded contexts with their own lifecycle (e.g. `finance`, `intelligence`).
 
 ```text
 module-name/
@@ -57,7 +57,7 @@ module-name/
   index.ts
   shared/                     # domain + tokens shared by capabilities
   capability-a/
-    capability-a.module.ts    # optional Nest submodule (finance yes; ai-agent no today)
+    capability-a.module.ts    # optional Nest submodule (finance yes; intelligence no today)
     presentation/
     application/
       ports/
@@ -66,7 +66,7 @@ module-name/
     …same skeleton
 ```
 
-`ai-agent` organizes code with capability folders (`inference/`, `chat/`, `actions/`, `runtime/`) plus top-level `tools/`, `prompts/`, `providers/`, `shared/`. `AiCoreModule` connects the provider kernel (`AiService`) to the neutral inference port in `contracts`; `AiModule` still imports Finance/Notifications until the controlled AI-0 cut.
+`intelligence` organizes code with capability folders (`inference/`, `conversations/`, `actions/`, `capabilities/`, `email/`, `evidence/`, `knowledge/`, `signals/`, `consent/`, `roles/`) plus `providers/` and `shared/`. `AiCoreModule` connects the provider kernel (`AiService`) to the neutral inference port in `contracts`; `AiModule` is the boundary consumed by `apps/api`. It does not import Finance or Notifications.
 
 ## Layer dependency rules
 
@@ -94,7 +94,7 @@ infrastructure → application ports / domain
 ## Heuristics
 
 - **Add layers** when a module has ≥8 domain source files or mixes HTTP + queue + persistence in one folder.
-- **Add capabilities** when there are ≥2 bounded contexts (ledger vs catalog; chat vs actions).
+- **Add capabilities** when there are ≥2 bounded contexts (ledger vs catalog; conversations vs actions).
 - **Add ports** only with 2+ adapters, mocked IO in tests at scale, or a cross-capability contract (e.g. `BUDGET_THRESHOLD_PORT`).
 
 ## Finance: use-case vs fat service
@@ -111,7 +111,7 @@ Within finance capabilities:
 | Module        | Style                                                  | Doc                                                  |
 | ------------- | ------------------------------------------------------ | ---------------------------------------------------- |
 | finance       | Complex + Nest capability modules + façade             | [finance/](../modules/finance/README.md)             |
-| ai-agent      | Complex folders, single Nest module                    | [ai-agent/](../modules/ai-agent/README.md)           |
+| intelligence  | Complex folders, single Nest module                    | [intelligence/](../modules/intelligence/README.md)   |
 | notifications | Simple layers (`EmailSyncProcessor` in infrastructure) | [notifications/](../modules/notifications/README.md) |
 | users         | Simple layers                                          | [users/](../modules/users/README.md)                 |
 | auth          | Simple layers (no empty application/)                  | [auth/](../modules/auth/README.md)                   |
@@ -119,7 +119,7 @@ Within finance capabilities:
 
 ## Completed roadmap
 
-Former follow-ups from the ai-agent pass are done:
+Former follow-ups from the intelligence pass are done:
 
 1. notifications — layers + `EmailSyncProcessor` under notifications infrastructure
 2. users / auth — aligned to presentation / application / infrastructure / domain
