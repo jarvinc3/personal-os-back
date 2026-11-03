@@ -50,12 +50,12 @@ Estos issues se abrieron el 2026-10-28 para que el trabajo pendiente de la olead
 
 | Fase                | Issue                                                           | Programa      | Estado  | Prioridad |
 | ------------------- | --------------------------------------------------------------- | ------------- | ------- | --------- |
-| FIN-0               | [#242](https://github.com/jarvinc3/personal-os-back/issues/242) | Finance       | Abierto | High      |
-| PLATFORM-EVENTS-0   | [#243](https://github.com/jarvinc3/personal-os-back/issues/243) | Plataforma    | Abierto | High      |
-| PLATFORM-SETTINGS-0 | [#244](https://github.com/jarvinc3/personal-os-back/issues/244) | Plataforma    | Abierto | Medium    |
-| NOTIF-0             | [#245](https://github.com/jarvinc3/personal-os-back/issues/245) | Notifications | Abierto | Medium    |
+| FIN-0               | [#242](https://github.com/jarvinc3/personal-os-back/issues/242) | Finance       | Cerrado | High      |
+| PLATFORM-EVENTS-0   | [#243](https://github.com/jarvinc3/personal-os-back/issues/243) | Plataforma    | Cerrado | High      |
+| PLATFORM-SETTINGS-0 | [#244](https://github.com/jarvinc3/personal-os-back/issues/244) | Plataforma    | Cerrado | Medium    |
+| NOTIF-0             | [#245](https://github.com/jarvinc3/personal-os-back/issues/245) | Notifications | Cerrado | Medium    |
 
-El gate de la oleada A sigue abierto: AI-0 está cerrado, pero los cuatro contratos de frontera no. Las fases restantes de cada programa (FIN-1 a FIN-4, NOTIF-1 a NOTIF-3, PLATFORM-EVENTS-1 y PLATFORM-SETTINGS-1/2) abren su issue al planificarse.
+El gate de la oleada A quedó cerrado: AI-0 y los cuatro contratos de frontera están cerrados. AI-12 (#215) permanece después de `0.100.0`, como `0.101.0`; las fases restantes de Finance, Notifications y plataforma abren su issue al planificarse.
 
 Los hallazgos de la QA de AI-4 forman parte de AI-5: #238 y #239 corrigen la proyección y la revocación, y #246 cubre la promoción manual de ADMIN.
 
