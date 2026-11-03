@@ -1,4 +1,4 @@
-import { AppEvents } from '@personal-os/core';
+import { FinanceEvents } from '../../contracts';
 import { CardPaymentRemindersService } from './card-payment-reminders.service';
 
 const day = (iso: string) => new Date(`${iso}T00:00:00.000Z`);
@@ -87,7 +87,7 @@ describe('CardPaymentRemindersService', () => {
     expect(events.enqueue).toHaveBeenCalledWith(
       expect.objectContaining({
         eventId: 'finance-card-payment-due:st-1:2026-02-15',
-        eventName: AppEvents.FINANCE_CARD_PAYMENT_DUE,
+        eventName: FinanceEvents.CARD_PAYMENT_DUE,
         payload: expect.objectContaining({
           cardId: 'card-1',
           statementId: 'st-1',

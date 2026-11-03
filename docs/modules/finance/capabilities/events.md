@@ -1,6 +1,13 @@
-# Capacidad: events / outbox
+# Capacidad: eventos y outbox
 
-Nombres versionados only. Filas `domain_event_outbox` → dispatcher.
+Finance es dueño de los nombres, payloads y versiones semánticas de sus
+eventos. Los contratos están en
+[`packages/finance/src/contracts/finance-events.ts`](../../../../packages/finance/src/contracts/finance-events.ts).
+Core aporta el envelope durable y el dispatcher. La copia histórica de nombres
+en Core se conserva durante esta fase para mantener compatibles sus
+consumidores.
+
+Filas `domain_event_outbox` → dispatcher.
 
 Consumidores: ver [infrastructure/events-and-queues.md](../../../infrastructure/events-and-queues.md).
 

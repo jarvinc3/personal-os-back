@@ -1,4 +1,4 @@
-import { AppEvents } from '@personal-os/core';
+import { FinanceEvents } from '../../contracts';
 import type { DomainEventPublisherPort } from '../../events/application/ports/domain-event-publisher.port';
 import { BudgetThresholdService } from './budget-threshold.service';
 
@@ -37,7 +37,7 @@ describe('BudgetThresholdService', () => {
     });
     expect(enqueue).toHaveBeenCalledWith(
       expect.objectContaining({
-        eventName: AppEvents.FINANCE_BUDGET_THRESHOLD_CROSSED,
+        eventName: FinanceEvents.BUDGET_THRESHOLD_CROSSED,
         aggregateType: 'FinBudget',
         aggregateId: 'bud-1',
         userId: 'user-1',

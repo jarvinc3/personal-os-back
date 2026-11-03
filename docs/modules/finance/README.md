@@ -22,6 +22,7 @@
 | [contracts/http.md](./contracts/http.md)                           | REST                                           |
 | [contracts/rest-vs-facade.md](./contracts/rest-vs-facade.md)       | Subconjunto AI                                 |
 | [contracts/finance-tools.md](./contracts/finance-tools.md)         | Tools `moduleSlug=finance`                     |
+| [contracts/boundaries.md](./contracts/boundaries.md)               | Eventos y adaptadores por frontera             |
 | [operations/gmail-sync.md](./operations/gmail-sync.md)             | Pipeline sync                                  |
 
 UI: `personal-os-web/docs/modules/finance/`. Código: `packages/finance/src/`.

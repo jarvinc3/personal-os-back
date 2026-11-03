@@ -1,5 +1,5 @@
+import { FinanceEvents } from '../../contracts';
 import { Inject, Injectable } from '@nestjs/common';
-import { AppEvents } from '@personal-os/core';
 import type { Prisma } from '@personal-os/database';
 import { PrismaService } from '@personal-os/database';
 import type { DomainEventPublisherPort } from '../../events/application/ports/domain-event-publisher.port';
@@ -41,7 +41,7 @@ export class BudgetThresholdService implements BudgetThresholdPort {
 
       await this.events.enqueue(
         {
-          eventName: AppEvents.FINANCE_BUDGET_THRESHOLD_CROSSED,
+          eventName: FinanceEvents.BUDGET_THRESHOLD_CROSSED,
           aggregateType: 'FinBudget',
           aggregateId: snap.budgetId,
           userId,

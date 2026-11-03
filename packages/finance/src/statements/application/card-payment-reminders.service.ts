@@ -1,5 +1,5 @@
+import { FinanceEvents } from '../../contracts';
 import { Inject, Injectable } from '@nestjs/common';
-import { AppEvents } from '@personal-os/core';
 import { resolveCardDueDaysBefore, UsersService } from '@personal-os/users';
 import { FinanceOutboxDispatcher } from '../../events/infrastructure/finance-outbox.dispatcher';
 import { PrismaOutboxRepository } from '../../events/infrastructure/prisma-outbox.repository';
@@ -101,7 +101,7 @@ export class CardPaymentRemindersService {
     }
     await this.events.enqueue({
       eventId,
-      eventName: AppEvents.FINANCE_CARD_PAYMENT_DUE,
+      eventName: FinanceEvents.CARD_PAYMENT_DUE,
       aggregateType: AGGREGATE_TYPE,
       aggregateId: statement.id,
       userId,

@@ -1,13 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import type {
   AiCapabilityDefinition,
-  AiCapabilityProvider,
   AiExecutionContext,
   JsonObject,
 } from '@personal-os/contracts';
 import { PrismaService } from '@personal-os/database';
 import { z } from 'zod';
 import { AnalyticsService } from '../analytics/application/analytics.service';
+import type { FinanceAiCapabilitiesPort } from '../contracts';
 
 const monthlySummaryInput = z
   .object({ month: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/) })
@@ -56,7 +56,7 @@ function localDateToUtc(
 }
 
 @Injectable()
-export class FinanceAiCapabilities implements AiCapabilityProvider {
+export class FinanceAiCapabilities implements FinanceAiCapabilitiesPort {
   readonly moduleSlug = 'finance';
 
   constructor(

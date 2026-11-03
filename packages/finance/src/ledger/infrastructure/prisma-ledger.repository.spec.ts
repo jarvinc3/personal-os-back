@@ -1,4 +1,4 @@
-import { AppEvents } from '@personal-os/core';
+import { FinanceEvents } from '../../contracts';
 import type { DomainEventPublisherPort } from '../../events/application/ports/domain-event-publisher.port';
 import { PrismaLedgerDeletionRepository } from './prisma-ledger-deletion.repository';
 import { PrismaLedgerEmailImportRepository } from './prisma-ledger-email-import.repository';
@@ -363,12 +363,12 @@ describe('PrismaLedgerRepository outbox-in-TX', () => {
     const transferEnqueue = enqueue.mock.calls.find(
       (call) =>
         (call[0] as { eventName?: string }).eventName ===
-        AppEvents.FINANCE_TRANSFER_CREATED,
+        FinanceEvents.TRANSFER_CREATED,
     );
     expect(transferEnqueue).toBeDefined();
     expect(transferEnqueue?.[0]).toEqual(
       expect.objectContaining({
-        eventName: AppEvents.FINANCE_TRANSFER_CREATED,
+        eventName: FinanceEvents.TRANSFER_CREATED,
         aggregateType: 'FinTransfer',
         userId: 'user-1',
         payload: expect.objectContaining({
@@ -463,7 +463,7 @@ describe('PrismaLedgerRepository outbox-in-TX', () => {
     expect(enqueue).toHaveBeenCalledTimes(1);
     expect(enqueue.mock.calls[0]?.[0]).toEqual(
       expect.objectContaining({
-        eventName: AppEvents.FINANCE_TRANSACTION_DELETED,
+        eventName: FinanceEvents.TRANSACTION_DELETED,
         aggregateType: 'FinTransaction',
         aggregateId: 'tx-del',
         userId: 'user-1',
@@ -737,7 +737,7 @@ describe('PrismaLedgerRepository outbox-in-TX', () => {
     expect(enqueue).toHaveBeenCalledTimes(2);
     expect(enqueue.mock.calls.map((call) => call[0])).toEqual([
       expect.objectContaining({
-        eventName: AppEvents.FINANCE_TRANSACTION_DELETED,
+        eventName: FinanceEvents.TRANSACTION_DELETED,
         aggregateId: 'debit-1',
         payload: expect.objectContaining({
           transactionId: 'debit-1',
@@ -746,7 +746,7 @@ describe('PrismaLedgerRepository outbox-in-TX', () => {
         }),
       }),
       expect.objectContaining({
-        eventName: AppEvents.FINANCE_TRANSACTION_DELETED,
+        eventName: FinanceEvents.TRANSACTION_DELETED,
         aggregateId: 'credit-1',
         payload: expect.objectContaining({
           transactionId: 'credit-1',

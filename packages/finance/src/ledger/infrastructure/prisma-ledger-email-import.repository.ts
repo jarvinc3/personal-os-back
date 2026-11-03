@@ -1,5 +1,5 @@
+import { FinanceEvents } from '../../contracts';
 import { Inject, Injectable, Optional } from '@nestjs/common';
-import { AppEvents } from '@personal-os/core';
 import type { FinTransactionType, Prisma } from '@personal-os/database';
 import { PrismaService } from '@personal-os/database';
 import { randomUUID } from 'crypto';
@@ -182,7 +182,7 @@ export class PrismaLedgerEmailImportRepository {
 
       await this.events.enqueue(
         {
-          eventName: AppEvents.FINANCE_TRANSFER_CREATED,
+          eventName: FinanceEvents.TRANSFER_CREATED,
           aggregateType: 'FinTransfer',
           aggregateId: transferGroupId,
           userId,
@@ -297,7 +297,7 @@ export class PrismaLedgerEmailImportRepository {
       });
       await this.events.enqueue(
         {
-          eventName: AppEvents.FINANCE_TRANSFER_CREATED,
+          eventName: FinanceEvents.TRANSFER_CREATED,
           aggregateType: 'FinTransfer',
           aggregateId: transferGroupId,
           userId,

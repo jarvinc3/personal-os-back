@@ -1,6 +1,6 @@
+import { FinanceEvents } from '../../contracts';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { AppEvents } from '@personal-os/core';
 import { UsersService } from '@personal-os/users';
 import { FinanceOutboxDispatcher } from '../../events/infrastructure/finance-outbox.dispatcher';
 import { PrismaOutboxRepository } from '../../events/infrastructure/prisma-outbox.repository';
@@ -73,7 +73,7 @@ export class WeeklySummaryScheduler {
       const summary = await this.summaries.build(userId, weekStart);
       await this.events.enqueue({
         eventId,
-        eventName: AppEvents.FINANCE_WEEKLY_SUMMARY,
+        eventName: FinanceEvents.WEEKLY_SUMMARY,
         aggregateType: CONSUMER_AGGREGATE,
         aggregateId: userId,
         userId,

@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import type { RoutedSignal, SignalConsumer } from '@personal-os/contracts';
+import type { RoutedSignal } from '@personal-os/contracts';
 import { PrismaService } from '@personal-os/database';
 import { z } from 'zod';
 import { buildEmailImportNotes } from '../ingestion/application/build-email-import-notes';
@@ -22,6 +22,7 @@ import { MerchantsService } from '../merchants/application/merchants.service';
 import { ResolveUserBaseCurrencyUseCase } from '../fx/application/resolve-user-base-currency';
 import { resolveCategoryIdForImport } from '../shared/domain/category-type';
 import { mapBankStatusToInternal } from '../shared/domain/transaction-status';
+import type { FinanceSignalConsumerPort } from '../contracts';
 
 const transactionSchema = z
   .object({
@@ -97,7 +98,7 @@ type ImportStatus =
 const REVIEW_CONFIDENCE_THRESHOLD = 0.7;
 
 @Injectable()
-export class FinanceSignalConsumer implements SignalConsumer {
+export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
   readonly domain = 'FINANCE';
 
   constructor(
