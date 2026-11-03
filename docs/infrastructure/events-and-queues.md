@@ -1,20 +1,17 @@
 # Eventos y colas
 
-Catálogo: [`packages/core/src/events/event.constants.ts`](../../packages/core/src/events/event.constants.ts). Colas: [`packages/core/src/queues/queue.constants.ts`](../../packages/core/src/queues/queue.constants.ts).
+Catálogo de plataforma: [`packages/core/src/events/event.constants.ts`](../../packages/core/src/events/event.constants.ts). Catálogo Finance: [`packages/finance/src/contracts/finance-events.ts`](../../packages/finance/src/contracts/finance-events.ts). Colas: [`packages/core/src/queues/queue.constants.ts`](../../packages/core/src/queues/queue.constants.ts).
 
-## AppEvents (VERIFICADO)
+## AppEvents de plataforma (VERIFICADO)
 
-| Constante                                        | Valor                                                                                  | Emisor típico              | Consumidores                           |
-| ------------------------------------------------ | -------------------------------------------------------------------------------------- | -------------------------- | -------------------------------------- |
-| `USER_LOGGED_IN`                                 | `user.logged_in`                                                                       | Auth session (debounce 1h) | AI → cola                              |
-| `FINANCE_TRANSACTION_*`                          | `finance.transaction.{imported,confirmed,updated,declined,cancelled,reversed,deleted}` | Finance outbox             | Notif (deleted: claim silencioso) + AI |
-| `FINANCE_TRANSFER_CREATED`                       | `finance.transfer.created`                                                             | Finance outbox             | —                                      |
-| `FINANCE_BUDGET_THRESHOLD_CROSSED`               | `finance.budget.threshold_crossed`                                                     | Finance outbox             | Notif + AI                             |
-| `FINANCE_EMAIL_SYNC_COMPLETED`                   | `finance.email_sync.completed`                                                         | Finance outbox             | AI batch                               |
-| `FINANCE_EMAIL_SYNC_FAILED`                      | `finance.email_sync.failed`                                                            | Finance outbox             | — (ops)                                |
-| `NOTIFICATION_CREATED`                           | `notification.created`                                                                 | Notifications              | log / pipeline                         |
-| `USER_PREFERENCES_UPDATED`                       | `user.preferences.updated`                                                             | Users                      | AI                                     |
-| `MODULE_ENABLED` / `DISABLED` / `CONFIG_UPDATED` | `module.*`                                                                             | Users                      | AI                                     |
+| Constante                                        | Valor                      | Emisor típico              | Consumidores   |
+| ------------------------------------------------ | -------------------------- | -------------------------- | -------------- |
+| `USER_LOGGED_IN`                                 | `user.logged_in`           | Auth session (debounce 1h) | AI → cola      |
+| `NOTIFICATION_CREATED`                           | `notification.created`     | Notifications              | log / pipeline |
+| `USER_PREFERENCES_UPDATED`                       | `user.preferences.updated` | Users                      | AI             |
+| `MODULE_ENABLED` / `DISABLED` / `CONFIG_UPDATED` | `module.*`                 | Users                      | AI             |
+
+Los nombres y payloads Finance viven en `FinanceEvents` de `@personal-os/finance`; consulte [eventos Finance](../modules/finance/capabilities/events.md).
 
 Patrón Finance: persistir outbox en la misma TX → `FinanceOutboxDispatcher` (cron `EVERY_30_SECONDS` + wake) → `EventEmitter2` → listeners con `DomainEventIdempotencyGuard` (`ProcessedDomainEvent`).
 

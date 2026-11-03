@@ -3,9 +3,9 @@
 Finance es dueño de los nombres, payloads y versiones semánticas de sus
 eventos. Los contratos están en
 [`packages/finance/src/contracts/finance-events.ts`](../../../../packages/finance/src/contracts/finance-events.ts).
-Core aporta el envelope durable y el dispatcher. La copia histórica de nombres
-en Core se conserva durante esta fase para mantener compatibles sus
-consumidores.
+Core aporta el envelope durable y el dispatcher. El catálogo `AppEvents` de Core
+solo contiene eventos de plataforma; los consumidores Finance importan los
+nombres desde `@personal-os/finance`.
 
 Filas `domain_event_outbox` → dispatcher.
 

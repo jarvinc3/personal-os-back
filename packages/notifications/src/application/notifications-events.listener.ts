@@ -6,6 +6,7 @@ import {
   NotificationCreatedEvent,
 } from '@personal-os/core';
 import { FINANCE_NOTIFICATION_KEYS } from '@personal-os/users';
+import { FinanceEvents } from '@personal-os/finance';
 import {
   balanceDriftCopy,
   budgetThresholdCopy,
@@ -170,8 +171,8 @@ export class NotificationsEventsListener {
     );
   }
 
-  @OnEvent(AppEvents.FINANCE_TRANSACTION_CONFIRMED, { suppressErrors: false })
-  @OnEvent(AppEvents.FINANCE_TRANSACTION_IMPORTED, { suppressErrors: false })
+  @OnEvent(FinanceEvents.TRANSACTION_CONFIRMED, { suppressErrors: false })
+  @OnEvent(FinanceEvents.TRANSACTION_IMPORTED, { suppressErrors: false })
   async onFinanceTransactionCreated(event: FinanceTxEvent): Promise<void> {
     this.logger.debug(
       `event=finance.transaction handled=true transactionId=${event.transactionId} userId=${event.userId} status=${event.status}`,
@@ -212,7 +213,7 @@ export class NotificationsEventsListener {
     );
   }
 
-  @OnEvent(AppEvents.FINANCE_TRANSACTION_DELETED, { suppressErrors: false })
+  @OnEvent(FinanceEvents.TRANSACTION_DELETED, { suppressErrors: false })
   async onFinanceTransactionDeleted(event: FinanceTxEvent): Promise<void> {
     await this.idempotency.tryClaim(
       event.eventId,
@@ -232,7 +233,7 @@ export class NotificationsEventsListener {
     );
   }
 
-  @OnEvent(AppEvents.FINANCE_TRANSACTION_UPDATED, { suppressErrors: false })
+  @OnEvent(FinanceEvents.TRANSACTION_UPDATED, { suppressErrors: false })
   async onFinanceTransactionUpdated(event: FinanceTxEvent): Promise<void> {
     await this.createTransactionNotification(
       event,
@@ -241,7 +242,7 @@ export class NotificationsEventsListener {
     );
   }
 
-  @OnEvent(AppEvents.FINANCE_BUDGET_THRESHOLD_CROSSED, {
+  @OnEvent(FinanceEvents.BUDGET_THRESHOLD_CROSSED, {
     suppressErrors: false,
   })
   async onBudgetThreshold(event: BudgetThresholdEvent): Promise<void> {
@@ -259,7 +260,7 @@ export class NotificationsEventsListener {
     });
   }
 
-  @OnEvent(AppEvents.FINANCE_CARD_STATEMENT_REMINDER, { suppressErrors: false })
+  @OnEvent(FinanceEvents.CARD_STATEMENT_REMINDER, { suppressErrors: false })
   async onCardStatementReminder(
     event: CardStatementReminderEvent,
   ): Promise<void> {
@@ -276,7 +277,7 @@ export class NotificationsEventsListener {
     });
   }
 
-  @OnEvent(AppEvents.FINANCE_CARD_PAYMENT_DUE, { suppressErrors: false })
+  @OnEvent(FinanceEvents.CARD_PAYMENT_DUE, { suppressErrors: false })
   async onCardPaymentDue(event: CardPaymentDueEvent): Promise<void> {
     const copy = cardPaymentDueCopy({
       cardName: event.cardName?.trim() ? event.cardName : 'tu tarjeta',
@@ -300,7 +301,7 @@ export class NotificationsEventsListener {
     });
   }
 
-  @OnEvent(AppEvents.FINANCE_WEEKLY_SUMMARY, { suppressErrors: false })
+  @OnEvent(FinanceEvents.WEEKLY_SUMMARY, { suppressErrors: false })
   async onWeeklySummary(event: WeeklySummaryEvent): Promise<void> {
     const summary = event.summary ?? {};
     const currency = summary.currency ?? '';
@@ -334,7 +335,7 @@ export class NotificationsEventsListener {
     });
   }
 
-  @OnEvent(AppEvents.FINANCE_RECURRING_PRICE_CHANGED, { suppressErrors: false })
+  @OnEvent(FinanceEvents.RECURRING_PRICE_CHANGED, { suppressErrors: false })
   async onRecurringPriceChanged(
     event: RecurringPriceChangeEvent,
   ): Promise<void> {
@@ -356,7 +357,7 @@ export class NotificationsEventsListener {
     });
   }
 
-  @OnEvent(AppEvents.FINANCE_SUBSCRIPTION_RENEWAL_DUE, {
+  @OnEvent(FinanceEvents.SUBSCRIPTION_RENEWAL_DUE, {
     suppressErrors: false,
   })
   async onSubscriptionRenewalDue(
@@ -380,16 +381,16 @@ export class NotificationsEventsListener {
     });
   }
 
-  @OnEvent(AppEvents.FINANCE_RECURRING_MISSED, { suppressErrors: false })
+  @OnEvent(FinanceEvents.RECURRING_MISSED, { suppressErrors: false })
   async onRecurringMissed(event: RecurringChargeEvent): Promise<void> {
     await this.createRecurringCharge(event, 'recurring.missed', 'missed');
   }
-  @OnEvent(AppEvents.FINANCE_RECURRING_UPCOMING, { suppressErrors: false })
+  @OnEvent(FinanceEvents.RECURRING_UPCOMING, { suppressErrors: false })
   async onRecurringUpcoming(event: RecurringChargeEvent): Promise<void> {
     await this.createRecurringCharge(event, 'recurring.upcoming', 'upcoming');
   }
 
-  @OnEvent(AppEvents.FINANCE_BALANCE_DRIFT_DETECTED, { suppressErrors: false })
+  @OnEvent(FinanceEvents.BALANCE_DRIFT_DETECTED, { suppressErrors: false })
   async onBalanceDrift(event: BalanceDriftEvent): Promise<void> {
     const copy = balanceDriftCopy({
       name: event.name?.trim() ? event.name : 'una cuenta',

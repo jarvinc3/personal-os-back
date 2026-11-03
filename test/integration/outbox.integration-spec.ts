@@ -11,7 +11,8 @@ import {
   getPrismaClientClass,
   type PrismaService,
 } from '@personal-os/database';
-import { AppEvents, DomainEventIdempotencyGuard } from '@personal-os/core';
+import { DomainEventIdempotencyGuard } from '@personal-os/core';
+import { FinanceEvents } from '@personal-os/finance';
 import {
   NotificationsGateway,
   NotificationsService,
@@ -257,18 +258,12 @@ describe('Outbox recovery with PostgreSQL', () => {
       };
       create.mockRejectedValueOnce(new Error('notification write failed'));
       await expect(
-        emitter.emitAsync(AppEvents.FINANCE_BUDGET_THRESHOLD_CROSSED, event),
+        emitter.emitAsync(FinanceEvents.BUDGET_THRESHOLD_CROSSED, event),
       ).rejects.toThrow('notification write failed');
       expect(await prisma.processedDomainEvent.count()).toBe(0);
       expect(await prisma.notification.count()).toBe(0);
-      await emitter.emitAsync(
-        AppEvents.FINANCE_BUDGET_THRESHOLD_CROSSED,
-        event,
-      );
-      await emitter.emitAsync(
-        AppEvents.FINANCE_BUDGET_THRESHOLD_CROSSED,
-        event,
-      );
+      await emitter.emitAsync(FinanceEvents.BUDGET_THRESHOLD_CROSSED, event);
+      await emitter.emitAsync(FinanceEvents.BUDGET_THRESHOLD_CROSSED, event);
       expect(await prisma.notification.count()).toBe(1);
       expect(await prisma.processedDomainEvent.count()).toBe(1);
       expect(publishInApp).toHaveBeenCalledTimes(1);
