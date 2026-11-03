@@ -20,6 +20,7 @@
     "@nestjs/websockets": "^11.2.6",
     "@personal-os/auth": "workspace:*",
     "@personal-os/config": "workspace:*",
+    "@personal-os/contracts": "workspace:*",
     "@personal-os/core": "workspace:*",
     "@personal-os/database": "workspace:*",
     "@personal-os/finance": "workspace:*",

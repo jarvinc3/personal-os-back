@@ -16,6 +16,9 @@ export const MODULE_SETTINGS_REGISTRY = Symbol.for(
 export const NOTIFICATION_INTENT_SINK = Symbol.for(
   'personal-os.contracts.notification-intent-sink',
 );
+export const NOTIFICATION_INTENT_CONSUMER = Symbol.for(
+  'personal-os.contracts.notification-intent-consumer',
+);
 export const DOMAIN_EVENT_PUBLISHER = Symbol.for(
   'personal-os.contracts.domain-event-publisher',
 );
@@ -200,6 +203,9 @@ export interface NotificationIntentSink {
   submit(
     intent: NotificationIntent,
   ): Promise<{ accepted: boolean; notificationIds: readonly string[] }>;
+}
+export interface NotificationIntentConsumer {
+  accept(input: unknown): NotificationIntent;
 }
 
 export interface AiCapabilityDefinition {

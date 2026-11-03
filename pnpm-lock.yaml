@@ -738,6 +738,9 @@ importers:
       '@personal-os/config':
         specifier: workspace:*
         version: link:../config
+      '@personal-os/contracts':
+        specifier: workspace:*
+        version: link:../contracts
       '@personal-os/core':
         specifier: workspace:*
         version: link:../core
