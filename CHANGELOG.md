@@ -6,6 +6,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [Se
 
 ### Agregado
 
+- NOTIF-0 (#245): adopta el consumidor neutral de `NotificationIntent` en Notifications y valida intents por versión y forma sin conectar todavía productores ni delivery.
 - PLATFORM-SETTINGS-0 (#244): define el descriptor y registro genéricos de module settings y compone Finance, Agenda, Projects y Health sin cambiar el formato persistido ni la API vigente.
 - PLATFORM-EVENTS-0 (#243): retira los nombres y DTOs de dominio Finance del catálogo de Core; listeners e integración consumen `FinanceEvents` sin cambiar nombres ni entrega.
 - FIN-0 (#242): define contratos propios de Finance para eventos versionados, adaptadores de IA/contexto, señales e intents; las publicaciones usan sus nombres sin depender de constantes de Core. La CI admite ejecución manual para validar una rama antes de abrir PR.

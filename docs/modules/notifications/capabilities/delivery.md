@@ -1,5 +1,15 @@
 # Capacidad: delivery y policy
 
+## Frontera NotificationIntent (NOTIF-0)
+
+Notifications expone `NotificationIntentConsumer` desde
+`@personal-os/contracts` y registra `NotificationIntentReceiver` detrás de su
+token. El receiver valida la versión, campos, canales, datos JSON y causa del
+intent de forma neutral respecto del dominio. No crea una notificación ni
+despacha canales; el pipeline existente conserva su comportamiento hasta
+NOTIF-1. Los dominios pueden producir intents mediante `IntentProducer` sin
+importar tipos de Finance.
+
 ## Flujo
 
 1. Persistencia de la notificación **antes** del dispatch.

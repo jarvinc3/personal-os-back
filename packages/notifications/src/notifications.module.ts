@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
 import { AuthModule } from '@personal-os/auth';
+import { NOTIFICATION_INTENT_CONSUMER } from '@personal-os/contracts';
 import { FinanceEventsModule } from '@personal-os/finance';
+import { NotificationIntentReceiver } from './application/notification-intent.receiver';
 import { NotificationPolicyService } from './application/notification-policy.service';
 import { NotificationsEventsListener } from './application/notifications-events.listener';
 import { NotificationsProcessor } from './application/notifications.processor';
@@ -21,6 +23,11 @@ import { NotificationsGateway } from './presentation/notifications.gateway';
   providers: [
     NotificationsRepository,
     NotificationPolicyService,
+    NotificationIntentReceiver,
+    {
+      provide: NOTIFICATION_INTENT_CONSUMER,
+      useExisting: NotificationIntentReceiver,
+    },
     NotificationsService,
     NotificationsEventsListener,
     NotificationsGateway,
@@ -40,6 +47,8 @@ import { NotificationsGateway } from './presentation/notifications.gateway';
     NotificationsGateway,
     PushTokensService,
     NotificationPolicyService,
+    NotificationIntentReceiver,
+    NOTIFICATION_INTENT_CONSUMER,
   ],
 })
 export class NotificationsModule {}
