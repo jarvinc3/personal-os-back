@@ -1,10 +1,10 @@
+import { FinanceEvents } from '../../contracts';
 import {
   Inject,
   Injectable,
   NotFoundException,
   Optional,
 } from '@nestjs/common';
-import { AppEvents } from '@personal-os/core';
 import type { Prisma } from '@personal-os/database';
 import { PrismaService } from '@personal-os/database';
 import { randomUUID } from 'crypto';
@@ -389,7 +389,7 @@ export class PrismaLedgerWriteRepository {
 
       await this.events.enqueue(
         {
-          eventName: AppEvents.FINANCE_TRANSFER_CREATED,
+          eventName: FinanceEvents.TRANSFER_CREATED,
           aggregateType: 'FinTransfer',
           aggregateId: transferGroupId,
           userId,
@@ -505,7 +505,7 @@ export class PrismaLedgerWriteRepository {
 
       await this.events.enqueue(
         {
-          eventName: AppEvents.FINANCE_TRANSFER_CREATED,
+          eventName: FinanceEvents.TRANSFER_CREATED,
           aggregateType: 'FinTransfer',
           aggregateId: transferGroupId,
           userId,
@@ -834,7 +834,7 @@ export class PrismaLedgerWriteRepository {
       tx,
       events: this.events,
       userId,
-      eventName: AppEvents.FINANCE_TRANSACTION_UPDATED,
+      eventName: FinanceEvents.TRANSACTION_UPDATED,
       transactionId: updated.id,
     });
     await this.thresholds?.processThresholds(userId, budgetSnapshots, tx);

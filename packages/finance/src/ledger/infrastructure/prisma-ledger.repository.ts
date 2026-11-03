@@ -1,5 +1,5 @@
+import { FinanceEvents } from '../../contracts';
 import { Inject, Injectable, Optional } from '@nestjs/common';
-import { AppEvents } from '@personal-os/core';
 import { PrismaService } from '@personal-os/database';
 import type { DomainEventPublisherPort } from '../../events/application/ports/domain-event-publisher.port';
 import type { BudgetThresholdPort } from '../../shared/application/budget-threshold.port';
@@ -298,7 +298,7 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
             tx,
             events: this.events,
             userId,
-            eventName: AppEvents.FINANCE_TRANSACTION_REVERSED,
+            eventName: FinanceEvents.TRANSACTION_REVERSED,
             transactionId: transactionId,
           });
         }
@@ -353,7 +353,7 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
             tx,
             events: this.events,
             userId,
-            eventName: AppEvents.FINANCE_TRANSACTION_UPDATED,
+            eventName: FinanceEvents.TRANSACTION_UPDATED,
             transactionId: transactionId,
           });
         }
@@ -482,14 +482,14 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
         tx,
         events: this.events,
         userId,
-        eventName: AppEvents.FINANCE_TRANSACTION_CONFIRMED,
+        eventName: FinanceEvents.TRANSACTION_CONFIRMED,
         transactionId: updated.id,
       });
       await enqueueTransactionEvent({
         tx,
         events: this.events,
         userId,
-        eventName: AppEvents.FINANCE_TRANSACTION_UPDATED,
+        eventName: FinanceEvents.TRANSACTION_UPDATED,
         transactionId: updated.id,
       });
       await this.thresholds?.processThresholds(userId, budgetSnapshots, tx);
@@ -545,7 +545,7 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
           tx,
           events: this.events,
           userId,
-          eventName: AppEvents.FINANCE_TRANSACTION_CONFIRMED,
+          eventName: FinanceEvents.TRANSACTION_CONFIRMED,
           transactionId: transactionId,
         });
       }
@@ -597,7 +597,7 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
           tx,
           events: this.events,
           userId,
-          eventName: AppEvents.FINANCE_TRANSACTION_UPDATED,
+          eventName: FinanceEvents.TRANSACTION_UPDATED,
           transactionId: id,
         });
       }
@@ -693,7 +693,7 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
 
       await this.events.enqueue(
         {
-          eventName: AppEvents.FINANCE_TRANSACTION_REVERSED,
+          eventName: FinanceEvents.TRANSACTION_REVERSED,
           aggregateType: 'FinTransaction',
           aggregateId: updated.id,
           userId,

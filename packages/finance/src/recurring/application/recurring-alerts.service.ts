@@ -1,5 +1,5 @@
+import { FinanceEvents } from '../../contracts';
 import { Inject, Injectable } from '@nestjs/common';
-import { AppEvents } from '@personal-os/core';
 import { FinanceOutboxDispatcher } from '../../events/infrastructure/finance-outbox.dispatcher';
 import { PrismaOutboxRepository } from '../../events/infrastructure/prisma-outbox.repository';
 import { DOMAIN_EVENT_PUBLISHER } from '../../shared/application/tokens';
@@ -42,7 +42,7 @@ export class RecurringAlertsService {
     for (const change of outcome.priceChanges) {
       await this.emit(userId, {
         eventId: `finance-recurring-price:${change.patternId}:${change.newAmount}`,
-        eventName: AppEvents.FINANCE_RECURRING_PRICE_CHANGED,
+        eventName: FinanceEvents.RECURRING_PRICE_CHANGED,
         aggregateId: change.patternId,
         payload: {
           patternId: change.patternId,
@@ -73,7 +73,7 @@ export class RecurringAlertsService {
     ) {
       await this.emit(userId, {
         eventId: `finance-recurring-missed:${pattern.id}:${expectedIso}`,
-        eventName: AppEvents.FINANCE_RECURRING_MISSED,
+        eventName: FinanceEvents.RECURRING_MISSED,
         aggregateId: pattern.id,
         payload: {
           patternId: pattern.id,
@@ -92,7 +92,7 @@ export class RecurringAlertsService {
     }
     await this.emit(userId, {
       eventId: `finance-recurring-upcoming:${pattern.id}:${expectedIso}`,
-      eventName: AppEvents.FINANCE_RECURRING_UPCOMING,
+      eventName: FinanceEvents.RECURRING_UPCOMING,
       aggregateId: pattern.id,
       payload: {
         patternId: pattern.id,

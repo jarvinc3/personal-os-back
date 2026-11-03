@@ -1,4 +1,4 @@
-import { AppEvents } from '@personal-os/core';
+import { FinanceEvents } from '../../contracts';
 import type { UsersService } from '@personal-os/users';
 import type { FinanceOutboxDispatcher } from '../../events/infrastructure/finance-outbox.dispatcher';
 import type { PrismaOutboxRepository } from '../../events/infrastructure/prisma-outbox.repository';
@@ -39,7 +39,7 @@ describe('WeeklySummaryScheduler', () => {
     expect(enqueue).toHaveBeenCalledWith(
       expect.objectContaining({
         eventId: 'finance-weekly-summary:user-1:2026-10-12',
-        eventName: AppEvents.FINANCE_WEEKLY_SUMMARY,
+        eventName: FinanceEvents.WEEKLY_SUMMARY,
         payload: {
           weekStart: '2026-10-12',
           summary: { weekStart: '2026-10-12' },

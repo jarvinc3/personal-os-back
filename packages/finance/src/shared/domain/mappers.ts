@@ -1,17 +1,17 @@
-import { AppEvents } from '@personal-os/core';
+import { FinanceEvents } from '../../contracts';
 
 export function transactionCreatedEventName(status: string): string {
   switch (status) {
     case 'CONFIRMED':
-      return AppEvents.FINANCE_TRANSACTION_CONFIRMED;
+      return FinanceEvents.TRANSACTION_CONFIRMED;
     case 'DECLINED':
-      return AppEvents.FINANCE_TRANSACTION_DECLINED;
+      return FinanceEvents.TRANSACTION_DECLINED;
     case 'CANCELLED':
-      return AppEvents.FINANCE_TRANSACTION_CANCELLED;
+      return FinanceEvents.TRANSACTION_CANCELLED;
     case 'REVERSED':
-      return AppEvents.FINANCE_TRANSACTION_REVERSED;
+      return FinanceEvents.TRANSACTION_REVERSED;
     default:
-      return AppEvents.FINANCE_TRANSACTION_IMPORTED;
+      return FinanceEvents.TRANSACTION_IMPORTED;
   }
 }
 

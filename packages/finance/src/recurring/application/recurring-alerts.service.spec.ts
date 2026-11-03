@@ -1,4 +1,4 @@
-import { AppEvents } from '@personal-os/core';
+import { FinanceEvents } from '../../contracts';
 import { RecurringAlertsService } from './recurring-alerts.service';
 import type { RecurringPatternWithMerchant } from './recurring.service';
 
@@ -43,7 +43,7 @@ describe('RecurringAlertsService', () => {
 
     expect(events.enqueue).toHaveBeenCalledWith(
       expect.objectContaining({
-        eventName: AppEvents.FINANCE_RECURRING_UPCOMING,
+        eventName: FinanceEvents.RECURRING_UPCOMING,
         userId: 'user-1',
         payload: expect.objectContaining({ daysUntil: 2 }),
       }),
@@ -63,7 +63,7 @@ describe('RecurringAlertsService', () => {
 
     expect(events.enqueue).toHaveBeenCalledWith(
       expect.objectContaining({
-        eventName: AppEvents.FINANCE_RECURRING_MISSED,
+        eventName: FinanceEvents.RECURRING_MISSED,
       }),
     );
   });
@@ -89,7 +89,7 @@ describe('RecurringAlertsService', () => {
 
     expect(events.enqueue).toHaveBeenCalledWith(
       expect.objectContaining({
-        eventName: AppEvents.FINANCE_RECURRING_PRICE_CHANGED,
+        eventName: FinanceEvents.RECURRING_PRICE_CHANGED,
         eventId: 'finance-recurring-price:pattern-1:600',
       }),
     );

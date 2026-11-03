@@ -1,5 +1,5 @@
+import { FinanceEvents } from '../../contracts';
 import { Inject, Injectable } from '@nestjs/common';
-import { AppEvents } from '@personal-os/core';
 import {
   resolveSubscriptionReminderDays,
   UsersService,
@@ -65,7 +65,7 @@ export class SubscriptionRemindersService {
       if (!(await this.outbox.hasEvent(eventId))) {
         await this.events.enqueue({
           eventId,
-          eventName: AppEvents.FINANCE_SUBSCRIPTION_RENEWAL_DUE,
+          eventName: FinanceEvents.SUBSCRIPTION_RENEWAL_DUE,
           aggregateType: AGGREGATE_TYPE,
           aggregateId: subscription.id,
           userId,

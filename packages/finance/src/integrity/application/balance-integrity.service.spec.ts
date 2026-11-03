@@ -1,6 +1,6 @@
+import { FinanceEvents } from '../../contracts';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@personal-os/database';
-import { AppEvents } from '@personal-os/core';
 import { BalanceIntegrityService } from './balance-integrity.service';
 import type {
   BalanceDriftRow,
@@ -185,7 +185,7 @@ describe('BalanceIntegrityService', () => {
     expect(events.enqueue).toHaveBeenCalledTimes(1);
     expect(events.enqueue).toHaveBeenCalledWith(
       expect.objectContaining({
-        eventName: AppEvents.FINANCE_BALANCE_DRIFT_DETECTED,
+        eventName: FinanceEvents.BALANCE_DRIFT_DETECTED,
         aggregateType: 'FinBalanceDrift',
         aggregateId: 'drift-1',
         userId: 'user-1',

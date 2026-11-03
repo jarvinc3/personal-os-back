@@ -1,5 +1,5 @@
+import { FinanceEvents } from '../../contracts';
 import { Inject, Injectable } from '@nestjs/common';
-import { AppEvents } from '@personal-os/core';
 import type { FinTransactionType, Prisma } from '@personal-os/database';
 import { PrismaService } from '@personal-os/database';
 import type { DomainEventPublisherPort } from '../../events/application/ports/domain-event-publisher.port';
@@ -383,7 +383,7 @@ export class PrismaLedgerDeletionRepository {
   ) {
     await this.events.enqueue(
       {
-        eventName: AppEvents.FINANCE_TRANSACTION_DELETED,
+        eventName: FinanceEvents.TRANSACTION_DELETED,
         aggregateType: 'FinTransaction',
         aggregateId: row.id,
         userId,

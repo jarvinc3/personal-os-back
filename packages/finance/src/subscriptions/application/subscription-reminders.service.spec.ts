@@ -1,4 +1,4 @@
-import { AppEvents } from '@personal-os/core';
+import { FinanceEvents } from '../../contracts';
 import type { SubscriptionRow } from '../infrastructure/subscriptions.repository';
 import { SubscriptionRemindersService } from './subscription-reminders.service';
 
@@ -74,7 +74,7 @@ describe('SubscriptionRemindersService', () => {
     expect(events.enqueue).toHaveBeenCalledWith(
       expect.objectContaining({
         eventId: 'finance-subscription-renewal:sub-1:2026-02-28',
-        eventName: AppEvents.FINANCE_SUBSCRIPTION_RENEWAL_DUE,
+        eventName: FinanceEvents.SUBSCRIPTION_RENEWAL_DUE,
         payload: expect.objectContaining({ daysUntil: 2 }),
       }),
     );

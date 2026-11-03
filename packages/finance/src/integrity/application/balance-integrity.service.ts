@@ -1,10 +1,10 @@
+import { FinanceEvents } from '../../contracts';
 import {
   BadRequestException,
   Inject,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { AppEvents } from '@personal-os/core';
 import { DOMAIN_EVENT_PUBLISHER } from '../../shared/application/tokens';
 import { roundMoney } from '../../shared/domain/money';
 import type { DomainEventPublisherPort } from '../../events/application/ports/domain-event-publisher.port';
@@ -156,7 +156,7 @@ export class BalanceIntegrityService {
     );
     for (const drift of changed) {
       await this.events.enqueue({
-        eventName: AppEvents.FINANCE_BALANCE_DRIFT_DETECTED,
+        eventName: FinanceEvents.BALANCE_DRIFT_DETECTED,
         aggregateType: 'FinBalanceDrift',
         aggregateId: drift.id,
         userId,
