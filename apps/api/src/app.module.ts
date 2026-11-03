@@ -22,7 +22,11 @@ import {
 } from '@personal-os/config';
 import { CoreModule, getBullBoardImports, QueueNames } from '@personal-os/core';
 import { PrismaModule } from '@personal-os/database';
-import { FinanceAiCapabilities, FinanceModule } from '@personal-os/finance';
+import {
+  FINANCE_SETTINGS_DESCRIPTOR,
+  FinanceAiCapabilities,
+  FinanceModule,
+} from '@personal-os/finance';
 import { NotificationsModule } from '@personal-os/notifications';
 import { UsersModule } from '@personal-os/users';
 import { randomUUID } from 'crypto';
@@ -33,6 +37,10 @@ import { UserDataWipeModule } from './user-data-wipe/user-data-wipe.module';
 import { AiCapabilityCompositionService } from './ai-capabilities/ai-capability-composition.service';
 import { AiSignalConsumerRegistry } from '@personal-os/ai-agent';
 import { FinanceSignalConsumer } from '@personal-os/finance';
+import { ModuleSettingsModule } from './module-settings/module-settings.module';
+import { AGENDA_SETTINGS_DESCRIPTOR } from './module-settings/descriptors/agenda.settings-descriptor';
+import { HEALTH_SETTINGS_DESCRIPTOR } from './module-settings/descriptors/health.settings-descriptor';
+import { PROJECTS_SETTINGS_DESCRIPTOR } from './module-settings/descriptors/projects.settings-descriptor';
 
 @Injectable()
 class AiSignalConsumerCompositionService implements OnModuleInit {
@@ -176,6 +184,12 @@ const bullBoardEnabled = isBullBoardEnabledFromProcessEnv();
     UsersModule,
     UserDataWipeModule,
     FinanceModule,
+    ModuleSettingsModule.register([
+      FINANCE_SETTINGS_DESCRIPTOR,
+      AGENDA_SETTINGS_DESCRIPTOR,
+      PROJECTS_SETTINGS_DESCRIPTOR,
+      HEALTH_SETTINGS_DESCRIPTOR,
+    ]),
     NotificationsModule,
     AiModule,
     AuthModule,

@@ -16,6 +16,8 @@ export {
   MODULE_SLUGS,
   resolveCardDueDaysBefore,
   resolveSubscriptionReminderDays,
+  validateCardDueDaysBefore,
+  validateSubscriptionReminderDays,
   type FinanceNotificationKey,
   type ModuleSlug,
 } from './domain/defaults/user-settings-defaults';
