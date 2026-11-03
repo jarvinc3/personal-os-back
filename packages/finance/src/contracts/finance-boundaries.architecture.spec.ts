@@ -107,4 +107,24 @@ describe('Finance boundary contracts', () => {
       );
     }
   });
+
+  it('keeps Finance event names and DTOs out of Core', () => {
+    const coreEventsDirectory = join(
+      repositoryRoot,
+      'packages/core/src/events',
+    );
+    const constants = readFileSync(
+      join(coreEventsDirectory, 'event.constants.ts'),
+      'utf8',
+    );
+    const domainEvents = readFileSync(
+      join(coreEventsDirectory, 'domain-events.ts'),
+      'utf8',
+    );
+
+    expect(constants).not.toMatch(/FINANCE_[A-Z_]+|finance\./);
+    expect(domainEvents).not.toMatch(
+      /TransactionCreatedEvent|TransactionUpdatedEvent|BudgetThresholdReachedEvent|FinanceTransferCreatedEvent/,
+    );
+  });
 });

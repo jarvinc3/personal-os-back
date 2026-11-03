@@ -6,6 +6,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [Se
 
 ### Agregado
 
+- PLATFORM-EVENTS-0 (#243): retira los nombres y DTOs de dominio Finance del catálogo de Core; listeners e integración consumen `FinanceEvents` sin cambiar nombres ni entrega.
 - FIN-0 (#242): define contratos propios de Finance para eventos versionados, adaptadores de IA/contexto, señales e intents; las publicaciones usan sus nombres sin depender de constantes de Core. La CI admite ejecución manual para validar una rama antes de abrir PR.
 - AI-11 (#214): importa señales financieras idempotentemente por señal, conserva procedencia y datos monetarios originales, y envía candidatos ambiguos a revisión sin dar acceso de Gmail a Finanzas.
 - AI-10 (#213): aplica política `AUTO_ALLOWED` / `CONFIRM_REQUIRED` / `FORBIDDEN` a capacidades mutantes, con acciones auditables, confirmación, cancelación y claims atómicos.
