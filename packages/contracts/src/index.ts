@@ -10,6 +10,9 @@ export const INFERENCE_COMPLETION = Symbol.for(
 export const MODULE_SETTINGS_READER = Symbol.for(
   'personal-os.contracts.module-settings-reader',
 );
+export const MODULE_SETTINGS_REGISTRY = Symbol.for(
+  'personal-os.contracts.module-settings-registry',
+);
 export const NOTIFICATION_INTENT_SINK = Symbol.for(
   'personal-os.contracts.notification-intent-sink',
 );
@@ -141,6 +144,13 @@ export interface SettingsDescriptor<T extends JsonObject = JsonObject> {
   applyPatch(current: T, patch: unknown): T;
   notificationEnabled(config: T, key: string): boolean;
 }
+export interface ModuleSettingsRegistry {
+  register(descriptor: SettingsDescriptor): void;
+  get(slug: string): SettingsDescriptor;
+  list(): readonly SettingsDescriptor[];
+  normalize(slug: string, stored: unknown): JsonObject;
+  applyPatch(slug: string, current: unknown, patch: unknown): JsonObject;
+}
 export interface ModuleSettingsReader {
   read(
     userId: string,
@@ -152,6 +162,7 @@ export interface ModuleSettingsReader {
     key: string,
   ): Promise<boolean>;
 }
+export { createSettingsDescriptor } from './module-settings';
 
 export interface DomainEvent<T extends JsonObject = JsonObject> {
   eventId: string;
