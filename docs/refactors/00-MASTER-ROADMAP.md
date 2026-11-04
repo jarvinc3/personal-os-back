@@ -24,7 +24,7 @@ Antes de Wave A se entrega la corrección independiente del outbox: leases recup
 
 ## Seguimiento de fases en GitHub
 
-Cada fase tiene un issue propio en `personal-os-back`, enlazado como sub-issue del [programa #193](https://github.com/jarvinc3/personal-os-back/issues/193). Las fases AI-0 a AI-12 y los contratos de la oleada A ya lo tienen; las fases restantes de Finance, Notifications y plataforma abren su issue al planificarse. La prioridad del Project 3 sigue este criterio: **High** cuando la fase es prerrequisito de un gate de otro programa o del release; **Medium** para el resto del trabajo de `0.100.0`; **Low** para lo que sale después del release.
+Cada fase pendiente tiene un issue propio en `personal-os-back`, enlazado como sub-issue del [programa #193](https://github.com/jarvinc3/personal-os-back/issues/193). AI-0 a AI-11 y los contratos de la oleada A están cerrados; AI-12 sigue abierto y fuera de `0.100.0`. FIN-2 ya cumple su gate mediante AI-8 (#211), y FIN-3 quedó implementada con AI-11 (#214); la vista de evidencia está cubierta por web #383. La prioridad del Project 3 sigue este criterio: **High** cuando la fase es prerrequisito de un gate de otro programa o del release; **Medium** para el resto del trabajo de `0.100.0`; **Low** para lo que sale después del release.
 
 | Fase                                 | Issue                                                           | Wave                 | Estado  | Prioridad |
 | ------------------------------------ | --------------------------------------------------------------- | -------------------- | ------- | --------- |
@@ -33,13 +33,13 @@ Cada fase tiene un issue propio en `personal-os-back`, enlazado como sub-issue d
 | AI-2 Gmail/corpus                    | [#205](https://github.com/jarvinc3/personal-os-back/issues/205) | B1                   | Cerrado | High      |
 | AI-3 evidencia y verificación humana | [#206](https://github.com/jarvinc3/personal-os-back/issues/206) | C                    | Cerrado | Medium    |
 | AI-4 knowledge                       | [#207](https://github.com/jarvinc3/personal-os-back/issues/207) | C                    | Cerrado | Medium    |
-| AI-5 email intelligence              | [#208](https://github.com/jarvinc3/personal-os-back/issues/208) | C                    | Abierto | Medium    |
-| AI-6 evaluación                      | [#209](https://github.com/jarvinc3/personal-os-back/issues/209) | C                    | Abierto | Medium    |
-| AI-7 Signals                         | [#210](https://github.com/jarvinc3/personal-os-back/issues/210) | D                    | Abierto | High      |
-| AI-8 Capabilities                    | [#211](https://github.com/jarvinc3/personal-os-back/issues/211) | D                    | Abierto | Medium    |
-| AI-9 Agent Runtime                   | [#212](https://github.com/jarvinc3/personal-os-back/issues/212) | E                    | Abierto | Medium    |
-| AI-10 Action Policy                  | [#213](https://github.com/jarvinc3/personal-os-back/issues/213) | E                    | Abierto | Medium    |
-| AI-11 Finance IMPORT                 | [#214](https://github.com/jarvinc3/personal-os-back/issues/214) | F                    | Abierto | High      |
+| AI-5 email intelligence              | [#208](https://github.com/jarvinc3/personal-os-back/issues/208) | C                    | Cerrado | Medium    |
+| AI-6 evaluación                      | [#209](https://github.com/jarvinc3/personal-os-back/issues/209) | C                    | Cerrado | Medium    |
+| AI-7 Signals                         | [#210](https://github.com/jarvinc3/personal-os-back/issues/210) | D                    | Cerrado | High      |
+| AI-8 Capabilities                    | [#211](https://github.com/jarvinc3/personal-os-back/issues/211) | D                    | Cerrado | Medium    |
+| AI-9 Agent Runtime                   | [#212](https://github.com/jarvinc3/personal-os-back/issues/212) | E                    | Cerrado | Medium    |
+| AI-10 Action Policy                  | [#213](https://github.com/jarvinc3/personal-os-back/issues/213) | E                    | Cerrado | Medium    |
+| AI-11 Finance IMPORT                 | [#214](https://github.com/jarvinc3/personal-os-back/issues/214) | F                    | Cerrado | High      |
 | AI-12 Proactive Intelligence         | [#215](https://github.com/jarvinc3/personal-os-back/issues/215) | Después de `0.100.0` | Abierto | Low       |
 
 Cada diseño de fase enlaza su issue: [AI-0](ai-0-design/00-README.md) y [AI-1](ai-1-design/00-inference-gateway.md).
@@ -55,7 +55,24 @@ Estos issues se abrieron el 2026-10-28 para que el trabajo pendiente de la olead
 | PLATFORM-SETTINGS-0 | [#244](https://github.com/jarvinc3/personal-os-back/issues/244) | Plataforma    | Cerrado | Medium    |
 | NOTIF-0             | [#245](https://github.com/jarvinc3/personal-os-back/issues/245) | Notifications | Cerrado | Medium    |
 
-El gate de la oleada A quedó cerrado: AI-0 y los cuatro contratos de frontera están cerrados. AI-12 (#215) permanece después de `0.100.0`, como `0.101.0`; las fases restantes de Finance, Notifications y plataforma abren su issue al planificarse.
+El gate de la oleada A quedó cerrado: AI-0 y los cuatro contratos de frontera están cerrados. AI-12 (#215) permanece después de `0.100.0`, como `0.101.0`.
+
+### Fases de Finance, Platform y Notifications antes de 0.100.0
+
+La decisión registrada en #308 mantiene las diez fases como requisito del release. FIN-2 y FIN-3 ya están cubiertas por AI-8 y AI-11; no se abren issues duplicados. Las otras ocho fases tienen issues de back. No requieren issues web mientras mantengan los contratos, textos y pantallas existentes.
+
+| Fase | Issue | Estado |
+| --- | --- | --- |
+| FIN-1 | [#317](https://github.com/jarvinc3/personal-os-back/issues/317) | Pendiente |
+| FIN-2 | AI-8 [#211](https://github.com/jarvinc3/personal-os-back/issues/211) | Cubierto |
+| FIN-3 | AI-11 [#214](https://github.com/jarvinc3/personal-os-back/issues/214); evidencia web [#383](https://github.com/jarvinc3/personal-os-web/issues/383) | Cubierto |
+| FIN-4 | [#318](https://github.com/jarvinc3/personal-os-back/issues/318) | Pendiente |
+| PLATFORM-EVENTS-1 | [#319](https://github.com/jarvinc3/personal-os-back/issues/319) | Pendiente |
+| PLATFORM-SETTINGS-1 | [#320](https://github.com/jarvinc3/personal-os-back/issues/320) | Pendiente |
+| PLATFORM-SETTINGS-2 | [#321](https://github.com/jarvinc3/personal-os-back/issues/321) | Pendiente |
+| NOTIF-1 | [#322](https://github.com/jarvinc3/personal-os-back/issues/322) | Pendiente |
+| NOTIF-2 | [#323](https://github.com/jarvinc3/personal-os-back/issues/323) | Pendiente |
+| NOTIF-3 | [#324](https://github.com/jarvinc3/personal-os-back/issues/324) | Pendiente |
 
 Los hallazgos de la QA de AI-4 forman parte de AI-5: #238 y #239 corrigen la proyección y la revocación, y #246 cubre la promoción manual de ADMIN.
 
