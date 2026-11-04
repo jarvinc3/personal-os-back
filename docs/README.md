@@ -18,8 +18,7 @@ Mapa para agentes y reviewers. Estándar: [documentation-standard.md](./document
 
 Estado, roadmap y hallazgos: GitHub Issues del repositorio (label `roadmap`).
 
-Refactor en preparación: [roadmap](refactors/00-MASTER-ROADMAP.md) y
-[diseño técnico de AI-0](refactors/ai-0-design/00-README.md).
+Refactor en preparación: [índice de programas](refactors/README.md), [roadmap maestro](refactors/01-master-roadmap.md) y [diseño técnico de AI-0](refactors/programs/intelligence/phases/ai-0/README.md).
 
 ## Módulos Nest reales
 

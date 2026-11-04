@@ -6,6 +6,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [Se
 
 ### Agregado
 
+- #308: reorganiza `docs/refactors` por programa y fase; añade índices con objetivos, issues, PRs y estados, y conserva inventarios y borradores anteriores en `archive/`.
 - Catálogos CSV con 104 casos manuales AI-0 a AI-11 y una herramienta para generar rondas XLSX y exportar sus resultados a CSV (#309).
 - NOTIF-0 (#245): adopta el consumidor neutral de `NotificationIntent` en Notifications y valida intents por versión y forma sin conectar todavía productores ni delivery.
 - PLATFORM-SETTINGS-0 (#244): define el descriptor y registro genéricos de module settings y compone Finance, Agenda, Projects y Health sin cambiar el formato persistido ni la API vigente.
@@ -293,7 +294,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [Se
 
 ### Agregado
 
-- Paquete de contexto del rediseño de IA en `docs/refactors/personal-os-ai-redesign-context-pack/` (00–12): visión, estado actual, decisiones e invariantes, arquitectura objetivo (Inference Gateway, Capability Registry, Signals, Action Policy), conocimiento con evidencia append-only y alcance GLOBAL/USER, Email Intelligence V1, roadmap de 13 fases (0–12) con pruebas, demo y gate por fase, modelo de datos, capa de roles (USER | CONTRIBUTOR | ADMIN), impacto en back y web, y decisiones del dueño registradas. Solo documentación; no cambia el comportamiento.
+- Paquete de contexto del rediseño de IA, reorganizado en `docs/refactors/programs/intelligence/`: visión, estado actual, decisiones e invariantes, arquitectura objetivo (Inference Gateway, Capability Registry, Signals, Action Policy), conocimiento con evidencia append-only y alcance GLOBAL/USER, Email Intelligence V1, roadmap de 13 fases (0–12) con pruebas, demo y gate por fase, modelo de datos, capa de roles (USER | CONTRIBUTOR | ADMIN), impacto en back y web, y decisiones del dueño registradas. Solo documentación; no cambia el comportamiento.
 - Skill `archify` en `.agents/skills/archify/` (registrada en `skills-lock.json`) y diagramas generados en `.archify/` (arquitectura, ERD de finanzas, ingesta de correo, ledger, estado de cuenta, releases, monorepo, sync de Gmail, resumen semanal).
 - En desarrollo, la API sirve los diagramas de `.archify/` como estáticos en `/docs/diagramas/`; en producción no se montan.
 - Convenciones de issues en `docs/issue-conventions.md` y plantillas `.github/ISSUE_TEMPLATE/bug.yml` y `feature.yml`.

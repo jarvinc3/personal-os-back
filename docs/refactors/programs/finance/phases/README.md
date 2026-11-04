@@ -1,0 +1,11 @@
+# Fases de Finance
+
+| Fase              | Objetivo                                               | Issue                                                           | PR relacionado                                                                                                                       | Estado             |
+| ----------------- | ------------------------------------------------------ | --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ | ------------------ |
+| [FIN-0](fin-0.md) | Contratos de frontera                                  | [#242](https://github.com/jarvinc3/personal-os-back/issues/242) | [#302](https://github.com/jarvinc3/personal-os-back/pull/302)                                                                        | Cerrada            |
+| [FIN-1](fin-1.md) | Retirar la infraestructura legacy de fuentes de correo | [#317](https://github.com/jarvinc3/personal-os-back/issues/317) | Pendiente                                                                                                                            | Abierta            |
+| [FIN-2](fin-2.md) | Adaptadores de IA y contexto propiedad de Finance      | [#211](https://github.com/jarvinc3/personal-os-back/issues/211) | [#295](https://github.com/jarvinc3/personal-os-back/pull/295)                                                                        | Cubierta por AI-8  |
+| [FIN-3](fin-3.md) | Consumir señales financieras                           | [#214](https://github.com/jarvinc3/personal-os-back/issues/214) | back [#298](https://github.com/jarvinc3/personal-os-back/pull/298), web [#388](https://github.com/jarvinc3/personal-os-web/pull/388) | Cubierta por AI-11 |
+| [FIN-4](fin-4.md) | Producir eventos e intents con semántica de Finance    | [#318](https://github.com/jarvinc3/personal-os-back/issues/318) | Pendiente                                                                                                                            | Abierta            |
+
+FIN-2 y FIN-3 se enlazan a las fases AI que cubrieron sus gates; no hay issues duplicados. Consulta el [índice de Finance](../README.md).

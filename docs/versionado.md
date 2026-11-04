@@ -25,7 +25,7 @@ el despliegue de 0.55.1. No se crea esa rama anticipadamente. El owner decide
 merges y deploys. `0.100.0` solo puede salir tras AI-11 y los gates integrados;
 AI-12 pertenece a `0.101.0`. Después del release final vuelve la política normal.
 
-Detalle: [decisiones de implementación](refactors/01-IMPLEMENTATION-DECISIONS.md).
+Detalle: [decisiones de implementación](refactors/03-implementation-decisions.md).
 
 ### Política general
 

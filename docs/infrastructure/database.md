@@ -26,7 +26,7 @@ por checksum en [`docs/archive/migrations-pre-ai0/`](../archive/migrations-pre-a
 no se concatena ni se modifica. La baseline se comprobó en una base PostgreSQL
 desechable con fixtures locales de `auth` y `storage`, y Prisma no detectó drift.
 La metadata de PROD solo alimentó checksums y objetos no modelados; PROD no fue
-modificado. Ver [los artefactos de AI-0](../refactors/ai-0-design/artifacts/).
+modificado. Ver [los artefactos archivados de AI-0](../refactors/archive/reset/ai-0-artifacts/).
 
 ## Operación
 
