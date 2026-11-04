@@ -8,6 +8,7 @@ Mapa para agentes y reviewers. Estándar: [documentation-standard.md](./document
 | [modules/](./modules/README.md)                | Auth, users, logos, notifications, AI, finance                     |
 | [infrastructure/](./infrastructure/README.md)  | Config, health, eventos, colas, Prisma, WS, seguridad              |
 | [operations/](./operations/README.md)          | Quick start, env, scripts, tests, CI                               |
+| [testing/](./testing/README.md)                | Catálogo manual y registro de rondas AI-0 a AI-11                  |
 | [reference/](./reference/README.md)            | Trazabilidad y guía del changelog                                  |
 | [issue-conventions.md](./issue-conventions.md) | Cómo se escriben los issues: estructura, etiquetas, talla y cierre |
 | [archive/](./archive/)                         | Registro de revisión, implementaciones y auditorías cerradas       |

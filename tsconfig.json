@@ -6,7 +6,8 @@
     "test/**/*.ts",
     "scripts/seed-knowledge-dev.ts",
     "scripts/seed-qa-user-dev.ts",
-    "scripts/lib/**/*.ts"
+    "scripts/lib/**/*.ts",
+    "scripts/testing/**/*.ts"
   ],
   "exclude": ["**/dist/**", "**/node_modules/**"]
 }

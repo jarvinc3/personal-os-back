@@ -6,6 +6,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [Se
 
 ### Agregado
 
+- Catálogos CSV con 104 casos manuales AI-0 a AI-11 y una herramienta para generar rondas XLSX y exportar sus resultados a CSV (#309).
 - NOTIF-0 (#245): adopta el consumidor neutral de `NotificationIntent` en Notifications y valida intents por versión y forma sin conectar todavía productores ni delivery.
 - PLATFORM-SETTINGS-0 (#244): define el descriptor y registro genéricos de module settings y compone Finance, Agenda, Projects y Health sin cambiar el formato persistido ni la API vigente.
 - PLATFORM-EVENTS-0 (#243): retira los nombres y DTOs de dominio Finance del catálogo de Core; listeners e integración consumen `FinanceEvents` sin cambiar nombres ni entrega.

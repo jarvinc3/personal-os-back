@@ -5,6 +5,10 @@
 | Unit | `pnpm test`     | Specs junto al unit (`*.spec.ts`)                        |
 | E2E  | `pnpm test:e2e` | `test/*.e2e-spec.ts` — Prisma mock / auth test providers |
 
+## Pruebas manuales AI-0 a AI-11
+
+Los 104 casos manuales de Finanzas e Inteligencia y el flujo para guardar rondas están en [docs/testing/README.md](../testing/README.md). Esta herramienta no ejecuta pruebas ni sustituye la CI.
+
 ## Integración con PostgreSQL real
 
 `pnpm test:integration` exige `TEST_DATABASE_URL` explícita hacia PostgreSQL
