@@ -1,7 +1,7 @@
 name: CI
 
 # Los checks livianos corren en ubuntu-latest en paralelo con el job pesado,
-# que se queda en los runners self-hosted por Docker y los tests de integración.
+# también en ubuntu-latest (temporal, ver comentario en el job backend).
 on:
   push:
     branches: [main, master, develop]
@@ -126,22 +126,35 @@ jobs:
   backend:
     needs: changes
     if: always() && (github.event_name != 'pull_request' || needs.changes.outputs.code == 'true')
-    runs-on: [self-hosted, personal-os]
+    # TEMPORAL: corre en runners de GitHub mientras la PC de casa (runner
+    # self-hosted "personal-os") está apagada. Para volver: restaurar
+    # runs-on: [self-hosted, personal-os], shell pwsh y los pasos Docker/limpieza
+    # desde el historial de git (commit anterior a la rama ci/github-hosted-runner).
+    runs-on: ubuntu-latest
     timeout-minutes: 30
     defaults:
       run:
-        shell: pwsh
+        shell: bash
     env:
-      PG_CONTAINER: pos-ci-pg-${{ github.run_id }}-${{ github.run_attempt }}
+      DATABASE_URL: postgresql://postgres:test@localhost:5432/postgres
+      TEST_DATABASE_URL: postgresql://postgres:test@localhost:5432/postgres
+      PGPASSWORD: test
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -h localhost"
+          --health-interval 2s
+          --health-timeout 5s
+          --health-retries 30
     steps:
-      # El runner es dedicado: conserva node_modules entre corridas para evitar
-      # ~7 minutos de hardlinks en Windows; el resto se limpia.
       - uses: actions/checkout@v4
-        with:
-          clean: false
-
-      - name: Limpiar el workspace salvo node_modules
-        run: git clean -fdx -e node_modules
 
       - uses: pnpm/action-setup@v4
         with:
@@ -150,9 +163,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
+          cache: pnpm
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile --store-dir "$env:LOCALAPPDATA\pnpm\store"
+        run: pnpm install --frozen-lockfile
 
       - name: Prisma generate
         run: pnpm db:generate
@@ -160,27 +174,10 @@ jobs:
       - name: Build workspace packages
         run: pnpm build:packages
 
-      - name: Start CI Postgres (puerto dinámico)
-        run: |
-          docker rm -f $env:PG_CONTAINER 2>$null
-          docker run -d --name $env:PG_CONTAINER -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=test -e POSTGRES_DB=postgres -p '127.0.0.1::5432' postgres:16-alpine
-          if ($LASTEXITCODE -ne 0) { throw 'No se pudo iniciar Postgres (Docker Desktop encendido?)' }
-          $port = (docker port $env:PG_CONTAINER 5432 | Select-Object -First 1).Split(':')[-1].Trim()
-          if (-not $port) { throw 'No se obtuvo el puerto de Postgres' }
-          Add-Content -Path $env:GITHUB_ENV -Value "CI_PG_PORT=$port"
-          Add-Content -Path $env:GITHUB_ENV -Value "DATABASE_URL=postgresql://postgres:test@localhost:$port/postgres"
-          Add-Content -Path $env:GITHUB_ENV -Value "TEST_DATABASE_URL=postgresql://postgres:test@localhost:$port/postgres"
-          for ($i = 0; $i -lt 30; $i++) {
-            docker exec $env:PG_CONTAINER pg_isready -U postgres -h localhost 2>$null
-            if ($LASTEXITCODE -eq 0) { break }
-            Start-Sleep -Seconds 2
-          }
-          if ($LASTEXITCODE -ne 0) { throw 'Postgres no quedo listo' }
-
       - name: Stub Supabase roles for CI Postgres
         run: |
-          $sql = @"
-          DO `$`$
+          psql -h localhost -U postgres -d postgres -v ON_ERROR_STOP=1 <<'SQL'
+          DO $$
           BEGIN
             IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'authenticated') THEN
               CREATE ROLE authenticated NOLOGIN;
@@ -192,17 +189,15 @@ jobs:
               CREATE ROLE service_role NOLOGIN BYPASSRLS;
             END IF;
           END
-          `$`$;
+          $$;
           CREATE SCHEMA IF NOT EXISTS auth;
           CREATE OR REPLACE FUNCTION auth.uid()
-          RETURNS uuid LANGUAGE sql STABLE AS `$`$
+          RETURNS uuid LANGUAGE sql STABLE AS $$
             SELECT NULLIF(current_setting('request.jwt.claim.sub', true), '')::uuid;
-          `$`$;
+          $$;
           GRANT USAGE ON SCHEMA auth TO authenticated, anon, service_role;
           GRANT EXECUTE ON FUNCTION auth.uid() TO authenticated, anon, service_role;
-          "@
-          $sql | docker exec -i $env:PG_CONTAINER psql -U postgres -d postgres -v ON_ERROR_STOP=1
-          if ($LASTEXITCODE -ne 0) { throw 'Fallo el stub de roles' }
+          SQL
 
       - name: Prisma migrate deploy
         run: pnpm db:migrate:deploy
@@ -215,7 +210,3 @@ jobs:
 
       - name: PostgreSQL integration and crash recovery
         run: pnpm test:integration
-
-      - name: Stop CI Postgres
-        if: always()
-        run: docker rm -f $env:PG_CONTAINER 2>$null; exit 0
