@@ -28,25 +28,25 @@ export const AI_CAPABILITY_REGISTRY = Symbol.for(
 export const AI_CAPABILITY_PROVIDERS = Symbol.for(
   'personal-os.contracts.ai-capability-providers',
 );
-export const AI_AGENT_INFERENCE = Symbol.for(
-  'personal-os.contracts.ai-agent-inference',
+export const AI_CONVERSATION_INFERENCE = Symbol.for(
+  'personal-os.contracts.ai-conversation-inference',
 );
 
-export type AiAgentToolCall = {
+export type AiToolCall = {
   id: string;
   name: string;
   arguments: JsonObject;
 };
 
-export interface AiAgentMessage {
+export interface AiConversationMessage {
   role: 'system' | 'user' | 'assistant' | 'tool';
   content: string;
   name?: string;
   toolCallId?: string;
-  toolCalls?: readonly AiAgentToolCall[];
+  toolCalls?: readonly AiToolCall[];
 }
 
-export interface AiAgentToolDefinition {
+export interface AiToolSpec {
   name: string;
   description: string;
   parameters: JsonObject;
@@ -59,19 +59,19 @@ export type AiActionPolicy = 'AUTO_ALLOWED' | 'CONFIRM_REQUIRED' | 'FORBIDDEN';
 
 export const AI_ACTION_POLICY_VERSION = 'ai-10-v1';
 
-export interface AiAgentCompletion {
+export interface AiConversationCompletion {
   content: string;
-  toolCalls: readonly AiAgentToolCall[];
+  toolCalls: readonly AiToolCall[];
   provider: string;
   model: string;
 }
 
-export interface AiAgentInferencePort {
+export interface AiConversationInferencePort {
   complete(
-    messages: readonly AiAgentMessage[],
-    tools?: readonly AiAgentToolDefinition[],
-  ): Promise<AiAgentCompletion>;
-  summarize(messages: readonly AiAgentMessage[]): Promise<string>;
+    messages: readonly AiConversationMessage[],
+    tools?: readonly AiToolSpec[],
+  ): Promise<AiConversationCompletion>;
+  summarize(messages: readonly AiConversationMessage[]): Promise<string>;
 }
 
 export interface InferenceMessage {

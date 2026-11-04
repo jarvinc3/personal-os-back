@@ -37,7 +37,7 @@ Cada usuario activa sus apps (`finance`, `agenda`, `projects`, `health`) y la AP
 | Users         | `packages/users`         | Perfil, preferencias, apps activas y vaciado de datos por usuario.          |
 | Finance       | `packages/finance`       | Ledger, catálogo, planeación, analítica, conciliación e ingesta de correo.  |
 | Notifications | `packages/notifications` | Bandeja, push, correo, WebSocket y entrega de eventos.                      |
-| AI Agent      | `packages/ai-agent`      | Inferencia estructurada, inteligencia de correo, consentimiento y acciones. |
+| Intelligence  | `packages/intelligence`  | Inferencia estructurada, inteligencia de correo, consentimiento y acciones. |
 | Logos         | `packages/logos`         | Logos de instituciones y comercios.                                         |
 
 ## Base compartida
@@ -62,7 +62,7 @@ flowchart LR
     USERS[users]
     FIN[finance]
     NOT[notifications]
-    AI[ai-agent]
+    AI[intelligence]
   end
   PKG --> PG[("PostgreSQL (Supabase)")]
   AUTH --> SUPA["Supabase Auth (JWKS)"]

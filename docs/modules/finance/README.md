@@ -8,7 +8,7 @@
 | [capabilities/ledger.md](./capabilities/ledger.md)                 | Transacciones, transfers, confirm, reverse     |
 | [capabilities/planning.md](./capabilities/planning.md)             | Budgets, savings, loans, receivables           |
 | [capabilities/analytics.md](./capabilities/analytics.md)           | Summary, spending, budget-status, bank-charges |
-| [capabilities/ai-agent.md](./capabilities/ai-agent.md)             | Capacidad mensual de lectura AI-9              |
+| [capabilities/intelligence.md](./capabilities/intelligence.md)     | Capacidad mensual de lectura AI-9              |
 | [capabilities/reconciliation.md](./capabilities/reconciliation.md) | Cierre de cuenta o tarjeta contra el banco     |
 | [capabilities/integrity.md](./capabilities/integrity.md)           | Saldo vs. movimientos (invariante I1)          |
 | [capabilities/balance-sheet.md](./capabilities/balance-sheet.md)   | Snapshot `BASE_CURRENCY`                       |

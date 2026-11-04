@@ -5,4 +5,4 @@
 | [modules.md](./modules.md)   | Estándar de carpetas Nest (feature → capas) |
 | [monorepo.md](./monorepo.md) | Paquetes del workspace, build y reglas      |
 
-El catálogo de tools IA de contexto `general` vive en [../modules/ai-agent/contracts/core-tools.md](../modules/ai-agent/contracts/core-tools.md), no aquí.
+El catálogo vigente de capacidades vive en [../modules/intelligence/capabilities/tools.md](../modules/intelligence/capabilities/tools.md) y el registro en `packages/intelligence/src/capabilities/ai-capability.registry.ts`.

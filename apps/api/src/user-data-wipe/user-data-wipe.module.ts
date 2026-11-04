@@ -1,5 +1,5 @@
 import { Global, Module } from '@nestjs/common';
-import { AiModule } from '@personal-os/ai-agent';
+import { AiModule } from '@personal-os/intelligence';
 import { FinanceModule } from '@personal-os/finance';
 import { NotificationsModule } from '@personal-os/notifications';
 import { USER_DATA_WIPE_DOMAINS } from '@personal-os/users';

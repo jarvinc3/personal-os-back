@@ -158,7 +158,7 @@ async function bootstrap() {
       .addTag('users')
       .addTag('notifications')
       .addTag('finances')
-      .addTag('ai-agent')
+      .addTag('intelligence')
       .build();
 
     const document = SwaggerModule.createDocument(app, openApiConfig);

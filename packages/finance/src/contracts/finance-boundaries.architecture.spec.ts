@@ -87,7 +87,9 @@ describe('Finance boundary contracts', () => {
   });
 
   it('keeps imports pointed through neutral contracts', () => {
-    const aiFiles = sourceFiles(join(repositoryRoot, 'packages/ai-agent/src'));
+    const aiFiles = sourceFiles(
+      join(repositoryRoot, 'packages/intelligence/src'),
+    );
     const financeFiles = sourceFiles(
       join(repositoryRoot, 'packages/finance/src'),
     ).filter((file) => !file.endsWith('.spec.ts'));
@@ -103,7 +105,7 @@ describe('Finance boundary contracts', () => {
       const source = readFileSync(file, 'utf8');
       expect(source).not.toMatch(/AppEvents\.FINANCE_[A-Z_]+/);
       expect(source).not.toMatch(
-        /from\s+['"][^'"]*(?:googleapis|@google\/|gmail-(?:source|sync)|ai-agent\/.*email|core\/ai\/chat-context)[^'"]*['"]/i,
+        /from\s+['"][^'"]*(?:googleapis|@google\/|gmail-(?:source|sync)|intelligence\/.*email|core\/ai\/chat-context)[^'"]*['"]/i,
       );
     }
   });

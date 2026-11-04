@@ -4,24 +4,16 @@ import {
   StructuredInferenceProviderError,
 } from '@personal-os/contracts';
 import type { Env } from '@personal-os/config';
-import { AiInferenceGateway } from '@personal-os/ai-agent';
+import {
+  AiInferenceGateway,
+  createAiProviderPool,
+} from '@personal-os/intelligence';
 import type { ConfigService } from '@nestjs/config';
-import { createGroqProvider } from '../../packages/ai-agent/src/providers/groq.provider';
-import { createOpenRouterProvider } from '../../packages/ai-agent/src/providers/openrouter.provider';
-import type { AIService } from '../../packages/ai-agent/src/shared/ai.types';
 import type { PrismaService } from '@personal-os/database';
 
 function providerKey(name: string): string | undefined {
   const value = process.env[name]?.trim();
   return value && !value.startsWith('YOUR_') ? value : undefined;
-}
-
-function configuredProvider(
-  name: string,
-  create: (apiKey: string) => AIService,
-): AIService | undefined {
-  const key = providerKey(name);
-  return key ? create(key) : undefined;
 }
 
 type ProviderId = 'groq' | 'openrouter';
@@ -49,19 +41,16 @@ function selectedProvider(args: string[] = process.argv.slice(2)):
 async function main(): Promise<void> {
   const startedAt = Date.now();
   const requestedProvider = selectedProvider();
-  const configured = [
-    { id: 'groq', env: 'GROQ_API_KEY', create: createGroqProvider },
-    {
-      id: 'openrouter',
-      env: 'OPENROUTER_API_KEY',
-      create: createOpenRouterProvider,
-    },
-  ] as const;
-  const providers = [
-    ...configured
-      .filter(({ id }) => !requestedProvider || id === requestedProvider)
-      .map(({ env, create }) => configuredProvider(env, create)),
-  ].filter((provider) => provider !== undefined);
+  const providers = createAiProviderPool({
+    groqApiKey:
+      requestedProvider === 'openrouter'
+        ? undefined
+        : providerKey('GROQ_API_KEY'),
+    openRouterApiKey:
+      requestedProvider === 'groq'
+        ? undefined
+        : providerKey('OPENROUTER_API_KEY'),
+  });
 
   if (providers.length === 0) {
     if (requestedProvider) {

@@ -4,7 +4,7 @@ import {
   AiActionsRepository,
   AiConversationDataService,
   AiInferenceDataService,
-} from '@personal-os/ai-agent';
+} from '@personal-os/intelligence';
 import { FinanceFacade, isFinanceDataBranch } from '@personal-os/finance';
 import {
   NOTIFICATIONS_DATA_BRANCHES,

@@ -22,4 +22,4 @@ Refactor en preparación: [roadmap](refactors/00-MASTER-ROADMAP.md) y
 
 ## Módulos Nest reales
 
-`auth`, `users`, `logos`, `notifications`, `ai-agent`, `finance`. Slugs `agenda` / `projects` / `health` son configuración de `user_modules`, no módulos Nest.
+`auth`, `users`, `logos`, `notifications`, `intelligence`, `finance`. Slugs `agenda` / `projects` / `health` son configuración de `user_modules`, no módulos Nest.

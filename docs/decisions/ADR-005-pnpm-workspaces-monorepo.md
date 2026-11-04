@@ -9,7 +9,7 @@ Un solo backend NestJS con los módulos dentro de `src/modules` y un solo despli
 
 ## Decisión
 
-pnpm workspaces con `packages/*`: fase 1 `config`, `database`, `core`, `logos`, `auth`; fase 2 `users`, `finance`, `notifications`, `ai-agent`; fase 3 la app a `apps/api`. Cada paquete tiene `package.json`, `tsconfig.json` composite y compila a `dist` con `tsc -b` y project references. La app resuelve `@personal-os/*` desde `node_modules`; Jest mapea a `src` para no exigir build en pruebas. Un solo backend desplegable y un solo esquema Prisma, con dueño `packages/database`.
+pnpm workspaces con `packages/*`: fase 1 `config`, `database`, `core`, `logos`, `auth`; fase 2 `users`, `finance`, `notifications`, `intelligence`; fase 3 la app a `apps/api`. Cada paquete tiene `package.json`, `tsconfig.json` composite y compila a `dist` con `tsc -b` y project references. La app resuelve `@personal-os/*` desde `node_modules`; Jest mapea a `src` para no exigir build en pruebas. Un solo backend desplegable y un solo esquema Prisma, con dueño `packages/database`.
 
 ## Alternativas
 

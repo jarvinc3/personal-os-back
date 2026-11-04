@@ -7,7 +7,7 @@ Cada fila es un módulo Nest en `packages/*/src/`.
 | Auth          | `packages/auth/src/`          | [auth/](./auth/README.md)                   | Simple                     |
 | Users         | `packages/users/src/`         | [users/](./users/README.md)                 | Simple                     |
 | Notifications | `packages/notifications/src/` | [notifications/](./notifications/README.md) | Simple                     |
-| AI Agent      | `packages/ai-agent/src/`      | [ai-agent/](./ai-agent/README.md)           | Complejo (capabilities)    |
+| Intelligence  | `packages/intelligence/src/`  | [intelligence/](./intelligence/README.md)   | Complejo (capabilities)    |
 | Finance       | `packages/finance/src/`       | [finance/](./finance/README.md)             | Complejo + submódulos Nest |
 | Logos         | `packages/logos/src/`         | [logos/](./logos/README.md)                 | Simple + puertos           |
 

@@ -1,5 +1,5 @@
-import { createScriptPrismaClient } from '../packages/database/dist';
-import type { EmailLabel } from '../packages/ai-agent/dist/intelligence/knowledge/knowledge-payload';
+import { createScriptPrismaClient } from '@personal-os/database';
+import type { EmailLabel } from '@personal-os/intelligence';
 import {
   SeedGuardError,
   assertDevelopmentEnvironment,

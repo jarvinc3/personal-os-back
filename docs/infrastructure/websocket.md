@@ -13,4 +13,4 @@ Eventos emitidos hacia cliente (consumidos por web): `notification.new`, `ai.res
 
 `ai.email.sync.updated` se entrega a `user:{sub}` con `{ state }`. El estado contiene etapa, situación, contadores del lote, intento, próxima espera y una categoría de error segura; nunca contiene mensajes, cuerpos, tokens ni respuestas crudas de Gmail. El estado durable se obtiene con `GET /api/intelligence`; WebSocket solo comunica cambios en vivo.
 
-Detalle de payloads de chat: módulo [ai-agent](../modules/ai-agent/README.md) y contratos web.
+Detalle de payloads de conversación: módulo [Intelligence](../modules/intelligence/README.md) y contratos web.
