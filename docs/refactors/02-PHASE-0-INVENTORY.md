@@ -107,58 +107,58 @@ nuevo dueño y mantener pruebas de ausencia de los endpoints retirados.
 Antes del borrado, rescatar las garantías de claims/confirmación/cancelación
 concurrente y las pruebas que las caracterizan. No se mantiene activo el chat.
 
-- `packages/ai-agent/src/actions/application/ai-actions-reaper.service.ts`
-- `packages/ai-agent/src/actions/application/ai-actions.service.spec.ts`
-- `packages/ai-agent/src/actions/application/ai-actions.service.ts`
-- `packages/ai-agent/src/actions/presentation/ai-actions.controller.ts`
-- `packages/ai-agent/src/chat/application/ai-agent.runner.spec.ts`
-- `packages/ai-agent/src/chat/application/ai-agent.runner.ts`
-- `packages/ai-agent/src/chat/application/ai-chat-turn-coordinator.service.spec.ts`
-- `packages/ai-agent/src/chat/application/ai-chat-turn-coordinator.service.ts`
-- `packages/ai-agent/src/chat/application/ai-sessions.service.spec.ts`
-- `packages/ai-agent/src/chat/application/ai-sessions.service.ts`
-- `packages/ai-agent/src/chat/application/build-system-prompt.spec.ts`
-- `packages/ai-agent/src/chat/application/build-system-prompt.ts`
-- `packages/ai-agent/src/chat/infrastructure/ai-chat-persistence.service.spec.ts`
-- `packages/ai-agent/src/chat/infrastructure/ai-chat-persistence.service.ts`
-- `packages/ai-agent/src/chat/infrastructure/ai-sessions.repository.spec.ts`
-- `packages/ai-agent/src/chat/infrastructure/ai-sessions.repository.ts`
-- `packages/ai-agent/src/chat/presentation/ai-sessions.controller.ts`
-- `packages/ai-agent/src/chat/presentation/ai.controller.ts`
-- `packages/ai-agent/src/chat/presentation/dto/ai-provider-info.dto.ts`
-- `packages/ai-agent/src/chat/presentation/dto/ai-providers-response.dto.ts`
-- `packages/ai-agent/src/chat/presentation/dto/chat-context.dto.ts`
-- `packages/ai-agent/src/chat/presentation/dto/chat-message.dto.ts`
-- `packages/ai-agent/src/chat/presentation/dto/chat-request.dto.ts`
-- `packages/ai-agent/src/chat/presentation/dto/chat-response.dto.ts`
-- `packages/ai-agent/src/chat/presentation/dto/create-ai-session.dto.ts`
-- `packages/ai-agent/src/prompts/build-agent-prompt.spec.ts`
-- `packages/ai-agent/src/prompts/build-agent-prompt.ts`
-- `packages/ai-agent/src/prompts/module-context.spec.ts`
-- `packages/ai-agent/src/prompts/module-context.ts`
-- `packages/ai-agent/src/prompts/system-base.ts`
-- `packages/ai-agent/src/prompts/tools-instructions.ts`
-- `packages/ai-agent/src/runtime/application/ai-events.listener.spec.ts`
-- `packages/ai-agent/src/runtime/application/ai-events.listener.ts`
-- `packages/ai-agent/src/runtime/application/ai-memory.service.ts`
-- `packages/ai-agent/src/runtime/application/ai-processing.processor.spec.ts`
-- `packages/ai-agent/src/runtime/application/ai-processing.processor.ts`
-- `packages/ai-agent/src/tools/tool-executor.dispatch.spec.ts`
-- `packages/ai-agent/src/tools/tool-executor.finance-facade.spec.ts`
-- `packages/ai-agent/src/tools/tool-executor.service.spec.ts`
-- `packages/ai-agent/src/tools/tool-executor.service.ts`
-- `packages/ai-agent/src/tools/tool.registry.spec.ts`
-- `packages/ai-agent/src/tools/tool.registry.ts`
+- `packages/intelligence/src/actions/application/ai-actions-reaper.service.ts`
+- `packages/intelligence/src/actions/application/ai-actions.service.spec.ts`
+- `packages/intelligence/src/actions/application/ai-actions.service.ts`
+- `packages/intelligence/src/actions/presentation/ai-actions.controller.ts`
+- `packages/intelligence/src/chat/application/intelligence.runner.spec.ts`
+- `packages/intelligence/src/chat/application/intelligence.runner.ts`
+- `packages/intelligence/src/chat/application/ai-chat-turn-coordinator.service.spec.ts`
+- `packages/intelligence/src/chat/application/ai-chat-turn-coordinator.service.ts`
+- `packages/intelligence/src/chat/application/ai-sessions.service.spec.ts`
+- `packages/intelligence/src/chat/application/ai-sessions.service.ts`
+- `packages/intelligence/src/chat/application/build-system-prompt.spec.ts`
+- `packages/intelligence/src/chat/application/build-system-prompt.ts`
+- `packages/intelligence/src/chat/infrastructure/ai-chat-persistence.service.spec.ts`
+- `packages/intelligence/src/chat/infrastructure/ai-chat-persistence.service.ts`
+- `packages/intelligence/src/chat/infrastructure/ai-sessions.repository.spec.ts`
+- `packages/intelligence/src/chat/infrastructure/ai-sessions.repository.ts`
+- `packages/intelligence/src/chat/presentation/ai-sessions.controller.ts`
+- `packages/intelligence/src/chat/presentation/ai.controller.ts`
+- `packages/intelligence/src/chat/presentation/dto/ai-provider-info.dto.ts`
+- `packages/intelligence/src/chat/presentation/dto/ai-providers-response.dto.ts`
+- `packages/intelligence/src/chat/presentation/dto/chat-context.dto.ts`
+- `packages/intelligence/src/chat/presentation/dto/chat-message.dto.ts`
+- `packages/intelligence/src/chat/presentation/dto/chat-request.dto.ts`
+- `packages/intelligence/src/chat/presentation/dto/chat-response.dto.ts`
+- `packages/intelligence/src/chat/presentation/dto/create-ai-session.dto.ts`
+- `packages/intelligence/src/prompts/build-agent-prompt.spec.ts`
+- `packages/intelligence/src/prompts/build-agent-prompt.ts`
+- `packages/intelligence/src/prompts/module-context.spec.ts`
+- `packages/intelligence/src/prompts/module-context.ts`
+- `packages/intelligence/src/prompts/system-base.ts`
+- `packages/intelligence/src/prompts/tools-instructions.ts`
+- `packages/intelligence/src/runtime/application/ai-events.listener.spec.ts`
+- `packages/intelligence/src/runtime/application/ai-events.listener.ts`
+- `packages/intelligence/src/runtime/application/ai-memory.service.ts`
+- `packages/intelligence/src/runtime/application/ai-processing.processor.spec.ts`
+- `packages/intelligence/src/runtime/application/ai-processing.processor.ts`
+- `packages/intelligence/src/tools/tool-executor.dispatch.spec.ts`
+- `packages/intelligence/src/tools/tool-executor.finance-facade.spec.ts`
+- `packages/intelligence/src/tools/tool-executor.service.spec.ts`
+- `packages/intelligence/src/tools/tool-executor.service.ts`
+- `packages/intelligence/src/tools/tool.registry.spec.ts`
+- `packages/intelligence/src/tools/tool.registry.ts`
 
 ### Rescate explícito de inferencia y acciones
 
 Los siguientes archivos requieren extracción, no borrado ciego:
 
-- `packages/ai-agent/src/actions/infrastructure/ai-actions.repository.ts`
-- `packages/ai-agent/src/chat/application/ai.service.spec.ts`
-- `packages/ai-agent/src/chat/application/ai.service.ts`
-- `packages/ai-agent/src/tools/tool-arg-schemas.spec.ts`
-- `packages/ai-agent/src/tools/tool-arg-schemas.ts`
+- `packages/intelligence/src/actions/infrastructure/ai-actions.repository.ts`
+- `packages/intelligence/src/chat/application/ai.service.spec.ts`
+- `packages/intelligence/src/chat/application/ai.service.ts`
+- `packages/intelligence/src/tools/tool-arg-schemas.spec.ts`
+- `packages/intelligence/src/tools/tool-arg-schemas.ts`
 
 Se conservan providers, helpers de streaming y retry de shared. AiCoreModule,
 ai.module.ts y barrels se reemplazan por composición de inferencia que permita

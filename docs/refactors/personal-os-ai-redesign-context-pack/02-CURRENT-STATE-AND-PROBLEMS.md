@@ -2,7 +2,7 @@
 
 ## Current AI package
 
-The existing `packages/ai-agent` already contains useful components:
+The existing `packages/intelligence` already contains useful components:
 
 - provider abstraction;
 - Groq/OpenRouter support;

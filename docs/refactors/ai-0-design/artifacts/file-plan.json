@@ -27,433 +27,433 @@
           "sha256": "51adbc8c534ce7bf763813bec86769091fb91e1b7d986d2a44ef87b06ae93cb5"
         },
         {
-          "path": "packages/ai-agent/src/actions/application/ai-actions-reaper.service.ts",
+          "path": "packages/intelligence/src/actions/application/ai-actions-reaper.service.ts",
           "operation": "DETACH_SESSION_OWNERSHIP_PRESERVE_CAS_DISABLE_RUNTIME",
           "deletedInWorktree": false,
           "sha256": "adba4157023fec80d950c9193c0fd27e956ed783ca66b0e6b92a921f7c77e190"
         },
         {
-          "path": "packages/ai-agent/src/actions/application/ai-actions.service.spec.ts",
+          "path": "packages/intelligence/src/actions/application/ai-actions.service.spec.ts",
           "operation": "DETACH_SESSION_OWNERSHIP_PRESERVE_CAS_DISABLE_RUNTIME",
           "deletedInWorktree": false,
           "sha256": "75f4b69ebf9526e151db1446989873d0bc60bd6b39dca2ae621332891361a190"
         },
         {
-          "path": "packages/ai-agent/src/actions/application/ai-actions.service.ts",
+          "path": "packages/intelligence/src/actions/application/ai-actions.service.ts",
           "operation": "DETACH_SESSION_OWNERSHIP_PRESERVE_CAS_DISABLE_RUNTIME",
           "deletedInWorktree": false,
           "sha256": "ee1ac4ff4df4251ca7d5366f5dc6746939505ffd9e3e0247f9f3a9d26b79b5df"
         },
         {
-          "path": "packages/ai-agent/src/actions/infrastructure/ai-actions.repository.ts",
+          "path": "packages/intelligence/src/actions/infrastructure/ai-actions.repository.ts",
           "operation": "DETACH_SESSION_OWNERSHIP_PRESERVE_CAS_DISABLE_RUNTIME",
           "deletedInWorktree": false,
           "sha256": "e0edafea7dda7308a515a1b7e8378253c6b0751181288a2ef43b97c01727e8f6"
         },
         {
-          "path": "packages/ai-agent/src/actions/presentation/ai-actions.controller.ts",
+          "path": "packages/intelligence/src/actions/presentation/ai-actions.controller.ts",
           "operation": "DETACH_SESSION_OWNERSHIP_PRESERVE_CAS_DISABLE_RUNTIME",
           "deletedInWorktree": false,
           "sha256": "397f1652c7aa72b9e95002ed08f12ccf580fdc22a62b237369dc7361c66e956d"
         },
         {
-          "path": "packages/ai-agent/src/ai-core.module.ts",
+          "path": "packages/intelligence/src/ai-core.module.ts",
           "operation": "ADAPT_CONSUMER_AND_TEST",
           "deletedInWorktree": false,
           "sha256": "ec71c888db8dd06c82ff171061d9f215bac1af4b20dce072e4b932f6c79819de"
         },
         {
-          "path": "packages/ai-agent/src/ai.module.ts",
+          "path": "packages/intelligence/src/ai.module.ts",
           "operation": "ADAPT_CONSUMER_AND_TEST",
           "deletedInWorktree": false,
           "sha256": "4698a190c703c24039eb31d4c256f4eb4b8208f319b403cc2484b402489ec52d"
         },
         {
-          "path": "packages/ai-agent/src/chat/application/ai-agent.runner.spec.ts",
+          "path": "packages/intelligence/src/chat/application/intelligence.runner.spec.ts",
           "operation": "REMOVE_OLD_CHAT_REVIEW_SHARED_HELPERS",
           "deletedInWorktree": false,
           "sha256": "b2ab81a1e10b0b3b6648403c650758ba8e35a4a9949809629f9956dfa225ae64"
         },
         {
-          "path": "packages/ai-agent/src/chat/application/ai-agent.runner.ts",
+          "path": "packages/intelligence/src/chat/application/intelligence.runner.ts",
           "operation": "REMOVE_OLD_CHAT_REVIEW_SHARED_HELPERS",
           "deletedInWorktree": false,
           "sha256": "4371ffb5fab593c11e22d3d663b737fde1e8c9fb273a4bb857d846c827c5248e"
         },
         {
-          "path": "packages/ai-agent/src/chat/application/ai-chat-turn-coordinator.service.spec.ts",
+          "path": "packages/intelligence/src/chat/application/ai-chat-turn-coordinator.service.spec.ts",
           "operation": "REMOVE_OLD_CHAT_REVIEW_SHARED_HELPERS",
           "deletedInWorktree": false,
           "sha256": "505dd8c4280ebefcae3c0b01bd662480e68c621b4f5ac230f9fd0696e577e140"
         },
         {
-          "path": "packages/ai-agent/src/chat/application/ai-chat-turn-coordinator.service.ts",
+          "path": "packages/intelligence/src/chat/application/ai-chat-turn-coordinator.service.ts",
           "operation": "REMOVE_OLD_CHAT_REVIEW_SHARED_HELPERS",
           "deletedInWorktree": false,
           "sha256": "238d72ebea20a4f7239eb46ddb71654dc1ca14b90a17764416b4b3ad5a6210a8"
         },
         {
-          "path": "packages/ai-agent/src/chat/application/ai-sessions.service.spec.ts",
+          "path": "packages/intelligence/src/chat/application/ai-sessions.service.spec.ts",
           "operation": "REMOVE_OLD_CHAT_REVIEW_SHARED_HELPERS",
           "deletedInWorktree": false,
           "sha256": "c7e06b076007754183eaddaf1d06b62578dff465787217cf3b8d26c0ebcd27b0"
         },
         {
-          "path": "packages/ai-agent/src/chat/application/ai-sessions.service.ts",
+          "path": "packages/intelligence/src/chat/application/ai-sessions.service.ts",
           "operation": "REMOVE_OLD_CHAT_REVIEW_SHARED_HELPERS",
           "deletedInWorktree": false,
           "sha256": "8f2e50dd9b075b1f7d1a9f4200515ea11ab1af7e417da7952249384f349e71f4"
         },
         {
-          "path": "packages/ai-agent/src/chat/application/ai.service.spec.ts",
+          "path": "packages/intelligence/src/chat/application/ai.service.spec.ts",
           "operation": "PRESERVE_INFERENCE_AND_TESTS",
           "deletedInWorktree": false,
           "sha256": "050fe38233e455eff5391483770ffad706c7579f98dbaa5c8ae79cf9e2d7c592"
         },
         {
-          "path": "packages/ai-agent/src/chat/application/ai.service.ts",
+          "path": "packages/intelligence/src/chat/application/ai.service.ts",
           "operation": "PRESERVE_INFERENCE_AND_TESTS",
           "deletedInWorktree": false,
           "sha256": "12de848ca1fecd94d6ba867e2f7116543e3199b7a4844e0793618dd29e3bdc58"
         },
         {
-          "path": "packages/ai-agent/src/chat/application/build-system-prompt.spec.ts",
+          "path": "packages/intelligence/src/chat/application/build-system-prompt.spec.ts",
           "operation": "REMOVE_OLD_CHAT_REVIEW_SHARED_HELPERS",
           "deletedInWorktree": false,
           "sha256": "4d6ced9e431034da5ceb88172d10265acb0e312731be31d0669536b83fdc6c35"
         },
         {
-          "path": "packages/ai-agent/src/chat/application/build-system-prompt.ts",
+          "path": "packages/intelligence/src/chat/application/build-system-prompt.ts",
           "operation": "REMOVE_OLD_CHAT_REVIEW_SHARED_HELPERS",
           "deletedInWorktree": false,
           "sha256": "cc5dadd598b59f6240ef25b7ccb7f2e15136a1c0a75e66c5aa95d0796df26187"
         },
         {
-          "path": "packages/ai-agent/src/chat/infrastructure/ai-chat-persistence.service.spec.ts",
+          "path": "packages/intelligence/src/chat/infrastructure/ai-chat-persistence.service.spec.ts",
           "operation": "REMOVE_OLD_CHAT_REVIEW_SHARED_HELPERS",
           "deletedInWorktree": false,
           "sha256": "3fb31dc420d36c4edd91475a037e70a5b34e4695d9b17b5cbdd25652c0fb999f"
         },
         {
-          "path": "packages/ai-agent/src/chat/infrastructure/ai-chat-persistence.service.ts",
+          "path": "packages/intelligence/src/chat/infrastructure/ai-chat-persistence.service.ts",
           "operation": "REMOVE_OLD_CHAT_REVIEW_SHARED_HELPERS",
           "deletedInWorktree": false,
           "sha256": "048e6e299ab71325785f3735a3896258947137832e25de09657b6fed581bd85a"
         },
         {
-          "path": "packages/ai-agent/src/chat/infrastructure/ai-sessions.repository.spec.ts",
+          "path": "packages/intelligence/src/chat/infrastructure/ai-sessions.repository.spec.ts",
           "operation": "REMOVE_OLD_CHAT_REVIEW_SHARED_HELPERS",
           "deletedInWorktree": false,
           "sha256": "3e6a5402107aa1910a0dcfb28e402a6b811664009b7e080f797a6a26b15b88ce"
         },
         {
-          "path": "packages/ai-agent/src/chat/infrastructure/ai-sessions.repository.ts",
+          "path": "packages/intelligence/src/chat/infrastructure/ai-sessions.repository.ts",
           "operation": "REMOVE_OLD_CHAT_REVIEW_SHARED_HELPERS",
           "deletedInWorktree": false,
           "sha256": "d199feece233707af641c70792a11a8f9e3a98a442627ae23b84bdba75f27fc9"
         },
         {
-          "path": "packages/ai-agent/src/chat/presentation/ai-sessions.controller.ts",
+          "path": "packages/intelligence/src/chat/presentation/ai-sessions.controller.ts",
           "operation": "REMOVE_OLD_CHAT_REVIEW_SHARED_HELPERS",
           "deletedInWorktree": false,
           "sha256": "4d8d2009dab9a764e4ac6398e2749f2585d15d813cf93af6610b15f357d58820"
         },
         {
-          "path": "packages/ai-agent/src/chat/presentation/ai.controller.ts",
+          "path": "packages/intelligence/src/chat/presentation/ai.controller.ts",
           "operation": "REMOVE_OLD_CHAT_REVIEW_SHARED_HELPERS",
           "deletedInWorktree": false,
           "sha256": "0caa0a7ca4484764f1ccc5730fcce05197fba84688ed0f7149f988eb5710455e"
         },
         {
-          "path": "packages/ai-agent/src/chat/presentation/dto/ai-provider-info.dto.ts",
+          "path": "packages/intelligence/src/chat/presentation/dto/ai-provider-info.dto.ts",
           "operation": "REMOVE_OLD_CHAT_REVIEW_SHARED_HELPERS",
           "deletedInWorktree": false,
           "sha256": "c268e50383138b7438273f85ae05f623bff1468a42223e55661f000e493316c2"
         },
         {
-          "path": "packages/ai-agent/src/chat/presentation/dto/ai-providers-response.dto.ts",
+          "path": "packages/intelligence/src/chat/presentation/dto/ai-providers-response.dto.ts",
           "operation": "REMOVE_OLD_CHAT_REVIEW_SHARED_HELPERS",
           "deletedInWorktree": false,
           "sha256": "4eea6b14d491f9261dc6b6dea6fcc99439655a0b047f339f1207115b2615b829"
         },
         {
-          "path": "packages/ai-agent/src/chat/presentation/dto/chat-context.dto.ts",
+          "path": "packages/intelligence/src/chat/presentation/dto/chat-context.dto.ts",
           "operation": "REMOVE_OLD_CHAT_REVIEW_SHARED_HELPERS",
           "deletedInWorktree": false,
           "sha256": "2c2e2a2909500e41ec47d0dc6dacf8b50168fcf87b34a7bafaebb4ef0f27b7d5"
         },
         {
-          "path": "packages/ai-agent/src/chat/presentation/dto/chat-message.dto.ts",
+          "path": "packages/intelligence/src/chat/presentation/dto/chat-message.dto.ts",
           "operation": "REMOVE_OLD_CHAT_REVIEW_SHARED_HELPERS",
           "deletedInWorktree": false,
           "sha256": "db5f3297e2cb16d4e1935fcd329d93c709d92f532c776404d09693c48b6026e8"
         },
         {
-          "path": "packages/ai-agent/src/chat/presentation/dto/chat-request.dto.ts",
+          "path": "packages/intelligence/src/chat/presentation/dto/chat-request.dto.ts",
           "operation": "REMOVE_OLD_CHAT_REVIEW_SHARED_HELPERS",
           "deletedInWorktree": false,
           "sha256": "bdbb0d929b9be62c592e8f26bfb9305db3052f9de8cc6950d1849b321bf8d69f"
         },
         {
-          "path": "packages/ai-agent/src/chat/presentation/dto/chat-response.dto.ts",
+          "path": "packages/intelligence/src/chat/presentation/dto/chat-response.dto.ts",
           "operation": "REMOVE_OLD_CHAT_REVIEW_SHARED_HELPERS",
           "deletedInWorktree": false,
           "sha256": "eebdb3c1a09d3237200d30f4d9b309984b2d308d929bcdf942c65e9fbafa4ece"
         },
         {
-          "path": "packages/ai-agent/src/chat/presentation/dto/create-ai-session.dto.ts",
+          "path": "packages/intelligence/src/chat/presentation/dto/create-ai-session.dto.ts",
           "operation": "REMOVE_OLD_CHAT_REVIEW_SHARED_HELPERS",
           "deletedInWorktree": false,
           "sha256": "b3c29ac44454ddd38c48f5a33ee1c1723b35ddb98e7b7543b08492ba04625110"
         },
         {
-          "path": "packages/ai-agent/src/index.ts",
+          "path": "packages/intelligence/src/index.ts",
           "operation": "ADAPT_CONSUMER_AND_TEST",
           "deletedInWorktree": false,
           "sha256": "a2941e6bba394c21f7c9e1b289ba02c63ab82c1cb528967f6440e88e580fb787"
         },
         {
-          "path": "packages/ai-agent/src/prompts/build-agent-prompt.spec.ts",
+          "path": "packages/intelligence/src/prompts/build-agent-prompt.spec.ts",
           "operation": "REMOVE_OLD_CHAT_REVIEW_SHARED_HELPERS",
           "deletedInWorktree": false,
           "sha256": "460881e8e4b3333d5bff7cfbf7785ea197324c4a566122dce02974e95c0f4b35"
         },
         {
-          "path": "packages/ai-agent/src/prompts/build-agent-prompt.ts",
+          "path": "packages/intelligence/src/prompts/build-agent-prompt.ts",
           "operation": "REMOVE_OLD_CHAT_REVIEW_SHARED_HELPERS",
           "deletedInWorktree": false,
           "sha256": "224800af2d163de782ee22422f0539f5d6ff3fe6999555fa24b7f113952b94ed"
         },
         {
-          "path": "packages/ai-agent/src/prompts/module-context.spec.ts",
+          "path": "packages/intelligence/src/prompts/module-context.spec.ts",
           "operation": "REMOVE_OLD_CHAT_REVIEW_SHARED_HELPERS",
           "deletedInWorktree": false,
           "sha256": "71bee7100eed67b383104533b121029f7f926c235decdd28d0f84562a6df1b01"
         },
         {
-          "path": "packages/ai-agent/src/prompts/module-context.ts",
+          "path": "packages/intelligence/src/prompts/module-context.ts",
           "operation": "REMOVE_OLD_CHAT_REVIEW_SHARED_HELPERS",
           "deletedInWorktree": false,
           "sha256": "bbe2968e8fd118bba9b80439d791dbb7637d1aa1f303c604c9782c8c4b7a49a8"
         },
         {
-          "path": "packages/ai-agent/src/prompts/system-base.ts",
+          "path": "packages/intelligence/src/prompts/system-base.ts",
           "operation": "REMOVE_OLD_CHAT_REVIEW_SHARED_HELPERS",
           "deletedInWorktree": false,
           "sha256": "b8089e4cb24c93852b7422e1848bfc50a08047ce01eee2bb31af9ffa169f6c38"
         },
         {
-          "path": "packages/ai-agent/src/prompts/tools-instructions.ts",
+          "path": "packages/intelligence/src/prompts/tools-instructions.ts",
           "operation": "REMOVE_OLD_CHAT_REVIEW_SHARED_HELPERS",
           "deletedInWorktree": false,
           "sha256": "34a792c8d8c81e2f4f8a13f1c8273c2c8fed31dacb40c905cc9bf35d9b60552f"
         },
         {
-          "path": "packages/ai-agent/src/providers/groq.provider.ts",
+          "path": "packages/intelligence/src/providers/groq.provider.ts",
           "operation": "PRESERVE_INFERENCE_AND_TESTS",
           "deletedInWorktree": false,
           "sha256": "38a3e4a4bc8cfecee9741df58a1862aa1550f32bea181e231babc05ef8a4a5f5"
         },
         {
-          "path": "packages/ai-agent/src/providers/opencode.provider.spec.ts",
+          "path": "packages/intelligence/src/providers/opencode.provider.spec.ts",
           "operation": "PRESERVE_INFERENCE_AND_TESTS",
           "deletedInWorktree": false,
           "sha256": "efc537fc7659497a654806f9db857204de54b1c496a4381fdf36810e9e855e2c"
         },
         {
-          "path": "packages/ai-agent/src/providers/opencode.provider.ts",
+          "path": "packages/intelligence/src/providers/opencode.provider.ts",
           "operation": "PRESERVE_INFERENCE_AND_TESTS",
           "deletedInWorktree": false,
           "sha256": "78edb65061857e5e613dbaec0b2f0d7d4c82670f280a31f5367202ee53e35b92"
         },
         {
-          "path": "packages/ai-agent/src/providers/openrouter.provider.ts",
+          "path": "packages/intelligence/src/providers/openrouter.provider.ts",
           "operation": "PRESERVE_INFERENCE_AND_TESTS",
           "deletedInWorktree": false,
           "sha256": "d07f4bda9ea4ad3530a1affd953c26e37c504173e4332d70b982a4a1305ece4d"
         },
         {
-          "path": "packages/ai-agent/src/runtime/application/ai-events.listener.spec.ts",
+          "path": "packages/intelligence/src/runtime/application/ai-events.listener.spec.ts",
           "operation": "ADAPT_CONSUMER_AND_TEST",
           "deletedInWorktree": false,
           "sha256": "62e7e6d7785e48f8504ba64e3be9b77708fdf8a16f6cfab3dcf000e4189ab016"
         },
         {
-          "path": "packages/ai-agent/src/runtime/application/ai-events.listener.ts",
+          "path": "packages/intelligence/src/runtime/application/ai-events.listener.ts",
           "operation": "ADAPT_CONSUMER_AND_TEST",
           "deletedInWorktree": false,
           "sha256": "0f7c9b193d7ea09f05a91d972157d685c20fe3053c4f316779352023bec3008f"
         },
         {
-          "path": "packages/ai-agent/src/runtime/application/ai-memory.service.ts",
+          "path": "packages/intelligence/src/runtime/application/ai-memory.service.ts",
           "operation": "ADAPT_CONSUMER_AND_TEST",
           "deletedInWorktree": false,
           "sha256": "e97dcdc9be488ed2afb91cc3e7ba0504340912a2b7a997ed489c277762ce1c3e"
         },
         {
-          "path": "packages/ai-agent/src/runtime/application/ai-processing.processor.spec.ts",
+          "path": "packages/intelligence/src/runtime/application/ai-processing.processor.spec.ts",
           "operation": "ADAPT_CONSUMER_AND_TEST",
           "deletedInWorktree": false,
           "sha256": "e984b0f7dfc56769bfc5a085a0d2be41b82a9c4426e366f51e48c45fcb7e5b16"
         },
         {
-          "path": "packages/ai-agent/src/runtime/application/ai-processing.processor.ts",
+          "path": "packages/intelligence/src/runtime/application/ai-processing.processor.ts",
           "operation": "ADAPT_CONSUMER_AND_TEST",
           "deletedInWorktree": false,
           "sha256": "312c16e6699405825f77f2fb33c95e36a42e6def4a94d178152a43b241792a7e"
         },
         {
-          "path": "packages/ai-agent/src/shared/ai-data-branches.ts",
+          "path": "packages/intelligence/src/shared/ai-data-branches.ts",
           "operation": "ADAPT_CONSUMER_AND_TEST",
           "deletedInWorktree": false,
           "sha256": "e64b822c7c92e65fccda2522674eca9e45523905278c9e20f94163215e844dd8"
         },
         {
-          "path": "packages/ai-agent/src/shared/ai-provider.token.ts",
+          "path": "packages/intelligence/src/shared/ai-provider.token.ts",
           "operation": "ADAPT_CONSUMER_AND_TEST",
           "deletedInWorktree": false,
           "sha256": "b7d38ae4b38d8c2f84b621fc710181c1021d8891f1388e1d11f7d695cd96f89f"
         },
         {
-          "path": "packages/ai-agent/src/shared/ai.types.ts",
+          "path": "packages/intelligence/src/shared/ai.types.ts",
           "operation": "ADAPT_CONSUMER_AND_TEST",
           "deletedInWorktree": false,
           "sha256": "8cd38e9deeec941dfb729791aa387d267079e1277af06e4c7e536dbf55aa949b"
         },
         {
-          "path": "packages/ai-agent/src/shared/build-chat-blocks.spec.ts",
+          "path": "packages/intelligence/src/shared/build-chat-blocks.spec.ts",
           "operation": "ADAPT_CONSUMER_AND_TEST",
           "deletedInWorktree": false,
           "sha256": "67879ecd542cb6fd62524d4f361055a74a8deb44240aa28594e4cf68559e5889"
         },
         {
-          "path": "packages/ai-agent/src/shared/build-chat-blocks.ts",
+          "path": "packages/intelligence/src/shared/build-chat-blocks.ts",
           "operation": "ADAPT_CONSUMER_AND_TEST",
           "deletedInWorktree": false,
           "sha256": "10c5e267f3bc6b099b623561610d02801ac7d5cddf5fbb1e876a6e7e4d7d0575"
         },
         {
-          "path": "packages/ai-agent/src/shared/build-provider-history.spec.ts",
+          "path": "packages/intelligence/src/shared/build-provider-history.spec.ts",
           "operation": "ADAPT_CONSUMER_AND_TEST",
           "deletedInWorktree": false,
           "sha256": "ff26fc58f6d006f2c5ec725cec4565449efa956a8a1a6acd4202ad1bf1136848"
         },
         {
-          "path": "packages/ai-agent/src/shared/build-provider-history.ts",
+          "path": "packages/intelligence/src/shared/build-provider-history.ts",
           "operation": "ADAPT_CONSUMER_AND_TEST",
           "deletedInWorktree": false,
           "sha256": "a29cff4ab1121da583c5c6d64dd22b72a8029458905e31472348cc3a7e97071e"
         },
         {
-          "path": "packages/ai-agent/src/shared/enrich-session-messages.spec.ts",
+          "path": "packages/intelligence/src/shared/enrich-session-messages.spec.ts",
           "operation": "ADAPT_CONSUMER_AND_TEST",
           "deletedInWorktree": false,
           "sha256": "8713096fd468c4c308e6bf0f9914e75f38dae7bea4c4cd4b28e647c5a70f3359"
         },
         {
-          "path": "packages/ai-agent/src/shared/enrich-session-messages.ts",
+          "path": "packages/intelligence/src/shared/enrich-session-messages.ts",
           "operation": "ADAPT_CONSUMER_AND_TEST",
           "deletedInWorktree": false,
           "sha256": "9daf337d1dea1919c27bb030c7db8fc71bfcffd0bb071098a0716ac1e9a73113"
         },
         {
-          "path": "packages/ai-agent/src/shared/is-retryable-provider-error.ts",
+          "path": "packages/intelligence/src/shared/is-retryable-provider-error.ts",
           "operation": "PRESERVE_INFERENCE_AND_TESTS",
           "deletedInWorktree": false,
           "sha256": "5f97a37114cdc54e8fe2493bfe2aed1059e502485b31d1665ea27343355d5ae4"
         },
         {
-          "path": "packages/ai-agent/src/shared/map-messages-to-openai.spec.ts",
+          "path": "packages/intelligence/src/shared/map-messages-to-openai.spec.ts",
           "operation": "PRESERVE_INFERENCE_AND_TESTS",
           "deletedInWorktree": false,
           "sha256": "56a0d791716356e89a5cb36087c70d2567ab8f52ff7208ff0d2c828d88c88040"
         },
         {
-          "path": "packages/ai-agent/src/shared/map-messages-to-openai.ts",
+          "path": "packages/intelligence/src/shared/map-messages-to-openai.ts",
           "operation": "PRESERVE_INFERENCE_AND_TESTS",
           "deletedInWorktree": false,
           "sha256": "4421711c539a95ee43fcd80fa95a8937a67e0e39fa6d4503bba6adaec081b77c"
         },
         {
-          "path": "packages/ai-agent/src/shared/map-messages-to-openrouter.spec.ts",
+          "path": "packages/intelligence/src/shared/map-messages-to-openrouter.spec.ts",
           "operation": "PRESERVE_INFERENCE_AND_TESTS",
           "deletedInWorktree": false,
           "sha256": "b86371c37ee9d880e72f52e372b1700a1af7f4b792135b686acb72ff14662e67"
         },
         {
-          "path": "packages/ai-agent/src/shared/map-messages-to-openrouter.ts",
+          "path": "packages/intelligence/src/shared/map-messages-to-openrouter.ts",
           "operation": "PRESERVE_INFERENCE_AND_TESTS",
           "deletedInWorktree": false,
           "sha256": "def050973d950821e889c4908ce49e1329b2cea615b2ed0ef0d923dc971a8483"
         },
         {
-          "path": "packages/ai-agent/src/shared/replay-stream-chunks.spec.ts",
+          "path": "packages/intelligence/src/shared/replay-stream-chunks.spec.ts",
           "operation": "ADAPT_CONSUMER_AND_TEST",
           "deletedInWorktree": false,
           "sha256": "07baf5648690780b5ebf1176297aa7e6b6e8af8b45b9887832f6df6fdc8b8cf9"
         },
         {
-          "path": "packages/ai-agent/src/shared/replay-stream-chunks.ts",
+          "path": "packages/intelligence/src/shared/replay-stream-chunks.ts",
           "operation": "ADAPT_CONSUMER_AND_TEST",
           "deletedInWorktree": false,
           "sha256": "58b70dafa92f8d43bc8d30f2252c9b15234002cae7ff879b5a4d1cf9fd9f7d72"
         },
         {
-          "path": "packages/ai-agent/src/shared/response.ts",
+          "path": "packages/intelligence/src/shared/response.ts",
           "operation": "ADAPT_CONSUMER_AND_TEST",
           "deletedInWorktree": false,
           "sha256": "c9a7772b0d03133095553c0699ae8b4ac1d8f59e63bf54613ffc28219e333a06"
         },
         {
-          "path": "packages/ai-agent/src/shared/stream-openai-chat-complete.ts",
+          "path": "packages/intelligence/src/shared/stream-openai-chat-complete.ts",
           "operation": "PRESERVE_INFERENCE_AND_TESTS",
           "deletedInWorktree": false,
           "sha256": "f5382d7065ab454484520912b492437bcce204d66deaab7fa673d2ae5f7be281"
         },
         {
-          "path": "packages/ai-agent/src/tools/tool-arg-schemas.spec.ts",
+          "path": "packages/intelligence/src/tools/tool-arg-schemas.spec.ts",
           "operation": "REMOVE_OLD_CHAT_REVIEW_SHARED_HELPERS",
           "deletedInWorktree": false,
           "sha256": "e783bb11a465036c503c64463457c61e41c73e08a66631cf20abb66c66718a88"
         },
         {
-          "path": "packages/ai-agent/src/tools/tool-arg-schemas.ts",
+          "path": "packages/intelligence/src/tools/tool-arg-schemas.ts",
           "operation": "REMOVE_OLD_CHAT_REVIEW_SHARED_HELPERS",
           "deletedInWorktree": false,
           "sha256": "7736532d860cc4837354245449b0461aeb09fc7b5885c3e7b1a5557e26870965"
         },
         {
-          "path": "packages/ai-agent/src/tools/tool-executor.dispatch.spec.ts",
+          "path": "packages/intelligence/src/tools/tool-executor.dispatch.spec.ts",
           "operation": "REMOVE_OLD_CHAT_REVIEW_SHARED_HELPERS",
           "deletedInWorktree": false,
           "sha256": "6ecdf32f6034b850019d68177e2ec4a9c471047b277554a583e4790ba203f19e"
         },
         {
-          "path": "packages/ai-agent/src/tools/tool-executor.finance-facade.spec.ts",
+          "path": "packages/intelligence/src/tools/tool-executor.finance-facade.spec.ts",
           "operation": "REMOVE_OLD_CHAT_REVIEW_SHARED_HELPERS",
           "deletedInWorktree": false,
           "sha256": "af9b43ad3369e10705c33ff4456219041b024510ac13099735ca7bb55d426146"
         },
         {
-          "path": "packages/ai-agent/src/tools/tool-executor.service.spec.ts",
+          "path": "packages/intelligence/src/tools/tool-executor.service.spec.ts",
           "operation": "REMOVE_OLD_CHAT_REVIEW_SHARED_HELPERS",
           "deletedInWorktree": false,
           "sha256": "234a9b89021a404a84d5ccdc4016970bae6e298167a64bfb7ba33db76beb2f9d"
         },
         {
-          "path": "packages/ai-agent/src/tools/tool-executor.service.ts",
+          "path": "packages/intelligence/src/tools/tool-executor.service.ts",
           "operation": "REMOVE_OLD_CHAT_REVIEW_SHARED_HELPERS",
           "deletedInWorktree": false,
           "sha256": "3d80702e11591513149aa2524a4ccdbf29ace619fab6560dd8ca2536fef79296"
         },
         {
-          "path": "packages/ai-agent/src/tools/tool.registry.spec.ts",
+          "path": "packages/intelligence/src/tools/tool.registry.spec.ts",
           "operation": "REMOVE_OLD_CHAT_REVIEW_SHARED_HELPERS",
           "deletedInWorktree": false,
           "sha256": "104726ff897ef1960d8a1602c94238a370d8300180d04b392b0ddba2e96b6526"
         },
         {
-          "path": "packages/ai-agent/src/tools/tool.registry.ts",
+          "path": "packages/intelligence/src/tools/tool.registry.ts",
           "operation": "REMOVE_OLD_CHAT_REVIEW_SHARED_HELPERS",
           "deletedInWorktree": false,
           "sha256": "fa5e1d3667b125314bd50a0dcadd80bffb647ea374dc50c5767f02c00f3fa03b"
@@ -987,7 +987,7 @@
           "sha256": "fa483827b52c9c4562ac77b87c84d01a34b30388a7632d7192e304eeb573938f"
         },
         {
-          "path": "test/ai-agent.e2e-spec.ts",
+          "path": "test/intelligence.e2e-spec.ts",
           "operation": "ADAPT_CONSUMER_AND_TEST",
           "deletedInWorktree": false,
           "sha256": "797cdf796a247033a2f7faf53dfb3de8a36a91ab278b30506ed9a92b4ef445dc"
@@ -1592,7 +1592,7 @@
     "apps/api/src/module-settings/descriptors/projects.settings.descriptor.ts",
     "apps/api/src/module-settings/descriptors/health.settings.descriptor.ts",
     "packages/finance/src/shared/settings.descriptor.ts",
-    "packages/ai-agent/src/shared/settings.descriptor.ts",
+    "packages/intelligence/src/shared/settings.descriptor.ts",
     "packages/finance/src/ingestion/application/ports/pending-financial-candidates.port.ts"
   ]
 }

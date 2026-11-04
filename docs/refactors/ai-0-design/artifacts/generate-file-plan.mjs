@@ -25,7 +25,9 @@ for (const [name, root] of [
   ).split('\n');
   const entries = [];
   for (const path of [...new Set(files)]) {
-    if (!/\.(ts|tsx)$/.test(path) || path.startsWith('docs/')) continue;
+    if (!/\.(ts|tsx)$/.test(path) || path.startsWith('docs/')) {
+      continue;
+    }
     let content;
     let deleted = false;
     try {
@@ -39,7 +41,7 @@ for (const [name, root] of [
       name === 'back'
         ? /FinEmail|emailMessageId|aiAgentSession|aiMessage|AI_CHAT_COMPLETION|ChatContext|EMAIL_SYNC|emailConnections|emailMessages/.test(
             text,
-          ) || /ingestion\/|ai-agent\/|wipe|email-sync-schedule/.test(path)
+          ) || /ingestion\/|intelligence\/|wipe|email-sync-schedule/.test(path)
         : /ChatContext|ChatLauncher|prefetchFinanceSync|email-sync|emailConnections|emailMessages|wipe-layers|useChat/.test(
             text,
           ) ||
@@ -75,13 +77,17 @@ for (const [name, root] of [
       operation = 'DETACH_SESSION_OWNERSHIP_PRESERVE_CAS_DISABLE_RUNTIME';
     else if (
       name === 'back' &&
-      /ai-agent\/.*(chat\/|tools\/|prompts\/)/.test(path)
-    )
+      /intelligence\/.*(chat\/|tools\/|prompts\/)/.test(path)
+    ) {
       operation = 'REMOVE_OLD_CHAT_REVIEW_SHARED_HELPERS';
-    else if (name === 'web' && /modules\/ai\/|app\/\(app\)\/chat\//.test(path))
+    } else if (
+      name === 'web' &&
+      /modules\/ai\/|app\/\(app\)\/chat\//.test(path)
+    ) {
       operation = 'REMOVE_OLD_CHAT_REVIEW_REUSABLE_ENTITY_CARDS';
-    else if (name === 'web' && /finance\/sync\/|email-sync/.test(path))
+    } else if (name === 'web' && /finance\/sync\/|email-sync/.test(path)) {
       operation = 'REMOVE_GMAIL_SURFACE_AND_TESTS';
+    }
     entries.push({
       path,
       operation,
@@ -110,7 +116,7 @@ const proposedFiles = [
   'apps/api/src/module-settings/descriptors/projects.settings.descriptor.ts',
   'apps/api/src/module-settings/descriptors/health.settings.descriptor.ts',
   'packages/finance/src/shared/settings.descriptor.ts',
-  'packages/ai-agent/src/shared/settings.descriptor.ts',
+  'packages/intelligence/src/shared/settings.descriptor.ts',
   'packages/finance/src/ingestion/application/ports/pending-financial-candidates.port.ts',
 ];
 writeFileSync(

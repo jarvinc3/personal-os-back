@@ -112,9 +112,9 @@ Task/model performance routing can come later using `AiInference` telemetry.
 
 ## Physical package split
 
-The code may initially remain in `packages/ai-agent` with better internal boundaries.
+The code may initially remain in `packages/intelligence` with better internal boundaries.
 
-Renaming/splitting into `packages/ai` and `packages/ai-agent` is optional later.
+A physical split into smaller packages is optional after the boundaries inside the current package are proven.
 
 Correct dependencies matter more than package naming.
 

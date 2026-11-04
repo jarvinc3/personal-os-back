@@ -37,7 +37,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [Se
 
 ### Cambiado
 
-- El paquete `@personal-os/ai-agent` pasa a `@personal-os/intelligence`; las rutas del agente se unifican bajo `/api/intelligence/*`, los tags de Swagger usan `intelligence*`, el módulo aplana sus carpetas y se retira el código muerto del chat anterior (#307).
+- El paquete de IA se renombra como `@personal-os/intelligence`; las rutas se unifican bajo `/api/intelligence/*`, Swagger usa etiquetas `intelligence*`, el módulo aplana sus carpetas y se retira el código muerto del chat anterior (#307).
 - #193: el roadmap registra cerrado el gate de la oleada A tras completarse FIN-0, PLATFORM-EVENTS-0, PLATFORM-SETTINGS-0 y NOTIF-0; AI-12 (#215) permanece abierto para después de `0.100.0`.
 - Los DTO de respuesta de IA y Finanzas reutilizan las constantes del dominio; el contrato publicado no cambia (#290).
 - El contrato OpenAPI publica el schema de las respuestas de perfil y configuración, notificaciones, IA, autenticación y links públicos de cobros, con los montos como texto decimal y los cursores de las listas (#276, #263).
