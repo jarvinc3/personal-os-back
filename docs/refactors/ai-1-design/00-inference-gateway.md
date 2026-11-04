@@ -21,7 +21,7 @@ Source of scope: [roadmap Phase 1](../personal-os-ai-redesign-context-pack/07-RO
 
 ## Boundary and callers
 
-`packages/ai-agent` owns `AiInferenceGateway`, provider adapters, retry/failover,
+`packages/intelligence` owns `AiInferenceGateway`, provider adapters, retry/failover,
 structured-output parsing and telemetry. Finance continues to depend only on
 the neutral contracts package. Phase 1 migrates Quick Entry and statement
 extraction from free-form JSON parsing to the structured gateway; their existing

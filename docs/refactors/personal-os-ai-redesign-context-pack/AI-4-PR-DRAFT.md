@@ -16,12 +16,12 @@ AI-4 deriva conocimiento reconstruible de la evidencia de AI-3. Agrega `AiKnowle
 - **Claves y saneamiento:** normalizador versionado de remitente, dominio registrable y plantilla; payload Zod por tipo; saneador GLOBAL por lista permitida.
 - **Proyector y política:** exclusión de HOLDOUT, consentimiento y observaciones derivadas de conocimiento; votos por mensaje; 2/3 y mínimo de colaboradores (`AI_GLOBAL_MIN_CONTRIBUTORS`, 3 por defecto y 1 en development); degradación a `REVIEW_REQUIRED`; reversión ADMIN.
 - **Ciclo de datos:** rebuild completo en una transacción `REPEATABLE READ`, exportación JSON, borrado inmediato con lápidas, reinicio de correo y borrado de cuenta por la misma ruta.
-- **HTTP:** explorador, cola ADMIN, rebuild, reversión, exportación y borrado. Contrato completo en [contracts/http.md](../../modules/ai-agent/contracts/http.md#ai-4-knowledge) y esquemas en Swagger. `swagger-spec.json` regenerado.
+- **HTTP:** explorador, cola ADMIN, rebuild, reversión, exportación y borrado. Contrato completo en [contracts/http.md](../../modules/intelligence/contracts/http.md#ai-4-knowledge) y esquemas en Swagger. `swagger-spec.json` regenerado.
 - **Pruebas:** unitarias del proyector, la política, el servicio y el borrado; e2e de aislamiento, roles y promoción GLOBAL con datos de ejemplo.
 
 ## Contrato para la web (#327)
 
-El issue web consume [contracts/http.md](../../modules/ai-agent/contracts/http.md#ai-4-knowledge): rutas, roles, DTOs de request y response, errores y ausencia de paginación. `KnowledgeItem` documenta `payload` por alcance; GLOBAL nunca devuelve montos, last4, comercio ni referencia. La exportación omite tokens OAuth y evidencia anonimizada.
+El issue web consume [contracts/http.md](../../modules/intelligence/contracts/http.md#ai-4-knowledge): rutas, roles, DTOs de request y response, errores y ausencia de paginación. `KnowledgeItem` documenta `payload` por alcance; GLOBAL nunca devuelve montos, last4, comercio ni referencia. La exportación omite tokens OAuth y evidencia anonimizada.
 
 ## Comprobaciones
 

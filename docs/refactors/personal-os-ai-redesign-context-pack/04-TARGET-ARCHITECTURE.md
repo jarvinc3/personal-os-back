@@ -146,7 +146,7 @@ a purchase of RD$2,500 was detected
 Initially the current package can be reorganized rather than split physically:
 
 ```text
-packages/ai-agent/src/
+packages/intelligence/src/
   inference/
   agent/
   conversation/
@@ -162,7 +162,7 @@ packages/ai-agent/src/
   proactive/
 ```
 
-A later rename to `packages/ai` or split between `ai` and `ai-agent` is possible, but not required to establish correct boundaries.
+A later split into dedicated inference and conversation packages is possible, but not required to establish correct boundaries.
 
 ## Architectural dependency rules
 
