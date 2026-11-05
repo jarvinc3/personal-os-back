@@ -103,9 +103,14 @@ async function exportRun({
       'El nombre de la ronda debe tener el formato AAAA-MM-DD-<build>.',
     );
   }
+  assertValidRunDate(roundName.slice(0, 10));
 
+  const cases = await readCaseCatalogs({ catalogPaths: CATALOG_PATHS });
   const workbookBuffer = new Uint8Array(await readFile(workbookPath));
-  const csvContent = await exportRunWorkbookCsv({ workbookBuffer });
+  const csvContent = await exportRunWorkbookCsv({
+    workbookBuffer,
+    expectedCaseIds: cases.map((testCase) => testCase.id),
+  });
   await mkdir(RUNS_DIRECTORY, { recursive: true });
 
   const outputPath = resolve(RUNS_DIRECTORY, `${roundName}.csv`);
