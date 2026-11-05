@@ -32,10 +32,13 @@ Finance HTTP smoke: `pnpm smoke:finance` recorre con `GET` los endpoints clave d
 
 ## Requisito por cambio
 
-Los E2E son obligatorios en todo cambio, no solo al tocar pruebas. Antes de dar un cambio por terminado:
+Para cambios de código o comportamiento, los E2E son obligatorios, no solo al tocar pruebas. Antes de dar el cambio por terminado, corre:
 
-1. `pnpm lint`
-2. `pnpm test`
-3. `pnpm test:e2e`
+1. `pnpm format:check`
+2. `pnpm lint`
+3. `pnpm test`
+4. `pnpm test:e2e`
+
+En un PR que solo cambia Markdown o archivos de `docs/`, CI sigue corriendo `checks` —build, lint, formato y pruebas unitarias—, pero omite `backend`, que contiene E2E e integración PostgreSQL. Por la excepción acordada, no se requieren E2E ni integración para esos PRs; no los marques como ejecutados si no corrieron. Si el PR incluye código, aplica la lista completa.
 
 Un cambio de contrato HTTP o de datos que no actualice su E2E deja el CI en rojo.
