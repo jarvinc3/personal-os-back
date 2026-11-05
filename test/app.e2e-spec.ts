@@ -3,11 +3,12 @@ import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { PrismaService } from '@personal-os/database';
-import { applyAuthTestOverrides } from './helpers/auth-test.providers';
+import { applyE2eTestOverrides } from './helpers/e2e-test.providers';
 import { createPrismaMock } from './helpers/prisma.mock';
-import { applyTestEnv } from './helpers/test-env';
-
-applyTestEnv();
+import {
+  EXTERNAL_FETCH_BLOCKED_MESSAGE,
+  takeBlockedExternalFetchAttempts,
+} from './helpers/test-env';
 
 // Loaded at file scope so the one-time ts-jest transpile of the app graph
 // does not consume the 5s hook timeout on a cold cache (#150).
@@ -20,7 +21,7 @@ describe('AppController (e2e)', () => {
 
   beforeEach(async () => {
     const prismaMock = createPrismaMock();
-    const moduleFixture: TestingModule = await applyAuthTestOverrides(
+    const moduleFixture: TestingModule = await applyE2eTestOverrides(
       Test.createTestingModule({
         imports: [AppModule],
       })
@@ -37,6 +38,15 @@ describe('AppController (e2e)', () => {
     if (app) {
       await app.close();
     }
+  });
+
+  it('blocks fetch requests to external hosts in e2e', async () => {
+    await expect(fetch('https://api.logo.dev')).rejects.toThrow(
+      EXTERNAL_FETCH_BLOCKED_MESSAGE,
+    );
+    expect(takeBlockedExternalFetchAttempts()).toEqual([
+      'https://api.logo.dev',
+    ]);
   });
 
   it('/health (GET)', () => {

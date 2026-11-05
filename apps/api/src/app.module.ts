@@ -66,6 +66,7 @@ const bullBoardEnabled = isBullBoardEnabledFromProcessEnv();
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
+      ignoreEnvFile: process.env.NODE_ENV === 'test',
       validate: parseEnv,
     }),
     LoggerModule.forRootAsync({

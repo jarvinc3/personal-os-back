@@ -3,12 +3,10 @@ import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { PrismaService } from '@personal-os/database';
-import { applyAuthTestOverrides } from './helpers/auth-test.providers';
+import { applyE2eTestOverrides } from './helpers/e2e-test.providers';
 import { createTestJwt } from './helpers/jwt.helper';
 import { createPrismaMock, type PrismaMock } from './helpers/prisma.mock';
-import { applyTestEnv } from './helpers/test-env';
 
-applyTestEnv();
 const { AppModule } = require('../apps/api/src/app.module') as {
   AppModule: new (...args: never[]) => unknown;
 };
@@ -203,7 +201,7 @@ describe('AI-6 review groups batch (e2e)', () => {
       },
     );
 
-    const moduleFixture = await applyAuthTestOverrides(
+    const moduleFixture = await applyE2eTestOverrides(
       Test.createTestingModule({ imports: [AppModule] })
         .overrideProvider(PrismaService)
         .useValue({ ...prismaMock, userRole }),
