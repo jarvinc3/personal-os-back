@@ -24,12 +24,10 @@ import {
   TRANSACTION_DIRECTIONS,
   TRANSACTION_KINDS,
 } from '@personal-os/intelligence';
-import { applyAuthTestOverrides } from './helpers/auth-test.providers';
+import { applyE2eTestOverrides } from './helpers/e2e-test.providers';
 import { createTestJwt } from './helpers/jwt.helper';
 import { createPrismaMock } from './helpers/prisma.mock';
-import { applyTestEnv } from './helpers/test-env';
 
-applyTestEnv();
 const { AppModule } = require('../apps/api/src/app.module') as {
   AppModule: new (...args: never[]) => unknown;
 };
@@ -83,7 +81,7 @@ describe('Intelligence API (e2e)', () => {
   beforeEach(async () => {
     jest.clearAllMocks();
     token = createTestJwt({ sub: 'user-123' });
-    const moduleFixture = await applyAuthTestOverrides(
+    const moduleFixture = await applyE2eTestOverrides(
       Test.createTestingModule({ imports: [AppModule] })
         .overrideProvider(PrismaService)
         .useValue({ ...createPrismaMock(), userRole })

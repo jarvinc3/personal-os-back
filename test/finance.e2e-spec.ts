@@ -3,13 +3,10 @@ import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { Prisma, PrismaService } from '@personal-os/database';
-import { applyAuthTestOverrides } from './helpers/auth-test.providers';
+import { applyE2eTestOverrides } from './helpers/e2e-test.providers';
 import { createTestJwt } from './helpers/jwt.helper';
 import { createPrismaMock } from './helpers/prisma.mock';
-import { applyTestEnv } from './helpers/test-env';
 import { STATEMENT_EXTRACTOR, STATEMENT_PDF_TEXT } from '@personal-os/finance';
-
-applyTestEnv();
 
 // Loaded at file scope so the one-time ts-jest transpile of the app graph
 // does not consume the 5s hook timeout on a cold cache (#150).
@@ -39,7 +36,7 @@ describe('Finance (e2e)', () => {
     prismaMock = createPrismaMock();
     token = createTestJwt({ sub: 'user-123' });
 
-    const moduleFixture: TestingModule = await applyAuthTestOverrides(
+    const moduleFixture: TestingModule = await applyE2eTestOverrides(
       Test.createTestingModule({
         imports: [AppModule],
       })
