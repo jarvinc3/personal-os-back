@@ -74,4 +74,6 @@ pnpm testing:build-run export docs/testing/runs/2026-11-04-dbfc1b9d.xlsx
 
 El comando crea `docs/testing/runs/2026-11-04-dbfc1b9d.csv` con los datos y resultados de cada caso. No exporta la hoja de resumen y no sobrescribe un archivo existente. El XLSX se conserva como registro editable de la ronda.
 
+El nombre debe incluir una fecha real. La hoja **Casos** debe conservar exactamente todos los IDs de los catálogos vigentes (hoy 104), sin duplicados ni IDs ajenos; se permiten todos los estados válidos, incluido **Pendiente**. El exportador rechaza fórmulas insertadas en sus celdas y antepone un apóstrofo a valores de texto que comienzan, incluso tras espacios o controles, con `=`, `+`, `-` o `@`.
+
 La guía de pruebas automáticas sigue en [operations/testing.md](../operations/testing.md). Esta herramienta no ejecuta esos tests ni sustituye la CI.

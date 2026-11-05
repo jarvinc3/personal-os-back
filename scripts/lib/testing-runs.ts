@@ -108,6 +108,10 @@ export type TestCase = {
 const CSV_UTF8_BOM = '\uFEFF';
 const CSV_QUOTE = '"';
 const CSV_SEPARATOR = ',';
+const CSV_FORMULA_PREFIXES = new Set(['=', '+', '-', '@']);
+const ASCII_CONTROL_MAX = 0x1f;
+const CONTROL_CHARACTER_START = 0x7f;
+const CONTROL_CHARACTER_END = 0x9f;
 const CASE_ID_PATTERN = /^AI(\d+)-(\d{2})$/;
 const PHASE_PATTERN = /^AI-(\d+) — /;
 const LAST_CASE_ID = 'AI4-13';
@@ -699,8 +703,10 @@ function addPhaseSummary({
 
 export async function exportRunWorkbookCsv({
   workbookBuffer,
+  expectedCaseIds,
 }: {
   workbookBuffer: Uint8Array;
+  expectedCaseIds: readonly string[];
 }): Promise<string> {
   const workbook = new ExcelJS.Workbook();
   // ExcelJS and the root Node typings differ on the buffer backing type.
@@ -713,6 +719,17 @@ export async function exportRunWorkbookCsv({
   if (!casesSheet) {
     throw new Error(`El archivo no contiene la hoja ${CASES_SHEET_NAME}.`);
   }
+  const rows = readValidatedCaseRows({ casesSheet, expectedCaseIds });
+  return serializeCsv(rows);
+}
+
+function readValidatedCaseRows({
+  casesSheet,
+  expectedCaseIds,
+}: {
+  casesSheet: ExcelJS.Worksheet;
+  expectedCaseIds: readonly string[];
+}): string[][] {
   const actualHeaders = RUN_HEADERS.map((_, index) =>
     getCellCsvValue(casesSheet.getRow(1).getCell(index + 1)),
   );
@@ -723,6 +740,7 @@ export async function exportRunWorkbookCsv({
   }
 
   const rows: string[][] = [[...RUN_HEADERS]];
+  const expectedCaseIdSet = new Set(expectedCaseIds);
   const seenCaseIds = new Set<string>();
   for (let rowNumber = 2; rowNumber <= casesSheet.rowCount; rowNumber += 1) {
     const row = casesSheet.getRow(rowNumber);
@@ -739,6 +757,9 @@ export async function exportRunWorkbookCsv({
     if (!CASE_ID_PATTERN.test(caseId)) {
       throw new Error(`El ID ${caseId} de la hoja Casos no es válido.`);
     }
+    if (!expectedCaseIdSet.has(caseId)) {
+      throw new Error(`El ID ${caseId} no pertenece a los catálogos actuales.`);
+    }
     if (seenCaseIds.has(caseId)) {
       throw new Error(`La hoja Casos repite el ID ${caseId}.`);
     }
@@ -746,10 +767,7 @@ export async function exportRunWorkbookCsv({
 
     const state = values[STATUS_COLUMN_INDEX - 1];
     if (!CASE_STATUS_VALUES.includes(state as CaseStatus)) {
-      let shownState = state;
-      if (shownState.length === 0) {
-        shownState = '(vacío)';
-      }
+      const shownState = state.length === 0 ? '(vacío)' : state;
       throw new Error(`Estado no válido en ${caseId}: ${shownState}.`);
     }
     rows.push(values);
@@ -757,7 +775,15 @@ export async function exportRunWorkbookCsv({
   if (rows.length === 1) {
     throw new Error('La hoja Casos no contiene resultados para exportar.');
   }
-  return serializeCsv(rows);
+  const missingCaseIds = expectedCaseIds.filter(
+    (caseId) => !seenCaseIds.has(caseId),
+  );
+  if (missingCaseIds.length > 0) {
+    throw new Error(
+      `La hoja Casos está incompleta. Faltan: ${missingCaseIds.join(', ')}.`,
+    );
+  }
+  return rows;
 }
 
 function getCellCsvValue(cell: ExcelJS.Cell): string {
@@ -768,20 +794,30 @@ function getCellCsvValue(cell: ExcelJS.Cell): string {
   if (value instanceof Date) {
     return value.toISOString().slice(0, 10);
   }
+  if (typeof value === 'string') {
+    return protectCsvTextFromFormula(value);
+  }
   if (typeof value === 'object') {
+    if ('formula' in value || 'sharedFormula' in value) {
+      throw new Error('La hoja Casos no puede contener celdas con fórmula.');
+    }
     if ('text' in value && typeof value.text === 'string') {
-      return value.text;
+      return protectCsvTextFromFormula(value.text);
     }
     if ('richText' in value) {
-      return value.richText.map((segment) => segment.text).join('');
+      return protectCsvTextFromFormula(
+        value.richText.map((segment) => segment.text).join(''),
+      );
     }
     if ('result' in value) {
       const formulaResult = value.result;
       if (formulaResult === null || formulaResult === undefined) {
         return '';
       }
+      if (typeof formulaResult === 'string') {
+        return protectCsvTextFromFormula(formulaResult);
+      }
       if (
-        typeof formulaResult === 'string' ||
         typeof formulaResult === 'number' ||
         typeof formulaResult === 'boolean'
       ) {
@@ -801,15 +837,34 @@ function getCellCsvValue(cell: ExcelJS.Cell): string {
   return String(value);
 }
 
+function protectCsvTextFromFormula(value: string): string {
+  return isFormulaLikeCsvText(value) ? `'${value}` : value;
+}
+
 function serializeCsv(rows: readonly (readonly string[])[]): string {
-  const serializedRows = rows.map((row) =>
-    row.map((value) => {
-      if (/[",\r\n]/.test(value)) {
-        const escaped = value.replaceAll(CSV_QUOTE, `${CSV_QUOTE}${CSV_QUOTE}`);
-        return `${CSV_QUOTE}${escaped}${CSV_QUOTE}`;
-      }
-      return value;
-    }),
-  );
+  const serializedRows = rows.map((row) => row.map(serializeCsvCell));
   return `${serializedRows.map((row) => row.join(CSV_SEPARATOR)).join('\n')}\n`;
+}
+
+function serializeCsvCell(value: string): string {
+  if (!/[",\r\n]/.test(value)) {
+    return value;
+  }
+  const escaped = value.replaceAll(CSV_QUOTE, `${CSV_QUOTE}${CSV_QUOTE}`);
+  return `${CSV_QUOTE}${escaped}${CSV_QUOTE}`;
+}
+
+function isFormulaLikeCsvText(value: string): boolean {
+  for (const character of value) {
+    const codeUnit = character.charCodeAt(0);
+    if (
+      character.trim().length === 0 ||
+      codeUnit <= ASCII_CONTROL_MAX ||
+      (codeUnit >= CONTROL_CHARACTER_START && codeUnit <= CONTROL_CHARACTER_END)
+    ) {
+      continue;
+    }
+    return CSV_FORMULA_PREFIXES.has(character);
+  }
+  return false;
 }
