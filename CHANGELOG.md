@@ -39,6 +39,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [Se
 
 ### Cambiado
 
+- #308: corrige las referencias de lectura de `docs/refactors`, aclara la excepción de CI para PRs solo documentales y usa `pnpm build` como comprobación de tipos respaldada.
 - El paquete de IA se renombra como `@personal-os/intelligence`; las rutas se unifican bajo `/api/intelligence/*`, Swagger usa etiquetas `intelligence*`, el módulo aplana sus carpetas y se retira el código muerto del chat anterior (#307).
 - #193: el roadmap registra cerrado el gate de la oleada A tras completarse FIN-0, PLATFORM-EVENTS-0, PLATFORM-SETTINGS-0 y NOTIF-0; AI-12 (#215) permanece abierto para después de `0.100.0`.
 - Los DTO de respuesta de IA y Finanzas reutilizan las constantes del dominio; el contrato publicado no cambia (#290).

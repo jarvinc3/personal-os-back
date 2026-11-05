@@ -19,7 +19,7 @@ Si una afirmación no está `VERIFICADO`, no la trates como comportamiento vigen
 1. **Antes de codear:** lee el issue correspondiente. Si no existe, busca duplicados y créalo según [docs/issue-conventions.md](docs/issue-conventions.md), agrégalo al Project 3 con Priority `High`, `Medium` o `Low`, y muévelo a `In Progress`.
 2. **Repo y rama:** trabaja en una rama corta por issue (`fix/<n>-<slug>`, `feat/<n>-<slug>`) o por fase del refactor (`refactor/<fase>`), dentro de una copia temporal en `C:\dev\personal\personal-os\temp\` creada con `git worktree add`. Nunca trabajes en la carpeta principal del repo ni compartas una copia con otro agente. Commitea solo tus archivos (`git add <rutas>`, nunca `git add -A`). Integra a `develop` por PR: el CI debe pasar y, en la web, QA prueba la preview de Vercel del PR y deja su OK en un comentario; recién ahí el agente hace el merge. En el back (sin preview) alcanza con el CI en verde, y QA lo verifica en `develop` justo después del merge.
 3. **Límites:** no toques `master`, producción, `.env` ni despliegues; los merges a `master` los decide Jarvin. Las migraciones se ejecutan solo en DEV.
-4. **Antes del commit:** revisa el diff contra los criterios de aceptación del issue, busca huecos o implementaciones faltantes y corrígelos. Luego ejecuta format, lint, typecheck y pruebas.
+4. **Antes del commit:** revisa el diff contra los criterios de aceptación del issue, busca huecos o implementaciones faltantes y corrígelos. Luego ejecuta `pnpm format:check`, `pnpm lint`, `pnpm build` y las pruebas obligatorias que correspondan. El back no tiene un script `pnpm typecheck`: el build con Prisma generado es la comprobación de tipos respaldada por CI; un `tsc --noEmit` aislado no es un gate admitido.
 5. **Cierre:** commit en español con `Closes #N` o `Refs #N` y push. Después cierra el issue a mano con un comentario y muévelo a `Done` en el Project 3; `Closes` solo cierra el issue cuando el cambio llega a `master`.
 
 **Limpieza al terminar:** al integrar la rama, bórrala (local y remota), elimina la copia de `temp` (`git worktree remove` y `git worktree prune`) y pon al día `develop` y la carpeta principal del repo en el workspace (`git pull`). Los merges a `master` y los deploys siguen siendo decisión de Jarvin.
@@ -60,9 +60,11 @@ el deploy tras AI-11; AI-12 queda para `0.101.0`. Merges y deploys no se ejecuta
 como consecuencia de esta excepción.
 
 Lectura obligatoria antes de AI/email:
-[roadmap](docs/refactors/00-MASTER-ROADMAP.md),
-[decisiones](docs/refactors/01-IMPLEMENTATION-DECISIONS.md) e
-[inventario](docs/refactors/02-PHASE-0-INVENTORY.md).
+[índice](docs/refactors/README.md),
+[roadmap](docs/refactors/01-master-roadmap.md) y
+[decisiones](docs/refactors/03-implementation-decisions.md).
+El [inventario de Phase 0](docs/refactors/archive/reset/02-PHASE-0-INVENTORY.md)
+está archivado y solo sirve como contexto histórico.
 
 Cada sesión actualiza `CHANGELOG.md`. Durante la excepción AI-0 no se sube la
 versión ni se crea release/tag por sesión; el owner decide el corte final tras
@@ -100,7 +102,7 @@ Los agentes nunca aplican migraciones ni resets a PROD.
 
 ## Checklist al cambiar comportamiento
 
-- [ ] Correr `pnpm lint`, `pnpm test` y `pnpm test:e2e` (obligatorio en todo cambio).
+- [ ] En cambios de código, correr `pnpm lint`, `pnpm test` y `pnpm test:e2e`; los PRs solo documentales siguen la excepción descrita en «Pruebas obligatorias».
 - [ ] Correr `pnpm format:check`; un archivo sin formato o un test en rojo bloquea el cierre.
 - [ ] Actualizar el documento dueño (capacidad, regla o contrato), no un README monolítico.
 - [ ] Si el cambio no se puede verificar, abre un issue con el detalle.
@@ -111,18 +113,18 @@ Los agentes nunca aplican migraciones ni resets a PROD.
 
 ## Pruebas obligatorias
 
-Todo cambio corre, antes de darlo por terminado:
+Para cambios de código o comportamiento, corre antes de cerrar:
 
 1. `pnpm format:check`
 2. `pnpm lint`
 3. `pnpm test`
 4. `pnpm test:e2e`
 
-No hay excepción por tamaño ni por tipo: un cambio de documentación también corre los cuatro. Los E2E (`test/*.e2e-spec.ts`, Prisma mock) son requisito en **todo** cambio, no solo al tocar pruebas. Un test en rojo significa que el cambio no está terminado, y no se abre un PR con la suite en rojo. Un cambio de contrato (paginación, DTO, respuesta HTTP) que no actualice su E2E deja el CI en rojo. Detalle en [docs/operations/testing.md](docs/operations/testing.md).
+En PRs que solo cambian archivos Markdown o `docs/`, CI sigue ejecutando el job `checks` (build, lint, formato y pruebas unitarias), pero omite el job `backend`, que contiene E2E e integración PostgreSQL. Esta excepción acordada no requiere correr E2E ni integración para un PR solo documental; no los marques como ejecutados si no corrieron. Si el PR incluye cualquier archivo de código, aplica la lista completa. Un test en rojo significa que el cambio no está terminado. Un cambio de contrato (paginación, DTO, respuesta HTTP) que no actualice su E2E deja el CI en rojo. Detalle en [docs/operations/testing.md](docs/operations/testing.md).
 
 ## Observabilidad y CI
 
-Sentry corre en el back (`instrument.ts`) y no se inicializa sin `SENTRY_DSN`. `pnpm sentry:sourcemaps` sube los source maps de `dist` con `@sentry/cli` cuando existe `SENTRY_AUTH_TOKEN`; sin token el build no falla. CI en [.github/workflows/ci.yml](.github/workflows/ci.yml) corre en `develop`: Prisma validate, `db:migrate deploy`, drift check (`db:migrate:diff:check`), lint, format, money guard, build, unit y e2e.
+Sentry corre en el back (`instrument.ts`) y no se inicializa sin `SENTRY_DSN`. `pnpm sentry:sourcemaps` sube los source maps de `dist` con `@sentry/cli` cuando existe `SENTRY_AUTH_TOKEN`; sin token el build no falla. CI en [.github/workflows/ci.yml](.github/workflows/ci.yml) ejecuta build, lint, formato y unitarias en todos los PRs. En PRs solo documentales, omite el job `backend` de E2E e integración PostgreSQL; los PRs de código y los pushes a `develop` sí ejecutan ese job.
 
 ## Estructura de código
 
