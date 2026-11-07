@@ -87,8 +87,9 @@ export class AiEmailReclassificationService {
   constructor(private readonly prisma: PrismaService) {}
 
   /**
-   * La verificación de un correo enseña lo que su remitente envía. Se aplica a
-   * los demás correos del remitente, nunca al verificado ni a HOLDOUT.
+   * La verificación de un correo solo cubre su plantilla. Se aplica a los demás
+   * correos del mismo remitente y la misma huella, nunca al verificado, a otra
+   * plantilla ni a HOLDOUT. Sin huella no se generaliza.
    */
   async reclassifyAfterMessageVerification({
     userId,
@@ -105,10 +106,11 @@ export class AiEmailReclassificationService {
         id: true,
         fromAddress: true,
         subject: true,
+        templateFingerprint: true,
         classification: true,
       },
     });
-    if (!verified) {
+    if (!verified || !verified.templateFingerprint) {
       return { requeued: 0 };
     }
     if (await this.isHoldout(userId, messageId)) {
@@ -122,7 +124,10 @@ export class AiEmailReclassificationService {
     }
     return this.reclassifyScope({
       userId,
-      where: { fromAddress: verified.fromAddress },
+      where: {
+        fromAddress: verified.fromAddress,
+        templateFingerprint: verified.templateFingerprint,
+      },
       matches: () => true,
       structural,
       provenanceFor: (candidate) =>
@@ -132,8 +137,8 @@ export class AiEmailReclassificationService {
   }
 
   /**
-   * El lote confirma un remitente y una plantilla; el resto de correos del
-   * remitente se reclasifica con esa etiqueta estructural.
+   * El lote confirma un remitente y una plantilla. Solo se reclasifican los
+   * correos de esa misma huella; una huella nula no se generaliza.
    */
   async reclassifyAfterReviewGroupVerification({
     userId,
@@ -146,6 +151,9 @@ export class AiEmailReclassificationService {
     templateFingerprint: string | null;
     correctedLabel: Record<string, unknown> | null;
   }): Promise<ReclassificationResult> {
+    if (!templateFingerprint) {
+      return { requeued: 0 };
+    }
     const groupMessages = await this.prisma.aiEmailMessage.findMany({
       where: { userId, fromAddress, templateFingerprint },
       select: {
@@ -176,7 +184,7 @@ export class AiEmailReclassificationService {
     }
     return this.reclassifyScope({
       userId,
-      where: { fromAddress },
+      where: { fromAddress, templateFingerprint },
       matches: () => true,
       structural,
       provenanceFor: (candidate) =>
@@ -369,17 +377,56 @@ export class AiEmailReclassificationService {
       messageIds: chunk.map(({ id }) => id),
       claimToken,
     });
-    const plan = this.planChunk({ claimed, structural, provenanceFor });
-    await this.persistChunk({
-      userId,
-      plan,
-      claimToken,
-      previousStatus,
-    });
-    return {
-      requeued: plan.reclassified.length,
-      skipped: plan.skippedIds.length,
-    };
+    try {
+      const plan = this.planChunk({ claimed, structural, provenanceFor });
+      await this.persistChunk({
+        userId,
+        plan,
+        claimToken,
+        previousStatus,
+      });
+      return {
+        requeued: plan.reclassified.length,
+        skipped: plan.skippedIds.length,
+      };
+    } catch (error) {
+      await this.releaseChunk({
+        userId,
+        messageIds: claimed.map(({ id }) => id),
+        claimToken,
+        previousStatus,
+      });
+      throw error;
+    }
+  }
+
+  /** Un fallo a mitad de bloque no puede dejar correos atrapados en CLASSIFYING. */
+  private async releaseChunk({
+    userId,
+    messageIds,
+    claimToken,
+    previousStatus,
+  }: {
+    userId: string;
+    messageIds: readonly string[];
+    claimToken: Date;
+    previousStatus: ReadonlyMap<string, string>;
+  }): Promise<void> {
+    for (const status of RECLASSIFIABLE_STATUSES) {
+      const ids = messageIds.filter((id) => previousStatus.get(id) === status);
+      if (!ids.length) {
+        continue;
+      }
+      await this.prisma.aiEmailMessage.updateMany({
+        where: {
+          userId,
+          id: { in: ids },
+          processingStatus: 'CLASSIFYING',
+          classificationStartedAt: claimToken,
+        },
+        data: { processingStatus: status, classificationStartedAt: null },
+      });
+    }
   }
 
   private planChunk({

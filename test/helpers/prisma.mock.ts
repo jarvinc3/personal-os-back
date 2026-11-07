@@ -46,6 +46,8 @@ export type PrismaMock = {
   aiHumanVerification: {
     aggregate: MockFn;
     findMany: MockFn;
+    findFirst: MockFn;
+    create: MockFn;
     createMany: MockFn;
     update: MockFn;
   };
@@ -60,6 +62,7 @@ export type PrismaMock = {
   };
   aiDatasetItem: {
     findMany: MockFn;
+    findFirst: MockFn;
     createMany: MockFn;
     deleteMany: MockFn;
     groupBy: MockFn;
@@ -839,6 +842,8 @@ export function createPrismaMock(): PrismaMock {
     aiHumanVerification: {
       aggregate: jest.fn().mockResolvedValue({ _max: { sequence: null } }),
       findMany: jest.fn().mockResolvedValue([]),
+      findFirst: jest.fn().mockResolvedValue(null),
+      create: jest.fn().mockResolvedValue({ sequence: 1n }),
       createMany: jest.fn().mockResolvedValue({ count: 0 }),
       update: jest.fn().mockResolvedValue({}),
     },
@@ -853,6 +858,7 @@ export function createPrismaMock(): PrismaMock {
     },
     aiDatasetItem: {
       findMany: jest.fn().mockResolvedValue([]),
+      findFirst: jest.fn().mockResolvedValue(null),
       createMany: jest.fn().mockResolvedValue({ count: 0 }),
       deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
       groupBy: jest.fn().mockResolvedValue([]),

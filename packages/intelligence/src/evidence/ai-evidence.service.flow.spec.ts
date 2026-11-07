@@ -30,6 +30,7 @@ describe('AiEvidenceService review and analysis flows', () => {
     },
     aiHumanVerification: {
       findMany: jest.fn().mockResolvedValue([]),
+      findFirst: jest.fn().mockResolvedValue(null),
       create: jest.fn().mockResolvedValue({ sequence: 1n }),
     },
     userRole: { findUnique: jest.fn().mockResolvedValue(null) },

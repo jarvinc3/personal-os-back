@@ -5,6 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { createHash } from 'node:crypto';
+import { isDeepStrictEqual } from 'node:util';
 import { Prisma, PrismaService } from '@personal-os/database';
 import type { CreateHumanVerificationDto } from './dto/create-human-verification.dto';
 import type { CreateReviewGroupVerificationDto } from './dto/create-review-group-verification.dto';
@@ -49,6 +50,17 @@ import { EMAIL_DATASET_NAME, EMAIL_DATASET_PURPOSE } from './dataset.constants';
 
 const EMAIL_SOURCE_TYPE = 'EMAIL_MESSAGE';
 const REVIEW_TARGET_TYPE = 'EMAIL_MESSAGE';
+const VERIFICATION_SELECT = {
+  sequence: true,
+  verifierRole: true,
+  targetType: true,
+  targetId: true,
+  verdict: true,
+  correctedPayload: true,
+  notes: true,
+  isGroundTruth: true,
+  createdAt: true,
+} as const;
 
 @Injectable()
 export class AiEvidenceService {
@@ -353,54 +365,62 @@ export class AiEvidenceService {
   ) {
     const dataset = await this.ensureDataset();
     await this.ensureDatasetItems(userId, dataset.id);
-    const [message, item, roleAssignment] = await Promise.all([
-      this.prisma.aiEmailMessage.findFirst({
-        where: { id: messageId, userId },
-        select: { id: true },
-      }),
-      this.prisma.aiDatasetItem.findFirst({
-        where: {
-          datasetId: dataset.id,
-          userId,
-          sourceType: EMAIL_SOURCE_TYPE,
-          sourceId: messageId,
-        },
-        select: { partition: true },
-      }),
-      this.prisma.userRole.findUnique({
-        where: { userId },
-        select: { role: true },
-      }),
-    ]);
+    const [message, item, roleAssignment, latestVerification] =
+      await Promise.all([
+        this.prisma.aiEmailMessage.findFirst({
+          where: { id: messageId, userId },
+          select: { id: true },
+        }),
+        this.prisma.aiDatasetItem.findFirst({
+          where: {
+            datasetId: dataset.id,
+            userId,
+            sourceType: EMAIL_SOURCE_TYPE,
+            sourceId: messageId,
+          },
+          select: { partition: true },
+        }),
+        this.prisma.userRole.findUnique({
+          where: { userId },
+          select: { role: true },
+        }),
+        this.prisma.aiHumanVerification.findFirst({
+          where: {
+            userId,
+            targetType: REVIEW_TARGET_TYPE,
+            targetId: messageId,
+          },
+          orderBy: { sequence: 'desc' },
+          select: VERIFICATION_SELECT,
+        }),
+      ]);
     if (!message || !item) {
       throw new NotFoundException('Mensaje no encontrado');
     }
     assertHumanVerificationLabels(dto);
 
     const correctedPayload = humanVerificationPayload(dto);
-    const verification = await this.prisma.aiHumanVerification.create({
-      data: {
-        userId,
-        verifierRole: roleAssignment?.role ?? 'USER',
-        targetType: REVIEW_TARGET_TYPE,
-        targetId: messageId,
+    const notes = dto.notes?.trim() || null;
+    const verification =
+      this.retryVerification({
+        latestVerification,
         verdict: dto.verdict,
-        correctedPayload: correctedPayload as never,
-        notes: dto.notes?.trim() || null,
-        isGroundTruth: item.partition === 'HOLDOUT',
-      },
-      select: {
-        sequence: true,
-        verifierRole: true,
-        targetType: true,
-        targetId: true,
-        verdict: true,
-        correctedPayload: true,
-        notes: true,
-        isGroundTruth: true,
-        createdAt: true,
-      },
-    });
+        correctedPayload,
+        notes,
+      }) ??
+      (await this.prisma.aiHumanVerification.create({
+        data: {
+          userId,
+          verifierRole: roleAssignment?.role ?? 'USER',
+          targetType: REVIEW_TARGET_TYPE,
+          targetId: messageId,
+          verdict: dto.verdict,
+          correctedPayload: correctedPayload as never,
+          notes,
+          isGroundTruth: item.partition === 'HOLDOUT',
+        },
+        select: VERIFICATION_SELECT,
+      }));
     const requeued = await this.reclassifyAfterVerification(
       () =>
         this.reclassification.reclassifyAfterMessageVerification({
@@ -420,6 +440,40 @@ export class AiEvidenceService {
     };
   }
 
+  /**
+   * Repetir la misma verificación no agrega evidencia: el reintento reutiliza
+   * la última fila idéntica y solo vuelve a intentar la reclasificación.
+   */
+  private retryVerification<
+    T extends {
+      verdict: string;
+      correctedPayload: unknown;
+      notes: string | null;
+    },
+  >({
+    latestVerification,
+    verdict,
+    correctedPayload,
+    notes,
+  }: {
+    latestVerification: T | null;
+    verdict: string;
+    correctedPayload: Record<string, unknown> | undefined;
+    notes: string | null;
+  }): T | null {
+    if (!latestVerification) {
+      return null;
+    }
+    const sameVerification =
+      latestVerification.verdict === verdict &&
+      latestVerification.notes === notes &&
+      isDeepStrictEqual(
+        latestVerification.correctedPayload ?? null,
+        correctedPayload ?? null,
+      );
+    return sameVerification ? latestVerification : null;
+  }
+
   private async reclassifyAfterVerification(
     reclassify: () => Promise<ReclassificationResult>,
     context: string,
@@ -428,12 +482,15 @@ export class AiEvidenceService {
       const { requeued } = await reclassify();
       return requeued;
     } catch (error) {
-      // La evidencia ya quedó confirmada: repetir la petición duplicaría filas
-      // de verificación. El fallo se registra y la respuesta informa cero.
+      // La verificación ya está guardada. El reintento es idempotente: reutiliza
+      // la fila y vuelve a intentar la reclasificación.
       this.logger.warn(
         `Reclassification failed after ${context}: ${safeErrorCode(error)}`,
       );
-      return 0;
+      throw new Error(
+        'La verificación quedó guardada, pero no se pudo reclasificar el historial. Reintenta la misma verificación.',
+        { cause: error },
+      );
     }
   }
 

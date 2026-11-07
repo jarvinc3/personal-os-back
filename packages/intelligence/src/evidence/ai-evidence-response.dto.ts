@@ -161,7 +161,7 @@ export class AiReviewGroupVerificationResultResponseDto {
 
   @ApiProperty({
     description:
-      'Correos del mismo remitente reencolados y reclasificados con la etiqueta verificada.',
+      'Correos de la misma plantilla reencolados y reclasificados con la etiqueta verificada.',
   })
   requeued!: number;
 }
@@ -193,7 +193,7 @@ export class AiMessageVerificationResponseDto {
 
   @ApiProperty({
     description:
-      'Correos del mismo remitente reencolados y reclasificados con la etiqueta verificada.',
+      'Correos de la misma plantilla reencolados y reclasificados con la etiqueta verificada.',
   })
   requeued!: number;
 

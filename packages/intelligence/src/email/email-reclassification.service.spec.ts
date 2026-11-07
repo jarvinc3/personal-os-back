@@ -55,15 +55,6 @@ function financeLabel(amount: number) {
   };
 }
 
-function marketingLabel() {
-  return {
-    relevance: false,
-    semanticType: 'MARKETING',
-    routes: [],
-    confidence: 0.4,
-  };
-}
-
 function makeFixture({
   messages,
   verifications = [],
@@ -372,7 +363,7 @@ function makeFixture({
     ),
   };
 
-  return { prisma, state };
+  return { prisma, state, matchesWhere };
 }
 
 function trainPartitions(ids: readonly string[]): StoredPartition[] {
@@ -412,12 +403,17 @@ describe('AiEmailReclassificationService', () => {
           fromAddress: 'otro@otro.com',
           classification: financeLabel(10),
         },
+        {
+          id: 'm6',
+          templateFingerprint: 'fp-2',
+          classification: financeLabel(5000),
+        },
       ],
       verifications: [
         { userId: 'user-1', targetType: 'EMAIL_MESSAGE', targetId: 'm1' },
       ],
       partitions: [
-        ...trainPartitions(['m1', 'm2', 'm3', 'm5']),
+        ...trainPartitions(['m1', 'm2', 'm3', 'm5', 'm6']),
         {
           userId: 'user-1',
           sourceType: 'EMAIL_MESSAGE',
@@ -465,6 +461,10 @@ describe('AiEmailReclassificationService', () => {
     expect(byId.get('m5')).toMatchObject({
       processingStatus: 'REVIEW_REQUIRED',
       classification: financeLabel(10),
+    });
+    expect(byId.get('m6')).toMatchObject({
+      processingStatus: 'REVIEW_REQUIRED',
+      classification: financeLabel(5000),
     });
     expect(state.verifications).toHaveLength(1);
     expect(
@@ -538,7 +538,7 @@ describe('AiEmailReclassificationService', () => {
     expect(state.messages[0].processingStatus).toBe('PROCESSED');
   });
 
-  it('confirms a group with its dominant classification and clears the rest of the sender', async () => {
+  it('reclassifies only the confirmed template and leaves other templates alone', async () => {
     const { prisma, state } = makeFixture({
       messages: [
         {
@@ -553,21 +553,14 @@ describe('AiEmailReclassificationService', () => {
         },
         {
           id: 'g3',
-          templateFingerprint: 'fp-1',
-          classification: marketingLabel(),
-        },
-        {
-          id: 'g4',
           templateFingerprint: 'fp-2',
-          classification: financeLabel(3500),
+          classification: financeLabel(5000),
         },
       ],
       verifications: [
         { userId: 'user-1', targetType: 'EMAIL_MESSAGE', targetId: 'g1' },
-        { userId: 'user-1', targetType: 'EMAIL_MESSAGE', targetId: 'g2' },
-        { userId: 'user-1', targetType: 'EMAIL_MESSAGE', targetId: 'g3' },
       ],
-      partitions: trainPartitions(['g1', 'g2', 'g3', 'g4']),
+      partitions: trainPartitions(['g1', 'g2', 'g3']),
     });
     const service = new AiEmailReclassificationService(prisma as never);
 
@@ -576,18 +569,111 @@ describe('AiEmailReclassificationService', () => {
         userId: 'user-1',
         fromAddress: 'alertas@banco.com',
         templateFingerprint: 'fp-1',
-        correctedLabel: null,
+        correctedLabel: correctedFinanceLabel,
       }),
     ).resolves.toEqual({ requeued: 1 });
 
-    expect(state.messages.find(({ id }) => id === 'g4')).toMatchObject({
+    const byId = new Map(
+      state.messages.map((message) => [message.id, message]),
+    );
+    expect(byId.get('g2')).toMatchObject({
       processingStatus: 'PROCESSED',
       classification: {
         relevance: true,
         semanticType: 'FIN_TRANSACTION',
-        transaction: { amount: 3500, currency: 'DOP' },
+        transaction: { amount: 3400, currency: 'DOP' },
       },
     });
+    expect(byId.get('g3')).toMatchObject({
+      processingStatus: 'REVIEW_REQUIRED',
+      classification: financeLabel(5000),
+    });
+  });
+
+  it('does not generalize a message or group without a template fingerprint', async () => {
+    const { prisma, state } = makeFixture({
+      messages: [
+        {
+          id: 'n1',
+          templateFingerprint: null,
+          classification: financeLabel(1250),
+        },
+        {
+          id: 'n2',
+          templateFingerprint: null,
+          classification: financeLabel(3400),
+        },
+      ],
+      partitions: trainPartitions(['n1', 'n2']),
+    });
+    const service = new AiEmailReclassificationService(prisma as never);
+
+    await expect(
+      service.reclassifyAfterMessageVerification({
+        userId: 'user-1',
+        messageId: 'n1',
+        correctedLabel: correctedFinanceLabel,
+      }),
+    ).resolves.toEqual({ requeued: 0 });
+    await expect(
+      service.reclassifyAfterReviewGroupVerification({
+        userId: 'user-1',
+        fromAddress: 'alertas@banco.com',
+        templateFingerprint: null,
+        correctedLabel: correctedFinanceLabel,
+      }),
+    ).resolves.toEqual({ requeued: 0 });
+
+    expect(state.messages.find(({ id }) => id === 'n2')).toMatchObject({
+      processingStatus: 'REVIEW_REQUIRED',
+      classification: financeLabel(3400),
+    });
+  });
+
+  it('releases claimed messages when the chunk write fails and recovers on retry', async () => {
+    const { prisma, state, matchesWhere } = makeFixture({
+      messages: [{ id: 'm2', classification: financeLabel(3400) }],
+      partitions: trainPartitions(['m2']),
+    });
+    const claimChunk = (command: {
+      where: Record<string, any>;
+      data: Record<string, any>;
+    }) => {
+      const matched = state.messages.filter((message) =>
+        matchesWhere(message, command.where),
+      );
+      for (const message of matched) {
+        Object.assign(message, command.data);
+      }
+      return Promise.resolve({ count: matched.length });
+    };
+    prisma.aiEmailMessage.updateMany
+      .mockImplementationOnce(claimChunk)
+      .mockImplementationOnce(() =>
+        Promise.reject(new Error('chunk write failed')),
+      );
+    const service = new AiEmailReclassificationService(prisma as never);
+
+    await expect(
+      service.reclassifyAfterMessageVerification({
+        userId: 'user-1',
+        messageId: 'm2',
+        correctedLabel: correctedFinanceLabel,
+      }),
+    ).rejects.toThrow('chunk write failed');
+    expect(state.messages[0]).toMatchObject({
+      processingStatus: 'REVIEW_REQUIRED',
+      classificationStartedAt: null,
+    });
+
+    await expect(
+      service.reclassifyAfterMessageVerification({
+        userId: 'user-1',
+        messageId: 'm2',
+        correctedLabel: correctedFinanceLabel,
+      }),
+    ).resolves.toEqual({ requeued: 1 });
+    expect(state.messages[0]).toMatchObject({ processingStatus: 'PROCESSED' });
   });
 
   it('requeues the messages that used a reverted knowledge key', async () => {
