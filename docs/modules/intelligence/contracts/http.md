@@ -109,11 +109,14 @@ El estado de un correo es el de su última verificación; sin verificación es `
 {
   "verified": 91,
   "holdoutExcluded": 9,
-  "alreadyVerified": 0
+  "alreadyVerified": 0,
+  "requeued": 12
 }
 ```
 
-`verified` son las filas nuevas, una por correo pendiente fuera de HOLDOUT. `holdoutExcluded` son los pendientes HOLDOUT que quedan para revisión individual. `alreadyVerified` son los correos del grupo que ya tenían verificación. Repetir la petición devuelve `verified: 0`. Un `semanticType`, `routes` o `verdict` fuera de lista responde 400 sin registrar nada, y un grupo de otra cuenta responde 404.
+`verified` son las filas nuevas, una por correo pendiente fuera de HOLDOUT. `holdoutExcluded` son los pendientes HOLDOUT que quedan para revisión individual. `alreadyVerified` son los correos del grupo que ya tenían verificación. `requeued` son los correos ya clasificados del mismo remitente que se reclasificaron con la etiqueta verificada, sin verificación humana y fuera de HOLDOUT. Repetir la petición devuelve `verified: 0` y vuelve a contar los correos que se reclasifican. Un `semanticType`, `routes` o `verdict` fuera de lista responde 400 sin registrar nada, y un grupo de otra cuenta responde 404.
+
+`POST /api/intelligence/messages/:messageId/verifications` devuelve la verificación creada y añade `requeued` con el mismo criterio, tomando como alcance los correos del remitente del mensaje verificado.
 
 `GET /api/intelligence/messages/:messageId` incluye `provenance.observations` y `provenance.verifications` en orden de secuencia.
 

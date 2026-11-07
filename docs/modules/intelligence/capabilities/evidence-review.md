@@ -14,13 +14,15 @@ La revisión también se agrupa por remitente (`fromAddress`) y plantilla de asu
 
 El lote acepta `CONFIRMED` o `CORRECTED` y las mismas etiquetas que la verificación individual: relevancia, tipo, rutas, transacción y nota. Cada correo pendiente fuera de HOLDOUT recibe su propia fila append-only con el rol del verificador y su secuencia; los HOLDOUT quedan pendientes para revisión individual. Los correos que ya tenían una verificación no reciben otra, así que repetir el lote no agrega evidencia. Dos lotes simultáneos del mismo grupo se serializan en la base por cuenta y grupo para no duplicar filas. Un grupo de otra cuenta no aparece en el listado y responde 404 al aplicarle un lote.
 
+Toda verificación, individual o por lote, reclasifica después los correos ya clasificados del mismo remitente que siguen en `PROCESSED` o `REVIEW_REQUIRED`. Nunca toca un correo con verificación humana ni uno de la partición HOLDOUT, y no crea verificaciones implícitas. La etiqueta aplicada es la corregida; un rechazo deja al remitente como no relevante y una confirmación sin etiquetas usa la clasificación actual del correo verificado o la más repetida del grupo. La pasada es síncrona, sin modelo, y su conteo sale como `requeued` en la respuesta. Como la cola de revisión se arma con las verificaciones humanas, estos correos siguen apareciendo en ella hasta que se revisen o se confirmen.
+
 ## HTTP
 
 - `GET /api/intelligence/dataset`: conteos privados de particiones para la cuenta autenticada.
 - `GET /api/intelligence/review-queue?partition=TRAIN|VALIDATION|HOLDOUT&status=PENDING|CONFIRMED|CORRECTED|REJECTED&fromAddress=...&subject=...&dateFrom=AAAA-MM-DD&dateTo=AAAA-MM-DD&order=OLDEST|NEWEST&cursor=...`: cola keyset-paginada con filtros combinables; sin `status` devuelve solo pendientes y cada item trae su última verificación.
 - `GET /api/intelligence/review-groups?page=1&pageSize=20`: grupos de la cuenta con total, pendientes, pendientes HOLDOUT y muestras (asunto e id del correo), ordenados por pendientes; `page` va desde 1 y `pageSize` admite hasta 100.
-- `POST /api/intelligence/review-groups/verifications`: aplica `CONFIRMED` o `CORRECTED` a los pendientes del grupo (`fromAddress` y `templateFingerprint`); informa verificados, HOLDOUT excluidos y ya verificados. `REJECTED` y las etiquetas inválidas responden 400 sin registrar nada.
-- `POST /api/intelligence/messages/:messageId/verifications`: agrega `CONFIRMED`, `CORRECTED` o `REJECTED`, etiquetas rápidas y nota.
+- `POST /api/intelligence/review-groups/verifications`: aplica `CONFIRMED` o `CORRECTED` a los pendientes del grupo (`fromAddress` y `templateFingerprint`); informa verificados, HOLDOUT excluidos, ya verificados y `requeued`. `REJECTED` y las etiquetas inválidas responden 400 sin registrar nada.
+- `POST /api/intelligence/messages/:messageId/verifications`: agrega `CONFIRMED`, `CORRECTED` o `REJECTED`, etiquetas rápidas, nota y el conteo `requeued`.
 - `GET /api/intelligence/runs`: historial de runs del usuario, con versiones, watermarks y configuración capturada.
 - `GET /api/intelligence/messages/:messageId`: ahora incluye observaciones y verificaciones de ese mensaje como procedencia.
 
