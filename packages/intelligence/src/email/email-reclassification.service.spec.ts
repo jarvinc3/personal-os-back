@@ -375,6 +375,15 @@ function makeFixture({
   return { prisma, state };
 }
 
+function trainPartitions(ids: readonly string[]): StoredPartition[] {
+  return ids.map((sourceId) => ({
+    userId: 'user-1',
+    sourceType: 'EMAIL_MESSAGE',
+    sourceId,
+    partition: 'TRAIN',
+  }));
+}
+
 const correctedFinanceLabel = {
   relevance: true,
   semanticType: 'FIN_TRANSACTION',
@@ -408,6 +417,7 @@ describe('AiEmailReclassificationService', () => {
         { userId: 'user-1', targetType: 'EMAIL_MESSAGE', targetId: 'm1' },
       ],
       partitions: [
+        ...trainPartitions(['m1', 'm2', 'm3', 'm5']),
         {
           userId: 'user-1',
           sourceType: 'EMAIL_MESSAGE',
@@ -506,6 +516,7 @@ describe('AiEmailReclassificationService', () => {
   it('is idempotent: a second pass replaces rows and never duplicates the signal', async () => {
     const { prisma, state } = makeFixture({
       messages: [{ id: 'm2', classification: financeLabel(3400) }],
+      partitions: trainPartitions(['m2']),
     });
     const service = new AiEmailReclassificationService(prisma as never);
 
@@ -556,6 +567,7 @@ describe('AiEmailReclassificationService', () => {
         { userId: 'user-1', targetType: 'EMAIL_MESSAGE', targetId: 'g2' },
         { userId: 'user-1', targetType: 'EMAIL_MESSAGE', targetId: 'g3' },
       ],
+      partitions: trainPartitions(['g1', 'g2', 'g3', 'g4']),
     });
     const service = new AiEmailReclassificationService(prisma as never);
 
@@ -585,6 +597,7 @@ describe('AiEmailReclassificationService', () => {
         { userId: 'user-1', targetType: 'EMAIL_MESSAGE', targetId: 'm3' },
       ],
       partitions: [
+        ...trainPartitions(['m2', 'm3']),
         {
           userId: 'user-1',
           sourceType: 'EMAIL_MESSAGE',
@@ -671,6 +684,7 @@ describe('AiEmailReclassificationService', () => {
           classification: financeLabel(10),
         },
       ],
+      partitions: trainPartitions(['m2', 'm5']),
     });
     const service = new AiEmailReclassificationService(prisma as never);
 
@@ -721,9 +735,39 @@ describe('AiEmailReclassificationService', () => {
     });
   });
 
+  it('does not reclassify the sender of a HOLDOUT message', async () => {
+    const { prisma, state } = makeFixture({
+      messages: [{ id: 'h1' }, { id: 'h2', classification: financeLabel(10) }],
+      partitions: [
+        {
+          userId: 'user-1',
+          sourceType: 'EMAIL_MESSAGE',
+          sourceId: 'h1',
+          partition: 'HOLDOUT',
+        },
+        ...trainPartitions(['h2']),
+      ],
+    });
+    const service = new AiEmailReclassificationService(prisma as never);
+
+    await expect(
+      service.reclassifyAfterMessageVerification({
+        userId: 'user-1',
+        messageId: 'h1',
+        correctedLabel: correctedFinanceLabel,
+      }),
+    ).resolves.toEqual({ requeued: 0 });
+
+    expect(state.messages.find(({ id }) => id === 'h2')).toMatchObject({
+      processingStatus: 'REVIEW_REQUIRED',
+      classification: financeLabel(10),
+    });
+  });
+
   it('restores the previous status when the verified label is incomplete', async () => {
     const { prisma, state } = makeFixture({
       messages: [{ id: 'm2', classification: null }],
+      partitions: trainPartitions(['m2']),
     });
     const service = new AiEmailReclassificationService(prisma as never);
 

@@ -96,6 +96,9 @@ export class AiEmailReclassificationService {
     if (!verified) {
       return { requeued: 0 };
     }
+    if (await this.isHoldout(userId, messageId)) {
+      return { requeued: 0 };
+    }
     const structural = structuralLabel(
       correctedLabel ?? verified.classification,
     );
@@ -143,8 +146,15 @@ export class AiEmailReclassificationService {
     if (!representative) {
       return { requeued: 0 };
     }
+    const partitions = await this.partitionsFor(
+      userId,
+      groupMessages.map(({ id }) => id),
+    );
+    const labelledGroup = groupMessages.filter(
+      ({ id }) => partitions.get(id) !== 'HOLDOUT',
+    );
     const structural = structuralLabel(
-      correctedLabel ?? this.dominantGroupLabel(groupMessages),
+      correctedLabel ?? this.dominantGroupLabel(labelledGroup),
     );
     if (!structural) {
       return { requeued: 0 };
@@ -572,6 +582,34 @@ export class AiEmailReclassificationService {
         metrics: { requeued, skipped },
       },
     });
+  }
+
+  private async isHoldout(userId: string, messageId: string): Promise<boolean> {
+    const partitions = await this.partitionsFor(userId, [messageId]);
+    return partitions.get(messageId) === 'HOLDOUT';
+  }
+
+  private async partitionsFor(
+    userId: string,
+    messageIds: readonly string[],
+  ): Promise<Map<string, string>> {
+    const items = await this.prisma.aiDatasetItem.findMany({
+      where: {
+        userId,
+        sourceType: EMAIL_SOURCE_TYPE,
+        sourceId: { in: [...messageIds] },
+      },
+      select: { sourceId: true, partition: true },
+    });
+    const partitions = new Map(
+      items.map(({ sourceId, partition }) => [sourceId, partition]),
+    );
+    for (const messageId of messageIds) {
+      if (!partitions.has(messageId)) {
+        partitions.set(messageId, partitionEmailDatasetItem(userId, messageId));
+      }
+    }
+    return partitions;
   }
 
   private dominantGroupLabel(
