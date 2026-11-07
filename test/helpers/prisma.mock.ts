@@ -67,7 +67,19 @@ export type PrismaMock = {
   aiEmailMessage: {
     findMany: MockFn;
     findFirst: MockFn;
+    updateMany: MockFn;
     deleteMany: MockFn;
+  };
+  aiEmailClassification: {
+    findMany: MockFn;
+    createMany: MockFn;
+    deleteMany: MockFn;
+  };
+  aiSignal: {
+    createMany: MockFn;
+  };
+  aiSignalEvidence: {
+    createMany: MockFn;
   };
   userAiSettings: {
     findMany: MockFn;
@@ -342,6 +354,7 @@ export type PrismaMock = {
   };
   domainEventOutbox: {
     create: MockFn;
+    createMany: MockFn;
     findFirst: MockFn;
     findUnique: MockFn;
     updateMany: MockFn;
@@ -660,6 +673,7 @@ function createTransactionClient(prismaMock: PrismaMock) {
     },
     domainEventOutbox: {
       create: jest.fn().mockResolvedValue({ id: 'out-1' }),
+      createMany: jest.fn().mockResolvedValue({ count: 0 }),
       findFirst: jest.fn(),
       findUnique: jest.fn(),
       updateMany: jest.fn().mockResolvedValue({ count: 1 }),
@@ -846,7 +860,19 @@ export function createPrismaMock(): PrismaMock {
     aiEmailMessage: {
       findMany: jest.fn().mockResolvedValue([]),
       findFirst: jest.fn().mockResolvedValue(null),
+      updateMany: jest.fn().mockResolvedValue({ count: 0 }),
       deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
+    },
+    aiEmailClassification: {
+      findMany: jest.fn().mockResolvedValue([]),
+      createMany: jest.fn().mockResolvedValue({ count: 0 }),
+      deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
+    },
+    aiSignal: {
+      createMany: jest.fn().mockResolvedValue({ count: 0 }),
+    },
+    aiSignalEvidence: {
+      createMany: jest.fn().mockResolvedValue({ count: 0 }),
     },
     userAiSettings: {
       findMany: jest.fn().mockResolvedValue([]),
@@ -1135,6 +1161,7 @@ export function createPrismaMock(): PrismaMock {
     // Root-level model used by FinanceOutboxDispatcher.processBatch after commit wake.
     domainEventOutbox: {
       create: jest.fn().mockResolvedValue({ id: 'out-1' }),
+      createMany: jest.fn().mockResolvedValue({ count: 0 }),
       findFirst: jest.fn().mockResolvedValue(null),
       findUnique: jest.fn(),
       updateMany: jest.fn().mockResolvedValue({ count: 0 }),

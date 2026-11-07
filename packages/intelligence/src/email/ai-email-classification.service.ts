@@ -20,6 +20,15 @@ import {
   type EmailClassification,
 } from './email-classification.util';
 import {
+  buildClassificationRows,
+  buildSignalWrites,
+  classificationLabel,
+  EMAIL_REVIEW_CONFIDENCE_THRESHOLD,
+  knowledgeUsedRefs,
+  requiresReview,
+  type ClassificationProvenance,
+} from './email-classification-persistence';
+import {
   knowledgeKeys,
   NORMALIZER_VERSION,
 } from '../knowledge/knowledge-normalizer';
@@ -39,7 +48,6 @@ const CLASSIFICATION_SYSTEM_PROMPT = [
 ].join(' ');
 const MAX_EMAIL_CONTENT_CHARS = 24_000;
 const RECALL_AUDIT_RATE = 100;
-const REVIEW_CONFIDENCE_THRESHOLD = 0.7;
 const CLASSIFICATION_BATCH_SIZE = 100;
 const STALE_CLAIM_MS = 10 * 60_000;
 
@@ -414,7 +422,7 @@ export class AiEmailClassificationService {
         schemaVersion: EMAIL_CLASSIFICATION_VERSIONS.schema,
         configuration: {
           parserVersion: EMAIL_CLASSIFICATION_VERSIONS.parser,
-          reviewConfidenceThreshold: REVIEW_CONFIDENCE_THRESHOLD,
+          reviewConfidenceThreshold: EMAIL_REVIEW_CONFIDENCE_THRESHOLD,
           auditSample: input.auditSample,
         },
       },
@@ -424,50 +432,15 @@ export class AiEmailClassificationService {
     const routes: Array<string | null> = input.classification.routes.length
       ? input.classification.routes
       : [null];
-    const label = {
-      relevance: input.classification.relevance,
-      semanticType: input.classification.semanticType,
-      routes: input.classification.routes,
-      ...(input.classification.transaction
-        ? { transaction: input.classification.transaction }
-        : {}),
-    };
-    const knowledgeUsed = input.matches.map(
-      ({ knowledgeType, knowledgeKey, scope }) => ({
-        knowledgeType,
-        knowledgeKey,
-        scope,
-      }),
-    );
-    const classificationRows = routes.map((route) => ({
-      userId: input.userId,
-      messageId: input.message.id,
-      route: route ?? 'NONE',
-      relevance: input.classification.relevance,
-      semanticType: input.classification.semanticType,
-      transaction: input.classification.transaction
-        ? input.classification.transaction
-        : Prisma.JsonNull,
-      confidence: input.classification.confidence,
-      decisionPath: input.method,
-      knowledgeUsed,
+    const provenance: ClassificationProvenance = {
+      method: input.method,
       provider: input.provider,
       model: input.model,
-    }));
-    const publishesFinanceSignal =
-      input.classification.relevance &&
-      input.classification.routes.includes('FINANCE') &&
-      Boolean(input.classification.transaction);
-    const signalId = `email-${input.message.id}`;
-    const signalCorrelationKey = `${input.userId}:email:${input.message.id}`;
-    const signalPayload = {
-      relevance: input.classification.relevance,
-      semanticType: input.classification.semanticType,
-      transaction: input.classification.transaction ?? null,
-      confidence: input.classification.confidence,
-      routes: input.classification.routes,
-      messageId: input.message.id,
-    } satisfies Prisma.InputJsonValue;
+      auditSample: input.auditSample,
+      matches: input.matches,
+    };
+    const label = classificationLabel(input.classification);
+    const knowledgeUsed = knowledgeUsedRefs(input.matches);
     const observationRows = routes.map((route) => ({
       runId: run.id,
       userId: input.userId,
@@ -489,12 +462,25 @@ export class AiEmailClassificationService {
         auditSample: input.auditSample,
       } satisfies Prisma.InputJsonValue,
     }));
-    const requiresReview =
-      input.auditSample ||
-      input.classification.confidence < REVIEW_CONFIDENCE_THRESHOLD;
+    const reviewRequired = requiresReview({
+      classification: input.classification,
+      auditSample: input.auditSample,
+    });
+    const signalWrites = buildSignalWrites({
+      userId: input.userId,
+      messageId: input.message.id,
+      receivedAt: input.message.receivedAt,
+      classification: input.classification,
+      provenance,
+    });
     await this.prisma.$transaction([
       this.prisma.aiEmailClassification.createMany({
-        data: classificationRows,
+        data: buildClassificationRows({
+          userId: input.userId,
+          messageId: input.message.id,
+          classification: input.classification,
+          provenance,
+        }),
       }),
       this.prisma.aiKnowledgeObservation.createMany({ data: observationRows }),
       this.prisma.aiAnalysisRun.update({
@@ -502,7 +488,10 @@ export class AiEmailClassificationService {
         data: {
           status: 'COMPLETED',
           completedAt: new Date(),
-          metrics: { observations: routes.length, requiresReview },
+          metrics: {
+            observations: routes.length,
+            requiresReview: reviewRequired,
+          },
         },
       }),
       this.prisma.aiEmailMessage.updateMany({
@@ -512,7 +501,7 @@ export class AiEmailClassificationService {
           processingStatus: 'CLASSIFYING',
         },
         data: {
-          processingStatus: requiresReview ? 'REVIEW_REQUIRED' : 'PROCESSED',
+          processingStatus: reviewRequired ? 'REVIEW_REQUIRED' : 'PROCESSED',
           classificationStartedAt: null,
           classification: {
             relevance: input.classification.relevance,
@@ -528,59 +517,18 @@ export class AiEmailClassificationService {
           classificationModel: input.model,
         },
       }),
-      ...(publishesFinanceSignal
+      ...(signalWrites
         ? [
             this.prisma.aiSignal.createMany({
-              data: [
-                {
-                  id: signalId,
-                  userId: input.userId,
-                  type: 'FINANCE.TRANSACTION_DETECTED',
-                  domain: 'FINANCE',
-                  sourceType: 'EMAIL_MESSAGE',
-                  sourceId: input.message.id,
-                  payload: signalPayload,
-                  status: 'ROUTED',
-                  priority: Math.round(input.classification.confidence * 100),
-                  confidence: input.classification.confidence,
-                  occurredAt: input.message.receivedAt,
-                  deduplicationKey: `EMAIL_MESSAGE:${input.message.id}`,
-                  correlationKey: signalCorrelationKey,
-                },
-              ],
+              data: [signalWrites.signal],
               skipDuplicates: true,
             }),
             this.prisma.aiSignalEvidence.createMany({
-              data: [
-                {
-                  userId: input.userId,
-                  signalId,
-                  sourceType: 'EMAIL_CLASSIFICATION',
-                  sourceId: input.message.id,
-                  excerpt: {
-                    semanticType: input.classification.semanticType,
-                    route: 'FINANCE',
-                    confidence: input.classification.confidence,
-                    transaction: input.classification.transaction,
-                    classificationPath: input.method,
-                    inferenceProvider: input.provider,
-                    inferenceModel: input.model,
-                  },
-                },
-              ],
+              data: [signalWrites.evidence],
               skipDuplicates: true,
             }),
             this.prisma.domainEventOutbox.createMany({
-              data: [
-                {
-                  eventId: `ai.signal.routed:${signalId}`,
-                  eventName: 'ai.signal.routed',
-                  aggregateType: 'AiSignal',
-                  aggregateId: signalId,
-                  userId: input.userId,
-                  payload: { signalId, userId: input.userId },
-                },
-              ],
+              data: [signalWrites.outbox],
               skipDuplicates: true,
             }),
           ]

@@ -1,6 +1,15 @@
 import { BadRequestException } from '@nestjs/common';
 import { AiEvidenceService } from './ai-evidence.service';
 
+const reclassification = {
+  reclassifyAfterMessageVerification: jest
+    .fn()
+    .mockResolvedValue({ requeued: 0 }),
+  reclassifyAfterReviewGroupVerification: jest
+    .fn()
+    .mockResolvedValue({ requeued: 0 }),
+};
+
 describe('AiEvidenceService', () => {
   const reviewPrisma = () => ({
     aiDataset: { upsert: jest.fn().mockResolvedValue({ id: 'dataset-1' }) },
@@ -33,7 +42,10 @@ describe('AiEvidenceService', () => {
     [{ semanticType: 'SECURITY_OTP', relevance: true }, 'Relevancia'],
   ] as const)('rejects inconsistent labels %#', async (labels, error) => {
     const prisma = reviewPrisma();
-    const service = new AiEvidenceService(prisma as never);
+    const service = new AiEvidenceService(
+      prisma as never,
+      reclassification as never,
+    );
     await expect(
       service.verifyMessage('user-1', 'message-1', {
         verdict: 'CORRECTED',
@@ -45,7 +57,10 @@ describe('AiEvidenceService', () => {
 
   it('stores an empty route list and a complete financial transaction', async () => {
     const prisma = reviewPrisma();
-    const service = new AiEvidenceService(prisma as never);
+    const service = new AiEvidenceService(
+      prisma as never,
+      reclassification as never,
+    );
     await service.verifyMessage('user-1', 'message-1', {
       verdict: 'CORRECTED',
       semanticType: 'FIN_TRANSACTION',
@@ -99,7 +114,10 @@ describe('AiEvidenceService', () => {
       userRole: { findUnique: jest.fn().mockResolvedValue({ role: 'ADMIN' }) },
       aiHumanVerification: { create },
     };
-    const service = new AiEvidenceService(prisma as never);
+    const service = new AiEvidenceService(
+      prisma as never,
+      reclassification as never,
+    );
 
     const result = await service.verifyMessage('user-1', 'message-1', {
       verdict: 'CORRECTED',
@@ -133,7 +151,10 @@ describe('AiEvidenceService', () => {
       userRole: { findUnique: jest.fn().mockResolvedValue(null) },
       aiHumanVerification: { create: jest.fn() },
     };
-    const service = new AiEvidenceService(prisma as never);
+    const service = new AiEvidenceService(
+      prisma as never,
+      reclassification as never,
+    );
 
     await expect(
       service.verifyMessage('user-1', 'message-1', { verdict: 'REJECTED' }),
@@ -161,7 +182,10 @@ describe('AiEvidenceService', () => {
         callback(prisma),
       ),
     };
-    const service = new AiEvidenceService(prisma as never);
+    const service = new AiEvidenceService(
+      prisma as never,
+      reclassification as never,
+    );
 
     await service.startAnalysisRun('user-1', 'EVALUATE', { policy: 'v2' });
 

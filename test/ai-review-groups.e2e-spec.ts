@@ -19,6 +19,9 @@ type ReviewMessage = {
   subject: string;
   templateFingerprint: string | null;
   receivedAt: Date;
+  processingStatus?: string;
+  classification?: Record<string, unknown> | null;
+  classificationStartedAt?: Date | null;
 };
 
 type StoredPartition = {
@@ -105,25 +108,41 @@ describe('AI-6 review groups batch (e2e)', () => {
     userRole.findUnique.mockResolvedValue({ role: 'ADMIN' });
     prismaMock = createPrismaMock();
 
+    const matchesMessage = (where: Record<string, any>) => {
+      const statusFilter = where.processingStatus as
+        string | { in?: string[] } | undefined;
+      const statuses =
+        typeof statusFilter === 'string' ? [statusFilter] : statusFilter?.in;
+      const idFilter = where.id as string | { in?: string[] } | undefined;
+      const ids = typeof idFilter === 'string' ? [idFilter] : idFilter?.in;
+      return (message: ReviewMessage) =>
+        (where.userId === undefined || message.userId === where.userId) &&
+        (where.fromAddress === undefined ||
+          message.fromAddress === where.fromAddress) &&
+        (where.fromDomain === undefined ||
+          message.fromDomain === where.fromDomain) &&
+        (where.templateFingerprint === undefined ||
+          message.templateFingerprint === where.templateFingerprint) &&
+        (!ids || ids.includes(message.id)) &&
+        (!statuses ||
+          (message.processingStatus !== undefined &&
+            statuses.includes(message.processingStatus))) &&
+        (where.classificationStartedAt === undefined ||
+          message.classificationStartedAt === where.classificationStartedAt);
+    };
     prismaMock.aiEmailMessage.findMany.mockImplementation(
-      (command: {
-        where?: {
-          userId?: string;
-          fromAddress?: string;
-          templateFingerprint?: string | null;
-        };
-      }) => {
+      (command: { where?: Record<string, any> }) => {
         const where = command.where ?? {};
-        return Promise.resolve(
-          messages.filter(
-            (message) =>
-              (where.userId === undefined || message.userId === where.userId) &&
-              (where.fromAddress === undefined ||
-                message.fromAddress === where.fromAddress) &&
-              (where.templateFingerprint === undefined ||
-                message.templateFingerprint === where.templateFingerprint),
-          ),
-        );
+        return Promise.resolve(messages.filter(matchesMessage(where)));
+      },
+    );
+    prismaMock.aiEmailMessage.updateMany.mockImplementation(
+      (command: { where: Record<string, any>; data: Record<string, any> }) => {
+        const matched = messages.filter(matchesMessage(command.where));
+        for (const message of matched) {
+          Object.assign(message, command.data);
+        }
+        return Promise.resolve({ count: matched.length });
       },
     );
     prismaMock.aiEmailMessage.findFirst.mockImplementation(
@@ -265,6 +284,7 @@ describe('AI-6 review groups batch (e2e)', () => {
       verified: 91,
       holdoutExcluded: 9,
       alreadyVerified: 0,
+      requeued: 0,
     });
     expect(verifications).toHaveLength(91);
     expect(
@@ -284,6 +304,7 @@ describe('AI-6 review groups batch (e2e)', () => {
       verified: 0,
       holdoutExcluded: 9,
       alreadyVerified: 91,
+      requeued: 0,
     });
     expect(verifications).toHaveLength(91);
     expect(prismaMock.$transaction).toHaveBeenCalledTimes(2);
@@ -355,5 +376,90 @@ describe('AI-6 review groups batch (e2e)', () => {
       .get('/api/intelligence/review-groups?pageSize=101')
       .set('Authorization', `Bearer ${token}`)
       .expect(400);
+  });
+
+  it('reclasifica el resto del remitente y devuelve el conteo de reencolados', async () => {
+    const extras: ReviewMessage[] = [
+      {
+        id: 'x1',
+        userId: 'user-123',
+        fromAddress: 'notifications@github.com',
+        fromDomain: 'github.com',
+        subject: 'Pago recibido',
+        templateFingerprint: 'fp-other',
+        receivedAt,
+        processingStatus: 'REVIEW_REQUIRED',
+        classification: {
+          relevance: true,
+          semanticType: 'FIN_TRANSACTION',
+          routes: ['FINANCE'],
+          transaction: {
+            kind: 'TRANSACTION',
+            amount: 1250,
+            currency: 'DOP',
+            last4: '4821',
+          },
+          confidence: 0.4,
+        },
+      },
+      {
+        id: 'x2',
+        userId: 'user-123',
+        fromAddress: 'notifications@github.com',
+        fromDomain: 'github.com',
+        subject: 'Pago recibido',
+        templateFingerprint: 'fp-other',
+        receivedAt,
+        processingStatus: 'REVIEW_REQUIRED',
+        classification: {
+          relevance: true,
+          semanticType: 'FIN_TRANSACTION',
+          routes: ['FINANCE'],
+          transaction: {
+            kind: 'TRANSACTION',
+            amount: 3400,
+            currency: 'DOP',
+            last4: '4821',
+          },
+          confidence: 0.4,
+        },
+      },
+    ];
+    messages = [...githubMessages, ...extras];
+    partitions = [
+      ...githubMessages.map((message, index) =>
+        partition(message, index >= 91 ? 'HOLDOUT' : 'TRAIN'),
+      ),
+      ...extras.map((message) => partition(message, 'TRAIN')),
+    ];
+
+    const batch = await postBatch({
+      relevance: true,
+      semanticType: 'FIN_TRANSACTION',
+      routes: ['FINANCE'],
+      transaction: { kind: 'TRANSACTION' },
+    });
+
+    expect(batch.body.data).toMatchObject({
+      verified: 91,
+      holdoutExcluded: 9,
+      requeued: 2,
+    });
+    expect(extras.map(({ processingStatus }) => processingStatus)).toEqual([
+      'PROCESSED',
+      'PROCESSED',
+    ]);
+    expect(extras[0].classification).toMatchObject({
+      semanticType: 'FIN_TRANSACTION',
+      transaction: { amount: 1250, currency: 'DOP' },
+    });
+    expect(prismaMock.aiSignal.createMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.arrayContaining([
+          expect.objectContaining({ id: 'email-x1', sourceId: 'x1' }),
+        ]),
+      }),
+    );
+    expect(prismaMock.domainEventOutbox.createMany).toHaveBeenCalled();
   });
 });

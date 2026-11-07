@@ -14,6 +14,7 @@ import {
 } from './knowledge-projector';
 import { POLICY_VERSION, resolveMinimumContributors } from './knowledge-policy';
 import { NORMALIZER_VERSION } from './knowledge-normalizer';
+import { AiEmailReclassificationService } from '../email/email-reclassification.service';
 import {
   EMAIL_DATASET_NAME,
   EMAIL_DATASET_PURPOSE,
@@ -25,6 +26,7 @@ export class AiKnowledgeService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly config: ConfigService<Env, true>,
+    private readonly reclassification: AiEmailReclassificationService,
   ) {}
 
   async listForUser(userId: string) {
@@ -83,13 +85,20 @@ export class AiKnowledgeService {
       });
     });
     await this.rebuild(userId);
-    return this.prisma.aiKnowledge.findFirst({
+    const projected = await this.prisma.aiKnowledge.findFirst({
       where: {
         scope: 'GLOBAL',
         knowledgeType: item.knowledgeType,
         knowledgeKey: item.knowledgeKey,
       },
     });
+    if (projected) {
+      await this.reclassification.reclassifyAfterKnowledgePromotion({
+        userId,
+        knowledge: projected,
+      });
+    }
+    return projected;
   }
 
   async revert(userId: string, knowledgeId: string) {
@@ -123,13 +132,20 @@ export class AiKnowledgeService {
     });
     // A GLOBAL key is independent: the append-only rejection and this row
     // update are the complete effect; later rebuilds apply the same decision.
-    return this.prisma.aiKnowledge.findFirst({
+    const blocked = await this.prisma.aiKnowledge.findFirst({
       where: {
         scope: 'GLOBAL',
         knowledgeType: item.knowledgeType,
         knowledgeKey: item.knowledgeKey,
       },
     });
+    if (blocked) {
+      await this.reclassification.requeueAfterKnowledgeRevert({
+        userId,
+        knowledge: blocked,
+      });
+    }
+    return blocked;
   }
 
   /** Reads the watermarks and their evidence from one committed snapshot. */

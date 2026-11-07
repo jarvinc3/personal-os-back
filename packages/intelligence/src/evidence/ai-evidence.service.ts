@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { createHash } from 'node:crypto';
@@ -37,6 +38,11 @@ import { groupReviewMessages } from './review-groups.util';
 import { PROJECTOR_VERSION } from '../knowledge/knowledge-projector';
 import { POLICY_VERSION } from '../knowledge/knowledge-policy';
 import { EMAIL_CLASSIFICATION_VERSIONS } from '../email/email-classification.util';
+import {
+  verificationLabel,
+  type ReclassificationResult,
+} from '../email/email-reclassification.util';
+import { AiEmailReclassificationService } from '../email/email-reclassification.service';
 import { calculateHoldoutMetrics } from './holdout-metrics.util';
 
 import { EMAIL_DATASET_NAME, EMAIL_DATASET_PURPOSE } from './dataset.constants';
@@ -46,7 +52,12 @@ const REVIEW_TARGET_TYPE = 'EMAIL_MESSAGE';
 
 @Injectable()
 export class AiEvidenceService {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly logger = new Logger(AiEvidenceService.name);
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly reclassification: AiEmailReclassificationService,
+  ) {}
 
   async datasetSummary(userId: string) {
     const dataset = await this.ensureDataset();
@@ -274,7 +285,7 @@ export class AiEvidenceService {
       dto.fromAddress,
       dto.templateFingerprint ?? null,
     ]);
-    return this.prisma.$transaction(async (tx) => {
+    const outcome = await this.prisma.$transaction(async (tx) => {
       await lockReviewGroup(tx, { userId, groupKey });
       const verifications = await tx.aiHumanVerification.findMany({
         where: {
@@ -319,6 +330,20 @@ export class AiEvidenceService {
         alreadyVerified,
       };
     });
+    const requeued = await this.reclassifyAfterVerification(
+      () =>
+        this.reclassification.reclassifyAfterReviewGroupVerification({
+          userId,
+          fromAddress: dto.fromAddress,
+          templateFingerprint: dto.templateFingerprint ?? null,
+          correctedLabel: verificationLabel({
+            verdict: dto.verdict,
+            correctedPayload: correctedPayload ?? null,
+          }),
+        }),
+      `review group ${dto.fromAddress}`,
+    );
+    return { ...outcome, requeued };
   }
 
   async verifyMessage(
@@ -376,7 +401,40 @@ export class AiEvidenceService {
         createdAt: true,
       },
     });
-    return { ...verification, sequence: verification.sequence.toString() };
+    const requeued = await this.reclassifyAfterVerification(
+      () =>
+        this.reclassification.reclassifyAfterMessageVerification({
+          userId,
+          messageId,
+          correctedLabel: verificationLabel({
+            verdict: dto.verdict,
+            correctedPayload: correctedPayload ?? null,
+          }),
+        }),
+      `message ${messageId}`,
+    );
+    return {
+      ...verification,
+      sequence: verification.sequence.toString(),
+      requeued,
+    };
+  }
+
+  private async reclassifyAfterVerification(
+    run: () => Promise<ReclassificationResult>,
+    context: string,
+  ): Promise<number> {
+    try {
+      const { requeued } = await run();
+      return requeued;
+    } catch (error) {
+      // La evidencia ya quedó confirmada: repetir la petición duplicaría filas
+      // de verificación. El fallo se registra y la respuesta informa cero.
+      this.logger.warn(
+        `Reclassification failed after ${context}: ${safeErrorCode(error)}`,
+      );
+      return 0;
+    }
   }
 
   async startAnalysisRun(
@@ -745,6 +803,13 @@ function serializeRun<
       ? { consentRevision: run.consentRevision.toString() }
       : {}),
   };
+}
+
+function safeErrorCode(error: unknown): string {
+  if (error && typeof error === 'object' && 'code' in error) {
+    return String(error.code).slice(0, 80);
+  }
+  return 'RECLASSIFICATION_FAILED';
 }
 
 function metricDeltas(
