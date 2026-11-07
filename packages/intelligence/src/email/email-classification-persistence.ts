@@ -92,7 +92,13 @@ export function buildClassificationRows({
   }));
 }
 
-export function buildSignalWrites({
+export type FinanceSignalRecords = {
+  signal: Prisma.AiSignalCreateManyInput;
+  evidence: Prisma.AiSignalEvidenceCreateManyInput;
+  outbox: Prisma.DomainEventOutboxCreateManyInput;
+};
+
+export function buildFinanceSignal({
   userId,
   messageId,
   receivedAt,
@@ -104,11 +110,7 @@ export function buildSignalWrites({
   receivedAt: Date;
   classification: EmailClassification;
   provenance: ClassificationProvenance;
-}): {
-  signal: Prisma.AiSignalCreateManyInput;
-  evidence: Prisma.AiSignalEvidenceCreateManyInput;
-  outbox: Prisma.DomainEventOutboxCreateManyInput;
-} | null {
+}): FinanceSignalRecords | null {
   if (!publishesFinanceSignal(classification)) {
     return null;
   }

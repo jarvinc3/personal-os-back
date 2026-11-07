@@ -1,9 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService, type Prisma } from '@personal-os/database';
-import { EMAIL_CLASSIFICATION_VERSIONS } from './email-classification.util';
+import {
+  EMAIL_CLASSIFICATION_VERSIONS,
+  type EmailClassification,
+} from './email-classification.util';
 import {
   buildClassificationRows,
-  buildSignalWrites,
+  buildFinanceSignal,
   classificationLabel,
   EMAIL_REVIEW_CONFIDENCE_THRESHOLD,
   requiresReview,
@@ -37,6 +40,7 @@ import type { EmailLabel } from '../knowledge/knowledge-payload';
 
 const EMAIL_SOURCE_TYPE = 'EMAIL_MESSAGE';
 const REVIEW_TARGET_TYPE = 'EMAIL_MESSAGE';
+const HOLDOUT_PARTITION = 'HOLDOUT';
 const KNOWLEDGE_DECISION_PATH = 'KNOWLEDGE';
 
 export type KnowledgeRowRef = {
@@ -46,7 +50,7 @@ export type KnowledgeRowRef = {
   payload: Prisma.JsonValue;
 };
 
-type ClassifiedMessage = {
+type ReclassifiableMessage = {
   id: string;
   receivedAt: Date;
   fromAddress: string;
@@ -56,12 +60,23 @@ type ClassifiedMessage = {
   classification: Prisma.JsonValue | null;
 };
 
+type ReclassifiedMessage = {
+  message: ReclassifiableMessage;
+  classification: EmailClassification;
+  provenance: ClassificationProvenance;
+};
+
+type ChunkPlan = {
+  reclassified: ReclassifiedMessage[];
+  skippedIds: string[];
+};
+
 type ReclassifyScopeInput = {
   userId: string;
   where: Prisma.AiEmailMessageWhereInput;
-  matches: (message: ClassifiedMessage) => boolean;
+  matches: (message: ReclassifiableMessage) => boolean;
   structural: EmailLabel;
-  provenanceFor: (message: ClassifiedMessage) => KnowledgeProvenance[];
+  provenanceFor: (message: ReclassifiableMessage) => KnowledgeProvenance[];
   trigger: string;
 };
 
@@ -151,7 +166,7 @@ export class AiEmailReclassificationService {
       groupMessages.map(({ id }) => id),
     );
     const labelledGroup = groupMessages.filter(
-      ({ id }) => partitions.get(id) !== 'HOLDOUT',
+      ({ id }) => partitions.get(id) !== HOLDOUT_PARTITION,
     );
     const structural = structuralLabel(
       correctedLabel ?? this.dominantGroupLabel(labelledGroup),
@@ -249,7 +264,10 @@ export class AiEmailReclassificationService {
     if (!messages.length) {
       return { requeued: 0 };
     }
-    const runId = await this.startRun(input);
+    const runId = await this.startRun({
+      userId: input.userId,
+      trigger: input.trigger,
+    });
     let requeued = 0;
     let skipped = 0;
     for (
@@ -284,8 +302,8 @@ export class AiEmailReclassificationService {
   }: {
     userId: string;
     where: Prisma.AiEmailMessageWhereInput;
-    matches: (message: ClassifiedMessage) => boolean;
-  }): Promise<ClassifiedMessage[]> {
+    matches: (message: ReclassifiableMessage) => boolean;
+  }): Promise<ReclassifiableMessage[]> {
     const messages = await this.prisma.aiEmailMessage.findMany({
       where: {
         ...where,
@@ -309,7 +327,7 @@ export class AiEmailReclassificationService {
       return [];
     }
     const ids = candidates.map(({ id }) => id);
-    const [verifications, datasetItems] = await Promise.all([
+    const [verifications, partitionByMessage] = await Promise.all([
       this.prisma.aiHumanVerification.findMany({
         where: {
           userId,
@@ -319,26 +337,16 @@ export class AiEmailReclassificationService {
         distinct: ['targetId'],
         select: { targetId: true },
       }),
-      this.prisma.aiDatasetItem.findMany({
-        where: { userId, sourceType: EMAIL_SOURCE_TYPE, sourceId: { in: ids } },
-        select: { sourceId: true, partition: true },
-      }),
+      this.partitionsFor(userId, ids),
     ]);
     const verified = new Set(
       verifications.flatMap(({ targetId }) => (targetId ? [targetId] : [])),
     );
-    const partitionByMessage = new Map(
-      datasetItems.map(({ sourceId, partition }) => [sourceId, partition]),
+    return candidates.filter(
+      (message) =>
+        !verified.has(message.id) &&
+        partitionByMessage.get(message.id) !== HOLDOUT_PARTITION,
     );
-    return candidates.filter((message) => {
-      if (verified.has(message.id)) {
-        return false;
-      }
-      const partition =
-        partitionByMessage.get(message.id) ??
-        partitionEmailDatasetItem(userId, message.id);
-      return partition !== 'HOLDOUT';
-    });
   }
 
   private async reclassifyChunk({
@@ -348,9 +356,9 @@ export class AiEmailReclassificationService {
     provenanceFor,
   }: {
     userId: string;
-    chunk: readonly ClassifiedMessage[];
+    chunk: readonly ReclassifiableMessage[];
     structural: EmailLabel;
-    provenanceFor: (message: ClassifiedMessage) => KnowledgeProvenance[];
+    provenanceFor: (message: ReclassifiableMessage) => KnowledgeProvenance[];
   }): Promise<{ requeued: number; skipped: number }> {
     const previousStatus = new Map(
       chunk.map(({ id, processingStatus }) => [id, processingStatus]),
@@ -361,6 +369,28 @@ export class AiEmailReclassificationService {
       messageIds: chunk.map(({ id }) => id),
       claimToken,
     });
+    const plan = this.planChunk({ claimed, structural, provenanceFor });
+    await this.persistChunk({
+      userId,
+      plan,
+      claimToken,
+      previousStatus,
+    });
+    return {
+      requeued: plan.reclassified.length,
+      skipped: plan.skippedIds.length,
+    };
+  }
+
+  private planChunk({
+    claimed,
+    structural,
+    provenanceFor,
+  }: {
+    claimed: readonly ReclassifiableMessage[];
+    structural: EmailLabel;
+    provenanceFor: (message: ReclassifiableMessage) => KnowledgeProvenance[];
+  }): ChunkPlan {
     const reclassified = claimed.flatMap((message) => {
       const classification = mergedCandidateLabel({
         structural,
@@ -369,38 +399,64 @@ export class AiEmailReclassificationService {
       if (!classification) {
         return [];
       }
-      return [{ message, classification }];
+      return [
+        {
+          message,
+          classification,
+          provenance: this.classificationProvenance(provenanceFor(message)),
+        },
+      ];
     });
     const reclassifiedIds = new Set(
       reclassified.map(({ message }) => message.id),
     );
-    const skippedIds = claimed
-      .filter(({ id }) => !reclassifiedIds.has(id))
-      .map(({ id }) => id);
-    const classificationRows = reclassified.flatMap(
-      ({ message, classification }) =>
+    return {
+      reclassified,
+      skippedIds: claimed
+        .filter(({ id }) => !reclassifiedIds.has(id))
+        .map(({ id }) => id),
+    };
+  }
+
+  private async persistChunk({
+    userId,
+    plan,
+    claimToken,
+    previousStatus,
+  }: {
+    userId: string;
+    plan: ChunkPlan;
+    claimToken: Date;
+    previousStatus: ReadonlyMap<string, string>;
+  }): Promise<void> {
+    const classificationRows = plan.reclassified.flatMap(
+      ({ message, classification, provenance }) =>
         buildClassificationRows({
           userId,
           messageId: message.id,
           classification,
-          provenance: this.provenanceFor(message, provenanceFor),
+          provenance,
         }),
     );
-    const signalWrites = reclassified.flatMap(({ message, classification }) => {
-      const writes = buildSignalWrites({
-        userId,
-        messageId: message.id,
-        receivedAt: message.receivedAt,
-        classification,
-        provenance: this.provenanceFor(message, provenanceFor),
-      });
-      return writes ? [writes] : [];
-    });
+    const signalRecords = plan.reclassified.flatMap(
+      ({ message, classification, provenance }) => {
+        const records = buildFinanceSignal({
+          userId,
+          messageId: message.id,
+          receivedAt: message.receivedAt,
+          classification,
+          provenance,
+        });
+        return records ? [records] : [];
+      },
+    );
     await this.prisma.$transaction([
       this.prisma.aiEmailClassification.deleteMany({
         where: {
           userId,
-          messageId: { in: reclassified.map(({ message }) => message.id) },
+          messageId: {
+            in: plan.reclassified.map(({ message }) => message.id),
+          },
         },
       }),
       ...(classificationRows.length
@@ -410,7 +466,7 @@ export class AiEmailReclassificationService {
             }),
           ]
         : []),
-      ...reclassified.map(({ message, classification }) =>
+      ...plan.reclassified.map(({ message, classification }) =>
         this.prisma.aiEmailMessage.updateMany({
           where: {
             id: message.id,
@@ -433,7 +489,7 @@ export class AiEmailReclassificationService {
           },
         }),
       ),
-      ...skippedIds.map((id) =>
+      ...plan.skippedIds.map((id) =>
         this.prisma.aiEmailMessage.updateMany({
           where: {
             id,
@@ -448,37 +504,23 @@ export class AiEmailReclassificationService {
           },
         }),
       ),
-      ...(signalWrites.length
+      ...(signalRecords.length
         ? [
             this.prisma.aiSignal.createMany({
-              data: signalWrites.map(({ signal }) => signal),
+              data: signalRecords.map(({ signal }) => signal),
               skipDuplicates: true,
             }),
             this.prisma.aiSignalEvidence.createMany({
-              data: signalWrites.map(({ evidence }) => evidence),
+              data: signalRecords.map(({ evidence }) => evidence),
               skipDuplicates: true,
             }),
             this.prisma.domainEventOutbox.createMany({
-              data: signalWrites.map(({ outbox }) => outbox),
+              data: signalRecords.map(({ outbox }) => outbox),
               skipDuplicates: true,
             }),
           ]
         : []),
     ]);
-    return { requeued: reclassified.length, skipped: skippedIds.length };
-  }
-
-  private provenanceFor(
-    message: ClassifiedMessage,
-    provenanceFor: (message: ClassifiedMessage) => KnowledgeProvenance[],
-  ): ClassificationProvenance {
-    return {
-      method: KNOWLEDGE_DECISION_PATH,
-      provider: null,
-      model: null,
-      auditSample: false,
-      matches: provenanceFor(message),
-    };
   }
 
   private async claimChunk({
@@ -489,7 +531,7 @@ export class AiEmailReclassificationService {
     userId: string;
     messageIds: readonly string[];
     claimToken: Date;
-  }): Promise<ClassifiedMessage[]> {
+  }): Promise<ReclassifiableMessage[]> {
     await this.prisma.aiEmailMessage.updateMany({
       where: {
         userId,
@@ -520,7 +562,13 @@ export class AiEmailReclassificationService {
     });
   }
 
-  private async startRun(input: ReclassifyScopeInput): Promise<string> {
+  private async startRun({
+    userId,
+    trigger,
+  }: {
+    userId: string;
+    trigger: string;
+  }): Promise<string> {
     const dataset = await this.prisma.aiDataset.upsert({
       where: { name: EMAIL_DATASET_NAME },
       create: {
@@ -538,13 +586,13 @@ export class AiEmailReclassificationService {
         }),
         this.prisma.aiHumanVerification.aggregate({ _max: { sequence: true } }),
         this.prisma.aiConsentEvent.aggregate({
-          where: { userId: input.userId },
+          where: { userId },
           _max: { sequence: true },
         }),
       ]);
     const run = await this.prisma.aiAnalysisRun.create({
       data: {
-        userId: input.userId,
+        userId,
         datasetId: dataset.id,
         mode: 'ANALYZE_ONLY',
         status: 'RUNNING',
@@ -555,7 +603,7 @@ export class AiEmailReclassificationService {
         policyVersion: POLICY_VERSION,
         pipelineVersion: EMAIL_CLASSIFICATION_VERSIONS.pipeline,
         configuration: {
-          trigger: input.trigger,
+          trigger,
           parserVersion: EMAIL_CLASSIFICATION_VERSIONS.parser,
           reviewConfidenceThreshold: EMAIL_REVIEW_CONFIDENCE_THRESHOLD,
         },
@@ -586,7 +634,7 @@ export class AiEmailReclassificationService {
 
   private async isHoldout(userId: string, messageId: string): Promise<boolean> {
     const partitions = await this.partitionsFor(userId, [messageId]);
-    return partitions.get(messageId) === 'HOLDOUT';
+    return partitions.get(messageId) === HOLDOUT_PARTITION;
   }
 
   private async partitionsFor(
@@ -617,7 +665,7 @@ export class AiEmailReclassificationService {
       receivedAt: Date;
       classification: Prisma.JsonValue | null;
     }[],
-  ): unknown {
+  ): EmailClassification | null {
     const entries = messages.flatMap(({ receivedAt, classification }) => {
       const current = currentClassificationLabel(classification);
       return current ? [{ classification: current, receivedAt }] : [];
@@ -627,7 +675,7 @@ export class AiEmailReclassificationService {
 
   private knowledgeScope(knowledge: KnowledgeRowRef): {
     where: Prisma.AiEmailMessageWhereInput;
-    matches: (message: ClassifiedMessage) => boolean;
+    matches: (message: ReclassifiableMessage) => boolean;
   } | null {
     if (knowledge.knowledgeType === 'EMAIL_DOMAIN') {
       return {
@@ -662,6 +710,18 @@ export class AiEmailReclassificationService {
       };
     }
     return null;
+  }
+
+  private classificationProvenance(
+    matches: readonly KnowledgeProvenance[],
+  ): ClassificationProvenance {
+    return {
+      method: KNOWLEDGE_DECISION_PATH,
+      provider: null,
+      model: null,
+      auditSample: false,
+      matches,
+    };
   }
 
   private knowledgeLabel(payload: Prisma.JsonValue): unknown {

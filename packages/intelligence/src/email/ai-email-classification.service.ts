@@ -21,7 +21,7 @@ import {
 } from './email-classification.util';
 import {
   buildClassificationRows,
-  buildSignalWrites,
+  buildFinanceSignal,
   classificationLabel,
   EMAIL_REVIEW_CONFIDENCE_THRESHOLD,
   knowledgeUsedRefs,
@@ -466,7 +466,7 @@ export class AiEmailClassificationService {
       classification: input.classification,
       auditSample: input.auditSample,
     });
-    const signalWrites = buildSignalWrites({
+    const signalWrites = buildFinanceSignal({
       userId: input.userId,
       messageId: input.message.id,
       receivedAt: input.message.receivedAt,
