@@ -62,7 +62,16 @@ describe('AI-4 knowledge promotion (e2e)', () => {
     userRole.findUnique.mockResolvedValue({ role: 'ADMIN' });
     stored = [];
     prismaMock = createPrismaMock();
-    prismaMock.aiEmailMessage.findMany.mockResolvedValue(messages);
+    prismaMock.aiEmailMessage.findMany.mockImplementation(
+      (command?: { where?: { userId?: string } }) =>
+        Promise.resolve(
+          command?.where?.userId
+            ? messages.filter(
+                (message) => message.userId === command.where?.userId,
+              )
+            : messages,
+        ),
+    );
     prismaMock.aiDatasetItem.findMany.mockResolvedValue(
       messages.map((message) => ({
         sourceId: message.id,

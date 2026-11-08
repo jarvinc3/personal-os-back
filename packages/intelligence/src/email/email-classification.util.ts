@@ -100,18 +100,39 @@ export function validateEmailClassification(
   value: unknown,
 ): EmailClassification {
   const parsed = classificationSchema.parse(value);
+  const violation = classificationRuleViolation(parsed);
+  if (violation) {
+    throw new Error(violation);
+  }
+  return parsed;
+}
+
+/** Same closed rules as `validateEmailClassification`, for callers that skip invalid labels. */
+export function tryValidateEmailClassification(
+  value: unknown,
+): EmailClassification | null {
+  const parsed = classificationSchema.safeParse(value);
+  if (!parsed.success || classificationRuleViolation(parsed.data)) {
+    return null;
+  }
+  return parsed.data;
+}
+
+function classificationRuleViolation(
+  parsed: EmailClassification,
+): string | null {
   if (new Set(parsed.routes).size !== parsed.routes.length) {
-    throw new Error('duplicate classification route');
+    return 'duplicate classification route';
   }
   if (parsed.semanticType === 'FIN_TRANSACTION' && !parsed.transaction?.kind) {
-    throw new Error('financial transaction requires a transaction kind');
+    return 'financial transaction requires a transaction kind';
   }
   if (
     (parsed.semanticType === 'PURCHASE_RECEIPT' ||
       parsed.semanticType === 'SUBSCRIPTION_BILLING') &&
     parsed.transaction?.kind
   ) {
-    throw new Error('receipt classification cannot set a transaction kind');
+    return 'receipt classification cannot set a transaction kind';
   }
   if (
     parsed.transaction &&
@@ -119,22 +140,22 @@ export function validateEmailClassification(
       parsed.semanticType,
     )
   ) {
-    throw new Error('transaction data is not valid for this semantic type');
+    return 'transaction data is not valid for this semantic type';
   }
   if (parsed.semanticType === 'SECURITY_ALERT' && !parsed.relevance) {
-    throw new Error('security alert must be relevant');
+    return 'security alert must be relevant';
   }
   if (parsed.semanticType === 'SECURITY_OTP' && parsed.relevance) {
-    throw new Error('one-time codes are not financial-relevant');
+    return 'one-time codes are not financial-relevant';
   }
   const requiredRoute = REQUIRED_ROUTES[parsed.semanticType];
   if (
     requiredRoute &&
     !parsed.routes.includes(requiredRoute as SemanticRoute)
   ) {
-    throw new Error('classification is missing its required route');
+    return 'classification is missing its required route';
   }
-  return parsed;
+  return null;
 }
 
 export function parseDeterministicEmail(input: {

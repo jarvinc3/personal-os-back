@@ -1,4 +1,5 @@
 import { BadRequestException } from '@nestjs/common';
+import { REVIEW_QUEUE_RESOLVED_PROCESSING_STATUS } from './review-queue.constants';
 import {
   assertReviewQueueDateRange,
   encodeReviewQueueCursor,
@@ -306,6 +307,7 @@ describe('review queue utilities', () => {
         }),
       ).toEqual({
         userId: 'user-1',
+        processingStatus: { not: REVIEW_QUEUE_RESOLVED_PROCESSING_STATUS },
         AND: [{ id: { notIn: ['message-1', 'message-2'] } }],
       });
     });
@@ -320,6 +322,7 @@ describe('review queue utilities', () => {
         }),
       ).toEqual({
         userId: 'user-1',
+        processingStatus: { not: REVIEW_QUEUE_RESOLVED_PROCESSING_STATUS },
         OR: [
           { classifications: { none: {} } },
           { classifications: { some: { confidence: { lt: 0.7 } } } },
@@ -334,7 +337,10 @@ describe('review queue utilities', () => {
           latestByMessageId: new Map(),
           order: 'OLDEST',
         }),
-      ).toEqual({ userId: 'user-1' });
+      ).toEqual({
+        userId: 'user-1',
+        processingStatus: { not: REVIEW_QUEUE_RESOLVED_PROCESSING_STATUS },
+      });
     });
 
     it('keeps only messages whose last verification matches the status', () => {
@@ -361,6 +367,7 @@ describe('review queue utilities', () => {
         }),
       ).toEqual({
         userId: 'user-1',
+        processingStatus: { not: REVIEW_QUEUE_RESOLVED_PROCESSING_STATUS },
         AND: [
           {
             OR: [
@@ -385,6 +392,7 @@ describe('review queue utilities', () => {
         }),
       ).toEqual({
         userId: 'user-1',
+        processingStatus: { not: REVIEW_QUEUE_RESOLVED_PROCESSING_STATUS },
         id: { in: ['message-1'] },
         fromAddress: {
           equals: 'notifications@github.com',
@@ -403,7 +411,11 @@ describe('review queue utilities', () => {
           partitionMessageIds: [],
           order: 'OLDEST',
         }),
-      ).toEqual({ userId: 'user-1', id: { in: [] } });
+      ).toEqual({
+        userId: 'user-1',
+        processingStatus: { not: REVIEW_QUEUE_RESOLVED_PROCESSING_STATUS },
+        id: { in: [] },
+      });
     });
 
     it('continues after the cursor in the active direction', () => {
@@ -421,6 +433,7 @@ describe('review queue utilities', () => {
         }),
       ).toEqual({
         userId: 'user-1',
+        processingStatus: { not: REVIEW_QUEUE_RESOLVED_PROCESSING_STATUS },
         AND: [
           {
             OR: [
@@ -442,6 +455,7 @@ describe('review queue utilities', () => {
         }),
       ).toEqual({
         userId: 'user-1',
+        processingStatus: { not: REVIEW_QUEUE_RESOLVED_PROCESSING_STATUS },
         AND: [
           {
             OR: [
@@ -543,6 +557,16 @@ describe('review queue utilities', () => {
           matchingMessageIds: new Set(),
         }),
       ).toEqual({ TRAIN: 0, VALIDATION: 0, HOLDOUT: 0, all: 0 });
+    });
+
+    it('excludes messages that no longer require review', () => {
+      expect(
+        reviewQueuePendingCounts({
+          items,
+          reviewedMessageIds: [],
+          resolvedMessageIds: new Set(['message-1', 'message-3']),
+        }),
+      ).toEqual({ TRAIN: 0, VALIDATION: 1, HOLDOUT: 1, all: 2 });
     });
   });
 });

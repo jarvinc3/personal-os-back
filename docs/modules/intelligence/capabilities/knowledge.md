@@ -12,9 +12,12 @@ El reinicio de correo, el borrado de datos AI y la eliminación de cuenta llaman
 
 La proyección se borra y vuelve a crearse dentro de la misma transacción. Los ítems GLOBAL que perdieron toda la evidencia permanecen en `REVIEW_REQUIRED` con contadores de soporte cero, salvo que una decisión ADMIN los deje `BLOCKED` (reversión) o `STABLE` con `promotedBy: ADMIN` (promoción). Los índices parciales impiden duplicados por clave y alcance; el CHECK exige `userId` solo en USER.
 
+Promover una fila GLOBAL reclasifica el historial del ADMIN que promueve con la etiqueta estructural del conocimiento y registra `knowledgeUsed` con alcance `GLOBAL`. Revertirla reencola (`QUEUED`) los correos del mismo usuario que la habían usado, sin borrar su clasificación anterior; el clasificador los retoma en la siguiente pasada. Ambas acciones quedan acotadas al usuario que las ejecuta: el resto de las cuentas recibe el conocimiento GLOBAL en el correo nuevo, no en su historial.
+
 ## Evidencia
 
 - `packages/intelligence/src/knowledge/knowledge-projector.spec.ts`: normalización, saneamiento, determinismo, corrección, umbral, HOLDOUT, consentimiento, realimentación, lápidas por versión y reversión ADMIN.
+- `packages/intelligence/src/email/email-reclassification.service.spec.ts` y `email-reclassification.util.spec.ts`: alcance por remitente y grupo, conservación de monto/moneda/cuenta por correo, verificaciones humanas, HOLDOUT, idempotencia de la señal, promoción y reversión.
 - `packages/intelligence/src/knowledge/knowledge-policy.spec.ts`: mínimo de colaboradores por entorno y umbral de 2/3 con desempate.
 - `packages/intelligence/src/knowledge/ai-knowledge.service.spec.ts`: rebuild determinista y bloqueo de un GLOBAL sin evidencia.
 - `packages/intelligence/src/knowledge/ai-data-deletion.service.spec.ts`: lápidas elegibles, opt-out, HOLDOUT y runs `INCOMPLETE`.

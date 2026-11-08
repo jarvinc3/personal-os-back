@@ -1,6 +1,13 @@
 import { ConflictException } from '@nestjs/common';
 import { AiKnowledgeService } from './ai-knowledge.service';
 
+const reclassification = {
+  reclassifyAfterKnowledgePromotion: jest
+    .fn()
+    .mockResolvedValue({ requeued: 0 }),
+  requeueAfterKnowledgeRevert: jest.fn().mockResolvedValue({ requeued: 0 }),
+};
+
 type StoredKnowledge = Record<string, unknown>;
 
 type FixtureOptions = {
@@ -165,7 +172,11 @@ function makeFixture(options: FixtureOptions = {}) {
       key === 'NODE_ENV' ? 'production' : undefined,
     ),
   };
-  const service = new AiKnowledgeService(prisma as never, config as never);
+  const service = new AiKnowledgeService(
+    prisma as never,
+    config as never,
+    reclassification as never,
+  );
   return { service, tx, getStored: () => stored };
 }
 
@@ -289,7 +300,11 @@ describe('AiKnowledgeService revert', () => {
         callback(tx),
       ),
     };
-    const service = new AiKnowledgeService(prisma as never, {} as never);
+    const service = new AiKnowledgeService(
+      prisma as never,
+      {} as never,
+      reclassification as never,
+    );
     const rebuild = jest.spyOn(service, 'rebuild');
 
     const reverted = await service.revert('admin-1', 'k1');

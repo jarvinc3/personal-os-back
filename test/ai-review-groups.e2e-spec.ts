@@ -19,6 +19,9 @@ type ReviewMessage = {
   subject: string;
   templateFingerprint: string | null;
   receivedAt: Date;
+  processingStatus?: string;
+  classification?: Record<string, unknown> | null;
+  classificationStartedAt?: Date | null;
 };
 
 type StoredPartition = {
@@ -71,6 +74,21 @@ const otherAccountMessages: ReviewMessage[] = Array.from(
   }),
 );
 
+function financeClassification(amount: number) {
+  return {
+    relevance: true,
+    semanticType: 'FIN_TRANSACTION',
+    routes: ['FINANCE'],
+    transaction: {
+      kind: 'TRANSACTION',
+      amount,
+      currency: 'DOP',
+      last4: '4821',
+    },
+    confidence: 0.4,
+  };
+}
+
 const partition = (
   message: ReviewMessage,
   messagePartition: StoredPartition['partition'],
@@ -89,6 +107,10 @@ describe('AI-6 review groups batch (e2e)', () => {
   let messages: ReviewMessage[];
   let partitions: StoredPartition[];
   let verifications: StoredVerification[];
+  let applyMessageUpdate: (command: {
+    where: Record<string, any>;
+    data: Record<string, any>;
+  }) => Promise<{ count: number }>;
   const userRole = { findUnique: jest.fn() };
 
   beforeEach(async () => {
@@ -105,25 +127,49 @@ describe('AI-6 review groups batch (e2e)', () => {
     userRole.findUnique.mockResolvedValue({ role: 'ADMIN' });
     prismaMock = createPrismaMock();
 
+    const matchesMessage = (where: Record<string, any>) => {
+      const statusFilter = where.processingStatus as
+        string | { in?: string[] } | undefined;
+      const statuses =
+        typeof statusFilter === 'string' ? [statusFilter] : statusFilter?.in;
+      const idFilter = where.id as string | { in?: string[] } | undefined;
+      const ids = typeof idFilter === 'string' ? [idFilter] : idFilter?.in;
+      return (message: ReviewMessage) =>
+        (where.userId === undefined || message.userId === where.userId) &&
+        (where.fromAddress === undefined ||
+          message.fromAddress === where.fromAddress) &&
+        (where.fromDomain === undefined ||
+          message.fromDomain === where.fromDomain) &&
+        (where.templateFingerprint === undefined ||
+          message.templateFingerprint === where.templateFingerprint) &&
+        (!ids || ids.includes(message.id)) &&
+        (!statuses ||
+          (message.processingStatus !== undefined &&
+            statuses.includes(message.processingStatus))) &&
+        (where.classificationStartedAt === undefined ||
+          message.classificationStartedAt === where.classificationStartedAt);
+    };
     prismaMock.aiEmailMessage.findMany.mockImplementation(
-      (command: {
-        where?: {
-          userId?: string;
-          fromAddress?: string;
-          templateFingerprint?: string | null;
-        };
-      }) => {
+      (command: { where?: Record<string, any> }) => {
         const where = command.where ?? {};
-        return Promise.resolve(
-          messages.filter(
-            (message) =>
-              (where.userId === undefined || message.userId === where.userId) &&
-              (where.fromAddress === undefined ||
-                message.fromAddress === where.fromAddress) &&
-              (where.templateFingerprint === undefined ||
-                message.templateFingerprint === where.templateFingerprint),
-          ),
-        );
+        return Promise.resolve(messages.filter(matchesMessage(where)));
+      },
+    );
+    applyMessageUpdate = (command) => {
+      const matched = messages.filter(matchesMessage(command.where));
+      for (const message of matched) {
+        Object.assign(message, command.data);
+      }
+      return Promise.resolve({ count: matched.length });
+    };
+    prismaMock.aiEmailMessage.updateMany.mockImplementation(applyMessageUpdate);
+    prismaMock.aiEmailMessage.updateManyAndReturn.mockImplementation(
+      (command: { where: Record<string, any>; data: Record<string, any> }) => {
+        const matched = messages.filter(matchesMessage(command.where));
+        for (const message of matched) {
+          Object.assign(message, command.data);
+        }
+        return Promise.resolve(matched.map((message) => ({ ...message })));
       },
     );
     prismaMock.aiEmailMessage.findFirst.mockImplementation(
@@ -200,6 +246,43 @@ describe('AI-6 review groups batch (e2e)', () => {
         return Promise.resolve({ count: createdRows.length });
       },
     );
+    prismaMock.aiDatasetItem.findFirst.mockImplementation(
+      (command: { where: { userId: string; sourceId: string } }) =>
+        Promise.resolve(
+          partitions.find(
+            (item) =>
+              item.userId === command.where.userId &&
+              item.sourceId === command.where.sourceId,
+          ) ?? null,
+        ),
+    );
+    prismaMock.aiHumanVerification.findFirst.mockImplementation(
+      (command: {
+        where: { userId: string; targetType: string; targetId: string };
+      }) =>
+        Promise.resolve(
+          [...verifications]
+            .filter(
+              (verification) =>
+                verification.userId === command.where.userId &&
+                verification.targetType === command.where.targetType &&
+                verification.targetId === command.where.targetId,
+            )
+            .sort((left, right) => Number(right.sequence - left.sequence))[0] ??
+            null,
+        ),
+    );
+    prismaMock.aiHumanVerification.create.mockImplementation(
+      ({ data: created }: { data: StoredVerificationInput }) => {
+        const row = {
+          ...created,
+          sequence: BigInt(verifications.length + 1),
+          createdAt: receivedAt,
+        };
+        verifications.push(row);
+        return Promise.resolve(row);
+      },
+    );
 
     const moduleFixture = await applyE2eTestOverrides(
       Test.createTestingModule({ imports: [AppModule] })
@@ -265,6 +348,7 @@ describe('AI-6 review groups batch (e2e)', () => {
       verified: 91,
       holdoutExcluded: 9,
       alreadyVerified: 0,
+      requeued: 0,
     });
     expect(verifications).toHaveLength(91);
     expect(
@@ -284,6 +368,7 @@ describe('AI-6 review groups batch (e2e)', () => {
       verified: 0,
       holdoutExcluded: 9,
       alreadyVerified: 91,
+      requeued: 0,
     });
     expect(verifications).toHaveLength(91);
     expect(prismaMock.$transaction).toHaveBeenCalledTimes(2);
@@ -355,5 +440,152 @@ describe('AI-6 review groups batch (e2e)', () => {
       .get('/api/intelligence/review-groups?pageSize=101')
       .set('Authorization', `Bearer ${token}`)
       .expect(400);
+  });
+
+  it('no generaliza la verificación del lote a otras plantillas del remitente', async () => {
+    const extras: ReviewMessage[] = ['x1', 'x2'].map((id, index) => ({
+      id,
+      userId: 'user-123',
+      fromAddress: 'notifications@github.com',
+      fromDomain: 'github.com',
+      subject: 'Pago recibido',
+      templateFingerprint: 'fp-other',
+      receivedAt,
+      processingStatus: 'REVIEW_REQUIRED',
+      classification: financeClassification(index === 0 ? 1250 : 3400),
+    }));
+    messages = [...githubMessages, ...extras];
+    partitions = [
+      ...githubMessages.map((message, index) =>
+        partition(message, index >= 91 ? 'HOLDOUT' : 'TRAIN'),
+      ),
+      ...extras.map((message) => partition(message, 'TRAIN')),
+    ];
+
+    const batch = await postBatch({
+      relevance: true,
+      semanticType: 'FIN_TRANSACTION',
+      routes: ['FINANCE'],
+      transaction: { kind: 'TRANSACTION' },
+    });
+
+    expect(batch.body.data).toMatchObject({
+      verified: 91,
+      holdoutExcluded: 9,
+      requeued: 0,
+    });
+    expect(extras.map(({ processingStatus }) => processingStatus)).toEqual([
+      'REVIEW_REQUIRED',
+      'REVIEW_REQUIRED',
+    ]);
+    expect(prismaMock.aiSignal.createMany).not.toHaveBeenCalled();
+  });
+
+  it('reclasifica solo la misma plantilla al verificar un mensaje', async () => {
+    const verifiedMessage: ReviewMessage = {
+      id: 't0',
+      userId: 'user-123',
+      fromAddress: 'alertas@banco.com',
+      fromDomain: 'banco.com',
+      subject: 'Consumo RD$1,250',
+      templateFingerprint: 'fp-a',
+      receivedAt,
+      processingStatus: 'PROCESSED',
+      classification: financeClassification(999),
+    };
+    const sameTemplate: ReviewMessage = {
+      ...verifiedMessage,
+      id: 't1',
+      subject: 'Consumo RD$3,400',
+      processingStatus: 'REVIEW_REQUIRED',
+      classification: financeClassification(3400),
+    };
+    const otherTemplate: ReviewMessage = {
+      ...verifiedMessage,
+      id: 't2',
+      subject: 'Estado de cuenta',
+      templateFingerprint: 'fp-b',
+      processingStatus: 'REVIEW_REQUIRED',
+      classification: financeClassification(5000),
+    };
+    messages = [verifiedMessage, sameTemplate, otherTemplate];
+    partitions = messages.map((message) => partition(message, 'TRAIN'));
+
+    const response = await request(app.getHttpServer())
+      .post('/api/intelligence/messages/t0/verifications')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        verdict: 'CORRECTED',
+        relevance: true,
+        semanticType: 'FIN_TRANSACTION',
+        routes: ['FINANCE'],
+        transaction: { kind: 'TRANSACTION' },
+      })
+      .expect(201);
+
+    expect(response.body.data).toMatchObject({ requeued: 1 });
+    expect(sameTemplate.processingStatus).toBe('PROCESSED');
+    expect(sameTemplate.classification).toMatchObject({
+      semanticType: 'FIN_TRANSACTION',
+      transaction: { amount: 3400, currency: 'DOP' },
+    });
+    expect(otherTemplate.processingStatus).toBe('REVIEW_REQUIRED');
+    expect(prismaMock.aiSignal.createMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: [expect.objectContaining({ id: 'email-t1', sourceId: 't1' })],
+      }),
+    );
+  });
+
+  it('reintenta la reclasificación sin duplicar la verificación', async () => {
+    const verifiedMessage: ReviewMessage = {
+      id: 'r0',
+      userId: 'user-123',
+      fromAddress: 'alertas@banco.com',
+      fromDomain: 'banco.com',
+      subject: 'Consumo RD$1,250',
+      templateFingerprint: 'fp-r',
+      receivedAt,
+      processingStatus: 'PROCESSED',
+      classification: financeClassification(999),
+    };
+    const sameTemplate: ReviewMessage = {
+      ...verifiedMessage,
+      id: 'r1',
+      subject: 'Consumo RD$3,400',
+      processingStatus: 'REVIEW_REQUIRED',
+      classification: financeClassification(3400),
+    };
+    messages = [verifiedMessage, sameTemplate];
+    partitions = messages.map((message) => partition(message, 'TRAIN'));
+    prismaMock.aiEmailMessage.updateMany.mockRejectedValueOnce(
+      new Error('chunk write failed'),
+    );
+
+    const body = {
+      verdict: 'CORRECTED',
+      relevance: true,
+      semanticType: 'FIN_TRANSACTION',
+      routes: ['FINANCE'],
+      transaction: { kind: 'TRANSACTION' },
+    };
+    await request(app.getHttpServer())
+      .post('/api/intelligence/messages/r0/verifications')
+      .set('Authorization', `Bearer ${token}`)
+      .send(body)
+      .expect(500);
+
+    expect(verifications).toHaveLength(1);
+    expect(sameTemplate.processingStatus).toBe('REVIEW_REQUIRED');
+
+    const retried = await request(app.getHttpServer())
+      .post('/api/intelligence/messages/r0/verifications')
+      .set('Authorization', `Bearer ${token}`)
+      .send(body)
+      .expect(201);
+
+    expect(retried.body.data).toMatchObject({ requeued: 1 });
+    expect(verifications).toHaveLength(1);
+    expect(sameTemplate.processingStatus).toBe('PROCESSED');
   });
 });

@@ -29,6 +29,15 @@ type StoredVerification = {
 
 const REVIEW_TARGET_TYPE = 'EMAIL_MESSAGE';
 
+const reclassification = {
+  reclassifyAfterMessageVerification: jest
+    .fn()
+    .mockResolvedValue({ requeued: 0 }),
+  reclassifyAfterReviewGroupVerification: jest
+    .fn()
+    .mockResolvedValue({ requeued: 0 }),
+};
+
 const githubMessages = (): StoredMessage[] =>
   Array.from({ length: 100 }, (_, index) => ({
     id: `g${index}`,
@@ -181,7 +190,10 @@ describe('AiEvidenceService review groups', () => {
       partitions,
       initialVerifications,
     });
-    const service = new AiEvidenceService(prisma as never);
+    const service = new AiEvidenceService(
+      prisma as never,
+      reclassification as never,
+    );
 
     const firstPage = await service.listReviewGroups('user-1', {});
     expect(firstPage).toMatchObject({
@@ -232,7 +244,10 @@ describe('AiEvidenceService review groups', () => {
       messages: githubMessages(),
       partitions: githubPartitions(),
     });
-    const service = new AiEvidenceService(prisma as never);
+    const service = new AiEvidenceService(
+      prisma as never,
+      reclassification as never,
+    );
     const request = {
       verdict: 'CONFIRMED' as const,
       fromAddress: 'notifications@github.com',
@@ -241,7 +256,7 @@ describe('AiEvidenceService review groups', () => {
     };
 
     await expect(service.verifyReviewGroup('user-1', request)).resolves.toEqual(
-      { verified: 91, holdoutExcluded: 9, alreadyVerified: 0 },
+      { verified: 91, holdoutExcluded: 9, alreadyVerified: 0, requeued: 0 },
     );
     expect(prisma.aiHumanVerification.createMany).toHaveBeenCalledTimes(1);
     expect(verifications).toHaveLength(91);
@@ -261,7 +276,7 @@ describe('AiEvidenceService review groups', () => {
     );
 
     await expect(service.verifyReviewGroup('user-1', request)).resolves.toEqual(
-      { verified: 0, holdoutExcluded: 9, alreadyVerified: 91 },
+      { verified: 0, holdoutExcluded: 9, alreadyVerified: 91, requeued: 0 },
     );
     expect(prisma.aiHumanVerification.createMany).toHaveBeenCalledTimes(1);
   });
@@ -283,7 +298,10 @@ describe('AiEvidenceService review groups', () => {
       partitions: githubPartitions(),
       initialVerifications,
     });
-    const service = new AiEvidenceService(prisma as never);
+    const service = new AiEvidenceService(
+      prisma as never,
+      reclassification as never,
+    );
 
     await expect(
       service.verifyReviewGroup('user-1', {
@@ -297,6 +315,7 @@ describe('AiEvidenceService review groups', () => {
       verified: 91,
       holdoutExcluded: 8,
       alreadyVerified: 1,
+      requeued: 0,
     });
     const createdVerifications = verifications.slice(1);
     expect(createdVerifications[0]).toMatchObject({
@@ -313,7 +332,10 @@ describe('AiEvidenceService review groups', () => {
       })),
       partitions: githubPartitions(),
     });
-    const service = new AiEvidenceService(prisma as never);
+    const service = new AiEvidenceService(
+      prisma as never,
+      reclassification as never,
+    );
 
     await expect(
       service.verifyReviewGroup('user-1', {
@@ -333,7 +355,10 @@ describe('AiEvidenceService review groups', () => {
       messages: githubMessages(),
       partitions: githubPartitions(),
     });
-    const service = new AiEvidenceService(prisma as never);
+    const service = new AiEvidenceService(
+      prisma as never,
+      reclassification as never,
+    );
 
     await expect(
       service.verifyReviewGroup('user-1', {
@@ -350,7 +375,10 @@ describe('AiEvidenceService review groups', () => {
       messages: githubMessages(),
       partitions: githubPartitions(),
     });
-    const service = new AiEvidenceService(prisma as never);
+    const service = new AiEvidenceService(
+      prisma as never,
+      reclassification as never,
+    );
 
     await expect(
       service.verifyReviewGroup('user-1', {
@@ -370,5 +398,44 @@ describe('AiEvidenceService review groups', () => {
     ).rejects.toBeInstanceOf(BadRequestException);
     expect(prisma.aiEmailMessage.findMany).not.toHaveBeenCalled();
     expect(prisma.aiHumanVerification.createMany).not.toHaveBeenCalled();
+  });
+
+  it('reencola el resto del remitente con la etiqueta corregida del lote', async () => {
+    const { prisma } = makeReviewGroupPrisma({
+      messages: githubMessages(),
+      partitions: githubPartitions(),
+    });
+    reclassification.reclassifyAfterReviewGroupVerification.mockResolvedValueOnce(
+      { requeued: 12 },
+    );
+    const service = new AiEvidenceService(
+      prisma as never,
+      reclassification as never,
+    );
+
+    await expect(
+      service.verifyReviewGroup('user-1', {
+        verdict: 'CORRECTED',
+        fromAddress: 'notifications@github.com',
+        templateFingerprint: 'fp-github',
+        relevance: true,
+        semanticType: 'FIN_TRANSACTION',
+        routes: ['FINANCE'],
+        transaction: { kind: 'TRANSACTION' },
+      }),
+    ).resolves.toMatchObject({ requeued: 12 });
+    expect(
+      reclassification.reclassifyAfterReviewGroupVerification,
+    ).toHaveBeenCalledWith({
+      userId: 'user-1',
+      fromAddress: 'notifications@github.com',
+      templateFingerprint: 'fp-github',
+      correctedLabel: {
+        relevance: true,
+        semanticType: 'FIN_TRANSACTION',
+        routes: ['FINANCE'],
+        transaction: { kind: 'TRANSACTION' },
+      },
+    });
   });
 });
