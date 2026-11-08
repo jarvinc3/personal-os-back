@@ -302,7 +302,7 @@ El comercio filtra candidatos cuando existe, pero no desempata entre varios: la 
 
 - Replay de la misma señal: `ALREADY_APPLIED`, sin segunda compensación.
 - Segundo reverso con la misma referencia sobre un original ya `REVERSED`: `ALREADY_APPLIED`.
-- Segundo reverso por candidato que encuentra el mismo original ya `REVERSED`: `ALREADY_APPLIED`.
+- Segundo reverso sin referencia que no encuentra un candidato vigente porque el original ya está `REVERSED`: revisión `REVERSAL_ORIGINAL_NOT_FOUND`, sin segunda compensación.
 - Dos reversos distintos con candidatos distintos: se procesan por separado.
 - Un reverso de un reverso no se vincula al original revertido; va a revisión.
 
