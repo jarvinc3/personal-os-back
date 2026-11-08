@@ -1,9 +1,11 @@
 import {
   BadRequestException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { createHash } from 'node:crypto';
+import { isDeepStrictEqual } from 'node:util';
 import { Prisma, PrismaService } from '@personal-os/database';
 import type { CreateHumanVerificationDto } from './dto/create-human-verification.dto';
 import type { CreateReviewGroupVerificationDto } from './dto/create-review-group-verification.dto';
@@ -21,6 +23,7 @@ import {
 import {
   REVIEW_QUEUE_DEFAULT_ORDER,
   REVIEW_QUEUE_PAGE_SIZE,
+  REVIEW_QUEUE_RESOLVED_PROCESSING_STATUS,
 } from './review-queue.constants';
 import {
   assertReviewQueueDateRange,
@@ -37,16 +40,37 @@ import { groupReviewMessages } from './review-groups.util';
 import { PROJECTOR_VERSION } from '../knowledge/knowledge-projector';
 import { POLICY_VERSION } from '../knowledge/knowledge-policy';
 import { EMAIL_CLASSIFICATION_VERSIONS } from '../email/email-classification.util';
+import {
+  verificationLabel,
+  type ReclassificationResult,
+} from '../email/email-reclassification.util';
+import { AiEmailReclassificationService } from '../email/email-reclassification.service';
 import { calculateHoldoutMetrics } from './holdout-metrics.util';
 
 import { EMAIL_DATASET_NAME, EMAIL_DATASET_PURPOSE } from './dataset.constants';
 
 const EMAIL_SOURCE_TYPE = 'EMAIL_MESSAGE';
 const REVIEW_TARGET_TYPE = 'EMAIL_MESSAGE';
+const VERIFICATION_SELECT = {
+  sequence: true,
+  verifierRole: true,
+  targetType: true,
+  targetId: true,
+  verdict: true,
+  correctedPayload: true,
+  notes: true,
+  isGroundTruth: true,
+  createdAt: true,
+} as const;
 
 @Injectable()
 export class AiEvidenceService {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly logger = new Logger(AiEvidenceService.name);
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly reclassification: AiEmailReclassificationService,
+  ) {}
 
   async datasetSummary(userId: string) {
     const dataset = await this.ensureDataset();
@@ -76,26 +100,38 @@ export class AiEvidenceService {
     const order = query.order ?? REVIEW_QUEUE_DEFAULT_ORDER;
     const dataset = await this.ensureDataset();
     await this.ensureDatasetItems(userId, dataset.id);
-    const [timezone, verifications, datasetItems] = await Promise.all([
-      this.reviewQueueTimezone(userId, query),
-      this.prisma.aiHumanVerification.findMany({
-        where: { userId, targetType: REVIEW_TARGET_TYPE },
-        orderBy: [{ targetId: 'asc' }, { sequence: 'desc' }],
-        distinct: ['targetId'],
-        select: {
-          targetId: true,
-          sequence: true,
-          verdict: true,
-          correctedPayload: true,
-          notes: true,
-          createdAt: true,
-        },
-      }),
-      this.prisma.aiDatasetItem.findMany({
-        where: { datasetId: dataset.id, userId, sourceType: EMAIL_SOURCE_TYPE },
-        select: { sourceId: true, partition: true },
-      }),
-    ]);
+    const [timezone, verifications, datasetItems, resolvedMessages] =
+      await Promise.all([
+        this.reviewQueueTimezone(userId, query),
+        this.prisma.aiHumanVerification.findMany({
+          where: { userId, targetType: REVIEW_TARGET_TYPE },
+          orderBy: [{ targetId: 'asc' }, { sequence: 'desc' }],
+          distinct: ['targetId'],
+          select: {
+            targetId: true,
+            sequence: true,
+            verdict: true,
+            correctedPayload: true,
+            notes: true,
+            createdAt: true,
+          },
+        }),
+        this.prisma.aiDatasetItem.findMany({
+          where: {
+            datasetId: dataset.id,
+            userId,
+            sourceType: EMAIL_SOURCE_TYPE,
+          },
+          select: { sourceId: true, partition: true },
+        }),
+        this.prisma.aiEmailMessage.findMany({
+          where: {
+            userId,
+            processingStatus: REVIEW_QUEUE_RESOLVED_PROCESSING_STATUS,
+          },
+          select: { id: true },
+        }),
+      ]);
     const latestByMessageId = latestReviewVerifications(verifications);
     const partitionByMessageId = new Map(
       datasetItems.map((item) => [item.sourceId, item.partition]),
@@ -124,6 +160,7 @@ export class AiEvidenceService {
       items: datasetItems,
       reviewedMessageIds: [...latestByMessageId.keys()],
       matchingMessageIds,
+      resolvedMessageIds: new Set(resolvedMessages.map(({ id }) => id)),
     });
     const partitionMessageIds = query.partition
       ? datasetItems
@@ -274,7 +311,7 @@ export class AiEvidenceService {
       dto.fromAddress,
       dto.templateFingerprint ?? null,
     ]);
-    return this.prisma.$transaction(async (tx) => {
+    const outcome = await this.prisma.$transaction(async (tx) => {
       await lockReviewGroup(tx, { userId, groupKey });
       const verifications = await tx.aiHumanVerification.findMany({
         where: {
@@ -319,6 +356,20 @@ export class AiEvidenceService {
         alreadyVerified,
       };
     });
+    const requeued = await this.reclassifyAfterVerification(
+      () =>
+        this.reclassification.reclassifyAfterReviewGroupVerification({
+          userId,
+          fromAddress: dto.fromAddress,
+          templateFingerprint: dto.templateFingerprint ?? null,
+          correctedLabel: verificationLabel({
+            verdict: dto.verdict,
+            correctedPayload: correctedPayload ?? null,
+          }),
+        }),
+      `review group ${dto.fromAddress}`,
+    );
+    return { ...outcome, requeued };
   }
 
   async verifyMessage(
@@ -328,55 +379,133 @@ export class AiEvidenceService {
   ) {
     const dataset = await this.ensureDataset();
     await this.ensureDatasetItems(userId, dataset.id);
-    const [message, item, roleAssignment] = await Promise.all([
-      this.prisma.aiEmailMessage.findFirst({
-        where: { id: messageId, userId },
-        select: { id: true },
-      }),
-      this.prisma.aiDatasetItem.findFirst({
-        where: {
-          datasetId: dataset.id,
-          userId,
-          sourceType: EMAIL_SOURCE_TYPE,
-          sourceId: messageId,
-        },
-        select: { partition: true },
-      }),
-      this.prisma.userRole.findUnique({
-        where: { userId },
-        select: { role: true },
-      }),
-    ]);
+    const [message, item, roleAssignment, latestVerification] =
+      await Promise.all([
+        this.prisma.aiEmailMessage.findFirst({
+          where: { id: messageId, userId },
+          select: { id: true },
+        }),
+        this.prisma.aiDatasetItem.findFirst({
+          where: {
+            datasetId: dataset.id,
+            userId,
+            sourceType: EMAIL_SOURCE_TYPE,
+            sourceId: messageId,
+          },
+          select: { partition: true },
+        }),
+        this.prisma.userRole.findUnique({
+          where: { userId },
+          select: { role: true },
+        }),
+        this.prisma.aiHumanVerification.findFirst({
+          where: {
+            userId,
+            targetType: REVIEW_TARGET_TYPE,
+            targetId: messageId,
+          },
+          orderBy: { sequence: 'desc' },
+          select: VERIFICATION_SELECT,
+        }),
+      ]);
     if (!message || !item) {
       throw new NotFoundException('Mensaje no encontrado');
     }
     assertHumanVerificationLabels(dto);
 
     const correctedPayload = humanVerificationPayload(dto);
-    const verification = await this.prisma.aiHumanVerification.create({
-      data: {
-        userId,
-        verifierRole: roleAssignment?.role ?? 'USER',
-        targetType: REVIEW_TARGET_TYPE,
-        targetId: messageId,
+    const notes = dto.notes?.trim() || null;
+    const verification =
+      this.retryVerification({
+        latestVerification,
         verdict: dto.verdict,
-        correctedPayload: correctedPayload as never,
-        notes: dto.notes?.trim() || null,
-        isGroundTruth: item.partition === 'HOLDOUT',
-      },
-      select: {
-        sequence: true,
-        verifierRole: true,
-        targetType: true,
-        targetId: true,
-        verdict: true,
-        correctedPayload: true,
-        notes: true,
-        isGroundTruth: true,
-        createdAt: true,
-      },
-    });
-    return { ...verification, sequence: verification.sequence.toString() };
+        correctedPayload,
+        notes,
+      }) ??
+      (await this.prisma.aiHumanVerification.create({
+        data: {
+          userId,
+          verifierRole: roleAssignment?.role ?? 'USER',
+          targetType: REVIEW_TARGET_TYPE,
+          targetId: messageId,
+          verdict: dto.verdict,
+          correctedPayload: correctedPayload as never,
+          notes,
+          isGroundTruth: item.partition === 'HOLDOUT',
+        },
+        select: VERIFICATION_SELECT,
+      }));
+    const requeued = await this.reclassifyAfterVerification(
+      () =>
+        this.reclassification.reclassifyAfterMessageVerification({
+          userId,
+          messageId,
+          correctedLabel: verificationLabel({
+            verdict: dto.verdict,
+            correctedPayload: correctedPayload ?? null,
+          }),
+        }),
+      `message ${messageId}`,
+    );
+    return {
+      ...verification,
+      sequence: verification.sequence.toString(),
+      requeued,
+    };
+  }
+
+  /**
+   * Repetir la misma verificación no agrega evidencia: el reintento reutiliza
+   * la última fila idéntica y solo vuelve a intentar la reclasificación.
+   */
+  private retryVerification<
+    T extends {
+      verdict: string;
+      correctedPayload: unknown;
+      notes: string | null;
+    },
+  >({
+    latestVerification,
+    verdict,
+    correctedPayload,
+    notes,
+  }: {
+    latestVerification: T | null;
+    verdict: string;
+    correctedPayload: Record<string, unknown> | undefined;
+    notes: string | null;
+  }): T | null {
+    if (!latestVerification) {
+      return null;
+    }
+    const sameVerification =
+      latestVerification.verdict === verdict &&
+      latestVerification.notes === notes &&
+      isDeepStrictEqual(
+        latestVerification.correctedPayload ?? null,
+        correctedPayload ?? null,
+      );
+    return sameVerification ? latestVerification : null;
+  }
+
+  private async reclassifyAfterVerification(
+    reclassify: () => Promise<ReclassificationResult>,
+    context: string,
+  ): Promise<number> {
+    try {
+      const { requeued } = await reclassify();
+      return requeued;
+    } catch (error) {
+      // La verificación ya está guardada. El reintento es idempotente: reutiliza
+      // la fila y vuelve a intentar la reclasificación.
+      this.logger.warn(
+        `Reclassification failed after ${context}: ${safeErrorCode(error)}`,
+      );
+      throw new Error(
+        'La verificación quedó guardada, pero no se pudo reclasificar el historial. Reintenta la misma verificación.',
+        { cause: error },
+      );
+    }
   }
 
   async startAnalysisRun(
@@ -745,6 +874,13 @@ function serializeRun<
       ? { consentRevision: run.consentRevision.toString() }
       : {}),
   };
+}
+
+function safeErrorCode(error: unknown): string {
+  if (error && typeof error === 'object' && 'code' in error) {
+    return String(error.code).slice(0, 80);
+  }
+  return 'RECLASSIFICATION_FAILED';
 }
 
 function metricDeltas(

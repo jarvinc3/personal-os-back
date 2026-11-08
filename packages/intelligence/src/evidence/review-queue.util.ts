@@ -5,6 +5,7 @@ import { fromZonedTime } from 'date-fns-tz';
 import type { HumanVerificationVerdict } from './human-verification.constants';
 import {
   REVIEW_QUEUE_PENDING_STATUS,
+  REVIEW_QUEUE_RESOLVED_PROCESSING_STATUS,
   type ReviewQueueOrder,
   type ReviewQueuePartition,
   type ReviewQueueStatus,
@@ -232,6 +233,7 @@ export function reviewQueuePendingCounts({
   items,
   reviewedMessageIds,
   matchingMessageIds,
+  resolvedMessageIds,
 }: {
   items: readonly {
     sourceId: string;
@@ -239,11 +241,15 @@ export function reviewQueuePendingCounts({
   }[];
   reviewedMessageIds: readonly string[];
   matchingMessageIds?: ReadonlySet<string>;
+  resolvedMessageIds?: ReadonlySet<string>;
 }): ReviewQueueCounts {
   const reviewed = new Set(reviewedMessageIds);
   const counts = { TRAIN: 0, VALIDATION: 0, HOLDOUT: 0 };
   for (const item of items) {
     if (reviewed.has(item.sourceId)) {
+      continue;
+    }
+    if (resolvedMessageIds?.has(item.sourceId)) {
       continue;
     }
     if (matchingMessageIds && !matchingMessageIds.has(item.sourceId)) {
@@ -287,11 +293,12 @@ function reviewQueueStatusFilter({
     (status) => status !== REVIEW_QUEUE_PENDING_STATUS,
   );
   const reviewedMessageIds = [...latestByMessageId.keys()];
+  const pendingFilter: Prisma.AiEmailMessageWhereInput = {
+    processingStatus: { not: REVIEW_QUEUE_RESOLVED_PROCESSING_STATUS },
+    ...(reviewedMessageIds.length ? { id: { notIn: reviewedMessageIds } } : {}),
+  };
   if (!verdicts.length) {
-    if (!reviewedMessageIds.length) {
-      return undefined;
-    }
-    return { id: { notIn: reviewedMessageIds } };
+    return pendingFilter;
   }
   const verdictMessageIds = [...latestByMessageId.values()]
     .filter((verification) => verdicts.includes(verification.verdict))
@@ -300,10 +307,7 @@ function reviewQueueStatusFilter({
     return { id: { in: verdictMessageIds } };
   }
   return {
-    OR: [
-      { id: { notIn: reviewedMessageIds } },
-      { id: { in: verdictMessageIds } },
-    ],
+    OR: [pendingFilter, { id: { in: verdictMessageIds } }],
   };
 }
 

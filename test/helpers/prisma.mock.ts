@@ -46,6 +46,8 @@ export type PrismaMock = {
   aiHumanVerification: {
     aggregate: MockFn;
     findMany: MockFn;
+    findFirst: MockFn;
+    create: MockFn;
     createMany: MockFn;
     update: MockFn;
   };
@@ -60,6 +62,7 @@ export type PrismaMock = {
   };
   aiDatasetItem: {
     findMany: MockFn;
+    findFirst: MockFn;
     createMany: MockFn;
     deleteMany: MockFn;
     groupBy: MockFn;
@@ -67,7 +70,20 @@ export type PrismaMock = {
   aiEmailMessage: {
     findMany: MockFn;
     findFirst: MockFn;
+    updateMany: MockFn;
+    updateManyAndReturn: MockFn;
     deleteMany: MockFn;
+  };
+  aiEmailClassification: {
+    findMany: MockFn;
+    createMany: MockFn;
+    deleteMany: MockFn;
+  };
+  aiSignal: {
+    createMany: MockFn;
+  };
+  aiSignalEvidence: {
+    createMany: MockFn;
   };
   userAiSettings: {
     findMany: MockFn;
@@ -342,6 +358,7 @@ export type PrismaMock = {
   };
   domainEventOutbox: {
     create: MockFn;
+    createMany: MockFn;
     findFirst: MockFn;
     findUnique: MockFn;
     updateMany: MockFn;
@@ -392,7 +409,20 @@ function createTransactionClient(prismaMock: PrismaMock) {
     },
     aiEmailMessage: {
       findMany: prismaMock.aiEmailMessage.findMany,
+      updateMany: prismaMock.aiEmailMessage.updateMany,
+      updateManyAndReturn: prismaMock.aiEmailMessage.updateManyAndReturn,
       deleteMany: prismaMock.aiEmailMessage.deleteMany,
+    },
+    aiEmailClassification: {
+      findMany: prismaMock.aiEmailClassification.findMany,
+      createMany: prismaMock.aiEmailClassification.createMany,
+      deleteMany: prismaMock.aiEmailClassification.deleteMany,
+    },
+    aiSignal: {
+      createMany: prismaMock.aiSignal.createMany,
+    },
+    aiSignalEvidence: {
+      createMany: prismaMock.aiSignalEvidence.createMany,
     },
     userAiSettings: {
       findMany: prismaMock.userAiSettings.findMany,
@@ -660,6 +690,7 @@ function createTransactionClient(prismaMock: PrismaMock) {
     },
     domainEventOutbox: {
       create: jest.fn().mockResolvedValue({ id: 'out-1' }),
+      createMany: prismaMock.domainEventOutbox.createMany,
       findFirst: jest.fn(),
       findUnique: jest.fn(),
       updateMany: jest.fn().mockResolvedValue({ count: 1 }),
@@ -825,6 +856,8 @@ export function createPrismaMock(): PrismaMock {
     aiHumanVerification: {
       aggregate: jest.fn().mockResolvedValue({ _max: { sequence: null } }),
       findMany: jest.fn().mockResolvedValue([]),
+      findFirst: jest.fn().mockResolvedValue(null),
+      create: jest.fn().mockResolvedValue({ sequence: 1n }),
       createMany: jest.fn().mockResolvedValue({ count: 0 }),
       update: jest.fn().mockResolvedValue({}),
     },
@@ -839,6 +872,7 @@ export function createPrismaMock(): PrismaMock {
     },
     aiDatasetItem: {
       findMany: jest.fn().mockResolvedValue([]),
+      findFirst: jest.fn().mockResolvedValue(null),
       createMany: jest.fn().mockResolvedValue({ count: 0 }),
       deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
       groupBy: jest.fn().mockResolvedValue([]),
@@ -846,7 +880,20 @@ export function createPrismaMock(): PrismaMock {
     aiEmailMessage: {
       findMany: jest.fn().mockResolvedValue([]),
       findFirst: jest.fn().mockResolvedValue(null),
+      updateMany: jest.fn().mockResolvedValue({ count: 0 }),
+      updateManyAndReturn: jest.fn().mockResolvedValue([]),
       deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
+    },
+    aiEmailClassification: {
+      findMany: jest.fn().mockResolvedValue([]),
+      createMany: jest.fn().mockResolvedValue({ count: 0 }),
+      deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
+    },
+    aiSignal: {
+      createMany: jest.fn().mockResolvedValue({ count: 0 }),
+    },
+    aiSignalEvidence: {
+      createMany: jest.fn().mockResolvedValue({ count: 0 }),
     },
     userAiSettings: {
       findMany: jest.fn().mockResolvedValue([]),
@@ -1135,6 +1182,7 @@ export function createPrismaMock(): PrismaMock {
     // Root-level model used by FinanceOutboxDispatcher.processBatch after commit wake.
     domainEventOutbox: {
       create: jest.fn().mockResolvedValue({ id: 'out-1' }),
+      createMany: jest.fn().mockResolvedValue({ count: 0 }),
       findFirst: jest.fn().mockResolvedValue(null),
       findUnique: jest.fn(),
       updateMany: jest.fn().mockResolvedValue({ count: 0 }),

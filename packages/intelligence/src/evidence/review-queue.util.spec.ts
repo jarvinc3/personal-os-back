@@ -1,4 +1,5 @@
 import { BadRequestException } from '@nestjs/common';
+import { REVIEW_QUEUE_RESOLVED_PROCESSING_STATUS } from './review-queue.constants';
 import {
   assertReviewQueueDateRange,
   encodeReviewQueueCursor,
@@ -306,7 +307,12 @@ describe('review queue utilities', () => {
         }),
       ).toEqual({
         userId: 'user-1',
-        AND: [{ id: { notIn: ['message-1', 'message-2'] } }],
+        AND: [
+          {
+            processingStatus: { not: REVIEW_QUEUE_RESOLVED_PROCESSING_STATUS },
+            id: { notIn: ['message-1', 'message-2'] },
+          },
+        ],
       });
     });
 
@@ -324,6 +330,11 @@ describe('review queue utilities', () => {
           { classifications: { none: {} } },
           { classifications: { some: { confidence: { lt: 0.7 } } } },
         ],
+        AND: [
+          {
+            processingStatus: { not: REVIEW_QUEUE_RESOLVED_PROCESSING_STATUS },
+          },
+        ],
       });
     });
 
@@ -334,7 +345,14 @@ describe('review queue utilities', () => {
           latestByMessageId: new Map(),
           order: 'OLDEST',
         }),
-      ).toEqual({ userId: 'user-1' });
+      ).toEqual({
+        userId: 'user-1',
+        AND: [
+          {
+            processingStatus: { not: REVIEW_QUEUE_RESOLVED_PROCESSING_STATUS },
+          },
+        ],
+      });
     });
 
     it('keeps only messages whose last verification matches the status', () => {
@@ -364,8 +382,39 @@ describe('review queue utilities', () => {
         AND: [
           {
             OR: [
-              { id: { notIn: ['message-1', 'message-2'] } },
+              {
+                processingStatus: {
+                  not: REVIEW_QUEUE_RESOLVED_PROCESSING_STATUS,
+                },
+                id: { notIn: ['message-1', 'message-2'] },
+              },
               { id: { in: ['message-2'] } },
+            ],
+          },
+        ],
+      });
+    });
+
+    it('keeps the verified branches free of the pending processing restriction', () => {
+      expect(
+        reviewQueueMessageFilter({
+          userId: 'user-1',
+          latestByMessageId: reviewed,
+          statuses: ['PENDING', 'CORRECTED'],
+          order: 'OLDEST',
+        }),
+      ).toEqual({
+        userId: 'user-1',
+        AND: [
+          {
+            OR: [
+              {
+                processingStatus: {
+                  not: REVIEW_QUEUE_RESOLVED_PROCESSING_STATUS,
+                },
+                id: { notIn: ['message-1', 'message-2'] },
+              },
+              { id: { in: ['message-1'] } },
             ],
           },
         ],
@@ -392,6 +441,11 @@ describe('review queue utilities', () => {
         },
         subject: { contains: 'Aviso', mode: 'insensitive' },
         receivedAt: { gte: new Date('2026-10-01T04:00:00.000Z') },
+        AND: [
+          {
+            processingStatus: { not: REVIEW_QUEUE_RESOLVED_PROCESSING_STATUS },
+          },
+        ],
       });
     });
 
@@ -403,7 +457,15 @@ describe('review queue utilities', () => {
           partitionMessageIds: [],
           order: 'OLDEST',
         }),
-      ).toEqual({ userId: 'user-1', id: { in: [] } });
+      ).toEqual({
+        userId: 'user-1',
+        id: { in: [] },
+        AND: [
+          {
+            processingStatus: { not: REVIEW_QUEUE_RESOLVED_PROCESSING_STATUS },
+          },
+        ],
+      });
     });
 
     it('continues after the cursor in the active direction', () => {
@@ -422,6 +484,9 @@ describe('review queue utilities', () => {
       ).toEqual({
         userId: 'user-1',
         AND: [
+          {
+            processingStatus: { not: REVIEW_QUEUE_RESOLVED_PROCESSING_STATUS },
+          },
           {
             OR: [
               { receivedAt: { gt: new Date('2026-10-05T12:00:00.000Z') } },
@@ -443,6 +508,9 @@ describe('review queue utilities', () => {
       ).toEqual({
         userId: 'user-1',
         AND: [
+          {
+            processingStatus: { not: REVIEW_QUEUE_RESOLVED_PROCESSING_STATUS },
+          },
           {
             OR: [
               { receivedAt: { lt: new Date('2026-10-05T12:00:00.000Z') } },
@@ -543,6 +611,16 @@ describe('review queue utilities', () => {
           matchingMessageIds: new Set(),
         }),
       ).toEqual({ TRAIN: 0, VALIDATION: 0, HOLDOUT: 0, all: 0 });
+    });
+
+    it('excludes messages that no longer require review', () => {
+      expect(
+        reviewQueuePendingCounts({
+          items,
+          reviewedMessageIds: [],
+          resolvedMessageIds: new Set(['message-1', 'message-3']),
+        }),
+      ).toEqual({ TRAIN: 0, VALIDATION: 1, HOLDOUT: 1, all: 2 });
     });
   });
 });

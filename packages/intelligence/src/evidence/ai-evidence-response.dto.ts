@@ -158,6 +158,12 @@ export class AiReviewGroupVerificationResultResponseDto {
 
   @ApiProperty()
   alreadyVerified!: number;
+
+  @ApiProperty({
+    description:
+      'Correos de la misma plantilla reencolados y reclasificados con la etiqueta verificada.',
+  })
+  requeued!: number;
 }
 
 export class AiMessageVerificationResponseDto {
@@ -184,6 +190,12 @@ export class AiMessageVerificationResponseDto {
 
   @ApiProperty()
   isGroundTruth!: boolean;
+
+  @ApiProperty({
+    description:
+      'Correos de la misma plantilla reencolados y reclasificados con la etiqueta verificada.',
+  })
+  requeued!: number;
 
   @ApiProperty({ format: 'date-time' })
   createdAt!: string;

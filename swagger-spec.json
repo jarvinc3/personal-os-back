@@ -10156,12 +10156,17 @@
           },
           "alreadyVerified": {
             "type": "number"
+          },
+          "requeued": {
+            "type": "number",
+            "description": "Correos de la misma plantilla reencolados y reclasificados con la etiqueta verificada."
           }
         },
         "required": [
           "verified",
           "holdoutExcluded",
-          "alreadyVerified"
+          "alreadyVerified",
+          "requeued"
         ]
       },
       "CreateHumanVerificationDto": {
@@ -10254,6 +10259,10 @@
           "isGroundTruth": {
             "type": "boolean"
           },
+          "requeued": {
+            "type": "number",
+            "description": "Correos de la misma plantilla reencolados y reclasificados con la etiqueta verificada."
+          },
           "createdAt": {
             "type": "string",
             "format": "date-time"
@@ -10268,6 +10277,7 @@
           "correctedPayload",
           "notes",
           "isGroundTruth",
+          "requeued",
           "createdAt"
         ]
       },

@@ -33,7 +33,7 @@ Los runs `EVALUATE` guardan la cantidad y huella SHA-256 de los IDs HOLDOUT cong
 | `cursor`             | valor opaco de la página anterior               | Reenviar los mismos filtros y el mismo orden                                               |
 | `uncertain`          | `true`                                          | Solo predicciones de confianza menor a 70 % o mensajes sin predicción                      |
 
-El estado de un correo es el de su última verificación; sin verificación es `PENDING`. Con estados verificados, cada item incluye `verification` con el veredicto, las etiquetas guardadas, la nota y la fecha; en pendientes vale `null`. Los conteos por partición cuentan solo pendientes y aplican remitente, asunto y fechas; el filtro de partición y el orden no los cambian. Un estado, orden o partición fuera de lista, una fecha que no sea `AAAA-MM-DD` válida o un rango invertido responden 400.
+El estado de un correo es el de su última verificación; sin verificación es `PENDING`. Un pendiente exige además una clasificación que aún requiera revisión: los correos en `PROCESSED` salen de la cola y de los conteos sin recibir verificación. Esa exclusión afecta solo al estado `PENDING`; con estados combinados, el historial `CORRECTED` o `REJECTED` de mensajes `PROCESSED` se conserva. Con estados verificados, cada item incluye `verification` con el veredicto, las etiquetas guardadas, la nota y la fecha; en pendientes vale `null`. Los conteos por partición cuentan solo pendientes (sin verificación y fuera de `PROCESSED`) y aplican remitente, asunto y fechas; el filtro de partición y el orden no los cambian. Un estado, orden o partición fuera de lista, una fecha que no sea `AAAA-MM-DD` válida o un rango invertido responden 400.
 
 ```json
 {
@@ -109,11 +109,14 @@ El estado de un correo es el de su última verificación; sin verificación es `
 {
   "verified": 91,
   "holdoutExcluded": 9,
-  "alreadyVerified": 0
+  "alreadyVerified": 0,
+  "requeued": 12
 }
 ```
 
-`verified` son las filas nuevas, una por correo pendiente fuera de HOLDOUT. `holdoutExcluded` son los pendientes HOLDOUT que quedan para revisión individual. `alreadyVerified` son los correos del grupo que ya tenían verificación. Repetir la petición devuelve `verified: 0`. Un `semanticType`, `routes` o `verdict` fuera de lista responde 400 sin registrar nada, y un grupo de otra cuenta responde 404.
+`verified` son las filas nuevas, una por correo pendiente fuera de HOLDOUT. `holdoutExcluded` son los pendientes HOLDOUT que quedan para revisión individual. `alreadyVerified` son los correos del grupo que ya tenían verificación. `requeued` son los correos ya clasificados de la misma plantilla (mismo remitente y misma huella) que se reclasificaron con la etiqueta verificada, sin verificación humana y fuera de HOLDOUT. Una huella nula no se generaliza. Repetir la petición devuelve `verified: 0` y vuelve a contar los correos que se reclasifican. Un `semanticType`, `routes` o `verdict` fuera de lista responde 400 sin registrar nada, y un grupo de otra cuenta responde 404.
+
+`POST /api/intelligence/messages/:messageId/verifications` devuelve la verificación creada y añade `requeued` con el mismo criterio, tomando como alcance los correos de la misma plantilla del mensaje verificado. Repetir la misma petición (mismo veredicto, etiquetas y nota) reutiliza la última verificación idéntica, no agrega otra fila y reintenta la reclasificación. Si la reclasificación falla, responde 500 después de guardar la verificación; el reintento es seguro.
 
 `GET /api/intelligence/messages/:messageId` incluye `provenance.observations` y `provenance.verifications` en orden de secuencia.
 

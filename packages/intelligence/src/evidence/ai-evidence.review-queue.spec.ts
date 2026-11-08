@@ -2,6 +2,15 @@ import { BadRequestException } from '@nestjs/common';
 import { decodeCursor } from '@personal-os/core';
 import { AiEvidenceService } from './ai-evidence.service';
 
+const reclassification = {
+  reclassifyAfterMessageVerification: jest
+    .fn()
+    .mockResolvedValue({ requeued: 0 }),
+  reclassifyAfterReviewGroupVerification: jest
+    .fn()
+    .mockResolvedValue({ requeued: 0 }),
+};
+
 type StoredMessage = {
   id: string;
   userId: string;
@@ -127,8 +136,12 @@ function mockMessageQueries(
   prisma: ReturnType<typeof makePrisma>,
   pageMessages: StoredMessage[],
   matchingMessageIds?: string[],
+  resolvedMessageIds: string[] = [],
 ) {
-  const responses: Array<Array<{ id: string }>> = [[{ id: 'dataset-message' }]];
+  const responses: Array<Array<{ id: string }>> = [
+    [{ id: 'dataset-message' }],
+    resolvedMessageIds.map((id) => ({ id })),
+  ];
   if (matchingMessageIds) {
     responses.push(matchingMessageIds.map((id) => ({ id })));
   }
@@ -153,7 +166,7 @@ describe('AiEvidenceService review queue filters', () => {
       verifications: [],
     });
     mockMessageQueries(prisma, [pending]);
-    const service = new AiEvidenceService(prisma);
+    const service = new AiEvidenceService(prisma, reclassification as never);
 
     const page = await service.reviewQueue('user-1');
 
@@ -173,7 +186,10 @@ describe('AiEvidenceService review queue filters', () => {
     });
     expect(prisma.aiEmailMessage.findMany).toHaveBeenLastCalledWith(
       expect.objectContaining({
-        where: { userId: 'user-1' },
+        where: {
+          userId: 'user-1',
+          AND: [{ processingStatus: { not: 'PROCESSED' } }],
+        },
         orderBy: [{ receivedAt: 'asc' }, { id: 'asc' }],
         take: 51,
       }),
@@ -216,7 +232,7 @@ describe('AiEvidenceService review queue filters', () => {
       ],
     });
     mockMessageQueries(prisma, [first], ['message-1']);
-    const service = new AiEvidenceService(prisma);
+    const service = new AiEvidenceService(prisma, reclassification as never);
 
     const page = await service.reviewQueue('user-1', {
       status: ['CORRECTED'],
@@ -254,7 +270,7 @@ describe('AiEvidenceService review queue filters', () => {
         distinct: ['targetId'],
       }),
     );
-    expect(prisma.aiEmailMessage.findMany).toHaveBeenNthCalledWith(2, {
+    expect(prisma.aiEmailMessage.findMany).toHaveBeenNthCalledWith(3, {
       where: {
         userId: 'user-1',
         fromAddress: {
@@ -312,7 +328,7 @@ describe('AiEvidenceService review queue filters', () => {
       verifications: [],
     });
     mockMessageQueries(prisma, [first], ['message-1', 'message-3']);
-    const service = new AiEvidenceService(prisma);
+    const service = new AiEvidenceService(prisma, reclassification as never);
 
     const page = await service.reviewQueue('user-1', {
       fromAddress: 'notifications@github.com',
@@ -325,7 +341,7 @@ describe('AiEvidenceService review queue filters', () => {
       HOLDOUT: 1,
       all: 2,
     });
-    expect(prisma.aiEmailMessage.findMany).toHaveBeenNthCalledWith(2, {
+    expect(prisma.aiEmailMessage.findMany).toHaveBeenNthCalledWith(3, {
       where: {
         userId: 'user-1',
         fromAddress: {
@@ -350,7 +366,7 @@ describe('AiEvidenceService review queue filters', () => {
       verifications: [],
     });
     mockMessageQueries(prisma, messages);
-    const service = new AiEvidenceService(prisma);
+    const service = new AiEvidenceService(prisma, reclassification as never);
 
     const page = await service.reviewQueue('user-1', { order: 'NEWEST' });
 
@@ -373,7 +389,7 @@ describe('AiEvidenceService review queue filters', () => {
       items: [],
       verifications: [],
     });
-    const service = new AiEvidenceService(prisma);
+    const service = new AiEvidenceService(prisma, reclassification as never);
 
     await expect(
       service.reviewQueue('user-1', {
@@ -390,11 +406,40 @@ describe('AiEvidenceService review queue filters', () => {
       items: [],
       verifications: [],
     });
-    const service = new AiEvidenceService(prisma);
+    const service = new AiEvidenceService(prisma, reclassification as never);
 
     await expect(
       service.reviewQueue('user-1', { cursor: 'not-a-cursor' }),
     ).rejects.toBeInstanceOf(BadRequestException);
-    expect(prisma.aiEmailMessage.findMany).toHaveBeenCalledTimes(1);
+    expect(prisma.aiEmailMessage.findMany).toHaveBeenCalledTimes(2);
+  });
+
+  it('excludes messages that no longer require review from items and counts', async () => {
+    const pending = message({
+      id: 'message-1',
+      receivedAt: '2026-10-25T12:00:00.000Z',
+    });
+    const prisma = makePrisma({
+      items: [item('message-1', 'TRAIN'), item('message-2', 'TRAIN')],
+      verifications: [],
+    });
+    mockMessageQueries(prisma, [pending], undefined, ['message-2']);
+    const service = new AiEvidenceService(prisma, reclassification as never);
+
+    const page = await service.reviewQueue('user-1');
+
+    expect(page.items).toEqual([
+      expect.objectContaining({ id: 'message-1', status: 'PENDING' }),
+    ]);
+    expect(page.counts).toEqual({
+      TRAIN: 1,
+      VALIDATION: 0,
+      HOLDOUT: 0,
+      all: 1,
+    });
+    expect(prisma.aiEmailMessage.findMany).toHaveBeenNthCalledWith(2, {
+      where: { userId: 'user-1', processingStatus: 'PROCESSED' },
+      select: { id: true },
+    });
   });
 });

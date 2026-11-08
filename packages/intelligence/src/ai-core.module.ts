@@ -29,6 +29,7 @@ import { AiKnowledgeService } from './knowledge/ai-knowledge.service';
 import { AiDataDeletionService } from './knowledge/ai-data-deletion.service';
 import { AiKnowledgeController } from './knowledge/ai-knowledge.controller';
 import { AiEmailClassificationService } from './email/ai-email-classification.service';
+import { AiEmailReclassificationService } from './email/email-reclassification.service';
 import { BullModule } from '@nestjs/bullmq';
 import { isBullMqEnabledFromProcessEnv } from '@personal-os/config';
 import { QueueNames } from '@personal-os/core';
@@ -81,6 +82,7 @@ const bullMqEnabled = isBullMqEnabledFromProcessEnv();
     AiEmailSourceService,
     AiEmailRetentionScheduler,
     AiEmailClassificationService,
+    AiEmailReclassificationService,
     AiSignalsService,
     AiSignalOutboxBridge,
     AiSignalConsumerRegistry,
