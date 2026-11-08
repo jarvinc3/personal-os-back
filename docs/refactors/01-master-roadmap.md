@@ -59,18 +59,18 @@ El gate de la oleada A quedó cerrado: AI-0 y los cuatro contratos de frontera e
 
 La decisión registrada en #308 mantiene las diez fases como requisito del release. FIN-2 y FIN-3 ya están cubiertas por AI-8 y AI-11; no se abren issues duplicados. Las otras ocho fases tienen issues de back. No requieren issues web mientras mantengan los contratos, textos y pantallas existentes.
 
-| Fase                | Issue                                                                                                                                               | Estado    |
-| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | --------- |
-| FIN-1               | [#317](https://github.com/jarvinc3/personal-os-back/issues/317)                                                                                     | Pendiente |
-| FIN-2               | AI-8 [#211](https://github.com/jarvinc3/personal-os-back/issues/211)                                                                                | Cubierto  |
-| FIN-3               | AI-11 [#214](https://github.com/jarvinc3/personal-os-back/issues/214); evidencia web [#383](https://github.com/jarvinc3/personal-os-web/issues/383) | Cubierto  |
-| FIN-4               | [#318](https://github.com/jarvinc3/personal-os-back/issues/318)                                                                                     | Pendiente |
-| PLATFORM-EVENTS-1   | [#319](https://github.com/jarvinc3/personal-os-back/issues/319)                                                                                     | Pendiente |
-| PLATFORM-SETTINGS-1 | [#320](https://github.com/jarvinc3/personal-os-back/issues/320)                                                                                     | Pendiente |
-| PLATFORM-SETTINGS-2 | [#321](https://github.com/jarvinc3/personal-os-back/issues/321)                                                                                     | Pendiente |
-| NOTIF-1             | [#322](https://github.com/jarvinc3/personal-os-back/issues/322)                                                                                     | Pendiente |
-| NOTIF-2             | [#323](https://github.com/jarvinc3/personal-os-back/issues/323)                                                                                     | Pendiente |
-| NOTIF-3             | [#324](https://github.com/jarvinc3/personal-os-back/issues/324)                                                                                     | Pendiente |
+| Fase                | Issue                                                                                                                                               | Estado             |
+| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------ |
+| FIN-1               | [#317](https://github.com/jarvinc3/personal-os-back/issues/317)                                                                                     | En revisión (#332) |
+| FIN-2               | AI-8 [#211](https://github.com/jarvinc3/personal-os-back/issues/211)                                                                                | Cubierto           |
+| FIN-3               | AI-11 [#214](https://github.com/jarvinc3/personal-os-back/issues/214); evidencia web [#383](https://github.com/jarvinc3/personal-os-web/issues/383) | Cubierto           |
+| FIN-4               | [#318](https://github.com/jarvinc3/personal-os-back/issues/318)                                                                                     | Pendiente          |
+| PLATFORM-EVENTS-1   | [#319](https://github.com/jarvinc3/personal-os-back/issues/319)                                                                                     | Pendiente          |
+| PLATFORM-SETTINGS-1 | [#320](https://github.com/jarvinc3/personal-os-back/issues/320)                                                                                     | Pendiente          |
+| PLATFORM-SETTINGS-2 | [#321](https://github.com/jarvinc3/personal-os-back/issues/321)                                                                                     | Pendiente          |
+| NOTIF-1             | [#322](https://github.com/jarvinc3/personal-os-back/issues/322)                                                                                     | Pendiente          |
+| NOTIF-2             | [#323](https://github.com/jarvinc3/personal-os-back/issues/323)                                                                                     | Pendiente          |
+| NOTIF-3             | [#324](https://github.com/jarvinc3/personal-os-back/issues/324)                                                                                     | Pendiente          |
 
 Los hallazgos de la QA de AI-4 forman parte de AI-5: #238 y #239 corrigen la proyección y la revocación, y #246 cubre la promoción manual de ADMIN.
 
