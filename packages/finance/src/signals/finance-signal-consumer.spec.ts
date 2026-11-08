@@ -161,6 +161,47 @@ describe('FinanceSignalConsumer', () => {
     });
   });
 
+  it('imports a reclassified email with its own amount, currency and card', async () => {
+    const { consumer, importEmail } = setup({
+      finCard: {
+        findMany: jest
+          .fn()
+          .mockResolvedValue([{ id: 'card-1', lastFour: '4821' }]),
+      },
+    });
+    const reclassified = {
+      ...signal,
+      signalId: 'email-m2',
+      sourceId: 'm2',
+      payload: {
+        relevance: true,
+        semanticType: 'FIN_TRANSACTION',
+        routes: ['FINANCE'],
+        confidence: 0.98,
+        transaction: {
+          kind: 'TRANSACTION',
+          amount: 3400,
+          currency: 'DOP',
+          transactionDate: '2026-11-01T00:00:00.000Z',
+          direction: 'DEBIT',
+          last4: '4821',
+          movementClass: 'PURCHASE',
+          bankStatusNormalized: 'COMPLETED',
+        },
+      },
+    } as RoutedSignal;
+
+    await expect(consumer.consume(reclassified)).resolves.toMatchObject({
+      outcome: 'APPLIED',
+    });
+    expect(importEmail.execute.mock.calls[0][1]).toMatchObject({
+      cardId: 'card-1',
+      importReference: 'email-m2',
+      amount: 3400,
+      currency: 'DOP',
+    });
+  });
+
   it('imports an unpaired transfer without losing its transfer group', async () => {
     const { consumer, importEmail } = setup();
     const transfer = {
