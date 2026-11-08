@@ -15,7 +15,6 @@
 | [capabilities/entities.md](./capabilities/entities.md)             | Consulta de entidades en lote por referencia   |
 | [capabilities/merchants.md](./capabilities/merchants.md)           | Comercios, alias, categoría y logo             |
 | [capabilities/data-wipe.md](./capabilities/data-wipe.md)           | Ramas del vaciado de datos de Finanzas         |
-| [capabilities/ingestion.md](./capabilities/ingestion.md)           | Gmail OAuth, sources, pending assign           |
 | [capabilities/fx.md](./capabilities/fx.md)                         | Tasas históricas                               |
 | [capabilities/events.md](./capabilities/events.md)                 | Outbox                                         |
 | [rules/ledger.md](./rules/ledger.md)                               | Invariantes de saldo y XOR                     |
@@ -23,7 +22,6 @@
 | [contracts/rest-vs-facade.md](./contracts/rest-vs-facade.md)       | Subconjunto AI                                 |
 | [contracts/finance-tools.md](./contracts/finance-tools.md)         | Tools `moduleSlug=finance`                     |
 | [contracts/boundaries.md](./contracts/boundaries.md)               | Eventos y adaptadores por frontera             |
-| [operations/gmail-sync.md](./operations/gmail-sync.md)             | Pipeline sync                                  |
 
 UI: `personal-os-web/docs/modules/finance/`. Código: `packages/finance/src/`.
 

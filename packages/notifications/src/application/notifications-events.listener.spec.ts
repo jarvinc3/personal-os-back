@@ -150,23 +150,6 @@ describe('NotificationsEventsListener', () => {
     expect(create).not.toHaveBeenCalled();
   });
 
-  it('uses pending import message for EMAIL PENDING', async () => {
-    await listener.onFinanceTransactionCreated({
-      userId: 'user-1',
-      transactionId: 'tx-1',
-      amount: 100,
-      status: 'PENDING',
-      source: 'EMAIL',
-      eventId: 'evt-2',
-    });
-
-    expect(create.mock.calls[0]?.[1]).toEqual(
-      expect.objectContaining({
-        type: 'transaction.imported_pending',
-      }),
-    );
-  });
-
   it('uses transactionDetected key for finance.transaction.updated', async () => {
     await listener.onFinanceTransactionUpdated({
       userId: 'user-1',

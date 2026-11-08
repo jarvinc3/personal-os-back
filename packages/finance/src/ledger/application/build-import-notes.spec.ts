@@ -1,9 +1,9 @@
-import { buildEmailImportNotes } from './build-email-import-notes';
+import { buildFinancialImportNotes } from './build-import-notes';
 
-describe('buildEmailImportNotes', () => {
+describe('buildFinancialImportNotes', () => {
   it('returns null when there is nothing to report', () => {
     expect(
-      buildEmailImportNotes({
+      buildFinancialImportNotes({
         llmNotes: null,
         categoryId: 'cat-1',
         categorySource: 'hint',
@@ -14,7 +14,7 @@ describe('buildEmailImportNotes', () => {
 
   it('keeps LLM notes and appends uncategorized warning', () => {
     expect(
-      buildEmailImportNotes({
+      buildFinancialImportNotes({
         llmNotes: 'Comercio poco claro.',
         categoryId: null,
         categorySource: null,
@@ -26,7 +26,7 @@ describe('buildEmailImportNotes', () => {
 
   it('mentions merchant history and pending status', () => {
     expect(
-      buildEmailImportNotes({
+      buildFinancialImportNotes({
         llmNotes: null,
         categoryId: 'cat-1',
         categorySource: 'merchant_history',

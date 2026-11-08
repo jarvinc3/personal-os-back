@@ -18,7 +18,7 @@ import { UpdateCardPaymentUseCase } from './application/update-card-payment.use-
 import { DeleteTransactionUseCase } from './application/delete-transaction.use-case';
 import { MarkNotDuplicateUseCase } from './application/mark-not-duplicate.use-case';
 import { MergeTransactionUseCase } from './application/merge-transaction.use-case';
-import { ImportEmailTransactionUseCase } from './application/import-email-transaction.use-case';
+import { ImportFinancialTransactionUseCase } from './application/import-financial-transaction.use-case';
 import { LedgerQueryService } from './application/ledger-query.service';
 import { PurgeInstrumentLedgerUseCase } from './application/purge-instrument-ledger.use-case';
 import { RestoreInstrumentLedgerUseCase } from './application/restore-instrument-ledger.use-case';
@@ -30,7 +30,7 @@ import { UnconfirmTransactionUseCase } from './application/unconfirm-transaction
 import { UpdateTransferUseCase } from './application/update-transfer.use-case';
 import { UnconfirmTransferUseCase } from './application/unconfirm-transfer.use-case';
 import { PrismaLedgerDeletionRepository } from './infrastructure/prisma-ledger-deletion.repository';
-import { PrismaLedgerEmailImportRepository } from './infrastructure/prisma-ledger-email-import.repository';
+import { PrismaLedgerImportRepository } from './infrastructure/prisma-ledger-import.repository';
 import { PrismaLedgerWriteRepository } from './infrastructure/prisma-ledger-write.repository';
 import { PrismaLedgerReadRepository } from './infrastructure/prisma-ledger-read.repository';
 import { PrismaLedgerRepository } from './infrastructure/prisma-ledger.repository';
@@ -58,7 +58,7 @@ import { CardPaymentsController } from './presentation/card-payments.controller'
     PrismaLedgerRepository,
     PrismaLedgerReadRepository,
     PrismaLedgerDeletionRepository,
-    PrismaLedgerEmailImportRepository,
+    PrismaLedgerImportRepository,
     PrismaLedgerWriteRepository,
     { provide: LEDGER_REPOSITORY, useExisting: PrismaLedgerRepository },
     LedgerQueryService,
@@ -81,7 +81,7 @@ import { CardPaymentsController } from './presentation/card-payments.controller'
     CreateCardPaymentUseCase,
     UpdateCardPaymentUseCase,
     ReverseTransactionUseCase,
-    ImportEmailTransactionUseCase,
+    ImportFinancialTransactionUseCase,
   ],
   exports: [
     LEDGER_REPOSITORY,
@@ -105,7 +105,7 @@ import { CardPaymentsController } from './presentation/card-payments.controller'
     CreateCardPaymentUseCase,
     UpdateCardPaymentUseCase,
     ReverseTransactionUseCase,
-    ImportEmailTransactionUseCase,
+    ImportFinancialTransactionUseCase,
   ],
 })
 export class FinanceLedgerModule {}

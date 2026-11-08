@@ -363,7 +363,7 @@ export class PrismaLedgerWriteRepository {
         amounts: fromAmounts,
         legRole: OPERATION_LEG_ROLE.SOURCE,
         legStatus: status,
-        importReference: command.fromEmailMessageId,
+        importReference: command.fromImportReference,
       });
       const credit = await createLeg({
         type: 'CREDIT',
@@ -371,7 +371,7 @@ export class PrismaLedgerWriteRepository {
         amounts: toAmounts,
         legRole: OPERATION_LEG_ROLE.DESTINATION,
         legStatus: destinationStatus,
-        importReference: command.toEmailMessageId,
+        importReference: command.toImportReference,
       });
 
       const fee =

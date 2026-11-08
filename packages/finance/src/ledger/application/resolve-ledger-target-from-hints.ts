@@ -2,18 +2,18 @@ import { digitsOnly } from '../../shared/domain/account-number';
 
 export type LedgerInstrumentHint = 'ACCOUNT' | 'CARD';
 
-export type EmailLedgerTargetMatch =
+export type LedgerTargetMatch =
   | { kind: 'unique'; accountId?: string; cardId?: string }
   | { kind: 'none' }
   | { kind: 'ambiguous'; candidateCount: number };
 
-export type EmailLedgerAccount = {
+export type LedgerAccountCandidate = {
   id: string;
   accountNumberLast4: string | null;
   isDefaultForInstitution?: boolean;
 };
 
-export type EmailLedgerCard = {
+export type LedgerCardCandidate = {
   id: string;
   lastFour: string | null;
 };
@@ -39,15 +39,15 @@ export function accountMatchesHint(
   return needle.endsWith(account);
 }
 
-export function resolveEmailLedgerTarget(params: {
+export function resolveLedgerTargetFromHints(params: {
   instrumentHint: LedgerInstrumentHint | null;
   lastFourHint: string | null;
   accountNumberHint: string | null;
-  accounts: EmailLedgerAccount[];
-  cards: EmailLedgerCard[];
-  /** Only when the email has no account/card digits and the movement is not a transfer. */
+  accounts: LedgerAccountCandidate[];
+  cards: LedgerCardCandidate[];
+  /** Only when the movement has no account/card digits and is not a transfer. */
   allowDefaultAccount?: boolean;
-}): EmailLedgerTargetMatch {
+}): LedgerTargetMatch {
   const lastFour = digitsOnly(params.lastFourHint) || null;
   const accountHint = digitsOnly(params.accountNumberHint) || null;
   const hasDigits = Boolean(accountHint || lastFour);
@@ -82,13 +82,13 @@ export function resolveEmailLedgerTarget(params: {
 }
 
 function maybeDefaultAccount(
-  match: EmailLedgerTargetMatch,
+  match: LedgerTargetMatch,
   params: {
-    accounts: EmailLedgerAccount[];
+    accounts: LedgerAccountCandidate[];
     allowDefaultAccount?: boolean;
   },
   hasDigits: boolean,
-): EmailLedgerTargetMatch {
+): LedgerTargetMatch {
   if (match.kind === 'unique') {
     return match;
   }
@@ -106,7 +106,7 @@ function maybeDefaultAccount(
 }
 
 function matchAccounts(
-  accounts: EmailLedgerAccount[],
+  accounts: LedgerAccountCandidate[],
   accountHint: string | null,
   lastFourFallback: string | null,
 ): Array<{ accountId: string }> {
@@ -118,7 +118,7 @@ function matchAccounts(
 
 function toMatch(
   hits: Array<{ accountId?: string; cardId?: string }>,
-): EmailLedgerTargetMatch {
+): LedgerTargetMatch {
   if (hits.length === 0) {
     return { kind: 'none' };
   }

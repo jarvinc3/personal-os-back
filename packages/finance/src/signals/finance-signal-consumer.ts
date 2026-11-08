@@ -2,20 +2,21 @@ import { Injectable } from '@nestjs/common';
 import type { RoutedSignal } from '@personal-os/contracts';
 import { PrismaService } from '@personal-os/database';
 import { z } from 'zod';
-import { buildEmailImportNotes } from '../ingestion/application/build-email-import-notes';
+import { buildFinancialImportNotes } from '../ledger/application/build-import-notes';
 import {
+  MOVEMENT_CLASSES,
   isAtmMovementClass,
   isTransferMovementClass,
-  type EmailMovementClass,
-} from '../ingestion/application/email-movement';
+  type MovementClass,
+} from '../ledger/domain/movement-class';
 import {
   isUnpairedTransferCandidate,
   pickTransferMatch,
-  type EmailMatchCandidate,
+  type ImportTransferCandidate,
   uniqueCashAccountId,
-} from '../ingestion/application/match-email-transfers';
-import { resolveEmailLedgerTarget } from '../ingestion/application/resolve-email-ledger-target';
-import { ImportEmailTransactionUseCase } from '../ledger/application/import-email-transaction.use-case';
+} from '../ledger/application/match-imported-transfers';
+import { resolveLedgerTargetFromHints } from '../ledger/application/resolve-ledger-target-from-hints';
+import { ImportFinancialTransactionUseCase } from '../ledger/application/import-financial-transaction.use-case';
 import { LedgerQueryService } from '../ledger/application/ledger-query.service';
 import { ReverseTransactionUseCase } from '../ledger/application/reverse-transaction.use-case';
 import { MerchantsService } from '../merchants/application/merchants.service';
@@ -40,19 +41,7 @@ const transactionSchema = z
       .string()
       .regex(/^\d{4}$/)
       .optional(),
-    movementClass: z
-      .enum([
-        'PURCHASE',
-        'INCOME',
-        'PAYROLL',
-        'ATM_WITHDRAWAL',
-        'TRANSFER_OUT',
-        'TRANSFER_IN',
-        'FEE',
-        'REFUND',
-        'OTHER',
-      ])
-      .optional(),
+    movementClass: z.enum(MOVEMENT_CLASSES).optional(),
     bankStatusNormalized: z
       .enum([
         'APPROVED',
@@ -103,7 +92,7 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly importEmail: ImportEmailTransactionUseCase,
+    private readonly importTransaction: ImportFinancialTransactionUseCase,
     private readonly ledger: LedgerQueryService,
     private readonly reverseTransaction: ReverseTransactionUseCase,
     private readonly merchants: MerchantsService,
@@ -199,7 +188,7 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
       select: { id: true, lastFour: true },
     });
     const transfer = isTransferMovementClass(movementClass);
-    const target = resolveEmailLedgerTarget({
+    const target = resolveLedgerTargetFromHints({
       instrumentHint: null,
       lastFourHint: candidate.last4 ?? null,
       accountNumberHint: null,
@@ -271,7 +260,7 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
                 merchant,
               ),
           });
-    const notes = buildEmailImportNotes({
+    const notes = buildFinancialImportNotes({
       llmNotes: null,
       categoryId: category.categoryId,
       categorySource: category.source,
@@ -307,7 +296,7 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
         if (!cashAccountId) {
           return this.review(signal, 'ATM_CASH_ACCOUNT_AMBIGUOUS');
         }
-        const result = await this.importEmail.executeAtmWithdrawal(
+        const result = await this.importTransaction.executeAtmWithdrawal(
           signal.userId,
           {
             accountId: target.accountId,
@@ -350,11 +339,11 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
           aiMetadata,
         };
         const created = transfer
-          ? await this.importEmail.executeUnpairedTransfer(
+          ? await this.importTransaction.executeUnpairedTransfer(
               signal.userId,
               importInput,
             )
-          : await this.importEmail.execute(signal.userId, importInput);
+          : await this.importTransaction.execute(signal.userId, importInput);
         transactionId = created.id;
       }
       await this.persist(signal, 'IMPORTED', transactionId);
@@ -422,7 +411,7 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
     return null;
   }
 
-  private movementClass(candidate: Candidate): EmailMovementClass {
+  private movementClass(candidate: Candidate): MovementClass {
     if (candidate.movementClass) {
       return candidate.movementClass;
     }
@@ -434,7 +423,7 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
 
   private transactionType(
     candidate: Candidate,
-    movementClass: EmailMovementClass,
+    movementClass: MovementClass,
   ): 'DEBIT' | 'CREDIT' {
     if (
       movementClass === 'TRANSFER_OUT' ||
@@ -596,7 +585,7 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
       aiMetadata: row.aiMetadata,
       account: row.account,
       card: row.card,
-    })) as EmailMatchCandidate[];
+    })) as ImportTransferCandidate[];
     const unpaired = candidates.filter((row) =>
       isUnpairedTransferCandidate(row, candidates),
     );
@@ -610,7 +599,7 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
         currentCandidate.type === 'DEBIT' ? currentCandidate.id : match.id;
       const creditId =
         currentCandidate.type === 'CREDIT' ? currentCandidate.id : match.id;
-      await this.importEmail.pairTransferLegs(userId, debitId, creditId);
+      await this.importTransaction.pairTransferLegs(userId, debitId, creditId);
     }
   }
 }

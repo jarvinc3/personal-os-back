@@ -10,8 +10,6 @@ Chat tools llaman **solo** `FinanceFacade`. REST es más amplio. No tratar el ca
 | Categories writes                  | Sí                   | `listCategories` only                                   |
 | Delete transaction                 | `DELETE`             | No                                                      |
 | Reverse                            | `POST .../reverse`   | Facade `reverseTransaction`; tool `reverse_transaction` |
-| Gmail OAuth URL + public callback  | Sí                   | No (`listEmailSources` + `triggerEmailSync`)            |
-| Pending assign/retry               | Sí                   | No                                                      |
 | Budgets list                       | paginado             | Unbounded `listBudgets`                                 |
 | Balance sheet                      | `GET /balance-sheet` | Indirecto via `getAnalyticsSummary`                     |
 

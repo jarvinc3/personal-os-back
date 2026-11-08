@@ -1,6 +1,6 @@
 # Capacidad: comercios
 
-Catálogo de comercios por usuario: nombre visible, clave normalizada, alias, categoría y logo. Un movimiento, un correo importado o un patrón recurrente se enlazan al comercio por su clave.
+Catálogo de comercios por usuario: nombre visible, clave normalizada, alias, categoría y logo. Un movimiento, una importación por señal o un patrón recurrente se enlazan al comercio por su clave.
 
 ## Endpoints
 
@@ -42,7 +42,7 @@ Cada comercio recuerda una sola categoría y expone de dónde salió (`categoryS
 - `KEYWORD` solo se asigna al crear el comercio sin categoría y sin movimiento que la traiga, con una categoría que ya existe y es visible para el usuario (nunca se crean categorías). La lista vive en `merchants/domain/merchant-category-keywords.ts` y se amplía por PR. Los nombres ambiguos («Google») no se categorizan solos.
 - `PATCH /finance/merchants/:id` con `categoryId` fija `MANUAL`, incluso si es el mismo que ya tenía (así se confirma). `categoryId: null` borra la categoría y su origen.
 - `GET /finance/merchants/suggest` devuelve `categoryId` y `categorySource`; la web solo la aplica al movimiento si su tipo (gasto o ingreso) coincide.
-- La importación por correo usa la categoría del comercio antes del historial por texto crudo: primero la pista de la IA, luego el comercio, luego el historial (`source: 'merchant'`).
+- La importación por señal usa la categoría del comercio antes del historial por texto crudo: primero la pista de la IA, luego el comercio, luego el historial (`source: 'merchant'`).
 - Los movimientos ya guardados no se tocan.
 
 Evidencia: `merchants/application/merchants.service.ts`, `merchants/domain/merchant-category-*.ts`, `shared/domain/category-type.ts` y sus specs.

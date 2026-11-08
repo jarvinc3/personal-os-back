@@ -14,10 +14,10 @@ import {
 import type { BudgetSpendSnapshot } from '../../shared/domain/budget-snapshot';
 import { transactionCreatedEventName } from '../../shared/domain/mappers';
 import { statusAffectsLedger } from '../../shared/domain/transaction-status';
-import type { ImportEmailTransactionCommand } from '../application/commands/ledger.commands';
+import type { ImportFinancialTransactionCommand } from '../application/commands/ledger.commands';
 import type {
   CreateTransferResult,
-  EmailTransferCounterpart,
+  ImportedTransferCounterpart,
 } from '../application/ports/ledger.repository.port';
 import {
   adjustBudgetSpent,
@@ -29,11 +29,11 @@ import { enqueueTransactionEvent } from './ledger-transaction-events';
 type TxClient = Prisma.TransactionClient;
 
 /**
- * Movements that come from email: the first leg, its counterpart and the pair
- * of legs that turn two imported movements into one transfer.
+ * Imported movements: the first leg, its counterpart and the pair of legs that
+ * turn two imported movements into one transfer.
  */
 @Injectable()
-export class PrismaLedgerEmailImportRepository {
+export class PrismaLedgerImportRepository {
   constructor(
     private readonly prisma: PrismaService,
     @Inject(DOMAIN_EVENT_PUBLISHER)
@@ -46,9 +46,9 @@ export class PrismaLedgerEmailImportRepository {
     private readonly subscriptionMatcher?: SubscriptionMatcherPort,
   ) {}
 
-  createEmailImportTransaction(
+  createImportedTransaction(
     userId: string,
-    data: ImportEmailTransactionCommand,
+    data: ImportFinancialTransactionCommand,
   ) {
     const imported = this.prisma.$transaction(async (tx) => {
       const target = await resolveLedgerTarget(
@@ -58,7 +58,7 @@ export class PrismaLedgerEmailImportRepository {
         data.cardId,
       );
       if (!target) {
-        throw new Error('Email import target account or card is invalid');
+        throw new Error('Import target account or card is invalid');
       }
 
       const created = await tx.finTransaction.create({
@@ -133,7 +133,7 @@ export class PrismaLedgerEmailImportRepository {
     });
   }
 
-  async pairEmailTransferLegs(
+  async pairImportedTransferLegs(
     userId: string,
     debitId: string,
     creditId: string,
@@ -204,10 +204,10 @@ export class PrismaLedgerEmailImportRepository {
     });
   }
 
-  async addEmailTransferCounterpart(
+  async addImportedTransferCounterpart(
     userId: string,
     existingId: string,
-    counterpart: EmailTransferCounterpart,
+    counterpart: ImportedTransferCounterpart,
   ): Promise<CreateTransferResult | null> {
     return this.prisma.$transaction(async (tx) => {
       const existing = await tx.finTransaction.findFirst({

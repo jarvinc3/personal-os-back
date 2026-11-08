@@ -12,7 +12,7 @@ type EnqueueTransactionEventInput = {
   tx: Prisma.TransactionClient;
   events: DomainEventPublisherPort;
   userId: string;
-  eventName: string;
+  eventName: string | null;
   transactionId: string;
   /** `false` keeps the notification quiet: the user already saw the action. */
   announce?: boolean;
@@ -27,6 +27,9 @@ export async function enqueueTransactionEvent({
   transactionId,
   announce,
 }: EnqueueTransactionEventInput) {
+  if (!eventName) {
+    return;
+  }
   const row = await tx.finTransaction.findFirst({
     where: { id: transactionId, userId },
     include: transactionNotificationInclude,

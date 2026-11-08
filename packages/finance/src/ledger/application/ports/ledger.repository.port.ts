@@ -11,7 +11,7 @@ import type {
   CreateTransactionCommand,
   CreateTransferCommand,
   FinTxStatus,
-  ImportEmailTransactionCommand,
+  ImportFinancialTransactionCommand,
   ListTransactionsQuery,
   TransactionUpdateFields,
 } from '../commands/ledger.commands';
@@ -105,8 +105,8 @@ export type BalanceAdjustmentTarget = {
   currentBalance: number;
 };
 
-/** The leg the email import creates on the other side of an imported movement. */
-export type EmailTransferCounterpart = {
+/** The leg an imported movement creates on the other side of a transfer. */
+export type ImportedTransferCounterpart = {
   accountId?: string;
   cardId?: string;
   amounts: ResolvedAmounts;
@@ -372,20 +372,20 @@ export interface LedgerRepositoryPort {
     transferGroupId: string,
   ): Promise<void>;
 
-  createEmailImportTransaction(
+  createImportedTransaction(
     userId: string,
-    data: ImportEmailTransactionCommand,
+    data: ImportFinancialTransactionCommand,
   ): Promise<LedgerTransactionRow>;
 
-  pairEmailTransferLegs(
+  pairImportedTransferLegs(
     userId: string,
     debitId: string,
     creditId: string,
   ): Promise<CreateTransferResult | null>;
 
-  addEmailTransferCounterpart(
+  addImportedTransferCounterpart(
     userId: string,
     existingId: string,
-    counterpart: EmailTransferCounterpart,
+    counterpart: ImportedTransferCounterpart,
   ): Promise<CreateTransferResult | null>;
 }

@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { clampPageLimit, decodeCursor } from '@personal-os/core';
 import type { Prisma } from '@personal-os/database';
 import { PrismaService } from '@personal-os/database';
-import { EMAIL_DUPLICATE_DATE_TOLERANCE_MS } from '../../shared/domain/email-dedupe';
+import { IMPORT_DUPLICATE_DATE_TOLERANCE_MS } from '../../shared/domain/import-dedupe';
 import { normalizeCurrencyCode } from '../../shared/domain/money';
 import {
   TRANSACTION_LINK_KIND,
@@ -427,7 +427,7 @@ export class PrismaLedgerReadRepository {
         orderBy: { transactionDate: 'desc' },
       }) as Promise<LedgerTransactionRow | null>;
     }
-    const tolerance = EMAIL_DUPLICATE_DATE_TOLERANCE_MS;
+    const tolerance = IMPORT_DUPLICATE_DATE_TOLERANCE_MS;
     const from = new Date(params.transactionDate.getTime() - tolerance);
     const to = new Date(params.transactionDate.getTime() + tolerance);
     return this.prisma.finTransaction.findFirst({

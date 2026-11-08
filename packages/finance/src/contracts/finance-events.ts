@@ -2,7 +2,6 @@ import type { DomainEvent, JsonObject } from '@personal-os/contracts';
 
 /** Finance owns these names; Core only transports the event envelopes. */
 export const FinanceEvents = {
-  TRANSACTION_IMPORTED: 'finance.transaction.imported',
   TRANSACTION_CONFIRMED: 'finance.transaction.confirmed',
   TRANSACTION_UPDATED: 'finance.transaction.updated',
   TRANSACTION_DECLINED: 'finance.transaction.declined',
@@ -44,7 +43,6 @@ type TransactionPayload = JsonObject & {
 };
 
 export interface FinanceEventPayloads {
-  [FinanceEvents.TRANSACTION_IMPORTED]: TransactionPayload;
   [FinanceEvents.TRANSACTION_CONFIRMED]: TransactionPayload;
   [FinanceEvents.TRANSACTION_UPDATED]: TransactionPayload;
   [FinanceEvents.TRANSACTION_DECLINED]: TransactionPayload;

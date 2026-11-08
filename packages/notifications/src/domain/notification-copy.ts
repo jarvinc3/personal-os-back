@@ -137,17 +137,6 @@ export function transferRecordedCopy(
   };
 }
 
-export function transactionPendingCopy(
-  fields: TransactionNotificationFields,
-): NotificationCopy {
-  const details = joinDetails([fields.merchant, fields.categoryName]);
-  const suffix = details ? ` · ${details}` : '';
-  return {
-    title: 'Movimiento por confirmar',
-    body: `Detectamos ${fields.amountLabel}${suffix} en un correo. Revísalo para confirmarlo.`,
-  };
-}
-
 export function transactionUpdatedCopy(
   fields: TransactionNotificationFields,
 ): NotificationCopy {

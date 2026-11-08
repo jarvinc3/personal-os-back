@@ -99,7 +99,7 @@ export class CreateAccountDto {
 
   @ApiPropertyOptional({
     description:
-      'When true, this account is the fallback ledger target for emails from this institution that have no account digits.',
+      'When true, this account is the fallback ledger target for imported movements from this institution that have no account digits.',
   })
   @IsOptional()
   @IsBoolean()
