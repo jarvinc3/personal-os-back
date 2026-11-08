@@ -4,7 +4,7 @@
 - Fecha: 2026-11-08.
 - Base: `develop` `4dedfa933a5eaf2f249366c678b542eed14a8020`.
 - Issues: [#334](https://github.com/jarvinc3/personal-os-back/issues/334), [#335](https://github.com/jarvinc3/personal-os-back/issues/335), [#337](https://github.com/jarvinc3/personal-os-back/issues/337), [#336](https://github.com/jarvinc3/personal-os-back/issues/336).
-- Paquete de revisión: `temp/pr331-test-reports/codex-review-4dedfa9-20261108/` (local, no versionado).
+- Evidencia de la unidad: paquete local de revisión, no versionado; el alcance público vive en los issues.
 
 Este documento fija el contrato objetivo de la importación por correo. No describe comportamiento desplegado. Los casos de prueba propuestos no están ejecutados y no se presentan como aprobados. La revisión de Codex se incorporó al paquete local; este repositorio no acredita una aprobación formal ni un exporte independiente de esa revisión.
 
@@ -372,7 +372,7 @@ La ventana de 3 días, la tolerancia de 50 o 2 % y la ventana de 10 minutos del 
 
 ## 10. Pruebas
 
-Los casos propuestos están en el paquete local `07-casos-prueba.md`:
+Los casos propuestos viven en el paquete local de revisión y se resumen en los issues:
 
 - `T-TRA`: una pata, cuenta ambigua, solo tarjeta, referencia compartida, emparejamiento único y ambiguo, replay, aislamiento y estado pendiente.
 - `T-TAR`: dos patas, saldos, estado de cuenta, pago manual con y sin referencia, recordatorio, tarjeta o cuenta inválida, replay, dos pagos legítimos y aislamiento.
