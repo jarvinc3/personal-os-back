@@ -45,6 +45,8 @@ La señal `FINANCE.TRANSACTION_DETECTED` sigue siendo la entrada. El candidato `
 | `reverseOfBankReference`         | No                           | Referencia del original de un reverso. Equivale al `reverseOriginalRef` del ADR-003.                                                                                                                                                                   |
 | `reverseOfEmailMessageId`        | No                           | Id del correo original de un reverso, cuando el mensaje lo permite. Es el `reverseOfEmailMessageId` del ADR-003.                                                                                                                                       |
 
+La confianza menor a 0.7 o `UNKNOWN` deja el estado en `PENDING`, igual que el mapeo actual.
+
 Decisiones de nombre y forma:
 
 - Se usa un solo `accountNumberLast4` para transferencias y pagos. `last4` queda reservado para tarjeta; no se agrega `fromAccountNumberLast4`.
