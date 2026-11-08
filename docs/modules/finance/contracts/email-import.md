@@ -223,7 +223,7 @@ Los códigos son estables; el texto visible puede cambiar sin cambiar el código
 | `TRANSACTION_DATE_MISSING`              | No hay fecha de operación ni sugerencia.          | Sin movimiento.                            |
 | `TRANSACTION_DATE_SUGGESTED`            | Solo hay fecha de encabezado sugerida.            | Sin movimiento hasta confirmación.         |
 | `DIRECTION_MISSING`                     | No se sabe si es débito, crédito o transferencia. | Sin movimiento.                            |
-| `INSTRUMENT_MISSING`                    | No hay pista de cuenta o tarjeta.                 | Sin movimiento.                            |
+| `NO_LEDGER_TARGET`                      | No hay pista de cuenta o tarjeta.                 | Sin movimiento.                            |
 | `AMBIGUOUS_LEDGER_TARGET`               | Varias cuentas o tarjetas coinciden.              | Sin movimiento; candidatos.                |
 | `TRANSFER_ACCOUNT_MISSING`              | Transferencia sin cuenta identificada.            | Sin movimiento.                            |
 | `TRANSFER_ACCOUNT_HINT_UNSUPPORTED`     | Solo hay last4 de tarjeta en una transferencia.   | Sin movimiento.                            |
