@@ -33,7 +33,7 @@ Los runs `EVALUATE` guardan la cantidad y huella SHA-256 de los IDs HOLDOUT cong
 | `cursor`             | valor opaco de la página anterior               | Reenviar los mismos filtros y el mismo orden                                               |
 | `uncertain`          | `true`                                          | Solo predicciones de confianza menor a 70 % o mensajes sin predicción                      |
 
-El estado de un correo es el de su última verificación; sin verificación es `PENDING`. Con estados verificados, cada item incluye `verification` con el veredicto, las etiquetas guardadas, la nota y la fecha; en pendientes vale `null`. Los conteos por partición cuentan solo pendientes y aplican remitente, asunto y fechas; el filtro de partición y el orden no los cambian. Un estado, orden o partición fuera de lista, una fecha que no sea `AAAA-MM-DD` válida o un rango invertido responden 400.
+El estado de un correo es el de su última verificación; sin verificación es `PENDING`. Un pendiente exige además una clasificación que aún requiera revisión: los correos en `PROCESSED` salen de la cola y de los conteos sin recibir verificación. Esa exclusión afecta solo al estado `PENDING`; con estados combinados, el historial `CORRECTED` o `REJECTED` de mensajes `PROCESSED` se conserva. Con estados verificados, cada item incluye `verification` con el veredicto, las etiquetas guardadas, la nota y la fecha; en pendientes vale `null`. Los conteos por partición cuentan solo pendientes (sin verificación y fuera de `PROCESSED`) y aplican remitente, asunto y fechas; el filtro de partición y el orden no los cambian. Un estado, orden o partición fuera de lista, una fecha que no sea `AAAA-MM-DD` válida o un rango invertido responden 400.
 
 ```json
 {

@@ -116,9 +116,13 @@ describe('AiEvidenceService review and analysis flows', () => {
       expect.objectContaining({
         where: {
           userId: 'user-1',
-          processingStatus: { not: 'PROCESSED' },
           id: { in: ['email-1'] },
-          AND: [{ id: { notIn: ['reviewed'] } }],
+          AND: [
+            {
+              processingStatus: { not: 'PROCESSED' },
+              id: { notIn: ['reviewed'] },
+            },
+          ],
         },
       }),
     );
@@ -164,8 +168,8 @@ describe('AiEvidenceService review and analysis flows', () => {
       expect.objectContaining({
         where: {
           userId: 'user-1',
-          processingStatus: { not: 'PROCESSED' },
           AND: [
+            { processingStatus: { not: 'PROCESSED' } },
             {
               OR: [
                 {

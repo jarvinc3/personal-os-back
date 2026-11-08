@@ -188,7 +188,7 @@ describe('AiEvidenceService review queue filters', () => {
       expect.objectContaining({
         where: {
           userId: 'user-1',
-          processingStatus: { not: 'PROCESSED' },
+          AND: [{ processingStatus: { not: 'PROCESSED' } }],
         },
         orderBy: [{ receivedAt: 'asc' }, { id: 'asc' }],
         take: 51,

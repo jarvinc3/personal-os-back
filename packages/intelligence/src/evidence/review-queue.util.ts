@@ -205,13 +205,8 @@ export function reviewQueueMessageFilter({
   ].filter(
     (clause): clause is Prisma.AiEmailMessageWhereInput => clause !== undefined,
   );
-  const includesPending =
-    !statuses?.length || statuses.includes(REVIEW_QUEUE_PENDING_STATUS);
   return {
     userId,
-    ...(includesPending
-      ? { processingStatus: { not: REVIEW_QUEUE_RESOLVED_PROCESSING_STATUS } }
-      : {}),
     ...(partitionMessageIds ? { id: { in: [...partitionMessageIds] } } : {}),
     ...(uncertain
       ? {
@@ -298,11 +293,12 @@ function reviewQueueStatusFilter({
     (status) => status !== REVIEW_QUEUE_PENDING_STATUS,
   );
   const reviewedMessageIds = [...latestByMessageId.keys()];
+  const pendingFilter: Prisma.AiEmailMessageWhereInput = {
+    processingStatus: { not: REVIEW_QUEUE_RESOLVED_PROCESSING_STATUS },
+    ...(reviewedMessageIds.length ? { id: { notIn: reviewedMessageIds } } : {}),
+  };
   if (!verdicts.length) {
-    if (!reviewedMessageIds.length) {
-      return undefined;
-    }
-    return { id: { notIn: reviewedMessageIds } };
+    return pendingFilter;
   }
   const verdictMessageIds = [...latestByMessageId.values()]
     .filter((verification) => verdicts.includes(verification.verdict))
@@ -311,10 +307,7 @@ function reviewQueueStatusFilter({
     return { id: { in: verdictMessageIds } };
   }
   return {
-    OR: [
-      { id: { notIn: reviewedMessageIds } },
-      { id: { in: verdictMessageIds } },
-    ],
+    OR: [pendingFilter, { id: { in: verdictMessageIds } }],
   };
 }
 
