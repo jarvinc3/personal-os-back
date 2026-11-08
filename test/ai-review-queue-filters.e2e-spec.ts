@@ -43,6 +43,13 @@ type StoredVerification = {
   createdAt: Date;
 };
 
+type StoredClassification = {
+  messageId: string;
+  route: string;
+  confidence: number;
+  decisionPath: string;
+};
+
 const USER_ID = 'user-123';
 const USER_TIMEZONE = 'America/Santo_Domingo';
 const VERIFIED_AT = new Date('2026-10-25T12:00:00.000Z');
@@ -212,7 +219,51 @@ const matchesDate = (actual: Date, filter: unknown): boolean => {
   return true;
 };
 
-const matchesMessage = (row: ReviewMessage, where: Query): boolean => {
+const matchesNumber = (actual: number, filter: unknown): boolean => {
+  if (typeof filter === 'number') {
+    return actual === filter;
+  }
+  const { lt, lte, gt, gte } = asQuery(filter);
+  if (typeof lt === 'number' && actual >= lt) {
+    return false;
+  }
+  if (typeof lte === 'number' && actual > lte) {
+    return false;
+  }
+  if (typeof gt === 'number' && actual <= gt) {
+    return false;
+  }
+  if (typeof gte === 'number' && actual < gte) {
+    return false;
+  }
+  return true;
+};
+
+const matchesClassification = (
+  classification: StoredClassification,
+  where: Query,
+): boolean => {
+  if (
+    where.confidence !== undefined &&
+    !matchesNumber(classification.confidence, where.confidence)
+  ) {
+    return false;
+  }
+  return (
+    typeof where.decisionPath !== 'string' ||
+    classification.decisionPath === where.decisionPath
+  );
+};
+
+const matchesMessage = ({
+  message: row,
+  where,
+  classifications,
+}: {
+  message: ReviewMessage;
+  where: Query;
+  classifications: readonly StoredClassification[];
+}): boolean => {
   if (typeof where.userId === 'string' && row.userId !== where.userId) {
     return false;
   }
@@ -237,16 +288,50 @@ const matchesMessage = (row: ReviewMessage, where: Query): boolean => {
   const andClauses = where.AND;
   if (
     Array.isArray(andClauses) &&
-    !andClauses.every((clause) => matchesMessage(row, asQuery(clause)))
+    !andClauses.every((clause) =>
+      matchesMessage({
+        message: row,
+        where: asQuery(clause),
+        classifications,
+      }),
+    )
   ) {
     return false;
   }
   const orClauses = where.OR;
   if (
     Array.isArray(orClauses) &&
-    !orClauses.some((clause) => matchesMessage(row, asQuery(clause)))
+    !orClauses.some((clause) =>
+      matchesMessage({
+        message: row,
+        where: asQuery(clause),
+        classifications,
+      }),
+    )
   ) {
     return false;
+  }
+  if (where.classifications !== undefined) {
+    const relation = asQuery(where.classifications);
+    const related = classifications.filter(
+      (classification) => classification.messageId === row.id,
+    );
+    if (
+      relation.none !== undefined &&
+      related.some((classification) =>
+        matchesClassification(classification, asQuery(relation.none)),
+      )
+    ) {
+      return false;
+    }
+    if (
+      relation.some !== undefined &&
+      !related.some((classification) =>
+        matchesClassification(classification, asQuery(relation.some)),
+      )
+    ) {
+      return false;
+    }
   }
   return true;
 };
@@ -273,6 +358,7 @@ describe('AI-6 review queue filters (e2e)', () => {
   let messages: ReviewMessage[];
   let partitions: StoredPartition[];
   let verifications: StoredVerification[];
+  let classifications: StoredClassification[];
 
   const partition = ({
     sourceId,
@@ -366,6 +452,7 @@ describe('AI-6 review queue filters (e2e)', () => {
         overrides: { userId: 'other-user' },
       }),
     ];
+    classifications = [];
     prismaMock = createPrismaMock();
     prismaMock.user.findUnique.mockResolvedValue({
       id: USER_ID,
@@ -379,7 +466,9 @@ describe('AI-6 review queue filters (e2e)', () => {
         select?: Query;
       }) => {
         const where = command.where ?? {};
-        const matches = messages.filter((row) => matchesMessage(row, where));
+        const matches = messages.filter((row) =>
+          matchesMessage({ message: row, where, classifications }),
+        );
         if (command.select?.contentFingerprint !== true) {
           return Promise.resolve(matches.map(({ id }) => ({ id })));
         }
@@ -624,5 +713,108 @@ describe('AI-6 review queue filters (e2e)', () => {
       .get(`/api/intelligence/review-queue${query}`)
       .set('Authorization', `Bearer ${token}`)
       .expect(400);
+  });
+
+  describe('reclassification versus human verification', () => {
+    const sender = 'alertas@banco.com';
+
+    beforeEach(() => {
+      messages.push(
+        {
+          ...message({
+            id: 'reclass-0',
+            receivedAt: '2026-10-05T12:00:00.000Z',
+            fromAddress: sender,
+            subject: 'Consumo reclasificado',
+          }),
+          processingStatus: 'PROCESSED',
+        },
+        {
+          ...message({
+            id: 'low-0',
+            receivedAt: '2026-10-05T13:00:00.000Z',
+            fromAddress: sender,
+            subject: 'Consumo dudoso',
+          }),
+          processingStatus: 'REVIEW_REQUIRED',
+        },
+        {
+          ...message({
+            id: 'human-0',
+            receivedAt: '2026-10-05T14:00:00.000Z',
+            fromAddress: sender,
+            subject: 'Consumo verificado',
+          }),
+          processingStatus: 'PROCESSED',
+        },
+      );
+      partitions.push(
+        partition({ sourceId: 'reclass-0', value: 'TRAIN' }),
+        partition({ sourceId: 'low-0', value: 'TRAIN' }),
+        partition({ sourceId: 'human-0', value: 'TRAIN' }),
+      );
+      classifications.push(
+        {
+          messageId: 'reclass-0',
+          route: 'FINANCE',
+          confidence: 0.98,
+          decisionPath: 'KNOWLEDGE',
+        },
+        {
+          messageId: 'low-0',
+          route: 'FINANCE',
+          confidence: 0.4,
+          decisionPath: 'MODEL',
+        },
+        {
+          messageId: 'human-0',
+          route: 'FINANCE',
+          confidence: 0.98,
+          decisionPath: 'MODEL',
+        },
+      );
+      verifications.push(
+        verification({
+          targetId: 'human-0',
+          sequence: 6n,
+          verdict: 'CONFIRMED',
+        }),
+      );
+    });
+
+    const getSenderQueue = (query = '') =>
+      getQueue(`?fromAddress=${sender}${query}`);
+
+    it('keeps a reclassified message pending without a human verification', async () => {
+      const response = await getSenderQueue();
+
+      expect(
+        response.body.data.items.map(({ id }: { id: string }) => id),
+      ).toEqual(['reclass-0', 'low-0']);
+      expect(
+        response.body.data.items.map(
+          ({ status }: { status: string }) => status,
+        ),
+      ).toEqual(['PENDING', 'PENDING']);
+    });
+
+    it('excludes a high-confidence knowledge row from the uncertain view', async () => {
+      const response = await getSenderQueue('&uncertain=true');
+
+      expect(
+        response.body.data.items.map(({ id }: { id: string }) => id),
+      ).toEqual(['low-0']);
+    });
+
+    it('lists a message under its human verification status', async () => {
+      const response = await getSenderQueue('&status=CONFIRMED');
+
+      expect(
+        response.body.data.items.map(({ id }: { id: string }) => id),
+      ).toEqual(['human-0']);
+      expect(response.body.data.items[0]).toMatchObject({
+        status: 'CONFIRMED',
+      });
+    });
   });
 });
