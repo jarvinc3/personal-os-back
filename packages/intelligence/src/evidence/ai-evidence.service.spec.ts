@@ -1,5 +1,7 @@
 import { BadRequestException } from '@nestjs/common';
+import { plainToInstance } from 'class-transformer';
 import { AiEvidenceService } from './ai-evidence.service';
+import { CreateHumanVerificationDto } from './dto/create-human-verification.dto';
 
 const reclassification = {
   reclassifyAfterMessageVerification: jest
@@ -246,6 +248,58 @@ describe('AiEvidenceService', () => {
     expect(
       reclassification.reclassifyAfterMessageVerification,
     ).toHaveBeenCalledTimes(2);
+  });
+
+  it('reutiliza la verificación idéntica cuando transaction llega como DTO transformado', async () => {
+    const correctedPayload = {
+      relevance: true,
+      semanticType: 'FIN_TRANSACTION',
+      routes: ['FINANCE'],
+      transaction: {
+        kind: 'TRANSACTION',
+        amount: 37.25,
+        currency: 'DOP',
+        transactionDate: '2031-04-12T12:00:00.000Z',
+        direction: 'DEBIT',
+        merchant: 'Comercio sintético CTR-02',
+        bankReference: 'SYN-CTR02-REF',
+        last4: '4821',
+      },
+    };
+    const stored = {
+      sequence: 7n,
+      verifierRole: 'USER',
+      targetType: 'EMAIL_MESSAGE',
+      targetId: 'message-1',
+      verdict: 'CORRECTED',
+      correctedPayload,
+      notes: 'Reintento sintético CTR-02',
+      isGroundTruth: false,
+      createdAt: new Date('2026-11-01T00:00:00.000Z'),
+    };
+    const prisma = reviewPrisma();
+    prisma.aiHumanVerification.findFirst.mockResolvedValue(stored);
+    const service = new AiEvidenceService(
+      prisma as never,
+      reclassification as never,
+    );
+    const request = plainToInstance(CreateHumanVerificationDto, {
+      verdict: 'CORRECTED',
+      ...correctedPayload,
+      notes: 'Reintento sintético CTR-02',
+    });
+
+    const reusedVerification = await service.verifyMessage(
+      'user-1',
+      'message-1',
+      request,
+    );
+
+    expect(prisma.aiHumanVerification.create).not.toHaveBeenCalled();
+    expect(reusedVerification.sequence).toBe('7');
+    expect(
+      reclassification.reclassifyAfterMessageVerification,
+    ).toHaveBeenCalledTimes(1);
   });
 
   it('registra otra verificación cuando cambian las etiquetas', async () => {

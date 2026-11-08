@@ -77,6 +77,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [Se
 
 ### Corregido
 
+- #333: la verificación individual reutiliza la última fila idéntica aunque `transaction` llegue transformado por ValidationPipe; normaliza el payload a JSON plano antes de comparar y persistir, y evita una segunda verificación en el reintento idéntico.
 - #326: las pruebas E2E ignoran `.env`, usan proveedores de prueba y fallan ante cualquier intento de `fetch` a un dominio externo.
 - La sincronización de Gmail informa el avance real del atraso: una fase `classifying` con los correos procesados y el total pendiente, clasificados en lotes con un tope por corrida (`AI_EMAIL_CLASSIFICATION_BUDGET_MINUTES`, 5 por defecto) en lugar de una sola pasada por ciclo, y un fallo de clasificación ya no marca el intento como fallido (#299).
 - Las llamadas a la API de Gmail y al token de Google tienen límite de tiempo (30 y 15 segundos) y un vigilante marca `failed` con código `sync_stalled` una sincronización `running` sin avance (`AI_EMAIL_SYNC_STALL_MINUTES`, 15 por defecto) cuando ninguna corrida viva de este proceso tiene la conexión tomada; los errores del callback OAuth y del sync en segundo plano quedan registrados con su código saneado, y un timeout del token se reporta como `gmail_token_timeout` (#299).

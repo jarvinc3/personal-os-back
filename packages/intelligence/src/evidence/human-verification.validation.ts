@@ -40,7 +40,12 @@ export function humanVerificationPayload(
   const definedLabels = Object.fromEntries(
     Object.entries(labels).filter(([, value]) => value !== undefined),
   );
-  return Object.keys(definedLabels).length ? definedLabels : undefined;
+  if (!Object.keys(definedLabels).length) {
+    return undefined;
+  }
+  // ValidationPipe entrega transaction como instancia del DTO; JSONB devuelve
+  // un objeto plano. Normalizar evita comparar prototipos distintos en el retry.
+  return JSON.parse(JSON.stringify(definedLabels)) as Record<string, unknown>;
 }
 
 function assertTransactionMatchesSemanticType(
