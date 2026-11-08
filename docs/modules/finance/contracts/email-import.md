@@ -120,16 +120,7 @@ La referencia compartida no basta para descartar la segunda pata. El dedupe de t
 
 ### 3.6 Motivos de revisión
 
-| Código                              | Condición                                | Efecto                                       |
-| ----------------------------------- | ---------------------------------------- | -------------------------------------------- |
-| `TRANSFER_ACCOUNT_MISSING`          | No hay `accountNumberLast4`.             | Sin movimiento.                              |
-| `TRANSFER_ACCOUNT_HINT_UNSUPPORTED` | Solo hay `last4` de tarjeta.             | Sin movimiento; no se adivina la cuenta.     |
-| `TRANSFER_ACCOUNT_NOT_FOUND`        | Ninguna cuenta activa coincide.          | Sin movimiento.                              |
-| `TRANSFER_ACCOUNT_AMBIGUOUS`        | Más de una cuenta coincide.              | Sin movimiento; candidatos en evidencia.     |
-| `TRANSFER_DIRECTION_AMBIGUOUS`      | Ya existe en el consumidor.              | Sin movimiento.                              |
-| `TRANSFER_SIDE_MISSING`             | Ya existe en el consumidor.              | Sin movimiento.                              |
-| `TRANSFER_PAIR_AMBIGUOUS`           | Varias patas candidatas al emparejar.    | La pata conocida queda pendiente.            |
-| `REVERSAL_TARGET_NOT_SUPPORTED`     | El aviso es un reverso de transferencia. | Revisión; no se aplica el reverso de compra. |
+Los motivos de transferencia (`TRANSFER_ACCOUNT_MISSING`, `TRANSFER_ACCOUNT_HINT_UNSUPPORTED`, `TRANSFER_ACCOUNT_NOT_FOUND`, `TRANSFER_ACCOUNT_AMBIGUOUS`, `TRANSFER_DIRECTION_AMBIGUOUS`, `TRANSFER_SIDE_MISSING`, `TRANSFER_PAIR_AMBIGUOUS` y `REVERSAL_TARGET_NOT_SUPPORTED`) están en la tabla única de la sección 5.3.
 
 ## 4. Pagos de tarjeta confirmados
 
@@ -142,17 +133,7 @@ La referencia compartida no basta para descartar la segunda pata. El dedupe de t
 - No se usa la cuenta por defecto, la cuenta CASH, el remitente, el comercio ni el nombre para elegir.
 - Si falta una pista, hay varias o la tarjeta no es `CREDIT`, la señal queda en revisión.
 
-Motivos de resolución:
-
-| Código                                  | Condición                                       | Efecto                      |
-| --------------------------------------- | ----------------------------------------------- | --------------------------- |
-| `CARD_PAYMENT_NOT_CONFIRMED`            | Estado distinto de confirmado.                  | Sin movimiento.             |
-| `CARD_PAYMENT_CARD_NOT_FOUND`           | Ninguna tarjeta activa con `last4`.             | Sin movimiento.             |
-| `CARD_PAYMENT_CARD_AMBIGUOUS`           | Más de una tarjeta con `last4`.                 | Sin movimiento; candidatos. |
-| `CARD_PAYMENT_CARD_NOT_CREDIT`          | La tarjeta no es `CREDIT`.                      | Sin movimiento.             |
-| `CARD_PAYMENT_SOURCE_ACCOUNT_NOT_FOUND` | Ninguna cuenta activa con `accountNumberLast4`. | Sin movimiento.             |
-| `CARD_PAYMENT_SOURCE_ACCOUNT_AMBIGUOUS` | Más de una cuenta compatible.                   | Sin movimiento; candidatos. |
-| `CARD_CURRENCY_MISSING`                 | La tarjeta no tiene saldo en la moneda.         | Sin movimiento.             |
+Los motivos de pago (`CARD_PAYMENT_NOT_CONFIRMED`, `CARD_PAYMENT_CARD_NOT_FOUND`, `CARD_PAYMENT_CARD_AMBIGUOUS`, `CARD_PAYMENT_CARD_NOT_CREDIT`, `CARD_PAYMENT_SOURCE_ACCOUNT_NOT_FOUND`, `CARD_PAYMENT_SOURCE_ACCOUNT_AMBIGUOUS` y `CARD_CURRENCY_MISSING`) están en la tabla única de la sección 5.3.
 
 ### 4.2 Operación de dos patas
 
