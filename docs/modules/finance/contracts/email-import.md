@@ -156,7 +156,7 @@ La referencia es la primera pista, no un requisito absoluto.
 4. Si hay varios candidatos, queda `CARD_PAYMENT_RECONCILIATION_AMBIGUOUS` con los IDs y no se crea movimiento.
 5. Si no hay candidato, el pago confirmado se importa una sola vez. La creación manual posterior con los mismos datos exige confirmación explícita y no duplica por accidente.
 
-La ruta manual conserva la misma operación de dos patas. Se le agrega la misma verificación de conciliación: si existe un pago importado parecido y no se confirma la excepción, responde 409 `CARD_PAYMENT_POSSIBLE_DUPLICATE` con el candidato. No se crea un endpoint nuevo.
+La ruta manual conserva la misma operación de dos patas. Se le agrega la misma verificación de conciliación: si existe un pago importado parecido y no se confirma la excepción, responde 409 `CARD_PAYMENT_POSSIBLE_DUPLICATE` con el candidato. La confirmación se expresa con `duplicateAcknowledged: true` en el comando manual; el valor por defecto es `false`. No se crea un endpoint nuevo.
 
 ### 4.4 Dedupe e idempotencia
 
