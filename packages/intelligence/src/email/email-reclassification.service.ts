@@ -280,23 +280,28 @@ export class AiEmailReclassificationService {
     });
     let requeued = 0;
     let skipped = 0;
-    for (
-      let start = 0;
-      start < messages.length;
-      start += RECLASSIFICATION_CLAIM_CHUNK_SIZE
-    ) {
-      const chunk = messages.slice(
-        start,
-        start + RECLASSIFICATION_CLAIM_CHUNK_SIZE,
-      );
-      const outcome = await this.reclassifyChunk({
-        userId: input.userId,
-        chunk,
-        structural: input.structural,
-        provenanceFor: input.provenanceFor,
-      });
-      requeued += outcome.requeued;
-      skipped += outcome.skipped;
+    try {
+      for (
+        let start = 0;
+        start < messages.length;
+        start += RECLASSIFICATION_CLAIM_CHUNK_SIZE
+      ) {
+        const chunk = messages.slice(
+          start,
+          start + RECLASSIFICATION_CLAIM_CHUNK_SIZE,
+        );
+        const outcome = await this.reclassifyChunk({
+          userId: input.userId,
+          chunk,
+          structural: input.structural,
+          provenanceFor: input.provenanceFor,
+        });
+        requeued += outcome.requeued;
+        skipped += outcome.skipped;
+      }
+    } catch (error) {
+      await this.failRun({ runId, requeued, skipped, error });
+      throw error;
     }
     await this.completeRun({ runId, requeued, skipped });
     this.logger.debug(
@@ -769,6 +774,36 @@ export class AiEmailReclassificationService {
     });
   }
 
+  /** Un pase que no termina cierra su run como fallido; nunca lo deja en RUNNING. */
+  private async failRun({
+    runId,
+    requeued,
+    skipped,
+    error,
+  }: {
+    runId: string;
+    requeued: number;
+    skipped: number;
+    error: unknown;
+  }): Promise<void> {
+    try {
+      await this.prisma.aiAnalysisRun.update({
+        where: { id: runId },
+        data: {
+          status: 'FAILED',
+          completedAt: new Date(),
+          metrics: { requeued, skipped },
+          error: reclassificationErrorCode(error),
+        },
+      });
+    } catch (markError) {
+      // No se oculta el fallo original: se registra el del cierre y se relanza aquel.
+      this.logger.error(
+        `Unable to mark reclassification run ${runId} as FAILED: ${reclassificationErrorCode(markError)}`,
+      );
+    }
+  }
+
   private async isHoldout(userId: string, messageId: string): Promise<boolean> {
     const partitions = await this.partitionsFor(userId, [messageId]);
     return partitions.get(messageId) === HOLDOUT_PARTITION;
@@ -867,4 +902,12 @@ export class AiEmailReclassificationService {
     }
     return (payload as Record<string, unknown>).label ?? null;
   }
+}
+
+/** Código seguro: el mensaje del error puede traer datos y no se persiste. */
+function reclassificationErrorCode(error: unknown): string {
+  if (error && typeof error === 'object' && 'code' in error) {
+    return String(error.code).slice(0, 80);
+  }
+  return 'RECLASSIFICATION_FAILED';
 }

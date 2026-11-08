@@ -703,6 +703,45 @@ describe('AiEmailReclassificationService', () => {
     expect(state.messages[0]).toMatchObject({ processingStatus: 'PROCESSED' });
   });
 
+  it('marca FAILED el run del pase que falla y conserva el historial al reintentar', async () => {
+    const { prisma, state } = makeFixture({
+      messages: [{ id: 'm2', classification: financeLabel(3400) }],
+      partitions: trainPartitions(['m2']),
+    });
+    prisma.aiEmailClassification.createMany.mockRejectedValueOnce(
+      new Error('chunk write failed'),
+    );
+    const service = new AiEmailReclassificationService(prisma as never);
+
+    await expect(
+      service.reclassifyAfterMessageVerification({
+        userId: 'user-1',
+        messageId: 'm2',
+        correctedLabel: correctedFinanceLabel,
+      }),
+    ).rejects.toThrow('chunk write failed');
+
+    expect(state.runs).toHaveLength(1);
+    expect(state.runs[0]).toMatchObject({
+      status: 'FAILED',
+      error: 'RECLASSIFICATION_FAILED',
+      metrics: { requeued: 0, skipped: 0 },
+    });
+    expect(state.runs[0].completedAt).toBeInstanceOf(Date);
+
+    await expect(
+      service.reclassifyAfterMessageVerification({
+        userId: 'user-1',
+        messageId: 'm2',
+        correctedLabel: correctedFinanceLabel,
+      }),
+    ).resolves.toEqual({ requeued: 1 });
+
+    expect(state.runs).toHaveLength(2);
+    expect(state.runs[0]).toMatchObject({ status: 'FAILED' });
+    expect(state.runs[1]).toMatchObject({ status: 'COMPLETED' });
+  });
+
   it('requeues the messages that used a reverted knowledge key', async () => {
     const { prisma, state } = makeFixture({
       messages: [{ id: 'm2' }, { id: 'm3' }, { id: 'm4' }],
