@@ -5,6 +5,7 @@ import { fromZonedTime } from 'date-fns-tz';
 import type { HumanVerificationVerdict } from './human-verification.constants';
 import {
   REVIEW_QUEUE_PENDING_STATUS,
+  REVIEW_QUEUE_RESOLVED_PROCESSING_STATUS,
   type ReviewQueueOrder,
   type ReviewQueuePartition,
   type ReviewQueueStatus,
@@ -204,8 +205,13 @@ export function reviewQueueMessageFilter({
   ].filter(
     (clause): clause is Prisma.AiEmailMessageWhereInput => clause !== undefined,
   );
+  const includesPending =
+    !statuses?.length || statuses.includes(REVIEW_QUEUE_PENDING_STATUS);
   return {
     userId,
+    ...(includesPending
+      ? { processingStatus: { not: REVIEW_QUEUE_RESOLVED_PROCESSING_STATUS } }
+      : {}),
     ...(partitionMessageIds ? { id: { in: [...partitionMessageIds] } } : {}),
     ...(uncertain
       ? {
@@ -232,6 +238,7 @@ export function reviewQueuePendingCounts({
   items,
   reviewedMessageIds,
   matchingMessageIds,
+  resolvedMessageIds,
 }: {
   items: readonly {
     sourceId: string;
@@ -239,11 +246,15 @@ export function reviewQueuePendingCounts({
   }[];
   reviewedMessageIds: readonly string[];
   matchingMessageIds?: ReadonlySet<string>;
+  resolvedMessageIds?: ReadonlySet<string>;
 }): ReviewQueueCounts {
   const reviewed = new Set(reviewedMessageIds);
   const counts = { TRAIN: 0, VALIDATION: 0, HOLDOUT: 0 };
   for (const item of items) {
     if (reviewed.has(item.sourceId)) {
+      continue;
+    }
+    if (resolvedMessageIds?.has(item.sourceId)) {
       continue;
     }
     if (matchingMessageIds && !matchingMessageIds.has(item.sourceId)) {

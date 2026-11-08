@@ -23,6 +23,7 @@ import {
 import {
   REVIEW_QUEUE_DEFAULT_ORDER,
   REVIEW_QUEUE_PAGE_SIZE,
+  REVIEW_QUEUE_RESOLVED_PROCESSING_STATUS,
 } from './review-queue.constants';
 import {
   assertReviewQueueDateRange,
@@ -99,26 +100,38 @@ export class AiEvidenceService {
     const order = query.order ?? REVIEW_QUEUE_DEFAULT_ORDER;
     const dataset = await this.ensureDataset();
     await this.ensureDatasetItems(userId, dataset.id);
-    const [timezone, verifications, datasetItems] = await Promise.all([
-      this.reviewQueueTimezone(userId, query),
-      this.prisma.aiHumanVerification.findMany({
-        where: { userId, targetType: REVIEW_TARGET_TYPE },
-        orderBy: [{ targetId: 'asc' }, { sequence: 'desc' }],
-        distinct: ['targetId'],
-        select: {
-          targetId: true,
-          sequence: true,
-          verdict: true,
-          correctedPayload: true,
-          notes: true,
-          createdAt: true,
-        },
-      }),
-      this.prisma.aiDatasetItem.findMany({
-        where: { datasetId: dataset.id, userId, sourceType: EMAIL_SOURCE_TYPE },
-        select: { sourceId: true, partition: true },
-      }),
-    ]);
+    const [timezone, verifications, datasetItems, resolvedMessages] =
+      await Promise.all([
+        this.reviewQueueTimezone(userId, query),
+        this.prisma.aiHumanVerification.findMany({
+          where: { userId, targetType: REVIEW_TARGET_TYPE },
+          orderBy: [{ targetId: 'asc' }, { sequence: 'desc' }],
+          distinct: ['targetId'],
+          select: {
+            targetId: true,
+            sequence: true,
+            verdict: true,
+            correctedPayload: true,
+            notes: true,
+            createdAt: true,
+          },
+        }),
+        this.prisma.aiDatasetItem.findMany({
+          where: {
+            datasetId: dataset.id,
+            userId,
+            sourceType: EMAIL_SOURCE_TYPE,
+          },
+          select: { sourceId: true, partition: true },
+        }),
+        this.prisma.aiEmailMessage.findMany({
+          where: {
+            userId,
+            processingStatus: REVIEW_QUEUE_RESOLVED_PROCESSING_STATUS,
+          },
+          select: { id: true },
+        }),
+      ]);
     const latestByMessageId = latestReviewVerifications(verifications);
     const partitionByMessageId = new Map(
       datasetItems.map((item) => [item.sourceId, item.partition]),
@@ -147,6 +160,7 @@ export class AiEvidenceService {
       items: datasetItems,
       reviewedMessageIds: [...latestByMessageId.keys()],
       matchingMessageIds,
+      resolvedMessageIds: new Set(resolvedMessages.map(({ id }) => id)),
     });
     const partitionMessageIds = query.partition
       ? datasetItems

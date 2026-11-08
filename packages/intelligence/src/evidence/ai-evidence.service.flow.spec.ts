@@ -91,6 +91,7 @@ describe('AiEvidenceService review and analysis flows', () => {
     }));
     prisma.aiEmailMessage.findMany
       .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
       .mockResolvedValueOnce(messages);
     const service = new AiEvidenceService(prisma, reclassification as never);
     const page = await service.reviewQueue('user-1', { partition: 'TRAIN' });
@@ -115,6 +116,7 @@ describe('AiEvidenceService review and analysis flows', () => {
       expect.objectContaining({
         where: {
           userId: 'user-1',
+          processingStatus: { not: 'PROCESSED' },
           id: { in: ['email-1'] },
           AND: [{ id: { notIn: ['reviewed'] } }],
         },
@@ -145,7 +147,7 @@ describe('AiEvidenceService review and analysis flows', () => {
     await expect(
       cursorService.reviewQueue('user-1', { cursor: 'not-a-cursor' }),
     ).rejects.toBeInstanceOf(BadRequestException);
-    expect(cursorPrisma.aiEmailMessage.findMany).toHaveBeenCalledTimes(1);
+    expect(cursorPrisma.aiEmailMessage.findMany).toHaveBeenCalledTimes(2);
   });
 
   it('filters review messages after a valid cursor', async () => {
@@ -162,6 +164,7 @@ describe('AiEvidenceService review and analysis flows', () => {
       expect.objectContaining({
         where: {
           userId: 'user-1',
+          processingStatus: { not: 'PROCESSED' },
           AND: [
             {
               OR: [

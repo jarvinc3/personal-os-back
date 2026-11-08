@@ -255,6 +255,14 @@ const matchesClassification = (
   );
 };
 
+const matchesProcessingStatus = (actual: string, filter: unknown): boolean => {
+  if (typeof filter === 'string') {
+    return actual === filter;
+  }
+  const { not } = asQuery(filter);
+  return typeof not !== 'string' || actual !== not;
+};
+
 const matchesMessage = ({
   message: row,
   where,
@@ -265,6 +273,12 @@ const matchesMessage = ({
   classifications: readonly StoredClassification[];
 }): boolean => {
   if (typeof where.userId === 'string' && row.userId !== where.userId) {
+    return false;
+  }
+  if (
+    where.processingStatus !== undefined &&
+    !matchesProcessingStatus(row.processingStatus, where.processingStatus)
+  ) {
     return false;
   }
   if (where.id !== undefined && !matchesId(row.id, where.id)) {
@@ -785,17 +799,23 @@ describe('AI-6 review queue filters (e2e)', () => {
     const getSenderQueue = (query = '') =>
       getQueue(`?fromAddress=${sender}${query}`);
 
-    it('keeps a reclassified message pending without a human verification', async () => {
+    it('removes a reclassified message from the pending queue', async () => {
       const response = await getSenderQueue();
 
       expect(
         response.body.data.items.map(({ id }: { id: string }) => id),
-      ).toEqual(['reclass-0', 'low-0']);
+      ).toEqual(['low-0']);
       expect(
         response.body.data.items.map(
           ({ status }: { status: string }) => status,
         ),
-      ).toEqual(['PENDING', 'PENDING']);
+      ).toEqual(['PENDING']);
+      expect(response.body.data.counts).toEqual({
+        TRAIN: 1,
+        VALIDATION: 0,
+        HOLDOUT: 0,
+        all: 1,
+      });
     });
 
     it('excludes a high-confidence knowledge row from the uncertain view', async () => {
