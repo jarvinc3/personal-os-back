@@ -13,6 +13,8 @@ Estados de cuenta (ciclos de facturación cerrados) de tarjetas de crédito.
 - Próximo corte: `nextStatementDate` y `nextPaymentDueDate` en la respuesta de la tarjeta, con la regla de fin de mes del día de corte y la fecha local del usuario.
 - Recordatorio de pago: el barrido diario `CardPaymentRemindersScheduler` llama a `CardPaymentRemindersService`, que emite `finance.card_payment.due` una sola vez por corte y fecha límite. Solo si el corte no está pagado y `dueDate` cae dentro de `reminders.cardDueDaysBefore` (default 3). No se emite si el corte está `PAID` ni si el evento ya está en el outbox.
 
+Importación por correo: el contrato objetivo de un pago confirmado usa la misma operación de dos patas `CARD_PAYMENT` que la ruta manual y calcula `paidAmount` y `payments` desde el ledger. Está `NO_IMPLEMENTADO`; hoy solo la ruta manual crea esas patas. Ver [email-import.md](../contracts/email-import.md) e issue [#335](https://github.com/jarvinc3/personal-os-back/issues/335).
+
 `GET /finance/cards/:id/statements` devuelve `{ items, nextCursor, hasMore }` ordenado por `cycleEnd` descendente.
 
 ## Importar el estado de cuenta desde un PDF

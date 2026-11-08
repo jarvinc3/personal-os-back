@@ -18,6 +18,7 @@
 | [capabilities/fx.md](./capabilities/fx.md)                         | Tasas históricas                               |
 | [capabilities/events.md](./capabilities/events.md)                 | Outbox                                         |
 | [rules/ledger.md](./rules/ledger.md)                               | Invariantes de saldo y XOR                     |
+| [contracts/email-import.md](./contracts/email-import.md)           | Contrato de importación por correo (pendiente) |
 | [contracts/http.md](./contracts/http.md)                           | REST                                           |
 | [contracts/rest-vs-facade.md](./contracts/rest-vs-facade.md)       | Subconjunto AI                                 |
 | [contracts/finance-tools.md](./contracts/finance-tools.md)         | Tools `moduleSlug=finance`                     |

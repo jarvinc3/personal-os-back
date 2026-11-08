@@ -18,6 +18,10 @@ Toda verificación, individual o por lote, reclasifica después los correos ya c
 
 Repetir una verificación individual con el mismo veredicto, etiquetas y nota no agrega otra fila: reutiliza la última idéntica y reintenta la reclasificación. Un lote repetido devuelve `verified: 0` y también reintenta la reclasificación. Si la reclasificación falla, la petición responde error después de guardar la verificación; los correos reclamados vuelven a su estado anterior y el reintento es seguro.
 
+## Motivos de importación por correo (`NO_IMPLEMENTADO`)
+
+Los motivos estables y el flujo de fecha sugerida de la importación por correo pertenecen al contrato de Finance: [email-import.md](../../finance/contracts/email-import.md). La cola y el detalle deben mostrar el código estable, la fecha sugerida y su procedencia cuando exista, pero hoy el esquema de clasificación no emite esos campos. Este documento no duplica la tabla de motivos; el issue de seguimiento es [#337](https://github.com/jarvinc3/personal-os-back/issues/337).
+
 ## HTTP
 
 - `GET /api/intelligence/dataset`: conteos privados de particiones para la cuenta autenticada.

@@ -8,6 +8,8 @@ Moneda del ledger en el destino: una cuenta aplica su propia moneda; una tarjeta
 
 `GET /api/finance/transactions` paginado `{ items, pagination }` default page=1 limit=20 max 100. Filtros: fechas, cuenta, tarjeta, categoría, tipo, status, search, `transferGroupId`.
 
+Importación por correo: el contrato objetivo de transferencias de una pata, pagos de tarjeta confirmados, fecha sugerida y reversos está en [contracts/email-import.md](../contracts/email-import.md). Está `NO_IMPLEMENTADO`: hoy el consumidor no resuelve la cuenta propia, no crea `CARD_PAYMENT` desde correo y el reverso solo busca por referencia. Los issues [#334](https://github.com/jarvinc3/personal-os-back/issues/334), [#335](https://github.com/jarvinc3/personal-os-back/issues/335), [#337](https://github.com/jarvinc3/personal-os-back/issues/337) y [#336](https://github.com/jarvinc3/personal-os-back/issues/336) siguen el contrato.
+
 Writes: create DEBIT/CREDIT, PATCH metadata/update, confirm, reverse, DELETE, `POST /transfers` y `PATCH /transfers/:id` (editar una transferencia reajusta las dos patas del par). La pata destino acepta `exchangeRate` o `receivedAmount`; sin ellos usa la tasa del día y queda `isEstimated`. `POST /transfers/:id/reverse` reversa todas las patas de una operación completada. Los pagos de tarjeta se listan como operaciones `TRANSFER`.
 
 **AC-FIN-001:** Given cuenta DOP y DEBIT USD CONFIRMED, When create, Then `ledgerAmount` ≠ raw amount si hay FX del día.

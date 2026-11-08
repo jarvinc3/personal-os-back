@@ -132,3 +132,13 @@ Estados: ver [documentation-standard.md](../documentation-standard.md).
 | Origen     | `docs/decisions/ADR-006-cursor-pagination.md`                                                                                                                |
 | Validación | `packages/core/src/pagination/` usa `CursorQueryDto` y `{ items, nextCursor, hasMore }`; movimientos, presupuestos, notificaciones y sesiones de IA migrados |
 | Resolución | `resolved`                                                                                                                                                   |
+
+## REV-BACK-014 {#rev-back-014}
+
+| Campo      | Valor                                                                                                                                                                                                                                                                            |
+| ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Categoría  | `NO_IMPLEMENTADO`                                                                                                                                                                                                                                                                |
+| Origen     | `docs/modules/finance/contracts/email-import.md`                                                                                                                                                                                                                                 |
+| Validación | El contrato fija transferencias de una pata, pagos `CARD_PAYMENT` desde correo, fecha sugerida y la cadena de reverso del ADR-003; el consumidor actual no implementa esos flujos completos.                                                                                     |
+| Impacto    | Un lector podría confundir el contrato objetivo con comportamiento desplegado; el documento lo marca como `NO_IMPLEMENTADO` y enlaza cada brecha.                                                                                                                                |
+| Resolución | `roadmap` — [#334](https://github.com/jarvinc3/personal-os-back/issues/334), [#335](https://github.com/jarvinc3/personal-os-back/issues/335), [#337](https://github.com/jarvinc3/personal-os-back/issues/337) y [#336](https://github.com/jarvinc3/personal-os-back/issues/336). |

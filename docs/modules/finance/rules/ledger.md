@@ -20,6 +20,17 @@
 | `BR-FIN-016` | Money JSON                                                 | Responses: money/rates **strings** (`decimalToString`). Writes: `@IsNumber`. Percentajes: number                                 | mappers                 |
 | `BR-FIN-017` | Copy “Completado”                                          | Enum `CONFIRMED` (no existe `COMPLETED`)                                                                                         |                         |
 
+## Importación por correo (contrato objetivo, `NO_IMPLEMENTADO`)
+
+Estas reglas no están vigentes. Se activan cuando se implementan los issues [#334](https://github.com/jarvinc3/personal-os-back/issues/334), [#335](https://github.com/jarvinc3/personal-os-back/issues/335), [#337](https://github.com/jarvinc3/personal-os-back/issues/337) y [#336](https://github.com/jarvinc3/personal-os-back/issues/336). El contrato completo está en [contracts/email-import.md](../contracts/email-import.md).
+
+| ID           | Condición                 | Resultado                                                                                                                                  | Evidencia futura        |
+| ------------ | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------- |
+| `BR-FIN-018` | Transferencia importada   | Solo la pata de la cuenta identificada; sin contraparte inventada; `transferGroupId` y `legRole`; no cuenta como gasto ni ingreso.         | import use-case + tests |
+| `BR-FIN-019` | Pago de tarjeta importado | Confirmado, tarjeta `CREDIT` y cuenta de origen únicas; dos patas `CARD_PAYMENT`; sin categoría ni gasto; conciliación con pagos manuales. | import use-case + tests |
+| `BR-FIN-020` | Dato faltante o ambiguo   | Motivo estable, sin movimiento; la fecha del encabezado solo es sugerencia con procedencia y requiere confirmación humana.                 | consumidor + revisión   |
+| `BR-FIN-021` | Reverso importado         | Referencia primero; cadena del ADR-003; candidato único válido automático; cero o varios a revisión; nunca segunda compensación.           | consumidor + tests      |
+
 ## Bank status → interno
 
 `shared/domain/transaction-status.ts`. Confidence &lt; 0.7 o `UNKNOWN` → `PENDING`. `APPROVED`/`COMPLETED`/`POSTED` → `CONFIRMED`. `PENDING`/`IN_PROGRESS`/`AUTHORIZED` → `PENDING`. `DECLINED`/`REJECTED`/`FAILED` → `DECLINED`. `CANCELLED`/`VOIDED` → `CANCELLED`. `REVERSED`/`REFUNDED`/`CHARGEBACK` → reverse original si existe + `REVERSED`.
