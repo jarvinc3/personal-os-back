@@ -15,4 +15,4 @@ Consumidores: ver [infrastructure/events-and-queues.md](../../../infrastructure/
 
 `finance.balance.drift_detected` lo emite `BalanceIntegrityScheduler` una vez por desviación nueva o cambiada de saldo (invariante I1); ver `integrity.md`.
 
-`finance.email_sync.failed` se encola en el outbox al fallar un sync.
+Finance no emite eventos de sincronización de correo; esa fuente pertenece a Intelligence.
