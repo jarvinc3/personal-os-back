@@ -42,6 +42,8 @@ const EMAIL_SOURCE_TYPE = 'EMAIL_MESSAGE';
 const REVIEW_TARGET_TYPE = 'EMAIL_MESSAGE';
 const HOLDOUT_PARTITION = 'HOLDOUT';
 const KNOWLEDGE_DECISION_PATH = 'KNOWLEDGE';
+/** Un bloque encola hasta 200 actualizaciones de mensaje dentro de la transacción. */
+const RECLASSIFICATION_TRANSACTION_TIMEOUT_MS = 30_000;
 
 export type KnowledgeRowRef = {
   knowledgeType: string;
@@ -377,18 +379,17 @@ export class AiEmailReclassificationService {
       messageIds: chunk.map(({ id }) => id),
       claimToken,
     });
+    if (!claimed.length) {
+      return { requeued: 0, skipped: 0 };
+    }
     try {
       const plan = this.planChunk({ claimed, structural, provenanceFor });
-      await this.persistChunk({
+      return await this.persistChunk({
         userId,
         plan,
         claimToken,
         previousStatus,
       });
-      return {
-        requeued: plan.reclassified.length,
-        skipped: plan.skippedIds.length,
-      };
     } catch (error) {
       await this.releaseChunk({
         userId,
@@ -465,6 +466,11 @@ export class AiEmailReclassificationService {
     };
   }
 
+  /**
+   * La propiedad se comprueba con una escritura guardada y bloqueada dentro de
+   * la misma transacción: si otro escritor reclamó el mensaje, este pase no
+   * toca sus clasificaciones ni publica señales por él.
+   */
   private async persistChunk({
     userId,
     plan,
@@ -475,8 +481,141 @@ export class AiEmailReclassificationService {
     plan: ChunkPlan;
     claimToken: Date;
     previousStatus: ReadonlyMap<string, string>;
+  }): Promise<{ requeued: number; skipped: number }> {
+    return this.prisma.$transaction(
+      async (tx) => {
+        const owned = await this.applyChunkOutcomes({
+          tx,
+          userId,
+          plan,
+          claimToken,
+          previousStatus,
+        });
+        if (!owned.reclassified.length && !owned.skippedIds.length) {
+          return { requeued: 0, skipped: 0 };
+        }
+        await this.replaceClassifications({
+          tx,
+          userId,
+          reclassified: owned.reclassified,
+        });
+        await this.publishSignals({
+          tx,
+          userId,
+          reclassified: owned.reclassified,
+        });
+        return {
+          requeued: owned.reclassified.length,
+          skipped: owned.skippedIds.length,
+        };
+      },
+      { timeout: RECLASSIFICATION_TRANSACTION_TIMEOUT_MS },
+    );
+  }
+
+  /** Devuelve solo lo que este pase todavía posee; el resto lo resuelve su dueño. */
+  private async applyChunkOutcomes({
+    tx,
+    userId,
+    plan,
+    claimToken,
+    previousStatus,
+  }: {
+    tx: Prisma.TransactionClient;
+    userId: string;
+    plan: ChunkPlan;
+    claimToken: Date;
+    previousStatus: ReadonlyMap<string, string>;
+  }): Promise<ChunkPlan> {
+    const reclassified: ReclassifiedMessage[] = [];
+    for (const entry of plan.reclassified) {
+      const owned = await this.settleMessage({
+        tx,
+        userId,
+        messageId: entry.message.id,
+        claimToken,
+        data: this.reclassifiedMessageData(entry.classification),
+      });
+      if (owned) {
+        reclassified.push(entry);
+      }
+    }
+    const skippedIds: string[] = [];
+    for (const id of plan.skippedIds) {
+      const owned = await this.settleMessage({
+        tx,
+        userId,
+        messageId: id,
+        claimToken,
+        data: {
+          processingStatus: (previousStatus.get(id) ??
+            'REVIEW_REQUIRED') as Prisma.AiEmailMessageUpdateManyMutationInput['processingStatus'],
+          classificationStartedAt: null,
+        },
+      });
+      if (owned) {
+        skippedIds.push(id);
+      }
+    }
+    return { reclassified, skippedIds };
+  }
+
+  private async settleMessage({
+    tx,
+    userId,
+    messageId,
+    claimToken,
+    data,
+  }: {
+    tx: Prisma.TransactionClient;
+    userId: string;
+    messageId: string;
+    claimToken: Date;
+    data: Prisma.AiEmailMessageUpdateManyMutationInput;
+  }): Promise<boolean> {
+    const settled = await tx.aiEmailMessage.updateMany({
+      where: {
+        id: messageId,
+        userId,
+        processingStatus: 'CLASSIFYING',
+        classificationStartedAt: claimToken,
+      },
+      data,
+    });
+    return settled.count === 1;
+  }
+
+  private reclassifiedMessageData(
+    classification: EmailClassification,
+  ): Prisma.AiEmailMessageUpdateManyMutationInput {
+    return {
+      processingStatus: requiresReview({ classification, auditSample: false })
+        ? 'REVIEW_REQUIRED'
+        : 'PROCESSED',
+      classificationStartedAt: null,
+      classification: classificationLabel(classification),
+      classificationPath: KNOWLEDGE_DECISION_PATH,
+      classificationProvider: null,
+      classificationModel: null,
+    };
+  }
+
+  private async replaceClassifications({
+    tx,
+    userId,
+    reclassified,
+  }: {
+    tx: Prisma.TransactionClient;
+    userId: string;
+    reclassified: readonly ReclassifiedMessage[];
   }): Promise<void> {
-    const classificationRows = plan.reclassified.flatMap(
+    await tx.aiEmailClassification.deleteMany({
+      where: {
+        userId,
+        messageId: { in: reclassified.map(({ message }) => message.id) },
+      },
+    });
+    const rows = reclassified.flatMap(
       ({ message, classification, provenance }) =>
         buildClassificationRows({
           userId,
@@ -485,89 +624,48 @@ export class AiEmailReclassificationService {
           provenance,
         }),
     );
-    const signalRecords = plan.reclassified.flatMap(
+    if (!rows.length) {
+      return;
+    }
+    await tx.aiEmailClassification.createMany({ data: rows });
+  }
+
+  private async publishSignals({
+    tx,
+    userId,
+    reclassified,
+  }: {
+    tx: Prisma.TransactionClient;
+    userId: string;
+    reclassified: readonly ReclassifiedMessage[];
+  }): Promise<void> {
+    const records = reclassified.flatMap(
       ({ message, classification, provenance }) => {
-        const records = buildFinanceSignal({
+        const built = buildFinanceSignal({
           userId,
           messageId: message.id,
           receivedAt: message.receivedAt,
           classification,
           provenance,
         });
-        return records ? [records] : [];
+        return built ? [built] : [];
       },
     );
-    await this.prisma.$transaction([
-      this.prisma.aiEmailClassification.deleteMany({
-        where: {
-          userId,
-          messageId: {
-            in: plan.reclassified.map(({ message }) => message.id),
-          },
-        },
-      }),
-      ...(classificationRows.length
-        ? [
-            this.prisma.aiEmailClassification.createMany({
-              data: classificationRows,
-            }),
-          ]
-        : []),
-      ...plan.reclassified.map(({ message, classification }) =>
-        this.prisma.aiEmailMessage.updateMany({
-          where: {
-            id: message.id,
-            userId,
-            processingStatus: 'CLASSIFYING',
-            classificationStartedAt: claimToken,
-          },
-          data: {
-            processingStatus: requiresReview({
-              classification,
-              auditSample: false,
-            })
-              ? 'REVIEW_REQUIRED'
-              : 'PROCESSED',
-            classificationStartedAt: null,
-            classification: classificationLabel(classification),
-            classificationPath: KNOWLEDGE_DECISION_PATH,
-            classificationProvider: null,
-            classificationModel: null,
-          },
-        }),
-      ),
-      ...plan.skippedIds.map((id) =>
-        this.prisma.aiEmailMessage.updateMany({
-          where: {
-            id,
-            userId,
-            processingStatus: 'CLASSIFYING',
-            classificationStartedAt: claimToken,
-          },
-          data: {
-            processingStatus: (previousStatus.get(id) ??
-              'REVIEW_REQUIRED') as Prisma.AiEmailMessageUpdateManyMutationInput['processingStatus'],
-            classificationStartedAt: null,
-          },
-        }),
-      ),
-      ...(signalRecords.length
-        ? [
-            this.prisma.aiSignal.createMany({
-              data: signalRecords.map(({ signal }) => signal),
-              skipDuplicates: true,
-            }),
-            this.prisma.aiSignalEvidence.createMany({
-              data: signalRecords.map(({ evidence }) => evidence),
-              skipDuplicates: true,
-            }),
-            this.prisma.domainEventOutbox.createMany({
-              data: signalRecords.map(({ outbox }) => outbox),
-              skipDuplicates: true,
-            }),
-          ]
-        : []),
-    ]);
+    if (!records.length) {
+      return;
+    }
+    await tx.aiSignal.createMany({
+      data: records.map(({ signal }) => signal),
+      skipDuplicates: true,
+    });
+    await tx.aiSignalEvidence.createMany({
+      data: records.map(({ evidence }) => evidence),
+      skipDuplicates: true,
+    });
+    await tx.domainEventOutbox.createMany({
+      data: records.map(({ outbox }) => outbox),
+      skipDuplicates: true,
+    });
   }
 
   private async claimChunk({
@@ -579,21 +677,13 @@ export class AiEmailReclassificationService {
     messageIds: readonly string[];
     claimToken: Date;
   }): Promise<ReclassifiableMessage[]> {
-    await this.prisma.aiEmailMessage.updateMany({
+    return this.prisma.aiEmailMessage.updateManyAndReturn({
       where: {
         userId,
         id: { in: [...messageIds] },
         processingStatus: { in: [...RECLASSIFIABLE_STATUSES] },
       },
       data: {
-        processingStatus: 'CLASSIFYING',
-        classificationStartedAt: claimToken,
-      },
-    });
-    return this.prisma.aiEmailMessage.findMany({
-      where: {
-        userId,
-        id: { in: [...messageIds] },
         processingStatus: 'CLASSIFYING',
         classificationStartedAt: claimToken,
       },

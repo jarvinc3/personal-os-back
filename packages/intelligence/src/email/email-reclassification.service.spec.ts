@@ -133,15 +133,30 @@ function makeFixture({
     if (id && typeof id === 'object' && id.in && !id.in.includes(message.id)) {
       return false;
     }
-    const startedAt = where.classificationStartedAt;
-    if (
-      startedAt !== undefined &&
-      message.classificationStartedAt !== startedAt
-    ) {
-      return false;
+    const startedAt = where.classificationStartedAt as Date | null | undefined;
+    if (startedAt !== undefined) {
+      const messageStartedAt = message.classificationStartedAt;
+      if (startedAt === null) {
+        if (messageStartedAt !== null) {
+          return false;
+        }
+      } else if (
+        !messageStartedAt ||
+        messageStartedAt.getTime() !== startedAt.getTime()
+      ) {
+        return false;
+      }
     }
     return true;
   };
+
+  const snapshot = () => ({
+    messages: state.messages.map((message) => ({ ...message })),
+    classifications: [...state.classifications],
+    signals: [...state.signals],
+    signalEvidence: [...state.signalEvidence],
+    outbox: [...state.outbox],
+  });
 
   const prisma = {
     aiEmailMessage: {
@@ -161,6 +176,23 @@ function makeFixture({
             matchesWhere(message, command.where),
           ) ?? null,
         ),
+      ),
+      updateManyAndReturn: jest.fn(
+        ({
+          where,
+          data: patch,
+        }: {
+          where: Record<string, unknown>;
+          data: object;
+        }) => {
+          const found = state.messages.filter((message) =>
+            matchesWhere(message, where),
+          );
+          for (const message of found) {
+            Object.assign(message, patch);
+          }
+          return Promise.resolve(found.map((message) => ({ ...message })));
+        },
       ),
       updateMany: jest.fn(
         ({
@@ -358,8 +390,17 @@ function makeFixture({
         },
       ),
     },
-    $transaction: jest.fn((queries: Promise<unknown>[]) =>
-      Promise.all(queries),
+    $transaction: jest.fn(
+      (input: Promise<unknown>[] | ((tx: unknown) => Promise<unknown>)) => {
+        if (typeof input !== 'function') {
+          return Promise.all(input);
+        }
+        const before = snapshot();
+        return input(prisma).catch((error: unknown) => {
+          Object.assign(state, before);
+          throw error;
+        });
+      },
     ),
   };
 
@@ -631,27 +672,13 @@ describe('AiEmailReclassificationService', () => {
   });
 
   it('releases claimed messages when the chunk write fails and recovers on retry', async () => {
-    const { prisma, state, matchesWhere } = makeFixture({
+    const { prisma, state } = makeFixture({
       messages: [{ id: 'm2', classification: financeLabel(3400) }],
       partitions: trainPartitions(['m2']),
     });
-    const claimChunk = (command: {
-      where: Record<string, any>;
-      data: Record<string, any>;
-    }) => {
-      const matched = state.messages.filter((message) =>
-        matchesWhere(message, command.where),
-      );
-      for (const message of matched) {
-        Object.assign(message, command.data);
-      }
-      return Promise.resolve({ count: matched.length });
-    };
-    prisma.aiEmailMessage.updateMany
-      .mockImplementationOnce(claimChunk)
-      .mockImplementationOnce(() =>
-        Promise.reject(new Error('chunk write failed')),
-      );
+    prisma.aiEmailClassification.createMany.mockRejectedValueOnce(
+      new Error('chunk write failed'),
+    );
     const service = new AiEmailReclassificationService(prisma as never);
 
     await expect(
@@ -868,6 +895,59 @@ describe('AiEmailReclassificationService', () => {
     expect(state.messages[0]).toMatchObject({
       processingStatus: 'REVIEW_REQUIRED',
       classificationStartedAt: null,
+    });
+    expect(state.signals).toHaveLength(0);
+  });
+
+  it('does not persist after another claim takes the message over', async () => {
+    const { prisma, state } = makeFixture({
+      messages: [
+        { id: 'm1' },
+        { id: 'm2', classification: financeLabel(3400) },
+      ],
+      verifications: [
+        { userId: 'user-1', targetType: 'EMAIL_MESSAGE', targetId: 'm1' },
+      ],
+      partitions: trainPartitions(['m1', 'm2']),
+    });
+    const takeoverClaim = new Date(Date.UTC(2026, 10, 1, 2));
+    const foreignClassification: StoredClassification = {
+      userId: 'user-1',
+      messageId: 'm2',
+      route: 'NONE',
+      decisionPath: 'MODEL',
+      confidence: 0.31,
+      knowledgeUsed: [],
+    };
+    const updateMessage =
+      prisma.aiEmailMessage.updateMany.getMockImplementation();
+    if (!updateMessage) {
+      throw new Error('message update mock is missing');
+    }
+    prisma.aiEmailMessage.updateMany.mockImplementationOnce((command) => {
+      const takenOver = state.messages.find(({ id }) => id === 'm2');
+      if (!takenOver) {
+        throw new Error('fixture message m2 is missing');
+      }
+      Object.assign(takenOver, {
+        processingStatus: 'PROCESSED',
+        classificationStartedAt: takeoverClaim,
+      });
+      state.classifications = [foreignClassification];
+      return updateMessage(command);
+    });
+    const service = new AiEmailReclassificationService(prisma as never);
+
+    await service.reclassifyAfterMessageVerification({
+      userId: 'user-1',
+      messageId: 'm1',
+      correctedLabel: correctedFinanceLabel,
+    });
+
+    expect(state.classifications).toEqual([foreignClassification]);
+    expect(state.messages.find(({ id }) => id === 'm2')).toMatchObject({
+      processingStatus: 'PROCESSED',
+      classificationStartedAt: takeoverClaim,
     });
     expect(state.signals).toHaveLength(0);
   });
