@@ -745,6 +745,15 @@ describe('AI-6 review queue filters (e2e)', () => {
         },
         {
           ...message({
+            id: 'corrected-0',
+            receivedAt: '2026-10-05T12:30:00.000Z',
+            fromAddress: sender,
+            subject: 'Consumo corregido',
+          }),
+          processingStatus: 'PROCESSED',
+        },
+        {
+          ...message({
             id: 'low-0',
             receivedAt: '2026-10-05T13:00:00.000Z',
             fromAddress: sender,
@@ -764,6 +773,7 @@ describe('AI-6 review queue filters (e2e)', () => {
       );
       partitions.push(
         partition({ sourceId: 'reclass-0', value: 'TRAIN' }),
+        partition({ sourceId: 'corrected-0', value: 'TRAIN' }),
         partition({ sourceId: 'low-0', value: 'TRAIN' }),
         partition({ sourceId: 'human-0', value: 'TRAIN' }),
       );
@@ -773,6 +783,12 @@ describe('AI-6 review queue filters (e2e)', () => {
           route: 'FINANCE',
           confidence: 0.98,
           decisionPath: 'KNOWLEDGE',
+        },
+        {
+          messageId: 'corrected-0',
+          route: 'FINANCE',
+          confidence: 0.98,
+          decisionPath: 'MODEL',
         },
         {
           messageId: 'low-0',
@@ -792,6 +808,11 @@ describe('AI-6 review queue filters (e2e)', () => {
           targetId: 'human-0',
           sequence: 6n,
           verdict: 'CONFIRMED',
+        }),
+        verification({
+          targetId: 'corrected-0',
+          sequence: 7n,
+          verdict: 'CORRECTED',
         }),
       );
     });
@@ -834,6 +855,25 @@ describe('AI-6 review queue filters (e2e)', () => {
       ).toEqual(['human-0']);
       expect(response.body.data.items[0]).toMatchObject({
         status: 'CONFIRMED',
+      });
+    });
+
+    it('keeps the corrected history when pending and corrected are combined', async () => {
+      const response = await getSenderQueue('&status=PENDING,CORRECTED');
+
+      expect(
+        response.body.data.items.map(({ id }: { id: string }) => id),
+      ).toEqual(['corrected-0', 'low-0']);
+      expect(
+        response.body.data.items.map(
+          ({ status }: { status: string }) => status,
+        ),
+      ).toEqual(['CORRECTED', 'PENDING']);
+      expect(response.body.data.counts).toEqual({
+        TRAIN: 1,
+        VALIDATION: 0,
+        HOLDOUT: 0,
+        all: 1,
       });
     });
   });

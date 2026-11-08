@@ -384,9 +384,55 @@ describe('AI-6 review groups batch (e2e)', () => {
     });
   });
 
+  it('keeps PROCESSED mail as pending in the group lot until it is verified', async () => {
+    messages = [
+      {
+        id: 'p0',
+        userId: 'user-123',
+        fromAddress: 'notifications@github.com',
+        fromDomain: 'github.com',
+        subject: 'Pago pendiente 1',
+        templateFingerprint: 'fp-github',
+        receivedAt,
+        processingStatus: 'PROCESSED',
+        classification: financeClassification(1000),
+      },
+      {
+        id: 'p1',
+        userId: 'user-123',
+        fromAddress: 'notifications@github.com',
+        fromDomain: 'github.com',
+        subject: 'Pago pendiente 2',
+        templateFingerprint: 'fp-github',
+        receivedAt,
+        processingStatus: 'PROCESSED',
+        classification: financeClassification(2000),
+      },
+    ];
+    partitions = messages.map((message) => partition(message, 'TRAIN'));
+
+    const groups = await request(app.getHttpServer())
+      .get('/api/intelligence/review-groups')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+    expect(groups.body.data.items[0]).toMatchObject({
+      total: 2,
+      pending: 2,
+      pendingHoldout: 0,
+    });
+
+    const batch = await postBatch({ relevance: true });
+    expect(batch.body.data).toEqual({
+      verified: 2,
+      holdoutExcluded: 0,
+      alreadyVerified: 0,
+      requeued: 0,
+    });
+    expect(verifications).toHaveLength(2);
+  });
+
   it('shows the batch verification with role and sequence in the message detail', async () => {
     await postBatch({ relevance: true });
-
     const detail = await request(app.getHttpServer())
       .get('/api/intelligence/messages/g0')
       .set('Authorization', `Bearer ${token}`)
