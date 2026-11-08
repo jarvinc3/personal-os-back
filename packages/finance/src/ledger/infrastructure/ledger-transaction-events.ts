@@ -12,6 +12,7 @@ type EnqueueTransactionEventInput = {
   tx: Prisma.TransactionClient;
   events: DomainEventPublisherPort;
   userId: string;
+  /** Null for a status that has no creation event. */
   eventName: string | null;
   transactionId: string;
   /** `false` keeps the notification quiet: the user already saw the action. */
@@ -27,7 +28,7 @@ export async function enqueueTransactionEvent({
   transactionId,
   announce,
 }: EnqueueTransactionEventInput) {
-  if (!eventName) {
+  if (eventName === null) {
     return;
   }
   const row = await tx.finTransaction.findFirst({
