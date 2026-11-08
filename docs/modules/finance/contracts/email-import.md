@@ -109,12 +109,12 @@ La ventana de 3 días y la tolerancia de 50 o 2 % son comportamiento actual del 
 
 - Replay de la misma señal: `fin_signal_import` existente, `ALREADY_APPLIED`, sin segunda fila.
 - Un match de referencia es un candidato, no prueba de duplicado.
-- Duplicado de la misma pata: misma referencia, mismo tipo, misma cuenta, mismo monto y misma moneda, `DUPLICATE`, sin segunda fila.
+- Duplicado de la misma pata: misma referencia, mismo tipo, misma cuenta, mismo monto, misma moneda y fecha dentro de los 10 minutos del ADR, `DUPLICATE`, sin segunda fila.
 - Contraparte legítima: misma referencia, tipo opuesto y cuenta distinta, no es duplicado; se importa y puede emparejar.
 - Conflicto de referencia: misma referencia con tipo, cuenta, monto o moneda distintos de una operación existente. No se descarta ni se crea otra fila en silencio; queda `TRANSFER_REFERENCE_CONFLICT` para revisión.
 - Sin referencia: se usa el fallback del ADR-003 por destino, tipo, monto, moneda, comercio y fecha dentro de 10 minutos. Si el candidato es ambiguo, no se crea una segunda pata; se deja la evidencia para revisión.
 
-La referencia compartida no basta para descartar la segunda pata. El dedupe de transferencias debe comparar referencia más tipo, cuenta, monto y moneda; un conflicto va a revisión.
+La referencia compartida no basta para descartar la segunda pata. El dedupe de transferencias debe comparar referencia más tipo, cuenta, monto, moneda y fecha; un conflicto va a revisión.
 
 ### 3.5 Contabilidad
 
@@ -155,7 +155,7 @@ La cuenta baja y el disponible de la tarjeta sube. El pago no es gasto. El estad
 La referencia es la primera pista, no prueba de duplicado.
 
 1. Si el correo trae `bankReference`, se busca un pago existente del usuario por esa referencia en cualquier pata `CARD_PAYMENT`. La comparación es a nivel de operación o grupo, porque las dos patas comparten la referencia.
-2. Un match de referencia es duplicado solo si la operación existente coincide en cuenta de origen, tarjeta, monto y moneda. Si la referencia coincide pero difiere alguno de esos atributos, queda `CARD_PAYMENT_REFERENCE_CONFLICT` para revisión; no se crea ni se descarta.
+2. Un match de referencia es duplicado solo si la operación existente coincide en cuenta de origen, tarjeta, monto, moneda y fecha dentro de la ventana del ADR-003. Si la referencia coincide pero difiere alguno de esos atributos, queda `CARD_PAYMENT_REFERENCE_CONFLICT` para revisión; no se crea ni se descarta.
 3. Si no hay coincidencia por referencia, o el correo no trae referencia, se busca un pago parecido por misma cuenta de origen, misma tarjeta, mismo monto, misma moneda y fecha dentro de la ventana de dedupe del ADR-003. La búsqueda incluye pagos manuales sin referencia.
 4. Si hay exactamente un candidato parecido, no se crea un duplicado en silencio: el correo queda en revisión con `CARD_PAYMENT_POSSIBLE_DUPLICATE` y el candidato en evidencia.
 5. Si hay varios candidatos, queda `CARD_PAYMENT_RECONCILIATION_AMBIGUOUS` con los IDs y no se crea movimiento.
@@ -166,7 +166,7 @@ La ruta manual no cambia en este contrato. La opción de responder 409 y exigir 
 ### 4.4 Dedupe e idempotencia
 
 - Replay de la misma señal: `ALREADY_APPLIED`, sin nuevas patas.
-- Misma referencia y misma operación (cuenta, tarjeta, monto y moneda): `DUPLICATE`, sin nuevas patas.
+- Misma referencia y misma operación (cuenta, tarjeta, monto, moneda y fecha dentro de la ventana): `DUPLICATE`, sin nuevas patas.
 - Misma referencia con cuenta, tarjeta, monto o moneda distintos: `CARD_PAYMENT_REFERENCE_CONFLICT`, revisión; no se crea ni se descarta.
 - Dos correos distintos con la misma referencia y la misma operación: un solo pago.
 - Dos pagos legítimos con referencias distintas: se permiten aunque compartan cuenta, tarjeta, monto y día.
