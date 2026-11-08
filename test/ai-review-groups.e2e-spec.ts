@@ -163,6 +163,15 @@ describe('AI-6 review groups batch (e2e)', () => {
       return Promise.resolve({ count: matched.length });
     };
     prismaMock.aiEmailMessage.updateMany.mockImplementation(applyMessageUpdate);
+    prismaMock.aiEmailMessage.updateManyAndReturn.mockImplementation(
+      (command: { where: Record<string, any>; data: Record<string, any> }) => {
+        const matched = messages.filter(matchesMessage(command.where));
+        for (const message of matched) {
+          Object.assign(message, command.data);
+        }
+        return Promise.resolve(matched.map((message) => ({ ...message })));
+      },
+    );
     prismaMock.aiEmailMessage.findFirst.mockImplementation(
       (command: { where: { id: string; userId: string } }) =>
         Promise.resolve(
@@ -549,11 +558,9 @@ describe('AI-6 review groups batch (e2e)', () => {
     };
     messages = [verifiedMessage, sameTemplate];
     partitions = messages.map((message) => partition(message, 'TRAIN'));
-    prismaMock.aiEmailMessage.updateMany
-      .mockImplementationOnce(applyMessageUpdate)
-      .mockImplementationOnce(() =>
-        Promise.reject(new Error('chunk write failed')),
-      );
+    prismaMock.aiEmailMessage.updateMany.mockRejectedValueOnce(
+      new Error('chunk write failed'),
+    );
 
     const body = {
       verdict: 'CORRECTED',

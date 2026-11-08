@@ -71,6 +71,7 @@ export type PrismaMock = {
     findMany: MockFn;
     findFirst: MockFn;
     updateMany: MockFn;
+    updateManyAndReturn: MockFn;
     deleteMany: MockFn;
   };
   aiEmailClassification: {
@@ -408,7 +409,20 @@ function createTransactionClient(prismaMock: PrismaMock) {
     },
     aiEmailMessage: {
       findMany: prismaMock.aiEmailMessage.findMany,
+      updateMany: prismaMock.aiEmailMessage.updateMany,
+      updateManyAndReturn: prismaMock.aiEmailMessage.updateManyAndReturn,
       deleteMany: prismaMock.aiEmailMessage.deleteMany,
+    },
+    aiEmailClassification: {
+      findMany: prismaMock.aiEmailClassification.findMany,
+      createMany: prismaMock.aiEmailClassification.createMany,
+      deleteMany: prismaMock.aiEmailClassification.deleteMany,
+    },
+    aiSignal: {
+      createMany: prismaMock.aiSignal.createMany,
+    },
+    aiSignalEvidence: {
+      createMany: prismaMock.aiSignalEvidence.createMany,
     },
     userAiSettings: {
       findMany: prismaMock.userAiSettings.findMany,
@@ -676,7 +690,7 @@ function createTransactionClient(prismaMock: PrismaMock) {
     },
     domainEventOutbox: {
       create: jest.fn().mockResolvedValue({ id: 'out-1' }),
-      createMany: jest.fn().mockResolvedValue({ count: 0 }),
+      createMany: prismaMock.domainEventOutbox.createMany,
       findFirst: jest.fn(),
       findUnique: jest.fn(),
       updateMany: jest.fn().mockResolvedValue({ count: 1 }),
@@ -867,6 +881,7 @@ export function createPrismaMock(): PrismaMock {
       findMany: jest.fn().mockResolvedValue([]),
       findFirst: jest.fn().mockResolvedValue(null),
       updateMany: jest.fn().mockResolvedValue({ count: 0 }),
+      updateManyAndReturn: jest.fn().mockResolvedValue([]),
       deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
     },
     aiEmailClassification: {
