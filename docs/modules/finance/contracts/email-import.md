@@ -210,6 +210,8 @@ Los códigos son estables; el texto visible puede cambiar sin cambiar el código
 | `TRANSFER_ACCOUNT_HINT_UNSUPPORTED`     | Solo hay last4 de tarjeta en una transferencia.   | Sin movimiento.                            |
 | `TRANSFER_ACCOUNT_NOT_FOUND`            | Ninguna cuenta coincide.                          | Sin movimiento.                            |
 | `TRANSFER_ACCOUNT_AMBIGUOUS`            | Varias cuentas coinciden.                         | Sin movimiento; candidatos.                |
+| `TRANSFER_DIRECTION_AMBIGUOUS`          | La dirección de la transferencia es ambigua.      | Sin movimiento.                            |
+| `TRANSFER_SIDE_MISSING`                 | Falta el lado de la transferencia.                | Sin movimiento.                            |
 | `TRANSFER_PAIR_AMBIGUOUS`               | Varias patas candidatas al emparejar.             | La pata conocida sigue; no se inventa par. |
 | `CARD_PAYMENT_NOT_CONFIRMED`            | Pago no confirmado.                               | Sin movimiento.                            |
 | `CARD_PAYMENT_CARD_NOT_FOUND`           | Tarjeta no encontrada.                            | Sin movimiento.                            |
