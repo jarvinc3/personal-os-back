@@ -4,7 +4,7 @@ Available when chat session `moduleSlug` is `finance`. Source: `MODULE_CONTEXT.f
 
 All finance tools delegate to **`FinanceFacade`** via `ToolExecutorService`. They also require `user_modules.finance.isEnabled`; otherwise the tool returns `success: false` with `Tool execution failed: Finance module is disabled`.
 
-Tools are **not** the full REST surface. There is no tool (and in several cases no facade method) for create loan, receivables, institution/account/card writes, hard-delete of a transaction, or Gmail OAuth. See [REST vs façade](./rest-vs-facade.md).
+Tools are **not** the full REST surface. There is no tool (and in several cases no facade method) for create loan, receivables, institution/account/card writes, or hard-delete of a transaction. See [REST vs façade](./rest-vs-facade.md).
 
 ## Read-only tools
 
@@ -81,14 +81,6 @@ Lists credit/debit cards and multi-currency balances.
 Lists budget periods for the user.
 
 **Delegates to:** `FinanceFacade.listBudgets`
-
----
-
-### `list_email_sources`
-
-Lists connected Gmail email sources (for sync targeting).
-
-**Delegates to:** `FinanceFacade.listEmailSources`
 
 ---
 
@@ -276,46 +268,6 @@ Liga un movimiento existente a una cuota de préstamo, un cobro o una meta. No c
 Fija el saldo de una cuenta o tarjeta con un movimiento de ajuste. Requiere exactamente uno de `accountId` o `cardId`, y `balance`; una tarjeta exige `currency`.
 
 **Delegates to:** `FinanceFacade.adjustBalance`
-
----
-
-### `list_pending_emails`
-
-Lista los correos importados que esperan una cuenta, tarjeta o monto.
-
-**Delegates to:** `FinanceFacade.listPendingEmails`
-
----
-
-### `assign_pending_email`
-
-Asigna un correo pendiente a una cuenta o tarjeta, con `amount` opcional cuando el correo no traía cifra.
-
-**Delegates to:** `FinanceFacade.assignPendingEmail`
-
----
-
-### `retry_pending_email`
-
-Reintenta el ruteo automático de un correo pendiente.
-
-**Delegates to:** `FinanceFacade.retryPendingEmail`
-
----
-
-### `complete_pending_email_amount`
-
-Completa el monto de un correo pendiente que llegó sin cifra.
-
-**Delegates to:** `FinanceFacade.completePendingEmailAmount`
-
----
-
-### `trigger_email_sync`
-
-Triggers Gmail sync for one email source. Returns `queued: true|false` — do not claim success if `queued` is false.
-
-**Worker:** `ingestion/infrastructure/gmail-sync.processor.ts` (AI extraction, not HTML parsers).
 
 ---
 

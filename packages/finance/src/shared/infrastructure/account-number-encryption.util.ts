@@ -15,9 +15,7 @@ function deriveKey(secret: string): Buffer {
 }
 
 /**
- * Encrypts a bank account number with DATA_ENCRYPTION_KEY. Same AES-256-GCM
- * construction as the Gmail token helper (`token-encryption.util.ts`), but a
- * different key: that one only protects OAuth tokens.
+ * Encrypts a bank account number with DATA_ENCRYPTION_KEY using AES-256-GCM.
  */
 export function encryptAccountNumber(
   plaintext: string,

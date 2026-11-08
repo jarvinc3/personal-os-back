@@ -2,7 +2,7 @@
 
 ## Propósito
 
-Finanzas personales: consolidar cuentas/tarjetas/efectivo; registrar y categorizar movimientos; presupuestos y metas; préstamos y cobros; importar actividad bancaria desde emails Gmail. Datos por usuario; RLS en Supabase/Postgres.
+Finanzas personales: consolidar cuentas/tarjetas/efectivo; registrar y categorizar movimientos; presupuestos y metas; préstamos y cobros; importar movimientos desde señales financieras. Datos por usuario; RLS en Supabase/Postgres.
 
 ## Consumidores
 
@@ -14,9 +14,9 @@ Finanzas personales: consolidar cuentas/tarjetas/efectivo; registrar y categoriz
 
 ## Arquitectura
 
-Composition root puro. Capabilities: `catalog`, `ledger`, `planning`, `analytics`, `balance-sheet`, `ingestion`, `fx`, `events`, `shared`.
+Composition root puro. Capabilities: `catalog`, `ledger`, `planning`, `analytics`, `balance-sheet`, `fx`, `events`, `shared`.
 
-Use-cases para writes con reglas distintas (ledger, Gmail process, FX amounts). Fat services para CRUD/read (catalog, planning, analytics). Ports cuando hay ≥2 adapters o contrato cross-capability (`LEDGER_REPOSITORY`, `BUDGET_THRESHOLD_PORT`, extractor/FX).
+Use-cases para writes con reglas distintas (ledger, importación de señales, FX amounts). Fat services para CRUD/read (catalog, planning, analytics). Ports cuando hay ≥2 adapters o contrato cross-capability (`LEDGER_REPOSITORY`, `BUDGET_THRESHOLD_PORT`, FX).
 
 Ledger mutators: una `prisma.$transaction` (fila + balances + `amountSpent` + outbox + threshold). Side effects (notif, IA, WS) **después** del commit vía outbox.
 
@@ -28,4 +28,4 @@ Ledger mutators: una `prisma.$transaction` (fila + balances + `amountSpent` + ou
 
 ## Auth de módulo
 
-Rutas autenticadas `/api/finance/*` requieren `user_modules.finance.isEnabled`. Missing o false → **403** `Finance module is disabled`. Callback OAuth Gmail es `@Public()` (Google no envía Bearer).
+Rutas autenticadas `/api/finance/*` requieren `user_modules.finance.isEnabled`. Missing o false → **403** `Finance module is disabled`.

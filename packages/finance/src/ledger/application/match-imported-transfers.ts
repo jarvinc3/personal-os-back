@@ -1,8 +1,10 @@
-import type { EmailMovementClass } from './email-movement';
-import { isAtmMovementClass, isTransferMovementClass } from './email-movement';
-import { parseExtractedPayload } from './parse-extracted-email';
+import {
+  isAtmMovementClass,
+  isTransferMovementClass,
+  type MovementClass,
+} from '../domain/movement-class';
 
-export type EmailMatchCandidate = {
+export type ImportTransferCandidate = {
   id: string;
   type: string;
   amount: { toString(): string } | number;
@@ -16,38 +18,32 @@ export type EmailMatchCandidate = {
   aiMetadata: unknown;
   account?: { institutionId?: string | null; type?: string | null } | null;
   card?: { institutionId?: string | null } | null;
-  emailMessage?: { extractedPayload?: unknown } | null;
 };
 
 const MATCH_WINDOW_MS = 3 * 24 * 60 * 60 * 1000;
 const FEE_TOLERANCE = 50;
 const FEE_TOLERANCE_RATIO = 0.02;
 
-function amountOf(row: EmailMatchCandidate): number {
+function amountOf(row: ImportTransferCandidate): number {
   return Number(row.amount);
 }
 
-function institutionOf(row: EmailMatchCandidate): string | null {
+function institutionOf(row: ImportTransferCandidate): string | null {
   return row.account?.institutionId ?? row.card?.institutionId ?? null;
 }
 
-export function movementClassOf(row: EmailMatchCandidate): EmailMovementClass {
+export function movementClassOf(row: ImportTransferCandidate): MovementClass {
   const fromMeta =
     row.aiMetadata &&
     typeof row.aiMetadata === 'object' &&
     !Array.isArray(row.aiMetadata)
-      ? (row.aiMetadata as { movementClass?: EmailMovementClass }).movementClass
+      ? (row.aiMetadata as { movementClass?: MovementClass }).movementClass
       : undefined;
-  const extracted = parseExtractedPayload(row.emailMessage?.extractedPayload);
-  return (
-    extracted?.movementClass ??
-    fromMeta ??
-    (row.type === 'CREDIT' ? 'INCOME' : 'PURCHASE')
-  );
+  return fromMeta ?? (row.type === 'CREDIT' ? 'INCOME' : 'PURCHASE');
 }
 
 function groupSize(
-  rows: EmailMatchCandidate[],
+  rows: ImportTransferCandidate[],
   groupId: string | null,
 ): number {
   if (!groupId) {
@@ -57,8 +53,8 @@ function groupSize(
 }
 
 export function isUnpairedTransferCandidate(
-  row: EmailMatchCandidate,
-  all: EmailMatchCandidate[],
+  row: ImportTransferCandidate,
+  all: ImportTransferCandidate[],
 ): boolean {
   const movement = movementClassOf(row);
   if (isAtmMovementClass(movement)) {
@@ -89,9 +85,9 @@ function amountsMatch(left: number, right: number): 'exact' | 'fee' | null {
 }
 
 export function pickTransferMatch(
-  row: EmailMatchCandidate,
-  candidates: EmailMatchCandidate[],
-): EmailMatchCandidate | null {
+  row: ImportTransferCandidate,
+  candidates: ImportTransferCandidate[],
+): ImportTransferCandidate | null {
   const opposite = row.type === 'DEBIT' ? 'CREDIT' : 'DEBIT';
   const institution = institutionOf(row);
   const amount = amountOf(row);
@@ -113,8 +109,10 @@ export function pickTransferMatch(
     .filter(
       (
         item,
-      ): item is { other: EmailMatchCandidate; closeness: 'exact' | 'fee' } =>
-        item.closeness !== null,
+      ): item is {
+        other: ImportTransferCandidate;
+        closeness: 'exact' | 'fee';
+      } => item.closeness !== null,
     );
 
   const exact = scored.filter((item) => item.closeness === 'exact');

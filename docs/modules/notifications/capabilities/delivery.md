@@ -21,11 +21,11 @@ importar tipos de Finance.
 
 ## Finance
 
-| Evento                                                   | IN_APP                |
-| -------------------------------------------------------- | --------------------- |
-| `finance.transaction.confirmed` / `imported` / `updated` | Sí (idempotent claim) |
-| `finance.budget.threshold_crossed`                       | Sí                    |
-| `finance.transaction.deleted`                            | Claim; **no** toast   |
+| Evento                                      | IN_APP                |
+| ------------------------------------------- | --------------------- |
+| `finance.transaction.confirmed` / `updated` | Sí (idempotent claim) |
+| `finance.budget.threshold_crossed`          | Sí                    |
+| `finance.transaction.deleted`               | Claim; **no** toast   |
 
 ## Copy y datos por movimiento
 
@@ -34,12 +34,11 @@ El payload de estos eventos trae `currency`, `type`, `merchant`, `accountName`,
 `packages/finance/src/shared/domain/mappers.ts`). El listener traduce a texto en
 español y formatea el monto con `formatNotificationAmount` (`domain/notification-copy.ts`):
 
-| Tipo                           | Título                                                                 |
-| ------------------------------ | ---------------------------------------------------------------------- |
-| `transaction.created`          | `Gasto registrado` / `Ingreso registrado` / `Transferencia registrada` |
-| `transaction.imported_pending` | `Movimiento por confirmar`                                             |
-| `transaction.updated`          | `Movimiento actualizado`                                               |
-| `budget.threshold_reached`     | `Presupuesto al N%`                                                    |
+| Tipo                       | Título                                                                 |
+| -------------------------- | ---------------------------------------------------------------------- |
+| `transaction.created`      | `Gasto registrado` / `Ingreso registrado` / `Transferencia registrada` |
+| `transaction.updated`      | `Movimiento actualizado`                                               |
+| `budget.threshold_reached` | `Presupuesto al N%`                                                    |
 
 El `data` guarda `transactionId`, `amount`, `currency`, `merchant`, `categoryName`,
 `categoryIcon`, `categoryColor`, `accountName`, `cardName` y `status`, para que la
@@ -52,9 +51,7 @@ pantalla no se anuncia: el aporte o retiro de una meta y el gasto de un abono a
 capital viajan con `announce: false` en el payload del evento, y el listener no
 crea la notificación de `transaction.created` ni la de transferencia para ellos.
 La pantalla ya mostró «Aporte registrado» o «Abono aplicado», así que el usuario
-no lee el mismo hecho dos veces. Un gasto o ingreso registrado a mano, uno
-importado por correo o uno creado por el agente de IA siguen avisando igual,
-porque no llevan esa marca.
+no lee el mismo hecho dos veces. Un gasto o ingreso registrado a mano, uno importado que ya está confirmado o uno creado por el agente de IA siguen avisando igual, porque no llevan esa marca. Un movimiento importado que queda `PENDING` no avisa hasta confirmarse; al confirmarse usa `transaction.created`.
 
 ## Quiet hours
 

@@ -1,10 +1,10 @@
 import type { PrismaService } from '@personal-os/database';
 import type { DomainEventPublisherPort } from '../../events/application/ports/domain-event-publisher.port';
-import { EMAIL_DUPLICATE_DATE_TOLERANCE_MS } from '../../shared/domain/email-dedupe';
+import { IMPORT_DUPLICATE_DATE_TOLERANCE_MS } from '../../shared/domain/import-dedupe';
 import { TRANSACTION_LINK_KIND } from '../../shared/domain/transaction-links';
 import type { DeletionJournalRepository } from '../../shared/infrastructure/deletion-journal.repository';
 import { PrismaLedgerDeletionRepository } from './prisma-ledger-deletion.repository';
-import { PrismaLedgerEmailImportRepository } from './prisma-ledger-email-import.repository';
+import { PrismaLedgerImportRepository } from './prisma-ledger-import.repository';
 import { PrismaLedgerReadRepository } from './prisma-ledger-read.repository';
 import { PrismaLedgerWriteRepository } from './prisma-ledger-write.repository';
 import { PrismaLedgerRepository } from './prisma-ledger.repository';
@@ -42,7 +42,7 @@ function createRepository() {
         events,
         journal,
       ),
-      new PrismaLedgerEmailImportRepository(
+      new PrismaLedgerImportRepository(
         prisma as unknown as PrismaService,
         events,
       ),
@@ -413,10 +413,10 @@ describe('PrismaLedgerRepository lookups', () => {
     const query = prisma.finTransaction.findFirst.mock.calls[0][0];
     expect(query.where.transactionDate).toEqual({
       gte: new Date(
-        transactionDate.getTime() - EMAIL_DUPLICATE_DATE_TOLERANCE_MS,
+        transactionDate.getTime() - IMPORT_DUPLICATE_DATE_TOLERANCE_MS,
       ),
       lte: new Date(
-        transactionDate.getTime() + EMAIL_DUPLICATE_DATE_TOLERANCE_MS,
+        transactionDate.getTime() + IMPORT_DUPLICATE_DATE_TOLERANCE_MS,
       ),
     });
     expect(query.where.merchant).toEqual({

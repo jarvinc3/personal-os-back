@@ -110,6 +110,34 @@ describe('Finance boundary contracts', () => {
     }
   });
 
+  it('does not depend on the retired email ingestion', () => {
+    const financeFiles = sourceFiles(
+      join(repositoryRoot, 'packages/finance/src'),
+    ).filter((file) => !file.endsWith('.spec.ts'));
+    expect(financeFiles.some((file) => file.includes('ingestion'))).toBe(false);
+
+    for (const file of financeFiles) {
+      const source = readFileSync(file, 'utf8');
+      expect(source).not.toMatch(
+        /FinEmail|AiEmailTransactionExtractor|EMAIL_TRANSACTION_EXTRACTOR|token-encryption/,
+      );
+      expect(source).not.toMatch(
+        /FINANCE_TRANSACTION_IMPORTED|finance\.transaction\.imported/,
+      );
+      expect(source).not.toMatch(/\bGmail\b|\bOAuth\b/);
+    }
+
+    const packageJson = JSON.parse(
+      readFileSync(
+        join(repositoryRoot, 'packages/finance/package.json'),
+        'utf8',
+      ),
+    ) as { dependencies?: Record<string, string> };
+    expect(Object.keys(packageJson.dependencies ?? {}).join(' ')).not.toMatch(
+      /google|gmail|oauth/i,
+    );
+  });
+
   it('keeps Finance event names and DTOs out of Core', () => {
     const coreEventsDirectory = join(
       repositoryRoot,

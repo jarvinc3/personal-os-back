@@ -1,7 +1,12 @@
 import { FinanceEvents } from '../../contracts';
+import type { FinTransactionStatusValue } from './transaction-status';
 
-export function transactionCreatedEventName(status: string): string {
+export function transactionCreatedEventName(
+  status: FinTransactionStatusValue,
+): string | null {
   switch (status) {
+    case 'PENDING':
+      return null;
     case 'CONFIRMED':
       return FinanceEvents.TRANSACTION_CONFIRMED;
     case 'DECLINED':
@@ -10,8 +15,6 @@ export function transactionCreatedEventName(status: string): string {
       return FinanceEvents.TRANSACTION_CANCELLED;
     case 'REVERSED':
       return FinanceEvents.TRANSACTION_REVERSED;
-    default:
-      return FinanceEvents.TRANSACTION_IMPORTED;
   }
 }
 

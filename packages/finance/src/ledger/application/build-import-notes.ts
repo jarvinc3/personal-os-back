@@ -1,4 +1,4 @@
-import type { FinTxStatus } from '../../ledger/application/commands/ledger.commands';
+import type { FinTxStatus } from './commands/ledger.commands';
 import type { CategoryResolveSource } from '../../shared/domain/category-type';
 
 const MAX_NOTES_CHARS = 500;
@@ -6,7 +6,7 @@ const MAX_NOTES_CHARS = 500;
 /**
  * Combine LLM review notes with deterministic import warnings for FinTransaction.notes.
  */
-export function buildEmailImportNotes(input: {
+export function buildFinancialImportNotes(input: {
   llmNotes?: string | null;
   categoryId: string | null;
   categorySource: CategoryResolveSource | null;

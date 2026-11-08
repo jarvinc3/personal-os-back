@@ -1,7 +1,6 @@
 import {
   budgetThresholdCopy,
   formatNotificationAmount,
-  transactionPendingCopy,
   transactionRecordedCopy,
   transactionUpdatedCopy,
   transferRecordedCopy,
@@ -59,22 +58,6 @@ describe('notification-copy', () => {
     ).toEqual({
       title: 'Transferencia registrada',
       body: 'DOP $1,200.00 · Cuenta principal',
-    });
-  });
-
-  it('describes a pending imported movement', () => {
-    expect(
-      transactionPendingCopy({
-        type: 'DEBIT',
-        amountLabel: 'DOP $500.00',
-        merchant: 'Farmacia',
-        categoryName: null,
-        accountName: null,
-        cardName: null,
-      }),
-    ).toEqual({
-      title: 'Movimiento por confirmar',
-      body: 'Detectamos DOP $500.00 · Farmacia en un correo. Revísalo para confirmarlo.',
     });
   });
 

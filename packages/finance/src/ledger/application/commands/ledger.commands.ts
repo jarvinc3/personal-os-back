@@ -63,7 +63,7 @@ export type UpdateTransactionCommand = {
 
 export type CreateTransferCommand = {
   fromAccountId?: string;
-  /** Internal callers only (email matching); the HTTP API never accepts a card origin. */
+  /** Internal callers only; the HTTP API never accepts a card origin. */
   fromCardId?: string;
   toAccountId?: string;
   amount: number;
@@ -83,8 +83,8 @@ export type CreateTransferCommand = {
   source?: 'MANUAL' | 'EMAIL' | 'AI';
   /** Same meaning as in a single movement: `false` skips the notification. */
   announce?: boolean;
-  fromEmailMessageId?: string;
-  toEmailMessageId?: string;
+  fromImportReference?: string;
+  toImportReference?: string;
   aiMetadata?: unknown;
 };
 
@@ -120,7 +120,7 @@ export type CreateCardPaymentCommand = {
   source?: 'MANUAL' | 'AI';
 };
 
-export type ImportEmailTransactionCommand = {
+export type ImportFinancialTransactionCommand = {
   accountId?: string;
   cardId?: string;
   importReference: string;

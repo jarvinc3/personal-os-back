@@ -18,13 +18,13 @@ import type {
   CreateTransactionCommand,
   CreateTransferCommand,
   FinTxStatus,
-  ImportEmailTransactionCommand,
+  ImportFinancialTransactionCommand,
   ListTransactionsQuery,
   TransactionUpdateFields,
 } from '../application/commands/ledger.commands';
 import type {
   BalanceAdjustmentTarget,
-  EmailTransferCounterpart,
+  ImportedTransferCounterpart,
   LedgerRepositoryPort,
 } from '../application/ports/ledger.repository.port';
 import {
@@ -35,7 +35,7 @@ import { ledgerFields, loadCardContext } from './ledger-row-context';
 import { enqueueTransactionEvent } from './ledger-transaction-events';
 import { revertPlanningLinks } from './planning-link-reversal';
 import { PrismaLedgerDeletionRepository } from './prisma-ledger-deletion.repository';
-import { PrismaLedgerEmailImportRepository } from './prisma-ledger-email-import.repository';
+import { PrismaLedgerImportRepository } from './prisma-ledger-import.repository';
 import { PrismaLedgerReadRepository } from './prisma-ledger-read.repository';
 import { PrismaLedgerWriteRepository } from './prisma-ledger-write.repository';
 
@@ -47,7 +47,7 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
     @Inject(DOMAIN_EVENT_PUBLISHER)
     private readonly events: DomainEventPublisherPort,
     private readonly deletion: PrismaLedgerDeletionRepository,
-    private readonly emailImport: PrismaLedgerEmailImportRepository,
+    private readonly importRepository: PrismaLedgerImportRepository,
     private readonly write: PrismaLedgerWriteRepository,
     @Optional()
     @Inject(BUDGET_THRESHOLD_PORT)
@@ -392,23 +392,27 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
     return this.deletion.restoreTransaction(userId, id, now);
   }
 
-  createEmailImportTransaction(
+  createImportedTransaction(
     userId: string,
-    data: ImportEmailTransactionCommand,
+    data: ImportFinancialTransactionCommand,
   ) {
-    return this.emailImport.createEmailImportTransaction(userId, data);
+    return this.importRepository.createImportedTransaction(userId, data);
   }
 
-  pairEmailTransferLegs(userId: string, debitId: string, creditId: string) {
-    return this.emailImport.pairEmailTransferLegs(userId, debitId, creditId);
+  pairImportedTransferLegs(userId: string, debitId: string, creditId: string) {
+    return this.importRepository.pairImportedTransferLegs(
+      userId,
+      debitId,
+      creditId,
+    );
   }
 
-  addEmailTransferCounterpart(
+  addImportedTransferCounterpart(
     userId: string,
     existingId: string,
-    counterpart: EmailTransferCounterpart,
+    counterpart: ImportedTransferCounterpart,
   ) {
-    return this.emailImport.addEmailTransferCounterpart(
+    return this.importRepository.addImportedTransferCounterpart(
       userId,
       existingId,
       counterpart,

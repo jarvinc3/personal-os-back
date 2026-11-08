@@ -50,7 +50,14 @@ function setup(overrides: Record<string, unknown> = {}) {
   };
   const importEmail = {
     execute: jest.fn().mockResolvedValue({ id: 'transaction-1' }),
+    executeUnpairedTransfer: jest
+      .fn()
+      .mockResolvedValue({ id: 'transaction-1' }),
   };
+  const reverseTransaction = {
+    execute: jest.fn().mockResolvedValue(undefined),
+  };
+  const baseCurrency = { execute: jest.fn().mockResolvedValue('USD') };
   const ledger = {
     findTransactionByImportReference: jest.fn().mockResolvedValue(null),
     findDedupeCandidate: jest.fn().mockResolvedValue(null),
@@ -61,11 +68,11 @@ function setup(overrides: Record<string, unknown> = {}) {
     { ...prisma, ...overrides } as never,
     importEmail as never,
     ledger as never,
-    {} as never,
+    reverseTransaction as never,
     { suggest: jest.fn().mockResolvedValue(null) } as never,
-    {} as never,
+    baseCurrency as never,
   );
-  return { consumer, prisma, importEmail, ledger };
+  return { consumer, prisma, importEmail, ledger, reverseTransaction };
 }
 
 describe('FinanceSignalConsumer', () => {
@@ -193,6 +200,77 @@ describe('FinanceSignalConsumer', () => {
       amount: 3400,
       currency: 'DOP',
     });
+  });
+
+  it('imports an unpaired transfer without losing its transfer group', async () => {
+    const { consumer, importEmail } = setup();
+    const transfer = {
+      ...signal,
+      payload: {
+        ...signal.payload,
+        transaction: {
+          kind: 'TRANSACTION',
+          amount: 42.5,
+          currency: 'USD',
+          transactionDate: '2026-11-01T00:00:00.000Z',
+          direction: 'TRANSFER',
+          movementClass: 'TRANSFER_OUT',
+          bankStatusNormalized: 'COMPLETED',
+        },
+      },
+    } as RoutedSignal;
+
+    await expect(consumer.consume(transfer)).resolves.toMatchObject({
+      outcome: 'APPLIED',
+    });
+    expect(importEmail.executeUnpairedTransfer).toHaveBeenCalled();
+  });
+
+  it('reverses the original movement and records the reversal source', async () => {
+    const original = {
+      id: 'original-1',
+      status: 'CONFIRMED',
+      aiMetadata: { movementClass: 'PURCHASE' },
+    };
+    const { consumer, prisma, reverseTransaction } = setup({
+      ledger: {
+        findTransactionByExternalReference: jest
+          .fn()
+          .mockResolvedValue(original),
+      },
+    });
+    const reversal = {
+      ...signal,
+      signalId: 'signal-reversal',
+      payload: {
+        ...signal.payload,
+        transaction: {
+          kind: 'TRANSACTION',
+          amount: 42.5,
+          currency: 'USD',
+          transactionDate: '2026-11-01T00:00:00.000Z',
+          direction: 'DEBIT',
+          bankReference: 'bank-reversal',
+          reverseOfBankReference: 'bank-1',
+          bankStatusNormalized: 'REVERSED',
+        },
+      },
+    } as RoutedSignal;
+
+    await expect(consumer.consume(reversal)).resolves.toMatchObject({
+      outcome: 'APPLIED',
+      domainReferences: [{ type: 'FinTransaction', id: 'original-1' }],
+    });
+    expect(reverseTransaction.execute).toHaveBeenCalledWith(
+      'user-1',
+      'original-1',
+      expect.objectContaining({ reversalSignalId: 'signal-reversal' }),
+    );
+    expect(prisma.finSignalImport.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        create: expect.objectContaining({ status: 'REVERSED' }),
+      }),
+    );
   });
 
   it('records a bank-level duplicate without creating a new movement', async () => {

@@ -15,7 +15,7 @@ Resolver el contexto autenticado a partir de un JWT de Supabase Auth (JWKS). No 
 ## Fuera de alcance
 
 - Pantallas de login, OAuth Google de **usuario** (eso es Supabase + web).
-- OAuth Gmail bancario (Finance ingestion).
+- OAuth de Gmail y otras fuentes externas (viven en Intelligence).
 
 ## Arquitectura
 
@@ -30,4 +30,4 @@ packages/auth/src/
 
 **Barrel:** `AuthModule`, `SupabaseAdminService`, `SupabaseJwtVerifierService`, `SupabaseJwtStrategy`, `AuthUserContext`, `SupabaseJwtPayload`.
 
-Guarding HTTP es global (`JwtAuthGuard`); `@Public()` para health y callback Gmail.
+Guarding HTTP es global (`JwtAuthGuard`); `@Public()` para health y callbacks externos.

@@ -119,8 +119,8 @@ export class CatalogService {
   ) {}
 
   /**
-   * Account numbers use a key separate from AI Gmail tokens. The plaintext
-   * never reaches storage.
+   * Account numbers use their own encryption key. The plaintext never reaches
+   * storage.
    */
   private get dataEncryptionKey(): string {
     return this.config.get('DATA_ENCRYPTION_KEY', { infer: true });

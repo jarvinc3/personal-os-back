@@ -40,6 +40,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [Se
 
 ### Cambiado
 
+- FIN-1 (#317): Finance deja de poseer la ingesta de correo; retira el extractor con IA, el cifrado de tokens y los candidatos de email, conserva la importación por señales con deduplicación, reversos y transferencias, y elimina `finance.transaction.imported` y su aviso de movimiento pendiente. Los movimientos pendientes importados quedan sin aviso específico de correo hasta confirmarse.
 - #308: corrige las referencias de lectura de `docs/refactors`, aclara la excepción de CI para PRs solo documentales y usa `pnpm build` como comprobación de tipos respaldada.
 - El paquete de IA se renombra como `@personal-os/intelligence`; las rutas se unifican bajo `/api/intelligence/*`, Swagger usa etiquetas `intelligence*`, el módulo aplana sus carpetas y se retira el código muerto del chat anterior (#307).
 - #193: el roadmap registra cerrado el gate de la oleada A tras completarse FIN-0, PLATFORM-EVENTS-0, PLATFORM-SETTINGS-0 y NOTIF-0; AI-12 (#215) permanece abierto para después de `0.100.0`.

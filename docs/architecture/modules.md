@@ -101,7 +101,7 @@ infrastructure → application ports / domain
 
 Within finance capabilities:
 
-- **Use-cases** for distinct write flows with different rules (ledger mutations, Gmail sync processing, FX amount resolution).
+- **Use-cases** for distinct write flows with different rules (ledger mutations, signal import, FX amount resolution).
 - **Fat application services** for CRUD / read-heavy surfaces (catalog, planning, analytics).
 - **`domain/`** stays in `shared/` until a capability owns non-shared pure rules.
 - Details: [finance overview](../modules/finance/overview.md).

@@ -23,7 +23,7 @@ function toTransferStatus(status: FinTxStatus): TransferStatus {
   return TRANSFER_STATUS.CANCELLED;
 }
 
-export type ImportEmailMovementInput = {
+export type ImportFinancialMovementInput = {
   accountId?: string;
   cardId?: string;
   importReference: string;
@@ -43,7 +43,7 @@ export type ImportEmailMovementInput = {
 };
 
 @Injectable()
-export class ImportEmailTransactionUseCase {
+export class ImportFinancialTransactionUseCase {
   constructor(
     @Inject(LEDGER_REPOSITORY)
     private readonly repo: LedgerRepositoryPort,
@@ -53,7 +53,7 @@ export class ImportEmailTransactionUseCase {
     private readonly merchants: MerchantsService,
   ) {}
 
-  async execute(userId: string, data: ImportEmailMovementInput) {
+  async execute(userId: string, data: ImportFinancialMovementInput) {
     const ledgerCurrency = await resolveLedgerCurrencyForTarget(
       this.repo,
       userId,
@@ -79,7 +79,7 @@ export class ImportEmailTransactionUseCase {
         })
       : null;
 
-    const created = await this.repo.createEmailImportTransaction(userId, {
+    const created = await this.repo.createImportedTransaction(userId, {
       ...data,
       merchantId: resolvedMerchant?.id ?? null,
       amounts,
@@ -88,7 +88,7 @@ export class ImportEmailTransactionUseCase {
     return created;
   }
 
-  executeUnpairedTransfer(userId: string, data: ImportEmailMovementInput) {
+  executeUnpairedTransfer(userId: string, data: ImportFinancialMovementInput) {
     return this.execute(userId, {
       ...data,
       categoryId: null,
@@ -98,7 +98,7 @@ export class ImportEmailTransactionUseCase {
 
   async executeAtmWithdrawal(
     userId: string,
-    data: ImportEmailMovementInput & { cashAccountId: string },
+    data: ImportFinancialMovementInput & { cashAccountId: string },
   ) {
     const fromLedgerCurrency = await resolveLedgerCurrencyForTarget(
       this.repo,
@@ -143,7 +143,7 @@ export class ImportEmailTransactionUseCase {
         notes: data.notes ?? undefined,
         status: toTransferStatus(data.status),
         source: 'EMAIL',
-        fromEmailMessageId: data.importReference,
+        fromImportReference: data.importReference,
         aiMetadata: data.aiMetadata,
       },
       fromAmounts,
@@ -182,7 +182,7 @@ export class ImportEmailTransactionUseCase {
       baseCurrency,
       transactionDate: data.transactionDate,
     });
-    const created = await this.repo.addEmailTransferCounterpart(
+    const created = await this.repo.addImportedTransferCounterpart(
       userId,
       existingId,
       {
@@ -198,7 +198,7 @@ export class ImportEmailTransactionUseCase {
   }
 
   async pairTransferLegs(userId: string, debitId: string, creditId: string) {
-    const created = await this.repo.pairEmailTransferLegs(
+    const created = await this.repo.pairImportedTransferLegs(
       userId,
       debitId,
       creditId,

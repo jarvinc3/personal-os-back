@@ -17,7 +17,6 @@ import {
   recurringPriceChangedCopy,
   recurringUpcomingCopy,
   subscriptionRenewalDueCopy,
-  transactionPendingCopy,
   transactionRecordedCopy,
   transactionUpdatedCopy,
   transferRecordedCopy,
@@ -172,7 +171,6 @@ export class NotificationsEventsListener {
   }
 
   @OnEvent(FinanceEvents.TRANSACTION_CONFIRMED, { suppressErrors: false })
-  @OnEvent(FinanceEvents.TRANSACTION_IMPORTED, { suppressErrors: false })
   async onFinanceTransactionCreated(event: FinanceTxEvent): Promise<void> {
     this.logger.debug(
       `event=finance.transaction handled=true transactionId=${event.transactionId} userId=${event.userId} status=${event.status}`,
@@ -181,15 +179,6 @@ export class NotificationsEventsListener {
     // One fact, one notice: a contribution or prepayment already announced
     // itself on screen, so its internal movement stays quiet.
     if (event.announce === false) {
-      return;
-    }
-
-    if (event.source === 'EMAIL' && event.status === 'PENDING') {
-      await this.createTransactionNotification(
-        event,
-        'transaction.imported_pending',
-        transactionPendingCopy(this.transactionNotificationFields(event)),
-      );
       return;
     }
 
@@ -511,7 +500,6 @@ export class NotificationsEventsListener {
     // Keep the existing receipt keys valid across the deployment.
     const consumers: Record<string, string> = {
       'transaction.created': 'notifications',
-      'transaction.imported_pending': 'notifications',
       'transaction.updated': 'notifications:updated',
       'transaction.transfer': 'notifications:transfer',
       'budget.threshold_reached': 'notifications:budget',

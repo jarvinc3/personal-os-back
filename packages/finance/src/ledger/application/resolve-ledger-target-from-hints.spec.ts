@@ -1,6 +1,6 @@
-import { resolveEmailLedgerTarget } from './resolve-email-ledger-target';
+import { resolveLedgerTargetFromHints } from './resolve-ledger-target-from-hints';
 
-describe('resolveEmailLedgerTarget', () => {
+describe('resolveLedgerTargetFromHints', () => {
   const accounts = [
     { id: 'acc-1', accountNumberLast4: '5678' },
     { id: 'acc-2', accountNumberLast4: '0000' },
@@ -12,7 +12,7 @@ describe('resolveEmailLedgerTarget', () => {
 
   it('imports a unique last-four card match', () => {
     expect(
-      resolveEmailLedgerTarget({
+      resolveLedgerTargetFromHints({
         instrumentHint: 'CARD',
         lastFourHint: '9999',
         accountNumberHint: null,
@@ -24,7 +24,7 @@ describe('resolveEmailLedgerTarget', () => {
 
   it('matches ACCOUNT by lastFourHint suffix when accountNumberHint is missing', () => {
     expect(
-      resolveEmailLedgerTarget({
+      resolveLedgerTargetFromHints({
         instrumentHint: 'ACCOUNT',
         lastFourHint: '5678',
         accountNumberHint: null,
@@ -36,7 +36,7 @@ describe('resolveEmailLedgerTarget', () => {
 
   it('matches ACCOUNT by full account number', () => {
     expect(
-      resolveEmailLedgerTarget({
+      resolveLedgerTargetFromHints({
         instrumentHint: 'ACCOUNT',
         lastFourHint: null,
         accountNumberHint: '001122335678',
@@ -48,7 +48,7 @@ describe('resolveEmailLedgerTarget', () => {
 
   it('matches ACCOUNT by masked last-four against the account suffix', () => {
     expect(
-      resolveEmailLedgerTarget({
+      resolveLedgerTargetFromHints({
         instrumentHint: 'ACCOUNT',
         lastFourHint: null,
         accountNumberHint: '5678',
@@ -60,7 +60,7 @@ describe('resolveEmailLedgerTarget', () => {
 
   it('is ambiguous when two accounts share the same suffix', () => {
     expect(
-      resolveEmailLedgerTarget({
+      resolveLedgerTargetFromHints({
         instrumentHint: 'ACCOUNT',
         lastFourHint: null,
         accountNumberHint: '1111',
@@ -75,7 +75,7 @@ describe('resolveEmailLedgerTarget', () => {
 
   it('does not match CARD using an account number', () => {
     expect(
-      resolveEmailLedgerTarget({
+      resolveLedgerTargetFromHints({
         instrumentHint: 'CARD',
         lastFourHint: '5678',
         accountNumberHint: '001122335678',
@@ -87,7 +87,7 @@ describe('resolveEmailLedgerTarget', () => {
 
   it('is ambiguous for ACCOUNT without hints when several accounts exist', () => {
     expect(
-      resolveEmailLedgerTarget({
+      resolveLedgerTargetFromHints({
         instrumentHint: 'ACCOUNT',
         lastFourHint: null,
         accountNumberHint: null,
@@ -99,7 +99,7 @@ describe('resolveEmailLedgerTarget', () => {
 
   it('returns none when last four does not match a card', () => {
     expect(
-      resolveEmailLedgerTarget({
+      resolveLedgerTargetFromHints({
         instrumentHint: 'CARD',
         lastFourHint: '0000',
         accountNumberHint: null,
@@ -111,7 +111,7 @@ describe('resolveEmailLedgerTarget', () => {
 
   it('matches the card when last four is present without an instrument hint', () => {
     expect(
-      resolveEmailLedgerTarget({
+      resolveLedgerTargetFromHints({
         instrumentHint: null,
         lastFourHint: '1234',
         accountNumberHint: null,
@@ -123,7 +123,7 @@ describe('resolveEmailLedgerTarget', () => {
 
   it('matches the account when only accountNumberHint is present without an instrument hint', () => {
     expect(
-      resolveEmailLedgerTarget({
+      resolveLedgerTargetFromHints({
         instrumentHint: null,
         lastFourHint: null,
         accountNumberHint: '5678',
@@ -135,7 +135,7 @@ describe('resolveEmailLedgerTarget', () => {
 
   it('does not mix a card lastFour with an account suffix when there is no instrument hint', () => {
     expect(
-      resolveEmailLedgerTarget({
+      resolveLedgerTargetFromHints({
         instrumentHint: null,
         lastFourHint: '1234',
         accountNumberHint: null,
@@ -147,7 +147,7 @@ describe('resolveEmailLedgerTarget', () => {
 
   it('matches the only destination of the institution without last four', () => {
     expect(
-      resolveEmailLedgerTarget({
+      resolveLedgerTargetFromHints({
         instrumentHint: null,
         lastFourHint: null,
         accountNumberHint: null,
@@ -171,7 +171,7 @@ describe('resolveEmailLedgerTarget', () => {
       },
     ];
     expect(
-      resolveEmailLedgerTarget({
+      resolveLedgerTargetFromHints({
         instrumentHint: 'ACCOUNT',
         lastFourHint: null,
         accountNumberHint: null,
@@ -182,7 +182,7 @@ describe('resolveEmailLedgerTarget', () => {
     ).toEqual({ kind: 'unique', accountId: 'acc-1' });
 
     expect(
-      resolveEmailLedgerTarget({
+      resolveLedgerTargetFromHints({
         instrumentHint: 'ACCOUNT',
         lastFourHint: null,
         accountNumberHint: '9999',

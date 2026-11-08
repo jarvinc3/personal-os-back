@@ -1,13 +1,13 @@
 import {
   isUnpairedTransferCandidate,
   pickTransferMatch,
-  type EmailMatchCandidate,
-} from './match-email-transfers';
+  type ImportTransferCandidate,
+} from './match-imported-transfers';
 
 function candidate(
-  overrides: Partial<EmailMatchCandidate> &
-    Pick<EmailMatchCandidate, 'id' | 'type'>,
-): EmailMatchCandidate {
+  overrides: Partial<ImportTransferCandidate> &
+    Pick<ImportTransferCandidate, 'id' | 'type'>,
+): ImportTransferCandidate {
   return {
     amount: 1000,
     currency: 'DOP',
