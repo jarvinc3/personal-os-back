@@ -101,7 +101,13 @@ async function createFixture() {
       contentFingerprint: randomUUID().replaceAll('-', ''),
       templateFingerprint: `ctr02-${randomUUID()}`,
       processingStatus: 'PROCESSED',
-      classification: verificationBody as never,
+      classification: {
+        relevance: true,
+        semanticType: 'FIN_TRANSACTION',
+        routes: ['FINANCE'],
+        transaction,
+        confidence: 0.31,
+      } as never,
     },
   });
   await prisma.aiDatasetItem.create({
