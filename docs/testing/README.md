@@ -6,6 +6,7 @@ Este catálogo conserva los 104 casos de AI-0 a AI-11 y permite guardar cada ron
 
 - [Finanzas](./finance/cases.csv): 25 casos de AI-0 y AI-11.
 - [Inteligencia](./intelligence/cases.csv): 79 casos de AI-1 a AI-10 y el borrado de conocimiento AI4-13.
+- [Importación por correo](./finance/email-import-cases.csv): 18 casos propuestos de normalidad, borde, ambigüedad, duplicados, conflicto de referencia y aislamiento. No forman parte de la ronda de 104 hasta que el contrato esté implementado y el caso sea ejecutable; hoy no se marcan como Pasa.
 
 Los IDs originales se conservan para mantener la trazabilidad. AI4-13 borra los datos de la cuenta de pruebas y siempre aparece al final de una ronda.
 
