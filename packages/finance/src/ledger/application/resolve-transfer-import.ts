@@ -1,4 +1,7 @@
-import { digitsOnly } from '../../shared/domain/account-number';
+import {
+  digitsOnly,
+  isBankAccountType,
+} from '../../shared/domain/account-number';
 import { OPERATION_LEG_ROLE } from '../../shared/domain/transfer';
 import type { MovementClass } from '../domain/movement-class';
 import { accountMatchesHint } from './resolve-ledger-target-from-hints';
@@ -63,7 +66,7 @@ export function resolveTransferAccount({
 
   const matches = accounts.filter(
     (account) =>
-      account.type !== 'CASH' &&
+      (account.type == null || isBankAccountType(account.type)) &&
       accountMatchesHint(account.accountNumberLast4, hint),
   );
   if (matches.length === 0) {
@@ -120,7 +123,7 @@ export type TransferImportDecision =
       candidateTransactionIds: string[];
     };
 
-type IncomingTransferLeg = {
+export type IncomingTransferLeg = {
   type: 'DEBIT' | 'CREDIT';
   accountId: string;
   amount: number;
@@ -164,7 +167,7 @@ export function classifyTransferImport({
   incoming: IncomingTransferLeg;
   existing: ExistingTransferLeg[];
 }): TransferImportDecision {
-  const sameLeg = existing.find((row) => isSameLeg(row, incoming));
+  const sameLeg = existing.find((leg) => isSameLeg(leg, incoming));
   if (sameLeg) {
     return { kind: 'duplicate', transactionId: sameLeg.id };
   }
@@ -177,6 +180,6 @@ export function classifyTransferImport({
   return {
     kind: 'conflict',
     reason: TRANSFER_REVIEW_REASON.REFERENCE_CONFLICT,
-    candidateTransactionIds: existing.map((row) => row.id),
+    candidateTransactionIds: existing.map((leg) => leg.id),
   };
 }

@@ -20,6 +20,9 @@ import {
   classifyTransferImport,
   resolveTransferAccount,
   transferLegIdentity,
+  type IncomingTransferLeg,
+  type TransferAccountCandidate,
+  type TransferImportDecision,
   type TransferLegIdentity,
 } from '../ledger/application/resolve-transfer-import';
 import { ImportFinancialTransactionUseCase } from '../ledger/application/import-financial-transaction.use-case';
@@ -204,26 +207,20 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
     let target: { accountId?: string; cardId?: string };
     let transferLeg: TransferLegIdentity | null = null;
     if (transfer) {
-      const accountResolution = resolveTransferAccount({
-        accountNumberHint: candidate.accountNumberLast4 ?? null,
-        hasCardLast4Hint: Boolean(candidate.last4),
+      const transferTarget = this.resolveTransferTarget({
+        candidate,
+        movementClass,
         accounts: activeAccounts,
       });
-      if (accountResolution.kind !== 'unique') {
+      if (transferTarget.kind === 'review') {
         return this.review({
           signal,
-          reason: accountResolution.reason,
-          evidence: {
-            accountNumberHint: candidate.accountNumberLast4 ?? null,
-            cardLast4Hint: candidate.last4 ?? null,
-            ...(accountResolution.kind === 'ambiguous'
-              ? { candidateAccountIds: accountResolution.candidateAccountIds }
-              : {}),
-          },
+          reason: transferTarget.reason,
+          evidence: transferTarget.evidence,
         });
       }
-      transferLeg = transferLegIdentity(movementClass);
-      target = { accountId: accountResolution.accountId };
+      target = { accountId: transferTarget.accountId };
+      transferLeg = transferTarget.leg;
     } else {
       const ledgerTarget = resolveLedgerTargetFromHints({
         instrumentHint: null,
@@ -267,23 +264,9 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
       target.accountId &&
       candidate.bankReference
     ) {
-      const referenceMatches = await this.prisma.finTransaction.findMany({
-        where: {
-          userId: signal.userId,
-          externalReference: candidate.bankReference,
-          status: { in: [...OPEN_IMPORT_LEG_STATUSES] },
-        },
-        select: {
-          id: true,
-          type: true,
-          accountId: true,
-          amount: true,
-          currency: true,
-          transactionDate: true,
-        },
-        orderBy: { transactionDate: 'desc' },
-      });
-      const decision = classifyTransferImport({
+      const decision = await this.classifyAgainstSharedReference({
+        userId: signal.userId,
+        bankReference: candidate.bankReference,
         incoming: {
           type: transferLeg.type,
           accountId: target.accountId,
@@ -291,7 +274,6 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
           currency,
           transactionDate,
         },
-        existing: referenceMatches,
       });
       if (decision.kind === 'duplicate') {
         await this.persist(
@@ -527,6 +509,70 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
       return 'CREDIT';
     }
     return candidate.direction === 'CREDIT' ? 'CREDIT' : 'DEBIT';
+  }
+
+  private resolveTransferTarget({
+    candidate,
+    movementClass,
+    accounts,
+  }: {
+    candidate: Candidate;
+    movementClass: MovementClass;
+    accounts: TransferAccountCandidate[];
+  }):
+    | { kind: 'resolved'; accountId: string; leg: TransferLegIdentity | null }
+    | { kind: 'review'; reason: string; evidence: ImportReviewEvidence } {
+    const resolution = resolveTransferAccount({
+      accountNumberHint: candidate.accountNumberLast4 ?? null,
+      hasCardLast4Hint: Boolean(candidate.last4),
+      accounts,
+    });
+    if (resolution.kind !== 'unique') {
+      return {
+        kind: 'review',
+        reason: resolution.reason,
+        evidence: {
+          accountNumberHint: candidate.accountNumberLast4 ?? null,
+          cardLast4Hint: candidate.last4 ?? null,
+          ...(resolution.kind === 'ambiguous'
+            ? { candidateAccountIds: resolution.candidateAccountIds }
+            : {}),
+        },
+      };
+    }
+    return {
+      kind: 'resolved',
+      accountId: resolution.accountId,
+      leg: transferLegIdentity(movementClass),
+    };
+  }
+
+  private async classifyAgainstSharedReference({
+    userId,
+    bankReference,
+    incoming,
+  }: {
+    userId: string;
+    bankReference: string;
+    incoming: IncomingTransferLeg;
+  }): Promise<TransferImportDecision> {
+    const referenceMatches = await this.prisma.finTransaction.findMany({
+      where: {
+        userId,
+        externalReference: bankReference,
+        status: { in: [...OPEN_IMPORT_LEG_STATUSES] },
+      },
+      select: {
+        id: true,
+        type: true,
+        accountId: true,
+        amount: true,
+        currency: true,
+        transactionDate: true,
+      },
+      orderBy: { transactionDate: 'desc' },
+    });
+    return classifyTransferImport({ incoming, existing: referenceMatches });
   }
 
   private async reverse(
