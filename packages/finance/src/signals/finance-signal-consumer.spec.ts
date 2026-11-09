@@ -501,6 +501,41 @@ describe('FinanceSignalConsumer transfer import', () => {
     );
   });
 
+  it('keeps the previous leg as duplicate after it reaches a terminal status', async () => {
+    const { consumer, importEmail, finTransaction, prisma } = setupTransfer({
+      referenceMatches: [
+        {
+          id: 'leg-reversed',
+          type: 'DEBIT',
+          accountId: 'account-1',
+          amount: 100,
+          currency: 'DOP',
+          transactionDate: transferDate,
+          status: 'REVERSED',
+        },
+      ],
+    });
+
+    await expect(consumer.consume(transferSignal())).resolves.toMatchObject({
+      outcome: 'ALREADY_APPLIED',
+      domainReferences: [{ type: 'FinTransaction', id: 'leg-reversed' }],
+    });
+
+    expect(importEmail.executeUnpairedTransfer).not.toHaveBeenCalled();
+    const query = finTransaction.findMany.mock.calls[0][0] as {
+      where: Record<string, unknown>;
+    };
+    expect(query.where).not.toHaveProperty('status');
+    expect(prisma.finSignalImport.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        create: expect.objectContaining({
+          status: 'DUPLICATE',
+          duplicateOfTransactionId: 'leg-reversed',
+        }),
+      }),
+    );
+  });
+
   it('sends a reference conflict to review with no rows', async () => {
     const { consumer, importEmail, prisma } = setupTransfer({
       referenceMatches: [

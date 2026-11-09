@@ -98,7 +98,6 @@ type ImportStatus =
   'IMPORTED' | 'DUPLICATE' | 'REVERSED' | 'REVIEW_REQUIRED' | 'FAILED';
 
 const REVIEW_CONFIDENCE_THRESHOLD = 0.7;
-const OPEN_IMPORT_LEG_STATUSES = ['PENDING', 'CONFIRMED'] as const;
 type ImportReviewEvidence = Record<string, string | string[] | null>;
 
 @Injectable()
@@ -556,11 +555,11 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
     bankReference: string;
     incoming: IncomingTransferLeg;
   }): Promise<TransferImportDecision> {
+    // A terminal status must not hide a replay of the same leg.
     const referenceMatches = await this.prisma.finTransaction.findMany({
       where: {
         userId,
         externalReference: bankReference,
-        status: { in: [...OPEN_IMPORT_LEG_STATUSES] },
       },
       select: {
         id: true,
