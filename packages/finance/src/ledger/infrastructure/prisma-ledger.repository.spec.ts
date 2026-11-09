@@ -1089,3 +1089,70 @@ describe('PrismaLedgerRepository outbox-in-TX', () => {
     expect(findFirst).not.toHaveBeenCalled();
   });
 });
+
+describe('PrismaLedgerImportRepository transfer legs', () => {
+  it('persists the leg role, transfer group and no category on import', async () => {
+    const create = jest.fn().mockResolvedValue({
+      id: 'tx-leg',
+      status: 'PENDING',
+      amount: 100,
+      source: 'EMAIL',
+      accountId: 'acc-1',
+      cardId: null,
+    });
+    const prisma = {
+      $transaction: jest.fn(async (run: (tx: unknown) => Promise<unknown>) =>
+        run({
+          finAccount: {
+            findFirst: jest.fn().mockResolvedValue({
+              id: 'acc-1',
+              userId: 'user-1',
+              currency: 'DOP',
+              type: 'SAVINGS',
+            }),
+          },
+          finTransaction: { create },
+        }),
+      ),
+    };
+    const repo = new PrismaLedgerImportRepository(prisma as never, {
+      enqueue: jest.fn(),
+    });
+
+    const created = await repo.createImportedTransaction('user-1', {
+      accountId: 'acc-1',
+      importReference: 'signal-1',
+      externalReference: 'ref-1',
+      amount: 100,
+      currency: 'DOP',
+      merchant: null,
+      description: 'Transferencia enviada',
+      transactionDate: new Date('2026-11-01T00:00:00.000Z'),
+      type: 'DEBIT',
+      status: 'PENDING',
+      transferGroupId: 'group-1',
+      categoryId: null,
+      legRole: 'SOURCE',
+      amounts: {
+        amount: 100,
+        currency: 'DOP',
+        ledgerAmount: 100,
+        ledgerCurrency: 'DOP',
+        amountBaseCurrency: 100,
+        exchangeRate: 1,
+      },
+    });
+
+    expect(created.id).toBe('tx-leg');
+    const createData = (
+      create.mock.calls[0][0] as { data: Record<string, unknown> }
+    ).data;
+    expect(createData).toMatchObject({
+      legRole: 'SOURCE',
+      transferGroupId: 'group-1',
+      source: 'EMAIL',
+      cardId: null,
+    });
+    expect(createData.categoryId).toBeUndefined();
+  });
+});

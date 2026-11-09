@@ -6,6 +6,10 @@ import { ResolveUserBaseCurrencyUseCase } from '../../fx/application/resolve-use
 import { MerchantsService } from '../../merchants/application/merchants.service';
 import { LEDGER_REPOSITORY } from '../../shared/application/tokens';
 import {
+  OPERATION_LEG_ROLE,
+  type OperationLegRole,
+} from '../../shared/domain/transfer';
+import {
   TRANSFER_STATUS,
   type FinTxStatus,
   type TransferStatus,
@@ -38,6 +42,7 @@ export type ImportFinancialMovementInput = {
   categoryId?: string | null;
   type?: 'DEBIT' | 'CREDIT';
   transferGroupId?: string | null;
+  legRole?: OperationLegRole | null;
   status: FinTxStatus;
   aiMetadata?: unknown;
 };
@@ -91,8 +96,14 @@ export class ImportFinancialTransactionUseCase {
   executeUnpairedTransfer(userId: string, data: ImportFinancialMovementInput) {
     return this.execute(userId, {
       ...data,
+      cardId: undefined,
       categoryId: null,
       transferGroupId: data.transferGroupId ?? randomUUID(),
+      legRole:
+        data.legRole ??
+        (data.type === 'CREDIT'
+          ? OPERATION_LEG_ROLE.DESTINATION
+          : OPERATION_LEG_ROLE.SOURCE),
     });
   }
 
