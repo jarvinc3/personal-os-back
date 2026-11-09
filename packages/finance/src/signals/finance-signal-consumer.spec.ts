@@ -202,8 +202,19 @@ describe('FinanceSignalConsumer', () => {
     });
   });
 
-  it('imports an unpaired transfer without losing its transfer group', async () => {
-    const { consumer, importEmail } = setup();
+  it('imports an unpaired transfer from its own account hint', async () => {
+    const { consumer, importEmail } = setup({
+      finAccount: {
+        findMany: jest.fn().mockResolvedValue([
+          {
+            id: 'account-1',
+            accountNumberLast4: '5678',
+            type: 'SAVINGS',
+            isDefaultForInstitution: false,
+          },
+        ]),
+      },
+    });
     const transfer = {
       ...signal,
       payload: {
@@ -216,6 +227,7 @@ describe('FinanceSignalConsumer', () => {
           direction: 'TRANSFER',
           movementClass: 'TRANSFER_OUT',
           bankStatusNormalized: 'COMPLETED',
+          accountNumberLast4: '5678',
         },
       },
     } as RoutedSignal;
@@ -223,7 +235,10 @@ describe('FinanceSignalConsumer', () => {
     await expect(consumer.consume(transfer)).resolves.toMatchObject({
       outcome: 'APPLIED',
     });
-    expect(importEmail.executeUnpairedTransfer).toHaveBeenCalled();
+    expect(importEmail.executeUnpairedTransfer).toHaveBeenCalledWith(
+      'user-1',
+      expect.objectContaining({ accountId: 'account-1', legRole: 'SOURCE' }),
+    );
   });
 
   it('reverses the original movement and records the reversal source', async () => {
@@ -292,5 +307,342 @@ describe('FinanceSignalConsumer', () => {
         }),
       }),
     );
+  });
+});
+
+const transferAccounts = [
+  {
+    id: 'account-1',
+    accountNumberLast4: '5678',
+    type: 'SAVINGS',
+    isDefaultForInstitution: false,
+  },
+  {
+    id: 'account-2',
+    accountNumberLast4: '1234',
+    type: 'CHECKING',
+    isDefaultForInstitution: false,
+  },
+];
+
+const transferDate = new Date('2026-11-01T00:00:00.000Z');
+
+function transferSignal(
+  transaction: Record<string, unknown> = {},
+): RoutedSignal {
+  return {
+    ...signal,
+    signalId: 'signal-transfer-1',
+    sourceId: 'email-transfer-1',
+    payload: {
+      relevance: true,
+      semanticType: 'FIN_TRANSACTION',
+      routes: ['FINANCE'],
+      confidence: 0.99,
+      transaction: {
+        kind: 'TRANSACTION',
+        amount: 100,
+        currency: 'DOP',
+        transactionDate: '2026-11-01T00:00:00.000Z',
+        direction: 'TRANSFER',
+        movementClass: 'TRANSFER_OUT',
+        bankReference: 'ref-transfer-1',
+        bankStatusNormalized: 'COMPLETED',
+        accountNumberLast4: '5678',
+        ...transaction,
+      },
+    },
+  };
+}
+
+function setupTransfer(
+  options: {
+    accounts?: Array<Record<string, unknown>>;
+    cards?: Array<Record<string, unknown>>;
+    referenceMatches?: Array<Record<string, unknown>>;
+    storedImport?: Record<string, unknown>;
+  } = {},
+) {
+  const finTransaction = {
+    findFirst: jest.fn().mockResolvedValue(null),
+    findMany: jest.fn().mockResolvedValue(options.referenceMatches ?? []),
+  };
+  const finAccount = {
+    findMany: jest.fn().mockResolvedValue(options.accounts ?? transferAccounts),
+  };
+  const finCard = {
+    findMany: jest.fn().mockResolvedValue(options.cards ?? []),
+  };
+  const finSignalImport = options.storedImport
+    ? {
+        findUnique: jest.fn().mockResolvedValue(options.storedImport),
+        upsert: jest.fn(),
+      }
+    : undefined;
+  const context = setup({
+    finTransaction,
+    finAccount,
+    finCard,
+    ...(finSignalImport ? { finSignalImport } : {}),
+  });
+  return { ...context, finTransaction, finAccount, finCard, finSignalImport };
+}
+
+describe('FinanceSignalConsumer transfer import', () => {
+  it('imports one source leg for a transfer out', async () => {
+    const { consumer, importEmail, finTransaction } = setupTransfer();
+
+    await expect(consumer.consume(transferSignal())).resolves.toMatchObject({
+      outcome: 'APPLIED',
+    });
+
+    expect(importEmail.executeUnpairedTransfer).toHaveBeenCalledTimes(1);
+    const [userId, input] = importEmail.executeUnpairedTransfer.mock
+      .calls[0] as [string, Record<string, unknown>];
+    expect(userId).toBe('user-1');
+    expect(input).toMatchObject({
+      accountId: 'account-1',
+      type: 'DEBIT',
+      legRole: 'SOURCE',
+      categoryId: null,
+      externalReference: 'ref-transfer-1',
+      importReference: 'signal-transfer-1',
+    });
+    expect(input.cardId).toBeUndefined();
+    expect(input.transferGroupId).toBeUndefined();
+    expect(importEmail.execute).not.toHaveBeenCalled();
+    expect(finTransaction.findFirst).not.toHaveBeenCalled();
+    expect(finTransaction.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          userId: 'user-1',
+          externalReference: 'ref-transfer-1',
+        }),
+      }),
+    );
+  });
+
+  it('imports one destination leg for a transfer in', async () => {
+    const { consumer, importEmail } = setupTransfer();
+
+    await expect(
+      consumer.consume(
+        transferSignal({
+          direction: 'CREDIT',
+          movementClass: 'TRANSFER_IN',
+          accountNumberLast4: '1234',
+        }),
+      ),
+    ).resolves.toMatchObject({ outcome: 'APPLIED' });
+
+    expect(importEmail.executeUnpairedTransfer).toHaveBeenCalledWith(
+      'user-1',
+      expect.objectContaining({
+        accountId: 'account-2',
+        type: 'CREDIT',
+        legRole: 'DESTINATION',
+        categoryId: null,
+      }),
+    );
+  });
+
+  it('keeps a legitimate counterpart that shares the reference', async () => {
+    const { consumer, importEmail, finTransaction } = setupTransfer({
+      referenceMatches: [
+        {
+          id: 'leg-out',
+          type: 'CREDIT',
+          accountId: 'account-2',
+          amount: { toString: () => '100' },
+          currency: 'DOP',
+          transactionDate: transferDate,
+        },
+      ],
+    });
+
+    await expect(consumer.consume(transferSignal())).resolves.toMatchObject({
+      outcome: 'APPLIED',
+    });
+
+    expect(importEmail.executeUnpairedTransfer).toHaveBeenCalledTimes(1);
+    const input = importEmail.executeUnpairedTransfer.mock
+      .calls[0][1] as Record<string, unknown>;
+    expect(input.transferGroupId).toBeUndefined();
+    expect(finTransaction.findFirst).not.toHaveBeenCalled();
+  });
+
+  it('does not import the same transfer leg twice', async () => {
+    const { consumer, importEmail, prisma } = setupTransfer({
+      referenceMatches: [
+        {
+          id: 'leg-existing',
+          type: 'DEBIT',
+          accountId: 'account-1',
+          amount: 100,
+          currency: 'DOP',
+          transactionDate: transferDate,
+        },
+      ],
+    });
+
+    await expect(consumer.consume(transferSignal())).resolves.toMatchObject({
+      outcome: 'ALREADY_APPLIED',
+      domainReferences: [{ type: 'FinTransaction', id: 'leg-existing' }],
+    });
+
+    expect(importEmail.executeUnpairedTransfer).not.toHaveBeenCalled();
+    expect(prisma.finSignalImport.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        create: expect.objectContaining({
+          status: 'DUPLICATE',
+          duplicateOfTransactionId: 'leg-existing',
+        }),
+      }),
+    );
+  });
+
+  it('sends a reference conflict to review with no rows', async () => {
+    const { consumer, importEmail, prisma } = setupTransfer({
+      referenceMatches: [
+        {
+          id: 'leg-conflict',
+          type: 'DEBIT',
+          accountId: 'account-2',
+          amount: 100,
+          currency: 'DOP',
+          transactionDate: transferDate,
+        },
+      ],
+    });
+
+    await expect(consumer.consume(transferSignal())).resolves.toMatchObject({
+      outcome: 'REVIEW_REQUIRED',
+      reason: 'TRANSFER_REFERENCE_CONFLICT',
+    });
+
+    expect(importEmail.executeUnpairedTransfer).not.toHaveBeenCalled();
+    expect(prisma.finSignalImport.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        create: expect.objectContaining({
+          status: 'REVIEW_REQUIRED',
+          reviewReason: 'TRANSFER_REFERENCE_CONFLICT',
+          candidate: expect.objectContaining({
+            financeImportEvidence: expect.objectContaining({
+              externalReference: 'ref-transfer-1',
+              candidateTransactionIds: ['leg-conflict'],
+            }),
+          }),
+        }),
+      }),
+    );
+  });
+
+  it('rejects an ambiguous account with no rows and the candidates in evidence', async () => {
+    const { consumer, importEmail, prisma } = setupTransfer({
+      accounts: [
+        {
+          id: 'account-a',
+          accountNumberLast4: '5567',
+          type: 'SAVINGS',
+          isDefaultForInstitution: false,
+        },
+        {
+          id: 'account-b',
+          accountNumberLast4: '5567',
+          type: 'CHECKING',
+          isDefaultForInstitution: false,
+        },
+      ],
+    });
+
+    await expect(
+      consumer.consume(transferSignal({ accountNumberLast4: '5567' })),
+    ).resolves.toMatchObject({
+      outcome: 'REVIEW_REQUIRED',
+      reason: 'TRANSFER_ACCOUNT_AMBIGUOUS',
+    });
+
+    expect(importEmail.executeUnpairedTransfer).not.toHaveBeenCalled();
+    expect(prisma.finSignalImport.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        create: expect.objectContaining({
+          status: 'REVIEW_REQUIRED',
+          reviewReason: 'TRANSFER_ACCOUNT_AMBIGUOUS',
+          candidate: expect.objectContaining({
+            financeImportEvidence: expect.objectContaining({
+              candidateAccountIds: ['account-a', 'account-b'],
+            }),
+          }),
+        }),
+      }),
+    );
+  });
+
+  it('rejects a missing account hint instead of using a default account', async () => {
+    const { consumer, importEmail } = setupTransfer({
+      accounts: [
+        {
+          id: 'account-default',
+          accountNumberLast4: null,
+          type: 'SAVINGS',
+          isDefaultForInstitution: true,
+        },
+      ],
+    });
+
+    await expect(
+      consumer.consume(transferSignal({ accountNumberLast4: undefined })),
+    ).resolves.toMatchObject({
+      outcome: 'REVIEW_REQUIRED',
+      reason: 'TRANSFER_ACCOUNT_MISSING',
+    });
+
+    expect(importEmail.executeUnpairedTransfer).not.toHaveBeenCalled();
+  });
+
+  it('rejects a transfer that only carries the card last four', async () => {
+    const { consumer, importEmail } = setupTransfer({
+      cards: [{ id: 'card-1', lastFour: '1111' }],
+    });
+
+    await expect(
+      consumer.consume(
+        transferSignal({ accountNumberLast4: undefined, last4: '1111' }),
+      ),
+    ).resolves.toMatchObject({
+      outcome: 'REVIEW_REQUIRED',
+      reason: 'TRANSFER_ACCOUNT_HINT_UNSUPPORTED',
+    });
+
+    expect(importEmail.executeUnpairedTransfer).not.toHaveBeenCalled();
+  });
+
+  it('rejects an account hint that matches no account', async () => {
+    const { consumer, importEmail } = setupTransfer();
+
+    await expect(
+      consumer.consume(transferSignal({ accountNumberLast4: '0000' })),
+    ).resolves.toMatchObject({
+      outcome: 'REVIEW_REQUIRED',
+      reason: 'TRANSFER_ACCOUNT_NOT_FOUND',
+    });
+
+    expect(importEmail.executeUnpairedTransfer).not.toHaveBeenCalled();
+  });
+
+  it('returns the stored transfer import on replay', async () => {
+    const { consumer, importEmail } = setupTransfer({
+      storedImport: {
+        status: 'IMPORTED',
+        transactionId: 'transaction-1',
+        reviewReason: null,
+      },
+    });
+
+    await expect(consumer.consume(transferSignal())).resolves.toMatchObject({
+      outcome: 'ALREADY_APPLIED',
+    });
+
+    expect(importEmail.executeUnpairedTransfer).not.toHaveBeenCalled();
   });
 });
