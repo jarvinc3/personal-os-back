@@ -1,4 +1,5 @@
 import type { ResolvedAmounts } from '../../../shared/domain/money';
+import type { OperationLegRole } from '../../../shared/domain/transfer';
 import type { FinTransactionTypeValue } from '../../../shared/domain/transaction-status';
 
 export type FinTxStatus =
@@ -136,6 +137,7 @@ export type ImportFinancialTransactionCommand = {
   categoryId?: string | null;
   type?: 'DEBIT' | 'CREDIT';
   transferGroupId?: string | null;
+  legRole?: OperationLegRole | null;
   status: FinTxStatus;
   amounts: ResolvedAmounts;
   aiMetadata?: unknown;

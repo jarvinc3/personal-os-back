@@ -85,6 +85,7 @@ export class PrismaLedgerImportRepository {
           possibleDuplicateOfId: data.possibleDuplicateOfId ?? undefined,
           categoryId: data.categoryId ?? undefined,
           transferGroupId: data.transferGroupId ?? undefined,
+          legRole: data.legRole ?? undefined,
           aiMetadata: (data.aiMetadata as Prisma.InputJsonValue) ?? {},
         },
         include: {

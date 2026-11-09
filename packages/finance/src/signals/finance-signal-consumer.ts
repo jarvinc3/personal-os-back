@@ -16,6 +16,12 @@ import {
   uniqueCashAccountId,
 } from '../ledger/application/match-imported-transfers';
 import { resolveLedgerTargetFromHints } from '../ledger/application/resolve-ledger-target-from-hints';
+import {
+  classifyTransferImport,
+  resolveTransferAccount,
+  transferLegIdentity,
+  type TransferLegIdentity,
+} from '../ledger/application/resolve-transfer-import';
 import { ImportFinancialTransactionUseCase } from '../ledger/application/import-financial-transaction.use-case';
 import { LedgerQueryService } from '../ledger/application/ledger-query.service';
 import { ReverseTransactionUseCase } from '../ledger/application/reverse-transaction.use-case';
@@ -38,6 +44,10 @@ const transactionSchema = z
     merchant: z.string().trim().min(1).max(160).optional(),
     bankReference: z.string().trim().min(1).max(120).optional(),
     last4: z
+      .string()
+      .regex(/^\d{4}$/)
+      .optional(),
+    accountNumberLast4: z
       .string()
       .regex(/^\d{4}$/)
       .optional(),
@@ -85,6 +95,8 @@ type ImportStatus =
   'IMPORTED' | 'DUPLICATE' | 'REVERSED' | 'REVIEW_REQUIRED' | 'FAILED';
 
 const REVIEW_CONFIDENCE_THRESHOLD = 0.7;
+const OPEN_IMPORT_LEG_STATUSES = ['PENDING', 'CONFIRMED'] as const;
+type ImportReviewEvidence = Record<string, string | string[] | null>;
 
 @Injectable()
 export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
@@ -156,12 +168,12 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
       !payload.routes?.includes('FINANCE') ||
       (payload.confidence ?? 0) < REVIEW_CONFIDENCE_THRESHOLD
     ) {
-      return this.review(signal, 'LOW_CONFIDENCE_OR_NOT_FINANCE');
+      return this.review({ signal, reason: 'LOW_CONFIDENCE_OR_NOT_FINANCE' });
     }
 
     const validationReason = this.validationReason(candidate);
     if (validationReason) {
-      return this.review(signal, validationReason);
+      return this.review({ signal, reason: validationReason });
     }
 
     const movementClass = this.movementClass(candidate);
@@ -169,10 +181,10 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
       candidate.direction === 'TRANSFER' &&
       !isTransferMovementClass(movementClass)
     ) {
-      return this.review(signal, 'TRANSFER_DIRECTION_AMBIGUOUS');
+      return this.review({ signal, reason: 'TRANSFER_DIRECTION_AMBIGUOUS' });
     }
     if (isTransferMovementClass(movementClass) && !candidate.direction) {
-      return this.review(signal, 'TRANSFER_SIDE_MISSING');
+      return this.review({ signal, reason: 'TRANSFER_SIDE_MISSING' });
     }
 
     const activeAccounts = await this.prisma.finAccount.findMany({
@@ -181,6 +193,7 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
         id: true,
         accountNumberLast4: true,
         isDefaultForInstitution: true,
+        type: true,
       },
     });
     const activeCards = await this.prisma.finCard.findMany({
@@ -188,21 +201,48 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
       select: { id: true, lastFour: true },
     });
     const transfer = isTransferMovementClass(movementClass);
-    const target = resolveLedgerTargetFromHints({
-      instrumentHint: null,
-      lastFourHint: candidate.last4 ?? null,
-      accountNumberHint: null,
-      accounts: activeAccounts,
-      cards: activeCards,
-      allowDefaultAccount: !transfer && !isAtmMovementClass(movementClass),
-    });
-    if (target.kind !== 'unique') {
-      return this.review(
-        signal,
-        target.kind === 'ambiguous'
-          ? `AMBIGUOUS_LEDGER_TARGET_${target.candidateCount}`
-          : 'NO_LEDGER_TARGET',
-      );
+    let target: { accountId?: string; cardId?: string };
+    let transferLeg: TransferLegIdentity | null = null;
+    if (transfer) {
+      const accountResolution = resolveTransferAccount({
+        accountNumberHint: candidate.accountNumberLast4 ?? null,
+        hasCardLast4Hint: Boolean(candidate.last4),
+        accounts: activeAccounts,
+      });
+      if (accountResolution.kind !== 'unique') {
+        return this.review({
+          signal,
+          reason: accountResolution.reason,
+          evidence: {
+            accountNumberHint: candidate.accountNumberLast4 ?? null,
+            cardLast4Hint: candidate.last4 ?? null,
+            ...(accountResolution.kind === 'ambiguous'
+              ? { candidateAccountIds: accountResolution.candidateAccountIds }
+              : {}),
+          },
+        });
+      }
+      transferLeg = transferLegIdentity(movementClass);
+      target = { accountId: accountResolution.accountId };
+    } else {
+      const ledgerTarget = resolveLedgerTargetFromHints({
+        instrumentHint: null,
+        lastFourHint: candidate.last4 ?? null,
+        accountNumberHint: null,
+        accounts: activeAccounts,
+        cards: activeCards,
+        allowDefaultAccount: !isAtmMovementClass(movementClass),
+      });
+      if (ledgerTarget.kind !== 'unique') {
+        return this.review({
+          signal,
+          reason:
+            ledgerTarget.kind === 'ambiguous'
+              ? `AMBIGUOUS_LEDGER_TARGET_${ledgerTarget.candidateCount}`
+              : 'NO_LEDGER_TARGET',
+        });
+      }
+      target = ledgerTarget;
     }
 
     const amount = candidate.amount!;
@@ -221,19 +261,73 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
       return this.reverse(signal, payload, candidate);
     }
 
-    const duplicate = await this.ledger.findDedupeCandidate(signal.userId, {
-      externalReference: candidate.bankReference ?? null,
-      accountId: target.accountId,
-      cardId: target.cardId,
-      amount,
-      currency,
-      type,
-      merchant: candidate.merchant ?? null,
-      transactionDate,
-    });
-    if (duplicate) {
-      await this.persist(signal, 'DUPLICATE', null, undefined, duplicate.id);
-      return this.result('ALREADY_APPLIED', duplicate.id);
+    if (
+      transfer &&
+      transferLeg &&
+      target.accountId &&
+      candidate.bankReference
+    ) {
+      const referenceMatches = await this.prisma.finTransaction.findMany({
+        where: {
+          userId: signal.userId,
+          externalReference: candidate.bankReference,
+          status: { in: [...OPEN_IMPORT_LEG_STATUSES] },
+        },
+        select: {
+          id: true,
+          type: true,
+          accountId: true,
+          amount: true,
+          currency: true,
+          transactionDate: true,
+        },
+        orderBy: { transactionDate: 'desc' },
+      });
+      const decision = classifyTransferImport({
+        incoming: {
+          type: transferLeg.type,
+          accountId: target.accountId,
+          amount,
+          currency,
+          transactionDate,
+        },
+        existing: referenceMatches,
+      });
+      if (decision.kind === 'duplicate') {
+        await this.persist(
+          signal,
+          'DUPLICATE',
+          null,
+          undefined,
+          decision.transactionId,
+        );
+        return this.result('ALREADY_APPLIED', decision.transactionId);
+      }
+      if (decision.kind === 'conflict') {
+        return this.review({
+          signal,
+          reason: decision.reason,
+          evidence: {
+            externalReference: candidate.bankReference,
+            candidateTransactionIds: decision.candidateTransactionIds,
+          },
+        });
+      }
+    } else {
+      const duplicate = await this.ledger.findDedupeCandidate(signal.userId, {
+        externalReference: candidate.bankReference ?? null,
+        accountId: target.accountId,
+        cardId: target.cardId,
+        amount,
+        currency,
+        type,
+        merchant: candidate.merchant ?? null,
+        transactionDate,
+      });
+      if (duplicate) {
+        await this.persist(signal, 'DUPLICATE', null, undefined, duplicate.id);
+        return this.result('ALREADY_APPLIED', duplicate.id);
+      }
     }
 
     const categories = await this.prisma.finCategory.findMany({
@@ -294,7 +388,7 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
         });
         const cashAccountId = uniqueCashAccountId(cashAccounts);
         if (!cashAccountId) {
-          return this.review(signal, 'ATM_CASH_ACCOUNT_AMBIGUOUS');
+          return this.review({ signal, reason: 'ATM_CASH_ACCOUNT_AMBIGUOUS' });
         }
         const result = await this.importTransaction.executeAtmWithdrawal(
           signal.userId,
@@ -315,7 +409,7 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
           },
         );
         if (!result?.debit?.id) {
-          return this.review(signal, 'ATM_WITHDRAWAL_NOT_IMPORTED');
+          return this.review({ signal, reason: 'ATM_WITHDRAWAL_NOT_IMPORTED' });
         }
         transactionId = result.debit.id;
       } else {
@@ -333,7 +427,8 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
             'Movimiento por correo',
           notes,
           transactionDate,
-          type,
+          type: transferLeg?.type ?? type,
+          legRole: transferLeg?.legRole,
           status,
           categoryId: category.categoryId,
           aiMetadata,
@@ -347,9 +442,6 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
         transactionId = created.id;
       }
       await this.persist(signal, 'IMPORTED', transactionId);
-      if (transfer) {
-        await this.tryPairTransfer(signal.userId, transactionId);
-      }
       return this.result('APPLIED', transactionId);
     } catch (error) {
       const code = (error as { code?: string }).code;
@@ -447,7 +539,7 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
       candidate.reverseOfBankReference ?? candidate.bankReference ?? '',
     );
     if (!original) {
-      return this.review(signal, 'REVERSAL_ORIGINAL_NOT_FOUND');
+      return this.review({ signal, reason: 'REVERSAL_ORIGINAL_NOT_FOUND' });
     }
     if (original.status === 'REVERSED') {
       await this.persist(signal, 'REVERSED', original.id);
@@ -468,8 +560,23 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
     return this.result('APPLIED', original.id);
   }
 
-  private async review(signal: RoutedSignal, reason: string) {
-    await this.persist(signal, 'REVIEW_REQUIRED', null, reason);
+  private async review({
+    signal,
+    reason,
+    evidence,
+  }: {
+    signal: RoutedSignal;
+    reason: string;
+    evidence?: ImportReviewEvidence;
+  }) {
+    await this.persist(
+      signal,
+      'REVIEW_REQUIRED',
+      null,
+      reason,
+      undefined,
+      evidence,
+    );
     return {
       outcome: 'REVIEW_REQUIRED' as const,
       domainReferences: [],
@@ -483,6 +590,7 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
     transactionId: string | null,
     reviewReason?: string,
     duplicateOfTransactionId?: string,
+    reviewEvidence?: ImportReviewEvidence,
   ) {
     await this.prisma.finSignalImport.upsert({
       where: {
@@ -496,7 +604,9 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
         reviewReason,
         transactionId,
         duplicateOfTransactionId,
-        candidate: signal.payload,
+        candidate: reviewEvidence
+          ? { ...signal.payload, financeImportEvidence: reviewEvidence }
+          : signal.payload,
       },
       update: {
         status,
@@ -541,6 +651,7 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
     };
   }
 
+  /** Pairing stays out of the 334A slice; kept for the matching unit. */
   private async tryPairTransfer(userId: string, transactionId: string) {
     const current = await this.prisma.finTransaction.findFirst({
       where: { id: transactionId, userId },
