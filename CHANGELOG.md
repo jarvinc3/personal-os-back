@@ -45,6 +45,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [Se
 
 ### Corregido
 
+- #342: `POST /api/intelligence/email/sample-import` tiene un timeout de 180 segundos para procesar hasta 20 correos en serie; las demás rutas conservan el límite global de 5 segundos.
 - Seguimiento de #347: el cursor de `IMPACT` guarda el primer correo de la página siguiente y lo busca por id en la lista actual, así que verificar el último correo de una página no invalida la paginación. `UsersService` exige el registro de settings de módulo y ya no guarda configuración sin validar cuando falta. El contrato de revisión corrige `uncertain`: umbral personal fuera de HOLDOUT y `0.7` fijo en HOLDOUT.
 
 ### Cambiado

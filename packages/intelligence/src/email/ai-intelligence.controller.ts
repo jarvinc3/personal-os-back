@@ -40,6 +40,8 @@ import {
   AiEmailSyncResponseDto,
 } from './ai-intelligence-response.dto';
 
+const SAMPLE_IMPORT_TIMEOUT_MS = 180_000;
+
 @ApiTags('intelligence')
 @ApiBearerAuth('access-token')
 @Controller('intelligence')
@@ -89,6 +91,7 @@ export class AiIntelligenceController {
   }
 
   @Post('email/sample-import')
+  @Timeout(SAMPLE_IMPORT_TIMEOUT_MS)
   @ApiCreatedResponse({ type: AiEmailSampleImportResponseDto })
   sampleImportRun(
     @CurrentUser() user: { sub: string },
