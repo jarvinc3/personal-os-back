@@ -207,7 +207,7 @@ describe('AiService', () => {
       ]);
 
       await expect(service.chatComplete(MESSAGES)).rejects.toThrow(
-        'Authorization: Bearer [redacted]',
+        'authorization=[redacted]',
       );
       const logLine = warn.mock.calls
         .map(([line]) => (typeof line === 'string' ? line : ''))

@@ -139,7 +139,11 @@ export function sanitizeProviderErrorMessage(error: unknown): string | null {
   const sanitized = withoutBody
     .replace(/\bBearer\s+[A-Za-z0-9._~+/=-]+/gi, 'Bearer [redacted]')
     .replace(
-      /("?(?:authorization|api[_-]?key|key|x-api-key|access[_-]?token|refresh[_-]?token|secret|password|token)"?\s*[:=]\s*)(?!Bearer\b)("[^"]*"|'[^']*'|[^\s,;]+)/gi,
+      /\bauthorization\b"?\s*[:=]\s*("[^"]*"|'[^']*'|[^\s,;}"'<>]+(?:\s+[^\s,;}"'<>]+)*)/gi,
+      'authorization=[redacted]',
+    )
+    .replace(
+      /("?(?:api[_-]?key|key|x-api-key|access[_-]?token|refresh[_-]?token|secret|password|token)"?\s*[:=]\s*)("[^"]*"|'[^']*'|[^\s,;]+)/gi,
       '$1[redacted]',
     )
     .replace(/\b(?:sk|gsk|sk-or-v1)[-_][A-Za-z0-9_-]{8,}\b/gi, '[redacted-key]')

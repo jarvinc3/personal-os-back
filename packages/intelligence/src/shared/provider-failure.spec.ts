@@ -115,7 +115,28 @@ describe('sanitizeProviderErrorMessage', () => {
     expect(message).not.toContain('gsk_other_secret123');
     expect(message).not.toContain('"apiKey"');
     expect(message).toContain('[redacted]');
+  });
+
+  it('omits a provider response body', () => {
+    const message = sanitizeProviderErrorMessage(
+      new Error('400 {"error":"bad request"}'),
+    );
+
     expect(message).toContain('[body omitted]');
+    expect(message).not.toContain('"error"');
+  });
+
+  it.each([
+    ['Basic scheme', 'Authorization: Basic Zm9vOmJhcg=='],
+    ['Token scheme', 'authorization: Token abc123def456'],
+    ['quoted JSON', '"Authorization":"Basic Zm9vOmJhcg=="'],
+    ['scheme-free value', 'Authorization=Zm9vOmJhcg=='],
+  ])('redacts the full authorization header (%s)', (_label, raw) => {
+    const message = sanitizeProviderErrorMessage(new Error(raw));
+
+    expect(message).not.toContain('Zm9vOmJhcg==');
+    expect(message).not.toContain('abc123def456');
+    expect(message).toContain('authorization=[redacted]');
   });
 
   it('truncates a long provider message', () => {
