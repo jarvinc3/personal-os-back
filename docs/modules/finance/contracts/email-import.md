@@ -1,13 +1,12 @@
 # Importación por correo: transferencias, pagos, datos faltantes y reversos
 
-- Estado: contrato acordado. La transferencia de una pata y las pistas del clasificador están `IMPLEMENTADO-PROBADO`; los demás flujos siguen `NO_IMPLEMENTADO`.
+- Estado: contrato acordado. La transferencia de una pata (#340), el pago de tarjeta (#335) y la muestra con vista previa (#342) están implementados; este cambio completa las pistas de clasificación. La revisión de fecha y confirmación del consumidor sigue pendiente en #337.
 - Fecha: 2026-11-11.
-- Base: `develop` `637dc4c16d3897888c953b0674fe90c8aa013130`.
-- Implementado en código: transferencia de una pata (PR #340, `6c15b2f`) y pistas del clasificador (esta unidad del piloto BHD).
+- Base integrada: `develop` `9f711eb4131c8ed9b3e6a21c05507e5f12a6f49f`.
 - Issues: [#334](https://github.com/jarvinc3/personal-os-back/issues/334), [#335](https://github.com/jarvinc3/personal-os-back/issues/335), [#337](https://github.com/jarvinc3/personal-os-back/issues/337), [#336](https://github.com/jarvinc3/personal-os-back/issues/336).
 - Evidencia de la unidad: paquete local de revisión, no versionado; el alcance público vive en los issues.
 
-Este documento fija el contrato de la importación por correo. La transferencia de una pata y las pistas del clasificador ya existen en código con pruebas de unidad en CI; el resto del documento sigue siendo objetivo y no describe comportamiento desplegado. Los casos de prueba propuestos no están ejecutados y no se presentan como aprobados. La revisión independiente de Codex no es una aprobación. Sus hallazgos están incorporados en el paquete local y en este contrato.
+Este documento fija el contrato objetivo de la importación por correo. No describe comportamiento desplegado. Los casos de prueba propuestos no están ejecutados y no se presentan como aprobados. La revisión independiente de Codex no es una aprobación. Sus hallazgos están incorporados en el paquete local y en este contrato.
 
 ## 1. Alcance y estados
 
@@ -20,11 +19,11 @@ Los cuatro acuerdos de producto son:
 
 El contrato separa tres estados:
 
-| Estado                 | Significado                                                                                                                                        |
-| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ACORDADO`             | Decisión de producto o diseño técnico derivado, con justificación.                                                                                 |
-| `PENDIENTE CONCRETAR`  | Política abierta o ruta fuera de esta entrega; no se implementa por omisión.                                                                       |
-| `IMPLEMENTADO-PROBADO` | Existe código y prueba en un SHA exacto. Aplica a la transferencia de una pata (PR #340, `6c15b2f`) y a las pistas del clasificador (sección 2.1). |
+| Estado                 | Significado                                                                  |
+| ---------------------- | ---------------------------------------------------------------------------- |
+| `ACORDADO`             | Decisión de producto o diseño técnico derivado, con justificación.           |
+| `PENDIENTE CONCRETAR`  | Política abierta o ruta fuera de esta entrega; no se implementa por omisión. |
+| `IMPLEMENTADO-PROBADO` | Existe código y prueba en un SHA exacto.                                     |
 
 ## 2. Contrato de señal
 
@@ -55,24 +54,9 @@ Decisiones de nombre y forma:
 - La referencia bancaria no se vuelve obligatoria ni única. Dos patas de la misma operación pueden compartirla.
 - Los campos nuevos viajan en el JSON de clasificación y de señal. No requieren una columna nueva.
 
-### 2.1 Pistas del clasificador (IMPLEMENTADO)
-
-El esquema de clasificación (`packages/intelligence/src/email/email-classification.util.ts`) y la verificación humana (`human-verification-labels.dto.ts`) aceptan estas pistas; el prompt del clasificador las pide:
-
-- `accountNumberLast4`: terminación de la cuenta propia. Es distinto de `last4`, que queda para la tarjeta.
-- `movementClass` con `CARD_PAYMENT` en la lista cerrada.
-- `suggestedTransactionDate` con `suggestedTransactionDateSource`; en esta fase la única procedencia admitida es `EMAIL_HEADER`. La fecha y la procedencia van juntas o no van.
-- `reverseOfBankReference` y `reverseOfEmailMessageId`: referencia del original y correo original de un reverso.
-
-El prompt del clasificador pide estas pistas y prohíbe usar la fecha del encabezado como fecha de operación. El modelo no rellena `suggestedTransactionDate` ni su procedencia: las aporta el flujo que conoce el encabezado.
-
-Un recordatorio de pago o un aviso de corte se clasifica como `FIN_ACCOUNT_NOTICE` o `FIN_STATEMENT_NOTICE`, sin transacción. Un aviso sin transacción no publica señal de Finance, así que no crea movimiento ni fila de revisión. Solo un pago confirmado lleva `movementClass CARD_PAYMENT`.
-
-Estas pistas no cambian el consumidor de Finance. `CARD_PAYMENT`, la confirmación de la fecha sugerida y la cadena de reverso siguen pendientes en #335, #337 y #336. Mientras tanto, una señal con `CARD_PAYMENT` no se importa y no crea movimiento; cuando #335 la reciba, la falta de monto, fecha de operación o estado confirmado la manda a revisión.
-
 ## 3. Transferencias
 
-### 3.1 Resolución de la cuenta (`IMPLEMENTADO-PROBADO`, PR #340)
+### 3.1 Resolución de la cuenta
 
 - Solo cuentas activas del mismo usuario.
 - La pista `accountNumberLast4` se compara con la misma regla de `accountMatchesHint` que ya usa `resolve-ledger-target-from-hints.ts`.
@@ -86,7 +70,7 @@ Estas pistas no cambian el consumidor de Finance. `CARD_PAYMENT`, la confirmaci�
 
 La cuenta debe ser inequívoca. Una pista parcial que coincide con varias cuentas no se resuelve por semejanza.
 
-### 3.2 Pata conocida (`IMPLEMENTADO-PROBADO`, PR #340)
+### 3.2 Pata conocida
 
 Se crea una sola fila en `fin_transactions`:
 
@@ -105,7 +89,7 @@ Se crea una sola fila en `fin_transactions`:
 
 No se crea la contraparte. La pata queda visible como transferencia no emparejada. El listado puede mostrarla con su `transferGroupId` y una marca de pendiente; la cola de revisión es para correos que no se pudieron importar, no para una pata válida ya registrada.
 
-### 3.3 Emparejamiento (`NO_IMPLEMENTADO`)
+### 3.3 Emparejamiento
 
 Cuando llega una segunda señal válida, se aplica el comportamiento actual de `match-imported-transfers.ts`:
 
@@ -121,8 +105,6 @@ Si hay exactamente un candidato, se vinculan las dos patas con el mismo `transfe
 
 La ventana de 3 días y la tolerancia de 50 o 2 % son comportamiento actual del código, no un acuerdo de producto nuevo. Se conservan mientras no exista una decisión explícita que las cambie.
 
-Estado: `NO_IMPLEMENTADO` en el consumidor. PR #340 conserva el helper pero no lo invoca (`tryPairTransfer`), así que una segunda pata válida queda registrada sin emparejar.
-
 ### 3.4 Dedupe
 
 - Replay de la misma señal: `fin_signal_import` existente, `ALREADY_APPLIED`, sin segunda fila.
@@ -133,8 +115,6 @@ Estado: `NO_IMPLEMENTADO` en el consumidor. PR #340 conserva el helper pero no l
 - Sin referencia: se usa el fallback del ADR-003 por destino, tipo, monto, moneda, comercio y fecha dentro de 10 minutos. Si el candidato es ambiguo, no se crea una segunda pata; se deja la evidencia para revisión.
 
 La referencia compartida no basta para descartar la segunda pata. El dedupe de transferencias compara referencia más tipo y cuenta, y además monto y moneda; lo que no es contraparte legítima va a revisión.
-
-Estado: `IMPLEMENTADO-PROBADO` para la referencia compartida, el duplicado y el conflicto (`resolve-transfer-import.ts` y `finance-signal-consumer.ts`, PR #340, `6c15b2f`). El fallback sin referencia conserva el comportamiento anterior.
 
 Ventana temporal con la referencia presente: PENDIENTE CONCRETAR. Los ±10 minutos del ADR-003 justifican solo el fallback sin referencia; el ADR no define una ventana para una referencia presente. Mientras el owner no decida, una coincidencia de referencia con los mismos atributos y fecha distinta va a `TRANSFER_REFERENCE_CONFLICT` para revisión; no se descarta y no se presenta como regla acordada.
 
@@ -151,8 +131,6 @@ Los motivos de transferencia (`TRANSFER_ACCOUNT_MISSING`, `TRANSFER_ACCOUNT_HINT
 ## 4. Pagos de tarjeta confirmados
 
 ### 4.1 Alcance y resolución
-
-Estado: `NO_IMPLEMENTADO` (#335). El clasificador ya admite y pide `CARD_PAYMENT` con `last4` de la tarjeta y `accountNumberLast4` de la cuenta de origen (sección 2.1); la importación de las dos patas falta.
 
 - Solo un correo que confirma un pago de tarjeta de crédito desde una cuenta propia.
 - Solo estados confirmados. Un aviso pendiente, un recordatorio o una fecha próxima no crean movimiento.
@@ -181,7 +159,7 @@ La referencia es la primera pista, no prueba de duplicado.
 1. Si el correo trae `bankReference`, se busca un pago existente del usuario por esa referencia en cualquier pata `CARD_PAYMENT`. La comparación es a nivel de operación o grupo, porque las dos patas comparten la referencia.
 2. Un match de referencia es duplicado solo si la operación existente coincide en cuenta de origen, tarjeta, monto, moneda y fecha dentro de la ventana del ADR-003. Si la referencia coincide con otra operación y difiere alguno de esos atributos, queda `CARD_PAYMENT_REFERENCE_CONFLICT` para revisión; no se crea ni se descarta.
 3. Si no hay coincidencia por referencia, o el correo no trae referencia, se busca un pago parecido por misma cuenta de origen, misma tarjeta, mismo monto, misma moneda y fecha dentro de la ventana de dedupe del ADR-003. La búsqueda incluye pagos manuales sin referencia.
-4. Si hay exactamente un candidato parecido, no se crea un duplicado en silencio: el correo queda en revisión con `CARD_PAYMENT_POSSIBLE_DUPLICATE` y el candidato en evidencia.
+4. Si hay exactamente un candidato parecido, el correo se vincula a ese pago: queda `DUPLICATE` con el pago en evidencia y no se crean filas nuevas. La vinculación es la decisión del owner del 2026-11-11; el código `CARD_PAYMENT_POSSIBLE_DUPLICATE` queda reservado para cuando la vinculación no proceda.
 5. Si hay varios candidatos, queda `CARD_PAYMENT_RECONCILIATION_AMBIGUOUS` con los IDs y no se crea movimiento.
 6. Si no hay candidato, el pago confirmado se importa una sola vez. La creación manual posterior con los mismos datos queda PENDIENTE CONCRETAR; no se promete 409 ni `duplicateAcknowledged` como acuerdo.
 
@@ -190,7 +168,7 @@ La ruta manual no cambia en este contrato. La opción de responder 409 y exigir 
 ### 4.4 Dedupe e idempotencia
 
 - Replay de la misma señal: `ALREADY_APPLIED`, sin nuevas patas.
-- Misma referencia y misma operación (cuenta, tarjeta, monto, moneda y fecha dentro de la ventana): `DUPLICATE`, sin nuevas patas. La ventana aplicada a una referencia presente está pendiente (sección 8.2).
+- Misma referencia y misma operación (cuenta, tarjeta, monto, moneda y fecha dentro de la ventana): `DUPLICATE`, sin nuevas patas. La ventana es de siete días; sin referencia son tres días. Las dos duraciones las fijó el owner y están registradas en el comentario de decisiones del issue #335.
 - Misma referencia con cuenta, tarjeta, monto o moneda distintos: `CARD_PAYMENT_REFERENCE_CONFLICT`, revisión; no se crea ni se descarta.
 - Dos correos distintos con la misma referencia y la misma operación: un solo pago.
 - Dos pagos legítimos con referencias distintas: se permiten aunque compartan cuenta, tarjeta, monto y día.
@@ -202,7 +180,6 @@ La ruta manual no cambia en este contrato. La opción de responder 409 y exigir 
 - Un recordatorio de pago o un aviso de corte no lleva `movementClass CARD_PAYMENT` y no crea movimiento.
 - El scheduler `CardPaymentRemindersScheduler` y el evento `finance.card_payment.due` son salientes y no cambian.
 - Si un recordatorio se clasifica por error como `CARD_PAYMENT`, la falta de monto, fecha de operación o estado confirmado lo manda a revisión; nunca crea un pago.
-- El clasificador ya distingue el aviso: un recordatorio o un aviso de corte se etiqueta como `FIN_ACCOUNT_NOTICE` o `FIN_STATEMENT_NOTICE`, sin transacción, y no publica señal de Finance (sección 2.1).
 - No se infiere un pago por la fecha próxima, el saldo pendiente o el corte.
 
 ## 5. Datos faltantes y fecha sugerida
@@ -216,8 +193,8 @@ La ruta manual no cambia en este contrato. La opción de responder 409 y exigir 
 
 ### 5.2 Campos y flujo
 
-- `suggestedTransactionDate` y `suggestedTransactionDateSource` viven en la clasificación y en la respuesta de revisión. El esquema ya los admite y el prompt los pide sin inventarlos.
-- La procedencia `EMAIL_HEADER` la aporta el flujo que conoce el encabezado: la clasificación completa la sugerencia con `receivedAt` después de validar la salida del modelo. `transactionDate` sigue ausente cuando el correo no declara la fecha de operación. El consumidor todavía no usa la sugerencia: el flujo de confirmación sigue `NO_IMPLEMENTADO` (#337).
+- `suggestedTransactionDate` y `suggestedTransactionDateSource` viven en la clasificación y en la respuesta de revisión.
+- La procedencia `EMAIL_HEADER` la aporta el flujo que conoce `receivedAt`, después de validar la salida; el modelo no la inventa.
 - Si existe `transactionDate`, manda esa fecha. La sugerencia se conserva como evidencia.
 - Si solo existe la sugerencia, el motivo es `TRANSACTION_DATE_SUGGESTED`. La cola y el detalle muestran la fecha y su procedencia.
 - La persona confirma o corrige con la verificación humana existente: `POST /api/intelligence/messages/:messageId/verifications` con `transaction.transactionDate`.
@@ -228,40 +205,41 @@ La ruta manual no cambia en este contrato. La opción de responder 409 y exigir 
 
 Los códigos son estables; el texto visible puede cambiar sin cambiar el código. El número de candidatos y los IDs van en la evidencia, no en el código. Los códigos con sufijo `_n` del código actual son un detalle transitorio que se retira al implementar.
 
-| Código                                  | Condición                                                                                                              | Efecto                                           |
-| --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
-| `AMOUNT_MISSING`                        | No hay monto.                                                                                                          | Sin movimiento.                                  |
-| `CURRENCY_MISSING`                      | No hay moneda.                                                                                                         | Sin movimiento.                                  |
-| `TRANSACTION_DATE_MISSING`              | No hay fecha de operación ni sugerencia.                                                                               | Sin movimiento.                                  |
-| `TRANSACTION_DATE_SUGGESTED`            | Solo hay fecha de encabezado sugerida.                                                                                 | Sin movimiento hasta confirmación.               |
-| `DIRECTION_MISSING`                     | No se sabe si es débito, crédito o transferencia.                                                                      | Sin movimiento.                                  |
-| `NO_LEDGER_TARGET`                      | No hay pista de cuenta o tarjeta.                                                                                      | Sin movimiento.                                  |
-| `AMBIGUOUS_LEDGER_TARGET`               | Varias cuentas o tarjetas coinciden.                                                                                   | Sin movimiento; candidatos.                      |
-| `TRANSFER_ACCOUNT_MISSING`              | Transferencia sin cuenta identificada.                                                                                 | Sin movimiento.                                  |
-| `TRANSFER_ACCOUNT_HINT_UNSUPPORTED`     | Solo hay last4 de tarjeta en una transferencia.                                                                        | Sin movimiento.                                  |
-| `TRANSFER_ACCOUNT_NOT_FOUND`            | Ninguna cuenta coincide.                                                                                               | Sin movimiento.                                  |
-| `TRANSFER_ACCOUNT_AMBIGUOUS`            | Varias cuentas coinciden.                                                                                              | Sin movimiento; candidatos.                      |
-| `TRANSFER_DIRECTION_AMBIGUOUS`          | La dirección de la transferencia es ambigua.                                                                           | Sin movimiento.                                  |
-| `TRANSFER_SIDE_MISSING`                 | Falta el lado de la transferencia.                                                                                     | Sin movimiento.                                  |
-| `TRANSFER_PAIR_AMBIGUOUS`               | Varias patas candidatas al emparejar.                                                                                  | La pata conocida sigue; no se inventa par.       |
-| `TRANSFER_REFERENCE_CONFLICT`           | Misma referencia fuera de la contraparte legítima: mismo tipo con otros atributos, o tipo opuesto con la misma cuenta. | Revisión; no se descarta ni se crea en silencio. |
-| `CARD_PAYMENT_NOT_CONFIRMED`            | Pago no confirmado.                                                                                                    | Sin movimiento.                                  |
-| `CARD_PAYMENT_CARD_NOT_FOUND`           | Tarjeta no encontrada.                                                                                                 | Sin movimiento.                                  |
-| `CARD_PAYMENT_CARD_AMBIGUOUS`           | Varias tarjetas coinciden.                                                                                             | Sin movimiento; candidatos.                      |
-| `CARD_PAYMENT_CARD_NOT_CREDIT`          | Tarjeta no es de crédito.                                                                                              | Sin movimiento.                                  |
-| `CARD_PAYMENT_SOURCE_ACCOUNT_NOT_FOUND` | Cuenta de origen no encontrada.                                                                                        | Sin movimiento.                                  |
-| `CARD_PAYMENT_SOURCE_ACCOUNT_AMBIGUOUS` | Varias cuentas de origen.                                                                                              | Sin movimiento; candidatos.                      |
-| `CARD_CURRENCY_MISSING`                 | La tarjeta no tiene saldo en la moneda.                                                                                | Sin movimiento.                                  |
-| `CARD_PAYMENT_POSSIBLE_DUPLICATE`       | Pago parecido sin coincidencia de referencia.                                                                          | Sin movimiento; candidato en evidencia.          |
-| `CARD_PAYMENT_REFERENCE_CONFLICT`       | Misma referencia con atributos distintos.                                                                              | Revisión; no se descarta ni se crea en silencio. |
-| `CARD_PAYMENT_RECONCILIATION_AMBIGUOUS` | Varios pagos parecidos.                                                                                                | Sin movimiento; candidatos.                      |
-| `REVERSAL_ORIGINAL_NOT_FOUND`           | No hay original sin referencia explícita.                                                                              | Sin movimiento.                                  |
-| `REVERSAL_REFERENCE_NOT_FOUND`          | Referencia explícita sin original elegible.                                                                            | Revisión; no usa candidato por heurística.       |
-| `REVERSAL_COMMERCE_MISSING`             | Reverso sin comercio para candidatos.                                                                                  | Revisión; no auto-vincula.                       |
-| `REVERSAL_ORIGINAL_AMBIGUOUS`           | Varios originales posibles.                                                                                            | Sin movimiento; candidatos.                      |
-| `REVERSAL_ORIGINAL_NOT_CONFIRMED`       | El original no está confirmado.                                                                                        | Sin movimiento.                                  |
-| `REVERSAL_TARGET_NOT_SUPPORTED`         | El original es transferencia o pago de tarjeta.                                                                        | Sin movimiento por la ruta de compras.           |
-| `REVERSAL_PARTIAL_NOT_SUPPORTED`        | El monto no coincide con el original.                                                                                  | Sin movimiento.                                  |
+| Código                                  | Condición                                                                                                              | Efecto                                                                |
+| --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| `AMOUNT_MISSING`                        | No hay monto.                                                                                                          | Sin movimiento.                                                       |
+| `CURRENCY_MISSING`                      | No hay moneda.                                                                                                         | Sin movimiento.                                                       |
+| `TRANSACTION_DATE_MISSING`              | No hay fecha de operación ni sugerencia.                                                                               | Sin movimiento.                                                       |
+| `TRANSACTION_DATE_SUGGESTED`            | Solo hay fecha de encabezado sugerida.                                                                                 | Sin movimiento hasta confirmación.                                    |
+| `DIRECTION_MISSING`                     | No se sabe si es débito, crédito o transferencia.                                                                      | Sin movimiento.                                                       |
+| `NO_LEDGER_TARGET`                      | No hay pista de cuenta o tarjeta.                                                                                      | Sin movimiento.                                                       |
+| `AMBIGUOUS_LEDGER_TARGET`               | Varias cuentas o tarjetas coinciden.                                                                                   | Sin movimiento; candidatos.                                           |
+| `TRANSFER_ACCOUNT_MISSING`              | Transferencia sin cuenta identificada.                                                                                 | Sin movimiento.                                                       |
+| `TRANSFER_ACCOUNT_HINT_UNSUPPORTED`     | Solo hay last4 de tarjeta en una transferencia.                                                                        | Sin movimiento.                                                       |
+| `TRANSFER_ACCOUNT_NOT_FOUND`            | Ninguna cuenta coincide.                                                                                               | Sin movimiento.                                                       |
+| `TRANSFER_ACCOUNT_AMBIGUOUS`            | Varias cuentas coinciden.                                                                                              | Sin movimiento; candidatos.                                           |
+| `TRANSFER_DIRECTION_AMBIGUOUS`          | La dirección de la transferencia es ambigua.                                                                           | Sin movimiento.                                                       |
+| `TRANSFER_SIDE_MISSING`                 | Falta el lado de la transferencia.                                                                                     | Sin movimiento.                                                       |
+| `TRANSFER_PAIR_AMBIGUOUS`               | Varias patas candidatas al emparejar.                                                                                  | La pata conocida sigue; no se inventa par.                            |
+| `TRANSFER_REFERENCE_CONFLICT`           | Misma referencia fuera de la contraparte legítima: mismo tipo con otros atributos, o tipo opuesto con la misma cuenta. | Revisión; no se descarta ni se crea en silencio.                      |
+| `CARD_PAYMENT_NOT_CONFIRMED`            | Pago no confirmado.                                                                                                    | Sin movimiento.                                                       |
+| `CARD_PAYMENT_CARD_NOT_FOUND`           | Tarjeta no encontrada.                                                                                                 | Sin movimiento.                                                       |
+| `CARD_PAYMENT_CARD_AMBIGUOUS`           | Varias tarjetas coinciden.                                                                                             | Sin movimiento; candidatos.                                           |
+| `CARD_PAYMENT_CARD_NOT_CREDIT`          | Tarjeta no es de crédito.                                                                                              | Sin movimiento.                                                       |
+| `CARD_PAYMENT_SOURCE_ACCOUNT_NOT_FOUND` | Cuenta de origen no encontrada.                                                                                        | Sin movimiento.                                                       |
+| `CARD_PAYMENT_SOURCE_ACCOUNT_AMBIGUOUS` | Varias cuentas de origen.                                                                                              | Sin movimiento; candidatos.                                           |
+| `CARD_CURRENCY_MISSING`                 | La tarjeta no tiene saldo en la moneda.                                                                                | Sin movimiento.                                                       |
+| `CARD_PAYMENT_POSSIBLE_DUPLICATE`       | Pago parecido sin coincidencia de referencia.                                                                          | Sin movimiento; solo evidencia, porque un candidato único se vincula. |
+| `CARD_PAYMENT_NOT_IMPORTED`             | La operación de dos patas no se pudo escribir.                                                                         | Sin movimiento; revisión.                                             |
+| `CARD_PAYMENT_REFERENCE_CONFLICT`       | Misma referencia con atributos distintos.                                                                              | Revisión; no se descarta ni se crea en silencio.                      |
+| `CARD_PAYMENT_RECONCILIATION_AMBIGUOUS` | Varios pagos parecidos.                                                                                                | Sin movimiento; candidatos.                                           |
+| `REVERSAL_ORIGINAL_NOT_FOUND`           | No hay original sin referencia explícita.                                                                              | Sin movimiento.                                                       |
+| `REVERSAL_REFERENCE_NOT_FOUND`          | Referencia explícita sin original elegible.                                                                            | Revisión; no usa candidato por heurística.                            |
+| `REVERSAL_COMMERCE_MISSING`             | Reverso sin comercio para candidatos.                                                                                  | Revisión; no auto-vincula.                                            |
+| `REVERSAL_ORIGINAL_AMBIGUOUS`           | Varios originales posibles.                                                                                            | Sin movimiento; candidatos.                                           |
+| `REVERSAL_ORIGINAL_NOT_CONFIRMED`       | El original no está confirmado.                                                                                        | Sin movimiento.                                                       |
+| `REVERSAL_TARGET_NOT_SUPPORTED`         | El original es transferencia o pago de tarjeta.                                                                        | Sin movimiento por la ruta de compras.                                |
+| `REVERSAL_PARTIAL_NOT_SUPPORTED`        | El monto no coincide con el original.                                                                                  | Sin movimiento.                                                       |
 
 ## 6. Reversos
 
@@ -281,7 +259,6 @@ Reglas de la cadena:
 - Si la referencia apunta a una pata de transferencia, a un pago de tarjeta o a un original ya `REVERSED`, no se busca un candidato alternativo: se revisa o se devuelve `ALREADY_APPLIED`.
 - Si la referencia existe y no encuentra original, el caso queda en revisión `REVERSAL_REFERENCE_NOT_FOUND`; no se usa un candidato por heurística. La opción de continuar por el id de correo o candidatos queda PENDIENTE CONCRETAR y no se implementa como fallback automático.
 - Si no hay referencia, se busca por el id de correo y luego por candidatos; el paso usado queda en la evidencia.
-- El id del correo original ya viaja en la etiqueta como `reverseOfEmailMessageId` (sección 2.1). El consumidor todavía no lo consulta: la cadena de reverso sigue `NO_IMPLEMENTADO` (#336).
 - Un candidato único válido se vincula automáticamente. No se exige confirmación humana para todos los reversos.
 - Cero candidatos, varios candidatos o un candidato no elegible dejan el reverso en revisión sin compensar nada.
 
@@ -350,7 +327,7 @@ El comercio es obligatorio para el auto-vínculo. Si el aviso no trae comercio, 
 - Si la referencia coincide pero los atributos de la operación difieren, el caso va a revisión (`TRANSFER_REFERENCE_CONFLICT` o `CARD_PAYMENT_REFERENCE_CONFLICT`); no se descarta ni se crea en silencio. Queda fuera de esta regla la contraparte legítima de una transferencia: misma referencia, mismo usuario, tipo opuesto y cuenta distinta no es duplicado ni conflicto (sección 3.4).
 - En una compra, el dedupe sigue el ADR-003: primero `externalReference`; si falta, mismo destino, monto, moneda, tipo, comercio y fecha dentro de 10 minutos.
 - En una transferencia, el fallback sin referencia usa destino, tipo, monto, moneda y fecha dentro de 10 minutos; la referencia compartida por la contraparte no es duplicado.
-- En un pago de tarjeta, el fallback incluye pagos manuales sin referencia. Un candidato único va a revisión; varios también. Sin candidato, el pago confirmado se importa una vez; la opción de la ruta manual queda pendiente.
+- En un pago de tarjeta, el fallback incluye pagos manuales sin referencia con tres días de ventana. Un candidato único se vincula como `DUPLICATE` sin crear filas; varios van a `CARD_PAYMENT_RECONCILIATION_AMBIGUOUS`. Sin candidato, el pago confirmado se importa una vez; la opción de la ruta manual queda pendiente.
 - No se infiere una referencia que el correo no trae. No se exige una referencia única para resolver el pago.
 
 ## 8. Estados del contrato
@@ -369,7 +346,7 @@ El comercio es obligatorio para el auto-vínculo. Si el aviso no trae comercio, 
 ### 8.2 Pendiente concretar
 
 - Referencia explícita de reverso sin original: revisión; la opción de continuar por el id de correo o candidatos queda pendiente y no se implementa como fallback automático.
-- Ventana temporal con la referencia presente: los ±10 minutos del ADR-003 solo justifican el fallback sin referencia. La ventana aplicada a una referencia presente en transferencias y pagos está pendiente de decisión del owner; mientras tanto, la coincidencia fuera de la fecha exacta va a revisión.
+- Ventana temporal con la referencia presente: **decidida**. Siete días para dos correos que comparten referencia y para el pago de tarjeta importado (decisión del owner del 2026-11-11, registrada en el issue #335). Sin referencia, el pago de tarjeta usa tres días, también decididos en el issue #335; el fallback del ADR-003 conserva sus ±10 minutos para compras y transferencias.
 - Ruta manual ante un pago parecido: opciones (A) bloqueo con `duplicateAcknowledged`, (B) aviso sin bloqueo, (C) ruta intacta. Cambia la API y el objetivo de no duplicar; no está aprobada.
 - Comercio ausente en candidatos de reverso: revisión; el ADR-003 lo exige y no se auto-vincula solo por monto, moneda y fecha.
 - Reverso de transferencias y de pagos de tarjeta: ruta específica fuera de estos cuatro issues; por ahora `REVERSAL_TARGET_NOT_SUPPORTED`.
@@ -379,28 +356,30 @@ El comercio es obligatorio para el auto-vínculo. Si el aviso no trae comercio, 
 
 ### 8.3 Implementado y probado
 
-| Unidad                  | Qué quedó                                                                                                                                                                                                                                                                                                | Evidencia                                                                              |
-| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
-| PR #340                 | Una sola pata de transferencia: cuenta por `accountNumberLast4`, `transferGroupId`, `legRole`, motivos estables, duplicado, contraparte legítima, conflicto de referencia y replay. El emparejamiento no se invoca.                                                                                      | `6c15b2f`; `resolve-transfer-import.spec.ts` y `finance-signal-consumer.spec.ts` en CI |
-| Pistas del clasificador | Esquema y prompt con `accountNumberLast4`, `CARD_PAYMENT`, fecha sugerida con procedencia y `reverseOfEmailMessageId`; la clasificación deriva la fecha del encabezado fuera del modelo y la transporta a la señal; la verificación humana acepta las mismas pistas y el aviso de pago no publica señal. | SHA del PR de esta unidad; pruebas de inteligencia en CI                               |
+| Flujo                          | Estado                              | Evidencia                                                                                                                |
+| ------------------------------ | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| Pago de tarjeta (#335)         | `IMPLEMENTADO-PROBADO` en `0c9b130` | Pruebas unitarias de la conciliación, del consumidor y del caso de uso; integración con dos patas, saldos y referencias. |
+| Transferencia (#334)           | `IMPLEMENTADO-PROBADO` en PR #340   | Una pata conocida, `legRole`, dedupe y contraparte legítima; el emparejamiento no se invoca.                             |
+| Pistas del clasificador (#343) | `IMPLEMENTADO-PROBADO`              | Fecha del encabezado como sugerencia con fuente; se conserva ausente la fecha de operación y se propaga a la señal.      |
+| Datos faltantes (#337)         | `PARCIALMENTE IMPLEMENTADO`         | La sugerencia llega desde el clasificador; la fila de revisión y la confirmación del consumidor siguen pendientes.       |
+| Reversos (#336)                | `NO_IMPLEMENTADO`                   | Sin cambios.                                                                                                             |
 
-Los casos `T-TRA`, `T-TAR`, `T-DAT` y `T-REV` son propuestos y no ejecutados: no hay una corrida completa del contrato. La QA sintética existente y CTR-02 se conservan en `temp/pr331-test-reports/` y no certifican estos cambios.
+Los casos `T-TRA`, `T-TAR`, `T-DAT` y `T-REV` siguen propuestos y no ejecutados como paquete completo. La QA sintética existente y CTR-02 se conservan en `temp/pr331-test-reports/` y no certifican estos cambios.
 
 ## 9. Evidencia actual y brechas
 
-| Afirmación del contrato                         | Código actual                                                                                                                                                                                                                                         | Estado                       |
-| ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- |
-| La transferencia resuelve una cuenta propia     | `resolveTransferAccount` compara `accountNumberLast4` con cuentas activas del usuario; no usa tarjeta, CASH ni cuenta por defecto (`resolve-transfer-import.ts`).                                                                                     | `IMPLEMENTADO` (PR #340)     |
-| La transferencia crea una sola pata con rol     | `executeUnpairedTransfer` crea el grupo y el repositorio persiste `legRole` (`prisma-ledger-import.repository.ts`).                                                                                                                                   | `IMPLEMENTADO` (PR #340)     |
-| El emparejamiento usa 3 días y 50/2 %           | `match-imported-transfers.ts:23-25` define la ventana y la tolerancia; `tryPairTransfer` no se invoca desde el consumidor.                                                                                                                            | `VERIFICADO` (código actual) |
-| La referencia compartida no descarta la pata    | `classifyTransferImport` compara referencia, tipo, cuenta, monto, moneda y fecha; la contraparte legítima se importa (`resolve-transfer-import.ts`).                                                                                                  | `IMPLEMENTADO` (PR #340)     |
-| El clasificador emite las pistas                | Esquema y prompt con `accountNumberLast4`, `CARD_PAYMENT`, fecha sugerida con procedencia y `reverseOfEmailMessageId` (`email-classification.util.ts`, `ai-email-classification.service.ts`).                                                         | `IMPLEMENTADO` (esta unidad) |
-| El aviso de pago no crea movimiento             | El recordatorio se etiqueta sin transacción y no publica señal de Finance (`publishesFinanceSignal`).                                                                                                                                                 | `IMPLEMENTADO` con pruebas   |
-| El pago de tarjeta reutiliza dos patas          | La ruta manual existe (`create-card-payment.use-case.ts`, `prisma-ledger-write.repository.ts:413-524`); el correo no tiene ruta.                                                                                                                      | `NO_IMPLEMENTADO` (#335)     |
-| La fecha del encabezado es solo sugerencia      | La clasificación completa `suggestedTransactionDate` con `EMAIL_HEADER` desde `receivedAt` y conserva `transactionDate` ausente; la fila de revisión y la confirmación faltan (`email-classification.util.ts`, `ai-email-classification.service.ts`). | `PARCIALMENTE_IMPLEMENTADO`  |
-| El reverso sigue la cadena del ADR-003          | El consumidor solo busca por referencia y cae a `bankReference` (`finance-signal-consumer.ts:440-470`); `reverseOfEmailMessageId` ya viaja en la etiqueta pero no se consulta.                                                                        | `PARCIALMENTE_IMPLEMENTADO`  |
-| El reverso filtra tipo, transferencia y tarjeta | `findCandidatesForReverse` filtra usuario, estado, moneda, monto y ±14 días; no filtra tipo ni grupo (`prisma-ledger-read.repository.ts:338-366`).                                                                                                    | `PARCIALMENTE_IMPLEMENTADO`  |
-| La pata de tarjeta no repite `importReference`  | La clave única `(userId, importReference)` existe (`schema.prisma:811`); la ruta de correo no está implementada.                                                                                                                                      | `NO_IMPLEMENTADO`            |
+| Afirmación del contrato                         | Código actual                                                                                                                                                                       | Estado                       |
+| ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- |
+| La transferencia resuelve una cuenta propia     | `resolveTransferAccount` compara `accountNumberLast4` con cuentas activas del usuario; no usa tarjeta, CASH ni cuenta por defecto (`resolve-transfer-import.ts`).                   | `IMPLEMENTADO` (PR #340)     |
+| La transferencia crea una sola pata con rol     | `executeUnpairedTransfer` crea el grupo y el repositorio persiste `legRole` (`prisma-ledger-import.repository.ts`).                                                                 | `IMPLEMENTADO` (PR #340)     |
+| El emparejamiento usa 3 días y 50/2 %           | `match-imported-transfers.ts:23-25` define la ventana y la tolerancia; `pickTransferMatch` exige un candidato único.                                                                | `VERIFICADO` (código actual) |
+| La referencia compartida no descarta la pata    | `classifyTransferImport` compara referencia, tipo, cuenta, monto, moneda y fecha; la contraparte legítima se importa (`resolve-transfer-import.ts`).                                | `IMPLEMENTADO` (PR #340)     |
+| El pago de tarjeta reutiliza dos patas          | El correo llama `ImportCardPaymentUseCase`, que decide y escribe con `createImportedCardPayment`: dos patas `CARD_PAYMENT`, `source EMAIL`, sin categoría, con bloqueo por usuario. | `VERIFICADO` (`0c9b130`)     |
+| El clasificador emite las pistas                | Esquema y prompt con `accountNumberLast4`, `CARD_PAYMENT`, fecha sugerida con procedencia y `reverseOfEmailMessageId`; aplica la fecha recibida fuera del modelo.                   | `IMPLEMENTADO` (PR #343)     |
+| La fecha del encabezado es solo sugerencia      | La clasificación completa `suggestedTransactionDate` con `EMAIL_HEADER` desde `receivedAt` y conserva `transactionDate` ausente; la fila y confirmación siguen pendientes.          | `PARCIALMENTE IMPLEMENTADO`  |
+| El reverso sigue la cadena del ADR-003          | El consumidor solo busca por referencia y cae a `bankReference` (`finance-signal-consumer.ts:440-470`); el helper de candidatos no se llama.                                        | `NO_IMPLEMENTADO`            |
+| El reverso filtra tipo, transferencia y tarjeta | `findCandidatesForReverse` filtra usuario, estado, moneda, monto y ±14 días; no filtra tipo ni grupo (`prisma-ledger-read.repository.ts:338-366`).                                  | `PARCIALMENTE_IMPLEMENTADO`  |
+| La pata de tarjeta no repite `importReference`  | `createCardPayment` escribe `importReference` solo en la pata `SOURCE`; la prueba de integración lo comprueba.                                                                      | `VERIFICADO` (`0c9b130`)     |
 
 La ventana de 3 días, la tolerancia de 50 o 2 % y la ventana de 10 minutos del ADR son comportamiento existente, no acuerdos nuevos. La ventana de ±14 días del reverso viene del ADR-003 y no se cambia por inferencia.
 
@@ -415,4 +394,85 @@ Los casos propuestos viven en el paquete local de revisión y se resumen en los 
 
 Un caso solo se marca PASS cuando el contrato está implementado y el caso se ejecutó completo en el SHA exacto. Un caso propuesto no es una prueba ejecutada.
 
-Las pruebas de esta unidad cubren el esquema de clasificación, el DTO de verificación humana, la señal publicada, la reclasificación y la proyección de conocimiento. Son pruebas de unidad y de contrato; no sustituyen los casos `T-*`.
+## 11. Selección acotada de muestra (piloto BHD)
+
+- Estado: `IMPLEMENTADO-PROBADO` solo para esta operación. Los cuatro flujos de
+  las secciones 3 a 6 siguen `NO_IMPLEMENTADO`.
+- Fecha: 2026-11-11.
+- Issue: [#342](https://github.com/jarvinc3/personal-os-back/issues/342).
+- Ruta: `POST /api/intelligence/email/sample-import`.
+
+### 11.1 Selección
+
+Una llamada usa una sola forma de selección:
+
+- `messageIds`: lista explícita. Tope 20. Más de 20 responde 400 sin tocar nada.
+- `sender` con `dateFrom` y `dateTo`: ventana de fechas sobre la recepción.
+
+Enviar las dos formas, o ninguna, responde 400. El remitente se compara exacto con
+`fromDomain` o con `fromAddress`, sin distinguir mayúsculas. No hay coincidencia
+por semejanza ni por nombre de institución. Solo entran correos del usuario
+autenticado.
+
+### 11.2 Vista previa (`dryRun: true`)
+
+- Reclasifica con el modelo todos los correos seleccionados, también los que ya
+  tienen clasificación guardada, porque la guardada puede ser anterior a las
+  pistas nuevas.
+- No escribe nada: ni clasificaciones, ni observaciones, ni presupuesto de
+  modelo, ni telemetría de inferencia, ni señales, ni eventos de salida, ni
+  movimientos. La llamada al modelo viaja con `recordTelemetry: false`.
+- Devuelve un manifiesto por correo.
+
+La predicción del movimiento no repite las reglas: usa el mismo paso de decisión
+que la ejecución (`FinanceSignalConsumer.preview`). Vista previa y escritura
+comparten código, así el manifiesto no se separa del resultado.
+
+### 11.3 Ejecución (`dryRun: false`)
+
+- Procesa solo los ids de la lista. No amplía la selección por remitente ni por
+  plantilla ni reclasifica correos fuera de la lista.
+- Reclasifica cada correo seleccionado y reemplaza su clasificación guardada.
+- Publica la señal y aplica el movimiento llamando al consumidor de Finance en el
+  mismo proceso. La operación no depende de la cola para aplicar el movimiento.
+- Idempotente: la señal usa `email-{messageId}` y el import conserva su clave
+  única. Repetir la misma corrida devuelve `ALREADY_APPLIED` sin duplicar señal ni
+  movimiento.
+- La señal se registra en el evento de salida como en la clasificación normal. El
+  trabajo encolado no vuelve a aplicar el movimiento porque la señal queda
+  consumida.
+
+### 11.4 Manifiesto
+
+| Campo                             | Contenido                                                                                    |
+| --------------------------------- | -------------------------------------------------------------------------------------------- |
+| `messageId`                       | Id del correo pedido.                                                                        |
+| `status`                          | `INCLUDED` o `NOT_FOUND`.                                                                    |
+| `fromAddress`, `fromDomain`       | Remitente persistido.                                                                        |
+| `receivedAt`                      | Fecha de recepción del correo, no la de operación.                                           |
+| `classification`                  | Tipo, confianza, método, clase de movimiento, monto, moneda, fecha de operación y dirección. |
+| `classificationUnavailableReason` | Motivo cuando la clasificación no se pudo calcular.                                          |
+| `hints`                           | Referencia bancaria, comercio y `last4` observados.                                          |
+| `signal.published`                | Si el correo publicaría una señal `FINANCE.TRANSACTION_DETECTED`.                            |
+| `signal.reason`                   | Motivo cuando no publica.                                                                    |
+| `prediction`                      | Resultado previsto y, si aplica, el movimiento que crearía.                                  |
+| `execution`                       | Solo al ejecutar: resultado aplicado y id del movimiento.                                    |
+
+### 11.5 Diferencias posibles entre vista previa y ejecución
+
+- La clasificación se recalcula al ejecutar. El modelo puede devolver otra
+  confianza u otro tipo; el manifiesto de cada corrida es la evidencia.
+- Dos correos de la misma muestra pueden competir por el mismo movimiento. El
+  segundo ve el estado que dejó el primero.
+- El cierre de cajero automático y el reintento por clave duplicada se resuelven
+  al escribir, no en la predicción.
+
+### 11.6 Límites
+
+- Solo entornos que no sean producción: la ruta responde 404 cuando
+  `NODE_ENV=production`.
+- Un solo escritor y una corrida a la vez sobre la misma base.
+- `POST /email/sync` y `POST /email/reset` no se usan.
+- La operación no implementa las secciones 3 a 6: si el correo necesita
+  transferencia con cuenta, pago de tarjeta o reverso, el resultado depende de lo
+  que esas secciones todavía no resuelven.

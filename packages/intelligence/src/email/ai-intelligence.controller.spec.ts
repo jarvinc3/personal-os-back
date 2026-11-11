@@ -23,6 +23,7 @@ function makeController({
   const controller = new AiIntelligenceController(
     email as never,
     sync as never,
+    { run: jest.fn() } as never,
     config as never,
   );
   const redirect = jest.fn((url: string) => url);
