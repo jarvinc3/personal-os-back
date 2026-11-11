@@ -26,6 +26,46 @@ const RETENTION_DAYS = 90;
 const FINGERPRINT_VERSION = 'v1';
 const MAX_REPORTED_ISSUES = 5;
 const MAX_DETAIL_LENGTH = 200;
+const RATE_LIMIT_STATUS = 429;
+const PAYMENT_REQUIRED_STATUS = 402;
+const DEFAULT_RATE_LIMIT_COOLDOWN_MS = 60_000;
+const DEFAULT_QUOTA_COOLDOWN_MS = 30 * 60_000;
+
+/**
+ * Lee el `Retry-After` de un error del proveedor, en segundos o como fecha HTTP.
+ * Es la espera que pide el proveedor antes de recibir otra llamada.
+ */
+function retryAfterMs(error: unknown): number | null {
+  const header = readRetryAfterHeader(error);
+  if (header === null) {
+    return null;
+  }
+  const seconds = Number(header);
+  if (Number.isFinite(seconds) && seconds >= 0) {
+    return Math.round(seconds * 1_000);
+  }
+  const date = Date.parse(header);
+  if (Number.isNaN(date)) {
+    return null;
+  }
+  const remainingMs = date - Date.now();
+  return remainingMs > 0 ? remainingMs : null;
+}
+
+function readRetryAfterHeader(error: unknown): string | null {
+  const headers =
+    (error as { headers?: unknown }).headers ??
+    (error as { response?: { headers?: unknown } }).response?.headers;
+  if (headers && typeof (headers as Headers).get === 'function') {
+    return (headers as Headers).get('retry-after');
+  }
+  if (headers && typeof headers === 'object') {
+    const record = headers as Record<string, unknown>;
+    const value = record['retry-after'] ?? record['Retry-After'];
+    return typeof value === 'string' ? value : null;
+  }
+  return null;
+}
 
 class InvalidOutputError extends Error {
   constructor(
@@ -123,6 +163,7 @@ function addDays(date: Date, days: number): Date {
 export class AiInferenceGateway {
   private readonly logger = new Logger(AiInferenceGateway.name);
   private roundRobinIndex = 0;
+  private readonly providerCooldownUntil = new Map<string, number>();
   private readonly telemetryKey: Buffer;
 
   constructor(
@@ -184,6 +225,7 @@ export class AiInferenceGateway {
             );
           }
 
+          this.providerCooldownUntil.delete(provider.name);
           const latencyMs = Date.now() - startedAt;
           await this.persistTelemetry(request, {
             inputFingerprint,
@@ -213,6 +255,7 @@ export class AiInferenceGateway {
           lastErrorCode = 'PROVIDER_FAILURE';
           lastOutputDetail = null;
           lastHttpStatus = getProviderHttpStatus(error);
+          this.startCooldown(provider, error);
           if (!isRetryableProviderError(error)) {
             throw new StructuredInferenceProviderError(
               false,
@@ -225,10 +268,15 @@ export class AiInferenceGateway {
         }
       }
 
+      if (ordered.length === 0) {
+        lastErrorCode =
+          this.providers.length > 0 ? 'PROVIDER_COOLDOWN' : 'NO_PROVIDER';
+        throw new StructuredInferenceProviderError(false, null, null, 0, null);
+      }
+
       if (
-        ordered.length > 0 &&
-        (lastErrorCode === 'INVALID_JSON' ||
-          lastErrorCode === 'SCHEMA_VALIDATION')
+        lastErrorCode === 'INVALID_JSON' ||
+        lastErrorCode === 'SCHEMA_VALIDATION'
       ) {
         throw new StructuredInferenceOutputError(
           lastProvider?.name ?? null,
@@ -261,15 +309,18 @@ export class AiInferenceGateway {
   private orderedProviders(
     preferredProvider?: string | null,
   ): AIProviderClient[] {
-    const count = this.providers.length;
+    const available = this.providers.filter(
+      (provider) => !this.isCoolingDown(provider),
+    );
+    const count = available.length;
     if (count === 0) {
       return [];
     }
-    const start = this.roundRobinIndex;
-    this.roundRobinIndex = (this.roundRobinIndex + 1) % count;
+    const start = this.roundRobinIndex % count;
+    this.roundRobinIndex = (start + 1) % count;
     const rotated = Array.from(
       { length: count },
-      (_, index) => this.providers[(start + index) % count],
+      (_, index) => available[(start + index) % count],
     );
     if (!preferredProvider) {
       return rotated;
@@ -281,6 +332,31 @@ export class AiInferenceGateway {
     return preferred
       ? [preferred, ...rotated.filter((provider) => provider !== preferred)]
       : rotated;
+  }
+
+  private isCoolingDown(provider: AIProviderClient): boolean {
+    const until = this.providerCooldownUntil.get(provider.name) ?? 0;
+    return until > Date.now();
+  }
+
+  /**
+   * Un proveedor con límite o sin cupo deja de recibir llamadas hasta el
+   * momento que indica, para no repetir el mismo rechazo en cada inferencia.
+   * 402 es cupo y tarda en recuperarse; 429 es una ventana de ritmo.
+   */
+  private startCooldown(provider: AIProviderClient, error: unknown): void {
+    const status = getProviderHttpStatus(error);
+    const fallbackMs =
+      status === RATE_LIMIT_STATUS
+        ? DEFAULT_RATE_LIMIT_COOLDOWN_MS
+        : status === PAYMENT_REQUIRED_STATUS
+          ? DEFAULT_QUOTA_COOLDOWN_MS
+          : null;
+    if (fallbackMs === null) {
+      return;
+    }
+    const cooldownMs = retryAfterMs(error) ?? fallbackMs;
+    this.providerCooldownUntil.set(provider.name, Date.now() + cooldownMs);
   }
 
   private async persistTelemetry<T>(

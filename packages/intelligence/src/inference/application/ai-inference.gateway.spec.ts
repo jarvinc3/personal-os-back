@@ -352,4 +352,119 @@ describe('AiInferenceGateway', () => {
     const record = create.mock.calls[0][0].data as { errorCode?: string };
     expect(record.errorCode).toBe('PROVIDER_FAILURE');
   });
+
+  it('pauses a rate-limited provider and keeps serving with the next one', async () => {
+    const now = Date.parse('2026-11-11T20:00:00Z');
+    jest.spyOn(Date, 'now').mockImplementation(() => now);
+    const limited = {
+      name: 'Groq',
+      model: 'model-one',
+      chat: jest.fn(),
+      chatComplete: jest.fn().mockRejectedValue(
+        Object.assign(new Error('rate limit'), {
+          statusCode: 429,
+          headers: new Headers({ 'retry-after': '120' }),
+        }),
+      ),
+    };
+    const healthy = {
+      name: 'OpenRouter',
+      model: 'model-two',
+      chat: jest.fn(),
+      chatComplete: jest.fn().mockResolvedValue({
+        content: '{"value":"ok"}',
+        toolCalls: [],
+      }),
+    };
+    const { gateway, create } = build([limited, healthy]);
+
+    await expect(gateway.infer(request())).resolves.toMatchObject({
+      provider: 'OpenRouter',
+    });
+    await expect(gateway.infer(request())).resolves.toMatchObject({
+      provider: 'OpenRouter',
+    });
+
+    expect(limited.chatComplete).toHaveBeenCalledTimes(1);
+    expect(healthy.chatComplete).toHaveBeenCalledTimes(2);
+    const secondTelemetry = create.mock.calls[1][0].data as {
+      provider: string;
+    };
+    expect(secondTelemetry.provider).toBe('OpenRouter');
+    jest.restoreAllMocks();
+  });
+
+  it('parks a provider without quota and retries it after the default cooldown', async () => {
+    let now = Date.parse('2026-11-11T20:00:00Z');
+    jest.spyOn(Date, 'now').mockImplementation(() => now);
+    const noQuota = {
+      name: 'OpenRouter',
+      model: 'model-two',
+      chat: jest.fn(),
+      chatComplete: jest
+        .fn()
+        .mockRejectedValueOnce(
+          Object.assign(new Error('requires more credits'), {
+            statusCode: 402,
+          }),
+        )
+        .mockResolvedValue({ content: '{"value":"ok"}', toolCalls: [] }),
+    };
+    const { gateway, create } = build([noQuota]);
+
+    await expect(gateway.infer(request())).rejects.toMatchObject({
+      code: 'INFERENCE_PROVIDER_FAILURE',
+    });
+    await expect(gateway.infer(request())).rejects.toMatchObject({
+      code: 'INFERENCE_PROVIDER_FAILURE',
+    });
+    expect(noQuota.chatComplete).toHaveBeenCalledTimes(1);
+    const coolingTelemetry = create.mock.calls[1][0].data as {
+      errorCode?: string;
+    };
+    expect(coolingTelemetry.errorCode).toBe('PROVIDER_COOLDOWN');
+
+    now += 30 * 60_000;
+    await expect(gateway.infer(request())).resolves.toMatchObject({
+      provider: 'OpenRouter',
+    });
+    expect(noQuota.chatComplete).toHaveBeenCalledTimes(2);
+    jest.restoreAllMocks();
+  });
+
+  it('honors a Retry-After date before calling the paused provider again', async () => {
+    let now = Date.parse('2026-11-11T20:00:00Z');
+    jest.spyOn(Date, 'now').mockImplementation(() => now);
+    const limited = {
+      name: 'Groq',
+      model: 'model-one',
+      chat: jest.fn(),
+      chatComplete: jest
+        .fn()
+        .mockRejectedValueOnce(
+          Object.assign(new Error('too many requests'), {
+            status: 429,
+            response: {
+              headers: { 'Retry-After': new Date(now + 90_000).toUTCString() },
+            },
+          }),
+        )
+        .mockResolvedValue({ content: '{"value":"ok"}', toolCalls: [] }),
+    };
+    const { gateway } = build([limited]);
+
+    await expect(gateway.infer(request())).rejects.toMatchObject({
+      code: 'INFERENCE_PROVIDER_FAILURE',
+    });
+    await expect(gateway.infer(request())).rejects.toMatchObject({
+      code: 'INFERENCE_PROVIDER_FAILURE',
+    });
+    expect(limited.chatComplete).toHaveBeenCalledTimes(1);
+
+    now += 91_000;
+    await expect(gateway.infer(request())).resolves.toMatchObject({
+      provider: 'Groq',
+    });
+    jest.restoreAllMocks();
+  });
 });
