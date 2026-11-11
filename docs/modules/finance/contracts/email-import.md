@@ -1,12 +1,13 @@
 # Importación por correo: transferencias, pagos, datos faltantes y reversos
 
-- Estado: contrato acordado; `NO_IMPLEMENTADO`.
-- Fecha: 2026-11-08.
-- Base: `develop` `4dedfa933a5eaf2f249366c678b542eed14a8020`.
+- Estado: contrato acordado. La transferencia de una pata y las pistas del clasificador están `IMPLEMENTADO-PROBADO`; los demás flujos siguen `NO_IMPLEMENTADO`.
+- Fecha: 2026-11-11.
+- Base: `develop` `637dc4c16d3897888c953b0674fe90c8aa013130`.
+- Implementado en código: transferencia de una pata (PR #340, `6c15b2f`) y pistas del clasificador (esta unidad del piloto BHD).
 - Issues: [#334](https://github.com/jarvinc3/personal-os-back/issues/334), [#335](https://github.com/jarvinc3/personal-os-back/issues/335), [#337](https://github.com/jarvinc3/personal-os-back/issues/337), [#336](https://github.com/jarvinc3/personal-os-back/issues/336).
 - Evidencia de la unidad: paquete local de revisión, no versionado; el alcance público vive en los issues.
 
-Este documento fija el contrato objetivo de la importación por correo. No describe comportamiento desplegado. Los casos de prueba propuestos no están ejecutados y no se presentan como aprobados. La revisión independiente de Codex no es una aprobación. Sus hallazgos están incorporados en el paquete local y en este contrato.
+Este documento fija el contrato de la importación por correo. La transferencia de una pata y las pistas del clasificador ya existen en código con pruebas de unidad en CI; el resto del documento sigue siendo objetivo y no describe comportamiento desplegado. Los casos de prueba propuestos no están ejecutados y no se presentan como aprobados. La revisión independiente de Codex no es una aprobación. Sus hallazgos están incorporados en el paquete local y en este contrato.
 
 ## 1. Alcance y estados
 
@@ -19,11 +20,11 @@ Los cuatro acuerdos de producto son:
 
 El contrato separa tres estados:
 
-| Estado                 | Significado                                                                  |
-| ---------------------- | ---------------------------------------------------------------------------- |
-| `ACORDADO`             | Decisión de producto o diseño técnico derivado, con justificación.           |
-| `PENDIENTE CONCRETAR`  | Política abierta o ruta fuera de esta entrega; no se implementa por omisión. |
-| `IMPLEMENTADO-PROBADO` | Existe código y prueba en un SHA exacto. Hoy no hay filas en este estado.    |
+| Estado                 | Significado                                                                                                                                        |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ACORDADO`             | Decisión de producto o diseño técnico derivado, con justificación.                                                                                 |
+| `PENDIENTE CONCRETAR`  | Política abierta o ruta fuera de esta entrega; no se implementa por omisión.                                                                       |
+| `IMPLEMENTADO-PROBADO` | Existe código y prueba en un SHA exacto. Aplica a la transferencia de una pata (PR #340, `6c15b2f`) y a las pistas del clasificador (sección 2.1). |
 
 ## 2. Contrato de señal
 
@@ -54,9 +55,24 @@ Decisiones de nombre y forma:
 - La referencia bancaria no se vuelve obligatoria ni única. Dos patas de la misma operación pueden compartirla.
 - Los campos nuevos viajan en el JSON de clasificación y de señal. No requieren una columna nueva.
 
+### 2.1 Pistas del clasificador (IMPLEMENTADO)
+
+El esquema de clasificación (`packages/intelligence/src/email/email-classification.util.ts`) y la verificación humana (`human-verification-labels.dto.ts`) aceptan estas pistas; el prompt del clasificador las pide:
+
+- `accountNumberLast4`: terminación de la cuenta propia. Es distinto de `last4`, que queda para la tarjeta.
+- `movementClass` con `CARD_PAYMENT` en la lista cerrada.
+- `suggestedTransactionDate` con `suggestedTransactionDateSource`; en esta fase la única procedencia admitida es `EMAIL_HEADER`. La fecha y la procedencia van juntas o no van.
+- `reverseOfBankReference` y `reverseOfEmailMessageId`: referencia del original y correo original de un reverso.
+
+El prompt del clasificador pide estas pistas y prohíbe usar la fecha del encabezado como fecha de operación. El modelo no rellena `suggestedTransactionDate` ni su procedencia: las aporta el flujo que conoce el encabezado.
+
+Un recordatorio de pago o un aviso de corte se clasifica como `FIN_ACCOUNT_NOTICE` o `FIN_STATEMENT_NOTICE`, sin transacción. Un aviso sin transacción no publica señal de Finance, así que no crea movimiento ni fila de revisión. Solo un pago confirmado lleva `movementClass CARD_PAYMENT`.
+
+Estas pistas no cambian el consumidor de Finance. `CARD_PAYMENT`, la confirmación de la fecha sugerida y la cadena de reverso siguen pendientes en #335, #337 y #336. Mientras tanto, una señal con `CARD_PAYMENT` no se importa y no crea movimiento; cuando #335 la reciba, la falta de monto, fecha de operación o estado confirmado la manda a revisión.
+
 ## 3. Transferencias
 
-### 3.1 Resolución de la cuenta
+### 3.1 Resolución de la cuenta (`IMPLEMENTADO-PROBADO`, PR #340)
 
 - Solo cuentas activas del mismo usuario.
 - La pista `accountNumberLast4` se compara con la misma regla de `accountMatchesHint` que ya usa `resolve-ledger-target-from-hints.ts`.
@@ -70,7 +86,7 @@ Decisiones de nombre y forma:
 
 La cuenta debe ser inequívoca. Una pista parcial que coincide con varias cuentas no se resuelve por semejanza.
 
-### 3.2 Pata conocida
+### 3.2 Pata conocida (`IMPLEMENTADO-PROBADO`, PR #340)
 
 Se crea una sola fila en `fin_transactions`:
 
@@ -89,7 +105,7 @@ Se crea una sola fila en `fin_transactions`:
 
 No se crea la contraparte. La pata queda visible como transferencia no emparejada. El listado puede mostrarla con su `transferGroupId` y una marca de pendiente; la cola de revisión es para correos que no se pudieron importar, no para una pata válida ya registrada.
 
-### 3.3 Emparejamiento
+### 3.3 Emparejamiento (`NO_IMPLEMENTADO`)
 
 Cuando llega una segunda señal válida, se aplica el comportamiento actual de `match-imported-transfers.ts`:
 
@@ -105,6 +121,8 @@ Si hay exactamente un candidato, se vinculan las dos patas con el mismo `transfe
 
 La ventana de 3 días y la tolerancia de 50 o 2 % son comportamiento actual del código, no un acuerdo de producto nuevo. Se conservan mientras no exista una decisión explícita que las cambie.
 
+Estado: `NO_IMPLEMENTADO` en el consumidor. PR #340 conserva el helper pero no lo invoca (`tryPairTransfer`), así que una segunda pata válida queda registrada sin emparejar.
+
 ### 3.4 Dedupe
 
 - Replay de la misma señal: `fin_signal_import` existente, `ALREADY_APPLIED`, sin segunda fila.
@@ -115,6 +133,8 @@ La ventana de 3 días y la tolerancia de 50 o 2 % son comportamiento actual del 
 - Sin referencia: se usa el fallback del ADR-003 por destino, tipo, monto, moneda, comercio y fecha dentro de 10 minutos. Si el candidato es ambiguo, no se crea una segunda pata; se deja la evidencia para revisión.
 
 La referencia compartida no basta para descartar la segunda pata. El dedupe de transferencias compara referencia más tipo y cuenta, y además monto y moneda; lo que no es contraparte legítima va a revisión.
+
+Estado: `IMPLEMENTADO-PROBADO` para la referencia compartida, el duplicado y el conflicto (`resolve-transfer-import.ts` y `finance-signal-consumer.ts`, PR #340, `6c15b2f`). El fallback sin referencia conserva el comportamiento anterior.
 
 Ventana temporal con la referencia presente: PENDIENTE CONCRETAR. Los ±10 minutos del ADR-003 justifican solo el fallback sin referencia; el ADR no define una ventana para una referencia presente. Mientras el owner no decida, una coincidencia de referencia con los mismos atributos y fecha distinta va a `TRANSFER_REFERENCE_CONFLICT` para revisión; no se descarta y no se presenta como regla acordada.
 
@@ -131,6 +151,8 @@ Los motivos de transferencia (`TRANSFER_ACCOUNT_MISSING`, `TRANSFER_ACCOUNT_HINT
 ## 4. Pagos de tarjeta confirmados
 
 ### 4.1 Alcance y resolución
+
+Estado: `NO_IMPLEMENTADO` (#335). El clasificador ya admite y pide `CARD_PAYMENT` con `last4` de la tarjeta y `accountNumberLast4` de la cuenta de origen (sección 2.1); la importación de las dos patas falta.
 
 - Solo un correo que confirma un pago de tarjeta de crédito desde una cuenta propia.
 - Solo estados confirmados. Un aviso pendiente, un recordatorio o una fecha próxima no crean movimiento.
@@ -180,6 +202,7 @@ La ruta manual no cambia en este contrato. La opción de responder 409 y exigir 
 - Un recordatorio de pago o un aviso de corte no lleva `movementClass CARD_PAYMENT` y no crea movimiento.
 - El scheduler `CardPaymentRemindersScheduler` y el evento `finance.card_payment.due` son salientes y no cambian.
 - Si un recordatorio se clasifica por error como `CARD_PAYMENT`, la falta de monto, fecha de operación o estado confirmado lo manda a revisión; nunca crea un pago.
+- El clasificador ya distingue el aviso: un recordatorio o un aviso de corte se etiqueta como `FIN_ACCOUNT_NOTICE` o `FIN_STATEMENT_NOTICE`, sin transacción, y no publica señal de Finance (sección 2.1).
 - No se infiere un pago por la fecha próxima, el saldo pendiente o el corte.
 
 ## 5. Datos faltantes y fecha sugerida
@@ -193,8 +216,8 @@ La ruta manual no cambia en este contrato. La opción de responder 409 y exigir 
 
 ### 5.2 Campos y flujo
 
-- `suggestedTransactionDate` y `suggestedTransactionDateSource` viven en la clasificación y en la respuesta de revisión.
-- La procedencia `EMAIL_HEADER` la aporta el parser determinista; el modelo no la inventa.
+- `suggestedTransactionDate` y `suggestedTransactionDateSource` viven en la clasificación y en la respuesta de revisión. El esquema ya los admite y el prompt los pide sin inventarlos.
+- La procedencia `EMAIL_HEADER` la aporta el parser determinista; el modelo no la inventa. Hoy el parser todavía no la rellena y el consumidor todavía no la usa: el flujo de confirmación sigue `NO_IMPLEMENTADO` (#337).
 - Si existe `transactionDate`, manda esa fecha. La sugerencia se conserva como evidencia.
 - Si solo existe la sugerencia, el motivo es `TRANSACTION_DATE_SUGGESTED`. La cola y el detalle muestran la fecha y su procedencia.
 - La persona confirma o corrige con la verificación humana existente: `POST /api/intelligence/messages/:messageId/verifications` con `transaction.transactionDate`.
@@ -258,6 +281,7 @@ Reglas de la cadena:
 - Si la referencia apunta a una pata de transferencia, a un pago de tarjeta o a un original ya `REVERSED`, no se busca un candidato alternativo: se revisa o se devuelve `ALREADY_APPLIED`.
 - Si la referencia existe y no encuentra original, el caso queda en revisión `REVERSAL_REFERENCE_NOT_FOUND`; no se usa un candidato por heurística. La opción de continuar por el id de correo o candidatos queda PENDIENTE CONCRETAR y no se implementa como fallback automático.
 - Si no hay referencia, se busca por el id de correo y luego por candidatos; el paso usado queda en la evidencia.
+- El id del correo original ya viaja en la etiqueta como `reverseOfEmailMessageId` (sección 2.1). El consumidor todavía no lo consulta: la cadena de reverso sigue `NO_IMPLEMENTADO` (#336).
 - Un candidato único válido se vincula automáticamente. No se exige confirmación humana para todos los reversos.
 - Cero candidatos, varios candidatos o un candidato no elegible dejan el reverso en revisión sin compensar nada.
 
@@ -355,21 +379,28 @@ El comercio es obligatorio para el auto-vínculo. Si el aviso no trae comercio, 
 
 ### 8.3 Implementado y probado
 
-Ninguno de los cuatro flujos está implementado con este contrato. Los casos `T-TRA`, `T-TAR`, `T-DAT` y `T-REV` son propuestos y no ejecutados. La QA sintética existente y CTR-02 se conservan en `temp/pr331-test-reports/` y no certifican estos cambios.
+| Unidad                  | Qué quedó                                                                                                                                                                                                           | Evidencia                                                                              |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| PR #340                 | Una sola pata de transferencia: cuenta por `accountNumberLast4`, `transferGroupId`, `legRole`, motivos estables, duplicado, contraparte legítima, conflicto de referencia y replay. El emparejamiento no se invoca. | `6c15b2f`; `resolve-transfer-import.spec.ts` y `finance-signal-consumer.spec.ts` en CI |
+| Pistas del clasificador | Esquema y prompt con `accountNumberLast4`, `CARD_PAYMENT`, fecha sugerida con procedencia y `reverseOfEmailMessageId`; la verificación humana acepta las mismas pistas y el aviso de pago no publica señal.         | SHA del PR de esta unidad; pruebas de inteligencia en CI                               |
+
+Los casos `T-TRA`, `T-TAR`, `T-DAT` y `T-REV` son propuestos y no ejecutados: no hay una corrida completa del contrato. La QA sintética existente y CTR-02 se conservan en `temp/pr331-test-reports/` y no certifican estos cambios.
 
 ## 9. Evidencia actual y brechas
 
-| Afirmación del contrato                         | Código actual                                                                                                                                      | Estado                       |
-| ----------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- |
-| La transferencia resuelve una cuenta propia     | El consumidor pasa `accountNumberHint: null` y usa `last4` como tarjeta (`finance-signal-consumer.ts:178-205`).                                    | `NO_IMPLEMENTADO`            |
-| La transferencia crea una sola pata con rol     | `executeUnpairedTransfer` crea el grupo, pero `createImportedTransaction` no fija `legRole` (`prisma-ledger-import.repository.ts:57-95`).          | `PARCIALMENTE_IMPLEMENTADO`  |
-| El emparejamiento usa 3 días y 50/2 %           | `match-imported-transfers.ts:23-25` define la ventana y la tolerancia; `pickTransferMatch` exige un candidato único.                               | `VERIFICADO` (código actual) |
-| La referencia compartida no descarta la pata    | `findDedupeCandidate` busca por `externalReference` sin tipo ni cuenta (`prisma-ledger-read.repository.ts:407-440`).                               | `CONTRADICE_CODIGO`          |
-| El pago de tarjeta reutiliza dos patas          | La ruta manual existe (`create-card-payment.use-case.ts`, `prisma-ledger-write.repository.ts:413-524`); el correo no tiene ruta.                   | `NO_IMPLEMENTADO`            |
-| La fecha del encabezado es solo sugerencia      | El esquema de clasificación no tiene `suggestedTransactionDate` ni procedencia (`email-classification.util.ts:12-66`).                             | `NO_IMPLEMENTADO`            |
-| El reverso sigue la cadena del ADR-003          | El consumidor solo busca por referencia y cae a `bankReference` (`finance-signal-consumer.ts:440-470`); el helper de candidatos no se llama.       | `NO_IMPLEMENTADO`            |
-| El reverso filtra tipo, transferencia y tarjeta | `findCandidatesForReverse` filtra usuario, estado, moneda, monto y ±14 días; no filtra tipo ni grupo (`prisma-ledger-read.repository.ts:338-366`). | `PARCIALMENTE_IMPLEMENTADO`  |
-| La pata de tarjeta no repite `importReference`  | La clave única `(userId, importReference)` existe (`schema.prisma:811`); la ruta de correo no está implementada.                                   | `NO_IMPLEMENTADO`            |
+| Afirmación del contrato                         | Código actual                                                                                                                                                                                 | Estado                       |
+| ----------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- |
+| La transferencia resuelve una cuenta propia     | `resolveTransferAccount` compara `accountNumberLast4` con cuentas activas del usuario; no usa tarjeta, CASH ni cuenta por defecto (`resolve-transfer-import.ts`).                             | `IMPLEMENTADO` (PR #340)     |
+| La transferencia crea una sola pata con rol     | `executeUnpairedTransfer` crea el grupo y el repositorio persiste `legRole` (`prisma-ledger-import.repository.ts`).                                                                           | `IMPLEMENTADO` (PR #340)     |
+| El emparejamiento usa 3 días y 50/2 %           | `match-imported-transfers.ts:23-25` define la ventana y la tolerancia; `tryPairTransfer` no se invoca desde el consumidor.                                                                    | `VERIFICADO` (código actual) |
+| La referencia compartida no descarta la pata    | `classifyTransferImport` compara referencia, tipo, cuenta, monto, moneda y fecha; la contraparte legítima se importa (`resolve-transfer-import.ts`).                                          | `IMPLEMENTADO` (PR #340)     |
+| El clasificador emite las pistas                | Esquema y prompt con `accountNumberLast4`, `CARD_PAYMENT`, fecha sugerida con procedencia y `reverseOfEmailMessageId` (`email-classification.util.ts`, `ai-email-classification.service.ts`). | `IMPLEMENTADO` (esta unidad) |
+| El aviso de pago no crea movimiento             | El recordatorio se etiqueta sin transacción y no publica señal de Finance (`publishesFinanceSignal`).                                                                                         | `IMPLEMENTADO` con pruebas   |
+| El pago de tarjeta reutiliza dos patas          | La ruta manual existe (`create-card-payment.use-case.ts`, `prisma-ledger-write.repository.ts:413-524`); el correo no tiene ruta.                                                              | `NO_IMPLEMENTADO` (#335)     |
+| La fecha del encabezado es solo sugerencia      | El esquema y el prompt ya admiten `suggestedTransactionDate` y su procedencia; la fila de revisión y la confirmación faltan (`email-classification.util.ts`).                                 | `PARCIALMENTE_IMPLEMENTADO`  |
+| El reverso sigue la cadena del ADR-003          | El consumidor solo busca por referencia y cae a `bankReference` (`finance-signal-consumer.ts:440-470`); `reverseOfEmailMessageId` ya viaja en la etiqueta pero no se consulta.                | `PARCIALMENTE_IMPLEMENTADO`  |
+| El reverso filtra tipo, transferencia y tarjeta | `findCandidatesForReverse` filtra usuario, estado, moneda, monto y ±14 días; no filtra tipo ni grupo (`prisma-ledger-read.repository.ts:338-366`).                                            | `PARCIALMENTE_IMPLEMENTADO`  |
+| La pata de tarjeta no repite `importReference`  | La clave única `(userId, importReference)` existe (`schema.prisma:811`); la ruta de correo no está implementada.                                                                              | `NO_IMPLEMENTADO`            |
 
 La ventana de 3 días, la tolerancia de 50 o 2 % y la ventana de 10 minutos del ADR son comportamiento existente, no acuerdos nuevos. La ventana de ±14 días del reverso viene del ADR-003 y no se cambia por inferencia.
 
@@ -383,3 +414,5 @@ Los casos propuestos viven en el paquete local de revisión y se resumen en los 
 - `T-REV`: referencia, correo, candidato único, cero, varios, referencia explícita sin match, comercio ausente, transferencia, pago de tarjeta, parcial, otro usuario, fuera de ventana y replay.
 
 Un caso solo se marca PASS cuando el contrato está implementado y el caso se ejecutó completo en el SHA exacto. Un caso propuesto no es una prueba ejecutada.
+
+Las pruebas de esta unidad cubren el esquema de clasificación, el DTO de verificación humana, la señal publicada, la reclasificación y la proyección de conocimiento. Son pruebas de unidad y de contrato; no sustituyen los casos `T-*`.

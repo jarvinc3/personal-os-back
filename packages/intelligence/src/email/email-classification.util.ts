@@ -4,8 +4,10 @@ import type { JsonObject } from '@personal-os/contracts';
 import {
   SEMANTIC_ROUTES,
   SEMANTIC_TYPES,
+  SUGGESTED_TRANSACTION_DATE_SOURCES,
   TRANSACTION_DIRECTIONS,
   TRANSACTION_KINDS,
+  TRANSACTION_MOVEMENT_CLASSES,
 } from '../evidence/human-verification.constants';
 import type { SemanticRoute } from '../evidence/human-verification.constants';
 
@@ -18,6 +20,10 @@ const transactionSchema = z
       .regex(/^[A-Z]{3}$/)
       .optional(),
     transactionDate: z.iso.datetime().optional(),
+    suggestedTransactionDate: z.iso.datetime().optional(),
+    suggestedTransactionDateSource: z
+      .enum(SUGGESTED_TRANSACTION_DATE_SOURCES)
+      .optional(),
     direction: z.enum(TRANSACTION_DIRECTIONS).optional(),
     merchant: z.string().trim().min(1).max(160).optional(),
     bankReference: z.string().trim().min(1).max(120).optional(),
@@ -25,19 +31,11 @@ const transactionSchema = z
       .string()
       .regex(/^\d{4}$/)
       .optional(),
-    movementClass: z
-      .enum([
-        'PURCHASE',
-        'INCOME',
-        'PAYROLL',
-        'ATM_WITHDRAWAL',
-        'TRANSFER_OUT',
-        'TRANSFER_IN',
-        'FEE',
-        'REFUND',
-        'OTHER',
-      ])
+    accountNumberLast4: z
+      .string()
+      .regex(/^\d{4}$/)
       .optional(),
+    movementClass: z.enum(TRANSACTION_MOVEMENT_CLASSES).optional(),
     bankStatusNormalized: z
       .enum([
         'APPROVED',
@@ -60,6 +58,7 @@ const transactionSchema = z
     statusConfidence: z.number().min(0).max(1).optional(),
     statusEvidence: z.string().trim().max(240).optional(),
     reverseOfBankReference: z.string().trim().min(1).max(120).optional(),
+    reverseOfEmailMessageId: z.string().trim().min(1).max(512).optional(),
     receivedAmount: z.number().positive().optional(),
     transferExchangeRate: z.number().positive().optional(),
     categoryNameHint: z.string().trim().min(1).max(80).optional(),
@@ -155,6 +154,14 @@ function classificationRuleViolation(
   ) {
     return 'classification is missing its required route';
   }
+  const suggestion = parsed.transaction?.suggestedTransactionDate;
+  const suggestionSource = parsed.transaction?.suggestedTransactionDateSource;
+  if (suggestion && !suggestionSource) {
+    return 'suggested transaction date requires its source';
+  }
+  if (suggestionSource && !suggestion) {
+    return 'transaction date source requires a suggested date';
+  }
   return null;
 }
 
@@ -242,7 +249,7 @@ export function isRecallAuditSample(messageId: string, rate = 100): boolean {
 export const EMAIL_CLASSIFICATION_VERSIONS = {
   pipeline: 'email-classification-v1',
   detector: 'email-relevance-detector-v1',
-  prompt: 'email-classification-prompt-v1',
-  schema: 'email-classification-schema-v1',
+  prompt: 'email-classification-prompt-v2',
+  schema: 'email-classification-schema-v2',
   parser: 'known-template-parser-v1',
 } as const;
