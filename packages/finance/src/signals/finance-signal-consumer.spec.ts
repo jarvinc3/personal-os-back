@@ -65,7 +65,7 @@ function setup(overrides: Record<string, unknown> = {}) {
     ...((overrides.ledger as Record<string, jest.Mock> | undefined) ?? {}),
   };
   const consumer = new FinanceSignalConsumer(
-    { ...prisma, ...overrides } as never,
+    { ...prisma, ...overrides },
     importEmail as never,
     ledger as never,
     reverseTransaction as never,
@@ -122,6 +122,146 @@ describe('FinanceSignalConsumer', () => {
         create: expect.objectContaining({
           status: 'REVIEW_REQUIRED',
           reviewReason: 'NO_LEDGER_TARGET',
+        }),
+      }),
+    );
+  });
+
+  it('keeps a candidate without an operation date and suggestion in review', async () => {
+    const { consumer, prisma, importEmail } = setup();
+    const noDate = {
+      ...signal,
+      payload: {
+        ...signal.payload,
+        transaction: {
+          ...(signal.payload.transaction as Record<string, unknown>),
+          transactionDate: undefined,
+        },
+      },
+    } as RoutedSignal;
+
+    await expect(consumer.consume(noDate)).resolves.toMatchObject({
+      outcome: 'REVIEW_REQUIRED',
+      reason: 'TRANSACTION_DATE_MISSING',
+    });
+
+    expect(importEmail.execute).not.toHaveBeenCalled();
+    expect(prisma.finSignalImport.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        create: expect.objectContaining({
+          reviewReason: 'TRANSACTION_DATE_MISSING',
+        }),
+      }),
+    );
+  });
+
+  it('shows an email header date as a suggestion without importing it', async () => {
+    const { consumer, prisma, importEmail } = setup();
+    const suggested = {
+      ...signal,
+      payload: {
+        ...signal.payload,
+        transaction: {
+          ...(signal.payload.transaction as Record<string, unknown>),
+          transactionDate: undefined,
+          suggestedTransactionDate: '2026-10-31T00:00:00.000Z',
+          suggestedTransactionDateSource: 'EMAIL_HEADER',
+        },
+      },
+    } as RoutedSignal;
+
+    await expect(consumer.consume(suggested)).resolves.toMatchObject({
+      outcome: 'REVIEW_REQUIRED',
+      reason: 'TRANSACTION_DATE_SUGGESTED',
+    });
+
+    expect(importEmail.execute).not.toHaveBeenCalled();
+    expect(prisma.finSignalImport.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        create: expect.objectContaining({
+          status: 'REVIEW_REQUIRED',
+          reviewReason: 'TRANSACTION_DATE_SUGGESTED',
+          candidate: expect.objectContaining({
+            transaction: expect.objectContaining({
+              suggestedTransactionDate: '2026-10-31T00:00:00.000Z',
+              suggestedTransactionDateSource: 'EMAIL_HEADER',
+            }),
+            financeImportEvidence: expect.objectContaining({
+              suggestedTransactionDate: '2026-10-31T00:00:00.000Z',
+              suggestedTransactionDateSource: 'EMAIL_HEADER',
+            }),
+          }),
+        }),
+      }),
+    );
+  });
+
+  it('uses a confirmed operation date and preserves the original suggestion', async () => {
+    const { consumer, importEmail } = setup();
+    const confirmed = {
+      ...signal,
+      payload: {
+        ...signal.payload,
+        transaction: {
+          ...(signal.payload.transaction as Record<string, unknown>),
+          transactionDate: '2026-11-03T00:00:00.000Z',
+          suggestedTransactionDate: '2026-10-31T00:00:00.000Z',
+          suggestedTransactionDateSource: 'EMAIL_HEADER',
+        },
+      },
+    } as RoutedSignal;
+
+    await expect(consumer.consume(confirmed)).resolves.toMatchObject({
+      outcome: 'APPLIED',
+    });
+
+    expect(importEmail.execute).toHaveBeenCalledWith(
+      'user-1',
+      expect.objectContaining({
+        transactionDate: new Date('2026-11-03T00:00:00.000Z'),
+        aiMetadata: expect.objectContaining({
+          suggestedTransactionDate: '2026-10-31T00:00:00.000Z',
+          suggestedTransactionDateSource: 'EMAIL_HEADER',
+        }),
+      }),
+    );
+  });
+
+  it('uses a stable ambiguous target reason and stores the candidate count as evidence', async () => {
+    const { consumer, prisma } = setup({
+      finCard: {
+        findMany: jest.fn().mockResolvedValue([
+          { id: 'card-1', lastFour: '4821' },
+          { id: 'card-2', lastFour: '4821' },
+        ]),
+      },
+    });
+    const ambiguous = {
+      ...signal,
+      payload: {
+        ...signal.payload,
+        transaction: {
+          ...(signal.payload.transaction as Record<string, unknown>),
+          last4: '4821',
+        },
+      },
+    } as RoutedSignal;
+
+    await expect(consumer.consume(ambiguous)).resolves.toMatchObject({
+      outcome: 'REVIEW_REQUIRED',
+      reason: 'AMBIGUOUS_LEDGER_TARGET',
+    });
+
+    expect(prisma.finSignalImport.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        create: expect.objectContaining({
+          reviewReason: 'AMBIGUOUS_LEDGER_TARGET',
+          candidate: expect.objectContaining({
+            financeImportEvidence: {
+              candidateCount: 2,
+              candidateIds: ['card-1', 'card-2'],
+            },
+          }),
         }),
       }),
     );
