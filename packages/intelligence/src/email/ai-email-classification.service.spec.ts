@@ -197,6 +197,55 @@ describe('AiEmailClassificationService', () => {
     expect(prisma).not.toHaveProperty('financeTransaction');
   });
 
+  it('fills the suggested date from the header and sends it to Finance', async () => {
+    const { service, prisma } = fixture({
+      inferenceValue: {
+        relevance: true,
+        semanticType: 'FIN_TRANSACTION',
+        routes: ['FINANCE'],
+        transaction: {
+          kind: 'TRANSACTION',
+          amount: 1_500,
+          currency: 'DOP',
+          direction: 'DEBIT',
+        },
+        confidence: 0.9,
+      },
+    });
+
+    await service.processPendingForUser('user-1');
+
+    const storedRows = prisma.aiEmailClassification.createMany.mock.calls[0][0]
+      .data as Array<{ transaction: Record<string, unknown> }>;
+    expect(storedRows[0].transaction).toMatchObject({
+      suggestedTransactionDate: '2026-10-01T12:00:00.000Z',
+      suggestedTransactionDateSource: 'EMAIL_HEADER',
+    });
+    expect(storedRows[0].transaction).not.toHaveProperty('transactionDate');
+
+    const signal = prisma.aiSignal.createMany.mock.calls[0][0].data[0] as {
+      payload: { transaction: Record<string, unknown> };
+    };
+    expect(signal.payload.transaction).toMatchObject({
+      suggestedTransactionDate: '2026-10-01T12:00:00.000Z',
+      suggestedTransactionDateSource: 'EMAIL_HEADER',
+    });
+    expect(signal.payload.transaction).not.toHaveProperty('transactionDate');
+
+    expect(prisma.aiEmailMessage.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          classification: expect.objectContaining({
+            transaction: expect.objectContaining({
+              suggestedTransactionDate: '2026-10-01T12:00:00.000Z',
+              suggestedTransactionDateSource: 'EMAIL_HEADER',
+            }),
+          }),
+        }),
+      }),
+    );
+  });
+
   it('leaves a message queued and avoids inference when the daily budget is exhausted', async () => {
     const { service, inference, prisma } = fixture({ budgetAvailable: false });
     await service.processPendingForUser('user-1');

@@ -2,8 +2,10 @@ import { z } from 'zod';
 import {
   SEMANTIC_ROUTES,
   SEMANTIC_TYPES,
+  SUGGESTED_TRANSACTION_DATE_SOURCES,
   TRANSACTION_DIRECTIONS,
   TRANSACTION_KINDS,
+  TRANSACTION_MOVEMENT_CLASSES,
 } from '../evidence/human-verification.constants';
 
 export const SANITIZER_VERSION = 'global-knowledge-sanitizer-v1';
@@ -29,6 +31,17 @@ const userLabel = structuralLabel.extend({
         .string()
         .regex(/^\d{4}$/)
         .optional(),
+      accountNumberLast4: z
+        .string()
+        .regex(/^\d{4}$/)
+        .optional(),
+      movementClass: z.enum(TRANSACTION_MOVEMENT_CLASSES).optional(),
+      suggestedTransactionDate: z.iso.datetime().optional(),
+      suggestedTransactionDateSource: z
+        .enum(SUGGESTED_TRANSACTION_DATE_SOURCES)
+        .optional(),
+      reverseOfBankReference: z.string().optional(),
+      reverseOfEmailMessageId: z.string().optional(),
     })
     .optional(),
 });

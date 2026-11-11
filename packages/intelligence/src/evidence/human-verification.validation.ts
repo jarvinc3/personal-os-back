@@ -25,6 +25,7 @@ export function assertHumanVerificationLabels(
     throw new BadRequestException('El tipo Otro requiere una nota');
   }
   assertTransactionMatchesSemanticType(input);
+  assertSuggestedTransactionDatePairing(input);
   assertSecurityRelevance(input);
 }
 
@@ -69,6 +70,21 @@ function assertTransactionMatchesSemanticType(
   if (input.transaction !== undefined) {
     throw new BadRequestException('Este tipo no admite transacción');
   }
+}
+
+function assertSuggestedTransactionDatePairing(
+  input: HumanVerificationLabelsDto,
+): void {
+  const hasSuggestedDate =
+    input.transaction?.suggestedTransactionDate !== undefined;
+  const hasSource =
+    input.transaction?.suggestedTransactionDateSource !== undefined;
+  if (hasSuggestedDate === hasSource) {
+    return;
+  }
+  throw new BadRequestException(
+    'La fecha sugerida y su procedencia van juntas',
+  );
 }
 
 function assertSecurityRelevance(input: HumanVerificationLabelsDto): void {

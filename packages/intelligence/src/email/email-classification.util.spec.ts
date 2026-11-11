@@ -2,6 +2,7 @@ import {
   isRecallAuditSample,
   parseDeterministicEmail,
   validateEmailClassification,
+  withSuggestedTransactionDate,
 } from './email-classification.util';
 
 describe('Email classification rules', () => {
@@ -66,5 +67,243 @@ describe('Email classification rules', () => {
       semanticType: 'MARKETING',
       confidence: 0.98,
     });
+  });
+
+  it('keeps the account last4 apart from the card last4', () => {
+    const transfer = validateEmailClassification({
+      relevance: true,
+      semanticType: 'FIN_TRANSACTION',
+      routes: ['FINANCE'],
+      transaction: {
+        kind: 'TRANSACTION',
+        movementClass: 'TRANSFER_OUT',
+        accountNumberLast4: '9012',
+      },
+      confidence: 0.9,
+    });
+    expect(transfer.transaction).toMatchObject({
+      movementClass: 'TRANSFER_OUT',
+      accountNumberLast4: '9012',
+    });
+    expect(transfer.transaction).not.toHaveProperty('last4');
+    expect(() =>
+      validateEmailClassification({
+        relevance: true,
+        semanticType: 'FIN_TRANSACTION',
+        routes: ['FINANCE'],
+        transaction: { kind: 'TRANSACTION', accountNumberLast4: '12' },
+        confidence: 0.9,
+      }),
+    ).toThrow();
+  });
+
+  it('accepts a confirmed card payment with its card and source account', () => {
+    const payment = validateEmailClassification({
+      relevance: true,
+      semanticType: 'FIN_TRANSACTION',
+      routes: ['FINANCE'],
+      transaction: {
+        kind: 'TRANSACTION',
+        amount: 5_200,
+        currency: 'DOP',
+        transactionDate: '2026-11-10T12:00:00.000Z',
+        direction: 'DEBIT',
+        movementClass: 'CARD_PAYMENT',
+        last4: '4821',
+        accountNumberLast4: '9012',
+        bankStatusNormalized: 'POSTED',
+      },
+      confidence: 0.92,
+    });
+    expect(payment.transaction).toMatchObject({
+      movementClass: 'CARD_PAYMENT',
+      last4: '4821',
+      accountNumberLast4: '9012',
+    });
+    expect(() =>
+      validateEmailClassification({
+        relevance: true,
+        semanticType: 'FIN_TRANSACTION',
+        routes: ['FINANCE'],
+        transaction: { kind: 'TRANSACTION', movementClass: 'CARD_PAYMENT_V2' },
+        confidence: 0.9,
+      }),
+    ).toThrow();
+  });
+
+  it('accepts a payment reminder as a notice without a movement', () => {
+    const reminder = validateEmailClassification({
+      relevance: true,
+      semanticType: 'FIN_ACCOUNT_NOTICE',
+      routes: ['FINANCE'],
+      confidence: 0.95,
+    });
+    expect(reminder.transaction).toBeUndefined();
+    expect(() =>
+      validateEmailClassification({
+        relevance: true,
+        semanticType: 'FIN_ACCOUNT_NOTICE',
+        routes: ['FINANCE'],
+        transaction: { kind: 'TRANSACTION', movementClass: 'CARD_PAYMENT' },
+        confidence: 0.95,
+      }),
+    ).toThrow();
+  });
+
+  it('requires the source together with the suggested date', () => {
+    const suggested = validateEmailClassification({
+      relevance: true,
+      semanticType: 'FIN_TRANSACTION',
+      routes: ['FINANCE'],
+      transaction: {
+        kind: 'TRANSACTION',
+        suggestedTransactionDate: '2026-11-08T00:00:00.000Z',
+        suggestedTransactionDateSource: 'EMAIL_HEADER',
+      },
+      confidence: 0.9,
+    });
+    expect(suggested.transaction).toMatchObject({
+      suggestedTransactionDate: '2026-11-08T00:00:00.000Z',
+      suggestedTransactionDateSource: 'EMAIL_HEADER',
+    });
+    expect(() =>
+      validateEmailClassification({
+        relevance: true,
+        semanticType: 'FIN_TRANSACTION',
+        routes: ['FINANCE'],
+        transaction: {
+          kind: 'TRANSACTION',
+          suggestedTransactionDate: '2026-11-08T00:00:00.000Z',
+        },
+        confidence: 0.9,
+      }),
+    ).toThrow();
+    expect(() =>
+      validateEmailClassification({
+        relevance: true,
+        semanticType: 'FIN_TRANSACTION',
+        routes: ['FINANCE'],
+        transaction: {
+          kind: 'TRANSACTION',
+          suggestedTransactionDateSource: 'EMAIL_HEADER',
+        },
+        confidence: 0.9,
+      }),
+    ).toThrow();
+    expect(() =>
+      validateEmailClassification({
+        relevance: true,
+        semanticType: 'FIN_TRANSACTION',
+        routes: ['FINANCE'],
+        transaction: {
+          kind: 'TRANSACTION',
+          suggestedTransactionDate: '2026-11-08T00:00:00.000Z',
+          suggestedTransactionDateSource: 'EMAIL_BODY',
+        },
+        confidence: 0.9,
+      }),
+    ).toThrow();
+  });
+
+  it('derives the suggested date from the header without inventing the operation date', () => {
+    const withoutOperationDate = validateEmailClassification({
+      relevance: true,
+      semanticType: 'FIN_TRANSACTION',
+      routes: ['FINANCE'],
+      transaction: {
+        kind: 'TRANSACTION',
+        amount: 1_500,
+        currency: 'DOP',
+        direction: 'DEBIT',
+      },
+      confidence: 0.9,
+    });
+
+    const enriched = withSuggestedTransactionDate({
+      classification: withoutOperationDate,
+      receivedAt: new Date('2026-11-10T12:00:00.000Z'),
+    });
+
+    expect(enriched.transaction).toMatchObject({
+      suggestedTransactionDate: '2026-11-10T12:00:00.000Z',
+      suggestedTransactionDateSource: 'EMAIL_HEADER',
+    });
+    expect(enriched.transaction).not.toHaveProperty('transactionDate');
+  });
+
+  it('keeps the operation date stated in the email', () => {
+    const withOperationDate = validateEmailClassification({
+      relevance: true,
+      semanticType: 'FIN_TRANSACTION',
+      routes: ['FINANCE'],
+      transaction: {
+        kind: 'TRANSACTION',
+        amount: 1_500,
+        currency: 'DOP',
+        direction: 'DEBIT',
+        transactionDate: '2026-11-09T09:00:00.000Z',
+      },
+      confidence: 0.9,
+    });
+
+    const enriched = withSuggestedTransactionDate({
+      classification: withOperationDate,
+      receivedAt: new Date('2026-11-10T12:00:00.000Z'),
+    });
+
+    expect(enriched.transaction).toMatchObject({
+      transactionDate: '2026-11-09T09:00:00.000Z',
+      suggestedTransactionDate: '2026-11-10T12:00:00.000Z',
+      suggestedTransactionDateSource: 'EMAIL_HEADER',
+    });
+  });
+
+  it('does not suggest a date when the email has no transaction', () => {
+    const notice = validateEmailClassification({
+      relevance: true,
+      semanticType: 'FIN_ACCOUNT_NOTICE',
+      routes: ['FINANCE'],
+      confidence: 0.95,
+    });
+
+    expect(
+      withSuggestedTransactionDate({
+        classification: notice,
+        receivedAt: new Date('2026-11-10T12:00:00.000Z'),
+      }),
+    ).toEqual(notice);
+  });
+
+  it('accepts the reference of the original email in a reversal', () => {
+    const reversal = validateEmailClassification({
+      relevance: true,
+      semanticType: 'FIN_TRANSACTION',
+      routes: ['FINANCE'],
+      transaction: {
+        kind: 'TRANSACTION',
+        amount: 1_500,
+        currency: 'DOP',
+        transactionDate: '2026-11-09T12:00:00.000Z',
+        direction: 'CREDIT',
+        movementClass: 'REFUND',
+        bankStatusNormalized: 'REVERSED',
+        reverseOfBankReference: 'BHD-7788',
+        reverseOfEmailMessageId: '18f0c2a9b7d34e56',
+      },
+      confidence: 0.9,
+    });
+    expect(reversal.transaction).toMatchObject({
+      reverseOfBankReference: 'BHD-7788',
+      reverseOfEmailMessageId: '18f0c2a9b7d34e56',
+    });
+    expect(() =>
+      validateEmailClassification({
+        relevance: true,
+        semanticType: 'FIN_TRANSACTION',
+        routes: ['FINANCE'],
+        transaction: { kind: 'TRANSACTION', reverseOfEmailMessageId: '   ' },
+        confidence: 0.9,
+      }),
+    ).toThrow();
   });
 });

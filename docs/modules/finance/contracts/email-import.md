@@ -1,8 +1,8 @@
 # Importación por correo: transferencias, pagos, datos faltantes y reversos
 
-- Estado: contrato acordado; `NO_IMPLEMENTADO`.
-- Fecha: 2026-11-08.
-- Base: `develop` `4dedfa933a5eaf2f249366c678b542eed14a8020`.
+- Estado: contrato acordado. La transferencia de una pata (#340), el pago de tarjeta (#335) y la muestra con vista previa (#342) están implementados; este cambio completa las pistas de clasificación. La revisión de fecha y confirmación del consumidor sigue pendiente en #337.
+- Fecha: 2026-11-11.
+- Base integrada: `develop` `9f711eb4131c8ed9b3e6a21c05507e5f12a6f49f`.
 - Issues: [#334](https://github.com/jarvinc3/personal-os-back/issues/334), [#335](https://github.com/jarvinc3/personal-os-back/issues/335), [#337](https://github.com/jarvinc3/personal-os-back/issues/337), [#336](https://github.com/jarvinc3/personal-os-back/issues/336).
 - Evidencia de la unidad: paquete local de revisión, no versionado; el alcance público vive en los issues.
 
@@ -23,7 +23,7 @@ El contrato separa tres estados:
 | ---------------------- | ---------------------------------------------------------------------------- |
 | `ACORDADO`             | Decisión de producto o diseño técnico derivado, con justificación.           |
 | `PENDIENTE CONCRETAR`  | Política abierta o ruta fuera de esta entrega; no se implementa por omisión. |
-| `IMPLEMENTADO-PROBADO` | Existe código y prueba en un SHA exacto. Hoy no hay filas en este estado.    |
+| `IMPLEMENTADO-PROBADO` | Existe código y prueba en un SHA exacto.                                     |
 
 ## 2. Contrato de señal
 
@@ -194,7 +194,7 @@ La ruta manual no cambia en este contrato. La opción de responder 409 y exigir 
 ### 5.2 Campos y flujo
 
 - `suggestedTransactionDate` y `suggestedTransactionDateSource` viven en la clasificación y en la respuesta de revisión.
-- La procedencia `EMAIL_HEADER` la aporta el parser determinista; el modelo no la inventa.
+- La procedencia `EMAIL_HEADER` la aporta el flujo que conoce `receivedAt`, después de validar la salida; el modelo no la inventa.
 - Si existe `transactionDate`, manda esa fecha. La sugerencia se conserva como evidencia.
 - Si solo existe la sugerencia, el motivo es `TRANSACTION_DATE_SUGGESTED`. La cola y el detalle muestran la fecha y su procedencia.
 - La persona confirma o corrige con la verificación humana existente: `POST /api/intelligence/messages/:messageId/verifications` con `transaction.transactionDate`.
@@ -356,12 +356,13 @@ El comercio es obligatorio para el auto-vínculo. Si el aviso no trae comercio, 
 
 ### 8.3 Implementado y probado
 
-| Flujo                  | Estado                              | Evidencia                                                                                                                |
-| ---------------------- | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| Pago de tarjeta (#335) | `IMPLEMENTADO-PROBADO` en `0c9b130` | Pruebas unitarias de la conciliación, del consumidor y del caso de uso; integración con dos patas, saldos y referencias. |
-| Transferencia (#334)   | `NO_IMPLEMENTADO`                   | Sin cambios.                                                                                                             |
-| Datos faltantes (#337) | `NO_IMPLEMENTADO`                   | Sin cambios.                                                                                                             |
-| Reversos (#336)        | `NO_IMPLEMENTADO`                   | Sin cambios.                                                                                                             |
+| Flujo                          | Estado                              | Evidencia                                                                                                                |
+| ------------------------------ | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| Pago de tarjeta (#335)         | `IMPLEMENTADO-PROBADO` en `0c9b130` | Pruebas unitarias de la conciliación, del consumidor y del caso de uso; integración con dos patas, saldos y referencias. |
+| Transferencia (#334)           | `IMPLEMENTADO-PROBADO` en PR #340   | Una pata conocida, `legRole`, dedupe y contraparte legítima; el emparejamiento no se invoca.                             |
+| Pistas del clasificador (#343) | `IMPLEMENTADO-PROBADO`              | Fecha del encabezado como sugerencia con fuente; se conserva ausente la fecha de operación y se propaga a la señal.      |
+| Datos faltantes (#337)         | `PARCIALMENTE IMPLEMENTADO`         | La sugerencia llega desde el clasificador; la fila de revisión y la confirmación del consumidor siguen pendientes.       |
+| Reversos (#336)                | `NO_IMPLEMENTADO`                   | Sin cambios.                                                                                                             |
 
 Los casos `T-TRA`, `T-TAR`, `T-DAT` y `T-REV` siguen propuestos y no ejecutados como paquete completo. La QA sintética existente y CTR-02 se conservan en `temp/pr331-test-reports/` y no certifican estos cambios.
 
@@ -369,12 +370,13 @@ Los casos `T-TRA`, `T-TAR`, `T-DAT` y `T-REV` siguen propuestos y no ejecutados 
 
 | Afirmación del contrato                         | Código actual                                                                                                                                                                       | Estado                       |
 | ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- |
-| La transferencia resuelve una cuenta propia     | El consumidor pasa `accountNumberHint: null` y usa `last4` como tarjeta (`finance-signal-consumer.ts:178-205`).                                                                     | `NO_IMPLEMENTADO`            |
-| La transferencia crea una sola pata con rol     | `executeUnpairedTransfer` crea el grupo, pero `createImportedTransaction` no fija `legRole` (`prisma-ledger-import.repository.ts:57-95`).                                           | `PARCIALMENTE_IMPLEMENTADO`  |
+| La transferencia resuelve una cuenta propia     | `resolveTransferAccount` compara `accountNumberLast4` con cuentas activas del usuario; no usa tarjeta, CASH ni cuenta por defecto (`resolve-transfer-import.ts`).                   | `IMPLEMENTADO` (PR #340)     |
+| La transferencia crea una sola pata con rol     | `executeUnpairedTransfer` crea el grupo y el repositorio persiste `legRole` (`prisma-ledger-import.repository.ts`).                                                                 | `IMPLEMENTADO` (PR #340)     |
 | El emparejamiento usa 3 días y 50/2 %           | `match-imported-transfers.ts:23-25` define la ventana y la tolerancia; `pickTransferMatch` exige un candidato único.                                                                | `VERIFICADO` (código actual) |
-| La referencia compartida no descarta la pata    | `findDedupeCandidate` busca por `externalReference` sin tipo ni cuenta (`prisma-ledger-read.repository.ts:407-440`).                                                                | `CONTRADICE_CODIGO`          |
+| La referencia compartida no descarta la pata    | `classifyTransferImport` compara referencia, tipo, cuenta, monto, moneda y fecha; la contraparte legítima se importa (`resolve-transfer-import.ts`).                                | `IMPLEMENTADO` (PR #340)     |
 | El pago de tarjeta reutiliza dos patas          | El correo llama `ImportCardPaymentUseCase`, que decide y escribe con `createImportedCardPayment`: dos patas `CARD_PAYMENT`, `source EMAIL`, sin categoría, con bloqueo por usuario. | `VERIFICADO` (`0c9b130`)     |
-| La fecha del encabezado es solo sugerencia      | El esquema de clasificación no tiene `suggestedTransactionDate` ni procedencia (`email-classification.util.ts:12-66`).                                                              | `NO_IMPLEMENTADO`            |
+| El clasificador emite las pistas                | Esquema y prompt con `accountNumberLast4`, `CARD_PAYMENT`, fecha sugerida con procedencia y `reverseOfEmailMessageId`; aplica la fecha recibida fuera del modelo.                   | `IMPLEMENTADO` (PR #343)     |
+| La fecha del encabezado es solo sugerencia      | La clasificación completa `suggestedTransactionDate` con `EMAIL_HEADER` desde `receivedAt` y conserva `transactionDate` ausente; la fila y confirmación siguen pendientes.          | `PARCIALMENTE IMPLEMENTADO`  |
 | El reverso sigue la cadena del ADR-003          | El consumidor solo busca por referencia y cae a `bankReference` (`finance-signal-consumer.ts:440-470`); el helper de candidatos no se llama.                                        | `NO_IMPLEMENTADO`            |
 | El reverso filtra tipo, transferencia y tarjeta | `findCandidatesForReverse` filtra usuario, estado, moneda, monto y ±14 días; no filtra tipo ni grupo (`prisma-ledger-read.repository.ts:338-366`).                                  | `PARCIALMENTE_IMPLEMENTADO`  |
 | La pata de tarjeta no repite `importReference`  | `createCardPayment` escribe `importReference` solo en la pata `SOURCE`; la prueba de integración lo comprueba.                                                                      | `VERIFICADO` (`0c9b130`)     |

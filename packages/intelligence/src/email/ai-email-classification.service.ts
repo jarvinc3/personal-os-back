@@ -17,6 +17,7 @@ import {
   isRecallAuditSample,
   parseDeterministicEmail,
   validateEmailClassification,
+  withSuggestedTransactionDate,
   type EmailClassification,
 } from './email-classification.util';
 import {
@@ -43,7 +44,7 @@ const CLASSIFICATION_SYSTEM_PROMPT = [
   'Classify relevance, semantic type, and every applicable independent route.',
   'A one-time code is SECURITY_OTP and never a financial transaction.',
   'Only set transaction when the email itself contains a supported candidate; never create or import a financial movement.',
-  'For transaction candidates, preserve original amount/currency/date, bank reference, and any explicitly stated received amount or transfer exchange rate; classify movementClass and explicit bank status when visible. Mark transfer direction as TRANSFER_IN or TRANSFER_OUT. A confirmed credit card payment from an owned account uses movementClass CARD_PAYMENT with the card last4 and the source account accountNumberLast4; a reminder, a due notice or an upcoming date is not a payment. For a reversal, set bankStatusNormalized to REVERSED/REFUNDED/CHARGEBACK and include reverseOfBankReference only when the original reference is stated. Never invent missing values; omit uncertain fields and use low confidence.',
+  'For transaction candidates, preserve original amount/currency/date, bank reference, and any explicitly stated received amount or transfer exchange rate; classify movementClass and explicit bank status when visible. Set accountNumberLast4 from the last four digits of the owner account and set last4 only from the last four digits of a card. Mark transfer direction as TRANSFER_IN or TRANSFER_OUT. A confirmed credit card payment from an owned account uses movementClass CARD_PAYMENT with the card last4 and the source account accountNumberLast4; a reminder, a due date, a minimum payment or a statement cutoff is a notice with no transaction: use FIN_ACCOUNT_NOTICE or FIN_STATEMENT_NOTICE without a transaction. For a reversal, set bankStatusNormalized to REVERSED/REFUNDED/CHARGEBACK and include reverseOfBankReference only when the original reference is stated, and reverseOfEmailMessageId only when the original message id is stated. Never use the header date as transactionDate and never guess it: omit transactionDate when the operation date is not in the message; suggestedTransactionDate and its source are filled outside the model. Never invent missing values; omit uncertain fields and use low confidence.',
   'Use low confidence when evidence is incomplete or ambiguous.',
 ].join(' ');
 const MAX_EMAIL_CONTENT_CHARS = 24_000;
@@ -425,7 +426,10 @@ export class AiEmailClassificationService {
     }
     return {
       kind: 'computed',
-      classification: validateEmailClassification(classification),
+      classification: withSuggestedTransactionDate({
+        classification: validateEmailClassification(classification),
+        receivedAt: message.receivedAt,
+      }),
       method,
       provider,
       model,

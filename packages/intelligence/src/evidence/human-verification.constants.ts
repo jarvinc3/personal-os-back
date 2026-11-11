@@ -31,6 +31,25 @@ export const TRANSACTION_KINDS = [
 
 export const TRANSACTION_DIRECTIONS = ['DEBIT', 'CREDIT', 'TRANSFER'] as const;
 
+/**
+ * Clases de movimiento de la etiqueta. Finance mantiene su propia lista; allí
+ * CARD_PAYMENT llega con la importación de pagos (#335).
+ */
+export const TRANSACTION_MOVEMENT_CLASSES = [
+  'PURCHASE',
+  'INCOME',
+  'PAYROLL',
+  'ATM_WITHDRAWAL',
+  'TRANSFER_OUT',
+  'TRANSFER_IN',
+  'CARD_PAYMENT',
+  'FEE',
+  'REFUND',
+  'OTHER',
+] as const;
+
+export const SUGGESTED_TRANSACTION_DATE_SOURCES = ['EMAIL_HEADER'] as const;
+
 export const HUMAN_VERIFICATION_VERDICTS = [
   'CONFIRMED',
   'CORRECTED',
