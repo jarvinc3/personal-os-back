@@ -37,6 +37,14 @@ filas al borrar al usuario; el usuario también
 puede borrarlas desde la rama `ai.inferences` de `GET /api/users/me/data/branches`
 y `DELETE /api/users/me/data`.
 
+Cada fallo de proveedor deja una línea de log con proveedor, modelo, estado
+HTTP, si era reintentable, si se intentó el siguiente proveedor y una causa
+resumida: `rate_limit`, `quota`, `auth`, `server`, `network` o `unknown`. El
+mensaje del SDK se sanea y se trunca; nunca se registran claves, la cabecera
+`Authorization` ni cuerpos del proveedor. La telemetría del fallo final conserva
+el prefijo `PROVIDER_FAILURE` y añade `cause`, `status` y `retryable` al código;
+no guarda el mensaje crudo.
+
 ## Diagnóstico local
 
 Con al menos una clave de proveedor en `.env`, ejecutar `pnpm ai:diagnostic`.

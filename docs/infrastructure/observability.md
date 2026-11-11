@@ -11,3 +11,5 @@ Source maps: `pnpm sentry:sourcemaps` (`scripts/sentry/upload-sourcemaps.mjs`) s
 ## Logs
 
 Pino (`nestjs-pino`) con `requestId` en el envelope. Fallos de workers Bull vía `@OnWorkerEvent('failed')`.
+
+Los fallos de proveedores de IA registran una línea por intento con proveedor, modelo, estado HTTP, reintento, fallback y causa; el mensaje se sanea, se trunca y omite el cuerpo del proveedor.

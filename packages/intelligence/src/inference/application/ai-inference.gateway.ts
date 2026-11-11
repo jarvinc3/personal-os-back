@@ -21,6 +21,11 @@ import {
   getProviderHttpStatus,
   isRetryableProviderError,
 } from '../../shared/is-retryable-provider-error';
+import {
+  buildProviderFailureEvidenceCode,
+  buildProviderFailureLogDetails,
+  providerFailureLogMessage,
+} from '../../shared/provider-failure';
 
 const RETENTION_DAYS = 90;
 const FINGERPRINT_VERSION = 'v1';
@@ -189,6 +194,9 @@ export class AiInferenceGateway {
       jsonSchema: request.jsonSchema,
     });
     const ordered = this.orderedProviders(request.preferredProvider);
+    const capableProviderCount = ordered.filter((provider) =>
+      Boolean(provider.chatComplete),
+    ).length;
     const messages = toProviderMessages(request.messages, request.jsonSchema);
     let attempts = 0;
     let lastProvider: AIProviderClient | undefined;
@@ -252,11 +260,22 @@ export class AiInferenceGateway {
             lastOutputDetail = error.detail;
             continue;
           }
-          lastErrorCode = 'PROVIDER_FAILURE';
+          const retryable = isRetryableProviderError(error);
+          const httpStatus = getProviderHttpStatus(error);
+          const fallback = retryable && attempts < capableProviderCount;
+          const failure = buildProviderFailureLogDetails({
+            error,
+            provider: provider.name,
+            model: provider.model,
+            retryable,
+            fallback,
+          });
+          this.logger.warn(providerFailureLogMessage(failure));
+          lastErrorCode = buildProviderFailureEvidenceCode(failure);
           lastOutputDetail = null;
-          lastHttpStatus = getProviderHttpStatus(error);
+          lastHttpStatus = httpStatus;
           this.startCooldown(provider, error);
-          if (!isRetryableProviderError(error)) {
+          if (!retryable) {
             throw new StructuredInferenceProviderError(
               false,
               provider.name,

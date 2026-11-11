@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/prefer-promise-reject-errors -- providers may reject with non-Error values and the pool must survive them */
-import { ServiceUnavailableException } from '@nestjs/common';
+import { Logger, ServiceUnavailableException } from '@nestjs/common';
 import { AiService } from './ai.service';
 import type {
   AIService as AIProviderClient,
@@ -37,6 +37,7 @@ describe('AiService', () => {
   const originalNodeEnv = process.env.NODE_ENV;
 
   afterEach(() => {
+    jest.restoreAllMocks();
     if (originalNodeEnv === undefined) {
       delete process.env.NODE_ENV;
       return;
@@ -187,6 +188,32 @@ describe('AiService', () => {
       await expect(service.chatComplete(MESSAGES)).rejects.toThrow(
         'Todos los proveedores de IA fallaron. Último error: Unknown error',
       );
+    });
+
+    it('sanitizes provider secrets in the fallback log and final error', async () => {
+      const warn = jest
+        .spyOn(Logger.prototype, 'warn')
+        .mockImplementation(() => undefined);
+      const service = new AiService([
+        createProvider('groq', {
+          chatComplete: () =>
+            Promise.reject(
+              Object.assign(
+                new Error('429 Authorization: Bearer gsk_live_secret123'),
+                { status: 429 },
+              ),
+            ),
+        }),
+      ]);
+
+      await expect(service.chatComplete(MESSAGES)).rejects.toThrow(
+        'authorization=[redacted]',
+      );
+      const logLine = warn.mock.calls
+        .map(([line]) => (typeof line === 'string' ? line : ''))
+        .find((line) => line.startsWith('AI provider failure '));
+      expect(logLine).toBeDefined();
+      expect(logLine).not.toContain('gsk_live_secret123');
     });
   });
 

@@ -99,7 +99,10 @@ prompt fragments.
 ## Implementation decisions
 
 - Statuses are `SUCCEEDED` and `FAILED`; errors are normalized as
-  `NO_PROVIDER`, `PROVIDER_FAILURE`, `INVALID_JSON` or `SCHEMA_VALIDATION`.
+  `NO_PROVIDER`, `PROVIDER_FAILURE` (with `cause`, `status` and `retryable`),
+  `INVALID_JSON` or `SCHEMA_VALIDATION`. Each provider failure logs provider,
+  model, status, retryability, fallback and cause with a sanitized, truncated
+  message; the raw SDK message is not stored.
 - JSON Schema is included in the provider-neutral system instructions, then
   parsing and caller validation run locally. Each configured provider is tried
   once; malformed JSON and validation failures allow fallback. A final invalid
