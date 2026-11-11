@@ -14,6 +14,8 @@ import {
 import { AiEvidenceController } from '../../packages/intelligence/src/evidence/ai-evidence.controller';
 // eslint-disable-next-line no-restricted-imports -- El test construye el DTO transformado que recibe el handler.
 import { CreateHumanVerificationDto } from '../../packages/intelligence/src/evidence/dto/create-human-verification.dto';
+// eslint-disable-next-line no-restricted-imports -- El test construye el DTO real que recibe la ruta por lote.
+import { CreateReviewSelectionVerificationDto } from '../../packages/intelligence/src/evidence/dto/create-review-selection-verification.dto';
 // eslint-disable-next-line no-restricted-imports -- El test verifica la instancia anidada que produce ValidationPipe.
 import { HumanVerificationTransactionDto } from '../../packages/intelligence/src/evidence/dto/human-verification-labels.dto';
 
@@ -54,7 +56,7 @@ function transformedRequest() {
   return plainToInstance(CreateHumanVerificationDto, verificationBody);
 }
 
-async function validateRequest(request: CreateHumanVerificationDto) {
+async function validateRequest(request: object) {
   await validateOrReject(request, {
     whitelist: true,
     forbidNonWhitelisted: true,
@@ -277,5 +279,46 @@ describe('CTR-02 idempotencia de verificaciones con DTO transformado', () => {
     );
     expect(afterRetry[0].sequence).toBe(fixture.previous.sequence);
     expect(afterRetry.every(({ isGroundTruth }) => !isGroundTruth)).toBe(true);
+  });
+
+  it('serializa la verificación individual y la selección concurrentes del mismo correo', async () => {
+    const fixture = await createFixture();
+    const controller = new AiEvidenceController(
+      evidenceService(() => Promise.resolve({ requeued: 0 })),
+    );
+    const individualRequest = transformedRequest();
+    const batchRequest = plainToInstance(CreateReviewSelectionVerificationDto, {
+      ...verificationBody,
+      messageIds: [fixture.messageId],
+    });
+    await validateRequest(individualRequest);
+    await validateRequest(batchRequest);
+
+    const [individual, batch] = await Promise.all([
+      controller.verifyMessage(
+        { sub: fixture.userId },
+        fixture.messageId,
+        individualRequest,
+      ),
+      controller.verifyReviewSelection(
+        { sub: fixture.userId },
+        batchRequest,
+      ),
+    ]);
+    const afterConcurrent = await messageVerifications(
+      fixture.userId,
+      fixture.messageId,
+    );
+
+    expect(afterConcurrent).toHaveLength(2);
+    expect(
+      afterConcurrent.filter(({ verdict }) => verdict === 'CORRECTED'),
+    ).toHaveLength(1);
+    expect(batch.verified + batch.alreadyVerified).toBe(1);
+    expect(individual.sequence).toBe(
+      afterConcurrent
+        .find(({ verdict }) => verdict === 'CORRECTED')
+        ?.sequence.toString(),
+    );
   });
 });

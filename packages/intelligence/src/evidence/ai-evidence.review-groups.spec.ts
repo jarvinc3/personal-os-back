@@ -383,6 +383,26 @@ describe('AiEvidenceService review groups', () => {
     expect(prisma.aiHumanVerification.createMany).toHaveBeenCalledTimes(1);
   });
 
+  it('rejects a selection above the twenty-message contract limit', async () => {
+    const { prisma } = makeReviewGroupPrisma({
+      messages: githubMessages(),
+      partitions: githubPartitions(),
+    });
+    const service = new AiEvidenceService(
+      prisma as never,
+      reclassification as never,
+    );
+
+    await expect(
+      service.verifyReviewSelection('user-1', {
+        messageIds: Array.from({ length: 21 }, (_, index) => `g${index}`),
+        verdict: 'CONFIRMED',
+        relevance: true,
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(prisma.aiEmailMessage.findMany).not.toHaveBeenCalled();
+  });
+
   it('rejects a selection containing a message outside the account without partial writes', async () => {
     const { prisma, verifications } = makeReviewGroupPrisma({
       messages: githubMessages(),

@@ -519,10 +519,10 @@ export class AiEvidenceService {
     const verifierRole = roleAssignment?.role ?? 'USER';
     const correctedPayload = humanVerificationPayload(dto);
     const notes = dto.notes?.trim() || null;
-    const groupKey = JSON.stringify([
+    const groupKey = reviewGroupKey(
       dto.fromAddress,
       dto.templateFingerprint ?? null,
-    ]);
+    );
     const outcome = await this.prisma.$transaction(async (tx) => {
       await lockReviewGroup(tx, { userId, groupKey });
       const verifications = await tx.aiHumanVerification.findMany({
@@ -648,7 +648,7 @@ export class AiEvidenceService {
     const groupKeys = [
       ...new Set(
         messages.map(({ fromAddress, templateFingerprint }) =>
-          JSON.stringify([fromAddress, templateFingerprint ?? null]),
+          reviewGroupKey(fromAddress, templateFingerprint ?? null),
         ),
       ),
     ].sort();
@@ -762,35 +762,25 @@ export class AiEvidenceService {
   ) {
     const dataset = await this.ensureDataset();
     await this.ensureDatasetItems(userId, dataset.id);
-    const [message, item, roleAssignment, latestVerification] =
-      await Promise.all([
-        this.prisma.aiEmailMessage.findFirst({
-          where: { id: messageId, userId },
-          select: { id: true },
-        }),
-        this.prisma.aiDatasetItem.findFirst({
-          where: {
-            datasetId: dataset.id,
-            userId,
-            sourceType: EMAIL_SOURCE_TYPE,
-            sourceId: messageId,
-          },
-          select: { partition: true },
-        }),
-        this.prisma.userRole.findUnique({
-          where: { userId },
-          select: { role: true },
-        }),
-        this.prisma.aiHumanVerification.findFirst({
-          where: {
-            userId,
-            targetType: REVIEW_TARGET_TYPE,
-            targetId: messageId,
-          },
-          orderBy: { sequence: 'desc' },
-          select: VERIFICATION_SELECT,
-        }),
-      ]);
+    const [message, item, roleAssignment] = await Promise.all([
+      this.prisma.aiEmailMessage.findFirst({
+        where: { id: messageId, userId },
+        select: { id: true, fromAddress: true, templateFingerprint: true },
+      }),
+      this.prisma.aiDatasetItem.findFirst({
+        where: {
+          datasetId: dataset.id,
+          userId,
+          sourceType: EMAIL_SOURCE_TYPE,
+          sourceId: messageId,
+        },
+        select: { partition: true },
+      }),
+      this.prisma.userRole.findUnique({
+        where: { userId },
+        select: { role: true },
+      }),
+    ]);
     if (!message || !item) {
       throw new NotFoundException('Mensaje no encontrado');
     }
@@ -798,14 +788,33 @@ export class AiEvidenceService {
 
     const correctedPayload = humanVerificationPayload(dto);
     const notes = dto.notes?.trim() || null;
-    const verification =
-      this.retryVerification({
+    const verification = await this.prisma.$transaction(async (tx) => {
+      await lockReviewGroup(tx, {
+        userId,
+        groupKey: reviewGroupKey(
+          message.fromAddress,
+          message.templateFingerprint ?? null,
+        ),
+      });
+      const latestVerification = await tx.aiHumanVerification.findFirst({
+        where: {
+          userId,
+          targetType: REVIEW_TARGET_TYPE,
+          targetId: messageId,
+        },
+        orderBy: { sequence: 'desc' },
+        select: VERIFICATION_SELECT,
+      });
+      const existing = this.retryVerification({
         latestVerification,
         verdict: dto.verdict,
         correctedPayload,
         notes,
-      }) ??
-      (await this.prisma.aiHumanVerification.create({
+      });
+      if (existing) {
+        return existing;
+      }
+      return tx.aiHumanVerification.create({
         data: {
           userId,
           verifierRole: roleAssignment?.role ?? 'USER',
@@ -817,7 +826,8 @@ export class AiEvidenceService {
           isGroundTruth: item.partition === 'HOLDOUT',
         },
         select: VERIFICATION_SELECT,
-      }));
+      });
+    });
     const requeued = await this.reclassifyAfterVerification(
       () =>
         this.reclassification.reclassifyAfterMessageVerification({
@@ -1240,6 +1250,13 @@ async function lockReviewGroup(
   // Serialize two batches of the same group: verifications are append-only,
   // so a duplicate written concurrently could not be removed later.
   await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtext(${userId}), hashtext(${groupKey}))`;
+}
+
+function reviewGroupKey(
+  fromAddress: string,
+  templateFingerprint: string | null,
+): string {
+  return JSON.stringify([fromAddress, templateFingerprint]);
 }
 
 function classificationConfidence(value: unknown): number | null {

@@ -144,6 +144,16 @@ describe('OpenAPI response schemas of intelligence', () => {
     }
   });
 
+  it('limits a verification selection to 20 message ids in OpenAPI', () => {
+    const schema = document.components?.schemas?.[
+      'CreateReviewSelectionVerificationDto'
+    ] as
+      | { properties?: { messageIds?: { maxItems?: number } } }
+      | undefined;
+
+    expect(schema?.properties?.messageIds?.maxItems).toBe(20);
+  });
+
   it('publishes the dashboard, runs and roles shapes', () => {
     const dashboard = document.components?.schemas
       ?.AiEmailDashboardResponseDto as {
