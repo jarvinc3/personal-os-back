@@ -22,6 +22,33 @@ const MODEL_TRANSACTION_KINDS = [
   'PENDING',
 ] as const satisfies readonly (typeof TRANSACTION_KINDS)[number][];
 
+const BANK_STATUSES = [
+  'APPROVED',
+  'COMPLETED',
+  'POSTED',
+  'PENDING',
+  'IN_PROGRESS',
+  'AUTHORIZED',
+  'DECLINED',
+  'REJECTED',
+  'FAILED',
+  'CANCELLED',
+  'VOIDED',
+  'REVERSED',
+  'REFUNDED',
+  'CHARGEBACK',
+  'UNKNOWN',
+] as const;
+
+/** Estados de un intento que no llegó a consumarse. */
+const NON_CONSUMED_BANK_STATUSES = [
+  'DECLINED',
+  'REJECTED',
+  'FAILED',
+  'CANCELLED',
+  'VOIDED',
+] as const satisfies readonly (typeof BANK_STATUSES)[number][];
+
 const transactionShape = {
   kind: z.enum(TRANSACTION_KINDS).optional(),
   amount: z.number().positive().optional(),
@@ -46,25 +73,7 @@ const transactionShape = {
     .regex(/^\d{4}$/)
     .optional(),
   movementClass: z.enum(TRANSACTION_MOVEMENT_CLASSES).optional(),
-  bankStatusNormalized: z
-    .enum([
-      'APPROVED',
-      'COMPLETED',
-      'POSTED',
-      'PENDING',
-      'IN_PROGRESS',
-      'AUTHORIZED',
-      'DECLINED',
-      'REJECTED',
-      'FAILED',
-      'CANCELLED',
-      'VOIDED',
-      'REVERSED',
-      'REFUNDED',
-      'CHARGEBACK',
-      'UNKNOWN',
-    ])
-    .optional(),
+  bankStatusNormalized: z.enum(BANK_STATUSES).optional(),
   statusConfidence: z.number().min(0).max(1).optional(),
   statusEvidence: z.string().trim().max(240).optional(),
   reverseOfBankReference: z.string().trim().min(1).max(120).optional(),
@@ -161,7 +170,9 @@ export function validateModelClassification(
  * Acerca la salida del modelo a las reglas cerradas sin añadir ni cambiar
  * datos. Solo cubre desviaciones reproducidas con el proveedor real:
  *
- * - un tipo sin transacción puede llegar con `kind: NOT_TRANSACTION`;
+ * - un tipo sin transacción puede llegar con un `transaction` que declara no
+ *   ser movimiento: solo `kind: NOT_TRANSACTION`, o un intento en un estado no
+ *   consumado. Cualquier otro dato en ese objeto sigue siendo un rechazo;
  * - el tipo de un código de un solo uso implica que no es financiero.
  *
  * Cualquier otra diferencia sigue siendo un fallo de validación.
@@ -180,7 +191,7 @@ export function normalizeModelClassification(value: unknown): unknown {
       ? normalized.semanticType
       : undefined;
   const rejectedTransaction =
-    isKindNotTransaction(normalized.transaction) &&
+    statesNoMovement(normalized.transaction) &&
     !admitsTransaction(semanticType);
   if (rejectedTransaction) {
     delete normalized.transaction;
@@ -188,12 +199,29 @@ export function normalizeModelClassification(value: unknown): unknown {
   return normalized;
 }
 
-function isKindNotTransaction(transaction: unknown): boolean {
-  return (
-    typeof transaction === 'object' &&
-    transaction !== null &&
-    (transaction as Record<string, unknown>).kind === 'NOT_TRANSACTION'
-  );
+/**
+ * Indica si el objeto declara que no hubo movimiento. Un intento no consumado
+ * o un objeto que solo trae `kind: NOT_TRANSACTION`; un monto con estado
+ * aprobado no entra, para que el validador lo rechace y el correo vaya a
+ * revisión en lugar de perder la transacción.
+ */
+function statesNoMovement(transaction: unknown): boolean {
+  if (typeof transaction !== 'object' || transaction === null) {
+    return false;
+  }
+  const { kind, bankStatusNormalized } = transaction as Record<string, unknown>;
+  if (kind !== 'NOT_TRANSACTION') {
+    return false;
+  }
+  if (
+    typeof bankStatusNormalized === 'string' &&
+    (NON_CONSUMED_BANK_STATUSES as readonly string[]).includes(
+      bankStatusNormalized,
+    )
+  ) {
+    return true;
+  }
+  return Object.keys(transaction).every((key) => key === 'kind');
 }
 
 function classificationRuleViolation(

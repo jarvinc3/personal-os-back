@@ -211,6 +211,7 @@ export class AiInferenceGateway {
             continue;
           }
           lastErrorCode = 'PROVIDER_FAILURE';
+          lastOutputDetail = null;
           lastHttpStatus = getProviderHttpStatus(error);
           if (!isRetryableProviderError(error)) {
             throw new StructuredInferenceProviderError(

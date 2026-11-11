@@ -322,4 +322,34 @@ describe('AiInferenceGateway', () => {
     const record = create.mock.calls[0][0].data as { errorCode?: string };
     expect(record.errorCode).toBe('INVALID_JSON');
   });
+
+  it('reports a provider failure when an earlier invalid output left a detail', async () => {
+    const invalidOutput = {
+      name: 'invalid',
+      model: 'model-one',
+      chat: jest.fn(),
+      chatComplete: jest.fn().mockResolvedValue({
+        content: '{"value":4}',
+        toolCalls: [],
+      }),
+    };
+    const providerFailure = {
+      name: 'unavailable',
+      model: 'model-two',
+      chat: jest.fn(),
+      chatComplete: jest
+        .fn()
+        .mockRejectedValue(
+          Object.assign(new Error('forbidden'), { statusCode: 403 }),
+        ),
+    };
+    const { gateway, create } = build([invalidOutput, providerFailure]);
+
+    await expect(gateway.infer(request())).rejects.toMatchObject({
+      code: 'INFERENCE_PROVIDER_FAILURE',
+      httpStatus: 403,
+    });
+    const record = create.mock.calls[0][0].data as { errorCode?: string };
+    expect(record.errorCode).toBe('PROVIDER_FAILURE');
+  });
 });

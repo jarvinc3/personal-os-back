@@ -2,7 +2,10 @@ import type { ConfigService } from '@nestjs/config';
 import type { Env } from '@personal-os/config';
 import type { ModuleSettingsReader } from '@personal-os/contracts';
 import type { PrismaService } from '@personal-os/database';
-import { StructuredInferenceOutputError } from '@personal-os/contracts';
+import {
+  StructuredInferenceOutputError,
+  StructuredInferenceProviderError,
+} from '@personal-os/contracts';
 import type { InferenceCompletionPort } from '@personal-os/contracts';
 import { AiEmailClassificationService } from './ai-email-classification.service';
 import { knowledgeKeys } from '../knowledge/knowledge-normalizer';
@@ -588,5 +591,22 @@ describe('AiEmailClassificationService rejected model output', () => {
     });
     expect(inference.infer).toHaveBeenCalledTimes(2);
     expect(prisma.aiEmailClassification.createMany).not.toHaveBeenCalled();
+  });
+
+  it('does not repair a provider failure', async () => {
+    const { service, inference, prisma } = fixture();
+    inference.infer.mockRejectedValue(
+      new StructuredInferenceProviderError(true, 'Groq', 'qwen/qwen3.8-27b', 1),
+    );
+
+    await service.processPendingForUser('user-1');
+
+    expect(inference.infer).toHaveBeenCalledTimes(1);
+    expect(prisma.aiEmailClassification.createMany).not.toHaveBeenCalled();
+    expect(prisma.aiEmailMessage.updateMany).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ processingStatus: 'REVIEW_REQUIRED' }),
+      }),
+    );
   });
 });

@@ -4,6 +4,7 @@ import {
   normalizeModelClassification,
   parseDeterministicEmail,
   validateEmailClassification,
+  validateModelClassification,
   withSuggestedTransactionDate,
 } from './email-classification.util';
 
@@ -354,6 +355,24 @@ describe('Email classification model output', () => {
     );
 
     expect(normalized.transaction).toBeUndefined();
+  });
+
+  it('keeps an approved transaction with money for validation to reject', () => {
+    const value = {
+      relevance: true,
+      semanticType: 'FIN_ACCOUNT_NOTICE',
+      routes: ['FINANCE'],
+      transaction: {
+        kind: 'NOT_TRANSACTION',
+        amount: 500,
+        currency: 'DOP',
+        bankStatusNormalized: 'APPROVED',
+      },
+      confidence: 0.95,
+    };
+
+    expect(normalizeModelClassification(value)).toEqual(value);
+    expect(() => validateModelClassification(value)).toThrow();
   });
 
   it('marks a one-time code as not financial-relevant', () => {
