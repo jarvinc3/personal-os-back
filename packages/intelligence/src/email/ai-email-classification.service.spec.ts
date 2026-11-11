@@ -309,3 +309,25 @@ describe('AiEmailClassificationService direct message operations', () => {
     expectNoWrites(prisma);
   });
 });
+
+describe('AiEmailClassificationService model call accounting', () => {
+  it('reports one model call when the model classified the mail', async () => {
+    const { service } = fixture();
+
+    await expect(service.processPendingForUser('user-1')).resolves.toEqual({
+      processed: 1,
+      modelCalls: 1,
+    });
+  });
+
+  it('reports no model call for a deterministic classification', async () => {
+    const { service } = fixture({
+      body: 'Your verification code is 123456.',
+    });
+
+    await expect(service.processPendingForUser('user-1')).resolves.toEqual({
+      processed: 1,
+      modelCalls: 0,
+    });
+  });
+});

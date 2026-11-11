@@ -94,6 +94,11 @@ export interface StructuredInferenceRequest<T> {
   sourceType?: string;
   sourceId?: string;
   preferredProvider?: string | null;
+  /**
+   * La telemetría de inferencia se guarda por defecto. Una vista previa la
+   * apaga para no dejar rastro de una corrida que no debe escribir nada.
+   */
+  recordTelemetry?: boolean;
 }
 export interface StructuredInference<T> {
   value: T;

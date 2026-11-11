@@ -89,7 +89,7 @@ export class AiIntelligenceController {
   }
 
   @Post('email/sample-import')
-  @ApiOkResponse({ type: AiEmailSampleImportResponseDto })
+  @ApiCreatedResponse({ type: AiEmailSampleImportResponseDto })
   sampleImportRun(
     @CurrentUser() user: { sub: string },
     @Body() dto: EmailSampleImportDto,

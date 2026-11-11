@@ -207,19 +207,23 @@ export class AiEmailClassificationService {
       return { processed: false, modelCalls: 0 };
     }
 
+    let modelCalls = 0;
     try {
       const computation = await this.computeClassification({
         userId,
         message,
         modelBudget: 'reserve',
+        onModelCall: () => {
+          modelCalls += 1;
+        },
       });
       if (computation.kind === 'budget_exhausted') {
         await this.leaveQueued(messageId, userId);
-        return { processed: false, modelCalls: 0, budgetExhausted: true };
+        return { processed: false, modelCalls, budgetExhausted: true };
       }
       if (computation.kind === 'no_classification') {
         await this.leaveQueued(messageId, userId);
-        return { processed: false, modelCalls: 0 };
+        return { processed: false, modelCalls };
       }
       await this.persistClassification({
         userId,
@@ -231,13 +235,13 @@ export class AiEmailClassificationService {
         auditSample: computation.auditSample,
         matches: computation.matches,
       });
-      return { processed: true, modelCalls: 0 };
+      return { processed: true, modelCalls };
     } catch (error) {
       this.logger.warn(
         `Email classification failed for message ${messageId}: ${this.safeErrorCode(error)}`,
       );
       await this.persistFailure(userId, messageId);
-      return { processed: true, modelCalls: 0 };
+      return { processed: true, modelCalls };
     }
   }
 
@@ -265,6 +269,7 @@ export class AiEmailClassificationService {
           userId,
           message,
           modelBudget: 'inspect',
+          recordTelemetry: false,
         }),
       );
     } catch (error) {
@@ -331,10 +336,14 @@ export class AiEmailClassificationService {
     userId,
     message,
     modelBudget,
+    onModelCall,
+    recordTelemetry,
   }: {
     userId: string;
     message: ClassifiableMessage;
     modelBudget: 'reserve' | 'inspect';
+    onModelCall?: () => void;
+    recordTelemetry?: boolean;
   }): Promise<ComputedClassification> {
     const matches = await this.resolveKnowledge(userId, message);
     const known = matches[0];
@@ -382,6 +391,7 @@ export class AiEmailClassificationService {
         0,
         MAX_EMAIL_CONTENT_CHARS,
       );
+      onModelCall?.();
       const inferred = await this.inference.infer({
         userId,
         task: CLASSIFICATION_TASK,
@@ -391,6 +401,7 @@ export class AiEmailClassificationService {
         schemaVersion: EMAIL_CLASSIFICATION_VERSIONS.schema,
         jsonSchema: EMAIL_CLASSIFICATION_JSON_SCHEMA,
         validate: validateEmailClassification,
+        recordTelemetry,
         messages: [
           { role: 'system', content: CLASSIFICATION_SYSTEM_PROMPT },
           {

@@ -410,7 +410,8 @@ autenticado.
   tienen clasificación guardada, porque la guardada puede ser anterior a las
   pistas nuevas.
 - No escribe nada: ni clasificaciones, ni observaciones, ni presupuesto de
-  modelo, ni señales, ni eventos de salida, ni movimientos.
+  modelo, ni telemetría de inferencia, ni señales, ni eventos de salida, ni
+  movimientos. La llamada al modelo viaja con `recordTelemetry: false`.
 - Devuelve un manifiesto por correo.
 
 La predicción del movimiento no repite las reglas: usa el mismo paso de decisión
