@@ -40,7 +40,7 @@ import {
   AiEmailSyncResponseDto,
 } from './ai-intelligence-response.dto';
 
-const SAMPLE_IMPORT_TIMEOUT_MS = 180_000;
+const SAMPLE_IMPORT_TIMEOUT_MS = 480_000;
 
 @ApiTags('intelligence')
 @ApiBearerAuth('access-token')
