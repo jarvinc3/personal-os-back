@@ -27,6 +27,7 @@ const accounts = [
 ];
 
 const transactionDate = new Date('2026-11-01T00:00:00.000Z');
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 const incoming = {
   type: 'DEBIT' as const,
@@ -269,13 +270,41 @@ describe('classifyTransferImport', () => {
     });
   });
 
-  it('sends a reference match with a different date to conflict', () => {
+  it('treats a reference match within seven days as duplicate', () => {
     expect(
       classifyTransferImport({
         incoming,
         existing: [
           existingLeg({
-            transactionDate: new Date(transactionDate.getTime() + 1000),
+            transactionDate: new Date(transactionDate.getTime() + DAY_MS),
+          }),
+        ],
+      }),
+    ).toEqual({ kind: 'duplicate', transactionId: 'leg-existing' });
+  });
+
+  it('treats a reference match exactly seven days later as duplicate', () => {
+    expect(
+      classifyTransferImport({
+        incoming,
+        existing: [
+          existingLeg({
+            transactionDate: new Date(transactionDate.getTime() + 7 * DAY_MS),
+          }),
+        ],
+      }),
+    ).toEqual({ kind: 'duplicate', transactionId: 'leg-existing' });
+  });
+
+  it('sends a reference match beyond seven days to conflict', () => {
+    expect(
+      classifyTransferImport({
+        incoming,
+        existing: [
+          existingLeg({
+            transactionDate: new Date(
+              transactionDate.getTime() + 7 * DAY_MS + 1,
+            ),
           }),
         ],
       }),

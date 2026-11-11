@@ -3,6 +3,7 @@ import {
   isTransferMovementClass,
   type MovementClass,
 } from '../domain/movement-class';
+import { TRANSFER_REFERENCE_WINDOW_MS } from '../../shared/domain/transfer';
 
 export type ImportTransferCandidate = {
   id: string;
@@ -23,7 +24,7 @@ export type ImportTransferCandidate = {
 
 const DEFAULT_MATCH_WINDOW_MS = 3 * 24 * 60 * 60 * 1000;
 /** Dos correos con la misma referencia tienen más margen para emparejar. */
-export const REFERENCE_MATCH_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
+export const REFERENCE_MATCH_WINDOW_MS = TRANSFER_REFERENCE_WINDOW_MS;
 const FEE_TOLERANCE = 50;
 const FEE_TOLERANCE_RATIO = 0.02;
 
@@ -35,7 +36,10 @@ function institutionOf(row: ImportTransferCandidate): string | null {
   return row.account?.institutionId ?? row.card?.institutionId ?? null;
 }
 
-export function movementClassOf(row: ImportTransferCandidate): MovementClass {
+export function movementClassOf(row: {
+  type: string;
+  aiMetadata: unknown;
+}): MovementClass {
   const fromMeta =
     row.aiMetadata &&
     typeof row.aiMetadata === 'object' &&
@@ -138,6 +142,7 @@ export function pickTransferMatch(
     );
 
   const exact = scored.filter((item) => item.closeness === 'exact');
+  // Un monto exacto descarta la tolerancia de comisión; el resto compite.
   const pool = exact.length > 0 ? exact : scored;
   return {
     match: pool.length === 1 ? pool[0].other : null,

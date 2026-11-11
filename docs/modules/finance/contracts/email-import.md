@@ -99,9 +99,15 @@ Cuando llega una segunda señal válida, se aplica el comportamiento actual de `
 - misma moneda base del usuario;
 - fecha dentro de 3 días, o de 7 cuando las dos patas comparten la referencia bancaria;
 - monto exacto o tolerancia de comisión de 50 o 2 %;
-- exactamente un candidato no emparejado.
+- exactamente un candidato no emparejado después de aplicar la preferencia por monto exacto.
 
-Si hay exactamente un candidato, se vinculan las dos patas con el mismo `transferGroupId`. Si hay cero o más de uno, no se elige por semejanza: las patas quedan pendientes y se registra `TRANSFER_PAIR_AMBIGUOUS` con evidencia.
+Si hay exactamente un candidato, se vinculan las dos patas con el mismo `transferGroupId`. Si hay cero, no se crea par. Si hay más de uno, no se elige por semejanza: las patas quedan pendientes y se registra `TRANSFER_PAIR_AMBIGUOUS` con evidencia.
+
+Si al menos un candidato coincide con el monto exacto, los candidatos dentro de la tolerancia de comisión no compiten: se vincula el exacto si es único. Si no hay exacto, la tolerancia forma el conjunto y también debe ser única. Varios candidatos en el conjunto final no se eligen.
+
+Una pata cuyo `transferGroupId` ya tiene otro miembro no se vuelve a emparejar. El tamaño del grupo se cuenta en la base por `transferGroupId`, sin limitarse a las patas que caen en la ventana de fechas de la búsqueda; así un par no se separa cuando su compañero quedó fuera de esa ventana.
+
+El emparejamiento ocurre después de guardar la pata. Si ese paso falla, la pata queda guardada; el reintento de la misma señal vuelve a intentar el emparejamiento antes de responder `ALREADY_APPLIED`. No se crea una segunda pata.
 
 La tolerancia de 50 o 2 % es comportamiento actual del código y se conserva. La ventana es de 3 días; con la misma referencia bancaria en las dos patas pasa a 7 días, por la decisión del owner del 2026-11-11 registrada en el issue #335.
 
@@ -109,14 +115,14 @@ La tolerancia de 50 o 2 % es comportamiento actual del código y se conserva. La
 
 - Replay de la misma señal: `fin_signal_import` existente, `ALREADY_APPLIED`, sin segunda fila.
 - Un match de referencia es un candidato, no prueba de duplicado.
-- Duplicado de la misma pata: misma referencia, mismo tipo, misma cuenta, mismo monto, misma moneda y la misma fecha de operación, `DUPLICATE`, sin segunda fila.
+- Duplicado de la misma pata: misma referencia, mismo tipo, misma cuenta, mismo monto y misma moneda, con fecha de operación dentro de 7 días, `DUPLICATE`, sin segunda fila.
 - Contraparte legítima: misma referencia, mismo usuario, tipo opuesto y cuenta distinta. No es duplicado ni conflicto; se importa la segunda pata y puede emparejar. La excepción se evalúa antes del conflicto y no se extiende a otros atributos.
-- Conflicto de referencia: misma referencia que no es contraparte legítima; es decir, mismo tipo con cuenta, monto, moneda o fecha distintos, o tipo opuesto con la misma cuenta. No se descarta ni se crea otra fila en silencio; queda `TRANSFER_REFERENCE_CONFLICT` para revisión.
+- Conflicto de referencia: misma referencia que no es contraparte legítima; es decir, mismo tipo con cuenta, monto o moneda distintos, o fecha fuera de la ventana de 7 días, o tipo opuesto con la misma cuenta. No se descarta ni se crea otra fila en silencio; queda `TRANSFER_REFERENCE_CONFLICT` para revisión.
 - Sin referencia: se usa el fallback del ADR-003 por destino, tipo, monto, moneda, comercio y fecha dentro de 10 minutos. Si el candidato es ambiguo, no se crea una segunda pata; se deja la evidencia para revisión.
 
 La referencia compartida no basta para descartar la segunda pata. El dedupe de transferencias compara referencia más tipo y cuenta, y además monto y moneda; lo que no es contraparte legítima va a revisión.
 
-Ventana temporal con la referencia presente: PENDIENTE CONCRETAR. Los ±10 minutos del ADR-003 justifican solo el fallback sin referencia; el ADR no define una ventana para una referencia presente. Mientras el owner no decida, una coincidencia de referencia con los mismos atributos y fecha distinta va a `TRANSFER_REFERENCE_CONFLICT` para revisión; no se descarta y no se presenta como regla acordada.
+Ventana temporal con la referencia presente: 7 días (decisión del owner del 2026-11-11). Una coincidencia de referencia con los mismos atributos y la fecha dentro de la ventana es duplicado; fuera de la ventana va a `TRANSFER_REFERENCE_CONFLICT`. El fallback sin referencia conserva los ±10 minutos del ADR-003.
 
 ### 3.5 Contabilidad
 

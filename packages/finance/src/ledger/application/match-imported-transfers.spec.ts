@@ -4,6 +4,8 @@ import {
   type ImportTransferCandidate,
 } from './match-imported-transfers';
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+
 function candidate(
   overrides: Partial<ImportTransferCandidate> &
     Pick<ImportTransferCandidate, 'id' | 'type'>,
@@ -111,6 +113,107 @@ describe('pickTransferMatch', () => {
     });
 
     expect(pickTransferMatch(debit, [debit, credit]).match).toBeNull();
+  });
+
+  it('pairs at exactly seven days with the shared reference', () => {
+    const debit = candidate({
+      id: 'd1',
+      type: 'DEBIT',
+      externalReference: 'REF-1',
+      transactionDate: new Date('2026-09-08T12:00:00.000Z'),
+      account: { institutionId: 'bhd' },
+    });
+    const credit = candidate({
+      id: 'c1',
+      type: 'CREDIT',
+      externalReference: 'REF-1',
+      transactionDate: new Date(
+        new Date('2026-09-08T12:00:00.000Z').getTime() + 7 * DAY_MS,
+      ),
+      account: { institutionId: 'qik' },
+    });
+
+    expect(pickTransferMatch(debit, [debit, credit]).match?.id).toBe('c1');
+  });
+
+  it('does not pair one millisecond beyond seven days', () => {
+    const debit = candidate({
+      id: 'd1',
+      type: 'DEBIT',
+      externalReference: 'REF-1',
+      transactionDate: new Date('2026-09-08T12:00:00.000Z'),
+      account: { institutionId: 'bhd' },
+    });
+    const credit = candidate({
+      id: 'c1',
+      type: 'CREDIT',
+      externalReference: 'REF-1',
+      transactionDate: new Date(
+        new Date('2026-09-08T12:00:00.000Z').getTime() + 7 * DAY_MS + 1,
+      ),
+      account: { institutionId: 'qik' },
+    });
+
+    expect(pickTransferMatch(debit, [debit, credit]).match).toBeNull();
+  });
+
+  it('pairs at exactly three days without a shared reference', () => {
+    const debit = candidate({
+      id: 'd1',
+      type: 'DEBIT',
+      transactionDate: new Date('2026-09-12T12:00:00.000Z'),
+      account: { institutionId: 'bhd' },
+    });
+    const credit = candidate({
+      id: 'c1',
+      type: 'CREDIT',
+      transactionDate: new Date('2026-09-15T12:00:00.000Z'),
+      account: { institutionId: 'qik' },
+    });
+
+    expect(pickTransferMatch(debit, [debit, credit]).match?.id).toBe('c1');
+  });
+
+  it('does not pair one millisecond beyond three days', () => {
+    const debit = candidate({
+      id: 'd1',
+      type: 'DEBIT',
+      transactionDate: new Date('2026-09-12T12:00:00.000Z'),
+      account: { institutionId: 'bhd' },
+    });
+    const credit = candidate({
+      id: 'c1',
+      type: 'CREDIT',
+      transactionDate: new Date(
+        new Date('2026-09-15T12:00:00.000Z').getTime() + 1,
+      ),
+      account: { institutionId: 'qik' },
+    });
+
+    expect(pickTransferMatch(debit, [debit, credit]).match).toBeNull();
+  });
+
+  it('prefers the exact amount over a fee-tolerance candidate', () => {
+    const debit = candidate({
+      id: 'd1',
+      type: 'DEBIT',
+      account: { institutionId: 'bhd' },
+    });
+    const exact = candidate({
+      id: 'c1',
+      type: 'CREDIT',
+      account: { institutionId: 'qik' },
+    });
+    const fee = candidate({
+      id: 'c2',
+      type: 'CREDIT',
+      amount: 1040,
+      account: { institutionId: 'popular' },
+    });
+
+    const preference = pickTransferMatch(debit, [debit, exact, fee]);
+    expect(preference.match?.id).toBe('c1');
+    expect(preference.candidateIds).toEqual(['c1']);
   });
 
   it('keeps the three day window when the reference is not shared', () => {

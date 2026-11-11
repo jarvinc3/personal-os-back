@@ -6,6 +6,8 @@ import {
   getPrismaClientClass,
   type PrismaService,
 } from '@personal-os/database';
+import { FinanceSignalConsumer } from '@personal-os/finance';
+import type { RoutedSignal } from '@personal-os/contracts';
 // eslint-disable-next-line no-restricted-imports -- El test ejercita el repositorio real contra la base.
 import { PrismaLedgerImportRepository } from '../../packages/finance/src/ledger/infrastructure/prisma-ledger-import.repository';
 
@@ -61,11 +63,23 @@ async function createFixture({ suffix }: { suffix: string }) {
     },
     select: { id: true },
   });
+  const counterpartAccount = await prisma.finAccount.create({
+    data: {
+      userId,
+      institutionId: counterpartInstitution.id,
+      name: `Cuenta contraparte ${suffix}`,
+      type: 'SAVINGS',
+      currency: 'DOP',
+      accountNumberLast4: '5678',
+    },
+    select: { id: true },
+  });
   return {
     userId,
     institutionId: institution.id,
     counterpartInstitutionId: counterpartInstitution.id,
     accountId: account.id,
+    counterpartAccountId: counterpartAccount.id,
   };
 }
 
@@ -77,6 +91,8 @@ async function createLeg({
   legRole,
   daysAgo,
   externalReference,
+  transferGroupId,
+  importReference,
 }: {
   userId: string;
   institutionId: string;
@@ -85,6 +101,8 @@ async function createLeg({
   legRole: 'SOURCE' | 'DESTINATION';
   daysAgo: number;
   externalReference: string;
+  transferGroupId?: string;
+  importReference?: string;
 }) {
   const id = randomUUID();
   await prisma.finTransaction.create({
@@ -104,9 +122,9 @@ async function createLeg({
       source: 'EMAIL',
       status: 'CONFIRMED',
       legRole,
-      transferGroupId: randomUUID(),
+      transferGroupId: transferGroupId ?? randomUUID(),
       externalReference,
-      importReference: `import-${id}`,
+      importReference: importReference ?? `import-${id}`,
       transactionDate: new Date(Date.now() - daysAgo * 24 * 60 * 60 * 1000),
       aiMetadata: {
         movementClass: type === 'DEBIT' ? 'TRANSFER_OUT' : 'TRANSFER_IN',
@@ -115,6 +133,82 @@ async function createLeg({
     select: { id: true },
   });
   return id;
+}
+
+function createConsumer() {
+  const ledger = {
+    findTransactionByImportReference: (
+      importReference: string,
+      userId: string,
+    ) =>
+      prisma.finTransaction.findFirst({ where: { importReference, userId } }),
+  };
+  const importTransaction = {
+    executeUnpairedTransfer: (
+      userId: string,
+      input: Record<string, unknown> & { amount: number; currency: string },
+    ) =>
+      repo.createImportedTransaction(userId, {
+        ...input,
+        transferGroupId: randomUUID(),
+        legRole: input.legRole === 'DESTINATION' ? 'DESTINATION' : 'SOURCE',
+        amounts: {
+          amount: input.amount,
+          currency: input.currency,
+          ledgerAmount: input.amount,
+          ledgerCurrency: input.currency,
+          amountBaseCurrency: input.amount,
+          exchangeRate: 1,
+        },
+      } as never),
+    pairTransferLegs: (userId: string, debitId: string, creditId: string) =>
+      repo.pairImportedTransferLegs(userId, debitId, creditId),
+  };
+  return new FinanceSignalConsumer(
+    prisma as never,
+    importTransaction as never,
+    ledger as never,
+    { execute: jest.fn() } as never,
+    { execute: jest.fn() } as never,
+    { suggest: jest.fn() } as never,
+    { execute: jest.fn().mockResolvedValue('DOP') } as never,
+  );
+}
+
+function transferSignal({
+  userId,
+  signalId,
+}: {
+  userId: string;
+  signalId: string;
+}): RoutedSignal {
+  return {
+    signalId,
+    userId,
+    signalType: 'FINANCE.TRANSACTION_DETECTED',
+    schemaVersion: 1,
+    occurredAt: new Date().toISOString(),
+    sourceType: 'EMAIL_MESSAGE',
+    sourceId: `message-${signalId}`,
+    payload: {
+      relevance: true,
+      semanticType: 'FIN_TRANSACTION',
+      routes: ['FINANCE'],
+      confidence: 0.95,
+      transaction: {
+        kind: 'TRANSACTION',
+        amount: 1000,
+        currency: 'DOP',
+        transactionDate: new Date().toISOString(),
+        direction: 'DEBIT',
+        movementClass: 'TRANSFER_OUT',
+        accountNumberLast4: '1234',
+        bankReference: 'REF-C',
+        bankStatusNormalized: 'COMPLETED',
+        statusConfidence: 0.95,
+      },
+    },
+  };
 }
 
 describe('Emparejamiento de patas de transferencia', () => {
@@ -193,5 +287,87 @@ describe('Emparejamiento de patas de transferencia', () => {
       select: { transferGroupId: true },
     });
     expect(untouched.transferGroupId).not.toBe(legs[0].transferGroupId ?? '');
+  });
+
+  it('repara una pata sin par cuando la señal se repite', async () => {
+    const fixture = await createFixture({ suffix: 'consumer-repair' });
+    const signalId = `signal-${randomUUID()}`;
+    const debitId = await createLeg({
+      userId: fixture.userId,
+      institutionId: fixture.institutionId,
+      accountId: fixture.accountId,
+      type: 'DEBIT',
+      legRole: 'SOURCE',
+      daysAgo: 0,
+      externalReference: 'REF-C',
+      importReference: signalId,
+    });
+    const creditId = await createLeg({
+      userId: fixture.userId,
+      institutionId: fixture.counterpartInstitutionId,
+      accountId: fixture.counterpartAccountId,
+      type: 'CREDIT',
+      legRole: 'DESTINATION',
+      daysAgo: 2,
+      externalReference: 'REF-B',
+    });
+    const consumer = createConsumer();
+
+    const consumeResult = await consumer.consume(
+      transferSignal({ userId: fixture.userId, signalId }),
+    );
+    expect(consumeResult.outcome).toBe('ALREADY_APPLIED');
+
+    const legs = await prisma.finTransaction.findMany({
+      where: { id: { in: [debitId, creditId] } },
+      select: { transferGroupId: true },
+    });
+    expect(legs).toHaveLength(2);
+    expect(new Set(legs.map((leg) => leg.transferGroupId)).size).toBe(1);
+  });
+
+  it('no parte un par cuando el compañero queda fuera de la ventana', async () => {
+    const fixture = await createFixture({ suffix: 'consumer-group' });
+    const pairedGroup = randomUUID();
+    const debitId = await createLeg({
+      userId: fixture.userId,
+      institutionId: fixture.institutionId,
+      accountId: fixture.accountId,
+      type: 'DEBIT',
+      legRole: 'SOURCE',
+      daysAgo: 9,
+      externalReference: 'REF-B',
+      transferGroupId: pairedGroup,
+    });
+    const creditId = await createLeg({
+      userId: fixture.userId,
+      institutionId: fixture.counterpartInstitutionId,
+      accountId: fixture.counterpartAccountId,
+      type: 'CREDIT',
+      legRole: 'DESTINATION',
+      daysAgo: 2,
+      externalReference: 'REF-B',
+      transferGroupId: pairedGroup,
+    });
+    const signalId = `signal-${randomUUID()}`;
+    const consumer = createConsumer();
+
+    const consumeResult = await consumer.consume(
+      transferSignal({ userId: fixture.userId, signalId }),
+    );
+    expect(consumeResult.outcome).toBe('APPLIED');
+
+    const current = await prisma.finTransaction.findFirstOrThrow({
+      where: { userId: fixture.userId, importReference: signalId },
+      select: { transferGroupId: true },
+    });
+    expect(current.transferGroupId).not.toBe(pairedGroup);
+    const paired = await prisma.finTransaction.findMany({
+      where: { id: { in: [debitId, creditId] } },
+      select: { transferGroupId: true },
+    });
+    expect(paired.every((leg) => leg.transferGroupId === pairedGroup)).toBe(
+      true,
+    );
   });
 });

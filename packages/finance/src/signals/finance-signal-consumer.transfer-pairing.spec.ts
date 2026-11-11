@@ -38,11 +38,15 @@ function pairCandidate({
   type,
   externalReference,
   daysFromIncoming,
+  transferGroupId,
+  extraMs = 0,
 }: {
   id: string;
   type: 'DEBIT' | 'CREDIT';
   externalReference: string | null;
   daysFromIncoming: number;
+  transferGroupId?: string;
+  extraMs?: number;
 }) {
   return {
     id,
@@ -55,9 +59,10 @@ function pairCandidate({
     source: 'EMAIL',
     transactionDate: new Date(
       new Date('2026-11-02T12:00:00.000Z').getTime() -
-        daysFromIncoming * DAY_MS,
+        daysFromIncoming * DAY_MS -
+        extraMs,
     ),
-    transferGroupId: `group-${id}`,
+    transferGroupId: transferGroupId ?? `group-${id}`,
     categoryId: null,
     description: 'Transferencia',
     merchant: null,
@@ -92,8 +97,10 @@ const currentLeg = {
 
 function setup({
   candidates = [],
+  groupMembers = [],
 }: {
   candidates?: Array<Record<string, unknown>>;
+  groupMembers?: Array<Record<string, unknown>>;
 } = {}) {
   const prisma = {
     finSignalImport: {
@@ -122,8 +129,23 @@ function setup({
         account: { institutionId: 'bhd', type: 'SAVINGS' },
         card: null,
       }),
-      findMany: jest.fn((args: { include?: unknown }) =>
-        Promise.resolve(args.include ? [currentLeg, ...candidates] : []),
+      findMany: jest.fn(
+        (args: {
+          include?: unknown;
+          where?: { transferGroupId?: unknown };
+        }) => {
+          const groupFilter = args.where?.transferGroupId;
+          if (
+            groupFilter &&
+            typeof groupFilter === 'object' &&
+            'in' in groupFilter
+          ) {
+            return Promise.resolve(groupMembers);
+          }
+          return Promise.resolve(
+            args.include ? [currentLeg, ...candidates] : [],
+          );
+        },
       ),
       update: jest.fn().mockResolvedValue({}),
     },
@@ -189,6 +211,105 @@ describe('FinanceSignalConsumer transfer pairing', () => {
 
     await consumer.consume(transferSignal());
     expect(importEmail.pairTransferLegs).not.toHaveBeenCalled();
+  });
+
+  it('pairs at exactly seven days and not one millisecond beyond', async () => {
+    const exact = setup({
+      candidates: [
+        pairCandidate({
+          id: 'credit-1',
+          type: 'CREDIT',
+          externalReference: 'REF-1',
+          daysFromIncoming: 7,
+        }),
+      ],
+    });
+
+    await exact.consumer.consume(transferSignal());
+    expect(exact.importEmail.pairTransferLegs).toHaveBeenCalledWith(
+      'user-1',
+      'transaction-1',
+      'credit-1',
+    );
+
+    const beyond = setup({
+      candidates: [
+        pairCandidate({
+          id: 'credit-2',
+          type: 'CREDIT',
+          externalReference: 'REF-1',
+          daysFromIncoming: 7,
+          extraMs: 1,
+        }),
+      ],
+    });
+
+    await beyond.consumer.consume(transferSignal());
+    expect(beyond.importEmail.pairTransferLegs).not.toHaveBeenCalled();
+  });
+
+  it('does not re-pair a leg whose group mate is outside the window', async () => {
+    const pairedGroup = 'group-ab';
+    const groupMate = pairCandidate({
+      id: 'debit-a',
+      type: 'DEBIT',
+      externalReference: 'REF-1',
+      daysFromIncoming: 13,
+      transferGroupId: pairedGroup,
+    });
+    const candidateB = pairCandidate({
+      id: 'credit-b',
+      type: 'CREDIT',
+      externalReference: 'REF-1',
+      daysFromIncoming: 6,
+      transferGroupId: pairedGroup,
+    });
+    const { consumer, importEmail } = setup({
+      candidates: [candidateB],
+      groupMembers: [groupMate, candidateB],
+    });
+
+    await expect(consumer.consume(transferSignal())).resolves.toMatchObject({
+      outcome: 'APPLIED',
+    });
+    expect(importEmail.pairTransferLegs).not.toHaveBeenCalled();
+  });
+
+  it('retries pairing when the same signal is replayed', async () => {
+    const { consumer, importEmail, prisma } = setup({
+      candidates: [
+        pairCandidate({
+          id: 'credit-1',
+          type: 'CREDIT',
+          externalReference: 'REF-1',
+          daysFromIncoming: 5,
+        }),
+      ],
+    });
+    importEmail.pairTransferLegs.mockRejectedValueOnce(
+      new Error('pairing failed'),
+    );
+
+    await expect(consumer.consume(transferSignal())).rejects.toThrow(
+      'pairing failed',
+    );
+    expect(prisma.finSignalImport.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        create: expect.objectContaining({ status: 'IMPORTED' }),
+      }),
+    );
+
+    prisma.finSignalImport.findUnique.mockResolvedValue({
+      status: 'IMPORTED',
+      reviewReason: null,
+      transactionId: 'transaction-1',
+      duplicateOfTransactionId: null,
+    });
+
+    await expect(consumer.consume(transferSignal())).resolves.toMatchObject({
+      outcome: 'ALREADY_APPLIED',
+    });
+    expect(importEmail.pairTransferLegs).toHaveBeenCalledTimes(2);
   });
 
   it('does not pair a different reference five days apart', async () => {
