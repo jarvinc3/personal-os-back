@@ -527,3 +527,14 @@ comparten código, así el manifiesto no se separa del resultado.
 - `POST /email/sync` y `POST /email/reset` no se usan.
 - La operación usa los flujos que figuran implementados en la sección 8.3. La
   revisión y confirmación de la fecha sugerida del issue #337 siguen pendientes.
+
+### 11.7 Tiempo de respuesta
+
+- La selección está limitada a 20 correos y se procesa en serie. Tanto la vista
+  previa como la ejecución usan un timeout de ruta de 180 segundos para dar
+  margen al modelo en una muestra completa. El interceptor global conserva sus
+  5 segundos por defecto en las demás rutas.
+- Si vence el límite de 180 segundos, el cliente recibe 408. El timeout corta la
+  respuesta, pero no cancela una operación que ya esté ejecutándose. La vista
+  previa no escribe; la ejecución es idempotente por correo, así que el cliente
+  debe consultar el estado antes de repetirla.
