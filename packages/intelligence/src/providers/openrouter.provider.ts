@@ -13,6 +13,12 @@ import {
 } from '../shared/provider-tool-codec';
 
 const OPENROUTER_MODEL = 'deepseek/deepseek-v4-flash';
+/**
+ * Sin un límite explícito OpenRouter reserva el máximo del modelo (131072
+ * tokens) y rechaza la llamada con 402 cuando el saldo no lo cubre, aunque el
+ * uso real sea mínimo. El mismo valor que usa Groq mantiene el respaldo útil.
+ */
+const OPENROUTER_MAX_TOKENS = 4096;
 
 export function createOpenRouterProvider(apiKey: string): AIService {
   const openrouter = new OpenRouter({ apiKey });
@@ -31,6 +37,7 @@ export function createOpenRouterProvider(apiKey: string): AIService {
           stream: false,
           tools: tools?.length ? toolsToOpenAiFormat(tools) : undefined,
           toolChoice: tools?.length ? 'auto' : undefined,
+          maxTokens: OPENROUTER_MAX_TOKENS,
         },
       });
 
