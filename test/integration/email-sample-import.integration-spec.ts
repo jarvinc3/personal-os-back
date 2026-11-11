@@ -5,11 +5,12 @@ import { PrismaPg } from '@prisma/adapter-pg';
 import { getPrismaClientClass } from '@personal-os/database';
 import {
   AiSignalConsumerRegistry,
-  AiSignalsService,
   EmailSampleImportService,
 } from '@personal-os/intelligence';
-// eslint-disable-next-line no-restricted-imports -- El barrel no expone el servicio de clasificación.
+// eslint-disable-next-line no-restricted-imports -- El barrel no expone estos servicios internos.
 import { AiEmailClassificationService } from '../../packages/intelligence/src/email/ai-email-classification.service';
+// eslint-disable-next-line no-restricted-imports -- El barrel no expone estos servicios internos.
+import { AiSignalsService } from '../../packages/intelligence/src/signals/ai-signals.service';
 
 const connectionString = process.env.TEST_DATABASE_URL;
 if (!connectionString) {
@@ -114,8 +115,26 @@ async function createMessage({
 
 function buildService({
   consume,
+  preview = jest.fn().mockResolvedValue({
+    outcome: 'APPLIED',
+    movement: {
+      accountId: 'account-1',
+      cardId: null,
+      amount: 88.4,
+      currency: 'DOP',
+      type: 'DEBIT',
+      status: 'CONFIRMED',
+      transactionDate: '2031-05-01T12:00:00.000Z',
+      description: 'Comercio sintético #342',
+      categoryId: null,
+      legRole: null,
+      externalReference: 'SYN-342-REF',
+      importReference: 'email-preview',
+    },
+  }),
 }: {
   consume: jest.Mock;
+  preview?: jest.Mock;
 }): EmailSampleImportService {
   const inference = {
     infer: jest.fn().mockResolvedValue({
@@ -130,12 +149,12 @@ function buildService({
     { get: () => 100 } as never,
   );
   const registry = new AiSignalConsumerRegistry();
-  registry.register({ domain: 'FINANCE', consume } as never);
+  registry.register({ domain: 'FINANCE', consume, preview });
   return new EmailSampleImportService(
     prisma as never,
     classification,
     registry,
-    new AiSignalsService(prisma as never),
+    new AiSignalsService(prisma),
   );
 }
 
@@ -218,9 +237,7 @@ describe('Selección acotada de muestra por lista explícita', () => {
     });
     expect(consume).not.toHaveBeenCalled();
     await expect(countClassifications(selectedId)).resolves.toBe(1);
-    await expect(
-      prisma.aiSignal.count({ where: { userId } }),
-    ).resolves.toBe(0);
+    await expect(prisma.aiSignal.count({ where: { userId } })).resolves.toBe(0);
     const neighbourAfter = await readMessage(neighbourId);
     expect(neighbourAfter.updatedAt).toEqual(neighbourBefore.updatedAt);
     expect(neighbourAfter.processingStatus).toBe('PROCESSED');
@@ -316,8 +333,6 @@ describe('Selección acotada de muestra por lista explícita', () => {
       signal: { published: false, reason: 'MESSAGE_NOT_FOUND' },
     });
     expect(consume).not.toHaveBeenCalled();
-    await expect(
-      prisma.aiSignal.count({ where: { userId } }),
-    ).resolves.toBe(0);
+    await expect(prisma.aiSignal.count({ where: { userId } })).resolves.toBe(0);
   });
 });
