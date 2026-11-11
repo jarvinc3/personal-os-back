@@ -32,6 +32,7 @@ function setup(overrides: Record<string, unknown> = {}) {
   const prisma = {
     finSignalImport: {
       findUnique: jest.fn().mockResolvedValue(null),
+      findMany: jest.fn().mockResolvedValue([]),
       upsert: jest.fn(),
     },
     finTransaction: {

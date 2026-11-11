@@ -427,14 +427,19 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
       status,
       skipUncategorizedWarning: transfer || isAtmMovementClass(movementClass),
     });
-    const aiMetadata = this.importMetadata({
-      signal,
-      payload,
-      candidate,
-      movementClass,
-      amount,
-      currency,
-    });
+    const merchantMissing = !candidate.merchant;
+    const merchant = candidate.merchant ?? UNKNOWN_MERCHANT;
+    const aiMetadata = {
+      ...this.importMetadata({
+        signal,
+        payload,
+        candidate,
+        movementClass,
+        amount,
+        currency,
+      }),
+      merchantMissing,
+    };
 
     let cashAccountId: string | null = null;
     if (isAtmMovementClass(movementClass)) {
@@ -460,7 +465,8 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
           externalReference: candidate.bankReference,
           amount,
           currency,
-          merchant: candidate.merchant ?? null,
+          merchant,
+          merchantIsPlaceholder: merchantMissing,
           description:
             candidate.merchant ??
             payload.semanticType ??
