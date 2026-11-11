@@ -1252,7 +1252,7 @@ describe('PrismaLedgerImportRepository partial reversal', () => {
     });
     expect(budgetUpdate).toHaveBeenCalledWith({
       where: { id: 'budget-1' },
-      data: { amountSpent: 60 },
+      data: { amountSpent: { increment: -40 } },
     });
   });
 });

@@ -57,17 +57,25 @@ export function evaluateReversalOriginal({
     return { kind: 'already_reversed', step, original };
   }
   if (original.status !== 'CONFIRMED') {
-    return review(step, REVERSAL_REVIEW_REASON.ORIGINAL_NOT_CONFIRMED, [
-      original.id,
-    ]);
+    return review({
+      step,
+      reason: REVERSAL_REVIEW_REASON.ORIGINAL_NOT_CONFIRMED,
+      candidateIds: [original.id],
+    });
   }
   if (original.type !== 'DEBIT' || original.transferGroupId !== null) {
-    return review(step, REVERSAL_REVIEW_REASON.TARGET_NOT_SUPPORTED, [
-      original.id,
-    ]);
+    return review({
+      step,
+      reason: REVERSAL_REVIEW_REASON.TARGET_NOT_SUPPORTED,
+      candidateIds: [original.id],
+    });
   }
   if (reversalAmount > original.amount) {
-    return review(step, REVERSAL_REVIEW_REASON.EXCEEDS_ORIGINAL, [original.id]);
+    return review({
+      step,
+      reason: REVERSAL_REVIEW_REASON.EXCEEDS_ORIGINAL,
+      candidateIds: [original.id],
+    });
   }
   if (reversalAmount < original.amount) {
     return { kind: 'partial', step, original };
@@ -86,14 +94,18 @@ export function classifyReversalCandidates({
   step: ReversalStep;
 }): ReversalTargetDecision {
   if (candidates.length === 0) {
-    return review(step, REVERSAL_REVIEW_REASON.ORIGINAL_NOT_FOUND, []);
+    return review({
+      step,
+      reason: REVERSAL_REVIEW_REASON.ORIGINAL_NOT_FOUND,
+      candidateIds: [],
+    });
   }
   if (candidates.length > 1) {
-    return review(
+    return review({
       step,
-      REVERSAL_REVIEW_REASON.ORIGINAL_AMBIGUOUS,
-      candidates.map((candidate) => candidate.id),
-    );
+      reason: REVERSAL_REVIEW_REASON.ORIGINAL_AMBIGUOUS,
+      candidateIds: candidates.map((candidate) => candidate.id),
+    });
   }
   return evaluateReversalOriginal({
     original: candidates[0],
@@ -102,10 +114,14 @@ export function classifyReversalCandidates({
   });
 }
 
-function review(
-  step: ReversalStep,
-  reason: ReversalReviewReason,
-  candidateIds: string[],
-): ReversalTargetDecision {
+function review({
+  step,
+  reason,
+  candidateIds,
+}: {
+  step: ReversalStep;
+  reason: ReversalReviewReason;
+  candidateIds: string[];
+}): ReversalTargetDecision {
   return { kind: 'review', step, reason, candidateIds };
 }

@@ -212,18 +212,10 @@ export async function adjustBudgetSpent(
   }> = [];
 
   for (const budget of budgets) {
-    const updated =
-      direction < 0
-        ? await tx.finBudget.update({
-            where: { id: budget.id },
-            data: {
-              amountSpent: Math.max(0, Number(budget.amountSpent) + delta),
-            },
-          })
-        : await tx.finBudget.update({
-            where: { id: budget.id },
-            data: { amountSpent: { increment: delta } },
-          });
+    const updated = await tx.finBudget.update({
+      where: { id: budget.id },
+      data: { amountSpent: { increment: delta } },
+    });
     crossed.push({
       budgetId: updated.id,
       amountSpent: Number(updated.amountSpent),

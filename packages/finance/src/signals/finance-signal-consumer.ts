@@ -612,7 +612,12 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
       reversalOriginalId: original.id,
     };
     if (decision.kind === 'partial') {
-      return this.partialReverse(signal, candidate, original, evidence);
+      return this.partialReverse({
+        signal,
+        candidate,
+        original,
+        evidence,
+      });
     }
     await this.reverseTransaction.execute(signal.userId, original.id, {
       ...this.originalMetadata(original),
@@ -691,12 +696,17 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
     return { kind: 'review', step, reason, candidateIds: [] };
   }
 
-  private async partialReverse(
-    signal: RoutedSignal,
-    candidate: Candidate,
-    original: ReversalOriginal,
-    evidence: ImportReviewEvidence,
-  ) {
+  private async partialReverse({
+    signal,
+    candidate,
+    original,
+    evidence,
+  }: {
+    signal: RoutedSignal;
+    candidate: Candidate;
+    original: ReversalOriginal;
+    evidence: ImportReviewEvidence;
+  }) {
     const existing = await this.ledger.findLinkedRefund(
       signal.userId,
       original.id,

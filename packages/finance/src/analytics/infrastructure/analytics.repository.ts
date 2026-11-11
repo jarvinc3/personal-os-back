@@ -59,7 +59,7 @@ export class AnalyticsRepository {
       _count: { _all: true },
       orderBy: { type: 'asc' },
     });
-    return this.netLinkedRefunds(grouped, userId, from, to);
+    return this.netLinkedRefunds({ rows: grouped, userId, from, to });
   }
 
   async getSpendingByCategory(userId: string, from?: Date, to?: Date) {
@@ -86,7 +86,7 @@ export class AnalyticsRepository {
     });
     const refundGroups = await this.prisma.finTransaction.groupBy({
       by: ['categoryId'],
-      where: this.linkedRefundWhere(userId, from, to),
+      where: this.linkedRefundWhere({ userId, from, to }),
       _sum: { amountBaseCurrency: true },
     });
     return this.netSpendingByCategory(grouped, refundGroups);
@@ -161,11 +161,15 @@ export class AnalyticsRepository {
     return this.netSpendingOverTime(rows, refunds);
   }
 
-  private linkedRefundWhere(
-    userId: string,
-    from?: Date,
-    to?: Date,
-  ): Prisma.FinTransactionWhereInput {
+  private linkedRefundWhere({
+    userId,
+    from,
+    to,
+  }: {
+    userId: string;
+    from?: Date;
+    to?: Date;
+  }): Prisma.FinTransactionWhereInput {
     return {
       userId,
       type: 'CREDIT',
@@ -183,26 +187,35 @@ export class AnalyticsRepository {
     };
   }
 
-  private async linkedRefundTotal(
-    userId: string,
-    from?: Date,
-    to?: Date,
-  ): Promise<Prisma.Decimal> {
+  private async linkedRefundTotal({
+    userId,
+    from,
+    to,
+  }: {
+    userId: string;
+    from?: Date;
+    to?: Date;
+  }): Promise<Prisma.Decimal> {
     const refundAggregate = await this.prisma.finTransaction.aggregate({
-      where: this.linkedRefundWhere(userId, from, to),
+      where: this.linkedRefundWhere({ userId, from, to }),
       _sum: { amountBaseCurrency: true },
     });
     return toMoney(refundAggregate._sum.amountBaseCurrency ?? null);
   }
 
   /** Expenses already net of the partial reversals linked to their purchase. */
-  private async netLinkedRefunds(
-    rows: CashFlowRow[],
-    userId: string,
-    from?: Date,
-    to?: Date,
-  ): Promise<CashFlowRow[]> {
-    const refunds = await this.linkedRefundTotal(userId, from, to);
+  private async netLinkedRefunds({
+    rows,
+    userId,
+    from,
+    to,
+  }: {
+    rows: CashFlowRow[];
+    userId: string;
+    from?: Date;
+    to?: Date;
+  }): Promise<CashFlowRow[]> {
+    const refunds = await this.linkedRefundTotal({ userId, from, to });
     if (refunds.isZero()) {
       return rows;
     }
