@@ -45,6 +45,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [Se
 
 ### Corregido
 
+- #360: OpenRouter no registraba uso porque la petición no limitaba los tokens de salida: reservaba el máximo del modelo (131072) y la cuenta respondía 402 antes de inferir. Las llamadas ahora piden 4096 tokens y el respaldo responde.
 - #351: la clasificación de correo deja de perder etiquetas válidas por una salida del modelo que rompía reglas cerradas que el esquema permitía y el prompt no explicaba. Un tipo sin transacción que llega con un `transaction` que solo declara `kind: NOT_TRANSACTION`, o con un intento `DECLINED`, `REJECTED`, `FAILED`, `CANCELLED` o `VOIDED`, se acepta sin ese objeto; un monto con estado aprobado no se normaliza y sigue el camino de rechazo y revisión. Un `SECURITY_OTP` con `relevance: true` se marca como no financiero. El esquema que recibe el modelo ya no ofrece `NOT_TRANSACTION`, y el prompt pide omitir `transaction` cuando no hay movimiento. Un fallo de validación admite un único reintento de reparación con la causa del rechazo; si también falla, el correo queda sin clasificar y en revisión, sin inventar datos. El error y la telemetría distinguen `INVALID_JSON` del campo rechazado. En el preview del piloto BHD los cinco correos que quedaban sin etiqueta se clasificaron.
 
 - #342: `POST /api/intelligence/email/sample-import` amplía a 480 segundos su timeout propio para procesar hasta 20 correos en serie; el interceptor global conserva sus 5 segundos por defecto.
@@ -52,6 +53,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [Se
 
 ### Cambiado
 
+- #360: el gateway de IA alterna los proveedores disponibles en cada inferencia y deja en enfriamiento el que responde 429 o 402 hasta el `Retry-After` que indique o, si no lo trae, 60 segundos por ritmo y 30 minutos por cupo. El respaldo sigue pasando al siguiente proveedor, la telemetría guarda el que atendió y, con todos en enfriamiento, la inferencia falla como `PROVIDER_COOLDOWN` sin llamarlos.
 - FIN-1 (#317): Finance deja de poseer la ingesta de correo; retira el extractor con IA, el cifrado de tokens y los candidatos de email, conserva la importación por señales con deduplicación, reversos y transferencias, y elimina `finance.transaction.imported` y su aviso de movimiento pendiente. Los movimientos pendientes importados quedan sin aviso específico de correo hasta confirmarse.
 - #308: corrige las referencias de lectura de `docs/refactors`, aclara la excepción de CI para PRs solo documentales y usa `pnpm build` como comprobación de tipos respaldada.
 - El paquete de IA se renombra como `@personal-os/intelligence`; las rutas se unifican bajo `/api/intelligence/*`, Swagger usa etiquetas `intelligence*`, el módulo aplana sus carpetas y se retira el código muerto del chat anterior (#307).
