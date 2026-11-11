@@ -6,6 +6,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [Se
 
 ### Agregado
 
+- #342: agrega la selección acotada de correos del piloto: una vista previa que reclasifica hasta 20 correos con el modelo sin escribir nada y devuelve el manifiesto con el movimiento que crearía, y una ejecución idempotente que procesa solo esos ids, sin ampliar por remitente ni por plantilla. La predicción y la escritura comparten el mismo paso de decisión de Finance. La ruta responde 404 en producción.
 - Contratos de importación por correo: transferencias de una pata, pagos de tarjeta confirmados, fecha sugerida y reversos por la cadena del ADR-003; se publican como `NO_IMPLEMENTADO` con los issues #334, #335, #337 y #336.
 - #308: reorganiza `docs/refactors` por programa y fase; añade índices con objetivos, issues, PRs y estados, y conserva inventarios y borradores anteriores en `archive/`.
 - Catálogos CSV con 104 casos manuales AI-0 a AI-11 y una herramienta para generar rondas XLSX y exportar sus resultados a CSV (#309).

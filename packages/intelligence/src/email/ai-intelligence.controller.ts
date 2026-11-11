@@ -6,6 +6,7 @@ import {
   HttpCode,
   HttpException,
   Logger,
+  NotFoundException,
   Param,
   Post,
   Query,
@@ -24,8 +25,10 @@ import type { Env } from '@personal-os/config';
 import { CurrentUser, Public, Timeout } from '@personal-os/core';
 import type { Response } from 'express';
 import { AiEmailSourceService } from './ai-email-source.service';
+import { EmailSampleImportService } from './email-sample-import.service';
 import { GmailSyncService } from './gmail-sync.service';
 import { ResetEmailCorpusDto } from './dto/reset-email-corpus.dto';
+import { EmailSampleImportDto } from './dto/email-sample-import.dto';
 import {
   AiEmailConnectResponseDto,
   AiEmailDashboardResponseDto,
@@ -33,6 +36,7 @@ import {
   AiEmailMessagePageResponseDto,
   AiEmailMessageResponseDto,
   AiEmailResetResponseDto,
+  AiEmailSampleImportResponseDto,
   AiEmailSyncResponseDto,
 } from './ai-intelligence-response.dto';
 
@@ -45,6 +49,7 @@ export class AiIntelligenceController {
   constructor(
     private readonly email: AiEmailSourceService,
     private readonly sync: GmailSyncService,
+    private readonly sampleImport: EmailSampleImportService,
     private readonly config: ConfigService<Env, true>,
   ) {}
 
@@ -81,6 +86,36 @@ export class AiIntelligenceController {
     @Param('messageId') messageId: string,
   ) {
     return this.email.getMessage(user.sub, messageId);
+  }
+
+  @Post('email/sample-import')
+  @ApiOkResponse({ type: AiEmailSampleImportResponseDto })
+  sampleImportRun(
+    @CurrentUser() user: { sub: string },
+    @Body() dto: EmailSampleImportDto,
+  ) {
+    this.assertSampleImportAllowed();
+    return this.sampleImport.run({
+      userId: user.sub,
+      dryRun: dto.dryRun,
+      selection: {
+        messageIds: dto.selection.messageIds,
+        sender: dto.selection.sender,
+        dateFrom: dto.selection.dateFrom
+          ? new Date(dto.selection.dateFrom)
+          : undefined,
+        dateTo: dto.selection.dateTo
+          ? new Date(dto.selection.dateTo)
+          : undefined,
+      },
+    });
+  }
+
+  /** Operación de piloto: fuera de producción la ruta no existe. */
+  private assertSampleImportAllowed(): void {
+    if (this.config.get('NODE_ENV', { infer: true }) === 'production') {
+      throw new NotFoundException();
+    }
   }
 
   @Post('email/connect')

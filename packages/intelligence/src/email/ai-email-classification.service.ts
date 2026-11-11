@@ -59,6 +59,51 @@ type KnowledgeMatch = {
   payload: Prisma.JsonValue;
 };
 
+type ClassificationMethod = 'KNOWLEDGE' | 'DETERMINISTIC' | 'MODEL';
+
+type KnowledgeRef = {
+  knowledgeType: string;
+  knowledgeKey: string;
+  scope: 'USER' | 'GLOBAL';
+};
+
+type ClassifiableMessage = {
+  id: string;
+  receivedAt: Date;
+  fromAddress: string;
+  subject: string;
+  templateFingerprint: string | null;
+  processingStatus: string;
+  content: { sanitizedBody: string | null } | null;
+};
+
+type ComputedClassification =
+  | {
+      kind: 'computed';
+      classification: EmailClassification;
+      method: ClassificationMethod;
+      provider: string | null;
+      model: string | null;
+      auditSample: boolean;
+      matches: KnowledgeMatch[];
+    }
+  | { kind: 'budget_exhausted' }
+  | { kind: 'no_classification' };
+
+/** Resultado de clasificar un correo concreto, con o sin escritura. */
+export type MessageClassificationResult =
+  | {
+      kind: 'classified';
+      classification: EmailClassification;
+      method: ClassificationMethod;
+      provider: string | null;
+      model: string | null;
+      auditSample: boolean;
+      knowledgeUsed: KnowledgeRef[];
+    }
+  | { kind: 'not_found' }
+  | { kind: 'unavailable'; reason: string };
+
 @Injectable()
 export class AiEmailClassificationService {
   private readonly logger = new Logger(AiEmailClassificationService.name);
@@ -162,102 +207,307 @@ export class AiEmailClassificationService {
       return { processed: false, modelCalls: 0 };
     }
 
-    let modelCalls = 0;
     try {
-      const matches = await this.resolveKnowledge(userId, message);
-      const known = matches[0];
-      const knownLabel = this.knowledgeLabel(known?.payload);
-      const isKnownIrrelevant = knownLabel?.relevance === false;
-      let auditSample = false;
-      if (isKnownIrrelevant) {
-        const [role, consent] = await Promise.all([
-          this.prisma.userRole.findUnique({
-            where: { userId },
-            select: { role: true },
-          }),
-          this.prisma.userAiSettings.findUnique({
-            where: { userId },
-            select: { contributeToGlobalKnowledge: true },
-          }),
-        ]);
-        auditSample =
-          role?.role === 'ADMIN' &&
-          (consent?.contributeToGlobalKnowledge ?? true) &&
-          isRecallAuditSample(message.id, RECALL_AUDIT_RATE);
-      }
-
-      let classification = auditSample
-        ? null
-        : parseDeterministicEmail({
-            subject: message.subject,
-            body: message.content?.sanitizedBody ?? '',
-            knownLabel,
-          });
-      let method: 'KNOWLEDGE' | 'DETERMINISTIC' | 'MODEL' = knownLabel
-        ? 'KNOWLEDGE'
-        : 'DETERMINISTIC';
-      let provider: string | null = null;
-      let model: string | null = null;
-      if (auditSample || !classification) {
-        if (!(await this.reserveModelCall(userId))) {
-          await this.leaveQueued(messageId, userId);
-          return { processed: false, modelCalls, budgetExhausted: true };
-        }
-        modelCalls += 1;
-        const content = (message.content?.sanitizedBody ?? '').slice(
-          0,
-          MAX_EMAIL_CONTENT_CHARS,
-        );
-        const inferred = await this.inference.infer({
-          userId,
-          task: CLASSIFICATION_TASK,
-          sourceType: 'EMAIL_MESSAGE',
-          sourceId: message.id,
-          promptVersion: EMAIL_CLASSIFICATION_VERSIONS.prompt,
-          schemaVersion: EMAIL_CLASSIFICATION_VERSIONS.schema,
-          jsonSchema: EMAIL_CLASSIFICATION_JSON_SCHEMA,
-          validate: validateEmailClassification,
-          messages: [
-            { role: 'system', content: CLASSIFICATION_SYSTEM_PROMPT },
-            {
-              role: 'user',
-              content: JSON.stringify({
-                from: message.fromAddress,
-                subject: message.subject,
-                emailContent: content,
-              }),
-            },
-          ],
-        });
-        classification = validateEmailClassification(inferred.value);
-        method = 'MODEL';
-        provider = inferred.provider;
-        model = inferred.model;
-      }
-
-      if (!classification) {
+      const computation = await this.computeClassification({
+        userId,
+        message,
+        modelBudget: 'reserve',
+      });
+      if (computation.kind === 'budget_exhausted') {
         await this.leaveQueued(messageId, userId);
-        return { processed: false, modelCalls };
+        return { processed: false, modelCalls: 0, budgetExhausted: true };
       }
-      classification = validateEmailClassification(classification);
+      if (computation.kind === 'no_classification') {
+        await this.leaveQueued(messageId, userId);
+        return { processed: false, modelCalls: 0 };
+      }
       await this.persistClassification({
         userId,
         message,
-        classification,
-        method,
-        provider,
-        model,
-        auditSample,
-        matches,
+        classification: computation.classification,
+        method: computation.method,
+        provider: computation.provider,
+        model: computation.model,
+        auditSample: computation.auditSample,
+        matches: computation.matches,
       });
-      return { processed: true, modelCalls };
+      return { processed: true, modelCalls: 0 };
     } catch (error) {
       this.logger.warn(
         `Email classification failed for message ${messageId}: ${this.safeErrorCode(error)}`,
       );
       await this.persistFailure(userId, messageId);
-      return { processed: true, modelCalls };
+      return { processed: true, modelCalls: 0 };
     }
+  }
+
+  /**
+   * Clasifica un correo concreto para un manifiesto. No reserva presupuesto, no
+   * cambia el estado del correo y no guarda clasificaciones ni señales.
+   */
+  async previewClassification({
+    userId,
+    messageId,
+  }: {
+    userId: string;
+    messageId: string;
+  }): Promise<MessageClassificationResult> {
+    const message = await this.prisma.aiEmailMessage.findFirst({
+      where: { id: messageId, userId },
+      include: { content: true },
+    });
+    if (!message) {
+      return { kind: 'not_found' };
+    }
+    try {
+      return this.classificationResult(
+        await this.computeClassification({
+          userId,
+          message,
+          modelBudget: 'inspect',
+        }),
+      );
+    } catch (error) {
+      this.logger.warn(
+        `Email classification preview failed for message ${messageId}: ${this.safeErrorCode(error)}`,
+      );
+      return { kind: 'unavailable', reason: this.safeErrorCode(error) };
+    }
+  }
+
+  /**
+   * Reclasifica un correo concreto sin pasar por la sincronización. Reemplaza su
+   * clasificación guardada y publica su señal, sin ampliar a plantilla ni remitente.
+   */
+  async reclassifyMessageNow({
+    userId,
+    messageId,
+  }: {
+    userId: string;
+    messageId: string;
+  }): Promise<MessageClassificationResult> {
+    const message = await this.prisma.aiEmailMessage.findFirst({
+      where: { id: messageId, userId },
+      include: { content: true },
+    });
+    if (!message) {
+      return { kind: 'not_found' };
+    }
+    const previousStatus = message.processingStatus;
+    await this.claimForReclassification({ userId, messageId });
+    try {
+      const computation = await this.computeClassification({
+        userId,
+        message,
+        modelBudget: 'reserve',
+      });
+      if (computation.kind !== 'computed') {
+        await this.releaseClaim({ userId, messageId, previousStatus });
+        return {
+          kind: 'unavailable',
+          reason:
+            computation.kind === 'budget_exhausted'
+              ? 'MODEL_BUDGET_EXHAUSTED'
+              : 'CLASSIFICATION_UNAVAILABLE',
+        };
+      }
+      await this.persistClassification({
+        userId,
+        message,
+        classification: computation.classification,
+        method: computation.method,
+        provider: computation.provider,
+        model: computation.model,
+        auditSample: computation.auditSample,
+        matches: computation.matches,
+        replaceExisting: true,
+      });
+      return this.classificationResult(computation);
+    } catch (error) {
+      this.logger.warn(
+        `Email reclassification failed for message ${messageId}: ${this.safeErrorCode(error)}`,
+      );
+      await this.persistFailure(userId, messageId);
+      return { kind: 'unavailable', reason: this.safeErrorCode(error) };
+    }
+  }
+
+  /** Lectura pura de la decisión: no escribe nada. */
+  private async computeClassification({
+    userId,
+    message,
+    modelBudget,
+  }: {
+    userId: string;
+    message: ClassifiableMessage;
+    modelBudget: 'reserve' | 'inspect';
+  }): Promise<ComputedClassification> {
+    const matches = await this.resolveKnowledge(userId, message);
+    const known = matches[0];
+    const knownLabel = this.knowledgeLabel(known?.payload);
+    const isKnownIrrelevant = knownLabel?.relevance === false;
+    let auditSample = false;
+    if (isKnownIrrelevant) {
+      const [role, consent] = await Promise.all([
+        this.prisma.userRole.findUnique({
+          where: { userId },
+          select: { role: true },
+        }),
+        this.prisma.userAiSettings.findUnique({
+          where: { userId },
+          select: { contributeToGlobalKnowledge: true },
+        }),
+      ]);
+      auditSample =
+        role?.role === 'ADMIN' &&
+        (consent?.contributeToGlobalKnowledge ?? true) &&
+        isRecallAuditSample(message.id, RECALL_AUDIT_RATE);
+    }
+
+    let classification = auditSample
+      ? null
+      : parseDeterministicEmail({
+          subject: message.subject,
+          body: message.content?.sanitizedBody ?? '',
+          knownLabel,
+        });
+    let method: ClassificationMethod = knownLabel
+      ? 'KNOWLEDGE'
+      : 'DETERMINISTIC';
+    let provider: string | null = null;
+    let model: string | null = null;
+    if (auditSample || !classification) {
+      const budgetAvailable =
+        modelBudget === 'reserve'
+          ? await this.reserveModelCall(userId)
+          : await this.hasModelBudget(userId);
+      if (!budgetAvailable) {
+        return { kind: 'budget_exhausted' };
+      }
+      const content = (message.content?.sanitizedBody ?? '').slice(
+        0,
+        MAX_EMAIL_CONTENT_CHARS,
+      );
+      const inferred = await this.inference.infer({
+        userId,
+        task: CLASSIFICATION_TASK,
+        sourceType: 'EMAIL_MESSAGE',
+        sourceId: message.id,
+        promptVersion: EMAIL_CLASSIFICATION_VERSIONS.prompt,
+        schemaVersion: EMAIL_CLASSIFICATION_VERSIONS.schema,
+        jsonSchema: EMAIL_CLASSIFICATION_JSON_SCHEMA,
+        validate: validateEmailClassification,
+        messages: [
+          { role: 'system', content: CLASSIFICATION_SYSTEM_PROMPT },
+          {
+            role: 'user',
+            content: JSON.stringify({
+              from: message.fromAddress,
+              subject: message.subject,
+              emailContent: content,
+            }),
+          },
+        ],
+      });
+      classification = validateEmailClassification(inferred.value);
+      method = 'MODEL';
+      provider = inferred.provider;
+      model = inferred.model;
+    }
+
+    if (!classification) {
+      return { kind: 'no_classification' };
+    }
+    return {
+      kind: 'computed',
+      classification: validateEmailClassification(classification),
+      method,
+      provider,
+      model,
+      auditSample,
+      matches,
+    };
+  }
+
+  private classificationResult(
+    computation: ComputedClassification,
+  ): MessageClassificationResult {
+    if (computation.kind !== 'computed') {
+      return {
+        kind: 'unavailable',
+        reason:
+          computation.kind === 'budget_exhausted'
+            ? 'MODEL_BUDGET_EXHAUSTED'
+            : 'CLASSIFICATION_UNAVAILABLE',
+      };
+    }
+    return {
+      kind: 'classified',
+      classification: computation.classification,
+      method: computation.method,
+      provider: computation.provider,
+      model: computation.model,
+      auditSample: computation.auditSample,
+      knowledgeUsed: computation.matches.map(
+        ({ knowledgeType, knowledgeKey, scope }) => ({
+          knowledgeType,
+          knowledgeKey,
+          scope,
+        }),
+      ),
+    };
+  }
+
+  private async claimForReclassification({
+    userId,
+    messageId,
+  }: {
+    userId: string;
+    messageId: string;
+  }): Promise<void> {
+    await this.prisma.aiEmailMessage.updateMany({
+      where: { id: messageId, userId },
+      data: {
+        processingStatus: 'CLASSIFYING',
+        classificationStartedAt: new Date(),
+      },
+    });
+  }
+
+  private async releaseClaim({
+    userId,
+    messageId,
+    previousStatus,
+  }: {
+    userId: string;
+    messageId: string;
+    previousStatus: string;
+  }): Promise<void> {
+    await this.prisma.aiEmailMessage.updateMany({
+      where: { id: messageId, userId, processingStatus: 'CLASSIFYING' },
+      data: {
+        processingStatus: previousStatus as 'PROCESSED',
+        classificationStartedAt: null,
+      },
+    });
+  }
+
+  private async hasModelBudget(userId: string): Promise<boolean> {
+    const now = new Date();
+    const today = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
+    );
+    const dailyLimit = this.config.get('AI_EMAIL_DAILY_MODEL_BUDGET', {
+      infer: true,
+    });
+    const budget = await this.prisma.aiEmailModelBudget.findFirst({
+      where: { userId, budgetDate: today },
+      select: { calls: true },
+    });
+    if (!budget) {
+      return true;
+    }
+    return budget.calls < dailyLimit;
   }
 
   private async resolveKnowledge(
@@ -352,19 +602,14 @@ export class AiEmailClassificationService {
 
   private async persistClassification(input: {
     userId: string;
-    message: {
-      id: string;
-      receivedAt: Date;
-      fromAddress: string;
-      subject: string;
-      templateFingerprint: string | null;
-    };
+    message: ClassifiableMessage;
     classification: EmailClassification;
-    method: 'KNOWLEDGE' | 'DETERMINISTIC' | 'MODEL';
+    method: ClassificationMethod;
     provider: string | null;
     model: string | null;
     auditSample: boolean;
     matches: KnowledgeMatch[];
+    replaceExisting?: boolean;
   }) {
     const dataset = await this.prisma.aiDataset.upsert({
       where: { name: EMAIL_DATASET_NAME },
@@ -474,6 +719,13 @@ export class AiEmailClassificationService {
       provenance,
     });
     await this.prisma.$transaction([
+      ...(input.replaceExisting
+        ? [
+            this.prisma.aiEmailClassification.deleteMany({
+              where: { userId: input.userId, messageId: input.message.id },
+            }),
+          ]
+        : []),
       this.prisma.aiEmailClassification.createMany({
         data: buildClassificationRows({
           userId: input.userId,

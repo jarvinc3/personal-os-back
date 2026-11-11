@@ -299,6 +299,30 @@ export interface RoutedSignal<T extends JsonObject = JsonObject> {
   sourceId: string;
   payload: T;
 }
+/**
+ * Lo que un consumidor haría con una señal, sin escribir nada. Lo usan las
+ * vistas previas: el resultado sale del mismo paso de decisión que la escritura.
+ */
+export interface SignalImportPreview {
+  outcome: 'APPLIED' | 'ALREADY_APPLIED' | 'REVIEW_REQUIRED' | 'REJECTED';
+  reason?: string;
+  domainReferences?: readonly { type: string; id: string }[];
+  movement?: {
+    accountId: string | null;
+    cardId: string | null;
+    amount: number;
+    currency: string;
+    type: string;
+    status: string;
+    transactionDate: string;
+    description: string;
+    categoryId: string | null;
+    legRole: string | null;
+    externalReference: string | null;
+    importReference: string;
+  };
+}
+
 export interface SignalConsumer<T extends JsonObject = JsonObject> {
   readonly domain: string;
   consume(signal: RoutedSignal<T>): Promise<{
@@ -306,4 +330,6 @@ export interface SignalConsumer<T extends JsonObject = JsonObject> {
     domainReferences: readonly { type: string; id: string }[];
     reason?: string;
   }>;
+  /** Opcional: solo los consumidores que pueden decidir sin escribir. */
+  preview?(signal: RoutedSignal<T>): Promise<SignalImportPreview>;
 }
