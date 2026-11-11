@@ -531,10 +531,17 @@ comparten código, así el manifiesto no se separa del resultado.
 ### 11.7 Tiempo de respuesta
 
 - La selección está limitada a 20 correos y se procesa en serie. Tanto la vista
-  previa como la ejecución usan un timeout de ruta de 180 segundos para dar
+  previa como la ejecución usan un timeout de ruta de 480 segundos para dar
   margen al modelo en una muestra completa. El interceptor global conserva sus
   5 segundos por defecto en las demás rutas.
-- Si vence el límite de 180 segundos, el cliente recibe 408. El timeout corta la
+- Si vence el límite de 480 segundos, el cliente recibe 408. El timeout corta la
   respuesta, pero no cancela una operación que ya esté ejecutándose. La vista
   previa no escribe; la ejecución es idempotente por correo, así que el cliente
   debe consultar el estado antes de repetirla.
+- Railway cierra una petición HTTP tras 5 minutos sin datos, aunque permite hasta
+  15 minutos si siguen transfiriéndose datos ([límites de networking](https://docs.railway.com/networking/public-networking/specs-and-limits)).
+  Esta ruta entrega el JSON al terminar y no envía progreso mientras procesa:
+  la medición sana de 261.8 segundos cabe en ese límite de inactividad, pero el
+  timeout de aplicación de 480 segundos no evita que Railway cierre antes una
+  corrida que supere los 5 minutos. Para aprovechar los 480 segundos completos
+  haría falta enviar progreso periódico o usar un trabajo asíncrono con polling.

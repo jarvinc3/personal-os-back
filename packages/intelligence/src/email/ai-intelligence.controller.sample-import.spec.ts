@@ -31,7 +31,7 @@ const previewRequest = {
 };
 
 describe('AiIntelligenceController sample import', () => {
-  it('gives only the sample import route a three-minute timeout', () => {
+  it('gives only the sample import route an eight-minute timeout', () => {
     const timeoutFor = (method: string) => {
       const handler: unknown = Object.getOwnPropertyDescriptor(
         AiIntelligenceController.prototype,
@@ -42,7 +42,7 @@ describe('AiIntelligenceController sample import', () => {
         : undefined;
     };
 
-    expect(timeoutFor('sampleImportRun')).toBe(180_000);
+    expect(timeoutFor('sampleImportRun')).toBe(480_000);
     expect(timeoutFor('messages')).toBeUndefined();
   });
 
