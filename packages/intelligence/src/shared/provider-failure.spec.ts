@@ -129,6 +129,10 @@ describe('sanitizeProviderErrorMessage', () => {
   it.each([
     ['Basic scheme', 'Authorization: Basic Zm9vOmJhcg=='],
     ['Token scheme', 'authorization: Token abc123def456'],
+    [
+      'Digest scheme',
+      'Authorization: Digest username="Mufasa", realm="test", nonce="abc"',
+    ],
     ['quoted JSON', '"Authorization":"Basic Zm9vOmJhcg=="'],
     ['scheme-free value', 'Authorization=Zm9vOmJhcg=='],
   ])('redacts the full authorization header (%s)', (_label, raw) => {
@@ -136,6 +140,8 @@ describe('sanitizeProviderErrorMessage', () => {
 
     expect(message).not.toContain('Zm9vOmJhcg==');
     expect(message).not.toContain('abc123def456');
+    expect(message).not.toContain('Mufasa');
+    expect(message).not.toContain('nonce');
     expect(message).toContain('authorization=[redacted]');
   });
 
