@@ -607,33 +607,12 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
       }
       return this.result('APPLIED', transactionId);
     } catch (error) {
-      if (error instanceof PartialReversalAlreadyAppliedError) {
-        await this.persist(
-          signal,
-          'DUPLICATE',
-          null,
-          undefined,
-          error.transactionId,
-        );
-        return this.result('ALREADY_APPLIED', error.transactionId);
-      }
-      if (error instanceof PartialReversalAlreadyReversedError) {
-        await this.persist(signal, 'REVERSED', error.originalId);
-        return this.result('ALREADY_APPLIED', error.originalId);
-      }
-      if (error instanceof PartialReversalExceedsOriginalError) {
-        return this.review({
-          signal,
-          reason: REVERSAL_REVIEW_REASON.EXCEEDS_ORIGINAL,
-          evidence: { candidateTransactionIds: [error.originalId] },
-        });
-      }
-      if (error instanceof PartialReversalNotApplicableError) {
-        return this.review({
-          signal,
-          reason: error.reason,
-          evidence: { candidateTransactionIds: [error.originalId] },
-        });
+      const partialReversalOutcome = await this.partialReversalFailureOutcome({
+        signal,
+        error,
+      });
+      if (partialReversalOutcome) {
+        return partialReversalOutcome;
       }
       const code = (error as { code?: string }).code;
       if (code === 'P2002') {
@@ -665,6 +644,44 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
       }
       throw error;
     }
+  }
+
+  private async partialReversalFailureOutcome({
+    signal,
+    error,
+  }: {
+    signal: RoutedSignal;
+    error: unknown;
+  }): Promise<SignalConsumeResult | null> {
+    if (error instanceof PartialReversalAlreadyAppliedError) {
+      await this.persist(
+        signal,
+        'DUPLICATE',
+        null,
+        undefined,
+        error.transactionId,
+      );
+      return this.result('ALREADY_APPLIED', error.transactionId);
+    }
+    if (error instanceof PartialReversalAlreadyReversedError) {
+      await this.persist(signal, 'REVERSED', error.originalId);
+      return this.result('ALREADY_APPLIED', error.originalId);
+    }
+    if (error instanceof PartialReversalExceedsOriginalError) {
+      return this.review({
+        signal,
+        reason: REVERSAL_REVIEW_REASON.EXCEEDS_ORIGINAL,
+        evidence: { candidateTransactionIds: [error.originalId] },
+      });
+    }
+    if (error instanceof PartialReversalNotApplicableError) {
+      return this.review({
+        signal,
+        reason: error.reason,
+        evidence: { candidateTransactionIds: [error.originalId] },
+      });
+    }
+    return null;
   }
 
   private validationReason(candidate: Candidate): string | null {
