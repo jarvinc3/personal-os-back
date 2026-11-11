@@ -42,6 +42,10 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [Se
 - AI-2 (#205): roles de IA por usuario y consentimiento revocable; conexión OAuth Gmail de solo lectura con tokens cifrados, bootstrap desde 2026-01-01, polling incremental, recuperación acotada por cursor, correo aislado por usuario, detalle con contenido canónico/saneado/crudo y purga según retención DEV/PROD.
 - AI-1: gateway de inferencia estructurada con fallback por respuesta inválida, telemetría minimizada con HMAC y retención de 90 días; Quick Entry y extractos bancarios validan antes de devolver resultados. Diagnóstico disponible con `pnpm ai:diagnostic`.
 
+### Corregido
+
+- Seguimiento de #347: el cursor de `IMPACT` guarda el primer correo de la página siguiente y lo busca por id en la lista actual, así que verificar el último correo de una página no invalida la paginación. `UsersService` exige el registro de settings de módulo y ya no guarda configuración sin validar cuando falta. El contrato de revisión corrige `uncertain`: umbral personal fuera de HOLDOUT y `0.7` fijo en HOLDOUT.
+
 ### Cambiado
 
 - FIN-1 (#317): Finance deja de poseer la ingesta de correo; retira el extractor con IA, el cifrado de tokens y los candidatos de email, conserva la importación por señales con deduplicación, reversos y transferencias, y elimina `finance.transaction.imported` y su aviso de movimiento pendiente. Los movimientos pendientes importados quedan sin aviso específico de correo hasta confirmarse.

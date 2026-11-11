@@ -378,16 +378,30 @@ export function encodeReviewQueueCursor({
   return encodeCursor({ key: receivedAt.toISOString(), id });
 }
 
-export function encodeReviewImpactCursor(id: string): string {
-  return encodeCursor({ key: 'IMPACT', id });
+export type ReviewImpactCursor = {
+  nextId: string;
+  index: number;
+};
+
+const IMPACT_CURSOR_KEY = /^IMPACT:(\d+)$/;
+
+export function encodeReviewImpactCursor({
+  nextId,
+  index,
+}: ReviewImpactCursor): string {
+  return encodeCursor({ key: `IMPACT:${index}`, id: nextId });
 }
 
-export function decodeReviewImpactCursor(cursor: string): string {
-  const decoded = decodeReviewQueueCursor(cursor);
-  if (decoded.key !== 'IMPACT' || !decoded.id) {
+export function decodeReviewImpactCursor(cursor: string): ReviewImpactCursor {
+  const decoded = decodeReviewQueueCursor(cursor, (key) =>
+    IMPACT_CURSOR_KEY.test(key),
+  );
+  const match = IMPACT_CURSOR_KEY.exec(decoded.key);
+  const index = match ? Number(match[1]) : Number.NaN;
+  if (!match || !decoded.id || !Number.isSafeInteger(index) || index < 0) {
     throw new BadRequestException(INVALID_CURSOR_MESSAGE);
   }
-  return decoded.id;
+  return { nextId: decoded.id, index };
 }
 
 function reviewQueueStatusFilter({
@@ -447,9 +461,12 @@ function reviewQueueCursorFilter({
   };
 }
 
-function decodeReviewQueueCursor(cursor: string): { key: string; id: string } {
+function decodeReviewQueueCursor(
+  cursor: string,
+  isValidKey?: (key: string) => boolean,
+): { key: string; id: string } {
   try {
-    return decodeCursor(cursor);
+    return decodeCursor(cursor, isValidKey);
   } catch (error) {
     throw new BadRequestException(INVALID_CURSOR_MESSAGE, { cause: error });
   }

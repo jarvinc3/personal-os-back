@@ -5,6 +5,12 @@ import { AppEvents } from '@personal-os/core';
 import type { UsersRepositoryPort } from './ports/users.repository.port';
 import { UsersService } from './users.service';
 
+const passThroughSettingsRegistry = {
+  normalize: jest.fn(
+    (_slug: string, config: Record<string, unknown>) => config,
+  ),
+} as never;
+
 describe('UsersService.deleteAccount', () => {
   const findById = jest.fn();
   const deleteAccountWithAuthOutbox = jest.fn();
@@ -31,6 +37,7 @@ describe('UsersService.deleteAccount', () => {
     usersRepository,
     eventEmitter,
     supabaseAdminService,
+    passThroughSettingsRegistry,
   );
 
   const existingUser = {
@@ -114,6 +121,7 @@ describe('UsersService.assertModuleEnabled', () => {
     usersRepository,
     { emit: jest.fn() } as unknown as EventEmitter2,
     { tryDeleteAuthUser: jest.fn() } as unknown as SupabaseAdminService,
+    passThroughSettingsRegistry,
   );
 
   beforeEach(() => {
@@ -153,6 +161,7 @@ describe('UsersService.updateModuleConfig schedule validation', () => {
     usersRepository,
     eventEmitter,
     supabaseAdminService,
+    passThroughSettingsRegistry,
   );
 
   beforeEach(() => {
@@ -229,6 +238,18 @@ describe('UsersService.updateModuleConfig schedule validation', () => {
     );
     expect(upsertUserModule).not.toHaveBeenCalled();
   });
+
+  it('fails fast when the module settings registry is not provided', () => {
+    expect(
+      () =>
+        new UsersService(
+          usersRepository,
+          eventEmitter,
+          supabaseAdminService,
+          undefined as never,
+        ),
+    ).toThrow('MODULE_SETTINGS_REGISTRY');
+  });
 });
 
 describe('UsersService.listWeeklySummaryRecipients', () => {
@@ -240,6 +261,7 @@ describe('UsersService.listWeeklySummaryRecipients', () => {
     usersRepository,
     { emit: jest.fn() } as unknown as EventEmitter2,
     {} as unknown as SupabaseAdminService,
+    passThroughSettingsRegistry,
   );
 
   beforeEach(() => {
@@ -295,6 +317,7 @@ describe('UsersService.markReleaseNotesSeen', () => {
     usersRepository,
     { emit: jest.fn() } as unknown as EventEmitter2,
     { tryDeleteAuthUser: jest.fn() } as unknown as SupabaseAdminService,
+    passThroughSettingsRegistry,
   );
 
   const profileRow = {
@@ -352,6 +375,7 @@ describe('UsersService.updateProfile', () => {
     usersRepository,
     eventEmitter,
     supabaseAdminService,
+    passThroughSettingsRegistry,
   );
 
   const profileRow = {
