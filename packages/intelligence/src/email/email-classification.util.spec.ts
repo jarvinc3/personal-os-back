@@ -311,7 +311,7 @@ describe('Email classification rules', () => {
 });
 
 describe('Email classification model output', () => {
-  const modelTransaction = (): Record<string, unknown> => {
+  const modelTransactionKind = (): { enum: string[] } => {
     const schema = EMAIL_CLASSIFICATION_JSON_SCHEMA as {
       properties: { transaction: { properties: { kind: { enum: string[] } } } };
     };
@@ -319,7 +319,7 @@ describe('Email classification model output', () => {
   };
 
   it('offers the model only the kinds that admit a real transaction', () => {
-    expect(modelTransaction().enum).toEqual(['TRANSACTION', 'PENDING']);
+    expect(modelTransactionKind().enum).toEqual(['TRANSACTION', 'PENDING']);
   });
 
   it('accepts a non-financial notice that arrives with kind NOT_TRANSACTION', () => {

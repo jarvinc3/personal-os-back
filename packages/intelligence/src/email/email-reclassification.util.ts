@@ -1,8 +1,8 @@
 import {
+  admitsTransaction,
   tryValidateEmailClassification,
   type EmailClassification,
 } from './email-classification.util';
-import { admitsTransaction } from '../evidence/human-verification.constants';
 import { knowledgeKeys } from '../knowledge/knowledge-normalizer';
 import {
   KNOWLEDGE_PAYLOAD_SCHEMAS,

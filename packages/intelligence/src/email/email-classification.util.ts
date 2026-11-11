@@ -2,13 +2,13 @@ import { createHash } from 'node:crypto';
 import { z } from 'zod';
 import type { JsonObject } from '@personal-os/contracts';
 import {
-  admitsTransaction,
   SEMANTIC_ROUTES,
   SEMANTIC_TYPES,
   SUGGESTED_TRANSACTION_DATE_SOURCES,
   TRANSACTION_DIRECTIONS,
   TRANSACTION_KINDS,
   TRANSACTION_MOVEMENT_CLASSES,
+  TRANSACTION_SEMANTIC_TYPES,
 } from '../evidence/human-verification.constants';
 import type { SemanticRoute } from '../evidence/human-verification.constants';
 
@@ -76,6 +76,13 @@ const transactionShape = {
 
 const transactionSchema = z.strictObject(transactionShape).optional();
 
+const modelTransactionSchema = z
+  .strictObject({
+    ...transactionShape,
+    kind: z.enum(MODEL_TRANSACTION_KINDS).optional(),
+  })
+  .optional();
+
 const classificationShape = {
   relevance: z.boolean(),
   semanticType: z.enum(SEMANTIC_TYPES),
@@ -88,12 +95,7 @@ const classificationSchema = z.strictObject(classificationShape);
 
 const modelClassificationSchema = z.strictObject({
   ...classificationShape,
-  transaction: z
-    .strictObject({
-      ...transactionShape,
-      kind: z.enum(MODEL_TRANSACTION_KINDS).optional(),
-    })
-    .optional(),
+  transaction: modelTransactionSchema,
 });
 
 export type EmailClassification = z.infer<typeof classificationSchema>;
@@ -116,6 +118,14 @@ const REQUIRED_ROUTES: Partial<
   SECURITY_OTP: 'SECURITY',
   SECURITY_ALERT: 'SECURITY',
 };
+
+/** Regla única de qué tipos admiten un objeto `transaction`. */
+export function admitsTransaction(semanticType: string | undefined): boolean {
+  return (
+    semanticType !== undefined &&
+    (TRANSACTION_SEMANTIC_TYPES as readonly string[]).includes(semanticType)
+  );
+}
 
 /** Revalidates model, knowledge and parser output against closed business rules. */
 export function validateEmailClassification(
@@ -165,9 +175,13 @@ export function normalizeModelClassification(value: unknown): unknown {
   if (normalized.semanticType === 'SECURITY_OTP') {
     normalized.relevance = false;
   }
+  const semanticType =
+    typeof normalized.semanticType === 'string'
+      ? normalized.semanticType
+      : undefined;
   const rejectedTransaction =
     isKindNotTransaction(normalized.transaction) &&
-    !admitsTransaction(asString(normalized.semanticType));
+    !admitsTransaction(semanticType);
   if (rejectedTransaction) {
     delete normalized.transaction;
   }
@@ -180,10 +194,6 @@ function isKindNotTransaction(transaction: unknown): boolean {
     transaction !== null &&
     (transaction as Record<string, unknown>).kind === 'NOT_TRANSACTION'
   );
-}
-
-function asString(value: unknown): string | undefined {
-  return typeof value === 'string' ? value : undefined;
 }
 
 function classificationRuleViolation(

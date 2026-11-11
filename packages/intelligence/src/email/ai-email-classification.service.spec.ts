@@ -530,9 +530,10 @@ describe('AiEmailClassificationService rejected model output', () => {
       kind: 'classified',
       classification: { semanticType: 'FIN_ACCOUNT_NOTICE' },
     });
-    expect(
-      preview.kind === 'classified' ? preview.classification.transaction : {},
-    ).toBeUndefined();
+    if (preview.kind !== 'classified') {
+      throw new Error('Expected a classified preview');
+    }
+    expect(preview.classification.transaction).toBeUndefined();
   });
 
   it('retries once with the rejection and stores the repaired label', async () => {

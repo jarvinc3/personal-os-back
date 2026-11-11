@@ -30,7 +30,7 @@ const MAX_DETAIL_LENGTH = 200;
 class InvalidOutputError extends Error {
   constructor(
     readonly errorCode: 'INVALID_JSON' | 'SCHEMA_VALIDATION',
-    readonly detail: string,
+    readonly detail: string = errorCode,
   ) {
     super(detail);
   }
@@ -166,13 +166,13 @@ export class AiInferenceGateway {
           const completion = await provider.chatComplete(messages);
           const json = extractJson(completion.content);
           if (!json) {
-            throw new InvalidOutputError('INVALID_JSON', 'INVALID_JSON');
+            throw new InvalidOutputError('INVALID_JSON');
           }
           let decoded: unknown;
           try {
             decoded = JSON.parse(json);
           } catch {
-            throw new InvalidOutputError('INVALID_JSON', 'INVALID_JSON');
+            throw new InvalidOutputError('INVALID_JSON');
           }
           let value: T;
           try {
