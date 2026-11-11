@@ -391,3 +391,86 @@ Los casos propuestos viven en el paquete local de revisión y se resumen en los 
 - `T-REV`: referencia, correo, candidato único, cero, varios, referencia explícita sin match, comercio ausente, transferencia, pago de tarjeta, parcial, otro usuario, fuera de ventana y replay.
 
 Un caso solo se marca PASS cuando el contrato está implementado y el caso se ejecutó completo en el SHA exacto. Un caso propuesto no es una prueba ejecutada.
+
+## 11. Selección acotada de muestra (piloto BHD)
+
+- Estado: `IMPLEMENTADO-PROBADO` solo para esta operación. Los cuatro flujos de
+  las secciones 3 a 6 siguen `NO_IMPLEMENTADO`.
+- Fecha: 2026-11-11.
+- Issue: [#342](https://github.com/jarvinc3/personal-os-back/issues/342).
+- Ruta: `POST /api/intelligence/email/sample-import`.
+
+### 11.1 Selección
+
+Una llamada usa una sola forma de selección:
+
+- `messageIds`: lista explícita. Tope 20. Más de 20 responde 400 sin tocar nada.
+- `sender` con `dateFrom` y `dateTo`: ventana de fechas sobre la recepción.
+
+Enviar las dos formas, o ninguna, responde 400. El remitente se compara exacto con
+`fromDomain` o con `fromAddress`, sin distinguir mayúsculas. No hay coincidencia
+por semejanza ni por nombre de institución. Solo entran correos del usuario
+autenticado.
+
+### 11.2 Vista previa (`dryRun: true`)
+
+- Reclasifica con el modelo todos los correos seleccionados, también los que ya
+  tienen clasificación guardada, porque la guardada puede ser anterior a las
+  pistas nuevas.
+- No escribe nada: ni clasificaciones, ni observaciones, ni presupuesto de
+  modelo, ni telemetría de inferencia, ni señales, ni eventos de salida, ni
+  movimientos. La llamada al modelo viaja con `recordTelemetry: false`.
+- Devuelve un manifiesto por correo.
+
+La predicción del movimiento no repite las reglas: usa el mismo paso de decisión
+que la ejecución (`FinanceSignalConsumer.preview`). Vista previa y escritura
+comparten código, así el manifiesto no se separa del resultado.
+
+### 11.3 Ejecución (`dryRun: false`)
+
+- Procesa solo los ids de la lista. No amplía la selección por remitente ni por
+  plantilla ni reclasifica correos fuera de la lista.
+- Reclasifica cada correo seleccionado y reemplaza su clasificación guardada.
+- Publica la señal y aplica el movimiento llamando al consumidor de Finance en el
+  mismo proceso. La operación no depende de la cola para aplicar el movimiento.
+- Idempotente: la señal usa `email-{messageId}` y el import conserva su clave
+  única. Repetir la misma corrida devuelve `ALREADY_APPLIED` sin duplicar señal ni
+  movimiento.
+- La señal se registra en el evento de salida como en la clasificación normal. El
+  trabajo encolado no vuelve a aplicar el movimiento porque la señal queda
+  consumida.
+
+### 11.4 Manifiesto
+
+| Campo                             | Contenido                                                                                    |
+| --------------------------------- | -------------------------------------------------------------------------------------------- |
+| `messageId`                       | Id del correo pedido.                                                                        |
+| `status`                          | `INCLUDED` o `NOT_FOUND`.                                                                    |
+| `fromAddress`, `fromDomain`       | Remitente persistido.                                                                        |
+| `receivedAt`                      | Fecha de recepción del correo, no la de operación.                                           |
+| `classification`                  | Tipo, confianza, método, clase de movimiento, monto, moneda, fecha de operación y dirección. |
+| `classificationUnavailableReason` | Motivo cuando la clasificación no se pudo calcular.                                          |
+| `hints`                           | Referencia bancaria, comercio y `last4` observados.                                          |
+| `signal.published`                | Si el correo publicaría una señal `FINANCE.TRANSACTION_DETECTED`.                            |
+| `signal.reason`                   | Motivo cuando no publica.                                                                    |
+| `prediction`                      | Resultado previsto y, si aplica, el movimiento que crearía.                                  |
+| `execution`                       | Solo al ejecutar: resultado aplicado y id del movimiento.                                    |
+
+### 11.5 Diferencias posibles entre vista previa y ejecución
+
+- La clasificación se recalcula al ejecutar. El modelo puede devolver otra
+  confianza u otro tipo; el manifiesto de cada corrida es la evidencia.
+- Dos correos de la misma muestra pueden competir por el mismo movimiento. El
+  segundo ve el estado que dejó el primero.
+- El cierre de cajero automático y el reintento por clave duplicada se resuelven
+  al escribir, no en la predicción.
+
+### 11.6 Límites
+
+- Solo entornos que no sean producción: la ruta responde 404 cuando
+  `NODE_ENV=production`.
+- Un solo escritor y una corrida a la vez sobre la misma base.
+- `POST /email/sync` y `POST /email/reset` no se usan.
+- La operación no implementa las secciones 3 a 6: si el correo necesita
+  transferencia con cuenta, pago de tarjeta o reverso, el resultado depende de lo
+  que esas secciones todavía no resuelven.

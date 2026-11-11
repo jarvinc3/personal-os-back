@@ -227,6 +227,13 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
     return this.write.createImportedCardPayment(input);
   }
 
+  previewImportedCardPayment(input: {
+    userId: string;
+    incoming: IncomingCardPayment;
+  }) {
+    return this.write.previewImportedCardPayment(input);
+  }
+
   findCardForPayment(userId: string, cardId: string) {
     return this.write.findCardForPayment(userId, cardId);
   }

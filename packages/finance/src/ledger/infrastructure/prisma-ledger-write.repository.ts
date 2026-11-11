@@ -479,12 +479,29 @@ export class PrismaLedgerWriteRepository {
     });
   }
 
+  async previewImportedCardPayment({
+    userId,
+    incoming,
+  }: {
+    userId: string;
+    incoming: IncomingCardPayment;
+  }) {
+    return reconcileCardPaymentImport({
+      incoming,
+      existing: await this.loadCardPaymentOperations(
+        this.prisma,
+        userId,
+        incoming.transactionDate,
+      ),
+    });
+  }
+
   /**
    * Cartera de pagos de tarjeta del usuario alrededor de una fecha. Vive aquí
    * para que la decisión y la escritura compartan la misma transacción.
    */
   private async loadCardPaymentOperations(
-    tx: Prisma.TransactionClient,
+    tx: Pick<PrismaService, 'finTransaction'>,
     userId: string,
     transactionDate: Date,
   ): Promise<CardPaymentOperation[]> {

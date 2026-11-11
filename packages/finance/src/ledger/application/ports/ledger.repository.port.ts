@@ -6,7 +6,10 @@ import type {
 import type { LedgerCardType } from '../../../shared/domain/ledger-rules';
 import type { ResolvedAmounts } from '../../../shared/domain/money';
 import type { TransactionLinkKind } from '../../../shared/domain/transaction-links';
-import type { IncomingCardPayment } from '../reconcile-card-payment-import';
+import type {
+  CardPaymentImportDecision,
+  IncomingCardPayment,
+} from '../reconcile-card-payment-import';
 import type {
   CreateCardPaymentCommand,
   CreateTransactionCommand,
@@ -313,6 +316,11 @@ export interface LedgerRepositoryPort {
     toAmounts: ResolvedAmounts;
     incoming: IncomingCardPayment;
   }): Promise<ImportedCardPaymentOutcome>;
+
+  previewImportedCardPayment(input: {
+    userId: string;
+    incoming: IncomingCardPayment;
+  }): Promise<CardPaymentImportDecision>;
 
   findCardForPayment(
     userId: string,

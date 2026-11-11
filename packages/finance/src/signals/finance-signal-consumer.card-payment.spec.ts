@@ -70,6 +70,7 @@ function setup({
     finCard: { findMany: jest.fn().mockResolvedValue(cards) },
   };
   const cardPaymentImport = {
+    preview: jest.fn().mockResolvedValue({ kind: 'new' }),
     execute: jest.fn().mockResolvedValue(outcome),
   };
   const consumer = new FinanceSignalConsumer(
@@ -90,6 +91,27 @@ function setup({
 }
 
 describe('FinanceSignalConsumer card payments', () => {
+  it('previews both payment legs without writing', async () => {
+    const { consumer, cardPaymentImport, prisma } = setup();
+
+    await expect(consumer.preview(signal)).resolves.toMatchObject({
+      outcome: 'APPLIED',
+      cardPayment: {
+        sourceAccountId: 'account-1',
+        cardId: 'card-1',
+        amount: 2500,
+        currency: 'DOP',
+        status: 'CONFIRMED',
+        transactionDate: '2026-11-01T12:00:00.000Z',
+        description: 'Pago de tarjeta',
+        externalReference: 'PAY-1',
+        importReference: 'email-message-1',
+      },
+    });
+    expect(cardPaymentImport.execute).not.toHaveBeenCalled();
+    expect(prisma.finSignalImport.upsert).not.toHaveBeenCalled();
+  });
+
   it('imports one confirmed payment through the two-leg operation', async () => {
     const { consumer, cardPaymentImport } = setup();
 

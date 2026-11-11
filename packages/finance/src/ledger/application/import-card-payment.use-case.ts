@@ -39,6 +39,31 @@ export class ImportCardPaymentUseCase {
     private readonly outboxDispatcher: FinanceOutboxDispatcher,
   ) {}
 
+  preview(
+    userId: string,
+    payment: Pick<
+      ImportCardPaymentInput,
+      | 'sourceAccountId'
+      | 'cardId'
+      | 'amount'
+      | 'currency'
+      | 'transactionDate'
+      | 'externalReference'
+    >,
+  ) {
+    return this.repo.previewImportedCardPayment({
+      userId,
+      incoming: {
+        accountId: payment.sourceAccountId,
+        cardId: payment.cardId,
+        amount: payment.amount,
+        currency: payment.currency,
+        transactionDate: payment.transactionDate,
+        bankReference: payment.externalReference,
+      },
+    });
+  }
+
   async execute(
     userId: string,
     payment: ImportCardPaymentInput,

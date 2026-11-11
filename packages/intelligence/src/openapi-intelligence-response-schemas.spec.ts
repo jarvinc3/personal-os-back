@@ -6,6 +6,7 @@ import { AiConsentService } from './consent/ai-consent.service';
 import { AiConsentController } from './consent/ai-consent.controller';
 import { AiEmailSourceService } from './email/ai-email-source.service';
 import { GmailSyncService } from './email/gmail-sync.service';
+import { EmailSampleImportService } from './email/email-sample-import.service';
 import { AiIntelligenceController } from './email/ai-intelligence.controller';
 import { AiEvidenceService } from './evidence/ai-evidence.service';
 import { AiEvidenceController } from './evidence/ai-evidence.controller';
@@ -39,6 +40,7 @@ async function buildDocument(): Promise<OpenApiDocument> {
       { provide: AiConsentService, useValue: {} },
       { provide: AiEmailSourceService, useValue: {} },
       { provide: GmailSyncService, useValue: {} },
+      { provide: EmailSampleImportService, useValue: {} },
       { provide: AiEvidenceService, useValue: {} },
       { provide: AiRolesService, useValue: {} },
       { provide: AiSignalsService, useValue: {} },
@@ -107,6 +109,7 @@ describe('OpenAPI response schemas of intelligence', () => {
       ['/api/intelligence/messages/{messageId}', 'get'],
       ['/api/intelligence/email/connect', 'post'],
       ['/api/intelligence/email/sync', 'post'],
+      ['/api/intelligence/email/sample-import', 'post'],
       ['/api/intelligence/email/reset', 'post'],
       ['/api/intelligence/email/oauth/diagnostics', 'get'],
       ['/api/intelligence/dataset', 'get'],
@@ -125,6 +128,27 @@ describe('OpenAPI response schemas of intelligence', () => {
     );
 
     expect(missing).toEqual([]);
+  });
+
+  it('publishes the created status of the sample import', () => {
+    const operation = document.paths['/api/intelligence/email/sample-import']
+      ?.post as OperationObject | undefined;
+
+    expect(
+      operation?.responses?.['201']?.content?.['application/json']?.schema,
+    ).toBeDefined();
+    expect(operation?.responses?.['200']).toBeUndefined();
+  });
+
+  it('documents the two targets of a card payment preview', () => {
+    const prediction = document.components?.schemas
+      ?.AiEmailSamplePredictionDto as {
+      properties?: Record<string, unknown>;
+    };
+
+    expect(prediction.properties?.cardPayment).toMatchObject({
+      $ref: '#/components/schemas/AiEmailSampleCardPaymentDto',
+    });
   });
 
   it('declares the cursor fields of the intelligence lists', () => {
