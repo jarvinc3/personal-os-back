@@ -46,6 +46,8 @@ const transactionSchema = z
       .regex(/^[A-Z]{3}$/)
       .optional(),
     transactionDate: z.string().datetime().optional(),
+    suggestedTransactionDate: z.string().datetime().optional(),
+    suggestedTransactionDateSource: z.literal('EMAIL_HEADER').optional(),
     direction: z.enum(['DEBIT', 'CREDIT', 'TRANSFER']).optional(),
     merchant: z.string().trim().min(1).max(160).optional(),
     bankReference: z.string().trim().min(1).max(120).optional(),
@@ -102,7 +104,7 @@ type ImportStatus =
 
 const REVIEW_CONFIDENCE_THRESHOLD = 0.7;
 const REVERSAL_WOULD_APPLY = 'REVERSAL_WOULD_APPLY';
-type ImportReviewEvidence = Record<string, string | string[] | null>;
+type ImportReviewEvidence = Record<string, string | string[] | number | null>;
 
 type SignalConsumeResult = {
   outcome: 'APPLIED' | 'ALREADY_APPLIED' | 'REVIEW_REQUIRED' | 'REJECTED';
@@ -211,7 +213,17 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
 
     const validationReason = this.validationReason(candidate);
     if (validationReason) {
-      return this.reviewPlan(validationReason);
+      return this.reviewPlan(
+        validationReason,
+        validationReason === 'TRANSACTION_DATE_SUGGESTED'
+          ? {
+              suggestedTransactionDate:
+                candidate.suggestedTransactionDate ?? null,
+              suggestedTransactionDateSource:
+                candidate.suggestedTransactionDateSource ?? null,
+            }
+          : undefined,
+      );
     }
 
     const movementClass = this.movementClass(candidate);
@@ -264,8 +276,24 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
       if (ledgerTarget.kind !== 'unique') {
         return this.reviewPlan(
           ledgerTarget.kind === 'ambiguous'
-            ? `AMBIGUOUS_LEDGER_TARGET_${ledgerTarget.candidateCount}`
+            ? 'AMBIGUOUS_LEDGER_TARGET'
             : 'NO_LEDGER_TARGET',
+          ledgerTarget.kind === 'ambiguous'
+            ? {
+                candidateCount: ledgerTarget.candidateCount,
+                candidateIds: [
+                  ...activeCards
+                    .filter(
+                      (card) =>
+                        !candidate.last4 || card.lastFour === candidate.last4,
+                    )
+                    .map((card) => card.id),
+                  ...(candidate.last4
+                    ? []
+                    : activeAccounts.map((account) => account.id)),
+                ],
+              }
+            : undefined,
         );
       }
       target = ledgerTarget;
@@ -372,6 +400,9 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
       bankStatusNormalized: candidate.bankStatusNormalized ?? 'UNKNOWN',
       statusConfidence: candidate.statusConfidence ?? payload.confidence ?? 0,
       statusEvidence: candidate.statusEvidence ?? null,
+      suggestedTransactionDate: candidate.suggestedTransactionDate ?? null,
+      suggestedTransactionDateSource:
+        candidate.suggestedTransactionDateSource ?? null,
       originalAmount: amount,
       originalCurrency: currency,
       sourceReceivedAmount: candidate.receivedAmount ?? null,
@@ -559,10 +590,17 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
     if (!candidate.currency) {
       return 'CURRENCY_MISSING';
     }
-    if (
-      !candidate.transactionDate ||
-      Number.isNaN(Date.parse(candidate.transactionDate))
-    ) {
+    if (!candidate.transactionDate) {
+      if (
+        candidate.suggestedTransactionDate &&
+        candidate.suggestedTransactionDateSource === 'EMAIL_HEADER' &&
+        !Number.isNaN(Date.parse(candidate.suggestedTransactionDate))
+      ) {
+        return 'TRANSACTION_DATE_SUGGESTED';
+      }
+      return 'TRANSACTION_DATE_MISSING';
+    }
+    if (Number.isNaN(Date.parse(candidate.transactionDate))) {
       return 'TRANSACTION_DATE_MISSING';
     }
     if (
