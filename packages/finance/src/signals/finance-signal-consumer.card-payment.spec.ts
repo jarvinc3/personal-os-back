@@ -30,17 +30,6 @@ const signal: RoutedSignal = {
   },
 };
 
-type ExistingPayment = {
-  transferGroupId?: string;
-  sourceTransactionId?: string;
-  accountId?: string;
-  cardId?: string;
-  externalReference?: string | null;
-  amount?: number;
-  currency?: string;
-  transactionDate?: string;
-};
-
 function setup({
   outcome = {
     kind: 'created',

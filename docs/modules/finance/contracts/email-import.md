@@ -168,7 +168,7 @@ La ruta manual no cambia en este contrato. La opción de responder 409 y exigir 
 ### 4.4 Dedupe e idempotencia
 
 - Replay de la misma señal: `ALREADY_APPLIED`, sin nuevas patas.
-- Misma referencia y misma operación (cuenta, tarjeta, monto, moneda y fecha dentro de la ventana): `DUPLICATE`, sin nuevas patas. La ventana es de siete días (sección 8.2).
+- Misma referencia y misma operación (cuenta, tarjeta, monto, moneda y fecha dentro de la ventana): `DUPLICATE`, sin nuevas patas. La ventana es de siete días; sin referencia son tres días. Las dos duraciones las fijó el owner y están registradas en el comentario de decisiones del issue #335.
 - Misma referencia con cuenta, tarjeta, monto o moneda distintos: `CARD_PAYMENT_REFERENCE_CONFLICT`, revisión; no se crea ni se descarta.
 - Dos correos distintos con la misma referencia y la misma operación: un solo pago.
 - Dos pagos legítimos con referencias distintas: se permiten aunque compartan cuenta, tarjeta, monto y día.
@@ -327,7 +327,7 @@ El comercio es obligatorio para el auto-vínculo. Si el aviso no trae comercio, 
 - Si la referencia coincide pero los atributos de la operación difieren, el caso va a revisión (`TRANSFER_REFERENCE_CONFLICT` o `CARD_PAYMENT_REFERENCE_CONFLICT`); no se descarta ni se crea en silencio. Queda fuera de esta regla la contraparte legítima de una transferencia: misma referencia, mismo usuario, tipo opuesto y cuenta distinta no es duplicado ni conflicto (sección 3.4).
 - En una compra, el dedupe sigue el ADR-003: primero `externalReference`; si falta, mismo destino, monto, moneda, tipo, comercio y fecha dentro de 10 minutos.
 - En una transferencia, el fallback sin referencia usa destino, tipo, monto, moneda y fecha dentro de 10 minutos; la referencia compartida por la contraparte no es duplicado.
-- En un pago de tarjeta, el fallback incluye pagos manuales sin referencia. Un candidato único va a revisión; varios también. Sin candidato, el pago confirmado se importa una vez; la opción de la ruta manual queda pendiente.
+- En un pago de tarjeta, el fallback incluye pagos manuales sin referencia con tres días de ventana. Un candidato único se vincula como `DUPLICATE` sin crear filas; varios van a `CARD_PAYMENT_RECONCILIATION_AMBIGUOUS`. Sin candidato, el pago confirmado se importa una vez; la opción de la ruta manual queda pendiente.
 - No se infiere una referencia que el correo no trae. No se exige una referencia única para resolver el pago.
 
 ## 8. Estados del contrato
@@ -346,7 +346,7 @@ El comercio es obligatorio para el auto-vínculo. Si el aviso no trae comercio, 
 ### 8.2 Pendiente concretar
 
 - Referencia explícita de reverso sin original: revisión; la opción de continuar por el id de correo o candidatos queda pendiente y no se implementa como fallback automático.
-- Ventana temporal con la referencia presente: **decidida**. Siete días para dos correos que comparten referencia y para el pago de tarjeta importado (decisión del owner del 2026-11-11). Sin referencia, el pago de tarjeta usa tres días; el fallback del ADR-003 conserva sus ±10 minutos para compras y transferencias.
+- Ventana temporal con la referencia presente: **decidida**. Siete días para dos correos que comparten referencia y para el pago de tarjeta importado (decisión del owner del 2026-11-11, registrada en el issue #335). Sin referencia, el pago de tarjeta usa tres días, también decididos en el issue #335; el fallback del ADR-003 conserva sus ±10 minutos para compras y transferencias.
 - Ruta manual ante un pago parecido: opciones (A) bloqueo con `duplicateAcknowledged`, (B) aviso sin bloqueo, (C) ruta intacta. Cambia la API y el objetivo de no duplicar; no está aprobada.
 - Comercio ausente en candidatos de reverso: revisión; el ADR-003 lo exige y no se auto-vincula solo por monto, moneda y fecha.
 - Reverso de transferencias y de pagos de tarjeta: ruta específica fuera de estos cuatro issues; por ahora `REVERSAL_TARGET_NOT_SUPPORTED`.
@@ -358,7 +358,7 @@ El comercio es obligatorio para el auto-vínculo. Si el aviso no trae comercio, 
 
 | Flujo                  | Estado                              | Evidencia                                                                                                                |
 | ---------------------- | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| Pago de tarjeta (#335) | `IMPLEMENTADO-PROBADO` en `7ec0353` | Pruebas unitarias de la conciliación, del consumidor y del caso de uso; integración con dos patas, saldos y referencias. |
+| Pago de tarjeta (#335) | `IMPLEMENTADO-PROBADO` en `0c9b130` | Pruebas unitarias de la conciliación, del consumidor y del caso de uso; integración con dos patas, saldos y referencias. |
 | Transferencia (#334)   | `NO_IMPLEMENTADO`                   | Sin cambios.                                                                                                             |
 | Datos faltantes (#337) | `NO_IMPLEMENTADO`                   | Sin cambios.                                                                                                             |
 | Reversos (#336)        | `NO_IMPLEMENTADO`                   | Sin cambios.                                                                                                             |
@@ -367,17 +367,17 @@ Los casos `T-TRA`, `T-TAR`, `T-DAT` y `T-REV` siguen propuestos y no ejecutados 
 
 ## 9. Evidencia actual y brechas
 
-| Afirmación del contrato                         | Código actual                                                                                                                                      | Estado                       |
-| ----------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- |
-| La transferencia resuelve una cuenta propia     | El consumidor pasa `accountNumberHint: null` y usa `last4` como tarjeta (`finance-signal-consumer.ts:178-205`).                                    | `NO_IMPLEMENTADO`            |
-| La transferencia crea una sola pata con rol     | `executeUnpairedTransfer` crea el grupo, pero `createImportedTransaction` no fija `legRole` (`prisma-ledger-import.repository.ts:57-95`).          | `PARCIALMENTE_IMPLEMENTADO`  |
-| El emparejamiento usa 3 días y 50/2 %           | `match-imported-transfers.ts:23-25` define la ventana y la tolerancia; `pickTransferMatch` exige un candidato único.                               | `VERIFICADO` (código actual) |
-| La referencia compartida no descarta la pata    | `findDedupeCandidate` busca por `externalReference` sin tipo ni cuenta (`prisma-ledger-read.repository.ts:407-440`).                               | `CONTRADICE_CODIGO`          |
-| El pago de tarjeta reutiliza dos patas          | El correo llama `ImportCardPaymentUseCase`, que usa `createCardPayment`: dos patas `CARD_PAYMENT`, `source EMAIL`, sin categoría.                  | `VERIFICADO` (`7ec0353`)     |
-| La fecha del encabezado es solo sugerencia      | El esquema de clasificación no tiene `suggestedTransactionDate` ni procedencia (`email-classification.util.ts:12-66`).                             | `NO_IMPLEMENTADO`            |
-| El reverso sigue la cadena del ADR-003          | El consumidor solo busca por referencia y cae a `bankReference` (`finance-signal-consumer.ts:440-470`); el helper de candidatos no se llama.       | `NO_IMPLEMENTADO`            |
-| El reverso filtra tipo, transferencia y tarjeta | `findCandidatesForReverse` filtra usuario, estado, moneda, monto y ±14 días; no filtra tipo ni grupo (`prisma-ledger-read.repository.ts:338-366`). | `PARCIALMENTE_IMPLEMENTADO`  |
-| La pata de tarjeta no repite `importReference`  | `createCardPayment` escribe `importReference` solo en la pata `SOURCE`; la prueba de integración lo comprueba.                                     | `VERIFICADO` (`7ec0353`)     |
+| Afirmación del contrato                         | Código actual                                                                                                                                                                       | Estado                       |
+| ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- |
+| La transferencia resuelve una cuenta propia     | El consumidor pasa `accountNumberHint: null` y usa `last4` como tarjeta (`finance-signal-consumer.ts:178-205`).                                                                     | `NO_IMPLEMENTADO`            |
+| La transferencia crea una sola pata con rol     | `executeUnpairedTransfer` crea el grupo, pero `createImportedTransaction` no fija `legRole` (`prisma-ledger-import.repository.ts:57-95`).                                           | `PARCIALMENTE_IMPLEMENTADO`  |
+| El emparejamiento usa 3 días y 50/2 %           | `match-imported-transfers.ts:23-25` define la ventana y la tolerancia; `pickTransferMatch` exige un candidato único.                                                                | `VERIFICADO` (código actual) |
+| La referencia compartida no descarta la pata    | `findDedupeCandidate` busca por `externalReference` sin tipo ni cuenta (`prisma-ledger-read.repository.ts:407-440`).                                                                | `CONTRADICE_CODIGO`          |
+| El pago de tarjeta reutiliza dos patas          | El correo llama `ImportCardPaymentUseCase`, que decide y escribe con `createImportedCardPayment`: dos patas `CARD_PAYMENT`, `source EMAIL`, sin categoría, con bloqueo por usuario. | `VERIFICADO` (`0c9b130`)     |
+| La fecha del encabezado es solo sugerencia      | El esquema de clasificación no tiene `suggestedTransactionDate` ni procedencia (`email-classification.util.ts:12-66`).                                                              | `NO_IMPLEMENTADO`            |
+| El reverso sigue la cadena del ADR-003          | El consumidor solo busca por referencia y cae a `bankReference` (`finance-signal-consumer.ts:440-470`); el helper de candidatos no se llama.                                        | `NO_IMPLEMENTADO`            |
+| El reverso filtra tipo, transferencia y tarjeta | `findCandidatesForReverse` filtra usuario, estado, moneda, monto y ±14 días; no filtra tipo ni grupo (`prisma-ledger-read.repository.ts:338-366`).                                  | `PARCIALMENTE_IMPLEMENTADO`  |
+| La pata de tarjeta no repite `importReference`  | `createCardPayment` escribe `importReference` solo en la pata `SOURCE`; la prueba de integración lo comprueba.                                                                      | `VERIFICADO` (`0c9b130`)     |
 
 La ventana de 3 días, la tolerancia de 50 o 2 % y la ventana de 10 minutos del ADR son comportamiento existente, no acuerdos nuevos. La ventana de ±14 días del reverso viene del ADR-003 y no se cambia por inferencia.
 
