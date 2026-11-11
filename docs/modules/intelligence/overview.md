@@ -6,7 +6,7 @@ Kernel de proveedores de IA, inferencias estructuradas y runtime de conversació
 
 ## Alcance
 
-- Multi-provider: Groq y OpenRouter, con fallback.
+- Multi-provider: Groq y OpenRouter, alternados por llamada y con respaldo al siguiente proveedor. Un proveedor que responde 429 o 402 queda en enfriamiento hasta el `Retry-After` que indique o, en su defecto, 60 segundos por ritmo y 30 minutos por cupo. Si todos están en enfriamiento, la inferencia falla sin llamarlos y la telemetría lo registra como `PROVIDER_COOLDOWN`.
 - Inferencia estructurada validada por quien consume el resultado.
 - Telemetría de inferencia minimizada y retenida 90 días.
 - Runtime de conversación con historial y resumen privado por usuario.
