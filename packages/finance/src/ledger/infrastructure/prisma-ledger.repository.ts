@@ -130,6 +130,10 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
     return this.read.findTransactionByExternalReference(userId, reference);
   }
 
+  findTransactionsByExternalReference(userId: string, reference: string) {
+    return this.read.findTransactionsByExternalReference(userId, reference);
+  }
+
   findImportedTransactionByEmailMessageId(userId: string, messageId: string) {
     return this.read.findImportedTransactionByEmailMessageId(userId, messageId);
   }
@@ -141,6 +145,14 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
     currency: string,
   ) {
     return this.read.findLinkedRefund(userId, originalId, amount, currency);
+  }
+
+  findLinkedRefundTotal(params: {
+    userId: string;
+    originalId: string;
+    currency: string;
+  }) {
+    return this.read.findLinkedRefundTotal(params);
   }
 
   findPossibleDuplicate(

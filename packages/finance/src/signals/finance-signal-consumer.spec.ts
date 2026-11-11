@@ -61,6 +61,8 @@ function setup(overrides: Record<string, unknown> = {}) {
   const baseCurrency = { execute: jest.fn().mockResolvedValue('USD') };
   const ledger = {
     findTransactionByImportReference: jest.fn().mockResolvedValue(null),
+    findLinkedRefund: jest.fn().mockResolvedValue(null),
+    findLinkedRefundTotal: jest.fn().mockResolvedValue(0),
     findDedupeCandidate: jest.fn().mockResolvedValue(null),
     findLatestCategoryIdByMerchant: jest.fn().mockResolvedValue(null),
     ...((overrides.ledger as Record<string, jest.Mock> | undefined) ?? {}),
@@ -257,9 +259,9 @@ describe('FinanceSignalConsumer', () => {
     };
     const { consumer, prisma, reverseTransaction } = setup({
       ledger: {
-        findTransactionByExternalReference: jest
+        findTransactionsByExternalReference: jest
           .fn()
-          .mockResolvedValue(original),
+          .mockResolvedValue([original]),
       },
     });
     const reversal = {
@@ -736,19 +738,29 @@ function reversalSignal(
 
 function setupReversal(
   options: {
-    referenceOriginal?: Record<string, unknown> | null;
+    referenceOriginal?:
+      Record<string, unknown> | Array<Record<string, unknown>> | null;
     emailOriginal?: Record<string, unknown> | null;
     candidates?: Array<Record<string, unknown>>;
     pending?: Array<Record<string, unknown>>;
     linkedRefund?: Record<string, unknown> | null;
+    linkedRefundTotal?: number;
   } = {},
 ) {
+  const referenceOriginals = options.referenceOriginal
+    ? Array.isArray(options.referenceOriginal)
+      ? options.referenceOriginal
+      : [options.referenceOriginal]
+    : [];
   const ledger = {
     findTransactionByImportReference: jest.fn().mockResolvedValue(null),
     findLinkedRefund: jest.fn().mockResolvedValue(options.linkedRefund ?? null),
-    findTransactionByExternalReference: jest
+    findLinkedRefundTotal: jest
       .fn()
-      .mockResolvedValue(options.referenceOriginal ?? null),
+      .mockResolvedValue(options.linkedRefundTotal ?? 0),
+    findTransactionsByExternalReference: jest
+      .fn()
+      .mockResolvedValue(referenceOriginals),
     findImportedTransactionByEmailMessageId: jest
       .fn()
       .mockResolvedValue(options.emailOriginal ?? null),
@@ -776,7 +788,7 @@ describe('FinanceSignalConsumer reversal chain', () => {
       reason: 'REVERSAL_REFERENCE_NOT_FOUND',
     });
 
-    expect(ledger.findTransactionByExternalReference).toHaveBeenCalledWith(
+    expect(ledger.findTransactionsByExternalReference).toHaveBeenCalledWith(
       'user-1',
       'bank-original',
     );
@@ -790,7 +802,7 @@ describe('FinanceSignalConsumer reversal chain', () => {
       reversalSignal({ reverseOfBankReference: undefined }),
     );
 
-    expect(ledger.findTransactionByExternalReference).not.toHaveBeenCalled();
+    expect(ledger.findTransactionsByExternalReference).not.toHaveBeenCalled();
     expect(ledger.findReverseCandidates).toHaveBeenCalledWith('user-1', {
       amount: 100,
       currency: 'DOP',
@@ -938,6 +950,7 @@ describe('FinanceSignalConsumer reversal chain', () => {
     const { consumer, importEmail } = setupReversal({
       referenceOriginal: reversalOriginal,
       linkedRefund: { id: 'refund-existing' },
+      linkedRefundTotal: 40,
     });
 
     await expect(
@@ -948,6 +961,94 @@ describe('FinanceSignalConsumer reversal chain', () => {
     });
 
     expect(importEmail.execute).not.toHaveBeenCalled();
+  });
+
+  it('reviews two partial refunds whose sum exceeds the purchase', async () => {
+    const { consumer, importEmail, reverseTransaction } = setupReversal({
+      referenceOriginal: reversalOriginal,
+      linkedRefundTotal: 70,
+    });
+
+    await expect(
+      consumer.consume(reversalSignal({ amount: 60 })),
+    ).resolves.toMatchObject({
+      outcome: 'REVIEW_REQUIRED',
+      reason: 'REVERSAL_EXCEEDS_ORIGINAL',
+    });
+
+    expect(importEmail.execute).not.toHaveBeenCalled();
+    expect(reverseTransaction.execute).not.toHaveBeenCalled();
+  });
+
+  it('links a second partial when the sum reaches the purchase', async () => {
+    const { consumer, importEmail } = setupReversal({
+      referenceOriginal: reversalOriginal,
+      linkedRefundTotal: 40,
+    });
+
+    await expect(
+      consumer.consume(reversalSignal({ amount: 60 })),
+    ).resolves.toMatchObject({ outcome: 'APPLIED' });
+
+    expect(importEmail.execute).toHaveBeenCalledWith(
+      'user-1',
+      expect.objectContaining({
+        amount: 60,
+        linkedTransactionId: 'original-1',
+      }),
+    );
+  });
+
+  it('reviews a currency mismatch on the reference step', async () => {
+    const { consumer, importEmail, reverseTransaction } = setupReversal({
+      referenceOriginal: { ...reversalOriginal, currency: 'USD' },
+    });
+
+    await expect(consumer.consume(reversalSignal())).resolves.toMatchObject({
+      outcome: 'REVIEW_REQUIRED',
+      reason: 'REVERSAL_CURRENCY_MISMATCH',
+    });
+
+    expect(importEmail.execute).not.toHaveBeenCalled();
+    expect(reverseTransaction.execute).not.toHaveBeenCalled();
+  });
+
+  it('reviews a currency mismatch on the email step', async () => {
+    const { consumer, importEmail, reverseTransaction } = setupReversal({
+      emailOriginal: { ...reversalOriginal, currency: 'USD' },
+    });
+
+    await expect(
+      consumer.consume(
+        reversalSignal({
+          reverseOfBankReference: undefined,
+          reverseOfEmailMessageId: 'email-original-1',
+        }),
+      ),
+    ).resolves.toMatchObject({
+      outcome: 'REVIEW_REQUIRED',
+      reason: 'REVERSAL_CURRENCY_MISMATCH',
+    });
+
+    expect(importEmail.execute).not.toHaveBeenCalled();
+    expect(reverseTransaction.execute).not.toHaveBeenCalled();
+  });
+
+  it('reviews a reference shared by two purchases without choosing one', async () => {
+    const { consumer, importEmail, reverseTransaction } = setupReversal({
+      referenceOriginal: [
+        reversalOriginal,
+        { ...reversalOriginal, id: 'original-2' },
+      ],
+    });
+
+    await expect(consumer.consume(reversalSignal())).resolves.toMatchObject({
+      outcome: 'REVIEW_REQUIRED',
+      reason: 'REVERSAL_ORIGINAL_AMBIGUOUS',
+    });
+
+    expect(importEmail.execute).not.toHaveBeenCalled();
+    expect(reverseTransaction.execute).not.toHaveBeenCalled();
   });
 
   it('reviews a refund above the original amount', async () => {

@@ -392,6 +392,14 @@ export class PrismaLedgerReadRepository {
     }) as Promise<LedgerTransactionRow | null>;
   }
 
+  /** Every movement with that reference; the reference is not unique. */
+  findTransactionsByExternalReference(userId: string, reference: string) {
+    return this.prisma.finTransaction.findMany({
+      where: { userId, externalReference: reference },
+      orderBy: { transactionDate: 'desc' },
+    }) as Promise<LedgerTransactionRow[]>;
+  }
+
   findLinkedRefund(
     userId: string,
     originalId: string,
@@ -408,6 +416,28 @@ export class PrismaLedgerReadRepository {
       },
       orderBy: { transactionDate: 'desc' },
     }) as Promise<LedgerTransactionRow | null>;
+  }
+
+  findLinkedRefundTotal({
+    userId,
+    originalId,
+    currency,
+  }: {
+    userId: string;
+    originalId: string;
+    currency: string;
+  }) {
+    return this.prisma.finTransaction
+      .aggregate({
+        where: {
+          userId,
+          linkedTransactionId: originalId,
+          type: 'CREDIT',
+          currency,
+        },
+        _sum: { amount: true },
+      })
+      .then((refundTotals) => Number(refundTotals._sum.amount ?? 0));
   }
 
   /** Same target, currency and exact amount within 48 h, with no bank reference. */

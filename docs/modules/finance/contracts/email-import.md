@@ -251,7 +251,8 @@ Los códigos son estables; el texto visible puede cambiar sin cambiar el código
 | `REVERSAL_ORIGINAL_AMBIGUOUS`           | Varios originales posibles.                                                                                            | Sin movimiento; candidatos.                                                          |
 | `REVERSAL_ORIGINAL_NOT_CONFIRMED`       | El original no está confirmado.                                                                                        | Sin movimiento.                                                                      |
 | `REVERSAL_TARGET_NOT_SUPPORTED`         | El original es transferencia o pago de tarjeta.                                                                        | Sin movimiento por la ruta de compras.                                               |
-| `REVERSAL_EXCEEDS_ORIGINAL`             | El monto devuelto supera el monto del original.                                                                        | Sin movimiento.                                                                      |
+| `REVERSAL_CURRENCY_MISMATCH`            | La moneda del reverso no coincide con la del original.                                                                 | Sin movimiento; no se crea un crédito en otra moneda.                                |
+| `REVERSAL_EXCEEDS_ORIGINAL`             | El monto devuelto, sumado a los reversos parciales previos, supera el monto del original.                              | Sin movimiento.                                                                      |
 
 ### 5.4 Comercio ausente
 
@@ -275,6 +276,7 @@ El ADR-003 define tres pasos. El contrato los conserva en ese orden:
 Reglas de la cadena:
 
 - La referencia es primero. Si encuentra un original elegible, se revierte ese original aunque existan otros candidatos por monto y fecha.
+- La referencia no es única: se leen todos los movimientos que la comparten. Si hay más de uno, el caso queda en revisión `REVERSAL_ORIGINAL_AMBIGUOUS` con los candidatos en la evidencia; no se elige el más reciente.
 - Si la referencia apunta a una pata de transferencia, a un pago de tarjeta o a un original ya `REVERSED`, no se busca un candidato alternativo: se revisa o se devuelve `ALREADY_APPLIED`.
 - Si la referencia existe y no encuentra original, el caso queda en revisión `REVERSAL_REFERENCE_NOT_FOUND`; no se usa un candidato por heurística. Se reintenta la misma cadena cuando aparezca el original.
 - Si no hay referencia, se busca por el id de correo y luego por candidatos; el paso usado queda en la evidencia.
@@ -304,6 +306,7 @@ Resultados:
 | Sin referencia y sin candidato    | `REVERSAL_ORIGINAL_NOT_FOUND`, revisión; se reintenta al aparecer el original.  |
 | Candidato sin comercio            | `REVERSAL_COMMERCE_MISSING`, revisión.                                          |
 | Varios candidatos                 | `REVERSAL_ORIGINAL_AMBIGUOUS`, revisión.                                        |
+| Moneda distinta a la del original | `REVERSAL_CURRENCY_MISMATCH`, revisión.                                         |
 | Monto devuelto mayor al original  | `REVERSAL_EXCEEDS_ORIGINAL`, revisión.                                          |
 | Monto devuelto igual al original  | Reverso total: el original pasa a `REVERSED`.                                   |
 | Monto devuelto menor al original  | Reverso parcial: fila `CREDIT` vinculada; el original sigue `CONFIRMED`.        |
@@ -338,7 +341,7 @@ El comercio es obligatorio para el auto-vínculo. Si el aviso no trae comercio, 
 
 - Replay de la misma señal: `ALREADY_APPLIED`, sin segunda compensación.
 - Segundo reverso con la misma referencia sobre un original ya `REVERSED`: `ALREADY_APPLIED`.
-- Segundo reverso parcial sobre el mismo original: no crea una segunda fila vinculada; la señal queda `ALREADY_APPLIED` con la fila existente.
+- Segundo reverso parcial con el mismo monto y moneda sobre el mismo original: no crea una segunda fila vinculada; la señal queda `ALREADY_APPLIED` con la fila existente. Dos devoluciones distintas sí crean filas separadas mientras la suma no supere el original.
 - Segundo reverso sin referencia que no encuentra un candidato vigente porque el original ya está `REVERSED`: revisión `REVERSAL_ORIGINAL_NOT_FOUND`, sin segunda compensación.
 - Dos reversos distintos con candidatos distintos: se procesan por separado.
 - Un reverso de un reverso no se vincula al original revertido; va a revisión.
@@ -352,6 +355,7 @@ Un aviso de reverso con monto menor al del original es un reverso parcial (decis
 - El instrumento es el del original: su misma cuenta o su misma tarjeta. El saldo sube por el monto devuelto.
 - El gasto del período y el presupuesto bajan por el monto devuelto, en la fecha del aviso de reverso. Los reportes y el estado del presupuesto restan la fila vinculada; el comercio de la fila es el del aviso o "Comercio desconocido" si falta.
 - Si el monto devuelto supera el del original: `REVERSAL_EXCEEDS_ORIGINAL`, revisión, sin fila y sin cambio de saldo.
+- El tope se evalúa sobre el acumulado: los créditos ya vinculados al original, en la misma moneda, más el monto del aviso. Si la suma supera el original, `REVERSAL_EXCEEDS_ORIGINAL`, revisión y sin fila.
 - La evidencia de la señal registra el paso, el original y el monto devuelto.
 
 ## 7. Dedupe y conciliación

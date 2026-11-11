@@ -16,12 +16,15 @@ const original: ReversalOriginal = {
   categoryId: 'category-1',
 };
 
+const reversalCurrency = 'DOP';
+
 describe('Reversal target', () => {
   it('reverses the whole purchase when the amount matches', () => {
     expect(
       evaluateReversalOriginal({
         original,
         reversalAmount: 100,
+        reversalCurrency,
         step: 'REFERENCE',
       }),
     ).toEqual({ kind: 'full', step: 'REFERENCE', original });
@@ -32,6 +35,7 @@ describe('Reversal target', () => {
       evaluateReversalOriginal({
         original,
         reversalAmount: 40,
+        reversalCurrency,
         step: 'EMAIL',
       }),
     ).toEqual({ kind: 'partial', step: 'EMAIL', original });
@@ -42,6 +46,7 @@ describe('Reversal target', () => {
       evaluateReversalOriginal({
         original,
         reversalAmount: 120,
+        reversalCurrency,
         step: 'CANDIDATE',
       }),
     ).toMatchObject({ kind: 'review', reason: 'REVERSAL_EXCEEDS_ORIGINAL' });
@@ -52,6 +57,7 @@ describe('Reversal target', () => {
       evaluateReversalOriginal({
         original: { ...original, status: 'REVERSED' },
         reversalAmount: 100,
+        reversalCurrency,
         step: 'REFERENCE',
       }),
     ).toMatchObject({ kind: 'already_reversed' });
@@ -62,6 +68,7 @@ describe('Reversal target', () => {
       evaluateReversalOriginal({
         original: { ...original, status: 'PENDING' },
         reversalAmount: 100,
+        reversalCurrency,
         step: 'REFERENCE',
       }),
     ).toMatchObject({
@@ -75,6 +82,7 @@ describe('Reversal target', () => {
       evaluateReversalOriginal({
         original: { ...original, type: 'CREDIT' },
         reversalAmount: 100,
+        reversalCurrency,
         step: 'REFERENCE',
       }),
     ).toMatchObject({
@@ -85,6 +93,7 @@ describe('Reversal target', () => {
       evaluateReversalOriginal({
         original: { ...original, transferGroupId: 'group-1' },
         reversalAmount: 100,
+        reversalCurrency,
         step: 'REFERENCE',
       }),
     ).toMatchObject({
@@ -95,6 +104,7 @@ describe('Reversal target', () => {
       evaluateReversalOriginal({
         original: { ...original, type: 'CARD_PAYMENT' },
         reversalAmount: 100,
+        reversalCurrency,
         step: 'REFERENCE',
       }),
     ).toMatchObject({
@@ -103,11 +113,30 @@ describe('Reversal target', () => {
     });
   });
 
+  it('reviews a currency mismatch on the reference and email steps', () => {
+    for (const step of ['REFERENCE', 'EMAIL'] as const) {
+      expect(
+        evaluateReversalOriginal({
+          original,
+          reversalAmount: 100,
+          reversalCurrency: 'USD',
+          step,
+        }),
+      ).toMatchObject({
+        kind: 'review',
+        reason: 'REVERSAL_CURRENCY_MISMATCH',
+        step,
+        candidateIds: ['transaction-1'],
+      });
+    }
+  });
+
   it('reviews zero candidates and ambiguous candidates', () => {
     expect(
       classifyReversalCandidates({
         candidates: [],
         reversalAmount: 100,
+        reversalCurrency,
         step: 'CANDIDATE',
       }),
     ).toMatchObject({
@@ -118,6 +147,7 @@ describe('Reversal target', () => {
       classifyReversalCandidates({
         candidates: [original, { ...original, id: 'transaction-2' }],
         reversalAmount: 100,
+        reversalCurrency,
         step: 'CANDIDATE',
       }),
     ).toMatchObject({
@@ -127,11 +157,27 @@ describe('Reversal target', () => {
     });
   });
 
+  it('uses the reference reason when no original matches the reference', () => {
+    expect(
+      classifyReversalCandidates({
+        candidates: [],
+        reversalAmount: 100,
+        reversalCurrency,
+        step: 'REFERENCE',
+        notFoundReason: 'REVERSAL_REFERENCE_NOT_FOUND',
+      }),
+    ).toMatchObject({
+      kind: 'review',
+      reason: 'REVERSAL_REFERENCE_NOT_FOUND',
+    });
+  });
+
   it('links the only valid candidate', () => {
     expect(
       classifyReversalCandidates({
         candidates: [original],
         reversalAmount: 100,
+        reversalCurrency,
         step: 'CANDIDATE',
       }),
     ).toEqual({ kind: 'full', step: 'CANDIDATE', original });

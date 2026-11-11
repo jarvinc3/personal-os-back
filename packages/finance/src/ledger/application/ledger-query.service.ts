@@ -139,6 +139,10 @@ export class LedgerQueryService {
     return this.repo.findTransactionByExternalReference(userId, reference);
   }
 
+  findTransactionsByExternalReference(userId: string, reference: string) {
+    return this.repo.findTransactionsByExternalReference(userId, reference);
+  }
+
   findReverseCandidates(
     userId: string,
     params: {
@@ -163,6 +167,14 @@ export class LedgerQueryService {
     currency: string,
   ) {
     return this.repo.findLinkedRefund(userId, originalId, amount, currency);
+  }
+
+  findLinkedRefundTotal(params: {
+    userId: string;
+    originalId: string;
+    currency: string;
+  }) {
+    return this.repo.findLinkedRefundTotal(params);
   }
 
   findDedupeCandidate(

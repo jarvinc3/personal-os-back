@@ -5,6 +5,7 @@ export const REVERSAL_REVIEW_REASON = {
   ORIGINAL_NOT_CONFIRMED: 'REVERSAL_ORIGINAL_NOT_CONFIRMED',
   TARGET_NOT_SUPPORTED: 'REVERSAL_TARGET_NOT_SUPPORTED',
   COMMERCE_MISSING: 'REVERSAL_COMMERCE_MISSING',
+  CURRENCY_MISMATCH: 'REVERSAL_CURRENCY_MISMATCH',
   EXCEEDS_ORIGINAL: 'REVERSAL_EXCEEDS_ORIGINAL',
 } as const;
 
@@ -47,10 +48,12 @@ export type ReversalTargetDecision =
 export function evaluateReversalOriginal({
   original,
   reversalAmount,
+  reversalCurrency,
   step,
 }: {
   original: ReversalOriginal;
   reversalAmount: number;
+  reversalCurrency: string;
   step: ReversalStep;
 }): ReversalTargetDecision {
   if (original.status === 'REVERSED') {
@@ -67,6 +70,13 @@ export function evaluateReversalOriginal({
     return review({
       step,
       reason: REVERSAL_REVIEW_REASON.TARGET_NOT_SUPPORTED,
+      candidateIds: [original.id],
+    });
+  }
+  if (original.currency !== reversalCurrency) {
+    return review({
+      step,
+      reason: REVERSAL_REVIEW_REASON.CURRENCY_MISMATCH,
       candidateIds: [original.id],
     });
   }
@@ -87,16 +97,20 @@ export function evaluateReversalOriginal({
 export function classifyReversalCandidates({
   candidates,
   reversalAmount,
+  reversalCurrency,
   step,
+  notFoundReason = REVERSAL_REVIEW_REASON.ORIGINAL_NOT_FOUND,
 }: {
   candidates: readonly ReversalOriginal[];
   reversalAmount: number;
+  reversalCurrency: string;
   step: ReversalStep;
+  notFoundReason?: ReversalReviewReason;
 }): ReversalTargetDecision {
   if (candidates.length === 0) {
     return review({
       step,
-      reason: REVERSAL_REVIEW_REASON.ORIGINAL_NOT_FOUND,
+      reason: notFoundReason,
       candidateIds: [],
     });
   }
@@ -110,6 +124,7 @@ export function classifyReversalCandidates({
   return evaluateReversalOriginal({
     original: candidates[0],
     reversalAmount,
+    reversalCurrency,
     step,
   });
 }

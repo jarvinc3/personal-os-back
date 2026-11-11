@@ -611,6 +611,34 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
       ...this.reversalEvidence(candidate, decision),
       reversalOriginalId: original.id,
     };
+    const repeatedRefund = await this.ledger.findLinkedRefund(
+      signal.userId,
+      original.id,
+      candidate.amount!,
+      candidate.currency!,
+    );
+    if (repeatedRefund) {
+      await this.persist(
+        signal,
+        'DUPLICATE',
+        null,
+        undefined,
+        repeatedRefund.id,
+      );
+      return this.result('ALREADY_APPLIED', repeatedRefund.id);
+    }
+    const priorRefundTotal = await this.ledger.findLinkedRefundTotal({
+      userId: signal.userId,
+      originalId: original.id,
+      currency: original.currency,
+    });
+    if (priorRefundTotal + candidate.amount! > original.amount) {
+      return this.review({
+        signal,
+        reason: REVERSAL_REVIEW_REASON.EXCEEDS_ORIGINAL,
+        evidence: { ...evidence, candidateTransactionIds: [original.id] },
+      });
+    }
     if (decision.kind === 'partial') {
       return this.partialReverse({
         signal,
@@ -634,22 +662,19 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
     candidate: Candidate,
   ): Promise<ReversalTargetDecision> {
     const reversalAmount = candidate.amount!;
+    const reversalCurrency = candidate.currency!;
     const reference = candidate.reverseOfBankReference?.trim() || null;
     if (reference) {
-      const original = await this.ledger.findTransactionByExternalReference(
+      const originals = await this.ledger.findTransactionsByExternalReference(
         userId,
         reference,
       );
-      if (!original) {
-        return this.reversalReview(
-          'REFERENCE',
-          REVERSAL_REVIEW_REASON.REFERENCE_NOT_FOUND,
-        );
-      }
-      return evaluateReversalOriginal({
-        original: toReversalOriginal(original),
+      return classifyReversalCandidates({
+        candidates: originals.map(toReversalOriginal),
         reversalAmount,
+        reversalCurrency,
         step: 'REFERENCE',
+        notFoundReason: REVERSAL_REVIEW_REASON.REFERENCE_NOT_FOUND,
       });
     }
 
@@ -664,6 +689,7 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
         return evaluateReversalOriginal({
           original: toReversalOriginal(original),
           reversalAmount,
+          reversalCurrency,
           step: 'EMAIL',
         });
       }
@@ -685,6 +711,7 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
     return classifyReversalCandidates({
       candidates: candidates.map(toReversalOriginal),
       reversalAmount,
+      reversalCurrency,
       step: 'CANDIDATE',
     });
   }
@@ -707,16 +734,6 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
     original: ReversalOriginal;
     evidence: ImportReviewEvidence;
   }) {
-    const existing = await this.ledger.findLinkedRefund(
-      signal.userId,
-      original.id,
-      candidate.amount!,
-      candidate.currency!,
-    );
-    if (existing) {
-      await this.persist(signal, 'DUPLICATE', null, undefined, existing.id);
-      return this.result('ALREADY_APPLIED', existing.id);
-    }
     const merchantMissing = !candidate.merchant;
     const created = await this.importTransaction.execute(signal.userId, {
       accountId: original.accountId ?? undefined,
