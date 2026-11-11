@@ -462,6 +462,12 @@ export class PrismaLedgerWriteRepository {
             status,
             legRole: leg.legRole,
             transferGroupId,
+            externalReference: command.externalReference ?? null,
+            importReference:
+              leg.legRole === OPERATION_LEG_ROLE.SOURCE
+                ? (command.importReference ?? null)
+                : null,
+            ...(command.aiMetadata ? { aiMetadata: command.aiMetadata } : {}),
             transactionDate,
           },
           include: {

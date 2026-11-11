@@ -35,9 +35,9 @@ function operation(
 
 describe('reconcileCardPaymentImport', () => {
   it('imports when there is no candidate', () => {
-    expect(
-      reconcileCardPaymentImport({ incoming, existing: [] }),
-    ).toEqual({ kind: 'new' });
+    expect(reconcileCardPaymentImport({ incoming, existing: [] })).toEqual({
+      kind: 'new',
+    });
   });
 
   it('links the same operation with the same reference inside seven days', () => {

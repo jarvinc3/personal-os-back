@@ -6,16 +6,26 @@ import { buildFinancialImportNotes } from '../ledger/application/build-import-no
 import {
   MOVEMENT_CLASSES,
   isAtmMovementClass,
+  isCardPaymentMovementClass,
   isTransferMovementClass,
   type MovementClass,
 } from '../ledger/domain/movement-class';
+import {
+  CARD_PAYMENT_REFERENCE_WINDOW_MS,
+  reconcileCardPaymentImport,
+  type CardPaymentOperation,
+} from '../ledger/application/reconcile-card-payment-import';
+import { ImportCardPaymentUseCase } from '../ledger/application/import-card-payment.use-case';
 import {
   isUnpairedTransferCandidate,
   pickTransferMatch,
   type ImportTransferCandidate,
   uniqueCashAccountId,
 } from '../ledger/application/match-imported-transfers';
-import { resolveLedgerTargetFromHints } from '../ledger/application/resolve-ledger-target-from-hints';
+import {
+  accountMatchesHint,
+  resolveLedgerTargetFromHints,
+} from '../ledger/application/resolve-ledger-target-from-hints';
 import {
   classifyTransferImport,
   resolveTransferAccount,
@@ -31,7 +41,11 @@ import { ReverseTransactionUseCase } from '../ledger/application/reverse-transac
 import { MerchantsService } from '../merchants/application/merchants.service';
 import { ResolveUserBaseCurrencyUseCase } from '../fx/application/resolve-user-base-currency';
 import { resolveCategoryIdForImport } from '../shared/domain/category-type';
-import { mapBankStatusToInternal } from '../shared/domain/transaction-status';
+import {
+  mapBankStatusToInternal,
+  type FinTransactionStatusValue,
+} from '../shared/domain/transaction-status';
+import { scalarNumber } from '../shared/domain/money';
 import type { FinanceSignalConsumerPort } from '../contracts';
 
 const transactionSchema = z
@@ -99,6 +113,7 @@ type ImportStatus =
 
 const REVIEW_CONFIDENCE_THRESHOLD = 0.7;
 type ImportReviewEvidence = Record<string, string | string[] | null>;
+type ConsumeResult = Awaited<ReturnType<FinanceSignalConsumerPort['consume']>>;
 
 @Injectable()
 export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
@@ -109,6 +124,7 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
     private readonly importTransaction: ImportFinancialTransactionUseCase,
     private readonly ledger: LedgerQueryService,
     private readonly reverseTransaction: ReverseTransactionUseCase,
+    private readonly cardPaymentImport: ImportCardPaymentUseCase,
     private readonly merchants: MerchantsService,
     private readonly baseCurrency: ResolveUserBaseCurrencyUseCase,
   ) {}
@@ -196,12 +212,39 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
         accountNumberLast4: true,
         isDefaultForInstitution: true,
         type: true,
+        currency: true,
       },
     });
     const activeCards = await this.prisma.finCard.findMany({
       where: { userId: signal.userId, isActive: true },
       select: { id: true, lastFour: true },
     });
+    const amount = candidate.amount!;
+    const currency = candidate.currency!;
+    const transactionDate = new Date(candidate.transactionDate!);
+    const type = this.transactionType(candidate, movementClass);
+    const status =
+      candidate.kind === 'PENDING'
+        ? 'PENDING'
+        : mapBankStatusToInternal({
+            bankStatusNormalized: candidate.bankStatusNormalized ?? 'UNKNOWN',
+            statusConfidence:
+              candidate.statusConfidence ?? payload.confidence ?? 0,
+          });
+    if (status === 'REVERSED') {
+      return this.reverse(signal, payload, candidate);
+    }
+
+    if (isCardPaymentMovementClass(movementClass)) {
+      return this.applyCardPayment({
+        signal,
+        payload,
+        candidate,
+        accounts: activeAccounts,
+        status,
+      });
+    }
+
     const transfer = isTransferMovementClass(movementClass);
     let target: { accountId?: string; cardId?: string };
     let transferLeg: TransferLegIdentity | null = null;
@@ -239,22 +282,6 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
         });
       }
       target = ledgerTarget;
-    }
-
-    const amount = candidate.amount!;
-    const currency = candidate.currency!;
-    const transactionDate = new Date(candidate.transactionDate!);
-    const type = this.transactionType(candidate, movementClass);
-    const status =
-      candidate.kind === 'PENDING'
-        ? 'PENDING'
-        : mapBankStatusToInternal({
-            bankStatusNormalized: candidate.bankStatusNormalized ?? 'UNKNOWN',
-            statusConfidence:
-              candidate.statusConfidence ?? payload.confidence ?? 0,
-          });
-    if (status === 'REVERSED') {
-      return this.reverse(signal, payload, candidate);
     }
 
     if (
@@ -343,22 +370,14 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
       status,
       skipUncategorizedWarning: transfer || isAtmMovementClass(movementClass),
     });
-    const aiMetadata = {
-      signalId: signal.signalId,
-      sourceEmailMessageId: signal.sourceId,
-      signalType: signal.signalType,
-      signalSchemaVersion: signal.schemaVersion,
-      semanticType: payload.semanticType ?? null,
-      confidence: payload.confidence ?? null,
+    const aiMetadata = this.importMetadata({
+      signal,
+      payload,
+      candidate,
       movementClass,
-      bankStatusNormalized: candidate.bankStatusNormalized ?? 'UNKNOWN',
-      statusConfidence: candidate.statusConfidence ?? payload.confidence ?? 0,
-      statusEvidence: candidate.statusEvidence ?? null,
-      originalAmount: amount,
-      originalCurrency: currency,
-      sourceReceivedAmount: candidate.receivedAmount ?? null,
-      sourceExchangeRate: candidate.transferExchangeRate ?? null,
-    };
+      amount,
+      currency,
+    });
 
     try {
       let transactionId: string;
@@ -603,6 +622,304 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
     });
     await this.persist(signal, 'REVERSED', original.id);
     return this.result('APPLIED', original.id);
+  }
+
+  private importMetadata({
+    signal,
+    payload,
+    candidate,
+    movementClass,
+    amount,
+    currency,
+  }: {
+    signal: RoutedSignal;
+    payload: z.infer<typeof payloadSchema>;
+    candidate: Candidate;
+    movementClass: MovementClass;
+    amount: number;
+    currency: string;
+  }) {
+    return {
+      signalId: signal.signalId,
+      sourceEmailMessageId: signal.sourceId,
+      signalType: signal.signalType,
+      signalSchemaVersion: signal.schemaVersion,
+      semanticType: payload.semanticType ?? null,
+      confidence: payload.confidence ?? null,
+      movementClass,
+      bankStatusNormalized: candidate.bankStatusNormalized ?? 'UNKNOWN',
+      statusConfidence: candidate.statusConfidence ?? payload.confidence ?? 0,
+      statusEvidence: candidate.statusEvidence ?? null,
+      originalAmount: amount,
+      originalCurrency: currency,
+      sourceReceivedAmount: candidate.receivedAmount ?? null,
+      sourceExchangeRate: candidate.transferExchangeRate ?? null,
+    };
+  }
+
+  /**
+   * Pago de tarjeta confirmado: dos patas `CARD_PAYMENT`, sin gasto. Solo aplica
+   * una vez; un pago manual parecido se vincula como duplicado y la duda va a
+   * revisión.
+   */
+  private async applyCardPayment({
+    signal,
+    payload,
+    candidate,
+    accounts,
+    status,
+  }: {
+    signal: RoutedSignal;
+    payload: z.infer<typeof payloadSchema>;
+    candidate: Candidate;
+    accounts: readonly {
+      id: string;
+      accountNumberLast4: string | null;
+      currency: string;
+    }[];
+    status: FinTransactionStatusValue;
+  }): Promise<ConsumeResult> {
+    if (status !== 'CONFIRMED') {
+      return this.review({ signal, reason: 'CARD_PAYMENT_NOT_CONFIRMED' });
+    }
+    const amount = candidate.amount!;
+    const currency = candidate.currency!;
+    const transactionDate = new Date(candidate.transactionDate!);
+
+    const card = await this.resolveCardPaymentCard({
+      userId: signal.userId,
+      lastFour: candidate.last4 ?? null,
+    });
+    if (card.kind === 'review') {
+      return this.review({ signal, reason: card.reason });
+    }
+    const account = this.resolveCardPaymentAccount({
+      accounts,
+      accountNumberLast4: candidate.accountNumberLast4 ?? null,
+    });
+    if (account.kind === 'review') {
+      return this.review({ signal, reason: account.reason });
+    }
+    if (!card.currencies.includes(currency)) {
+      return this.review({ signal, reason: 'CARD_CURRENCY_MISSING' });
+    }
+
+    const decision = reconcileCardPaymentImport({
+      incoming: {
+        accountId: account.accountId,
+        cardId: card.cardId,
+        amount,
+        currency,
+        transactionDate,
+        bankReference: candidate.bankReference ?? null,
+      },
+      existing: await this.listCardPaymentOperations({
+        userId: signal.userId,
+        transactionDate,
+      }),
+    });
+    if (decision.kind === 'conflict' || decision.kind === 'ambiguous') {
+      return this.review({
+        signal,
+        reason: decision.reason,
+        evidence: {
+          externalReference: candidate.bankReference ?? null,
+          candidateTransactionIds: decision.candidateTransactionIds,
+        },
+      });
+    }
+    if (decision.kind === 'duplicate') {
+      await this.persist(
+        signal,
+        'DUPLICATE',
+        null,
+        undefined,
+        decision.transactionId,
+      );
+      return this.result('ALREADY_APPLIED', decision.transactionId);
+    }
+
+    const imported = await this.cardPaymentImport.execute(signal.userId, {
+      sourceAccountId: account.accountId,
+      sourceAccountCurrency: account.currency,
+      cardId: card.cardId,
+      amount,
+      currency,
+      transactionDate,
+      externalReference: candidate.bankReference ?? null,
+      importReference: signal.signalId,
+      aiMetadata: this.importMetadata({
+        signal,
+        payload,
+        candidate,
+        movementClass: 'CARD_PAYMENT',
+        amount,
+        currency,
+      }),
+      description: candidate.merchant ?? 'Pago de tarjeta',
+      notes: null,
+      status,
+    });
+    if (!imported) {
+      return this.review({ signal, reason: 'CARD_PAYMENT_NOT_IMPORTED' });
+    }
+    await this.persist(signal, 'IMPORTED', imported.sourceTransactionId);
+    return this.result('APPLIED', imported.sourceTransactionId);
+  }
+
+  private async resolveCardPaymentCard({
+    userId,
+    lastFour,
+  }: {
+    userId: string;
+    lastFour: string | null;
+  }): Promise<
+    | { kind: 'resolved'; cardId: string; currencies: string[] }
+    | { kind: 'review'; reason: string }
+  > {
+    if (!lastFour) {
+      return { kind: 'review', reason: 'CARD_PAYMENT_CARD_NOT_FOUND' };
+    }
+    const cards = await this.prisma.finCard.findMany({
+      where: { userId, isActive: true },
+      select: {
+        id: true,
+        type: true,
+        lastFour: true,
+        balances: { select: { currency: true } },
+      },
+    });
+    const matches = cards.filter((card) => card.lastFour === lastFour);
+    if (matches.length === 0) {
+      return { kind: 'review', reason: 'CARD_PAYMENT_CARD_NOT_FOUND' };
+    }
+    if (matches.length > 1) {
+      return { kind: 'review', reason: 'CARD_PAYMENT_CARD_AMBIGUOUS' };
+    }
+    if (matches[0].type !== 'CREDIT') {
+      return { kind: 'review', reason: 'CARD_PAYMENT_CARD_NOT_CREDIT' };
+    }
+    return {
+      kind: 'resolved',
+      cardId: matches[0].id,
+      currencies: matches[0].balances.map(({ currency }) => currency),
+    };
+  }
+
+  private resolveCardPaymentAccount({
+    accounts,
+    accountNumberLast4,
+  }: {
+    accounts: readonly {
+      id: string;
+      accountNumberLast4: string | null;
+      currency: string;
+    }[];
+    accountNumberLast4: string | null;
+  }):
+    | { kind: 'resolved'; accountId: string; currency: string }
+    | { kind: 'review'; reason: string } {
+    if (!accountNumberLast4) {
+      return {
+        kind: 'review',
+        reason: 'CARD_PAYMENT_SOURCE_ACCOUNT_NOT_FOUND',
+      };
+    }
+    const matches = accounts.filter((account) =>
+      accountMatchesHint(account.accountNumberLast4, accountNumberLast4),
+    );
+    if (matches.length === 0) {
+      return {
+        kind: 'review',
+        reason: 'CARD_PAYMENT_SOURCE_ACCOUNT_NOT_FOUND',
+      };
+    }
+    if (matches.length > 1) {
+      return {
+        kind: 'review',
+        reason: 'CARD_PAYMENT_SOURCE_ACCOUNT_AMBIGUOUS',
+      };
+    }
+    return {
+      kind: 'resolved',
+      accountId: matches[0].id,
+      currency: matches[0].currency,
+    };
+  }
+
+  /** Cartera de pagos de tarjeta del usuario alrededor de la fecha del correo. */
+  private async listCardPaymentOperations({
+    userId,
+    transactionDate,
+  }: {
+    userId: string;
+    transactionDate: Date;
+  }): Promise<CardPaymentOperation[]> {
+    const sources = await this.prisma.finTransaction.findMany({
+      where: {
+        userId,
+        type: 'CARD_PAYMENT',
+        legRole: 'SOURCE',
+        status: { in: ['PENDING', 'CONFIRMED'] },
+        transactionDate: {
+          gte: new Date(
+            transactionDate.getTime() - CARD_PAYMENT_REFERENCE_WINDOW_MS,
+          ),
+          lte: new Date(
+            transactionDate.getTime() + CARD_PAYMENT_REFERENCE_WINDOW_MS,
+          ),
+        },
+      },
+      select: {
+        id: true,
+        transferGroupId: true,
+        accountId: true,
+        externalReference: true,
+        amount: true,
+        currency: true,
+        transactionDate: true,
+      },
+    });
+    const groupIds = sources.flatMap(({ transferGroupId }) =>
+      transferGroupId ? [transferGroupId] : [],
+    );
+    if (!groupIds.length) {
+      return [];
+    }
+    const destinations = await this.prisma.finTransaction.findMany({
+      where: {
+        userId,
+        type: 'CARD_PAYMENT',
+        legRole: 'DESTINATION',
+        transferGroupId: { in: groupIds },
+      },
+      select: { transferGroupId: true, cardId: true },
+    });
+    const cardByGroup = new Map(
+      destinations.flatMap(({ transferGroupId, cardId }) =>
+        transferGroupId && cardId ? [[transferGroupId, cardId] as const] : [],
+      ),
+    );
+    return sources.flatMap((source) => {
+      const cardId = source.transferGroupId
+        ? cardByGroup.get(source.transferGroupId)
+        : undefined;
+      if (!cardId || !source.accountId || !source.transferGroupId) {
+        return [];
+      }
+      return [
+        {
+          transferGroupId: source.transferGroupId,
+          sourceTransactionId: source.id,
+          accountId: source.accountId,
+          cardId,
+          externalReference: source.externalReference,
+          amount: scalarNumber(source.amount),
+          currency: source.currency,
+          transactionDate: source.transactionDate,
+        },
+      ];
+    });
   }
 
   private async review({

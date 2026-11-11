@@ -46,11 +46,7 @@ export type CardPaymentImportDecision =
       candidateTransactionIds: string[];
     };
 
-function withinWindow(
-  left: Date,
-  right: Date,
-  windowMs: number,
-): boolean {
+function withinWindow(left: Date, right: Date, windowMs: number): boolean {
   return Math.abs(left.getTime() - right.getTime()) <= windowMs;
 }
 
@@ -87,8 +83,7 @@ export function reconcileCardPaymentImport({
 }): CardPaymentImportDecision {
   const referenceMatches = incoming.bankReference
     ? existing.filter(
-        (operation) =>
-          operation.externalReference === incoming.bankReference,
+        (operation) => operation.externalReference === incoming.bankReference,
       )
     : [];
   if (referenceMatches.length > 0) {
