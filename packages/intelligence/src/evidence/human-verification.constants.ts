@@ -50,6 +50,13 @@ export const TRANSACTION_MOVEMENT_CLASSES = [
 
 export const SUGGESTED_TRANSACTION_DATE_SOURCES = ['EMAIL_HEADER'] as const;
 
+/** Tipos de etiqueta que admiten un objeto `transaction`. */
+export const TRANSACTION_SEMANTIC_TYPES = [
+  'FIN_TRANSACTION',
+  'PURCHASE_RECEIPT',
+  'SUBSCRIPTION_BILLING',
+] as const;
+
 export const HUMAN_VERIFICATION_VERDICTS = [
   'CONFIRMED',
   'CORRECTED',
