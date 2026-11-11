@@ -1156,3 +1156,103 @@ describe('PrismaLedgerImportRepository transfer legs', () => {
     expect(createData.categoryId).toBeUndefined();
   });
 });
+
+describe('PrismaLedgerImportRepository partial reversal', () => {
+  it('stores the linked refund and lowers the purchase budget', async () => {
+    const create = jest.fn().mockResolvedValue({
+      id: 'tx-refund',
+      status: 'CONFIRMED',
+      amount: 40,
+      source: 'EMAIL',
+      accountId: 'acc-1',
+      cardId: null,
+    });
+    const accountUpdate = jest.fn().mockResolvedValue(undefined);
+    const budgetUpdate = jest.fn().mockResolvedValue({
+      id: 'budget-1',
+      amountSpent: 60,
+      amountLimit: 500,
+      alertThresholdPct: 80,
+    });
+    const prisma = {
+      $transaction: jest.fn(async (run: (tx: unknown) => Promise<unknown>) =>
+        run({
+          finAccount: {
+            findFirst: jest.fn().mockResolvedValue({
+              id: 'acc-1',
+              userId: 'user-1',
+              currency: 'DOP',
+              type: 'SAVINGS',
+            }),
+            update: accountUpdate,
+          },
+          finTransaction: {
+            create,
+            findFirst: jest.fn().mockResolvedValue({
+              id: 'tx-refund',
+              status: 'CONFIRMED',
+              amount: 40,
+              type: 'CREDIT',
+              source: 'EMAIL',
+              accountId: 'acc-1',
+              cardId: null,
+            }),
+          },
+          finBudget: {
+            findMany: jest.fn().mockResolvedValue([
+              {
+                id: 'budget-1',
+                amountSpent: 100,
+                amountLimit: 500,
+                alertThresholdPct: 80,
+              },
+            ]),
+            update: budgetUpdate,
+          },
+        }),
+      ),
+    };
+    const repo = new PrismaLedgerImportRepository(prisma as never, {
+      enqueue: jest.fn(),
+    });
+
+    await repo.createImportedTransaction('user-1', {
+      accountId: 'acc-1',
+      importReference: 'signal-refund',
+      amount: 40,
+      currency: 'DOP',
+      merchant: 'Comercio desconocido',
+      description: 'Reverso parcial',
+      transactionDate: new Date('2026-11-05T00:00:00.000Z'),
+      type: 'CREDIT',
+      status: 'CONFIRMED',
+      categoryId: 'cat-1',
+      linkedTransactionId: 'original-1',
+      amounts: {
+        amount: 40,
+        currency: 'DOP',
+        ledgerAmount: 40,
+        ledgerCurrency: 'DOP',
+        amountBaseCurrency: 40,
+        exchangeRate: 1,
+      },
+    });
+
+    const createData = (
+      create.mock.calls[0][0] as { data: Record<string, unknown> }
+    ).data;
+    expect(createData).toMatchObject({
+      type: 'CREDIT',
+      linkedTransactionId: 'original-1',
+      categoryId: 'cat-1',
+    });
+    expect(accountUpdate).toHaveBeenCalledWith({
+      where: { id: 'acc-1' },
+      data: { balance: { increment: 40 } },
+    });
+    expect(budgetUpdate).toHaveBeenCalledWith({
+      where: { id: 'budget-1' },
+      data: { amountSpent: 60 },
+    });
+  });
+});

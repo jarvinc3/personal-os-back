@@ -137,6 +137,7 @@ export type ImportFinancialTransactionCommand = {
   categoryId?: string | null;
   type?: 'DEBIT' | 'CREDIT';
   transferGroupId?: string | null;
+  linkedTransactionId?: string | null;
   legRole?: OperationLegRole | null;
   status: FinTxStatus;
   amounts: ResolvedAmounts;

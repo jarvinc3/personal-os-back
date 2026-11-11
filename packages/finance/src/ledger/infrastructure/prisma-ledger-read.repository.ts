@@ -353,6 +353,8 @@ export class PrismaLedgerReadRepository {
       where: {
         userId,
         status: { in: params.statuses ?? ['CONFIRMED'] },
+        type: 'DEBIT',
+        transferGroupId: null,
         currency: params.currency,
         amount: params.amount,
         transactionDate: { gte: from, lte: to },
@@ -365,9 +367,45 @@ export class PrismaLedgerReadRepository {
     }) as Promise<LedgerTransactionRow[]>;
   }
 
+  /** The movement imported from that email; reversal rows are not originals. */
+  findImportedTransactionByEmailMessageId(userId: string, messageId: string) {
+    return this.prisma.finSignalImport
+      .findFirst({
+        where: {
+          userId,
+          sourceEmailMessageId: messageId,
+          status: 'IMPORTED',
+          transactionId: { not: null },
+        },
+        orderBy: { createdAt: 'desc' },
+        include: { transaction: true },
+      })
+      .then(
+        (row) => row?.transaction ?? null,
+      ) as Promise<LedgerTransactionRow | null>;
+  }
+
   findTransactionByExternalReference(userId: string, reference: string) {
     return this.prisma.finTransaction.findFirst({
       where: { userId, externalReference: reference },
+      orderBy: { transactionDate: 'desc' },
+    }) as Promise<LedgerTransactionRow | null>;
+  }
+
+  findLinkedRefund(
+    userId: string,
+    originalId: string,
+    amount: number,
+    currency: string,
+  ) {
+    return this.prisma.finTransaction.findFirst({
+      where: {
+        userId,
+        linkedTransactionId: originalId,
+        type: 'CREDIT',
+        amount,
+        currency,
+      },
       orderBy: { transactionDate: 'desc' },
     }) as Promise<LedgerTransactionRow | null>;
   }

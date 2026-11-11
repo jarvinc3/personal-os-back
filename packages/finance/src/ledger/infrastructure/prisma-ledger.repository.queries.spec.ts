@@ -305,6 +305,8 @@ describe('PrismaLedgerRepository lookups', () => {
       where: {
         userId: 'user-1',
         status: { in: ['PENDING'] },
+        type: 'DEBIT',
+        transferGroupId: null,
         currency: 'DOP',
         amount: 100,
         transactionDate: {
@@ -330,6 +332,8 @@ describe('PrismaLedgerRepository lookups', () => {
 
     const query = prisma.finTransaction.findMany.mock.calls[0][0];
     expect(query.where.status).toEqual({ in: ['CONFIRMED'] });
+    expect(query.where.type).toBe('DEBIT');
+    expect(query.where.transferGroupId).toBeNull();
     expect(query.where.merchant).toBeUndefined();
   });
 

@@ -152,6 +152,19 @@ export class LedgerQueryService {
     return this.repo.findCandidatesForReverse(userId, params);
   }
 
+  findImportedTransactionByEmailMessageId(userId: string, messageId: string) {
+    return this.repo.findImportedTransactionByEmailMessageId(userId, messageId);
+  }
+
+  findLinkedRefund(
+    userId: string,
+    originalId: string,
+    amount: number,
+    currency: string,
+  ) {
+    return this.repo.findLinkedRefund(userId, originalId, amount, currency);
+  }
+
   findDedupeCandidate(
     userId: string,
     params: {

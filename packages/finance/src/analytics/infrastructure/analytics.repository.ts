@@ -14,6 +14,24 @@ const REAL_MOVEMENT = {
   OR: [{ transferGroupId: null }, { legRole: OPERATION_LEG_ROLE.FEE }],
 } satisfies Prisma.FinTransactionWhereInput;
 
+type CashFlowRow = {
+  type: string;
+  status: string;
+  _sum: { amountBaseCurrency: Prisma.Decimal | null };
+  _count: { _all: number };
+};
+
+type CategorySpendRow = {
+  categoryId: string | null;
+  _sum: { amountBaseCurrency: Prisma.Decimal | null };
+};
+
+type SpendingPointRow = {
+  bucket: Date;
+  type: string;
+  total: Prisma.Decimal;
+};
+
 @Injectable()
 export class AnalyticsRepository {
   constructor(private readonly prisma: PrismaService) {}
@@ -29,7 +47,7 @@ export class AnalyticsRepository {
           }
         : {};
 
-    return this.prisma.finTransaction.groupBy({
+    const grouped = await this.prisma.finTransaction.groupBy({
       by: ['type', 'status'],
       where: {
         userId,
@@ -41,6 +59,7 @@ export class AnalyticsRepository {
       _count: { _all: true },
       orderBy: { type: 'asc' },
     });
+    return this.netLinkedRefunds(grouped, userId, from, to);
   }
 
   async getSpendingByCategory(userId: string, from?: Date, to?: Date) {
@@ -59,12 +78,18 @@ export class AnalyticsRepository {
           }
         : {}),
     };
-    return this.prisma.finTransaction.groupBy({
+    const grouped = await this.prisma.finTransaction.groupBy({
       by: ['categoryId'],
       where,
       _sum: { amountBaseCurrency: true },
       orderBy: { _sum: { amountBaseCurrency: 'desc' } },
     });
+    const refundGroups = await this.prisma.finTransaction.groupBy({
+      by: ['categoryId'],
+      where: this.linkedRefundWhere(userId, from, to),
+      _sum: { amountBaseCurrency: true },
+    });
+    return this.netSpendingByCategory(grouped, refundGroups);
   }
 
   findCategoriesByIds(userId: string, ids: string[]) {
@@ -115,11 +140,168 @@ export class AnalyticsRepository {
       ORDER BY 1 ASC
     `;
 
-    return rows.map((row) => ({
+    const refunds = await this.prisma.$queryRaw<
+      Array<{ bucket: Date; total: string }>
+    >`
+      SELECT
+        date_trunc(${PrismaNS.raw(`'${trunc}'`)}, "transaction_date") AS bucket,
+        SUM("amount_base_currency")::text AS total
+      FROM "fin_transactions"
+      WHERE "user_id" = ${userId}
+        AND "status" = 'CONFIRMED'
+        AND "type" = 'CREDIT'
+        AND "linked_transaction_id" IS NOT NULL
+        AND "transfer_group_id" IS NULL
+        ${from ? PrismaNS.sql`AND "transaction_date" >= ${from}` : PrismaNS.empty}
+        ${to ? PrismaNS.sql`AND "transaction_date" <= ${to}` : PrismaNS.empty}
+      GROUP BY 1
+      ORDER BY 1 ASC
+    `;
+
+    return this.netSpendingOverTime(rows, refunds);
+  }
+
+  private linkedRefundWhere(
+    userId: string,
+    from?: Date,
+    to?: Date,
+  ): Prisma.FinTransactionWhereInput {
+    return {
+      userId,
+      type: 'CREDIT',
+      status: 'CONFIRMED',
+      linkedTransactionId: { not: null },
+      transferGroupId: null,
+      ...(from || to
+        ? {
+            transactionDate: {
+              ...(from ? { gte: from } : {}),
+              ...(to ? { lte: to } : {}),
+            },
+          }
+        : {}),
+    };
+  }
+
+  private async linkedRefundTotal(
+    userId: string,
+    from?: Date,
+    to?: Date,
+  ): Promise<Prisma.Decimal> {
+    const refundAggregate = await this.prisma.finTransaction.aggregate({
+      where: this.linkedRefundWhere(userId, from, to),
+      _sum: { amountBaseCurrency: true },
+    });
+    return toMoney(refundAggregate._sum.amountBaseCurrency ?? null);
+  }
+
+  /** Expenses already net of the partial reversals linked to their purchase. */
+  private async netLinkedRefunds(
+    rows: CashFlowRow[],
+    userId: string,
+    from?: Date,
+    to?: Date,
+  ): Promise<CashFlowRow[]> {
+    const refunds = await this.linkedRefundTotal(userId, from, to);
+    if (refunds.isZero()) {
+      return rows;
+    }
+    const expenseRow = rows.find(
+      (row) => row.type === 'DEBIT' && row.status === 'CONFIRMED',
+    );
+    if (!expenseRow) {
+      return [
+        ...rows,
+        {
+          type: 'DEBIT',
+          status: 'CONFIRMED',
+          _sum: { amountBaseCurrency: refunds.negated() },
+          _count: { _all: 0 },
+        },
+      ];
+    }
+    return rows.map((row) =>
+      row === expenseRow
+        ? {
+            ...row,
+            _sum: {
+              amountBaseCurrency: toMoney(
+                row._sum.amountBaseCurrency ?? null,
+              ).minus(refunds),
+            },
+          }
+        : row,
+    );
+  }
+
+  private netSpendingByCategory(
+    rows: CategorySpendRow[],
+    refunds: CategorySpendRow[],
+  ): CategorySpendRow[] {
+    if (refunds.length === 0) {
+      return rows;
+    }
+    const refundByCategory = new Map(
+      refunds.map((row) => [
+        row.categoryId,
+        toMoney(row._sum.amountBaseCurrency ?? null),
+      ]),
+    );
+    const merged = rows.map((row) => ({
+      categoryId: row.categoryId,
+      _sum: {
+        amountBaseCurrency: toMoney(row._sum.amountBaseCurrency ?? null).minus(
+          refundByCategory.get(row.categoryId) ?? 0,
+        ),
+      },
+    }));
+    const known = new Set(rows.map((row) => row.categoryId));
+    for (const [categoryId, refund] of refundByCategory) {
+      if (!known.has(categoryId)) {
+        merged.push({
+          categoryId,
+          _sum: { amountBaseCurrency: refund.negated() },
+        });
+      }
+    }
+    return merged;
+  }
+
+  private netSpendingOverTime(
+    rows: Array<{ bucket: Date; type: string; total: string }>,
+    refunds: Array<{ bucket: Date; total: string }>,
+  ): SpendingPointRow[] {
+    const points = rows.map((row) => ({
       bucket: new Date(row.bucket),
       type: row.type,
       total: toMoney(row.total),
     }));
+    if (refunds.length === 0) {
+      return points;
+    }
+    const pending = new Map(
+      refunds.map((row) => [
+        new Date(row.bucket).toISOString(),
+        toMoney(row.total),
+      ]),
+    );
+    const netted = points.map((point) => {
+      const key = point.bucket.toISOString();
+      const refund = pending.get(key);
+      if (!refund || point.type !== 'DEBIT') {
+        return point;
+      }
+      pending.delete(key);
+      return { ...point, total: point.total.minus(refund) };
+    });
+    for (const [key, refund] of pending) {
+      netted.push({
+        bucket: new Date(key),
+        type: 'DEBIT',
+        total: refund.negated(),
+      });
+    }
+    return netted;
   }
 
   listBudgets(userId: string) {

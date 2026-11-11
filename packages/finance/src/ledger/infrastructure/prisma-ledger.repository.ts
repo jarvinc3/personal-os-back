@@ -130,6 +130,19 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
     return this.read.findTransactionByExternalReference(userId, reference);
   }
 
+  findImportedTransactionByEmailMessageId(userId: string, messageId: string) {
+    return this.read.findImportedTransactionByEmailMessageId(userId, messageId);
+  }
+
+  findLinkedRefund(
+    userId: string,
+    originalId: string,
+    amount: number,
+    currency: string,
+  ) {
+    return this.read.findLinkedRefund(userId, originalId, amount, currency);
+  }
+
   findPossibleDuplicate(
     userId: string,
     params: {

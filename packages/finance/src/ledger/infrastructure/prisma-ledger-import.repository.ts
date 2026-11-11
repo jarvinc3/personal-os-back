@@ -85,6 +85,7 @@ export class PrismaLedgerImportRepository {
           possibleDuplicateOfId: data.possibleDuplicateOfId ?? undefined,
           categoryId: data.categoryId ?? undefined,
           transferGroupId: data.transferGroupId ?? undefined,
+          linkedTransactionId: data.linkedTransactionId ?? undefined,
           legRole: data.legRole ?? undefined,
           aiMetadata: (data.aiMetadata as Prisma.InputJsonValue) ?? {},
         },
@@ -94,6 +95,8 @@ export class PrismaLedgerImportRepository {
         },
       });
 
+      const linkedRefund =
+        data.type === 'CREDIT' && Boolean(data.linkedTransactionId);
       let budgetSnapshots: BudgetSpendSnapshot[] = [];
       if (statusAffectsLedger(data.status)) {
         await applyBalanceForTransaction(tx, {
@@ -108,9 +111,11 @@ export class PrismaLedgerImportRepository {
         budgetSnapshots = await adjustBudgetSpent(tx, {
           userId,
           categoryId: data.categoryId,
-          type: data.type ?? 'DEBIT',
+          // A linked refund lowers the budget of the purchase it belongs to.
+          type: linkedRefund ? 'DEBIT' : (data.type ?? 'DEBIT'),
           amountBaseCurrency: data.amounts.amountBaseCurrency,
           transactionDate: data.transactionDate,
+          direction: linkedRefund ? -1 : 1,
         });
       }
 

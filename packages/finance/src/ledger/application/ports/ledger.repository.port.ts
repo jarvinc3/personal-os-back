@@ -200,6 +200,18 @@ export interface LedgerRepositoryPort {
     },
   ): Promise<LedgerTransactionRow[]>;
 
+  findImportedTransactionByEmailMessageId(
+    userId: string,
+    messageId: string,
+  ): Promise<LedgerTransactionRow | null>;
+
+  findLinkedRefund(
+    userId: string,
+    originalId: string,
+    amount: number,
+    currency: string,
+  ): Promise<LedgerTransactionRow | null>;
+
   findDedupeCandidate(
     userId: string,
     params: {

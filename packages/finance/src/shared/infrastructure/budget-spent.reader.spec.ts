@@ -7,16 +7,19 @@ const PERIOD_END = new Date('2026-10-31T00:00:00.000Z');
 
 function createPrisma(options?: {
   total?: string | null;
+  refund?: string | null;
   children?: string[];
 }) {
-  const aggregate = jest.fn().mockResolvedValue({
+  const sum = (value: string | null | undefined) => ({
     _sum: {
       amountBaseCurrency:
-        options?.total === null
-          ? null
-          : new Prisma.Decimal(options?.total ?? '0'),
+        value === null ? null : new Prisma.Decimal(value ?? '0'),
     },
   });
+  const aggregate = jest
+    .fn()
+    .mockResolvedValueOnce(sum(options?.total))
+    .mockResolvedValueOnce(sum(options?.refund));
   const findMany = jest
     .fn()
     .mockResolvedValue((options?.children ?? []).map((id) => ({ id })));
@@ -55,6 +58,47 @@ describe('sumBudgetSpent', () => {
       _sum: { amountBaseCurrency: true },
     });
     expect(findMany).not.toHaveBeenCalled();
+  });
+
+  it('subtracts the linked refunds inside the period', async () => {
+    const { prisma, aggregate } = createPrisma({
+      total: '120.50',
+      refund: '20.50',
+    });
+
+    const total = await sumBudgetSpent(prisma, {
+      userId: 'user-1',
+      periodStart: PERIOD_START,
+      periodEnd: PERIOD_END,
+      categoryIds: ['cat-1'],
+      includeChildren: false,
+    });
+
+    expect(total.toString()).toBe('100');
+    expect(aggregate).toHaveBeenCalledTimes(2);
+    expect(aggregate).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          type: 'CREDIT',
+          status: 'CONFIRMED',
+          linkedTransactionId: { not: null },
+        }),
+      }),
+    );
+  });
+
+  it('never reports a negative spent amount', async () => {
+    const { prisma } = createPrisma({ total: '10', refund: '30' });
+
+    const total = await sumBudgetSpent(prisma, {
+      userId: 'user-1',
+      periodStart: PERIOD_START,
+      periodEnd: PERIOD_END,
+      categoryIds: ['cat-1'],
+      includeChildren: false,
+    });
+
+    expect(total.toString()).toBe('0');
   });
 
   it('adds the child categories when the budget includes them', async () => {
