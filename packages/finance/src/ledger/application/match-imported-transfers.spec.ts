@@ -40,7 +40,7 @@ describe('pickTransferMatch', () => {
       type: 'CREDIT',
       account: { institutionId: 'qik' },
     });
-    expect(pickTransferMatch(debit, [debit, credit])?.id).toBe('c1');
+    expect(pickTransferMatch(debit, [debit, credit]).match?.id).toBe('c1');
   });
 
   it('leaves ambiguous same-amount candidates unmatched', () => {
@@ -59,7 +59,9 @@ describe('pickTransferMatch', () => {
       type: 'CREDIT',
       account: { institutionId: 'popular' },
     });
-    expect(pickTransferMatch(debit, [debit, first, second])).toBeNull();
+    const result = pickTransferMatch(debit, [debit, first, second]);
+    expect(result.match).toBeNull();
+    expect(result.candidateIds).toEqual(['c1', 'c2']);
   });
 
   it('does not treat ATM withdrawals as inter-bank transfers', () => {
@@ -71,5 +73,70 @@ describe('pickTransferMatch', () => {
       transferGroupId: null,
     });
     expect(isUnpairedTransferCandidate(atm, [atm])).toBe(false);
+  });
+
+  it('pairs legs five days apart when both share the bank reference', () => {
+    const debit = candidate({
+      id: 'd1',
+      type: 'DEBIT',
+      externalReference: 'REF-1',
+      transactionDate: new Date('2026-09-10T12:00:00.000Z'),
+      account: { institutionId: 'bhd' },
+    });
+    const credit = candidate({
+      id: 'c1',
+      type: 'CREDIT',
+      externalReference: 'REF-1',
+      transactionDate: new Date('2026-09-15T12:00:00.000Z'),
+      account: { institutionId: 'qik' },
+    });
+
+    expect(pickTransferMatch(debit, [debit, credit]).match?.id).toBe('c1');
+  });
+
+  it('does not pair shared references beyond seven days', () => {
+    const debit = candidate({
+      id: 'd1',
+      type: 'DEBIT',
+      externalReference: 'REF-1',
+      transactionDate: new Date('2026-09-01T12:00:00.000Z'),
+      account: { institutionId: 'bhd' },
+    });
+    const credit = candidate({
+      id: 'c1',
+      type: 'CREDIT',
+      externalReference: 'REF-1',
+      transactionDate: new Date('2026-09-10T12:00:00.000Z'),
+      account: { institutionId: 'qik' },
+    });
+
+    expect(pickTransferMatch(debit, [debit, credit]).match).toBeNull();
+  });
+
+  it('keeps the three day window when the reference is not shared', () => {
+    const debit = candidate({
+      id: 'd1',
+      type: 'DEBIT',
+      externalReference: 'REF-1',
+      transactionDate: new Date('2026-09-10T12:00:00.000Z'),
+      account: { institutionId: 'bhd' },
+    });
+    const otherReference = candidate({
+      id: 'c1',
+      type: 'CREDIT',
+      externalReference: 'REF-2',
+      transactionDate: new Date('2026-09-15T12:00:00.000Z'),
+      account: { institutionId: 'qik' },
+    });
+    const noReference = candidate({
+      id: 'c2',
+      type: 'CREDIT',
+      externalReference: null,
+      transactionDate: new Date('2026-09-15T12:00:00.000Z'),
+      account: { institutionId: 'popular' },
+    });
+
+    expect(pickTransferMatch(debit, [debit, otherReference]).match).toBeNull();
+    expect(pickTransferMatch(debit, [debit, noReference]).match).toBeNull();
   });
 });

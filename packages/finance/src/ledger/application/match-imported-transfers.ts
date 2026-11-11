@@ -7,6 +7,7 @@ import {
 export type ImportTransferCandidate = {
   id: string;
   type: string;
+  externalReference?: string | null;
   amount: { toString(): string } | number;
   currency: string;
   transactionDate: Date;
@@ -20,7 +21,9 @@ export type ImportTransferCandidate = {
   card?: { institutionId?: string | null } | null;
 };
 
-const MATCH_WINDOW_MS = 3 * 24 * 60 * 60 * 1000;
+const DEFAULT_MATCH_WINDOW_MS = 3 * 24 * 60 * 60 * 1000;
+/** Dos correos con la misma referencia tienen más margen para emparejar. */
+export const REFERENCE_MATCH_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
 const FEE_TOLERANCE = 50;
 const FEE_TOLERANCE_RATIO = 0.02;
 
@@ -84,10 +87,29 @@ function amountsMatch(left: number, right: number): 'exact' | 'fee' | null {
   return null;
 }
 
+export type TransferMatchResult = {
+  match: ImportTransferCandidate | null;
+  /** Candidatos que compiten; con más de uno la pata queda pendiente. */
+  candidateIds: string[];
+};
+
+function matchWindowMs(
+  row: ImportTransferCandidate,
+  other: ImportTransferCandidate,
+): number {
+  if (
+    row.externalReference &&
+    row.externalReference === other.externalReference
+  ) {
+    return REFERENCE_MATCH_WINDOW_MS;
+  }
+  return DEFAULT_MATCH_WINDOW_MS;
+}
+
 export function pickTransferMatch(
   row: ImportTransferCandidate,
   candidates: ImportTransferCandidate[],
-): ImportTransferCandidate | null {
+): TransferMatchResult {
   const opposite = row.type === 'DEBIT' ? 'CREDIT' : 'DEBIT';
   const institution = institutionOf(row);
   const amount = amountOf(row);
@@ -100,7 +122,7 @@ export function pickTransferMatch(
       const delta = Math.abs(
         other.transactionDate.getTime() - row.transactionDate.getTime(),
       );
-      return delta <= MATCH_WINDOW_MS;
+      return delta <= matchWindowMs(row, other);
     })
     .map((other) => ({
       other,
@@ -117,10 +139,10 @@ export function pickTransferMatch(
 
   const exact = scored.filter((item) => item.closeness === 'exact');
   const pool = exact.length > 0 ? exact : scored;
-  if (pool.length !== 1) {
-    return null;
-  }
-  return pool[0].other;
+  return {
+    match: pool.length === 1 ? pool[0].other : null,
+    candidateIds: pool.map((item) => item.other.id),
+  };
 }
 
 export function uniqueCashAccountId(

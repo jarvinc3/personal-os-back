@@ -17,6 +17,7 @@ import {
 import {
   isUnpairedTransferCandidate,
   pickTransferMatch,
+  REFERENCE_MATCH_WINDOW_MS,
   type ImportTransferCandidate,
   uniqueCashAccountId,
 } from '../ledger/application/match-imported-transfers';
@@ -577,6 +578,9 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
         transactionId = created.id;
       }
       await this.persist(signal, 'IMPORTED', transactionId);
+      if (draft.transfer) {
+        await this.tryPairTransfer(signal.userId, transactionId);
+      }
       return this.result('APPLIED', transactionId);
     } catch (error) {
       const code = (error as { code?: string }).code;
@@ -1147,7 +1151,10 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
     };
   }
 
-  /** Pairing stays out of the 334A slice; kept for the matching unit. */
+  /**
+   * La pata importada queda pendiente. Solo se empareja cuando hay un candidato
+   * único; con varios, la pata sigue pendiente y el motivo queda en la evidencia.
+   */
   private async tryPairTransfer(userId: string, transactionId: string) {
     const current = await this.prisma.finTransaction.findFirst({
       where: { id: transactionId, userId },
@@ -1160,8 +1167,9 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
       return;
     }
     const baseCurrency = await this.baseCurrency.execute(userId);
-    const since = new Date(current.transactionDate);
-    since.setUTCDate(since.getUTCDate() - 3);
+    const since = new Date(
+      current.transactionDate.getTime() - REFERENCE_MATCH_WINDOW_MS,
+    );
     const rows = await this.prisma.finTransaction.findMany({
       where: {
         userId,
@@ -1181,6 +1189,7 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
     const candidates = rows.map((row) => ({
       id: row.id,
       type: row.type,
+      externalReference: row.externalReference,
       amount: row.amountBaseCurrency,
       currency: baseCurrency,
       transactionDate: row.transactionDate,
@@ -1200,13 +1209,53 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
     if (!currentCandidate) {
       return;
     }
-    const match = pickTransferMatch(currentCandidate, unpaired);
+    const { match, candidateIds } = pickTransferMatch(
+      currentCandidate,
+      unpaired,
+    );
     if (match) {
       const debitId =
         currentCandidate.type === 'DEBIT' ? currentCandidate.id : match.id;
       const creditId =
         currentCandidate.type === 'CREDIT' ? currentCandidate.id : match.id;
       await this.importTransaction.pairTransferLegs(userId, debitId, creditId);
+      return;
     }
+    if (candidateIds.length > 1) {
+      await this.recordPairingEvidence({
+        transactionId,
+        currentMetadata: current.aiMetadata,
+        candidateIds,
+      });
+    }
+  }
+
+  private async recordPairingEvidence({
+    transactionId,
+    currentMetadata,
+    candidateIds,
+  }: {
+    transactionId: string;
+    currentMetadata: unknown;
+    candidateIds: string[];
+  }): Promise<void> {
+    const metadata =
+      currentMetadata &&
+      typeof currentMetadata === 'object' &&
+      !Array.isArray(currentMetadata)
+        ? (currentMetadata as Record<string, unknown>)
+        : {};
+    await this.prisma.finTransaction.update({
+      where: { id: transactionId },
+      data: {
+        aiMetadata: {
+          ...metadata,
+          transferPairing: {
+            reason: 'TRANSFER_PAIR_AMBIGUOUS',
+            candidateTransactionIds: candidateIds,
+          },
+        },
+      },
+    });
   }
 }
