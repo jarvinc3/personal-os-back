@@ -1233,16 +1233,18 @@ describe('Finance (e2e)', () => {
   });
 
   it('GET /api/finance/analytics/spending-by-category includes category metadata', async () => {
-    prismaMock.finTransaction.groupBy.mockResolvedValue([
-      {
-        categoryId: 'cat-food',
-        _sum: { amountBaseCurrency: 80 },
-      },
-      {
-        categoryId: null,
-        _sum: { amountBaseCurrency: 15 },
-      },
-    ]);
+    prismaMock.finTransaction.groupBy
+      .mockResolvedValueOnce([
+        {
+          categoryId: 'cat-food',
+          _sum: { amountBaseCurrency: 80 },
+        },
+        {
+          categoryId: null,
+          _sum: { amountBaseCurrency: 15 },
+        },
+      ])
+      .mockResolvedValueOnce([]);
     prismaMock.finCategory.findMany.mockResolvedValue([
       { id: 'cat-food', name: 'Comida', color: '#f00', icon: '🍽️' },
     ]);
@@ -1361,9 +1363,13 @@ describe('Finance (e2e)', () => {
       alertThresholdPct: 80,
       category: { id: 'cat-1', name: 'Food' },
     });
-    prismaMock.finTransaction.aggregate.mockResolvedValue({
-      _sum: { amountBaseCurrency: new Prisma.Decimal('1814.51') },
-    });
+    prismaMock.finTransaction.aggregate
+      .mockResolvedValueOnce({
+        _sum: { amountBaseCurrency: new Prisma.Decimal('1814.51') },
+      })
+      .mockResolvedValueOnce({
+        _sum: { amountBaseCurrency: new Prisma.Decimal('0') },
+      });
 
     await request(app.getHttpServer())
       .get(`/api/finance/budgets/${budgetId}`)

@@ -48,7 +48,26 @@ export async function sumBudgetSpent(
     _sum: { amountBaseCurrency: true },
   });
 
-  return roundDecimal(total._sum.amountBaseCurrency ?? 0);
+  const refunded = await prisma.finTransaction.aggregate({
+    where: {
+      userId: scope.userId,
+      type: 'CREDIT',
+      status: 'CONFIRMED',
+      linkedTransactionId: { not: null },
+      categoryId: { in: categoryIds },
+      transactionDate: {
+        gte: scope.periodStart,
+        lte: endOfUtcDay(scope.periodEnd),
+      },
+    },
+    _sum: { amountBaseCurrency: true },
+  });
+
+  const net =
+    Number(total._sum.amountBaseCurrency ?? 0) -
+    Number(refunded._sum.amountBaseCurrency ?? 0);
+  // A budget never shows negative spending; the refund still moved the balance.
+  return roundDecimal(Math.max(0, net));
 }
 
 async function categoriesWithChildren(

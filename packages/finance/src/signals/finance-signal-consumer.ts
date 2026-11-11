@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import type { RoutedSignal, SignalImportPreview } from '@personal-os/contracts';
 import { PrismaService, type Prisma } from '@personal-os/database';
 import { z } from 'zod';
@@ -36,11 +36,28 @@ import {
   type TransferLegIdentity,
 } from '../ledger/application/resolve-transfer-import';
 import {
+  classifyReversalCandidates,
+  evaluateReversalOriginal,
+  REVERSAL_REVIEW_REASON,
+  type ReversalOriginal,
+  type ReversalReviewReason,
+  type ReversalTargetDecision,
+} from '../ledger/application/resolve-reversal-target';
+import {
+  PartialReversalAlreadyAppliedError,
+  PartialReversalAlreadyReversedError,
+  PartialReversalExceedsOriginalError,
+  PartialReversalNotApplicableError,
+} from '../ledger/application/partial-reversal.errors';
+import type { LedgerTransactionRow } from '../ledger/application/ports/ledger.repository.port';
+import {
   ImportFinancialTransactionUseCase,
   type ImportFinancialMovementInput,
 } from '../ledger/application/import-financial-transaction.use-case';
 import { LedgerQueryService } from '../ledger/application/ledger-query.service';
 import { ReverseTransactionUseCase } from '../ledger/application/reverse-transaction.use-case';
+import { UNKNOWN_MERCHANT } from '../shared/domain/unknown-merchant';
+import { toMoney } from '../shared/domain/money';
 import { MerchantsService } from '../merchants/application/merchants.service';
 import { ResolveUserBaseCurrencyUseCase } from '../fx/application/resolve-user-base-currency';
 import { resolveCategoryIdForImport } from '../shared/domain/category-type';
@@ -95,6 +112,7 @@ const transactionSchema = z
     statusConfidence: z.number().min(0).max(1).optional(),
     statusEvidence: z.string().trim().max(240).optional(),
     reverseOfBankReference: z.string().trim().min(1).max(120).optional(),
+    reverseOfEmailMessageId: z.string().trim().min(1).max(512).optional(),
     receivedAmount: z.number().positive().optional(),
     transferExchangeRate: z.number().positive().optional(),
     categoryNameHint: z.string().trim().min(1).max(80).optional(),
@@ -117,6 +135,7 @@ type ImportStatus =
 
 const REVIEW_CONFIDENCE_THRESHOLD = 0.7;
 const REVERSAL_WOULD_APPLY = 'REVERSAL_WOULD_APPLY';
+const PENDING_REVERSAL_RETRY_LIMIT = 20;
 type ImportReviewEvidence = Record<string, string | string[] | number | null>;
 type ConsumeResult = Awaited<ReturnType<FinanceSignalConsumerPort['consume']>>;
 
@@ -163,6 +182,7 @@ type PairingTransactionRow = Prisma.FinTransactionGetPayload<{
 @Injectable()
 export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
   readonly domain = 'FINANCE';
+  private readonly logger = new Logger(FinanceSignalConsumer.name);
 
   constructor(
     private readonly prisma: PrismaService,
@@ -443,14 +463,19 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
       status,
       skipUncategorizedWarning: transfer || isAtmMovementClass(movementClass),
     });
-    const aiMetadata = this.importMetadata({
-      signal,
-      payload,
-      candidate,
-      movementClass,
-      amount,
-      currency,
-    });
+    const merchantMissing = !candidate.merchant;
+    const merchant = candidate.merchant ?? UNKNOWN_MERCHANT;
+    const aiMetadata = {
+      ...this.importMetadata({
+        signal,
+        payload,
+        candidate,
+        movementClass,
+        amount,
+        currency,
+      }),
+      merchantMissing,
+    };
 
     let cashAccountId: string | null = null;
     if (isAtmMovementClass(movementClass)) {
@@ -476,7 +501,8 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
           externalReference: candidate.bankReference,
           amount,
           currency,
-          merchant: candidate.merchant ?? null,
+          merchant,
+          merchantIsPlaceholder: merchantMissing,
           description:
             candidate.merchant ??
             payload.semanticType ??
@@ -606,11 +632,21 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
         transactionId = created.id;
       }
       await this.persist(signal, 'IMPORTED', transactionId);
+      if (!draft.input.linkedTransactionId && !draft.transfer) {
+        await this.retryPendingReversals(signal.userId);
+      }
       if (draft.transfer) {
         await this.tryPairTransfer(signal.userId, transactionId);
       }
       return this.result('APPLIED', transactionId);
     } catch (error) {
+      const partialReversalOutcome = await this.partialReversalFailureOutcome({
+        signal,
+        error,
+      });
+      if (partialReversalOutcome) {
+        return partialReversalOutcome;
+      }
       const code = (error as { code?: string }).code;
       if (code === 'P2002') {
         const priorTransaction =
@@ -641,6 +677,44 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
       }
       throw error;
     }
+  }
+
+  private async partialReversalFailureOutcome({
+    signal,
+    error,
+  }: {
+    signal: RoutedSignal;
+    error: unknown;
+  }): Promise<SignalConsumeResult | null> {
+    if (error instanceof PartialReversalAlreadyAppliedError) {
+      await this.persist(
+        signal,
+        'DUPLICATE',
+        null,
+        undefined,
+        error.transactionId,
+      );
+      return this.result('ALREADY_APPLIED', error.transactionId);
+    }
+    if (error instanceof PartialReversalAlreadyReversedError) {
+      await this.persist(signal, 'REVERSED', error.originalId);
+      return this.result('ALREADY_APPLIED', error.originalId);
+    }
+    if (error instanceof PartialReversalExceedsOriginalError) {
+      return this.review({
+        signal,
+        reason: REVERSAL_REVIEW_REASON.EXCEEDS_ORIGINAL,
+        evidence: { candidateTransactionIds: [error.originalId] },
+      });
+    }
+    if (error instanceof PartialReversalNotApplicableError) {
+      return this.review({
+        signal,
+        reason: error.reason,
+        evidence: { candidateTransactionIds: [error.originalId] },
+      });
+    }
+    return null;
   }
 
   private validationReason(candidate: Candidate): string | null {
@@ -771,14 +845,15 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
     signal: RoutedSignal,
     candidate: Candidate,
   ): Promise<ImportPlan> {
-    const original = await this.ledger.findTransactionByExternalReference(
-      signal.userId,
-      candidate.reverseOfBankReference ?? candidate.bankReference ?? '',
-    );
-    if (!original) {
-      return this.reviewPlan('REVERSAL_ORIGINAL_NOT_FOUND');
+    const decision = await this.resolveReversal(signal.userId, candidate);
+    if (decision.kind === 'review') {
+      return this.reviewPlan(
+        decision.reason,
+        this.reversalEvidence(candidate, decision),
+      );
     }
-    if (original.status === 'REVERSED') {
+    const original = decision.original;
+    if (decision.kind === 'already_reversed') {
       return {
         kind: 'RECORD',
         status: 'REVERSED',
@@ -786,13 +861,118 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
         result: this.result('ALREADY_APPLIED', original.id),
       };
     }
-    const metadata =
-      original.aiMetadata &&
-      typeof original.aiMetadata === 'object' &&
-      !Array.isArray(original.aiMetadata)
-        ? (original.aiMetadata as Record<string, unknown>)
-        : {};
-    return { kind: 'REVERSE', originalId: original.id, metadata };
+    const evidence = {
+      ...this.reversalEvidence(candidate, decision),
+      reversalOriginalId: original.id,
+    };
+    const repeatedOrExcess = await this.repeatedOrExcessReversalPlan({
+      signal,
+      candidate,
+      original,
+      evidence,
+    });
+    if (repeatedOrExcess) {
+      return repeatedOrExcess;
+    }
+    if (decision.kind === 'partial') {
+      return this.partialReversalPlan({
+        signal,
+        candidate,
+        original,
+        evidence,
+      });
+    }
+    return {
+      kind: 'REVERSE',
+      originalId: original.id,
+      metadata: { ...this.originalMetadata(original), ...evidence },
+    };
+  }
+
+  /** A repeated refund is idempotent; one that exceeds the purchase needs a person. */
+  private async repeatedOrExcessReversalPlan({
+    signal,
+    candidate,
+    original,
+    evidence,
+  }: {
+    signal: RoutedSignal;
+    candidate: Candidate;
+    original: ReversalOriginal;
+    evidence: ImportReviewEvidence;
+  }): Promise<ImportPlan | null> {
+    const repeatedRefund =
+      await this.ledger.findImportedTransactionByEmailMessageId(
+        signal.userId,
+        signal.sourceId,
+      );
+    if (
+      repeatedRefund &&
+      repeatedRefund.type === 'CREDIT' &&
+      repeatedRefund.linkedTransactionId === original.id
+    ) {
+      return this.duplicatePlan(repeatedRefund.id, evidence);
+    }
+    const priorRefundTotal = await this.ledger.findLinkedRefundTotal({
+      userId: signal.userId,
+      originalId: original.id,
+      currency: original.currency,
+    });
+    if (
+      toMoney(priorRefundTotal)
+        .plus(toMoney(candidate.amount!))
+        .greaterThan(toMoney(original.amount))
+    ) {
+      return this.reviewPlan(REVERSAL_REVIEW_REASON.EXCEEDS_ORIGINAL, {
+        ...evidence,
+        candidateTransactionIds: [original.id],
+      });
+    }
+    return null;
+  }
+
+  private partialReversalPlan({
+    signal,
+    candidate,
+    original,
+    evidence,
+  }: {
+    signal: RoutedSignal;
+    candidate: Candidate;
+    original: ReversalOriginal;
+    evidence: ImportReviewEvidence;
+  }): ImportPlan {
+    const merchantMissing = !candidate.merchant;
+    return {
+      kind: 'IMPORT',
+      draft: {
+        cashAccountId: null,
+        transfer: false,
+        input: {
+          accountId: original.accountId ?? undefined,
+          cardId: original.cardId ?? undefined,
+          importReference: signal.signalId,
+          externalReference: candidate.bankReference ?? null,
+          amount: candidate.amount!,
+          currency: candidate.currency!,
+          merchant: candidate.merchant ?? UNKNOWN_MERCHANT,
+          merchantIsPlaceholder: merchantMissing,
+          description: 'Reverso parcial',
+          transactionDate: new Date(candidate.transactionDate!),
+          type: 'CREDIT',
+          status: 'CONFIRMED',
+          categoryId: original.categoryId ?? undefined,
+          linkedTransactionId: original.id,
+          sourceEmailMessageId: signal.sourceId,
+          aiMetadata: {
+            ...evidence,
+            reversalSignalId: signal.signalId,
+            reversalSourceEmailMessageId: signal.sourceId,
+            merchantMissing,
+          },
+        },
+      },
+    };
   }
 
   private async applyReversal(
@@ -809,6 +989,158 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
     return this.result('APPLIED', originalId);
   }
 
+  private async resolveReversal(
+    userId: string,
+    candidate: Candidate,
+  ): Promise<ReversalTargetDecision> {
+    const reversalAmount = candidate.amount!;
+    const reversalCurrency = candidate.currency!;
+    const reference = candidate.reverseOfBankReference?.trim() || null;
+    if (reference) {
+      const originals = await this.ledger.findTransactionsByExternalReference(
+        userId,
+        reference,
+      );
+      return classifyReversalCandidates({
+        candidates: originals.map(toReversalOriginal),
+        reversalAmount,
+        reversalCurrency,
+        step: 'REFERENCE',
+        notFoundReason: REVERSAL_REVIEW_REASON.REFERENCE_NOT_FOUND,
+      });
+    }
+
+    const emailMessageId = candidate.reverseOfEmailMessageId?.trim() || null;
+    if (emailMessageId) {
+      const original =
+        await this.ledger.findImportedTransactionByEmailMessageId(
+          userId,
+          emailMessageId,
+        );
+      if (original) {
+        return evaluateReversalOriginal({
+          original: toReversalOriginal(original),
+          reversalAmount,
+          reversalCurrency,
+          step: 'EMAIL',
+        });
+      }
+    }
+
+    if (!candidate.merchant) {
+      return this.reversalReview(
+        'CANDIDATE',
+        REVERSAL_REVIEW_REASON.COMMERCE_MISSING,
+      );
+    }
+    const candidates = await this.ledger.findReverseCandidates(userId, {
+      amount: reversalAmount,
+      currency: reversalCurrency,
+      merchant: candidate.merchant,
+      aroundDate: new Date(candidate.transactionDate!),
+      statuses: ['CONFIRMED'],
+    });
+    return classifyReversalCandidates({
+      candidates: candidates.map(toReversalOriginal),
+      reversalAmount,
+      reversalCurrency,
+      step: 'CANDIDATE',
+    });
+  }
+
+  private reversalReview(
+    step: ReversalTargetDecision['step'],
+    reason: ReversalReviewReason,
+  ): ReversalTargetDecision {
+    return { kind: 'review', step, reason, candidateIds: [] };
+  }
+
+  private reversalEvidence(
+    candidate: Candidate,
+    decision: ReversalTargetDecision,
+  ): ImportReviewEvidence {
+    return {
+      reversalReference: candidate.reverseOfBankReference ?? null,
+      reverseOfEmailMessageId: candidate.reverseOfEmailMessageId ?? null,
+      reversalStep: decision.step,
+      reversalAmount: candidate.amount ?? null,
+      candidateTransactionIds:
+        decision.kind === 'review' && decision.candidateIds.length > 0
+          ? decision.candidateIds
+          : null,
+    };
+  }
+
+  private originalMetadata(
+    original: ReversalOriginal,
+  ): Record<string, unknown> {
+    return original.aiMetadata &&
+      typeof original.aiMetadata === 'object' &&
+      !Array.isArray(original.aiMetadata)
+      ? (original.aiMetadata as Record<string, unknown>)
+      : {};
+  }
+
+  /** Retries reversals after an imported email makes a missing original available. */
+  private async retryPendingReversals(userId: string): Promise<void> {
+    const pending = await this.prisma.finSignalImport.findMany({
+      where: {
+        userId,
+        status: 'REVIEW_REQUIRED',
+        reviewReason: {
+          in: [
+            REVERSAL_REVIEW_REASON.ORIGINAL_NOT_FOUND,
+            REVERSAL_REVIEW_REASON.REFERENCE_NOT_FOUND,
+          ],
+        },
+      },
+      select: {
+        signalId: true,
+        sourceEmailMessageId: true,
+        createdAt: true,
+        candidate: true,
+      },
+      orderBy: { updatedAt: 'asc' },
+      take: PENDING_REVERSAL_RETRY_LIMIT,
+    });
+    for (const row of pending) {
+      const parsed = payloadSchema.safeParse(row.candidate);
+      const candidate = parsed.success ? parsed.data.transaction : null;
+      if (!candidate) {
+        continue;
+      }
+      const signal = this.pendingSignal(userId, row);
+      try {
+        const plan = await this.buildReversalPlan(signal, candidate);
+        await this.applyImportPlan(signal, plan);
+      } catch (error) {
+        this.logger.warn(
+          `Reversal retry failed for signal ${row.signalId}: ${(error as { code?: string }).code ?? 'UNKNOWN'}`,
+        );
+      }
+    }
+  }
+
+  private pendingSignal(
+    userId: string,
+    row: {
+      signalId: string;
+      sourceEmailMessageId: string;
+      createdAt: Date;
+    },
+  ): RoutedSignal {
+    return {
+      signalId: row.signalId,
+      userId,
+      signalType: 'FINANCE.TRANSACTION_DETECTED',
+      schemaVersion: 1,
+      occurredAt: row.createdAt.toISOString(),
+      sourceType: 'EMAIL_MESSAGE',
+      sourceId: row.sourceEmailMessageId,
+      payload: {},
+    };
+  }
+
   private returnPlan(result: SignalConsumeResult): ImportPlan {
     return { kind: 'RETURN', result };
   }
@@ -822,11 +1154,15 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
     };
   }
 
-  private duplicatePlan(transactionId: string): ImportPlan {
+  private duplicatePlan(
+    transactionId: string,
+    evidence?: ImportReviewEvidence,
+  ): ImportPlan {
     return {
       kind: 'RECORD',
       status: 'DUPLICATE',
       duplicateOfTransactionId: transactionId,
+      evidence,
       result: this.result('ALREADY_APPLIED', transactionId),
     };
   }
@@ -1317,5 +1653,20 @@ function toTransferPairingCandidate(
     aiMetadata: row.aiMetadata,
     account: row.account,
     card: row.card,
+  };
+}
+
+function toReversalOriginal(row: LedgerTransactionRow): ReversalOriginal {
+  return {
+    id: row.id,
+    status: row.status,
+    type: row.type,
+    transferGroupId: row.transferGroupId,
+    amount: Number(row.amount),
+    currency: row.currency,
+    accountId: row.accountId,
+    cardId: row.cardId,
+    categoryId: row.categoryId,
+    aiMetadata: row.aiMetadata,
   };
 }

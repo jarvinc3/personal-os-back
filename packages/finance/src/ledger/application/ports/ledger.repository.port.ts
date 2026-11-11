@@ -200,6 +200,11 @@ export interface LedgerRepositoryPort {
     reference: string,
   ): Promise<LedgerTransactionRow | null>;
 
+  findTransactionsByExternalReference(
+    userId: string,
+    reference: string,
+  ): Promise<LedgerTransactionRow[]>;
+
   findTransactionsByTransferGroupId(
     transferGroupId: string,
     userId: string,
@@ -225,6 +230,17 @@ export interface LedgerRepositoryPort {
       statuses?: FinTxStatus[];
     },
   ): Promise<LedgerTransactionRow[]>;
+
+  findImportedTransactionByEmailMessageId(
+    userId: string,
+    messageId: string,
+  ): Promise<LedgerTransactionRow | null>;
+
+  findLinkedRefundTotal(params: {
+    userId: string;
+    originalId: string;
+    currency: string;
+  }): Promise<number>;
 
   findDedupeCandidate(
     userId: string,

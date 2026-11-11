@@ -36,12 +36,15 @@ export type ImportFinancialMovementInput = {
   currency: string;
   merchant: string | null;
   merchantId?: string | null;
+  merchantIsPlaceholder?: boolean;
   description: string;
   notes?: string | null;
   transactionDate: Date;
   categoryId?: string | null;
   type?: 'DEBIT' | 'CREDIT';
   transferGroupId?: string | null;
+  linkedTransactionId?: string | null;
+  sourceEmailMessageId?: string | null;
   legRole?: OperationLegRole | null;
   status: FinTxStatus;
   aiMetadata?: unknown;
@@ -75,14 +78,15 @@ export class ImportFinancialTransactionUseCase {
       transactionDate: data.transactionDate,
     });
 
-    const resolvedMerchant = data.merchant
-      ? await this.merchants.resolve({
-          userId,
-          rawName: data.merchant,
-          categoryId: data.categoryId,
-          transactionType: data.type,
-        })
-      : null;
+    const resolvedMerchant =
+      data.merchant && !data.merchantIsPlaceholder
+        ? await this.merchants.resolve({
+            userId,
+            rawName: data.merchant,
+            categoryId: data.categoryId,
+            transactionType: data.type,
+          })
+        : null;
 
     const created = await this.repo.createImportedTransaction(userId, {
       ...data,

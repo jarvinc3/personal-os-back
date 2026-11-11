@@ -14,6 +14,7 @@ function createRepository() {
     finTransaction: {
       findFirst: jest.fn(),
       findMany: jest.fn().mockResolvedValue([]),
+      aggregate: jest.fn(),
       updateMany: jest.fn(),
     },
     finLoanInstallment: { findFirst: jest.fn() },
@@ -305,6 +306,8 @@ describe('PrismaLedgerRepository lookups', () => {
       where: {
         userId: 'user-1',
         status: { in: ['PENDING'] },
+        type: 'DEBIT',
+        transferGroupId: null,
         currency: 'DOP',
         amount: 100,
         transactionDate: {
@@ -330,18 +333,53 @@ describe('PrismaLedgerRepository lookups', () => {
 
     const query = prisma.finTransaction.findMany.mock.calls[0][0];
     expect(query.where.status).toEqual({ in: ['CONFIRMED'] });
+    expect(query.where.type).toBe('DEBIT');
+    expect(query.where.transferGroupId).toBeNull();
     expect(query.where.merchant).toBeUndefined();
   });
 
-  it('finds a transaction by external reference', async () => {
+  it('finds every transaction that shares an external reference', async () => {
     const { repository, prisma } = createRepository();
 
-    await repository.findTransactionByExternalReference('user-1', 'ref-1');
+    await repository.findTransactionsByExternalReference('user-1', 'ref-1');
 
-    expect(prisma.finTransaction.findFirst).toHaveBeenCalledWith({
+    expect(prisma.finTransaction.findMany).toHaveBeenCalledWith({
       where: { userId: 'user-1', externalReference: 'ref-1' },
       orderBy: { transactionDate: 'desc' },
     });
+  });
+
+  it('sums the linked refunds of an original in its currency', async () => {
+    const { repository, prisma } = createRepository();
+    prisma.finTransaction.aggregate.mockResolvedValue({ _sum: { amount: 70 } });
+
+    await expect(
+      repository.findLinkedRefundTotal({
+        userId: 'user-1',
+        originalId: 'original-1',
+        currency: 'DOP',
+      }),
+    ).resolves.toBe(70);
+    expect(prisma.finTransaction.aggregate).toHaveBeenCalledWith({
+      where: {
+        userId: 'user-1',
+        linkedTransactionId: 'original-1',
+        type: 'CREDIT',
+        currency: 'DOP',
+      },
+      _sum: { amount: true },
+    });
+
+    prisma.finTransaction.aggregate.mockResolvedValue({
+      _sum: { amount: null },
+    });
+    await expect(
+      repository.findLinkedRefundTotal({
+        userId: 'user-1',
+        originalId: 'original-1',
+        currency: 'DOP',
+      }),
+    ).resolves.toBe(0);
   });
 
   it('looks for duplicates in a 48 hour window', async () => {
