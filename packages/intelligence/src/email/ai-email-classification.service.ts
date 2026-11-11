@@ -303,13 +303,7 @@ export class AiEmailClassificationService {
       });
       if (computation.kind !== 'computed') {
         await this.releaseClaim({ userId, messageId, previousStatus });
-        return {
-          kind: 'unavailable',
-          reason:
-            computation.kind === 'budget_exhausted'
-              ? 'MODEL_BUDGET_EXHAUSTED'
-              : 'CLASSIFICATION_UNAVAILABLE',
-        };
+        return this.classificationResult(computation);
       }
       await this.persistClassification({
         userId,
