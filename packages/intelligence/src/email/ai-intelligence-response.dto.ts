@@ -433,3 +433,264 @@ export class AiEmailDiagnosticsResponseDto {
   @ApiProperty({ enum: DIAGNOSTIC_STATUSES })
   status!: string;
 }
+
+const SAMPLE_SELECTION_MODES = ['IDS', 'SENDER_WINDOW'] as const;
+const SAMPLE_ITEM_STATUSES = ['INCLUDED', 'NOT_FOUND'] as const;
+const SAMPLE_OUTCOMES = [
+  'APPLIED',
+  'ALREADY_APPLIED',
+  'REVIEW_REQUIRED',
+  'REJECTED',
+  'UNAVAILABLE',
+] as const;
+const SAMPLE_CLASSIFICATION_METHODS = [
+  'KNOWLEDGE',
+  'DETERMINISTIC',
+  'MODEL',
+] as const;
+
+export class AiEmailSampleSignalDto {
+  @ApiProperty()
+  published!: boolean;
+
+  @ApiPropertyOptional()
+  reason?: string;
+}
+
+export class AiEmailSampleClassificationDto {
+  @ApiProperty()
+  semanticType!: string;
+
+  @ApiProperty()
+  confidence!: number;
+
+  @ApiProperty({ enum: SAMPLE_CLASSIFICATION_METHODS })
+  method!: string;
+
+  @ApiProperty({ nullable: true, type: String })
+  movementClass!: string | null;
+
+  @ApiProperty({ nullable: true, type: String })
+  kind!: string | null;
+
+  @ApiProperty({ nullable: true, type: Number })
+  amount!: number | null;
+
+  @ApiProperty({ nullable: true, type: String })
+  currency!: string | null;
+
+  @ApiProperty({ format: 'date-time', nullable: true, type: String })
+  transactionDate!: string | null;
+
+  @ApiProperty({ nullable: true, type: String })
+  direction!: string | null;
+}
+
+export class AiEmailSampleHintsDto {
+  @ApiProperty({ nullable: true, type: String })
+  bankReference!: string | null;
+
+  @ApiProperty({ nullable: true, type: String })
+  merchant!: string | null;
+
+  @ApiProperty({ nullable: true, type: String })
+  last4!: string | null;
+}
+
+export class AiEmailSampleMovementDto {
+  @ApiProperty({ nullable: true, type: String })
+  accountId!: string | null;
+
+  @ApiProperty({ nullable: true, type: String })
+  cardId!: string | null;
+
+  @ApiProperty()
+  amount!: number;
+
+  @ApiProperty()
+  currency!: string;
+
+  @ApiProperty({ enum: ['DEBIT', 'CREDIT'] })
+  type!: string;
+
+  @ApiProperty()
+  status!: string;
+
+  @ApiProperty({ format: 'date-time' })
+  transactionDate!: string;
+
+  @ApiProperty()
+  description!: string;
+
+  @ApiProperty({ nullable: true, type: String })
+  categoryId!: string | null;
+
+  @ApiProperty({ nullable: true, type: String })
+  legRole!: string | null;
+
+  @ApiProperty({ nullable: true, type: String })
+  externalReference!: string | null;
+
+  @ApiProperty()
+  importReference!: string;
+}
+
+export class AiEmailSampleCardPaymentDto {
+  @ApiProperty()
+  sourceAccountId!: string;
+
+  @ApiProperty()
+  cardId!: string;
+
+  @ApiProperty()
+  amount!: number;
+
+  @ApiProperty()
+  currency!: string;
+
+  @ApiProperty()
+  status!: string;
+
+  @ApiProperty({ format: 'date-time' })
+  transactionDate!: string;
+
+  @ApiProperty()
+  description!: string;
+
+  @ApiProperty({ nullable: true, type: String })
+  externalReference!: string | null;
+
+  @ApiProperty()
+  importReference!: string;
+}
+
+export class AiEmailSamplePredictionDto {
+  @ApiProperty({ enum: SAMPLE_OUTCOMES })
+  outcome!: string;
+
+  @ApiPropertyOptional()
+  reason?: string;
+
+  @ApiPropertyOptional({ type: () => AiEmailSampleMovementDto })
+  movement?: AiEmailSampleMovementDto;
+
+  @ApiPropertyOptional({ type: () => AiEmailSampleCardPaymentDto })
+  cardPayment?: AiEmailSampleCardPaymentDto;
+}
+
+export class AiEmailSampleExecutionDto {
+  @ApiProperty({ enum: SAMPLE_OUTCOMES })
+  outcome!: string;
+
+  @ApiPropertyOptional()
+  reason?: string;
+
+  @ApiProperty({ nullable: true, type: String })
+  transactionId!: string | null;
+}
+
+export class AiEmailSampleItemDto {
+  @ApiProperty()
+  messageId!: string;
+
+  @ApiProperty({ enum: SAMPLE_ITEM_STATUSES })
+  status!: string;
+
+  @ApiProperty({ nullable: true, type: String })
+  fromAddress!: string | null;
+
+  @ApiProperty({ nullable: true, type: String })
+  fromDomain!: string | null;
+
+  @ApiProperty({ format: 'date-time', nullable: true, type: String })
+  receivedAt!: string | null;
+
+  @ApiProperty({ type: () => AiEmailSampleClassificationDto, nullable: true })
+  classification!: AiEmailSampleClassificationDto | null;
+
+  @ApiPropertyOptional()
+  classificationUnavailableReason?: string;
+
+  @ApiProperty({ type: () => AiEmailSampleHintsDto, nullable: true })
+  hints!: AiEmailSampleHintsDto | null;
+
+  @ApiProperty({ type: () => AiEmailSampleSignalDto })
+  signal!: AiEmailSampleSignalDto;
+
+  @ApiProperty({ type: () => AiEmailSamplePredictionDto, nullable: true })
+  prediction!: AiEmailSamplePredictionDto | null;
+
+  @ApiPropertyOptional({ type: () => AiEmailSampleExecutionDto })
+  execution?: AiEmailSampleExecutionDto;
+}
+
+export class AiEmailSampleSelectionDto {
+  @ApiProperty({ enum: SAMPLE_SELECTION_MODES })
+  mode!: string;
+
+  @ApiProperty()
+  requested!: number;
+
+  @ApiProperty()
+  included!: number;
+
+  @ApiProperty()
+  cap!: number;
+
+  @ApiPropertyOptional()
+  sender?: string;
+
+  @ApiPropertyOptional({ format: 'date-time' })
+  dateFrom?: string;
+
+  @ApiPropertyOptional({ format: 'date-time' })
+  dateTo?: string;
+}
+
+export class AiEmailSampleExecutedDto {
+  @ApiProperty()
+  applied!: number;
+
+  @ApiProperty()
+  alreadyApplied!: number;
+
+  @ApiProperty()
+  reviewRequired!: number;
+
+  @ApiProperty()
+  rejected!: number;
+}
+
+export class AiEmailSampleSummaryDto {
+  @ApiProperty()
+  included!: number;
+
+  @ApiProperty()
+  notFound!: number;
+
+  @ApiPropertyOptional()
+  wouldPublishSignal?: number;
+
+  @ApiPropertyOptional()
+  wouldCreateMovement?: number;
+
+  @ApiPropertyOptional()
+  reviewRequired?: number;
+
+  @ApiPropertyOptional({ type: () => AiEmailSampleExecutedDto })
+  executed?: AiEmailSampleExecutedDto;
+}
+
+export class AiEmailSampleImportResponseDto {
+  @ApiProperty()
+  dryRun!: boolean;
+
+  @ApiProperty({ type: () => AiEmailSampleSelectionDto })
+  selection!: AiEmailSampleSelectionDto;
+
+  @ApiProperty({ type: () => AiEmailSampleSummaryDto })
+  summary!: AiEmailSampleSummaryDto;
+
+  @ApiProperty({ type: () => [AiEmailSampleItemDto] })
+  items!: AiEmailSampleItemDto[];
+}

@@ -300,10 +300,7 @@ describe('CTR-02 idempotencia de verificaciones con DTO transformado', () => {
         fixture.messageId,
         individualRequest,
       ),
-      controller.verifyReviewSelection(
-        { sub: fixture.userId },
-        batchRequest,
-      ),
+      controller.verifyReviewSelection({ sub: fixture.userId }, batchRequest),
     ]);
     const afterConcurrent = await messageVerifications(
       fixture.userId,

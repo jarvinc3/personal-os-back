@@ -21,8 +21,10 @@ import {
   REVIEW_QUEUE_STATUSES,
   SEMANTIC_ROUTES,
   SEMANTIC_TYPES,
+  SUGGESTED_TRANSACTION_DATE_SOURCES,
   TRANSACTION_DIRECTIONS,
   TRANSACTION_KINDS,
+  TRANSACTION_MOVEMENT_CLASSES,
 } from '@personal-os/intelligence';
 import { applyE2eTestOverrides } from './helpers/e2e-test.providers';
 import { createTestJwt } from './helpers/jwt.helper';
@@ -591,6 +593,34 @@ describe('Intelligence API (e2e)', () => {
     expect(evidence.verifyMessage).toHaveBeenCalledTimes(1);
   });
 
+  it('accepts a card payment correction with its account and card hints', async () => {
+    evidence.verifyMessage.mockClear();
+    await request(app.getHttpServer())
+      .post('/api/intelligence/messages/message-1/verifications')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        verdict: 'CORRECTED',
+        semanticType: 'FIN_TRANSACTION',
+        routes: ['FINANCE'],
+        transaction: {
+          kind: 'TRANSACTION',
+          amount: 5200,
+          currency: 'DOP',
+          transactionDate: '2026-11-10T12:00:00.000Z',
+          direction: 'DEBIT',
+          movementClass: 'CARD_PAYMENT',
+          last4: '4821',
+          accountNumberLast4: '9012',
+          suggestedTransactionDate: '2026-11-10T00:00:00.000Z',
+          suggestedTransactionDateSource: 'EMAIL_HEADER',
+          reverseOfBankReference: 'BHD-7700',
+          reverseOfEmailMessageId: '18f0c2a9b7d34e56',
+        },
+      })
+      .expect(201);
+    expect(evidence.verifyMessage).toHaveBeenCalledTimes(1);
+  });
+
   it.each([
     '?status=UNKNOWN',
     '?dateFrom=2026-13-01',
@@ -637,6 +667,14 @@ describe('Intelligence API (e2e)', () => {
     expect(transaction.properties.direction).toMatchObject({
       enum: [...TRANSACTION_DIRECTIONS],
     });
+    expect(transaction.properties.movementClass).toMatchObject({
+      enum: [...TRANSACTION_MOVEMENT_CLASSES],
+    });
+    expect(transaction.properties.suggestedTransactionDateSource).toMatchObject(
+      {
+        enum: [...SUGGESTED_TRANSACTION_DATE_SOURCES],
+      },
+    );
 
     const reviewGroup = document.components?.schemas
       ?.CreateReviewGroupVerificationDto as {
@@ -663,7 +701,7 @@ describe('Intelligence API (e2e)', () => {
       properties: Record<string, { maxItems?: number; uniqueItems?: boolean }>;
     };
     expect(reviewSelection.properties.messageIds).toMatchObject({
-      maxItems: 50,
+      maxItems: 20,
       uniqueItems: true,
     });
     expect(reviewSelection.properties.relevance).toBeDefined();

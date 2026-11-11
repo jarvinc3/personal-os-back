@@ -7,6 +7,7 @@ import {
   IsIn,
   IsISO4217CurrencyCode,
   IsISO8601,
+  IsNotEmpty,
   IsNumber,
   IsOptional,
   IsPositive,
@@ -18,8 +19,10 @@ import {
 import {
   SEMANTIC_ROUTES,
   SEMANTIC_TYPES,
+  SUGGESTED_TRANSACTION_DATE_SOURCES,
   TRANSACTION_DIRECTIONS,
   TRANSACTION_KINDS,
+  TRANSACTION_MOVEMENT_CLASSES,
 } from '../human-verification.constants';
 
 export class HumanVerificationTransactionDto {
@@ -44,6 +47,16 @@ export class HumanVerificationTransactionDto {
   @IsISO8601({ strict: true })
   transactionDate?: string;
 
+  @ApiPropertyOptional({ format: 'date-time' })
+  @IsOptional()
+  @IsISO8601({ strict: true })
+  suggestedTransactionDate?: string;
+
+  @ApiPropertyOptional({ enum: SUGGESTED_TRANSACTION_DATE_SOURCES })
+  @IsOptional()
+  @IsIn(SUGGESTED_TRANSACTION_DATE_SOURCES)
+  suggestedTransactionDateSource?: (typeof SUGGESTED_TRANSACTION_DATE_SOURCES)[number];
+
   @ApiPropertyOptional({ enum: TRANSACTION_DIRECTIONS })
   @IsOptional()
   @IsIn(TRANSACTION_DIRECTIONS)
@@ -65,6 +78,38 @@ export class HumanVerificationTransactionDto {
   @IsOptional()
   @Matches(/^\d{4}$/)
   last4?: string;
+
+  @ApiPropertyOptional({
+    pattern: '^\\d{4}$',
+    description:
+      'Terminación de la cuenta propia de origen; en una transferencia es la única pista de cuenta.',
+  })
+  @IsOptional()
+  @Matches(/^\d{4}$/)
+  accountNumberLast4?: string;
+
+  @ApiPropertyOptional({ enum: TRANSACTION_MOVEMENT_CLASSES })
+  @IsOptional()
+  @IsIn(TRANSACTION_MOVEMENT_CLASSES)
+  movementClass?: (typeof TRANSACTION_MOVEMENT_CLASSES)[number];
+
+  @ApiPropertyOptional({
+    description: 'Referencia del movimiento original de un reverso.',
+  })
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(120)
+  reverseOfBankReference?: string;
+
+  @ApiPropertyOptional({
+    description: 'Id del correo original de un reverso.',
+  })
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(512)
+  reverseOfEmailMessageId?: string;
 }
 
 export class HumanVerificationLabelsDto {

@@ -70,6 +70,39 @@ describe('Email reclassification labels', () => {
     });
   });
 
+  it('keeps the import hints of each message when a verified template is applied', () => {
+    expect(
+      mergedCandidateLabel({
+        structural: {
+          relevance: true,
+          semanticType: 'FIN_TRANSACTION',
+          routes: ['FINANCE'],
+          transaction: { kind: 'TRANSACTION' },
+        },
+        current: {
+          relevance: true,
+          semanticType: 'FIN_TRANSACTION',
+          routes: ['FINANCE'],
+          transaction: {
+            ...transaction,
+            accountNumberLast4: '9012',
+            suggestedTransactionDate: '2026-11-08T00:00:00.000Z',
+            suggestedTransactionDateSource: 'EMAIL_HEADER',
+            reverseOfEmailMessageId: 'original-1',
+          },
+          confidence: 0.4,
+        },
+      }),
+    ).toMatchObject({
+      transaction: {
+        accountNumberLast4: '9012',
+        suggestedTransactionDate: '2026-11-08T00:00:00.000Z',
+        suggestedTransactionDateSource: 'EMAIL_HEADER',
+        reverseOfEmailMessageId: 'original-1',
+      },
+    });
+  });
+
   it('does not invent a movement when the message has no money of its own', () => {
     expect(
       mergedCandidateLabel({
