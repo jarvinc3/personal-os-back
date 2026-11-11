@@ -20,6 +20,7 @@ type StoredMessage = {
   subject: string;
   contentFingerprint: string;
   processingStatus: string;
+  classification?: unknown;
 };
 
 type StoredItem = {
@@ -127,6 +128,9 @@ function makePrisma({
       findUnique: jest
         .fn()
         .mockResolvedValue({ timezone: 'America/Santo_Domingo' }),
+    },
+    aiKnowledge: {
+      findMany: jest.fn().mockResolvedValue([]),
     },
   };
   return prisma;
@@ -354,6 +358,86 @@ describe('AiEvidenceService review queue filters', () => {
     });
   });
 
+  it('applies classification filters to both queue items and partition counts', async () => {
+    const matching = {
+      ...message({
+        id: 'message-2',
+        receivedAt: '2026-10-25T12:00:00.000Z',
+      }),
+      classification: {
+        semanticType: 'FIN_TRANSACTION',
+        routes: ['FINANCE'],
+        confidence: 0.45,
+      },
+    };
+    const prisma = makePrisma({
+      items: [
+        item('message-1', 'TRAIN'),
+        item('message-2', 'HOLDOUT'),
+        item('message-3', 'VALIDATION'),
+      ],
+      verifications: [],
+    });
+    mockMessageQueries(prisma, [matching], ['message-2']);
+    const service = new AiEvidenceService(prisma, reclassification as never);
+
+    const page = await service.reviewQueue('user-1', {
+      semanticType: 'FIN_TRANSACTION',
+      route: 'FINANCE',
+      confidenceMin: 0.3,
+      confidenceMax: 0.6,
+    });
+
+    expect(page.items).toEqual([
+      expect.objectContaining({
+        id: 'message-2',
+        semanticType: 'FIN_TRANSACTION',
+        routes: ['FINANCE'],
+        confidence: 0.45,
+      }),
+    ]);
+    expect(page.counts).toEqual({
+      TRAIN: 0,
+      VALIDATION: 0,
+      HOLDOUT: 1,
+      all: 1,
+    });
+    expect(prisma.aiEmailMessage.findMany).toHaveBeenNthCalledWith(3, {
+      where: {
+        userId: 'user-1',
+        AND: [
+          {
+            classifications: {
+              some: {
+                semanticType: 'FIN_TRANSACTION',
+                route: 'FINANCE',
+                confidence: { gte: 0.3, lte: 0.6 },
+              },
+            },
+          },
+        ],
+      },
+      select: { id: true },
+    });
+    expect(prisma.aiEmailMessage.findMany).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          AND: expect.arrayContaining([
+            {
+              classifications: {
+                some: {
+                  semanticType: 'FIN_TRANSACTION',
+                  route: 'FINANCE',
+                  confidence: { gte: 0.3, lte: 0.6 },
+                },
+              },
+            },
+          ]),
+        }),
+      }),
+    );
+  });
+
   it('keeps the newest page and cursor without dropping the order', async () => {
     const messages = Array.from({ length: 51 }, (_, index) =>
       message({
@@ -382,6 +466,69 @@ describe('AiEvidenceService review queue filters', () => {
         take: 51,
       }),
     );
+  });
+
+  it('continues an IMPACT page after the last message of the page is verified', async () => {
+    const messages = Array.from({ length: 51 }, (_, index) =>
+      message({
+        id: `message-${String(index).padStart(2, '0')}`,
+        receivedAt: '2026-10-25T12:00:00.000Z',
+      }),
+    );
+    const prisma = makePrisma({
+      items: messages.map(({ id }) => item(id, 'TRAIN')),
+      verifications: [],
+    });
+    mockMessageQueries(prisma, messages);
+    const service = new AiEvidenceService(prisma, reclassification as never);
+
+    const first = await service.reviewQueue('user-1', { order: 'IMPACT' });
+    expect(first.items).toHaveLength(50);
+    expect(first.nextCursor).toEqual(expect.any(String));
+
+    const remaining = messages.filter(({ id }) => id !== 'message-49');
+    mockMessageQueries(prisma, remaining);
+    const second = await service.reviewQueue('user-1', {
+      order: 'IMPACT',
+      cursor: first.nextCursor ?? undefined,
+    });
+
+    expect(second.items.map(({ id }) => id)).toEqual(['message-50']);
+    expect(second.hasMore).toBe(false);
+  });
+
+  it('starts an IMPACT page at the recorded next message when the last one moves', async () => {
+    const messages = Array.from({ length: 52 }, (_, index) =>
+      message({
+        id: `message-${String(index).padStart(2, '0')}`,
+        receivedAt: '2026-10-25T12:00:00.000Z',
+      }),
+    );
+    const prisma = makePrisma({
+      items: messages.map(({ id }) => item(id, 'TRAIN')),
+      verifications: [],
+    });
+    mockMessageQueries(prisma, messages);
+    const service = new AiEvidenceService(prisma, reclassification as never);
+
+    const first = await service.reviewQueue('user-1', { order: 'IMPACT' });
+    expect(first.items).toHaveLength(50);
+
+    const reordered = messages.map((stored) =>
+      stored.id === 'message-49'
+        ? { ...stored, classification: { confidence: 0.1 } }
+        : stored,
+    );
+    mockMessageQueries(prisma, reordered);
+    const second = await service.reviewQueue('user-1', {
+      order: 'IMPACT',
+      cursor: first.nextCursor ?? undefined,
+    });
+
+    expect(second.items.map(({ id }) => id)).toEqual([
+      'message-50',
+      'message-51',
+    ]);
   });
 
   it('rejects an inverted date range before reading data', async () => {

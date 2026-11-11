@@ -10,7 +10,11 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerModule } from '@nestjs/throttler';
-import { AiModule, AiSignalConsumerRegistry } from '@personal-os/intelligence';
+import {
+  AiModule,
+  AiSignalConsumerRegistry,
+  INTELLIGENCE_SETTINGS_DESCRIPTOR,
+} from '@personal-os/intelligence';
 import { AI_CAPABILITY_PROVIDERS } from '@personal-os/contracts';
 import { AuthModule } from '@personal-os/auth';
 import type { Env } from '@personal-os/config';
@@ -186,6 +190,7 @@ const bullBoardEnabled = isBullBoardEnabledFromProcessEnv();
     FinanceModule,
     ModuleSettingsModule.register([
       FINANCE_SETTINGS_DESCRIPTOR,
+      INTELLIGENCE_SETTINGS_DESCRIPTOR,
       AGENDA_SETTINGS_DESCRIPTOR,
       PROJECTS_SETTINGS_DESCRIPTOR,
       HEALTH_SETTINGS_DESCRIPTOR,

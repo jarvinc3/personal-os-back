@@ -1,3 +1,5 @@
 export const REVIEW_GROUPS_DEFAULT_PAGE_SIZE = 20;
 export const REVIEW_GROUPS_MAX_PAGE_SIZE = 100;
+export const REVIEW_GROUPS_ORDERS = ['IMPACT'] as const;
+export const REVIEW_GROUPS_DEFAULT_ORDER = 'IMPACT' as const;
 export const REVIEW_GROUP_SAMPLE_SUBJECTS = 3;

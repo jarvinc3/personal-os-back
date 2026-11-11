@@ -1,6 +1,7 @@
 import {
   buildFinanceSignal,
   publishesFinanceSignal,
+  requiresReview,
   type ClassificationProvenance,
 } from './email-classification-persistence';
 import { validateEmailClassification } from './email-classification.util';
@@ -14,6 +15,8 @@ const provenance: ClassificationProvenance = {
 };
 
 const receivedAt = new Date('2026-11-10T12:00:00.000Z');
+const classification = (confidence: number) =>
+  ({ confidence }) as ReturnType<typeof validateEmailClassification>;
 
 describe('Finance signal from email labels', () => {
   it('does not publish a movement for a payment reminder', () => {
@@ -109,5 +112,49 @@ describe('Finance signal from email labels', () => {
         reverseOfEmailMessageId: '18f0c2a9b7d34e56',
       },
     });
+  });
+});
+
+describe('classification review threshold', () => {
+  it('uses the configured threshold for non-HOLDOUT messages', () => {
+    expect(
+      requiresReview({
+        classification: classification(0.75),
+        auditSample: false,
+        reviewConfidenceThreshold: 0.8,
+      }),
+    ).toBe(true);
+  });
+
+  it('keeps the fixed default threshold for HOLDOUT messages', () => {
+    expect(
+      requiresReview({
+        classification: classification(0.75),
+        auditSample: false,
+        reviewConfidenceThreshold: 0.8,
+        isHoldout: true,
+      }),
+    ).toBe(false);
+  });
+
+  it('can auto-accept a verified sender but never bypass an audit sample', () => {
+    expect(
+      requiresReview({
+        classification: classification(0.3),
+        auditSample: false,
+        reviewConfidenceThreshold: 0.8,
+        verifiedSender: true,
+        acceptVerifiedSenders: true,
+      }),
+    ).toBe(false);
+    expect(
+      requiresReview({
+        classification: classification(0.3),
+        auditSample: true,
+        reviewConfidenceThreshold: 0.8,
+        verifiedSender: true,
+        acceptVerifiedSenders: true,
+      }),
+    ).toBe(true);
   });
 });

@@ -1,4 +1,8 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
+import {
+  MODULE_SETTINGS_READER,
+  type ModuleSettingsReader,
+} from '@personal-os/contracts';
 import { PrismaService, type Prisma } from '@personal-os/database';
 import {
   EMAIL_CLASSIFICATION_VERSIONS,
@@ -8,7 +12,6 @@ import {
   buildClassificationRows,
   buildFinanceSignal,
   classificationLabel,
-  EMAIL_REVIEW_CONFIDENCE_THRESHOLD,
   requiresReview,
   type ClassificationProvenance,
 } from './email-classification-persistence';
@@ -37,6 +40,10 @@ import {
 import { POLICY_VERSION } from '../knowledge/knowledge-policy';
 import { PROJECTOR_VERSION } from '../knowledge/knowledge-projector';
 import type { EmailLabel } from '../knowledge/knowledge-payload';
+import {
+  loadEmailReviewSettings,
+  type EmailReviewSettings,
+} from './email-review-settings';
 
 const EMAIL_SOURCE_TYPE = 'EMAIL_MESSAGE';
 const REVIEW_TARGET_TYPE = 'EMAIL_MESSAGE';
@@ -80,13 +87,19 @@ type ReclassifyScopeInput = {
   structural: EmailLabel;
   provenanceFor: (message: ReclassifiableMessage) => KnowledgeProvenance[];
   trigger: string;
+  verifiedSender?: boolean;
 };
 
 @Injectable()
 export class AiEmailReclassificationService {
   private readonly logger = new Logger(AiEmailReclassificationService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Optional()
+    @Inject(MODULE_SETTINGS_READER)
+    private readonly moduleSettings?: ModuleSettingsReader,
+  ) {}
 
   /**
    * La verificación de un correo solo cubre su plantilla. Se aplica a los demás
@@ -135,6 +148,7 @@ export class AiEmailReclassificationService {
       provenanceFor: (candidate) =>
         sharedKnowledgeProvenance({ verified, candidate }),
       trigger: 'MESSAGE_VERIFICATION',
+      verifiedSender: true,
     });
   }
 
@@ -192,6 +206,7 @@ export class AiEmailReclassificationService {
       provenanceFor: (candidate) =>
         sharedKnowledgeProvenance({ verified: representative, candidate }),
       trigger: 'GROUP_VERIFICATION',
+      verifiedSender: true,
     });
   }
 
@@ -218,6 +233,9 @@ export class AiEmailReclassificationService {
       structural,
       provenanceFor: () => knowledgeProvenanceForRow(knowledge),
       trigger: 'KNOWLEDGE_PROMOTION',
+      verifiedSender:
+        knowledge.scope === 'USER' &&
+        knowledge.knowledgeType === 'EMAIL_SENDER',
     });
   }
 
@@ -274,9 +292,14 @@ export class AiEmailReclassificationService {
     if (!messages.length) {
       return { requeued: 0 };
     }
+    const reviewSettings = await loadEmailReviewSettings(
+      this.moduleSettings,
+      input.userId,
+    );
     const runId = await this.startRun({
       userId: input.userId,
       trigger: input.trigger,
+      reviewConfidenceThreshold: reviewSettings.reviewConfidenceThreshold,
     });
     let requeued = 0;
     let skipped = 0;
@@ -295,6 +318,8 @@ export class AiEmailReclassificationService {
           chunk,
           structural: input.structural,
           provenanceFor: input.provenanceFor,
+          reviewSettings,
+          verifiedSender: input.verifiedSender ?? false,
         });
         requeued += outcome.requeued;
         skipped += outcome.skipped;
@@ -369,11 +394,15 @@ export class AiEmailReclassificationService {
     chunk,
     structural,
     provenanceFor,
+    reviewSettings,
+    verifiedSender,
   }: {
     userId: string;
     chunk: readonly ReclassifiableMessage[];
     structural: EmailLabel;
     provenanceFor: (message: ReclassifiableMessage) => KnowledgeProvenance[];
+    reviewSettings: EmailReviewSettings;
+    verifiedSender: boolean;
   }): Promise<{ requeued: number; skipped: number }> {
     const previousStatus = new Map(
       chunk.map(({ id, processingStatus }) => [id, processingStatus]),
@@ -394,6 +423,8 @@ export class AiEmailReclassificationService {
         plan,
         claimToken,
         previousStatus,
+        reviewSettings,
+        verifiedSender,
       });
     } catch (error) {
       await this.releaseChunk({
@@ -481,11 +512,15 @@ export class AiEmailReclassificationService {
     plan,
     claimToken,
     previousStatus,
+    reviewSettings,
+    verifiedSender,
   }: {
     userId: string;
     plan: ChunkPlan;
     claimToken: Date;
     previousStatus: ReadonlyMap<string, string>;
+    reviewSettings: EmailReviewSettings;
+    verifiedSender: boolean;
   }): Promise<{ requeued: number; skipped: number }> {
     return this.prisma.$transaction(
       async (tx) => {
@@ -495,6 +530,8 @@ export class AiEmailReclassificationService {
           plan,
           claimToken,
           previousStatus,
+          reviewSettings,
+          verifiedSender,
         });
         if (!owned.reclassified.length && !owned.skippedIds.length) {
           return { requeued: 0, skipped: 0 };
@@ -525,12 +562,16 @@ export class AiEmailReclassificationService {
     plan,
     claimToken,
     previousStatus,
+    reviewSettings,
+    verifiedSender,
   }: {
     tx: Prisma.TransactionClient;
     userId: string;
     plan: ChunkPlan;
     claimToken: Date;
     previousStatus: ReadonlyMap<string, string>;
+    reviewSettings: EmailReviewSettings;
+    verifiedSender: boolean;
   }): Promise<ChunkPlan> {
     const reclassified: ReclassifiedMessage[] = [];
     for (const entry of plan.reclassified) {
@@ -539,7 +580,11 @@ export class AiEmailReclassificationService {
         userId,
         messageId: entry.message.id,
         claimToken,
-        data: this.reclassifiedMessageData(entry.classification),
+        data: this.reclassifiedMessageData(
+          entry.classification,
+          reviewSettings,
+          verifiedSender,
+        ),
       });
       if (owned) {
         reclassified.push(entry);
@@ -592,13 +637,24 @@ export class AiEmailReclassificationService {
 
   private reclassifiedMessageData(
     classification: EmailClassification,
+    reviewSettings: EmailReviewSettings,
+    verifiedSender: boolean,
   ): Prisma.AiEmailMessageUpdateManyMutationInput {
     return {
-      processingStatus: requiresReview({ classification, auditSample: false })
+      processingStatus: requiresReview({
+        classification,
+        auditSample: false,
+        reviewConfidenceThreshold: reviewSettings.reviewConfidenceThreshold,
+        verifiedSender,
+        acceptVerifiedSenders: reviewSettings.acceptVerifiedSenders,
+      })
         ? 'REVIEW_REQUIRED'
         : 'PROCESSED',
       classificationStartedAt: null,
-      classification: classificationLabel(classification),
+      classification: {
+        ...classificationLabel(classification),
+        confidence: classification.confidence,
+      },
       classificationPath: KNOWLEDGE_DECISION_PATH,
       classificationProvider: null,
       classificationModel: null,
@@ -707,9 +763,11 @@ export class AiEmailReclassificationService {
   private async startRun({
     userId,
     trigger,
+    reviewConfidenceThreshold,
   }: {
     userId: string;
     trigger: string;
+    reviewConfidenceThreshold: number;
   }): Promise<string> {
     const dataset = await this.prisma.aiDataset.upsert({
       where: { name: EMAIL_DATASET_NAME },
@@ -747,7 +805,7 @@ export class AiEmailReclassificationService {
         configuration: {
           trigger,
           parserVersion: EMAIL_CLASSIFICATION_VERSIONS.parser,
-          reviewConfidenceThreshold: EMAIL_REVIEW_CONFIDENCE_THRESHOLD,
+          reviewConfidenceThreshold,
         },
       },
       select: { id: true },

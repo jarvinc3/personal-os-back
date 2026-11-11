@@ -2,7 +2,10 @@ import {
   digitsOnly,
   isBankAccountType,
 } from '../../shared/domain/account-number';
-import { OPERATION_LEG_ROLE } from '../../shared/domain/transfer';
+import {
+  OPERATION_LEG_ROLE,
+  TRANSFER_REFERENCE_WINDOW_MS,
+} from '../../shared/domain/transfer';
 import type { MovementClass } from '../domain/movement-class';
 import { accountMatchesHint } from './resolve-ledger-target-from-hints';
 
@@ -135,12 +138,16 @@ function isSameLeg(
   existing: ExistingTransferLeg,
   incoming: IncomingTransferLeg,
 ): boolean {
+  const sameDateWithinWindow =
+    Math.abs(
+      existing.transactionDate.getTime() - incoming.transactionDate.getTime(),
+    ) <= TRANSFER_REFERENCE_WINDOW_MS;
   return (
     existing.type === incoming.type &&
     existing.accountId === incoming.accountId &&
     Number(existing.amount) === incoming.amount &&
     existing.currency === incoming.currency &&
-    existing.transactionDate.getTime() === incoming.transactionDate.getTime()
+    sameDateWithinWindow
   );
 }
 

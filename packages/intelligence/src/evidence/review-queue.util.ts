@@ -2,7 +2,13 @@ import { BadRequestException } from '@nestjs/common';
 import { decodeCursor, encodeCursor } from '@personal-os/core';
 import type { Prisma } from '@personal-os/database';
 import { fromZonedTime } from 'date-fns-tz';
-import type { HumanVerificationVerdict } from './human-verification.constants';
+import {
+  SEMANTIC_ROUTES,
+  SEMANTIC_TYPES,
+  type HumanVerificationVerdict,
+  type SemanticRoute,
+  type SemanticType,
+} from './human-verification.constants';
 import {
   REVIEW_QUEUE_PENDING_STATUS,
   REVIEW_QUEUE_RESOLVED_PROCESSING_STATUS,
@@ -42,16 +48,23 @@ export type ReviewQueueMessageRow = {
   subject: string;
   contentFingerprint: string;
   processingStatus: string;
+  classification?: Prisma.JsonValue | null;
+  templateFingerprint?: string | null;
 };
 
 export type ReviewQueueItem = ReviewQueueMessageRow & {
   partition: ReviewQueuePartition;
   status: ReviewQueueStatus;
   verification: ReviewQueueItemVerification | null;
+  semanticType: SemanticType | null;
+  routes: SemanticRoute[];
+  confidence: number | null;
 };
 
 const INVALID_CURSOR_MESSAGE = 'Cursor de revisión inválido';
 const INVERTED_RANGE_MESSAGE = 'El rango de fechas está invertido';
+const INVERTED_CONFIDENCE_RANGE_MESSAGE =
+  'El rango de confianza está invertido';
 
 /** `?status=A,B` or repeated `status=A&status=B`, trimmed and deduplicated. */
 export function toReviewQueueStatusList(value: unknown): string[] | undefined {
@@ -76,6 +89,19 @@ export function assertReviewQueueDateRange(
   }
   if (dateFrom > dateTo) {
     throw new BadRequestException(INVERTED_RANGE_MESSAGE);
+  }
+}
+
+export function assertReviewQueueConfidenceRange(
+  confidenceMin?: number,
+  confidenceMax?: number,
+): void {
+  if (
+    confidenceMin !== undefined &&
+    confidenceMax !== undefined &&
+    confidenceMin > confidenceMax
+  ) {
+    throw new BadRequestException(INVERTED_CONFIDENCE_RANGE_MESSAGE);
   }
 }
 
@@ -145,14 +171,24 @@ export function reviewQueueItems({
       return [];
     }
     const verification = latestByMessageId.get(message.id);
+    const baseMessage = {
+      id: message.id,
+      receivedAt: message.receivedAt,
+      fromAddress: message.fromAddress,
+      fromDomain: message.fromDomain,
+      subject: message.subject,
+      contentFingerprint: message.contentFingerprint,
+      processingStatus: message.processingStatus,
+    };
     return [
       {
-        ...message,
+        ...baseMessage,
         partition,
         status: verification?.verdict ?? REVIEW_QUEUE_PENDING_STATUS,
         verification: verification
           ? reviewQueueItemVerification(verification)
           : null,
+        ...reviewQueueClassificationFields(message.classification),
       },
     ];
   });
@@ -180,6 +216,7 @@ export function reviewQueueMessageFilter({
   userId,
   latestByMessageId,
   statuses,
+  skipStatusFilter,
   partitionMessageIds,
   fromAddress,
   subject,
@@ -187,10 +224,18 @@ export function reviewQueueMessageFilter({
   cursor,
   order,
   uncertain,
+  semanticType,
+  route,
+  confidenceMin,
+  confidenceMax,
+  confidenceThreshold = 0.7,
+  holdoutMessageIds,
+  nonHoldoutMessageIds,
 }: {
   userId: string;
   latestByMessageId: ReadonlyMap<string, LatestReviewVerification>;
   statuses?: readonly ReviewQueueStatus[];
+  skipStatusFilter?: boolean;
   partitionMessageIds?: readonly string[];
   fromAddress?: string;
   subject?: string;
@@ -198,24 +243,78 @@ export function reviewQueueMessageFilter({
   cursor?: string;
   order: ReviewQueueOrder;
   uncertain?: boolean;
+  semanticType?: SemanticType;
+  route?: SemanticRoute;
+  confidenceMin?: number;
+  confidenceMax?: number;
+  confidenceThreshold?: number;
+  holdoutMessageIds?: readonly string[];
+  nonHoldoutMessageIds?: readonly string[];
 }): Prisma.AiEmailMessageWhereInput {
   const clauses = [
-    reviewQueueStatusFilter({ statuses, latestByMessageId }),
+    ...(skipStatusFilter
+      ? []
+      : [reviewQueueStatusFilter({ statuses, latestByMessageId })]),
     reviewQueueCursorFilter({ cursor, order }),
   ].filter(
     (clause): clause is Prisma.AiEmailMessageWhereInput => clause !== undefined,
   );
+  const classificationFilter = {
+    ...(semanticType ? { semanticType } : {}),
+    ...(route ? { route } : {}),
+    ...(confidenceMin !== undefined || confidenceMax !== undefined
+      ? {
+          confidence: {
+            ...(confidenceMin !== undefined ? { gte: confidenceMin } : {}),
+            ...(confidenceMax !== undefined ? { lte: confidenceMax } : {}),
+          },
+        }
+      : {}),
+  };
+  if (Object.keys(classificationFilter).length) {
+    clauses.push({ classifications: { some: classificationFilter } });
+  }
+  if (uncertain) {
+    const partitionAware =
+      holdoutMessageIds !== undefined && nonHoldoutMessageIds !== undefined;
+    clauses.push({
+      OR: [
+        { classifications: { none: {} } },
+        ...(partitionAware && nonHoldoutMessageIds.length
+          ? [
+              {
+                id: { in: [...nonHoldoutMessageIds] },
+                classifications: {
+                  some: { confidence: { lt: confidenceThreshold } },
+                },
+              },
+            ]
+          : []),
+        ...(partitionAware && holdoutMessageIds.length
+          ? [
+              {
+                id: { in: [...holdoutMessageIds] },
+                classifications: {
+                  some: { confidence: { lt: 0.7 } },
+                },
+              },
+            ]
+          : []),
+        ...(!partitionAware
+          ? [
+              {
+                classifications: {
+                  some: { confidence: { lt: confidenceThreshold } },
+                },
+              },
+            ]
+          : []),
+      ],
+    });
+  }
   return {
     userId,
     ...(partitionMessageIds ? { id: { in: [...partitionMessageIds] } } : {}),
-    ...(uncertain
-      ? {
-          OR: [
-            { classifications: { none: {} } },
-            { classifications: { some: { confidence: { lt: 0.7 } } } },
-          ],
-        }
-      : {}),
     ...reviewQueueMessageSearchFilter({ fromAddress, subject, receivedAt }),
     ...(clauses.length ? { AND: clauses } : {}),
   };
@@ -279,6 +378,41 @@ export function encodeReviewQueueCursor({
   return encodeCursor({ key: receivedAt.toISOString(), id });
 }
 
+export type ReviewImpactCursor = {
+  nextId: string;
+  fallbackIndex: number;
+};
+
+const IMPACT_CURSOR_PREFIX = 'IMPACT';
+const IMPACT_CURSOR_KEY = new RegExp(`^${IMPACT_CURSOR_PREFIX}:(\\d+)$`);
+
+export function encodeReviewImpactCursor({
+  nextId,
+  fallbackIndex,
+}: ReviewImpactCursor): string {
+  return encodeCursor({
+    key: `${IMPACT_CURSOR_PREFIX}:${fallbackIndex}`,
+    id: nextId,
+  });
+}
+
+export function decodeReviewImpactCursor(cursor: string): ReviewImpactCursor {
+  const decoded = decodeReviewQueueCursor(cursor, (key) =>
+    IMPACT_CURSOR_KEY.test(key),
+  );
+  const match = IMPACT_CURSOR_KEY.exec(decoded.key);
+  const fallbackIndex = match ? Number(match[1]) : Number.NaN;
+  if (
+    !match ||
+    !decoded.id ||
+    !Number.isSafeInteger(fallbackIndex) ||
+    fallbackIndex < 0
+  ) {
+    throw new BadRequestException(INVALID_CURSOR_MESSAGE);
+  }
+  return { nextId: decoded.id, fallbackIndex };
+}
+
 function reviewQueueStatusFilter({
   statuses,
   latestByMessageId,
@@ -321,6 +455,9 @@ function reviewQueueCursorFilter({
   if (!cursor) {
     return undefined;
   }
+  if (order === 'IMPACT') {
+    return undefined;
+  }
   const { key, id } = decodeReviewQueueCursor(cursor);
   const receivedAt = new Date(key);
   if (order === 'NEWEST') {
@@ -333,9 +470,12 @@ function reviewQueueCursorFilter({
   };
 }
 
-function decodeReviewQueueCursor(cursor: string): { key: string; id: string } {
+function decodeReviewQueueCursor(
+  cursor: string,
+  isValidKey?: (key: string) => boolean,
+): { key: string; id: string } {
   try {
-    return decodeCursor(cursor);
+    return decodeCursor(cursor, isValidKey);
   } catch (error) {
     throw new BadRequestException(INVALID_CURSOR_MESSAGE, { cause: error });
   }
@@ -352,6 +492,34 @@ function reviewQueueLabels(
     return null;
   }
   return payload;
+}
+
+function reviewQueueClassificationFields(value: unknown): {
+  semanticType: SemanticType | null;
+  routes: SemanticRoute[];
+  confidence: number | null;
+} {
+  if (!isRecord(value)) {
+    return { semanticType: null, routes: [], confidence: null };
+  }
+  return {
+    semanticType: SEMANTIC_TYPES.includes(value.semanticType as SemanticType)
+      ? (value.semanticType as SemanticType)
+      : null,
+    routes: Array.isArray(value.routes)
+      ? value.routes.filter((route): route is SemanticRoute =>
+          SEMANTIC_ROUTES.includes(route as SemanticRoute),
+        )
+      : [],
+    confidence:
+      typeof value.confidence === 'number' && Number.isFinite(value.confidence)
+        ? value.confidence
+        : null,
+  };
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 function zonedDayStart(day: string, timeZone: string): Date {

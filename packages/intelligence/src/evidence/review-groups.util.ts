@@ -5,6 +5,7 @@ export type ReviewGroupMessage = {
   fromAddress: string;
   subject: string;
   templateFingerprint: string | null;
+  classification?: unknown;
 };
 
 export type ReviewGroup = {

@@ -5,6 +5,12 @@ import { AppEvents } from '@personal-os/core';
 import type { UsersRepositoryPort } from './ports/users.repository.port';
 import { UsersService } from './users.service';
 
+const passThroughSettingsRegistry = {
+  normalize: jest.fn(
+    (_slug: string, config: Record<string, unknown>) => config,
+  ),
+} as never;
+
 describe('UsersService.deleteAccount', () => {
   const findById = jest.fn();
   const deleteAccountWithAuthOutbox = jest.fn();
@@ -31,6 +37,7 @@ describe('UsersService.deleteAccount', () => {
     usersRepository,
     eventEmitter,
     supabaseAdminService,
+    passThroughSettingsRegistry,
   );
 
   const existingUser = {
@@ -114,6 +121,7 @@ describe('UsersService.assertModuleEnabled', () => {
     usersRepository,
     { emit: jest.fn() } as unknown as EventEmitter2,
     { tryDeleteAuthUser: jest.fn() } as unknown as SupabaseAdminService,
+    passThroughSettingsRegistry,
   );
 
   beforeEach(() => {
@@ -153,6 +161,7 @@ describe('UsersService.updateModuleConfig schedule validation', () => {
     usersRepository,
     eventEmitter,
     supabaseAdminService,
+    passThroughSettingsRegistry,
   );
 
   beforeEach(() => {
@@ -186,6 +195,61 @@ describe('UsersService.updateModuleConfig schedule validation', () => {
     ).rejects.toBeInstanceOf(BadRequestException);
     expect(upsertUserModule).not.toHaveBeenCalled();
   });
+
+  it('validates AI module settings through the registered descriptor before saving', async () => {
+    const registry = {
+      normalize: jest.fn((slug: string, config: Record<string, unknown>) => {
+        const reviewConfidenceThreshold = (
+          config.email as { reviewConfidenceThreshold?: number } | undefined
+        )?.reviewConfidenceThreshold;
+        if (
+          slug === 'ai' &&
+          typeof reviewConfidenceThreshold === 'number' &&
+          reviewConfidenceThreshold > 1
+        ) {
+          throw new BadRequestException('invalid confidence threshold');
+        }
+        return config;
+      }),
+    };
+    const configuredService = new UsersService(
+      usersRepository,
+      eventEmitter,
+      supabaseAdminService,
+      registry as never,
+    );
+    findModuleBySlug.mockResolvedValue({ id: 'mod-ai' });
+    findUserModule.mockResolvedValue({
+      id: 'um-ai',
+      isEnabled: true,
+      config: {},
+    });
+
+    await expect(
+      configuredService.updateModuleConfig('user-1', 'ai', {
+        config: { email: { reviewConfidenceThreshold: 1.2 } },
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(registry.normalize).toHaveBeenCalledWith(
+      'ai',
+      expect.objectContaining({
+        email: expect.objectContaining({ reviewConfidenceThreshold: 1.2 }),
+      }),
+    );
+    expect(upsertUserModule).not.toHaveBeenCalled();
+  });
+
+  it('fails fast when the module settings registry is not provided', () => {
+    expect(
+      () =>
+        new UsersService(
+          usersRepository,
+          eventEmitter,
+          supabaseAdminService,
+          undefined as never,
+        ),
+    ).toThrow('MODULE_SETTINGS_REGISTRY');
+  });
 });
 
 describe('UsersService.listWeeklySummaryRecipients', () => {
@@ -197,6 +261,7 @@ describe('UsersService.listWeeklySummaryRecipients', () => {
     usersRepository,
     { emit: jest.fn() } as unknown as EventEmitter2,
     {} as unknown as SupabaseAdminService,
+    passThroughSettingsRegistry,
   );
 
   beforeEach(() => {
@@ -252,6 +317,7 @@ describe('UsersService.markReleaseNotesSeen', () => {
     usersRepository,
     { emit: jest.fn() } as unknown as EventEmitter2,
     { tryDeleteAuthUser: jest.fn() } as unknown as SupabaseAdminService,
+    passThroughSettingsRegistry,
   );
 
   const profileRow = {
@@ -309,6 +375,7 @@ describe('UsersService.updateProfile', () => {
     usersRepository,
     eventEmitter,
     supabaseAdminService,
+    passThroughSettingsRegistry,
   );
 
   const profileRow = {

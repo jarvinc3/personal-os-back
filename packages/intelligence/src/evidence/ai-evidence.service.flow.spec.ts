@@ -103,12 +103,12 @@ describe('AiEvidenceService review and analysis flows', () => {
       all: 2,
     });
     expect(page.items).toEqual([
-      {
+      expect.objectContaining({
         ...messages[0],
         partition: 'TRAIN',
         status: 'PENDING',
         verification: null,
-      },
+      }),
     ]);
     expect(page.hasMore).toBe(true);
     expect(page.nextCursor).toBeTruthy();

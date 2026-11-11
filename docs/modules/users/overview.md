@@ -11,6 +11,7 @@ Perfil (`users`), preferencias JSONB y configuración por módulo (`user_modules
 - `PATCH /api/users/me/modules/:slug`
 - `PATCH /api/users/me/release-notes-seen` (última versión de Novedades vista)
 - Merge server-side de defaults (`GLOBAL_USER_PREFERENCES_DEFAULTS`, `DEFAULT_MODULE_CONFIG_BY_SLUG`)
+- Configuración IA por usuario: umbral de revisión y autoaceptación de remitentes verificados
 - `UsersModule` es `@Global()`
 - Outbox de borrado Auth: `AuthDeletionOutboxProcessor` cada minuto
 - El alta Auth crea el perfil por trigger; un borrado directo en Auth elimina el

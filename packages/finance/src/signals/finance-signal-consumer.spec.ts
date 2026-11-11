@@ -58,6 +58,7 @@ function setup(overrides: Record<string, unknown> = {}) {
     executeUnpairedTransfer: jest
       .fn()
       .mockResolvedValue({ id: 'transaction-1' }),
+    pairTransferLegs: jest.fn().mockResolvedValue(undefined),
   };
   const reverseTransaction = {
     execute: jest.fn().mockResolvedValue(undefined),
@@ -566,7 +567,12 @@ describe('FinanceSignalConsumer transfer import', () => {
     expect(input.cardId).toBeUndefined();
     expect(input.transferGroupId).toBeUndefined();
     expect(importEmail.execute).not.toHaveBeenCalled();
-    expect(finTransaction.findFirst).not.toHaveBeenCalled();
+    expect(finTransaction.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'transaction-1', userId: 'user-1' },
+      }),
+    );
+    expect(importEmail.pairTransferLegs).not.toHaveBeenCalled();
     expect(finTransaction.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
@@ -623,7 +629,12 @@ describe('FinanceSignalConsumer transfer import', () => {
     const input = importEmail.executeUnpairedTransfer.mock
       .calls[0][1] as Record<string, unknown>;
     expect(input.transferGroupId).toBeUndefined();
-    expect(finTransaction.findFirst).not.toHaveBeenCalled();
+    expect(finTransaction.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'transaction-1', userId: 'user-1' },
+      }),
+    );
+    expect(importEmail.pairTransferLegs).not.toHaveBeenCalled();
   });
 
   it('does not import the same transfer leg twice', async () => {

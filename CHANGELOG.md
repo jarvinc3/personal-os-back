@@ -6,6 +6,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [Se
 
 ### Agregado
 
+- #334: empareja las dos patas de una transferencia importada por correo después de escribirla, con un candidato único y las reglas existentes (tipo opuesto, institución distinta, moneda, monto con tolerancia de comisión). Con la misma referencia bancaria la ventana sube de tres a siete días; sin referencia se conservan tres. Con varios candidatos no se elige ninguno y `TRANSFER_PAIR_AMBIGUOUS` queda en la evidencia de la pata.
 - #335: registra un pago de tarjeta confirmado por correo como la misma operación de dos patas de la ruta manual: dos filas `CARD_PAYMENT`, la cuenta baja y el disponible de la tarjeta sube, sin gasto ni presupuesto. Solo la pata de origen lleva `importReference`. La conciliación compara siete días cuando la referencia está presente y tres días sin referencia; un pago manual parecido se vincula y la duda va a revisión. Un aviso pendiente o un recordatorio no crean movimiento.
 - #342: agrega la selección acotada de correos del piloto: una vista previa que reclasifica hasta 20 correos con el modelo sin escribir nada y devuelve el manifiesto con el movimiento que crearía (o las dos entidades de un pago de tarjeta), y una ejecución idempotente que procesa solo esos ids, sin ampliar por remitente ni por plantilla. La predicción y la escritura comparten el mismo paso de decisión de Finance. La ruta responde 404 en producción.
 - #337: la fecha de encabezado se conserva como sugerencia `EMAIL_HEADER` y mantiene el correo en revisión hasta confirmar una fecha de operación; los motivos de ambigüedad ya no incorporan el conteo y guardan candidatos en evidencia.
@@ -41,6 +42,10 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [Se
 - AI-3 (#206): dataset `EMAIL_V1` con particiones deterministas, cola privada de revisión, verificaciones humanas append-only con roles/secuencia y verdad de referencia HOLDOUT; runs capturan versiones y watermarks, y el detalle de correo expone su procedencia.
 - AI-2 (#205): roles de IA por usuario y consentimiento revocable; conexión OAuth Gmail de solo lectura con tokens cifrados, bootstrap desde 2026-01-01, polling incremental, recuperación acotada por cursor, correo aislado por usuario, detalle con contenido canónico/saneado/crudo y purga según retención DEV/PROD.
 - AI-1: gateway de inferencia estructurada con fallback por respuesta inválida, telemetría minimizada con HMAC y retención de 90 días; Quick Entry y extractos bancarios validan antes de devolver resultados. Diagnóstico disponible con `pnpm ai:diagnostic`.
+
+### Corregido
+
+- Seguimiento de #347: el cursor de `IMPACT` guarda el primer correo de la página siguiente y lo busca por id en la lista actual, así que verificar el último correo de una página no invalida la paginación. `UsersService` exige el registro de settings de módulo y ya no guarda configuración sin validar cuando falta. El contrato de revisión corrige `uncertain`: umbral personal fuera de HOLDOUT y `0.7` fijo en HOLDOUT.
 
 ### Cambiado
 
