@@ -24,8 +24,41 @@ import {
 
 const RETENTION_DAYS = 90;
 const FINGERPRINT_VERSION = 'v1';
+const MAX_REPORTED_ISSUES = 5;
+const MAX_DETAIL_LENGTH = 200;
 
-class InvalidOutputError extends Error {}
+class InvalidOutputError extends Error {
+  constructor(
+    readonly errorCode: 'INVALID_JSON' | 'SCHEMA_VALIDATION',
+    readonly detail: string,
+  ) {
+    super(detail);
+  }
+}
+
+/**
+ * Resume el rechazo sin copiar el contenido del modelo: rutas y códigos de las
+ * comprobaciones, o el mensaje de la regla cerrada que falló.
+ */
+function describeValidationFailure(error: unknown): string {
+  const issues = (error as { issues?: unknown }).issues;
+  if (Array.isArray(issues) && issues.length > 0) {
+    const described = issues
+      .slice(0, MAX_REPORTED_ISSUES)
+      .map((issue) => {
+        const { path, code } = issue as { path?: unknown; code?: unknown };
+        const field = Array.isArray(path) ? path.join('.') : '';
+        const issueCode = typeof code === 'string' ? code : 'invalid';
+        return field ? `${field}:${issueCode}` : issueCode;
+      })
+      .join(', ');
+    return described.slice(0, MAX_DETAIL_LENGTH);
+  }
+  if (error instanceof Error && error.message) {
+    return error.message.slice(0, MAX_DETAIL_LENGTH);
+  }
+  return 'unknown';
+}
 
 function extractJson(content: string): string | null {
   const fenced = content.match(/```(?:json)?\s*([\s\S]*?)```/i);
@@ -120,6 +153,7 @@ export class AiInferenceGateway {
     let lastProvider: AIProviderClient | undefined;
     let lastHttpStatus: number | null = null;
     let lastErrorCode = 'NO_PROVIDER';
+    let lastOutputDetail: string | null = null;
 
     try {
       for (const provider of ordered) {
@@ -132,22 +166,22 @@ export class AiInferenceGateway {
           const completion = await provider.chatComplete(messages);
           const json = extractJson(completion.content);
           if (!json) {
-            lastErrorCode = 'INVALID_JSON';
-            throw new InvalidOutputError(lastErrorCode);
+            throw new InvalidOutputError('INVALID_JSON', 'INVALID_JSON');
           }
           let decoded: unknown;
           try {
             decoded = JSON.parse(json);
           } catch {
-            lastErrorCode = 'INVALID_JSON';
-            throw new InvalidOutputError(lastErrorCode);
+            throw new InvalidOutputError('INVALID_JSON', 'INVALID_JSON');
           }
           let value: T;
           try {
             value = request.validate(decoded);
-          } catch {
-            lastErrorCode = 'SCHEMA_VALIDATION';
-            throw new InvalidOutputError(lastErrorCode);
+          } catch (error) {
+            throw new InvalidOutputError(
+              'SCHEMA_VALIDATION',
+              `SCHEMA_VALIDATION:${describeValidationFailure(error)}`,
+            );
           }
 
           const latencyMs = Date.now() - startedAt;
@@ -172,6 +206,8 @@ export class AiInferenceGateway {
           };
         } catch (error) {
           if (error instanceof InvalidOutputError) {
+            lastErrorCode = error.errorCode;
+            lastOutputDetail = error.detail;
             continue;
           }
           lastErrorCode = 'PROVIDER_FAILURE';
@@ -197,6 +233,7 @@ export class AiInferenceGateway {
           lastProvider?.name ?? null,
           lastProvider?.model ?? null,
           attempts,
+          lastOutputDetail,
         );
       }
       throw new StructuredInferenceProviderError(
@@ -214,7 +251,7 @@ export class AiInferenceGateway {
         model: lastProvider?.model ?? 'none',
         latencyMs: Date.now() - startedAt,
         fallbackCount: Math.max(0, attempts - 1),
-        errorCode: lastErrorCode,
+        errorCode: lastOutputDetail ?? lastErrorCode,
       });
       throw error;
     }

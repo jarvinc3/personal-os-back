@@ -2,6 +2,7 @@ import {
   tryValidateEmailClassification,
   type EmailClassification,
 } from './email-classification.util';
+import { admitsTransaction } from '../evidence/human-verification.constants';
 import { knowledgeKeys } from '../knowledge/knowledge-normalizer';
 import {
   KNOWLEDGE_PAYLOAD_SCHEMAS,
@@ -240,19 +241,6 @@ export function verificationLabel({
     return { relevance: false, semanticType: 'OTHER', routes: [] };
   }
   return correctedPayload;
-}
-
-const TRANSACTION_SEMANTIC_TYPES = [
-  'FIN_TRANSACTION',
-  'PURCHASE_RECEIPT',
-  'SUBSCRIPTION_BILLING',
-] as const;
-
-function admitsTransaction(semanticType: string | undefined): boolean {
-  return (
-    semanticType !== undefined &&
-    (TRANSACTION_SEMANTIC_TYPES as readonly string[]).includes(semanticType)
-  );
 }
 
 function transactionEvidence(

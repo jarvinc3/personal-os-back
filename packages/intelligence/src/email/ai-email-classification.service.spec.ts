@@ -2,6 +2,7 @@ import type { ConfigService } from '@nestjs/config';
 import type { Env } from '@personal-os/config';
 import type { ModuleSettingsReader } from '@personal-os/contracts';
 import type { PrismaService } from '@personal-os/database';
+import { StructuredInferenceOutputError } from '@personal-os/contracts';
 import type { InferenceCompletionPort } from '@personal-os/contracts';
 import { AiEmailClassificationService } from './ai-email-classification.service';
 import { knowledgeKeys } from '../knowledge/knowledge-normalizer';
@@ -496,5 +497,95 @@ describe('AiEmailClassificationService model call accounting', () => {
       processed: 1,
       modelCalls: 0,
     });
+  });
+});
+
+describe('AiEmailClassificationService rejected model output', () => {
+  function rejection() {
+    return new StructuredInferenceOutputError(
+      'Groq',
+      'qwen/qwen3.8-27b',
+      1,
+      'SCHEMA_VALIDATION:transaction:invalid_type',
+    );
+  }
+
+  it('keeps a non-financial notice that arrives with kind NOT_TRANSACTION', async () => {
+    const { service } = fixture({
+      inferenceValue: {
+        relevance: true,
+        semanticType: 'FIN_ACCOUNT_NOTICE',
+        routes: ['FINANCE'],
+        transaction: { kind: 'NOT_TRANSACTION' },
+        confidence: 0.95,
+      },
+    });
+
+    const preview = await service.previewClassification({
+      userId: 'user-1',
+      messageId: 'message-1',
+    });
+
+    expect(preview).toMatchObject({
+      kind: 'classified',
+      classification: { semanticType: 'FIN_ACCOUNT_NOTICE' },
+    });
+    expect(
+      preview.kind === 'classified' ? preview.classification.transaction : {},
+    ).toBeUndefined();
+  });
+
+  it('retries once with the rejection and stores the repaired label', async () => {
+    const { service, inference } = fixture();
+    inference.infer.mockRejectedValueOnce(rejection());
+
+    const preview = await service.previewClassification({
+      userId: 'user-1',
+      messageId: 'message-1',
+    });
+
+    expect(inference.infer).toHaveBeenCalledTimes(2);
+    const repairRequest = inference.infer.mock.calls[1][0] as {
+      messages: Array<{ role: string; content: string }>;
+    };
+    expect(repairRequest.messages.at(-1)).toMatchObject({
+      role: 'user',
+      content: expect.stringContaining(
+        'SCHEMA_VALIDATION:transaction:invalid_type',
+      ),
+    });
+    expect(preview).toMatchObject({ kind: 'classified', method: 'MODEL' });
+  });
+
+  it('leaves the message for review when the repair also fails', async () => {
+    const { service, inference, prisma } = fixture();
+    inference.infer.mockRejectedValue(rejection());
+
+    await service.processPendingForUser('user-1');
+
+    expect(inference.infer).toHaveBeenCalledTimes(2);
+    expect(prisma.aiEmailClassification.createMany).not.toHaveBeenCalled();
+    expect(prisma.aiEmailMessage.updateMany).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ processingStatus: 'REVIEW_REQUIRED' }),
+      }),
+    );
+  });
+
+  it('reports the same failure in the preview without writing', async () => {
+    const { service, inference, prisma } = fixture();
+    inference.infer.mockRejectedValue(rejection());
+
+    await expect(
+      service.previewClassification({
+        userId: 'user-1',
+        messageId: 'message-1',
+      }),
+    ).resolves.toEqual({
+      kind: 'unavailable',
+      reason: 'STRUCTURED_OUTPUT_INVALID',
+    });
+    expect(inference.infer).toHaveBeenCalledTimes(2);
+    expect(prisma.aiEmailClassification.createMany).not.toHaveBeenCalled();
   });
 });

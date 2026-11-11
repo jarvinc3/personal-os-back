@@ -267,4 +267,59 @@ describe('AiInferenceGateway', () => {
     ).resolves.toMatchObject({ value: { value: 'ok' } });
     expect(create).not.toHaveBeenCalled();
   });
+
+  it('names the rejected fields when the validator reports issues', async () => {
+    const provider = {
+      name: 'provider',
+      model: 'model',
+      chat: jest.fn(),
+      chatComplete: jest.fn().mockResolvedValue({
+        content: '{"value":4}',
+        toolCalls: [],
+      }),
+    };
+    const { gateway, create } = build([provider]);
+    const zodFailure = Object.assign(new Error('invalid output'), {
+      issues: [{ path: ['transaction', 'currency'], code: 'invalid_format' }],
+    });
+
+    await expect(
+      gateway.infer({
+        ...request(),
+        validate() {
+          throw zodFailure;
+        },
+      }),
+    ).rejects.toMatchObject({
+      code: 'STRUCTURED_OUTPUT_INVALID',
+      detail: 'SCHEMA_VALIDATION:transaction.currency:invalid_format',
+    });
+    const record = create.mock.calls[0][0].data as { errorCode?: string };
+    expect(record.errorCode).toBe(
+      'SCHEMA_VALIDATION:transaction.currency:invalid_format',
+    );
+    expect(JSON.stringify(create.mock.calls[0][0])).not.toContain(
+      'private test text',
+    );
+  });
+
+  it('records a parse failure apart from a schema failure', async () => {
+    const provider = {
+      name: 'provider',
+      model: 'model',
+      chat: jest.fn(),
+      chatComplete: jest.fn().mockResolvedValue({
+        content: 'Sin objeto JSON en la respuesta',
+        toolCalls: [],
+      }),
+    };
+    const { gateway, create } = build([provider]);
+
+    await expect(gateway.infer(request())).rejects.toMatchObject({
+      code: 'STRUCTURED_OUTPUT_INVALID',
+      detail: 'INVALID_JSON',
+    });
+    const record = create.mock.calls[0][0].data as { errorCode?: string };
+    expect(record.errorCode).toBe('INVALID_JSON');
+  });
 });

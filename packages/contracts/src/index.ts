@@ -112,10 +112,15 @@ export interface StructuredInference<T> {
 export class StructuredInferenceOutputError extends Error {
   readonly code = 'STRUCTURED_OUTPUT_INVALID';
 
+  /**
+   * Causa acotada para diagnóstico: `INVALID_JSON` o `SCHEMA_VALIDATION:` con
+   * los campos rechazados. Nunca incluye el contenido del modelo.
+   */
   constructor(
     readonly provider: string | null = null,
     readonly model: string | null = null,
     readonly attempts = 0,
+    readonly detail: string | null = null,
   ) {
     super('The model output did not match the required structured schema');
     this.name = 'StructuredInferenceOutputError';

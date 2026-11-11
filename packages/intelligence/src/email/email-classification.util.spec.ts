@@ -1,5 +1,7 @@
 import {
+  EMAIL_CLASSIFICATION_JSON_SCHEMA,
   isRecallAuditSample,
+  normalizeModelClassification,
   parseDeterministicEmail,
   validateEmailClassification,
   withSuggestedTransactionDate,
@@ -305,5 +307,82 @@ describe('Email classification rules', () => {
         confidence: 0.9,
       }),
     ).toThrow();
+  });
+});
+
+describe('Email classification model output', () => {
+  const modelTransaction = (): Record<string, unknown> => {
+    const schema = EMAIL_CLASSIFICATION_JSON_SCHEMA as {
+      properties: { transaction: { properties: { kind: { enum: string[] } } } };
+    };
+    return schema.properties.transaction.properties.kind;
+  };
+
+  it('offers the model only the kinds that admit a real transaction', () => {
+    expect(modelTransaction().enum).toEqual(['TRANSACTION', 'PENDING']);
+  });
+
+  it('accepts a non-financial notice that arrives with kind NOT_TRANSACTION', () => {
+    const normalized = validateEmailClassification(
+      normalizeModelClassification({
+        relevance: true,
+        semanticType: 'FIN_ACCOUNT_NOTICE',
+        routes: ['FINANCE'],
+        transaction: { kind: 'NOT_TRANSACTION' },
+        confidence: 0.95,
+      }),
+    );
+
+    expect(normalized.semanticType).toBe('FIN_ACCOUNT_NOTICE');
+    expect(normalized.transaction).toBeUndefined();
+  });
+
+  it('drops a declined attempt reported as NOT_TRANSACTION with money', () => {
+    const normalized = validateEmailClassification(
+      normalizeModelClassification({
+        relevance: true,
+        semanticType: 'FIN_ACCOUNT_NOTICE',
+        routes: ['FINANCE'],
+        transaction: {
+          kind: 'NOT_TRANSACTION',
+          amount: 320,
+          currency: 'DOP',
+          bankStatusNormalized: 'DECLINED',
+        },
+        confidence: 0.95,
+      }),
+    );
+
+    expect(normalized.transaction).toBeUndefined();
+  });
+
+  it('marks a one-time code as not financial-relevant', () => {
+    const normalized = validateEmailClassification(
+      normalizeModelClassification({
+        relevance: true,
+        semanticType: 'SECURITY_OTP',
+        routes: ['SECURITY'],
+        confidence: 0.95,
+      }),
+    );
+
+    expect(normalized.relevance).toBe(false);
+  });
+
+  it('leaves a transaction that already satisfies the rules untouched', () => {
+    const value = {
+      relevance: true,
+      semanticType: 'FIN_TRANSACTION',
+      routes: ['FINANCE'],
+      transaction: {
+        kind: 'TRANSACTION',
+        amount: 59.99,
+        currency: 'USD',
+        movementClass: 'PURCHASE',
+      },
+      confidence: 0.95,
+    };
+
+    expect(normalizeModelClassification(value)).toEqual(value);
   });
 });
