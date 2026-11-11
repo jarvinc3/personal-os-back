@@ -17,6 +17,11 @@ import type {
   ChatMessage,
 } from '../../shared/ai.types';
 import { isRetryableProviderError } from '../../shared/is-retryable-provider-error';
+import {
+  buildProviderFailureLogDetails,
+  providerFailureLogMessage,
+  sanitizeProviderErrorMessage,
+} from '../../shared/provider-failure';
 
 @Injectable()
 export class AiService implements OnModuleInit {
@@ -64,12 +69,17 @@ export class AiService implements OnModuleInit {
     }
 
     const ordered = this.getOrderedProviders(preferredProvider);
+    const capableProviderCount = ordered.filter((provider) =>
+      Boolean(provider.chatComplete),
+    ).length;
+    let attempts = 0;
     let lastError: unknown;
 
     for (const provider of ordered) {
       if (!provider.chatComplete) {
         continue;
       }
+      attempts += 1;
       try {
         this.logger.debug(`Trying AI provider (complete): ${provider.name}`);
         const result = await provider.chatComplete(messages, tools);
@@ -80,19 +90,25 @@ export class AiService implements OnModuleInit {
         };
       } catch (error) {
         lastError = error;
-        if (!isRetryableProviderError(error)) {
+        const retryable = isRetryableProviderError(error);
+        const failure = buildProviderFailureLogDetails({
+          error,
+          provider: provider.name,
+          model: provider.model,
+          retryable,
+          fallback: retryable && attempts < capableProviderCount,
+        });
+        this.logger.warn(providerFailureLogMessage(failure));
+        if (!retryable) {
           throw error;
         }
-        this.logger.warn(
-          `Provider ${provider.name} unavailable, trying next: ${
-            error instanceof Error ? error.message : String(error)
-          }`,
-        );
       }
     }
 
     const message =
-      lastError instanceof Error ? lastError.message : 'Unknown error';
+      lastError instanceof Error
+        ? (sanitizeProviderErrorMessage(lastError) ?? 'Unknown error')
+        : 'Unknown error';
     throw new ServiceUnavailableException(
       `Todos los proveedores de IA fallaron. Último error: ${message}`,
     );

@@ -1,3 +1,4 @@
+import { Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { Env } from '@personal-os/config';
 import type { PrismaService } from '@personal-os/database';
@@ -33,6 +34,21 @@ const request = (): StructuredInferenceRequest<{ value: string }> => ({
   sourceId: 'source-1',
 });
 
+function providerFailureLogs(
+  warn: jest.SpyInstance,
+): Array<Record<string, unknown>> {
+  return warn.mock.calls
+    .map(([line]) => (typeof line === 'string' ? line : ''))
+    .filter((line) => line.startsWith('AI provider failure '))
+    .map(
+      (line) =>
+        JSON.parse(line.slice('AI provider failure '.length)) as Record<
+          string,
+          unknown
+        >,
+    );
+}
+
 function build(
   providers: AIService[],
   create = jest.fn().mockResolvedValue({}),
@@ -45,6 +61,10 @@ function build(
 }
 
 describe('AiInferenceGateway', () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   it('validates structured output, fails over and writes metadata only', async () => {
     const invalid = {
       name: 'primary',
@@ -194,6 +214,9 @@ describe('AiInferenceGateway', () => {
   });
 
   it('sanitizes non-retryable provider errors before returning or persisting', async () => {
+    const warn = jest
+      .spyOn(Logger.prototype, 'warn')
+      .mockImplementation(() => undefined);
     const provider = {
       name: 'provider',
       model: 'model',
@@ -216,7 +239,123 @@ describe('AiInferenceGateway', () => {
     } satisfies Partial<StructuredInferenceProviderError>);
     const persisted = JSON.stringify(create.mock.calls[0][0]);
     expect(persisted).not.toContain('private test text');
-    expect(persisted).toContain('PROVIDER_FAILURE');
+    const record = create.mock.calls[0][0].data as { errorCode?: string };
+    expect(record.errorCode).toBe(
+      'PROVIDER_FAILURE:cause=auth:status=401:retryable=false',
+    );
+    expect(providerFailureLogs(warn)[0]).toMatchObject({
+      provider: 'provider',
+      model: 'model',
+      httpStatus: 401,
+      retryable: false,
+      fallback: false,
+      cause: 'auth',
+    });
+  });
+
+  it('logs a retryable failure with fallback and hides provider secrets', async () => {
+    const warn = jest
+      .spyOn(Logger.prototype, 'warn')
+      .mockImplementation(() => undefined);
+    const rateLimited = {
+      name: 'Groq',
+      model: 'qwen/qwen3.8-27b',
+      chat: jest.fn(),
+      chatComplete: jest
+        .fn()
+        .mockRejectedValue(
+          Object.assign(
+            new Error(
+              '429 Authorization: Bearer gsk_live_secret123 {"apiKey":"sk-or-v1-secret123"}',
+            ),
+            { status: 429 },
+          ),
+        ),
+    };
+    const fallback = {
+      name: 'OpenRouter',
+      model: 'deepseek/deepseek-v4-flash',
+      chat: jest.fn(),
+      chatComplete: jest.fn().mockResolvedValue({
+        content: '{"value":"ok"}',
+        toolCalls: [],
+      }),
+    };
+    const { gateway } = build([rateLimited, fallback]);
+
+    await expect(gateway.infer(request())).resolves.toMatchObject({
+      provider: 'OpenRouter',
+      fallbackCount: 1,
+    });
+    const failure = providerFailureLogs(warn)[0];
+    expect(failure).toMatchObject({
+      provider: 'Groq',
+      model: 'qwen/qwen3.8-27b',
+      httpStatus: 429,
+      retryable: true,
+      fallback: true,
+      cause: 'rate_limit',
+    });
+    expect(JSON.stringify(failure)).not.toContain('gsk_live_secret123');
+    expect(JSON.stringify(failure)).not.toContain('sk-or-v1-secret123');
+  });
+
+  it('records the final failure cause and status in telemetry', async () => {
+    const warn = jest
+      .spyOn(Logger.prototype, 'warn')
+      .mockImplementation(() => undefined);
+    const first = {
+      name: 'Groq',
+      model: 'model-one',
+      chat: jest.fn(),
+      chatComplete: jest
+        .fn()
+        .mockRejectedValue(
+          Object.assign(new Error('unavailable'), { status: 503 }),
+        ),
+    };
+    const second = {
+      name: 'OpenRouter',
+      model: 'model-two',
+      chat: jest.fn(),
+      chatComplete: jest
+        .fn()
+        .mockRejectedValue(
+          Object.assign(new Error('overloaded'), { status: 529 }),
+        ),
+    };
+    const { gateway, create } = build([first, second]);
+
+    await expect(gateway.infer(request())).rejects.toMatchObject({
+      code: 'INFERENCE_PROVIDER_FAILURE',
+      httpStatus: 529,
+      attempts: 2,
+      retryable: true,
+    });
+    const failures = providerFailureLogs(warn);
+    expect(failures).toHaveLength(2);
+    expect(failures[0]).toMatchObject({
+      provider: 'Groq',
+      httpStatus: 503,
+      retryable: true,
+      fallback: true,
+      cause: 'server',
+    });
+    expect(failures[1]).toMatchObject({
+      provider: 'OpenRouter',
+      httpStatus: 529,
+      retryable: true,
+      fallback: false,
+      cause: 'server',
+    });
+    const record = create.mock.calls[0][0].data as {
+      errorCode?: string;
+      fallbackCount?: number;
+    };
+    expect(record.errorCode).toBe(
+      'PROVIDER_FAILURE:cause=server:status=529:retryable=true',
+    );
+    expect(record.fallbackCount).toBe(1);
   });
 
   it('reads SDK statusCode and fails over on a retryable HTTP response', async () => {
@@ -350,6 +489,8 @@ describe('AiInferenceGateway', () => {
       httpStatus: 403,
     });
     const record = create.mock.calls[0][0].data as { errorCode?: string };
-    expect(record.errorCode).toBe('PROVIDER_FAILURE');
+    expect(record.errorCode).toBe(
+      'PROVIDER_FAILURE:cause=auth:status=403:retryable=false',
+    );
   });
 });
