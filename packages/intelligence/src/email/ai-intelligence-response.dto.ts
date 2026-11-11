@@ -535,6 +535,35 @@ export class AiEmailSampleMovementDto {
   importReference!: string;
 }
 
+export class AiEmailSampleCardPaymentDto {
+  @ApiProperty()
+  sourceAccountId!: string;
+
+  @ApiProperty()
+  cardId!: string;
+
+  @ApiProperty()
+  amount!: number;
+
+  @ApiProperty()
+  currency!: string;
+
+  @ApiProperty()
+  status!: string;
+
+  @ApiProperty({ format: 'date-time' })
+  transactionDate!: string;
+
+  @ApiProperty()
+  description!: string;
+
+  @ApiProperty({ nullable: true, type: String })
+  externalReference!: string | null;
+
+  @ApiProperty()
+  importReference!: string;
+}
+
 export class AiEmailSamplePredictionDto {
   @ApiProperty({ enum: SAMPLE_OUTCOMES })
   outcome!: string;
@@ -544,6 +573,9 @@ export class AiEmailSamplePredictionDto {
 
   @ApiPropertyOptional({ type: () => AiEmailSampleMovementDto })
   movement?: AiEmailSampleMovementDto;
+
+  @ApiPropertyOptional({ type: () => AiEmailSampleCardPaymentDto })
+  cardPayment?: AiEmailSampleCardPaymentDto;
 }
 
 export class AiEmailSampleExecutionDto {

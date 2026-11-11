@@ -64,6 +64,7 @@ export type SampleHints = {
 export type SamplePrediction = {
   outcome: SignalImportPreview['outcome'] | 'UNAVAILABLE';
   reason?: string;
+  cardPayment?: SignalImportPreview['cardPayment'];
   movement?: SignalImportPreview['movement'];
 };
 
@@ -515,6 +516,7 @@ export class EmailSampleImportService {
     return {
       outcome: preview.outcome,
       reason: preview.reason,
+      cardPayment: preview.cardPayment,
       movement: preview.movement,
     };
   }

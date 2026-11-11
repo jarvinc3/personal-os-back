@@ -71,6 +71,10 @@ function setup(overrides: Record<string, unknown> = {}) {
     importTransaction as never,
     ledger as never,
     { execute: jest.fn() } as never,
+    {
+      preview: jest.fn().mockResolvedValue({ kind: 'new' }),
+      execute: jest.fn(),
+    } as never,
     { suggest: jest.fn().mockResolvedValue(null) } as never,
     { execute: jest.fn().mockResolvedValue('DOP') } as never,
   );

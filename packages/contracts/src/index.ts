@@ -312,6 +312,17 @@ export interface SignalImportPreview {
   outcome: 'APPLIED' | 'ALREADY_APPLIED' | 'REVIEW_REQUIRED' | 'REJECTED';
   reason?: string;
   domainReferences?: readonly { type: string; id: string }[];
+  cardPayment?: {
+    sourceAccountId: string;
+    cardId: string;
+    amount: number;
+    currency: string;
+    status: string;
+    transactionDate: string;
+    description: string;
+    externalReference: string | null;
+    importReference: string;
+  };
   movement?: {
     accountId: string | null;
     cardId: string | null;

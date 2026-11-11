@@ -43,7 +43,7 @@ const CLASSIFICATION_SYSTEM_PROMPT = [
   'Classify relevance, semantic type, and every applicable independent route.',
   'A one-time code is SECURITY_OTP and never a financial transaction.',
   'Only set transaction when the email itself contains a supported candidate; never create or import a financial movement.',
-  'For transaction candidates, preserve original amount/currency/date, bank reference, and any explicitly stated received amount or transfer exchange rate; classify movementClass and explicit bank status when visible. Mark transfer direction as TRANSFER_IN or TRANSFER_OUT. For a reversal, set bankStatusNormalized to REVERSED/REFUNDED/CHARGEBACK and include reverseOfBankReference only when the original reference is stated. Never invent missing values; omit uncertain fields and use low confidence.',
+  'For transaction candidates, preserve original amount/currency/date, bank reference, and any explicitly stated received amount or transfer exchange rate; classify movementClass and explicit bank status when visible. Mark transfer direction as TRANSFER_IN or TRANSFER_OUT. A confirmed credit card payment from an owned account uses movementClass CARD_PAYMENT with the card last4 and the source account accountNumberLast4; a reminder, a due notice or an upcoming date is not a payment. For a reversal, set bankStatusNormalized to REVERSED/REFUNDED/CHARGEBACK and include reverseOfBankReference only when the original reference is stated. Never invent missing values; omit uncertain fields and use low confidence.',
   'Use low confidence when evidence is incomplete or ambiguous.',
 ].join(' ');
 const MAX_EMAIL_CONTENT_CHARS = 24_000;

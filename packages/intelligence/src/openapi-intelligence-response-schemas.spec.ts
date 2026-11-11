@@ -140,6 +140,17 @@ describe('OpenAPI response schemas of intelligence', () => {
     expect(operation?.responses?.['200']).toBeUndefined();
   });
 
+  it('documents the two targets of a card payment preview', () => {
+    const prediction = document.components?.schemas
+      ?.AiEmailSamplePredictionDto as {
+      properties?: Record<string, unknown>;
+    };
+
+    expect(prediction.properties?.cardPayment).toMatchObject({
+      $ref: '#/components/schemas/AiEmailSampleCardPaymentDto',
+    });
+  });
+
   it('declares the cursor fields of the intelligence lists', () => {
     for (const [path, method] of [
       ['/api/intelligence/messages', 'get'],

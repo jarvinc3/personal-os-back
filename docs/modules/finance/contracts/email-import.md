@@ -159,7 +159,7 @@ La referencia es la primera pista, no prueba de duplicado.
 1. Si el correo trae `bankReference`, se busca un pago existente del usuario por esa referencia en cualquier pata `CARD_PAYMENT`. La comparación es a nivel de operación o grupo, porque las dos patas comparten la referencia.
 2. Un match de referencia es duplicado solo si la operación existente coincide en cuenta de origen, tarjeta, monto, moneda y fecha dentro de la ventana del ADR-003. Si la referencia coincide con otra operación y difiere alguno de esos atributos, queda `CARD_PAYMENT_REFERENCE_CONFLICT` para revisión; no se crea ni se descarta.
 3. Si no hay coincidencia por referencia, o el correo no trae referencia, se busca un pago parecido por misma cuenta de origen, misma tarjeta, mismo monto, misma moneda y fecha dentro de la ventana de dedupe del ADR-003. La búsqueda incluye pagos manuales sin referencia.
-4. Si hay exactamente un candidato parecido, no se crea un duplicado en silencio: el correo queda en revisión con `CARD_PAYMENT_POSSIBLE_DUPLICATE` y el candidato en evidencia.
+4. Si hay exactamente un candidato parecido, el correo se vincula a ese pago: queda `DUPLICATE` con el pago en evidencia y no se crean filas nuevas. La vinculación es la decisión del owner del 2026-11-11; el código `CARD_PAYMENT_POSSIBLE_DUPLICATE` queda reservado para cuando la vinculación no proceda.
 5. Si hay varios candidatos, queda `CARD_PAYMENT_RECONCILIATION_AMBIGUOUS` con los IDs y no se crea movimiento.
 6. Si no hay candidato, el pago confirmado se importa una sola vez. La creación manual posterior con los mismos datos queda PENDIENTE CONCRETAR; no se promete 409 ni `duplicateAcknowledged` como acuerdo.
 
@@ -168,7 +168,7 @@ La ruta manual no cambia en este contrato. La opción de responder 409 y exigir 
 ### 4.4 Dedupe e idempotencia
 
 - Replay de la misma señal: `ALREADY_APPLIED`, sin nuevas patas.
-- Misma referencia y misma operación (cuenta, tarjeta, monto, moneda y fecha dentro de la ventana): `DUPLICATE`, sin nuevas patas. La ventana aplicada a una referencia presente está pendiente (sección 8.2).
+- Misma referencia y misma operación (cuenta, tarjeta, monto, moneda y fecha dentro de la ventana): `DUPLICATE`, sin nuevas patas. La ventana es de siete días; sin referencia son tres días. Las dos duraciones las fijó el owner y están registradas en el comentario de decisiones del issue #335.
 - Misma referencia con cuenta, tarjeta, monto o moneda distintos: `CARD_PAYMENT_REFERENCE_CONFLICT`, revisión; no se crea ni se descarta.
 - Dos correos distintos con la misma referencia y la misma operación: un solo pago.
 - Dos pagos legítimos con referencias distintas: se permiten aunque compartan cuenta, tarjeta, monto y día.
@@ -205,40 +205,41 @@ La ruta manual no cambia en este contrato. La opción de responder 409 y exigir 
 
 Los códigos son estables; el texto visible puede cambiar sin cambiar el código. El número de candidatos y los IDs van en la evidencia, no en el código. Los códigos con sufijo `_n` del código actual son un detalle transitorio que se retira al implementar.
 
-| Código                                  | Condición                                                                                                              | Efecto                                           |
-| --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
-| `AMOUNT_MISSING`                        | No hay monto.                                                                                                          | Sin movimiento.                                  |
-| `CURRENCY_MISSING`                      | No hay moneda.                                                                                                         | Sin movimiento.                                  |
-| `TRANSACTION_DATE_MISSING`              | No hay fecha de operación ni sugerencia.                                                                               | Sin movimiento.                                  |
-| `TRANSACTION_DATE_SUGGESTED`            | Solo hay fecha de encabezado sugerida.                                                                                 | Sin movimiento hasta confirmación.               |
-| `DIRECTION_MISSING`                     | No se sabe si es débito, crédito o transferencia.                                                                      | Sin movimiento.                                  |
-| `NO_LEDGER_TARGET`                      | No hay pista de cuenta o tarjeta.                                                                                      | Sin movimiento.                                  |
-| `AMBIGUOUS_LEDGER_TARGET`               | Varias cuentas o tarjetas coinciden.                                                                                   | Sin movimiento; candidatos.                      |
-| `TRANSFER_ACCOUNT_MISSING`              | Transferencia sin cuenta identificada.                                                                                 | Sin movimiento.                                  |
-| `TRANSFER_ACCOUNT_HINT_UNSUPPORTED`     | Solo hay last4 de tarjeta en una transferencia.                                                                        | Sin movimiento.                                  |
-| `TRANSFER_ACCOUNT_NOT_FOUND`            | Ninguna cuenta coincide.                                                                                               | Sin movimiento.                                  |
-| `TRANSFER_ACCOUNT_AMBIGUOUS`            | Varias cuentas coinciden.                                                                                              | Sin movimiento; candidatos.                      |
-| `TRANSFER_DIRECTION_AMBIGUOUS`          | La dirección de la transferencia es ambigua.                                                                           | Sin movimiento.                                  |
-| `TRANSFER_SIDE_MISSING`                 | Falta el lado de la transferencia.                                                                                     | Sin movimiento.                                  |
-| `TRANSFER_PAIR_AMBIGUOUS`               | Varias patas candidatas al emparejar.                                                                                  | La pata conocida sigue; no se inventa par.       |
-| `TRANSFER_REFERENCE_CONFLICT`           | Misma referencia fuera de la contraparte legítima: mismo tipo con otros atributos, o tipo opuesto con la misma cuenta. | Revisión; no se descarta ni se crea en silencio. |
-| `CARD_PAYMENT_NOT_CONFIRMED`            | Pago no confirmado.                                                                                                    | Sin movimiento.                                  |
-| `CARD_PAYMENT_CARD_NOT_FOUND`           | Tarjeta no encontrada.                                                                                                 | Sin movimiento.                                  |
-| `CARD_PAYMENT_CARD_AMBIGUOUS`           | Varias tarjetas coinciden.                                                                                             | Sin movimiento; candidatos.                      |
-| `CARD_PAYMENT_CARD_NOT_CREDIT`          | Tarjeta no es de crédito.                                                                                              | Sin movimiento.                                  |
-| `CARD_PAYMENT_SOURCE_ACCOUNT_NOT_FOUND` | Cuenta de origen no encontrada.                                                                                        | Sin movimiento.                                  |
-| `CARD_PAYMENT_SOURCE_ACCOUNT_AMBIGUOUS` | Varias cuentas de origen.                                                                                              | Sin movimiento; candidatos.                      |
-| `CARD_CURRENCY_MISSING`                 | La tarjeta no tiene saldo en la moneda.                                                                                | Sin movimiento.                                  |
-| `CARD_PAYMENT_POSSIBLE_DUPLICATE`       | Pago parecido sin coincidencia de referencia.                                                                          | Sin movimiento; candidato en evidencia.          |
-| `CARD_PAYMENT_REFERENCE_CONFLICT`       | Misma referencia con atributos distintos.                                                                              | Revisión; no se descarta ni se crea en silencio. |
-| `CARD_PAYMENT_RECONCILIATION_AMBIGUOUS` | Varios pagos parecidos.                                                                                                | Sin movimiento; candidatos.                      |
-| `REVERSAL_ORIGINAL_NOT_FOUND`           | No hay original sin referencia explícita.                                                                              | Sin movimiento.                                  |
-| `REVERSAL_REFERENCE_NOT_FOUND`          | Referencia explícita sin original elegible.                                                                            | Revisión; no usa candidato por heurística.       |
-| `REVERSAL_COMMERCE_MISSING`             | Reverso sin comercio para candidatos.                                                                                  | Revisión; no auto-vincula.                       |
-| `REVERSAL_ORIGINAL_AMBIGUOUS`           | Varios originales posibles.                                                                                            | Sin movimiento; candidatos.                      |
-| `REVERSAL_ORIGINAL_NOT_CONFIRMED`       | El original no está confirmado.                                                                                        | Sin movimiento.                                  |
-| `REVERSAL_TARGET_NOT_SUPPORTED`         | El original es transferencia o pago de tarjeta.                                                                        | Sin movimiento por la ruta de compras.           |
-| `REVERSAL_PARTIAL_NOT_SUPPORTED`        | El monto no coincide con el original.                                                                                  | Sin movimiento.                                  |
+| Código                                  | Condición                                                                                                              | Efecto                                                                |
+| --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| `AMOUNT_MISSING`                        | No hay monto.                                                                                                          | Sin movimiento.                                                       |
+| `CURRENCY_MISSING`                      | No hay moneda.                                                                                                         | Sin movimiento.                                                       |
+| `TRANSACTION_DATE_MISSING`              | No hay fecha de operación ni sugerencia.                                                                               | Sin movimiento.                                                       |
+| `TRANSACTION_DATE_SUGGESTED`            | Solo hay fecha de encabezado sugerida.                                                                                 | Sin movimiento hasta confirmación.                                    |
+| `DIRECTION_MISSING`                     | No se sabe si es débito, crédito o transferencia.                                                                      | Sin movimiento.                                                       |
+| `NO_LEDGER_TARGET`                      | No hay pista de cuenta o tarjeta.                                                                                      | Sin movimiento.                                                       |
+| `AMBIGUOUS_LEDGER_TARGET`               | Varias cuentas o tarjetas coinciden.                                                                                   | Sin movimiento; candidatos.                                           |
+| `TRANSFER_ACCOUNT_MISSING`              | Transferencia sin cuenta identificada.                                                                                 | Sin movimiento.                                                       |
+| `TRANSFER_ACCOUNT_HINT_UNSUPPORTED`     | Solo hay last4 de tarjeta en una transferencia.                                                                        | Sin movimiento.                                                       |
+| `TRANSFER_ACCOUNT_NOT_FOUND`            | Ninguna cuenta coincide.                                                                                               | Sin movimiento.                                                       |
+| `TRANSFER_ACCOUNT_AMBIGUOUS`            | Varias cuentas coinciden.                                                                                              | Sin movimiento; candidatos.                                           |
+| `TRANSFER_DIRECTION_AMBIGUOUS`          | La dirección de la transferencia es ambigua.                                                                           | Sin movimiento.                                                       |
+| `TRANSFER_SIDE_MISSING`                 | Falta el lado de la transferencia.                                                                                     | Sin movimiento.                                                       |
+| `TRANSFER_PAIR_AMBIGUOUS`               | Varias patas candidatas al emparejar.                                                                                  | La pata conocida sigue; no se inventa par.                            |
+| `TRANSFER_REFERENCE_CONFLICT`           | Misma referencia fuera de la contraparte legítima: mismo tipo con otros atributos, o tipo opuesto con la misma cuenta. | Revisión; no se descarta ni se crea en silencio.                      |
+| `CARD_PAYMENT_NOT_CONFIRMED`            | Pago no confirmado.                                                                                                    | Sin movimiento.                                                       |
+| `CARD_PAYMENT_CARD_NOT_FOUND`           | Tarjeta no encontrada.                                                                                                 | Sin movimiento.                                                       |
+| `CARD_PAYMENT_CARD_AMBIGUOUS`           | Varias tarjetas coinciden.                                                                                             | Sin movimiento; candidatos.                                           |
+| `CARD_PAYMENT_CARD_NOT_CREDIT`          | Tarjeta no es de crédito.                                                                                              | Sin movimiento.                                                       |
+| `CARD_PAYMENT_SOURCE_ACCOUNT_NOT_FOUND` | Cuenta de origen no encontrada.                                                                                        | Sin movimiento.                                                       |
+| `CARD_PAYMENT_SOURCE_ACCOUNT_AMBIGUOUS` | Varias cuentas de origen.                                                                                              | Sin movimiento; candidatos.                                           |
+| `CARD_CURRENCY_MISSING`                 | La tarjeta no tiene saldo en la moneda.                                                                                | Sin movimiento.                                                       |
+| `CARD_PAYMENT_POSSIBLE_DUPLICATE`       | Pago parecido sin coincidencia de referencia.                                                                          | Sin movimiento; solo evidencia, porque un candidato único se vincula. |
+| `CARD_PAYMENT_NOT_IMPORTED`             | La operación de dos patas no se pudo escribir.                                                                         | Sin movimiento; revisión.                                             |
+| `CARD_PAYMENT_REFERENCE_CONFLICT`       | Misma referencia con atributos distintos.                                                                              | Revisión; no se descarta ni se crea en silencio.                      |
+| `CARD_PAYMENT_RECONCILIATION_AMBIGUOUS` | Varios pagos parecidos.                                                                                                | Sin movimiento; candidatos.                                           |
+| `REVERSAL_ORIGINAL_NOT_FOUND`           | No hay original sin referencia explícita.                                                                              | Sin movimiento.                                                       |
+| `REVERSAL_REFERENCE_NOT_FOUND`          | Referencia explícita sin original elegible.                                                                            | Revisión; no usa candidato por heurística.                            |
+| `REVERSAL_COMMERCE_MISSING`             | Reverso sin comercio para candidatos.                                                                                  | Revisión; no auto-vincula.                                            |
+| `REVERSAL_ORIGINAL_AMBIGUOUS`           | Varios originales posibles.                                                                                            | Sin movimiento; candidatos.                                           |
+| `REVERSAL_ORIGINAL_NOT_CONFIRMED`       | El original no está confirmado.                                                                                        | Sin movimiento.                                                       |
+| `REVERSAL_TARGET_NOT_SUPPORTED`         | El original es transferencia o pago de tarjeta.                                                                        | Sin movimiento por la ruta de compras.                                |
+| `REVERSAL_PARTIAL_NOT_SUPPORTED`        | El monto no coincide con el original.                                                                                  | Sin movimiento.                                                       |
 
 ## 6. Reversos
 
@@ -326,7 +327,7 @@ El comercio es obligatorio para el auto-vínculo. Si el aviso no trae comercio, 
 - Si la referencia coincide pero los atributos de la operación difieren, el caso va a revisión (`TRANSFER_REFERENCE_CONFLICT` o `CARD_PAYMENT_REFERENCE_CONFLICT`); no se descarta ni se crea en silencio. Queda fuera de esta regla la contraparte legítima de una transferencia: misma referencia, mismo usuario, tipo opuesto y cuenta distinta no es duplicado ni conflicto (sección 3.4).
 - En una compra, el dedupe sigue el ADR-003: primero `externalReference`; si falta, mismo destino, monto, moneda, tipo, comercio y fecha dentro de 10 minutos.
 - En una transferencia, el fallback sin referencia usa destino, tipo, monto, moneda y fecha dentro de 10 minutos; la referencia compartida por la contraparte no es duplicado.
-- En un pago de tarjeta, el fallback incluye pagos manuales sin referencia. Un candidato único va a revisión; varios también. Sin candidato, el pago confirmado se importa una vez; la opción de la ruta manual queda pendiente.
+- En un pago de tarjeta, el fallback incluye pagos manuales sin referencia con tres días de ventana. Un candidato único se vincula como `DUPLICATE` sin crear filas; varios van a `CARD_PAYMENT_RECONCILIATION_AMBIGUOUS`. Sin candidato, el pago confirmado se importa una vez; la opción de la ruta manual queda pendiente.
 - No se infiere una referencia que el correo no trae. No se exige una referencia única para resolver el pago.
 
 ## 8. Estados del contrato
@@ -345,7 +346,7 @@ El comercio es obligatorio para el auto-vínculo. Si el aviso no trae comercio, 
 ### 8.2 Pendiente concretar
 
 - Referencia explícita de reverso sin original: revisión; la opción de continuar por el id de correo o candidatos queda pendiente y no se implementa como fallback automático.
-- Ventana temporal con la referencia presente: los ±10 minutos del ADR-003 solo justifican el fallback sin referencia. La ventana aplicada a una referencia presente en transferencias y pagos está pendiente de decisión del owner; mientras tanto, la coincidencia fuera de la fecha exacta va a revisión.
+- Ventana temporal con la referencia presente: **decidida**. Siete días para dos correos que comparten referencia y para el pago de tarjeta importado (decisión del owner del 2026-11-11, registrada en el issue #335). Sin referencia, el pago de tarjeta usa tres días, también decididos en el issue #335; el fallback del ADR-003 conserva sus ±10 minutos para compras y transferencias.
 - Ruta manual ante un pago parecido: opciones (A) bloqueo con `duplicateAcknowledged`, (B) aviso sin bloqueo, (C) ruta intacta. Cambia la API y el objetivo de no duplicar; no está aprobada.
 - Comercio ausente en candidatos de reverso: revisión; el ADR-003 lo exige y no se auto-vincula solo por monto, moneda y fecha.
 - Reverso de transferencias y de pagos de tarjeta: ruta específica fuera de estos cuatro issues; por ahora `REVERSAL_TARGET_NOT_SUPPORTED`.
@@ -355,21 +356,28 @@ El comercio es obligatorio para el auto-vínculo. Si el aviso no trae comercio, 
 
 ### 8.3 Implementado y probado
 
-Ninguno de los cuatro flujos está implementado con este contrato. Los casos `T-TRA`, `T-TAR`, `T-DAT` y `T-REV` son propuestos y no ejecutados. La QA sintética existente y CTR-02 se conservan en `temp/pr331-test-reports/` y no certifican estos cambios.
+| Flujo                  | Estado                              | Evidencia                                                                                                                |
+| ---------------------- | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| Pago de tarjeta (#335) | `IMPLEMENTADO-PROBADO` en `0c9b130` | Pruebas unitarias de la conciliación, del consumidor y del caso de uso; integración con dos patas, saldos y referencias. |
+| Transferencia (#334)   | `NO_IMPLEMENTADO`                   | Sin cambios.                                                                                                             |
+| Datos faltantes (#337) | `NO_IMPLEMENTADO`                   | Sin cambios.                                                                                                             |
+| Reversos (#336)        | `NO_IMPLEMENTADO`                   | Sin cambios.                                                                                                             |
+
+Los casos `T-TRA`, `T-TAR`, `T-DAT` y `T-REV` siguen propuestos y no ejecutados como paquete completo. La QA sintética existente y CTR-02 se conservan en `temp/pr331-test-reports/` y no certifican estos cambios.
 
 ## 9. Evidencia actual y brechas
 
-| Afirmación del contrato                         | Código actual                                                                                                                                      | Estado                       |
-| ----------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- |
-| La transferencia resuelve una cuenta propia     | El consumidor pasa `accountNumberHint: null` y usa `last4` como tarjeta (`finance-signal-consumer.ts:178-205`).                                    | `NO_IMPLEMENTADO`            |
-| La transferencia crea una sola pata con rol     | `executeUnpairedTransfer` crea el grupo, pero `createImportedTransaction` no fija `legRole` (`prisma-ledger-import.repository.ts:57-95`).          | `PARCIALMENTE_IMPLEMENTADO`  |
-| El emparejamiento usa 3 días y 50/2 %           | `match-imported-transfers.ts:23-25` define la ventana y la tolerancia; `pickTransferMatch` exige un candidato único.                               | `VERIFICADO` (código actual) |
-| La referencia compartida no descarta la pata    | `findDedupeCandidate` busca por `externalReference` sin tipo ni cuenta (`prisma-ledger-read.repository.ts:407-440`).                               | `CONTRADICE_CODIGO`          |
-| El pago de tarjeta reutiliza dos patas          | La ruta manual existe (`create-card-payment.use-case.ts`, `prisma-ledger-write.repository.ts:413-524`); el correo no tiene ruta.                   | `NO_IMPLEMENTADO`            |
-| La fecha del encabezado es solo sugerencia      | El esquema de clasificación no tiene `suggestedTransactionDate` ni procedencia (`email-classification.util.ts:12-66`).                             | `NO_IMPLEMENTADO`            |
-| El reverso sigue la cadena del ADR-003          | El consumidor solo busca por referencia y cae a `bankReference` (`finance-signal-consumer.ts:440-470`); el helper de candidatos no se llama.       | `NO_IMPLEMENTADO`            |
-| El reverso filtra tipo, transferencia y tarjeta | `findCandidatesForReverse` filtra usuario, estado, moneda, monto y ±14 días; no filtra tipo ni grupo (`prisma-ledger-read.repository.ts:338-366`). | `PARCIALMENTE_IMPLEMENTADO`  |
-| La pata de tarjeta no repite `importReference`  | La clave única `(userId, importReference)` existe (`schema.prisma:811`); la ruta de correo no está implementada.                                   | `NO_IMPLEMENTADO`            |
+| Afirmación del contrato                         | Código actual                                                                                                                                                                       | Estado                       |
+| ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- |
+| La transferencia resuelve una cuenta propia     | El consumidor pasa `accountNumberHint: null` y usa `last4` como tarjeta (`finance-signal-consumer.ts:178-205`).                                                                     | `NO_IMPLEMENTADO`            |
+| La transferencia crea una sola pata con rol     | `executeUnpairedTransfer` crea el grupo, pero `createImportedTransaction` no fija `legRole` (`prisma-ledger-import.repository.ts:57-95`).                                           | `PARCIALMENTE_IMPLEMENTADO`  |
+| El emparejamiento usa 3 días y 50/2 %           | `match-imported-transfers.ts:23-25` define la ventana y la tolerancia; `pickTransferMatch` exige un candidato único.                                                                | `VERIFICADO` (código actual) |
+| La referencia compartida no descarta la pata    | `findDedupeCandidate` busca por `externalReference` sin tipo ni cuenta (`prisma-ledger-read.repository.ts:407-440`).                                                                | `CONTRADICE_CODIGO`          |
+| El pago de tarjeta reutiliza dos patas          | El correo llama `ImportCardPaymentUseCase`, que decide y escribe con `createImportedCardPayment`: dos patas `CARD_PAYMENT`, `source EMAIL`, sin categoría, con bloqueo por usuario. | `VERIFICADO` (`0c9b130`)     |
+| La fecha del encabezado es solo sugerencia      | El esquema de clasificación no tiene `suggestedTransactionDate` ni procedencia (`email-classification.util.ts:12-66`).                                                              | `NO_IMPLEMENTADO`            |
+| El reverso sigue la cadena del ADR-003          | El consumidor solo busca por referencia y cae a `bankReference` (`finance-signal-consumer.ts:440-470`); el helper de candidatos no se llama.                                        | `NO_IMPLEMENTADO`            |
+| El reverso filtra tipo, transferencia y tarjeta | `findCandidatesForReverse` filtra usuario, estado, moneda, monto y ±14 días; no filtra tipo ni grupo (`prisma-ledger-read.repository.ts:338-366`).                                  | `PARCIALMENTE_IMPLEMENTADO`  |
+| La pata de tarjeta no repite `importReference`  | `createCardPayment` escribe `importReference` solo en la pata `SOURCE`; la prueba de integración lo comprueba.                                                                      | `VERIFICADO` (`0c9b130`)     |
 
 La ventana de 3 días, la tolerancia de 50 o 2 % y la ventana de 10 minutos del ADR son comportamiento existente, no acuerdos nuevos. La ventana de ±14 días del reverso viene del ADR-003 y no se cambia por inferencia.
 

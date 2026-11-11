@@ -25,6 +25,10 @@ const transactionSchema = z
       .string()
       .regex(/^\d{4}$/)
       .optional(),
+    accountNumberLast4: z
+      .string()
+      .regex(/^\d{4}$/)
+      .optional(),
     movementClass: z
       .enum([
         'PURCHASE',
@@ -33,6 +37,7 @@ const transactionSchema = z
         'ATM_WITHDRAWAL',
         'TRANSFER_OUT',
         'TRANSFER_IN',
+        'CARD_PAYMENT',
         'FEE',
         'REFUND',
         'OTHER',

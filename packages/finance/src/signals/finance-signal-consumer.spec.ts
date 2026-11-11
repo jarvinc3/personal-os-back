@@ -69,6 +69,7 @@ function setup(overrides: Record<string, unknown> = {}) {
     importEmail as never,
     ledger as never,
     reverseTransaction as never,
+    { execute: jest.fn().mockResolvedValue(null) } as never,
     { suggest: jest.fn().mockResolvedValue(null) } as never,
     baseCurrency as never,
   );

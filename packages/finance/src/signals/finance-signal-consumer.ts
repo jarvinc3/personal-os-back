@@ -6,16 +6,24 @@ import { buildFinancialImportNotes } from '../ledger/application/build-import-no
 import {
   MOVEMENT_CLASSES,
   isAtmMovementClass,
+  isCardPaymentMovementClass,
   isTransferMovementClass,
   type MovementClass,
 } from '../ledger/domain/movement-class';
+import {
+  ImportCardPaymentUseCase,
+  type ImportCardPaymentInput,
+} from '../ledger/application/import-card-payment.use-case';
 import {
   isUnpairedTransferCandidate,
   pickTransferMatch,
   type ImportTransferCandidate,
   uniqueCashAccountId,
 } from '../ledger/application/match-imported-transfers';
-import { resolveLedgerTargetFromHints } from '../ledger/application/resolve-ledger-target-from-hints';
+import {
+  accountMatchesHint,
+  resolveLedgerTargetFromHints,
+} from '../ledger/application/resolve-ledger-target-from-hints';
 import {
   classifyTransferImport,
   resolveTransferAccount,
@@ -34,7 +42,10 @@ import { ReverseTransactionUseCase } from '../ledger/application/reverse-transac
 import { MerchantsService } from '../merchants/application/merchants.service';
 import { ResolveUserBaseCurrencyUseCase } from '../fx/application/resolve-user-base-currency';
 import { resolveCategoryIdForImport } from '../shared/domain/category-type';
-import { mapBankStatusToInternal } from '../shared/domain/transaction-status';
+import {
+  mapBankStatusToInternal,
+  type FinTransactionStatusValue,
+} from '../shared/domain/transaction-status';
 import type { FinanceSignalConsumerPort } from '../contracts';
 
 const transactionSchema = z
@@ -105,6 +116,7 @@ type ImportStatus =
 const REVIEW_CONFIDENCE_THRESHOLD = 0.7;
 const REVERSAL_WOULD_APPLY = 'REVERSAL_WOULD_APPLY';
 type ImportReviewEvidence = Record<string, string | string[] | number | null>;
+type ConsumeResult = Awaited<ReturnType<FinanceSignalConsumerPort['consume']>>;
 
 type SignalConsumeResult = {
   outcome: 'APPLIED' | 'ALREADY_APPLIED' | 'REVIEW_REQUIRED' | 'REJECTED';
@@ -134,6 +146,7 @@ type ImportPlan =
       evidence?: ImportReviewEvidence;
     }
   | { kind: 'REVERSE'; originalId: string; metadata: Record<string, unknown> }
+  | { kind: 'CARD_PAYMENT'; payment: ImportCardPaymentInput }
   | { kind: 'IMPORT'; draft: ImportDraft };
 
 @Injectable()
@@ -145,6 +158,7 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
     private readonly importTransaction: ImportFinancialTransactionUseCase,
     private readonly ledger: LedgerQueryService,
     private readonly reverseTransaction: ReverseTransactionUseCase,
+    private readonly cardPaymentImport: ImportCardPaymentUseCase,
     private readonly merchants: MerchantsService,
     private readonly baseCurrency: ResolveUserBaseCurrencyUseCase,
   ) {}
@@ -244,12 +258,39 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
         accountNumberLast4: true,
         isDefaultForInstitution: true,
         type: true,
+        currency: true,
       },
     });
     const activeCards = await this.prisma.finCard.findMany({
       where: { userId: signal.userId, isActive: true },
       select: { id: true, lastFour: true },
     });
+    const amount = candidate.amount!;
+    const currency = candidate.currency!;
+    const transactionDate = new Date(candidate.transactionDate!);
+    const type = this.transactionType(candidate, movementClass);
+    const status =
+      candidate.kind === 'PENDING'
+        ? 'PENDING'
+        : mapBankStatusToInternal({
+            bankStatusNormalized: candidate.bankStatusNormalized ?? 'UNKNOWN',
+            statusConfidence:
+              candidate.statusConfidence ?? payload.confidence ?? 0,
+          });
+    if (status === 'REVERSED') {
+      return this.buildReversalPlan(signal, candidate);
+    }
+
+    if (isCardPaymentMovementClass(movementClass)) {
+      return this.buildCardPaymentPlan({
+        signal,
+        payload,
+        candidate,
+        accounts: activeAccounts,
+        status,
+      });
+    }
+
     const transfer = isTransferMovementClass(movementClass);
     let target: { accountId?: string; cardId?: string };
     let transferLeg: TransferLegIdentity | null = null;
@@ -297,22 +338,6 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
         );
       }
       target = ledgerTarget;
-    }
-
-    const amount = candidate.amount!;
-    const currency = candidate.currency!;
-    const transactionDate = new Date(candidate.transactionDate!);
-    const type = this.transactionType(candidate, movementClass);
-    const status =
-      candidate.kind === 'PENDING'
-        ? 'PENDING'
-        : mapBankStatusToInternal({
-            bankStatusNormalized: candidate.bankStatusNormalized ?? 'UNKNOWN',
-            statusConfidence:
-              candidate.statusConfidence ?? payload.confidence ?? 0,
-          });
-    if (status === 'REVERSED') {
-      return this.buildReversalPlan(signal, candidate);
     }
 
     if (
@@ -389,25 +414,14 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
       status,
       skipUncategorizedWarning: transfer || isAtmMovementClass(movementClass),
     });
-    const aiMetadata = {
-      signalId: signal.signalId,
-      sourceEmailMessageId: signal.sourceId,
-      signalType: signal.signalType,
-      signalSchemaVersion: signal.schemaVersion,
-      semanticType: payload.semanticType ?? null,
-      confidence: payload.confidence ?? null,
+    const aiMetadata = this.importMetadata({
+      signal,
+      payload,
+      candidate,
       movementClass,
-      bankStatusNormalized: candidate.bankStatusNormalized ?? 'UNKNOWN',
-      statusConfidence: candidate.statusConfidence ?? payload.confidence ?? 0,
-      statusEvidence: candidate.statusEvidence ?? null,
-      suggestedTransactionDate: candidate.suggestedTransactionDate ?? null,
-      suggestedTransactionDateSource:
-        candidate.suggestedTransactionDateSource ?? null,
-      originalAmount: amount,
-      originalCurrency: currency,
-      sourceReceivedAmount: candidate.receivedAmount ?? null,
-      sourceExchangeRate: candidate.transferExchangeRate ?? null,
-    };
+      amount,
+      currency,
+    });
 
     let cashAccountId: string | null = null;
     if (isAtmMovementClass(movementClass)) {
@@ -469,6 +483,8 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
         return plan.result;
       case 'REVERSE':
         return this.applyReversal(signal, plan.originalId, plan.metadata);
+      case 'CARD_PAYMENT':
+        return this.applyCardPayment(signal, plan.payment);
       case 'IMPORT':
         return this.applyImport(signal, plan.draft);
     }
@@ -493,6 +509,21 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
           outcome: 'APPLIED',
           reason: REVERSAL_WOULD_APPLY,
           domainReferences: [{ type: 'FinTransaction', id: plan.originalId }],
+        };
+      case 'CARD_PAYMENT':
+        return {
+          outcome: 'APPLIED',
+          cardPayment: {
+            sourceAccountId: plan.payment.sourceAccountId,
+            cardId: plan.payment.cardId,
+            amount: plan.payment.amount,
+            currency: plan.payment.currency,
+            status: plan.payment.status,
+            transactionDate: plan.payment.transactionDate.toISOString(),
+            description: plan.payment.description,
+            externalReference: plan.payment.externalReference,
+            importReference: plan.payment.importReference,
+          },
         };
       case 'IMPORT':
         return {
@@ -787,6 +818,241 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
       reason,
       evidence,
       result: { outcome: 'REVIEW_REQUIRED', domainReferences: [], reason },
+    };
+  }
+
+  private importMetadata({
+    signal,
+    payload,
+    candidate,
+    movementClass,
+    amount,
+    currency,
+  }: {
+    signal: RoutedSignal;
+    payload: z.infer<typeof payloadSchema>;
+    candidate: Candidate;
+    movementClass: MovementClass;
+    amount: number;
+    currency: string;
+  }) {
+    return {
+      signalId: signal.signalId,
+      sourceEmailMessageId: signal.sourceId,
+      signalType: signal.signalType,
+      signalSchemaVersion: signal.schemaVersion,
+      semanticType: payload.semanticType ?? null,
+      confidence: payload.confidence ?? null,
+      movementClass,
+      bankStatusNormalized: candidate.bankStatusNormalized ?? 'UNKNOWN',
+      statusConfidence: candidate.statusConfidence ?? payload.confidence ?? 0,
+      statusEvidence: candidate.statusEvidence ?? null,
+      suggestedTransactionDate: candidate.suggestedTransactionDate ?? null,
+      suggestedTransactionDateSource:
+        candidate.suggestedTransactionDateSource ?? null,
+      originalAmount: amount,
+      originalCurrency: currency,
+      sourceReceivedAmount: candidate.receivedAmount ?? null,
+      sourceExchangeRate: candidate.transferExchangeRate ?? null,
+    };
+  }
+
+  /**
+   * Pago de tarjeta confirmado: dos patas `CARD_PAYMENT`, sin gasto. Solo aplica
+   * una vez; un pago manual parecido se vincula como duplicado y la duda va a
+   * revisión.
+   */
+  private async buildCardPaymentPlan({
+    signal,
+    payload,
+    candidate,
+    accounts,
+    status,
+  }: {
+    signal: RoutedSignal;
+    payload: z.infer<typeof payloadSchema>;
+    candidate: Candidate;
+    accounts: readonly {
+      id: string;
+      accountNumberLast4: string | null;
+      currency: string;
+    }[];
+    status: FinTransactionStatusValue;
+  }): Promise<ImportPlan> {
+    if (status !== 'CONFIRMED') {
+      return this.reviewPlan('CARD_PAYMENT_NOT_CONFIRMED');
+    }
+    const amount = candidate.amount!;
+    const currency = candidate.currency!;
+    const transactionDate = new Date(candidate.transactionDate!);
+
+    const card = await this.resolveCardPaymentCard({
+      userId: signal.userId,
+      lastFour: candidate.last4 ?? null,
+    });
+    if (card.kind === 'review') {
+      return this.reviewPlan(card.reason);
+    }
+    const account = this.resolveCardPaymentAccount({
+      accounts,
+      accountNumberLast4: candidate.accountNumberLast4 ?? null,
+    });
+    if (account.kind === 'review') {
+      return this.reviewPlan(account.reason);
+    }
+    if (!card.currencies.includes(currency)) {
+      return this.reviewPlan('CARD_CURRENCY_MISSING');
+    }
+
+    const payment: ImportCardPaymentInput = {
+      sourceAccountId: account.accountId,
+      sourceAccountCurrency: account.currency,
+      cardId: card.cardId,
+      amount,
+      currency,
+      transactionDate,
+      externalReference: candidate.bankReference ?? null,
+      importReference: signal.signalId,
+      aiMetadata: this.importMetadata({
+        signal,
+        payload,
+        candidate,
+        movementClass: 'CARD_PAYMENT',
+        amount,
+        currency,
+      }),
+      description: candidate.merchant ?? 'Pago de tarjeta',
+      notes: null,
+      status,
+    };
+    const decision = await this.cardPaymentImport.preview(
+      signal.userId,
+      payment,
+    );
+    if (decision.kind === 'duplicate') {
+      return this.duplicatePlan(decision.transactionId);
+    }
+    if (decision.kind === 'conflict' || decision.kind === 'ambiguous') {
+      return this.reviewPlan(decision.reason, {
+        externalReference: candidate.bankReference ?? null,
+        candidateTransactionIds: decision.candidateTransactionIds,
+      });
+    }
+    return { kind: 'CARD_PAYMENT', payment };
+  }
+
+  private async applyCardPayment(
+    signal: RoutedSignal,
+    payment: ImportCardPaymentInput,
+  ): Promise<ConsumeResult> {
+    const imported = await this.cardPaymentImport.execute(
+      signal.userId,
+      payment,
+    );
+    if (imported.kind === 'review') {
+      return this.review({
+        signal,
+        reason: imported.reason,
+        evidence: {
+          externalReference: payment.externalReference,
+          candidateTransactionIds: imported.candidateTransactionIds,
+        },
+      });
+    }
+    if (imported.kind === 'duplicate') {
+      await this.persist(
+        signal,
+        'DUPLICATE',
+        null,
+        undefined,
+        imported.sourceTransactionId,
+      );
+      return this.result('ALREADY_APPLIED', imported.sourceTransactionId);
+    }
+    if (imported.kind === 'not_written') {
+      return this.review({ signal, reason: 'CARD_PAYMENT_NOT_IMPORTED' });
+    }
+    await this.persist(signal, 'IMPORTED', imported.sourceTransactionId);
+    return this.result('APPLIED', imported.sourceTransactionId);
+  }
+
+  private async resolveCardPaymentCard({
+    userId,
+    lastFour,
+  }: {
+    userId: string;
+    lastFour: string | null;
+  }): Promise<
+    | { kind: 'resolved'; cardId: string; currencies: string[] }
+    | { kind: 'review'; reason: string }
+  > {
+    if (!lastFour) {
+      return { kind: 'review', reason: 'CARD_PAYMENT_CARD_NOT_FOUND' };
+    }
+    const cards = await this.prisma.finCard.findMany({
+      where: { userId, isActive: true },
+      select: {
+        id: true,
+        type: true,
+        lastFour: true,
+        balances: { select: { currency: true } },
+      },
+    });
+    const matches = cards.filter((card) => card.lastFour === lastFour);
+    if (matches.length === 0) {
+      return { kind: 'review', reason: 'CARD_PAYMENT_CARD_NOT_FOUND' };
+    }
+    if (matches.length > 1) {
+      return { kind: 'review', reason: 'CARD_PAYMENT_CARD_AMBIGUOUS' };
+    }
+    if (matches[0].type !== 'CREDIT') {
+      return { kind: 'review', reason: 'CARD_PAYMENT_CARD_NOT_CREDIT' };
+    }
+    return {
+      kind: 'resolved',
+      cardId: matches[0].id,
+      currencies: matches[0].balances.map(({ currency }) => currency),
+    };
+  }
+
+  private resolveCardPaymentAccount({
+    accounts,
+    accountNumberLast4,
+  }: {
+    accounts: readonly {
+      id: string;
+      accountNumberLast4: string | null;
+      currency: string;
+    }[];
+    accountNumberLast4: string | null;
+  }):
+    | { kind: 'resolved'; accountId: string; currency: string }
+    | { kind: 'review'; reason: string } {
+    if (!accountNumberLast4) {
+      return {
+        kind: 'review',
+        reason: 'CARD_PAYMENT_SOURCE_ACCOUNT_NOT_FOUND',
+      };
+    }
+    const matches = accounts.filter((account) =>
+      accountMatchesHint(account.accountNumberLast4, accountNumberLast4),
+    );
+    if (matches.length === 0) {
+      return {
+        kind: 'review',
+        reason: 'CARD_PAYMENT_SOURCE_ACCOUNT_NOT_FOUND',
+      };
+    }
+    if (matches.length > 1) {
+      return {
+        kind: 'review',
+        reason: 'CARD_PAYMENT_SOURCE_ACCOUNT_AMBIGUOUS',
+      };
+    }
+    return {
+      kind: 'resolved',
+      accountId: matches[0].id,
+      currency: matches[0].currency,
     };
   }
 

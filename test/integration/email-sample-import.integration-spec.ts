@@ -151,7 +151,7 @@ function buildService({
   const registry = new AiSignalConsumerRegistry();
   registry.register({ domain: 'FINANCE', consume, preview });
   return new EmailSampleImportService(
-    prisma as never,
+    prisma,
     classification,
     registry,
     new AiSignalsService(prisma),

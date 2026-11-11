@@ -6,9 +6,10 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [Se
 
 ### Agregado
 
-- #342: agrega la selección acotada de correos del piloto: una vista previa que reclasifica hasta 20 correos con el modelo sin escribir nada y devuelve el manifiesto con el movimiento que crearía, y una ejecución idempotente que procesa solo esos ids, sin ampliar por remitente ni por plantilla. La predicción y la escritura comparten el mismo paso de decisión de Finance. La ruta responde 404 en producción.
+- #335: registra un pago de tarjeta confirmado por correo como la misma operación de dos patas de la ruta manual: dos filas `CARD_PAYMENT`, la cuenta baja y el disponible de la tarjeta sube, sin gasto ni presupuesto. Solo la pata de origen lleva `importReference`. La conciliación compara siete días cuando la referencia está presente y tres días sin referencia; un pago manual parecido se vincula y la duda va a revisión. Un aviso pendiente o un recordatorio no crean movimiento.
+- #342: agrega la selección acotada de correos del piloto: una vista previa que reclasifica hasta 20 correos con el modelo sin escribir nada y devuelve el manifiesto con el movimiento que crearía (o las dos entidades de un pago de tarjeta), y una ejecución idempotente que procesa solo esos ids, sin ampliar por remitente ni por plantilla. La predicción y la escritura comparten el mismo paso de decisión de Finance. La ruta responde 404 en producción.
 - #337: la fecha de encabezado se conserva como sugerencia `EMAIL_HEADER` y mantiene el correo en revisión hasta confirmar una fecha de operación; los motivos de ambigüedad ya no incorporan el conteo y guardan candidatos en evidencia.
-- Contratos de importación por correo: transferencias de una pata, pagos de tarjeta confirmados, fecha sugerida y reversos por la cadena del ADR-003; se publicaron inicialmente como `NO_IMPLEMENTADO` con los issues #334, #335, #337 y #336.
+- El contrato de importación por correo documenta transferencias de una pata, pagos de tarjeta, fechas sugeridas y reversos por la cadena del ADR-003 (#334–#337).
 - #308: reorganiza `docs/refactors` por programa y fase; añade índices con objetivos, issues, PRs y estados, y conserva inventarios y borradores anteriores en `archive/`.
 - Catálogos CSV con 104 casos manuales AI-0 a AI-11 y una herramienta para generar rondas XLSX y exportar sus resultados a CSV (#309).
 - NOTIF-0 (#245): adopta el consumidor neutral de `NotificationIntent` en Notifications y valida intents por versión y forma sin conectar todavía productores ni delivery.

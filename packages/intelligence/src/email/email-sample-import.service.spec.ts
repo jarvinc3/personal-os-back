@@ -249,6 +249,40 @@ describe('EmailSampleImportService', () => {
     expect(manifest.items[0].execution).toBeUndefined();
   });
 
+  it('includes both card payment targets in the dry run prediction', async () => {
+    const { service } = setup({
+      previewResult: {
+        outcome: 'APPLIED',
+        cardPayment: {
+          sourceAccountId: 'account-1',
+          cardId: 'card-1',
+          amount: 125.5,
+          currency: 'DOP',
+          status: 'CONFIRMED',
+          transactionDate: '2026-11-01T00:00:00.000Z',
+          description: 'Pago de tarjeta',
+          externalReference: 'BHD-1',
+          importReference: 'email-message-1',
+        },
+      },
+    });
+
+    const manifest = await service.run({
+      userId: 'user-1',
+      dryRun: true,
+      selection: { messageIds: ['message-1'] },
+    });
+
+    expect(manifest.items[0].prediction).toMatchObject({
+      outcome: 'APPLIED',
+      cardPayment: {
+        sourceAccountId: 'account-1',
+        cardId: 'card-1',
+        amount: 125.5,
+      },
+    });
+  });
+
   it('marks a classification that would not publish a signal', async () => {
     const { service, financeConsumer } = setup({
       classification: {
