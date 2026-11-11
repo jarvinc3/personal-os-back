@@ -1,4 +1,5 @@
 import { NotFoundException } from '@nestjs/common';
+import { TIMEOUT_MS_KEY } from '@personal-os/core';
 import { AiIntelligenceController } from './ai-intelligence.controller';
 import type { EmailSampleImportService } from './email-sample-import.service';
 
@@ -30,6 +31,21 @@ const previewRequest = {
 };
 
 describe('AiIntelligenceController sample import', () => {
+  it('gives only the sample import route a three-minute timeout', () => {
+    const timeoutFor = (method: string) => {
+      const handler: unknown = Object.getOwnPropertyDescriptor(
+        AiIntelligenceController.prototype,
+        method,
+      )?.value;
+      return typeof handler === 'function'
+        ? Reflect.getMetadata(TIMEOUT_MS_KEY, handler)
+        : undefined;
+    };
+
+    expect(timeoutFor('sampleImportRun')).toBe(180_000);
+    expect(timeoutFor('messages')).toBeUndefined();
+  });
+
   it('does not expose the pilot route in production', () => {
     const { controller, sampleImport } = makeController({
       nodeEnv: 'production',
