@@ -1,5 +1,10 @@
 export { AiCoreModule } from './ai-core.module';
 export { AiSignalConsumerRegistry } from './signals/ai-signal-consumer.registry';
+export { EmailSampleImportService } from './email/email-sample-import.service';
+export type {
+  SampleImportManifest,
+  SampleManifestItem,
+} from './email/email-sample-import.service';
 export { AiActionsRepository } from './actions/infrastructure/ai-actions.repository';
 export { AiActionsService } from './actions/application/ai-actions.service';
 export { AiCapabilityRegistry } from './capabilities/ai-capability.registry';
@@ -21,8 +26,10 @@ export {
   REVIEW_GROUP_VERDICTS,
   SEMANTIC_ROUTES,
   SEMANTIC_TYPES,
+  SUGGESTED_TRANSACTION_DATE_SOURCES,
   TRANSACTION_DIRECTIONS,
   TRANSACTION_KINDS,
+  TRANSACTION_MOVEMENT_CLASSES,
 } from './evidence/human-verification.constants';
 export {
   REVIEW_QUEUE_ORDERS,

@@ -3,8 +3,10 @@ import { IsBoolean } from 'class-validator';
 import {
   SEMANTIC_ROUTES,
   SEMANTIC_TYPES,
+  SUGGESTED_TRANSACTION_DATE_SOURCES,
   TRANSACTION_DIRECTIONS,
   TRANSACTION_KINDS,
+  TRANSACTION_MOVEMENT_CLASSES,
 } from '../../evidence/human-verification.constants';
 
 const KNOWLEDGE_SCOPES = ['GLOBAL', 'USER'] as const;
@@ -52,6 +54,24 @@ export class KnowledgeTransactionDto {
 
   @ApiPropertyOptional({ example: '4821', pattern: '^\\d{4}$' })
   last4?: string;
+
+  @ApiPropertyOptional({ example: '9012', pattern: '^\\d{4}$' })
+  accountNumberLast4?: string;
+
+  @ApiPropertyOptional({ enum: TRANSACTION_MOVEMENT_CLASSES })
+  movementClass?: (typeof TRANSACTION_MOVEMENT_CLASSES)[number];
+
+  @ApiPropertyOptional({ format: 'date-time' })
+  suggestedTransactionDate?: string;
+
+  @ApiPropertyOptional({ enum: SUGGESTED_TRANSACTION_DATE_SOURCES })
+  suggestedTransactionDateSource?: (typeof SUGGESTED_TRANSACTION_DATE_SOURCES)[number];
+
+  @ApiPropertyOptional()
+  reverseOfBankReference?: string;
+
+  @ApiPropertyOptional()
+  reverseOfEmailMessageId?: string;
 }
 
 export class KnowledgeLabelDto {

@@ -7,6 +7,10 @@ import type { LedgerCardType } from '../../../shared/domain/ledger-rules';
 import type { ResolvedAmounts } from '../../../shared/domain/money';
 import type { TransactionLinkKind } from '../../../shared/domain/transaction-links';
 import type {
+  CardPaymentImportDecision,
+  IncomingCardPayment,
+} from '../reconcile-card-payment-import';
+import type {
   CreateCardPaymentCommand,
   CreateTransactionCommand,
   CreateTransferCommand,
@@ -15,6 +19,28 @@ import type {
   ListTransactionsQuery,
   TransactionUpdateFields,
 } from '../commands/ledger.commands';
+
+/** Resultado de un pago importado: escribe, vincula o deja en revisión. */
+export type ImportedCardPaymentOutcome =
+  | {
+      kind: 'created';
+      transferGroupId: string;
+      sourceTransactionId: string;
+      cardTransactionId: string;
+    }
+  | {
+      kind: 'duplicate';
+      transferGroupId: string;
+      sourceTransactionId: string;
+    }
+  | {
+      kind: 'review';
+      reason:
+        | 'CARD_PAYMENT_REFERENCE_CONFLICT'
+        | 'CARD_PAYMENT_RECONCILIATION_AMBIGUOUS';
+      candidateTransactionIds: string[];
+    }
+  | { kind: 'not_written' };
 
 /** Transaction with optional account/card labels (list/get shape). */
 export type LedgerTransactionRow = {
@@ -300,6 +326,24 @@ export interface LedgerRepositoryPort {
     fromAmounts: ResolvedAmounts;
     toAmounts: ResolvedAmounts;
   }): Promise<CreateTransferResult | null>;
+
+  /**
+   * Igual que `createCardPayment`, pero decide dentro de la misma transacción
+   * con un bloqueo por usuario: dos correos simultáneos con la misma operación
+   * no pueden crear dos pagos.
+   */
+  createImportedCardPayment(input: {
+    userId: string;
+    command: CreateCardPaymentCommand;
+    fromAmounts: ResolvedAmounts;
+    toAmounts: ResolvedAmounts;
+    incoming: IncomingCardPayment;
+  }): Promise<ImportedCardPaymentOutcome>;
+
+  previewImportedCardPayment(input: {
+    userId: string;
+    incoming: IncomingCardPayment;
+  }): Promise<CardPaymentImportDecision>;
 
   findCardForPayment(
     userId: string,

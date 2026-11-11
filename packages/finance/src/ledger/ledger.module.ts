@@ -14,6 +14,7 @@ import { CreateTransactionUseCase } from './application/create-transaction.use-c
 import { CreateTransferUseCase } from './application/create-transfer.use-case';
 import { ConfirmTransferUseCase } from './application/confirm-transfer.use-case';
 import { CreateCardPaymentUseCase } from './application/create-card-payment.use-case';
+import { ImportCardPaymentUseCase } from './application/import-card-payment.use-case';
 import { UpdateCardPaymentUseCase } from './application/update-card-payment.use-case';
 import { DeleteTransactionUseCase } from './application/delete-transaction.use-case';
 import { MarkNotDuplicateUseCase } from './application/mark-not-duplicate.use-case';
@@ -79,6 +80,7 @@ import { CardPaymentsController } from './presentation/card-payments.controller'
     ConfirmTransferUseCase,
     ReverseTransferUseCase,
     CreateCardPaymentUseCase,
+    ImportCardPaymentUseCase,
     UpdateCardPaymentUseCase,
     ReverseTransactionUseCase,
     ImportFinancialTransactionUseCase,
@@ -103,6 +105,7 @@ import { CardPaymentsController } from './presentation/card-payments.controller'
     ConfirmTransferUseCase,
     ReverseTransferUseCase,
     CreateCardPaymentUseCase,
+    ImportCardPaymentUseCase,
     UpdateCardPaymentUseCase,
     ReverseTransactionUseCase,
     ImportFinancialTransactionUseCase,

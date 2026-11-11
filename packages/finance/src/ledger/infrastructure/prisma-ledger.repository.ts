@@ -13,6 +13,7 @@ import type { BudgetSpendSnapshot } from '../../shared/domain/budget-snapshot';
 import type { StoredMovement } from '../../shared/domain/deletion-snapshot';
 import type { ResolvedAmounts } from '../../shared/domain/money';
 import type { TransactionLinkKind } from '../../shared/domain/transaction-links';
+import type { IncomingCardPayment } from '../application/reconcile-card-payment-import';
 import type {
   CreateCardPaymentCommand,
   CreateTransactionCommand,
@@ -239,6 +240,23 @@ export class PrismaLedgerRepository implements LedgerRepositoryPort {
     toAmounts: ResolvedAmounts;
   }) {
     return this.write.createCardPayment(input);
+  }
+
+  createImportedCardPayment(input: {
+    userId: string;
+    command: CreateCardPaymentCommand;
+    fromAmounts: ResolvedAmounts;
+    toAmounts: ResolvedAmounts;
+    incoming: IncomingCardPayment;
+  }) {
+    return this.write.createImportedCardPayment(input);
+  }
+
+  previewImportedCardPayment(input: {
+    userId: string;
+    incoming: IncomingCardPayment;
+  }) {
+    return this.write.previewImportedCardPayment(input);
   }
 
   findCardForPayment(userId: string, cardId: string) {

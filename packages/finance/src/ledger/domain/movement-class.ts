@@ -5,6 +5,7 @@ export const MOVEMENT_CLASSES = [
   'ATM_WITHDRAWAL',
   'TRANSFER_OUT',
   'TRANSFER_IN',
+  'CARD_PAYMENT',
   'FEE',
   'REFUND',
   'OTHER',
@@ -16,6 +17,12 @@ export function isTransferMovementClass(
   movementClass: MovementClass | null | undefined,
 ): boolean {
   return movementClass === 'TRANSFER_OUT' || movementClass === 'TRANSFER_IN';
+}
+
+export function isCardPaymentMovementClass(
+  movementClass: MovementClass | null | undefined,
+): boolean {
+  return movementClass === 'CARD_PAYMENT';
 }
 
 export function isAtmMovementClass(

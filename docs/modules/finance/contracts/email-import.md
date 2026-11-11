@@ -1,8 +1,8 @@
 # Importación por correo: transferencias, pagos, datos faltantes y reversos
 
-- Estado: contrato acordado. La transferencia de una pata está `IMPLEMENTADO-PROBADO` (PR #340, `6c15b2f`); los reversos se implementan en esta unidad. El resto sigue `NO_IMPLEMENTADO`.
+- Estado: contrato acordado. La transferencia de una pata (#340), el pago de tarjeta (#335), las pistas del clasificador (#343) y la vista previa de muestra (#342) están implementados en develop. Esta unidad implementa los reversos; el consumidor de fecha sugerida de #337 sigue pendiente.
 - Fecha: 2026-11-11. Decisiones del owner del 2026-11-11 incorporadas en la sección 0.
-- Base: `develop` `4dedfa933a5eaf2f249366c678b542eed14a8020`.
+- Base integrada: `develop` `ed7221c1684fede4f634d0624191c1228bb6ffe9`.
 - Issues: [#334](https://github.com/jarvinc3/personal-os-back/issues/334), [#335](https://github.com/jarvinc3/personal-os-back/issues/335), [#337](https://github.com/jarvinc3/personal-os-back/issues/337), [#336](https://github.com/jarvinc3/personal-os-back/issues/336).
 - Evidencia de la unidad: paquete local de revisión, no versionado; el alcance público vive en los issues.
 
@@ -207,7 +207,7 @@ La ruta manual no cambia en este contrato. La opción de responder 409 y exigir 
 ### 5.2 Campos y flujo
 
 - `suggestedTransactionDate` y `suggestedTransactionDateSource` viven en la clasificación y en la respuesta de revisión.
-- La procedencia `EMAIL_HEADER` la aporta el parser determinista; el modelo no la inventa.
+- La procedencia `EMAIL_HEADER` la aporta el flujo que conoce `receivedAt`, después de validar la salida; el modelo no la inventa.
 - Si existe `transactionDate`, manda esa fecha. La sugerencia se conserva como evidencia.
 - Si solo existe la sugerencia, el motivo es `TRANSACTION_DATE_SUGGESTED`. La cola y el detalle muestran la fecha y su procedencia.
 - La persona confirma o corrige con la verificación humana existente: `POST /api/intelligence/messages/:messageId/verifications` con `transaction.transactionDate`.
@@ -396,7 +396,11 @@ Un aviso de reverso con monto menor al del original es un reverso parcial (decis
 
 | Unidad   | Qué quedó                                                                                                                                                                                                           | Evidencia                                                                                                    |
 | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| PR #335  | Pago de tarjeta de correo, dos patas y conciliación con la ruta manual.                                                                                                                                             | `develop`; pruebas unitarias y de integración                                                                |
 | PR #340  | Una sola pata de transferencia: cuenta por `accountNumberLast4`, `transferGroupId`, `legRole`, motivos estables, duplicado, contraparte legítima, conflicto de referencia y replay. El emparejamiento no se invoca. | `6c15b2f`; pruebas de `resolve-transfer-import.spec.ts` y del consumidor                                     |
+| PR #343  | Fecha del encabezado sugerida con fuente, sin inventar `transactionDate`, propagada a persistencia y señal.                                                                                                         | `develop`; pruebas de clasificación y señal                                                                  |
+| PR #342  | Selección acotada de muestra, vista previa sin escrituras y ejecución idempotente en DEV/local.                                                                                                                     | `develop`; pruebas unitarias, E2E e integración                                                              |
+| #337     | El clasificador ya envía la sugerencia; la cola de revisión y la confirmación antes de registrar siguen pendientes.                                                                                                 | Parcial; issue #337                                                                                          |
 | Reversos | Cadena por referencia, id de correo y candidato único con evidencia; reintento cuando el original aparece; reverso parcial vinculado; comercio desconocido marcado.                                                 | SHA de este PR; pruebas del consumidor, `resolve-reversal-target.spec.ts`, lector de presupuesto y analítica |
 
 Los casos `T-TRA`, `T-TAR`, `T-DAT` y `T-REV` son propuestos y no ejecutados: no hay una corrida completa del contrato. La QA sintética existente y CTR-02 se conservan en `temp/pr331-test-reports/` y no certifican estos cambios.
@@ -405,12 +409,13 @@ Los casos `T-TRA`, `T-TAR`, `T-DAT` y `T-REV` son propuestos y no ejecutados: no
 
 | Afirmación del contrato                                 | Código actual                                                                                                                                                                                                             | Estado                       |
 | ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- |
-| La transferencia resuelve una cuenta propia             | El consumidor pasa `accountNumberHint: null` y usa `last4` como tarjeta (`finance-signal-consumer.ts:178-205`).                                                                                                           | `NO_IMPLEMENTADO`            |
-| La transferencia crea una sola pata con rol             | `executeUnpairedTransfer` crea el grupo, pero `createImportedTransaction` no fija `legRole` (`prisma-ledger-import.repository.ts:57-95`).                                                                                 | `PARCIALMENTE_IMPLEMENTADO`  |
+| La transferencia resuelve una cuenta propia             | `resolveTransferAccount` compara `accountNumberLast4` con cuentas activas del usuario; no usa tarjeta, CASH ni cuenta por defecto (`resolve-transfer-import.ts`).                                                         | `IMPLEMENTADO` (PR #340)     |
+| La transferencia crea una sola pata con rol             | `executeUnpairedTransfer` crea el grupo y el repositorio persiste `legRole` (`prisma-ledger-import.repository.ts`).                                                                                                       | `IMPLEMENTADO` (PR #340)     |
 | El emparejamiento usa 3 días y 50/2 %                   | `match-imported-transfers.ts:23-25` define la ventana y la tolerancia; `pickTransferMatch` exige un candidato único.                                                                                                      | `VERIFICADO` (código actual) |
-| La referencia compartida no descarta la pata            | `findDedupeCandidate` busca por `externalReference` sin tipo ni cuenta (`prisma-ledger-read.repository.ts:407-440`).                                                                                                      | `CONTRADICE_CODIGO`          |
-| El pago de tarjeta reutiliza dos patas                  | La ruta manual existe (`create-card-payment.use-case.ts`, `prisma-ledger-write.repository.ts:413-524`); el correo no tiene ruta.                                                                                          | `NO_IMPLEMENTADO`            |
-| La fecha del encabezado es solo sugerencia              | El esquema de clasificación no tiene `suggestedTransactionDate` ni procedencia (`email-classification.util.ts:12-66`).                                                                                                    | `NO_IMPLEMENTADO`            |
+| La referencia compartida no descarta la pata            | `classifyTransferImport` compara referencia, tipo, cuenta, monto, moneda y fecha; la contraparte legítima se importa (`resolve-transfer-import.ts`).                                                                      | `IMPLEMENTADO` (PR #340)     |
+| El pago de tarjeta reutiliza dos patas                  | El correo llama `ImportCardPaymentUseCase`, que concilia pagos manuales y crea dos patas `CARD_PAYMENT` sin gasto.                                                                                                        | `IMPLEMENTADO` (PR #335)     |
+| El clasificador emite las pistas                        | Esquema y prompt incluyen `accountNumberLast4`, `CARD_PAYMENT`, fecha sugerida con fuente y `reverseOfEmailMessageId`; la fecha recibida se aplica fuera del modelo.                                                      | `IMPLEMENTADO` (PR #343)     |
+| La fecha del encabezado es solo sugerencia              | La sugerencia llega desde el clasificador; la fila de revisión y la confirmación del consumidor siguen pendientes en #337.                                                                                                | `PARCIALMENTE IMPLEMENTADO`  |
 | El reverso sigue la cadena del ADR-003                  | `resolveReversal` resuelve por `reverseOfBankReference`, luego `reverseOfEmailMessageId` y luego un candidato único; no usa `bankReference` de la reversión (`finance-signal-consumer.ts`, `resolve-reversal-target.ts`). | `IMPLEMENTADO`               |
 | El reverso filtra tipo, transferencia y tarjeta         | `findCandidatesForReverse` filtra usuario, estado, `type DEBIT`, `transferGroupId` nulo, moneda, monto, ±14 días y comercio (`prisma-ledger-read.repository.ts`).                                                         | `IMPLEMENTADO`               |
 | El reverso pendiente se vincula al aparecer el original | Tras importar un movimiento se reintentan los reversos en revisión con `REVERSAL_ORIGINAL_NOT_FOUND` o `REVERSAL_REFERENCE_NOT_FOUND` (`finance-signal-consumer.ts`).                                                     | `IMPLEMENTADO`               |
@@ -432,3 +437,85 @@ Los casos propuestos viven en el paquete local de revisión y se resumen en los 
 Un caso solo se marca PASS cuando el contrato está implementado y el caso se ejecutó completo en el SHA exacto. Un caso propuesto no es una prueba ejecutada.
 
 Las pruebas de esta unidad cubren la cadena de reverso, el reverso parcial con su efecto en gasto y presupuesto, el reintento cuando el original aparece y el comercio desconocido. Son pruebas de unidad; no sustituyen los casos `T-*`.
+
+## 11. Selección acotada de muestra (piloto BHD)
+
+- Estado: `IMPLEMENTADO-PROBADO` para la selección, vista previa y ejecución de la muestra. Los flujos financieros de
+  las secciones 3 a 6 tienen estado independiente en la sección 8.3.
+- Fecha: 2026-11-11.
+- Issue: [#342](https://github.com/jarvinc3/personal-os-back/issues/342).
+- Ruta: `POST /api/intelligence/email/sample-import`.
+
+### 11.1 Selección
+
+Una llamada usa una sola forma de selección:
+
+- `messageIds`: lista explícita. Tope 20. Más de 20 responde 400 sin tocar nada.
+- `sender` con `dateFrom` y `dateTo`: ventana de fechas sobre la recepción.
+
+Enviar las dos formas, o ninguna, responde 400. El remitente se compara exacto con
+`fromDomain` o con `fromAddress`, sin distinguir mayúsculas. No hay coincidencia
+por semejanza ni por nombre de institución. Solo entran correos del usuario
+autenticado.
+
+### 11.2 Vista previa (`dryRun: true`)
+
+- Reclasifica con el modelo todos los correos seleccionados, también los que ya
+  tienen clasificación guardada, porque la guardada puede ser anterior a las
+  pistas nuevas.
+- No escribe nada: ni clasificaciones, ni observaciones, ni presupuesto de
+  modelo, ni telemetría de inferencia, ni señales, ni eventos de salida, ni
+  movimientos. La llamada al modelo viaja con `recordTelemetry: false`.
+- Devuelve un manifiesto por correo.
+
+La predicción del movimiento no repite las reglas: usa el mismo paso de decisión
+que la ejecución (`FinanceSignalConsumer.preview`). Vista previa y escritura
+comparten código, así el manifiesto no se separa del resultado.
+
+### 11.3 Ejecución (`dryRun: false`)
+
+- Procesa solo los ids de la lista. No amplía la selección por remitente ni por
+  plantilla ni reclasifica correos fuera de la lista.
+- Reclasifica cada correo seleccionado y reemplaza su clasificación guardada.
+- Publica la señal y aplica el movimiento llamando al consumidor de Finance en el
+  mismo proceso. La operación no depende de la cola para aplicar el movimiento.
+- Idempotente: la señal usa `email-{messageId}` y el import conserva su clave
+  única. Repetir la misma corrida devuelve `ALREADY_APPLIED` sin duplicar señal ni
+  movimiento.
+- La señal se registra en el evento de salida como en la clasificación normal. El
+  trabajo encolado no vuelve a aplicar el movimiento porque la señal queda
+  consumida.
+
+### 11.4 Manifiesto
+
+| Campo                             | Contenido                                                                                                               |
+| --------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `messageId`                       | Id del correo pedido.                                                                                                   |
+| `status`                          | `INCLUDED` o `NOT_FOUND`.                                                                                               |
+| `fromAddress`, `fromDomain`       | Remitente persistido.                                                                                                   |
+| `receivedAt`                      | Fecha de recepción del correo, no la de operación.                                                                      |
+| `classification`                  | Tipo, confianza, método, clase de movimiento, monto, moneda, fecha de operación, fecha sugerida con fuente y dirección. |
+| `classificationUnavailableReason` | Motivo cuando la clasificación no se pudo calcular.                                                                     |
+| `hints`                           | Referencia bancaria, comercio, `last4` y fecha sugerida con fuente observados.                                          |
+| `signal.published`                | Si el correo publicaría una señal `FINANCE.TRANSACTION_DETECTED`.                                                       |
+| `signal.reason`                   | Motivo cuando no publica.                                                                                               |
+| `prediction`                      | Resultado previsto y, si aplica, el movimiento que crearía.                                                             |
+| `execution`                       | Solo al ejecutar: resultado aplicado y id del movimiento.                                                               |
+
+### 11.5 Diferencias posibles entre vista previa y ejecución
+
+- La clasificación se recalcula al ejecutar. El modelo puede devolver otra
+  confianza u otro tipo; el manifiesto de cada corrida es la evidencia.
+- Dos correos de la misma muestra pueden competir por el mismo movimiento. El
+  segundo ve el estado que dejó el primero.
+- El cierre de cajero automático y el reintento por clave duplicada se resuelven
+  al escribir, no en la predicción.
+
+### 11.6 Límites
+
+- Solo entornos que no sean producción: la ruta responde 404 cuando
+  `NODE_ENV=production`.
+- Un solo escritor y una corrida a la vez sobre la misma base.
+- `POST /email/sync` y `POST /email/reset` no se usan.
+- La operación usa los flujos que figuran implementados en la sección 8.3. La
+  revisión y confirmación de la fecha sugerida del issue #337 siguen pendientes.

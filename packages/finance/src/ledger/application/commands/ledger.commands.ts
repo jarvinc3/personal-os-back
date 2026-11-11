@@ -118,7 +118,12 @@ export type CreateCardPaymentCommand = {
   notes?: string;
   status?: TransferStatus;
   statementId?: string;
-  source?: 'MANUAL' | 'AI';
+  source?: 'MANUAL' | 'AI' | 'EMAIL';
+  /** Reference shared by both legs; a match is a candidate, never proof. */
+  externalReference?: string | null;
+  /** Only the source leg carries it: `(userId, importReference)` is unique. */
+  importReference?: string | null;
+  aiMetadata?: unknown;
 };
 
 export type ImportFinancialTransactionCommand = {

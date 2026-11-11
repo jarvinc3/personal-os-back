@@ -112,6 +112,43 @@ describe('AI-4 knowledge', () => {
     ).toThrow();
   });
 
+  it('guarda las pistas de importación solo en USER', () => {
+    const input = fixture();
+    const hints = {
+      ...label,
+      transaction: {
+        ...label.transaction,
+        accountNumberLast4: '9012',
+        movementClass: 'CARD_PAYMENT',
+        suggestedTransactionDate: '2026-11-08T00:00:00.000Z',
+        suggestedTransactionDateSource: 'EMAIL_HEADER',
+        reverseOfEmailMessageId: 'original-email-1',
+      },
+    };
+    input.verifications = input.verifications.map((verification) => ({
+      ...verification,
+      correctedPayload: hints,
+    }));
+    const projected = projectKnowledge(input);
+    const userItem = projected.find(
+      (item) =>
+        item.scope === 'USER' &&
+        item.userId === 'u1' &&
+        item.knowledgeType === 'EMAIL_SENDER',
+    );
+    expect(userItem?.payload.label.transaction).toMatchObject({
+      accountNumberLast4: '9012',
+      movementClass: 'CARD_PAYMENT',
+      reverseOfEmailMessageId: 'original-email-1',
+    });
+    const globalItems = projected.filter((item) => item.scope === 'GLOBAL');
+    expect(globalItems.length).toBeGreaterThan(0);
+    for (const item of globalItems) {
+      expect(item.payload.label.transaction).toEqual({ kind: 'TRANSACTION' });
+      expect(JSON.stringify(item.payload)).not.toContain('9012');
+    }
+  });
+
   it('reconstruye la misma proyección y aísla remitentes de USER', () => {
     const input = fixture();
     expect(projectKnowledge(input)).toEqual(
