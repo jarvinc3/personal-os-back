@@ -1249,7 +1249,7 @@ async function lockReviewGroup(
 ): Promise<void> {
   // Serialize two batches of the same group: verifications are append-only,
   // so a duplicate written concurrently could not be removed later.
-  await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtext(${userId}), hashtext(${groupKey}))`;
+  await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${userId}), hashtext(${groupKey}))`;
 }
 
 function reviewGroupKey(

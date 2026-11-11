@@ -37,7 +37,7 @@ describe('AiEvidenceService', () => {
         findFirst: jest.fn().mockResolvedValue(null),
         create: jest.fn().mockResolvedValue({ sequence: 1n }),
       },
-      $queryRaw: jest.fn().mockResolvedValue([]),
+      $executeRaw: jest.fn().mockResolvedValue(0),
       $transaction: jest.fn(),
     };
     prisma.$transaction.mockImplementation(
@@ -135,7 +135,7 @@ describe('AiEvidenceService', () => {
         findFirst: jest.fn().mockResolvedValue(null),
         create,
       },
-      $queryRaw: jest.fn().mockResolvedValue([]),
+      $executeRaw: jest.fn().mockResolvedValue(0),
       $transaction: jest.fn(),
     };
     prisma.$transaction.mockImplementation(

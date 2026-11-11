@@ -145,7 +145,7 @@ function makeReviewGroupPrisma({
     userRole: {
       findUnique: jest.fn().mockResolvedValue({ role: 'ADMIN' }),
     },
-    $queryRaw: jest.fn().mockResolvedValue([]),
+    $executeRaw: jest.fn().mockResolvedValue(0),
     $transaction: jest.fn(),
   };
   prisma.$transaction.mockImplementation((callback: (tx: unknown) => unknown) =>
@@ -336,7 +336,7 @@ describe('AiEvidenceService review groups', () => {
       isGroundTruth: false,
     });
     expect(verifications.map(({ targetId }) => targetId)).not.toContain('g91');
-    expect(prisma.$queryRaw.mock.invocationCallOrder[0]).toBeLessThan(
+    expect(prisma.$executeRaw.mock.invocationCallOrder[0]).toBeLessThan(
       prisma.aiHumanVerification.findMany.mock.invocationCallOrder[0],
     );
 
