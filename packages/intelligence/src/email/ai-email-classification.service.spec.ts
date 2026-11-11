@@ -66,6 +66,7 @@ function fixture(
     },
     aiEmailModelBudget: {
       upsert: jest.fn().mockResolvedValue({}),
+      findFirst: jest.fn().mockResolvedValue(null),
       updateMany: jest
         .fn()
         .mockResolvedValueOnce({ count: 0 })
@@ -205,5 +206,128 @@ describe('AiEmailClassificationService', () => {
         data: { processingStatus: 'QUEUED', classificationStartedAt: null },
       }),
     );
+  });
+});
+
+describe('AiEmailClassificationService direct message operations', () => {
+  function expectNoWrites(prisma: ReturnType<typeof fixture>['prisma']) {
+    expect(prisma.aiEmailMessage.updateMany).not.toHaveBeenCalled();
+    expect(prisma.aiEmailClassification.createMany).not.toHaveBeenCalled();
+    expect(prisma.aiSignal.createMany).not.toHaveBeenCalled();
+    expect(prisma.aiSignalEvidence.createMany).not.toHaveBeenCalled();
+    expect(prisma.domainEventOutbox.createMany).not.toHaveBeenCalled();
+    expect(prisma.aiDataset.upsert).not.toHaveBeenCalled();
+    expect(prisma.aiDatasetItem.upsert).not.toHaveBeenCalled();
+    expect(prisma.aiAnalysisRun.create).not.toHaveBeenCalled();
+    expect(prisma.aiKnowledgeObservation.createMany).not.toHaveBeenCalled();
+    expect(prisma.aiEmailModelBudget.upsert).not.toHaveBeenCalled();
+    expect(prisma.aiEmailModelBudget.updateMany).not.toHaveBeenCalled();
+  }
+
+  it('previews a classification with the model and writes nothing', async () => {
+    const { service, inference, prisma } = fixture();
+
+    const preview = await service.previewClassification({
+      userId: 'user-1',
+      messageId: 'message-1',
+    });
+
+    expect(preview).toMatchObject({
+      kind: 'classified',
+      method: 'MODEL',
+      provider: 'test-provider',
+      model: 'test-model',
+      classification: {
+        semanticType: 'FIN_TRANSACTION',
+        confidence: 0.9,
+      },
+    });
+    expect(inference.infer).toHaveBeenCalledTimes(1);
+    expectNoWrites(prisma);
+  });
+
+  it('reports a missing budget in the preview without calling the model', async () => {
+    const { service, inference, prisma } = fixture();
+    prisma.aiEmailModelBudget.updateMany = jest
+      .fn()
+      .mockResolvedValue({ count: 0 });
+    prisma.aiEmailModelBudget.findFirst = jest
+      .fn()
+      .mockResolvedValue({ calls: 100, dailyLimit: 100 });
+
+    const preview = await service.previewClassification({
+      userId: 'user-1',
+      messageId: 'message-1',
+    });
+
+    expect(preview).toEqual({
+      kind: 'unavailable',
+      reason: 'MODEL_BUDGET_EXHAUSTED',
+    });
+    expect(inference.infer).not.toHaveBeenCalled();
+    expectNoWrites(prisma);
+  });
+
+  it('reclassifies one chosen message and replaces its stored rows', async () => {
+    const { service, prisma } = fixture();
+    prisma.aiEmailClassification.deleteMany = jest
+      .fn()
+      .mockResolvedValue({ count: 1 });
+
+    const reclassification = await service.reclassifyMessageNow({
+      userId: 'user-1',
+      messageId: 'message-1',
+    });
+
+    expect(reclassification).toMatchObject({
+      kind: 'classified',
+      method: 'MODEL',
+    });
+    expect(prisma.aiEmailClassification.deleteMany).toHaveBeenCalledWith({
+      where: { userId: 'user-1', messageId: 'message-1' },
+    });
+    expect(prisma.aiEmailMessage.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'message-1', userId: 'user-1' },
+        data: expect.objectContaining({ processingStatus: 'CLASSIFYING' }),
+      }),
+    );
+    expect(prisma.aiSignal.createMany).toHaveBeenCalled();
+    expect(prisma.domainEventOutbox.createMany).toHaveBeenCalled();
+  });
+
+  it('reports a message outside the user without writing', async () => {
+    const { service, prisma } = fixture();
+    prisma.aiEmailMessage.findFirst = jest.fn().mockResolvedValue(null);
+
+    await expect(
+      service.previewClassification({
+        userId: 'user-1',
+        messageId: 'message-9',
+      }),
+    ).resolves.toEqual({ kind: 'not_found' });
+    expectNoWrites(prisma);
+  });
+});
+
+describe('AiEmailClassificationService model call accounting', () => {
+  it('reports one model call when the model classified the mail', async () => {
+    const { service } = fixture();
+
+    await expect(service.processPendingForUser('user-1')).resolves.toEqual({
+      processed: 1,
+      modelCalls: 1,
+    });
+  });
+
+  it('reports no model call for a deterministic classification', async () => {
+    const { service } = fixture({
+      body: 'Your verification code is 123456.',
+    });
+
+    await expect(service.processPendingForUser('user-1')).resolves.toEqual({
+      processed: 1,
+      modelCalls: 0,
+    });
   });
 });

@@ -259,7 +259,7 @@ export class AiInferenceGateway {
       outputTokens?: number;
     },
   ): Promise<void> {
-    if (!request.userId) {
+    if (!request.userId || request.recordTelemetry === false) {
       return;
     }
     try {

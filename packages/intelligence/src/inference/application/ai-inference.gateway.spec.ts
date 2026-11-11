@@ -249,4 +249,22 @@ describe('AiInferenceGateway', () => {
     expect(rateLimited.chatComplete).toHaveBeenCalledTimes(1);
     expect(fallback.chatComplete).toHaveBeenCalledTimes(1);
   });
+
+  it('does not write telemetry when the caller asks to skip it', async () => {
+    const provider = {
+      name: 'primary',
+      model: 'model-one',
+      chat: jest.fn(),
+      chatComplete: jest.fn().mockResolvedValue({
+        content: '{"value":"ok"}',
+        toolCalls: [],
+      }),
+    };
+    const { gateway, create } = build([provider]);
+
+    await expect(
+      gateway.infer({ ...request(), recordTelemetry: false }),
+    ).resolves.toMatchObject({ value: { value: 'ok' } });
+    expect(create).not.toHaveBeenCalled();
+  });
 });

@@ -6,6 +6,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [Se
 
 ### Agregado
 
+- #342: agrega la selección acotada de correos del piloto: una vista previa que reclasifica hasta 20 correos con el modelo sin escribir nada y devuelve el manifiesto con el movimiento que crearía, y una ejecución idempotente que procesa solo esos ids, sin ampliar por remitente ni por plantilla. La predicción y la escritura comparten el mismo paso de decisión de Finance. La ruta responde 404 en producción.
 - #337: la fecha de encabezado se conserva como sugerencia `EMAIL_HEADER` y mantiene el correo en revisión hasta confirmar una fecha de operación; los motivos de ambigüedad ya no incorporan el conteo y guardan candidatos en evidencia.
 - Contratos de importación por correo: transferencias de una pata, pagos de tarjeta confirmados, fecha sugerida y reversos por la cadena del ADR-003; se publicaron inicialmente como `NO_IMPLEMENTADO` con los issues #334, #335, #337 y #336.
 - #308: reorganiza `docs/refactors` por programa y fase; añade índices con objetivos, issues, PRs y estados, y conserva inventarios y borradores anteriores en `archive/`.
