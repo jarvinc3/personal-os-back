@@ -781,6 +781,42 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
       ...this.reversalEvidence(candidate, decision),
       reversalOriginalId: original.id,
     };
+    const repeatedOrExcess = await this.repeatedOrExcessReversalPlan({
+      signal,
+      candidate,
+      original,
+      evidence,
+    });
+    if (repeatedOrExcess) {
+      return repeatedOrExcess;
+    }
+    if (decision.kind === 'partial') {
+      return this.partialReversalPlan({
+        signal,
+        candidate,
+        original,
+        evidence,
+      });
+    }
+    return {
+      kind: 'REVERSE',
+      originalId: original.id,
+      metadata: { ...this.originalMetadata(original), ...evidence },
+    };
+  }
+
+  /** A repeated refund is idempotent; one that exceeds the purchase needs a person. */
+  private async repeatedOrExcessReversalPlan({
+    signal,
+    candidate,
+    original,
+    evidence,
+  }: {
+    signal: RoutedSignal;
+    candidate: Candidate;
+    original: ReversalOriginal;
+    evidence: ImportReviewEvidence;
+  }): Promise<ImportPlan | null> {
     const repeatedRefund = await this.ledger.findLinkedRefund(
       signal.userId,
       original.id,
@@ -801,42 +837,49 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
         candidateTransactionIds: [original.id],
       });
     }
-    if (decision.kind === 'partial') {
-      const merchantMissing = !candidate.merchant;
-      return {
-        kind: 'IMPORT',
-        draft: {
-          cashAccountId: null,
-          transfer: false,
-          input: {
-            accountId: original.accountId ?? undefined,
-            cardId: original.cardId ?? undefined,
-            importReference: signal.signalId,
-            externalReference: candidate.bankReference ?? null,
-            amount: candidate.amount!,
-            currency: candidate.currency!,
-            merchant: candidate.merchant ?? UNKNOWN_MERCHANT,
-            merchantIsPlaceholder: merchantMissing,
-            description: 'Reverso parcial',
-            transactionDate: new Date(candidate.transactionDate!),
-            type: 'CREDIT',
-            status: 'CONFIRMED',
-            categoryId: original.categoryId ?? undefined,
-            linkedTransactionId: original.id,
-            aiMetadata: {
-              ...evidence,
-              reversalSignalId: signal.signalId,
-              reversalSourceEmailMessageId: signal.sourceId,
-              merchantMissing,
-            },
+    return null;
+  }
+
+  private partialReversalPlan({
+    signal,
+    candidate,
+    original,
+    evidence,
+  }: {
+    signal: RoutedSignal;
+    candidate: Candidate;
+    original: ReversalOriginal;
+    evidence: ImportReviewEvidence;
+  }): ImportPlan {
+    const merchantMissing = !candidate.merchant;
+    return {
+      kind: 'IMPORT',
+      draft: {
+        cashAccountId: null,
+        transfer: false,
+        input: {
+          accountId: original.accountId ?? undefined,
+          cardId: original.cardId ?? undefined,
+          importReference: signal.signalId,
+          externalReference: candidate.bankReference ?? null,
+          amount: candidate.amount!,
+          currency: candidate.currency!,
+          merchant: candidate.merchant ?? UNKNOWN_MERCHANT,
+          merchantIsPlaceholder: merchantMissing,
+          description: 'Reverso parcial',
+          transactionDate: new Date(candidate.transactionDate!),
+          type: 'CREDIT',
+          status: 'CONFIRMED',
+          categoryId: original.categoryId ?? undefined,
+          linkedTransactionId: original.id,
+          aiMetadata: {
+            ...evidence,
+            reversalSignalId: signal.signalId,
+            reversalSourceEmailMessageId: signal.sourceId,
+            merchantMissing,
           },
         },
-      };
-    }
-    return {
-      kind: 'REVERSE',
-      originalId: original.id,
-      metadata: { ...this.originalMetadata(original), ...evidence },
+      },
     };
   }
 
