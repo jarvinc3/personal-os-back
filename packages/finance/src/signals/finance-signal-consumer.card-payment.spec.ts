@@ -42,7 +42,12 @@ type ExistingPayment = {
 };
 
 function setup({
-  existing = [],
+  outcome = {
+    kind: 'created',
+    transferGroupId: 'group-1',
+    sourceTransactionId: 'transaction-1',
+    cardTransactionId: 'transaction-2',
+  },
   accounts = [
     {
       id: 'account-1',
@@ -62,29 +67,11 @@ function setup({
   ],
   priorImport = null,
 }: {
-  existing?: ExistingPayment[];
+  outcome?: Record<string, unknown>;
   accounts?: Array<Record<string, unknown>>;
   cards?: Array<Record<string, unknown>>;
   priorImport?: Record<string, unknown> | null;
 } = {}) {
-  const sources = existing.map((payment) => ({
-    id: payment.sourceTransactionId ?? 'transaction-1',
-    transferGroupId: payment.transferGroupId ?? 'group-1',
-    accountId: payment.accountId ?? 'account-1',
-    externalReference:
-      payment.externalReference === undefined
-        ? 'PAY-1'
-        : payment.externalReference,
-    amount: payment.amount ?? 2500,
-    currency: payment.currency ?? 'DOP',
-    transactionDate: new Date(
-      payment.transactionDate ?? '2026-11-01T12:00:00.000Z',
-    ),
-  }));
-  const destinations = existing.map((payment) => ({
-    transferGroupId: payment.transferGroupId ?? 'group-1',
-    cardId: payment.cardId ?? 'card-1',
-  }));
   const prisma = {
     finSignalImport: {
       findUnique: jest.fn().mockResolvedValue(priorImport),
@@ -92,20 +79,9 @@ function setup({
     },
     finAccount: { findMany: jest.fn().mockResolvedValue(accounts) },
     finCard: { findMany: jest.fn().mockResolvedValue(cards) },
-    finTransaction: {
-      findMany: jest.fn((args: { where: { legRole?: string } }) =>
-        Promise.resolve(
-          args.where.legRole === 'DESTINATION' ? destinations : sources,
-        ),
-      ),
-    },
   };
   const cardPaymentImport = {
-    execute: jest.fn().mockResolvedValue({
-      transferGroupId: 'group-1',
-      sourceTransactionId: 'transaction-1',
-      cardTransactionId: 'transaction-2',
-    }),
+    execute: jest.fn().mockResolvedValue(outcome),
   };
   const consumer = new FinanceSignalConsumer(
     prisma as never,
@@ -239,16 +215,19 @@ describe('FinanceSignalConsumer card payments', () => {
     });
   });
 
-  it('links the same operation with the same reference without new legs', async () => {
-    const { consumer, cardPaymentImport, prisma } = setup({
-      existing: [{ sourceTransactionId: 'existing-source' }],
+  it('links the payment the operation reports as duplicate', async () => {
+    const { consumer, prisma } = setup({
+      outcome: {
+        kind: 'duplicate',
+        transferGroupId: 'group-1',
+        sourceTransactionId: 'existing-source',
+      },
     });
 
     await expect(consumer.consume(signal)).resolves.toMatchObject({
       outcome: 'ALREADY_APPLIED',
       domainReferences: [{ type: 'FinTransaction', id: 'existing-source' }],
     });
-    expect(cardPaymentImport.execute).not.toHaveBeenCalled();
     expect(prisma.finSignalImport.upsert).toHaveBeenCalledWith(
       expect.objectContaining({
         create: expect.objectContaining({
@@ -259,114 +238,57 @@ describe('FinanceSignalConsumer card payments', () => {
     );
   });
 
-  it('sends a reference with another amount to conflict', async () => {
-    const { consumer, cardPaymentImport } = setup({
-      existing: [{ amount: 2400 }],
+  it('sends a reference conflict to review with the candidates', async () => {
+    const { consumer, prisma } = setup({
+      outcome: {
+        kind: 'review',
+        reason: 'CARD_PAYMENT_REFERENCE_CONFLICT',
+        candidateTransactionIds: ['existing-source'],
+      },
     });
 
     await expect(consumer.consume(signal)).resolves.toMatchObject({
       outcome: 'REVIEW_REQUIRED',
       reason: 'CARD_PAYMENT_REFERENCE_CONFLICT',
     });
-    expect(cardPaymentImport.execute).not.toHaveBeenCalled();
+    expect(prisma.finSignalImport.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        create: expect.objectContaining({
+          status: 'REVIEW_REQUIRED',
+          candidate: expect.objectContaining({
+            financeImportEvidence: expect.objectContaining({
+              externalReference: 'PAY-1',
+              candidateTransactionIds: ['existing-source'],
+            }),
+          }),
+        }),
+      }),
+    );
   });
 
-  it('sends a reference outside the seven day window to conflict', async () => {
-    const { consumer } = setup({
-      existing: [{ transactionDate: '2026-10-20T12:00:00.000Z' }],
+  it('sends several candidates to review without writing', async () => {
+    const { consumer, cardPaymentImport } = setup({
+      outcome: {
+        kind: 'review',
+        reason: 'CARD_PAYMENT_RECONCILIATION_AMBIGUOUS',
+        candidateTransactionIds: ['manual-a', 'manual-b'],
+      },
     });
 
     await expect(consumer.consume(signal)).resolves.toMatchObject({
-      reason: 'CARD_PAYMENT_REFERENCE_CONFLICT',
-    });
-  });
-
-  it('links a similar payment without reference inside three days', async () => {
-    const { consumer, cardPaymentImport } = setup({
-      existing: [
-        {
-          sourceTransactionId: 'manual-source',
-          externalReference: null,
-          transactionDate: '2026-11-02T12:00:00.000Z',
-        },
-      ],
-    });
-    const withoutReference: RoutedSignal = {
-      ...signal,
-      payload: {
-        ...signal.payload,
-        transaction: {
-          ...(signal.payload.transaction as Record<string, unknown>),
-          bankReference: undefined,
-        },
-      },
-    };
-
-    await expect(consumer.consume(withoutReference)).resolves.toMatchObject({
-      outcome: 'ALREADY_APPLIED',
-      domainReferences: [{ type: 'FinTransaction', id: 'manual-source' }],
-    });
-    expect(cardPaymentImport.execute).not.toHaveBeenCalled();
-  });
-
-  it('imports when the similar payment is outside three days', async () => {
-    const { consumer, cardPaymentImport } = setup({
-      existing: [
-        {
-          sourceTransactionId: 'manual-source',
-          externalReference: null,
-          transactionDate: '2026-10-25T12:00:00.000Z',
-        },
-      ],
-    });
-    const withoutReference: RoutedSignal = {
-      ...signal,
-      payload: {
-        ...signal.payload,
-        transaction: {
-          ...(signal.payload.transaction as Record<string, unknown>),
-          bankReference: undefined,
-        },
-      },
-    };
-
-    await expect(consumer.consume(withoutReference)).resolves.toMatchObject({
-      outcome: 'APPLIED',
+      outcome: 'REVIEW_REQUIRED',
+      reason: 'CARD_PAYMENT_RECONCILIATION_AMBIGUOUS',
     });
     expect(cardPaymentImport.execute).toHaveBeenCalledTimes(1);
   });
 
-  it('sends several similar payments to review', async () => {
-    const { consumer, cardPaymentImport } = setup({
-      existing: [
-        {
-          sourceTransactionId: 'manual-a',
-          transferGroupId: 'group-a',
-          externalReference: null,
-        },
-        {
-          sourceTransactionId: 'manual-b',
-          transferGroupId: 'group-b',
-          externalReference: null,
-        },
-      ],
-    });
-    const withoutReference: RoutedSignal = {
-      ...signal,
-      payload: {
-        ...signal.payload,
-        transaction: {
-          ...(signal.payload.transaction as Record<string, unknown>),
-          bankReference: undefined,
-        },
-      },
-    };
+  it('reports a payment that could not be written', async () => {
+    const { consumer } = setup({ outcome: { kind: 'not_written' } });
 
-    await expect(consumer.consume(withoutReference)).resolves.toMatchObject({
+    await expect(consumer.consume(signal)).resolves.toMatchObject({
       outcome: 'REVIEW_REQUIRED',
-      reason: 'CARD_PAYMENT_RECONCILIATION_AMBIGUOUS',
+      reason: 'CARD_PAYMENT_NOT_IMPORTED',
     });
-    expect(cardPaymentImport.execute).not.toHaveBeenCalled();
   });
 
   it('returns the stored result on replay without new legs', async () => {

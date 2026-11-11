@@ -6,9 +6,16 @@ import {
   Optional,
 } from '@nestjs/common';
 import type { Prisma } from '@personal-os/database';
+import {
+  CARD_PAYMENT_REFERENCE_WINDOW_MS,
+  reconcileCardPaymentImport,
+  type CardPaymentOperation,
+  type IncomingCardPayment,
+} from '../application/reconcile-card-payment-import';
 import { PrismaService } from '@personal-os/database';
 import { randomUUID } from 'crypto';
 import type { DomainEventPublisherPort } from '../../events/application/ports/domain-event-publisher.port';
+import type { ImportedCardPaymentOutcome } from '../application/ports/ledger.repository.port';
 import type { BudgetThresholdPort } from '../../shared/application/budget-threshold.port';
 import type { SubscriptionMatcherPort } from '../../shared/application/subscription-matcher.port';
 import {
@@ -18,8 +25,11 @@ import {
 } from '../../shared/application/tokens';
 import type { BudgetSpendSnapshot } from '../../shared/domain/budget-snapshot';
 import { transactionCreatedEventName } from '../../shared/domain/mappers';
-import type { ResolvedAmounts } from '../../shared/domain/money';
-import { normalizeCurrencyCode } from '../../shared/domain/money';
+import {
+  normalizeCurrencyCode,
+  scalarNumber,
+  type ResolvedAmounts,
+} from '../../shared/domain/money';
 import { statusAffectsLedger } from '../../shared/domain/transaction-status';
 import {
   OPERATION_LEG_ROLE,
@@ -416,8 +426,146 @@ export class PrismaLedgerWriteRepository {
     fromAmounts: ResolvedAmounts;
     toAmounts: ResolvedAmounts;
   }): Promise<CreateTransferResult | null> {
-    const { userId, command, fromAmounts, toAmounts } = input;
+    return this.prisma.$transaction((tx) => this.writeCardPayment(tx, input));
+  }
+
+  /**
+   * Decide y escribe dentro de una sola transacción, con un bloqueo por usuario.
+   * Dos correos simultáneos con la misma operación no pueden crear dos pagos:
+   * el segundo ve el pago del primero y se vincula.
+   */
+  async createImportedCardPayment(input: {
+    userId: string;
+    command: CreateCardPaymentCommand;
+    fromAmounts: ResolvedAmounts;
+    toAmounts: ResolvedAmounts;
+    incoming: IncomingCardPayment;
+  }): Promise<ImportedCardPaymentOutcome> {
+    const { userId, incoming } = input;
     return this.prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`card_payment:${userId}`}))`;
+      const decision = reconcileCardPaymentImport({
+        incoming,
+        existing: await this.loadCardPaymentOperations(
+          tx,
+          userId,
+          incoming.transactionDate,
+        ),
+      });
+      if (decision.kind === 'duplicate') {
+        return {
+          kind: 'duplicate',
+          transferGroupId: decision.transferGroupId,
+          sourceTransactionId: decision.transactionId,
+        };
+      }
+      if (decision.kind === 'conflict' || decision.kind === 'ambiguous') {
+        return {
+          kind: 'review',
+          reason: decision.reason,
+          candidateTransactionIds: decision.candidateTransactionIds,
+        };
+      }
+      const created = await this.writeCardPayment(tx, input);
+      if (!created) {
+        return { kind: 'not_written' };
+      }
+      return {
+        kind: 'created',
+        transferGroupId: created.transferGroupId,
+        sourceTransactionId: created.debit.id,
+        cardTransactionId: created.credit.id,
+      };
+    });
+  }
+
+  /**
+   * Cartera de pagos de tarjeta del usuario alrededor de una fecha. Vive aquí
+   * para que la decisión y la escritura compartan la misma transacción.
+   */
+  private async loadCardPaymentOperations(
+    tx: Prisma.TransactionClient,
+    userId: string,
+    transactionDate: Date,
+  ): Promise<CardPaymentOperation[]> {
+    const sources = await tx.finTransaction.findMany({
+      where: {
+        userId,
+        type: 'CARD_PAYMENT',
+        legRole: 'SOURCE',
+        status: { in: ['PENDING', 'CONFIRMED'] },
+        transactionDate: {
+          gte: new Date(
+            transactionDate.getTime() - CARD_PAYMENT_REFERENCE_WINDOW_MS,
+          ),
+          lte: new Date(
+            transactionDate.getTime() + CARD_PAYMENT_REFERENCE_WINDOW_MS,
+          ),
+        },
+      },
+      select: {
+        id: true,
+        transferGroupId: true,
+        accountId: true,
+        externalReference: true,
+        amount: true,
+        currency: true,
+        transactionDate: true,
+      },
+    });
+    const groupIds = sources.flatMap(({ transferGroupId }) =>
+      transferGroupId ? [transferGroupId] : [],
+    );
+    if (!groupIds.length) {
+      return [];
+    }
+    const destinations = await tx.finTransaction.findMany({
+      where: {
+        userId,
+        type: 'CARD_PAYMENT',
+        legRole: 'DESTINATION',
+        transferGroupId: { in: groupIds },
+      },
+      select: { transferGroupId: true, cardId: true },
+    });
+    const cardByGroup = new Map(
+      destinations.flatMap(({ transferGroupId, cardId }) =>
+        transferGroupId && cardId ? [[transferGroupId, cardId] as const] : [],
+      ),
+    );
+    return sources.flatMap((source) => {
+      const cardId = source.transferGroupId
+        ? cardByGroup.get(source.transferGroupId)
+        : undefined;
+      if (!cardId || !source.accountId || !source.transferGroupId) {
+        return [];
+      }
+      return [
+        {
+          transferGroupId: source.transferGroupId,
+          sourceTransactionId: source.id,
+          accountId: source.accountId,
+          cardId,
+          externalReference: source.externalReference,
+          amount: scalarNumber(source.amount),
+          currency: source.currency,
+          transactionDate: source.transactionDate,
+        },
+      ];
+    });
+  }
+
+  private async writeCardPayment(
+    tx: Prisma.TransactionClient,
+    input: {
+      userId: string;
+      command: CreateCardPaymentCommand;
+      fromAmounts: ResolvedAmounts;
+      toAmounts: ResolvedAmounts;
+    },
+  ): Promise<CreateTransferResult | null> {
+    const { userId, command, fromAmounts, toAmounts } = input;
+    {
       const fromTarget = await resolveLedgerTarget(
         tx,
         userId,
@@ -526,7 +674,7 @@ export class PrismaLedgerWriteRepository {
       );
 
       return { debit, credit, transferGroupId };
-    });
+    }
   }
 
   async findCardForPayment(userId: string, cardId: string) {

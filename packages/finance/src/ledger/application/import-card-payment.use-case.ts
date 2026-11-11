@@ -5,7 +5,10 @@ import { ResolveUserBaseCurrencyUseCase } from '../../fx/application/resolve-use
 import { LEDGER_REPOSITORY } from '../../shared/application/tokens';
 import { normalizeCurrencyCode } from '../../shared/domain/money';
 import type { TransferStatus } from './commands/ledger.commands';
-import type { LedgerRepositoryPort } from './ports/ledger.repository.port';
+import type {
+  ImportedCardPaymentOutcome,
+  LedgerRepositoryPort,
+} from './ports/ledger.repository.port';
 
 export type ImportCardPaymentInput = {
   sourceAccountId: string;
@@ -36,7 +39,10 @@ export class ImportCardPaymentUseCase {
     private readonly outboxDispatcher: FinanceOutboxDispatcher,
   ) {}
 
-  async execute(userId: string, payment: ImportCardPaymentInput) {
+  async execute(
+    userId: string,
+    payment: ImportCardPaymentInput,
+  ): Promise<ImportedCardPaymentOutcome> {
     const baseCurrency = await this.baseCurrency.execute(userId);
     const currency = normalizeCurrencyCode(payment.currency);
     const fromAmounts = await this.resolveAmounts.execute({
@@ -54,8 +60,16 @@ export class ImportCardPaymentUseCase {
       transactionDate: payment.transactionDate,
     });
 
-    const created = await this.repo.createCardPayment({
+    const outcome = await this.repo.createImportedCardPayment({
       userId,
+      incoming: {
+        accountId: payment.sourceAccountId,
+        cardId: payment.cardId,
+        amount: payment.amount,
+        currency,
+        transactionDate: payment.transactionDate,
+        bankReference: payment.externalReference,
+      },
       command: {
         fromAccountId: payment.sourceAccountId,
         cardId: payment.cardId,
@@ -73,15 +87,9 @@ export class ImportCardPaymentUseCase {
       fromAmounts,
       toAmounts,
     });
-    if (!created) {
-      return null;
+    if (outcome.kind === 'created') {
+      void this.outboxDispatcher.processBatch();
     }
-
-    void this.outboxDispatcher.processBatch();
-    return {
-      transferGroupId: created.transferGroupId,
-      sourceTransactionId: created.debit.id,
-      cardTransactionId: created.credit.id,
-    };
+    return outcome;
   }
 }

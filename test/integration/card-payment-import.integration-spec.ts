@@ -174,4 +174,58 @@ describe('Pago de tarjeta importado de dos patas', () => {
     });
     expect(otherAccount.balance.toString()).toBe('10000');
   });
+
+  it('crea un solo pago cuando dos correos iguales llegan a la vez', async () => {
+    const fixture = await createFixture({ suffix: 'carrera' });
+    const command = (importReference: string) => ({
+      fromAccountId: fixture.accountId,
+      cardId: fixture.cardId,
+      amount: 2500,
+      currency: 'DOP',
+      transactionDate: '2031-06-02T00:00:00.000Z',
+      description: 'Pago de tarjeta',
+      status: 'CONFIRMED' as const,
+      source: 'EMAIL' as const,
+      externalReference: 'PAY-RACE',
+      importReference,
+      aiMetadata: { signalId: importReference },
+    });
+    const incoming = {
+      accountId: fixture.accountId,
+      cardId: fixture.cardId,
+      amount: 2500,
+      currency: 'DOP',
+      transactionDate: new Date('2031-06-02T00:00:00.000Z'),
+      bankReference: 'PAY-RACE',
+    };
+
+    const [first, second] = await Promise.all([
+      repo.createImportedCardPayment({
+        userId: fixture.userId,
+        command: command('email-race-a'),
+        fromAmounts: amounts,
+        toAmounts: amounts,
+        incoming,
+      }),
+      repo.createImportedCardPayment({
+        userId: fixture.userId,
+        command: command('email-race-b'),
+        fromAmounts: amounts,
+        toAmounts: amounts,
+        incoming,
+      }),
+    ]);
+
+    expect([first.kind, second.kind].sort()).toEqual(['created', 'duplicate']);
+    await expect(
+      prisma.finTransaction.count({
+        where: { userId: fixture.userId, type: 'CARD_PAYMENT' },
+      }),
+    ).resolves.toBe(2);
+    const account = await prisma.finAccount.findUniqueOrThrow({
+      where: { id: fixture.accountId },
+      select: { balance: true },
+    });
+    expect(account.balance.toString()).toBe('7500');
+  });
 });

@@ -10,11 +10,6 @@ import {
   isTransferMovementClass,
   type MovementClass,
 } from '../ledger/domain/movement-class';
-import {
-  CARD_PAYMENT_REFERENCE_WINDOW_MS,
-  reconcileCardPaymentImport,
-  type CardPaymentOperation,
-} from '../ledger/application/reconcile-card-payment-import';
 import { ImportCardPaymentUseCase } from '../ledger/application/import-card-payment.use-case';
 import {
   isUnpairedTransferCandidate,
@@ -45,7 +40,6 @@ import {
   mapBankStatusToInternal,
   type FinTransactionStatusValue,
 } from '../shared/domain/transaction-status';
-import { scalarNumber } from '../shared/domain/money';
 import type { FinanceSignalConsumerPort } from '../contracts';
 
 const transactionSchema = z
@@ -704,41 +698,6 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
       return this.review({ signal, reason: 'CARD_CURRENCY_MISSING' });
     }
 
-    const decision = reconcileCardPaymentImport({
-      incoming: {
-        accountId: account.accountId,
-        cardId: card.cardId,
-        amount,
-        currency,
-        transactionDate,
-        bankReference: candidate.bankReference ?? null,
-      },
-      existing: await this.listCardPaymentOperations({
-        userId: signal.userId,
-        transactionDate,
-      }),
-    });
-    if (decision.kind === 'conflict' || decision.kind === 'ambiguous') {
-      return this.review({
-        signal,
-        reason: decision.reason,
-        evidence: {
-          externalReference: candidate.bankReference ?? null,
-          candidateTransactionIds: decision.candidateTransactionIds,
-        },
-      });
-    }
-    if (decision.kind === 'duplicate') {
-      await this.persist(
-        signal,
-        'DUPLICATE',
-        null,
-        undefined,
-        decision.transactionId,
-      );
-      return this.result('ALREADY_APPLIED', decision.transactionId);
-    }
-
     const imported = await this.cardPaymentImport.execute(signal.userId, {
       sourceAccountId: account.accountId,
       sourceAccountCurrency: account.currency,
@@ -760,7 +719,27 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
       notes: null,
       status,
     });
-    if (!imported) {
+    if (imported.kind === 'review') {
+      return this.review({
+        signal,
+        reason: imported.reason,
+        evidence: {
+          externalReference: candidate.bankReference ?? null,
+          candidateTransactionIds: imported.candidateTransactionIds,
+        },
+      });
+    }
+    if (imported.kind === 'duplicate') {
+      await this.persist(
+        signal,
+        'DUPLICATE',
+        null,
+        undefined,
+        imported.sourceTransactionId,
+      );
+      return this.result('ALREADY_APPLIED', imported.sourceTransactionId);
+    }
+    if (imported.kind === 'not_written') {
       return this.review({ signal, reason: 'CARD_PAYMENT_NOT_IMPORTED' });
     }
     await this.persist(signal, 'IMPORTED', imported.sourceTransactionId);
@@ -845,81 +824,6 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
       accountId: matches[0].id,
       currency: matches[0].currency,
     };
-  }
-
-  /** Cartera de pagos de tarjeta del usuario alrededor de la fecha del correo. */
-  private async listCardPaymentOperations({
-    userId,
-    transactionDate,
-  }: {
-    userId: string;
-    transactionDate: Date;
-  }): Promise<CardPaymentOperation[]> {
-    const sources = await this.prisma.finTransaction.findMany({
-      where: {
-        userId,
-        type: 'CARD_PAYMENT',
-        legRole: 'SOURCE',
-        status: { in: ['PENDING', 'CONFIRMED'] },
-        transactionDate: {
-          gte: new Date(
-            transactionDate.getTime() - CARD_PAYMENT_REFERENCE_WINDOW_MS,
-          ),
-          lte: new Date(
-            transactionDate.getTime() + CARD_PAYMENT_REFERENCE_WINDOW_MS,
-          ),
-        },
-      },
-      select: {
-        id: true,
-        transferGroupId: true,
-        accountId: true,
-        externalReference: true,
-        amount: true,
-        currency: true,
-        transactionDate: true,
-      },
-    });
-    const groupIds = sources.flatMap(({ transferGroupId }) =>
-      transferGroupId ? [transferGroupId] : [],
-    );
-    if (!groupIds.length) {
-      return [];
-    }
-    const destinations = await this.prisma.finTransaction.findMany({
-      where: {
-        userId,
-        type: 'CARD_PAYMENT',
-        legRole: 'DESTINATION',
-        transferGroupId: { in: groupIds },
-      },
-      select: { transferGroupId: true, cardId: true },
-    });
-    const cardByGroup = new Map(
-      destinations.flatMap(({ transferGroupId, cardId }) =>
-        transferGroupId && cardId ? [[transferGroupId, cardId] as const] : [],
-      ),
-    );
-    return sources.flatMap((source) => {
-      const cardId = source.transferGroupId
-        ? cardByGroup.get(source.transferGroupId)
-        : undefined;
-      if (!cardId || !source.accountId || !source.transferGroupId) {
-        return [];
-      }
-      return [
-        {
-          transferGroupId: source.transferGroupId,
-          sourceTransactionId: source.id,
-          accountId: source.accountId,
-          cardId,
-          externalReference: source.externalReference,
-          amount: scalarNumber(source.amount),
-          currency: source.currency,
-          transactionDate: source.transactionDate,
-        },
-      ];
-    });
   }
 
   private async review({
