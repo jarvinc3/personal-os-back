@@ -68,6 +68,7 @@ export class HumanVerificationTransactionDto {
 }
 
 export class HumanVerificationLabelsDto {
+  @ApiPropertyOptional()
   @IsOptional()
   @IsBoolean()
   relevance?: boolean;
@@ -90,6 +91,7 @@ export class HumanVerificationLabelsDto {
   @Type(() => HumanVerificationTransactionDto)
   transaction?: HumanVerificationTransactionDto;
 
+  @ApiPropertyOptional({ maxLength: 2_000 })
   @IsOptional()
   @IsString()
   @MaxLength(2_000)

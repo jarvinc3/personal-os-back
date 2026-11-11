@@ -7,6 +7,7 @@ export { AiConversationDataService } from './conversations/application/ai-conver
 export { AiConversationStore } from './conversations/application/ai-conversation.store';
 export { AiOrchestrator } from './conversations/application/ai.orchestrator';
 export { AiModule } from './ai.module';
+export { INTELLIGENCE_SETTINGS_DESCRIPTOR } from './settings.descriptor';
 export { AiService } from './inference/application/ai.service';
 export { createAiProviderPool } from './inference/ai-provider-pool';
 export type { AiProviderKeys } from './inference/ai-provider-pool';
@@ -18,6 +19,7 @@ export { AiKnowledgeService } from './knowledge/ai-knowledge.service';
 export { AiDataDeletionService } from './knowledge/ai-data-deletion.service';
 export {
   HUMAN_VERIFICATION_VERDICTS,
+  HUMAN_VERIFICATION_SELECTION_MAX_MESSAGES,
   REVIEW_GROUP_VERDICTS,
   SEMANTIC_ROUTES,
   SEMANTIC_TYPES,

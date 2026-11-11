@@ -9,6 +9,7 @@ type StoredMessage = {
   subject: string;
   templateFingerprint: string | null;
   receivedAt: Date;
+  classification?: unknown;
 };
 
 type StoredPartition = {
@@ -88,6 +89,7 @@ function makeReviewGroupPrisma({
         (command: {
           where: {
             userId?: string;
+            id?: string | { in?: string[] };
             fromAddress?: string;
             templateFingerprint?: string | null;
           };
@@ -97,6 +99,10 @@ function makeReviewGroupPrisma({
               (message) =>
                 (command.where.userId === undefined ||
                   message.userId === command.where.userId) &&
+                (command.where.id === undefined ||
+                  (typeof command.where.id === 'string'
+                    ? message.id === command.where.id
+                    : (command.where.id.in?.includes(message.id) ?? true))) &&
                 (command.where.fromAddress === undefined ||
                   message.fromAddress === command.where.fromAddress) &&
                 (command.where.templateFingerprint === undefined ||
@@ -105,6 +111,9 @@ function makeReviewGroupPrisma({
             ),
           ),
       ),
+    },
+    aiKnowledge: {
+      findMany: jest.fn().mockResolvedValue([]),
     },
     aiHumanVerification: {
       findMany: jest.fn(
@@ -239,6 +248,62 @@ describe('AiEvidenceService review groups', () => {
     expect(beyond.totalGroups).toBe(2);
   });
 
+  it('uses impact order by pending count, unknown sender, then lower mean confidence', async () => {
+    const messages: StoredMessage[] = [
+      ...Array.from({ length: 3 }, (_, index) => ({
+        id: `large-${index}`,
+        userId: 'user-1',
+        fromAddress: 'large@bank.com',
+        subject: `Large ${index}`,
+        templateFingerprint: 'large',
+        receivedAt: new Date(Date.UTC(2026, 9, 1, 0, index)),
+        classification: { confidence: 0.9 },
+      })),
+      ...[
+        ['new-low', 'new-low@bank.com', 0.2],
+        ['new-low-2', 'new-low@bank.com', 0.2],
+        ['new-high', 'new-high@bank.com', 0.8],
+        ['new-high-2', 'new-high@bank.com', 0.8],
+        ['known-low', 'known-low@bank.com', 0.1],
+        ['known-low-2', 'known-low@bank.com', 0.1],
+      ].map(([id, fromAddress, confidence], index) => ({
+        id,
+        userId: 'user-1',
+        fromAddress,
+        subject: id,
+        templateFingerprint: id.startsWith('known')
+          ? 'known-low'
+          : id.startsWith('new-low')
+            ? 'new-low'
+            : 'new-high',
+        receivedAt: new Date(Date.UTC(2026, 9, 1, 1, index)),
+        classification: { confidence: Number(confidence) },
+      })),
+    ];
+    const partitions = messages.map(({ id }) => ({
+      sourceId: id,
+      partition: 'TRAIN' as const,
+    }));
+    const { prisma } = makeReviewGroupPrisma({ messages, partitions });
+    prisma.aiKnowledge.findMany.mockResolvedValue([
+      { knowledgeKey: 'large@bank.com' },
+      { knowledgeKey: 'known-low@bank.com' },
+    ]);
+    const service = new AiEvidenceService(
+      prisma as never,
+      reclassification as never,
+    );
+
+    const result = await service.listReviewGroups('user-1', {});
+
+    expect(result.items.map(({ fromAddress }) => fromAddress)).toEqual([
+      'large@bank.com',
+      'new-low@bank.com',
+      'new-high@bank.com',
+      'known-low@bank.com',
+    ]);
+  });
+
   it('verifies every pending non-HOLDOUT message of the group once', async () => {
     const { prisma, verifications } = makeReviewGroupPrisma({
       messages: githubMessages(),
@@ -279,6 +344,87 @@ describe('AiEvidenceService review groups', () => {
       { verified: 0, holdoutExcluded: 9, alreadyVerified: 91, requeued: 0 },
     );
     expect(prisma.aiHumanVerification.createMany).toHaveBeenCalledTimes(1);
+  });
+
+  it('verifies a selected set in one transaction and remains idempotent', async () => {
+    const { prisma, verifications } = makeReviewGroupPrisma({
+      messages: githubMessages(),
+      partitions: githubPartitions(),
+    });
+    const service = new AiEvidenceService(
+      prisma as never,
+      reclassification as never,
+    );
+    const request = {
+      messageIds: Array.from({ length: 20 }, (_, index) => `g${index}`),
+      verdict: 'CONFIRMED' as const,
+      relevance: true,
+    };
+
+    await expect(
+      service.verifyReviewSelection('user-1', request),
+    ).resolves.toEqual({ verified: 20, alreadyVerified: 0, requeued: 0 });
+    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+    expect(prisma.aiHumanVerification.createMany).toHaveBeenCalledTimes(1);
+    expect(prisma.aiHumanVerification.createMany).toHaveBeenCalledWith({
+      data: expect.arrayContaining([
+        expect.objectContaining({ targetId: 'g0', isGroundTruth: false }),
+        expect.objectContaining({ targetId: 'g1', isGroundTruth: false }),
+      ]),
+    });
+    expect(verifications).toHaveLength(20);
+    expect(verifications.map(({ targetId }) => targetId)).toEqual(
+      request.messageIds,
+    );
+
+    await expect(
+      service.verifyReviewSelection('user-1', request),
+    ).resolves.toEqual({ verified: 0, alreadyVerified: 20, requeued: 0 });
+    expect(prisma.aiHumanVerification.createMany).toHaveBeenCalledTimes(1);
+  });
+
+  it('rejects a selection containing a message outside the account without partial writes', async () => {
+    const { prisma, verifications } = makeReviewGroupPrisma({
+      messages: githubMessages(),
+      partitions: githubPartitions(),
+    });
+    const service = new AiEvidenceService(
+      prisma as never,
+      reclassification as never,
+    );
+
+    await expect(
+      service.verifyReviewSelection('user-1', {
+        messageIds: ['g0', 'missing'],
+        verdict: 'CONFIRMED',
+        relevance: true,
+      }),
+    ).rejects.toBeInstanceOf(NotFoundException);
+    expect(prisma.aiHumanVerification.createMany).not.toHaveBeenCalled();
+    expect(verifications).toHaveLength(0);
+  });
+
+  it('records a selected HOLDOUT message as ground truth', async () => {
+    const { prisma, verifications } = makeReviewGroupPrisma({
+      messages: githubMessages(),
+      partitions: githubPartitions(),
+    });
+    const service = new AiEvidenceService(
+      prisma as never,
+      reclassification as never,
+    );
+
+    await expect(
+      service.verifyReviewSelection('user-1', {
+        messageIds: ['g91'],
+        verdict: 'CONFIRMED',
+        relevance: true,
+      }),
+    ).resolves.toMatchObject({ verified: 1, alreadyVerified: 0 });
+
+    expect(verifications).toMatchObject([
+      { targetId: 'g91', isGroundTruth: true, verdict: 'CONFIRMED' },
+    ]);
   });
 
   it('counts an already verified HOLDOUT message as already verified', async () => {

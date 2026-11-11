@@ -186,6 +186,49 @@ describe('UsersService.updateModuleConfig schedule validation', () => {
     ).rejects.toBeInstanceOf(BadRequestException);
     expect(upsertUserModule).not.toHaveBeenCalled();
   });
+
+  it('validates AI module settings through the registered descriptor before saving', async () => {
+    const registry = {
+      normalize: jest.fn((slug: string, config: Record<string, unknown>) => {
+        const reviewConfidenceThreshold = (
+          config.email as { reviewConfidenceThreshold?: number } | undefined
+        )?.reviewConfidenceThreshold;
+        if (
+          slug === 'ai' &&
+          typeof reviewConfidenceThreshold === 'number' &&
+          reviewConfidenceThreshold > 1
+        ) {
+          throw new BadRequestException('invalid confidence threshold');
+        }
+        return config;
+      }),
+    };
+    const configuredService = new UsersService(
+      usersRepository,
+      eventEmitter,
+      supabaseAdminService,
+      registry as never,
+    );
+    findModuleBySlug.mockResolvedValue({ id: 'mod-ai' });
+    findUserModule.mockResolvedValue({
+      id: 'um-ai',
+      isEnabled: true,
+      config: {},
+    });
+
+    await expect(
+      configuredService.updateModuleConfig('user-1', 'ai', {
+        config: { email: { reviewConfidenceThreshold: 1.2 } },
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(registry.normalize).toHaveBeenCalledWith(
+      'ai',
+      expect.objectContaining({
+        email: expect.objectContaining({ reviewConfidenceThreshold: 1.2 }),
+      }),
+    );
+    expect(upsertUserModule).not.toHaveBeenCalled();
+  });
 });
 
 describe('UsersService.listWeeklySummaryRecipients', () => {

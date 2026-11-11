@@ -51,13 +51,28 @@ export function publishesFinanceSignal(
 export function requiresReview({
   classification,
   auditSample,
+  reviewConfidenceThreshold = EMAIL_REVIEW_CONFIDENCE_THRESHOLD,
+  isHoldout = false,
+  verifiedSender = false,
+  acceptVerifiedSenders = false,
 }: {
   classification: EmailClassification;
   auditSample: boolean;
+  reviewConfidenceThreshold?: number;
+  isHoldout?: boolean;
+  verifiedSender?: boolean;
+  acceptVerifiedSenders?: boolean;
 }): boolean {
-  return (
-    auditSample || classification.confidence < EMAIL_REVIEW_CONFIDENCE_THRESHOLD
-  );
+  if (auditSample) {
+    return true;
+  }
+  if (!isHoldout && verifiedSender && acceptVerifiedSenders) {
+    return false;
+  }
+  const threshold = isHoldout
+    ? EMAIL_REVIEW_CONFIDENCE_THRESHOLD
+    : reviewConfidenceThreshold;
+  return classification.confidence < threshold;
 }
 
 export function buildClassificationRows({

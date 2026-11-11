@@ -787,6 +787,63 @@
         "operationId": "AiEvidenceController_reviewQueue",
         "parameters": [
           {
+            "name": "semanticType",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "FIN_TRANSACTION",
+                "PURCHASE_RECEIPT",
+                "SUBSCRIPTION_BILLING",
+                "FIN_STATEMENT_NOTICE",
+                "FIN_ACCOUNT_NOTICE",
+                "SECURITY_OTP",
+                "SECURITY_ALERT",
+                "TECH_NOTIFICATION",
+                "JOB",
+                "CALENDAR_EVENT",
+                "MARKETING",
+                "SOCIAL",
+                "OTHER"
+              ]
+            }
+          },
+          {
+            "name": "route",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "FINANCE",
+                "SUBSCRIPTIONS",
+                "CALENDAR",
+                "SECURITY"
+              ]
+            }
+          },
+          {
+            "name": "confidenceMin",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 0,
+              "maximum": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "confidenceMax",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 0,
+              "maximum": 1,
+              "type": "number"
+            }
+          },
+          {
             "name": "uncertain",
             "required": false,
             "in": "query",
@@ -878,13 +935,14 @@
             "name": "order",
             "required": false,
             "in": "query",
-            "description": "Fecha recibida, del más viejo al más nuevo o al revés",
+            "description": "OLDEST/NEWEST por fecha recibida o IMPACT por tamaño de grupo, remitente nuevo y confianza",
             "schema": {
               "default": "OLDEST",
               "type": "string",
               "enum": [
                 "OLDEST",
-                "NEWEST"
+                "NEWEST",
+                "IMPACT"
               ]
             }
           }
@@ -915,6 +973,18 @@
       "get": {
         "operationId": "AiEvidenceController_reviewGroups",
         "parameters": [
+          {
+            "name": "order",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "default": "IMPACT",
+              "type": "string",
+              "enum": [
+                "IMPACT"
+              ]
+            }
+          },
           {
             "name": "page",
             "required": false,
@@ -8590,6 +8660,42 @@
           "notifications"
         ]
       }
+    },
+    "/api/intelligence/messages/verifications/batch": {
+      "post": {
+        "operationId": "AiEvidenceController_verifyReviewSelection",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateReviewSelectionVerificationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AiReviewSelectionVerificationResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "access-token": []
+          }
+        ],
+        "tags": [
+          "intelligence-evidence"
+        ]
+      }
     }
   },
   "info": {
@@ -9898,6 +10004,43 @@
               "REJECTED"
             ]
           },
+          "semanticType": {
+            "type": "string",
+            "enum": [
+              "FIN_TRANSACTION",
+              "PURCHASE_RECEIPT",
+              "SUBSCRIPTION_BILLING",
+              "FIN_STATEMENT_NOTICE",
+              "FIN_ACCOUNT_NOTICE",
+              "SECURITY_OTP",
+              "SECURITY_ALERT",
+              "TECH_NOTIFICATION",
+              "JOB",
+              "CALENDAR_EVENT",
+              "MARKETING",
+              "SOCIAL",
+              "OTHER"
+            ],
+            "nullable": true
+          },
+          "routes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "FINANCE",
+                "SUBSCRIPTIONS",
+                "CALENDAR",
+                "SECURITY"
+              ]
+            }
+          },
+          "confidence": {
+            "type": "number",
+            "nullable": true,
+            "minimum": 0,
+            "maximum": 1
+          },
           "verification": {
             "nullable": true,
             "type": "object",
@@ -9918,6 +10061,9 @@
           "processingStatus",
           "partition",
           "status",
+          "semanticType",
+          "routes",
+          "confidence",
           "verification"
         ]
       },
@@ -10090,6 +10236,9 @@
       "CreateReviewGroupVerificationDto": {
         "type": "object",
         "properties": {
+          "relevance": {
+            "type": "boolean"
+          },
           "semanticType": {
             "type": "string",
             "enum": [
@@ -10122,6 +10271,10 @@
           },
           "transaction": {
             "$ref": "#/components/schemas/HumanVerificationTransactionDto"
+          },
+          "notes": {
+            "type": "string",
+            "maxLength": 2000
           },
           "verdict": {
             "type": "string",
@@ -10172,6 +10325,9 @@
       "CreateHumanVerificationDto": {
         "type": "object",
         "properties": {
+          "relevance": {
+            "type": "boolean"
+          },
           "semanticType": {
             "type": "string",
             "enum": [
@@ -10204,6 +10360,10 @@
           },
           "transaction": {
             "$ref": "#/components/schemas/HumanVerificationTransactionDto"
+          },
+          "notes": {
+            "type": "string",
+            "maxLength": 2000
           },
           "verdict": {
             "type": "string",
@@ -18817,6 +18977,92 @@
         },
         "required": [
           "success"
+        ]
+      },
+      "CreateReviewSelectionVerificationDto": {
+        "type": "object",
+        "properties": {
+          "relevance": {
+            "type": "boolean"
+          },
+          "semanticType": {
+            "type": "string",
+            "enum": [
+              "FIN_TRANSACTION",
+              "PURCHASE_RECEIPT",
+              "SUBSCRIPTION_BILLING",
+              "FIN_STATEMENT_NOTICE",
+              "FIN_ACCOUNT_NOTICE",
+              "SECURITY_OTP",
+              "SECURITY_ALERT",
+              "TECH_NOTIFICATION",
+              "JOB",
+              "CALENDAR_EVENT",
+              "MARKETING",
+              "SOCIAL",
+              "OTHER"
+            ]
+          },
+          "routes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "FINANCE",
+                "SUBSCRIPTIONS",
+                "CALENDAR",
+                "SECURITY"
+              ]
+            }
+          },
+          "transaction": {
+            "$ref": "#/components/schemas/HumanVerificationTransactionDto"
+          },
+          "notes": {
+            "type": "string",
+            "maxLength": 2000
+          },
+          "messageIds": {
+            "minItems": 1,
+            "maxItems": 50,
+            "uniqueItems": true,
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "verdict": {
+            "type": "string",
+            "enum": [
+              "CONFIRMED",
+              "CORRECTED",
+              "REJECTED"
+            ]
+          }
+        },
+        "required": [
+          "messageIds",
+          "verdict"
+        ]
+      },
+      "AiReviewSelectionVerificationResponseDto": {
+        "type": "object",
+        "properties": {
+          "verified": {
+            "type": "number"
+          },
+          "alreadyVerified": {
+            "type": "number"
+          },
+          "requeued": {
+            "type": "number",
+            "description": "Correos reencolados y reclasificados después de registrar la selección."
+          }
+        },
+        "required": [
+          "verified",
+          "alreadyVerified",
+          "requeued"
         ]
       }
     }

@@ -486,6 +486,7 @@ describe('AiEmailReclassificationService', () => {
       classification: {
         semanticType: 'FIN_TRANSACTION',
         transaction: { amount: 3400, currency: 'DOP', last4: '4821' },
+        confidence: 0.98,
       },
     });
     expect(byId.get('m3')).toMatchObject({

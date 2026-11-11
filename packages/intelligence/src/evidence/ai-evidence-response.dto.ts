@@ -1,6 +1,10 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { HUMAN_VERIFICATION_VERDICTS } from './human-verification.constants';
 import {
+  SEMANTIC_ROUTES,
+  SEMANTIC_TYPES,
+} from './human-verification.constants';
+import {
   REVIEW_QUEUE_PARTITIONS,
   REVIEW_QUEUE_STATUSES,
 } from './review-queue.constants';
@@ -73,6 +77,15 @@ export class AiReviewQueueItemResponseDto {
 
   @ApiProperty({ enum: REVIEW_QUEUE_STATUSES })
   status!: string;
+
+  @ApiProperty({ enum: SEMANTIC_TYPES, nullable: true })
+  semanticType!: string | null;
+
+  @ApiProperty({ type: [String], enum: SEMANTIC_ROUTES })
+  routes!: string[];
+
+  @ApiProperty({ type: Number, nullable: true, minimum: 0, maximum: 1 })
+  confidence!: number | null;
 
   @ApiProperty({
     type: () => AiReviewItemVerificationResponseDto,
@@ -162,6 +175,20 @@ export class AiReviewGroupVerificationResultResponseDto {
   @ApiProperty({
     description:
       'Correos de la misma plantilla reencolados y reclasificados con la etiqueta verificada.',
+  })
+  requeued!: number;
+}
+
+export class AiReviewSelectionVerificationResponseDto {
+  @ApiProperty()
+  verified!: number;
+
+  @ApiProperty()
+  alreadyVerified!: number;
+
+  @ApiProperty({
+    description:
+      'Correos reencolados y reclasificados después de registrar la selección.',
   })
   requeued!: number;
 }

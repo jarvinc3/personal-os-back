@@ -11,6 +11,7 @@ export {
 } from './domain/defaults/global-preferences-defaults';
 export {
   DEFAULT_MODULE_CONFIG_BY_SLUG,
+  AI_MODULE_SETTINGS_DEFAULTS,
   FINANCE_NOTIFICATION_KEYS,
   isModuleSlug,
   MODULE_SLUGS,

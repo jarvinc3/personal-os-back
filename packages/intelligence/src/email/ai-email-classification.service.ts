@@ -1,9 +1,11 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { Env } from '@personal-os/config';
 import {
   INFERENCE_COMPLETION,
+  MODULE_SETTINGS_READER,
   type InferenceCompletionPort,
+  type ModuleSettingsReader,
 } from '@personal-os/contracts';
 import { Prisma, PrismaService } from '@personal-os/database';
 import {
@@ -28,6 +30,11 @@ import {
   requiresReview,
   type ClassificationProvenance,
 } from './email-classification-persistence';
+import {
+  defaultEmailReviewSettings,
+  loadEmailReviewSettings,
+  type EmailReviewSettings,
+} from './email-review-settings';
 import {
   knowledgeKeys,
   NORMALIZER_VERSION,
@@ -68,6 +75,9 @@ export class AiEmailClassificationService {
     @Inject(INFERENCE_COMPLETION)
     private readonly inference: InferenceCompletionPort,
     private readonly config: ConfigService<Env, true>,
+    @Optional()
+    @Inject(MODULE_SETTINGS_READER)
+    private readonly moduleSettings?: ModuleSettingsReader,
   ) {}
 
   /** Processes a bounded batch; model calls use a per-user UTC-day budget. */
@@ -81,8 +91,15 @@ export class AiEmailClassificationService {
 
     let modelCalls = 0;
     let processed = 0;
+    const reviewSettings = pending.length
+      ? await loadEmailReviewSettings(this.moduleSettings, userId)
+      : defaultEmailReviewSettings();
     for (const candidate of pending) {
-      const result = await this.classifyOne(userId, candidate.id);
+      const result = await this.classifyOne(
+        userId,
+        candidate.id,
+        reviewSettings ?? undefined,
+      );
       modelCalls += result.modelCalls;
       if (result.processed) {
         processed += 1;
@@ -121,6 +138,7 @@ export class AiEmailClassificationService {
   private async classifyOne(
     userId: string,
     messageId: string,
+    reviewSettings: EmailReviewSettings,
   ): Promise<{
     processed: boolean;
     modelCalls: number;
@@ -164,7 +182,8 @@ export class AiEmailClassificationService {
 
     let modelCalls = 0;
     try {
-      const matches = await this.resolveKnowledge(userId, message);
+      const resolvedKnowledge = await this.resolveKnowledge(userId, message);
+      const matches = resolvedKnowledge.matches;
       const known = matches[0];
       const knownLabel = this.knowledgeLabel(known?.payload);
       const isKnownIrrelevant = knownLabel?.relevance === false;
@@ -240,6 +259,8 @@ export class AiEmailClassificationService {
         return { processed: false, modelCalls };
       }
       classification = validateEmailClassification(classification);
+      const isHoldout =
+        partitionEmailDatasetItem(userId, message.id) === 'HOLDOUT';
       await this.persistClassification({
         userId,
         message,
@@ -249,6 +270,12 @@ export class AiEmailClassificationService {
         model,
         auditSample,
         matches,
+        reviewConfidenceThreshold: isHoldout
+          ? EMAIL_REVIEW_CONFIDENCE_THRESHOLD
+          : reviewSettings.reviewConfidenceThreshold,
+        isHoldout,
+        verifiedSender: resolvedKnowledge.verifiedSender,
+        acceptVerifiedSenders: reviewSettings.acceptVerifiedSenders,
       });
       return { processed: true, modelCalls };
     } catch (error) {
@@ -266,10 +293,10 @@ export class AiEmailClassificationService {
       fromAddress: string;
       subject: string;
     },
-  ): Promise<KnowledgeMatch[]> {
+  ): Promise<{ matches: KnowledgeMatch[]; verifiedSender: boolean }> {
     const keys = knowledgeKeys(message.fromAddress, message.subject);
     if (keys.length === 0) {
-      return [];
+      return { matches: [], verifiedSender: false };
     }
     const userRows = await this.prisma.aiKnowledge.findMany({
       where: {
@@ -291,7 +318,13 @@ export class AiEmailClassificationService {
     });
     const userMatches = this.orderKnowledge(userRows, keys);
     if (userMatches.length > 0) {
-      return [userMatches[0]];
+      return {
+        matches: [userMatches[0]],
+        verifiedSender: userMatches.some(
+          ({ knowledgeType, scope }) =>
+            knowledgeType === 'EMAIL_SENDER' && scope === 'USER',
+        ),
+      };
     }
     const globalRows = await this.prisma.aiKnowledge.findMany({
       where: {
@@ -313,7 +346,10 @@ export class AiEmailClassificationService {
       },
     });
     const globalMatches = this.orderKnowledge(globalRows, keys);
-    return globalMatches.length > 0 ? [globalMatches[0]] : [];
+    return {
+      matches: globalMatches.length > 0 ? [globalMatches[0]] : [],
+      verifiedSender: false,
+    };
   }
 
   private orderKnowledge<T extends KnowledgeMatch>(
@@ -365,6 +401,10 @@ export class AiEmailClassificationService {
     model: string | null;
     auditSample: boolean;
     matches: KnowledgeMatch[];
+    reviewConfidenceThreshold: number;
+    isHoldout: boolean;
+    verifiedSender: boolean;
+    acceptVerifiedSenders: boolean;
   }) {
     const dataset = await this.prisma.aiDataset.upsert({
       where: { name: EMAIL_DATASET_NAME },
@@ -422,7 +462,7 @@ export class AiEmailClassificationService {
         schemaVersion: EMAIL_CLASSIFICATION_VERSIONS.schema,
         configuration: {
           parserVersion: EMAIL_CLASSIFICATION_VERSIONS.parser,
-          reviewConfidenceThreshold: EMAIL_REVIEW_CONFIDENCE_THRESHOLD,
+          reviewConfidenceThreshold: input.reviewConfidenceThreshold,
           auditSample: input.auditSample,
         },
       },
@@ -465,6 +505,10 @@ export class AiEmailClassificationService {
     const reviewRequired = requiresReview({
       classification: input.classification,
       auditSample: input.auditSample,
+      reviewConfidenceThreshold: input.reviewConfidenceThreshold,
+      isHoldout: input.isHoldout,
+      verifiedSender: input.verifiedSender,
+      acceptVerifiedSenders: input.acceptVerifiedSenders,
     });
     const signalWrites = buildFinanceSignal({
       userId: input.userId,

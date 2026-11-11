@@ -1,12 +1,15 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { Transform } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import {
   IsIn,
   IsISO8601,
   IsOptional,
   IsBoolean,
+  IsNumber,
   IsString,
   Matches,
+  Max,
+  Min,
   MaxLength,
 } from 'class-validator';
 import {
@@ -18,6 +21,12 @@ import {
   type ReviewQueueStatus,
 } from '../review-queue.constants';
 import { toReviewQueueStatusList } from '../review-queue.util';
+import {
+  SEMANTIC_ROUTES,
+  SEMANTIC_TYPES,
+  type SemanticRoute,
+  type SemanticType,
+} from '../human-verification.constants';
 
 const DATE_ONLY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -30,6 +39,32 @@ function trimToUndefined(value: unknown): string | undefined {
 }
 
 export class ReviewQueueQueryDto {
+  @ApiPropertyOptional({ enum: SEMANTIC_TYPES })
+  @IsOptional()
+  @IsIn(SEMANTIC_TYPES)
+  semanticType?: SemanticType;
+
+  @ApiPropertyOptional({ enum: SEMANTIC_ROUTES })
+  @IsOptional()
+  @IsIn(SEMANTIC_ROUTES)
+  route?: SemanticRoute;
+
+  @ApiPropertyOptional({ type: Number, minimum: 0, maximum: 1 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber({ allowNaN: false, allowInfinity: false })
+  @Min(0)
+  @Max(1)
+  confidenceMin?: number;
+
+  @ApiPropertyOptional({ type: Number, minimum: 0, maximum: 1 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber({ allowNaN: false, allowInfinity: false })
+  @Min(0)
+  @Max(1)
+  confidenceMax?: number;
+
   @ApiPropertyOptional({
     description: 'Solo mensajes inciertos o sin predicción',
   })
@@ -102,7 +137,8 @@ export class ReviewQueueQueryDto {
   @ApiPropertyOptional({
     enum: REVIEW_QUEUE_ORDERS,
     default: 'OLDEST',
-    description: 'Fecha recibida, del más viejo al más nuevo o al revés',
+    description:
+      'OLDEST/NEWEST por fecha recibida o IMPACT por tamaño de grupo, remitente nuevo y confianza',
   })
   @IsOptional()
   @IsIn(REVIEW_QUEUE_ORDERS)

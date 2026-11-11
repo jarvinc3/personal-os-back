@@ -2,6 +2,7 @@ import { BadRequestException } from '@nestjs/common';
 import { REVIEW_QUEUE_RESOLVED_PROCESSING_STATUS } from './review-queue.constants';
 import {
   assertReviewQueueDateRange,
+  assertReviewQueueConfidenceRange,
   encodeReviewQueueCursor,
   latestReviewVerifications,
   reviewQueueItemVerification,
@@ -64,6 +65,15 @@ describe('review queue utilities', () => {
       expect(() =>
         assertReviewQueueDateRange('2026-10-31', '2026-10-01'),
       ).toThrow(BadRequestException);
+    });
+  });
+
+  describe('assertReviewQueueConfidenceRange', () => {
+    it('accepts a bounded range and rejects an inverted range', () => {
+      expect(() => assertReviewQueueConfidenceRange(0.3, 0.6)).not.toThrow();
+      expect(() => assertReviewQueueConfidenceRange(0.7, 0.6)).toThrow(
+        BadRequestException,
+      );
     });
   });
 
@@ -239,6 +249,43 @@ describe('review queue utilities', () => {
             notes: 'Corregido',
             createdAt: '2026-10-25T12:30:00.000Z',
           },
+          semanticType: null,
+          routes: [],
+          confidence: null,
+        },
+      ]);
+    });
+
+    it('exposes the latest classification labels and confidence as queue fields', () => {
+      const classified = {
+        ...message,
+        classification: {
+          semanticType: 'FIN_TRANSACTION',
+          routes: ['FINANCE'],
+          confidence: 0.45,
+        },
+      };
+      expect(
+        reviewQueueItems({
+          messages: [classified],
+          partitionByMessageId,
+          latestByMessageId: new Map(),
+        }),
+      ).toEqual([
+        {
+          id: 'message-1',
+          receivedAt: message.receivedAt,
+          fromAddress: message.fromAddress,
+          fromDomain: message.fromDomain,
+          subject: message.subject,
+          contentFingerprint: message.contentFingerprint,
+          processingStatus: message.processingStatus,
+          partition: 'TRAIN',
+          status: 'PENDING',
+          verification: null,
+          semanticType: 'FIN_TRANSACTION',
+          routes: ['FINANCE'],
+          confidence: 0.45,
         },
       ]);
     });
@@ -257,6 +304,9 @@ describe('review queue utilities', () => {
           partition: 'HOLDOUT',
           status: 'PENDING',
           verification: null,
+          semanticType: null,
+          routes: [],
+          confidence: null,
         },
       ]);
     });
@@ -323,16 +373,85 @@ describe('review queue utilities', () => {
           latestByMessageId: new Map(),
           order: 'OLDEST',
           uncertain: true,
+          confidenceThreshold: 0.8,
         }),
       ).toEqual({
         userId: 'user-1',
-        OR: [
-          { classifications: { none: {} } },
-          { classifications: { some: { confidence: { lt: 0.7 } } } },
-        ],
         AND: [
           {
             processingStatus: { not: REVIEW_QUEUE_RESOLVED_PROCESSING_STATUS },
+          },
+          {
+            OR: [
+              { classifications: { none: {} } },
+              { classifications: { some: { confidence: { lt: 0.8 } } } },
+            ],
+          },
+        ],
+      });
+    });
+
+    it('keeps the fixed uncertain threshold for HOLDOUT when user threshold changes', () => {
+      expect(
+        reviewQueueMessageFilter({
+          userId: 'user-1',
+          latestByMessageId: new Map(),
+          order: 'OLDEST',
+          uncertain: true,
+          confidenceThreshold: 0.9,
+          nonHoldoutMessageIds: ['train-1'],
+          holdoutMessageIds: ['holdout-1'],
+        }),
+      ).toEqual({
+        userId: 'user-1',
+        AND: [
+          {
+            processingStatus: {
+              not: REVIEW_QUEUE_RESOLVED_PROCESSING_STATUS,
+            },
+          },
+          {
+            OR: [
+              { classifications: { none: {} } },
+              {
+                id: { in: ['train-1'] },
+                classifications: { some: { confidence: { lt: 0.9 } } },
+              },
+              {
+                id: { in: ['holdout-1'] },
+                classifications: { some: { confidence: { lt: 0.7 } } },
+              },
+            ],
+          },
+        ],
+      });
+    });
+
+    it('combines semantic type, route and confidence range in the classification filter', () => {
+      expect(
+        reviewQueueMessageFilter({
+          userId: 'user-1',
+          latestByMessageId: new Map(),
+          order: 'OLDEST',
+          semanticType: 'FIN_TRANSACTION',
+          route: 'FINANCE',
+          confidenceMin: 0.3,
+          confidenceMax: 0.6,
+        }),
+      ).toEqual({
+        userId: 'user-1',
+        AND: [
+          {
+            processingStatus: { not: REVIEW_QUEUE_RESOLVED_PROCESSING_STATUS },
+          },
+          {
+            classifications: {
+              some: {
+                semanticType: 'FIN_TRANSACTION',
+                route: 'FINANCE',
+                confidence: { gte: 0.3, lte: 0.6 },
+              },
+            },
           },
         ],
       });

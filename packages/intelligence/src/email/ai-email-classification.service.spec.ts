@@ -1,8 +1,10 @@
 import type { ConfigService } from '@nestjs/config';
 import type { Env } from '@personal-os/config';
+import type { ModuleSettingsReader } from '@personal-os/contracts';
 import type { PrismaService } from '@personal-os/database';
 import type { InferenceCompletionPort } from '@personal-os/contracts';
 import { AiEmailClassificationService } from './ai-email-classification.service';
+import { knowledgeKeys } from '../knowledge/knowledge-normalizer';
 
 function fixture(
   options: {
@@ -11,6 +13,10 @@ function fixture(
     role?: string;
     budgetAvailable?: boolean;
     inferenceValue?: unknown;
+    reviewSettings?: {
+      reviewConfidenceThreshold?: number;
+      acceptVerifiedSenders?: boolean;
+    };
   } = {},
 ) {
   const tx = {
@@ -92,11 +98,28 @@ function fixture(
     }),
   };
   const config = { get: jest.fn(() => 100) };
+  const moduleSettings = options.reviewSettings
+    ? {
+        read: jest.fn().mockResolvedValue({
+          enabled: true,
+          version: 1,
+          config: {
+            email: {
+              reviewConfidenceThreshold:
+                options.reviewSettings.reviewConfidenceThreshold ?? 0.7,
+              acceptVerifiedSenders:
+                options.reviewSettings.acceptVerifiedSenders ?? false,
+            },
+          },
+        }),
+      }
+    : undefined;
   return {
     service: new AiEmailClassificationService(
       prisma as unknown as PrismaService,
       inference as unknown as InferenceCompletionPort,
       config as unknown as ConfigService<Env, true>,
+      moduleSettings as unknown as ModuleSettingsReader | undefined,
     ),
     prisma,
     inference,
@@ -203,6 +226,101 @@ describe('AiEmailClassificationService', () => {
     expect(prisma.aiEmailMessage.updateMany).toHaveBeenLastCalledWith(
       expect.objectContaining({
         data: { processingStatus: 'QUEUED', classificationStartedAt: null },
+      }),
+    );
+  });
+
+  it('uses the per-user review confidence threshold for a model classification', async () => {
+    const { service, prisma } = fixture({
+      reviewSettings: { reviewConfidenceThreshold: 0.8 },
+      inferenceValue: {
+        relevance: true,
+        semanticType: 'FIN_TRANSACTION',
+        routes: ['FINANCE'],
+        transaction: { kind: 'TRANSACTION' },
+        confidence: 0.75,
+      },
+    });
+
+    await service.processPendingForUser('user-1');
+
+    expect(prisma.aiEmailMessage.updateMany).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ processingStatus: 'REVIEW_REQUIRED' }),
+      }),
+    );
+  });
+
+  it('auto-accepts a verified sender only when the user enables the setting', async () => {
+    const knowledge = [
+      {
+        id: 'sender-knowledge',
+        knowledgeType: 'EMAIL_SENDER',
+        knowledgeKey: 'notice@example.com',
+        scope: 'USER' as const,
+        payload: { label: { relevance: true } },
+      },
+    ];
+    const { service, prisma, inference } = fixture({
+      knowledge,
+      reviewSettings: {
+        reviewConfidenceThreshold: 0.8,
+        acceptVerifiedSenders: true,
+      },
+    });
+
+    await service.processPendingForUser('user-1');
+
+    expect(inference.infer).not.toHaveBeenCalled();
+    expect(prisma.aiEmailMessage.updateMany).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ processingStatus: 'PROCESSED' }),
+      }),
+    );
+  });
+
+  it('honors sender verification when a template label is the primary knowledge match', async () => {
+    const templateKey = knowledgeKeys('notice@example.com', 'Notice').find(
+      ({ knowledgeType }) => knowledgeType === 'EMAIL_TEMPLATE',
+    )?.knowledgeKey;
+    if (!templateKey) {
+      throw new Error('Expected a normalized template knowledge key');
+    }
+    const { service, prisma } = fixture({
+      knowledge: [
+        {
+          id: 'sender-knowledge',
+          knowledgeType: 'EMAIL_SENDER',
+          knowledgeKey: 'notice@example.com',
+          scope: 'USER',
+          payload: {
+            label: {
+              relevance: true,
+              semanticType: 'FIN_TRANSACTION',
+              routes: ['FINANCE'],
+              transaction: { kind: 'TRANSACTION' },
+            },
+          },
+        },
+        {
+          id: 'template-knowledge',
+          knowledgeType: 'EMAIL_TEMPLATE',
+          knowledgeKey: templateKey,
+          scope: 'USER',
+          payload: { label: { relevance: true } },
+        },
+      ],
+      reviewSettings: {
+        reviewConfidenceThreshold: 0.8,
+        acceptVerifiedSenders: true,
+      },
+    });
+
+    await service.processPendingForUser('user-1');
+
+    expect(prisma.aiEmailMessage.updateMany).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ processingStatus: 'PROCESSED' }),
       }),
     );
   });

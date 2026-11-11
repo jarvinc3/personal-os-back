@@ -50,6 +50,11 @@ describe('Intelligence API (e2e)', () => {
       sequence: '7',
       verdict: 'CONFIRMED',
     }),
+    verifyReviewSelection: jest.fn().mockResolvedValue({
+      verified: 2,
+      alreadyVerified: 0,
+      requeued: 0,
+    }),
     listReviewGroups: jest.fn().mockResolvedValue({
       items: [],
       page: 1,
@@ -392,6 +397,20 @@ describe('Intelligence API (e2e)', () => {
     });
 
     await request(app.getHttpServer())
+      .get(
+        '/api/intelligence/review-queue?semanticType=FIN_TRANSACTION&route=FINANCE&confidenceMin=0.3&confidenceMax=0.6&order=IMPACT',
+      )
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+    expect(evidence.reviewQueue).toHaveBeenLastCalledWith('user-123', {
+      semanticType: 'FIN_TRANSACTION',
+      route: 'FINANCE',
+      confidenceMin: 0.3,
+      confidenceMax: 0.6,
+      order: 'IMPACT',
+    });
+
+    await request(app.getHttpServer())
       .get('/api/intelligence/review-groups?page=2&pageSize=5')
       .set('Authorization', `Bearer ${token}`)
       .expect(200);
@@ -419,6 +438,45 @@ describe('Intelligence API (e2e)', () => {
         semanticType: 'MARKETING',
       }),
     );
+
+    await request(app.getHttpServer())
+      .post('/api/intelligence/messages/verifications/batch')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        messageIds: ['message-1', 'message-2'],
+        verdict: 'CONFIRMED',
+        semanticType: 'MARKETING',
+      })
+      .expect(201);
+    expect(evidence.verifyReviewSelection).toHaveBeenCalledWith(
+      'user-123',
+      expect.objectContaining({
+        messageIds: ['message-1', 'message-2'],
+        verdict: 'CONFIRMED',
+        semanticType: 'MARKETING',
+      }),
+    );
+
+    await request(app.getHttpServer())
+      .post('/api/intelligence/messages/verifications/batch')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        messageIds: Array.from(
+          { length: 51 },
+          (_, index) => `message-${index}`,
+        ),
+        verdict: 'CONFIRMED',
+      })
+      .expect(400);
+
+    await request(app.getHttpServer())
+      .post('/api/intelligence/messages/verifications/batch')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        messageIds: ['message-1', 'message-1'],
+        verdict: 'CONFIRMED',
+      })
+      .expect(400);
 
     await request(app.getHttpServer())
       .post('/api/intelligence/messages/message-1/verifications')
@@ -539,6 +597,10 @@ describe('Intelligence API (e2e)', () => {
     '?dateTo=31-10-2026',
     '?order=SIDEWAYS',
     '?partition=OTHER',
+    '?semanticType=UNKNOWN',
+    '?route=UNKNOWN',
+    '?confidenceMin=-0.1',
+    '?confidenceMax=1.1',
     '?unknownFilter=1',
   ])('rejects the invalid review queue filter %s', async (query) => {
     evidence.reviewQueue.mockClear();
@@ -593,6 +655,19 @@ describe('Intelligence API (e2e)', () => {
     expect(
       document.paths?.['/api/intelligence/review-groups/verifications']?.post,
     ).toBeDefined();
+    expect(
+      document.paths?.['/api/intelligence/messages/verifications/batch']?.post,
+    ).toBeDefined();
+    const reviewSelection = document.components?.schemas
+      ?.CreateReviewSelectionVerificationDto as {
+      properties: Record<string, { maxItems?: number; uniqueItems?: boolean }>;
+    };
+    expect(reviewSelection.properties.messageIds).toMatchObject({
+      maxItems: 50,
+      uniqueItems: true,
+    });
+    expect(reviewSelection.properties.relevance).toBeDefined();
+    expect(reviewSelection.properties.notes).toBeDefined();
 
     const reviewQueueParameters = (document.paths?.[
       '/api/intelligence/review-queue'
@@ -611,6 +686,14 @@ describe('Intelligence API (e2e)', () => {
     expect(reviewQueueParameter('order')?.schema).toMatchObject({
       enum: [...REVIEW_QUEUE_ORDERS],
     });
+    expect(reviewQueueParameter('semanticType')?.schema).toMatchObject({
+      enum: [...SEMANTIC_TYPES],
+    });
+    expect(reviewQueueParameter('route')?.schema).toMatchObject({
+      enum: [...SEMANTIC_ROUTES],
+    });
+    expect(reviewQueueParameter('confidenceMin')?.schema).toBeDefined();
+    expect(reviewQueueParameter('confidenceMax')?.schema).toBeDefined();
     expect(reviewQueueParameter('fromAddress')?.schema).toBeDefined();
     expect(reviewQueueParameter('subject')?.schema).toBeDefined();
     expect(reviewQueueParameter('dateFrom')?.schema).toBeDefined();
