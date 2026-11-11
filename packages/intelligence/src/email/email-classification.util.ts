@@ -235,6 +235,31 @@ export function parseDeterministicEmail(input: {
   return null;
 }
 
+/**
+ * Completes a transaction label with the date the flow knows from the header.
+ * The model never fills it, and transactionDate stays absent when the message
+ * did not state the operation date.
+ */
+export function withSuggestedTransactionDate({
+  classification,
+  receivedAt,
+}: {
+  classification: EmailClassification;
+  receivedAt: Date;
+}): EmailClassification {
+  if (!classification.transaction) {
+    return classification;
+  }
+  return validateEmailClassification({
+    ...classification,
+    transaction: {
+      ...classification.transaction,
+      suggestedTransactionDate: receivedAt.toISOString(),
+      suggestedTransactionDateSource: SUGGESTED_TRANSACTION_DATE_SOURCES[0],
+    },
+  });
+}
+
 export function isRecallAuditSample(messageId: string, rate = 100): boolean {
   if (!Number.isInteger(rate) || rate < 1) {
     return false;

@@ -17,6 +17,7 @@ import {
   isRecallAuditSample,
   parseDeterministicEmail,
   validateEmailClassification,
+  withSuggestedTransactionDate,
   type EmailClassification,
 } from './email-classification.util';
 import {
@@ -239,7 +240,10 @@ export class AiEmailClassificationService {
         await this.leaveQueued(messageId, userId);
         return { processed: false, modelCalls };
       }
-      classification = validateEmailClassification(classification);
+      classification = withSuggestedTransactionDate({
+        classification: validateEmailClassification(classification),
+        receivedAt: message.receivedAt,
+      });
       await this.persistClassification({
         userId,
         message,

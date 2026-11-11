@@ -2,6 +2,7 @@ import {
   isRecallAuditSample,
   parseDeterministicEmail,
   validateEmailClassification,
+  withSuggestedTransactionDate,
 } from './email-classification.util';
 
 describe('Email classification rules', () => {
@@ -202,6 +203,75 @@ describe('Email classification rules', () => {
         confidence: 0.9,
       }),
     ).toThrow();
+  });
+
+  it('derives the suggested date from the header without inventing the operation date', () => {
+    const withoutOperationDate = validateEmailClassification({
+      relevance: true,
+      semanticType: 'FIN_TRANSACTION',
+      routes: ['FINANCE'],
+      transaction: {
+        kind: 'TRANSACTION',
+        amount: 1_500,
+        currency: 'DOP',
+        direction: 'DEBIT',
+      },
+      confidence: 0.9,
+    });
+
+    const enriched = withSuggestedTransactionDate({
+      classification: withoutOperationDate,
+      receivedAt: new Date('2026-11-10T12:00:00.000Z'),
+    });
+
+    expect(enriched.transaction).toMatchObject({
+      suggestedTransactionDate: '2026-11-10T12:00:00.000Z',
+      suggestedTransactionDateSource: 'EMAIL_HEADER',
+    });
+    expect(enriched.transaction).not.toHaveProperty('transactionDate');
+  });
+
+  it('keeps the operation date stated in the email', () => {
+    const withOperationDate = validateEmailClassification({
+      relevance: true,
+      semanticType: 'FIN_TRANSACTION',
+      routes: ['FINANCE'],
+      transaction: {
+        kind: 'TRANSACTION',
+        amount: 1_500,
+        currency: 'DOP',
+        direction: 'DEBIT',
+        transactionDate: '2026-11-09T09:00:00.000Z',
+      },
+      confidence: 0.9,
+    });
+
+    const enriched = withSuggestedTransactionDate({
+      classification: withOperationDate,
+      receivedAt: new Date('2026-11-10T12:00:00.000Z'),
+    });
+
+    expect(enriched.transaction).toMatchObject({
+      transactionDate: '2026-11-09T09:00:00.000Z',
+      suggestedTransactionDate: '2026-11-10T12:00:00.000Z',
+      suggestedTransactionDateSource: 'EMAIL_HEADER',
+    });
+  });
+
+  it('does not suggest a date when the email has no transaction', () => {
+    const notice = validateEmailClassification({
+      relevance: true,
+      semanticType: 'FIN_ACCOUNT_NOTICE',
+      routes: ['FINANCE'],
+      confidence: 0.95,
+    });
+
+    expect(
+      withSuggestedTransactionDate({
+        classification: notice,
+        receivedAt: new Date('2026-11-10T12:00:00.000Z'),
+      }),
+    ).toEqual(notice);
   });
 
   it('accepts the reference of the original email in a reversal', () => {
