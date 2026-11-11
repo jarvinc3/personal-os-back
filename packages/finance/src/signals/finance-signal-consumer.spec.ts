@@ -1,4 +1,8 @@
 import type { RoutedSignal } from '@personal-os/contracts';
+import {
+  PartialReversalAlreadyAppliedError,
+  PartialReversalExceedsOriginalError,
+} from '../ledger/application/partial-reversal.errors';
 import { FinanceSignalConsumer } from './finance-signal-consumer';
 
 const signal: RoutedSignal = {
@@ -61,7 +65,7 @@ function setup(overrides: Record<string, unknown> = {}) {
   const baseCurrency = { execute: jest.fn().mockResolvedValue('USD') };
   const ledger = {
     findTransactionByImportReference: jest.fn().mockResolvedValue(null),
-    findLinkedRefund: jest.fn().mockResolvedValue(null),
+    findImportedTransactionByEmailMessageId: jest.fn().mockResolvedValue(null),
     findLinkedRefundTotal: jest.fn().mockResolvedValue(0),
     findDedupeCandidate: jest.fn().mockResolvedValue(null),
     findLatestCategoryIdByMerchant: jest.fn().mockResolvedValue(null),
@@ -884,7 +888,6 @@ function setupReversal(
     emailOriginal?: Record<string, unknown> | null;
     candidates?: Array<Record<string, unknown>>;
     pending?: Array<Record<string, unknown>>;
-    linkedRefund?: Record<string, unknown> | null;
     linkedRefundTotal?: number;
   } = {},
 ) {
@@ -895,7 +898,6 @@ function setupReversal(
     : [];
   const ledger = {
     findTransactionByImportReference: jest.fn().mockResolvedValue(null),
-    findLinkedRefund: jest.fn().mockResolvedValue(options.linkedRefund ?? null),
     findLinkedRefundTotal: jest
       .fn()
       .mockResolvedValue(options.linkedRefundTotal ?? 0),
@@ -1073,6 +1075,7 @@ describe('FinanceSignalConsumer reversal chain', () => {
         type: 'CREDIT',
         amount: 40,
         linkedTransactionId: 'original-1',
+        sourceEmailMessageId: 'email-reversal-1',
         categoryId: 'category-1',
         importReference: 'signal-reversal-1',
       }),
@@ -1087,21 +1090,99 @@ describe('FinanceSignalConsumer reversal chain', () => {
     );
   });
 
-  it('does not create a second linked refund for the same original', async () => {
+  it('links two distinct partial refunds with the same amount from different emails', async () => {
     const { consumer, importEmail } = setupReversal({
       referenceOriginal: reversalOriginal,
-      linkedRefund: { id: 'refund-existing' },
-      linkedRefundTotal: 40,
+      linkedRefundTotal: 25,
     });
 
     await expect(
-      consumer.consume(reversalSignal({ amount: 40 })),
+      consumer.consume(reversalSignal({ amount: 25 })),
+    ).resolves.toMatchObject({
+      outcome: 'APPLIED',
+      domainReferences: [{ type: 'FinTransaction', id: 'transaction-1' }],
+    });
+
+    expect(importEmail.execute).toHaveBeenCalledWith(
+      'user-1',
+      expect.objectContaining({
+        amount: 25,
+        linkedTransactionId: 'original-1',
+        sourceEmailMessageId: 'email-reversal-1',
+      }),
+    );
+  });
+
+  it('treats a replay from the same source email as already applied', async () => {
+    const { consumer, importEmail } = setupReversal({
+      referenceOriginal: reversalOriginal,
+      emailOriginal: {
+        id: 'refund-existing',
+        type: 'CREDIT',
+        linkedTransactionId: 'original-1',
+      },
+    });
+
+    await expect(
+      consumer.consume(reversalSignal({ amount: 25 })),
     ).resolves.toMatchObject({
       outcome: 'ALREADY_APPLIED',
       domainReferences: [{ type: 'FinTransaction', id: 'refund-existing' }],
     });
 
     expect(importEmail.execute).not.toHaveBeenCalled();
+  });
+
+  it('reviews a partial that the atomic guard finds over the purchase', async () => {
+    const { consumer, importEmail, finSignalImport } = setupReversal({
+      referenceOriginal: reversalOriginal,
+    });
+    importEmail.execute.mockRejectedValueOnce(
+      new PartialReversalExceedsOriginalError({ originalId: 'original-1' }),
+    );
+
+    await expect(
+      consumer.consume(reversalSignal({ amount: 25 })),
+    ).resolves.toMatchObject({
+      outcome: 'REVIEW_REQUIRED',
+      reason: 'REVERSAL_EXCEEDS_ORIGINAL',
+    });
+
+    expect(finSignalImport.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        create: expect.objectContaining({
+          status: 'REVIEW_REQUIRED',
+          reviewReason: 'REVERSAL_EXCEEDS_ORIGINAL',
+        }),
+      }),
+    );
+  });
+
+  it('returns ALREADY_APPLIED when the atomic guard sees a replay', async () => {
+    const { consumer, importEmail, finSignalImport } = setupReversal({
+      referenceOriginal: reversalOriginal,
+    });
+    importEmail.execute.mockRejectedValueOnce(
+      new PartialReversalAlreadyAppliedError({
+        transactionId: 'refund-existing',
+      }),
+    );
+
+    await expect(
+      consumer.consume(reversalSignal({ amount: 25 })),
+    ).resolves.toMatchObject({
+      outcome: 'ALREADY_APPLIED',
+      domainReferences: [{ type: 'FinTransaction', id: 'refund-existing' }],
+    });
+
+    expect(finSignalImport.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        create: expect.objectContaining({
+          status: 'DUPLICATE',
+          duplicateOfTransactionId: 'refund-existing',
+        }),
+      }),
+    );
   });
 
   it('reviews two partial refunds whose sum exceeds the purchase', async () => {

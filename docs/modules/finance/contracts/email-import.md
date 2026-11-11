@@ -341,7 +341,7 @@ El comercio es obligatorio para el auto-vínculo. Si el aviso no trae comercio, 
 
 - Replay de la misma señal: `ALREADY_APPLIED`, sin segunda compensación.
 - Segundo reverso con la misma referencia sobre un original ya `REVERSED`: `ALREADY_APPLIED`.
-- Segundo reverso parcial con el mismo monto y moneda sobre el mismo original: no crea una segunda fila vinculada; la señal queda `ALREADY_APPLIED` con la fila existente. Dos devoluciones distintas sí crean filas separadas mientras la suma no supere el original.
+- Segundo reverso parcial del mismo aviso (mismo `sourceEmailMessageId`) sobre el mismo original: no crea una segunda fila vinculada; la señal queda `ALREADY_APPLIED` con la fila existente. Dos avisos de correos distintos con el mismo monto y moneda sí crean filas separadas mientras la suma no supere el original.
 - Segundo reverso sin referencia que no encuentra un candidato vigente porque el original ya está `REVERSED`: revisión `REVERSAL_ORIGINAL_NOT_FOUND`, sin segunda compensación.
 - Dos reversos distintos con candidatos distintos: se procesan por separado.
 - Un reverso de un reverso no se vincula al original revertido; va a revisión.
@@ -356,6 +356,7 @@ Un aviso de reverso con monto menor al del original es un reverso parcial (decis
 - El gasto del período y el presupuesto bajan por el monto devuelto, en la fecha del aviso de reverso. Los reportes y el estado del presupuesto restan la fila vinculada; el comercio de la fila es el del aviso o "Comercio desconocido" si falta.
 - Si el monto devuelto supera el del original: `REVERSAL_EXCEEDS_ORIGINAL`, revisión, sin fila y sin cambio de saldo.
 - El tope se evalúa sobre el acumulado: los créditos ya vinculados al original, en la misma moneda, más el monto del aviso. Si la suma supera el original, `REVERSAL_EXCEEDS_ORIGINAL`, revisión y sin fila.
+- La comprobación del acumulado y la creación del crédito ocurren en la misma transacción, con la fila del original bloqueada. Dos avisos simultáneos se serializan; el segundo ve el crédito del primero y va a revisión si la suma supera el original.
 - La evidencia de la señal registra el paso, el original y el monto devuelto.
 
 ## 7. Dedupe y conciliación

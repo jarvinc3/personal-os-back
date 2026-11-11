@@ -160,15 +160,6 @@ export class LedgerQueryService {
     return this.repo.findImportedTransactionByEmailMessageId(userId, messageId);
   }
 
-  findLinkedRefund(
-    userId: string,
-    originalId: string,
-    amount: number,
-    currency: string,
-  ) {
-    return this.repo.findLinkedRefund(userId, originalId, amount, currency);
-  }
-
   findLinkedRefundTotal(params: {
     userId: string;
     originalId: string;

@@ -41,6 +41,12 @@ import {
   type ReversalReviewReason,
   type ReversalTargetDecision,
 } from '../ledger/application/resolve-reversal-target';
+import {
+  PartialReversalAlreadyAppliedError,
+  PartialReversalAlreadyReversedError,
+  PartialReversalExceedsOriginalError,
+  PartialReversalNotApplicableError,
+} from '../ledger/application/partial-reversal.errors';
 import type { LedgerTransactionRow } from '../ledger/application/ports/ledger.repository.port';
 import {
   ImportFinancialTransactionUseCase,
@@ -601,6 +607,34 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
       }
       return this.result('APPLIED', transactionId);
     } catch (error) {
+      if (error instanceof PartialReversalAlreadyAppliedError) {
+        await this.persist(
+          signal,
+          'DUPLICATE',
+          null,
+          undefined,
+          error.transactionId,
+        );
+        return this.result('ALREADY_APPLIED', error.transactionId);
+      }
+      if (error instanceof PartialReversalAlreadyReversedError) {
+        await this.persist(signal, 'REVERSED', error.originalId);
+        return this.result('ALREADY_APPLIED', error.originalId);
+      }
+      if (error instanceof PartialReversalExceedsOriginalError) {
+        return this.review({
+          signal,
+          reason: REVERSAL_REVIEW_REASON.EXCEEDS_ORIGINAL,
+          evidence: { candidateTransactionIds: [error.originalId] },
+        });
+      }
+      if (error instanceof PartialReversalNotApplicableError) {
+        return this.review({
+          signal,
+          reason: error.reason,
+          evidence: { candidateTransactionIds: [error.originalId] },
+        });
+      }
       const code = (error as { code?: string }).code;
       if (code === 'P2002') {
         const priorTransaction =
@@ -817,13 +851,16 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
     original: ReversalOriginal;
     evidence: ImportReviewEvidence;
   }): Promise<ImportPlan | null> {
-    const repeatedRefund = await this.ledger.findLinkedRefund(
-      signal.userId,
-      original.id,
-      candidate.amount!,
-      candidate.currency!,
-    );
-    if (repeatedRefund) {
+    const repeatedRefund =
+      await this.ledger.findImportedTransactionByEmailMessageId(
+        signal.userId,
+        signal.sourceId,
+      );
+    if (
+      repeatedRefund &&
+      repeatedRefund.type === 'CREDIT' &&
+      repeatedRefund.linkedTransactionId === original.id
+    ) {
       return this.duplicatePlan(repeatedRefund.id, evidence);
     }
     const priorRefundTotal = await this.ledger.findLinkedRefundTotal({
@@ -872,6 +909,7 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
           status: 'CONFIRMED',
           categoryId: original.categoryId ?? undefined,
           linkedTransactionId: original.id,
+          sourceEmailMessageId: signal.sourceId,
           aiMetadata: {
             ...evidence,
             reversalSignalId: signal.signalId,

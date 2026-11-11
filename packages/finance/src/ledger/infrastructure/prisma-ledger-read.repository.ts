@@ -400,24 +400,6 @@ export class PrismaLedgerReadRepository {
     }) as Promise<LedgerTransactionRow[]>;
   }
 
-  findLinkedRefund(
-    userId: string,
-    originalId: string,
-    amount: number,
-    currency: string,
-  ) {
-    return this.prisma.finTransaction.findFirst({
-      where: {
-        userId,
-        linkedTransactionId: originalId,
-        type: 'CREDIT',
-        amount,
-        currency,
-      },
-      orderBy: { transactionDate: 'desc' },
-    }) as Promise<LedgerTransactionRow | null>;
-  }
-
   findLinkedRefundTotal({
     userId,
     originalId,

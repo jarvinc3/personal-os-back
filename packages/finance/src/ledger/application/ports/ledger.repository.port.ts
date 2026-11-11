@@ -236,13 +236,6 @@ export interface LedgerRepositoryPort {
     messageId: string,
   ): Promise<LedgerTransactionRow | null>;
 
-  findLinkedRefund(
-    userId: string,
-    originalId: string,
-    amount: number,
-    currency: string,
-  ): Promise<LedgerTransactionRow | null>;
-
   findLinkedRefundTotal(params: {
     userId: string;
     originalId: string;
