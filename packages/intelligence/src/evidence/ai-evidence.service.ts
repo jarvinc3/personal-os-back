@@ -304,10 +304,14 @@ export class AiEvidenceService {
       );
       let start = 0;
       if (query.cursor) {
-        const { nextId, index } = decodeReviewImpactCursor(query.cursor);
+        const { nextId, fallbackIndex } = decodeReviewImpactCursor(
+          query.cursor,
+        );
         const nextIndex = prioritized.findIndex(({ id }) => id === nextId);
         start =
-          nextIndex >= 0 ? nextIndex : Math.min(index, prioritized.length);
+          nextIndex >= 0
+            ? nextIndex
+            : Math.min(fallbackIndex, prioritized.length);
       }
       hasMore = prioritized.length > start + REVIEW_QUEUE_PAGE_SIZE;
       pageMessages = prioritized
@@ -323,7 +327,7 @@ export class AiEvidenceService {
         hasMore && nextPageFirst
           ? encodeReviewImpactCursor({
               nextId: nextPageFirst.id,
-              index: start + REVIEW_QUEUE_PAGE_SIZE,
+              fallbackIndex: start + REVIEW_QUEUE_PAGE_SIZE,
             })
           : null;
     } else {

@@ -672,12 +672,12 @@ describe('review queue utilities', () => {
     it('round-trips the start of the next page', () => {
       const cursor = encodeReviewImpactCursor({
         nextId: 'message-50',
-        index: 50,
+        fallbackIndex: 50,
       });
 
       expect(decodeReviewImpactCursor(cursor)).toEqual({
         nextId: 'message-50',
-        index: 50,
+        fallbackIndex: 50,
       });
     });
 

@@ -380,16 +380,20 @@ export function encodeReviewQueueCursor({
 
 export type ReviewImpactCursor = {
   nextId: string;
-  index: number;
+  fallbackIndex: number;
 };
 
-const IMPACT_CURSOR_KEY = /^IMPACT:(\d+)$/;
+const IMPACT_CURSOR_PREFIX = 'IMPACT';
+const IMPACT_CURSOR_KEY = new RegExp(`^${IMPACT_CURSOR_PREFIX}:(\\d+)$`);
 
 export function encodeReviewImpactCursor({
   nextId,
-  index,
+  fallbackIndex,
 }: ReviewImpactCursor): string {
-  return encodeCursor({ key: `IMPACT:${index}`, id: nextId });
+  return encodeCursor({
+    key: `${IMPACT_CURSOR_PREFIX}:${fallbackIndex}`,
+    id: nextId,
+  });
 }
 
 export function decodeReviewImpactCursor(cursor: string): ReviewImpactCursor {
@@ -397,11 +401,16 @@ export function decodeReviewImpactCursor(cursor: string): ReviewImpactCursor {
     IMPACT_CURSOR_KEY.test(key),
   );
   const match = IMPACT_CURSOR_KEY.exec(decoded.key);
-  const index = match ? Number(match[1]) : Number.NaN;
-  if (!match || !decoded.id || !Number.isSafeInteger(index) || index < 0) {
+  const fallbackIndex = match ? Number(match[1]) : Number.NaN;
+  if (
+    !match ||
+    !decoded.id ||
+    !Number.isSafeInteger(fallbackIndex) ||
+    fallbackIndex < 0
+  ) {
     throw new BadRequestException(INVALID_CURSOR_MESSAGE);
   }
-  return { nextId: decoded.id, index };
+  return { nextId: decoded.id, fallbackIndex };
 }
 
 function reviewQueueStatusFilter({
