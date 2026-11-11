@@ -45,6 +45,9 @@ function build(
 }
 
 describe('AiInferenceGateway', () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
   it('validates structured output, fails over and writes metadata only', async () => {
     const invalid = {
       name: 'primary',
@@ -391,7 +394,6 @@ describe('AiInferenceGateway', () => {
       provider: string;
     };
     expect(secondTelemetry.provider).toBe('OpenRouter');
-    jest.restoreAllMocks();
   });
 
   it('parks a provider without quota and retries it after the default cooldown', async () => {
@@ -429,7 +431,6 @@ describe('AiInferenceGateway', () => {
       provider: 'OpenRouter',
     });
     expect(noQuota.chatComplete).toHaveBeenCalledTimes(2);
-    jest.restoreAllMocks();
   });
 
   it('honors a Retry-After date before calling the paused provider again', async () => {
@@ -465,6 +466,5 @@ describe('AiInferenceGateway', () => {
     await expect(gateway.infer(request())).resolves.toMatchObject({
       provider: 'Groq',
     });
-    jest.restoreAllMocks();
   });
 });
