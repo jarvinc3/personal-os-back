@@ -4,11 +4,12 @@ import { Pool } from 'pg';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { getPrismaClientClass } from '@personal-os/database';
 import {
-  AiEmailClassificationService,
   AiSignalConsumerRegistry,
   AiSignalsService,
   EmailSampleImportService,
 } from '@personal-os/intelligence';
+// eslint-disable-next-line no-restricted-imports -- El barrel no expone el servicio de clasificación.
+import { AiEmailClassificationService } from '../../packages/intelligence/src/email/ai-email-classification.service';
 
 const connectionString = process.env.TEST_DATABASE_URL;
 if (!connectionString) {
