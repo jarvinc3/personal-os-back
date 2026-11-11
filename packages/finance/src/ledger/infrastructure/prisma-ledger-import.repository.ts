@@ -13,6 +13,7 @@ import {
 } from '../../shared/application/tokens';
 import type { BudgetSpendSnapshot } from '../../shared/domain/budget-snapshot';
 import { transactionCreatedEventName } from '../../shared/domain/mappers';
+import { toMoney } from '../../shared/domain/money';
 import { statusAffectsLedger } from '../../shared/domain/transaction-status';
 import type { ImportFinancialTransactionCommand } from '../application/commands/ledger.commands';
 import {
@@ -144,8 +145,11 @@ export class PrismaLedgerImportRepository {
       },
       _sum: { amount: true },
     });
-    const alreadyRefunded = Number(refunded._sum.amount ?? 0);
-    if (alreadyRefunded + command.amounts.amount > Number(original.amount)) {
+    if (
+      toMoney(refunded._sum.amount)
+        .plus(toMoney(command.amounts.amount))
+        .greaterThan(toMoney(original.amount))
+    ) {
       throw new PartialReversalExceedsOriginalError({ originalId });
     }
   }

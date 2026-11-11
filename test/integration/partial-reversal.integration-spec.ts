@@ -162,6 +162,36 @@ describe('partial reversal integrity on PostgreSQL', () => {
     ).toBe(50);
   });
 
+  it('links partials whose decimal sum reaches the purchase exactly', async () => {
+    const original = await createOriginal(0.3);
+
+    await repo.createImportedTransaction(
+      userId,
+      partialReversalCommand({
+        originalId: original.id,
+        amount: 0.1,
+        signalId: 'signal-decimal-a',
+        sourceEmailMessageId: 'email-decimal-a',
+      }),
+    );
+    await repo.createImportedTransaction(
+      userId,
+      partialReversalCommand({
+        originalId: original.id,
+        amount: 0.2,
+        signalId: 'signal-decimal-b',
+        sourceEmailMessageId: 'email-decimal-b',
+      }),
+    );
+
+    const credits = await linkedCredits(original.id);
+    expect(credits).toHaveLength(2);
+    expect(credits.map(({ amount }) => amount.toString()).sort()).toEqual([
+      '0.1',
+      '0.2',
+    ]);
+  });
+
   it('treats a replay from the same source email as already applied', async () => {
     const original = await createOriginal(100);
 

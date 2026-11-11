@@ -55,6 +55,7 @@ import {
 import { LedgerQueryService } from '../ledger/application/ledger-query.service';
 import { ReverseTransactionUseCase } from '../ledger/application/reverse-transaction.use-case';
 import { UNKNOWN_MERCHANT } from '../shared/domain/unknown-merchant';
+import { toMoney } from '../shared/domain/money';
 import { MerchantsService } from '../merchants/application/merchants.service';
 import { ResolveUserBaseCurrencyUseCase } from '../fx/application/resolve-user-base-currency';
 import { resolveCategoryIdForImport } from '../shared/domain/category-type';
@@ -885,7 +886,11 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
       originalId: original.id,
       currency: original.currency,
     });
-    if (priorRefundTotal + candidate.amount! > original.amount) {
+    if (
+      toMoney(priorRefundTotal)
+        .plus(toMoney(candidate.amount!))
+        .greaterThan(toMoney(original.amount))
+    ) {
       return this.reviewPlan(REVERSAL_REVIEW_REASON.EXCEEDS_ORIGINAL, {
         ...evidence,
         candidateTransactionIds: [original.id],

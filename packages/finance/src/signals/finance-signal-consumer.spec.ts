@@ -1221,6 +1221,25 @@ describe('FinanceSignalConsumer reversal chain', () => {
     );
   });
 
+  it('links a second partial whose decimal sum reaches the purchase', async () => {
+    const { consumer, importEmail } = setupReversal({
+      referenceOriginal: { ...reversalOriginal, amount: 0.3 },
+      linkedRefundTotal: 0.1,
+    });
+
+    await expect(
+      consumer.consume(reversalSignal({ amount: 0.2 })),
+    ).resolves.toMatchObject({ outcome: 'APPLIED' });
+
+    expect(importEmail.execute).toHaveBeenCalledWith(
+      'user-1',
+      expect.objectContaining({
+        amount: 0.2,
+        linkedTransactionId: 'original-1',
+      }),
+    );
+  });
+
   it('reviews a currency mismatch on the reference step', async () => {
     const { consumer, importEmail, reverseTransaction } = setupReversal({
       referenceOriginal: { ...reversalOriginal, currency: 'USD' },
