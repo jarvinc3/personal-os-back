@@ -304,12 +304,14 @@ export class AiEvidenceService {
       );
       let start = 0;
       if (query.cursor) {
-        const cursorId = decodeReviewImpactCursor(query.cursor);
-        const cursorIndex = prioritized.findIndex(({ id }) => id === cursorId);
-        if (cursorIndex < 0) {
-          throw new BadRequestException('Cursor de revisión inválido');
-        }
-        start = cursorIndex + 1;
+        const { nextId, fallbackIndex } = decodeReviewImpactCursor(
+          query.cursor,
+        );
+        const nextIndex = prioritized.findIndex(({ id }) => id === nextId);
+        start =
+          nextIndex >= 0
+            ? nextIndex
+            : Math.min(fallbackIndex, prioritized.length);
       }
       hasMore = prioritized.length > start + REVIEW_QUEUE_PAGE_SIZE;
       pageMessages = prioritized
@@ -320,8 +322,14 @@ export class AiEvidenceService {
           void confidence;
           return message;
         });
-      const last = pageMessages.at(-1);
-      nextCursor = hasMore && last ? encodeReviewImpactCursor(last.id) : null;
+      const nextPageFirst = prioritized[start + REVIEW_QUEUE_PAGE_SIZE];
+      nextCursor =
+        hasMore && nextPageFirst
+          ? encodeReviewImpactCursor({
+              nextId: nextPageFirst.id,
+              fallbackIndex: start + REVIEW_QUEUE_PAGE_SIZE,
+            })
+          : null;
     } else {
       const direction = reviewQueueSortDirection(order);
       const messages = await this.prisma.aiEmailMessage.findMany({

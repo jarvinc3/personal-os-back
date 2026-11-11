@@ -298,6 +298,43 @@ describe('Users (e2e)', () => {
       });
   });
 
+  it('PATCH /api/users/me/modules/ai rejects an out-of-range review threshold', async () => {
+    const enabledAt = new Date('2026-01-01T00:00:00.000Z');
+    prismaMock.module.findUnique.mockResolvedValue({
+      id: 'mod-ai',
+      slug: 'ai',
+      name: 'Inteligencia',
+      key: 'ai',
+      isActive: true,
+      sortOrder: 1,
+      description: null,
+    });
+    prismaMock.userModule.findUnique.mockResolvedValue({
+      id: 'um-ai',
+      userId: 'user-123',
+      moduleId: 'mod-ai',
+      isEnabled: true,
+      config: {
+        email: {
+          reviewConfidenceThreshold: 0.7,
+          acceptVerifiedSenders: false,
+        },
+      },
+      enabledAt,
+      module: { slug: 'ai' },
+    });
+
+    const token = createTestJwt({ sub: 'user-123', email: 'user@example.com' });
+
+    await request(app.getHttpServer())
+      .patch('/api/users/me/modules/ai')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ config: { email: { reviewConfidenceThreshold: 1.2 } } })
+      .expect(400);
+
+    expect(prismaMock.userModule.upsert).not.toHaveBeenCalled();
+  });
+
   it('PATCH /api/users/me/modules/finance toggles isEnabled without changing config', async () => {
     const enabledAt = new Date('2026-01-01T00:00:00.000Z');
     const existingConfig = { baseCurrency: 'DOP', version: 1 };

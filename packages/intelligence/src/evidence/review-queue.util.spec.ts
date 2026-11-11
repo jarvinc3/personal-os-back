@@ -3,6 +3,8 @@ import { REVIEW_QUEUE_RESOLVED_PROCESSING_STATUS } from './review-queue.constant
 import {
   assertReviewQueueDateRange,
   assertReviewQueueConfidenceRange,
+  decodeReviewImpactCursor,
+  encodeReviewImpactCursor,
   encodeReviewQueueCursor,
   latestReviewVerifications,
   reviewQueueItemVerification,
@@ -663,6 +665,37 @@ describe('review queue utilities', () => {
           order: 'OLDEST',
         }),
       ).toThrow(BadRequestException);
+    });
+  });
+
+  describe('review impact cursor', () => {
+    it('round-trips the start of the next page', () => {
+      const cursor = encodeReviewImpactCursor({
+        nextId: 'message-50',
+        fallbackIndex: 50,
+      });
+
+      expect(decodeReviewImpactCursor(cursor)).toEqual({
+        nextId: 'message-50',
+        fallbackIndex: 50,
+      });
+    });
+
+    it('rejects a cursor from another order and a forged key', () => {
+      const queueCursor = encodeReviewQueueCursor({
+        id: 'message-1',
+        receivedAt: new Date('2026-10-05T12:00:00.000Z'),
+      });
+      expect(() => decodeReviewImpactCursor(queueCursor)).toThrow(
+        BadRequestException,
+      );
+
+      const forged = Buffer.from(
+        JSON.stringify({ key: 'IMPACT:not-a-number', id: 'message-1' }),
+      ).toString('base64url');
+      expect(() => decodeReviewImpactCursor(forged)).toThrow(
+        BadRequestException,
+      );
     });
   });
 

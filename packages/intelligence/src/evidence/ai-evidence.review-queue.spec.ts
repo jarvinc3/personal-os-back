@@ -129,6 +129,9 @@ function makePrisma({
         .fn()
         .mockResolvedValue({ timezone: 'America/Santo_Domingo' }),
     },
+    aiKnowledge: {
+      findMany: jest.fn().mockResolvedValue([]),
+    },
   };
   return prisma;
 }
@@ -463,6 +466,69 @@ describe('AiEvidenceService review queue filters', () => {
         take: 51,
       }),
     );
+  });
+
+  it('continues an IMPACT page after the last message of the page is verified', async () => {
+    const messages = Array.from({ length: 51 }, (_, index) =>
+      message({
+        id: `message-${String(index).padStart(2, '0')}`,
+        receivedAt: '2026-10-25T12:00:00.000Z',
+      }),
+    );
+    const prisma = makePrisma({
+      items: messages.map(({ id }) => item(id, 'TRAIN')),
+      verifications: [],
+    });
+    mockMessageQueries(prisma, messages);
+    const service = new AiEvidenceService(prisma, reclassification as never);
+
+    const first = await service.reviewQueue('user-1', { order: 'IMPACT' });
+    expect(first.items).toHaveLength(50);
+    expect(first.nextCursor).toEqual(expect.any(String));
+
+    const remaining = messages.filter(({ id }) => id !== 'message-49');
+    mockMessageQueries(prisma, remaining);
+    const second = await service.reviewQueue('user-1', {
+      order: 'IMPACT',
+      cursor: first.nextCursor ?? undefined,
+    });
+
+    expect(second.items.map(({ id }) => id)).toEqual(['message-50']);
+    expect(second.hasMore).toBe(false);
+  });
+
+  it('starts an IMPACT page at the recorded next message when the last one moves', async () => {
+    const messages = Array.from({ length: 52 }, (_, index) =>
+      message({
+        id: `message-${String(index).padStart(2, '0')}`,
+        receivedAt: '2026-10-25T12:00:00.000Z',
+      }),
+    );
+    const prisma = makePrisma({
+      items: messages.map(({ id }) => item(id, 'TRAIN')),
+      verifications: [],
+    });
+    mockMessageQueries(prisma, messages);
+    const service = new AiEvidenceService(prisma, reclassification as never);
+
+    const first = await service.reviewQueue('user-1', { order: 'IMPACT' });
+    expect(first.items).toHaveLength(50);
+
+    const reordered = messages.map((stored) =>
+      stored.id === 'message-49'
+        ? { ...stored, classification: { confidence: 0.1 } }
+        : stored,
+    );
+    mockMessageQueries(prisma, reordered);
+    const second = await service.reviewQueue('user-1', {
+      order: 'IMPACT',
+      cursor: first.nextCursor ?? undefined,
+    });
+
+    expect(second.items.map(({ id }) => id)).toEqual([
+      'message-50',
+      'message-51',
+    ]);
   });
 
   it('rejects an inverted date range before reading data', async () => {
