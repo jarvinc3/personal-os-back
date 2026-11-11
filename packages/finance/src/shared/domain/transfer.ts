@@ -1,6 +1,9 @@
 /** System expense category a transfer fee posts to. */
 export const TRANSFER_FEE_CATEGORY_NAME = 'Comisiones bancarias';
 
+/** Dos correos con la misma referencia se comparan dentro de este margen. */
+export const TRANSFER_REFERENCE_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
+
 export const OPERATION_LEG_ROLE = {
   SOURCE: 'SOURCE',
   DESTINATION: 'DESTINATION',

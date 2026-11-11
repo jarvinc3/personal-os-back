@@ -97,26 +97,32 @@ Cuando llega una segunda señal válida, se aplica el comportamiento actual de `
 - tipo opuesto;
 - institución distinta (el código actual usa la institución, no solo la cuenta);
 - misma moneda base del usuario;
-- fecha dentro de 3 días;
+- fecha dentro de 3 días, o de 7 cuando las dos patas comparten la referencia bancaria;
 - monto exacto o tolerancia de comisión de 50 o 2 %;
-- exactamente un candidato no emparejado.
+- exactamente un candidato no emparejado después de aplicar la preferencia por monto exacto.
 
-Si hay exactamente un candidato, se vinculan las dos patas con el mismo `transferGroupId`. Si hay cero o más de uno, no se elige por semejanza: las patas quedan pendientes y se registra `TRANSFER_PAIR_AMBIGUOUS` con evidencia.
+Si hay exactamente un candidato, se vinculan las dos patas con el mismo `transferGroupId`. Si hay cero, no se crea par. Si hay más de uno, no se elige por semejanza: las patas quedan pendientes y se registra `TRANSFER_PAIR_AMBIGUOUS` con evidencia.
 
-La ventana de 3 días y la tolerancia de 50 o 2 % son comportamiento actual del código, no un acuerdo de producto nuevo. Se conservan mientras no exista una decisión explícita que las cambie.
+Si al menos un candidato coincide con el monto exacto, los candidatos dentro de la tolerancia de comisión no compiten: se vincula el exacto si es único. Si no hay exacto, la tolerancia forma el conjunto y también debe ser única. Varios candidatos en el conjunto final no se eligen.
+
+Una pata cuyo `transferGroupId` ya tiene otro miembro no se vuelve a emparejar. El tamaño del grupo se cuenta en la base por `transferGroupId`, sin limitarse a las patas que caen en la ventana de fechas de la búsqueda; así un par no se separa cuando su compañero quedó fuera de esa ventana.
+
+El emparejamiento ocurre después de guardar la pata. Si ese paso falla, la pata queda guardada; el reintento de la misma señal vuelve a intentar el emparejamiento antes de responder `ALREADY_APPLIED`. No se crea una segunda pata.
+
+La tolerancia de 50 o 2 % es comportamiento actual del código y se conserva. La ventana es de 3 días; con la misma referencia bancaria en las dos patas pasa a 7 días, por la decisión del owner del 2026-11-11 registrada en el issue #335.
 
 ### 3.4 Dedupe
 
 - Replay de la misma señal: `fin_signal_import` existente, `ALREADY_APPLIED`, sin segunda fila.
 - Un match de referencia es un candidato, no prueba de duplicado.
-- Duplicado de la misma pata: misma referencia, mismo tipo, misma cuenta, mismo monto, misma moneda y la misma fecha de operación, `DUPLICATE`, sin segunda fila.
+- Duplicado de la misma pata: misma referencia, mismo tipo, misma cuenta, mismo monto y misma moneda, con fecha de operación dentro de 7 días, `DUPLICATE`, sin segunda fila.
 - Contraparte legítima: misma referencia, mismo usuario, tipo opuesto y cuenta distinta. No es duplicado ni conflicto; se importa la segunda pata y puede emparejar. La excepción se evalúa antes del conflicto y no se extiende a otros atributos.
-- Conflicto de referencia: misma referencia que no es contraparte legítima; es decir, mismo tipo con cuenta, monto, moneda o fecha distintos, o tipo opuesto con la misma cuenta. No se descarta ni se crea otra fila en silencio; queda `TRANSFER_REFERENCE_CONFLICT` para revisión.
+- Conflicto de referencia: misma referencia que no es contraparte legítima; es decir, mismo tipo con cuenta, monto o moneda distintos, o fecha fuera de la ventana de 7 días, o tipo opuesto con la misma cuenta. No se descarta ni se crea otra fila en silencio; queda `TRANSFER_REFERENCE_CONFLICT` para revisión.
 - Sin referencia: se usa el fallback del ADR-003 por destino, tipo, monto, moneda, comercio y fecha dentro de 10 minutos. Si el candidato es ambiguo, no se crea una segunda pata; se deja la evidencia para revisión.
 
 La referencia compartida no basta para descartar la segunda pata. El dedupe de transferencias compara referencia más tipo y cuenta, y además monto y moneda; lo que no es contraparte legítima va a revisión.
 
-Ventana temporal con la referencia presente: PENDIENTE CONCRETAR. Los ±10 minutos del ADR-003 justifican solo el fallback sin referencia; el ADR no define una ventana para una referencia presente. Mientras el owner no decida, una coincidencia de referencia con los mismos atributos y fecha distinta va a `TRANSFER_REFERENCE_CONFLICT` para revisión; no se descarta y no se presenta como regla acordada.
+Ventana temporal con la referencia presente: 7 días (decisión del owner del 2026-11-11). Una coincidencia de referencia con los mismos atributos y la fecha dentro de la ventana es duplicado; fuera de la ventana va a `TRANSFER_REFERENCE_CONFLICT`. El fallback sin referencia conserva los ±10 minutos del ADR-003.
 
 ### 3.5 Contabilidad
 
@@ -359,7 +365,7 @@ El comercio es obligatorio para el auto-vínculo. Si el aviso no trae comercio, 
 | Flujo                          | Estado                              | Evidencia                                                                                                                |
 | ------------------------------ | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
 | Pago de tarjeta (#335)         | `IMPLEMENTADO-PROBADO` en `0c9b130` | Pruebas unitarias de la conciliación, del consumidor y del caso de uso; integración con dos patas, saldos y referencias. |
-| Transferencia (#334)           | `IMPLEMENTADO-PROBADO` en PR #340   | Una pata conocida, `legRole`, dedupe y contraparte legítima; el emparejamiento no se invoca.                             |
+| Transferencia (#334)           | `IMPLEMENTADO-PROBADO` en `461b22b` | Una pata conocida, `legRole`, dedupe y contraparte legítima; el emparejamiento se invoca tras importar la pata.          |
 | Pistas del clasificador (#343) | `IMPLEMENTADO-PROBADO`              | Fecha del encabezado como sugerencia con fuente; se conserva ausente la fecha de operación y se propaga a la señal.      |
 | Datos faltantes (#337)         | `PARCIALMENTE IMPLEMENTADO`         | La sugerencia llega desde el clasificador; la fila de revisión y la confirmación del consumidor siguen pendientes.       |
 | Reversos (#336)                | `NO_IMPLEMENTADO`                   | Sin cambios.                                                                                                             |
@@ -368,26 +374,26 @@ Los casos `T-TRA`, `T-TAR`, `T-DAT` y `T-REV` siguen propuestos y no ejecutados 
 
 ## 9. Evidencia actual y brechas
 
-| Afirmación del contrato                         | Código actual                                                                                                                                                                       | Estado                       |
-| ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- |
-| La transferencia resuelve una cuenta propia     | `resolveTransferAccount` compara `accountNumberLast4` con cuentas activas del usuario; no usa tarjeta, CASH ni cuenta por defecto (`resolve-transfer-import.ts`).                   | `IMPLEMENTADO` (PR #340)     |
-| La transferencia crea una sola pata con rol     | `executeUnpairedTransfer` crea el grupo y el repositorio persiste `legRole` (`prisma-ledger-import.repository.ts`).                                                                 | `IMPLEMENTADO` (PR #340)     |
-| El emparejamiento usa 3 días y 50/2 %           | `match-imported-transfers.ts:23-25` define la ventana y la tolerancia; `pickTransferMatch` exige un candidato único.                                                                | `VERIFICADO` (código actual) |
-| La referencia compartida no descarta la pata    | `classifyTransferImport` compara referencia, tipo, cuenta, monto, moneda y fecha; la contraparte legítima se importa (`resolve-transfer-import.ts`).                                | `IMPLEMENTADO` (PR #340)     |
-| El pago de tarjeta reutiliza dos patas          | El correo llama `ImportCardPaymentUseCase`, que decide y escribe con `createImportedCardPayment`: dos patas `CARD_PAYMENT`, `source EMAIL`, sin categoría, con bloqueo por usuario. | `VERIFICADO` (`0c9b130`)     |
-| El clasificador emite las pistas                | Esquema y prompt con `accountNumberLast4`, `CARD_PAYMENT`, fecha sugerida con procedencia y `reverseOfEmailMessageId`; aplica la fecha recibida fuera del modelo.                   | `IMPLEMENTADO` (PR #343)     |
-| La fecha del encabezado es solo sugerencia      | La clasificación completa `suggestedTransactionDate` con `EMAIL_HEADER` desde `receivedAt` y conserva `transactionDate` ausente; la fila y confirmación siguen pendientes.          | `PARCIALMENTE IMPLEMENTADO`  |
-| El reverso sigue la cadena del ADR-003          | El consumidor solo busca por referencia y cae a `bankReference` (`finance-signal-consumer.ts:440-470`); el helper de candidatos no se llama.                                        | `NO_IMPLEMENTADO`            |
-| El reverso filtra tipo, transferencia y tarjeta | `findCandidatesForReverse` filtra usuario, estado, moneda, monto y ±14 días; no filtra tipo ni grupo (`prisma-ledger-read.repository.ts:338-366`).                                  | `PARCIALMENTE_IMPLEMENTADO`  |
-| La pata de tarjeta no repite `importReference`  | `createCardPayment` escribe `importReference` solo en la pata `SOURCE`; la prueba de integración lo comprueba.                                                                      | `VERIFICADO` (`0c9b130`)     |
+| Afirmación del contrato                         | Código actual                                                                                                                                                                       | Estado                      |
+| ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------- |
+| La transferencia resuelve una cuenta propia     | `resolveTransferAccount` compara `accountNumberLast4` con cuentas activas del usuario; no usa tarjeta, CASH ni cuenta por defecto (`resolve-transfer-import.ts`).                   | `IMPLEMENTADO` (PR #340)    |
+| La transferencia crea una sola pata con rol     | `executeUnpairedTransfer` crea el grupo y el repositorio persiste `legRole` (`prisma-ledger-import.repository.ts`).                                                                 | `IMPLEMENTADO` (PR #340)    |
+| El emparejamiento usa 3 días y 50/2 %           | `match-imported-transfers.ts` define la ventana (3 días, o 7 con la misma referencia) y la tolerancia; `pickTransferMatch` exige un candidato único y devuelve los competidores.    | `VERIFICADO` (`461b22b`)    |
+| La referencia compartida no descarta la pata    | `classifyTransferImport` compara referencia, tipo, cuenta, monto, moneda y fecha; la contraparte legítima se importa (`resolve-transfer-import.ts`).                                | `IMPLEMENTADO` (PR #340)    |
+| El pago de tarjeta reutiliza dos patas          | El correo llama `ImportCardPaymentUseCase`, que decide y escribe con `createImportedCardPayment`: dos patas `CARD_PAYMENT`, `source EMAIL`, sin categoría, con bloqueo por usuario. | `VERIFICADO` (`0c9b130`)    |
+| El clasificador emite las pistas                | Esquema y prompt con `accountNumberLast4`, `CARD_PAYMENT`, fecha sugerida con procedencia y `reverseOfEmailMessageId`; aplica la fecha recibida fuera del modelo.                   | `IMPLEMENTADO` (PR #343)    |
+| La fecha del encabezado es solo sugerencia      | La clasificación completa `suggestedTransactionDate` con `EMAIL_HEADER` desde `receivedAt` y conserva `transactionDate` ausente; la fila y confirmación siguen pendientes.          | `PARCIALMENTE IMPLEMENTADO` |
+| El reverso sigue la cadena del ADR-003          | El consumidor solo busca por referencia y cae a `bankReference` (`finance-signal-consumer.ts:440-470`); el helper de candidatos no se llama.                                        | `NO_IMPLEMENTADO`           |
+| El reverso filtra tipo, transferencia y tarjeta | `findCandidatesForReverse` filtra usuario, estado, moneda, monto y ±14 días; no filtra tipo ni grupo (`prisma-ledger-read.repository.ts:338-366`).                                  | `PARCIALMENTE_IMPLEMENTADO` |
+| La pata de tarjeta no repite `importReference`  | `createCardPayment` escribe `importReference` solo en la pata `SOURCE`; la prueba de integración lo comprueba.                                                                      | `VERIFICADO` (`0c9b130`)    |
 
-La ventana de 3 días, la tolerancia de 50 o 2 % y la ventana de 10 minutos del ADR son comportamiento existente, no acuerdos nuevos. La ventana de ±14 días del reverso viene del ADR-003 y no se cambia por inferencia.
+La tolerancia de 50 o 2 % y la ventana de 10 minutos del ADR son comportamiento existente. La ventana de emparejamiento es de 3 días, y de 7 cuando las dos patas comparten referencia, por decisión del owner. La ventana de ±14 días del reverso viene del ADR-003 y no se cambia por inferencia.
 
 ## 10. Pruebas
 
 Los casos propuestos viven en el paquete local de revisión y se resumen en los issues:
 
-- `T-TRA`: una pata, cuenta ambigua, solo tarjeta, referencia compartida, conflicto de referencia en operaciones distintas, emparejamiento único y ambiguo, replay, aislamiento y estado pendiente.
+- `T-TRA`: una pata, cuenta ambigua, solo tarjeta, referencia compartida, conflicto de referencia en operaciones distintas, emparejamiento único y ambiguo, replay, aislamiento y estado pendiente. El emparejamiento tiene pruebas de unidad de la ventana (3 y 7 días), del consumidor (llamada, ausencia y evidencia de ambigüedad) y de integración (dos patas en un solo grupo, sin categoría).
 - `T-TAR`: dos patas, saldos, estado de cuenta, pago manual con y sin referencia, referencia conflictiva, recordatorio, tarjeta o cuenta inválida, replay, dos pagos legítimos, aislamiento y opciones manuales pendientes.
 - `T-DAT`: monto, moneda, fecha, sugerencia, confirmación, instrumento, replay, ausencia de verificación implícita y aislamiento.
 - `T-REV`: referencia, correo, candidato único, cero, varios, referencia explícita sin match, comercio ausente, transferencia, pago de tarjeta, parcial, otro usuario, fuera de ventana y replay.
