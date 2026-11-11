@@ -5,8 +5,13 @@ import {
   Injectable,
   Logger,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import {
+  MODULE_SETTINGS_REGISTRY,
+  type ModuleSettingsRegistry,
+} from '@personal-os/contracts';
 import { AppEvents } from '@personal-os/core';
 import { moduleDisabledMessage } from '@personal-os/core';
 import { SupabaseAdminService } from '@personal-os/auth';
@@ -45,6 +50,9 @@ export class UsersService {
     private readonly usersRepository: UsersRepositoryPort,
     private readonly eventEmitter: EventEmitter2,
     private readonly supabaseAdminService: SupabaseAdminService,
+    @Optional()
+    @Inject(MODULE_SETTINGS_REGISTRY)
+    private readonly settingsRegistry?: ModuleSettingsRegistry,
   ) {}
 
   private mapUser(user: UserWithModulesRecord) {
@@ -197,13 +205,15 @@ export class UsersService {
           defaults,
         )
       : mergeWithDefaults(currentConfig, defaults);
+    const normalizedConfig =
+      this.settingsRegistry?.normalize(slug, mergedConfig) ?? mergedConfig;
 
     const isEnabled = dto.isEnabled ?? existing?.isEnabled ?? true;
 
     await this.usersRepository.upsertUserModule(
       userId,
       moduleRecord.id,
-      mergedConfig,
+      normalizedConfig,
       isEnabled,
     );
 

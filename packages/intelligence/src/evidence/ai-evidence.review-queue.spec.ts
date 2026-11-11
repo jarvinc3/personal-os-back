@@ -20,6 +20,7 @@ type StoredMessage = {
   subject: string;
   contentFingerprint: string;
   processingStatus: string;
+  classification?: unknown;
 };
 
 type StoredItem = {
@@ -352,6 +353,86 @@ describe('AiEvidenceService review queue filters', () => {
       },
       select: { id: true },
     });
+  });
+
+  it('applies classification filters to both queue items and partition counts', async () => {
+    const matching = {
+      ...message({
+        id: 'message-2',
+        receivedAt: '2026-10-25T12:00:00.000Z',
+      }),
+      classification: {
+        semanticType: 'FIN_TRANSACTION',
+        routes: ['FINANCE'],
+        confidence: 0.45,
+      },
+    };
+    const prisma = makePrisma({
+      items: [
+        item('message-1', 'TRAIN'),
+        item('message-2', 'HOLDOUT'),
+        item('message-3', 'VALIDATION'),
+      ],
+      verifications: [],
+    });
+    mockMessageQueries(prisma, [matching], ['message-2']);
+    const service = new AiEvidenceService(prisma, reclassification as never);
+
+    const page = await service.reviewQueue('user-1', {
+      semanticType: 'FIN_TRANSACTION',
+      route: 'FINANCE',
+      confidenceMin: 0.3,
+      confidenceMax: 0.6,
+    });
+
+    expect(page.items).toEqual([
+      expect.objectContaining({
+        id: 'message-2',
+        semanticType: 'FIN_TRANSACTION',
+        routes: ['FINANCE'],
+        confidence: 0.45,
+      }),
+    ]);
+    expect(page.counts).toEqual({
+      TRAIN: 0,
+      VALIDATION: 0,
+      HOLDOUT: 1,
+      all: 1,
+    });
+    expect(prisma.aiEmailMessage.findMany).toHaveBeenNthCalledWith(3, {
+      where: {
+        userId: 'user-1',
+        AND: [
+          {
+            classifications: {
+              some: {
+                semanticType: 'FIN_TRANSACTION',
+                route: 'FINANCE',
+                confidence: { gte: 0.3, lte: 0.6 },
+              },
+            },
+          },
+        ],
+      },
+      select: { id: true },
+    });
+    expect(prisma.aiEmailMessage.findMany).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          AND: expect.arrayContaining([
+            {
+              classifications: {
+                some: {
+                  semanticType: 'FIN_TRANSACTION',
+                  route: 'FINANCE',
+                  confidence: { gte: 0.3, lte: 0.6 },
+                },
+              },
+            },
+          ]),
+        }),
+      }),
+    );
   });
 
   it('keeps the newest page and cursor without dropping the order', async () => {

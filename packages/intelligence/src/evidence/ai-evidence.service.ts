@@ -1,14 +1,21 @@
 import {
   BadRequestException,
+  Inject,
   Injectable,
   Logger,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
+import {
+  MODULE_SETTINGS_READER,
+  type ModuleSettingsReader,
+} from '@personal-os/contracts';
 import { createHash } from 'node:crypto';
 import { isDeepStrictEqual } from 'node:util';
 import { Prisma, PrismaService } from '@personal-os/database';
 import type { CreateHumanVerificationDto } from './dto/create-human-verification.dto';
 import type { CreateReviewGroupVerificationDto } from './dto/create-review-group-verification.dto';
+import type { CreateReviewSelectionVerificationDto } from './dto/create-review-selection-verification.dto';
 import type { ReviewGroupsQueryDto } from './dto/review-groups-query.dto';
 import type { ReviewQueueQueryDto } from './dto/review-queue-query.dto';
 import { partitionEmailDatasetItem } from './dataset-partition.util';
@@ -17,6 +24,11 @@ import {
   humanVerificationPayload,
 } from './human-verification.validation';
 import {
+  HUMAN_VERIFICATION_SELECTION_MAX_MESSAGES,
+  HUMAN_VERIFICATION_VERDICTS,
+} from './human-verification.constants';
+import {
+  REVIEW_GROUPS_DEFAULT_ORDER,
   REVIEW_GROUPS_DEFAULT_PAGE_SIZE,
   REVIEW_GROUP_SAMPLE_SUBJECTS,
 } from './review-groups.constants';
@@ -26,7 +38,10 @@ import {
   REVIEW_QUEUE_RESOLVED_PROCESSING_STATUS,
 } from './review-queue.constants';
 import {
+  assertReviewQueueConfidenceRange,
   assertReviewQueueDateRange,
+  decodeReviewImpactCursor,
+  encodeReviewImpactCursor,
   encodeReviewQueueCursor,
   latestReviewVerifications,
   reviewQueueItems,
@@ -37,6 +52,14 @@ import {
   reviewQueueSortDirection,
 } from './review-queue.util';
 import { groupReviewMessages } from './review-groups.util';
+import {
+  isKnownSender,
+  reviewGroupImpactKey,
+  sortReviewGroupsByImpact,
+  sortReviewQueueByImpact,
+} from './review-impact.util';
+import { normalizeSender } from '../knowledge/knowledge-normalizer';
+import { loadEmailReviewSettings } from '../email/email-review-settings';
 import { PROJECTOR_VERSION } from '../knowledge/knowledge-projector';
 import { POLICY_VERSION } from '../knowledge/knowledge-policy';
 import { EMAIL_CLASSIFICATION_VERSIONS } from '../email/email-classification.util';
@@ -70,6 +93,9 @@ export class AiEvidenceService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly reclassification: AiEmailReclassificationService,
+    @Optional()
+    @Inject(MODULE_SETTINGS_READER)
+    private readonly moduleSettings?: ModuleSettingsReader,
   ) {}
 
   async datasetSummary(userId: string) {
@@ -97,6 +123,11 @@ export class AiEvidenceService {
 
   async reviewQueue(userId: string, query: ReviewQueueQueryDto = {}) {
     assertReviewQueueDateRange(query.dateFrom, query.dateTo);
+    assertReviewQueueConfidenceRange(query.confidenceMin, query.confidenceMax);
+    const reviewSettings = await loadEmailReviewSettings(
+      this.moduleSettings,
+      userId,
+    );
     const order = query.order ?? REVIEW_QUEUE_DEFAULT_ORDER;
     const dataset = await this.ensureDataset();
     await this.ensureDatasetItems(userId, dataset.id);
@@ -136,6 +167,12 @@ export class AiEvidenceService {
     const partitionByMessageId = new Map(
       datasetItems.map((item) => [item.sourceId, item.partition]),
     );
+    const holdoutMessageIds = datasetItems
+      .filter((item) => item.partition === 'HOLDOUT')
+      .map(({ sourceId }) => sourceId);
+    const nonHoldoutMessageIds = datasetItems
+      .filter((item) => item.partition !== 'HOLDOUT')
+      .map(({ sourceId }) => sourceId);
     const receivedAt = reviewQueueReceivedAtFilter({
       timezone,
       dateFrom: query.dateFrom,
@@ -146,11 +183,34 @@ export class AiEvidenceService {
       subject: query.subject,
       receivedAt,
     });
-    const matchingMessageIds = Object.keys(searchFilter).length
+    const hasMatchingFilters =
+      Object.keys(searchFilter).length > 0 ||
+      query.semanticType !== undefined ||
+      query.route !== undefined ||
+      query.confidenceMin !== undefined ||
+      query.confidenceMax !== undefined ||
+      query.uncertain === true;
+    const matchingMessageIds = hasMatchingFilters
       ? new Set(
           (
             await this.prisma.aiEmailMessage.findMany({
-              where: { userId, ...searchFilter },
+              where: reviewQueueMessageFilter({
+                userId,
+                latestByMessageId,
+                skipStatusFilter: true,
+                fromAddress: query.fromAddress,
+                subject: query.subject,
+                receivedAt,
+                order: 'OLDEST',
+                uncertain: query.uncertain,
+                semanticType: query.semanticType,
+                route: query.route,
+                confidenceMin: query.confidenceMin,
+                confidenceMax: query.confidenceMax,
+                confidenceThreshold: reviewSettings.reviewConfidenceThreshold,
+                holdoutMessageIds,
+                nonHoldoutMessageIds,
+              }),
               select: { id: true },
             })
           ).map(({ id }) => id),
@@ -167,59 +227,139 @@ export class AiEvidenceService {
           .filter((item) => item.partition === query.partition)
           .map((item) => item.sourceId)
       : undefined;
-    const direction = reviewQueueSortDirection(order);
-    const messages = await this.prisma.aiEmailMessage.findMany({
-      where: reviewQueueMessageFilter({
-        userId,
-        latestByMessageId,
-        statuses: query.status,
-        partitionMessageIds,
-        fromAddress: query.fromAddress,
-        subject: query.subject,
-        receivedAt,
-        cursor: query.cursor,
-        order,
-        uncertain: query.uncertain,
-      }),
-      orderBy: [{ receivedAt: direction }, { id: direction }],
-      take: REVIEW_QUEUE_PAGE_SIZE + 1,
-      select: {
-        id: true,
-        receivedAt: true,
-        fromAddress: true,
-        fromDomain: true,
-        subject: true,
-        contentFingerprint: true,
-        processingStatus: true,
-      },
-    });
-    const hasMore = messages.length > REVIEW_QUEUE_PAGE_SIZE;
-    const pageMessages = hasMore
-      ? messages.slice(0, REVIEW_QUEUE_PAGE_SIZE)
-      : messages;
-    const items = reviewQueueItems({
-      messages: pageMessages,
-      partitionByMessageId,
+    const where = reviewQueueMessageFilter({
+      userId,
       latestByMessageId,
+      statuses: query.status,
+      partitionMessageIds,
+      fromAddress: query.fromAddress,
+      subject: query.subject,
+      receivedAt,
+      cursor: query.cursor,
+      order,
+      uncertain: query.uncertain,
+      semanticType: query.semanticType,
+      route: query.route,
+      confidenceMin: query.confidenceMin,
+      confidenceMax: query.confidenceMax,
+      confidenceThreshold: reviewSettings.reviewConfidenceThreshold,
+      holdoutMessageIds,
+      nonHoldoutMessageIds,
     });
-    const last = pageMessages.at(-1);
-    return {
-      items,
-      counts,
-      hasMore,
-      nextCursor:
+    const messageSelect = {
+      id: true,
+      receivedAt: true,
+      fromAddress: true,
+      fromDomain: true,
+      subject: true,
+      contentFingerprint: true,
+      processingStatus: true,
+      classification: true,
+      templateFingerprint: true,
+    } as const;
+    let pageMessages: Array<{
+      id: string;
+      receivedAt: Date;
+      fromAddress: string;
+      fromDomain: string;
+      subject: string;
+      contentFingerprint: string;
+      processingStatus: string;
+      classification: Prisma.JsonValue | null;
+      templateFingerprint: string | null;
+    }>;
+    let hasMore: boolean;
+    let nextCursor: string | null;
+    if (order === 'IMPACT') {
+      const messages = await this.prisma.aiEmailMessage.findMany({
+        where,
+        orderBy: [{ receivedAt: 'asc' }, { id: 'asc' }],
+        select: messageSelect,
+      });
+      const knownSenders = await this.knownSenders(
+        userId,
+        messages.map(({ fromAddress }) => fromAddress),
+      );
+      const pendingByGroup = new Map<string, number>();
+      for (const message of messages) {
+        const key = reviewGroupImpactKey(
+          message.fromAddress,
+          message.templateFingerprint,
+        );
+        pendingByGroup.set(key, (pendingByGroup.get(key) ?? 0) + 1);
+      }
+      const prioritized = sortReviewQueueByImpact(
+        messages.map((message) => ({
+          ...message,
+          pendingInGroup:
+            pendingByGroup.get(
+              reviewGroupImpactKey(
+                message.fromAddress,
+                message.templateFingerprint,
+              ),
+            ) ?? 0,
+          senderKnown: isKnownSender(message.fromAddress, knownSenders),
+          confidence: classificationConfidence(message.classification),
+        })),
+      );
+      let start = 0;
+      if (query.cursor) {
+        const cursorId = decodeReviewImpactCursor(query.cursor);
+        const cursorIndex = prioritized.findIndex(({ id }) => id === cursorId);
+        if (cursorIndex < 0) {
+          throw new BadRequestException('Cursor de revisión inválido');
+        }
+        start = cursorIndex + 1;
+      }
+      hasMore = prioritized.length > start + REVIEW_QUEUE_PAGE_SIZE;
+      pageMessages = prioritized
+        .slice(start, start + REVIEW_QUEUE_PAGE_SIZE)
+        .map(({ pendingInGroup, senderKnown, confidence, ...message }) => {
+          void pendingInGroup;
+          void senderKnown;
+          void confidence;
+          return message;
+        });
+      const last = pageMessages.at(-1);
+      nextCursor = hasMore && last ? encodeReviewImpactCursor(last.id) : null;
+    } else {
+      const direction = reviewQueueSortDirection(order);
+      const messages = await this.prisma.aiEmailMessage.findMany({
+        where,
+        orderBy: [{ receivedAt: direction }, { id: direction }],
+        take: REVIEW_QUEUE_PAGE_SIZE + 1,
+        select: messageSelect,
+      });
+      hasMore = messages.length > REVIEW_QUEUE_PAGE_SIZE;
+      pageMessages = hasMore
+        ? messages.slice(0, REVIEW_QUEUE_PAGE_SIZE)
+        : messages;
+      const last = pageMessages.at(-1);
+      nextCursor =
         hasMore && last
           ? encodeReviewQueueCursor({
               id: last.id,
               receivedAt: last.receivedAt,
             })
-          : null,
+          : null;
+    }
+    const items = reviewQueueItems({
+      messages: pageMessages,
+      partitionByMessageId,
+      latestByMessageId,
+    });
+    return {
+      items,
+      counts,
+      hasMore,
+      nextCursor,
     };
   }
 
   async listReviewGroups(userId: string, query: ReviewGroupsQueryDto) {
     const page = query.page ?? 1;
     const pageSize = query.pageSize ?? REVIEW_GROUPS_DEFAULT_PAGE_SIZE;
+    const order = query.order ?? REVIEW_GROUPS_DEFAULT_ORDER;
     const dataset = await this.ensureDataset();
     await this.ensureDatasetItems(userId, dataset.id);
     const [items, reviewed, messages] = await Promise.all([
@@ -240,27 +380,99 @@ export class AiEvidenceService {
           fromAddress: true,
           subject: true,
           templateFingerprint: true,
+          classification: true,
         },
       }),
     ]);
+    const reviewedMessageIds = new Set(
+      reviewed.flatMap(({ targetId }) => (targetId ? [targetId] : [])),
+    );
+    const partitionByMessageId = new Map(
+      items.map(({ sourceId, partition }) => [sourceId, partition]),
+    );
     const groups = groupReviewMessages({
       messages,
-      partitionByMessageId: new Map(
-        items.map(({ sourceId, partition }) => [sourceId, partition]),
-      ),
-      reviewedMessageIds: new Set(
-        reviewed.flatMap(({ targetId }) => (targetId ? [targetId] : [])),
-      ),
+      partitionByMessageId,
+      reviewedMessageIds,
       sampleSize: REVIEW_GROUP_SAMPLE_SUBJECTS,
     }).filter(({ pending }) => pending > 0);
+    const knownSenders = await this.knownSenders(
+      userId,
+      groups.map(({ fromAddress }) => fromAddress),
+    );
+    const confidenceTotals = new Map<
+      string,
+      { total: number; count: number }
+    >();
+    for (const message of messages) {
+      if (
+        reviewedMessageIds.has(message.id) ||
+        !partitionByMessageId.has(message.id)
+      ) {
+        continue;
+      }
+      const confidence = classificationConfidence(message.classification);
+      if (confidence === null) {
+        continue;
+      }
+      const key = reviewGroupImpactKey(
+        message.fromAddress,
+        message.templateFingerprint,
+      );
+      const current = confidenceTotals.get(key) ?? { total: 0, count: 0 };
+      current.total += confidence;
+      current.count += 1;
+      confidenceTotals.set(key, current);
+    }
+    const confidenceByGroup = new Map(
+      [...confidenceTotals].map(([key, confidence]) => [
+        key,
+        confidence.total / confidence.count,
+      ]),
+    );
+    const orderedGroups =
+      order === 'IMPACT'
+        ? sortReviewGroupsByImpact(groups, {
+            knownSenders,
+            confidenceByGroup,
+          })
+        : groups;
     const start = (page - 1) * pageSize;
     return {
-      items: groups.slice(start, start + pageSize),
+      items: orderedGroups.slice(start, start + pageSize),
       page,
       pageSize,
-      totalGroups: groups.length,
-      hasMore: start + pageSize < groups.length,
+      totalGroups: orderedGroups.length,
+      hasMore: start + pageSize < orderedGroups.length,
     };
+  }
+
+  private async knownSenders(
+    userId: string,
+    senderAddresses: readonly string[],
+  ): Promise<Set<string>> {
+    const senderKeys = [
+      ...new Set(
+        senderAddresses.flatMap((address) => {
+          const normalized = normalizeSender(address);
+          return normalized ? [normalized] : [];
+        }),
+      ),
+    ];
+    if (!senderKeys.length) {
+      return new Set();
+    }
+    const rows = await this.prisma.aiKnowledge.findMany({
+      where: {
+        userId,
+        scope: 'USER',
+        state: 'STABLE',
+        knowledgeType: 'EMAIL_SENDER',
+        knowledgeKey: { in: senderKeys },
+      },
+      select: { knowledgeKey: true },
+    });
+    return new Set(rows.map(({ knowledgeKey }) => knowledgeKey));
   }
 
   async verifyReviewGroup(
@@ -307,10 +519,10 @@ export class AiEvidenceService {
     const verifierRole = roleAssignment?.role ?? 'USER';
     const correctedPayload = humanVerificationPayload(dto);
     const notes = dto.notes?.trim() || null;
-    const groupKey = JSON.stringify([
+    const groupKey = reviewGroupKey(
       dto.fromAddress,
       dto.templateFingerprint ?? null,
-    ]);
+    );
     const outcome = await this.prisma.$transaction(async (tx) => {
       await lockReviewGroup(tx, { userId, groupKey });
       const verifications = await tx.aiHumanVerification.findMany({
@@ -372,6 +584,177 @@ export class AiEvidenceService {
     return { ...outcome, requeued };
   }
 
+  async verifyReviewSelection(
+    userId: string,
+    dto: CreateReviewSelectionVerificationDto,
+  ) {
+    if (
+      !Array.isArray(dto.messageIds) ||
+      dto.messageIds.length === 0 ||
+      dto.messageIds.length > HUMAN_VERIFICATION_SELECTION_MAX_MESSAGES ||
+      dto.messageIds.some(
+        (messageId) =>
+          typeof messageId !== 'string' ||
+          messageId.trim().length === 0 ||
+          messageId.length > 512,
+      ) ||
+      new Set(dto.messageIds).size !== dto.messageIds.length
+    ) {
+      throw new BadRequestException(
+        `Selecciona entre 1 y ${HUMAN_VERIFICATION_SELECTION_MAX_MESSAGES} correos sin repetir`,
+      );
+    }
+    if (
+      !(HUMAN_VERIFICATION_VERDICTS as readonly string[]).includes(dto.verdict)
+    ) {
+      throw new BadRequestException('Veredicto de revisión inválido');
+    }
+    assertHumanVerificationLabels(dto);
+
+    const messageIds = [...dto.messageIds];
+    const messages = await this.prisma.aiEmailMessage.findMany({
+      where: { userId, id: { in: messageIds } },
+      select: { id: true, fromAddress: true, templateFingerprint: true },
+    });
+    if (messages.length !== messageIds.length) {
+      throw new NotFoundException('Uno o más correos no se encontraron');
+    }
+
+    const dataset = await this.ensureDataset();
+    await this.ensureDatasetItems(userId, dataset.id);
+    const items = await this.prisma.aiDatasetItem.findMany({
+      where: {
+        datasetId: dataset.id,
+        userId,
+        sourceType: EMAIL_SOURCE_TYPE,
+        sourceId: { in: messageIds },
+      },
+      select: { sourceId: true, partition: true },
+    });
+    const partitionByMessageId = new Map(
+      items.map(({ sourceId, partition }) => [sourceId, partition]),
+    );
+    if (messageIds.some((id) => !partitionByMessageId.has(id))) {
+      throw new NotFoundException('Uno o más correos no se encontraron');
+    }
+
+    const roleAssignment = await this.prisma.userRole.findUnique({
+      where: { userId },
+      select: { role: true },
+    });
+    const verifierRole = roleAssignment?.role ?? 'USER';
+    const correctedPayload = humanVerificationPayload(dto);
+    const notes = dto.notes?.trim() || null;
+    const groupKeys = [
+      ...new Set(
+        messages.map(({ fromAddress, templateFingerprint }) =>
+          reviewGroupKey(fromAddress, templateFingerprint ?? null),
+        ),
+      ),
+    ].sort();
+
+    const outcome = await this.prisma.$transaction(async (tx) => {
+      for (const groupKey of groupKeys) {
+        await lockReviewGroup(tx, { userId, groupKey });
+      }
+      const existing = await tx.aiHumanVerification.findMany({
+        where: {
+          userId,
+          targetType: REVIEW_TARGET_TYPE,
+          targetId: { in: messageIds },
+        },
+        orderBy: [{ targetId: 'asc' }, { sequence: 'desc' }],
+        select: VERIFICATION_SELECT,
+      });
+      const latestByTargetId = new Map<string, (typeof existing)[number]>();
+      for (const verification of existing) {
+        if (
+          verification.targetId &&
+          !latestByTargetId.has(verification.targetId)
+        ) {
+          latestByTargetId.set(verification.targetId, verification);
+        }
+      }
+
+      const toCreate = [] as Array<{
+        userId: string;
+        verifierRole: string;
+        targetType: string;
+        targetId: string;
+        verdict: string;
+        correctedPayload: Record<string, unknown> | undefined;
+        notes: string | null;
+        isGroundTruth: boolean;
+      }>;
+      let alreadyVerified = 0;
+      for (const messageId of messageIds) {
+        const latestVerification = latestByTargetId.get(messageId) ?? null;
+        if (
+          this.retryVerification({
+            latestVerification,
+            verdict: dto.verdict,
+            correctedPayload,
+            notes,
+          })
+        ) {
+          alreadyVerified += 1;
+          continue;
+        }
+        toCreate.push({
+          userId,
+          verifierRole,
+          targetType: REVIEW_TARGET_TYPE,
+          targetId: messageId,
+          verdict: dto.verdict,
+          correctedPayload,
+          notes,
+          isGroundTruth: partitionByMessageId.get(messageId) === 'HOLDOUT',
+        });
+      }
+      if (toCreate.length) {
+        await tx.aiHumanVerification.createMany({
+          data: toCreate as never,
+        });
+      }
+      return { verified: toCreate.length, alreadyVerified };
+    });
+
+    const correctedLabel = verificationLabel({
+      verdict: dto.verdict,
+      correctedPayload: correctedPayload ?? null,
+    });
+    const reclassificationGroups = new Map<
+      string,
+      { fromAddress: string; templateFingerprint: string }
+    >();
+    for (const { fromAddress, templateFingerprint } of messages) {
+      if (templateFingerprint) {
+        reclassificationGroups.set(
+          JSON.stringify([fromAddress, templateFingerprint]),
+          { fromAddress, templateFingerprint },
+        );
+      }
+    }
+    let requeued = 0;
+    for (const {
+      fromAddress,
+      templateFingerprint,
+    } of reclassificationGroups.values()) {
+      const result = await this.reclassifyAfterVerification(
+        () =>
+          this.reclassification.reclassifyAfterReviewGroupVerification({
+            userId,
+            fromAddress,
+            templateFingerprint,
+            correctedLabel,
+          }),
+        `review selection ${fromAddress}`,
+      );
+      requeued += result;
+    }
+    return { ...outcome, requeued };
+  }
+
   async verifyMessage(
     userId: string,
     messageId: string,
@@ -379,35 +762,25 @@ export class AiEvidenceService {
   ) {
     const dataset = await this.ensureDataset();
     await this.ensureDatasetItems(userId, dataset.id);
-    const [message, item, roleAssignment, latestVerification] =
-      await Promise.all([
-        this.prisma.aiEmailMessage.findFirst({
-          where: { id: messageId, userId },
-          select: { id: true },
-        }),
-        this.prisma.aiDatasetItem.findFirst({
-          where: {
-            datasetId: dataset.id,
-            userId,
-            sourceType: EMAIL_SOURCE_TYPE,
-            sourceId: messageId,
-          },
-          select: { partition: true },
-        }),
-        this.prisma.userRole.findUnique({
-          where: { userId },
-          select: { role: true },
-        }),
-        this.prisma.aiHumanVerification.findFirst({
-          where: {
-            userId,
-            targetType: REVIEW_TARGET_TYPE,
-            targetId: messageId,
-          },
-          orderBy: { sequence: 'desc' },
-          select: VERIFICATION_SELECT,
-        }),
-      ]);
+    const [message, item, roleAssignment] = await Promise.all([
+      this.prisma.aiEmailMessage.findFirst({
+        where: { id: messageId, userId },
+        select: { id: true, fromAddress: true, templateFingerprint: true },
+      }),
+      this.prisma.aiDatasetItem.findFirst({
+        where: {
+          datasetId: dataset.id,
+          userId,
+          sourceType: EMAIL_SOURCE_TYPE,
+          sourceId: messageId,
+        },
+        select: { partition: true },
+      }),
+      this.prisma.userRole.findUnique({
+        where: { userId },
+        select: { role: true },
+      }),
+    ]);
     if (!message || !item) {
       throw new NotFoundException('Mensaje no encontrado');
     }
@@ -415,14 +788,33 @@ export class AiEvidenceService {
 
     const correctedPayload = humanVerificationPayload(dto);
     const notes = dto.notes?.trim() || null;
-    const verification =
-      this.retryVerification({
+    const verification = await this.prisma.$transaction(async (tx) => {
+      await lockReviewGroup(tx, {
+        userId,
+        groupKey: reviewGroupKey(
+          message.fromAddress,
+          message.templateFingerprint ?? null,
+        ),
+      });
+      const latestVerification = await tx.aiHumanVerification.findFirst({
+        where: {
+          userId,
+          targetType: REVIEW_TARGET_TYPE,
+          targetId: messageId,
+        },
+        orderBy: { sequence: 'desc' },
+        select: VERIFICATION_SELECT,
+      });
+      const existing = this.retryVerification({
         latestVerification,
         verdict: dto.verdict,
         correctedPayload,
         notes,
-      }) ??
-      (await this.prisma.aiHumanVerification.create({
+      });
+      if (existing) {
+        return existing;
+      }
+      return tx.aiHumanVerification.create({
         data: {
           userId,
           verifierRole: roleAssignment?.role ?? 'USER',
@@ -434,7 +826,8 @@ export class AiEvidenceService {
           isGroundTruth: item.partition === 'HOLDOUT',
         },
         select: VERIFICATION_SELECT,
-      }));
+      });
+    });
     const requeued = await this.reclassifyAfterVerification(
       () =>
         this.reclassification.reclassifyAfterMessageVerification({
@@ -856,7 +1249,29 @@ async function lockReviewGroup(
 ): Promise<void> {
   // Serialize two batches of the same group: verifications are append-only,
   // so a duplicate written concurrently could not be removed later.
-  await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtext(${userId}), hashtext(${groupKey}))`;
+  await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${userId}), hashtext(${groupKey}))`;
+}
+
+function reviewGroupKey(
+  fromAddress: string,
+  templateFingerprint: string | null,
+): string {
+  return JSON.stringify([fromAddress, templateFingerprint]);
+}
+
+function classificationConfidence(value: unknown): number | null {
+  if (
+    typeof value !== 'object' ||
+    value === null ||
+    Array.isArray(value) ||
+    !('confidence' in value)
+  ) {
+    return null;
+  }
+  const confidence = value.confidence;
+  return typeof confidence === 'number' && Number.isFinite(confidence)
+    ? confidence
+    : null;
 }
 
 function serializeRun<

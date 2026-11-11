@@ -58,6 +58,8 @@ export const HUMAN_VERIFICATION_VERDICTS = [
 
 export const REVIEW_GROUP_VERDICTS = ['CONFIRMED', 'CORRECTED'] as const;
 
+export const HUMAN_VERIFICATION_SELECTION_MAX_MESSAGES = 20;
+
 export type SemanticType = (typeof SEMANTIC_TYPES)[number];
 export type SemanticRoute = (typeof SEMANTIC_ROUTES)[number];
 export type HumanVerificationVerdict =

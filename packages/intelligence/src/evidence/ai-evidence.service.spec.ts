@@ -17,22 +17,34 @@ describe('AiEvidenceService', () => {
     jest.clearAllMocks();
   });
 
-  const reviewPrisma = () => ({
-    aiDataset: { upsert: jest.fn().mockResolvedValue({ id: 'dataset-1' }) },
-    aiEmailMessage: {
-      findMany: jest.fn().mockResolvedValue([]),
-      findFirst: jest.fn().mockResolvedValue({ id: 'message-1' }),
-    },
-    aiDatasetItem: {
-      findMany: jest.fn().mockResolvedValue([]),
-      findFirst: jest.fn().mockResolvedValue({ partition: 'TRAIN' }),
-    },
-    userRole: { findUnique: jest.fn().mockResolvedValue(null) },
-    aiHumanVerification: {
-      findFirst: jest.fn().mockResolvedValue(null),
-      create: jest.fn().mockResolvedValue({ sequence: 1n }),
-    },
-  });
+  const reviewPrisma = () => {
+    const prisma = {
+      aiDataset: { upsert: jest.fn().mockResolvedValue({ id: 'dataset-1' }) },
+      aiEmailMessage: {
+        findMany: jest.fn().mockResolvedValue([]),
+        findFirst: jest.fn().mockResolvedValue({
+          id: 'message-1',
+          fromAddress: 'bank@example.com',
+          templateFingerprint: 'fp-bank',
+        }),
+      },
+      aiDatasetItem: {
+        findMany: jest.fn().mockResolvedValue([]),
+        findFirst: jest.fn().mockResolvedValue({ partition: 'TRAIN' }),
+      },
+      userRole: { findUnique: jest.fn().mockResolvedValue(null) },
+      aiHumanVerification: {
+        findFirst: jest.fn().mockResolvedValue(null),
+        create: jest.fn().mockResolvedValue({ sequence: 1n }),
+      },
+      $executeRaw: jest.fn().mockResolvedValue(0),
+      $transaction: jest.fn(),
+    };
+    prisma.$transaction.mockImplementation(
+      (callback: (tx: unknown) => unknown) => callback(prisma),
+    );
+    return prisma;
+  };
 
   it.each([
     [{ semanticType: 'FIN_TRANSACTION' }, 'transacción'],
@@ -123,7 +135,12 @@ describe('AiEvidenceService', () => {
         findFirst: jest.fn().mockResolvedValue(null),
         create,
       },
+      $executeRaw: jest.fn().mockResolvedValue(0),
+      $transaction: jest.fn(),
     };
+    prisma.$transaction.mockImplementation(
+      (callback: (tx: unknown) => unknown) => callback(prisma),
+    );
     const service = new AiEvidenceService(
       prisma as never,
       reclassification as never,

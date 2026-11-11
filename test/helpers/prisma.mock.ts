@@ -389,6 +389,8 @@ function createTransactionClient(prismaMock: PrismaMock) {
     aiHumanVerification: {
       aggregate: prismaMock.aiHumanVerification.aggregate,
       findMany: prismaMock.aiHumanVerification.findMany,
+      findFirst: prismaMock.aiHumanVerification.findFirst,
+      create: prismaMock.aiHumanVerification.create,
       createMany: prismaMock.aiHumanVerification.createMany,
       update: prismaMock.aiHumanVerification.update,
     },

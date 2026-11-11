@@ -13,6 +13,15 @@ export const FINANCE_NOTIFICATION_KEYS = {
   balanceIntegrity: 'balanceIntegrity',
 } as const;
 
+export const AI_MODULE_SETTINGS_DEFAULTS = {
+  version: 1,
+  fieldGuide: 'Configuración de clasificación y revisión de correo.',
+  email: {
+    reviewConfidenceThreshold: 0.7,
+    acceptVerifiedSenders: false,
+  },
+} as const;
+
 export type FinanceNotificationKey =
   (typeof FINANCE_NOTIFICATION_KEYS)[keyof typeof FINANCE_NOTIFICATION_KEYS];
 
@@ -83,6 +92,7 @@ export const DEFAULT_MODULE_CONFIG_BY_SLUG = {
     privacy: { hideSensitiveMetrics: false },
     notifications: { goalReminders: true, weeklySummary: false },
   },
+  ai: AI_MODULE_SETTINGS_DEFAULTS,
 } as const;
 
 /** Allowed range for the global `subscriptions.reminderDaysBefore` setting. */

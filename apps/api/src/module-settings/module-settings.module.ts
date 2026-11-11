@@ -1,4 +1,4 @@
-import { DynamicModule, Module } from '@nestjs/common';
+import { DynamicModule, Global, Module } from '@nestjs/common';
 import {
   MODULE_SETTINGS_READER,
   MODULE_SETTINGS_REGISTRY,
@@ -9,6 +9,7 @@ import { ModuleSettingsRegistry } from './module-settings.registry';
 import { ModuleSettingsService } from './module-settings.service';
 import { MODULE_SETTINGS_DESCRIPTORS } from './module-settings.tokens';
 
+@Global()
 @Module({})
 export class ModuleSettingsModule {
   static register(descriptors: readonly SettingsDescriptor[]): DynamicModule {

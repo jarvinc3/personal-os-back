@@ -10,6 +10,7 @@ import { CurrentUser } from '@personal-os/core';
 import { AiEvidenceService } from './ai-evidence.service';
 import { CreateHumanVerificationDto } from './dto/create-human-verification.dto';
 import { CreateReviewGroupVerificationDto } from './dto/create-review-group-verification.dto';
+import { CreateReviewSelectionVerificationDto } from './dto/create-review-selection-verification.dto';
 import { ReviewGroupsQueryDto } from './dto/review-groups-query.dto';
 import { ReviewQueueQueryDto } from './dto/review-queue-query.dto';
 import { CompareAnalysisRunsDto } from './dto/compare-analysis-runs.dto';
@@ -20,6 +21,7 @@ import {
   AiReviewGroupVerificationResultResponseDto,
   AiReviewGroupsPageResponseDto,
   AiReviewQueueResponseDto,
+  AiReviewSelectionVerificationResponseDto,
 } from './ai-evidence-response.dto';
 
 @ApiTags('intelligence-evidence')
@@ -59,6 +61,15 @@ export class AiEvidenceController {
     @Body() dto: CreateReviewGroupVerificationDto,
   ) {
     return this.evidence.verifyReviewGroup(user.sub, dto);
+  }
+
+  @Post('messages/verifications/batch')
+  @ApiCreatedResponse({ type: AiReviewSelectionVerificationResponseDto })
+  verifyReviewSelection(
+    @CurrentUser() user: { sub: string },
+    @Body() dto: CreateReviewSelectionVerificationDto,
+  ) {
+    return this.evidence.verifyReviewSelection(user.sub, dto);
   }
 
   @Post('messages/:messageId/verifications')
