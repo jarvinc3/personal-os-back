@@ -43,6 +43,7 @@ const TRANSACTION_MONEY_FIELDS = [
   'bankStatusNormalized',
   'statusConfidence',
   'statusEvidence',
+  'currencyEvidence',
   'reverseOfBankReference',
   'reverseOfEmailMessageId',
   'suggestedTransactionDate',

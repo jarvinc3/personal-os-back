@@ -56,6 +56,7 @@ La señal `FINANCE.TRANSACTION_DETECTED` sigue siendo la entrada. El candidato `
 | `suggestedTransactionDateSource` | Con la sugerencia            | En esta fase solo `EMAIL_HEADER`; la aporta el parser determinista.                                                                                                                                                                                    |
 | `reverseOfBankReference`         | No                           | Referencia del original de un reverso. Equivale al `reverseOriginalRef` del ADR-003.                                                                                                                                                                   |
 | `reverseOfEmailMessageId`        | No                           | Id del correo original de un reverso, cuando el mensaje lo permite. Es el `reverseOfEmailMessageId` del ADR-003.                                                                                                                                       |
+| `currencyEvidence`               | No                           | Diferencia entre la moneda del texto BHD y la que propuso el modelo; la moneda guardada es la del texto.                                                                                                                                               |
 
 La confianza menor a 0.7 o `UNKNOWN` deja el estado en `PENDING`, igual que el mapeo actual.
 

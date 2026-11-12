@@ -13,6 +13,10 @@ import { knowledgeKeys } from '../knowledge/knowledge-normalizer';
 function fixture(
   options: {
     body?: string;
+    fromAddress?: string;
+    fromDomain?: string;
+    subject?: string;
+    receivedAt?: Date;
     knowledge?: unknown[];
     role?: string;
     budgetAvailable?: boolean;
@@ -55,10 +59,11 @@ function fixture(
       updateMany: jest.fn().mockResolvedValue({ count: 1 }),
       findFirst: jest.fn().mockResolvedValue({
         id: 'message-1',
-        receivedAt: new Date('2026-10-01T12:00:00Z'),
+        receivedAt: options.receivedAt ?? new Date('2026-10-01T12:00:00Z'),
         providerThreadId: 'thread-1',
-        fromAddress: 'notice@example.com',
-        subject: 'Notice',
+        fromAddress: options.fromAddress ?? 'notice@example.com',
+        fromDomain: options.fromDomain ?? 'example.com',
+        subject: options.subject ?? 'Notice',
         templateFingerprint: 'template-1',
         content: { sanitizedBody: options.body ?? 'A regular email.' },
       }),
@@ -271,6 +276,148 @@ describe('AiEmailClassificationService', () => {
         }),
       }),
     );
+  });
+
+  it('grounds a BHD date and currency from the text and records the contradiction', async () => {
+    const { service, prisma } = fixture({
+      fromAddress: 'alertas@bhd.com.do',
+      fromDomain: 'bhd.com.do',
+      subject: 'BHD Notificación de Transacciones',
+      receivedAt: new Date('2026-11-06T15:12:00.000Z'),
+      body: [
+        'Monto:',
+        'US$ 138.79',
+        'Fecha y hora de la transacción:',
+        '06/11/2026 - 11:12 AM',
+      ].join('\n'),
+      inferenceValue: {
+        relevance: true,
+        semanticType: 'FIN_TRANSACTION',
+        routes: ['FINANCE'],
+        transaction: {
+          kind: 'TRANSACTION',
+          amount: 138.79,
+          currency: 'DOP',
+          transactionDate: '2026-06-11T11:12:00.000Z',
+          direction: 'DEBIT',
+          movementClass: 'PURCHASE',
+          bankStatusNormalized: 'APPROVED',
+        },
+        confidence: 0.9,
+      },
+    });
+
+    await service.processPendingForUser('user-1');
+
+    const storedRows = prisma.aiEmailClassification.createMany.mock.calls[0][0]
+      .data as Array<{ transaction: Record<string, unknown> }>;
+    expect(storedRows[0].transaction).toMatchObject({
+      transactionDate: '2026-11-06T15:12:00.000Z',
+      currency: 'USD',
+      currencyEvidence: expect.stringContaining('modelo propuso DOP'),
+    });
+    const signal = prisma.aiSignal.createMany.mock.calls[0][0].data[0] as {
+      payload: { transaction: Record<string, unknown> };
+    };
+    expect(signal.payload.transaction).toMatchObject({
+      transactionDate: '2026-11-06T15:12:00.000Z',
+      currency: 'USD',
+      currencyEvidence: expect.stringContaining('modelo propuso DOP'),
+    });
+    const evidence = prisma.aiSignalEvidence.createMany.mock.calls[0][0]
+      .data[0] as {
+      excerpt: { transaction: Record<string, unknown> };
+    };
+    expect(evidence.excerpt.transaction).toMatchObject({
+      currency: 'USD',
+      currencyEvidence: expect.stringContaining('modelo propuso DOP'),
+    });
+  });
+
+  it('forces a BHD reversal to REFUND instead of a purchase', async () => {
+    const { service, prisma } = fixture({
+      fromAddress: 'alertas@bhd.com.do',
+      fromDomain: 'bhd.com.do',
+      subject: 'BHD Notificación de Transacciones',
+      receivedAt: new Date('2026-11-06T15:12:00.000Z'),
+      body: [
+        'Fecha',
+        'Moneda',
+        'Monto',
+        'Comercio',
+        'Estado',
+        'Tipo',
+        '06/11/2026 11:12 am',
+        'RD',
+        '$138.79',
+        'COMERCIO SINTETICO',
+        'Aprobada',
+        'Reverso',
+      ].join('\n'),
+      inferenceValue: {
+        relevance: true,
+        semanticType: 'FIN_TRANSACTION',
+        routes: ['FINANCE'],
+        transaction: {
+          kind: 'TRANSACTION',
+          amount: 138.79,
+          currency: 'USD',
+          transactionDate: '2026-06-11T11:12:00.000Z',
+          direction: 'DEBIT',
+          movementClass: 'PURCHASE',
+          bankStatusNormalized: 'APPROVED',
+        },
+        confidence: 0.9,
+      },
+    });
+
+    await service.processPendingForUser('user-1');
+
+    const storedRows = prisma.aiEmailClassification.createMany.mock.calls[0][0]
+      .data as Array<{ transaction: Record<string, unknown> }>;
+    expect(storedRows[0].transaction).toMatchObject({
+      movementClass: 'REFUND',
+      direction: 'CREDIT',
+      bankStatusNormalized: 'REVERSED',
+      transactionDate: '2026-11-06T15:12:00.000Z',
+      currency: 'DOP',
+    });
+  });
+
+  it('suggests the header date when the BHD text cannot verify the operation date', async () => {
+    const { service, prisma } = fixture({
+      fromAddress: 'alertas@bhd.com.do',
+      fromDomain: 'bhd.com.do',
+      subject: 'BHD Notificación de Transacciones',
+      receivedAt: new Date('2026-11-06T15:12:00.000Z'),
+      body: 'Monto: RD$ 138.79\nSin fecha de operación en el texto.',
+      inferenceValue: {
+        relevance: true,
+        semanticType: 'FIN_TRANSACTION',
+        routes: ['FINANCE'],
+        transaction: {
+          kind: 'TRANSACTION',
+          amount: 138.79,
+          currency: 'USD',
+          transactionDate: '2026-06-11T11:12:00.000Z',
+          direction: 'DEBIT',
+          movementClass: 'PURCHASE',
+          bankStatusNormalized: 'APPROVED',
+        },
+        confidence: 0.9,
+      },
+    });
+
+    await service.processPendingForUser('user-1');
+
+    const storedRows = prisma.aiEmailClassification.createMany.mock.calls[0][0]
+      .data as Array<{ transaction: Record<string, unknown> }>;
+    expect(storedRows[0].transaction).not.toHaveProperty('transactionDate');
+    expect(storedRows[0].transaction).toMatchObject({
+      suggestedTransactionDate: '2026-11-06T15:12:00.000Z',
+      suggestedTransactionDateSource: 'EMAIL_HEADER',
+      currency: 'DOP',
+    });
   });
 
   it('leaves a message queued and avoids inference when the daily budget is exhausted', async () => {
