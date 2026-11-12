@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { join, resolve } from 'node:path';
 import {
   validateEmailClassification,
   type EmailClassification,
@@ -5,6 +7,53 @@ import {
 import { groundBhdClassification } from './bhd-email-grounding';
 
 const receivedAt = new Date('2026-11-06T15:12:00.000Z');
+const FIXTURES_DIRECTORY = resolve(__dirname, '../../test/fixtures/bhd-emails');
+
+type BhdEmailFixture = {
+  subject: string;
+  date: string;
+  previewCase: string;
+  text: string;
+  expected: {
+    movementClass: string;
+    direction: string;
+    amount: number;
+    currency: string;
+    transactionDate: string;
+  };
+};
+
+function readBhdFixture(name: string): BhdEmailFixture {
+  return JSON.parse(
+    readFileSync(join(FIXTURES_DIRECTORY, name), 'utf8'),
+  ) as BhdEmailFixture;
+}
+
+/**
+ * Ancla el texto del correo sobre la propuesta del modelo que reproduce cada
+ * caso del piloto, para comprobar que gana el texto.
+ */
+function groundModelProposal({
+  fixture,
+  transaction,
+}: {
+  fixture: BhdEmailFixture;
+  transaction: Record<string, unknown>;
+}): EmailClassification {
+  return groundBhdClassification({
+    classification: validateEmailClassification({
+      relevance: true,
+      semanticType: 'FIN_TRANSACTION',
+      routes: ['FINANCE'],
+      transaction: { kind: 'TRANSACTION', ...transaction },
+      confidence: 0.9,
+    }),
+    fromDomain: 'bhd.com.do',
+    subject: fixture.subject,
+    body: fixture.text,
+    receivedAt: new Date(fixture.date),
+  });
+}
 
 function classification(
   overrides: Partial<NonNullable<EmailClassification['transaction']>> = {},
@@ -222,6 +271,111 @@ describe('BHD email grounding', () => {
     expect(grounded.transaction).toMatchObject({
       currency: 'USD',
       transactionDate: '2026-06-11T11:12:00.000Z',
+    });
+  });
+});
+
+describe('BHD preview v4 cases', () => {
+  it('does not read a card purchase at a merchant as a card payment (#13)', () => {
+    const fixture = readBhdFixture('consumo-tarjeta-compra-151-30.json');
+    const grounded = groundModelProposal({
+      fixture,
+      transaction: {
+        amount: 151.3,
+        currency: 'DOP',
+        direction: 'DEBIT',
+        movementClass: 'CARD_PAYMENT',
+        merchant: 'UBER*RIDES',
+        bankStatusNormalized: 'APPROVED',
+      },
+    });
+
+    expect(grounded.transaction).toMatchObject({
+      movementClass: fixture.expected.movementClass,
+      direction: fixture.expected.direction,
+      amount: fixture.expected.amount,
+      currency: fixture.expected.currency,
+      transactionDate: fixture.expected.transactionDate,
+    });
+  });
+
+  it('restores the direction of a card purchase that came without it (#4)', () => {
+    const fixture = readBhdFixture('consumo-tarjeta-compra-178-71.json');
+    const grounded = groundModelProposal({
+      fixture,
+      transaction: {
+        amount: 178.71,
+        currency: 'DOP',
+        movementClass: 'PURCHASE',
+        merchant: 'UBER*RIDES',
+        bankStatusNormalized: 'APPROVED',
+      },
+    });
+
+    expect(grounded.transaction).toMatchObject({
+      movementClass: fixture.expected.movementClass,
+      direction: fixture.expected.direction,
+      amount: fixture.expected.amount,
+      currency: fixture.expected.currency,
+      transactionDate: fixture.expected.transactionDate,
+    });
+  });
+
+  it('takes the side of a transfer between own products from its origin (#16)', () => {
+    const fixture = readBhdFixture('transferencia-entre-productos-757-62.json');
+    const grounded = groundModelProposal({
+      fixture,
+      transaction: {
+        amount: 757.62,
+        currency: 'DOP',
+        direction: 'TRANSFER',
+        movementClass: 'TRANSFER_IN',
+        bankStatusNormalized: 'APPROVED',
+      },
+    });
+
+    expect(grounded.transaction).toMatchObject({
+      movementClass: fixture.expected.movementClass,
+      direction: fixture.expected.direction,
+      amount: fixture.expected.amount,
+      currency: fixture.expected.currency,
+      transactionDate: fixture.expected.transactionDate,
+    });
+  });
+
+  it('keeps the card payment class the model read when the text states no purchase', () => {
+    const fixture = readBhdFixture('transferencia-entre-productos-757-62.json');
+    const grounded = groundModelProposal({
+      fixture,
+      transaction: {
+        amount: 757.62,
+        currency: 'DOP',
+        direction: 'DEBIT',
+        movementClass: 'CARD_PAYMENT',
+      },
+    });
+
+    expect(grounded.transaction).toMatchObject({
+      movementClass: 'CARD_PAYMENT',
+      direction: 'DEBIT',
+    });
+  });
+
+  it('does not read a card alert row that describes another amount', () => {
+    const fixture = readBhdFixture('consumo-tarjeta-compra-151-30.json');
+    const grounded = groundModelProposal({
+      fixture,
+      transaction: {
+        amount: 12.5,
+        currency: 'DOP',
+        direction: 'DEBIT',
+        movementClass: 'CARD_PAYMENT',
+      },
+    });
+
+    expect(grounded.transaction).toMatchObject({
+      movementClass: 'CARD_PAYMENT',
+      direction: 'DEBIT',
     });
   });
 });
