@@ -571,6 +571,9 @@ export class AiEmailSamplePredictionDto {
   @ApiPropertyOptional()
   reason?: string;
 
+  @ApiPropertyOptional({ type: [String] })
+  reviewReasons?: string[];
+
   @ApiPropertyOptional({ type: () => AiEmailSampleMovementDto })
   movement?: AiEmailSampleMovementDto;
 
@@ -604,6 +607,12 @@ export class AiEmailSampleItemDto {
 
   @ApiProperty({ format: 'date-time', nullable: true, type: String })
   receivedAt!: string | null;
+
+  @ApiProperty({ nullable: true, type: String })
+  provider!: string | null;
+
+  @ApiProperty({ nullable: true, type: String })
+  model!: string | null;
 
   @ApiProperty({ type: () => AiEmailSampleClassificationDto, nullable: true })
   classification!: AiEmailSampleClassificationDto | null;

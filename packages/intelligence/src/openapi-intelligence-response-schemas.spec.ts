@@ -151,6 +151,29 @@ describe('OpenAPI response schemas of intelligence', () => {
     });
   });
 
+  it('documents per-email inference provenance and all review reasons', () => {
+    const item = document.components?.schemas?.AiEmailSampleItemDto as {
+      properties?: Record<string, Record<string, unknown>>;
+    };
+    const prediction = document.components?.schemas
+      ?.AiEmailSamplePredictionDto as {
+      properties?: Record<string, Record<string, unknown>>;
+    };
+
+    expect(item.properties?.provider).toMatchObject({
+      type: 'string',
+      nullable: true,
+    });
+    expect(item.properties?.model).toMatchObject({
+      type: 'string',
+      nullable: true,
+    });
+    expect(prediction.properties?.reviewReasons).toMatchObject({
+      type: 'array',
+      items: { type: 'string' },
+    });
+  });
+
   it('declares the cursor fields of the intelligence lists', () => {
     for (const [path, method] of [
       ['/api/intelligence/messages', 'get'],

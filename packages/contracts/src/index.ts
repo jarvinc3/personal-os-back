@@ -316,6 +316,8 @@ export interface RoutedSignal<T extends JsonObject = JsonObject> {
 export interface SignalImportPreview {
   outcome: 'APPLIED' | 'ALREADY_APPLIED' | 'REVIEW_REQUIRED' | 'REJECTED';
   reason?: string;
+  /** Every applicable review code, ordered from highest to lowest severity. */
+  reviewReasons?: readonly string[];
   domainReferences?: readonly { type: string; id: string }[];
   cardPayment?: {
     sourceAccountId: string;

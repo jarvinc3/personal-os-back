@@ -64,6 +64,7 @@ export type SampleHints = {
 export type SamplePrediction = {
   outcome: SignalImportPreview['outcome'] | 'UNAVAILABLE';
   reason?: string;
+  reviewReasons?: SignalImportPreview['reviewReasons'];
   cardPayment?: SignalImportPreview['cardPayment'];
   movement?: SignalImportPreview['movement'];
 };
@@ -80,6 +81,8 @@ export type SampleManifestItem = {
   fromAddress: string | null;
   fromDomain: string | null;
   receivedAt: string | null;
+  provider: string | null;
+  model: string | null;
   classification: SampleClassificationSummary | null;
   classificationUnavailableReason?: string;
   hints: SampleHints | null;
@@ -361,6 +364,8 @@ export class EmailSampleImportService {
       fromAddress: null,
       fromDomain: null,
       receivedAt: null,
+      provider: null,
+      model: null,
       classification: null,
       hints: null,
       signal: { published: false, reason: 'MESSAGE_NOT_FOUND' },
@@ -395,6 +400,14 @@ export class EmailSampleImportService {
       fromAddress: row.fromAddress,
       fromDomain: row.fromDomain,
       receivedAt: row.receivedAt.toISOString(),
+      provider:
+        classificationOutcome.kind === 'classified'
+          ? classificationOutcome.provider
+          : null,
+      model:
+        classificationOutcome.kind === 'classified'
+          ? classificationOutcome.model
+          : null,
     };
     if (classificationOutcome.kind === 'not_found') {
       return this.missingItem(selected.messageId, apply);
@@ -516,6 +529,7 @@ export class EmailSampleImportService {
     return {
       outcome: preview.outcome,
       reason: preview.reason,
+      reviewReasons: preview.reviewReasons,
       cardPayment: preview.cardPayment,
       movement: preview.movement,
     };

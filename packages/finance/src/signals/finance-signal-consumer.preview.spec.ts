@@ -64,11 +64,15 @@ function setup(overrides: Record<string, unknown> = {}) {
   const ledger = {
     findTransactionByImportReference: jest.fn().mockResolvedValue(null),
     findTransactionByExternalReference: jest.fn().mockResolvedValue(null),
+    findTransactionsByExternalReference: jest.fn().mockResolvedValue([]),
+    findImportedTransactionByEmailMessageId: jest.fn().mockResolvedValue(null),
+    findReverseCandidates: jest.fn().mockResolvedValue([]),
+    findLinkedRefundTotal: jest.fn().mockResolvedValue(0),
     findDedupeCandidate: jest.fn().mockResolvedValue(null),
     findLatestCategoryIdByMerchant: jest.fn().mockResolvedValue(null),
   };
   const consumer = new FinanceSignalConsumer(
-    prisma as never,
+    prisma,
     importTransaction as never,
     ledger as never,
     { execute: jest.fn() } as never,
@@ -122,6 +126,186 @@ describe('FinanceSignalConsumer preview', () => {
     });
     expect(preview.movement).toBeUndefined();
     expect(prisma.finSignalImport.upsert).not.toHaveBeenCalled();
+  });
+
+  it('returns the ledger and suggested-date reasons in severity order', async () => {
+    const { consumer, prisma } = setup({
+      finAccount: { findMany: jest.fn().mockResolvedValue([]) },
+    });
+    const dateSuggestedSignal: RoutedSignal = {
+      ...signal,
+      payload: {
+        ...signal.payload,
+        transaction: {
+          ...signal.payload.transaction,
+          transactionDate: undefined,
+          suggestedTransactionDate: '2026-11-01T00:00:00.000Z',
+          suggestedTransactionDateSource: 'EMAIL_HEADER',
+        },
+      },
+    };
+
+    const preview = await consumer.preview(dateSuggestedSignal);
+
+    expect(preview).toMatchObject({
+      outcome: 'REVIEW_REQUIRED',
+      reason: 'NO_LEDGER_TARGET',
+      reviewReasons: ['NO_LEDGER_TARGET', 'TRANSACTION_DATE_SUGGESTED'],
+    });
+    expect(prisma.finSignalImport.upsert).not.toHaveBeenCalled();
+  });
+
+  it('returns the transfer account and suggested-date reasons together', async () => {
+    const { consumer } = setup({
+      finAccount: { findMany: jest.fn().mockResolvedValue([]) },
+    });
+    const dateSuggestedTransfer: RoutedSignal = {
+      ...signal,
+      payload: {
+        ...signal.payload,
+        transaction: {
+          ...signal.payload.transaction,
+          transactionDate: undefined,
+          suggestedTransactionDate: '2026-11-01T00:00:00.000Z',
+          suggestedTransactionDateSource: 'EMAIL_HEADER',
+          direction: 'DEBIT',
+          movementClass: 'TRANSFER_OUT',
+          accountNumberLast4: '1234',
+        },
+      },
+    };
+
+    const preview = await consumer.preview(dateSuggestedTransfer);
+
+    expect(preview).toMatchObject({
+      outcome: 'REVIEW_REQUIRED',
+      reason: 'TRANSFER_ACCOUNT_NOT_FOUND',
+      reviewReasons: [
+        'TRANSFER_ACCOUNT_NOT_FOUND',
+        'TRANSACTION_DATE_SUGGESTED',
+      ],
+    });
+  });
+
+  it('includes a reversal review reason alongside a suggested date', async () => {
+    const { consumer, ledger, prisma } = setup();
+    const dateSuggestedReversal: RoutedSignal = {
+      ...signal,
+      payload: {
+        ...signal.payload,
+        transaction: {
+          ...signal.payload.transaction,
+          transactionDate: undefined,
+          suggestedTransactionDate: '2026-11-01T00:00:00.000Z',
+          suggestedTransactionDateSource: 'EMAIL_HEADER',
+          bankStatusNormalized: 'REVERSED',
+          reverseOfBankReference: 'original-bank-ref',
+        },
+      },
+    };
+
+    const preview = await consumer.preview(dateSuggestedReversal);
+
+    expect(preview).toMatchObject({
+      outcome: 'REVIEW_REQUIRED',
+      reason: 'REVERSAL_REFERENCE_NOT_FOUND',
+      reviewReasons: [
+        'REVERSAL_REFERENCE_NOT_FOUND',
+        'TRANSACTION_DATE_SUGGESTED',
+      ],
+    });
+    expect(ledger.findTransactionsByExternalReference).toHaveBeenCalledWith(
+      'user-1',
+      'original-bank-ref',
+    );
+    expect(prisma.finSignalImport.upsert).not.toHaveBeenCalled();
+  });
+
+  it('keeps an exceeded reversal reason when its email original resolves without an operation date', async () => {
+    const { consumer, ledger } = setup();
+    const original = {
+      id: 'original-transaction',
+      status: 'CONFIRMED',
+      type: 'DEBIT',
+      transferGroupId: null,
+      amount: 10,
+      currency: 'DOP',
+      accountId: 'account-1',
+      cardId: null,
+      categoryId: 'category-1',
+      merchant: 'Market',
+      linkedTransactionId: null,
+      aiMetadata: {},
+    };
+    ledger.findImportedTransactionByEmailMessageId = jest
+      .fn()
+      .mockImplementation((_userId: string, emailMessageId: string) =>
+        Promise.resolve(emailMessageId === 'original-email' ? original : null),
+      );
+    const dateSuggestedReversal: RoutedSignal = {
+      ...signal,
+      payload: {
+        ...signal.payload,
+        transaction: {
+          ...signal.payload.transaction,
+          transactionDate: undefined,
+          suggestedTransactionDate: '2026-11-01T00:00:00.000Z',
+          suggestedTransactionDateSource: 'EMAIL_HEADER',
+          bankStatusNormalized: 'REVERSED',
+          reverseOfEmailMessageId: 'original-email',
+        },
+      },
+    };
+
+    const preview = await consumer.preview(dateSuggestedReversal);
+
+    expect(preview).toMatchObject({
+      outcome: 'REVIEW_REQUIRED',
+      reason: 'REVERSAL_EXCEEDS_ORIGINAL',
+      reviewReasons: [
+        'REVERSAL_EXCEEDS_ORIGINAL',
+        'TRANSACTION_DATE_SUGGESTED',
+      ],
+    });
+    expect(ledger.findImportedTransactionByEmailMessageId).toHaveBeenCalledWith(
+      'user-1',
+      'original-email',
+    );
+    expect(ledger.findReverseCandidates).not.toHaveBeenCalled();
+  });
+
+  it('does not search reversal candidates with an invalid date when the email original is missing', async () => {
+    const { consumer, ledger } = setup();
+    const dateSuggestedReversal: RoutedSignal = {
+      ...signal,
+      payload: {
+        ...signal.payload,
+        transaction: {
+          ...signal.payload.transaction,
+          transactionDate: undefined,
+          suggestedTransactionDate: '2026-11-01T00:00:00.000Z',
+          suggestedTransactionDateSource: 'EMAIL_HEADER',
+          bankStatusNormalized: 'REVERSED',
+          reverseOfEmailMessageId: 'missing-original-email',
+        },
+      },
+    };
+
+    const preview = await consumer.preview(dateSuggestedReversal);
+
+    expect(preview).toMatchObject({
+      outcome: 'REVIEW_REQUIRED',
+      reason: 'REVERSAL_ORIGINAL_NOT_FOUND',
+      reviewReasons: [
+        'REVERSAL_ORIGINAL_NOT_FOUND',
+        'TRANSACTION_DATE_SUGGESTED',
+      ],
+    });
+    expect(ledger.findImportedTransactionByEmailMessageId).toHaveBeenCalledWith(
+      'user-1',
+      'missing-original-email',
+    );
+    expect(ledger.findReverseCandidates).not.toHaveBeenCalled();
   });
 
   it('reports a stored import as already applied', async () => {
