@@ -269,7 +269,7 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
     if (status === 'REVERSED') {
       const canResolveReversalWithoutDate = Boolean(
         candidate.reverseOfBankReference ||
-        (candidate.reverseOfEmailMessageId && !candidate.merchant) ||
+        candidate.reverseOfEmailMessageId ||
         !candidate.merchant ||
         candidate.transactionDate,
       );
@@ -1162,11 +1162,17 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
         REVERSAL_REVIEW_REASON.COMMERCE_MISSING,
       );
     }
+    if (!candidate.transactionDate) {
+      return this.reversalReview(
+        'CANDIDATE',
+        REVERSAL_REVIEW_REASON.ORIGINAL_NOT_FOUND,
+      );
+    }
     const candidates = await this.ledger.findReverseCandidates(userId, {
       amount: reversalAmount,
       currency: reversalCurrency,
       merchant: candidate.merchant,
-      aroundDate: new Date(candidate.transactionDate!),
+      aroundDate: new Date(candidate.transactionDate),
       statuses: ['CONFIRMED'],
     });
     return classifyReversalCandidates({
