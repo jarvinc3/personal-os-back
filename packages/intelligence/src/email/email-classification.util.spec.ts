@@ -277,6 +277,25 @@ describe('Email classification rules', () => {
     ).toEqual(notice);
   });
 
+  it('accepts currency evidence on a validated transaction', () => {
+    const classified = validateEmailClassification({
+      relevance: true,
+      semanticType: 'FIN_TRANSACTION',
+      routes: ['FINANCE'],
+      transaction: {
+        kind: 'TRANSACTION',
+        amount: 138.79,
+        currency: 'DOP',
+        currencyEvidence: 'El texto indica DOP; el modelo propuso USD.',
+      },
+      confidence: 0.9,
+    });
+
+    expect(classified.transaction?.currencyEvidence).toBe(
+      'El texto indica DOP; el modelo propuso USD.',
+    );
+  });
+
   it('accepts the reference of the original email in a reversal', () => {
     const reversal = validateEmailClassification({
       relevance: true,
@@ -321,6 +340,16 @@ describe('Email classification model output', () => {
 
   it('offers the model only the kinds that admit a real transaction', () => {
     expect(modelTransactionKind().enum).toEqual(['TRANSACTION', 'PENDING']);
+  });
+
+  it('keeps the currency evidence out of the schema offered to the model', () => {
+    const transaction = (
+      EMAIL_CLASSIFICATION_JSON_SCHEMA as {
+        properties: { transaction: { properties: Record<string, unknown> } };
+      }
+    ).properties.transaction;
+
+    expect(transaction.properties).not.toHaveProperty('currencyEvidence');
   });
 
   it('accepts a non-financial notice that arrives with kind NOT_TRANSACTION', () => {
@@ -386,6 +415,21 @@ describe('Email classification model output', () => {
     );
 
     expect(normalized.relevance).toBe(false);
+  });
+
+  it('does not keep currency evidence proposed by the model', () => {
+    const normalized = normalizeModelClassification({
+      relevance: true,
+      semanticType: 'FIN_TRANSACTION',
+      routes: ['FINANCE'],
+      transaction: {
+        kind: 'TRANSACTION',
+        currencyEvidence: 'El modelo propuso esta evidencia.',
+      },
+      confidence: 0.9,
+    }) as { transaction: Record<string, unknown> };
+
+    expect(normalized.transaction).not.toHaveProperty('currencyEvidence');
   });
 
   it('leaves a transaction that already satisfies the rules untouched', () => {

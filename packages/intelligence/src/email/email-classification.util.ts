@@ -83,7 +83,13 @@ const transactionShape = {
   categoryNameHint: z.string().trim().min(1).max(80).optional(),
 };
 
-const transactionSchema = z.strictObject(transactionShape).optional();
+const transactionEvidenceShape = {
+  currencyEvidence: z.string().trim().min(1).max(240).optional(),
+};
+
+const transactionSchema = z
+  .strictObject({ ...transactionShape, ...transactionEvidenceShape })
+  .optional();
 
 const modelTransactionSchema = z
   .strictObject({
@@ -183,6 +189,9 @@ export function normalizeModelClassification(value: unknown): unknown {
   }
   const candidate = value as Record<string, unknown>;
   const normalized: Record<string, unknown> = { ...candidate };
+  if (normalized.transaction !== undefined) {
+    normalized.transaction = withoutCurrencyEvidence(normalized.transaction);
+  }
   if (normalized.semanticType === 'SECURITY_OTP') {
     normalized.relevance = false;
   }
@@ -197,6 +206,19 @@ export function normalizeModelClassification(value: unknown): unknown {
     delete normalized.transaction;
   }
   return normalized;
+}
+
+function withoutCurrencyEvidence(transaction: unknown): unknown {
+  if (
+    typeof transaction !== 'object' ||
+    transaction === null ||
+    Array.isArray(transaction)
+  ) {
+    return transaction;
+  }
+  const copy = { ...(transaction as Record<string, unknown>) };
+  delete copy.currencyEvidence;
+  return copy;
 }
 
 /**
@@ -374,9 +396,9 @@ export function isRecallAuditSample(messageId: string, rate = 100): boolean {
 }
 
 export const EMAIL_CLASSIFICATION_VERSIONS = {
-  pipeline: 'email-classification-v1',
+  pipeline: 'email-classification-v2',
   detector: 'email-relevance-detector-v1',
   prompt: 'email-classification-prompt-v3',
   schema: 'email-classification-schema-v3',
-  parser: 'known-template-parser-v1',
+  parser: 'known-template-parser-v2',
 } as const;

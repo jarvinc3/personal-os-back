@@ -17,12 +17,12 @@ import {
   EMAIL_DATASET_PURPOSE,
 } from '../evidence/dataset.constants';
 import { partitionEmailDatasetItem } from '../evidence/dataset-partition.util';
+import { groundBhdClassification } from './bhd-email-grounding';
 import {
   EMAIL_CLASSIFICATION_JSON_SCHEMA,
   EMAIL_CLASSIFICATION_VERSIONS,
   isRecallAuditSample,
   parseDeterministicEmail,
-  validateEmailClassification,
   validateModelClassification,
   withSuggestedTransactionDate,
   type EmailClassification,
@@ -89,6 +89,7 @@ type ClassifiableMessage = {
   id: string;
   receivedAt: Date;
   fromAddress: string;
+  fromDomain: string;
   subject: string;
   templateFingerprint: string | null;
   processingStatus: string;
@@ -458,10 +459,17 @@ export class AiEmailClassificationService {
     if (!classification) {
       return { kind: 'no_classification' };
     }
+    const grounded = groundBhdClassification({
+      classification,
+      fromDomain: message.fromDomain,
+      subject: message.subject,
+      body: message.content?.sanitizedBody ?? '',
+      receivedAt: message.receivedAt,
+    });
     return {
       kind: 'computed',
       classification: withSuggestedTransactionDate({
-        classification: validateEmailClassification(classification),
+        classification: grounded,
         receivedAt: message.receivedAt,
       }),
       method,

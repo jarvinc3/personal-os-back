@@ -19,6 +19,7 @@ const transaction = {
   last4: '4821',
   movementClass: 'PURCHASE',
   bankStatusNormalized: 'COMPLETED',
+  currencyEvidence: 'El texto indica DOP; el modelo propuso USD.',
 };
 
 describe('Email reclassification labels', () => {
@@ -66,6 +67,7 @@ describe('Email reclassification labels', () => {
         currency: 'DOP',
         last4: '4821',
         movementClass: 'PURCHASE',
+        currencyEvidence: 'El texto indica DOP; el modelo propuso USD.',
       },
     });
   });
