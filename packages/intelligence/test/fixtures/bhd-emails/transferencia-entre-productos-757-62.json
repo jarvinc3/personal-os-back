@@ -1,0 +1,16 @@
+{
+  "from": "Alertas@bhd.com.do",
+  "subject": "Transacciones entre mis productos",
+  "date": "2026-11-06T15:12:58.000Z",
+  "note": "Texto saneado de la vista previa v4, con titular, tarjeta y referencia sustituidos por valores ficticios.",
+  "previewCase": "#16",
+  "text": "Estimado(a): TITULAR DE PRUEBA A continuaci&oacute;n la informaci&oacute;n relacionada a tu transacci&oacute;n: Producto origen: XXXXXXX0016 Producto destino: XXXXXXX0024 Descripci&oacute;n: Monto: RD$ 757.62 Beneficiario: CTA DE AHORRO MÓVIL N&uacute;mero de confirmaci&oacute;n: M01-1111-2222-3333-4 Fecha y hora de la transacci&oacute;n: 06/11/2026 - 11:12 AM Tipo de transacci&oacute;n: Transacciones entre mis productos Nota: Este correo electr&oacute;nico es generado de manera autom&aacute;tica por el sistema, por favor no responder a este mensaje. En caso de no reconocer esta transacci&oacute;n, favor llamar al 809-243-5282. Cordialmente, Banco BHD",
+  "expected": {
+    "messageId": "64e73dbf-4d6a-4369-b310-0377c7ce6183",
+    "movementClass": "TRANSFER_OUT",
+    "direction": "TRANSFER",
+    "amount": 757.62,
+    "currency": "DOP",
+    "transactionDate": "2026-11-06T15:12:00.000Z"
+  }
+}

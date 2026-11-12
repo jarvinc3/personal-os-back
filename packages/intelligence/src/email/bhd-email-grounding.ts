@@ -66,6 +66,28 @@ const REVERSAL_PATTERNS = [
 const NOT_APPLIED_PATTERN =
   /\b(?:no\s+(?:pudo|se\s+pudo|fue\s+posible)|no\s+aplicad[oa]s?|rechazad[oa]s?|fondos\s+insuficientes|balance\s+de\s+la\s+cuenta\s+no\s+es\s+suficiente|declinad[oa]s?)\b/i;
 
+/**
+ * La alerta de tarjeta trae una sola fila: fecha, moneda, monto, comercio,
+ * estado y tipo. El tipo lo escribe el banco, así que decide la clase del
+ * movimiento: una compra en un comercio no es un pago de tarjeta.
+ */
+const CARD_ALERT_ROW_PATTERN = new RegExp(
+  String.raw`\d{1,2}\/\d{1,2}\/\d{4}\s+\d{1,2}:\d{2}(?::\d{2})?\s*${AM_PM_PATTERN}\s+(?:RD|US|DOP|USD)\s*\$?\s*(?<amount>[\d.,]+)\s+.{1,160}?\s+(?:Aprobad[oa]|Rechazad[oa]|Pendiente|Anulad[oa]|Reversad[oa])\s+(?<movementType>\S+)`,
+  'i',
+);
+
+/** Tipos de movimiento que la alerta de tarjeta declara en su columna `Tipo`. */
+const CARD_ALERT_PURCHASE_TYPE = 'compra';
+
+/**
+ * Los correos entre productos propios nombran el origen y el destino de la
+ * misma transferencia: el dinero sale del producto de origen.
+ */
+const OWN_PRODUCTS_TRANSFER_PATTERN =
+  /producto origen:[\s\S]*producto destino:/i;
+
+const TRANSFER_MOVEMENT_CLASSES = ['TRANSFER_OUT', 'TRANSFER_IN'] as const;
+
 export function isBhdEmail(fromDomain: string | null | undefined): boolean {
   if (!fromDomain) {
     return false;
@@ -101,6 +123,11 @@ export function groundBhdClassification({
     transactionDate: extractBhdTransactionDate(text, receivedAt),
     currency: extractBhdCurrency(text, classification.transaction.amount),
     reversal: detectBhdReversal(text),
+    declaredMovement: readBhdDeclaredMovement({
+      text,
+      amount: classification.transaction.amount,
+      movementClass: classification.transaction.movementClass,
+    }),
   });
 
   return validateEmailClassification({ ...classification, transaction });
@@ -108,16 +135,23 @@ export function groundBhdClassification({
 
 type BhdTransaction = NonNullable<EmailClassification['transaction']>;
 
+/** Clase y lado del movimiento que el texto del banco declara. */
+type BhdDeclaredMovement = Required<
+  Pick<BhdTransaction, 'movementClass' | 'direction'>
+>;
+
 function groundBhdTransaction({
   transaction,
   transactionDate,
   currency,
   reversal,
+  declaredMovement,
 }: {
   transaction: BhdTransaction;
   transactionDate: Date | null;
   currency: BhdCurrency | null;
   reversal: BhdReversal | null;
+  declaredMovement: BhdDeclaredMovement | null;
 }): BhdTransaction {
   let grounded = transactionDate
     ? { ...transaction, transactionDate: transactionDate.toISOString() }
@@ -125,6 +159,7 @@ function groundBhdTransaction({
   grounded = currency
     ? withBhdCurrency({ transaction: grounded, currency })
     : withoutField(grounded, 'currency');
+  grounded = declaredMovement ? { ...grounded, ...declaredMovement } : grounded;
   if (reversal) {
     grounded = {
       ...grounded,
@@ -135,6 +170,37 @@ function groundBhdTransaction({
     };
   }
   return grounded;
+}
+
+/**
+ * Devuelve la clase y el lado que el texto declara, o `null` si la plantilla no
+ * los fija. Una transferencia entre productos propios conserva la clase que trae
+ * el modelo, porque el mismo formato sirve para pagar la tarjeta, y solo se
+ * corrige el lado.
+ */
+function readBhdDeclaredMovement({
+  text,
+  amount,
+  movementClass,
+}: {
+  text: string;
+  amount: number | undefined;
+  movementClass: string | undefined;
+}): BhdDeclaredMovement | null {
+  if (statesBhdCardPurchase({ text, amount })) {
+    return { movementClass: 'PURCHASE', direction: 'DEBIT' };
+  }
+  if (
+    OWN_PRODUCTS_TRANSFER_PATTERN.test(text) &&
+    isTransferMovementClass(movementClass)
+  ) {
+    return { movementClass: 'TRANSFER_OUT', direction: 'TRANSFER' };
+  }
+  return null;
+}
+
+function isTransferMovementClass(movementClass: string | undefined): boolean {
+  return TRANSFER_MOVEMENT_CLASSES.some((known) => known === movementClass);
 }
 
 function withBhdCurrency({
@@ -259,7 +325,7 @@ function extractBhdCurrency(
   text: string,
   amount: number | undefined,
 ): BhdCurrency | null {
-  const normalized = text.replace(/\u00a0/g, ' ').replace(/\s+/g, ' ');
+  const normalized = collapseWhitespace(text);
   const amountIndex = findAmountIndex(normalized, amount);
   const candidates = CURRENCY_MARKERS.flatMap(({ code, marker, pattern }) =>
     [...normalized.matchAll(pattern)]
@@ -344,4 +410,49 @@ function detectBhdReversal(text: string): BhdReversal | null {
     return null;
   }
   return REVERSAL_PATTERNS.find(({ pattern }) => pattern.test(text)) ?? null;
+}
+
+/**
+ * Una compra en un comercio nunca es un pago de tarjeta. Solo se acepta cuando
+ * la fila de la alerta declara ese tipo y su monto coincide con el del
+ * movimiento, para no leer el tipo de otra cifra del correo.
+ */
+function statesBhdCardPurchase({
+  text,
+  amount,
+}: {
+  text: string;
+  amount: number | undefined;
+}): boolean {
+  if (amount === undefined) {
+    return false;
+  }
+  const row = CARD_ALERT_ROW_PATTERN.exec(collapseWhitespace(text));
+  const declaredAmount = row?.groups?.amount;
+  const movementType = row?.groups?.movementType;
+  if (!declaredAmount || !movementType) {
+    return false;
+  }
+  return (
+    movementType.toLowerCase() === CARD_ALERT_PURCHASE_TYPE &&
+    sameAmount({ declaredAmount, amount })
+  );
+}
+
+function sameAmount({
+  declaredAmount,
+  amount,
+}: {
+  declaredAmount: string;
+  amount: number;
+}): boolean {
+  const declared = Number(declaredAmount.replace(/,/g, ''));
+  return (
+    Number.isFinite(declared) &&
+    Math.round(declared * 100) === Math.round(amount * 100)
+  );
+}
+
+function collapseWhitespace(text: string): string {
+  return text.replace(/\u00a0/g, ' ').replace(/\s+/g, ' ');
 }
