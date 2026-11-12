@@ -96,44 +96,70 @@ export function groundBhdClassification({
     return classification;
   }
   const text = `${subject}\n${body}`;
-  const transaction = { ...classification.transaction };
-  const transactionDate = extractBhdTransactionDate(text, receivedAt);
-  if (transactionDate) {
-    transaction.transactionDate = transactionDate.toISOString();
-  } else {
-    delete transaction.transactionDate;
-  }
-
-  const currency = extractBhdCurrency(text, transaction.amount);
-  if (currency) {
-    applyBhdCurrency({ transaction, currency });
-  } else {
-    delete transaction.currency;
-  }
-
-  const reversal = detectBhdReversal(text);
-  if (reversal) {
-    transaction.kind = 'TRANSACTION';
-    transaction.movementClass = 'REFUND';
-    transaction.direction = 'CREDIT';
-    transaction.bankStatusNormalized = reversal.status;
-  }
+  const transaction = groundBhdTransaction({
+    transaction: classification.transaction,
+    transactionDate: extractBhdTransactionDate(text, receivedAt),
+    currency: extractBhdCurrency(text, classification.transaction.amount),
+    reversal: detectBhdReversal(text),
+  });
 
   return validateEmailClassification({ ...classification, transaction });
 }
 
-function applyBhdCurrency({
+type BhdTransaction = NonNullable<EmailClassification['transaction']>;
+
+function groundBhdTransaction({
+  transaction,
+  transactionDate,
+  currency,
+  reversal,
+}: {
+  transaction: BhdTransaction;
+  transactionDate: Date | null;
+  currency: BhdCurrency | null;
+  reversal: BhdReversal | null;
+}): BhdTransaction {
+  let grounded = transactionDate
+    ? { ...transaction, transactionDate: transactionDate.toISOString() }
+    : withoutField(transaction, 'transactionDate');
+  grounded = currency
+    ? withBhdCurrency({ transaction: grounded, currency })
+    : withoutField(grounded, 'currency');
+  if (reversal) {
+    grounded = {
+      ...grounded,
+      kind: 'TRANSACTION',
+      movementClass: 'REFUND',
+      direction: 'CREDIT',
+      bankStatusNormalized: reversal.status,
+    };
+  }
+  return grounded;
+}
+
+function withBhdCurrency({
   transaction,
   currency,
 }: {
-  transaction: NonNullable<EmailClassification['transaction']>;
+  transaction: BhdTransaction;
   currency: BhdCurrency;
-}): void {
+}): BhdTransaction {
   const modelCurrency = transaction.currency;
-  transaction.currency = currency.code;
-  if (modelCurrency && modelCurrency !== currency.code) {
-    transaction.currencyEvidence = `El texto indica ${currency.code} (${currency.marker}); el modelo propuso ${modelCurrency}.`;
-  }
+  return {
+    ...transaction,
+    currency: currency.code,
+    ...(modelCurrency && modelCurrency !== currency.code
+      ? {
+          currencyEvidence: `El texto indica ${currency.code} (${currency.marker}); el modelo propuso ${modelCurrency}.`,
+        }
+      : {}),
+  };
+}
+
+function withoutField<T extends object>(value: T, field: keyof T): T {
+  return Object.fromEntries(
+    Object.entries(value).filter(([key]) => key !== field),
+  ) as T;
 }
 
 function extractBhdTransactionDate(

@@ -198,6 +198,21 @@ describe('BHD email grounding', () => {
     });
   });
 
+  it('does not mutate the classification it receives', () => {
+    const input = classification();
+    const snapshot = structuredClone(input);
+
+    groundBhdClassification({
+      classification: input,
+      fromDomain: 'bhd.com.do',
+      subject: 'BHD Notificación de Transacciones',
+      body: 'Monto: RD$ 138.79\nFecha y hora: 06/11/2026 - 11:12 AM\nTipo: Reverso',
+      receivedAt,
+    });
+
+    expect(input).toEqual(snapshot);
+  });
+
   it('does not apply BHD rules to another sender', () => {
     const grounded = ground({
       body: 'Monto: RD$ 138.79\nFecha: 06/11/2026 11:12 am',
