@@ -123,11 +123,11 @@ export function groundBhdClassification({
     transactionDate: extractBhdTransactionDate(text, receivedAt),
     currency: extractBhdCurrency(text, classification.transaction.amount),
     reversal: detectBhdReversal(text),
-    cardPurchase: statesBhdCardPurchase({
+    declaredMovement: readBhdDeclaredMovement({
       text,
       amount: classification.transaction.amount,
+      movementClass: classification.transaction.movementClass,
     }),
-    ownProductsTransfer: OWN_PRODUCTS_TRANSFER_PATTERN.test(text),
   });
 
   return validateEmailClassification({ ...classification, transaction });
@@ -135,20 +135,23 @@ export function groundBhdClassification({
 
 type BhdTransaction = NonNullable<EmailClassification['transaction']>;
 
+/** Clase y lado del movimiento que el texto del banco declara. */
+type BhdDeclaredMovement = Required<
+  Pick<BhdTransaction, 'movementClass' | 'direction'>
+>;
+
 function groundBhdTransaction({
   transaction,
   transactionDate,
   currency,
   reversal,
-  cardPurchase,
-  ownProductsTransfer,
+  declaredMovement,
 }: {
   transaction: BhdTransaction;
   transactionDate: Date | null;
   currency: BhdCurrency | null;
   reversal: BhdReversal | null;
-  cardPurchase: boolean;
-  ownProductsTransfer: boolean;
+  declaredMovement: BhdDeclaredMovement | null;
 }): BhdTransaction {
   let grounded = transactionDate
     ? { ...transaction, transactionDate: transactionDate.toISOString() }
@@ -156,11 +159,7 @@ function groundBhdTransaction({
   grounded = currency
     ? withBhdCurrency({ transaction: grounded, currency })
     : withoutField(grounded, 'currency');
-  grounded = withBhdMovement({
-    transaction: grounded,
-    cardPurchase,
-    ownProductsTransfer,
-  });
+  grounded = declaredMovement ? { ...grounded, ...declaredMovement } : grounded;
   if (reversal) {
     grounded = {
       ...grounded,
@@ -174,36 +173,30 @@ function groundBhdTransaction({
 }
 
 /**
- * El texto decide la clase y el lado del movimiento cuando la plantilla los
- * declara. Una transferencia entre productos propios conserva la clase que trae
+ * Devuelve la clase y el lado que el texto declara, o `null` si la plantilla no
+ * los fija. Una transferencia entre productos propios conserva la clase que trae
  * el modelo, porque el mismo formato sirve para pagar la tarjeta, y solo se
  * corrige el lado.
  */
-function withBhdMovement({
-  transaction,
-  cardPurchase,
-  ownProductsTransfer,
+function readBhdDeclaredMovement({
+  text,
+  amount,
+  movementClass,
 }: {
-  transaction: BhdTransaction;
-  cardPurchase: boolean;
-  ownProductsTransfer: boolean;
-}): BhdTransaction {
-  let grounded = transaction;
-  if (cardPurchase) {
-    grounded = {
-      ...grounded,
-      movementClass: 'PURCHASE',
-      direction: 'DEBIT',
-    };
+  text: string;
+  amount: number | undefined;
+  movementClass: string | undefined;
+}): BhdDeclaredMovement | null {
+  if (statesBhdCardPurchase({ text, amount })) {
+    return { movementClass: 'PURCHASE', direction: 'DEBIT' };
   }
-  if (ownProductsTransfer && isTransferMovementClass(grounded.movementClass)) {
-    grounded = {
-      ...grounded,
-      movementClass: 'TRANSFER_OUT',
-      direction: 'TRANSFER',
-    };
+  if (
+    OWN_PRODUCTS_TRANSFER_PATTERN.test(text) &&
+    isTransferMovementClass(movementClass)
+  ) {
+    return { movementClass: 'TRANSFER_OUT', direction: 'TRANSFER' };
   }
-  return grounded;
+  return null;
 }
 
 function isTransferMovementClass(movementClass: string | undefined): boolean {
