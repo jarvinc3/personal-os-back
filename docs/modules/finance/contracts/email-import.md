@@ -474,6 +474,8 @@ autenticado.
 - No escribe nada: ni clasificaciones, ni observaciones, ni presupuesto de
   modelo, ni telemetría de inferencia, ni señales, ni eventos de salida, ni
   movimientos. La llamada al modelo viaja con `recordTelemetry: false`.
+- Devuelve `provider` y `model` por correo en el manifiesto, solo como datos de
+  respuesta. Si no hubo inferencia de modelo, ambos son `null`; no se persisten.
 - Devuelve un manifiesto por correo.
 
 La predicción del movimiento no repite las reglas: usa el mismo paso de decisión
@@ -496,19 +498,21 @@ comparten código, así el manifiesto no se separa del resultado.
 
 ### 11.4 Manifiesto
 
-| Campo                             | Contenido                                                                                                               |
-| --------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| `messageId`                       | Id del correo pedido.                                                                                                   |
-| `status`                          | `INCLUDED` o `NOT_FOUND`.                                                                                               |
-| `fromAddress`, `fromDomain`       | Remitente persistido.                                                                                                   |
-| `receivedAt`                      | Fecha de recepción del correo, no la de operación.                                                                      |
-| `classification`                  | Tipo, confianza, método, clase de movimiento, monto, moneda, fecha de operación, fecha sugerida con fuente y dirección. |
-| `classificationUnavailableReason` | Motivo cuando la clasificación no se pudo calcular.                                                                     |
-| `hints`                           | Referencia bancaria, comercio, `last4` y fecha sugerida con fuente observados.                                          |
-| `signal.published`                | Si el correo publicaría una señal `FINANCE.TRANSACTION_DETECTED`.                                                       |
-| `signal.reason`                   | Motivo cuando no publica.                                                                                               |
-| `prediction`                      | Resultado previsto y, si aplica, el movimiento que crearía.                                                             |
-| `execution`                       | Solo al ejecutar: resultado aplicado y id del movimiento.                                                               |
+| Campo                             | Contenido                                                                                                                                                                                                                                                                           |
+| --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `messageId`                       | Id del correo pedido.                                                                                                                                                                                                                                                               |
+| `status`                          | `INCLUDED` o `NOT_FOUND`.                                                                                                                                                                                                                                                           |
+| `fromAddress`, `fromDomain`       | Remitente persistido.                                                                                                                                                                                                                                                               |
+| `receivedAt`                      | Fecha de recepción del correo, no la de operación.                                                                                                                                                                                                                                  |
+| `provider`, `model`               | Proveedor y modelo de inferencia usados para ese correo; `null` si no hubo inferencia de modelo. Solo respuesta, sin persistencia.                                                                                                                                                  |
+| `classification`                  | Tipo, confianza, método, clase de movimiento, monto, moneda, fecha de operación, fecha sugerida con fuente y dirección.                                                                                                                                                             |
+| `classificationUnavailableReason` | Motivo cuando la clasificación no se pudo calcular.                                                                                                                                                                                                                                 |
+| `hints`                           | Referencia bancaria, comercio, `last4` y fecha sugerida con fuente observados.                                                                                                                                                                                                      |
+| `signal.published`                | Si el correo publicaría una señal `FINANCE.TRANSACTION_DETECTED`.                                                                                                                                                                                                                   |
+| `signal.reason`                   | Motivo cuando no publica.                                                                                                                                                                                                                                                           |
+| `prediction`                      | Resultado previsto y, si aplica, el movimiento que crearía.                                                                                                                                                                                                                         |
+| `prediction.reviewReasons`        | Todos los códigos de revisión aplicables, sin duplicados y ordenados por gravedad: reverso/confianza, destino de cuenta/ledger y luego datos por confirmar; códigos empatados se ordenan alfabéticamente. El `prediction.reason` escalar coincide con el primer código de la lista. |
+| `execution`                       | Solo al ejecutar: resultado aplicado y id del movimiento.                                                                                                                                                                                                                           |
 
 ### 11.5 Diferencias posibles entre vista previa y ejecución
 

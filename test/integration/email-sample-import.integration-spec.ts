@@ -144,9 +144,9 @@ function buildService({
     }),
   };
   const classification = new AiEmailClassificationService(
-    prisma as never,
+    prisma,
     inference as never,
-    { get: () => 100 } as never,
+    { get: () => 100 },
   );
   const registry = new AiSignalConsumerRegistry();
   registry.register({ domain: 'FINANCE', consume, preview });
@@ -158,11 +158,11 @@ function buildService({
   );
 }
 
-async function countClassifications(messageId: string) {
+function countClassifications(messageId: string) {
   return prisma.aiEmailClassification.count({ where: { messageId } });
 }
 
-async function readMessage(messageId: string) {
+function readMessage(messageId: string) {
   return prisma.aiEmailMessage.findUniqueOrThrow({ where: { id: messageId } });
 }
 
@@ -232,6 +232,8 @@ describe('Selección acotada de muestra por lista explícita', () => {
     expect(manifest.items[0]).toMatchObject({
       messageId: selectedId,
       status: 'INCLUDED',
+      provider: 'integration',
+      model: 'integration-model',
       signal: { published: true },
       prediction: { outcome: 'APPLIED' },
     });

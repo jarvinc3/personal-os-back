@@ -49,6 +49,10 @@ import {
   PartialReversalExceedsOriginalError,
   PartialReversalNotApplicableError,
 } from '../ledger/application/partial-reversal.errors';
+import {
+  financeValidationReviewReasons,
+  orderFinanceReviewReasons,
+} from './finance-review-reasons';
 import type { LedgerTransactionRow } from '../ledger/application/ports/ledger.repository.port';
 import {
   ImportFinancialTransactionUseCase,
@@ -220,7 +224,162 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
   /** Igual que `consume`, pero sin escribir ni señales ni ledger. */
   async preview(signal: RoutedSignal): Promise<SignalImportPreview> {
     const plan = await this.buildImportPlan(signal);
-    return this.describeImportPlan(plan);
+    const preview = this.describeImportPlan(plan);
+    if (preview.outcome !== 'REVIEW_REQUIRED') {
+      return preview;
+    }
+    const reviewReasons = await this.collectPreviewReviewReasons(
+      signal,
+      preview.reason,
+    );
+    return {
+      ...preview,
+      reason: reviewReasons[0] ?? preview.reason,
+      reviewReasons,
+    };
+  }
+
+  /** Reads independent blockers without changing the execution decision. */
+  private async collectPreviewReviewReasons(
+    signal: RoutedSignal,
+    primaryReason?: string,
+  ): Promise<string[]> {
+    const reasons = primaryReason ? [primaryReason] : ['REVIEW_REQUIRED'];
+    const parsed = payloadSchema.safeParse(signal.payload);
+    if (!parsed.success || !parsed.data.transaction) {
+      return orderFinanceReviewReasons(reasons);
+    }
+
+    const candidate = parsed.data.transaction;
+    if (candidate.kind === 'NOT_TRANSACTION') {
+      return orderFinanceReviewReasons(reasons);
+    }
+    reasons.push(...financeValidationReviewReasons(candidate));
+
+    const movementClass = this.movementClass(candidate);
+    const status =
+      candidate.kind === 'PENDING'
+        ? 'PENDING'
+        : mapBankStatusToInternal({
+            bankStatusNormalized: candidate.bankStatusNormalized ?? 'UNKNOWN',
+            statusConfidence:
+              candidate.statusConfidence ?? parsed.data.confidence ?? 0,
+          });
+
+    if (status === 'REVERSED') {
+      const canResolveReversalWithoutDate = Boolean(
+        candidate.reverseOfBankReference ||
+        (candidate.reverseOfEmailMessageId && !candidate.merchant) ||
+        !candidate.merchant ||
+        candidate.transactionDate,
+      );
+      if (
+        candidate.amount != null &&
+        candidate.currency &&
+        canResolveReversalWithoutDate
+      ) {
+        const reversalPlan = await this.buildReversalPlan(signal, candidate);
+        if (
+          reversalPlan.kind === 'RECORD' &&
+          reversalPlan.status === 'REVIEW_REQUIRED' &&
+          reversalPlan.reason
+        ) {
+          reasons.push(reversalPlan.reason);
+        }
+      }
+      return orderFinanceReviewReasons(reasons);
+    }
+
+    if (
+      candidate.direction === 'TRANSFER' &&
+      !isTransferMovementClass(movementClass)
+    ) {
+      reasons.push('TRANSFER_DIRECTION_AMBIGUOUS');
+    }
+    if (isTransferMovementClass(movementClass) && !candidate.direction) {
+      reasons.push('TRANSFER_SIDE_MISSING');
+    }
+
+    const activeAccounts = await this.prisma.finAccount.findMany({
+      where: { userId: signal.userId, isActive: true },
+      select: {
+        id: true,
+        accountNumberLast4: true,
+        isDefaultForInstitution: true,
+        type: true,
+        currency: true,
+      },
+    });
+
+    if (isCardPaymentMovementClass(movementClass)) {
+      if (status !== 'CONFIRMED') {
+        reasons.push('CARD_PAYMENT_NOT_CONFIRMED');
+      }
+      const card = await this.resolveCardPaymentCard({
+        userId: signal.userId,
+        lastFour: candidate.last4 ?? null,
+      });
+      if (card.kind === 'review') {
+        reasons.push(card.reason);
+      }
+      const account = this.resolveCardPaymentAccount({
+        accounts: activeAccounts,
+        accountNumberLast4: candidate.accountNumberLast4 ?? null,
+      });
+      if (account.kind === 'review') {
+        reasons.push(account.reason);
+      }
+      if (
+        card.kind === 'resolved' &&
+        candidate.currency &&
+        !card.currencies.includes(candidate.currency)
+      ) {
+        reasons.push('CARD_CURRENCY_MISSING');
+      }
+      return orderFinanceReviewReasons(reasons);
+    }
+
+    if (isTransferMovementClass(movementClass)) {
+      const transferTarget = this.resolveTransferTarget({
+        candidate,
+        movementClass,
+        accounts: activeAccounts,
+      });
+      if (transferTarget.kind === 'review') {
+        reasons.push(transferTarget.reason);
+      }
+      return orderFinanceReviewReasons(reasons);
+    }
+
+    const activeCards = await this.prisma.finCard.findMany({
+      where: { userId: signal.userId, isActive: true },
+      select: { id: true, lastFour: true },
+    });
+    const ledgerTarget = resolveLedgerTargetFromHints({
+      instrumentHint: null,
+      lastFourHint: candidate.last4 ?? null,
+      accountNumberHint: null,
+      accounts: activeAccounts,
+      cards: activeCards,
+      allowDefaultAccount: !isAtmMovementClass(movementClass),
+    });
+    if (ledgerTarget.kind !== 'unique') {
+      reasons.push(
+        ledgerTarget.kind === 'ambiguous'
+          ? 'AMBIGUOUS_LEDGER_TARGET'
+          : 'NO_LEDGER_TARGET',
+      );
+    }
+    if (isAtmMovementClass(movementClass)) {
+      const cashAccounts = await this.prisma.finAccount.findMany({
+        where: { userId: signal.userId, isActive: true, type: 'CASH' },
+        select: { id: true },
+      });
+      if (!uniqueCashAccountId(cashAccounts)) {
+        reasons.push('ATM_CASH_ACCOUNT_AMBIGUOUS');
+      }
+    }
+    return orderFinanceReviewReasons(reasons);
   }
 
   private async buildImportPlan(signal: RoutedSignal): Promise<ImportPlan> {
@@ -718,37 +877,7 @@ export class FinanceSignalConsumer implements FinanceSignalConsumerPort {
   }
 
   private validationReason(candidate: Candidate): string | null {
-    if (candidate.kind === 'NOT_TRANSACTION') {
-      return 'NOT_A_TRANSACTION';
-    }
-    if (candidate.amount == null) {
-      return 'AMOUNT_MISSING';
-    }
-    if (!candidate.currency) {
-      return 'CURRENCY_MISSING';
-    }
-    if (!candidate.transactionDate) {
-      if (
-        candidate.suggestedTransactionDate &&
-        candidate.suggestedTransactionDateSource === 'EMAIL_HEADER' &&
-        !Number.isNaN(Date.parse(candidate.suggestedTransactionDate))
-      ) {
-        return 'TRANSACTION_DATE_SUGGESTED';
-      }
-      return 'TRANSACTION_DATE_MISSING';
-    }
-    if (Number.isNaN(Date.parse(candidate.transactionDate))) {
-      return 'TRANSACTION_DATE_MISSING';
-    }
-    if (
-      !candidate.direction ||
-      (candidate.direction === 'TRANSFER' &&
-        candidate.movementClass !== 'TRANSFER_OUT' &&
-        candidate.movementClass !== 'TRANSFER_IN')
-    ) {
-      return 'DIRECTION_MISSING';
-    }
-    return null;
+    return financeValidationReviewReasons(candidate)[0] ?? null;
   }
 
   private movementClass(candidate: Candidate): MovementClass {
