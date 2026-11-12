@@ -34,6 +34,8 @@ const manifest = {
       fromAddress: 'notificaciones@bhd.com.do',
       fromDomain: 'bhd.com.do',
       receivedAt: '2026-11-02T12:00:00.000Z',
+      provider: 'groq',
+      model: 'test-model',
       classification: {
         semanticType: 'FIN_TRANSACTION',
         confidence: 0.93,
@@ -111,6 +113,7 @@ describe('Email sample import API (e2e)', () => {
     expect(response.body.data).toMatchObject({
       dryRun: true,
       summary: { included: 1, wouldCreateMovement: 1 },
+      items: [{ provider: 'groq', model: 'test-model' }],
     });
     expect(sampleImport.run).toHaveBeenCalledWith({
       userId: 'user-123',
@@ -121,6 +124,33 @@ describe('Email sample import API (e2e)', () => {
         dateFrom: undefined,
         dateTo: undefined,
       },
+    });
+  });
+
+  it('returns all review reasons in the sample manifest', async () => {
+    sampleImport.run.mockResolvedValueOnce({
+      ...manifest,
+      items: [
+        {
+          ...manifest.items[0],
+          prediction: {
+            outcome: 'REVIEW_REQUIRED',
+            reason: 'NO_LEDGER_TARGET',
+            reviewReasons: ['NO_LEDGER_TARGET', 'TRANSACTION_DATE_SUGGESTED'],
+          },
+        },
+      ],
+    });
+
+    const response = await request(app.getHttpServer())
+      .post('/api/intelligence/email/sample-import')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ dryRun: true, selection: { messageIds: ['message-1'] } })
+      .expect(201);
+
+    expect(response.body.data.items[0].prediction).toMatchObject({
+      reason: 'NO_LEDGER_TARGET',
+      reviewReasons: ['NO_LEDGER_TARGET', 'TRANSACTION_DATE_SUGGESTED'],
     });
   });
 

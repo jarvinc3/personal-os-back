@@ -100,7 +100,7 @@ function setup({
     recordConsumerOutcome: jest.fn().mockResolvedValue(undefined),
   };
   const service = new EmailSampleImportService(
-    prisma as never,
+    prisma,
     classificationService as never,
     consumers as never,
     signals as never,
@@ -221,6 +221,8 @@ describe('EmailSampleImportService', () => {
       status: 'INCLUDED',
       fromAddress: 'notificaciones@bhd.com.do',
       receivedAt: '2026-11-02T12:00:00.000Z',
+      provider: 'test-provider',
+      model: 'test-model',
       classification: {
         semanticType: 'FIN_TRANSACTION',
         confidence: 0.93,
@@ -247,6 +249,51 @@ describe('EmailSampleImportService', () => {
     expect(financeConsumer.consume).not.toHaveBeenCalled();
     expect(signals.recordConsumerOutcome).not.toHaveBeenCalled();
     expect(manifest.items[0].execution).toBeUndefined();
+  });
+
+  it('returns null provider and model when the preview used no inference model', async () => {
+    const { service } = setup({
+      classification: {
+        ...classified,
+        method: 'KNOWLEDGE',
+        provider: null,
+        model: null,
+      },
+    });
+
+    const manifest = await service.run({
+      userId: 'user-1',
+      dryRun: true,
+      selection: { messageIds: ['message-1'] },
+    });
+
+    expect(manifest.items[0]).toMatchObject({
+      provider: null,
+      model: null,
+    });
+  });
+
+  it('preserves every Finance review reason in the dry run prediction', async () => {
+    const { service, financeConsumer } = setup({
+      previewResult: {
+        outcome: 'REVIEW_REQUIRED',
+        reason: 'NO_LEDGER_TARGET',
+        reviewReasons: ['NO_LEDGER_TARGET', 'TRANSACTION_DATE_SUGGESTED'],
+      },
+    });
+
+    const manifest = await service.run({
+      userId: 'user-1',
+      dryRun: true,
+      selection: { messageIds: ['message-1'] },
+    });
+
+    expect(manifest.items[0].prediction).toMatchObject({
+      outcome: 'REVIEW_REQUIRED',
+      reason: 'NO_LEDGER_TARGET',
+      reviewReasons: ['NO_LEDGER_TARGET', 'TRANSACTION_DATE_SUGGESTED'],
+    });
+    expect(financeConsumer.consume).not.toHaveBeenCalled();
   });
 
   it('includes both card payment targets in the dry run prediction', async () => {
