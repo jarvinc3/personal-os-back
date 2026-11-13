@@ -14,6 +14,7 @@ import { knowledgeKeys } from '../knowledge/knowledge-normalizer';
 function fixture(
   options: {
     body?: string;
+    messageId?: string;
     fromAddress?: string;
     fromDomain?: string;
     subject?: string;
@@ -57,10 +58,12 @@ function fixture(
   };
   const prisma = {
     aiEmailMessage: {
-      findMany: jest.fn().mockResolvedValue([{ id: 'message-1' }]),
+      findMany: jest
+        .fn()
+        .mockResolvedValue([{ id: options.messageId ?? 'message-1' }]),
       updateMany: jest.fn().mockResolvedValue({ count: 1 }),
       findFirst: jest.fn().mockResolvedValue({
-        id: 'message-1',
+        id: options.messageId ?? 'message-1',
         receivedAt: options.receivedAt ?? new Date('2026-10-01T12:00:00Z'),
         providerThreadId: 'thread-1',
         fromAddress: options.fromAddress ?? 'notice@example.com',
@@ -612,7 +615,7 @@ describe('AiEmailClassificationService direct message operations', () => {
       subject: 'Transacciones entre mis productos',
       body: 'Producto origen: XXXXXXX0016 Producto destino: XXXXXXXXXXXX6506 Descripción: Pago de saldo al corte Monto: RD$ 1,000.00 Número de confirmación: M01-1111-2222-3333-4 Fecha y hora de la transacción: 06/11/2026 - 11:12 AM',
       receivedAt: new Date('2026-11-06T15:12:58Z'),
-      productHints: { cardLast4: ['6506'], accountLast4: ['0016'] },
+      productHints: { creditCardLast4: ['6506'], ownProductLast4: ['0016'] },
     });
 
     const preview = await service.previewClassification({
@@ -647,6 +650,51 @@ describe('AiEmailClassificationService direct message operations', () => {
     });
 
     expect(inference.infer).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps the deterministic classification in an audit sample and only measures with the model', async () => {
+    // El id cae en la muestra de auditoría de recall: hash del id múltiplo de 100.
+    const auditMessageId = 'audit-sample-93';
+    const { service, inference } = fixture({
+      messageId: auditMessageId,
+      role: 'ADMIN',
+      fromDomain: 'bhd.com.do',
+      subject: 'BHD Notificación de Transacciones',
+      body: 'BHD Notificación de Transacciones Visa Premia # 0000 Detalle de Transacciones Fecha Moneda Monto Comercio Estado Tipo 06/11/2026 11:44 am RD $151.30 UBER*RIDES Aprobada Compra',
+      receivedAt: new Date('2026-11-06T15:45:00Z'),
+      knowledge: [
+        {
+          id: 'k1',
+          knowledgeType: 'EMAIL_TEMPLATE',
+          knowledgeKey: 'bhd',
+          scope: 'USER',
+          payload: {
+            label: {
+              relevance: false,
+              semanticType: 'MARKETING',
+              routes: [],
+            },
+          },
+        },
+      ],
+    });
+
+    const preview = await service.previewClassification({
+      userId: 'user-1',
+      messageId: auditMessageId,
+    });
+
+    expect(inference.infer).toHaveBeenCalledTimes(1);
+    expect(preview).toMatchObject({
+      method: 'DETERMINISTIC',
+      provider: null,
+      model: null,
+      auditSample: true,
+      classification: {
+        semanticType: 'FIN_TRANSACTION',
+        transaction: { movementClass: 'PURCHASE', direction: 'DEBIT' },
+      },
+    });
   });
 
   it('reports a missing budget in the preview without calling the model', async () => {

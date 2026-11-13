@@ -3,12 +3,15 @@ import type {
   EmailProductHints,
   EmailProductHintsPort,
 } from '@personal-os/contracts';
+import type { FinCardType } from '@personal-os/database';
 import { PrismaService } from '@personal-os/database';
+
+const CREDIT_CARD: FinCardType = 'CREDIT';
 
 /**
  * Productos propios con últimos 4. Un correo BHD nombra cuentas y tarjetas con
- * esos dígitos, así que la clasificación necesita saber cuáles existen antes de
- * decidir si un movimiento es una compra, una transferencia o un pago de tarjeta.
+ * esos dígitos, así que la clasificación necesita saber cuáles existen y cuáles
+ * son de crédito: solo un pago a una tarjeta de crédito es un pago de tarjeta.
  */
 @Injectable()
 export class FinanceEmailProductHints implements EmailProductHintsPort {
@@ -18,7 +21,7 @@ export class FinanceEmailProductHints implements EmailProductHintsPort {
     const [cards, accounts] = await Promise.all([
       this.prisma.finCard.findMany({
         where: { userId, isActive: true, lastFour: { not: null } },
-        select: { lastFour: true },
+        select: { lastFour: true, type: true },
       }),
       this.prisma.finAccount.findMany({
         where: { userId, isActive: true, accountNumberLast4: { not: null } },
@@ -26,10 +29,19 @@ export class FinanceEmailProductHints implements EmailProductHintsPort {
       }),
     ]);
     return {
-      cardLast4: lastFourOf(cards.map((card) => card.lastFour)),
-      accountLast4: lastFourOf(
-        accounts.map((account) => account.accountNumberLast4),
+      creditCardLast4: lastFourOf(
+        cards
+          .filter((card) => card.type === CREDIT_CARD)
+          .map((card) => card.lastFour),
       ),
+      ownProductLast4: [
+        ...lastFourOf(
+          cards
+            .filter((card) => card.type !== CREDIT_CARD)
+            .map((card) => card.lastFour),
+        ),
+        ...lastFourOf(accounts.map((account) => account.accountNumberLast4)),
+      ],
     };
   }
 }

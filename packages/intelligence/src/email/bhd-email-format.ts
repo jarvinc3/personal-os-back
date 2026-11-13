@@ -30,9 +30,15 @@ const INCOMING_PRODUCT_PATTERN = /producto\s*:\s*(\S{4,40})/i;
 const INCOMING_TRANSFER_PATTERN = /has recibido una transferencia/i;
 const INCOMING_SENDER_PATTERN = /ordenante:\s*(.{1,160}?)monto:/i;
 const OWN_PRODUCTS_PATTERN = /producto origen:[\s\S]*producto destino:/i;
+/** La variante a otros bancos declara que el destino no es un producto propio. */
+const OTHER_BANKS_TRANSFER_PATTERN =
+  /transacciones entre productos bhd y a otros bancos/i;
 const STATEMENT_NOTICE_PATTERN =
   /ya est[aá]n disponibles los estados de cuenta/i;
 const CARD_LAST4_PATTERN = /#\s*(\d{4})\b/;
+/** La alerta de tarjeta se reconoce por su cabecera y su tabla, no por la fila. */
+const CARD_ALERT_HEADER_PATTERN = /bhd notificaci[oó]n de transacciones/i;
+const CARD_ALERT_SECTION_PATTERN = /detalle de transacciones/i;
 
 const HTML_ENTITIES: Record<string, string> = {
   '&aacute;': 'á',
@@ -97,6 +103,12 @@ function readCardAlert({
   text: string;
   receivedAt: Date;
 }): EmailClassification | null {
+  if (
+    !CARD_ALERT_HEADER_PATTERN.test(text) ||
+    !CARD_ALERT_SECTION_PATTERN.test(text)
+  ) {
+    return null;
+  }
   const row = readBhdCardAlertRow(text);
   if (!row) {
     return null;
@@ -150,31 +162,43 @@ function readOwnProductsTransfer({
       ...readVerifiedDateAndCurrency({ text, amount, receivedAt }),
       bankReference: reference,
       accountNumberLast4: originLast4,
-      ...decideOwnProductsMovement({ destinationLast4, productHints }),
+      ...decideOwnProductsMovement({
+        destinationLast4,
+        productHints,
+        otherBankDestination: OTHER_BANKS_TRANSFER_PATTERN.test(text),
+      }),
     },
   });
 }
 
 /**
- * El destino decide la clase: una tarjeta es un pago de tarjeta y una cuenta es
- * una transferencia. Si no es ninguno de los productos propios, la clase queda
- * sin decidir y el motor la manda a revisión sin inventar el lado.
+ * El destino decide la clase: solo una tarjeta de crédito es un pago de tarjeta,
+ * porque el pago de Finance exige una tarjeta de crédito. Una cuenta o una
+ * tarjeta de débito son una transferencia entre productos, y la variante a otros
+ * bancos también sale del origen sin inventar contraparte. Si el destino no es
+ * ninguno de los productos propios, la clase queda sin decidir y el motor la
+ * manda a revisión sin inventar el lado.
  */
 function decideOwnProductsMovement({
   destinationLast4,
   productHints,
+  otherBankDestination,
 }: {
   destinationLast4: string;
   productHints: EmailProductHints;
+  otherBankDestination: boolean;
 }): Pick<BhdTransaction, 'movementClass' | 'direction' | 'last4'> {
-  if (productHints.cardLast4.includes(destinationLast4)) {
+  if (productHints.creditCardLast4.includes(destinationLast4)) {
     return {
       movementClass: 'CARD_PAYMENT',
       direction: 'DEBIT',
       last4: destinationLast4,
     };
   }
-  if (productHints.accountLast4.includes(destinationLast4)) {
+  if (
+    otherBankDestination ||
+    productHints.ownProductLast4.includes(destinationLast4)
+  ) {
     return { movementClass: 'TRANSFER_OUT', direction: 'TRANSFER' };
   }
   return { movementClass: 'OTHER', direction: 'TRANSFER' };

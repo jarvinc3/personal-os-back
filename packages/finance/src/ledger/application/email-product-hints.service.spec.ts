@@ -2,7 +2,7 @@ import type { PrismaService } from '@personal-os/database';
 import { FinanceEmailProductHints } from './email-product-hints.service';
 
 function service(
-  cards: { lastFour: string | null }[],
+  cards: { lastFour: string | null; type: 'CREDIT' | 'DEBIT' }[],
   accounts: { accountNumberLast4: string | null }[],
 ) {
   const prisma = {
@@ -16,15 +16,18 @@ function service(
 }
 
 describe('FinanceEmailProductHints', () => {
-  it('returns the last four of the active cards and accounts of the owner', async () => {
+  it('separates credit cards from the other products of the owner', async () => {
     const { subject, prisma } = service(
-      [{ lastFour: '6506' }],
+      [
+        { lastFour: '6506', type: 'CREDIT' },
+        { lastFour: '1111', type: 'DEBIT' },
+      ],
       [{ accountNumberLast4: '0016' }, { accountNumberLast4: '0024' }],
     );
 
     await expect(subject.readEmailProductHints('user-1')).resolves.toEqual({
-      cardLast4: ['6506'],
-      accountLast4: ['0016', '0024'],
+      creditCardLast4: ['6506'],
+      ownProductLast4: ['1111', '0016', '0024'],
     });
     expect(prisma.finCard.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -46,8 +49,8 @@ describe('FinanceEmailProductHints', () => {
     const { subject } = service([], []);
 
     await expect(subject.readEmailProductHints('user-1')).resolves.toEqual({
-      cardLast4: [],
-      accountLast4: [],
+      creditCardLast4: [],
+      ownProductLast4: [],
     });
   });
 });

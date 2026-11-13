@@ -436,8 +436,12 @@ export class AiEmailClassificationService {
     let method: ClassificationMethod = knownLabel
       ? 'KNOWLEDGE'
       : 'DETERMINISTIC';
-    if (!auditSample && !classification) {
-      classification = await this.parseBhdFormat({ userId, message });
+    if (!classification) {
+      const bhdFormat = await this.parseBhdFormat({ userId, message });
+      if (bhdFormat) {
+        classification = bhdFormat;
+        method = 'DETERMINISTIC';
+      }
     }
     let provider: string | null = null;
     let model: string | null = null;
@@ -460,10 +464,17 @@ export class AiEmailClassificationService {
         recordTelemetry,
         onModelCall,
       });
-      classification = validateModelClassification(inferred.value);
-      method = 'MODEL';
-      provider = inferred.provider;
-      model = inferred.model;
+      const inferredClassification = validateModelClassification(
+        inferred.value,
+      );
+      // En la muestra de auditoría el modelo solo mide: si el texto ya fijó la
+      // clasificación, esa manda y el modelo no la sobrescribe.
+      if (!classification) {
+        classification = inferredClassification;
+        method = 'MODEL';
+        provider = inferred.provider;
+        model = inferred.model;
+      }
     }
 
     if (!classification) {

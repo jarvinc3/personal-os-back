@@ -4,8 +4,15 @@ import type { EmailProductHints } from '@personal-os/contracts';
 import { parseBhdFixedFormat } from './bhd-email-format';
 
 const FIXTURES_DIRECTORY = resolve(__dirname, '../../test/fixtures/bhd-emails');
+const FINANCE_FIXTURES_DIRECTORY = resolve(
+  __dirname,
+  '../../../finance/test/fixtures/bank-emails/bhd',
+);
 
-const noProducts: EmailProductHints = { cardLast4: [], accountLast4: [] };
+const noProducts: EmailProductHints = {
+  creditCardLast4: [],
+  ownProductLast4: [],
+};
 
 type BhdEmailFixture = {
   from: string;
@@ -17,6 +24,12 @@ type BhdEmailFixture = {
 function readFixture(name: string): BhdEmailFixture {
   return JSON.parse(
     readFileSync(join(FIXTURES_DIRECTORY, name), 'utf8'),
+  ) as BhdEmailFixture;
+}
+
+function readFinanceFixture(name: string): BhdEmailFixture {
+  return JSON.parse(
+    readFileSync(join(FINANCE_FIXTURES_DIRECTORY, `${name}.json`), 'utf8'),
   ) as BhdEmailFixture;
 }
 
@@ -101,7 +114,7 @@ describe('parseBhdFixedFormat', () => {
   it('keeps the transfer side in the origin when the destination is an account', () => {
     const parsed = parse({
       fixture: readFixture('transferencia-entre-productos-757-62.json'),
-      productHints: { cardLast4: ['6506'], accountLast4: ['0024'] },
+      productHints: { creditCardLast4: [], ownProductLast4: ['0024'] },
     });
 
     expect(parsed?.transaction).toMatchObject({
@@ -127,7 +140,7 @@ describe('parseBhdFixedFormat', () => {
         'Fecha y hora de la transacción: 06/11/2026 - 10:14 AM',
       ].join(' '),
       subject: 'Transacciones entre mis productos',
-      productHints: { cardLast4: ['6506'], accountLast4: [] },
+      productHints: { creditCardLast4: ['6506'], ownProductLast4: [] },
       receivedAt: new Date('2026-11-06T14:14:36Z'),
     });
 
@@ -140,6 +153,30 @@ describe('parseBhdFixedFormat', () => {
     });
   });
 
+  it('reads a transfer when the destination is a debit card', () => {
+    const parsed = parse({
+      body: [
+        'Producto origen: XXXXXXX0016',
+        'Producto destino: XXXXXXXXXXXX6506',
+        'Descripción: Pago de saldo al corte',
+        'Monto: RD$ 12,345.67',
+        'Beneficiario: TITULAR DE PRUEBA',
+        'Número de confirmación: M01-1111-2222-3333-4',
+        'Fecha y hora de la transacción: 06/11/2026 - 10:14 AM',
+      ].join(' '),
+      subject: 'Transacciones entre mis productos',
+      productHints: { creditCardLast4: [], ownProductLast4: ['6506'] },
+      receivedAt: new Date('2026-11-06T14:14:36Z'),
+    });
+
+    expect(parsed?.transaction).toMatchObject({
+      movementClass: 'TRANSFER_OUT',
+      direction: 'TRANSFER',
+      accountNumberLast4: '0016',
+    });
+    expect(parsed?.transaction?.last4).toBeUndefined();
+  });
+
   it('leaves the class undecided when the destination is not a known product', () => {
     const parsed = parse({
       fixture: readFixture('transferencia-entre-productos-757-62.json'),
@@ -150,6 +187,31 @@ describe('parseBhdFixedFormat', () => {
       direction: 'TRANSFER',
       accountNumberLast4: '0016',
     });
+  });
+
+  it('reads the other banks variant as an outgoing transfer without a counterparty', () => {
+    const fixture = readFinanceFixture('transferencia-otros-bancos');
+    const parsed = parse({ fixture, productHints: noProducts });
+
+    expect(parsed?.transaction).toMatchObject({
+      amount: 1500,
+      currency: 'DOP',
+      transactionDate: '2026-10-10T23:05:00.000Z',
+      movementClass: 'TRANSFER_OUT',
+      direction: 'TRANSFER',
+      accountNumberLast4: '0016',
+      bankReference: 'M02-2222-3333-4444-5',
+    });
+    expect(parsed?.transaction?.last4).toBeUndefined();
+    expect(parsed?.transaction?.merchant).toBeUndefined();
+  });
+
+  it('leaves the beneficiary copy of another bank to the model', () => {
+    const fixture = readFinanceFixture(
+      'transferencia-otros-bancos-confirmacion',
+    );
+
+    expect(parse({ fixture, productHints: noProducts })).toBeNull();
   });
 
   it('does not classify the own products format without product hints', () => {
@@ -210,6 +272,20 @@ describe('parseBhdFixedFormat', () => {
         body: 'Solicita tu Tarjeta Preaprobada BHD y conoce las ofertas del mes.',
       }),
     ).toBeNull();
+  });
+
+  it('leaves a statement notice with a transaction row to the notice reader', () => {
+    const parsed = parse({
+      subject:
+        'Ya están disponibles los estados de cuenta de octubre de tu cuenta de ahorro en BHD',
+      body: [
+        'Ya están disponibles los estados de tus cuentas de ahorro.',
+        '06/11/2026 11:44 am RD $151.30 UBER*RIDES Aprobada Compra',
+      ].join(' '),
+    });
+
+    expect(parsed?.semanticType).toBe('FIN_STATEMENT_NOTICE');
+    expect(parsed?.transaction).toBeUndefined();
   });
 
   it('leaves a statement notice with amounts to the model', () => {
@@ -664,7 +740,10 @@ describe('BHD pilot v5 regression', () => {
         subject,
         body,
         receivedAt: new Date(receivedAt),
-        productHints: { cardLast4: ['6506'], accountLast4: ['0016', '0024'] },
+        productHints: {
+          creditCardLast4: ['6506'],
+          ownProductLast4: ['0016', '0024'],
+        },
       });
 
       if (expected === null) {
