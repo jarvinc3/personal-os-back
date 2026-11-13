@@ -434,8 +434,8 @@ export class EmailProductProposalsService {
       const signal = toRoutedSignal(row);
       const preview = await consumer.preview?.(signal);
       if (
-        preview?.outcome !== 'REVIEW_REQUIRED' ||
-        !isProductTargetReview(preview.reviewReasons ?? [preview.reason ?? ''])
+        preview?.outcome === 'REVIEW_REQUIRED' &&
+        isProductTargetReview(preview.reviewReasons ?? [preview.reason ?? ''])
       ) {
         continue;
       }

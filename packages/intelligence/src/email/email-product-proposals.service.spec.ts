@@ -255,7 +255,7 @@ describe('EmailProductProposalsService', () => {
         ],
       });
     const prisma = (service as any).prisma;
-    await prisma.aiEmailProductProposalEvidence.createMany({
+    prisma.aiEmailProductProposalEvidence.createMany({
       data: [
         {
           userId: 'user-1',
@@ -275,6 +275,7 @@ describe('EmailProductProposalsService', () => {
       accountType: 'SAVINGS',
       accountNumber: '0000000016',
     });
+    financeConsumer.preview.mockResolvedValue({ outcome: 'APPLIED' });
     const result = await service.approve('user-1', 'proposal-1');
     const secondApproval = await service.approve('user-1', 'proposal-1');
 
@@ -300,6 +301,59 @@ describe('EmailProductProposalsService', () => {
     expect(financeConsumer.consume).toHaveBeenCalledTimes(1);
     expect(signals.recordConsumerOutcome).toHaveBeenCalledTimes(1);
     expect(proposals.get('proposal-1')?.approvedProductId).toBe('account-1');
+  });
+
+  it('consumes and records the remaining review after the product blocker is resolved', async () => {
+    const row = {
+      id: 'proposal-1',
+      userId: 'user-1',
+      productType: 'ACCOUNT',
+      status: 'PENDING',
+      draft: draft(),
+      approvedProductId: null,
+      createdAt: new Date('2026-11-06T16:00:00.000Z'),
+    };
+    const { service, prisma, financeConsumer, signals } = createService({
+      proposal: row,
+      signals: [storedSignal('message-1')],
+    });
+    prisma.aiEmailProductProposalEvidence.createMany({
+      data: [
+        {
+          userId: 'user-1',
+          proposalId: 'proposal-1',
+          messageId: 'message-1',
+          evidence: {
+            label: 'Producto origen',
+            lastFour: '0016',
+            side: 'SOURCE',
+          },
+        },
+      ],
+    });
+    financeConsumer.preview.mockResolvedValue({
+      outcome: 'REVIEW_REQUIRED',
+      reason: 'TRANSFER_DIRECTION_AMBIGUOUS',
+      reviewReasons: ['TRANSFER_DIRECTION_AMBIGUOUS'],
+    });
+    financeConsumer.consume.mockResolvedValue({
+      outcome: 'REVIEW_REQUIRED',
+      reason: 'TRANSFER_DIRECTION_AMBIGUOUS',
+      domainReferences: [],
+    });
+
+    const result = await service.approve('user-1', 'proposal-1');
+
+    expect(financeConsumer.consume).toHaveBeenCalledTimes(1);
+    expect(signals.recordConsumerOutcome).toHaveBeenCalledWith(
+      'user-1',
+      'signal-message-1',
+      expect.objectContaining({
+        outcome: 'REVIEW_REQUIRED',
+        reason: 'TRANSFER_DIRECTION_AMBIGUOUS',
+      }),
+    );
+    expect(result.approval.reevaluatedSignals).toBe(1);
   });
 
   it('does not create a proposal when Finance already has the matching product', async () => {
