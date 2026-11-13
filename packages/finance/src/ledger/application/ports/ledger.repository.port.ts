@@ -231,6 +231,19 @@ export interface LedgerRepositoryPort {
     },
   ): Promise<LedgerTransactionRow[]>;
 
+  findReverseCandidatesByCard(
+    userId: string,
+    params: {
+      amount: number;
+      currency: string;
+      cardId: string;
+      accountId: string | null;
+      from: Date;
+      to: Date;
+      statuses?: FinTxStatus[];
+    },
+  ): Promise<LedgerTransactionRow[]>;
+
   findImportedTransactionByEmailMessageId(
     userId: string,
     messageId: string,
