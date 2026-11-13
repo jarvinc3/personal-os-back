@@ -25,7 +25,7 @@ const FINANCE_ROUTE = 'FINANCE';
 const OWN_PRODUCTS_ORIGIN_PATTERN = /producto origen:\s*(\S{4,40})/i;
 const OWN_PRODUCTS_DESTINATION_PATTERN = /producto destino:\s*(\S{4,40})/i;
 const CONFIRMATION_PATTERN = /n[uú]mero de confirmaci[oó]n:\s*(\S{6,60})/i;
-const MONTO_PATTERN = /monto:\s*(?:RD\$|US\$)?\s*([\d.,]+)/i;
+const AMOUNT_PATTERN = /monto:\s*(?:RD\$|US\$)?\s*([\d.,]+)/i;
 const INCOMING_PRODUCT_PATTERN = /producto\s*:\s*(\S{4,40})/i;
 const INCOMING_TRANSFER_PATTERN = /has recibido una transferencia/i;
 const INCOMING_SENDER_PATTERN = /ordenante:\s*(.{1,160}?)monto:/i;
@@ -110,7 +110,7 @@ function readCardAlert({
     transaction: {
       kind: row.status === 'PENDING' ? 'PENDING' : 'TRANSACTION',
       amount: row.amount,
-      ...readAmountContext({ text, amount: row.amount, receivedAt }),
+      ...readVerifiedDateAndCurrency({ text, amount: row.amount, receivedAt }),
       direction: reversal ? 'CREDIT' : 'DEBIT',
       movementClass: reversal ? 'REFUND' : 'PURCHASE',
       bankStatusNormalized: row.status,
@@ -147,10 +147,10 @@ function readOwnProductsTransfer({
     transaction: {
       kind: 'TRANSACTION',
       amount,
-      ...readAmountContext({ text, amount, receivedAt }),
+      ...readVerifiedDateAndCurrency({ text, amount, receivedAt }),
       bankReference: reference,
       accountNumberLast4: originLast4,
-      ...readOwnProductsSide({ destinationLast4, productHints }),
+      ...decideOwnProductsMovement({ destinationLast4, productHints }),
     },
   });
 }
@@ -160,7 +160,7 @@ function readOwnProductsTransfer({
  * una transferencia. Si no es ninguno de los productos propios, la clase queda
  * sin decidir y el motor la manda a revisión sin inventar el lado.
  */
-function readOwnProductsSide({
+function decideOwnProductsMovement({
   destinationLast4,
   productHints,
 }: {
@@ -200,7 +200,7 @@ function readIncomingTransfer({
     transaction: {
       kind: 'TRANSACTION',
       amount,
-      ...readAmountContext({ text, amount, receivedAt }),
+      ...readVerifiedDateAndCurrency({ text, amount, receivedAt }),
       movementClass: 'TRANSFER_IN',
       direction: 'TRANSFER',
       accountNumberLast4,
@@ -214,7 +214,7 @@ function readStatementNotice({
 }: {
   text: string;
 }): EmailClassification | null {
-  if (!STATEMENT_NOTICE_PATTERN.test(text) || MONTO_PATTERN.test(text)) {
+  if (!STATEMENT_NOTICE_PATTERN.test(text) || AMOUNT_PATTERN.test(text)) {
     return null;
   }
   return validateEmailClassification({
@@ -243,7 +243,7 @@ function financeClassification({
  * La fecha y la moneda salen del texto con los mismos lectores que el anclaje.
  * Si el texto no las verifico, no se guardan: el movimiento queda en revisión.
  */
-function readAmountContext({
+function readVerifiedDateAndCurrency({
   text,
   amount,
   receivedAt,
@@ -268,7 +268,7 @@ function readCardLast4(text: string): Pick<BhdTransaction, 'last4'> {
 }
 
 function readAmount(text: string): number | null {
-  const value = readGroup(MONTO_PATTERN, text);
+  const value = readGroup(AMOUNT_PATTERN, text);
   if (!value) {
     return null;
   }

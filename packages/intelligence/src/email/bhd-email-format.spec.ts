@@ -688,3 +688,27 @@ describe('BHD pilot v5 regression', () => {
     expect(run()).toEqual(run());
   });
 });
+
+describe('BHD card alert status', () => {
+  it('keeps a pending or declined alert from moving money', () => {
+    const pending = parse({
+      body: `${CARD_ALERT_HEADER} 06/11/2026 11:44 am RD $151.30 UBER*RIDES Pendiente Compra`,
+    });
+    const declined = parse({
+      body: `${CARD_ALERT_HEADER} 06/11/2026 11:44 am RD $151.30 UBER*RIDES Rechazada Compra`,
+    });
+
+    expect(pending?.transaction).toMatchObject({
+      kind: 'PENDING',
+      bankStatusNormalized: 'PENDING',
+      movementClass: 'PURCHASE',
+      statusEvidence: 'Estado: Pendiente',
+    });
+    expect(declined?.transaction).toMatchObject({
+      kind: 'TRANSACTION',
+      bankStatusNormalized: 'DECLINED',
+      movementClass: 'PURCHASE',
+      statusEvidence: 'Estado: Rechazada',
+    });
+  });
+});

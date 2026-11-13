@@ -1,3 +1,8 @@
+/**
+ * Anclaje de los correos BHD. También expone los lectores del texto (fecha,
+ * moneda y fila de la alerta de tarjeta) que usa la clasificación determinista de
+ * `bhd-email-format`, porque los dos leen el mismo correo.
+ */
 import {
   validateEmailClassification,
   type EmailClassification,
