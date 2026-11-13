@@ -30,6 +30,7 @@ let cardId: string;
 let accountId: string;
 let otherAccountId: string;
 let otherCardId: string;
+let creditCardPurchaseId: string;
 const expectedIds: string[] = [];
 
 function purchase({
@@ -114,7 +115,7 @@ beforeAll(async () => {
       institutionId: institution.id,
       accountId,
       name: 'Tarjeta del piloto',
-      type: 'CREDIT',
+      type: 'DEBIT',
       lastFour: '6506',
     },
     select: { id: true },
@@ -177,6 +178,13 @@ beforeAll(async () => {
     account: null,
     type: 'CREDIT',
   });
+  const creditCardPurchase = await purchase({
+    date: new Date('2026-11-05T10:00:00.000Z'),
+    card: otherCardId,
+    account: null,
+    amount: 55,
+  });
+  creditCardPurchaseId = creditCardPurchase.id;
 });
 
 afterAll(async () => {
@@ -204,5 +212,19 @@ describe('Card reversal candidates', () => {
     expect(candidates.map(({ id }) => id).sort()).toEqual(
       [...expectedIds].sort(),
     );
+  });
+
+  it('matches a purchase without account on a card without account', async () => {
+    const candidates = await repository.findReverseCandidatesByCard(userId, {
+      amount: 55,
+      currency: 'DOP',
+      cardId: otherCardId,
+      accountId: null,
+      from: windowFrom,
+      to: reversalDate,
+      statuses: ['CONFIRMED'],
+    });
+
+    expect(candidates.map(({ id }) => id)).toEqual([creditCardPurchaseId]);
   });
 });
