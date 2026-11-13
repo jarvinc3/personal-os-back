@@ -13,6 +13,7 @@ import { ThrottlerModule } from '@nestjs/throttler';
 import {
   AiModule,
   AiSignalConsumerRegistry,
+  EmailProductProposalCatalogRegistry,
   INTELLIGENCE_SETTINGS_DESCRIPTOR,
 } from '@personal-os/intelligence';
 import { AI_CAPABILITY_PROVIDERS } from '@personal-os/contracts';
@@ -29,6 +30,7 @@ import { PrismaModule } from '@personal-os/database';
 import {
   FINANCE_SETTINGS_DESCRIPTOR,
   FinanceAiCapabilities,
+  FinanceEmailProductProposalCatalog,
   FinanceModule,
 } from '@personal-os/finance';
 import { NotificationsModule } from '@personal-os/notifications';
@@ -55,6 +57,17 @@ class AiSignalConsumerCompositionService implements OnModuleInit {
     this.registry.register(this.finance);
   }
 }
+
+@Injectable()
+class EmailProductProposalCatalogCompositionService implements OnModuleInit {
+  constructor(
+    private readonly registry: EmailProductProposalCatalogRegistry,
+    private readonly catalog: FinanceEmailProductProposalCatalog,
+  ) {}
+  onModuleInit(): void {
+    this.registry.register(this.catalog);
+  }
+}
 const bullMqEnabled = isBullMqEnabledFromProcessEnv();
 const bullBoardEnabled = isBullBoardEnabledFromProcessEnv();
 @Module({
@@ -66,6 +79,7 @@ const bullBoardEnabled = isBullBoardEnabledFromProcessEnv();
     },
     AiCapabilityCompositionService,
     AiSignalConsumerCompositionService,
+    EmailProductProposalCatalogCompositionService,
   ],
   imports: [
     ConfigModule.forRoot({

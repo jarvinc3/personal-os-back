@@ -1,6 +1,7 @@
 export { AiCoreModule } from './ai-core.module';
 export { AiSignalConsumerRegistry } from './signals/ai-signal-consumer.registry';
 export { EmailSampleImportService } from './email/email-sample-import.service';
+export { EmailProductProposalCatalogRegistry } from './email/email-product-proposal-catalog.registry';
 export type {
   SampleImportManifest,
   SampleManifestItem,

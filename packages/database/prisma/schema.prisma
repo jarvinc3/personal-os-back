@@ -26,6 +26,8 @@ model User {
   aiEmailClassifications         AiEmailClassification[]
   aiEmailModelBudget             AiEmailModelBudget?
   aiSignals                      AiSignal[]
+  aiEmailProductProposals        AiEmailProductProposal[]
+  aiEmailProductProposalEvidence AiEmailProductProposalEvidence[]
   aiConversations                AiConversation[]
   aiSignalEvidence               AiSignalEvidence[]
   aiSettings                     UserAiSettings?
@@ -236,6 +238,22 @@ enum AiSignalStatus {
   FAILED
 
   @@map("ai_signal_status")
+}
+
+enum AiEmailProductProposalType {
+  ACCOUNT
+  CARD
+
+  @@map("ai_email_product_proposal_type")
+}
+
+enum AiEmailProductProposalStatus {
+  PENDING
+  APPROVING
+  APPROVED
+  DISCARDED
+
+  @@map("ai_email_product_proposal_status")
 }
 
 enum AiDatasetPartition {
@@ -550,6 +568,7 @@ model AiEmailMessage {
   classifications         AiEmailClassification[]
   signals                 AiSignal[]              @relation("AiSignalEmailMessage")
   signalEvidence          AiSignalEvidence[]      @relation("AiSignalEvidenceEmailMessage")
+  productProposalEvidence AiEmailProductProposalEvidence[]
 
   @@unique([connectionId, providerMessageId], map: "ai_email_messages_connection_provider_id_key")
   @@unique([id, userId], map: "ai_email_messages_id_user_id_key")
@@ -626,6 +645,41 @@ model AiSignalEvidence {
   @@map("ai_signal_evidence")
 }
 
+model AiEmailProductProposal {
+  id                String                       @id @default(dbgenerated("(extensions.uuid_generate_v4())::text"))
+  userId            String                       @map("user_id")
+  productType       AiEmailProductProposalType   @map("product_type")
+  status            AiEmailProductProposalStatus @default(PENDING)
+  deduplicationKey  String                       @map("deduplication_key")
+  draft             Json
+  approvedProductId String?                      @map("approved_product_id")
+  createdAt         DateTime                     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime                     @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  user              User                         @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  evidence          AiEmailProductProposalEvidence[]
+
+  @@unique([userId, deduplicationKey], map: "ai_email_product_proposals_user_dedupe_key")
+  @@unique([id, userId], map: "ai_email_product_proposals_id_user_id_key")
+  @@index([userId, status, createdAt(sort: Desc)], map: "ai_email_product_proposals_user_status_idx")
+  @@map("ai_email_product_proposals")
+}
+
+model AiEmailProductProposalEvidence {
+  id         String                 @id @default(dbgenerated("(extensions.uuid_generate_v4())::text"))
+  userId     String                 @map("user_id")
+  proposalId String                 @map("proposal_id")
+  messageId  String                 @map("message_id")
+  evidence   Json
+  createdAt  DateTime               @default(now()) @map("created_at") @db.Timestamptz(6)
+  user       User                   @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  proposal   AiEmailProductProposal @relation(fields: [proposalId, userId], references: [id, userId], onDelete: Cascade, onUpdate: NoAction)
+  message    AiEmailMessage         @relation(fields: [messageId, userId], references: [id, userId], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([proposalId, messageId], map: "ai_email_product_proposal_evidence_proposal_message_key")
+  @@index([userId, proposalId], map: "ai_email_product_proposal_evidence_user_proposal_idx")
+  @@map("ai_email_product_proposal_evidence")
+}
+
 model AiEmailModelBudget {
   userId     String   @id @map("user_id")
   budgetDate DateTime @map("budget_date") @db.Date
@@ -689,11 +743,11 @@ model FinAccount {
   institutionId              String?                      @map("institution_id")
   name                       String
   type                       FinAccountType
-  /// Bank account number encrypted at rest (AES-256-GCM, DATA_ENCRYPTION_KEY). Null for CASH and legacy rows.
+  /// Optional bank account number encrypted at rest (AES-256-GCM, DATA_ENCRYPTION_KEY); suffix-only bank accounts are supported.
   accountNumber              String?                      @map("account_number")
   /// Last four digits for display and email matching, kept out of the ciphertext.
   accountNumberLast4         String?                      @map("account_number_last4")
-  /// HMAC-SHA256 of the account number with DATA_ENCRYPTION_KEY; enforces one account per number.
+  /// Optional HMAC-SHA256 of a full account number with DATA_ENCRYPTION_KEY; suffix-only accounts have no blind index.
   accountNumberHash          String?                      @map("account_number_hash")
   /// Fallback ledger target for this institution when an email has no account digits.
   isDefaultForInstitution    Boolean                      @default(false) @map("is_default_for_institution")

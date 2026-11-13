@@ -6,6 +6,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.1.0/) y [Se
 
 ### Agregado
 
+- #368: propone instituciones, cuentas y tarjetas detectadas en señales BHD de revisión con borradores editables, evidencia mínima y deduplicación; no crea productos hasta la aprobación explícita, y reevalúa las señales dependientes de forma idempotente. Las cuentas admiten últimos cuatro sin número completo.
 - #362: el preview `sample-import` devuelve proveedor y modelo por correo sin persistirlos, y enumera todos los motivos de revisión ordenados por gravedad.
 - #354: los fallos de Groq y OpenRouter dejan una línea de log por intento con proveedor, modelo, estado HTTP, reintento, fallback y causa (`rate_limit`, `quota`, `auth`, `server`, `network` o `unknown`), y la telemetría del fallo final conserva `cause`, `status` y `retryable` en `errorCode`. El mensaje del SDK se sanea y se trunca; no se registran claves, cabecera `Authorization` ni cuerpos del proveedor.
 - #334: empareja las dos patas de una transferencia importada por correo después de escribirla, con un candidato único y las reglas existentes (tipo opuesto, institución distinta, moneda, monto con tolerancia de comisión). Con la misma referencia bancaria la ventana sube de tres a siete días; sin referencia se conservan tres. Con varios candidatos no se elige ninguno y `TRANSFER_PAIR_AMBIGUOUS` queda en la evidencia de la pata.

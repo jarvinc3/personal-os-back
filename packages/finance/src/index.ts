@@ -1,5 +1,6 @@
 export { FinanceEventsModule } from './events/events.module';
 export { FinanceFacade } from './finance.facade';
+export { FinanceEmailProductProposalCatalog } from './catalog/application/email-product-proposal-catalog';
 export { FinanceAiCapabilities } from './ai/finance-ai-capabilities';
 export { FinanceModule } from './finance.module';
 export { FinanceSignalConsumer } from './signals/finance-signal-consumer';
